@@ -24,7 +24,7 @@ type IdParams = { id: string };
 
 export async function postHomeworkRoute(request: Request) {
   const auth = await requireAuth(request, {
-    bearerScope: { feature: "homework", action: "write" },
+    bearerScope: { feature: "community.section-homework", action: "write" },
   });
   if (auth instanceof Response) {
     return auth;
@@ -62,7 +62,7 @@ export async function postHomeworkRoute(request: Request) {
     });
     return createdJsonResponse(
       { id: homework.id, homework: homeworkItem },
-      `/api/community/homeworks/${encodeURIComponent(homework.id)}`,
+      `/api/community/section-homeworks/${encodeURIComponent(homework.id)}`,
     );
   } catch (error) {
     return handleRouteError("Failed to create homework", error);
@@ -74,7 +74,7 @@ export async function patchHomeworkRoute(request: Request, params: IdParams) {
   if (id instanceof Response) return id;
 
   const auth = await requireAuth(request, {
-    bearerScope: { feature: "homework", action: "write" },
+    bearerScope: { feature: "community.section-homework", action: "write" },
   });
   if (auth instanceof Response) {
     return auth;
@@ -106,7 +106,7 @@ export async function deleteHomeworkRoute(request: Request, params: IdParams) {
   const id = parseHomeworkId(params);
   if (id instanceof Response) return id;
   const auth = await requireAuth(request, {
-    bearerScope: { feature: "homework", action: "write" },
+    bearerScope: { feature: "community.section-homework", action: "write" },
   });
   if (auth instanceof Response) {
     return auth;

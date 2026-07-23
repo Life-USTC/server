@@ -1,5 +1,5 @@
 /**
- * E2E tests for GET /api/account/profile.
+ * E2E tests for GET /api/community/users/[identifier].
  *
  * Public profile endpoint mirroring /u/[username] and /u/id/[uid].
  */
@@ -7,17 +7,17 @@ import { expect, test } from "@playwright/test";
 import { DEV_SEED } from "../../../../../utils/dev-seed";
 import { assertApiContract } from "../../../_shared/api-contract";
 
-const BASE = "/api/account/profile";
+const BASE = "/api/community/users";
 
-test.describe("GET /api/account/profile", () => {
+test.describe("GET /api/community/users/[identifier]", () => {
   test("契约", async ({ request }) => {
-    await assertApiContract(request, { routePath: BASE });
+    await assertApiContract(request, {
+      routePath: "/api/community/users/[identifier]",
+    });
   });
 
   test("按用户名返回公开资料", async ({ request }) => {
-    const response = await request.get(
-      `${BASE}?username=${DEV_SEED.debugUsername}`,
-    );
+    const response = await request.get(`${BASE}/${DEV_SEED.debugUsername}`);
     expect(response.status()).toBe(200);
     const body = (await response.json()) as {
       user?: {
@@ -42,16 +42,14 @@ test.describe("GET /api/account/profile", () => {
   });
 
   test("按 userId 返回同一用户", async ({ request }) => {
-    const byUsername = await request.get(
-      `${BASE}?username=${DEV_SEED.debugUsername}`,
-    );
+    const byUsername = await request.get(`${BASE}/${DEV_SEED.debugUsername}`);
     expect(byUsername.status()).toBe(200);
     const usernameBody = (await byUsername.json()) as {
       user?: { id?: string; username?: string | null };
     };
     expect(usernameBody.user?.id).toBeTruthy();
 
-    const byId = await request.get(`${BASE}?userId=${usernameBody.user?.id}`);
+    const byId = await request.get(`${BASE}/${usernameBody.user?.id}`);
     expect(byId.status()).toBe(200);
     const idBody = (await byId.json()) as {
       user?: { id?: string; username?: string | null };
@@ -61,18 +59,8 @@ test.describe("GET /api/account/profile", () => {
     expect(idBody.user?.username).toBe(DEV_SEED.debugUsername);
   });
 
-  test("需要且仅需一个查询键", async ({ request }) => {
-    const missing = await request.get(BASE);
-    expect(missing.status()).toBe(400);
-
-    const duplicate = await request.get(
-      `${BASE}?username=${DEV_SEED.debugUsername}&userId=duplicate`,
-    );
-    expect(duplicate.status()).toBe(400);
-  });
-
   test("缺失用户返回 404", async ({ request }) => {
-    const response = await request.get(`${BASE}?username=missing-e2e-user`);
+    const response = await request.get(`${BASE}/missing-e2e-user`);
     expect(response.status()).toBe(404);
   });
 });

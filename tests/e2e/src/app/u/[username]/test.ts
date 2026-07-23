@@ -1,5 +1,5 @@
 /**
- * E2E tests for the Public User Profile Page (`/community/users/[username]` and `/community/users/id/[uid]`)
+ * E2E tests for the Public User Profile Page (`/community/users/[identifier]`)
  *
  * ## Data Represented (user.yml → public-profile.display.fields)
  * - user.image (avatar)
@@ -15,7 +15,7 @@
  *
  * ## Rules
  * - Raw internal user IDs are not shown on public profiles
- * - ID routes redirect to /u/[username] when a username exists
+ * - The identifier accepts either username or user ID
  * - Public page: no auth required
  *
  * ## Edge Cases
@@ -30,10 +30,10 @@ import { absoluteTestUrl } from "../../../../utils/request-url";
 import { captureStepScreenshot } from "../../../../utils/screenshot";
 import { assertPageContract } from "../../_shared/page-contract";
 
-test.describe("/community/users/[username]", () => {
+test.describe("/community/users/[identifier]", () => {
   test("页面契约", async ({ page }, testInfo) => {
     await assertPageContract(page, {
-      routePath: "/community/users/[username]",
+      routePath: "/community/users/[identifier]",
       testInfo,
     });
   });
@@ -131,15 +131,15 @@ test.describe("/community/users/[username]", () => {
   });
 });
 
-test.describe("/community/users/id/[uid]", () => {
+test.describe("/community/users/[identifier] by ID", () => {
   test("页面契约", async ({ page }, testInfo) => {
     await assertPageContract(page, {
-      routePath: "/community/users/id/[uid]",
+      routePath: "/community/users/[identifier]",
       testInfo,
     });
   });
 
-  test("内部用户 ID 地址重定向到用户名资料页", async ({ page }, testInfo) => {
+  test("内部用户 ID 地址直接解析同一资料页", async ({ page }, testInfo) => {
     await signInAsDevAdmin(page, "/");
     const sessionResponse = await page.request.get("/api/auth/get-session");
     expect(sessionResponse.status()).toBe(200);
@@ -148,9 +148,9 @@ test.describe("/community/users/id/[uid]", () => {
     };
     expect(session.user?.id).toBeTruthy();
 
-    await gotoAndWaitForReady(page, `/community/users/id/${session.user?.id}`);
+    await gotoAndWaitForReady(page, `/community/users/${session.user?.id}`);
     await expect(page).toHaveURL(
-      new RegExp(`/community/users/${DEV_SEED.adminUsername}$`),
+      new RegExp(`/community/users/${session.user?.id}$`),
     );
     await expect(
       page.getByText(`@${DEV_SEED.adminUsername}`).first(),
@@ -163,7 +163,7 @@ test.describe("/community/users/id/[uid]", () => {
   test("不存在的 uid 返回 404", async ({ page }, testInfo) => {
     await gotoAndWaitForReady(
       page,
-      "/community/users/id/non-existent-uid-000000000",
+      "/community/users/non-existent-uid-000000000",
       {
         expectMainContent: false,
       },

@@ -1,10 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import {
-  MCP_TOOLS_SCOPE,
-  restReadScope,
-  restWriteScope,
-} from "@/lib/oauth/constants";
-import { LEGACY_MCP_TOOLS_SCOPE } from "@/lib/oauth/scope-registry";
+import { restReadScope, restWriteScope } from "@/lib/oauth/constants";
 
 const verifyOAuthAccessTokenMock = vi.fn();
 const getJwksMock = vi.fn();
@@ -67,7 +62,7 @@ describe("MCP 认证", () => {
       azp: "client-id",
       aud: "https://life.example/api/mcp",
       exp: 1_900_000_000,
-      scope: MCP_TOOLS_SCOPE,
+      scope: restReadScope("workspace.todo"),
       sub: "user-id",
     });
     const { verifyAccessToken } = await import("@/lib/mcp/auth");
@@ -101,7 +96,7 @@ describe("MCP 认证", () => {
       extra: { userId: "user-id" },
     });
     expect("scopes" in authInfo && authInfo.scopes).toContain(
-      restReadScope("todo"),
+      restReadScope("workspace.todo"),
     );
   });
 
@@ -112,7 +107,7 @@ describe("MCP 认证", () => {
       azp: "client-id",
       aud: "https://life.example/api/mcp",
       exp: 1_900_000_000,
-      scope: MCP_TOOLS_SCOPE,
+      scope: restReadScope("workspace.todo"),
       sub: "user-id",
     };
 
@@ -197,7 +192,7 @@ describe("authenticateMcpRequest per-tool scope enforcement", () => {
     verifyOAuthAccessTokenMock.mockRejectedValue(new Error("bad jwt"));
     const { authenticateMcpRequest } = await import("@/lib/mcp/auth");
     const result = await authenticateMcpRequest(
-      makeAuthenticatedRequest([restReadScope("todo")]),
+      makeAuthenticatedRequest([restReadScope("workspace.todo")]),
       "workspace_todo_list",
     );
 
@@ -239,35 +234,35 @@ describe("authenticateMcpRequest per-tool scope enforcement", () => {
   });
 
   it("allows a tool when the token has the matching feature scope", async () => {
-    mockToken([restReadScope("todo")]);
+    mockToken([restReadScope("workspace.todo")]);
     const { authenticateMcpRequest } = await import("@/lib/mcp/auth");
     const result = await authenticateMcpRequest(
-      makeAuthenticatedRequest([restReadScope("todo")]),
+      makeAuthenticatedRequest([restReadScope("workspace.todo")]),
       "workspace_todo_list",
     );
 
     expect("authInfo" in result).toBe(true);
     if ("authInfo" in result) {
-      expect(result.authInfo.scopes).toContain(restReadScope("todo"));
+      expect(result.authInfo.scopes).toContain(restReadScope("workspace.todo"));
     }
   });
 
-  it("allows any tool when the token has the legacy mcp:tools scope", async () => {
-    mockToken([LEGACY_MCP_TOOLS_SCOPE]);
+  it("rejects the removed coarse mcp:tools scope", async () => {
+    mockToken(["mcp:tools"]);
     const { authenticateMcpRequest } = await import("@/lib/mcp/auth");
     const result = await authenticateMcpRequest(
-      makeAuthenticatedRequest([LEGACY_MCP_TOOLS_SCOPE]),
+      makeAuthenticatedRequest(["mcp:tools"]),
       "community_comment_create",
     );
 
-    expect("authInfo" in result).toBe(true);
+    expect("response" in result).toBe(true);
   });
 
   it("rejects a tool when the token lacks the required feature scope", async () => {
-    mockToken([restReadScope("todo")]);
+    mockToken([restReadScope("workspace.todo")]);
     const { authenticateMcpRequest } = await import("@/lib/mcp/auth");
     const result = await authenticateMcpRequest(
-      makeAuthenticatedRequest([restReadScope("todo")]),
+      makeAuthenticatedRequest([restReadScope("workspace.todo")]),
       "community_comment_create",
     );
 
@@ -286,15 +281,15 @@ describe("authenticateMcpRequest per-tool scope enforcement", () => {
       });
       const www = result.response.headers.get("www-authenticate");
       expect(www).toContain("insufficient_scope");
-      expect(www).toContain(restWriteScope("comment"));
+      expect(www).toContain(restWriteScope("community.comment"));
     }
   });
 
   it("rejects a mixed-tool batch unless every tool scope is present", async () => {
-    mockToken([restWriteScope("todo")]);
+    mockToken([restWriteScope("workspace.todo")]);
     const { authenticateMcpRequest } = await import("@/lib/mcp/auth");
     const result = await authenticateMcpRequest(
-      makeAuthenticatedRequest([restWriteScope("todo")]),
+      makeAuthenticatedRequest([restWriteScope("workspace.todo")]),
       ["workspace_todo_create", "workspace_upload_delete"],
     );
 
@@ -307,16 +302,16 @@ describe("authenticateMcpRequest per-tool scope enforcement", () => {
         toolNameCount: 2,
       });
       expect(result.response.headers.get("www-authenticate")).toContain(
-        restWriteScope("upload"),
+        restWriteScope("workspace.upload"),
       );
     }
   });
 
   it("lets a feature write scope satisfy reads of the same feature", async () => {
-    mockToken([restWriteScope("todo")]);
+    mockToken([restWriteScope("workspace.todo")]);
     const { authenticateMcpRequest } = await import("@/lib/mcp/auth");
     const result = await authenticateMcpRequest(
-      makeAuthenticatedRequest([restWriteScope("todo")]),
+      makeAuthenticatedRequest([restWriteScope("workspace.todo")]),
       ["workspace_todo_list", "workspace_todo_create"],
     );
 
@@ -324,10 +319,10 @@ describe("authenticateMcpRequest per-tool scope enforcement", () => {
   });
 
   it("requires every declared scope for a cross-cutting tool", async () => {
-    mockToken([restReadScope("schedule")]);
+    mockToken([restReadScope("workspace.schedule")]);
     const { authenticateMcpRequest } = await import("@/lib/mcp/auth");
     const result = await authenticateMcpRequest(
-      makeAuthenticatedRequest([restReadScope("schedule")]),
+      makeAuthenticatedRequest([restReadScope("workspace.schedule")]),
       "workspace_schedule_next",
     );
 
@@ -335,7 +330,7 @@ describe("authenticateMcpRequest per-tool scope enforcement", () => {
     if ("response" in result) {
       expect(result.response.status).toBe(403);
       expect(result.response.headers.get("www-authenticate")).toContain(
-        restReadScope("dashboard"),
+        restReadScope("workspace.overview"),
       );
     }
   });
@@ -361,17 +356,17 @@ describe("authenticateMcpRequest per-tool scope enforcement", () => {
       });
       const www = result.response.headers.get("www-authenticate");
       expect(www).toContain("insufficient_scope");
-      expect(www).toContain(restReadScope("todo"));
+      expect(www).toContain(restReadScope("workspace.todo"));
       expect(www).not.toContain(restReadScope("admin"));
       expect(www).not.toContain(restWriteScope("admin"));
     }
   });
 
   it("allows unmapped tools when the token has any MCP scope", async () => {
-    mockToken([restReadScope("me")]);
+    mockToken([restReadScope("account.profile")]);
     const { authenticateMcpRequest } = await import("@/lib/mcp/auth");
     const result = await authenticateMcpRequest(
-      makeAuthenticatedRequest([restReadScope("me")]),
+      makeAuthenticatedRequest([restReadScope("account.profile")]),
       "not_a_real_tool",
     );
 

@@ -1,15 +1,11 @@
 import { prisma as defaultPrisma } from "@/lib/db/prisma";
-import {
-  getOAuthMcpResourceUrl,
-  getOAuthProviderValidAudiences,
-} from "@/lib/mcp/urls";
+import { getOAuthProviderValidAudiences } from "@/lib/mcp/urls";
 import {
   DEFAULT_OAUTH_CLIENT_SCOPES,
   OAUTH_DEVICE_CODE_GRANT_TYPE,
   OAUTH_PUBLIC_CLIENT_AUTH_METHOD,
 } from "@/lib/oauth/constants";
 import { resolveOAuthResourceAlias } from "@/lib/oauth/resource-aliases";
-import { hasLegacyMcpScope } from "@/lib/oauth/scope-registry";
 import {
   normalizeResourceIndicator,
   resourceIndicatorsMatch,
@@ -125,7 +121,7 @@ export function resolveRequestedDeviceScopes(
 
 export function resolveRequestedDeviceResources(
   resourceEntries: FormDataEntryValue[],
-  requestedScopes: string[],
+  _requestedScopes: string[],
 ): { error: OAuthDevicePolicyError } | { resources: string[] } {
   const resources: string[] = [];
   const validAudiences = getOAuthProviderValidAudiences();
@@ -185,22 +181,6 @@ export function resolveRequestedDeviceResources(
     ) {
       resources.push(matchedAudience);
     }
-  }
-
-  if (
-    hasLegacyMcpScope(requestedScopes) &&
-    !resources.some((resource) =>
-      resourceIndicatorsMatch(resource, getOAuthMcpResourceUrl()),
-    )
-  ) {
-    return {
-      error: {
-        error: "invalid_target",
-        errorDescription:
-          "A legacy MCP scope requires the MCP resource indicator",
-        status: 400,
-      },
-    };
   }
 
   return { resources };

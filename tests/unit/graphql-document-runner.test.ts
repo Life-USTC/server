@@ -168,7 +168,7 @@ describe("arbitrary GraphQL document runner", () => {
       }),
     ).rejects.toMatchObject({
       code: "FORBIDDEN",
-      requiredScopes: ["todo:write"],
+      requiredScopes: ["workspace.todo:write"],
     } satisfies Partial<RegisteredGraphqlOperationError>);
 
     expect(writeDataPoint).toHaveBeenCalledTimes(3);

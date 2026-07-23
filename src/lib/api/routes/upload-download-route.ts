@@ -15,7 +15,7 @@ export async function getUploadDownloadRoute(
   params: IdParams,
 ) {
   const auth = await requireAuth(request, {
-    bearerScope: { feature: "upload", action: "read" },
+    bearerScope: { feature: "workspace.upload", action: "read" },
   });
   if (auth instanceof Response) return auth;
   const { userId } = auth;

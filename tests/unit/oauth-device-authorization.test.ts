@@ -1,12 +1,13 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   DEFAULT_OAUTH_CLIENT_SCOPES,
-  MCP_TOOLS_SCOPE,
   OAUTH_DEVICE_CODE_GRANT_TYPE,
   OAUTH_OPENID_SCOPE,
   OAUTH_PROFILE_SCOPE,
   OAUTH_PUBLIC_CLIENT_AUTH_METHOD,
 } from "@/lib/oauth/constants";
+
+const TODO_READ_SCOPE = "workspace.todo:read";
 
 const { createDeviceAuthorizationGrantMock, findUniqueMock, logAppEventMock } =
   vi.hoisted(() => ({
@@ -51,7 +52,7 @@ function publicDeviceClient(overrides: Record<string, unknown> = {}) {
     grantTypes: [OAUTH_DEVICE_CODE_GRANT_TYPE],
     name: "Client",
     public: true,
-    scopes: [OAUTH_OPENID_SCOPE, OAUTH_PROFILE_SCOPE, MCP_TOOLS_SCOPE],
+    scopes: [OAUTH_OPENID_SCOPE, OAUTH_PROFILE_SCOPE, TODO_READ_SCOPE],
     tokenEndpointAuthMethod: OAUTH_PUBLIC_CLIENT_AUTH_METHOD,
     type: "public",
     ...overrides,
@@ -117,24 +118,19 @@ describe("设备授权", () => {
     });
   });
 
-  it("请求 mcp:tools 作用域时要求 MCP 资源", async () => {
+  it("资源选择不再由已移除的 transport scope 推断", async () => {
     const { resolveRequestedDeviceResources } = await import(
       "@/features/oauth/server/device-authorization-policy.server"
     );
 
     const result = resolveRequestedDeviceResources(
       ["https://life.example/api/auth"],
-      [OAUTH_OPENID_SCOPE, MCP_TOOLS_SCOPE],
+      [OAUTH_OPENID_SCOPE, TODO_READ_SCOPE],
     );
 
-    if ("error" in result) {
-      expect(result.error).toMatchObject({
-        error: "invalid_target",
-        status: 400,
-      });
-      return;
-    }
-    throw new Error("Expected device resource policy error");
+    expect(result).toEqual({
+      resources: ["https://life.example/api/auth"],
+    });
   });
 
   it("将省略的设备作用域默认为低风险客户端默认值", async () => {
@@ -163,7 +159,7 @@ describe("设备授权", () => {
 
     const result = await resolveDeviceAuthorizationClient({
       clientId: "client-1",
-      scope: `${OAUTH_OPENID_SCOPE} ${MCP_TOOLS_SCOPE}`,
+      scope: `${OAUTH_OPENID_SCOPE} ${TODO_READ_SCOPE}`,
       resourceEntries: [
         "https://life.example:443/api/auth",
         "https://life.example/api/mcp",
@@ -175,7 +171,7 @@ describe("设备授权", () => {
         "https://life.example/api/auth",
         "https://life.example/api/mcp",
       ],
-      requestedScopes: [OAUTH_OPENID_SCOPE, MCP_TOOLS_SCOPE],
+      requestedScopes: [OAUTH_OPENID_SCOPE, TODO_READ_SCOPE],
     });
   });
 

@@ -6,7 +6,7 @@ import {
 import { observedApiRoute } from "@/lib/log/api-observability";
 
 /**
- * Update one homework.
+ * Update one shared section homework.
  * @pathParams resourceIdPathParamsSchema
  * @body homeworkUpdateRequestSchema
  * @response homeworkUpdateResponseSchema
@@ -23,7 +23,7 @@ export const PATCH: RequestHandler = ({ request, params }) =>
   );
 
 /**
- * Soft delete one homework.
+ * Soft delete one shared section homework.
  * @pathParams resourceIdPathParamsSchema
  * @response successResponseSchema
  * @response 401:openApiErrorSchema

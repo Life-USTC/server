@@ -1,11 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
-  MCP_TOOLS_SCOPE,
   OAUTH_GRANT_ID_CLAIM,
   OAUTH_OFFLINE_ACCESS_SCOPE,
   OAUTH_OPENID_SCOPE,
   OAUTH_PROFILE_SCOPE,
 } from "@/lib/oauth/constants";
+
+const TODO_READ_SCOPE = "workspace.todo:read";
 
 const signJwtMock = vi.fn();
 
@@ -94,7 +95,7 @@ describe("设备令牌签发器", () => {
       scopes: [
         OAUTH_OPENID_SCOPE,
         OAUTH_PROFILE_SCOPE,
-        MCP_TOOLS_SCOPE,
+        TODO_READ_SCOPE,
         OAUTH_OFFLINE_ACCESS_SCOPE,
       ],
       userId: "user-1",
@@ -121,7 +122,7 @@ describe("设备令牌签发器", () => {
         scopes: [
           OAUTH_OPENID_SCOPE,
           OAUTH_PROFILE_SCOPE,
-          MCP_TOOLS_SCOPE,
+          TODO_READ_SCOPE,
           OAUTH_OFFLINE_ACCESS_SCOPE,
         ],
         userId: "user-1",
@@ -131,7 +132,7 @@ describe("设备令牌签发器", () => {
         scopes: [
           OAUTH_OPENID_SCOPE,
           OAUTH_PROFILE_SCOPE,
-          MCP_TOOLS_SCOPE,
+          TODO_READ_SCOPE,
           OAUTH_OFFLINE_ACCESS_SCOPE,
         ],
       },
@@ -149,7 +150,7 @@ describe("设备令牌签发器", () => {
         scopes: [
           OAUTH_OPENID_SCOPE,
           OAUTH_PROFILE_SCOPE,
-          MCP_TOOLS_SCOPE,
+          TODO_READ_SCOPE,
           OAUTH_OFFLINE_ACCESS_SCOPE,
         ],
         userId: "user-1",
@@ -166,7 +167,7 @@ describe("设备令牌签发器", () => {
           azp: "client-1",
           [OAUTH_GRANT_ID_CLAIM]: grantId,
           iss: "https://life.example/api/auth",
-          scope: `${OAUTH_OPENID_SCOPE} ${OAUTH_PROFILE_SCOPE} ${MCP_TOOLS_SCOPE} ${OAUTH_OFFLINE_ACCESS_SCOPE}`,
+          scope: `${OAUTH_OPENID_SCOPE} ${OAUTH_PROFILE_SCOPE} ${TODO_READ_SCOPE} ${OAUTH_OFFLINE_ACCESS_SCOPE}`,
           sub: "user-1",
         }),
       },

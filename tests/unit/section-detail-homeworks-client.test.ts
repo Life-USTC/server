@@ -34,7 +34,7 @@ describe("课程详情作业客户端", () => {
       string,
       RequestInit & { body: string },
     ];
-    expect(path).toBe("/api/community/homeworks/homework-1");
+    expect(path).toBe("/api/community/section-homeworks/homework-1");
     expect(init.method).toBe("PATCH");
     expect(JSON.parse(init.body)).toEqual({
       title: "Updated homework",

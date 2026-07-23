@@ -6,16 +6,17 @@ import { svelteRequestHandler } from "@/lib/api/svelte-route";
 import { observedApiRoute } from "@/lib/log/api-observability";
 
 /**
- * Preview dashboard link.
+ * Resolve a public campus link.
  * @params dashboardLinkVisitQuerySchema
  * @response 307
  */
 export const GET = svelteRequestHandler(
   observedApiRoute(getDashboardLinkVisitRoute),
 );
+
 /**
- * Record one dashboard link visit and redirect.
- * @body dashboardLinkVisitRequestSchema
+ * Resolve a public campus link and record an authenticated visit.
+ * @body catalogLinkVisitRequestSchema
  * @response 303
  */
 export const POST = svelteRequestHandler(

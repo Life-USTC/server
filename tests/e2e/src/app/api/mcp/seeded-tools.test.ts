@@ -141,7 +141,7 @@ test.describe("/api/mcp - 种子工具覆盖", () => {
 
         const publicProfileResult = await mcpClient.callTool({
           name: "community_user_get",
-          arguments: { username: DEV_SEED.debugUsername, mode: "full" },
+          arguments: { identifier: DEV_SEED.debugUsername, mode: "full" },
         });
         const publicProfile = parseTextContent(publicProfileResult) as {
           found?: boolean;
@@ -1245,7 +1245,7 @@ test.describe("/api/mcp - 种子工具覆盖", () => {
         ).toBeUndefined();
         expect(
           calendarSubscriptionPayload.subscription?.calendarPath,
-        ).toContain("/api/community/users/");
+        ).toContain("/api/calendar-feeds/");
 
         const calendarSubscriptionSummaryResult = await mcpClient.callTool({
           name: "workspace_calendar_feed_get",
@@ -1321,7 +1321,7 @@ test.describe("/api/mcp - 种子工具覆盖", () => {
       } finally {
         if (createdHomeworkId) {
           await page.request.delete(
-            `/api/community/homeworks/${createdHomeworkId}`,
+            `/api/community/section-homeworks/${createdHomeworkId}`,
           );
         }
         await replaceCalendarSubscription(page.request, originalSectionIds);

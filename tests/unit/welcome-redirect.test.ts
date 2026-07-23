@@ -23,7 +23,7 @@ describe("欢迎页重定向策略", () => {
   });
 
   it("不重定向 API、发现服务或静态资源请求", () => {
-    expect(shouldRedirect("/api/account")).toBe(false);
+    expect(shouldRedirect("/api/account/profile")).toBe(false);
     expect(shouldRedirect("/.well-known/openid-configuration")).toBe(false);
     expect(shouldRedirect("/_app/immutable/start.js")).toBe(false);
     expect(shouldRedirect("/llms.txt")).toBe(false);

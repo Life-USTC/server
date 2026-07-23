@@ -8,9 +8,9 @@ import { expect, test } from "@playwright/test";
 import { signInAsDebugUser } from "../../../../utils/auth";
 import { DEV_SEED } from "../../../../utils/dev-seed";
 
-const BASE = "/api/account";
+const BASE = "/api/account/profile";
 
-test.describe("GET /api/account - 当前用户", () => {
+test.describe("GET /api/account/profile - 当前账户资料", () => {
   test("未认证时返回 401", async ({ request }) => {
     const response = await request.get(BASE);
     expect(response.status()).toBe(401);

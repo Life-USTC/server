@@ -139,12 +139,13 @@ export async function requireAuth(
 /**
  * Require write access for a REST feature.
  *
- * Currently all callers are upload routes, so it defaults to the upload
+ * Currently all callers are upload routes, so it defaults to the workspace
+ * upload
  * feature. Callers may override the feature when needed.
  */
 export async function requireWriteAuth(
   request: Request,
-  feature: RestFeature = "upload",
+  feature: RestFeature = "workspace.upload",
 ): Promise<{ userId: string } | Response> {
   const userId = await resolveApiUserId(request, {
     bearerScope: { feature, action: "write" },

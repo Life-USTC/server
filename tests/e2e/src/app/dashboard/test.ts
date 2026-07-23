@@ -124,7 +124,7 @@ test.describe("仪表盘", () => {
       48,
     );
     await expect(
-      page.locator('form[action="/api/workspace/links/visit"]'),
+      page.locator('form[action="/api/catalog/links/resolve"]'),
     ).toHaveCount(DEV_SEED.dashboardLinks.overviewLimit);
     await expect(page.locator("vite-error-overlay")).toHaveCount(0);
 
@@ -144,8 +144,8 @@ test.describe("仪表盘", () => {
   });
 
   test("仪表盘路径别名渲染匹配的标签", async ({ page }, testInfo) => {
-    await signInAsDebugUser(page, "/workspace/links");
-    await gotoAndWaitForReady(page, "/workspace/links", {
+    await signInAsDebugUser(page, "/catalog/links");
+    await gotoAndWaitForReady(page, "/catalog/links", {
       testInfo,
       screenshotLabel: "dashboard-links-path",
     });

@@ -16,7 +16,7 @@
     "property-priority-parity": "MCP default output follows the shared UI Model Property Priority contract: keep primary identity/task fields and useful disambiguators, compact repeated nested objects, and omit low-priority raw/audit fields unless full mode is explicitly requested.",
     "actionable-errors": "Validation and common not-found payloads prefer plain-language messages and may include a hint that points to the next useful tool or query to recover.",
     "resource-bound-access-token": "MCP transport requests must present a resource-bound Bearer token for /api/mcp. JWT access tokens minted with the canonical MCP resource are accepted; opaque tokens without a resource indicator are rejected. Omitted-resource refresh grants are normalized to MCP only when the stored grant includes MCP-compatible feature scopes and the canonical MCP resource approval.",
-    "complete-batch-scope-enforcement": "Every fixed-scope tool feature declared by each requested tool is required across the complete JSON-RPC batch. A feature:write grant also satisfies feature:read for the same feature, while the legacy mcp:tools scope retains compatibility access. The GraphQL runner delegates exact selected-field scopes to the shared resolvers.",
+    "complete-batch-scope-enforcement": "Every fixed-scope tool feature declared by each requested tool is required across the complete JSON-RPC batch. A feature:write grant also satisfies feature:read for the same feature. The GraphQL runner delegates exact selected-field scopes to the shared resolvers.",
     "graphql-authorization": "graphql_operation_run requires an MCP-resource bearer and exactly one arbitrary document or compatible registered operation. Arbitrary aliases and fragments cannot bypass authorization because selected Workspace and Account fields and mutations enforce their feature scopes in the shared resolvers. Missing scopes return an insufficient_scope WWW-Authenticate challenge for incremental authorization.",
     "graphql-planning-prompt": "plan_graphql_operation embeds the canonical GraphQL SDL and document-free operation manifest into the requested prompt, then instructs clients to use one bounded named operation, request only challenged scopes, confirm mutations explicitly, and inspect state rather than blindly retry after an ambiguous timeout.",
     "registered-graphql-timeout-ambiguity": "graphql_operation_run stops waiting after five seconds or caller cancellation, including for serial GraphQL mutations. A mutation already in progress may still commit, so clients must inspect current state and must not blindly retry after REQUEST_TIMEOUT or REQUEST_CANCELLED.",
@@ -107,7 +107,8 @@
               "workspace_overview_get",
               "workspace_schedule_next",
               "workspace_deadline_list",
-              "workspace_link_list",
+              "catalog_link_list",
+              "workspace_link_pin_list",
               "workspace_link_pin_set"
             ]
           },

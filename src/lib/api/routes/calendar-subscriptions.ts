@@ -20,7 +20,7 @@ import { requireAuth } from "@/lib/auth/api-auth";
 export async function getCurrentCalendarSubscriptionRoute(request: Request) {
   try {
     const auth = await requireAuth(request, {
-      bearerScope: { feature: "subscription", action: "read" },
+      bearerScope: { feature: "workspace.subscription", action: "read" },
     });
     if (auth instanceof Response) return auth;
     const { userId } = auth;
@@ -58,7 +58,7 @@ function parsedSubscriptionSemesterId(semesterId: string | number | undefined) {
 export async function postCalendarSubscriptionsRoute(request: Request) {
   try {
     const auth = await requireAuth(request, {
-      bearerScope: { feature: "subscription", action: "write" },
+      bearerScope: { feature: "workspace.subscription", action: "write" },
       rateLimit: { action: "subscription:batch-write", tier: "batch" },
     });
     if (auth instanceof Response) return auth;
@@ -92,7 +92,7 @@ export async function postCalendarSubscriptionsRoute(request: Request) {
 export async function postCalendarSubscriptionQueryRoute(request: Request) {
   try {
     const auth = await requireAuth(request, {
-      bearerScope: { feature: "subscription", action: "read" },
+      bearerScope: { feature: "workspace.subscription", action: "read" },
     });
     if (auth instanceof Response) return auth;
 
@@ -134,7 +134,7 @@ export async function postCalendarSubscriptionQueryRoute(request: Request) {
 export async function postCalendarSubscriptionBatchRoute(request: Request) {
   try {
     const auth = await requireAuth(request, {
-      bearerScope: { feature: "subscription", action: "write" },
+      bearerScope: { feature: "workspace.subscription", action: "write" },
       rateLimit: { action: "subscription:batch-write", tier: "batch" },
     });
     if (auth instanceof Response) return auth;
@@ -182,7 +182,7 @@ export async function postCalendarSubscriptionImportCodesRoute(
 ) {
   try {
     const auth = await requireAuth(request, {
-      bearerScope: { feature: "subscription", action: "write" },
+      bearerScope: { feature: "workspace.subscription", action: "write" },
       rateLimit: { action: "subscription:batch-write", tier: "batch" },
     });
     if (auth instanceof Response) return auth;
@@ -230,7 +230,7 @@ export async function postCalendarSubscriptionImportCodesRoute(
 export async function patchCalendarSubscriptionsRoute(request: Request) {
   try {
     const auth = await requireAuth(request, {
-      bearerScope: { feature: "subscription", action: "write" },
+      bearerScope: { feature: "workspace.subscription", action: "write" },
       rateLimit: { action: "subscription:batch-write", tier: "batch" },
     });
     if (auth instanceof Response) return auth;
@@ -266,7 +266,7 @@ export async function patchCalendarSubscriptionsRoute(request: Request) {
 export async function deleteCalendarSubscriptionsRoute(request: Request) {
   try {
     const auth = await requireAuth(request, {
-      bearerScope: { feature: "subscription", action: "write" },
+      bearerScope: { feature: "workspace.subscription", action: "write" },
       rateLimit: { action: "subscription:batch-write", tier: "batch" },
     });
     if (auth instanceof Response) return auth;

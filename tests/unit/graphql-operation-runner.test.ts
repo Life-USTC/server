@@ -69,7 +69,7 @@ import {
 const oauthPrincipal = {
   kind: "oauth" as const,
   userId: "runner-test-user",
-  scopes: new Set(["todo:read", "todo:write"]),
+  scopes: new Set(["workspace.todo:read", "workspace.todo:write"]),
   resource: "https://example.test/api/mcp",
   clientId: "runner-test-client",
 };
@@ -181,7 +181,7 @@ describe("registered GraphQL operation runner", () => {
     } satisfies Partial<RegisteredGraphqlOperationError>);
     await expect(
       run("workspace.overview.get.v1", {
-        scopes: new Set(["dashboard:read"]),
+        scopes: new Set(["workspace.overview:read"]),
         variables: { atTime: "2026-07-20" },
       }),
     ).rejects.toMatchObject({
@@ -193,7 +193,7 @@ describe("registered GraphQL operation runner", () => {
     await expect(
       run("workspace.upload.session.create.v1", {
         confirmed: true,
-        scopes: new Set(["upload:write"]),
+        scopes: new Set(["workspace.upload:write"]),
         variables: {
           input: {
             filename: "report.pdf",
@@ -214,12 +214,12 @@ describe("registered GraphQL operation runner", () => {
   it("enforces exact scopes and mutation confirmation before execution", async () => {
     await expect(
       run("workspace.todo.list.v1", {
-        scopes: new Set(["homework:read"]),
+        scopes: new Set(["workspace.homework:read"]),
         variables: {},
       }),
     ).rejects.toMatchObject({
       code: "FORBIDDEN",
-      requiredScopes: ["todo:read"],
+      requiredScopes: ["workspace.todo:read"],
     } satisfies Partial<RegisteredGraphqlOperationError>);
     await expect(
       run("workspace.todo.create.v1", {

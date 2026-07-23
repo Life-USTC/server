@@ -38,17 +38,18 @@ const probeOnlyRoutes = new Set([
   "/api/workspace/subscriptions",
   "/api/workspace/subscriptions/current",
   "/api/workspace/subscriptions/import-codes",
-  "/api/workspace/links/pin",
-  "/api/workspace/links/visit",
+  "/api/workspace/link-pins",
+  "/api/catalog/links/resolve",
   "/api/health",
-  "/api/community/homeworks",
+  "/api/community/section-homeworks",
   "/api/workspace/homeworks/completions",
-  "/api/community/homeworks/[id]",
+  "/api/community/section-homeworks/[id]",
   "/api/workspace/homeworks/[id]/completion",
   "/api/mcp",
   "/api/mcp/.well-known/oauth-authorization-server",
   "/api/mcp/.well-known/openid-configuration",
-  "/api/account",
+  "/api/account/profile",
+  "/api/community/users/[identifier]",
   "/api/workspace/overview",
   "/api/workspace/homeworks",
   "/api/workspace/schedules",
@@ -58,7 +59,7 @@ const probeOnlyRoutes = new Set([
   "/api/workspace/uploads/[id]",
   "/api/workspace/uploads/[id]/download",
   "/api/workspace/uploads/object",
-  "/api/community/users/[userId]/calendar.ics",
+  "/api/calendar-feeds/[credential].ics",
 ]);
 
 function expectSuccessfulResponse(
@@ -191,9 +192,9 @@ export async function assertApiContract(
       return;
     }
 
-    case "/api/account/profile": {
+    case "/api/community/users/[identifier]": {
       const response = await request.get(
-        `/api/account/profile?username=${DEV_SEED.debugUsername}`,
+        `/api/community/users/${DEV_SEED.debugUsername}`,
       );
       expect(response.status()).toBe(200);
       const body = (await response.json()) as {

@@ -5,7 +5,6 @@ import {
   signInAsDevAdmin,
 } from "../../../utils/auth";
 import { DEV_SEED } from "../../../utils/dev-seed";
-import { getCurrentSessionUser } from "../../../utils/e2e-db";
 import {
   appSidebar,
   expandWorkspaceSidebarGroup,
@@ -29,7 +28,7 @@ type PageContractCase = {
 
 function getContractWaitUntil(routePath: string) {
   if (
-    routePath === "/api/docs/tag/sections" ||
+    routePath === "/api/docs/tag/catalog-section" ||
     routePath === "/guides/markdown-support"
   ) {
     return "load" as const;
@@ -285,7 +284,7 @@ export async function assertPageContract(
       return;
     }
 
-    case "/community/users/[username]": {
+    case "/community/users/[identifier]": {
       await gotoContractPage(
         page,
         `/community/users/${DEV_SEED.adminUsername}`,
@@ -297,22 +296,6 @@ export async function assertPageContract(
         visibleText(page, `@${DEV_SEED.adminUsername}`),
       ).toBeVisible();
       await maybeCapture(page, testInfo, "u-username");
-      return;
-    }
-
-    case "/community/users/id/[uid]": {
-      await signInAsDevAdmin(page, "/");
-      const sessionUser = await getCurrentSessionUser(page);
-      await gotoContractPage(
-        page,
-        `/community/users/id/${sessionUser.id}`,
-        testInfo,
-      );
-      await expectMainContent(page);
-      await expect(
-        visibleText(page, `@${DEV_SEED.adminUsername}`),
-      ).toBeVisible();
-      await maybeCapture(page, testInfo, "u-id-uid");
       return;
     }
 
@@ -545,7 +528,7 @@ export async function assertPageContract(
       return;
     }
 
-    case "/api/docs/tag/sections": {
+    case "/api/docs/tag/catalog-section": {
       await gotoContractPage(page, routePath, testInfo);
       await expectMainContent(page);
       await waitForUiSettled(page);

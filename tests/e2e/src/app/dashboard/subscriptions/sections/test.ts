@@ -21,7 +21,7 @@
  * ## Edge Cases
  * - Unauthenticated users see the public dashboard view (subscriptions is auth-only)
  * - Bulk import with invalid codes shows only matched sections in dialog
- * - Calendar link format: /api/community/users/{userId}:{token}/calendar.ics
+ * - Calendar link format: /api/calendar-feeds/{userId}:{token}.ics
  */
 import { expect, test } from "@playwright/test";
 import { signInAsDebugUser } from "../../../../../utils/auth";
@@ -381,10 +381,8 @@ test.describe("仪表盘教学班订阅", () => {
     const clipboardText = await page.evaluate(async () =>
       navigator.clipboard.readText(),
     );
-    expect(clipboardText).toContain("calendar.ics");
-    expect(clipboardText).toMatch(
-      /\/api\/community\/users\/[^/]+:[^/]+\/calendar\.ics$/,
-    );
+    expect(clipboardText).toContain("/api/calendar-feeds/");
+    expect(clipboardText).toMatch(/\/api\/calendar-feeds\/[^/]+\.ics$/);
 
     // Verify the calendar endpoint returns valid iCal data
     const calendarResponse = await page.request.get(clipboardText);

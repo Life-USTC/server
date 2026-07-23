@@ -924,9 +924,7 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
 
     // Subscription URL includes a user-specific tokenized feed path
     const subscriptionValue = await subscriptionUrl.inputValue();
-    expect(subscriptionValue).toMatch(
-      /\/api\/community\/users\/[^/]+:[A-Za-z0-9_-]+\/calendar\.ics$/,
-    );
+    expect(subscriptionValue).toMatch(/\/api\/calendar-feeds\/[^/]+\.ics$/);
 
     // Copy single URL
     await calDialog
@@ -1116,7 +1114,7 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
       await createDialog.getByTestId("section-homework-title").fill(title);
       const createResponse = page.waitForResponse(
         (r) =>
-          r.url().includes("/api/community/homeworks") &&
+          r.url().includes("/api/community/section-homeworks") &&
           r.request().method() === "POST" &&
           r.status() === 201,
       );
@@ -1185,7 +1183,7 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
       await expect(deleteDialog).toBeVisible();
       const deleteResponse = page.waitForResponse(
         (r) =>
-          r.url().includes("/api/community/homeworks/") &&
+          r.url().includes("/api/community/section-homeworks/") &&
           r.request().method() === "DELETE" &&
           r.status() === 200,
       );
@@ -1208,7 +1206,7 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
     try {
       const title = `e2e-section-hw-edit-${Date.now()}`;
       const createResponse = await page.request.post(
-        "/api/community/homeworks",
+        "/api/community/section-homeworks",
         {
           data: {
             sectionJwId: DEV_SEED.section.jwId,
@@ -1303,7 +1301,7 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
     try {
       const title = `e2e-homework-permalink-${Date.now()}`;
       const homeworkResponse = await page.request.post(
-        "/api/community/homeworks",
+        "/api/community/section-homeworks",
         {
           data: {
             sectionJwId: DEV_SEED.section.jwId,

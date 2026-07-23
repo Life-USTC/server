@@ -153,7 +153,7 @@ describe("OAuth 刷新令牌资源持久化", () => {
     findRefreshTokenMock.mockResolvedValue({
       clientId: "client-1",
       resources: ["https://life.example/api/graphql", "not-a-resource-url"],
-      scopes: ["todo:read"],
+      scopes: ["workspace.todo:read"],
       userId: "user-1",
     });
     const { replaceOAuthRefreshAccessToken } = await import(
@@ -183,7 +183,12 @@ describe("OAuth 刷新令牌资源持久化", () => {
       clientId: "client-1",
       grantId: "grant-1",
       resources: ["https://life.example/api/graphql"],
-      scopes: ["openid", "profile", "todo:read", "todo:write"],
+      scopes: [
+        "openid",
+        "profile",
+        "workspace.todo:read",
+        "workspace.todo:write",
+      ],
       userId: "user-1",
     });
     signAccessTokenMock.mockResolvedValue("downscoped-jwt");
@@ -255,7 +260,7 @@ describe("OAuth 刷新令牌资源持久化", () => {
     findRefreshTokenMock.mockResolvedValue({
       clientId: "client-1",
       resources: ["https://life.example/api/graphql"],
-      scopes: ["profile", "todo:write"],
+      scopes: ["profile", "workspace.todo:write"],
       userId: "user-1",
     });
     const { replaceOAuthRefreshAccessToken } = await import(
@@ -296,7 +301,7 @@ describe("OAuth 刷新令牌资源持久化", () => {
     });
     const original = Response.json({
       access_token: "provider-token",
-      scope: "profile todo:write",
+      scope: "profile workspace.todo:write",
     });
 
     const response = await replaceOAuthRefreshAccessToken(

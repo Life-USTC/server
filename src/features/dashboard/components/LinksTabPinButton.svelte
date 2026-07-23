@@ -20,7 +20,7 @@ export let updatingDashboardLinkSlug: string | null;
 
 <Tooltip.Root>
   <form
-    action="/api/workspace/links/pin"
+    action="/api/workspace/link-pins"
     method="POST"
     onsubmit={(event) => {
       event.preventDefault();

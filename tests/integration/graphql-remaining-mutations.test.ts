@@ -14,9 +14,9 @@ const handler = createGraphqlRequestHandler(false);
 const marker = `[integration-test] graphql-remaining-${Date.now()}`;
 const oauthClientId = `graphql-remaining-${crypto.randomUUID()}`;
 const oauthScopes = [
-  restWriteScope("comment"),
-  restWriteScope("dashboard"),
-  restWriteScope("upload"),
+  restWriteScope("community.comment"),
+  restWriteScope("workspace.link-pin"),
+  restWriteScope("workspace.upload"),
 ];
 
 type GraphqlPayload = {
@@ -253,14 +253,14 @@ afterAll(async () => {
 describe.sequential("remaining GraphQL and MCP mutation parity", () => {
   it("preserves dashboard ordering and comment per-item results over GraphQL", async () => {
     const token = await signToken([
-      restWriteScope("dashboard"),
-      restWriteScope("comment"),
+      restWriteScope("workspace.link-pin"),
+      restWriteScope("community.comment"),
     ]);
     const dashboard = await execute(
       {
         query: /* GraphQL */ `
           mutation DashboardBatch(
-            $items: [DashboardLinkPinBatchItemInput!]!
+            $items: [WorkspaceLinkPinBatchItemInput!]!
           ) {
             linkPinsSet(items: $items) {
               pinnedSlugs
@@ -326,7 +326,7 @@ describe.sequential("remaining GraphQL and MCP mutation parity", () => {
         };
       };
     }>("graphql_operation_run", {
-      operationId: "workspace.link.pins.set.v1",
+      operationId: "workspace.link_pin.batch_set.v1",
       variables: { items: [{ slug: "mail", pinned: true }] },
       confirmed: true,
       locale: "en-us",
@@ -397,7 +397,7 @@ describe.sequential("remaining GraphQL and MCP mutation parity", () => {
     // through GraphQL or the MCP tool.
     bucket.objects.set(session.key, { contentType: "text/plain", size: 12 });
 
-    const token = await signToken([restWriteScope("upload")]);
+    const token = await signToken([restWriteScope("workspace.upload")]);
     const completed = await execute(
       {
         query: /* GraphQL */ `

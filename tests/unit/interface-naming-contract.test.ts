@@ -40,7 +40,14 @@ describe("cross-surface interface naming", () => {
       );
 
     expect(new Set(businessRoots)).toEqual(
-      new Set(["account", "admin", "catalog", "community", "workspace"]),
+      new Set([
+        "account",
+        "admin",
+        "calendar-feeds",
+        "catalog",
+        "community",
+        "workspace",
+      ]),
     );
   });
 

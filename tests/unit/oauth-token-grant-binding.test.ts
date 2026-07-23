@@ -66,7 +66,7 @@ describe("OAuth access-token grant binding", () => {
       azp: "client-1",
       exp: 1_900_000_000,
       iat: 1_800_000_000,
-      scope: "todo:read profile",
+      scope: "workspace.todo:read profile",
       sub: "user-1",
     });
     resolveActiveOAuthUserGrantMock.mockResolvedValue({
@@ -93,7 +93,7 @@ describe("OAuth access-token grant binding", () => {
       clientId: "client-1",
       grantId: undefined,
       requireGrantBinding: true,
-      scopes: ["todo:read", "profile"],
+      scopes: ["workspace.todo:read", "profile"],
       userId: "user-1",
     });
     expect(response.status).toBe(400);
@@ -106,7 +106,7 @@ describe("OAuth access-token grant binding", () => {
     decodeJwtMock.mockReturnValue({
       azp: "client-1",
       [OAUTH_GRANT_ID_CLAIM]: "grant-1",
-      scope: "todo:read profile",
+      scope: "workspace.todo:read profile",
       sub: "user-1",
     });
     resolveActiveOAuthUserGrantMock.mockResolvedValue({
@@ -126,7 +126,7 @@ describe("OAuth access-token grant binding", () => {
       clientId: "client-1",
       grantId: "grant-1",
       requireGrantBinding: true,
-      scopes: ["todo:read", "profile"],
+      scopes: ["workspace.todo:read", "profile"],
       userId: "user-1",
     });
   });
@@ -214,7 +214,7 @@ describe("OAuth access-token grant binding", () => {
     decodeJwtMock.mockReturnValue({
       azp: "client-1",
       [OAUTH_GRANT_ID_CLAIM]: "grant-1",
-      scope: "profile todo:write",
+      scope: "profile workspace.todo:write",
       sub: "user-1",
     });
     const { bindOAuthAccessTokenToConsent } = await import(
@@ -236,7 +236,7 @@ describe("OAuth access-token grant binding", () => {
     decodeJwtMock.mockReturnValue({
       azp: "client-1",
       [OAUTH_GRANT_ID_CLAIM]: "grant-1",
-      scope: "profile todo:write",
+      scope: "profile workspace.todo:write",
       sub: "user-1",
     });
     refreshFindUniqueMock.mockResolvedValue({
@@ -266,14 +266,14 @@ describe("OAuth access-token grant binding", () => {
     decodeJwtMock.mockReturnValue({
       azp: "client-1",
       [OAUTH_GRANT_ID_CLAIM]: "grant-1",
-      scope: "profile todo:write",
+      scope: "profile workspace.todo:write",
       sub: "user-1",
     });
     refreshFindUniqueMock.mockResolvedValue({
       clientId: "client-1",
       grantId: "grant-1",
       referenceId: "grant-1",
-      scopes: ["profile", "todo:write"],
+      scopes: ["profile", "workspace.todo:write"],
       userId: "user-1",
     });
     const { bindOAuthAccessTokenToConsent } = await import(
@@ -334,7 +334,7 @@ describe("OAuth access-token grant binding", () => {
   it("does not issue a JWT when its consent disappeared during exchange", async () => {
     decodeJwtMock.mockReturnValue({
       azp: "client-1",
-      scope: "todo:read",
+      scope: "workspace.todo:read",
       sub: "user-1",
     });
     resolveActiveOAuthUserGrantMock.mockResolvedValue(null);

@@ -190,9 +190,7 @@ test.describe("仪表盘日历", () => {
     const clipboardText = await page.evaluate(async () =>
       navigator.clipboard.readText(),
     );
-    expect(clipboardText).toMatch(
-      /\/api\/community\/users\/[^/]+:[^/]+\/calendar\.ics$/,
-    );
+    expect(clipboardText).toMatch(/\/api\/calendar-feeds\/[^/]+\.ics$/);
 
     const calendarResponse = await page.request.get(clipboardText);
     expect(calendarResponse.status()).toBe(200);
@@ -250,7 +248,7 @@ test.describe("仪表盘日历", () => {
     await iCalAction.click();
     expect(
       await page.evaluate(async () => navigator.clipboard.readText()),
-    ).toMatch(/\/api\/community\/users\/[^/]+:[^/]+\/calendar\.ics$/);
+    ).toMatch(/\/api\/calendar-feeds\/[^/]+\.ics$/);
 
     await next.click();
     await expect(page).toHaveURL(/calendarView=week/);

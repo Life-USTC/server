@@ -1,8 +1,8 @@
 /**
- * E2E tests for POST /api/workspace/links/pin
+ * E2E tests for POST /api/workspace/link-pins
  *
  * ## Endpoint
- * - `POST /api/workspace/links/pin` — Pin or unpin a dashboard link for the current user
+ * - `POST /api/workspace/link-pins` — Pin or unpin a dashboard link for the current user
  *
  * ## Request
  * - Form data: `{ slug: string, action?: "pin" | "unpin", returnTo?: string }`
@@ -28,7 +28,7 @@
 import { expect, test } from "@playwright/test";
 import { signInAsDebugUser } from "../../../../../utils/auth";
 
-const BASE = "/api/workspace/links/pin";
+const BASE = "/api/workspace/link-pins";
 const JSON_HEADERS = { accept: "application/json" };
 const MAX_PINNED_LINKS = 4;
 
@@ -38,7 +38,7 @@ type PinResponse = {
   error?: string | null;
 };
 
-test.describe("POST /api/workspace/links/pin 接口", () => {
+test.describe("POST /api/workspace/link-pins 接口", () => {
   test("未登录时返回 401 JSON", async ({ request }) => {
     const response = await request.post(BASE, {
       form: { slug: "jw", action: "pin", returnTo: "/" },

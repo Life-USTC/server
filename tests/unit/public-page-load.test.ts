@@ -70,7 +70,7 @@ describe("public page loaders", () => {
 
     const result = await loadPublicLinksPage(event);
 
-    expect(result.publicLinks).toEqual([{ slug: "jw" }]);
+    expect(result.links).toEqual([{ slug: "jw" }]);
     expect(getPublicDashboardLinksDataMock).toHaveBeenCalledWith("en-us");
     expect(getBusTabDataMock).not.toHaveBeenCalled();
   });

@@ -48,15 +48,18 @@ test.describe("DELETE /api/admin/homeworks/[id] 作业管理", () => {
 
     const title = `e2e-admin-homework-delete-${Date.now()}`;
     const now = new Date();
-    const createResponse = await page.request.post("/api/community/homeworks", {
-      data: {
-        title,
-        sectionId: String(sectionId),
-        publishedAt: now.toISOString(),
-        submissionStartAt: now.toISOString(),
-        submissionDueAt: new Date(now.getTime() + 86400000).toISOString(),
+    const createResponse = await page.request.post(
+      "/api/community/section-homeworks",
+      {
+        data: {
+          title,
+          sectionId: String(sectionId),
+          publishedAt: now.toISOString(),
+          submissionStartAt: now.toISOString(),
+          submissionDueAt: new Date(now.getTime() + 86400000).toISOString(),
+        },
       },
-    });
+    );
     expect(createResponse.status()).toBe(201);
     const createBody = (await createResponse.json()) as {
       id?: string;
@@ -80,7 +83,7 @@ test.describe("DELETE /api/admin/homeworks/[id] 作业管理", () => {
       // Verify the homework no longer appears in the public list.
       await signInAsDebugUser(page, "/");
       const listResponse = await page.request.get(
-        `/api/community/homeworks?sectionId=${sectionId}`,
+        `/api/community/section-homeworks?sectionId=${sectionId}`,
       );
       expect(listResponse.status()).toBe(200);
       const listBody = (await listResponse.json()) as {

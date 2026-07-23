@@ -3,8 +3,8 @@ import {
   resolveDashboardLinkBySlug,
 } from "@/features/dashboard-links/server/dashboard-link-service";
 import {
+  catalogLinkVisitRequestSchema,
   dashboardLinkVisitQuerySchema,
-  dashboardLinkVisitRequestSchema,
 } from "@/lib/api/schemas/request-schemas";
 import { resolveApiUserId } from "@/lib/auth/api-auth";
 import { checkUserMutationRateLimit } from "@/lib/security/user-mutation-rate-limit";
@@ -34,7 +34,7 @@ export async function getDashboardLinkVisitRoute(request: Request) {
 export async function postDashboardLinkVisitRoute(request: Request) {
   const formData = await request.formData();
   const target = resolveVisitTarget(
-    dashboardLinkVisitRequestSchema,
+    catalogLinkVisitRequestSchema,
     formData.get("slug"),
   );
 
@@ -47,7 +47,7 @@ export async function postDashboardLinkVisitRoute(request: Request) {
   if (userId) {
     const url = new URL(request.url);
     const outcome = await checkUserMutationRateLimit({
-      action: "dashboard:write",
+      action: "catalog.link:visit",
       host: url.host,
       userId,
     });

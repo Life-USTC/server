@@ -13,13 +13,13 @@ const marker = `[integration-test] graphql-mutations-${Date.now()}`;
 const oauthClientId = `graphql-mutations-${crypto.randomUUID()}`;
 const createdCommentIds: string[] = [];
 const mutationScopes = [
-  restReadScope("todo"),
-  restWriteScope("bus"),
-  restWriteScope("comment"),
-  restWriteScope("dashboard"),
-  restWriteScope("homework"),
-  restWriteScope("subscription"),
-  restWriteScope("todo"),
+  restReadScope("workspace.todo"),
+  restWriteScope("workspace.bus-preferences"),
+  restWriteScope("community.comment"),
+  restWriteScope("workspace.link-pin"),
+  restWriteScope("workspace.homework"),
+  restWriteScope("workspace.subscription"),
+  restWriteScope("workspace.todo"),
 ];
 
 let userAId = "";
@@ -175,7 +175,9 @@ describe("GraphQL authenticated mutations", () => {
     expect(anonymous.response.headers.get("cache-control")).toBe("no-store");
     expectErrorCode(anonymous.payload, "UNAUTHENTICATED");
 
-    const readToken = await signToken(userAId, [restReadScope("todo")]);
+    const readToken = await signToken(userAId, [
+      restReadScope("workspace.todo"),
+    ]);
     const missingScope = await execute(
       {
         query: 'mutation { todoCreate(input: { title: "read only" }) { id } }',
@@ -185,7 +187,7 @@ describe("GraphQL authenticated mutations", () => {
     expectErrorCode(missingScope.payload, "FORBIDDEN");
     expect(
       missingScope.payload.errors?.[0]?.extensions?.requiredScopes,
-    ).toEqual(["todo:write"]);
+    ).toEqual(["workspace.todo:write"]);
 
     await expect(
       prisma.todo.count({
@@ -196,8 +198,11 @@ describe("GraphQL authenticated mutations", () => {
 
   it("supports bearer todo CRUD while preserving owner isolation and null updates", async () => {
     const [tokenA, tokenB] = await Promise.all([
-      signToken(userAId, [restReadScope("todo"), restWriteScope("todo")]),
-      signToken(userBId, [restWriteScope("todo")]),
+      signToken(userAId, [
+        restReadScope("workspace.todo"),
+        restWriteScope("workspace.todo"),
+      ]),
+      signToken(userBId, [restWriteScope("workspace.todo")]),
     ]);
     const created = await execute(
       {
@@ -315,8 +320,8 @@ describe("GraphQL authenticated mutations", () => {
 
   it("rejects explicit null for optional fields that are non-null in REST", async () => {
     const [todoToken, commentToken, section] = await Promise.all([
-      signToken(userAId, [restWriteScope("todo")]),
-      signToken(userAId, [restWriteScope("comment")]),
+      signToken(userAId, [restWriteScope("workspace.todo")]),
+      signToken(userAId, [restWriteScope("community.comment")]),
       prisma.section.findUniqueOrThrow({
         where: { jwId: DEV_SEED.section.jwId },
         select: { id: true },
@@ -455,7 +460,7 @@ describe("GraphQL authenticated mutations", () => {
 
   it("rejects non-positive numeric comment selectors even with a valid targetId", async () => {
     const [token, section] = await Promise.all([
-      signToken(userAId, [restWriteScope("comment")]),
+      signToken(userAId, [restWriteScope("community.comment")]),
       prisma.section.findUniqueOrThrow({
         where: { jwId: DEV_SEED.section.jwId },
         select: { id: true },
@@ -506,10 +511,10 @@ describe("GraphQL authenticated mutations", () => {
 
   it("reuses personal write services and executes top-level mutations serially", async () => {
     const token = await signToken(userAId, [
-      restWriteScope("bus"),
-      restWriteScope("dashboard"),
-      restWriteScope("homework"),
-      restWriteScope("subscription"),
+      restWriteScope("workspace.bus-preferences"),
+      restWriteScope("workspace.link-pin"),
+      restWriteScope("workspace.homework"),
+      restWriteScope("workspace.subscription"),
     ]);
     const slug = USTC_DASHBOARD_LINKS[0].slug;
     const result = await execute(
@@ -610,8 +615,11 @@ describe("GraphQL authenticated mutations", () => {
 
   it("retains comment suspension, ownership, lock, reaction, and audit rules", async () => {
     const [tokenA, tokenB] = await Promise.all([
-      signToken(userAId, [restWriteScope("comment")]),
-      signToken(userBId, [restWriteScope("comment"), restWriteScope("todo")]),
+      signToken(userAId, [restWriteScope("community.comment")]),
+      signToken(userBId, [
+        restWriteScope("community.comment"),
+        restWriteScope("workspace.todo"),
+      ]),
     ]);
     const created = await execute(
       {

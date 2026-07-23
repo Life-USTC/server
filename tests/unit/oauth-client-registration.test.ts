@@ -4,15 +4,15 @@ import {
   resolveOAuthClientScopes,
 } from "@/lib/oauth/client-registration";
 import {
-  MCP_TOOLS_SCOPE,
   OAUTH_AUTHORIZATION_CODE_GRANT_TYPE,
   OAUTH_OFFLINE_ACCESS_SCOPE,
   OAUTH_OPENID_SCOPE,
   OAUTH_PROFILE_SCOPE,
   OAUTH_REFRESH_TOKEN_GRANT_TYPE,
-  OAUTH_REST_READ_SCOPE,
-  OAUTH_REST_WRITE_SCOPE,
 } from "@/lib/oauth/constants";
+
+const TODO_READ_SCOPE = "workspace.todo:read";
+const TODO_WRITE_SCOPE = "workspace.todo:write";
 
 describe("resolveOAuthClientScopes", () => {
   it("未请求 scope 时使用默认 OAuth profile scope", () => {
@@ -25,26 +25,25 @@ describe("resolveOAuthClientScopes", () => {
     expect(
       resolveOAuthClientScopes([
         OAUTH_PROFILE_SCOPE,
-        MCP_TOOLS_SCOPE,
+        TODO_READ_SCOPE,
         OAUTH_PROFILE_SCOPE,
       ]),
     ).toEqual({
-      scopes: [OAUTH_PROFILE_SCOPE, MCP_TOOLS_SCOPE],
+      scopes: [OAUTH_PROFILE_SCOPE, TODO_READ_SCOPE],
     });
   });
 
   it("接受空格分隔的请求 scope", () => {
     expect(
       resolveOAuthClientScopes(
-        `${OAUTH_OPENID_SCOPE} ${MCP_TOOLS_SCOPE} ${OAUTH_OFFLINE_ACCESS_SCOPE} ${OAUTH_REST_READ_SCOPE} ${OAUTH_REST_WRITE_SCOPE}`,
+        `${OAUTH_OPENID_SCOPE} ${TODO_READ_SCOPE} ${OAUTH_OFFLINE_ACCESS_SCOPE} ${TODO_WRITE_SCOPE}`,
       ),
     ).toEqual({
       scopes: [
         OAUTH_OPENID_SCOPE,
-        MCP_TOOLS_SCOPE,
+        TODO_READ_SCOPE,
         OAUTH_OFFLINE_ACCESS_SCOPE,
-        OAUTH_REST_READ_SCOPE,
-        OAUTH_REST_WRITE_SCOPE,
+        TODO_WRITE_SCOPE,
       ],
     });
   });
@@ -58,14 +57,14 @@ describe("resolveOAuthClientScopes", () => {
   });
 
   it("接受 canonical feature-action scope", () => {
-    expect(resolveOAuthClientScopes(["me:read"])).toEqual({
-      scopes: ["me:read"],
+    expect(resolveOAuthClientScopes(["account.profile:read"])).toEqual({
+      scopes: ["account.profile:read"],
     });
   });
 
-  it("保留但校验旧版 feature-level REST scope", () => {
-    expect(resolveOAuthClientScopes(["rest:me:read"])).toEqual({
-      scopes: ["rest:me:read"],
+  it("拒绝旧版 transport-prefixed scope", () => {
+    expect(resolveOAuthClientScopes(["rest:account.profile:read"])).toEqual({
+      error: "Unsupported scopes requested: rest:account.profile:read",
     });
   });
 

@@ -41,7 +41,7 @@ describe("persisted GraphQL operation registry", () => {
         "workspace.todos.delete.v1",
         "workspace.homework.completions.set.v1",
         "workspace.subscription.import.v1",
-        "workspace.link.pins.set.v1",
+        "workspace.link_pin.batch_set.v1",
         "community.comments.delete.v1",
         "workspace.upload.session.create.v1",
         "workspace.upload.complete.v1",
@@ -99,7 +99,7 @@ describe("persisted GraphQL operation registry", () => {
       operationType: "mutation",
       rootField: "todoCreate",
       variables: [{ name: "input", type: "CreateTodoInput!", required: true }],
-      scopes: ["todo:write"],
+      scopes: ["workspace.todo:write"],
       readOnly: false,
       destructive: false,
       openWorld: false,
@@ -121,7 +121,7 @@ describe("persisted GraphQL operation registry", () => {
         publicGraphqlOperationsManifest.operations
           .filter((operation) =>
             [
-              "workspace.link.pins.set.v1",
+              "workspace.link_pin.batch_set.v1",
               "community.comments.delete.v1",
               "workspace.upload.session.create.v1",
               "workspace.upload.complete.v1",
@@ -141,46 +141,46 @@ describe("persisted GraphQL operation registry", () => {
           ]),
       ),
     ).toEqual({
-      "workspace.link.pins.set.v1": {
+      "workspace.link_pin.batch_set.v1": {
         destructive: true,
         openWorld: false,
         requiresConfirmation: true,
-        scopes: ["dashboard:write"],
+        scopes: ["workspace.link-pin:write"],
         variables: ["items"],
       },
       "community.comments.delete.v1": {
         destructive: true,
         openWorld: true,
         requiresConfirmation: true,
-        scopes: ["comment:write"],
+        scopes: ["community.comment:write"],
         variables: ["ids"],
       },
       "workspace.upload.session.create.v1": {
         destructive: true,
         openWorld: true,
         requiresConfirmation: true,
-        scopes: ["upload:write"],
+        scopes: ["workspace.upload:write"],
         variables: ["input"],
       },
       "workspace.upload.complete.v1": {
         destructive: true,
         openWorld: true,
         requiresConfirmation: true,
-        scopes: ["upload:write"],
+        scopes: ["workspace.upload:write"],
         variables: ["input"],
       },
       "workspace.upload.rename.v1": {
         destructive: true,
         openWorld: false,
         requiresConfirmation: true,
-        scopes: ["upload:write"],
+        scopes: ["workspace.upload:write"],
         variables: ["id", "filename"],
       },
       "workspace.upload.delete.v1": {
         destructive: true,
         openWorld: true,
         requiresConfirmation: true,
-        scopes: ["upload:write"],
+        scopes: ["workspace.upload:write"],
         variables: ["id"],
       },
     });
@@ -205,7 +205,7 @@ describe("persisted GraphQL operation registry", () => {
         description: "Reads the current workspace overview.",
         document:
           "query WorkspaceOverview($atTime: DateTime) { workspace { overview(atTime: $atTime) { today } } }",
-        scopes: ["dashboard:read"],
+        scopes: ["workspace.overview:read"],
         readOnly: true,
         destructive: false,
         openWorld: false,
@@ -220,7 +220,7 @@ describe("persisted GraphQL operation registry", () => {
           id: "workspace_overview.v1",
           title: "Workspace overview",
           description: "Reads the current workspace overview.",
-          scopes: ["dashboard:read"],
+          scopes: ["workspace.overview:read"],
           readOnly: true,
           destructive: false,
           openWorld: false,
@@ -265,7 +265,7 @@ describe("persisted GraphQL operation registry", () => {
         {
           ...base,
           document:
-            'query Catalog { catalog { currentSemester { jwId } } community { user(username: "x") { id } } }',
+            'query Catalog { catalog { currentSemester { jwId } } community { user(identifier: "x") { id } } }',
         },
       ]),
     ).toThrow("must select exactly one root field");
@@ -276,7 +276,7 @@ describe("persisted GraphQL operation registry", () => {
           id: "workspace.combined.v1",
           document:
             "query CombinedWorkspace { workspace { overview { today } todos { pageInfo { total } } } }",
-          scopes: ["dashboard:read"],
+          scopes: ["workspace.overview:read"],
         },
       ]),
     ).toThrow("must select exactly one field");

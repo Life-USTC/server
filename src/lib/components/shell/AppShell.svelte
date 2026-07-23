@@ -125,12 +125,23 @@ function buildShellNavGroups(
         ? detailSecondaryLinks
         : undefined,
     },
+    {
+      href: "/catalog/bus",
+      icon: BusFrontIcon,
+      label: copy.nav.bus,
+      items: [
+        {
+          href: "/catalog/bus/map",
+          icon: MapIcon,
+          label: copy.nav.transitMap,
+        },
+      ],
+    },
+    { href: "/catalog/links", icon: LinkIcon, label: copy.nav.links },
   ];
   const campusLinks: ShellLink[] = [
-    { href: "/catalog/bus/map", icon: MapIcon, label: copy.nav.transitMap },
     { href: "/mobile-app", icon: SmartphoneIcon, label: copy.nav.mobileApp },
   ];
-  const disambiguateDashboardBus = pathname.startsWith("/admin");
   const dashboardNavStats = pageData.navStats as
     | {
         calendarItemsCount?: number;
@@ -147,14 +158,6 @@ function buildShellNavGroups(
 
   if (!signedIn) {
     return [
-      {
-        defaultOpen: true,
-        label: copy.nav.groups.publicTools,
-        links: [
-          { href: "/catalog/bus", icon: BusFrontIcon, label: copy.nav.bus },
-          { href: "/catalog/links", icon: LinkIcon, label: copy.nav.links },
-        ],
-      },
       {
         defaultOpen: true,
         label: copy.nav.groups.catalog,
@@ -222,24 +225,7 @@ function buildShellNavGroups(
     },
     {
       label: copy.nav.groups.explore,
-      links: [
-        {
-          ariaLabel: disambiguateDashboardBus
-            ? copy.nav.dashboardBus
-            : copy.nav.workspaceTransit,
-          href: "/workspace/bus",
-          icon: BusFrontIcon,
-          label: copy.nav.bus,
-        },
-        {
-          ariaLabel: copy.nav.links,
-          href: "/workspace/links",
-          icon: LinkIcon,
-          label: copy.nav.links,
-        },
-        ...catalogLinks,
-        ...campusLinks,
-      ],
+      links: [...catalogLinks, ...campusLinks],
     },
     ...(isAdmin
       ? [
@@ -294,12 +280,19 @@ function buildMobileSecondaryNavGroups(
       label: copy.nav.subscriptions,
     },
     {
-      href: "/workspace/bus",
+      href: "/catalog/bus",
       icon: BusFrontIcon,
       label: copy.nav.bus,
+      items: [
+        {
+          href: "/catalog/bus/map",
+          icon: MapIcon,
+          label: copy.nav.transitMap,
+        },
+      ],
     },
     {
-      href: "/workspace/links",
+      href: "/catalog/links",
       icon: LinkIcon,
       label: copy.nav.links,
     },
@@ -319,7 +312,6 @@ function buildMobileSecondaryNavGroups(
         : undefined,
       label: copy.nav.teachers,
     },
-    { href: "/catalog/bus/map", icon: MapIcon, label: copy.nav.transitMap },
     { href: "/mobile-app", icon: SmartphoneIcon, label: copy.nav.mobileApp },
   ];
   const adminLinks: ShellLink[] = [
@@ -422,8 +414,8 @@ function isMobilePrimaryActive(link: ShellLink): boolean {
   if (link.href === "/catalog/courses") {
     return (
       [
-        "/workspace/bus",
-        "/workspace/links",
+        "/catalog/bus",
+        "/catalog/links",
         "/catalog/bus/map",
         "/mobile-app",
       ].includes(pathname) ||

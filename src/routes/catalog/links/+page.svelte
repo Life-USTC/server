@@ -1,9 +1,15 @@
 <script lang="ts">
 import { onMount } from "svelte";
 import AnonymousLinksTab from "@/features/dashboard/components/AnonymousLinksTab.svelte";
+import LinksTab from "@/features/dashboard/components/LinksTab.svelte";
 import type { LinkView } from "@/features/dashboard/lib/dashboard-controller-helpers";
 import { dashboardLinkViewChange } from "@/features/dashboard/lib/dashboard-controller-view-actions";
 import { linkIconLabel } from "@/features/dashboard/lib/dashboard-link-icon";
+import {
+  applyDashboardLinkPinnedSlugs,
+  currentDashboardLinkReturnTo,
+  submitDashboardLinkPinRequest,
+} from "@/features/dashboard/lib/dashboard-link-pin-client";
 import {
   DASHBOARD_VIEW_STORAGE_KEY,
   dashboardViewsFromPreference,
@@ -18,10 +24,14 @@ export let data: PageData;
 let linkSearchInput: HTMLInputElement | null = null;
 let linkSearchQuery = "";
 let linkView: LinkView = "grid";
+let linkActionError = "";
+let linkItems = data.links;
+let linkReturnTo = "/catalog/links";
+let updatingDashboardLinkSlug: string | null = null;
 
 $: dashboardCopy = data.copy.dashboard;
-$: anonymousLinkGroups = groupDashboardLinks(
-  data.publicLinks,
+$: linkGroups = groupDashboardLinks(
+  linkItems,
   linkSearchQuery,
   dashboardCopy.linkHub.groups,
 );
@@ -29,11 +39,32 @@ $: anonymousLinkGroups = groupDashboardLinks(
 function setLinkView(mode: LinkView) {
   const next = dashboardLinkViewChange(mode);
   linkView = next.state.linkView;
+  linkReturnTo = next.href;
   replaceState(next.href, {});
+}
+
+async function submitDashboardLinkPin(slug: string, action: "pin" | "unpin") {
+  if (updatingDashboardLinkSlug) return;
+  updatingDashboardLinkSlug = slug;
+  linkActionError = "";
+  try {
+    const pinnedSlugs = await submitDashboardLinkPinRequest({
+      action,
+      fallbackMessage: dashboardCopy.linkHub.pinFailedDescription,
+      returnTo: linkReturnTo,
+      slug,
+    });
+    linkItems = applyDashboardLinkPinnedSlugs(linkItems, pinnedSlugs);
+  } catch (error) {
+    linkActionError = error instanceof Error ? error.message : "";
+  } finally {
+    updatingDashboardLinkSlug = null;
+  }
 }
 
 onMount(() => {
   const url = new URL(window.location.href);
+  linkReturnTo = currentDashboardLinkReturnTo();
   linkView = dashboardViewsFromPreference(
     url,
     getLocalStorageItem(DASHBOARD_VIEW_STORAGE_KEY),
@@ -72,13 +103,29 @@ onMount(() => {
     </p>
   </div>
 
-  <AnonymousLinksTab
-    {dashboardCopy}
-    {linkIconLabel}
-    {setLinkView}
-    {linkView}
-    {anonymousLinkGroups}
-    bind:linkSearchQuery
-    bind:linkSearchInput
-  />
+  {#if data.signedIn}
+    <LinksTab
+      {dashboardCopy}
+      {linkActionError}
+      {linkIconLabel}
+      {linkReturnTo}
+      {linkView}
+      setLinkView={setLinkView}
+      signedLinkGroups={linkGroups}
+      submitDashboardLinkPin={submitDashboardLinkPin}
+      {updatingDashboardLinkSlug}
+      bind:linkSearchQuery
+      bind:linkSearchInput
+    />
+  {:else}
+    <AnonymousLinksTab
+      {dashboardCopy}
+      {linkIconLabel}
+      {setLinkView}
+      {linkView}
+      anonymousLinkGroups={linkGroups}
+      bind:linkSearchQuery
+      bind:linkSearchInput
+    />
+  {/if}
 </div>

@@ -200,7 +200,7 @@ describe("GraphQL semantic observability", () => {
         {
           kind: "oauth",
           userId: "oauth-user",
-          scopes: new Set(["me:read"]),
+          scopes: new Set(["account.profile:read"]),
           resource: "https://example.test/api/graphql",
         },
       ],

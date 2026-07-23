@@ -133,7 +133,7 @@ describe("受保护写入路由认证顺序", () => {
     );
 
     const response = await postDashboardLinkPinRoute(
-      new Request("https://example.test/api/workspace/links/pin", {
+      new Request("https://example.test/api/workspace/link-pins", {
         body: "not-form-data",
         headers: {
           accept: "application/json",
@@ -145,8 +145,8 @@ describe("受保护写入路由认证顺序", () => {
 
     expect(response.status).toBe(401);
     expect(requireAuthMock).toHaveBeenCalledWith(expect.any(Request), {
-      bearerScope: { feature: "dashboard", action: "write" },
-      rateLimit: { action: "dashboard:write" },
+      bearerScope: { feature: "workspace.link-pin", action: "write" },
+      rateLimit: { action: "workspace.link-pin:write" },
     });
     expect(updateDashboardLinkPinStateMock).not.toHaveBeenCalled();
   });

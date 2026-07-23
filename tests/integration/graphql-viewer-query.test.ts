@@ -114,13 +114,13 @@ async function execute(body: unknown, headers: HeadersInit = {}) {
 }
 
 const allViewerScopes = [
-  restReadScope("me"),
-  restReadScope("dashboard"),
-  restReadScope("todo"),
-  restReadScope("subscription"),
-  restReadScope("homework"),
-  restReadScope("schedule"),
-  restReadScope("exam"),
+  restReadScope("account.profile"),
+  restReadScope("workspace.overview"),
+  restReadScope("workspace.todo"),
+  restReadScope("workspace.subscription"),
+  restReadScope("workspace.homework"),
+  restReadScope("workspace.schedule"),
+  restReadScope("workspace.exam"),
 ];
 
 describe.sequential("GraphQL Viewer integration", () => {
@@ -742,7 +742,9 @@ describe.sequential("GraphQL Viewer integration", () => {
       },
     });
 
-    const todoOnly = await signToken(firstUserId, [restReadScope("todo")]);
+    const todoOnly = await signToken(firstUserId, [
+      restReadScope("workspace.todo"),
+    ]);
     const missing = await execute(
       {
         query: /* GraphQL */ `
@@ -760,12 +762,12 @@ describe.sequential("GraphQL Viewer integration", () => {
     expect(missing.response.status).toBe(403);
     expect(missing.payload.errors?.[0]?.extensions).toMatchObject({
       code: "FORBIDDEN",
-      requiredScopes: [restReadScope("me")],
+      requiredScopes: [restReadScope("account.profile")],
     });
 
     const twoScopes = await signToken(firstUserId, [
-      restReadScope("todo"),
-      restReadScope("subscription"),
+      restReadScope("workspace.todo"),
+      restReadScope("workspace.subscription"),
     ]);
     const multiField = await execute(
       {
@@ -796,7 +798,7 @@ describe.sequential("GraphQL Viewer integration", () => {
     expect(multiField.response.status).toBe(403);
     expect(multiField.payload.errors?.[0]?.extensions).toMatchObject({
       code: "FORBIDDEN",
-      requiredScopes: [restReadScope("homework")],
+      requiredScopes: [restReadScope("workspace.homework")],
     });
   });
 
@@ -806,7 +808,7 @@ describe.sequential("GraphQL Viewer integration", () => {
   ])("rejects a %s bearer without falling back to a valid session cookie", async (_surface, resource) => {
     const wrongAudience = await signToken(
       firstUserId,
-      [restReadScope("me")],
+      [restReadScope("account.profile")],
       resource(),
     );
     const { response, payload } = await execute(

@@ -12,7 +12,7 @@ describe("user mutation rate limits", () => {
   it("explicitly bypasses the gate outside a Cloudflare runtime", async () => {
     await expect(
       checkUserMutationRateLimit({
-        action: "todo:write",
+        action: "workspace.todo:write",
         host: "life.example",
         userId: "user-1",
       }),
@@ -25,7 +25,7 @@ describe("user mutation rate limits", () => {
 
     await expect(
       checkUserMutationRateLimit({
-        action: "todo:write",
+        action: "workspace.todo:write",
         host: "LIFE.EXAMPLE",
         userId: "user-1",
       }),
@@ -35,7 +35,7 @@ describe("user mutation rate limits", () => {
     expect(JSON.parse(limit.mock.calls[0][0].key)).toEqual([
       "user-mutation:v1",
       "life.example",
-      "todo:write",
+      "workspace.todo:write",
       "user-1",
     ]);
   });
@@ -68,7 +68,7 @@ describe("user mutation rate limits", () => {
 
     await expect(
       checkUserMutationRateLimit({
-        action: "comment:write",
+        action: "community.comment:write",
         host: "life.example",
         userId: "user-1",
       }),
@@ -88,7 +88,7 @@ describe("user mutation rate limits", () => {
 
     await expect(
       checkUserMutationRateLimit({
-        action: "comment:write",
+        action: "community.comment:write",
         host: "life.example",
         userId: "user-1",
       }),
@@ -97,7 +97,7 @@ describe("user mutation rate limits", () => {
     expect(error).toHaveBeenCalledOnce();
     expect(error.mock.calls[0]?.[1]).toEqual(
       expect.objectContaining({
-        action: "comment:write",
+        action: "community.comment:write",
         event: "user-mutation-rate-limit.unavailable",
         source: "rate-limit",
         tier: "write",

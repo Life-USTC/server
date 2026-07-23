@@ -11,10 +11,10 @@ const handler = createGraphqlRequestHandler(false);
 const marker = `[integration-test] graphql-batches-${Date.now()}`;
 const oauthClientId = `graphql-batches-${crypto.randomUUID()}`;
 const batchScopes = [
-  restReadScope("todo"),
-  restWriteScope("todo"),
-  restWriteScope("homework"),
-  restWriteScope("subscription"),
+  restReadScope("workspace.todo"),
+  restWriteScope("workspace.todo"),
+  restWriteScope("workspace.homework"),
+  restWriteScope("workspace.subscription"),
 ];
 
 let userAId = "";
@@ -184,7 +184,9 @@ afterAll(async () => {
 
 describe("GraphQL batch mutations", () => {
   it("requires the exact write scope before any batch item changes", async () => {
-    const readToken = await signToken(userAId, [restReadScope("todo")]);
+    const readToken = await signToken(userAId, [
+      restReadScope("workspace.todo"),
+    ]);
     const result = await execute(
       {
         query: /* GraphQL */ `
@@ -205,7 +207,7 @@ describe("GraphQL batch mutations", () => {
 
     expectErrorCode(result.payload, "FORBIDDEN");
     expect(result.payload.errors?.[0]?.extensions?.requiredScopes).toEqual([
-      "todo:write",
+      "workspace.todo:write",
     ]);
     await expect(
       prisma.todo.findUniqueOrThrow({
@@ -216,7 +218,7 @@ describe("GraphQL batch mutations", () => {
   });
 
   it("returns todo completion and delete results per item", async () => {
-    const token = await signToken(userAId, [restWriteScope("todo")]);
+    const token = await signToken(userAId, [restWriteScope("workspace.todo")]);
     const completion = await execute(
       {
         query: /* GraphQL */ `
@@ -308,7 +310,7 @@ describe("GraphQL batch mutations", () => {
   });
 
   it("rejects duplicate, extra, and null inputs before writing", async () => {
-    const token = await signToken(userAId, [restWriteScope("todo")]);
+    const token = await signToken(userAId, [restWriteScope("workspace.todo")]);
     await prisma.todo.update({
       where: { id: ownedCompletionTodoId },
       data: { completed: false },
@@ -355,7 +357,9 @@ describe("GraphQL batch mutations", () => {
   });
 
   it("preserves homework per-item not-found and deleted errors", async () => {
-    const token = await signToken(userAId, [restWriteScope("homework")]);
+    const token = await signToken(userAId, [
+      restWriteScope("workspace.homework"),
+    ]);
     const result = await execute(
       {
         query: /* GraphQL */ `
@@ -415,7 +419,9 @@ describe("GraphQL batch mutations", () => {
   });
 
   it("applies and clears one semester through the shared subscription service", async () => {
-    const token = await signToken(userAId, [restWriteScope("subscription")]);
+    const token = await signToken(userAId, [
+      restWriteScope("workspace.subscription"),
+    ]);
     const mutation = /* GraphQL */ `
       mutation UpdateSubscriptions($input: UpdateSectionSubscriptionsInput!) {
         subscriptionsImport(input: $input) {

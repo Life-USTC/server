@@ -284,7 +284,7 @@ test.describe("校车线路图", () => {
       .getByRole("link", { name: /Back to timetable|返回时刻表/ })
       .first();
     await expect(backLink).toBeVisible();
-    await expect(backLink).toHaveAttribute("href", "/workspace/bus");
+    await expect(backLink).toHaveAttribute("href", "/catalog/bus");
     expect((await backLink.boundingBox())?.height ?? 0).toBeGreaterThanOrEqual(
       44,
     );

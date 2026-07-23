@@ -21,7 +21,7 @@ export async function deleteCommentReactionRoute(
   params: IdParams,
 ) {
   const auth = await requireAuth(request, {
-    bearerScope: { feature: "comment", action: "write" },
+    bearerScope: { feature: "community.comment", action: "write" },
   });
   if (auth instanceof Response) return auth;
   const { userId } = auth;

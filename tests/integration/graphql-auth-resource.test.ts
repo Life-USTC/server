@@ -26,7 +26,7 @@ async function signToken(resource: string) {
     grantId,
     issuedAt,
     resources: [resource],
-    scopes: [restReadScope("me")],
+    scopes: [restReadScope("account.profile")],
     userId,
   });
   if (!token) throw new Error("Expected a signed access token");
@@ -48,7 +48,7 @@ describe.sequential("GraphQL OAuth resource isolation", () => {
         clientId,
         consents: {
           create: {
-            scopes: [restReadScope("me")],
+            scopes: [restReadScope("account.profile")],
             userId,
           },
         },
@@ -125,7 +125,7 @@ describe.sequential("GraphQL OAuth resource isolation", () => {
         new Request(getOAuthRestAudienceUrls()[0] as string, {
           headers: { authorization: `Bearer ${restToken}` },
         }),
-        { bearerScope: { action: "read", feature: "me" } },
+        { bearerScope: { action: "read", feature: "account.profile" } },
       ),
     ).resolves.toBe(userId);
     await expect(
@@ -141,7 +141,7 @@ describe.sequential("GraphQL OAuth resource isolation", () => {
     const replacementConsent = await prisma.oAuthConsent.create({
       data: {
         clientId,
-        scopes: [restReadScope("me")],
+        scopes: [restReadScope("account.profile")],
         userId,
       },
       select: { grantId: true, id: true },
@@ -161,7 +161,7 @@ describe.sequential("GraphQL OAuth resource isolation", () => {
         new Request(getOAuthRestAudienceUrls()[0] as string, {
           headers: { authorization: `Bearer ${restToken}` },
         }),
-        { bearerScope: { action: "read", feature: "me" } },
+        { bearerScope: { action: "read", feature: "account.profile" } },
       ),
     ).resolves.toBeNull();
     await expect(

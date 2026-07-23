@@ -292,7 +292,7 @@ test.describe("/api/mcp - 传输与授权", () => {
       'error="insufficient_scope"',
     );
     expect(response.headers()["www-authenticate"]).toContain(
-      restReadScope("todo"),
+      restReadScope("workspace.todo"),
     );
     await expect(response.json()).resolves.toEqual({
       error: "insufficient_scope",

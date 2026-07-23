@@ -252,22 +252,22 @@ describe("OAuth consent 操作", () => {
 
   it("只接受原请求与 client 都允许的勾选 scopes", async () => {
     const oauthQuery = await signedOAuthQuery({
-      scope: "openid profile todo:read",
+      scope: "openid profile workspace.todo:read",
     });
     txReadClientMock.mockResolvedValue({
       disabled: false,
       redirectUris: ["https://client.example/callback"],
-      scopes: ["openid", "profile", "todo:read"],
+      scopes: ["openid", "profile", "workspace.todo:read"],
       skipConsent: false,
     });
     const body = new URLSearchParams({
       accept: "true",
-      scope: "openid profile todo:read",
+      scope: "openid profile workspace.todo:read",
       scopeSelectionEnabled: "true",
       oauthQuery,
     });
     body.append("scopes", "openid");
-    body.append("scopes", "todo:read");
+    body.append("scopes", "workspace.todo:read");
     body.append("scopes", "admin:write");
 
     await expect(
@@ -279,8 +279,12 @@ describe("OAuth consent 操作", () => {
 
     expect(consentUpsertMock).toHaveBeenCalledWith(
       expect.objectContaining({
-        create: expect.objectContaining({ scopes: ["openid", "todo:read"] }),
-        update: expect.objectContaining({ scopes: ["openid", "todo:read"] }),
+        create: expect.objectContaining({
+          scopes: ["openid", "workspace.todo:read"],
+        }),
+        update: expect.objectContaining({
+          scopes: ["openid", "workspace.todo:read"],
+        }),
       }),
     );
   });

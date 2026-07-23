@@ -73,7 +73,7 @@ function authenticatedUser() {
       clientId: "client-1",
       expiresAt: 1_900_000_000,
       extra: { userId: "user-1" },
-      scopes: ["todo:write"],
+      scopes: ["workspace.todo:write"],
       token: "token",
     },
   };
@@ -140,13 +140,13 @@ describe("MCP mutation rate limits", () => {
     });
     expect(checkUserMutationRateLimitMock).toHaveBeenCalledTimes(2);
     expect(checkUserMutationRateLimitMock).toHaveBeenNthCalledWith(1, {
-      action: "todo:write",
+      action: "workspace.todo:write",
       host: "life.example",
       tier: "write",
       userId: "user-1",
     });
     expect(checkUserMutationRateLimitMock).toHaveBeenNthCalledWith(2, {
-      action: "todo:write",
+      action: "workspace.todo:write",
       host: "life.example",
       tier: "write",
       userId: "user-1",

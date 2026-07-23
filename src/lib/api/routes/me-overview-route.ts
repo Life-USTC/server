@@ -9,7 +9,7 @@ import { requireAuth } from "@/lib/auth/api-auth";
 
 export async function getMyCompactOverviewRoute(request: Request) {
   const auth = await requireAuth(request, {
-    bearerScope: { feature: "dashboard", action: "read" },
+    bearerScope: { feature: "workspace.overview", action: "read" },
   });
   if (auth instanceof Response) return auth;
   const { userId } = auth;

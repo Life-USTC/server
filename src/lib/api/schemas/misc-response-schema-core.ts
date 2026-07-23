@@ -102,10 +102,46 @@ export const matchSectionCodesResponseSchema = z.object({
   total: z.number().int().nonnegative(),
 });
 
-export const dashboardLinkPinResponseSchema = z.object({
+export const workspaceLinkPinResponseSchema = z.object({
   pinnedSlugs: z.array(z.string()),
   maxPinnedLinks: z.number().int().positive(),
   error: z.string().nullable(),
+});
+
+export const catalogLinkListResponseSchema = z.object({
+  links: z.array(
+    z.object({
+      slug: z.string(),
+      title: z.string(),
+      url: z.url(),
+      description: z.string(),
+      titlePinyin: z.string(),
+      descriptionPinyin: z.string(),
+      category: z.enum(["academic", "community", "services", "campus"]),
+      icon: z.enum([
+        "book-open",
+        "clipboard-list",
+        "building",
+        "graduation-cap",
+        "mail",
+        "monitor-play",
+        "network",
+        "school",
+        "users",
+      ]),
+      group: z.enum([
+        "mostClicked",
+        "study",
+        "life",
+        "tech",
+        "classroom",
+        "external",
+        "graduate",
+        "leastClicked",
+      ]),
+      locale: z.enum(["zh-cn", "en-us"]),
+    }),
+  ),
 });
 
 export const openApiDocumentResponseSchema = z.object({

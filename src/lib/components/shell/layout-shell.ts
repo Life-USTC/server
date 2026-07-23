@@ -46,7 +46,7 @@ export function shouldShowAppFooter(pathname: string, signedIn: boolean) {
 
 export function resolveProfileHref(user: ShellUser) {
   if (user?.username) return `/community/users/${user.username}`;
-  if (user?.id) return `/community/users/id/${user.id}`;
+  if (user?.id) return `/community/users/${user.id}`;
   return "/";
 }
 

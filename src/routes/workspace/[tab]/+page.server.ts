@@ -1,12 +1,12 @@
 import { error, redirect } from "@sveltejs/kit";
-import { isSignedDashboardTab } from "@/features/dashboard/lib/dashboard-nav";
+import { isWorkspaceDashboardTab } from "@/features/dashboard/lib/dashboard-nav";
 import { dashboardPageActions } from "@/features/dashboard/server/dashboard-page-actions";
 import { loadSignedDashboardPage } from "@/features/dashboard/server/dashboard-page-load";
 import { buildSignInPageUrl } from "@/lib/auth/auth-routing";
 import type { Actions, PageServerLoad } from "./$types";
 
 export const load: PageServerLoad = async (event) => {
-  if (!isSignedDashboardTab(event.params.tab)) {
+  if (!isWorkspaceDashboardTab(event.params.tab)) {
     error(404, "Dashboard page not found");
   }
   if (!event.locals.authUser?.id) {

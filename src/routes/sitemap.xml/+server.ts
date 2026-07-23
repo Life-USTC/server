@@ -12,7 +12,7 @@ const STATIC_ROUTES = [
   "/catalog/bus",
   "/catalog/links",
   "/catalog/bus/map",
-  "/api/docs/tag/sections",
+  "/api/docs/tag/catalog-section",
   "/privacy",
   "/terms",
 ];

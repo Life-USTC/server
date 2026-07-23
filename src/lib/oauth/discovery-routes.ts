@@ -62,7 +62,7 @@ const DISCOVERY_TARGETS = {
     type: "metadata",
     getResponse: () =>
       getProtectedResourceMetadataResponse({
-        documentationPath: "/api/docs/tag/sections",
+        documentationPath: "/api/docs/tag/catalog-section",
         resource: getMcpServerUrl(),
       }),
   },

@@ -22,5 +22,10 @@ export let data: PageData;
     </p>
   </div>
 
-  <BusTab busCopy={data.copy.bus} bus={data.bus} compact />
+  <BusTab
+    busCopy={data.copy.bus}
+    bus={data.bus}
+    compact
+    savePreferences={data.signedIn}
+  />
 </div>

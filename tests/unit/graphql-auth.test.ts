@@ -51,7 +51,7 @@ describe("GraphQL principal", () => {
     verifyAccessTokenJwtMock.mockResolvedValue({
       aud: "https://life.example/api/graphql",
       clientId: "client-1",
-      scope: new Set([restReadScope("todo")]),
+      scope: new Set([restReadScope("workspace.todo")]),
       sub: "user-1",
     });
     const { resolveGraphqlPrincipal } = await import("@/lib/graphql/auth");
@@ -63,7 +63,7 @@ describe("GraphQL principal", () => {
     ).resolves.toEqual({
       kind: "oauth",
       userId: "user-1",
-      scopes: new Set([restReadScope("todo")]),
+      scopes: new Set([restReadScope("workspace.todo")]),
       resource: "https://life.example/api/graphql",
       clientId: "client-1",
     });
@@ -85,7 +85,7 @@ describe("GraphQL principal", () => {
     verifyAccessTokenJwtMock.mockResolvedValue({
       aud: "https://life.example/api/graphql",
       clientId: "client-1",
-      scope: new Set([restReadScope("todo")]),
+      scope: new Set([restReadScope("workspace.todo")]),
       sub: "user-1",
     });
     hasActiveOAuthUserGrantMock.mockResolvedValueOnce(false);
@@ -96,7 +96,7 @@ describe("GraphQL principal", () => {
 
     verifyAccessTokenJwtMock.mockResolvedValue({
       aud: "https://life.example/api/graphql",
-      scope: new Set([restReadScope("todo")]),
+      scope: new Set([restReadScope("workspace.todo")]),
       sub: "user-1",
     });
     await expect(resolveGraphqlPrincipal(incoming)).rejects.toMatchObject({
@@ -107,7 +107,7 @@ describe("GraphQL principal", () => {
     verifyAccessTokenJwtMock.mockResolvedValue({
       aud: "https://life.example/api/graphql",
       clientId: "client-1",
-      scope: new Set([restReadScope("todo")]),
+      scope: new Set([restReadScope("workspace.todo")]),
       sub: "user-1",
     });
     hasActiveOAuthUserGrantMock.mockRejectedValueOnce(
@@ -125,7 +125,7 @@ describe("GraphQL principal", () => {
   ])("拒绝 %s audience 且不回退 Session", async (aud) => {
     verifyAccessTokenJwtMock.mockResolvedValue({
       aud,
-      scope: new Set([restReadScope("todo")]),
+      scope: new Set([restReadScope("workspace.todo")]),
       sub: "user-1",
     });
     getSessionFromHeadersMock.mockResolvedValue({
@@ -255,7 +255,7 @@ describe("GraphQL feature scope gates", () => {
     expect(
       requireGraphqlScope(
         { kind: "session", userId: "user-1" },
-        { feature: "todo", action: "read" },
+        { feature: "workspace.todo", action: "read" },
       ),
     ).toMatchObject({ kind: "session", userId: "user-1" });
   });
@@ -263,7 +263,10 @@ describe("GraphQL feature scope gates", () => {
   it("OAuth read 接受 matching read 或 write scope", async () => {
     const { requireGraphqlScope } = await import("@/lib/graphql/auth");
 
-    for (const scope of [restReadScope("todo"), restWriteScope("todo")]) {
+    for (const scope of [
+      restReadScope("workspace.todo"),
+      restWriteScope("workspace.todo"),
+    ]) {
       expect(
         requireGraphqlScope(
           {
@@ -272,7 +275,7 @@ describe("GraphQL feature scope gates", () => {
             scopes: new Set([scope]),
             resource: "https://life.example/api/graphql",
           },
-          { feature: "todo", action: "read" },
+          { feature: "workspace.todo", action: "read" },
         ),
       ).toMatchObject({ kind: "oauth", userId: "user-1" });
     }
@@ -286,18 +289,18 @@ describe("GraphQL feature scope gates", () => {
         {
           kind: "oauth",
           userId: "user-1",
-          scopes: new Set([restReadScope("todo")]),
+          scopes: new Set([restReadScope("workspace.todo")]),
           resource: "https://life.example/api/graphql",
         },
         [
-          { feature: "todo", action: "read" },
-          { feature: "subscription", action: "read" },
+          { feature: "workspace.todo", action: "read" },
+          { feature: "workspace.subscription", action: "read" },
         ],
       ),
     ).toThrow(
       expect.objectContaining({
         code: "FORBIDDEN",
-        requiredScopes: [restReadScope("subscription")],
+        requiredScopes: [restReadScope("workspace.subscription")],
         status: 403,
       }),
     );
@@ -314,12 +317,12 @@ describe("GraphQL feature scope gates", () => {
           scopes: new Set(),
           resource: "https://life.example/api/graphql",
         },
-        { feature: "me", action: "read" },
+        { feature: "account.profile", action: "read" },
       ),
     ).toThrow(
       expect.objectContaining({
         code: "FORBIDDEN",
-        requiredScopes: [restReadScope("me")],
+        requiredScopes: [restReadScope("account.profile")],
         status: 403,
       }),
     );
@@ -329,7 +332,7 @@ describe("GraphQL feature scope gates", () => {
     [
       "anonymous",
       { kind: "anonymous" } as const,
-      { feature: "me", action: "read" } as const,
+      { feature: "account.profile", action: "read" } as const,
       "UNAUTHENTICATED",
       401,
       [],
@@ -342,10 +345,10 @@ describe("GraphQL feature scope gates", () => {
         scopes: new Set<string>(),
         resource: "https://life.example/api/graphql",
       } as const,
-      { feature: "todo", action: "read" } as const,
+      { feature: "workspace.todo", action: "read" } as const,
       "FORBIDDEN",
       403,
-      [restReadScope("todo")],
+      [restReadScope("workspace.todo")],
     ],
   ])("%s 错误是不会被 masking 吞掉的安全 GraphQLError", async (_case, principal, requirement, code, status, requiredScopes) => {
     const { requireGraphqlScope } = await import("@/lib/graphql/auth");
@@ -376,7 +379,7 @@ describe("GraphQL feature scope gates", () => {
     expect(() =>
       requireGraphqlScope(
         { kind: "anonymous" },
-        { feature: "me", action: "read" },
+        { feature: "account.profile", action: "read" },
       ),
     ).toThrow(
       expect.objectContaining({ code: "UNAUTHENTICATED", status: 401 }),
@@ -392,7 +395,10 @@ describe("GraphQL feature scope gates", () => {
     verifyAccessTokenJwtMock.mockResolvedValue({
       aud: "https://life.example/api/graphql",
       clientId: "client-1",
-      scope: new Set([restReadScope("todo"), restReadScope("subscription")]),
+      scope: new Set([
+        restReadScope("workspace.todo"),
+        restReadScope("workspace.subscription"),
+      ]),
       sub: "user-1",
     });
     const { createGraphqlContext } = await import("@/lib/graphql/context");
@@ -403,11 +409,11 @@ describe("GraphQL feature scope gates", () => {
       locals: { locale: "zh-cn" },
     });
     requireGraphqlScope(context.principal, {
-      feature: "todo",
+      feature: "workspace.todo",
       action: "read",
     });
     requireGraphqlScope(context.principal, {
-      feature: "subscription",
+      feature: "workspace.subscription",
       action: "read",
     });
 

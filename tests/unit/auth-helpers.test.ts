@@ -1,12 +1,16 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { setCloudflareRuntimeEnv } from "@/lib/adapters/cloudflare-runtime";
 import {
-  MCP_TOOLS_SCOPE,
   OAUTH_PROFILE_SCOPE,
-  OAUTH_REST_READ_SCOPE,
-  OAUTH_REST_WRITE_SCOPE,
+  PUBLIC_REST_FEATURES,
+  restReadScope,
+  restWriteScope,
 } from "@/lib/oauth/constants";
 import { expandScopeClaim } from "@/lib/oauth/scope-registry";
+
+const ALL_PUBLIC_READ_SCOPES = PUBLIC_REST_FEATURES.map(restReadScope);
+const ALL_PUBLIC_WRITE_SCOPES = PUBLIC_REST_FEATURES.map(restWriteScope);
+const UNRELATED_SCOPE = restReadScope("catalog.bus");
 
 const getSessionFromHeadersMock = vi.fn();
 const verifyAccessTokenJwtMock = vi.fn();
@@ -59,7 +63,7 @@ describe("认证辅助函数", () => {
       user: { id: "user-from-cookie" },
     });
     const { resolveApiUserId } = await import("@/lib/auth/api-auth");
-    const request = new Request("https://life.example/api/account", {
+    const request = new Request("https://life.example/api/account/profile", {
       headers: {
         cookie: "better-auth.session_token=session-token",
       },
@@ -73,11 +77,11 @@ describe("认证辅助函数", () => {
   it("优先使用有效的 bearer 访问令牌而非 session cookie", async () => {
     verifyAccessTokenJwtMock.mockResolvedValue({
       clientId: "client-id",
-      scope: expandScopeClaim(OAUTH_REST_READ_SCOPE),
+      scope: expandScopeClaim(ALL_PUBLIC_READ_SCOPES),
       sub: "user-from-token",
     });
     const { resolveApiUserId } = await import("@/lib/auth/api-auth");
-    const request = new Request("https://life.example/api/account", {
+    const request = new Request("https://life.example/api/account/profile", {
       headers: {
         authorization: "Bearer access-token",
         cookie: "better-auth.session_token=session-token",
@@ -99,11 +103,11 @@ describe("认证辅助函数", () => {
   it.each(["bearer", "bEaReR"])("接受 %s bearer 访问令牌", async (scheme) => {
     verifyAccessTokenJwtMock.mockResolvedValue({
       clientId: "client-id",
-      scope: new Set(["me:read"]),
+      scope: new Set(["account.profile:read"]),
       sub: "user-from-token",
     });
     const { resolveApiUserId } = await import("@/lib/auth/api-auth");
-    const request = new Request("https://life.example/api/account", {
+    const request = new Request("https://life.example/api/account/profile", {
       headers: {
         authorization: `${scheme} access-token`,
         cookie: "better-auth.session_token=session-token",
@@ -120,27 +124,27 @@ describe("认证辅助函数", () => {
 
   it("拒绝已撤销、缺少 azp 或无法查询授权状态的 REST JWT", async () => {
     const { resolveApiUserId } = await import("@/lib/auth/api-auth");
-    const request = new Request("https://life.example/api/account", {
+    const request = new Request("https://life.example/api/account/profile", {
       headers: { authorization: "Bearer access-token" },
     });
 
     verifyAccessTokenJwtMock.mockResolvedValue({
       clientId: "client-id",
-      scope: new Set(["me:read"]),
+      scope: new Set(["account.profile:read"]),
       sub: "user-from-token",
     });
     hasActiveOAuthUserGrantMock.mockResolvedValueOnce(false);
     await expect(resolveApiUserId(request)).resolves.toBeNull();
 
     verifyAccessTokenJwtMock.mockResolvedValue({
-      scope: new Set(["me:read"]),
+      scope: new Set(["account.profile:read"]),
       sub: "user-from-token",
     });
     await expect(resolveApiUserId(request)).resolves.toBeNull();
 
     verifyAccessTokenJwtMock.mockResolvedValue({
       clientId: "client-id",
-      scope: new Set(["me:read"]),
+      scope: new Set(["account.profile:read"]),
       sub: "user-from-token",
     });
     hasActiveOAuthUserGrantMock.mockRejectedValueOnce(
@@ -171,14 +175,14 @@ describe("认证辅助函数", () => {
       sub: "user-from-token",
     });
     const { requireAuth } = await import("@/lib/auth/api-auth");
-    const request = new Request("https://life.example/api/account", {
+    const request = new Request("https://life.example/api/account/profile", {
       headers: {
         authorization: "Bearer profile-token",
       },
     });
 
     const result = await requireAuth(request, {
-      bearerScope: { feature: "me", action: "read" },
+      bearerScope: { feature: "account.profile", action: "read" },
     });
 
     expect(result).toBeInstanceOf(Response);
@@ -189,10 +193,10 @@ describe("认证辅助函数", () => {
     expect(getSessionFromHeadersMock).not.toHaveBeenCalled();
   });
 
-  it("拒绝仅 MCP 的 bearer 访问受保护 REST 读取", async () => {
+  it("拒绝缺少所需 feature scope 的 bearer 读取", async () => {
     verifyAccessTokenJwtMock.mockResolvedValue({
       clientId: "client-id",
-      scope: new Set([OAUTH_PROFILE_SCOPE, MCP_TOOLS_SCOPE]),
+      scope: new Set([OAUTH_PROFILE_SCOPE, UNRELATED_SCOPE]),
       sub: "user-from-token",
     });
     const { requireAuth } = await import("@/lib/auth/api-auth");
@@ -203,7 +207,7 @@ describe("认证辅助函数", () => {
     });
 
     const result = await requireAuth(request, {
-      bearerScope: { feature: "todo", action: "read" },
+      bearerScope: { feature: "workspace.todo", action: "read" },
     });
 
     expect(result).toBeInstanceOf(Response);
@@ -217,7 +221,7 @@ describe("认证辅助函数", () => {
   it("拒绝 REST 只读 bearer 访问受保护 REST 写入", async () => {
     verifyAccessTokenJwtMock.mockResolvedValue({
       clientId: "client-id",
-      scope: expandScopeClaim(OAUTH_REST_READ_SCOPE),
+      scope: expandScopeClaim(ALL_PUBLIC_READ_SCOPES),
       sub: "user-from-token",
     });
     const { requireWriteAuth } = await import("@/lib/auth/api-auth");
@@ -241,7 +245,7 @@ describe("认证辅助函数", () => {
   it("拒绝 REST 只读 bearer 访问使用 requireAuth 的 POST 路由", async () => {
     verifyAccessTokenJwtMock.mockResolvedValue({
       clientId: "client-id",
-      scope: expandScopeClaim(OAUTH_REST_READ_SCOPE),
+      scope: expandScopeClaim(ALL_PUBLIC_READ_SCOPES),
       sub: "user-from-token",
     });
     const { requireAuth } = await import("@/lib/auth/api-auth");
@@ -253,7 +257,7 @@ describe("认证辅助函数", () => {
     });
 
     const result = await requireAuth(request, {
-      bearerScope: { feature: "todo", action: "write" },
+      bearerScope: { feature: "workspace.todo", action: "write" },
     });
 
     expect(result).toBeInstanceOf(Response);
@@ -264,10 +268,10 @@ describe("认证辅助函数", () => {
     expect(getSessionFromHeadersMock).not.toHaveBeenCalled();
   });
 
-  it("拒绝仅 MCP 的 bearer 访问受保护 REST 写入", async () => {
+  it("拒绝缺少所需 feature scope 的 bearer 写入", async () => {
     verifyAccessTokenJwtMock.mockResolvedValue({
       clientId: "client-id",
-      scope: new Set([OAUTH_PROFILE_SCOPE, MCP_TOOLS_SCOPE]),
+      scope: new Set([OAUTH_PROFILE_SCOPE, UNRELATED_SCOPE]),
       sub: "user-from-token",
     });
     const { requireWriteAuth } = await import("@/lib/auth/api-auth");
@@ -293,7 +297,7 @@ describe("认证辅助函数", () => {
     setCloudflareRuntimeEnv({ USER_WRITE_RATE_LIMITER: { limit } });
     verifyAccessTokenJwtMock.mockResolvedValue({
       clientId: "client-id",
-      scope: expandScopeClaim(OAUTH_REST_WRITE_SCOPE),
+      scope: expandScopeClaim(ALL_PUBLIC_WRITE_SCOPES),
       sub: "user-from-token",
     });
     const { requireAuth } = await import("@/lib/auth/api-auth");
@@ -303,7 +307,7 @@ describe("认证辅助函数", () => {
     });
 
     const result = await requireAuth(request, {
-      bearerScope: { feature: "todo", action: "write" },
+      bearerScope: { feature: "workspace.todo", action: "write" },
     });
 
     expect(result).toBeInstanceOf(Response);
@@ -316,7 +320,7 @@ describe("认证辅助函数", () => {
       key: JSON.stringify([
         "user-mutation:v1",
         "life.example",
-        "todo:write",
+        "workspace.todo:write",
         "user-from-token",
       ]),
     });
@@ -327,7 +331,7 @@ describe("认证辅助函数", () => {
     setCloudflareRuntimeEnv({ USER_WRITE_RATE_LIMITER: { limit } });
     verifyAccessTokenJwtMock.mockResolvedValue({
       clientId: "client-id",
-      scope: expandScopeClaim(OAUTH_REST_READ_SCOPE),
+      scope: expandScopeClaim(ALL_PUBLIC_READ_SCOPES),
       sub: "user-from-token",
     });
     const { requireAuth } = await import("@/lib/auth/api-auth");
@@ -337,7 +341,7 @@ describe("认证辅助函数", () => {
 
     await expect(
       requireAuth(request, {
-        bearerScope: { feature: "todo", action: "read" },
+        bearerScope: { feature: "workspace.todo", action: "read" },
       }),
     ).resolves.toEqual({ userId: "user-from-token" });
     expect(limit).not.toHaveBeenCalled();
@@ -347,7 +351,7 @@ describe("认证辅助函数", () => {
     setCloudflareRuntimeEnv({ ANALYTICS: { writeDataPoint: vi.fn() } });
     verifyAccessTokenJwtMock.mockResolvedValue({
       clientId: "client-id",
-      scope: expandScopeClaim(OAUTH_REST_WRITE_SCOPE),
+      scope: expandScopeClaim(ALL_PUBLIC_WRITE_SCOPES),
       sub: "user-from-token",
     });
     const { requireAuth } = await import("@/lib/auth/api-auth");
@@ -357,7 +361,7 @@ describe("认证辅助函数", () => {
         method: "POST",
         headers: { authorization: "Bearer write-token" },
       }),
-      { bearerScope: { feature: "todo", action: "write" } },
+      { bearerScope: { feature: "workspace.todo", action: "write" } },
     );
 
     expect(result).toBeInstanceOf(Response);
@@ -370,7 +374,7 @@ describe("认证辅助函数", () => {
     setCloudflareRuntimeEnv({ USER_WRITE_RATE_LIMITER: { limit } });
     verifyAccessTokenJwtMock.mockResolvedValue({
       clientId: "client-id",
-      scope: expandScopeClaim(OAUTH_REST_WRITE_SCOPE),
+      scope: expandScopeClaim(ALL_PUBLIC_WRITE_SCOPES),
       sub: "user-from-token",
     });
     getViewerAuthDataForUserIdMock.mockResolvedValue({
@@ -400,7 +404,7 @@ describe("认证辅助函数", () => {
       key: JSON.stringify([
         "user-mutation:v1",
         "life.example",
-        "upload:write",
+        "workspace.upload:write",
         "user-from-token",
       ]),
     });
@@ -412,7 +416,7 @@ describe("认证辅助函数", () => {
       user: { id: "user-from-cookie" },
     });
     const { resolveApiUserId } = await import("@/lib/auth/api-auth");
-    const request = new Request("https://life.example/api/account", {
+    const request = new Request("https://life.example/api/account/profile", {
       headers: {
         authorization: "Bearer invalid-token",
         cookie: "better-auth.session_token=session-token",
@@ -429,7 +433,7 @@ describe("认证辅助函数", () => {
       user: { id: "user-from-cookie" },
     });
     const { requireAuth } = await import("@/lib/auth/api-auth");
-    const request = new Request("https://life.example/api/account", {
+    const request = new Request("https://life.example/api/account/profile", {
       headers: {
         authorization: "bearer invalid-token",
         cookie: "better-auth.session_token=session-token",
@@ -437,7 +441,7 @@ describe("认证辅助函数", () => {
     });
 
     const result = await requireAuth(request, {
-      bearerScope: { feature: "me", action: "read" },
+      bearerScope: { feature: "account.profile", action: "read" },
     });
 
     expect(result).toBeInstanceOf(Response);
@@ -453,7 +457,7 @@ describe("认证辅助函数", () => {
       user: { id: "user-from-cookie" },
     });
     const { resolveApiUserId } = await import("@/lib/auth/api-auth");
-    const request = new Request("https://life.example/api/account", {
+    const request = new Request("https://life.example/api/account/profile", {
       headers: {
         authorization: "Bearer ",
         cookie: "better-auth.session_token=session-token",
@@ -503,7 +507,7 @@ describe("认证辅助函数", () => {
   it("当解析到的用户不存在时拒绝写入认证", async () => {
     verifyAccessTokenJwtMock.mockResolvedValue({
       clientId: "client-id",
-      scope: expandScopeClaim(OAUTH_REST_WRITE_SCOPE),
+      scope: expandScopeClaim(ALL_PUBLIC_WRITE_SCOPES),
       sub: "deleted-user",
     });
     getViewerAuthDataForUserIdMock.mockResolvedValue(null);

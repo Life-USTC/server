@@ -34,8 +34,8 @@
           "/workspace/exams",
           "/workspace/homeworks",
           "/workspace/todos",
-          "/workspace/bus",
-          "/workspace/links"
+          "/catalog/bus",
+          "/catalog/links"
         ]
       },
       "rest": {
@@ -59,7 +59,7 @@
             "arguments": { "atTime": "DateTime" },
             "returns": "WorkspaceOverview!",
             "auth": "user",
-            "required_scopes": ["dashboard:read"],
+            "required_scopes": ["workspace.overview:read"],
             "rest_equivalent": "GET /api/workspace/overview",
             "mcp_equivalent": "workspace_overview_get",
             "notes": [

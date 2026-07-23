@@ -4,15 +4,16 @@ import { svelteRequestHandler } from "@/lib/api/svelte-route";
 import { observedApiRoute } from "@/lib/log/api-observability";
 
 /**
- * List homeworks.
+ * List shared section homeworks.
  * @params homeworksQuerySchema
  * @response homeworksListResponseSchema
  * @response 400:openApiErrorSchema
  * @response 404:openApiErrorSchema
  */
 export const GET = svelteRequestHandler(observedApiRoute(getHomeworksRoute));
+
 /**
- * Create one homework.
+ * Create one shared section homework.
  * @body homeworkCreateRequestSchema
  * @response 201:homeworkCreateResponseSchema
  * @response 400:openApiErrorSchema

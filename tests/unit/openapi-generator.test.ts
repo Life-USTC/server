@@ -75,7 +75,7 @@ describe("openapi generator", () => {
     for (const path of [
       "/api/workspace/todos",
       "/api/community/comments",
-      "/api/community/homeworks",
+      "/api/community/section-homeworks",
       "/api/admin/suspensions",
     ]) {
       const responses = paths[path]?.post?.responses;

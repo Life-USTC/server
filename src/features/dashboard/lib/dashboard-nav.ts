@@ -1,19 +1,22 @@
 import { semanticSectionCompatibilityHref } from "@/lib/navigation/semantic-section-redirect";
 
-export const signedTabIds = [
+export const workspaceTabIds = [
   "overview",
   "calendar",
   "homeworks",
   "todos",
   "exams",
   "subscriptions",
-  "bus",
-  "links",
 ] as const;
 
-export type SignedTabId = (typeof signedTabIds)[number];
+export type WorkspaceTabId = (typeof workspaceTabIds)[number];
 
-const signedTabIdSet = new Set<string>(signedTabIds);
+const workspaceTabIdSet = new Set<string>(workspaceTabIds);
+const legacyHomeTabIdSet = new Set<string>([
+  ...workspaceTabIds,
+  "bus",
+  "links",
+]);
 const homeDashboardQueryKeys = new Set([
   "calendarMonth",
   "calendarSemester",
@@ -41,14 +44,14 @@ function queryWithoutTab(url: URL) {
   return query;
 }
 
-export function isSignedDashboardTab(
+export function isWorkspaceDashboardTab(
   value: string | null | undefined,
-): value is SignedTabId {
-  return Boolean(value && signedTabIdSet.has(value));
+): value is WorkspaceTabId {
+  return Boolean(value && workspaceTabIdSet.has(value));
 }
 
 export function dashboardTabHref(
-  id: SignedTabId,
+  id: WorkspaceTabId,
   params: Record<string, string | number | null | undefined> = {},
 ) {
   const query = new URLSearchParams();
@@ -58,8 +61,7 @@ export function dashboardTabHref(
     }
   }
   const search = query.toString();
-  const path = `/workspace/${id}`;
-  return `${path}${search ? `?${search}` : ""}`;
+  return `/workspace/${id}${search ? `?${search}` : ""}`;
 }
 
 export function dashboardRedirectHrefFromHome(url: URL) {
@@ -73,19 +75,17 @@ export function dashboardRedirectHrefFromHome(url: URL) {
   }
 
   return appendSearch(
-    isSignedDashboardTab(tab) ? `/workspace/${tab}` : "/workspace/overview",
+    isWorkspaceDashboardTab(tab) ? `/workspace/${tab}` : "/workspace/overview",
     query,
   );
 }
 
-export function homeTabCompatibilityRedirectHref(url: URL, signedIn: boolean) {
+export function homeTabCompatibilityRedirectHref(url: URL, _signedIn: boolean) {
   const tab = url.searchParams.get("tab");
-  if (!isSignedDashboardTab(tab)) return null;
+  if (!tab || !legacyHomeTabIdSet.has(tab)) return null;
 
   const pathname =
-    signedIn || (tab !== "bus" && tab !== "links")
-      ? `/workspace/${tab}`
-      : `/catalog/${tab}`;
+    tab === "bus" || tab === "links" ? `/catalog/${tab}` : `/workspace/${tab}`;
   return appendSearch(pathname, queryWithoutTab(url));
 }
 
@@ -97,7 +97,7 @@ export function dashboardTabCompatibilityRedirectHref(
     basePath: "/workspace",
     defaultSection: "overview",
     method,
-    resolveSection: (tab) => (isSignedDashboardTab(tab) ? tab : null),
+    resolveSection: (tab) => (isWorkspaceDashboardTab(tab) ? tab : null),
     url,
   });
 }

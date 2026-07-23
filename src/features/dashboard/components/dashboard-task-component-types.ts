@@ -19,7 +19,7 @@ import type {
   TodoFilter,
   TodoView,
 } from "@/features/dashboard/lib/dashboard-controller-helpers";
-import type { SignedTabId } from "@/features/dashboard/lib/dashboard-nav";
+import type { WorkspaceTabId } from "@/features/dashboard/lib/dashboard-nav";
 import type {
   DashboardExamFilter,
   DashboardExamRow,
@@ -30,7 +30,7 @@ import type {
 } from "./dashboard-exam-component-types";
 import type { DashboardHomeworkCreateSectionGetter } from "./dashboard-homework-create-types";
 
-export type DashboardTaskActiveTab = SignedTabId;
+export type DashboardTaskActiveTab = WorkspaceTabId;
 export type DashboardTaskDateValue = Date | string;
 export type DashboardTaskShortcut = () => void;
 export type DashboardTaskStringDraft = string;

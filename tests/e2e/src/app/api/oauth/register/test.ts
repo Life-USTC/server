@@ -47,9 +47,9 @@ const DCR_CLIENT_SCOPE = [
   OAUTH_OPENID_SCOPE,
   OAUTH_PROFILE_SCOPE,
   OAUTH_EMAIL_SCOPE,
-  restReadScope("me"),
-  restReadScope("todo"),
-  restWriteScope("todo"),
+  restReadScope("account.profile"),
+  restReadScope("workspace.todo"),
+  restWriteScope("workspace.todo"),
 ].join(" ");
 
 test.describe("OAuth 提供者", () => {
@@ -138,8 +138,12 @@ test.describe("OAuth 提供者", () => {
     const protectedResourceBody = (await protectedResource.json()) as {
       scopes_supported?: string[];
     };
-    expect(protectedResourceBody.scopes_supported).toContain("todo:read");
-    expect(protectedResourceBody.scopes_supported).toContain("todo:write");
+    expect(protectedResourceBody.scopes_supported).toContain(
+      "workspace.todo:read",
+    );
+    expect(protectedResourceBody.scopes_supported).toContain(
+      "workspace.todo:write",
+    );
     expect(protectedResourceBody.scopes_supported).not.toContain("admin:read");
     expect(protectedResourceBody.scopes_supported).not.toContain("admin:write");
     expect(protectedResourceBody.scopes_supported).not.toContain("mcp:tools");

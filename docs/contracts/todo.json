@@ -33,7 +33,7 @@
             },
             "returns": "TodoPage!",
             "auth": "user",
-            "required_scopes": ["todo:read"],
+            "required_scopes": ["workspace.todo:read"],
             "rest_equivalent": "GET /api/workspace/todos",
             "mcp_equivalent": "workspace_todo_list",
             "notes": [
@@ -47,7 +47,7 @@
             "arguments": { "input": "CreateTodoInput!" },
             "returns": "TodoMutationPayload!",
             "auth": "user",
-            "required_scopes": ["todo:write"],
+            "required_scopes": ["workspace.todo:write"],
             "rest_equivalent": "POST /api/workspace/todos",
             "mcp_equivalent": "workspace_todo_create"
           },
@@ -59,7 +59,7 @@
             },
             "returns": "TodoMutationPayload!",
             "auth": "user",
-            "required_scopes": ["todo:write"],
+            "required_scopes": ["workspace.todo:write"],
             "rest_equivalent": "PATCH /api/workspace/todos/[id]",
             "mcp_equivalent": "workspace_todo_update"
           },
@@ -68,7 +68,7 @@
             "arguments": { "id": "ID!" },
             "returns": "DeleteMutationPayload!",
             "auth": "user",
-            "required_scopes": ["todo:write"],
+            "required_scopes": ["workspace.todo:write"],
             "rest_equivalent": "DELETE /api/workspace/todos/[id]",
             "mcp_equivalent": "workspace_todo_delete"
           },
@@ -79,7 +79,7 @@
             },
             "returns": "TodoCompletionBatchPayload!",
             "auth": "user",
-            "required_scopes": ["todo:write"],
+            "required_scopes": ["workspace.todo:write"],
             "rest_equivalent": "PATCH /api/workspace/todos/batch",
             "mcp_equivalent": "workspace_todo_update",
             "notes": [
@@ -92,7 +92,7 @@
             "arguments": { "ids": "[ID!]!" },
             "returns": "TodoDeleteBatchPayload!",
             "auth": "user",
-            "required_scopes": ["todo:write"],
+            "required_scopes": ["workspace.todo:write"],
             "rest_equivalent": "DELETE /api/workspace/todos/batch",
             "mcp_equivalent": "workspace_todo_delete",
             "notes": [

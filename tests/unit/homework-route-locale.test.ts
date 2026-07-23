@@ -76,7 +76,7 @@ describe("homework REST locale 适配", () => {
     );
 
     const response = await getHomeworksRoute(
-      request("/api/community/homeworks?sectionId=12"),
+      request("/api/community/section-homeworks?sectionId=12"),
     );
 
     expect(response.status).toBe(200);
@@ -93,7 +93,9 @@ describe("homework REST locale 适配", () => {
     });
 
     const includeDeletedResponse = await getHomeworksRoute(
-      request("/api/community/homeworks?sectionId=12&includeDeleted=true"),
+      request(
+        "/api/community/section-homeworks?sectionId=12&includeDeleted=true",
+      ),
     );
     expect(includeDeletedResponse.status).toBe(200);
     expect(listSectionHomeworksWithAuditMock).toHaveBeenLastCalledWith({

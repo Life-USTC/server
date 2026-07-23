@@ -92,17 +92,17 @@ export const localeUpdateRequestSchema = z.object({
   locale: z.enum(APP_LOCALES),
 });
 
-export const dashboardLinkVisitRequestSchema = z.object({
+export const catalogLinkVisitRequestSchema = z.object({
   slug: z.string().trim().min(1),
 });
 
-export const dashboardLinkPinRequestSchema = z.object({
+export const workspaceLinkPinRequestSchema = z.object({
   slug: z.string().trim().min(1),
   returnTo: z.string().trim().optional(),
   action: z.enum(["pin", "unpin"]).optional(),
 });
 
-export const dashboardLinkPinBatchRequestSchema = z.object({
+export const workspaceLinkPinBatchRequestSchema = z.object({
   items: z
     .array(
       z.object({

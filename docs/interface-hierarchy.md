@@ -60,7 +60,7 @@ Life@USTC
 │   │   ├── preview
 │   │   └── import
 │   ├── bus-preferences
-│   ├── links
+│   ├── link-pins
 │   │   ├── list
 │   │   └── pin-set
 │   └── uploads
@@ -114,7 +114,7 @@ The following distinctions are contractual:
 | `community section homework` | A shared homework record attached to a section |
 | `workspace homework` | The current user's view and completion state for shared homework |
 | `catalog link` | A public link-directory record |
-| `workspace link` | The current user's pin or preference state for a catalog link |
+| `workspace link pin` | The current user's pin or preference state for a catalog link |
 | `workspace upload` | A file owned by the current user |
 | `community attachment` | Shared content's authorized reference to a workspace upload |
 
@@ -152,7 +152,7 @@ Mutation
 ├── comment*
 ├── description*
 ├── busPreferences*
-├── link*
+├── linkPin*
 └── upload*
 ```
 
@@ -192,14 +192,17 @@ and retry guidance must make the distinction explicit.
 | `catalog_course_search` | `/catalog/courses` | `GET /api/catalog/courses` | `catalog.courses` | `课程 搜索` | `catalog course search` |
 | `catalog_section_get` | `/catalog/sections/:jwId` | `GET /api/catalog/sections/:jwId` | `catalog.section` | `教学班 查看` | `catalog section get` |
 | `catalog_bus_departure_next` | `/catalog/bus` | `GET /api/catalog/bus/next` | — | `校车 下一班` | `catalog bus` |
+| `catalog_bus_map_get` | `/catalog/bus/map` | — | — | — | — |
+| `catalog_link_list` | `/catalog/links` | `GET /api/catalog/links` | `catalog.links` | `网站 列表` | `catalog link` |
 | `workspace_overview_get` | `/workspace/overview` | `GET /api/workspace/overview` | `workspace.overview` | `概览` | `workspace overview` |
 | `workspace_calendar_event_list` | `/workspace/calendar` | — | — | `日程 今日/本周` | `workspace calendar events` |
 | `workspace_schedule_list` | `/workspace/schedules` | `GET /api/workspace/schedules` | `workspace.schedules` | `课表` | `workspace schedule list` |
 | `workspace_todo_create` | `/workspace/todos` | `POST /api/workspace/todos` | `todoCreate` | `待办 添加` | `workspace todo create` |
 | `workspace_homework_completion_set` | `/workspace/homeworks` | `PUT /api/workspace/homeworks/:id/completion` | `homeworkCompletionSet` | `作业 完成/恢复` | `workspace homework complete/reopen` |
 | `workspace_subscription_add` | `/workspace/subscriptions` | `POST /api/workspace/subscriptions` | `subscriptionAdd` | `订阅 添加` | `workspace subscription add` |
-| `workspace_calendar_feed_export` | `/workspace/subscriptions` | `GET /api/community/users/:token/calendar.ics` | — | `日历 导出` | `workspace calendar feed` |
-| `workspace_bus_preferences_set` | `/workspace/bus` | `POST /api/workspace/bus-preferences` | `busPreferencesSet` | `校车 偏好 设置` | `workspace bus-preferences set` |
+| `workspace_calendar_feed_export` | `/workspace/subscriptions` | `GET /api/calendar-feeds/:credential.ics` | — | `日历 导出` | `workspace calendar feed` |
+| `workspace_bus_preferences_set` | `/catalog/bus` | `POST /api/workspace/bus-preferences` | `busPreferencesSet` | `校车 偏好 设置` | `workspace bus-preferences set` |
+| `workspace_link_pin_set` | `/catalog/links` | `POST /api/workspace/link-pins` | `linkPinSet` | `网站 置顶/取消置顶` | `workspace link-pin pin/unpin` |
 | `community_comment_create` | target comment panel | `POST /api/community/comments` | `commentCreate` | `评论 添加` | `community comment create` |
 | `community_description_set` | target editor | `POST /api/community/descriptions` | `descriptionSet` | `描述 更新` | `community description set` |
 | `account_profile_get` | `/account/settings/profile` | `GET /api/account/profile` | `account.profile` | `账户 信息` | `account profile` |

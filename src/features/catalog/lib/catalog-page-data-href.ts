@@ -5,7 +5,7 @@ export function catalogPageDataHref(
   pageHref: string,
 ) {
   const queryStart = pageHref.indexOf("?");
-  if (queryStart === -1) return `/catalog-page-data/${kind}`;
+  if (queryStart === -1) return `/catalog/_data/${kind}`;
 
   const hashStart = pageHref.indexOf("#", queryStart);
   const query =
@@ -13,5 +13,5 @@ export function catalogPageDataHref(
       ? pageHref.slice(queryStart)
       : pageHref.slice(queryStart, hashStart);
 
-  return `/catalog-page-data/${kind}${query}`;
+  return `/catalog/_data/${kind}${query}`;
 }

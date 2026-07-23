@@ -83,7 +83,7 @@ describe("buildOAuthProviderPlugin", () => {
     expect(options.scopes).toContain("admin:write");
   });
 
-  it("授权与动态注册容忍旧版 coarse scope，但发现文档只公布公开 feature scope", async () => {
+  it("授权、动态注册和发现文档只使用 canonical feature scope", async () => {
     const { buildOAuthProviderPlugin } = await import(
       "@/lib/auth/better-auth-oauth-provider-plugin"
     );
@@ -93,19 +93,23 @@ describe("buildOAuthProviderPlugin", () => {
     });
 
     const options = oauthProviderMock.mock.calls[0]?.[0];
-    expect(options.scopes).toContain("rest:read");
-    expect(options.scopes).toContain("rest:write");
-    expect(options.scopes).toContain("mcp:tools");
-    expect(options.clientRegistrationAllowedScopes).toContain("rest:read");
-    expect(options.clientRegistrationAllowedScopes).toContain("mcp:tools");
+    expect(options.scopes).not.toContain("rest:read");
+    expect(options.scopes).not.toContain("rest:write");
+    expect(options.scopes).not.toContain("mcp:tools");
+    expect(options.clientRegistrationAllowedScopes).not.toContain("rest:read");
+    expect(options.clientRegistrationAllowedScopes).not.toContain("mcp:tools");
     expect(options.advertisedMetadata.scopes_supported).not.toContain(
       "rest:read",
     );
     expect(options.advertisedMetadata.scopes_supported).not.toContain(
       "mcp:tools",
     );
-    expect(options.advertisedMetadata.scopes_supported).toContain("todo:read");
-    expect(options.advertisedMetadata.scopes_supported).toContain("todo:write");
+    expect(options.advertisedMetadata.scopes_supported).toContain(
+      "workspace.todo:read",
+    );
+    expect(options.advertisedMetadata.scopes_supported).toContain(
+      "workspace.todo:write",
+    );
     expect(options.advertisedMetadata.scopes_supported).not.toContain(
       "admin:read",
     );

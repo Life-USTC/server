@@ -115,13 +115,19 @@ describe("MCP tool descriptors", () => {
         openWorldHint: false,
       },
       _meta: {
-        securitySchemes: [{ type: "oauth2", scopes: [restReadScope("todo")] }],
+        securitySchemes: [
+          { type: "oauth2", scopes: [restReadScope("workspace.todo")] },
+        ],
       },
     });
     expect(wireTool).toMatchObject({
-      securitySchemes: [{ type: "oauth2", scopes: [restReadScope("todo")] }],
+      securitySchemes: [
+        { type: "oauth2", scopes: [restReadScope("workspace.todo")] },
+      ],
       _meta: {
-        securitySchemes: [{ type: "oauth2", scopes: [restReadScope("todo")] }],
+        securitySchemes: [
+          { type: "oauth2", scopes: [restReadScope("workspace.todo")] },
+        ],
       },
     });
   });
@@ -203,7 +209,9 @@ describe("MCP tool descriptors", () => {
         openWorldHint: false,
       },
       _meta: {
-        securitySchemes: [{ type: "oauth2", scopes: [restWriteScope("todo")] }],
+        securitySchemes: [
+          { type: "oauth2", scopes: [restWriteScope("workspace.todo")] },
+        ],
       },
     });
   });
@@ -223,7 +231,7 @@ describe("MCP tool descriptors", () => {
       },
       _meta: {
         securitySchemes: [
-          { type: "oauth2", scopes: [restWriteScope("comment")] },
+          { type: "oauth2", scopes: [restWriteScope("community.comment")] },
         ],
       },
     });

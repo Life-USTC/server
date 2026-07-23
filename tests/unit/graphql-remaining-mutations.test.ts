@@ -83,7 +83,7 @@ describe("remaining ordinary GraphQL mutations", () => {
     });
     expect(requireGraphqlMutationMock).toHaveBeenCalledWith(
       context,
-      "dashboard",
+      "workspace.link-pin",
       { rateLimitTier: "batch" },
     );
     expect(setDashboardLinkPinStatesBatchMock).toHaveBeenCalledWith({
@@ -117,7 +117,7 @@ describe("remaining ordinary GraphQL mutations", () => {
     ).resolves.toEqual(payload);
     expect(requireGraphqlMutationMock).toHaveBeenCalledWith(
       context,
-      "comment",
+      "community.comment",
       { rateLimitTier: "batch" },
     );
     expect(deleteOwnCommentsBatchMock).toHaveBeenCalledWith({

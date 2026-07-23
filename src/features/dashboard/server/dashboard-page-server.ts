@@ -1,4 +1,4 @@
-import { isSignedDashboardTab } from "@/features/dashboard/lib/dashboard-nav";
+import { isWorkspaceDashboardTab } from "@/features/dashboard/lib/dashboard-nav";
 import { allowE2EDebugAuth } from "@/lib/auth/auth-config";
 import { hasRequestAuthSignal } from "@/lib/auth/request-auth-signal";
 import { parseInteger } from "@/lib/integers";
@@ -12,7 +12,7 @@ export async function getDashboardUserId(request: Request) {
 }
 
 export function normalizeDashboardTab(tab: string | null, signedIn: boolean) {
-  if (signedIn && isSignedDashboardTab(tab)) return tab;
+  if (signedIn && isWorkspaceDashboardTab(tab)) return tab;
   if (signedIn) return "overview";
   return tab === "links" ? "links" : "bus";
 }

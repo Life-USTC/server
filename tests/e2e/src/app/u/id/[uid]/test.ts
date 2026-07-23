@@ -1,5 +1,5 @@
 /**
- * E2E tests for the Public User Profile by ID Page (`/community/users/id/[uid]`)
+ * E2E tests for the unified Public User Profile Page (`/community/users/[identifier]`)
  *
  * ## Data Represented (user.yml → public-profile.display.fields)
  * - user.image (avatar)
@@ -10,7 +10,7 @@
  * - weeks[].date / weeks[].count, totalContributions
  *
  * ## Rules
- * - Profiles with usernames redirect to the canonical /u/[username] route
+ * - The same route accepts either a username or user ID
  * - Raw internal user IDs are not rendered as public profile metadata
  *
  * ## Edge Cases
@@ -31,35 +31,22 @@ import { assertPageContract } from "../../../_shared/page-contract";
 
 test.describe.configure({ mode: "serial" });
 
-test.describe("/community/users/id/[uid]", () => {
+test.describe("/community/users/[identifier] by ID", () => {
   test("页面契约", async ({ page }, testInfo) => {
     await assertPageContract(page, {
-      routePath: "/community/users/id/[uid]",
+      routePath: "/community/users/[identifier]",
       testInfo,
     });
   });
 
-  test("有用户名的 ID 地址 308 到规范资料页且不显示内部 ID", async ({
-    page,
-  }, testInfo) => {
+  test("ID 地址直接解析资料且不显示内部 ID", async ({ page }, testInfo) => {
     await signInAsDebugUser(page, "/");
     const user = await getCurrentSessionUser(page);
 
-    const redirectResponse = await page.request.get(
-      `/community/users/id/${user.id}`,
-      {
-        maxRedirects: 0,
-      },
-    );
-    expect(redirectResponse.status()).toBe(308);
-    expect(redirectResponse.headers().location).toMatch(
-      new RegExp(`/community/users/${DEV_SEED.debugUsername}$`),
-    );
-
-    await gotoAndWaitForReady(page, `/community/users/id/${user.id}`);
-    await expect(page).toHaveURL(
-      new RegExp(`/community/users/${DEV_SEED.debugUsername}$`),
-    );
+    const response = await page.request.get(`/community/users/${user.id}`);
+    expect(response.status()).toBe(200);
+    await gotoAndWaitForReady(page, `/community/users/${user.id}`);
+    await expect(page).toHaveURL(new RegExp(`/community/users/${user.id}$`));
 
     await expect(page.getByText(DEV_SEED.debugName).first()).toBeVisible();
     await expect(
@@ -82,18 +69,13 @@ test.describe("/community/users/id/[uid]", () => {
     try {
       await updateUserProfileById(user.id, { username: null });
       await page.context().clearCookies();
-      const response = await page.request.get(
-        `/community/users/id/${user.id}`,
-        {
-          maxRedirects: 0,
-        },
-      );
+      const response = await page.request.get(`/community/users/${user.id}`, {
+        maxRedirects: 0,
+      });
       expect(response.status()).toBe(200);
 
-      await gotoAndWaitForReady(page, `/community/users/id/${user.id}`);
-      await expect(page).toHaveURL(
-        new RegExp(`/community/users/id/${user.id}$`),
-      );
+      await gotoAndWaitForReady(page, `/community/users/${user.id}`);
+      await expect(page).toHaveURL(new RegExp(`/community/users/${user.id}$`));
       await expect(page.getByText(DEV_SEED.debugName).first()).toBeVisible();
       await expect(page.getByText(user.id, { exact: true })).toHaveCount(0);
       await captureStepScreenshot(page, testInfo, "u-id/no-username");
@@ -153,13 +135,9 @@ test.describe("/community/users/id/[uid]", () => {
   });
 
   test("不存在的用户 ID 返回 404", async ({ page }, testInfo) => {
-    await gotoAndWaitForReady(
-      page,
-      "/community/users/id/non-existing-user-id",
-      {
-        expectMainContent: false,
-      },
-    );
+    await gotoAndWaitForReady(page, "/community/users/non-existing-user-id", {
+      expectMainContent: false,
+    });
     await expect(page.getByText("404").first()).toBeVisible();
     await expect(
       page.getByRole("heading", { name: /页面不存在|Page Not Found/i }),

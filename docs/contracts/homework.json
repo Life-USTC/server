@@ -47,7 +47,7 @@
             },
             "returns": "HomeworkPage!",
             "auth": "user",
-            "required_scopes": ["homework:read"],
+            "required_scopes": ["workspace.homework:read"],
             "rest_equivalent": "GET /api/workspace/homeworks",
             "mcp_equivalent": "workspace_homework_list",
             "notes": [
@@ -98,7 +98,7 @@
       "rest": {
         "routes": [
           {
-            "path": "/api/community/homeworks",
+            "path": "/api/community/section-homeworks",
             "returns": "{ viewer: ViewerContext, homeworks: HomeworkItem[], auditLogs: AuditLog[] }",
             "notes": [
               "Accepts sectionJwId to match the MCP tool's public section identifier, while preserving sectionId and sectionIds for existing REST clients.",
@@ -106,7 +106,7 @@
             ]
           },
           {
-            "path": "/api/community/homeworks",
+            "path": "/api/community/section-homeworks",
             "method": "POST",
             "status": 201,
             "returns": "{ id: String, homework: HomeworkItem }",
@@ -116,7 +116,7 @@
             ]
           },
           {
-            "path": "/api/community/homeworks/[id]",
+            "path": "/api/community/section-homeworks/[id]",
             "method": "PATCH",
             "returns": "{ success: Boolean, homework: HomeworkItem }",
             "auth": "user",
@@ -125,7 +125,7 @@
             ]
           },
           {
-            "path": "/api/community/homeworks/[id]",
+            "path": "/api/community/section-homeworks/[id]",
             "method": "DELETE",
             "returns": "{ success: Boolean }",
             "auth": "user"
@@ -138,8 +138,8 @@
             "name": "homeworkCreate",
             "arguments": { "input": "CreateHomeworkInput!" },
             "returns": "HomeworkMutationPayload!",
-            "required_scopes": ["homework:write"],
-            "rest_equivalent": "POST /api/community/homeworks",
+            "required_scopes": ["workspace.homework:write"],
+            "rest_equivalent": "POST /api/community/section-homeworks",
             "mcp_equivalent": "community_section_homework_create",
             "notes": [
               "Accepts the public sectionJwId, returns the localized Homework snapshot, and preserves the shared created HomeworkAuditLog transaction."
@@ -152,8 +152,8 @@
               "input": "UpdateHomeworkInput!"
             },
             "returns": "HomeworkMutationPayload!",
-            "required_scopes": ["homework:write"],
-            "rest_equivalent": "PATCH /api/community/homeworks/[id]",
+            "required_scopes": ["workspace.homework:write"],
+            "rest_equivalent": "PATCH /api/community/section-homeworks/[id]",
             "mcp_equivalent": "community_section_homework_update",
             "notes": [
               "Nullable description and timestamp fields clear existing values; omitted fields remain unchanged.",
@@ -164,8 +164,8 @@
             "name": "homeworkDelete",
             "arguments": { "id": "ID!" },
             "returns": "HomeworkDeleteMutationPayload!",
-            "required_scopes": ["homework:write"],
-            "rest_equivalent": "DELETE /api/community/homeworks/[id]",
+            "required_scopes": ["workspace.homework:write"],
+            "rest_equivalent": "DELETE /api/community/section-homeworks/[id]",
             "mcp_equivalent": "community_section_homework_delete",
             "notes": [
               "Only the creator or an admin may delete; repeated deletion remains successful with alreadyDeleted=true and does not add another deletion audit row."
@@ -178,7 +178,7 @@
           {
             "name": "community_section_homework_list",
             "returns": "{ found: Boolean, section: Section?, homeworks: HomeworkItem[] }",
-            "rest_equivalent": "GET /api/community/homeworks",
+            "rest_equivalent": "GET /api/community/section-homeworks",
             "notes": [
               "Default and the deprecated summary alias omit the repeated per-item section payload because the top-level section already scopes the list.",
               "Editor identity fields stay in full mode; default focuses on homework state and due context."
@@ -188,7 +188,7 @@
             "name": "community_section_homework_create",
             "auth": "user",
             "returns": "{ success: Boolean, id: String, homework: HomeworkItem }",
-            "rest_equivalent": "POST /api/community/homeworks",
+            "rest_equivalent": "POST /api/community/section-homeworks",
             "notes": [
               "REST accepts either sectionId for compatibility or sectionJwId to match the MCP tool's public section identifier; when both are supplied, they must resolve to the same section or the request returns 400.",
               "Returns the created homework snapshot so MCP clients can continue with follow-up actions without an extra read.",
@@ -199,7 +199,7 @@
             "name": "community_section_homework_update",
             "auth": "user",
             "returns": "{ success: Boolean, homework: HomeworkItem }",
-            "rest_equivalent": "PATCH /api/community/homeworks/[id]",
+            "rest_equivalent": "PATCH /api/community/section-homeworks/[id]",
             "notes": [
               "Accepts locale for the returned homework snapshot, matching create/list localization.",
               "Returns the updated homework snapshot after metadata and/or description changes are applied.",
@@ -210,7 +210,7 @@
             "name": "community_section_homework_delete",
             "auth": "user",
             "returns": "{ success: Boolean, deletedId: String, alreadyDeleted: Boolean }",
-            "rest_equivalent": "DELETE /api/community/homeworks/[id]",
+            "rest_equivalent": "DELETE /api/community/section-homeworks/[id]",
             "notes": [
               "Requires an unsuspended signed-in creator or admin, matching REST delete permission.",
               "Deletes through the shared homework mutation so soft-delete and homework audit behavior stay shared."
@@ -284,7 +284,7 @@
             },
             "returns": "HomeworkCompletionMutationPayload!",
             "auth": "user",
-            "required_scopes": ["homework:write"],
+            "required_scopes": ["workspace.homework:write"],
             "rest_equivalent": "PUT /api/workspace/homeworks/[id]/completion",
             "mcp_equivalent": "workspace_homework_completion_set"
           },
@@ -295,7 +295,7 @@
             },
             "returns": "HomeworkCompletionBatchPayload!",
             "auth": "user",
-            "required_scopes": ["homework:write"],
+            "required_scopes": ["workspace.homework:write"],
             "rest_equivalent": "PUT /api/workspace/homeworks/completions",
             "mcp_equivalent": "workspace_homework_completion_set",
             "notes": [

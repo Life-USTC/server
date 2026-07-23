@@ -15,7 +15,6 @@ import type {
   TodoItem,
   TodoView,
 } from "@/features/dashboard/lib/dashboard-controller-helpers";
-import { dashboardTabHref } from "@/features/dashboard/lib/dashboard-nav";
 import type { ExamFilter } from "@/features/dashboard/lib/exams";
 
 export function createDashboardControllerDefaultState() {
@@ -60,7 +59,7 @@ export function createDashboardControllerDefaultState() {
     isMatchingSections: false,
     isUpdatingTodo: false,
     linkActionError: "",
-    linkReturnTo: dashboardTabHref("links"),
+    linkReturnTo: "/catalog/links",
     linkSearchInput: null as HTMLInputElement | null,
     linkSearchQuery: "",
     linkView: "grid" as LinkView,

@@ -156,7 +156,7 @@ describe("active OAuth user grant", () => {
         clientId: "client-1",
         grantId: "grant-1",
         requireGrantBinding: true,
-        scopes: ["todo:read"],
+        scopes: ["workspace.todo:read"],
         userId: "user-1",
       }),
     ).resolves.toBe(true);
@@ -166,7 +166,7 @@ describe("active OAuth user grant", () => {
           consents: expect.objectContaining({
             where: {
               grantId: "grant-1",
-              scopes: { hasEvery: ["todo:read"] },
+              scopes: { hasEvery: ["workspace.todo:read"] },
               userId: "user-1",
             },
           }),
@@ -189,7 +189,7 @@ describe("active OAuth user grant", () => {
       hasActiveOAuthUserGrant({
         clientId: "client-1",
         requireGrantBinding: true,
-        scopes: ["todo:read"],
+        scopes: ["workspace.todo:read"],
         userId: "user-1",
       }),
     ).resolves.toBe(false);

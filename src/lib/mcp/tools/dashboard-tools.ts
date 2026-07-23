@@ -6,6 +6,7 @@ import {
   mcpModeInputSchema,
 } from "@/lib/mcp/tools/_helpers";
 import {
+  listDashboardLinkPinsTool,
   listDashboardLinksTool,
   setDashboardLinkPinStateTool,
 } from "./dashboard-link-tool-actions";
@@ -75,10 +76,9 @@ export function registerDashboardTools(server: McpServer) {
   );
 
   server.registerTool(
-    "workspace_link_list",
+    "catalog_link_list",
     {
-      description:
-        "List or search USTC dashboard links with the authenticated user's current pin state.",
+      description: "List or search the public USTC campus link catalog.",
       inputSchema: {
         query: z
           .string()
@@ -95,6 +95,15 @@ export function registerDashboardTools(server: McpServer) {
   );
 
   server.registerTool(
+    "workspace_link_pin_list",
+    {
+      description: "List campus link slugs pinned by the authenticated user.",
+      inputSchema: { mode: mcpModeInputSchema },
+    },
+    listDashboardLinkPinsTool,
+  );
+
+  server.registerTool(
     "workspace_link_pin_set",
     {
       description:
@@ -104,7 +113,7 @@ export function registerDashboardTools(server: McpServer) {
           .string()
           .trim()
           .min(1)
-          .describe("Dashboard link slug from workspace_link_list."),
+          .describe("Campus link slug from catalog_link_list."),
         action: z.enum(["pin", "unpin"]).describe("Pin or unpin the link."),
         mode: mcpModeInputSchema,
       },

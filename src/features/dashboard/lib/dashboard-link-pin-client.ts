@@ -31,7 +31,7 @@ export async function submitDashboardLinkPinRequest(input: {
   formData.set("action", input.action);
   formData.set("returnTo", input.returnTo);
 
-  const response = await apiFetch("/api/workspace/links/pin", {
+  const response = await apiFetch("/api/workspace/link-pins", {
     method: "POST",
     body: formData,
     headers: { accept: "application/json" },

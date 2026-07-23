@@ -352,7 +352,7 @@ describe("OAuth 令牌路由", () => {
       scopes: [
         OAUTH_OPENID_SCOPE,
         OAUTH_PROFILE_SCOPE,
-        "todo:write",
+        "workspace.todo:write",
         OAUTH_OFFLINE_ACCESS_SCOPE,
       ],
       userId: "user-1",
@@ -403,13 +403,13 @@ describe("OAuth 令牌路由", () => {
     });
     const payload = signJwtMock.mock.calls[0][0].body.payload;
     expect(JSON.stringify(payload)).not.toContain("userinfo");
-    expect(payload.scope).not.toContain("todo:write");
+    expect(payload.scope).not.toContain("workspace.todo:write");
   });
 
   it("省略 resource 的降权刷新不会从旧 scope 自动注入 GraphQL", async () => {
     findRefreshTokenMock.mockResolvedValue({
       resources: ["https://life.example/api/graphql"],
-      scopes: [OAUTH_PROFILE_SCOPE, "todo:write"],
+      scopes: [OAUTH_PROFILE_SCOPE, "workspace.todo:write"],
     });
     betterAuthHandlerMock.mockResolvedValueOnce(
       Response.json({
@@ -451,7 +451,7 @@ describe("OAuth 令牌路由", () => {
       grantId: "grant-1",
       referenceId: "grant-1",
       resources: ["https://life.example/api/graphql"],
-      scopes: [OAUTH_PROFILE_SCOPE, "todo:write"],
+      scopes: [OAUTH_PROFILE_SCOPE, "workspace.todo:write"],
       userId: "user-1",
     });
     betterAuthHandlerMock.mockResolvedValueOnce(
@@ -459,7 +459,7 @@ describe("OAuth 令牌路由", () => {
         access_token: unsignedJwt({
           azp: "client-1",
           [OAUTH_GRANT_ID_CLAIM]: "grant-1",
-          scope: `${OAUTH_PROFILE_SCOPE} todo:write`,
+          scope: `${OAUTH_PROFILE_SCOPE} workspace.todo:write`,
           sub: "user-1",
         }),
         refresh_token: "new-refresh-token",

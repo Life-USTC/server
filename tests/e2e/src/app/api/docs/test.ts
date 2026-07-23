@@ -22,13 +22,13 @@ async function waitForSectionsReference(page: Page) {
 test.describe("/api/docs 页面", () => {
   test("接口契约", async ({ page }, testInfo) => {
     await assertPageContract(page, {
-      routePath: "/api/docs/tag/sections",
+      routePath: "/api/docs/tag/catalog-section",
       testInfo,
     });
   });
 
   test("渲染 API 参考容器", async ({ page }) => {
-    await gotoAndWaitForReady(page, "/api/docs/tag/sections", {
+    await gotoAndWaitForReady(page, "/api/docs/tag/catalog-section", {
       waitUntil: "load",
     });
     await expect(page.locator("#api-reference")).toBeVisible();
@@ -39,7 +39,7 @@ test.describe("/api/docs 页面", () => {
   }, testInfo) => {
     await page.setViewportSize({ width: 390, height: 844 });
     await setLocale(page, "zh-cn");
-    await gotoAndWaitForReady(page, "/api/docs/tag/sections", {
+    await gotoAndWaitForReady(page, "/api/docs/tag/catalog-section", {
       waitUntil: "load",
     });
     const reference = await waitForSectionsReference(page);
@@ -78,7 +78,7 @@ test.describe("/api/docs 页面", () => {
       panel.getByRole("heading", { name: "API 导航" }),
     ).toBeVisible();
     await expect(
-      panel.getByRole("link", { name: "Sections", exact: true }),
+      panel.getByRole("link", { name: "catalog.section", exact: true }),
     ).toHaveAttribute("aria-current", "page");
     const desktopNavigation = page.getByTestId("api-docs-desktop-navigation");
     expect(await panel.getByRole("link").count()).toBe(
@@ -104,7 +104,7 @@ test.describe("/api/docs 页面", () => {
       .getByRole("link", { name: "GET List sections", exact: true })
       .click();
     await expect(page).toHaveURL(
-      /\/api\/docs\/tag\/sections\/GET\/api\/catalog\/sections$/,
+      /\/api\/docs\/tag\/catalog-section\/GET\/api\/catalog\/sections$/,
     );
     await expect(panel).toBeHidden();
     await expect(reference).toContainText("List sections");
@@ -127,7 +127,7 @@ test.describe("/api/docs 页面", () => {
   test("桌面端保留完整固定导航", async ({ page }, testInfo) => {
     await page.setViewportSize({ width: 1280, height: 800 });
     await setLocale(page, "en-us");
-    await gotoAndWaitForReady(page, "/api/docs/tag/sections", {
+    await gotoAndWaitForReady(page, "/api/docs/tag/catalog-section", {
       waitUntil: "load",
     });
     const reference = await waitForSectionsReference(page);
@@ -135,7 +135,7 @@ test.describe("/api/docs 页面", () => {
 
     await expect(sidebar).toBeVisible();
     await expect(
-      sidebar.getByRole("link", { name: "Sections", exact: true }),
+      sidebar.getByRole("link", { name: "catalog.section", exact: true }),
     ).toHaveAttribute("aria-current", "page");
     await expect(
       page.getByTestId("api-docs-mobile-navigation-trigger"),
@@ -157,26 +157,26 @@ test.describe("/api/docs 页面", () => {
   });
 
   test("使用路径导航而非哈希导航", async ({ page }) => {
-    await gotoAndWaitForReady(page, "/api/docs/tag/sections", {
+    await gotoAndWaitForReady(page, "/api/docs/tag/catalog-section", {
       waitUntil: "load",
     });
     await page
       .getByRole("link", { name: "GET List sections", exact: true })
       .click();
     await expect(page).toHaveURL(
-      /\/api\/docs\/tag\/sections\/GET\/api\/catalog\/sections$/,
+      /\/api\/docs\/tag\/catalog-section\/GET\/api\/catalog\/sections$/,
     );
   });
 
   test("根路径重定向到第一个路由分组", async ({ page }) => {
     await page.goto("/api/docs");
-    await expect(page).toHaveURL(/\/api\/docs\/tag\/sections$/);
+    await expect(page).toHaveURL(/\/api\/docs\/tag\/catalog-section$/);
   });
 });
 
 test.describe("/api-docs 页面", () => {
   test("重定向到 /api/docs", async ({ page }) => {
     await page.goto("/api-docs");
-    await expect(page).toHaveURL(/\/api\/docs\/tag\/sections$/);
+    await expect(page).toHaveURL(/\/api\/docs\/tag\/catalog-section$/);
   });
 });

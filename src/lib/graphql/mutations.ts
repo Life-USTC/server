@@ -201,7 +201,7 @@ export const graphqlMutationTypeDefs = /* GraphQL */ `
     showDepartedTrips: Boolean!
   }
 
-  input DashboardLinkPinBatchItemInput {
+  input WorkspaceLinkPinBatchItemInput {
     slug: String!
     pinned: Boolean!
   }
@@ -332,14 +332,14 @@ export const graphqlMutationTypeDefs = /* GraphQL */ `
     total: Int!
   }
 
-  type DashboardLinkPinMutationPayload {
+  type WorkspaceLinkPinMutationPayload {
     slug: String!
     pinned: Boolean!
     pinnedSlugs: [String!]!
     maxPinnedLinks: Int!
   }
 
-  type DashboardLinkPinBatchMutationPayload {
+  type WorkspaceLinkPinBatchMutationPayload {
     pinnedSlugs: [String!]!
     maxPinnedLinks: Int!
   }
@@ -437,10 +437,10 @@ export const graphqlMutationTypeDefs = /* GraphQL */ `
     linkPinSet(
       slug: String!
       pinned: Boolean!
-    ): DashboardLinkPinMutationPayload!
+    ): WorkspaceLinkPinMutationPayload!
     linkPinsSet(
-      items: [DashboardLinkPinBatchItemInput!]!
-    ): DashboardLinkPinBatchMutationPayload!
+      items: [WorkspaceLinkPinBatchItemInput!]!
+    ): WorkspaceLinkPinBatchMutationPayload!
     busPreferencesSet(
       input: BusPreferenceInput!
     ): BusPreferenceMutationPayload!
@@ -498,7 +498,7 @@ type HomeworkCompletionBatchItemInput = {
   homeworkId: string;
 };
 
-type DashboardLinkPinBatchItemInput = {
+type WorkspaceLinkPinBatchItemInput = {
   pinned: boolean;
   slug: string;
 };
@@ -767,7 +767,10 @@ async function setSectionSubscription(
   jwId: number,
   subscribed: boolean,
 ) {
-  const principal = await requireGraphqlMutation(context, "subscription");
+  const principal = await requireGraphqlMutation(
+    context,
+    "workspace.subscription",
+  );
   const result = await setUserSectionSubscriptionByJwId({
     sectionJwId: requireGraphqlId(jwId, "jwId"),
     subscribed,
@@ -790,7 +793,7 @@ export const graphqlMutationResolvers = {
       args: { input: CreateTodoInput },
       context: GraphqlContext,
     ) {
-      const principal = await requireGraphqlMutation(context, "todo");
+      const principal = await requireGraphqlMutation(context, "workspace.todo");
       rejectExplicitNullFields(args.input, ["priority"]);
       const todo = await createTodo({
         userId: principal.userId,
@@ -806,7 +809,7 @@ export const graphqlMutationResolvers = {
       args: { id: string; input: UpdateTodoInput },
       context: GraphqlContext,
     ) {
-      const principal = await requireGraphqlMutation(context, "todo");
+      const principal = await requireGraphqlMutation(context, "workspace.todo");
       rejectExplicitNullFields(args.input, ["title", "priority", "completed"]);
       const hasContent = Object.hasOwn(args.input, "content");
       const hasDueAt = Object.hasOwn(args.input, "dueAt");
@@ -836,7 +839,7 @@ export const graphqlMutationResolvers = {
       args: { id: string },
       context: GraphqlContext,
     ) {
-      const principal = await requireGraphqlMutation(context, "todo");
+      const principal = await requireGraphqlMutation(context, "workspace.todo");
       const id = requireMutationId(args.id, "id");
       const result = await deleteOwnedTodo(id, principal.userId);
       if (!result.ok) handleTodoFailure(result);
@@ -847,9 +850,13 @@ export const graphqlMutationResolvers = {
       args: { items: TodoCompletionBatchItemInput[] },
       context: GraphqlContext,
     ) {
-      const principal = await requireGraphqlMutation(context, "todo", {
-        rateLimitTier: "batch",
-      });
+      const principal = await requireGraphqlMutation(
+        context,
+        "workspace.todo",
+        {
+          rateLimitTier: "batch",
+        },
+      );
       const ids = normalizeBatchIds(
         args.items.map((item) => item.todoId),
         "todo IDs",
@@ -869,9 +876,13 @@ export const graphqlMutationResolvers = {
       args: { ids: string[] },
       context: GraphqlContext,
     ) {
-      const principal = await requireGraphqlMutation(context, "todo", {
-        rateLimitTier: "batch",
-      });
+      const principal = await requireGraphqlMutation(
+        context,
+        "workspace.todo",
+        {
+          rateLimitTier: "batch",
+        },
+      );
       const ids = normalizeBatchIds(args.ids, "todo IDs", 100);
       const results = await deleteTodosBatch(principal.userId, ids);
       return { results };
@@ -881,7 +892,10 @@ export const graphqlMutationResolvers = {
       args: { input: CreateHomeworkInput },
       context: GraphqlContext,
     ) {
-      const principal = await requireGraphqlMutation(context, "homework");
+      const principal = await requireGraphqlMutation(
+        context,
+        "workspace.homework",
+      );
       const input = args.input;
       const publishedAt = dateTimeInput(input.publishedAt) ?? null;
       const submissionStartAt = dateTimeInput(input.submissionStartAt) ?? null;
@@ -918,7 +932,10 @@ export const graphqlMutationResolvers = {
       args: { id: string; input: UpdateHomeworkInput },
       context: GraphqlContext,
     ) {
-      const principal = await requireGraphqlMutation(context, "homework");
+      const principal = await requireGraphqlMutation(
+        context,
+        "workspace.homework",
+      );
       const id = requireMutationId(args.id, "id");
       const input = args.input;
       rejectExplicitNullFields(input, ["title", "isMajor", "requiresTeam"]);
@@ -988,7 +1005,10 @@ export const graphqlMutationResolvers = {
       args: { id: string },
       context: GraphqlContext,
     ) {
-      const principal = await requireGraphqlMutation(context, "homework");
+      const principal = await requireGraphqlMutation(
+        context,
+        "workspace.homework",
+      );
       const id = requireMutationId(args.id, "id");
       const result = await deleteHomework({
         homeworkId: id,
@@ -1002,7 +1022,10 @@ export const graphqlMutationResolvers = {
       args: { completed: boolean; homeworkId: string },
       context: GraphqlContext,
     ) {
-      const principal = await requireGraphqlMutation(context, "homework");
+      const principal = await requireGraphqlMutation(
+        context,
+        "workspace.homework",
+      );
       const result = await setHomeworkCompletion({
         completed: args.completed,
         homeworkId: requireMutationId(args.homeworkId, "homeworkId"),
@@ -1016,9 +1039,13 @@ export const graphqlMutationResolvers = {
       args: { items: HomeworkCompletionBatchItemInput[] },
       context: GraphqlContext,
     ) {
-      const principal = await requireGraphqlMutation(context, "homework", {
-        rateLimitTier: "batch",
-      });
+      const principal = await requireGraphqlMutation(
+        context,
+        "workspace.homework",
+        {
+          rateLimitTier: "batch",
+        },
+      );
       const homeworkIds = normalizeBatchIds(
         args.items.map((item) => item.homeworkId),
         "homework IDs",
@@ -1051,9 +1078,13 @@ export const graphqlMutationResolvers = {
       args: { input: UpdateSectionSubscriptionsInput },
       context: GraphqlContext,
     ) {
-      const principal = await requireGraphqlMutation(context, "subscription", {
-        rateLimitTier: "batch",
-      });
+      const principal = await requireGraphqlMutation(
+        context,
+        "workspace.subscription",
+        {
+          rateLimitTier: "batch",
+        },
+      );
       const input = args.input;
       rejectExplicitNullFields(input, ["semesterId"]);
       const codes = normalizeSubscriptionBatchCodes(input.codes);
@@ -1092,7 +1123,10 @@ export const graphqlMutationResolvers = {
       args: { pinned: boolean; slug: string },
       context: GraphqlContext,
     ) {
-      const principal = await requireGraphqlMutation(context, "dashboard");
+      const principal = await requireGraphqlMutation(
+        context,
+        "workspace.link-pin",
+      );
       const link = resolveDashboardLinkBySlug(args.slug);
       if (!link) badMutationInput("Unknown dashboard link slug.");
 
@@ -1110,12 +1144,16 @@ export const graphqlMutationResolvers = {
     },
     async linkPinsSet(
       _parent: unknown,
-      args: { items: DashboardLinkPinBatchItemInput[] },
+      args: { items: WorkspaceLinkPinBatchItemInput[] },
       context: GraphqlContext,
     ) {
-      const principal = await requireGraphqlMutation(context, "dashboard", {
-        rateLimitTier: "batch",
-      });
+      const principal = await requireGraphqlMutation(
+        context,
+        "workspace.link-pin",
+        {
+          rateLimitTier: "batch",
+        },
+      );
       requireMutationBatchSize(args.items, "items", 10);
       const items = args.items.map((item) => ({
         action: item.pinned ? ("pin" as const) : ("unpin" as const),
@@ -1142,7 +1180,10 @@ export const graphqlMutationResolvers = {
       args: { input: BusPreferencePayload },
       context: GraphqlContext,
     ) {
-      const principal = await requireGraphqlMutation(context, "bus");
+      const principal = await requireGraphqlMutation(
+        context,
+        "workspace.bus-preferences",
+      );
       const input = args.input;
       const result = await saveBusPreference(principal.userId, {
         preferredOriginCampusId:
@@ -1169,7 +1210,10 @@ export const graphqlMutationResolvers = {
       args: { input: UpsertDescriptionInput },
       context: GraphqlContext,
     ) {
-      const principal = await requireGraphqlMutation(context, "description");
+      const principal = await requireGraphqlMutation(
+        context,
+        "community.description",
+      );
       const input = args.input;
       rejectExplicitNullFields(input, [
         "targetId",
@@ -1228,7 +1272,10 @@ export const graphqlMutationResolvers = {
       args: { input: CreateCommentInput },
       context: GraphqlContext,
     ) {
-      const principal = await requireGraphqlMutation(context, "comment");
+      const principal = await requireGraphqlMutation(
+        context,
+        "community.comment",
+      );
       const input = args.input;
       rejectExplicitNullFields(input, [
         "targetId",
@@ -1283,7 +1330,10 @@ export const graphqlMutationResolvers = {
       args: { id: string; input: UpdateCommentInput },
       context: GraphqlContext,
     ) {
-      const principal = await requireGraphqlMutation(context, "comment");
+      const principal = await requireGraphqlMutation(
+        context,
+        "community.comment",
+      );
       rejectExplicitNullFields(args.input, [
         "visibility",
         "isAnonymous",
@@ -1310,7 +1360,10 @@ export const graphqlMutationResolvers = {
       args: { id: string },
       context: GraphqlContext,
     ) {
-      const principal = await requireGraphqlMutation(context, "comment");
+      const principal = await requireGraphqlMutation(
+        context,
+        "community.comment",
+      );
       const id = requireMutationId(args.id, "id");
       const result = await deleteOwnComment({
         auditMetadata: graphqlCommentAuditMetadata(context.request),
@@ -1325,9 +1378,13 @@ export const graphqlMutationResolvers = {
       args: { ids: string[] },
       context: GraphqlContext,
     ) {
-      const principal = await requireGraphqlMutation(context, "comment", {
-        rateLimitTier: "batch",
-      });
+      const principal = await requireGraphqlMutation(
+        context,
+        "community.comment",
+        {
+          rateLimitTier: "batch",
+        },
+      );
       const ids = normalizeBatchIds(args.ids, "comment IDs", 50);
       return deleteOwnCommentsBatch({
         auditMetadata: graphqlCommentAuditMetadata(context.request),
@@ -1340,7 +1397,10 @@ export const graphqlMutationResolvers = {
       args: { commentId: string; type: CommentReactionType },
       context: GraphqlContext,
     ) {
-      const principal = await requireGraphqlMutation(context, "comment");
+      const principal = await requireGraphqlMutation(
+        context,
+        "community.comment",
+      );
       const commentId = requireMutationId(args.commentId, "commentId");
       const result = await createCommentReaction({
         auditMetadata: graphqlCommentAuditMetadata(context.request),
@@ -1361,7 +1421,10 @@ export const graphqlMutationResolvers = {
       args: { commentId: string; type: CommentReactionType },
       context: GraphqlContext,
     ) {
-      const principal = await requireGraphqlMutation(context, "comment");
+      const principal = await requireGraphqlMutation(
+        context,
+        "community.comment",
+      );
       const commentId = requireMutationId(args.commentId, "commentId");
       const result = await deleteCommentReaction({
         auditMetadata: graphqlCommentAuditMetadata(context.request),
@@ -1382,7 +1445,10 @@ export const graphqlMutationResolvers = {
       args: { input: CreateUploadSessionInput },
       context: GraphqlContext,
     ) {
-      const principal = await requireGraphqlMutation(context, "upload");
+      const principal = await requireGraphqlMutation(
+        context,
+        "workspace.upload",
+      );
       rejectExplicitNullFields(args.input, ["contentType"]);
       try {
         const result = await createOwnedUploadSession({
@@ -1405,7 +1471,10 @@ export const graphqlMutationResolvers = {
       args: { input: CompleteUploadSessionInput },
       context: GraphqlContext,
     ) {
-      const principal = await requireGraphqlMutation(context, "upload");
+      const principal = await requireGraphqlMutation(
+        context,
+        "workspace.upload",
+      );
       rejectExplicitNullFields(args.input, ["contentType"]);
       try {
         const result = await completeOwnedUploadSession(principal.userId, {
@@ -1427,7 +1496,10 @@ export const graphqlMutationResolvers = {
       args: { filename: string; id: string },
       context: GraphqlContext,
     ) {
-      const principal = await requireGraphqlMutation(context, "upload");
+      const principal = await requireGraphqlMutation(
+        context,
+        "workspace.upload",
+      );
       const result = await renameOwnedUpload({
         filename: normalizeUploadFilename(args.filename, 255),
         id: requireMutationId(args.id, "id"),
@@ -1441,7 +1513,10 @@ export const graphqlMutationResolvers = {
       args: { id: string },
       context: GraphqlContext,
     ) {
-      const principal = await requireGraphqlMutation(context, "upload");
+      const principal = await requireGraphqlMutation(
+        context,
+        "workspace.upload",
+      );
       const id = requireMutationId(args.id, "id");
       const result = await deleteOwnedUpload({
         audit: {

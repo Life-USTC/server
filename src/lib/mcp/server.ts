@@ -24,7 +24,7 @@ import {
 const SERVER_INSTRUCTIONS = [
   "Use workspace_snapshot_get or workspace_overview_get before fanning out into narrower personal tools.",
   "A zero currentSemesterCount means no current-semester subscriptions, not necessarily no course history; when totalCount is larger, use workspace_subscription_list and the semesterId filters on workspace_homework_list, workspace_schedule_list, or workspace_exam_list to recover past-term data.",
-  "Use catalog_course_search, catalog_section_search, catalog_teacher_search, catalog_bus_route_list, or workspace_link_list to discover stable IDs before ID-based calls.",
+  "Use catalog_course_search, catalog_section_search, catalog_teacher_search, catalog_bus_route_list, or catalog_link_list to discover stable IDs before ID-based calls.",
   `Use ${GRAPHQL_OPERATION_PROMPT_NAME} when composing an unfamiliar GraphQL call. It injects life-ustc://graphql/schema and life-ustc://graphql/operations; graphql_operation_run accepts arbitrary documents or compatible registered operations. Field scopes and mutation confirmation are always enforced.`,
   "Mutation tools change Life@USTC user or collaborative data; summarize the intended change and ask for user confirmation before calling them.",
 ].join(" ");

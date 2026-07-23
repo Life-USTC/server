@@ -12,16 +12,19 @@ import { restReadScope, restWriteScope } from "@/lib/oauth/constants";
 describe("getRequiredMcpScopes", () => {
   it("maps a single tool to its feature scope", () => {
     expect(getRequiredMcpScopes("workspace_todo_list")).toEqual([
-      restReadScope("todo"),
+      restReadScope("workspace.todo"),
     ]);
     expect(getRequiredMcpScopes("workspace_todo_create")).toEqual([
-      restWriteScope("todo"),
+      restWriteScope("workspace.todo"),
     ]);
   });
 
   it("returns multiple scopes for cross-cutting tools", () => {
     expect(getRequiredMcpScopes("workspace_schedule_next").sort()).toEqual(
-      [restReadScope("dashboard"), restReadScope("schedule")].sort(),
+      [
+        restReadScope("workspace.overview"),
+        restReadScope("workspace.schedule"),
+      ].sort(),
     );
   });
 
@@ -31,7 +34,12 @@ describe("getRequiredMcpScopes", () => {
         "workspace_todo_list",
         "community_comment_create",
       ]).sort(),
-    ).toEqual([restWriteScope("comment"), restReadScope("todo")].sort());
+    ).toEqual(
+      [
+        restWriteScope("community.comment"),
+        restReadScope("workspace.todo"),
+      ].sort(),
+    );
   });
 
   it("returns an empty array for unmapped tools", () => {
@@ -45,59 +53,59 @@ describe("getRequiredMcpScopes", () => {
 
   it("covers every major feature area", () => {
     expect(getRequiredMcpScopes("account_profile_get")).toEqual([
-      restReadScope("me"),
+      restReadScope("account.profile"),
     ]);
     expect(getRequiredMcpScopes("workspace_snapshot_get")).toEqual([
-      restReadScope("dashboard"),
+      restReadScope("workspace.overview"),
     ]);
     expect(getRequiredMcpScopes("catalog_bus_departure_next")).toEqual([
-      restReadScope("bus"),
+      restReadScope("catalog.bus"),
     ]);
     expect(getRequiredMcpScopes("catalog_course_search")).toEqual([
-      restReadScope("course"),
+      restReadScope("catalog.course"),
     ]);
     expect(getRequiredMcpScopes("catalog_section_get")).toEqual([
-      restReadScope("section"),
+      restReadScope("catalog.section"),
     ]);
     expect(getRequiredMcpScopes("catalog_teacher_search")).toEqual([
-      restReadScope("teacher"),
+      restReadScope("catalog.teacher"),
     ]);
     expect(getRequiredMcpScopes("catalog_schedule_list")).toEqual([
-      restReadScope("schedule"),
+      restReadScope("catalog.schedule"),
     ]);
     expect(getRequiredMcpScopes("workspace_exam_list")).toEqual([
-      restReadScope("exam"),
+      restReadScope("workspace.exam"),
     ]);
     expect(getRequiredMcpScopes("community_section_homework_create")).toEqual([
-      restWriteScope("homework"),
+      restWriteScope("community.section-homework"),
     ]);
     expect(getRequiredMcpScopes("workspace_subscription_add")).toEqual([
-      restWriteScope("subscription"),
+      restWriteScope("workspace.subscription"),
     ]);
     expect(getRequiredMcpScopes("workspace_calendar_event_list")).toEqual([
-      restReadScope("schedule"),
+      restReadScope("workspace.calendar"),
     ]);
     expect(getRequiredMcpScopes("community_comment_create")).toEqual([
-      restWriteScope("comment"),
+      restWriteScope("community.comment"),
     ]);
     expect(getRequiredMcpScopes("community_description_get")).toEqual([
-      restReadScope("description"),
+      restReadScope("community.description"),
     ]);
     expect(getRequiredMcpScopes("workspace_upload_list")).toEqual([
-      restReadScope("upload"),
+      restReadScope("workspace.upload"),
     ]);
   });
 
   it("maps mutation tools to shared feature-action budgets", () => {
     expect(isMcpWriteTool("workspace_todo_create")).toBe(true);
     expect(getMcpWriteRateLimitAction("workspace_todo_create")).toBe(
-      "todo:write",
+      "workspace.todo:write",
     );
     expect(getMcpWriteRateLimitTier("workspace_todo_create")).toBe("write");
 
     expect(isMcpWriteTool("workspace_subscription_import")).toBe(true);
     expect(getMcpWriteRateLimitAction("workspace_subscription_import")).toBe(
-      "subscription:batch-write",
+      "workspace.subscription:batch-write",
     );
     expect(getMcpWriteRateLimitTier("workspace_subscription_import")).toBe(
       "batch",

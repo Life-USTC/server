@@ -35,13 +35,13 @@ describe("dashboard link 工具 — 列表/搜索与置顶状态", () => {
     await fixtures.prisma.$disconnect();
   });
 
-  it("workspace_link_list 搜索拼音并包含置顶状态", async () => {
+  it("catalog_link_list 搜索拼音且不包含个人状态", async () => {
     const result = await dashboardLinkMcp?.call<{
       success?: boolean;
       query?: string | null;
       total?: number;
       returned?: number;
-      dashboardLinks?: Array<{
+      links?: Array<{
         clickCount?: number;
         descriptionPinyin?: string;
         icon?: string;
@@ -50,11 +50,8 @@ describe("dashboard link 工具 — 列表/搜索与置顶状态", () => {
         titlePinyin?: string;
         url?: string;
         group?: string;
-        isPinned?: boolean;
       }>;
-      pinnedSlugs?: string[];
-      maxPinnedLinks?: number;
-    }>("workspace_link_list", {
+    }>("catalog_link_list", {
       query: "youxiang",
     });
 
@@ -62,16 +59,13 @@ describe("dashboard link 工具 — 列表/搜索与置顶状态", () => {
     expect(result?.query).toBe("youxiang");
     expect(result?.total).toBeGreaterThan(0);
     expect(result?.returned).toBeGreaterThan(0);
-    expect(result?.pinnedSlugs).toEqual([]);
-    expect(result?.maxPinnedLinks).toBe(4);
-
-    const mail = result?.dashboardLinks?.find((link) => link.slug === "mail");
+    const mail = result?.links?.find((link) => link.slug === "mail");
     expect(mail).toMatchObject({
       title: "邮箱",
       url: "https://mail.ustc.edu.cn/",
       group: "mostClicked",
-      isPinned: false,
     });
+    expect(mail).not.toHaveProperty("isPinned");
     expect(mail).not.toHaveProperty("clickCount");
     expect(mail).not.toHaveProperty("titlePinyin");
     expect(mail).not.toHaveProperty("descriptionPinyin");
@@ -104,15 +98,9 @@ describe("dashboard link 工具 — 列表/搜索与置顶状态", () => {
     expect(pinned?.pinnedSlugs).toContain("mail");
 
     const listed = await dashboardLinkMcp?.call<{
-      dashboardLinks?: Array<{ slug?: string; isPinned?: boolean }>;
       pinnedSlugs?: string[];
-    }>("workspace_link_list", {
-      query: "youxiang",
-    });
+    }>("workspace_link_pin_list");
     expect(listed?.pinnedSlugs).toContain("mail");
-    expect(
-      listed?.dashboardLinks?.find((link) => link.slug === "mail")?.isPinned,
-    ).toBe(true);
 
     const unpinned = await dashboardLinkMcp?.call<{
       success?: boolean;

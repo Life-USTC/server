@@ -584,11 +584,13 @@ const TOOL_OUTPUT_SCHEMAS: Record<string, McpToolOutputSchema> = {
     "todos",
     "bus",
   ]),
-  workspace_link_list: topLevelOutputSchema([
+  catalog_link_list: topLevelOutputSchema([
     "query",
     "total",
     "returned",
-    "dashboardLinks",
+    "links",
+  ]),
+  workspace_link_pin_list: topLevelOutputSchema([
     "pinnedSlugs",
     "maxPinnedLinks",
   ]),
