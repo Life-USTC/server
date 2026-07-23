@@ -180,7 +180,7 @@ test.describe("仪表盘关注班级", () => {
     );
   });
 
-  test("超宽屏按学期分表并使用双栏瀑布流", async ({ page }, testInfo) => {
+  test("超宽屏按时间接近度分表并使用双栏布局", async ({ page }, testInfo) => {
     await page.setViewportSize({ height: 1000, width: 1700 });
     await signInAsDebugUser(page, "/dashboard/subscriptions");
     await ensureSeedSectionSubscription(page);
@@ -193,6 +193,9 @@ test.describe("仪表盘关注班级", () => {
     expect(firstTable).not.toBeNull();
     expect(secondTable).not.toBeNull();
     expect(secondTable?.x).toBeGreaterThan((firstTable?.x ?? 0) + 100);
+    expect(Math.abs((secondTable?.y ?? 0) - (firstTable?.y ?? 0))).toBeLessThan(
+      8,
+    );
     expect(
       await page.evaluate(
         () => document.documentElement.scrollWidth <= window.innerWidth,
@@ -451,6 +454,30 @@ test.describe("仪表盘关注班级", () => {
     await expect(
       quickAddDialog.getByText(DEV_SEED.section.code).first(),
     ).toBeVisible();
+    const separator = quickAddDialog.locator(
+      '[data-slot="separator"][data-orientation="horizontal"]',
+    );
+    const resultsLabel = quickAddDialog.getByText(
+      /找到 \d+ 个教学班|Found \d+ sections?/i,
+    );
+    const hint = quickAddDialog.getByText(
+      /搜索范围仅限所选学期|Search is limited to the selected semester/i,
+    );
+    const [separatorBox, resultsLabelBox, hintBox] = await Promise.all([
+      separator.boundingBox(),
+      resultsLabel.boundingBox(),
+      hint.boundingBox(),
+    ]);
+    expect(separatorBox).not.toBeNull();
+    expect(resultsLabelBox).not.toBeNull();
+    expect(hintBox).not.toBeNull();
+    expect(
+      (separatorBox?.y ?? 0) - ((hintBox?.y ?? 0) + (hintBox?.height ?? 0)),
+    ).toBeLessThan(24);
+    expect(
+      (resultsLabelBox?.y ?? 0) -
+        ((separatorBox?.y ?? 0) + (separatorBox?.height ?? 0)),
+    ).toBeLessThan(24);
     await quickAddDialog
       .getByRole("textbox", {
         name: /搜索课程或教师|Search courses or teachers/i,

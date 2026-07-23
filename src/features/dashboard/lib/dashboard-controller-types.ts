@@ -476,6 +476,7 @@ export type DashboardSubscribedSection = DashboardRecord &
       jwId?: number | null;
     };
     semester?: {
+      endDate?: string | null;
       id?: number | string | null;
       nameCn?: string | null;
       startDate?: string | null;
