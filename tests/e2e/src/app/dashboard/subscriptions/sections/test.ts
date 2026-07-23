@@ -180,14 +180,32 @@ test.describe("仪表盘关注班级", () => {
     );
   });
 
-  test("超宽屏按时间接近度分表并使用双栏布局", async ({ page }, testInfo) => {
+  test("超宽屏按时间倒序分表并渐进增强为瀑布流", async ({ page }, testInfo) => {
     await page.setViewportSize({ height: 1000, width: 1700 });
     await signInAsDebugUser(page, "/dashboard/subscriptions");
     await ensureSeedSectionSubscription(page);
     await gotoAndWaitForReady(page, "/dashboard/subscriptions");
 
     const tables = page.locator("#main-content table");
+    const semesterGroups = page.getByTestId("subscription-semester-groups");
+    const semesterHeadings = semesterGroups.locator(":scope > section h3");
     await expect(tables).toHaveCount(2);
+    await expect(semesterGroups).toBeVisible();
+    await expect(semesterHeadings.nth(0)).toContainText(
+      DEV_SEED.semesterNameCn,
+    );
+    await expect(semesterHeadings.nth(1)).toContainText(
+      DEV_SEED.previousSemesterNameCn,
+    );
+    expect(
+      await semesterGroups.evaluate(
+        (element) => getComputedStyle(element).display,
+      ),
+    ).toBe(
+      await page.evaluate(() =>
+        CSS.supports("display", "grid-lanes") ? "grid-lanes" : "grid",
+      ),
+    );
     const firstTable = await tables.nth(0).boundingBox();
     const secondTable = await tables.nth(1).boundingBox();
     expect(firstTable).not.toBeNull();
