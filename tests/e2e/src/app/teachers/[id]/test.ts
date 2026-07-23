@@ -10,7 +10,7 @@
  * - teacher.telephone / mobile / address (if not null)
  * - section.semester.nameCn (badge)
  * - section.course.namePrimary + nameSecondary
- * - section.code (badge, monospace)
+ * - section.code (plain monospace text)
  * - section.credits (or empty)
  * - comment.id, author.name, author.image, body, createdAt
  * - description.content (Markdown-rendered via DescriptionLoader)
@@ -168,7 +168,7 @@ test.describe("/catalog/teachers/[id] 教师详情页", () => {
         .filter({ visible: true })
         .first(),
     ).toBeVisible();
-    // section.code badge (monospace)
+    // section.code (plain monospace text)
     await expect(visibleText(page, DEV_SEED.section.code)).toBeVisible();
     // section.credits
     await expect(

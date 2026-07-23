@@ -4,9 +4,8 @@ import {
   catalogShowingSummary,
   optionalCatalogFilterSummary,
 } from "@/features/catalog/lib/catalog-results-summary";
-import TruncatedBadge from "$lib/components/TruncatedBadge.svelte";
+import TruncatedCode from "$lib/components/TruncatedCode.svelte";
 import TruncatedText from "$lib/components/TruncatedText.svelte";
-import { Badge } from "$lib/components/ui/badge/index.js";
 import * as Item from "$lib/components/ui/item/index.js";
 import * as Table from "$lib/components/ui/table/index.js";
 import CatalogResultsEmpty from "./CatalogResultsEmpty.svelte";
@@ -59,7 +58,7 @@ $: courseSearchSummary = optionalCatalogFilterSummary(
                   {/if}
                 </Item.Content>
                 <Item.Actions>
-                  <Badge variant="outline">{course.code}</Badge>
+                  <TruncatedCode text={course.code} />
                 </Item.Actions>
                 <Item.Footer class="flex-wrap justify-start">
                   <span>{course.educationLevel ? primaryName(course.educationLevel) : "-"}</span>
@@ -101,7 +100,7 @@ $: courseSearchSummary = optionalCatalogFilterSummary(
               </Table.Cell>
               <Table.Cell class="p-0 align-top">
                 <CatalogTableLink href={courseHref}>
-                  <TruncatedBadge text={course.code} />
+                  <TruncatedCode text={course.code} />
                 </CatalogTableLink>
               </Table.Cell>
               <Table.Cell class="p-0 align-top">

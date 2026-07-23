@@ -1,6 +1,6 @@
 <script lang="ts">
+import TruncatedCode from "$lib/components/TruncatedCode.svelte";
 import * as Accordion from "$lib/components/ui/accordion/index.js";
-import { Badge } from "$lib/components/ui/badge/index.js";
 import { Button } from "$lib/components/ui/button/index.js";
 import type {
   SectionBasicInfo,
@@ -27,7 +27,7 @@ export let sectionTeachersLabel: SectionTeachersLabel;
                 {#each section.sameSemesterOtherTeachers.slice(0, 10) as related}
                   <Button class="h-auto min-h-8 whitespace-normal px-2 py-1 text-left" href={`/catalog/sections/${related.jwId}`} variant="outline">
                     <span>{sectionTeachersLabel(related)}</span>
-                    <Badge variant="ghost">{related.code}</Badge>
+                    <TruncatedCode text={related.code} />
                   </Button>
                 {/each}
               </div>
@@ -40,7 +40,7 @@ export let sectionTeachersLabel: SectionTeachersLabel;
                 {#each section.sameTeacherOtherSemesters.slice(0, 10) as related}
                   <Button class="h-auto min-h-8 whitespace-normal px-2 py-1 text-left" href={`/catalog/sections/${related.jwId}`} variant="outline">
                     <span>{related.semester?.nameCn ?? notAvailable}</span>
-                    <Badge variant="ghost">{related.code}</Badge>
+                    <TruncatedCode text={related.code} />
                   </Button>
                 {/each}
               </div>

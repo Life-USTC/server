@@ -1,6 +1,7 @@
 <script lang="ts">
 import type { SubmitFunction } from "@sveltejs/kit";
 import PageHeader from "$lib/components/PageHeader.svelte";
+import TruncatedCode from "$lib/components/TruncatedCode.svelte";
 import * as Alert from "$lib/components/ui/alert/index.js";
 import { Badge } from "$lib/components/ui/badge/index.js";
 import SectionDetailPrimaryActions from "./SectionDetailPrimaryActions.svelte";
@@ -59,9 +60,9 @@ export let viewer: SectionHeaderViewer;
   titleClass="text-2xl leading-tight sm:text-3xl"
 >
   {#snippet eyebrowContent()}
-    <div class="flex flex-wrap gap-2">
+    <div class="flex flex-wrap items-center gap-2">
       <Badge variant="secondary">{sectionCopy.teachingSection}</Badge>
-      <Badge class="font-mono" variant="outline">{section.code}</Badge>
+      <TruncatedCode class="text-muted-foreground" text={section.code} />
     </div>
   {/snippet}
   {#snippet actions()}

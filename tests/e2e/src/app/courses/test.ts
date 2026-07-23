@@ -129,6 +129,14 @@ test.describe("/catalog/courses 课程目录", () => {
     await expect(page.getByTestId("catalog-filter-sidebar")).toHaveCount(0);
     await expect(page.getByTestId("catalog-results-summary")).toBeVisible();
     await expect(page.getByTestId("catalog-active-filters")).toBeVisible();
+    const courseCode = page
+      .locator('[data-slot="catalog-code"]')
+      .filter({ hasText: DEV_SEED.course.code })
+      .first();
+    await expect(courseCode).toBeVisible();
+    await expect(
+      courseCode.locator("xpath=ancestor::*[@data-slot='badge']"),
+    ).toHaveCount(0);
     await expectCatalogFilterSheet(page, [
       /培养层次|Education Level/i,
       /类别|Category/i,
@@ -229,7 +237,11 @@ test.describe("/catalog/courses 课程目录", () => {
       const codeText = blankRow
         .locator("td")
         .nth(1)
-        .locator('[data-slot="truncated-text"]');
+        .locator('[data-slot="catalog-code"]');
+      await expect(codeText).toBeVisible();
+      await expect(blankRow.locator('[data-slot="badge"]')).toHaveCount(0);
+      await expect(codeText).toHaveAttribute("title", `${blankPrefix}-00`);
+      await expect(codeText).toHaveAttribute("aria-label", `${blankPrefix}-00`);
       const codeGeometry = await codeText.evaluate((node) => ({
         clientWidth: node.clientWidth,
         scrollWidth: node.scrollWidth,
@@ -237,11 +249,6 @@ test.describe("/catalog/courses 课程目录", () => {
       expect(codeGeometry.scrollWidth).toBeGreaterThan(
         codeGeometry.clientWidth + 1,
       );
-      await codeText.hover();
-      await expect(tooltip).toContainText(`${blankPrefix}-00`);
-
-      await page.mouse.move(0, 0);
-      await expect(tooltip).toHaveCount(0);
       const shortSecondaryText = namedRow
         .locator('[data-slot="truncated-text"]')
         .filter({ hasText: secondaryName });
@@ -268,8 +275,6 @@ test.describe("/catalog/courses 课程目录", () => {
       expect(
         Math.abs((blankBox?.height ?? 0) - (namedBox?.height ?? 0)),
       ).toBeLessThan(1);
-      await codeText.hover();
-      await expect(tooltip).toContainText(`${blankPrefix}-00`);
       await captureStepScreenshot(page, testInfo, "courses-table-truncation");
     } finally {
       await deleteTempCoursesByPrefix(prefix);

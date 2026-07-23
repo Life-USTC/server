@@ -329,11 +329,14 @@ test.describe("/catalog/sections 班级搜索页", () => {
 
       const documentGeometry = await page.evaluate(() => ({
         clientWidth: document.documentElement.clientWidth,
+        scrollbarGutter: getComputedStyle(document.documentElement)
+          .scrollbarGutter,
         scrollWidth: document.documentElement.scrollWidth,
       }));
       expect(documentGeometry.scrollWidth).toBeLessThanOrEqual(
         documentGeometry.clientWidth,
       );
+      expect(documentGeometry.scrollbarGutter).toBe("stable");
 
       if (width === 1024) {
         const cards = page.getByTestId("catalog-results-cards");
@@ -378,14 +381,48 @@ test.describe("/catalog/sections 班级搜索页", () => {
         const container = node as HTMLElement;
         const results = container.closest<HTMLElement>("section");
         const table = container.querySelector("table");
+        const headerCells = Array.from(
+          container.querySelectorAll<HTMLTableCellElement>("thead th"),
+        );
+        const firstRowCells = Array.from(
+          container.querySelectorAll<HTMLTableCellElement>(
+            "tbody tr:first-child td",
+          ),
+        );
         const cells = Array.from(
           container.querySelectorAll<HTMLElement>("th, td"),
         );
-        if (!results || !table || cells.length === 0)
+        if (
+          !results ||
+          !table ||
+          cells.length === 0 ||
+          headerCells.length !== firstRowCells.length
+        )
           throw new Error("Sections table geometry missing");
 
         const containerBox = container.getBoundingClientRect();
         const resultsStyle = getComputedStyle(results);
+        const columnAlignment = headerCells.map((header, index) => {
+          const cell = firstRowCells[index];
+          const link = cell?.querySelector<HTMLElement>("a");
+          if (!cell || !link)
+            throw new Error("Sections table column content missing");
+          const headerStyle = getComputedStyle(header);
+          const linkStyle = getComputedStyle(link);
+          const headerBox = header.getBoundingClientRect();
+          const linkBox = link.getBoundingClientRect();
+          const rightAligned = headerStyle.textAlign === "right";
+          const headerEdge = rightAligned
+            ? headerBox.right - Number.parseFloat(headerStyle.paddingRight)
+            : headerBox.left + Number.parseFloat(headerStyle.paddingLeft);
+          const cellEdge = rightAligned
+            ? linkBox.right - Number.parseFloat(linkStyle.paddingRight)
+            : linkBox.left + Number.parseFloat(linkStyle.paddingLeft);
+          return {
+            alignment: headerStyle.textAlign,
+            offset: Math.abs(headerEdge - cellEdge),
+          };
+        });
         const overflowingCells = cells.flatMap((cell, index) =>
           cell.scrollWidth > cell.clientWidth + 1
             ? [
@@ -400,6 +437,7 @@ test.describe("/catalog/sections 班级搜索页", () => {
         );
         return {
           clientWidth: container.clientWidth,
+          columnAlignment,
           cellsWithinContainer: cells.every((cell) => {
             const cellBox = cell.getBoundingClientRect();
             return (
@@ -443,6 +481,19 @@ test.describe("/catalog/sections 班级搜索页", () => {
       );
       expect(geometry.tableWidth).toBeLessThanOrEqual(geometry.clientWidth + 1);
       expect(geometry.cellsWithinContainer).toBe(true);
+      expect(
+        geometry.columnAlignment.map((column) => column.alignment),
+      ).toEqual(["left", "left", "left", "left", "right", "right", "left"]);
+      expect(
+        Math.max(...geometry.columnAlignment.map((column) => column.offset)),
+      ).toBeLessThanOrEqual(1);
+      const sectionCode = page
+        .locator('table:visible [data-slot="catalog-code"]')
+        .first();
+      await expect(sectionCode).toBeVisible();
+      await expect(
+        sectionCode.locator('xpath=ancestor::*[@data-slot="badge"]'),
+      ).toHaveCount(0);
       expect(geometry.resultsBackgroundIsTransparent).toBe(true);
       expect(geometry.resultsBorderRadius).toBe(0);
       expect(geometry.resultsBorderWidth).toBe(0);

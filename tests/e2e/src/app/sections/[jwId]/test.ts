@@ -139,8 +139,15 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
     await expect(
       heading.locator("xpath=following-sibling::*[1]"),
     ).toContainText(expectedSubtitle);
-    // section.code (monospace)
-    await expect(page.getByText(DEV_SEED.section.code).first()).toBeVisible();
+    // section.code (plain monospace text)
+    const sectionCode = page
+      .locator('[data-slot="catalog-code"]')
+      .filter({ hasText: DEV_SEED.section.code })
+      .first();
+    await expect(sectionCode).toBeVisible();
+    await expect(
+      sectionCode.locator("xpath=ancestor::*[@data-slot='badge']"),
+    ).toHaveCount(0);
     await expect(page.getByTestId("detail-section-nav")).toBeVisible();
 
     await captureStepScreenshot(page, testInfo, "section/heading");
