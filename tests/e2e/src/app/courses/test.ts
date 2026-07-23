@@ -237,11 +237,11 @@ test.describe("/catalog/courses 课程目录", () => {
       const codeText = blankRow
         .locator("td")
         .nth(1)
-        .locator('[data-slot="truncated-text"]');
-      await expect(
-        blankRow.locator('[data-slot="catalog-code"]'),
-      ).toBeVisible();
+        .locator('[data-slot="catalog-code"]');
+      await expect(codeText).toBeVisible();
       await expect(blankRow.locator('[data-slot="badge"]')).toHaveCount(0);
+      await expect(codeText).toHaveAttribute("title", `${blankPrefix}-00`);
+      await expect(codeText).toHaveAttribute("aria-label", `${blankPrefix}-00`);
       const codeGeometry = await codeText.evaluate((node) => ({
         clientWidth: node.clientWidth,
         scrollWidth: node.scrollWidth,
@@ -249,11 +249,6 @@ test.describe("/catalog/courses 课程目录", () => {
       expect(codeGeometry.scrollWidth).toBeGreaterThan(
         codeGeometry.clientWidth + 1,
       );
-      await codeText.hover();
-      await expect(tooltip).toContainText(`${blankPrefix}-00`);
-
-      await page.mouse.move(0, 0);
-      await expect(tooltip).toHaveCount(0);
       const shortSecondaryText = namedRow
         .locator('[data-slot="truncated-text"]')
         .filter({ hasText: secondaryName });
@@ -280,8 +275,6 @@ test.describe("/catalog/courses 课程目录", () => {
       expect(
         Math.abs((blankBox?.height ?? 0) - (namedBox?.height ?? 0)),
       ).toBeLessThan(1);
-      await codeText.hover();
-      await expect(tooltip).toContainText(`${blankPrefix}-00`);
       await captureStepScreenshot(page, testInfo, "courses-table-truncation");
     } finally {
       await deleteTempCoursesByPrefix(prefix);
