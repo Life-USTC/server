@@ -1,3 +1,10 @@
+## [1.77.6](https://github.com/Life-USTC/server/compare/v1.77.5...v1.77.6) (2026-07-23)
+
+
+### Bug Fixes
+
+* **dashboard:** use native grid lanes for semesters ([#619](https://github.com/Life-USTC/server/issues/619)) ([cadef7f](https://github.com/Life-USTC/server/commit/cadef7f44ea59b6ed01f478daaf92fdc54cafe6c))
+
 ## [1.77.5](https://github.com/Life-USTC/server/compare/v1.77.4...v1.77.5) (2026-07-23)
 
 
