@@ -1,3 +1,10 @@
+## [1.77.7](https://github.com/Life-USTC/server/compare/v1.77.6...v1.77.7) (2026-07-23)
+
+
+### Bug Fixes
+
+* **observability:** complete request telemetry ([#620](https://github.com/Life-USTC/server/issues/620)) ([fed8c6b](https://github.com/Life-USTC/server/commit/fed8c6ba135ce87f7cc60a0740ccfdf0f750dd08))
+
 ## [1.77.6](https://github.com/Life-USTC/server/compare/v1.77.5...v1.77.6) (2026-07-23)
 
 
