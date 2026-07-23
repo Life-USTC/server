@@ -1,5 +1,6 @@
 <script lang="ts">
 import type { CatalogNamed } from "@/features/catalog/lib/catalog-list-display";
+import TruncatedText from "$lib/components/TruncatedText.svelte";
 import { Badge } from "$lib/components/ui/badge/index.js";
 import * as Empty from "$lib/components/ui/empty/index.js";
 import * as Table from "$lib/components/ui/table/index.js";
@@ -17,7 +18,7 @@ export let teacherNames: (teachers: CatalogNamed[]) => string;
 </script>
 
 <div class="hidden md:block">
-  <Table.Root>
+  <Table.Root class="table-fixed">
     <Table.Header>
       <Table.Row>
         <Table.Head class="w-32">{copy.courseDetail.semester}</Table.Head>
@@ -33,7 +34,7 @@ export let teacherNames: (teachers: CatalogNamed[]) => string;
         <Table.Row>
           <Table.Cell class="p-0 align-top">
             <CatalogTableLink href={sectionHref} nowrap>
-              {section.semester?.nameCn ?? notAvailable}
+              <TruncatedText text={section.semester?.nameCn ?? notAvailable} />
             </CatalogTableLink>
           </Table.Cell>
           <Table.Cell class="p-0 align-top">
@@ -43,12 +44,16 @@ export let teacherNames: (teachers: CatalogNamed[]) => string;
           </Table.Cell>
           <Table.Cell class="p-0 align-top">
             <CatalogTableLink href={sectionHref}>
-              {teacherNames(section.teachers) || notAvailable}
+              <TruncatedText
+                text={teacherNames(section.teachers) || notAvailable}
+              />
             </CatalogTableLink>
           </Table.Cell>
           <Table.Cell class="p-0 text-right align-top">
             <CatalogTableLink href={sectionHref} nowrap>
-              {primaryName(section.campus) || notAvailable}
+              <TruncatedText
+                text={primaryName(section.campus) || notAvailable}
+              />
             </CatalogTableLink>
           </Table.Cell>
           <Table.Cell class="p-0 text-right align-top">

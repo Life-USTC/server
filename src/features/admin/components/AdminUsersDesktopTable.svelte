@@ -1,4 +1,5 @@
 <script lang="ts">
+import TruncatedText from "$lib/components/TruncatedText.svelte";
 import { Badge } from "$lib/components/ui/badge/index.js";
 import { Button } from "$lib/components/ui/button/index.js";
 import * as Table from "$lib/components/ui/table/index.js";
@@ -32,26 +33,36 @@ export let users: AdminUserRow[];
     <Table.Body>
       {#each users as user}
         <Table.Row>
-          <Table.Cell>
-            <div class="font-medium">{displayName(user)}</div>
-            <div class="break-all font-mono text-muted-foreground text-xs">{user.id}</div>
+          <Table.Cell class="max-w-56">
+            <TruncatedText class="font-medium" text={displayName(user)} />
+            <TruncatedText
+              class="font-mono text-muted-foreground text-xs"
+              text={user.id}
+            />
           </Table.Cell>
-          <Table.Cell>{user.username ?? copy.noUsername}</Table.Cell>
-          <Table.Cell>{user.email ?? copy.noVerifiedEmail}</Table.Cell>
+          <Table.Cell class="max-w-48">
+            <TruncatedText text={user.username ?? copy.noUsername} />
+          </Table.Cell>
+          <Table.Cell class="max-w-64">
+            <TruncatedText text={user.email ?? copy.noVerifiedEmail} />
+          </Table.Cell>
           <Table.Cell>
             <Badge variant={user.isAdmin ? "secondary" : "ghost"}>
               {user.isAdmin ? copy.adminRole : copy.userRole}
             </Badge>
           </Table.Cell>
           <Table.Cell>
-            {#if user.activeSuspension}
-              <div class="grid gap-1">
+            <div class="grid gap-1">
+              {#if user.activeSuspension}
                 <Badge class="w-fit" variant="destructive">{copy.suspendedStatus}</Badge>
-                <span class="text-muted-foreground text-xs">{suspensionLabel(user)}</span>
-              </div>
-            {:else}
-              <Badge variant="ghost">{copy.clearStatus}</Badge>
-            {/if}
+              {:else}
+                <Badge class="w-fit" variant="ghost">{copy.clearStatus}</Badge>
+              {/if}
+              <TruncatedText
+                class="text-muted-foreground text-xs"
+                text={user.activeSuspension ? suspensionLabel(user) : null}
+              />
+            </div>
           </Table.Cell>
           <Table.Cell>{formatDate(user.createdAt)}</Table.Cell>
           <Table.Cell class="text-right">

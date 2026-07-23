@@ -1,4 +1,5 @@
 <script lang="ts">
+import TruncatedText from "$lib/components/TruncatedText.svelte";
 import { Badge } from "$lib/components/ui/badge/index.js";
 import { Button } from "$lib/components/ui/button/index.js";
 import * as Empty from "$lib/components/ui/empty/index.js";
@@ -28,16 +29,16 @@ export let selectHomework: (homework: SectionHomework) => void;
     <Table.Body>
       {#each homeworks as homework}
         <Table.Row>
-          <Table.Cell>
+          <Table.Cell class="max-w-0">
             <Button
-              class="h-auto whitespace-normal text-left"
+              class="h-auto w-full min-w-0 justify-start overflow-hidden text-left"
               type="button"
               variant="link"
               onclick={() => {
                 selectHomework(homework);
               }}
             >
-              {homework.title}
+              <TruncatedText text={homework.title} />
             </Button>
           </Table.Cell>
           <Table.Cell>{fmtDateTime(homework.submissionDueAt)}</Table.Cell>

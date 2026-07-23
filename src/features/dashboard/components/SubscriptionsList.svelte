@@ -6,6 +6,7 @@ import type {
   SubscriptionsData,
 } from "@/features/dashboard/lib/dashboard-controller-types";
 import { groupSubscribedSectionsBySemester } from "@/features/dashboard/lib/subscriptions";
+import TruncatedText from "$lib/components/TruncatedText.svelte";
 import * as AlertDialog from "$lib/components/ui/alert-dialog/index.js";
 import { Button } from "$lib/components/ui/button/index.js";
 import * as Dialog from "$lib/components/ui/dialog/index.js";
@@ -118,21 +119,23 @@ async function confirmRemoveSection() {
               onkeydown={(event) => handleRowKeydown(event, section)}
             >
               <Table.Cell class="min-w-0 overflow-hidden align-top">
-                <div class="truncate font-medium">{section.code}</div>
-                <div class="mt-1 truncate text-sm md:hidden">
-                  {section.course.namePrimary ?? dashboardCopy.notAvailable}
-                </div>
-                <div class="mt-1 truncate text-xs text-muted-foreground lg:hidden">
-                  {teacherNames(section)}
-                </div>
+                <TruncatedText class="font-medium" text={section.code} />
+                <TruncatedText
+                  class="mt-1 text-sm md:hidden"
+                  text={section.course.namePrimary ?? dashboardCopy.notAvailable}
+                />
+                <TruncatedText
+                  class="mt-1 text-xs text-muted-foreground lg:hidden"
+                  text={teacherNames(section)}
+                />
               </Table.Cell>
               <Table.Cell class="hidden min-w-0 overflow-hidden align-top md:table-cell">
-                <div class="truncate">
-                  {section.course.namePrimary ?? dashboardCopy.notAvailable}
-                </div>
+                <TruncatedText
+                  text={section.course.namePrimary ?? dashboardCopy.notAvailable}
+                />
               </Table.Cell>
               <Table.Cell class="hidden min-w-0 overflow-hidden align-top lg:table-cell">
-                <div class="truncate">{teacherNames(section)}</div>
+                <TruncatedText text={teacherNames(section)} />
               </Table.Cell>
               <Table.Cell class="w-20 text-end align-top">
                 {section.credits ?? dashboardCopy.notAvailable}

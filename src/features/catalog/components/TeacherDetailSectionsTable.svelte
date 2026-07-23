@@ -1,5 +1,6 @@
 <script lang="ts">
 import type { CatalogNamed } from "@/features/catalog/lib/catalog-list-display";
+import TruncatedText from "$lib/components/TruncatedText.svelte";
 import { Badge } from "$lib/components/ui/badge/index.js";
 import * as Empty from "$lib/components/ui/empty/index.js";
 import * as Table from "$lib/components/ui/table/index.js";
@@ -17,7 +18,7 @@ export let teacher: TeacherDetailTeacher;
 </script>
 
 <div class="hidden md:block">
-  <Table.Root>
+  <Table.Root class="table-fixed">
     <Table.Header>
       <Table.Row>
         <Table.Head class="w-32">{copy.teacherDetail.semester}</Table.Head>
@@ -32,13 +33,22 @@ export let teacher: TeacherDetailTeacher;
         <Table.Row>
           <Table.Cell class="p-0 align-top">
             <CatalogTableLink href={sectionHref} nowrap>
-              {#if section.semester}{section.semester.nameCn}{:else}<span class="text-muted-foreground">{notAvailable}</span>{/if}
+              <TruncatedText
+                class={!section.semester ? "text-muted-foreground" : ""}
+                text={section.semester?.nameCn ?? notAvailable}
+              />
             </CatalogTableLink>
           </Table.Cell>
           <Table.Cell class="min-w-72 p-0 align-top">
             <CatalogTableLink href={sectionHref}>
-              <span class="font-medium">{primaryName(section.course)}</span>
-              {#if secondaryName(section.course)}<span class="block text-muted-foreground text-xs">{secondaryName(section.course)}</span>{/if}
+              <TruncatedText
+                class="font-medium"
+                text={primaryName(section.course)}
+              />
+              <TruncatedText
+                class="text-muted-foreground text-xs"
+                text={secondaryName(section.course)}
+              />
             </CatalogTableLink>
           </Table.Cell>
           <Table.Cell class="p-0 align-top">

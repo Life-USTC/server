@@ -1,4 +1,5 @@
 <script lang="ts">
+import TruncatedText from "$lib/components/TruncatedText.svelte";
 import { Button } from "$lib/components/ui/button/index.js";
 import * as Table from "$lib/components/ui/table/index.js";
 import { cn } from "$lib/utils.js";
@@ -31,22 +32,28 @@ export let targetLabel: AdminModerationCommentFormatter;
   )}
 >
   <Table.Cell class="max-w-md">
-    <p class="line-clamp-2 whitespace-pre-wrap text-sm">{comment.body}</p>
-    {#if comment.moderationNote}
-      <p class="mt-1 line-clamp-1 text-muted-foreground text-xs">
-        {copy.moderationNote}: {comment.moderationNote}
-      </p>
-    {/if}
+    <TruncatedText
+      class="text-sm"
+      lines={2}
+      preserveWhitespace
+      text={comment.body}
+    />
+    <TruncatedText
+      class="mt-1 text-muted-foreground text-xs"
+      text={comment.moderationNote
+        ? `${copy.moderationNote}: ${comment.moderationNote}`
+        : null}
+    />
   </Table.Cell>
-  <Table.Cell>
-    {commentAuthorLabel(comment)}
+  <Table.Cell class="max-w-48">
+    <TruncatedText text={commentAuthorLabel(comment)} />
   </Table.Cell>
   <Table.Cell class="max-w-sm">
     <a
-      class="hover:underline"
+      class="block min-w-0 overflow-hidden hover:underline"
       href={targetHref(comment)}
     >
-      {targetLabel(comment)}
+      <TruncatedText text={targetLabel(comment)} />
     </a>
   </Table.Cell>
   <Table.Cell>

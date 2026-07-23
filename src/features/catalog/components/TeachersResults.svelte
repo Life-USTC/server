@@ -4,6 +4,7 @@ import {
   catalogShowingSummary,
   optionalCatalogFilterSummary,
 } from "@/features/catalog/lib/catalog-results-summary";
+import TruncatedText from "$lib/components/TruncatedText.svelte";
 import { Badge } from "$lib/components/ui/badge/index.js";
 import * as Item from "$lib/components/ui/item/index.js";
 import * as Table from "$lib/components/ui/table/index.js";
@@ -91,7 +92,7 @@ $: pageLabel = teacherLabels.pageOf
       </Item.Group>
     </div>
     <div class="hidden xl:block">
-      <Table.Root>
+      <Table.Root class="table-fixed">
         <Table.Header>
           <Table.Row>
             <Table.Head class="min-w-56">{teacherLabels.name}</Table.Head>
@@ -108,10 +109,16 @@ $: pageLabel = teacherLabels.pageOf
             <Table.Row>
               <Table.Cell class="min-w-56 p-0 align-top">
                 <CatalogTableLink href={teacherHref}>
-                  <span class="font-medium">{primaryName(teacher)}</span>
-                  {#if showSecondaryNames && secondaryName(teacher)}
-                    <span class="block text-muted-foreground text-xs">({secondaryName(teacher)})</span>
-                  {/if}
+                  <TruncatedText
+                    class="font-medium"
+                    text={primaryName(teacher)}
+                  />
+                  <TruncatedText
+                    class="text-muted-foreground text-xs"
+                    text={showSecondaryNames && secondaryName(teacher)
+                      ? `(${secondaryName(teacher)})`
+                      : null}
+                  />
                 </CatalogTableLink>
               </Table.Cell>
               <Table.Cell class="p-0 align-top">
@@ -125,17 +132,25 @@ $: pageLabel = teacherLabels.pageOf
               </Table.Cell>
               <Table.Cell class="min-w-44 p-0 align-top">
                 <CatalogTableLink href={teacherHref}>
-                  {teacher.department ? primaryName(teacher.department) : teacherLabels.noDepartment}
+                  <TruncatedText
+                    text={teacher.department
+                      ? primaryName(teacher.department)
+                      : teacherLabels.noDepartment}
+                  />
                 </CatalogTableLink>
               </Table.Cell>
               <Table.Cell class="p-0 align-top">
                 <CatalogTableLink href={teacherHref}>
-                  {teacher.teacherTitle ? primaryName(teacher.teacherTitle) : commonLabels.unknown}
+                  <TruncatedText
+                    text={teacher.teacherTitle
+                      ? primaryName(teacher.teacherTitle)
+                      : commonLabels.unknown}
+                  />
                 </CatalogTableLink>
               </Table.Cell>
               <Table.Cell class="min-w-56 p-0 align-top">
                 <CatalogTableLink href={teacherHref}>
-                  {teacher.email ?? "-"}
+                  <TruncatedText text={teacher.email ?? "-"} />
                 </CatalogTableLink>
               </Table.Cell>
               <Table.Cell class="p-0 text-right align-top">
