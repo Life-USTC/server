@@ -1,8 +1,14 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
+  runWithCloudflareRuntimeEnv,
+  setCloudflareRequestContext,
+} from "@/lib/adapters/cloudflare-runtime";
+import {
   getOAuthDebugMode,
-  sanitizeOAuthRedirectLocation,
+  logOAuthDebug,
+  oauthDebugCorrelationId,
   summarizeOAuthAuthorizeUrl,
+  summarizeOAuthRedirectLocation,
   summarizeOAuthRedirectUri,
 } from "@/lib/log/oauth-debug";
 import {
@@ -35,15 +41,20 @@ describe("oauth 调试日志", () => {
     expect(getOAuthDebugMode()).toBe("standard");
   });
 
-  it("编辑敏感的重定向查询值", () => {
+  it("仅汇总重定向结构而不保留任何查询值", () => {
     expect(
-      sanitizeOAuthRedirectLocation(
-        "/callback?code=secret&state=ok&access_token=token",
+      summarizeOAuthRedirectLocation(
+        "/callback?code=secret&state=private-state&custom=private-value",
         "https://life.example.com/api/auth",
       ),
-    ).toBe(
-      "https://life.example.com/callback?code=%5BREDACTED%5D&state=ok&access_token=%5BREDACTED%5D",
-    );
+    ).toEqual({
+      redirectOrigin: "https://life.example.com",
+      redirectHost: "life.example.com",
+      redirectHostname: "life.example.com",
+      redirectPort: null,
+      redirectPath: "/callback",
+      redirectQueryKeys: ["code", "custom", "state"],
+    });
   });
 
   it("汇总重定向 URL 结构而不包含查询值", () => {
@@ -77,11 +88,18 @@ describe("oauth 调试日志", () => {
     const privateResource = "https://private-resource.example/secret";
 
     expect(
-      sanitizeOAuthRedirectLocation(
+      summarizeOAuthRedirectLocation(
         privateInvalidLocation,
         "https://life.example.com/api/auth",
       ),
-    ).toBe("[invalid-redirect-location]");
+    ).toEqual({
+      redirectOrigin: null,
+      redirectHost: "invalid_redirect_uri",
+      redirectHostname: null,
+      redirectPort: null,
+      redirectPath: null,
+      redirectQueryKeys: [],
+    });
     const summary = summarizeOAuthAuthorizeUrl(
       new URL(
         `https://life.example.com/api/auth/oauth2/authorize?resource=${encodeURIComponent(privateResource)}`,
@@ -134,5 +152,41 @@ describe("oauth 调试日志", () => {
     });
     expect(JSON.stringify([fingerprint, errorBody])).not.toContain("private");
     expect(JSON.stringify(fingerprint)).not.toContain(privateIp);
+  });
+
+  it("通过共享日志器继承规范请求上下文", async () => {
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("OAUTH_DEBUG_LOGGING", "1");
+    const info = vi.spyOn(console, "info").mockImplementation(() => {});
+
+    await runWithCloudflareRuntimeEnv({}, () => {
+      setCloudflareRequestContext({
+        method: "POST",
+        requestId: "request-1",
+        route: "/api/auth/:id",
+      });
+      logOAuthDebug("oauth.test", undefined, { status: 400 });
+    });
+
+    const [payload] = info.mock.calls[0] ?? [];
+    expect(JSON.parse(String(payload))).toMatchObject({
+      prefix: "[app]",
+      event: "oauth.test",
+      method: "POST",
+      requestId: "request-1",
+      route: "/api/auth/:id",
+      status: 400,
+    });
+  });
+
+  it("不使用客户端 request ID 作为调试关联 ID", () => {
+    const request = new Request("https://life.example/api/auth", {
+      headers: {
+        "cf-ray": "trusted-edge-ray",
+        "x-request-id": "client-controlled-request-id",
+      },
+    });
+
+    expect(oauthDebugCorrelationId(request)).toBe("trusted-edge-ray");
   });
 });

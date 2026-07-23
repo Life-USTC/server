@@ -19,11 +19,11 @@ export function logAppEvent(
   if (!shouldLog(level)) return;
 
   const payload = {
+    ...context,
     ...baseLogPayload(),
     runtime: typeof window === "undefined" ? "server" : "client",
     ...getCloudflareRequestContext(),
     message,
-    ...context,
   };
 
   emitLog("[app]", level, payload, error);
@@ -40,12 +40,12 @@ export function logApiRequest(
   if (!shouldLog(level)) return;
 
   const payload = {
+    ...context,
     ...baseLogPayload(),
     method,
     path,
     status,
     ...(ioObservedDurationMs === undefined ? {} : { ioObservedDurationMs }),
-    ...context,
   };
 
   emitLog("[api]", level, payload);

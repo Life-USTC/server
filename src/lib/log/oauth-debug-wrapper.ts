@@ -8,9 +8,9 @@ import {
   oauthDebugCorrelationId,
 } from "./oauth-debug-mode";
 import {
-  sanitizeOAuthRedirectLocation,
   summarizeOAuthAuthorizeUrl,
   summarizeOAuthForwardingHeaders,
+  summarizeOAuthRedirectLocation,
 } from "./oauth-debug-sanitize";
 import { tokenErrorBody, tokenRequestFingerprint } from "./oauth-debug-token";
 
@@ -119,9 +119,9 @@ export async function withBetterAuthOAuthDebug(
   try {
     const res = await run(request);
     const location = res.headers.get("location");
-    const redirectTo =
+    const redirectSummary =
       res.status >= 300 && res.status < 400
-        ? sanitizeOAuthRedirectLocation(location ?? undefined, request.url)
+        ? summarizeOAuthRedirectLocation(location ?? undefined, request.url)
         : null;
     const errorBody =
       res.status >= 400 && path === OAUTH_TOKEN_ENDPOINT_PATH
@@ -134,8 +134,8 @@ export async function withBetterAuthOAuthDebug(
       path,
       status: res.status,
       ioObservedDurationMs: Date.now() - start,
-      ...(redirectTo ? { redirectTo } : {}),
-      ...(location && !redirectTo ? { locationPresent: true } : {}),
+      ...(redirectSummary ? { redirectSummary } : {}),
+      ...(location && !redirectSummary ? { locationPresent: true } : {}),
       ...(errorBody ? { errorBody } : {}),
     });
     recordBetterAuthResponseAnalytics({

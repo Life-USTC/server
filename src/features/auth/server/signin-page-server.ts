@@ -11,6 +11,7 @@ import {
 } from "@/lib/auth/provider-ids";
 import { hasRequestAuthSignal } from "@/lib/auth/request-auth-signal";
 import { signInFromSvelteAction } from "@/lib/auth/svelte-auth-actions";
+import { logServerActionError } from "@/lib/log/app-logger";
 import {
   parseTermsNotice,
   providerNames,
@@ -100,6 +101,11 @@ export async function signInPageDefaultAction({
     ) {
       throw error;
     }
+    logServerActionError("auth.signin.failed", error, {
+      action: "signin",
+      requestId: locals.requestId,
+      route: "/signin",
+    });
     return fail(400, {
       message: signInMessages[locals.locale].errorGeneric,
     });

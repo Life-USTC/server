@@ -10,6 +10,8 @@ import { DEVICE_CODE_STATUS } from "@/lib/oauth/device-code";
 const findUniqueMock = vi.fn();
 const updateMock = vi.fn();
 const issueDeviceGrantTokensMock = vi.fn();
+const logOAuthDebugMock = vi.fn();
+const logAppEventMock = vi.fn();
 
 vi.mock("@/lib/db/prisma", () => ({
   prisma: {
@@ -25,7 +27,10 @@ vi.mock("@/features/oauth/server/device-token-issuer.server", () => ({
 }));
 
 vi.mock("@/lib/log/oauth-debug", () => ({
-  logOAuthDebug: vi.fn(),
+  logOAuthDebug: logOAuthDebugMock,
+}));
+vi.mock("@/lib/log/app-logger", () => ({
+  logAppEvent: logAppEventMock,
 }));
 
 vi.mock("@/lib/mcp/urls", () => ({
@@ -61,6 +66,8 @@ describe("设备令牌授予", () => {
     findUniqueMock.mockReset();
     updateMock.mockReset();
     issueDeviceGrantTokensMock.mockReset();
+    logOAuthDebugMock.mockReset();
+    logAppEventMock.mockReset();
     updateMock.mockResolvedValue({});
     issueDeviceGrantTokensMock.mockResolvedValue({
       accessToken: "access-token",
@@ -91,6 +98,11 @@ describe("设备令牌授予", () => {
         resources: ["https://life.example/api/mcp"],
       }),
     );
+    expect(logOAuthDebugMock).toHaveBeenCalledWith(
+      "device-token.success",
+      expect.any(Request),
+      expect.not.objectContaining({ userId: expect.anything() }),
+    );
   });
 
   it("拒绝更改已批准资源集的令牌轮询", async () => {
@@ -117,5 +129,35 @@ describe("设备令牌授予", () => {
       error: "invalid_target",
     });
     expect(issueDeviceGrantTokensMock).not.toHaveBeenCalled();
+  });
+
+  it("记录批准状态缺少用户的服务端状态异常", async () => {
+    findUniqueMock.mockResolvedValue({
+      ...approvedDeviceRecord(),
+      userId: null,
+    });
+    const { handleDeviceCodeGrant } = await import(
+      "@/lib/api/routes/auth-token-device-grant"
+    );
+
+    const response = await handleDeviceCodeGrant(
+      new Request("https://life.example/api/auth/oauth2/token", {
+        method: "POST",
+      }),
+      new URLSearchParams({
+        client_id: "client-1",
+        device_code: "device-code-1",
+      }),
+    );
+
+    expect(response.status).toBe(500);
+    expect(logAppEventMock).toHaveBeenCalledWith(
+      "error",
+      "oauth.device-token.grant-resolution-failed",
+      {
+        event: "oauth.device-token.grant-resolution-failed",
+        phase: "resolve-grant",
+      },
+    );
   });
 });

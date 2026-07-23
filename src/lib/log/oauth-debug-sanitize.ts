@@ -1,16 +1,6 @@
-const SENSITIVE_QUERY_KEYS = new Set([
-  "code",
-  "access_token",
-  "refresh_token",
-  "id_token",
-  "token",
-  "session",
-  "session_token",
-  "client_secret",
-]);
-
 export function summarizeOAuthRedirectUri(
   redirect: string | null,
+  base?: string,
 ): Record<string, unknown> {
   if (!redirect) {
     return {
@@ -24,7 +14,7 @@ export function summarizeOAuthRedirectUri(
   }
 
   try {
-    const redirectUrl = new URL(redirect);
+    const redirectUrl = new URL(redirect, base);
     return {
       redirectOrigin: redirectUrl.origin,
       redirectHost: redirectUrl.host,
@@ -61,23 +51,13 @@ export function summarizeOAuthForwardingHeaders(
   };
 }
 
-/** Redact sensitive query parameters in a redirect URL for logs. */
-export function sanitizeOAuthRedirectLocation(
+/** Summarize a redirect URL without retaining any query values. */
+export function summarizeOAuthRedirectLocation(
   location: string | undefined,
   requestUrl: string,
-): string | null {
+): Record<string, unknown> | null {
   if (!location) return null;
-  try {
-    const u = new URL(location, requestUrl);
-    for (const key of [...u.searchParams.keys()]) {
-      if (SENSITIVE_QUERY_KEYS.has(key.toLowerCase())) {
-        u.searchParams.set(key, "[REDACTED]");
-      }
-    }
-    return u.toString();
-  } catch {
-    return "[invalid-redirect-location]";
-  }
+  return summarizeOAuthRedirectUri(location, requestUrl);
 }
 
 export function summarizeOAuthAuthorizeUrl(

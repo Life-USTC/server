@@ -4,7 +4,10 @@ import { checkUserMutationRateLimit } from "@/lib/security/user-mutation-rate-li
 
 describe("user mutation rate limits", () => {
   beforeEach(() => setCloudflareRuntimeEnv(undefined));
-  afterEach(() => setCloudflareRuntimeEnv(undefined));
+  afterEach(() => {
+    setCloudflareRuntimeEnv(undefined);
+    vi.restoreAllMocks();
+  });
 
   it("explicitly bypasses the gate outside a Cloudflare runtime", async () => {
     await expect(
@@ -80,6 +83,7 @@ describe("user mutation rate limits", () => {
       },
     },
   ])("fails closed when the Cloudflare binding is missing or errors", async (env) => {
+    const error = vi.spyOn(console, "error").mockImplementation(() => {});
     setCloudflareRuntimeEnv(env);
 
     await expect(
@@ -89,5 +93,16 @@ describe("user mutation rate limits", () => {
         userId: "user-1",
       }),
     ).resolves.toEqual({ allowed: false, reason: "unavailable" });
+
+    expect(error).toHaveBeenCalledOnce();
+    expect(error.mock.calls[0]?.[1]).toEqual(
+      expect.objectContaining({
+        action: "comment:write",
+        event: "user-mutation-rate-limit.unavailable",
+        source: "rate-limit",
+        tier: "write",
+      }),
+    );
+    expect(JSON.stringify(error.mock.calls)).not.toContain("user-1");
   });
 });

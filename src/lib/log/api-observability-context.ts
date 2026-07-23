@@ -24,17 +24,14 @@ export function setApiRequestObservabilityContext(
 function getRequestId(request: Request) {
   return (
     apiRequestObservabilityContexts.get(request)?.requestId ??
-    request.headers.get("x-request-id") ??
-    "unknown"
+    crypto.randomUUID()
   );
 }
 
 function getRequestStartMs(request: Request) {
   const contextStartMs = apiRequestObservabilityContexts.get(request)?.startMs;
   if (contextStartMs) return contextStartMs;
-
-  const value = Number(request.headers.get("x-request-start-ms"));
-  return Number.isFinite(value) && value > 0 ? value : Date.now();
+  return Date.now();
 }
 
 function inferAuthMode(request: Request) {

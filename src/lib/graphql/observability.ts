@@ -174,10 +174,7 @@ export function createGraphqlObservabilityPlugin(): Plugin<
         internalErrorCount: 0,
         operationAttempted: false,
         recorded: false,
-        requestId: safeRequestId(
-          serverContext.locals?.requestId ??
-            request.headers.get("x-request-id"),
-        ),
+        requestId: safeRequestId(serverContext.locals?.requestId),
         startMs: Date.now(),
       });
     },

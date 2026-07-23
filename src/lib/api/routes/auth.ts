@@ -13,17 +13,20 @@ import {
 import { isTrustedAuthOrigin } from "@/lib/auth/auth-origins";
 import { verifyAccessTokenJwt } from "@/lib/auth/jwt-verification";
 import { prisma } from "@/lib/db/prisma";
+import { logAppEvent } from "@/lib/log/app-logger";
 import {
   logOAuthDebug,
   summarizeOAuthForwardingHeaders,
   summarizeOAuthRedirectUri,
   withBetterAuthOAuthDebug,
 } from "@/lib/log/oauth-debug";
+import { getSafeErrorName } from "@/lib/log/safe-error-name";
 import {
   getJwksUrlForOAuthVerification,
   getOAuthProviderValidAudiences,
   getOAuthTokenVerificationIssuers,
 } from "@/lib/mcp/urls";
+import { writeOAuthEventAnalytics } from "@/lib/metrics/analytics-engine";
 import {
   hasActiveOAuthUserGrant,
   resolveActiveOAuthUserGrant,
@@ -32,6 +35,36 @@ import { findDuplicateOAuthFormParameter } from "@/lib/oauth/form-parameters";
 import { resolveEquivalentLoopbackRedirectUri } from "@/lib/oauth/loopback-redirect";
 import { rewriteOAuthResourceAliases } from "@/lib/oauth/resource-aliases";
 import { hashOAuthClientSecretForDbStorage } from "@/lib/oauth/utils";
+
+function recordOAuthRouteFailure(input: {
+  error: unknown;
+  event: string;
+  phase: string;
+  request: Request;
+  startMs: number;
+}) {
+  const url = new URL(input.request.url);
+  logAppEvent(
+    "error",
+    input.event,
+    {
+      event: input.event,
+      method: input.request.method,
+      phase: input.phase,
+      source: "oauth",
+    },
+    input.error,
+  );
+  writeOAuthEventAnalytics({
+    errorName: getSafeErrorName(input.error),
+    event: input.event,
+    ioObservedDurationMs: Date.now() - input.startMs,
+    method: input.request.method,
+    path: url.pathname,
+    phase: input.phase,
+    status: 500,
+  });
+}
 
 function isOAuthClientRegistrationRequest(request: Request) {
   return new URL(request.url).pathname.endsWith("/oauth2/register");
@@ -353,6 +386,7 @@ async function resolveOpaqueIntrospectionGrant(
 }
 
 async function enforceIntrospectionGrant(
+  request: Request,
   params: URLSearchParams,
   response: Response,
 ) {
@@ -365,6 +399,7 @@ async function enforceIntrospectionGrant(
 
   const token = params.get("token");
   if (!token) return inactiveIntrospectionResponse(response);
+  const startMs = Date.now();
 
   try {
     if (token.split(".").length === 3) {
@@ -407,8 +442,15 @@ async function enforceIntrospectionGrant(
     ) {
       return response;
     }
-  } catch {
+  } catch (error) {
     // Introspection must fail closed when the grant cannot be verified.
+    recordOAuthRouteFailure({
+      error,
+      event: "oauth.introspection.grant-verification-failed",
+      phase: "grant-verification",
+      request,
+      startMs,
+    });
   }
 
   return inactiveIntrospectionResponse(response);
@@ -498,7 +540,6 @@ async function enforceAuthorizationCodeGrantBinding(
   const location = response.headers.get("location");
   if (location) {
     return enforceAuthorizationCodeRedirectBinding({
-      baseUrl: request.url,
       expectedClientId: expectation
         ? expectation.clientId
         : isAuthorize
@@ -507,6 +548,7 @@ async function enforceAuthorizationCodeGrantBinding(
       expectedGrantId: expectation?.grantId,
       consentUpdatedBefore: expectation?.consentUpdatedBefore,
       location,
+      request,
       response,
     });
   }
@@ -520,7 +562,6 @@ async function enforceAuthorizationCodeGrantBinding(
   if (!body || typeof body.url !== "string") return response;
 
   const bound = await enforceAuthorizationCodeRedirectBinding({
-    baseUrl: request.url,
     expectedClientId: expectation
       ? expectation.clientId
       : isAuthorize
@@ -529,6 +570,7 @@ async function enforceAuthorizationCodeGrantBinding(
     expectedGrantId: expectation?.grantId,
     consentUpdatedBefore: expectation?.consentUpdatedBefore,
     location: body.url,
+    request,
     response,
   });
   const rewrittenLocation = bound.headers.get("location");
@@ -594,7 +636,14 @@ async function resolveAuthorizationCodeGrantExpectation(request: Request) {
       consentUpdatedBefore,
       ...(grant?.kind === "consent" ? { grantId: grant.grantId } : {}),
     };
-  } catch {
+  } catch (error) {
+    recordOAuthRouteFailure({
+      error,
+      event: "oauth.authorization.grant-expectation-failed",
+      phase: "grant-expectation",
+      request,
+      startMs: consentUpdatedBefore.getTime(),
+    });
     return { clientId, consentUpdatedBefore };
   }
 }
@@ -622,36 +671,55 @@ async function getSignedOAuthQueryFromRequest(request: Request) {
 }
 
 async function enforceAuthorizationCodeRedirectBinding(input: {
-  baseUrl: string;
   expectedClientId: string | null | undefined;
   consentUpdatedBefore?: Date;
   expectedGrantId?: string;
   location: string;
+  request: Request;
   response: Response;
 }) {
   let target: URL;
   try {
-    target = new URL(input.location, input.baseUrl);
+    target = new URL(input.location, input.request.url);
   } catch {
     return input.response;
   }
   if (!target.searchParams.has("code")) return input.response;
 
   let bound = false;
+  let bindingError: unknown;
+  const startMs = Date.now();
   try {
     bound =
       input.expectedClientId !== null &&
       (await bindOAuthAuthorizationCodeRedirectToActiveGrant(
         input.location,
         input.expectedClientId,
-        input.baseUrl,
+        input.request.url,
         input.expectedGrantId,
         input.consentUpdatedBefore,
       ));
-  } catch {
+  } catch (error) {
+    bindingError = error;
     bound = false;
   }
   if (bound) return input.response;
+  if (bindingError) {
+    recordOAuthRouteFailure({
+      error: bindingError,
+      event: "oauth.authorization.code-binding-failed",
+      phase: "code-binding",
+      request: input.request,
+      startMs,
+    });
+  } else {
+    logAppEvent("warn", "oauth.authorization.code-binding-rejected", {
+      event: "oauth.authorization.code-binding-rejected",
+      method: input.request.method,
+      phase: "code-binding",
+      source: "oauth",
+    });
+  }
 
   target.searchParams.delete("code");
   target.searchParams.set("error", "server_error");
@@ -716,7 +784,11 @@ export const authPostRoute = async (request: Request) => {
   );
   const finalized =
     introspection && "params" in introspection
-      ? enforceIntrospectionGrant(introspection.params, restored)
+      ? enforceIntrospectionGrant(
+          prepared.request,
+          introspection.params,
+          restored,
+        )
       : restored;
   return enforceAuthorizationCodeGrantBinding(
     prepared.request,
