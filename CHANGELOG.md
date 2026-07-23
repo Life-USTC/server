@@ -1,3 +1,10 @@
+## [1.77.5](https://github.com/Life-USTC/server/compare/v1.77.4...v1.77.5) (2026-07-23)
+
+
+### Bug Fixes
+
+* **dashboard:** constrain subscription table content ([#618](https://github.com/Life-USTC/server/issues/618)) ([2310ba1](https://github.com/Life-USTC/server/commit/2310ba18d270f3193d2f786aa9c1e3e6482fb869))
+
 ## [1.77.4](https://github.com/Life-USTC/server/compare/v1.77.3...v1.77.4) (2026-07-23)
 
 
