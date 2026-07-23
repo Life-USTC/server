@@ -79,7 +79,14 @@ type CloudflareRuntimeEnv = Record<string, unknown> & {
 type CloudflareRuntimeContext = {
   cache: Map<symbol, unknown>;
   env?: CloudflareRuntimeEnv;
+  request?: CloudflareRequestContext;
   tracing?: CloudflareTracing;
+};
+
+export type CloudflareRequestContext = {
+  method: string;
+  requestId: string;
+  route: string;
 };
 
 const cloudflareRuntimeStorage =
@@ -150,6 +157,15 @@ export function runCloudflareTraceSpan<T>(
 export function getCloudflareRuntimeContext() {
   const context = cloudflareRuntimeStorage.getStore();
   return context?.env ? context : undefined;
+}
+
+export function getCloudflareRequestContext() {
+  return cloudflareRuntimeStorage.getStore()?.request;
+}
+
+export function setCloudflareRequestContext(request: CloudflareRequestContext) {
+  const context = cloudflareRuntimeStorage.getStore();
+  if (context) context.request = request;
 }
 
 export function setCloudflareRuntimeEnv(env: unknown) {

@@ -8,7 +8,16 @@ import {
   OAUTH_PUBLIC_CLIENT_AUTH_METHOD,
 } from "@/lib/oauth/constants";
 
-const findUniqueMock = vi.fn();
+const { createDeviceAuthorizationGrantMock, findUniqueMock, logAppEventMock } =
+  vi.hoisted(() => ({
+    createDeviceAuthorizationGrantMock: vi.fn(),
+    findUniqueMock: vi.fn(),
+    logAppEventMock: vi.fn(),
+  }));
+
+vi.mock("@/features/oauth/server/device-grant-policy.server", () => ({
+  createDeviceAuthorizationGrant: createDeviceAuthorizationGrantMock,
+}));
 
 vi.mock("@/lib/db/prisma", () => ({
   prisma: {
@@ -20,6 +29,11 @@ vi.mock("@/lib/db/prisma", () => ({
 
 vi.mock("@/lib/log/oauth-debug", () => ({
   logOAuthDebug: vi.fn(),
+}));
+
+vi.mock("@/lib/log/app-logger", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/lib/log/app-logger")>()),
+  logAppEvent: logAppEventMock,
 }));
 
 vi.mock("@/lib/mcp/urls", () => ({
@@ -46,7 +60,9 @@ function publicDeviceClient(overrides: Record<string, unknown> = {}) {
 
 describe("设备授权", () => {
   beforeEach(() => {
+    createDeviceAuthorizationGrantMock.mockReset();
     findUniqueMock.mockReset();
+    logAppEventMock.mockReset();
   });
 
   it("拒绝未注册设备授权许可的客户端", async () => {
@@ -161,5 +177,39 @@ describe("设备授权", () => {
       ],
       requestedScopes: [OAUTH_OPENID_SCOPE, MCP_TOOLS_SCOPE],
     });
+  });
+
+  it("始终记录设备授权 grant 创建失败", async () => {
+    findUniqueMock.mockResolvedValue(publicDeviceClient());
+    createDeviceAuthorizationGrantMock.mockRejectedValue(
+      new TypeError("database unavailable"),
+    );
+    const { deviceAuthorizationPostRoute } = await import(
+      "@/lib/api/routes/auth-device-authorization"
+    );
+
+    const response = await deviceAuthorizationPostRoute(
+      new Request("https://life.example/api/auth/oauth2/device-authorization", {
+        method: "POST",
+        headers: {
+          "content-type": "application/x-www-form-urlencoded",
+        },
+        body: new URLSearchParams({
+          client_id: "client-1",
+          scope: OAUTH_OPENID_SCOPE,
+        }),
+      }),
+    );
+
+    expect(response.status).toBe(500);
+    expect(logAppEventMock).toHaveBeenCalledWith(
+      "error",
+      "OAuth device authorization grant creation failed",
+      {
+        event: "oauth.device-authorization.failed",
+        phase: "create-grant",
+      },
+      expect.any(TypeError),
+    );
   });
 });

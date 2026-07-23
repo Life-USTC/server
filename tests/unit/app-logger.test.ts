@@ -1,4 +1,8 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
+import {
+  runWithCloudflareRuntimeEnv,
+  setCloudflareRequestContext,
+} from "@/lib/adapters/cloudflare-runtime";
 import { logAppEvent, logRouteFailure, shouldLog } from "@/lib/log/app-logger";
 
 describe("应用日志记录器", () => {
@@ -77,6 +81,27 @@ describe("应用日志记录器", () => {
       runtime: "server",
       message: "test.event",
       requestId: "req_123",
+    });
+  });
+
+  it("自动关联请求范围内的底层错误日志", async () => {
+    vi.stubEnv("NODE_ENV", "production");
+    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+
+    await runWithCloudflareRuntimeEnv({}, () => {
+      setCloudflareRequestContext({
+        method: "POST",
+        requestId: "request-context-id",
+        route: "/api/todos/:id",
+      });
+      logRouteFailure("Server failure", 500, new Error("boom"));
+    });
+
+    const [payload] = errorSpy.mock.calls[0] ?? [];
+    expect(JSON.parse(String(payload))).toMatchObject({
+      method: "POST",
+      requestId: "request-context-id",
+      route: "/api/todos/:id",
     });
   });
 });

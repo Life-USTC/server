@@ -1,3 +1,4 @@
+import { getCloudflareRequestContext } from "@/lib/adapters/cloudflare-runtime";
 import { emitLog } from "@/lib/log/app-log-emitter";
 import {
   type AppLogContext,
@@ -20,6 +21,7 @@ export function logAppEvent(
   const payload = {
     ...baseLogPayload(),
     runtime: typeof window === "undefined" ? "server" : "client",
+    ...getCloudflareRequestContext(),
     message,
     ...context,
   };

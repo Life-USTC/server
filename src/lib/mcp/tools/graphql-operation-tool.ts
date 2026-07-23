@@ -1,5 +1,6 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
+import { getCloudflareRequestContext } from "@/lib/adapters/cloudflare-runtime";
 import {
   GRAPHQL_LIMITS,
   isWithinGraphqlBodyByteLimit,
@@ -146,7 +147,7 @@ export function registerGraphqlOperationTool(server: McpServer) {
         };
         const requestInfo = {
           headers: extra.requestInfo?.headers,
-          requestId: String(extra.requestId),
+          requestId: getCloudflareRequestContext()?.requestId,
           url: extra.requestInfo?.url,
         };
         const result = operationId

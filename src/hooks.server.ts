@@ -10,6 +10,7 @@ import { LOCALE_COOKIE, negotiateLocale } from "@/i18n/config";
 import {
   runCloudflareTraceSpan,
   runWithCloudflareRuntimeEnv,
+  setCloudflareRequestContext,
 } from "@/lib/adapters/cloudflare-runtime";
 import { shouldRedirectIncompleteProfileToWelcome } from "@/lib/auth/auth-routing";
 import { hasRequestAuthSignal } from "@/lib/auth/request-auth-signal";
@@ -95,7 +96,7 @@ export function crossSiteFormResponse(event: Parameters<Handle>[0]["event"]) {
 }
 
 function isApiRequest(pathname: string) {
-  return pathname.startsWith("/api/");
+  return pathname === "/api" || pathname.startsWith("/api/");
 }
 
 function isHtmlResponse(response: Response) {
@@ -161,6 +162,13 @@ const handleWithRuntimeEnv: Handle = async ({ event, resolve }) => {
   event.locals.locale = locale;
   const requestId = crypto.randomUUID();
   event.locals.requestId = requestId;
+  setCloudflareRequestContext({
+    method: event.request.method,
+    requestId,
+    route: isApiRequest(event.url.pathname)
+      ? normalizeApiRoutePath(event.url.pathname)
+      : (event.route.id ?? "unmatched"),
+  });
   const startMs = Date.now();
   const hasAuthSignal = hasRequestAuthSignal(event.request.headers);
   const apiObservability = prepareApiObservability(
@@ -278,7 +286,6 @@ const handleWithRuntimeEnv: Handle = async ({ event, resolve }) => {
     appIoObservedDurationMs = Date.now() - appStartMs;
     appStartMs = undefined;
     const shouldSetCsp = isHtmlResponse(response);
-    recordPageFinish(response.status, contentLength(response));
 
     const mutableResponse = responseWithSecurityHeaders(response);
     if (apiObservability) {
@@ -287,7 +294,10 @@ const handleWithRuntimeEnv: Handle = async ({ event, resolve }) => {
     } else {
       mutableResponse.headers.set("x-request-id", requestId);
     }
-    if (!shouldSetCsp) return mutableResponse;
+    if (!shouldSetCsp) {
+      recordPageFinish(mutableResponse.status, contentLength(mutableResponse));
+      return mutableResponse;
+    }
 
     mutableResponse.headers.set("Content-Language", locale);
     if (!mutableResponse.headers.has("Cache-Control")) {
@@ -301,6 +311,7 @@ const handleWithRuntimeEnv: Handle = async ({ event, resolve }) => {
         isDevelopment: getOptionalTrimmedEnv("NODE_ENV") === "development",
       }),
     );
+    recordPageFinish(mutableResponse.status, contentLength(mutableResponse));
     return mutableResponse;
   } catch (error) {
     if (apiObservability) {
