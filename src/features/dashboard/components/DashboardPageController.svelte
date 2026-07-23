@@ -120,7 +120,6 @@ let {
   linkView,
   matchedSections,
   overviewLinkItems,
-  pendingRemoveSectionId,
   removingSectionId,
   selectedHomework,
   selectedImportSectionIds,
@@ -284,13 +283,14 @@ const {
   openBulkImportDialog,
   removeSubscribedSection,
   resetBulkImport,
+  searchQuickAddSections,
+  subscribeQuickAddSections,
   toggleImportSectionSelection,
 } = createDashboardSubscriptionActions({
   getBulkImportSemesterId: () => bulkImportSemesterId,
   getBulkImportText: () => bulkImportText,
   getCurrentSemesterId: () =>
     signedData?.subscriptions?.currentSemesterId ?? null,
-  getPendingRemoveSectionId: () => pendingRemoveSectionId,
   getSelectedImportSectionIds: () => selectedImportSectionIds,
   getSubscriptionsCopy: () => subscriptionsCopy,
   invalidateAll,
@@ -320,9 +320,6 @@ const {
   },
   setMatchingSections: (value) => {
     isMatchingSections = value;
-  },
-  setPendingRemoveSectionId: (value) => {
-    pendingRemoveSectionId = value;
   },
   setRemovingSectionId: (value) => {
     removingSectionId = value;
@@ -630,7 +627,9 @@ onMount(() => {
         {namePrimary}
         {nameSecondary}
         {resetBulkImport}
+        {searchQuickAddSections}
         {openBulkImportDialog}
+        {subscribeQuickAddSections}
         {toggleImportSectionSelection}
         {matchImportSections}
         {confirmImportSections}
@@ -639,7 +638,6 @@ onMount(() => {
         {bulkImportError}
         {isMatchingSections}
         {isImportingSections}
-        {pendingRemoveSectionId}
         {removingSectionId}
         {subscriptionActionMessage}
         {subscriptionActionError}

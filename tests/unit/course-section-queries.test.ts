@@ -124,6 +124,11 @@ describe("课程与开课查询辅助函数", () => {
                 mode: "insensitive",
               },
             },
+            {
+              teachers: {
+                some: localized("linear algebra"),
+              },
+            },
           ],
         },
       ]),
@@ -234,6 +239,7 @@ describe("课程与开课查询辅助函数", () => {
             { course: { nameEn: contains("普通词") } },
             { course: { code: contains("普通词") } },
             { code: contains("普通词") },
+            { teachers: { some: localized("普通词") } },
           ],
         },
       ]),

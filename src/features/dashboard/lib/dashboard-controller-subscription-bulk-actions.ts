@@ -5,6 +5,7 @@ import {
   matchDashboardImportSections,
   toggleSelectedImportSectionId,
 } from "./dashboard-controller-subscriptions";
+import { searchSubscriptionSections } from "./subscription-client-actions";
 
 export function createDashboardBulkImportActions(
   input: DashboardSubscriptionActionInput,
@@ -55,8 +56,10 @@ export function createDashboardBulkImportActions(
       input.setBulkImportMessage(result.message);
       input.setBulkImportOpen(false);
       input.setConfirmImportOpen(true);
+      return true;
     } catch (error) {
       input.setBulkImportError(error instanceof Error ? error.message : "");
+      return false;
     } finally {
       input.setMatchingSections(false);
     }
@@ -85,11 +88,40 @@ export function createDashboardBulkImportActions(
     }
   }
 
+  async function searchQuickAddSections(inputValue: {
+    semesterId: string;
+    text: string;
+  }) {
+    const sections = await searchSubscriptionSections({
+      errorMessage: input.getSubscriptionsCopy().bulkImport.fetchFailed,
+      semesterId: inputValue.semesterId,
+      text: inputValue.text,
+    });
+
+    return {
+      message: "",
+      sections,
+      selectedSectionIds: sections.map((section) => section.id),
+      unmatchedCodes: [],
+    };
+  }
+
+  async function subscribeQuickAddSections(selectedSectionIds: number[]) {
+    const message = await confirmDashboardImportSections({
+      copy: input.getSubscriptionsCopy(),
+      selectedSectionIds,
+    });
+    await input.invalidateAll();
+    input.setBulkImportMessage(message);
+  }
+
   return {
     confirmImportSections,
     matchImportSections,
     openBulkImportDialog,
     resetBulkImport,
+    searchQuickAddSections,
+    subscribeQuickAddSections,
     toggleImportSectionSelection,
   };
 }

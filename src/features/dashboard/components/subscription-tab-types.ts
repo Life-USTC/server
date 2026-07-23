@@ -41,10 +41,38 @@ export type DashboardSubscriptionsTabCopy = DashboardSubscriptionsCopy & {
     subscribeSelected: string;
     title: string;
   };
+  quickAdd: {
+    alreadySubscribed: string;
+    cancel: string;
+    codeLabel: string;
+    description: string;
+    emptyDescription: string;
+    emptyTitle: string;
+    hint: string;
+    placeholder: string;
+    resultsDescription: string;
+    resultsLabel: string;
+    searchButton: string;
+    searching: string;
+    selectSection: string;
+    subscribeSelected: string;
+    subscribing: string;
+    title: string;
+  };
   iCalLink: string;
+  cancelUnsubscribe: string;
+  closeDetails: string;
+  confirmUnsubscribe: string;
+  detailsDescription: string;
+  openCourse: string;
+  openDetails: string;
   sectionIncluded: string;
   sectionsIncluded: string;
+  semester: string;
   semesterGroup: string;
+  unsubscribe: string;
+  unsubscribeDescription: string;
+  unsubscribeTitle: string;
 };
 
 export type DashboardSubscriptionsSignedData = SignedDashboardData & {
@@ -74,22 +102,33 @@ export type DashboardSubscriptionsTabProps = {
   isImportingSections: boolean;
   isMatchingSections: boolean;
   matchedSections: MatchedImportSection[];
-  matchImportSections: () => void | Promise<void>;
+  matchImportSections: () => Promise<boolean>;
   namePrimary: NameFormatter;
   nameSecondary: NameFormatter;
   openBulkImportDialog: () => void;
-  pendingRemoveSectionId: DashboardSubscriptionSectionId | null;
   removeSubscribedSection: (
     sectionId: DashboardSubscriptionSectionId,
-  ) => void | Promise<void>;
+  ) => boolean | Promise<boolean>;
   removingSectionId: DashboardSubscriptionSectionId | null;
   resetBulkImport: () => void;
+  searchQuickAddSections: (input: {
+    semesterId: string;
+    text: string;
+  }) => Promise<{
+    message: string;
+    sections: MatchedImportSection[];
+    selectedSectionIds: number[];
+    unmatchedCodes: string[];
+  }>;
   sectionCopy: DashboardSectionCopy;
   selectedImportCount: number;
   selectedImportSectionIdSet: Set<number>;
   signedData: DashboardSubscriptionsSignedData;
   subscriptionActionError: string;
   subscriptionActionMessage: string;
+  subscribeQuickAddSections: (
+    selectedSectionIds: number[],
+  ) => void | Promise<void>;
   subscriptionsCopy: DashboardSubscriptionsTabCopy;
   toggleImportSectionSelection: (sectionId: number) => void;
   unmatchedSectionCodes: string[];

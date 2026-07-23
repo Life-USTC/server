@@ -201,9 +201,12 @@
       },
       "display": {
         "fields": [
-          "Search/add input accepting course codes, section codes, and section IDs",
+          "A standalone quick-add dialog searches section codes, course codes, localized course names, and localized teacher names within one semester, shows matching sections as checkbox options, and subscribes the selected sections without entering the batch-import confirmation flow",
+          "A separate batch-import dialog accepts pasted course and section codes for one selected semester",
           "Batch subscribe, unsubscribe, and replace/update actions",
-          "Matched section cards with course, code, semester, campus, teachers",
+          "Subscribed sections are grouped by semester into separate responsive tables; the layout stays single-column until an extra-wide viewport can show masonry-style columns without squeezing",
+          "Each table row opens a details dialog with section metadata, a course-homepage link, and an unsubscribe action guarded by a destructive confirmation dialog",
+          "Matched quick-add options show course, code, semester, campus, and teachers; already-subscribed sections cannot be selected again",
           "Unmatched codes"
         ]
       }

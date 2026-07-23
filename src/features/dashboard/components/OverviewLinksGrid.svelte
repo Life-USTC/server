@@ -31,11 +31,11 @@ function pinAction(link: DashboardOverviewLinkItem): DashboardLinkPinAction {
 </script>
 
 <div
-  class="grid gap-3 md:grid-cols-2 lg:grid-cols-4"
+  class="grid min-w-0 gap-3 sm:grid-cols-2 xl:grid-cols-4"
   data-testid="dashboard-overview-links"
 >
   {#each links.slice(0, 4) as link}
-    <div class="group relative min-w-0">
+    <div class="group relative min-w-0 overflow-hidden rounded-lg">
       <DashboardLinkVisitAction {link} {linkIconLabel} reserveActionSpace />
       <div class={`absolute top-2 right-2 opacity-100 transition-opacity ${link.isPinned ? "" : "md:pointer-events-none md:opacity-0 md:group-focus-within:pointer-events-auto md:group-focus-within:opacity-100 md:group-hover:pointer-events-auto md:group-hover:opacity-100"}`}>
         <LinksTabPinButton
@@ -49,7 +49,7 @@ function pinAction(link: DashboardOverviewLinkItem): DashboardLinkPinAction {
       </div>
     </div>
   {:else}
-    <Empty.Root class="min-h-24 md:col-span-2 lg:col-span-4">
+    <Empty.Root class="min-h-24 sm:col-span-2 xl:col-span-4">
       <Empty.Header>
         <Empty.Title>{dashboardCopy.linkHub.empty}</Empty.Title>
       </Empty.Header>

@@ -140,6 +140,11 @@ export function buildSectionSearchWhere(
         {
           code: ilike(parsed.general),
         },
+        {
+          teachers: {
+            some: localizedNameCondition(parsed.general),
+          },
+        },
       ],
     });
   }

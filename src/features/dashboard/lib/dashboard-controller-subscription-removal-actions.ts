@@ -4,35 +4,11 @@ import { removeDashboardSubscribedSection } from "./dashboard-controller-subscri
 export function createDashboardSubscriptionRemovalActions(
   input: DashboardSubscriptionActionInput,
 ) {
-  let pendingRemoveTimer: ReturnType<typeof setTimeout> | null = null;
-
-  function clearPendingRemoveSection() {
-    if (pendingRemoveTimer) {
-      clearTimeout(pendingRemoveTimer);
-      pendingRemoveTimer = null;
-    }
-    input.setPendingRemoveSectionId(null);
-  }
-
-  function armPendingRemoveSection(sectionId: number) {
-    clearPendingRemoveSection();
-    input.setPendingRemoveSectionId(sectionId);
-    pendingRemoveTimer = setTimeout(() => {
-      if (input.getPendingRemoveSectionId() === sectionId) {
-        input.setPendingRemoveSectionId(null);
-      }
-      pendingRemoveTimer = null;
-    }, 4_000);
-  }
+  function clearPendingRemoveSection() {}
 
   async function removeSubscribedSection(sectionId: number) {
     input.setSubscriptionActionMessage("");
     input.setSubscriptionActionError("");
-
-    if (input.getPendingRemoveSectionId() !== sectionId) {
-      armPendingRemoveSection(sectionId);
-      return;
-    }
 
     input.setRemovingSectionId(sectionId);
     try {
@@ -41,13 +17,14 @@ export function createDashboardSubscriptionRemovalActions(
         sectionId,
       });
 
-      clearPendingRemoveSection();
       await input.invalidateAll();
       input.setSubscriptionActionMessage(message);
+      return true;
     } catch (error) {
       input.setSubscriptionActionError(
         error instanceof Error ? error.message : "",
       );
+      return false;
     } finally {
       input.setRemovingSectionId(null);
     }

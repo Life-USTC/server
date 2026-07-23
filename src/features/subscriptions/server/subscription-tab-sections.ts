@@ -38,7 +38,7 @@ export async function listSubscribedSectionsForSubscriptionsTab(
         jwId: true,
         code: true,
         credits: true,
-        course: { select: { namePrimary: true } },
+        course: { select: { code: true, jwId: true, namePrimary: true } },
         semester: { select: { id: true, nameCn: true, startDate: true } },
         teachers: { select: { namePrimary: true } },
       };
@@ -90,6 +90,8 @@ export function subscriptionSectionFromRow(
     code: row.code,
     credits: row.credits,
     course: {
+      code: row.course?.code ?? null,
+      jwId: row.course?.jwId ?? null,
       namePrimary: row.course?.namePrimary ?? null,
     },
     semester: row.semester

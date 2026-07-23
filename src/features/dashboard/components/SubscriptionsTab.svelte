@@ -2,6 +2,7 @@
 import SubscriptionsBulkImportConfirmDialog from "./SubscriptionsBulkImportConfirmDialog.svelte";
 import SubscriptionsBulkImportDialog from "./SubscriptionsBulkImportDialog.svelte";
 import SubscriptionsList from "./SubscriptionsList.svelte";
+import SubscriptionsQuickAddDialog from "./SubscriptionsQuickAddDialog.svelte";
 import SubscriptionsStatusAlerts from "./SubscriptionsStatusAlerts.svelte";
 import SubscriptionsTabToolbar from "./SubscriptionsTabToolbar.svelte";
 import type {
@@ -24,6 +25,7 @@ export let copyCalendarLink: DashboardSubscriptionsTabProps["copyCalendarLink"];
 export let namePrimary: NameFormatter;
 export let nameSecondary: NameFormatter;
 export let resetBulkImport: DashboardSubscriptionsTabProps["resetBulkImport"];
+export let searchQuickAddSections: DashboardSubscriptionsTabProps["searchQuickAddSections"];
 export let openBulkImportDialog: DashboardSubscriptionsTabProps["openBulkImportDialog"];
 export let toggleImportSectionSelection: DashboardSubscriptionsTabProps["toggleImportSectionSelection"];
 export let matchImportSections: DashboardSubscriptionsTabProps["matchImportSections"];
@@ -38,21 +40,30 @@ export let bulkImportMessage: string;
 export let bulkImportError: string;
 export let isMatchingSections: boolean;
 export let isImportingSections: boolean;
-export let pendingRemoveSectionId: DashboardSubscriptionsTabProps["pendingRemoveSectionId"];
 export let removingSectionId: DashboardSubscriptionsTabProps["removingSectionId"];
 export let subscriptionActionMessage: string;
+export let subscribeQuickAddSections: DashboardSubscriptionsTabProps["subscribeQuickAddSections"];
 export let subscriptionActionError: string;
 export let matchedSections: MatchedImportSection[];
 export let unmatchedSectionCodes: string[];
+
+let isQuickAddOpen = false;
+
+function openQuickAddDialog() {
+  isQuickAddOpen = true;
+}
 </script>
 
 <section class="grid min-w-0 gap-4">
-  <SubscriptionsTabToolbar
-    calendarSubscriptionUrl={signedData.subscriptions.calendarSubscriptionUrl ?? null}
-    {copyCalendarLink}
-    {openBulkImportDialog}
-    {subscriptionsCopy}
-  />
+  {#if signedData.subscriptions.subscriptions.length > 0}
+    <SubscriptionsTabToolbar
+      calendarSubscriptionUrl={signedData.subscriptions.calendarSubscriptionUrl ?? null}
+      {copyCalendarLink}
+      {openBulkImportDialog}
+      {openQuickAddDialog}
+      {subscriptionsCopy}
+    />
+  {/if}
 
   <SubscriptionsStatusAlerts
     {bulkImportError}
@@ -64,11 +75,22 @@ export let unmatchedSectionCodes: string[];
   <SubscriptionsList
     {dashboardCopy}
     {formatMessage}
-    {pendingRemoveSectionId}
     {removeSubscribedSection}
     {removingSectionId}
     {sectionCopy}
     subscriptions={signedData.subscriptions.subscriptions}
+    {subscriptionsCopy}
+    {openBulkImportDialog}
+    {openQuickAddDialog}
+  />
+
+  <SubscriptionsQuickAddDialog
+    bind:open={isQuickAddOpen}
+    {formatMessage}
+    {namePrimary}
+    {searchQuickAddSections}
+    {subscribeQuickAddSections}
+    {signedData}
     {subscriptionsCopy}
   />
 

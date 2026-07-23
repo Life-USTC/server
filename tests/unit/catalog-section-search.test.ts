@@ -209,6 +209,7 @@ describe("课段搜索条件构造器", () => {
             { course: { nameEn: contains("机器学习") } },
             { course: { code: contains("机器学习") } },
             { code: contains("机器学习") },
+            { teachers: { some: localized("机器学习") } },
           ],
         },
       ],
@@ -227,6 +228,7 @@ describe("课段搜索条件构造器", () => {
             { course: { nameEn: contains("机器学习") } },
             { course: { code: contains("机器学习") } },
             { code: contains("机器学习") },
+            { teachers: { some: localized("机器学习") } },
           ],
         },
       ],
@@ -257,6 +259,7 @@ describe("课段搜索条件构造器", () => {
           { course: { nameEn: contains("普通词") } },
           { course: { code: contains("普通词") } },
           { code: contains("普通词") },
+          { teachers: { some: localized("普通词") } },
         ],
       },
     ]);

@@ -12,14 +12,14 @@ $: itemVariant = (variant === "row" ? "default" : "outline") as
   | "default"
   | "outline";
 $: itemClass = cn(
-  "h-full min-w-0 text-left",
-  variant === "row" ? "min-h-14" : "min-h-20 items-start",
-  reserveActionSpace && "pr-16",
+  "h-full min-w-0 overflow-hidden text-left",
+  variant === "row" ? "min-h-14" : "min-h-24 items-start",
+  reserveActionSpace && "pe-12",
 );
 $: contentClass =
   variant === "row"
     ? "min-w-0 sm:grid sm:grid-cols-[minmax(10rem,16rem)_1fr] sm:items-center sm:gap-4"
-    : "";
+    : "min-w-0";
 $: titleClass = variant === "row" ? "line-clamp-1" : "line-clamp-2";
 $: descriptionClass = variant === "row" ? "line-clamp-1" : "line-clamp-2";
 
@@ -30,7 +30,7 @@ function visitButtonClass(props: Record<string, unknown>) {
 
 <form
   action="/api/dashboard-links/visit"
-  class="h-full"
+  class="h-full min-w-0"
   method="POST"
   rel="noopener"
   target="_blank"

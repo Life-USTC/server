@@ -4,6 +4,8 @@ import {
   matchSubscriptionSectionCodes,
   removeSubscribedSectionIds,
 } from "@/features/subscriptions/lib/subscription-import-client";
+import { apiClient, apiErrorMessage } from "@/lib/api/client";
+import { paginatedSectionResponseSchema } from "@/lib/api/schemas/academic-paginated-response-schemas";
 import type {
   BulkImportCopy,
   MatchedSubscriptionSection,
@@ -48,6 +50,34 @@ export async function importSubscriptionSections(input: {
     importFailedMessage: input.copy.importFailed,
     selectedSectionIds: input.selectedSectionIds,
   });
+}
+
+export async function searchSubscriptionSections(input: {
+  errorMessage: string;
+  semesterId: string;
+  text: string;
+}) {
+  const result = await apiClient.GET<unknown>("/api/sections", {
+    params: {
+      query: {
+        locale: document.documentElement.lang || undefined,
+        pageSize: 20,
+        search: input.text.trim(),
+        semesterId: input.semesterId,
+      },
+    },
+  });
+
+  if (result.error) {
+    throw new Error(apiErrorMessage(result.error, input.errorMessage));
+  }
+
+  const parsed = paginatedSectionResponseSchema.safeParse(result.data);
+  if (!parsed.success) {
+    throw new Error(input.errorMessage);
+  }
+
+  return parsed.data.data;
 }
 
 export async function removeSubscriptionSection(input: {
