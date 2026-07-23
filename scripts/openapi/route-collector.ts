@@ -561,6 +561,14 @@ function buildSecurity(
     return undefined;
   }
 
+  if (routePath === "/api/demo/token") {
+    return [{ demoSessionCookie: [] }];
+  }
+
+  if (routePath.startsWith("/api/demo/")) {
+    return [{ demoBearerAuth: [] }];
+  }
+
   if (tag === "Admin") {
     return [{ sessionCookie: [] }];
   }

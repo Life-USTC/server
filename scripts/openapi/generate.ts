@@ -23,6 +23,20 @@ const SECURITY_SCHEMES = {
     description:
       "Better Auth session cookie used by the web UI. Production cookies may use the __Secure- prefix.",
   },
+  demoBearerAuth: {
+    type: "http" as const,
+    scheme: "bearer",
+    bearerFormat: "JWT",
+    description:
+      "Short-lived bearer token issued by /api/demo/token for the isolated, non-persistent demo realm.",
+  },
+  demoSessionCookie: {
+    type: "apiKey" as const,
+    in: "cookie" as const,
+    name: "life_ustc_demo",
+    description:
+      "Short-lived web session cookie for the isolated demo realm. It is not a Better Auth session.",
+  },
   mcpBearerAuth: {
     type: "http" as const,
     scheme: "bearer",

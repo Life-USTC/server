@@ -17,6 +17,14 @@ describe("openapi generator", () => {
     );
     expect(doc.servers).toEqual([{ url: "/", description: "Current origin" }]);
     expect(doc.components?.securitySchemes).toBeDefined();
+    expect(doc.components?.securitySchemes).toMatchObject({
+      demoBearerAuth: { scheme: "bearer", type: "http" },
+      demoSessionCookie: {
+        in: "cookie",
+        name: "life_ustc_demo",
+        type: "apiKey",
+      },
+    });
     expect(doc.components?.schemas).toBeDefined();
   });
 
