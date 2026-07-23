@@ -205,7 +205,7 @@
           "A separate batch-import dialog accepts pasted course and section codes for one selected semester",
           "Batch subscribe, unsubscribe, and replace/update actions",
           "Subscribed sections are grouped by semester into separate responsive tables ordered from the latest semester to the earliest; the layout stays single-column until an extra-wide viewport, where supporting browsers use native CSS Grid Lanes to pack tables into two columns and other browsers fall back to a row-ordered two-column grid",
-          "Long course names and teacher lists are visually truncated inside table rows without changing the complete text shown in the section details dialog",
+          "Long course names and teacher lists are visually truncated inside table rows; when truncated, their complete text remains available from the shared tooltip and the section details dialog",
           "Each table row opens a details dialog with section metadata, a course-homepage link, and an unsubscribe action guarded by a destructive confirmation dialog",
           "Matched quick-add options show course, code, semester, campus, and teachers; already-subscribed sections cannot be selected again",
           "Unmatched codes"

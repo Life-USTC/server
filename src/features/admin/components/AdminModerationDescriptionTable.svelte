@@ -1,4 +1,5 @@
 <script lang="ts">
+import TruncatedText from "$lib/components/TruncatedText.svelte";
 import { Button } from "$lib/components/ui/button/index.js";
 import * as Table from "$lib/components/ui/table/index.js";
 import {
@@ -35,19 +36,26 @@ export let targetLabel: (description: AdminModerationDescription) => string;
       {#each descriptions as description}
         <Table.Row>
           <Table.Cell class="max-w-md">
-            <p class="line-clamp-2 whitespace-pre-wrap text-sm">
-              {description.content?.trim() ? description.content : copy.emptyDescription}
-            </p>
+            <TruncatedText
+              class="text-sm"
+              lines={2}
+              preserveWhitespace
+              text={description.content?.trim()
+                ? description.content
+                : copy.emptyDescription}
+            />
           </Table.Cell>
-          <Table.Cell>
-            {adminModerationDescriptionLastEditor(description, copy)}
+          <Table.Cell class="max-w-48">
+            <TruncatedText
+              text={adminModerationDescriptionLastEditor(description, copy)}
+            />
           </Table.Cell>
           <Table.Cell class="max-w-sm">
             <a
-              class="hover:underline"
+              class="block min-w-0 overflow-hidden hover:underline"
               href={descriptionTargetHref(description)}
             >
-              {targetLabel(description)}
+              <TruncatedText text={targetLabel(description)} />
             </a>
           </Table.Cell>
           <Table.Cell>

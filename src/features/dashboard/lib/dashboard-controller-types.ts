@@ -172,7 +172,9 @@ export type DashboardSectionCopy = DashboardRecord & {
   examTypeFinal: string;
   examTypeMidterm: string;
   nextMonth: string;
+  noTeachersListed: string;
   previousMonth: string;
+  roomTbd: string;
   weekLabel: string;
   weekNumber: string;
   weekdays: {

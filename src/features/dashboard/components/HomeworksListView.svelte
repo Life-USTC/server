@@ -1,5 +1,6 @@
 <script lang="ts">
 import type { DashboardHomeworkItem } from "@/features/dashboard/lib/dashboard-controller-types";
+import TruncatedText from "$lib/components/TruncatedText.svelte";
 import { Badge } from "$lib/components/ui/badge/index.js";
 import { Button } from "$lib/components/ui/button/index.js";
 import * as Empty from "$lib/components/ui/empty/index.js";
@@ -40,19 +41,20 @@ export let toggleHomeworkCompletion: (
       <Table.Row>
         <Table.Cell class="max-w-0">
           <button
-            class="block max-w-full truncate text-left font-semibold hover:underline"
+            class="block min-w-0 max-w-full overflow-hidden text-left font-semibold hover:underline"
             type="button"
             onclick={() => {
               selectedHomework = homework;
             }}
           >
-            {homework.title}
+            <TruncatedText text={homework.title} />
           </button>
         </Table.Cell>
         <Table.Cell class="max-w-64">
-          <span class="block truncate text-muted-foreground">
-            {homework.section?.courseName ?? homeworkCopy.section}
-          </span>
+          <TruncatedText
+            class="text-muted-foreground"
+            text={homework.section?.courseName ?? homeworkCopy.section}
+          />
         </Table.Cell>
         <Table.Cell class="text-center">
           <span class="font-medium text-sm">{fmtDate(homework.submissionDueAt)}</span>

@@ -1,5 +1,6 @@
 <script lang="ts">
 import TrashIcon from "@lucide/svelte/icons/trash-2";
+import TruncatedText from "$lib/components/TruncatedText.svelte";
 import { Badge } from "$lib/components/ui/badge/index.js";
 import { Button } from "$lib/components/ui/button/index.js";
 import * as Empty from "$lib/components/ui/empty/index.js";
@@ -64,12 +65,14 @@ export let scopeLabel: (scope: string) => string;
             <Table.Row>
               <Table.Cell class="max-w-64 whitespace-normal">
                 <div class="flex min-w-0 flex-col gap-1">
-                  <span class="font-medium">
-                    {client.name ?? copy.unnamedClient}
-                  </span>
-                  <code class="truncate text-muted-foreground text-xs" title={client.clientId}>
-                    {client.clientId}
-                  </code>
+                  <TruncatedText
+                    class="font-medium"
+                    text={client.name ?? copy.unnamedClient}
+                  />
+                  <TruncatedText
+                    class="font-mono text-muted-foreground text-xs"
+                    text={client.clientId}
+                  />
                 </div>
               </Table.Cell>
               <Table.Cell class="whitespace-normal">

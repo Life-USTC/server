@@ -174,6 +174,90 @@ test.describe("/catalog/courses 课程目录", () => {
     }
   });
 
+  test("桌面表格截断溢出文本并为缺失次级名称保留等高占位", async ({
+    page,
+  }, testInfo) => {
+    const prefix = `e2etable-${Date.now()}-${testInfo.workerIndex}`;
+    const blankPrefix = `${prefix}-blank`;
+    const namedPrefix = `${prefix}-named`;
+    const blankName = `${"very-long-course-name-".repeat(12)}blank`;
+    const namedName = `${"very-long-course-name-".repeat(12)}named`;
+    const secondaryName = "Short alternate name";
+
+    await createTempCoursesFixture({
+      count: 1,
+      nameCn: blankName,
+      prefix: blankPrefix,
+    });
+    await createTempCoursesFixture({
+      count: 1,
+      nameCn: namedName,
+      nameEn: secondaryName,
+      prefix: namedPrefix,
+    });
+
+    try {
+      await page.setViewportSize({ width: 1440, height: 900 });
+      await gotoAndWaitForReady(
+        page,
+        `/catalog/courses?search=${encodeURIComponent(prefix)}`,
+      );
+
+      const rows = page.locator("table:visible tbody tr");
+      const blankRow = rows.filter({ hasText: `${blankPrefix}-00` });
+      const namedRow = rows.filter({ hasText: `${namedPrefix}-00` });
+      await expect(blankRow).toHaveCount(1);
+      await expect(namedRow).toHaveCount(1);
+
+      const primaryText = blankRow
+        .locator('[data-slot="truncated-text"]')
+        .first();
+      const primaryGeometry = await primaryText.evaluate((node) => ({
+        clientWidth: node.clientWidth,
+        scrollWidth: node.scrollWidth,
+      }));
+      expect(primaryGeometry.scrollWidth).toBeGreaterThan(
+        primaryGeometry.clientWidth + 1,
+      );
+
+      await primaryText.hover();
+      const tooltip = page.locator('[data-slot="tooltip-content"]:visible');
+      await expect(tooltip).toContainText(`${blankName}-00`);
+
+      await page.mouse.move(0, 0);
+      await expect(tooltip).toHaveCount(0);
+      const shortSecondaryText = namedRow
+        .locator('[data-slot="truncated-text"]')
+        .filter({ hasText: secondaryName });
+      await expect(shortSecondaryText).not.toHaveAttribute("tabindex");
+      await shortSecondaryText.hover();
+      await expect(tooltip).toHaveCount(0);
+
+      const blankRowLink = blankRow.locator("a").first();
+      await blankRowLink.focus();
+      await expect(tooltip).toContainText(`${blankName}-00`);
+      await expect(blankRowLink).toHaveAccessibleName(`${blankName}-00`);
+      await page.keyboard.press("Tab");
+
+      const placeholder = blankRow.locator(
+        '[data-slot="truncated-text-placeholder"][aria-hidden="true"]',
+      );
+      await expect(placeholder).toHaveCount(1);
+      expect((await placeholder.boundingBox())?.height ?? 0).toBeGreaterThan(0);
+
+      const [blankBox, namedBox] = await Promise.all([
+        blankRow.boundingBox(),
+        namedRow.boundingBox(),
+      ]);
+      expect(
+        Math.abs((blankBox?.height ?? 0) - (namedBox?.height ?? 0)),
+      ).toBeLessThan(1);
+      await captureStepScreenshot(page, testInfo, "courses-table-truncation");
+    } finally {
+      await deleteTempCoursesByPrefix(prefix);
+    }
+  });
+
   test("分页提供上一页、页码和下一页并写入浏览历史", async ({
     page,
   }, testInfo) => {

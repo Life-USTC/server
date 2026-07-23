@@ -1,5 +1,6 @@
 <script lang="ts">
 import type { DashboardOverviewLinkItem } from "@/features/dashboard/lib/dashboard-controller-helpers";
+import TruncatedText from "$lib/components/TruncatedText.svelte";
 import * as Item from "$lib/components/ui/item/index.js";
 import { cn } from "$lib/utils.js";
 
@@ -20,9 +21,6 @@ $: contentClass =
   variant === "row"
     ? "min-w-0 sm:grid sm:grid-cols-[minmax(10rem,16rem)_1fr] sm:items-center sm:gap-4"
     : "min-w-0";
-$: titleClass = variant === "row" ? "line-clamp-1" : "line-clamp-2";
-$: descriptionClass = variant === "row" ? "line-clamp-1" : "line-clamp-2";
-
 function visitButtonClass(props: Record<string, unknown>) {
   return cn(props.class as string, "bg-background text-left hover:bg-muted");
 }
@@ -47,10 +45,19 @@ function visitButtonClass(props: Record<string, unknown>) {
           {linkIconLabel(link.icon)}
         </Item.Media>
         <Item.Content class={contentClass}>
-          <Item.Title class={titleClass}>{link.title}</Item.Title>
-          <Item.Description class={descriptionClass}>
-            {link.description}
-          </Item.Description>
+          {#if variant === "row"}
+            <Item.Title class="line-clamp-none w-full min-w-0">
+              <TruncatedText text={link.title} />
+            </Item.Title>
+            <Item.Description class="line-clamp-none w-full min-w-0">
+              <TruncatedText text={link.description} />
+            </Item.Description>
+          {:else}
+            <Item.Title class="line-clamp-2">{link.title}</Item.Title>
+            <Item.Description class="line-clamp-2">
+              {link.description}
+            </Item.Description>
+          {/if}
         </Item.Content>
       </button>
     {/snippet}
