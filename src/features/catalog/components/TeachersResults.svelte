@@ -4,6 +4,7 @@ import {
   catalogShowingSummary,
   optionalCatalogFilterSummary,
 } from "@/features/catalog/lib/catalog-results-summary";
+import TruncatedBadge from "$lib/components/TruncatedBadge.svelte";
 import TruncatedText from "$lib/components/TruncatedText.svelte";
 import { Badge } from "$lib/components/ui/badge/index.js";
 import * as Item from "$lib/components/ui/item/index.js";
@@ -124,7 +125,7 @@ $: pageLabel = teacherLabels.pageOf
               <Table.Cell class="p-0 align-top">
                 <CatalogTableLink href={teacherHref}>
                   {#if teacher.code}
-                    <Badge variant="outline">{teacher.code}</Badge>
+                    <TruncatedBadge text={teacher.code} />
                   {:else}
                     -
                   {/if}

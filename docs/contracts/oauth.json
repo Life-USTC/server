@@ -217,7 +217,7 @@
       "mcp": "unavailable",
       "display": {
         "fields": [
-          "Single client inventory: name/id, trust/type, status, scopes summary, created time, confirmed delete",
+          "Single client inventory: name/id, single-line trust/type/status badges, single-line scopes summary with full-value overflow tooltip, created time, confirmed delete",
           "client.name (required text input)",
           "client.redirectUris[] (required explicit multi-input)",
           "client.scopes[] (allowlisted checkboxes)",

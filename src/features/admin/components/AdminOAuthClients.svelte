@@ -1,5 +1,6 @@
 <script lang="ts">
 import TrashIcon from "@lucide/svelte/icons/trash-2";
+import TruncatedBadge from "$lib/components/TruncatedBadge.svelte";
 import TruncatedText from "$lib/components/TruncatedText.svelte";
 import { Badge } from "$lib/components/ui/badge/index.js";
 import { Button } from "$lib/components/ui/button/index.js";
@@ -75,39 +76,34 @@ export let scopeLabel: (scope: string) => string;
                   />
                 </div>
               </Table.Cell>
-              <Table.Cell class="whitespace-normal">
-                <div class="flex max-w-56 flex-wrap gap-1.5">
-                  <Badge variant={client.skipConsent ? "secondary" : "outline"}>
-                    {client.skipConsent
+              <Table.Cell>
+                <div class="flex max-w-56 min-w-0 flex-nowrap gap-1.5">
+                  <TruncatedBadge
+                    class="flex-1"
+                    text={client.skipConsent
                       ? copy.clientTrustTrusted
                       : copy.clientTrustConsent}
-                  </Badge>
-                  <Badge variant="ghost">
-                    {clientTypeLabel(client.tokenEndpointAuthMethod)}
-                  </Badge>
-                  <Badge variant={client.disabled ? "destructive" : "default"}>
-                    {client.disabled ? copy.disabled : copy.enabled}
-                  </Badge>
+                    variant={client.skipConsent ? "secondary" : "outline"}
+                  />
+                  <TruncatedBadge
+                    class="flex-1"
+                    text={clientTypeLabel(client.tokenEndpointAuthMethod)}
+                    variant="ghost"
+                  />
+                  <TruncatedBadge
+                    class="flex-1"
+                    text={client.disabled ? copy.disabled : copy.enabled}
+                    variant={client.disabled ? "destructive" : "default"}
+                  />
                 </div>
               </Table.Cell>
-              <Table.Cell class="max-w-72 whitespace-normal">
-                <div class="flex flex-wrap gap-1.5">
-                  {#each client.scopes.slice(0, 3) as scope}
-                    <Badge variant="outline" title={scopeLabel(scope)}>
-                      {scope}
-                    </Badge>
-                  {:else}
-                    <span class="text-muted-foreground">{copy.notAvailable}</span>
-                  {/each}
-                  {#if client.scopes.length > 3}
-                    <Badge variant="ghost">
-                      {copy.scopeSummaryMore.replace(
-                        "{count}",
-                        String(client.scopes.length - 3),
-                      )}
-                    </Badge>
-                  {/if}
-                </div>
+              <Table.Cell class="max-w-72">
+                <TruncatedBadge
+                  class="w-full"
+                  text={client.scopes.length > 0
+                    ? client.scopes.join(", ")
+                    : copy.notAvailable}
+                />
               </Table.Cell>
               <Table.Cell>
                 <div class="flex flex-col items-start gap-2">
