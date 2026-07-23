@@ -301,7 +301,7 @@ describe.sequential("Better Auth passkey integration", () => {
       authRequest("/passkey/generate-authenticate-options", {
         headers: {
           origin: authOrigin,
-          "x-forwarded-for": "198.51.100.27",
+          "cf-connecting-ip": "198.51.100.27",
         },
       });
     const requestVerification = () =>
@@ -310,7 +310,7 @@ describe.sequential("Better Auth passkey integration", () => {
         headers: {
           "content-type": "application/json",
           origin: authOrigin,
-          "x-forwarded-for": "198.51.100.28",
+          "cf-connecting-ip": "198.51.100.28",
         },
         body: JSON.stringify({ response: {} }),
       });
@@ -323,7 +323,7 @@ describe.sequential("Better Auth passkey integration", () => {
         await authRequest("/passkey/list-user-passkeys", {
           headers: {
             origin: authOrigin,
-            "x-forwarded-for": "198.51.100.27",
+            "cf-connecting-ip": "198.51.100.27",
           },
         })
       ).status,

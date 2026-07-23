@@ -76,7 +76,6 @@ export async function recordDashboardLinkClick(userId: string, slug: string) {
       "Failed to record dashboard link click",
       {
         source: "dashboard-links",
-        userId,
         slug,
       },
       error,
@@ -107,19 +106,16 @@ export function logDashboardLinkPinFailure({
   action,
   error,
   slug,
-  userId,
 }: {
   action: "pin" | "unpin";
   error: unknown;
   slug: string;
-  userId: string;
 }) {
   logAppEvent(
     "error",
     "Failed to update dashboard link pin state",
     {
       source: "dashboard-links",
-      userId,
       slug,
       action,
     },

@@ -162,7 +162,7 @@ describe("GraphQL semantic observability", () => {
         "anonymous",
         "graphql-observation-test",
       ],
-      doubles: [expect.any(Number), 1, 35, 0],
+      doubles: [expect.any(Number), 1, 35, 0, 0],
     });
     expect(writeDataPoint).toHaveBeenNthCalledWith(2, {
       indexes: ["graphql:query"],
@@ -173,7 +173,7 @@ describe("GraphQL semantic observability", () => {
         "anonymous",
         "graphql-observation-test",
       ],
-      doubles: [expect.any(Number), 1, 100, 0],
+      doubles: [expect.any(Number), 1, 100, 0, 0],
     });
     expect(
       info.mock.calls.filter(
@@ -226,7 +226,7 @@ describe("GraphQL semantic observability", () => {
           authMode,
           `${authMode}-locals-request-id`,
         ],
-        doubles: [expect.any(Number), 1, 100, 0],
+        doubles: [expect.any(Number), 1, 100, 0, 0],
       });
     });
     expect(JSON.stringify(writeDataPoint.mock.calls)).not.toContain(
@@ -235,7 +235,8 @@ describe("GraphQL semantic observability", () => {
   });
 
   it("records parse, validation, and resolver errors returned with HTTP 200", async () => {
-    vi.spyOn(console, "info").mockImplementation(() => {});
+    const info = vi.spyOn(console, "info").mockImplementation(() => {});
+    const error = vi.spyOn(console, "error").mockImplementation(() => {});
     const writeDataPoint = installAnalytics();
 
     const parseFailure = await execute({ query: "query Broken { courses(" });
@@ -255,23 +256,45 @@ describe("GraphQL semantic observability", () => {
       1,
       expect.objectContaining({
         indexes: ["graphql:unknown"],
-        doubles: [expect.any(Number), 0, 0, 1],
+        doubles: [expect.any(Number), 0, 0, 1, 0],
       }),
     );
     expect(writeDataPoint).toHaveBeenNthCalledWith(
       2,
       expect.objectContaining({
         indexes: ["graphql:query"],
-        doubles: [expect.any(Number), 1, 1, 1],
+        doubles: [expect.any(Number), 1, 1, 1, 0],
       }),
     );
     expect(writeDataPoint).toHaveBeenNthCalledWith(
       3,
       expect.objectContaining({
         indexes: ["graphql:query"],
-        doubles: [expect.any(Number), 1, 100, 1],
+        doubles: [expect.any(Number), 1, 100, 1, 1],
       }),
     );
+    expect(
+      info.mock.calls.filter(
+        ([prefix, value]) =>
+          prefix === "[app]" &&
+          typeof value === "object" &&
+          value !== null &&
+          "event" in value &&
+          value.event === "graphql.operation",
+      ),
+    ).toHaveLength(2);
+    expect(
+      error.mock.calls.filter(
+        ([prefix, value]) =>
+          prefix === "[app]" &&
+          typeof value === "object" &&
+          value !== null &&
+          "event" in value &&
+          value.event === "graphql.operation" &&
+          "internalErrorCount" in value &&
+          value.internalErrorCount === 1,
+      ),
+    ).toHaveLength(1);
   });
 
   it("classifies context failures from safe auth signals without leaking request data", async () => {
@@ -325,7 +348,13 @@ describe("GraphQL semantic observability", () => {
           authMode,
           requestId,
         ],
-        doubles: [expect.any(Number), 1, 100, 1],
+        doubles: [
+          expect.any(Number),
+          1,
+          100,
+          1,
+          operationName === "UnknownFailure" ? 1 : 0,
+        ],
       });
     });
     const recorded = JSON.stringify([
@@ -381,7 +410,7 @@ describe("GraphQL semantic observability", () => {
     expect(writeDataPoint).toHaveBeenCalledWith(
       expect.objectContaining({
         indexes: ["graphql:query"],
-        doubles: [expect.any(Number), 2, 9000, 1],
+        doubles: [expect.any(Number), 2, 9000, 1, 0],
       }),
     );
   });
@@ -477,7 +506,7 @@ describe("GraphQL semantic observability", () => {
         "session",
         "graphql-mutation-observation-test",
       ],
-      doubles: [expect.any(Number), 1, 3, 1],
+      doubles: [expect.any(Number), 1, 3, 1, 1],
     });
     expect(
       JSON.stringify([

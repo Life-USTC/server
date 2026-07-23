@@ -80,7 +80,7 @@ export async function postDashboardLinkPinRoute(request: Request) {
       returnTo,
     });
   } catch (error) {
-    logDashboardLinkPinFailure({ action, error, slug, userId });
+    logDashboardLinkPinFailure({ action, error, slug });
     return jsonOrRedirectForPinnedLinks({
       request,
       wantsJson,
@@ -135,7 +135,6 @@ export async function postDashboardLinkPinBatchRoute(request: Request) {
       action: lastItem?.action ?? "pin",
       error,
       slug: body.items.map((item) => item.slug).join(","),
-      userId: auth.userId,
     });
     return jsonResponse(
       dashboardLinkPinResponseSchema.parse({

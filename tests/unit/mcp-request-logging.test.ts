@@ -35,7 +35,6 @@ describe("MCP request logging", () => {
         authFailureKind: "jwt_verify_failed",
         authHeaderKind: "bearer",
         authTokenFormat: "jwt",
-        jwtErrorMessage: "unexpected aud claim value",
         jwtErrorName: "JWTClaimValidationFailed",
       },
       context: {
@@ -59,11 +58,13 @@ describe("MCP request logging", () => {
         authFailureKind: "jwt_verify_failed",
         authHeaderKind: "bearer",
         authTokenFormat: "jwt",
-        jwtErrorMessage: "unexpected aud claim value",
         jwtErrorName: "JWTClaimValidationFailed",
         phase: "auth-rejected",
         status: 401,
       }),
+    );
+    expect(JSON.stringify(logAppEventMock.mock.calls)).not.toContain(
+      "unexpected aud claim value",
     );
   });
 

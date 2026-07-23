@@ -82,7 +82,7 @@ export async function handleWebhookLogin(ctx: WebhookLoginContext) {
   const authUser = await ctx.context.internalAdapter.findUserById(user.id);
   if (!authUser) {
     logOAuthDebug("webhook-login.user-missing-in-adapter", ctx.request, {
-      userId: user.id,
+      reason: "adapter_lookup_miss",
     });
     return jsonError(404, { error: "User not found" });
   }
@@ -93,9 +93,7 @@ export async function handleWebhookLogin(ctx: WebhookLoginContext) {
     user: authUser as never,
   });
 
-  logOAuthDebug("webhook-login.success", ctx.request, {
-    userId: authUser.id,
-  });
+  logOAuthDebug("webhook-login.success", ctx.request, {});
 
   return ctx.json({
     ok: true,

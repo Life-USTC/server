@@ -210,9 +210,11 @@ describe("authenticateMcpRequest per-tool scope enforcement", () => {
         authFailureKind: "jwt_verify_failed",
         authHeaderKind: "bearer",
         authTokenFormat: "jwt",
-        jwtErrorMessage: "bad jwt",
         jwtErrorName: "Error",
       });
+      expect(JSON.stringify(result.authFailureDiagnostics)).not.toContain(
+        "bad jwt",
+      );
     }
   });
 
