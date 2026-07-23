@@ -1,3 +1,11 @@
+## [1.77.8](https://github.com/Life-USTC/server/compare/v1.77.7...v1.77.8) (2026-07-23)
+
+
+### Bug Fixes
+
+* **observability:** preserve request correlation ([#622](https://github.com/Life-USTC/server/issues/622)) ([7274168](https://github.com/Life-USTC/server/commit/72741681b968f22ee48793b2c60f7b9b0aec3dd9))
+* **ui:** unify section subscription navigation ([#621](https://github.com/Life-USTC/server/issues/621)) ([71a2e17](https://github.com/Life-USTC/server/commit/71a2e17378e2a0a0d33cab68cf67b87f8601fdf3))
+
 ## [1.77.7](https://github.com/Life-USTC/server/compare/v1.77.6...v1.77.7) (2026-07-23)
 
 
