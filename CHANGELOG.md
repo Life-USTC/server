@@ -1,3 +1,10 @@
+## [1.77.12](https://github.com/Life-USTC/server/compare/v1.77.11...v1.77.12) (2026-07-23)
+
+
+### Bug Fixes
+
+* **ui:** unify table cell truncation ([#627](https://github.com/Life-USTC/server/issues/627)) ([209ee00](https://github.com/Life-USTC/server/commit/209ee00aa070db0f9cfdf525e3f91330ffb6fae1))
+
 ## [1.77.11](https://github.com/Life-USTC/server/compare/v1.77.10...v1.77.11) (2026-07-23)
 
 
