@@ -30,9 +30,9 @@ function logOAuthGrantValidationError(phase: string, error: unknown) {
     phase,
   });
   writeOAuthEventAnalytics({
-    durationMs: 0,
     errorName,
     event: "grant-validation-failed",
+    ioObservedDurationMs: 0,
     path: "/api/auth/oauth2/token",
     phase,
     status: 503,

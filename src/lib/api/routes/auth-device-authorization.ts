@@ -100,8 +100,8 @@ async function postRoute(request: Request): Promise<Response> {
   try {
     const response = await runDeviceAuthorizationPostRoute(request);
     writeOAuthEventAnalytics({
-      durationMs: Date.now() - start,
       event: "device-authorization.response",
+      ioObservedDurationMs: Date.now() - start,
       method: request.method,
       path,
       status: response.status,
@@ -109,8 +109,8 @@ async function postRoute(request: Request): Promise<Response> {
     return response;
   } catch (err) {
     writeOAuthEventAnalytics({
-      durationMs: Date.now() - start,
       event: "device-authorization.error",
+      ioObservedDurationMs: Date.now() - start,
       method: request.method,
       path,
       status: 500,

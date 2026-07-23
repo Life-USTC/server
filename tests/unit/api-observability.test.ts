@@ -86,8 +86,8 @@ describe("API 可观测性", () => {
       "[api]",
       expect.objectContaining({
         authMode: "bearer",
-        durationMs: 1000,
         event: "request.finish",
+        ioObservedDurationMs: 1000,
         method: "GET",
         path: "/api/todos/:id",
         requestId: "request-1",
@@ -122,7 +122,7 @@ describe("API 可观测性", () => {
     expect(writeDataPoint).toHaveBeenCalledWith({
       indexes: ["/api/users/:id/calendar.ics"],
       blobs: [
-        "api_request",
+        "api_request_v2",
         "finish",
         "GET",
         "/api/users/:id/calendar.ics",
@@ -179,9 +179,9 @@ describe("API 可观测性", () => {
       "[api]",
       expect.objectContaining({
         authMode: "cookie",
-        durationMs: 1000,
         errorName: "Error",
         event: "request.error",
+        ioObservedDurationMs: 1000,
         method: "GET",
         path: "/api/todos/:id",
         requestId: "request-1",

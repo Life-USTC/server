@@ -22,8 +22,8 @@ export async function headStorageObject(
   try {
     const object = await r2Bucket.head(key);
     writeStorageOperationAnalytics({
-      durationMs: Date.now() - start,
       event: object ? "success" : "miss",
+      ioObservedDurationMs: Date.now() - start,
       operation: "head",
       size: object?.size,
     });
@@ -34,8 +34,8 @@ export async function headStorageObject(
     };
   } catch (error) {
     writeStorageOperationAnalytics({
-      durationMs: Date.now() - start,
       event: "error",
+      ioObservedDurationMs: Date.now() - start,
       operation: "head",
     });
     throw error;
@@ -48,14 +48,14 @@ export async function deleteStorageObject(key: string) {
   try {
     await r2Bucket.delete(key);
     writeStorageOperationAnalytics({
-      durationMs: Date.now() - start,
       event: "success",
+      ioObservedDurationMs: Date.now() - start,
       operation: "delete",
     });
   } catch (error) {
     writeStorageOperationAnalytics({
-      durationMs: Date.now() - start,
       event: "error",
+      ioObservedDurationMs: Date.now() - start,
       operation: "delete",
     });
     throw error;
@@ -73,15 +73,15 @@ export async function getStorageObjectResponse(input: {
   try {
     object = await r2Bucket.get(input.key);
     writeStorageOperationAnalytics({
-      durationMs: Date.now() - start,
       event: object ? "success" : "miss",
+      ioObservedDurationMs: Date.now() - start,
       operation: "get",
       size: object?.size,
     });
   } catch (error) {
     writeStorageOperationAnalytics({
-      durationMs: Date.now() - start,
       event: "error",
+      ioObservedDurationMs: Date.now() - start,
       operation: "get",
     });
     throw error;
@@ -114,14 +114,14 @@ export async function putStorageObject(input: {
       },
     });
     writeStorageOperationAnalytics({
-      durationMs: Date.now() - start,
       event: "success",
+      ioObservedDurationMs: Date.now() - start,
       operation: "put",
     });
   } catch (error) {
     writeStorageOperationAnalytics({
-      durationMs: Date.now() - start,
       event: "error",
+      ioObservedDurationMs: Date.now() - start,
       operation: "put",
     });
     throw error;

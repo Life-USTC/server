@@ -1,6 +1,7 @@
 import {
   type Handle,
   type HandleServerError,
+  isHttpError,
   isRedirect,
   redirect,
 } from "@sveltejs/kit";
@@ -21,7 +22,8 @@ import {
 import { normalizeApiRoutePath } from "@/lib/log/api-observability-path";
 import { getSafeErrorName } from "@/lib/log/safe-error-name";
 import {
-  appendPageServerTiming,
+  type PageAuthMode,
+  recordPageRequestError,
   recordPageRequestFinish,
 } from "@/lib/metrics/page-observability";
 import {
@@ -167,6 +169,47 @@ const handleWithRuntimeEnv: Handle = async ({ event, resolve }) => {
     requestId,
     startMs,
   );
+  let appStartMs: number | undefined;
+  let appIoObservedDurationMs = 0;
+  let authIoObservedDurationMs = 0;
+  let pageAuthMode: PageAuthMode = "anonymous";
+  let pageObservationRecorded = false;
+
+  const pageTimings = () => ({
+    appIoObservedDurationMs:
+      appStartMs === undefined
+        ? appIoObservedDurationMs
+        : Date.now() - appStartMs,
+    authIoObservedDurationMs,
+    totalIoObservedDurationMs: Date.now() - startMs,
+  });
+  const recordPageFinish = (status: number, responseBytes?: number) => {
+    if (apiObservability || pageObservationRecorded) return;
+    pageObservationRecorded = true;
+    recordPageRequestFinish({
+      authMode: pageAuthMode,
+      locale,
+      method: event.request.method,
+      requestId,
+      responseBytes,
+      routeId: event.route.id,
+      status,
+      timings: pageTimings(),
+    });
+  };
+  const recordPageError = (error: unknown) => {
+    if (apiObservability || pageObservationRecorded) return;
+    pageObservationRecorded = true;
+    recordPageRequestError({
+      authMode: pageAuthMode,
+      errorName: getSafeErrorName(error),
+      locale,
+      method: event.request.method,
+      requestId,
+      routeId: event.route.id,
+      timings: pageTimings(),
+    });
+  };
 
   try {
     loadEnv();
@@ -176,8 +219,10 @@ const handleWithRuntimeEnv: Handle = async ({ event, resolve }) => {
       const response = responseWithSecurityHeaders(csrfResponse);
       if (apiObservability) {
         recordObservedApiResponse(event.request, response.status);
-        response.headers.set("x-request-id", requestId);
+      } else {
+        recordPageFinish(response.status, contentLength(response));
       }
+      response.headers.set("x-request-id", requestId);
       return response;
     }
 
@@ -192,8 +237,9 @@ const handleWithRuntimeEnv: Handle = async ({ event, resolve }) => {
             ),
         )
       : null;
-    const authDurationMs = Date.now() - authStartMs;
+    authIoObservedDurationMs = Date.now() - authStartMs;
     event.locals.authUser = session?.user ?? null;
+    pageAuthMode = session?.user.id ? "authenticated" : "anonymous";
     if (
       shouldRedirectIncompleteProfileToWelcome({
         pathname: event.url.pathname,
@@ -211,7 +257,7 @@ const handleWithRuntimeEnv: Handle = async ({ event, resolve }) => {
       );
     }
 
-    const appStartMs = Date.now();
+    appStartMs = Date.now();
     const response = await runCloudflareTraceSpan(
       "app.sveltekit.resolve",
       {
@@ -229,41 +275,21 @@ const handleWithRuntimeEnv: Handle = async ({ event, resolve }) => {
             ),
         }),
     );
-    const appDurationMs = Date.now() - appStartMs;
-    const totalDurationMs = Date.now() - startMs;
+    appIoObservedDurationMs = Date.now() - appStartMs;
+    appStartMs = undefined;
     const shouldSetCsp = isHtmlResponse(response);
-    if (!isApiRequest(event.url.pathname) && shouldSetCsp) {
-      recordPageRequestFinish({
-        authMode: session?.user.id ? "authenticated" : "anonymous",
-        locale,
-        method: event.request.method,
-        requestId,
-        responseBytes: contentLength(response),
-        routeId: event.route.id,
-        status: response.status,
-        timings: {
-          appDurationMs,
-          authDurationMs,
-          totalDurationMs,
-        },
-      });
-    }
+    recordPageFinish(response.status, contentLength(response));
 
     const mutableResponse = responseWithSecurityHeaders(response);
     if (apiObservability) {
       recordObservedApiResponse(event.request, mutableResponse.status);
       mutableResponse.headers.set("x-request-id", apiObservability.requestId);
-    } else if (shouldSetCsp) {
+    } else {
       mutableResponse.headers.set("x-request-id", requestId);
     }
     if (!shouldSetCsp) return mutableResponse;
 
     mutableResponse.headers.set("Content-Language", locale);
-    appendPageServerTiming(mutableResponse.headers, {
-      appDurationMs,
-      authDurationMs,
-      totalDurationMs,
-    });
     if (!mutableResponse.headers.has("Cache-Control")) {
       mutableResponse.headers.set("Cache-Control", "no-store");
     }
@@ -283,6 +309,10 @@ const handleWithRuntimeEnv: Handle = async ({ event, resolve }) => {
       } else {
         recordObservedApiError(event.request, error);
       }
+    } else if (isRedirect(error) || isHttpError(error)) {
+      recordPageFinish(error.status);
+    } else {
+      recordPageError(error);
     }
     throw error;
   }

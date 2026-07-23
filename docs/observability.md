@@ -16,9 +16,10 @@ high-cardinality resource IDs.
   MCP body parsing/SDK dispatch, and GraphQL dispatch without attaching
   credentials, request bodies, or resource identifiers.
 - Built-in Worker request/error metrics remain the source for complete traffic
-  and 5xx counts. Unsampled Analytics Engine events preserve safe API, MCP,
-  OAuth, GraphQL, database connection/pool, audit, storage, and cache outcomes;
-  sampled logs and traces provide request-level diagnosis.
+  counts, 5xx counts, wall time, and CPU time. Unsampled Analytics Engine events
+  preserve safe API, page, MCP, OAuth, GraphQL, database connection/pool, audit,
+  storage, and cache outcomes; sampled logs and traces provide request-level
+  diagnosis.
 - Production API request metrics are written to Cloudflare Analytics Engine.
 - API request metrics live in `src/lib/log/api-observability-recording.ts`.
 - Every `/api/*` request receives one server-generated request ID and records
@@ -27,7 +28,19 @@ high-cardinality resource IDs.
   `x-request-id` values are not trusted as the server correlation ID.
 - GraphQL observations distinguish expected GraphQL errors from
   `INTERNAL_SERVER_ERROR`; only the latter are logged at error severity.
-- Request IDs propagate through page and REST responses.
+- Request IDs propagate through page, data, action, and REST responses that
+  return through the application handle hook. Framework URL-normalization
+  redirects are generated before the hook, and redirects thrown by the hook
+  are materialized afterward; those responses do not carry an application
+  request ID even though hook-thrown redirects retain their correlated
+  lifecycle log.
+- Application timers use `ioObservedDurationMs`. Cloudflare Workers freezes
+  `Date.now()` and `performance.now()` while JavaScript executes, so these
+  values are lower-bound observations across runtime I/O boundaries, not
+  end-to-end latency. Analytics Engine v2 events (`api_request_v2`,
+  `page_request_v2`, `mcp_transport_v2`, `oauth_event_v2`, `audit_write_v2`,
+  `storage_operation_v2`, `public_runtime_cache_v2`, and
+  `graphql_operation_v2`) preserve this explicit meaning.
 
 ## Endpoints
 
@@ -46,13 +59,16 @@ Critical:
 
 Warning:
 
-- REST or MCP latency regression.
+- Worker wall-time or CPU-time regression.
 - OAuth token failure spike.
 - MCP auth rejection spike.
 - Storage or audit write error spike.
 
-Dashboards should cover REST status and latency from Analytics Engine, with
-structured logs used for MCP, OAuth, audit, and storage investigations.
+Dashboards should use Analytics Engine v2 events for safe outcome/status
+breakdowns and Cloudflare Workers built-in wall/CPU metrics for latency.
+`ioObservedDurationMs` can help compare I/O-heavy phases but must not be used
+for latency SLOs. Structured logs remain the source for MCP, OAuth, audit, and
+storage investigations.
 
 ## Worker configuration drift
 

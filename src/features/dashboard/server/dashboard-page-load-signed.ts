@@ -18,8 +18,8 @@ async function timeSignedDashboardStage<T>(
   try {
     const result = await work();
     logAppEvent("info", "dashboard.load.stage", {
-      durationMs: Date.now() - startMs,
       event: "dashboard.load.stage",
+      ioObservedDurationMs: Date.now() - startMs,
       requestId: input.requestId,
       source: "dashboard",
       stage,
@@ -30,8 +30,8 @@ async function timeSignedDashboardStage<T>(
     return result;
   } catch (error) {
     logAppEvent("warn", "dashboard.load.stage", {
-      durationMs: Date.now() - startMs,
       event: "dashboard.load.stage",
+      ioObservedDurationMs: Date.now() - startMs,
       requestId: input.requestId,
       source: "dashboard",
       stage,

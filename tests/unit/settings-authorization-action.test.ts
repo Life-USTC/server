@@ -1,10 +1,14 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-const { requireSettingsUserMock, revokeUserOAuthAuthorizationMock } =
-  vi.hoisted(() => ({
-    requireSettingsUserMock: vi.fn(),
-    revokeUserOAuthAuthorizationMock: vi.fn(),
-  }));
+const {
+  logServerActionErrorMock,
+  requireSettingsUserMock,
+  revokeUserOAuthAuthorizationMock,
+} = vi.hoisted(() => ({
+  logServerActionErrorMock: vi.fn(),
+  requireSettingsUserMock: vi.fn(),
+  revokeUserOAuthAuthorizationMock: vi.fn(),
+}));
 
 vi.mock("@/features/settings/server/settings-page-data", () => ({
   requireSettingsUser: requireSettingsUserMock,
@@ -12,6 +16,10 @@ vi.mock("@/features/settings/server/settings-page-data", () => ({
 
 vi.mock("@/features/oauth/server/user-authorizations.server", () => ({
   revokeUserOAuthAuthorization: revokeUserOAuthAuthorizationMock,
+}));
+
+vi.mock("@/lib/log/app-logger", () => ({
+  logServerActionError: logServerActionErrorMock,
 }));
 
 function request(origin?: string) {
@@ -35,6 +43,7 @@ describe("settings OAuth authorization action", () => {
     vi.stubEnv("APP_PUBLIC_ORIGIN", "https://life.example");
     requireSettingsUserMock.mockReset();
     revokeUserOAuthAuthorizationMock.mockReset();
+    logServerActionErrorMock.mockReset();
     requireSettingsUserMock.mockResolvedValue({ id: "user-1" });
   });
 
@@ -126,6 +135,7 @@ describe("settings OAuth authorization action", () => {
     const result = await revokeSettingsAuthorizationAction({
       locale: "en-us",
       request: request("https://life.example"),
+      requestId: "request-revoke",
       url: new URL("https://life.example/settings/authorizations"),
     });
 
@@ -135,5 +145,14 @@ describe("settings OAuth authorization action", () => {
         kind: "authorizations",
       },
     });
+    expect(logServerActionErrorMock).toHaveBeenCalledWith(
+      "settings.authorization.revoke.failed",
+      expect.any(Error),
+      {
+        action: "revoke-authorization",
+        requestId: "request-revoke",
+        route: "/settings/authorizations",
+      },
+    );
   });
 });

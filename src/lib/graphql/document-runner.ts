@@ -403,9 +403,9 @@ export async function runGraphqlDocument(input: {
     recordGraphqlOperationObservation({
       ...analysis,
       authMode: input.principal.kind,
-      durationMs: Date.now() - startedAt,
       errorCount,
       internalErrorCount,
+      ioObservedDurationMs: Date.now() - startedAt,
       requestId: input.requestInfo?.requestId,
     });
   }

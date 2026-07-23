@@ -207,7 +207,7 @@ describe("arbitrary GraphQL document runner", () => {
     expect(writeDataPoint).toHaveBeenCalledWith({
       indexes: ["graphql:query"],
       blobs: [
-        "graphql_operation",
+        "graphql_operation_v2",
         "CurrentSemester",
         "query",
         "session",

@@ -4,6 +4,7 @@ import { getSettingsCopy } from "@/features/settings/lib/settings-copy";
 import type { SettingsActionInput } from "@/features/settings/server/settings-page-common";
 import { requireSettingsUser } from "@/features/settings/server/settings-page-data";
 import { isTrustedAuthOrigin } from "@/lib/auth/auth-origins";
+import { logServerActionError } from "@/lib/log/app-logger";
 
 function assertTrustedSettingsActionOrigin(request: Request) {
   const origin =
@@ -16,8 +17,9 @@ function assertTrustedSettingsActionOrigin(request: Request) {
 export async function revokeSettingsAuthorizationAction({
   locale,
   request,
+  requestId,
   url,
-}: SettingsActionInput) {
+}: SettingsActionInput & { requestId?: string }) {
   assertTrustedSettingsActionOrigin(request);
   const copy = getSettingsCopy(locale);
   const user = await requireSettingsUser(request, url);
@@ -33,7 +35,12 @@ export async function revokeSettingsAuthorizationAction({
   let result: Awaited<ReturnType<typeof revokeUserOAuthAuthorization>>;
   try {
     result = await revokeUserOAuthAuthorization(user.id, consentId);
-  } catch {
+  } catch (error) {
+    logServerActionError("settings.authorization.revoke.failed", error, {
+      action: "revoke-authorization",
+      requestId,
+      route: "/settings/authorizations",
+    });
     return fail(500, {
       kind: "authorizations",
       message: copy.settings.authorizations.revokeError,

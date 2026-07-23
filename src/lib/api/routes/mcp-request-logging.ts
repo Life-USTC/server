@@ -41,7 +41,7 @@ export function logMcpTransportRequest({
 
 export function logMcpTransportResponse({
   context,
-  durationMs,
+  ioObservedDurationMs,
   errorName,
   phase,
   rpcSummary,
@@ -52,8 +52,8 @@ export function logMcpTransportResponse({
 }: {
   authFailureDiagnostics?: McpAuthFailureDiagnostics | null;
   context: McpLogContext;
-  durationMs: number;
   errorName?: string;
+  ioObservedDurationMs: number;
   phase: McpResponsePhase;
   rpcSummary: McpRequestSummary | null;
   status: number;
@@ -66,7 +66,7 @@ export function logMcpTransportResponse({
     method: request.method,
     path: requestUrl.pathname,
     status,
-    durationMs,
+    ioObservedDurationMs,
     phase,
     rpcSummary,
     ...(errorName === undefined ? {} : { errorName }),
@@ -76,7 +76,7 @@ export function logMcpTransportResponse({
   });
   logOAuthDebug("mcp.response", request, {
     status,
-    ms: durationMs,
+    ioObservedDurationMs,
     phase,
     ...(authFailureDiagnostics ?? {}),
     ...(toolCount === undefined ? {} : { toolCount }),

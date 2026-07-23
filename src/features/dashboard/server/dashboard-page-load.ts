@@ -9,15 +9,15 @@ import {
 import { logAppEvent } from "@/lib/log/app-logger";
 
 function recordDashboardLoadFinish(input: {
-  durationMs: number;
+  ioObservedDurationMs: number;
   requestId: string | undefined;
   status: "ok" | "user-missing";
   subscribedSectionCount?: number;
   tab: string;
 }) {
   logAppEvent("info", "dashboard.load.finish", {
-    durationMs: input.durationMs,
     event: "dashboard.load.finish",
+    ioObservedDurationMs: input.ioObservedDurationMs,
     requestId: input.requestId,
     signedIn: true,
     source: "dashboard",
@@ -55,7 +55,7 @@ export async function loadSignedDashboardPage({
     userId,
   });
   recordDashboardLoadFinish({
-    durationMs: Date.now() - startMs,
+    ioObservedDurationMs: Date.now() - startMs,
     requestId: locals.requestId,
     status: "userMissing" in signedData ? "user-missing" : "ok",
     subscribedSectionCount:

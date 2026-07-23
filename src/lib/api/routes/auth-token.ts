@@ -123,8 +123,8 @@ async function runObservedTokenHandler(
         : undefined,
     );
     writeOAuthEventAnalytics({
-      durationMs: Date.now() - start,
       event: "token.response",
+      ioObservedDurationMs: Date.now() - start,
       grantType,
       hasResource: params.has("resource"),
       method: request.method,
@@ -135,8 +135,8 @@ async function runObservedTokenHandler(
     return response;
   } catch (err) {
     writeOAuthEventAnalytics({
-      durationMs: Date.now() - start,
       event: "token.error",
+      ioObservedDurationMs: Date.now() - start,
       grantType,
       hasResource: params.has("resource"),
       method: request.method,

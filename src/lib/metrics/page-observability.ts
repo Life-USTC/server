@@ -3,33 +3,11 @@ import { writePageRequestAnalytics } from "@/lib/metrics/analytics-engine";
 
 export type PageAuthMode = "anonymous" | "authenticated";
 
-export type PageServerTimings = {
-  appDurationMs: number;
-  authDurationMs: number;
-  totalDurationMs: number;
+export type PageObservedTimings = {
+  appIoObservedDurationMs: number;
+  authIoObservedDurationMs: number;
+  totalIoObservedDurationMs: number;
 };
-
-function safeDuration(value: number) {
-  if (!Number.isFinite(value)) return 0;
-  return Math.max(0, value);
-}
-
-function timingMetric(name: string, durationMs: number) {
-  return `${name};dur=${Math.round(safeDuration(durationMs))}`;
-}
-
-export function appendPageServerTiming(
-  headers: Headers,
-  timings: PageServerTimings,
-) {
-  const value = [
-    timingMetric("auth", timings.authDurationMs),
-    timingMetric("app", timings.appDurationMs),
-    timingMetric("total", timings.totalDurationMs),
-  ].join(", ");
-
-  headers.append("Server-Timing", value);
-}
 
 export function recordPageRequestFinish(input: {
   authMode: PageAuthMode;
@@ -39,14 +17,14 @@ export function recordPageRequestFinish(input: {
   responseBytes?: number;
   routeId: string | null;
   status: number;
-  timings: PageServerTimings;
+  timings: PageObservedTimings;
 }) {
   const route = input.routeId ?? "unmatched";
 
-  logAppEvent("info", "page.request.finish", {
+  logAppEvent(input.status >= 500 ? "error" : "info", "page.request.finish", {
     authMode: input.authMode,
-    durationMs: input.timings.totalDurationMs,
     event: "page.request.finish",
+    ioObservedDurationMs: input.timings.totalIoObservedDurationMs,
     locale: input.locale,
     method: input.method,
     requestId: input.requestId,
@@ -57,14 +35,52 @@ export function recordPageRequestFinish(input: {
   });
 
   writePageRequestAnalytics({
-    appDurationMs: input.timings.appDurationMs,
-    authDurationMs: input.timings.authDurationMs,
+    appIoObservedDurationMs: input.timings.appIoObservedDurationMs,
+    authIoObservedDurationMs: input.timings.authIoObservedDurationMs,
     authMode: input.authMode,
-    durationMs: input.timings.totalDurationMs,
+    event: "finish",
+    ioObservedDurationMs: input.timings.totalIoObservedDurationMs,
     locale: input.locale,
     method: input.method,
     responseBytes: input.responseBytes,
     route,
     status: input.status,
+  });
+}
+
+export function recordPageRequestError(
+  input: Omit<
+    Parameters<typeof recordPageRequestFinish>[0],
+    "responseBytes" | "status"
+  > & {
+    errorName: string;
+  },
+) {
+  const route = input.routeId ?? "unmatched";
+  const status = 500;
+
+  logAppEvent("error", "page.request.error", {
+    authMode: input.authMode,
+    errorName: input.errorName,
+    event: "page.request.error",
+    ioObservedDurationMs: input.timings.totalIoObservedDurationMs,
+    locale: input.locale,
+    method: input.method,
+    requestId: input.requestId,
+    route,
+    source: "sveltekit",
+    status,
+  });
+
+  writePageRequestAnalytics({
+    appIoObservedDurationMs: input.timings.appIoObservedDurationMs,
+    authIoObservedDurationMs: input.timings.authIoObservedDurationMs,
+    authMode: input.authMode,
+    event: "error",
+    ioObservedDurationMs: input.timings.totalIoObservedDurationMs,
+    locale: input.locale,
+    method: input.method,
+    route,
+    status,
   });
 }
