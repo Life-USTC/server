@@ -1,3 +1,12 @@
+## [1.77.13](https://github.com/Life-USTC/server/compare/v1.77.12...v1.77.13) (2026-07-23)
+
+
+### Bug Fixes
+
+* **auth:** preserve rolling browser sessions ([#631](https://github.com/Life-USTC/server/issues/631)) ([49acf38](https://github.com/Life-USTC/server/commit/49acf38779d0aa5e0e207daeb37d4fb88d269636))
+* **bus:** restore default full timetable ([3a7deda](https://github.com/Life-USTC/server/commit/3a7dedacc6611e9b579dc3557c0be7f7eea955a8))
+* **ui:** unify table badge overflow ([#629](https://github.com/Life-USTC/server/issues/629)) ([1584c3e](https://github.com/Life-USTC/server/commit/1584c3e4f94eef91416cc0f46eea8ba313015250))
+
 ## [1.77.12](https://github.com/Life-USTC/server/compare/v1.77.11...v1.77.12) (2026-07-23)
 
 
