@@ -567,18 +567,10 @@ afterNavigate(({ from, to }) => {
       copy={data.copy}
       currentPathname={$page.url.pathname}
       {isActiveLink}
-      locale={data.locale}
-      {localeMenuOpen}
       {mobileNavGroups}
       {navGroups}
       {profileHref}
-      {setLocale}
-      {setLocaleMenuOpen}
-      {setThemeMenuOpen}
-      {setThemeMode}
       {setUserMenuOpen}
-      {themeMenuOpen}
-      {themeMode}
       user={data.user}
       {userMenuOpen}
     />
@@ -596,6 +588,14 @@ afterNavigate(({ from, to }) => {
       <AppTopbar
         {closeMenus}
         copy={data.copy}
+        locale={data.locale}
+        {localeMenuOpen}
+        {setLocale}
+        {setLocaleMenuOpen}
+        {setThemeMenuOpen}
+        {setThemeMode}
+        {themeMenuOpen}
+        {themeMode}
         user={data.user}
       />
 

@@ -62,16 +62,48 @@ test("/ 首页快速入口可见", async ({ page }, testInfo) => {
   await captureStepScreenshot(page, testInfo, "home-shortcuts");
 });
 
-test("/ shell 匿名 390px 抽屉只展示公开导航", async ({ page }) => {
+test("/ shell 匿名 390px 抽屉只展示公开导航", async ({ page }, testInfo) => {
+  const browserIssues: string[] = [];
+  page.on("console", (message) => {
+    if (message.type() === "error" || message.type() === "warning") {
+      browserIssues.push(`${message.type()}: ${message.text()}`);
+    }
+  });
+  page.on("pageerror", (error) =>
+    browserIssues.push(`pageerror: ${error.message}`),
+  );
+
   await page.setViewportSize({ width: 390, height: 844 });
   await gotoAndWaitForReady(page, "/");
 
-  await page
-    .locator("[data-shell-topbar]")
-    .getByRole("button", { name: /^菜单$|^Menu$/i })
-    .click();
+  const topbar = page.locator("[data-shell-topbar]");
+  for (const button of [
+    topbar.getByRole("button", { name: /^菜单$|^Menu$/i }),
+    topbar.getByRole("button", { name: /语言|Language/i }),
+    topbar.getByRole("button", { name: /主题|Theme/i }),
+  ]) {
+    await expect(button).toBeVisible();
+    const box = await button.boundingBox();
+    expect(box?.width).toBeGreaterThanOrEqual(44);
+    expect(box?.height).toBeGreaterThanOrEqual(44);
+  }
+  await expect(
+    topbar.getByRole("link", { name: /^(登录|Sign in)$/i }),
+  ).toBeVisible();
+  await captureStepScreenshot(page, testInfo, "shell/anonymous-mobile-topbar");
+
+  await topbar.getByRole("button", { name: /^菜单$|^Menu$/i }).click();
 
   const sidebar = page.getByRole("dialog", { name: /Sidebar/i });
+  await expect(
+    sidebar.getByRole("button", { name: /语言|Language/i }),
+  ).toHaveCount(0);
+  await expect(
+    sidebar.getByRole("button", { name: /主题|Theme/i }),
+  ).toHaveCount(0);
+  await expect(
+    sidebar.getByRole("button", { name: /个人菜单|Profile menu/i }),
+  ).toHaveCount(0);
   for (const name of [
     /^(校车|Shuttle Bus)$/i,
     /^(网站|Websites)$/i,
@@ -93,6 +125,7 @@ test("/ shell 匿名 390px 抽屉只展示公开导航", async ({ page }) => {
       name: /移动主导航|Mobile primary navigation/i,
     }),
   ).toHaveCount(0);
+  expect(browserIssues).toEqual([]);
 });
 
 test("/ 主题切换可写入 localStorage 并跟随系统主题", async ({
@@ -324,6 +357,25 @@ test("/ shell 中等视口只显示侧栏品牌并采用 stock 宽度", async ({
       }),
     )
     .toEqual(["16rem", "3rem"]);
+
+  const topbar = page.locator("[data-shell-topbar]");
+  await expect(
+    topbar.getByRole("button", { name: /语言|Language/i }),
+  ).toBeVisible();
+  await expect(
+    topbar.getByRole("button", { name: /主题|Theme/i }),
+  ).toBeVisible();
+
+  const sidebar = page.getByTestId("app-sidebar");
+  await expect(
+    sidebar.getByRole("button", { name: /个人菜单|Profile menu/i }),
+  ).toBeVisible();
+  await expect(
+    sidebar.getByRole("button", { name: /语言|Language/i }),
+  ).toHaveCount(0);
+  await expect(
+    sidebar.getByRole("button", { name: /主题|Theme/i }),
+  ).toHaveCount(0);
 });
 
 test("/ shell 当前分组在导航后保持展开", async ({ page }) => {
@@ -396,13 +448,15 @@ test("/ shell 390px 主导航可达且触控尺寸达标", async ({ page }, test
   const topbar = page.locator("[data-shell-topbar]");
   await expect(
     topbar.getByRole("button", { name: /语言|Language/i }),
-  ).toHaveCount(0);
-  await expect(topbar.getByRole("button", { name: /主题|Theme/i })).toHaveCount(
-    0,
-  );
+  ).toBeVisible();
+  await expect(
+    topbar.getByRole("button", { name: /主题|Theme/i }),
+  ).toBeVisible();
 
   for (const button of [
     topbar.getByRole("button", { name: /^菜单$|^Menu$/i }),
+    topbar.getByRole("button", { name: /语言|Language/i }),
+    topbar.getByRole("button", { name: /主题|Theme/i }),
   ]) {
     const box = await button.boundingBox();
     expect(box?.width).toBeGreaterThanOrEqual(44);
@@ -424,10 +478,10 @@ test("/ shell 390px 主导航可达且触控尺寸达标", async ({ page }, test
   ).toBeVisible();
   await expect(
     sidebar.getByRole("button", { name: /语言|Language/i }),
-  ).toBeVisible();
+  ).toHaveCount(0);
   await expect(
     sidebar.getByRole("button", { name: /主题|Theme/i }),
-  ).toBeVisible();
+  ).toHaveCount(0);
   await expect(
     sidebar.getByRole("button", { name: /个人菜单|Profile menu/i }),
   ).toBeVisible();
