@@ -8,6 +8,7 @@ import {
   linkAccountFromSvelteAction,
 } from "@/lib/auth/svelte-auth-actions";
 import { prisma } from "@/lib/db/prisma";
+import { logServerActionError } from "@/lib/log/app-logger";
 import { deleteOwnAccount } from "./account-deletion-service";
 
 export async function unlinkSettingsAccountAction({
@@ -49,8 +50,9 @@ export async function linkSettingsAccountAction({
   cookies,
   locale,
   request,
+  requestId,
   url,
-}: SettingsActionInput & { cookies: Cookies }) {
+}: SettingsActionInput & { cookies: Cookies; requestId: string }) {
   const copy = getSettingsCopy(locale);
   await requireSettingsUser(request, url);
   const form = await request.formData();
@@ -72,6 +74,11 @@ export async function linkSettingsAccountAction({
     ) {
       throw error;
     }
+    logServerActionError("settings.account-link.failed", error, {
+      action: "link-account",
+      requestId,
+      route: "/settings/accounts",
+    });
     return fail(400, {
       kind: "accounts",
       message: copy.profile.connectFailed,

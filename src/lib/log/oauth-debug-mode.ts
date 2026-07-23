@@ -1,6 +1,6 @@
 import { getOptionalTrimmedEnv } from "@/app-env";
 import { getApiRequestObservabilityRequestId } from "@/lib/log/api-observability-context";
-import { formatShanghaiTimestamp } from "@/lib/time/shanghai-format";
+import { logAppEvent } from "@/lib/log/app-logger";
 
 export type OAuthDebugMode = "off" | "standard" | "verbose";
 
@@ -24,9 +24,10 @@ export function oauthDebugCorrelationId(request: Request): string {
   if (requestId) return requestId;
 
   return (
-    safeCorrelationId(request.headers.get("x-request-id")) ??
-    request.headers.get("cf-ray") ??
-    request.headers.get("traceparent")?.slice(0, 55) ??
+    safeCorrelationId(request.headers.get("cf-ray")) ??
+    safeCorrelationId(
+      request.headers.get("traceparent")?.slice(0, 55) ?? null,
+    ) ??
     "no-correlation-id"
   );
 }
@@ -42,15 +43,14 @@ export function logOAuthDebug(
 ): void {
   if (!isOAuthDebugLogging()) return;
 
-  const payload: Record<string, unknown> = {
-    ts: formatShanghaiTimestamp(new Date()),
-    event,
+  const context: Record<string, unknown> = {
     ...fields,
+    event,
   };
 
   if (request) {
-    payload.correlationId = oauthDebugCorrelationId(request);
+    context.correlationId = oauthDebugCorrelationId(request);
   }
 
-  console.info(JSON.stringify(payload));
+  logAppEvent("info", event, context);
 }

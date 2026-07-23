@@ -5,6 +5,7 @@ const {
   betterAuthHandlerMock,
   decodeJwtMock,
   hasActiveOAuthUserGrantMock,
+  logAppEventMock,
   refreshFindUniqueMock,
   verifyAccessTokenJwtMock,
 } = vi.hoisted(() => ({
@@ -12,8 +13,13 @@ const {
   betterAuthHandlerMock: vi.fn(),
   decodeJwtMock: vi.fn(),
   hasActiveOAuthUserGrantMock: vi.fn(),
+  logAppEventMock: vi.fn(),
   refreshFindUniqueMock: vi.fn(),
   verifyAccessTokenJwtMock: vi.fn(),
+}));
+
+vi.mock("@/lib/log/app-logger", () => ({
+  logAppEvent: logAppEventMock,
 }));
 
 vi.mock("jose", () => ({
@@ -60,6 +66,7 @@ describe("OAuth JWT introspection grant state", () => {
     accessFindUniqueMock.mockReset();
     decodeJwtMock.mockReset();
     hasActiveOAuthUserGrantMock.mockReset();
+    logAppEventMock.mockReset();
     refreshFindUniqueMock.mockReset();
     verifyAccessTokenJwtMock.mockReset();
     betterAuthHandlerMock.mockResolvedValue(Response.json({ active: true }));
@@ -108,6 +115,29 @@ describe("OAuth JWT introspection grant state", () => {
     const response = await authPostRoute(introspectionRequest());
 
     await expect(response.json()).resolves.toEqual({ active: true });
+  });
+
+  it("fails closed and records unexpected grant verification failures", async () => {
+    const privateError = new TypeError("private database detail");
+    hasActiveOAuthUserGrantMock.mockRejectedValue(privateError);
+    const { authPostRoute } = await import("@/lib/api/routes/auth");
+
+    const response = await authPostRoute(introspectionRequest());
+
+    await expect(response.json()).resolves.toEqual({ active: false });
+    expect(logAppEventMock).toHaveBeenCalledWith(
+      "error",
+      "oauth.introspection.grant-verification-failed",
+      expect.objectContaining({
+        event: "oauth.introspection.grant-verification-failed",
+        method: "POST",
+        phase: "grant-verification",
+      }),
+      privateError,
+    );
+    expect(JSON.stringify(logAppEventMock.mock.calls)).not.toContain(
+      "header.payload.signature",
+    );
   });
 
   it("uses trusted opaque reference generations when applying replay-tombstone state", async () => {

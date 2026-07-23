@@ -16,6 +16,17 @@ import { createGraphqlSecurityPlugins } from "./security";
 
 class GraphqlBodyTooLargeError extends Error {}
 
+async function cancelReader(
+  reader: ReadableStreamDefaultReader<Uint8Array>,
+  reason?: unknown,
+) {
+  try {
+    await reader.cancel(reason);
+  } catch {
+    // Cancellation is cleanup; the primary request failure remains authoritative.
+  }
+}
+
 function graphqlErrorResponse(
   status: number,
   code: string,
@@ -63,7 +74,7 @@ async function readBodyWithinLimit(
   const chunks: Uint8Array[] = [];
   let total = 0;
   const onAbort = () => {
-    void reader.cancel(signal.reason);
+    void cancelReader(reader, signal.reason);
   };
   signal.addEventListener("abort", onAbort, { once: true });
 
@@ -75,7 +86,7 @@ async function readBodyWithinLimit(
 
       total += value.byteLength;
       if (total > GRAPHQL_LIMITS.bodyBytes) {
-        await reader.cancel();
+        await cancelReader(reader);
         throw new GraphqlBodyTooLargeError();
       }
       chunks.push(value);

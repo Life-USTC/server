@@ -65,7 +65,7 @@ describe("API 可观测性", () => {
     );
   });
 
-  it("记录响应状态、耗时和认证模式", async () => {
+  it("记录响应状态、耗时和认证模式且不信任客户端观测头", async () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-06-07T00:00:01.000Z"));
     const info = vi.spyOn(console, "info").mockImplementation(() => {});
@@ -75,7 +75,7 @@ describe("API 可观测性", () => {
       new Request("https://example.test/api/todos/123", {
         headers: {
           authorization: "Bearer token-value",
-          "x-request-id": "request-1",
+          "x-request-id": "client-request-id",
           "x-request-start-ms": "1780790400000",
         },
       }),
@@ -87,13 +87,14 @@ describe("API 可观测性", () => {
       expect.objectContaining({
         authMode: "bearer",
         event: "request.finish",
-        ioObservedDurationMs: 1000,
+        ioObservedDurationMs: 0,
         method: "GET",
         path: "/api/todos/:id",
-        requestId: "request-1",
+        requestId: expect.stringMatching(/^[0-9a-f-]{36}$/i),
         status: 200,
       }),
     );
+    expect(JSON.stringify(info.mock.calls)).not.toContain("client-request-id");
   });
 
   it("向 Cloudflare Analytics Engine 写入安全的请求结束数据点", async () => {
@@ -112,7 +113,7 @@ describe("API 可观测性", () => {
         {
           headers: {
             authorization: "Bearer token-value",
-            "x-request-id": "request-1",
+            "x-request-id": "client-request-id",
             "x-request-start-ms": "1780790400000",
           },
         },
@@ -130,7 +131,7 @@ describe("API 可观测性", () => {
         "2xx",
         "bearer",
       ],
-      doubles: [1000, 204],
+      doubles: [0, 204],
     });
     expect(JSON.stringify(writeDataPoint.mock.calls)).not.toContain(
       "feed-token-0123456789",
@@ -168,7 +169,7 @@ describe("API 可观测性", () => {
         new Request("https://example.test/api/todos/123", {
           headers: {
             cookie: "better-auth.session_token=session-token",
-            "x-request-id": "request-1",
+            "x-request-id": "client-request-id",
             "x-request-start-ms": "1780790400000",
           },
         }),
@@ -181,13 +182,14 @@ describe("API 可观测性", () => {
         authMode: "cookie",
         errorName: "Error",
         event: "request.error",
-        ioObservedDurationMs: 1000,
+        ioObservedDurationMs: 0,
         method: "GET",
         path: "/api/todos/:id",
-        requestId: "request-1",
+        requestId: expect.stringMatching(/^[0-9a-f-]{36}$/i),
         status: 500,
       }),
     );
+    expect(JSON.stringify(error.mock.calls)).not.toContain("client-request-id");
   });
 
   it("logs returned 5xx responses at error severity", async () => {

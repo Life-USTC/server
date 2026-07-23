@@ -104,4 +104,29 @@ describe("应用日志记录器", () => {
       route: "/api/todos/:id",
     });
   });
+
+  it("请求上下文字段不被局部日志上下文覆盖或清空", async () => {
+    vi.stubEnv("NODE_ENV", "production");
+    const infoSpy = vi.spyOn(console, "info").mockImplementation(() => {});
+
+    await runWithCloudflareRuntimeEnv({}, () => {
+      setCloudflareRequestContext({
+        method: "POST",
+        requestId: "request-context-id",
+        route: "/api/todos/:id",
+      });
+      logAppEvent("info", "test.event", {
+        method: "DELETE",
+        requestId: undefined,
+        route: "/api/other/:id",
+      });
+    });
+
+    const [payload] = infoSpy.mock.calls[0] ?? [];
+    expect(JSON.parse(String(payload))).toMatchObject({
+      method: "POST",
+      requestId: "request-context-id",
+      route: "/api/todos/:id",
+    });
+  });
 });

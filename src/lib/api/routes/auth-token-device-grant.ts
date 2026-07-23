@@ -5,6 +5,7 @@ import {
 } from "@/features/oauth/server/device-grant-policy.server";
 import { issueDeviceGrantTokens } from "@/features/oauth/server/device-token-issuer.server";
 import { prisma } from "@/lib/db/prisma";
+import { logAppEvent } from "@/lib/log/app-logger";
 import { logOAuthDebug } from "@/lib/log/oauth-debug";
 import { deviceAuthJsonError } from "./auth-device-authorization-helpers";
 import { deviceCodeError } from "./auth-token-device-errors";
@@ -52,6 +53,12 @@ export async function handleDeviceCodeGrant(
     prisma,
   });
   if ("error" in recordResult) {
+    if ((recordResult.error.status ?? 400) >= 500) {
+      logAppEvent("error", "oauth.device-token.grant-resolution-failed", {
+        event: "oauth.device-token.grant-resolution-failed",
+        phase: "resolve-grant",
+      });
+    }
     return deviceCodeError(
       recordResult.error.code,
       recordResult.error.status ?? 400,
@@ -86,7 +93,6 @@ export async function handleDeviceCodeGrant(
   logOAuthDebug("device-token.success", request, {
     clientIdPrefix: clientId.slice(0, 8),
     resourceCount: record.resources.length,
-    userId,
     scopeCount: record.scopes.length,
   });
 
