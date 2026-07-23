@@ -81,8 +81,7 @@ function logAuditWriteFailure(params: AuditLogParams, error: unknown) {
     {
       source: "audit",
       action: params.action,
-      userId: params.userId,
-      targetId: params.targetId,
+      targetType: params.targetType,
     },
     error,
   );

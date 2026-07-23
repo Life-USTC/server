@@ -1,4 +1,5 @@
 import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js";
+import { runCloudflareTraceSpan } from "@/lib/adapters/cloudflare-runtime";
 import { rateLimitResponse } from "@/lib/api/helpers";
 import { logAppEvent } from "@/lib/log/app-logger";
 import { logOAuthDebug, oauthDebugCorrelationId } from "@/lib/log/oauth-debug";
@@ -47,7 +48,11 @@ export async function handleMcpRequest(request: Request) {
     const { authenticateMcpRequest, authorizeMcpToolScopes } = await import(
       "@/lib/mcp/auth"
     );
-    const authResult = await authenticateMcpRequest(request);
+    const authResult = await runCloudflareTraceSpan(
+      "mcp.authenticate",
+      { "http.request.method": request.method },
+      () => authenticateMcpRequest(request),
+    );
     if ("response" in authResult) {
       const res = authResult.response;
       const www = res.headers.get("www-authenticate");
@@ -68,7 +73,9 @@ export async function handleMcpRequest(request: Request) {
     const { readMcpJsonBodyWithinLimit } = await import(
       "@/lib/mcp/request-body"
     );
-    const bodyResult = await readMcpJsonBodyWithinLimit(request);
+    const bodyResult = await runCloudflareTraceSpan("mcp.parse_body", {}, () =>
+      readMcpJsonBodyWithinLimit(request),
+    );
     if ("response" in bodyResult) {
       recordAndLogMcpResponse({
         context: logContext,
@@ -156,10 +163,18 @@ export async function handleMcpRequest(request: Request) {
     });
 
     await server.connect(transport);
-    const res = await transport.handleRequest(request, {
-      authInfo: toolAuthResult.authInfo,
-      parsedBody: bodyResult.body,
-    });
+    const res = await runCloudflareTraceSpan(
+      "mcp.handle_rpc",
+      {
+        "mcp.rpc_count": rpcSummary?.rpcCount,
+        "mcp.tool_count": toolCount,
+      },
+      () =>
+        transport.handleRequest(request, {
+          authInfo: toolAuthResult.authInfo,
+          parsedBody: bodyResult.body,
+        }),
+    );
     recordAndLogMcpResponse({
       context: logContext,
       request,

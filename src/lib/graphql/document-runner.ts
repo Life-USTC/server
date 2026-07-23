@@ -24,7 +24,10 @@ import {
   isWithinGraphqlBodyByteLimit,
 } from "./constants";
 import { formatMaskedGraphqlError } from "./error-masking";
-import { recordGraphqlOperationObservation } from "./observability";
+import {
+  countInternalGraphqlErrors,
+  recordGraphqlOperationObservation,
+} from "./observability";
 import {
   analyzeGraphqlOperation,
   type GraphqlOperationAnalysis,
@@ -305,6 +308,7 @@ export async function runGraphqlDocument(input: {
   const variables = input.variables ?? {};
   let analysis = { ...UNKNOWN_ANALYSIS };
   let errorCount = 0;
+  let internalErrorCount = 0;
   const deadline = createDeadline(input.signal, GRAPHQL_LIMITS.timeoutMs);
   const requireActive = () =>
     requireActiveDeadline(
@@ -370,6 +374,7 @@ export async function runGraphqlDocument(input: {
     const payload = (await response.json()) as GraphqlResponsePayload;
     requireActive();
     errorCount = payload.errors?.length ?? 0;
+    internalErrorCount = countInternalGraphqlErrors(payload.errors);
     return result(analysis, payload);
   } catch (error) {
     errorCount = 1;
@@ -388,13 +393,11 @@ export async function runGraphqlDocument(input: {
     }
     const originalError =
       error instanceof Error ? error : new Error("Unknown execution failure");
-    return result(analysis, {
-      errors: [
-        formatMaskedGraphqlError(
-          new GraphQLError(originalError.message, { originalError }),
-        ),
-      ],
-    });
+    const formatted = formatMaskedGraphqlError(
+      new GraphQLError(originalError.message, { originalError }),
+    );
+    internalErrorCount = countInternalGraphqlErrors([formatted]);
+    return result(analysis, { errors: [formatted] });
   } finally {
     deadline.cleanup();
     recordGraphqlOperationObservation({
@@ -402,6 +405,7 @@ export async function runGraphqlDocument(input: {
       authMode: input.principal.kind,
       durationMs: Date.now() - startedAt,
       errorCount,
+      internalErrorCount,
       requestId: input.requestInfo?.requestId,
     });
   }

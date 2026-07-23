@@ -3,6 +3,7 @@
   "name": "life-ustc",
   "preview_urls": true,
   "main": ".svelte-kit/cloudflare/_worker.js",
+  "upload_source_maps": true,
   "compatibility_date": "2026-07-23",
   "compatibility_flags": ["nodejs_compat"],
   "vars": {

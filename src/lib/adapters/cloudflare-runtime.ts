@@ -41,7 +41,16 @@ export type CloudflareRateLimiter = {
 };
 
 type CloudflareExecutionContext = {
+  tracing?: CloudflareTracing;
   waitUntil(promise: Promise<unknown>): void;
+};
+
+type CloudflareSpan = {
+  setAttribute(key: string, value?: boolean | number | string): void;
+};
+
+type CloudflareTracing = {
+  enterSpan<T>(name: string, callback: (span: CloudflareSpan) => T): T;
 };
 
 export type CloudflareKVNamespace = {
@@ -70,6 +79,7 @@ type CloudflareRuntimeEnv = Record<string, unknown> & {
 type CloudflareRuntimeContext = {
   cache: Map<symbol, unknown>;
   env?: CloudflareRuntimeEnv;
+  tracing?: CloudflareTracing;
 };
 
 const cloudflareRuntimeStorage =
@@ -94,10 +104,22 @@ function getCurrentCloudflareRuntimeEnv() {
 export function runWithCloudflareRuntimeEnv<T>(
   env: unknown,
   callback: () => T | Promise<T>,
+  executionContext?: unknown,
 ): Promise<T> {
+  const tracing =
+    executionContext &&
+    typeof executionContext === "object" &&
+    "tracing" in executionContext &&
+    executionContext.tracing &&
+    typeof executionContext.tracing === "object" &&
+    "enterSpan" in executionContext.tracing &&
+    typeof executionContext.tracing.enterSpan === "function"
+      ? (executionContext.tracing as CloudflareTracing)
+      : undefined;
   const context: CloudflareRuntimeContext = {
     cache: new Map(),
     env: normalizeCloudflareRuntimeEnv(env),
+    tracing,
   };
 
   return cloudflareRuntimeStorage.run(context, async () => {
@@ -106,6 +128,22 @@ export function runWithCloudflareRuntimeEnv<T>(
     } finally {
       context.cache.clear();
     }
+  });
+}
+
+export function runCloudflareTraceSpan<T>(
+  name: string,
+  attributes: Record<string, boolean | number | string | undefined>,
+  callback: () => T,
+): T {
+  const tracing = cloudflareRuntimeStorage.getStore()?.tracing;
+  if (!tracing) return callback();
+
+  return tracing.enterSpan(name, (span) => {
+    for (const [key, value] of Object.entries(attributes)) {
+      if (value !== undefined) span.setAttribute(key, value);
+    }
+    return callback();
   });
 }
 

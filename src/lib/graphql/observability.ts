@@ -15,6 +15,7 @@ type GraphqlAuthMode = GraphqlPrincipal["kind"] | "unknown";
 type GraphqlObservationState = GraphqlOperationAnalysis & {
   authMode: GraphqlAuthMode;
   errorCount: number;
+  internalErrorCount: number;
   operationAttempted: boolean;
   recorded: boolean;
   requestId: string;
@@ -44,20 +45,55 @@ function initialAuthMode(request: Request): GraphqlAuthMode {
   return "unknown";
 }
 
-function errorCount(result: unknown): number {
+type GraphqlErrorCounts = {
+  errorCount: number;
+  internalErrorCount: number;
+};
+
+export function countInternalGraphqlErrors(errors: unknown): number {
+  if (!Array.isArray(errors)) return 0;
+  return errors.filter(
+    (error) =>
+      typeof error === "object" &&
+      error !== null &&
+      "extensions" in error &&
+      typeof error.extensions === "object" &&
+      error.extensions !== null &&
+      "code" in error.extensions &&
+      error.extensions.code === "INTERNAL_SERVER_ERROR",
+  ).length;
+}
+
+function graphqlErrorCounts(result: unknown): GraphqlErrorCounts {
   if (Array.isArray(result)) {
-    return result.reduce((total, item) => total + errorCount(item), 0);
+    return result.reduce<GraphqlErrorCounts>(
+      (total, item) => {
+        const counts = graphqlErrorCounts(item);
+        return {
+          errorCount: total.errorCount + counts.errorCount,
+          internalErrorCount:
+            total.internalErrorCount + counts.internalErrorCount,
+        };
+      },
+      { errorCount: 0, internalErrorCount: 0 },
+    );
   }
   if (
     typeof result !== "object" ||
     result === null ||
     Symbol.asyncIterator in result
   ) {
-    return 0;
+    return { errorCount: 0, internalErrorCount: 0 };
   }
 
   const errors = "errors" in result ? result.errors : undefined;
-  return Array.isArray(errors) ? errors.length : 0;
+  if (!Array.isArray(errors)) {
+    return { errorCount: 0, internalErrorCount: 0 };
+  }
+  return {
+    errorCount: errors.length,
+    internalErrorCount: countInternalGraphqlErrors(errors),
+  };
 }
 
 export function recordGraphqlOperationObservation(
@@ -65,6 +101,7 @@ export function recordGraphqlOperationObservation(
     authMode: GraphqlAuthMode;
     durationMs: number;
     errorCount: number;
+    internalErrorCount: number;
     requestId?: string | null;
   },
 ) {
@@ -72,6 +109,7 @@ export function recordGraphqlOperationObservation(
     ...input,
     durationMs: Math.max(0, input.durationMs),
     errorCount: Math.max(0, input.errorCount),
+    internalErrorCount: Math.max(0, input.internalErrorCount),
     requestId: safeRequestId(input.requestId),
   };
   const observation = {
@@ -79,6 +117,7 @@ export function recordGraphqlOperationObservation(
     durationMs: sanitizedObservation.durationMs,
     errorCount: sanitizedObservation.errorCount,
     estimatedCost: sanitizedObservation.estimatedCost,
+    internalErrorCount: sanitizedObservation.internalErrorCount,
     operationName: sanitizedObservation.operationName,
     operationType: sanitizedObservation.operationType,
     requestId: sanitizedObservation.requestId,
@@ -86,10 +125,14 @@ export function recordGraphqlOperationObservation(
   };
 
   try {
-    logAppEvent("info", "GraphQL operation completed", {
-      event: "graphql.operation",
-      ...observation,
-    });
+    logAppEvent(
+      observation.internalErrorCount > 0 ? "error" : "info",
+      "GraphQL operation completed",
+      {
+        event: "graphql.operation",
+        ...observation,
+      },
+    );
   } catch {
     // Observability sinks must never affect the GraphQL response.
   }
@@ -106,6 +149,7 @@ function recordObservation(state: GraphqlObservationState) {
     durationMs: Date.now() - state.startMs,
     errorCount: state.errorCount,
     estimatedCost: state.estimatedCost,
+    internalErrorCount: state.internalErrorCount,
     operationName: state.operationName,
     operationType: state.operationType,
     requestId: state.requestId,
@@ -127,6 +171,7 @@ export function createGraphqlObservabilityPlugin(): Plugin<
         ...EMPTY_ANALYSIS,
         authMode: initialAuthMode(request),
         errorCount: 0,
+        internalErrorCount: 0,
         operationAttempted: false,
         recorded: false,
         requestId: safeRequestId(
@@ -172,7 +217,10 @@ export function createGraphqlObservabilityPlugin(): Plugin<
     },
     onExecutionResult({ request, result }) {
       const state = states.get(request);
-      if (state) state.errorCount += errorCount(result);
+      if (!state) return;
+      const counts = graphqlErrorCounts(result);
+      state.errorCount += counts.errorCount;
+      state.internalErrorCount += counts.internalErrorCount;
     },
     onResponse({ request }) {
       const state = states.get(request);

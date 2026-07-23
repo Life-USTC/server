@@ -76,7 +76,7 @@ export function sanitizeOAuthRedirectLocation(
     }
     return u.toString();
   } catch {
-    return location.length > 240 ? `${location.slice(0, 240)}…` : location;
+    return "[invalid-redirect-location]";
   }
 }
 
@@ -91,7 +91,7 @@ export function summarizeOAuthAuthorizeUrl(
     clientIdPrefix: sp.get("client_id")?.slice(0, 16) ?? null,
     ...summarizeOAuthRedirectUri(redirect),
     scopeTokenCount: scope ? scope.split(" ").filter(Boolean).length : 0,
-    resource: sp.get("resource"),
+    resourcePresent: sp.has("resource"),
     statePresent: Boolean(sp.get("state")),
     codeChallengeMethod: sp.get("code_challenge_method"),
     prompt: sp.get("prompt"),

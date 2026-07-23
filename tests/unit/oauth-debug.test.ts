@@ -2,8 +2,13 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   getOAuthDebugMode,
   sanitizeOAuthRedirectLocation,
+  summarizeOAuthAuthorizeUrl,
   summarizeOAuthRedirectUri,
 } from "@/lib/log/oauth-debug";
+import {
+  tokenErrorBody,
+  tokenRequestFingerprint,
+} from "@/lib/log/oauth-debug-token";
 
 describe("oauth 调试日志", () => {
   afterEach(() => {
@@ -65,5 +70,69 @@ describe("oauth 调试日志", () => {
       redirectPath: null,
       redirectQueryKeys: [],
     });
+  });
+
+  it("does not echo invalid redirect locations or OAuth resources", () => {
+    const privateInvalidLocation = "https://[private-invalid-location";
+    const privateResource = "https://private-resource.example/secret";
+
+    expect(
+      sanitizeOAuthRedirectLocation(
+        privateInvalidLocation,
+        "https://life.example.com/api/auth",
+      ),
+    ).toBe("[invalid-redirect-location]");
+    const summary = summarizeOAuthAuthorizeUrl(
+      new URL(
+        `https://life.example.com/api/auth/oauth2/authorize?resource=${encodeURIComponent(privateResource)}`,
+      ),
+    );
+
+    expect(summary).toMatchObject({ resourcePresent: true });
+    expect(JSON.stringify(summary)).not.toContain(privateResource);
+  });
+
+  it("summarizes token requests and errors without sensitive values", async () => {
+    const privateResource = "https://private-resource.example/secret";
+    const privateNonce = "private-debug-nonce";
+    const privateIp = "203.0.113.42";
+    const request = new Request(
+      "https://life.example.com/api/auth/oauth2/token",
+      {
+        method: "POST",
+        headers: {
+          "content-type": "application/x-www-form-urlencoded",
+          "x-debug-nonce": privateNonce,
+          "x-forwarded-for": privateIp,
+        },
+        body: new URLSearchParams({
+          grant_type: "authorization_code",
+          resource: privateResource,
+        }),
+      },
+    );
+    const fingerprint = await tokenRequestFingerprint(request);
+    const errorBody = await tokenErrorBody(
+      Response.json(
+        {
+          error: "invalid_grant",
+          error_description: "private token error detail",
+        },
+        { status: 400 },
+      ),
+    );
+
+    expect(fingerprint).toMatchObject({
+      debugNoncePresent: true,
+      forwardedPresent: true,
+      hasResource: true,
+      resourceCount: 1,
+    });
+    expect(errorBody).toEqual({
+      error: "invalid_grant",
+      errorDescriptionPresent: true,
+    });
+    expect(JSON.stringify([fingerprint, errorBody])).not.toContain("private");
+    expect(JSON.stringify(fingerprint)).not.toContain(privateIp);
   });
 });

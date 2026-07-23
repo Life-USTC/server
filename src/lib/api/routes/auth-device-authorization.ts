@@ -8,6 +8,7 @@ import {
 import { parseDeviceAuthorizationForm } from "@/lib/api/routes/auth-device-form-parsing";
 import { observedApiRoute } from "@/lib/log/api-observability";
 import { logOAuthDebug } from "@/lib/log/oauth-debug";
+import { getSafeErrorName } from "@/lib/log/safe-error-name";
 import { writeOAuthEventAnalytics } from "@/lib/metrics/analytics-engine";
 import {
   DEVICE_CODE_EXPIRES_IN,
@@ -59,7 +60,7 @@ async function runDeviceAuthorizationPostRoute(
   } catch (err) {
     logOAuthDebug("device-auth.error", request, {
       reason: "prisma_create_failed",
-      error: err instanceof Error ? err.message : String(err),
+      errorName: getSafeErrorName(err),
     });
     return deviceAuthJsonError(
       500,

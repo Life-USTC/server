@@ -79,6 +79,9 @@ describe("Better Auth options", () => {
     expect(options.advanced).toMatchObject({
       disableCSRFCheck: false,
       disableOriginCheck: false,
+      ipAddress: {
+        ipAddressHeaders: ["cf-connecting-ip"],
+      },
     });
   });
 

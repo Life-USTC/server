@@ -33,8 +33,9 @@ export function logApiRequest(
   status: number,
   durationMs: number,
   context: AppLogContext = {},
+  level: AppLogLevel = "info",
 ) {
-  if (!shouldLog("info")) return;
+  if (!shouldLog(level)) return;
 
   const payload = {
     ...baseLogPayload(),
@@ -45,7 +46,7 @@ export function logApiRequest(
     ...context,
   };
 
-  emitLog("[api]", "info", payload);
+  emitLog("[api]", level, payload);
 }
 
 export function logRouteFailure(

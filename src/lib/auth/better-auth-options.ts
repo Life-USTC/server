@@ -44,6 +44,9 @@ export function buildBetterAuthOptions() {
       ? { enabled: false }
       : { enabled: true, customRules: betterAuthPasskeyRateLimitRules },
     advanced: {
+      ipAddress: {
+        ipAddressHeaders: ["cf-connecting-ip"],
+      },
       // Reverse proxies should still forward the original scheme/host correctly
       // for request-aware Better Auth behavior, but deployment origin comes from config.
       trustedProxyHeaders: true,

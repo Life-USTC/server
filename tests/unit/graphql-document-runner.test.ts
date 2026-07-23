@@ -116,7 +116,7 @@ describe("arbitrary GraphQL document runner", () => {
     expect(writeDataPoint).toHaveBeenCalledWith(
       expect.objectContaining({
         indexes: ["graphql:unknown"],
-        doubles: [expect.any(Number), 0, 0, 1],
+        doubles: [expect.any(Number), 0, 0, 1, 0],
       }),
     );
   });
@@ -176,7 +176,7 @@ describe("arbitrary GraphQL document runner", () => {
       1,
       expect.objectContaining({
         indexes: ["graphql:unknown"],
-        doubles: [expect.any(Number), 0, 0, 1],
+        doubles: [expect.any(Number), 0, 0, 1, 0],
       }),
     );
     for (const call of [2, 3]) {
@@ -185,7 +185,7 @@ describe("arbitrary GraphQL document runner", () => {
         expect.objectContaining({
           indexes: ["graphql:mutation"],
           blobs: expect.arrayContaining(["CreateTodo", "mutation"]),
-          doubles: [expect.any(Number), 1, 3, 1],
+          doubles: [expect.any(Number), 1, 3, 1, 0],
         }),
       );
     }
@@ -213,7 +213,7 @@ describe("arbitrary GraphQL document runner", () => {
         "session",
         "graphql-document-runner-test",
       ],
-      doubles: [expect.any(Number), 1, 3, 0],
+      doubles: [expect.any(Number), 1, 3, 0, 0],
     });
   });
 });
