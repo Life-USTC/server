@@ -12,7 +12,7 @@ const section = (
 });
 
 describe("groupSubscribedSectionsBySemester", () => {
-  it("orders semester groups by proximity to the reference date", () => {
+  it("orders semester groups from latest to earliest", () => {
     const groups = groupSubscribedSectionsBySemester(
       [
         section(1, "较远的未来学期", "2027-09-01", "2028-01-15"),
@@ -21,14 +21,13 @@ describe("groupSubscribedSectionsBySemester", () => {
         section(4, "较近的过去学期", "2025-09-01", "2026-01-15"),
       ],
       "未知学期",
-      "2026-07-01",
     );
 
     expect(groups.map((group) => group.label)).toEqual([
-      "当前学期",
-      "最近的未来学期",
-      "较近的过去学期",
       "较远的未来学期",
+      "最近的未来学期",
+      "当前学期",
+      "较近的过去学期",
     ]);
   });
 
@@ -39,7 +38,6 @@ describe("groupSubscribedSectionsBySemester", () => {
         section(2, "已知学期", "2026-02-20", "2026-07-15"),
       ],
       "未知学期",
-      "2026-07-01",
     );
 
     expect(groups.map((group) => group.label)).toEqual([

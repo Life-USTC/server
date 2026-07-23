@@ -69,7 +69,10 @@ async function confirmRemoveSection() {
 </script>
 
 {#if subscriptions.length > 0}
-  <div class="grid min-w-0 gap-4 2xl:grid-cols-2 2xl:items-start">
+  <div
+    class="subscription-semester-groups grid min-w-0 gap-4 2xl:grid-cols-2 2xl:items-start"
+    data-testid="subscription-semester-groups"
+  >
     {#each sectionGroups as group}
       <section class="grid min-w-0 gap-2">
         <div class="flex flex-wrap items-center justify-between gap-2 text-sm">
@@ -154,6 +157,16 @@ async function confirmRemoveSection() {
     ]}
   />
 {/if}
+
+<style>
+@media (min-width: 96rem) {
+  @supports (display: grid-lanes) {
+    .subscription-semester-groups {
+      display: grid-lanes;
+    }
+  }
+}
+</style>
 
 <Dialog.Root
   open={selectedSection !== null}
