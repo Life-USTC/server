@@ -1,3 +1,10 @@
+## [1.77.11](https://github.com/Life-USTC/server/compare/v1.77.10...v1.77.11) (2026-07-23)
+
+
+### Bug Fixes
+
+* **metadata:** use app icon for favicon ([#626](https://github.com/Life-USTC/server/issues/626)) ([388f196](https://github.com/Life-USTC/server/commit/388f196d43769342a662c8797e03652a5201f94a))
+
 ## [1.77.10](https://github.com/Life-USTC/server/compare/v1.77.9...v1.77.10) (2026-07-23)
 
 
