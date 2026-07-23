@@ -38,7 +38,10 @@ function extractLinkCards(
   for (const match of value.matchAll(mentionPattern)) {
     const kind = match[1]?.toLowerCase();
     const id = match[2] ?? "";
-    const href = kind === "teacher" ? `/teachers/${id}` : `/sections/${id}`;
+    const href =
+      kind === "teacher"
+        ? `/catalog/teachers/${id}`
+        : `/catalog/sections/${id}`;
     if (seen.has(href)) continue;
     seen.add(href);
     cards.push({

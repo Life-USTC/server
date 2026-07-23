@@ -37,19 +37,19 @@ const UNKNOWN_ANALYSIS: GraphqlOperationAnalysis = {
 };
 
 export const PAGINATED_FIELD_COORDINATES = new Set([
+  "Catalog.busRoutes",
+  "Catalog.busTimetable",
+  "Catalog.courses",
+  "Catalog.sections",
+  "Catalog.semesters",
+  "Catalog.teachers",
   "Exam.examRooms",
-  "Query.busRoutes",
-  "Query.busTimetable",
-  "Query.courses",
-  "Query.sections",
-  "Query.semesters",
-  "Query.teachers",
   "Schedule.teachers",
-  "Viewer.exams",
-  "Viewer.homeworks",
-  "Viewer.schedules",
-  "Viewer.subscribedSections",
-  "Viewer.todos",
+  "Workspace.exams",
+  "Workspace.homeworks",
+  "Workspace.schedules",
+  "Workspace.subscribedSections",
+  "Workspace.todos",
 ]);
 
 function fragmentDefinitions(document: DocumentNode) {

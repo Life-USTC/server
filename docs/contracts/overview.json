@@ -1,13 +1,13 @@
 {
   "name": "Overview",
   "access": {
-    "anon": "The home page is a lightweight public catalog entry; bus and frequent links are independent pages at /bus and /links.",
-    "user": "Accessing the home page redirects to the personal workspace at /dashboard.",
-    "admin": "Accessing the home page redirects to the personal workspace at /dashboard, with the same dashboard behavior as regular users.",
+    "anon": "The home page is a lightweight public catalog entry; bus and frequent links are independent pages at /catalog/bus and /catalog/links.",
+    "user": "Accessing the home page redirects to the personal workspace at /workspace.",
+    "admin": "Accessing the home page redirects to the personal workspace at /workspace, with the same dashboard behavior as regular users.",
     "agent": "Can read overview results with the same semantics as the authenticated dashboard; REST and MCP should return consistent overview information."
   },
   "rules": {
-    "decision-page": "The anonymous home page prioritizes public catalog discovery without loading bus, links, or personalized dashboard data; the authenticated /dashboard overview is the personal decision page for 'what to do next'.",
+    "decision-page": "The anonymous home page prioritizes public catalog discovery without loading bus, links, or personalized dashboard data; the authenticated /workspace overview is the personal decision page for 'what to do next'.",
     "semantic-route-compatibility": "Known legacy /?tab= inputs permanently redirect to semantic public or dashboard paths while preserving unrelated query parameters.",
     "now-next-first": "The authenticated overview begins with the current or next actionable schedule, homework, exam, or todo in a rolling seven-day window. Today's urgent work follows it, while frequent links remain secondary and appear after planning content.",
     "current-semester-priority": "The above-the-fold area prioritizes personal learning tasks within the current semester, not historical semester content or complete directory information.",
@@ -28,25 +28,25 @@
       },
       "web": {
         "pages": [
-          "/dashboard/overview",
-          "/dashboard/calendar",
-          "/dashboard/subscriptions",
-          "/dashboard/exams",
-          "/dashboard/homeworks",
-          "/dashboard/todos",
-          "/dashboard/bus",
-          "/dashboard/links"
+          "/workspace/overview",
+          "/workspace/calendar",
+          "/workspace/subscriptions",
+          "/workspace/exams",
+          "/workspace/homeworks",
+          "/workspace/todos",
+          "/workspace/bus",
+          "/workspace/links"
         ]
       },
       "rest": {
         "routes": [
           {
-            "path": "/api/me/overview",
+            "path": "/api/workspace/overview",
             "returns": "{ user, anchor, counts, schedules, todos, dueTodos, homeworks, exams }",
             "notes": [
               "Compact authenticated overview for bot, CLI, and mobile clients.",
               "Supports atTime, homeworkWindowDays, limit, and locale query parameters; date-only atTime values anchor to the start of that Asia/Shanghai day.",
-              "Includes today schedule samples and incomplete todo samples in addition to the due-todo, homework, and exam samples exposed by get_my_overview."
+              "Includes today schedule samples and incomplete todo samples in addition to the due-todo, homework, and exam samples exposed by workspace_overview_get."
             ]
           }
         ]
@@ -54,14 +54,14 @@
       "graphql": {
         "fields": [
           {
-            "parent": "Viewer",
+            "parent": "Workspace",
             "name": "overview",
             "arguments": { "atTime": "DateTime" },
-            "returns": "ViewerOverview!",
+            "returns": "WorkspaceOverview!",
             "auth": "user",
             "required_scopes": ["dashboard:read"],
-            "rest_equivalent": "GET /api/me/overview",
-            "mcp_equivalent": "get_my_overview",
+            "rest_equivalent": "GET /api/workspace/overview",
+            "mcp_equivalent": "workspace_overview_get",
             "notes": [
               "The optional atTime argument is a strict zoned DateTime; the GraphQL output keeps the compact actionable counts."
             ]
@@ -71,14 +71,14 @@
       "mcp": {
         "tools": [
           {
-            "name": "get_my_overview",
+            "name": "workspace_overview_get",
             "returns": "{ user, overview, samples }",
-            "rest_equivalent": "GET /api/me/overview",
+            "rest_equivalent": "GET /api/workspace/overview",
             "notes": [
               "overview contains pending todo, homework, today's schedule, and upcoming exam counts.",
-              "Accepts atTime, homeworkWindowDays, limit, and locale with the same bounds and sample-window semantics as GET /api/me/overview; date-only atTime values anchor to the start of that Asia/Shanghai day.",
+              "Accepts atTime, homeworkWindowDays, limit, and locale with the same bounds and sample-window semantics as GET /api/workspace/overview; date-only atTime values anchor to the start of that Asia/Shanghai day.",
               "Default/full samples contain dueTodos[], dueHomeworks[], and upcomingExams[] from the same compact overview read operation.",
-              "The deprecated summary input is an alias for the same compact dueTodos[], dueHomeworks[], and upcomingExams[] structure returned by default; use get_my_dashboard for a richer single-call assistant snapshot."
+              "The deprecated summary input is an alias for the same compact dueTodos[], dueHomeworks[], and upcomingExams[] structure returned by default; use workspace_snapshot_get for a richer single-call assistant snapshot."
             ]
           }
         ]
@@ -113,17 +113,17 @@
       "mcp": {
         "tools": [
           {
-            "name": "get_my_dashboard",
+            "name": "workspace_snapshot_get",
             "returns": "{ user, currentSemester, subscriptions, nextClass, upcomingDeadlines, upcomingEvents, todos, bus }",
             "notes": [
               "Preferred single-call snapshot for assistant workflows.",
-              "Overlaps get_my_overview but adds currentSemester, currentSemesterSections, nextClass, merged deadlines, and preferred-bus departures; accepts optional atTime to anchor those time windows instead of using the server clock. When subscriptions.totalCount is greater than subscriptions.currentSemesterCount, past-term subscriptions remain available through list_my_subscribed_sections and the semesterId filters on list_my_homeworks, list_my_schedules, and list_my_exams.",
+              "Overlaps workspace_overview_get but adds currentSemester, currentSemesterSections, nextClass, merged deadlines, and preferred-bus departures; accepts optional atTime to anchor those time windows instead of using the server clock. When subscriptions.totalCount is greater than subscriptions.currentSemesterCount, past-term subscriptions remain available through workspace_subscription_list and the semesterId filters on workspace_homework_list, workspace_schedule_list, and workspace_exam_list.",
               "Default mode should stay assistant-compact; request full mode when the caller explicitly needs full nested schedule, room, teacher, or homework payloads.",
               "The deprecated summary input is an alias for default and must preserve the same top-level dashboard collections rather than introducing alternate wrapper shapes."
             ]
           },
           {
-            "name": "get_next_class",
+            "name": "workspace_schedule_next",
             "returns": "{ found: Boolean, nextClass, currentSemester }",
             "notes": [
               "Focused extract for 'what is my next class?' prompts.",
@@ -131,7 +131,7 @@
             ]
           },
           {
-            "name": "get_upcoming_deadlines",
+            "name": "workspace_deadline_list",
             "returns": "{ total: Int, deadlines: TimelineEvent[] }",
             "notes": [
               "dayLimit defaults to 7.",

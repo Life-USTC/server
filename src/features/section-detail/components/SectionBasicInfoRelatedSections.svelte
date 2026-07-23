@@ -25,7 +25,7 @@ export let sectionTeachersLabel: SectionTeachersLabel;
               <p class="text-muted-foreground text-sm">{sectionCopy.sameSemesterOtherTeachers}</p>
               <div class="flex flex-wrap gap-2">
                 {#each section.sameSemesterOtherTeachers.slice(0, 10) as related}
-                  <Button class="h-auto min-h-8 whitespace-normal px-2 py-1 text-left" href={`/sections/${related.jwId}`} variant="outline">
+                  <Button class="h-auto min-h-8 whitespace-normal px-2 py-1 text-left" href={`/catalog/sections/${related.jwId}`} variant="outline">
                     <span>{sectionTeachersLabel(related)}</span>
                     <Badge variant="ghost">{related.code}</Badge>
                   </Button>
@@ -38,7 +38,7 @@ export let sectionTeachersLabel: SectionTeachersLabel;
               <p class="text-muted-foreground text-sm">{sectionCopy.sameTeacherOtherSemesters}</p>
               <div class="flex flex-wrap gap-2">
                 {#each section.sameTeacherOtherSemesters.slice(0, 10) as related}
-                  <Button class="h-auto min-h-8 whitespace-normal px-2 py-1 text-left" href={`/sections/${related.jwId}`} variant="outline">
+                  <Button class="h-auto min-h-8 whitespace-normal px-2 py-1 text-left" href={`/catalog/sections/${related.jwId}`} variant="outline">
                     <span>{related.semester?.nameCn ?? notAvailable}</span>
                     <Badge variant="ghost">{related.code}</Badge>
                   </Button>

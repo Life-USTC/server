@@ -1,5 +1,5 @@
 /**
- * E2E tests for the todos dashboard (`/dashboard/todos`)
+ * E2E tests for the todos dashboard (`/workspace/todos`)
  *
  * ## Data Represented
  * - Seed todos: DEV_SEED.todos.dueTodayTitle (due today, incomplete) and
@@ -32,11 +32,11 @@ test.describe("仪表盘待办", () => {
     });
 
     expect(response.status()).toBe(308);
-    expect(response.headers().location).toBe("/dashboard/todos?todoView=list");
+    expect(response.headers().location).toBe("/workspace/todos?todoView=list");
   });
 
   test("登录后显示种子待办", async ({ page }, testInfo) => {
-    await signInAsDebugUser(page, "/dashboard/todos");
+    await signInAsDebugUser(page, "/workspace/todos");
 
     await expect(page.locator("#main-content")).toBeVisible();
     await expect(
@@ -67,7 +67,7 @@ test.describe("仪表盘待办", () => {
       localStorage.removeItem("life-ustc-dashboard-view-mode");
     });
     await page.setViewportSize({ height: 844, width: 390 });
-    await signInAsDebugUser(page, "/dashboard/todos");
+    await signInAsDebugUser(page, "/workspace/todos");
 
     const incomplete = page
       .getByRole("radio", { name: /未完成|Incomplete/i })
@@ -87,7 +87,7 @@ test.describe("仪表盘待办", () => {
     await all.click();
     await expect(all).toHaveAttribute("aria-checked", "true");
 
-    await gotoAndWaitForReady(page, "/dashboard/todos?todoView=list");
+    await gotoAndWaitForReady(page, "/workspace/todos?todoView=list");
     await expect(page.getByTestId("dashboard-todos-cards")).toBeVisible();
     await expect(page.getByRole("table")).toBeHidden();
     expect(
@@ -100,7 +100,7 @@ test.describe("仪表盘待办", () => {
   });
 
   test("可切换待办完成状态并更新筛选", async ({ page }, testInfo) => {
-    await signInAsDebugUser(page, "/dashboard/todos");
+    await signInAsDebugUser(page, "/workspace/todos");
 
     const card = page
       .locator('[data-slot="card"]')
@@ -148,7 +148,7 @@ test.describe("仪表盘待办", () => {
   });
 
   test("已完成筛选显示已完成的待办", async ({ page }, testInfo) => {
-    await signInAsDebugUser(page, "/dashboard/todos");
+    await signInAsDebugUser(page, "/workspace/todos");
 
     const completedFilter = page
       .getByRole("radio", { name: /已完成|Completed/i })
@@ -166,17 +166,17 @@ test.describe("仪表盘待办", () => {
   });
 
   test("嵌套待办路由渲染服务端操作错误", async ({ page }, testInfo) => {
-    await signInAsDebugUser(page, "/dashboard/todos");
+    await signInAsDebugUser(page, "/workspace/todos");
 
     const postResponse = page.waitForResponse(
       (response) =>
         response.request().method() === "POST" &&
-        response.url().includes("/dashboard/todos?/createTodo"),
+        response.url().includes("/workspace/todos?/createTodo"),
     );
     await page.evaluate(() => {
       const form = document.createElement("form");
       form.method = "POST";
-      form.action = "/dashboard/todos?/createTodo";
+      form.action = "/workspace/todos?/createTodo";
       document.body.append(form);
       form.requestSubmit();
     });
@@ -191,7 +191,7 @@ test.describe("仪表盘待办", () => {
 
   test("可以创建和删除待办", async ({ page }, testInfo) => {
     test.setTimeout(60_000);
-    await signInAsDebugUser(page, "/dashboard/todos");
+    await signInAsDebugUser(page, "/workspace/todos");
 
     const title = `e2e-dashboard-todo-${Date.now()}`;
 

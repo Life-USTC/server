@@ -19,7 +19,7 @@
     "e2e-r2": "E2E upload coverage should exercise the same Workers upload object route used in production.",
     "one-upload-one-comment": "A completed upload can be attached to at most one comment. Reusing an upload id across comments is rejected instead of treated as implicit file sharing.",
     "download-auth-required": "Downloads must not bypass authorization by obtaining a direct link.",
-    "download-delivery": "/api/uploads/[id]/download validates owner access or visible comment-attachment access before streaming the object from the R2 binding.",
+    "download-delivery": "/api/workspace/uploads/[id]/download validates owner access or visible comment-attachment access before streaming the object from the R2 binding.",
     "mcp-transfer-boundary": "MCP registered GraphQL operations may reserve quota, return the on-site authenticated PUT workflow URL, complete an already-uploaded object, and manage owned metadata. MCP never receives, proxies, or returns raw object bytes; PUT and download delivery remain R2-backed HTTP surfaces. MCP-resource bearer tokens cannot be replayed at the REST PUT URL, so byte-transfer clients need a browser session or separately authorized REST upload token."
   },
   "capabilities": {
@@ -30,7 +30,7 @@
       "rest": {
         "routes": [
           {
-            "path": "/api/uploads",
+            "path": "/api/workspace/uploads",
             "returns": "{ data: Upload[], pagination, meta: { maxFileSizeBytes, quotaBytes, usedBytes } }",
             "notes": [
               "The same path currently handles both 'read upload quota / history' and 'create upload session' capabilities.",
@@ -42,9 +42,9 @@
       "mcp": {
         "tools": [
           {
-            "name": "list_my_uploads",
+            "name": "workspace_upload_list",
             "returns": "{ data: Upload[], pagination, meta: { maxFileSizeBytes, quotaBytes, usedBytes } }",
-            "rest_equivalent": "GET /api/uploads",
+            "rest_equivalent": "GET /api/workspace/uploads",
             "notes": [
               "Lists completed uploads and quota state for the current user; does not create upload sessions or stream object bytes.",
               "Accepts page and limit."
@@ -70,29 +70,29 @@
       "graphql": {
         "mutations": [
           {
-            "name": "createUploadSession",
+            "name": "uploadSessionCreate",
             "arguments": { "input": "CreateUploadSessionInput!" },
             "returns": "UploadSessionPayload!",
             "auth": "user",
             "required_scopes": ["upload:write"],
-            "rest_equivalent": "POST /api/uploads",
-            "mcp_equivalent": "run_graphql_operation",
+            "rest_equivalent": "POST /api/workspace/uploads",
+            "mcp_equivalent": "graphql_operation_run",
             "notes": [
-              "Registered operation id: upload.create_session.v1.",
+              "Registered operation id: workspace.upload.session.create.v1.",
               "Reserves quota and returns only workflow metadata; no byte input exists.",
               "The operation is marked destructive because it creates an UploadPending quota reservation; its bounded stale-session sweep removes expired reservation rows only."
             ]
           },
           {
-            "name": "completeUploadSession",
+            "name": "uploadSessionComplete",
             "arguments": { "input": "CompleteUploadSessionInput!" },
             "returns": "UploadCompletionPayload!",
             "auth": "user",
             "required_scopes": ["upload:write"],
-            "rest_equivalent": "POST /api/uploads/complete",
-            "mcp_equivalent": "run_graphql_operation",
+            "rest_equivalent": "POST /api/workspace/uploads/complete",
+            "mcp_equivalent": "graphql_operation_run",
             "notes": [
-              "Registered operation id: upload.complete.v1.",
+              "Registered operation id: workspace.upload.complete.v1.",
               "Validates the existing R2 object and commits metadata without accepting bytes.",
               "Expiry, quota, missing-object, and oversized-object failures do not delete R2 from the request path. The reservation remains owned until bounded expired-row cleanup, while orphan object reconciliation requires a dedicated storage lifecycle workflow."
             ]
@@ -102,7 +102,7 @@
       "rest": {
         "routes": [
           {
-            "path": "/api/uploads",
+            "path": "/api/workspace/uploads",
             "method": "POST",
             "returns": "{ key: String, url: String, maxFileSizeBytes: Int, quotaBytes: Int, usedBytes: Int }",
             "notes": [
@@ -111,7 +111,7 @@
             ]
           },
           {
-            "path": "/api/uploads/object",
+            "path": "/api/workspace/uploads/object",
             "method": "PUT",
             "returns": "{ success: true }",
             "notes": [
@@ -119,7 +119,7 @@
             ]
           },
           {
-            "path": "/api/uploads/complete",
+            "path": "/api/workspace/uploads/complete",
             "method": "POST",
             "returns": "{ upload: Upload, usedBytes: Int, quotaBytes: Int }",
             "notes": [
@@ -132,10 +132,10 @@
       "mcp": {
         "tools": [
           {
-            "name": "run_graphql_operation",
+            "name": "graphql_operation_run",
             "returns": "Registered upload workflow metadata",
             "notes": [
-              "upload.create_session.v1 reserves quota and returns the authenticated on-site PUT workflow URL; upload.complete.v1 completes metadata for an object already uploaded through that HTTP URL.",
+              "workspace.upload.session.create.v1 reserves quota and returns the authenticated on-site PUT workflow URL; workspace.upload.complete.v1 completes metadata for an object already uploaded through that HTTP URL.",
               "No MCP input accepts raw object bytes, and MCP-resource bearer tokens cannot be replayed at the REST PUT URL.",
               "Completion failures do not attempt request-path R2 cleanup; expired reservation rows and orphan objects have separate DB and storage lifecycle responsibilities."
             ]
@@ -158,7 +158,7 @@
       "rest": {
         "routes": [
           {
-            "path": "/api/uploads/[id]/download",
+            "path": "/api/workspace/uploads/[id]/download",
             "returns": "download response streamed from R2",
             "notes": [
               "Validates owner access or access through a visible attached comment before serving the object from R2."
@@ -178,7 +178,7 @@
       "graphql": {
         "mutations": [
           {
-            "name": "renameUpload",
+            "name": "uploadRename",
             "arguments": {
               "id": "ID!",
               "filename": "String!"
@@ -186,20 +186,20 @@
             "returns": "UploadMutationPayload!",
             "auth": "user",
             "required_scopes": ["upload:write"],
-            "rest_equivalent": "PATCH /api/uploads/[id]",
-            "mcp_equivalent": "run_graphql_operation",
-            "notes": ["Registered operation id: upload.rename.v1."]
+            "rest_equivalent": "PATCH /api/workspace/uploads/[id]",
+            "mcp_equivalent": "graphql_operation_run",
+            "notes": ["Registered operation id: workspace.upload.rename.v1."]
           },
           {
-            "name": "deleteUpload",
+            "name": "uploadDelete",
             "arguments": { "id": "ID!" },
             "returns": "UploadDeleteMutationPayload!",
             "auth": "user",
             "required_scopes": ["upload:write"],
-            "rest_equivalent": "DELETE /api/uploads/[id]",
-            "mcp_equivalent": "run_graphql_operation",
+            "rest_equivalent": "DELETE /api/workspace/uploads/[id]",
+            "mcp_equivalent": "graphql_operation_run",
             "notes": [
-              "Registered operation id: upload.delete.v1.",
+              "Registered operation id: workspace.upload.delete.v1.",
               "Returns SERVICE_UNAVAILABLE when R2 deletion cannot be confirmed and preserves metadata for retry."
             ]
           }
@@ -208,7 +208,7 @@
       "rest": {
         "routes": [
           {
-            "path": "/api/uploads/[id]",
+            "path": "/api/workspace/uploads/[id]",
             "method": "PATCH",
             "returns": "{ upload: Upload }",
             "notes": [
@@ -217,7 +217,7 @@
             ]
           },
           {
-            "path": "/api/uploads/[id]",
+            "path": "/api/workspace/uploads/[id]",
             "method": "DELETE",
             "returns": "{ deletedId: String, deletedSize: Int }",
             "notes": [
@@ -230,17 +230,17 @@
       "mcp": {
         "tools": [
           {
-            "name": "rename_my_upload",
+            "name": "workspace_upload_rename",
             "returns": "{ success: Boolean, upload: Upload }",
-            "rest_equivalent": "PATCH /api/uploads/[id]",
+            "rest_equivalent": "PATCH /api/workspace/uploads/[id]",
             "notes": [
               "Requires an unsuspended signed-in user and only renames uploads owned by the current user."
             ]
           },
           {
-            "name": "delete_my_upload",
+            "name": "workspace_upload_delete",
             "returns": "{ success: Boolean, deletedId: String, deletedSize: Int }",
-            "rest_equivalent": "DELETE /api/uploads/[id]",
+            "rest_equivalent": "DELETE /api/workspace/uploads/[id]",
             "notes": [
               "Requires an unsuspended signed-in user, deletes only uploads owned by the current user, removes the backing storage object before metadata deletion, returns storage_delete_failed without deleting metadata when storage cleanup fails, and commits metadata deletion plus the upload_delete audit log together after successful storage deletion."
             ]

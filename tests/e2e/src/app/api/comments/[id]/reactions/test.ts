@@ -1,7 +1,7 @@
 /**
- * E2E tests for POST/DELETE /api/comments/{id}/reactions.
+ * E2E tests for POST/DELETE /api/community/comments/{id}/reactions.
  *
- * ## POST /api/comments/{id}/reactions
+ * ## POST /api/community/comments/{id}/reactions
  * - Body: { type } where type is one of: upvote|downvote|heart|laugh|hooray|confused|rocket|eyes
  * - Response: { success: true }
  * - Auth required (401 if unauthenticated)
@@ -9,7 +9,7 @@
  * - Returns 404 if comment does not exist
  * - Upserts: adding the same reaction twice is idempotent
  *
- * ## DELETE /api/comments/{id}/reactions
+ * ## DELETE /api/community/comments/{id}/reactions
  * - Query: type (same enum as POST)
  * - Response: { success: true }
  * - Auth required (401 if unauthenticated)
@@ -31,7 +31,7 @@ import { assertApiContract } from "../../../../_shared/api-contract";
 async function resolveSeedSectionId(
   request: import("@playwright/test").APIRequestContext,
 ) {
-  const response = await request.post("/api/sections/match-codes", {
+  const response = await request.post("/api/catalog/sections/match-codes", {
     data: { codes: [DEV_SEED.section.code] },
   });
   expect(response.status()).toBe(200);
@@ -50,7 +50,7 @@ async function findSeedCommentId(
   sectionId: number,
 ) {
   const response = await request.get(
-    `/api/comments?targetType=section&targetId=${sectionId}`,
+    `/api/community/comments?targetType=section&targetId=${sectionId}`,
   );
   expect(response.status()).toBe(200);
   const body = (await response.json()) as {
@@ -64,32 +64,32 @@ async function findSeedCommentId(
   return seed!.id!;
 }
 
-test("/api/comments/[id]/reactions 接口契约", async ({ request }) => {
+test("/api/community/comments/[id]/reactions 接口契约", async ({ request }) => {
   await assertApiContract(request, {
-    routePath: "/api/comments/[id]/reactions",
+    routePath: "/api/community/comments/[id]/reactions",
   });
 });
 
-test("/api/comments/[id]/reactions POST 未登录返回 401", async ({
+test("/api/community/comments/[id]/reactions POST 未登录返回 401", async ({
   request,
 }) => {
   const response = await request.post(
-    "/api/comments/00000000-0000-0000-0000-000000000000/reactions",
+    "/api/community/comments/00000000-0000-0000-0000-000000000000/reactions",
     { data: { type: "rocket" } },
   );
   expect(response.status()).toBe(401);
 });
 
-test("/api/comments/[id]/reactions DELETE 未登录返回 401", async ({
+test("/api/community/comments/[id]/reactions DELETE 未登录返回 401", async ({
   request,
 }) => {
   const response = await request.delete(
-    "/api/comments/00000000-0000-0000-0000-000000000000/reactions?type=rocket",
+    "/api/community/comments/00000000-0000-0000-0000-000000000000/reactions?type=rocket",
   );
   expect(response.status()).toBe(401);
 });
 
-test("/api/comments/[id]/reactions 登录后可添加并验证再删除", async ({
+test("/api/community/comments/[id]/reactions 登录后可添加并验证再删除", async ({
   page,
 }) => {
   await signInAsDebugUser(page, "/");
@@ -98,10 +98,10 @@ test("/api/comments/[id]/reactions 登录后可添加并验证再删除", async 
 
   // POST is idempotent, including duplicate requests that arrive together.
   const createResponses = await Promise.all([
-    page.request.post(`/api/comments/${commentId}/reactions`, {
+    page.request.post(`/api/community/comments/${commentId}/reactions`, {
       data: { type: "rocket" },
     }),
-    page.request.post(`/api/comments/${commentId}/reactions`, {
+    page.request.post(`/api/community/comments/${commentId}/reactions`, {
       data: { type: "rocket" },
     }),
   ]);
@@ -113,7 +113,9 @@ test("/api/comments/[id]/reactions 登录后可添加并验证再删除", async 
   }
 
   // Verify the reaction is visible in the thread
-  const threadResponse = await page.request.get(`/api/comments/${commentId}`);
+  const threadResponse = await page.request.get(
+    `/api/community/comments/${commentId}`,
+  );
   expect(threadResponse.status()).toBe(200);
   const threadBody = (await threadResponse.json()) as {
     thread?: Array<{
@@ -128,7 +130,7 @@ test("/api/comments/[id]/reactions 登录后可添加并验证再删除", async 
 
   // DELETE: remove the rocket reaction
   const deleteResponse = await page.request.delete(
-    `/api/comments/${commentId}/reactions?type=rocket`,
+    `/api/community/comments/${commentId}/reactions?type=rocket`,
   );
   expect(deleteResponse.status()).toBe(200);
   expect((await deleteResponse.json()) as { success?: boolean }).toEqual({
@@ -136,26 +138,26 @@ test("/api/comments/[id]/reactions 登录后可添加并验证再删除", async 
   });
 });
 
-test("/api/comments/[id]/reactions POST 不存在的评论返回 404", async ({
+test("/api/community/comments/[id]/reactions POST 不存在的评论返回 404", async ({
   page,
 }) => {
   await signInAsDebugUser(page, "/");
 
   const response = await page.request.post(
-    "/api/comments/00000000-0000-0000-0000-000000000000/reactions",
+    "/api/community/comments/00000000-0000-0000-0000-000000000000/reactions",
     { data: { type: "heart" } },
   );
   expect(response.status()).toBe(404);
 });
 
-test("/api/comments/[id]/reactions POST 对失效评论返回 403", async ({
+test("/api/community/comments/[id]/reactions POST 对失效评论返回 403", async ({
   page,
 }) => {
   await signInAsDebugUser(page, "/");
   const sectionId = await resolveSeedSectionId(page.request);
 
   const content = `e2e-inactive-reaction-${Date.now()}`;
-  const createResponse = await page.request.post("/api/comments", {
+  const createResponse = await page.request.post("/api/community/comments", {
     data: {
       targetType: "section",
       targetId: String(sectionId),
@@ -179,7 +181,7 @@ test("/api/comments/[id]/reactions POST 对失效评论返回 403", async ({
     );
 
     const deletedResponse = await page.request.post(
-      `/api/comments/${commentId}/reactions`,
+      `/api/community/comments/${commentId}/reactions`,
       { data: { type: "heart" } },
     );
     expect(deletedResponse.status()).toBe(403);
@@ -192,7 +194,7 @@ test("/api/comments/[id]/reactions POST 对失效评论返回 403", async ({
     );
 
     const softbannedResponse = await page.request.post(
-      `/api/comments/${commentId}/reactions`,
+      `/api/community/comments/${commentId}/reactions`,
       { data: { type: "heart" } },
     );
     expect(softbannedResponse.status()).toBe(403);
@@ -203,14 +205,14 @@ test("/api/comments/[id]/reactions POST 对失效评论返回 403", async ({
   }
 });
 
-test("/api/comments/[id]/reactions DELETE 对失效评论返回 403", async ({
+test("/api/community/comments/[id]/reactions DELETE 对失效评论返回 403", async ({
   page,
 }) => {
   await signInAsDebugUser(page, "/");
   const sectionId = await resolveSeedSectionId(page.request);
 
   const content = `e2e-inactive-reaction-delete-${Date.now()}`;
-  const createResponse = await page.request.post("/api/comments", {
+  const createResponse = await page.request.post("/api/community/comments", {
     data: {
       targetType: "section",
       targetId: String(sectionId),
@@ -227,7 +229,7 @@ test("/api/comments/[id]/reactions DELETE 对失效评论返回 403", async ({
 
   try {
     const reactionResponse = await page.request.post(
-      `/api/comments/${commentId}/reactions`,
+      `/api/community/comments/${commentId}/reactions`,
       { data: { type: "heart" } },
     );
     expect(reactionResponse.status()).toBe(200);
@@ -240,7 +242,7 @@ test("/api/comments/[id]/reactions DELETE 对失效评论返回 403", async ({
     );
 
     const deletedResponse = await page.request.delete(
-      `/api/comments/${commentId}/reactions?type=heart`,
+      `/api/community/comments/${commentId}/reactions?type=heart`,
     );
     expect(deletedResponse.status()).toBe(403);
 
@@ -252,7 +254,7 @@ test("/api/comments/[id]/reactions DELETE 对失效评论返回 403", async ({
     );
 
     const softbannedResponse = await page.request.delete(
-      `/api/comments/${commentId}/reactions?type=heart`,
+      `/api/community/comments/${commentId}/reactions?type=heart`,
     );
     expect(softbannedResponse.status()).toBe(403);
   } finally {

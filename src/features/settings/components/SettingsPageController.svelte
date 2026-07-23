@@ -117,19 +117,21 @@ function tabIcon(icon: string) {
   return CircleUserRound;
 }
 
+function centerNavigationItem(node: HTMLElement) {
+  if (!settingsNavigation) return;
+  const navigationBox = settingsNavigation.getBoundingClientRect();
+  const nodeBox = node.getBoundingClientRect();
+  settingsNavigation.scrollLeft +=
+    nodeBox.left +
+    nodeBox.width / 2 -
+    (navigationBox.left + navigationBox.width / 2);
+  updateNavigationOverflow();
+}
+
 function revealActive(node: HTMLElement, active: boolean) {
   function reveal(isActive: boolean) {
     if (isActive) {
-      void tick().then(() => {
-        if (!settingsNavigation) return;
-        const navigationBox = settingsNavigation.getBoundingClientRect();
-        const nodeBox = node.getBoundingClientRect();
-        settingsNavigation.scrollLeft +=
-          nodeBox.left +
-          nodeBox.width / 2 -
-          (navigationBox.left + navigationBox.width / 2);
-        updateNavigationOverflow();
-      });
+      void tick().then(() => centerNavigationItem(node));
     }
   }
 
@@ -154,7 +156,13 @@ onMount(() => {
   navigation.addEventListener("scroll", updateNavigationOverflow, {
     passive: true,
   });
-  void tick().then(updateNavigationOverflow);
+  void tick().then(() => {
+    const activeLink = navigation.querySelector<HTMLElement>(
+      'a[aria-current="page"]',
+    );
+    if (activeLink) centerNavigationItem(activeLink);
+    else updateNavigationOverflow();
+  });
 
   return () => {
     resizeObserver.disconnect();

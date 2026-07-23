@@ -39,7 +39,7 @@ describe("作业完成状态客户端", () => {
     });
 
     const [path, init] = firstFetchCall(fetchMock);
-    expect(path).toBe("/api/homeworks/homework-1/completion");
+    expect(path).toBe("/api/workspace/homeworks/homework-1/completion");
     expect(init.method).toBe("PUT");
     expect(JSON.parse(init.body)).toEqual({ completed: true });
   });

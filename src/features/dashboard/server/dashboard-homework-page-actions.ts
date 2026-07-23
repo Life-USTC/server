@@ -82,5 +82,5 @@ export async function createHomeworkDashboardAction({
     return fail(404, { error: copy.errorSectionNotFound });
   }
 
-  throw redirect(303, "/dashboard/homeworks");
+  throw redirect(303, "/workspace/homeworks");
 }

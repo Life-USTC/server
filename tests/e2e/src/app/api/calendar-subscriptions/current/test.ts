@@ -1,8 +1,8 @@
 /**
- * E2E tests for GET /api/calendar-subscriptions/current
+ * E2E tests for GET /api/workspace/subscriptions/current
  *
  * ## Endpoint
- * - `GET /api/calendar-subscriptions/current` — Get the current user's subscribed sections
+ * - `GET /api/workspace/subscriptions/current` — Get the current user's subscribed sections
  *
  * ## Response
  * - 200: `{ subscription: { userId: string, sections: { id: number }[] } }`
@@ -21,9 +21,9 @@ import { signInAsDebugUser } from "../../../../../utils/auth";
 import { DEV_SEED } from "../../../../../utils/dev-seed";
 import { assertApiContract } from "../../../_shared/api-contract";
 
-const BASE = "/api/calendar-subscriptions/current";
+const BASE = "/api/workspace/subscriptions/current";
 
-test.describe("GET /api/calendar-subscriptions/current 接口", () => {
+test.describe("GET /api/workspace/subscriptions/current 接口", () => {
   test.describe.configure({ mode: "serial" });
 
   test("接口契约", async ({ request }) => {
@@ -39,9 +39,12 @@ test.describe("GET /api/calendar-subscriptions/current 接口", () => {
     await signInAsDebugUser(page, "/");
 
     // Resolve seed section ID
-    const matchRes = await page.request.post("/api/sections/match-codes", {
-      data: { codes: [DEV_SEED.section.code] },
-    });
+    const matchRes = await page.request.post(
+      "/api/catalog/sections/match-codes",
+      {
+        data: { codes: [DEV_SEED.section.code] },
+      },
+    );
     expect(matchRes.status()).toBe(200);
     const matchBody = (await matchRes.json()) as {
       sections?: Array<{ id?: number; code?: string | null }>;
@@ -74,11 +77,15 @@ test.describe("GET /api/calendar-subscriptions/current 接口", () => {
     const sub = body.subscription as Record<string, unknown>;
     expect(Object.hasOwn(sub, "note")).toBe(true);
     expect(typeof sub.calendarPath).toBe("string");
-    expect((sub.calendarPath as string).startsWith("/api/users/")).toBe(true);
+    expect(
+      (sub.calendarPath as string).startsWith("/api/community/users/"),
+    ).toBe(true);
     expect(typeof sub.calendarUrl).toBe("string");
     expect((sub.calendarUrl as string).startsWith("http")).toBe(true);
-    expect(sub.calendarUrl as string).toContain("/api/users/");
-    expect(sub.calendarUrl as string).not.toContain("/api/auth/api/users/");
+    expect(sub.calendarUrl as string).toContain("/api/community/users/");
+    expect(sub.calendarUrl as string).not.toContain(
+      "/api/auth/api/community/users/",
+    );
   });
 
   test("反映 POST 修改后的状态", async ({ page }) => {
@@ -94,7 +101,7 @@ test.describe("GET /api/calendar-subscriptions/current 接口", () => {
 
     try {
       // Clear subscriptions
-      await page.request.post("/api/calendar-subscriptions", {
+      await page.request.post("/api/workspace/subscriptions", {
         data: { sectionIds: [] },
       });
 
@@ -106,7 +113,7 @@ test.describe("GET /api/calendar-subscriptions/current 接口", () => {
       expect(emptyBody.subscription?.sections).toEqual([]);
     } finally {
       // Restore original subscriptions
-      await page.request.post("/api/calendar-subscriptions", {
+      await page.request.post("/api/workspace/subscriptions", {
         data: { sectionIds: originalIds },
       });
     }

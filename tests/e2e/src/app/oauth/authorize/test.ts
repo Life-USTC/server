@@ -93,7 +93,7 @@ test("/oauth/authorize 未登录时重定向到登录页", async ({ page }, test
     { expectMainContent: false },
   );
 
-  await expect(page).toHaveURL(/\/signin\?/);
+  await expect(page).toHaveURL(/\/account\/sign-in\?/);
   await captureStepScreenshot(page, testInfo, "oauth-authorize-redirect");
 });
 
@@ -114,7 +114,7 @@ test("/oauth/authorize 登录后恢复原授权请求", async ({ page }, testInf
     { expectMainContent: false },
   );
 
-  await expect(page).toHaveURL(/\/signin\?/);
+  await expect(page).toHaveURL(/\/account\/sign-in\?/);
   await page
     .getByRole("button", { name: /Debug User \(Dev\)|调试用户（开发）/i })
     .first()

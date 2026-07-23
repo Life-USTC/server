@@ -19,7 +19,7 @@ export let teacher: TeacherDetailTeacher;
   {#each teacher.sections as section}
     <Item.Root variant="outline" size="sm">
       {#snippet child({ props })}
-        <a href={`/sections/${section.jwId}`} {...props}>
+        <a href={`/catalog/sections/${section.jwId}`} {...props}>
           <Item.Content>
             <Item.Title>{primaryName(section.course)}</Item.Title>
             {#if secondaryName(section.course)}

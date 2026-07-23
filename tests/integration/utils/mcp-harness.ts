@@ -12,7 +12,7 @@
  * Usage:
  *   const { callTool, close } = await createMcpHarness(userId);
  *   try {
- *     const result = await callTool("get_my_profile");
+ *     const result = await callTool("account_profile_get");
  *     // result is the parsed JSON payload the tool returned
  *   } finally {
  *     await close();

@@ -1,5 +1,5 @@
 /**
- * E2E tests for the exams dashboard (`/dashboard/exams`)
+ * E2E tests for the exams dashboard (`/workspace/exams`)
  *
  * ## Data Represented (exam.yml → cross-section-exam-list.display.fields)
  * - exam.examDate
@@ -33,13 +33,13 @@ test.describe("仪表盘考试", () => {
     });
 
     expect(response.status()).toBe(308);
-    expect(response.headers().location).toBe("/dashboard/exams?examView=list");
+    expect(response.headers().location).toBe("/workspace/exams?examView=list");
   });
 
   test("登录后显示考试筛选工具栏和卡片", async ({ page }, testInfo) => {
-    await signInAsDebugUser(page, "/dashboard/exams");
+    await signInAsDebugUser(page, "/workspace/exams");
     await ensureSeedSectionSubscription(page);
-    await gotoAndWaitForReady(page, "/dashboard/exams", {
+    await gotoAndWaitForReady(page, "/workspace/exams", {
       testInfo,
       screenshotLabel: "exams",
     });
@@ -73,7 +73,7 @@ test.describe("仪表盘考试", () => {
     await expect(
       page
         .locator('[data-slot="card"]')
-        .filter({ has: page.locator('a[href^="/sections/"]') })
+        .filter({ has: page.locator('a[href^="/catalog/sections/"]') })
         .first(),
     ).toBeVisible();
 
@@ -85,9 +85,9 @@ test.describe("仪表盘考试", () => {
       localStorage.removeItem("life-ustc-dashboard-view-mode");
     });
     await page.setViewportSize({ height: 844, width: 390 });
-    await signInAsDebugUser(page, "/dashboard/exams");
+    await signInAsDebugUser(page, "/workspace/exams");
     await ensureSeedSectionSubscription(page);
-    await gotoAndWaitForReady(page, "/dashboard/exams", {
+    await gotoAndWaitForReady(page, "/workspace/exams", {
       testInfo,
       screenshotLabel: "exams-mobile-toolbar",
     });
@@ -106,7 +106,7 @@ test.describe("仪表盘考试", () => {
       expect(box?.width).toBeGreaterThanOrEqual(44);
     }
 
-    await gotoAndWaitForReady(page, "/dashboard/exams?examView=list");
+    await gotoAndWaitForReady(page, "/workspace/exams?examView=list");
     const all = page
       .getByRole("group", { name: /考试|Exams/i })
       .getByRole("radio", { name: /全部|All/i });
@@ -124,9 +124,9 @@ test.describe("仪表盘考试", () => {
   });
 
   test("考试卡片显示必填字段", async ({ page }, testInfo) => {
-    await signInAsDebugUser(page, "/dashboard/exams");
+    await signInAsDebugUser(page, "/workspace/exams");
     await ensureSeedSectionSubscription(page);
-    await gotoAndWaitForReady(page, "/dashboard/exams", {
+    await gotoAndWaitForReady(page, "/workspace/exams", {
       testInfo,
       screenshotLabel: "exams",
     });
@@ -140,7 +140,7 @@ test.describe("仪表盘考试", () => {
 
     // exam cards should be visible
     const examCards = page.locator('[data-slot="card"]').filter({
-      has: page.locator('a[href^="/sections/"]'),
+      has: page.locator('a[href^="/catalog/sections/"]'),
     });
     await expect(examCards.first()).toBeVisible({ timeout: 15_000 });
 
@@ -156,11 +156,11 @@ test.describe("仪表盘考试", () => {
 
     // section.course.namePrimary (exam.yml cross-section-exam-list.display.fields)
     await expect(
-      firstCard.locator('a[href^="/sections/"]').first(),
+      firstCard.locator('a[href^="/catalog/sections/"]').first(),
     ).toBeVisible();
-    await expect(firstCard.locator('a[href^="/sections/"]').first()).toHaveText(
-      /.+/,
-    );
+    await expect(
+      firstCard.locator('a[href^="/catalog/sections/"]').first(),
+    ).toHaveText(/.+/);
 
     // exam.examDate — YYYY-MM-DD format visible
     await expect(
@@ -198,9 +198,9 @@ test.describe("仪表盘考试", () => {
   });
 
   test("考试卡片链接到班级详情页", async ({ page }, testInfo) => {
-    await signInAsDebugUser(page, "/dashboard/exams");
+    await signInAsDebugUser(page, "/workspace/exams");
     await ensureSeedSectionSubscription(page);
-    await gotoAndWaitForReady(page, "/dashboard/exams", {
+    await gotoAndWaitForReady(page, "/workspace/exams", {
       testInfo,
       screenshotLabel: "exams",
     });
@@ -211,21 +211,21 @@ test.describe("仪表盘考试", () => {
       .click();
 
     const sectionLink = page
-      .locator('#main-content a[href^="/sections/"]')
+      .locator('#main-content a[href^="/catalog/sections/"]')
       .first();
     await expect(sectionLink).toBeVisible();
     await sectionLink.click();
 
-    await expect(page).toHaveURL(/\/sections\/\d+/);
+    await expect(page).toHaveURL(/\/catalog\/sections\/\d+/);
     await captureStepScreenshot(page, testInfo, "exams/section-link");
   });
 
   test("已完成筛选显示过往考试，未完成显示即将到来", async ({
     page,
   }, testInfo) => {
-    await signInAsDebugUser(page, "/dashboard/exams");
+    await signInAsDebugUser(page, "/workspace/exams");
     await ensureSeedSectionSubscription(page);
-    await gotoAndWaitForReady(page, "/dashboard/exams", {
+    await gotoAndWaitForReady(page, "/workspace/exams", {
       testInfo,
       screenshotLabel: "exams",
     });
@@ -239,7 +239,7 @@ test.describe("仪表盘考试", () => {
     await completedTab.click();
     await expect(completedTab).toHaveAttribute("aria-checked", "true");
     const endedExamCards = page.locator('[data-slot="card"]').filter({
-      has: page.locator('a[href^="/sections/"]'),
+      has: page.locator('a[href^="/catalog/sections/"]'),
     });
     await expect(endedExamCards.first()).toBeVisible({ timeout: 15_000 });
     await expect(

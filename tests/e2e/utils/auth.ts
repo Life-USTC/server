@@ -15,10 +15,10 @@ type AuthStorageState = Awaited<
 const authStorageStateCache = new Map<AuthRole, AuthStorageState>();
 
 function authenticatedLandingPath(path: string) {
-  if (path === "/" || path === "/dashboard") {
-    return "/dashboard/overview";
+  if (path === "/" || path === "/workspace") {
+    return "/workspace/overview";
   }
-  return path === "/settings" ? "/settings/profile" : path;
+  return path === "/account/settings" ? "/account/settings/profile" : path;
 }
 
 function escapeForRegExp(value: string) {
@@ -90,10 +90,10 @@ async function completeWelcomeProfileIfNeeded(
   role: AuthRole,
   expectedPath: string,
 ) {
-  if (role !== "debug" || expectedPath.startsWith("/welcome")) {
+  if (role !== "debug" || expectedPath.startsWith("/account/welcome")) {
     return;
   }
-  if (!page.url().includes("/welcome")) {
+  if (!page.url().includes("/account/welcome")) {
     return;
   }
 
@@ -120,10 +120,10 @@ async function signInWithDevButton(
 ) {
   await gotoAndWaitForReady(
     page,
-    `/signin?callbackUrl=${encodeURIComponent(callbackPath)}`,
+    `/account/sign-in?callbackUrl=${encodeURIComponent(callbackPath)}`,
   );
 
-  if (!page.url().includes("/signin")) {
+  if (!page.url().includes("/account/sign-in")) {
     await completeWelcomeProfileIfNeeded(page, role, expectedPath);
     await expectPagePath(page, expectedPath);
     await waitForUiSettled(page);
@@ -153,7 +153,7 @@ async function signInWithDevButton(
   }
   await button.click();
 
-  await page.waitForURL((url) => !url.pathname.startsWith("/signin"), {
+  await page.waitForURL((url) => !url.pathname.startsWith("/account/sign-in"), {
     timeout: 15_000,
     waitUntil: "domcontentloaded",
   });
@@ -177,7 +177,7 @@ export async function expectRequiresSignIn(
     expectMainContent: false,
   });
 
-  await expect(page).toHaveURL(/\/signin(?:\?.*)?$/);
+  await expect(page).toHaveURL(/\/account\/sign-in(?:\?.*)?$/);
   for (const provider of options.providers ?? ["ustc"]) {
     await expect(
       page.getByRole("button", { name: SIGN_IN_PROVIDER_LABELS[provider] }),

@@ -76,7 +76,7 @@ export let subscriptionCalendarUrl: string;
         onCopy={() => copyText(subscriptionCalendarUrl, "subscription")}
         value={subscriptionCalendarUrl}
       />
-      <Button class="w-fit" href="/dashboard/subscriptions" size="sm" variant="link">
+      <Button class="w-fit" href="/workspace/subscriptions" size="sm" variant="link">
         {sectionCopy.viewAllSubscriptions}
       </Button>
     </section>

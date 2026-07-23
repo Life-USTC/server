@@ -32,7 +32,7 @@ import {
   validateGraphqlDateRange,
 } from "./viewer-input";
 
-type ViewerParent = { userId: string };
+type AuthenticatedScopeParent = { userId: string };
 
 type TodoFilterInput = {
   completed?: boolean | null;
@@ -127,7 +127,7 @@ function shanghaiDateRange(
   return { dateFrom, dateTo };
 }
 
-export const graphqlViewerTypeDefs = /* GraphQL */ `
+export const graphqlScopeTypeDefs = /* GraphQL */ `
   enum TodoPriority {
     LOW
     MEDIUM
@@ -173,7 +173,7 @@ export const graphqlViewerTypeDefs = /* GraphQL */ `
     updatedAt: DateTime!
   }
 
-  type ViewerOverview {
+  type WorkspaceOverview {
     atTime: DateTime!
     today: Date!
     homeworkWindowEnd: DateTime!
@@ -298,9 +298,12 @@ export const graphqlViewerTypeDefs = /* GraphQL */ `
     pageInfo: PageInfo!
   }
 
-  type Viewer {
+  type Account {
     profile: UserProfile!
-    overview(atTime: DateTime): ViewerOverview!
+  }
+
+  type Workspace {
+    overview(atTime: DateTime): WorkspaceOverview!
     todos(filter: TodoFilter, page: PageInput): TodoPage!
     subscribedSections(page: PageInput): SectionPage!
     homeworks(filter: HomeworkFilter, page: PageInput): HomeworkPage!
@@ -309,7 +312,7 @@ export const graphqlViewerTypeDefs = /* GraphQL */ `
   }
 `;
 
-export function graphqlViewerQueryResolver(
+export function graphqlAuthenticatedScopeResolver(
   _parent: unknown,
   _args: unknown,
   context: GraphqlContext,
@@ -319,7 +322,7 @@ export function graphqlViewerQueryResolver(
     : { userId: context.principal.userId };
 }
 
-export const graphqlViewerResolvers = {
+export const graphqlScopeResolvers = {
   TodoPriority: {
     LOW: "low",
     MEDIUM: "medium",
@@ -348,7 +351,7 @@ export const graphqlViewerResolvers = {
       return paginateGraphqlArray(exam.examRooms, args.page);
     },
   },
-  ViewerOverview: {
+  WorkspaceOverview: {
     atTime: (overview: OverviewParent) => overview.anchor.atTime,
     today: (overview: OverviewParent) => overview.anchor.todayStart,
     homeworkWindowEnd: (overview: OverviewParent) =>
@@ -366,9 +369,9 @@ export const graphqlViewerResolvers = {
       overview.counts.todaySchedules,
     upcomingExams: (overview: OverviewParent) => overview.counts.upcomingExams,
   },
-  Viewer: {
+  Account: {
     async profile(
-      _viewer: ViewerParent,
+      _account: AuthenticatedScopeParent,
       _args: unknown,
       context: GraphqlContext,
     ) {
@@ -383,8 +386,10 @@ export const graphqlViewerResolvers = {
       }
       return profile;
     },
+  },
+  Workspace: {
     overview(
-      _viewer: ViewerParent,
+      _workspace: AuthenticatedScopeParent,
       args: { atTime?: string | null },
       context: GraphqlContext,
     ) {
@@ -395,7 +400,7 @@ export const graphqlViewerResolvers = {
       });
     },
     todos(
-      _viewer: ViewerParent,
+      _workspace: AuthenticatedScopeParent,
       args: {
         filter?: TodoFilterInput | null;
         page?: GraphqlPageInput | null;
@@ -426,7 +431,7 @@ export const graphqlViewerResolvers = {
       });
     },
     subscribedSections(
-      _viewer: ViewerParent,
+      _workspace: AuthenticatedScopeParent,
       args: { page?: GraphqlPageInput | null },
       context: GraphqlContext,
     ) {
@@ -440,7 +445,7 @@ export const graphqlViewerResolvers = {
       });
     },
     homeworks(
-      _viewer: ViewerParent,
+      _workspace: AuthenticatedScopeParent,
       args: {
         filter?: HomeworkFilterInput | null;
         page?: GraphqlPageInput | null;
@@ -469,7 +474,7 @@ export const graphqlViewerResolvers = {
       });
     },
     schedules(
-      _viewer: ViewerParent,
+      _workspace: AuthenticatedScopeParent,
       args: {
         filter?: ScheduleFilterInput | null;
         page?: GraphqlPageInput | null;
@@ -496,7 +501,7 @@ export const graphqlViewerResolvers = {
       });
     },
     exams(
-      _viewer: ViewerParent,
+      _workspace: AuthenticatedScopeParent,
       args: {
         filter?: ExamFilterInput | null;
         page?: GraphqlPageInput | null;

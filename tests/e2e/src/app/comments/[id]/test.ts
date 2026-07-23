@@ -4,19 +4,28 @@ import { gotoAndWaitForReady } from "../../../../utils/page-ready";
 import { captureStepScreenshot } from "../../../../utils/screenshot";
 import { assertPageContract } from "../../_shared/page-contract";
 
-test("/comments/[id] 页面契约", async ({ page }, testInfo) => {
-  await assertPageContract(page, { routePath: "/comments/[id]", testInfo });
+test("/community/comments/[id] 页面契约", async ({ page }, testInfo) => {
+  await assertPageContract(page, {
+    routePath: "/community/comments/[id]",
+    testInfo,
+  });
 });
 
-test("/comments/[id] 无效参数返回 404", async ({ page }, testInfo) => {
-  await gotoAndWaitForReady(page, "/comments/not-existing-comment-id", {
-    expectMainContent: false,
-  });
+test("/community/comments/[id] 无效参数返回 404", async ({
+  page,
+}, testInfo) => {
+  await gotoAndWaitForReady(
+    page,
+    "/community/comments/not-existing-comment-id",
+    {
+      expectMainContent: false,
+    },
+  );
   await expect(page.locator("h1")).toHaveText("404");
   await captureStepScreenshot(page, testInfo, "comments-id-404");
 });
 
-test("/comments/[id] seed 评论会重定向到目标页面", async ({
+test("/community/comments/[id] seed 评论会重定向到目标页面", async ({
   page,
 }, testInfo) => {
   await signInAsDevAdmin(page, "/admin");
@@ -30,7 +39,7 @@ test("/comments/[id] seed 评论会重定向到目标页面", async ({
   const seedComment = commentsBody.data?.find((item) => Boolean(item.id));
   expect(seedComment?.id).toBeTruthy();
 
-  await gotoAndWaitForReady(page, `/comments/${seedComment?.id}`, {
+  await gotoAndWaitForReady(page, `/community/comments/${seedComment?.id}`, {
     expectMainContent: false,
   });
   await expect(page).toHaveURL(/\/(sections|courses|teachers)\/.+#comment-/);

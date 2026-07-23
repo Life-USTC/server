@@ -142,18 +142,22 @@ describe("registered GraphQL operation runner", () => {
   it("executes a fixed pre-parsed operation without accepting a document", async () => {
     catalogService.getCurrentSemester.mockResolvedValue(currentSemester);
 
-    await expect(run("catalog.current_semester.v1")).resolves.toMatchObject({
-      success: true,
-      operationId: "catalog.current_semester.v1",
-      operationName: "CatalogCurrentSemester",
-      operationType: "query",
-      data: {
-        currentSemester: {
-          jwId: 202601,
-          code: "2026SP",
+    await expect(run("catalog.semester.current.get.v1")).resolves.toMatchObject(
+      {
+        success: true,
+        operationId: "catalog.semester.current.get.v1",
+        operationName: "CatalogCurrentSemester",
+        operationType: "query",
+        data: {
+          catalog: {
+            currentSemester: {
+              jwId: 202601,
+              code: "2026SP",
+            },
+          },
         },
       },
-    });
+    );
   });
 
   it("rejects unknown operations, extra variables, and invalid variables", async () => {
@@ -161,9 +165,9 @@ describe("registered GraphQL operation runner", () => {
       code: "UNKNOWN_OPERATION",
     } satisfies Partial<RegisteredGraphqlOperationError>);
     await expect(
-      run("viewer.todos.v1", {
+      run("workspace.todo.list.v1", {
         variables: {
-          document: "query Arbitrary { viewer { profile { id } } }",
+          document: "query Arbitrary { account { profile { id } } }",
         },
       }),
     ).rejects.toMatchObject({
@@ -171,12 +175,12 @@ describe("registered GraphQL operation runner", () => {
       message: "Unknown variable: document.",
     } satisfies Partial<RegisteredGraphqlOperationError>);
     await expect(
-      run("catalog.course.v1", { variables: {} }),
+      run("catalog.course.get.v1", { variables: {} }),
     ).rejects.toMatchObject({
       code: "BAD_USER_INPUT",
     } satisfies Partial<RegisteredGraphqlOperationError>);
     await expect(
-      run("viewer.overview.v1", {
+      run("workspace.overview.get.v1", {
         scopes: new Set(["dashboard:read"]),
         variables: { atTime: "2026-07-20" },
       }),
@@ -187,7 +191,7 @@ describe("registered GraphQL operation runner", () => {
       ),
     } satisfies Partial<RegisteredGraphqlOperationError>);
     await expect(
-      run("upload.create_session.v1", {
+      run("workspace.upload.session.create.v1", {
         confirmed: true,
         scopes: new Set(["upload:write"]),
         variables: {
@@ -209,7 +213,7 @@ describe("registered GraphQL operation runner", () => {
 
   it("enforces exact scopes and mutation confirmation before execution", async () => {
     await expect(
-      run("viewer.todos.v1", {
+      run("workspace.todo.list.v1", {
         scopes: new Set(["homework:read"]),
         variables: {},
       }),
@@ -218,7 +222,7 @@ describe("registered GraphQL operation runner", () => {
       requiredScopes: ["todo:read"],
     } satisfies Partial<RegisteredGraphqlOperationError>);
     await expect(
-      run("todo.create.v1", {
+      run("workspace.todo.create.v1", {
         variables: { input: { title: "Never created" } },
       }),
     ).rejects.toMatchObject({
@@ -227,7 +231,7 @@ describe("registered GraphQL operation runner", () => {
   });
 
   it("preserves trusted resolver input errors", async () => {
-    const result = await run("catalog.course.v1", {
+    const result = await run("catalog.course.get.v1", {
       variables: { jwId: 0 },
     });
 
@@ -247,11 +251,11 @@ describe("registered GraphQL operation runner", () => {
       new Error("private-current-semester-failure"),
     );
 
-    const result = await run("catalog.current_semester.v1");
+    const result = await run("catalog.semester.current.get.v1");
 
     expect(result).toMatchObject({
       success: false,
-      operationId: "catalog.current_semester.v1",
+      operationId: "catalog.semester.current.get.v1",
       errors: [{ message: "Unexpected error." }],
     });
     expect(JSON.stringify(result)).not.toContain(
@@ -268,7 +272,7 @@ describe("registered GraphQL operation runner", () => {
       return result.promise;
     });
 
-    const execution = run("catalog.current_semester.v1");
+    const execution = run("catalog.semester.current.get.v1");
     await started.promise;
     const assertion = expect(execution).rejects.toMatchObject({
       code: "REQUEST_TIMEOUT",
@@ -289,7 +293,7 @@ describe("registered GraphQL operation runner", () => {
       return result.promise;
     });
 
-    const execution = run("todo.create.v1", {
+    const execution = run("workspace.todo.create.v1", {
       confirmed: true,
       variables: { input: { title: "Slow todo" } },
     });
@@ -313,7 +317,7 @@ describe("registered GraphQL operation runner", () => {
       return result.promise;
     });
 
-    const execution = run("catalog.current_semester.v1", {
+    const execution = run("catalog.semester.current.get.v1", {
       signal: controller.signal,
     });
     await started.promise;
@@ -334,7 +338,7 @@ describe("registered GraphQL operation runner", () => {
       return result.promise;
     });
 
-    const execution = run("todo.create.v1", {
+    const execution = run("workspace.todo.create.v1", {
       confirmed: true,
       signal: controller.signal,
       variables: { input: { title: "Cancelled todo" } },

@@ -25,7 +25,7 @@ describe("route collector", () => {
   it("builds an operation from JSDoc tags", () => {
     const project = new Project({ useInMemoryFileSystem: true });
     project.createSourceFile(
-      "src/routes/api/todos/+server.ts",
+      "src/routes/api/workspace/todos/+server.ts",
       `
 /**
  * List todos.
@@ -40,11 +40,14 @@ export const GET = () => new Response();
 
     const schemas = new SchemaCollector();
     const paths = collectPaths(project, schemas, {
-      operationIdOverrides: { "GET /api/todos": "listTodos" },
+      operationIdOverrides: { "GET /api/workspace/todos": "listTodos" },
     });
 
-    expect(paths).toHaveProperty("/api/todos");
-    const operation = paths["/api/todos"].get as Record<string, unknown>;
+    expect(paths).toHaveProperty("/api/workspace/todos");
+    const operation = paths["/api/workspace/todos"].get as Record<
+      string,
+      unknown
+    >;
     expect(operation.operationId).toBe("listTodos");
     expect(operation.summary).toBe("List todos");
     expect(operation.tags).toEqual(["Todos"]);
@@ -92,7 +95,7 @@ export const GET = () => new Response();
   it("documents a relative Location header for 201 responses", () => {
     const project = new Project({ useInMemoryFileSystem: true });
     project.createSourceFile(
-      "src/routes/api/todos/+server.ts",
+      "src/routes/api/workspace/todos/+server.ts",
       `
 /**
  * Create a todo.
@@ -105,8 +108,9 @@ export const POST = () => new Response();
 
     const schemas = new SchemaCollector();
     const paths = collectPaths(project, schemas);
-    const responses = (paths["/api/todos"].post as Record<string, unknown>)
-      .responses as Record<string, Record<string, unknown>>;
+    const responses = (
+      paths["/api/workspace/todos"].post as Record<string, unknown>
+    ).responses as Record<string, Record<string, unknown>>;
 
     expect(responses["200"]).toBeUndefined();
     expect(responses["201"].headers).toEqual({
@@ -120,7 +124,7 @@ export const POST = () => new Response();
   it("documents Retry-After for mutation throttle responses", () => {
     const project = new Project({ useInMemoryFileSystem: true });
     project.createSourceFile(
-      "src/routes/api/todos/+server.ts",
+      "src/routes/api/workspace/todos/+server.ts",
       `
 /**
  * Create a todo.
@@ -133,8 +137,9 @@ export const POST = () => new Response();
     );
 
     const paths = collectPaths(project, new SchemaCollector());
-    const responses = (paths["/api/todos"].post as Record<string, unknown>)
-      .responses as Record<string, Record<string, unknown>>;
+    const responses = (
+      paths["/api/workspace/todos"].post as Record<string, unknown>
+    ).responses as Record<string, Record<string, unknown>>;
 
     const retryAfter = {
       "Retry-After": {
@@ -149,7 +154,7 @@ export const POST = () => new Response();
   it("parses path parameters and request body", () => {
     const project = new Project({ useInMemoryFileSystem: true });
     project.createSourceFile(
-      "src/routes/api/todos/[id]/+server.ts",
+      "src/routes/api/workspace/todos/[id]/+server.ts",
       `
 /**
  * Update one todo.
@@ -164,10 +169,13 @@ export const PATCH = () => new Response();
 
     const schemas = new SchemaCollector();
     const paths = collectPaths(project, schemas, {
-      operationIdOverrides: { "PATCH /api/todos/{id}": "updateTodo" },
+      operationIdOverrides: { "PATCH /api/workspace/todos/{id}": "updateTodo" },
     });
 
-    const operation = paths["/api/todos/{id}"].patch as Record<string, unknown>;
+    const operation = paths["/api/workspace/todos/{id}"].patch as Record<
+      string,
+      unknown
+    >;
     expect(operation.operationId).toBe("updateTodo");
 
     const requestParams = operation.requestParams as { path: z.ZodType };
@@ -294,7 +302,7 @@ export function GET() {
   it("uses object items for the array response shortcut", () => {
     const project = new Project({ useInMemoryFileSystem: true });
     project.createSourceFile(
-      "src/routes/api/sections/[jwId]/schedules/+server.ts",
+      "src/routes/api/catalog/sections/[jwId]/schedules/+server.ts",
       `
 /**
  * List section schedules.
@@ -309,7 +317,10 @@ export const GET = () => new Response();
     const paths = collectPaths(project, schemas);
 
     const responses = (
-      paths["/api/sections/{jwId}/schedules"].get as Record<string, unknown>
+      paths["/api/catalog/sections/{jwId}/schedules"].get as Record<
+        string,
+        unknown
+      >
     ).responses as Record<string, Record<string, unknown>>;
     const schema = (
       responses["200"].content as Record<string, Record<string, unknown>>

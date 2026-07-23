@@ -1,7 +1,7 @@
 /**
- * E2E tests for GET/PATCH/DELETE /api/comments/{id}.
+ * E2E tests for GET/PATCH/DELETE /api/community/comments/{id}.
  *
- * ## GET /api/comments/{id}
+ * ## GET /api/community/comments/{id}
  * - Returns the full thread rooted at the comment's rootId
  * - Response: { thread: CommentNode[], focusId: string, hiddenCount: number, viewer, target }
  * - target includes resolved section/course/teacher metadata (jwId, code, nameCn, etc.)
@@ -9,7 +9,7 @@
  * - Returns 403 if the focused comment is hidden from the viewer
  * - Public endpoint (no auth required)
  *
- * ## PATCH /api/comments/{id}
+ * ## PATCH /api/community/comments/{id}
  * - Body: { body, visibility?, isAnonymous?, attachmentIds? }
  * - Response: { success: true, comment: CommentNode }
  * - Auth required (401 if unauthenticated)
@@ -17,7 +17,7 @@
  * - Admin moderation uses PATCH /api/admin/comments/{id}
  * - Cannot update or delete deleted/softbanned comments (403 "Comment locked")
  *
- * ## DELETE /api/comments/{id}
+ * ## DELETE /api/community/comments/{id}
  * - Response: { success: true }
  * - Auth required (401 if unauthenticated)
  * - Only owner can delete (403 for non-owners, even admins)
@@ -35,7 +35,7 @@ import { assertApiContract } from "../../../_shared/api-contract";
 async function resolveSeedSectionId(
   request: import("@playwright/test").APIRequestContext,
 ) {
-  const response = await request.post("/api/sections/match-codes", {
+  const response = await request.post("/api/catalog/sections/match-codes", {
     data: { codes: [DEV_SEED.section.code] },
   });
   expect(response.status()).toBe(200);
@@ -54,7 +54,7 @@ async function findSeedCommentId(
   sectionId: number,
 ) {
   const response = await request.get(
-    `/api/comments?targetType=section&targetId=${sectionId}`,
+    `/api/community/comments?targetType=section&targetId=${sectionId}`,
   );
   expect(response.status()).toBe(200);
   const body = (await response.json()) as {
@@ -68,17 +68,21 @@ async function findSeedCommentId(
   return seed!.id!;
 }
 
-test("/api/comments/[id] 接口契约", async ({ request }) => {
-  await assertApiContract(request, { routePath: "/api/comments/[id]" });
+test("/api/community/comments/[id] 接口契约", async ({ request }) => {
+  await assertApiContract(request, {
+    routePath: "/api/community/comments/[id]",
+  });
 });
 
-test("/api/comments/[id] GET 返回线程 focus 与 target 元数据", async ({
+test("/api/community/comments/[id] GET 返回线程 focus 与 target 元数据", async ({
   request,
 }) => {
   const sectionId = await resolveSeedSectionId(request);
   const commentId = await findSeedCommentId(request, sectionId);
 
-  const threadResponse = await request.get(`/api/comments/${commentId}`);
+  const threadResponse = await request.get(
+    `/api/community/comments/${commentId}`,
+  );
   expect(threadResponse.status()).toBe(200);
   const body = (await threadResponse.json()) as {
     focusId?: string;
@@ -102,14 +106,16 @@ test("/api/comments/[id] GET 返回线程 focus 与 target 元数据", async ({
   expect(body.viewer).toBeDefined();
 });
 
-test("/api/comments/[id] GET 不存在的 ID 返回 404", async ({ request }) => {
+test("/api/community/comments/[id] GET 不存在的 ID 返回 404", async ({
+  request,
+}) => {
   const response = await request.get(
-    "/api/comments/00000000-0000-0000-0000-000000000000",
+    "/api/community/comments/00000000-0000-0000-0000-000000000000",
   );
   expect(response.status()).toBe(404);
 });
 
-test("/api/comments/[id] GET 隐藏聚焦线程返回 403", async ({
+test("/api/community/comments/[id] GET 隐藏聚焦线程返回 403", async ({
   page,
   request,
 }) => {
@@ -117,7 +123,7 @@ test("/api/comments/[id] GET 隐藏聚焦线程返回 403", async ({
   const sectionId = await resolveSeedSectionId(page.request);
 
   const content = `e2e-hidden-focused-comment-${Date.now()}`;
-  const createResponse = await page.request.post("/api/comments", {
+  const createResponse = await page.request.post("/api/community/comments", {
     data: {
       targetType: "section",
       targetId: String(sectionId),
@@ -133,33 +139,37 @@ test("/api/comments/[id] GET 隐藏聚焦线程返回 403", async ({
   }
 
   try {
-    const response = await request.get(`/api/comments/${commentId}`);
+    const response = await request.get(`/api/community/comments/${commentId}`);
     expect(response.status()).toBe(403);
   } finally {
-    await page.request.delete(`/api/comments/${commentId}`);
+    await page.request.delete(`/api/community/comments/${commentId}`);
   }
 });
 
-test("/api/comments/[id] PATCH 未登录返回 401", async ({ request }) => {
+test("/api/community/comments/[id] PATCH 未登录返回 401", async ({
+  request,
+}) => {
   const response = await request.patch(
-    "/api/comments/00000000-0000-0000-0000-000000000000",
+    "/api/community/comments/00000000-0000-0000-0000-000000000000",
     { data: { body: "should fail" } },
   );
   expect(response.status()).toBe(401);
 });
 
-test("/api/comments/[id] DELETE 未登录返回 401", async ({ request }) => {
+test("/api/community/comments/[id] DELETE 未登录返回 401", async ({
+  request,
+}) => {
   const response = await request.delete(
-    "/api/comments/00000000-0000-0000-0000-000000000000",
+    "/api/community/comments/00000000-0000-0000-0000-000000000000",
   );
   expect(response.status()).toBe(401);
 });
 
-test("/api/comments/[id] PATCH 拒绝匿名可见性", async ({ page }) => {
+test("/api/community/comments/[id] PATCH 拒绝匿名可见性", async ({ page }) => {
   await signInAsDebugUser(page, "/");
   const sectionId = await resolveSeedSectionId(page.request);
   const content = `e2e-reject-edit-anonymous-visibility-${Date.now()}`;
-  const createResponse = await page.request.post("/api/comments", {
+  const createResponse = await page.request.post("/api/community/comments", {
     data: {
       targetType: "section",
       targetId: String(sectionId),
@@ -172,12 +182,15 @@ test("/api/comments/[id] PATCH 拒绝匿名可见性", async ({ page }) => {
   expect(commentId).toBeTruthy();
 
   try {
-    const response = await page.request.patch(`/api/comments/${commentId}`, {
-      data: {
-        body: `${content}-edited`,
-        visibility: "anonymous",
+    const response = await page.request.patch(
+      `/api/community/comments/${commentId}`,
+      {
+        data: {
+          body: `${content}-edited`,
+          visibility: "anonymous",
+        },
       },
-    });
+    );
 
     expect(response.status()).toBe(400);
     await expect(response.json()).resolves.toEqual({
@@ -185,18 +198,20 @@ test("/api/comments/[id] PATCH 拒绝匿名可见性", async ({ page }) => {
     });
   } finally {
     if (commentId) {
-      await page.request.delete(`/api/comments/${commentId}`);
+      await page.request.delete(`/api/community/comments/${commentId}`);
     }
   }
 });
 
-test("/api/comments/[id] PATCH 可修改评论并 DELETE 清理", async ({ page }) => {
+test("/api/community/comments/[id] PATCH 可修改评论并 DELETE 清理", async ({
+  page,
+}) => {
   await signInAsDebugUser(page, "/");
   const sectionId = await resolveSeedSectionId(page.request);
 
   // Create a disposable comment to PATCH and DELETE
   const content = `e2e-editable-comment-${Date.now()}`;
-  const createResponse = await page.request.post("/api/comments", {
+  const createResponse = await page.request.post("/api/community/comments", {
     data: {
       targetType: "section",
       targetId: String(sectionId),
@@ -212,7 +227,7 @@ test("/api/comments/[id] PATCH 可修改评论并 DELETE 清理", async ({ page 
     // PATCH: update body and visibility
     const edited = `${content}-edited`;
     const patchResponse = await page.request.patch(
-      `/api/comments/${commentId}`,
+      `/api/community/comments/${commentId}`,
       {
         data: {
           body: edited,
@@ -233,7 +248,7 @@ test("/api/comments/[id] PATCH 可修改评论并 DELETE 清理", async ({ page 
 
     // DELETE the comment
     const deleteResponse = await page.request.delete(
-      `/api/comments/${commentId}`,
+      `/api/community/comments/${commentId}`,
     );
     expect(deleteResponse.status()).toBe(200);
     expect((await deleteResponse.json()) as { success?: boolean }).toEqual({
@@ -242,12 +257,14 @@ test("/api/comments/[id] PATCH 可修改评论并 DELETE 清理", async ({ page 
   } finally {
     // Ensure cleanup even if assertions fail
     if (commentId) {
-      await page.request.delete(`/api/comments/${commentId}`);
+      await page.request.delete(`/api/community/comments/${commentId}`);
     }
   }
 });
 
-test("/api/comments/[id] PATCH 非所有者管理员被拒绝", async ({ browser }) => {
+test("/api/community/comments/[id] PATCH 非所有者管理员被拒绝", async ({
+  browser,
+}) => {
   const debugContext = await browser.newContext();
   const debugPage = await debugContext.newPage();
   const adminContext = await browser.newContext();
@@ -256,14 +273,17 @@ test("/api/comments/[id] PATCH 非所有者管理员被拒绝", async ({ browser
   const sectionId = await resolveSeedSectionId(debugPage.request);
 
   const content = `e2e-admin-public-edit-forbidden-${Date.now()}`;
-  const createResponse = await debugPage.request.post("/api/comments", {
-    data: {
-      targetType: "section",
-      targetId: String(sectionId),
-      body: content,
-      visibility: "public",
+  const createResponse = await debugPage.request.post(
+    "/api/community/comments",
+    {
+      data: {
+        targetType: "section",
+        targetId: String(sectionId),
+        body: content,
+        visibility: "public",
+      },
     },
-  });
+  );
   expect(createResponse.status()).toBe(201);
   const commentId = ((await createResponse.json()) as { id?: string }).id;
   expect(commentId).toBeTruthy();
@@ -275,7 +295,7 @@ test("/api/comments/[id] PATCH 非所有者管理员被拒绝", async ({ browser
     await signInAsDevAdmin(adminPage, "/");
 
     const patchResponse = await adminPage.request.patch(
-      `/api/comments/${commentId}`,
+      `/api/community/comments/${commentId}`,
       {
         data: { body: `${content}-admin-edited` },
       },
@@ -290,7 +310,7 @@ test("/api/comments/[id] PATCH 非所有者管理员被拒绝", async ({ browser
   }
 });
 
-test("/api/comments/[id] PATCH 拒绝绑定到其他评论的上传文件", async ({
+test("/api/community/comments/[id] PATCH 拒绝绑定到其他评论的上传文件", async ({
   page,
 }) => {
   await signInAsDebugUser(page, "/");
@@ -304,7 +324,7 @@ test("/api/comments/[id] PATCH 拒绝绑定到其他评论的上传文件", asyn
   });
 
   try {
-    const firstResponse = await page.request.post("/api/comments", {
+    const firstResponse = await page.request.post("/api/community/comments", {
       data: {
         targetType: "section",
         targetId: String(sectionId),
@@ -315,7 +335,7 @@ test("/api/comments/[id] PATCH 拒绝绑定到其他评论的上传文件", asyn
     });
     expect(firstResponse.status()).toBe(201);
 
-    const secondResponse = await page.request.post("/api/comments", {
+    const secondResponse = await page.request.post("/api/community/comments", {
       data: {
         targetType: "section",
         targetId: String(sectionId),
@@ -329,7 +349,7 @@ test("/api/comments/[id] PATCH 拒绝绑定到其他评论的上传文件", asyn
     expect(secondCommentId).toBeTruthy();
 
     const patchResponse = await page.request.patch(
-      `/api/comments/${secondCommentId}`,
+      `/api/community/comments/${secondCommentId}`,
       {
         data: {
           body: `${secondContent}-edited`,
@@ -347,16 +367,18 @@ test("/api/comments/[id] PATCH 拒绝绑定到其他评论的上传文件", asyn
         where: { body: { startsWith: marker } },
       }),
     );
-    await page.request.delete(`/api/uploads/${uploaded.uploadId}`);
+    await page.request.delete(`/api/workspace/uploads/${uploaded.uploadId}`);
   }
 });
 
-test("/api/comments/[id] PATCH 对失效评论返回 403", async ({ page }) => {
+test("/api/community/comments/[id] PATCH 对失效评论返回 403", async ({
+  page,
+}) => {
   await signInAsDebugUser(page, "/");
   const sectionId = await resolveSeedSectionId(page.request);
 
   const content = `e2e-inactive-edit-comment-${Date.now()}`;
-  const createResponse = await page.request.post("/api/comments", {
+  const createResponse = await page.request.post("/api/community/comments", {
     data: {
       targetType: "section",
       targetId: String(sectionId),
@@ -380,7 +402,7 @@ test("/api/comments/[id] PATCH 对失效评论返回 403", async ({ page }) => {
     );
 
     const softbannedResponse = await page.request.patch(
-      `/api/comments/${commentId}`,
+      `/api/community/comments/${commentId}`,
       {
         data: { body: `${content}-edited` },
       },
@@ -391,7 +413,7 @@ test("/api/comments/[id] PATCH 对失效评论返回 403", async ({ page }) => {
     });
 
     const softbannedDeleteResponse = await page.request.delete(
-      `/api/comments/${commentId}`,
+      `/api/community/comments/${commentId}`,
     );
     expect(softbannedDeleteResponse.status()).toBe(403);
     await expect(softbannedDeleteResponse.json()).resolves.toEqual({
@@ -406,7 +428,7 @@ test("/api/comments/[id] PATCH 对失效评论返回 403", async ({ page }) => {
     );
 
     const deletedResponse = await page.request.patch(
-      `/api/comments/${commentId}`,
+      `/api/community/comments/${commentId}`,
       {
         data: { body: `${content}-edited-deleted` },
       },
@@ -417,7 +439,7 @@ test("/api/comments/[id] PATCH 对失效评论返回 403", async ({ page }) => {
     });
 
     const deletedDeleteResponse = await page.request.delete(
-      `/api/comments/${commentId}`,
+      `/api/community/comments/${commentId}`,
     );
     expect(deletedDeleteResponse.status()).toBe(403);
     await expect(deletedDeleteResponse.json()).resolves.toEqual({

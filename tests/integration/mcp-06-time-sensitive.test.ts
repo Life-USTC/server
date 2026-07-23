@@ -23,12 +23,12 @@ describe("atTime 覆盖 — 时间敏感工具锚定到 SEED_DATE", () => {
     );
   });
 
-  it("get_my_7days_timeline 使用 atTime 返回种子窗口和正确范围", async () => {
+  it("workspace_calendar_timeline_get 使用 atTime 返回种子窗口和正确范围", async () => {
     const result = await context.client.call<{
       range?: { from?: string; to?: string };
       total?: number;
       events?: Array<{ type?: string; at?: string }>;
-    }>("get_my_7days_timeline", {
+    }>("workspace_calendar_timeline_get", {
       locale: "zh-cn",
       atTime: fixtures.SEED_AT_TIME,
     });
@@ -46,11 +46,11 @@ describe("atTime 覆盖 — 时间敏感工具锚定到 SEED_DATE", () => {
     expect((result.events ?? []).some((e) => e.type === "schedule")).toBe(true);
   });
 
-  it("get_my_7days_timeline summary 兼容输入保持 default 数组结构", async () => {
+  it("workspace_calendar_timeline_get summary 兼容输入保持 default 数组结构", async () => {
     const result = await context.client.call<{
       total?: number;
       events?: Array<{ type?: string; at?: string }>;
-    }>("get_my_7days_timeline", {
+    }>("workspace_calendar_timeline_get", {
       locale: "zh-cn",
       atTime: fixtures.SEED_AT_TIME,
       mode: "summary",
@@ -63,11 +63,11 @@ describe("atTime 覆盖 — 时间敏感工具锚定到 SEED_DATE", () => {
     );
   });
 
-  it("get_upcoming_deadlines 使用 atTime 仅返回锚点之后的事件", async () => {
+  it("workspace_deadline_list 使用 atTime 仅返回锚点之后的事件", async () => {
     const result = await context.client.call<{
       total?: number;
       deadlines?: Array<{ type?: string; at?: string }>;
-    }>("get_upcoming_deadlines", {
+    }>("workspace_deadline_list", {
       locale: "zh-cn",
       dayLimit: 14,
       atTime: fixtures.SEED_AT_TIME,
@@ -87,7 +87,7 @@ describe("atTime 覆盖 — 时间敏感工具锚定到 SEED_DATE", () => {
     }
   });
 
-  it("get_upcoming_deadlines 排除已开始考试", async () => {
+  it("workspace_deadline_list 排除已开始考试", async () => {
     const section = await fixtures.prisma.section.findUnique({
       where: { jwId: fixtures.DEV_SEED.section.jwId },
       select: { id: true },
@@ -117,7 +117,7 @@ describe("atTime 覆盖 — 时间敏感工具锚定到 SEED_DATE", () => {
           type?: string;
           payload?: { jwId?: number | null };
         }>;
-      }>("get_upcoming_deadlines", {
+      }>("workspace_deadline_list", {
         locale: "zh-cn",
         dayLimit: 1,
         atTime: fixtures.shanghaiIsoOnSeedDate(1000),
@@ -134,7 +134,7 @@ describe("atTime 覆盖 — 时间敏感工具锚定到 SEED_DATE", () => {
     }
   });
 
-  it("get_upcoming_deadlines 将仅日期 atTime 视为上海天开始", async () => {
+  it("workspace_deadline_list 将仅日期 atTime 视为上海天开始", async () => {
     const dueAt = `${fixtures.SEED_DATE}T06:30:00+08:00`;
     const todo = await fixtures.prisma.todo.create({
       data: {
@@ -152,7 +152,7 @@ describe("atTime 覆盖 — 时间敏感工具锚定到 SEED_DATE", () => {
           at?: string;
           payload?: { id?: string };
         }>;
-      }>("get_upcoming_deadlines", {
+      }>("workspace_deadline_list", {
         locale: "zh-cn",
         dayLimit: 1,
         atTime: fixtures.SEED_DATE,
@@ -171,7 +171,7 @@ describe("atTime 覆盖 — 时间敏感工具锚定到 SEED_DATE", () => {
     }
   });
 
-  it("get_my_overview 使用 atTime 反映种子日课程数及样本限制", async () => {
+  it("workspace_overview_get 使用 atTime 反映种子日课程数及样本限制", async () => {
     const result = await context.client.call<{
       overview?: {
         pendingTodosCount?: number;
@@ -179,7 +179,7 @@ describe("atTime 覆盖 — 时间敏感工具锚定到 SEED_DATE", () => {
         upcomingExamsCount?: number;
       };
       samples?: { dueTodos?: Array<{ dueAt?: string | null }> };
-    }>("get_my_overview", {
+    }>("workspace_overview_get", {
       locale: "zh-cn",
       atTime: fixtures.SEED_AT_TIME,
       limit: 2,
@@ -200,7 +200,7 @@ describe("atTime 覆盖 — 时间敏感工具锚定到 SEED_DATE", () => {
       samples?: {
         dueTodos?: Array<{ id?: string }>;
       };
-    }>("get_my_overview", {
+    }>("workspace_overview_get", {
       locale: "zh-cn",
       atTime: fixtures.SEED_AT_TIME,
       mode: "summary",
@@ -208,7 +208,7 @@ describe("atTime 覆盖 — 时间敏感工具锚定到 SEED_DATE", () => {
     expect(Array.isArray(summary.samples?.dueTodos)).toBe(true);
   });
 
-  it("get_my_overview 将仅日期 atTime 视为上海天开始", async () => {
+  it("workspace_overview_get 将仅日期 atTime 视为上海天开始", async () => {
     const dueAt = `${fixtures.SEED_DATE}T06:30:00+08:00`;
     const todo = await fixtures.prisma.todo.create({
       data: {
@@ -222,7 +222,7 @@ describe("atTime 覆盖 — 时间敏感工具锚定到 SEED_DATE", () => {
     try {
       const result = await context.client.call<{
         samples?: { dueTodos?: Array<{ dueAt?: string; id?: string }> };
-      }>("get_my_overview", {
+      }>("workspace_overview_get", {
         locale: "zh-cn",
         atTime: fixtures.SEED_DATE,
         limit: 30,
@@ -239,7 +239,7 @@ describe("atTime 覆盖 — 时间敏感工具锚定到 SEED_DATE", () => {
     }
   });
 
-  it("get_my_overview 遵守紧凑总览作业窗口", async () => {
+  it("workspace_overview_get 遵守紧凑总览作业窗口", async () => {
     const title = `[integration-test] outside overview window ${Date.now()}`;
     const homework = await fixtures.prisma.homework.create({
       data: {
@@ -259,7 +259,7 @@ describe("atTime 覆盖 — 时间敏感工具锚定到 SEED_DATE", () => {
     try {
       const result = await context.client.call<{
         samples?: { dueHomeworks?: Array<{ id?: string; title?: string }> };
-      }>("get_my_overview", {
+      }>("workspace_overview_get", {
         locale: "zh-cn",
         atTime: fixtures.SEED_AT_TIME,
         mode: "full",
@@ -273,7 +273,7 @@ describe("atTime 覆盖 — 时间敏感工具锚定到 SEED_DATE", () => {
 
       const extendedWindowResult = await context.client.call<{
         samples?: { dueHomeworks?: Array<{ id?: string; title?: string }> };
-      }>("get_my_overview", {
+      }>("workspace_overview_get", {
         locale: "zh-cn",
         atTime: fixtures.SEED_AT_TIME,
         homeworkWindowDays: 14,
@@ -291,26 +291,32 @@ describe("atTime 覆盖 — 时间敏感工具锚定到 SEED_DATE", () => {
     }
   });
 
-  it("get_my_overview summary 兼容输入与 default 结构和值一致", async () => {
+  it("workspace_overview_get summary 兼容输入与 default 结构和值一致", async () => {
     const atTime = `${fixtures.SEED_PLUS_TWELVE_DAYS}T12:00:00+08:00`;
-    const defaultPayload = await context.client.callTool("get_my_overview", {
-      locale: "zh-cn",
-      atTime,
-    });
-    const summaryPayload = await context.client.callTool("get_my_overview", {
-      locale: "zh-cn",
-      atTime,
-      mode: "summary",
-    });
+    const defaultPayload = await context.client.callTool(
+      "workspace_overview_get",
+      {
+        locale: "zh-cn",
+        atTime,
+      },
+    );
+    const summaryPayload = await context.client.callTool(
+      "workspace_overview_get",
+      {
+        locale: "zh-cn",
+        atTime,
+        mode: "summary",
+      },
+    );
 
     expect(summaryPayload).toEqual(defaultPayload);
   });
 
-  it("get_my_overview 排除当天已结束的考试", async () => {
+  it("workspace_overview_get 排除当天已结束的考试", async () => {
     const atTime = `${fixtures.SEED_DATE}T12:00:00+08:00`;
     const before = await context.client.call<{
       overview?: { upcomingExamsCount?: number };
-    }>("get_my_overview", {
+    }>("workspace_overview_get", {
       locale: "zh-cn",
       atTime,
     });
@@ -346,7 +352,7 @@ describe("atTime 覆盖 — 时间敏感工具锚定到 SEED_DATE", () => {
       const result = await context.client.call<{
         overview?: { upcomingExamsCount?: number };
         samples?: { upcomingExams?: Array<{ jwId?: number }> };
-      }>("get_my_overview", {
+      }>("workspace_overview_get", {
         locale: "zh-cn",
         atTime,
       });
@@ -366,10 +372,10 @@ describe("atTime 覆盖 — 时间敏感工具锚定到 SEED_DATE", () => {
     }
   });
 
-  it("get_my_overview 从未知日期考试中排除待考计数", async () => {
+  it("workspace_overview_get 从未知日期考试中排除待考计数", async () => {
     const before = await context.client.call<{
       overview?: { upcomingExamsCount?: number };
-    }>("get_my_overview", {
+    }>("workspace_overview_get", {
       locale: "zh-cn",
       atTime: fixtures.SEED_AT_TIME,
     });
@@ -405,7 +411,7 @@ describe("atTime 覆盖 — 时间敏感工具锚定到 SEED_DATE", () => {
       const result = await context.client.call<{
         overview?: { upcomingExamsCount?: number };
         samples?: { upcomingExams?: Array<{ jwId?: number }> };
-      }>("get_my_overview", {
+      }>("workspace_overview_get", {
         locale: "zh-cn",
         atTime: fixtures.SEED_AT_TIME,
         limit: 30,
@@ -428,5 +434,5 @@ describe("atTime 覆盖 — 时间敏感工具锚定到 SEED_DATE", () => {
 });
 
 // ---------------------------------------------------------------------------
-// list_schedules_by_section — new date filter
+// catalog_section_schedule_list — new date filter
 // ---------------------------------------------------------------------------

@@ -28,7 +28,7 @@ export function summarizeBusTimetable(result: BusTimetableResult) {
   const nextDeparturesMessage =
     result.preferences?.preferredOriginCampusId == null ||
     result.preferences?.preferredDestinationCampusId == null
-      ? "Save preferred origin and destination campuses or call get_next_buses for a specific route query."
+      ? "Save preferred origin and destination campuses or call catalog_bus_departure_next for a specific route query."
       : nextDepartures.length === 0
         ? "No immediate departures are available for the saved campus preference."
         : null;

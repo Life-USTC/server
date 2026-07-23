@@ -408,19 +408,19 @@ const descriptionUpsertMcpSchema = descriptionUpsertOutputSchema(
 );
 
 const MARKDOWN_MODE_OUTPUT_SCHEMAS = {
-  list_comments: {
+  community_comment_list: {
     default: commentListOutputSchema(compactCommentNodeSchema),
     full: commentListOutputSchema(fullCommentNodeSchema),
   },
-  get_comment_thread: {
+  community_comment_get: {
     default: commentThreadOutputSchema(compactCommentNodeSchema),
     full: commentThreadOutputSchema(fullCommentNodeSchema),
   },
-  get_description: {
+  community_description_get: {
     default: descriptionOutputSchema(compactDescriptionDetailSchema),
     full: descriptionOutputSchema(descriptionDetailSchema.strict()),
   },
-  upsert_description: {
+  community_description_set: {
     default: descriptionUpsertOutputSchema(compactDescriptionDetailSchema),
     full: descriptionUpsertOutputSchema(descriptionDetailSchema.strict()),
   },
@@ -439,7 +439,7 @@ const matchSectionCodesMcpSchema = objectOutputSchema({
 // Production startup asserts that every registered application tool has an
 // explicit entry. The fallback exists only for isolated SDK/test registrations.
 const TOOL_OUTPUT_SCHEMAS: Record<string, McpToolOutputSchema> = {
-  run_graphql_operation: objectOutputSchema({
+  graphql_operation_run: objectOutputSchema({
     operationId: z.string(),
     operationName: z.string(),
     operationType: z.enum(["mutation", "query"]),
@@ -463,65 +463,65 @@ const TOOL_OUTPUT_SCHEMAS: Record<string, McpToolOutputSchema> = {
     ),
     requiredScopes: z.array(z.string()),
   }),
-  get_my_profile: objectOutputSchemaFromApi(meResponseSchema),
-  get_public_user_profile: objectOutputSchema({
+  account_profile_get: objectOutputSchemaFromApi(meResponseSchema),
+  community_user_get: objectOutputSchema({
     user: compactUserSchema,
     sectionCount: z.number().int().nonnegative(),
     weeks: z.unknown(),
     totalContributions: z.number().int().nonnegative(),
   }),
-  list_my_todos: todoListMcpSchema,
-  create_my_todo: objectOutputSchema({
+  workspace_todo_list: todoListMcpSchema,
+  workspace_todo_create: objectOutputSchema({
     success: z.boolean(),
     id: z.string(),
   }),
-  update_my_todo: objectOutputSchema({
+  workspace_todo_update: objectOutputSchema({
     success: z.boolean(),
     todo: compactTodoSchema,
   }),
-  delete_my_todo: objectOutputSchemaFromApi(successResponseSchema),
+  workspace_todo_delete: objectOutputSchemaFromApi(successResponseSchema),
 
-  list_my_homeworks: objectOutputSchema({
+  workspace_homework_list: objectOutputSchema({
     homeworks: collectionOutputSchema(compactHomeworkSchema),
   }),
-  set_my_homework_completion: topLevelOutputSchema(["completion"]),
-  list_homeworks_by_section: objectOutputSchema({
+  workspace_homework_completion_set: topLevelOutputSchema(["completion"]),
+  community_section_homework_list: objectOutputSchema({
     section: compactSectionSchema,
     homeworks: collectionOutputSchema(compactHomeworkSchema),
   }),
-  create_homework_on_section: objectOutputSchema({
+  community_section_homework_create: objectOutputSchema({
     id: z.string(),
     homework: compactHomeworkSchema,
     reason: z.string().nullable(),
   }),
-  update_homework_on_section: objectOutputSchema({
+  community_section_homework_update: objectOutputSchema({
     homework: compactHomeworkSchema,
     reason: z.string().nullable(),
   }),
-  delete_homework_on_section: topLevelOutputSchema([
+  community_section_homework_delete: topLevelOutputSchema([
     "deletedId",
     "alreadyDeleted",
     "reason",
   ]),
 
-  get_my_calendar_subscription: objectOutputSchema({
+  workspace_calendar_feed_get: objectOutputSchema({
     subscription: compactCalendarSubscriptionSchema.nullable(),
   }),
-  list_my_subscribed_sections: objectOutputSchema({
+  workspace_subscription_list: objectOutputSchema({
     sections: collectionOutputSchema(compactSectionSchema),
     note: z.string(),
   }),
-  subscribe_section_by_jw_id: objectOutputSchema({
+  workspace_subscription_add: objectOutputSchema({
     action: z.string(),
     sectionJwId: z.number().int(),
     subscription: compactCalendarSubscriptionSchema.nullable(),
   }),
-  unsubscribe_section_by_jw_id: objectOutputSchema({
+  workspace_subscription_remove: objectOutputSchema({
     action: z.string(),
     sectionJwId: z.number().int(),
     subscription: compactCalendarSubscriptionSchema.nullable(),
   }),
-  subscribe_my_sections_by_codes: objectOutputSchema({
+  workspace_subscription_import: objectOutputSchema({
     semester: compactSemesterSchema,
     matchedCodes: collectionOutputSchema(z.string()),
     unmatchedCodes: collectionOutputSchema(z.string()),
@@ -529,45 +529,52 @@ const TOOL_OUTPUT_SCHEMAS: Record<string, McpToolOutputSchema> = {
     alreadySubscribedCount: z.number().int().nonnegative(),
     subscription: compactCalendarSubscriptionSchema.nullable(),
   }),
-  get_section_calendar_subscription: objectOutputSchema({
+  catalog_section_calendar_feed_get: objectOutputSchema({
     section: compactSectionSchema.nullable(),
     calendarPath: z.string(),
     calendarUrl: z.string(),
   }),
 
-  list_my_calendar_events: topLevelOutputSchema(["events"]),
-  get_my_7days_timeline: topLevelOutputSchema(["range", "total", "events"]),
+  workspace_calendar_event_list: topLevelOutputSchema(["events"]),
+  workspace_calendar_timeline_get: topLevelOutputSchema([
+    "range",
+    "total",
+    "events",
+  ]),
 
-  list_comments: commentListMcpSchema,
-  get_comment_thread: commentThreadMcpSchema,
-  create_comment: objectOutputSchema({ success: z.boolean(), id: z.string() }),
-  update_own_comment: topLevelOutputSchema(["comment"]),
-  delete_own_comment: objectOutputSchemaFromApi(successResponseSchema),
-  add_comment_reaction: objectOutputSchema({
+  community_comment_list: commentListMcpSchema,
+  community_comment_get: commentThreadMcpSchema,
+  community_comment_create: objectOutputSchema({
+    success: z.boolean(),
+    id: z.string(),
+  }),
+  community_comment_update: topLevelOutputSchema(["comment"]),
+  community_comment_delete: objectOutputSchemaFromApi(successResponseSchema),
+  community_comment_reaction_add: objectOutputSchema({
     success: z.boolean(),
     changed: z.boolean(),
   }),
-  remove_comment_reaction: objectOutputSchema({
+  community_comment_reaction_remove: objectOutputSchema({
     success: z.boolean(),
     changed: z.boolean(),
   }),
 
-  get_description: descriptionMcpSchema,
-  upsert_description: descriptionUpsertMcpSchema,
+  community_description_get: descriptionMcpSchema,
+  community_description_set: descriptionUpsertMcpSchema,
 
-  list_my_uploads: uploadListMcpSchema,
-  rename_my_upload: objectOutputSchema({
+  workspace_upload_list: uploadListMcpSchema,
+  workspace_upload_rename: objectOutputSchema({
     ...uploadRenameResponseSchema.shape,
     success: z.boolean(),
     reason: z.string().nullable(),
   }),
-  delete_my_upload: objectOutputSchema({
+  workspace_upload_delete: objectOutputSchema({
     ...uploadDeleteResponseSchema.shape,
     success: z.boolean(),
     reason: z.string().nullable(),
   }),
 
-  get_my_dashboard: topLevelOutputSchema([
+  workspace_snapshot_get: topLevelOutputSchema([
     "user",
     "currentSemester",
     "subscriptions",
@@ -577,7 +584,7 @@ const TOOL_OUTPUT_SCHEMAS: Record<string, McpToolOutputSchema> = {
     "todos",
     "bus",
   ]),
-  list_dashboard_links: topLevelOutputSchema([
+  workspace_link_list: topLevelOutputSchema([
     "query",
     "total",
     "returned",
@@ -585,17 +592,20 @@ const TOOL_OUTPUT_SCHEMAS: Record<string, McpToolOutputSchema> = {
     "pinnedSlugs",
     "maxPinnedLinks",
   ]),
-  set_dashboard_link_pin_state: topLevelOutputSchema([
+  workspace_link_pin_set: topLevelOutputSchema([
     "action",
     "slug",
     "pinnedSlugs",
     "maxPinnedLinks",
   ]),
-  get_upcoming_deadlines: topLevelOutputSchema(["total", "deadlines"]),
-  get_my_overview: topLevelOutputSchema(["user", "overview", "samples"]),
-  get_next_class: topLevelOutputSchema(["nextClass", "currentSemester"]),
+  workspace_deadline_list: topLevelOutputSchema(["total", "deadlines"]),
+  workspace_overview_get: topLevelOutputSchema(["user", "overview", "samples"]),
+  workspace_schedule_next: topLevelOutputSchema([
+    "nextClass",
+    "currentSemester",
+  ]),
 
-  query_bus_timetable: objectOutputSchema({
+  catalog_bus_timetable_get: objectOutputSchema({
     locale: z.string(),
     fetchedAt: dateTimeSchema,
     version: z.unknown(),
@@ -610,14 +620,14 @@ const TOOL_OUTPUT_SCHEMAS: Record<string, McpToolOutputSchema> = {
     notice: z.unknown(),
     hasData: z.boolean(),
   }),
-  list_bus_routes: objectOutputSchema({
+  catalog_bus_route_list: objectOutputSchema({
     locale: z.string(),
     version: z.unknown(),
     campuses: collectionOutputSchema(compactCampusSchema),
     routes: collectionOutputSchema(compactBusRouteSchema),
     notice: z.unknown(),
   }),
-  get_bus_route_timetable: objectOutputSchema({
+  catalog_bus_route_get: objectOutputSchema({
     routeId: z.number().int(),
     route: compactBusRouteSchema,
     weekday: collectionOutputSchema(z.unknown()),
@@ -625,16 +635,16 @@ const TOOL_OUTPUT_SCHEMAS: Record<string, McpToolOutputSchema> = {
     alternateRoutes: collectionOutputSchema(compactBusRouteSchema),
     hasData: z.boolean(),
   }),
-  get_my_bus_preferences: topLevelOutputSchema(["preference"]),
-  save_my_bus_preferences: topLevelOutputSchema(["preference"]),
-  search_bus_routes: objectOutputSchema({
+  workspace_bus_preferences_get: topLevelOutputSchema(["preference"]),
+  workspace_bus_preferences_set: topLevelOutputSchema(["preference"]),
+  catalog_bus_route_search: objectOutputSchema({
     originCampus: compactCampusSchema.nullable(),
     destinationCampus: compactCampusSchema.nullable(),
     total: z.number().int().nonnegative(),
     routes: collectionOutputSchema(compactBusRouteSchema),
     hasData: z.boolean(),
   }),
-  get_next_buses: objectOutputSchema({
+  catalog_bus_departure_next: objectOutputSchema({
     atTime: dateTimeSchema,
     dayType: z.enum(["weekday", "weekend"]),
     totalRoutes: z.number().int().nonnegative(),
@@ -646,38 +656,38 @@ const TOOL_OUTPUT_SCHEMAS: Record<string, McpToolOutputSchema> = {
     message: z.string().nullable(),
   }),
 
-  search_courses: paginatedCourseMcpSchema,
-  get_course_by_jw_id: objectOutputSchema({
+  catalog_course_search: paginatedCourseMcpSchema,
+  catalog_course_get: objectOutputSchema({
     course: compactCourseSchema.nullable(),
   }),
-  list_semesters: paginatedSemesterMcpSchema,
-  get_current_semester: objectOutputSchema({
+  catalog_semester_list: paginatedSemesterMcpSchema,
+  catalog_semester_current: objectOutputSchema({
     semester: compactSemesterSchema.nullable(),
   }),
 
-  get_section_by_jw_id: objectOutputSchema({ section: compactSectionSchema }),
-  search_sections: paginatedSectionMcpSchema,
-  match_section_codes: matchSectionCodesMcpSchema,
+  catalog_section_get: objectOutputSchema({ section: compactSectionSchema }),
+  catalog_section_search: paginatedSectionMcpSchema,
+  catalog_section_match_preview: matchSectionCodesMcpSchema,
 
-  search_teachers: paginatedTeacherMcpSchema,
-  get_teacher_by_id: objectOutputSchema({
+  catalog_teacher_search: paginatedTeacherMcpSchema,
+  catalog_teacher_get: objectOutputSchema({
     teacher: compactTeacherSchema.nullable(),
   }),
 
-  query_schedules: paginatedScheduleMcpSchema,
-  list_schedules_by_section: objectOutputSchema({
+  catalog_schedule_list: paginatedScheduleMcpSchema,
+  catalog_section_schedule_list: objectOutputSchema({
     section: compactSectionSchema,
     schedules: collectionOutputSchema(compactScheduleSchema),
   }),
-  list_my_schedules: objectOutputSchema({
+  workspace_schedule_list: objectOutputSchema({
     schedules: collectionOutputSchema(compactScheduleSchema),
   }),
 
-  list_exams_by_section: objectOutputSchema({
+  catalog_section_exam_list: objectOutputSchema({
     section: compactSectionSchema,
     exams: collectionOutputSchema(compactExamSchema),
   }),
-  list_my_exams: objectOutputSchema({
+  workspace_exam_list: objectOutputSchema({
     exams: collectionOutputSchema(compactExamSchema),
   }),
 };

@@ -35,7 +35,7 @@ describe("dashboard link 工具 — 列表/搜索与置顶状态", () => {
     await fixtures.prisma.$disconnect();
   });
 
-  it("list_dashboard_links 搜索拼音并包含置顶状态", async () => {
+  it("workspace_link_list 搜索拼音并包含置顶状态", async () => {
     const result = await dashboardLinkMcp?.call<{
       success?: boolean;
       query?: string | null;
@@ -54,7 +54,7 @@ describe("dashboard link 工具 — 列表/搜索与置顶状态", () => {
       }>;
       pinnedSlugs?: string[];
       maxPinnedLinks?: number;
-    }>("list_dashboard_links", {
+    }>("workspace_link_list", {
       query: "youxiang",
     });
 
@@ -77,7 +77,7 @@ describe("dashboard link 工具 — 列表/搜索与置顶状态", () => {
     expect(mail).not.toHaveProperty("descriptionPinyin");
   });
 
-  it("set_dashboard_link_pin_state 为 MCP 用户置顶与取消置顶", async () => {
+  it("workspace_link_pin_set 为 MCP 用户置顶与取消置顶", async () => {
     if (!dashboardLinkUserId)
       throw new Error("Dashboard link test user missing");
     await fixtures.prisma.dashboardLinkPin.deleteMany({
@@ -90,7 +90,7 @@ describe("dashboard link 工具 — 列表/搜索与置顶状态", () => {
       slug?: string;
       pinnedSlugs?: string[];
       maxPinnedLinks?: number;
-    }>("set_dashboard_link_pin_state", {
+    }>("workspace_link_pin_set", {
       slug: "mail",
       action: "pin",
     });
@@ -106,7 +106,7 @@ describe("dashboard link 工具 — 列表/搜索与置顶状态", () => {
     const listed = await dashboardLinkMcp?.call<{
       dashboardLinks?: Array<{ slug?: string; isPinned?: boolean }>;
       pinnedSlugs?: string[];
-    }>("list_dashboard_links", {
+    }>("workspace_link_list", {
       query: "youxiang",
     });
     expect(listed?.pinnedSlugs).toContain("mail");
@@ -120,7 +120,7 @@ describe("dashboard link 工具 — 列表/搜索与置顶状态", () => {
       slug?: string;
       pinnedSlugs?: string[];
       maxPinnedLinks?: number;
-    }>("set_dashboard_link_pin_state", {
+    }>("workspace_link_pin_set", {
       slug: "mail",
       action: "unpin",
     });
@@ -134,7 +134,7 @@ describe("dashboard link 工具 — 列表/搜索与置顶状态", () => {
     expect(unpinned?.pinnedSlugs ?? []).not.toContain("mail");
   });
 
-  it("set_dashboard_link_pin_state 对无效 slug 返回校验载荷", async () => {
+  it("workspace_link_pin_set 对无效 slug 返回校验载荷", async () => {
     if (!dashboardLinkUserId)
       throw new Error("Dashboard link test user missing");
     await fixtures.prisma.dashboardLinkPin.deleteMany({
@@ -148,7 +148,7 @@ describe("dashboard link 工具 — 列表/搜索与置顶状态", () => {
       slug?: string;
       pinnedSlugs?: string[];
       maxPinnedLinks?: number;
-    }>("set_dashboard_link_pin_state", {
+    }>("workspace_link_pin_set", {
       slug: "missing-dashboard-link",
       action: "pin",
     });

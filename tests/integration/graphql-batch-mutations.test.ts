@@ -189,7 +189,7 @@ describe("GraphQL batch mutations", () => {
       {
         query: /* GraphQL */ `
           mutation SetWithoutWrite($items: [TodoCompletionBatchItemInput!]!) {
-            setTodoCompletions(items: $items) {
+            todoCompletionsSet(items: $items) {
               results {
                 success
               }
@@ -221,7 +221,7 @@ describe("GraphQL batch mutations", () => {
       {
         query: /* GraphQL */ `
           mutation SetTodoBatch($items: [TodoCompletionBatchItemInput!]!) {
-            setTodoCompletions(items: $items) {
+            todoCompletionsSet(items: $items) {
               results {
                 success
                 todoId
@@ -249,7 +249,7 @@ describe("GraphQL batch mutations", () => {
     );
 
     expect(completion.payload.errors).toBeUndefined();
-    expect(completion.payload.data?.setTodoCompletions).toEqual({
+    expect(completion.payload.data?.todoCompletionsSet).toEqual({
       results: [
         {
           success: true,
@@ -272,7 +272,7 @@ describe("GraphQL batch mutations", () => {
       {
         query: /* GraphQL */ `
           mutation DeleteTodoBatch($ids: [ID!]!) {
-            deleteTodos(ids: $ids) {
+            todosDelete(ids: $ids) {
               results {
                 success
                 id
@@ -290,7 +290,7 @@ describe("GraphQL batch mutations", () => {
       token,
     );
     expect(deletion.payload.errors).toBeUndefined();
-    expect(deletion.payload.data?.deleteTodos).toEqual({
+    expect(deletion.payload.data?.todosDelete).toEqual({
       results: [
         { success: true, id: ownedDeleteTodoId, error: null },
         {
@@ -315,7 +315,7 @@ describe("GraphQL batch mutations", () => {
     });
     const query = /* GraphQL */ `
       mutation StrictTodoBatch($items: [TodoCompletionBatchItemInput!]!) {
-        setTodoCompletions(items: $items) {
+        todoCompletionsSet(items: $items) {
           results {
             success
           }
@@ -362,7 +362,7 @@ describe("GraphQL batch mutations", () => {
           mutation SetHomeworkBatch(
             $items: [HomeworkCompletionBatchItemInput!]!
           ) {
-            setHomeworkCompletions(items: $items) {
+            homeworkCompletionsSet(items: $items) {
               results {
                 success
                 homeworkId
@@ -387,7 +387,7 @@ describe("GraphQL batch mutations", () => {
     );
 
     expect(result.payload.errors).toBeUndefined();
-    expect(result.payload.data?.setHomeworkCompletions).toEqual({
+    expect(result.payload.data?.homeworkCompletionsSet).toEqual({
       results: [
         {
           success: true,
@@ -418,7 +418,7 @@ describe("GraphQL batch mutations", () => {
     const token = await signToken(userAId, [restWriteScope("subscription")]);
     const mutation = /* GraphQL */ `
       mutation UpdateSubscriptions($input: UpdateSectionSubscriptionsInput!) {
-        updateSectionSubscriptions(input: $input) {
+        subscriptionsImport(input: $input) {
           action
           semesterId
           matchedCodes
@@ -444,7 +444,7 @@ describe("GraphQL batch mutations", () => {
       token,
     );
     expect(added.payload.errors).toBeUndefined();
-    expect(added.payload.data?.updateSectionSubscriptions).toMatchObject({
+    expect(added.payload.data?.subscriptionsImport).toMatchObject({
       action: "ADD",
       semesterId,
       matchedCodes: [DEV_SEED.section.code],
@@ -474,7 +474,7 @@ describe("GraphQL batch mutations", () => {
       token,
     );
     expect(cleared.payload.errors).toBeUndefined();
-    expect(cleared.payload.data?.updateSectionSubscriptions).toMatchObject({
+    expect(cleared.payload.data?.subscriptionsImport).toMatchObject({
       action: "SET",
       semesterId,
       matchedCodes: [],

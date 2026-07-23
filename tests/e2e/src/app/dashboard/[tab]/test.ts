@@ -1,5 +1,5 @@
 /**
- * E2E tests for dashboard route variants (`/dashboard/<tab>`).
+ * E2E tests for dashboard route variants (`/workspace/<tab>`).
  */
 import { expect, type Page, test } from "@playwright/test";
 import {
@@ -15,14 +15,14 @@ import { gotoAndWaitForReady } from "../../../../utils/page-ready";
 import { captureStepScreenshot } from "../../../../utils/screenshot";
 
 const dashboardTabRoutes = {
-  overview: "/dashboard/overview",
-  calendar: "/dashboard/calendar",
-  homeworks: "/dashboard/homeworks",
-  todos: "/dashboard/todos",
-  exams: "/dashboard/exams",
-  subscriptions: "/dashboard/subscriptions",
-  bus: "/dashboard/bus",
-  links: "/dashboard/links",
+  overview: "/workspace/overview",
+  calendar: "/workspace/calendar",
+  homeworks: "/workspace/homeworks",
+  todos: "/workspace/todos",
+  exams: "/workspace/exams",
+  subscriptions: "/workspace/subscriptions",
+  bus: "/workspace/bus",
+  links: "/workspace/links",
 } satisfies Record<SignedTabId, string>;
 
 const dashboardTabTitles = {
@@ -49,7 +49,7 @@ const dashboardTabTitles = {
 } satisfies Record<"en-us" | "zh-cn", Record<SignedTabId, string>>;
 
 async function setLocale(page: Page, locale: "en-us" | "zh-cn") {
-  const response = await page.request.post("/api/locale", {
+  const response = await page.request.post("/api/account/preferences", {
     data: { locale },
   });
   expect(response.status()).toBe(200);
@@ -72,19 +72,19 @@ async function expectDashboardPageIdentity(
   ).toHaveCount(1);
 }
 
-test("/dashboard 别名需要登录", async ({ page }, testInfo) => {
-  await expectRequiresSignIn(page, "/dashboard/homeworks");
+test("/workspace 别名需要登录", async ({ page }, testInfo) => {
+  await expectRequiresSignIn(page, "/workspace/homeworks");
   await captureStepScreenshot(page, testInfo, "dashboard-homeworks-unauth");
 });
 
-test("/dashboard/homeworks 加载登录标签", async ({ page }, testInfo) => {
-  await signInAsDebugUser(page, "/dashboard/homeworks");
-  await gotoAndWaitForReady(page, "/dashboard/homeworks", {
+test("/workspace/homeworks 加载登录标签", async ({ page }, testInfo) => {
+  await signInAsDebugUser(page, "/workspace/homeworks");
+  await gotoAndWaitForReady(page, "/workspace/homeworks", {
     testInfo,
     screenshotLabel: "dashboard-homeworks",
   });
 
-  await expect(page).toHaveURL(/\/dashboard\/homeworks(?:[/?#].*)?$/);
+  await expect(page).toHaveURL(/\/workspace\/homeworks(?:[/?#].*)?$/);
   await expect(
     sidebarNavigationLink(page, /^(作业|Homework)$/i),
   ).toHaveAttribute("aria-current", "page");
@@ -92,10 +92,10 @@ test("/dashboard/homeworks 加载登录标签", async ({ page }, testInfo) => {
 });
 
 test("登录工作区隐藏公共页脚但公共内容页保留", async ({ page }) => {
-  await signInAsDebugUser(page, "/dashboard/overview");
+  await signInAsDebugUser(page, "/workspace/overview");
   await expect(page.locator("footer")).toHaveCount(0);
 
-  await gotoAndWaitForReady(page, "/courses");
+  await gotoAndWaitForReady(page, "/catalog/courses");
   await expect(page.locator("footer")).toBeVisible();
 });
 
@@ -134,9 +134,9 @@ for (const locale of ["zh-cn", "en-us"] as const) {
 
 test("查询参数别名永久跳转后使用规范化的工作台页面身份", async ({ page }) => {
   await setLocale(page, "zh-cn");
-  await signInAsDebugUser(page, "/dashboard/todos");
-  await gotoAndWaitForReady(page, "/dashboard?tab=todos");
+  await signInAsDebugUser(page, "/workspace/todos");
+  await gotoAndWaitForReady(page, "/workspace?tab=todos");
 
-  await expect(page).toHaveURL(/\/dashboard\/todos$/);
+  await expect(page).toHaveURL(/\/workspace\/todos$/);
   await expectDashboardPageIdentity(page, "zh-cn", "待办");
 });

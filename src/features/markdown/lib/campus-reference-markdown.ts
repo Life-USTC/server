@@ -16,7 +16,9 @@ type MutableTextParent = {
 };
 
 function defaultCampusReferenceHref(kind: CampusReferenceKind, id: string) {
-  return kind === "teacher" ? `/teachers/${id}` : `/sections/${id}`;
+  return kind === "teacher"
+    ? `/catalog/teachers/${id}`
+    : `/catalog/sections/${id}`;
 }
 
 function campusReferenceLink(

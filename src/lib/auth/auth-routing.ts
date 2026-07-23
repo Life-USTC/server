@@ -58,7 +58,7 @@ export function resolveAuthRedirectTarget(
 }
 
 export function buildSignInPageUrl(callbackUrl: string) {
-  return `/signin?callbackUrl=${encodeURIComponent(sanitizeAuthCallbackUrl(callbackUrl))}`;
+  return `/account/sign-in?callbackUrl=${encodeURIComponent(sanitizeAuthCallbackUrl(callbackUrl))}`;
 }
 
 export function buildCurrentPathCallbackUrl(
@@ -134,9 +134,9 @@ export function shouldRedirectIncompleteProfileToWelcome({
   }
 
   if (
-    pathname === "/welcome" ||
-    pathname === "/signin" ||
-    pathname === "/signout" ||
+    pathname === "/account/welcome" ||
+    pathname === "/account/sign-in" ||
+    pathname === "/account/sign-out" ||
     pathname.startsWith("/oauth/") ||
     isOAuthCallbackContinuation(url)
   ) {

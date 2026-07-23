@@ -12,7 +12,7 @@ export function buildDetailSecondaryLinks(
   pathname: string,
   pageData: DetailPageData,
 ): ShellLink[] {
-  const courseMatch = pathname.match(/^\/courses\/([^/]+)/);
+  const courseMatch = pathname.match(/^\/catalog\/courses\/([^/]+)/);
   if (courseMatch && pageData.course) {
     return [
       {
@@ -23,7 +23,7 @@ export function buildDetailSecondaryLinks(
     ];
   }
 
-  const sectionMatch = pathname.match(/^\/sections\/([^/]+)/);
+  const sectionMatch = pathname.match(/^\/catalog\/sections\/([^/]+)/);
   if (sectionMatch && pageData.section?.course) {
     return [
       {
@@ -36,7 +36,7 @@ export function buildDetailSecondaryLinks(
     ];
   }
 
-  const teacherMatch = pathname.match(/^\/teachers\/([^/]+)/);
+  const teacherMatch = pathname.match(/^\/catalog\/teachers\/([^/]+)/);
   if (teacherMatch && pageData.teacher) {
     return [
       {

@@ -2,6 +2,16 @@ import { describe, expect, it } from "vitest";
 import { compactMcpPayload } from "@/lib/mcp/compact-dispatch";
 
 describe("compactMcpPayload MCP 载荷压缩", () => {
+  it("隐藏社区日历订阅路径中的访问令牌", () => {
+    expect(
+      compactMcpPayload({
+        calendarPath: "/api/community/users/user-1:private-token/calendar.ics",
+      }),
+    ).toEqual({
+      calendarPath: "/api/community/users/user-1:[redacted]/calendar.ics",
+    });
+  });
+
   describe("原始类型和数组", () => {
     it("原样透传 null", () => {
       expect(compactMcpPayload(null)).toBeNull();
@@ -736,9 +746,9 @@ describe("compactMcpPayload MCP 载荷压缩", () => {
           sectionCount: 2,
           currentSemesterSectionCount: 1,
           currentSemesterSections: [{ id: 1, code: "CS101.01" }],
-          calendarPath: "/api/users/user-1/calendar.ics?token=secret",
+          calendarPath: "/api/community/users/user-1/calendar.ics?token=secret",
           calendarUrl:
-            "https://life.example/api/users/user-1/calendar.ics?token=secret",
+            "https://life.example/api/community/users/user-1/calendar.ics?token=secret",
           note: "summary",
         },
       };

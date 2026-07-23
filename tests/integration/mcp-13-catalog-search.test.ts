@@ -4,7 +4,7 @@ import * as fixtures from "./utils/mcp-tool-test-utils";
 const context = fixtures.createMcpToolTestContext();
 
 describe("学期查询工具", () => {
-  it("list_semesters 返回与 REST 等价的分页学期列表", async () => {
+  it("catalog_semester_list 返回与 REST 等价的分页学期列表", async () => {
     const result = await context.client.call<{
       data?: Array<{
         id?: number;
@@ -20,7 +20,7 @@ describe("学期查询工具", () => {
         total?: number;
         totalPages?: number;
       };
-    }>("list_semesters", {
+    }>("catalog_semester_list", {
       page: 1,
       limit: 20,
       mode: "default",
@@ -42,7 +42,7 @@ describe("学期查询工具", () => {
     expect(typeof semester?.endDate).toBe("string");
   });
 
-  it("list_semesters summary 兼容输入保留标准分页数组", async () => {
+  it("catalog_semester_list summary 兼容输入保留标准分页数组", async () => {
     const result = await context.client.call<{
       data?: Array<{
         jwId?: number;
@@ -53,7 +53,7 @@ describe("学期查询工具", () => {
         page?: number;
         pageSize?: number;
       };
-    }>("list_semesters", {
+    }>("catalog_semester_list", {
       page: 1,
       limit: 10,
       mode: "summary",
@@ -70,7 +70,7 @@ describe("学期查询工具", () => {
     expect(semester?.nameCn).toBe(fixtures.DEV_SEED.semesterNameCn);
   });
 
-  it("list_semesters 越界页码返回空数据与正确分页元数据", async () => {
+  it("catalog_semester_list 越界页码返回空数据与正确分页元数据", async () => {
     const result = await context.client.call<{
       data?: unknown[];
       pagination?: {
@@ -79,7 +79,7 @@ describe("学期查询工具", () => {
         total?: number;
         totalPages?: number;
       };
-    }>("list_semesters", {
+    }>("catalog_semester_list", {
       page: 9999,
       limit: 10,
       mode: "default",
@@ -92,24 +92,24 @@ describe("学期查询工具", () => {
     expect(result.pagination?.totalPages).toBeGreaterThanOrEqual(1);
   });
 
-  it("list_semesters 拒绝越界或无效分页参数", async () => {
+  it("catalog_semester_list 拒绝越界或无效分页参数", async () => {
     await expect(
-      context.client.call("list_semesters", { page: 0, limit: 10 }),
+      context.client.call("catalog_semester_list", { page: 0, limit: 10 }),
     ).rejects.toThrow();
 
     await expect(
-      context.client.call("list_semesters", { page: 1, limit: 101 }),
+      context.client.call("catalog_semester_list", { page: 1, limit: 101 }),
     ).rejects.toThrow();
 
     await expect(
-      context.client.call("list_semesters", {
+      context.client.call("catalog_semester_list", {
         page: "not-a-number",
         limit: 10,
       }),
     ).rejects.toThrow();
   });
 
-  it("get_current_semester 返回覆盖当前的 seed 学期", async () => {
+  it("catalog_semester_current 返回覆盖当前的 seed 学期", async () => {
     const result = await context.client.call<{
       found?: boolean;
       semester?: {
@@ -120,7 +120,7 @@ describe("学期查询工具", () => {
         startDate?: string;
         endDate?: string;
       };
-    }>("get_current_semester", { mode: "default" });
+    }>("catalog_semester_current", { mode: "default" });
 
     expect(result.found).toBe(true);
     expect(result.semester?.jwId).toBe(fixtures.DEV_SEED.semesterJwId);
@@ -131,11 +131,11 @@ describe("学期查询工具", () => {
     expect(typeof result.semester?.endDate).toBe("string");
   });
 
-  it("get_current_semester full 模式返回完整学期记录", async () => {
+  it("catalog_semester_current full 模式返回完整学期记录", async () => {
     const result = await context.client.call<{
       found?: boolean;
       semester?: Record<string, unknown>;
-    }>("get_current_semester", { mode: "full" });
+    }>("catalog_semester_current", { mode: "full" });
 
     expect(result.found).toBe(true);
     expect(result.semester?.jwId).toBe(fixtures.DEV_SEED.semesterJwId);
@@ -145,9 +145,9 @@ describe("学期查询工具", () => {
     expect(result.semester).toHaveProperty("endDate");
   });
 
-  it("get_current_semester 拒绝无效 mode 参数", async () => {
+  it("catalog_semester_current 拒绝无效 mode 参数", async () => {
     await expect(
-      context.client.call("get_current_semester", { mode: "invalid-mode" }),
+      context.client.call("catalog_semester_current", { mode: "invalid-mode" }),
     ).rejects.toThrow();
   });
 });

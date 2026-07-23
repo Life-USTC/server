@@ -16,30 +16,32 @@ describe("API 可观测性", () => {
   });
 
   it("规范化高基数路由段", () => {
-    expect(normalizeApiRoutePath("/api/todos/123")).toBe("/api/todos/:id");
-    expect(normalizeApiRoutePath("/api/calendar-subscriptions/current")).toBe(
-      "/api/calendar-subscriptions/current",
+    expect(normalizeApiRoutePath("/api/workspace/todos/123")).toBe(
+      "/api/workspace/todos/:id",
+    );
+    expect(normalizeApiRoutePath("/api/workspace/subscriptions/current")).toBe(
+      "/api/workspace/subscriptions/current",
     );
     expect(
       normalizeApiRoutePath(
-        "/api/comments/018d7a46-1e0b-7c3d-9f6a-123456789abc",
+        "/api/community/comments/018d7a46-1e0b-7c3d-9f6a-123456789abc",
       ),
-    ).toBe("/api/comments/:id");
-    expect(normalizeApiRoutePath("/api/uploads/clx1234567890abcdef")).toBe(
-      "/api/uploads/:id",
-    );
+    ).toBe("/api/community/comments/:id");
+    expect(
+      normalizeApiRoutePath("/api/workspace/uploads/clx1234567890abcdef"),
+    ).toBe("/api/workspace/uploads/:id");
   });
 
   it("隐去日历订阅路径令牌", () => {
     const normalized = normalizeApiRoutePath(
-      "/api/users/user-1:feed-token-0123456789/calendar.ics",
+      "/api/community/users/user-1:feed-token-0123456789/calendar.ics",
     );
     const encodedSeparator = normalizeApiRoutePath(
-      "/api/users/user-1%3Afeed-token-0123456789/calendar.ics",
+      "/api/community/users/user-1%3Afeed-token-0123456789/calendar.ics",
     );
 
-    expect(normalized).toBe("/api/users/:id/calendar.ics");
-    expect(encodedSeparator).toBe("/api/users/:id/calendar.ics");
+    expect(normalized).toBe("/api/community/users/:id/calendar.ics");
+    expect(encodedSeparator).toBe("/api/community/users/:id/calendar.ics");
     expect(normalized).not.toContain("feed-token-0123456789");
     expect(encodedSeparator).not.toContain("feed-token-0123456789");
   });
@@ -49,7 +51,7 @@ describe("API 可观测性", () => {
 
     recordApiRequestStart({
       method: "GET",
-      pathname: "/api/todos/123",
+      pathname: "/api/workspace/todos/123",
       requestId: "request-1",
     });
 
@@ -58,7 +60,7 @@ describe("API 可观测性", () => {
       expect.objectContaining({
         event: "request.start",
         method: "GET",
-        path: "/api/todos/:id",
+        path: "/api/workspace/todos/:id",
         requestId: "request-1",
         status: 0,
       }),
@@ -72,7 +74,7 @@ describe("API 可观测性", () => {
     const route = observedApiRoute(() => Response.json({ ok: true }));
 
     const response = await route(
-      new Request("https://example.test/api/todos/123", {
+      new Request("https://example.test/api/workspace/todos/123", {
         headers: {
           authorization: "Bearer token-value",
           "x-request-id": "request-1",
@@ -89,7 +91,7 @@ describe("API 可观测性", () => {
         event: "request.finish",
         ioObservedDurationMs: 1000,
         method: "GET",
-        path: "/api/todos/:id",
+        path: "/api/workspace/todos/:id",
         requestId: "request-1",
         status: 200,
       }),
@@ -108,7 +110,7 @@ describe("API 可观测性", () => {
 
     await route(
       new Request(
-        "https://example.test/api/users/user-1:feed-token-0123456789/calendar.ics",
+        "https://example.test/api/community/users/user-1:feed-token-0123456789/calendar.ics",
         {
           headers: {
             authorization: "Bearer token-value",
@@ -120,12 +122,12 @@ describe("API 可观测性", () => {
     );
 
     expect(writeDataPoint).toHaveBeenCalledWith({
-      indexes: ["/api/users/:id/calendar.ics"],
+      indexes: ["/api/community/users/:id/calendar.ics"],
       blobs: [
         "api_request_v2",
         "finish",
         "GET",
-        "/api/users/:id/calendar.ics",
+        "/api/community/users/:id/calendar.ics",
         "204",
         "2xx",
         "bearer",
@@ -149,7 +151,7 @@ describe("API 可观测性", () => {
     const route = observedApiRoute(() => Response.json({ ok: true }));
 
     const response = await route(
-      new Request("https://example.test/api/todos/123"),
+      new Request("https://example.test/api/workspace/todos/123"),
     );
 
     expect(response.status).toBe(200);
@@ -165,7 +167,7 @@ describe("API 可观测性", () => {
 
     await expect(
       route(
-        new Request("https://example.test/api/todos/123", {
+        new Request("https://example.test/api/workspace/todos/123", {
           headers: {
             cookie: "better-auth.session_token=session-token",
             "x-request-id": "request-1",
@@ -183,7 +185,7 @@ describe("API 可观测性", () => {
         event: "request.error",
         ioObservedDurationMs: 1000,
         method: "GET",
-        path: "/api/todos/:id",
+        path: "/api/workspace/todos/:id",
         requestId: "request-1",
         status: 500,
       }),
@@ -207,7 +209,7 @@ describe("API 可观测性", () => {
 
   it("records completion exactly once across route and hook boundaries", async () => {
     const info = vi.spyOn(console, "info").mockImplementation(() => {});
-    const request = new Request("https://example.test/api/todos/123");
+    const request = new Request("https://example.test/api/workspace/todos/123");
     setApiRequestObservabilityContext(request, {
       requestId: "internal-request-id",
       startMs: Date.now(),

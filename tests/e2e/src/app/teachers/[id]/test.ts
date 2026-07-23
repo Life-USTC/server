@@ -45,14 +45,14 @@ async function navigateToSeedTeacher(
 ) {
   await gotoAndWaitForReady(
     page,
-    `/teachers?search=${encodeURIComponent(DEV_SEED.teacher.code)}`,
+    `/catalog/teachers?search=${encodeURIComponent(DEV_SEED.teacher.code)}`,
   );
   const detailLink = page
-    .locator("#main-content a[href^='/teachers/']:visible")
+    .locator("#main-content a[href^='/catalog/teachers/']:visible")
     .first();
   await expect(detailLink).toBeVisible();
   await detailLink.click();
-  await expect(page).toHaveURL(/\/teachers\/\d+/);
+  await expect(page).toHaveURL(/\/catalog\/teachers\/\d+/);
   await waitForUiSettled(page);
 }
 
@@ -70,15 +70,18 @@ async function jumpToTeacherSection(
   await expect(page.locator(selector)).toBeVisible();
 }
 
-test.describe("/teachers/[id] 教师详情页", () => {
+test.describe("/catalog/teachers/[id] 教师详情页", () => {
   test.describe.configure({ mode: "serial" });
 
   test("页面契约", async ({ page }, testInfo) => {
-    await assertPageContract(page, { routePath: "/teachers/[id]", testInfo });
+    await assertPageContract(page, {
+      routePath: "/catalog/teachers/[id]",
+      testInfo,
+    });
   });
 
   test("无效参数返回 404", async ({ page }, testInfo) => {
-    await gotoAndWaitForReady(page, "/teachers/999999999", {
+    await gotoAndWaitForReady(page, "/catalog/teachers/999999999", {
       expectMainContent: false,
     });
     await expect(page.getByText("404").first()).toBeVisible();
@@ -184,11 +187,11 @@ test.describe("/teachers/[id] 教师详情页", () => {
     );
 
     const sectionLink = page
-      .locator("tbody a[href^='/sections/']:visible")
+      .locator("tbody a[href^='/catalog/sections/']:visible")
       .first();
     await expect(sectionLink).toBeVisible();
     await sectionLink.click();
-    await expect(page).toHaveURL(/\/sections\/\d+/);
+    await expect(page).toHaveURL(/\/catalog\/sections\/\d+/);
     await captureStepScreenshot(page, testInfo, "teacher/section-link");
   });
 
@@ -210,7 +213,7 @@ test.describe("/teachers/[id] 教师详情页", () => {
     ).toBeVisible();
 
     await jumpToTeacherSection(page, /评论|Comments/i, "#teacher-comments");
-    await expect(page).toHaveURL(/\/teachers\/\d+\/comments$/);
+    await expect(page).toHaveURL(/\/catalog\/teachers\/\d+\/comments$/);
     await captureStepScreenshot(page, testInfo, "teacher/detail-nav");
   });
 
@@ -241,9 +244,9 @@ test.describe("/teachers/[id] 教师详情页", () => {
     page,
   }, testInfo) => {
     test.setTimeout(60_000);
-    await signInAsDebugUser(page, "/teachers");
+    await signInAsDebugUser(page, "/catalog/teachers");
     await navigateToSeedTeacher(page);
-    const teacherId = page.url().match(/\/teachers\/(\d+)/)?.[1];
+    const teacherId = page.url().match(/\/catalog\/teachers\/(\d+)/)?.[1];
     expect(teacherId).toBeTruthy();
     if (!teacherId) {
       throw new Error("Expected teacher id in URL");
@@ -272,7 +275,7 @@ test.describe("/teachers/[id] 教师详情页", () => {
 
       const saveResponse = page.waitForResponse(
         (r) =>
-          r.url().includes("/api/descriptions") &&
+          r.url().includes("/api/community/descriptions") &&
           r.request().method() === "POST" &&
           r.status() === 200,
       );
@@ -310,17 +313,17 @@ test.describe("/teachers/[id] 教师详情页", () => {
 
   test("已登录用户可发布、编辑与删除评论", async ({ page }, testInfo) => {
     test.setTimeout(60_000);
-    await signInAsDebugUser(page, "/teachers");
+    await signInAsDebugUser(page, "/catalog/teachers");
     await navigateToSeedTeacher(page);
     let commentId: string | undefined;
 
     try {
       await expect(async () => {
-        if (!page.url().includes("/teachers/")) {
+        if (!page.url().includes("/catalog/teachers/")) {
           await navigateToSeedTeacher(page);
         }
         await jumpToTeacherSection(page, /评论|Comments/i, "#teacher-comments");
-        await expect(page).toHaveURL(/\/teachers\/\d+\/comments$/);
+        await expect(page).toHaveURL(/\/catalog\/teachers\/\d+\/comments$/);
       }).toPass({
         timeout: 10_000,
         intervals: [250, 500, 1_000],
@@ -343,7 +346,7 @@ test.describe("/teachers/[id] 教师详情页", () => {
       await composer.fill(body);
       const createResponse = page.waitForResponse(
         (r) =>
-          r.url().includes("/api/comments") &&
+          r.url().includes("/api/community/comments") &&
           r.request().method() === "POST" &&
           r.status() === 201,
       );
@@ -388,7 +391,7 @@ test.describe("/teachers/[id] 教师详情页", () => {
       await editTextarea.fill(editedBody);
       const editResponse = page.waitForResponse(
         (r) =>
-          r.url().includes("/api/comments/") &&
+          r.url().includes("/api/community/comments/") &&
           r.request().method() === "PATCH" &&
           r.status() === 200,
       );
@@ -413,7 +416,7 @@ test.describe("/teachers/[id] 教师详情页", () => {
       ).toHaveCount(0);
       const deleteResponse = page.waitForResponse(
         (r) =>
-          r.url().includes("/api/comments/") &&
+          r.url().includes("/api/community/comments/") &&
           r.request().method() === "DELETE" &&
           r.status() === 200,
       );

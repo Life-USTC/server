@@ -170,7 +170,7 @@ afterAll(async () => {
 describe("GraphQL authenticated mutations", () => {
   it("rejects anonymous and insufficient-scope writes before service execution", async () => {
     const anonymous = await execute({
-      query: 'mutation { createTodo(input: { title: "anonymous" }) { id } }',
+      query: 'mutation { todoCreate(input: { title: "anonymous" }) { id } }',
     });
     expect(anonymous.response.headers.get("cache-control")).toBe("no-store");
     expectErrorCode(anonymous.payload, "UNAUTHENTICATED");
@@ -178,7 +178,7 @@ describe("GraphQL authenticated mutations", () => {
     const readToken = await signToken(userAId, [restReadScope("todo")]);
     const missingScope = await execute(
       {
-        query: 'mutation { createTodo(input: { title: "read only" }) { id } }',
+        query: 'mutation { todoCreate(input: { title: "read only" }) { id } }',
       },
       readToken,
     );
@@ -203,7 +203,7 @@ describe("GraphQL authenticated mutations", () => {
       {
         query: /* GraphQL */ `
           mutation CreateTodo($dueAt: DateTime!) {
-            createTodo(
+            todoCreate(
               input: {
                 title: "  ${marker} todo  "
                 content: "  initial  "
@@ -222,7 +222,7 @@ describe("GraphQL authenticated mutations", () => {
     expect(created.response.headers.get("cache-control")).toBe("no-store");
     expect(created.payload.errors).toBeUndefined();
     const todoId = (
-      created.payload.data?.createTodo as { id?: string } | undefined
+      created.payload.data?.todoCreate as { id?: string } | undefined
     )?.id;
     expect(todoId).toEqual(expect.any(String));
 
@@ -242,7 +242,7 @@ describe("GraphQL authenticated mutations", () => {
       {
         query: /* GraphQL */ `
           query TodoPriorityRoundTrip {
-            viewer {
+            viewer: workspace {
               todos(filter: { priority: HIGH }, page: { pageSize: 100 }) {
                 items {
                   id
@@ -268,7 +268,7 @@ describe("GraphQL authenticated mutations", () => {
       {
         query: /* GraphQL */ `
           mutation ClearContent($id: ID!) {
-            updateTodo(id: $id, input: { content: null }) {
+            todoUpdate(id: $id, input: { content: null }) {
               id
             }
           }
@@ -278,7 +278,7 @@ describe("GraphQL authenticated mutations", () => {
       tokenA,
     );
     expect(cleared.payload).toEqual({
-      data: { updateTodo: { id: todoId } },
+      data: { todoUpdate: { id: todoId } },
     });
     await expect(
       prisma.todo.findUniqueOrThrow({
@@ -293,7 +293,7 @@ describe("GraphQL authenticated mutations", () => {
     const otherUser = await execute(
       {
         query:
-          "mutation UpdateOther($id: ID!) { updateTodo(id: $id, input: { completed: true }) { id } }",
+          "mutation UpdateOther($id: ID!) { todoUpdate(id: $id, input: { completed: true }) { id } }",
         variables: { id: todoId },
       },
       tokenB,
@@ -303,13 +303,13 @@ describe("GraphQL authenticated mutations", () => {
     const deleted = await execute(
       {
         query:
-          "mutation DeleteTodo($id: ID!) { deleteTodo(id: $id) { id success } }",
+          "mutation DeleteTodo($id: ID!) { todoDelete(id: $id) { id success } }",
         variables: { id: todoId },
       },
       tokenA,
     );
     expect(deleted.payload).toEqual({
-      data: { deleteTodo: { id: todoId, success: true } },
+      data: { todoDelete: { id: todoId, success: true } },
     });
   });
 
@@ -342,13 +342,13 @@ describe("GraphQL authenticated mutations", () => {
     createdCommentIds.push(comment.id);
 
     const createTodoMutation =
-      "mutation($input: CreateTodoInput!) { createTodo(input: $input) { id } }";
+      "mutation($input: CreateTodoInput!) { todoCreate(input: $input) { id } }";
     const updateTodoMutation =
-      "mutation($id: ID!, $input: UpdateTodoInput!) { updateTodo(id: $id, input: $input) { id } }";
+      "mutation($id: ID!, $input: UpdateTodoInput!) { todoUpdate(id: $id, input: $input) { id } }";
     const createCommentMutation =
-      "mutation($input: CreateCommentInput!) { createComment(input: $input) { id } }";
+      "mutation($input: CreateCommentInput!) { commentCreate(input: $input) { id } }";
     const updateCommentMutation =
-      "mutation($id: ID!, $input: UpdateCommentInput!) { updateComment(id: $id, input: $input) { id } }";
+      "mutation($id: ID!, $input: UpdateCommentInput!) { commentUpdate(id: $id, input: $input) { id } }";
     const commentCreateInput = {
       body: `${marker} invalid comment create`,
       sectionJwId: DEV_SEED.section.jwId,
@@ -462,7 +462,7 @@ describe("GraphQL authenticated mutations", () => {
       }),
     ]);
     const mutation =
-      "mutation($input: CreateCommentInput!) { createComment(input: $input) { id } }";
+      "mutation($input: CreateCommentInput!) { commentCreate(input: $input) { id } }";
     const invalidSelectors = [
       { field: "sectionJwId", value: 0 },
       { field: "sectionJwId", value: -1 },
@@ -522,30 +522,30 @@ describe("GraphQL authenticated mutations", () => {
             $origin: Int!
             $destination: Int!
           ) {
-            completion: setHomeworkCompletion(
+            completion: homeworkCompletionSet(
               homeworkId: $homeworkId
               completed: true
             ) {
               homeworkId
               completed
             }
-            subscribed: subscribeSection(jwId: $sectionJwId) {
+            subscribed: subscriptionAdd(jwId: $sectionJwId) {
               sectionJwId
               subscribed
             }
-            unsubscribed: unsubscribeSection(jwId: $sectionJwId) {
+            unsubscribed: subscriptionRemove(jwId: $sectionJwId) {
               sectionJwId
               subscribed
             }
-            pinned: setDashboardLinkPinState(slug: $slug, pinned: true) {
+            pinned: linkPinSet(slug: $slug, pinned: true) {
               slug
               pinned
             }
-            unpinned: setDashboardLinkPinState(slug: $slug, pinned: false) {
+            unpinned: linkPinSet(slug: $slug, pinned: false) {
               slug
               pinned
             }
-            savedBus: saveBusPreferences(
+            savedBus: busPreferencesSet(
               input: {
                 preferredOriginCampusId: $origin
                 preferredDestinationCampusId: $destination
@@ -617,7 +617,7 @@ describe("GraphQL authenticated mutations", () => {
       {
         query: /* GraphQL */ `
           mutation CreateComment($sectionJwId: Int!) {
-            createComment(
+            commentCreate(
               input: {
                 targetType: SECTION
                 sectionJwId: $sectionJwId
@@ -637,7 +637,7 @@ describe("GraphQL authenticated mutations", () => {
       },
     );
     const commentId = (
-      created.payload.data?.createComment as { id?: string } | undefined
+      created.payload.data?.commentCreate as { id?: string } | undefined
     )?.id;
     expect(commentId).toEqual(expect.any(String));
     createdCommentIds.push(commentId as string);
@@ -657,14 +657,14 @@ describe("GraphQL authenticated mutations", () => {
       {
         query: /* GraphQL */ `
           mutation CommentChanges($id: ID!) {
-            updateComment(id: $id, input: { body: "${marker} edited" }) {
+            commentUpdate(id: $id, input: { body: "${marker} edited" }) {
               id
             }
-            added: addCommentReaction(commentId: $id, type: HEART) {
+            added: commentReactionAdd(commentId: $id, type: HEART) {
               active
               changed
             }
-            removed: removeCommentReaction(commentId: $id, type: HEART) {
+            removed: commentReactionRemove(commentId: $id, type: HEART) {
               active
               changed
             }
@@ -675,7 +675,7 @@ describe("GraphQL authenticated mutations", () => {
       tokenA,
     );
     expect(changed.payload.data).toMatchObject({
-      updateComment: { id: commentId },
+      commentUpdate: { id: commentId },
       added: { active: true, changed: true },
       removed: { active: false, changed: true },
     });
@@ -683,7 +683,7 @@ describe("GraphQL authenticated mutations", () => {
     const otherOwner = await execute(
       {
         query:
-          "mutation DeleteOther($id: ID!) { deleteComment(id: $id) { success } }",
+          "mutation DeleteOther($id: ID!) { commentDelete(id: $id) { success } }",
         variables: { id: commentId },
       },
       tokenB,
@@ -693,19 +693,19 @@ describe("GraphQL authenticated mutations", () => {
     const deleted = await execute(
       {
         query:
-          "mutation DeleteOwn($id: ID!) { deleteComment(id: $id) { success } }",
+          "mutation DeleteOwn($id: ID!) { commentDelete(id: $id) { success } }",
         variables: { id: commentId },
       },
       tokenA,
     );
     expect(deleted.payload.data).toEqual({
-      deleteComment: { success: true },
+      commentDelete: { success: true },
     });
 
     const locked = await execute(
       {
         query:
-          "mutation ReactLocked($id: ID!) { addCommentReaction(commentId: $id, type: HEART) { changed } }",
+          "mutation ReactLocked($id: ID!) { commentReactionAdd(commentId: $id, type: HEART) { changed } }",
         variables: { id: commentId },
       },
       tokenA,
@@ -720,7 +720,7 @@ describe("GraphQL authenticated mutations", () => {
       {
         query: /* GraphQL */ `
           mutation SuspendedPersonalWrite {
-            createTodo(input: { title: "${marker} suspended personal" }) {
+            todoCreate(input: { title: "${marker} suspended personal" }) {
               id
             }
           }
@@ -734,7 +734,7 @@ describe("GraphQL authenticated mutations", () => {
       {
         query: /* GraphQL */ `
           mutation SuspendedComment($sectionJwId: Int!) {
-            createComment(
+            commentCreate(
               input: {
                 targetType: SECTION
                 sectionJwId: $sectionJwId

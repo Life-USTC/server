@@ -81,7 +81,7 @@ $: commentsCount = data.commentsData
       0,
     )
   : 0;
-$: sectionBaseHref = `/sections/${data.section.jwId}`;
+$: sectionBaseHref = `/catalog/sections/${data.section.jwId}`;
 $: sectionNavItems = [
   {
     href: sectionBaseHref,

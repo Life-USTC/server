@@ -1,8 +1,8 @@
 /**
- * E2E tests for GET /api/teachers
+ * E2E tests for GET /api/catalog/teachers
  *
  * ## Endpoints
- * - `GET /api/teachers` — List teachers with optional department/search filters and pagination.
+ * - `GET /api/catalog/teachers` — List teachers with optional department/search filters and pagination.
  *
  * ## Request
  * - Query: `departmentId` (optional, integer), `search` (optional, matches nameCn/nameEn/code),
@@ -25,17 +25,19 @@ import { expect, test } from "@playwright/test";
 import { DEV_SEED } from "../../../../utils/dev-seed";
 import { assertApiContract } from "../../_shared/api-contract";
 
-test.describe("GET /api/teachers", () => {
+test.describe("GET /api/catalog/teachers", () => {
   test("契约", async ({ request }) => {
-    await assertApiContract(request, { routePath: "/api/teachers" });
+    await assertApiContract(request, { routePath: "/api/catalog/teachers" });
   });
 
   test("详情契约", async ({ request }) => {
-    await assertApiContract(request, { routePath: "/api/teachers/[id]" });
+    await assertApiContract(request, {
+      routePath: "/api/catalog/teachers/[id]",
+    });
   });
 
   test("返回分页响应结构", async ({ request }) => {
-    const response = await request.get("/api/teachers");
+    const response = await request.get("/api/catalog/teachers");
     expect(response.status()).toBe(200);
     const body = (await response.json()) as {
       data?: unknown[];
@@ -57,7 +59,7 @@ test.describe("GET /api/teachers", () => {
 
   test("按教师工号搜索返回 seed 教师", async ({ request }) => {
     const response = await request.get(
-      `/api/teachers?search=${encodeURIComponent(DEV_SEED.teacher.code)}`,
+      `/api/catalog/teachers?search=${encodeURIComponent(DEV_SEED.teacher.code)}`,
     );
     expect(response.status()).toBe(200);
     const body = (await response.json()) as {
@@ -72,7 +74,7 @@ test.describe("GET /api/teachers", () => {
 
   test("按中文名搜索返回 seed 教师", async ({ request }) => {
     const response = await request.get(
-      `/api/teachers?search=${encodeURIComponent(DEV_SEED.teacher.nameCn)}`,
+      `/api/catalog/teachers?search=${encodeURIComponent(DEV_SEED.teacher.nameCn)}`,
     );
     expect(response.status()).toBe(200);
     const body = (await response.json()) as {
@@ -85,7 +87,7 @@ test.describe("GET /api/teachers", () => {
 
   test("无匹配搜索返回空数据", async ({ request }) => {
     const response = await request.get(
-      "/api/teachers?search=ZZZZZ_NONEXISTENT_TEACHER_99999",
+      "/api/catalog/teachers?search=ZZZZZ_NONEXISTENT_TEACHER_99999",
     );
     expect(response.status()).toBe(200);
     const body = (await response.json()) as {
@@ -98,7 +100,7 @@ test.describe("GET /api/teachers", () => {
   });
 
   test("page 参数可翻页", async ({ request }) => {
-    const response = await request.get("/api/teachers?page=1");
+    const response = await request.get("/api/catalog/teachers?page=1");
     expect(response.status()).toBe(200);
     const body = (await response.json()) as {
       pagination?: { page?: number };
@@ -107,7 +109,7 @@ test.describe("GET /api/teachers", () => {
   });
 
   test("pageSize 参数控制页大小", async ({ request }) => {
-    const response = await request.get("/api/teachers?pageSize=1");
+    const response = await request.get("/api/catalog/teachers?pageSize=1");
     expect(response.status()).toBe(200);
     const body = (await response.json()) as {
       data?: unknown[];
@@ -120,7 +122,7 @@ test.describe("GET /api/teachers", () => {
   test("详情路由返回带班级的 seed 教师", async ({ request }) => {
     const cacheBust = `teacher-detail-${Date.now()}`;
     const teacherListResponse = await request.get(
-      `/api/teachers?search=${encodeURIComponent(DEV_SEED.teacher.code)}&limit=5&cacheBust=${cacheBust}`,
+      `/api/catalog/teachers?search=${encodeURIComponent(DEV_SEED.teacher.code)}&limit=5&cacheBust=${cacheBust}`,
     );
     expect(teacherListResponse.status()).toBe(200);
     const teacherListBody = (await teacherListResponse.json()) as {
@@ -131,7 +133,7 @@ test.describe("GET /api/teachers", () => {
     )?.id;
     expect(teacherId).toBeDefined();
 
-    const response = await request.get(`/api/teachers/${teacherId}`);
+    const response = await request.get(`/api/catalog/teachers/${teacherId}`);
     expect(response.status()).toBe(200);
     const body = (await response.json()) as {
       id?: number;
@@ -171,7 +173,7 @@ test.describe("GET /api/teachers", () => {
 
   test("教师列表项包含所有必需的 TeacherSummary 字段", async ({ request }) => {
     const response = await request.get(
-      `/api/teachers?search=${encodeURIComponent(DEV_SEED.teacher.code)}&limit=5`,
+      `/api/catalog/teachers?search=${encodeURIComponent(DEV_SEED.teacher.code)}&limit=5`,
     );
     expect(response.status()).toBe(200);
     const body = (await response.json()) as {

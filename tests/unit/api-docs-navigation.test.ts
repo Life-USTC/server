@@ -28,17 +28,23 @@ describe("API 文档导航选择", () => {
       .flatMap((tag) => tag.operations);
 
     expect(
-      operations.find((operation) => operation.path === "/api/sections"),
+      operations.find(
+        (operation) => operation.path === "/api/catalog/sections",
+      ),
     ).toMatchObject({
       summary: "List sections",
     });
     expect(
-      operations.find((operation) => operation.path === "/api/teachers"),
+      operations.find(
+        (operation) => operation.path === "/api/catalog/teachers",
+      ),
     ).toMatchObject({
       summary: "List teachers",
     });
     expect(
-      operations.find((operation) => operation.path === "/api/semesters"),
+      operations.find(
+        (operation) => operation.path === "/api/catalog/semesters",
+      ),
     ).toMatchObject({
       summary: "List semesters",
     });

@@ -46,14 +46,14 @@ vi.mock("@/lib/db/prisma", () => ({
 }));
 
 function preferenceRequest(body: unknown) {
-  return new Request("https://example.test/api/bus/preferences", {
+  return new Request("https://example.test/api/workspace/bus-preferences", {
     body: JSON.stringify(body),
     headers: { "Content-Type": "application/json" },
     method: "POST",
   });
 }
 
-describe("POST /api/bus/preferences 班车偏好接口", () => {
+describe("POST /api/workspace/bus-preferences 班车偏好接口", () => {
   beforeEach(() => {
     vi.resetModules();
     requireAuthMock.mockReset();

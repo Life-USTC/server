@@ -1,5 +1,5 @@
 <script lang="ts">
-import RouteErrorCard from "../../_components/RouteErrorCard.svelte";
+import RouteErrorCard from "@/routes/_components/RouteErrorCard.svelte";
 </script>
 
 <RouteErrorCard />

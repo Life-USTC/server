@@ -54,7 +54,7 @@ describe("上传管理路由", () => {
     );
 
     const response = await deleteUploadRoute(
-      new Request("https://example.test/api/uploads/upload-1", {
+      new Request("https://example.test/api/workspace/uploads/upload-1", {
         method: "DELETE",
       }),
       { id: "upload-1" },

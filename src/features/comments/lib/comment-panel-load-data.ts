@@ -89,7 +89,9 @@ export async function loadCommentsForTargets({
 }
 
 async function loadCommentPage(params: URLSearchParams, loadFailed: string) {
-  const result = await apiClient.GET(`/api/comments?${params.toString()}`);
+  const result = await apiClient.GET(
+    `/api/community/comments?${params.toString()}`,
+  );
   if (!result.response.ok) throw new Error(loadFailed);
   const parsed = commentsListResponseSchema.safeParse(result.data);
   if (!parsed.success) throw new Error(loadFailed);

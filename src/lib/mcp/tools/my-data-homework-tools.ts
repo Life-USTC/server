@@ -13,11 +13,11 @@ import { setMyHomeworkCompletionTool } from "./my-data-homework-completion-tool"
 
 export function registerMyHomeworkTools(server: McpServer) {
   server.registerTool(
-    "list_my_homeworks",
+    "workspace_homework_list",
     {
       description:
         "List homeworks across your subscribed sections in all semesters, including your personal completion state and comment count. " +
-        "Use list_homeworks_by_section for a single section's homeworks without completion state. " +
+        "Use community_section_homework_list for a single section's homeworks without completion state. " +
         "Pass semesterId to list homeworks from a specific semester (e.g. a previous semester).",
       inputSchema: {
         completed: z.boolean().optional(),
@@ -46,7 +46,7 @@ export function registerMyHomeworkTools(server: McpServer) {
   );
 
   server.registerTool(
-    "set_my_homework_completion",
+    "workspace_homework_completion_set",
     {
       description:
         "Mark a homework as completed or incomplete. Pass completed: false to revert to incomplete.",

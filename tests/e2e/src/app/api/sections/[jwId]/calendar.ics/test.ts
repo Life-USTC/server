@@ -2,17 +2,17 @@ import { expect, test } from "@playwright/test";
 import { DEV_SEED } from "../../../../../../utils/dev-seed";
 import { assertApiContract } from "../../../../_shared/api-contract";
 
-test("/api/sections/[jwId]/calendar.ics 契约", async ({ request }) => {
+test("/api/catalog/sections/[jwId]/calendar.ics 契约", async ({ request }) => {
   await assertApiContract(request, {
-    routePath: "/api/sections/[jwId]/calendar.ics",
+    routePath: "/api/catalog/sections/[jwId]/calendar.ics",
   });
 });
 
-test("/api/sections/[jwId]/calendar.ics 包含 seed 班级代码", async ({
+test("/api/catalog/sections/[jwId]/calendar.ics 包含 seed 班级代码", async ({
   request,
 }) => {
   const response = await request.get(
-    `/api/sections/${DEV_SEED.section.jwId}/calendar.ics`,
+    `/api/catalog/sections/${DEV_SEED.section.jwId}/calendar.ics`,
   );
   expect(response.status()).toBe(200);
   const content = await response.text();

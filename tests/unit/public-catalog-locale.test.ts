@@ -20,12 +20,15 @@ describe("public catalog locale cache policy", () => {
     "zh-cn",
   ] as const)("publicly caches explicit %s URL variants", (locale) => {
     const result = resolvePublicCatalogLocale(
-      new Request(`https://example.test/api/courses?locale=${locale}&page=1`, {
-        headers: {
-          "accept-language": locale === "en-us" ? "zh-CN" : "en-US",
-          cookie: `NEXT_LOCALE=${locale === "en-us" ? "zh-cn" : "en-us"}`,
+      new Request(
+        `https://example.test/api/catalog/courses?locale=${locale}&page=1`,
+        {
+          headers: {
+            "accept-language": locale === "en-us" ? "zh-CN" : "en-US",
+            cookie: `NEXT_LOCALE=${locale === "en-us" ? "zh-cn" : "en-us"}`,
+          },
         },
-      }),
+      ),
     );
 
     expect(result).not.toBeInstanceOf(Response);
@@ -37,7 +40,7 @@ describe("public catalog locale cache policy", () => {
 
   it("keeps a cookie-derived locale out of browser and CDN caches", () => {
     const result = resolvePublicCatalogLocale(
-      new Request("https://example.test/api/courses?page=1", {
+      new Request("https://example.test/api/catalog/courses?page=1", {
         headers: {
           "accept-language": "en-US",
           cookie: "NEXT_LOCALE=zh-cn",
@@ -54,7 +57,7 @@ describe("public catalog locale cache policy", () => {
 
   it("keeps an Accept-Language-derived locale out of shared caches", () => {
     const result = resolvePublicCatalogLocale(
-      new Request("https://example.test/api/courses?page=1", {
+      new Request("https://example.test/api/catalog/courses?page=1", {
         headers: { "accept-language": "en-US,en;q=0.9" },
       }),
     );
@@ -68,7 +71,7 @@ describe("public catalog locale cache policy", () => {
 
   it("rejects an unsupported explicit locale without caching the error", async () => {
     const result = resolvePublicCatalogLocale(
-      new Request("https://example.test/api/courses?locale=fr-fr"),
+      new Request("https://example.test/api/catalog/courses?locale=fr-fr"),
     );
 
     expect(result).toBeInstanceOf(Response);

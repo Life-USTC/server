@@ -12,7 +12,7 @@ import {
 
 export function registerCalendarSectionTools(server: McpServer) {
   server.registerTool(
-    "get_section_calendar_subscription",
+    "catalog_section_calendar_feed_get",
     {
       description: "Get the iCal feed URL for a single section by JW ID.",
       inputSchema: {
@@ -25,11 +25,11 @@ export function registerCalendarSectionTools(server: McpServer) {
   );
 
   server.registerTool(
-    "subscribe_my_sections_by_codes",
+    "workspace_subscription_import",
     {
       description:
         "Match section codes and subscribe in one step. Not official enrollment. " +
-        "Use match_section_codes first for a dry-run preview when confirmation is needed.",
+        "Use catalog_section_match_preview first for a dry-run preview when confirmation is needed.",
       inputSchema: {
         codes: z.array(sectionCodeSchema).min(1).max(500),
         semesterId: z.number().int().positive().optional(),

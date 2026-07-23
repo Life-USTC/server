@@ -1,14 +1,14 @@
 /**
- * E2E tests for GET /api/descriptions and POST /api/descriptions.
+ * E2E tests for GET /api/community/descriptions and POST /api/community/descriptions.
  *
- * ## GET /api/descriptions
+ * ## GET /api/community/descriptions
  * - Query: targetType (section|course|teacher|homework) plus targetId or public identifiers such as sectionJwId/courseJwId/teacherId/homeworkId
  * - Response: { description: { id, content, ... } | null, history: DescriptionEdit[], viewer }
  * - Public endpoint (no auth required)
  * - Returns 400 for invalid/missing targetType or targetId
  * - Returns 200 with null description if target exists but has no description
  *
- * ## POST /api/descriptions
+ * ## POST /api/community/descriptions
  * - Body: { targetType, targetId|sectionJwId|courseJwId|teacherId|homeworkId, content }
  * - Response: { id: string, updated: boolean }
  * - Auth required (401 if unauthenticated)
@@ -126,7 +126,7 @@ async function deleteDisposableDescriptionFixture(
 async function resolveSeedSectionId(
   request: import("@playwright/test").APIRequestContext,
 ) {
-  const response = await request.post("/api/sections/match-codes", {
+  const response = await request.post("/api/catalog/sections/match-codes", {
     data: { codes: [DEV_SEED.section.code] },
   });
   expect(response.status()).toBe(200);
@@ -139,15 +139,19 @@ async function resolveSeedSectionId(
   return section!.id!;
 }
 
-test("/api/descriptions 接口契约", async ({ request }) => {
-  await assertApiContract(request, { routePath: "/api/descriptions" });
+test("/api/community/descriptions 接口契约", async ({ request }) => {
+  await assertApiContract(request, {
+    routePath: "/api/community/descriptions",
+  });
 });
 
-test("/api/descriptions GET 返回 seed 描述内容", async ({ request }) => {
+test("/api/community/descriptions GET 返回 seed 描述内容", async ({
+  request,
+}) => {
   const sectionId = await resolveSeedSectionId(request);
 
   const response = await request.get(
-    `/api/descriptions?targetType=section&targetId=${sectionId}`,
+    `/api/community/descriptions?targetType=section&targetId=${sectionId}`,
   );
   expect(response.status()).toBe(200);
   const body = (await response.json()) as {
@@ -161,9 +165,11 @@ test("/api/descriptions GET 返回 seed 描述内容", async ({ request }) => {
   expect(body.viewer).toBeDefined();
 });
 
-test("/api/descriptions GET 接受公开 section JW id", async ({ request }) => {
+test("/api/community/descriptions GET 接受公开 section JW id", async ({
+  request,
+}) => {
   const response = await request.get(
-    `/api/descriptions?targetType=section&sectionJwId=${DEV_SEED.section.jwId}`,
+    `/api/community/descriptions?targetType=section&sectionJwId=${DEV_SEED.section.jwId}`,
   );
   expect(response.status()).toBe(200);
   const body = (await response.json()) as {
@@ -175,27 +181,35 @@ test("/api/descriptions GET 接受公开 section JW id", async ({ request }) => 
   expect(body.viewer).toBeDefined();
 });
 
-test("/api/descriptions GET 无效 targetType 返回 400", async ({ request }) => {
+test("/api/community/descriptions GET 无效 targetType 返回 400", async ({
+  request,
+}) => {
   const response = await request.get(
-    "/api/descriptions?targetType=invalid&targetId=1",
+    "/api/community/descriptions?targetType=invalid&targetId=1",
   );
   expect(response.status()).toBe(400);
 });
 
-test("/api/descriptions GET 缺少 targetId 返回 400", async ({ request }) => {
-  const response = await request.get("/api/descriptions?targetType=section");
+test("/api/community/descriptions GET 缺少 targetId 返回 400", async ({
+  request,
+}) => {
+  const response = await request.get(
+    "/api/community/descriptions?targetType=section",
+  );
   expect(response.status()).toBe(400);
 });
 
-test("/api/descriptions GET 不存在的 target 返回 404", async ({ request }) => {
+test("/api/community/descriptions GET 不存在的 target 返回 404", async ({
+  request,
+}) => {
   const response = await request.get(
-    "/api/descriptions?targetType=section&sectionJwId=999999999",
+    "/api/community/descriptions?targetType=section&sectionJwId=999999999",
   );
   expect(response.status()).toBe(404);
 });
 
-test("/api/descriptions POST 未登录返回 401", async ({ request }) => {
-  const response = await request.post("/api/descriptions", {
+test("/api/community/descriptions POST 未登录返回 401", async ({ request }) => {
+  const response = await request.post("/api/community/descriptions", {
     data: {
       targetType: "section",
       targetId: "1",
@@ -205,7 +219,7 @@ test("/api/descriptions POST 未登录返回 401", async ({ request }) => {
   expect(response.status()).toBe(401);
 });
 
-test("/api/descriptions POST 登录后可更新描述并清理", async ({
+test("/api/community/descriptions POST 登录后可更新描述并清理", async ({
   page,
 }, testInfo) => {
   await signInAsDebugUser(page, "/");
@@ -216,7 +230,7 @@ test("/api/descriptions POST 登录后可更新描述并清理", async ({
   try {
     // Read original content first
     const originalResponse = await page.request.get(
-      `/api/descriptions?targetType=section&targetId=${fixture.sectionId}`,
+      `/api/community/descriptions?targetType=section&targetId=${fixture.sectionId}`,
     );
     expect(originalResponse.status()).toBe(200);
     const originalBody = (await originalResponse.json()) as {
@@ -231,13 +245,16 @@ test("/api/descriptions POST 登录后可更新描述并清理", async ({
     const newContent = `e2e-description-${Date.now()}`;
 
     // POST: update description
-    const postResponse = await page.request.post("/api/descriptions", {
-      data: {
-        targetType: "section",
-        targetId: String(fixture.sectionId),
-        content: newContent,
+    const postResponse = await page.request.post(
+      "/api/community/descriptions",
+      {
+        data: {
+          targetType: "section",
+          targetId: String(fixture.sectionId),
+          content: newContent,
+        },
       },
-    });
+    );
     expect(postResponse.status()).toBe(200);
     const postBody = (await postResponse.json()) as {
       id?: string;
@@ -248,7 +265,7 @@ test("/api/descriptions POST 登录后可更新描述并清理", async ({
 
     // Verify the update via GET
     const getResponse = await page.request.get(
-      `/api/descriptions?targetType=section&targetId=${fixture.sectionId}`,
+      `/api/community/descriptions?targetType=section&targetId=${fixture.sectionId}`,
     );
     expect(getResponse.status()).toBe(200);
     const getBody = (await getResponse.json()) as {
@@ -257,13 +274,16 @@ test("/api/descriptions POST 登录后可更新描述并清理", async ({
     expect(getBody.description?.content).toContain(newContent);
 
     // Test idempotent upsert: same content returns updated: false
-    const idempotentResponse = await page.request.post("/api/descriptions", {
-      data: {
-        targetType: "section",
-        targetId: String(fixture.sectionId),
-        content: newContent,
+    const idempotentResponse = await page.request.post(
+      "/api/community/descriptions",
+      {
+        data: {
+          targetType: "section",
+          targetId: String(fixture.sectionId),
+          content: newContent,
+        },
       },
-    });
+    );
     expect(idempotentResponse.status()).toBe(200);
     const idempotentBody = (await idempotentResponse.json()) as {
       id?: string;
@@ -279,7 +299,7 @@ test("/api/descriptions POST 登录后可更新描述并清理", async ({
   }
 });
 
-test("/api/descriptions POST 接受公开 section JW id", async ({
+test("/api/community/descriptions POST 接受公开 section JW id", async ({
   page,
 }, testInfo) => {
   await signInAsDebugUser(page, "/");
@@ -289,7 +309,7 @@ test("/api/descriptions POST 接受公开 section JW id", async ({
 
   try {
     const originalResponse = await page.request.get(
-      `/api/descriptions?targetType=section&sectionJwId=${fixture.sectionJwId}`,
+      `/api/community/descriptions?targetType=section&sectionJwId=${fixture.sectionJwId}`,
     );
     expect(originalResponse.status()).toBe(200);
     const originalBody = (await originalResponse.json()) as {
@@ -303,13 +323,16 @@ test("/api/descriptions POST 接受公开 section JW id", async ({
 
     const newContent = `e2e-description-public-id-${Date.now()}`;
 
-    const postResponse = await page.request.post("/api/descriptions", {
-      data: {
-        targetType: "section",
-        sectionJwId: fixture.sectionJwId,
-        content: newContent,
+    const postResponse = await page.request.post(
+      "/api/community/descriptions",
+      {
+        data: {
+          targetType: "section",
+          sectionJwId: fixture.sectionJwId,
+          content: newContent,
+        },
       },
-    });
+    );
     expect(postResponse.status()).toBe(200);
     const postBody = (await postResponse.json()) as {
       id?: string;
@@ -319,7 +342,7 @@ test("/api/descriptions POST 接受公开 section JW id", async ({
     expect(postBody.updated).toBe(true);
 
     const getResponse = await page.request.get(
-      `/api/descriptions?targetType=section&sectionJwId=${fixture.sectionJwId}`,
+      `/api/community/descriptions?targetType=section&sectionJwId=${fixture.sectionJwId}`,
     );
     expect(getResponse.status()).toBe(200);
     const getBody = (await getResponse.json()) as {
@@ -334,10 +357,12 @@ test("/api/descriptions POST 接受公开 section JW id", async ({
   }
 });
 
-test("/api/descriptions POST 不存在的 target 返回 404", async ({ page }) => {
+test("/api/community/descriptions POST 不存在的 target 返回 404", async ({
+  page,
+}) => {
   await signInAsDebugUser(page, "/");
 
-  const response = await page.request.post("/api/descriptions", {
+  const response = await page.request.post("/api/community/descriptions", {
     data: {
       targetType: "section",
       targetId: "999999999",

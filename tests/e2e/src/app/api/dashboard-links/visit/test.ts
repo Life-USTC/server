@@ -1,9 +1,9 @@
 /**
- * E2E tests for GET & POST /api/dashboard-links/visit
+ * E2E tests for GET & POST /api/workspace/links/visit
  *
  * ## Endpoints
- * - `GET /api/dashboard-links/visit?slug=X` — Redirect to the dashboard link URL (no side effects)
- * - `POST /api/dashboard-links/visit` — Record a visit click and redirect to the link URL
+ * - `GET /api/workspace/links/visit?slug=X` — Redirect to the dashboard link URL (no side effects)
+ * - `POST /api/workspace/links/visit` — Record a visit click and redirect to the link URL
  *
  * ## GET Request
  * - Query: `{ slug: string }`
@@ -27,9 +27,9 @@
 import { expect, test } from "@playwright/test";
 import { signInAsDebugUser } from "../../../../../utils/auth";
 
-const BASE = "/api/dashboard-links/visit";
+const BASE = "/api/workspace/links/visit";
 
-test.describe("GET & POST /api/dashboard-links/visit 接口", () => {
+test.describe("GET & POST /api/workspace/links/visit 接口", () => {
   test("GET 重定向到目标链接 URL", async ({ request }) => {
     const response = await request.get(`${BASE}?slug=jw`, {
       maxRedirects: 0,

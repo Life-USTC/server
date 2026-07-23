@@ -17,12 +17,12 @@ import {
 
 export function registerDashboardTools(server: McpServer) {
   server.registerTool(
-    "get_my_dashboard",
+    "workspace_snapshot_get",
     {
       description:
         "Single-call snapshot: current courses, next class, upcoming deadlines, todo count, and preferred shuttle. " +
         "Start here for most assistant workflows before fanning out to specific tools. " +
-        "If subscriptions.totalCount exceeds currentSemesterCount, past-term subscriptions still exist; use list_my_subscribed_sections and semester-scoped personal list tools for history.",
+        "If subscriptions.totalCount exceeds currentSemesterCount, past-term subscriptions still exist; use workspace_subscription_list and semester-scoped personal list tools for history.",
       inputSchema: {
         locale: mcpLocaleInputSchema,
         mode: mcpModeInputSchema,
@@ -37,7 +37,7 @@ export function registerDashboardTools(server: McpServer) {
   );
 
   server.registerTool(
-    "get_next_class",
+    "workspace_schedule_next",
     {
       description:
         "Next upcoming class from subscribed sections. Lightweight alternative when only the next class is needed.",
@@ -55,7 +55,7 @@ export function registerDashboardTools(server: McpServer) {
   );
 
   server.registerTool(
-    "get_upcoming_deadlines",
+    "workspace_deadline_list",
     {
       description:
         "Merged list of upcoming homework deadlines, exams, and due todos within dayLimit days (default 7). " +
@@ -75,7 +75,7 @@ export function registerDashboardTools(server: McpServer) {
   );
 
   server.registerTool(
-    "list_dashboard_links",
+    "workspace_link_list",
     {
       description:
         "List or search USTC dashboard links with the authenticated user's current pin state.",
@@ -95,7 +95,7 @@ export function registerDashboardTools(server: McpServer) {
   );
 
   server.registerTool(
-    "set_dashboard_link_pin_state",
+    "workspace_link_pin_set",
     {
       description:
         "Pin or unpin one USTC dashboard link for the authenticated user.",
@@ -104,7 +104,7 @@ export function registerDashboardTools(server: McpServer) {
           .string()
           .trim()
           .min(1)
-          .describe("Dashboard link slug from list_dashboard_links."),
+          .describe("Dashboard link slug from workspace_link_list."),
         action: z.enum(["pin", "unpin"]).describe("Pin or unpin the link."),
         mode: mcpModeInputSchema,
       },

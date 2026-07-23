@@ -13,10 +13,10 @@ import {
 
 export function registerCourseSearchTools(server: McpServer) {
   server.registerTool(
-    "search_courses",
+    "catalog_course_search",
     {
       description:
-        "Search public courses by Chinese/English name, course code, education level, category, or class type. Use this before search_sections when starting from a course name.",
+        "Search public courses by Chinese/English name, course code, education level, category, or class type. Use this before catalog_section_search when starting from a course name.",
       inputSchema: {
         search: z.string().trim().optional(),
         educationLevelId: z.number().int().positive().optional(),
@@ -32,7 +32,7 @@ export function registerCourseSearchTools(server: McpServer) {
   );
 
   server.registerTool(
-    "get_course_by_jw_id",
+    "catalog_course_get",
     {
       description: "Fetch one detailed course by USTC JW course ID.",
       inputSchema: {
@@ -45,7 +45,7 @@ export function registerCourseSearchTools(server: McpServer) {
   );
 
   server.registerTool(
-    "get_section_by_jw_id",
+    "catalog_section_get",
     {
       description:
         "Fetch one detailed section by USTC JW section ID, including course, teachers, semester, schedules, exams, and homeworks.",
@@ -59,7 +59,7 @@ export function registerCourseSearchTools(server: McpServer) {
   );
 
   server.registerTool(
-    "search_sections",
+    "catalog_section_search",
     {
       description:
         "Search public sections by course, semester, campus, department, teacher, IDs, or text. " +

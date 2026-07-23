@@ -1,5 +1,5 @@
 /**
- * E2E tests for GET /api/me/subscriptions/homeworks
+ * E2E tests for GET /api/workspace/homeworks
  *
  * Authenticated endpoint that lists homeworks across the current user's
  * subscribed sections, together with recent audit logs and the resolved
@@ -14,9 +14,9 @@ import { signInAsDebugUser } from "../../../../../../utils/auth";
 import { DEV_SEED } from "../../../../../../utils/dev-seed";
 import { ensureSeedSectionSubscription } from "../../../../../../utils/subscriptions";
 
-const BASE = "/api/me/subscriptions/homeworks";
+const BASE = "/api/workspace/homeworks";
 
-test.describe("GET /api/me/subscriptions/homeworks - 订阅作业", () => {
+test.describe("GET /api/workspace/homeworks - 订阅作业", () => {
   test("契约探测返回 401", async ({ request }) => {
     const response = await request.get(BASE);
     expect(response.status()).toBe(401);

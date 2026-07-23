@@ -32,75 +32,72 @@ describe("persisted GraphQL operation registry", () => {
 
     expect(registeredQueryFields).toEqual(queryFields);
     expect(registeredMutationFields).toEqual(mutationFields);
-    expect(graphqlPersistedOperationRegistry).toHaveLength(44);
+    expect(graphqlPersistedOperationRegistry).toHaveLength(45);
     expect(
       graphqlPersistedOperationRegistry.map((operation) => operation.id),
     ).toEqual(
       expect.arrayContaining([
-        "todo.set_completions_batch.v1",
-        "todo.delete_batch.v1",
-        "homework.set_completions_batch.v1",
-        "subscription.update_sections_batch.v1",
-        "dashboard.set_link_pin_states_batch.v1",
-        "comment.delete_batch.v1",
-        "upload.create_session.v1",
-        "upload.complete.v1",
-        "upload.rename.v1",
-        "upload.delete.v1",
+        "workspace.todo.completions.set.v1",
+        "workspace.todos.delete.v1",
+        "workspace.homework.completions.set.v1",
+        "workspace.subscription.import.v1",
+        "workspace.link.pins.set.v1",
+        "community.comments.delete.v1",
+        "workspace.upload.session.create.v1",
+        "workspace.upload.complete.v1",
+        "workspace.upload.rename.v1",
+        "workspace.upload.delete.v1",
       ]),
     );
-    expect(
-      graphqlPersistedOperationRegistry.filter(
-        (operation) => operation.rootField === "viewer",
-      ),
-    ).toHaveLength(7);
-
-    const viewerType = graphqlSchema.getType("Viewer") as
-      | { getFields?: () => Record<string, unknown> }
-      | undefined;
-    if (typeof viewerType?.getFields !== "function") {
-      throw new Error("Viewer must be a GraphQL object type");
-    }
-    const viewerFields = Object.keys(viewerType.getFields()).sort();
-    const registeredViewerFields = graphqlPersistedOperationRegistry
-      .filter((operation) => operation.rootField === "viewer")
+    const registeredAuthenticatedScopeFields = graphqlPersistedOperationRegistry
+      .filter((operation) =>
+        ["account", "workspace"].includes(operation.rootField),
+      )
       .map((operation) => {
         const operationAst = getOperationAST(
           operation.document,
           operation.operationName,
         );
         const rootSelection = operationAst?.selectionSet.selections[0];
-        const viewerSelection =
+        const scopeSelection =
           rootSelection?.kind === Kind.FIELD
             ? rootSelection.selectionSet?.selections[0]
             : undefined;
-        if (viewerSelection?.kind !== Kind.FIELD) {
-          throw new Error(`Invalid Viewer operation ${operation.id}`);
+        if (scopeSelection?.kind !== Kind.FIELD) {
+          throw new Error(`Invalid scoped operation ${operation.id}`);
         }
-        return viewerSelection.name.value;
+        return `${operation.rootField}.${scopeSelection.name.value}`;
       })
       .sort();
-    expect(registeredViewerFields).toEqual(viewerFields);
+    expect(registeredAuthenticatedScopeFields).toEqual([
+      "account.profile",
+      "workspace.exams",
+      "workspace.homeworks",
+      "workspace.overview",
+      "workspace.schedules",
+      "workspace.subscribedSections",
+      "workspace.todos",
+    ]);
   });
 
   it("publishes frozen safety metadata without operation documents", () => {
     expect(publicGraphqlOperationsManifest.schemaVersion).toBe(1);
-    expect(publicGraphqlOperationsManifest.operations).toHaveLength(44);
+    expect(publicGraphqlOperationsManifest.operations).toHaveLength(45);
     expect(Object.isFrozen(publicGraphqlOperationsManifest)).toBe(true);
     expect(Object.isFrozen(publicGraphqlOperationsManifest.operations)).toBe(
       true,
     );
 
-    const createTodo = publicGraphqlOperationsManifest.operations.find(
-      (operation) => operation.id === "todo.create.v1",
+    const todoCreate = publicGraphqlOperationsManifest.operations.find(
+      (operation) => operation.id === "workspace.todo.create.v1",
     );
-    expect(createTodo).toEqual({
-      id: "todo.create.v1",
+    expect(todoCreate).toEqual({
+      id: "workspace.todo.create.v1",
       title: "Create todo",
-      description: "Creates a todo owned by the authenticated viewer.",
+      description: "Creates a todo owned by the authenticated workspace.",
       operationName: "TodoCreate",
       operationType: "mutation",
-      rootField: "createTodo",
+      rootField: "todoCreate",
       variables: [{ name: "input", type: "CreateTodoInput!", required: true }],
       scopes: ["todo:write"],
       readOnly: false,
@@ -108,12 +105,12 @@ describe("persisted GraphQL operation registry", () => {
       openWorld: false,
       requiresConfirmation: true,
     });
-    expect(createTodo).not.toHaveProperty("document");
+    expect(todoCreate).not.toHaveProperty("document");
 
-    const updateTodo = publicGraphqlOperationsManifest.operations.find(
-      (operation) => operation.id === "todo.update.v1",
+    const todoUpdate = publicGraphqlOperationsManifest.operations.find(
+      (operation) => operation.id === "workspace.todo.update.v1",
     );
-    expect(updateTodo).toMatchObject({
+    expect(todoUpdate).toMatchObject({
       readOnly: false,
       destructive: true,
       requiresConfirmation: true,
@@ -124,12 +121,12 @@ describe("persisted GraphQL operation registry", () => {
         publicGraphqlOperationsManifest.operations
           .filter((operation) =>
             [
-              "dashboard.set_link_pin_states_batch.v1",
-              "comment.delete_batch.v1",
-              "upload.create_session.v1",
-              "upload.complete.v1",
-              "upload.rename.v1",
-              "upload.delete.v1",
+              "workspace.link.pins.set.v1",
+              "community.comments.delete.v1",
+              "workspace.upload.session.create.v1",
+              "workspace.upload.complete.v1",
+              "workspace.upload.rename.v1",
+              "workspace.upload.delete.v1",
             ].includes(operation.id),
           )
           .map((operation) => [
@@ -144,42 +141,42 @@ describe("persisted GraphQL operation registry", () => {
           ]),
       ),
     ).toEqual({
-      "dashboard.set_link_pin_states_batch.v1": {
+      "workspace.link.pins.set.v1": {
         destructive: true,
         openWorld: false,
         requiresConfirmation: true,
         scopes: ["dashboard:write"],
         variables: ["items"],
       },
-      "comment.delete_batch.v1": {
+      "community.comments.delete.v1": {
         destructive: true,
         openWorld: true,
         requiresConfirmation: true,
         scopes: ["comment:write"],
         variables: ["ids"],
       },
-      "upload.create_session.v1": {
+      "workspace.upload.session.create.v1": {
         destructive: true,
         openWorld: true,
         requiresConfirmation: true,
         scopes: ["upload:write"],
         variables: ["input"],
       },
-      "upload.complete.v1": {
+      "workspace.upload.complete.v1": {
         destructive: true,
         openWorld: true,
         requiresConfirmation: true,
         scopes: ["upload:write"],
         variables: ["input"],
       },
-      "upload.rename.v1": {
+      "workspace.upload.rename.v1": {
         destructive: true,
         openWorld: false,
         requiresConfirmation: true,
         scopes: ["upload:write"],
         variables: ["id", "filename"],
       },
-      "upload.delete.v1": {
+      "workspace.upload.delete.v1": {
         destructive: true,
         openWorld: true,
         requiresConfirmation: true,
@@ -192,22 +189,22 @@ describe("persisted GraphQL operation registry", () => {
   it("keeps the product contracts pointed at the registered runner", () => {
     expect(
       graphqlContract.capabilities["registered-operation-runner"].mcp.tools,
-    ).toEqual([expect.objectContaining({ name: "run_graphql_operation" })]);
+    ).toEqual([expect.objectContaining({ name: "graphql_operation_run" })]);
     expect(
       mcpContract.capabilities["tool-groups"].mcp.groups.flatMap(
         (group) => group.tools,
       ),
-    ).toContain("run_graphql_operation");
+    ).toContain("graphql_operation_run");
   });
 
   it("derives variable and root-field metadata for custom definitions", () => {
     const registry = createPersistedGraphqlOperationRegistry([
       {
-        id: "viewer_overview.v1",
-        title: "Viewer overview",
-        description: "Reads the current viewer overview.",
+        id: "workspace_overview.v1",
+        title: "Workspace overview",
+        description: "Reads the current workspace overview.",
         document:
-          "query ViewerOverview($atTime: DateTime) { viewer { overview(atTime: $atTime) { today } } }",
+          "query WorkspaceOverview($atTime: DateTime) { workspace { overview(atTime: $atTime) { today } } }",
         scopes: ["dashboard:read"],
         readOnly: true,
         destructive: false,
@@ -220,17 +217,17 @@ describe("persisted GraphQL operation registry", () => {
       schemaVersion: 1,
       operations: [
         {
-          id: "viewer_overview.v1",
-          title: "Viewer overview",
-          description: "Reads the current viewer overview.",
+          id: "workspace_overview.v1",
+          title: "Workspace overview",
+          description: "Reads the current workspace overview.",
           scopes: ["dashboard:read"],
           readOnly: true,
           destructive: false,
           openWorld: false,
           requiresConfirmation: false,
-          operationName: "ViewerOverview",
+          operationName: "WorkspaceOverview",
           operationType: "query",
-          rootField: "viewer",
+          rootField: "workspace",
           variables: [{ name: "atTime", type: "DateTime", required: false }],
         },
       ],
@@ -242,7 +239,7 @@ describe("persisted GraphQL operation registry", () => {
       id: "catalog.v1",
       title: "Catalog",
       description: "Reads catalog data.",
-      document: "query Catalog { currentSemester { jwId } }",
+      document: "query Catalog { catalog { currentSemester { jwId } } }",
       scopes: [] as string[],
       readOnly: true,
       destructive: false,
@@ -268,7 +265,7 @@ describe("persisted GraphQL operation registry", () => {
         {
           ...base,
           document:
-            "query Catalog { currentSemester { jwId } semesters { pageInfo { total } } }",
+            'query Catalog { catalog { currentSemester { jwId } } community { user(username: "x") { id } } }',
         },
       ]),
     ).toThrow("must select exactly one root field");
@@ -276,12 +273,12 @@ describe("persisted GraphQL operation registry", () => {
       createPersistedGraphqlOperationRegistry([
         {
           ...base,
-          id: "viewer.combined.v1",
+          id: "workspace.combined.v1",
           document:
-            "query CombinedViewer { viewer { profile { id } todos { pageInfo { total } } } }",
-          scopes: ["me:read"],
+            "query CombinedWorkspace { workspace { overview { today } todos { pageInfo { total } } } }",
+          scopes: ["dashboard:read"],
         },
       ]),
-    ).toThrow("must select exactly one Viewer field");
+    ).toThrow("must select exactly one field");
   });
 });

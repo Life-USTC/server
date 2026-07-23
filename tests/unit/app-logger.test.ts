@@ -92,7 +92,7 @@ describe("应用日志记录器", () => {
       setCloudflareRequestContext({
         method: "POST",
         requestId: "request-context-id",
-        route: "/api/todos/:id",
+        route: "/api/workspace/todos/:id",
       });
       logRouteFailure("Server failure", 500, new Error("boom"));
     });
@@ -101,7 +101,7 @@ describe("应用日志记录器", () => {
     expect(JSON.parse(String(payload))).toMatchObject({
       method: "POST",
       requestId: "request-context-id",
-      route: "/api/todos/:id",
+      route: "/api/workspace/todos/:id",
     });
   });
 });

@@ -14,7 +14,7 @@ import { updateHomeworkOnSectionTool } from "./homework-update-tool-handler";
 
 export function registerUpdateHomeworkOnSectionTool(server: McpServer) {
   server.registerTool(
-    "update_homework_on_section",
+    "community_section_homework_update",
     {
       description:
         "Update a homework by ID and optionally replace/upsert its description. Requires collaborator permissions and unsuspended user. " +

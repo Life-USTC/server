@@ -3,12 +3,12 @@ import * as fixtures from "./utils/mcp-tool-test-utils";
 
 const context = fixtures.createMcpToolTestContext();
 
-describe("list_schedules_by_section — 日期范围筛选", () => {
+describe("catalog_section_schedule_list — 日期范围筛选", () => {
   it("无日期筛选时返回该班级所有课程安排", async () => {
     const all = await context.client.call<{
       found?: boolean;
       schedules?: Array<{ id?: number; date?: string }>;
-    }>("list_schedules_by_section", {
+    }>("catalog_section_schedule_list", {
       sectionJwId: fixtures.DEV_SEED.section.jwId,
       locale: "zh-cn",
     });
@@ -21,7 +21,7 @@ describe("list_schedules_by_section — 日期范围筛选", () => {
     const week = await context.client.call<{
       found?: boolean;
       schedules?: Array<{ id?: number; date?: string }>;
-    }>("list_schedules_by_section", {
+    }>("catalog_section_schedule_list", {
       sectionJwId: fixtures.DEV_SEED.section.jwId,
       dateFrom: fixtures.SEED_DATE,
       dateTo: fixtures.SEED_PLUS_SIX_DAYS,
@@ -43,7 +43,7 @@ describe("list_schedules_by_section — 日期范围筛选", () => {
     const result = await context.client.call<{
       found?: boolean;
       schedules?: unknown[];
-    }>("list_schedules_by_section", {
+    }>("catalog_section_schedule_list", {
       sectionJwId: fixtures.DEV_SEED.section.jwId,
       dateFrom: "2020-01-01",
       dateTo: "2020-01-07",
@@ -58,7 +58,7 @@ describe("list_schedules_by_section — 日期范围筛选", () => {
     const result = await context.client.call<{
       success?: boolean;
       message?: string;
-    }>("list_schedules_by_section", {
+    }>("catalog_section_schedule_list", {
       sectionJwId: fixtures.DEV_SEED.section.jwId,
       dateFrom: "yesterday",
       locale: "zh-cn",
@@ -69,12 +69,12 @@ describe("list_schedules_by_section — 日期范围筛选", () => {
   });
 });
 
-describe("query_schedules — 灵活日期筛选", () => {
+describe("catalog_schedule_list — 灵活日期筛选", () => {
   it("接受裸日期并返回分页公开课程安排", async () => {
     const result = await context.client.call<{
       data?: Array<{ date?: string; endTime?: unknown; startTime?: unknown }>;
       pagination?: { total?: number };
-    }>("query_schedules", {
+    }>("catalog_schedule_list", {
       sectionJwId: fixtures.DEV_SEED.section.jwId,
       dateFrom: fixtures.SEED_DATE,
       dateTo: fixtures.SEED_PLUS_SIX_DAYS,
@@ -97,7 +97,7 @@ describe("query_schedules — 灵活日期筛选", () => {
     const result = await context.client.call<{
       success?: boolean;
       message?: string;
-    }>("query_schedules", {
+    }>("catalog_schedule_list", {
       sectionJwId: fixtures.DEV_SEED.section.jwId,
       dateFrom: "yesterday",
       locale: "zh-cn",

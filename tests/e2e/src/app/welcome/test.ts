@@ -34,12 +34,12 @@ import { captureStepScreenshot } from "../../../utils/screenshot";
 // These tests mutate the shared debug user profile.
 test.describe.configure({ mode: "serial" });
 
-test("/welcome 未登录重定向到登录页", async ({ page }, testInfo) => {
-  await expectRequiresSignIn(page, "/welcome");
+test("/account/welcome 未登录重定向到登录页", async ({ page }, testInfo) => {
+  await expectRequiresSignIn(page, "/account/welcome");
   await captureStepScreenshot(page, testInfo, "welcome/unauthorized");
 });
 
-test("/welcome 显示必填字段", async ({ page }, testInfo) => {
+test("/account/welcome 显示必填字段", async ({ page }, testInfo) => {
   test.setTimeout(300_000);
   await signInAsDebugUser(page, "/");
   const sessionUser = await getCurrentSessionUser(page);
@@ -48,7 +48,7 @@ test("/welcome 显示必填字段", async ({ page }, testInfo) => {
   await updateUserProfileById(sessionUser.id, { name: null, username: null });
 
   try {
-    await gotoAndWaitForReady(page, "/welcome", {
+    await gotoAndWaitForReady(page, "/account/welcome", {
       testInfo,
       screenshotLabel: "welcome",
     });
@@ -110,11 +110,13 @@ test("资料不完整的登录用户从普通页面重定向到 /welcome", async
   });
 
   try {
-    await gotoAndWaitForReady(page, "/settings", {
+    await gotoAndWaitForReady(page, "/account/settings", {
       expectMainContent: false,
     });
 
-    await expect(page).toHaveURL(/\/welcome\?callbackUrl=%2Fsettings$/);
+    await expect(page).toHaveURL(
+      /\/account\/welcome\?callbackUrl=%2Faccount%2Fsettings$/,
+    );
     await expect(
       page.getByRole("textbox", { name: /^(姓名|Name)\b/i }),
     ).toBeVisible();
@@ -127,7 +129,7 @@ test("资料不完整的登录用户从普通页面重定向到 /welcome", async
   }
 });
 
-test("/welcome 完成后返回原回调页面", async ({ page }, testInfo) => {
+test("/account/welcome 完成后返回原回调页面", async ({ page }, testInfo) => {
   test.setTimeout(300_000);
   await signInAsDebugUser(page, "/");
   const sessionUser = await getCurrentSessionUser(page);
@@ -139,11 +141,13 @@ test("/welcome 完成后返回原回调页面", async ({ page }, testInfo) => {
   });
 
   try {
-    await gotoAndWaitForReady(page, "/settings", {
+    await gotoAndWaitForReady(page, "/account/settings", {
       expectMainContent: false,
     });
 
-    await expect(page).toHaveURL(/\/welcome\?callbackUrl=%2Fsettings$/);
+    await expect(page).toHaveURL(
+      /\/account\/welcome\?callbackUrl=%2Faccount%2Fsettings$/,
+    );
     await page
       .getByRole("textbox", { name: /^(姓名|Name)\b/i })
       .fill(DEV_SEED.debugName);
@@ -153,7 +157,7 @@ test("/welcome 完成后返回原回调页面", async ({ page }, testInfo) => {
 
     await page.getByRole("button", { name: /继续|Continue/i }).click();
 
-    await expect(page).toHaveURL(/\/settings\/profile(?:\?.*)?$/, {
+    await expect(page).toHaveURL(/\/account\/settings\/profile(?:\?.*)?$/, {
       timeout: 15_000,
     });
     await expect(page.locator("#main-content")).toBeVisible();
@@ -167,7 +171,7 @@ test("/welcome 完成后返回原回调页面", async ({ page }, testInfo) => {
   }
 });
 
-test("/welcome 未完善资料的用户可完成资料并返回首页", async ({
+test("/account/welcome 未完善资料的用户可完成资料并返回首页", async ({
   page,
 }, testInfo) => {
   test.setTimeout(300_000);
@@ -182,12 +186,12 @@ test("/welcome 未完善资料的用户可完成资料并返回首页", async ({
   });
 
   try {
-    await gotoAndWaitForReady(page, "/welcome", {
+    await gotoAndWaitForReady(page, "/account/welcome", {
       testInfo,
       screenshotLabel: "welcome",
     });
 
-    await expect(page).toHaveURL(/\/welcome(?:\?.*)?$/);
+    await expect(page).toHaveURL(/\/account\/welcome(?:\?.*)?$/);
     await page
       .getByRole("textbox", { name: /^(姓名|Name)\b/i })
       .fill(DEV_SEED.debugName);
@@ -197,7 +201,7 @@ test("/welcome 未完善资料的用户可完成资料并返回首页", async ({
 
     await page.getByRole("button", { name: /继续|Continue/i }).click();
 
-    await expect(page).toHaveURL(/\/dashboard\/overview(?:\?.*)?$/, {
+    await expect(page).toHaveURL(/\/workspace\/overview(?:\?.*)?$/, {
       timeout: 15_000,
     });
     await expect(page.locator("#main-content")).toBeVisible();
@@ -215,7 +219,9 @@ test("/welcome 未完善资料的用户可完成资料并返回首页", async ({
   }
 });
 
-test("/welcome 提供浏览班级与批量匹配入口", async ({ page }, testInfo) => {
+test("/account/welcome 提供浏览班级与批量匹配入口", async ({
+  page,
+}, testInfo) => {
   test.setTimeout(300_000);
   await signInAsDebugUser(page, "/");
 
@@ -228,7 +234,7 @@ test("/welcome 提供浏览班级与批量匹配入口", async ({ page }, testIn
   });
 
   try {
-    await gotoAndWaitForReady(page, "/welcome", {
+    await gotoAndWaitForReady(page, "/account/welcome", {
       testInfo,
       screenshotLabel: "welcome",
     });

@@ -21,12 +21,12 @@
         "ui": ["Calendar Export Dialog"]
       },
       "web": {
-        "pages": ["/sections/[jwId]"]
+        "pages": ["/catalog/sections/[jwId]"]
       },
       "rest": {
         "routes": [
           {
-            "path": "/api/sections/[jwId]/calendar.ics",
+            "path": "/api/catalog/sections/[jwId]/calendar.ics",
             "returns": "text/calendar",
             "notes": [
               "Returns text/calendar synthesized from the section's schedule and exams."
@@ -51,12 +51,12 @@
         "ui": ["Calendar Export Dialog"]
       },
       "web": {
-        "pages": ["/dashboard/calendar"]
+        "pages": ["/workspace/calendar"]
       },
       "rest": {
         "routes": [
           {
-            "path": "/api/users/[userId]/calendar.ics",
+            "path": "/api/community/users/[userId]/calendar.ics",
             "returns": "text/calendar",
             "notes": [
               "Same-user session or bearer access is accepted.",
@@ -65,7 +65,7 @@
             ]
           },
           {
-            "path": "/api/calendar-subscriptions/current",
+            "path": "/api/workspace/subscriptions/current",
             "reference_only": true
           }
         ]
@@ -73,9 +73,9 @@
       "mcp": {
         "tools": [
           {
-            "name": "get_my_calendar_subscription",
+            "name": "workspace_calendar_feed_get",
             "returns": "{ success: Boolean, subscription?, message?: String }",
-            "rest_equivalent": "GET /api/calendar-subscriptions/current",
+            "rest_equivalent": "GET /api/workspace/subscriptions/current",
             "notes": [
               "Default mode returns feed links plus current-semester section context instead of the full subscribed section list.",
               "The deprecated summary input is an alias for the same compact default response.",
@@ -95,7 +95,7 @@
       "rest": {
         "routes": [
           {
-            "path": "/api/sections/calendar.ics",
+            "path": "/api/catalog/sections/calendar.ics",
             "returns": "text/calendar",
             "notes": [
               "Generates a multi-section iCal based on sectionIds query parameter."

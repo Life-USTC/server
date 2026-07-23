@@ -69,10 +69,10 @@ type GetCourseResult = {
   } | null;
 };
 
-describe("班级搜索工具 search_sections", () => {
+describe("班级搜索工具 catalog_section_search", () => {
   it("按课程 jwId 返回分页的班级摘要", async () => {
     const result = await context.client.call<SearchSectionsResult>(
-      "search_sections",
+      "catalog_section_search",
       {
         courseJwId: fixtures.DEV_SEED.course.jwId,
         page: 1,
@@ -105,7 +105,7 @@ describe("班级搜索工具 search_sections", () => {
 
   it("按课程 legacy jwId 返回 canonical 课程的班级摘要", async () => {
     const result = await context.client.call<SearchSectionsResult>(
-      "search_sections",
+      "catalog_section_search",
       {
         courseJwId: fixtures.DEV_SEED.course.legacyJwId,
         page: 1,
@@ -125,7 +125,7 @@ describe("班级搜索工具 search_sections", () => {
 
   it("按教师工号过滤班级", async () => {
     const result = await context.client.call<SearchSectionsResult>(
-      "search_sections",
+      "catalog_section_search",
       {
         teacherCode: fixtures.DEV_SEED.teacher.code,
         page: 1,
@@ -145,7 +145,7 @@ describe("班级搜索工具 search_sections", () => {
 
   it("按 jwIds 精确查询班级", async () => {
     const result = await context.client.call<SearchSectionsResult>(
-      "search_sections",
+      "catalog_section_search",
       {
         jwIds: [fixtures.DEV_SEED.section.jwId],
         page: 1,
@@ -163,7 +163,7 @@ describe("班级搜索工具 search_sections", () => {
 
   it("无匹配过滤返回空分页", async () => {
     const result = await context.client.call<SearchSectionsResult>(
-      "search_sections",
+      "catalog_section_search",
       {
         courseJwId: 999_999_999,
         page: 1,
@@ -180,18 +180,18 @@ describe("班级搜索工具 search_sections", () => {
 
   it("拒绝越界分页参数", async () => {
     await expect(
-      context.client.call("search_sections", { page: 1, limit: 101 }),
+      context.client.call("catalog_section_search", { page: 1, limit: 101 }),
     ).rejects.toThrow();
     await expect(
-      context.client.call("search_sections", { page: 0, limit: 10 }),
+      context.client.call("catalog_section_search", { page: 0, limit: 10 }),
     ).rejects.toThrow();
   });
 });
 
-describe("课程详情工具 get_course_by_jw_id", () => {
+describe("课程详情工具 catalog_course_get", () => {
   it("按 jwId 返回课程详情及班级列表", async () => {
     const result = await context.client.call<GetCourseResult>(
-      "get_course_by_jw_id",
+      "catalog_course_get",
       {
         jwId: fixtures.DEV_SEED.course.jwId,
         locale: "zh-cn",
@@ -228,7 +228,7 @@ describe("课程详情工具 get_course_by_jw_id", () => {
 
   it("缺失课程返回 found false", async () => {
     const result = await context.client.call<GetCourseResult>(
-      "get_course_by_jw_id",
+      "catalog_course_get",
       {
         jwId: 999_999_999,
         locale: "zh-cn",
@@ -241,13 +241,13 @@ describe("课程详情工具 get_course_by_jw_id", () => {
 
   it("拒绝无效 jwId 参数", async () => {
     await expect(
-      context.client.call("get_course_by_jw_id", { jwId: 0 }),
+      context.client.call("catalog_course_get", { jwId: 0 }),
     ).rejects.toThrow();
     await expect(
-      context.client.call("get_course_by_jw_id", { jwId: -1 }),
+      context.client.call("catalog_course_get", { jwId: -1 }),
     ).rejects.toThrow();
     await expect(
-      context.client.call("get_course_by_jw_id", {
+      context.client.call("catalog_course_get", {
         jwId: "not-a-number",
       }),
     ).rejects.toThrow();

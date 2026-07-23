@@ -1,5 +1,5 @@
 /**
- * E2E tests for `/courses/[jwId]` — Individual Course Detail page.
+ * E2E tests for `/catalog/courses/[jwId]` — Individual Course Detail page.
  *
  * ## Data Represented (course.yml → course-detail.display.fields)
  * - course.namePrimary (h1 title)
@@ -40,8 +40,8 @@ import { gotoAndWaitForReady } from "../../../../utils/page-ready";
 import { captureStepScreenshot } from "../../../../utils/screenshot";
 import { assertPageContract } from "../../_shared/page-contract";
 
-const COURSE_URL = `/courses/${DEV_SEED.course.jwId}`;
-const COURSE_WITH_DESCRIPTION_URL = `/courses/${scenarioData.courses[2].jwId}/introduction`;
+const COURSE_URL = `/catalog/courses/${DEV_SEED.course.jwId}`;
+const COURSE_WITH_DESCRIPTION_URL = `/catalog/courses/${scenarioData.courses[2].jwId}/introduction`;
 const COURSE_WITH_DESCRIPTION_TEXT = "实验课建议准备护目镜并提前完成预习问答。";
 
 async function jumpToCourseSection(
@@ -58,15 +58,18 @@ async function jumpToCourseSection(
   await expect(page.locator(selector)).toBeVisible();
 }
 
-test.describe("/courses/[jwId] 课程详情", () => {
+test.describe("/catalog/courses/[jwId] 课程详情", () => {
   test.describe.configure({ mode: "serial" });
 
   test("页面契约", async ({ page }, testInfo) => {
-    await assertPageContract(page, { routePath: "/courses/[jwId]", testInfo });
+    await assertPageContract(page, {
+      routePath: "/catalog/courses/[jwId]",
+      testInfo,
+    });
   });
 
   test("无效参数返回 404", async ({ page }, testInfo) => {
-    await gotoAndWaitForReady(page, "/courses/999999999", {
+    await gotoAndWaitForReady(page, "/catalog/courses/999999999", {
       expectMainContent: false,
     });
     await expect(page.getByText("404").first()).toBeVisible();
@@ -79,10 +82,10 @@ test.describe("/courses/[jwId] 课程详情", () => {
   test("旧 jwId 永久重定向到 canonical 课程 URL", async ({ page }) => {
     await gotoAndWaitForReady(
       page,
-      `/courses/${DEV_SEED.course.legacyJwId}/sections?from=legacy`,
+      `/catalog/courses/${DEV_SEED.course.legacyJwId}/sections?from=legacy`,
     );
     await expect(page).toHaveURL(
-      `/courses/${DEV_SEED.course.jwId}/sections?from=legacy`,
+      `/catalog/courses/${DEV_SEED.course.jwId}/sections?from=legacy`,
     );
     await expect(page.getByRole("heading", { level: 1 }).first()).toContainText(
       new RegExp(`${DEV_SEED.course.nameCn}|${DEV_SEED.course.nameEn}`),
@@ -206,7 +209,7 @@ test.describe("/courses/[jwId] 课程详情", () => {
     ).toBeVisible();
 
     await jumpToCourseSection(page, /评论|Comments/i, "#course-comments");
-    await expect(page).toHaveURL(/\/courses\/\d+\/comments$/);
+    await expect(page).toHaveURL(/\/catalog\/courses\/\d+\/comments$/);
     await captureStepScreenshot(page, testInfo, "course/detail-nav");
   });
 
@@ -241,12 +244,12 @@ test.describe("/courses/[jwId] 课程详情", () => {
     await gotoAndWaitForReady(page, COURSE_URL);
     await jumpToCourseSection(page, /班级|Sections/i, "#course-sections");
     const sectionLink = page
-      .locator(`a[href="/sections/${DEV_SEED.section.jwId}"]:visible`)
-      .or(page.locator("tbody a[href^='/sections/']:visible"))
+      .locator(`a[href="/catalog/sections/${DEV_SEED.section.jwId}"]:visible`)
+      .or(page.locator("tbody a[href^='/catalog/sections/']:visible"))
       .first();
     await expect(sectionLink).toBeVisible();
     await sectionLink.click();
-    await expect(page).toHaveURL(/\/sections\/\d+/);
+    await expect(page).toHaveURL(/\/catalog\/sections\/\d+/);
     await captureStepScreenshot(page, testInfo, "course/section-link");
   });
 
@@ -306,7 +309,7 @@ test.describe("/courses/[jwId] 课程详情", () => {
 
       const saveResponse = page.waitForResponse(
         (r) =>
-          r.url().includes("/api/descriptions") &&
+          r.url().includes("/api/community/descriptions") &&
           r.request().method() === "POST" &&
           r.status() === 200,
       );
@@ -335,7 +338,7 @@ test.describe("/courses/[jwId] 课程详情", () => {
 
     try {
       await jumpToCourseSection(page, /评论|Comments/i, "#course-comments");
-      await expect(page).toHaveURL(/\/courses\/\d+\/comments$/);
+      await expect(page).toHaveURL(/\/catalog\/courses\/\d+\/comments$/);
 
       const body = `e2e-course-comment-${Date.now()}`;
       const composer = page.locator("#course-comments textarea").first();
@@ -343,7 +346,7 @@ test.describe("/courses/[jwId] 课程详情", () => {
       await composer.fill(body);
       const createResponse = page.waitForResponse(
         (r) =>
-          r.url().includes("/api/comments") &&
+          r.url().includes("/api/community/comments") &&
           r.request().method() === "POST" &&
           r.status() === 201,
       );
@@ -380,7 +383,7 @@ test.describe("/courses/[jwId] 课程详情", () => {
       await editCard.locator("textarea").first().fill(editedBody);
       const editResponse = page.waitForResponse(
         (r) =>
-          r.url().includes("/api/comments/") &&
+          r.url().includes("/api/community/comments/") &&
           r.request().method() === "PATCH" &&
           r.status() === 200,
       );
@@ -401,7 +404,7 @@ test.describe("/courses/[jwId] 课程详情", () => {
         .click();
       const deleteResponse = page.waitForResponse(
         (r) =>
-          r.url().includes("/api/comments/") &&
+          r.url().includes("/api/community/comments/") &&
           r.request().method() === "DELETE" &&
           r.status() === 200,
       );
@@ -419,7 +422,7 @@ test.describe("/courses/[jwId] 课程详情", () => {
   });
 });
 
-test.describe("/courses/[jwId]/introduction 无 JavaScript", () => {
+test.describe("/catalog/courses/[jwId]/introduction 无 JavaScript", () => {
   test.use({ javaScriptEnabled: false });
 
   test("SSR 保留 sanitized Markdown 简介", async ({ page }) => {

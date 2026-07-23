@@ -12,7 +12,7 @@ describe("dashboardRedirectHrefFromHome", () => {
     );
 
     expect(dashboardRedirectHrefFromHome(url)).toBe(
-      "/dashboard/calendar?calendarView=week&calendarSemester=42",
+      "/workspace/calendar?calendarView=week&calendarSemester=42",
     );
   });
 
@@ -22,7 +22,7 @@ describe("dashboardRedirectHrefFromHome", () => {
     );
 
     expect(dashboardRedirectHrefFromHome(url)).toBe(
-      "/dashboard/overview?homeworkView=completed&removed=3",
+      "/workspace/overview?homeworkView=completed&removed=3",
     );
   });
 });
@@ -34,14 +34,14 @@ describe("homeTabCompatibilityRedirectHref", () => {
     );
 
     expect(homeTabCompatibilityRedirectHref(url, false)).toBe(
-      "/links?linkView=list&utm_source=bookmark",
+      "/catalog/links?linkView=list&utm_source=bookmark",
     );
   });
 
   it("maps signed-in public tabs to their workspace routes", () => {
     const url = new URL("https://example.test/?tab=bus");
 
-    expect(homeTabCompatibilityRedirectHref(url, true)).toBe("/dashboard/bus");
+    expect(homeTabCompatibilityRedirectHref(url, true)).toBe("/workspace/bus");
   });
 
   it("maps authenticated-only tabs to their protected semantic routes", () => {
@@ -50,7 +50,7 @@ describe("homeTabCompatibilityRedirectHref", () => {
     );
 
     expect(homeTabCompatibilityRedirectHref(url, false)).toBe(
-      "/dashboard/homeworks?homeworkView=list",
+      "/workspace/homeworks?homeworkView=list",
     );
   });
 
@@ -67,40 +67,40 @@ describe("dashboardTabCompatibilityRedirectHref", () => {
     "HEAD",
   ])("maps dashboard query tabs to semantic child routes for %s", (method) => {
     const url = new URL(
-      "https://example.test/dashboard?tab=calendar&calendarView=week&utm_source=bookmark",
+      "https://example.test/workspace?tab=calendar&calendarView=week&utm_source=bookmark",
     );
 
     expect(dashboardTabCompatibilityRedirectHref(url, method)).toBe(
-      "/dashboard/calendar?calendarView=week&utm_source=bookmark",
+      "/workspace/calendar?calendarView=week&utm_source=bookmark",
     );
   });
 
   it("maps the dashboard root and unknown tabs to overview", () => {
     expect(
       dashboardTabCompatibilityRedirectHref(
-        new URL("https://example.test/dashboard?overviewWeek=next"),
+        new URL("https://example.test/workspace?overviewWeek=next"),
       ),
-    ).toBe("/dashboard/overview?overviewWeek=next");
+    ).toBe("/workspace/overview?overviewWeek=next");
 
     const url = new URL(
-      "https://example.test/dashboard?tab=unknown&todoView=list",
+      "https://example.test/workspace?tab=unknown&todoView=list",
     );
 
     expect(dashboardTabCompatibilityRedirectHref(url)).toBe(
-      "/dashboard/overview?todoView=list",
+      "/workspace/overview?todoView=list",
     );
   });
 
   it("does not redirect mutations or semantic child routes", () => {
     expect(
       dashboardTabCompatibilityRedirectHref(
-        new URL("https://example.test/dashboard?tab=todos"),
+        new URL("https://example.test/workspace?tab=todos"),
         "POST",
       ),
     ).toBeNull();
     expect(
       dashboardTabCompatibilityRedirectHref(
-        new URL("https://example.test/dashboard/overview?tab=todos"),
+        new URL("https://example.test/workspace/overview?tab=todos"),
         "GET",
       ),
     ).toBeNull();

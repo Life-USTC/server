@@ -45,7 +45,7 @@ vi.mock("@/lib/mcp/observability", () => ({
 
 vi.mock("@/lib/mcp/server", () => ({
   createMcpServer: () => ({
-    _registeredTools: { create_my_todo: {} },
+    _registeredTools: { workspace_todo_create: {} },
     connect: connectMock,
   }),
 }));
@@ -96,7 +96,7 @@ describe("MCP mutation rate limits", () => {
     recordAndLogMcpResponseMock.mockReset();
     summarizeMcpJsonRpcRequestMock.mockReset().mockReturnValue({
       methodCounts: { "tools/call": 2 },
-      toolCallCounts: { create_my_todo: 2 },
+      toolCallCounts: { workspace_todo_create: 2 },
     });
     transportConstructorMock.mockReset();
     authenticateMcpRequestMock.mockResolvedValue(authenticatedUser());
@@ -114,13 +114,13 @@ describe("MCP mutation rate limits", () => {
           jsonrpc: "2.0",
           id: 1,
           method: "tools/call",
-          params: { name: "create_my_todo", arguments: { title: "A" } },
+          params: { name: "workspace_todo_create", arguments: { title: "A" } },
         },
         {
           jsonrpc: "2.0",
           id: 2,
           method: "tools/call",
-          params: { name: "create_my_todo", arguments: { title: "B" } },
+          params: { name: "workspace_todo_create", arguments: { title: "B" } },
         },
       ]),
     });
@@ -157,13 +157,13 @@ describe("MCP mutation rate limits", () => {
     expect(authenticateMcpRequestMock).toHaveBeenCalledWith(request);
     expect(authorizeMcpToolScopesMock).toHaveBeenCalledWith(
       expect.objectContaining({ extra: { userId: "user-1" } }),
-      ["create_my_todo"],
+      ["workspace_todo_create"],
     );
     expect(recordAndLogMcpResponseMock).toHaveBeenCalledWith(
       expect.objectContaining({
         phase: "rate-limit-rejected",
         rpcSummary: expect.objectContaining({
-          toolCallCounts: { create_my_todo: 2 },
+          toolCallCounts: { workspace_todo_create: 2 },
         }),
         status: 429,
       }),
@@ -173,7 +173,7 @@ describe("MCP mutation rate limits", () => {
   it("does not consume mutation budgets for read-only tools", async () => {
     summarizeMcpJsonRpcRequestMock.mockReturnValue({
       methodCounts: { "tools/call": 1 },
-      toolCallCounts: { list_my_todos: 1 },
+      toolCallCounts: { workspace_todo_list: 1 },
     });
     const request = new Request("https://life.example/api/mcp", {
       method: "POST",
@@ -182,7 +182,7 @@ describe("MCP mutation rate limits", () => {
         jsonrpc: "2.0",
         id: 1,
         method: "tools/call",
-        params: { name: "list_my_todos", arguments: {} },
+        params: { name: "workspace_todo_list", arguments: {} },
       }),
     });
 
@@ -201,7 +201,7 @@ describe("MCP mutation rate limits", () => {
       expect.objectContaining({
         parsedBody: expect.objectContaining({
           method: "tools/call",
-          params: expect.objectContaining({ name: "list_my_todos" }),
+          params: expect.objectContaining({ name: "workspace_todo_list" }),
         }),
       }),
     );

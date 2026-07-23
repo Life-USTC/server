@@ -1,16 +1,16 @@
 /**
- * E2E tests for GET /api/me.
+ * E2E tests for GET /api/account.
  *
  * Authenticated profile endpoint used by lightweight clients and mirrored by
- * the get_my_profile MCP tool.
+ * the account_profile_get MCP tool.
  */
 import { expect, test } from "@playwright/test";
 import { signInAsDebugUser } from "../../../../utils/auth";
 import { DEV_SEED } from "../../../../utils/dev-seed";
 
-const BASE = "/api/me";
+const BASE = "/api/account";
 
-test.describe("GET /api/me - 当前用户", () => {
+test.describe("GET /api/account - 当前用户", () => {
   test("未认证时返回 401", async ({ request }) => {
     const response = await request.get(BASE);
     expect(response.status()).toBe(401);

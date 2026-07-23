@@ -19,8 +19,8 @@ import { manifest } from "./.svelte-kit/output/server/manifest.js";
 // baseline so normal chunking noise passes while material regressions do not.
 const budgets = {
   "/": { gzipBytes: 170_000, requests: 56 },
-  "/courses/[jwId]": { gzipBytes: 330_000, requests: 93 },
-  "/sections/[jwId]": { gzipBytes: 390_000, requests: 103 },
+  "/catalog/courses/[jwId]": { gzipBytes: 330_000, requests: 93 },
+  "/catalog/sections/[jwId]": { gzipBytes: 390_000, requests: 103 },
 };
 
 let failed = false;

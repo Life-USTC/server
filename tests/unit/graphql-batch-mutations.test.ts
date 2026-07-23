@@ -67,7 +67,7 @@ describe("GraphQL batch mutation resolvers", () => {
       .mockResolvedValueOnce({ ok: true, todo })
       .mockResolvedValueOnce({ ok: false, error: "forbidden" });
 
-    const result = await graphqlMutationResolvers.Mutation.setTodoCompletions(
+    const result = await graphqlMutationResolvers.Mutation.todoCompletionsSet(
       null,
       {
         items: [
@@ -107,7 +107,7 @@ describe("GraphQL batch mutation resolvers", () => {
   it.each([
     {
       call: () =>
-        graphqlMutationResolvers.Mutation.setTodoCompletions(
+        graphqlMutationResolvers.Mutation.todoCompletionsSet(
           null,
           {
             items: [
@@ -122,7 +122,7 @@ describe("GraphQL batch mutation resolvers", () => {
     },
     {
       call: () =>
-        graphqlMutationResolvers.Mutation.deleteTodos(
+        graphqlMutationResolvers.Mutation.todosDelete(
           null,
           { ids: ["todo-1", " todo-1 "] },
           context,
@@ -132,7 +132,7 @@ describe("GraphQL batch mutation resolvers", () => {
     },
     {
       call: () =>
-        graphqlMutationResolvers.Mutation.setHomeworkCompletions(
+        graphqlMutationResolvers.Mutation.homeworkCompletionsSet(
           null,
           {
             items: [
@@ -156,7 +156,7 @@ describe("GraphQL batch mutation resolvers", () => {
   it.each([
     {
       call: () =>
-        graphqlMutationResolvers.Mutation.setTodoCompletions(
+        graphqlMutationResolvers.Mutation.todoCompletionsSet(
           null,
           { items: [] },
           context,
@@ -166,7 +166,7 @@ describe("GraphQL batch mutation resolvers", () => {
     },
     {
       call: () =>
-        graphqlMutationResolvers.Mutation.deleteTodos(
+        graphqlMutationResolvers.Mutation.todosDelete(
           null,
           { ids: Array.from({ length: 101 }, (_, index) => `todo-${index}`) },
           context,
@@ -176,7 +176,7 @@ describe("GraphQL batch mutation resolvers", () => {
     },
     {
       call: () =>
-        graphqlMutationResolvers.Mutation.setHomeworkCompletions(
+        graphqlMutationResolvers.Mutation.homeworkCompletionsSet(
           null,
           { items: [] },
           context,
@@ -206,7 +206,7 @@ describe("GraphQL batch mutation resolvers", () => {
     setHomeworkCompletionsMock.mockResolvedValue(payload);
 
     await expect(
-      graphqlMutationResolvers.Mutation.setHomeworkCompletions(
+      graphqlMutationResolvers.Mutation.homeworkCompletionsSet(
         null,
         {
           items: [{ homeworkId: " homework-missing ", completed: true }],
@@ -237,18 +237,17 @@ describe("GraphQL batch mutation resolvers", () => {
       total: 3,
     });
 
-    const result =
-      await graphqlMutationResolvers.Mutation.updateSectionSubscriptions(
-        null,
-        {
-          input: {
-            action: "add",
-            codes: [" MATH1001 ", "UNKNOWN"],
-            semesterId: 7,
-          },
+    const result = await graphqlMutationResolvers.Mutation.subscriptionsImport(
+      null,
+      {
+        input: {
+          action: "add",
+          codes: [" MATH1001 ", "UNKNOWN"],
+          semesterId: 7,
         },
-        context,
-      );
+      },
+      context,
+    );
 
     expect(requireGraphqlMutationMock).toHaveBeenCalledWith(
       context,
@@ -307,7 +306,7 @@ describe("GraphQL batch mutation resolvers", () => {
     },
   ])("rejects ambiguous subscription batches", async ({ input, message }) => {
     await expect(
-      graphqlMutationResolvers.Mutation.updateSectionSubscriptions(
+      graphqlMutationResolvers.Mutation.subscriptionsImport(
         null,
         { input },
         context,
@@ -331,7 +330,7 @@ describe("GraphQL batch mutation resolvers", () => {
       total: 0,
     });
 
-    await graphqlMutationResolvers.Mutation.updateSectionSubscriptions(
+    await graphqlMutationResolvers.Mutation.subscriptionsImport(
       null,
       { input: { action: "set", codes: [], semesterId: 7 } },
       context,

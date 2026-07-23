@@ -1,17 +1,17 @@
 /**
- * E2E tests for GET /api/me/subscriptions/schedules
+ * E2E tests for GET /api/workspace/schedules
  *
  * Authenticated one-call schedule query across the current user's subscribed
- * sections. This replaces client-side fan-out over /api/schedules.
+ * sections. This replaces client-side fan-out over /api/catalog/schedules.
  */
 import { expect, test } from "@playwright/test";
 import { signInAsDebugUser } from "../../../../../../utils/auth";
 import { DEV_SEED } from "../../../../../../utils/dev-seed";
 import { assertApiContract } from "../../../../_shared/api-contract";
 
-const BASE = "/api/me/subscriptions/schedules";
+const BASE = "/api/workspace/schedules";
 
-test.describe("GET /api/me/subscriptions/schedules - 订阅课表", () => {
+test.describe("GET /api/workspace/schedules - 订阅课表", () => {
   test("契约", async ({ request }) => {
     await assertApiContract(request, { routePath: BASE });
   });

@@ -99,8 +99,8 @@ $: calendarGridWeeks = calendarData
       title={subscriptionsCopy.noSubscriptions}
       description={subscriptionsCopy.noSubscriptionsDescription}
       actions={[
-        { href: "/sections", label: subscriptionsCopy.browseSections },
-        { href: "/courses", label: subscriptionsCopy.browseCourses, variant: "outline" },
+        { href: "/catalog/sections", label: subscriptionsCopy.browseSections },
+        { href: "/catalog/courses", label: subscriptionsCopy.browseCourses, variant: "outline" },
       ]}
     />
   {:else}

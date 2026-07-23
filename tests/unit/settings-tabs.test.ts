@@ -4,6 +4,7 @@ import {
   normalizeSettingsTab,
   SETTINGS_TABS,
   settingsTabCompatibilityRedirectHref,
+  settingsTabFromPathname,
 } from "@/features/settings/lib/settings-tabs";
 
 describe("settings tabs", () => {
@@ -18,17 +19,22 @@ describe("settings tabs", () => {
     expect(normalizeSettingsTab("not-a-section")).toBe("profile");
   });
 
+  it("reads the active section from the account settings path", () => {
+    expect(settingsTabFromPathname("/account/settings/danger")).toBe("danger");
+    expect(settingsTabFromPathname("/account/settings")).toBe("profile");
+  });
+
   it.each([
-    ["profile", "/settings/profile"],
-    ["accounts", "/settings/accounts"],
-    ["content", "/settings/content"],
-    ["danger", "/settings/danger"],
-    ["preferences", "/settings/preferences"],
-    ["appearance", "/settings/preferences"],
-    ["language", "/settings/preferences"],
+    ["profile", "/account/settings/profile"],
+    ["accounts", "/account/settings/accounts"],
+    ["content", "/account/settings/content"],
+    ["danger", "/account/settings/danger"],
+    ["preferences", "/account/settings/preferences"],
+    ["appearance", "/account/settings/preferences"],
+    ["language", "/account/settings/preferences"],
   ])("redirects legacy %s tabs to %s", (tab, expected) => {
     const url = new URL(
-      `https://example.test/settings?tab=${tab}&message=Success`,
+      `https://example.test/account/settings?tab=${tab}&message=Success`,
     );
 
     expect(settingsTabCompatibilityRedirectHref(url)).toBe(
@@ -39,32 +45,34 @@ describe("settings tabs", () => {
   it("uses profile for the settings root and unknown tabs", () => {
     expect(
       settingsTabCompatibilityRedirectHref(
-        new URL("https://example.test/settings"),
+        new URL("https://example.test/account/settings"),
       ),
-    ).toBe("/settings/profile");
+    ).toBe("/account/settings/profile");
     expect(
       settingsTabCompatibilityRedirectHref(
-        new URL("https://example.test/settings?tab=unknown&view=compact"),
+        new URL(
+          "https://example.test/account/settings?tab=unknown&view=compact",
+        ),
       ),
-    ).toBe("/settings/profile?view=compact");
+    ).toBe("/account/settings/profile?view=compact");
   });
 
   it("supports HEAD without redirecting mutations or semantic paths", () => {
     expect(
       settingsTabCompatibilityRedirectHref(
-        new URL("https://example.test/settings?tab=accounts"),
+        new URL("https://example.test/account/settings?tab=accounts"),
         "HEAD",
       ),
-    ).toBe("/settings/accounts");
+    ).toBe("/account/settings/accounts");
     expect(
       settingsTabCompatibilityRedirectHref(
-        new URL("https://example.test/settings?tab=accounts"),
+        new URL("https://example.test/account/settings?tab=accounts"),
         "POST",
       ),
     ).toBeNull();
     expect(
       settingsTabCompatibilityRedirectHref(
-        new URL("https://example.test/settings/profile?tab=accounts"),
+        new URL("https://example.test/account/settings/profile?tab=accounts"),
       ),
     ).toBeNull();
   });

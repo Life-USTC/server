@@ -25,16 +25,16 @@
       "graphql": {
         "mutations": [
           {
-            "name": "createComment",
+            "name": "commentCreate",
             "arguments": { "input": "CreateCommentInput!" },
             "returns": "CommentMutationPayload!",
             "auth": "user",
             "required_scopes": ["comment:write"],
-            "rest_equivalent": "POST /api/comments",
-            "mcp_equivalent": "create_comment"
+            "rest_equivalent": "POST /api/community/comments",
+            "mcp_equivalent": "community_comment_create"
           },
           {
-            "name": "updateComment",
+            "name": "commentUpdate",
             "arguments": {
               "id": "ID!",
               "input": "UpdateCommentInput!"
@@ -42,34 +42,34 @@
             "returns": "CommentMutationPayload!",
             "auth": "user",
             "required_scopes": ["comment:write"],
-            "rest_equivalent": "PATCH /api/comments/[id]",
-            "mcp_equivalent": "update_own_comment"
+            "rest_equivalent": "PATCH /api/community/comments/[id]",
+            "mcp_equivalent": "community_comment_update"
           },
           {
-            "name": "deleteComment",
+            "name": "commentDelete",
             "arguments": { "id": "ID!" },
             "returns": "DeleteMutationPayload!",
             "auth": "user",
             "required_scopes": ["comment:write"],
-            "rest_equivalent": "DELETE /api/comments/[id]",
-            "mcp_equivalent": "delete_own_comment"
+            "rest_equivalent": "DELETE /api/community/comments/[id]",
+            "mcp_equivalent": "community_comment_delete"
           },
           {
-            "name": "deleteComments",
+            "name": "commentsDelete",
             "arguments": { "ids": "[ID!]!" },
             "returns": "CommentDeleteBatchPayload!",
             "auth": "user",
             "required_scopes": ["comment:write"],
-            "rest_equivalent": "DELETE /api/comments/batch",
-            "mcp_equivalent": "run_graphql_operation",
+            "rest_equivalent": "DELETE /api/community/comments/batch",
+            "mcp_equivalent": "graphql_operation_run",
             "notes": [
-              "Registered operation id: comment.delete_batch.v1.",
+              "Registered operation id: community.comments.delete.v1.",
               "Accepts up to 50 unique comment ids and returns stable per-item success, not_found, forbidden, or locked results.",
-              "Each successful item uses the same permission, suspension, interaction-lock, transaction, and audit path as deleteComment."
+              "Each successful item uses the same permission, suspension, interaction-lock, transaction, and audit path as the single-comment delete operation."
             ]
           },
           {
-            "name": "addCommentReaction",
+            "name": "commentReactionAdd",
             "arguments": {
               "commentId": "ID!",
               "type": "CommentReactionType!"
@@ -77,11 +77,11 @@
             "returns": "CommentReactionMutationPayload!",
             "auth": "user",
             "required_scopes": ["comment:write"],
-            "rest_equivalent": "POST /api/comments/[id]/reactions",
-            "mcp_equivalent": "add_comment_reaction"
+            "rest_equivalent": "POST /api/community/comments/[id]/reactions",
+            "mcp_equivalent": "community_comment_reaction_add"
           },
           {
-            "name": "removeCommentReaction",
+            "name": "commentReactionRemove",
             "arguments": {
               "commentId": "ID!",
               "type": "CommentReactionType!"
@@ -89,15 +89,15 @@
             "returns": "CommentReactionMutationPayload!",
             "auth": "user",
             "required_scopes": ["comment:write"],
-            "rest_equivalent": "DELETE /api/comments/[id]/reactions",
-            "mcp_equivalent": "remove_comment_reaction"
+            "rest_equivalent": "DELETE /api/community/comments/[id]/reactions",
+            "mcp_equivalent": "community_comment_reaction_remove"
           }
         ]
       },
       "rest": {
         "routes": [
           {
-            "path": "/api/comments",
+            "path": "/api/community/comments",
             "returns": "{ data: Comment[] (including body and renderedBody), pagination, meta: { hiddenCount: Int, viewer, target } }",
             "notes": [
               "Accepts REST-compatible internal targetId plus public identifiers such as sectionJwId, courseJwId, teacherId, homeworkId, and sectionTeacherId.",
@@ -106,7 +106,7 @@
             ]
           },
           {
-            "path": "/api/comments",
+            "path": "/api/community/comments",
             "method": "POST",
             "status": 201,
             "returns": "{ id: String }",
@@ -119,7 +119,7 @@
             ]
           },
           {
-            "path": "/api/comments/[id]",
+            "path": "/api/community/comments/[id]",
             "method": "PATCH",
             "returns": "{ success: Boolean, comment: Comment }",
             "auth": "user",
@@ -130,37 +130,37 @@
             ]
           },
           {
-            "path": "/api/comments/[id]",
+            "path": "/api/community/comments/[id]",
             "method": "DELETE",
             "returns": "{ success: Boolean }",
             "auth": "user"
           },
           {
-            "path": "/api/comments/batch",
+            "path": "/api/community/comments/batch",
             "method": "DELETE",
             "returns": "{ results: Array<{ success: true, id: String } | { success: false, id: String, error: { code: 'not_found' | 'forbidden' | 'locked', message: String } }> }",
             "auth": "user",
             "notes": [
               "Accepts up to 50 comment ids.",
-              "Deletes each comment using the same owner/locked checks as DELETE /api/comments/[id].",
+              "Deletes each comment using the same owner/locked checks as DELETE /api/community/comments/[id].",
               "Returns per-item results; failures do not stop processing of other ids."
             ]
           },
           {
-            "path": "/api/comments/[id]/reactions",
+            "path": "/api/community/comments/[id]/reactions",
             "method": "POST",
             "returns": "{ success: Boolean }",
             "auth": "user"
           },
           {
-            "path": "/api/comments/[id]",
+            "path": "/api/community/comments/[id]",
             "returns": "{ thread: Comment[], focusId: String, hiddenCount: Int, viewer, target }",
             "notes": [
               "Returns 403 when the focused comment exists but is not visible to the viewer."
             ]
           },
           {
-            "path": "/api/comments/[id]/reactions",
+            "path": "/api/community/comments/[id]/reactions",
             "method": "DELETE",
             "returns": "{ success: Boolean }",
             "auth": "user"
@@ -170,55 +170,55 @@
       "mcp": {
         "tools": [
           {
-            "name": "list_comments",
+            "name": "community_comment_list",
             "returns": "{ found: Boolean, data: Comment[], pagination, meta: { hiddenCount: Int, viewer, target } }",
             "auth": "user",
-            "rest_equivalent": "GET /api/comments",
+            "rest_equivalent": "GET /api/community/comments",
             "notes": [
               "Accepts page and limit and preserves complete reply trees for each paged root comment."
             ]
           },
           {
-            "name": "get_comment_thread",
+            "name": "community_comment_get",
             "returns": "{ found: Boolean, thread: Comment[], focusId: String, hiddenCount: Int, viewer, target }",
             "auth": "user",
-            "rest_equivalent": "GET /api/comments/[id]"
+            "rest_equivalent": "GET /api/community/comments/[id]"
           },
           {
-            "name": "create_comment",
+            "name": "community_comment_create",
             "returns": "{ success: Boolean, id: String }",
             "auth": "user",
-            "rest_equivalent": "POST /api/comments",
+            "rest_equivalent": "POST /api/community/comments",
             "notes": [
               "Uses the same target resolution, visibility validation, isAnonymous identity-hiding flag, and attachment validation as REST; MCP audit metadata records source=mcp."
             ]
           },
           {
-            "name": "update_own_comment",
+            "name": "community_comment_update",
             "returns": "{ success: Boolean, comment: Comment }",
             "auth": "user",
-            "rest_equivalent": "PATCH /api/comments/[id]",
+            "rest_equivalent": "PATCH /api/community/comments/[id]",
             "notes": [
               "Only the comment owner may edit through this ordinary-user MCP tool; visibility validation and isAnonymous match REST, and moderation remains unavailable through MCP."
             ]
           },
           {
-            "name": "delete_own_comment",
+            "name": "community_comment_delete",
             "returns": "{ success: Boolean }",
             "auth": "user",
-            "rest_equivalent": "DELETE /api/comments/[id]"
+            "rest_equivalent": "DELETE /api/community/comments/[id]"
           },
           {
-            "name": "add_comment_reaction",
+            "name": "community_comment_reaction_add",
             "returns": "{ success: Boolean, changed: Boolean }",
             "auth": "user",
-            "rest_equivalent": "POST /api/comments/[id]/reactions"
+            "rest_equivalent": "POST /api/community/comments/[id]/reactions"
           },
           {
-            "name": "remove_comment_reaction",
+            "name": "community_comment_reaction_remove",
             "returns": "{ success: Boolean, changed: Boolean }",
             "auth": "user",
-            "rest_equivalent": "DELETE /api/comments/[id]/reactions"
+            "rest_equivalent": "DELETE /api/community/comments/[id]/reactions"
           }
         ]
       },
@@ -293,7 +293,7 @@
       "title": "Comment Auxiliary Pages",
       "auth": "anon",
       "web": {
-        "pages": ["/comments/[id]", "/guides/markdown-support"]
+        "pages": ["/community/comments/[id]", "/guides/markdown-support"]
       },
       "display": {
         "fields": ["Comment guidelines/help pages"]

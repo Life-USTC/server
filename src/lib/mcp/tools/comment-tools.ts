@@ -43,7 +43,7 @@ const commentThreadInputSchema = z.object({
 
 export function registerCommentTools(server: McpServer) {
   server.registerTool(
-    "list_comments",
+    "community_comment_list",
     {
       description:
         "List visible comments for one course, section, teacher, homework, or section-teacher target. " +
@@ -113,10 +113,10 @@ export function registerCommentTools(server: McpServer) {
   );
 
   server.registerTool(
-    "get_comment_thread",
+    "community_comment_get",
     {
       description:
-        "Fetch the visible thread around one comment id. Returns the same focus id, target payload, viewer state, and threaded comment nodes as REST /api/comments/[id].",
+        "Fetch the visible thread around one comment id. Returns the same focus id, target payload, viewer state, and threaded comment nodes as REST /api/community/comments/[id].",
       inputSchema: commentThreadInputSchema.shape,
     },
     async ({ commentId, mode }, extra) => {
@@ -157,7 +157,7 @@ export function registerCommentTools(server: McpServer) {
   );
 
   server.registerTool(
-    "create_comment",
+    "community_comment_create",
     {
       description:
         "Create a comment or reply on one course, section, teacher, homework, or section-teacher target. " +
@@ -168,17 +168,17 @@ export function registerCommentTools(server: McpServer) {
   );
 
   server.registerTool(
-    "update_own_comment",
+    "community_comment_update",
     {
       description:
-        "Update the authenticated user's own active comment. Mirrors PATCH /api/comments/[id] and returns the updated comment snapshot.",
+        "Update the authenticated user's own active comment. Mirrors PATCH /api/community/comments/[id] and returns the updated comment snapshot.",
       inputSchema: commentUpdateInputSchema.shape,
     },
     updateOwnCommentTool,
   );
 
   server.registerTool(
-    "delete_own_comment",
+    "community_comment_delete",
     {
       description:
         "Delete the authenticated user's own comment. Only the owner can use this ordinary-user delete action.",
@@ -188,7 +188,7 @@ export function registerCommentTools(server: McpServer) {
   );
 
   server.registerTool(
-    "add_comment_reaction",
+    "community_comment_reaction_add",
     {
       description:
         "Add a reaction to a visible active comment. Returns whether a new reaction row was created.",
@@ -198,7 +198,7 @@ export function registerCommentTools(server: McpServer) {
   );
 
   server.registerTool(
-    "remove_comment_reaction",
+    "community_comment_reaction_remove",
     {
       description:
         "Remove the authenticated user's reaction from a comment. Returns whether a reaction row was removed.",

@@ -1,27 +1,27 @@
 {
   "actions": {
     "comment_create": {
-      "trigger": "POST /api/comments or MCP create_comment",
+      "trigger": "POST /api/community/comments or MCP community_comment_create",
       "description": "User creates a new comment on an object. MCP-originated writes include metadata.source=mcp."
     },
     "comment_edit": {
-      "trigger": "PATCH /api/comments/[id] or MCP update_own_comment",
+      "trigger": "PATCH /api/community/comments/[id] or MCP community_comment_update",
       "description": "User edits their own comment. MCP-originated writes include metadata.source=mcp."
     },
     "comment_delete": {
-      "trigger": "DELETE /api/comments/[id], DELETE /api/comments/batch, GraphQL deleteComment/deleteComments, MCP delete_own_comment, or registered GraphQL operations",
+      "trigger": "DELETE /api/community/comments/[id], DELETE /api/community/comments/batch, GraphQL commentDelete/commentsDelete, MCP community_comment_delete, or registered GraphQL operations",
       "description": "User deletes their own comment. Transport-originated writes include safe metadata.source where available."
     },
     "comment_react": {
-      "trigger": "POST /api/comments/[id]/reactions, DELETE /api/comments/[id]/reactions, MCP add_comment_reaction, or MCP remove_comment_reaction",
+      "trigger": "POST /api/community/comments/[id]/reactions, DELETE /api/community/comments/[id]/reactions, MCP community_comment_reaction_add, or MCP community_comment_reaction_remove",
       "description": "User adds or removes a reaction on an active visible comment. MCP-originated writes include metadata.source=mcp."
     },
     "description_edit": {
-      "trigger": "POST /api/descriptions or MCP upsert_description",
+      "trigger": "POST /api/community/descriptions or MCP community_description_set",
       "description": "User updates an object description (content changed). The description row, edit history, and audit row are committed together."
     },
     "upload_delete": {
-      "trigger": "DELETE /api/uploads/[id], GraphQL deleteUpload, MCP delete_my_upload, or the registered GraphQL operation",
+      "trigger": "DELETE /api/workspace/uploads/[id], GraphQL uploadDelete, MCP workspace_upload_delete, or the registered GraphQL operation",
       "description": "User deletes an upload they own. Transport-originated writes include metadata.source where available. After storage deletion succeeds, metadata deletion and the audit row are committed together."
     },
     "section_retire": {

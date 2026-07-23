@@ -10,7 +10,8 @@ import {
 describe("buildSocialMetadata", () => {
   test("builds one same-origin large-image card for Chinese pages", () => {
     const metadata = buildSocialMetadata({
-      canonicalPath: "/courses/9901001/introduction?utm_source=test#details",
+      canonicalPath:
+        "/catalog/courses/9901001/introduction?utm_source=test#details",
       description: "课程简介",
       imageAlt: "分享卡片",
       locale: "zh-cn",
@@ -20,7 +21,8 @@ describe("buildSocialMetadata", () => {
 
     expect(metadata).toEqual({
       alternateLocale: "en_US",
-      canonicalUrl: "https://life.example.edu/courses/9901001/introduction",
+      canonicalUrl:
+        "https://life.example.edu/catalog/courses/9901001/introduction",
       description: "课程简介",
       image: {
         alt: "分享卡片",
@@ -39,7 +41,7 @@ describe("buildSocialMetadata", () => {
 
   test("keeps canonical paths on the configured origin", () => {
     const metadata = buildSocialMetadata({
-      canonicalPath: "https://attacker.example/teachers/42?preview=1",
+      canonicalPath: "https://attacker.example/catalog/teachers/42?preview=1",
       description: "Teacher profile",
       imageAlt: "Social card",
       locale: "en-us",
@@ -47,7 +49,9 @@ describe("buildSocialMetadata", () => {
       title: "Teacher: Ada - Life@USTC",
     });
 
-    expect(metadata.canonicalUrl).toBe("https://life.example.edu/teachers/42");
+    expect(metadata.canonicalUrl).toBe(
+      "https://life.example.edu/catalog/teachers/42",
+    );
     expect(metadata.locale).toBe("en_US");
     expect(metadata.alternateLocale).toBe("zh_CN");
   });

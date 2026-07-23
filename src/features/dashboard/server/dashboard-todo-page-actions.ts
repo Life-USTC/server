@@ -22,7 +22,7 @@ export async function createTodoDashboardAction({
   if ("error" in parsed) return parsed.error;
 
   await createTodo({ userId, ...parsed.todo });
-  throw redirect(303, "/dashboard/todos");
+  throw redirect(303, "/workspace/todos");
 }
 
 export async function updateTodoDashboardAction({
@@ -49,5 +49,5 @@ export async function updateTodoDashboardAction({
     },
   });
   if (!result.ok) return fail(400, { error: copy.saveFailed });
-  throw redirect(303, "/dashboard/todos");
+  throw redirect(303, "/workspace/todos");
 }

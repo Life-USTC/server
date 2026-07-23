@@ -1,13 +1,13 @@
 /**
- * E2E tests for GET /api/uploads and POST /api/uploads.
+ * E2E tests for GET /api/workspace/uploads and POST /api/workspace/uploads.
  *
- * ## GET /api/uploads
+ * ## GET /api/workspace/uploads
  * - Query: page, pageSize (deprecated alias: limit)
  * - Response: { data: Upload[], pagination, meta: { maxFileSizeBytes, quotaBytes, usedBytes } }
  * - Auth required (401 if unauthenticated)
  * - Ignores expired pending uploads for quota without mutating them
  *
- * ## POST /api/uploads
+ * ## POST /api/workspace/uploads
  * - Body: { filename, size, contentType? }
  * - Response: { key, url, maxFileSizeBytes, quotaBytes, usedBytes }
  * - Auth required (401 if unauthenticated)
@@ -16,7 +16,7 @@
  *
  * ## Edge cases
  * - Unauthenticated GET/POST → 401
- * - Full upload flow: POST upload session → PUT to Workers/R2 route → POST /api/uploads/complete
+ * - Full upload flow: POST upload session → PUT to Workers/R2 route → POST /api/workspace/uploads/complete
  * - GET response includes quota metadata fields
  */
 import { expect, test } from "@playwright/test";
@@ -25,15 +25,17 @@ import { signInAsDebugUser } from "../../../../utils/auth";
 import { withE2ePrisma } from "../../../../utils/e2e-db/prisma";
 import { createUploadedFileViaApi } from "../../../../utils/uploads";
 
-test("/api/uploads GET 未登录返回 401", async ({ request }) => {
-  const response = await request.get("/api/uploads");
+test("/api/workspace/uploads GET 未登录返回 401", async ({ request }) => {
+  const response = await request.get("/api/workspace/uploads");
   expect(response.status()).toBe(401);
 });
 
-test("/api/uploads GET 返回上传列表与配额元数据", async ({ page }) => {
+test("/api/workspace/uploads GET 返回上传列表与配额元数据", async ({
+  page,
+}) => {
   await signInAsDebugUser(page, "/");
 
-  const response = await page.request.get("/api/uploads");
+  const response = await page.request.get("/api/workspace/uploads");
   expect(response.status()).toBe(200);
   const body = (await response.json()) as {
     data?: Array<{ id?: string; filename?: string }>;
@@ -52,7 +54,9 @@ test("/api/uploads GET 返回上传列表与配额元数据", async ({ page }) =
   expect(body.pagination).toMatchObject({ page: 1, pageSize: 20 });
 });
 
-test("/api/uploads GET 支持稳定的第二页与废弃 limit 别名", async ({ page }) => {
+test("/api/workspace/uploads GET 支持稳定的第二页与废弃 limit 别名", async ({
+  page,
+}) => {
   await signInAsDebugUser(page, "/");
   const sessionResponse = await page.request.get("/api/auth/get-session");
   const userId = ((await sessionResponse.json()) as { user?: { id?: string } })
@@ -83,10 +87,10 @@ test("/api/uploads GET 支持稳定的第二页与废弃 limit 别名", async ({
 
   try {
     const firstResponse = await page.request.get(
-      "/api/uploads?page=1&pageSize=1",
+      "/api/workspace/uploads?page=1&pageSize=1",
     );
     const secondResponse = await page.request.get(
-      "/api/uploads?page=2&limit=1",
+      "/api/workspace/uploads?page=2&limit=1",
     );
     expect(firstResponse.status()).toBe(200);
     expect(secondResponse.status()).toBe(200);
@@ -112,7 +116,9 @@ test("/api/uploads GET 支持稳定的第二页与废弃 limit 别名", async ({
   }
 });
 
-test("/api/uploads GET 忽略过期预留但不执行清理写入", async ({ page }) => {
+test("/api/workspace/uploads GET 忽略过期预留但不执行清理写入", async ({
+  page,
+}) => {
   await signInAsDebugUser(page, "/");
 
   const sessionResponse = await page.request.get("/api/auth/get-session");
@@ -123,7 +129,7 @@ test("/api/uploads GET 忽略过期预留但不执行清理写入", async ({ pag
   expect(userId).toBeTruthy();
   if (!userId) throw new Error("Expected signed-in E2E user id");
 
-  const beforeResponse = await page.request.get("/api/uploads");
+  const beforeResponse = await page.request.get("/api/workspace/uploads");
   const before = (await beforeResponse.json()) as {
     meta?: { usedBytes?: number };
   };
@@ -142,7 +148,7 @@ test("/api/uploads GET 忽略过期预留但不执行清理写入", async ({ pag
   );
 
   try {
-    const response = await page.request.get("/api/uploads");
+    const response = await page.request.get("/api/workspace/uploads");
     expect(response.status()).toBe(200);
     const body = (await response.json()) as {
       meta?: { usedBytes?: number };
@@ -160,8 +166,8 @@ test("/api/uploads GET 忽略过期预留但不执行清理写入", async ({ pag
   }
 });
 
-test("/api/uploads POST 未登录返回 401", async ({ request }) => {
-  const response = await request.post("/api/uploads", {
+test("/api/workspace/uploads POST 未登录返回 401", async ({ request }) => {
+  const response = await request.post("/api/workspace/uploads", {
     data: {
       filename: "unauthorized.txt",
       contentType: "text/plain",
@@ -171,10 +177,10 @@ test("/api/uploads POST 未登录返回 401", async ({ request }) => {
   expect(response.status()).toBe(401);
 });
 
-test("/api/uploads POST 超出单文件大小返回 413", async ({ page }) => {
+test("/api/workspace/uploads POST 超出单文件大小返回 413", async ({ page }) => {
   await signInAsDebugUser(page, "/");
 
-  const response = await page.request.post("/api/uploads", {
+  const response = await page.request.post("/api/workspace/uploads", {
     data: {
       filename: "too-large.txt",
       contentType: "text/plain",
@@ -186,7 +192,9 @@ test("/api/uploads POST 超出单文件大小返回 413", async ({ page }) => {
   expect(await response.json()).toEqual({ error: "File too large" });
 });
 
-test("/api/uploads POST 可申请上传并完成文件入库", async ({ page }) => {
+test("/api/workspace/uploads POST 可申请上传并完成文件入库", async ({
+  page,
+}) => {
   test.setTimeout(60_000);
   await signInAsDebugUser(page, "/");
 
@@ -197,7 +205,7 @@ test("/api/uploads POST 可申请上传并完成文件入库", async ({ page }) 
   });
 
   try {
-    const listResponse = await page.request.get("/api/uploads");
+    const listResponse = await page.request.get("/api/workspace/uploads");
     expect(listResponse.status()).toBe(200);
     const listBody = (await listResponse.json()) as {
       data?: Array<{ id?: string; filename?: string }>;
@@ -211,6 +219,6 @@ test("/api/uploads POST 可申请上传并完成文件入库", async ({ page }) 
     expect(typeof listBody.meta?.usedBytes).toBe("number");
     expect(typeof listBody.meta?.quotaBytes).toBe("number");
   } finally {
-    await page.request.delete(`/api/uploads/${uploaded.uploadId}`);
+    await page.request.delete(`/api/workspace/uploads/${uploaded.uploadId}`);
   }
 });

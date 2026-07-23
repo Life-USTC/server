@@ -20,13 +20,13 @@
       "graphql": {
         "mutations": [
           {
-            "name": "upsertDescription",
+            "name": "descriptionSet",
             "arguments": { "input": "UpsertDescriptionInput!" },
             "returns": "DescriptionMutationPayload!",
             "auth": "user",
             "required_scopes": ["description:write"],
-            "rest_equivalent": "POST /api/descriptions",
-            "mcp_equivalent": "upsert_description",
+            "rest_equivalent": "POST /api/community/descriptions",
+            "mcp_equivalent": "community_description_set",
             "notes": [
               "Inputs accept targetType plus targetId, or public identifiers such as sectionJwId, courseJwId, teacherId, homeworkId."
             ]
@@ -36,7 +36,7 @@
       "rest": {
         "routes": [
           {
-            "path": "/api/descriptions",
+            "path": "/api/community/descriptions",
             "returns": "{ description: { content, renderedHtml, ... }, history, viewer }",
             "notes": [
               "Inputs accept targetType plus targetId, or public identifiers such as sectionJwId, courseJwId, teacherId, homeworkId.",
@@ -44,7 +44,7 @@
             ]
           },
           {
-            "path": "/api/descriptions",
+            "path": "/api/community/descriptions",
             "method": "POST",
             "returns": "{ id: String, updated: Boolean }",
             "auth": "user",
@@ -58,14 +58,14 @@
       "mcp": {
         "tools": [
           {
-            "name": "get_description",
+            "name": "community_description_get",
             "returns": "{ found, target, description, history, viewer }",
             "notes": [
               "Inputs accept targetType plus targetId, or public identifiers such as sectionJwId, courseJwId, teacherId, homeworkId."
             ]
           },
           {
-            "name": "upsert_description",
+            "name": "community_description_set",
             "returns": "{ success, id, updated, target, description, history, viewer }",
             "auth": "user",
             "notes": [

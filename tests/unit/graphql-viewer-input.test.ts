@@ -5,7 +5,7 @@ import {
   validateGraphqlDateRange,
 } from "@/lib/graphql/viewer-input";
 
-describe("GraphQL viewer date input", () => {
+describe("GraphQL workspace date input", () => {
   it.each([
     ["2026-04-29T00:00:00+08:00", "2026-04-29T00:00:00.000Z"],
     ["2026-04-28T16:00:00Z", "2026-04-29T00:00:00.000Z"],

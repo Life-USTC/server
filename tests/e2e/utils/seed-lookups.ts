@@ -20,7 +20,7 @@ export async function resolveSeedSectionMatch(
 ): Promise<SeedSectionMatch> {
   seedSectionMatchPromise ??= (async () => {
     const response = await getRequestContext(source).post(
-      "/api/sections/match-codes",
+      "/api/catalog/sections/match-codes",
       {
         data: { codes: [DEV_SEED.section.code] },
       },
@@ -46,7 +46,7 @@ export async function resolveSeedSectionMatch(
       typeof section.code !== "string"
     ) {
       throw new Error(
-        `Seed section ${DEV_SEED.section.code} not found via /api/sections/match-codes`,
+        `Seed section ${DEV_SEED.section.code} not found via /api/catalog/sections/match-codes`,
       );
     }
 
@@ -69,7 +69,7 @@ export async function resolveSeedSectionMatches(
   seedSectionMatchesPromise ??= (async () => {
     const seedCodes = DEV_SEED.sections.map((section) => section.code);
     const request = getRequestContext(source);
-    const response = await request.post("/api/sections/match-codes", {
+    const response = await request.post("/api/catalog/sections/match-codes", {
       data: { codes: seedCodes },
     });
     expect(response.status()).toBe(200);
@@ -90,7 +90,7 @@ export async function resolveSeedSectionMatches(
     const matchedCodeSet = new Set(sections.map((section) => section.code));
     for (const code of seedCodes.filter((item) => !matchedCodeSet.has(item))) {
       const fallbackResponse = await request.get(
-        `/api/sections?search=${encodeURIComponent(code)}&limit=10`,
+        `/api/catalog/sections?search=${encodeURIComponent(code)}&limit=10`,
       );
       expect(fallbackResponse.status()).toBe(200);
       const fallbackBody = (await fallbackResponse.json()) as {
@@ -136,7 +136,7 @@ export async function resolveSeedTeacherId(
 ): Promise<number> {
   seedTeacherIdPromise ??= (async () => {
     const response = await getRequestContext(source).get(
-      `/api/teachers?search=${encodeURIComponent(DEV_SEED.teacher.code)}&limit=10`,
+      `/api/catalog/teachers?search=${encodeURIComponent(DEV_SEED.teacher.code)}&limit=10`,
     );
     expect(response.status()).toBe(200);
     const body = (await response.json()) as {
@@ -149,7 +149,7 @@ export async function resolveSeedTeacherId(
 
     if (!teacher || typeof teacher.id !== "number") {
       throw new Error(
-        `Seed teacher ${DEV_SEED.teacher.code} not found via /api/teachers`,
+        `Seed teacher ${DEV_SEED.teacher.code} not found via /api/catalog/teachers`,
       );
     }
 

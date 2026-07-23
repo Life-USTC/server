@@ -48,15 +48,15 @@ const BINARY_REQUEST_BODY = {
 const FORM_URLENCODED_PATHS = new Set([
   "POST /api/auth/oauth2/token",
   "POST /api/auth/oauth2/device-authorization",
-  "POST /api/dashboard-links/pin",
-  "POST /api/dashboard-links/visit",
+  "POST /api/workspace/links/pin",
+  "POST /api/workspace/links/visit",
 ]);
 
 const REDIRECT_DESCRIPTIONS: Record<
   string,
   Record<string, { description: string; headers?: Record<string, unknown> }>
 > = {
-  "POST /api/dashboard-links/pin": {
+  "POST /api/workspace/links/pin": {
     "303": {
       description: "Redirect after pin/unpin",
       headers: {
@@ -67,7 +67,7 @@ const REDIRECT_DESCRIPTIONS: Record<
       },
     },
   },
-  "GET /api/dashboard-links/visit": {
+  "GET /api/workspace/links/visit": {
     "307": {
       description: "Temporary redirect to target link",
       headers: {
@@ -78,7 +78,7 @@ const REDIRECT_DESCRIPTIONS: Record<
       },
     },
   },
-  "POST /api/dashboard-links/visit": {
+  "POST /api/workspace/links/visit": {
     "303": {
       description: "Redirect after recording link click",
       headers: {
@@ -138,35 +138,38 @@ const OPERATION_ID_OVERRIDES: Record<string, string> = {
     "get-api-auth-.well-known-openid-configuration",
   "OPTIONS /api/auth/.well-known/openid-configuration":
     "options-api-auth-.well-known-openid-configuration",
-  "GET /api/bus": "queryBus",
-  "GET /api/bus/preferences": "getBusPreferences",
-  "POST /api/bus/preferences": "setBusPreferences",
-  "POST /api/calendar-subscriptions": "setCalendarSubscription",
-  "POST /api/calendar-subscriptions/batch": "batchUpdateCalendarSubscription",
-  "PATCH /api/calendar-subscriptions": "appendCalendarSubscriptionSections",
-  "GET /api/calendar-subscriptions/current": "getCurrentCalendarSubscription",
-  "POST /api/calendar-subscriptions/query": "queryCalendarSubscriptionSections",
-  "GET /api/comments": "listComments",
-  "POST /api/comments": "createComment",
-  "GET /api/comments/{id}": "getComment",
-  "PATCH /api/comments/{id}": "updateComment",
-  "DELETE /api/comments/{id}": "deleteComment",
-  "POST /api/comments/{id}/reactions": "addCommentReaction",
-  "DELETE /api/comments/{id}/reactions": "removeCommentReaction",
-  "GET /api/courses": "listCourses",
-  "GET /api/courses/{jwId}": "getCourse",
-  "POST /api/dashboard-links/pin": "pinDashboardLink",
-  "GET /api/dashboard-links/visit": "visitDashboardLink",
-  "POST /api/dashboard-links/visit": "recordDashboardLinkVisit",
-  "GET /api/descriptions": "getDescription",
-  "POST /api/descriptions": "upsertDescription",
+  "GET /api/catalog/bus": "queryBus",
+  "GET /api/catalog/bus/routes": "get-api-bus-routes",
+  "GET /api/workspace/bus-preferences": "getBusPreferences",
+  "POST /api/workspace/bus-preferences": "setBusPreferences",
+  "POST /api/workspace/subscriptions": "setCalendarSubscription",
+  "POST /api/workspace/subscriptions/batch": "batchUpdateCalendarSubscription",
+  "PATCH /api/workspace/subscriptions": "appendCalendarSubscriptionSections",
+  "GET /api/workspace/subscriptions/current": "getCurrentCalendarSubscription",
+  "POST /api/workspace/subscriptions/query":
+    "queryCalendarSubscriptionSections",
+  "GET /api/community/comments": "listComments",
+  "POST /api/community/comments": "createComment",
+  "GET /api/community/comments/{id}": "getComment",
+  "PATCH /api/community/comments/{id}": "updateComment",
+  "DELETE /api/community/comments/{id}": "deleteComment",
+  "DELETE /api/community/comments/batch": "delete-api-comments-batch",
+  "POST /api/community/comments/{id}/reactions": "addCommentReaction",
+  "DELETE /api/community/comments/{id}/reactions": "removeCommentReaction",
+  "GET /api/catalog/courses": "listCourses",
+  "GET /api/catalog/courses/{jwId}": "getCourse",
+  "POST /api/workspace/links/pin": "pinDashboardLink",
+  "GET /api/workspace/links/visit": "visitDashboardLink",
+  "POST /api/workspace/links/visit": "recordDashboardLinkVisit",
+  "GET /api/community/descriptions": "getDescription",
+  "POST /api/community/descriptions": "upsertDescription",
   "GET /api/health": "listHealth",
-  "GET /api/homeworks": "listHomeworks",
-  "POST /api/homeworks": "createHomework",
-  "PATCH /api/homeworks/{id}": "updateHomework",
-  "DELETE /api/homeworks/{id}": "deleteHomework",
-  "PUT /api/homeworks/{id}/completion": "setHomeworkCompletion",
-  "POST /api/locale": "setLocale",
+  "GET /api/community/homeworks": "listHomeworks",
+  "POST /api/community/homeworks": "createHomework",
+  "PATCH /api/community/homeworks/{id}": "updateHomework",
+  "DELETE /api/community/homeworks/{id}": "deleteHomework",
+  "PUT /api/workspace/homeworks/{id}/completion": "setHomeworkCompletion",
+  "POST /api/account/preferences": "setLocale",
   "GET /api/mcp": "listMcp",
   "POST /api/mcp": "createMcp",
   "GET /api/mcp/.well-known/oauth-authorization-server":
@@ -177,33 +180,40 @@ const OPERATION_ID_OVERRIDES: Record<string, string> = {
     "get-api-mcp-.well-known-openid-configuration",
   "OPTIONS /api/mcp/.well-known/openid-configuration":
     "options-api-mcp-.well-known-openid-configuration",
-  "GET /api/me": "getMe",
-  "GET /api/me/subscriptions/homeworks": "getSubscribedHomeworks",
-  "GET /api/metadata": "getMetadata",
+  "GET /api/account": "getMe",
+  "GET /api/workspace/homeworks": "getSubscribedHomeworks",
+  "PUT /api/workspace/homeworks/completions": "put-api-homeworks-completions",
+  "GET /api/workspace/overview": "get-api-me-overview",
+  "GET /api/workspace/schedules": "get-api-me-subscriptions-schedules",
+  "GET /api/catalog/metadata": "getMetadata",
   "GET /api/openapi": "getOpenApiSpec",
-  "GET /api/schedules": "listSchedules",
-  "GET /api/sections": "listSections",
-  "GET /api/sections/{jwId}": "getSection",
-  "GET /api/sections/{jwId}/calendar.ics": "getSectionCalendar",
-  "GET /api/sections/{jwId}/schedule-groups": "getSectionScheduleGroups",
-  "GET /api/sections/{jwId}/schedules": "getSectionSchedules",
-  "GET /api/sections/calendar.ics": "getSectionsCalendar",
-  "POST /api/sections/match-codes": "matchSectionCodes",
-  "GET /api/semesters": "listSemesters",
-  "GET /api/semesters/current": "getCurrentSemester",
-  "GET /api/teachers": "listTeachers",
-  "GET /api/teachers/{id}": "getTeacher",
-  "GET /api/todos": "listTodos",
-  "POST /api/todos": "createTodo",
-  "PATCH /api/todos/{id}": "updateTodo",
-  "DELETE /api/todos/{id}": "deleteTodo",
-  "GET /api/uploads": "listUploads",
-  "POST /api/uploads": "createUpload",
-  "PATCH /api/uploads/{id}": "updateUpload",
-  "DELETE /api/uploads/{id}": "deleteUpload",
-  "GET /api/uploads/{id}/download": "downloadUpload",
-  "POST /api/uploads/complete": "completeUpload",
-  "GET /api/users/{userId}/calendar.ics": "getUserCalendar",
+  "GET /api/catalog/schedules": "listSchedules",
+  "GET /api/catalog/sections": "listSections",
+  "GET /api/catalog/sections/{jwId}": "getSection",
+  "GET /api/catalog/sections/{jwId}/calendar.ics": "getSectionCalendar",
+  "GET /api/catalog/sections/{jwId}/schedule-groups":
+    "getSectionScheduleGroups",
+  "GET /api/catalog/sections/{jwId}/schedules": "getSectionSchedules",
+  "GET /api/catalog/sections/calendar.ics": "getSectionsCalendar",
+  "POST /api/catalog/sections/match-codes": "matchSectionCodes",
+  "GET /api/catalog/semesters": "listSemesters",
+  "GET /api/catalog/semesters/current": "getCurrentSemester",
+  "GET /api/catalog/teachers": "listTeachers",
+  "GET /api/catalog/teachers/{id}": "getTeacher",
+  "GET /api/workspace/todos": "listTodos",
+  "POST /api/workspace/todos": "createTodo",
+  "PATCH /api/workspace/todos/{id}": "updateTodo",
+  "DELETE /api/workspace/todos/{id}": "deleteTodo",
+  "PATCH /api/workspace/todos/batch": "patch-api-todos-batch",
+  "DELETE /api/workspace/todos/batch": "delete-api-todos-batch",
+  "GET /api/workspace/uploads": "listUploads",
+  "POST /api/workspace/uploads": "createUpload",
+  "PATCH /api/workspace/uploads/{id}": "updateUpload",
+  "DELETE /api/workspace/uploads/{id}": "deleteUpload",
+  "GET /api/workspace/uploads/{id}/download": "downloadUpload",
+  "POST /api/workspace/uploads/complete": "completeUpload",
+  "PUT /api/workspace/uploads/object": "put-api-uploads-object",
+  "GET /api/community/users/{userId}/calendar.ics": "getUserCalendar",
 };
 
 export interface RouteCollectorOptions {
@@ -520,25 +530,30 @@ function slugPath(path: string): string {
 
 function buildTag(routePath: string): string {
   if (routePath.startsWith("/api/admin/")) return "Admin";
-  if (routePath.startsWith("/api/bus")) return "Bus";
-  if (routePath.startsWith("/api/calendar-subscriptions")) return "Calendar";
-  if (routePath.startsWith("/api/comments")) return "Comments";
-  if (routePath.startsWith("/api/courses")) return "Courses";
-  if (routePath.startsWith("/api/dashboard-links")) return "DashboardLinks";
-  if (routePath.startsWith("/api/descriptions")) return "Descriptions";
-  if (routePath.startsWith("/api/homeworks")) return "Homeworks";
-  if (routePath === "/api/locale") return "Locale";
-  if (routePath === "/api/metadata") return "Metadata";
+  if (routePath.startsWith("/api/catalog/bus")) return "Bus";
+  if (routePath.startsWith("/api/workspace/bus-preferences")) return "Bus";
+  if (routePath.startsWith("/api/workspace/subscriptions")) return "Calendar";
+  if (routePath.startsWith("/api/community/comments")) return "Comments";
+  if (routePath.startsWith("/api/catalog/courses")) return "Courses";
+  if (routePath.startsWith("/api/workspace/links")) return "DashboardLinks";
+  if (routePath === "/api/workspace/overview") return "Dashboard";
+  if (routePath.startsWith("/api/community/descriptions"))
+    return "Descriptions";
+  if (routePath.startsWith("/api/community/homeworks")) return "Homeworks";
+  if (routePath.startsWith("/api/workspace/homeworks")) return "Homeworks";
+  if (routePath === "/api/account/preferences") return "Locale";
+  if (routePath === "/api/catalog/metadata") return "Metadata";
   if (routePath === "/api/openapi") return "OpenAPI";
-  if (routePath.startsWith("/api/me")) return "Me";
-  if (routePath === "/api/schedules") return "Schedules";
-  if (routePath.startsWith("/api/sections")) return "Sections";
-  if (routePath.startsWith("/api/semesters")) return "Semesters";
-  if (routePath.startsWith("/api/teachers")) return "Teachers";
-  if (routePath.startsWith("/api/todos")) return "Todos";
-  if (routePath.startsWith("/api/uploads")) return "Uploads";
-  if (routePath === "/api/users/{userId}/calendar.ics") return "Calendar";
-  if (routePath.startsWith("/api/users")) return "Api";
+  if (routePath.startsWith("/api/account")) return "Me";
+  if (routePath === "/api/catalog/schedules") return "Schedules";
+  if (routePath === "/api/workspace/schedules") return "Schedules";
+  if (routePath.startsWith("/api/catalog/sections")) return "Sections";
+  if (routePath.startsWith("/api/catalog/semesters")) return "Semesters";
+  if (routePath.startsWith("/api/catalog/teachers")) return "Teachers";
+  if (routePath.startsWith("/api/workspace/todos")) return "Todos";
+  if (routePath.startsWith("/api/workspace/uploads")) return "Uploads";
+  if (routePath === "/api/community/users/{userId}/calendar.ics")
+    return "Calendar";
   if (
     routePath.startsWith("/api/auth") ||
     routePath.startsWith("/api/mcp") ||
@@ -569,7 +584,7 @@ function buildSecurity(
     return [{ mcpBearerAuth: [] }];
   }
 
-  if (routePath === "/api/users/{userId}/calendar.ics") {
+  if (routePath === "/api/community/users/{userId}/calendar.ics") {
     return [
       { bearerAuth: [] },
       { sessionCookie: [] },

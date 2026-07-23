@@ -60,7 +60,7 @@ export let user: LayoutUserSummary;
       />
 
       {#if !user}
-        <Button href="/signin" size="sm">
+        <Button href="/account/sign-in" size="sm">
           {copy.menu.signIn}
         </Button>
       {/if}

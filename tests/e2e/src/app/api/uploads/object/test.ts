@@ -1,7 +1,7 @@
 /**
- * E2E tests for PUT /api/uploads/object.
+ * E2E tests for PUT /api/workspace/uploads/object.
  *
- * ## PUT /api/uploads/object
+ * ## PUT /api/workspace/uploads/object
  * - Query: key (required, must belong to current user)
  * - Body: binary file contents
  * - Headers: Content-Length (required)
@@ -15,19 +15,23 @@
  * - Unauthenticated PUT → 401
  * - Missing key → 400
  * - Key prefix mismatch → 403
- * - Full flow: POST /api/uploads session → PUT object → POST /api/uploads/complete
+ * - Full flow: POST /api/workspace/uploads session → PUT object → POST /api/workspace/uploads/complete
  */
 import { expect, test } from "@playwright/test";
 import { signInAsDebugUser } from "../../../../../utils/auth";
 import { assertApiContract } from "../../../_shared/api-contract";
 
-test("/api/uploads/object", async ({ request }) => {
-  await assertApiContract(request, { routePath: "/api/uploads/object" });
+test("/api/workspace/uploads/object", async ({ request }) => {
+  await assertApiContract(request, {
+    routePath: "/api/workspace/uploads/object",
+  });
 });
 
-test("PUT /api/uploads/object 未登录返回 401", async ({ request }) => {
+test("PUT /api/workspace/uploads/object 未登录返回 401", async ({
+  request,
+}) => {
   const response = await request.put(
-    "/api/uploads/object?key=uploads/test/key.txt",
+    "/api/workspace/uploads/object?key=uploads/test/key.txt",
     {
       data: Buffer.from("hello"),
       headers: {
@@ -39,9 +43,11 @@ test("PUT /api/uploads/object 未登录返回 401", async ({ request }) => {
   expect(response.status()).toBe(401);
 });
 
-test("PUT /api/uploads/object 缺少 key 返回 400", async ({ page }) => {
+test("PUT /api/workspace/uploads/object 缺少 key 返回 400", async ({
+  page,
+}) => {
   await signInAsDebugUser(page, "/");
-  const response = await page.request.put("/api/uploads/object", {
+  const response = await page.request.put("/api/workspace/uploads/object", {
     data: Buffer.from("hello"),
     headers: {
       "Content-Type": "text/plain",
@@ -51,10 +57,12 @@ test("PUT /api/uploads/object 缺少 key 返回 400", async ({ page }) => {
   expect(response.status()).toBe(400);
 });
 
-test("PUT /api/uploads/object key 前缀不匹配返回 403", async ({ page }) => {
+test("PUT /api/workspace/uploads/object key 前缀不匹配返回 403", async ({
+  page,
+}) => {
   await signInAsDebugUser(page, "/");
   const response = await page.request.put(
-    "/api/uploads/object?key=uploads/other-user/test.txt",
+    "/api/workspace/uploads/object?key=uploads/other-user/test.txt",
     {
       data: Buffer.from("hello"),
       headers: {
@@ -66,7 +74,9 @@ test("PUT /api/uploads/object key 前缀不匹配返回 403", async ({ page }) =
   expect(response.status()).toBe(403);
 });
 
-test("PUT /api/uploads/object 可上传二进制对象并完成", async ({ page }) => {
+test("PUT /api/workspace/uploads/object 可上传二进制对象并完成", async ({
+  page,
+}) => {
   test.setTimeout(60_000);
   await signInAsDebugUser(page, "/");
 
@@ -74,7 +84,7 @@ test("PUT /api/uploads/object 可上传二进制对象并完成", async ({ page 
   const contents = "hello upload object endpoint";
   const size = Buffer.byteLength(contents);
 
-  const sessionResponse = await page.request.post("/api/uploads", {
+  const sessionResponse = await page.request.post("/api/workspace/uploads", {
     data: {
       filename,
       contentType: "text/plain",
@@ -102,13 +112,16 @@ test("PUT /api/uploads/object 可上传二进制对象并完成", async ({ page 
   const putBody = (await putResponse.json()) as { success?: boolean };
   expect(putBody.success).toBe(true);
 
-  const completeResponse = await page.request.post("/api/uploads/complete", {
-    data: {
-      key: sessionBody.key,
-      filename,
-      contentType: "text/plain",
+  const completeResponse = await page.request.post(
+    "/api/workspace/uploads/complete",
+    {
+      data: {
+        key: sessionBody.key,
+        filename,
+        contentType: "text/plain",
+      },
     },
-  });
+  );
   expect(completeResponse.status()).toBe(200);
   const completeBody = (await completeResponse.json()) as {
     upload?: { id?: string; filename?: string; size?: number };
@@ -118,5 +131,7 @@ test("PUT /api/uploads/object 可上传二进制对象并完成", async ({ page 
   expect(completeBody.upload?.size).toBe(size);
 
   // Cleanup
-  await page.request.delete(`/api/uploads/${completeBody.upload?.id}`);
+  await page.request.delete(
+    `/api/workspace/uploads/${completeBody.upload?.id}`,
+  );
 });

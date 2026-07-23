@@ -1,7 +1,7 @@
 /**
- * E2E tests for GET /api/uploads/[id]/download.
+ * E2E tests for GET /api/workspace/uploads/[id]/download.
  *
- * ## GET /api/uploads/[id]/download
+ * ## GET /api/workspace/uploads/[id]/download
  * - Response: 200 streamed from R2
  * - Auth required (401 if unauthenticated)
  * - Ownership check: returns 404 if upload belongs to another user
@@ -21,18 +21,24 @@ import { resolveSeedSectionId } from "../../../../../../utils/seed-lookups";
 import { createUploadedFileViaApi } from "../../../../../../utils/uploads";
 import { assertApiContract } from "../../../../_shared/api-contract";
 
-test("/api/uploads/[id]/download", async ({ request }) => {
+test("/api/workspace/uploads/[id]/download", async ({ request }) => {
   await assertApiContract(request, {
-    routePath: "/api/uploads/[id]/download",
+    routePath: "/api/workspace/uploads/[id]/download",
   });
 });
 
-test("/api/uploads/[id]/download GET 未登录返回 401", async ({ request }) => {
-  const response = await request.get("/api/uploads/invalid-e2e/download");
+test("/api/workspace/uploads/[id]/download GET 未登录返回 401", async ({
+  request,
+}) => {
+  const response = await request.get(
+    "/api/workspace/uploads/invalid-e2e/download",
+  );
   expect(response.status()).toBe(401);
 });
 
-test("/api/uploads/[id]/download GET 可下载自己的文件", async ({ page }) => {
+test("/api/workspace/uploads/[id]/download GET 可下载自己的文件", async ({
+  page,
+}) => {
   test.setTimeout(60_000);
   await signInAsDebugUser(page, "/");
 
@@ -44,18 +50,20 @@ test("/api/uploads/[id]/download GET 可下载自己的文件", async ({ page })
 
   try {
     const downloadResponse = await page.request.get(
-      `/api/uploads/${uploaded.uploadId}/download`,
+      `/api/workspace/uploads/${uploaded.uploadId}/download`,
     );
     expect(downloadResponse.status()).toBe(200);
     expect(downloadResponse.headers()["content-disposition"]).toContain(
       filename,
     );
   } finally {
-    await page.request.delete(`/api/uploads/${uploaded.uploadId}`);
+    await page.request.delete(`/api/workspace/uploads/${uploaded.uploadId}`);
   }
 });
 
-test("/api/uploads/[id]/download GET 非本人返回 404", async ({ browser }) => {
+test("/api/workspace/uploads/[id]/download GET 非本人返回 404", async ({
+  browser,
+}) => {
   const userContext = await browser.newContext();
   const userPage = await userContext.newPage();
 
@@ -77,7 +85,7 @@ test("/api/uploads/[id]/download GET 非本人返回 404", async ({ browser }) =
       try {
         await signInAsDevAdmin(adminPage, "/");
         const downloadResponse = await adminPage.request.get(
-          `/api/uploads/${uploaded.uploadId}/download`,
+          `/api/workspace/uploads/${uploaded.uploadId}/download`,
           { maxRedirects: 0 },
         );
         expect(downloadResponse.status()).toBe(404);
@@ -85,14 +93,16 @@ test("/api/uploads/[id]/download GET 非本人返回 404", async ({ browser }) =
         await adminContext.close();
       }
     } finally {
-      await userPage.request.delete(`/api/uploads/${uploaded.uploadId}`);
+      await userPage.request.delete(
+        `/api/workspace/uploads/${uploaded.uploadId}`,
+      );
     }
   } finally {
     await userContext.close();
   }
 });
 
-test("/api/uploads/[id]/download GET 允许下载可见评论附件", async ({
+test("/api/workspace/uploads/[id]/download GET 允许下载可见评论附件", async ({
   browser,
 }) => {
   const userContext = await browser.newContext();
@@ -106,15 +116,18 @@ test("/api/uploads/[id]/download GET 允许下载可见评论附件", async ({
       contents: "visible comment attachment",
     });
 
-    const createCommentResponse = await userPage.request.post("/api/comments", {
-      data: {
-        attachmentIds: [uploaded.uploadId],
-        body: `e2e comment attachment ${Date.now()}`,
-        targetId: String(sectionId),
-        targetType: "section",
-        visibility: "public",
+    const createCommentResponse = await userPage.request.post(
+      "/api/community/comments",
+      {
+        data: {
+          attachmentIds: [uploaded.uploadId],
+          body: `e2e comment attachment ${Date.now()}`,
+          targetId: String(sectionId),
+          targetType: "section",
+          visibility: "public",
+        },
       },
-    });
+    );
     expect(createCommentResponse.status()).toBe(201);
     const commentId = ((await createCommentResponse.json()) as { id?: string })
       .id;
@@ -127,7 +140,7 @@ test("/api/uploads/[id]/download GET 允许下载可见评论附件", async ({
       try {
         await signInAsDevAdmin(adminPage, "/");
         const downloadResponse = await adminPage.request.get(
-          `/api/uploads/${uploaded.uploadId}/download`,
+          `/api/workspace/uploads/${uploaded.uploadId}/download`,
         );
         expect(downloadResponse.status()).toBe(200);
         await expect(downloadResponse.text()).resolves.toBe(
@@ -138,16 +151,18 @@ test("/api/uploads/[id]/download GET 允许下载可见评论附件", async ({
       }
     } finally {
       if (commentId) {
-        await userPage.request.delete(`/api/comments/${commentId}`);
+        await userPage.request.delete(`/api/community/comments/${commentId}`);
       }
-      await userPage.request.delete(`/api/uploads/${uploaded.uploadId}`);
+      await userPage.request.delete(
+        `/api/workspace/uploads/${uploaded.uploadId}`,
+      );
     }
   } finally {
     await userContext.close();
   }
 });
 
-test("/api/uploads/[id]/download GET 拒绝下载已删除评论附件", async ({
+test("/api/workspace/uploads/[id]/download GET 拒绝下载已删除评论附件", async ({
   browser,
 }) => {
   const userContext = await browser.newContext();
@@ -161,29 +176,32 @@ test("/api/uploads/[id]/download GET 拒绝下载已删除评论附件", async (
       contents: "deleted comment attachment",
     });
 
-    const createCommentResponse = await userPage.request.post("/api/comments", {
-      data: {
-        attachmentIds: [uploaded.uploadId],
-        body: `e2e deleted comment attachment ${Date.now()}`,
-        targetId: String(sectionId),
-        targetType: "section",
-        visibility: "public",
+    const createCommentResponse = await userPage.request.post(
+      "/api/community/comments",
+      {
+        data: {
+          attachmentIds: [uploaded.uploadId],
+          body: `e2e deleted comment attachment ${Date.now()}`,
+          targetId: String(sectionId),
+          targetType: "section",
+          visibility: "public",
+        },
       },
-    });
+    );
     expect(createCommentResponse.status()).toBe(201);
     const commentId = ((await createCommentResponse.json()) as { id?: string })
       .id;
     expect(commentId).toBeTruthy();
 
     try {
-      await userPage.request.delete(`/api/comments/${commentId}`);
+      await userPage.request.delete(`/api/community/comments/${commentId}`);
       const adminContext = await browser.newContext();
       const adminPage = await adminContext.newPage();
 
       try {
         await signInAsDevAdmin(adminPage, "/");
         const downloadResponse = await adminPage.request.get(
-          `/api/uploads/${uploaded.uploadId}/download`,
+          `/api/workspace/uploads/${uploaded.uploadId}/download`,
           { maxRedirects: 0 },
         );
         expect(downloadResponse.status()).toBe(404);
@@ -191,19 +209,21 @@ test("/api/uploads/[id]/download GET 拒绝下载已删除评论附件", async (
         await adminContext.close();
       }
     } finally {
-      await userPage.request.delete(`/api/uploads/${uploaded.uploadId}`);
+      await userPage.request.delete(
+        `/api/workspace/uploads/${uploaded.uploadId}`,
+      );
     }
   } finally {
     await userContext.close();
   }
 });
 
-test("/api/uploads/[id]/download GET 不存在的 id 返回 404", async ({
+test("/api/workspace/uploads/[id]/download GET 不存在的 id 返回 404", async ({
   page,
 }) => {
   await signInAsDebugUser(page, "/");
   const response = await page.request.get(
-    "/api/uploads/00000000-0000-0000-0000-000000000000/download",
+    "/api/workspace/uploads/00000000-0000-0000-0000-000000000000/download",
     { maxRedirects: 0 },
   );
   expect(response.status()).toBe(404);

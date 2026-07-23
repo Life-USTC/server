@@ -19,7 +19,7 @@ export let teacherNames: (teachers: CatalogNamed[]) => string;
   {#each course.sections as section}
     <Item.Root variant="outline" size="sm">
       {#snippet child({ props })}
-        <a href={`/sections/${section.jwId}`} {...props}>
+        <a href={`/catalog/sections/${section.jwId}`} {...props}>
           <Item.Content>
             <Item.Title>{section.semester?.nameCn ?? notAvailable}</Item.Title>
             <Item.Description>

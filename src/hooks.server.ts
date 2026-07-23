@@ -261,7 +261,7 @@ const handleWithRuntimeEnv: Handle = async ({ event, resolve }) => {
       const returnTo = `${event.url.pathname}${event.url.search}`;
       throw redirect(
         303,
-        `/welcome?callbackUrl=${encodeURIComponent(returnTo)}`,
+        `/account/welcome?callbackUrl=${encodeURIComponent(returnTo)}`,
       );
     }
 

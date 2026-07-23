@@ -88,7 +88,7 @@ describe("arbitrary GraphQL document runner", () => {
       message: `GraphQL document must not exceed ${GRAPHQL_LIMITS.bodyBytes} bytes.`,
     } satisfies Partial<RegisteredGraphqlOperationError>);
     await expect(
-      run("query BodyBudget { currentSemester { jwId } }", {
+      run("query BodyBudget { catalog { currentSemester { jwId } } }", {
         variables: { value: "x".repeat(GRAPHQL_LIMITS.bodyBytes) },
       }),
     ).rejects.toMatchObject({
@@ -105,7 +105,7 @@ describe("arbitrary GraphQL document runner", () => {
     controller.abort(new DOMException("Caller cancelled", "AbortError"));
 
     await expect(
-      run("query NeverParsed { currentSemester { jwId } }", {
+      run("query NeverParsed { catalog { currentSemester { jwId } } }", {
         signal: controller.signal,
       }),
     ).rejects.toMatchObject({
@@ -129,7 +129,7 @@ describe("arbitrary GraphQL document runner", () => {
     );
 
     await expect(
-      run("query NeverParsed { currentSemester { jwId } }"),
+      run("query NeverParsed { catalog { currentSemester { jwId } } }"),
     ).rejects.toMatchObject({
       code: "REQUEST_TIMEOUT",
     } satisfies Partial<RegisteredGraphqlOperationError>);
@@ -141,8 +141,8 @@ describe("arbitrary GraphQL document runner", () => {
     const writeDataPoint = installAnalytics();
     const mutation = /* GraphQL */ `
       mutation CreateTodo($title: String!) {
-        createTodo(input: { title: $title }) {
-          todo { id }
+        todoCreate(input: { title: $title }) {
+          id
         }
       }
     `;
@@ -195,12 +195,12 @@ describe("arbitrary GraphQL document runner", () => {
     const writeDataPoint = installAnalytics();
 
     await expect(
-      run("query CurrentSemester { currentSemester { jwId } }"),
+      run("query CurrentSemester { catalog { currentSemester { jwId } } }"),
     ).resolves.toMatchObject({
       success: true,
       operationName: "CurrentSemester",
       operationType: "query",
-      data: { currentSemester: { jwId: 202601 } },
+      data: { catalog: { currentSemester: { jwId: 202601 } } },
     });
 
     expect(writeDataPoint).toHaveBeenCalledTimes(1);
@@ -213,7 +213,7 @@ describe("arbitrary GraphQL document runner", () => {
         "session",
         "graphql-document-runner-test",
       ],
-      doubles: [expect.any(Number), 1, 3, 0, 0],
+      doubles: [expect.any(Number), 1, 5, 0, 0],
     });
   });
 });

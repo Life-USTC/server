@@ -62,7 +62,7 @@ export async function postHomeworkRoute(request: Request) {
     });
     return createdJsonResponse(
       { id: homework.id, homework: homeworkItem },
-      `/api/homeworks/${encodeURIComponent(homework.id)}`,
+      `/api/community/homeworks/${encodeURIComponent(homework.id)}`,
     );
   } catch (error) {
     return handleRouteError("Failed to create homework", error);

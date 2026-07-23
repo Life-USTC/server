@@ -1,13 +1,13 @@
 /**
- * E2E tests for PATCH /api/homeworks/[id] and DELETE /api/homeworks/[id].
+ * E2E tests for PATCH /api/community/homeworks/[id] and DELETE /api/community/homeworks/[id].
  *
- * ## PATCH /api/homeworks/[id]
+ * ## PATCH /api/community/homeworks/[id]
  * - Body: { title?, description?, publishedAt?, submissionStartAt?, submissionDueAt? }
  * - Response: { success: true, homework }
  * - Auth required (401 if unauthenticated)
  * - Returns 404 for non-existent homework
  *
- * ## DELETE /api/homeworks/[id]
+ * ## DELETE /api/community/homeworks/[id]
  * - Response: { success: true }
  * - Auth required (401 if unauthenticated)
  * - Soft-deletes the homework (sets deletedAt)
@@ -28,7 +28,7 @@ import { assertApiContract } from "../../../_shared/api-contract";
 async function resolveSeedSectionId(
   request: import("@playwright/test").APIRequestContext,
 ) {
-  const response = await request.post("/api/sections/match-codes", {
+  const response = await request.post("/api/catalog/sections/match-codes", {
     data: { codes: [DEV_SEED.section.code] },
   });
   expect(response.status()).toBe(200);
@@ -48,7 +48,7 @@ async function createTempHomework(
 ) {
   const now = new Date();
   const title = `e2e-temp-hw-${Date.now()}`;
-  const createResponse = await request.post("/api/homeworks", {
+  const createResponse = await request.post("/api/community/homeworks", {
     data: {
       title,
       sectionId: String(sectionId),
@@ -70,18 +70,22 @@ async function createTempHomework(
   return { id: body.id, title };
 }
 
-test("/api/homeworks/[id] 接口契约", async ({ request }) => {
-  await assertApiContract(request, { routePath: "/api/homeworks/[id]" });
+test("/api/community/homeworks/[id] 接口契约", async ({ request }) => {
+  await assertApiContract(request, {
+    routePath: "/api/community/homeworks/[id]",
+  });
 });
 
-test("/api/homeworks/[id] PATCH 未登录返回 401", async ({ request }) => {
-  const response = await request.patch("/api/homeworks/invalid-e2e", {
+test("/api/community/homeworks/[id] PATCH 未登录返回 401", async ({
+  request,
+}) => {
+  const response = await request.patch("/api/community/homeworks/invalid-e2e", {
     data: { title: "should fail" },
   });
   expect(response.status()).toBe(401);
 });
 
-test("/api/homeworks/[id] PATCH 登录后可更新作业标题和描述", async ({
+test("/api/community/homeworks/[id] PATCH 登录后可更新作业标题和描述", async ({
   page,
 }) => {
   await signInAsDebugUser(page, "/");
@@ -92,7 +96,7 @@ test("/api/homeworks/[id] PATCH 登录后可更新作业标题和描述", async 
     const newTitle = `e2e-homework-title-${Date.now()}`;
     const newDescription = `e2e-homework-description-${Date.now()}`;
     const patchResponse = await page.request.patch(
-      `/api/homeworks/${homework.id}`,
+      `/api/community/homeworks/${homework.id}`,
       { data: { title: newTitle, description: newDescription } },
     );
     expect(patchResponse.status()).toBe(200);
@@ -111,7 +115,7 @@ test("/api/homeworks/[id] PATCH 登录后可更新作业标题和描述", async 
 
     // Verify the title was updated
     const listResponse = await page.request.get(
-      `/api/homeworks?sectionId=${sectionId}`,
+      `/api/community/homeworks?sectionId=${sectionId}`,
     );
     const listBody = (await listResponse.json()) as {
       homeworks?: Array<{
@@ -129,11 +133,13 @@ test("/api/homeworks/[id] PATCH 登录后可更新作业标题和描述", async 
       ),
     ).toBe(true);
   } finally {
-    await page.request.delete(`/api/homeworks/${homework.id}`);
+    await page.request.delete(`/api/community/homeworks/${homework.id}`);
   }
 });
 
-test("/api/homeworks/[id] PATCH 登录后可只更新作业描述", async ({ page }) => {
+test("/api/community/homeworks/[id] PATCH 登录后可只更新作业描述", async ({
+  page,
+}) => {
   await signInAsDebugUser(page, "/");
   const sectionId = await resolveSeedSectionId(page.request);
   const homework = await createTempHomework(page.request, sectionId);
@@ -141,7 +147,7 @@ test("/api/homeworks/[id] PATCH 登录后可只更新作业描述", async ({ pag
   try {
     const newDescription = `e2e-homework-description-only-${Date.now()}`;
     const patchResponse = await page.request.patch(
-      `/api/homeworks/${homework.id}`,
+      `/api/community/homeworks/${homework.id}`,
       { data: { description: newDescription } },
     );
     expect(patchResponse.status()).toBe(200);
@@ -159,7 +165,7 @@ test("/api/homeworks/[id] PATCH 登录后可只更新作业描述", async ({ pag
     expect(patchBody.homework?.description?.content).toBe(newDescription);
 
     const listResponse = await page.request.get(
-      `/api/homeworks?sectionId=${sectionId}`,
+      `/api/community/homeworks?sectionId=${sectionId}`,
     );
     const listBody = (await listResponse.json()) as {
       homeworks?: Array<{
@@ -177,18 +183,20 @@ test("/api/homeworks/[id] PATCH 登录后可只更新作业描述", async ({ pag
       ),
     ).toBe(true);
   } finally {
-    await page.request.delete(`/api/homeworks/${homework.id}`);
+    await page.request.delete(`/api/community/homeworks/${homework.id}`);
   }
 });
 
-test("/api/homeworks/[id] PATCH 登录后空更新返回 400", async ({ page }) => {
+test("/api/community/homeworks/[id] PATCH 登录后空更新返回 400", async ({
+  page,
+}) => {
   await signInAsDebugUser(page, "/");
   const sectionId = await resolveSeedSectionId(page.request);
   const homework = await createTempHomework(page.request, sectionId);
 
   try {
     const patchResponse = await page.request.patch(
-      `/api/homeworks/${homework.id}`,
+      `/api/community/homeworks/${homework.id}`,
       { data: {} },
     );
     expect(patchResponse.status()).toBe(400);
@@ -196,22 +204,26 @@ test("/api/homeworks/[id] PATCH 登录后空更新返回 400", async ({ page }) 
       error: "No changes",
     });
   } finally {
-    await page.request.delete(`/api/homeworks/${homework.id}`);
+    await page.request.delete(`/api/community/homeworks/${homework.id}`);
   }
 });
 
-test("/api/homeworks/[id] DELETE 未登录返回 401", async ({ request }) => {
-  const response = await request.delete("/api/homeworks/invalid-e2e");
+test("/api/community/homeworks/[id] DELETE 未登录返回 401", async ({
+  request,
+}) => {
+  const response = await request.delete("/api/community/homeworks/invalid-e2e");
   expect(response.status()).toBe(401);
 });
 
-test("/api/homeworks/[id] DELETE 登录后可删除作业", async ({ page }) => {
+test("/api/community/homeworks/[id] DELETE 登录后可删除作业", async ({
+  page,
+}) => {
   await signInAsDebugUser(page, "/");
   const sectionId = await resolveSeedSectionId(page.request);
   const homework = await createTempHomework(page.request, sectionId);
 
   const deleteResponse = await page.request.delete(
-    `/api/homeworks/${homework.id}`,
+    `/api/community/homeworks/${homework.id}`,
   );
   expect(deleteResponse.status()).toBe(200);
   expect((await deleteResponse.json()) as { success?: boolean }).toMatchObject({
@@ -220,7 +232,7 @@ test("/api/homeworks/[id] DELETE 登录后可删除作业", async ({ page }) => 
 
   // Verify the homework is no longer in the list
   const listResponse = await page.request.get(
-    `/api/homeworks?sectionId=${sectionId}`,
+    `/api/community/homeworks?sectionId=${sectionId}`,
   );
   const listBody = (await listResponse.json()) as {
     homeworks?: Array<{ id?: string }>;

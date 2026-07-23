@@ -42,7 +42,7 @@ export async function unlinkSettingsAccountAction({
       where: { userId: user.id, provider },
     }),
   ]);
-  throw redirect(303, "/settings/accounts?message=AccountDisconnected");
+  throw redirect(303, "/account/settings/accounts?message=AccountDisconnected");
 }
 
 export async function linkSettingsAccountAction({
@@ -58,7 +58,7 @@ export async function linkSettingsAccountAction({
   try {
     const result = await linkAccountFromSvelteAction({
       providerId,
-      callbackUrl: "/settings/accounts",
+      callbackUrl: "/account/settings/accounts",
       headers: request.headers,
       cookies,
     });

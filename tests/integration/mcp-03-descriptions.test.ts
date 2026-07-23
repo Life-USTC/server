@@ -4,7 +4,7 @@ import * as fixtures from "./utils/mcp-tool-test-utils";
 const context = fixtures.createMcpToolTestContext();
 
 describe("描述工具 — MCP 暴露 REST 描述载荷", () => {
-  it("get_description 通过公开 JW id 返回种子班级描述", async () => {
+  it("community_description_get 通过公开 JW id 返回种子班级描述", async () => {
     const section = await fixtures.prisma.section.findUnique({
       where: { jwId: fixtures.DEV_SEED.section.jwId },
       select: { id: true },
@@ -25,7 +25,7 @@ describe("描述工具 — MCP 暴露 REST 描述载荷", () => {
     const results = await Promise.all(
       (["default", "summary", "full"] as const).map(async (mode) => ({
         mode,
-        result: await context.client.call<Result>("get_description", {
+        result: await context.client.call<Result>("community_description_get", {
           targetType: "section",
           sectionJwId: fixtures.DEV_SEED.section.jwId,
           mode,
@@ -54,13 +54,13 @@ describe("描述工具 — MCP 暴露 REST 描述载荷", () => {
     }
   });
 
-  it("get_description 报告缺失的公开班级目标", async () => {
+  it("community_description_get 报告缺失的公开班级目标", async () => {
     const result = await context.client.call<{
       success?: boolean;
       found?: boolean;
       error?: string;
       hint?: string;
-    }>("get_description", {
+    }>("community_description_get", {
       targetType: "section",
       sectionJwId: 2_147_483_647,
     });
@@ -68,10 +68,10 @@ describe("描述工具 — MCP 暴露 REST 描述载荷", () => {
     expect(result.success).toBe(false);
     expect(result.found).toBe(false);
     expect(result.error).toBe("target_not_found");
-    expect(result.hint).toContain("search_sections");
+    expect(result.hint).toContain("catalog_section_search");
   });
 
-  it("upsert_description 创建、幂等重读、审计并清理", async () => {
+  it("community_description_set 创建、幂等重读、审计并清理", async () => {
     const marker = `[integration-test] mcp-description-${Date.now()}`;
     const teacher = await fixtures.prisma.teacher.create({
       data: {
@@ -101,12 +101,15 @@ describe("描述工具 — MCP 暴露 REST 描述载荷", () => {
       for (const mode of ["default", "summary", "full"] as const) {
         results.push({
           mode,
-          result: await context.client.call<Result>("upsert_description", {
-            targetType: "teacher",
-            teacherId: teacher.id,
-            content: ` ${marker} `,
-            mode,
-          }),
+          result: await context.client.call<Result>(
+            "community_description_set",
+            {
+              targetType: "teacher",
+              teacherId: teacher.id,
+              content: ` ${marker} `,
+              mode,
+            },
+          ),
         });
       }
       const created = results[0]?.result ?? {};

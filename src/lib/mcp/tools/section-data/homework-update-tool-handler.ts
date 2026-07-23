@@ -76,7 +76,7 @@ export async function updateHomeworkOnSectionTool(
         {
           success: false,
           message: "Homework not found",
-          hint: "Use list_homeworks_by_section or list_my_homeworks to confirm the homeworkId before updating it.",
+          hint: "Use community_section_homework_list or workspace_homework_list to confirm the homeworkId before updating it.",
         },
         { mode: resolvedMode },
       );

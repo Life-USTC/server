@@ -82,8 +82,8 @@ export async function assertPageContract(
   page: Page,
   { routePath, testInfo }: PageContractCase,
 ) {
-  if (routePath.startsWith("/settings/")) {
-    if (routePath === "/settings") {
+  if (routePath.startsWith("/account/settings/")) {
+    if (routePath === "/account/settings") {
       // handled explicitly below for explicitness
     } else {
       await signInAsDebugUser(page, routePath);
@@ -111,11 +111,11 @@ export async function assertPageContract(
   }
 
   if (
-    routePath === "/dashboard/[tab]" ||
-    routePath.startsWith("/dashboard/") ||
-    routePath === "/dashboard"
+    routePath === "/workspace/[tab]" ||
+    routePath.startsWith("/workspace/") ||
+    routePath === "/workspace"
   ) {
-    await signInAsDebugUser(page, routePath === "/dashboard" ? "/" : routePath);
+    await signInAsDebugUser(page, routePath === "/workspace" ? "/" : routePath);
     await gotoContractPage(page, routePath, testInfo);
     await expectMainContent(page);
     await expandWorkspaceSidebarGroup(page);
@@ -207,10 +207,10 @@ export async function assertPageContract(
       return;
     }
 
-    case "/sections/[jwId]": {
+    case "/catalog/sections/[jwId]": {
       await gotoContractPage(
         page,
-        `/sections/${DEV_SEED.section.jwId}`,
+        `/catalog/sections/${DEV_SEED.section.jwId}`,
         testInfo,
       );
       await expectMainContent(page);
@@ -230,10 +230,10 @@ export async function assertPageContract(
       return;
     }
 
-    case "/courses/[jwId]": {
+    case "/catalog/courses/[jwId]": {
       await gotoContractPage(
         page,
-        `/courses/${DEV_SEED.course.jwId}`,
+        `/catalog/courses/${DEV_SEED.course.jwId}`,
         testInfo,
       );
       await expectMainContent(page);
@@ -258,10 +258,10 @@ export async function assertPageContract(
       return;
     }
 
-    case "/teachers/[id]": {
+    case "/catalog/teachers/[id]": {
       await gotoContractPage(
         page,
-        `/teachers/${await resolveSeedTeacherId(page)}`,
+        `/catalog/teachers/${await resolveSeedTeacherId(page)}`,
         testInfo,
       );
       await expectMainContent(page);
@@ -285,8 +285,12 @@ export async function assertPageContract(
       return;
     }
 
-    case "/u/[username]": {
-      await gotoContractPage(page, `/u/${DEV_SEED.adminUsername}`, testInfo);
+    case "/community/users/[username]": {
+      await gotoContractPage(
+        page,
+        `/community/users/${DEV_SEED.adminUsername}`,
+        testInfo,
+      );
       await expectMainContent(page);
       await expect(visibleText(page, DEV_SEED.adminName)).toBeVisible();
       await expect(
@@ -296,10 +300,14 @@ export async function assertPageContract(
       return;
     }
 
-    case "/u/id/[uid]": {
+    case "/community/users/id/[uid]": {
       await signInAsDevAdmin(page, "/");
       const sessionUser = await getCurrentSessionUser(page);
-      await gotoContractPage(page, `/u/id/${sessionUser.id}`, testInfo);
+      await gotoContractPage(
+        page,
+        `/community/users/id/${sessionUser.id}`,
+        testInfo,
+      );
       await expectMainContent(page);
       await expect(
         visibleText(page, `@${DEV_SEED.adminUsername}`),
@@ -308,24 +316,31 @@ export async function assertPageContract(
       return;
     }
 
-    case "/comments/[id]": {
+    case "/community/comments/[id]": {
       await signInAsDebugUser(page);
       const sectionId = await resolveSeedSectionId(page);
-      const createResponse = await page.request.post("/api/comments", {
-        data: {
-          targetType: "section",
-          targetId: String(sectionId),
-          body: "e2e mapped route comment",
+      const createResponse = await page.request.post(
+        "/api/community/comments",
+        {
+          data: {
+            targetType: "section",
+            targetId: String(sectionId),
+            body: "e2e mapped route comment",
+          },
         },
-      });
+      );
       expect(createResponse.status()).toBe(201);
       const createBody = (await createResponse.json()) as { id?: string };
       expect(createBody.id).toBeTruthy();
 
-      await gotoContractPage(page, `/comments/${createBody.id}`, testInfo);
+      await gotoContractPage(
+        page,
+        `/community/comments/${createBody.id}`,
+        testInfo,
+      );
       await expect(page).toHaveURL(
         new RegExp(
-          `/sections/${DEV_SEED.section.jwId}/comments(?:\\?.*)?#comment-${createBody.id}$`,
+          `/catalog/sections/${DEV_SEED.section.jwId}/comments(?:\\?.*)?#comment-${createBody.id}$`,
         ),
       );
       await expectMainContent(page);
@@ -333,7 +348,7 @@ export async function assertPageContract(
       return;
     }
 
-    case "/comments/guide": {
+    case "/community/comments/guide": {
       await gotoContractPage(page, "/guides/markdown-support", testInfo);
       await expect(page.locator("#main-content")).toBeVisible();
       await expect(page.locator("pre").first()).toBeVisible();
@@ -342,7 +357,7 @@ export async function assertPageContract(
       return;
     }
 
-    case "/signin": {
+    case "/account/sign-in": {
       await gotoContractPage(page, routePath, testInfo);
       await expect(page.getByRole("button", { name: /USTC/i })).toBeVisible();
       await expect(page.getByRole("button", { name: /GitHub/i })).toBeVisible();
@@ -351,7 +366,7 @@ export async function assertPageContract(
       return;
     }
 
-    case "/bus-map": {
+    case "/catalog/bus/map": {
       await gotoContractPage(page, routePath, testInfo);
       await expectMainContent(page);
       await expect(page.locator("svg").first()).toBeVisible();
@@ -362,10 +377,10 @@ export async function assertPageContract(
       return;
     }
 
-    case "/sections": {
+    case "/catalog/sections": {
       await gotoContractPage(
         page,
-        `/sections?search=${encodeURIComponent(DEV_SEED.section.code)}`,
+        `/catalog/sections?search=${encodeURIComponent(DEV_SEED.section.code)}`,
         testInfo,
       );
       await expectMainContent(page);
@@ -389,10 +404,10 @@ export async function assertPageContract(
       return;
     }
 
-    case "/teachers": {
+    case "/catalog/teachers": {
       await gotoContractPage(
         page,
-        `/teachers?search=${encodeURIComponent(DEV_SEED.teacher.nameCn)}`,
+        `/catalog/teachers?search=${encodeURIComponent(DEV_SEED.teacher.nameCn)}`,
         testInfo,
       );
       await expectMainContent(page);
@@ -415,10 +430,10 @@ export async function assertPageContract(
       return;
     }
 
-    case "/courses": {
+    case "/catalog/courses": {
       await gotoContractPage(
         page,
-        `/courses?search=${encodeURIComponent(DEV_SEED.course.code)}`,
+        `/catalog/courses?search=${encodeURIComponent(DEV_SEED.course.code)}`,
         testInfo,
       );
       await expectMainContent(page);
@@ -478,8 +493,8 @@ export async function assertPageContract(
       return;
     }
 
-    case "/settings": {
-      await signInAsDebugUser(page, "/settings/profile");
+    case "/account/settings": {
+      await signInAsDebugUser(page, "/account/settings/profile");
       await gotoContractPage(page, routePath, testInfo);
       await expectMainContent(page);
       await expect(
@@ -507,7 +522,7 @@ export async function assertPageContract(
       return;
     }
 
-    case "/welcome": {
+    case "/account/welcome": {
       await expectRequiresSignIn(page, routePath);
       await maybeCapture(page, testInfo, "welcome");
       return;

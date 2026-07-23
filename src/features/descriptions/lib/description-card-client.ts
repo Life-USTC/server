@@ -8,14 +8,17 @@ export async function fetchDescriptionPayload(input: {
   targetId: number | string;
   targetType: DescriptionTargetType;
 }) {
-  const result = await apiClient.GET<DescriptionPayload>("/api/descriptions", {
-    params: {
-      query: {
-        targetId: String(input.targetId),
-        targetType: input.targetType,
+  const result = await apiClient.GET<DescriptionPayload>(
+    "/api/community/descriptions",
+    {
+      params: {
+        query: {
+          targetId: String(input.targetId),
+          targetType: input.targetType,
+        },
       },
     },
-  });
+  );
   return {
     ok: result.response.ok,
     payload: result.data ?? null,
@@ -27,7 +30,7 @@ export async function saveDescriptionPayload(input: {
   targetId: number | string;
   targetType: DescriptionTargetType;
 }) {
-  const result = await apiClient.POST("/api/descriptions", {
+  const result = await apiClient.POST("/api/community/descriptions", {
     body: input,
   });
   return result.response;

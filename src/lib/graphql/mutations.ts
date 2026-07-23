@@ -409,67 +409,67 @@ export const graphqlMutationTypeDefs = /* GraphQL */ `
   }
 
   type Mutation {
-    createTodo(input: CreateTodoInput!): TodoMutationPayload!
-    updateTodo(id: ID!, input: UpdateTodoInput!): TodoMutationPayload!
-    deleteTodo(id: ID!): DeleteMutationPayload!
-    setTodoCompletions(
+    todoCreate(input: CreateTodoInput!): TodoMutationPayload!
+    todoUpdate(id: ID!, input: UpdateTodoInput!): TodoMutationPayload!
+    todoDelete(id: ID!): DeleteMutationPayload!
+    todoCompletionsSet(
       items: [TodoCompletionBatchItemInput!]!
     ): TodoCompletionBatchPayload!
-    deleteTodos(ids: [ID!]!): TodoDeleteBatchPayload!
-    createHomework(input: CreateHomeworkInput!): HomeworkMutationPayload!
-    updateHomework(
+    todosDelete(ids: [ID!]!): TodoDeleteBatchPayload!
+    homeworkCreate(input: CreateHomeworkInput!): HomeworkMutationPayload!
+    homeworkUpdate(
       id: ID!
       input: UpdateHomeworkInput!
     ): HomeworkMutationPayload!
-    deleteHomework(id: ID!): HomeworkDeleteMutationPayload!
-    setHomeworkCompletion(
+    homeworkDelete(id: ID!): HomeworkDeleteMutationPayload!
+    homeworkCompletionSet(
       homeworkId: ID!
       completed: Boolean!
     ): HomeworkCompletionMutationPayload!
-    setHomeworkCompletions(
+    homeworkCompletionsSet(
       items: [HomeworkCompletionBatchItemInput!]!
     ): HomeworkCompletionBatchPayload!
-    subscribeSection(jwId: Int!): SectionSubscriptionMutationPayload!
-    unsubscribeSection(jwId: Int!): SectionSubscriptionMutationPayload!
-    updateSectionSubscriptions(
+    subscriptionAdd(jwId: Int!): SectionSubscriptionMutationPayload!
+    subscriptionRemove(jwId: Int!): SectionSubscriptionMutationPayload!
+    subscriptionsImport(
       input: UpdateSectionSubscriptionsInput!
     ): SectionSubscriptionBatchPayload!
-    setDashboardLinkPinState(
+    linkPinSet(
       slug: String!
       pinned: Boolean!
     ): DashboardLinkPinMutationPayload!
-    setDashboardLinkPinStates(
+    linkPinsSet(
       items: [DashboardLinkPinBatchItemInput!]!
     ): DashboardLinkPinBatchMutationPayload!
-    saveBusPreferences(
+    busPreferencesSet(
       input: BusPreferenceInput!
     ): BusPreferenceMutationPayload!
-    upsertDescription(
+    descriptionSet(
       input: UpsertDescriptionInput!
     ): DescriptionMutationPayload!
-    createComment(input: CreateCommentInput!): CommentMutationPayload!
-    updateComment(
+    commentCreate(input: CreateCommentInput!): CommentMutationPayload!
+    commentUpdate(
       id: ID!
       input: UpdateCommentInput!
     ): CommentMutationPayload!
-    deleteComment(id: ID!): DeleteMutationPayload!
-    deleteComments(ids: [ID!]!): CommentDeleteBatchPayload!
-    addCommentReaction(
+    commentDelete(id: ID!): DeleteMutationPayload!
+    commentsDelete(ids: [ID!]!): CommentDeleteBatchPayload!
+    commentReactionAdd(
       commentId: ID!
       type: CommentReactionType!
     ): CommentReactionMutationPayload!
-    removeCommentReaction(
+    commentReactionRemove(
       commentId: ID!
       type: CommentReactionType!
     ): CommentReactionMutationPayload!
-    createUploadSession(
+    uploadSessionCreate(
       input: CreateUploadSessionInput!
     ): UploadSessionPayload!
-    completeUploadSession(
+    uploadSessionComplete(
       input: CompleteUploadSessionInput!
     ): UploadCompletionPayload!
-    renameUpload(id: ID!, filename: String!): UploadMutationPayload!
-    deleteUpload(id: ID!): UploadDeleteMutationPayload!
+    uploadRename(id: ID!, filename: String!): UploadMutationPayload!
+    uploadDelete(id: ID!): UploadDeleteMutationPayload!
   }
 `;
 
@@ -785,7 +785,7 @@ export const graphqlMutationResolvers = {
   DescriptionTargetType: descriptionTargetTypeResolver,
   SectionSubscriptionBatchAction: sectionSubscriptionBatchActionResolver,
   Mutation: {
-    async createTodo(
+    async todoCreate(
       _parent: unknown,
       args: { input: CreateTodoInput },
       context: GraphqlContext,
@@ -801,7 +801,7 @@ export const graphqlMutationResolvers = {
       });
       return { id: todo.id };
     },
-    async updateTodo(
+    async todoUpdate(
       _parent: unknown,
       args: { id: string; input: UpdateTodoInput },
       context: GraphqlContext,
@@ -831,7 +831,7 @@ export const graphqlMutationResolvers = {
       if (!result.ok) handleTodoFailure(result);
       return { id: result.todo.id };
     },
-    async deleteTodo(
+    async todoDelete(
       _parent: unknown,
       args: { id: string },
       context: GraphqlContext,
@@ -842,7 +842,7 @@ export const graphqlMutationResolvers = {
       if (!result.ok) handleTodoFailure(result);
       return { id, success: true };
     },
-    async setTodoCompletions(
+    async todoCompletionsSet(
       _parent: unknown,
       args: { items: TodoCompletionBatchItemInput[] },
       context: GraphqlContext,
@@ -864,7 +864,7 @@ export const graphqlMutationResolvers = {
       );
       return { results };
     },
-    async deleteTodos(
+    async todosDelete(
       _parent: unknown,
       args: { ids: string[] },
       context: GraphqlContext,
@@ -876,7 +876,7 @@ export const graphqlMutationResolvers = {
       const results = await deleteTodosBatch(principal.userId, ids);
       return { results };
     },
-    async createHomework(
+    async homeworkCreate(
       _parent: unknown,
       args: { input: CreateHomeworkInput },
       context: GraphqlContext,
@@ -913,7 +913,7 @@ export const graphqlMutationResolvers = {
       });
       return { id, homework };
     },
-    async updateHomework(
+    async homeworkUpdate(
       _parent: unknown,
       args: { id: string; input: UpdateHomeworkInput },
       context: GraphqlContext,
@@ -983,7 +983,7 @@ export const graphqlMutationResolvers = {
       });
       return { id, homework };
     },
-    async deleteHomework(
+    async homeworkDelete(
       _parent: unknown,
       args: { id: string },
       context: GraphqlContext,
@@ -997,7 +997,7 @@ export const graphqlMutationResolvers = {
       if (!result.ok) handleHomeworkFailure(result, "Homework");
       return { id, success: true, alreadyDeleted: result.alreadyDeleted };
     },
-    async setHomeworkCompletion(
+    async homeworkCompletionSet(
       _parent: unknown,
       args: { completed: boolean; homeworkId: string },
       context: GraphqlContext,
@@ -1011,7 +1011,7 @@ export const graphqlMutationResolvers = {
       if (!result.success) mutationNotFound("Homework not found.");
       return result;
     },
-    async setHomeworkCompletions(
+    async homeworkCompletionsSet(
       _parent: unknown,
       args: { items: HomeworkCompletionBatchItemInput[] },
       context: GraphqlContext,
@@ -1032,21 +1032,21 @@ export const graphqlMutationResolvers = {
         userId: principal.userId,
       });
     },
-    subscribeSection(
+    subscriptionAdd(
       _parent: unknown,
       args: { jwId: number },
       context: GraphqlContext,
     ) {
       return setSectionSubscription(context, args.jwId, true);
     },
-    unsubscribeSection(
+    subscriptionRemove(
       _parent: unknown,
       args: { jwId: number },
       context: GraphqlContext,
     ) {
       return setSectionSubscription(context, args.jwId, false);
     },
-    async updateSectionSubscriptions(
+    async subscriptionsImport(
       _parent: unknown,
       args: { input: UpdateSectionSubscriptionsInput },
       context: GraphqlContext,
@@ -1087,7 +1087,7 @@ export const graphqlMutationResolvers = {
         total: result.total,
       };
     },
-    async setDashboardLinkPinState(
+    async linkPinSet(
       _parent: unknown,
       args: { pinned: boolean; slug: string },
       context: GraphqlContext,
@@ -1108,7 +1108,7 @@ export const graphqlMutationResolvers = {
         maxPinnedLinks: MAX_PINNED_LINKS,
       };
     },
-    async setDashboardLinkPinStates(
+    async linkPinsSet(
       _parent: unknown,
       args: { items: DashboardLinkPinBatchItemInput[] },
       context: GraphqlContext,
@@ -1137,7 +1137,7 @@ export const graphqlMutationResolvers = {
         maxPinnedLinks: MAX_PINNED_LINKS,
       };
     },
-    async saveBusPreferences(
+    async busPreferencesSet(
       _parent: unknown,
       args: { input: BusPreferencePayload },
       context: GraphqlContext,
@@ -1164,7 +1164,7 @@ export const graphqlMutationResolvers = {
       if (!result.ok) badMutationInput(result.error);
       return result.preference;
     },
-    async upsertDescription(
+    async descriptionSet(
       _parent: unknown,
       args: { input: UpsertDescriptionInput },
       context: GraphqlContext,
@@ -1223,7 +1223,7 @@ export const graphqlMutationResolvers = {
       if (!result.ok) handleDescriptionFailure(result);
       return { id: result.id, updated: result.updated };
     },
-    async createComment(
+    async commentCreate(
       _parent: unknown,
       args: { input: CreateCommentInput },
       context: GraphqlContext,
@@ -1278,7 +1278,7 @@ export const graphqlMutationResolvers = {
       if (!result.ok) handleCommentFailure(result);
       return { id: result.comment.id };
     },
-    async updateComment(
+    async commentUpdate(
       _parent: unknown,
       args: { id: string; input: UpdateCommentInput },
       context: GraphqlContext,
@@ -1305,7 +1305,7 @@ export const graphqlMutationResolvers = {
       if (!result.ok) handleCommentFailure(result);
       return { id: result.comment.id };
     },
-    async deleteComment(
+    async commentDelete(
       _parent: unknown,
       args: { id: string },
       context: GraphqlContext,
@@ -1320,7 +1320,7 @@ export const graphqlMutationResolvers = {
       if (!result.ok) handleCommentFailure(result);
       return { id, success: true };
     },
-    async deleteComments(
+    async commentsDelete(
       _parent: unknown,
       args: { ids: string[] },
       context: GraphqlContext,
@@ -1335,7 +1335,7 @@ export const graphqlMutationResolvers = {
         userId: principal.userId,
       });
     },
-    async addCommentReaction(
+    async commentReactionAdd(
       _parent: unknown,
       args: { commentId: string; type: CommentReactionType },
       context: GraphqlContext,
@@ -1356,7 +1356,7 @@ export const graphqlMutationResolvers = {
         changed: result.changed,
       };
     },
-    async removeCommentReaction(
+    async commentReactionRemove(
       _parent: unknown,
       args: { commentId: string; type: CommentReactionType },
       context: GraphqlContext,
@@ -1377,7 +1377,7 @@ export const graphqlMutationResolvers = {
         changed: result.changed,
       };
     },
-    async createUploadSession(
+    async uploadSessionCreate(
       _parent: unknown,
       args: { input: CreateUploadSessionInput },
       context: GraphqlContext,
@@ -1400,7 +1400,7 @@ export const graphqlMutationResolvers = {
         return handleUploadError(error);
       }
     },
-    async completeUploadSession(
+    async uploadSessionComplete(
       _parent: unknown,
       args: { input: CompleteUploadSessionInput },
       context: GraphqlContext,
@@ -1422,7 +1422,7 @@ export const graphqlMutationResolvers = {
         return handleUploadError(error);
       }
     },
-    async renameUpload(
+    async uploadRename(
       _parent: unknown,
       args: { filename: string; id: string },
       context: GraphqlContext,
@@ -1436,7 +1436,7 @@ export const graphqlMutationResolvers = {
       if (!result.ok) handleUploadFailure(result);
       return { upload: result.upload };
     },
-    async deleteUpload(
+    async uploadDelete(
       _parent: unknown,
       args: { id: string },
       context: GraphqlContext,

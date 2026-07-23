@@ -179,8 +179,8 @@ describe("catalog detail loader critical path", () => {
     const resultPromise = loadCourseDetailPage({
       locals: locals(),
       params: { jwId: String(course.jwId) },
-      request: request(`/courses/${course.jwId}`),
-      url: new URL(`https://example.test/courses/${course.jwId}`),
+      request: request(`/catalog/courses/${course.jwId}`),
+      url: new URL(`https://example.test/catalog/courses/${course.jwId}`),
     });
 
     await vi.waitFor(() => {
@@ -205,8 +205,10 @@ describe("catalog detail loader critical path", () => {
     const result = await loadCourseDetailPage({
       locals: locals(),
       params: { jwId: String(course.jwId), section: "comments" },
-      request: request(`/courses/${course.jwId}/comments`),
-      url: new URL(`https://example.test/courses/${course.jwId}/comments`),
+      request: request(`/catalog/courses/${course.jwId}/comments`),
+      url: new URL(
+        `https://example.test/catalog/courses/${course.jwId}/comments`,
+      ),
     });
 
     expect(result.commentsData).not.toBeNull();
@@ -225,8 +227,10 @@ describe("catalog detail loader critical path", () => {
     const result = await loadTeacherDetailPage({
       locals: locals(),
       params: { id: String(teacher.id), section: "sections" },
-      request: request(`/teachers/${teacher.id}/sections`),
-      url: new URL(`https://example.test/teachers/${teacher.id}/sections`),
+      request: request(`/catalog/teachers/${teacher.id}/sections`),
+      url: new URL(
+        `https://example.test/catalog/teachers/${teacher.id}/sections`,
+      ),
     });
 
     expect(result.descriptionData).toBe(descriptionData);
@@ -237,15 +241,18 @@ describe("catalog detail loader critical path", () => {
 
 describe("detail request session resolution", () => {
   async function resolveCourseThroughHook(headers?: HeadersInit) {
-    const request = new Request(`https://example.test/courses/${course.jwId}`, {
-      headers,
-    });
+    const request = new Request(
+      `https://example.test/catalog/courses/${course.jwId}`,
+      {
+        headers,
+      },
+    );
     const event = {
       cookies: { get: vi.fn(() => undefined) },
       locals: locals(),
       platform: undefined,
       request,
-      route: { id: "/courses/[jwId]" },
+      route: { id: "/catalog/courses/[jwId]" },
       url: new URL(request.url),
     };
     const { handle } = await import("@/hooks.server");
@@ -314,8 +321,8 @@ describe("section detail loader critical path", () => {
     const resultPromise = loadSectionDetailPage({
       locals: locals(),
       params: { jwId: String(section.jwId) },
-      request: request(`/sections/${section.jwId}`),
-      url: new URL(`https://example.test/sections/${section.jwId}`),
+      request: request(`/catalog/sections/${section.jwId}`),
+      url: new URL(`https://example.test/catalog/sections/${section.jwId}`),
     });
 
     await vi.waitFor(() => {
@@ -343,8 +350,10 @@ describe("section detail loader critical path", () => {
     const result = await loadSectionDetailPage({
       locals: locals(),
       params: { jwId: String(section.jwId), section: "homework" },
-      request: request(`/sections/${section.jwId}/homework`),
-      url: new URL(`https://example.test/sections/${section.jwId}/homework`),
+      request: request(`/catalog/sections/${section.jwId}/homework`),
+      url: new URL(
+        `https://example.test/catalog/sections/${section.jwId}/homework`,
+      ),
     });
 
     expect(result.descriptionData).toBe(descriptionData);
@@ -360,8 +369,10 @@ describe("section detail loader critical path", () => {
     const result = await loadSectionDetailPage({
       locals: locals(),
       params: { jwId: String(section.jwId), section: "comments" },
-      request: request(`/sections/${section.jwId}/comments`),
-      url: new URL(`https://example.test/sections/${section.jwId}/comments`),
+      request: request(`/catalog/sections/${section.jwId}/comments`),
+      url: new URL(
+        `https://example.test/catalog/sections/${section.jwId}/comments`,
+      ),
     });
 
     expect(result.commentsData).not.toBeNull();
@@ -372,7 +383,7 @@ describe("section detail loader critical path", () => {
   it("retains subscription state on signed-in sections because the fixed header consumes it", async () => {
     getUserSectionSubscriptionStateMock.mockResolvedValue({
       subscribedSections: [section.id],
-      subscriptionIcsUrl: "/api/users/user-1/calendar.ics",
+      subscriptionIcsUrl: "/api/community/users/user-1/calendar.ics",
     });
     const { loadSectionDetailPage } = await import(
       "@/features/section-detail/server/section-detail-page-server"
@@ -381,15 +392,17 @@ describe("section detail loader critical path", () => {
     const result = await loadSectionDetailPage({
       locals: locals(signedInUser),
       params: { jwId: String(section.jwId), section: "teachers" },
-      request: request(`/sections/${section.jwId}/teachers`),
-      url: new URL(`https://example.test/sections/${section.jwId}/teachers`),
+      request: request(`/catalog/sections/${section.jwId}/teachers`),
+      url: new URL(
+        `https://example.test/catalog/sections/${section.jwId}/teachers`,
+      ),
     });
 
     expect(getUserSectionSubscriptionStateMock).toHaveBeenCalledWith("user-1");
     expect(result.viewer).toMatchObject({
       isSubscribed: true,
       signedIn: true,
-      subscriptionIcsUrl: "/api/users/user-1/calendar.ics",
+      subscriptionIcsUrl: "/api/community/users/user-1/calendar.ics",
     });
     expect(getCommentsPayloadMock).not.toHaveBeenCalled();
     expect(getSectionHomeworkDataMock).not.toHaveBeenCalled();

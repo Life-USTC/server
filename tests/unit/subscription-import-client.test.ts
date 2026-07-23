@@ -201,7 +201,7 @@ describe("订阅导入客户端", () => {
     });
 
     const [path, init] = firstFetchCall(fetchMock);
-    expect(path).toBe("/api/calendar-subscriptions/query");
+    expect(path).toBe("/api/workspace/subscriptions/query");
     expect(init.method).toBe("POST");
     expect(JSON.parse(init.body)).toEqual({
       codes: ["MATH.01"],
@@ -267,7 +267,7 @@ describe("订阅导入客户端", () => {
     });
 
     const [path, init] = firstFetchCall(fetchMock);
-    expect(path).toBe("/api/calendar-subscriptions/batch");
+    expect(path).toBe("/api/workspace/subscriptions/batch");
     expect(init.method).toBe("POST");
     expect(JSON.parse(init.body)).toEqual({
       action: "remove",
@@ -302,7 +302,7 @@ describe("订阅导入客户端", () => {
 
     expect(fetchMock).toHaveBeenCalledOnce();
     const [path, init] = firstFetchCall(fetchMock);
-    expect(path).toBe("/api/calendar-subscriptions/batch");
+    expect(path).toBe("/api/workspace/subscriptions/batch");
     expect(init.method).toBe("POST");
     expect(JSON.parse(init.body)).toEqual({
       action: "add",

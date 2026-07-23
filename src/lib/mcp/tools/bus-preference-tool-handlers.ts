@@ -70,7 +70,7 @@ export async function saveMyBusPreferencesTool(
         success: false,
         error: "invalid_bus_preference",
         message: result.error,
-        hint: "Use list_bus_routes to find valid campus IDs before saving preferences.",
+        hint: "Use catalog_bus_route_list to find valid campus IDs before saving preferences.",
       },
       { mode: resolvedMode },
     );

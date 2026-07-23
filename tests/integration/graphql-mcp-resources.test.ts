@@ -73,19 +73,19 @@ describe.sequential("GraphQL MCP operations", () => {
       schemaVersion: 1,
       operations: expect.arrayContaining([
         expect.objectContaining({
-          id: "viewer.todos.v1",
+          id: "workspace.todo.list.v1",
           scopes: ["todo:read"],
           readOnly: true,
         }),
         expect.objectContaining({
-          id: "todo.delete.v1",
+          id: "workspace.todo.delete.v1",
           scopes: ["todo:write"],
           destructive: true,
           requiresConfirmation: true,
         }),
       ]),
     });
-    expect((manifest.operations as unknown[]).length).toBe(44);
+    expect((manifest.operations as unknown[]).length).toBe(45);
     expect(JSON.stringify(manifest)).not.toContain('"document"');
   });
 
@@ -130,7 +130,7 @@ describe.sequential("GraphQL MCP operations", () => {
             type: "resource",
             resource: expect.objectContaining({
               uri: GRAPHQL_OPERATIONS_RESOURCE_URI,
-              text: expect.stringContaining('"viewer.todos.v1"'),
+              text: expect.stringContaining('"workspace.todo.list.v1"'),
             }),
           }),
         }),
@@ -140,7 +140,7 @@ describe.sequential("GraphQL MCP operations", () => {
 
   it("exposes arbitrary documents and compatible registered operations", async () => {
     const { tools } = await mcp.listTools();
-    const runner = tools.find((tool) => tool.name === "run_graphql_operation");
+    const runner = tools.find((tool) => tool.name === "graphql_operation_run");
 
     expect(tools.map((tool) => tool.name)).not.toContain("execute_graphql");
     expect(runner).toBeDefined();
@@ -182,8 +182,8 @@ describe.sequential("GraphQL MCP operations", () => {
           requestId: "mcp-http-request-id",
           route: "/api/mcp",
         });
-        return mcp.call("run_graphql_operation", {
-          operationId: "viewer.todos.v1",
+        return mcp.call("graphql_operation_run", {
+          operationId: "workspace.todo.list.v1",
           variables: {},
         });
       });
@@ -215,15 +215,15 @@ describe.sequential("GraphQL MCP operations", () => {
       data: {
         account: { todos: { pageInfo: { pageSize: number } } };
       };
-    }>("run_graphql_operation", {
+    }>("graphql_operation_run", {
       document: /* GraphQL */ `
         query ArbitraryTodos($page: PageInput) {
-          account: viewer {
-            ...ViewerTodos
+          account: workspace {
+            ...WorkspaceTodos
           }
         }
 
-        fragment ViewerTodos on Viewer {
+        fragment WorkspaceTodos on Workspace {
           todos(page: $page) {
             pageInfo { pageSize }
             items { id title }
@@ -247,10 +247,10 @@ describe.sequential("GraphQL MCP operations", () => {
     const result = await mcp.call<{
       success: boolean;
       error: string;
-    }>("run_graphql_operation", {
+    }>("graphql_operation_run", {
       document: /* GraphQL */ `
         mutation CreateTodo($input: CreateTodoInput!) {
-          createTodo(input: $input) { id }
+          todoCreate(input: $input) { id }
         }
       `,
       operationName: "CreateTodo",
@@ -266,10 +266,10 @@ describe.sequential("GraphQL MCP operations", () => {
 
   it("rejects ambiguous inputs, introspection, and over-wide documents", async () => {
     const ambiguous = await mcp.call<{ error: string; success: boolean }>(
-      "run_graphql_operation",
+      "graphql_operation_run",
       {
-        operationId: "viewer.todos.v1",
-        document: "query Viewer { viewer { profile { id } } }",
+        operationId: "workspace.todo.list.v1",
+        document: "query Account { account { profile { id } } }",
         locale: "zh-cn",
       },
     );
@@ -281,7 +281,7 @@ describe.sequential("GraphQL MCP operations", () => {
     const introspection = await mcp.call<{
       success: boolean;
       errors: Array<{ message: string }>;
-    }>("run_graphql_operation", {
+    }>("graphql_operation_run", {
       document: "query Inspect { __schema { queryType { name } } }",
       operationName: "Inspect",
       locale: "zh-cn",
@@ -292,10 +292,10 @@ describe.sequential("GraphQL MCP operations", () => {
     const overWide = await mcp.call<{
       success: boolean;
       errors: Array<{ message: string }>;
-    }>("run_graphql_operation", {
+    }>("graphql_operation_run", {
       document: `query TooWide { ${Array.from(
         { length: 11 },
-        (_, index) => `field${index}: currentSemester { jwId }`,
+        (_, index) => `field${index}: catalog { currentSemester { jwId } }`,
       ).join(" ")} }`,
       operationName: "TooWide",
       locale: "zh-cn",
@@ -310,22 +310,22 @@ describe.sequential("GraphQL MCP operations", () => {
     const todos = await mcp.call<{
       success: boolean;
       data: {
-        viewer: {
+        workspace: {
           todos: {
             items: unknown[];
             pageInfo: { pageSize: number };
           };
         };
       };
-    }>("run_graphql_operation", {
-      operationId: "viewer.todos.v1",
+    }>("graphql_operation_run", {
+      operationId: "workspace.todo.list.v1",
       variables: { page: { pageSize: 2 } },
       locale: "zh-cn",
     });
     expect(todos).toMatchObject({
       success: true,
       data: {
-        viewer: {
+        workspace: {
           todos: {
             pageInfo: { pageSize: 2 },
           },
@@ -336,8 +336,8 @@ describe.sequential("GraphQL MCP operations", () => {
     const missingConfirmation = await mcp.call<{
       success: boolean;
       error: string;
-    }>("run_graphql_operation", {
-      operationId: "todo.create.v1",
+    }>("graphql_operation_run", {
+      operationId: "workspace.todo.create.v1",
       variables: { input: { title: marker } },
       locale: "zh-cn",
     });
@@ -348,9 +348,9 @@ describe.sequential("GraphQL MCP operations", () => {
 
     const created = await mcp.call<{
       success: boolean;
-      data: { createTodo: { id: string } };
-    }>("run_graphql_operation", {
-      operationId: "todo.create.v1",
+      data: { todoCreate: { id: string } };
+    }>("graphql_operation_run", {
+      operationId: "workspace.todo.create.v1",
       variables: {
         input: { title: marker, priority: "HIGH" },
       },
@@ -358,12 +358,12 @@ describe.sequential("GraphQL MCP operations", () => {
       locale: "zh-cn",
     });
     expect(created.success).toBe(true);
-    createdTodoId = created.data.createTodo.id;
+    createdTodoId = created.data.todoCreate.id;
 
     const completed = await mcp.call<{
       success: boolean;
       data: {
-        setTodoCompletions: {
+        todoCompletionsSet: {
           results: Array<{
             success: boolean;
             todoId: string;
@@ -371,8 +371,8 @@ describe.sequential("GraphQL MCP operations", () => {
           }>;
         };
       };
-    }>("run_graphql_operation", {
-      operationId: "todo.set_completions_batch.v1",
+    }>("graphql_operation_run", {
+      operationId: "workspace.todo.completions.set.v1",
       variables: {
         items: [{ todoId: createdTodoId, completed: true }],
       },
@@ -382,7 +382,7 @@ describe.sequential("GraphQL MCP operations", () => {
     expect(completed).toMatchObject({
       success: true,
       data: {
-        setTodoCompletions: {
+        todoCompletionsSet: {
           results: [
             {
               success: true,
@@ -396,9 +396,9 @@ describe.sequential("GraphQL MCP operations", () => {
 
     const deleted = await mcp.call<{
       success: boolean;
-      data: { deleteTodo: { id: string; success: boolean } };
-    }>("run_graphql_operation", {
-      operationId: "todo.delete.v1",
+      data: { todoDelete: { id: string; success: boolean } };
+    }>("graphql_operation_run", {
+      operationId: "workspace.todo.delete.v1",
       variables: { id: createdTodoId },
       confirmed: true,
       locale: "zh-cn",
@@ -406,7 +406,7 @@ describe.sequential("GraphQL MCP operations", () => {
     expect(deleted).toMatchObject({
       success: true,
       data: {
-        deleteTodo: {
+        todoDelete: {
           id: createdTodoId,
           success: true,
         },
@@ -420,10 +420,10 @@ describe.sequential("GraphQL MCP operations", () => {
       success: boolean;
       error: string;
       message: string;
-    }>("run_graphql_operation", {
-      operationId: "viewer.todos.v1",
+    }>("graphql_operation_run", {
+      operationId: "workspace.todo.list.v1",
       variables: {
-        document: "query Arbitrary { viewer { profile { email } } }",
+        document: "query Arbitrary { workspace { profile { email } } }",
       },
       locale: "zh-cn",
     });
@@ -440,8 +440,8 @@ describe.sequential("GraphQL MCP operations", () => {
       restReadScope("homework"),
     ]);
     try {
-      const result = await limitedMcp.callToolResult("run_graphql_operation", {
-        operationId: "viewer.todos.v1",
+      const result = await limitedMcp.callToolResult("graphql_operation_run", {
+        operationId: "workspace.todo.list.v1",
         variables: {},
         locale: "zh-cn",
       });
@@ -470,8 +470,8 @@ describe.sequential("GraphQL MCP operations", () => {
       restReadScope("homework"),
     ]);
     try {
-      const result = await limitedMcp.callToolResult("run_graphql_operation", {
-        document: "query ScopedTodos { viewer { todos { items { id } } } }",
+      const result = await limitedMcp.callToolResult("graphql_operation_run", {
+        document: "query ScopedTodos { workspace { todos { items { id } } } }",
         operationName: "ScopedTodos",
         variables: {},
         locale: "zh-cn",
@@ -505,11 +505,11 @@ describe.sequential("GraphQL MCP operations", () => {
     ]);
     const title = `${marker}-mixed-scope`;
     try {
-      const result = await todoOnlyMcp.callToolResult("run_graphql_operation", {
+      const result = await todoOnlyMcp.callToolResult("graphql_operation_run", {
         document: /* GraphQL */ `
             mutation MixedScopes($input: CreateTodoInput!) {
-              createTodo(input: $input) { id }
-              saveBusPreferences(input: { showDepartedTrips: false }) {
+              todoCreate(input: $input) { id }
+              busPreferencesSet(input: { showDepartedTrips: false }) {
                 showDepartedTrips
               }
             }
@@ -544,12 +544,12 @@ describe.sequential("GraphQL MCP operations", () => {
         $skipBus: Boolean!
         $includeBus: Boolean!
       ) {
-        created: createTodo(input: $input) { id }
+        created: todoCreate(input: $input) { id }
         ...BusMutation @skip(if: $skipBus) @include(if: $includeBus)
       }
 
       fragment BusMutation on Mutation {
-        preferences: saveBusPreferences(
+        preferences: busPreferencesSet(
           input: { showDepartedTrips: false }
         ) { showDepartedTrips }
       }
@@ -563,7 +563,7 @@ describe.sequential("GraphQL MCP operations", () => {
         const result = await todoOnlyMcp.call<{
           success: boolean;
           data: { created: { id: string } };
-        }>("run_graphql_operation", {
+        }>("graphql_operation_run", {
           document,
           operationName: "ConditionalScopes",
           variables: {
@@ -584,7 +584,7 @@ describe.sequential("GraphQL MCP operations", () => {
 
       const blockedTitle = `${marker}-included-bus`;
       const blocked = await todoOnlyMcp.callToolResult(
-        "run_graphql_operation",
+        "graphql_operation_run",
         {
           document,
           operationName: "ConditionalScopes",

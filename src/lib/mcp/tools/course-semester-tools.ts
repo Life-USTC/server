@@ -12,10 +12,10 @@ import {
 
 export function registerCourseSemesterTools(server: McpServer) {
   server.registerTool(
-    "list_semesters",
+    "catalog_semester_list",
     {
       description:
-        "List semesters with pagination. Use get_current_semester when you only need the active term.",
+        "List semesters with pagination. Use catalog_semester_current when you only need the active term.",
       inputSchema: {
         page: z.number().int().min(1).default(1),
         limit: z.number().int().min(1).max(100).default(20),
@@ -32,7 +32,7 @@ export function registerCourseSemesterTools(server: McpServer) {
   );
 
   server.registerTool(
-    "get_current_semester",
+    "catalog_semester_current",
     {
       description:
         "Get the semester active today. Use its id to constrain section-code matching and section search.",

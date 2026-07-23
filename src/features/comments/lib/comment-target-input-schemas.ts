@@ -67,7 +67,7 @@ export const commentMcpTargetReadInputSchema = z.object({
   targetId: mcpCommentTargetIdSchema
     .optional()
     .describe(
-      "Internal target id matching REST /api/comments. Prefer public identifiers such as sectionJwId or courseJwId when available.",
+      "Internal target id matching REST /api/community/comments. Prefer public identifiers such as sectionJwId or courseJwId when available.",
     ),
   sectionJwId: mcpPositiveIntegerTargetIdSchema
     .optional()

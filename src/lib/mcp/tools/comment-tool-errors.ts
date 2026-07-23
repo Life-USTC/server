@@ -110,6 +110,6 @@ function targetNotFound(
   return {
     error: "target_not_found",
     message: `Comment target ${targetType}:${String(targetId)} was not found`,
-    hint: "Use search_sections, search_courses, search_teachers, or get_section_by_jw_id to find a valid comment target.",
+    hint: "Use catalog_section_search, catalog_course_search, catalog_teacher_search, or catalog_section_get to find a valid comment target.",
   };
 }

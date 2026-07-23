@@ -20,14 +20,19 @@ type FooterCopy = {
   terms: string;
 };
 
-const workspaceRoots = ["/admin", "/dashboard", "/settings", "/welcome"];
+const workspaceRoots = [
+  "/admin",
+  "/workspace",
+  "/account/settings",
+  "/account/welcome",
+];
 
 function matchesPathRoot(pathname: string, root: string) {
   return pathname === root || pathname.startsWith(`${root}/`);
 }
 
 export function isDetailWorkspacePath(pathname: string) {
-  return /^\/(courses|sections|teachers)\/[^/]+/.test(pathname);
+  return /^\/catalog\/(courses|sections|teachers)\/[^/]+/.test(pathname);
 }
 
 export function shouldShowAppFooter(pathname: string, signedIn: boolean) {
@@ -40,8 +45,8 @@ export function shouldShowAppFooter(pathname: string, signedIn: boolean) {
 }
 
 export function resolveProfileHref(user: ShellUser) {
-  if (user?.username) return `/u/${user.username}`;
-  if (user?.id) return `/u/id/${user.id}`;
+  if (user?.username) return `/community/users/${user.username}`;
+  if (user?.id) return `/community/users/id/${user.id}`;
   return "/";
 }
 
@@ -51,9 +56,9 @@ export function resolveAvatarFallback(user: ShellUser) {
 
 export function buildPrimaryLinks(copy: NavCopy): ShellLink[] {
   return [
-    { href: "/courses", label: copy.courses },
-    { href: "/sections", label: copy.sections },
-    { href: "/teachers", label: copy.teachers },
+    { href: "/catalog/courses", label: copy.courses },
+    { href: "/catalog/sections", label: copy.sections },
+    { href: "/catalog/teachers", label: copy.teachers },
   ];
 }
 

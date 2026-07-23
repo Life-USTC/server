@@ -50,26 +50,23 @@ type ToolDescriptorWithAuthMetadata = Record<string, unknown> & {
 };
 
 const OPEN_WORLD_WRITE_TOOLS = new Set([
-  "add_comment_reaction",
-  "create_comment",
-  "create_homework_on_section",
-  "delete_homework_on_section",
-  "delete_own_comment",
-  "remove_comment_reaction",
-  "update_homework_on_section",
-  "update_own_comment",
-  "upsert_description",
+  "community_comment_reaction_add",
+  "community_comment_create",
+  "community_section_homework_create",
+  "community_section_homework_delete",
+  "community_comment_delete",
+  "community_comment_reaction_remove",
+  "community_section_homework_update",
+  "community_comment_update",
+  "community_description_set",
 ]);
 
-const DESTRUCTIVE_WRITE_PREFIXES = [
-  "delete_",
-  "remove_",
-  "rename_",
-  "save_",
-  "set_",
-  "unsubscribe_",
-  "update_",
-  "upsert_",
+const DESTRUCTIVE_WRITE_SUFFIXES = [
+  "_delete",
+  "_remove",
+  "_rename",
+  "_set",
+  "_update",
 ];
 
 const listCompatibilityInstalled = new WeakSet<McpServer>();
@@ -87,7 +84,7 @@ function isWriteScope(scope: string) {
 }
 
 function isDestructiveWriteTool(name: string) {
-  return DESTRUCTIVE_WRITE_PREFIXES.some((prefix) => name.startsWith(prefix));
+  return DESTRUCTIVE_WRITE_SUFFIXES.some((suffix) => name.endsWith(suffix));
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

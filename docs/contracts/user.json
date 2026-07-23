@@ -16,19 +16,19 @@
     "welcome-completion-resume": "If the welcome flow was reached from an app-relative callbackUrl, successful completion returns to that page; otherwise completion returns home.",
     "auth-callback-not-intercepted": "Authorization callback continuation requests carrying OAuth code/error and state must be allowed to complete the protocol redirect; the welcome page interceptor must not break the authorization result redirect.",
     "post-login-redirect": "After successful login, the user should be redirected back to the originally requested app-relative page whenever possible; unsafe external callbacks fall back to the home page.",
-    "oauth-login-resume": "If an OAuth authorization request lands on /signin with raw authorization query parameters instead of callbackUrl, the sign-in flow should resume that exact authorization request after login rather than falling back to /.",
+    "oauth-login-resume": "If an OAuth authorization request lands on /account/sign-in with raw authorization query parameters instead of callbackUrl, the sign-in flow should resume that exact authorization request after login rather than falling back to /.",
     "oauth-consent-loopback-continuation": "The OAuth consent step must continue working for loopback public clients even when the client uses 127.0.0.1 and the app itself is being browsed via localhost; consent submission should preserve the original authorization query and complete the redirect back to the registered loopback callback.",
     "public-identity-display": "Public identity defaults to displaying name or username, not internal identifiers.",
-    "public-profile-canonical-route": "When a profile has a username, /u/id/$uid permanently redirects to the canonical /u/$username page. Profiles without a username remain reachable by ID without rendering the raw ID as primary metadata.",
+    "public-profile-canonical-route": "When a profile has a username, /community/users/id/$uid permanently redirects to the canonical /community/users/$username page. Profiles without a username remain reachable by ID without rendering the raw ID as primary metadata.",
     "account-deletion-retention": "Settings account deletion runs through a transaction that anonymizes retained audit rows and issued suspension moderation records. Deleting an admin account is allowed only when at least one other admin remains.",
-    "oauth-authorization-management": "Settings separates linked sign-in accounts from applications authorized to call Life@USTC on the user's behalf. The canonical /settings/authorizations page lists safe client metadata and lets only the owning signed-in user revoke a grant."
+    "oauth-authorization-management": "Settings separates linked sign-in accounts from applications authorized to call Life@USTC on the user's behalf. The canonical /account/settings/authorizations page lists safe client metadata and lets only the owning signed-in user revoke a grant."
   },
   "capabilities": {
     "sign-in": {
       "title": "Sign In",
       "auth": "anon",
       "web": {
-        "pages": ["/signin"]
+        "pages": ["/account/sign-in"]
       },
       "rest": "stable",
       "mcp": "unavailable",
@@ -45,7 +45,7 @@
       "title": "First Login & Welcome Page",
       "auth": "user",
       "web": {
-        "pages": ["/welcome"]
+        "pages": ["/account/welcome"]
       },
       "rest": "unavailable",
       "mcp": "unavailable",
@@ -81,50 +81,61 @@
       "title": "Public Profile",
       "auth": "anon",
       "web": {
-        "pages": ["/u/$username", "/u/id/$uid"]
+        "pages": ["/community/users/$username", "/community/users/id/$uid"]
       },
       "rest": {
         "routes": [
           {
-            "path": "/api/me",
+            "path": "/api/account",
             "returns": "{ id, email, name, image, username, isAdmin, createdAt, updatedAt }",
             "auth": "user",
             "notes": ["Returns the authenticated user's core profile fields."]
           },
           {
-            "path": "/api/users/profile",
+            "path": "/api/account/profile",
             "returns": "{ user, sectionCount, weeks, totalContributions }",
             "notes": [
-              "Accepts exactly one lookup key: username or userId. Returns the same public profile hierarchy as /u/$username and /u/id/$uid."
+              "Accepts exactly one lookup key: username or userId. Returns the same public profile hierarchy as /community/users/$username and /community/users/id/$uid."
             ]
           }
         ]
       },
       "graphql": {
+        "queries": [
+          {
+            "parent": "Community",
+            "name": "user",
+            "arguments": { "username": "String!" },
+            "returns": "CommunityUser",
+            "auth": "anon",
+            "rest_equivalent": "GET /api/account/profile",
+            "mcp_equivalent": "community_user_get"
+          }
+        ],
         "fields": [
           {
-            "parent": "Viewer",
+            "parent": "Account",
             "name": "profile",
             "returns": "UserProfile!",
             "auth": "user",
             "required_scopes": ["me:read"],
-            "rest_equivalent": "GET /api/me",
-            "mcp_equivalent": "get_my_profile"
+            "rest_equivalent": "GET /api/account",
+            "mcp_equivalent": "account_profile_get"
           }
         ]
       },
       "mcp": {
         "tools": [
           {
-            "name": "get_my_profile",
+            "name": "account_profile_get",
             "auth": "user",
             "returns": "{ id, email, username, name, image, isAdmin, createdAt, updatedAt }",
-            "rest_equivalent": "GET /api/me"
+            "rest_equivalent": "GET /api/account"
           },
           {
-            "name": "get_public_user_profile",
+            "name": "community_user_get",
             "returns": "{ found, user, sectionCount, weeks, totalContributions }",
-            "rest_equivalent": "GET /api/users/profile",
+            "rest_equivalent": "GET /api/account/profile",
             "notes": ["Accepts exactly one lookup key: username or userId."]
           }
         ]
@@ -154,12 +165,12 @@
       "auth": "user",
       "web": {
         "pages": [
-          "/settings/profile",
-          "/settings/preferences",
-          "/settings/accounts",
-          "/settings/authorizations",
-          "/settings/content",
-          "/settings/danger"
+          "/account/settings/profile",
+          "/account/settings/preferences",
+          "/account/settings/accounts",
+          "/account/settings/authorizations",
+          "/account/settings/content",
+          "/account/settings/danger"
         ]
       },
       "rest": "unavailable",

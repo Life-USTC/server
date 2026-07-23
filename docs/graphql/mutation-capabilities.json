@@ -1,6 +1,6 @@
 {
-  "schemaVersion": 1,
-  "scope": "Ordinary user and collaborative business writes. Authentication protocols, account security, admin governance, locale cookies, browser redirects, and raw R2 bytes require separate threat models or transports.",
+  "schemaVersion": 2,
+  "scope": "Canonical ordinary-user and collaborative business writes. Authentication protocols, account security, admin governance, locale cookies, redirects, and raw R2 bytes use separate transports or threat models.",
   "excludedFamilies": [
     {
       "id": "auth-and-account-security",
@@ -12,273 +12,283 @@
     },
     {
       "id": "transport-only-writes",
-      "reason": "Locale cookies, redirects, OAuth protocol endpoints, MCP transport state, and raw R2 byte transfer are not GraphQL business commands."
+      "reason": "Locale cookies, redirects, OAuth endpoints, MCP transport state, and raw R2 byte transfer are not GraphQL business commands."
     }
   ],
   "capabilities": [
     {
-      "id": "todo.create",
-      "rest": ["POST /api/todos"],
-      "graphql": { "status": "stable", "field": "createTodo" },
-      "mcp": { "status": "native", "tools": ["create_my_todo"] },
+      "id": "workspace_todo_create",
+      "rest": ["POST /api/workspace/todos"],
+      "graphql": { "status": "stable", "field": "todoCreate" },
+      "mcp": { "status": "native", "tools": ["workspace_todo_create"] },
       "semantics": "single"
     },
     {
-      "id": "todo.update",
-      "rest": ["PATCH /api/todos/[id]"],
-      "graphql": { "status": "stable", "field": "updateTodo" },
-      "mcp": { "status": "native", "tools": ["update_my_todo"] },
+      "id": "workspace_todo_update",
+      "rest": ["PATCH /api/workspace/todos/[id]"],
+      "graphql": { "status": "stable", "field": "todoUpdate" },
+      "mcp": { "status": "native", "tools": ["workspace_todo_update"] },
       "semantics": "single"
     },
     {
-      "id": "todo.delete",
-      "rest": ["DELETE /api/todos/[id]"],
-      "graphql": { "status": "stable", "field": "deleteTodo" },
-      "mcp": { "status": "native", "tools": ["delete_my_todo"] },
+      "id": "workspace_todo_delete",
+      "rest": ["DELETE /api/workspace/todos/[id]"],
+      "graphql": { "status": "stable", "field": "todoDelete" },
+      "mcp": { "status": "native", "tools": ["workspace_todo_delete"] },
       "semantics": "single"
     },
     {
-      "id": "todo.set-completions-batch",
-      "rest": ["PATCH /api/todos/batch"],
-      "graphql": { "status": "stable", "field": "setTodoCompletions" },
-      "mcp": { "status": "single_item_only", "tools": ["update_my_todo"] },
+      "id": "workspace_todo_completions_set",
+      "rest": ["PATCH /api/workspace/todos/batch"],
+      "graphql": { "status": "stable", "field": "todoCompletionsSet" },
+      "mcp": {
+        "status": "single_item_only",
+        "tools": ["workspace_todo_update"]
+      },
       "semantics": "per_item_partial"
     },
     {
-      "id": "todo.delete-batch",
-      "rest": ["DELETE /api/todos/batch"],
-      "graphql": { "status": "stable", "field": "deleteTodos" },
-      "mcp": { "status": "single_item_only", "tools": ["delete_my_todo"] },
+      "id": "workspace_todos_delete",
+      "rest": ["DELETE /api/workspace/todos/batch"],
+      "graphql": { "status": "stable", "field": "todosDelete" },
+      "mcp": {
+        "status": "single_item_only",
+        "tools": ["workspace_todo_delete"]
+      },
       "semantics": "per_item_partial"
     },
     {
-      "id": "homework.create",
-      "rest": ["POST /api/homeworks"],
-      "graphql": { "status": "stable", "field": "createHomework" },
-      "mcp": { "status": "native", "tools": ["create_homework_on_section"] },
+      "id": "community_section_homework_create",
+      "rest": ["POST /api/community/homeworks"],
+      "graphql": { "status": "stable", "field": "homeworkCreate" },
+      "mcp": {
+        "status": "native",
+        "tools": ["community_section_homework_create"]
+      },
       "semantics": "single"
     },
     {
-      "id": "homework.update",
-      "rest": ["PATCH /api/homeworks/[id]"],
-      "graphql": { "status": "stable", "field": "updateHomework" },
-      "mcp": { "status": "native", "tools": ["update_homework_on_section"] },
+      "id": "community_section_homework_update",
+      "rest": ["PATCH /api/community/homeworks/[id]"],
+      "graphql": { "status": "stable", "field": "homeworkUpdate" },
+      "mcp": {
+        "status": "native",
+        "tools": ["community_section_homework_update"]
+      },
       "semantics": "single"
     },
     {
-      "id": "homework.delete",
-      "rest": ["DELETE /api/homeworks/[id]"],
-      "graphql": { "status": "stable", "field": "deleteHomework" },
-      "mcp": { "status": "native", "tools": ["delete_homework_on_section"] },
+      "id": "community_section_homework_delete",
+      "rest": ["DELETE /api/community/homeworks/[id]"],
+      "graphql": { "status": "stable", "field": "homeworkDelete" },
+      "mcp": {
+        "status": "native",
+        "tools": ["community_section_homework_delete"]
+      },
       "semantics": "single_idempotent"
     },
     {
-      "id": "homework.set-completion",
-      "rest": ["PUT /api/homeworks/[id]/completion"],
-      "graphql": { "status": "stable", "field": "setHomeworkCompletion" },
-      "mcp": { "status": "native", "tools": ["set_my_homework_completion"] },
+      "id": "workspace_homework_completion_set",
+      "rest": ["PUT /api/workspace/homeworks/[id]/completion"],
+      "graphql": { "status": "stable", "field": "homeworkCompletionSet" },
+      "mcp": {
+        "status": "native",
+        "tools": ["workspace_homework_completion_set"]
+      },
       "semantics": "single"
     },
     {
-      "id": "homework.set-completions-batch",
-      "rest": ["PUT /api/homeworks/completions"],
-      "graphql": { "status": "stable", "field": "setHomeworkCompletions" },
+      "id": "workspace_homework_completions_set",
+      "rest": ["PUT /api/workspace/homeworks/completions"],
+      "graphql": { "status": "stable", "field": "homeworkCompletionsSet" },
       "mcp": {
         "status": "single_item_only",
-        "tools": ["set_my_homework_completion"]
+        "tools": ["workspace_homework_completion_set"]
       },
       "semantics": "per_item_partial"
     },
     {
-      "id": "subscription.subscribe-section",
+      "id": "workspace_subscription_add",
       "rest": [],
-      "graphql": { "status": "stable", "field": "subscribeSection" },
-      "mcp": { "status": "native", "tools": ["subscribe_section_by_jw_id"] },
+      "graphql": { "status": "stable", "field": "subscriptionAdd" },
+      "mcp": { "status": "native", "tools": ["workspace_subscription_add"] },
       "semantics": "single"
     },
     {
-      "id": "subscription.unsubscribe-section",
+      "id": "workspace_subscription_remove",
       "rest": [],
-      "graphql": { "status": "stable", "field": "unsubscribeSection" },
+      "graphql": { "status": "stable", "field": "subscriptionRemove" },
       "mcp": {
         "status": "native",
-        "tools": ["unsubscribe_section_by_jw_id"]
+        "tools": ["workspace_subscription_remove"]
       },
       "semantics": "single"
     },
     {
-      "id": "subscription.update-by-codes-batch",
+      "id": "workspace_subscriptions_import",
       "rest": [
-        "POST /api/calendar-subscriptions/batch",
-        "POST /api/calendar-subscriptions/import-codes"
+        "POST /api/workspace/subscriptions/batch",
+        "POST /api/workspace/subscriptions/import-codes"
       ],
-      "graphql": {
-        "status": "stable",
-        "field": "updateSectionSubscriptions"
-      },
+      "graphql": { "status": "stable", "field": "subscriptionsImport" },
       "mcp": {
         "status": "partial",
-        "tools": ["subscribe_my_sections_by_codes"]
+        "tools": ["workspace_subscription_import"]
       },
       "semantics": "service_transaction_or_single_atomic_write"
     },
     {
-      "id": "dashboard.set-link-pin-state",
-      "rest": ["POST /api/dashboard-links/pin"],
-      "graphql": {
-        "status": "stable",
-        "field": "setDashboardLinkPinState"
-      },
+      "id": "workspace_link_pin_set",
+      "rest": ["POST /api/workspace/links/pin"],
+      "graphql": { "status": "stable", "field": "linkPinSet" },
+      "mcp": { "status": "native", "tools": ["workspace_link_pin_set"] },
+      "semantics": "single"
+    },
+    {
+      "id": "workspace_bus_preferences_set",
+      "rest": ["POST /api/workspace/bus-preferences"],
+      "graphql": { "status": "stable", "field": "busPreferencesSet" },
       "mcp": {
         "status": "native",
-        "tools": ["set_dashboard_link_pin_state"]
+        "tools": ["workspace_bus_preferences_set"]
       },
       "semantics": "single"
     },
     {
-      "id": "bus.save-preferences",
-      "rest": ["POST /api/bus/preferences"],
-      "graphql": { "status": "stable", "field": "saveBusPreferences" },
-      "mcp": { "status": "native", "tools": ["save_my_bus_preferences"] },
-      "semantics": "single"
-    },
-    {
-      "id": "description.upsert",
-      "rest": ["POST /api/descriptions"],
-      "graphql": { "status": "stable", "field": "upsertDescription" },
-      "mcp": { "status": "native", "tools": ["upsert_description"] },
+      "id": "community_description_set",
+      "rest": ["POST /api/community/descriptions"],
+      "graphql": { "status": "stable", "field": "descriptionSet" },
+      "mcp": { "status": "native", "tools": ["community_description_set"] },
       "semantics": "single_audited"
     },
     {
-      "id": "comment.create",
-      "rest": ["POST /api/comments"],
-      "graphql": { "status": "stable", "field": "createComment" },
-      "mcp": { "status": "native", "tools": ["create_comment"] },
+      "id": "community_comment_create",
+      "rest": ["POST /api/community/comments"],
+      "graphql": { "status": "stable", "field": "commentCreate" },
+      "mcp": { "status": "native", "tools": ["community_comment_create"] },
       "semantics": "single_audited"
     },
     {
-      "id": "comment.update",
-      "rest": ["PATCH /api/comments/[id]"],
-      "graphql": { "status": "stable", "field": "updateComment" },
-      "mcp": { "status": "native", "tools": ["update_own_comment"] },
+      "id": "community_comment_update",
+      "rest": ["PATCH /api/community/comments/[id]"],
+      "graphql": { "status": "stable", "field": "commentUpdate" },
+      "mcp": { "status": "native", "tools": ["community_comment_update"] },
       "semantics": "single_audited"
     },
     {
-      "id": "comment.delete",
-      "rest": ["DELETE /api/comments/[id]"],
-      "graphql": { "status": "stable", "field": "deleteComment" },
-      "mcp": { "status": "native", "tools": ["delete_own_comment"] },
+      "id": "community_comment_delete",
+      "rest": ["DELETE /api/community/comments/[id]"],
+      "graphql": { "status": "stable", "field": "commentDelete" },
+      "mcp": { "status": "native", "tools": ["community_comment_delete"] },
       "semantics": "single_audited"
     },
     {
-      "id": "comment.add-reaction",
-      "rest": ["POST /api/comments/[id]/reactions"],
-      "graphql": { "status": "stable", "field": "addCommentReaction" },
-      "mcp": { "status": "native", "tools": ["add_comment_reaction"] },
+      "id": "community_comment_reaction_add",
+      "rest": ["POST /api/community/comments/[id]/reactions"],
+      "graphql": { "status": "stable", "field": "commentReactionAdd" },
+      "mcp": {
+        "status": "native",
+        "tools": ["community_comment_reaction_add"]
+      },
       "semantics": "single_audited_idempotent"
     },
     {
-      "id": "comment.remove-reaction",
-      "rest": ["DELETE /api/comments/[id]/reactions"],
-      "graphql": { "status": "stable", "field": "removeCommentReaction" },
-      "mcp": { "status": "native", "tools": ["remove_comment_reaction"] },
+      "id": "community_comment_reaction_remove",
+      "rest": ["DELETE /api/community/comments/[id]/reactions"],
+      "graphql": { "status": "stable", "field": "commentReactionRemove" },
+      "mcp": {
+        "status": "native",
+        "tools": ["community_comment_reaction_remove"]
+      },
       "semantics": "single_audited_idempotent"
     },
     {
-      "id": "dashboard.set-link-pin-state-batch",
-      "rest": ["POST /api/dashboard-links/pin/batch"],
-      "graphql": { "status": "stable", "field": "setDashboardLinkPinStates" },
+      "id": "workspace_link_pins_set",
+      "rest": ["POST /api/workspace/links/pin/batch"],
+      "graphql": { "status": "stable", "field": "linkPinsSet" },
       "mcp": {
         "status": "registered_operation",
-        "tools": ["set_dashboard_link_pin_state", "run_graphql_operation"]
+        "tools": ["workspace_link_pin_set", "graphql_operation_run"]
       },
       "semantics": "ordered_non_atomic",
       "notes": [
-        "REST and GraphQL validate every slug before writing, then reuse the feature-owned batch service to apply actions in request order and return final state.",
-        "Persistence failure after execution starts can leave an ordered prefix applied; clients must inspect current state before retrying."
+        "Every slug is validated before ordered non-atomic execution starts.",
+        "A persistence failure may leave an ordered prefix applied; inspect current state before retrying."
       ]
     },
     {
-      "id": "comment.delete-batch",
-      "rest": ["DELETE /api/comments/batch"],
-      "graphql": { "status": "stable", "field": "deleteComments" },
+      "id": "community_comments_delete",
+      "rest": ["DELETE /api/community/comments/batch"],
+      "graphql": { "status": "stable", "field": "commentsDelete" },
       "mcp": {
         "status": "registered_operation",
-        "tools": ["delete_own_comment", "run_graphql_operation"]
+        "tools": ["community_comment_delete", "graphql_operation_run"]
       },
-      "semantics": "per_item_partial",
-      "notes": [
-        "REST, GraphQL, and the MCP registered operation reuse one feature-owned batch service and the audited single-delete permission path."
-      ]
+      "semantics": "per_item_partial"
     },
     {
-      "id": "upload.create-session",
-      "rest": ["POST /api/uploads"],
-      "graphql": { "status": "stable", "field": "createUploadSession" },
+      "id": "workspace_upload_session_create",
+      "rest": ["POST /api/workspace/uploads"],
+      "graphql": { "status": "stable", "field": "uploadSessionCreate" },
       "mcp": {
         "status": "registered_operation",
-        "tools": ["run_graphql_operation"]
+        "tools": ["graphql_operation_run"]
       },
       "semantics": "multi_step_storage_workflow",
       "notes": [
-        "GraphQL and MCP may reserve quota and return the authenticated on-site PUT workflow URL; raw object bytes remain exclusive to the R2-backed HTTP route.",
-        "MCP-resource bearer tokens are not replayable at the REST upload URL; clients need a browser session or a separately authorized REST upload token for the byte-transfer step.",
-        "The registered operation is marked destructive because it creates an UploadPending quota reservation; its bounded oldest-first stale-session sweep removes expired reservation rows only."
+        "GraphQL and MCP may reserve quota and return an authenticated on-site PUT workflow URL; raw bytes remain exclusive to HTTP.",
+        "An MCP-resource bearer is not replayable at the REST upload URL."
       ]
     },
     {
-      "id": "upload.complete",
-      "rest": ["POST /api/uploads/complete"],
-      "graphql": { "status": "stable", "field": "completeUploadSession" },
+      "id": "workspace_upload_session_complete",
+      "rest": ["POST /api/workspace/uploads/complete"],
+      "graphql": { "status": "stable", "field": "uploadSessionComplete" },
       "mcp": {
         "status": "registered_operation",
-        "tools": ["run_graphql_operation"]
+        "tools": ["graphql_operation_run"]
       },
       "semantics": "multi_step_storage_workflow",
       "notes": [
-        "Completion validates the existing R2 object and commits metadata; GraphQL and MCP never receive or proxy object bytes.",
-        "Expiry, quota, missing-object, and oversized-object failures never delete R2 from the request path. Bounded DB cleanup removes expired reservations, while orphan objects require a dedicated storage lifecycle reconciler."
+        "Completion validates the existing R2 object and commits metadata; GraphQL and MCP never receive or proxy object bytes."
       ]
     },
     {
-      "id": "upload.rename",
-      "rest": ["PATCH /api/uploads/[id]"],
-      "graphql": { "status": "stable", "field": "renameUpload" },
+      "id": "workspace_upload_rename",
+      "rest": ["PATCH /api/workspace/uploads/[id]"],
+      "graphql": { "status": "stable", "field": "uploadRename" },
       "mcp": {
         "status": "native_and_registered",
-        "tools": ["rename_my_upload", "run_graphql_operation"]
+        "tools": ["workspace_upload_rename", "graphql_operation_run"]
       },
-      "semantics": "single_owned_write",
-      "notes": [
-        "All surfaces reuse the ownership and suspension-aware upload service."
-      ]
+      "semantics": "single_owned_write"
     },
     {
-      "id": "upload.delete",
-      "rest": ["DELETE /api/uploads/[id]"],
-      "graphql": { "status": "stable", "field": "deleteUpload" },
+      "id": "workspace_upload_delete",
+      "rest": ["DELETE /api/workspace/uploads/[id]"],
+      "graphql": { "status": "stable", "field": "uploadDelete" },
       "mcp": {
         "status": "native_and_registered",
-        "tools": ["delete_my_upload", "run_graphql_operation"]
+        "tools": ["workspace_upload_delete", "graphql_operation_run"]
       },
       "semantics": "storage_then_transactional_metadata_delete",
       "notes": [
-        "All surfaces delete storage before transactionally deleting metadata and writing the audit row.",
-        "Storage failure returns GraphQL SERVICE_UNAVAILABLE and preserves metadata for retry."
+        "Storage is deleted before transactional metadata and audit deletion.",
+        "Storage failure returns SERVICE_UNAVAILABLE and preserves metadata."
       ]
     },
     {
-      "id": "subscription.update-by-internal-ids",
+      "id": "workspace_subscription_internal_ids_set",
       "rest": [
-        "POST /api/calendar-subscriptions",
-        "PATCH /api/calendar-subscriptions",
-        "DELETE /api/calendar-subscriptions"
+        "POST /api/workspace/subscriptions",
+        "PATCH /api/workspace/subscriptions",
+        "DELETE /api/workspace/subscriptions"
       ],
       "graphql": { "status": "intentional_gap", "field": null },
       "mcp": { "status": "unavailable", "tools": [] },
-      "semantics": "compatibility_only",
+      "semantics": "transport_only",
       "notes": [
-        "GraphQL uses public section JW IDs for single changes and public section/course codes for batches; database section IDs remain REST compatibility input only."
+        "GraphQL and MCP use public section JW IDs or section/course codes; internal database section IDs remain unavailable."
       ]
     }
   ]

@@ -3,7 +3,7 @@ import * as fixtures from "./utils/mcp-tool-test-utils";
 
 const context = fixtures.createMcpToolTestContext();
 
-describe("match_section_codes — 班级代码匹配", () => {
+describe("catalog_section_match_preview — 班级代码匹配", () => {
   it("在当前学期匹配单个班级代码", async () => {
     const result = await context.client.call<{
       success?: boolean;
@@ -14,7 +14,7 @@ describe("match_section_codes — 班级代码匹配", () => {
       sections?: Array<{ code?: string; jwId?: number }>;
       total?: number;
       note?: string;
-    }>("match_section_codes", {
+    }>("catalog_section_match_preview", {
       codes: [fixtures.DEV_SEED.section.code],
       locale: "zh-cn",
     });
@@ -40,7 +40,7 @@ describe("match_section_codes — 班级代码匹配", () => {
       unmatchedCodes?: string[];
       suggestions?: Record<string, string[]>;
       total?: number;
-    }>("match_section_codes", {
+    }>("catalog_section_match_preview", {
       codes: [fixtures.DEV_SEED.section.code, unmatchedCode],
       locale: "zh-cn",
     });
@@ -76,7 +76,7 @@ describe("match_section_codes — 班级代码匹配", () => {
       matchedCodes?: string[];
       unmatchedCodes?: string[];
       total?: number;
-    }>("match_section_codes", {
+    }>("catalog_section_match_preview", {
       codes: [previousSection.code],
       semesterId: previousSemester.id,
       locale: "zh-cn",
@@ -96,7 +96,7 @@ describe("match_section_codes — 班级代码匹配", () => {
     const result = await context.client.call<{
       success?: boolean;
       message?: string;
-    }>("match_section_codes", {
+    }>("catalog_section_match_preview", {
       codes: [fixtures.DEV_SEED.section.code],
       semesterId: 2_147_483_647,
       locale: "zh-cn",
@@ -108,7 +108,7 @@ describe("match_section_codes — 班级代码匹配", () => {
 
   it("拒绝空代码数组", async () => {
     await expect(
-      context.client.call("match_section_codes", {
+      context.client.call("catalog_section_match_preview", {
         codes: [],
         locale: "zh-cn",
       }),
@@ -117,7 +117,7 @@ describe("match_section_codes — 班级代码匹配", () => {
 
   it("拒绝非法格式班级代码", async () => {
     await expect(
-      context.client.call("match_section_codes", {
+      context.client.call("catalog_section_match_preview", {
         codes: ["bad code!"],
         locale: "zh-cn",
       }),

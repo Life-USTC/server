@@ -1,5 +1,5 @@
 /**
- * E2E tests for the Settings Profile section (`/settings/profile`)
+ * E2E tests for the Settings Profile section (`/account/settings/profile`)
  *
  * ## Data Represented (user.yml → settings.display.fields)
  * - user.profilePictures[] (avatar options)
@@ -28,12 +28,12 @@ import {
 import { DEV_SEED } from "../../../../utils/dev-seed";
 import { captureStepScreenshot } from "../../../../utils/screenshot";
 
-test.describe("/settings/profile 个人资料设置", () => {
+test.describe("/account/settings/profile 个人资料设置", () => {
   // Serial mode avoids intra-file contention on the shared debug user profile.
   test.describe.configure({ mode: "serial" });
 
   test("需要登录", async ({ page }, testInfo) => {
-    await expectRequiresSignIn(page, "/settings/profile");
+    await expectRequiresSignIn(page, "/account/settings/profile");
     await captureStepScreenshot(
       page,
       testInfo,
@@ -43,9 +43,9 @@ test.describe("/settings/profile 个人资料设置", () => {
 
   test("显示所有必填个人资料字段", async ({ page }, testInfo) => {
     test.setTimeout(300_000);
-    await signInAsDebugUser(page, "/settings/profile");
+    await signInAsDebugUser(page, "/account/settings/profile");
 
-    await expectPagePath(page, "/settings/profile");
+    await expectPagePath(page, "/account/settings/profile");
     await expect(page.locator("input#name")).toHaveValue(DEV_SEED.debugName);
     await expect(page.locator("input#username")).toHaveValue(
       DEV_SEED.debugUsername,
@@ -66,7 +66,7 @@ test.describe("/settings/profile 个人资料设置", () => {
 
   test("可保存姓名并回滚", async ({ page }, testInfo) => {
     test.setTimeout(300_000);
-    await signInAsDebugUser(page, "/settings/profile");
+    await signInAsDebugUser(page, "/account/settings/profile");
 
     const nameInput = page.locator("input#name");
     const saveButton = page.getByRole("button", { name: /保存|Save/i });
@@ -78,7 +78,9 @@ test.describe("/settings/profile 个人资料设置", () => {
 
     await nameInput.fill(newName);
     const saveResponsePromise = page.waitForResponse(
-      (r) => r.url().includes("/settings") && r.request().method() === "POST",
+      (r) =>
+        r.url().includes("/account/settings") &&
+        r.request().method() === "POST",
     );
     await saveButton.click();
     await saveResponsePromise;
@@ -92,7 +94,9 @@ test.describe("/settings/profile 个人资料设置", () => {
 
     await page.locator("input#name").fill(originalName);
     const rollbackResponsePromise = page.waitForResponse(
-      (r) => r.url().includes("/settings") && r.request().method() === "POST",
+      (r) =>
+        r.url().includes("/account/settings") &&
+        r.request().method() === "POST",
     );
     await saveButton.click();
     await rollbackResponsePromise;
@@ -106,7 +110,7 @@ test.describe("/settings/profile 个人资料设置", () => {
 
   test("保存前要求填写用户名", async ({ page }, testInfo) => {
     test.setTimeout(300_000);
-    await signInAsDebugUser(page, "/settings/profile");
+    await signInAsDebugUser(page, "/account/settings/profile");
 
     const usernameInput = page.locator("input#username");
     await usernameInput.fill("");

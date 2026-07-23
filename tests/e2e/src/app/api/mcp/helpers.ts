@@ -229,7 +229,7 @@ export async function createAuthenticatedMcpClient(
 export async function getCurrentSubscriptionSectionIds(
   request: Page["request"],
 ) {
-  const response = await request.get("/api/calendar-subscriptions/current");
+  const response = await request.get("/api/workspace/subscriptions/current");
   expect(response.status()).toBe(200);
   const body = (await response.json()) as {
     subscription?: { sections?: Array<{ id?: number }> } | null;
@@ -242,7 +242,7 @@ export async function getCurrentSubscriptionSectionIds(
 }
 
 export async function getSeedSectionId(request: Page["request"]) {
-  const response = await request.post("/api/sections/match-codes", {
+  const response = await request.post("/api/catalog/sections/match-codes", {
     data: { codes: [DEV_SEED.section.code] },
   });
   expect(response.status()).toBe(200);
@@ -263,7 +263,7 @@ export async function replaceCalendarSubscription(
   request: Page["request"],
   sectionIds: number[],
 ) {
-  const response = await request.post("/api/calendar-subscriptions", {
+  const response = await request.post("/api/workspace/subscriptions", {
     data: { sectionIds },
   });
   expect(response.status()).toBe(200);
@@ -364,7 +364,7 @@ export async function saveBusPreference(
   request: Page["request"],
   preference: BusPreference,
 ) {
-  const response = await request.post("/api/bus/preferences", {
+  const response = await request.post("/api/workspace/bus-preferences", {
     data: {
       preferredOriginCampusId: preference.preferredOriginCampusId ?? null,
       preferredDestinationCampusId:

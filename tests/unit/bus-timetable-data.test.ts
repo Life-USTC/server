@@ -144,7 +144,7 @@ describe("getBusTimetableData 班车时刻表数据", () => {
     expect(trip?.arrivalTime).toBe("08:20");
   });
 
-  it("get_next_buses 复用静态时刻表缓存", async () => {
+  it("catalog_bus_departure_next 复用静态时刻表缓存", async () => {
     await getBusTimetableData({
       locale: "zh-cn",
       now: "2026-02-01T00:00:00.000Z",

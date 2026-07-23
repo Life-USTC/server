@@ -259,20 +259,23 @@ export function createPersistedGraphqlOperationRegistry(
       );
       const rootField = rootFields[0].name.value;
 
-      if (operation.operation === "query" && rootField === "viewer") {
-        const viewerFields =
+      if (
+        operation.operation === "query" &&
+        (rootField === "account" || rootField === "workspace")
+      ) {
+        const scopeFields =
           rootFields[0].selectionSet?.selections.filter(
             (selection) => selection.kind === Kind.FIELD,
           ) ?? [];
         requireInvariant(
-          viewerFields.length === 1 &&
+          scopeFields.length === 1 &&
             rootFields[0].selectionSet?.selections.length === 1,
-          `viewer operation "${definition.id}" must select exactly one Viewer field`,
+          `${rootField} operation "${definition.id}" must select exactly one field`,
         );
         requireInvariant(
           definition.scopes.length === 1 &&
             definition.scopes[0].endsWith(":read"),
-          `viewer operation "${definition.id}" requires exactly one read scope`,
+          `${rootField} operation "${definition.id}" requires exactly one read scope`,
         );
       } else if (operation.operation === "query") {
         requireInvariant(

@@ -38,7 +38,7 @@ test.describe("仪表盘", () => {
 
     expect(response.status()).toBe(308);
     expect(response.headers().location).toBe(
-      "/dashboard/homeworks?homeworkView=list",
+      "/workspace/homeworks?homeworkView=list",
     );
   });
 
@@ -58,10 +58,10 @@ test.describe("仪表盘", () => {
     await expect(page.getByTestId("bus-compact-summary")).toHaveCount(0);
   });
 
-  test("/dashboard 默认永久重定向到 overview 语义路径", async ({ page }) => {
+  test("/workspace 默认永久重定向到 overview 语义路径", async ({ page }) => {
     for (const method of ["GET", "HEAD"]) {
       const response = await page.request.fetch(
-        "/dashboard?overviewWeek=next",
+        "/workspace?overviewWeek=next",
         {
           maxRedirects: 0,
           method,
@@ -70,7 +70,7 @@ test.describe("仪表盘", () => {
 
       expect(response.status()).toBe(308);
       expect(response.headers().location).toBe(
-        "/dashboard/overview?overviewWeek=next",
+        "/workspace/overview?overviewWeek=next",
       );
     }
   });
@@ -84,7 +84,7 @@ test.describe("仪表盘", () => {
       screenshotLabel: "dashboard",
     });
 
-    await expect(page).toHaveURL(/\/dashboard\/overview(?:\?.*)?$/);
+    await expect(page).toHaveURL(/\/workspace\/overview(?:\?.*)?$/);
     await expect(
       page.getByRole("heading", {
         level: 1,
@@ -107,29 +107,24 @@ test.describe("仪表盘", () => {
       await expect(sidebarNavigationLink(page, label)).toBeVisible();
     }
 
-    // Seed homework title visible on overview. Retry the subscription+reload
+    // Seed overdue homework is visible on overview. Retry the subscription+reload
     // because other E2E slices exercise subscription replacement for the
     // shared debug user. The initial sign-in goto stays outside the retry.
-    await expect(async () => {
-      await ensureSeedSectionSubscription(page);
-      await page.reload({ waitUntil: "domcontentloaded" });
-      await expect(
-        page.getByText(DEV_SEED.homeworks.title).first(),
-      ).toBeVisible({
-        timeout: 2_000,
-      });
-    }).toPass({ timeout: 15_000 });
     const overdueTitle = page
       .getByText(DEV_SEED.homeworks.overdueTitle, { exact: true })
       .first();
-    await expect(overdueTitle).toBeVisible();
+    await expect(async () => {
+      await ensureSeedSectionSubscription(page);
+      await page.reload({ waitUntil: "domcontentloaded" });
+      await expect(overdueTitle).toBeVisible({ timeout: 2_000 });
+    }).toPass({ timeout: 15_000 });
     const overdueTitleBox = await overdueTitle.boundingBox();
     expect(overdueTitleBox?.width ?? 0).toBeGreaterThan(80);
     expect(overdueTitleBox?.height ?? Number.POSITIVE_INFINITY).toBeLessThan(
       48,
     );
     await expect(
-      page.locator('form[action="/api/dashboard-links/visit"]'),
+      page.locator('form[action="/api/workspace/links/visit"]'),
     ).toHaveCount(DEV_SEED.dashboardLinks.overviewLimit);
     await expect(page.locator("vite-error-overlay")).toHaveCount(0);
 
@@ -144,13 +139,13 @@ test.describe("仪表盘", () => {
     await expect(homeworksTab).toBeVisible();
     await homeworksTab.click();
 
-    await expect(page).toHaveURL(/\/dashboard\/homeworks(?:\?.*)?$/);
+    await expect(page).toHaveURL(/\/workspace\/homeworks(?:\?.*)?$/);
     await captureStepScreenshot(page, testInfo, "dashboard-navigate-homeworks");
   });
 
   test("仪表盘路径别名渲染匹配的标签", async ({ page }, testInfo) => {
-    await signInAsDebugUser(page, "/dashboard/links");
-    await gotoAndWaitForReady(page, "/dashboard/links", {
+    await signInAsDebugUser(page, "/workspace/links");
+    await gotoAndWaitForReady(page, "/workspace/links", {
       testInfo,
       screenshotLabel: "dashboard-links-path",
     });
@@ -163,7 +158,7 @@ test.describe("仪表盘", () => {
       }),
     ).toBeVisible();
 
-    await signInAsDebugUser(page, "/dashboard/homeworks");
+    await signInAsDebugUser(page, "/workspace/homeworks");
     const homeworksDashboardTab = sidebarNavigationLink(
       page,
       /^(作业|Homework)$/i,
@@ -171,8 +166,8 @@ test.describe("仪表盘", () => {
     await expect(homeworksDashboardTab).toBeVisible();
     await expect(homeworksDashboardTab).toHaveAttribute("aria-current", "page");
 
-    await gotoAndWaitForReady(page, "/dashboard/subscriptions");
-    await expect(page).toHaveURL(/\/dashboard\/subscriptions(?:\?.*)?$/);
+    await gotoAndWaitForReady(page, "/workspace/subscriptions");
+    await expect(page).toHaveURL(/\/workspace\/subscriptions(?:\?.*)?$/);
     await expect(
       appSidebar(page).getByRole("link", {
         name: /^(教学班订阅|Section Subscriptions)$/i,
@@ -213,13 +208,13 @@ test.describe("仪表盘", () => {
   });
 
   test("中文总览周视图使用本地化星期标签", async ({ page }, testInfo) => {
-    await signInAsDebugUser(page, "/dashboard/overview");
-    const localeResponse = await page.request.post("/api/locale", {
+    await signInAsDebugUser(page, "/workspace/overview");
+    const localeResponse = await page.request.post("/api/account/preferences", {
       data: { locale: "zh-cn" },
     });
     expect(localeResponse.status()).toBe(200);
     await ensureSeedSectionSubscription(page);
-    await gotoAndWaitForReady(page, "/dashboard/overview");
+    await gotoAndWaitForReady(page, "/workspace/overview");
     await expect(page.locator("html")).toHaveAttribute("lang", "zh-cn");
 
     const weekCard = page

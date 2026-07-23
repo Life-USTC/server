@@ -53,12 +53,12 @@ async function expectSignedOutAfterMenuClick(page: Page) {
   ).toBeVisible();
 }
 
-test("/signin 页面契约", async ({ page }, testInfo) => {
-  await assertPageContract(page, { routePath: "/signin", testInfo });
+test("/account/sign-in 页面契约", async ({ page }, testInfo) => {
+  await assertPageContract(page, { routePath: "/account/sign-in", testInfo });
 });
 
-test("/signin 显示所有必填字段", async ({ page }, testInfo) => {
-  await gotoAndWaitForReady(page, "/signin", {
+test("/account/sign-in 显示所有必填字段", async ({ page }, testInfo) => {
+  await gotoAndWaitForReady(page, "/account/sign-in", {
     testInfo,
     screenshotLabel: "signin",
   });
@@ -85,8 +85,8 @@ test("/signin 显示所有必填字段", async ({ page }, testInfo) => {
   await captureStepScreenshot(page, testInfo, "signin/all-fields");
 });
 
-test("/signin 调试用户按钮可登录", async ({ page }, testInfo) => {
-  await gotoAndWaitForReady(page, "/signin", {
+test("/account/sign-in 调试用户按钮可登录", async ({ page }, testInfo) => {
+  await gotoAndWaitForReady(page, "/account/sign-in", {
     testInfo,
     screenshotLabel: "signin",
   });
@@ -94,14 +94,14 @@ test("/signin 调试用户按钮可登录", async ({ page }, testInfo) => {
   await captureStepScreenshot(page, testInfo, "signin/initial");
 
   await signInAsDebugUser(page, "/", "/", { ui: true });
-  await expect(page).toHaveURL(/\/dashboard\/overview(?:\?.*)?$/);
+  await expect(page).toHaveURL(/\/workspace\/overview(?:\?.*)?$/);
   await expect(page.locator("#main-content")).toBeVisible();
   await expect(page.locator("#app-logo")).toBeVisible();
   await expect(page.locator("#app-user-menu")).toBeVisible();
   await captureStepScreenshot(page, testInfo, "signin/after-login");
 });
 
-test("/signin 调试用户可登出", async ({ page }, testInfo) => {
+test("/account/sign-in 调试用户可登出", async ({ page }, testInfo) => {
   await signInAsDebugUser(page, "/", "/", { ui: true });
 
   await expectSignedOutAfterMenuClick(page);
@@ -109,7 +109,7 @@ test("/signin 调试用户可登出", async ({ page }, testInfo) => {
   await captureStepScreenshot(page, testInfo, "signin/after-sign-out");
 });
 
-test("/signin 调试管理员可登出", async ({ page }, testInfo) => {
+test("/account/sign-in 调试管理员可登出", async ({ page }, testInfo) => {
   await signInAsDevAdmin(page, "/", "/", { ui: true });
 
   await expectSignedOutAfterMenuClick(page);
@@ -117,13 +117,17 @@ test("/signin 调试管理员可登出", async ({ page }, testInfo) => {
   await captureStepScreenshot(page, testInfo, "signin/admin-after-sign-out");
 });
 
-test("/signin 登录后重定向到 callbackUrl", async ({ page }, testInfo) => {
+test("/account/sign-in 登录后重定向到 callbackUrl", async ({
+  page,
+}, testInfo) => {
   // callbackUrl preserved through the sign-in flow (user.yml post-login-redirect)
-  await gotoAndWaitForReady(page, "/signin?callbackUrl=%2Fsections", {
+  await gotoAndWaitForReady(page, "/account/sign-in?callbackUrl=%2Fsections", {
     testInfo,
     screenshotLabel: "signin-callback",
   });
-  await signInAsDebugUser(page, "/sections", "/sections", { ui: true });
-  await expect(page).toHaveURL(/\/sections(?:\?.*)?$/);
+  await signInAsDebugUser(page, "/catalog/sections", "/catalog/sections", {
+    ui: true,
+  });
+  await expect(page).toHaveURL(/\/catalog\/sections(?:\?.*)?$/);
   await captureStepScreenshot(page, testInfo, "signin/post-login-redirect");
 });

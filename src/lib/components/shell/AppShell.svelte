@@ -102,32 +102,32 @@ function buildShellNavGroups(
   const detailSecondaryLinks = buildDetailSecondaryLinks(pathname, pageData);
   const catalogLinks: ShellLink[] = [
     {
-      href: "/courses",
+      href: "/catalog/courses",
       icon: BookOpenIcon,
       label: copy.nav.courses,
-      items: pathname.startsWith("/courses/")
+      items: pathname.startsWith("/catalog/courses/")
         ? detailSecondaryLinks
         : undefined,
     },
     {
-      href: "/sections",
+      href: "/catalog/sections",
       icon: RouteIcon,
       label: copy.nav.sections,
-      items: pathname.startsWith("/sections/")
+      items: pathname.startsWith("/catalog/sections/")
         ? detailSecondaryLinks
         : undefined,
     },
     {
-      href: "/teachers",
+      href: "/catalog/teachers",
       icon: UsersIcon,
       label: copy.nav.teachers,
-      items: pathname.startsWith("/teachers/")
+      items: pathname.startsWith("/catalog/teachers/")
         ? detailSecondaryLinks
         : undefined,
     },
   ];
   const campusLinks: ShellLink[] = [
-    { href: "/bus-map", icon: MapIcon, label: copy.nav.transitMap },
+    { href: "/catalog/bus/map", icon: MapIcon, label: copy.nav.transitMap },
     { href: "/mobile-app", icon: SmartphoneIcon, label: copy.nav.mobileApp },
   ];
   const disambiguateDashboardBus = pathname.startsWith("/admin");
@@ -151,8 +151,8 @@ function buildShellNavGroups(
         defaultOpen: true,
         label: copy.nav.groups.publicTools,
         links: [
-          { href: "/bus", icon: BusFrontIcon, label: copy.nav.bus },
-          { href: "/links", icon: LinkIcon, label: copy.nav.links },
+          { href: "/catalog/bus", icon: BusFrontIcon, label: copy.nav.bus },
+          { href: "/catalog/links", icon: LinkIcon, label: copy.nav.links },
         ],
       },
       {
@@ -179,42 +179,42 @@ function buildShellNavGroups(
       links: [
         {
           ariaLabel: copy.nav.today,
-          href: "/dashboard/overview",
+          href: "/workspace/overview",
           icon: HouseIcon,
           label: copy.nav.today,
         },
         {
           ariaLabel: copy.nav.calendar,
           badge: dashboardNavStats?.calendarItemsCount,
-          href: "/dashboard/calendar",
+          href: "/workspace/calendar",
           icon: CalendarDaysIcon,
           label: copy.nav.calendar,
         },
         {
           ariaLabel: copy.nav.homeworks,
           badge: dashboardNavStats?.pendingHomeworksCount,
-          href: "/dashboard/homeworks",
+          href: "/workspace/homeworks",
           icon: BookOpenIcon,
           label: copy.nav.homeworks,
         },
         {
           ariaLabel: copy.nav.todos,
           badge: dashboardNavStats?.pendingTodosCount,
-          href: "/dashboard/todos",
+          href: "/workspace/todos",
           icon: ListTodoIcon,
           label: copy.nav.todos,
         },
         {
           ariaLabel: copy.nav.exams,
           badge: dashboardNavStats?.examsCount,
-          href: "/dashboard/exams",
+          href: "/workspace/exams",
           icon: GraduationCapIcon,
           label: copy.nav.exams,
         },
         {
           ariaLabel: copy.nav.subscriptions,
           badge: dashboardSubscribedSectionCount,
-          href: "/dashboard/subscriptions",
+          href: "/workspace/subscriptions",
           icon: RouteIcon,
           label: copy.nav.subscriptions,
         },
@@ -227,13 +227,13 @@ function buildShellNavGroups(
           ariaLabel: disambiguateDashboardBus
             ? copy.nav.dashboardBus
             : copy.nav.workspaceTransit,
-          href: "/dashboard/bus",
+          href: "/workspace/bus",
           icon: BusFrontIcon,
           label: copy.nav.bus,
         },
         {
           ariaLabel: copy.nav.links,
-          href: "/dashboard/links",
+          href: "/workspace/links",
           icon: LinkIcon,
           label: copy.nav.links,
         },
@@ -275,51 +275,51 @@ function buildMobileSecondaryNavGroups(
     {
       ariaLabel: copy.nav.todos,
       badge: dashboardNavStats?.pendingTodosCount,
-      href: "/dashboard/todos",
+      href: "/workspace/todos",
       icon: ListTodoIcon,
       label: copy.nav.todos,
     },
     {
       ariaLabel: copy.nav.exams,
       badge: dashboardNavStats?.examsCount,
-      href: "/dashboard/exams",
+      href: "/workspace/exams",
       icon: GraduationCapIcon,
       label: copy.nav.exams,
     },
     {
       ariaLabel: copy.nav.subscriptions,
       badge: dashboardSubscribedSectionCount,
-      href: "/dashboard/subscriptions",
+      href: "/workspace/subscriptions",
       icon: RouteIcon,
       label: copy.nav.subscriptions,
     },
     {
-      href: "/dashboard/bus",
+      href: "/workspace/bus",
       icon: BusFrontIcon,
       label: copy.nav.bus,
     },
     {
-      href: "/dashboard/links",
+      href: "/workspace/links",
       icon: LinkIcon,
       label: copy.nav.links,
     },
     {
-      href: "/sections",
+      href: "/catalog/sections",
       icon: RouteIcon,
-      items: pathname.startsWith("/sections/")
+      items: pathname.startsWith("/catalog/sections/")
         ? detailSecondaryLinks
         : undefined,
       label: copy.nav.sections,
     },
     {
-      href: "/teachers",
+      href: "/catalog/teachers",
       icon: UsersIcon,
-      items: pathname.startsWith("/teachers/")
+      items: pathname.startsWith("/catalog/teachers/")
         ? detailSecondaryLinks
         : undefined,
       label: copy.nav.teachers,
     },
-    { href: "/bus-map", icon: MapIcon, label: copy.nav.transitMap },
+    { href: "/catalog/bus/map", icon: MapIcon, label: copy.nav.transitMap },
     { href: "/mobile-app", icon: SmartphoneIcon, label: copy.nav.mobileApp },
   ];
   const adminLinks: ShellLink[] = [
@@ -347,22 +347,22 @@ function buildMobileSecondaryNavGroups(
 function buildMobilePrimaryLinks(copy: LayoutCopy): ShellLink[] {
   return [
     {
-      href: "/dashboard/overview",
+      href: "/workspace/overview",
       icon: HouseIcon,
       label: copy.nav.today,
     },
     {
-      href: "/dashboard/calendar",
+      href: "/workspace/calendar",
       icon: CalendarDaysIcon,
       label: copy.nav.calendar,
     },
     {
-      href: "/dashboard/homeworks",
+      href: "/workspace/homeworks",
       icon: ClipboardCheckIcon,
       label: copy.nav.tasks,
     },
     {
-      href: "/courses",
+      href: "/catalog/courses",
       icon: CompassIcon,
       label: copy.nav.explore,
     },
@@ -374,19 +374,26 @@ function isActiveLink(link: ShellLink) {
   const target = new URL(link.href, $page.url.origin);
   const pathname = $page.url.pathname;
 
-  if (target.pathname === "/dashboard/overview") {
-    return pathname === "/dashboard" || pathname === "/dashboard/overview";
+  if (target.pathname === "/workspace/overview") {
+    return pathname === "/workspace" || pathname === "/workspace/overview";
   }
-  if (target.pathname.startsWith("/dashboard/")) {
+  if (target.pathname.startsWith("/workspace/")) {
     return pathname === target.pathname;
   }
-  if (["/courses", "/sections", "/teachers"].includes(target.pathname)) {
+  if (
+    ["/catalog/courses", "/catalog/sections", "/catalog/teachers"].includes(
+      target.pathname,
+    )
+  ) {
     return (
       pathname === target.pathname || pathname.startsWith(`${target.pathname}/`)
     );
   }
-  if (target.pathname === "/settings/profile") {
-    return pathname === "/settings" || pathname.startsWith("/settings/");
+  if (target.pathname === "/account/settings/profile") {
+    return (
+      pathname === "/account/settings" ||
+      pathname.startsWith("/account/settings/")
+    );
   }
   if (target.pathname === "/admin") {
     return pathname === "/admin" || pathname.startsWith("/admin/");
@@ -404,23 +411,23 @@ function linkHasActiveDestination(link: ShellLink): boolean {
 function isMobilePrimaryActive(link: ShellLink): boolean {
   const pathname = $page.url.pathname;
 
-  if (link.href === "/dashboard/homeworks") {
+  if (link.href === "/workspace/homeworks") {
     return [
-      "/dashboard/homeworks",
-      "/dashboard/todos",
-      "/dashboard/exams",
-      "/dashboard/subscriptions",
+      "/workspace/homeworks",
+      "/workspace/todos",
+      "/workspace/exams",
+      "/workspace/subscriptions",
     ].includes(pathname);
   }
-  if (link.href === "/courses") {
+  if (link.href === "/catalog/courses") {
     return (
       [
-        "/dashboard/bus",
-        "/dashboard/links",
-        "/bus-map",
+        "/workspace/bus",
+        "/workspace/links",
+        "/catalog/bus/map",
         "/mobile-app",
       ].includes(pathname) ||
-      ["/courses", "/sections", "/teachers"].some(
+      ["/catalog/courses", "/catalog/sections", "/catalog/teachers"].some(
         (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`),
       )
     );

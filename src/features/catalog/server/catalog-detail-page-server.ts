@@ -67,7 +67,7 @@ export async function loadCourseDetailPage({
   if (!course) error(404, copy.notFound.description);
   if (course.jwId !== jwId) {
     const sectionPath = detailSection === "overview" ? "" : `/${detailSection}`;
-    redirect(308, `/courses/${course.jwId}${sectionPath}${url.search}`);
+    redirect(308, `/catalog/courses/${course.jwId}${sectionPath}${url.search}`);
   }
   const displayName = catalogPrimaryName(course) || course.code;
   const { commentsData, descriptionData } = await loadCatalogDetailCommentsData(
@@ -79,7 +79,7 @@ export async function loadCourseDetailPage({
     },
   );
   const socialMetadata = buildSocialMetadata({
-    canonicalPath: `/courses/${course.jwId}`,
+    canonicalPath: `/catalog/courses/${course.jwId}`,
     description: formatSocialMetadataMessage(
       copy.metadata.social.courseDescription,
       { code: course.code, name: displayName },
@@ -142,7 +142,7 @@ export async function loadTeacherDetailPage({
     },
   );
   const socialMetadata = buildSocialMetadata({
-    canonicalPath: `/teachers/${teacher.id}`,
+    canonicalPath: `/catalog/teachers/${teacher.id}`,
     description: formatSocialMetadataMessage(
       copy.metadata.social.teacherDescription,
       { name: displayName },

@@ -66,7 +66,7 @@ describe("评论面板交互", () => {
         submitFailed: "submit failed",
         suspendedMessage: "suspended",
       }),
-      getCurrentHref: () => "https://life.example/sections/1",
+      getCurrentHref: () => "https://life.example/catalog/sections/1",
       getDeleteTarget: () => null,
       getPendingReactionKey: () => null,
       getViewer: () => viewer({ isSuspended: true }),

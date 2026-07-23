@@ -10,9 +10,9 @@ export const GET: RequestHandler = async ({ request }) => {
 
 ## Catalog
 
-- [Courses](${origin}/courses)
-- [Sections](${origin}/sections)
-- [Teachers](${origin}/teachers)
+- [Courses](${origin}/catalog/courses)
+- [Sections](${origin}/catalog/sections)
+- [Teachers](${origin}/catalog/teachers)
 
 ## Developer interfaces
 

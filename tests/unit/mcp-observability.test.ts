@@ -36,7 +36,7 @@ describe("MCP 可观测性", () => {
         id: 2,
         method: "tools/call",
         params: {
-          name: "create_my_todo",
+          name: "workspace_todo_create",
           arguments: {
             title: "private title",
             dueAt: "2026-06-07T10:00:00+08:00",
@@ -51,9 +51,9 @@ describe("MCP 可观测性", () => {
       bodyKind: "jsonrpc-single",
       rpcCount: 1,
       methods: ["tools/call"],
-      toolNames: ["create_my_todo"],
+      toolNames: ["workspace_todo_create"],
       toolCalls: [
-        { toolName: "create_my_todo", argumentKeys: ["dueAt", "title"] },
+        { toolName: "workspace_todo_create", argumentKeys: ["dueAt", "title"] },
       ],
       argumentKeys: ["dueAt", "title"],
     });
@@ -69,7 +69,7 @@ describe("MCP 可观测性", () => {
           jsonrpc: "2.0",
           id: 2,
           method: "tools/call",
-          params: { name: "get_my_profile", arguments: {} },
+          params: { name: "account_profile_get", arguments: {} },
         },
       ]),
     });
@@ -78,8 +78,8 @@ describe("MCP 可观测性", () => {
       bodyKind: "jsonrpc-batch",
       rpcCount: 2,
       methods: ["tools/list", "tools/call"],
-      toolNames: ["get_my_profile"],
-      toolCalls: [{ toolName: "get_my_profile", argumentKeys: [] }],
+      toolNames: ["account_profile_get"],
+      toolCalls: [{ toolName: "account_profile_get", argumentKeys: [] }],
     });
   });
 

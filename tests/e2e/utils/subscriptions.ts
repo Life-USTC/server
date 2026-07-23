@@ -8,7 +8,7 @@ export async function ensureSeedSectionSubscription(page: Page) {
     (section) => section.id,
   );
   const subscriptionResponse = await page.request.post(
-    "/api/calendar-subscriptions",
+    "/api/workspace/subscriptions",
     { data: { sectionIds } },
   );
   expect(subscriptionResponse.status()).toBe(200);

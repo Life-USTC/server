@@ -137,7 +137,7 @@ $: sectionHiddenFilters = Object.entries(
 
 function pageHref(targetPage: number) {
   return catalogHref(
-    "/sections",
+    "/catalog/sections",
     sectionFilterParams(data.filters),
     targetPage,
   );
@@ -145,7 +145,7 @@ function pageHref(targetPage: number) {
 
 function sectionFilterHref(overrides: Partial<SectionListFilters>) {
   return catalogHref(
-    "/sections",
+    "/catalog/sections",
     sectionFilterParams({ ...data.filters, ...overrides }),
   );
 }
@@ -255,7 +255,7 @@ function sectionEmptyDescription() {
   <div class="grid min-w-0 gap-4">
     <CatalogMobileFilters
       activeFilters={sectionActiveFilters}
-      clearHref="/sections"
+      clearHref="/catalog/sections"
       clearLabel={commonLabels.clear}
       filterDescription={sectionLabels.filterDescription}
       filterTitle={sectionLabels.summary.filters}
@@ -270,7 +270,7 @@ function sectionEmptyDescription() {
         {campusOptions}
         {categoryOptions}
         {classTypeOptions}
-        clearHref="/sections"
+        clearHref="/catalog/sections"
         {commonLabels}
         {departmentOptions}
         {educationLevelOptions}

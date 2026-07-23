@@ -30,7 +30,7 @@ describe("personal calendar access", () => {
     const access = await resolveUserCalendarAccess({
       rawUserId: "user-1",
       request: new Request(
-        "https://example.test/api/users/user-1/calendar.ics?token=current-token",
+        "https://example.test/api/community/users/user-1/calendar.ics?token=current-token",
       ),
     });
 
@@ -50,7 +50,7 @@ describe("personal calendar access", () => {
     const access = await resolveUserCalendarAccess({
       rawUserId: "user-1",
       request: new Request(
-        "https://example.test/api/users/user-1/calendar.ics?token=revoked-token",
+        "https://example.test/api/community/users/user-1/calendar.ics?token=revoked-token",
       ),
     });
 

@@ -17,7 +17,7 @@ function actionRequest() {
   body.set("title", "Blocked homework");
 
   return new Request(
-    "https://life.example/dashboard/homeworks?/createHomework",
+    "https://life.example/workspace/homeworks?/createHomework",
     {
       body,
       headers: { cookie: "better-auth.session_token=session-token" },

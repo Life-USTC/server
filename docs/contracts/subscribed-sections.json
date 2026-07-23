@@ -11,7 +11,7 @@
     "retired-history": "Existing subscription relationships to retired Sections remain visible in the owner's subscribed Sections list and can be removed. Retired Sections cannot be newly discovered or added and are omitted from current personal calendar events/feeds.",
     "section-codes-promoted": "In the 'subscribed context', users manage specific section relationships, so section codes are intentionally promoted.",
     "sidebar-summary-only": "The shell exposes one Section Subscriptions destination and an optional count badge; it must not mirror subscribed sections as dynamic child navigation.",
-    "legacy-sections-route": "/dashboard/subscriptions/sections is a legacy redirect-only route to /dashboard/subscriptions and must not expose page actions."
+    "legacy-sections-route": "/workspace/subscriptions/sections is a legacy redirect-only route to /workspace/subscriptions and must not expose page actions."
   },
   "capabilities": {
     "subscribed-sections-tab": {
@@ -22,12 +22,12 @@
         "ui": ["List Table"]
       },
       "web": {
-        "pages": ["/dashboard/subscriptions"]
+        "pages": ["/workspace/subscriptions"]
       },
       "rest": {
         "routes": [
           {
-            "path": "/api/calendar-subscriptions/current",
+            "path": "/api/workspace/subscriptions/current",
             "returns": "{ subscription: CalendarSubscription | null }",
             "notes": [
               "Returns the current user's subscribed section details and personal subscription feed information; supports the subscribed sections list and personal calendar subscription entry."
@@ -38,14 +38,14 @@
       "graphql": {
         "fields": [
           {
-            "parent": "Viewer",
+            "parent": "Workspace",
             "name": "subscribedSections",
             "arguments": { "page": "PageInput" },
             "returns": "SectionPage!",
             "auth": "user",
             "required_scopes": ["subscription:read"],
-            "rest_equivalent": "GET /api/calendar-subscriptions/current",
-            "mcp_equivalent": "list_my_subscribed_sections",
+            "rest_equivalent": "GET /api/workspace/subscriptions/current",
+            "mcp_equivalent": "workspace_subscription_list",
             "notes": [
               "The Section item shape is identical to public Section list/detail results, and ownership is relation-derived."
             ]
@@ -55,17 +55,17 @@
       "mcp": {
         "tools": [
           {
-            "name": "list_my_subscribed_sections",
+            "name": "workspace_subscription_list",
             "returns": "{ success: Boolean, sections: Section[], note: String }",
-            "rest_equivalent": "GET /api/calendar-subscriptions/current",
+            "rest_equivalent": "GET /api/workspace/subscriptions/current",
             "notes": [
               "Returns subscribed sections across all semesters, including past terms."
             ]
           },
           {
-            "name": "get_my_calendar_subscription",
+            "name": "workspace_calendar_feed_get",
             "returns": "{ success: Boolean, subscription?, message?: String }",
-            "rest_equivalent": "GET /api/calendar-subscriptions/current",
+            "rest_equivalent": "GET /api/workspace/subscriptions/current",
             "notes": [
               "Supplements calendarPath and calendarUrl on the same abstract entry.",
               "Use full mode only when the caller explicitly needs the full subscribed section list on the same response."

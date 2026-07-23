@@ -64,7 +64,7 @@ export async function createSectionCalendar(
   const calendar = createCalendar(
     `${section.course.nameCn} (${section.code})`,
     `Calendar for ${section.course.nameCn} (${section.code}), brought to you by Life@USTC`,
-    `${ICAL_SITE_URL}/sections/${section.jwId}`,
+    `${ICAL_SITE_URL}/catalog/sections/${section.jwId}`,
   );
 
   const [geoData, imgRules] = await loadLocationAssets();

@@ -28,7 +28,7 @@ export let showHeader = true;
             {busCopy.dashboardTitle}
           </h2>
         </div>
-        <Button class="min-h-11" href="/bus-map" size="lg" variant="outline">{busCopy.transitMap}</Button>
+        <Button class="min-h-11" href="/catalog/bus/map" size="lg" variant="outline">{busCopy.transitMap}</Button>
       </div>
     {/if}
 

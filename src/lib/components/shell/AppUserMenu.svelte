@@ -27,11 +27,14 @@ function closeAccountNavigation() {
 }
 
 function isSettingsPath(pathname: string) {
-  return pathname === "/settings" || pathname.startsWith("/settings/");
+  return (
+    pathname === "/account/settings" ||
+    pathname.startsWith("/account/settings/")
+  );
 }
 
 function isAuthorizationsPath(pathname: string) {
-  return pathname === "/settings/authorizations";
+  return pathname === "/account/settings/authorizations";
 }
 </script>
 
@@ -102,7 +105,7 @@ function isAuthorizationsPath(pathname: string) {
                   !isAuthorizationsPath(currentPathname)
                     ? "page"
                     : undefined}
-                  href="/settings/preferences"
+                  href="/account/settings/preferences"
                 >
                   <SettingsIcon />
                   {copy.menu.settings}
@@ -116,14 +119,14 @@ function isAuthorizationsPath(pathname: string) {
                   aria-current={isAuthorizationsPath(currentPathname)
                     ? "page"
                     : undefined}
-                  href="/settings/authorizations"
+                  href="/account/settings/authorizations"
                 >
                   <KeyRoundIcon />
                   {copy.menu.authorizedApps}
                 </a>
               {/snippet}
             </DropdownMenu.Item>
-            <form method="POST" action="/signout">
+            <form method="POST" action="/account/sign-out">
               <DropdownMenu.Item>
                 {#snippet child({ props })}
                   <button {...props} type="submit">

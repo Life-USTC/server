@@ -262,7 +262,7 @@ describe.sequential("remaining GraphQL and MCP mutation parity", () => {
           mutation DashboardBatch(
             $items: [DashboardLinkPinBatchItemInput!]!
           ) {
-            setDashboardLinkPinStates(items: $items) {
+            linkPinsSet(items: $items) {
               pinnedSlugs
               maxPinnedLinks
             }
@@ -278,7 +278,7 @@ describe.sequential("remaining GraphQL and MCP mutation parity", () => {
       token,
     );
     expect(dashboard.payload.errors).toBeUndefined();
-    expect(dashboard.payload.data?.setDashboardLinkPinStates).toEqual({
+    expect(dashboard.payload.data?.linkPinsSet).toEqual({
       pinnedSlugs: [],
       maxPinnedLinks: 4,
     });
@@ -287,7 +287,7 @@ describe.sequential("remaining GraphQL and MCP mutation parity", () => {
       {
         query: /* GraphQL */ `
           mutation DeleteComments($ids: [ID!]!) {
-            deleteComments(ids: $ids) {
+            commentsDelete(ids: $ids) {
               results {
                 success
                 id
@@ -304,7 +304,7 @@ describe.sequential("remaining GraphQL and MCP mutation parity", () => {
       token,
     );
     expect(comments.payload.errors).toBeUndefined();
-    expect(comments.payload.data?.deleteComments).toEqual({
+    expect(comments.payload.data?.commentsDelete).toEqual({
       results: [
         { success: true, id: ownedCommentId, error: null },
         {
@@ -320,13 +320,13 @@ describe.sequential("remaining GraphQL and MCP mutation parity", () => {
     const dashboard = await mcp.call<{
       success: boolean;
       data: {
-        setDashboardLinkPinStates: {
+        linkPinsSet: {
           pinnedSlugs: string[];
           maxPinnedLinks: number;
         };
       };
-    }>("run_graphql_operation", {
-      operationId: "dashboard.set_link_pin_states_batch.v1",
+    }>("graphql_operation_run", {
+      operationId: "workspace.link.pins.set.v1",
       variables: { items: [{ slug: "mail", pinned: true }] },
       confirmed: true,
       locale: "en-us",
@@ -334,7 +334,7 @@ describe.sequential("remaining GraphQL and MCP mutation parity", () => {
     expect(dashboard).toMatchObject({
       success: true,
       data: {
-        setDashboardLinkPinStates: {
+        linkPinsSet: {
           pinnedSlugs: ["mail"],
           maxPinnedLinks: 4,
         },
@@ -344,12 +344,12 @@ describe.sequential("remaining GraphQL and MCP mutation parity", () => {
     const comments = await mcp.call<{
       success: boolean;
       data: {
-        deleteComments: {
+        commentsDelete: {
           results: Array<{ success: boolean; id: string }>;
         };
       };
-    }>("run_graphql_operation", {
-      operationId: "comment.delete_batch.v1",
+    }>("graphql_operation_run", {
+      operationId: "community.comments.delete.v1",
       variables: { ids: [mcpCommentId] },
       confirmed: true,
       locale: "en-us",
@@ -357,7 +357,7 @@ describe.sequential("remaining GraphQL and MCP mutation parity", () => {
     expect(comments).toMatchObject({
       success: true,
       data: {
-        deleteComments: {
+        commentsDelete: {
           results: [{ success: true, id: mcpCommentId }],
         },
       },
@@ -369,14 +369,14 @@ describe.sequential("remaining GraphQL and MCP mutation parity", () => {
       mcp.call<{
         success: boolean;
         data: {
-          createUploadSession: {
+          uploadSessionCreate: {
             key: string;
             url: string;
             maxFileSizeBytes: number;
           };
         };
-      }>("run_graphql_operation", {
-        operationId: "upload.create_session.v1",
+      }>("graphql_operation_run", {
+        operationId: "workspace.upload.session.create.v1",
         variables: {
           input: {
             filename: `${marker}.txt`,
@@ -389,8 +389,8 @@ describe.sequential("remaining GraphQL and MCP mutation parity", () => {
       }),
     );
     expect(created).toMatchObject({ success: true });
-    const session = created.data.createUploadSession;
-    expect(new URL(session.url).pathname).toBe("/api/uploads/object");
+    const session = created.data.uploadSessionCreate;
+    expect(new URL(session.url).pathname).toBe("/api/workspace/uploads/object");
     expect(session.maxFileSizeBytes).toBeGreaterThan(12);
 
     // Simulate the separate authenticated HTTP PUT without sending bytes
@@ -402,7 +402,7 @@ describe.sequential("remaining GraphQL and MCP mutation parity", () => {
       {
         query: /* GraphQL */ `
           mutation CompleteUpload($input: CompleteUploadSessionInput!) {
-            completeUploadSession(input: $input) {
+            uploadSessionComplete(input: $input) {
               upload {
                 id
                 filename
@@ -423,7 +423,7 @@ describe.sequential("remaining GraphQL and MCP mutation parity", () => {
       token,
     );
     expect(completed.payload.errors).toBeUndefined();
-    const completion = completed.payload.data?.completeUploadSession as {
+    const completion = completed.payload.data?.uploadSessionComplete as {
       upload: { id: string; filename: string; size: number };
       usedBytes: number;
     };
@@ -436,9 +436,9 @@ describe.sequential("remaining GraphQL and MCP mutation parity", () => {
     const renamed = await runWithCloudflareRuntimeEnv(runtimeEnv, () =>
       mcp.call<{
         success: boolean;
-        data: { renameUpload: { upload: { filename: string } } };
-      }>("run_graphql_operation", {
-        operationId: "upload.rename.v1",
+        data: { uploadRename: { upload: { filename: string } } };
+      }>("graphql_operation_run", {
+        operationId: "workspace.upload.rename.v1",
         variables: {
           id: completedUploadId,
           filename: `${marker}-renamed.txt`,
@@ -450,7 +450,7 @@ describe.sequential("remaining GraphQL and MCP mutation parity", () => {
     expect(renamed).toMatchObject({
       success: true,
       data: {
-        renameUpload: {
+        uploadRename: {
           upload: { filename: `${marker}-renamed.txt` },
         },
       },
@@ -460,14 +460,14 @@ describe.sequential("remaining GraphQL and MCP mutation parity", () => {
       mcp.call<{
         success: boolean;
         data: {
-          deleteUpload: {
+          uploadDelete: {
             id: string;
             success: boolean;
             deletedSize: number;
           };
         };
-      }>("run_graphql_operation", {
-        operationId: "upload.delete.v1",
+      }>("graphql_operation_run", {
+        operationId: "workspace.upload.delete.v1",
         variables: { id: completedUploadId },
         confirmed: true,
         locale: "en-us",
@@ -476,7 +476,7 @@ describe.sequential("remaining GraphQL and MCP mutation parity", () => {
     expect(deleted).toMatchObject({
       success: true,
       data: {
-        deleteUpload: {
+        uploadDelete: {
           id: completedUploadId,
           success: true,
           deletedSize: 12,

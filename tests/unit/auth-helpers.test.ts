@@ -59,7 +59,7 @@ describe("认证辅助函数", () => {
       user: { id: "user-from-cookie" },
     });
     const { resolveApiUserId } = await import("@/lib/auth/api-auth");
-    const request = new Request("https://life.example/api/me", {
+    const request = new Request("https://life.example/api/account", {
       headers: {
         cookie: "better-auth.session_token=session-token",
       },
@@ -77,7 +77,7 @@ describe("认证辅助函数", () => {
       sub: "user-from-token",
     });
     const { resolveApiUserId } = await import("@/lib/auth/api-auth");
-    const request = new Request("https://life.example/api/me", {
+    const request = new Request("https://life.example/api/account", {
       headers: {
         authorization: "Bearer access-token",
         cookie: "better-auth.session_token=session-token",
@@ -103,7 +103,7 @@ describe("认证辅助函数", () => {
       sub: "user-from-token",
     });
     const { resolveApiUserId } = await import("@/lib/auth/api-auth");
-    const request = new Request("https://life.example/api/me", {
+    const request = new Request("https://life.example/api/account", {
       headers: {
         authorization: `${scheme} access-token`,
         cookie: "better-auth.session_token=session-token",
@@ -120,7 +120,7 @@ describe("认证辅助函数", () => {
 
   it("拒绝已撤销、缺少 azp 或无法查询授权状态的 REST JWT", async () => {
     const { resolveApiUserId } = await import("@/lib/auth/api-auth");
-    const request = new Request("https://life.example/api/me", {
+    const request = new Request("https://life.example/api/account", {
       headers: { authorization: "Bearer access-token" },
     });
 
@@ -171,7 +171,7 @@ describe("认证辅助函数", () => {
       sub: "user-from-token",
     });
     const { requireAuth } = await import("@/lib/auth/api-auth");
-    const request = new Request("https://life.example/api/me", {
+    const request = new Request("https://life.example/api/account", {
       headers: {
         authorization: "Bearer profile-token",
       },
@@ -196,7 +196,7 @@ describe("认证辅助函数", () => {
       sub: "user-from-token",
     });
     const { requireAuth } = await import("@/lib/auth/api-auth");
-    const request = new Request("https://life.example/api/todos", {
+    const request = new Request("https://life.example/api/workspace/todos", {
       headers: {
         authorization: "Bearer mcp-token",
       },
@@ -221,7 +221,7 @@ describe("认证辅助函数", () => {
       sub: "user-from-token",
     });
     const { requireWriteAuth } = await import("@/lib/auth/api-auth");
-    const request = new Request("https://life.example/api/todos", {
+    const request = new Request("https://life.example/api/workspace/todos", {
       method: "POST",
       headers: {
         authorization: "Bearer read-token",
@@ -245,7 +245,7 @@ describe("认证辅助函数", () => {
       sub: "user-from-token",
     });
     const { requireAuth } = await import("@/lib/auth/api-auth");
-    const request = new Request("https://life.example/api/todos", {
+    const request = new Request("https://life.example/api/workspace/todos", {
       method: "POST",
       headers: {
         authorization: "Bearer read-token",
@@ -271,7 +271,7 @@ describe("认证辅助函数", () => {
       sub: "user-from-token",
     });
     const { requireWriteAuth } = await import("@/lib/auth/api-auth");
-    const request = new Request("https://life.example/api/todos", {
+    const request = new Request("https://life.example/api/workspace/todos", {
       method: "POST",
       headers: {
         authorization: "Bearer mcp-token",
@@ -297,7 +297,7 @@ describe("认证辅助函数", () => {
       sub: "user-from-token",
     });
     const { requireAuth } = await import("@/lib/auth/api-auth");
-    const request = new Request("https://life.example/api/todos", {
+    const request = new Request("https://life.example/api/workspace/todos", {
       method: "POST",
       headers: { authorization: "Bearer write-token" },
     });
@@ -331,7 +331,7 @@ describe("认证辅助函数", () => {
       sub: "user-from-token",
     });
     const { requireAuth } = await import("@/lib/auth/api-auth");
-    const request = new Request("https://life.example/api/todos", {
+    const request = new Request("https://life.example/api/workspace/todos", {
       headers: { authorization: "Bearer read-token" },
     });
 
@@ -353,7 +353,7 @@ describe("认证辅助函数", () => {
     const { requireAuth } = await import("@/lib/auth/api-auth");
 
     const result = await requireAuth(
-      new Request("https://life.example/api/todos", {
+      new Request("https://life.example/api/workspace/todos", {
         method: "POST",
         headers: { authorization: "Bearer write-token" },
       }),
@@ -385,7 +385,7 @@ describe("认证辅助函数", () => {
     const { requireWriteAuth } = await import("@/lib/auth/api-auth");
 
     const result = await requireWriteAuth(
-      new Request("https://life.example/api/uploads", {
+      new Request("https://life.example/api/workspace/uploads", {
         method: "POST",
         headers: { authorization: "Bearer write-token" },
       }),
@@ -412,7 +412,7 @@ describe("认证辅助函数", () => {
       user: { id: "user-from-cookie" },
     });
     const { resolveApiUserId } = await import("@/lib/auth/api-auth");
-    const request = new Request("https://life.example/api/me", {
+    const request = new Request("https://life.example/api/account", {
       headers: {
         authorization: "Bearer invalid-token",
         cookie: "better-auth.session_token=session-token",
@@ -429,7 +429,7 @@ describe("认证辅助函数", () => {
       user: { id: "user-from-cookie" },
     });
     const { requireAuth } = await import("@/lib/auth/api-auth");
-    const request = new Request("https://life.example/api/me", {
+    const request = new Request("https://life.example/api/account", {
       headers: {
         authorization: "bearer invalid-token",
         cookie: "better-auth.session_token=session-token",
@@ -453,7 +453,7 @@ describe("认证辅助函数", () => {
       user: { id: "user-from-cookie" },
     });
     const { resolveApiUserId } = await import("@/lib/auth/api-auth");
-    const request = new Request("https://life.example/api/me", {
+    const request = new Request("https://life.example/api/account", {
       headers: {
         authorization: "Bearer ",
         cookie: "better-auth.session_token=session-token",
@@ -508,7 +508,7 @@ describe("认证辅助函数", () => {
     });
     getViewerAuthDataForUserIdMock.mockResolvedValue(null);
     const { requireWriteAuth } = await import("@/lib/auth/api-auth");
-    const request = new Request("https://life.example/api/comments", {
+    const request = new Request("https://life.example/api/community/comments", {
       method: "POST",
       headers: {
         authorization: "Bearer access-token",

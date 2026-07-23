@@ -152,8 +152,8 @@ async function confirmRemoveSection() {
     actions={[
       { label: subscriptionsCopy.quickAdd.title, onclick: openQuickAddDialog },
       { label: subscriptionsCopy.bulkImport.title, onclick: openBulkImportDialog, variant: "outline" },
-      { href: "/sections", label: subscriptionsCopy.browseSections, variant: "outline" },
-      { href: "/courses", label: subscriptionsCopy.browseCourses, variant: "ghost" },
+      { href: "/catalog/sections", label: subscriptionsCopy.browseSections, variant: "outline" },
+      { href: "/catalog/courses", label: subscriptionsCopy.browseCourses, variant: "ghost" },
     ]}
   />
 {/if}
@@ -227,7 +227,7 @@ async function confirmRemoveSection() {
             {subscriptionsCopy.closeDetails}
           </Button>
           {#if selectedSection.course.jwId}
-            <Button href={`/courses/${selectedSection.course.jwId}`}>
+            <Button href={`/catalog/courses/${selectedSection.course.jwId}`}>
               {subscriptionsCopy.openCourse}
             </Button>
           {/if}

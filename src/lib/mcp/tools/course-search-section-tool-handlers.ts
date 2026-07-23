@@ -22,7 +22,7 @@ export async function getSectionByJwIdTool({
       success: false,
       found: false,
       message: `Section ${jwId} was not found`,
-      hint: "Use search_sections to find a valid section jwId, or match_section_codes if you only have a section code.",
+      hint: "Use catalog_section_search to find a valid section jwId, or catalog_section_match_preview if you only have a section code.",
     });
   }
 

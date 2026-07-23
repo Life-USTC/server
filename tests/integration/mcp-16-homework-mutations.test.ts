@@ -4,7 +4,7 @@ import * as fixtures from "./utils/mcp-tool-test-utils";
 
 const context = fixtures.createMcpToolTestContext();
 
-describe("班级作业写入工具 — create_homework_on_section", () => {
+describe("班级作业写入工具 — community_section_homework_create", () => {
   async function deleteIntegrationHomework(homeworkId: string | undefined) {
     if (!homeworkId) return;
     await fixtures.prisma.homeworkCompletion.deleteMany({
@@ -22,7 +22,7 @@ describe("班级作业写入工具 — create_homework_on_section", () => {
     await fixtures.prisma.homework.deleteMany({ where: { id: homeworkId } });
   }
 
-  it("create_homework_on_section 创建作业并返回完整实体", async () => {
+  it("community_section_homework_create 创建作业并返回完整实体", async () => {
     const marker = `[integration-test] mcp-create-homework-${Date.now()}`;
     const title = `${marker} title`;
     let homeworkId: string | undefined;
@@ -43,7 +43,7 @@ describe("班级作业写入工具 — create_homework_on_section", () => {
           description?: { content?: string | null } | null;
           completion?: { completed?: boolean } | null;
         };
-      }>("create_homework_on_section", {
+      }>("community_section_homework_create", {
         sectionJwId: fixtures.DEV_SEED.section.jwId,
         title,
         description: `${marker} description`,
@@ -86,13 +86,13 @@ describe("班级作业写入工具 — create_homework_on_section", () => {
     }
   });
 
-  it("create_homework_on_section 对不存在的班级返回恢复提示", async () => {
+  it("community_section_homework_create 对不存在的班级返回恢复提示", async () => {
     const result = await context.client.call<{
       success?: boolean;
       found?: boolean;
       message?: string;
       hint?: string;
-    }>("create_homework_on_section", {
+    }>("community_section_homework_create", {
       sectionJwId: 2_147_483_647,
       title: "[integration-test] missing section",
       publishedAt: fixtures.SEED_PLUS_THREE_DAYS,
@@ -104,14 +104,14 @@ describe("班级作业写入工具 — create_homework_on_section", () => {
     expect(result.success).toBe(false);
     expect(result.found).toBe(false);
     expect(result.message).toContain("2147483647");
-    expect(result.hint).toContain("search_sections");
+    expect(result.hint).toContain("catalog_section_search");
   });
 
-  it("create_homework_on_section 拒绝非法日期输入", async () => {
+  it("community_section_homework_create 拒绝非法日期输入", async () => {
     const result = await context.client.call<{
       success?: boolean;
       message?: string;
-    }>("create_homework_on_section", {
+    }>("community_section_homework_create", {
       sectionJwId: fixtures.DEV_SEED.section.jwId,
       title: "[integration-test] bad date",
       publishedAt: "not-a-date",
@@ -124,11 +124,11 @@ describe("班级作业写入工具 — create_homework_on_section", () => {
     expect(result.message).toContain("Invalid publishedAt");
   });
 
-  it("create_homework_on_section 校验提交开始不晚于截止时间", async () => {
+  it("community_section_homework_create 校验提交开始不晚于截止时间", async () => {
     const result = await context.client.call<{
       success?: boolean;
       message?: string;
-    }>("create_homework_on_section", {
+    }>("community_section_homework_create", {
       sectionJwId: fixtures.DEV_SEED.section.jwId,
       title: "[integration-test] inverted dates",
       publishedAt: fixtures.SEED_PLUS_THREE_DAYS,
@@ -141,7 +141,7 @@ describe("班级作业写入工具 — create_homework_on_section", () => {
     expect(result.message).toContain("Submission start must be before due");
   });
 
-  it("create_homework_on_section 拒绝被禁用户创建", async () => {
+  it("community_section_homework_create 拒绝被禁用户创建", async () => {
     const suspendedUser = await fixtures.prisma.user.create({
       data: {
         email: fixtures.integrationUserEmail("mcp-create-homework-suspended"),
@@ -163,7 +163,7 @@ describe("班级作业写入工具 — create_homework_on_section", () => {
         success?: boolean;
         message?: string;
         reason?: string | null;
-      }>("create_homework_on_section", {
+      }>("community_section_homework_create", {
         sectionJwId: fixtures.DEV_SEED.section.jwId,
         title: "[integration-test] suspended create",
         publishedAt: fixtures.SEED_PLUS_THREE_DAYS,
@@ -189,7 +189,7 @@ describe("班级作业写入工具 — create_homework_on_section", () => {
   });
 });
 
-describe("班级作业更新工具 — update_homework_on_section", () => {
+describe("班级作业更新工具 — community_section_homework_update", () => {
   async function deleteIntegrationHomework(homeworkId: string | undefined) {
     if (!homeworkId) return;
     await fixtures.prisma.homeworkCompletion.deleteMany({
@@ -211,7 +211,7 @@ describe("班级作业更新工具 — update_homework_on_section", () => {
     const result = await context.client.call<{
       success?: boolean;
       id?: string;
-    }>("create_homework_on_section", {
+    }>("community_section_homework_create", {
       sectionJwId: fixtures.DEV_SEED.section.jwId,
       title: `[integration-test] ${testName} ${Date.now()}`,
       description: "original description",
@@ -225,7 +225,7 @@ describe("班级作业更新工具 — update_homework_on_section", () => {
     return result.id as string;
   }
 
-  it("update_homework_on_section 更新标题、描述、标志与日期并返回完整实体", async () => {
+  it("community_section_homework_update 更新标题、描述、标志与日期并返回完整实体", async () => {
     const homeworkId = await createHomeworkForUpdate("update full");
     const marker = `[integration-test] mcp-update-homework-${Date.now()}`;
 
@@ -242,7 +242,7 @@ describe("班级作业更新工具 — update_homework_on_section", () => {
           submissionDueAt?: string;
           description?: { content?: string | null } | null;
         };
-      }>("update_homework_on_section", {
+      }>("community_section_homework_update", {
         homeworkId,
         title: `${marker} updated`,
         description: `${marker} updated description`,
@@ -277,12 +277,12 @@ describe("班级作业更新工具 — update_homework_on_section", () => {
     }
   });
 
-  it("update_homework_on_section 对不存在作业返回恢复提示", async () => {
+  it("community_section_homework_update 对不存在作业返回恢复提示", async () => {
     const result = await context.client.call<{
       success?: boolean;
       message?: string;
       hint?: string;
-    }>("update_homework_on_section", {
+    }>("community_section_homework_update", {
       homeworkId: "missing-homework-id",
       title: "updated",
       locale: "zh-cn",
@@ -290,17 +290,17 @@ describe("班级作业更新工具 — update_homework_on_section", () => {
 
     expect(result.success).toBe(false);
     expect(result.message).toBe("Homework not found");
-    expect(result.hint).toContain("list_homeworks_by_section");
+    expect(result.hint).toContain("community_section_homework_list");
   });
 
-  it("update_homework_on_section 无变更时返回无变化", async () => {
+  it("community_section_homework_update 无变更时返回无变化", async () => {
     const homeworkId = await createHomeworkForUpdate("no changes");
 
     try {
       const result = await context.client.call<{
         success?: boolean;
         message?: string;
-      }>("update_homework_on_section", {
+      }>("community_section_homework_update", {
         homeworkId,
         locale: "zh-cn",
         mode: "full",
@@ -313,18 +313,18 @@ describe("班级作业更新工具 — update_homework_on_section", () => {
     }
   });
 
-  it("update_homework_on_section 拒绝更新已删除作业", async () => {
+  it("community_section_homework_update 拒绝更新已删除作业", async () => {
     const homeworkId = await createHomeworkForUpdate("deleted");
 
     try {
-      await context.client.call("delete_homework_on_section", {
+      await context.client.call("community_section_homework_delete", {
         homeworkId,
       });
 
       const result = await context.client.call<{
         success?: boolean;
         message?: string;
-      }>("update_homework_on_section", {
+      }>("community_section_homework_update", {
         homeworkId,
         title: "should fail",
         locale: "zh-cn",
@@ -337,14 +337,14 @@ describe("班级作业更新工具 — update_homework_on_section", () => {
     }
   });
 
-  it("update_homework_on_section 校验提交开始不晚于截止时间", async () => {
+  it("community_section_homework_update 校验提交开始不晚于截止时间", async () => {
     const homeworkId = await createHomeworkForUpdate("inverted dates");
 
     try {
       const result = await context.client.call<{
         success?: boolean;
         message?: string;
-      }>("update_homework_on_section", {
+      }>("community_section_homework_update", {
         homeworkId,
         submissionStartAt: fixtures.SEED_PLUS_SEVEN_DAYS,
         submissionDueAt: fixtures.SEED_PLUS_SIX_DAYS,
@@ -359,7 +359,7 @@ describe("班级作业更新工具 — update_homework_on_section", () => {
   });
 });
 
-describe("作业完成状态工具 — set_my_homework_completion", () => {
+describe("作业完成状态工具 — workspace_homework_completion_set", () => {
   async function deleteIntegrationHomework(homeworkId: string | undefined) {
     if (!homeworkId) return;
     await fixtures.prisma.homeworkCompletion.deleteMany({
@@ -381,7 +381,7 @@ describe("作业完成状态工具 — set_my_homework_completion", () => {
     const result = await context.client.call<{
       success?: boolean;
       id?: string;
-    }>("create_homework_on_section", {
+    }>("community_section_homework_create", {
       sectionJwId: fixtures.DEV_SEED.section.jwId,
       title: `[integration-test] ${testName} ${Date.now()}`,
       publishedAt: fixtures.SEED_PLUS_THREE_DAYS,
@@ -394,7 +394,7 @@ describe("作业完成状态工具 — set_my_homework_completion", () => {
     return result.id as string;
   }
 
-  it("set_my_homework_completion 标记完成并返回完成时间", async () => {
+  it("workspace_homework_completion_set 标记完成并返回完成时间", async () => {
     const homeworkId = await createHomeworkForCompletion("complete");
 
     try {
@@ -405,7 +405,7 @@ describe("作业完成状态工具 — set_my_homework_completion", () => {
           completed?: boolean;
           completedAt?: string | null;
         };
-      }>("set_my_homework_completion", {
+      }>("workspace_homework_completion_set", {
         homeworkId,
         completed: true,
         mode: "full",
@@ -432,11 +432,11 @@ describe("作业完成状态工具 — set_my_homework_completion", () => {
     }
   });
 
-  it("set_my_homework_completion 取消完成状态", async () => {
+  it("workspace_homework_completion_set 取消完成状态", async () => {
     const homeworkId = await createHomeworkForCompletion("revert");
 
     try {
-      await context.client.call("set_my_homework_completion", {
+      await context.client.call("workspace_homework_completion_set", {
         homeworkId,
         completed: true,
       });
@@ -448,7 +448,7 @@ describe("作业完成状态工具 — set_my_homework_completion", () => {
           completed?: boolean;
           completedAt?: string | null;
         };
-      }>("set_my_homework_completion", {
+      }>("workspace_homework_completion_set", {
         homeworkId,
         completed: false,
         mode: "full",
@@ -475,33 +475,33 @@ describe("作业完成状态工具 — set_my_homework_completion", () => {
     }
   });
 
-  it("set_my_homework_completion 对不存在作业返回恢复提示", async () => {
+  it("workspace_homework_completion_set 对不存在作业返回恢复提示", async () => {
     const result = await context.client.call<{
       success?: boolean;
       message?: string;
       hint?: string;
-    }>("set_my_homework_completion", {
+    }>("workspace_homework_completion_set", {
       homeworkId: "missing-homework-id",
       completed: true,
     });
 
     expect(result.success).toBe(false);
     expect(result.message).toBe("Homework not found");
-    expect(result.hint).toContain("list_my_homeworks");
+    expect(result.hint).toContain("workspace_homework_list");
   });
 
-  it("set_my_homework_completion 对已删除作业报告未找到", async () => {
+  it("workspace_homework_completion_set 对已删除作业报告未找到", async () => {
     const homeworkId = await createHomeworkForCompletion("deleted");
 
     try {
-      await context.client.call("delete_homework_on_section", {
+      await context.client.call("community_section_homework_delete", {
         homeworkId,
       });
 
       const result = await context.client.call<{
         success?: boolean;
         message?: string;
-      }>("set_my_homework_completion", {
+      }>("workspace_homework_completion_set", {
         homeworkId,
         completed: true,
       });

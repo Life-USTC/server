@@ -46,7 +46,7 @@ describe("GraphQL mutation capability matrix", () => {
       .map((capability) => capability.graphql.field)
       .sort();
 
-    expect(matrix.schemaVersion).toBe(1);
+    expect(matrix.schemaVersion).toBe(2);
     expect(stableFields).toEqual(schemaFields);
   });
 
@@ -58,6 +58,9 @@ describe("GraphQL mutation capability matrix", () => {
       .map((capability) => capability.graphql.field);
 
     expect(new Set(ids).size).toBe(ids.length);
+    expect(
+      ids.filter((id) => !/^(workspace|community)_[a-z0-9_]+$/.test(id)),
+    ).toEqual([]);
     expect(new Set(stableFields).size).toBe(stableFields.length);
     for (const capability of matrix.capabilities) {
       if (capability.graphql.status === "intentional_gap") {

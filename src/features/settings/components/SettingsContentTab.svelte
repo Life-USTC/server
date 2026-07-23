@@ -24,7 +24,7 @@ export let copy: SettingsCopy;
     <Item.Group class="grid gap-3 sm:grid-cols-2">
       <Item.Root variant="outline">
         {#snippet child({ props })}
-          <a {...props} href="/sections">
+          <a {...props} href="/catalog/sections">
             <Item.Content>
               <Item.Title>{copy.settings.content.browseSections.title}</Item.Title>
               <Item.Description>

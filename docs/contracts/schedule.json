@@ -20,18 +20,18 @@
         "models": ["Schedule"]
       },
       "web": {
-        "pages": ["/dashboard/calendar"]
+        "pages": ["/workspace/calendar"]
       },
       "rest": {
         "routes": [
           {
-            "path": "/api/me/subscriptions/schedules",
+            "path": "/api/workspace/schedules",
             "returns": "{ schedules: ScheduleEntry[] }",
             "notes": [
               "Resolves the current user's subscribed sections server-side.",
               "Supports dateFrom/dateTo, weekday, limit, and locale filters.",
               "weekday accepts 1-7 and limit accepts 1-300 on both REST and MCP.",
-              "Use /api/schedules for public schedule queries without personal subscription scope."
+              "Use /api/catalog/schedules for public schedule queries without personal subscription scope."
             ]
           }
         ]
@@ -39,7 +39,7 @@
       "graphql": {
         "fields": [
           {
-            "parent": "Viewer",
+            "parent": "Workspace",
             "name": "schedules",
             "arguments": {
               "filter": "ScheduleFilter",
@@ -48,8 +48,8 @@
             "returns": "SchedulePage!",
             "auth": "user",
             "required_scopes": ["schedule:read"],
-            "rest_equivalent": "GET /api/me/subscriptions/schedules",
-            "mcp_equivalent": "list_my_schedules",
+            "rest_equivalent": "GET /api/workspace/schedules",
+            "mcp_equivalent": "workspace_schedule_list",
             "notes": [
               "DateTime range inputs normalize to Asia/Shanghai calendar dates for the Schedule.date @db.Date column.",
               "Each Schedule.teachers(page: PageInput) field returns TeacherPage! with the shared default page 1/pageSize 20 and maximum pageSize 100."
@@ -60,9 +60,9 @@
       "mcp": {
         "tools": [
           {
-            "name": "list_my_schedules",
+            "name": "workspace_schedule_list",
             "returns": "{ schedules: ScheduleEntry[] }",
-            "rest_equivalent": "GET /api/me/subscriptions/schedules",
+            "rest_equivalent": "GET /api/workspace/schedules",
             "notes": [
               "Returns schedules[]; each item contains date, weekday, startTime, endTime, section.course.namePrimary, section.code, room, teachers[], and scheduleGroup.",
               "weekday accepts 1-7 and limit accepts 1-300 on both REST and MCP.",
@@ -94,7 +94,7 @@
       "rest": {
         "routes": [
           {
-            "path": "/api/schedules",
+            "path": "/api/catalog/schedules",
             "returns": "PaginatedResponse<ScheduleEntry>",
             "notes": [
               "Supports filtering by section, teacher, room, date range, and day of week.",
@@ -108,9 +108,9 @@
       "mcp": {
         "tools": [
           {
-            "name": "query_schedules",
+            "name": "catalog_schedule_list",
             "returns": "PaginatedResponse<ScheduleEntry>",
-            "rest_equivalent": "GET /api/schedules",
+            "rest_equivalent": "GET /api/catalog/schedules",
             "notes": [
               "MCP limit accepts 1-100 and rejects out-of-range values instead of clamping."
             ]
@@ -138,21 +138,21 @@
         "models": ["Schedule"]
       },
       "web": {
-        "pages": ["/sections/[jwId]"]
+        "pages": ["/catalog/sections/[jwId]"]
       },
       "rest": {
         "routes": [
           {
-            "path": "/api/sections/[jwId]/schedules",
+            "path": "/api/catalog/sections/[jwId]/schedules",
             "returns": "ScheduleEntry[]",
             "notes": [
               "Returns a simplified variant of ScheduleEntry[] for the section.",
-              "Accepts optional dateFrom/dateTo and limit query parameters to narrow results to the same window supported by list_schedules_by_section.",
+              "Accepts optional dateFrom/dateTo and limit query parameters to narrow results to the same window supported by catalog_section_schedule_list.",
               "REST localizes nested schedule labels from the request locale; MCP accepts an explicit locale input."
             ]
           },
           {
-            "path": "/api/sections/[jwId]/schedule-groups",
+            "path": "/api/catalog/sections/[jwId]/schedule-groups",
             "returns": "ScheduleGroupEntry[] (with schedules)",
             "notes": [
               "Returns schedule groups with schedules, not separate aggregated period summaries.",
@@ -164,16 +164,16 @@
       "mcp": {
         "tools": [
           {
-            "name": "list_schedules_by_section",
+            "name": "catalog_section_schedule_list",
             "returns": "{ found: Boolean, section: Section?, schedules: ScheduleEntry[] }",
-            "rest_equivalent": "GET /api/sections/[jwId]/schedules",
+            "rest_equivalent": "GET /api/catalog/sections/[jwId]/schedules",
             "notes": [
               "Default and the deprecated summary alias omit the repeated per-item section payload because the top-level section already scopes the list.",
               "Accepts optional dateFrom/dateTo to narrow results to a specific window (e.g. the current week); both accept flexible date strings."
             ]
           },
           {
-            "name": "get_my_7days_timeline",
+            "name": "workspace_calendar_timeline_get",
             "auth": "user",
             "returns": "{ range: { from: DateTime, to: DateTime }, total: Int, events: CalendarEvent[] }",
             "notes": [

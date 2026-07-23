@@ -123,10 +123,10 @@ describe("SvelteKit page request lifecycle", () => {
     await expect(
       handle(
         handleInput(async () => {
-          throw redirect(303, "/signin");
+          throw redirect(303, "/account/sign-in");
         }),
       ),
-    ).rejects.toMatchObject({ location: "/signin", status: 303 });
+    ).rejects.toMatchObject({ location: "/account/sign-in", status: 303 });
 
     expect(pageEvents(info.mock.calls, "page.request.finish")).toHaveLength(1);
     expect(pageEvents(info.mock.calls, "page.request.finish")[0]?.[1]).toEqual(

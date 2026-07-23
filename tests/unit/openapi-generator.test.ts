@@ -35,13 +35,13 @@ describe("openapi generator", () => {
     >;
 
     for (const path of [
-      "/api/courses",
-      "/api/sections",
-      "/api/schedules",
-      "/api/teachers",
-      "/api/semesters",
-      "/api/comments",
-      "/api/uploads",
+      "/api/catalog/courses",
+      "/api/catalog/sections",
+      "/api/catalog/schedules",
+      "/api/catalog/teachers",
+      "/api/catalog/semesters",
+      "/api/community/comments",
+      "/api/workspace/uploads",
       "/api/admin/users",
       "/api/admin/comments",
       "/api/admin/homeworks",
@@ -73,9 +73,9 @@ describe("openapi generator", () => {
     >;
 
     for (const path of [
-      "/api/todos",
-      "/api/comments",
-      "/api/homeworks",
+      "/api/workspace/todos",
+      "/api/community/comments",
+      "/api/community/homeworks",
       "/api/admin/suspensions",
     ]) {
       const responses = paths[path]?.post?.responses;
@@ -83,6 +83,8 @@ describe("openapi generator", () => {
       expect(responses?.["201"]?.headers, path).toHaveProperty("Location");
     }
 
-    expect(paths["/api/descriptions"]?.post?.responses?.["200"]).toBeDefined();
+    expect(
+      paths["/api/community/descriptions"]?.post?.responses?.["200"],
+    ).toBeDefined();
   });
 });

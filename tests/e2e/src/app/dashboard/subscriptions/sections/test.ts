@@ -1,5 +1,5 @@
 /**
- * E2E tests for the subscriptions dashboard (`/dashboard/subscriptions`)
+ * E2E tests for the subscriptions dashboard (`/workspace/subscriptions`)
  *
  * ## Data Represented (subscribed-sections.yml → subscribed-sections-tab.display.fields)
  * - semester group label
@@ -21,7 +21,7 @@
  * ## Edge Cases
  * - Unauthenticated users see the public dashboard view (subscriptions is auth-only)
  * - Bulk import with invalid codes shows only matched sections in dialog
- * - Calendar link format: /api/users/{userId}:{token}/calendar.ics
+ * - Calendar link format: /api/community/users/{userId}:{token}/calendar.ics
  */
 import { expect, test } from "@playwright/test";
 import { signInAsDebugUser } from "../../../../../utils/auth";
@@ -71,10 +71,10 @@ test.describe("仪表盘教学班订阅", () => {
   test("旧版 /dashboard/subscriptions/sections 重定向到教学班订阅页面", async ({
     page,
   }) => {
-    await signInAsDebugUser(page, "/dashboard/subscriptions");
-    await gotoAndWaitForReady(page, "/dashboard/subscriptions/sections");
+    await signInAsDebugUser(page, "/workspace/subscriptions");
+    await gotoAndWaitForReady(page, "/workspace/subscriptions/sections");
 
-    await expect(page).toHaveURL(/\/dashboard\/subscriptions(?:\?.*)?$/);
+    await expect(page).toHaveURL(/\/workspace\/subscriptions(?:\?.*)?$/);
   });
 
   test("未登录旧 subscriptions tab 重定向到语义路径", async ({ page }) => {
@@ -85,7 +85,7 @@ test.describe("仪表盘教学班订阅", () => {
 
     expect(response.status()).toBe(308);
     expect(response.headers().location).toBe(
-      "/dashboard/subscriptions?semester=2026-spring",
+      "/workspace/subscriptions?semester=2026-spring",
     );
   });
 
@@ -93,12 +93,12 @@ test.describe("仪表盘教学班订阅", () => {
     page,
     baseURL,
   }, testInfo) => {
-    await signInAsDebugUser(page, "/dashboard/subscriptions");
+    await signInAsDebugUser(page, "/workspace/subscriptions");
     await expect(async () => {
       await ensureSeedSectionSubscription(page);
-      await gotoAndWaitForReady(page, "/dashboard/subscriptions");
+      await gotoAndWaitForReady(page, "/workspace/subscriptions");
 
-      await expect(page).toHaveURL(/\/dashboard\/subscriptions(?:\?.*)?$/);
+      await expect(page).toHaveURL(/\/workspace\/subscriptions(?:\?.*)?$/);
       await expect(page.locator("#main-content")).toBeVisible();
       const sidebar = page.getByTestId("app-sidebar");
       await expect(
@@ -107,7 +107,7 @@ test.describe("仪表盘教学班订阅", () => {
         }),
       ).toHaveAttribute("aria-current", "page");
       await expect(
-        sidebar.locator(`a[href="/sections/${DEV_SEED.section.jwId}"]`),
+        sidebar.locator(`a[href="/catalog/sections/${DEV_SEED.section.jwId}"]`),
       ).toHaveCount(0);
 
       const subscriptionsContent = page.locator("#main-content").first();
@@ -171,7 +171,7 @@ test.describe("仪表盘教学班订阅", () => {
         sameSite: "Lax",
       },
     ]);
-    await gotoAndWaitForReady(page, "/dashboard/subscriptions");
+    await gotoAndWaitForReady(page, "/workspace/subscriptions");
 
     await expect(
       page.getByText("3 sections included", { exact: true }),
@@ -191,9 +191,9 @@ test.describe("仪表盘教学班订阅", () => {
 
   test("超宽屏按时间倒序分表并渐进增强为瀑布流", async ({ page }, testInfo) => {
     await page.setViewportSize({ height: 1000, width: 1700 });
-    await signInAsDebugUser(page, "/dashboard/subscriptions");
+    await signInAsDebugUser(page, "/workspace/subscriptions");
     await ensureSeedSectionSubscription(page);
-    await gotoAndWaitForReady(page, "/dashboard/subscriptions");
+    await gotoAndWaitForReady(page, "/workspace/subscriptions");
 
     const tables = page.locator("#main-content table");
     const semesterGroups = page.getByTestId("subscription-semester-groups");
@@ -238,13 +238,13 @@ test.describe("仪表盘教学班订阅", () => {
 
   test("空状态提供发现操作", async ({ page }, testInfo) => {
     test.setTimeout(60000);
-    await signInAsDebugUser(page, "/dashboard/subscriptions");
+    await signInAsDebugUser(page, "/workspace/subscriptions");
     const clearResponse = await page.request.post(
-      "/api/calendar-subscriptions",
+      "/api/workspace/subscriptions",
       { data: { sectionIds: [] } },
     );
     expect(clearResponse.status()).toBe(200);
-    await gotoAndWaitForReady(page, "/dashboard/subscriptions");
+    await gotoAndWaitForReady(page, "/workspace/subscriptions");
     await waitForUiSettled(page);
     await expect(
       page
@@ -279,9 +279,9 @@ test.describe("仪表盘教学班订阅", () => {
     page,
   }, testInfo) => {
     await page.setViewportSize({ height: 844, width: 390 });
-    await signInAsDebugUser(page, "/dashboard/subscriptions");
+    await signInAsDebugUser(page, "/workspace/subscriptions");
     await ensureSeedSectionSubscription(page);
-    await gotoAndWaitForReady(page, "/dashboard/subscriptions");
+    await gotoAndWaitForReady(page, "/workspace/subscriptions");
 
     await expect(
       page.getByRole("button", { name: /添加订阅|Add Subscription/i }).first(),
@@ -303,7 +303,9 @@ test.describe("仪表盘教学班订阅", () => {
     const mobileSidebar = page.getByRole("dialog", { name: /Sidebar/i });
     await expect(mobileSidebar).toBeVisible();
     await expect(
-      mobileSidebar.locator(`a[href="/sections/${DEV_SEED.section.jwId}"]`),
+      mobileSidebar.locator(
+        `a[href="/catalog/sections/${DEV_SEED.section.jwId}"]`,
+      ),
     ).toHaveCount(0);
 
     await captureStepScreenshot(
@@ -314,9 +316,9 @@ test.describe("仪表盘教学班订阅", () => {
   });
 
   test("点击关注行打开详情并提供课程主页操作", async ({ page }, testInfo) => {
-    await signInAsDebugUser(page, "/dashboard/subscriptions");
+    await signInAsDebugUser(page, "/workspace/subscriptions");
     await ensureSeedSectionSubscription(page);
-    await gotoAndWaitForReady(page, "/dashboard/subscriptions");
+    await gotoAndWaitForReady(page, "/workspace/subscriptions");
 
     await page
       .getByRole("button", {
@@ -327,7 +329,7 @@ test.describe("仪表盘教学班订阅", () => {
     await expect(dialog).toContainText(DEV_SEED.section.code);
     await expect(
       dialog.getByRole("link", { name: /前往课程主页|Go to Course/i }),
-    ).toHaveAttribute("href", /^\/courses\/\d+$/);
+    ).toHaveAttribute("href", /^\/catalog\/courses\/\d+$/);
     await captureStepScreenshot(
       page,
       testInfo,
@@ -336,9 +338,9 @@ test.describe("仪表盘教学班订阅", () => {
   });
 
   test("详情中的取消订阅操作进入明确确认弹窗", async ({ page }, testInfo) => {
-    await signInAsDebugUser(page, "/dashboard/subscriptions");
+    await signInAsDebugUser(page, "/workspace/subscriptions");
     await ensureSeedSectionSubscription(page);
-    await gotoAndWaitForReady(page, "/dashboard/subscriptions");
+    await gotoAndWaitForReady(page, "/workspace/subscriptions");
 
     await page
       .getByRole("button", {
@@ -366,9 +368,9 @@ test.describe("仪表盘教学班订阅", () => {
     await page
       .context()
       .grantPermissions(["clipboard-read", "clipboard-write"]);
-    await signInAsDebugUser(page, "/dashboard/subscriptions");
+    await signInAsDebugUser(page, "/workspace/subscriptions");
     await ensureSeedSectionSubscription(page);
-    await gotoAndWaitForReady(page, "/dashboard/subscriptions");
+    await gotoAndWaitForReady(page, "/workspace/subscriptions");
 
     const copyButton = page
       .getByRole("button", { name: /复制日历链接|iCal/i })
@@ -380,7 +382,9 @@ test.describe("仪表盘教学班订阅", () => {
       navigator.clipboard.readText(),
     );
     expect(clipboardText).toContain("calendar.ics");
-    expect(clipboardText).toMatch(/\/api\/users\/[^/]+:[^/]+\/calendar\.ics$/);
+    expect(clipboardText).toMatch(
+      /\/api\/community\/users\/[^/]+:[^/]+\/calendar\.ics$/,
+    );
 
     // Verify the calendar endpoint returns valid iCal data
     const calendarResponse = await page.request.get(clipboardText);
@@ -400,14 +404,14 @@ test.describe("仪表盘教学班订阅", () => {
 
   test("批量导入打开确认对话框并可取消", async ({ page }, testInfo) => {
     test.setTimeout(60_000);
-    await signInAsDebugUser(page, "/dashboard/subscriptions");
+    await signInAsDebugUser(page, "/workspace/subscriptions");
 
     const textarea = await openBulkImportDialog(page);
     await textarea.fill(DEV_SEED.section.code);
 
     const matchResponse = page.waitForResponse(
       (response) =>
-        response.url().includes("/api/calendar-subscriptions/query") &&
+        response.url().includes("/api/workspace/subscriptions/query") &&
         response.request().method() === "POST" &&
         response.status() === 200,
     );
@@ -450,14 +454,14 @@ test.describe("仪表盘教学班订阅", () => {
   }, testInfo) => {
     test.setTimeout(60_000);
     await page.setViewportSize({ height: 844, width: 390 });
-    await signInAsDebugUser(page, "/dashboard/subscriptions");
+    await signInAsDebugUser(page, "/workspace/subscriptions");
     const seedSectionIds = (await resolveSeedSectionMatches(page)).map(
       (section) => section.id,
     );
-    await page.request.post("/api/calendar-subscriptions/batch", {
+    await page.request.post("/api/workspace/subscriptions/batch", {
       data: { action: "remove", sectionIds: seedSectionIds },
     });
-    await gotoAndWaitForReady(page, "/dashboard/subscriptions");
+    await gotoAndWaitForReady(page, "/workspace/subscriptions");
 
     await page
       .getByRole("button", { name: /添加订阅|Add Subscription/i })
@@ -480,7 +484,7 @@ test.describe("仪表盘教学班订阅", () => {
 
     const matchResponse = page.waitForResponse(
       (response) =>
-        response.url().includes("/api/sections?") &&
+        response.url().includes("/api/catalog/sections?") &&
         response.request().method() === "GET" &&
         response.status() === 200,
     );
@@ -521,7 +525,7 @@ test.describe("仪表盘教学班订阅", () => {
       .fill(DEV_SEED.teacher.nameCn);
     const teacherResponse = page.waitForResponse(
       (response) =>
-        response.url().includes("/api/sections?") &&
+        response.url().includes("/api/catalog/sections?") &&
         response.url().includes(encodeURIComponent(DEV_SEED.teacher.nameCn)) &&
         response.status() === 200,
     );
@@ -553,7 +557,7 @@ test.describe("仪表盘教学班订阅", () => {
 
     const subscribeResponse = page.waitForResponse(
       (response) =>
-        response.url().includes("/api/calendar-subscriptions/batch") &&
+        response.url().includes("/api/workspace/subscriptions/batch") &&
         response.request().method() === "POST" &&
         response.status() === 200,
     );
@@ -570,8 +574,8 @@ test.describe("仪表盘教学班订阅", () => {
     page,
   }, testInfo) => {
     await page.setViewportSize({ height: 844, width: 390 });
-    await signInAsDebugUser(page, "/dashboard/subscriptions");
-    await gotoAndWaitForReady(page, "/dashboard/subscriptions");
+    await signInAsDebugUser(page, "/workspace/subscriptions");
+    await gotoAndWaitForReady(page, "/workspace/subscriptions");
 
     await page
       .getByRole("button", { name: /添加订阅|Add Subscription/i })
@@ -588,7 +592,7 @@ test.describe("仪表盘教学班订阅", () => {
 
     const matchResponse = page.waitForResponse(
       (response) =>
-        response.url().includes("/api/sections?") &&
+        response.url().includes("/api/catalog/sections?") &&
         response.request().method() === "GET" &&
         response.status() === 200,
     );
@@ -618,7 +622,7 @@ test.describe("仪表盘教学班订阅", () => {
 
   test("批量导入可确认并显示成功", async ({ page }, testInfo) => {
     test.setTimeout(60_000);
-    await signInAsDebugUser(page, "/dashboard/subscriptions");
+    await signInAsDebugUser(page, "/workspace/subscriptions");
 
     const textarea = await openBulkImportDialog(page);
     // Include a valid code and an invalid one
@@ -626,7 +630,7 @@ test.describe("仪表盘教学班订阅", () => {
 
     const matchResponse = page.waitForResponse(
       (response) =>
-        response.url().includes("/api/calendar-subscriptions/query") &&
+        response.url().includes("/api/workspace/subscriptions/query") &&
         response.request().method() === "POST" &&
         response.status() === 200,
     );

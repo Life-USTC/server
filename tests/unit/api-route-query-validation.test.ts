@@ -17,14 +17,14 @@ describe("API 路由查询校验", () => {
   it("在查询前拒绝过大的 pageSize 与 limit 别名", async () => {
     await expectInvalidQueryResponse(
       getCoursesRoute(
-        new Request("https://example.test/api/courses?pageSize=101"),
+        new Request("https://example.test/api/catalog/courses?pageSize=101"),
       ),
       "Invalid course query",
     );
 
     await expectInvalidQueryResponse(
       getSchedulesRoute(
-        new Request("https://example.test/api/schedules?limit=101"),
+        new Request("https://example.test/api/catalog/schedules?limit=101"),
       ),
       "Invalid schedule query",
     );
@@ -34,14 +34,14 @@ describe("API 路由查询校验", () => {
     await expectInvalidQueryResponse(
       getBusNextDeparturesRoute(
         new Request(
-          "https://example.test/api/bus/next?originCampusId=1&destinationCampusId=2&limit=51",
+          "https://example.test/api/catalog/bus/next?originCampusId=1&destinationCampusId=2&limit=51",
         ),
       ),
       "Invalid bus next-departures query",
     );
 
     const todosQuery = parseTodosQuery(
-      new Request("https://example.test/api/todos?limit=201"),
+      new Request("https://example.test/api/workspace/todos?limit=201"),
     );
     expect(todosQuery).toBeInstanceOf(Response);
     await expectInvalidQueryResponse(

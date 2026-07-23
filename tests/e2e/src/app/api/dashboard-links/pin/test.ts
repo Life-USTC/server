@@ -1,8 +1,8 @@
 /**
- * E2E tests for POST /api/dashboard-links/pin
+ * E2E tests for POST /api/workspace/links/pin
  *
  * ## Endpoint
- * - `POST /api/dashboard-links/pin` — Pin or unpin a dashboard link for the current user
+ * - `POST /api/workspace/links/pin` — Pin or unpin a dashboard link for the current user
  *
  * ## Request
  * - Form data: `{ slug: string, action?: "pin" | "unpin", returnTo?: string }`
@@ -28,7 +28,7 @@
 import { expect, test } from "@playwright/test";
 import { signInAsDebugUser } from "../../../../../utils/auth";
 
-const BASE = "/api/dashboard-links/pin";
+const BASE = "/api/workspace/links/pin";
 const JSON_HEADERS = { accept: "application/json" };
 const MAX_PINNED_LINKS = 4;
 
@@ -38,7 +38,7 @@ type PinResponse = {
   error?: string | null;
 };
 
-test.describe("POST /api/dashboard-links/pin 接口", () => {
+test.describe("POST /api/workspace/links/pin 接口", () => {
   test("未登录时返回 401 JSON", async ({ request }) => {
     const response = await request.post(BASE, {
       form: { slug: "jw", action: "pin", returnTo: "/" },
@@ -52,7 +52,7 @@ test.describe("POST /api/dashboard-links/pin 接口", () => {
 
   test("非 JSON 模式未登录时重定向", async ({ request }) => {
     const response = await request.post(BASE, {
-      form: { slug: "jw", action: "pin", returnTo: "/links" },
+      form: { slug: "jw", action: "pin", returnTo: "/catalog/links" },
       maxRedirects: 0,
     });
     expect(response.status()).toBe(303);
@@ -126,7 +126,7 @@ test.describe("POST /api/dashboard-links/pin 接口", () => {
     await signInAsDebugUser(page, "/");
 
     const response = await page.request.post(BASE, {
-      form: { slug: "jw", action: "pin", returnTo: "/links" },
+      form: { slug: "jw", action: "pin", returnTo: "/catalog/links" },
       maxRedirects: 0,
     });
     expect(response.status()).toBe(303);

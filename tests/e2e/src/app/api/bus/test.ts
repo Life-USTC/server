@@ -1,20 +1,20 @@
 /**
  * E2E tests for bus schedule APIs
  *
- * ## GET /api/bus
+ * ## GET /api/catalog/bus
  * Public raw shuttle-bus timetable dataset.
  * - Accepts: versionKey
  * - Returns: { version, availableVersions, campuses, routes, trips, preferences }
  * - Includes both weekday and weekend trips without server-side filtering/ranking
  * - Returns 404 when no schedule data exists for the requested version
  *
- * ## GET /api/bus/routes
+ * ## GET /api/catalog/bus/routes
  * Public filtered route discovery.
  *
- * ## GET /api/bus/next
+ * ## GET /api/catalog/bus/next
  * Public ranked next departures for one origin/destination pair.
  *
- * ## GET/POST /api/bus/preferences
+ * ## GET/POST /api/workspace/bus-preferences
  * Authenticated endpoint for user bus planner defaults.
  * - GET: returns current preference or default values
  * - POST: saves preferred origin/destination plus departed-trip toggle
@@ -25,10 +25,10 @@ import { signInAsDebugUser } from "../../../../utils/auth";
 import { DEV_SEED, DEV_SEED_ANCHOR } from "../../../../utils/dev-seed";
 import { assertApiContract } from "../../_shared/api-contract";
 
-const BASE = "/api/bus";
-const PREF_BASE = "/api/bus/preferences";
-const ROUTES_BASE = "/api/bus/routes";
-const NEXT_BASE = "/api/bus/next";
+const BASE = "/api/catalog/bus";
+const PREF_BASE = "/api/workspace/bus-preferences";
+const ROUTES_BASE = "/api/catalog/bus/routes";
+const NEXT_BASE = "/api/catalog/bus/next";
 const SEED_VERSION = `versionKey=${DEV_SEED.bus.versionKey}`;
 
 type BusResponse = {
@@ -92,7 +92,7 @@ async function saveBusPreference(
   expect(response.status()).toBe(200);
 }
 
-test.describe("GET /api/bus 校车时刻表", () => {
+test.describe("GET /api/catalog/bus 校车时刻表", () => {
   test("返回原始时刻表数据，包含工作日和周末班次", async ({ request }) => {
     const response = await request.get(`${BASE}?${SEED_VERSION}`);
     expect(response.status()).toBe(200);
@@ -186,7 +186,7 @@ test.describe("GET /api/bus 校车时刻表", () => {
   });
 });
 
-test.describe("GET /api/bus/routes 路线发现", () => {
+test.describe("GET /api/catalog/bus/routes 路线发现", () => {
   test("契约", async ({ request }) => {
     await assertApiContract(request, { routePath: ROUTES_BASE });
   });
@@ -212,7 +212,7 @@ test.describe("GET /api/bus/routes 路线发现", () => {
   });
 });
 
-test.describe("GET /api/bus/next 下一班车", () => {
+test.describe("GET /api/catalog/bus/next 下一班车", () => {
   test("契约", async ({ request }) => {
     await assertApiContract(request, { routePath: NEXT_BASE });
   });
@@ -244,7 +244,7 @@ test.describe("GET /api/bus/next 下一班车", () => {
   });
 });
 
-test.describe("/api/bus/preferences 校车偏好", () => {
+test.describe("/api/workspace/bus-preferences 校车偏好", () => {
   test.describe.configure({ mode: "serial" });
 
   test("未认证 GET 返回 401", async ({ request }) => {

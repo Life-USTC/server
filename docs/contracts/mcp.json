@@ -17,17 +17,17 @@
     "actionable-errors": "Validation and common not-found payloads prefer plain-language messages and may include a hint that points to the next useful tool or query to recover.",
     "resource-bound-access-token": "MCP transport requests must present a resource-bound Bearer token for /api/mcp. JWT access tokens minted with the canonical MCP resource are accepted; opaque tokens without a resource indicator are rejected. Omitted-resource refresh grants are normalized to MCP only when the stored grant includes MCP-compatible feature scopes and the canonical MCP resource approval.",
     "complete-batch-scope-enforcement": "Every fixed-scope tool feature declared by each requested tool is required across the complete JSON-RPC batch. A feature:write grant also satisfies feature:read for the same feature, while the legacy mcp:tools scope retains compatibility access. The GraphQL runner delegates exact selected-field scopes to the shared resolvers.",
-    "graphql-authorization": "run_graphql_operation requires an MCP-resource bearer and exactly one arbitrary document or compatible registered operation. Arbitrary aliases and fragments cannot bypass authorization because selected Viewer fields and mutations enforce their feature scopes in the shared resolvers. Missing scopes return an insufficient_scope WWW-Authenticate challenge for incremental authorization.",
+    "graphql-authorization": "graphql_operation_run requires an MCP-resource bearer and exactly one arbitrary document or compatible registered operation. Arbitrary aliases and fragments cannot bypass authorization because selected Workspace and Account fields and mutations enforce their feature scopes in the shared resolvers. Missing scopes return an insufficient_scope WWW-Authenticate challenge for incremental authorization.",
     "graphql-planning-prompt": "plan_graphql_operation embeds the canonical GraphQL SDL and document-free operation manifest into the requested prompt, then instructs clients to use one bounded named operation, request only challenged scopes, confirm mutations explicitly, and inspect state rather than blindly retry after an ambiguous timeout.",
-    "registered-graphql-timeout-ambiguity": "run_graphql_operation stops waiting after five seconds or caller cancellation, including for serial GraphQL mutations. A mutation already in progress may still commit, so clients must inspect current state and must not blindly retry after REQUEST_TIMEOUT or REQUEST_CANCELLED.",
+    "registered-graphql-timeout-ambiguity": "graphql_operation_run stops waiting after five seconds or caller cancellation, including for serial GraphQL mutations. A mutation already in progress may still commit, so clients must inspect current state and must not blindly retry after REQUEST_TIMEOUT or REQUEST_CANCELLED.",
     "registered-upload-boundary": "GraphQL upload mutations expose quota reservation, on-site authenticated PUT workflow metadata, completion of an already-uploaded object, rename, and delete. Although the runner accepts a GraphQL document, it never accepts or proxies R2 object bytes. Its MCP bearer remains resource-bound to /api/mcp and is not replayable at the REST PUT URL.",
     "bounded-auth-first-request-body": "MCP transport requests authenticate the resource-bound Bearer token before parsing JSON-RPC. Authenticated JSON request bodies are streamed with a 64 KiB limit and JSON-RPC batches are limited to 50 messages. Bodies are parsed once and shared by scope enforcement, observability, rate limiting, and the SDK transport; larger bodies or batches return 413 before tool handling.",
     "transport-observability": "MCP transport handling emits production-safe structured request/response logs, custom Worker trace spans for authentication/body parsing/SDK dispatch, and unsampled Cloudflare Analytics Engine datapoints with JSON-RPC method summaries, tool names, argument keys, auth/origin/error phase, status, duration, registered tool count, and allowlisted exception class names; it never logs bearer tokens, cookies, exception messages, or tool argument values.",
     "mutation-rate-limits": "Ordinary MCP mutations are preflighted against the shared per-host, per-user feature-action Cloudflare budgets: 60 writes or 10 batch writes per minute. Registered GraphQL mutations instead use the shared resolver guard with the same feature:write key, avoiding duplicate consumption. Fixed-tool batches fail before side effects on limit or unavailable bindings; responses use 429 or 503 with Retry-After: 60.",
     "rate-limit-accuracy-boundary": "MCP mutation throttles are per-Cloudflare-location, permissive, eventually consistent abuse controls rather than global exact quotas. The protocol does not promise remaining/reset counters, and read-only tools do not consume mutation budgets.",
     "flexible-date-inputs": "Date and datetime parameters on MCP tools accept ISO 8601 with timezone offset (2026-05-01T08:00:00+08:00), bare date strings (2026-05-01, treated as UTC midnight for @db.Date columns), or timezone-less datetimes (2026-05-01T08:00:00, interpreted as Asia/Shanghai). Invalid strings produce a descriptive error response rather than a validation rejection.",
-    "time-override": "Time-sensitive tools (get_my_7days_timeline, get_upcoming_deadlines, get_my_overview, get_next_buses) accept an optional atTime parameter to anchor their internal clock to a caller-supplied moment instead of the server clock, enabling reproducible queries and future-scenario planning.",
-    "openai-compatible-descriptors": "Every registered tool advertises a title, a closed top-level object outputSchema with a required success boolean and typed known fields, MCP annotations for read-only/destructive/open-world hints, top-level securitySchemes, and _meta.securitySchemes. Ordinary tools declare fixed OAuth feature scopes; run_graphql_operation uses conservative static safety hints and delegates exact scopes to each manifest entry. Default and full results keep the same top-level key and collection types.",
+    "time-override": "Time-sensitive tools (workspace_calendar_timeline_get, workspace_deadline_list, workspace_overview_get, catalog_bus_departure_next) accept an optional atTime parameter to anchor their internal clock to a caller-supplied moment instead of the server clock, enabling reproducible queries and future-scenario planning.",
+    "openai-compatible-descriptors": "Every registered tool advertises a title, a closed top-level object outputSchema with a required success boolean and typed known fields, MCP annotations for read-only/destructive/open-world hints, top-level securitySchemes, and _meta.securitySchemes. Ordinary tools declare fixed OAuth feature scopes; graphql_operation_run uses conservative static safety hints and delegates exact scopes to each manifest entry. Default and full results keep the same top-level key and collection types.",
     "single-tools-list-compatibility-wrapper": "The SDK compatibility handler that hoists _meta.securitySchemes onto each tools/list descriptor is installed exactly once after all application tools are registered, rather than nesting one full-list wrapper per tool.",
     "tool-registry-completeness": "Server startup fails when any registered MCP tool lacks an explicit OAuth scope entry or output schema, so tool registration cannot silently fall back to generic metadata."
   },
@@ -88,102 +88,106 @@
           {
             "name": "Profile & Todo",
             "tools": [
-              "get_my_profile",
-              "get_public_user_profile",
-              "list_my_todos",
-              "create_my_todo",
-              "update_my_todo",
-              "delete_my_todo"
+              "account_profile_get",
+              "community_user_get",
+              "workspace_todo_list",
+              "workspace_todo_create",
+              "workspace_todo_update",
+              "workspace_todo_delete"
             ]
           },
           {
             "name": "Registered GraphQL",
-            "tools": ["run_graphql_operation"]
+            "tools": ["graphql_operation_run"]
           },
           {
             "name": "Dashboard & Overview",
             "tools": [
-              "get_my_dashboard",
-              "get_my_overview",
-              "get_next_class",
-              "get_upcoming_deadlines",
-              "list_dashboard_links",
-              "set_dashboard_link_pin_state"
+              "workspace_snapshot_get",
+              "workspace_overview_get",
+              "workspace_schedule_next",
+              "workspace_deadline_list",
+              "workspace_link_list",
+              "workspace_link_pin_set"
             ]
           },
           {
             "name": "Course, Section & Semester",
             "tools": [
-              "list_semesters",
-              "get_current_semester",
-              "search_courses",
-              "get_course_by_jw_id",
-              "search_sections",
-              "get_section_by_jw_id",
-              "search_teachers",
-              "get_teacher_by_id",
-              "match_section_codes"
+              "catalog_semester_list",
+              "catalog_semester_current",
+              "catalog_course_search",
+              "catalog_course_get",
+              "catalog_section_search",
+              "catalog_section_get",
+              "catalog_teacher_search",
+              "catalog_teacher_get",
+              "catalog_section_match_preview"
             ]
           },
           {
             "name": "Comments",
             "tools": [
-              "list_comments",
-              "get_comment_thread",
-              "create_comment",
-              "update_own_comment",
-              "delete_own_comment",
-              "add_comment_reaction",
-              "remove_comment_reaction"
+              "community_comment_list",
+              "community_comment_get",
+              "community_comment_create",
+              "community_comment_update",
+              "community_comment_delete",
+              "community_comment_reaction_add",
+              "community_comment_reaction_remove"
             ]
           },
           {
             "name": "Descriptions",
-            "tools": ["get_description", "upsert_description"]
+            "tools": ["community_description_get", "community_description_set"]
           },
           {
             "name": "Uploads",
-            "tools": ["list_my_uploads", "rename_my_upload", "delete_my_upload"]
+            "tools": [
+              "workspace_upload_list",
+              "workspace_upload_rename",
+              "workspace_upload_delete"
+            ]
           },
           {
             "name": "Calendar & Subscription",
             "tools": [
-              "list_my_calendar_events",
-              "get_my_7days_timeline",
-              "get_my_calendar_subscription",
-              "list_my_subscribed_sections",
-              "subscribe_section_by_jw_id",
-              "unsubscribe_section_by_jw_id",
-              "get_section_calendar_subscription",
-              "subscribe_my_sections_by_codes"
+              "workspace_calendar_event_list",
+              "workspace_calendar_timeline_get",
+              "workspace_calendar_feed_get",
+              "workspace_subscription_list",
+              "workspace_subscription_add",
+              "workspace_subscription_remove",
+              "catalog_section_calendar_feed_get",
+              "workspace_subscription_import"
             ]
           },
           {
             "name": "Homework, Schedule & Exam",
             "tools": [
-              "list_my_homeworks",
-              "set_my_homework_completion",
-              "list_my_schedules",
-              "list_my_exams",
-              "list_homeworks_by_section",
-              "create_homework_on_section",
-              "update_homework_on_section",
-              "delete_homework_on_section",
-              "query_schedules",
-              "list_schedules_by_section",
-              "list_exams_by_section"
+              "workspace_homework_list",
+              "workspace_homework_completion_set",
+              "workspace_schedule_list",
+              "workspace_exam_list",
+              "community_section_homework_list",
+              "community_section_homework_create",
+              "community_section_homework_update",
+              "community_section_homework_delete",
+              "catalog_schedule_list",
+              "catalog_section_schedule_list",
+              "catalog_section_exam_list"
             ]
           },
           {
             "name": "Bus",
             "tools": [
-              "query_bus_timetable",
-              "list_bus_routes",
-              "get_bus_route_timetable",
-              "get_my_bus_preferences",
-              "save_my_bus_preferences",
-              "search_bus_routes",
-              "get_next_buses"
+              "catalog_bus_timetable_get",
+              "catalog_bus_route_list",
+              "catalog_bus_route_get",
+              "workspace_bus_preferences_get",
+              "workspace_bus_preferences_set",
+              "catalog_bus_route_search",
+              "catalog_bus_departure_next"
             ]
           }
         ]

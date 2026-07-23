@@ -51,7 +51,7 @@ async function createAnonymousMcpHarness() {
   return { call, close };
 }
 
-describe("query_bus_timetable", () => {
+describe("catalog_bus_timetable_get", () => {
   it("默认模式返回班车数据集的计数、校区与路线摘要", async () => {
     const result = await context.client.call<{
       locale?: string;
@@ -72,7 +72,7 @@ describe("query_bus_timetable", () => {
       };
       nextDepartures?: unknown[];
       nextDeparturesMessage?: string | null;
-    }>("query_bus_timetable", {
+    }>("catalog_bus_timetable_get", {
       locale: "zh-cn",
       mode: "default",
     });
@@ -116,7 +116,7 @@ describe("query_bus_timetable", () => {
       };
       nextDepartures?: unknown[];
       nextDeparturesMessage?: string | null;
-    }>("query_bus_timetable", {
+    }>("catalog_bus_timetable_get", {
       locale: "zh-cn",
       mode: "summary",
     });
@@ -154,7 +154,7 @@ describe("query_bus_timetable", () => {
       counts?: { routes?: number; weekdayTrips?: number };
       nextDepartures?: unknown[];
       nextDeparturesMessage?: string | null;
-    }>("query_bus_timetable", {
+    }>("catalog_bus_timetable_get", {
       locale: "zh-cn",
       mode: "full",
     });
@@ -186,7 +186,7 @@ describe("query_bus_timetable", () => {
   it("支持通过 versionKey 指定版本", async () => {
     const result = await context.client.call<{
       version?: { key?: string } | null;
-    }>("query_bus_timetable", {
+    }>("catalog_bus_timetable_get", {
       locale: "zh-cn",
       versionKey: fixtures.DEV_SEED.bus.versionKey,
     });
@@ -198,7 +198,7 @@ describe("query_bus_timetable", () => {
     const anonymous = await createAnonymousMcpHarness();
     try {
       await expect(
-        anonymous.call("query_bus_timetable", { locale: "zh-cn" }),
+        anonymous.call("catalog_bus_timetable_get", { locale: "zh-cn" }),
       ).rejects.toThrow();
     } finally {
       await anonymous.close();
@@ -206,7 +206,7 @@ describe("query_bus_timetable", () => {
   });
 });
 
-describe("list_bus_routes", () => {
+describe("catalog_bus_route_list", () => {
   it("返回当前生效版本的路线与校区列表", async () => {
     const result = await context.client.call<{
       routes?: Array<{
@@ -225,7 +225,7 @@ describe("list_bus_routes", () => {
         namePrimary?: string;
         nameSecondary?: string | null;
       }>;
-    }>("list_bus_routes", { locale: "zh-cn" });
+    }>("catalog_bus_route_list", { locale: "zh-cn" });
 
     expect(result.routes?.length).toBeGreaterThan(0);
     expect(result.campuses?.length).toBeGreaterThan(0);
@@ -255,7 +255,7 @@ describe("list_bus_routes", () => {
     const result = await context.client.call<{
       routes?: Array<{ id?: number; nameEn?: string | null }>;
       campuses?: Array<{ id?: number; namePrimary?: string }>;
-    }>("list_bus_routes", { locale: "en-us" });
+    }>("catalog_bus_route_list", { locale: "en-us" });
 
     const route = result.routes?.find(
       (r) => r.id === fixtures.DEV_SEED.bus.routeId,
@@ -269,7 +269,7 @@ describe("list_bus_routes", () => {
   });
 });
 
-describe("get_bus_route_timetable", () => {
+describe("catalog_bus_route_get", () => {
   it("返回指定路线的平日与周末时刻表", async () => {
     const result = await context.client.call<{
       route?: {
@@ -286,7 +286,7 @@ describe("get_bus_route_timetable", () => {
         stopTimes?: Array<{ stopOrder?: number; time?: string | null }>;
       }>;
       alternateRoutes?: Array<{ id?: number; nameCn?: string }>;
-    }>("get_bus_route_timetable", {
+    }>("catalog_bus_route_get", {
       routeId: fixtures.DEV_SEED.bus.routeId,
       locale: "zh-cn",
       mode: "default",
@@ -310,31 +310,31 @@ describe("get_bus_route_timetable", () => {
     expect(Array.isArray(result.alternateRoutes)).toBe(true);
   });
 
-  it("未知路线返回 hasData: false 与 list_bus_routes 提示", async () => {
+  it("未知路线返回 hasData: false 与 catalog_bus_route_list 提示", async () => {
     const result = await context.client.call<{
       routeId?: number;
       hasData?: boolean;
       message?: string;
-    }>("get_bus_route_timetable", {
+    }>("catalog_bus_route_get", {
       routeId: 2_147_483_647,
       locale: "zh-cn",
     });
 
     expect(result.routeId).toBe(2_147_483_647);
     expect(result.hasData).toBe(false);
-    expect(result.message).toContain("list_bus_routes");
+    expect(result.message).toContain("catalog_bus_route_list");
   });
 
   it("无效 routeId 触发校验错误", async () => {
     await expect(
-      context.client.call("get_bus_route_timetable", {
+      context.client.call("catalog_bus_route_get", {
         routeId: 0,
         locale: "zh-cn",
       }),
     ).rejects.toThrow();
 
     await expect(
-      context.client.call("get_bus_route_timetable", {
+      context.client.call("catalog_bus_route_get", {
         routeId: -1,
         locale: "zh-cn",
       }),

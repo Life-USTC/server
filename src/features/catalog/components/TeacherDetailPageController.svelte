@@ -68,7 +68,7 @@ $: secondaryDisplayName = secondaryName(data.teacher);
 $: teacherDescription = data.teacher.department
   ? primaryName(data.teacher.department)
   : secondaryDisplayName;
-$: teacherBaseHref = `/teachers/${data.teacher.id}`;
+$: teacherBaseHref = `/catalog/teachers/${data.teacher.id}`;
 $: commentsCount = data.commentsData
   ? Object.values(data.commentsData.commentMap).reduce(
       (sum, comments) => sum + comments.length,

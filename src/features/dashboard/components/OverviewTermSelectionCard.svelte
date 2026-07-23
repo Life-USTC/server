@@ -26,11 +26,11 @@ export let showHistoryActions = false;
         <Search data-icon="inline-start" />
         {dashboardCopy.termSelection.matchByCode}
       </Button>
-      <Button class="w-full sm:w-auto" href="/sections" variant="outline">
+      <Button class="w-full sm:w-auto" href="/catalog/sections" variant="outline">
         <BookOpen data-icon="inline-start" />
         {dashboardCopy.termSelection.browseSections}
       </Button>
-      <Button class="w-full sm:w-auto" href="/courses" variant="outline">
+      <Button class="w-full sm:w-auto" href="/catalog/courses" variant="outline">
         {dashboardCopy.termSelection.browseCourses}
       </Button>
     </div>

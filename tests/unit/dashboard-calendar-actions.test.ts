@@ -58,7 +58,7 @@ describe("仪表盘日历操作", () => {
       calendarView: "semester",
     });
     expect(navigateUrl).toHaveBeenCalledWith(
-      "/dashboard/calendar?calendarSemester=2",
+      "/workspace/calendar?calendarSemester=2",
     );
     expect(replaceUrl).not.toHaveBeenCalled();
   });
@@ -73,7 +73,7 @@ describe("仪表盘日历操作", () => {
       calendarView: "month",
     });
     expect(replaceUrl).toHaveBeenCalledWith(
-      "/dashboard/calendar?calendarView=month&calendarMonth=2026-03&calendarSemester=1",
+      "/workspace/calendar?calendarView=month&calendarMonth=2026-03&calendarSemester=1",
     );
     expect(navigateUrl).not.toHaveBeenCalled();
   });

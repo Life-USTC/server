@@ -19,7 +19,7 @@ export let teachers: SectionTeacherSummary[];
   {#each teachers as teacher}
     <Item.Root size="sm">
       {#snippet child({ props })}
-        <a href={`/teachers/${teacher.id}`} {...props}>
+        <a href={`/catalog/teachers/${teacher.id}`} {...props}>
           <Item.Content>
             <Item.Title>{teacherName(teacher)}</Item.Title>
           </Item.Content>

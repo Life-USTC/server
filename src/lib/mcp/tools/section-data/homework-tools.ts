@@ -18,11 +18,11 @@ import { sectionNotFoundToolResult } from "./shared";
 
 export function registerSectionHomeworkTools(server: McpServer) {
   server.registerTool(
-    "list_homeworks_by_section",
+    "community_section_homework_list",
     {
       description:
         "Homeworks for one section by JW ID. Includes viewer completion state when authenticated. " +
-        "Use list_my_homeworks for all subscribed sections.",
+        "Use workspace_homework_list for all subscribed sections.",
       inputSchema: {
         sectionJwId: z.number().int().positive(),
         includeDeleted: z.boolean().default(false),

@@ -15,7 +15,7 @@ describe("mountSectionDetailController", () => {
   }) => {
     vi.stubGlobal("window", {
       location: {
-        href: "https://example.test/sections/301",
+        href: "https://example.test/catalog/sections/301",
         origin: "https://example.test",
       },
     });

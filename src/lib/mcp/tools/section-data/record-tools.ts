@@ -11,11 +11,11 @@ import { listSchedulesBySectionAction } from "./schedule-section-list-action";
 
 export function registerSectionRecordTools(server: McpServer) {
   server.registerTool(
-    "query_schedules",
+    "catalog_schedule_list",
     {
       description:
         "Query public schedules across sections by section, teacher, room, weekday, and date range. " +
-        "Use list_my_schedules for only subscribed sections.",
+        "Use workspace_schedule_list for only subscribed sections.",
       inputSchema: {
         sectionId: z.number().int().positive().optional(),
         sectionJwId: z.number().int().positive().optional(),
@@ -41,7 +41,7 @@ export function registerSectionRecordTools(server: McpServer) {
   );
 
   server.registerTool(
-    "list_schedules_by_section",
+    "catalog_section_schedule_list",
     {
       description:
         "Schedules for one section by JW ID, ordered by date/start time. Use dateFrom/dateTo for a week or date window.",
@@ -66,7 +66,7 @@ export function registerSectionRecordTools(server: McpServer) {
   );
 
   server.registerTool(
-    "list_exams_by_section",
+    "catalog_section_exam_list",
     {
       description: "Exams for one section by JW ID, including batch and rooms.",
       inputSchema: {

@@ -134,7 +134,7 @@ function courseEmptyDescription() {
   <div class="grid min-w-0 gap-4">
     <CatalogMobileFilters
       activeFilters={courseActiveFilters}
-      clearHref="/courses"
+      clearHref="/catalog/courses"
       clearLabel={commonLabels.clear}
       filterTitle={courseLabels.summary.filters}
       hiddenFilters={courseHiddenFilters}

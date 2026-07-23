@@ -1,5 +1,5 @@
 /**
- * E2E tests for the homeworks dashboard (`/dashboard/homeworks`)
+ * E2E tests for the homeworks dashboard (`/workspace/homeworks`)
  *
  * ## Data Represented (homework.yml → cross-section-homework-summary.display.fields)
  * - homework.title
@@ -18,7 +18,7 @@
  *
  * ## Edge Cases
  * - Unauthenticated legacy tab → protected semantic route, then sign-in
- * - Completion toggle calls PUT /api/homeworks/{id}/completion
+ * - Completion toggle calls PUT /api/workspace/homeworks/{id}/completion
  * - Empty state when filter yields no results
  */
 import { expect, test } from "@playwright/test";
@@ -42,25 +42,25 @@ test.describe("仪表盘作业", () => {
 
     expect(response.status()).toBe(308);
     expect(response.headers().location).toBe(
-      "/dashboard/homeworks?homeworkView=list",
+      "/workspace/homeworks?homeworkView=list",
     );
   });
 
   test("未登录语义路径要求登录", async ({ page }) => {
-    const response = await page.request.get("/dashboard/homeworks", {
+    const response = await page.request.get("/workspace/homeworks", {
       maxRedirects: 0,
     });
 
     expect(response.status()).toBe(303);
     expect(response.headers().location).toBe(
-      "/signin?callbackUrl=%2Fdashboard%2Fhomeworks",
+      "/account/sign-in?callbackUrl=%2Fworkspace%2Fhomeworks",
     );
   });
 
   test("登录后显示种子作业及所有必填字段", async ({ page }, testInfo) => {
-    await signInAsDebugUser(page, "/dashboard/homeworks");
+    await signInAsDebugUser(page, "/workspace/homeworks");
     await ensureSeedSectionSubscription(page);
-    await gotoAndWaitForReady(page, "/dashboard/homeworks", {
+    await gotoAndWaitForReady(page, "/workspace/homeworks", {
       testInfo,
       screenshotLabel: "homeworks",
     });
@@ -99,9 +99,9 @@ test.describe("仪表盘作业", () => {
       localStorage.removeItem("life-ustc-dashboard-view-mode");
     });
     await page.setViewportSize({ height: 844, width: 390 });
-    await signInAsDebugUser(page, "/dashboard/homeworks");
+    await signInAsDebugUser(page, "/workspace/homeworks");
     await ensureSeedSectionSubscription(page);
-    await gotoAndWaitForReady(page, "/dashboard/homeworks", {
+    await gotoAndWaitForReady(page, "/workspace/homeworks", {
       testInfo,
       screenshotLabel: "homeworks-mobile-toolbar",
     });
@@ -126,7 +126,7 @@ test.describe("仪表盘作业", () => {
     await all.click();
     await expect(all).toHaveAttribute("aria-checked", "true");
 
-    await gotoAndWaitForReady(page, "/dashboard/homeworks?homeworkView=list");
+    await gotoAndWaitForReady(page, "/workspace/homeworks?homeworkView=list");
     await expect(page.getByTestId("dashboard-homeworks-cards")).toBeVisible();
     await expect(page.getByTestId("dashboard-homeworks-list")).toBeHidden();
     expect(
@@ -139,9 +139,9 @@ test.describe("仪表盘作业", () => {
   });
 
   test("种子协作作业显示重要和团队徽章", async ({ page }, testInfo) => {
-    await signInAsDebugUser(page, "/dashboard/homeworks");
+    await signInAsDebugUser(page, "/workspace/homeworks");
     await ensureSeedSectionSubscription(page);
-    await gotoAndWaitForReady(page, "/dashboard/homeworks", {
+    await gotoAndWaitForReady(page, "/workspace/homeworks", {
       testInfo,
       screenshotLabel: "homeworks",
     });
@@ -163,9 +163,9 @@ test.describe("仪表盘作业", () => {
   });
 
   test("可在筛选标签之间切换", async ({ page }, testInfo) => {
-    await signInAsDebugUser(page, "/dashboard/homeworks");
+    await signInAsDebugUser(page, "/workspace/homeworks");
     await ensureSeedSectionSubscription(page);
-    await gotoAndWaitForReady(page, "/dashboard/homeworks", {
+    await gotoAndWaitForReady(page, "/workspace/homeworks", {
       testInfo,
       screenshotLabel: "homeworks",
     });
@@ -194,9 +194,9 @@ test.describe("仪表盘作业", () => {
   });
 
   test("可切换到列表视图并持久化偏好", async ({ page }, testInfo) => {
-    await signInAsDebugUser(page, "/dashboard/homeworks");
+    await signInAsDebugUser(page, "/workspace/homeworks");
     await ensureSeedSectionSubscription(page);
-    await gotoAndWaitForReady(page, "/dashboard/homeworks", {
+    await gotoAndWaitForReady(page, "/workspace/homeworks", {
       testInfo,
       screenshotLabel: "homeworks",
     });
@@ -218,21 +218,21 @@ test.describe("仪表盘作业", () => {
       )
       .toBe("list");
 
-    await gotoAndWaitForReady(page, "/dashboard/homeworks");
+    await gotoAndWaitForReady(page, "/workspace/homeworks");
     await page
       .getByRole("radio", { name: /全部|All/i })
       .first()
       .click();
-    await expect(page).toHaveURL(/\/dashboard\/homeworks$/);
+    await expect(page).toHaveURL(/\/workspace\/homeworks$/);
     await expect(page.getByTestId("dashboard-homeworks-list")).toBeVisible();
     await captureStepScreenshot(page, testInfo, "homeworks/list-view");
   });
 
   test("可切换作业完成状态", async ({ page }, testInfo) => {
     test.setTimeout(60_000);
-    await signInAsDebugUser(page, "/dashboard/homeworks");
+    await signInAsDebugUser(page, "/workspace/homeworks");
     await ensureSeedSectionSubscription(page);
-    await gotoAndWaitForReady(page, "/dashboard/homeworks", {
+    await gotoAndWaitForReady(page, "/workspace/homeworks", {
       testInfo,
       screenshotLabel: "homeworks",
     });
@@ -263,7 +263,7 @@ test.describe("仪表盘作业", () => {
 
     const completionResponse = page.waitForResponse(
       (r) =>
-        r.url().includes("/api/homeworks/") &&
+        r.url().includes("/api/workspace/homeworks/") &&
         r.url().includes("/completion") &&
         r.status() === 200,
     );
@@ -278,7 +278,7 @@ test.describe("仪表盘作业", () => {
     // Restore
     const restoreResponse = page.waitForResponse(
       (r) =>
-        r.url().includes("/api/homeworks/") &&
+        r.url().includes("/api/workspace/homeworks/") &&
         r.url().includes("/completion") &&
         r.status() === 200,
     );
@@ -287,16 +287,19 @@ test.describe("仪表盘作业", () => {
   });
 
   test("完成状态更新失败显示本地化仪表盘错误", async ({ page }, testInfo) => {
-    await signInAsDebugUser(page, "/dashboard/homeworks");
+    await signInAsDebugUser(page, "/workspace/homeworks");
     await ensureSeedSectionSubscription(page);
-    await page.route(/\/api\/homeworks\/[^/]+\/completion$/, async (route) => {
-      await route.fulfill({
-        body: JSON.stringify({ error: { message: "forced failure" } }),
-        contentType: "application/json",
-        status: 500,
-      });
-    });
-    await gotoAndWaitForReady(page, "/dashboard/homeworks", {
+    await page.route(
+      /\/api\/workspace\/homeworks\/[^/]+\/completion$/,
+      async (route) => {
+        await route.fulfill({
+          body: JSON.stringify({ error: { message: "forced failure" } }),
+          contentType: "application/json",
+          status: 500,
+        });
+      },
+    );
+    await gotoAndWaitForReady(page, "/workspace/homeworks", {
       testInfo,
       screenshotLabel: "homeworks",
     });
@@ -322,7 +325,7 @@ test.describe("仪表盘作业", () => {
 
     const completionResponse = page.waitForResponse(
       (r) =>
-        r.url().includes("/api/homeworks/") &&
+        r.url().includes("/api/workspace/homeworks/") &&
         r.url().includes("/completion") &&
         r.status() === 500,
     );
@@ -336,9 +339,9 @@ test.describe("仪表盘作业", () => {
   });
 
   test("查看详情链接到带作业锚点的班级页面", async ({ page }, testInfo) => {
-    await signInAsDebugUser(page, "/dashboard/homeworks");
+    await signInAsDebugUser(page, "/workspace/homeworks");
     await ensureSeedSectionSubscription(page);
-    await gotoAndWaitForReady(page, "/dashboard/homeworks", {
+    await gotoAndWaitForReady(page, "/workspace/homeworks", {
       testInfo,
       screenshotLabel: "homeworks",
     });
@@ -360,21 +363,23 @@ test.describe("仪表盘作业", () => {
     await expect(popout).toBeVisible();
     const sectionLink = popout
       .locator(
-        `a[href*="/sections/${DEV_SEED.section.jwId}/homework#homework-"]`,
+        `a[href*="/catalog/sections/${DEV_SEED.section.jwId}/homework#homework-"]`,
       )
       .first();
     await expect(sectionLink).toBeVisible();
     await sectionLink.click();
 
-    await expect(page).toHaveURL(/\/sections\/\d+\/homework#homework-/);
+    await expect(page).toHaveURL(
+      /\/catalog\/sections\/\d+\/homework#homework-/,
+    );
     await captureStepScreenshot(page, testInfo, "homeworks/view-details");
   });
 
   test("可以创建新作业", async ({ page }, testInfo) => {
     test.setTimeout(60_000);
-    await signInAsDebugUser(page, "/dashboard/homeworks");
+    await signInAsDebugUser(page, "/workspace/homeworks");
     await ensureSeedSectionSubscription(page);
-    await gotoAndWaitForReady(page, "/dashboard/homeworks", {
+    await gotoAndWaitForReady(page, "/workspace/homeworks", {
       testInfo,
       screenshotLabel: "homeworks",
     });
@@ -409,13 +414,13 @@ test.describe("仪表盘作业", () => {
   });
 
   test("新建作业展示可折叠的英文填写规范", async ({ page }, testInfo) => {
-    await signInAsDebugUser(page, "/dashboard/homeworks");
+    await signInAsDebugUser(page, "/workspace/homeworks");
     await ensureSeedSectionSubscription(page);
-    const localeResponse = await page.request.post("/api/locale", {
+    const localeResponse = await page.request.post("/api/account/preferences", {
       data: { locale: "en-us" },
     });
     expect(localeResponse.status()).toBe(200);
-    await gotoAndWaitForReady(page, "/dashboard/homeworks", {
+    await gotoAndWaitForReady(page, "/workspace/homeworks", {
       testInfo,
       screenshotLabel: "homeworks",
     });
@@ -464,9 +469,9 @@ test.describe("仪表盘作业", () => {
     page,
   }, testInfo) => {
     test.setTimeout(60_000);
-    await signInAsDebugUser(page, "/dashboard/homeworks");
+    await signInAsDebugUser(page, "/workspace/homeworks");
     await ensureSeedSectionSubscription(page);
-    await gotoAndWaitForReady(page, "/dashboard/homeworks", {
+    await gotoAndWaitForReady(page, "/workspace/homeworks", {
       testInfo,
       screenshotLabel: "homeworks",
     });

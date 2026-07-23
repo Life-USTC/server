@@ -4,12 +4,12 @@ import * as fixtures from "./utils/mcp-tool-test-utils";
 
 const context = fixtures.createMcpToolTestContext();
 
-describe("todo CRUD — update_my_todo 返回更新后的实体", () => {
+describe("todo CRUD — workspace_todo_update 返回更新后的实体", () => {
   async function createIntegrationTodo(testName: string) {
     const result = await context.client.call<{
       success?: boolean;
       id?: string;
-    }>("create_my_todo", {
+    }>("workspace_todo_create", {
       title: `[integration-test] ${testName} ${Date.now()}`,
       content: "clear me through mcp",
       priority: "high",
@@ -25,7 +25,7 @@ describe("todo CRUD — update_my_todo 返回更新后的实体", () => {
     await fixtures.prisma.todo.deleteMany({ where: { id: todoId } });
   }
 
-  it("update_my_todo 返回更新后的 todo 实体（不仅 success: true）", async () => {
+  it("workspace_todo_update 返回更新后的 todo 实体（不仅 success: true）", async () => {
     const todoId = await createIntegrationTodo("update returns todo");
     try {
       const result = await context.client.call<{
@@ -37,7 +37,7 @@ describe("todo CRUD — update_my_todo 返回更新后的实体", () => {
           completed?: boolean;
           updatedAt?: string;
         } | null;
-      }>("update_my_todo", {
+      }>("workspace_todo_update", {
         id: todoId,
         title: "[integration-test] renamed",
         priority: "low",
@@ -58,7 +58,7 @@ describe("todo CRUD — update_my_todo 返回更新后的实体", () => {
     }
   });
 
-  it("update_my_todo 校验规范化内容长度", async () => {
+  it("workspace_todo_update 校验规范化内容长度", async () => {
     const todoId = await createIntegrationTodo("normalized content");
     const content = "x".repeat(TODO_CONTENT_MAX_LENGTH);
     try {
@@ -68,7 +68,7 @@ describe("todo CRUD — update_my_todo 返回更新后的实体", () => {
           id?: string;
           content?: string | null;
         } | null;
-      }>("update_my_todo", {
+      }>("workspace_todo_update", {
         id: todoId,
         content: ` ${content} `,
         mode: "full",
@@ -82,7 +82,7 @@ describe("todo CRUD — update_my_todo 返回更新后的实体", () => {
     }
   });
 
-  it("update_my_todo 在内容显式为 null 时清空内容", async () => {
+  it("workspace_todo_update 在内容显式为 null 时清空内容", async () => {
     const todoId = await createIntegrationTodo("clear content");
     try {
       const result = await context.client.call<{
@@ -91,7 +91,7 @@ describe("todo CRUD — update_my_todo 返回更新后的实体", () => {
           id?: string;
           content?: string | null;
         } | null;
-      }>("update_my_todo", {
+      }>("workspace_todo_update", {
         id: todoId,
         content: null,
         mode: "full",
@@ -105,11 +105,11 @@ describe("todo CRUD — update_my_todo 返回更新后的实体", () => {
     }
   });
 
-  it("delete_my_todo 删除 todo", async () => {
+  it("workspace_todo_delete 删除 todo", async () => {
     const todoId = await createIntegrationTodo("delete");
     try {
       const result = await context.client.call<{ success?: boolean }>(
-        "delete_my_todo",
+        "workspace_todo_delete",
         {
           id: todoId,
         },
@@ -126,7 +126,7 @@ describe("todo CRUD — update_my_todo 返回更新后的实体", () => {
     }
   });
 
-  it("create_my_todo 返回新 todo id", async () => {
+  it("workspace_todo_create 返回新 todo id", async () => {
     const todoId = await createIntegrationTodo("create");
     try {
       const created = await fixtures.prisma.todo.findUnique({
@@ -147,7 +147,7 @@ describe("todo CRUD — update_my_todo 返回更新后的实体", () => {
 // ---------------------------------------------------------------------------
 
 describe("作业写入工具 — MCP 镜像普通用户 REST 写入", () => {
-  it("delete_homework_on_section 删除创建者拥有的作业并记录审计", async () => {
+  it("community_section_homework_delete 删除创建者拥有的作业并记录审计", async () => {
     const section = await fixtures.prisma.section.findUnique({
       where: { jwId: fixtures.DEV_SEED.section.jwId },
       select: { id: true },
@@ -170,7 +170,7 @@ describe("作业写入工具 — MCP 镜像普通用户 REST 写入", () => {
         alreadyDeleted?: boolean;
         deletedId?: string;
         success?: boolean;
-      }>("delete_homework_on_section", {
+      }>("community_section_homework_delete", {
         homeworkId: homework.id,
       });
       expect(deleted).toEqual({
@@ -202,7 +202,7 @@ describe("作业写入工具 — MCP 镜像普通用户 REST 写入", () => {
     }
   });
 
-  it("delete_homework_on_section 序列化未找到及非所有者失败", async () => {
+  it("community_section_homework_delete 序列化未找到及非所有者失败", async () => {
     const section = await fixtures.prisma.section.findUnique({
       where: { jwId: fixtures.DEV_SEED.section.jwId },
       select: { id: true },
@@ -231,7 +231,7 @@ describe("作业写入工具 — MCP 镜像普通用户 REST 写入", () => {
       const notFound = await context.client.call<{
         error?: string;
         success?: boolean;
-      }>("delete_homework_on_section", {
+      }>("community_section_homework_delete", {
         homeworkId: "missing-homework-id",
       });
       expect(notFound).toMatchObject({
@@ -242,7 +242,7 @@ describe("作业写入工具 — MCP 镜像普通用户 REST 写入", () => {
       const forbidden = await context.client.call<{
         error?: string;
         success?: boolean;
-      }>("delete_homework_on_section", {
+      }>("community_section_homework_delete", {
         homeworkId: homework.id,
       });
       expect(forbidden).toMatchObject({

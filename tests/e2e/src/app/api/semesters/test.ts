@@ -1,8 +1,8 @@
 /**
- * E2E tests for GET /api/semesters
+ * E2E tests for GET /api/catalog/semesters
  *
  * ## Endpoints
- * - `GET /api/semesters` — List semesters with pagination, ordered by startDate descending.
+ * - `GET /api/catalog/semesters` — List semesters with pagination, ordered by startDate descending.
  *
  * ## Request
  * - Query: `page` (optional), `pageSize` (optional, max 100), deprecated `limit` alias
@@ -22,13 +22,13 @@ import { expect, test } from "@playwright/test";
 import { DEV_SEED } from "../../../../utils/dev-seed";
 import { assertApiContract } from "../../_shared/api-contract";
 
-test.describe("GET /api/semesters", () => {
+test.describe("GET /api/catalog/semesters", () => {
   test("契约", async ({ request }) => {
-    await assertApiContract(request, { routePath: "/api/semesters" });
+    await assertApiContract(request, { routePath: "/api/catalog/semesters" });
   });
 
   test("返回分页响应结构", async ({ request }) => {
-    const response = await request.get("/api/semesters");
+    const response = await request.get("/api/catalog/semesters");
     expect(response.status()).toBe(200);
     const body = (await response.json()) as {
       data?: unknown[];
@@ -49,7 +49,7 @@ test.describe("GET /api/semesters", () => {
   });
 
   test("列表包含 seed 学期", async ({ request }) => {
-    const response = await request.get("/api/semesters?limit=20");
+    const response = await request.get("/api/catalog/semesters?limit=20");
     expect(response.status()).toBe(200);
     const body = (await response.json()) as {
       data?: Array<{ jwId?: number; nameCn?: string }>;
@@ -62,7 +62,7 @@ test.describe("GET /api/semesters", () => {
   });
 
   test("pageSize 参数控制页大小", async ({ request }) => {
-    const response = await request.get("/api/semesters?pageSize=1");
+    const response = await request.get("/api/catalog/semesters?pageSize=1");
     expect(response.status()).toBe(200);
     const body = (await response.json()) as {
       data?: unknown[];
@@ -73,7 +73,7 @@ test.describe("GET /api/semesters", () => {
   });
 
   test("学期项包含所有必需字段", async ({ request }) => {
-    const response = await request.get("/api/semesters?limit=20");
+    const response = await request.get("/api/catalog/semesters?limit=20");
     expect(response.status()).toBe(200);
     const body = (await response.json()) as {
       data?: Array<{
@@ -98,7 +98,7 @@ test.describe("GET /api/semesters", () => {
   });
 
   test("page 参数可翻页", async ({ request }) => {
-    const response = await request.get("/api/semesters?page=1");
+    const response = await request.get("/api/catalog/semesters?page=1");
     expect(response.status()).toBe(200);
     const body = (await response.json()) as {
       pagination?: { page?: number };

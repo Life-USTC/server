@@ -89,7 +89,7 @@ $: teacherHiddenFilters = [
 
 function pageHref(targetPage: number) {
   const { search, departmentId } = data.filters;
-  return catalogHref("/teachers", { search, departmentId }, targetPage);
+  return catalogHref("/catalog/teachers", { search, departmentId }, targetPage);
 }
 
 function teacherFilterHref(overrides: Partial<TeacherListFilters>) {
@@ -98,7 +98,7 @@ function teacherFilterHref(overrides: Partial<TeacherListFilters>) {
     ...overrides,
   };
   const { search, departmentId } = filters;
-  return catalogHref("/teachers", { search, departmentId });
+  return catalogHref("/catalog/teachers", { search, departmentId });
 }
 </script>
 
@@ -113,7 +113,7 @@ function teacherFilterHref(overrides: Partial<TeacherListFilters>) {
   <div class="grid min-w-0 gap-4">
     <CatalogMobileFilters
       activeFilters={teacherActiveFilters}
-      clearHref="/teachers"
+      clearHref="/catalog/teachers"
       clearLabel={commonLabels.clear}
       filterDescription={teacherLabels.filterDescription}
       filterTitle={teacherLabels.filterTitle}

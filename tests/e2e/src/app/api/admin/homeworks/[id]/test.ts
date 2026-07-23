@@ -48,7 +48,7 @@ test.describe("DELETE /api/admin/homeworks/[id] 作业管理", () => {
 
     const title = `e2e-admin-homework-delete-${Date.now()}`;
     const now = new Date();
-    const createResponse = await page.request.post("/api/homeworks", {
+    const createResponse = await page.request.post("/api/community/homeworks", {
       data: {
         title,
         sectionId: String(sectionId),
@@ -80,7 +80,7 @@ test.describe("DELETE /api/admin/homeworks/[id] 作业管理", () => {
       // Verify the homework no longer appears in the public list.
       await signInAsDebugUser(page, "/");
       const listResponse = await page.request.get(
-        `/api/homeworks?sectionId=${sectionId}`,
+        `/api/community/homeworks?sectionId=${sectionId}`,
       );
       expect(listResponse.status()).toBe(200);
       const listBody = (await listResponse.json()) as {

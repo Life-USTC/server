@@ -36,7 +36,7 @@ export async function updateHomeworkCompletion(input: {
   homeworkId: number | string;
 }): Promise<HomeworkCompletionResult> {
   const result = await apiClient.PUT(
-    `/api/homeworks/${input.homeworkId}/completion`,
+    `/api/workspace/homeworks/${input.homeworkId}/completion`,
     { body: { completed: input.completed } },
   );
 

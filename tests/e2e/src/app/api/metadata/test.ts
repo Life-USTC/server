@@ -1,8 +1,8 @@
 /**
- * E2E tests for GET /api/metadata
+ * E2E tests for GET /api/catalog/metadata
  *
  * ## Endpoints
- * - `GET /api/metadata` — Get metadata dictionaries for UI filters.
+ * - `GET /api/catalog/metadata` — Get metadata dictionaries for UI filters.
  *
  * ## Request
  * - No query params
@@ -35,13 +35,13 @@ const EXPECTED_KEYS = [
   "campuses",
 ] as const;
 
-test.describe("GET /api/metadata - 元数据字典", () => {
+test.describe("GET /api/catalog/metadata - 元数据字典", () => {
   test("契约", async ({ request }) => {
-    await assertApiContract(request, { routePath: "/api/metadata" });
+    await assertApiContract(request, { routePath: "/api/catalog/metadata" });
   });
 
   test("所有字典键存在且为数组", async ({ request }) => {
-    const response = await request.get("/api/metadata");
+    const response = await request.get("/api/catalog/metadata");
     expect(response.status()).toBe(200);
     const body = (await response.json()) as Record<string, unknown>;
     for (const key of EXPECTED_KEYS) {
@@ -50,7 +50,7 @@ test.describe("GET /api/metadata - 元数据字典", () => {
   });
 
   test("seed 授课语言存在", async ({ request }) => {
-    const response = await request.get("/api/metadata");
+    const response = await request.get("/api/catalog/metadata");
     expect(response.status()).toBe(200);
     const body = (await response.json()) as {
       teachLanguages?: Array<{ nameCn?: string }>;
@@ -63,7 +63,7 @@ test.describe("GET /api/metadata - 元数据字典", () => {
   });
 
   test("seed 课程分类存在", async ({ request }) => {
-    const response = await request.get("/api/metadata");
+    const response = await request.get("/api/catalog/metadata");
     expect(response.status()).toBe(200);
     const body = (await response.json()) as {
       courseClassifies?: Array<{ nameCn?: string }>;
@@ -76,7 +76,7 @@ test.describe("GET /api/metadata - 元数据字典", () => {
   });
 
   test("seed 校区及楼栋存在", async ({ request }) => {
-    const response = await request.get("/api/metadata");
+    const response = await request.get("/api/catalog/metadata");
     expect(response.status()).toBe(200);
     const body = (await response.json()) as {
       campuses?: Array<{

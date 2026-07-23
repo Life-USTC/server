@@ -31,7 +31,7 @@ export let subscriptionsCopy: ExamsCopyProps["subscriptionsCopy"];
     {#each exams as exam}
       <Table.Row>
         <Table.Cell class="max-w-0">
-          <a class="block max-w-full truncate font-semibold underline-offset-4 hover:underline" href={exam.section.jwId ? `/sections/${exam.section.jwId}` : dashboardTabHref("subscriptions")}>
+          <a class="block max-w-full truncate font-semibold underline-offset-4 hover:underline" href={exam.section.jwId ? `/catalog/sections/${exam.section.jwId}` : dashboardTabHref("subscriptions")}>
             {exam.courseName}
           </a>
         </Table.Cell>
@@ -43,7 +43,7 @@ export let subscriptionsCopy: ExamsCopyProps["subscriptionsCopy"];
         <Table.Cell class="max-w-56 truncate">{exam.rooms || sectionCopy.roomTbd}</Table.Cell>
         <Table.Cell>
           <div class="flex justify-end">
-            <Button href={exam.section.jwId ? `/sections/${exam.section.jwId}` : dashboardTabHref("subscriptions")} size="sm" variant="outline">
+            <Button href={exam.section.jwId ? `/catalog/sections/${exam.section.jwId}` : dashboardTabHref("subscriptions")} size="sm" variant="outline">
               {sectionCopy.moreDetails}
             </Button>
           </div>

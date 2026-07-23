@@ -22,7 +22,7 @@ test.describe("/api/mcp - 种子工具覆盖", () => {
       const mcpClient = mcp.client;
       const currentUser = mcp.currentUser;
       const originalBusPreferenceResponse = await page.request.get(
-        "/api/bus/preferences",
+        "/api/workspace/bus-preferences",
       );
       expect(originalBusPreferenceResponse.status()).toBe(200);
       const originalBusPreference = (
@@ -54,55 +54,55 @@ test.describe("/api/mcp - 种子工具覆盖", () => {
         const tools = await mcpClient.listTools();
         expect(tools.tools.map((tool) => tool.name)).toEqual(
           expect.arrayContaining([
-            "get_my_profile",
-            "get_public_user_profile",
-            "list_my_todos",
-            "create_my_todo",
-            "update_my_todo",
-            "delete_my_todo",
-            "get_my_dashboard",
-            "get_next_class",
-            "get_upcoming_deadlines",
-            "list_my_homeworks",
-            "set_my_homework_completion",
-            "list_my_uploads",
-            "rename_my_upload",
-            "delete_my_upload",
-            "list_my_schedules",
-            "list_my_exams",
-            "get_my_overview",
-            "get_my_7days_timeline",
-            "search_courses",
-            "match_section_codes",
-            "get_my_calendar_subscription",
-            "subscribe_my_sections_by_codes",
-            "get_section_by_jw_id",
-            "list_homeworks_by_section",
-            "create_homework_on_section",
-            "update_homework_on_section",
-            "delete_homework_on_section",
-            "list_schedules_by_section",
-            "list_exams_by_section",
-            "query_bus_timetable",
-            "list_bus_routes",
-            "get_bus_route_timetable",
-            "search_bus_routes",
-            "get_next_buses",
-            "list_comments",
-            "get_comment_thread",
-            "create_comment",
-            "update_own_comment",
-            "delete_own_comment",
-            "add_comment_reaction",
-            "remove_comment_reaction",
+            "account_profile_get",
+            "community_user_get",
+            "workspace_todo_list",
+            "workspace_todo_create",
+            "workspace_todo_update",
+            "workspace_todo_delete",
+            "workspace_snapshot_get",
+            "workspace_schedule_next",
+            "workspace_deadline_list",
+            "workspace_homework_list",
+            "workspace_homework_completion_set",
+            "workspace_upload_list",
+            "workspace_upload_rename",
+            "workspace_upload_delete",
+            "workspace_schedule_list",
+            "workspace_exam_list",
+            "workspace_overview_get",
+            "workspace_calendar_timeline_get",
+            "catalog_course_search",
+            "catalog_section_match_preview",
+            "workspace_calendar_feed_get",
+            "workspace_subscription_import",
+            "catalog_section_get",
+            "community_section_homework_list",
+            "community_section_homework_create",
+            "community_section_homework_update",
+            "community_section_homework_delete",
+            "catalog_section_schedule_list",
+            "catalog_section_exam_list",
+            "catalog_bus_timetable_get",
+            "catalog_bus_route_list",
+            "catalog_bus_route_get",
+            "catalog_bus_route_search",
+            "catalog_bus_departure_next",
+            "community_comment_list",
+            "community_comment_get",
+            "community_comment_create",
+            "community_comment_update",
+            "community_comment_delete",
+            "community_comment_reaction_add",
+            "community_comment_reaction_remove",
           ]),
         );
         expect(tools.tools.map((tool) => tool.name)).not.toEqual(
           expect.arrayContaining(["set_comment_reaction"]),
         );
         for (const name of [
-          "create_homework_on_section",
-          "update_homework_on_section",
+          "community_section_homework_create",
+          "community_section_homework_update",
         ]) {
           const description =
             tools.tools.find((tool) => tool.name === name)?.description ?? "";
@@ -117,7 +117,7 @@ test.describe("/api/mcp - 种子工具覆盖", () => {
         }
 
         const profileResult = await mcpClient.callTool({
-          name: "get_my_profile",
+          name: "account_profile_get",
           arguments: {},
         });
         const profile = parseTextContent(profileResult) as {
@@ -140,7 +140,7 @@ test.describe("/api/mcp - 种子工具覆盖", () => {
         expect(profile.updatedAt).toMatch(/\+08:00$/);
 
         const publicProfileResult = await mcpClient.callTool({
-          name: "get_public_user_profile",
+          name: "community_user_get",
           arguments: { username: DEV_SEED.debugUsername, mode: "full" },
         });
         const publicProfile = parseTextContent(publicProfileResult) as {
@@ -166,7 +166,7 @@ test.describe("/api/mcp - 种子工具覆盖", () => {
         expect(typeof publicProfile.user?._count?.uploads).toBe("number");
 
         const todosResult = await mcpClient.callTool({
-          name: "list_my_todos",
+          name: "workspace_todo_list",
           arguments: {},
         });
         const todosPayload = parseTextContent(todosResult) as {
@@ -195,7 +195,7 @@ test.describe("/api/mcp - 种子工具覆盖", () => {
         ).toBe(false);
 
         const coursesResult = await mcpClient.callTool({
-          name: "search_courses",
+          name: "catalog_course_search",
           arguments: {
             search: DEV_SEED.course.code,
             limit: 5,
@@ -221,7 +221,7 @@ test.describe("/api/mcp - 种子工具覆盖", () => {
         ).toBe(true);
 
         const sectionResult = await mcpClient.callTool({
-          name: "get_section_by_jw_id",
+          name: "catalog_section_get",
           arguments: {
             jwId: DEV_SEED.section.jwId,
             locale: "zh-cn",
@@ -245,7 +245,7 @@ test.describe("/api/mcp - 种子工具覆盖", () => {
         );
 
         const filteredSectionsResult = await mcpClient.callTool({
-          name: "search_sections",
+          name: "catalog_section_search",
           arguments: {
             courseJwId: DEV_SEED.course.jwId,
             semesterJwId: DEV_SEED.semesterJwId,
@@ -269,7 +269,7 @@ test.describe("/api/mcp - 种子工具覆盖", () => {
         );
 
         const homeworksResult = await mcpClient.callTool({
-          name: "list_homeworks_by_section",
+          name: "community_section_homework_list",
           arguments: {
             sectionJwId: DEV_SEED.section.jwId,
             includeDeleted: false,
@@ -305,7 +305,7 @@ test.describe("/api/mcp - 种子工具覆盖", () => {
         ).toBe(true);
 
         const schedulesResult = await mcpClient.callTool({
-          name: "list_schedules_by_section",
+          name: "catalog_section_schedule_list",
           arguments: {
             sectionJwId: DEV_SEED.section.jwId,
             limit: 20,
@@ -327,7 +327,7 @@ test.describe("/api/mcp - 种子工具覆盖", () => {
         ).toBe(true);
 
         const queriedSchedulesResult = await mcpClient.callTool({
-          name: "query_schedules",
+          name: "catalog_schedule_list",
           arguments: {
             sectionCode: DEV_SEED.section.code,
             teacherCode: DEV_SEED.teacher.code,
@@ -360,7 +360,7 @@ test.describe("/api/mcp - 种子工具覆盖", () => {
         ).toBe(true);
 
         const examsResult = await mcpClient.callTool({
-          name: "list_exams_by_section",
+          name: "catalog_section_exam_list",
           arguments: {
             sectionJwId: DEV_SEED.section.jwId,
             locale: "zh-cn",
@@ -376,7 +376,7 @@ test.describe("/api/mcp - 种子工具覆盖", () => {
         expect((examsPayload.exams?.length ?? 0) > 0).toBe(true);
 
         const myHomeworksResult = await mcpClient.callTool({
-          name: "list_my_homeworks",
+          name: "workspace_homework_list",
           arguments: {
             completed: false,
             limit: 30,
@@ -407,7 +407,7 @@ test.describe("/api/mcp - 种子工具覆盖", () => {
         expect(typeof firstHomeworkId).toBe("string");
 
         const setCompletionTrueResult = await mcpClient.callTool({
-          name: "set_my_homework_completion",
+          name: "workspace_homework_completion_set",
           arguments: {
             homeworkId: firstHomeworkId,
             completed: true,
@@ -423,7 +423,7 @@ test.describe("/api/mcp - 种子工具覆盖", () => {
         expect(setCompletionTruePayload.completion?.completed).toBe(true);
 
         const setCompletionFalseResult = await mcpClient.callTool({
-          name: "set_my_homework_completion",
+          name: "workspace_homework_completion_set",
           arguments: {
             homeworkId: firstHomeworkId,
             completed: false,
@@ -439,7 +439,7 @@ test.describe("/api/mcp - 种子工具覆盖", () => {
         expect(setCompletionFalsePayload.completion?.completed).toBe(false);
 
         const mySchedulesResult = await mcpClient.callTool({
-          name: "list_my_schedules",
+          name: "workspace_schedule_list",
           arguments: {
             limit: 30,
             locale: "zh-cn",
@@ -451,7 +451,7 @@ test.describe("/api/mcp - 种子工具覆盖", () => {
         expect((mySchedulesPayload.schedules?.length ?? 0) > 0).toBe(true);
 
         const myExamsResult = await mcpClient.callTool({
-          name: "list_my_exams",
+          name: "workspace_exam_list",
           arguments: {
             includeDateUnknown: true,
             limit: 30,
@@ -464,7 +464,7 @@ test.describe("/api/mcp - 种子工具覆盖", () => {
         expect((myExamsPayload.exams?.length ?? 0) > 0).toBe(true);
 
         const overviewResult = await mcpClient.callTool({
-          name: "get_my_overview",
+          name: "workspace_overview_get",
           arguments: {
             limit: 2,
             locale: "zh-cn",
@@ -505,7 +505,7 @@ test.describe("/api/mcp - 种子工具覆盖", () => {
           true,
         );
         const overviewSummaryResult = await mcpClient.callTool({
-          name: "get_my_overview",
+          name: "workspace_overview_get",
           arguments: {
             limit: 2,
             locale: "zh-cn",
@@ -524,7 +524,7 @@ test.describe("/api/mcp - 种子工具覆盖", () => {
         expect(overviewSummaryPayload.samples).toEqual(overviewPayload.samples);
 
         const dashboardResult = await mcpClient.callTool({
-          name: "get_my_dashboard",
+          name: "workspace_snapshot_get",
           arguments: {
             locale: "zh-cn",
           },
@@ -573,7 +573,7 @@ test.describe("/api/mcp - 种子工具覆盖", () => {
           expect(nextDeparture).toBeNull();
         }
         const dashboardSummaryResult = await mcpClient.callTool({
-          name: "get_my_dashboard",
+          name: "workspace_snapshot_get",
           arguments: {
             locale: "zh-cn",
             mode: "summary",
@@ -603,7 +603,7 @@ test.describe("/api/mcp - 种子工具覆盖", () => {
         );
 
         const nextClassResult = await mcpClient.callTool({
-          name: "get_next_class",
+          name: "workspace_schedule_next",
           arguments: {
             locale: "zh-cn",
           },
@@ -618,7 +618,7 @@ test.describe("/api/mcp - 种子工具覆盖", () => {
         }
 
         const deadlinesResult = await mcpClient.callTool({
-          name: "get_upcoming_deadlines",
+          name: "workspace_deadline_list",
           arguments: {
             locale: "zh-cn",
             dayLimit: 7,
@@ -636,7 +636,7 @@ test.describe("/api/mcp - 种子工具覆盖", () => {
         ).toBe(true);
 
         const timelineResult = await mcpClient.callTool({
-          name: "get_my_7days_timeline",
+          name: "workspace_calendar_timeline_get",
           arguments: {
             locale: "zh-cn",
             atTime: DEV_SEED_ANCHOR.startOfDayAtTime,
@@ -665,7 +665,7 @@ test.describe("/api/mcp - 种子工具覆盖", () => {
           ),
         ).toBe(true);
         const timelineSummaryResult = await mcpClient.callTool({
-          name: "get_my_7days_timeline",
+          name: "workspace_calendar_timeline_get",
           arguments: {
             locale: "zh-cn",
             atTime: DEV_SEED_ANCHOR.startOfDayAtTime,
@@ -682,7 +682,7 @@ test.describe("/api/mcp - 种子工具覆盖", () => {
         expect(timelineSummaryPayload.total).toBe(timelinePayload.total);
 
         const calendarEventsResult = await mcpClient.callTool({
-          name: "list_my_calendar_events",
+          name: "workspace_calendar_event_list",
           arguments: {
             dateFrom: DEV_SEED_ANCHOR.startOfDayAtTime,
             dateTo: "2026-05-10T23:59:59+08:00",
@@ -697,7 +697,7 @@ test.describe("/api/mcp - 种子工具覆盖", () => {
         expect((calendarEventsPayload.events?.length ?? 0) > 0).toBe(true);
 
         const calendarEventsSummaryResult = await mcpClient.callTool({
-          name: "list_my_calendar_events",
+          name: "workspace_calendar_event_list",
           arguments: {
             dateFrom: DEV_SEED_ANCHOR.startOfDayAtTime,
             dateTo: "2026-05-10T23:59:59+08:00",
@@ -715,7 +715,7 @@ test.describe("/api/mcp - 种子工具覆盖", () => {
         );
 
         const matchSectionCodesResult = await mcpClient.callTool({
-          name: "match_section_codes",
+          name: "catalog_section_match_preview",
           arguments: {
             codes: [DEV_SEED.section.code, "NOT-EXIST-CODE"],
             locale: "zh-cn",
@@ -739,7 +739,7 @@ test.describe("/api/mcp - 种子工具覆盖", () => {
 
         const fuzzySectionCode = DEV_SEED.section.code.replace(/\.\d+$/, ".0");
         const fuzzyMatchSectionCodesResult = await mcpClient.callTool({
-          name: "match_section_codes",
+          name: "catalog_section_match_preview",
           arguments: {
             codes: [fuzzySectionCode],
             locale: "zh-cn",
@@ -784,7 +784,7 @@ test.describe("/api/mcp - 种子工具覆盖", () => {
           | undefined;
         await expect(async () => {
           const preferenceResponse = await page.request.post(
-            "/api/bus/preferences",
+            "/api/workspace/bus-preferences",
             {
               data: {
                 preferredOriginCampusId: 1,
@@ -795,7 +795,7 @@ test.describe("/api/mcp - 种子工具覆盖", () => {
           );
           expect(preferenceResponse.status()).toBe(200);
           busResult = await mcpClient.callTool({
-            name: "query_bus_timetable",
+            name: "catalog_bus_timetable_get",
             arguments: {
               locale: "zh-cn",
             },
@@ -821,11 +821,11 @@ test.describe("/api/mcp - 种子工具覆盖", () => {
           intervals: [250, 500, 1_000],
         });
         if (!busPayload) {
-          throw new Error("query_bus_timetable returned no payload");
+          throw new Error("catalog_bus_timetable_get returned no payload");
         }
 
         const busFullResult = await mcpClient.callTool({
-          name: "query_bus_timetable",
+          name: "catalog_bus_timetable_get",
           arguments: {
             locale: "zh-cn",
             mode: "full",
@@ -859,7 +859,7 @@ test.describe("/api/mcp - 种子工具覆盖", () => {
         ).toBe(true);
 
         const busSummaryResult = await mcpClient.callTool({
-          name: "query_bus_timetable",
+          name: "catalog_bus_timetable_get",
           arguments: {
             locale: "zh-cn",
             mode: "summary",
@@ -892,9 +892,9 @@ test.describe("/api/mcp - 种子工具覆盖", () => {
           expect(typeof busSummaryPayload.nextDeparturesMessage).toBe("string");
         }
 
-        // list_bus_routes — lightweight route catalog
+        // catalog_bus_route_list — lightweight route catalog
         const listRoutesResult = await mcpClient.callTool({
-          name: "list_bus_routes",
+          name: "catalog_bus_route_list",
           arguments: { locale: "zh-cn" },
         });
         const listRoutesPayload = parseTextContent(listRoutesResult) as {
@@ -929,9 +929,9 @@ test.describe("/api/mcp - 种子工具覆盖", () => {
           [...listedRouteIds].every((routeId) => queryRouteIds.has(routeId)),
         ).toBe(true);
 
-        // get_bus_route_timetable — full weekday+weekend for one route
+        // catalog_bus_route_get — full weekday+weekend for one route
         const timetableResult = await mcpClient.callTool({
-          name: "get_bus_route_timetable",
+          name: "catalog_bus_route_get",
           arguments: {
             routeId: DEV_SEED.bus.routeId,
             locale: "zh-cn",
@@ -964,7 +964,7 @@ test.describe("/api/mcp - 种子工具覆盖", () => {
         ).toBe(true);
 
         const searchRoutesResult = await mcpClient.callTool({
-          name: "search_bus_routes",
+          name: "catalog_bus_route_search",
           arguments: {
             locale: "zh-cn",
             originCampusId: DEV_SEED.bus.originCampusId,
@@ -983,7 +983,7 @@ test.describe("/api/mcp - 种子工具覆盖", () => {
         ).toBe(true);
 
         const nextBusesResult = await mcpClient.callTool({
-          name: "get_next_buses",
+          name: "catalog_bus_departure_next",
           arguments: {
             locale: "zh-cn",
             originCampusId: DEV_SEED.bus.originCampusId,
@@ -1024,9 +1024,9 @@ test.describe("/api/mcp - 种子工具覆盖", () => {
           }
         }
 
-        // get_bus_route_timetable — invalid route returns error message
+        // catalog_bus_route_get — invalid route returns error message
         const invalidTimetableResult = await mcpClient.callTool({
-          name: "get_bus_route_timetable",
+          name: "catalog_bus_route_get",
           arguments: { routeId: 99999, locale: "zh-cn" },
         });
         const invalidPayload = parseTextContent(invalidTimetableResult) as {
@@ -1037,7 +1037,7 @@ test.describe("/api/mcp - 种子工具覆盖", () => {
 
         const todoTitle = `[MCP-E2E-TODO] ${Date.now()}`;
         const createTodoResult = await mcpClient.callTool({
-          name: "create_my_todo",
+          name: "workspace_todo_create",
           arguments: {
             title: todoTitle,
             content: "todo created by mcp e2e",
@@ -1053,7 +1053,7 @@ test.describe("/api/mcp - 种子工具覆盖", () => {
         expect(typeof createTodoPayload.id).toBe("string");
 
         const updateTodoResult = await mcpClient.callTool({
-          name: "update_my_todo",
+          name: "workspace_todo_update",
           arguments: {
             id: createTodoPayload.id,
             title: `${todoTitle}-updated`,
@@ -1066,7 +1066,7 @@ test.describe("/api/mcp - 种子工具覆盖", () => {
         expect(updateTodoPayload.success).toBe(true);
 
         const deleteTodoResult = await mcpClient.callTool({
-          name: "delete_my_todo",
+          name: "workspace_todo_delete",
           arguments: {
             id: createTodoPayload.id,
           },
@@ -1078,7 +1078,7 @@ test.describe("/api/mcp - 种子工具覆盖", () => {
 
         const homeworkTitle = `[MCP-E2E-HW] ${Date.now()}`;
         const createHomeworkResult = await mcpClient.callTool({
-          name: "create_homework_on_section",
+          name: "community_section_homework_create",
           arguments: {
             sectionJwId: DEV_SEED.section.jwId,
             title: homeworkTitle,
@@ -1116,7 +1116,7 @@ test.describe("/api/mcp - 种子工具覆盖", () => {
         );
 
         const updateHomeworkResult = await mcpClient.callTool({
-          name: "update_homework_on_section",
+          name: "community_section_homework_update",
           arguments: {
             homeworkId: createHomeworkPayload.id,
             title: `${homeworkTitle}-updated`,
@@ -1149,7 +1149,7 @@ test.describe("/api/mcp - 种子工具覆盖", () => {
         );
 
         const descriptionOnlyResult = await mcpClient.callTool({
-          name: "update_homework_on_section",
+          name: "community_section_homework_update",
           arguments: {
             homeworkId: createHomeworkPayload.id,
             description: "homework description-only update by mcp e2e",
@@ -1179,7 +1179,7 @@ test.describe("/api/mcp - 种子工具覆盖", () => {
         );
 
         const noChangeHomeworkResult = await mcpClient.callTool({
-          name: "update_homework_on_section",
+          name: "community_section_homework_update",
           arguments: {
             homeworkId: createHomeworkPayload.id,
           },
@@ -1196,7 +1196,7 @@ test.describe("/api/mcp - 种子工具覆盖", () => {
         });
 
         const deleteHomeworkResult = await mcpClient.callTool({
-          name: "delete_homework_on_section",
+          name: "community_section_homework_delete",
           arguments: {
             homeworkId: createHomeworkPayload.id,
           },
@@ -1216,7 +1216,7 @@ test.describe("/api/mcp - 种子工具覆盖", () => {
         createdHomeworkId = null;
 
         const calendarSubscriptionResult = await mcpClient.callTool({
-          name: "get_my_calendar_subscription",
+          name: "workspace_calendar_feed_get",
           arguments: {
             locale: "zh-cn",
           },
@@ -1245,10 +1245,10 @@ test.describe("/api/mcp - 种子工具覆盖", () => {
         ).toBeUndefined();
         expect(
           calendarSubscriptionPayload.subscription?.calendarPath,
-        ).toContain("/api/users/");
+        ).toContain("/api/community/users/");
 
         const calendarSubscriptionSummaryResult = await mcpClient.callTool({
-          name: "get_my_calendar_subscription",
+          name: "workspace_calendar_feed_get",
           arguments: {
             locale: "zh-cn",
             mode: "summary",
@@ -1278,7 +1278,7 @@ test.describe("/api/mcp - 种子工具覆盖", () => {
         ).toContain("[redacted]");
 
         const subscribeResult = await mcpClient.callTool({
-          name: "subscribe_my_sections_by_codes",
+          name: "workspace_subscription_import",
           arguments: {
             codes: [DEV_SEED.section.code],
             locale: "zh-cn",
@@ -1304,7 +1304,7 @@ test.describe("/api/mcp - 种子工具覆盖", () => {
         expect(subscribePayload.subscription?.sections).toBeUndefined();
 
         const missingSectionResult = await mcpClient.callTool({
-          name: "get_section_by_jw_id",
+          name: "catalog_section_get",
           arguments: {
             jwId: 999999999,
             locale: "zh-cn",
@@ -1320,7 +1320,9 @@ test.describe("/api/mcp - 种子工具覆盖", () => {
         expect(missingSectionPayload.message).toContain("999999999");
       } finally {
         if (createdHomeworkId) {
-          await page.request.delete(`/api/homeworks/${createdHomeworkId}`);
+          await page.request.delete(
+            `/api/community/homeworks/${createdHomeworkId}`,
+          );
         }
         await replaceCalendarSubscription(page.request, originalSectionIds);
         await saveBusPreference(page.request, originalBusPreference ?? {});

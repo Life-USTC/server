@@ -18,7 +18,7 @@ vi.mock("@/lib/auth/api-auth", () => ({
   resolveApiUserId: resolveApiUserIdMock,
 }));
 
-describe("POST /api/dashboard-links/visit", () => {
+describe("POST /api/workspace/links/visit", () => {
   beforeEach(() => {
     setCloudflareRuntimeEnv(undefined);
     resolveApiUserIdMock.mockResolvedValue("user-1");
@@ -39,7 +39,7 @@ describe("POST /api/dashboard-links/visit", () => {
     form.set("slug", "jw");
 
     const response = await postDashboardLinkVisitRoute(
-      new Request("https://life.example/api/dashboard-links/visit", {
+      new Request("https://life.example/api/workspace/links/visit", {
         method: "POST",
         body: form,
       }),
@@ -64,7 +64,7 @@ describe("POST /api/dashboard-links/visit", () => {
     form.set("slug", "jw");
 
     const response = await postDashboardLinkVisitRoute(
-      new Request("https://life.example/api/dashboard-links/visit", {
+      new Request("https://life.example/api/workspace/links/visit", {
         method: "POST",
         body: form,
       }),

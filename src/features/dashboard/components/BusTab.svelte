@@ -56,7 +56,7 @@ let busApplicableRoutes: ReturnType<typeof state.applicableRoutes> = [];
 
 async function loadPublicBusData() {
   if (loadedBus) return;
-  const result = await apiClient.GET<DashboardBusData>("/api/bus");
+  const result = await apiClient.GET<DashboardBusData>("/api/catalog/bus");
   if (!result.response.ok || !result.data) return;
   loadedBus = result.data;
   state.initializeWhenNeeded();
@@ -175,7 +175,7 @@ $: busShowsEstimatedHint = hasEstimatedBusTimes(
       <div class="grid gap-1">
         <h2 class="font-semibold text-xl tracking-normal">{busCopy.dashboardTitle}</h2>
       </div>
-      <Button class="min-h-11" href="/bus-map" size="lg" variant="outline">{busCopy.transitMap}</Button>
+      <Button class="min-h-11" href="/catalog/bus/map" size="lg" variant="outline">{busCopy.transitMap}</Button>
     </div>
   {/if}
 

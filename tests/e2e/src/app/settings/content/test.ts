@@ -1,8 +1,8 @@
 /**
- * E2E tests for the Settings Content section (`/settings/content`)
+ * E2E tests for the Settings Content section (`/account/settings/content`)
  *
  * ## Data Represented
- * - `/settings/content` is the canonical content settings entry.
+ * - `/account/settings/content` is the canonical content settings entry.
  * - Content section explains that uploads/comments are object-scoped, not
  *   standalone settings pages.
  * - It provides next-step links to section browsing and the comment guide.
@@ -23,9 +23,9 @@ import {
 import { gotoAndWaitForReady } from "../../../../utils/page-ready";
 import { captureStepScreenshot } from "../../../../utils/screenshot";
 
-test.describe("/settings/content 内容设置", () => {
+test.describe("/account/settings/content 内容设置", () => {
   test("需要登录", async ({ page }, testInfo) => {
-    await expectRequiresSignIn(page, "/settings/content");
+    await expectRequiresSignIn(page, "/account/settings/content");
     await captureStepScreenshot(
       page,
       testInfo,
@@ -34,9 +34,9 @@ test.describe("/settings/content 内容设置", () => {
   });
 
   test("显示标准内容引导", async ({ page }, testInfo) => {
-    await signInAsDebugUser(page, "/settings/content");
+    await signInAsDebugUser(page, "/account/settings/content");
 
-    await expectPagePath(page, "/settings/content");
+    await expectPagePath(page, "/account/settings/content");
     await expect(
       page.getByText(
         /内容会跟随课程、班级、作业等对象管理|Manage uploads and comments from the course, section, or homework where they belong/i,
@@ -52,20 +52,20 @@ test.describe("/settings/content 内容设置", () => {
   });
 
   test("内容链接导航正确", async ({ page }, testInfo) => {
-    await signInAsDebugUser(page, "/settings/content");
+    await signInAsDebugUser(page, "/account/settings/content");
 
     const sectionsLink = page.getByRole("link", {
       name: /浏览班级|Browse sections/i,
     });
     await sectionsLink.click();
-    await expect(page).toHaveURL(/\/sections(?:\?.*)?$/);
+    await expect(page).toHaveURL(/\/catalog\/sections(?:\?.*)?$/);
     await captureStepScreenshot(
       page,
       testInfo,
       "settings-content-navigate-sections",
     );
 
-    await gotoAndWaitForReady(page, "/settings/content", {
+    await gotoAndWaitForReady(page, "/account/settings/content", {
       testInfo,
       screenshotLabel: "settings-content",
     });

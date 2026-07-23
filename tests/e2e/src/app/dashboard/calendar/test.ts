@@ -1,5 +1,5 @@
 /**
- * E2E tests for the calendar dashboard (`/dashboard/calendar`)
+ * E2E tests for the calendar dashboard (`/workspace/calendar`)
  *
  * ## Data Represented (calendar.yml → personal-calendar-view.display.fields)
  * - calendarEvents (schedules + exams + homeworks + todos)
@@ -38,13 +38,13 @@ test.describe("仪表盘日历", () => {
 
     expect(response.status()).toBe(308);
     expect(response.headers().location).toBe(
-      "/dashboard/calendar?calendarView=week",
+      "/workspace/calendar?calendarView=week",
     );
   });
 
   test("dashboard 查询 tab 也仅作为永久兼容入口", async ({ page }) => {
     const response = await page.request.get(
-      "/dashboard?tab=calendar&calendarView=week",
+      "/workspace?tab=calendar&calendarView=week",
       {
         maxRedirects: 0,
       },
@@ -52,16 +52,16 @@ test.describe("仪表盘日历", () => {
 
     expect(response.status()).toBe(308);
     expect(response.headers().location).toBe(
-      "/dashboard/calendar?calendarView=week",
+      "/workspace/calendar?calendarView=week",
     );
   });
 
   test("登录后显示日历，包含班级事件链接和星期标签", async ({
     page,
   }, testInfo) => {
-    await signInAsDebugUser(page, "/dashboard/calendar");
+    await signInAsDebugUser(page, "/workspace/calendar");
     await ensureSeedSectionSubscription(page);
-    await gotoAndWaitForReady(page, "/dashboard/calendar", {
+    await gotoAndWaitForReady(page, "/workspace/calendar", {
       testInfo,
       screenshotLabel: "calendar",
     });
@@ -77,47 +77,47 @@ test.describe("仪表盘日历", () => {
     ).toBeVisible();
 
     // Section links from schedule events
-    const sectionLink = page.locator('a[href^="/sections/"]').first();
+    const sectionLink = page.locator('a[href^="/catalog/sections/"]').first();
     await expect(sectionLink).toBeVisible();
 
     await captureStepScreenshot(page, testInfo, "calendar/semester-view");
   });
 
   test("班级事件链接导航到班级详情", async ({ page }, testInfo) => {
-    await signInAsDebugUser(page, "/dashboard/calendar");
+    await signInAsDebugUser(page, "/workspace/calendar");
     await ensureSeedSectionSubscription(page);
-    await gotoAndWaitForReady(page, "/dashboard/calendar", {
+    await gotoAndWaitForReady(page, "/workspace/calendar", {
       testInfo,
       screenshotLabel: "calendar",
     });
 
-    const sectionLink = page.locator('a[href^="/sections/"]').first();
+    const sectionLink = page.locator('a[href^="/catalog/sections/"]').first();
     await expect(sectionLink).toBeVisible();
     await sectionLink.click();
 
-    await expect(page).toHaveURL(/\/sections\/\d+/);
+    await expect(page).toHaveURL(/\/catalog\/sections\/\d+/);
     await captureStepScreenshot(page, testInfo, "calendar/section-link");
   });
 
   test("考试卡片链接到考试标签", async ({ page }, testInfo) => {
-    await signInAsDebugUser(page, "/dashboard/calendar");
+    await signInAsDebugUser(page, "/workspace/calendar");
     await ensureSeedSectionSubscription(page);
-    await gotoAndWaitForReady(page, "/dashboard/calendar", {
+    await gotoAndWaitForReady(page, "/workspace/calendar", {
       testInfo,
       screenshotLabel: "calendar",
     });
 
-    const examLink = page.locator('a[href="/dashboard/exams"]').first();
+    const examLink = page.locator('a[href="/workspace/exams"]').first();
     await expect(examLink).toBeVisible();
     await examLink.click();
-    await expect(page).toHaveURL(/\/dashboard\/exams(?:\?.*)?$/);
+    await expect(page).toHaveURL(/\/workspace\/exams(?:\?.*)?$/);
     await captureStepScreenshot(page, testInfo, "calendar/exam-link");
   });
 
   test("学期导航控件可切换到其他学期", async ({ page }, testInfo) => {
-    await signInAsDebugUser(page, "/dashboard/calendar");
+    await signInAsDebugUser(page, "/workspace/calendar");
     await ensureSeedSectionSubscription(page);
-    await gotoAndWaitForReady(page, "/dashboard/calendar", {
+    await gotoAndWaitForReady(page, "/workspace/calendar", {
       testInfo,
       screenshotLabel: "calendar",
     });
@@ -147,9 +147,9 @@ test.describe("仪表盘日历", () => {
   });
 
   test("视图切换可在学期/月/周之间切换", async ({ page }, testInfo) => {
-    await signInAsDebugUser(page, "/dashboard/calendar");
+    await signInAsDebugUser(page, "/workspace/calendar");
     await ensureSeedSectionSubscription(page);
-    await gotoAndWaitForReady(page, "/dashboard/calendar", {
+    await gotoAndWaitForReady(page, "/workspace/calendar", {
       testInfo,
       screenshotLabel: "calendar",
     });
@@ -179,9 +179,9 @@ test.describe("仪表盘日历", () => {
     await page
       .context()
       .grantPermissions(["clipboard-read", "clipboard-write"]);
-    await signInAsDebugUser(page, "/dashboard/calendar");
+    await signInAsDebugUser(page, "/workspace/calendar");
     await ensureSeedSectionSubscription(page);
-    await gotoAndWaitForReady(page, "/dashboard/calendar");
+    await gotoAndWaitForReady(page, "/workspace/calendar");
 
     const copyButton = page.getByRole("button", { name: /复制日历链接|iCal/i });
     await expect(copyButton).toBeVisible();
@@ -190,7 +190,9 @@ test.describe("仪表盘日历", () => {
     const clipboardText = await page.evaluate(async () =>
       navigator.clipboard.readText(),
     );
-    expect(clipboardText).toMatch(/\/api\/users\/[^/]+:[^/]+\/calendar\.ics$/);
+    expect(clipboardText).toMatch(
+      /\/api\/community\/users\/[^/]+:[^/]+\/calendar\.ics$/,
+    );
 
     const calendarResponse = await page.request.get(clipboardText);
     expect(calendarResponse.status()).toBe(200);
@@ -207,7 +209,7 @@ test.describe("仪表盘日历", () => {
       .context()
       .grantPermissions(["clipboard-read", "clipboard-write"]);
     await page.setViewportSize({ height: 844, width: 390 });
-    const agendaUrl = `/dashboard/calendar?calendarView=week&calendarWeek=${DEV_SEED_ANCHOR.date}`;
+    const agendaUrl = `/workspace/calendar?calendarView=week&calendarWeek=${DEV_SEED_ANCHOR.date}`;
     await signInAsDebugUser(page, agendaUrl);
     await ensureSeedSectionSubscription(page);
     await gotoAndWaitForReady(page, agendaUrl, {
@@ -248,7 +250,7 @@ test.describe("仪表盘日历", () => {
     await iCalAction.click();
     expect(
       await page.evaluate(async () => navigator.clipboard.readText()),
-    ).toMatch(/\/api\/users\/[^/]+:[^/]+\/calendar\.ics$/);
+    ).toMatch(/\/api\/community\/users\/[^/]+:[^/]+\/calendar\.ics$/);
 
     await next.click();
     await expect(page).toHaveURL(/calendarView=week/);

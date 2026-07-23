@@ -14,10 +14,10 @@ describe("认证提供方路由", () => {
   it("优先使用 redirectTo 而非 callbackUrl", () => {
     expect(
       resolveAuthRedirectTarget({
-        redirectTo: "/dashboard",
-        callbackUrl: "/settings",
+        redirectTo: "/workspace",
+        callbackUrl: "/account/settings",
       }),
-    ).toBe("/dashboard");
+    ).toBe("/workspace");
   });
 
   it("当重定向目标为外部时回退", () => {
@@ -27,39 +27,43 @@ describe("认证提供方路由", () => {
           redirectTo: "https://attacker.example",
           callbackUrl: "//attacker.example",
         },
-        "/settings",
+        "/account/settings",
       ),
-    ).toBe("/settings");
+    ).toBe("/account/settings");
   });
 
   it("构建登录页 callback URL", () => {
     expect(buildSignInPageUrl("/oauth/authorize?client_id=test")).toBe(
-      "/signin?callbackUrl=%2Foauth%2Fauthorize%3Fclient_id%3Dtest",
+      "/account/sign-in?callbackUrl=%2Foauth%2Fauthorize%3Fclient_id%3Dtest",
     );
   });
 
   it("从路径和查询构建当前页 callback URL", () => {
     expect(
       buildCurrentPathCallbackUrl(
-        "/sections/123",
+        "/catalog/sections/123",
         new URLSearchParams({ tab: "homeworks", comment: "new" }),
       ),
-    ).toBe("/sections/123?tab=homeworks&comment=new");
-    expect(buildCurrentPathCallbackUrl("/courses/456")).toBe("/courses/456");
+    ).toBe("/catalog/sections/123?tab=homeworks&comment=new");
+    expect(buildCurrentPathCallbackUrl("/catalog/courses/456")).toBe(
+      "/catalog/courses/456",
+    );
   });
 
   it("根据解析后的目标构建登录重定向", () => {
     expect(
       buildSignInRedirectUrl(
         {
-          redirectTo: "/settings?tab=accounts",
+          redirectTo: "/account/settings?tab=accounts",
           callbackUrl: "/ignored",
         },
         "/",
       ),
-    ).toBe("/signin?callbackUrl=%2Fsettings%3Ftab%3Daccounts");
+    ).toBe(
+      "/account/sign-in?callbackUrl=%2Faccount%2Fsettings%3Ftab%3Daccounts",
+    );
     expect(buildSignInRedirectUrl({}, "/admin/users?page=2")).toBe(
-      "/signin?callbackUrl=%2Fadmin%2Fusers%3Fpage%3D2",
+      "/account/sign-in?callbackUrl=%2Fadmin%2Fusers%3Fpage%3D2",
     );
   });
 

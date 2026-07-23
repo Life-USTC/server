@@ -40,7 +40,7 @@ function unauthorizedResponse() {
 }
 
 function jsonRequest(method: string, body: string) {
-  return new Request("https://example.test/api/homeworks", {
+  return new Request("https://example.test/api/community/homeworks", {
     body,
     headers: { "Content-Type": "application/json" },
     method,
@@ -113,7 +113,7 @@ describe("homework 变更路由的认证顺序", () => {
     );
 
     const response = await patchHomeworkRoute(
-      new Request("https://example.test/api/homeworks/homework-1", {
+      new Request("https://example.test/api/community/homeworks/homework-1", {
         body: JSON.stringify({ title: "Updated homework" }),
         headers: {
           "Accept-Language": "en-US",

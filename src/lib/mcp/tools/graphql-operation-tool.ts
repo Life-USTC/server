@@ -58,7 +58,7 @@ function errorToolResult(
 
 export function registerGraphqlOperationTool(server: McpServer) {
   server.registerTool(
-    "run_graphql_operation",
+    "graphql_operation_run",
     {
       title: "Run GraphQL Operation",
       description:

@@ -1,7 +1,7 @@
 /**
- * E2E tests for POST /api/uploads/complete.
+ * E2E tests for POST /api/workspace/uploads/complete.
  *
- * ## POST /api/uploads/complete
+ * ## POST /api/workspace/uploads/complete
  * - Body: { key, filename, contentType? }
  * - Response: { upload: { id, key, filename, size, createdAt }, usedBytes, quotaBytes }
  * - Auth required (401 if unauthenticated)
@@ -18,12 +18,16 @@ import { expect, test } from "@playwright/test";
 import { signInAsDebugUser } from "../../../../../utils/auth";
 import { assertApiContract } from "../../../_shared/api-contract";
 
-test("/api/uploads/complete", async ({ request }) => {
-  await assertApiContract(request, { routePath: "/api/uploads/complete" });
+test("/api/workspace/uploads/complete", async ({ request }) => {
+  await assertApiContract(request, {
+    routePath: "/api/workspace/uploads/complete",
+  });
 });
 
-test("/api/uploads/complete POST 未登录返回 401", async ({ request }) => {
-  const response = await request.post("/api/uploads/complete", {
+test("/api/workspace/uploads/complete POST 未登录返回 401", async ({
+  request,
+}) => {
+  const response = await request.post("/api/workspace/uploads/complete", {
     data: {
       key: "uploads/anonymous/test.txt",
       filename: "test.txt",
@@ -32,9 +36,11 @@ test("/api/uploads/complete POST 未登录返回 401", async ({ request }) => {
   expect(response.status()).toBe(401);
 });
 
-test("/api/uploads/complete POST key 前缀不匹配返回 403", async ({ page }) => {
+test("/api/workspace/uploads/complete POST key 前缀不匹配返回 403", async ({
+  page,
+}) => {
   await signInAsDebugUser(page, "/");
-  const response = await page.request.post("/api/uploads/complete", {
+  const response = await page.request.post("/api/workspace/uploads/complete", {
     data: {
       key: "uploads/other-user/test.txt",
       filename: "test.txt",
@@ -43,7 +49,7 @@ test("/api/uploads/complete POST key 前缀不匹配返回 403", async ({ page }
   expect(response.status()).toBe(403);
 });
 
-test("/api/uploads/complete POST 无 pending 时返回 400 且清理 R2 对象", async ({
+test("/api/workspace/uploads/complete POST 无 pending 时返回 400 且清理 R2 对象", async ({
   page,
 }) => {
   test.setTimeout(60_000);
@@ -62,9 +68,12 @@ test("/api/uploads/complete POST 无 pending 时返回 400 且清理 R2 对象",
   const key = `uploads/${userId}/e2e-expired-${Date.now()}.txt`;
 
   // Complete should fail because there's no pending upload record
-  const completeResponse = await page.request.post("/api/uploads/complete", {
-    data: { key, filename: "e2e-expired.txt" },
-  });
+  const completeResponse = await page.request.post(
+    "/api/workspace/uploads/complete",
+    {
+      data: { key, filename: "e2e-expired.txt" },
+    },
+  );
   expect(completeResponse.status()).toBe(400);
   const completeBody = (await completeResponse.json()) as {
     error?: string;

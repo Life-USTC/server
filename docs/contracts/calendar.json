@@ -21,13 +21,13 @@
         "models": ["Schedule", "Homework", "Exam", "Todo"]
       },
       "web": {
-        "pages": ["/dashboard/calendar"]
+        "pages": ["/workspace/calendar"]
       },
       "rest": "unavailable",
       "mcp": {
         "tools": [
           {
-            "name": "list_my_calendar_events",
+            "name": "workspace_calendar_event_list",
             "returns": "{ events: CalendarEvent[] }",
             "notes": [
               "Returns course, exam, homework, and todo events unified by date range, directly corresponding to the personal calendar view.",
@@ -36,18 +36,18 @@
             ]
           },
           {
-            "name": "get_my_7days_timeline",
+            "name": "workspace_calendar_timeline_get",
             "returns": "{ range: { from: DateTime, to: DateTime }, total: Int, events: CalendarEvent[] }"
           },
           {
-            "name": "list_my_schedules",
+            "name": "workspace_schedule_list",
             "returns": "{ schedules: ScheduleEntry[] }",
             "notes": [
               "Omitting semesterId reads all subscribed semesters; pass a semesterId to recover one current or past term."
             ]
           },
           {
-            "name": "list_my_exams",
+            "name": "workspace_exam_list",
             "returns": "{ exams: ExamEntry[] }",
             "notes": [
               "Omitting semesterId reads all subscribed semesters; pass a semesterId to recover one current or past term."
@@ -76,7 +76,7 @@
         "ui": ["Context Tabs"]
       },
       "web": {
-        "pages": ["/sections/[jwId]"]
+        "pages": ["/catalog/sections/[jwId]"]
       },
       "rest": "stable",
       "display": {

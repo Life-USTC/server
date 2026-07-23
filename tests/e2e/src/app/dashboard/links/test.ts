@@ -1,12 +1,12 @@
 /**
- * E2E tests for the links dashboard (`/dashboard/links`)
+ * E2E tests for the links dashboard (`/workspace/links`)
  *
  * ## Data Represented
  * - Dashboard links grouped by category (study, life, tech, classroom, etc.)
  *   sourced from USTC_DASHBOARD_LINKS
  * - Each link card: name, description, visit tracking via
- *   POST /api/dashboard-links/visit
- * - Pin state per user via POST /api/dashboard-links/pin
+ *   POST /api/workspace/links/visit
+ * - Pin state per user via POST /api/workspace/links/pin
  *
  * ## UI/UX Elements
  * - Search box to filter links by name/description
@@ -37,7 +37,7 @@ const UNPIN_LABEL = /^(?:取消置顶|Unpin)$/i;
 const JSON_HEADERS = { accept: "application/json" };
 
 async function setLocale(page: Page, locale: "en-us" | "zh-cn") {
-  const response = await page.request.post("/api/locale", {
+  const response = await page.request.post("/api/account/preferences", {
     data: { locale },
   });
   expect(response.status()).toBe(200);
@@ -46,7 +46,7 @@ async function setLocale(page: Page, locale: "en-us" | "zh-cn") {
 test.describe("仪表盘网站链接", () => {
   test("公共 /links 显示搜索和链接，无置顶控件", async ({ page }, testInfo) => {
     await setLocale(page, "zh-cn");
-    const response = await gotoAndWaitForReady(page, "/links");
+    const response = await gotoAndWaitForReady(page, "/catalog/links");
 
     expect(response?.status()).toBe(200);
     await expect(page).toHaveURL(/\/links$/);
@@ -64,7 +64,7 @@ test.describe("仪表盘网站链接", () => {
 
     // No pin forms in public view
     await expect(
-      page.locator('form[action="/api/dashboard-links/pin"]').first(),
+      page.locator('form[action="/api/workspace/links/pin"]').first(),
     ).toHaveCount(0);
 
     await captureStepScreenshot(page, testInfo, "public-dashboard-links-tab");
@@ -78,14 +78,14 @@ test.describe("仪表盘网站链接", () => {
 
     expect(response.status()).toBe(308);
     expect(response.headers().location).toBe(
-      "/links?linkView=list&utm_source=bookmark",
+      "/catalog/links?linkView=list&utm_source=bookmark",
     );
   });
 
   test("公共英文链接页面在搜索中使用本地化标题", async ({ page }, testInfo) => {
     await setLocale(page, "en-us");
 
-    await gotoAndWaitForReady(page, "/links");
+    await gotoAndWaitForReady(page, "/catalog/links");
 
     const searchInput = page.getByRole("searchbox", {
       name: /Search by name or description/i,
@@ -125,7 +125,7 @@ test.describe("仪表盘网站链接", () => {
     await expect(linksTab).toBeVisible();
     await linksTab.click();
 
-    await expect(page).toHaveURL(/\/dashboard\/links$/);
+    await expect(page).toHaveURL(/\/workspace\/links$/);
     await expect(
       page.getByRole("searchbox", {
         name: /搜索网站名称或描述|Search by name or description/i,
@@ -140,7 +140,7 @@ test.describe("仪表盘网站链接", () => {
 
   test("搜索可筛选链接", async ({ page }, testInfo) => {
     await setLocale(page, "zh-cn");
-    await signInAsDebugUser(page, "/dashboard/links");
+    await signInAsDebugUser(page, "/workspace/links");
 
     const searchInput = page.getByRole("searchbox", {
       name: /搜索网站名称或描述|Search by name or description/i,
@@ -170,12 +170,12 @@ test.describe("仪表盘网站链接", () => {
 
   test("可以置顶和取消置顶链接并恢复状态", async ({ page }, testInfo) => {
     await setLocale(page, "zh-cn");
-    await signInAsDebugUser(page, "/dashboard/links");
-    await page.request.post("/api/dashboard-links/pin", {
-      form: { slug: "jw", action: "unpin", returnTo: "/dashboard/links" },
+    await signInAsDebugUser(page, "/workspace/links");
+    await page.request.post("/api/workspace/links/pin", {
+      form: { slug: "jw", action: "unpin", returnTo: "/workspace/links" },
       headers: JSON_HEADERS,
     });
-    await gotoAndWaitForReady(page, "/dashboard/links", {
+    await gotoAndWaitForReady(page, "/workspace/links", {
       testInfo,
       screenshotLabel: "dashboard-links",
     });
@@ -192,7 +192,7 @@ test.describe("仪表盘网站链接", () => {
       await card.hover();
 
       const pinForm = page
-        .locator('form[action="/api/dashboard-links/pin"]')
+        .locator('form[action="/api/workspace/links/pin"]')
         .filter({
           has: page.locator('input[name="slug"][value="jw"]'),
         })
@@ -210,7 +210,7 @@ test.describe("仪表盘网站链接", () => {
       const [response] = await Promise.all([
         page.waitForResponse(
           (res) =>
-            res.url().includes("/api/dashboard-links/pin") &&
+            res.url().includes("/api/workspace/links/pin") &&
             res.request().method() === "POST",
         ),
         currentPinButton.click({ force: true }),
@@ -260,8 +260,8 @@ test.describe("仪表盘网站链接", () => {
         intervals: [250, 500, 1_000],
       });
     } finally {
-      await page.request.post("/api/dashboard-links/pin", {
-        form: { slug: "jw", action: "pin", returnTo: "/dashboard/links" },
+      await page.request.post("/api/workspace/links/pin", {
+        form: { slug: "jw", action: "pin", returnTo: "/workspace/links" },
         headers: JSON_HEADERS,
       });
     }
@@ -269,12 +269,12 @@ test.describe("仪表盘网站链接", () => {
 
   test("搜索重新计算链接时保持置顶状态", async ({ page }, testInfo) => {
     await setLocale(page, "zh-cn");
-    await signInAsDebugUser(page, "/dashboard/links");
-    await page.request.post("/api/dashboard-links/pin", {
-      form: { slug: "jw", action: "unpin", returnTo: "/dashboard/links" },
+    await signInAsDebugUser(page, "/workspace/links");
+    await page.request.post("/api/workspace/links/pin", {
+      form: { slug: "jw", action: "unpin", returnTo: "/workspace/links" },
       headers: JSON_HEADERS,
     });
-    await gotoAndWaitForReady(page, "/dashboard/links");
+    await gotoAndWaitForReady(page, "/workspace/links");
 
     const searchInput = page.getByRole("searchbox", {
       name: /搜索网站名称或描述|Search by name or description/i,
@@ -292,7 +292,7 @@ test.describe("仪表盘网站链接", () => {
       await card.hover();
 
       return page
-        .locator('form[action="/api/dashboard-links/pin"]')
+        .locator('form[action="/api/workspace/links/pin"]')
         .filter({
           has: page.locator('input[name="slug"][value="jw"]'),
         })
@@ -307,7 +307,7 @@ test.describe("仪表盘网站链接", () => {
       const [response] = await Promise.all([
         page.waitForResponse(
           (res) =>
-            res.url().includes("/api/dashboard-links/pin") &&
+            res.url().includes("/api/workspace/links/pin") &&
             res.request().method() === "POST",
         ),
         button.click({ force: true }),
@@ -336,8 +336,8 @@ test.describe("仪表盘网站链接", () => {
         "dashboard-links-pin-search-stable",
       );
     } finally {
-      await page.request.post("/api/dashboard-links/pin", {
-        form: { slug: "jw", action: "pin", returnTo: "/dashboard/links" },
+      await page.request.post("/api/workspace/links/pin", {
+        form: { slug: "jw", action: "pin", returnTo: "/workspace/links" },
         headers: JSON_HEADERS,
       });
     }

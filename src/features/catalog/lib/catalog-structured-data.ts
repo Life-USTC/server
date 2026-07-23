@@ -98,7 +98,7 @@ export function buildCourseStructuredData({
       canonicalUrl,
       entityName: name,
       labels,
-      listPath: "/courses",
+      listPath: "/catalog/courses",
     }),
   );
 }
@@ -121,10 +121,10 @@ export function buildSectionStructuredData({
   const instructor = instructors
     .filter((teacher) => teacher.name)
     .map((teacher) => ({
-      "@id": `${new URL(`/teachers/${teacher.id}`, canonicalUrl).href}#person`,
+      "@id": `${new URL(`/catalog/teachers/${teacher.id}`, canonicalUrl).href}#person`,
       "@type": "Person",
       name: teacher.name,
-      url: new URL(`/teachers/${teacher.id}`, canonicalUrl).href,
+      url: new URL(`/catalog/teachers/${teacher.id}`, canonicalUrl).href,
     }));
   const entity = addDescription(
     {
@@ -132,10 +132,10 @@ export function buildSectionStructuredData({
       "@type": "CourseInstance",
       ...(instructor.length > 0 ? { instructor } : {}),
       isPartOf: {
-        "@id": `${new URL(`/courses/${course.jwId}`, canonicalUrl).href}#course`,
+        "@id": `${new URL(`/catalog/courses/${course.jwId}`, canonicalUrl).href}#course`,
         "@type": "Course",
         name: course.name,
-        url: new URL(`/courses/${course.jwId}`, canonicalUrl).href,
+        url: new URL(`/catalog/courses/${course.jwId}`, canonicalUrl).href,
       },
       name,
       url: canonicalUrl,
@@ -149,7 +149,7 @@ export function buildSectionStructuredData({
       canonicalUrl,
       entityName: name,
       labels,
-      listPath: "/sections",
+      listPath: "/catalog/sections",
     }),
   );
 }
@@ -174,7 +174,7 @@ export function buildTeacherStructuredData({
       canonicalUrl,
       entityName: name,
       labels,
-      listPath: "/teachers",
+      listPath: "/catalog/teachers",
     }),
   );
 }
