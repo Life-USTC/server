@@ -1,3 +1,10 @@
+## [1.77.14](https://github.com/Life-USTC/server/compare/v1.77.13...v1.77.14) (2026-07-23)
+
+
+### Bug Fixes
+
+* **ui:** restore bus planner and align catalog tables ([0ea172e](https://github.com/Life-USTC/server/commit/0ea172e397798b0f4695308dfa9d83553005269e))
+
 ## [1.77.13](https://github.com/Life-USTC/server/compare/v1.77.12...v1.77.13) (2026-07-23)
 
 
