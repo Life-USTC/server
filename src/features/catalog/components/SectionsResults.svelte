@@ -4,6 +4,7 @@ import {
   catalogShowingSummary,
   optionalCatalogFilterSummary,
 } from "@/features/catalog/lib/catalog-results-summary";
+import TruncatedText from "$lib/components/TruncatedText.svelte";
 import { Badge } from "$lib/components/ui/badge/index.js";
 import * as Item from "$lib/components/ui/item/index.js";
 import * as Table from "$lib/components/ui/table/index.js";
@@ -104,15 +105,21 @@ $: sectionSemesterSummary = selectedSemester
             <Table.Row>
               <Table.Cell class="p-0 align-top">
                 <CatalogTableLink href={sectionHref} nowrap>
-                  {section.semester?.nameCn ?? sectionLabels.noSemester}
+                  <TruncatedText
+                    text={section.semester?.nameCn ?? sectionLabels.noSemester}
+                  />
                 </CatalogTableLink>
               </Table.Cell>
               <Table.Cell class="p-0 align-top whitespace-normal">
                 <CatalogTableLink href={sectionHref}>
-                  <span class="font-medium">{primaryName(section.course)}</span>
-                  {#if secondaryName(section.course)}
-                    <span class="block text-muted-foreground text-xs">{secondaryName(section.course)}</span>
-                  {/if}
+                  <TruncatedText
+                    class="font-medium"
+                    text={primaryName(section.course)}
+                  />
+                  <TruncatedText
+                    class="text-muted-foreground text-xs"
+                    text={secondaryName(section.course)}
+                  />
                 </CatalogTableLink>
               </Table.Cell>
               <Table.Cell class="p-0 align-top">
@@ -122,7 +129,9 @@ $: sectionSemesterSummary = selectedSemester
               </Table.Cell>
               <Table.Cell class="p-0 align-top whitespace-normal">
                 <CatalogTableLink href={sectionHref}>
-                  {teacherNames(section.teachers) || "-"}
+                  <TruncatedText
+                    text={teacherNames(section.teachers) || "-"}
+                  />
                 </CatalogTableLink>
               </Table.Cell>
               <Table.Cell class="p-0 text-right align-top">
@@ -137,7 +146,9 @@ $: sectionSemesterSummary = selectedSemester
               </Table.Cell>
               <Table.Cell class="p-0 text-right align-top">
                 <CatalogTableLink href={sectionHref}>
-                  {section.campus ? primaryName(section.campus) : "-"}
+                  <TruncatedText
+                    text={section.campus ? primaryName(section.campus) : "-"}
+                  />
                 </CatalogTableLink>
               </Table.Cell>
             </Table.Row>

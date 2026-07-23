@@ -4,6 +4,7 @@ import {
   catalogShowingSummary,
   optionalCatalogFilterSummary,
 } from "@/features/catalog/lib/catalog-results-summary";
+import TruncatedText from "$lib/components/TruncatedText.svelte";
 import { Badge } from "$lib/components/ui/badge/index.js";
 import * as Item from "$lib/components/ui/item/index.js";
 import * as Table from "$lib/components/ui/table/index.js";
@@ -71,7 +72,7 @@ $: courseSearchSummary = optionalCatalogFilterSummary(
       </Item.Group>
     </div>
     <div class="hidden xl:block">
-      <Table.Root>
+      <Table.Root class="table-fixed">
         <Table.Header>
           <Table.Row>
             <Table.Head class="min-w-72">{courseLabels.courseName}</Table.Head>
@@ -87,10 +88,14 @@ $: courseSearchSummary = optionalCatalogFilterSummary(
             <Table.Row>
               <Table.Cell class="min-w-72 p-0 align-top">
                 <CatalogTableLink href={courseHref}>
-                  <span class="font-medium">{primaryName(course)}</span>
-                  {#if secondaryName(course)}
-                    <span class="block text-muted-foreground text-xs">{secondaryName(course)}</span>
-                  {/if}
+                  <TruncatedText
+                    class="font-medium"
+                    text={primaryName(course)}
+                  />
+                  <TruncatedText
+                    class="text-muted-foreground text-xs"
+                    text={secondaryName(course)}
+                  />
                 </CatalogTableLink>
               </Table.Cell>
               <Table.Cell class="p-0 align-top">
@@ -100,17 +105,27 @@ $: courseSearchSummary = optionalCatalogFilterSummary(
               </Table.Cell>
               <Table.Cell class="p-0 align-top">
                 <CatalogTableLink href={courseHref}>
-                  {course.educationLevel ? primaryName(course.educationLevel) : "-"}
+                  <TruncatedText
+                    text={course.educationLevel
+                      ? primaryName(course.educationLevel)
+                      : "-"}
+                  />
                 </CatalogTableLink>
               </Table.Cell>
               <Table.Cell class="p-0 align-top">
                 <CatalogTableLink href={courseHref}>
-                  {course.category ? primaryName(course.category) : "-"}
+                  <TruncatedText
+                    text={course.category ? primaryName(course.category) : "-"}
+                  />
                 </CatalogTableLink>
               </Table.Cell>
               <Table.Cell class="p-0 align-top">
                 <CatalogTableLink href={courseHref}>
-                  {course.classType ? primaryName(course.classType) : "-"}
+                  <TruncatedText
+                    text={course.classType
+                      ? primaryName(course.classType)
+                      : "-"}
+                  />
                 </CatalogTableLink>
               </Table.Cell>
             </Table.Row>

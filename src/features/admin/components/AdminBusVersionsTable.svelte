@@ -1,4 +1,5 @@
 <script lang="ts">
+import TruncatedText from "$lib/components/TruncatedText.svelte";
 import * as Empty from "$lib/components/ui/empty/index.js";
 import * as Table from "$lib/components/ui/table/index.js";
 import AdminBusVersionActions from "./AdminBusVersionActions.svelte";
@@ -36,11 +37,16 @@ export let versions: AdminBusVersion[];
     <Table.Body>
       {#each versions as version}
         <Table.Row>
-          <Table.Cell>
-            <div class="font-medium">{version.title}</div>
-            {#if version.sourceMessage}<div class="text-muted-foreground text-xs">{version.sourceMessage}</div>{/if}
+          <Table.Cell class="max-w-72">
+            <TruncatedText class="font-medium" text={version.title} />
+            <TruncatedText
+              class="text-muted-foreground text-xs"
+              text={version.sourceMessage}
+            />
           </Table.Cell>
-          <Table.Cell>{version.key}</Table.Cell>
+          <Table.Cell class="max-w-48">
+            <TruncatedText text={version.key} />
+          </Table.Cell>
           <Table.Cell>{version.tripCount}</Table.Cell>
           <Table.Cell>{formatEffectiveRange(version)}</Table.Cell>
           <Table.Cell>{formatImportedAt(version.importedAt)}</Table.Cell>

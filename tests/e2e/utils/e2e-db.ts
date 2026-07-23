@@ -140,10 +140,9 @@ export const setBusPreferenceFixture = (
   preference: busFixtures.BusPreferenceFixture,
 ) => runDbFixture<void>("setBusPreferenceFixture", [userId, preference]);
 
-export const createTempCoursesFixture = (options: {
-  count: number;
-  prefix: string;
-}) => runDbFixture<{ count: number }>("createTempCoursesFixture", [options]);
+export const createTempCoursesFixture = (
+  options: catalogFixtures.TempCoursesFixtureOptions,
+) => runDbFixture<{ count: number }>("createTempCoursesFixture", [options]);
 
 export const deleteTempCoursesByPrefix = (prefix: string) =>
   runDbFixture<void>("deleteTempCoursesByPrefix", [prefix]);

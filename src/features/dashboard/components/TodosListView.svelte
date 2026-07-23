@@ -5,6 +5,7 @@ import type {
   DashboardTodoItem,
   DashboardTodosCopy,
 } from "@/features/dashboard/lib/dashboard-controller-types";
+import TruncatedText from "$lib/components/TruncatedText.svelte";
 import { Badge } from "$lib/components/ui/badge/index.js";
 import { Button } from "$lib/components/ui/button/index.js";
 import * as Empty from "$lib/components/ui/empty/index.js";
@@ -40,14 +41,16 @@ export let toggleTodoCompletion: TodoCompletionToggle;
       <Table.Row>
         <Table.Cell class="max-w-0">
           <button
-            class:line-through={todo.completed}
-            class="block max-w-full truncate text-left font-medium hover:underline"
+            class="block min-w-0 max-w-full overflow-hidden text-left font-medium hover:underline"
             type="button"
             onclick={() => {
               selectedTodo = todo;
             }}
           >
-            {todo.title}
+            <TruncatedText
+              class={todo.completed ? "line-through" : undefined}
+              text={todo.title}
+            />
           </button>
         </Table.Cell>
         <Table.Cell class="text-center">

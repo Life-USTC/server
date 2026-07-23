@@ -1,4 +1,5 @@
 <script lang="ts">
+import TruncatedText from "$lib/components/TruncatedText.svelte";
 import { Button } from "$lib/components/ui/button/index.js";
 import * as Table from "$lib/components/ui/table/index.js";
 import type {
@@ -31,16 +32,20 @@ export let subscriptionsCopy: ExamsCopyProps["subscriptionsCopy"];
     {#each exams as exam}
       <Table.Row>
         <Table.Cell class="max-w-0">
-          <a class="block max-w-full truncate font-semibold underline-offset-4 hover:underline" href={exam.section.jwId ? `/catalog/sections/${exam.section.jwId}` : dashboardTabHref("subscriptions")}>
-            {exam.courseName}
+          <a class="block min-w-0 max-w-full overflow-hidden font-semibold underline-offset-4 hover:underline" href={exam.section.jwId ? `/catalog/sections/${exam.section.jwId}` : dashboardTabHref("subscriptions")}>
+            <TruncatedText text={exam.courseName} />
           </a>
         </Table.Cell>
-        <Table.Cell class="max-w-48 truncate">{exam.section.code ?? subscriptionsCopy.section}</Table.Cell>
+        <Table.Cell class="max-w-48">
+          <TruncatedText text={exam.section.code ?? subscriptionsCopy.section} />
+        </Table.Cell>
         <Table.Cell class="text-center">
           {#if exam.dateKey}{exam.dateKey}{:else}<span class="text-muted-foreground">{sectionCopy.examDateTBD}</span>{/if}
         </Table.Cell>
         <Table.Cell class="text-center">{examTimeLabel(exam.startTime, exam.endTime) || "—"}</Table.Cell>
-        <Table.Cell class="max-w-56 truncate">{exam.rooms || sectionCopy.roomTbd}</Table.Cell>
+        <Table.Cell class="max-w-56">
+          <TruncatedText text={exam.rooms || sectionCopy.roomTbd} />
+        </Table.Cell>
         <Table.Cell>
           <div class="flex justify-end">
             <Button href={exam.section.jwId ? `/catalog/sections/${exam.section.jwId}` : dashboardTabHref("subscriptions")} size="sm" variant="outline">
