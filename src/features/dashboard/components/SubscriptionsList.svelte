@@ -69,9 +69,9 @@ async function confirmRemoveSection() {
 </script>
 
 {#if subscriptions.length > 0}
-  <div class="min-w-0 2xl:columns-2 2xl:gap-4">
+  <div class="grid min-w-0 gap-4 2xl:grid-cols-2 2xl:items-start">
     {#each sectionGroups as group}
-      <section class="mb-4 grid min-w-0 break-inside-avoid gap-2">
+      <section class="grid min-w-0 gap-2">
         <div class="flex flex-wrap items-center justify-between gap-2 text-sm">
           <h3 class="font-medium">
             {formatMessage(subscriptionsCopy.semesterGroup, {
@@ -87,10 +87,10 @@ async function confirmRemoveSection() {
           </span>
         </div>
         <div class="min-w-0 overflow-hidden rounded-lg border">
-          <Table.Root>
+          <Table.Root class="table-fixed">
             <Table.Header>
               <Table.Row>
-                <Table.Head>{subscriptionsCopy.section}</Table.Head>
+                <Table.Head class="w-28">{subscriptionsCopy.section}</Table.Head>
                 <Table.Head class="hidden md:table-cell">
                   {subscriptionsCopy.courseName}
                 </Table.Head>
@@ -114,22 +114,24 @@ async function confirmRemoveSection() {
               onclick={() => openSectionDetails(section)}
               onkeydown={(event) => handleRowKeydown(event, section)}
             >
-              <Table.Cell class="min-w-0 align-top">
-                <div class="font-medium">{section.code}</div>
-                <div class="mt-1 break-words text-sm md:hidden">
+              <Table.Cell class="min-w-0 overflow-hidden align-top">
+                <div class="truncate font-medium">{section.code}</div>
+                <div class="mt-1 truncate text-sm md:hidden">
                   {section.course.namePrimary ?? dashboardCopy.notAvailable}
                 </div>
-                <div class="mt-1 break-words text-xs text-muted-foreground lg:hidden">
+                <div class="mt-1 truncate text-xs text-muted-foreground lg:hidden">
                   {teacherNames(section)}
                 </div>
               </Table.Cell>
-              <Table.Cell class="hidden max-w-sm break-words align-top md:table-cell">
-                {section.course.namePrimary ?? dashboardCopy.notAvailable}
+              <Table.Cell class="hidden min-w-0 overflow-hidden align-top md:table-cell">
+                <div class="truncate">
+                  {section.course.namePrimary ?? dashboardCopy.notAvailable}
+                </div>
               </Table.Cell>
-              <Table.Cell class="hidden max-w-xs break-words align-top lg:table-cell">
-                {teacherNames(section)}
+              <Table.Cell class="hidden min-w-0 overflow-hidden align-top lg:table-cell">
+                <div class="truncate">{teacherNames(section)}</div>
               </Table.Cell>
-              <Table.Cell class="text-end align-top">
+              <Table.Cell class="w-20 text-end align-top">
                 {section.credits ?? dashboardCopy.notAvailable}
               </Table.Cell>
             </Table.Row>
@@ -162,7 +164,7 @@ async function confirmRemoveSection() {
   {#if selectedSection}
     <Dialog.Content class="max-w-lg sm:max-w-lg">
       <Dialog.Header>
-        <Dialog.Title>
+        <Dialog.Title class="break-words">
           {selectedSection.course.namePrimary ?? dashboardCopy.notAvailable}
         </Dialog.Title>
         <Dialog.Description>

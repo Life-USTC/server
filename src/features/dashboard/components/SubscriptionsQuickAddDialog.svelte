@@ -154,15 +154,15 @@ async function subscribeSelectedSections() {
       if (!nextOpen) closeDialog();
     }}
   >
-    <Dialog.Content class="max-w-lg sm:max-w-lg">
-      <Dialog.Header>
+    <Dialog.Content class="max-w-lg gap-0 sm:max-w-lg">
+      <Dialog.Header class="pb-2">
         <Dialog.Title>{subscriptionsCopy.quickAdd.title}</Dialog.Title>
         <Dialog.Description>
           {subscriptionsCopy.quickAdd.description}
         </Dialog.Description>
       </Dialog.Header>
 
-      <Field.Group class="gap-4 px-5 py-4">
+      <Field.Group class="gap-4 px-5 pb-2 pt-2">
         {#if error}
           <Alert.Root variant="destructive">
             <Alert.Description>{error}</Alert.Description>
@@ -230,7 +230,7 @@ async function subscribeSelectedSections() {
       {#if hasSearched}
         <Separator />
         <ScrollArea class="h-[min(42vh,20rem)]">
-          <div class="px-5 py-4">
+          <div class="px-5 py-2">
             {#if results.length > 0}
               <Field.Set>
                 <Field.Legend variant="label">

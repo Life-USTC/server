@@ -39,7 +39,9 @@ export async function listSubscribedSectionsForSubscriptionsTab(
         code: true,
         credits: true,
         course: { select: { code: true, jwId: true, namePrimary: true } },
-        semester: { select: { id: true, nameCn: true, startDate: true } },
+        semester: {
+          select: { id: true, nameCn: true, startDate: true, endDate: true },
+        },
         teachers: { select: { namePrimary: true } },
       };
       const examSelect = {
@@ -100,6 +102,9 @@ export function subscriptionSectionFromRow(
           nameCn: row.semester.nameCn,
           startDate: row.semester.startDate
             ? toShanghaiIsoString(row.semester.startDate)
+            : null,
+          endDate: row.semester.endDate
+            ? toShanghaiIsoString(row.semester.endDate)
             : null,
         }
       : null,

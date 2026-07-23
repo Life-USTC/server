@@ -204,7 +204,8 @@
           "A standalone quick-add dialog searches section codes, course codes, localized course names, and localized teacher names within one semester, shows matching sections as checkbox options, and subscribes the selected sections without entering the batch-import confirmation flow",
           "A separate batch-import dialog accepts pasted course and section codes for one selected semester",
           "Batch subscribe, unsubscribe, and replace/update actions",
-          "Subscribed sections are grouped by semester into separate responsive tables; the layout stays single-column until an extra-wide viewport can show masonry-style columns without squeezing",
+          "Subscribed sections are grouped by semester into separate responsive tables ordered by proximity to today; the layout stays single-column until an extra-wide viewport can show a row-ordered two-column grid without squeezing or placing a more distant semester above a nearer one",
+          "Long course names and teacher lists are visually truncated inside table rows without changing the complete text shown in the section details dialog",
           "Each table row opens a details dialog with section metadata, a course-homepage link, and an unsubscribe action guarded by a destructive confirmation dialog",
           "Matched quick-add options show course, code, semester, campus, and teachers; already-subscribed sections cannot be selected again",
           "Unmatched codes"
