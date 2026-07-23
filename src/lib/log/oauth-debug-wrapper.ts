@@ -30,8 +30,8 @@ function recordBetterAuthResponseAnalytics(input: {
   status: number;
 }) {
   writeOAuthEventAnalytics({
-    durationMs: Date.now() - input.start,
     event: "better-auth.response",
+    ioObservedDurationMs: Date.now() - input.start,
     method: input.method,
     path: input.path,
     status: input.status,
@@ -45,8 +45,8 @@ function recordBetterAuthErrorAnalytics(input: {
   start: number;
 }) {
   writeOAuthEventAnalytics({
-    durationMs: Date.now() - input.start,
     event: "better-auth.error",
+    ioObservedDurationMs: Date.now() - input.start,
     method: input.method,
     path: input.path,
     status: 500,
@@ -133,7 +133,7 @@ export async function withBetterAuthOAuthDebug(
       method,
       path,
       status: res.status,
-      ms: Date.now() - start,
+      ioObservedDurationMs: Date.now() - start,
       ...(redirectTo ? { redirectTo } : {}),
       ...(location && !redirectTo ? { locationPresent: true } : {}),
       ...(errorBody ? { errorBody } : {}),
@@ -150,7 +150,7 @@ export async function withBetterAuthOAuthDebug(
       correlationId,
       method,
       path,
-      ms: Date.now() - start,
+      ioObservedDurationMs: Date.now() - start,
       errorName: getSafeErrorName(err),
     });
     recordBetterAuthErrorAnalytics({ error: err, method, path, start });

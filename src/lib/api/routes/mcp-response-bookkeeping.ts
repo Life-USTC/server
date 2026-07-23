@@ -22,11 +22,11 @@ export function recordAndLogMcpResponse(input: {
   toolCount?: number;
   wwwAuthenticatePrefix?: string | null;
 }) {
-  const durationMs = Date.now() - input.start;
+  const ioObservedDurationMs = Date.now() - input.start;
   logMcpTransportResponse({
     authFailureDiagnostics: input.authFailureDiagnostics,
     context: input.context,
-    durationMs,
+    ioObservedDurationMs,
     errorName: input.errorName,
     phase: input.phase,
     rpcSummary: input.rpcSummary,
@@ -35,8 +35,8 @@ export function recordAndLogMcpResponse(input: {
     wwwAuthenticatePrefix: input.wwwAuthenticatePrefix,
   });
   writeMcpTransportAnalytics({
-    durationMs,
     errorName: input.errorName,
+    ioObservedDurationMs,
     method: input.context.request.method,
     path: input.context.requestUrl.pathname,
     phase: input.phase,
@@ -44,5 +44,5 @@ export function recordAndLogMcpResponse(input: {
     status: input.status,
     toolCount: input.toolCount,
   });
-  return durationMs;
+  return ioObservedDurationMs;
 }

@@ -66,7 +66,7 @@ describe("Cloudflare Analytics Engine runtime events", () => {
     expect(writeDataPoint).toHaveBeenCalledWith({
       indexes: ["mcp:handled"],
       blobs: [
-        "mcp_transport",
+        "mcp_transport_v2",
         "handled",
         "POST",
         "/api/mcp",
@@ -102,7 +102,7 @@ describe("Cloudflare Analytics Engine runtime events", () => {
     expect(writeDataPoint).toHaveBeenCalledWith({
       indexes: ["oauth:/api/auth/oauth2/token"],
       blobs: [
-        "oauth_event",
+        "oauth_event_v2",
         "better-auth.response",
         "POST",
         "/api/auth/oauth2/token",
@@ -122,9 +122,9 @@ describe("Cloudflare Analytics Engine runtime events", () => {
     const writeDataPoint = installAnalyticsBinding();
 
     writeOAuthEventAnalytics({
-      durationMs: 0,
       errorName: "TypeError",
       event: "grant-validation-failed",
+      ioObservedDurationMs: 0,
       path: "/api/auth/oauth2/token",
       phase: "resolve-active-refresh-grant",
       status: 503,
@@ -133,7 +133,7 @@ describe("Cloudflare Analytics Engine runtime events", () => {
     expect(writeDataPoint).toHaveBeenCalledWith({
       indexes: ["oauth:/api/auth/oauth2/token"],
       blobs: [
-        "oauth_event",
+        "oauth_event_v2",
         "grant-validation-failed",
         "unknown",
         "/api/auth/oauth2/token",
@@ -166,7 +166,7 @@ describe("Cloudflare Analytics Engine runtime events", () => {
 
     expect(writeDataPoint).toHaveBeenCalledWith({
       indexes: ["audit:comment_create"],
-      blobs: ["audit_write", "success", "comment_create", "comment"],
+      blobs: ["audit_write_v2", "success", "comment_create", "comment"],
       doubles: [expect.any(Number)],
     });
     expect(JSON.stringify(writeDataPoint.mock.calls)).not.toContain(
@@ -215,17 +215,17 @@ describe("Cloudflare Analytics Engine runtime events", () => {
 
     expect(writeDataPoint).toHaveBeenNthCalledWith(1, {
       indexes: ["storage:head"],
-      blobs: ["storage_operation", "success", "head"],
+      blobs: ["storage_operation_v2", "success", "head"],
       doubles: [expect.any(Number), 42],
     });
     expect(writeDataPoint).toHaveBeenNthCalledWith(2, {
       indexes: ["storage:get"],
-      blobs: ["storage_operation", "success", "get"],
+      blobs: ["storage_operation_v2", "success", "get"],
       doubles: [expect.any(Number), 42],
     });
     expect(writeDataPoint).toHaveBeenNthCalledWith(3, {
       indexes: ["storage:put"],
-      blobs: ["storage_operation", "success", "put"],
+      blobs: ["storage_operation_v2", "success", "put"],
       doubles: [expect.any(Number), 0],
     });
     expect(JSON.stringify(writeDataPoint.mock.calls)).not.toContain(
@@ -244,12 +244,12 @@ describe("Cloudflare Analytics Engine runtime events", () => {
     expect(load).toHaveBeenCalledTimes(1);
     expect(writeDataPoint).toHaveBeenCalledWith({
       indexes: ["cache:api:courses:en-us"],
-      blobs: ["public_runtime_cache", "miss", "api:courses:en-us"],
+      blobs: ["public_runtime_cache_v2", "miss", "api:courses:en-us"],
       doubles: [expect.any(Number), 60_000, 0],
     });
     expect(writeDataPoint).toHaveBeenCalledWith({
       indexes: ["cache:api:courses:en-us"],
-      blobs: ["public_runtime_cache", "hit", "api:courses:en-us"],
+      blobs: ["public_runtime_cache_v2", "hit", "api:courses:en-us"],
       doubles: [expect.any(Number), 60_000, 1],
     });
     expect(JSON.stringify(writeDataPoint.mock.calls)).not.toContain(

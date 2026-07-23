@@ -104,15 +104,15 @@ export async function writeAuditLog(
     });
     writeAuditWriteAnalytics({
       action: params.action,
-      durationMs: Date.now() - start,
       event: "success",
+      ioObservedDurationMs: Date.now() - start,
       targetType: params.targetType,
     });
   } catch (error) {
     writeAuditWriteAnalytics({
       action: params.action,
-      durationMs: Date.now() - start,
       event: "error",
+      ioObservedDurationMs: Date.now() - start,
       targetType: params.targetType,
     });
     throw error;

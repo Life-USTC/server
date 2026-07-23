@@ -6,18 +6,19 @@ import type {
 
 type ApiRequestAnalyticsInput = {
   authMode: string;
-  durationMs: number;
   event: "finish" | "error";
+  ioObservedDurationMs: number;
   method: string;
   route: string;
   status: number;
 };
 
 type PageRequestAnalyticsInput = {
-  appDurationMs: number;
-  authDurationMs: number;
+  appIoObservedDurationMs: number;
+  authIoObservedDurationMs: number;
   authMode: "anonymous" | "authenticated";
-  durationMs: number;
+  event: "finish" | "error";
+  ioObservedDurationMs: number;
   locale: string;
   method: string;
   responseBytes?: number;
@@ -26,8 +27,8 @@ type PageRequestAnalyticsInput = {
 };
 
 type McpTransportAnalyticsInput = {
-  durationMs: number;
   errorName?: string;
+  ioObservedDurationMs: number;
   method: string;
   path: string;
   phase: McpResponsePhase;
@@ -37,7 +38,6 @@ type McpTransportAnalyticsInput = {
 };
 
 type OAuthEventAnalyticsInput = {
-  durationMs: number;
   errorName?: string;
   event: string;
   grantType?: string | null;
@@ -49,25 +49,26 @@ type OAuthEventAnalyticsInput = {
   scopeCount?: number;
   status?: number;
   statusReason?: string;
+  ioObservedDurationMs: number;
 };
 
 type AuditWriteAnalyticsInput = {
   action: string;
-  durationMs: number;
   event: "success" | "error";
+  ioObservedDurationMs: number;
   targetType?: string;
 };
 
 type StorageOperationAnalyticsInput = {
-  durationMs: number;
   event: "success" | "error" | "miss";
+  ioObservedDurationMs: number;
   operation: "delete" | "get" | "head" | "put";
   size?: number | null;
 };
 
 type CacheEventAnalyticsInput = {
-  durationMs: number;
   event: "hit" | "load_error" | "load_success" | "miss";
+  ioObservedDurationMs: number;
   key: string;
   storeSize: number;
   ttlMs: number;
@@ -88,10 +89,10 @@ type CalendarFeedCacheAnalyticsInput = {
 
 type GraphqlOperationAnalyticsInput = {
   authMode: string;
-  durationMs: number;
   errorCount: number;
   estimatedCost: number;
   internalErrorCount: number;
+  ioObservedDurationMs: number;
   operationName: string;
   operationType: string;
   requestId: string;
@@ -151,7 +152,7 @@ export function writeApiRequestAnalytics(input: ApiRequestAnalyticsInput) {
   writeAnalyticsDataPoint({
     indexes: [boundedValue(input.route)],
     blobs: [
-      "api_request",
+      "api_request_v2",
       input.event,
       boundedValue(input.method),
       boundedValue(input.route),
@@ -159,7 +160,7 @@ export function writeApiRequestAnalytics(input: ApiRequestAnalyticsInput) {
       statusClass(input.status),
       boundedValue(input.authMode),
     ],
-    doubles: [input.durationMs, input.status],
+    doubles: [input.ioObservedDurationMs, input.status],
   });
 }
 
@@ -168,7 +169,8 @@ export function writePageRequestAnalytics(input: PageRequestAnalyticsInput) {
   writeAnalyticsDataPoint({
     indexes: [`page:${boundedValue(input.route)}`],
     blobs: [
-      "page_request",
+      "page_request_v2",
+      input.event,
       boundedValue(input.route),
       boundedValue(input.method),
       String(input.status),
@@ -178,11 +180,11 @@ export function writePageRequestAnalytics(input: PageRequestAnalyticsInput) {
       hasResponseBytes ? "response_bytes_known" : "response_bytes_unknown",
     ],
     doubles: [
-      input.durationMs,
+      input.ioObservedDurationMs,
       input.status,
       input.responseBytes ?? 0,
-      input.authDurationMs,
-      input.appDurationMs,
+      input.authIoObservedDurationMs,
+      input.appIoObservedDurationMs,
     ],
   });
 }
@@ -192,7 +194,7 @@ export function writeMcpTransportAnalytics(input: McpTransportAnalyticsInput) {
   writeAnalyticsDataPoint({
     indexes: [`mcp:${boundedValue(input.phase)}`],
     blobs: [
-      "mcp_transport",
+      "mcp_transport_v2",
       input.phase,
       input.method,
       input.path,
@@ -205,7 +207,7 @@ export function writeMcpTransportAnalytics(input: McpTransportAnalyticsInput) {
       input.errorName ?? "none",
     ],
     doubles: [
-      input.durationMs,
+      input.ioObservedDurationMs,
       input.status,
       rpcSummary?.rpcCount ?? 0,
       input.toolCount ?? 0,
@@ -218,7 +220,7 @@ export function writeOAuthEventAnalytics(input: OAuthEventAnalyticsInput) {
   writeAnalyticsDataPoint({
     indexes: [`oauth:${boundedValue(input.path ?? input.event)}`],
     blobs: [
-      "oauth_event",
+      "oauth_event_v2",
       input.event,
       input.method ?? "unknown",
       input.path ?? "unknown",
@@ -235,7 +237,7 @@ export function writeOAuthEventAnalytics(input: OAuthEventAnalyticsInput) {
       input.errorName ?? "none",
     ],
     doubles: [
-      input.durationMs,
+      input.ioObservedDurationMs,
       status,
       input.resourceCount ?? 0,
       input.scopeCount ?? 0,
@@ -247,12 +249,12 @@ export function writeAuditWriteAnalytics(input: AuditWriteAnalyticsInput) {
   writeAnalyticsDataPoint({
     indexes: [`audit:${boundedValue(input.action)}`],
     blobs: [
-      "audit_write",
+      "audit_write_v2",
       input.event,
       input.action,
       input.targetType ?? "unknown",
     ],
-    doubles: [input.durationMs],
+    doubles: [input.ioObservedDurationMs],
   });
 }
 
@@ -261,16 +263,16 @@ export function writeStorageOperationAnalytics(
 ) {
   writeAnalyticsDataPoint({
     indexes: [`storage:${boundedValue(input.operation)}`],
-    blobs: ["storage_operation", input.event, input.operation],
-    doubles: [input.durationMs, input.size ?? 0],
+    blobs: ["storage_operation_v2", input.event, input.operation],
+    doubles: [input.ioObservedDurationMs, input.size ?? 0],
   });
 }
 
 export function writeCacheEventAnalytics(input: CacheEventAnalyticsInput) {
   writeAnalyticsDataPoint({
     indexes: [`cache:${boundedValue(cacheNamespace(input.key))}`],
-    blobs: ["public_runtime_cache", input.event, cacheNamespace(input.key)],
-    doubles: [input.durationMs, input.ttlMs, input.storeSize],
+    blobs: ["public_runtime_cache_v2", input.event, cacheNamespace(input.key)],
+    doubles: [input.ioObservedDurationMs, input.ttlMs, input.storeSize],
   });
 }
 
@@ -290,14 +292,14 @@ export function writeGraphqlOperationAnalytics(
   writeAnalyticsDataPoint({
     indexes: [`graphql:${boundedValue(input.operationType)}`],
     blobs: [
-      "graphql_operation",
+      "graphql_operation_v2",
       boundedValue(input.operationName),
       boundedValue(input.operationType),
       boundedValue(input.authMode),
       boundedValue(input.requestId),
     ],
     doubles: [
-      input.durationMs,
+      input.ioObservedDurationMs,
       input.topLevelFieldCount,
       input.estimatedCost,
       input.errorCount,

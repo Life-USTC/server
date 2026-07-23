@@ -10,7 +10,7 @@ export function recordApiRequestStart(input: {
 }) {
   const route = normalizeApiRoutePath(input.pathname);
 
-  logApiRequest(input.method, route, 0, 0, {
+  logApiRequest(input.method, route, 0, undefined, {
     event: "request.start",
     requestId: input.requestId,
   });
@@ -18,7 +18,7 @@ export function recordApiRequestStart(input: {
 
 export function recordApiRequestFinish(input: {
   authMode: string;
-  durationMs: number;
+  ioObservedDurationMs: number;
   method: string;
   requestId: string;
   route: string;
@@ -28,7 +28,7 @@ export function recordApiRequestFinish(input: {
     input.method,
     input.route,
     input.status,
-    input.durationMs,
+    input.ioObservedDurationMs,
     {
       authMode: input.authMode,
       event: "request.finish",
@@ -38,8 +38,8 @@ export function recordApiRequestFinish(input: {
   );
   writeApiRequestAnalytics({
     authMode: input.authMode,
-    durationMs: input.durationMs,
     event: "finish",
+    ioObservedDurationMs: input.ioObservedDurationMs,
     method: input.method,
     route: input.route,
     status: input.status,
@@ -48,8 +48,8 @@ export function recordApiRequestFinish(input: {
 
 export function recordApiRequestError(input: {
   authMode: string;
-  durationMs: number;
   error: unknown;
+  ioObservedDurationMs: number;
   method: string;
   requestId: string;
   route: string;
@@ -59,7 +59,7 @@ export function recordApiRequestError(input: {
     input.method,
     input.route,
     status,
-    input.durationMs,
+    input.ioObservedDurationMs,
     {
       authMode: input.authMode,
       errorName: getSafeErrorName(input.error),
@@ -70,8 +70,8 @@ export function recordApiRequestError(input: {
   );
   writeApiRequestAnalytics({
     authMode: input.authMode,
-    durationMs: input.durationMs,
     event: "error",
+    ioObservedDurationMs: input.ioObservedDurationMs,
     method: input.method,
     route: input.route,
     status,

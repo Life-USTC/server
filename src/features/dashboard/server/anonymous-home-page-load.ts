@@ -14,8 +14,8 @@ export async function loadAnonymousHomePage({
   };
 
   logAppEvent("info", "dashboard.load.finish", {
-    durationMs: Date.now() - startMs,
     event: "dashboard.load.finish",
+    ioObservedDurationMs: Date.now() - startMs,
     requestId: locals.requestId,
     signedIn: false,
     source: "home",

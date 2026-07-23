@@ -7,6 +7,7 @@ import { getAdminOAuthCopy } from "@/features/admin/lib/admin-oauth-page-copy";
 import { requireAdminPage } from "@/features/admin/server/admin-page-data";
 import type { AppLocale } from "@/i18n/config";
 import { authApi } from "@/lib/auth/core";
+import { logServerActionError } from "@/lib/log/app-logger";
 import { resolveOAuthClientGrantTypes } from "@/lib/oauth/client-registration";
 import { OAUTH_CODE_RESPONSE_TYPE } from "@/lib/oauth/constants";
 import { asOAuthProviderApi } from "@/lib/oauth/provider-api";
@@ -15,6 +16,7 @@ import { parseAdminOAuthCreateRequest } from "./admin-oauth-create-request";
 export async function createAdminOAuthClientAction(
   request: Request,
   locale: AppLocale,
+  requestId: string,
 ) {
   const copy = getAdminOAuthCopy(locale).oauth;
   await requireAdminPage(request, { requireActive: true });
@@ -55,6 +57,11 @@ export async function createAdminOAuthClientAction(
       createdClientTrusted: clientPattern.skipConsent,
     };
   } catch (error) {
+    logServerActionError("admin.oauth-client.create.failed", error, {
+      action: "create-client",
+      requestId,
+      route: "/admin/oauth",
+    });
     return fail(500, {
       message: getOAuthActionErrorMessage(error, copy.createError),
     });

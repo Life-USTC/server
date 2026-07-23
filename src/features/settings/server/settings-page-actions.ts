@@ -12,6 +12,7 @@ type SettingsActionEvent = {
   cookies: Cookies;
   locals: {
     locale: AppLocale;
+    requestId: string;
   };
   request: Request;
   url: URL;
@@ -38,6 +39,7 @@ export const settingsPageActions = {
     revokeSettingsAuthorizationAction({
       locale: locals.locale,
       request,
+      requestId: locals.requestId,
       url,
     }),
   deleteAccount: async ({

@@ -99,25 +99,25 @@ function graphqlErrorCounts(result: unknown): GraphqlErrorCounts {
 export function recordGraphqlOperationObservation(
   input: GraphqlOperationAnalysis & {
     authMode: GraphqlAuthMode;
-    durationMs: number;
     errorCount: number;
     internalErrorCount: number;
+    ioObservedDurationMs: number;
     requestId?: string | null;
   },
 ) {
   const sanitizedObservation = {
     ...input,
-    durationMs: Math.max(0, input.durationMs),
     errorCount: Math.max(0, input.errorCount),
     internalErrorCount: Math.max(0, input.internalErrorCount),
+    ioObservedDurationMs: Math.max(0, input.ioObservedDurationMs),
     requestId: safeRequestId(input.requestId),
   };
   const observation = {
     authMode: sanitizedObservation.authMode,
-    durationMs: sanitizedObservation.durationMs,
     errorCount: sanitizedObservation.errorCount,
     estimatedCost: sanitizedObservation.estimatedCost,
     internalErrorCount: sanitizedObservation.internalErrorCount,
+    ioObservedDurationMs: sanitizedObservation.ioObservedDurationMs,
     operationName: sanitizedObservation.operationName,
     operationType: sanitizedObservation.operationType,
     requestId: sanitizedObservation.requestId,
@@ -146,10 +146,10 @@ export function recordGraphqlOperationObservation(
 function recordObservation(state: GraphqlObservationState) {
   recordGraphqlOperationObservation({
     authMode: state.authMode,
-    durationMs: Date.now() - state.startMs,
     errorCount: state.errorCount,
     estimatedCost: state.estimatedCost,
     internalErrorCount: state.internalErrorCount,
+    ioObservedDurationMs: Date.now() - state.startMs,
     operationName: state.operationName,
     operationType: state.operationType,
     requestId: state.requestId,

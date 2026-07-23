@@ -54,8 +54,8 @@ export function cachedPublicRuntimeData<T>(
   const existing = store.get(key) as CacheEntry<T> | undefined;
   if (existing && existing.expiresAt > now) {
     writeCacheEventAnalytics({
-      durationMs: Date.now() - start,
       event: "hit",
+      ioObservedDurationMs: Date.now() - start,
       key,
       storeSize: store.size,
       ttlMs,
@@ -64,8 +64,8 @@ export function cachedPublicRuntimeData<T>(
   }
 
   writeCacheEventAnalytics({
-    durationMs: Date.now() - start,
     event: "miss",
+    ioObservedDurationMs: Date.now() - start,
     key,
     storeSize: store.size,
     ttlMs,
@@ -73,8 +73,8 @@ export function cachedPublicRuntimeData<T>(
   const value = load()
     .then((result) => {
       writeCacheEventAnalytics({
-        durationMs: Date.now() - start,
         event: "load_success",
+        ioObservedDurationMs: Date.now() - start,
         key,
         storeSize: store.size,
         ttlMs,
@@ -84,8 +84,8 @@ export function cachedPublicRuntimeData<T>(
     .catch((error) => {
       store.delete(key);
       writeCacheEventAnalytics({
-        durationMs: Date.now() - start,
         event: "load_error",
+        ioObservedDurationMs: Date.now() - start,
         key,
         storeSize: store.size,
         ttlMs,

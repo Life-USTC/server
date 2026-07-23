@@ -15,7 +15,7 @@ export function recordObservedApiResponse(request: Request, status: number) {
 
   recordApiRequestFinish({
     ...context,
-    durationMs: Date.now() - context.startMs,
+    ioObservedDurationMs: Date.now() - context.startMs,
     status,
   });
   return true;
@@ -27,8 +27,8 @@ export function recordObservedApiError(request: Request, error: unknown) {
 
   recordApiRequestError({
     ...context,
-    durationMs: Date.now() - context.startMs,
     error,
+    ioObservedDurationMs: Date.now() - context.startMs,
   });
   return true;
 }

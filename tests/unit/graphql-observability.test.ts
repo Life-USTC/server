@@ -156,7 +156,7 @@ describe("GraphQL semantic observability", () => {
     expect(writeDataPoint).toHaveBeenNthCalledWith(1, {
       indexes: ["graphql:query"],
       blobs: [
-        "graphql_operation",
+        "graphql_operation_v2",
         "Catalog",
         "query",
         "anonymous",
@@ -167,7 +167,7 @@ describe("GraphQL semantic observability", () => {
     expect(writeDataPoint).toHaveBeenNthCalledWith(2, {
       indexes: ["graphql:query"],
       blobs: [
-        "graphql_operation",
+        "graphql_operation_v2",
         "anonymous",
         "query",
         "anonymous",
@@ -220,7 +220,7 @@ describe("GraphQL semantic observability", () => {
       expect(writeDataPoint).toHaveBeenNthCalledWith(index + 1, {
         indexes: ["graphql:query"],
         blobs: [
-          "graphql_operation",
+          "graphql_operation_v2",
           `${authMode}Mode`,
           "query",
           authMode,
@@ -342,7 +342,7 @@ describe("GraphQL semantic observability", () => {
       expect(writeDataPoint).toHaveBeenNthCalledWith(index + 1, {
         indexes: ["graphql:query"],
         blobs: [
-          "graphql_operation",
+          "graphql_operation_v2",
           operationName,
           "query",
           authMode,
@@ -500,7 +500,7 @@ describe("GraphQL semantic observability", () => {
     expect(writeDataPoint).toHaveBeenCalledWith({
       indexes: ["graphql:mutation"],
       blobs: [
-        "graphql_operation",
+        "graphql_operation_v2",
         "PrivateTodoMutation",
         "mutation",
         "session",

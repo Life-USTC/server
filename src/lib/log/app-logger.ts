@@ -31,7 +31,7 @@ export function logApiRequest(
   method: string,
   path: string,
   status: number,
-  durationMs: number,
+  ioObservedDurationMs: number | undefined,
   context: AppLogContext = {},
   level: AppLogLevel = "info",
 ) {
@@ -42,7 +42,7 @@ export function logApiRequest(
     method,
     path,
     status,
-    durationMs,
+    ...(ioObservedDurationMs === undefined ? {} : { ioObservedDurationMs }),
     ...context,
   };
 

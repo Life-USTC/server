@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { setCloudflareRuntimeEnv } from "@/lib/adapters/cloudflare-runtime";
 import {
-  appendPageServerTiming,
+  recordPageRequestError,
   recordPageRequestFinish,
 } from "@/lib/metrics/page-observability";
 
@@ -9,20 +9,6 @@ describe("页面性能可观测性", () => {
   afterEach(() => {
     setCloudflareRuntimeEnv(undefined);
     vi.restoreAllMocks();
-  });
-
-  it("保留已有 Server-Timing 并追加已测量的通用阶段", () => {
-    const headers = new Headers({ "Server-Timing": "cache;dur=2" });
-
-    appendPageServerTiming(headers, {
-      appDurationMs: 42.25,
-      authDurationMs: 3,
-      totalDurationMs: 47.75,
-    });
-
-    expect(headers.get("Server-Timing")).toBe(
-      "cache;dur=2, auth;dur=3, app;dur=42, total;dur=48",
-    );
   });
 
   it("写入不包含 URL、查询参数或用户标识的页面数据点", () => {
@@ -39,16 +25,17 @@ describe("页面性能可观测性", () => {
       routeId: "/courses/[jwId]",
       status: 200,
       timings: {
-        appDurationMs: 80,
-        authDurationMs: 12,
-        totalDurationMs: 95,
+        appIoObservedDurationMs: 80,
+        authIoObservedDurationMs: 12,
+        totalIoObservedDurationMs: 95,
       },
     });
 
     expect(writeDataPoint).toHaveBeenCalledWith({
       indexes: ["page:/courses/[jwId]"],
       blobs: [
-        "page_request",
+        "page_request_v2",
+        "finish",
         "/courses/[jwId]",
         "GET",
         "200",
@@ -77,16 +64,17 @@ describe("页面性能可观测性", () => {
       routeId: null,
       status: 404,
       timings: {
-        appDurationMs: 5,
-        authDurationMs: 0,
-        totalDurationMs: 6,
+        appIoObservedDurationMs: 5,
+        authIoObservedDurationMs: 0,
+        totalIoObservedDurationMs: 6,
       },
     });
 
     expect(writeDataPoint).toHaveBeenCalledWith({
       indexes: ["page:unmatched"],
       blobs: [
-        "page_request",
+        "page_request_v2",
+        "finish",
         "unmatched",
         "GET",
         "404",
@@ -118,11 +106,76 @@ describe("页面性能可观测性", () => {
         routeId: "/",
         status: 200,
         timings: {
-          appDurationMs: 20,
-          authDurationMs: 0,
-          totalDurationMs: 21,
+          appIoObservedDurationMs: 20,
+          authIoObservedDurationMs: 0,
+          totalIoObservedDurationMs: 21,
         },
       }),
     ).not.toThrow();
+  });
+
+  it("logs returned page 5xx responses at error severity", () => {
+    const error = vi.spyOn(console, "error").mockImplementation(() => {});
+
+    recordPageRequestFinish({
+      authMode: "anonymous",
+      locale: "zh-cn",
+      method: "POST",
+      requestId: "request-500",
+      routeId: "/settings/authorizations",
+      status: 500,
+      timings: {
+        appIoObservedDurationMs: 4,
+        authIoObservedDurationMs: 1,
+        totalIoObservedDurationMs: 6,
+      },
+    });
+
+    expect(error).toHaveBeenCalledWith(
+      "[app]",
+      expect.objectContaining({
+        event: "page.request.finish",
+        requestId: "request-500",
+        status: 500,
+      }),
+    );
+  });
+
+  it("records unexpected page errors with safe correlation fields", () => {
+    const error = vi.spyOn(console, "error").mockImplementation(() => {});
+    const writeDataPoint = vi.fn();
+    setCloudflareRuntimeEnv({ ANALYTICS: { writeDataPoint } });
+
+    recordPageRequestError({
+      authMode: "authenticated",
+      errorName: "TypeError",
+      locale: "en-us",
+      method: "POST",
+      requestId: "request-error",
+      routeId: "/settings/authorizations",
+      timings: {
+        appIoObservedDurationMs: 8,
+        authIoObservedDurationMs: 2,
+        totalIoObservedDurationMs: 11,
+      },
+    });
+
+    expect(error).toHaveBeenCalledWith(
+      "[app]",
+      expect.objectContaining({
+        errorName: "TypeError",
+        event: "page.request.error",
+        ioObservedDurationMs: 11,
+        requestId: "request-error",
+        route: "/settings/authorizations",
+        status: 500,
+      }),
+    );
+    expect(writeDataPoint).toHaveBeenCalledWith(
+      expect.objectContaining({
+        blobs: expect.arrayContaining(["page_request_v2", "error"]),
+        doubles: [11, 500, 0, 2, 8],
+      }),
+    );
   });
 });
