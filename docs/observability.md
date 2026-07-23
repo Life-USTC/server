@@ -32,6 +32,13 @@ high-cardinality resource IDs.
   GraphQL observations correlated without passing request metadata through
   domain APIs. MCP JSON-RPC IDs remain protocol identifiers and are not used as
   HTTP request IDs.
+- Request-scoped fields are authoritative and cannot be replaced by nested log
+  context. Standalone API and GraphQL helpers generate or use only server-owned
+  correlation IDs; inbound `x-request-id` and timing headers are never trusted.
+- Opt-in OAuth diagnostics use the shared application logger. Redirects retain
+  only origin, host, path, and query-key names; query values and user IDs are
+  never logged. Fail-closed grant, code-binding, and rate-limit infrastructure
+  errors emit safe operational events without token or user identifiers.
 - GraphQL observations distinguish expected GraphQL errors from
   `INTERNAL_SERVER_ERROR`; only the latter are logged at error severity.
 - Request IDs propagate through page, data, action, and REST responses that
@@ -79,8 +86,10 @@ storage investigations.
 ## Worker configuration drift
 
 `worker-configuration.d.ts` is generated from `wrangler.jsonc` with
-`bunx wrangler types --include-runtime=false`. CI runs the matching `--check`
-command so binding or variable changes cannot drift from the generated
-environment contract. Run generation after `bun run app:prepare` and before a
-production build so Wrangler does not couple the binding contract to a local
-generated Worker entrypoint.
+`bunx wrangler types --include-runtime=false --env-file /dev/null`. The empty
+environment file prevents local `.env` variable names from entering the
+generated production binding contract. CI runs the matching `--check` command
+without a local `.env`, so binding or variable changes cannot drift. Run
+generation after `bun run app:prepare` and before a production build so
+Wrangler does not couple the binding contract to a local generated Worker
+entrypoint.

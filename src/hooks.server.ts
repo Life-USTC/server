@@ -21,6 +21,7 @@ import {
   setApiRequestObservabilityContext,
 } from "@/lib/log/api-observability";
 import { normalizeApiRoutePath } from "@/lib/log/api-observability-path";
+import { logAppEvent } from "@/lib/log/app-logger";
 import { getSafeErrorName } from "@/lib/log/safe-error-name";
 import {
   type PageAuthMode,
@@ -99,6 +100,12 @@ function isApiRequest(pathname: string) {
   return pathname === "/api" || pathname.startsWith("/api/");
 }
 
+function observedRoute(pathname: string, routeId: string | null) {
+  return isApiRequest(pathname)
+    ? normalizeApiRoutePath(pathname)
+    : (routeId ?? "unmatched");
+}
+
 function isHtmlResponse(response: Response) {
   return response.headers.get("content-type")?.includes("text/html");
 }
@@ -165,9 +172,7 @@ const handleWithRuntimeEnv: Handle = async ({ event, resolve }) => {
   setCloudflareRequestContext({
     method: event.request.method,
     requestId,
-    route: isApiRequest(event.url.pathname)
-      ? normalizeApiRoutePath(event.url.pathname)
-      : (event.route.id ?? "unmatched"),
+    route: observedRoute(event.url.pathname, event.route.id),
   });
   const startMs = Date.now();
   const hasAuthSignal = hasRequestAuthSignal(event.request.headers);
@@ -270,9 +275,7 @@ const handleWithRuntimeEnv: Handle = async ({ event, resolve }) => {
       "app.sveltekit.resolve",
       {
         "http.request.method": event.request.method,
-        "http.route": isApiRequest(event.url.pathname)
-          ? normalizeApiRoutePath(event.url.pathname)
-          : (event.route.id ?? "unmatched"),
+        "http.route": observedRoute(event.url.pathname, event.route.id),
       },
       () =>
         resolve(event, {
@@ -339,19 +342,19 @@ export const handle: Handle = async (input) =>
         ?.context,
   );
 
-function serializeServerError(error: unknown) {
-  return { name: getSafeErrorName(error) };
-}
-
 export const handleError: HandleServerError = ({ error, event, status }) => {
-  console.error(
-    JSON.stringify({
+  logAppEvent(
+    "error",
+    "sveltekit.server-error",
+    {
       event: "sveltekit.server-error",
       method: event.request.method,
-      path: event.url.pathname,
+      requestId: event.locals.requestId,
+      route: observedRoute(event.url.pathname, event.route.id),
+      source: "sveltekit",
       status,
-      error: serializeServerError(error),
-    }),
+    },
+    error,
   );
 
   return { message: "Internal Error" };

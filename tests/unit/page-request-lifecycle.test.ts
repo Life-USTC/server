@@ -7,14 +7,16 @@ vi.mock("@/app-env", () => ({
   loadEnv: vi.fn(),
 }));
 
-import { handle } from "@/hooks.server";
+import { handle, handleError } from "@/hooks.server";
 
 function handleInput(
   resolve: Parameters<Handle>[0]["resolve"],
   input: {
+    headers?: HeadersInit;
     method?: string;
     pathname?: string;
     routeId?: Parameters<Handle>[0]["event"]["route"]["id"];
+    spanNames?: string[];
   } = {},
 ) {
   const url = new URL(
@@ -56,8 +58,25 @@ function handleInput(
       requestId: "",
     },
     params: {},
-    platform: undefined,
-    request: new Request(url, { method: input.method ?? "GET" }),
+    platform: input.spanNames
+      ? {
+          context: {
+            tracing: {
+              enterSpan: (
+                name: string,
+                callback: (span: { setAttribute: () => void }) => unknown,
+              ) => {
+                input.spanNames?.push(name);
+                return callback({ setAttribute: () => {} });
+              },
+            },
+          },
+        }
+      : undefined,
+    request: new Request(url, {
+      headers: input.headers,
+      method: input.method ?? "GET",
+    }),
     route: { id: input.routeId ?? "/catalog-page-data/[kind]" },
     setHeaders: vi.fn(),
     tracing: {
@@ -177,5 +196,90 @@ describe("SvelteKit page request lifecycle", () => {
         expect.objectContaining({ event: "request.finish", path: "/api" }),
       ]),
     ]);
+  });
+
+  it("records server errors with the request id and normalized route", () => {
+    const error = vi.spyOn(console, "error").mockImplementation(() => {});
+    const { event } = handleInput(async () => new Response(), {
+      pathname: "/sections/159446",
+      routeId: "/sections/[jwId]",
+    });
+    event.locals.requestId = "request-1";
+
+    expect(
+      handleError({
+        error: new TypeError("private database detail"),
+        event,
+        message: "Internal Error",
+        status: 500,
+      }),
+    ).toEqual({ message: "Internal Error" });
+
+    expect(error).toHaveBeenCalledWith(
+      "[app]",
+      expect.objectContaining({
+        event: "sveltekit.server-error",
+        method: "GET",
+        requestId: "request-1",
+        route: "/sections/[jwId]",
+        status: 500,
+      }),
+      expect.anything(),
+    );
+    expect(JSON.stringify(error.mock.calls)).not.toContain("/sections/159446");
+  });
+
+  it("wires the SvelteKit dispatch through the Worker trace span", async () => {
+    const spanNames: string[] = [];
+    vi.spyOn(console, "info").mockImplementation(() => {});
+
+    await handle(
+      handleInput(async () => Response.json({ ok: true }), { spanNames }),
+    );
+
+    expect(spanNames).toContain("app.sveltekit.resolve");
+  });
+
+  it("records a thrown API request exactly once with a server request id", async () => {
+    const info = vi.spyOn(console, "info").mockImplementation(() => {});
+    const error = vi.spyOn(console, "error").mockImplementation(() => {});
+
+    await expect(
+      handle(
+        handleInput(
+          async () => {
+            throw new TypeError("private database detail");
+          },
+          {
+            headers: { "x-request-id": "client-controlled-request-id" },
+            pathname: "/api/todos/123",
+            routeId: "/api/todos/[id]",
+          },
+        ),
+      ),
+    ).rejects.toThrow("private database detail");
+
+    const events = apiEvents([...info.mock.calls, ...error.mock.calls]);
+    expect(
+      events.filter(
+        ([, value]) =>
+          typeof value === "object" &&
+          value !== null &&
+          "event" in value &&
+          value.event === "request.start",
+      ),
+    ).toHaveLength(1);
+    expect(
+      events.filter(
+        ([, value]) =>
+          typeof value === "object" &&
+          value !== null &&
+          "event" in value &&
+          value.event === "request.error",
+      ),
+    ).toHaveLength(1);
+    expect(JSON.stringify(events)).not.toContain(
+      "client-controlled-request-id",
+    );
   });
 });

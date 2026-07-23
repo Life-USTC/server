@@ -1,3 +1,17 @@
+## [1.77.10](https://github.com/Life-USTC/server/compare/v1.77.9...v1.77.10) (2026-07-23)
+
+
+### Bug Fixes
+
+* **metadata:** configure favicon ([#624](https://github.com/Life-USTC/server/issues/624)) ([1b9c0a4](https://github.com/Life-USTC/server/commit/1b9c0a4e138488dac503c5c47c825d5ed8c49908))
+
+## [1.77.9](https://github.com/Life-USTC/server/compare/v1.77.8...v1.77.9) (2026-07-23)
+
+
+### Bug Fixes
+
+* **observability:** close remaining correlation gaps ([#623](https://github.com/Life-USTC/server/issues/623)) ([8449788](https://github.com/Life-USTC/server/commit/8449788e9947296c21f7c8d26bfa66a208bb8211))
+
 ## [1.77.8](https://github.com/Life-USTC/server/compare/v1.77.7...v1.77.8) (2026-07-23)
 
 

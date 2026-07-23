@@ -6,6 +6,7 @@ import { captureStepScreenshot } from "../../../utils/screenshot";
 const metadataSelectors = {
   canonical: 'link[rel="canonical"]',
   description: 'meta[name="description"]',
+  favicon: 'link[rel="icon"]',
   ogDescription: 'meta[property="og:description"]',
   ogImage: 'meta[property="og:image"]',
   ogImageAlt: 'meta[property="og:image:alt"]',
@@ -108,6 +109,7 @@ function expectCompleteSocialMetadata(
   expect(metadata.contentLanguage).toBe(expected.locale);
   expect(metadata.values.canonical[0]).toBe(canonicalUrl);
   expect(metadata.values.description[0]).toBe(expected.description);
+  expect(metadata.values.favicon[0]).toBe("/images/ustc_favicon.png");
   expect(metadata.values.ogTitle[0]).toBe(expected.title);
   expect(metadata.values.ogDescription[0]).toBe(expected.description);
   expect(metadata.values.ogType[0]).toBe("website");

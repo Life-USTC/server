@@ -7,12 +7,18 @@ const {
   authHandlerMock,
   bindCodeRedirectMock,
   getSessionFromHeadersMock,
+  logAppEventMock,
   resolveActiveGrantMock,
 } = vi.hoisted(() => ({
   authHandlerMock: vi.fn(),
   bindCodeRedirectMock: vi.fn(),
   getSessionFromHeadersMock: vi.fn(),
+  logAppEventMock: vi.fn(),
   resolveActiveGrantMock: vi.fn(),
+}));
+
+vi.mock("@/lib/log/app-logger", () => ({
+  logAppEvent: logAppEventMock,
 }));
 
 vi.mock("@/lib/auth/core", () => ({
@@ -64,6 +70,7 @@ describe("OAuth authorization route grant binding", () => {
     authHandlerMock.mockReset();
     bindCodeRedirectMock.mockReset();
     getSessionFromHeadersMock.mockReset();
+    logAppEventMock.mockReset();
     resolveActiveGrantMock.mockReset();
     getSessionFromHeadersMock.mockResolvedValue({ user: { id: "user-1" } });
     resolveActiveGrantMock.mockResolvedValue({
@@ -145,6 +152,40 @@ describe("OAuth authorization route grant binding", () => {
     expect(location.searchParams.has("code")).toBe(false);
     expect(location.searchParams.get("error")).toBe("server_error");
     expect(location.searchParams.get("state")).toBe("state-1");
+    expect(logAppEventMock).toHaveBeenCalledWith(
+      "warn",
+      "oauth.authorization.code-binding-rejected",
+      expect.objectContaining({
+        event: "oauth.authorization.code-binding-rejected",
+        phase: "code-binding",
+      }),
+    );
+  });
+
+  it("records authorization-code binding infrastructure failures", async () => {
+    const privateError = new TypeError("private database detail");
+    bindCodeRedirectMock.mockRejectedValue(privateError);
+    const { authGetRoute } = await import("@/lib/api/routes/auth");
+
+    const response = await authGetRoute(
+      new Request(
+        "https://life.example/api/auth/oauth2/authorize?client_id=client-1",
+      ),
+    );
+    const location = new URL(response.headers.get("location") ?? "");
+
+    expect(location.searchParams.has("code")).toBe(false);
+    expect(location.searchParams.get("error")).toBe("server_error");
+    expect(logAppEventMock).toHaveBeenCalledWith(
+      "error",
+      "oauth.authorization.code-binding-failed",
+      expect.objectContaining({
+        event: "oauth.authorization.code-binding-failed",
+        phase: "code-binding",
+      }),
+      privateError,
+    );
+    expect(JSON.stringify(logAppEventMock.mock.calls)).not.toContain("code-1");
   });
 
   it("binds authorization codes returned by the continue endpoint", async () => {

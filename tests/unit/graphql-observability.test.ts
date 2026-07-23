@@ -238,6 +238,37 @@ describe("GraphQL semantic observability", () => {
     );
   });
 
+  it("does not trust a request ID header when server locals are absent", async () => {
+    vi.spyOn(console, "info").mockImplementation(() => {});
+    const writeDataPoint = installAnalytics();
+
+    await executeWithContext(
+      {
+        query: "query HeaderOnly { catalog { courses { items { jwId } } } }",
+      },
+      (request) => contextWithPrincipal(request, { kind: "anonymous" }),
+      {
+        headers: { "x-request-id": "client-controlled-request-id" },
+        requestId: "",
+      },
+    );
+
+    expect(writeDataPoint).toHaveBeenCalledWith({
+      indexes: ["graphql:query"],
+      blobs: [
+        "graphql_operation_v2",
+        "HeaderOnly",
+        "query",
+        "anonymous",
+        "unknown",
+      ],
+      doubles: [expect.any(Number), 1, 102, 0, 0],
+    });
+    expect(JSON.stringify(writeDataPoint.mock.calls)).not.toContain(
+      "client-controlled-request-id",
+    );
+  });
+
   it("records parse, validation, and resolver errors returned with HTTP 200", async () => {
     const info = vi.spyOn(console, "info").mockImplementation(() => {});
     const error = vi.spyOn(console, "error").mockImplementation(() => {});

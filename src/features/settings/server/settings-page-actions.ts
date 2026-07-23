@@ -34,7 +34,13 @@ export const settingsPageActions = {
   unlinkAccount: async ({ locals, request, url }: SettingsActionEvent) =>
     unlinkSettingsAccountAction({ locale: locals.locale, request, url }),
   linkAccount: async ({ cookies, locals, request, url }: SettingsActionEvent) =>
-    linkSettingsAccountAction({ cookies, locale: locals.locale, request, url }),
+    linkSettingsAccountAction({
+      cookies,
+      locale: locals.locale,
+      request,
+      requestId: locals.requestId,
+      url,
+    }),
   revokeAuthorization: async ({ locals, request, url }: SettingsActionEvent) =>
     revokeSettingsAuthorizationAction({
       locale: locals.locale,

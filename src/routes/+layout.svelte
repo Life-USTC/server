@@ -11,6 +11,12 @@ $: socialMetadata = $page.data.socialMetadata;
 
 <svelte:head>
   <title>Life@USTC</title>
+  <link
+    rel="icon"
+    type="image/png"
+    sizes="32x32"
+    href="/images/ustc_favicon.png"
+  />
   <link rel="canonical" href={socialMetadata.canonicalUrl} />
   <meta name="description" content={socialMetadata.description} />
   <meta property="og:title" content={socialMetadata.title} />
