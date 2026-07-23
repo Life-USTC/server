@@ -76,6 +76,10 @@ describe("Better Auth options", () => {
       },
     });
     expect(options.trustedOrigins).toEqual(["https://life.example.com"]);
+    expect(options.session).toMatchObject({
+      expiresIn: 60 * 60 * 24 * 30,
+      updateAge: 60 * 60 * 24,
+    });
     expect(options.advanced).toMatchObject({
       disableCSRFCheck: false,
       disableOriginCheck: false,

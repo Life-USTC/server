@@ -130,6 +130,12 @@ function responseWithSecurityHeaders(response: Response) {
   return mutableResponse;
 }
 
+function appendSessionCookies(target: Headers, source?: Headers) {
+  for (const cookie of source?.getSetCookie() ?? []) {
+    target.append("set-cookie", cookie);
+  }
+}
+
 function prepareApiObservability(
   request: Request,
   pathname: string,
@@ -240,16 +246,18 @@ const handleWithRuntimeEnv: Handle = async ({ event, resolve }) => {
     }
 
     const authStartMs = Date.now();
-    const session = hasAuthSignal
+    const sessionResult = hasAuthSignal
       ? await runCloudflareTraceSpan(
           "app.auth.session",
           { "app.auth.signal_present": true },
           () =>
-            import("@/lib/auth/core").then(({ getSessionFromHeaders }) =>
-              getSessionFromHeaders(event.request.headers),
+            import("@/lib/auth/core").then(
+              ({ getSessionFromHeadersWithResponseHeaders }) =>
+                getSessionFromHeadersWithResponseHeaders(event.request.headers),
             ),
         )
       : null;
+    const session = sessionResult?.session ?? null;
     authIoObservedDurationMs = Date.now() - authStartMs;
     event.locals.authUser = session?.user ?? null;
     pageAuthMode = session?.user.id ? "authenticated" : "anonymous";
@@ -291,6 +299,7 @@ const handleWithRuntimeEnv: Handle = async ({ event, resolve }) => {
     const shouldSetCsp = isHtmlResponse(response);
 
     const mutableResponse = responseWithSecurityHeaders(response);
+    appendSessionCookies(mutableResponse.headers, sessionResult?.headers);
     if (apiObservability) {
       recordObservedApiResponse(event.request, mutableResponse.status);
       mutableResponse.headers.set("x-request-id", apiObservability.requestId);
