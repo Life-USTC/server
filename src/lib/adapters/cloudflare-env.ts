@@ -15,14 +15,16 @@ import {
 
 export type { Env };
 
-function getDefaultEnvInput(): NodeJS.ProcessEnv {
+type EnvInput = Partial<NodeJS.ProcessEnv>;
+
+function getDefaultEnvInput(): EnvInput {
   const processEnv =
     typeof process === "undefined" || !process.env ? {} : process.env;
   return { ...processEnv, ...getCloudflareRuntimeEnvInput() };
 }
 
 export function loadEnv(
-  options: { input?: NodeJS.ProcessEnv; appPhase?: string } = {},
+  options: { input?: EnvInput; appPhase?: string } = {},
 ): Env {
   const input = options.input ?? getDefaultEnvInput();
   const appPhase = options.appPhase ?? trimOrUndefined(input.APP_PHASE);
@@ -62,20 +64,20 @@ export function loadEnv(
 
 export function getOptionalTrimmedEnv(
   name: string,
-  input: NodeJS.ProcessEnv = getDefaultEnvInput(),
+  input: EnvInput = getDefaultEnvInput(),
 ) {
   return trimOrUndefined(input[name]);
 }
 
 export function isAppProductionBuildPhase(
-  input: NodeJS.ProcessEnv = getDefaultEnvInput(),
+  input: EnvInput = getDefaultEnvInput(),
 ) {
   return (
     getOptionalTrimmedEnv("APP_PHASE", input) === APP_PRODUCTION_BUILD_PHASE
   );
 }
 
-export function getAuthEnv(input: NodeJS.ProcessEnv = getDefaultEnvInput()) {
+export function getAuthEnv(input: EnvInput = getDefaultEnvInput()) {
   return parseEnv(
     commonEnvSchema.pick({
       AUTH_GITHUB_ID: true,
@@ -95,7 +97,7 @@ export function getAuthEnv(input: NodeJS.ProcessEnv = getDefaultEnvInput()) {
   );
 }
 
-export function getUploadEnv(input: NodeJS.ProcessEnv = getDefaultEnvInput()) {
+export function getUploadEnv(input: EnvInput = getDefaultEnvInput()) {
   return parseEnv(
     commonEnvSchema.pick({ UPLOAD_TOTAL_QUOTA_MB: true }),
     input,

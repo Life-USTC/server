@@ -14,6 +14,7 @@
       "!build",
       "!docs/graphql/schema.graphql",
       "!public/openapi.generated.json",
+      "!worker-configuration.d.ts",
       "!src/components/ui",
       "!src/lib/components/ui",
       "!src/lib/hooks/is-mobile.svelte.ts",

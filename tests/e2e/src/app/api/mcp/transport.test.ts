@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { MCP_JSON_RPC_BATCH_LIMIT } from "@/lib/mcp/request-body";
 import {
   DEFAULT_OAUTH_CLIENT_SCOPES,
   restReadScope,
@@ -78,6 +79,41 @@ test.describe("/api/mcp - 传输与授权", () => {
     expect(authenticatedResponse.status()).toBe(413);
     await expect(authenticatedResponse.json()).resolves.toMatchObject({
       error: { code: -32000 },
+      id: null,
+      jsonrpc: "2.0",
+    });
+  });
+
+  test("/api/mcp 在认证后拒绝超过 50 条消息的 JSON-RPC batch", async ({
+    page,
+    request,
+  }) => {
+    const resource = `${PLAYWRIGHT_BASE_URL}/api/mcp`;
+    await signInAsDebugUser(page, "/");
+    const { accessToken } = await issueAccessToken(page, request, {
+      scope: MCP_CLIENT_SCOPE,
+      clientScopes: MCP_CLIENT_SCOPES,
+      resource,
+    });
+
+    const response = await request.post("/api/mcp", {
+      data: Array.from({ length: MCP_JSON_RPC_BATCH_LIMIT + 1 }, (_, id) => ({
+        id,
+        jsonrpc: "2.0",
+        method: "tools/list",
+      })),
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "MCP-Protocol-Version": "2025-03-26",
+      },
+    });
+
+    expect(response.status()).toBe(413);
+    await expect(response.json()).resolves.toMatchObject({
+      error: {
+        code: -32000,
+        message: `JSON-RPC batch must not exceed ${MCP_JSON_RPC_BATCH_LIMIT} messages`,
+      },
       id: null,
       jsonrpc: "2.0",
     });

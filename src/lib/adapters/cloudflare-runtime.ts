@@ -123,7 +123,7 @@ export function setCloudflareRuntimeEnv(env: unknown) {
   delete globalForCloudflareRuntime.__lifeUstcCloudflareRuntimeEnv;
 }
 
-export function getCloudflareRuntimeEnvInput(): NodeJS.ProcessEnv {
+export function getCloudflareRuntimeEnvInput(): Partial<NodeJS.ProcessEnv> {
   const env = getCurrentCloudflareRuntimeEnv();
   if (!env) return {};
 

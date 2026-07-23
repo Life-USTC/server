@@ -1,4 +1,5 @@
 export const MCP_REQUEST_BODY_LIMIT_BYTES = 64 * 1024;
+export const MCP_JSON_RPC_BATCH_LIMIT = 50;
 
 function jsonRpcErrorResponse(status: number, code: number, message: string) {
   return new Response(
@@ -73,7 +74,17 @@ export async function readMcpJsonBodyWithinLimit(
   }
 
   try {
-    return { body: JSON.parse(new TextDecoder().decode(bytes)) };
+    const body: unknown = JSON.parse(new TextDecoder().decode(bytes));
+    if (Array.isArray(body) && body.length > MCP_JSON_RPC_BATCH_LIMIT) {
+      return {
+        response: jsonRpcErrorResponse(
+          413,
+          -32000,
+          `JSON-RPC batch must not exceed ${MCP_JSON_RPC_BATCH_LIMIT} messages`,
+        ),
+      };
+    }
+    return { body };
   } catch {
     return {
       response: jsonRpcErrorResponse(400, -32700, "Parse error: Invalid JSON"),

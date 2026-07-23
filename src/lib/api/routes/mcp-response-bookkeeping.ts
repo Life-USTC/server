@@ -1,4 +1,5 @@
 import type { McpAuthFailureDiagnostics } from "@/lib/mcp/auth-errors";
+import type { McpResponsePhase } from "@/lib/mcp/observability-types";
 import { writeMcpTransportAnalytics } from "@/lib/metrics/analytics-engine";
 import {
   logMcpTransportResponse,
@@ -12,12 +13,8 @@ export function recordAndLogMcpResponse(input: {
     request: Request;
     requestUrl: URL;
   };
-  phase:
-    | "auth-rejected"
-    | "body-rejected"
-    | "handled"
-    | "origin-rejected"
-    | "rate-limit-rejected";
+  errorName?: string;
+  phase: McpResponsePhase;
   request: Request;
   rpcSummary: McpRequestSummary | null;
   start: number;
@@ -30,6 +27,7 @@ export function recordAndLogMcpResponse(input: {
     authFailureDiagnostics: input.authFailureDiagnostics,
     context: input.context,
     durationMs,
+    errorName: input.errorName,
     phase: input.phase,
     rpcSummary: input.rpcSummary,
     status: input.status,
@@ -38,6 +36,7 @@ export function recordAndLogMcpResponse(input: {
   });
   writeMcpTransportAnalytics({
     durationMs,
+    errorName: input.errorName,
     method: input.context.request.method,
     path: input.context.requestUrl.pathname,
     phase: input.phase,

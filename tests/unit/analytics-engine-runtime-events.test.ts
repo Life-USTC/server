@@ -3,6 +3,7 @@ import { setCloudflareRuntimeEnv } from "@/lib/adapters/cloudflare-runtime";
 import { recordAndLogMcpResponse } from "@/lib/api/routes/mcp-response-bookkeeping";
 import { writeAuditLog } from "@/lib/audit/write-audit-log";
 import { withBetterAuthOAuthDebug } from "@/lib/log/oauth-debug";
+import { writeOAuthEventAnalytics } from "@/lib/metrics/analytics-engine";
 import { cachedPublicRuntimeData } from "@/lib/public-runtime-cache";
 import {
   getStorageObjectResponse,
@@ -75,6 +76,7 @@ describe("Cloudflare Analytics Engine runtime events", () => {
         "tools/call",
         "create_my_todo",
         "title",
+        "none",
       ],
       doubles: [125, 200, 1, 14],
     });
@@ -109,8 +111,41 @@ describe("Cloudflare Analytics Engine runtime events", () => {
         "none",
         "resource_unknown",
         "none",
+        "none",
+        "none",
       ],
       doubles: [0, 201, 0, 0],
+    });
+  });
+
+  it("preserves safe OAuth failure diagnostics outside sampled logs", () => {
+    const writeDataPoint = installAnalyticsBinding();
+
+    writeOAuthEventAnalytics({
+      durationMs: 0,
+      errorName: "TypeError",
+      event: "grant-validation-failed",
+      path: "/api/auth/oauth2/token",
+      phase: "resolve-active-refresh-grant",
+      status: 503,
+    });
+
+    expect(writeDataPoint).toHaveBeenCalledWith({
+      indexes: ["oauth:/api/auth/oauth2/token"],
+      blobs: [
+        "oauth_event",
+        "grant-validation-failed",
+        "unknown",
+        "/api/auth/oauth2/token",
+        "503",
+        "5xx",
+        "none",
+        "resource_unknown",
+        "none",
+        "resolve-active-refresh-grant",
+        "TypeError",
+      ],
+      doubles: [0, 503, 0, 0],
     });
   });
 
