@@ -6,15 +6,6 @@ type DetailPageData = {
     course?: { namePrimary?: string | null; nameCn?: string | null } | null;
   } | null;
   teacher?: { namePrimary?: string | null; nameCn?: string | null } | null;
-  subscriptions?: {
-    subscriptions?: Array<{
-      sections?: Array<{
-        id: number | string;
-        jwId: number | null;
-        course?: { namePrimary?: string | null; nameCn?: string | null } | null;
-      }>;
-    }>;
-  } | null;
 };
 
 export function buildDetailSecondaryLinks(
@@ -57,22 +48,4 @@ export function buildDetailSecondaryLinks(
   }
 
   return [];
-}
-
-export function buildSubscriptionSecondaryLinks(
-  pageData: DetailPageData,
-): ShellLink[] {
-  const groups = pageData.subscriptions?.subscriptions ?? [];
-  const links: ShellLink[] = [];
-  for (const group of groups) {
-    for (const section of group.sections ?? []) {
-      if (section.jwId == null) continue;
-      links.push({
-        href: `/sections/${section.jwId}`,
-        label:
-          section.course?.namePrimary ?? section.course?.nameCn ?? "Section",
-      });
-    }
-  }
-  return links;
 }

@@ -16,7 +16,7 @@ export function registerCalendarSubscriptionTools(server: McpServer) {
     "get_my_calendar_subscription",
     {
       description:
-        "Get followed sections and the personal iCal calendar feed URL. Following is not official USTC enrollment.",
+        "Get subscribed sections and the personal iCal calendar feed URL. Subscribing is not official USTC enrollment.",
       inputSchema: {
         locale: mcpLocaleInputSchema,
         mode: mcpModeInputSchema,
@@ -29,7 +29,7 @@ export function registerCalendarSubscriptionTools(server: McpServer) {
     "list_my_subscribed_sections",
     {
       description:
-        "List sections followed across all semesters, including past terms, for dashboard and calendar personalization. Not official enrollment.",
+        "List subscribed sections across all semesters, including past terms, for dashboard and calendar personalization. Not official enrollment.",
       inputSchema: {
         locale: mcpLocaleInputSchema,
         mode: mcpModeInputSchema,
@@ -42,7 +42,7 @@ export function registerCalendarSubscriptionTools(server: McpServer) {
     "subscribe_section_by_jw_id",
     {
       description:
-        "Follow one section by JW ID for dashboard/calendar. Not official USTC enrollment. " +
+        "Subscribe to one section by JW ID for dashboard/calendar. Not official USTC enrollment. " +
         "Use match_section_codes or search_sections first to find the jwId.",
       inputSchema: {
         jwId: z.number().int().positive(),
@@ -56,7 +56,7 @@ export function registerCalendarSubscriptionTools(server: McpServer) {
   server.registerTool(
     "unsubscribe_section_by_jw_id",
     {
-      description: "Unfollow one section by JW ID.",
+      description: "Unsubscribe from one section by JW ID.",
       inputSchema: {
         jwId: z.number().int().positive(),
         locale: mcpLocaleInputSchema,

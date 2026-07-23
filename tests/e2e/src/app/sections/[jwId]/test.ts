@@ -376,11 +376,11 @@ test.describe("/sections/[jwId] 班级详情页", () => {
     // The subscription button uses subscribe/follow language
     const subscribeBtn = page
       .getByRole("button", {
-        name: /关注班级|Subscribe to section|Follow section/i,
+        name: /订阅教学班|Subscribe to section/i,
       })
       .or(
         page.getByRole("button", {
-          name: /取消关注|Unsubscribe from section/i,
+          name: /取消订阅|Unsubscribe from section/i,
         }),
       )
       .first();
@@ -647,7 +647,7 @@ test.describe("/sections/[jwId] 班级详情页", () => {
       ).toBeVisible();
       await expect(
         page.getByRole("button", {
-          name: /关注班级|Subscribe to section/i,
+          name: /订阅教学班|Subscribe to section/i,
         }),
       ).toHaveCount(0);
       await expect(
@@ -666,7 +666,7 @@ test.describe("/sections/[jwId] 班级详情页", () => {
     }
   });
 
-  test("已关注用户仍可取消关注已退役班级", async ({ page }) => {
+  test("已订阅用户仍可取消订阅已退役教学班", async ({ page }) => {
     test.setTimeout(60_000);
     await signInAsDebugUser(page, SECTION_URL);
     const sessionUser = await getCurrentSessionUser(page);
@@ -723,12 +723,12 @@ test.describe("/sections/[jwId] 班级详情页", () => {
         page.getByText(/历史班级|Historical section/i).first(),
       ).toBeVisible();
       const unsubscribe = page.getByRole("button", {
-        name: /取消关注|Unsubscribe from section/i,
+        name: /取消订阅|Unsubscribe from section/i,
       });
       await expect(unsubscribe.first()).toBeVisible();
       await expect(
         page.getByRole("button", {
-          name: /关注班级|Subscribe to section/i,
+          name: /订阅教学班|Subscribe to section/i,
         }),
       ).toHaveCount(0);
 
@@ -752,7 +752,7 @@ test.describe("/sections/[jwId] 班级详情页", () => {
       await expect(unsubscribe).toHaveCount(0);
       await expect(
         page.getByRole("button", {
-          name: /关注班级|Subscribe to section/i,
+          name: /订阅教学班|Subscribe to section/i,
         }),
       ).toHaveCount(0);
     } finally {
@@ -804,7 +804,7 @@ test.describe("/sections/[jwId] 班级详情页", () => {
     await gotoAndWaitForReady(page, SECTION_URL);
 
     const subscribeButton = page
-      .getByRole("button", { name: /关注班级|Subscribe to section/i })
+      .getByRole("button", { name: /订阅教学班|Subscribe to section/i })
       .first();
     await expect(subscribeButton).toBeVisible();
     await subscribeButton.click();
@@ -828,7 +828,7 @@ test.describe("/sections/[jwId] 班级详情页", () => {
     await gotoAndWaitForReady(page, SECTION_URL);
 
     const subscribeButton = page
-      .getByRole("button", { name: /关注班级|Subscribe to section/i })
+      .getByRole("button", { name: /订阅教学班|Subscribe to section/i })
       .first();
     if ((await subscribeButton.count()) === 0) {
       await expect(page.locator("#main-content")).toBeVisible();
@@ -848,15 +848,15 @@ test.describe("/sections/[jwId] 班级详情页", () => {
     );
   });
 
-  test("已登录用户可关注与取消关注", async ({ page }, testInfo) => {
+  test("已登录用户可订阅与取消订阅", async ({ page }, testInfo) => {
     test.setTimeout(60_000);
     await signInAsDebugUser(page, SECTION_URL);
 
     const subscribe = page.getByRole("button", {
-      name: /关注班级|Subscribe to section/i,
+      name: /订阅教学班|Subscribe to section/i,
     });
     const unsubscribe = page.getByRole("button", {
-      name: /取消关注|Unsubscribe from section/i,
+      name: /取消订阅|Unsubscribe from section/i,
     });
 
     if ((await subscribe.count()) === 0 && (await unsubscribe.count()) === 0) {
@@ -874,7 +874,7 @@ test.describe("/sections/[jwId] 班级详情页", () => {
           .first(),
       ).toBeVisible();
       await subscribeDialog
-        .getByRole("button", { name: /关注班级|Subscribe to section/i })
+        .getByRole("button", { name: /订阅教学班|Subscribe to section/i })
         .click();
       await expect(unsubscribe.first()).toBeVisible({ timeout: 15_000 });
       await page.keyboard.press("Escape");
@@ -950,7 +950,7 @@ test.describe("/sections/[jwId] 班级详情页", () => {
 
     await expect(
       calDialog.getByRole("link", {
-        name: /查看关注班级|View section subscriptions/i,
+        name: /查看教学班订阅|View section subscriptions/i,
       }),
     ).toHaveAttribute("href", "/dashboard/subscriptions");
 

@@ -116,7 +116,7 @@ test("/ shell 匿名 390px 抽屉只展示公开导航", async ({ page }, testIn
   for (const name of [
     /^(待办|Todos)$/i,
     /^(考试|Exams)$/i,
-    /^(关注班级|Section Management)$/i,
+    /^(教学班订阅|Section Subscriptions)$/i,
   ]) {
     await expect(sidebar.getByRole("link", { name })).toHaveCount(0);
   }
@@ -314,7 +314,7 @@ test("/ shell 桌面导航以任务为一级入口且当前位置唯一", async 
     /^(作业|Homework)$/i,
     /^(待办|Todos)$/i,
     /^(考试|Exams)$/i,
-    /^(关注班级|Section Management)$/i,
+    /^(教学班订阅|Section Subscriptions)$/i,
   ]) {
     await expect(navigation.getByRole("link", { name })).toBeVisible();
   }

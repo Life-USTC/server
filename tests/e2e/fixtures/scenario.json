@@ -183,7 +183,7 @@
       "limitCount": 70,
       "teacherIndexes": [0],
       "semester": "previous",
-      "remark": "用于验证跨学期关注班级、历史考试与订阅分组展示。"
+      "remark": "用于验证跨学期教学班订阅、历史考试与订阅分组展示。"
     }
   ],
   "scheduleGroups": [

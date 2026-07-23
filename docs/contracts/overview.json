@@ -117,7 +117,7 @@
             "returns": "{ user, currentSemester, subscriptions, nextClass, upcomingDeadlines, upcomingEvents, todos, bus }",
             "notes": [
               "Preferred single-call snapshot for assistant workflows.",
-              "Overlaps get_my_overview but adds currentSemester, currentSemesterSections, nextClass, merged deadlines, and preferred-bus departures; accepts optional atTime to anchor those time windows instead of using the server clock. When subscriptions.totalCount is greater than subscriptions.currentSemesterCount, past-term follows remain available through list_my_subscribed_sections and the semesterId filters on list_my_homeworks, list_my_schedules, and list_my_exams.",
+              "Overlaps get_my_overview but adds currentSemester, currentSemesterSections, nextClass, merged deadlines, and preferred-bus departures; accepts optional atTime to anchor those time windows instead of using the server clock. When subscriptions.totalCount is greater than subscriptions.currentSemesterCount, past-term subscriptions remain available through list_my_subscribed_sections and the semesterId filters on list_my_homeworks, list_my_schedules, and list_my_exams.",
               "Default mode should stay assistant-compact; request full mode when the caller explicitly needs full nested schedule, room, teacher, or homework payloads.",
               "The deprecated summary input is an alias for default and must preserve the same top-level dashboard collections rather than introducing alternate wrapper shapes."
             ]

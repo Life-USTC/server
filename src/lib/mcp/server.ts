@@ -23,7 +23,7 @@ import {
 
 const SERVER_INSTRUCTIONS = [
   "Use get_my_dashboard or get_my_overview before fanning out into narrower personal tools.",
-  "A zero currentSemesterCount means no current-semester follows, not necessarily no course history; when totalCount is larger, use list_my_subscribed_sections and the semesterId filters on list_my_homeworks, list_my_schedules, or list_my_exams to recover past-term data.",
+  "A zero currentSemesterCount means no current-semester subscriptions, not necessarily no course history; when totalCount is larger, use list_my_subscribed_sections and the semesterId filters on list_my_homeworks, list_my_schedules, or list_my_exams to recover past-term data.",
   "Use search_courses, search_sections, search_teachers, list_bus_routes, or list_dashboard_links to discover stable IDs before ID-based calls.",
   `Use ${GRAPHQL_OPERATION_PROMPT_NAME} when composing an unfamiliar GraphQL call. It injects life-ustc://graphql/schema and life-ustc://graphql/operations; run_graphql_operation accepts arbitrary documents or compatible registered operations. Field scopes and mutation confirmation are always enforced.`,
   "Mutation tools change Life@USTC user or collaborative data; summarize the intended change and ask for user confirmation before calling them.",

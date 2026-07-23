@@ -15,7 +15,7 @@ export function registerSectionRecordTools(server: McpServer) {
     {
       description:
         "Query public schedules across sections by section, teacher, room, weekday, and date range. " +
-        "Use list_my_schedules for only followed sections.",
+        "Use list_my_schedules for only subscribed sections.",
       inputSchema: {
         sectionId: z.number().int().positive().optional(),
         sectionJwId: z.number().int().positive().optional(),

@@ -22,7 +22,7 @@
       "meDashboard": "仪表盘",
       "settings": "设置",
       "userProfile": "{username} 的主页",
-      "subscriptions": "关注班级",
+      "subscriptions": "教学班订阅",
       "uploads": "我的上传",
       "homeworks": "我的作业",
       "apiDocs": "API 文档",
@@ -38,12 +38,12 @@
     "courses": "课程",
     "sections": "班级",
     "teachers": "教师",
-    "subscriptions": "关注班级",
+    "subscriptions": "教学班订阅",
     "me": "我的",
     "terms": "服务条款",
     "privacy": "隐私政策",
     "browseCourses": "浏览课程",
-    "sectionSubscriptions": "关注班级",
+    "sectionSubscriptions": "教学班订阅",
     "viewAll": "查看全部",
     "search": "搜索",
     "clear": "清除",
@@ -84,22 +84,22 @@
     "todo": "待办"
   },
   "subscriptions": {
-    "title": "关注班级",
-    "description": "管理您在 Life@USTC 中关注的班级",
+    "title": "教学班订阅",
+    "description": "管理您在 Life@USTC 中订阅的教学班",
     "summary": {
       "subscriptions": "订阅日历",
-      "sections": "关注班级总数",
+      "sections": "订阅教学班总数",
       "semesters": "涉及学期"
     },
-    "noSubscriptions": "暂无关注班级",
-    "noSubscriptionsDescription": "您还没有在 Life@USTC 中关注任何班级。",
+    "noSubscriptions": "暂无教学班订阅",
+    "noSubscriptionsDescription": "您还没有在 Life@USTC 中订阅任何教学班。",
     "calendarFeed": "日历订阅",
-    "subscribedSections": "已关注班级",
+    "subscribedSections": "已订阅教学班",
     "semesterGroup": "学期：{name}",
     "removing": "移除中...",
     "browseSections": "浏览班级",
     "browseCourses": "浏览课程",
-    "subscriptionTitle": "班级关注 #{id}",
+    "subscriptionTitle": "教学班订阅 #{id}",
     "sectionIncluded": "包含 {count} 个班级",
     "sectionsIncluded": "包含 {count} 个班级",
     "rowActions": "行操作",
@@ -109,7 +109,7 @@
     "optOut": "移除",
     "optOutConfirm": "确认",
     "optOutSuccess": "已移除班级",
-    "optOutSuccessDescription": "该班级已从关注列表中移除",
+    "optOutSuccessDescription": "该教学班已从订阅列表中移除",
     "optOutError": "移除失败",
     "optOutRetry": "请稍后重试",
     "courseCode": "课程代码",
@@ -118,37 +118,37 @@
     "semester": "学期",
     "credits": "学分",
     "openDetails": "查看班级 {code} 的详细信息",
-    "detailsDescription": "班级 {code} 的关注信息与可用操作。",
+    "detailsDescription": "教学班 {code} 的订阅信息与可用操作。",
     "closeDetails": "关闭",
     "openCourse": "前往课程主页",
-    "unsubscribe": "取消关注",
-    "unsubscribeTitle": "确认取消关注？",
-    "unsubscribeDescription": "取消关注班级 {code} 后，其课程表、考试与作业将不再出现在你的仪表盘中。",
-    "cancelUnsubscribe": "保留关注",
-    "confirmUnsubscribe": "确认取消关注",
+    "unsubscribe": "取消订阅",
+    "unsubscribeTitle": "确认取消订阅？",
+    "unsubscribeDescription": "取消订阅教学班 {code} 后，其课程表、考试与作业将不再出现在你的仪表盘中。",
+    "cancelUnsubscribe": "保留订阅",
+    "confirmUnsubscribe": "确认取消订阅",
     "calendarTitle": "日历（{count}）",
-    "calendarEmpty": "当前关注的班级里暂无课程或考试安排",
+    "calendarEmpty": "当前订阅的教学班里暂无课程或考试安排",
     "quickAdd": {
-      "title": "添加班级",
-      "description": "按课程号、班级号、课程名称或教师搜索，勾选教学班后直接关注。",
+      "title": "添加订阅",
+      "description": "按课程号、教学班号、课程名称或教师搜索，勾选教学班后直接订阅。",
       "codeLabel": "搜索课程或教师",
       "placeholder": "输入课程号、课程名称、班级号或教师姓名",
       "hint": "搜索范围仅限所选学期，最多显示 20 个教学班。",
       "searchButton": "搜索",
       "searching": "搜索中...",
       "resultsLabel": "找到 {count} 个教学班",
-      "resultsDescription": "勾选需要关注的教学班。",
+      "resultsDescription": "勾选需要订阅的教学班。",
       "selectSection": "选择班级 {code}",
-      "alreadySubscribed": "已关注",
+      "alreadySubscribed": "已订阅",
       "emptyTitle": "没有找到教学班",
       "emptyDescription": "请尝试其他课程号、课程名称、班级号或教师姓名，或者切换学期。",
-      "subscribeSelected": "关注所选（{count}）",
-      "subscribing": "关注中...",
+      "subscribeSelected": "订阅所选（{count}）",
+      "subscribing": "订阅中...",
       "cancel": "取消"
     },
     "bulkImport": {
-      "title": "批量导入班级",
-      "description": "粘贴包含班级代码或课程代码的文本，系统会匹配所选学期的班级，并允许你选择要关注的班级。",
+      "title": "批量添加订阅",
+      "description": "粘贴包含教学班代码或课程代码的文本，系统会匹配所选学期的教学班，并允许你选择要订阅的教学班。",
       "semesterLabel": "学期",
       "semesterPlaceholder": "选择学期",
       "sectionCodesLabel": "班级或课程代码",
@@ -163,14 +163,14 @@
       "checkFormat": "请检查输入的文本格式",
       "fetchFailed": "获取课程信息失败",
       "pleaseRetry": "请稍后重试",
-      "confirmTitle": "确认关注 {count} 个班级",
-      "foundSections": "找到 {count} 个匹配的班级，请选择要关注的班级：",
+      "confirmTitle": "确认订阅 {count} 个教学班",
+      "foundSections": "找到 {count} 个匹配的教学班，请选择要订阅的教学班：",
       "unmatchedCodes": "未匹配到的代码 ({count})",
       "cancel": "取消",
-      "subscribeSelected": "关注已选的 {count} 个班级",
+      "subscribeSelected": "订阅已选的 {count} 个教学班",
       "success": "已加入",
-      "successDescription": "已新增关注 {count} 个班级",
-      "importFailed": "关注失败"
+      "successDescription": "已新增 {count} 个教学班订阅",
+      "importFailed": "订阅失败"
     }
   },
   "uploads": {
@@ -254,7 +254,7 @@
       "cards": {
         "signIn": {
           "title": "登录进入个人仪表盘",
-          "description": "解锁个人课表、作业、关注班级和账户设置。"
+          "description": "解锁个人课表、作业、教学班订阅和账户设置。"
         },
         "mobileApp": {
           "title": "查看移动应用",
@@ -289,12 +289,12 @@
         "description": "查看班级时间表、教师和可用性"
       },
       "mySubscriptions": {
-        "title": "关注班级",
-        "description": "管理您关注的班级并获取日历链接"
+        "title": "教学班订阅",
+        "description": "管理您订阅的教学班并获取日历链接"
       },
       "myProfile": {
         "title": "我的",
-        "description": "查看您的个人资料、关注班级和账户设置"
+        "description": "查看您的个人资料、教学班订阅和账户设置"
       },
       "browseTeachers": {
         "title": "浏览教师",
@@ -358,7 +358,7 @@
       },
       "profile": {
         "title": "个人工作台",
-        "description": "登录后管理关注班级、个人资料和仪表盘工具。"
+        "description": "登录后管理教学班订阅、个人资料和仪表盘工具。"
       }
     },
     "preview": {
@@ -515,11 +515,11 @@
   },
   "myHomeworks": {
     "title": "我的作业",
-    "description": "查看你关注班级的作业信息。",
-    "noSubscriptions": "尚未关注班级",
-    "noSubscriptionsDescription": "关注班级后即可在此查看作业。",
+    "description": "查看你订阅的教学班的作业信息。",
+    "noSubscriptions": "尚未订阅教学班",
+    "noSubscriptionsDescription": "订阅教学班后即可在此查看作业。",
     "emptyTitle": "暂无作业",
-    "emptyDescription": "你关注的班级还没有发布作业。",
+    "emptyDescription": "你订阅的教学班还没有发布作业。",
     "filterEmptyDescription": "切换筛选条件，或前往班级页查看其他作业。",
     "listTitle": "作业（{count}）",
     "listDescription": "按截止时间排序。",
@@ -563,8 +563,8 @@
         "description": "按当前时间和常用校区查看下一班校车"
       },
       "subscriptions": {
-        "title": "关注班级",
-        "description": "批量导入并维护关注班级"
+        "title": "教学班订阅",
+        "description": "批量添加并管理教学班订阅"
       },
       "homeworks": {
         "title": "作业",
@@ -572,12 +572,12 @@
       },
       "exams": {
         "title": "考试",
-        "description": "查看你关注班级的考试安排",
+        "description": "查看你订阅的教学班的考试安排",
         "count": "{count} 场考试",
-        "noSubscriptionsTitle": "尚未关注班级",
-        "noSubscriptionsDescription": "关注班级后即可在此查看考试。",
+        "noSubscriptionsTitle": "尚未订阅教学班",
+        "noSubscriptionsDescription": "订阅教学班后即可在此查看考试。",
         "empty": "暂时没有可用的考试安排。",
-        "emptyDescription": "你关注的班级尚未发布考试安排。",
+        "emptyDescription": "你订阅的教学班尚未发布考试安排。",
         "filterEmptyDescription": "切换筛选条件，或稍后再查看考试安排。",
         "filterIncomplete": "未结束",
         "filterCompleted": "已结束",
@@ -662,7 +662,7 @@
       "openAll": "打开全部作业"
     },
     "links": {
-      "subscriptions": "查看关注班级",
+      "subscriptions": "查看教学班订阅",
       "homeworks": "查看全部作业",
       "settings": "打开设置",
       "publicProfile": "公开主页",
@@ -680,9 +680,9 @@
       "empty": "暂无逾期事项。"
     },
     "termSelection": {
-      "title": "当前学期暂无关注班级",
-      "noAnySelection": "先关注班级，才能在这里看到当前学期的任务。",
-      "noCurrentTerm": "你目前只关注了往期班级。再添加当前学期的班级即可恢复仪表盘。",
+      "title": "当前学期暂无教学班订阅",
+      "noAnySelection": "先订阅教学班，才能在这里看到当前学期的任务。",
+      "noCurrentTerm": "你目前只订阅了往期教学班。再订阅当前学期的教学班即可恢复仪表盘。",
       "historyAvailable": "往期班级、作业和课表仍然保留，你可以继续查看。",
       "viewPastHomeworks": "查看往期作业",
       "viewPastSchedule": "查看往期课表",
@@ -831,7 +831,7 @@
     "idLabel": "用户",
     "joinedAt": "加入时间：{date}",
     "stats": {
-      "sections": "关注班级",
+      "sections": "教学班订阅",
       "comments": "评论",
       "uploads": "上传",
       "homeworks": "创建作业"
@@ -922,7 +922,7 @@
       },
       "comments": "评论",
       "uploads": "上传",
-      "subscriptions": "关注"
+      "subscriptions": "订阅"
     },
     "preferences": {
       "title": "偏好设置",
@@ -1144,7 +1144,7 @@
     "sectionCode": "班级代码",
     "teachingSection": "授课班级",
     "historicalSectionLabel": "历史班级",
-    "historicalSectionDescription": "该班级已不在最新教务快照中，保留此页面用于查看历史信息；不能新增关注。",
+    "historicalSectionDescription": "该教学班已不在最新教务快照中，保留此页面用于查看历史信息；不能新增订阅。",
     "semester": "学期",
     "campus": "校区",
     "credits": "学分",
@@ -1192,25 +1192,25 @@
     "calendarSheetTitle": "添加到日历",
     "calendarSheetDescription": "复制下面的链接，然后在您的日历应用中添加此日历",
     "calendarUrlLabel": "单个班级日历链接",
-    "subscriptionUrlLabel": "关注班级日历链接",
+    "subscriptionUrlLabel": "教学班订阅日历链接",
     "subscriptionMissing": "登录后生成你的个人订阅链接",
-    "subscriptionHintLabel": "此链接包含您在 Life@USTC 中关注的所有班级，会自动同步更新，不代表学校官方选课结果。",
-    "subscribeLabel": "关注班级",
-    "unsubscribeLabel": "取消关注",
+    "subscriptionHintLabel": "此链接包含您在 Life@USTC 中订阅的所有教学班，会自动同步更新，不代表学校官方选课结果。",
+    "subscribeLabel": "订阅教学班",
+    "unsubscribeLabel": "取消订阅",
     "copyToClipboard": "复制",
     "close": "关闭",
     "learnMoreAboutICalendar": "了解更多关于 iCalendar 格式",
     "copied": "已复制！",
-    "subscribing": "关注中...",
+    "subscribing": "订阅中...",
     "unsubscribing": "移除中...",
     "pleaseWait": "请稍候",
-    "subscribeSuccess": "已关注",
+    "subscribeSuccess": "已订阅",
     "unsubscribeSuccess": "已移除",
-    "subscribeSuccessDescription": "该班级已加入你的关注列表，仅影响 Life@USTC 中的日历与仪表盘。",
-    "unsubscribeSuccessDescription": "该班级已从你的关注列表中移除",
+    "subscribeSuccessDescription": "该教学班已加入你的订阅列表，仅影响 Life@USTC 中的日历与仪表盘。",
+    "unsubscribeSuccessDescription": "该教学班已从你的订阅列表中移除",
     "operationFailed": "操作失败",
     "pleaseRetry": "请重试",
-    "viewAllSubscriptions": "查看关注班级",
+    "viewAllSubscriptions": "查看教学班订阅",
     "loginRequired": "需要登录",
     "summaryHomework": "作业",
     "summaryHomeworkMeta": "可见作业",
@@ -1237,9 +1237,9 @@
       "comments": "评论",
       "calendar": "日历"
     },
-    "loginRequiredDescription": "登录后即可在 Life@USTC 中关注班级，并在不同设备间同步你的仪表盘与日历。这不等同于学校官方选课。",
-    "loginToSubscribe": "登录后关注",
-    "subscriptionDisclaimer": "这里的“关注班级”只会影响 Life@USTC 中的仪表盘与日历，不代表中国科大官方选课。",
+    "loginRequiredDescription": "登录后即可在 Life@USTC 中订阅教学班，并在不同设备间同步你的仪表盘与日历。这不等同于学校官方选课。",
+    "loginToSubscribe": "登录后订阅",
+    "subscriptionDisclaimer": "这里的“教学班订阅”只会影响 Life@USTC 中的仪表盘与日历，不代表中国科大官方选课。",
     "calendar": "日历 ({count})",
     "calendarEmpty": "此班级暂无课程或考试安排",
     "classEvent": "上课",
@@ -1271,7 +1271,7 @@
     "examMode": "考试方式",
     "examCount": "考试人数",
     "viewAllSections": "查看这门课全部开课班级",
-    "viewMySubscriptions": "查看我的关注班级",
+    "viewMySubscriptions": "查看我的教学班订阅",
     "viewTeacherCourses": "查看 {teacher} 教授的其他课程",
     "weekdays": {
       "sunday": "星期日",
@@ -1313,7 +1313,7 @@
   "accessibility": {
     "viewSourceOnGithub": "在 GitHub 上查看源码",
     "avatarOption": "头像选项",
-    "subscriptionCalendarUrl": "关注班级日历链接",
+    "subscriptionCalendarUrl": "教学班订阅日历链接",
     "singleSectionCalendarUrl": "单个班级日历链接",
     "skipToMainContent": "跳转到主要内容"
   },
@@ -1367,7 +1367,7 @@
     "deleteAccount": "删除账户",
     "deletingAccount": "删除中...",
     "deleteAccountConfirmTitle": "您确定要删除吗？",
-    "deleteAccountConfirmDescription": "此操作无法撤销。这将永久删除您的账户、所有关联账户、关注班级，并从我们的服务器中删除您的所有数据。",
+    "deleteAccountConfirmDescription": "此操作无法撤销。这将永久删除您的账户、所有关联账户、教学班订阅，并从我们的服务器中删除您的所有数据。",
     "deleteAccountConfirmPrompt": "输入 {phrase} 以确认：",
     "deleteAccountFinalAdmin": "删除此账户前必须至少保留一名管理员。",
     "deleteAccountSuccess": "账户已删除",
@@ -1983,15 +1983,15 @@
     "browseSections": "浏览班级",
     "browseCourses": "浏览课程",
     "avatarLater": "你可以稍后在设置中添加上传过的头像。",
-    "bulkImportCta": "批量导入班级",
+    "bulkImportCta": "批量添加订阅",
     "sectionCodesLabel": "班级代码",
-    "confirmImportTitle": "确认导入班级",
+    "confirmImportTitle": "确认添加教学班订阅",
     "matchedSummary": "已匹配 {matched} 个，未匹配 {unmatched} 个。",
     "noMatchingSections": "未找到匹配的班级。",
     "selectSection": "选择 {code}",
     "importing": "导入中...",
-    "subscribeSelected": "关注已选（{count}）",
-    "importedSummary": "已新增关注 {count} 个班级。"
+    "subscribeSelected": "订阅已选（{count}）",
+    "importedSummary": "已新增 {count} 个教学班订阅。"
   },
   "oauth": {
     "authorize": "授权应用",
@@ -2010,8 +2010,8 @@
     "scope_todo:write": "管理你的待办事项",
     "scope_homework:read": "读取你的作业",
     "scope_homework:write": "管理你的作业",
-    "scope_subscription:read": "读取你关注的班级",
-    "scope_subscription:write": "管理你关注的班级",
+    "scope_subscription:read": "读取你的教学班订阅",
+    "scope_subscription:write": "管理你的教学班订阅",
     "scope_comment:read": "读取你的评论",
     "scope_comment:write": "管理你的评论",
     "scope_description:read": "读取简介内容",
@@ -2040,8 +2040,8 @@
     "scope_rest:todo:write": "管理你的待办事项",
     "scope_rest:homework:read": "读取你的作业",
     "scope_rest:homework:write": "管理你的作业",
-    "scope_rest:subscription:read": "读取你关注的班级",
-    "scope_rest:subscription:write": "管理你关注的班级",
+    "scope_rest:subscription:read": "读取你的教学班订阅",
+    "scope_rest:subscription:write": "管理你的教学班订阅",
     "scope_rest:comment:read": "读取你的评论",
     "scope_rest:comment:write": "管理你的评论",
     "scope_rest:description:read": "读取简介内容",
@@ -2067,7 +2067,7 @@
     "scope_mcp:profile": "通过 MCP 访问个人资料工具",
     "scope_mcp:todo": "通过 MCP 访问待办工具",
     "scope_mcp:homework": "通过 MCP 访问作业工具",
-    "scope_mcp:subscription": "通过 MCP 访问班级关注工具",
+    "scope_mcp:subscription": "通过 MCP 访问教学班订阅工具",
     "scope_mcp:calendar": "通过 MCP 访问日历工具",
     "scope_mcp:comment": "通过 MCP 访问评论工具",
     "scope_mcp:description": "通过 MCP 访问简介工具",

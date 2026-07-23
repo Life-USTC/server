@@ -29,9 +29,11 @@ their own repositories before a breaking change.
 6. Bot and CLI commands are human interfaces. They use domain-first grouping,
    then an action: `待办 添加` and `workspace todo create`. Internal Bot tool
    names and OneBot action IDs are compatibility APIs, not navigation labels.
-7. `subscription` is the canonical domain term. `calendar` or iCalendar names
-   describe schedules and exported representations, not the act of following a
-   section.
+7. `subscription` is the canonical domain term. Web copy uses “教学班订阅 /
+   Section subscriptions” with “订阅 / Subscribe” and “取消订阅 / Unsubscribe”.
+   `calendar` or iCalendar names describe schedules and exported
+   representations, not the act of subscribing to a section. “选课 /
+   Enrollment” is reserved for official academic enrollment and disclaimers.
 8. Locale is presentation preference, not content identity. Locale prefixes
    and locale query parameters are not canonical web routes.
 

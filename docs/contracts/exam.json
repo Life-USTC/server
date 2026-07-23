@@ -50,7 +50,7 @@
             "returns": "{ exams: ExamEntry[] }",
             "notes": [
               "Returns exams[]; each item contains section.course.namePrimary, section.code, section.semester?.nameCn, examDate, startTime, endTime, examBatch, and examRooms[].",
-              "Omitting semesterId reads all followed semesters; pass a semesterId to recover one current or past term."
+              "Omitting semesterId reads all subscribed semesters; pass a semesterId to recover one current or past term."
             ]
           }
         ]
