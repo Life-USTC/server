@@ -1,3 +1,10 @@
+## [1.77.3](https://github.com/Life-USTC/server/compare/v1.77.2...v1.77.3) (2026-07-23)
+
+
+### Bug Fixes
+
+* **worker:** harden MCP observability and limits ([#615](https://github.com/Life-USTC/server/issues/615)) ([6ad477a](https://github.com/Life-USTC/server/commit/6ad477a935910cba08fbf3c07d1d4d54f786d18a))
+
 ## [1.77.2](https://github.com/Life-USTC/server/compare/v1.77.1...v1.77.2) (2026-07-23)
 
 
