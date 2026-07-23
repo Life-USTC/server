@@ -1,5 +1,6 @@
 <script lang="ts">
 import { page } from "$app/stores";
+import appIconUrl from "$lib/assets/life-ustc-icon-192.png";
 import AppShell from "$lib/components/shell/AppShell.svelte";
 import "./svelte.css";
 import type { LayoutData } from "./$types";
@@ -14,8 +15,8 @@ $: socialMetadata = $page.data.socialMetadata;
   <link
     rel="icon"
     type="image/png"
-    sizes="32x32"
-    href="/images/ustc_favicon.png"
+    sizes="192x192"
+    href={appIconUrl}
   />
   <link rel="canonical" href={socialMetadata.canonicalUrl} />
   <meta name="description" content={socialMetadata.description} />
