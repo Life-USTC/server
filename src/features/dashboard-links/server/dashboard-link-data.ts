@@ -1,6 +1,6 @@
 import { DASHBOARD_LINK_GROUPS } from "@/features/dashboard-links/lib/dashboard-links";
 import { type AppLocale, DEFAULT_LOCALE } from "@/i18n/config";
-import { prisma, withUserDbContext } from "@/lib/db/prisma";
+import { withUserDbContext } from "@/lib/db/prisma";
 import {
   buildDashboardLinkSummaries,
   dashboardLinksForSlugs,
@@ -45,12 +45,12 @@ export async function getSignedInDashboardLinksData(
 ): Promise<DashboardLinksData> {
   const normalizedUserId = userId.trim();
   if (!normalizedUserId) throw new Error("Dashboard link user ID is required");
-  return withUserDbContext(normalizedUserId, async () => {
-    const clickRows = await prisma.dashboardLinkClick.findMany({
+  return withUserDbContext(normalizedUserId, async (tx) => {
+    const clickRows = await tx.dashboardLinkClick.findMany({
       where: { userId: normalizedUserId },
       select: { slug: true, count: true },
     });
-    const pinRows = await prisma.dashboardLinkPin.findMany({
+    const pinRows = await tx.dashboardLinkPin.findMany({
       where: { userId: normalizedUserId },
       select: { slug: true },
       orderBy: { createdAt: "asc" },

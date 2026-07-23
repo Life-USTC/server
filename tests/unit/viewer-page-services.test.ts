@@ -27,7 +27,9 @@ const {
   todoFindManyMock: vi.fn(),
   withUserDbContextMock: vi.fn(
     async (_userId: string, action: (tx: unknown) => Promise<unknown>) =>
-      action({}),
+      action({
+        todo: { count: todoCountMock, findMany: todoFindManyMock },
+      }),
   ),
 }));
 
@@ -42,7 +44,18 @@ vi.mock("@/lib/db/prisma", () => ({
   getPrisma: getPrismaMock,
   prisma: {
     comment: { groupBy: vi.fn() },
-    todo: { count: todoCountMock, findMany: todoFindManyMock },
+    todo: {
+      count: vi.fn(() => {
+        throw new Error(
+          "base todo delegate must not be used inside RLS context",
+        );
+      }),
+      findMany: vi.fn(() => {
+        throw new Error(
+          "base todo delegate must not be used inside RLS context",
+        );
+      }),
+    },
   },
   withUserDbContext: withUserDbContextMock,
 }));

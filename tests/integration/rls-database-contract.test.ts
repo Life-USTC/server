@@ -9,6 +9,34 @@ const protectedTables = [
   "Todo",
 ] as const;
 
+// This mirrors only the temporary CI role bootstrap. Issue #603 must replace
+// the account-deletion grants with separately owned production roles.
+const expectedRuntimeTablePrivileges = [
+  "AuditLog:SELECT",
+  "AuditLog:UPDATE",
+  "BusCampus:SELECT",
+  "BusUserPreference:DELETE",
+  "BusUserPreference:INSERT",
+  "BusUserPreference:SELECT",
+  "BusUserPreference:UPDATE",
+  "DashboardLinkClick:DELETE",
+  "DashboardLinkClick:INSERT",
+  "DashboardLinkClick:SELECT",
+  "DashboardLinkClick:UPDATE",
+  "DashboardLinkPin:DELETE",
+  "DashboardLinkPin:INSERT",
+  "DashboardLinkPin:SELECT",
+  "DashboardLinkPin:UPDATE",
+  "Todo:DELETE",
+  "Todo:INSERT",
+  "Todo:SELECT",
+  "Todo:UPDATE",
+  "User:DELETE",
+  "User:SELECT",
+  "UserSuspension:SELECT",
+  "UserSuspension:UPDATE",
+] as const;
+
 describe.skipIf(process.env.RLS_TEST_ENABLED !== "true")(
   "PostgreSQL row security contract",
   () => {
@@ -110,6 +138,92 @@ describe.skipIf(process.env.RLS_TEST_ENABLED !== "true")(
           policy.usingExpression.replaceAll("::text", ""),
         );
       }
+    });
+
+    it("keeps the temporary CI runtime grants on an exact allowlist", async () => {
+      const grants = await prisma.$queryRaw<
+        { tableName: string; privilege: string }[]
+      >(Prisma.sql`
+        SELECT
+          table_name AS "tableName",
+          privilege_type AS privilege
+        FROM information_schema.role_table_grants
+        WHERE grantee = current_user
+          AND table_schema = 'public'
+        ORDER BY table_name, privilege_type
+      `);
+
+      expect(
+        grants.map(({ tableName, privilege }) => `${tableName}:${privilege}`),
+      ).toEqual(expectedRuntimeTablePrivileges);
+
+      const effectiveGrants = await prisma.$queryRaw<
+        { tableName: string; privilege: string }[]
+      >(Prisma.sql`
+        SELECT
+          pg_class.relname AS "tableName",
+          candidate.privilege
+        FROM pg_class
+        JOIN pg_namespace ON pg_namespace.oid = pg_class.relnamespace
+        CROSS JOIN (
+          VALUES ('DELETE'), ('INSERT'), ('REFERENCES'), ('SELECT'),
+                 ('TRIGGER'), ('TRUNCATE'), ('UPDATE')
+        ) AS candidate(privilege)
+        WHERE pg_namespace.nspname = 'public'
+          AND pg_class.relkind IN ('r', 'p')
+          AND has_table_privilege(
+            current_user,
+            format('%I.%I', pg_namespace.nspname, pg_class.relname),
+            candidate.privilege
+          )
+        ORDER BY pg_class.relname, candidate.privilege
+      `);
+      expect(
+        effectiveGrants.map(
+          ({ tableName, privilege }) => `${tableName}:${privilege}`,
+        ),
+      ).toEqual(expectedRuntimeTablePrivileges);
+
+      const [schemaPrivileges] = await prisma.$queryRaw<
+        { canCreate: boolean; canUse: boolean }[]
+      >(Prisma.sql`
+        SELECT
+          has_schema_privilege(current_user, 'public', 'CREATE') AS "canCreate",
+          has_schema_privilege(current_user, 'public', 'USAGE') AS "canUse"
+      `);
+      expect(schemaPrivileges).toEqual({ canCreate: false, canUse: true });
+    });
+
+    it("cannot inherit or SET ROLE through memberships or future default grants", async () => {
+      const memberships = await prisma.$queryRaw<
+        { grantedRole: string }[]
+      >(Prisma.sql`
+        SELECT parent.rolname AS "grantedRole"
+        FROM pg_auth_members
+        JOIN pg_roles member ON member.oid = pg_auth_members.member
+        JOIN pg_roles parent ON parent.oid = pg_auth_members.roleid
+        WHERE member.rolname = current_user
+        ORDER BY parent.rolname
+      `);
+      expect(memberships).toEqual([]);
+
+      const defaultPrivileges = await prisma.$queryRaw<
+        { owner: string; objectType: string; privilege: string }[]
+      >(Prisma.sql`
+        SELECT
+          owner.rolname AS owner,
+          defaults.defaclobjtype::text AS "objectType",
+          acl.privilege_type AS privilege
+        FROM pg_default_acl defaults
+        JOIN pg_roles owner ON owner.oid = defaults.defaclrole
+        CROSS JOIN LATERAL aclexplode(defaults.defaclacl) acl
+        WHERE acl.grantee IN (
+          0,
+          (SELECT oid FROM pg_roles WHERE rolname = current_user)
+        )
+        ORDER BY owner.rolname, defaults.defaclobjtype, acl.privilege_type
+      `);
+      expect(defaultPrivileges).toEqual([]);
     });
   },
 );
