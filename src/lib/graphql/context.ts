@@ -12,6 +12,7 @@ export type GraphqlContext = {
 
 export type GraphqlServerContext = {
   locals: { locale?: AppLocale; requestId?: string };
+  operationObservation?: "caller";
   principal?: GraphqlPrincipal;
 };
 

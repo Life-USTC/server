@@ -24,6 +24,7 @@ import {
   isWithinGraphqlBodyByteLimit,
 } from "./constants";
 import { formatMaskedGraphqlError } from "./error-masking";
+import { recordGraphqlOperationObservation } from "./observability";
 import {
   analyzeGraphqlOperation,
   type GraphqlOperationAnalysis,
@@ -49,6 +50,13 @@ const mutationScopes = new Map(
     .filter((operation) => operation.operationType === "mutation")
     .map((operation) => [operation.rootField, operation.scopes] as const),
 );
+
+const UNKNOWN_ANALYSIS: GraphqlOperationAnalysis = {
+  estimatedCost: 0,
+  operationName: "unknown",
+  operationType: "unknown",
+  topLevelFieldCount: 0,
+};
 
 type GraphqlResponsePayload = {
   data?: Record<string, unknown> | null;
@@ -80,6 +88,34 @@ function requestBody(input: {
     );
   }
   return body;
+}
+
+function requireDocumentByteLimit(document: string) {
+  if (!isWithinGraphqlBodyByteLimit(document)) {
+    throw new RegisteredGraphqlOperationError(
+      "BAD_USER_INPUT",
+      `GraphQL document must not exceed ${GRAPHQL_LIMITS.bodyBytes} bytes.`,
+    );
+  }
+}
+
+function requireActiveDeadline(
+  deadline: ReturnType<typeof createDeadline>,
+  parentSignal: AbortSignal,
+  expiresAt: number,
+) {
+  if (deadline.timedOut() || Date.now() >= expiresAt) {
+    throw new RegisteredGraphqlOperationError(
+      "REQUEST_TIMEOUT",
+      "GraphQL document timed out.",
+    );
+  }
+  if (deadline.signal.aborted || parentSignal.aborted) {
+    throw new RegisteredGraphqlOperationError(
+      "REQUEST_CANCELLED",
+      "GraphQL document was cancelled.",
+    );
+  }
 }
 
 function parseSelectedOperation(document: string, operationName?: string) {
@@ -265,31 +301,48 @@ export async function runGraphqlDocument(input: {
   signal: AbortSignal;
   variables?: Record<string, unknown>;
 }): Promise<RegisteredGraphqlOperationResult> {
+  const startedAt = Date.now();
   const variables = input.variables ?? {};
-  const { operation, parsed } = parseSelectedOperation(
-    input.document,
-    input.operationName,
-  );
-  requireMutationScopes(parsed, operation, input.principal, variables);
-  if (operation.operation === "mutation" && input.confirmed !== true) {
-    throw new RegisteredGraphqlOperationError(
-      "CONFIRMATION_REQUIRED",
-      "GraphQL mutations require explicit confirmation.",
-    );
-  }
-  const body = requestBody({
-    document: input.document,
-    operationName: input.operationName,
-    variables,
-  });
-  const analysis = analyzeGraphqlOperation({
-    document: parsed,
-    operationName: input.operationName,
-    variables,
-  });
+  let analysis = { ...UNKNOWN_ANALYSIS };
+  let errorCount = 0;
   const deadline = createDeadline(input.signal, GRAPHQL_LIMITS.timeoutMs);
+  const requireActive = () =>
+    requireActiveDeadline(
+      deadline,
+      input.signal,
+      startedAt + GRAPHQL_LIMITS.timeoutMs,
+    );
 
   try {
+    requireActive();
+    requireDocumentByteLimit(input.document);
+    requireActive();
+    const { operation, parsed } = parseSelectedOperation(
+      input.document,
+      input.operationName,
+    );
+    requireActive();
+    analysis = analyzeGraphqlOperation({
+      document: parsed,
+      operationName: input.operationName,
+      variables,
+    });
+    requireActive();
+    requireMutationScopes(parsed, operation, input.principal, variables);
+    requireActive();
+    if (operation.operation === "mutation" && input.confirmed !== true) {
+      throw new RegisteredGraphqlOperationError(
+        "CONFIRMATION_REQUIRED",
+        "GraphQL mutations require explicit confirmation.",
+      );
+    }
+    requireActive();
+    const body = requestBody({
+      document: input.document,
+      operationName: input.operationName,
+      variables,
+    });
+    requireActive();
     const url = safeGraphqlRequestUrl(input.requestInfo?.url);
     url.pathname = GRAPHQL_ENDPOINT;
     url.search = "";
@@ -309,11 +362,17 @@ export async function runGraphqlDocument(input: {
           locale: input.locale,
           requestId: input.requestInfo?.requestId ?? undefined,
         },
+        operationObservation: "caller",
         principal: input.principal,
       },
     );
-    return result(analysis, (await response.json()) as GraphqlResponsePayload);
+    requireActive();
+    const payload = (await response.json()) as GraphqlResponsePayload;
+    requireActive();
+    errorCount = payload.errors?.length ?? 0;
+    return result(analysis, payload);
   } catch (error) {
+    errorCount = 1;
     if (error instanceof RegisteredGraphqlOperationError) throw error;
     if (deadline.timedOut()) {
       throw new RegisteredGraphqlOperationError(
@@ -338,5 +397,12 @@ export async function runGraphqlDocument(input: {
     });
   } finally {
     deadline.cleanup();
+    recordGraphqlOperationObservation({
+      ...analysis,
+      authMode: input.principal.kind,
+      durationMs: Date.now() - startedAt,
+      errorCount,
+      requestId: input.requestInfo?.requestId,
+    });
   }
 }
