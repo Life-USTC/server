@@ -22,10 +22,16 @@ high-cardinality resource IDs.
   diagnosis.
 - Production API request metrics are written to Cloudflare Analytics Engine.
 - API request metrics live in `src/lib/log/api-observability-recording.ts`.
-- Every `/api/*` request receives one server-generated request ID and records
-  exactly one finish or error outcome, including early CSRF responses,
-  unmatched routes, auth catch-all routes, and handler exceptions. Client
-  `x-request-id` values are not trusted as the server correlation ID.
+- Every `/api` and `/api/*` request receives one server-generated request ID
+  and records exactly one finish or error outcome, including early CSRF
+  responses, unmatched routes, auth catch-all routes, and handler exceptions.
+  Client `x-request-id` values are not trusted as the server correlation ID.
+- Server-side application logs inherit the current request ID, method, and
+  normalized route from request-scoped runtime context. This keeps route
+  failures, database diagnostics, audit/storage failures, and MCP-nested
+  GraphQL observations correlated without passing request metadata through
+  domain APIs. MCP JSON-RPC IDs remain protocol identifiers and are not used as
+  HTTP request IDs.
 - GraphQL observations distinguish expected GraphQL errors from
   `INTERNAL_SERVER_ERROR`; only the latter are logged at error severity.
 - Request IDs propagate through page, data, action, and REST responses that

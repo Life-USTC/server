@@ -1,4 +1,8 @@
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
+import {
+  runWithCloudflareRuntimeEnv,
+  setCloudflareRequestContext,
+} from "@/lib/adapters/cloudflare-runtime";
 import { prisma, withUserDbContext } from "@/lib/db/prisma";
 import {
   GRAPHQL_OPERATIONS_RESOURCE_URI,
@@ -167,6 +171,40 @@ describe.sequential("GraphQL MCP operations", () => {
       destructiveHint: true,
       openWorldHint: true,
     });
+  });
+
+  it("correlates nested GraphQL observations with the HTTP request id", async () => {
+    const info = vi.spyOn(console, "info").mockImplementation(() => {});
+    try {
+      await runWithCloudflareRuntimeEnv({}, () => {
+        setCloudflareRequestContext({
+          method: "POST",
+          requestId: "mcp-http-request-id",
+          route: "/api/mcp",
+        });
+        return mcp.call("run_graphql_operation", {
+          operationId: "viewer.todos.v1",
+          variables: {},
+        });
+      });
+
+      const operationLog = info.mock.calls.find(
+        ([prefix, value]) =>
+          prefix === "[app]" &&
+          typeof value === "object" &&
+          value !== null &&
+          "event" in value &&
+          value.event === "graphql.operation",
+      );
+      expect(operationLog?.[1]).toEqual(
+        expect.objectContaining({
+          requestId: "mcp-http-request-id",
+          route: "/api/mcp",
+        }),
+      );
+    } finally {
+      info.mockRestore();
+    }
   });
 
   it("runs arbitrary documents with fragments, aliases, and variables", async () => {

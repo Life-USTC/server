@@ -89,6 +89,10 @@ function pageEvents(
   });
 }
 
+function apiEvents(calls: ReadonlyArray<ReadonlyArray<unknown>>) {
+  return calls.filter(([prefix]) => prefix === "[api]");
+}
+
 describe("SvelteKit page request lifecycle", () => {
   afterEach(() => {
     vi.restoreAllMocks();
@@ -149,5 +153,29 @@ describe("SvelteKit page request lifecycle", () => {
         status: 500,
       }),
     );
+  });
+
+  it("classifies the exact /api path as an API request", async () => {
+    const info = vi.spyOn(console, "info").mockImplementation(() => {});
+
+    const response = await handle(
+      handleInput(async () => Response.json({ error: "Not found" }), {
+        pathname: "/api",
+        routeId: "/api/[...path]",
+      }),
+    );
+
+    expect(response.headers.get("x-request-id")).toMatch(/^[0-9a-f-]{36}$/i);
+    expect(pageEvents(info.mock.calls, "page.request.finish")).toHaveLength(0);
+    expect(apiEvents(info.mock.calls)).toEqual([
+      expect.arrayContaining([
+        "[api]",
+        expect.objectContaining({ event: "request.start", path: "/api" }),
+      ]),
+      expect.arrayContaining([
+        "[api]",
+        expect.objectContaining({ event: "request.finish", path: "/api" }),
+      ]),
+    ]);
   });
 });

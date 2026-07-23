@@ -1,4 +1,8 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
+import {
+  runWithCloudflareRuntimeEnv,
+  setCloudflareRequestContext,
+} from "@/lib/adapters/cloudflare-runtime";
 import { logPrismaQuery } from "@/lib/db/prisma-query-events";
 import {
   getPrismaQueryDebugMode,
@@ -72,5 +76,33 @@ describe("Prisma 查询日志环境", () => {
     });
     expect(String(payload)).not.toContain("secret-user-id");
     expect(JSON.parse(String(payload))).not.toHaveProperty("params");
+  });
+
+  it("将慢查询关联到当前请求", async () => {
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("PRISMA_SLOW_QUERY_MS", "10");
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+
+    await runWithCloudflareRuntimeEnv({}, () => {
+      setCloudflareRequestContext({
+        method: "GET",
+        requestId: "slow-query-request",
+        route: "/api/todos",
+      });
+      logPrismaQuery({
+        duration: 20,
+        params: "[]",
+        query: "SELECT 1",
+        target: "quaint::connector::metrics",
+      } as Parameters<typeof logPrismaQuery>[0]);
+    });
+
+    const [payload] = warnSpy.mock.calls[0] ?? [];
+    expect(JSON.parse(String(payload))).toMatchObject({
+      event: "prisma.slow-query",
+      method: "GET",
+      requestId: "slow-query-request",
+      route: "/api/todos",
+    });
   });
 });

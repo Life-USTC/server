@@ -7,6 +7,7 @@ import {
 } from "@/lib/api/routes/auth-device-authorization-helpers";
 import { parseDeviceAuthorizationForm } from "@/lib/api/routes/auth-device-form-parsing";
 import { observedApiRoute } from "@/lib/log/api-observability";
+import { logAppEvent } from "@/lib/log/app-logger";
 import { logOAuthDebug } from "@/lib/log/oauth-debug";
 import { getSafeErrorName } from "@/lib/log/safe-error-name";
 import { writeOAuthEventAnalytics } from "@/lib/metrics/analytics-engine";
@@ -58,6 +59,15 @@ async function runDeviceAuthorizationPostRoute(
       requestedResources: resolvedClient.requestedResources,
     });
   } catch (err) {
+    logAppEvent(
+      "error",
+      "OAuth device authorization grant creation failed",
+      {
+        event: "oauth.device-authorization.failed",
+        phase: "create-grant",
+      },
+      err,
+    );
     logOAuthDebug("device-auth.error", request, {
       reason: "prisma_create_failed",
       errorName: getSafeErrorName(err),

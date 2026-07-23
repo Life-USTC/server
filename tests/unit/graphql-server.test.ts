@@ -792,6 +792,32 @@ describe("GraphQL HTTP boundary", () => {
     });
   });
 
+  it("logs unexpected transport failures with the request id", async () => {
+    const errorLog = vi.spyOn(console, "error").mockImplementation(() => {});
+    const request = new Request("https://example.test/api/graphql", {
+      method: "POST",
+      body: new ReadableStream({
+        pull(controller) {
+          controller.error(new TypeError("stream failed"));
+        },
+      }),
+      duplex: "half",
+    } as RequestInit & { duplex: "half" });
+
+    const response = await developmentHandler(requestEventFromRequest(request));
+
+    expect(response.status).toBe(500);
+    expect(errorLog).toHaveBeenCalledWith(
+      "[app]",
+      expect.objectContaining({
+        event: "graphql.request.failed",
+        phase: "transport",
+        requestId: "graphql-unit-test",
+      }),
+      expect.objectContaining({ name: "TypeError" }),
+    );
+  });
+
   it("rejects batched operations", async () => {
     const { response, payload } = await execute([
       { query: "{ currentSemester { jwId } }" },

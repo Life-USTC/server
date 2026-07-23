@@ -7,6 +7,7 @@ import { loadBusStaticPayload } from "@/features/bus/lib/bus-static-source";
 import { importBusStaticPayload } from "@/features/bus/server/bus-import";
 import type { AppLocale } from "@/i18n/config";
 import { prisma } from "@/lib/db/prisma";
+import { logServerActionError } from "@/lib/log/app-logger";
 import enUsMessages from "../../../../messages/en-us.json";
 import zhCnMessages from "../../../../messages/zh-cn.json";
 import {
@@ -86,8 +87,12 @@ export const adminBusActions = {
       const payload = await loadBusStaticPayload();
       result = await importBusStaticPayload(prisma, payload);
     } catch (error) {
-      const detail = error instanceof Error ? error.message : String(error);
-      return failure(`${copy.importFailed}: ${detail}`, 500);
+      logServerActionError("admin.bus.import-static.failed", error, {
+        action: "import-static",
+        requestId: locals.requestId,
+        route: "/admin/bus",
+      });
+      return failure(copy.importFailed, 500);
     }
     return success(
       copy.importSummary

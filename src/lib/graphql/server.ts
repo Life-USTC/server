@@ -1,5 +1,6 @@
 import type { RequestEvent } from "@sveltejs/kit";
 import { createYoga } from "graphql-yoga";
+import { logAppEvent } from "@/lib/log/app-logger";
 import { GraphqlAuthError } from "./auth";
 import { GRAPHQL_ENDPOINT, GRAPHQL_LIMITS } from "./constants";
 import {
@@ -148,6 +149,18 @@ export function createGraphqlRequestHandler(production: boolean) {
           "GraphQL request timed out.",
         );
       }
+      logAppEvent(
+        "error",
+        "GraphQL request failed",
+        {
+          event: "graphql.request.failed",
+          phase: "transport",
+          ...(event.locals.requestId
+            ? { requestId: event.locals.requestId }
+            : {}),
+        },
+        error,
+      );
       return graphqlErrorResponse(
         500,
         "INTERNAL_SERVER_ERROR",
