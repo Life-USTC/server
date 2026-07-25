@@ -15,7 +15,6 @@ export async function getSectionPage(jwId: number, locale = "zh-cn") {
   if (!section) return null;
 
   const relatedData = await getSectionPageRelatedData({
-    locale,
     prisma,
     section,
   });

@@ -1,4 +1,3 @@
-import { getLatestComments } from "@/features/comments/server/latest-comments";
 import { getPrisma } from "@/lib/db/prisma";
 import { toLoadData } from "@/lib/load-data-utils";
 import { resolveCourseIdByJwId } from "./course-jw-id";
@@ -83,12 +82,5 @@ export async function getCoursePage(jwId: number, locale = "zh-cn") {
 
   if (!course) return null;
 
-  const [commentCount, latestComments] = await Promise.all([
-    prisma.comment.count({
-      where: { courseId: course.id, status: { not: "deleted" } },
-    }),
-    getLatestComments({ courseId: course.id }, 5, locale),
-  ]);
-
-  return toLoadData({ ...course, commentCount, latestComments });
+  return toLoadData(course);
 }

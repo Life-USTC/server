@@ -113,6 +113,7 @@ onMount(() => {
                   {#snippet child({ props })}
                     <a
                       {...props}
+                      data-sveltekit-preload-data="off"
                       use:revealActive={active}
                       href={item.href}
                       aria-current={active ? "page" : undefined}
