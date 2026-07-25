@@ -6,6 +6,8 @@ import type {
   SubscriptionsData,
 } from "@/features/dashboard/lib/dashboard-controller-types";
 import { groupSubscribedSectionsBySemester } from "@/features/dashboard/lib/subscriptions";
+import { formatSemesterName } from "@/lib/text/format-semester-name";
+import { page } from "$app/stores";
 import TruncatedText from "$lib/components/TruncatedText.svelte";
 import * as AlertDialog from "$lib/components/ui/alert-dialog/index.js";
 import { Button } from "$lib/components/ui/button/index.js";
@@ -33,10 +35,12 @@ export let openQuickAddDialog: () => void;
 let selectedSection: SubscriptionSection | null = null;
 let removeConfirmOpen = false;
 
+$: locale = $page.data.locale ?? "zh-cn";
 $: sectionGroups = subscriptions.flatMap((subscription) =>
   groupSubscribedSectionsBySemester(
     subscription.sections,
     dashboardCopy.notAvailable,
+    locale,
   ),
 );
 
@@ -198,7 +202,7 @@ async function confirmRemoveSection() {
         <div class="grid gap-1">
           <dt class="text-sm text-muted-foreground">{subscriptionsCopy.semester}</dt>
           <dd class="font-medium">
-            {selectedSection.semester?.nameCn ?? dashboardCopy.notAvailable}
+            {selectedSection.semester?.nameCn ? formatSemesterName(locale, selectedSection.semester.nameCn) : dashboardCopy.notAvailable}
           </dd>
         </div>
         <div class="grid gap-1">

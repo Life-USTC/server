@@ -5,6 +5,8 @@ import {
   catalogSecondaryName as secondaryName,
   catalogNames as teacherNames,
 } from "@/features/catalog/lib/catalog-list-display";
+import { formatSemesterName } from "@/lib/text/format-semester-name";
+import { page } from "$app/stores";
 import CatalogMobileFilters from "./CatalogMobileFilters.svelte";
 import CatalogPageHeader from "./CatalogPageHeader.svelte";
 import CatalogPagination from "./CatalogPagination.svelte";
@@ -56,6 +58,7 @@ let isSectionFilterOpen = false;
 let sectionSearch = data.filters.search ?? "";
 
 $: totalPages = data.pagination.totalPages;
+$: locale = $page.data.locale ?? "zh-cn";
 $: sectionSearch = data.filters.search ?? "";
 $: commonLabels = data.labels.common;
 $: sectionLabels = data.labels.sections;
@@ -63,10 +66,13 @@ $: selectedSemester =
   data.filterOptions.semesters.find(
     (semester) => data.filters.semesterId === String(semester.id),
   ) ?? null;
-$: semesterOptions = namedOptions(
-  data.filterOptions.semesters,
-  commonLabels.allSemesters,
-);
+$: semesterOptions = [
+  { value: "", label: commonLabels.allSemesters },
+  ...data.filterOptions.semesters.map((semester) => ({
+    value: String(semester.id),
+    label: formatSemesterName(locale, semester.nameCn),
+  })),
+];
 $: campusOptions = namedOptions(
   data.filterOptions.campuses,
   `${sectionLabels.filters.any} · ${sectionLabels.campus}`,
@@ -102,7 +108,7 @@ $: sectionActiveFilters = [
   data.filters.semesterId
     ? {
         href: sectionFilterHref({ semesterId: "" }),
-        label: `${sectionLabels.semester}: ${selectedSemester?.nameCn ?? data.filters.semesterId}`,
+        label: `${sectionLabels.semester}: ${selectedSemester ? formatSemesterName(locale, selectedSemester.nameCn) : data.filters.semesterId}`,
       }
     : null,
   textFilter("teacher", sectionLabels.teachers),
@@ -237,7 +243,7 @@ function sectionEmptyDescription() {
   if (selectedSemester) {
     return sectionLabels.inSemester.replace(
       "{semester}",
-      selectedSemester.nameCn,
+      formatSemesterName(locale, selectedSemester.nameCn),
     );
   }
   return sectionLabels.subtitle;

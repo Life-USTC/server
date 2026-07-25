@@ -1,4 +1,5 @@
 import { listSubscribedHomeworks } from "@/features/subscriptions/server/subscription-read-model";
+import { formatSemesterName } from "@/lib/text/format-semester-name";
 import { buildSemesterCalendarPayload } from "./dashboard-overview-calendar";
 import { resolveDashboardOverviewContext } from "./dashboard-overview-context";
 import { getDashboardOverviewLinksData } from "./dashboard-overview-links";
@@ -110,7 +111,9 @@ export async function getDashboardOverviewData(
 
   const defaultCalendarSemesterId = currentSemester?.id ?? null;
   const activeCalendarSemesterId = gridSemesterRow?.id ?? null;
-  const activeCalendarSemesterName = gridSemesterRow?.nameCn ?? null;
+  const activeCalendarSemesterName = gridSemesterRow?.nameCn
+    ? formatSemesterName(locale, gridSemesterRow.nameCn)
+    : null;
 
   return {
     user: {

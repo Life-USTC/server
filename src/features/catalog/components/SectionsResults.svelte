@@ -4,6 +4,8 @@ import {
   catalogShowingSummary,
   optionalCatalogFilterSummary,
 } from "@/features/catalog/lib/catalog-results-summary";
+import { formatSemesterName } from "@/lib/text/format-semester-name";
+import { page as appPage } from "$app/stores";
 import TruncatedCode from "$lib/components/TruncatedCode.svelte";
 import TruncatedText from "$lib/components/TruncatedText.svelte";
 import * as Item from "$lib/components/ui/item/index.js";
@@ -30,6 +32,7 @@ export let teacherNames: (teachers: CatalogNamed[]) => string;
 export let totalPages: number;
 
 $: filters = data.filters as SectionListFilters;
+$: locale = $appPage.data.locale ?? "zh-cn";
 $: pagination = data.pagination as SectionListPagination;
 $: sectionSummaryBase = catalogShowingSummary(
   sectionLabels.showing,
@@ -42,7 +45,10 @@ $: sectionSearchSummary = optionalCatalogFilterSummary(
   "{query}",
 );
 $: sectionSemesterSummary = selectedSemester
-  ? sectionLabels.inSemester.replace("{semester}", selectedSemester.nameCn)
+  ? sectionLabels.inSemester.replace(
+      "{semester}",
+      formatSemesterName(locale, selectedSemester.nameCn),
+    )
   : "";
 </script>
 
@@ -68,7 +74,7 @@ $: sectionSemesterSummary = selectedSemester
                     <Item.Description>{secondaryName(section.course)}</Item.Description>
                   {/if}
                   <Item.Description>
-                    {section.semester?.nameCn ?? sectionLabels.noSemester}
+                    {section.semester?.nameCn ? formatSemesterName(locale, section.semester.nameCn) : sectionLabels.noSemester}
                     · {teacherNames(section.teachers) || "-"}
                   </Item.Description>
                 </Item.Content>
@@ -106,7 +112,7 @@ $: sectionSemesterSummary = selectedSemester
               <Table.Cell class="p-0 align-top">
                 <CatalogTableLink href={sectionHref} nowrap>
                   <TruncatedText
-                    text={section.semester?.nameCn ?? sectionLabels.noSemester}
+                    text={section.semester?.nameCn ? formatSemesterName(locale, section.semester.nameCn) : sectionLabels.noSemester}
                   />
                 </CatalogTableLink>
               </Table.Cell>
