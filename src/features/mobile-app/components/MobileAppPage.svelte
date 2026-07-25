@@ -187,8 +187,8 @@ $: stats = [
           {#each stats as item}
             <Item.Root class="items-start" size="sm" variant="muted">
               <Item.Content>
-                <Item.Title>{item.value}</Item.Title>
-                <Item.Description>{item.label}</Item.Description>
+                <Item.Title class="line-clamp-none">{item.value}</Item.Title>
+                <Item.Description class="line-clamp-none break-words">{item.label}</Item.Description>
               </Item.Content>
             </Item.Root>
           {/each}
@@ -225,7 +225,7 @@ $: stats = [
             <SmartphoneIcon />
           </Item.Media>
           <div class="min-w-0">
-            <Card.Title class="truncate">{pageCopy.previewTitle}</Card.Title>
+            <Card.Title>{pageCopy.previewTitle}</Card.Title>
             <Card.Description>{pageCopy.previewSubtitle}</Card.Description>
           </div>
         </div>
@@ -236,8 +236,10 @@ $: stats = [
             <BellIcon />
           </Item.Media>
           <Item.Content>
-            <Item.Title>{pageCopy.previewStatusTitle}</Item.Title>
-            <Item.Description>{pageCopy.previewStatusDescription}</Item.Description>
+            <Item.Title class="line-clamp-none">{pageCopy.previewStatusTitle}</Item.Title>
+            <Item.Description class="line-clamp-none break-words">
+              {pageCopy.previewStatusDescription}
+            </Item.Description>
           </Item.Content>
         </Item.Root>
 
@@ -248,7 +250,7 @@ $: stats = [
                 <svelte:component this={item.icon} />
               </Item.Media>
               <Item.Content>
-                <Item.Title>{item.label}</Item.Title>
+                <Item.Title class="line-clamp-none">{item.label}</Item.Title>
               </Item.Content>
               <Item.Actions class="shrink-0">
                 {item.status}
