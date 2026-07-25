@@ -26,7 +26,7 @@ export let versions: AdminBusVersion[];
       {copy.versionsDescription}
     </Card.Description>
   </Card.Header>
-  <Card.Content class="grid gap-4">
+  <Card.Content class="grid grid-cols-[minmax(0,1fr)] gap-4">
     <AdminBusVersionsMobileList
       {copy}
       {enhancedAction}
