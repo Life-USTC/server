@@ -1,3 +1,10 @@
+## [1.77.16](https://github.com/Life-USTC/server/compare/v1.77.15...v1.77.16) (2026-07-25)
+
+
+### Performance Improvements
+
+* **worker:** shut down public previews and trim detail loads ([#657](https://github.com/Life-USTC/server/issues/657)) ([4c1ed61](https://github.com/Life-USTC/server/commit/4c1ed61711402d0ecc33e824cb299be83f7c0714))
+
 ## [1.77.15](https://github.com/Life-USTC/server/compare/v1.77.14...v1.77.15) (2026-07-25)
 
 
