@@ -1,3 +1,18 @@
+## [1.77.15](https://github.com/Life-USTC/server/compare/v1.77.14...v1.77.15) (2026-07-25)
+
+
+### Bug Fixes
+
+* **admin:** add overflow cues to admin sub-nav ([#649](https://github.com/Life-USTC/server/issues/649)) ([b024434](https://github.com/Life-USTC/server/commit/b024434c3f3636f3bb83046b6dfa2a4c7317d31b)), closes [#633](https://github.com/Life-USTC/server/issues/633)
+* **admin:** let /admin/bus Active stat ellipsize instead of hard-clipping ([#645](https://github.com/Life-USTC/server/issues/645)) ([9cc90c6](https://github.com/Life-USTC/server/commit/9cc90c6555a9114f5fb38ebc8dda4f1c9e00e1fa)), closes [#635](https://github.com/Life-USTC/server/issues/635)
+* **admin:** let desktop admin tables scroll horizontally instead of clipping ([#648](https://github.com/Life-USTC/server/issues/648)) ([aff4664](https://github.com/Life-USTC/server/commit/aff4664b43687fc12bae98280306b9a606732bb9)), closes [#634](https://github.com/Life-USTC/server/issues/634)
+* **dashboard:** localize overview week strip and stop Today card stretch ([#647](https://github.com/Life-USTC/server/issues/647)) ([34d44af](https://github.com/Life-USTC/server/commit/34d44af34d37d890dcf431e8a98a3b57c4d3bad9))
+* **dashboard:** render overdue homework ETA badge with destructive variant ([#650](https://github.com/Life-USTC/server/issues/650)) ([7dbbb0e](https://github.com/Life-USTC/server/commit/7dbbb0ea5cdcfcd59425587a65d2589e719cd2bf)), closes [#640](https://github.com/Life-USTC/server/issues/640)
+* **guides:** wrap markdown guide code snippets and add scroll cue to preview pre blocks ([#646](https://github.com/Life-USTC/server/issues/646)) ([4c928bb](https://github.com/Life-USTC/server/commit/4c928bbfcfe58807020e347436826f76ad0c1982)), closes [#642](https://github.com/Life-USTC/server/issues/642)
+* **mobile-app:** stop clamping card copy and balance hero title ([#643](https://github.com/Life-USTC/server/issues/643)) ([3f56695](https://github.com/Life-USTC/server/commit/3f56695021e2ecae819f8fabf16c9593861e046f)), closes [#637](https://github.com/Life-USTC/server/issues/637)
+* **ui:** localize semester names on en-us pages ([#651](https://github.com/Life-USTC/server/issues/651)) ([8acce49](https://github.com/Life-USTC/server/commit/8acce492d8d978692b26aa8ab75576e0fef9e36c))
+* **ui:** use accent token for toggle on-state ([#644](https://github.com/Life-USTC/server/issues/644)) ([6bec06c](https://github.com/Life-USTC/server/commit/6bec06c0959d5b6a2aacfcfb1a7feedd1ef8ffad)), closes [#f4f4f5](https://github.com/Life-USTC/server/issues/f4f4f5) [#f6f8fa](https://github.com/Life-USTC/server/issues/f6f8fa) [#641](https://github.com/Life-USTC/server/issues/641)
+
 ## [1.77.14](https://github.com/Life-USTC/server/compare/v1.77.13...v1.77.14) (2026-07-23)
 
 
