@@ -110,6 +110,41 @@ test("/admin 二级导航响应式布局且支持键盘切换", async ({ page },
   await captureStepScreenshot(page, testInfo, "admin/navigation-desktop");
 });
 
+test("/admin 二级导航在移动端显示滚动溢出提示", async ({ page }, testInfo) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await signInAsDevAdmin(page, "/admin");
+
+  const navigation = page.getByTestId("admin-navigation");
+  const wrapper = navigation.locator("..");
+
+  // First tab active at scrollLeft 0: no left cue, right cue while scrollable.
+  await expect
+    .poll(() =>
+      Promise.all([
+        wrapper.getAttribute("data-overflow-left"),
+        wrapper.getAttribute("data-overflow-right"),
+      ]),
+    )
+    .toEqual(["false", "true"]);
+
+  // Last tab active clamps to max scroll: left cue on, right cue off.
+  await gotoAndWaitForReady(page, "/admin/bus");
+  await expect(navigation.locator('a[aria-current="page"]')).toHaveAttribute(
+    "href",
+    "/admin/bus",
+  );
+  await expect
+    .poll(() =>
+      Promise.all([
+        wrapper.getAttribute("data-overflow-left"),
+        wrapper.getAttribute("data-overflow-right"),
+      ]),
+    )
+    .toEqual(["true", "false"]);
+
+  await captureStepScreenshot(page, testInfo, "admin/navigation-overflow-cues");
+});
+
 test("/admin 管理员访问成功并显示所有导航卡片", async ({ page }, testInfo) => {
   await signInAsDevAdmin(page, "/admin");
   await expect(page).toHaveURL(/\/admin(?:\?.*)?$/);
