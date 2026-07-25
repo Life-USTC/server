@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { overviewUpcomingExams } from "@/features/dashboard/lib/calendar-display-overview";
+import {
+  overviewDayLabel,
+  overviewUpcomingExams,
+} from "@/features/dashboard/lib/calendar-display-overview";
 
 describe("仪表盘概览考试展示", () => {
   it("仅显示仍可出现在近期时间线中的考试", () => {
@@ -46,5 +49,12 @@ describe("仪表盘概览考试展示", () => {
       "untimed-today",
       "future",
     ]);
+  });
+});
+
+describe("仪表盘概览星期标签", () => {
+  it("按传入语言环境格式化日期", () => {
+    expect(overviewDayLabel("2026-07-19", "zh-cn")).toBe("7月19日");
+    expect(overviewDayLabel("2026-07-19", "en-us")).toBe("Jul 19");
   });
 });

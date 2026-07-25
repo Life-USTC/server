@@ -22,7 +22,7 @@ export function overviewCalendarWeekDays(
     const timelineItems = calendarTimelineItemsForDay(events);
     return {
       key: dayKey,
-      label: overviewDayLabel(dayKey),
+      label: overviewDayLabel(dayKey, locale),
       sublabel: formatCampusDate(dayKey, dayKey, locale, {
         weekday: "short",
       }),

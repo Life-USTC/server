@@ -32,7 +32,7 @@ export let overdueTodos: DashboardTodoItem[];
 export let sessionHref: (session: DashboardSessionItem) => string;
 </script>
 
-<div class="grid gap-4 lg:grid-cols-2">
+<div class="grid items-start gap-4 lg:grid-cols-2">
   <OverviewTodayCard
     {copy}
     {dashboardCopy}
