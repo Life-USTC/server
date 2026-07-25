@@ -22,7 +22,7 @@ export let section: {
       <Card.Description>{section.description}</Card.Description>
     </Card.Header>
     <Card.Content>
-      <pre class="overflow-x-auto rounded-md border border-border bg-muted p-4 font-mono text-sm"><code>{section.code}</code></pre>
+      <pre class="overflow-x-auto wrap-anywhere whitespace-pre-wrap rounded-md border border-border bg-muted p-4 font-mono text-sm"><code>{section.code}</code></pre>
     </Card.Content>
   </Card.Root>
 
