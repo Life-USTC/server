@@ -14,8 +14,8 @@ export function dashboardOverviewWeekStart(
   );
 }
 
-export function overviewDayLabel(dayKey: string) {
-  return formatCampusDate(dayKey, dayKey, undefined, {
+export function overviewDayLabel(dayKey: string, locale?: string | string[]) {
+  return formatCampusDate(dayKey, dayKey, locale, {
     month: "short",
     day: "numeric",
   });
