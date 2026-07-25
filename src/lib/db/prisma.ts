@@ -1,7 +1,7 @@
 import { getOptionalTrimmedEnv } from "@/app-env";
 import type { PrismaClient } from "@/generated/prisma/client";
 import {
-  getCloudflareRuntimeContext,
+  getCloudflareHyperdriveConnectionString,
   hasCloudflareRuntimeEnv,
 } from "@/lib/adapters/cloudflare-runtime";
 import { localizedNamesExtension } from "@/lib/db/prisma-localized-names";
@@ -19,39 +19,9 @@ const globalForPrisma = globalThis as unknown as {
 
 let basePrisma: PrismaClient | undefined;
 
-const cloudflarePrismaCacheKey = Symbol("life-ustc.cloudflare.prisma");
-
-type CloudflarePrismaCache = {
-  base?: PrismaClient;
-  extended: Map<string, unknown>;
-  queryLoggerAttached?: boolean;
-};
-
-function getCloudflarePrismaCache() {
-  const context = getCloudflareRuntimeContext();
-  if (!context) return undefined;
-
-  const cached = context.cache.get(cloudflarePrismaCacheKey) as
-    | CloudflarePrismaCache
-    | undefined;
-  if (cached) return cached;
-
-  const cache: CloudflarePrismaCache = { extended: new Map() };
-  context.cache.set(cloudflarePrismaCacheKey, cache);
-  return cache;
-}
-
-function createPrismaClient(cache?: CloudflarePrismaCache) {
+function createPrismaClient() {
   const client = createBasePrisma();
   if (!shouldEnablePrismaQueryLogging()) {
-    return client;
-  }
-
-  if (cache) {
-    if (!cache.queryLoggerAttached) {
-      (client as PrismaClient<"query">).$on("query", logPrismaQuery);
-      cache.queryLoggerAttached = true;
-    }
     return client;
   }
 
@@ -62,15 +32,32 @@ function createPrismaClient(cache?: CloudflarePrismaCache) {
   return client;
 }
 
+// Isolate-scope client cache for the Cloudflare runtime. Creating a
+// PrismaClient (and its pg pool) costs significant CPU, so it must be reused
+// across requests instead of being rebuilt inside the per-request runtime
+// context. Keyed by connection string so a changed runtime env still gets a
+// fresh client.
+let cloudflareBasePrisma:
+  | { client: PrismaClient; connectionString: string | undefined }
+  | undefined;
+
+function getCloudflareBasePrisma() {
+  const connectionString = getCloudflareHyperdriveConnectionString();
+  if (
+    cloudflareBasePrisma &&
+    cloudflareBasePrisma.connectionString === connectionString
+  ) {
+    return cloudflareBasePrisma.client;
+  }
+
+  const client = createPrismaClient();
+  cloudflareBasePrisma = { client, connectionString };
+  return client;
+}
+
 function getBasePrisma() {
   if (hasCloudflareRuntimeEnv()) {
-    const cache = getCloudflarePrismaCache();
-    if (cache) {
-      cache.base ??= createPrismaClient(cache);
-      return cache.base;
-    }
-
-    return createPrismaClient();
+    return getCloudflareBasePrisma();
   }
 
   const cached = globalForPrisma.prisma ?? basePrisma;
@@ -111,21 +98,19 @@ const _makeExtendedClient = (locale: string) =>
 type ExtendedPrismaClient = ReturnType<typeof _makeExtendedClient>;
 
 const extendedClientCache = new Map<string, ExtendedPrismaClient>();
+const cloudflareExtendedClientCache = new Map<string, ExtendedPrismaClient>();
 
 export const getPrisma = (locale: string): ExtendedPrismaClient => {
   if (hasCloudflareRuntimeEnv()) {
-    const cache = getCloudflarePrismaCache();
-    if (cache) {
-      const cached = cache.extended.get(locale) as
-        | ExtendedPrismaClient
-        | undefined;
-      if (cached) return cached;
-      const extended = _makeExtendedClient(locale);
-      cache.extended.set(locale, extended);
-      return extended;
-    }
-
-    return _makeExtendedClient(locale);
+    // Reuse extended clients across requests in the isolate; key by the
+    // connection string as well so a changed runtime env cannot hand out a
+    // client built on a stale base client.
+    const cacheKey = `${getCloudflareHyperdriveConnectionString() ?? ""}:${locale}`;
+    const cached = cloudflareExtendedClientCache.get(cacheKey);
+    if (cached) return cached;
+    const extended = _makeExtendedClient(locale);
+    cloudflareExtendedClientCache.set(cacheKey, extended);
+    return extended;
   }
 
   const cached = extendedClientCache.get(locale);
