@@ -169,7 +169,7 @@ $: stats = [
             <p class="font-medium text-muted-foreground text-xs uppercase tracking-normal">
               {pageCopy.eyebrow}
             </p>
-            <h1 class="font-semibold text-2xl leading-tight tracking-normal sm:text-3xl">
+            <h1 class="text-balance font-semibold text-2xl leading-tight tracking-normal sm:text-3xl">
               {pageCopy.title}
             </h1>
           </div>
@@ -273,8 +273,10 @@ $: stats = [
                 <svelte:component this={item.icon} />
               </Item.Media>
               <Item.Content>
-                <Item.Title>{item.copy.title}</Item.Title>
-                <Item.Description>{item.copy.description}</Item.Description>
+                <Item.Title class="line-clamp-none">{item.copy.title}</Item.Title>
+                <Item.Description class="line-clamp-none break-words">
+                  {item.copy.description}
+                </Item.Description>
               </Item.Content>
             </Item.Root>
           {/each}
@@ -296,8 +298,10 @@ $: stats = [
                     <svelte:component this={item.icon} />
                   </Item.Media>
                   <Item.Content>
-                    <Item.Title>{item.copy.title}</Item.Title>
-                    <Item.Description>{item.copy.description}</Item.Description>
+                    <Item.Title class="line-clamp-none">{item.copy.title}</Item.Title>
+                    <Item.Description class="line-clamp-none break-words">
+                      {item.copy.description}
+                    </Item.Description>
                   </Item.Content>
                   <Item.Actions>
                     <ExternalLinkIcon />
