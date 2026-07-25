@@ -33,6 +33,10 @@ import {
   OAUTH_TOKEN_ENDPOINT_PATH,
 } from "@/lib/oauth/constants";
 import {
+  PRIVATE_LOCALE_CATALOG_HEADERS,
+  PUBLIC_LOCALE_CATALOG_HEADERS,
+} from "@/lib/public-cache-control";
+import {
   buildContentSecurityPolicy,
   createScriptNonce,
   formActionSourceFromOAuthRedirectUri,
@@ -108,6 +112,35 @@ function observedRoute(pathname: string, routeId: string | null) {
 
 function isHtmlResponse(response: Response) {
   return response.headers.get("content-type")?.includes("text/html");
+}
+
+function isCatalogPageRequest(event: Parameters<Handle>[0]["event"]) {
+  return (
+    event.request.method === "GET" &&
+    (event.url.pathname === "/catalog" ||
+      event.url.pathname.startsWith("/catalog/"))
+  );
+}
+
+// Catalog pages render identical content for every anonymous viewer, so let
+// the CDN cache them briefly instead of re-running SSR for every crawler hit.
+// Requests carrying an auth signal stay private/no-store so personalized
+// renders can never be cached.
+function applyCatalogCacheControl(
+  headers: Headers,
+  input: { hasAuthSignal: boolean; isCatalogPage: boolean },
+) {
+  if (!input.isCatalogPage) {
+    headers.set("Cache-Control", "no-store");
+    return;
+  }
+
+  const catalogHeaders = input.hasAuthSignal
+    ? PRIVATE_LOCALE_CATALOG_HEADERS
+    : PUBLIC_LOCALE_CATALOG_HEADERS;
+  for (const [name, value] of Object.entries(catalogHeaders)) {
+    headers.set(name, value);
+  }
 }
 
 function addScriptNonce(html: string, nonce: string) {
@@ -313,7 +346,10 @@ const handleWithRuntimeEnv: Handle = async ({ event, resolve }) => {
 
     mutableResponse.headers.set("Content-Language", locale);
     if (!mutableResponse.headers.has("Cache-Control")) {
-      mutableResponse.headers.set("Cache-Control", "no-store");
+      applyCatalogCacheControl(mutableResponse.headers, {
+        hasAuthSignal,
+        isCatalogPage: isCatalogPageRequest(event),
+      });
     }
     setContentSignal(mutableResponse.headers);
     mutableResponse.headers.set(
