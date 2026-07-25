@@ -7,6 +7,7 @@ import { dashboardTabHref } from "./dashboard-nav";
 import {
   formatDashboardDateTime,
   formatDashboardDueRelativeTime,
+  isDashboardDueOverdue,
 } from "./date-formatters";
 import {
   homeworkCompletionActionLabel as buildHomeworkCompletionActionLabel,
@@ -76,6 +77,8 @@ export function createHomeworkTabDisplayActions({
         referenceDate,
         locale,
       ),
+    homeworkIsOverdue: (value: Date | string | null | undefined) =>
+      isDashboardDueOverdue(value, referenceDate),
     homeworkSectionHref: (homework: DashboardHomeworkItem) =>
       buildHomeworkSectionHref(homework, returnTo),
     homeworkSectionLabel: (section: HomeworkSectionOption) =>

@@ -9,6 +9,9 @@ import * as Table from "$lib/components/ui/table/index.js";
 type HomeworkDateFormatter = (
   value: Date | string | null | undefined,
 ) => string;
+type HomeworkOverduePredicate = (
+  value: Date | string | null | undefined,
+) => boolean;
 type HomeworkAction = (homework: DashboardHomeworkItem) => string;
 
 export let filteredHomeworkItems: DashboardHomeworkItem[];
@@ -16,6 +19,7 @@ export let fmtDate: HomeworkDateFormatter;
 export let homeworkCompletionActionLabel: HomeworkAction;
 export let homeworkCopy: Record<string, string>;
 export let homeworkEtaLabel: HomeworkDateFormatter;
+export let homeworkIsOverdue: HomeworkOverduePredicate;
 export let homeworksCopy: Record<string, string>;
 export let homeworkSavingById: Record<string, boolean>;
 export let selectedHomework: DashboardHomeworkItem | null;
@@ -61,7 +65,9 @@ export let toggleHomeworkCompletion: (
         </Table.Cell>
         <Table.Cell>
           <div class="flex flex-wrap items-center gap-1.5">
-            <Badge variant="ghost">
+            <Badge
+              variant={homeworkIsOverdue(homework.submissionDueAt) ? "destructive" : "ghost"}
+            >
               {homeworkEtaLabel(homework.submissionDueAt)}
             </Badge>
             {#if homework.completion}
