@@ -30,6 +30,9 @@ import HomeworksTabToolbar from "./HomeworksTabToolbar.svelte";
 type HomeworkDateFormatter = (
   value: Date | string | null | undefined,
 ) => string;
+type HomeworkOverduePredicate = (
+  value: Date | string | null | undefined,
+) => boolean;
 type HomeworkAction = (homework: DashboardHomeworkItem) => string;
 type HomeworkCopy = DashboardMyHomeworksCopy;
 type HomeworksCopy = DashboardHomeworksCopy;
@@ -77,6 +80,7 @@ let homeworkCompletionActionLabel: HomeworkAction;
 let homeworkCourseLabel: HomeworkAction;
 let homeworkDetailHref: HomeworkAction;
 let homeworkEtaLabel: HomeworkDateFormatter;
+let homeworkIsOverdue: HomeworkOverduePredicate;
 let homeworkSectionHref: HomeworkAction;
 let homeworkSectionLabel: (section: DashboardHomeworkCreateSection) => string;
 let homeworkStatus: HomeworkAction;
@@ -92,6 +96,7 @@ $: ({
   homeworkCourseLabel,
   homeworkDetailHref,
   homeworkEtaLabel,
+  homeworkIsOverdue,
   homeworkSectionHref,
   homeworkSectionLabel,
   homeworkStatus,
@@ -138,6 +143,7 @@ $: ({
           {homeworkCompletionActionLabel}
           {homeworkCopy}
           {homeworkEtaLabel}
+          {homeworkIsOverdue}
           {homeworksCopy}
           {homeworkSavingById}
           bind:selectedHomework
@@ -151,6 +157,7 @@ $: ({
           {homeworkCompletionActionLabel}
           {homeworkCopy}
           {homeworkEtaLabel}
+          {homeworkIsOverdue}
           {homeworksCopy}
           {homeworkSavingById}
           bind:selectedHomework
@@ -164,6 +171,7 @@ $: ({
         {homeworkCompletionActionLabel}
         {homeworkCopy}
         {homeworkEtaLabel}
+        {homeworkIsOverdue}
         {homeworksCopy}
         {homeworkSavingById}
         bind:selectedHomework

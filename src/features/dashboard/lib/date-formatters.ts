@@ -24,6 +24,14 @@ export function formatDashboardDueRelativeTime(
   return formatDueRelativeTime(value, new Date(referenceDate), locale);
 }
 
+export function isDashboardDueOverdue(
+  value: Date | string | null | undefined,
+  referenceDate: Date | string,
+) {
+  if (!value) return false;
+  return new Date(value).getTime() <= new Date(referenceDate).getTime();
+}
+
 export function dashboardDateTimeLocalValue(
   value: Date | string | null | undefined,
 ) {
