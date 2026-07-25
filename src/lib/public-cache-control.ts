@@ -19,3 +19,13 @@ export const PRIVATE_LOCALE_CATALOG_HEADERS = {
   "Cloudflare-CDN-Cache-Control": "no-store",
   Vary: "Accept-Language, Cookie",
 } as const;
+
+// HTML page variant: no stale-while-revalidate for the browser. Browsers may
+// serve an SWR-cached document without revalidating, which breaks flows that
+// mutate state and expect a fresh render on the next navigation (locale
+// switch, login, subscribe). The edge keeps its own SWR window.
+export const PUBLIC_LOCALE_CATALOG_PAGE_HEADERS = {
+  "Cache-Control": "public, max-age=0",
+  "Cloudflare-CDN-Cache-Control": PUBLIC_CATALOG_CDN_CACHE_CONTROL,
+  Vary: "Accept-Language, Cookie",
+} as const;

@@ -75,9 +75,7 @@ describe("catalog page cache control", () => {
 
     const response = await handle(handleInput(async () => htmlResponse()));
 
-    expect(response.headers.get("Cache-Control")).toBe(
-      "public, max-age=0, stale-while-revalidate=300",
-    );
+    expect(response.headers.get("Cache-Control")).toBe("public, max-age=0");
     expect(response.headers.get("Cloudflare-CDN-Cache-Control")).toBe(
       "public, max-age=60, stale-while-revalidate=300",
     );

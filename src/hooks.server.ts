@@ -34,7 +34,7 @@ import {
 } from "@/lib/oauth/constants";
 import {
   PRIVATE_LOCALE_CATALOG_HEADERS,
-  PUBLIC_LOCALE_CATALOG_HEADERS,
+  PUBLIC_LOCALE_CATALOG_PAGE_HEADERS,
 } from "@/lib/public-cache-control";
 import {
   buildContentSecurityPolicy,
@@ -137,7 +137,7 @@ function applyCatalogCacheControl(
 
   const catalogHeaders = input.hasAuthSignal
     ? PRIVATE_LOCALE_CATALOG_HEADERS
-    : PUBLIC_LOCALE_CATALOG_HEADERS;
+    : PUBLIC_LOCALE_CATALOG_PAGE_HEADERS;
   for (const [name, value] of Object.entries(catalogHeaders)) {
     headers.set(name, value);
   }
