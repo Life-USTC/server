@@ -10,8 +10,10 @@ high-cardinality resource IDs.
 - Logs use `logAppEvent` and Cloudflare Workers observability. Production
   exception fields retain only an allowlisted error class, never the exception
   message or stack.
-- Worker invocation logs use 25% head sampling and traces use 5% head
-  sampling. Source maps are uploaded with each production Worker deployment.
+- Automatic Worker invocation logs are disabled because their raw request
+  metadata can contain credentials. Production-safe custom logs use 25% head
+  sampling and traces use 5% head sampling. Source maps are uploaded with each
+  production Worker deployment.
   Custom spans identify session lookup, SvelteKit dispatch, MCP authentication,
   MCP body parsing/SDK dispatch, and GraphQL dispatch without attaching
   credentials, request bodies, or resource identifiers.

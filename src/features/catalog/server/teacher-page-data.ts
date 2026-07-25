@@ -1,4 +1,3 @@
-import { getLatestComments } from "@/features/comments/server/latest-comments";
 import { getPrisma } from "@/lib/db/prisma";
 import { toLoadData } from "@/lib/load-data-utils";
 
@@ -60,12 +59,5 @@ export async function getTeacherPage(id: number, locale = "zh-cn") {
 
   if (!teacher) return null;
 
-  const [commentCount, latestComments] = await Promise.all([
-    prisma.comment.count({
-      where: { teacherId: teacher.id, status: { not: "deleted" } },
-    }),
-    getLatestComments({ teacherId: teacher.id }, 5, locale),
-  ]);
-
-  return toLoadData({ ...teacher, commentCount, latestComments });
+  return toLoadData(teacher);
 }

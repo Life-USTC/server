@@ -419,6 +419,9 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
     await expect(
       nav.getByRole("link", { name: /评论|Comments/i }),
     ).toBeVisible();
+    await expect(
+      nav.getByRole("link", { name: /日历|Calendar/i }),
+    ).toHaveAttribute("data-sveltekit-preload-data", "off");
 
     await jumpToSection(page, /作业|Homework/i, "#tab-homework");
     await expect(page).toHaveURL(/\/catalog\/sections\/\d+\/homework$/);

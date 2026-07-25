@@ -38,6 +38,8 @@ Session、VerificationToken、OAuth access/refresh token 和 DeviceCode 记录�
   - `SKIP_DEPENDENCY_INSTALL=true`（使用项目自身的 Bun lockfile）
   - `BUN_VERSION=1.3.13`（与 `.bun-version` 保持一致）
 - `wrangler.jsonc` 为生产配置来源，运行秘密钥通过 Cloudflare Dashboard 设置。
+- 生产配置关闭公开 `workers.dev`、version 和 alias preview URL；非生产分支仍会
+  上传 Worker version 供构建检查，但不会生成可访问的在线预览地址。
 
 开发期建议节奏：
 - 检查/测试/验证/提交流程以 `$life-ustc-dev-loop` 为准（见 [`.agents/skills/life-ustc-dev-loop/SKILL.md`](./.agents/skills/life-ustc-dev-loop/SKILL.md)）

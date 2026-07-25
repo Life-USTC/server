@@ -42,6 +42,9 @@ describe("API 可观测性", () => {
 
     expect(normalized).toBe("/api/calendar-feeds/:credential.ics");
     expect(encodedSeparator).toBe("/api/calendar-feeds/:credential.ics");
+    expect(normalizeApiRoutePath("/api/calendar-feeds/user-1.ics")).toBe(
+      "/api/calendar-feeds/:credential.ics",
+    );
     expect(normalized).not.toContain("feed-token-0123456789");
     expect(encodedSeparator).not.toContain("feed-token-0123456789");
   });

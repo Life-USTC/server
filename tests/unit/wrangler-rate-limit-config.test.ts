@@ -17,6 +17,22 @@ async function readRateLimits(fileName: string): Promise<RateLimitBinding[]> {
 }
 
 describe("Wrangler mutation rate-limit bindings", () => {
+  it("keeps public workers.dev and automatic request metadata logs disabled", async () => {
+    const source = await readFile(
+      new URL("../../wrangler.jsonc", import.meta.url),
+      "utf8",
+    );
+    const config = JSON.parse(source) as {
+      observability?: { logs?: { invocation_logs?: boolean } };
+      preview_urls?: boolean;
+      workers_dev?: boolean;
+    };
+
+    expect(config.preview_urls).toBe(false);
+    expect(config.workers_dev).toBe(false);
+    expect(config.observability?.logs?.invocation_logs).toBe(false);
+  });
+
   it("uploads production source maps for trace and exception symbolication", async () => {
     const source = await readFile(
       new URL("../../wrangler.jsonc", import.meta.url),

@@ -2,13 +2,11 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const {
   buildSuggestionsMock,
-  getLatestCommentsMock,
   sectionFindFirstMock,
   sectionFindManyMock,
   semesterMock,
 } = vi.hoisted(() => ({
   buildSuggestionsMock: vi.fn().mockResolvedValue({}),
-  getLatestCommentsMock: vi.fn().mockResolvedValue([]),
   sectionFindFirstMock: vi.fn(),
   sectionFindManyMock: vi.fn().mockResolvedValue([]),
   semesterMock: {
@@ -24,10 +22,6 @@ vi.mock("@/features/catalog/server/section-code-match-semester", () => ({
 
 vi.mock("@/features/catalog/server/section-code-match-suggestions", () => ({
   buildSectionCodeSuggestions: buildSuggestionsMock,
-}));
-
-vi.mock("@/features/comments/server/latest-comments", () => ({
-  getLatestComments: getLatestCommentsMock,
 }));
 
 vi.mock("@/lib/db/prisma", () => ({
@@ -47,7 +41,6 @@ describe("retired Section discovery boundaries", () => {
     sectionFindFirstMock.mockReset().mockResolvedValue(null);
     sectionFindManyMock.mockReset().mockResolvedValue([]);
     buildSuggestionsMock.mockClear();
-    getLatestCommentsMock.mockReset().mockResolvedValue([]);
   });
 
   it("excludes retired rows from public code matching", async () => {
@@ -77,15 +70,12 @@ describe("retired Section discovery boundaries", () => {
   });
 
   it("excludes retired rows from public related-Section discovery", async () => {
-    const commentCount = vi.fn().mockResolvedValue(0);
     const { getSectionPageRelatedData } = await import(
       "@/features/section-detail/server/section-page-related-data"
     );
 
     await getSectionPageRelatedData({
-      locale: "zh-cn",
       prisma: {
-        comment: { count: commentCount },
         section: { findMany: sectionFindManyMock },
       } as never,
       section: {
