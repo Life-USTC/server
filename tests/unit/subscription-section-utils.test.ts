@@ -21,6 +21,7 @@ describe("groupSubscribedSectionsBySemester", () => {
         section(4, "较近的过去学期", "2025-09-01", "2026-01-15"),
       ],
       "未知学期",
+      "zh-cn",
     );
 
     expect(groups.map((group) => group.label)).toEqual([
@@ -38,11 +39,30 @@ describe("groupSubscribedSectionsBySemester", () => {
         section(2, "已知学期", "2026-02-20", "2026-07-15"),
       ],
       "未知学期",
+      "zh-cn",
     );
 
     expect(groups.map((group) => group.label)).toEqual([
       "已知学期",
       "未知学期",
+    ]);
+  });
+
+  it("localizes semester group labels on en-us pages", () => {
+    const groups = groupSubscribedSectionsBySemester(
+      [
+        section(1, "2026年春季学期", "2026-02-20", "2026-07-15"),
+        section(2, "2025年秋季学期", "2025-09-01", "2026-01-15"),
+        { id: 3, semester: null },
+      ],
+      "Unknown semester",
+      "en-us",
+    );
+
+    expect(groups.map((group) => group.label)).toEqual([
+      "Spring 2026",
+      "Fall 2025",
+      "Unknown semester",
     ]);
   });
 });

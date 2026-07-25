@@ -1,4 +1,6 @@
 <script lang="ts">
+import { formatSemesterName } from "@/lib/text/format-semester-name";
+import { page } from "$app/stores";
 import type {
   SectionBasicInfo,
   SectionBasicInfoCopy,
@@ -9,6 +11,8 @@ export let notAvailable: string;
 export let primaryName: SectionPrimaryName;
 export let section: SectionBasicInfo;
 export let sectionCopy: SectionBasicInfoCopy;
+
+$: locale = $page.data.locale ?? "zh-cn";
 </script>
 
 <dl class="grid gap-x-8 gap-y-4 text-sm sm:grid-cols-2 xl:grid-cols-3">
@@ -18,7 +22,7 @@ export let sectionCopy: SectionBasicInfoCopy;
   </div>
   <div class="min-w-0 py-1.5 sm:min-h-14">
     <dt class="text-muted-foreground text-xs">{sectionCopy.semester}</dt>
-    <dd class="mt-1 font-medium">{section.semester?.nameCn ?? notAvailable}</dd>
+    <dd class="mt-1 font-medium">{section.semester?.nameCn ? formatSemesterName(locale, section.semester.nameCn) : notAvailable}</dd>
   </div>
   <div class="min-w-0 py-1.5 sm:min-h-14">
     <dt class="text-muted-foreground text-xs">{sectionCopy.credits}</dt>

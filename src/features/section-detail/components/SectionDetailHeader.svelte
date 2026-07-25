@@ -1,5 +1,7 @@
 <script lang="ts">
 import type { SubmitFunction } from "@sveltejs/kit";
+import { formatSemesterName } from "@/lib/text/format-semester-name";
+import { page } from "$app/stores";
 import PageHeader from "$lib/components/PageHeader.svelte";
 import TruncatedCode from "$lib/components/TruncatedCode.svelte";
 import * as Alert from "$lib/components/ui/alert/index.js";
@@ -51,6 +53,8 @@ export let subscriptionAction: (
 ) => SubmitFunction;
 export let subscriptionPendingAction: SubscriptionActionKey | null;
 export let viewer: SectionHeaderViewer;
+
+$: locale = $page.data.locale ?? "zh-cn";
 </script>
 
 <PageHeader
@@ -79,7 +83,7 @@ export let viewer: SectionHeaderViewer;
   {#snippet after()}
     <div class="grid gap-4">
       <div class="flex flex-wrap gap-2">
-        {#if section.semester}<Badge variant="ghost">{section.semester.nameCn}</Badge>{/if}
+        {#if section.semester}<Badge variant="ghost">{formatSemesterName(locale, section.semester.nameCn ?? "")}</Badge>{/if}
         {#if section.campus}<Badge variant="ghost">{primaryName(section.campus)}</Badge>{/if}
         {#if section.stdCount !== null || section.limitCount !== null}
           <Badge variant="ghost">{section.stdCount ?? 0} / {section.limitCount ?? notAvailable}</Badge>

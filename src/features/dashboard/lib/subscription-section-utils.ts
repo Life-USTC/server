@@ -1,3 +1,5 @@
+import { formatSemesterName } from "@/lib/text/format-semester-name";
+
 type SectionWithSemester = {
   semester?: {
     id?: number | string | null;
@@ -8,7 +10,7 @@ type SectionWithSemester = {
 
 export function groupSubscribedSectionsBySemester<
   Section extends SectionWithSemester,
->(sections: Section[], fallbackLabel: string) {
+>(sections: Section[], fallbackLabel: string, locale: string) {
   const groups = new Map<
     string,
     {
@@ -23,7 +25,9 @@ export function groupSubscribedSectionsBySemester<
     const key = section.semester?.id?.toString() ?? "unknown";
     const existing = groups.get(key) ?? {
       key,
-      label: section.semester?.nameCn ?? fallbackLabel,
+      label: section.semester?.nameCn
+        ? formatSemesterName(locale, section.semester.nameCn)
+        : fallbackLabel,
       startDate: section.semester?.startDate ?? null,
       sections: [],
     };

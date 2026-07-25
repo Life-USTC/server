@@ -16,6 +16,7 @@
  * - Invalid `?tab=` values do not select another public resource.
  */
 import { expect, test } from "@playwright/test";
+import { formatSemesterName } from "@/lib/text/format-semester-name";
 import { signInAsDebugUser } from "../../../utils/auth";
 import { DEV_SEED } from "../../../utils/dev-seed";
 import {
@@ -173,7 +174,14 @@ test.describe("仪表盘", () => {
         name: /^(教学班订阅|Section Subscriptions)$/i,
       }),
     ).toBeVisible();
-    await expect(page.getByText(DEV_SEED.semesterNameCn).first()).toBeVisible();
+    await expect(
+      page
+        .getByText(DEV_SEED.semesterNameCn)
+        .or(
+          page.getByText(formatSemesterName("en-us", DEV_SEED.semesterNameCn)),
+        )
+        .first(),
+    ).toBeVisible();
     await captureStepScreenshot(page, testInfo, "dashboard-subscriptions-path");
   });
 

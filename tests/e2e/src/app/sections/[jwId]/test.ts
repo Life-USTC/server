@@ -34,6 +34,7 @@
  * - Comment CRUD with reactions, replies, attachments
  */
 import { expect, type Locator, type Page, test } from "@playwright/test";
+import { formatSemesterName } from "@/lib/text/format-semester-name";
 import { signInAsDebugUser, signInAsDevAdmin } from "../../../../utils/auth";
 import { cleanupCommentsForE2e } from "../../../../utils/comments";
 import { DEV_SEED } from "../../../../utils/dev-seed";
@@ -156,8 +157,15 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
   test("显示学期、校区与教师信息", async ({ page }, testInfo) => {
     await gotoAndWaitForReady(page, SECTION_URL);
 
-    // section.semester.nameCn
-    await expect(page.getByText(DEV_SEED.semesterNameCn).first()).toBeVisible();
+    // section.semester.nameCn (locale-dependent: English short name on en-us)
+    await expect(
+      page
+        .getByText(DEV_SEED.semesterNameCn)
+        .or(
+          page.getByText(formatSemesterName("en-us", DEV_SEED.semesterNameCn)),
+        )
+        .first(),
+    ).toBeVisible();
     // section.campus.namePrimary (locale-dependent)
     await expect(
       page

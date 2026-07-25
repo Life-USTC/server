@@ -1,4 +1,6 @@
 <script lang="ts">
+import { formatSemesterName } from "@/lib/text/format-semester-name";
+import { page } from "$app/stores";
 import TruncatedCode from "$lib/components/TruncatedCode.svelte";
 import * as Accordion from "$lib/components/ui/accordion/index.js";
 import { Button } from "$lib/components/ui/button/index.js";
@@ -12,6 +14,8 @@ export let notAvailable: string;
 export let section: SectionBasicInfo;
 export let sectionCopy: SectionBasicInfoCopy;
 export let sectionTeachersLabel: SectionTeachersLabel;
+
+$: locale = $page.data.locale ?? "zh-cn";
 </script>
 
 {#if section.sameSemesterOtherTeachers.length > 0 || section.sameTeacherOtherSemesters.length > 0}
@@ -39,7 +43,7 @@ export let sectionTeachersLabel: SectionTeachersLabel;
               <div class="flex flex-wrap gap-2">
                 {#each section.sameTeacherOtherSemesters.slice(0, 10) as related}
                   <Button class="h-auto min-h-8 whitespace-normal px-2 py-1 text-left" href={`/catalog/sections/${related.jwId}`} variant="outline">
-                    <span>{related.semester?.nameCn ?? notAvailable}</span>
+                    <span>{related.semester?.nameCn ? formatSemesterName(locale, related.semester.nameCn) : notAvailable}</span>
                     <TruncatedCode text={related.code} />
                   </Button>
                 {/each}
