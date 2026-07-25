@@ -27,7 +27,7 @@ export let onManage: (description: AdminModerationDescription) => void;
 export let targetLabel: (description: AdminModerationDescription) => string;
 </script>
 
-<section class="grid gap-3">
+<section class="grid grid-cols-[minmax(0,1fr)] gap-3">
   <AdminModerationDescriptionSummary
     {copy}
     {descriptionContentFilter}

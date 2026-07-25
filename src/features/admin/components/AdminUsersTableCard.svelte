@@ -44,7 +44,7 @@ export let users: AdminUserRow[];
       </Badge>
     </Card.Action>
   </Card.Header>
-  <Card.Content class="grid gap-4">
+  <Card.Content class="grid grid-cols-[minmax(0,1fr)] gap-4">
     {#if users.length === 0}
       <Empty.Root class="min-h-24">
         <Empty.Header>

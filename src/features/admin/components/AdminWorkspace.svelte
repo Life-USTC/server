@@ -12,7 +12,7 @@ type Props = {
 let { children, controls, feedback, header, summary }: Props = $props();
 </script>
 
-<section class="grid gap-5" data-testid="admin-workspace">
+<section class="grid grid-cols-[minmax(0,1fr)] gap-5" data-testid="admin-workspace">
   {@render header()}
   {#if feedback}{@render feedback()}{/if}
   {#if summary}{@render summary()}{/if}

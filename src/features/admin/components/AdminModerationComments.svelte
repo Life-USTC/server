@@ -19,7 +19,7 @@ export let targetHref: AdminModerationCommentFormatter;
 export let targetLabel: AdminModerationCommentFormatter;
 </script>
 
-<section class="grid gap-3">
+<section class="grid grid-cols-[minmax(0,1fr)] gap-3">
   {#if comments.length > 0}
     <AdminModerationCommentsMobile
       {commentAuthorLabel}

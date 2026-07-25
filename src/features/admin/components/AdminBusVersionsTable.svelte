@@ -21,7 +21,7 @@ export let pendingAction: string | null;
 export let versions: AdminBusVersion[];
 </script>
 
-<div class="hidden md:block">
+<div class="hidden min-w-0 md:block">
   <Table.Root>
     <Table.Header>
       <Table.Row>

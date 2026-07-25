@@ -18,7 +18,7 @@ export let targetHref: AdminModerationCommentFormatter;
 export let targetLabel: AdminModerationCommentFormatter;
 </script>
 
-<div class="hidden md:block">
+<div class="hidden min-w-0 md:block">
   <Table.Root>
     <Table.Header>
       <Table.Row>
