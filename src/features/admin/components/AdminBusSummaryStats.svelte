@@ -21,7 +21,9 @@ const stats = [
   {
     getValue: () => summary.active ?? copy.statNone,
     label: () => copy.statActive,
-    valueClass: "max-w-full truncate text-base",
+    // block + w-full override Item.Title's flex base so truncate can render
+    // a text-overflow ellipsis instead of hard-clipping the flex container.
+    valueClass: "block w-full max-w-full truncate text-base",
   },
   {
     getValue: () => summary.versions,
