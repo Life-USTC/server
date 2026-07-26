@@ -107,8 +107,7 @@ function directRequest(request) {
   return new Request(request, { headers });
 }
 
-function publicSsrRequest(request, mode) {
-  const locale = resolvePublicSsrLocale(request);
+function publicSsrRequest(request, mode, locale) {
   const url = new URL(request.url);
   const canonicalQuery = new URLSearchParams();
   if (mode === "page") {
@@ -144,19 +143,16 @@ function svelteKitPublicSsrRequest(request) {
 
 export class PublicSsr extends WorkerEntrypoint {
   async fetch(request) {
-    const cacheUrl = new URL(request.url);
     const response = await app.fetch(
       svelteKitPublicSsrRequest(request),
       this.env,
       this.ctx,
     );
-    const mode = cacheUrl.searchParams.get(PUBLIC_SSR_MODE_CACHE_PARAM);
+    const { locale, mode } = this.ctx.props;
     return prepareCachedRepresentation(
       response,
       mode === "not-found" ? "not-found" : "page",
-      cacheUrl.searchParams.get(PUBLIC_SSR_LOCALE_CACHE_PARAM) === "en-us"
-        ? "en-us"
-        : "zh-cn",
+      locale === "en-us" ? "en-us" : "zh-cn",
       request.method === "HEAD",
     );
   }
@@ -167,9 +163,14 @@ export default {
     const mode = resolvePublicSsrMode(request);
     if (!mode) return app.fetch(directRequest(request), env, context);
 
-    const response = await context.exports.PublicSsr.fetch(
-      publicSsrRequest(request, mode),
-    );
+    const locale = resolvePublicSsrLocale(request);
+    const cachedRequest = publicSsrRequest(request, mode, locale);
+    const cacheUrl = new URL(cachedRequest.url);
+    const response = await context.exports
+      .PublicSsr({ props: { locale, mode } })
+      .fetch(cachedRequest, {
+        cf: { cacheKey: cacheUrl.pathname + cacheUrl.search },
+      });
     return personalizeCachedResponse(response);
   },
 };
