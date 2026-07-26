@@ -1,3 +1,10 @@
+## [1.77.19](https://github.com/Life-USTC/server/compare/v1.77.18...v1.77.19) (2026-07-26)
+
+
+### Performance Improvements
+
+* **worker:** return unknown 404s at gateway ([#660](https://github.com/Life-USTC/server/issues/660)) ([136d540](https://github.com/Life-USTC/server/commit/136d5402848168095453ca819fa8108cd2a985e1))
+
 ## [1.77.18](https://github.com/Life-USTC/server/compare/v1.77.17...v1.77.18) (2026-07-26)
 
 
