@@ -93,6 +93,14 @@ function personalizeCachedResponse(response) {
 }
 
 function directRequest(request) {
+  if (
+    !request.headers.has(PUBLIC_SSR_HEADER) &&
+    !request.headers.has(PUBLIC_SSR_LOCALE_HEADER) &&
+    !request.headers.has(PUBLIC_SSR_MODE_HEADER)
+  ) {
+    return request;
+  }
+
   const headers = new Headers(request.headers);
   removePublicSsrHeaders(headers);
   return new Request(request, { headers });
@@ -116,7 +124,11 @@ function publicSsrRequest(request, mode) {
   headers.set(PUBLIC_SSR_HEADER, "1");
   headers.set(PUBLIC_SSR_LOCALE_HEADER, locale);
   headers.set(PUBLIC_SSR_MODE_HEADER, mode);
-  return new Request(url, { headers, method: request.method });
+  return new Request(url, {
+    headers,
+    method: request.method,
+    redirect: "manual",
+  });
 }
 
 function svelteKitPublicSsrRequest(request) {
