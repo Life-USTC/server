@@ -12,6 +12,8 @@ import {
   resolvePublicSsrLocale,
   resolvePublicSsrMode,
 } from "./lib/cloudflare/public-ssr-gateway";
+import { buildContentSecurityPolicy } from "./lib/security/csp";
+import { CONTENT_SIGNAL } from "./lib/seo/content-signal";
 
 const app = svelteKitWorker;
 
@@ -51,6 +53,27 @@ function prepareCachedRepresentation(response, mode, locale, headRequest) {
 function createNonce() {
   const bytes = crypto.getRandomValues(new Uint8Array(16));
   return btoa(String.fromCharCode(...bytes));
+}
+
+function publicNotFoundResponse(locale, headRequest) {
+  const body = buildPublicNotFoundHtml(locale);
+  return new Response(headRequest ? null : body, {
+    status: 404,
+    headers: {
+      "Cache-Control": "private, no-store",
+      "Cloudflare-CDN-Cache-Control": "no-store",
+      "Content-Language": locale,
+      "Content-Security-Policy": buildContentSecurityPolicy(createNonce()),
+      "Content-Signal": CONTENT_SIGNAL,
+      "Content-Type": "text/html; charset=utf-8",
+      "Permissions-Policy": "camera=(), microphone=(), geolocation=()",
+      "Referrer-Policy": "strict-origin-when-cross-origin",
+      Vary: "Accept-Language, Cookie",
+      "X-Content-Type-Options": "nosniff",
+      "X-Frame-Options": "SAMEORIGIN",
+      "x-request-id": crypto.randomUUID(),
+    },
+  });
 }
 
 class ScriptNonceRewriter {
@@ -164,6 +187,9 @@ export default {
     if (!mode) return app.fetch(directRequest(request), env, context);
 
     const locale = resolvePublicSsrLocale(request);
+    if (mode === "not-found") {
+      return publicNotFoundResponse(locale, request.method === "HEAD");
+    }
     const cachedRequest = publicSsrRequest(request, mode, locale);
     const cacheUrl = new URL(cachedRequest.url);
     const response = await context.exports
