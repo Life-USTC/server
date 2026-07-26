@@ -110,9 +110,11 @@ function publicSsrRequest(request, mode) {
   const locale = resolvePublicSsrLocale(request);
   const url = new URL(request.url);
   const canonicalQuery = new URLSearchParams();
-  for (const key of Array.from(new Set(url.searchParams.keys())).sort()) {
-    const value = url.searchParams.get(key);
-    if (value !== null) canonicalQuery.set(key, value);
+  if (mode === "page") {
+    for (const key of Array.from(new Set(url.searchParams.keys())).sort()) {
+      const value = url.searchParams.get(key);
+      if (value !== null) canonicalQuery.set(key, value);
+    }
   }
   url.search = canonicalQuery.toString();
   url.searchParams.set(PUBLIC_SSR_LOCALE_CACHE_PARAM, locale);
