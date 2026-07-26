@@ -1,3 +1,10 @@
+## [1.77.17](https://github.com/Life-USTC/server/compare/v1.77.16...v1.77.17) (2026-07-26)
+
+
+### Performance Improvements
+
+* **worker:** cache anonymous SSR behind gateway ([#658](https://github.com/Life-USTC/server/issues/658)) ([3f54c15](https://github.com/Life-USTC/server/commit/3f54c15c77770bf4e6085b5f85bb6402585bba1b))
+
 ## [1.77.16](https://github.com/Life-USTC/server/compare/v1.77.15...v1.77.16) (2026-07-25)
 
 
