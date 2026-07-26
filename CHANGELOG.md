@@ -1,3 +1,10 @@
+## [1.77.20](https://github.com/Life-USTC/server/compare/v1.77.19...v1.77.20) (2026-07-26)
+
+
+### Bug Fixes
+
+* **worker:** route application paths through gateway ([#661](https://github.com/Life-USTC/server/issues/661)) ([06f45a1](https://github.com/Life-USTC/server/commit/06f45a1e5581ed62a172a1502e05a4d50e004ba2))
+
 ## [1.77.19](https://github.com/Life-USTC/server/compare/v1.77.18...v1.77.19) (2026-07-26)
 
 
