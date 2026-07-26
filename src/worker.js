@@ -5,6 +5,7 @@ import {
   PUBLIC_SSR_HEADER,
   PUBLIC_SSR_LOCALE_CACHE_PARAM,
   PUBLIC_SSR_LOCALE_HEADER,
+  PUBLIC_SSR_MODE_CACHE_PARAM,
   PUBLIC_SSR_MODE_HEADER,
   PUBLIC_SSR_NONCE_PLACEHOLDER,
   removePublicSsrHeaders,
@@ -106,8 +107,7 @@ function directRequest(request) {
   return new Request(request, { headers });
 }
 
-function publicSsrRequest(request, mode) {
-  const locale = resolvePublicSsrLocale(request);
+function publicSsrRequest(request, mode, locale) {
   const url = new URL(request.url);
   const canonicalQuery = new URLSearchParams();
   if (mode === "page") {
@@ -118,6 +118,7 @@ function publicSsrRequest(request, mode) {
   }
   url.search = canonicalQuery.toString();
   url.searchParams.set(PUBLIC_SSR_LOCALE_CACHE_PARAM, locale);
+  url.searchParams.set(PUBLIC_SSR_MODE_CACHE_PARAM, mode);
   const headers = new Headers(request.headers);
   headers.delete("authorization");
   headers.delete("cookie");
@@ -136,6 +137,7 @@ function publicSsrRequest(request, mode) {
 function svelteKitPublicSsrRequest(request) {
   const url = new URL(request.url);
   url.searchParams.delete(PUBLIC_SSR_LOCALE_CACHE_PARAM);
+  url.searchParams.delete(PUBLIC_SSR_MODE_CACHE_PARAM);
   return new Request(url, request);
 }
 
@@ -146,13 +148,11 @@ export class PublicSsr extends WorkerEntrypoint {
       this.env,
       this.ctx,
     );
-    const mode = request.headers.get(PUBLIC_SSR_MODE_HEADER);
+    const { locale, mode } = this.ctx.props;
     return prepareCachedRepresentation(
       response,
       mode === "not-found" ? "not-found" : "page",
-      request.headers.get(PUBLIC_SSR_LOCALE_HEADER) === "en-us"
-        ? "en-us"
-        : "zh-cn",
+      locale === "en-us" ? "en-us" : "zh-cn",
       request.method === "HEAD",
     );
   }
@@ -163,9 +163,14 @@ export default {
     const mode = resolvePublicSsrMode(request);
     if (!mode) return app.fetch(directRequest(request), env, context);
 
-    const response = await context.exports.PublicSsr.fetch(
-      publicSsrRequest(request, mode),
-    );
+    const locale = resolvePublicSsrLocale(request);
+    const cachedRequest = publicSsrRequest(request, mode, locale);
+    const cacheUrl = new URL(cachedRequest.url);
+    const response = await context.exports
+      .PublicSsr({ props: { locale, mode } })
+      .fetch(cachedRequest, {
+        cf: { cacheKey: cacheUrl.pathname + cacheUrl.search },
+      });
     return personalizeCachedResponse(response);
   },
 };
