@@ -11,6 +11,7 @@ export type PublicSsrLocale = "en-us" | "zh-cn";
 const STATIC_PUBLIC_PATHS = new Set([
   "/catalog/bus/map",
   "/guides/markdown-support",
+  "/api-docs",
   "/mobile-app",
   "/privacy",
   "/terms",

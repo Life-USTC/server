@@ -18,6 +18,7 @@ describe("public SSR gateway", () => {
     "/catalog/sections?semesterId=301&teacher=Li",
     "/catalog/teachers?departmentId=1",
     "/catalog/bus/map",
+    "/api-docs",
     "/api/docs/rest/catalog",
     "/mobile-app",
     "/privacy",
