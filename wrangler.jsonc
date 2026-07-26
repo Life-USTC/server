@@ -21,7 +21,14 @@
   },
   "assets": {
     "directory": ".svelte-kit/cloudflare",
-    "binding": "ASSETS"
+    "binding": "ASSETS",
+    "run_worker_first": [
+      "/*",
+      "!/_app/*",
+      "!/images/*",
+      "!/static/*",
+      "!/openapi.generated.json"
+    ]
   },
   "observability": {
     "enabled": true,
