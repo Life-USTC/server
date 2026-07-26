@@ -4,6 +4,7 @@
  * Static legal page rendering the privacy policy from i18n keys.
  */
 import { expect, test } from "@playwright/test";
+import { signInAsDebugUser } from "../../../utils/auth";
 import {
   gotoAndWaitForReady,
   waitForUiSettled,
@@ -31,6 +32,29 @@ test.describe("/privacy 隐私政策页", () => {
 
     const listItems = page.locator("li");
     expect(await listItems.count()).toBeGreaterThan(0);
+  });
+
+  test("登录用户复用匿名 SSR 后在 hydration 恢复 viewer", async ({ page }) => {
+    await signInAsDebugUser(page, "/privacy", "/privacy");
+
+    const documentResponse = await page.request.get("/privacy");
+    expect(documentResponse.status()).toBe(200);
+    expect(documentResponse.headers()["cache-control"]).toBe(
+      "private, no-store",
+    );
+    expect(documentResponse.headers()["cloudflare-cdn-cache-control"]).toBe(
+      "no-store",
+    );
+    const html = await documentResponse.text();
+    expect(html).toContain('data-testid="viewer-loading"');
+    expect(html).not.toContain('id="app-user-menu"');
+
+    await gotoAndWaitForReady(page, "/privacy");
+    await expect(page.getByTestId("viewer-loading")).toHaveCount(0);
+    await expect(page.locator("#app-user-menu")).toBeVisible();
+    await expect(
+      page.getByRole("link", { name: /^(登录|Sign in)$/i }),
+    ).toHaveCount(0);
   });
 });
 

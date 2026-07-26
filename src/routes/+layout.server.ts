@@ -1,3 +1,4 @@
+import { PUBLIC_SSR_HEADER } from "@/lib/cloudflare/public-ssr-gateway";
 import {
   buildLayoutCopy,
   layoutUserSummary,
@@ -5,7 +6,7 @@ import {
 import { buildSocialMetadata } from "@/lib/social-metadata";
 import type { LayoutServerLoad } from "./$types";
 
-export const load: LayoutServerLoad = async ({ locals, url }) => {
+export const load: LayoutServerLoad = async ({ locals, request, url }) => {
   const copy = buildLayoutCopy(locals.locale);
 
   return {
@@ -20,5 +21,6 @@ export const load: LayoutServerLoad = async ({ locals, url }) => {
       title: copy.metadata.title,
     }),
     user: layoutUserSummary(locals.authUser),
+    resolveViewerOnClient: request.headers.get(PUBLIC_SSR_HEADER) === "1",
   };
 };

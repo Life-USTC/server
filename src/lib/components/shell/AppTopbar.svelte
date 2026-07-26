@@ -20,6 +20,7 @@ export let setThemeMode: (mode: ThemeMode) => void;
 export let themeMenuOpen: boolean;
 export let themeMode: ThemeMode;
 export let user: LayoutUserSummary;
+export let viewerLoading = false;
 </script>
 
 <header
@@ -59,7 +60,13 @@ export let user: LayoutUserSummary;
         {themeMode}
       />
 
-      {#if !user}
+      {#if viewerLoading}
+        <div
+          aria-hidden="true"
+          class="h-9 w-20 animate-pulse rounded-md bg-muted"
+          data-testid="viewer-loading"
+        ></div>
+      {:else if !user}
         <Button href="/account/sign-in" size="sm">
           {copy.menu.signIn}
         </Button>

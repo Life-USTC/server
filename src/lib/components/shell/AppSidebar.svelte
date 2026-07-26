@@ -22,6 +22,7 @@ let {
   setUserMenuOpen,
   user,
   userMenuOpen,
+  viewerLoading,
 }: {
   avatarFallback: string;
   closeMenus: () => void;
@@ -34,6 +35,7 @@ let {
   setUserMenuOpen: (open: boolean) => void;
   user: LayoutUserSummary;
   userMenuOpen: boolean;
+  viewerLoading: boolean;
 } = $props();
 
 // biome-ignore lint/correctness/useHookAtTopLevel: useSidebar is a Svelte context helper, not a React hook
@@ -270,15 +272,29 @@ function closeMobileSidebar(): void {
   {/if}
 
   <Sidebar.Footer class="border-t">
-    <AppUserMenu
-      {avatarFallback}
-      {closeMenus}
-      {copy}
-      {currentPathname}
-      {profileHref}
-      {setUserMenuOpen}
-      {user}
-      {userMenuOpen}
-    />
+    {#if viewerLoading}
+      <div
+        aria-hidden="true"
+        class="flex h-12 items-center gap-2 px-2"
+        data-testid="sidebar-viewer-loading"
+      >
+        <div class="size-8 animate-pulse rounded-lg bg-sidebar-accent"></div>
+        <div class="grid flex-1 gap-1 group-data-[collapsible=icon]:hidden">
+          <div class="h-3 w-24 animate-pulse rounded bg-sidebar-accent"></div>
+          <div class="h-2.5 w-16 animate-pulse rounded bg-sidebar-accent"></div>
+        </div>
+      </div>
+    {:else}
+      <AppUserMenu
+        {avatarFallback}
+        {closeMenus}
+        {copy}
+        {currentPathname}
+        {profileHref}
+        {setUserMenuOpen}
+        {user}
+        {userMenuOpen}
+      />
+    {/if}
   </Sidebar.Footer>
 </Sidebar.Root>
