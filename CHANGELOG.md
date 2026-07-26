@@ -1,3 +1,10 @@
+## [1.77.18](https://github.com/Life-USTC/server/compare/v1.77.17...v1.77.18) (2026-07-26)
+
+
+### Bug Fixes
+
+* **worker:** preserve cached 404 mode ([#659](https://github.com/Life-USTC/server/issues/659)) ([803e5c2](https://github.com/Life-USTC/server/commit/803e5c2d22faf6ba1be15417d824e518dc8b38f4))
+
 ## [1.77.17](https://github.com/Life-USTC/server/compare/v1.77.16...v1.77.17) (2026-07-26)
 
 
