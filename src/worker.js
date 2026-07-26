@@ -5,6 +5,7 @@ import {
   PUBLIC_SSR_HEADER,
   PUBLIC_SSR_LOCALE_CACHE_PARAM,
   PUBLIC_SSR_LOCALE_HEADER,
+  PUBLIC_SSR_MODE_CACHE_PARAM,
   PUBLIC_SSR_MODE_HEADER,
   PUBLIC_SSR_NONCE_PLACEHOLDER,
   removePublicSsrHeaders,
@@ -118,6 +119,7 @@ function publicSsrRequest(request, mode) {
   }
   url.search = canonicalQuery.toString();
   url.searchParams.set(PUBLIC_SSR_LOCALE_CACHE_PARAM, locale);
+  url.searchParams.set(PUBLIC_SSR_MODE_CACHE_PARAM, mode);
   const headers = new Headers(request.headers);
   headers.delete("authorization");
   headers.delete("cookie");
@@ -136,21 +138,23 @@ function publicSsrRequest(request, mode) {
 function svelteKitPublicSsrRequest(request) {
   const url = new URL(request.url);
   url.searchParams.delete(PUBLIC_SSR_LOCALE_CACHE_PARAM);
+  url.searchParams.delete(PUBLIC_SSR_MODE_CACHE_PARAM);
   return new Request(url, request);
 }
 
 export class PublicSsr extends WorkerEntrypoint {
   async fetch(request) {
+    const cacheUrl = new URL(request.url);
     const response = await app.fetch(
       svelteKitPublicSsrRequest(request),
       this.env,
       this.ctx,
     );
-    const mode = request.headers.get(PUBLIC_SSR_MODE_HEADER);
+    const mode = cacheUrl.searchParams.get(PUBLIC_SSR_MODE_CACHE_PARAM);
     return prepareCachedRepresentation(
       response,
       mode === "not-found" ? "not-found" : "page",
-      request.headers.get(PUBLIC_SSR_LOCALE_HEADER) === "en-us"
+      cacheUrl.searchParams.get(PUBLIC_SSR_LOCALE_CACHE_PARAM) === "en-us"
         ? "en-us"
         : "zh-cn",
       request.method === "HEAD",

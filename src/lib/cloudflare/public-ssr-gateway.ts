@@ -3,6 +3,7 @@ export const PUBLIC_SSR_LOCALE_HEADER = "x-life-public-ssr-locale";
 export const PUBLIC_SSR_MODE_HEADER = "x-life-public-ssr-mode";
 export const PUBLIC_SSR_NONCE_PLACEHOLDER = "life-ustc-public-ssr-nonce";
 export const PUBLIC_SSR_LOCALE_CACHE_PARAM = "__life_locale";
+export const PUBLIC_SSR_MODE_CACHE_PARAM = "__life_mode";
 
 export type PublicSsrMode = "page" | "not-found";
 export type PublicSsrLocale = "en-us" | "zh-cn";
