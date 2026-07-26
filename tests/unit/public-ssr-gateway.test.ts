@@ -36,6 +36,11 @@ describe("public SSR gateway", () => {
     "/catalog/courses?unknown=value",
     "/catalog/courses?__life_locale=en-us",
     "/community/users/example",
+    "/e2e/oauth/callback?code=example&state=test",
+    "/error?error=access_denied",
+    "/llms.txt",
+    "/robots.txt",
+    "/sitemap.xml",
     "/workspace/overview",
   ])("bypasses private or mixed route %s", (path) => {
     expect(resolvePublicSsrMode(request(path))).toBeNull();

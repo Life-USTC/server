@@ -17,6 +17,13 @@ const STATIC_PUBLIC_PATHS = new Set([
   "/terms",
 ]);
 const STATIC_PUBLIC_ROOTS = ["/api/docs"];
+const DIRECT_REQUEST_PATHS = new Set([
+  "/",
+  "/error",
+  "/llms.txt",
+  "/robots.txt",
+  "/sitemap.xml",
+]);
 
 const CATALOG_QUERY_KEYS: Record<string, ReadonlySet<string>> = {
   "/catalog/courses": new Set([
@@ -51,6 +58,7 @@ const DYNAMIC_OR_PRIVATE_ROOTS = [
   "/api",
   "/catalog",
   "/community",
+  "/e2e",
   "/oauth",
   "/workspace",
 ];
@@ -93,7 +101,7 @@ export function resolvePublicSsrMode(request: Request): PublicSsrMode | null {
   }
 
   if (
-    url.pathname === "/" ||
+    DIRECT_REQUEST_PATHS.has(url.pathname) ||
     url.pathname.startsWith("/_app/") ||
     url.pathname.startsWith("/.well-known/") ||
     DYNAMIC_OR_PRIVATE_ROOTS.some((root) => matchesPathRoot(url.pathname, root))
