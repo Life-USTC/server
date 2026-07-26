@@ -50,6 +50,7 @@ is the project map: start here, then follow the closest source of truth.
 - [docs/contracts/mcp.json](contracts/mcp.json) - MCP contract surface.
 - [docs/contracts/security.json](contracts/security.json) - security and permission expectations.
 - [docs/observability.md](observability.md) - production logs, metrics, alerts, and dashboard guidance.
+- [docs/rendering-and-cache.md](rendering-and-cache.md) - SSR/CSR ownership, anonymous Workers Cache gateway, and route admission rules.
 - [docs/interface-hierarchy.md](interface-hierarchy.md) - canonical cross-surface hierarchy, naming, compatibility, locale, cache, and SEO policy.
 
 ## Verification
