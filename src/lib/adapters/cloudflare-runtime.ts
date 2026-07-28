@@ -40,6 +40,10 @@ export type CloudflareRateLimiter = {
   limit(options: { key: string }): Promise<{ success: boolean }>;
 };
 
+export type CloudflareAssetsBinding = {
+  fetch(request: Request): Promise<Response>;
+};
+
 type CloudflareExecutionContext = {
   tracing?: CloudflareTracing;
   waitUntil(promise: Promise<unknown>): void;
@@ -67,6 +71,7 @@ export type CloudflareKVNamespace = {
 
 type CloudflareRuntimeEnv = Record<string, unknown> & {
   ANALYTICS?: CloudflareAnalyticsEngineDataset;
+  ASSETS?: CloudflareAssetsBinding;
   CALENDAR_EXPORTS?: CloudflareKVNamespace;
   HYPERDRIVE?: {
     connectionString?: unknown;
@@ -203,6 +208,10 @@ export function getCloudflareR2UploadsBucket() {
 
 export function getCloudflareAnalyticsEngineDataset() {
   return getCurrentCloudflareRuntimeEnv()?.ANALYTICS;
+}
+
+export function getCloudflareAssetsBinding() {
+  return getCurrentCloudflareRuntimeEnv()?.ASSETS;
 }
 
 export function getCloudflareCalendarExportsNamespace() {

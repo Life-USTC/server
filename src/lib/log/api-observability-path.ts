@@ -9,6 +9,13 @@ export function normalizeApiRoutePath(pathname: string) {
     .map((segment, index, segments) => {
       if (
         segments[index - 2] === "api" &&
+        segments[index - 1] === "users" &&
+        segments[index + 1] === "calendar.ics"
+      ) {
+        return ":credential";
+      }
+      if (
+        segments[index - 2] === "api" &&
         segments[index - 1] === "calendar-feeds"
       ) {
         return ":credential.ics";

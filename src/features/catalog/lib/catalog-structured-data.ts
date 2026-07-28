@@ -12,6 +12,7 @@ const USTC_PROVIDER = {
   "@type": "CollegeOrUniversity",
   name: "University of Science and Technology of China",
 } as const;
+const STRUCTURED_DATA_DESCRIPTION_MAX_LENGTH = 500;
 
 function breadcrumbList({
   canonicalUrl,
@@ -64,7 +65,12 @@ function addDescription(
   description: string | null | undefined,
 ) {
   const value = description?.trim();
-  return value ? { ...entity, description: value } : entity;
+  if (!value) return entity;
+  const compactDescription =
+    value.length > STRUCTURED_DATA_DESCRIPTION_MAX_LENGTH
+      ? `${value.slice(0, STRUCTURED_DATA_DESCRIPTION_MAX_LENGTH - 1)}…`
+      : value;
+  return { ...entity, description: compactDescription };
 }
 
 export function buildCourseStructuredData({

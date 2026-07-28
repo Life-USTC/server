@@ -100,14 +100,14 @@ $: sectionNavItems = [
     icon: CalendarDaysIcon,
     key: "calendar" as const,
     label: sectionCopy.tabs.calendar,
-    meta: sectionCalendarEvents.length,
+    meta: data.section.scheduleCount + data.section.examCount,
   },
   {
     href: `${sectionBaseHref}/exams`,
     icon: GraduationCapIcon,
     key: "exams" as const,
     label: sectionCopy.tabs.exams,
-    meta: sectionExamEvents.length,
+    meta: data.section.examCount,
   },
   {
     href: `${sectionBaseHref}/homework`,

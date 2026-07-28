@@ -1,8 +1,9 @@
 import type { ConfigType, Dayjs } from "dayjs";
-import { APP_TIME_ZONE, parseDateInput } from "@/lib/time/parse-date-input";
+import { parseDateInput } from "@/lib/time/parse-date-input";
 import { shanghaiDayjs } from "@/lib/time/shanghai-dayjs";
 import {
   APP_DATE_ONLY_FORMAT,
+  createShanghaiDateTimeFormatter,
   formatShanghaiDate,
 } from "@/lib/time/shanghai-format";
 
@@ -131,10 +132,7 @@ export function formatCampusDate(
 ) {
   const date = resolveCampusDate(value);
   if (!date) return fallback;
-  return new Intl.DateTimeFormat(locale, {
-    timeZone: APP_TIME_ZONE,
-    ...options,
-  }).format(date);
+  return createShanghaiDateTimeFormatter(locale, options).format(date);
 }
 
 export function formatCampusDateTime(
@@ -145,10 +143,9 @@ export function formatCampusDateTime(
 ) {
   const date = resolveCampusDate(value);
   if (!date) return fallback;
-  return new Intl.DateTimeFormat(locale, {
+  return createShanghaiDateTimeFormatter(locale, {
     dateStyle: "short",
     timeStyle: "short",
-    timeZone: APP_TIME_ZONE,
     ...options,
   }).format(date);
 }

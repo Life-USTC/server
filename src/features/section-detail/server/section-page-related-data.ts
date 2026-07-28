@@ -9,10 +9,24 @@ type SectionPageRelatedSection = {
   teachers: Array<{ id: number }>;
 };
 
-type OtherSection = {
-  semesterId: number | null;
-  teachers: Array<{ id: number }>;
-};
+const RELATED_SECTION_LIMIT = 10;
+
+const relatedSectionSelect = {
+  id: true,
+  jwId: true,
+  code: true,
+  semesterId: true,
+  semester: { select: { endDate: true, nameCn: true, startDate: true } },
+  teachers: {
+    select: {
+      id: true,
+      nameCn: true,
+      nameEn: true,
+      namePrimary: true,
+      nameSecondary: true,
+    },
+  },
+} as const;
 
 export async function getSectionPageRelatedData({
   prisma,
@@ -21,45 +35,41 @@ export async function getSectionPageRelatedData({
   prisma: PagePrisma;
   section: SectionPageRelatedSection;
 }) {
-  const teacherIds = new Set(section.teachers.map((teacher) => teacher.id));
-  const otherSections = await prisma.section.findMany({
-    where: {
-      courseId: section.courseId,
-      id: { not: section.id },
-      retiredAt: null,
-    },
-    orderBy: [{ semester: { jwId: "desc" } }, { code: "asc" }],
-    select: {
-      id: true,
-      jwId: true,
-      code: true,
-      semesterId: true,
-      semester: { select: { endDate: true, nameCn: true, startDate: true } },
-      teachers: {
-        select: {
-          id: true,
-          nameCn: true,
-          nameEn: true,
-          namePrimary: true,
-          nameSecondary: true,
+  const teacherIds = section.teachers.map((teacher) => teacher.id);
+  const [sameSemesterOtherTeachers, sameTeacherOtherSemesters] =
+    await Promise.all([
+      prisma.section.findMany({
+        where: {
+          courseId: section.courseId,
+          id: { not: section.id },
+          retiredAt: null,
+          semesterId: section.semesterId,
+          ...(teacherIds.length > 0
+            ? { teachers: { none: { id: { in: teacherIds } } } }
+            : {}),
         },
-      },
-    },
-  });
-
-  const sameSemesterOtherTeachers = otherSections.filter(
-    (otherSection: OtherSection) =>
-      otherSection.semesterId === section.semesterId &&
-      !otherSection.teachers.some((teacher) => teacherIds.has(teacher.id)),
-  );
-  const sameTeacherOtherSemesters = otherSections.filter(
-    (otherSection: OtherSection) =>
-      otherSection.semesterId !== section.semesterId &&
-      otherSection.teachers.some((teacher) => teacherIds.has(teacher.id)),
-  );
+        orderBy: { code: "asc" },
+        select: relatedSectionSelect,
+        take: RELATED_SECTION_LIMIT,
+      }),
+      teacherIds.length > 0
+        ? prisma.section.findMany({
+            where: {
+              courseId: section.courseId,
+              id: { not: section.id },
+              retiredAt: null,
+              semesterId: { not: section.semesterId },
+              teachers: { some: { id: { in: teacherIds } } },
+            },
+            orderBy: [{ semester: { jwId: "desc" } }, { code: "asc" }],
+            select: relatedSectionSelect,
+            take: RELATED_SECTION_LIMIT,
+          })
+        : Promise.resolve([]),
+    ]);
 
   return {
-    otherSections,
+    otherSections: [...sameSemesterOtherTeachers, ...sameTeacherOtherSemesters],
     sameSemesterOtherTeachers,
     sameTeacherOtherSemesters,
   };

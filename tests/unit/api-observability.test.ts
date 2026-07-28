@@ -3,7 +3,6 @@ import { setCloudflareRuntimeEnv } from "@/lib/adapters/cloudflare-runtime";
 import {
   normalizeApiRoutePath,
   observedApiRoute,
-  recordApiRequestStart,
   recordObservedApiResponse,
   setApiRequestObservabilityContext,
 } from "@/lib/log/api-observability";
@@ -39,34 +38,24 @@ describe("API 可观测性", () => {
     const encodedSeparator = normalizeApiRoutePath(
       "/api/calendar-feeds/user-1%3Afeed-token-0123456789.ics",
     );
+    const legacy = normalizeApiRoutePath(
+      "/api/users/user-1:feed-token-0123456789/calendar.ics",
+    );
+    const encodedLegacy = normalizeApiRoutePath(
+      "/api/users/user-1%3Afeed-token-0123456789/calendar.ics",
+    );
 
     expect(normalized).toBe("/api/calendar-feeds/:credential.ics");
     expect(encodedSeparator).toBe("/api/calendar-feeds/:credential.ics");
     expect(normalizeApiRoutePath("/api/calendar-feeds/user-1.ics")).toBe(
       "/api/calendar-feeds/:credential.ics",
     );
+    expect(legacy).toBe("/api/users/:credential/calendar.ics");
+    expect(encodedLegacy).toBe("/api/users/:credential/calendar.ics");
     expect(normalized).not.toContain("feed-token-0123456789");
     expect(encodedSeparator).not.toContain("feed-token-0123456789");
-  });
-
-  it("记录安全的请求开始日志", () => {
-    const info = vi.spyOn(console, "info").mockImplementation(() => {});
-
-    recordApiRequestStart({
-      method: "GET",
-      pathname: "/api/workspace/todos/123",
-      requestId: "request-1",
-    });
-
-    expect(info).toHaveBeenCalledWith(
-      "[api]",
-      expect.objectContaining({
-        event: "request.start",
-        method: "GET",
-        path: "/api/workspace/todos/:id",
-        requestId: "request-1",
-        status: 0,
-      }),
+    expect(JSON.stringify({ legacy, encodedLegacy })).not.toContain(
+      "feed-token-0123456789",
     );
   });
 
@@ -140,6 +129,31 @@ describe("API 可观测性", () => {
     });
     expect(JSON.stringify(writeDataPoint.mock.calls)).not.toContain(
       "feed-token-0123456789",
+    );
+  });
+
+  it("不会把旧版日历订阅凭据写入日志或 Analytics Engine", async () => {
+    const info = vi.spyOn(console, "info").mockImplementation(() => {});
+    const writeDataPoint = vi.fn();
+    setCloudflareRuntimeEnv({ ANALYTICS: { writeDataPoint } });
+    const route = observedApiRoute(() => new Response(null, { status: 404 }));
+
+    await route(
+      new Request(
+        "https://example.test/api/users/user-1%3Afeed-token-0123456789/calendar.ics",
+      ),
+    );
+
+    expect(JSON.stringify(info.mock.calls)).not.toContain(
+      "feed-token-0123456789",
+    );
+    expect(JSON.stringify(writeDataPoint.mock.calls)).not.toContain(
+      "feed-token-0123456789",
+    );
+    expect(writeDataPoint).toHaveBeenCalledWith(
+      expect.objectContaining({
+        indexes: ["/api/users/:credential/calendar.ics"],
+      }),
     );
   });
 

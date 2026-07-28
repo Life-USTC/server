@@ -65,7 +65,11 @@ export async function loadSectionDetailPage({
   const jwId = parseSectionJwId(params.jwId);
   if (jwId === null) error(404, "Section not found");
   const userId = locals.authUser?.id ?? null;
-  const section = await getSectionPage(jwId, locals.locale);
+  const section = await getSectionPage(jwId, locals.locale, {
+    includeExams: detailSection === "calendar" || detailSection === "exams",
+    includeRelated: detailSection === "overview",
+    includeSchedules: detailSection === "calendar",
+  });
   if (!section) error(404, "Section not found");
   const copy = getSectionDetailPageCopy(locals.locale);
   const courseName = primaryName(section.course) || section.code;

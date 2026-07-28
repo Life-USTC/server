@@ -1,6 +1,7 @@
 import { describe, expect, test } from "vitest";
 import {
   buildPublicNotFoundHtml,
+  resolveLegacyCatalogRedirect,
   resolvePublicSsrLocale,
   resolvePublicSsrMode,
 } from "@/lib/cloudflare/public-ssr-gateway";
@@ -12,6 +13,24 @@ function request(path: string, headers: HeadersInit = {}) {
 }
 
 describe("public SSR gateway", () => {
+  test.each([
+    ["/sections/159446/comments", "/catalog/sections/159446/comments"],
+    ["/courses/456?page=2", "/catalog/courses/456?page=2"],
+    ["/teachers/abc123", "/catalog/teachers/abc123"],
+  ])("redirects legacy catalog path %s before 404 handling", (path, target) => {
+    expect(resolveLegacyCatalogRedirect(request(path))).toBe(target);
+  });
+
+  test("does not redirect a non-read legacy request", () => {
+    expect(
+      resolveLegacyCatalogRedirect(
+        new Request("https://life-ustc.test/sections/159446", {
+          method: "POST",
+        }),
+      ),
+    ).toBeNull();
+  });
+
   test.each([
     "/catalog/courses",
     "/catalog/courses?page=2&search=math",

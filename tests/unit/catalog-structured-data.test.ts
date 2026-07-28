@@ -101,6 +101,20 @@ describe("catalog structured data", () => {
     });
   });
 
+  test("bounds long descriptions duplicated into JSON-LD", () => {
+    const data = buildCourseStructuredData({
+      canonicalUrl: "https://life.example.edu/catalog/courses/9901001",
+      code: "MATH1001",
+      description: "x".repeat(2_000),
+      labels: { collection: "Courses", home: "Home" },
+      name: "Numerical Analysis",
+    });
+
+    const description = data["@graph"][0]?.description;
+    expect(description).toHaveLength(500);
+    expect(description).toMatch(/…$/);
+  });
+
   test("keeps Person data minimal and safely serializes script-sensitive text", () => {
     const data = buildTeacherStructuredData({
       canonicalUrl: "https://life.example.edu/catalog/teachers/42",

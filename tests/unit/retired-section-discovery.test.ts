@@ -88,11 +88,11 @@ describe("retired Section discovery boundaries", () => {
 
     expect(sectionFindManyMock).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: {
+        where: expect.objectContaining({
           courseId: 77,
           id: { not: 11 },
           retiredAt: null,
-        },
+        }),
       }),
     );
   });

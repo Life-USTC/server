@@ -1,20 +1,6 @@
-import { normalizeApiRoutePath } from "@/lib/log/api-observability-path";
 import { logApiRequest } from "@/lib/log/app-logger";
 import { getSafeErrorName } from "@/lib/log/safe-error-name";
 import { writeApiRequestAnalytics } from "@/lib/metrics/analytics-engine";
-
-export function recordApiRequestStart(input: {
-  method: string;
-  pathname: string;
-  requestId: string;
-}) {
-  const route = normalizeApiRoutePath(input.pathname);
-
-  logApiRequest(input.method, route, 0, undefined, {
-    event: "request.start",
-    requestId: input.requestId,
-  });
-}
 
 export function recordApiRequestFinish(input: {
   authMode: string;

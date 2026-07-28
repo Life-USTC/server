@@ -63,6 +63,16 @@ const DYNAMIC_OR_PRIVATE_ROOTS = [
   "/workspace",
 ];
 
+const LEGACY_CATALOG_PATH = /^\/(sections|courses|teachers)\/(.+)$/;
+
+export function resolveLegacyCatalogRedirect(request: Request) {
+  if (request.method !== "GET" && request.method !== "HEAD") return null;
+  const url = new URL(request.url);
+  const match = LEGACY_CATALOG_PATH.exec(url.pathname);
+  if (!match) return null;
+  return `/catalog/${match[1]}/${match[2]}${url.search}`;
+}
+
 function matchesPathRoot(pathname: string, root: string) {
   return pathname === root || pathname.startsWith(`${root}/`);
 }

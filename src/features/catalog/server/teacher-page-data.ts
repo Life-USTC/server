@@ -1,7 +1,27 @@
+import type { TeacherDetailSection } from "@/features/catalog/components/catalog-detail-component-types";
 import { getPrisma } from "@/lib/db/prisma";
 import { toLoadData } from "@/lib/load-data-utils";
 
-export async function getTeacherPage(id: number, locale = "zh-cn") {
+const teacherPageSectionsSelect = {
+  jwId: true,
+  code: true,
+  credits: true,
+  course: {
+    select: {
+      nameCn: true,
+      nameEn: true,
+      namePrimary: true,
+      nameSecondary: true,
+    },
+  },
+  semester: { select: { nameCn: true } },
+} as const;
+
+export async function getTeacherPage(
+  id: number,
+  locale = "zh-cn",
+  options: { includeSections?: boolean } = {},
+) {
   const prisma = getPrisma(locale);
   const teacher = await prisma.teacher.findUnique({
     where: { id },
@@ -34,30 +54,28 @@ export async function getTeacherPage(id: number, locale = "zh-cn") {
       description: {
         select: { content: true, updatedAt: true, lastEditedAt: true },
       },
-      sections: {
-        orderBy: [
-          { semester: { jwId: "desc" } },
-          { course: { nameCn: "asc" } },
-        ],
-        select: {
-          jwId: true,
-          code: true,
-          credits: true,
-          course: {
-            select: {
-              nameCn: true,
-              nameEn: true,
-              namePrimary: true,
-              nameSecondary: true,
+      _count: { select: { sections: true } },
+      sections:
+        options.includeSections === false
+          ? false
+          : {
+              orderBy: [
+                { semester: { jwId: "desc" } },
+                { course: { nameCn: "asc" } },
+              ],
+              select: teacherPageSectionsSelect,
             },
-          },
-          semester: { select: { nameCn: true } },
-        },
-      },
     },
   });
 
   if (!teacher) return null;
 
-  return toLoadData(teacher);
+  const { _count, sections, ...data } = teacher;
+  return toLoadData({
+    ...data,
+    sectionCount: _count.sections,
+    sections: (options.includeSections === false
+      ? []
+      : sections) as unknown as TeacherDetailSection[],
+  });
 }

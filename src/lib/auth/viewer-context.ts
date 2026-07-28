@@ -1,3 +1,4 @@
+import { getCloudflareRuntimeContext } from "@/lib/adapters/cloudflare-runtime";
 import { prisma } from "@/lib/db/prisma";
 import { toShanghaiIsoString } from "@/lib/time/serialize-date-output";
 
@@ -21,6 +22,21 @@ type ViewerAuthData = {
   };
   suspension: Awaited<ReturnType<typeof findActiveSuspension>>;
 };
+
+const viewerContextCacheKey = Symbol("life-ustc.cloudflare.viewer-context");
+
+function getRequestViewerCache() {
+  const context = getCloudflareRuntimeContext();
+  if (!context) return undefined;
+  let cache = context.cache.get(viewerContextCacheKey) as
+    | Map<string, Promise<ViewerContext>>
+    | undefined;
+  if (!cache) {
+    cache = new Map();
+    context.cache.set(viewerContextCacheKey, cache);
+  }
+  return cache;
+}
 
 export async function findActiveSuspension(userId: string) {
   const now = new Date();
@@ -56,7 +72,7 @@ export async function getViewerAuthDataForUserId(
   return { user, suspension };
 }
 
-export async function getViewerContext(
+async function loadViewerContext(
   options: { includeAdmin?: boolean; userId?: string | null } = {},
 ): Promise<ViewerContext> {
   const data =
@@ -92,4 +108,17 @@ export async function getViewerContext(
       ? toShanghaiIsoString(suspension.expiresAt)
       : null,
   };
+}
+
+export function getViewerContext(
+  options: { includeAdmin?: boolean; userId?: string | null } = {},
+): Promise<ViewerContext> {
+  const cache = getRequestViewerCache();
+  if (!cache) return loadViewerContext(options);
+  const key = `${options.userId ?? "anonymous"}:${options.includeAdmin === true}`;
+  const cached = cache.get(key);
+  if (cached) return cached;
+  const viewer = loadViewerContext(options);
+  cache.set(key, viewer);
+  return viewer;
 }

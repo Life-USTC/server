@@ -16,7 +16,7 @@ export async function loadCatalogDetailCommentsData({
   const [descriptionData, comments] = await Promise.all([
     getDescriptionPayload(type, targetId, viewer),
     includeComments
-      ? getCommentsPayload({ type, targetId }, viewer)
+      ? getCommentsPayload({ type, targetId }, viewer, { pageSize: 20 })
       : Promise.resolve(null),
   ]);
 
@@ -24,6 +24,7 @@ export async function loadCatalogDetailCommentsData({
     commentsData: comments
       ? {
           commentMap: { [type]: comments.comments },
+          complete: comments.complete,
           hiddenCount: comments.hiddenCount,
           viewer,
         }
