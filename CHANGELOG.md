@@ -1,3 +1,10 @@
+## [1.77.21](https://github.com/Life-USTC/server/compare/v1.77.20...v1.77.21) (2026-07-28)
+
+
+### Performance Improvements
+
+* **worker:** remove remaining request hot spots ([#670](https://github.com/Life-USTC/server/issues/670)) ([21b3d92](https://github.com/Life-USTC/server/commit/21b3d927b9868b79d2637646efafd1464c5b358c)), closes [#663](https://github.com/Life-USTC/server/issues/663) [#664](https://github.com/Life-USTC/server/issues/664) [#665](https://github.com/Life-USTC/server/issues/665) [#666](https://github.com/Life-USTC/server/issues/666) [#669](https://github.com/Life-USTC/server/issues/669)
+
 ## [1.77.20](https://github.com/Life-USTC/server/compare/v1.77.19...v1.77.20) (2026-07-26)
 
 
