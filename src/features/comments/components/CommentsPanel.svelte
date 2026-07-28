@@ -155,7 +155,7 @@ $: if (initialData && !_appliedInitialData && _resolvedTargets.length > 0) {
 onMount(() => {
   return mountCommentPanel({
     clearHashScroller: _commentHashScroller.clear,
-    hasInitialData: Boolean(initialData),
+    hasInitialData: Boolean(initialData && initialData.complete !== false),
     loadComments: _loadComments,
     scrollToHashComment: _scrollToHashComment,
     waitForDom: tick,

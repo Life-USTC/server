@@ -193,10 +193,6 @@ describe("SvelteKit page request lifecycle", () => {
     expect(apiEvents(info.mock.calls)).toEqual([
       expect.arrayContaining([
         "[api]",
-        expect.objectContaining({ event: "request.start", path: "/api" }),
-      ]),
-      expect.arrayContaining([
-        "[api]",
         expect.objectContaining({ event: "request.finish", path: "/api" }),
       ]),
     ]);
@@ -282,15 +278,6 @@ describe("SvelteKit page request lifecycle", () => {
     ).rejects.toThrow("private database detail");
 
     const events = apiEvents([...info.mock.calls, ...error.mock.calls]);
-    expect(
-      events.filter(
-        ([, value]) =>
-          typeof value === "object" &&
-          value !== null &&
-          "event" in value &&
-          value.event === "request.start",
-      ),
-    ).toHaveLength(1);
     expect(
       events.filter(
         ([, value]) =>

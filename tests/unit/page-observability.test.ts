@@ -8,6 +8,7 @@ import {
 describe("页面性能可观测性", () => {
   afterEach(() => {
     setCloudflareRuntimeEnv(undefined);
+    vi.unstubAllEnvs();
     vi.restoreAllMocks();
   });
 
@@ -85,6 +86,30 @@ describe("页面性能可观测性", () => {
       ],
       doubles: [6, 404, 0, 0, 5],
     });
+  });
+
+  it("生产环境下采样普通成功日志但保留完整 Analytics 数据点", () => {
+    vi.stubEnv("NODE_ENV", "production");
+    const info = vi.spyOn(console, "info").mockImplementation(() => {});
+    const writeDataPoint = vi.fn();
+    setCloudflareRuntimeEnv({ ANALYTICS: { writeDataPoint } });
+
+    recordPageRequestFinish({
+      authMode: "anonymous",
+      locale: "zh-cn",
+      method: "GET",
+      requestId: "request-1",
+      routeId: "/privacy",
+      status: 200,
+      timings: {
+        appIoObservedDurationMs: 5,
+        authIoObservedDurationMs: 0,
+        totalIoObservedDurationMs: 6,
+      },
+    });
+
+    expect(info).not.toHaveBeenCalled();
+    expect(writeDataPoint).toHaveBeenCalledOnce();
   });
 
   it("Analytics Engine 失败不影响页面响应路径", () => {

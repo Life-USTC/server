@@ -36,6 +36,7 @@ type CourseDetailData = CatalogNamed & {
   educationLevel?: CatalogNamed | null;
   id: number | string;
   jwId: number | string;
+  sectionCount: number;
   sections: CourseDetailSection[];
   type?: CatalogNamed | null;
 };
@@ -102,7 +103,7 @@ $: sectionNavItems = [
     icon: ListIcon,
     key: "sections" as const,
     label: copy.courseDetail.teachingSections,
-    meta: data.course.sections.length,
+    meta: data.course.sectionCount,
   },
   {
     href: `${courseBaseHref}/comments`,

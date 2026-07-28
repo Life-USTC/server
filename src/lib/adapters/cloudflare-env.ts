@@ -9,6 +9,7 @@ import {
 } from "@/lib/env/env-schema";
 import {
   getCloudflareHyperdriveConnectionString,
+  getCloudflareRuntimeContext,
   getCloudflareRuntimeEnvInput,
   hasCloudflareRuntimeEnv,
 } from "./cloudflare-runtime";
@@ -16,6 +17,7 @@ import {
 export type { Env };
 
 type EnvInput = Partial<NodeJS.ProcessEnv>;
+const cloudflareEnvCacheKey = Symbol("life-ustc.cloudflare.env");
 
 function getDefaultEnvInput(): EnvInput {
   const processEnv =
@@ -26,6 +28,16 @@ function getDefaultEnvInput(): EnvInput {
 export function loadEnv(
   options: { input?: EnvInput; appPhase?: string } = {},
 ): Env {
+  const runtimeContext = getCloudflareRuntimeContext();
+  const canUseRequestCache =
+    runtimeContext &&
+    options.input === undefined &&
+    options.appPhase === undefined;
+  const cached = canUseRequestCache
+    ? (runtimeContext.cache.get(cloudflareEnvCacheKey) as Env | undefined)
+    : undefined;
+  if (cached) return cached;
+
   const input = options.input ?? getDefaultEnvInput();
   const appPhase = options.appPhase ?? trimOrUndefined(input.APP_PHASE);
 
@@ -43,6 +55,8 @@ export function loadEnv(
     appPhase === APP_PRODUCTION_BUILD_PHASE ||
     env.NODE_ENV === "development"
   ) {
+    if (canUseRequestCache)
+      runtimeContext.cache.set(cloudflareEnvCacheKey, env);
     return env;
   }
 
@@ -59,6 +73,7 @@ export function loadEnv(
     throw new Error("Invalid environment variables");
   }
 
+  if (canUseRequestCache) runtimeContext.cache.set(cloudflareEnvCacheKey, env);
   return env;
 }
 

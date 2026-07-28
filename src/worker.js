@@ -9,6 +9,7 @@ import {
   PUBLIC_SSR_MODE_HEADER,
   PUBLIC_SSR_NONCE_PLACEHOLDER,
   removePublicSsrHeaders,
+  resolveLegacyCatalogRedirect,
   resolvePublicSsrLocale,
   resolvePublicSsrMode,
 } from "./lib/cloudflare/public-ssr-gateway";
@@ -183,6 +184,16 @@ export class PublicSsr extends WorkerEntrypoint {
 
 export default {
   async fetch(request, env, context) {
+    const legacyRedirect = resolveLegacyCatalogRedirect(request);
+    if (legacyRedirect) {
+      return new Response(null, {
+        status: 301,
+        headers: {
+          "Cache-Control": "public, max-age=86400",
+          Location: legacyRedirect,
+        },
+      });
+    }
     const mode = resolvePublicSsrMode(request);
     if (!mode) return app.fetch(directRequest(request), env, context);
 

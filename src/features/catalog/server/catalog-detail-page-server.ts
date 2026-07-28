@@ -61,7 +61,9 @@ export async function loadCourseDetailPage({
   const jwId = Number(params.jwId);
   if (!Number.isInteger(jwId)) error(404, copy.notFound.description);
   const [course, viewer] = await Promise.all([
-    getCoursePage(jwId, locals.locale),
+    getCoursePage(jwId, locals.locale, {
+      includeSections: detailSection === "sections",
+    }),
     getViewerContext({ userId: locals.authUser?.id ?? null }),
   ]);
   if (!course) error(404, copy.notFound.description);
@@ -128,7 +130,9 @@ export async function loadTeacherDetailPage({
   const id = Number(params.id);
   if (!Number.isInteger(id)) error(404, copy.notFound.description);
   const [teacher, viewer] = await Promise.all([
-    getTeacherPage(id, locals.locale),
+    getTeacherPage(id, locals.locale, {
+      includeSections: detailSection === "sections",
+    }),
     getViewerContext({ userId: locals.authUser?.id ?? null }),
   ]);
   if (!teacher) error(404, copy.notFound.description);

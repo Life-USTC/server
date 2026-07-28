@@ -69,6 +69,7 @@ export type SectionDetailSection = {
   dateTimePlaceText?: string | null;
   designPeriods?: number | null;
   examMode?: SectionDetailNamed | null;
+  examCount: number;
   exams: SectionDetailExam[];
   experimentPeriods?: number | null;
   graduateAndPostgraduate?: boolean | null;
@@ -85,6 +86,7 @@ export type SectionDetailSection = {
   retiredAt?: string | Date | null;
   roomType?: SectionDetailNamed | null;
   schedules: SectionDetailSchedule[];
+  scheduleCount: number;
   sameSemesterOtherTeachers: SectionDetailRelatedSection[];
   sameTeacherOtherSemesters: SectionDetailRelatedSection[];
   semester?: SectionDetailSemester | null;

@@ -16,6 +16,7 @@ import {
 
 export type CommentsInitialData = {
   commentMap: Record<string, CommentNode[]>;
+  complete?: boolean;
   hiddenCount: number;
   hiddenMap?: Record<string, number>;
   viewer: ViewerContext;

@@ -30,10 +30,12 @@ export async function getSectionDetailDescriptionAndComments(
       getCommentsPayload(
         { type: "section", targetId: section.id },
         descriptionViewer,
+        { pageSize: 20 },
       ),
       getCommentsPayload(
         { type: "course", targetId: section.course.id },
         descriptionViewer,
+        { pageSize: 20 },
       ),
       firstCommentTeacher
         ? getCommentsPayload(
@@ -43,9 +45,11 @@ export async function getSectionDetailDescriptionAndComments(
               teacherId: firstCommentTeacher.id,
             },
             descriptionViewer,
+            { pageSize: 20 },
           )
         : Promise.resolve({
             comments: [],
+            complete: true,
             hiddenCount: 0,
             viewer: descriptionViewer,
           }),
@@ -62,6 +66,10 @@ export async function getSectionDetailDescriptionAndComments(
         sectionComments.hiddenCount +
         courseComments.hiddenCount +
         teacherComments.hiddenCount,
+      complete:
+        sectionComments.complete &&
+        courseComments.complete &&
+        teacherComments.complete,
       viewer: descriptionViewer,
     },
     descriptionData,

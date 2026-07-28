@@ -145,6 +145,7 @@ beforeEach(() => {
   vi.clearAllMocks();
   getCommentsPayloadMock.mockResolvedValue({
     comments: [],
+    complete: true,
     hiddenCount: 0,
     viewer: anonymousViewer,
   });
@@ -217,6 +218,7 @@ describe("catalog detail loader critical path", () => {
     expect(getCommentsPayloadMock).toHaveBeenCalledWith(
       { targetId: course.id, type: "course" },
       anonymousViewer,
+      { pageSize: 20 },
     );
   });
 

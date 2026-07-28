@@ -9,6 +9,7 @@ import { resolveCommentTarget } from "./comment-utils";
 
 type CommentsPayload = {
   comments: CommentNode[];
+  complete: boolean;
   hiddenCount: number;
   viewer: CommentViewer;
 };
@@ -16,6 +17,7 @@ type CommentsPayload = {
 export async function getCommentsPayload(
   target: CommentTarget,
   viewerOverride?: CommentViewer,
+  options: { pageSize?: number } = {},
 ): Promise<CommentsPayload> {
   const viewer =
     viewerOverride ?? (await getViewerContext({ includeAdmin: false }));
@@ -31,12 +33,20 @@ export async function getCommentsPayload(
   });
 
   if (!resolvedTarget) {
-    return { comments: [], hiddenCount: 0, viewer };
+    return { comments: [], complete: true, hiddenCount: 0, viewer };
   }
 
-  return loadCommentThread({
+  const pageSize = options.pageSize;
+  const result = await loadCommentThread({
+    pagination: pageSize ? { pageSize, skip: 0 } : undefined,
     target: resolvedTarget,
     viewer,
     viewerUserId: viewer.userId,
   });
+  return {
+    comments: result.comments,
+    complete: pageSize === undefined || result.total <= pageSize,
+    hiddenCount: result.hiddenCount,
+    viewer: result.viewer,
+  };
 }

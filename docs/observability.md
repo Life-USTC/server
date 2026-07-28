@@ -22,6 +22,10 @@ high-cardinality resource IDs.
   preserve safe API, page, MCP, OAuth, GraphQL, database connection/pool, audit,
   storage, and cache outcomes; sampled logs and traces provide request-level
   diagnosis.
+- Successful page completion logs are deterministically sampled at 10% in
+  production while the full Analytics Engine datapoint remains unsampled. Responses
+  taking at least one second and all 4xx/5xx outcomes remain in logs. API
+  requests emit one finish or error event rather than a redundant start event.
 - Production API request metrics are written to Cloudflare Analytics Engine.
 - API request metrics live in `src/lib/log/api-observability-recording.ts`.
 - Every `/api` and `/api/*` request receives one server-generated request ID

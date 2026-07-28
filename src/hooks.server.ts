@@ -20,7 +20,6 @@ import {
   PUBLIC_SSR_NONCE_PLACEHOLDER,
 } from "@/lib/cloudflare/public-ssr-gateway";
 import {
-  recordApiRequestStart,
   recordObservedApiError,
   recordObservedApiResponse,
   setApiRequestObservabilityContext,
@@ -150,11 +149,6 @@ function prepareApiObservability(
   if (!isApiRequest(pathname)) return null;
 
   setApiRequestObservabilityContext(request, { requestId, startMs });
-  recordApiRequestStart({
-    method: request.method,
-    pathname,
-    requestId,
-  });
   return { requestId };
 }
 
