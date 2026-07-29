@@ -1,3 +1,10 @@
+## [1.77.26](https://github.com/Life-USTC/server/compare/v1.77.25...v1.77.26) (2026-07-29)
+
+
+### Performance Improvements
+
+* **catalog:** share anonymous detail core across isolates ([#684](https://github.com/Life-USTC/server/issues/684)) ([023d5f8](https://github.com/Life-USTC/server/commit/023d5f8aa0fbac8f0e28669c705c5b6962fbbbc0))
+
 ## [1.77.25](https://github.com/Life-USTC/server/compare/v1.77.24...v1.77.25) (2026-07-29)
 
 
