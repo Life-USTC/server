@@ -1,3 +1,10 @@
+## [1.77.24](https://github.com/Life-USTC/server/compare/v1.77.23...v1.77.24) (2026-07-29)
+
+
+### Performance Improvements
+
+* **catalog:** canonicalize list queries ([#680](https://github.com/Life-USTC/server/issues/680)) ([dffae99](https://github.com/Life-USTC/server/commit/dffae994f6a381de90e0fb8d5baaff1f2df7bacb))
+
 ## [1.77.23](https://github.com/Life-USTC/server/compare/v1.77.22...v1.77.23) (2026-07-29)
 
 
