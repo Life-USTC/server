@@ -1,3 +1,10 @@
+## [1.77.25](https://github.com/Life-USTC/server/compare/v1.77.24...v1.77.25) (2026-07-29)
+
+
+### Performance Improvements
+
+* **catalog:** reuse anonymous detail core data ([#682](https://github.com/Life-USTC/server/issues/682)) ([7052cd2](https://github.com/Life-USTC/server/commit/7052cd28f52551a016b4122c065ba6cf842aa11c))
+
 ## [1.77.24](https://github.com/Life-USTC/server/compare/v1.77.23...v1.77.24) (2026-07-29)
 
 
