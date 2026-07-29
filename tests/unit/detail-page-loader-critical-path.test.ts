@@ -1,6 +1,7 @@
 /// <reference path="../../src/app.d.ts" />
 
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { runWithCloudflareRuntimeEnv } from "@/lib/adapters/cloudflare-runtime";
 
 const {
   getCommentsPayloadMock,
@@ -100,25 +101,36 @@ const course = {
   id: 11,
   jwId: 101,
   namePrimary: "Calculus",
+  sectionCount: 0,
   sections: [],
 };
 
 const teacher = {
   id: 21,
   namePrimary: "Ada",
+  sectionCount: 0,
   sections: [],
 };
 
 const section = {
+  adminClasses: [],
   code: "001",
   course: {
     id: course.id,
     jwId: course.jwId,
     namePrimary: course.namePrimary,
   },
+  courseId: course.id,
+  examCount: 0,
+  exams: [],
   id: 31,
   jwId: 301,
   retiredAt: null,
+  sameSemesterOtherTeachers: [],
+  sameTeacherOtherSemesters: [],
+  scheduleCount: 0,
+  schedules: [],
+  semesterId: 1,
   teachers: [{ id: teacher.id, namePrimary: teacher.namePrimary }],
 };
 
@@ -180,6 +192,10 @@ beforeEach(() => {
   withSectionPageRelatedDataMock.mockImplementation(
     async (value: typeof section) => value,
   );
+});
+
+afterEach(() => {
+  vi.unstubAllGlobals();
 });
 
 describe("catalog detail loader critical path", () => {
@@ -376,6 +392,91 @@ describe("catalog detail loader critical path", () => {
     expect(getCoursePageMock).toHaveBeenCalledTimes(4);
   });
 
+  it("uses the colo cache only for reviewed anonymous PublicSsr detail shapes", async () => {
+    const match = vi.fn(async (_request: Request) => undefined);
+    const put = vi.fn(
+      async (_request: Request, _response: Response) => undefined,
+    );
+    const open = vi.fn(async () => ({ match, put }));
+    vi.stubGlobal("caches", { open });
+    const scheduled: Promise<unknown>[] = [];
+    const executionContext = {
+      waitUntil(promise: Promise<unknown>) {
+        scheduled.push(promise);
+      },
+    };
+    const { loadCourseDetailPage, loadTeacherDetailPage } = await import(
+      "@/features/catalog/server/catalog-detail-page-server"
+    );
+    const { loadSectionDetailPage } = await import(
+      "@/features/section-detail/server/section-detail-page-server"
+    );
+
+    await runWithCloudflareRuntimeEnv(
+      {},
+      async () => {
+        await loadCourseDetailPage({
+          locals: locals(null, true),
+          params: { jwId: String(course.jwId) },
+          request: request(`/catalog/courses/${course.jwId}`),
+          url: new URL(`https://example.test/catalog/courses/${course.jwId}`),
+        });
+        await Promise.all(scheduled);
+      },
+      executionContext,
+    );
+
+    expect(open).toHaveBeenCalledWith("life-ustc-public-detail-core-v1");
+    expect(match).toHaveBeenCalledOnce();
+    const matchedRequest = match.mock.calls[0]?.[0];
+    expect(matchedRequest?.url).toBe(
+      `https://example.test/_life-ustc-internal-cache/catalog-detail-core/v1/course/core-without-sections/en-us/${course.jwId}`,
+    );
+    expect(put).toHaveBeenCalledOnce();
+
+    open.mockClear();
+    match.mockClear();
+    put.mockClear();
+    await runWithCloudflareRuntimeEnv(
+      {},
+      async () => {
+        await loadCourseDetailPage({
+          locals: locals(),
+          params: { jwId: String(course.jwId) },
+          request: request(`/catalog/courses/${course.jwId}`),
+          url: new URL(`https://example.test/catalog/courses/${course.jwId}`),
+        });
+        await loadCourseDetailPage({
+          locals: locals(signedInUser, true),
+          params: { jwId: String(course.jwId) },
+          request: request(`/catalog/courses/${course.jwId}`),
+          url: new URL(`https://example.test/catalog/courses/${course.jwId}`),
+        });
+        await loadTeacherDetailPage({
+          locals: locals(null, true),
+          params: { id: String(teacher.id), section: "sections" },
+          request: request(`/catalog/teachers/${teacher.id}/sections`),
+          url: new URL(
+            `https://example.test/catalog/teachers/${teacher.id}/sections`,
+          ),
+        });
+        await loadSectionDetailPage({
+          locals: locals(null, true),
+          params: { jwId: String(section.jwId), section: "calendar" },
+          request: request(`/catalog/sections/${section.jwId}/calendar`),
+          url: new URL(
+            `https://example.test/catalog/sections/${section.jwId}/calendar`,
+          ),
+        });
+      },
+      executionContext,
+    );
+
+    expect(open).not.toHaveBeenCalled();
+    expect(match).not.toHaveBeenCalled();
+    expect(put).not.toHaveBeenCalled();
+  });
+
   it("skips comments outside the teacher comments section", async () => {
     const { loadTeacherDetailPage } = await import(
       "@/features/catalog/server/catalog-detail-page-server"
@@ -486,6 +587,50 @@ describe("detail request session resolution", () => {
 });
 
 describe("section detail loader critical path", () => {
+  it("fails open when a versioned colo entry omits a required section field", async () => {
+    const match = vi.fn(
+      async () =>
+        new Response(
+          JSON.stringify({
+            expiresAt: Date.now() + 30_000,
+            schema: "catalog-detail-core-v1",
+            value: { ...section, adminClasses: undefined },
+          }),
+        ),
+    );
+    const put = vi.fn(async () => undefined);
+    vi.stubGlobal("caches", {
+      open: vi.fn(async () => ({ match, put })),
+    });
+    const scheduled: Promise<unknown>[] = [];
+    const executionContext = {
+      waitUntil(promise: Promise<unknown>) {
+        scheduled.push(promise);
+      },
+    };
+    const { loadSectionDetailPage } = await import(
+      "@/features/section-detail/server/section-detail-page-server"
+    );
+
+    const result = await runWithCloudflareRuntimeEnv(
+      {},
+      () =>
+        loadSectionDetailPage({
+          locals: locals(null, true),
+          params: { jwId: String(section.jwId) },
+          request: request(`/catalog/sections/${section.jwId}`),
+          url: new URL(`https://example.test/catalog/sections/${section.jwId}`),
+        }),
+      executionContext,
+    );
+    await Promise.all(scheduled);
+
+    expect(match).toHaveBeenCalledOnce();
+    expect(getSectionPageMock).toHaveBeenCalledOnce();
+    expect(put).toHaveBeenCalledOnce();
+    expect(result.section).toBe(section);
+  });
+
   it("loads the section while reusing hook auth and skips comments and homework on overview", async () => {
     let resolveSection: ((value: typeof section) => void) | undefined;
     getSectionPageMock.mockReturnValue(

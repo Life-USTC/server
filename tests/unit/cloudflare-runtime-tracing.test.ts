@@ -1,10 +1,16 @@
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import {
+  getCloudflareNamedCache,
+  getCloudflareRuntimeTaskScheduler,
   runCloudflareTraceSpan,
   runWithCloudflareRuntimeEnv,
 } from "@/lib/adapters/cloudflare-runtime";
 
 describe("Cloudflare runtime tracing", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
   it("creates a custom span and attaches bounded semantic attributes", async () => {
     const setAttribute = vi.fn();
     const enterSpan = vi.fn(
@@ -41,5 +47,36 @@ describe("Cloudflare runtime tracing", () => {
 
   it("runs callbacks unchanged outside the Workers runtime", () => {
     expect(runCloudflareTraceSpan("app.test", {}, () => 42)).toBe(42);
+  });
+
+  it("keeps named caches request-scoped and preserves the waitUntil receiver", async () => {
+    const cache = { match: vi.fn(), put: vi.fn() };
+    const open = vi.fn(async () => cache);
+    vi.stubGlobal("caches", { open });
+    const scheduled: Promise<unknown>[] = [];
+    const executionContext = {
+      waitUntil(this: unknown, promise: Promise<unknown>) {
+        expect(this).toBe(executionContext);
+        scheduled.push(promise);
+      },
+    };
+
+    const selectedCache = await runWithCloudflareRuntimeEnv(
+      {},
+      async () => {
+        const scheduleTask = getCloudflareRuntimeTaskScheduler();
+        expect(scheduleTask).toBeTypeOf("function");
+        scheduleTask?.(Promise.resolve("done"));
+        return await getCloudflareNamedCache("detail-core-v1");
+      },
+      executionContext,
+    );
+
+    expect(selectedCache).toBe(cache);
+    expect(open).toHaveBeenCalledWith("detail-core-v1");
+    expect(scheduled).toHaveLength(1);
+    await expect(scheduled[0]).resolves.toBe("done");
+    expect(getCloudflareNamedCache("outside-request")).toBeUndefined();
+    expect(getCloudflareRuntimeTaskScheduler()).toBeUndefined();
   });
 });

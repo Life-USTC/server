@@ -82,7 +82,16 @@ export type PublicRuntimeCacheAnalyticsNamespace =
       | "page:teacher-list"}:${AppLocale}`;
 
 type CacheEventAnalyticsInput = {
-  event: "hit" | "load_error" | "load_success" | "miss";
+  event:
+    | "colo_hit"
+    | "colo_miss"
+    | "colo_read_error"
+    | "colo_write_complete"
+    | "colo_write_error"
+    | "hit"
+    | "load_error"
+    | "load_success"
+    | "miss";
   ioObservedDurationMs: number;
   namespace: PublicRuntimeCacheAnalyticsNamespace;
   storeSize: number;

@@ -63,7 +63,10 @@ high-cardinality resource IDs.
 - Public runtime cache datapoints use explicit, low-cardinality resource
   namespaces. Full cache keys, including search and filter values, never enter
   the Analytics Engine writer. Catalog detail cache namespaces likewise omit
-  entity IDs.
+  entity IDs. Detail L2 outcomes use fixed `colo_hit`, `colo_miss`,
+  `colo_read_error`, `colo_write_complete`, and `colo_write_error` events; the
+  synthetic Cache API key is never recorded. A completed write only confirms
+  that Cache API processing finished; a later `colo_hit` proves admission.
 
 ## Endpoints
 

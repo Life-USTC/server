@@ -49,6 +49,17 @@ type CloudflareExecutionContext = {
   waitUntil(promise: Promise<unknown>): void;
 };
 
+export type CloudflareCache = {
+  match(request: Request): Promise<Response | undefined>;
+  put(request: Request, response: Response): Promise<void>;
+};
+
+type CloudflareCacheStorage = {
+  open(name: string): Promise<CloudflareCache>;
+};
+
+type CloudflareTaskScheduler = (promise: Promise<unknown>) => void;
+
 type CloudflareSpan = {
   setAttribute(key: string, value?: boolean | number | string): void;
 };
@@ -83,8 +94,10 @@ type CloudflareRuntimeEnv = Record<string, unknown> & {
 
 type CloudflareRuntimeContext = {
   cache: Map<symbol, unknown>;
+  cacheStorage?: CloudflareCacheStorage;
   env?: CloudflareRuntimeEnv;
   request?: CloudflareRequestContext;
+  scheduleTask?: CloudflareTaskScheduler;
   tracing?: CloudflareTracing;
 };
 
@@ -105,6 +118,35 @@ function normalizeCloudflareRuntimeEnv(env: unknown) {
   return env && typeof env === "object"
     ? (env as CloudflareRuntimeEnv)
     : undefined;
+}
+
+function normalizeCloudflareCacheStorage() {
+  const value = (globalThis as typeof globalThis & { caches?: unknown }).caches;
+  if (!value || typeof value !== "object" || !("open" in value)) {
+    return undefined;
+  }
+  const cacheStorage = value as Partial<CloudflareCacheStorage>;
+  return typeof cacheStorage.open === "function"
+    ? (cacheStorage as CloudflareCacheStorage)
+    : undefined;
+}
+
+function normalizeCloudflareTaskScheduler(
+  executionContext: unknown,
+): CloudflareTaskScheduler | undefined {
+  if (
+    !executionContext ||
+    typeof executionContext !== "object" ||
+    !("waitUntil" in executionContext)
+  ) {
+    return undefined;
+  }
+  const context = executionContext as Partial<CloudflareExecutionContext>;
+  if (typeof context.waitUntil !== "function") return undefined;
+
+  return (promise) => {
+    context.waitUntil?.(promise);
+  };
 }
 
 function getCurrentCloudflareRuntimeEnv() {
@@ -130,7 +172,9 @@ export function runWithCloudflareRuntimeEnv<T>(
       : undefined;
   const context: CloudflareRuntimeContext = {
     cache: new Map(),
+    cacheStorage: normalizeCloudflareCacheStorage(),
     env: normalizeCloudflareRuntimeEnv(env),
+    scheduleTask: normalizeCloudflareTaskScheduler(executionContext),
     tracing,
   };
 
@@ -218,19 +262,19 @@ export function getCloudflareCalendarExportsNamespace() {
   return getCurrentCloudflareRuntimeEnv()?.CALENDAR_EXPORTS;
 }
 
+export function getCloudflareNamedCache(name: string) {
+  return cloudflareRuntimeStorage.getStore()?.cacheStorage?.open(name);
+}
+
+export function getCloudflareRuntimeTaskScheduler() {
+  return cloudflareRuntimeStorage.getStore()?.scheduleTask;
+}
+
 export function getCloudflareTaskScheduler(platform: unknown) {
   if (!platform || typeof platform !== "object") return undefined;
   const value = platform as { context?: unknown; ctx?: unknown };
   const context = value.ctx ?? value.context;
-  if (!context || typeof context !== "object" || !("waitUntil" in context)) {
-    return undefined;
-  }
-  const executionContext = context as Partial<CloudflareExecutionContext>;
-  if (typeof executionContext.waitUntil !== "function") return undefined;
-
-  return (promise: Promise<unknown>) => {
-    executionContext.waitUntil?.(promise);
-  };
+  return normalizeCloudflareTaskScheduler(context);
 }
 
 export function getCloudflareUserMutationRateLimiter(tier: "batch" | "write") {

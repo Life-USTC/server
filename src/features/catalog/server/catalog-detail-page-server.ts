@@ -8,7 +8,10 @@ import {
 import { getCoursePage } from "@/features/catalog/server/course-page-data";
 import { getTeacherPage } from "@/features/catalog/server/teacher-page-data";
 import { getViewerContext } from "@/lib/auth/viewer-context";
-import { cachedPublicRuntimeData } from "@/lib/public-runtime-cache";
+import {
+  cachedPublicRuntimeData,
+  publicDetailColoCacheKey,
+} from "@/lib/public-runtime-cache";
 import {
   buildSocialMetadata,
   formatSocialMetadataMessage,
@@ -38,6 +41,34 @@ const catalogDetailRouteSections = new Set([
 ]);
 
 const PUBLIC_DETAIL_RUNTIME_CACHE_TTL_MS = 60_000;
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === "object";
+}
+
+function isPublicCourseCore(value: unknown, jwId: number) {
+  return (
+    isRecord(value) &&
+    typeof value.id === "number" &&
+    value.jwId === jwId &&
+    typeof value.code === "string" &&
+    typeof value.namePrimary === "string" &&
+    typeof value.sectionCount === "number" &&
+    Array.isArray(value.sections) &&
+    value.sections.length === 0
+  );
+}
+
+function isPublicTeacherCore(value: unknown, id: number) {
+  return (
+    isRecord(value) &&
+    value.id === id &&
+    typeof value.namePrimary === "string" &&
+    typeof value.sectionCount === "number" &&
+    Array.isArray(value.sections) &&
+    value.sections.length === 0
+  );
+}
 
 function resolveCatalogDetailRouteSection(
   section: string | undefined,
@@ -73,7 +104,17 @@ export async function loadCourseDetailPage({
           `catalog-detail:course:${locals.locale}:${jwId}`,
           PUBLIC_DETAIL_RUNTIME_CACHE_TTL_MS,
           loadCourse,
-          { shouldCacheResult: (result) => result !== null },
+          {
+            coloCacheKey: publicDetailColoCacheKey(
+              url.origin,
+              "course",
+              locals.locale,
+              jwId,
+            ),
+            shouldCacheResult: (result) => result !== null,
+            validateColoCacheResult: (result) =>
+              isPublicCourseCore(result, jwId),
+          },
         )
       : loadCourse(),
     getViewerContext({ userId: locals.authUser?.id ?? null }),
@@ -152,7 +193,17 @@ export async function loadTeacherDetailPage({
           `catalog-detail:teacher:${locals.locale}:${id}`,
           PUBLIC_DETAIL_RUNTIME_CACHE_TTL_MS,
           loadTeacher,
-          { shouldCacheResult: (result) => result !== null },
+          {
+            coloCacheKey: publicDetailColoCacheKey(
+              url.origin,
+              "teacher",
+              locals.locale,
+              id,
+            ),
+            shouldCacheResult: (result) => result !== null,
+            validateColoCacheResult: (result) =>
+              isPublicTeacherCore(result, id),
+          },
         )
       : loadTeacher(),
     getViewerContext({ userId: locals.authUser?.id ?? null }),
