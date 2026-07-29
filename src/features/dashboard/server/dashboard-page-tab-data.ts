@@ -63,6 +63,17 @@ export async function loadSignedDashboardTabData(input: {
     subscribedSectionCount: input.context.sectionIds.length,
     tab: input.tab,
   };
+  const shouldLoadTodos = input.tab === "todos" || input.tab === "overview";
+  const todosPromise = shouldLoadTodos
+    ? timeDashboardTabStage("todos", stageContext, () =>
+        dashboardTabs.getTodosTabData(input.userId),
+      )
+    : inactiveStage(null);
+  const pendingTodosCountPromise = shouldLoadTodos
+    ? todosPromise.then(
+        (todos) => todos?.filter((todo) => !todo.completed).length ?? 0,
+      )
+    : undefined;
 
   const [
     navStats,
@@ -79,6 +90,7 @@ export async function loadSignedDashboardTabData(input: {
         input.context.user,
         input.context.subscribedSections,
         input.referenceNow,
+        pendingTodosCountPromise,
       ),
     ),
     input.tab === "overview" || input.tab === "calendar"
@@ -122,11 +134,7 @@ export async function loadSignedDashboardTabData(input: {
           ),
         )
       : inactiveStage(null),
-    input.tab === "todos" || input.tab === "overview"
-      ? timeDashboardTabStage("todos", stageContext, () =>
-          dashboardTabs.getTodosTabData(input.userId),
-        )
-      : inactiveStage(null),
+    todosPromise,
     input.tab === "bus"
       ? timeDashboardTabStage("bus", stageContext, () =>
           dashboardTabs.getBusTabData(input.userId, input.locale),

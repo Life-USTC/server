@@ -70,7 +70,41 @@ describe("仪表盘导航统计", () => {
       atTime: referenceNow,
       sectionIds: [12, 34],
     });
+    expect(countIncompleteTodosMock).toHaveBeenCalledWith("user-1");
     expect(result.examsCount).toBe(3);
     expect(result.highlightPendingHomeworks).toBe(true);
+  });
+
+  it("复用待办列表计数时并行启动其他导航查询", async () => {
+    let resolvePendingTodosCount: (value: number) => void = () => undefined;
+    const pendingTodosCount = new Promise<number>((resolve) => {
+      resolvePendingTodosCount = resolve;
+    });
+    homeworkCountMock.mockResolvedValue(2);
+    homeworkFindFirstMock.mockResolvedValue(null);
+    countUpcomingSubscribedExamsMock.mockResolvedValue(3);
+    getDashboardCalendarItemsCountMock.mockResolvedValue(9);
+
+    const { getDashboardNavStats } = await import(
+      "@/features/dashboard/server/dashboard-nav-stats"
+    );
+
+    const resultPromise = getDashboardNavStats(
+      { id: "user-1", name: "User", username: "user" },
+      [{ id: 12, semesterId: 1 }],
+      new Date("2026-05-22T10:30:00.000Z"),
+      pendingTodosCount,
+    );
+
+    expect(countIncompleteTodosMock).not.toHaveBeenCalled();
+    expect(homeworkCountMock).toHaveBeenCalledOnce();
+    expect(homeworkFindFirstMock).toHaveBeenCalledOnce();
+    expect(countUpcomingSubscribedExamsMock).toHaveBeenCalledOnce();
+    expect(getDashboardCalendarItemsCountMock).toHaveBeenCalledOnce();
+
+    resolvePendingTodosCount(5);
+    await expect(resultPromise).resolves.toMatchObject({
+      pendingTodosCount: 5,
+    });
   });
 });

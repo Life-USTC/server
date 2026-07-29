@@ -3,6 +3,7 @@ export type ListSubscribedHomeworksOptions = {
   completed?: boolean;
   includeDeleted?: boolean;
   includeEditors?: boolean;
+  incompleteOrHasDueDate?: boolean;
   limit?: number;
   dueAtFrom?: Date;
   dueAtTo?: Date;
