@@ -1,3 +1,10 @@
+## [1.77.32](https://github.com/Life-USTC/server/compare/v1.77.31...v1.77.32) (2026-07-29)
+
+
+### Performance Improvements
+
+* **bus:** bound and coalesce timetable cache ([#694](https://github.com/Life-USTC/server/issues/694)) ([2340d23](https://github.com/Life-USTC/server/commit/2340d23ce654e691314db5054c6c88db5ef0c6bf))
+
 ## [1.77.31](https://github.com/Life-USTC/server/compare/v1.77.30...v1.77.31) (2026-07-29)
 
 
