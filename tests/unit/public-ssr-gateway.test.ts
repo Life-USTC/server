@@ -1,12 +1,17 @@
 import { describe, expect, test } from "vitest";
+import { resolveCatalogListPublicSsrMode } from "@/features/catalog/lib/catalog-list-query";
 import {
   buildPublicNotFoundHtml,
   PUBLIC_SSR_BROWSER_CACHE_CONTROL,
   PUBLIC_SSR_PAGE_EDGE_CACHE_CONTROL,
+  resolvePublicSsrMode as resolveBasePublicSsrMode,
   resolveLegacyCatalogRedirect,
   resolvePublicSsrLocale,
-  resolvePublicSsrMode,
 } from "@/lib/cloudflare/public-ssr-gateway";
+
+function resolvePublicSsrMode(request: Request) {
+  return resolveBasePublicSsrMode(request, resolveCatalogListPublicSsrMode);
+}
 
 function request(path: string, headers: HeadersInit = {}) {
   return new Request(`https://life-ustc.test${path}`, {
@@ -43,7 +48,11 @@ describe("public SSR gateway", () => {
   test.each([
     "/catalog/courses",
     "/catalog/courses?page=2&search=math",
+    "/catalog/courses?page=5000&categoryId=7",
+    "/catalog/courses?search=&educationLevelId=&categoryId=7&classTypeId=",
     "/catalog/sections?semesterId=301&teacher=Li",
+    "/catalog/sections?credits=2.5&sort=credits&order=asc",
+    "/catalog/sections?semesterId=301&teacher=&courseCode=&sectionCode=&campusId=&departmentId=&credits=&categoryId=&educationLevelId=&classTypeId=&sort=",
     "/catalog/teachers?departmentId=1",
     "/catalog/bus/map",
     "/api-docs",
@@ -98,6 +107,14 @@ describe("public SSR gateway", () => {
     "/catalog/courses/11145/__data.json",
     "/catalog/courses?unknown=value",
     "/catalog/courses?__life_locale=en-us",
+    "/catalog/courses?page=1",
+    "/catalog/courses?page=5001",
+    "/catalog/courses?page=2&page=3",
+    "/catalog/courses?search=%20math",
+    "/catalog/courses?categoryId=01",
+    "/catalog/sections?sort=credits",
+    "/catalog/sections?sort=unknown&order=asc",
+    "/catalog/teachers?departmentId=0",
     "/catalog/sections/159446/unknown",
     "/catalog/teachers/not-an-id",
     "/community/users/example",

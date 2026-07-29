@@ -24,6 +24,16 @@ without entering SvelteKit or the shared cache. Links, bus planner, community,
 and home pages stay dynamic because they still contain page-specific viewer
 behavior.
 
+Catalog list cache admission also requires one value per query key and the
+canonical non-empty value form. Empty controls emitted by the existing GET
+filter forms are removed from the internal cache key. Page 1 is omitted; later
+pages use a positive decimal up to 5,000. Search terms are trimmed and limited
+to 256 characters, section text filters to 128 characters, and ID filters use
+positive 32-bit decimals. Section sorts require an explicit `asc` or `desc`
+order, and numeric filters use their canonical decimal form. Other
+non-canonical requests continue through dynamic SSR, where the same
+normalization bounds database input and runtime cache keys.
+
 ## Request flow
 
 1. The default Worker entrypoint always receives the browser request. It
