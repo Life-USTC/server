@@ -5,6 +5,7 @@ type HomeworkListWhereInput = {
   dueAtFrom?: Date;
   dueAtTo?: Date;
   includeDeleted: boolean;
+  incompleteOrHasDueDate?: boolean;
   requireDueDate: boolean;
   userId: string;
 };
@@ -12,6 +13,14 @@ type HomeworkListWhereInput = {
 function buildHomeworkListWhere(input: HomeworkListWhereInput) {
   return {
     ...(input.includeDeleted ? {} : { deletedAt: null }),
+    ...(input.incompleteOrHasDueDate
+      ? {
+          OR: [
+            { homeworkCompletions: { none: { userId: input.userId } } },
+            { submissionDueAt: { not: null } },
+          ],
+        }
+      : {}),
     ...(input.completed === undefined
       ? {}
       : input.completed
@@ -40,6 +49,7 @@ export function buildSubscribedHomeworkQuery(input: {
   dueAtFrom?: Date;
   dueAtTo?: Date;
   includeDeleted: boolean;
+  incompleteOrHasDueDate?: boolean;
   limit?: number;
   requireDueDate: boolean;
   sectionIds: readonly number[];
