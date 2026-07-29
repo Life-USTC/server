@@ -39,6 +39,9 @@ describe("section page related data", () => {
         }),
       }),
     );
-    expect(result.otherSections).toEqual([{ id: 2 }, { id: 3 }]);
+    expect(result).toEqual({
+      sameSemesterOtherTeachers: [{ id: 2 }],
+      sameTeacherOtherSemesters: [{ id: 3 }],
+    });
   });
 });

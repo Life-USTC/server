@@ -34,22 +34,18 @@ describe("section page data selection", () => {
       includeSchedules: false,
     });
 
-    expect(sectionFindUnique).toHaveBeenCalledWith(
-      expect.objectContaining({
-        select: expect.objectContaining({
-          exams: false,
-          schedules: false,
-        }),
-      }),
-    );
+    const select = sectionFindUnique.mock.calls[0]?.[0]?.select;
+    expect(select).not.toHaveProperty("description");
+    expect(select?.exams).toBe(false);
+    expect(select?.schedules).toBe(false);
     expect(result).toMatchObject({
       examCount: 4,
       exams: [],
-      otherSections: [],
       sameSemesterOtherTeachers: [],
       sameTeacherOtherSemesters: [],
       scheduleCount: 18,
       schedules: [],
     });
+    expect(result).not.toHaveProperty("otherSections");
   });
 });

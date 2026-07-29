@@ -1,6 +1,5 @@
 import type { CourseDetailSection } from "@/features/catalog/components/catalog-detail-component-types";
 import { getPrisma } from "@/lib/db/prisma";
-import { toLoadData } from "@/lib/load-data-utils";
 import { resolveCourseIdByJwId } from "./course-jw-id";
 
 const coursePageSectionsSelect = {
@@ -77,9 +76,6 @@ export async function getCoursePage(
           nameSecondary: true,
         },
       },
-      description: {
-        select: { content: true, updatedAt: true, lastEditedAt: true },
-      },
       _count: { select: { sections: true } },
       sections:
         options.includeSections === false
@@ -94,11 +90,11 @@ export async function getCoursePage(
   if (!course) return null;
 
   const { _count, sections, ...data } = course;
-  return toLoadData({
+  return {
     ...data,
     sectionCount: _count.sections,
     sections: (options.includeSections === false
       ? []
       : sections) as unknown as CourseDetailSection[],
-  });
+  };
 }

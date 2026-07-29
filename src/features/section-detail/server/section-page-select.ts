@@ -53,9 +53,6 @@ export const sectionPageSelect = {
   roomType: {
     select: localizedNameSelect,
   },
-  description: {
-    select: { content: true, updatedAt: true, lastEditedAt: true },
-  },
   teachers: {
     select: {
       ...entityNameSelect,

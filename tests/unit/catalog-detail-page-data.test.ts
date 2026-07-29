@@ -49,13 +49,9 @@ describe("catalog detail page data", () => {
       sectionCount: 3,
       sections: [],
     });
-    expect(courseFindUniqueMock).toHaveBeenCalledWith(
-      expect.objectContaining({
-        select: expect.objectContaining({
-          sections: false,
-        }),
-      }),
-    );
+    const courseSelect = courseFindUniqueMock.mock.calls[0]?.[0]?.select;
+    expect(courseSelect).not.toHaveProperty("description");
+    expect(courseSelect?.sections).toBe(false);
     expect(result).not.toHaveProperty("commentCount");
     expect(result).not.toHaveProperty("latestComments");
   });
@@ -82,7 +78,39 @@ describe("catalog detail page data", () => {
       sectionCount: 2,
       sections: [],
     });
+    const teacherSelect = teacherFindUniqueMock.mock.calls[0]?.[0]?.select;
+    expect(teacherSelect).not.toHaveProperty("description");
+    expect(teacherSelect?.sections).toBe(false);
     expect(result).not.toHaveProperty("commentCount");
     expect(result).not.toHaveProperty("latestComments");
+  });
+
+  it("returns JSON-native section selections without a redundant deep copy", async () => {
+    const courseSections = [{ code: "001", jwId: 301 }];
+    courseFindManyMock.mockResolvedValue([{ aliases: [], id: 11, jwId: 101 }]);
+    courseFindUniqueMock.mockResolvedValue({
+      _count: { sections: 1 },
+      id: 11,
+      jwId: 101,
+      sections: courseSections,
+    });
+    const teacherSections = [{ code: "002", jwId: 302 }];
+    teacherFindUniqueMock.mockResolvedValue({
+      _count: { sections: 1 },
+      id: 21,
+      sections: teacherSections,
+    });
+
+    const [{ getCoursePage }, { getTeacherPage }] = await Promise.all([
+      import("@/features/catalog/server/course-page-data"),
+      import("@/features/catalog/server/teacher-page-data"),
+    ]);
+    const [courseResult, teacherResult] = await Promise.all([
+      getCoursePage(101),
+      getTeacherPage(21),
+    ]);
+
+    expect(courseResult?.sections).toBe(courseSections);
+    expect(teacherResult?.sections).toBe(teacherSections);
   });
 });
