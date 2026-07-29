@@ -55,6 +55,7 @@ function handleInput(
     locals: {
       authUser: null,
       locale: "zh-cn",
+      publicSsr: false,
       requestId: "",
     },
     params: {},

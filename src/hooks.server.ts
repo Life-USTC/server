@@ -17,6 +17,7 @@ import { hasRequestAuthSignal } from "@/lib/auth/request-auth-signal";
 import {
   PUBLIC_SSR_HEADER,
   PUBLIC_SSR_LOCALE_HEADER,
+  PUBLIC_SSR_MODE_HEADER,
   PUBLIC_SSR_NONCE_PLACEHOLDER,
 } from "@/lib/cloudflare/public-ssr-gateway";
 import {
@@ -167,8 +168,11 @@ function oauthAuthorizeFormActionSources(url: URL) {
 }
 
 const handleWithRuntimeEnv: Handle = async ({ event, resolve }) => {
-  const publicSsr = event.request.headers.get(PUBLIC_SSR_HEADER) === "1";
   const publicSsrLocale = event.request.headers.get(PUBLIC_SSR_LOCALE_HEADER);
+  const publicSsr =
+    event.request.headers.get(PUBLIC_SSR_HEADER) === "1" &&
+    event.request.headers.get(PUBLIC_SSR_MODE_HEADER) === "page" &&
+    (publicSsrLocale === "en-us" || publicSsrLocale === "zh-cn");
   const locale =
     publicSsr && (publicSsrLocale === "en-us" || publicSsrLocale === "zh-cn")
       ? publicSsrLocale
@@ -186,6 +190,7 @@ const handleWithRuntimeEnv: Handle = async ({ event, resolve }) => {
   });
   const startMs = Date.now();
   const hasAuthSignal = hasRequestAuthSignal(event.request.headers);
+  event.locals.publicSsr = publicSsr && !hasAuthSignal;
   const apiObservability = prepareApiObservability(
     event.request,
     event.url.pathname,

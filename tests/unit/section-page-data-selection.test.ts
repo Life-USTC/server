@@ -48,4 +48,28 @@ describe("section page data selection", () => {
     });
     expect(result).not.toHaveProperty("otherSections");
   });
+
+  it("returns a JSON-clean base shape before it can enter the public cache", async () => {
+    const localizedNameSymbol = Symbol("localizedName");
+    sectionFindUnique.mockResolvedValue({
+      _count: { exams: 4, schedules: 18 },
+      courseId: 10,
+      exams: [],
+      id: 20,
+      schedules: [],
+      teachers: [],
+      [localizedNameSymbol]: "section",
+    });
+    const { getSectionPage } = await import(
+      "@/features/section-detail/server/section-page-data"
+    );
+
+    const result = await getSectionPage(30, "zh-cn", {
+      includeExams: false,
+      includeRelated: false,
+      includeSchedules: false,
+    });
+
+    expect(Reflect.ownKeys(result ?? {})).not.toContain(localizedNameSymbol);
+  });
 });

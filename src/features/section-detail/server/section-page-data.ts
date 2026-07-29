@@ -57,3 +57,12 @@ export async function getSectionPage(
 
   return buildSectionPageLoadData(normalizedSection, relatedData);
 }
+
+export async function withSectionPageRelatedData(
+  section: NonNullable<Awaited<ReturnType<typeof getSectionPage>>>,
+  locale = "zh-cn",
+) {
+  const prisma = getPrisma(locale);
+  const relatedData = await getSectionPageRelatedData({ prisma, section });
+  return buildSectionPageLoadData(section, relatedData);
+}

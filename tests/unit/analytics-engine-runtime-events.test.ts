@@ -250,6 +250,11 @@ describe("Cloudflare Analytics Engine runtime events", () => {
       namespace: "api:sections:en-us" as const,
       surface: "section API",
     },
+    {
+      key: "catalog-detail:course:en-us:679123",
+      namespace: "page:course-detail:en-us" as const,
+      surface: "catalog detail core",
+    },
   ])("writes explicit $surface cache namespaces without raw query cache keys", async ({
     key,
     namespace,
