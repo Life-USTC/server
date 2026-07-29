@@ -1,3 +1,10 @@
+## [1.77.30](https://github.com/Life-USTC/server/compare/v1.77.29...v1.77.30) (2026-07-29)
+
+
+### Bug Fixes
+
+* **observability:** classify colo cache write outcomes ([#692](https://github.com/Life-USTC/server/issues/692)) ([5c1b0b0](https://github.com/Life-USTC/server/commit/5c1b0b0f20dad0134a33d9f075df4f15139ae00b))
+
 ## [1.77.29](https://github.com/Life-USTC/server/compare/v1.77.28...v1.77.29) (2026-07-29)
 
 
