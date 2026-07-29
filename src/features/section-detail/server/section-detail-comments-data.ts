@@ -9,13 +9,17 @@ export async function getSectionDetailDescriptionAndComments(
     teachers: { id: number }[];
   },
   userId: string | null,
-  { includeComments }: { includeComments: boolean },
+  {
+    includeComments,
+    includeDescriptionHistory,
+  }: { includeComments: boolean; includeDescriptionHistory: boolean },
 ) {
   const descriptionViewer = await getViewerContext({ userId });
   const descriptionDataPromise = getDescriptionPayload(
     "section",
     section.id,
     descriptionViewer,
+    { includeHistory: includeDescriptionHistory },
   );
   if (!includeComments) {
     return {
