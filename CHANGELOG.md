@@ -1,3 +1,10 @@
+## [1.77.23](https://github.com/Life-USTC/server/compare/v1.77.22...v1.77.23) (2026-07-29)
+
+
+### Performance Improvements
+
+* **catalog:** remove duplicate detail payload work ([#677](https://github.com/Life-USTC/server/issues/677)) ([7ce2b4b](https://github.com/Life-USTC/server/commit/7ce2b4b4984ca91218683d1420608aad0c92b6e5))
+
 ## [1.77.22](https://github.com/Life-USTC/server/compare/v1.77.21...v1.77.22) (2026-07-29)
 
 
