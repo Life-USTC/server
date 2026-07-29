@@ -1,5 +1,6 @@
 import type { TeacherDetailSection } from "@/features/catalog/components/catalog-detail-component-types";
 import { getPrisma } from "@/lib/db/prisma";
+import { toLoadData } from "@/lib/load-data-utils";
 
 const teacherPageSectionsSelect = {
   jwId: true,
@@ -67,11 +68,11 @@ export async function getTeacherPage(
   if (!teacher) return null;
 
   const { _count, sections, ...data } = teacher;
-  return {
+  return toLoadData({
     ...data,
     sectionCount: _count.sections,
     sections: (options.includeSections === false
       ? []
       : sections) as unknown as TeacherDetailSection[],
-  };
+  });
 }

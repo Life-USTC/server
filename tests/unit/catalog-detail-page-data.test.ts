@@ -85,19 +85,22 @@ describe("catalog detail page data", () => {
     expect(result).not.toHaveProperty("latestComments");
   });
 
-  it("returns JSON-native section selections without a redundant deep copy", async () => {
+  it("strips Prisma extension symbols before returning load data", async () => {
+    const localizedNameSymbol = Symbol("localizedName");
     const courseSections = [{ code: "001", jwId: 301 }];
     courseFindManyMock.mockResolvedValue([{ aliases: [], id: 11, jwId: 101 }]);
     courseFindUniqueMock.mockResolvedValue({
       _count: { sections: 1 },
       id: 11,
       jwId: 101,
+      [localizedNameSymbol]: "course",
       sections: courseSections,
     });
     const teacherSections = [{ code: "002", jwId: 302 }];
     teacherFindUniqueMock.mockResolvedValue({
       _count: { sections: 1 },
       id: 21,
+      [localizedNameSymbol]: "teacher",
       sections: teacherSections,
     });
 
@@ -110,7 +113,13 @@ describe("catalog detail page data", () => {
       getTeacherPage(21),
     ]);
 
-    expect(courseResult?.sections).toBe(courseSections);
-    expect(teacherResult?.sections).toBe(teacherSections);
+    expect(courseResult?.sections).toEqual(courseSections);
+    expect(teacherResult?.sections).toEqual(teacherSections);
+    expect(Reflect.ownKeys(courseResult ?? {})).not.toContain(
+      localizedNameSymbol,
+    );
+    expect(Reflect.ownKeys(teacherResult ?? {})).not.toContain(
+      localizedNameSymbol,
+    );
   });
 });
