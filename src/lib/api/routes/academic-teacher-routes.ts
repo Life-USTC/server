@@ -37,6 +37,7 @@ export async function getTeachersRoute(request: Request) {
 
   try {
     const result = await cachedPublicRuntimeData(
+      `api:teachers:${locale}`,
       publicRuntimeCacheKey(`api:teachers:${locale}`, searchParams),
       TEACHERS_API_CACHE_TTL_MS,
       async () => {

@@ -1,4 +1,7 @@
-import { writeCacheEventAnalytics } from "@/lib/metrics/analytics-engine";
+import {
+  type PublicRuntimeCacheAnalyticsNamespace,
+  writeCacheEventAnalytics,
+} from "@/lib/metrics/analytics-engine";
 
 type CacheEntry<T> = {
   expiresAt: number;
@@ -42,6 +45,7 @@ export function publicRuntimeCacheKey(
 }
 
 export function cachedPublicRuntimeData<T>(
+  analyticsNamespace: PublicRuntimeCacheAnalyticsNamespace,
   key: string,
   ttlMs: number,
   load: () => Promise<T>,
@@ -56,7 +60,7 @@ export function cachedPublicRuntimeData<T>(
     writeCacheEventAnalytics({
       event: "hit",
       ioObservedDurationMs: Date.now() - start,
-      key,
+      namespace: analyticsNamespace,
       storeSize: store.size,
       ttlMs,
     });
@@ -66,7 +70,7 @@ export function cachedPublicRuntimeData<T>(
   writeCacheEventAnalytics({
     event: "miss",
     ioObservedDurationMs: Date.now() - start,
-    key,
+    namespace: analyticsNamespace,
     storeSize: store.size,
     ttlMs,
   });
@@ -75,7 +79,7 @@ export function cachedPublicRuntimeData<T>(
       writeCacheEventAnalytics({
         event: "load_success",
         ioObservedDurationMs: Date.now() - start,
-        key,
+        namespace: analyticsNamespace,
         storeSize: store.size,
         ttlMs,
       });
@@ -86,7 +90,7 @@ export function cachedPublicRuntimeData<T>(
       writeCacheEventAnalytics({
         event: "load_error",
         ioObservedDurationMs: Date.now() - start,
-        key,
+        namespace: analyticsNamespace,
         storeSize: store.size,
         ttlMs,
       });

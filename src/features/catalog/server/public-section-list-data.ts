@@ -25,6 +25,7 @@ export async function getSectionListPage(
     url.searchParams,
   );
   return cachedPublicRuntimeData(
+    `page:section-list:${locale}`,
     publicRuntimeCacheKey(`page:section-list:${locale}`, searchParams),
     SECTION_LIST_CACHE_TTL_MS,
     () => getUncachedSectionListPage(searchParams, locale),

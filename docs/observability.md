@@ -60,6 +60,9 @@ high-cardinality resource IDs.
   `page_request_v2`, `mcp_transport_v2`, `oauth_event_v2`, `audit_write_v2`,
   `storage_operation_v2`, `public_runtime_cache_v2`, and
   `graphql_operation_v2`) preserve this explicit meaning.
+- Public runtime cache datapoints use explicit, low-cardinality resource
+  namespaces. Full cache keys, including search and filter values, never enter
+  the Analytics Engine writer.
 
 ## Endpoints
 

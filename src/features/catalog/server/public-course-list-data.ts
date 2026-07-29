@@ -25,6 +25,7 @@ export async function getCourseListPage(
     url.searchParams,
   );
   return cachedPublicRuntimeData(
+    `page:course-list:${locale}`,
     publicRuntimeCacheKey(`page:course-list:${locale}`, searchParams),
     COURSE_LIST_CACHE_TTL_MS,
     () => getUncachedCourseListPage(searchParams, locale),
