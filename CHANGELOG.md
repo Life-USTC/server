@@ -1,3 +1,10 @@
+## [1.77.27](https://github.com/Life-USTC/server/compare/v1.77.26...v1.77.27) (2026-07-29)
+
+
+### Performance Improvements
+
+* **dashboard:** reuse calendar feed token in subscription tabs ([#686](https://github.com/Life-USTC/server/issues/686)) ([cdaa77a](https://github.com/Life-USTC/server/commit/cdaa77a525bf3fa9d38af8eef618d8b0df0fcfb3))
+
 ## [1.77.26](https://github.com/Life-USTC/server/compare/v1.77.25...v1.77.26) (2026-07-29)
 
 
