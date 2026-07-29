@@ -1,6 +1,11 @@
 import { WorkerEntrypoint } from "cloudflare:workers";
 import svelteKitWorker from "life-ustc-sveltekit-worker";
 import {
+  isCatalogListPath,
+  normalizeCatalogListQuery,
+  resolveCatalogListPublicSsrMode,
+} from "./features/catalog/lib/catalog-list-query";
+import {
   buildPublicNotFoundHtml,
   PUBLIC_SSR_BROWSER_CACHE_CONTROL,
   PUBLIC_SSR_HEADER,
@@ -129,8 +134,11 @@ function directRequest(request) {
 
 function publicSsrRequest(request, mode, locale) {
   const url = new URL(request.url);
-  const canonicalQuery = new URLSearchParams();
-  if (mode === "page") {
+  const catalogListPath = isCatalogListPath(url.pathname);
+  const canonicalQuery = catalogListPath
+    ? normalizeCatalogListQuery(url.pathname, url.searchParams)
+    : new URLSearchParams();
+  if (mode === "page" && !catalogListPath) {
     for (const key of Array.from(new Set(url.searchParams.keys())).sort()) {
       const value = url.searchParams.get(key);
       if (value !== null) canonicalQuery.set(key, value);
@@ -184,7 +192,7 @@ export default {
         },
       });
     }
-    const mode = resolvePublicSsrMode(request);
+    const mode = resolvePublicSsrMode(request, resolveCatalogListPublicSsrMode);
     if (!mode) return app.fetch(directRequest(request), env, context);
 
     const locale = resolvePublicSsrLocale(request);

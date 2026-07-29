@@ -13,6 +13,9 @@ export const PUBLIC_SSR_PAGE_EDGE_CACHE_CONTROL =
 
 export type PublicSsrMode = "page" | "not-found";
 export type PublicSsrLocale = "en-us" | "zh-cn";
+export type PublicSsrRouteResolver = (
+  url: URL,
+) => PublicSsrMode | null | undefined;
 
 const STATIC_PUBLIC_PATHS = new Set([
   "/catalog/bus/map",
@@ -30,33 +33,6 @@ const DIRECT_REQUEST_PATHS = new Set([
   "/robots.txt",
   "/sitemap.xml",
 ]);
-
-const CATALOG_QUERY_KEYS: Record<string, ReadonlySet<string>> = {
-  "/catalog/courses": new Set([
-    "categoryId",
-    "classTypeId",
-    "educationLevelId",
-    "page",
-    "search",
-  ]),
-  "/catalog/sections": new Set([
-    "campusId",
-    "categoryId",
-    "classTypeId",
-    "courseCode",
-    "credits",
-    "departmentId",
-    "educationLevelId",
-    "order",
-    "page",
-    "search",
-    "sectionCode",
-    "semesterId",
-    "sort",
-    "teacher",
-  ]),
-  "/catalog/teachers": new Set(["departmentId", "page", "search"]),
-};
 
 const CATALOG_DETAIL_PATH =
   /^\/catalog\/(courses|sections|teachers)\/([1-9]\d*)(?:\/([^/]+))?$/;
@@ -108,10 +84,6 @@ function acceptsHtml(request: Request) {
   );
 }
 
-function hasOnlyAllowedQuery(url: URL, allowed: ReadonlySet<string>) {
-  return Array.from(url.searchParams.keys()).every((key) => allowed.has(key));
-}
-
 function isCanonicalCatalogDetailPath(pathname: string) {
   const match = CATALOG_DETAIL_PATH.exec(pathname);
   if (!match) return false;
@@ -121,17 +93,18 @@ function isCanonicalCatalogDetailPath(pathname: string) {
   return !section || CATALOG_DETAIL_SECTIONS[collection]?.has(section) === true;
 }
 
-export function resolvePublicSsrMode(request: Request): PublicSsrMode | null {
+export function resolvePublicSsrMode(
+  request: Request,
+  resolveFeatureRoute?: PublicSsrRouteResolver,
+): PublicSsrMode | null {
   if (request.method !== "GET" && request.method !== "HEAD") return null;
   if (!acceptsHtml(request)) return null;
 
   const url = new URL(request.url);
   if (url.pathname.endsWith("/__data.json")) return null;
 
-  const catalogQueryKeys = CATALOG_QUERY_KEYS[url.pathname];
-  if (catalogQueryKeys) {
-    return hasOnlyAllowedQuery(url, catalogQueryKeys) ? "page" : null;
-  }
+  const featureMode = resolveFeatureRoute?.(url);
+  if (featureMode !== undefined) return featureMode;
 
   if (isCanonicalCatalogDetailPath(url.pathname)) {
     return !url.search && !hasRequestAuthSignal(request.headers)

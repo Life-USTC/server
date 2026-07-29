@@ -1,3 +1,4 @@
+import { normalizeCatalogListQuery } from "@/features/catalog/lib/catalog-list-query";
 import { CATALOG_PAGE_SIZE } from "@/features/catalog/server/catalog-page-constants";
 import { listSectionSummaries } from "@/features/catalog/server/course-section-queries";
 import { type AppLocale, DEFAULT_LOCALE } from "@/i18n/config";
@@ -19,35 +20,39 @@ export async function getSectionListPage(
   url: URL,
   locale: AppLocale = DEFAULT_LOCALE,
 ) {
+  const searchParams = normalizeCatalogListQuery(
+    "/catalog/sections",
+    url.searchParams,
+  );
   return cachedPublicRuntimeData(
-    publicRuntimeCacheKey(`section-list:${locale}`, url.searchParams),
+    publicRuntimeCacheKey(`page:section-list:${locale}`, searchParams),
     SECTION_LIST_CACHE_TTL_MS,
-    () => getUncachedSectionListPage(url, locale),
+    () => getUncachedSectionListPage(searchParams, locale),
   );
 }
 
 async function getUncachedSectionListPage(
-  url: URL,
+  searchParams: URLSearchParams,
   locale: AppLocale = DEFAULT_LOCALE,
 ) {
-  const page = parsePositivePage(url.searchParams.get("page"));
-  const orderParam = optionalValue(url.searchParams.get("order"));
+  const page = parsePositivePage(searchParams.get("page"));
+  const orderParam = optionalValue(searchParams.get("order"));
   const order: "asc" | "desc" | undefined =
     orderParam === "asc" || orderParam === "desc" ? orderParam : undefined;
   const filters = {
-    campusId: optionalValue(url.searchParams.get("campusId")),
-    categoryId: optionalValue(url.searchParams.get("categoryId")),
-    classTypeId: optionalValue(url.searchParams.get("classTypeId")),
-    courseCode: optionalValue(url.searchParams.get("courseCode")),
-    credits: optionalValue(url.searchParams.get("credits")),
-    departmentId: optionalValue(url.searchParams.get("departmentId")),
-    educationLevelId: optionalValue(url.searchParams.get("educationLevelId")),
+    campusId: optionalValue(searchParams.get("campusId")),
+    categoryId: optionalValue(searchParams.get("categoryId")),
+    classTypeId: optionalValue(searchParams.get("classTypeId")),
+    courseCode: optionalValue(searchParams.get("courseCode")),
+    credits: optionalValue(searchParams.get("credits")),
+    departmentId: optionalValue(searchParams.get("departmentId")),
+    educationLevelId: optionalValue(searchParams.get("educationLevelId")),
     order,
-    search: optionalValue(url.searchParams.get("search")),
-    sectionCode: optionalValue(url.searchParams.get("sectionCode")),
-    semesterId: optionalValue(url.searchParams.get("semesterId")),
-    sort: optionalValue(url.searchParams.get("sort")),
-    teacher: optionalValue(url.searchParams.get("teacher")),
+    search: optionalValue(searchParams.get("search")),
+    sectionCode: optionalValue(searchParams.get("sectionCode")),
+    semesterId: optionalValue(searchParams.get("semesterId")),
+    sort: optionalValue(searchParams.get("sort")),
+    teacher: optionalValue(searchParams.get("teacher")),
   };
   const prisma = getPrisma(locale);
 

@@ -1,3 +1,4 @@
+import { normalizeCatalogListQuery } from "@/features/catalog/lib/catalog-list-query";
 import { CATALOG_PAGE_SIZE } from "@/features/catalog/server/catalog-page-constants";
 import { listCourseSummaries } from "@/features/catalog/server/course-section-queries";
 import { type AppLocale, DEFAULT_LOCALE } from "@/i18n/config";
@@ -19,24 +20,26 @@ export async function getCourseListPage(
   url: URL,
   locale: AppLocale = DEFAULT_LOCALE,
 ) {
+  const searchParams = normalizeCatalogListQuery(
+    "/catalog/courses",
+    url.searchParams,
+  );
   return cachedPublicRuntimeData(
-    publicRuntimeCacheKey(`course-list:${locale}`, url.searchParams),
+    publicRuntimeCacheKey(`page:course-list:${locale}`, searchParams),
     COURSE_LIST_CACHE_TTL_MS,
-    () => getUncachedCourseListPage(url, locale),
+    () => getUncachedCourseListPage(searchParams, locale),
   );
 }
 
 async function getUncachedCourseListPage(
-  url: URL,
+  searchParams: URLSearchParams,
   locale: AppLocale = DEFAULT_LOCALE,
 ) {
-  const page = parsePositivePage(url.searchParams.get("page"));
-  const search = optionalValue(url.searchParams.get("search"));
-  const educationLevelId = optionalValue(
-    url.searchParams.get("educationLevelId"),
-  );
-  const categoryId = optionalValue(url.searchParams.get("categoryId"));
-  const classTypeId = optionalValue(url.searchParams.get("classTypeId"));
+  const page = parsePositivePage(searchParams.get("page"));
+  const search = optionalValue(searchParams.get("search"));
+  const educationLevelId = optionalValue(searchParams.get("educationLevelId"));
+  const categoryId = optionalValue(searchParams.get("categoryId"));
+  const classTypeId = optionalValue(searchParams.get("classTypeId"));
   const prisma = getPrisma(locale);
 
   const [result, educationLevels, categories, classTypes, messages] =
