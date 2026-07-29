@@ -3,16 +3,20 @@ import type { Prisma } from "@/generated/prisma/client";
 import { getPrisma } from "@/lib/db/prisma";
 import { toLoadData } from "@/lib/load-data-utils";
 
+const publicUserIdentitySelect = {
+  id: true,
+  username: true,
+  name: true,
+  image: true,
+  createdAt: true,
+} satisfies Prisma.UserSelect;
+
 async function getUserProfileData(where: Prisma.UserWhereUniqueInput) {
   const prisma = getPrisma("zh-cn");
   const user = await prisma.user.findUnique({
     where,
     select: {
-      id: true,
-      username: true,
-      name: true,
-      image: true,
-      createdAt: true,
+      ...publicUserIdentitySelect,
       _count: {
         select: {
           comments: true,
@@ -45,4 +49,22 @@ export async function getUserProfileByUsername(username: string) {
 
 export async function getUserProfileById(id: string) {
   return getUserProfileData({ id });
+}
+
+export async function getPublicUserIdentityByIdentifier(identifier: string) {
+  const normalized = identifier.trim();
+  if (!normalized) return null;
+
+  const prisma = getPrisma("zh-cn");
+  const user =
+    (await prisma.user.findUnique({
+      where: { username: normalized.toLowerCase() },
+      select: publicUserIdentitySelect,
+    })) ??
+    (await prisma.user.findUnique({
+      where: { id: normalized },
+      select: publicUserIdentitySelect,
+    }));
+
+  return user ? toLoadData(user) : null;
 }
