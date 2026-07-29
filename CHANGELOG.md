@@ -1,3 +1,10 @@
+## [1.77.29](https://github.com/Life-USTC/server/compare/v1.77.28...v1.77.29) (2026-07-29)
+
+
+### Performance Improvements
+
+* **workspace:** streamline compact overview reads ([#689](https://github.com/Life-USTC/server/issues/689)) ([e76ac7c](https://github.com/Life-USTC/server/commit/e76ac7c922d960a13677ba725be19c41bac67549))
+
 ## [1.77.28](https://github.com/Life-USTC/server/compare/v1.77.27...v1.77.28) (2026-07-29)
 
 
