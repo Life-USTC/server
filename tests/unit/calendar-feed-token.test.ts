@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ensureUserCalendarFeedToken } from "@/features/subscriptions/server/calendar-feed-token";
+import { getCalendarSubscriptionUrl } from "@/features/subscriptions/server/subscription-calendar-read-model";
 import { randomBytesBase64Url } from "@/lib/crypto/web-crypto";
 import { prisma } from "@/lib/db/prisma";
 
@@ -77,5 +78,44 @@ describe("ensureUserCalendarFeedToken 日历订阅令牌", () => {
       data: { calendarFeedToken: "discarded-token" },
     });
     expect(updateMock).not.toHaveBeenCalled();
+  });
+});
+
+describe("getCalendarSubscriptionUrl 日历订阅地址", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("已有可信令牌时不重复查询用户", async () => {
+    await expect(
+      getCalendarSubscriptionUrl("user-1", "existing-token"),
+    ).resolves.toBe("/api/calendar-feeds/user-1:existing-token.ics");
+
+    expect(findUniqueMock).not.toHaveBeenCalled();
+  });
+
+  it("显式 null 仍初始化令牌且不增加前置查询", async () => {
+    findUniqueMock.mockResolvedValueOnce(userWithToken(null));
+    randomBytesBase64UrlMock.mockReturnValue("generated-token");
+    updateManyMock.mockResolvedValueOnce({ count: 1 });
+
+    await expect(getCalendarSubscriptionUrl("user-1", null)).resolves.toBe(
+      "/api/calendar-feeds/user-1:generated-token.ics",
+    );
+
+    expect(findUniqueMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("省略令牌时保留用户查询回退", async () => {
+    findUniqueMock.mockResolvedValueOnce(userWithToken("stored-token"));
+
+    await expect(getCalendarSubscriptionUrl("user-1")).resolves.toBe(
+      "/api/calendar-feeds/user-1:stored-token.ics",
+    );
+
+    expect(findUniqueMock).toHaveBeenCalledWith({
+      where: { id: "user-1" },
+      select: { id: true, calendarFeedToken: true },
+    });
   });
 });
