@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const {
+  getCompactOverviewMock,
   getSubscribedSectionIdsMock,
   getUserCalendarSubscriptionMock,
   getViewerContextMock,
@@ -10,6 +11,7 @@ const {
   runCloudflareTraceSpanMock,
   withHomeworkItemStateMock,
 } = vi.hoisted(() => ({
+  getCompactOverviewMock: vi.fn(),
   getSubscribedSectionIdsMock: vi.fn(),
   getUserCalendarSubscriptionMock: vi.fn(),
   getViewerContextMock: vi.fn(),
@@ -41,6 +43,10 @@ vi.mock("@/features/subscriptions/server/subscription-read-model", () => ({
 
 vi.mock("@/features/homeworks/server/homework-item-state", () => ({
   withHomeworkItemState: withHomeworkItemStateMock,
+}));
+
+vi.mock("@/features/dashboard/server/compact-overview-read-model", () => ({
+  getCompactOverview: getCompactOverviewMock,
 }));
 
 describe("workspace route tracing", () => {
@@ -110,6 +116,30 @@ describe("workspace route tracing", () => {
     ).toEqual([
       ["workspace.subscriptions.current.auth", {}],
       ["workspace.subscriptions.current.read", {}],
+    ]);
+  });
+
+  it("separates overview auth from its read without trace attributes", async () => {
+    const overview = { user: { userId: "user-1" } };
+    getCompactOverviewMock.mockResolvedValue(overview);
+    const { getMyCompactOverviewRoute } = await import(
+      "@/lib/api/routes/me-overview-route"
+    );
+
+    const response = await getMyCompactOverviewRoute(
+      new Request("https://example.test/api/workspace/overview"),
+    );
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toEqual(overview);
+    expect(
+      runCloudflareTraceSpanMock.mock.calls.map(([name, attributes]) => [
+        name,
+        attributes,
+      ]),
+    ).toEqual([
+      ["workspace.overview.auth", {}],
+      ["workspace.overview.read", {}],
     ]);
   });
 });

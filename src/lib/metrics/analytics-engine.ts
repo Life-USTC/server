@@ -128,6 +128,21 @@ type DatabaseEventAnalyticsInput = {
   event: "connection_error" | "pool_error";
 };
 
+export type WorkspaceOverviewStage =
+  | "counts"
+  | "due_todo_count"
+  | "due_todo_sample"
+  | "item_state"
+  | "lists"
+  | "todo_summary"
+  | "user_sections";
+
+type WorkspaceOverviewStageAnalyticsInput = {
+  ioObservedDurationMs: number;
+  stage: WorkspaceOverviewStage;
+  status: "error" | "success";
+};
+
 function statusClass(status: number) {
   if (!Number.isFinite(status)) return "unknown";
   return `${Math.floor(status / 100)}xx`;
@@ -302,6 +317,16 @@ export function writeCalendarFeedCacheAnalytics(
     indexes: [`cache:calendar:${boundedValue(input.feed)}`],
     blobs: ["calendar_feed_cache", input.feed, input.status],
     doubles: [input.ttlMs, input.storeSize],
+  });
+}
+
+export function writeWorkspaceOverviewStageAnalytics(
+  input: WorkspaceOverviewStageAnalyticsInput,
+) {
+  writeAnalyticsDataPoint({
+    indexes: [`workspace:overview:${input.stage}`],
+    blobs: ["workspace_overview_stage_v1", input.stage, input.status],
+    doubles: [input.ioObservedDurationMs],
   });
 }
 

@@ -6,7 +6,10 @@ import {
 import { recordAndLogMcpResponse } from "@/lib/api/routes/mcp-response-bookkeeping";
 import { writeAuditLog } from "@/lib/audit/write-audit-log";
 import { withBetterAuthOAuthDebug } from "@/lib/log/oauth-debug";
-import { writeOAuthEventAnalytics } from "@/lib/metrics/analytics-engine";
+import {
+  writeOAuthEventAnalytics,
+  writeWorkspaceOverviewStageAnalytics,
+} from "@/lib/metrics/analytics-engine";
 import {
   cachedPublicRuntimeData,
   publicDetailColoCacheKey,
@@ -47,6 +50,58 @@ describe("Cloudflare Analytics Engine runtime events", () => {
     vi.useRealTimers();
     vi.restoreAllMocks();
     vi.unstubAllGlobals();
+  });
+
+  it("writes fixed low-cardinality workspace overview stage datapoints", () => {
+    const writeDataPoint = installAnalyticsBinding();
+    const stages = [
+      "user_sections",
+      "todo_summary",
+      "due_todo_count",
+      "due_todo_sample",
+      "counts",
+      "lists",
+      "item_state",
+    ] as const;
+
+    stages.forEach((stage, index) => {
+      writeWorkspaceOverviewStageAnalytics({
+        ioObservedDurationMs: index + 1,
+        stage,
+        status: index === stages.length - 1 ? "error" : "success",
+      });
+    });
+
+    expect(writeDataPoint).toHaveBeenCalledTimes(stages.length);
+    stages.forEach((stage, index) => {
+      expect(writeDataPoint).toHaveBeenNthCalledWith(index + 1, {
+        indexes: [`workspace:overview:${stage}`],
+        blobs: [
+          "workspace_overview_stage_v1",
+          stage,
+          index === stages.length - 1 ? "error" : "success",
+        ],
+        doubles: [index + 1],
+      });
+    });
+  });
+
+  it("keeps workspace overview stages available when Analytics Engine fails", () => {
+    setCloudflareRuntimeEnv({
+      ANALYTICS: {
+        writeDataPoint: vi.fn(() => {
+          throw new Error("analytics unavailable");
+        }),
+      },
+    });
+
+    expect(() =>
+      writeWorkspaceOverviewStageAnalytics({
+        ioObservedDurationMs: 5,
+        stage: "todo_summary",
+        status: "success",
+      }),
+    ).not.toThrow();
   });
 
   it("writes MCP transport datapoints without tool argument values", () => {
