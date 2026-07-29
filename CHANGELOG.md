@@ -1,3 +1,10 @@
+## [1.77.28](https://github.com/Life-USTC/server/compare/v1.77.27...v1.77.28) (2026-07-29)
+
+
+### Performance Improvements
+
+* **dashboard:** deduplicate signed overview reads ([#687](https://github.com/Life-USTC/server/issues/687)) ([42873bd](https://github.com/Life-USTC/server/commit/42873bd15540d4c0b16596c4e1a5dab6130cd49b)), closes [#584](https://github.com/Life-USTC/server/issues/584)
+
 ## [1.77.27](https://github.com/Life-USTC/server/compare/v1.77.26...v1.77.27) (2026-07-29)
 
 
