@@ -11,7 +11,11 @@ import {
 export async function getSubscriptionsTabData(
   userId: string,
   locale = DEFAULT_LOCALE,
-  options: { includeExams?: boolean; sectionIds?: readonly number[] } = {},
+  options: {
+    calendarFeedToken?: string | null;
+    includeExams?: boolean;
+    sectionIds?: readonly number[];
+  } = {},
 ) {
   const localizedPrisma = getPrisma(locale);
   const [sections, semesters, calendarSubscriptionUrl] = await Promise.all([
@@ -23,7 +27,7 @@ export async function getSubscriptionsTabData(
       select: { id: true, nameCn: true, startDate: true, endDate: true },
       orderBy: { startDate: "asc" },
     }),
-    getCalendarSubscriptionUrl(userId),
+    getCalendarSubscriptionUrl(userId, options.calendarFeedToken),
   ]);
 
   return {

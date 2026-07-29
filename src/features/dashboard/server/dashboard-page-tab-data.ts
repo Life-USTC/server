@@ -108,6 +108,7 @@ export async function loadSignedDashboardTabData(input: {
     input.tab === "subscriptions" || input.tab === "exams"
       ? timeDashboardTabStage("subscriptions", stageContext, () =>
           dashboardTabs.getSubscriptionsTabData(input.userId, input.locale, {
+            calendarFeedToken: input.context.user.calendarFeedToken,
             includeExams: input.tab === "exams",
             sectionIds: input.context.sectionIds,
           }),
