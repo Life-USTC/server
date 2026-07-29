@@ -54,6 +54,12 @@ normalization bounds database input and runtime cache keys.
    cache. Unknown routes instead return a small script-free, private/no-store
    response directly, so scanners do not render or hydrate the full application
    shell and cannot populate attacker-controlled high-cardinality cache keys.
+   Inside this trusted anonymous entrypoint, catalog detail loaders also coalesce
+   public entity core reads for 60 seconds per entity and locale. Course and
+   teacher section-list shapes, section calendar/exam shapes, nulls, and failures
+   are not retained. Section overview related-course queries stay outside the
+   core cache, as do all viewer, description, comment, homework, and subscription
+   reads. Dynamic and authenticated SSR never use this runtime detail cache.
 4. The default entrypoint rewrites the cached CSP nonce placeholder and request
    ID for every browser response, then marks that outer response private and
    no-store so zone rules cannot bypass the gateway. Raw session headers never

@@ -74,8 +74,11 @@ export type PublicRuntimeCacheAnalyticsNamespace =
       | "api:courses"
       | "api:sections"
       | "api:teachers"
+      | "page:course-detail"
       | "page:course-list"
+      | "page:section-detail"
       | "page:section-list"
+      | "page:teacher-detail"
       | "page:teacher-list"}:${AppLocale}`;
 
 type CacheEventAnalyticsInput = {

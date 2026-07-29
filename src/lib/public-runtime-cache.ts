@@ -8,6 +8,10 @@ type CacheEntry<T> = {
   value: Promise<T>;
 };
 
+type PublicRuntimeCacheOptions<T> = {
+  shouldCacheResult?: (result: T) => boolean;
+};
+
 const MAX_ENTRIES = 100;
 
 const globalForPublicRuntimeCache = globalThis as typeof globalThis & {
@@ -35,6 +39,16 @@ function pruneOldest(store: Map<string, CacheEntry<unknown>>) {
   }
 }
 
+function deleteCurrentEntry(
+  store: Map<string, CacheEntry<unknown>>,
+  key: string,
+  value: Promise<unknown>,
+) {
+  if (store.get(key)?.value === value) {
+    store.delete(key);
+  }
+}
+
 export function publicRuntimeCacheKey(
   prefix: string,
   searchParams: URLSearchParams,
@@ -49,6 +63,7 @@ export function cachedPublicRuntimeData<T>(
   key: string,
   ttlMs: number,
   load: () => Promise<T>,
+  options: PublicRuntimeCacheOptions<T> = {},
 ): Promise<T> {
   const now = Date.now();
   const start = Date.now();
@@ -74,8 +89,12 @@ export function cachedPublicRuntimeData<T>(
     storeSize: store.size,
     ttlMs,
   });
-  const value = load()
+  let value: Promise<T>;
+  value = load()
     .then((result) => {
+      if (options.shouldCacheResult && !options.shouldCacheResult(result)) {
+        deleteCurrentEntry(store, key, value);
+      }
       writeCacheEventAnalytics({
         event: "load_success",
         ioObservedDurationMs: Date.now() - start,
@@ -86,7 +105,7 @@ export function cachedPublicRuntimeData<T>(
       return result;
     })
     .catch((error) => {
-      store.delete(key);
+      deleteCurrentEntry(store, key, value);
       writeCacheEventAnalytics({
         event: "load_error",
         ioObservedDurationMs: Date.now() - start,

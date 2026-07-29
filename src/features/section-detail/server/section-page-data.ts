@@ -5,6 +5,7 @@ import {
 } from "@/features/section-detail/server/section-page-shape";
 import type { Prisma } from "@/generated/prisma/client";
 import { getPrisma } from "@/lib/db/prisma";
+import { toLoadData } from "@/lib/load-data-utils";
 
 type SectionPageRecord = Prisma.SectionGetPayload<{
   select: typeof sectionPageSelect;
@@ -56,4 +57,13 @@ export async function getSectionPage(
   };
 
   return buildSectionPageLoadData(normalizedSection, relatedData);
+}
+
+export async function withSectionPageRelatedData(
+  section: NonNullable<Awaited<ReturnType<typeof getSectionPage>>>,
+  locale = "zh-cn",
+) {
+  const prisma = getPrisma(locale);
+  const relatedData = await getSectionPageRelatedData({ prisma, section });
+  return { ...section, ...toLoadData(relatedData) };
 }

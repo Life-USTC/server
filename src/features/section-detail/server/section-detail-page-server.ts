@@ -7,7 +7,11 @@ import {
   formatMessage,
   primaryName,
 } from "@/features/section-detail/lib/display";
-import { getSectionPage } from "@/features/section-detail/server/section-page-data";
+import {
+  getSectionPage,
+  withSectionPageRelatedData,
+} from "@/features/section-detail/server/section-page-data";
+import { cachedPublicRuntimeData } from "@/lib/public-runtime-cache";
 import {
   buildSocialMetadata,
   formatSocialMetadataMessage,
@@ -41,6 +45,8 @@ const sectionDetailRouteSections = new Set([
   "comments",
 ]);
 
+const PUBLIC_DETAIL_RUNTIME_CACHE_TTL_MS = 60_000;
+
 function resolveSectionDetailRouteSection(
   section: string | undefined,
 ): SectionDetailRouteSection | null {
@@ -65,12 +71,32 @@ export async function loadSectionDetailPage({
   const jwId = parseSectionJwId(params.jwId);
   if (jwId === null) error(404, "Section not found");
   const userId = locals.authUser?.id ?? null;
-  const section = await getSectionPage(jwId, locals.locale, {
-    includeExams: detailSection === "calendar" || detailSection === "exams",
-    includeRelated: detailSection === "overview",
-    includeSchedules: detailSection === "calendar",
-  });
-  if (!section) error(404, "Section not found");
+  const includeExams =
+    detailSection === "calendar" || detailSection === "exams";
+  const includeRelated = detailSection === "overview";
+  const includeSchedules = detailSection === "calendar";
+  const cachePublicCore =
+    locals.publicSsr && !userId && !includeExams && !includeSchedules;
+  const loadSection = () =>
+    getSectionPage(jwId, locals.locale, {
+      includeExams,
+      includeRelated: cachePublicCore ? false : includeRelated,
+      includeSchedules,
+    });
+  const sectionCore = cachePublicCore
+    ? await cachedPublicRuntimeData(
+        `page:section-detail:${locals.locale}`,
+        `catalog-detail:section:${locals.locale}:${jwId}`,
+        PUBLIC_DETAIL_RUNTIME_CACHE_TTL_MS,
+        loadSection,
+        { shouldCacheResult: (result) => result !== null },
+      )
+    : await loadSection();
+  if (!sectionCore) error(404, "Section not found");
+  const section =
+    cachePublicCore && includeRelated
+      ? await withSectionPageRelatedData(sectionCore, locals.locale)
+      : sectionCore;
   const copy = getSectionDetailPageCopy(locals.locale);
   const courseName = primaryName(section.course) || section.code;
   const [subscriptionState, descriptionAndComments, homeworkData] =

@@ -62,7 +62,8 @@ high-cardinality resource IDs.
   `graphql_operation_v2`) preserve this explicit meaning.
 - Public runtime cache datapoints use explicit, low-cardinality resource
   namespaces. Full cache keys, including search and filter values, never enter
-  the Analytics Engine writer.
+  the Analytics Engine writer. Catalog detail cache namespaces likewise omit
+  entity IDs.
 
 ## Endpoints
 
