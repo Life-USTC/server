@@ -1,6 +1,8 @@
 import { describe, expect, test } from "vitest";
 import {
   buildPublicNotFoundHtml,
+  PUBLIC_SSR_BROWSER_CACHE_CONTROL,
+  PUBLIC_SSR_PAGE_EDGE_CACHE_CONTROL,
   resolveLegacyCatalogRedirect,
   resolvePublicSsrLocale,
   resolvePublicSsrMode,
@@ -13,6 +15,13 @@ function request(path: string, headers: HeadersInit = {}) {
 }
 
 describe("public SSR gateway", () => {
+  test.each([
+    PUBLIC_SSR_BROWSER_CACHE_CONTROL,
+    PUBLIC_SSR_PAGE_EDGE_CACHE_CONTROL,
+  ])("bounds stale-on-error cache fallback in %s", (cacheControl) => {
+    expect(cacheControl).toContain("stale-if-error=0");
+  });
+
   test.each([
     ["/sections/159446/comments", "/catalog/sections/159446/comments"],
     ["/courses/456?page=2", "/catalog/courses/456?page=2"],
@@ -47,13 +56,50 @@ describe("public SSR gateway", () => {
   });
 
   test.each([
+    "/catalog/courses/11145",
+    "/catalog/courses/11145/introduction",
+    "/catalog/courses/11145/sections",
+    "/catalog/courses/11145/comments",
+    "/catalog/teachers/42",
+    "/catalog/teachers/42/introduction",
+    "/catalog/teachers/42/sections",
+    "/catalog/teachers/42/comments",
+    "/catalog/sections/159446",
+    "/catalog/sections/159446/introduction",
+    "/catalog/sections/159446/calendar",
+    "/catalog/sections/159446/exams",
+    "/catalog/sections/159446/homework",
+    "/catalog/sections/159446/teachers",
+    "/catalog/sections/159446/comments",
+  ])("caches canonical anonymous catalog detail page %s", (path) => {
+    expect(resolvePublicSsrMode(request(path))).toBe("page");
+  });
+
+  test("caches a canonical anonymous catalog detail HEAD request", () => {
+    expect(
+      resolvePublicSsrMode(
+        new Request("https://life-ustc.test/catalog/courses/11145", {
+          headers: { accept: "text/html" },
+          method: "HEAD",
+        }),
+      ),
+    ).toBe("page");
+  });
+
+  test.each([
     "/",
     "/account/sign-in",
     "/admin",
     "/api/auth/get-session",
     "/catalog/courses/011145",
+    "/catalog/courses/11145/",
+    "/catalog/courses/11145/calendar",
+    "/catalog/courses/11145/comments?sort=latest",
+    "/catalog/courses/11145/__data.json",
     "/catalog/courses?unknown=value",
     "/catalog/courses?__life_locale=en-us",
+    "/catalog/sections/159446/unknown",
+    "/catalog/teachers/not-an-id",
     "/community/users/example",
     "/e2e/oauth/callback?code=example&state=test",
     "/error?error=access_denied",
@@ -63,6 +109,46 @@ describe("public SSR gateway", () => {
     "/workspace/overview",
   ])("bypasses private or mixed route %s", (path) => {
     expect(resolvePublicSsrMode(request(path))).toBeNull();
+  });
+
+  test.each<Record<string, string>>([
+    { authorization: "Bearer access-token" },
+    { authorization: "bEaReR access-token" },
+    { cookie: "better-auth.session_token=session-token" },
+    { cookie: "__Secure-better-auth.session_token=session-token" },
+    { cookie: "session=private" },
+  ])("bypasses catalog detail requests with auth signal %j", (headers) => {
+    expect(
+      resolvePublicSsrMode(request("/catalog/courses/11145", headers)),
+    ).toBeNull();
+  });
+
+  test("keeps viewer-independent catalog list caching with auth signals", () => {
+    expect(
+      resolvePublicSsrMode(
+        request("/catalog/courses", {
+          cookie: "better-auth.session_token=session-token",
+        }),
+      ),
+    ).toBe("page");
+  });
+
+  test("bypasses non-read and non-document catalog detail requests", () => {
+    expect(
+      resolvePublicSsrMode(
+        new Request("https://life-ustc.test/catalog/courses/11145", {
+          headers: { accept: "text/html" },
+          method: "POST",
+        }),
+      ),
+    ).toBeNull();
+    expect(
+      resolvePublicSsrMode(
+        new Request("https://life-ustc.test/catalog/courses/11145", {
+          headers: { accept: "application/json" },
+        }),
+      ),
+    ).toBeNull();
   });
 
   test("caches only the 404 representation for unknown roots", () => {

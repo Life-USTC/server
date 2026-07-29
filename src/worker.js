@@ -2,12 +2,14 @@ import { WorkerEntrypoint } from "cloudflare:workers";
 import svelteKitWorker from "life-ustc-sveltekit-worker";
 import {
   buildPublicNotFoundHtml,
+  PUBLIC_SSR_BROWSER_CACHE_CONTROL,
   PUBLIC_SSR_HEADER,
   PUBLIC_SSR_LOCALE_CACHE_PARAM,
   PUBLIC_SSR_LOCALE_HEADER,
   PUBLIC_SSR_MODE_CACHE_PARAM,
   PUBLIC_SSR_MODE_HEADER,
   PUBLIC_SSR_NONCE_PLACEHOLDER,
+  PUBLIC_SSR_PAGE_EDGE_CACHE_CONTROL,
   removePublicSsrHeaders,
   resolveLegacyCatalogRedirect,
   resolvePublicSsrLocale,
@@ -18,37 +20,31 @@ import { CONTENT_SIGNAL } from "./lib/seo/content-signal";
 
 const app = svelteKitWorker;
 
-function cacheablePublicResponse(response, mode) {
-  const isExpectedStatus =
-    (mode === "page" && response.status >= 200 && response.status < 300) ||
-    (mode === "not-found" && response.status === 404);
+function cacheablePublicResponse(response) {
   return (
-    isExpectedStatus &&
+    response.status >= 200 &&
+    response.status < 300 &&
     response.headers.get("content-type")?.includes("text/html") &&
     !response.headers.has("set-cookie")
   );
 }
 
-function prepareCachedRepresentation(response, mode, locale, headRequest) {
-  if (!cacheablePublicResponse(response, mode)) return response;
+function prepareCachedRepresentation(response) {
+  if (!cacheablePublicResponse(response)) return response;
 
   const headers = new Headers(response.headers);
-  headers.set("Cache-Control", "public, max-age=0, stale-while-revalidate=300");
+  headers.set("Cache-Control", PUBLIC_SSR_BROWSER_CACHE_CONTROL);
   headers.set(
     "Cloudflare-CDN-Cache-Control",
-    mode === "not-found"
-      ? "public, max-age=300, stale-while-revalidate=3600"
-      : "public, max-age=60, stale-while-revalidate=300",
+    PUBLIC_SSR_PAGE_EDGE_CACHE_CONTROL,
   );
   headers.delete("Vary");
   headers.delete("Content-Length");
-  if (mode === "not-found") headers.delete("Content-Encoding");
-  return new Response(
-    mode === "not-found" && !headRequest
-      ? buildPublicNotFoundHtml(locale)
-      : response.body,
-    { headers, status: response.status, statusText: response.statusText },
-  );
+  return new Response(response.body, {
+    headers,
+    status: response.status,
+    statusText: response.statusText,
+  });
 }
 
 function createNonce() {
@@ -172,13 +168,7 @@ export class PublicSsr extends WorkerEntrypoint {
       this.env,
       this.ctx,
     );
-    const { locale, mode } = this.ctx.props;
-    return prepareCachedRepresentation(
-      response,
-      mode === "not-found" ? "not-found" : "page",
-      locale === "en-us" ? "en-us" : "zh-cn",
-      request.method === "HEAD",
-    );
+    return prepareCachedRepresentation(response);
   }
 }
 

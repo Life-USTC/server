@@ -82,6 +82,7 @@ export async function loadSectionDetailPage({
         : null,
       getSectionDetailDescriptionAndComments(section, userId, {
         includeComments: detailSection === "comments",
+        includeDescriptionHistory: detailSection === "introduction",
       }),
       detailSection === "homework"
         ? getSectionHomeworkData(section.id, userId)

@@ -196,6 +196,12 @@ describe("catalog detail loader critical path", () => {
     expect(result.descriptionData).toBe(descriptionData);
     expect(result.structuredDataJson).toContain("Primary SSR description");
     expect(result.commentsData).toBeNull();
+    expect(getDescriptionPayloadMock).toHaveBeenCalledWith(
+      "course",
+      course.id,
+      anonymousViewer,
+      { includeHistory: false },
+    );
     expect(getCommentsPayloadMock).not.toHaveBeenCalled();
   });
 
@@ -219,6 +225,28 @@ describe("catalog detail loader critical path", () => {
       { targetId: course.id, type: "course" },
       anonymousViewer,
       { pageSize: 20 },
+    );
+  });
+
+  it("loads description history only for the introduction section", async () => {
+    const { loadCourseDetailPage } = await import(
+      "@/features/catalog/server/catalog-detail-page-server"
+    );
+
+    await loadCourseDetailPage({
+      locals: locals(),
+      params: { jwId: String(course.jwId), section: "introduction" },
+      request: request(`/catalog/courses/${course.jwId}/introduction`),
+      url: new URL(
+        `https://example.test/catalog/courses/${course.jwId}/introduction`,
+      ),
+    });
+
+    expect(getDescriptionPayloadMock).toHaveBeenCalledWith(
+      "course",
+      course.id,
+      anonymousViewer,
+      { includeHistory: true },
     );
   });
 
@@ -347,6 +375,17 @@ describe("section detail loader critical path", () => {
     expect(result.structuredDataJson).toContain("Primary SSR description");
     expect(result.commentsData).toBeNull();
     expect(result.homeworkData.homeworks).toEqual([]);
+    expect(result.viewer).toEqual({
+      isSubscribed: false,
+      signedIn: false,
+      subscriptionIcsUrl: null,
+    });
+    expect(getDescriptionPayloadMock).toHaveBeenCalledWith(
+      "section",
+      section.id,
+      anonymousViewer,
+      { includeHistory: false },
+    );
     expect(getCommentsPayloadMock).not.toHaveBeenCalled();
     expect(getSectionHomeworkDataMock).not.toHaveBeenCalled();
     expect(getUserSectionSubscriptionStateMock).not.toHaveBeenCalled();

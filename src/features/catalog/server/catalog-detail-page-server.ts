@@ -75,6 +75,7 @@ export async function loadCourseDetailPage({
   const { commentsData, descriptionData } = await loadCatalogDetailCommentsData(
     {
       includeComments: detailSection === "comments",
+      includeDescriptionHistory: detailSection === "introduction",
       targetId: course.id,
       type: "course",
       viewer,
@@ -140,6 +141,7 @@ export async function loadTeacherDetailPage({
   const { commentsData, descriptionData } = await loadCatalogDetailCommentsData(
     {
       includeComments: detailSection === "comments",
+      includeDescriptionHistory: detailSection === "introduction",
       targetId: teacher.id,
       type: "teacher",
       viewer,
