@@ -15,10 +15,7 @@ import {
   searchQueryToTokens,
 } from "@/features/dashboard-links/lib/dashboard-link-search";
 import { getPublicDashboardLinksData } from "@/features/dashboard-links/server/dashboard-link-data";
-import {
-  getUserProfileById,
-  getUserProfileByUsername,
-} from "@/features/profile/server/user-profile-page-data";
+import { getPublicUserIdentityByIdentifier } from "@/features/profile/server/user-profile-page-data";
 import {
   capGraphqlAlternateRoutes,
   capGraphqlBusCampuses,
@@ -325,12 +322,7 @@ export const graphqlSchema = createSchema<
     },
     Community: {
       async user(_parent, args: { identifier: string }) {
-        const identifier = args.identifier.trim();
-        if (!identifier) return null;
-        const profile =
-          (await getUserProfileByUsername(identifier.toLowerCase())) ??
-          (await getUserProfileById(identifier));
-        return profile?.user ?? null;
+        return getPublicUserIdentityByIdentifier(args.identifier);
       },
     },
     Catalog: {
