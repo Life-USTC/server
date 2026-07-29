@@ -1,3 +1,5 @@
+import { BUS_VERSION_KEY_MAX_LENGTH } from "@/features/bus/lib/bus-version-key";
+
 export const GRAPHQL_ENDPOINT = "/api/graphql";
 
 export const GRAPHQL_LIMITS = {
@@ -20,7 +22,7 @@ export const GRAPHQL_LIMITS = {
   timeoutMs: 5000,
   tokens: 1000,
   topLevelFields: 10,
-  versionKeyChars: 120,
+  versionKeyChars: BUS_VERSION_KEY_MAX_LENGTH,
 } as const;
 
 export const GRAPHQL_SCHEMA_RESOURCE_URI = "life-ustc://graphql/schema";

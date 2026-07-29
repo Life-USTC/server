@@ -69,6 +69,8 @@ type JsonSchemaObject = {
   additionalProperties?: boolean;
   anyOf?: JsonSchemaObject[];
   items?: JsonSchemaObject;
+  maxLength?: number;
+  pattern?: string;
   properties?: Record<string, JsonSchemaObject>;
   required?: string[];
   type?: string;
@@ -83,6 +85,13 @@ function outputSchema(result: ToolListResult, name: string) {
 
 function outputSchemaKeys(result: ToolListResult, name: string) {
   return Object.keys(outputSchema(result, name)?.properties ?? {});
+}
+
+function inputSchema(result: ToolListResult, name: string) {
+  const tool = result.tools.find((item) => item.name === name);
+  expect(tool).toBeDefined();
+
+  return tool?.inputSchema as JsonSchemaObject | undefined;
 }
 
 describe("MCP tool descriptors", () => {
@@ -305,6 +314,22 @@ describe("MCP tool descriptors", () => {
         "routes",
       ]),
     );
+  });
+
+  it("advertises the shared bus versionKey boundary", async () => {
+    const result = await listTools();
+
+    for (const name of [
+      "catalog_bus_timetable_get",
+      "catalog_bus_route_get",
+      "catalog_bus_route_search",
+      "catalog_bus_departure_next",
+    ]) {
+      expect(inputSchema(result, name)?.properties?.versionKey).toMatchObject({
+        maxLength: 120,
+        pattern: "^[A-Za-z0-9][A-Za-z0-9._-]*$",
+      });
+    }
   });
 
   it("advertises how to recover past-term personal data", async () => {

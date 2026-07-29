@@ -11,6 +11,7 @@ import {
   adminHomeworksQuerySchema,
   adminUsersQuerySchema,
   busNextDeparturesQuerySchema,
+  busQuerySchema,
   busRouteSearchQuerySchema,
   calendarSubscriptionAppendRequestSchema,
   calendarSubscriptionBatchRequestSchema,
@@ -613,6 +614,42 @@ describe("其他请求 schema", () => {
     expect(homeworksQuerySchema.parse({ includeDeleted: "true" })).toEqual({
       includeDeleted: true,
     });
+  });
+
+  it("在所有 REST bus 查询中统一 versionKey 边界", () => {
+    const validVersionKey = `v${"a".repeat(119)}`;
+    const schemas = [
+      { base: {}, schema: busQuerySchema },
+      { base: {}, schema: busRouteSearchQuerySchema },
+      {
+        base: { destinationCampusId: "2", originCampusId: "1" },
+        schema: busNextDeparturesQuerySchema,
+      },
+    ];
+
+    for (const { base, schema } of schemas) {
+      expect(
+        schema.safeParse({ ...base, versionKey: validVersionKey }).success,
+      ).toBe(true);
+      expect(
+        schema.safeParse({ ...base, versionKey: ` ${validVersionKey} ` })
+          .success,
+      ).toBe(true);
+      expect(
+        schema.safeParse({ ...base, versionKey: `v${"a".repeat(120)}` })
+          .success,
+      ).toBe(false);
+      expect(
+        schema.safeParse({ ...base, versionKey: "../unsafe" }).success,
+      ).toBe(false);
+      expect(
+        schema.safeParse({ ...base, versionKey: "-leading-dash" }).success,
+      ).toBe(false);
+    }
+
+    expect(
+      busQuerySchema.parse({ versionKey: ` ${validVersionKey} ` }).versionKey,
+    ).toBe(validVersionKey);
   });
 
   it("校验分页 pageSize 与废弃 limit 别名的边界", () => {
