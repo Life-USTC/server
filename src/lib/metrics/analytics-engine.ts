@@ -1,3 +1,4 @@
+import type { AppLocale } from "@/i18n/config";
 import { getCloudflareAnalyticsEngineDataset } from "@/lib/adapters/cloudflare-runtime";
 import type {
   McpRequestSummary,
@@ -66,10 +67,21 @@ type StorageOperationAnalyticsInput = {
   size?: number | null;
 };
 
+export type PublicRuntimeCacheAnalyticsNamespace =
+  | "api:metadata"
+  | "api:semesters"
+  | `${
+      | "api:courses"
+      | "api:sections"
+      | "api:teachers"
+      | "page:course-list"
+      | "page:section-list"
+      | "page:teacher-list"}:${AppLocale}`;
+
 type CacheEventAnalyticsInput = {
   event: "hit" | "load_error" | "load_success" | "miss";
   ioObservedDurationMs: number;
-  key: string;
+  namespace: PublicRuntimeCacheAnalyticsNamespace;
   storeSize: number;
   ttlMs: number;
 };
@@ -122,11 +134,6 @@ function boundedList(values: string[] | undefined) {
 function finiteNumber(value: number | undefined | null) {
   if (typeof value !== "number" || !Number.isFinite(value)) return 0;
   return Math.max(0, value);
-}
-
-function cacheNamespace(key: string) {
-  const [scope, resource, locale] = key.split(":");
-  return [scope, resource, locale].filter(Boolean).map(boundedValue).join(":");
 }
 
 function writeAnalyticsDataPoint(input: {
@@ -270,8 +277,8 @@ export function writeStorageOperationAnalytics(
 
 export function writeCacheEventAnalytics(input: CacheEventAnalyticsInput) {
   writeAnalyticsDataPoint({
-    indexes: [`cache:${boundedValue(cacheNamespace(input.key))}`],
-    blobs: ["public_runtime_cache_v2", input.event, cacheNamespace(input.key)],
+    indexes: [`cache:${boundedValue(input.namespace)}`],
+    blobs: ["public_runtime_cache_v2", input.event, input.namespace],
     doubles: [input.ioObservedDurationMs, input.ttlMs, input.storeSize],
   });
 }

@@ -11,8 +11,13 @@ import { getTeacherListPage } from "@/features/catalog/server/public-teacher-lis
 const mocks = vi.hoisted(() => {
   const findMany = vi.fn().mockResolvedValue([]);
   return {
-    cache: vi.fn((_key: string, _ttlMs: number, load: () => Promise<unknown>) =>
-      load(),
+    cache: vi.fn(
+      (
+        _namespace: string,
+        _key: string,
+        _ttlMs: number,
+        load: () => Promise<unknown>,
+      ) => load(),
     ),
     findMany,
     listCourseSummaries: vi.fn().mockResolvedValue({
@@ -93,8 +98,9 @@ describe("public catalog list loaders", () => {
       locale: "zh-cn",
       pagination: { page: CATALOG_MAX_PAGE, pageSize: 20 },
     });
-    expect(mocks.cache.mock.calls[0]?.[0]).toBe(mocks.cache.mock.calls[1]?.[0]);
-    expect(mocks.cache.mock.calls[0]?.[0]).toMatch(/^page:course-list:zh-cn:/);
+    expect(mocks.cache.mock.calls[0]?.[0]).toBe("page:course-list:zh-cn");
+    expect(mocks.cache.mock.calls[0]?.[1]).toBe(mocks.cache.mock.calls[1]?.[1]);
+    expect(mocks.cache.mock.calls[0]?.[1]).toMatch(/^page:course-list:zh-cn:/);
   });
 
   test("bounds teacher page/search and canonicalizes the ID before querying", async () => {
@@ -112,13 +118,14 @@ describe("public catalog list loaders", () => {
       { nameCn: "asc" },
       "zh-cn",
     );
-    expect(mocks.cache.mock.calls[0]?.[0]).toContain(
+    expect(mocks.cache.mock.calls[0]?.[1]).toContain(
       `page=${CATALOG_MAX_PAGE}`,
     );
-    expect(mocks.cache.mock.calls[0]?.[0]).toContain(
+    expect(mocks.cache.mock.calls[0]?.[1]).toContain(
       `search=${"t".repeat(CATALOG_SEARCH_MAX_LENGTH)}`,
     );
-    expect(mocks.cache.mock.calls[0]?.[0]).toMatch(/^page:teacher-list:zh-cn:/);
+    expect(mocks.cache.mock.calls[0]?.[0]).toBe("page:teacher-list:zh-cn");
+    expect(mocks.cache.mock.calls[0]?.[1]).toMatch(/^page:teacher-list:zh-cn:/);
   });
 
   test("bounds section input and queries from the normalized runtime key", async () => {
@@ -149,9 +156,10 @@ describe("public catalog list loaders", () => {
       locale: "zh-cn",
       pagination: { page: CATALOG_MAX_PAGE, pageSize: 20 },
     });
-    expect(mocks.cache.mock.calls[0]?.[0]).not.toContain("campusId");
-    expect(mocks.cache.mock.calls[0]?.[0]).toContain("courseCode=MATH");
-    expect(mocks.cache.mock.calls[0]?.[0]).toContain("credits=2.5");
-    expect(mocks.cache.mock.calls[0]?.[0]).toMatch(/^page:section-list:zh-cn:/);
+    expect(mocks.cache.mock.calls[0]?.[0]).toBe("page:section-list:zh-cn");
+    expect(mocks.cache.mock.calls[0]?.[1]).not.toContain("campusId");
+    expect(mocks.cache.mock.calls[0]?.[1]).toContain("courseCode=MATH");
+    expect(mocks.cache.mock.calls[0]?.[1]).toContain("credits=2.5");
+    expect(mocks.cache.mock.calls[0]?.[1]).toMatch(/^page:section-list:zh-cn:/);
   });
 });

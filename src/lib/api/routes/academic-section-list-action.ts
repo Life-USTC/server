@@ -26,6 +26,7 @@ export async function listSectionsAction(
   cacheHeaders: HeadersInit,
 ) {
   const result = await cachedPublicRuntimeData(
+    `api:sections:${locale}`,
     `api:sections:${JSON.stringify({ locale, parsedQuery, pagination })}`,
     SECTION_LIST_API_CACHE_TTL_MS,
     () => listUncachedSectionsAction(parsedQuery, pagination, locale),

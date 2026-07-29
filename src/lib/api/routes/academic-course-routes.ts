@@ -37,6 +37,7 @@ export async function getCoursesRoute(request: Request) {
 
   try {
     const result = await cachedPublicRuntimeData(
+      `api:courses:${locale}`,
       publicRuntimeCacheKey(`api:courses:${locale}`, searchParams),
       COURSES_API_CACHE_TTL_MS,
       async () => {

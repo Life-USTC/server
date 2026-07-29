@@ -235,27 +235,44 @@ describe("Cloudflare Analytics Engine runtime events", () => {
     );
   });
 
-  it("writes cache datapoints without raw query cache keys", async () => {
+  it.each([
+    {
+      key: "course-list:zh-cn:page=1&search=sensitive-marker-679",
+      namespace: "page:course-list:zh-cn" as const,
+      surface: "catalog page list",
+    },
+    {
+      key: `api:sections:${JSON.stringify({
+        locale: "en-us",
+        pagination: { page: 1, pageSize: 20 },
+        parsedQuery: { search: "sensitive-marker-679" },
+      })}`,
+      namespace: "api:sections:en-us" as const,
+      surface: "section API",
+    },
+  ])("writes explicit $surface cache namespaces without raw query cache keys", async ({
+    key,
+    namespace,
+  }) => {
     const writeDataPoint = installAnalyticsBinding();
     const load = vi.fn(async () => ({ ok: true }));
-    const key = "api:courses:en-us:search=private-query&page=1";
 
-    await cachedPublicRuntimeData(key, 60_000, load);
-    await cachedPublicRuntimeData(key, 60_000, load);
+    await cachedPublicRuntimeData(namespace, key, 60_000, load);
+    await cachedPublicRuntimeData(namespace, key, 60_000, load);
 
     expect(load).toHaveBeenCalledTimes(1);
     expect(writeDataPoint).toHaveBeenCalledWith({
-      indexes: ["cache:api:courses:en-us"],
-      blobs: ["public_runtime_cache_v2", "miss", "api:courses:en-us"],
+      indexes: [`cache:${namespace}`],
+      blobs: ["public_runtime_cache_v2", "miss", namespace],
       doubles: [expect.any(Number), 60_000, 0],
     });
     expect(writeDataPoint).toHaveBeenCalledWith({
-      indexes: ["cache:api:courses:en-us"],
-      blobs: ["public_runtime_cache_v2", "hit", "api:courses:en-us"],
+      indexes: [`cache:${namespace}`],
+      blobs: ["public_runtime_cache_v2", "hit", namespace],
       doubles: [expect.any(Number), 60_000, 1],
     });
     expect(JSON.stringify(writeDataPoint.mock.calls)).not.toContain(
-      "private-query",
+      "sensitive-marker-679",
     );
   });
 });
