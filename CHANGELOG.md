@@ -1,3 +1,10 @@
+## [1.77.22](https://github.com/Life-USTC/server/compare/v1.77.21...v1.77.22) (2026-07-29)
+
+
+### Performance Improvements
+
+* **worker:** reduce remaining request hot paths ([#674](https://github.com/Life-USTC/server/issues/674)) ([bb38c20](https://github.com/Life-USTC/server/commit/bb38c20209b00473f7b0cc4170d2825e3d0502b1))
+
 ## [1.77.21](https://github.com/Life-USTC/server/compare/v1.77.20...v1.77.21) (2026-07-28)
 
 
