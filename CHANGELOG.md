@@ -1,3 +1,10 @@
+## [1.77.31](https://github.com/Life-USTC/server/compare/v1.77.30...v1.77.31) (2026-07-29)
+
+
+### Performance Improvements
+
+* **profile:** aggregate public contributions in database ([#693](https://github.com/Life-USTC/server/issues/693)) ([58c99cf](https://github.com/Life-USTC/server/commit/58c99cf0e46c3b01d44b597a850d5870b4c40de2))
+
 ## [1.77.30](https://github.com/Life-USTC/server/compare/v1.77.29...v1.77.30) (2026-07-29)
 
 
