@@ -6,6 +6,7 @@ import {
 } from "@/lib/adapters/cloudflare-runtime";
 import {
   type PublicRuntimeCacheAnalyticsNamespace,
+  type PublicRuntimeCacheAnalyticsReason,
   writeCacheEventAnalytics,
 } from "@/lib/metrics/analytics-engine";
 
@@ -35,7 +36,8 @@ type ColoCacheEvent =
   | "colo_miss"
   | "colo_read_error"
   | "colo_write_error"
-  | "colo_write_complete";
+  | "colo_write_complete"
+  | "colo_write_skip";
 
 const MAX_ENTRIES = 100;
 const PUBLIC_DETAIL_COLO_CACHE_NAME = "life-ustc-public-detail-core-v1";
@@ -104,11 +106,13 @@ function writeColoCacheEvent(
   start: number,
   storeSize: number,
   ttlMs: number,
+  reason: PublicRuntimeCacheAnalyticsReason = "none",
 ) {
   writeCacheEventAnalytics({
     event,
     ioObservedDurationMs: Date.now() - start,
     namespace,
+    reason,
     storeSize,
     ttlMs,
   });
@@ -203,13 +207,15 @@ function scheduleColoCacheWrite<T>(
         start,
         storeSize,
         ttlMs,
+        "scheduler_unavailable",
       );
     }
     return;
   }
 
+  let response: Response;
   try {
-    const response = new Response(
+    response = new Response(
       JSON.stringify({
         expiresAt,
         schema: PUBLIC_DETAIL_COLO_CACHE_SCHEMA,
@@ -222,46 +228,72 @@ function scheduleColoCacheWrite<T>(
         },
       },
     );
-    let scheduled = false;
-    const write = cache.put(request, response).then(
-      () => {
-        if (scheduled) {
-          writeColoCacheEvent(
-            "colo_write_complete",
-            namespace,
-            start,
-            storeSize,
-            ttlMs,
-          );
-        }
-      },
-      () => {
-        if (scheduled) {
-          writeColoCacheEvent(
-            "colo_write_error",
-            namespace,
-            start,
-            storeSize,
-            ttlMs,
-          );
-        }
-      },
-    );
-    try {
-      scheduleTask(write);
-      scheduled = true;
-    } catch {
-      void write;
-      writeColoCacheEvent(
-        "colo_write_error",
-        namespace,
-        start,
-        storeSize,
-        ttlMs,
-      );
-    }
   } catch {
-    writeColoCacheEvent("colo_write_error", namespace, start, storeSize, ttlMs);
+    writeColoCacheEvent(
+      "colo_write_error",
+      namespace,
+      start,
+      storeSize,
+      ttlMs,
+      "response_build_failed",
+    );
+    return;
+  }
+
+  let cacheWrite: Promise<void>;
+  try {
+    cacheWrite = cache.put(request, response);
+  } catch {
+    writeColoCacheEvent(
+      "colo_write_error",
+      namespace,
+      start,
+      storeSize,
+      ttlMs,
+      "cache_put_rejected",
+    );
+    return;
+  }
+
+  let scheduled = false;
+  const write = cacheWrite.then(
+    () => {
+      if (scheduled) {
+        writeColoCacheEvent(
+          "colo_write_complete",
+          namespace,
+          start,
+          storeSize,
+          ttlMs,
+        );
+      }
+    },
+    () => {
+      if (scheduled) {
+        writeColoCacheEvent(
+          "colo_write_error",
+          namespace,
+          start,
+          storeSize,
+          ttlMs,
+          "cache_put_rejected",
+        );
+      }
+    },
+  );
+  try {
+    scheduleTask(write);
+    scheduled = true;
+  } catch {
+    void write;
+    writeColoCacheEvent(
+      "colo_write_error",
+      namespace,
+      start,
+      storeSize,
+      ttlMs,
+      "task_scheduling_failed",
+    );
   }
 }
 
@@ -357,11 +389,12 @@ export function cachedPublicRuntimeData<T>(
         );
       } else {
         writeColoCacheEvent(
-          "colo_write_error",
+          "colo_write_skip",
           analyticsNamespace,
           start,
           initialStoreSize,
           ttlMs,
+          "result_invalid",
         );
       }
     }

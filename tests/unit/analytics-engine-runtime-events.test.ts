@@ -339,12 +339,12 @@ describe("Cloudflare Analytics Engine runtime events", () => {
     expect(load).toHaveBeenCalledTimes(1);
     expect(writeDataPoint).toHaveBeenCalledWith({
       indexes: [`cache:${namespace}`],
-      blobs: ["public_runtime_cache_v2", "miss", namespace],
+      blobs: ["public_runtime_cache_v2", "miss", namespace, "none"],
       doubles: [expect.any(Number), 60_000, 0],
     });
     expect(writeDataPoint).toHaveBeenCalledWith({
       indexes: [`cache:${namespace}`],
-      blobs: ["public_runtime_cache_v2", "hit", namespace],
+      blobs: ["public_runtime_cache_v2", "hit", namespace, "none"],
       doubles: [expect.any(Number), 60_000, 1],
     });
     expect(JSON.stringify(writeDataPoint.mock.calls)).not.toContain(
@@ -412,7 +412,12 @@ describe("Cloudflare Analytics Engine runtime events", () => {
     for (const event of ["colo_hit", "colo_miss", "colo_write_complete"]) {
       expect(writeDataPoint).toHaveBeenCalledWith({
         indexes: ["cache:page:course-detail:en-us"],
-        blobs: ["public_runtime_cache_v2", event, "page:course-detail:en-us"],
+        blobs: [
+          "public_runtime_cache_v2",
+          event,
+          "page:course-detail:en-us",
+          "none",
+        ],
         doubles: [expect.any(Number), 60_000, expect.any(Number)],
       });
     }

@@ -64,9 +64,14 @@ high-cardinality resource IDs.
   namespaces. Full cache keys, including search and filter values, never enter
   the Analytics Engine writer. Catalog detail cache namespaces likewise omit
   entity IDs. Detail L2 outcomes use fixed `colo_hit`, `colo_miss`,
-  `colo_read_error`, `colo_write_complete`, and `colo_write_error` events; the
-  synthetic Cache API key is never recorded. A completed write only confirms
-  that Cache API processing finished; a later `colo_hit` proves admission.
+  `colo_read_error`, `colo_write_complete`, `colo_write_skip`, and
+  `colo_write_error` events; the synthetic Cache API key is never recorded.
+  Cache event `blob4` is a fixed low-cardinality reason: `none`,
+  `result_invalid`, `scheduler_unavailable`, `response_build_failed`,
+  `task_scheduling_failed`, or `cache_put_rejected`. A validator-rejected
+  loaded result is an expected write skip, including a course alias result that
+  must redirect to its canonical ID. A completed write only confirms that Cache
+  API processing finished; a later `colo_hit` proves admission.
 
 ## Endpoints
 

@@ -81,6 +81,14 @@ export type PublicRuntimeCacheAnalyticsNamespace =
       | "page:teacher-detail"
       | "page:teacher-list"}:${AppLocale}`;
 
+export type PublicRuntimeCacheAnalyticsReason =
+  | "cache_put_rejected"
+  | "none"
+  | "response_build_failed"
+  | "result_invalid"
+  | "scheduler_unavailable"
+  | "task_scheduling_failed";
+
 type CacheEventAnalyticsInput = {
   event:
     | "colo_hit"
@@ -88,12 +96,14 @@ type CacheEventAnalyticsInput = {
     | "colo_read_error"
     | "colo_write_complete"
     | "colo_write_error"
+    | "colo_write_skip"
     | "hit"
     | "load_error"
     | "load_success"
     | "miss";
   ioObservedDurationMs: number;
   namespace: PublicRuntimeCacheAnalyticsNamespace;
+  reason?: PublicRuntimeCacheAnalyticsReason;
   storeSize: number;
   ttlMs: number;
 };
@@ -305,7 +315,12 @@ export function writeStorageOperationAnalytics(
 export function writeCacheEventAnalytics(input: CacheEventAnalyticsInput) {
   writeAnalyticsDataPoint({
     indexes: [`cache:${boundedValue(input.namespace)}`],
-    blobs: ["public_runtime_cache_v2", input.event, input.namespace],
+    blobs: [
+      "public_runtime_cache_v2",
+      input.event,
+      input.namespace,
+      input.reason ?? "none",
+    ],
     doubles: [input.ioObservedDurationMs, input.ttlMs, input.storeSize],
   });
 }

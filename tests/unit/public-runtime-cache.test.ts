@@ -66,6 +66,85 @@ function runtimeExecutionContext() {
   return { context, scheduled };
 }
 
+function expectColoCacheEvent(
+  writeDataPoint: ReturnType<typeof vi.fn>,
+  event: string,
+  reason: string,
+) {
+  expect(
+    writeDataPoint.mock.calls.filter(
+      ([dataPoint]) =>
+        dataPoint.blobs?.[1] === event && dataPoint.blobs?.[3] === reason,
+    ),
+  ).toHaveLength(1);
+  expect(writeDataPoint).toHaveBeenCalledWith({
+    indexes: ["cache:page:course-detail:en-us"],
+    blobs: [
+      "public_runtime_cache_v2",
+      event,
+      "page:course-detail:en-us",
+      reason,
+    ],
+    doubles: [expect.any(Number), 60_000, expect.any(Number)],
+  });
+}
+
+type ObservedColoMissOptions = {
+  loadResult?: unknown;
+  put?: (request: Request, response: Response) => Promise<void>;
+  scheduler?: "available" | "missing" | "throws";
+  validate?: (value: unknown) => boolean;
+  writeDataPoint?: ReturnType<typeof vi.fn>;
+};
+
+async function observeColoMiss(options: ObservedColoMissOptions = {}) {
+  const writeDataPoint = options.writeDataPoint ?? vi.fn();
+  const { put } = installNamedCache(
+    options.put ? { put: options.put } : undefined,
+  );
+  const scheduled: Promise<unknown>[] = [];
+  const context =
+    options.scheduler === "missing"
+      ? undefined
+      : {
+          waitUntil(promise: Promise<unknown>) {
+            if (options.scheduler === "throws") {
+              throw new Error("scheduler failed");
+            }
+            scheduled.push(promise);
+          },
+        };
+  const loadResult = Object.hasOwn(options, "loadResult")
+    ? options.loadResult
+    : { source: "database" };
+
+  const result = await runWithCloudflareRuntimeEnv(
+    { ANALYTICS: { writeDataPoint } },
+    async () => {
+      const value = await cachedPublicRuntimeData(
+        "page:course-detail:en-us",
+        "observed-colo-miss",
+        60_000,
+        async () => loadResult,
+        {
+          coloCacheKey: publicDetailColoCacheKey(
+            "https://example.test",
+            "course",
+            "en-us",
+            683009,
+          ),
+          validateColoCacheResult: options.validate ?? validatesSource,
+        },
+      );
+      await Promise.all(scheduled);
+      return value;
+    },
+    context,
+  );
+
+  return { put, result, scheduled, writeDataPoint };
+}
+
 describe("public runtime cache", () => {
   beforeEach(() => {
     clearPublicRuntimeCache();
@@ -571,5 +650,110 @@ describe("public runtime cache", () => {
     expect(load).toHaveBeenCalledOnce();
     expect(put).toHaveBeenCalledOnce();
     expect(scheduled).toHaveLength(1);
+  });
+
+  it("reports a validator-rejected canonical result as a write skip", async () => {
+    const canonical = { jwId: 683010, source: "database" };
+    const { put, result, scheduled, writeDataPoint } = await observeColoMiss({
+      loadResult: canonical,
+      validate: () => false,
+    });
+
+    expect(result).toBe(canonical);
+    expect(put).not.toHaveBeenCalled();
+    expect(scheduled).toHaveLength(0);
+    expectColoCacheEvent(writeDataPoint, "colo_write_skip", "result_invalid");
+    expect(writeDataPoint).not.toHaveBeenCalledWith(
+      expect.objectContaining({
+        blobs: expect.arrayContaining(["colo_write_error"]),
+      }),
+    );
+  });
+
+  it("reports response serialization failures and returns the loaded result", async () => {
+    const circular: { self?: unknown; source: string } = {
+      source: "database",
+    };
+    circular.self = circular;
+    const { put, result, scheduled, writeDataPoint } = await observeColoMiss({
+      loadResult: circular,
+      validate: () => true,
+    });
+
+    expect(result).toBe(circular);
+    expect(put).not.toHaveBeenCalled();
+    expect(scheduled).toHaveLength(0);
+    expectColoCacheEvent(
+      writeDataPoint,
+      "colo_write_error",
+      "response_build_failed",
+    );
+  });
+
+  it.each([
+    {
+      expectedPutCalls: 0,
+      expectedScheduled: 0,
+      name: "an unavailable runtime scheduler",
+      options: { scheduler: "missing" as const },
+      reason: "scheduler_unavailable",
+    },
+    {
+      expectedPutCalls: 1,
+      expectedScheduled: 0,
+      name: "a task scheduling failure",
+      options: { scheduler: "throws" as const },
+      reason: "task_scheduling_failed",
+    },
+    {
+      expectedPutCalls: 1,
+      expectedScheduled: 1,
+      name: "an asynchronous Cache API rejection",
+      options: {
+        put: async () => {
+          throw new Error("write failed");
+        },
+      },
+      reason: "cache_put_rejected",
+    },
+    {
+      expectedPutCalls: 1,
+      expectedScheduled: 0,
+      name: "a synchronous Cache API rejection",
+      options: {
+        put: () => {
+          throw new Error("write failed");
+        },
+      },
+      reason: "cache_put_rejected",
+    },
+  ])("reports $name without failing the loaded result", async ({
+    expectedPutCalls,
+    expectedScheduled,
+    options,
+    reason,
+  }) => {
+    const { put, result, scheduled, writeDataPoint } =
+      await observeColoMiss(options);
+
+    expect(result).toEqual({ source: "database" });
+    expect(put).toHaveBeenCalledTimes(expectedPutCalls);
+    expect(scheduled).toHaveLength(expectedScheduled);
+    expectColoCacheEvent(writeDataPoint, "colo_write_error", reason);
+  });
+
+  it("keeps a validator-rejected result available when Analytics Engine fails", async () => {
+    const writeDataPoint = vi.fn(() => {
+      throw new Error("analytics unavailable");
+    });
+    const { put, result } = await observeColoMiss({
+      loadResult: { source: "canonical" },
+      validate: () => false,
+      writeDataPoint,
+    });
+
+    expect(result).toEqual({ source: "canonical" });
+    expect(writeDataPoint).toHaveBeenCalled();
+    expect(put).not.toHaveBeenCalled();
   });
 });
