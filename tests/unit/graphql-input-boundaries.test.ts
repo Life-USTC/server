@@ -65,6 +65,15 @@ describe("GraphQL protocol input boundaries", () => {
     expect(validateGraphqlVersionKey("static-bus-structured")).toBe(
       "static-bus-structured",
     );
+    expect(validateGraphqlVersionKey(" static-bus-structured ")).toBe(
+      "static-bus-structured",
+    );
+    expect(validateGraphqlVersionKey(`v${"a".repeat(119)}`)).toHaveLength(
+      GRAPHQL_LIMITS.versionKeyChars,
+    );
+    expect(() => validateGraphqlVersionKey(`v${"a".repeat(120)}`)).toThrow(
+      "versionKey must not exceed",
+    );
     expect(() => validateGraphqlVersionKey("../unsafe")).toThrow(
       "versionKey has an invalid format",
     );

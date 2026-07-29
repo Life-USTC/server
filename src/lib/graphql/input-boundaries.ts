@@ -1,4 +1,5 @@
 import { GraphQLError } from "graphql";
+import { BUS_VERSION_KEY_PATTERN } from "@/features/bus/lib/bus-version-key";
 import { GRAPHQL_LIMITS } from "./constants";
 
 function badUserInput(message: string): never {
@@ -70,15 +71,13 @@ export function validateGraphqlWeekday(value: number | null | undefined) {
 }
 
 export function validateGraphqlVersionKey(value: string | null | undefined) {
+  value = value?.trim();
   const versionKey = validateOptionalText(
     value,
     "versionKey",
     GRAPHQL_LIMITS.versionKeyChars,
   );
-  if (
-    versionKey !== undefined &&
-    !/^[A-Za-z0-9][A-Za-z0-9._-]*$/.test(versionKey)
-  ) {
+  if (versionKey !== undefined && !BUS_VERSION_KEY_PATTERN.test(versionKey)) {
     badUserInput("versionKey has an invalid format.");
   }
   return versionKey;

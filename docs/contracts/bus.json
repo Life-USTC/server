@@ -18,6 +18,7 @@
     "merged-table-grouped-by-route": "The signed-in dashboard and the public /catalog/bus default timetable use a single merged large table to display all applicable routes, grouped into table sections by route; each section shows the visible trips for that route.",
     "raw-data-returned": "/api/catalog/bus and catalog_bus_timetable_get return raw route/stop/trip data within the selected timetable version; the preferences field is null for anonymous callers and returns the authenticated caller's saved preferences; the server does not pre-apply recommendations, filtering, or sorting.",
     "version-topology-self-contained": "When versionKey selects a historical timetable version, routes, stops, campuses, and trips are derived from that same imported schedule version rather than the latest global route topology.",
+    "version-key-boundary": "REST, GraphQL, and MCP normalize surrounding whitespace in versionKey and then require 1-120 ASCII characters matching ^[A-Za-z0-9][A-Za-z0-9._-]*$.",
     "current-version-only": "catalog_bus_route_list only lists routes actually present in the current active timetable version; it does not expose historical route IDs outside the current version.",
     "dashboard-vs-map": "The dashboard prioritizes answering 'how to get the next trip'; the map page handles spatial understanding.",
     "public-version-metadata-omitted": "Public bus dashboard pages omit timetable version metadata rather than showing an unlabeled or unlocalized imported value; the raw title remains available to admin, REST, and MCP consumers.",

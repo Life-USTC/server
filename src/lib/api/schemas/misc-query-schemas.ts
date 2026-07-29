@@ -1,4 +1,5 @@
 import * as z from "zod";
+import { busVersionKeySchema } from "@/features/bus/lib/bus-version-key";
 import { APP_LOCALES } from "@/i18n/config";
 import {
   booleanQuerySchema,
@@ -59,13 +60,13 @@ const compactOverviewLimitSchema = integerQueryRangeSchema({
 });
 
 export const busQuerySchema = z.object({
-  versionKey: z.string().trim().min(1).optional(),
+  versionKey: busVersionKeySchema.optional(),
 });
 
 export const busRouteSearchQuerySchema = z.object({
   originCampusId: positiveCampusIdQuerySchema.optional(),
   destinationCampusId: positiveCampusIdQuerySchema.optional(),
-  versionKey: z.string().trim().min(1).optional(),
+  versionKey: busVersionKeySchema.optional(),
   locale: z.enum(APP_LOCALES).optional(),
 });
 
@@ -76,7 +77,7 @@ export const busNextDeparturesQuerySchema = z.object({
   dayType: z.enum(["auto", "weekday", "weekend"]).optional(),
   includeDeparted: booleanQuerySchema.optional(),
   limit: busNextDeparturesLimitSchema.optional(),
-  versionKey: z.string().trim().min(1).optional(),
+  versionKey: busVersionKeySchema.optional(),
   locale: z.enum(APP_LOCALES).optional(),
 });
 

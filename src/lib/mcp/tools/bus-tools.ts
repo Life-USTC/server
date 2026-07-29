@@ -1,5 +1,6 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import * as z from "zod";
+import { busVersionKeySchema } from "@/features/bus/lib/bus-version-key";
 import {
   flexDateInputSchema,
   mcpLocaleInputSchema,
@@ -30,7 +31,7 @@ export function registerBusTools(server: McpServer) {
       description:
         "Full USTC shuttle bus dataset for clients that need local filtering. Prefer catalog_bus_departure_next for departures or catalog_bus_route_list for discovery.",
       inputSchema: {
-        versionKey: z.string().trim().min(1).optional(),
+        versionKey: busVersionKeySchema.optional(),
         locale: mcpLocaleInputSchema,
         mode: mcpModeInputSchema,
       },
@@ -57,7 +58,7 @@ export function registerBusTools(server: McpServer) {
         "Full weekday/weekend timetable for one route ID. Use catalog_bus_route_list first to find route IDs.",
       inputSchema: {
         routeId: z.number().int().positive(),
-        versionKey: z.string().trim().min(1).optional(),
+        versionKey: busVersionKeySchema.optional(),
         locale: mcpLocaleInputSchema,
         mode: mcpModeInputSchema,
       },
@@ -100,7 +101,7 @@ export function registerBusTools(server: McpServer) {
       inputSchema: {
         originCampusId: z.number().int().positive().optional(),
         destinationCampusId: z.number().int().positive().optional(),
-        versionKey: z.string().trim().min(1).optional(),
+        versionKey: busVersionKeySchema.optional(),
         locale: mcpLocaleInputSchema,
         mode: mcpModeInputSchema,
       },
@@ -124,7 +125,7 @@ export function registerBusTools(server: McpServer) {
         dayType: busDayTypeSchema,
         includeDeparted: z.boolean().default(false),
         limit: z.number().int().min(1).max(50).default(5),
-        versionKey: z.string().trim().min(1).optional(),
+        versionKey: busVersionKeySchema.optional(),
         locale: mcpLocaleInputSchema,
         mode: mcpModeInputSchema,
       },
