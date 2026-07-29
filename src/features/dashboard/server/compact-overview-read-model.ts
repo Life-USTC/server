@@ -1,7 +1,6 @@
 import { withHomeworkItemState } from "@/features/homeworks/server/homework-item-state";
 import {
   countUpcomingSubscribedExams,
-  getActiveSubscribedSectionIds,
   listSubscribedHomeworks,
   listSubscribedSchedules,
   listUpcomingSubscribedExams,
@@ -12,7 +11,12 @@ import {
   listTodoSummary,
 } from "@/features/todos/server/todo-service";
 import { type AppLocale, DEFAULT_LOCALE } from "@/i18n/config";
+import { runCloudflareTraceSpan } from "@/lib/adapters/cloudflare-runtime";
 import { prisma } from "@/lib/db/prisma";
+import {
+  type WorkspaceOverviewStage,
+  writeWorkspaceOverviewStageAnalytics,
+} from "@/lib/metrics/analytics-engine";
 import { parseDateInput } from "@/lib/time/parse-date-input";
 import { shanghaiDayjs } from "@/lib/time/shanghai-dayjs";
 import { formatShanghaiDate } from "@/lib/time/shanghai-format";
@@ -28,6 +32,33 @@ function requiredDate(value: Date | null | undefined, label: string) {
 
 function shanghaiDateOnlyStart(input: Date) {
   return requiredDate(parseDateInput(formatShanghaiDate(input)), "day start");
+}
+
+async function runOverviewStage<T>(
+  stage: WorkspaceOverviewStage,
+  work: () => Promise<T>,
+) {
+  const startMs = Date.now();
+  try {
+    const result = await runCloudflareTraceSpan(
+      `workspace.overview.${stage}`,
+      {},
+      work,
+    );
+    writeWorkspaceOverviewStageAnalytics({
+      ioObservedDurationMs: Date.now() - startMs,
+      stage,
+      status: "success",
+    });
+    return result;
+  } catch (error) {
+    writeWorkspaceOverviewStageAnalytics({
+      ioObservedDurationMs: Date.now() - startMs,
+      stage,
+      status: "error",
+    });
+    throw error;
+  }
 }
 
 export async function getCompactOverview(
@@ -51,98 +82,127 @@ export async function getCompactOverview(
     .add(homeworkWindowDays, "day")
     .toDate();
 
-  const [user, sectionIds, todos, dueTodosCount, dueTodos] = await Promise.all([
-    prisma.user.findUnique({
-      where: { id: userId },
-      select: { id: true, image: true, isAdmin: true, name: true },
-    }),
-    getActiveSubscribedSectionIds(userId),
-    listTodoSummary({
-      filters: { completed: false },
-      now,
-      take: limit,
-      userId,
-    }),
-    countDueTodos({
-      completed: false,
-      dueAtFrom: now,
-      dueAtTo: homeworkWindowEnd,
-      includeDueAtTo: true,
-      userId,
-    }),
-    listDueTodoSamples({
-      completed: false,
-      dueAtFrom: now,
-      dueAtTo: homeworkWindowEnd,
-      includeDueAtTo: true,
-      take: limit,
-      userId,
-    }),
+  const [user, todos, dueTodosCount, dueTodos] = await Promise.all([
+    runOverviewStage("user_sections", () =>
+      prisma.user.findUnique({
+        where: { id: userId },
+        select: {
+          id: true,
+          image: true,
+          isAdmin: true,
+          name: true,
+          subscribedSections: {
+            where: { retiredAt: null },
+            select: { id: true },
+          },
+        },
+      }),
+    ),
+    runOverviewStage("todo_summary", () =>
+      listTodoSummary({
+        filters: { completed: false },
+        now,
+        take: limit,
+        userId,
+      }),
+    ),
+    runOverviewStage("due_todo_count", () =>
+      countDueTodos({
+        completed: false,
+        dueAtFrom: now,
+        dueAtTo: homeworkWindowEnd,
+        includeDueAtTo: true,
+        userId,
+      }),
+    ),
+    runOverviewStage("due_todo_sample", () =>
+      listDueTodoSamples({
+        completed: false,
+        dueAtFrom: now,
+        dueAtTo: homeworkWindowEnd,
+        includeDueAtTo: true,
+        take: limit,
+        userId,
+      }),
+    ),
   ]);
+  const sectionIds =
+    user?.subscribedSections.map((section) => section.id) ?? [];
 
   const [
-    pendingHomeworksCount,
-    todaySchedulesCount,
-    upcomingExamsCount,
-    dueSoonHomeworksCount,
-    schedules,
-    dueSoonHomeworksRaw,
-    upcomingExams,
-  ] =
-    sectionIds.length > 0
-      ? await Promise.all([
-          prisma.homework.count({
-            where: {
-              deletedAt: null,
-              homeworkCompletions: { none: { userId } },
-              sectionId: { in: sectionIds },
-            },
-          }),
-          prisma.schedule.count({
-            where: {
-              date: { gte: todayStart, lt: tomorrowStart },
-              sectionId: { in: sectionIds },
-            },
-          }),
-          countUpcomingSubscribedExams({
-            atTime: now,
-            sectionIds,
-          }),
-          prisma.homework.count({
-            where: {
-              deletedAt: null,
-              homeworkCompletions: { none: { userId } },
-              sectionId: { in: sectionIds },
-              submissionDueAt: { gte: now, lte: homeworkWindowEnd },
-            },
-          }),
-          listSubscribedSchedules(userId, {
-            dateFrom: todayStart,
-            dateTo: todayStart,
-            limit,
-            locale,
-            sectionIds,
-          }),
-          listSubscribedHomeworks(userId, {
-            completed: false,
-            dueAtFrom: now,
-            dueAtTo: homeworkWindowEnd,
-            includeEditors: true,
-            limit,
-            locale,
-            requireDueDate: true,
-            sectionIds,
-          }),
-          listUpcomingSubscribedExams(userId, {
-            atTime: now,
-            limit,
-            locale,
-            sectionIds,
-          }),
-        ])
-      : [0, 0, 0, 0, [], [], []];
+    [
+      pendingHomeworksCount,
+      todaySchedulesCount,
+      upcomingExamsCount,
+      dueSoonHomeworksCount,
+    ],
+    [schedules, dueSoonHomeworksRaw, upcomingExams],
+  ] = await Promise.all([
+    runOverviewStage("counts", () =>
+      sectionIds.length > 0
+        ? Promise.all([
+            prisma.homework.count({
+              where: {
+                deletedAt: null,
+                homeworkCompletions: { none: { userId } },
+                sectionId: { in: sectionIds },
+              },
+            }),
+            prisma.schedule.count({
+              where: {
+                date: { gte: todayStart, lt: tomorrowStart },
+                sectionId: { in: sectionIds },
+              },
+            }),
+            countUpcomingSubscribedExams({
+              atTime: now,
+              sectionIds,
+            }),
+            prisma.homework.count({
+              where: {
+                deletedAt: null,
+                homeworkCompletions: { none: { userId } },
+                sectionId: { in: sectionIds },
+                submissionDueAt: { gte: now, lte: homeworkWindowEnd },
+              },
+            }),
+          ])
+        : Promise.resolve<[number, number, number, number]>([0, 0, 0, 0]),
+    ),
+    runOverviewStage("lists", () =>
+      sectionIds.length > 0
+        ? Promise.all([
+            listSubscribedSchedules(userId, {
+              dateFrom: todayStart,
+              dateTo: todayStart,
+              limit,
+              locale,
+              sectionIds,
+            }),
+            listSubscribedHomeworks(userId, {
+              completed: false,
+              dueAtFrom: now,
+              dueAtTo: homeworkWindowEnd,
+              includeEditors: true,
+              limit,
+              locale,
+              requireDueDate: true,
+              sectionIds,
+            }),
+            listUpcomingSubscribedExams(userId, {
+              atTime: now,
+              limit,
+              locale,
+              sectionIds,
+            }),
+          ])
+        : Promise.resolve<[never[], never[], never[]]>([[], [], []]),
+    ),
+  ]);
 
-  const dueSoonHomeworks = await withHomeworkItemState(dueSoonHomeworksRaw);
+  const dueSoonHomeworks = await runOverviewStage("item_state", () =>
+    withHomeworkItemState(dueSoonHomeworksRaw),
+  );
 
   return {
     user: {
