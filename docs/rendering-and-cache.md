@@ -54,12 +54,20 @@ normalization bounds database input and runtime cache keys.
    cache. Unknown routes instead return a small script-free, private/no-store
    response directly, so scanners do not render or hydrate the full application
    shell and cannot populate attacker-controlled high-cardinality cache keys.
-   Inside this trusted anonymous entrypoint, catalog detail loaders also coalesce
-   public entity core reads for 60 seconds per entity and locale. Course and
-   teacher section-list shapes, section calendar/exam shapes, nulls, and failures
-   are not retained. Section overview related-course queries stay outside the
-   core cache, as do all viewer, description, comment, homework, and subscription
+   Inside this trusted anonymous entrypoint, catalog detail loaders first
+   coalesce public entity core reads in the current isolate, then use a
+   versioned named Cache API entry to share the same result with other isolates
+   in the handling Cloudflare data center. Both layers use the same absolute
+   60-second expiry, so refilling the isolate cache cannot extend stale data.
+   The synthetic key includes entity kind, reviewed data shape, locale, ID, and
+   schema version, but is never fetched as an application endpoint. Cache API
+   failures fall through to the database. Course and teacher section-list
+   shapes, section calendar/exam/related shapes, nulls, and failures are not
+   retained. Section overview related-course queries stay outside the core
+   cache, as do all viewer, description, comment, homework, and subscription
    reads. Dynamic and authenticated SSR never use this runtime detail cache.
+   Named Cache API entries are data-center-local and do not replicate across
+   locations or participate in Tiered Cache.
 4. The default entrypoint rewrites the cached CSP nonce placeholder and request
    ID for every browser response, then marks that outer response private and
    no-store so zone rules cannot bypass the gateway. Raw session headers never
