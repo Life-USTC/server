@@ -78,7 +78,6 @@ export type SectionDetailSection = {
   limitCount?: number | null;
   machinePeriods?: number | null;
   openDepartment?: SectionDetailNamed | null;
-  otherSections?: SectionDetailRelatedSection[];
   period?: number | null;
   periodsPerWeek?: number | null;
   practicePeriods?: number | null;

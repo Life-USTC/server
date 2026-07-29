@@ -69,7 +69,6 @@ export async function getSectionPageRelatedData({
     ]);
 
   return {
-    otherSections: [...sameSemesterOtherTeachers, ...sameTeacherOtherSemesters],
     sameSemesterOtherTeachers,
     sameTeacherOtherSemesters,
   };

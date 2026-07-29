@@ -51,9 +51,6 @@ export async function getTeacherPage(
           nameSecondary: true,
         },
       },
-      description: {
-        select: { content: true, updatedAt: true, lastEditedAt: true },
-      },
       _count: { select: { sections: true } },
       sections:
         options.includeSections === false

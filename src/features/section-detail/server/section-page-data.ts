@@ -38,7 +38,6 @@ export async function getSectionPage(
   const relatedData =
     options.includeRelated === false
       ? {
-          otherSections: [],
           sameSemesterOtherTeachers: [],
           sameTeacherOtherSemesters: [],
         }
