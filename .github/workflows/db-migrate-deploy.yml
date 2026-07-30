@@ -45,5 +45,5 @@ jobs:
 
       - name: Deploy migrations
         env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          DATABASE_URL: ${{ secrets.MIGRATOR_DATABASE_URL }}
         run: bun run db:migrate:deploy

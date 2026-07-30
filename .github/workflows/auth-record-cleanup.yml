@@ -34,5 +34,5 @@ jobs:
 
       - name: Clean expired authentication records
         env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          DATABASE_URL: ${{ secrets.MAINTENANCE_DATABASE_URL }}
         run: bun run auth:cleanup

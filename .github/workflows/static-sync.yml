@@ -66,13 +66,13 @@ jobs:
 
       - name: Deploy Prisma migrations
         env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          DATABASE_URL: ${{ secrets.MIGRATOR_DATABASE_URL }}
         run: bun run db:migrate:deploy
 
       - name: Load static snapshot
         id: load
         env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          DATABASE_URL: ${{ secrets.MIGRATOR_DATABASE_URL }}
           STATIC_SNAPSHOT_URL: ${{ vars.STATIC_SNAPSHOT_URL || 'https://static.life-ustc.tiankaima.dev/life-ustc-static.sqlite' }}
           STATIC_LOADER_MIN_SEMESTER: ${{ vars.STATIC_LOADER_MIN_SEMESTER || '401' }}
           STATIC_LOADER_DRY_RUN: ${{ inputs.dry-run || 'false' }}
