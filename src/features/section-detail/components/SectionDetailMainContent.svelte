@@ -10,6 +10,11 @@ import type { SubmitFunction } from "@sveltejs/kit";
 import CommentsPanel from "@/features/comments/components/CommentsPanel.svelte";
 import DescriptionCard from "@/features/descriptions/components/DescriptionCard.svelte";
 import type { SectionDetailPageData } from "@/features/section-detail/lib/section-detail-controller-helpers";
+import type { SectionDetailSection } from "@/features/section-detail/lib/section-detail-controller-types";
+import {
+  type SectionDetailTab,
+  sectionDetailPagePath,
+} from "@/features/section-detail/lib/section-detail-tab";
 import DetailSectionNav from "$lib/components/DetailSectionNav.svelte";
 import * as Alert from "$lib/components/ui/alert/index.js";
 import { Button } from "$lib/components/ui/button/index.js";
@@ -30,6 +35,7 @@ import type { SectionDetailMainContentProps } from "./section-detail-dialog-type
 
 type SubscriptionActionKey = "subscribe" | "unsubscribe";
 
+export let activeTab: SectionDetailTab;
 export let calendarMonthLabel: string;
 export let calendarMonthOffset: number;
 export let canWriteHomework: boolean;
@@ -38,6 +44,8 @@ export let commonCopy: SectionDetailMainContentProps["commonCopy"];
 export let courseName: string;
 export let courseSecondaryName: string;
 export let data: SectionDetailPageData;
+export let displaySection: SectionDetailSection;
+export let descriptionData: SectionDetailPageData["descriptionData"];
 export let formError: string | null | undefined;
 export let fmtDate: SectionDetailMainContentProps["fmtDate"];
 export let fmtDateTime: SectionDetailMainContentProps["fmtDateTime"];
@@ -47,6 +55,7 @@ export let homeworkStatus: SectionDetailMainContentProps["homeworkStatus"];
 export let homeworkView: SectionDetailMainContentProps["homeworkView"];
 export let homeworks: SectionDetailMainContentProps["homeworks"];
 export let notAvailable: string;
+export let onSelectTab: (tab: SectionDetailTab) => void;
 export let openCalendarDialog: SectionDetailMainContentProps["openCalendarDialog"];
 export let openCreateHomeworkDialog: SectionDetailMainContentProps["openCreateHomeworkDialog"];
 export let openSubscribeDialog: () => void;
@@ -63,6 +72,7 @@ export let subscriptionAction: (
   action: SubscriptionActionKey,
 ) => SubmitFunction;
 export let subscriptionPendingAction: SubscriptionActionKey | null;
+export let tabPanelLoading: boolean;
 export let teacherName: SectionDetailMainContentProps["teacherName"];
 export let todayCalendarMonthOffset: number;
 export let unscheduledCalendarEvents: SectionDetailMainContentProps["unscheduledCalendarEvents"];
@@ -80,60 +90,56 @@ $: commentsCount = data.commentsData
       (sum, comments) => sum + comments.length,
       0,
     )
-  : 0;
-$: sectionBaseHref = `/catalog/sections/${data.section.jwId}`;
+  : undefined;
 $: sectionNavItems = [
   {
-    href: sectionBaseHref,
+    href: sectionDetailPagePath(data.section.jwId, "overview"),
     icon: InfoIcon,
     key: "overview" as const,
     label: sectionCopy.basicInfo,
   },
   {
-    href: `${sectionBaseHref}/introduction`,
+    href: sectionDetailPagePath(data.section.jwId, "introduction"),
     icon: BookOpenTextIcon,
     key: "introduction" as const,
     label: data.copy.descriptions.title,
   },
   {
-    href: `${sectionBaseHref}/calendar`,
+    href: sectionDetailPagePath(data.section.jwId, "calendar"),
     icon: CalendarDaysIcon,
     key: "calendar" as const,
     label: sectionCopy.tabs.calendar,
-    meta: data.section.scheduleCount + data.section.examCount,
+    meta: displaySection.scheduleCount + displaySection.examCount,
   },
   {
-    href: `${sectionBaseHref}/exams`,
+    href: sectionDetailPagePath(data.section.jwId, "exams"),
     icon: GraduationCapIcon,
     key: "exams" as const,
     label: sectionCopy.tabs.exams,
-    meta: data.section.examCount,
+    meta: displaySection.examCount,
   },
   {
-    href: `${sectionBaseHref}/homework`,
+    href: sectionDetailPagePath(data.section.jwId, "homework"),
     icon: ClipboardListIcon,
     key: "homework" as const,
     label: sectionCopy.tabs.homeworks,
-    meta: data.detailSection === "homework" ? homeworks.length : undefined,
+    meta: activeTab === "homework" ? homeworks.length : undefined,
   },
   {
-    href: `${sectionBaseHref}/teachers`,
+    href: sectionDetailPagePath(data.section.jwId, "teachers"),
     icon: UsersIcon,
     key: "teachers" as const,
     label: sectionCopy.teachers,
-    meta: data.section.teachers.length,
+    meta: displaySection.teachers.length,
   },
   {
-    href: `${sectionBaseHref}/comments`,
+    href: sectionDetailPagePath(data.section.jwId, "comments"),
     icon: MessageSquareIcon,
     key: "comments" as const,
     label: sectionCopy.tabs.comments,
-    meta: data.commentsData ? commentsCount : undefined,
+    meta: commentsCount,
   },
 ];
-$: activeNavItem =
-  sectionNavItems.find((item) => item.key === data.detailSection) ??
-  sectionNavItems[0];
 </script>
 
 <div class="grid min-h-full grid-rows-[auto_minmax(0,1fr)_auto] bg-card lg:h-full lg:min-h-0 lg:grid-rows-[auto_minmax(0,1fr)]">
@@ -156,48 +162,55 @@ $: activeNavItem =
 
   <div class="grid min-h-0 grid-rows-[auto_minmax(0,1fr)] bg-card lg:grid-cols-[auto_minmax(0,1fr)] lg:grid-rows-none">
     <DetailSectionNav
-      activeHref={activeNavItem?.href ?? sectionBaseHref}
+      activeKey={activeTab}
       ariaLabel={sectionCopy.teachingSection}
       items={sectionNavItems}
       label={sectionCopy.teachingSection}
+      onSelect={(key) => onSelectTab(key as SectionDetailTab)}
     />
 
     <div
       class="min-w-0 min-h-0 overflow-y-auto px-4 py-4 sm:px-5 lg:px-6"
+      aria-busy={tabPanelLoading}
       data-detail-scroll-container
     >
-      {#if data.detailSection === "overview"}
+      {#if tabPanelLoading}
+        <p class="sr-only">
+          {data.locale === "zh-cn" ? "加载中..." : "Loading..."}
+        </p>
+      {/if}
+      {#if activeTab === "overview"}
       <section id="section-overview">
         <SectionBasicInfoCard
           {commonCopy}
           {notAvailable}
           {periodDetailRows}
           {primaryName}
-          section={data.section}
+          section={displaySection}
           {sectionCopy}
           {sectionTeachersLabel}
           {yesNo}
         />
       </section>
-      {:else if data.detailSection === "introduction"}
+      {:else if activeTab === "introduction"}
       <section id="section-description">
         {#key `description:section:${data.section.id}`}
           <DescriptionCard
             targetType="section"
             targetId={data.section.id}
-            initialData={data.descriptionData}
+            initialData={descriptionData}
             locale={data.locale}
             copy={data.copy.descriptions}
           />
         {/key}
       </section>
-      {:else if data.detailSection === "calendar"}
+      {:else if activeTab === "calendar"}
       <section id="tab-calendar">
         <SectionCalendarTab
           bind:calendarMonthOffset
           calendarGridWeeks={sectionCalendarGridWeeks}
           {calendarMonthLabel}
-          dateTimePlaceText={data.section.dateTimePlaceText}
+          dateTimePlaceText={displaySection.dateTimePlaceText}
           {formatMessage}
           {openCalendarDialog}
           {sectionCalendarEvents}
@@ -206,7 +219,7 @@ $: activeNavItem =
           {unscheduledCalendarEvents}
         />
       </section>
-      {:else if data.detailSection === "exams"}
+      {:else if activeTab === "exams"}
       <section id="tab-exams">
         <SectionExamSection
           events={sectionExamEvents}
@@ -214,7 +227,7 @@ $: activeNavItem =
           {sectionCopy}
         />
       </section>
-      {:else if data.detailSection === "homework"}
+      {:else if activeTab === "homework"}
       <section id="tab-homework">
         <SectionHomeworkTab
           {canWriteHomework}
@@ -232,16 +245,16 @@ $: activeNavItem =
           {setHomeworkView}
         />
       </section>
-      {:else if data.detailSection === "teachers"}
+      {:else if activeTab === "teachers"}
       <section id="section-teachers">
         <SectionTeachersCard
           {primaryName}
           {sectionCopy}
           {teacherName}
-          teachers={data.section.teachers}
+          teachers={displaySection.teachers}
         />
       </section>
-      {:else if data.detailSection === "comments"}
+      {:else if activeTab === "comments"}
       <section id="tab-comments">
         {#key `comments:section:${data.section.id}`}
           <CommentsPanel

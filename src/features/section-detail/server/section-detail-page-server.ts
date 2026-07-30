@@ -7,23 +7,24 @@ import {
   formatMessage,
   primaryName,
 } from "@/features/section-detail/lib/display";
+import {
+  parseSectionDetailTab,
+  SECTION_DETAIL_TAB_QUERY,
+  type SectionDetailTab,
+} from "@/features/section-detail/lib/section-detail-tab";
 import { getSectionPage } from "@/features/section-detail/server/section-page-data";
 import type { AppLocale } from "@/i18n/config";
 import {
   buildPublicDetailRuntimeCacheOptions,
   PUBLIC_DETAIL_RUNTIME_CACHE_TTL_MS,
 } from "@/lib/catalog-detail-runtime-cache";
-import {
-  cachedPublicRuntimeData,
-  publicDetailColoCacheKey,
-} from "@/lib/public-runtime-cache";
+import { cachedPublicRuntimeData } from "@/lib/public-runtime-cache";
 import {
   buildSocialMetadata,
   formatSocialMetadataMessage,
 } from "@/lib/social-metadata";
 import { requireCampusDateKeyForValue } from "@/lib/time/campus-date";
 import { getSectionDetailDescriptionAndComments } from "./section-detail-comments-data";
-import { getSectionHomeworkData } from "./section-detail-homework-data";
 import { getSectionDetailPageCopy } from "./section-detail-page-copy";
 import { parseSectionJwId } from "./section-detail-params";
 
@@ -32,23 +33,7 @@ export {
   unsubscribeSectionAction,
 } from "./section-detail-subscription-actions";
 
-export type SectionDetailRouteSection =
-  | "overview"
-  | "introduction"
-  | "calendar"
-  | "exams"
-  | "homework"
-  | "teachers"
-  | "comments";
-
-const sectionDetailRouteSections = new Set([
-  "introduction",
-  "calendar",
-  "exams",
-  "homework",
-  "teachers",
-  "comments",
-]);
+export type SectionDetailRouteSection = SectionDetailTab;
 
 const PUBLIC_DETAIL_COLO_CACHE_PATH =
   "/_life-ustc-internal-cache/catalog-detail-core/v1";
@@ -70,32 +55,6 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 function isEmptyArray(value: unknown) {
   return Array.isArray(value) && value.length === 0;
-}
-
-function isPublicSectionCore(value: unknown, jwId: number) {
-  return (
-    isRecord(value) &&
-    typeof value.id === "number" &&
-    value.jwId === jwId &&
-    typeof value.code === "string" &&
-    typeof value.courseId === "number" &&
-    (value.semesterId === null || typeof value.semesterId === "number") &&
-    isRecord(value.course) &&
-    typeof value.course.id === "number" &&
-    typeof value.course.jwId === "number" &&
-    typeof value.course.namePrimary === "string" &&
-    Array.isArray(value.adminClasses) &&
-    Array.isArray(value.teachers) &&
-    value.teachers.every(
-      (teacher) => isRecord(teacher) && typeof teacher.id === "number",
-    ) &&
-    typeof value.examCount === "number" &&
-    typeof value.scheduleCount === "number" &&
-    isEmptyArray(value.exams) &&
-    isEmptyArray(value.schedules) &&
-    isEmptyArray(value.sameSemesterOtherTeachers) &&
-    isEmptyArray(value.sameTeacherOtherSemesters)
-  );
 }
 
 function isPublicSectionOverviewCore(value: unknown, jwId: number) {
@@ -124,15 +83,6 @@ function isPublicSectionOverviewCore(value: unknown, jwId: number) {
   );
 }
 
-function resolveSectionDetailRouteSection(
-  section: string | undefined,
-): SectionDetailRouteSection | null {
-  if (!section) return "overview";
-  return sectionDetailRouteSections.has(section)
-    ? (section as SectionDetailRouteSection)
-    : null;
-}
-
 export async function loadSectionDetailPage({
   locals,
   params,
@@ -143,63 +93,60 @@ export async function loadSectionDetailPage({
   request: Request;
   url: URL;
 }) {
-  const detailSection = resolveSectionDetailRouteSection(params.section);
-  if (!detailSection) error(404, "Section not found");
   const jwId = parseSectionJwId(params.jwId);
   if (jwId === null) error(404, "Section not found");
+  const initialTab = parseSectionDetailTab(
+    params.section ?? url.searchParams.get(SECTION_DETAIL_TAB_QUERY),
+  );
   const userId = locals.authUser?.id ?? null;
-  const includeExams =
-    detailSection === "calendar" || detailSection === "exams";
-  const includeRelated = detailSection === "overview";
-  const includeSchedules = detailSection === "calendar";
-  const includeTeacherDepartments = detailSection === "teachers";
+  const includeSchedules = initialTab === "calendar";
+  const includeExams = initialTab === "calendar" || initialTab === "exams";
+  const includeTeacherDepartments = initialTab === "teachers";
+  const includeRelated = initialTab === "overview";
+  const focusedHomeworkId = url.searchParams.get("homeworkId");
+  const shouldLoadHomework =
+    initialTab === "homework" || focusedHomeworkId != null;
   const cachePublicCore =
-    locals.publicSsr && !userId && !includeExams && !includeSchedules;
-  const cachePublicOverviewCore = cachePublicCore && includeRelated;
+    locals.publicSsr &&
+    !userId &&
+    !includeExams &&
+    !includeSchedules &&
+    !includeTeacherDepartments &&
+    !shouldLoadHomework;
   const loadSection = () =>
     getSectionPage(jwId, locals.locale, {
       includeExams,
-      includeRelated:
-        cachePublicCore && !cachePublicOverviewCore ? false : includeRelated,
+      includeRelated,
       includeSchedules,
       includeTeacherDepartments,
     });
   const section = cachePublicCore
     ? await cachedPublicRuntimeData(
-        cachePublicOverviewCore
-          ? `page:section-detail:overview:${locals.locale}`
-          : `page:section-detail:${locals.locale}`,
-        cachePublicOverviewCore
-          ? `catalog-detail:section:overview:${locals.locale}:${jwId}`
-          : `catalog-detail:section:${locals.locale}:${jwId}`,
+        `page:section-detail:overview:${locals.locale}`,
+        `catalog-detail:section:overview:${locals.locale}:${jwId}`,
         PUBLIC_DETAIL_RUNTIME_CACHE_TTL_MS,
         loadSection,
         await buildPublicDetailRuntimeCacheOptions({
-          coloCacheKey: cachePublicOverviewCore
-            ? publicSectionOverviewColoCacheKey(url.origin, locals.locale, jwId)
-            : publicDetailColoCacheKey(
-                url.origin,
-                "section",
-                locals.locale,
-                jwId,
-              ),
+          coloCacheKey: publicSectionOverviewColoCacheKey(
+            url.origin,
+            locals.locale,
+            jwId,
+          ),
           id: jwId,
           kind: "section",
-          kvShape: cachePublicOverviewCore
-            ? "core-with-related-overview"
-            : "core-without-exams-schedules-related",
+          kvShape: "core-with-related-overview",
           locale: locals.locale,
           shouldCacheResult: (result) => result !== null,
           validateColoCacheResult: (result) =>
-            cachePublicOverviewCore
-              ? isPublicSectionOverviewCore(result, jwId)
-              : isPublicSectionCore(result, jwId),
+            isPublicSectionOverviewCore(result, jwId),
         }),
       )
     : await loadSection();
   if (!section) error(404, "Section not found");
   const copy = getSectionDetailPageCopy(locals.locale);
   const courseName = primaryName(section.course) || section.code;
+  const includeDescription =
+    initialTab === "introduction" || initialTab === "overview";
   const [subscriptionState, descriptionAndComments, homeworkData] =
     await Promise.all([
       userId
@@ -208,13 +155,14 @@ export async function loadSectionDetailPage({
           ).getUserSectionSubscriptionState(userId)
         : null,
       getSectionDetailDescriptionAndComments(section, userId, {
-        includeComments: detailSection === "comments",
-        includeDescription:
-          detailSection === "introduction" || detailSection === "overview",
-        includeDescriptionHistory: detailSection === "introduction",
+        includeComments: false,
+        includeDescription,
+        includeDescriptionHistory: false,
       }),
-      detailSection === "homework"
-        ? getSectionHomeworkData(section.id, userId)
+      shouldLoadHomework
+        ? (
+            await import("./section-detail-homework-data")
+          ).getSectionHomeworkData(section.id, userId)
         : {
             auditLogs: [],
             homeworks: [],
@@ -257,10 +205,10 @@ export async function loadSectionDetailPage({
     todayCalendarKey: requireCampusDateKeyForValue(new Date()),
     copy,
     descriptionData: descriptionAndComments.descriptionData,
-    commentsData: descriptionAndComments.commentsData,
-    detailSection,
+    commentsData: null,
+    detailSection: initialTab,
     homeworkData,
-    focusedHomeworkId: url.searchParams.get("homeworkId"),
+    focusedHomeworkId,
     homeworkView:
       url.searchParams.get("homeworkView") === "list" ? "list" : "cards",
     showSubscribeDialog:

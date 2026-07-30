@@ -6,6 +6,7 @@ import type {
   DashboardSessionItem,
   DashboardTodoItem,
 } from "@/features/dashboard/lib/dashboard-controller-helpers";
+import { sectionDetailHomeworkPath } from "@/features/section-detail/lib/section-detail-tab";
 import * as Card from "$lib/components/ui/card/index.js";
 import * as Empty from "$lib/components/ui/empty/index.js";
 import * as Item from "$lib/components/ui/item/index.js";
@@ -49,7 +50,7 @@ export let todaySessions: DashboardSessionItem[];
           {#snippet child({ props })}
             <a
               href={homework.section?.jwId
-                ? `/catalog/sections/${homework.section.jwId}/homework#homework-${homework.id}`
+                ? `${sectionDetailHomeworkPath(homework.section.jwId)}#homework-${homework.id}`
                 : dashboardTabHref("homeworks")}
               {...props}
             >

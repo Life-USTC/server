@@ -14,10 +14,10 @@ describe("评论面板链接", () => {
     });
 
     expect(baseHref).toBe(
-      "/catalog/sections/12345/homework?homeworkId=homework-1",
+      "/catalog/sections/12345?tab=homework&homeworkId=homework-1",
     );
     expect(commentPermalinkHref(baseHref, "comment-1")).toBe(
-      "/catalog/sections/12345/homework?homeworkId=homework-1#comment-comment-1",
+      "/catalog/sections/12345?tab=homework&homeworkId=homework-1#comment-comment-1",
     );
   });
 
@@ -25,7 +25,7 @@ describe("评论面板链接", () => {
     [
       "section",
       commentTargetPermalinkBaseHref({ sectionJwId: 12345, type: "section" }),
-      "/catalog/sections/12345/comments#comment-comment-1",
+      "/catalog/sections/12345?tab=comments#comment-comment-1",
     ],
     [
       "section-teacher",
@@ -33,7 +33,7 @@ describe("评论面板链接", () => {
         sectionJwId: 12345,
         type: "section-teacher",
       }),
-      "/catalog/sections/12345/comments#comment-comment-1",
+      "/catalog/sections/12345?tab=comments#comment-comment-1",
     ],
     [
       "course",
@@ -55,10 +55,10 @@ describe("评论面板链接", () => {
         commentId: "comment-1",
         currentHref: "https://life.example/workspace/homeworks",
         permalinkBaseHref:
-          "/catalog/sections/12345/homework?homeworkId=homework-1",
+          "/catalog/sections/12345?tab=homework&homeworkId=homework-1",
       }),
     ).toBe(
-      "https://life.example/catalog/sections/12345/homework?homeworkId=homework-1#comment-comment-1",
+      "https://life.example/catalog/sections/12345?tab=homework&homeworkId=homework-1#comment-comment-1",
     );
   });
 });

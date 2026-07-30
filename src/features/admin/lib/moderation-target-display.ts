@@ -7,6 +7,10 @@ import {
   commentPermalinkHref,
   commentTargetPermalinkBaseHref,
 } from "@/features/comments/lib/comment-panel-links";
+import {
+  sectionDetailHomeworkPath,
+  sectionDetailPagePath,
+} from "@/features/section-detail/lib/section-detail-tab";
 
 export function visibleModerationComments<T extends ModerationCommentLike>(
   comments: T[],
@@ -106,10 +110,10 @@ export function moderationDescriptionTargetHref(
   description: ModerationDescriptionLike,
 ) {
   if (description.homework?.section?.jwId) {
-    return `/catalog/sections/${description.homework.section.jwId}/homework#homework-${description.homework.id}`;
+    return `${sectionDetailHomeworkPath(description.homework.section.jwId)}#homework-${description.homework.id}`;
   }
   if (description.section?.jwId)
-    return `/catalog/sections/${description.section.jwId}/introduction`;
+    return sectionDetailPagePath(description.section.jwId, "introduction");
   if (description.course?.jwId)
     return `/catalog/courses/${description.course.jwId}/introduction`;
   if (description.teacher?.id)

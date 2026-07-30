@@ -7,6 +7,7 @@ import {
   resolvePublicSsrMode as resolveBasePublicSsrMode,
   resolveLegacyCatalogRedirect,
   resolvePublicSsrLocale,
+  resolveSectionDetailTabRedirect,
 } from "@/lib/cloudflare/public-ssr-gateway";
 
 function resolvePublicSsrMode(request: Request) {
@@ -33,6 +34,19 @@ describe("public SSR gateway", () => {
     ["/teachers/abc123", "/catalog/teachers/abc123"],
   ])("redirects legacy catalog path %s before 404 handling", (path, target) => {
     expect(resolveLegacyCatalogRedirect(request(path))).toBe(target);
+  });
+
+  test.each([
+    [
+      "/catalog/sections/159446/introduction",
+      "/catalog/sections/159446?tab=introduction",
+    ],
+    [
+      "/catalog/sections/159446/calendar?page=2",
+      "/catalog/sections/159446?page=2&tab=calendar",
+    ],
+  ])("redirects legacy section tab path %s to query tab", (path, target) => {
+    expect(resolveSectionDetailTabRedirect(request(path))).toBe(target);
   });
 
   test("does not redirect a non-read legacy request", () => {
@@ -74,14 +88,19 @@ describe("public SSR gateway", () => {
     "/catalog/teachers/42/sections",
     "/catalog/teachers/42/comments",
     "/catalog/sections/159446",
+  ])("caches canonical anonymous catalog detail page %s", (path) => {
+    expect(resolvePublicSsrMode(request(path))).toBe("page");
+  });
+
+  test.each([
     "/catalog/sections/159446/introduction",
     "/catalog/sections/159446/calendar",
     "/catalog/sections/159446/exams",
     "/catalog/sections/159446/homework",
     "/catalog/sections/159446/teachers",
     "/catalog/sections/159446/comments",
-  ])("caches canonical anonymous catalog detail page %s", (path) => {
-    expect(resolvePublicSsrMode(request(path))).toBe("page");
+  ])("bypasses legacy section tab path %s", (path) => {
+    expect(resolvePublicSsrMode(request(path))).toBeNull();
   });
 
   test("caches a canonical anonymous catalog detail HEAD request", () => {

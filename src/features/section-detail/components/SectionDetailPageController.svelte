@@ -1,5 +1,7 @@
 <script lang="ts">
 // biome-ignore assist/source/organizeImports: keep Svelte template/action imports grouped with local suppressions.
+import { afterNavigate } from "$app/navigation";
+import { page } from "$app/stores";
 import { onMount } from "svelte";
 import { createSectionDetailDisplayActions } from "@/features/section-detail/lib/section-detail-display-actions";
 import {
@@ -12,6 +14,13 @@ import { createSectionDetailCalendarDisplayActions } from "@/features/section-de
 import { createSectionCalendarClipboardActions } from "@/features/section-detail/lib/section-detail-calendar-clipboard-actions";
 import { sectionDetailCalendarUrls } from "@/features/section-detail/lib/section-detail-calendar-urls";
 import { mountSectionDetailController } from "@/features/section-detail/lib/section-detail-controller-mount";
+import { createSectionDetailTabPanelStore } from "@/features/section-detail/lib/section-detail-tab-client";
+import {
+  parseSectionDetailTab,
+  SECTION_DETAIL_TAB_QUERY,
+  sectionDetailPagePath,
+  type SectionDetailTab,
+} from "@/features/section-detail/lib/section-detail-tab";
 import {
   buildSectionDetailCommentTargets,
   buildSectionPeriodDetailRows,
@@ -66,6 +75,93 @@ let {
   _subscriptionPendingAction,
 } = createSectionDetailControllerDefaultState(data);
 
+let activeTab: SectionDetailTab = parseSectionDetailTab(data.detailSection);
+let tabPanelLoading = false;
+const tabPanelStore = createSectionDetailTabPanelStore(
+  data.homeworkData.viewer.userId ?? null,
+);
+let tabPanelState = tabPanelStore.getState();
+
+function overlayField<T>(overlayValue: T[], sectionValue: T[]) {
+  return overlayValue.length > 0 ? overlayValue : sectionValue;
+}
+
+$: displaySection = {
+  ...data.section,
+  exams: overlayField(
+    tabPanelState.sectionOverlay.exams,
+    data.section.exams ?? [],
+  ),
+  schedules: overlayField(
+    tabPanelState.sectionOverlay.schedules,
+    data.section.schedules ?? [],
+  ),
+  teachers: overlayField(
+    tabPanelState.sectionOverlay.teachers,
+    data.section.teachers ?? [],
+  ),
+};
+$: panelDescriptionData =
+  activeTab === "introduction" && tabPanelStore.isLoaded("introduction")
+    ? tabPanelState.descriptionData
+    : data.descriptionData;
+
+function syncFocusedHomework(homeworks: SectionHomework[]) {
+  if (data.focusedHomeworkId == null) return;
+  const focused = homeworks.find(
+    (homework) => homework.id === data.focusedHomeworkId,
+  );
+  if (focused) {
+    _selectedHomework = focused;
+  }
+}
+
+async function selectTab(tab: SectionDetailTab) {
+  const previousTab = activeTab;
+  if (tab === previousTab && tabPanelStore.isLoaded(tab)) {
+    if (tab === "homework") {
+      syncFocusedHomework(_homeworks);
+    }
+    return;
+  }
+  activeTab = tab;
+  const preserveQuery = tab === previousTab;
+  const nextUrl = (() => {
+    const nextPath = sectionDetailPagePath(data.section.jwId, tab);
+    if (!preserveQuery || typeof window === "undefined") return nextPath;
+    const current = new URL(window.location.href);
+    const next = new URL(nextPath, current.origin);
+    for (const key of ["homeworkId", "homeworkView", "subscribe"]) {
+      const value = current.searchParams.get(key);
+      if (value !== null) next.searchParams.set(key, value);
+    }
+    if (current.hash) next.hash = current.hash;
+    return `${next.pathname}${next.search}${next.hash}`;
+  })();
+  history.replaceState(history.state, "", nextUrl);
+  if (tab === "overview" || tab === "comments") return;
+  if (tab === "introduction" && data.descriptionData.description.content) {
+    return;
+  }
+  tabPanelLoading = true;
+  try {
+    tabPanelState = await tabPanelStore.ensureLoaded(tab, {
+      errorMessage: _sectionCopy.operationFailed,
+      jwId: Number(data.section.jwId),
+      locale: data.locale,
+      sectionId: Number(data.section.id),
+    });
+    if (tab === "homework") {
+      _homeworkViewer = tabPanelState.homeworkViewer;
+      _homeworks = tabPanelState.homeworks;
+      _homeworkAuditLogs = tabPanelState.homeworkAuditLogs;
+      syncFocusedHomework(tabPanelState.homeworks);
+    }
+  } finally {
+    tabPanelLoading = false;
+  }
+}
+
 const {
   auditActionLabel: _homeworkAuditActionLabel,
   auditActorName: _homeworkAuditActorName,
@@ -81,7 +177,7 @@ const {
   getCommonCopy: () => _commonCopy,
   getHomeworkCopy: () => _homeworkCopy,
   getNotAvailable: () => _notAvailable,
-  getSection: () => data.section,
+  getSection: () => displaySection,
   getSectionCopy: () => _sectionCopy,
 });
 
@@ -123,7 +219,7 @@ $: _canManageSelectedHomework = canManageSectionHomework(
 );
 $: sectionCalendarEvents = buildSectionDetailCalendarEvents({
   notAvailable: _notAvailable,
-  section: data.section,
+  section: displaySection,
   sectionCopy: _sectionCopy,
 });
 $: todayCalendarKey = data.todayCalendarKey;
@@ -163,7 +259,7 @@ const {
   startEditHomework: _startEditHomework,
   subscriptionAction: _subscriptionAction,
 } = createSectionDetailUiActions({
-  getSection: () => data.section,
+  getSection: () => displaySection,
   getSelectedHomework: () => _selectedHomework,
   setCreateHomeworkPublishedAt: (value) => {
     _createHomeworkPublishedAt = value;
@@ -319,7 +415,7 @@ function _auditLogsForHomework(homeworkId: string) {
 }
 
 onMount(() => {
-  return mountSectionDetailController({
+  const cleanup = mountSectionDetailController({
     clearClipboardTimer: _clearClipboardTimer,
     getHomeworkView: () => _homeworkView,
     loadHomeworks: _loadHomeworks,
@@ -329,8 +425,21 @@ onMount(() => {
     setOrigin: (origin) => {
       _origin = origin;
     },
-    shouldLoadHomeworks: data.detailSection === "homework",
+    shouldLoadHomeworks: false,
   });
+  if (activeTab !== "overview") {
+    void selectTab(activeTab);
+  }
+  return cleanup;
+});
+
+afterNavigate(() => {
+  const tab = parseSectionDetailTab(
+    new URL($page.url).searchParams.get(SECTION_DETAIL_TAB_QUERY),
+  );
+  if (tab !== activeTab) {
+    void selectTab(tab);
+  }
 });
 </script>
 
@@ -344,6 +453,7 @@ onMount(() => {
 
 <section class="min-h-full lg:h-full lg:min-h-0">
   <SectionDetailMainContent
+    {activeTab}
     {calendarMonthLabel}
     bind:calendarMonthOffset={_calendarMonthOffset}
     canWriteHomework={_canWriteHomework}
@@ -352,6 +462,8 @@ onMount(() => {
     courseName={_courseName}
     courseSecondaryName={_courseSecondaryName}
     {data}
+    descriptionData={panelDescriptionData}
+    displaySection={displaySection}
     formError={form?.error}
     fmtDate={_fmtDate}
     fmtDateTime={_fmtDateTime}
@@ -361,6 +473,7 @@ onMount(() => {
     homeworkView={_homeworkView}
     homeworks={_homeworks}
     notAvailable={_notAvailable}
+    onSelectTab={selectTab}
     openCalendarDialog={_openCalendarDialog}
     openCreateHomeworkDialog={_openCreateHomeworkDialog}
     openSubscribeDialog={_openSubscribeDialog}
@@ -379,6 +492,7 @@ onMount(() => {
     }}
     subscriptionAction={_subscriptionAction}
     subscriptionPendingAction={_subscriptionPendingAction}
+    {tabPanelLoading}
     teacherName={_teacherName}
     {todayCalendarMonthOffset}
     {unscheduledCalendarEvents}

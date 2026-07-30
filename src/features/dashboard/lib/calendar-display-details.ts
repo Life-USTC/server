@@ -9,13 +9,14 @@ import type {
   CalendarSessionEvent,
   CalendarTodoEvent,
 } from "@/features/dashboard/lib/calendar-display-types";
+import { sectionDetailHomeworkPath } from "@/features/section-detail/lib/section-detail-tab";
 
 export function calendarHomeworkHref(
   homework: CalendarHomeworkEvent,
   fallbackHref: string,
 ) {
   return homework.section?.jwId
-    ? `/catalog/sections/${homework.section.jwId}/homework#homework-${homework.id}`
+    ? `${sectionDetailHomeworkPath(homework.section.jwId)}#homework-${homework.id}`
     : fallbackHref;
 }
 

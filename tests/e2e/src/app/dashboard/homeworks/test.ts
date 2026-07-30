@@ -363,14 +363,14 @@ test.describe("仪表盘作业", () => {
     await expect(popout).toBeVisible();
     const sectionLink = popout
       .locator(
-        `a[href*="/catalog/sections/${DEV_SEED.section.jwId}/homework#homework-"]`,
+        `a[href*="/catalog/sections/${DEV_SEED.section.jwId}?tab=homework#homework-"]`,
       )
       .first();
     await expect(sectionLink).toBeVisible();
     await sectionLink.click();
 
     await expect(page).toHaveURL(
-      /\/catalog\/sections\/\d+\/homework#homework-/,
+      /\/catalog\/sections\/\d+\?tab=homework#homework-/,
     );
     await captureStepScreenshot(page, testInfo, "homeworks/view-details");
   });

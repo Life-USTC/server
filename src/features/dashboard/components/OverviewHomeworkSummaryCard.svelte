@@ -5,6 +5,7 @@ import type {
   DashboardHomeworkItem,
 } from "@/features/dashboard/lib/dashboard-controller-helpers";
 import { DASHBOARD_OVERVIEW_PREVIEW_LIMIT } from "@/features/dashboard/lib/overview-preview";
+import { sectionDetailHomeworkPath } from "@/features/section-detail/lib/section-detail-tab";
 import { Badge } from "$lib/components/ui/badge/index.js";
 import * as Card from "$lib/components/ui/card/index.js";
 import * as Empty from "$lib/components/ui/empty/index.js";
@@ -36,7 +37,7 @@ export let viewAllLabel = "View all";
           {#snippet child({ props })}
             <a
               href={homework.section?.jwId
-                ? `/catalog/sections/${homework.section.jwId}/homework#homework-${homework.id}`
+                ? `${sectionDetailHomeworkPath(homework.section.jwId)}#homework-${homework.id}`
                 : dashboardTabHref("homeworks")}
               {...props}
             >

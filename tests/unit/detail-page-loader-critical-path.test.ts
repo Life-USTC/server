@@ -467,12 +467,10 @@ describe("catalog detail loader critical path", () => {
           ),
         });
         await loadSectionDetailPage({
-          locals: locals(null, true),
-          params: { jwId: String(section.jwId), section: "calendar" },
-          request: request(`/catalog/sections/${section.jwId}/calendar`),
-          url: new URL(
-            `https://example.test/catalog/sections/${section.jwId}/calendar`,
-          ),
+          locals: locals(signedInUser, true),
+          params: { jwId: String(section.jwId) },
+          request: request(`/catalog/sections/${section.jwId}`),
+          url: new URL(`https://example.test/catalog/sections/${section.jwId}`),
         });
       },
       executionContext,
@@ -686,46 +684,40 @@ describe("section detail loader critical path", () => {
     expect(getUserSectionSubscriptionStateMock).not.toHaveBeenCalled();
   });
 
-  it("loads homework, but not comments, for the homework section", async () => {
+  it("loads homework on deep links and still defers comments to client tabs", async () => {
     const { loadSectionDetailPage } = await import(
       "@/features/section-detail/server/section-detail-page-server"
     );
 
-    const result = await loadSectionDetailPage({
+    const homeworkResult = await loadSectionDetailPage({
       locals: locals(),
-      params: { jwId: String(section.jwId), section: "homework" },
-      request: request(`/catalog/sections/${section.jwId}/homework`),
+      params: { jwId: String(section.jwId) },
+      request: request(`/catalog/sections/${section.jwId}?tab=homework`),
       url: new URL(
-        `https://example.test/catalog/sections/${section.jwId}/homework`,
+        `https://example.test/catalog/sections/${section.jwId}?tab=homework`,
+      ),
+    });
+    const commentsResult = await loadSectionDetailPage({
+      locals: locals(),
+      params: { jwId: String(section.jwId) },
+      request: request(`/catalog/sections/${section.jwId}?tab=comments`),
+      url: new URL(
+        `https://example.test/catalog/sections/${section.jwId}?tab=comments`,
       ),
     });
 
-    expect(result.descriptionData).toEqual(
+    expect(homeworkResult.detailSection).toBe("homework");
+    expect(homeworkResult.descriptionData).toEqual(
       emptyDescriptionPayload(anonymousViewer),
     );
+    expect(homeworkResult.commentsData).toBeNull();
+    expect(homeworkResult.homeworkData.homeworks).toEqual([]);
+    expect(commentsResult.detailSection).toBe("comments");
+    expect(commentsResult.commentsData).toBeNull();
     expect(getDescriptionPayloadMock).not.toHaveBeenCalled();
+    expect(getSectionHomeworkDataMock).toHaveBeenCalledOnce();
     expect(getSectionHomeworkDataMock).toHaveBeenCalledWith(section.id, null);
     expect(getCommentsPayloadMock).not.toHaveBeenCalled();
-  });
-
-  it("loads comments, but not homework, for the comments section", async () => {
-    const { loadSectionDetailPage } = await import(
-      "@/features/section-detail/server/section-detail-page-server"
-    );
-
-    const result = await loadSectionDetailPage({
-      locals: locals(),
-      params: { jwId: String(section.jwId), section: "comments" },
-      request: request(`/catalog/sections/${section.jwId}/comments`),
-      url: new URL(
-        `https://example.test/catalog/sections/${section.jwId}/comments`,
-      ),
-    });
-
-    expect(result.commentsData).not.toBeNull();
-    expect(getCommentsPayloadMock).toHaveBeenCalledTimes(3);
-    expect(getDescriptionPayloadMock).not.toHaveBeenCalled();
-    expect(getSectionHomeworkDataMock).not.toHaveBeenCalled();
   });
 
   it("retains subscription state on signed-in sections because the fixed header consumes it", async () => {
@@ -739,10 +731,10 @@ describe("section detail loader critical path", () => {
 
     const result = await loadSectionDetailPage({
       locals: locals(signedInUser),
-      params: { jwId: String(section.jwId), section: "teachers" },
-      request: request(`/catalog/sections/${section.jwId}/teachers`),
+      params: { jwId: String(section.jwId) },
+      request: request(`/catalog/sections/${section.jwId}?tab=teachers`),
       url: new URL(
-        `https://example.test/catalog/sections/${section.jwId}/teachers`,
+        `https://example.test/catalog/sections/${section.jwId}?tab=teachers`,
       ),
     });
 
@@ -790,19 +782,19 @@ describe("section detail loader critical path", () => {
   });
 
   it.each([
-    "calendar",
-    "exams",
-  ] as const)("does not cache the section %s tab shape", async (detailSection) => {
+    ["calendar", true, true] as const,
+    ["exams", false, true] as const,
+  ])("loads tab-specific section data for anonymous %s deep links without overview cache", async (tab, includeSchedules, includeExams) => {
     const { loadSectionDetailPage } = await import(
       "@/features/section-detail/server/section-detail-page-server"
     );
     const load = () =>
       loadSectionDetailPage({
         locals: locals(null, true),
-        params: { jwId: String(section.jwId), section: detailSection },
-        request: request(`/catalog/sections/${section.jwId}/${detailSection}`),
+        params: { jwId: String(section.jwId) },
+        request: request(`/catalog/sections/${section.jwId}?tab=${tab}`),
         url: new URL(
-          `https://example.test/catalog/sections/${section.jwId}/${detailSection}`,
+          `https://example.test/catalog/sections/${section.jwId}?tab=${tab}`,
         ),
       });
 
@@ -810,5 +802,11 @@ describe("section detail loader critical path", () => {
     await load();
 
     expect(getSectionPageMock).toHaveBeenCalledTimes(2);
+    expect(getSectionPageMock).toHaveBeenCalledWith(section.jwId, "en-us", {
+      includeExams,
+      includeRelated: false,
+      includeSchedules,
+      includeTeacherDepartments: false,
+    });
   });
 });
