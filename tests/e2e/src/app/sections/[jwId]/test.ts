@@ -66,7 +66,63 @@ function getDetailViewport(page: Page) {
   return page.locator("[data-detail-scroll-container]").first();
 }
 
+type SectionDetailTabName = "calendar" | "comments" | "homework" | "teachers";
+
+function resolveSectionTab(selector: string): SectionDetailTabName | null {
+  switch (selector) {
+    case "#tab-calendar":
+      return "calendar";
+    case "#tab-homework":
+      return "homework";
+    case "#tab-comments":
+      return "comments";
+    case "#section-teachers":
+      return "teachers";
+    default:
+      return null;
+  }
+}
+
+function waitForSectionTabPanel(page: Page, tab: SectionDetailTabName) {
+  if (tab === "homework") {
+    return page.waitForResponse(
+      (response) =>
+        response.url().includes("/api/community/section-homeworks") &&
+        response.request().method() === "GET" &&
+        response.status() === 200,
+      { timeout: 30_000 },
+    );
+  }
+  if (tab === "comments") {
+    return page.waitForResponse(
+      (response) =>
+        response.url().includes("/api/community/comments") &&
+        response.request().method() === "GET" &&
+        response.status() === 200,
+      { timeout: 30_000 },
+    );
+  }
+  return page.waitForResponse(
+    (response) =>
+      response
+        .url()
+        .includes(`/api/catalog/sections/${DEV_SEED.section.jwId}`) &&
+      response.request().method() === "GET" &&
+      response.status() === 200,
+    { timeout: 30_000 },
+  );
+}
+
 async function jumpToSection(page: Page, name: RegExp, selector: string) {
+  const tab = resolveSectionTab(selector);
+  if (tab) {
+    const panelResponse = waitForSectionTabPanel(page, tab);
+    await gotoAndWaitForReady(page, `${SECTION_URL}?tab=${tab}`);
+    await panelResponse;
+    await expect(page.locator(selector)).toBeVisible({ timeout: 30_000 });
+    return;
+  }
+
   const link = getSectionNavLink(page, name);
   await expect(link).toBeVisible();
   await link.click();

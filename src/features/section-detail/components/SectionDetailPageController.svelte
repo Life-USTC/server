@@ -1,5 +1,7 @@
 <script lang="ts">
 // biome-ignore assist/source/organizeImports: keep Svelte template/action imports grouped with local suppressions.
+import { afterNavigate } from "$app/navigation";
+import { page } from "$app/stores";
 import { onMount } from "svelte";
 import { createSectionDetailDisplayActions } from "@/features/section-detail/lib/section-detail-display-actions";
 import {
@@ -15,6 +17,7 @@ import { mountSectionDetailController } from "@/features/section-detail/lib/sect
 import { createSectionDetailTabPanelStore } from "@/features/section-detail/lib/section-detail-tab-client";
 import {
   parseSectionDetailTab,
+  SECTION_DETAIL_TAB_QUERY,
   sectionDetailPagePath,
   type SectionDetailTab,
 } from "@/features/section-detail/lib/section-detail-tab";
@@ -389,6 +392,15 @@ onMount(() => {
     void selectTab(activeTab);
   }
   return cleanup;
+});
+
+afterNavigate(() => {
+  const tab = parseSectionDetailTab(
+    new URL($page.url).searchParams.get(SECTION_DETAIL_TAB_QUERY),
+  );
+  if (tab !== activeTab) {
+    void selectTab(tab);
+  }
 });
 </script>
 

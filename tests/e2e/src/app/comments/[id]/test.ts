@@ -42,6 +42,8 @@ test("/community/comments/[id] seed 评论会重定向到目标页面", async ({
   await gotoAndWaitForReady(page, `/community/comments/${seedComment?.id}`, {
     expectMainContent: false,
   });
-  await expect(page).toHaveURL(/\/(sections|courses|teachers)\/.+#comment-/);
+  await expect(page).toHaveURL(
+    /\/catalog\/(sections|courses|teachers)\/[^#]+(?:\?[^#]*)?#comment-/,
+  );
   await captureStepScreenshot(page, testInfo, "comments-id-redirect");
 });

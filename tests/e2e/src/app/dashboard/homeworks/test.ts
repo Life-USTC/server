@@ -370,7 +370,7 @@ test.describe("仪表盘作业", () => {
     await sectionLink.click();
 
     await expect(page).toHaveURL(
-      /\/catalog\/sections\/\d+\/homework#homework-/,
+      /\/catalog\/sections\/\d+\?tab=homework#homework-/,
     );
     await captureStepScreenshot(page, testInfo, "homeworks/view-details");
   });
