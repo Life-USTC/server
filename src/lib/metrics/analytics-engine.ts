@@ -70,6 +70,7 @@ type StorageOperationAnalyticsInput = {
 export type PublicRuntimeCacheAnalyticsNamespace =
   | "api:metadata"
   | "api:semesters"
+  | `page:section-detail:overview:${AppLocale}`
   | `${
       | "api:courses"
       | "api:sections"
@@ -77,7 +78,6 @@ export type PublicRuntimeCacheAnalyticsNamespace =
       | "page:course-detail"
       | "page:course-list"
       | "page:section-detail"
-      | `page:section-detail:overview:${AppLocale}`
       | "page:section-list"
       | "page:teacher-detail"
       | "page:teacher-list"}:${AppLocale}`;
