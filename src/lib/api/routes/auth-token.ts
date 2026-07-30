@@ -1,3 +1,4 @@
+import { ensureOAuthProviderResourcesSeeded } from "@/features/oauth/server/ensure-oauth-resources.server";
 import { jsonResponse } from "@/lib/api/helpers";
 import { observedApiRoute } from "@/lib/log/api-observability";
 import { withBetterAuthOAuthDebug } from "@/lib/log/oauth-debug";
@@ -212,6 +213,9 @@ async function postRoute(request: Request) {
       ),
       params,
     );
+    if (params.has("resource")) {
+      await ensureOAuthProviderResourcesSeeded();
+    }
     const delegatedResponse = await withBetterAuthOAuthDebug(
       "POST",
       delegatedRequest,
