@@ -1,22 +1,31 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { prisma, withUserDbContext } from "@/lib/db/prisma";
 
+const rlsTestUserIds = ["rls-test-user-a", "rls-test-user-b"] as const;
+
 describe.skipIf(process.env.RLS_TEST_ENABLED !== "true")(
   "Todo PostgreSQL row security",
   () => {
     let firstUserId = "";
     let secondUserId = "";
+    let adminUserId = "";
     const createdIds: string[] = [];
 
     beforeAll(async () => {
       const users = await prisma.user.findMany({
+        where: { id: { in: [...rlsTestUserIds] } },
         select: { id: true },
         orderBy: { id: "asc" },
-        take: 2,
       });
-      if (users.length < 2) throw new Error("Expected two seeded users");
+      if (users.length !== 2) throw new Error("Expected two RLS test users");
       firstUserId = users[0].id;
       secondUserId = users[1].id;
+      const admin = await prisma.user.findFirst({
+        where: { isAdmin: true },
+        select: { id: true },
+      });
+      if (!admin) throw new Error("Expected a seeded admin user");
+      adminUserId = admin.id;
     });
 
     afterAll(async () => {
@@ -77,18 +86,25 @@ describe.skipIf(process.env.RLS_TEST_ENABLED !== "true")(
       );
       createdIds.push(first.id, second.id);
 
-      const [firstRows, secondRows] = await Promise.all([
+      const [firstRows, secondRows, adminRows] = await Promise.all([
         withUserDbContext(firstUserId, () =>
           prisma.todo.findMany({ select: { id: true } }),
         ),
         withUserDbContext(secondUserId, () =>
           prisma.todo.findMany({ select: { id: true } }),
         ),
+        withUserDbContext(adminUserId, (tx) =>
+          tx.todo.findMany({
+            where: { id: { in: [first.id, second.id] } },
+            select: { id: true },
+          }),
+        ),
       ]);
       expect(firstRows).toContainEqual({ id: first.id });
       expect(firstRows).not.toContainEqual({ id: second.id });
       expect(secondRows).toContainEqual({ id: second.id });
       expect(secondRows).not.toContainEqual({ id: first.id });
+      expect(adminRows).toEqual([]);
 
       await expect(
         withUserDbContext(secondUserId, () =>

@@ -1,8 +1,15 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const { allowDebugAuthMock, buildPluginsMock } = vi.hoisted(() => ({
+const {
+  allowDebugAuthMock,
+  authPrismaMock,
+  buildPluginsMock,
+  createBetterAuthPrismaAdapterMock,
+} = vi.hoisted(() => ({
   allowDebugAuthMock: vi.fn(),
+  authPrismaMock: { boundary: "auth" },
   buildPluginsMock: vi.fn(() => [{ id: "plugins" }]),
+  createBetterAuthPrismaAdapterMock: vi.fn(() => ({ id: "adapter" })),
 }));
 
 vi.mock("@/lib/auth/auth-config", () => ({
@@ -36,21 +43,22 @@ vi.mock("@/lib/auth/better-auth-plugins", () => ({
 }));
 
 vi.mock("@/lib/auth/better-auth-prisma-adapter", () => ({
-  createBetterAuthPrismaAdapter: () => ({ id: "adapter" }),
+  createBetterAuthPrismaAdapter: createBetterAuthPrismaAdapterMock,
 }));
 
 vi.mock("@/lib/auth/better-auth-social-providers", () => ({
   buildBetterAuthSocialProviders: () => ({}),
 }));
 
-vi.mock("@/lib/db/prisma", () => ({
-  prisma: {},
+vi.mock("@/lib/db/auth-prisma", () => ({
+  authPrisma: authPrismaMock,
 }));
 
 describe("Better Auth options", () => {
   beforeEach(() => {
     allowDebugAuthMock.mockReset();
     buildPluginsMock.mockClear();
+    createBetterAuthPrismaAdapterMock.mockClear();
   });
 
   it("keeps password auth disabled and passkey abuse limits enabled in production", async () => {
@@ -62,6 +70,9 @@ describe("Better Auth options", () => {
     const options = buildBetterAuthOptions();
 
     expect(options.emailAndPassword.enabled).toBe(false);
+    expect(createBetterAuthPrismaAdapterMock).toHaveBeenCalledWith(
+      authPrismaMock,
+    );
     expect(options.rateLimit).toEqual({
       enabled: true,
       customRules: {

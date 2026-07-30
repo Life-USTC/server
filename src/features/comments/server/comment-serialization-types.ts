@@ -90,6 +90,12 @@ export type RawReaction = {
   userId: string | null;
 };
 
+export type RawReactionSummary = {
+  type: CommentReactionType;
+  count: number;
+  viewerHasReacted: boolean;
+};
+
 export type RawComment = {
   id: string;
   body: string;
@@ -105,4 +111,5 @@ export type RawComment = {
   rootId?: string | null;
   attachments?: RawAttachment[] | null;
   reactions?: RawReaction[] | null;
+  reactionSummaries?: RawReactionSummary[] | null;
 };

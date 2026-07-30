@@ -25,6 +25,10 @@ export function buildAuthorSummary(comment: RawComment) {
 }
 
 export function buildReactionSummary(comment: RawComment, viewer: ViewerInfo) {
+  if (Array.isArray(comment.reactionSummaries)) {
+    return comment.reactionSummaries;
+  }
+
   const reactionMap = new Map<string, CommentReactionSummary>();
   const reactions = Array.isArray(comment.reactions) ? comment.reactions : [];
 

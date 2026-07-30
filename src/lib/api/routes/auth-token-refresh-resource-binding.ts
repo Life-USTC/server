@@ -1,4 +1,4 @@
-import { prisma } from "@/lib/db/prisma";
+import { authPrisma as prisma } from "@/lib/db/auth-prisma";
 import { logOAuthDebug } from "@/lib/log/oauth-debug";
 import { OAUTH_REFRESH_TOKEN_GRANT_TYPE } from "@/lib/oauth/constants";
 import {

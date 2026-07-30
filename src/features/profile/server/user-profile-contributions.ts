@@ -44,17 +44,14 @@ export async function loadUserProfileContributionDays(
 
       UNION ALL
 
-      SELECT "createdAt" AS "eventAt"
-      FROM "Upload"
-      WHERE "userId" = ${userId}
-        AND "createdAt" >= ${startAt}
+      SELECT upload_stats."createdAt" AS "eventAt"
+      FROM public.get_public_profile_upload_stats(${userId}, ${startAt}) AS upload_stats
+      WHERE upload_stats."createdAt" IS NOT NULL
 
       UNION ALL
 
-      SELECT "completedAt" AS "eventAt"
-      FROM "HomeworkCompletion"
-      WHERE "userId" = ${userId}
-        AND "completedAt" >= ${startAt}
+      SELECT completion_stats."completedAt" AS "eventAt"
+      FROM public.get_public_profile_homework_completions(${userId}, ${startAt}) AS completion_stats
 
       UNION ALL
 
@@ -69,6 +66,19 @@ export async function loadUserProfileContributionDays(
   `;
 
   return rows.map(({ count, date }) => ({ count: Number(count), date }));
+}
+
+export async function loadPublicProfileUploadCount(
+  prisma: ContributionPrisma,
+  userId: string,
+  since: Date,
+) {
+  const [row] = await prisma.$queryRaw<{ totalUploads: bigint }[]>`
+    SELECT "totalUploads"
+    FROM public.get_public_profile_upload_stats(${userId}, ${since})
+  `;
+
+  return Number(row?.totalUploads ?? 0n);
 }
 
 export async function buildUserProfileContributions(

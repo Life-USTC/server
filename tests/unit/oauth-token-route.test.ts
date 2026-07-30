@@ -65,8 +65,8 @@ vi.mock("@/lib/oauth/active-user-grant", () => ({
   resolveActiveOAuthUserGrant: resolveActiveOAuthUserGrantMock,
 }));
 
-vi.mock("@/lib/db/prisma", () => ({
-  prisma: {
+vi.mock("@/lib/db/auth-prisma", () => ({
+  authPrisma: {
     oAuthAccessToken: {
       deleteMany: vi.fn(),
       findUnique: vi.fn(),

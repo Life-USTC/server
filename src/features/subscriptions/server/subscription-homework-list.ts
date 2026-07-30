@@ -1,6 +1,8 @@
+import { withHomeworkCompletionsForViewer } from "@/features/homeworks/server/homework-read-model";
 import { DEFAULT_LOCALE } from "@/i18n/config";
-import { getPrisma } from "@/lib/db/prisma";
+import { getPrisma, withUserDbContext } from "@/lib/db/prisma";
 import type { HomeworkWithSection } from "./subscription-dashboard-types";
+import { orderHomeworksById } from "./subscription-homework-query";
 import {
   buildDashboardHomeworkSelect,
   buildSubscribedHomeworkInclude,
@@ -46,7 +48,6 @@ export async function listSubscribedHomeworks(
   return withSubscribedSections(
     userId,
     async (ids) => {
-      const localizedPrisma = getPrisma(locale);
       const query = buildSubscribedHomeworkQuery({
         completed,
         dueAtFrom,
@@ -58,18 +59,33 @@ export async function listSubscribedHomeworks(
         sectionIds: ids,
         userId,
       });
+      const scopedHomeworks = await withUserDbContext(userId, (tx) =>
+        tx.homework.findMany({ ...query, select: { id: true } }),
+      );
+      const homeworkIds = scopedHomeworks.map((homework) => homework.id);
+      if (homeworkIds.length === 0) return [];
+
+      const localizedPrisma = getPrisma(locale);
 
       if (shape === "dashboard") {
-        return localizedPrisma.homework.findMany({
-          ...query,
-          select: buildDashboardHomeworkSelect(userId),
+        const homeworks = await localizedPrisma.homework.findMany({
+          where: { id: { in: homeworkIds } },
+          select: buildDashboardHomeworkSelect(),
         });
+        return orderHomeworksById(
+          await withHomeworkCompletionsForViewer(homeworks, userId),
+          homeworkIds,
+        );
       }
 
-      return localizedPrisma.homework.findMany({
-        ...query,
-        include: buildSubscribedHomeworkInclude(userId, includeEditors),
+      const homeworks = await localizedPrisma.homework.findMany({
+        where: { id: { in: homeworkIds } },
+        include: buildSubscribedHomeworkInclude(includeEditors),
       });
+      return orderHomeworksById(
+        await withHomeworkCompletionsForViewer(homeworks, userId),
+        homeworkIds,
+      );
     },
     resolvedSectionIds,
   );

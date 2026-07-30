@@ -87,6 +87,9 @@ type CloudflareRuntimeEnv = Record<string, unknown> & {
   HYPERDRIVE?: {
     connectionString?: unknown;
   };
+  HYPERDRIVE_AUTH?: {
+    connectionString?: unknown;
+  };
   R2_UPLOADS?: CloudflareR2Bucket;
   USER_BATCH_WRITE_RATE_LIMITER?: CloudflareRateLimiter;
   USER_WRITE_RATE_LIMITER?: CloudflareRateLimiter;
@@ -243,6 +246,12 @@ export function hasCloudflareRuntimeEnv() {
 
 export function getCloudflareHyperdriveConnectionString() {
   const value = getCurrentCloudflareRuntimeEnv()?.HYPERDRIVE?.connectionString;
+  return typeof value === "string" ? value.trim() || undefined : undefined;
+}
+
+export function getCloudflareAuthHyperdriveConnectionString() {
+  const value =
+    getCurrentCloudflareRuntimeEnv()?.HYPERDRIVE_AUTH?.connectionString;
   return typeof value === "string" ? value.trim() || undefined : undefined;
 }
 

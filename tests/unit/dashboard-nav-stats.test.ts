@@ -27,12 +27,23 @@ vi.mock("@/features/dashboard/server/dashboard-calendar-count", () => ({
 }));
 
 vi.mock("@/lib/db/prisma", () => ({
-  prisma: {
-    homework: {
-      count: homeworkCountMock,
-      findFirst: homeworkFindFirstMock,
-    },
-  },
+  withUserDbContext: vi.fn(
+    async (
+      _userId: string,
+      action: (tx: {
+        homework: {
+          count: typeof homeworkCountMock;
+          findFirst: typeof homeworkFindFirstMock;
+        };
+      }) => Promise<unknown>,
+    ) =>
+      action({
+        homework: {
+          count: homeworkCountMock,
+          findFirst: homeworkFindFirstMock,
+        },
+      }),
+  ),
 }));
 
 describe("仪表盘导航统计", () => {

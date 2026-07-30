@@ -5,9 +5,11 @@ import {
   cloudflareRuntimeRequiredEnvSchema,
   commonEnvSchema,
   type Env,
+  productionRuntimeRequiredEnvSchema,
   runtimeRequiredEnvSchema,
 } from "@/lib/env/env-schema";
 import {
+  getCloudflareAuthHyperdriveConnectionString,
   getCloudflareHyperdriveConnectionString,
   getCloudflareRuntimeContext,
   getCloudflareRuntimeEnvInput,
@@ -63,9 +65,13 @@ export function loadEnv(
   const runtimeResult = hasCloudflareRuntimeEnv()
     ? cloudflareRuntimeRequiredEnvSchema.safeParse({
         AUTH_SECRET: env.AUTH_SECRET,
+        AUTH_HYPERDRIVE_CONNECTION_STRING:
+          getCloudflareAuthHyperdriveConnectionString(),
         HYPERDRIVE_CONNECTION_STRING: getCloudflareHyperdriveConnectionString(),
       })
-    : runtimeRequiredEnvSchema.safeParse(env);
+    : env.NODE_ENV === "production"
+      ? productionRuntimeRequiredEnvSchema.safeParse(env)
+      : runtimeRequiredEnvSchema.safeParse(env);
   if (!runtimeResult.success) {
     console.error(
       `❌ Invalid environment variables:\n${formatIssues(runtimeResult.error.issues)}`,

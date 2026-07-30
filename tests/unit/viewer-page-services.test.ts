@@ -28,6 +28,10 @@ const {
   withUserDbContextMock: vi.fn(
     async (_userId: string, action: (tx: unknown) => Promise<unknown>) =>
       action({
+        homework: {
+          count: homeworkCountMock,
+          findMany: homeworkFindManyMock,
+        },
         todo: { count: todoCountMock, findMany: todoFindManyMock },
       }),
   ),

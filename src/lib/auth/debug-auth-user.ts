@@ -1,7 +1,7 @@
 import { createLocalAccountIssuer } from "@better-auth/core/db";
 import { hashPassword } from "better-auth/crypto";
 import { Prisma } from "@/generated/prisma/client";
-import { prisma } from "@/lib/db/prisma";
+import { authPrisma as prisma } from "@/lib/db/auth-prisma";
 import { getDebugProviderConfig } from "./debug-auth-config";
 import type { DebugProviderId } from "./provider-ids";
 

@@ -1,6 +1,6 @@
 import { decodeJwt } from "jose";
 import { jsonResponse } from "@/lib/api/helpers";
-import { prisma } from "@/lib/db/prisma";
+import { authPrisma as prisma } from "@/lib/db/auth-prisma";
 import { resolveActiveOAuthUserGrant } from "@/lib/oauth/active-user-grant";
 import { OAUTH_GRANT_ID_CLAIM } from "@/lib/oauth/constants";
 import { hashOAuthClientSecretForDbStorage } from "@/lib/oauth/utils";

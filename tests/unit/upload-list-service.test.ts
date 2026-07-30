@@ -6,12 +6,14 @@ const {
   uploadAggregateMock,
   uploadCountMock,
   uploadFindManyMock,
+  withUserDbContextMock,
 } = vi.hoisted(() => ({
   pendingAggregateMock: vi.fn(),
   pendingDeleteManyMock: vi.fn(),
   uploadAggregateMock: vi.fn(),
   uploadCountMock: vi.fn(),
   uploadFindManyMock: vi.fn(),
+  withUserDbContextMock: vi.fn(),
 }));
 
 vi.mock("@/lib/db/prisma", () => ({
@@ -26,6 +28,7 @@ vi.mock("@/lib/db/prisma", () => ({
       deleteMany: pendingDeleteManyMock,
     },
   },
+  withUserDbContext: withUserDbContextMock,
 }));
 
 import { listUploads } from "@/features/uploads/server/upload-service";
@@ -37,6 +40,16 @@ describe("listUploads", () => {
     uploadCountMock.mockResolvedValue(3);
     uploadAggregateMock.mockResolvedValue({ _sum: { size: 80 } });
     pendingAggregateMock.mockResolvedValue({ _sum: { size: 20 } });
+    withUserDbContextMock.mockImplementation((_userId, action) =>
+      action({
+        upload: {
+          aggregate: uploadAggregateMock,
+          count: uploadCountMock,
+          findMany: uploadFindManyMock,
+        },
+        uploadPending: { aggregate: pendingAggregateMock },
+      }),
+    );
   });
 
   it("keeps GET read-only while excluding expired reservations from usage", async () => {
@@ -56,6 +69,10 @@ describe("listUploads", () => {
     });
     expect(uploadFindManyMock).toHaveBeenCalledWith(
       expect.objectContaining({ skip: 2, take: 2 }),
+    );
+    expect(withUserDbContextMock).toHaveBeenCalledWith(
+      "user-1",
+      expect.any(Function),
     );
   });
 });

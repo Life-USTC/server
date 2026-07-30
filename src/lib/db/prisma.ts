@@ -105,14 +105,58 @@ export function withUserDbContext<T>(
   return runWithUserRlsContext(getBasePrisma(), userId, action);
 }
 
+function assertLocalizedPrismaOutsideRlsContext() {
+  if (getUserRlsTransactionClient()) {
+    throw new Error(
+      "Localized Prisma clients cannot be used inside an RLS context; use the transaction client",
+    );
+  }
+}
+
+function guardLocalizedPrismaClient<T extends object>(client: T): T {
+  const guarded = new WeakMap<object, object>();
+
+  const guard = (target: object): object => {
+    const cached = guarded.get(target);
+    if (cached) return cached;
+
+    const proxy = new Proxy(target, {
+      get(current, property) {
+        assertLocalizedPrismaOutsideRlsContext();
+        const value = Reflect.get(current, property, current);
+        if (typeof value === "function") {
+          return (...args: unknown[]) => {
+            assertLocalizedPrismaOutsideRlsContext();
+            const result = Reflect.apply(value, current, args);
+            return property === "$extends" &&
+              result !== null &&
+              (typeof result === "object" || typeof result === "function")
+              ? guard(result)
+              : result;
+          };
+        }
+        return value !== null && typeof value === "object"
+          ? guard(value)
+          : value;
+      },
+    });
+    guarded.set(target, proxy);
+    return proxy;
+  };
+
+  return guard(client) as T;
+}
+
 const _makeExtendedClient = (locale: string) =>
-  prisma.$extends(localizedNamesExtension(locale));
+  guardLocalizedPrismaClient(prisma.$extends(localizedNamesExtension(locale)));
 
 type ExtendedPrismaClient = ReturnType<typeof _makeExtendedClient>;
 
 const extendedClientCache = new Map<string, ExtendedPrismaClient>();
 
 export const getPrisma = (locale: string): ExtendedPrismaClient => {
+  assertLocalizedPrismaOutsideRlsContext();
+
   if (hasCloudflareRuntimeEnv()) {
     const cache = getCloudflarePrismaCache();
     if (cache) {

@@ -44,6 +44,19 @@ const SUBSCRIBED_HOMEWORK_ORDER_BY = [
   { createdAt: "desc" },
 ] satisfies Prisma.HomeworkOrderByWithRelationInput[];
 
+export function orderHomeworksById<T extends { id: string }>(
+  homeworks: T[],
+  homeworkIds: readonly string[],
+) {
+  const homeworkById = new Map(
+    homeworks.map((homework) => [homework.id, homework]),
+  );
+  return homeworkIds.flatMap((homeworkId) => {
+    const homework = homeworkById.get(homeworkId);
+    return homework ? [homework] : [];
+  });
+}
+
 export function buildSubscribedHomeworkQuery(input: {
   completed?: boolean;
   dueAtFrom?: Date;

@@ -18,8 +18,10 @@ jobs:
   migrate:
     name: Deploy Prisma migrations
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     if: >-
-      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'workflow_dispatch' &&
+      github.ref == 'refs/heads/main') ||
       (github.event_name == 'workflow_run' &&
       github.event.workflow_run.event == 'push' &&
       github.event.workflow_run.conclusion == 'success' &&
@@ -36,12 +38,12 @@ jobs:
       - name: Setup Bun environment
         uses: ./.github/actions/setup-bun-env
 
+      - name: Prepare application artifacts
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/life_ustc_generate
+        run: bun run app:prepare
+
       - name: Deploy migrations
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
-        run: |
-          # Prepare SvelteKit generated files and generate the Prisma client
-          # before running migrate deploy.
-          bunx svelte-kit sync
-          bun run db:generate
-          bun run db:migrate:deploy
+        run: bun run db:migrate:deploy

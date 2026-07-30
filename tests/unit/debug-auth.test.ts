@@ -18,8 +18,8 @@ vi.mock("better-auth/crypto", () => ({
   hashPassword: hashPasswordMock,
 }));
 
-vi.mock("@/lib/db/prisma", () => ({
-  prisma: prismaMock,
+vi.mock("@/lib/db/auth-prisma", () => ({
+  authPrisma: prismaMock,
 }));
 
 describe("debug 认证配置", () => {

@@ -3,8 +3,9 @@ import { DEFAULT_LOCALE } from "@/i18n/config";
 import { getViewerContext } from "@/lib/auth/viewer-context";
 import { getPrisma, prisma } from "@/lib/db/prisma";
 import {
-  homeworkItemIncludeForViewer,
+  homeworkItemInclude,
   homeworkItemResponse,
+  withHomeworkCompletionsForViewer,
 } from "./homework-read-model";
 
 type SectionHomeworkListInput = {
@@ -81,11 +82,15 @@ export async function listSectionHomeworkItems({
       ...homeworkSectionWhere(sectionIds),
       ...(includeDeleted ? {} : { deletedAt: null }),
     },
-    include: homeworkItemIncludeForViewer(viewerUserId),
+    include: homeworkItemInclude(),
     orderBy: [{ submissionDueAt: "asc" }, { createdAt: "desc" }],
   });
 
-  return homeworks.map(homeworkItemResponse);
+  const homeworksWithCompletions = await withHomeworkCompletionsForViewer(
+    homeworks,
+    viewerUserId,
+  );
+  return homeworksWithCompletions.map(homeworkItemResponse);
 }
 
 export function listSectionHomeworkAuditLogs(sectionIds: readonly number[]) {

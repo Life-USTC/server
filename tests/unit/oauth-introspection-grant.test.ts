@@ -40,8 +40,8 @@ vi.mock("@/lib/oauth/active-user-grant", () => ({
   hasActiveOAuthUserGrant: hasActiveOAuthUserGrantMock,
 }));
 
-vi.mock("@/lib/db/prisma", () => ({
-  prisma: {
+vi.mock("@/lib/db/auth-prisma", () => ({
+  authPrisma: {
     oAuthAccessToken: {
       findUnique: accessFindUniqueMock,
     },

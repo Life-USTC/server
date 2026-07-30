@@ -12,7 +12,7 @@ import {
 } from "@/features/oauth/server/user-authorizations.server";
 import { isTrustedAuthOrigin } from "@/lib/auth/auth-origins";
 import { verifyAccessTokenJwt } from "@/lib/auth/jwt-verification";
-import { prisma } from "@/lib/db/prisma";
+import { authPrisma as prisma } from "@/lib/db/auth-prisma";
 import { logAppEvent } from "@/lib/log/app-logger";
 import {
   logOAuthDebug,

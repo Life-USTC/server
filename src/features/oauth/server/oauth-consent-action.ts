@@ -2,7 +2,7 @@ import { error, redirect } from "@sveltejs/kit";
 import { bindOAuthAuthorizationCodeRedirectToActiveGrant } from "@/features/oauth/server/oauth-authorization-code-grant.server";
 import { verifyOAuthProviderSignedQueryState } from "@/features/oauth/server/signed-oauth-query.server";
 import { isTrustedAuthOrigin } from "@/lib/auth/auth-origins";
-import { prisma } from "@/lib/db/prisma";
+import { authPrisma as prisma } from "@/lib/db/auth-prisma";
 import { getCanonicalOAuthIssuer } from "@/lib/mcp/urls";
 import { OAUTH_PROVIDER_CLAIMS_SUPPORTED } from "@/lib/oauth/constants";
 import { hashOAuthClientSecretForDbStorage } from "@/lib/oauth/utils";

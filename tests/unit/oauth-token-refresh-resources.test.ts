@@ -18,8 +18,8 @@ vi.mock("@/lib/auth/jwt-verification", () => ({
   verifyAccessTokenJwtPayload: verifyAccessTokenJwtPayloadMock,
 }));
 
-vi.mock("@/lib/db/prisma", () => ({
-  prisma: {
+vi.mock("@/lib/db/auth-prisma", () => ({
+  authPrisma: {
     oAuthRefreshToken: {
       findUnique: findRefreshTokenMock,
       updateMany: updateRefreshTokenMock,

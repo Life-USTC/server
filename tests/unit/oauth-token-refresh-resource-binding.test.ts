@@ -7,8 +7,8 @@ import {
 
 const findRefreshTokenMock = vi.fn();
 
-vi.mock("@/lib/db/prisma", () => ({
-  prisma: {
+vi.mock("@/lib/db/auth-prisma", () => ({
+  authPrisma: {
     oAuthRefreshToken: {
       findUnique: findRefreshTokenMock,
     },

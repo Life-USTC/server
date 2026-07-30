@@ -1,7 +1,11 @@
-import { buildUserProfileContributions } from "@/features/profile/server/user-profile-contributions";
+import {
+  buildUserProfileContributions,
+  loadPublicProfileUploadCount,
+} from "@/features/profile/server/user-profile-contributions";
 import type { Prisma } from "@/generated/prisma/client";
 import { getPrisma } from "@/lib/db/prisma";
 import { toLoadData } from "@/lib/load-data-utils";
+import { shanghaiDayjs } from "@/lib/time/shanghai-dayjs";
 
 const publicUserIdentitySelect = {
   id: true,
@@ -20,7 +24,6 @@ async function getUserProfileData(where: Prisma.UserWhereUniqueInput) {
       _count: {
         select: {
           comments: true,
-          uploads: true,
           homeworksCreated: true,
           subscribedSections: true,
         },
@@ -30,13 +33,20 @@ async function getUserProfileData(where: Prisma.UserWhereUniqueInput) {
 
   if (!user) return null;
 
-  const { totalContributions, weeks } = await buildUserProfileContributions(
-    prisma,
-    user.id,
-  );
+  const profileSince = shanghaiDayjs()
+    .subtract(364, "day")
+    .startOf("day")
+    .toDate();
+  const [{ totalContributions, weeks }, totalUploads] = await Promise.all([
+    buildUserProfileContributions(prisma, user.id),
+    loadPublicProfileUploadCount(prisma, user.id, profileSince),
+  ]);
 
   return toLoadData({
-    user,
+    user: {
+      ...user,
+      _count: { ...user._count, uploads: totalUploads },
+    },
     sectionCount: user._count.subscribedSections,
     weeks,
     totalContributions,

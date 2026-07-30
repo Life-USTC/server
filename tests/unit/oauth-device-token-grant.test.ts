@@ -13,8 +13,8 @@ const issueDeviceGrantTokensMock = vi.fn();
 const logOAuthDebugMock = vi.fn();
 const logAppEventMock = vi.fn();
 
-vi.mock("@/lib/db/prisma", () => ({
-  prisma: {
+vi.mock("@/lib/db/auth-prisma", () => ({
+  authPrisma: {
     deviceCode: {
       findUnique: findUniqueMock,
       update: updateMock,

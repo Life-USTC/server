@@ -1,4 +1,4 @@
-import { prisma } from "@/lib/db/prisma";
+import { authPrisma as prisma } from "@/lib/db/auth-prisma";
 import { resolveActiveOAuthUserGrant } from "@/lib/oauth/active-user-grant";
 import { hashOAuthClientSecretForDbStorage } from "@/lib/oauth/utils";
 

@@ -2,7 +2,7 @@ import { fail } from "@sveltejs/kit";
 import { getAdminOAuthCopy } from "@/features/admin/lib/admin-oauth-page-copy";
 import { requireAdminPage } from "@/features/admin/server/admin-page-data";
 import type { AppLocale } from "@/i18n/config";
-import { prisma } from "@/lib/db/prisma";
+import { authPrisma as prisma } from "@/lib/db/auth-prisma";
 import { logServerActionError } from "@/lib/log/app-logger";
 
 export async function deleteAdminOAuthClientAction(

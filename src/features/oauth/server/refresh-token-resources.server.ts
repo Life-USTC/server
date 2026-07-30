@@ -4,7 +4,7 @@ import {
   signResourceBoundOAuthAccessToken,
 } from "@/features/oauth/server/device-token-issuer.server";
 import { verifyAccessTokenJwtPayload } from "@/lib/auth/jwt-verification";
-import { prisma as defaultPrisma } from "@/lib/db/prisma";
+import { authPrisma as defaultPrisma } from "@/lib/db/auth-prisma";
 import {
   OAUTH_AUTHORIZATION_CODE_GRANT_TYPE,
   OAUTH_REFRESH_TOKEN_GRANT_TYPE,

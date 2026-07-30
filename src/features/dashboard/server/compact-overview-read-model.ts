@@ -12,7 +12,7 @@ import {
 } from "@/features/todos/server/todo-service";
 import { type AppLocale, DEFAULT_LOCALE } from "@/i18n/config";
 import { runCloudflareTraceSpan } from "@/lib/adapters/cloudflare-runtime";
-import { prisma } from "@/lib/db/prisma";
+import { prisma, withUserDbContext } from "@/lib/db/prisma";
 import {
   type WorkspaceOverviewStage,
   writeWorkspaceOverviewStageAnalytics,
@@ -141,13 +141,15 @@ export async function getCompactOverview(
     runOverviewStage("counts", () =>
       sectionIds.length > 0
         ? Promise.all([
-            prisma.homework.count({
-              where: {
-                deletedAt: null,
-                homeworkCompletions: { none: { userId } },
-                sectionId: { in: sectionIds },
-              },
-            }),
+            withUserDbContext(userId, (tx) =>
+              tx.homework.count({
+                where: {
+                  deletedAt: null,
+                  homeworkCompletions: { none: { userId } },
+                  sectionId: { in: sectionIds },
+                },
+              }),
+            ),
             prisma.schedule.count({
               where: {
                 date: { gte: todayStart, lt: tomorrowStart },
@@ -158,14 +160,16 @@ export async function getCompactOverview(
               atTime: now,
               sectionIds,
             }),
-            prisma.homework.count({
-              where: {
-                deletedAt: null,
-                homeworkCompletions: { none: { userId } },
-                sectionId: { in: sectionIds },
-                submissionDueAt: { gte: now, lte: homeworkWindowEnd },
-              },
-            }),
+            withUserDbContext(userId, (tx) =>
+              tx.homework.count({
+                where: {
+                  deletedAt: null,
+                  homeworkCompletions: { none: { userId } },
+                  sectionId: { in: sectionIds },
+                  submissionDueAt: { gte: now, lte: homeworkWindowEnd },
+                },
+              }),
+            ),
           ])
         : Promise.resolve<[number, number, number, number]>([0, 0, 0, 0]),
     ),

@@ -1,6 +1,8 @@
 import type { Prisma } from "@/generated/prisma/client";
 import { prisma } from "@/lib/db/prisma";
 
+type SerializableTransactionClient = Pick<typeof prisma, "$transaction">;
+
 export function isSerializationError(error: unknown): boolean {
   if (typeof error !== "object" || error === null) {
     return false;
@@ -31,11 +33,12 @@ export function isSerializationError(error: unknown): boolean {
 export async function runSerializableTransaction<T>(
   action: (tx: Prisma.TransactionClient) => Promise<T>,
   failureMessage: string,
+  client: SerializableTransactionClient = prisma,
 ) {
   const maxAttempts = 3;
   for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
     try {
-      return await prisma.$transaction(action, {
+      return await client.$transaction(action, {
         isolationLevel: "Serializable",
       });
     } catch (error) {

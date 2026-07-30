@@ -16,7 +16,7 @@ import {
   betterAuthVerificationOptions,
 } from "@/lib/auth/better-auth-schema-options";
 import { buildBetterAuthSocialProviders } from "@/lib/auth/better-auth-social-providers";
-import { prisma } from "@/lib/db/prisma";
+import { authPrisma } from "@/lib/db/auth-prisma";
 
 export function buildBetterAuthOptions() {
   const {
@@ -35,7 +35,7 @@ export function buildBetterAuthOptions() {
       protocol: authPublicProtocol,
     },
     secret: getBetterAuthSecret(),
-    database: createBetterAuthPrismaAdapter(prisma),
+    database: createBetterAuthPrismaAdapter(authPrisma),
     disabledPaths: ["/token"],
     // Disable Better Auth's built-in rate limiting in debug/E2E mode so that
     // rapid sequential requests (e.g. /api/auth/get-session during tests)

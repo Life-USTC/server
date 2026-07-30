@@ -26,8 +26,8 @@ vi.mock("@/features/oauth/server/user-authorizations.server", () => ({
   updateUserOAuthAuthorizationScopes: updateAuthorizationScopesMock,
 }));
 
-vi.mock("@/lib/db/prisma", () => ({
-  prisma: {
+vi.mock("@/lib/db/auth-prisma", () => ({
+  authPrisma: {
     oAuthClient: { findUnique: vi.fn() },
   },
 }));

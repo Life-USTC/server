@@ -97,6 +97,7 @@ jobs:
         run: |
           {
             echo "DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:5432/${{ inputs.database-name }}"
+            echo "ALLOW_DATABASE_SEED=true"
             if [ -n "${{ inputs.webhook-secret }}" ]; then
               echo "WEBHOOK_SECRET=${{ inputs.webhook-secret }}"
             fi
@@ -145,6 +146,7 @@ jobs:
           case "$JOB_PHASE" in
             ci:verify)
               bash tests/ci/retry.test.sh
+              bash tests/ci/seed-guard.test.sh
               bun run app:prepare
               bunx wrangler types --include-runtime=false --check
               bunx biome check
@@ -168,27 +170,75 @@ jobs:
               bunx prisma db seed
               # Keep the RLS database setup idempotent like ci:integration.
               bunx prisma db seed
-              PGPASSWORD=postgres psql "$DATABASE_URL" -v ON_ERROR_STOP=1 \
-                --command "DO \$\$ BEGIN IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'life_ustc_runtime') THEN CREATE ROLE life_ustc_runtime; END IF; END \$\$" \
-                --command "ALTER ROLE life_ustc_runtime LOGIN PASSWORD 'runtime-test-password' NOINHERIT NOBYPASSRLS" \
-                --command 'GRANT CONNECT ON DATABASE "${{ inputs.database-name }}" TO life_ustc_runtime' \
-                --command 'GRANT USAGE ON SCHEMA public TO life_ustc_runtime' \
-                --command 'GRANT SELECT, DELETE ON TABLE "User" TO life_ustc_runtime' \
-                --command 'GRANT SELECT, UPDATE ON TABLE "AuditLog", "UserSuspension" TO life_ustc_runtime' \
-                --command 'GRANT SELECT ON TABLE "BusCampus" TO life_ustc_runtime' \
-                --command 'GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE "Todo", "DashboardLinkClick", "DashboardLinkPin", "BusUserPreference" TO life_ustc_runtime'
+              for _ in 1 2; do
+                PGPASSWORD=postgres psql "$DATABASE_URL" -X \
+                  --single-transaction \
+                  --set=database_name="${{ inputs.database-name }}" \
+                  --file=tests/integration/fixtures/rls-runtime-bootstrap.sql
+              done
               runtime_database_url="postgresql://life_ustc_runtime:runtime-test-password@127.0.0.1:5432/${{ inputs.database-name }}"
+              expected_table_privileges='public.BusCampus:SELECT'
+              expected_table_privileges+=',public.BusUserPreference:DELETE,public.BusUserPreference:INSERT,public.BusUserPreference:SELECT,public.BusUserPreference:UPDATE'
+              expected_table_privileges+=',public.CommentReaction:DELETE,public.CommentReaction:INSERT,public.CommentReaction:SELECT'
+              expected_table_privileges+=',public.DashboardLinkClick:DELETE,public.DashboardLinkClick:INSERT,public.DashboardLinkClick:SELECT,public.DashboardLinkClick:UPDATE'
+              expected_table_privileges+=',public.DashboardLinkPin:DELETE,public.DashboardLinkPin:INSERT,public.DashboardLinkPin:SELECT,public.DashboardLinkPin:UPDATE'
+              expected_table_privileges+=',public.Homework:SELECT,public.HomeworkCompletion:DELETE,public.HomeworkCompletion:INSERT,public.HomeworkCompletion:SELECT,public.HomeworkCompletion:UPDATE'
+              expected_table_privileges+=',public.Todo:DELETE,public.Todo:INSERT,public.Todo:SELECT,public.Todo:UPDATE'
+              expected_table_privileges+=',public.Upload:DELETE,public.Upload:INSERT,public.Upload:SELECT,public.Upload:UPDATE'
+              expected_table_privileges+=',public.UploadPending:DELETE,public.UploadPending:INSERT,public.UploadPending:SELECT,public.UploadPending:UPDATE'
+              expected_table_privileges+=',public.User:SELECT'
+              expected_function_privileges='public.comment_attachment_summaries(p_comment_ids text[]):EXECUTE'
+              expected_function_privileges+=',public.comment_reaction_summaries(comment_ids text[]):EXECUTE'
+              expected_function_privileges+=',public.find_downloadable_upload(p_upload_id text):EXECUTE'
+              expected_function_privileges+=',public.get_public_profile_homework_completions(p_user_id text, p_since timestamp without time zone):EXECUTE'
+              expected_function_privileges+=',public.get_public_profile_upload_stats(p_user_id text, p_since timestamp without time zone):EXECUTE'
+              psql "$runtime_database_url" -X \
+                --set=expected_role=life_ustc_runtime \
+                --set=expected_schema_privileges=public:USAGE \
+                --set=expected_table_privileges="$expected_table_privileges" \
+                --set=expected_column_privileges= \
+                --set=expected_sequence_privileges= \
+                --set=expected_function_privileges="$expected_function_privileges" \
+                --file=prisma/roles/verify-app-runtime.sql
+              export FUNCTION_OWNER_DATABASE_URL="$DATABASE_URL"
               export DATABASE_URL="$runtime_database_url"
+              export AUTH_DATABASE_URL="postgresql://life_ustc_auth_runtime:auth-runtime-test-password@127.0.0.1:5432/${{ inputs.database-name }}"
+              export MAINTENANCE_DATABASE_URL="postgresql://life_ustc_maintenance_runtime:maintenance-runtime-test-password@127.0.0.1:5432/${{ inputs.database-name }}"
               export RLS_TEST_ENABLED=true
+              export AUTH_ROLE_TEST_ENABLED=true
+              export FUNCTION_OWNER_ROLE_TEST_ENABLED=true
+              export MAINTENANCE_ROLE_TEST_ENABLED=true
               bunx vitest run \
                 --config vitest.integration.config.ts \
                 tests/integration/rls-database-contract.test.ts
+              bunx vitest run \
+                --config vitest.integration.config.ts \
+                tests/integration/auth-runtime-contract.test.ts
+              AUTH_SECRET=rls-test-secret-at-least-32-bytes \
+                bunx vitest run \
+                  --config vitest.integration.config.ts \
+                  tests/integration/better-auth-update-user-security.test.ts
+              bunx vitest run \
+                --config vitest.integration.config.ts \
+                tests/integration/maintenance-runtime-contract.test.ts
+              bunx vitest run \
+                --config vitest.integration.config.ts \
+                tests/integration/function-owner-role-contract.test.ts
               bunx vitest run \
                 --config vitest.integration.config.ts \
                 tests/integration/todo-rls.test.ts
               bunx vitest run \
                 --config vitest.integration.config.ts \
                 tests/integration/personal-preferences-rls.test.ts
+              bunx vitest run \
+                --config vitest.integration.config.ts \
+                tests/integration/comment-reaction-rls.test.ts
+              bunx vitest run \
+                --config vitest.integration.config.ts \
+                tests/integration/upload-rls.test.ts
+              bunx vitest run \
+                --config vitest.integration.config.ts \
+                tests/integration/homework-completion-rls.test.ts
               ;;
             ci:e2e:build-artifacts)
               bun run app:prepare

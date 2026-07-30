@@ -4,8 +4,8 @@ const clientFindUniqueMock = vi.fn();
 const refreshFindFirstMock = vi.fn();
 const userFindUniqueMock = vi.fn();
 
-vi.mock("@/lib/db/prisma", () => ({
-  prisma: {
+vi.mock("@/lib/db/auth-prisma", () => ({
+  authPrisma: {
     oAuthClient: {
       findUnique: clientFindUniqueMock,
     },

@@ -1,4 +1,4 @@
-import { prisma as defaultPrisma } from "@/lib/db/prisma";
+import { authPrisma as defaultPrisma } from "@/lib/db/auth-prisma";
 import {
   OAUTH_AUTHORIZATION_CODE_GRANT_TYPE,
   OAUTH_DEVICE_CODE_GRANT_TYPE,

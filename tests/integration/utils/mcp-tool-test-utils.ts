@@ -166,9 +166,6 @@ export async function deleteCommentRecords(commentIds: string[]) {
       targetType: "comment",
     },
   });
-  await prisma.commentReaction.deleteMany({
-    where: { commentId: { in: commentIds } },
-  });
   await prisma.commentAttachment.deleteMany({
     where: { commentId: { in: commentIds } },
   });

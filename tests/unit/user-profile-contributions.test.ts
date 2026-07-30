@@ -69,8 +69,8 @@ describe("用户主页贡献", () => {
 
     expect(queryRaw).toHaveBeenCalledOnce();
     expect(sql).toContain('FROM "Comment"');
-    expect(sql).toContain('FROM "Upload"');
-    expect(sql).toContain('FROM "HomeworkCompletion"');
+    expect(sql).toContain("get_public_profile_upload_stats");
+    expect(sql).toContain("get_public_profile_homework_completions");
     expect(sql).toContain('FROM "Homework"');
     expect(sql).toContain("AT TIME ZONE 'UTC'");
     expect(sql).toContain("AT TIME ZONE 'Asia/Shanghai'");

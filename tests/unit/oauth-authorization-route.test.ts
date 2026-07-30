@@ -41,8 +41,8 @@ vi.mock("@/lib/oauth/active-user-grant", () => ({
   resolveActiveOAuthUserGrant: resolveActiveGrantMock,
 }));
 
-vi.mock("@/lib/db/prisma", () => ({
-  prisma: {
+vi.mock("@/lib/db/auth-prisma", () => ({
+  authPrisma: {
     oAuthClient: {
       findUnique: vi.fn().mockResolvedValue(null),
     },

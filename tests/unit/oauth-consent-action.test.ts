@@ -56,8 +56,8 @@ const transactionClient = {
   verificationToken: { create: verificationCreateMock },
 };
 
-vi.mock("@/lib/db/prisma", () => ({
-  prisma: {
+vi.mock("@/lib/db/auth-prisma", () => ({
+  authPrisma: {
     $transaction: transactionMock,
     oAuthClient: { findUnique: readClientMock },
   },
