@@ -26,6 +26,7 @@ import {
   SHELL_THEME_CHANGE_EVENT,
   setStoredThemeMode,
 } from "$lib/components/shell/app-shell-actions";
+import GlobalSearchDialog from "$lib/components/shell/GlobalSearchDialog.svelte";
 import {
   applyShellTheme,
   buildFooterLinks,
@@ -58,6 +59,7 @@ export let data: AppShellData;
 
 let themeMode: ThemeMode = "system";
 let sidebarOpen = true;
+let globalSearchOpen = false;
 let userMenuOpen = false;
 let localeMenuOpen = false;
 let themeMenuOpen = false;
@@ -96,6 +98,23 @@ $: detailWorkspace = isDetailWorkspacePath($page.url.pathname);
 $: showFooter = shouldShowAppFooter($page.url.pathname, Boolean(viewerUser));
 $: mainContentLabel = resolveMainContentLabel($page.data);
 const footerLinks = buildFooterLinks(data.copy.footer);
+
+$: globalSearchShortcutLabel =
+  typeof navigator !== "undefined" &&
+  /Mac|iPhone|iPad|iPod/.test(navigator.platform)
+    ? data.copy.globalSearch.shortcutMac
+    : data.copy.globalSearch.shortcut;
+
+function openGlobalSearch() {
+  globalSearchOpen = true;
+}
+
+function handleGlobalSearchKeydown(event: KeyboardEvent) {
+  if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
+    event.preventDefault();
+    openGlobalSearch();
+  }
+}
 
 function resolveMainContentLabel(pageData: Record<string, unknown>) {
   const label = pageData.mainContentLabel;
@@ -520,6 +539,7 @@ onMount(() => {
   themeMode = loadStoredThemeMode(themeMode);
   applyShellTheme(themeMode);
   document.documentElement.dataset.lifeUstcHydrated = "true";
+  window.addEventListener("keydown", handleGlobalSearchKeydown);
 
   const syncThemeMode = (event: Event) => {
     const nextThemeMode = (event as CustomEvent<ThemeMode>).detail;
@@ -539,6 +559,7 @@ onMount(() => {
   systemTheme.addEventListener("change", applySystemTheme);
 
   return () => {
+    window.removeEventListener("keydown", handleGlobalSearchKeydown);
     window.removeEventListener(SHELL_THEME_CHANGE_EVENT, syncThemeMode);
     systemTheme.removeEventListener("change", applySystemTheme);
   };
@@ -613,14 +634,17 @@ afterNavigate(({ from, to }) => {
       <AppTopbar
         {closeMenus}
         copy={data.copy}
+        globalSearchShortcutLabel={globalSearchShortcutLabel}
         locale={data.locale}
         {localeMenuOpen}
+        onOpenGlobalSearch={openGlobalSearch}
         {setLocale}
         {setLocaleMenuOpen}
         {setThemeMenuOpen}
         {setThemeMode}
         {themeMenuOpen}
         {themeMode}
+        signedIn={Boolean(viewerUser)}
         user={viewerUser}
         {viewerLoading}
       />
@@ -664,3 +688,12 @@ afterNavigate(({ from, to }) => {
       />
     {/if}
 </Sidebar.Provider>
+
+<GlobalSearchDialog
+  copy={data.copy.globalSearch}
+  bind:open={globalSearchOpen}
+  signedIn={Boolean(viewerUser)}
+  on:openChange={(event) => {
+    globalSearchOpen = event.detail;
+  }}
+/>

@@ -8,11 +8,14 @@ import type {
   LayoutUserSummary,
 } from "$lib/shell/layout-server-data";
 import AppPreferencesMenu from "./AppPreferencesMenu.svelte";
+import GlobalSearchTrigger from "./GlobalSearchTrigger.svelte";
 
 export let closeMenus: () => void;
 export let copy: LayoutCopy;
 export let locale: "en-us" | "zh-cn";
 export let localeMenuOpen: boolean;
+export let onOpenGlobalSearch: () => void;
+export let globalSearchShortcutLabel: string;
 export let setLocale: (locale: "en-us" | "zh-cn") => void;
 export let setLocaleMenuOpen: (open: boolean) => void;
 export let setThemeMenuOpen: (open: boolean) => void;
@@ -21,6 +24,7 @@ export let themeMenuOpen: boolean;
 export let themeMode: ThemeMode;
 export let user: LayoutUserSummary;
 export let viewerLoading = false;
+export let signedIn = false;
 </script>
 
 <header
@@ -47,7 +51,27 @@ export let viewerLoading = false;
       <span class="truncate">Life@USTC</span>
     </a>
 
+    <div class="hidden min-w-0 flex-1 justify-center px-4 md:flex">
+      <GlobalSearchTrigger
+        copy={copy.globalSearch}
+        onOpen={onOpenGlobalSearch}
+        shortcutLabel={globalSearchShortcutLabel}
+        {signedIn}
+        variant="desktop"
+      />
+    </div>
+
     <div class="ml-auto flex items-center gap-1">
+      <div class="md:hidden">
+        <GlobalSearchTrigger
+          copy={copy.globalSearch}
+          onOpen={onOpenGlobalSearch}
+          shortcutLabel={globalSearchShortcutLabel}
+          {signedIn}
+          variant="mobile"
+        />
+      </div>
+
       <AppPreferencesMenu
         {copy}
         {locale}

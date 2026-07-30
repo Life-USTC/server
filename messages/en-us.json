@@ -77,6 +77,24 @@
     "userNotFound": "User not found",
     "unknown": "Unknown"
   },
+  "globalSearch": {
+    "title": "Search",
+    "placeholder": "Search courses, sections, teachers…",
+    "placeholderSignedIn": "Search courses, sections, homework, todos…",
+    "shortcut": "Ctrl K",
+    "shortcutMac": "⌘ K",
+    "noResults": "No results found",
+    "searching": "Searching…",
+    "hint": "Type at least 2 characters to search",
+    "openSearch": "Open search",
+    "groups": {
+      "courses": "Courses",
+      "sections": "Sections",
+      "teachers": "Teachers",
+      "homeworks": "Homework",
+      "todos": "Todos"
+    }
+  },
   "CalendarEventCard": {
     "session": "Class",
     "exam": "Exam",

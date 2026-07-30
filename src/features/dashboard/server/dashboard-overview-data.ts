@@ -78,7 +78,9 @@ export async function getDashboardOverviewData(
     (homework) => homework.homeworkCompletions.length === 0,
   );
   const calendarHomeworks = overviewHomeworks.filter(
-    (homework) => homework.submissionDueAt !== null,
+    (homework) =>
+      homework.submissionDueAt !== null &&
+      homework.homeworkCompletions.length === 0,
   );
   const schedule = buildDashboardOverviewSchedule({
     dashboardSections,

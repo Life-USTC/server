@@ -1,3 +1,4 @@
+import { scheduleInvalidateUserCalendarExportCache } from "@/features/calendar/server/calendar-export-invalidation";
 import type { Prisma, TodoPriority } from "@/generated/prisma/client";
 import { buildPaginatedResponse, normalizePagination } from "@/lib/api/helpers";
 import { withUserDbContext } from "@/lib/db/prisma";
@@ -92,7 +93,7 @@ function normalizeTodoUserId(userId: string) {
 
 export async function createTodo(input: TodoCreateInput) {
   const userId = normalizeTodoUserId(input.userId);
-  return withUserDbContext(userId, (tx) =>
+  const todo = await withUserDbContext(userId, (tx) =>
     tx.todo.create({
       select: { id: true },
       data: {
@@ -104,6 +105,8 @@ export async function createTodo(input: TodoCreateInput) {
       },
     }),
   );
+  scheduleInvalidateUserCalendarExportCache(userId);
+  return todo;
 }
 
 export async function listTodos(where: Prisma.TodoWhereInput) {
@@ -451,13 +454,14 @@ export async function updateOwnedTodo(input: {
       data: updates,
       select: todoSnapshotSelect,
     });
+    scheduleInvalidateUserCalendarExportCache(userId);
     return { ok: true as const, todo };
   });
 }
 
 export async function deleteOwnedTodo(id: string, userId: string) {
   userId = normalizeTodoUserId(userId);
-  return withUserDbContext(userId, async (tx) => {
+  const result = await withUserDbContext(userId, async (tx) => {
     const deleted = await tx.todo.deleteMany({ where: { id, userId } });
     if (deleted.count > 0) return { ok: true as const };
 
@@ -471,4 +475,6 @@ export async function deleteOwnedTodo(id: string, userId: string) {
     }
     return { ok: false as const, error: "not_found" as const };
   });
+  if (result.ok) scheduleInvalidateUserCalendarExportCache(userId);
+  return result;
 }
