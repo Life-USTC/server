@@ -12,7 +12,7 @@ EOF
 chmod +x "$fake_bin/psql"
 
 marker="$fake_bin/psql-called"
-if PATH="$fake_bin:$PATH" DATABASE_URL=postgresql://invalid \
+if PATH="$fake_bin:$PATH" ALLOW_DATABASE_SEED= DATABASE_URL=postgresql://invalid \
   SEED_GUARD_PSQL_MARKER="$marker" sh "$repo_root/prisma/seed.sh" \
   >/dev/null 2>&1; then
   echo "seed guard accepted a missing opt-in" >&2
