@@ -1,7 +1,25 @@
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { afterAll, describe, expect, it } from "vitest";
+import type { PrismaClient } from "@/generated/prisma/client";
 import { Prisma } from "@/generated/prisma/client";
 import { prisma } from "@/lib/db/prisma";
 import { createTestPrisma, disconnectTestPrisma } from "../shared/prisma";
+
+function loadPrivilegeAllowlist(
+  client: PrismaClient,
+  scriptPath: string,
+): Promise<string[]> {
+  const sql = readFileSync(join(process.cwd(), scriptPath), "utf8").replace(
+    /\\set ON_ERROR_STOP on\n?/,
+    "",
+  );
+
+  return client.$queryRawUnsafe<Record<string, string>[]>(sql).then((rows) => {
+    const value = Object.values(rows[0] ?? {})[0] ?? "";
+    return value.length === 0 ? [] : value.split(",");
+  });
+}
 
 const adminPrisma = createTestPrisma(
   process.env.FUNCTION_OWNER_DATABASE_URL ?? process.env.DATABASE_URL,
@@ -16,45 +34,6 @@ const protectedTables = [
   "Todo",
   "Upload",
   "UploadPending",
-] as const;
-
-// This mirrors only the temporary CI role bootstrap. Issue #603 must replace
-// it with separately owned production roles.
-const expectedRuntimeTablePrivileges = [
-  "BusCampus:SELECT",
-  "BusUserPreference:DELETE",
-  "BusUserPreference:INSERT",
-  "BusUserPreference:SELECT",
-  "BusUserPreference:UPDATE",
-  "CommentReaction:DELETE",
-  "CommentReaction:INSERT",
-  "CommentReaction:SELECT",
-  "DashboardLinkClick:DELETE",
-  "DashboardLinkClick:INSERT",
-  "DashboardLinkClick:SELECT",
-  "DashboardLinkClick:UPDATE",
-  "DashboardLinkPin:DELETE",
-  "DashboardLinkPin:INSERT",
-  "DashboardLinkPin:SELECT",
-  "DashboardLinkPin:UPDATE",
-  "Homework:SELECT",
-  "HomeworkCompletion:DELETE",
-  "HomeworkCompletion:INSERT",
-  "HomeworkCompletion:SELECT",
-  "HomeworkCompletion:UPDATE",
-  "Todo:DELETE",
-  "Todo:INSERT",
-  "Todo:SELECT",
-  "Todo:UPDATE",
-  "Upload:DELETE",
-  "Upload:INSERT",
-  "Upload:SELECT",
-  "Upload:UPDATE",
-  "UploadPending:DELETE",
-  "UploadPending:INSERT",
-  "UploadPending:SELECT",
-  "UploadPending:UPDATE",
-  "User:SELECT",
 ] as const;
 
 const expectedRuntimeFunctionPrivileges = [
@@ -234,7 +213,12 @@ describe.skipIf(process.env.RLS_TEST_ENABLED !== "true")(
       }
     });
 
-    it("keeps the temporary CI runtime grants on an exact allowlist", async () => {
+    it("keeps the temporary CI runtime grants on the export privilege contract", async () => {
+      const expectedRuntimeTablePrivileges = await loadPrivilegeAllowlist(
+        prisma,
+        "prisma/roles/export-app-runtime-table-privileges.sql",
+      );
+
       const grants = await prisma.$queryRaw<
         { tableName: string; privilege: string }[]
       >(Prisma.sql`
@@ -248,7 +232,9 @@ describe.skipIf(process.env.RLS_TEST_ENABLED !== "true")(
       `);
 
       expect(
-        grants.map(({ tableName, privilege }) => `${tableName}:${privilege}`),
+        grants.map(
+          ({ tableName, privilege }) => `public.${tableName}:${privilege}`,
+        ),
       ).toEqual(expectedRuntimeTablePrivileges);
 
       const effectiveGrants = await prisma.$queryRaw<
@@ -274,7 +260,7 @@ describe.skipIf(process.env.RLS_TEST_ENABLED !== "true")(
       `);
       expect(
         effectiveGrants.map(
-          ({ tableName, privilege }) => `${tableName}:${privilege}`,
+          ({ tableName, privilege }) => `public.${tableName}:${privilege}`,
         ),
       ).toEqual(expectedRuntimeTablePrivileges);
 

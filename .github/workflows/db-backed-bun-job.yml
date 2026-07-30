@@ -179,6 +179,10 @@ jobs:
               runtime_database_url="postgresql://life_ustc_runtime:runtime-test-password@127.0.0.1:5432/${{ inputs.database-name }}"
               expected_table_privileges="$(psql "$runtime_database_url" -X -tA \
                 --file=prisma/roles/export-app-runtime-table-privileges.sql)"
+              expected_column_privileges="$(psql "$runtime_database_url" -X -tA \
+                --file=prisma/roles/export-app-runtime-column-privileges.sql)"
+              expected_sequence_privileges="$(psql "$runtime_database_url" -X -tA \
+                --file=prisma/roles/export-app-runtime-sequence-privileges.sql)"
               expected_function_privileges='public.comment_attachment_summaries(p_comment_ids text[]):EXECUTE'
               expected_function_privileges+=',public.comment_reaction_summaries(comment_ids text[]):EXECUTE'
               expected_function_privileges+=',public.find_downloadable_upload(p_upload_id text):EXECUTE'
@@ -188,8 +192,8 @@ jobs:
                 --set=expected_role=life_ustc_runtime \
                 --set=expected_schema_privileges=public:USAGE \
                 --set=expected_table_privileges="$expected_table_privileges" \
-                --set=expected_column_privileges= \
-                --set=expected_sequence_privileges= \
+                --set=expected_column_privileges="$expected_column_privileges" \
+                --set=expected_sequence_privileges="$expected_sequence_privileges" \
                 --set=expected_function_privileges="$expected_function_privileges" \
                 --file=prisma/roles/verify-app-runtime.sql
               export FUNCTION_OWNER_DATABASE_URL="$DATABASE_URL"
