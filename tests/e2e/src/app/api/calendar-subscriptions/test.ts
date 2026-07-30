@@ -323,17 +323,17 @@ test.describe("日历订阅 API", () => {
         prisma.user.findUniqueOrThrow({
           where: { id: sessionUser.id },
           select: {
-            subscribedSections: {
-              orderBy: { id: "asc" },
-              select: { id: true },
+            sectionSubscriptions: {
+              orderBy: { sectionId: "asc" },
+              select: { sectionId: true },
             },
           },
         }),
       ]);
       return {
         section,
-        subscribedSectionIds: user.subscribedSections.map(
-          (subscribedSection) => subscribedSection.id,
+        subscribedSectionIds: user.sectionSubscriptions.map(
+          (subscription) => subscription.sectionId,
         ),
       };
     });
@@ -347,7 +347,10 @@ test.describe("日历订阅 API", () => {
         prisma.user.update({
           where: { id: sessionUser.id },
           data: {
-            subscribedSections: { set: [{ id: previous.section.id }] },
+            sectionSubscriptions: {
+              deleteMany: {},
+              create: [{ sectionId: previous.section.id }],
+            },
           },
         }),
       ]),
@@ -457,8 +460,11 @@ test.describe("日历订阅 API", () => {
           prisma.user.update({
             where: { id: sessionUser.id },
             data: {
-              subscribedSections: {
-                set: previous.subscribedSectionIds.map((id) => ({ id })),
+              sectionSubscriptions: {
+                deleteMany: {},
+                create: previous.subscribedSectionIds.map((sectionId) => ({
+                  sectionId,
+                })),
               },
             },
           }),

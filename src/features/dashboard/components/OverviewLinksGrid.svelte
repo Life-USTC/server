@@ -4,10 +4,12 @@ import type {
   DashboardLinkPinAction,
   DashboardOverviewLinkItem,
 } from "@/features/dashboard/lib/dashboard-controller-helpers";
+import { DASHBOARD_OVERVIEW_PREVIEW_LIMIT } from "@/features/dashboard/lib/overview-preview";
 import * as Empty from "$lib/components/ui/empty/index.js";
 import DashboardLinkVisitAction from "./DashboardLinkVisitAction.svelte";
 import type { DashboardCalendarTabHref } from "./dashboard-calendar-component-types";
 import LinksTabPinButton from "./LinksTabPinButton.svelte";
+import OverviewViewAllFooter from "./OverviewViewAllFooter.svelte";
 
 export let dashboardCopy: DashboardDashboardCopy;
 export let dashboardTabHref: DashboardCalendarTabHref;
@@ -18,6 +20,9 @@ export let submitDashboardLinkPin: (
   action: "pin" | "unpin",
 ) => void;
 export let updatingDashboardLinkSlug: string | null;
+
+const previewLimit = DASHBOARD_OVERVIEW_PREVIEW_LIMIT;
+$: previewLinks = links.slice(0, previewLimit);
 
 function pinLabel(link: DashboardOverviewLinkItem) {
   return link.isPinned
@@ -30,11 +35,9 @@ function pinAction(link: DashboardOverviewLinkItem): DashboardLinkPinAction {
 }
 </script>
 
-<div
-  class="grid min-w-0 gap-3 sm:grid-cols-2 xl:grid-cols-4"
-  data-testid="dashboard-overview-links"
->
-  {#each links.slice(0, 4) as link}
+<div data-testid="dashboard-overview-links">
+  <div class="grid min-w-0 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+  {#each previewLinks as link}
     <div class="group relative min-w-0 overflow-hidden rounded-lg">
       <DashboardLinkVisitAction {link} {linkIconLabel} reserveActionSpace />
       <div class={`absolute top-2 right-2 opacity-100 transition-opacity ${link.isPinned ? "" : "md:pointer-events-none md:opacity-0 md:group-focus-within:pointer-events-auto md:group-focus-within:opacity-100 md:group-hover:pointer-events-auto md:group-hover:opacity-100"}`}>
@@ -55,4 +58,10 @@ function pinAction(link: DashboardOverviewLinkItem): DashboardLinkPinAction {
       </Empty.Header>
     </Empty.Root>
   {/each}
+  </div>
+  <OverviewViewAllFooter
+    href="/catalog/links"
+    label={dashboardCopy.viewAll as string}
+    visible={links.length > previewLimit}
+  />
 </div>

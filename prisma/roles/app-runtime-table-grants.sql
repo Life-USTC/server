@@ -42,6 +42,7 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE
   "DashboardLinkPin",
   "BusUserPreference",
   "UserUstcIdentity",
+  "UserSectionSubscription",
   "Upload",
   "UploadPending",
   "HomeworkCompletion"

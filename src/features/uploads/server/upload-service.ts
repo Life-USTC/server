@@ -4,7 +4,7 @@ import {
   runUploadSerializableTransaction,
   UploadError,
 } from "@/features/uploads/server/upload-quota";
-import { Prisma } from "@/generated/prisma/client";
+import { Prisma, UploadPendingPhase } from "@/generated/prisma/client";
 import { writeAuditLog } from "@/lib/audit/write-audit-log";
 import { getViewerContext } from "@/lib/auth/viewer-context";
 import { withUserDbContext } from "@/lib/db/prisma";
@@ -17,6 +17,7 @@ import { buildUploadKey } from "@/lib/storage/upload-key";
 
 export const MAX_UPLOAD_EXPIRES_SECONDS = 300;
 const EXPIRED_PENDING_UPLOAD_CLEANUP_BATCH_SIZE = 25;
+const UPLOAD_PUT_LEASE_SECONDS = 120;
 
 export type UploadCreateInput = {
   contentType: string;
@@ -55,6 +56,8 @@ type ExpiredPendingUploadCleanupPrisma = {
       where: {
         userId: string;
         expiresAt: { lt: Date };
+        phase: { in: UploadPendingPhase[] };
+        OR: Array<{ leaseExpiresAt: null } | { leaseExpiresAt: { lt: Date } }>;
         NOT?: { key: string };
       };
       orderBy: [{ expiresAt: "asc" }, { key: "asc" }];
@@ -141,10 +144,12 @@ export async function createUploadSession(input: {
 
       await tx.uploadPending.create({
         data: {
+          attemptId: crypto.randomUUID(),
           contentType: input.upload.contentType,
           expiresAt,
           filename: input.upload.filename,
           key,
+          phase: UploadPendingPhase.reserved,
           size: input.upload.size,
           userId: input.userId,
         },
@@ -258,6 +263,31 @@ export async function completeUploadSession(
 
       const transactionNow = new Date();
       if (pending.expiresAt < transactionNow) {
+        return {
+          ok: false,
+          code: "Upload session expired",
+        } satisfies UploadCompletionResult;
+      }
+
+      if (pending.phase !== UploadPendingPhase.uploaded) {
+        return {
+          ok: false,
+          code: "Upload session expired",
+        } satisfies UploadCompletionResult;
+      }
+
+      const completing = await tx.uploadPending.updateMany({
+        where: {
+          key: input.key,
+          userId,
+          phase: UploadPendingPhase.uploaded,
+        },
+        data: {
+          phase: UploadPendingPhase.completing,
+          leaseExpiresAt: new Date(transactionNow.getTime() + 30_000),
+        },
+      });
+      if (completing.count === 0) {
         return {
           ok: false,
           code: "Upload session expired",
@@ -480,35 +510,92 @@ export async function findDownloadableUpload(id: string, userId: string) {
   return upload ?? null;
 }
 
+export async function claimUploadPutLease(input: {
+  key: string;
+  requestContentLength: number;
+  requestContentType: string | null;
+  userId: string;
+}) {
+  const now = new Date();
+  const leaseExpiresAt = new Date(
+    now.getTime() + UPLOAD_PUT_LEASE_SECONDS * 1000,
+  );
+  const claimed = await withUserDbContext(input.userId, async (tx) => {
+    const updated = await tx.uploadPending.updateMany({
+      where: {
+        key: input.key,
+        userId: input.userId,
+        expiresAt: { gt: now },
+        phase: {
+          in: [UploadPendingPhase.reserved, UploadPendingPhase.uploaded],
+        },
+        OR: [{ leaseExpiresAt: null }, { leaseExpiresAt: { lt: now } }],
+      },
+      data: {
+        leaseExpiresAt,
+        phase: UploadPendingPhase.uploading,
+      },
+    });
+    if (updated.count === 0) {
+      return null;
+    }
+
+    return tx.uploadPending.findUnique({
+      where: { key: input.key },
+      select: {
+        attemptId: true,
+        contentType: true,
+        size: true,
+      },
+    });
+  });
+
+  if (!claimed) {
+    throw new UploadError("Upload session expired");
+  }
+  if (input.requestContentLength > claimed.size) {
+    throw new UploadError("File too large");
+  }
+
+  return {
+    attemptId: claimed.attemptId,
+    contentType:
+      normalizeContentType(input.requestContentType) ?? claimed.contentType,
+  };
+}
+
+export async function markUploadPutCompleted(input: {
+  attemptId: string;
+  key: string;
+  userId: string;
+}) {
+  const updated = await withUserDbContext(input.userId, (tx) =>
+    tx.uploadPending.updateMany({
+      where: {
+        attemptId: input.attemptId,
+        key: input.key,
+        phase: UploadPendingPhase.uploading,
+        userId: input.userId,
+      },
+      data: {
+        leaseExpiresAt: null,
+        phase: UploadPendingPhase.uploaded,
+      },
+    }),
+  );
+
+  if (updated.count === 0) {
+    throw new UploadError("Upload session expired");
+  }
+}
+
 export async function validatePendingUploadObject(input: {
   key: string;
   requestContentLength: number;
   requestContentType: string | null;
   userId: string;
 }) {
-  const pending = await withUserDbContext(input.userId, (tx) =>
-    tx.uploadPending.findUnique({
-      where: { key: input.key },
-      select: {
-        contentType: true,
-        expiresAt: true,
-        size: true,
-        userId: true,
-      },
-    }),
-  );
-  const now = new Date();
-  if (!pending || pending.userId !== input.userId || pending.expiresAt < now) {
-    throw new UploadError("Upload session expired");
-  }
-  if (input.requestContentLength > pending.size) {
-    throw new UploadError("File too large");
-  }
-
-  return {
-    contentType:
-      normalizeContentType(input.requestContentType) ?? pending.contentType,
-  };
+  return claimUploadPutLease(input);
 }
 
 async function requireActiveUploadWriter(userId: string) {
@@ -596,6 +683,10 @@ async function deleteExpiredPendingUploads(
     where: {
       userId,
       expiresAt: { lt: now },
+      phase: {
+        in: [UploadPendingPhase.reserved, UploadPendingPhase.uploaded],
+      },
+      OR: [{ leaseExpiresAt: null }, { leaseExpiresAt: { lt: now } }],
       ...(excludeKey ? { NOT: { key: excludeKey } } : {}),
     },
     orderBy: [{ expiresAt: "asc" }, { key: "asc" }],

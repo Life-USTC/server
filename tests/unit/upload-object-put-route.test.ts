@@ -6,6 +6,7 @@ const {
   headStorageObjectMock,
   putStorageObjectMock,
   requireWriteAuthMock,
+  updateManyMock,
   withUserDbContextMock,
 } = vi.hoisted(() => ({
   deleteStorageObjectMock: vi.fn(),
@@ -13,6 +14,7 @@ const {
   headStorageObjectMock: vi.fn(),
   putStorageObjectMock: vi.fn(),
   requireWriteAuthMock: vi.fn(),
+  updateManyMock: vi.fn(),
   withUserDbContextMock: vi.fn(),
 }));
 
@@ -24,6 +26,7 @@ vi.mock("@/lib/db/prisma", () => ({
   prisma: {
     uploadPending: {
       findUnique: findUniqueMock,
+      updateMany: updateManyMock,
     },
   },
   withUserDbContext: withUserDbContextMock,
@@ -63,15 +66,21 @@ describe("putUploadObjectRoute", () => {
     vi.useFakeTimers();
     vi.setSystemTime(FIXED_NOW);
     withUserDbContextMock.mockImplementation((_userId, action) =>
-      action({ uploadPending: { findUnique: findUniqueMock } }),
+      action({
+        uploadPending: {
+          findUnique: findUniqueMock,
+          updateMany: updateManyMock,
+        },
+      }),
     );
+    updateManyMock.mockResolvedValue({ count: 1 });
   });
 
   afterEach(() => {
     vi.useRealTimers();
     deleteStorageObjectMock.mockReset();
+    updateManyMock.mockReset();
     findUniqueMock.mockReset();
-    headStorageObjectMock.mockReset();
     putStorageObjectMock.mockReset();
     requireWriteAuthMock.mockReset();
     withUserDbContextMock.mockReset();
@@ -114,7 +123,9 @@ describe("putUploadObjectRoute", () => {
 
   it("拒绝过期的上传会话", async () => {
     requireWriteAuthMock.mockResolvedValue({ userId: "user-1" });
+    updateManyMock.mockResolvedValue({ count: 0 });
     findUniqueMock.mockResolvedValue({
+      attemptId: "attempt-1",
       contentType: "text/plain",
       expiresAt: new Date(FIXED_NOW.getTime() - 1_000),
       size: 2,
@@ -138,6 +149,7 @@ describe("putUploadObjectRoute", () => {
   it("拒绝超过待处理预留大小的请求体", async () => {
     requireWriteAuthMock.mockResolvedValue({ userId: "user-1" });
     findUniqueMock.mockResolvedValue({
+      attemptId: "attempt-1",
       contentType: "text/plain",
       expiresAt: new Date(FIXED_NOW.getTime() + 60_000),
       size: 1,
@@ -158,6 +170,7 @@ describe("putUploadObjectRoute", () => {
   it("将有效的待处理上传写入 R2", async () => {
     requireWriteAuthMock.mockResolvedValue({ userId: "user-1" });
     findUniqueMock.mockResolvedValue({
+      attemptId: "attempt-1",
       contentType: "text/plain",
       expiresAt: new Date(FIXED_NOW.getTime() + 60_000),
       size: 2,

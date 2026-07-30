@@ -1,12 +1,16 @@
 import type { Prisma } from "@/generated/prisma/client";
 import type { AppLocale } from "@/i18n/config";
 import { DEFAULT_LOCALE } from "@/i18n/config";
-import { prisma } from "@/lib/db/prisma";
+import { prisma, withUserDbContext } from "@/lib/db/prisma";
 import { acquireSectionLifecycleAdvisoryLocks } from "@/lib/db/section-lifecycle-lock";
 import {
   getUserCalendarSubscription,
   getUserSectionSubscriptionState,
 } from "./subscription-calendar-read-model";
+import {
+  subscribedSectionDetailSelect,
+  subscribedSectionsFromUser,
+} from "./subscription-read-model-shared";
 import { uniqueSectionIds } from "./subscription-section-id-helpers";
 import { resolveCalendarSubscriptionSections } from "./subscription-section-resolver";
 
@@ -15,14 +19,8 @@ async function replaceUserSectionIds(
   userId: string,
   nextIds: readonly number[],
 ) {
-  await tx.user.update({
-    where: { id: userId },
-    data: {
-      subscribedSections: {
-        set: uniqueSectionIds(nextIds).map((id) => ({ id })),
-      },
-    },
-  });
+  await tx.userSectionSubscription.deleteMany({ where: { userId } });
+  await connectUserSectionIds(tx, userId, nextIds);
 }
 
 async function replaceUserSectionIdsInSemester(
@@ -33,19 +31,23 @@ async function replaceUserSectionIdsInSemester(
 ) {
   const currentIdSet = new Set(currentIds);
   const nextIdSet = new Set(nextIds);
-  await tx.user.update({
-    where: { id: userId },
-    data: {
-      subscribedSections: {
-        connect: uniqueSectionIds(nextIds)
-          .filter((id) => !currentIdSet.has(id))
-          .map((id) => ({ id })),
-        disconnect: uniqueSectionIds(currentIds)
-          .filter((id) => !nextIdSet.has(id))
-          .map((id) => ({ id })),
+  const disconnectIds = uniqueSectionIds(currentIds).filter(
+    (id) => !nextIdSet.has(id),
+  );
+  const connectIds = uniqueSectionIds(nextIds).filter(
+    (id) => !currentIdSet.has(id),
+  );
+
+  if (disconnectIds.length > 0) {
+    await tx.userSectionSubscription.deleteMany({
+      where: {
+        userId,
+        sectionId: { in: disconnectIds },
       },
-    },
-  });
+    });
+  }
+
+  await connectUserSectionIds(tx, userId, connectIds);
 }
 
 async function getExistingSectionIds(
@@ -88,8 +90,12 @@ async function getMutableUserSubscriptions(
     where: { id: userId },
     select: {
       id: true,
-      subscribedSections: {
-        select: { id: true, jwId: true, semesterId: true, retiredAt: true },
+      sectionSubscriptions: {
+        select: {
+          section: {
+            select: subscribedSectionDetailSelect,
+          },
+        },
       },
     },
   });
@@ -99,16 +105,16 @@ export async function hasUserSubscribedSectionByJwId(
   userId: string,
   jwId: number,
 ) {
-  const existingSubscription = await prisma.user.findUnique({
-    where: { id: userId },
-    select: {
-      subscribedSections: {
-        where: { jwId },
-        select: { id: true },
+  const existingSubscription = await withUserDbContext(userId, (tx) =>
+    tx.userSectionSubscription.findFirst({
+      where: {
+        userId,
+        section: { jwId },
       },
-    },
-  });
-  return (existingSubscription?.subscribedSections.length ?? 0) > 0;
+      select: { sectionId: true },
+    }),
+  );
+  return existingSubscription != null;
 }
 
 async function connectUserSectionIds(
@@ -116,17 +122,14 @@ async function connectUserSectionIds(
   userId: string,
   sectionIds: readonly number[],
 ) {
-  if (sectionIds.length === 0) {
+  const ids = uniqueSectionIds(sectionIds);
+  if (ids.length === 0) {
     return;
   }
 
-  await tx.user.update({
-    where: { id: userId },
-    data: {
-      subscribedSections: {
-        connect: uniqueSectionIds(sectionIds).map((id) => ({ id })),
-      },
-    },
+  await tx.userSectionSubscription.createMany({
+    data: ids.map((sectionId) => ({ userId, sectionId })),
+    skipDuplicates: true,
   });
 }
 
@@ -177,9 +180,10 @@ export async function mutateUserSectionSubscriptionsInTransaction(
     return null;
   }
 
+  const subscribedSections = subscribedSectionsFromUser(user);
   const candidateSectionIds = uniqueSectionIds(input.candidateSectionIds);
   const currentSectionIds = uniqueSectionIds(
-    user.subscribedSections.map((section) => section.id),
+    subscribedSections.map((section) => section.id),
   );
   const preserveRetiredSectionIds = uniqueSectionIds(
     input.preserveRetiredSectionIds ?? [],
@@ -276,7 +280,7 @@ export async function mutateUserSectionSubscriptionsInTransaction(
 async function mutateUserSectionSubscriptions(
   input: LockedSectionSubscriptionMutationInput,
 ) {
-  return prisma.$transaction((tx) =>
+  return withUserDbContext(input.userId, (tx) =>
     mutateUserSectionSubscriptionsInTransaction(tx, input),
   );
 }
@@ -335,14 +339,14 @@ async function disconnectUserSectionIds(
     return;
   }
 
-  await prisma.user.update({
-    where: { id: userId },
-    data: {
-      subscribedSections: {
-        disconnect: validSectionIds.map((id) => ({ id })),
+  await withUserDbContext(userId, (tx) =>
+    tx.userSectionSubscription.deleteMany({
+      where: {
+        userId,
+        sectionId: { in: validSectionIds },
       },
-    },
-  });
+    }),
+  );
 }
 
 export async function replaceUserSectionSubscriptions(
@@ -514,7 +518,7 @@ export async function batchUpdateUserSectionSubscriptions({
     const user = await getMutableUserSubscriptions(userId);
     if (!user) return null;
     const currentIdSet = new Set(
-      user.subscribedSections.map((section) => section.id),
+      subscribedSectionsFromUser(user).map((section) => section.id),
     );
     const removedIds = targetIds.filter((id) => currentIdSet.has(id));
     removedCount = removedIds.length;
@@ -655,12 +659,14 @@ export async function setUserSectionSubscriptionByJwId(input: {
     };
   }
 
-  await prisma.user.update({
-    where: { id: input.userId },
-    data: {
-      subscribedSections: { disconnect: { id: sectionId } },
-    },
-  });
+  await withUserDbContext(input.userId, (tx) =>
+    tx.userSectionSubscription.deleteMany({
+      where: {
+        userId: input.userId,
+        sectionId,
+      },
+    }),
+  );
 
   return {
     sectionJwId: input.sectionJwId,

@@ -81,6 +81,17 @@ export async function loadPublicProfileUploadCount(
   return Number(row?.totalUploads ?? 0n);
 }
 
+export async function loadPublicProfileSectionSubscriptionCount(
+  prisma: ContributionPrisma,
+  userId: string,
+) {
+  const [row] = await prisma.$queryRaw<{ count: bigint }[]>`
+    SELECT public.get_public_profile_section_subscription_count(${userId}) AS count
+  `;
+
+  return Number(row?.count ?? 0n);
+}
+
 export async function buildUserProfileContributions(
   prisma: ContributionPrisma,
   userId: string,

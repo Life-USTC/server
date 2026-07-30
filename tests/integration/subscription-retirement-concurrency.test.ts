@@ -98,8 +98,8 @@ async function createFixture(options: { subscribedToFirst: boolean }) {
       data: {
         email: `${numericMarker}@subscription-lock.integration`,
         name: marker,
-        subscribedSections: options.subscribedToFirst
-          ? { connect: { id: sections[0].id } }
+        sectionSubscriptions: options.subscribedToFirst
+          ? { create: { sectionId: sections[0].id } }
           : undefined,
       },
     });
@@ -204,18 +204,20 @@ describe("Section subscription retirement linearization", () => {
         unchangedSectionIds: [fixture.sections[0].id],
       });
       await expect(
-        prisma.user.findUnique({
-          where: { id: fixture.user.id },
+        prisma.userSectionSubscription.findMany({
+          where: { userId: fixture.user.id },
+          orderBy: { sectionId: "asc" },
           select: {
-            subscribedSections: {
-              orderBy: { id: "asc" },
-              select: { id: true, retiredAt: true },
-            },
+            sectionId: true,
+            section: { select: { retiredAt: true } },
           },
         }),
-      ).resolves.toEqual({
-        subscribedSections: [{ id: fixture.sections[0].id, retiredAt }],
-      });
+      ).resolves.toEqual([
+        {
+          sectionId: fixture.sections[0].id,
+          section: { retiredAt },
+        },
+      ]);
     } finally {
       releaseImporter.resolve();
       await settleOperations(importer, subscriber);
@@ -305,17 +307,20 @@ describe("Section subscription retirement linearization", () => {
         unchangedSectionIds: [],
       });
       await expect(
-        prisma.user.findUnique({
-          where: { id: fixture.user.id },
+        prisma.userSectionSubscription.findMany({
+          where: { userId: fixture.user.id },
+          orderBy: { sectionId: "asc" },
           select: {
-            subscribedSections: {
-              select: { id: true, retiredAt: true },
-            },
+            sectionId: true,
+            section: { select: { retiredAt: true } },
           },
         }),
-      ).resolves.toEqual({
-        subscribedSections: [{ id: fixture.sections[0].id, retiredAt }],
-      });
+      ).resolves.toEqual([
+        {
+          sectionId: fixture.sections[0].id,
+          section: { retiredAt },
+        },
+      ]);
     } finally {
       releaseSubscriber.resolve();
       await settleOperations(subscriber, importer);

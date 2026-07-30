@@ -92,9 +92,13 @@ export async function getUserCalendarRecord(userId: string) {
     tx.user.findUnique({
       where: { id: userId },
       include: {
-        subscribedSections: {
-          where: { retiredAt: null },
-          include: sectionCalendarInclude,
+        sectionSubscriptions: {
+          where: { section: { retiredAt: null } },
+          include: {
+            section: {
+              include: sectionCalendarInclude,
+            },
+          },
         },
         todos: {
           where: {

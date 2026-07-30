@@ -697,17 +697,17 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
         prisma.user.findUniqueOrThrow({
           where: { id: sessionUser.id },
           select: {
-            subscribedSections: {
-              orderBy: { id: "asc" },
-              select: { id: true },
+            sectionSubscriptions: {
+              orderBy: { sectionId: "asc" },
+              select: { sectionId: true },
             },
           },
         }),
       ]);
       return {
         section,
-        subscribedSectionIds: user.subscribedSections.map(
-          (subscribedSection) => subscribedSection.id,
+        subscribedSectionIds: user.sectionSubscriptions.map(
+          (subscription) => subscription.sectionId,
         ),
       };
     });
@@ -721,13 +721,14 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
         prisma.user.update({
           where: { id: sessionUser.id },
           data: {
-            subscribedSections: {
-              set: [
+            sectionSubscriptions: {
+              deleteMany: {},
+              create: [
                 ...new Set([
                   ...previous.subscribedSectionIds,
                   previous.section.id,
                 ]),
-              ].map((id) => ({ id })),
+              ].map((sectionId) => ({ sectionId })),
             },
           },
         }),
@@ -757,13 +758,13 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
             const user = await prisma.user.findUniqueOrThrow({
               where: { id: sessionUser.id },
               select: {
-                subscribedSections: {
-                  where: { id: previous.section.id },
-                  select: { id: true },
+                sectionSubscriptions: {
+                  where: { sectionId: previous.section.id },
+                  select: { sectionId: true },
                 },
               },
             });
-            return user.subscribedSections.length;
+            return user.sectionSubscriptions.length;
           }),
         )
         .toBe(0);
@@ -783,8 +784,11 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
           prisma.user.update({
             where: { id: sessionUser.id },
             data: {
-              subscribedSections: {
-                set: previous.subscribedSectionIds.map((id) => ({ id })),
+              sectionSubscriptions: {
+                deleteMany: {},
+                create: previous.subscribedSectionIds.map((sectionId) => ({
+                  sectionId,
+                })),
               },
             },
           }),

@@ -41,6 +41,7 @@ const expectedRuntimeFunctionPrivileges = [
   "public.comment_reaction_summaries(comment_ids text[]):EXECUTE",
   "public.find_downloadable_upload(p_upload_id text):EXECUTE",
   "public.get_public_profile_homework_completions(p_user_id text, p_since timestamp without time zone):EXECUTE",
+  "public.get_public_profile_section_subscription_count(p_user_id text):EXECUTE",
   "public.get_public_profile_upload_stats(p_user_id text, p_since timestamp without time zone):EXECUTE",
 ] as const;
 

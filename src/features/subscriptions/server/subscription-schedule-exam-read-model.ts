@@ -10,6 +10,7 @@ import { parseDateInput } from "@/lib/time/parse-date-input";
 import { shanghaiDayjs } from "@/lib/time/shanghai-dayjs";
 import { formatShanghaiDate } from "@/lib/time/shanghai-format";
 import {
+  getSubscribedSectionIds,
   getSubscribedSectionIdsForSemester,
   withSubscribedSections,
 } from "./subscription-read-model-shared";
@@ -150,7 +151,7 @@ export async function listSubscribedSchedules(
   );
 }
 
-export function listSubscribedSchedulePage(
+export async function listSubscribedSchedulePage(
   userId: string,
   {
     locale = DEFAULT_LOCALE,
@@ -171,14 +172,15 @@ export function listSubscribedSchedulePage(
     };
   },
 ) {
+  const sectionIds =
+    semesterId !== undefined
+      ? await getSubscribedSectionIdsForSemester(userId, semesterId)
+      : await getSubscribedSectionIds(userId);
   const localizedPrisma = getPrisma(locale);
   const dateFilter = dateRangeFilter(dateFrom, dateTo);
   const where = {
-    section: {
-      subscribedUsers: { some: { id: userId } },
-      retiredAt: null,
-      ...(semesterId !== undefined ? { semesterId } : {}),
-    },
+    sectionId: { in: sectionIds },
+    section: { retiredAt: null },
     ...(dateFilter ? { date: dateFilter } : {}),
     ...(weekday ? { weekday } : {}),
   } satisfies Prisma.ScheduleWhereInput;
@@ -255,7 +257,7 @@ export async function listSubscribedExams(
   );
 }
 
-export function listSubscribedExamPage(
+export async function listSubscribedExamPage(
   userId: string,
   {
     locale = DEFAULT_LOCALE,
@@ -276,13 +278,14 @@ export function listSubscribedExamPage(
     };
   },
 ) {
+  const sectionIds =
+    semesterId !== undefined
+      ? await getSubscribedSectionIdsForSemester(userId, semesterId)
+      : await getSubscribedSectionIds(userId);
   const localizedPrisma = getPrisma(locale);
   const where = {
-    section: {
-      subscribedUsers: { some: { id: userId } },
-      retiredAt: null,
-      ...(semesterId !== undefined ? { semesterId } : {}),
-    },
+    sectionId: { in: sectionIds },
+    section: { retiredAt: null },
     ...examDateWhere({ dateFrom, dateTo, includeDateUnknown }),
   } satisfies Prisma.ExamWhereInput;
 

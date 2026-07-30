@@ -598,15 +598,15 @@ describe("GraphQL authenticated mutations", () => {
         where: { id: userAId },
         select: {
           calendarFeedToken: true,
-          subscribedSections: {
-            where: { jwId: DEV_SEED.section.jwId },
-            select: { id: true },
+          sectionSubscriptions: {
+            where: { section: { jwId: DEV_SEED.section.jwId } },
+            select: { sectionId: true },
           },
         },
       }),
     ).resolves.toEqual({
       calendarFeedToken: null,
-      subscribedSections: [],
+      sectionSubscriptions: [],
     });
     await expect(
       prisma.dashboardLinkPin.count({ where: { userId: userAId, slug } }),

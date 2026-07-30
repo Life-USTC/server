@@ -52,7 +52,7 @@ describe("static Section source lifecycle persistence", () => {
           data: {
             email: `${numericMarker}@section-lifecycle.integration`,
             name: marker,
-            subscribedSections: { connect: { id: missingSection.id } },
+            sectionSubscriptions: { create: { sectionId: missingSection.id } },
           },
         });
         const comment = await tx.comment.create({
@@ -131,14 +131,14 @@ describe("static Section source lifecycle persistence", () => {
           tx.user.findUnique({
             where: { id: user.id },
             select: {
-              subscribedSections: {
-                where: { id: missingSection.id },
-                select: { id: true },
+              sectionSubscriptions: {
+                where: { sectionId: missingSection.id },
+                select: { sectionId: true },
               },
             },
           }),
         ).resolves.toEqual({
-          subscribedSections: [{ id: missingSection.id }],
+          sectionSubscriptions: [{ sectionId: missingSection.id }],
         });
         const preservedUserData = [
           await tx.comment.findUnique({ where: { id: comment.id } }),
@@ -208,7 +208,7 @@ describe("static Section source lifecycle persistence", () => {
                   comments: true,
                   homeworks: true,
                   homeworkAuditLogs: true,
-                  subscribedUsers: true,
+                  sectionSubscriptions: true,
                 },
               },
               description: { select: { id: true } },
@@ -221,7 +221,7 @@ describe("static Section source lifecycle persistence", () => {
             comments: 1,
             homeworks: 1,
             homeworkAuditLogs: 1,
-            subscribedUsers: 1,
+            sectionSubscriptions: 1,
           },
           description: { id: description.id },
         });

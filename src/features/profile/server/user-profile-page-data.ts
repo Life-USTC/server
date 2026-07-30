@@ -1,5 +1,6 @@
 import {
   buildUserProfileContributions,
+  loadPublicProfileSectionSubscriptionCount,
   loadPublicProfileUploadCount,
 } from "@/features/profile/server/user-profile-contributions";
 import type { Prisma } from "@/generated/prisma/client";
@@ -25,7 +26,6 @@ async function getUserProfileData(where: Prisma.UserWhereUniqueInput) {
         select: {
           comments: true,
           homeworksCreated: true,
-          subscribedSections: true,
         },
       },
     },
@@ -37,17 +37,24 @@ async function getUserProfileData(where: Prisma.UserWhereUniqueInput) {
     .subtract(364, "day")
     .startOf("day")
     .toDate();
-  const [{ totalContributions, weeks }, totalUploads] = await Promise.all([
-    buildUserProfileContributions(prisma, user.id),
-    loadPublicProfileUploadCount(prisma, user.id, profileSince),
-  ]);
+  const [{ totalContributions, weeks }, totalUploads, sectionCount] =
+    await Promise.all([
+      buildUserProfileContributions(prisma, user.id),
+      loadPublicProfileUploadCount(prisma, user.id, profileSince),
+      loadPublicProfileSectionSubscriptionCount(prisma, user.id),
+    ]);
 
   return toLoadData({
     user: {
       ...user,
-      _count: { ...user._count, uploads: totalUploads },
+      _count: {
+        comments: user._count.comments,
+        homeworksCreated: user._count.homeworksCreated,
+        subscribedSections: sectionCount,
+        uploads: totalUploads,
+      },
     },
-    sectionCount: user._count.subscribedSections,
+    sectionCount,
     weeks,
     totalContributions,
   });

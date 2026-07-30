@@ -1,4 +1,4 @@
-import { prisma as basePrisma } from "@/lib/db/prisma";
+import { withUserDbContext } from "@/lib/db/prisma";
 
 export type DashboardUserSummary = {
   id: string;
@@ -21,18 +21,24 @@ export type DashboardUserContext = {
 export async function getDashboardUserContext(
   userId: string,
 ): Promise<DashboardUserContext | null> {
-  const user = await basePrisma.user.findUnique({
-    where: { id: userId },
-    select: {
-      id: true,
-      name: true,
-      username: true,
-      calendarFeedToken: true,
-      subscribedSections: {
-        select: { id: true, retiredAt: true, semesterId: true },
+  const user = await withUserDbContext(userId, (tx) =>
+    tx.user.findUnique({
+      where: { id: userId },
+      select: {
+        id: true,
+        name: true,
+        username: true,
+        calendarFeedToken: true,
+        sectionSubscriptions: {
+          select: {
+            section: {
+              select: { id: true, retiredAt: true, semesterId: true },
+            },
+          },
+        },
       },
-    },
-  });
+    }),
+  );
 
   if (!user) return null;
 
@@ -43,7 +49,7 @@ export async function getDashboardUserContext(
       username: user.username,
       calendarFeedToken: user.calendarFeedToken,
     },
-    sectionIds: user.subscribedSections.map((section) => section.id),
-    subscribedSections: user.subscribedSections,
+    sectionIds: user.sectionSubscriptions.map((row) => row.section.id),
+    subscribedSections: user.sectionSubscriptions.map((row) => row.section),
   };
 }

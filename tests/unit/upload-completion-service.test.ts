@@ -97,8 +97,10 @@ const KEY = "uploads/user-1/test.txt";
 const USER_ID = "user-1";
 
 const validPending = {
+  attemptId: "attempt-1",
   expiresAt: new Date(FIXED_NOW.getTime() + 60_000),
   key: KEY,
+  phase: "uploaded",
   size: 10,
   userId: USER_ID,
 };
@@ -362,7 +364,7 @@ describe("completeUploadSession", () => {
       completion: { upload: { id: "upload-1" } },
     });
 
-    expect(txPendingUpdateManyMock).toHaveBeenCalledTimes(1);
+    expect(txPendingUpdateManyMock).toHaveBeenCalled();
     expect(deleteStorageObjectMock).not.toHaveBeenCalled();
   });
 
@@ -381,6 +383,10 @@ describe("completeUploadSession", () => {
       where: {
         userId: USER_ID,
         expiresAt: { lt: FIXED_NOW },
+        phase: {
+          in: ["reserved", "uploaded"],
+        },
+        OR: [{ leaseExpiresAt: null }, { leaseExpiresAt: { lt: FIXED_NOW } }],
         NOT: { key: KEY },
       },
       orderBy: [{ expiresAt: "asc" }, { key: "asc" }],

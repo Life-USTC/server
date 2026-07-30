@@ -57,6 +57,7 @@ type AppShellData = {
 export let data: AppShellData;
 
 let themeMode: ThemeMode = "system";
+let sidebarOpen = true;
 let userMenuOpen = false;
 let localeMenuOpen = false;
 let themeMenuOpen = false;
@@ -512,6 +513,9 @@ async function setLocale(locale: "en-us" | "zh-cn") {
 }
 
 onMount(() => {
+  if (window.matchMedia("(max-width: 1023px)").matches) {
+    sidebarOpen = false;
+  }
   void resolveClientViewer();
   themeMode = loadStoredThemeMode(themeMode);
   applyShellTheme(themeMode);
@@ -567,6 +571,7 @@ afterNavigate(({ from, to }) => {
 </style>
 
 <Sidebar.Provider
+  bind:open={sidebarOpen}
   class="min-h-screen lg:h-screen lg:min-h-0 lg:overflow-hidden"
 >
     <a

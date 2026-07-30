@@ -84,19 +84,21 @@ export async function getCompactOverview(
 
   const [user, todoBundle] = await Promise.all([
     runOverviewStage("user_sections", () =>
-      prisma.user.findUnique({
-        where: { id: userId },
-        select: {
-          id: true,
-          image: true,
-          isAdmin: true,
-          name: true,
-          subscribedSections: {
-            where: { retiredAt: null },
-            select: { id: true },
+      withUserDbContext(userId, (tx) =>
+        tx.user.findUnique({
+          where: { id: userId },
+          select: {
+            id: true,
+            image: true,
+            isAdmin: true,
+            name: true,
+            sectionSubscriptions: {
+              where: { section: { retiredAt: null } },
+              select: { sectionId: true },
+            },
           },
-        },
-      }),
+        }),
+      ),
     ),
     loadOverviewTodoBundle({
       userId,
@@ -110,7 +112,7 @@ export async function getCompactOverview(
   ]);
   const { todos, dueTodosCount, dueTodos } = todoBundle;
   const sectionIds =
-    user?.subscribedSections.map((section) => section.id) ?? [];
+    user?.sectionSubscriptions?.map((row) => row.sectionId) ?? [];
 
   const [
     [

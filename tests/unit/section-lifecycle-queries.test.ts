@@ -7,6 +7,7 @@ const {
   sectionFindUniqueMock,
   transactionUserFindUniqueMock,
   userFindUniqueMock,
+  userSectionSubscriptionFindManyMock,
   withUserDbContextMock,
 } = vi.hoisted(() => ({
   localizedUserFindUniqueMock: vi.fn(),
@@ -15,6 +16,7 @@ const {
   sectionFindUniqueMock: vi.fn(),
   transactionUserFindUniqueMock: vi.fn(),
   userFindUniqueMock: vi.fn(),
+  userSectionSubscriptionFindManyMock: vi.fn(),
   withUserDbContextMock: vi.fn(),
 }));
 
@@ -28,6 +30,9 @@ vi.mock("@/lib/db/prisma", () => ({
       findUnique: sectionFindUniqueMock,
     },
     user: { findUnique: userFindUniqueMock },
+    userSectionSubscription: {
+      findMany: userSectionSubscriptionFindManyMock,
+    },
   },
   withUserDbContext: withUserDbContextMock,
 }));
@@ -40,10 +45,14 @@ describe("retired Section query contracts", () => {
     localizedUserFindUniqueMock.mockReset().mockResolvedValue(null);
     transactionUserFindUniqueMock.mockReset().mockResolvedValue(null);
     userFindUniqueMock.mockReset().mockResolvedValue(null);
+    userSectionSubscriptionFindManyMock.mockReset().mockResolvedValue([]);
     withUserDbContextMock.mockReset().mockImplementation((_userId, action) =>
       action({
         homework: { findMany: homeworkFindManyMock },
         user: { findUnique: transactionUserFindUniqueMock },
+        userSectionSubscription: {
+          findMany: userSectionSubscriptionFindManyMock,
+        },
       }),
     );
   });
@@ -113,8 +122,8 @@ describe("retired Section query contracts", () => {
     expect(transactionUserFindUniqueMock).toHaveBeenCalledWith(
       expect.objectContaining({
         include: expect.objectContaining({
-          subscribedSections: expect.objectContaining({
-            where: { retiredAt: null },
+          sectionSubscriptions: expect.objectContaining({
+            where: { section: { retiredAt: null } },
           }),
         }),
       }),
@@ -145,15 +154,20 @@ describe("retired Section query contracts", () => {
 
     await getUserCalendarSubscription("user-1");
 
-    expect(localizedUserFindUniqueMock).toHaveBeenCalledWith(
+    expect(withUserDbContextMock).toHaveBeenCalledWith(
+      "user-1",
+      expect.any(Function),
+    );
+    expect(transactionUserFindUniqueMock).toHaveBeenCalledWith(
       expect.objectContaining({
         select: expect.objectContaining({
-          subscribedSections: expect.not.objectContaining({
+          sectionSubscriptions: expect.not.objectContaining({
             where: expect.anything(),
           }),
         }),
       }),
     );
+    expect(localizedUserFindUniqueMock).not.toHaveBeenCalled();
   });
 
   it("derives current calendar IDs from active owned subscriptions", async () => {
@@ -163,17 +177,15 @@ describe("retired Section query contracts", () => {
 
     await getActiveSubscribedSectionIds("user-1", [11, 12]);
 
-    expect(userFindUniqueMock).toHaveBeenCalledWith({
-      where: { id: "user-1" },
-      select: {
-        subscribedSections: {
-          where: {
-            id: { in: [11, 12] },
-            retiredAt: null,
-          },
-          select: { id: true },
+    expect(userSectionSubscriptionFindManyMock).toHaveBeenCalledWith({
+      where: {
+        userId: "user-1",
+        section: {
+          id: { in: [11, 12] },
+          retiredAt: null,
         },
       },
+      select: { sectionId: true },
     });
   });
 });
