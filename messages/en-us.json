@@ -1798,7 +1798,6 @@
     "descriptionsTab": "Descriptions",
     "suspensionsTab": "Suspensions",
     "pageDescription": "Review comments, descriptions, homework, and account suspensions.",
-    "currentView": "Current view",
     "refreshQueue": "Refresh queue",
     "refreshingQueue": "Refreshing...",
     "activeCountMeta": "{count} active",

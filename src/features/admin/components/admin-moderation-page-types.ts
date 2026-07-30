@@ -22,7 +22,6 @@ export type AdminModerationCopy = AdminModerationCommentsCopy &
     calendarButtonLabel: string;
     close: string;
     confirmButton: string;
-    currentView: string;
     defaultBanReason: string;
     deleteHomeworkAction: string;
     deleteHomeworkAuditDescription: string;

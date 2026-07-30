@@ -1764,7 +1764,6 @@
     "descriptionsTab": "课程简介",
     "suspensionsTab": "封禁",
     "pageDescription": "处理评论、课程简介、作业和账号封禁。",
-    "currentView": "当前视图",
     "refreshQueue": "刷新队列",
     "refreshingQueue": "刷新中...",
     "activeCountMeta": "{count} 个生效中",
