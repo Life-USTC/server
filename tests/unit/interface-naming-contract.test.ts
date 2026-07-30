@@ -46,6 +46,7 @@ describe("cross-surface interface naming", () => {
         "calendar-feeds",
         "catalog",
         "community",
+        "search",
         "workspace",
       ]),
     );
