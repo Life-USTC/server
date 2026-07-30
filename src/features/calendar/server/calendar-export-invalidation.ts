@@ -11,13 +11,13 @@ export {
 };
 
 export async function invalidateCalendarExportsForSection(sectionId: number) {
-  const subscribers = await prisma.user.findMany({
-    where: { subscribedSections: { some: { id: sectionId } } },
-    select: { id: true },
+  const subscribers = await prisma.userSectionSubscription.findMany({
+    where: { sectionId },
+    select: { userId: true },
   });
   await Promise.all(
     subscribers.map((subscriber) =>
-      invalidateUserCalendarExportCache(subscriber.id),
+      invalidateUserCalendarExportCache(subscriber.userId),
     ),
   );
 }

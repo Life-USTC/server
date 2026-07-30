@@ -69,6 +69,7 @@ type CloudflareTracing = {
 };
 
 export type CloudflareKVNamespace = {
+  delete(key: string): Promise<void>;
   get<T = unknown>(
     key: string,
     options: { cacheTtl?: number; type: "json" },
