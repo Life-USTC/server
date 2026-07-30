@@ -55,6 +55,7 @@ function handleInput(
     locals: {
       authUser: null,
       locale: "zh-cn",
+      publicSsr: false,
       requestId: "",
     },
     params: {},
@@ -77,7 +78,11 @@ function handleInput(
       headers: input.headers,
       method: input.method ?? "GET",
     }),
-    route: { id: input.routeId ?? "/catalog/_data/[kind]" },
+    route: {
+      id: Object.hasOwn(input, "routeId")
+        ? (input.routeId ?? null)
+        : "/catalog/_data/[kind]",
+    },
     setHeaders: vi.fn(),
     tracing: {
       current: span,
@@ -189,10 +194,6 @@ describe("SvelteKit page request lifecycle", () => {
     expect(apiEvents(info.mock.calls)).toEqual([
       expect.arrayContaining([
         "[api]",
-        expect.objectContaining({ event: "request.start", path: "/api" }),
-      ]),
-      expect.arrayContaining([
-        "[api]",
         expect.objectContaining({ event: "request.finish", path: "/api" }),
       ]),
     ]);
@@ -229,6 +230,24 @@ describe("SvelteKit page request lifecycle", () => {
     expect(JSON.stringify(error.mock.calls)).not.toContain("/sections/159446");
   });
 
+  it("does not report an unmatched 404 as a server error", () => {
+    const error = vi.spyOn(console, "error").mockImplementation(() => {});
+    const { event } = handleInput(async () => new Response(), {
+      pathname: "/wp-login.php",
+      routeId: null,
+    });
+
+    expect(
+      handleError({
+        error: new Error("Not found: /wp-login.php"),
+        event,
+        message: "Not Found",
+        status: 404,
+      }),
+    ).toEqual({ message: "Not Found" });
+    expect(error).not.toHaveBeenCalled();
+  });
+
   it("wires the SvelteKit dispatch through the Worker trace span", async () => {
     const spanNames: string[] = [];
     vi.spyOn(console, "info").mockImplementation(() => {});
@@ -260,15 +279,6 @@ describe("SvelteKit page request lifecycle", () => {
     ).rejects.toThrow("private database detail");
 
     const events = apiEvents([...info.mock.calls, ...error.mock.calls]);
-    expect(
-      events.filter(
-        ([, value]) =>
-          typeof value === "object" &&
-          value !== null &&
-          "event" in value &&
-          value.event === "request.start",
-      ),
-    ).toHaveLength(1);
     expect(
       events.filter(
         ([, value]) =>

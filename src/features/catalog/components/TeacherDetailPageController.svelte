@@ -33,6 +33,7 @@ type TeacherDetailData = CatalogNamed & {
   email?: string | null;
   id: number | string;
   mobile?: string | null;
+  sectionCount: number;
   sections: TeacherDetailSection[];
   teacherTitle?: CatalogNamed | null;
   telephone?: string | null;
@@ -93,7 +94,7 @@ $: sectionNavItems = [
     icon: ListIcon,
     key: "sections" as const,
     label: copy.teacherDetail.teachingSectionsTitle,
-    meta: data.teacher.sections.length,
+    meta: data.teacher.sectionCount,
   },
   {
     href: `${teacherBaseHref}/comments`,

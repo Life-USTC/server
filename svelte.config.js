@@ -5,7 +5,7 @@ import { vitePreprocess } from "@sveltejs/vite-plugin-svelte";
 const config = {
   preprocess: vitePreprocess(),
   kit: {
-    adapter: adapterCloudflare(),
+    adapter: adapterCloudflare({ config: "wrangler.adapter.jsonc" }),
     csrf: {
       // OAuth token and device endpoints accept cross-origin form requests. The
       // production hook in src/hooks.server.ts is the single CSRF gate so it can

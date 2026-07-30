@@ -1,10 +1,19 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { setCloudflareRuntimeEnv } from "@/lib/adapters/cloudflare-runtime";
+import {
+  runWithCloudflareRuntimeEnv,
+  setCloudflareRuntimeEnv,
+} from "@/lib/adapters/cloudflare-runtime";
 import { recordAndLogMcpResponse } from "@/lib/api/routes/mcp-response-bookkeeping";
 import { writeAuditLog } from "@/lib/audit/write-audit-log";
 import { withBetterAuthOAuthDebug } from "@/lib/log/oauth-debug";
-import { writeOAuthEventAnalytics } from "@/lib/metrics/analytics-engine";
-import { cachedPublicRuntimeData } from "@/lib/public-runtime-cache";
+import {
+  writeOAuthEventAnalytics,
+  writeWorkspaceOverviewStageAnalytics,
+} from "@/lib/metrics/analytics-engine";
+import {
+  cachedPublicRuntimeData,
+  publicDetailColoCacheKey,
+} from "@/lib/public-runtime-cache";
 import {
   getStorageObjectResponse,
   headStorageObject,
@@ -25,12 +34,74 @@ function clearPublicRuntimeCache() {
   ).__lifeUstcPublicRuntimeCache;
 }
 
+function validatesSource(value: unknown) {
+  return (
+    value !== null &&
+    typeof value === "object" &&
+    "source" in value &&
+    typeof value.source === "string"
+  );
+}
+
 describe("Cloudflare Analytics Engine runtime events", () => {
   afterEach(() => {
     setCloudflareRuntimeEnv(undefined);
     clearPublicRuntimeCache();
     vi.useRealTimers();
     vi.restoreAllMocks();
+    vi.unstubAllGlobals();
+  });
+
+  it("writes fixed low-cardinality workspace overview stage datapoints", () => {
+    const writeDataPoint = installAnalyticsBinding();
+    const stages = [
+      "user_sections",
+      "todo_summary",
+      "due_todo_count",
+      "due_todo_sample",
+      "counts",
+      "lists",
+      "item_state",
+    ] as const;
+
+    stages.forEach((stage, index) => {
+      writeWorkspaceOverviewStageAnalytics({
+        ioObservedDurationMs: index + 1,
+        stage,
+        status: index === stages.length - 1 ? "error" : "success",
+      });
+    });
+
+    expect(writeDataPoint).toHaveBeenCalledTimes(stages.length);
+    stages.forEach((stage, index) => {
+      expect(writeDataPoint).toHaveBeenNthCalledWith(index + 1, {
+        indexes: [`workspace:overview:${stage}`],
+        blobs: [
+          "workspace_overview_stage_v1",
+          stage,
+          index === stages.length - 1 ? "error" : "success",
+        ],
+        doubles: [index + 1],
+      });
+    });
+  });
+
+  it("keeps workspace overview stages available when Analytics Engine fails", () => {
+    setCloudflareRuntimeEnv({
+      ANALYTICS: {
+        writeDataPoint: vi.fn(() => {
+          throw new Error("analytics unavailable");
+        }),
+      },
+    });
+
+    expect(() =>
+      writeWorkspaceOverviewStageAnalytics({
+        ioObservedDurationMs: 5,
+        stage: "todo_summary",
+        status: "success",
+      }),
+    ).not.toThrow();
   });
 
   it("writes MCP transport datapoints without tool argument values", () => {
@@ -235,27 +306,126 @@ describe("Cloudflare Analytics Engine runtime events", () => {
     );
   });
 
-  it("writes cache datapoints without raw query cache keys", async () => {
+  it.each([
+    {
+      key: "course-list:zh-cn:page=1&search=sensitive-marker-679",
+      namespace: "page:course-list:zh-cn" as const,
+      surface: "catalog page list",
+    },
+    {
+      key: `api:sections:${JSON.stringify({
+        locale: "en-us",
+        pagination: { page: 1, pageSize: 20 },
+        parsedQuery: { search: "sensitive-marker-679" },
+      })}`,
+      namespace: "api:sections:en-us" as const,
+      surface: "section API",
+    },
+    {
+      key: "catalog-detail:course:en-us:679123",
+      namespace: "page:course-detail:en-us" as const,
+      surface: "catalog detail core",
+    },
+  ])("writes explicit $surface cache namespaces without raw query cache keys", async ({
+    key,
+    namespace,
+  }) => {
     const writeDataPoint = installAnalyticsBinding();
     const load = vi.fn(async () => ({ ok: true }));
-    const key = "api:courses:en-us:search=private-query&page=1";
 
-    await cachedPublicRuntimeData(key, 60_000, load);
-    await cachedPublicRuntimeData(key, 60_000, load);
+    await cachedPublicRuntimeData(namespace, key, 60_000, load);
+    await cachedPublicRuntimeData(namespace, key, 60_000, load);
 
     expect(load).toHaveBeenCalledTimes(1);
     expect(writeDataPoint).toHaveBeenCalledWith({
-      indexes: ["cache:api:courses:en-us"],
-      blobs: ["public_runtime_cache_v2", "miss", "api:courses:en-us"],
+      indexes: [`cache:${namespace}`],
+      blobs: ["public_runtime_cache_v2", "miss", namespace, "none"],
       doubles: [expect.any(Number), 60_000, 0],
     });
     expect(writeDataPoint).toHaveBeenCalledWith({
-      indexes: ["cache:api:courses:en-us"],
-      blobs: ["public_runtime_cache_v2", "hit", "api:courses:en-us"],
+      indexes: [`cache:${namespace}`],
+      blobs: ["public_runtime_cache_v2", "hit", namespace, "none"],
       doubles: [expect.any(Number), 60_000, 1],
     });
     expect(JSON.stringify(writeDataPoint.mock.calls)).not.toContain(
-      "private-query",
+      "sensitive-marker-679",
+    );
+  });
+
+  it("writes fixed colo-cache outcomes without entity IDs or synthetic keys", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(10_000);
+    const writeDataPoint = vi.fn();
+    const cachedValue = { source: "colo" };
+    const match = vi
+      .fn()
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            expiresAt: 60_000,
+            schema: "catalog-detail-core-v1",
+            value: cachedValue,
+          }),
+        ),
+      )
+      .mockResolvedValueOnce(undefined);
+    const put = vi.fn(async () => undefined);
+    vi.stubGlobal("caches", {
+      open: vi.fn(async () => ({ match, put })),
+    });
+    const scheduled: Promise<unknown>[] = [];
+    const executionContext = {
+      waitUntil(promise: Promise<unknown>) {
+        scheduled.push(promise);
+      },
+    };
+    const sensitiveId = 683999;
+    const coloCacheKey = publicDetailColoCacheKey(
+      "https://example.test",
+      "course",
+      "en-us",
+      sensitiveId,
+    );
+
+    await runWithCloudflareRuntimeEnv(
+      { ANALYTICS: { writeDataPoint } },
+      async () => {
+        await cachedPublicRuntimeData(
+          "page:course-detail:en-us",
+          "l2-hit",
+          60_000,
+          vi.fn(async () => ({ source: "unexpected" })),
+          { coloCacheKey, validateColoCacheResult: validatesSource },
+        );
+        await cachedPublicRuntimeData(
+          "page:course-detail:en-us",
+          "l2-miss",
+          60_000,
+          async () => ({ source: "database" }),
+          { coloCacheKey, validateColoCacheResult: validatesSource },
+        );
+        await Promise.all(scheduled);
+      },
+      executionContext,
+    );
+
+    for (const event of ["colo_hit", "colo_miss", "colo_write_complete"]) {
+      expect(writeDataPoint).toHaveBeenCalledWith({
+        indexes: ["cache:page:course-detail:en-us"],
+        blobs: [
+          "public_runtime_cache_v2",
+          event,
+          "page:course-detail:en-us",
+          "none",
+        ],
+        doubles: [expect.any(Number), 60_000, expect.any(Number)],
+      });
+    }
+    expect(JSON.stringify(writeDataPoint.mock.calls)).not.toContain(
+      String(sensitiveId),
+    );
+    expect(JSON.stringify(writeDataPoint.mock.calls)).not.toContain(
+      "_life-ustc-internal-cache",
     );
   });
 });

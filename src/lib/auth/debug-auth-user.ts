@@ -1,3 +1,4 @@
+import { createLocalAccountIssuer } from "@better-auth/core/db";
 import { hashPassword } from "better-auth/crypto";
 import { Prisma } from "@/generated/prisma/client";
 import { authPrisma as prisma } from "@/lib/db/auth-prisma";
@@ -21,7 +22,7 @@ function staleDebugIdentityEmail(userId: string) {
 export async function ensureDebugCredentialUser(providerId: DebugProviderId) {
   const config = getDebugProviderConfig(providerId);
   const hashedPassword = await hashPassword(config.password);
-  const credentialIssuer = "local:credential";
+  const credentialIssuer = createLocalAccountIssuer("credential");
   const userData: DebugCredentialUserData = {
     username: config.username,
     email: config.email,

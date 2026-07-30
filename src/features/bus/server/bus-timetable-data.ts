@@ -19,11 +19,17 @@ import {
 } from "./bus-version";
 
 type StaticBusTimetableData = Omit<BusTimetableData, "preferences">;
+type CachedStaticBusTimetableData = Omit<StaticBusTimetableData, "fetchedAt">;
 
 const STATIC_BUS_TIMETABLE_CACHE_TTL_MS = 60_000;
+const STATIC_BUS_TIMETABLE_CACHE_MAX_ENTRIES = 100;
 const staticBusTimetableCache = new Map<
   string,
-  { data: StaticBusTimetableData | null; expiresAt: number }
+  { data: CachedStaticBusTimetableData; expiresAt: number }
+>();
+const staticBusTimetableLoads = new Map<
+  string,
+  Promise<CachedStaticBusTimetableData | null>
 >();
 
 function busVersionNotice(version: {
@@ -43,54 +49,72 @@ function getStaticBusTimetableCacheKey(input: {
   locale: string;
   versionKey?: string | null;
 }) {
-  return [input.locale, input.dateKey, input.versionKey ?? "auto"].join(":");
+  return JSON.stringify([
+    input.locale,
+    input.dateKey,
+    input.versionKey == null
+      ? { type: "auto" }
+      : { key: input.versionKey, type: "explicit" },
+  ]);
 }
 
-export async function getStaticBusTimetableData(
-  input: BusTimetableInput,
-): Promise<StaticBusTimetableData | null> {
-  const locale = input.locale ?? "zh-cn";
-  const now = input.now ? shanghaiDayjs(input.now) : shanghaiDayjs();
-  const dateKey = now.format("YYYY-MM-DD");
-  const cacheKey = getStaticBusTimetableCacheKey({
-    dateKey,
-    locale,
-    versionKey: input.versionKey,
-  });
-  const cached = staticBusTimetableCache.get(cacheKey);
-  if (cached && cached.expiresAt > Date.now()) {
-    return cached.data
-      ? { ...cached.data, fetchedAt: now.toISOString() }
-      : null;
+function pruneExpiredStaticBusTimetableEntries(now: number) {
+  for (const [key, entry] of staticBusTimetableCache) {
+    if (entry.expiresAt <= now) staticBusTimetableCache.delete(key);
   }
+}
 
-  const versionRecords = await listEnabledBusVersionRecords();
-  const version = input.versionKey
-    ? await findEffectiveBusVersion(dateKey, input.versionKey)
-    : findEffectiveBusVersionFromRecords(versionRecords, dateKey);
-  if (!version) {
-    staticBusTimetableCache.set(cacheKey, {
-      data: null,
-      expiresAt: Date.now() + STATIC_BUS_TIMETABLE_CACHE_TTL_MS,
-    });
-    return null;
+function setBoundedStaticBusTimetableCacheEntry(
+  key: string,
+  value: { data: CachedStaticBusTimetableData; expiresAt: number },
+) {
+  staticBusTimetableCache.delete(key);
+  while (
+    staticBusTimetableCache.size >= STATIC_BUS_TIMETABLE_CACHE_MAX_ENTRIES
+  ) {
+    const oldestKey = staticBusTimetableCache.keys().next().value;
+    if (oldestKey === undefined) break;
+    staticBusTimetableCache.delete(oldestKey);
   }
+  staticBusTimetableCache.set(key, value);
+}
+
+export function deleteBusTimetableLoadIfCurrent<T>(
+  loads: Map<string, T>,
+  key: string,
+  load: T,
+) {
+  if (loads.get(key) === load) loads.delete(key);
+}
+
+async function loadStaticBusTimetableData(input: {
+  dateKey: string;
+  locale: BusTimetableInput["locale"];
+  versionKey?: string | null;
+}): Promise<CachedStaticBusTimetableData | null> {
+  const versionRecordsPromise = listEnabledBusVersionRecords();
+  const explicitVersionPromise = input.versionKey
+    ? findEffectiveBusVersion(input.dateKey, input.versionKey)
+    : Promise.resolve(null);
+  const [versionRecords, explicitVersion] = await Promise.all([
+    versionRecordsPromise,
+    explicitVersionPromise,
+  ]);
+  const version = input.versionKey
+    ? explicitVersion
+    : findEffectiveBusVersionFromRecords(versionRecords, input.dateKey);
+  if (!version) return null;
 
   const [topology, tripRows] = await Promise.all([
-    getBusVersionTopology(locale, version.id),
+    getBusVersionTopology(input.locale ?? "zh-cn", version.id),
     prisma.busTrip.findMany({
       where: { versionId: version.id },
       orderBy: [{ dayType: "asc" }, { routeId: "asc" }, { position: "asc" }],
     }),
   ]);
-  if (!topology) {
-    staticBusTimetableCache.set(cacheKey, {
-      data: null,
-      expiresAt: Date.now() + STATIC_BUS_TIMETABLE_CACHE_TTL_MS,
-    });
-    return null;
-  }
+  if (!topology) return null;
 
+  const locale = input.locale ?? "zh-cn";
   const versionRouteIds = new Set(tripRows.map((trip) => trip.routeId));
   const routes = topology.routes
     .filter((record) => versionRouteIds.has(record.id))
@@ -106,9 +130,8 @@ export async function getStaticBusTimetableData(
     })
     .filter((trip): trip is BusTripSummary => trip != null);
 
-  const data = {
+  return {
     locale,
-    fetchedAt: now.toISOString(),
     version: {
       id: version.id,
       key: version.key,
@@ -124,11 +147,47 @@ export async function getStaticBusTimetableData(
     availableVersions: summarizeBusVersions(versionRecords),
     notice: busVersionNotice(version),
   };
-  staticBusTimetableCache.set(cacheKey, {
-    data,
-    expiresAt: Date.now() + STATIC_BUS_TIMETABLE_CACHE_TTL_MS,
+}
+
+export async function getStaticBusTimetableData(
+  input: BusTimetableInput,
+): Promise<StaticBusTimetableData | null> {
+  const locale = input.locale ?? "zh-cn";
+  const now = input.now ? shanghaiDayjs(input.now) : shanghaiDayjs();
+  const dateKey = now.format("YYYY-MM-DD");
+  const cacheKey = getStaticBusTimetableCacheKey({
+    dateKey,
+    locale,
+    versionKey: input.versionKey,
   });
-  return data;
+  pruneExpiredStaticBusTimetableEntries(Date.now());
+  const cached = staticBusTimetableCache.get(cacheKey);
+  if (cached) {
+    return { ...cached.data, fetchedAt: now.toISOString() };
+  }
+
+  let load = staticBusTimetableLoads.get(cacheKey);
+  if (!load) {
+    load = loadStaticBusTimetableData({
+      dateKey,
+      locale,
+      versionKey: input.versionKey,
+    });
+    staticBusTimetableLoads.set(cacheKey, load);
+  }
+
+  try {
+    const data = await load;
+    if (data && staticBusTimetableLoads.get(cacheKey) === load) {
+      setBoundedStaticBusTimetableCacheEntry(cacheKey, {
+        data,
+        expiresAt: Date.now() + STATIC_BUS_TIMETABLE_CACHE_TTL_MS,
+      });
+    }
+    return data ? { ...data, fetchedAt: now.toISOString() } : null;
+  } finally {
+    deleteBusTimetableLoadIfCurrent(staticBusTimetableLoads, cacheKey, load);
+  }
 }
 
 export async function getBusTimetableData(

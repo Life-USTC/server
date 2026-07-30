@@ -1,37 +1,33 @@
 import { describe, expect, it, vi } from "vitest";
-import { buildUserProfileContributions } from "@/features/profile/server/user-profile-contributions";
+import {
+  buildUserProfileContributions,
+  loadUserProfileContributionDays,
+} from "@/features/profile/server/user-profile-contributions";
+
+function buildPrismaMock(
+  queryRaw: (
+    query: TemplateStringsArray,
+    ...values: unknown[]
+  ) => Promise<unknown>,
+) {
+  return {
+    async $queryRaw<T>(query: TemplateStringsArray, ...values: unknown[]) {
+      return (await queryRaw(query, ...values)) as T;
+    },
+  };
+}
 
 describe("用户主页贡献", () => {
-  it("以上海午夜为界按校区日期聚合公开上传统计", async () => {
-    const commentFindMany = vi.fn(async (_input: unknown) => [
-      { createdAt: new Date("2026-03-01T15:59:00.000Z") },
-    ]);
+  it("以上海午夜为界按校区日期聚合贡献事件", async () => {
     const queryRaw = vi.fn(
-      async (query: { sql: string; values: unknown[] }) => {
-        if (query.sql.includes("get_public_profile_upload_stats")) {
-          return [
-            {
-              createdAt: new Date("2026-03-01T16:00:00.000Z"),
-              totalUploads: 7n,
-            },
-          ];
-        }
-        if (query.sql.includes("get_public_profile_homework_completions")) {
-          return [{ completedAt: new Date("2026-03-01T16:30:00.000Z") }];
-        }
-        throw new Error(`Unexpected raw query: ${query.sql}`);
-      },
+      async (_query: TemplateStringsArray, ..._values: unknown[]) => [
+        { count: 1n, date: "2026-03-01" },
+        { count: 3n, date: "2026-03-02" },
+      ],
     );
-    const homeworkFindMany = vi.fn(async (_input: unknown) => [
-      { createdAt: new Date("2026-03-02T04:00:00.000Z") },
-    ]);
 
     const result = await buildUserProfileContributions(
-      {
-        $queryRaw: queryRaw as unknown as <T>(query: unknown) => Promise<T>,
-        comment: { findMany: commentFindMany },
-        homework: { findMany: homeworkFindMany },
-      },
+      buildPrismaMock(queryRaw),
       "user-1",
       new Date("2026-03-02T01:30:00+08:00"),
     );
@@ -39,29 +35,48 @@ describe("用户主页贡献", () => {
     const cells = new Map(
       result.weeks.flat().map((cell) => [cell.date, cell.count]),
     );
-    const commentQuery = commentFindMany.mock.calls[0]?.[0] as {
-      where: { createdAt: { gte: Date } };
-    };
+    const queryValues = queryRaw.mock.calls[0]?.slice(1) ?? [];
 
-    expect(commentQuery.where.createdAt.gte.toISOString()).toBe(
-      "2025-03-02T16:00:00.000Z",
-    );
+    expect(queryRaw).toHaveBeenCalledOnce();
+    expect(queryValues.filter((value) => value === "user-1")).toHaveLength(4);
+    expect(
+      queryValues
+        .filter((value): value is Date => value instanceof Date)
+        .map((value) => value.toISOString()),
+    ).toEqual(Array.from({ length: 4 }, () => "2025-03-02T16:00:00.000Z"));
     expect(result.totalContributions).toBe(4);
-    expect(result.totalUploads).toBe(7);
     expect(result.weeks[0]?.[0]?.date).toBe("2025-03-02");
     expect(result.weeks.at(-1)?.at(-1)?.date).toBe("2026-03-07");
     expect(cells.get("2026-03-01")).toBe(1);
     expect(cells.get("2026-03-02")).toBe(3);
+  });
 
-    expect(queryRaw).toHaveBeenCalledTimes(2);
-    const queries = queryRaw.mock.calls.map(([query]) => query);
-    const uploadQuery = queries.find((query) =>
-      query.sql.includes("get_public_profile_upload_stats"),
+  it("在单条参数化 SQL 中聚合四类贡献并保留原过滤条件", async () => {
+    const queryRaw = vi.fn(
+      async (_query: TemplateStringsArray, ..._values: unknown[]) => [],
     );
-    const completionQuery = queries.find((query) =>
-      query.sql.includes("get_public_profile_homework_completions"),
+
+    await loadUserProfileContributionDays(
+      buildPrismaMock(queryRaw),
+      "user-2",
+      new Date("2025-03-02T16:00:00.000Z"),
     );
-    expect(uploadQuery?.values[0]).toBe("user-1");
-    expect(completionQuery?.values[0]).toBe("user-1");
+
+    const queryParts = queryRaw.mock.calls[0]?.[0] as
+      | TemplateStringsArray
+      | undefined;
+    const sql = queryParts ? Array.from(queryParts).join("?") : "";
+
+    expect(queryRaw).toHaveBeenCalledOnce();
+    expect(sql).toContain('FROM "Comment"');
+    expect(sql).toContain("get_public_profile_upload_stats");
+    expect(sql).toContain("get_public_profile_homework_completions");
+    expect(sql).toContain('FROM "Homework"');
+    expect(sql).toContain("AT TIME ZONE 'UTC'");
+    expect(sql).toContain("AT TIME ZONE 'Asia/Shanghai'");
+    expect(sql).toContain("\"status\" IN ('active', 'softbanned')");
+    expect(sql).toContain('"deletedAt" IS NULL');
+    expect(sql).not.toContain('"createdAt" <=');
+    expect(sql).not.toContain('"completedAt" <=');
   });
 });

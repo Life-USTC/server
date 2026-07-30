@@ -32,6 +32,25 @@ function prismaWasmModulePlugin() {
   };
 }
 
+const KATEX_LEGACY_FONT_SOURCES =
+  /,url\(([^)]*\.woff)\) format\("woff"\),url\(([^)]*\.ttf)\) format\("truetype"\)/g;
+
+export function keepModernKatexFontSources(css: string) {
+  return css.replace(KATEX_LEGACY_FONT_SOURCES, "");
+}
+
+function katexModernFontsPlugin() {
+  return {
+    name: "katex-modern-fonts",
+    enforce: "pre" as const,
+    transform(code: string, id: string) {
+      if (!id.includes("/katex/dist/katex.min.css")) return null;
+      const transformed = keepModernKatexFontSources(code);
+      return transformed === code ? null : { code: transformed, map: null };
+    },
+  };
+}
+
 const FONT_ASSET_PATTERN = /\.(?:eot|otf|ttf|woff2?)(?:\?.*)?$/i;
 
 export function assetInlineDecision(filePath: string) {
@@ -42,7 +61,12 @@ export default defineConfig({
   build: {
     assetsInlineLimit: assetInlineDecision,
   },
-  plugins: [prismaWasmModulePlugin(), tailwindcss(), sveltekit()],
+  plugins: [
+    prismaWasmModulePlugin(),
+    katexModernFontsPlugin(),
+    tailwindcss(),
+    sveltekit(),
+  ],
   ssr: {
     resolve: {
       conditions: ["cloudflare"],

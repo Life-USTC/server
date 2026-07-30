@@ -68,6 +68,7 @@ describe("auth page action logging", () => {
       locals: {
         authUser: null,
         locale: "zh-cn",
+        publicSsr: false,
         requestId: "request-1",
       },
       request: new Request("https://life.example/signin", {

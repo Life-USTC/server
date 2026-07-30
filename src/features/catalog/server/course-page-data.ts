@@ -1,8 +1,37 @@
+import type { CourseDetailSection } from "@/features/catalog/components/catalog-detail-component-types";
 import { getPrisma } from "@/lib/db/prisma";
 import { toLoadData } from "@/lib/load-data-utils";
 import { resolveCourseIdByJwId } from "./course-jw-id";
 
-export async function getCoursePage(jwId: number, locale = "zh-cn") {
+const coursePageSectionsSelect = {
+  jwId: true,
+  code: true,
+  stdCount: true,
+  limitCount: true,
+  semester: { select: { nameCn: true } },
+  campus: {
+    select: {
+      nameCn: true,
+      nameEn: true,
+      namePrimary: true,
+      nameSecondary: true,
+    },
+  },
+  teachers: {
+    select: {
+      nameCn: true,
+      nameEn: true,
+      namePrimary: true,
+      nameSecondary: true,
+    },
+  },
+} as const;
+
+export async function getCoursePage(
+  jwId: number,
+  locale = "zh-cn",
+  options: { includeSections?: boolean } = {},
+) {
   const prisma = getPrisma(locale);
   const courseId = await resolveCourseIdByJwId(prisma, jwId);
   if (courseId == null) return null;
@@ -48,39 +77,25 @@ export async function getCoursePage(jwId: number, locale = "zh-cn") {
           nameSecondary: true,
         },
       },
-      description: {
-        select: { content: true, updatedAt: true, lastEditedAt: true },
-      },
-      sections: {
-        orderBy: [{ semester: { jwId: "desc" } }, { code: "asc" }],
-        select: {
-          jwId: true,
-          code: true,
-          stdCount: true,
-          limitCount: true,
-          semester: { select: { nameCn: true } },
-          campus: {
-            select: {
-              nameCn: true,
-              nameEn: true,
-              namePrimary: true,
-              nameSecondary: true,
+      _count: { select: { sections: true } },
+      sections:
+        options.includeSections === false
+          ? false
+          : {
+              orderBy: [{ semester: { jwId: "desc" } }, { code: "asc" }],
+              select: coursePageSectionsSelect,
             },
-          },
-          teachers: {
-            select: {
-              nameCn: true,
-              nameEn: true,
-              namePrimary: true,
-              nameSecondary: true,
-            },
-          },
-        },
-      },
     },
   });
 
   if (!course) return null;
 
-  return toLoadData(course);
+  const { _count, sections, ...data } = course;
+  return toLoadData({
+    ...data,
+    sectionCount: _count.sections,
+    sections: (options.includeSections === false
+      ? []
+      : sections) as unknown as CourseDetailSection[],
+  });
 }

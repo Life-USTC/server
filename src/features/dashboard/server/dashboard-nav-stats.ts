@@ -31,6 +31,7 @@ export async function getDashboardNavStats(
   user: DashboardUserSummary,
   subscribedSections: readonly DashboardSubscribedSection[],
   referenceDate?: Date,
+  providedPendingTodosCount?: Promise<number>,
 ): Promise<DashboardNavStats> {
   const referenceNow = referenceDate
     ? shanghaiDayjs(referenceDate)
@@ -38,7 +39,8 @@ export async function getDashboardNavStats(
   const todayStart = referenceNow.startOf("day");
   const tomorrowStart = todayStart.add(1, "day");
 
-  const pendingTodosCountPromise = countIncompleteTodos(user.id);
+  const pendingTodosCountPromise =
+    providedPendingTodosCount ?? countIncompleteTodos(user.id);
 
   const activeSubscribedSections = subscribedSections.filter(
     (section) => section.retiredAt === null || section.retiredAt === undefined,

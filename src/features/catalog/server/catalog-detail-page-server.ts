@@ -9,6 +9,10 @@ import { getCoursePage } from "@/features/catalog/server/course-page-data";
 import { getTeacherPage } from "@/features/catalog/server/teacher-page-data";
 import { getViewerContext } from "@/lib/auth/viewer-context";
 import {
+  cachedPublicRuntimeData,
+  publicDetailColoCacheKey,
+} from "@/lib/public-runtime-cache";
+import {
   buildSocialMetadata,
   formatSocialMetadataMessage,
 } from "@/lib/social-metadata";
@@ -36,6 +40,36 @@ const catalogDetailRouteSections = new Set([
   "comments",
 ]);
 
+const PUBLIC_DETAIL_RUNTIME_CACHE_TTL_MS = 60_000;
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === "object";
+}
+
+function isPublicCourseCore(value: unknown, jwId: number) {
+  return (
+    isRecord(value) &&
+    typeof value.id === "number" &&
+    value.jwId === jwId &&
+    typeof value.code === "string" &&
+    typeof value.namePrimary === "string" &&
+    typeof value.sectionCount === "number" &&
+    Array.isArray(value.sections) &&
+    value.sections.length === 0
+  );
+}
+
+function isPublicTeacherCore(value: unknown, id: number) {
+  return (
+    isRecord(value) &&
+    value.id === id &&
+    typeof value.namePrimary === "string" &&
+    typeof value.sectionCount === "number" &&
+    Array.isArray(value.sections) &&
+    value.sections.length === 0
+  );
+}
+
 function resolveCatalogDetailRouteSection(
   section: string | undefined,
 ): CourseDetailRouteSection | null {
@@ -60,8 +94,29 @@ export async function loadCourseDetailPage({
   if (!detailSection) error(404, copy.notFound.description);
   const jwId = Number(params.jwId);
   if (!Number.isInteger(jwId)) error(404, copy.notFound.description);
+  const includeSections = detailSection === "sections";
+  const loadCourse = () =>
+    getCoursePage(jwId, locals.locale, { includeSections });
   const [course, viewer] = await Promise.all([
-    getCoursePage(jwId, locals.locale),
+    locals.publicSsr && !locals.authUser && !includeSections
+      ? cachedPublicRuntimeData(
+          `page:course-detail:${locals.locale}`,
+          `catalog-detail:course:${locals.locale}:${jwId}`,
+          PUBLIC_DETAIL_RUNTIME_CACHE_TTL_MS,
+          loadCourse,
+          {
+            coloCacheKey: publicDetailColoCacheKey(
+              url.origin,
+              "course",
+              locals.locale,
+              jwId,
+            ),
+            shouldCacheResult: (result) => result !== null,
+            validateColoCacheResult: (result) =>
+              isPublicCourseCore(result, jwId),
+          },
+        )
+      : loadCourse(),
     getViewerContext({ userId: locals.authUser?.id ?? null }),
   ]);
   if (!course) error(404, copy.notFound.description);
@@ -73,6 +128,7 @@ export async function loadCourseDetailPage({
   const { commentsData, descriptionData } = await loadCatalogDetailCommentsData(
     {
       includeComments: detailSection === "comments",
+      includeDescriptionHistory: detailSection === "introduction",
       targetId: course.id,
       type: "course",
       viewer,
@@ -127,8 +183,29 @@ export async function loadTeacherDetailPage({
   if (!detailSection) error(404, copy.notFound.description);
   const id = Number(params.id);
   if (!Number.isInteger(id)) error(404, copy.notFound.description);
+  const includeSections = detailSection === "sections";
+  const loadTeacher = () =>
+    getTeacherPage(id, locals.locale, { includeSections });
   const [teacher, viewer] = await Promise.all([
-    getTeacherPage(id, locals.locale),
+    locals.publicSsr && !locals.authUser && !includeSections
+      ? cachedPublicRuntimeData(
+          `page:teacher-detail:${locals.locale}`,
+          `catalog-detail:teacher:${locals.locale}:${id}`,
+          PUBLIC_DETAIL_RUNTIME_CACHE_TTL_MS,
+          loadTeacher,
+          {
+            coloCacheKey: publicDetailColoCacheKey(
+              url.origin,
+              "teacher",
+              locals.locale,
+              id,
+            ),
+            shouldCacheResult: (result) => result !== null,
+            validateColoCacheResult: (result) =>
+              isPublicTeacherCore(result, id),
+          },
+        )
+      : loadTeacher(),
     getViewerContext({ userId: locals.authUser?.id ?? null }),
   ]);
   if (!teacher) error(404, copy.notFound.description);
@@ -136,6 +213,7 @@ export async function loadTeacherDetailPage({
   const { commentsData, descriptionData } = await loadCatalogDetailCommentsData(
     {
       includeComments: detailSection === "comments",
+      includeDescriptionHistory: detailSection === "introduction",
       targetId: teacher.id,
       type: "teacher",
       viewer,

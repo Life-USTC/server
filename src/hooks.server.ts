@@ -15,7 +15,12 @@ import {
 import { shouldRedirectIncompleteProfileToWelcome } from "@/lib/auth/auth-routing";
 import { hasRequestAuthSignal } from "@/lib/auth/request-auth-signal";
 import {
-  recordApiRequestStart,
+  PUBLIC_SSR_HEADER,
+  PUBLIC_SSR_LOCALE_HEADER,
+  PUBLIC_SSR_MODE_HEADER,
+  PUBLIC_SSR_NONCE_PLACEHOLDER,
+} from "@/lib/cloudflare/public-ssr-gateway";
+import {
   recordObservedApiError,
   recordObservedApiResponse,
   setApiRequestObservabilityContext,
@@ -145,11 +150,6 @@ function prepareApiObservability(
   if (!isApiRequest(pathname)) return null;
 
   setApiRequestObservabilityContext(request, { requestId, startMs });
-  recordApiRequestStart({
-    method: request.method,
-    pathname,
-    requestId,
-  });
   return { requestId };
 }
 
@@ -168,10 +168,18 @@ function oauthAuthorizeFormActionSources(url: URL) {
 }
 
 const handleWithRuntimeEnv: Handle = async ({ event, resolve }) => {
-  const locale = negotiateLocale(
-    event.cookies.get(LOCALE_COOKIE),
-    event.request.headers.get("accept-language"),
-  );
+  const publicSsrLocale = event.request.headers.get(PUBLIC_SSR_LOCALE_HEADER);
+  const publicSsr =
+    event.request.headers.get(PUBLIC_SSR_HEADER) === "1" &&
+    event.request.headers.get(PUBLIC_SSR_MODE_HEADER) === "page" &&
+    (publicSsrLocale === "en-us" || publicSsrLocale === "zh-cn");
+  const locale =
+    publicSsr && (publicSsrLocale === "en-us" || publicSsrLocale === "zh-cn")
+      ? publicSsrLocale
+      : negotiateLocale(
+          event.cookies.get(LOCALE_COOKIE),
+          event.request.headers.get("accept-language"),
+        );
   event.locals.locale = locale;
   const requestId = crypto.randomUUID();
   event.locals.requestId = requestId;
@@ -182,6 +190,7 @@ const handleWithRuntimeEnv: Handle = async ({ event, resolve }) => {
   });
   const startMs = Date.now();
   const hasAuthSignal = hasRequestAuthSignal(event.request.headers);
+  event.locals.publicSsr = publicSsr && !hasAuthSignal;
   const apiObservability = prepareApiObservability(
     event.request,
     event.url.pathname,
@@ -232,7 +241,9 @@ const handleWithRuntimeEnv: Handle = async ({ event, resolve }) => {
 
   try {
     loadEnv();
-    const nonce = createScriptNonce();
+    const nonce = publicSsr
+      ? PUBLIC_SSR_NONCE_PLACEHOLDER
+      : createScriptNonce();
     const csrfResponse = crossSiteFormResponse(event);
     if (csrfResponse) {
       const response = responseWithSecurityHeaders(csrfResponse);
@@ -352,6 +363,10 @@ export const handle: Handle = async (input) =>
   );
 
 export const handleError: HandleServerError = ({ error, event, status }) => {
+  if (status === 404 && event.route.id === null) {
+    return { message: "Not Found" };
+  }
+
   logAppEvent(
     "error",
     "sveltekit.server-error",

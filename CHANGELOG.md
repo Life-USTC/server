@@ -1,3 +1,115 @@
+## [1.77.32](https://github.com/Life-USTC/server/compare/v1.77.31...v1.77.32) (2026-07-29)
+
+
+### Performance Improvements
+
+* **bus:** bound and coalesce timetable cache ([#694](https://github.com/Life-USTC/server/issues/694)) ([2340d23](https://github.com/Life-USTC/server/commit/2340d23ce654e691314db5054c6c88db5ef0c6bf))
+
+## [1.77.31](https://github.com/Life-USTC/server/compare/v1.77.30...v1.77.31) (2026-07-29)
+
+
+### Performance Improvements
+
+* **profile:** aggregate public contributions in database ([#693](https://github.com/Life-USTC/server/issues/693)) ([58c99cf](https://github.com/Life-USTC/server/commit/58c99cf0e46c3b01d44b597a850d5870b4c40de2))
+
+## [1.77.30](https://github.com/Life-USTC/server/compare/v1.77.29...v1.77.30) (2026-07-29)
+
+
+### Bug Fixes
+
+* **observability:** classify colo cache write outcomes ([#692](https://github.com/Life-USTC/server/issues/692)) ([5c1b0b0](https://github.com/Life-USTC/server/commit/5c1b0b0f20dad0134a33d9f075df4f15139ae00b))
+
+## [1.77.29](https://github.com/Life-USTC/server/compare/v1.77.28...v1.77.29) (2026-07-29)
+
+
+### Performance Improvements
+
+* **workspace:** streamline compact overview reads ([#689](https://github.com/Life-USTC/server/issues/689)) ([e76ac7c](https://github.com/Life-USTC/server/commit/e76ac7c922d960a13677ba725be19c41bac67549))
+
+## [1.77.28](https://github.com/Life-USTC/server/compare/v1.77.27...v1.77.28) (2026-07-29)
+
+
+### Performance Improvements
+
+* **dashboard:** deduplicate signed overview reads ([#687](https://github.com/Life-USTC/server/issues/687)) ([42873bd](https://github.com/Life-USTC/server/commit/42873bd15540d4c0b16596c4e1a5dab6130cd49b)), closes [#584](https://github.com/Life-USTC/server/issues/584)
+
+## [1.77.27](https://github.com/Life-USTC/server/compare/v1.77.26...v1.77.27) (2026-07-29)
+
+
+### Performance Improvements
+
+* **dashboard:** reuse calendar feed token in subscription tabs ([#686](https://github.com/Life-USTC/server/issues/686)) ([cdaa77a](https://github.com/Life-USTC/server/commit/cdaa77a525bf3fa9d38af8eef618d8b0df0fcfb3))
+
+## [1.77.26](https://github.com/Life-USTC/server/compare/v1.77.25...v1.77.26) (2026-07-29)
+
+
+### Performance Improvements
+
+* **catalog:** share anonymous detail core across isolates ([#684](https://github.com/Life-USTC/server/issues/684)) ([023d5f8](https://github.com/Life-USTC/server/commit/023d5f8aa0fbac8f0e28669c705c5b6962fbbbc0))
+
+## [1.77.25](https://github.com/Life-USTC/server/compare/v1.77.24...v1.77.25) (2026-07-29)
+
+
+### Performance Improvements
+
+* **catalog:** reuse anonymous detail core data ([#682](https://github.com/Life-USTC/server/issues/682)) ([7052cd2](https://github.com/Life-USTC/server/commit/7052cd28f52551a016b4122c065ba6cf842aa11c))
+
+## [1.77.24](https://github.com/Life-USTC/server/compare/v1.77.23...v1.77.24) (2026-07-29)
+
+
+### Performance Improvements
+
+* **catalog:** canonicalize list queries ([#680](https://github.com/Life-USTC/server/issues/680)) ([dffae99](https://github.com/Life-USTC/server/commit/dffae994f6a381de90e0fb8d5baaff1f2df7bacb))
+
+## [1.77.23](https://github.com/Life-USTC/server/compare/v1.77.22...v1.77.23) (2026-07-29)
+
+
+### Performance Improvements
+
+* **catalog:** remove duplicate detail payload work ([#677](https://github.com/Life-USTC/server/issues/677)) ([7ce2b4b](https://github.com/Life-USTC/server/commit/7ce2b4b4984ca91218683d1420608aad0c92b6e5))
+
+## [1.77.22](https://github.com/Life-USTC/server/compare/v1.77.21...v1.77.22) (2026-07-29)
+
+
+### Performance Improvements
+
+* **worker:** reduce remaining request hot paths ([#674](https://github.com/Life-USTC/server/issues/674)) ([bb38c20](https://github.com/Life-USTC/server/commit/bb38c20209b00473f7b0cc4170d2825e3d0502b1))
+
+## [1.77.21](https://github.com/Life-USTC/server/compare/v1.77.20...v1.77.21) (2026-07-28)
+
+
+### Performance Improvements
+
+* **worker:** remove remaining request hot spots ([#670](https://github.com/Life-USTC/server/issues/670)) ([21b3d92](https://github.com/Life-USTC/server/commit/21b3d927b9868b79d2637646efafd1464c5b358c)), closes [#663](https://github.com/Life-USTC/server/issues/663) [#664](https://github.com/Life-USTC/server/issues/664) [#665](https://github.com/Life-USTC/server/issues/665) [#666](https://github.com/Life-USTC/server/issues/666) [#669](https://github.com/Life-USTC/server/issues/669)
+
+## [1.77.20](https://github.com/Life-USTC/server/compare/v1.77.19...v1.77.20) (2026-07-26)
+
+
+### Bug Fixes
+
+* **worker:** route application paths through gateway ([#661](https://github.com/Life-USTC/server/issues/661)) ([06f45a1](https://github.com/Life-USTC/server/commit/06f45a1e5581ed62a172a1502e05a4d50e004ba2))
+
+## [1.77.19](https://github.com/Life-USTC/server/compare/v1.77.18...v1.77.19) (2026-07-26)
+
+
+### Performance Improvements
+
+* **worker:** return unknown 404s at gateway ([#660](https://github.com/Life-USTC/server/issues/660)) ([136d540](https://github.com/Life-USTC/server/commit/136d5402848168095453ca819fa8108cd2a985e1))
+
+## [1.77.18](https://github.com/Life-USTC/server/compare/v1.77.17...v1.77.18) (2026-07-26)
+
+
+### Bug Fixes
+
+* **worker:** preserve cached 404 mode ([#659](https://github.com/Life-USTC/server/issues/659)) ([803e5c2](https://github.com/Life-USTC/server/commit/803e5c2d22faf6ba1be15417d824e518dc8b38f4))
+
+## [1.77.17](https://github.com/Life-USTC/server/compare/v1.77.16...v1.77.17) (2026-07-26)
+
+
+### Performance Improvements
+
+* **worker:** cache anonymous SSR behind gateway ([#658](https://github.com/Life-USTC/server/issues/658)) ([3f54c15](https://github.com/Life-USTC/server/commit/3f54c15c77770bf4e6085b5f85bb6402585bba1b))
+
 ## [1.77.16](https://github.com/Life-USTC/server/compare/v1.77.15...v1.77.16) (2026-07-25)
 
 

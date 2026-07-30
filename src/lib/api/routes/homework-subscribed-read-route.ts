@@ -1,11 +1,17 @@
+import { runCloudflareTraceSpan } from "@/lib/adapters/cloudflare-runtime";
 import { handleRouteError, jsonResponse } from "@/lib/api/helpers";
 import { getRequestLocale } from "@/lib/api/routes/request-locale";
 import { requireAuth } from "@/lib/auth/api-auth";
 
 export async function getSubscribedHomeworksRoute(request: Request) {
-  const auth = await requireAuth(request, {
-    bearerScope: { feature: "workspace.homework", action: "read" },
-  });
+  const auth = await runCloudflareTraceSpan(
+    "workspace.homeworks.auth",
+    {},
+    () =>
+      requireAuth(request, {
+        bearerScope: { feature: "workspace.homework", action: "read" },
+      }),
+  );
   if (auth instanceof Response) return auth;
   const { userId } = auth;
   const locale = getRequestLocale(request);
@@ -24,12 +30,17 @@ export async function getSubscribedHomeworksRoute(request: Request) {
     } = subscriptionReadModel;
     const { withHomeworkItemState } = homeworkItemState;
 
-    const viewer = await getViewerContext({
-      includeAdmin: true,
-      userId,
-    });
-
-    const sectionIds = await getSubscribedSectionIds(userId);
+    const [viewer, sectionIds] = await Promise.all([
+      runCloudflareTraceSpan("workspace.homeworks.viewer", {}, () =>
+        getViewerContext({
+          includeAdmin: true,
+          userId,
+        }),
+      ),
+      runCloudflareTraceSpan("workspace.homeworks.section_ids", {}, () =>
+        getSubscribedSectionIds(userId),
+      ),
+    ]);
 
     if (sectionIds.length === 0) {
       return jsonResponse({
@@ -41,15 +52,23 @@ export async function getSubscribedHomeworksRoute(request: Request) {
     }
 
     const [homeworks, auditLogs] = await Promise.all([
-      listSubscribedHomeworks(userId, {
-        locale,
-        includeEditors: true,
-        sectionIds,
-      }),
-      listSubscribedHomeworkAuditLogs(userId, 50, sectionIds),
+      runCloudflareTraceSpan("workspace.homeworks.read", {}, () =>
+        listSubscribedHomeworks(userId, {
+          locale,
+          includeEditors: true,
+          sectionIds,
+        }),
+      ),
+      runCloudflareTraceSpan("workspace.homeworks.audit", {}, () =>
+        listSubscribedHomeworkAuditLogs(userId, 50, sectionIds),
+      ),
     ]);
 
-    const responseHomeworks = await withHomeworkItemState(homeworks);
+    const responseHomeworks = await runCloudflareTraceSpan(
+      "workspace.homeworks.item_state",
+      {},
+      () => withHomeworkItemState(homeworks),
+    );
 
     return jsonResponse({
       viewer,

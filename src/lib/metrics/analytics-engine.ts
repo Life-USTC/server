@@ -1,3 +1,4 @@
+import type { AppLocale } from "@/i18n/config";
 import { getCloudflareAnalyticsEngineDataset } from "@/lib/adapters/cloudflare-runtime";
 import type {
   McpRequestSummary,
@@ -66,10 +67,43 @@ type StorageOperationAnalyticsInput = {
   size?: number | null;
 };
 
+export type PublicRuntimeCacheAnalyticsNamespace =
+  | "api:metadata"
+  | "api:semesters"
+  | `${
+      | "api:courses"
+      | "api:sections"
+      | "api:teachers"
+      | "page:course-detail"
+      | "page:course-list"
+      | "page:section-detail"
+      | "page:section-list"
+      | "page:teacher-detail"
+      | "page:teacher-list"}:${AppLocale}`;
+
+export type PublicRuntimeCacheAnalyticsReason =
+  | "cache_put_rejected"
+  | "none"
+  | "response_build_failed"
+  | "result_invalid"
+  | "scheduler_unavailable"
+  | "task_scheduling_failed";
+
 type CacheEventAnalyticsInput = {
-  event: "hit" | "load_error" | "load_success" | "miss";
+  event:
+    | "colo_hit"
+    | "colo_miss"
+    | "colo_read_error"
+    | "colo_write_complete"
+    | "colo_write_error"
+    | "colo_write_skip"
+    | "hit"
+    | "load_error"
+    | "load_success"
+    | "miss";
   ioObservedDurationMs: number;
-  key: string;
+  namespace: PublicRuntimeCacheAnalyticsNamespace;
+  reason?: PublicRuntimeCacheAnalyticsReason;
   storeSize: number;
   ttlMs: number;
 };
@@ -104,6 +138,21 @@ type DatabaseEventAnalyticsInput = {
   event: "connection_error" | "pool_error";
 };
 
+export type WorkspaceOverviewStage =
+  | "counts"
+  | "due_todo_count"
+  | "due_todo_sample"
+  | "item_state"
+  | "lists"
+  | "todo_summary"
+  | "user_sections";
+
+type WorkspaceOverviewStageAnalyticsInput = {
+  ioObservedDurationMs: number;
+  stage: WorkspaceOverviewStage;
+  status: "error" | "success";
+};
+
 function statusClass(status: number) {
   if (!Number.isFinite(status)) return "unknown";
   return `${Math.floor(status / 100)}xx`;
@@ -122,11 +171,6 @@ function boundedList(values: string[] | undefined) {
 function finiteNumber(value: number | undefined | null) {
   if (typeof value !== "number" || !Number.isFinite(value)) return 0;
   return Math.max(0, value);
-}
-
-function cacheNamespace(key: string) {
-  const [scope, resource, locale] = key.split(":");
-  return [scope, resource, locale].filter(Boolean).map(boundedValue).join(":");
 }
 
 function writeAnalyticsDataPoint(input: {
@@ -270,8 +314,13 @@ export function writeStorageOperationAnalytics(
 
 export function writeCacheEventAnalytics(input: CacheEventAnalyticsInput) {
   writeAnalyticsDataPoint({
-    indexes: [`cache:${boundedValue(cacheNamespace(input.key))}`],
-    blobs: ["public_runtime_cache_v2", input.event, cacheNamespace(input.key)],
+    indexes: [`cache:${boundedValue(input.namespace)}`],
+    blobs: [
+      "public_runtime_cache_v2",
+      input.event,
+      input.namespace,
+      input.reason ?? "none",
+    ],
     doubles: [input.ioObservedDurationMs, input.ttlMs, input.storeSize],
   });
 }
@@ -283,6 +332,16 @@ export function writeCalendarFeedCacheAnalytics(
     indexes: [`cache:calendar:${boundedValue(input.feed)}`],
     blobs: ["calendar_feed_cache", input.feed, input.status],
     doubles: [input.ttlMs, input.storeSize],
+  });
+}
+
+export function writeWorkspaceOverviewStageAnalytics(
+  input: WorkspaceOverviewStageAnalyticsInput,
+) {
+  writeAnalyticsDataPoint({
+    indexes: [`workspace:overview:${input.stage}`],
+    blobs: ["workspace_overview_stage_v1", input.stage, input.status],
+    doubles: [input.ioObservedDurationMs],
   });
 }
 

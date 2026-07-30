@@ -10,6 +10,11 @@ describe("serialize-date-output", () => {
     expect(toShanghaiIsoString(value)).toBe("2026-03-26T12:00:00+08:00");
   });
 
+  test("保留上海历史夏令时语义", () => {
+    const value = new Date("1990-07-01T00:00:00.000Z");
+    expect(toShanghaiIsoString(value)).toBe("1990-07-01T09:00:00+09:00");
+  });
+
   test("序列化嵌套的 Date 值", () => {
     const payload = {
       createdAt: new Date("2026-03-26T04:00:00.000Z"),

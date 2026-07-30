@@ -1,6 +1,8 @@
+import { normalizeCatalogListQuery } from "@/features/catalog/lib/catalog-list-query";
 import { paginatedTeacherQuery } from "@/features/catalog/server/academic-paginated-queries";
 import { CATALOG_PAGE_SIZE } from "@/features/catalog/server/catalog-page-constants";
 import { buildTeacherWhere } from "@/features/catalog/server/teacher-query";
+import { type AppLocale, DEFAULT_LOCALE } from "@/i18n/config";
 import { getMessages } from "@/i18n/messages.server";
 import { getPrisma } from "@/lib/db/prisma";
 import {
@@ -15,18 +17,29 @@ import {
 
 const TEACHER_LIST_CACHE_TTL_MS = 60_000;
 
-export async function getTeacherListPage(url: URL, locale = "zh-cn") {
+export async function getTeacherListPage(
+  url: URL,
+  locale: AppLocale = DEFAULT_LOCALE,
+) {
+  const searchParams = normalizeCatalogListQuery(
+    "/catalog/teachers",
+    url.searchParams,
+  );
   return cachedPublicRuntimeData(
-    publicRuntimeCacheKey(`teacher-list:${locale}`, url.searchParams),
+    `page:teacher-list:${locale}`,
+    publicRuntimeCacheKey(`page:teacher-list:${locale}`, searchParams),
     TEACHER_LIST_CACHE_TTL_MS,
-    () => getUncachedTeacherListPage(url, locale),
+    () => getUncachedTeacherListPage(searchParams, locale),
   );
 }
 
-async function getUncachedTeacherListPage(url: URL, locale = "zh-cn") {
-  const page = parsePositivePage(url.searchParams.get("page"));
-  const search = optionalValue(url.searchParams.get("search"));
-  const departmentId = optionalValue(url.searchParams.get("departmentId"));
+async function getUncachedTeacherListPage(
+  searchParams: URLSearchParams,
+  locale: AppLocale = DEFAULT_LOCALE,
+) {
+  const page = parsePositivePage(searchParams.get("page"));
+  const search = optionalValue(searchParams.get("search"));
+  const departmentId = optionalValue(searchParams.get("departmentId"));
   const where = buildTeacherWhere({ departmentId, search });
 
   const prisma = getPrisma(locale);

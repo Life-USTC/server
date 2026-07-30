@@ -68,20 +68,18 @@ export async function getDashboardOverviewData(
   });
 
   const now = referenceNow;
-  const [homeworks, calendarHomeworks] = await Promise.all([
-    listSubscribedHomeworks(userId, {
-      locale,
-      completed: false,
-      sectionIds: homeworkSectionIds,
-      shape: "dashboard",
-    }),
-    listSubscribedHomeworks(userId, {
-      locale,
-      requireDueDate: true,
-      sectionIds: homeworkSectionIds,
-      shape: "dashboard",
-    }),
-  ]);
+  const overviewHomeworks = await listSubscribedHomeworks(userId, {
+    incompleteOrHasDueDate: true,
+    locale,
+    sectionIds: homeworkSectionIds,
+    shape: "dashboard",
+  });
+  const homeworks = overviewHomeworks.filter(
+    (homework) => homework.homeworkCompletions.length === 0,
+  );
+  const calendarHomeworks = overviewHomeworks.filter(
+    (homework) => homework.submissionDueAt !== null,
+  );
   const schedule = buildDashboardOverviewSchedule({
     dashboardSections,
     homeworks,

@@ -1,9 +1,17 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "life-ustc-e2e",
-  "main": ".svelte-kit/cloudflare/_worker.js",
+  "main": "src/worker.js",
   "compatibility_date": "2026-07-23",
-  "compatibility_flags": ["nodejs_compat"],
+  "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
+  "exports": {
+    "PublicSsr": {
+      "type": "worker",
+      "cache": {
+        "enabled": true
+      }
+    }
+  },
   "vars": {
     "NODE_ENV": "test",
     "APP_PUBLIC_ORIGIN": "http://localhost:3000",
@@ -21,12 +29,20 @@
   },
   "assets": {
     "directory": ".svelte-kit/cloudflare",
-    "binding": "ASSETS"
+    "binding": "ASSETS",
+    "run_worker_first": [
+      "/*",
+      "!/_app/*",
+      "!/images/*",
+      "!/static/*",
+      "!/openapi.generated.json"
+    ]
   },
   "observability": {
     "enabled": false
   },
   "alias": {
+    "life-ustc-sveltekit-worker": "./.svelte-kit/cloudflare/_sveltekit.js",
     "kysely": "./src/lib/cloudflare/kysely-worker-shim.ts",
     "@better-auth/kysely-adapter/dist/bun-sqlite-dialect-DzNwOpKv.mjs": "./src/lib/cloudflare/empty-optional-module.ts",
     "@better-auth/kysely-adapter/dist/d1-sqlite-dialect-C2B7YsIT.mjs": "./src/lib/cloudflare/empty-optional-module.ts",

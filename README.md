@@ -61,6 +61,9 @@ psql "$APP_RUNTIME_DATABASE_URL" -X \
   - `SKIP_DEPENDENCY_INSTALL=true`（使用项目自身的 Bun lockfile）
   - `BUN_VERSION=1.3.13`（与 `.bun-version` 保持一致）
 - `wrangler.jsonc` 为生产配置来源，运行秘密钥通过 Cloudflare Dashboard 设置。
+- 生产 Worker 由 `src/worker.js` 先划分公开匿名 SSR 与私有动态 SSR；SvelteKit
+  adapter 的内部入口由 `wrangler.adapter.jsonc` 生成。渲染与缓存边界见
+  [`docs/rendering-and-cache.md`](./docs/rendering-and-cache.md)。
 - 生产配置关闭公开 `workers.dev`、version 和 alias preview URL；非生产分支仍会
   上传 Worker version 供构建检查，但不会生成可访问的在线预览地址。
 

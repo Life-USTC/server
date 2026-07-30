@@ -14,8 +14,10 @@ import ShieldIcon from "@lucide/svelte/icons/shield";
 import SmartphoneIcon from "@lucide/svelte/icons/smartphone";
 import UsersIcon from "@lucide/svelte/icons/users";
 import { onMount } from "svelte";
-import { afterNavigate } from "$app/navigation";
+import { afterNavigate, goto } from "$app/navigation";
 import { navigating, page } from "$app/stores";
+import { shouldRedirectIncompleteProfileToWelcome } from "$lib/auth/auth-routing";
+import { getClientViewer } from "$lib/auth/client-viewer";
 import AppFooter from "$lib/components/shell/AppFooter.svelte";
 import AppSidebar from "$lib/components/shell/AppSidebar.svelte";
 import AppTopbar from "$lib/components/shell/AppTopbar.svelte";
@@ -48,6 +50,7 @@ import type { ShellLink, ShellNavGroup } from "./types";
 type AppShellData = {
   copy: LayoutCopy;
   locale: "en-us" | "zh-cn";
+  resolveViewerOnClient: boolean;
   user: LayoutUserSummary;
 };
 
@@ -58,20 +61,26 @@ let userMenuOpen = false;
 let localeMenuOpen = false;
 let themeMenuOpen = false;
 let contentScrollContainer: HTMLDivElement | undefined;
+let viewerLoading = data.resolveViewerOnClient && !data.user;
+let viewerUser = data.user;
 
-$: profileHref = resolveProfileHref(data.user);
-$: avatarFallback = resolveAvatarFallback(data.user);
+$: if (!data.resolveViewerOnClient || data.user) {
+  viewerUser = data.user;
+  viewerLoading = false;
+}
+$: profileHref = resolveProfileHref(viewerUser);
+$: avatarFallback = resolveAvatarFallback(viewerUser);
 $: navGroups = buildShellNavGroups(
   data.copy,
-  Boolean(data.user),
-  data.user?.isAdmin ?? false,
+  Boolean(viewerUser),
+  viewerUser?.isAdmin ?? false,
   $page.url.pathname,
   $page.data,
 );
-$: mobileNavGroups = data.user
+$: mobileNavGroups = viewerUser
   ? buildMobileSecondaryNavGroups(
       data.copy,
-      data.user.isAdmin,
+      viewerUser.isAdmin,
       $page.url.pathname,
       $page.data,
     )
@@ -83,7 +92,7 @@ $: mobileSecondaryHasActive =
     group.links.some((link) => linkHasActiveDestination(link)),
   );
 $: detailWorkspace = isDetailWorkspacePath($page.url.pathname);
-$: showFooter = shouldShowAppFooter($page.url.pathname, Boolean(data.user));
+$: showFooter = shouldShowAppFooter($page.url.pathname, Boolean(viewerUser));
 $: mainContentLabel = resolveMainContentLabel($page.data);
 const footerLinks = buildFooterLinks(data.copy.footer);
 
@@ -469,6 +478,31 @@ function resetContentScroll() {
     ?.scrollTo({ left: 0, top: 0 });
 }
 
+async function resolveClientViewer() {
+  if (!data.resolveViewerOnClient || data.user) return;
+
+  try {
+    viewerUser = await getClientViewer();
+    if (
+      shouldRedirectIncompleteProfileToWelcome({
+        pathname: $page.url.pathname,
+        url: $page.url,
+        hasUser: Boolean(viewerUser?.id),
+        hasCompleteProfile: Boolean(viewerUser?.name && viewerUser.username),
+      })
+    ) {
+      const returnTo = `${$page.url.pathname}${$page.url.search}`;
+      await goto(
+        `/account/welcome?callbackUrl=${encodeURIComponent(returnTo)}`,
+      );
+    }
+  } catch {
+    viewerUser = null;
+  } finally {
+    viewerLoading = false;
+  }
+}
+
 async function setLocale(locale: "en-us" | "zh-cn") {
   await setClientLocale({
     currentLocale: data.locale,
@@ -478,6 +512,7 @@ async function setLocale(locale: "en-us" | "zh-cn") {
 }
 
 onMount(() => {
+  void resolveClientViewer();
   themeMode = loadStoredThemeMode(themeMode);
   applyShellTheme(themeMode);
   document.documentElement.dataset.lifeUstcHydrated = "true";
@@ -555,8 +590,9 @@ afterNavigate(({ from, to }) => {
       {navGroups}
       {profileHref}
       {setUserMenuOpen}
-      user={data.user}
+      user={viewerUser}
       {userMenuOpen}
+      {viewerLoading}
     />
 
     <Sidebar.Inset
@@ -565,7 +601,7 @@ afterNavigate(({ from, to }) => {
       tabindex={-1}
       class={cn(
         "relative flex w-full min-w-0 flex-1 flex-col lg:h-screen lg:min-h-0 lg:overflow-hidden",
-        data.user &&
+        viewerUser &&
           "pb-[calc(3.5rem+env(safe-area-inset-bottom))] md:pb-0",
       )}
     >
@@ -580,7 +616,8 @@ afterNavigate(({ from, to }) => {
         {setThemeMode}
         {themeMenuOpen}
         {themeMode}
-        user={data.user}
+        user={viewerUser}
+        {viewerLoading}
       />
 
       <div
@@ -613,7 +650,7 @@ afterNavigate(({ from, to }) => {
       </div>
     </Sidebar.Inset>
 
-    {#if data.user}
+    {#if viewerUser}
       <MobilePrimaryNav
         copy={data.copy}
         hasSecondaryCurrent={mobileSecondaryHasActive}

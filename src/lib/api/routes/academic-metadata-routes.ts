@@ -20,6 +20,7 @@ export async function getMetadataRoute() {
   try {
     const metadata = await cachedPublicRuntimeData(
       "api:metadata",
+      "api:metadata",
       METADATA_API_CACHE_TTL_MS,
       getAcademicMetadata,
     );
@@ -47,6 +48,7 @@ export async function getSemestersRoute(request: Request) {
     const { page, pageSize } = parsed.pagination;
 
     const result = await cachedPublicRuntimeData(
+      "api:semesters",
       `api:semesters:${JSON.stringify({ page, pageSize })}`,
       SEMESTERS_API_CACHE_TTL_MS,
       () => listSemesters({ page, pageSize }),

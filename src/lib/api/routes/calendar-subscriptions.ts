@@ -1,3 +1,4 @@
+import { runCloudflareTraceSpan } from "@/lib/adapters/cloudflare-runtime";
 import {
   badRequest,
   handleRouteError,
@@ -19,18 +20,24 @@ import { requireAuth } from "@/lib/auth/api-auth";
 
 export async function getCurrentCalendarSubscriptionRoute(request: Request) {
   try {
-    const auth = await requireAuth(request, {
-      bearerScope: { feature: "workspace.subscription", action: "read" },
-    });
+    const auth = await runCloudflareTraceSpan(
+      "workspace.subscriptions.current.auth",
+      {},
+      () =>
+        requireAuth(request, {
+          bearerScope: { feature: "workspace.subscription", action: "read" },
+        }),
+    );
     if (auth instanceof Response) return auth;
     const { userId } = auth;
 
     const { getUserCalendarSubscription } = await import(
       "@/features/subscriptions/server/subscription-read-model"
     );
-    const subscription = await getUserCalendarSubscription(
-      userId,
-      getRequestLocale(request),
+    const subscription = await runCloudflareTraceSpan(
+      "workspace.subscriptions.current.read",
+      {},
+      () => getUserCalendarSubscription(userId, getRequestLocale(request)),
     );
 
     if (!subscription) {

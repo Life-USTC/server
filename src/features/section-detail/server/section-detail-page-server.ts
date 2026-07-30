@@ -7,7 +7,14 @@ import {
   formatMessage,
   primaryName,
 } from "@/features/section-detail/lib/display";
-import { getSectionPage } from "@/features/section-detail/server/section-page-data";
+import {
+  getSectionPage,
+  withSectionPageRelatedData,
+} from "@/features/section-detail/server/section-page-data";
+import {
+  cachedPublicRuntimeData,
+  publicDetailColoCacheKey,
+} from "@/lib/public-runtime-cache";
 import {
   buildSocialMetadata,
   formatSocialMetadataMessage,
@@ -41,6 +48,42 @@ const sectionDetailRouteSections = new Set([
   "comments",
 ]);
 
+const PUBLIC_DETAIL_RUNTIME_CACHE_TTL_MS = 60_000;
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === "object";
+}
+
+function isEmptyArray(value: unknown) {
+  return Array.isArray(value) && value.length === 0;
+}
+
+function isPublicSectionCore(value: unknown, jwId: number) {
+  return (
+    isRecord(value) &&
+    typeof value.id === "number" &&
+    value.jwId === jwId &&
+    typeof value.code === "string" &&
+    typeof value.courseId === "number" &&
+    (value.semesterId === null || typeof value.semesterId === "number") &&
+    isRecord(value.course) &&
+    typeof value.course.id === "number" &&
+    typeof value.course.jwId === "number" &&
+    typeof value.course.namePrimary === "string" &&
+    Array.isArray(value.adminClasses) &&
+    Array.isArray(value.teachers) &&
+    value.teachers.every(
+      (teacher) => isRecord(teacher) && typeof teacher.id === "number",
+    ) &&
+    typeof value.examCount === "number" &&
+    typeof value.scheduleCount === "number" &&
+    isEmptyArray(value.exams) &&
+    isEmptyArray(value.schedules) &&
+    isEmptyArray(value.sameSemesterOtherTeachers) &&
+    isEmptyArray(value.sameTeacherOtherSemesters)
+  );
+}
+
 function resolveSectionDetailRouteSection(
   section: string | undefined,
 ): SectionDetailRouteSection | null {
@@ -65,8 +108,42 @@ export async function loadSectionDetailPage({
   const jwId = parseSectionJwId(params.jwId);
   if (jwId === null) error(404, "Section not found");
   const userId = locals.authUser?.id ?? null;
-  const section = await getSectionPage(jwId, locals.locale);
-  if (!section) error(404, "Section not found");
+  const includeExams =
+    detailSection === "calendar" || detailSection === "exams";
+  const includeRelated = detailSection === "overview";
+  const includeSchedules = detailSection === "calendar";
+  const cachePublicCore =
+    locals.publicSsr && !userId && !includeExams && !includeSchedules;
+  const loadSection = () =>
+    getSectionPage(jwId, locals.locale, {
+      includeExams,
+      includeRelated: cachePublicCore ? false : includeRelated,
+      includeSchedules,
+    });
+  const sectionCore = cachePublicCore
+    ? await cachedPublicRuntimeData(
+        `page:section-detail:${locals.locale}`,
+        `catalog-detail:section:${locals.locale}:${jwId}`,
+        PUBLIC_DETAIL_RUNTIME_CACHE_TTL_MS,
+        loadSection,
+        {
+          coloCacheKey: publicDetailColoCacheKey(
+            url.origin,
+            "section",
+            locals.locale,
+            jwId,
+          ),
+          shouldCacheResult: (result) => result !== null,
+          validateColoCacheResult: (result) =>
+            isPublicSectionCore(result, jwId),
+        },
+      )
+    : await loadSection();
+  if (!sectionCore) error(404, "Section not found");
+  const section =
+    cachePublicCore && includeRelated
+      ? await withSectionPageRelatedData(sectionCore, locals.locale)
+      : sectionCore;
   const copy = getSectionDetailPageCopy(locals.locale);
   const courseName = primaryName(section.course) || section.code;
   const [subscriptionState, descriptionAndComments, homeworkData] =
@@ -78,6 +155,7 @@ export async function loadSectionDetailPage({
         : null,
       getSectionDetailDescriptionAndComments(section, userId, {
         includeComments: detailSection === "comments",
+        includeDescriptionHistory: detailSection === "introduction",
       }),
       detailSection === "homework"
         ? getSectionHomeworkData(section.id, userId)
