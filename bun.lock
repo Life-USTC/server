@@ -82,6 +82,9 @@
       },
     },
   },
+  "patchedDependencies": {
+    "@better-auth/cimd@1.7.0-rc.2": "patches/@better-auth%2Fcimd@1.7.0-rc.2.patch",
+  },
   "overrides": {
     "graphql": "16.14.2",
   },

@@ -102,5 +102,8 @@
     "vitest": "^4.1.7",
     "wrangler": "4.113.0",
     "zod-openapi": "^6.0.0"
+  },
+  "patchedDependencies": {
+    "@better-auth/cimd@1.7.0-rc.2": "patches/@better-auth%2Fcimd@1.7.0-rc.2.patch"
   }
 }
