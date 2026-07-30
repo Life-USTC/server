@@ -1,3 +1,15 @@
+## [1.80.1](https://github.com/Life-USTC/server/compare/v1.80.0...v1.80.1) (2026-07-30)
+
+
+### Bug Fixes
+
+* **cache:** align calendar invalidation with KV and Prisma types ([d3e8ea7](https://github.com/Life-USTC/server/commit/d3e8ea778aaa4c9d67bbe7ffb6b2f66a728ad54c))
+
+
+### Performance Improvements
+
+* **cache:** revision-scoped KV TTL and calendar invalidation ([d548bf7](https://github.com/Life-USTC/server/commit/d548bf7a91638747e4086aa879cb01106ad6f8df))
+
 # [1.80.0](https://github.com/Life-USTC/server/compare/v1.79.0...v1.80.0) (2026-07-30)
 
 
