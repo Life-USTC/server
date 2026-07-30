@@ -684,7 +684,7 @@ describe("section detail loader critical path", () => {
     expect(getUserSectionSubscriptionStateMock).not.toHaveBeenCalled();
   });
 
-  it("defers homework and comments to client tabs while keeping overview shell data", async () => {
+  it("loads homework on deep links and still defers comments to client tabs", async () => {
     const { loadSectionDetailPage } = await import(
       "@/features/section-detail/server/section-detail-page-server"
     );
@@ -715,7 +715,11 @@ describe("section detail loader critical path", () => {
     expect(commentsResult.detailSection).toBe("comments");
     expect(commentsResult.commentsData).toBeNull();
     expect(getDescriptionPayloadMock).not.toHaveBeenCalled();
-    expect(getSectionHomeworkDataMock).not.toHaveBeenCalled();
+    expect(getSectionHomeworkDataMock).toHaveBeenCalledOnce();
+    expect(getSectionHomeworkDataMock).toHaveBeenCalledWith(
+      section.id,
+      null,
+    );
     expect(getCommentsPayloadMock).not.toHaveBeenCalled();
   });
 
@@ -781,31 +785,34 @@ describe("section detail loader critical path", () => {
   });
 
   it.each([
-    "calendar",
-    "exams",
-  ] as const)("caches the anonymous PublicSsr section overview for %s deep links", async (tab) => {
-    const { loadSectionDetailPage } = await import(
-      "@/features/section-detail/server/section-detail-page-server"
-    );
-    const load = () =>
-      loadSectionDetailPage({
-        locals: locals(null, true),
-        params: { jwId: String(section.jwId) },
-        request: request(`/catalog/sections/${section.jwId}?tab=${tab}`),
-        url: new URL(
-          `https://example.test/catalog/sections/${section.jwId}?tab=${tab}`,
-        ),
+    ["calendar", true, true] as const,
+    ["exams", false, true] as const,
+  ])(
+    "loads tab-specific section data for anonymous %s deep links without overview cache",
+    async (tab, includeSchedules, includeExams) => {
+      const { loadSectionDetailPage } = await import(
+        "@/features/section-detail/server/section-detail-page-server"
+      );
+      const load = () =>
+        loadSectionDetailPage({
+          locals: locals(null, true),
+          params: { jwId: String(section.jwId) },
+          request: request(`/catalog/sections/${section.jwId}?tab=${tab}`),
+          url: new URL(
+            `https://example.test/catalog/sections/${section.jwId}?tab=${tab}`,
+          ),
+        });
+
+      await load();
+      await load();
+
+      expect(getSectionPageMock).toHaveBeenCalledTimes(2);
+      expect(getSectionPageMock).toHaveBeenCalledWith(section.jwId, "en-us", {
+        includeExams,
+        includeRelated: false,
+        includeSchedules,
+        includeTeacherDepartments: false,
       });
-
-    await load();
-    await load();
-
-    expect(getSectionPageMock).toHaveBeenCalledOnce();
-    expect(getSectionPageMock).toHaveBeenCalledWith(section.jwId, "en-us", {
-      includeExams: false,
-      includeRelated: true,
-      includeSchedules: false,
-      includeTeacherDepartments: false,
-    });
-  });
+    },
+  );
 });

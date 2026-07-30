@@ -99,13 +99,26 @@ export async function loadSectionDetailPage({
     params.section ?? url.searchParams.get(SECTION_DETAIL_TAB_QUERY),
   );
   const userId = locals.authUser?.id ?? null;
-  const cachePublicCore = locals.publicSsr && !userId;
+  const includeSchedules = initialTab === "calendar";
+  const includeExams = initialTab === "calendar" || initialTab === "exams";
+  const includeTeacherDepartments = initialTab === "teachers";
+  const includeRelated = initialTab === "overview";
+  const focusedHomeworkId = url.searchParams.get("homeworkId");
+  const shouldLoadHomework =
+    initialTab === "homework" || focusedHomeworkId != null;
+  const cachePublicCore =
+    locals.publicSsr &&
+    !userId &&
+    !includeExams &&
+    !includeSchedules &&
+    !includeTeacherDepartments &&
+    !shouldLoadHomework;
   const loadSection = () =>
     getSectionPage(jwId, locals.locale, {
-      includeExams: false,
-      includeRelated: true,
-      includeSchedules: false,
-      includeTeacherDepartments: false,
+      includeExams,
+      includeRelated,
+      includeSchedules,
+      includeTeacherDepartments,
     });
   const section = cachePublicCore
     ? await cachedPublicRuntimeData(
@@ -134,18 +147,33 @@ export async function loadSectionDetailPage({
   const courseName = primaryName(section.course) || section.code;
   const includeDescription =
     initialTab === "introduction" || initialTab === "overview";
-  const [subscriptionState, descriptionAndComments] = await Promise.all([
-    userId
-      ? (
-          await import("@/features/subscriptions/server/subscriptions")
-        ).getUserSectionSubscriptionState(userId)
-      : null,
-    getSectionDetailDescriptionAndComments(section, userId, {
-      includeComments: false,
-      includeDescription,
-      includeDescriptionHistory: false,
-    }),
-  ]);
+  const [subscriptionState, descriptionAndComments, homeworkData] =
+    await Promise.all([
+      userId
+        ? (
+            await import("@/features/subscriptions/server/subscriptions")
+          ).getUserSectionSubscriptionState(userId)
+        : null,
+      getSectionDetailDescriptionAndComments(section, userId, {
+        includeComments: false,
+        includeDescription,
+        includeDescriptionHistory: false,
+      }),
+      shouldLoadHomework
+        ? (
+            await import("./section-detail-homework-data")
+          ).getSectionHomeworkData(section.id, userId)
+        : {
+            auditLogs: [],
+            homeworks: [],
+            viewer: {
+              isAdmin: false,
+              isAuthenticated: Boolean(userId),
+              isSuspended: false,
+              userId,
+            },
+          },
+    ]);
   const socialMetadata = buildSocialMetadata({
     card: {
       footer: `Life@USTC · ${copy.common.sections}`,
@@ -179,17 +207,8 @@ export async function loadSectionDetailPage({
     descriptionData: descriptionAndComments.descriptionData,
     commentsData: null,
     detailSection: initialTab,
-    homeworkData: {
-      auditLogs: [],
-      homeworks: [],
-      viewer: {
-        isAdmin: false,
-        isAuthenticated: Boolean(userId),
-        isSuspended: false,
-        userId,
-      },
-    },
-    focusedHomeworkId: url.searchParams.get("homeworkId"),
+    homeworkData,
+    focusedHomeworkId,
     homeworkView:
       url.searchParams.get("homeworkView") === "list" ? "list" : "cards",
     showSubscribeDialog:

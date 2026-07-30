@@ -82,9 +82,24 @@ const tabPanelStore = createSectionDetailTabPanelStore(
 );
 let tabPanelState = tabPanelStore.getState();
 
+function overlayField<T>(overlayValue: T[], sectionValue: T[]) {
+  return overlayValue.length > 0 ? overlayValue : sectionValue;
+}
+
 $: displaySection = {
   ...data.section,
-  ...tabPanelState.sectionOverlay,
+  exams: overlayField(
+    tabPanelState.sectionOverlay.exams,
+    data.section.exams ?? [],
+  ),
+  schedules: overlayField(
+    tabPanelState.sectionOverlay.schedules,
+    data.section.schedules ?? [],
+  ),
+  teachers: overlayField(
+    tabPanelState.sectionOverlay.teachers,
+    data.section.teachers ?? [],
+  ),
 };
 $: panelDescriptionData =
   activeTab === "introduction" && tabPanelStore.isLoaded("introduction")
