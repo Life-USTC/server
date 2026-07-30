@@ -1,4 +1,4 @@
-import { prisma } from "@/lib/db/prisma";
+import { prisma, withUserDbContext } from "@/lib/db/prisma";
 
 export const sectionCalendarInclude = {
   course: true,
@@ -29,31 +29,33 @@ export async function getIncompleteHomeworkCalendarItems(
 ) {
   if (sectionIds.length === 0) return [];
 
-  return prisma.homework.findMany({
-    where: {
-      deletedAt: null,
-      sectionId: { in: sectionIds },
-      submissionDueAt: { not: null },
-      homeworkCompletions: {
-        none: {
-          userId,
+  return withUserDbContext(userId, (tx) =>
+    tx.homework.findMany({
+      where: {
+        deletedAt: null,
+        sectionId: { in: sectionIds },
+        submissionDueAt: { not: null },
+        homeworkCompletions: {
+          none: {
+            userId,
+          },
         },
       },
-    },
-    include: {
-      description: {
-        select: {
-          content: true,
+      include: {
+        description: {
+          select: {
+            content: true,
+          },
+        },
+        section: {
+          include: {
+            course: true,
+          },
         },
       },
-      section: {
-        include: {
-          course: true,
-        },
-      },
-    },
-    orderBy: [{ submissionDueAt: "asc" }, { createdAt: "desc" }],
-  });
+      orderBy: [{ submissionDueAt: "asc" }, { createdAt: "desc" }],
+    }),
+  );
 }
 
 export async function getSectionForCalendar(sectionJwId: number) {
@@ -86,27 +88,29 @@ export async function getUserCalendarAccessRecord(userId: string) {
 }
 
 export async function getUserCalendarRecord(userId: string) {
-  return prisma.user.findUnique({
-    where: { id: userId },
-    include: {
-      subscribedSections: {
-        where: { retiredAt: null },
-        include: sectionCalendarInclude,
-      },
-      todos: {
-        where: {
-          completed: false,
-          dueAt: { not: null },
+  return withUserDbContext(userId, (tx) =>
+    tx.user.findUnique({
+      where: { id: userId },
+      include: {
+        subscribedSections: {
+          where: { retiredAt: null },
+          include: sectionCalendarInclude,
         },
-        orderBy: [{ dueAt: "asc" }, { createdAt: "desc" }],
-        select: {
-          id: true,
-          title: true,
-          content: true,
-          dueAt: true,
-          priority: true,
+        todos: {
+          where: {
+            completed: false,
+            dueAt: { not: null },
+          },
+          orderBy: [{ dueAt: "asc" }, { createdAt: "desc" }],
+          select: {
+            id: true,
+            title: true,
+            content: true,
+            dueAt: true,
+            priority: true,
+          },
         },
       },
-    },
-  });
+    }),
+  );
 }

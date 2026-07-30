@@ -3,6 +3,7 @@ import { listUserOAuthAuthorizations } from "@/features/oauth/server/user-author
 import type { SettingsTab } from "@/features/settings/lib/settings-tabs";
 import { buildSettingsAccountProviders } from "@/features/settings/server/settings-account-providers";
 import { buildSignInPageUrl } from "@/lib/auth/auth-routing";
+import { authPrisma } from "@/lib/db/auth-prisma";
 import { prisma } from "@/lib/db/prisma";
 
 export type SettingsAccountProvider = {
@@ -29,7 +30,7 @@ export async function getSettingsPageData(
   tab: SettingsTab,
 ) {
   const sessionUser = await requireSettingsUser(request, url);
-  const [user, authorizations] = await Promise.all([
+  const [user, accounts, authorizations] = await Promise.all([
     prisma.user.findUnique({
       where: { id: sessionUser.id },
       select: {
@@ -39,23 +40,16 @@ export async function getSettingsPageData(
         email: true,
         image: true,
         profilePictures: true,
-        accounts: {
-          orderBy: { createdAt: "asc" },
-          select: {
-            id: true,
-            provider: true,
-            providerAccountId: true,
-            createdAt: true,
-          },
-        },
-        _count: {
-          select: {
-            comments: true,
-            todos: true,
-            uploads: true,
-            subscribedSections: true,
-          },
-        },
+      },
+    }),
+    authPrisma.account.findMany({
+      where: { userId: sessionUser.id },
+      orderBy: { createdAt: "asc" },
+      select: {
+        id: true,
+        provider: true,
+        providerAccountId: true,
+        createdAt: true,
       },
     }),
     tab === "authorizations"
@@ -67,7 +61,7 @@ export async function getSettingsPageData(
     throw redirect(303, buildSignInPageUrl(`${url.pathname}${url.search}`));
   }
 
-  const accounts = buildSettingsAccountProviders(user.accounts);
+  const accountProviders = buildSettingsAccountProviders(accounts);
 
   return {
     tab,
@@ -85,10 +79,9 @@ export async function getSettingsPageData(
       email: user.email,
       image: user.image,
       profilePictures: user.profilePictures,
-      counts: user._count,
-      accountCount: user.accounts.length,
+      accountCount: accounts.length,
     },
-    accounts,
+    accounts: accountProviders,
     authorizations,
   };
 }

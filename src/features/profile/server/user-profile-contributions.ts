@@ -1,3 +1,4 @@
+import { Prisma } from "@/generated/prisma/client";
 import {
   addCampusDays,
   campusDateKeyRange,
@@ -16,21 +17,21 @@ type ContributionEvent = {
   createdAt: Date;
 };
 
-type CompletionEvent = {
+type PublicProfileUploadStatsRow = {
+  createdAt: Date | null;
+  totalUploads: bigint;
+};
+
+type PublicProfileHomeworkCompletionRow = {
   completedAt: Date;
 };
 
 type ContributionPrisma = {
+  $queryRaw<T>(query: Prisma.Sql): Promise<T>;
   comment: {
     findMany(input: unknown): Promise<ContributionEvent[]>;
   };
   homework: {
-    findMany(input: unknown): Promise<ContributionEvent[]>;
-  };
-  homeworkCompletion: {
-    findMany(input: unknown): Promise<CompletionEvent[]>;
-  };
-  upload: {
     findMany(input: unknown): Promise<ContributionEvent[]>;
   };
 };
@@ -42,7 +43,7 @@ export async function buildUserProfileContributions(
 ) {
   const today = shanghaiDayjs(referenceNow).startOf("day");
   const startDate = today.subtract(364, "day").startOf("day");
-  const [commentEvents, uploadEvents, completionEvents, homeworkEvents] =
+  const [commentEvents, uploadStats, completionEvents, homeworkEvents] =
     await Promise.all([
       prisma.comment.findMany({
         where: {
@@ -52,14 +53,20 @@ export async function buildUserProfileContributions(
         },
         select: { createdAt: true },
       }),
-      prisma.upload.findMany({
-        where: { userId, createdAt: { gte: startDate.toDate() } },
-        select: { createdAt: true },
-      }),
-      prisma.homeworkCompletion.findMany({
-        where: { userId, completedAt: { gte: startDate.toDate() } },
-        select: { completedAt: true },
-      }),
+      prisma.$queryRaw<PublicProfileUploadStatsRow[]>(Prisma.sql`
+        SELECT *
+        FROM public.get_public_profile_upload_stats(
+          ${userId},
+          ${startDate.toDate()}
+        )
+      `),
+      prisma.$queryRaw<PublicProfileHomeworkCompletionRow[]>(Prisma.sql`
+        SELECT *
+        FROM public.get_public_profile_homework_completions(
+          ${userId},
+          ${startDate.toDate()}
+        )
+      `),
       prisma.homework.findMany({
         where: {
           createdById: userId,
@@ -78,7 +85,9 @@ export async function buildUserProfileContributions(
   };
 
   for (const item of commentEvents) addContribution(item.createdAt);
-  for (const item of uploadEvents) addContribution(item.createdAt);
+  for (const item of uploadStats) {
+    if (item.createdAt) addContribution(item.createdAt);
+  }
   for (const item of completionEvents) addContribution(item.completedAt);
   for (const item of homeworkEvents) addContribution(item.createdAt);
 
@@ -100,5 +109,9 @@ export async function buildUserProfileContributions(
     0,
   );
 
-  return { totalContributions, weeks };
+  return {
+    totalContributions,
+    totalUploads: Number(uploadStats[0]?.totalUploads ?? 0n),
+    weeks,
+  };
 }

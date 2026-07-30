@@ -5,10 +5,13 @@ import type {
 } from "@/generated/prisma/client";
 import { writeAuditLog } from "@/lib/audit/write-audit-log";
 import { getViewerContext } from "@/lib/auth/viewer-context";
-import { prisma } from "@/lib/db/prisma";
+import { prisma, withUserDbContext } from "@/lib/db/prisma";
 import { isPrismaUniqueConstraintError } from "@/lib/db/prisma-errors";
 import { canViewerWriteCommentInteraction } from "./comment-interaction-policy";
-import { commentThreadInclude } from "./comment-read-model";
+import {
+  commentThreadInclude,
+  withCommentReadMetadata,
+} from "./comment-read-model";
 import type { ViewerInfo } from "./comment-serialization";
 import { buildCommentNodes } from "./comment-serialization";
 import { resolveCommentMutationTargetReference } from "./comment-target-resolution";
@@ -367,7 +370,7 @@ export async function createCommentReaction(input: {
     return { ok: false as const, error: "locked" as const };
   }
 
-  const changed = await prisma.$transaction(async (tx) => {
+  const changed = await withUserDbContext(input.userId, async (tx) => {
     const result = await tx.commentReaction.createMany({
       data: [
         {
@@ -417,7 +420,7 @@ export async function deleteCommentReaction(input: {
     return { ok: false as const, error: "locked" as const };
   }
 
-  const changed = await prisma.$transaction(async (tx) => {
+  const changed = await withUserDbContext(input.userId, async (tx) => {
     const result = await tx.commentReaction.deleteMany({
       where: {
         commentId: input.commentId,
@@ -484,18 +487,20 @@ export async function validateCommentAttachmentIds(
   attachmentIds: string[],
   options: { commentId?: string } = {},
 ) {
-  const uploads = await prisma.upload.findMany({
-    where: {
-      id: { in: attachmentIds },
-      userId,
-    },
-    select: {
-      id: true,
-      commentAttachments: {
-        select: { commentId: true },
+  const uploads = await withUserDbContext(userId, (tx) =>
+    tx.upload.findMany({
+      where: {
+        id: { in: attachmentIds },
+        userId,
       },
-    },
-  });
+      select: {
+        id: true,
+        commentAttachments: {
+          select: { commentId: true },
+        },
+      },
+    }),
+  );
 
   return (
     uploads.length === attachmentIds.length &&
@@ -680,6 +685,10 @@ async function loadCommentResponse(id: string, viewer: ViewerInfo) {
   });
 
   if (!updatedComment) return null;
-  const { roots } = buildCommentNodes([updatedComment], viewer);
+  const commentsWithMetadata = await withCommentReadMetadata(
+    [updatedComment],
+    viewer.userId,
+  );
+  const { roots } = buildCommentNodes(commentsWithMetadata, viewer);
   return roots[0];
 }

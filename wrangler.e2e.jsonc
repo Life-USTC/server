@@ -37,6 +37,11 @@
       "binding": "HYPERDRIVE",
       "id": "local",
       "localConnectionString": "postgresql://postgres:postgres@127.0.0.1:5432/life_ustc_dev"
+    },
+    {
+      "binding": "HYPERDRIVE_AUTH",
+      "id": "local-auth",
+      "localConnectionString": "postgresql://postgres:postgres@127.0.0.1:5432/life_ustc_dev"
     }
   ],
   "kv_namespaces": [

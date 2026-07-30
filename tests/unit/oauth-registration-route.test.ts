@@ -17,8 +17,8 @@ vi.mock("@/lib/auth/core", () => ({
   },
 }));
 
-vi.mock("@/lib/db/prisma", () => ({
-  prisma: {
+vi.mock("@/lib/db/auth-prisma", () => ({
+  authPrisma: {
     oAuthClient: {
       update: oauthClientUpdateMock,
     },

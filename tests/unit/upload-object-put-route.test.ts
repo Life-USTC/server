@@ -6,12 +6,14 @@ const {
   headStorageObjectMock,
   putStorageObjectMock,
   requireWriteAuthMock,
+  withUserDbContextMock,
 } = vi.hoisted(() => ({
   deleteStorageObjectMock: vi.fn(),
   findUniqueMock: vi.fn(),
   headStorageObjectMock: vi.fn(),
   putStorageObjectMock: vi.fn(),
   requireWriteAuthMock: vi.fn(),
+  withUserDbContextMock: vi.fn(),
 }));
 
 vi.mock("@/lib/auth/api-auth", () => ({
@@ -24,6 +26,7 @@ vi.mock("@/lib/db/prisma", () => ({
       findUnique: findUniqueMock,
     },
   },
+  withUserDbContext: withUserDbContextMock,
 }));
 
 vi.mock("@/lib/storage/r2-object", () => ({
@@ -59,6 +62,9 @@ describe("putUploadObjectRoute", () => {
   beforeEach(() => {
     vi.useFakeTimers();
     vi.setSystemTime(FIXED_NOW);
+    withUserDbContextMock.mockImplementation((_userId, action) =>
+      action({ uploadPending: { findUnique: findUniqueMock } }),
+    );
   });
 
   afterEach(() => {
@@ -68,6 +74,7 @@ describe("putUploadObjectRoute", () => {
     headStorageObjectMock.mockReset();
     putStorageObjectMock.mockReset();
     requireWriteAuthMock.mockReset();
+    withUserDbContextMock.mockReset();
     vi.resetModules();
   });
 

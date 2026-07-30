@@ -6,16 +6,42 @@ import {
 import { createTestPrisma, disconnectTestPrisma } from "../shared/prisma";
 
 const prisma = createTestPrisma();
-const cutoff = new Date("1900-01-01T00:00:00.000Z");
+const cutoff = new Date(Date.now() - 60_000);
 const expiredAt = new Date(cutoff.getTime() - 60_000);
-const futureAt = new Date(cutoff.getTime() + 60_000);
+const futureAt = new Date(cutoff.getTime() + 24 * 60 * 60 * 1000);
 const marker = `auth-cleanup-${crypto.randomUUID()}`;
 
 describe("expired auth record cleanup", () => {
   let userId: string;
   let clientId: string;
+  let preexistingExpired: AuthRecordCleanupReport;
 
   beforeAll(async () => {
+    const [
+      sessions,
+      verificationTokens,
+      oauthAccessTokens,
+      oauthRefreshTokens,
+      deviceCodes,
+    ] = await Promise.all([
+      prisma.session.count({ where: { expires: { lt: cutoff } } }),
+      prisma.verificationToken.count({ where: { expires: { lt: cutoff } } }),
+      prisma.oAuthAccessToken.count({
+        where: { expiresAt: { lt: cutoff } },
+      }),
+      prisma.oAuthRefreshToken.count({
+        where: { expiresAt: { lt: cutoff } },
+      }),
+      prisma.deviceCode.count({ where: { expiresAt: { lt: cutoff } } }),
+    ]);
+    preexistingExpired = {
+      sessions,
+      verificationTokens,
+      oauthAccessTokens,
+      oauthRefreshTokens,
+      deviceCodes,
+    };
+
     const user = await prisma.user.create({
       data: {
         email: `${marker}@example.test`,
@@ -139,6 +165,12 @@ describe("expired auth record cleanup", () => {
           userId,
           expiresAt: cutoff,
         },
+        {
+          token: `${marker}-future-access`,
+          clientId,
+          userId,
+          expiresAt: futureAt,
+        },
       ],
     });
   });
@@ -149,6 +181,78 @@ describe("expired auth record cleanup", () => {
     });
     await prisma.user.delete({ where: { id: userId } });
     await disconnectTestPrisma(prisma);
+  });
+
+  test("uses a locked-down security-definer function with bounded batches", async () => {
+    const [definition] = await prisma.$queryRaw<
+      Array<{
+        securityDefiner: boolean;
+        settings: string[] | null;
+        publicCanExecute: boolean;
+      }>
+    >`
+      SELECT
+        procedure.prosecdef AS "securityDefiner",
+        procedure.proconfig AS settings,
+        EXISTS (
+          SELECT 1
+          FROM pg_catalog.aclexplode(
+            COALESCE(
+              procedure.proacl,
+              pg_catalog.acldefault('f'::"char", procedure.proowner)
+            )
+          ) AS privilege
+          WHERE privilege.grantee = 0
+            AND privilege.privilege_type = 'EXECUTE'
+        ) AS "publicCanExecute"
+      FROM pg_catalog.pg_proc AS procedure
+      WHERE procedure.oid = pg_catalog.to_regprocedure(
+        'public.cleanup_expired_auth_records(timestamp without time zone,integer)'
+      )
+    `;
+
+    expect(definition).toEqual({
+      securityDefiner: true,
+      settings: ['search_path=""'],
+      publicCanExecute: false,
+    });
+
+    for (const batchSize of [0, AUTH_RECORD_CLEANUP_BATCH_SIZE + 1]) {
+      await expect(
+        prisma.$queryRaw`
+          SELECT *
+          FROM public.cleanup_expired_auth_records(${cutoff}, ${batchSize})
+        `,
+      ).rejects.toThrow("batch size must be between 1 and 1000");
+    }
+  });
+
+  test("rejects a future cutoff before deleting expired or future records", async () => {
+    await expect(
+      cleanupExpiredAuthRecords(
+        prisma,
+        new Date(Date.now() + 24 * 60 * 60 * 1000),
+      ),
+    ).rejects.toThrow("cutoff must not be in the future");
+
+    expect(
+      await prisma.session.count({
+        where: {
+          sessionToken: {
+            in: [`${marker}-expired-session-0`, `${marker}-future-session`],
+          },
+        },
+      }),
+    ).toBe(2);
+    expect(
+      await prisma.oAuthAccessToken.count({
+        where: {
+          token: {
+            in: [`${marker}-expired-access-0`, `${marker}-future-access`],
+          },
+        },
+      }),
+    ).toBe(2);
   });
 
   test("runs concurrently in bounded, idempotent batches while preserving boundary and replay-detection rows", async () => {
@@ -174,11 +278,22 @@ describe("expired auth record cleanup", () => {
     );
 
     expect(total).toEqual({
-      sessions: AUTH_RECORD_CLEANUP_BATCH_SIZE + 1,
-      verificationTokens: AUTH_RECORD_CLEANUP_BATCH_SIZE + 1,
-      oauthAccessTokens: AUTH_RECORD_CLEANUP_BATCH_SIZE + 1,
-      oauthRefreshTokens: AUTH_RECORD_CLEANUP_BATCH_SIZE + 1,
-      deviceCodes: AUTH_RECORD_CLEANUP_BATCH_SIZE + 1,
+      sessions:
+        AUTH_RECORD_CLEANUP_BATCH_SIZE + 1 + preexistingExpired.sessions,
+      verificationTokens:
+        AUTH_RECORD_CLEANUP_BATCH_SIZE +
+        1 +
+        preexistingExpired.verificationTokens,
+      oauthAccessTokens:
+        AUTH_RECORD_CLEANUP_BATCH_SIZE +
+        1 +
+        preexistingExpired.oauthAccessTokens,
+      oauthRefreshTokens:
+        AUTH_RECORD_CLEANUP_BATCH_SIZE +
+        1 +
+        preexistingExpired.oauthRefreshTokens,
+      deviceCodes:
+        AUTH_RECORD_CLEANUP_BATCH_SIZE + 1 + preexistingExpired.deviceCodes,
     });
     for (const report of reports) {
       for (const deleted of Object.values(report)) {
@@ -228,9 +343,13 @@ describe("expired auth record cleanup", () => {
     ).toBe(1);
     expect(
       await prisma.oAuthAccessToken.count({
-        where: { token: `${marker}-boundary-access` },
+        where: {
+          token: {
+            in: [`${marker}-boundary-access`, `${marker}-future-access`],
+          },
+        },
       }),
-    ).toBe(1);
+    ).toBe(2);
     expect(
       await prisma.oAuthRefreshToken.count({
         where: {

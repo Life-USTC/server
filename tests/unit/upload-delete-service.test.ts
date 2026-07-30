@@ -9,7 +9,7 @@ const {
   logAppEventMock,
   uploadDeleteManyMock,
   uploadFindFirstMock,
-  uploadTransactionMock,
+  withUserDbContextMock,
 } = vi.hoisted(() => ({
   auditLogCreateMock: vi.fn(),
   deleteStorageObjectMock: vi.fn(),
@@ -18,12 +18,11 @@ const {
   logAppEventMock: vi.fn(),
   uploadDeleteManyMock: vi.fn(),
   uploadFindFirstMock: vi.fn(),
-  uploadTransactionMock: vi.fn(),
+  withUserDbContextMock: vi.fn(),
 }));
 
 vi.mock("@/lib/db/prisma", () => ({
   prisma: {
-    $transaction: uploadTransactionMock,
     auditLog: {
       create: auditLogCreateMock,
     },
@@ -32,6 +31,7 @@ vi.mock("@/lib/db/prisma", () => ({
       findFirst: uploadFindFirstMock,
     },
   },
+  withUserDbContext: withUserDbContextMock,
 }));
 
 vi.mock("@/lib/storage/r2-object", () => ({
@@ -64,7 +64,7 @@ describe("deleteOwnedUpload", () => {
     headStorageObjectMock.mockResolvedValue({ size: upload.size });
     uploadDeleteManyMock.mockResolvedValue({ count: 1 });
     auditLogCreateMock.mockResolvedValue({});
-    uploadTransactionMock.mockImplementation(async (action) =>
+    withUserDbContextMock.mockImplementation(async (_userId, action) =>
       action({
         auditLog: {
           create: auditLogCreateMock,

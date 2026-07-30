@@ -12,8 +12,8 @@ const {
   updateVerificationTokenMock: vi.fn(),
 }));
 
-vi.mock("@/lib/db/prisma", () => ({
-  prisma: {
+vi.mock("@/lib/db/auth-prisma", () => ({
+  authPrisma: {
     oAuthConsent: {
       findFirst: findConsentMock,
     },

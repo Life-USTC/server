@@ -1,6 +1,6 @@
 import { hashPassword } from "better-auth/crypto";
 import { Prisma } from "@/generated/prisma/client";
-import { prisma } from "@/lib/db/prisma";
+import { authPrisma as prisma } from "@/lib/db/auth-prisma";
 import { getDebugProviderConfig } from "./debug-auth-config";
 import type { DebugProviderId } from "./provider-ids";
 
@@ -21,6 +21,7 @@ function staleDebugIdentityEmail(userId: string) {
 export async function ensureDebugCredentialUser(providerId: DebugProviderId) {
   const config = getDebugProviderConfig(providerId);
   const hashedPassword = await hashPassword(config.password);
+  const credentialIssuer = "local:credential";
   const userData: DebugCredentialUserData = {
     username: config.username,
     email: config.email,
@@ -100,8 +101,8 @@ export async function ensureDebugCredentialUser(providerId: DebugProviderId) {
 
   await prisma.account.upsert({
     where: {
-      provider_providerAccountId: {
-        provider: "credential",
+      issuer_providerAccountId: {
+        issuer: credentialIssuer,
         providerAccountId: user.id,
       },
     },
@@ -109,12 +110,14 @@ export async function ensureDebugCredentialUser(providerId: DebugProviderId) {
       userId: user.id,
       type: "credential",
       provider: "credential",
+      issuer: credentialIssuer,
       password: hashedPassword,
     },
     create: {
       userId: user.id,
       type: "credential",
       provider: "credential",
+      issuer: credentialIssuer,
       providerAccountId: user.id,
       password: hashedPassword,
     },

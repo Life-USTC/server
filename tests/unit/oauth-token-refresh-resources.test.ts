@@ -13,8 +13,8 @@ vi.mock("@/features/oauth/server/device-token-issuer.server", () => ({
   signResourceBoundOAuthAccessToken: signAccessTokenMock,
 }));
 
-vi.mock("@/lib/db/prisma", () => ({
-  prisma: {
+vi.mock("@/lib/db/auth-prisma", () => ({
+  authPrisma: {
     oAuthRefreshToken: {
       findUnique: findRefreshTokenMock,
       updateMany: updateRefreshTokenMock,

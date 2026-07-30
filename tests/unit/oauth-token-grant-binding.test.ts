@@ -25,8 +25,8 @@ vi.mock("jose", () => ({
   decodeJwt: decodeJwtMock,
 }));
 
-vi.mock("@/lib/db/prisma", () => ({
-  prisma: {
+vi.mock("@/lib/db/auth-prisma", () => ({
+  authPrisma: {
     oAuthAccessToken: {
       deleteMany: accessDeleteManyMock,
       findUnique: accessFindUniqueMock,

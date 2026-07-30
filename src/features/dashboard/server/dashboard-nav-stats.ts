@@ -1,6 +1,6 @@
 import { countUpcomingSubscribedExams } from "@/features/subscriptions/server/subscription-read-model";
 import { countIncompleteTodos } from "@/features/todos/server/todo-service";
-import { prisma as basePrisma } from "@/lib/db/prisma";
+import { withUserDbContext } from "@/lib/db/prisma";
 import { shanghaiDayjs } from "@/lib/time/shanghai-dayjs";
 import { getDashboardCalendarItemsCount } from "./dashboard-calendar-count";
 import {
@@ -59,26 +59,30 @@ export async function getDashboardNavStats(
     calendarItemsCount,
   ] = await Promise.all([
     pendingTodosCountPromise,
-    basePrisma.homework.count({
-      where: {
-        deletedAt: null,
-        sectionId: { in: scopedSectionIds },
-        homeworkCompletions: { none: { userId: user.id } },
-      },
-    }),
-    basePrisma.homework.findFirst({
-      where: {
-        deletedAt: null,
-        sectionId: { in: scopedSectionIds },
-        submissionDueAt: {
-          gte: todayStart.toDate(),
-          lt: tomorrowStart.toDate(),
+    withUserDbContext(user.id, (tx) =>
+      tx.homework.count({
+        where: {
+          deletedAt: null,
+          sectionId: { in: scopedSectionIds },
+          homeworkCompletions: { none: { userId: user.id } },
         },
-        homeworkCompletions: { none: { userId: user.id } },
-      },
-      select: { id: true },
-      orderBy: [{ submissionDueAt: "asc" }, { createdAt: "desc" }],
-    }),
+      }),
+    ),
+    withUserDbContext(user.id, (tx) =>
+      tx.homework.findFirst({
+        where: {
+          deletedAt: null,
+          sectionId: { in: scopedSectionIds },
+          submissionDueAt: {
+            gte: todayStart.toDate(),
+            lt: tomorrowStart.toDate(),
+          },
+          homeworkCompletions: { none: { userId: user.id } },
+        },
+        select: { id: true },
+        orderBy: [{ submissionDueAt: "asc" }, { createdAt: "desc" }],
+      }),
+    ),
     countUpcomingSubscribedExams({
       atTime: referenceNow.toDate(),
       sectionIds: scopedSectionIds,

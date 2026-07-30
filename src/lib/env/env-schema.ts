@@ -6,6 +6,7 @@ const optionalPositiveInt = z.number().int().positive().optional();
 
 export const commonEnvSchema = z.object({
   DATABASE_URL: optionalString,
+  AUTH_DATABASE_URL: optionalString,
   APP_PUBLIC_ORIGIN: optionalUrl,
   APP_CANONICAL_ORIGIN: optionalUrl,
   AUTH_SECRET: optionalString,
@@ -29,10 +30,18 @@ export const runtimeRequiredEnvSchema = z.object({
   AUTH_SECRET: z.string().min(1, "AUTH_SECRET is required"),
 });
 
+export const productionRuntimeRequiredEnvSchema =
+  runtimeRequiredEnvSchema.extend({
+    AUTH_DATABASE_URL: z.string().min(1, "AUTH_DATABASE_URL is required"),
+  });
+
 export const cloudflareRuntimeRequiredEnvSchema = z.object({
   HYPERDRIVE_CONNECTION_STRING: z
     .string()
     .min(1, "HYPERDRIVE.connectionString is required"),
+  AUTH_HYPERDRIVE_CONNECTION_STRING: z
+    .string()
+    .min(1, "HYPERDRIVE_AUTH.connectionString is required"),
   AUTH_SECRET: z.string().min(1, "AUTH_SECRET is required"),
 });
 

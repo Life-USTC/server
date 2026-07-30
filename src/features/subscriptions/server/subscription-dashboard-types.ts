@@ -15,6 +15,7 @@ export type HomeworkWithSection = {
   >]: DashboardHomeworkBase[Key];
 } & {
   description?: DashboardHomeworkBase["description"];
+  homeworkCompletions: Array<{ completedAt: Date }>;
   section:
     | (Omit<DashboardHomeworkSection, "course"> & {
         course:

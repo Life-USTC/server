@@ -36,6 +36,10 @@ concurrency:
 jobs:
   sync:
     name: Sync static snapshot to production database
+    if: >-
+      github.event_name == 'schedule' ||
+      (github.event_name == 'workflow_dispatch' &&
+      github.ref == 'refs/heads/main')
     runs-on: ubuntu-latest
     timeout-minutes: 150
     permissions:
@@ -57,7 +61,7 @@ jobs:
 
       - name: Generate Prisma client
         env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/life_ustc_generate
         run: bun run db:generate
 
       - name: Deploy Prisma migrations

@@ -1,7 +1,7 @@
 import type { GenericEndpointContext } from "@better-auth/core";
 import { setSessionCookie } from "better-auth/cookies";
 import { getOptionalTrimmedEnv } from "@/app-env";
-import { prisma } from "@/lib/db/prisma";
+import { authPrisma as prisma } from "@/lib/db/auth-prisma";
 import { logOAuthDebug } from "@/lib/log/oauth-debug";
 
 function jsonError(status: number, body: Record<string, string>) {

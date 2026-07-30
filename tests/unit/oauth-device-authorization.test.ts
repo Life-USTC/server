@@ -20,8 +20,8 @@ vi.mock("@/features/oauth/server/device-grant-policy.server", () => ({
   createDeviceAuthorizationGrant: createDeviceAuthorizationGrantMock,
 }));
 
-vi.mock("@/lib/db/prisma", () => ({
-  prisma: {
+vi.mock("@/lib/db/auth-prisma", () => ({
+  authPrisma: {
     oAuthClient: {
       findUnique: findUniqueMock,
     },

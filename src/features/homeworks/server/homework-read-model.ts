@@ -1,11 +1,11 @@
 import type { Prisma } from "@/generated/prisma/client";
-import { getPrisma } from "@/lib/db/prisma";
+import { getPrisma, withUserDbContext } from "@/lib/db/prisma";
 
 const homeworkItemUserSelect = {
   select: { id: true, name: true, username: true, image: true },
 } as const;
 
-export function homeworkItemIncludeForViewer(viewerUserId?: string | null) {
+export function homeworkItemInclude() {
   return {
     section: {
       include: {
@@ -22,15 +22,45 @@ export function homeworkItemIncludeForViewer(viewerUserId?: string | null) {
         comments: { where: { status: { not: "deleted" } } },
       },
     },
-    ...(viewerUserId
-      ? {
-          homeworkCompletions: {
-            where: { userId: viewerUserId },
-            select: { completedAt: true },
-          },
-        }
-      : {}),
   } satisfies Prisma.HomeworkInclude;
+}
+
+export async function withHomeworkCompletionsForViewer<
+  T extends { id: string },
+>(
+  homeworks: T[],
+  viewerUserId?: string | null,
+): Promise<Array<T & { homeworkCompletions: Array<{ completedAt: Date }> }>> {
+  if (!viewerUserId || homeworks.length === 0) {
+    return homeworks.map((homework) => ({
+      ...homework,
+      homeworkCompletions: [],
+    }));
+  }
+
+  const completions = await withUserDbContext(viewerUserId, (tx) =>
+    tx.homeworkCompletion.findMany({
+      where: {
+        userId: viewerUserId,
+        homeworkId: { in: homeworks.map((homework) => homework.id) },
+      },
+      select: { homeworkId: true, completedAt: true },
+    }),
+  );
+  const completionByHomeworkId = new Map(
+    completions.map(({ homeworkId, completedAt }) => [
+      homeworkId,
+      { completedAt },
+    ]),
+  );
+
+  return homeworks.map((homework) => {
+    const completion = completionByHomeworkId.get(homework.id);
+    return {
+      ...homework,
+      homeworkCompletions: completion ? [completion] : [],
+    };
+  });
 }
 
 export function homeworkItemResponse<
@@ -54,9 +84,15 @@ export async function getHomeworkItemById(input: {
 }) {
   const homework = await getPrisma(input.locale).homework.findUnique({
     where: { id: input.homeworkId },
-    include: homeworkItemIncludeForViewer(input.userId),
+    include: homeworkItemInclude(),
   });
-  return homework ? homeworkItemResponse(homework) : null;
+  if (!homework) return null;
+
+  const [homeworkWithCompletion] = await withHomeworkCompletionsForViewer(
+    [homework],
+    input.userId,
+  );
+  return homeworkItemResponse(homeworkWithCompletion);
 }
 
 export async function requireHomeworkItemById(

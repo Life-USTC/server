@@ -20,6 +20,7 @@ const {
   txPendingDeleteManyMock,
   txPendingFindUniqueMock,
   txPendingUpdateManyMock,
+  txQueryRawMock,
   txUploadAggregateMock,
   txUploadCreateMock,
   txUploadFindUniqueMock,
@@ -27,7 +28,7 @@ const {
   uploadDeleteManyMock,
   uploadFindFirstMock,
   uploadFindUniqueMock,
-  uploadTransactionMock,
+  withUserDbContextMock,
 } = vi.hoisted(() => ({
   auditLogCreateMock: vi.fn(),
   deleteStorageObjectMock: vi.fn(),
@@ -42,6 +43,7 @@ const {
   txPendingDeleteManyMock: vi.fn(),
   txPendingFindUniqueMock: vi.fn(),
   txPendingUpdateManyMock: vi.fn(),
+  txQueryRawMock: vi.fn(),
   txUploadAggregateMock: vi.fn(),
   txUploadCreateMock: vi.fn(),
   txUploadFindUniqueMock: vi.fn(),
@@ -49,12 +51,11 @@ const {
   uploadDeleteManyMock: vi.fn(),
   uploadFindFirstMock: vi.fn(),
   uploadFindUniqueMock: vi.fn(),
-  uploadTransactionMock: vi.fn(),
+  withUserDbContextMock: vi.fn(),
 }));
 
 vi.mock("@/lib/db/prisma", () => ({
   prisma: {
-    $transaction: uploadTransactionMock,
     auditLog: {
       create: auditLogCreateMock,
     },
@@ -71,6 +72,7 @@ vi.mock("@/lib/db/prisma", () => ({
       findUnique: pendingFindUniqueMock,
     },
   },
+  withUserDbContext: withUserDbContextMock,
 }));
 
 vi.mock("@/lib/db/serializable-transaction", () => ({
@@ -111,6 +113,7 @@ const createdUpload = {
 };
 
 const txPrisma = {
+  $queryRaw: txQueryRawMock,
   upload: {
     aggregate: txUploadAggregateMock,
     create: txUploadCreateMock,
@@ -121,6 +124,22 @@ const txPrisma = {
     deleteMany: txPendingDeleteManyMock,
     findUnique: txPendingFindUniqueMock,
     updateMany: txPendingUpdateManyMock,
+  },
+};
+
+const ownerPrisma = {
+  auditLog: { create: auditLogCreateMock },
+  upload: {
+    aggregate: uploadAggregateMock,
+    deleteMany: uploadDeleteManyMock,
+    findFirst: uploadFindFirstMock,
+    findUnique: uploadFindUniqueMock,
+  },
+  uploadPending: {
+    aggregate: pendingAggregateMock,
+    deleteMany: pendingDeleteManyMock,
+    findMany: pendingFindManyMock,
+    findUnique: pendingFindUniqueMock,
   },
 };
 
@@ -157,8 +176,12 @@ describe("completeUploadSession", () => {
     txUploadCreateMock.mockResolvedValue(createdUpload);
     txPendingDeleteManyMock.mockResolvedValue({ count: 1 });
     txPendingUpdateManyMock.mockResolvedValue({ count: 1 });
+    txQueryRawMock.mockResolvedValue([{ set_config: USER_ID }]);
     runSerializableTransactionMock.mockImplementation(async (action) =>
       action(txPrisma),
+    );
+    withUserDbContextMock.mockImplementation((_userId, action) =>
+      action(ownerPrisma),
     );
     getViewerContextMock.mockResolvedValue({
       isAuthenticated: true,
@@ -413,16 +436,8 @@ describe("deleteOwnedUpload", () => {
     uploadDeleteManyMock.mockResolvedValue({ count: 1 });
     deleteStorageObjectMock.mockResolvedValue(undefined);
     auditLogCreateMock.mockResolvedValue({});
-    uploadTransactionMock.mockImplementation(async (action) =>
-      action({
-        auditLog: {
-          create: auditLogCreateMock,
-        },
-        upload: {
-          deleteMany: uploadDeleteManyMock,
-          findFirst: uploadFindFirstMock,
-        },
-      }),
+    withUserDbContextMock.mockImplementation((_userId, action) =>
+      action(ownerPrisma),
     );
   });
 

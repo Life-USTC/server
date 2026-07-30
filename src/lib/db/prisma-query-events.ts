@@ -1,6 +1,9 @@
 import { getOptionalTrimmedEnv } from "@/app-env";
 import { type Prisma, PrismaClient } from "@/generated/prisma/client";
-import { createPrismaAdapter } from "@/lib/db/prisma-adapter";
+import {
+  createPrismaAdapter,
+  type RuntimeDatabase,
+} from "@/lib/db/prisma-adapter";
 import {
   getPrismaQueryDebugMode,
   getPrismaSlowQueryThresholdMs,
@@ -38,14 +41,17 @@ export function logPrismaQuery(event: Prisma.QueryEvent) {
   });
 }
 
-export function createBasePrisma(connectionString?: string) {
-  const adapter = createPrismaAdapter(connectionString);
-  if (!shouldEnablePrismaQueryLogging()) {
-    return new PrismaClient({ adapter });
+export function createBasePrisma(
+  connectionString?: string,
+  database: RuntimeDatabase = "app",
+) {
+  const adapter = createPrismaAdapter(connectionString, database);
+  const options: Prisma.PrismaClientOptions = { adapter };
+  if (database === "auth") {
+    options.omit = { user: { calendarFeedToken: true } };
   }
-
-  return new PrismaClient({
-    adapter,
-    log: [{ emit: "event", level: "query" }],
-  });
+  if (shouldEnablePrismaQueryLogging()) {
+    options.log = [{ emit: "event", level: "query" }];
+  }
+  return new PrismaClient(options);
 }

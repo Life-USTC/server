@@ -1,7 +1,7 @@
 import type dayjs from "dayjs";
 import { selectCurrentSemesterFromList } from "@/features/catalog/lib/current-semester";
 import { countDueTodos } from "@/features/todos/server/todo-service";
-import { prisma as basePrisma } from "@/lib/db/prisma";
+import { prisma as basePrisma, withUserDbContext } from "@/lib/db/prisma";
 import { shanghaiDayjs } from "@/lib/time/shanghai-dayjs";
 import type { DashboardSubscribedSection } from "./dashboard-user-context";
 
@@ -68,18 +68,20 @@ export async function getDashboardCalendarItemsCount(
           ],
         },
       }),
-      basePrisma.homework.count({
-        where: {
-          deletedAt: null,
-          sectionId: { in: semesterSectionIds },
-          submissionDueAt: {
-            not: null,
-            gte: semesterStart.toDate(),
-            lte: semesterEnd.toDate(),
+      withUserDbContext(userId, (tx) =>
+        tx.homework.count({
+          where: {
+            deletedAt: null,
+            sectionId: { in: semesterSectionIds },
+            submissionDueAt: {
+              not: null,
+              gte: semesterStart.toDate(),
+              lte: semesterEnd.toDate(),
+            },
+            homeworkCompletions: { none: { userId } },
           },
-          homeworkCompletions: { none: { userId } },
-        },
-      }),
+        }),
+      ),
       countDueTodos({
         completed: false,
         dueAtFrom: semesterStart.toDate(),

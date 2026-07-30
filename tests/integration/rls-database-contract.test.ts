@@ -1,24 +1,34 @@
 import { afterAll, describe, expect, it } from "vitest";
 import { Prisma } from "@/generated/prisma/client";
 import { prisma } from "@/lib/db/prisma";
+import { createTestPrisma, disconnectTestPrisma } from "../shared/prisma";
+
+const adminPrisma = createTestPrisma(
+  process.env.FUNCTION_OWNER_DATABASE_URL ?? process.env.DATABASE_URL,
+);
 
 const protectedTables = [
   "BusUserPreference",
+  "CommentReaction",
   "DashboardLinkClick",
   "DashboardLinkPin",
+  "HomeworkCompletion",
   "Todo",
+  "Upload",
+  "UploadPending",
 ] as const;
 
 // This mirrors only the temporary CI role bootstrap. Issue #603 must replace
-// the account-deletion grants with separately owned production roles.
+// it with separately owned production roles.
 const expectedRuntimeTablePrivileges = [
-  "AuditLog:SELECT",
-  "AuditLog:UPDATE",
   "BusCampus:SELECT",
   "BusUserPreference:DELETE",
   "BusUserPreference:INSERT",
   "BusUserPreference:SELECT",
   "BusUserPreference:UPDATE",
+  "CommentReaction:DELETE",
+  "CommentReaction:INSERT",
+  "CommentReaction:SELECT",
   "DashboardLinkClick:DELETE",
   "DashboardLinkClick:INSERT",
   "DashboardLinkClick:SELECT",
@@ -27,45 +37,81 @@ const expectedRuntimeTablePrivileges = [
   "DashboardLinkPin:INSERT",
   "DashboardLinkPin:SELECT",
   "DashboardLinkPin:UPDATE",
+  "Homework:SELECT",
+  "HomeworkCompletion:DELETE",
+  "HomeworkCompletion:INSERT",
+  "HomeworkCompletion:SELECT",
+  "HomeworkCompletion:UPDATE",
   "Todo:DELETE",
   "Todo:INSERT",
   "Todo:SELECT",
   "Todo:UPDATE",
-  "User:DELETE",
+  "Upload:DELETE",
+  "Upload:INSERT",
+  "Upload:SELECT",
+  "Upload:UPDATE",
+  "UploadPending:DELETE",
+  "UploadPending:INSERT",
+  "UploadPending:SELECT",
+  "UploadPending:UPDATE",
   "User:SELECT",
-  "UserSuspension:SELECT",
-  "UserSuspension:UPDATE",
+] as const;
+
+const expectedRuntimeFunctionPrivileges = [
+  "public.comment_attachment_summaries(p_comment_ids text[]):EXECUTE",
+  "public.comment_reaction_summaries(comment_ids text[]):EXECUTE",
+  "public.find_downloadable_upload(p_upload_id text):EXECUTE",
+  "public.get_public_profile_homework_completions(p_user_id text, p_since timestamp without time zone):EXECUTE",
+  "public.get_public_profile_upload_stats(p_user_id text, p_since timestamp without time zone):EXECUTE",
 ] as const;
 
 describe.skipIf(process.env.RLS_TEST_ENABLED !== "true")(
   "PostgreSQL row security contract",
   () => {
     afterAll(async () => {
-      await prisma.$disconnect();
+      await Promise.all([
+        prisma.$disconnect(),
+        disconnectTestPrisma(adminPrisma),
+      ]);
     });
 
     it("uses an unprivileged runtime role that owns none of the protected tables", async () => {
       const [role] = await prisma.$queryRaw<
         {
           currentUser: string;
+          sessionUser: string;
+          canLogin: boolean;
+          canCreateDatabase: boolean;
+          canCreateRole: boolean;
           superuser: boolean;
           bypassRls: boolean;
           inheritsRoles: boolean;
+          replication: boolean;
         }[]
       >(Prisma.sql`
         SELECT
           current_user AS "currentUser",
+          session_user AS "sessionUser",
+          rolcanlogin AS "canLogin",
+          rolcreatedb AS "canCreateDatabase",
+          rolcreaterole AS "canCreateRole",
           rolsuper AS superuser,
           rolbypassrls AS "bypassRls",
-          rolinherit AS "inheritsRoles"
+          rolinherit AS "inheritsRoles",
+          rolreplication AS replication
         FROM pg_roles
         WHERE rolname = current_user
       `);
       expect(role).toEqual({
         currentUser: "life_ustc_runtime",
+        sessionUser: "life_ustc_runtime",
+        canLogin: true,
+        canCreateDatabase: false,
+        canCreateRole: false,
         superuser: false,
         bypassRls: false,
         inheritsRoles: false,
+        replication: false,
       });
 
       const tables = await prisma.$queryRaw<
@@ -97,7 +143,7 @@ describe.skipIf(process.env.RLS_TEST_ENABLED !== "true")(
       }
     });
 
-    it("keeps one PUBLIC owner policy with matching read and write checks per table", async () => {
+    it("keeps exactly one runtime-applicable owner policy per table", async () => {
       const policies = await prisma.$queryRaw<
         {
           tableName: string;
@@ -120,6 +166,7 @@ describe.skipIf(process.env.RLS_TEST_ENABLED !== "true")(
         FROM pg_policies
         WHERE schemaname = 'public'
           AND tablename IN (${Prisma.join(protectedTables)})
+          AND roles && ARRAY['public'::name, current_user::name]
         ORDER BY tablename, policyname
       `);
 
@@ -132,11 +179,58 @@ describe.skipIf(process.env.RLS_TEST_ENABLED !== "true")(
           command: "ALL",
         });
         expect(policy.usingExpression.replaceAll("::text", "")).toBe(
-          `("userId" = current_setting('app.user_id', true))`,
+          `("userId" = NULLIF(current_setting('app.user_id', true), ''))`,
         );
         expect(policy.checkExpression.replaceAll("::text", "")).toBe(
           policy.usingExpression.replaceAll("::text", ""),
         );
+      }
+    });
+
+    it("treats an empty transaction-local user context as missing", async () => {
+      const emptyOwnerTodoId = "rls-empty-owner-todo";
+      await adminPrisma.user.upsert({
+        where: { id: "" },
+        update: { email: "rls-empty-owner@example.invalid" },
+        create: {
+          id: "",
+          email: "rls-empty-owner@example.invalid",
+          name: "RLS empty owner probe",
+        },
+      });
+      await adminPrisma.todo.upsert({
+        where: { id: emptyOwnerTodoId },
+        update: { title: "RLS empty owner probe" },
+        create: {
+          id: emptyOwnerTodoId,
+          title: "RLS empty owner probe",
+          userId: "",
+        },
+      });
+
+      try {
+        const result = await prisma.$transaction(async (tx) => {
+          await tx.$queryRaw`
+            SELECT set_config('app.user_id', '', true)
+          `;
+          return {
+            row: await tx.todo.findUnique({
+              where: { id: emptyOwnerTodoId },
+              select: { id: true },
+            }),
+            update: await tx.todo.updateMany({
+              where: { id: emptyOwnerTodoId },
+              data: { completed: true },
+            }),
+          };
+        });
+
+        expect(result).toEqual({ row: null, update: { count: 0 } });
+      } finally {
+        await adminPrisma.todo.deleteMany({
+          where: { id: emptyOwnerTodoId },
+        });
+        await adminPrisma.user.deleteMany({ where: { id: "" } });
       }
     });
 
@@ -184,6 +278,30 @@ describe.skipIf(process.env.RLS_TEST_ENABLED !== "true")(
         ),
       ).toEqual(expectedRuntimeTablePrivileges);
 
+      const functionGrants = await prisma.$queryRaw<
+        { signature: string }[]
+      >(Prisma.sql`
+        SELECT format(
+          '%s.%s(%s):%s',
+          namespace.nspname,
+          procedure.proname,
+          pg_get_function_identity_arguments(procedure.oid),
+          privilege.privilege_type
+        ) AS signature
+        FROM pg_proc AS procedure
+        JOIN pg_namespace AS namespace
+          ON namespace.oid = procedure.pronamespace
+        JOIN LATERAL aclexplode(procedure.proacl) AS privilege
+          ON privilege.grantee = (
+            SELECT oid FROM pg_roles WHERE rolname = current_user
+          )
+        WHERE namespace.nspname = 'public'
+        ORDER BY signature
+      `);
+      expect(functionGrants.map(({ signature }) => signature)).toEqual(
+        expectedRuntimeFunctionPrivileges,
+      );
+
       const [schemaPrivileges] = await prisma.$queryRaw<
         { canCreate: boolean; canUse: boolean }[]
       >(Prisma.sql`
@@ -192,9 +310,67 @@ describe.skipIf(process.env.RLS_TEST_ENABLED !== "true")(
           has_schema_privilege(current_user, 'public', 'USAGE') AS "canUse"
       `);
       expect(schemaPrivileges).toEqual({ canCreate: false, canUse: true });
+
+      const [databasePrivileges] = await prisma.$queryRaw<
+        {
+          canConnect: boolean;
+          canCreate: boolean;
+          canCreateTemporaryTables: boolean;
+        }[]
+      >(Prisma.sql`
+        SELECT
+          has_database_privilege(
+            current_user,
+            current_database(),
+            'CONNECT'
+          ) AS "canConnect",
+          has_database_privilege(
+            current_user,
+            current_database(),
+            'CREATE'
+          ) AS "canCreate",
+          has_database_privilege(
+            current_user,
+            current_database(),
+            'TEMPORARY'
+          ) AS "canCreateTemporaryTables"
+      `);
+      expect(databasePrivileges).toEqual({
+        canConnect: true,
+        canCreate: false,
+        canCreateTemporaryTables: false,
+      });
+
+      const publicDatabasePrivileges = await prisma.$queryRaw<
+        { privilege: string }[]
+      >(Prisma.sql`
+        SELECT acl.privilege_type AS privilege
+        FROM pg_database
+        CROSS JOIN LATERAL aclexplode(
+          COALESCE(datacl, acldefault('d', datdba))
+        ) AS acl
+        WHERE datname = current_database()
+          AND acl.grantee = 0
+        ORDER BY acl.privilege_type
+      `);
+      expect(publicDatabasePrivileges).toEqual([]);
+
+      const publicSchemaPrivileges = await prisma.$queryRaw<
+        { privilege: string }[]
+      >(Prisma.sql`
+        SELECT acl.privilege_type AS privilege
+        FROM pg_namespace
+        CROSS JOIN LATERAL aclexplode(
+          COALESCE(nspacl, acldefault('n', nspowner))
+        ) AS acl
+        WHERE nspname = 'public'
+          AND acl.grantee = 0
+        ORDER BY acl.privilege_type
+      `);
+      expect(publicSchemaPrivileges).toEqual([]);
     });
 
-    it("cannot inherit or SET ROLE through memberships or future default grants", async () => {
+    it("has no role memberships in either direction", async () => {
       const memberships = await prisma.$queryRaw<
         { grantedRole: string }[]
       >(Prisma.sql`
@@ -202,28 +378,66 @@ describe.skipIf(process.env.RLS_TEST_ENABLED !== "true")(
         FROM pg_auth_members
         JOIN pg_roles member ON member.oid = pg_auth_members.member
         JOIN pg_roles parent ON parent.oid = pg_auth_members.roleid
-        WHERE member.rolname = current_user
+        WHERE member.rolname = current_user OR parent.rolname = current_user
         ORDER BY parent.rolname
       `);
       expect(memberships).toEqual([]);
+    });
 
-      const defaultPrivileges = await prisma.$queryRaw<
-        { owner: string; objectType: string; privilege: string }[]
+    it("cannot access authentication-owned tables", async () => {
+      const authTables = [
+        "Account",
+        "DeviceCode",
+        "Jwks",
+        "OAuthAccessToken",
+        "OAuthClient",
+        "OAuthConsent",
+        "OAuthRefreshToken",
+        "Passkey",
+        "Session",
+        "VerificationToken",
+      ];
+      const privileges = await prisma.$queryRaw<
+        Array<{
+          canDelete: boolean;
+          canInsert: boolean;
+          canSelect: boolean;
+          canUpdate: boolean;
+        }>
       >(Prisma.sql`
         SELECT
-          owner.rolname AS owner,
-          defaults.defaclobjtype::text AS "objectType",
-          acl.privilege_type AS privilege
-        FROM pg_default_acl defaults
-        JOIN pg_roles owner ON owner.oid = defaults.defaclrole
-        CROSS JOIN LATERAL aclexplode(defaults.defaclacl) acl
-        WHERE acl.grantee IN (
-          0,
-          (SELECT oid FROM pg_roles WHERE rolname = current_user)
-        )
-        ORDER BY owner.rolname, defaults.defaclobjtype, acl.privilege_type
+          pg_catalog.has_table_privilege(
+            current_user,
+            pg_catalog.format('public.%I', table_name),
+            'SELECT'
+          ) AS "canSelect",
+          pg_catalog.has_table_privilege(
+            current_user,
+            pg_catalog.format('public.%I', table_name),
+            'INSERT'
+          ) AS "canInsert",
+          pg_catalog.has_table_privilege(
+            current_user,
+            pg_catalog.format('public.%I', table_name),
+            'UPDATE'
+          ) AS "canUpdate",
+          pg_catalog.has_table_privilege(
+            current_user,
+            pg_catalog.format('public.%I', table_name),
+            'DELETE'
+          ) AS "canDelete"
+        FROM unnest(ARRAY[${Prisma.join(authTables)}]::text[]) AS table_name
       `);
-      expect(defaultPrivileges).toEqual([]);
+
+      expect(privileges).toHaveLength(authTables.length);
+      for (const privilege of privileges) {
+        expect(privilege).toEqual({
+          canDelete: false,
+          canInsert: false,
+          canSelect: false,
+          canUpdate: false,
+        });
+      }
     });
   },
 );

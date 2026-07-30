@@ -7,9 +7,9 @@ import {
   applyAuthResponseCookies,
   linkAccountFromSvelteAction,
 } from "@/lib/auth/svelte-auth-actions";
-import { prisma } from "@/lib/db/prisma";
 import { logServerActionError } from "@/lib/log/app-logger";
 import { deleteOwnAccount } from "./account-deletion-service";
+import { unlinkSettingsAccount } from "./settings-account-unlink";
 
 export async function unlinkSettingsAccountAction({
   locale,
@@ -20,29 +20,19 @@ export async function unlinkSettingsAccountAction({
   const user = await requireSettingsUser(request, url);
   const form = await request.formData();
   const provider = String(form.get("provider") ?? "");
-  const accounts = await prisma.account.findMany({
-    where: { userId: user.id },
-    select: { id: true, provider: true },
-  });
-  if (accounts.length <= 1) {
+  const result = await unlinkSettingsAccount(user.id, provider);
+  if (result === "last_account") {
     return fail(400, {
       kind: "accounts",
       message: copy.profile.cannotDisconnectLast,
     });
   }
-  const account = accounts.find((item) => item.provider === provider);
-  if (!account)
+  if (result === "not_linked") {
     return fail(404, {
       kind: "accounts",
       message: copy.profile.accountNotLinked,
     });
-
-  await prisma.$transaction([
-    prisma.account.delete({ where: { id: account.id } }),
-    prisma.verifiedEmail.deleteMany({
-      where: { userId: user.id, provider },
-    }),
-  ]);
+  }
   throw redirect(303, "/account/settings/accounts?message=AccountDisconnected");
 }
 

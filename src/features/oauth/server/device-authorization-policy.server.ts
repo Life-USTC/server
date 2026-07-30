@@ -1,4 +1,4 @@
-import { prisma as defaultPrisma } from "@/lib/db/prisma";
+import { authPrisma as defaultPrisma } from "@/lib/db/auth-prisma";
 import { getOAuthProviderValidAudiences } from "@/lib/mcp/urls";
 import {
   DEFAULT_OAUTH_CLIENT_SCOPES,

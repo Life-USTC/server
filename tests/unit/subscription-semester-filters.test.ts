@@ -21,6 +21,14 @@ vi.mock("@/lib/db/prisma", () => ({
   prisma: {
     user: { findUnique: userFindUniqueMock },
   },
+  withUserDbContext: vi.fn(
+    async (
+      _userId: string,
+      action: (tx: {
+        homework: { findMany: typeof homeworkFindManyMock };
+      }) => Promise<unknown>,
+    ) => action({ homework: { findMany: homeworkFindManyMock } }),
+  ),
 }));
 
 describe("subscription semester filters", () => {

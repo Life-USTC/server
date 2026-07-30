@@ -6,11 +6,13 @@ const {
   logServerActionErrorMock,
   requireSettingsUserMock,
   signInFromSvelteActionMock,
+  unlinkSettingsAccountMock,
 } = vi.hoisted(() => ({
   linkAccountFromSvelteActionMock: vi.fn(),
   logServerActionErrorMock: vi.fn(),
   requireSettingsUserMock: vi.fn(),
   signInFromSvelteActionMock: vi.fn(),
+  unlinkSettingsAccountMock: vi.fn(),
 }));
 
 vi.mock("@/lib/auth/svelte-auth-actions", () => ({
@@ -31,25 +33,19 @@ vi.mock("@/lib/auth/core", () => ({
   authApi: { signOut: vi.fn() },
 }));
 
-vi.mock("@/lib/db/prisma", () => ({
-  prisma: {
-    $transaction: vi.fn(),
-    account: {
-      delete: vi.fn(),
-      findMany: vi.fn(),
-    },
-    verifiedEmail: {
-      deleteMany: vi.fn(),
-    },
-  },
-}));
-
 vi.mock("@/features/settings/server/account-deletion-service", () => ({
   deleteOwnAccount: vi.fn(),
 }));
 
+vi.mock("@/features/settings/server/settings-account-unlink", () => ({
+  unlinkSettingsAccount: unlinkSettingsAccountMock,
+}));
+
 import { signInPageDefaultAction } from "@/features/auth/server/signin-page-server";
-import { linkSettingsAccountAction } from "@/features/settings/server/settings-account-actions";
+import {
+  linkSettingsAccountAction,
+  unlinkSettingsAccountAction,
+} from "@/features/settings/server/settings-account-actions";
 
 const cookies = {} as Cookies;
 
@@ -59,6 +55,7 @@ describe("auth page action logging", () => {
     logServerActionErrorMock.mockReset();
     requireSettingsUserMock.mockReset();
     signInFromSvelteActionMock.mockReset();
+    unlinkSettingsAccountMock.mockReset();
     requireSettingsUserMock.mockResolvedValue({ id: "user-1" });
   });
 
@@ -120,5 +117,50 @@ describe("auth page action logging", () => {
         route: "/settings/accounts",
       },
     );
+  });
+
+  it.each([
+    ["last_account", 400],
+    ["not_linked", 404],
+  ] as const)("maps unlink status %s to %i", async (status, expectedStatus) => {
+    unlinkSettingsAccountMock.mockResolvedValue(status);
+    const request = new Request(
+      "https://life.example/account/settings/accounts",
+      {
+        body: new URLSearchParams({ provider: "github" }),
+        method: "POST",
+      },
+    );
+
+    const result = await unlinkSettingsAccountAction({
+      locale: "zh-cn",
+      request,
+      url: new URL(request.url),
+    });
+
+    expect(result.status).toBe(expectedStatus);
+    expect(unlinkSettingsAccountMock).toHaveBeenCalledWith("user-1", "github");
+  });
+
+  it("redirects after unlinking the account", async () => {
+    unlinkSettingsAccountMock.mockResolvedValue("unlinked");
+    const request = new Request(
+      "https://life.example/account/settings/accounts",
+      {
+        body: new URLSearchParams({ provider: "github" }),
+        method: "POST",
+      },
+    );
+
+    await expect(
+      unlinkSettingsAccountAction({
+        locale: "zh-cn",
+        request,
+        url: new URL(request.url),
+      }),
+    ).rejects.toMatchObject({
+      location: "/account/settings/accounts?message=AccountDisconnected",
+      status: 303,
+    });
   });
 });

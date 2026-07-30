@@ -5,8 +5,8 @@ const verifyOAuthAccessTokenMock = vi.fn();
 const getJwksMock = vi.fn();
 const hasActiveOAuthUserGrantMock = vi.fn();
 
-vi.mock("@/lib/db/prisma", () => ({
-  prisma: {
+vi.mock("@/lib/db/auth-prisma", () => ({
+  authPrisma: {
     oAuthAccessToken: {
       findUnique: vi.fn(),
     },

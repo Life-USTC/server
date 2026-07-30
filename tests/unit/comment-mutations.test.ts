@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const {
+  accountFindManyMock,
   auditLogCreateMock,
   buildCommentNodesMock,
   getViewerContextMock,
@@ -9,7 +10,9 @@ const {
   resolveCommentMutationTargetReferenceMock,
   resolveCommentTargetMock,
   transactionMock,
+  withUserDbContextMock,
 } = vi.hoisted(() => ({
+  accountFindManyMock: vi.fn(),
   auditLogCreateMock: vi.fn(),
   buildCommentNodesMock: vi.fn(),
   getViewerContextMock: vi.fn(),
@@ -46,6 +49,18 @@ const {
       createMany: vi.fn(),
       deleteMany: vi.fn(),
     },
+    upload: {
+      findMany: vi.fn(),
+    },
+  },
+  withUserDbContextMock: vi.fn(),
+}));
+
+vi.mock("@/lib/db/auth-prisma", () => ({
+  authPrisma: {
+    account: {
+      findMany: accountFindManyMock,
+    },
   },
 }));
 
@@ -55,6 +70,7 @@ vi.mock("@/lib/auth/viewer-context", () => ({
 
 vi.mock("@/lib/db/prisma", () => ({
   prisma: prismaMock,
+  withUserDbContext: withUserDbContextMock,
 }));
 
 vi.mock("@/lib/db/prisma-errors", () => ({
@@ -98,11 +114,16 @@ describe("评论变更写入保护", () => {
   beforeEach(() => {
     vi.resetModules();
     vi.clearAllMocks();
+    accountFindManyMock.mockResolvedValue([]);
     getViewerContextMock.mockResolvedValue(viewer);
     isPrismaUniqueConstraintErrorMock.mockReturnValue(false);
     prismaMock.$transaction.mockImplementation((callback) =>
       callback(transactionMock),
     );
+    withUserDbContextMock.mockImplementation((_userId, callback) =>
+      callback(transactionMock),
+    );
+    transactionMock.$queryRaw.mockResolvedValue([]);
     transactionMock.auditLog.create = auditLogCreateMock;
     auditLogCreateMock.mockResolvedValue({});
   });
@@ -179,7 +200,14 @@ describe("评论变更写入保护", () => {
   it("通过共享更新变更事务写入编辑审计", async () => {
     prismaMock.comment.findUnique
       .mockResolvedValueOnce(activeComment())
-      .mockResolvedValueOnce({ id: "comment-1", body: "edited" });
+      .mockResolvedValueOnce({
+        id: "comment-1",
+        body: "edited",
+        user: { id: "user-1" },
+      });
+    accountFindManyMock.mockResolvedValue([
+      { provider: "oidc", userId: "user-1" },
+    ]);
     transactionMock.comment.updateMany.mockResolvedValue({ count: 1 });
     buildCommentNodesMock.mockReturnValue({
       roots: [{ id: "comment-1", body: "edited" }],
@@ -201,6 +229,31 @@ describe("评论变更写入保护", () => {
       ok: true,
       comment: { id: "comment-1", body: "edited" },
     });
+    expect(accountFindManyMock).toHaveBeenCalledWith({
+      where: {
+        provider: "oidc",
+        userId: { in: ["user-1"] },
+      },
+      select: {
+        provider: true,
+        userId: true,
+      },
+    });
+    expect(buildCommentNodesMock).toHaveBeenCalledWith(
+      [
+        {
+          attachments: [],
+          id: "comment-1",
+          body: "edited",
+          reactionSummaries: [],
+          user: {
+            id: "user-1",
+            accounts: [{ provider: "oidc" }],
+          },
+        },
+      ],
+      viewer,
+    );
     expect(auditLogCreateMock).toHaveBeenCalledWith({
       data: expect.objectContaining({
         action: "comment_edit",
@@ -219,7 +272,7 @@ describe("评论变更写入保护", () => {
     prismaMock.comment.findUnique
       .mockResolvedValueOnce(activeComment())
       .mockResolvedValueOnce({ ...activeComment(), status: "deleted" });
-    prismaMock.upload.findMany.mockResolvedValue([
+    transactionMock.upload.findMany.mockResolvedValue([
       {
         id: "upload-1",
         commentAttachments: [{ commentId: "comment-1" }],
@@ -334,6 +387,11 @@ describe("评论变更写入保护", () => {
     expect(
       transactionMock.commentReaction.createMany.mock.invocationCallOrder[0],
     ).toBeLessThan(auditLogCreateMock.mock.invocationCallOrder[0]);
+    expect(withUserDbContextMock).toHaveBeenCalledWith(
+      "user-1",
+      expect.any(Function),
+    );
+    expect(prismaMock.$transaction).not.toHaveBeenCalled();
   });
 
   it("通过共享反应变更事务写入反应移除审计", async () => {
@@ -363,5 +421,10 @@ describe("评论变更写入保护", () => {
     expect(
       transactionMock.commentReaction.deleteMany.mock.invocationCallOrder[0],
     ).toBeLessThan(auditLogCreateMock.mock.invocationCallOrder[0]);
+    expect(withUserDbContextMock).toHaveBeenCalledWith(
+      "user-1",
+      expect.any(Function),
+    );
+    expect(prismaMock.$transaction).not.toHaveBeenCalled();
   });
 });

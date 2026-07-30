@@ -85,6 +85,7 @@ const runtimeEnv = {
   APP_PUBLIC_ORIGIN: "http://localhost:3000",
   DATABASE_URL: databaseUrl,
   HYPERDRIVE: { connectionString: databaseUrl },
+  HYPERDRIVE_AUTH: { connectionString: databaseUrl },
   NODE_ENV: "test",
   R2_UPLOADS: bucket,
   USER_BATCH_WRITE_RATE_LIMITER: allowMutation,

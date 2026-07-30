@@ -12,7 +12,7 @@ import {
   listTodoSummary,
 } from "@/features/todos/server/todo-service";
 import { type AppLocale, DEFAULT_LOCALE } from "@/i18n/config";
-import { prisma } from "@/lib/db/prisma";
+import { prisma, withUserDbContext } from "@/lib/db/prisma";
 import { parseDateInput } from "@/lib/time/parse-date-input";
 import { shanghaiDayjs } from "@/lib/time/shanghai-dayjs";
 import { formatShanghaiDate } from "@/lib/time/shanghai-format";
@@ -91,13 +91,15 @@ export async function getCompactOverview(
   ] =
     sectionIds.length > 0
       ? await Promise.all([
-          prisma.homework.count({
-            where: {
-              deletedAt: null,
-              homeworkCompletions: { none: { userId } },
-              sectionId: { in: sectionIds },
-            },
-          }),
+          withUserDbContext(userId, (tx) =>
+            tx.homework.count({
+              where: {
+                deletedAt: null,
+                homeworkCompletions: { none: { userId } },
+                sectionId: { in: sectionIds },
+              },
+            }),
+          ),
           prisma.schedule.count({
             where: {
               date: { gte: todayStart, lt: tomorrowStart },
@@ -108,14 +110,16 @@ export async function getCompactOverview(
             atTime: now,
             sectionIds,
           }),
-          prisma.homework.count({
-            where: {
-              deletedAt: null,
-              homeworkCompletions: { none: { userId } },
-              sectionId: { in: sectionIds },
-              submissionDueAt: { gte: now, lte: homeworkWindowEnd },
-            },
-          }),
+          withUserDbContext(userId, (tx) =>
+            tx.homework.count({
+              where: {
+                deletedAt: null,
+                homeworkCompletions: { none: { userId } },
+                sectionId: { in: sectionIds },
+                submissionDueAt: { gte: now, lte: homeworkWindowEnd },
+              },
+            }),
+          ),
           listSubscribedSchedules(userId, {
             dateFrom: todayStart,
             dateTo: todayStart,

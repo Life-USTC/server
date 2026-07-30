@@ -1,17 +1,10 @@
 import { sectionCatalogInclude } from "@/features/catalog/server/academic-query-includes";
 import type { Prisma } from "@/generated/prisma/client";
 
-export function buildSubscribedHomeworkInclude(
-  userId: string,
-  includeEditors: boolean,
-) {
+export function buildSubscribedHomeworkInclude(includeEditors: boolean) {
   return {
     section: { include: sectionCatalogInclude },
     description: true,
-    homeworkCompletions: {
-      where: { userId },
-      select: { completedAt: true },
-    },
     ...(includeEditors
       ? {
           createdBy: {
@@ -28,7 +21,7 @@ export function buildSubscribedHomeworkInclude(
   } satisfies Prisma.HomeworkInclude;
 }
 
-export function buildDashboardHomeworkSelect(userId: string) {
+export function buildDashboardHomeworkSelect() {
   return {
     id: true,
     title: true,
@@ -36,7 +29,6 @@ export function buildDashboardHomeworkSelect(userId: string) {
     submissionStartAt: true,
     submissionDueAt: true,
     description: { select: { content: true } },
-    homeworkCompletions: { where: { userId }, select: { completedAt: true } },
     section: { select: { jwId: true, course: true } },
   } satisfies Prisma.HomeworkSelect;
 }

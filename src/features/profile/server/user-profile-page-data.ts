@@ -16,7 +16,6 @@ async function getUserProfileData(where: Prisma.UserWhereUniqueInput) {
       _count: {
         select: {
           comments: true,
-          uploads: true,
           homeworksCreated: true,
           subscribedSections: true,
         },
@@ -26,13 +25,14 @@ async function getUserProfileData(where: Prisma.UserWhereUniqueInput) {
 
   if (!user) return null;
 
-  const { totalContributions, weeks } = await buildUserProfileContributions(
-    prisma,
-    user.id,
-  );
+  const { totalContributions, totalUploads, weeks } =
+    await buildUserProfileContributions(prisma, user.id);
 
   return toLoadData({
-    user,
+    user: {
+      ...user,
+      _count: { ...user._count, uploads: totalUploads },
+    },
     sectionCount: user._count.subscribedSections,
     weeks,
     totalContributions,

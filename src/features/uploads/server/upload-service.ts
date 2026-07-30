@@ -1,13 +1,13 @@
-import { canViewerAccessCommentAttachment } from "@/features/comments/server/comment-attachment-access";
 import { uploadConfig } from "@/features/uploads/lib/upload-config";
 import { normalizeContentType } from "@/features/uploads/lib/upload-utils";
 import {
   runUploadSerializableTransaction,
   UploadError,
 } from "@/features/uploads/server/upload-quota";
+import { Prisma } from "@/generated/prisma/client";
 import { writeAuditLog } from "@/lib/audit/write-audit-log";
 import { getViewerContext } from "@/lib/auth/viewer-context";
-import { prisma } from "@/lib/db/prisma";
+import { withUserDbContext } from "@/lib/db/prisma";
 import { logAppEvent } from "@/lib/log/app-logger";
 import {
   deleteStorageObject,
@@ -93,6 +93,13 @@ type UploadCompletionResult =
   | { ok: true; upload: PublicUpload; usedBytes: number }
   | { ok: false; code: UploadCompletionFailureCode };
 
+type DownloadableUpload = {
+  contentType: string | null;
+  filename: string;
+  key: string;
+  userId: string;
+};
+
 export function publicUploadPayload(upload: PublicUpload) {
   return {
     id: upload.id,
@@ -113,34 +120,40 @@ export async function createUploadSession(input: {
   userId: string;
 }) {
   const now = new Date();
-  await deleteExpiredPendingUploads(prisma, input.userId, now);
+  await withUserDbContext(input.userId, (tx) =>
+    deleteExpiredPendingUploads(tx, input.userId, now),
+  );
 
   const key = buildUploadKey(input.userId);
   const expiresAt = new Date(Date.now() + MAX_UPLOAD_EXPIRES_SECONDS * 1000);
 
-  const reservation = await runUploadSerializableTransaction(async (tx) => {
-    const usedBytes = await getUploadUsedBytes({
-      prisma: tx,
-      userId: input.userId,
-      now,
-    });
-    if (usedBytes + input.upload.size > uploadConfig.totalQuotaBytes) {
-      throw new UploadError("Quota exceeded");
-    }
-
-    await tx.uploadPending.create({
-      data: {
-        contentType: input.upload.contentType,
-        expiresAt,
-        filename: input.upload.filename,
-        key,
-        size: input.upload.size,
+  const reservation = await runOwnedUploadSerializableTransaction(
+    input.userId,
+    async (tx) => {
+      const usedBytes = await getUploadUsedBytes({
+        prisma: tx,
         userId: input.userId,
-      },
-    });
+        now,
+      });
+      if (usedBytes + input.upload.size > uploadConfig.totalQuotaBytes) {
+        throw new UploadError("Quota exceeded");
+      }
 
-    return { usedBytes };
-  }, "Failed to reserve upload quota");
+      await tx.uploadPending.create({
+        data: {
+          contentType: input.upload.contentType,
+          expiresAt,
+          filename: input.upload.filename,
+          key,
+          size: input.upload.size,
+          userId: input.userId,
+        },
+      });
+
+      return { usedBytes };
+    },
+    "Failed to reserve upload quota",
+  );
 
   const uploadUrl = new URL("/api/workspace/uploads/object", input.origin);
   uploadUrl.searchParams.set("key", key);
@@ -173,26 +186,30 @@ export async function completeUploadSession(
   input: UploadCompleteInput,
 ) {
   const now = new Date();
-  await deleteExpiredPendingUploads(prisma, userId, now, input.key);
+  await withUserDbContext(userId, (tx) =>
+    deleteExpiredPendingUploads(tx, userId, now, input.key),
+  );
   if (!uploadKeyBelongsToUser(input.key, userId)) {
     throw new UploadError("Upload session expired");
   }
 
-  const existing = await findExistingUploadUsagePayload(input.key, userId, now);
+  const existing = await withUserDbContext(userId, (tx) =>
+    findExistingUploadUsagePayload(tx, input.key, userId, now),
+  );
   if (existing) return existing;
 
   try {
-    await assertActivePendingUpload({
-      key: input.key,
-      now,
-      userId,
-    });
+    await withUserDbContext(userId, (tx) =>
+      assertActivePendingUpload(tx, {
+        key: input.key,
+        now,
+        userId,
+      }),
+    );
   } catch (error) {
     if (error instanceof UploadError) {
-      const completed = await findExistingUploadUsagePayload(
-        input.key,
-        userId,
-        new Date(),
+      const completed = await withUserDbContext(userId, (tx) =>
+        findExistingUploadUsagePayload(tx, input.key, userId, new Date()),
       );
       if (completed) return completed;
     }
@@ -201,89 +218,93 @@ export async function completeUploadSession(
 
   const uploadedObject = await validateUploadedObject(input);
 
-  const reservation = await runUploadSerializableTransaction(async (tx) => {
-    const completed = await tx.upload.findUnique({
-      where: { key: input.key },
-    });
-    if (completed) {
-      if (completed.userId !== userId) {
+  const reservation = await runOwnedUploadSerializableTransaction(
+    userId,
+    async (tx) => {
+      const completed = await tx.upload.findUnique({
+        where: { key: input.key },
+      });
+      if (completed) {
+        if (completed.userId !== userId) {
+          return {
+            ok: false,
+            code: "Upload session expired",
+          } satisfies UploadCompletionResult;
+        }
+        await tx.uploadPending.deleteMany({
+          where: { key: input.key, userId },
+        });
+        const usedBytes = await getUploadUsedBytes({
+          prisma: tx,
+          userId,
+          now: new Date(),
+        });
+        return {
+          ok: true,
+          upload: completed,
+          usedBytes: usedBytes || completed.size,
+        } satisfies UploadCompletionResult;
+      }
+
+      const pending = await tx.uploadPending.findUnique({
+        where: { key: input.key },
+      });
+      if (!pending || pending.userId !== userId) {
         return {
           ok: false,
           code: "Upload session expired",
         } satisfies UploadCompletionResult;
       }
-      await tx.uploadPending.deleteMany({
-        where: { key: input.key, userId },
-      });
+
+      const transactionNow = new Date();
+      if (pending.expiresAt < transactionNow) {
+        return {
+          ok: false,
+          code: "Upload session expired",
+        } satisfies UploadCompletionResult;
+      }
+
       const usedBytes = await getUploadUsedBytes({
+        excludePendingKey: input.key,
         prisma: tx,
         userId,
-        now: new Date(),
+        now: transactionNow,
       });
+      if (usedBytes + uploadedObject.size > uploadConfig.totalQuotaBytes) {
+        await tx.uploadPending.updateMany({
+          where: {
+            key: input.key,
+            userId,
+            expiresAt: { gte: transactionNow },
+          },
+          data: { expiresAt: new Date(transactionNow.getTime() - 1) },
+        });
+        return {
+          ok: false,
+          code: "Quota exceeded",
+        } satisfies UploadCompletionResult;
+      }
+
+      const upload = await tx.upload.create({
+        data: {
+          contentType: uploadedObject.contentType,
+          filename: input.filename,
+          key: input.key,
+          size: uploadedObject.size,
+          userId,
+        },
+      });
+
+      await tx.uploadPending.deleteMany({ where: { key: input.key, userId } });
+
       return {
         ok: true,
-        upload: completed,
-        usedBytes: usedBytes || completed.size,
+        upload,
+        usedBytes: usedBytes + uploadedObject.size,
       } satisfies UploadCompletionResult;
-    }
-
-    const pending = await tx.uploadPending.findUnique({
-      where: { key: input.key },
-    });
-    if (!pending || pending.userId !== userId) {
-      return {
-        ok: false,
-        code: "Upload session expired",
-      } satisfies UploadCompletionResult;
-    }
-
-    const transactionNow = new Date();
-    if (pending.expiresAt < transactionNow) {
-      return {
-        ok: false,
-        code: "Upload session expired",
-      } satisfies UploadCompletionResult;
-    }
-
-    const usedBytes = await getUploadUsedBytes({
-      excludePendingKey: input.key,
-      prisma: tx,
-      userId,
-      now: transactionNow,
-    });
-    if (usedBytes + uploadedObject.size > uploadConfig.totalQuotaBytes) {
-      await tx.uploadPending.updateMany({
-        where: {
-          key: input.key,
-          userId,
-          expiresAt: { gte: transactionNow },
-        },
-        data: { expiresAt: new Date(transactionNow.getTime() - 1) },
-      });
-      return {
-        ok: false,
-        code: "Quota exceeded",
-      } satisfies UploadCompletionResult;
-    }
-
-    const upload = await tx.upload.create({
-      data: {
-        contentType: uploadedObject.contentType,
-        filename: input.filename,
-        key: input.key,
-        size: uploadedObject.size,
-        userId,
-      },
-    });
-
-    await tx.uploadPending.deleteMany({ where: { key: input.key, userId } });
-
-    return {
-      ok: true,
-      upload,
-      usedBytes: usedBytes + uploadedObject.size,
-    } satisfies UploadCompletionResult;
-  }, "Failed to finalize upload quota");
+    },
+    "Failed to finalize upload quota",
+  );
 
   if (!reservation.ok) {
     throw new UploadError(reservation.code);
@@ -313,35 +334,36 @@ export async function listUploads(
   pagination: { pageSize: number; skip: number },
 ) {
   const now = new Date();
+  return withUserDbContext(userId, async (tx) => {
+    const [uploads, total, usage, pendingUsage] = await Promise.all([
+      tx.upload.findMany({
+        where: { userId },
+        orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+        skip: pagination.skip,
+        take: pagination.pageSize,
+        select: managedUploadSelect,
+      }),
+      tx.upload.count({ where: { userId } }),
+      tx.upload.aggregate({
+        where: { userId },
+        _sum: { size: true },
+      }),
+      tx.uploadPending.aggregate({
+        where: { userId, expiresAt: { gt: now } },
+        _sum: { size: true },
+      }),
+    ]);
 
-  const [uploads, total, usage, pendingUsage] = await Promise.all([
-    prisma.upload.findMany({
-      where: { userId },
-      orderBy: [{ createdAt: "desc" }, { id: "desc" }],
-      skip: pagination.skip,
-      take: pagination.pageSize,
-      select: managedUploadSelect,
-    }),
-    prisma.upload.count({ where: { userId } }),
-    prisma.upload.aggregate({
-      where: { userId },
-      _sum: { size: true },
-    }),
-    prisma.uploadPending.aggregate({
-      where: { userId, expiresAt: { gt: now } },
-      _sum: { size: true },
-    }),
-  ]);
+    const usedBytes = (usage._sum.size ?? 0) + (pendingUsage._sum.size ?? 0);
 
-  const usedBytes = (usage._sum.size ?? 0) + (pendingUsage._sum.size ?? 0);
-
-  return {
-    maxFileSizeBytes: uploadConfig.maxFileSizeBytes,
-    quotaBytes: uploadConfig.totalQuotaBytes,
-    total,
-    uploads: uploads.map(publicUploadPayload),
-    usedBytes,
-  };
+    return {
+      maxFileSizeBytes: uploadConfig.maxFileSizeBytes,
+      quotaBytes: uploadConfig.totalQuotaBytes,
+      total,
+      uploads: uploads.map(publicUploadPayload),
+      usedBytes,
+    };
+  });
 }
 
 export async function renameUpload(input: {
@@ -349,20 +371,22 @@ export async function renameUpload(input: {
   id: string;
   userId: string;
 }) {
-  const upload = await prisma.upload.findFirst({
-    where: { id: input.id, userId: input.userId },
-    select: { id: true },
+  return withUserDbContext(input.userId, async (tx) => {
+    const upload = await tx.upload.findFirst({
+      where: { id: input.id, userId: input.userId },
+      select: { id: true },
+    });
+
+    if (!upload) return null;
+
+    const updated = await tx.upload.update({
+      where: { id: upload.id },
+      data: { filename: input.filename },
+      select: managedUploadSelect,
+    });
+
+    return publicUploadPayload(updated);
   });
-
-  if (!upload) return null;
-
-  const updated = await prisma.upload.update({
-    where: { id: upload.id },
-    data: { filename: input.filename },
-    select: managedUploadSelect,
-  });
-
-  return publicUploadPayload(updated);
 }
 
 export async function renameOwnedUpload(input: {
@@ -382,13 +406,15 @@ async function findUploadRecordForDeletion(input: {
   id: string;
   userId: string;
 }) {
-  const upload = await prisma.upload.findFirst({
-    where: { id: input.id, userId: input.userId },
-    select: { id: true, key: true, size: true },
-  });
+  return withUserDbContext(input.userId, async (tx) => {
+    const upload = await tx.upload.findFirst({
+      where: { id: input.id, userId: input.userId },
+      select: { id: true, key: true, size: true },
+    });
 
-  if (!upload) return null;
-  return upload;
+    if (!upload) return null;
+    return upload;
+  });
 }
 
 export async function deleteOwnedUpload(input: {
@@ -417,7 +443,7 @@ export async function deleteOwnedUpload(input: {
     };
   }
 
-  const metadataDeleted = await prisma.$transaction(async (tx) => {
+  const metadataDeleted = await withUserDbContext(input.userId, async (tx) => {
     const deleted = await tx.upload.deleteMany({
       where: { id: upload.id, userId: input.userId },
     });
@@ -442,36 +468,16 @@ export async function deleteOwnedUpload(input: {
 }
 
 export async function findDownloadableUpload(id: string, userId: string) {
-  const [viewer, upload] = await Promise.all([
-    getViewerContext({ includeAdmin: true, userId }),
-    prisma.upload.findUnique({
-      where: { id },
-      select: {
-        contentType: true,
-        filename: true,
-        key: true,
-        userId: true,
-        commentAttachments: {
-          select: {
-            comment: {
-              select: {
-                status: true,
-                userId: true,
-                visibility: true,
-              },
-            },
-          },
-        },
-      },
-    }),
-  ]);
-  if (!upload || !viewer.isAuthenticated) return null;
-  if (upload.userId === userId) return upload;
+  const viewer = await getViewerContext({ includeAdmin: true, userId });
+  if (!viewer.isAuthenticated) return null;
 
-  const canDownloadAttachedUpload = upload.commentAttachments.some(
-    ({ comment }) => canViewerAccessCommentAttachment(comment, viewer),
+  const [upload] = await withUserDbContext(userId, (tx) =>
+    tx.$queryRaw<DownloadableUpload[]>(Prisma.sql`
+      SELECT *
+      FROM public.find_downloadable_upload(${id})
+    `),
   );
-  return canDownloadAttachedUpload ? upload : null;
+  return upload ?? null;
 }
 
 export async function validatePendingUploadObject(input: {
@@ -480,15 +486,17 @@ export async function validatePendingUploadObject(input: {
   requestContentType: string | null;
   userId: string;
 }) {
-  const pending = await prisma.uploadPending.findUnique({
-    where: { key: input.key },
-    select: {
-      contentType: true,
-      expiresAt: true,
-      size: true,
-      userId: true,
-    },
-  });
+  const pending = await withUserDbContext(input.userId, (tx) =>
+    tx.uploadPending.findUnique({
+      where: { key: input.key },
+      select: {
+        contentType: true,
+        expiresAt: true,
+        size: true,
+        userId: true,
+      },
+    }),
+  );
   const now = new Date();
   if (!pending || pending.userId !== input.userId || pending.expiresAt < now) {
     throw new UploadError("Upload session expired");
@@ -605,18 +613,23 @@ async function deleteExpiredPendingUploads(
   });
 }
 
-async function deletePendingUpload(key: string, userId: string) {
-  await prisma.uploadPending.deleteMany({
+async function deletePendingUpload(
+  uploadPrisma: Prisma.TransactionClient,
+  key: string,
+  userId: string,
+) {
+  await uploadPrisma.uploadPending.deleteMany({
     where: { key, userId },
   });
 }
 
 async function findExistingUploadUsagePayload(
+  uploadPrisma: Prisma.TransactionClient,
   key: string,
   userId: string,
   now: Date,
 ) {
-  const existing = await prisma.upload.findUnique({
+  const existing = await uploadPrisma.upload.findUnique({
     where: { key },
   });
   if (!existing) return null;
@@ -624,17 +637,24 @@ async function findExistingUploadUsagePayload(
     throw new UploadError("Upload session expired");
   }
 
-  await deletePendingUpload(key, userId);
-  const usedBytes = await getUploadUsedBytes({ prisma, userId, now });
+  await deletePendingUpload(uploadPrisma, key, userId);
+  const usedBytes = await getUploadUsedBytes({
+    prisma: uploadPrisma,
+    userId,
+    now,
+  });
   return uploadUsagePayload(existing, usedBytes || existing.size);
 }
 
-async function assertActivePendingUpload(input: {
-  key: string;
-  now: Date;
-  userId: string;
-}) {
-  const pending = await prisma.uploadPending.findUnique({
+async function assertActivePendingUpload(
+  uploadPrisma: Prisma.TransactionClient,
+  input: {
+    key: string;
+    now: Date;
+    userId: string;
+  },
+) {
+  const pending = await uploadPrisma.uploadPending.findUnique({
     where: { key: input.key },
     select: {
       expiresAt: true,
@@ -649,6 +669,20 @@ async function assertActivePendingUpload(input: {
   if (pending.expiresAt < input.now) {
     throw new UploadError("Upload session expired");
   }
+}
+
+async function runOwnedUploadSerializableTransaction<T>(
+  userId: string,
+  action: (tx: Prisma.TransactionClient) => Promise<T>,
+  failureMessage: string,
+) {
+  const normalizedUserId = userId.trim();
+  if (!normalizedUserId) throw new Error("RLS user ID is required");
+
+  return runUploadSerializableTransaction(async (tx) => {
+    await tx.$queryRaw`SELECT set_config('app.user_id', ${normalizedUserId}, true)`;
+    return action(tx);
+  }, failureMessage);
 }
 
 async function getUploadUsedBytes(input: {

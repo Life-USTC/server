@@ -802,8 +802,9 @@ model User {
   name            String   @default("")
   username        String?  @unique
   image           String?
-  profilePictures String[] @default([])
-  isAdmin         Boolean  @default(false)
+  // Migrations define false/empty-array defaults; dbgenerated keeps auth runtime INSERT off them.
+  profilePictures String[] @default(dbgenerated())
+  isAdmin         Boolean  @default(dbgenerated())
   calendarFeedToken String? @unique
 
   accounts      Account[]
@@ -1050,6 +1051,7 @@ model Account {
   userId            String
   type              String   @default("oauth")
   provider          String
+  issuer            String
   providerAccountId String
   refresh_token     String?
   access_token      String?
@@ -1067,7 +1069,7 @@ model Account {
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@unique([provider, providerAccountId])
+  @@unique([issuer, providerAccountId])
   @@index([userId])
   @@index([provider])
 }

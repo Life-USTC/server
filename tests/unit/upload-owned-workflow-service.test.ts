@@ -8,6 +8,7 @@ const {
   pendingFindManyMock,
   pendingFindUniqueMock,
   uploadFindUniqueMock,
+  withUserDbContextMock,
 } = vi.hoisted(() => ({
   deleteStorageObjectMock: vi.fn(),
   getViewerContextMock: vi.fn(),
@@ -16,6 +17,7 @@ const {
   pendingFindManyMock: vi.fn(),
   pendingFindUniqueMock: vi.fn(),
   uploadFindUniqueMock: vi.fn(),
+  withUserDbContextMock: vi.fn(),
 }));
 
 vi.mock("@/lib/db/prisma", () => ({
@@ -29,6 +31,7 @@ vi.mock("@/lib/db/prisma", () => ({
       findUnique: pendingFindUniqueMock,
     },
   },
+  withUserDbContext: withUserDbContextMock,
 }));
 
 vi.mock("@/lib/auth/viewer-context", () => ({
@@ -56,6 +59,16 @@ describe("owned upload workflow service", () => {
     pendingFindUniqueMock.mockResolvedValue(null);
     uploadFindUniqueMock.mockResolvedValue(null);
     deleteStorageObjectMock.mockResolvedValue(undefined);
+    withUserDbContextMock.mockImplementation((_userId, action) =>
+      action({
+        upload: { findUnique: uploadFindUniqueMock },
+        uploadPending: {
+          deleteMany: pendingDeleteManyMock,
+          findMany: pendingFindManyMock,
+          findUnique: pendingFindUniqueMock,
+        },
+      }),
+    );
   });
 
   afterEach(() => {

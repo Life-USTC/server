@@ -30,6 +30,29 @@ Session、VerificationToken、OAuth access/refresh token 和 DeviceCode 记录�
 触发。它不运行 migration 或静态数据导入；尚未过期的 revoked refresh token 会保留
 到过期，以维持 refresh-token 重放检测。
 
+运行时数据库连接按 app 与 auth 边界分离。Node production 必须同时提供
+`DATABASE_URL` 和 `AUTH_DATABASE_URL`；Cloudflare Worker 必须同时配置
+`HYPERDRIVE` 和 `HYPERDRIVE_AUTH`。认证连接承载 session、token、OAuth 和 Better
+Auth 写入，必须使用独立的最小权限角色，并在 Hyperdrive 中关闭 query cache，以保证
+撤销与权限变更在下一次请求立即生效。production 不会回退到 app 连接；缺少 auth
+连接时启动检查直接失败。本地开发和测试可暂时让两个连接指向同一数据库。
+
+生产 app runtime 数据库角色切换前后，使用只读 preflight 验证 origin/current 角色身份、
+经审核的全量 schema/表/列/序列/函数权限 allowlist、公共与默认权限、RLS policy、所有权
+和缺失用户上下文时的默认拒绝；五个权限变量均为按 `Object:PRIVILEGE` 排序的逗号分隔列表，
+输出只包含布尔契约，不包含业务行：
+
+```bash
+psql "$APP_RUNTIME_DATABASE_URL" -X \
+  -v expected_role=app_runtime \
+  -v expected_schema_privileges="$APP_RUNTIME_SCHEMA_PRIVILEGES" \
+  -v expected_table_privileges="$APP_RUNTIME_TABLE_PRIVILEGES" \
+  -v expected_column_privileges="$APP_RUNTIME_COLUMN_PRIVILEGES" \
+  -v expected_sequence_privileges="$APP_RUNTIME_SEQUENCE_PRIVILEGES" \
+  -v expected_function_privileges="$APP_RUNTIME_FUNCTION_PRIVILEGES" \
+  -f prisma/roles/verify-app-runtime.sql
+```
+
 生产 Workers Builds 配置：
 - Build command: `bun install --frozen-lockfile && bun run app:prepare && bun run build`
 - Deploy command: `npx wrangler deploy`

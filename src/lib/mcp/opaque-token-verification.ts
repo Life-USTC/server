@@ -1,4 +1,4 @@
-import { prisma } from "@/lib/db/prisma";
+import { authPrisma as prisma } from "@/lib/db/auth-prisma";
 import { hasMcpScope } from "@/lib/oauth/scope-registry";
 import { hashOAuthClientSecretForDbStorage } from "@/lib/oauth/utils";
 import { type AuthFailure, INVALID_TOKEN_ERROR } from "./auth-errors";

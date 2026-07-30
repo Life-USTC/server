@@ -32,8 +32,8 @@ vi.mock("@/lib/oauth/provider-api", () => ({
   }),
 }));
 
-vi.mock("@/lib/db/prisma", () => ({
-  prisma: {
+vi.mock("@/lib/db/auth-prisma", () => ({
+  authPrisma: {
     oAuthClient: {
       delete: deleteOAuthClientMock,
     },

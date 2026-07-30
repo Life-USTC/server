@@ -1,4 +1,4 @@
-import { prisma as defaultPrisma } from "@/lib/db/prisma";
+import { authPrisma as defaultPrisma } from "@/lib/db/auth-prisma";
 import {
   DEVICE_CODE_ERRORS,
   DEVICE_CODE_EXPIRES_IN,

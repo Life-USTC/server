@@ -1,17 +1,25 @@
+import * as z from "zod";
+import { isValidProfileUsername } from "@/features/profile/lib/profile-username";
+
 export const betterAuthUserOptions = {
   additionalFields: {
     username: {
       type: "string",
       required: false,
+      validator: {
+        input: z.string().refine(isValidProfileUsername, {
+          message: "Invalid username",
+        }),
+      },
     },
     isAdmin: {
       type: "boolean",
-      defaultValue: false,
+      input: false,
     },
     profilePictures: {
       type: "string[]",
       required: false,
-      defaultValue: () => [] as string[],
+      input: false,
     },
   },
 } as const;

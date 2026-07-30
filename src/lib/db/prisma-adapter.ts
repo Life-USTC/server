@@ -1,6 +1,7 @@
 import { PrismaPg } from "@prisma/adapter-pg";
 import { getOptionalTrimmedEnv } from "@/app-env";
 import {
+  getCloudflareAuthHyperdriveConnectionString,
   getCloudflareHyperdriveConnectionString,
   hasCloudflareRuntimeEnv,
 } from "@/lib/adapters/cloudflare-runtime";
@@ -8,29 +9,50 @@ import { logAppEvent } from "@/lib/log/app-logger";
 import { getSafeErrorName } from "@/lib/log/safe-error-name";
 import { writeDatabaseEventAnalytics } from "@/lib/metrics/analytics-engine";
 
-function getRuntimeDatabaseUrl() {
-  const hyperdriveConnectionString = getCloudflareHyperdriveConnectionString();
+export type RuntimeDatabase = "app" | "auth";
+
+function getRuntimeDatabaseUrl(database: RuntimeDatabase) {
+  const hyperdriveConnectionString =
+    database === "auth"
+      ? getCloudflareAuthHyperdriveConnectionString()
+      : getCloudflareHyperdriveConnectionString();
   if (hasCloudflareRuntimeEnv()) {
     if (!hyperdriveConnectionString) {
+      const binding = database === "auth" ? "HYPERDRIVE_AUTH" : "HYPERDRIVE";
       throw new Error(
-        "HYPERDRIVE is required to initialize Prisma in Cloudflare runtime",
+        `${binding} is required to initialize ${database} Prisma in Cloudflare runtime`,
       );
     }
     return hyperdriveConnectionString;
   }
 
+  if (database === "auth") {
+    const authDatabaseUrl = getOptionalTrimmedEnv("AUTH_DATABASE_URL");
+    if (authDatabaseUrl) return authDatabaseUrl;
+    if (getOptionalTrimmedEnv("NODE_ENV") === "production") return undefined;
+    return getOptionalTrimmedEnv("DATABASE_URL");
+  }
   return getOptionalTrimmedEnv("DATABASE_URL");
 }
 
 export function createPrismaAdapter(
-  connectionString = getRuntimeDatabaseUrl(),
+  connectionString: string | undefined = undefined,
+  database: RuntimeDatabase = "app",
 ) {
-  if (!connectionString) {
-    throw new Error("DATABASE_URL is required to initialize Prisma");
+  const resolvedConnectionString =
+    connectionString ?? getRuntimeDatabaseUrl(database);
+  if (!resolvedConnectionString) {
+    throw new Error(
+      database === "auth"
+        ? getOptionalTrimmedEnv("NODE_ENV") === "production"
+          ? "AUTH_DATABASE_URL is required to initialize auth Prisma in production"
+          : "AUTH_DATABASE_URL or DATABASE_URL is required to initialize auth Prisma"
+        : "DATABASE_URL is required to initialize app Prisma",
+    );
   }
 
   return new PrismaPg(
-    { connectionString },
+    { connectionString: resolvedConnectionString },
     {
       onConnectionError: (error) => {
         writeDatabaseEventAnalytics({
