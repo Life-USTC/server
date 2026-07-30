@@ -1,9 +1,6 @@
 <script lang="ts">
 import * as Item from "$lib/components/ui/item/index.js";
-import type {
-  SettingsAccount,
-  SettingsCopy,
-} from "./settings-component-types";
+import type { SettingsAccount, SettingsCopy } from "./settings-component-types";
 
 export let account: SettingsAccount;
 export let copy: SettingsCopy;

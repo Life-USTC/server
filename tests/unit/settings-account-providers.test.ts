@@ -34,8 +34,9 @@ describe("buildSettingsAccountProviders", () => {
       ustcIdentities,
     );
 
-    expect(providers.find((provider) => provider.id === "oidc")?.ustcIdentities)
-      .toEqual(ustcIdentities);
+    expect(
+      providers.find((provider) => provider.id === "oidc")?.ustcIdentities,
+    ).toEqual(ustcIdentities);
     expect(
       providers.find((provider) => provider.id === "github")?.ustcIdentities,
     ).toBeNull();

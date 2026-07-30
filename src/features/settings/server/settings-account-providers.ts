@@ -26,8 +26,7 @@ export function buildSettingsAccountProviders(
       linked: Boolean(account),
       accountId: account?.id ?? null,
       providerAccountId: account?.providerAccountId ?? null,
-      ustcIdentities:
-        provider.id === "oidc" && account ? ustcIdentities : null,
+      ustcIdentities: provider.id === "oidc" && account ? ustcIdentities : null,
     };
   });
 }

@@ -8,8 +8,8 @@ import {
   getOidcAccountSubject,
   mapOidcProfileToUser,
 } from "@/lib/auth/oauth-profile";
-import { stageUstcOidcIdentityFromProfile } from "@/lib/auth/ustc-oidc-identity-profile";
 import { ustcOidcIdentityPlugin } from "@/lib/auth/ustc-oidc-identity-plugin";
+import { stageUstcOidcIdentityFromProfile } from "@/lib/auth/ustc-oidc-identity-profile";
 import { webhookLoginPlugin } from "@/lib/auth/webhook-login-plugin";
 import { getCanonicalOAuthIssuer } from "@/lib/mcp/urls";
 import { OAUTH_OPENID_SCOPE } from "@/lib/oauth/constants";
