@@ -1996,6 +1996,9 @@
   "oauth": {
     "authorize": "授权应用",
     "consentDescription": "{app} 正在请求访问您的账户。",
+    "clientHostLabel": "客户端主机",
+    "redirectHostLabel": "回调主机",
+    "loopbackRedirectWarning": "此回调将返回您设备上的本地应用。仅当您主动发起了本次授权时才继续。",
     "scopesLabel": "此应用将能够：",
     "scope_openid": "验证您的身份",
     "scope_profile": "查看您的个人资料",

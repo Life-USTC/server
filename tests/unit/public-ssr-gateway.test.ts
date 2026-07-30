@@ -121,6 +121,7 @@ describe("public SSR gateway", () => {
     "/e2e/oauth/callback?code=example&state=test",
     "/error?error=access_denied",
     "/llms.txt",
+    "/open-graph.png",
     "/robots.txt",
     "/sitemap.xml",
     "/workspace/overview",

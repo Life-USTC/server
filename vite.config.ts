@@ -1,6 +1,7 @@
 import "dotenv/config";
 import { copyFileSync, mkdirSync } from "node:fs";
 import { basename, dirname } from "node:path";
+import { rollupWasm } from "@ethercorps/sveltekit-og/plugin";
 import { sveltekit } from "@sveltejs/kit/vite";
 import tailwindcss from "@tailwindcss/vite";
 import { defineConfig } from "vite";
@@ -19,7 +20,7 @@ function prismaWasmModulePlugin() {
         ? new URL(source.slice(0, -"?module".length), `file://${importer}`)
             .pathname
         : source.slice(0, -"?module".length);
-      return { id: source, external: true };
+      return { id: `${resolvedWasmPath}?module`, external: true };
     },
     generateBundle() {
       if (!resolvedWasmPath) return;
@@ -64,6 +65,7 @@ export default defineConfig({
   plugins: [
     prismaWasmModulePlugin(),
     katexModernFontsPlugin(),
+    rollupWasm(),
     tailwindcss(),
     sveltekit(),
   ],
@@ -71,6 +73,11 @@ export default defineConfig({
     resolve: {
       conditions: ["cloudflare"],
     },
-    external: ["better-auth", "@better-auth/oauth-provider"],
+    external: [
+      "better-auth",
+      "@better-auth/oauth-provider",
+      "@better-auth/mcp",
+      "@better-auth/cimd",
+    ],
   },
 });

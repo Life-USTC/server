@@ -1,0 +1,48 @@
+import { resolve4, resolve6 } from "node:dns/promises";
+import { isIP } from "node:net";
+import { isPublicRoutableHost } from "@better-auth/core/utils/host";
+
+function isNoAddressError(error: unknown) {
+  if (!error || typeof error !== "object" || !("code" in error)) return false;
+  return ["ENODATA", "ENOTFOUND", "EAI_NODATA"].includes(String(error.code));
+}
+
+async function resolveAddresses(
+  resolver: (hostname: string) => Promise<string[]>,
+  hostname: string,
+) {
+  try {
+    return await resolver(hostname);
+  } catch (error) {
+    if (isNoAddressError(error)) return [];
+    throw error;
+  }
+}
+
+export async function allowCimdMetadataFetch(url: string) {
+  let hostname: string;
+  try {
+    hostname = new URL(url).hostname;
+  } catch {
+    return false;
+  }
+
+  const unwrappedHostname = hostname.replace(/^\[|\]$/g, "");
+  if (!isPublicRoutableHost(unwrappedHostname)) return false;
+  if (isIP(unwrappedHostname) !== 0) return true;
+
+  try {
+    const addresses = (
+      await Promise.all([
+        resolveAddresses(resolve4, unwrappedHostname),
+        resolveAddresses(resolve6, unwrappedHostname),
+      ])
+    ).flat();
+    return (
+      addresses.length > 0 &&
+      addresses.every((address) => isPublicRoutableHost(address))
+    );
+  } catch {
+    return false;
+  }
+}

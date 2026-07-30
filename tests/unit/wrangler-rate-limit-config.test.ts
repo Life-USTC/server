@@ -64,6 +64,18 @@ describe("Wrangler mutation rate-limit bindings", () => {
     expect(config.upload_source_maps).toBe(true);
   });
 
+  it("routes production CIMD fetches through the public Internet boundary", async () => {
+    const source = await readFile(
+      new URL("../../wrangler.jsonc", import.meta.url),
+      "utf8",
+    );
+    const config = JSON.parse(source) as { compatibility_flags?: string[] };
+
+    expect(config.compatibility_flags).toContain(
+      "global_fetch_strictly_public",
+    );
+  });
+
   it("keeps production budgets at 60 standard and 10 batch writes per minute", async () => {
     await expect(readRateLimits("wrangler.jsonc")).resolves.toEqual([
       {

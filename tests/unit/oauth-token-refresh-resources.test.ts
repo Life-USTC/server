@@ -7,10 +7,15 @@ import {
 const findRefreshTokenMock = vi.fn();
 const signAccessTokenMock = vi.fn();
 const updateRefreshTokenMock = vi.fn();
+const verifyAccessTokenJwtPayloadMock = vi.fn();
 
 vi.mock("@/features/oauth/server/device-token-issuer.server", () => ({
   RESOURCE_BOUND_ACCESS_TOKEN_EXPIRES_IN: 300,
   signResourceBoundOAuthAccessToken: signAccessTokenMock,
+}));
+
+vi.mock("@/lib/auth/jwt-verification", () => ({
+  verifyAccessTokenJwtPayload: verifyAccessTokenJwtPayloadMock,
 }));
 
 vi.mock("@/lib/db/prisma", () => ({
@@ -27,6 +32,7 @@ vi.mock("@/lib/log/oauth-debug", () => ({
 }));
 
 vi.mock("@/lib/oauth/resource-urls", () => ({
+  getCanonicalOAuthIssuer: () => "https://life.example/api/auth",
   getOAuthProviderValidAudiences: () => [
     "https://life.example/api/auth",
     "https://life.example/api/mcp",
@@ -46,12 +52,23 @@ function unsignedJwt(payload: Record<string, unknown>) {
   ].join(".");
 }
 
+function decodeUnsignedJwt(token: string) {
+  const encodedPayload = token.split(".")[1];
+  if (!encodedPayload) return {};
+  const base64 = encodedPayload.replace(/-/g, "+").replace(/_/g, "/");
+  const padded = base64.padEnd(Math.ceil(base64.length / 4) * 4, "=");
+  return JSON.parse(atob(padded)) as Record<string, unknown>;
+}
+
 describe("OAuth 刷新令牌资源持久化", () => {
   beforeEach(() => {
     vi.resetModules();
     findRefreshTokenMock.mockReset();
     signAccessTokenMock.mockReset();
     updateRefreshTokenMock.mockReset();
+    verifyAccessTokenJwtPayloadMock
+      .mockReset()
+      .mockImplementation(async (token: string) => decodeUnsignedJwt(token));
     updateRefreshTokenMock.mockResolvedValue({ count: 1 });
   });
 
@@ -208,12 +225,14 @@ describe("OAuth 刷新令牌资源持久化", () => {
       Response.json({
         access_token: "provider-token",
         scope: "profile",
+        token_type: "Bearer",
       }),
     );
 
     await expect(response.json()).resolves.toMatchObject({
       access_token: "downscoped-jwt",
       scope: "profile",
+      token_type: "Bearer",
     });
     expect(signAccessTokenMock).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -221,6 +240,214 @@ describe("OAuth 刷新令牌资源持久化", () => {
         scopes: ["profile"],
       }),
     );
+  });
+
+  it("显式 resource 刷新将旧刷新令牌的 DPoP confirmation 传给替换 JWT", async () => {
+    findRefreshTokenMock.mockResolvedValue({
+      clientId: "client-1",
+      confirmation: { jkt: "dpop-thumbprint", untrusted: "ignored" },
+      grantId: "grant-1",
+      resources: ["https://life.example/api/graphql"],
+      scopes: ["profile"],
+      userId: "user-1",
+    });
+    signAccessTokenMock.mockResolvedValue("dpop-bound-jwt");
+    const { replaceOAuthRefreshAccessToken } = await import(
+      "@/lib/api/routes/auth-token-refresh-resources"
+    );
+    const params = new URLSearchParams({
+      grant_type: OAUTH_REFRESH_TOKEN_GRANT_TYPE,
+      refresh_token: "old-refresh-token",
+      resource: "https://life.example/api/graphql",
+    });
+
+    const response = await replaceOAuthRefreshAccessToken(
+      new Request("https://life.example/api/auth/oauth2/token"),
+      params,
+      Response.json({
+        access_token: unsignedJwt({ cnf: { jkt: "dpop-thumbprint" } }),
+        scope: "profile",
+        token_type: "DPoP",
+      }),
+    );
+
+    await expect(response.json()).resolves.toMatchObject({
+      access_token: "dpop-bound-jwt",
+      token_type: "DPoP",
+    });
+    expect(signAccessTokenMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        confirmation: { jkt: "dpop-thumbprint" },
+      }),
+    );
+  });
+
+  it("显式 resource 刷新继承本次上游新建立的 DPoP confirmation", async () => {
+    findRefreshTokenMock.mockResolvedValue({
+      clientId: "client-1",
+      confirmation: null,
+      resources: ["https://life.example/api/graphql"],
+      scopes: ["profile"],
+      userId: "user-1",
+    });
+    signAccessTokenMock.mockResolvedValue("newly-dpop-bound-jwt");
+    const { replaceOAuthRefreshAccessToken } = await import(
+      "@/lib/api/routes/auth-token-refresh-resources"
+    );
+    const params = new URLSearchParams({
+      grant_type: OAUTH_REFRESH_TOKEN_GRANT_TYPE,
+      refresh_token: "old-refresh-token",
+      resource: "https://life.example/api/graphql",
+    });
+
+    const response = await replaceOAuthRefreshAccessToken(
+      new Request("https://life.example/api/auth/oauth2/token"),
+      params,
+      Response.json({
+        access_token: unsignedJwt({ cnf: { jkt: "new-dpop-thumbprint" } }),
+        scope: "profile",
+        token_type: "DPoP",
+      }),
+    );
+
+    await expect(response.json()).resolves.toMatchObject({
+      access_token: "newly-dpop-bound-jwt",
+    });
+    expect(signAccessTokenMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        confirmation: { jkt: "new-dpop-thumbprint" },
+      }),
+    );
+  });
+
+  it("旧刷新令牌与本次上游 DPoP thumbprint 冲突时保留上游响应", async () => {
+    findRefreshTokenMock.mockResolvedValue({
+      clientId: "client-1",
+      confirmation: { jkt: "old-dpop-thumbprint" },
+      resources: ["https://life.example/api/graphql"],
+      scopes: ["profile"],
+      userId: "user-1",
+    });
+    const { replaceOAuthRefreshAccessToken } = await import(
+      "@/lib/api/routes/auth-token-refresh-resources"
+    );
+    const params = new URLSearchParams({
+      grant_type: OAUTH_REFRESH_TOKEN_GRANT_TYPE,
+      refresh_token: "old-refresh-token",
+      resource: "https://life.example/api/graphql",
+    });
+    const original = Response.json({
+      access_token: unsignedJwt({ cnf: { jkt: "new-dpop-thumbprint" } }),
+      scope: "profile",
+      token_type: "DPoP",
+    });
+
+    expect(
+      await replaceOAuthRefreshAccessToken(
+        new Request("https://life.example/api/auth/oauth2/token"),
+        params,
+        original,
+      ),
+    ).toBe(original);
+    expect(signAccessTokenMock).not.toHaveBeenCalled();
+  });
+
+  it("本次上游 cnf 与 token_type 不一致时保留上游响应", async () => {
+    findRefreshTokenMock.mockResolvedValue({
+      clientId: "client-1",
+      confirmation: null,
+      resources: ["https://life.example/api/graphql"],
+      scopes: ["profile"],
+      userId: "user-1",
+    });
+    const { replaceOAuthRefreshAccessToken } = await import(
+      "@/lib/api/routes/auth-token-refresh-resources"
+    );
+    const params = new URLSearchParams({
+      grant_type: OAUTH_REFRESH_TOKEN_GRANT_TYPE,
+      refresh_token: "old-refresh-token",
+      resource: "https://life.example/api/graphql",
+    });
+    const original = Response.json({
+      access_token: unsignedJwt({ cnf: { jkt: "dpop-thumbprint" } }),
+      scope: "profile",
+      token_type: "Bearer",
+    });
+
+    expect(
+      await replaceOAuthRefreshAccessToken(
+        new Request("https://life.example/api/auth/oauth2/token"),
+        params,
+        original,
+      ),
+    ).toBe(original);
+    expect(signAccessTokenMock).not.toHaveBeenCalled();
+  });
+
+  it("本次上游访问令牌无法验签时保留上游响应", async () => {
+    findRefreshTokenMock.mockResolvedValue({
+      clientId: "client-1",
+      confirmation: null,
+      resources: ["https://life.example/api/graphql"],
+      scopes: ["profile"],
+      userId: "user-1",
+    });
+    verifyAccessTokenJwtPayloadMock.mockRejectedValueOnce(
+      new Error("invalid signature"),
+    );
+    const { replaceOAuthRefreshAccessToken } = await import(
+      "@/lib/api/routes/auth-token-refresh-resources"
+    );
+    const params = new URLSearchParams({
+      grant_type: OAUTH_REFRESH_TOKEN_GRANT_TYPE,
+      refresh_token: "old-refresh-token",
+      resource: "https://life.example/api/graphql",
+    });
+    const original = Response.json({
+      access_token: "invalid-provider-token",
+      scope: "profile",
+      token_type: "Bearer",
+    });
+
+    expect(
+      await replaceOAuthRefreshAccessToken(
+        new Request("https://life.example/api/auth/oauth2/token"),
+        params,
+        original,
+      ),
+    ).toBe(original);
+    expect(signAccessTokenMock).not.toHaveBeenCalled();
+  });
+
+  it("畸形 confirmation 不会被降级为 Bearer 替换 JWT", async () => {
+    findRefreshTokenMock.mockResolvedValue({
+      clientId: "client-1",
+      confirmation: { jkt: "" },
+      resources: ["https://life.example/api/graphql"],
+      scopes: ["profile"],
+      userId: "user-1",
+    });
+    const { replaceOAuthRefreshAccessToken } = await import(
+      "@/lib/api/routes/auth-token-refresh-resources"
+    );
+    const params = new URLSearchParams({
+      grant_type: OAUTH_REFRESH_TOKEN_GRANT_TYPE,
+      refresh_token: "old-refresh-token",
+      resource: "https://life.example/api/graphql",
+    });
+    const original = Response.json({
+      access_token: "provider-token",
+      scope: "profile",
+    });
+
+    expect(
+      await replaceOAuthRefreshAccessToken(
+        new Request("https://life.example/api/auth/oauth2/token"),
+        params,
+        original,
+      ),
+    ).toBe(original);
+    expect(signAccessTokenMock).not.toHaveBeenCalled();
   });
 
   it("openid audience expansion follows the refresh response scope", async () => {
@@ -246,6 +473,7 @@ describe("OAuth 刷新令牌资源持久化", () => {
       Response.json({
         access_token: "provider-token",
         scope: "openid profile",
+        token_type: "Bearer",
       }),
     );
 

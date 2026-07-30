@@ -35,7 +35,7 @@ INSERT INTO public."User" (id, name, image, "createdAt", "updatedAt", "profilePi
 -- Data for Name: Account; Type: TABLE DATA; Schema: public; Owner: -
 --
 
-INSERT INTO public."Account" ("userId", type, provider, "providerAccountId", refresh_token, access_token, expires_at, token_type, scope, id_token, session_state, "createdAt", "updatedAt", id, "accessTokenExpiresAt", "refreshTokenExpiresAt", password) VALUES ('cmqw1sr9g0001bqt44c3s0kqa', 'oidc', 'dev-scenario-oidc', 'dev-user-account', NULL, 'scenario-access-token', 1777564740, 'Bearer', 'openid profile email', NULL, NULL, '2026-06-27 07:38:10.042', '2026-06-27 07:38:10.042', 'cmqw1srga0021bqt4me6hh68q', NULL, NULL, NULL) ON CONFLICT DO NOTHING;
+INSERT INTO public."Account" ("userId", type, provider, issuer, "providerAccountId", refresh_token, access_token, expires_at, token_type, scope, id_token, session_state, "createdAt", "updatedAt", id, "accessTokenExpiresAt", "refreshTokenExpiresAt", password) VALUES ('cmqw1sr9g0001bqt44c3s0kqa', 'oidc', 'dev-scenario-oidc', 'local:oauth:dev-scenario-oidc', 'dev-user-account', NULL, 'scenario-access-token', 1777564740, 'Bearer', 'openid profile email', NULL, NULL, '2026-06-27 07:38:10.042', '2026-06-27 07:38:10.042', 'cmqw1srga0021bqt4me6hh68q', NULL, NULL, NULL) ON CONFLICT DO NOTHING;
 
 
 --

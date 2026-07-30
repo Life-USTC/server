@@ -1050,6 +1050,7 @@ model Account {
   userId            String
   type              String   @default("oauth")
   provider          String
+  issuer            String
   providerAccountId String
   refresh_token     String?
   access_token      String?
@@ -1067,7 +1068,7 @@ model Account {
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@unique([provider, providerAccountId])
+  @@unique([issuer, providerAccountId])
   @@index([userId])
   @@index([provider])
 }
@@ -1295,12 +1296,17 @@ model OAuthClient {
   softwareStatement String?
   redirectUris      String[]
   postLogoutRedirectUris String[] @default([])
+  backchannelLogoutUri String?
+  backchannelLogoutSessionRequired Boolean?
   tokenEndpointAuthMethod String?
+  jwks              String?
+  jwksUri           String?
   grantTypes        String[] @default([])
   responseTypes     String[] @default([])
   public            Boolean?
   type              String?
   requirePKCE       Boolean?
+  dpopBoundAccessTokens Boolean? @default(false)
   referenceId       String?
   metadata          Json?
 
@@ -1308,6 +1314,7 @@ model OAuthClient {
   refreshTokens OAuthRefreshToken[]
   consents      OAuthConsent[]
   deviceCodes   DeviceCode[]
+  resourceLinks OauthClientResource[]
 
   @@index([userId])
 }
@@ -1353,17 +1360,24 @@ model OAuthRefreshToken {
   user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   referenceId String?
+  authorizationCodeId String?
   expiresAt   DateTime
   createdAt   DateTime @default(now())
   revoked     DateTime?
+  rotatedAt   DateTime?
+  rotationReplayResponse String?
+  rotationReplayExpiresAt DateTime?
   authTime    DateTime?
+  confirmation Json?
   scopes      String[] @default([])
   resources   String[] @default([])
+  requestedUserInfoClaims String[] @default([])
 
   accessTokens OAuthAccessToken[]
 
   @@index([clientId])
   @@index([grantId])
+  @@index([authorizationCodeId])
   @@index([sessionId])
   @@index([userId])
   @@index([expiresAt])
@@ -1384,15 +1398,21 @@ model OAuthAccessToken {
   user   User? @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   referenceId String?
+  authorizationCodeId String?
   refreshId   String?
   refresh     OAuthRefreshToken? @relation(fields: [refreshId], references: [id], onDelete: SetNull)
 
   expiresAt DateTime
   createdAt DateTime @default(now())
+  revoked   DateTime?
+  confirmation Json?
   scopes    String[] @default([])
+  resources String[] @default([])
+  requestedUserInfoClaims String[] @default([])
 
   @@index([clientId])
   @@index([grantId])
+  @@index([authorizationCodeId])
   @@index([sessionId])
   @@index([userId])
   @@index([refreshId])
@@ -1411,6 +1431,8 @@ model OAuthConsent {
   grantId     String   @unique @default(uuid())
   referenceId String?
   scopes      String[] @default([])
+  resources   String[] @default([])
+  requestedUserInfoClaims String[] @default([])
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -1418,6 +1440,54 @@ model OAuthConsent {
   @@unique([clientId, userId])
   @@index([clientId])
   @@index([userId])
+}
+
+model OauthResource {
+  id         String @id @default(cuid())
+  identifier String @unique
+  name       String
+
+  accessTokenTtl    Int?
+  refreshTokenTtl   Int?
+  signingAlgorithm  String?
+  signingKeyId      String?
+  allowedScopes     String[] @default([])
+  customClaims      Json?
+  dpopBoundAccessTokensRequired Boolean? @default(false)
+  disabled          Boolean? @default(false)
+  policyVersion     Int? @default(1)
+  metadata          Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  clientLinks OauthClientResource[]
+
+  @@map("oauthResource")
+}
+
+model OauthClientResource {
+  id String @id
+
+  clientId String
+  client   OAuthClient @relation(fields: [clientId], references: [clientId], onDelete: Cascade)
+
+  resourceId String
+  resource   OauthResource @relation(fields: [resourceId], references: [identifier], onDelete: Cascade)
+
+  metadata  Json?
+  createdAt DateTime @default(now())
+
+  @@index([clientId])
+  @@index([resourceId])
+  @@map("oauthClientResource")
+}
+
+model OauthClientAssertion {
+  id        String @id
+  expiresAt DateTime
+
+  @@map("oauthClientAssertion")
 }
 
 model Jwks {
@@ -1428,4 +1498,6 @@ model Jwks {
 
   createdAt DateTime @default(now())
   expiresAt DateTime?
+  alg       String?
+  crv       String?
 }

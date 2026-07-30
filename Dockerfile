@@ -3,6 +3,7 @@ WORKDIR /usr/src/app
 
 FROM base AS install-prod
 COPY package.json bun.lock ./
+COPY patches ./patches
 RUN bun install --frozen-lockfile --production
 
 FROM base AS loader

@@ -39,6 +39,7 @@ type DeviceGrantPrisma = {
           select: {
             clientId: true;
             disabled: true;
+            dpopBoundAccessTokens: true;
             grantTypes: true;
             public: true;
             tokenEndpointAuthMethod: true;
@@ -50,6 +51,7 @@ type DeviceGrantPrisma = {
       client: {
         clientId: string;
         disabled: boolean;
+        dpopBoundAccessTokens: boolean | null;
         grantTypes: string[];
         public: boolean | null;
         tokenEndpointAuthMethod: string | null;
@@ -81,6 +83,7 @@ type DeviceGrantRecordResult =
 type DeviceGrantRecordRow = {
   clientClientId: string;
   clientDisabled: boolean;
+  clientDpopBoundAccessTokens: boolean | null;
   clientGrantTypes: string[];
   clientPublic: boolean | null;
   clientTokenEndpointAuthMethod: string | null;
@@ -164,6 +167,7 @@ export async function resolveDeviceGrantRecord({
             select: {
               clientId: true,
               disabled: true,
+              dpopBoundAccessTokens: true,
               grantTypes: true,
               public: true,
               tokenEndpointAuthMethod: true,
@@ -183,6 +187,10 @@ export async function resolveDeviceGrantRecord({
 
   if (getDeviceAuthorizationClientPolicyFailure(record.client)) {
     return { error: { code: "invalid_client" } };
+  }
+
+  if (record.client.dpopBoundAccessTokens === true) {
+    return { error: { code: "invalid_dpop_proof" } };
   }
 
   if (record.expiresAt < new Date()) {
@@ -237,6 +245,7 @@ async function resolveFreshDeviceGrantRecord(
       dc."scopes",
       c."clientId" AS "clientClientId",
       c."disabled" AS "clientDisabled",
+      c."dpopBoundAccessTokens" AS "clientDpopBoundAccessTokens",
       c."grantTypes" AS "clientGrantTypes",
       c."public" AS "clientPublic",
       c."tokenEndpointAuthMethod" AS "clientTokenEndpointAuthMethod",
@@ -260,6 +269,7 @@ async function resolveFreshDeviceGrantRecord(
         client: {
           clientId: row.clientClientId,
           disabled: row.clientDisabled,
+          dpopBoundAccessTokens: row.clientDpopBoundAccessTokens,
           grantTypes: row.clientGrantTypes,
           public: row.clientPublic,
           tokenEndpointAuthMethod: row.clientTokenEndpointAuthMethod,

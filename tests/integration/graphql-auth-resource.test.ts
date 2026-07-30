@@ -1,10 +1,11 @@
+import { decodeJwt } from "jose";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { signResourceBoundOAuthAccessToken } from "@/features/oauth/server/device-token-issuer.server";
 import { revokeUserOAuthAuthorization } from "@/features/oauth/server/user-authorizations.server";
 import { resolveApiUserId } from "@/lib/auth/api-auth";
 import { prisma } from "@/lib/db/prisma";
 import { resolveGraphqlPrincipal } from "@/lib/graphql/auth";
-import { verifyAccessToken as verifyMcpAccessToken } from "@/lib/mcp/auth";
+import { authorizeVerifiedMcpAccessToken } from "@/lib/mcp/auth-token-verification";
 import {
   getOAuthGraphqlResourceUrl,
   getOAuthMcpResourceUrl,
@@ -31,6 +32,13 @@ async function signToken(resource: string) {
   });
   if (!token) throw new Error("Expected a signed access token");
   return token;
+}
+
+function authorizeMcpToken(token: string) {
+  return authorizeVerifiedMcpAccessToken({
+    jwtClaims: decodeJwt(token),
+    token,
+  });
 }
 
 describe.sequential("GraphQL OAuth resource isolation", () => {
@@ -128,9 +136,7 @@ describe.sequential("GraphQL OAuth resource isolation", () => {
         { bearerScope: { action: "read", feature: "account.profile" } },
       ),
     ).resolves.toBe(userId);
-    await expect(
-      verifyMcpAccessToken(new Request(getOAuthMcpResourceUrl()), mcpToken),
-    ).resolves.toMatchObject({
+    await expect(authorizeMcpToken(mcpToken)).resolves.toMatchObject({
       clientId,
       extra: { userId },
     });
@@ -164,9 +170,7 @@ describe.sequential("GraphQL OAuth resource isolation", () => {
         { bearerScope: { action: "read", feature: "account.profile" } },
       ),
     ).resolves.toBeNull();
-    await expect(
-      verifyMcpAccessToken(new Request(getOAuthMcpResourceUrl()), mcpToken),
-    ).resolves.toMatchObject({
+    await expect(authorizeMcpToken(mcpToken)).resolves.toMatchObject({
       diagnostics: { authFailureKind: "inactive_oauth_grant" },
       error: "invalid_token",
       status: 401,

@@ -71,6 +71,31 @@ describe("设备令牌签发器", () => {
     signJwtMock.mockReset();
   });
 
+  it("将规范化的 DPoP confirmation 写入 JWT cnf", async () => {
+    signJwtMock.mockResolvedValue({ token: "header.payload.signature" });
+    const { signResourceBoundOAuthAccessToken } = await import(
+      "@/features/oauth/server/device-token-issuer.server"
+    );
+
+    await signResourceBoundOAuthAccessToken({
+      clientId: "client-1",
+      confirmation: { jkt: "dpop-thumbprint" },
+      expiresAt: 200,
+      issuedAt: 100,
+      resources: ["https://life.example/api/mcp"],
+      scopes: [OAUTH_PROFILE_SCOPE],
+      userId: "user-1",
+    });
+
+    expect(signJwtMock).toHaveBeenCalledWith({
+      body: {
+        payload: expect.objectContaining({
+          cnf: { jkt: "dpop-thumbprint" },
+        }),
+      },
+    });
+  });
+
   it("使用绑定资源的 JWT 访问令牌且为 offline_access 签发刷新令牌", async () => {
     signJwtMock.mockResolvedValue({ token: "header.payload.signature" });
     const {
@@ -119,6 +144,11 @@ describe("设备令牌签发器", () => {
       create: {
         clientId: "client-1",
         grantId: expect.any(String),
+        requestedUserInfoClaims: [],
+        resources: [
+          "https://life.example/api/auth",
+          "https://life.example/api/mcp",
+        ],
         scopes: [
           OAUTH_OPENID_SCOPE,
           OAUTH_PROFILE_SCOPE,
@@ -129,6 +159,11 @@ describe("设备令牌签发器", () => {
       },
       update: {
         grantId: expect.any(String),
+        requestedUserInfoClaims: [],
+        resources: [
+          "https://life.example/api/auth",
+          "https://life.example/api/mcp",
+        ],
         scopes: [
           OAUTH_OPENID_SCOPE,
           OAUTH_PROFILE_SCOPE,

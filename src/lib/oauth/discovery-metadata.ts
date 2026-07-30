@@ -67,6 +67,36 @@ export async function getOpenIdMetadataResponse(request: Request) {
   return buildDiscoveryMetadataResponse(request, openIdConfigMetadataHandler);
 }
 
+export async function getMcpProtectedResourceMetadataResponse(
+  request: Request,
+) {
+  const { betterAuthInstance } = await import("@/lib/auth/core");
+  const isHeadRequest = request.method === "HEAD";
+  const upstreamRequest = isHeadRequest
+    ? new Request(request, { method: "GET" })
+    : request;
+  const response = await betterAuthInstance.handler(upstreamRequest);
+  const body = (await response.json()) as Record<string, unknown>;
+  const {
+    dpop_bound_access_tokens_required: _dpopRequired,
+    dpop_signing_alg_values_supported: _dpopAlgorithms,
+    ...bearerOnlyMetadata
+  } = body;
+
+  const metadataResponse = createDiscoveryJsonResponse(bearerOnlyMetadata, {
+    status: response.status,
+    statusText: response.statusText,
+    headers: response.headers,
+  });
+  if (!isHeadRequest) return metadataResponse;
+
+  return new Response(null, {
+    status: metadataResponse.status,
+    statusText: metadataResponse.statusText,
+    headers: metadataResponse.headers,
+  });
+}
+
 type DiscoveryRouteHandlers = {
   GET: (request: Request) => Promise<Response> | Response;
   OPTIONS: typeof getDiscoveryOptionsResponse;

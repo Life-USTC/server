@@ -62,6 +62,30 @@ test.describe("/community/users/[identifier]", () => {
     await captureStepScreenshot(page, testInfo, "u-username/profile-fields");
   });
 
+  test("公开资料页输出带头像的专属 Open Graph 图片", async ({ page }) => {
+    await gotoAndWaitForReady(
+      page,
+      `/community/users/${DEV_SEED.adminUsername}`,
+    );
+    const imageContent = await page
+      .locator('meta[property="og:image"]')
+      .getAttribute("content");
+    expect(imageContent).toBeTruthy();
+    const imageUrl = new URL(imageContent ?? "");
+
+    expect(imageUrl.pathname).toBe("/open-graph.png");
+    expect(imageUrl.searchParams.get("variant")).toBe("profile");
+    expect(imageUrl.searchParams.get("title")).toBe(DEV_SEED.adminName);
+    expect(imageUrl.searchParams.get("username")).toBe(DEV_SEED.adminUsername);
+    expect(new URL(imageUrl.searchParams.get("avatar") ?? "").hostname).toBe(
+      "api.dicebear.com",
+    );
+
+    const imageResponse = await page.request.get(imageUrl.href);
+    expect(imageResponse.status()).toBe(200);
+    expect(imageResponse.headers()["content-type"]).toContain("image/png");
+  });
+
   test("显示统计计数器网格", async ({ page }, testInfo) => {
     await gotoAndWaitForReady(
       page,

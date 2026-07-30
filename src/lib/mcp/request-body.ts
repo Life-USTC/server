@@ -75,6 +75,11 @@ export async function readMcpJsonBodyWithinLimit(
 
   try {
     const body: unknown = JSON.parse(new TextDecoder().decode(bytes));
+    if (Array.isArray(body) && body.length === 0) {
+      return {
+        response: jsonRpcErrorResponse(400, -32600, "Invalid Request"),
+      };
+    }
     if (Array.isArray(body) && body.length > MCP_JSON_RPC_BATCH_LIMIT) {
       return {
         response: jsonRpcErrorResponse(

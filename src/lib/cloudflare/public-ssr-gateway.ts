@@ -30,6 +30,7 @@ const DIRECT_REQUEST_PATHS = new Set([
   "/",
   "/error",
   "/llms.txt",
+  "/open-graph.png",
   "/robots.txt",
   "/sitemap.xml",
 ]);

@@ -48,6 +48,8 @@ export const PUBLIC_REST_SCOPES = PUBLIC_REST_FEATURES.flatMap((feature) => [
   restWriteScope(feature),
 ]);
 
+export const MCP_BOOTSTRAP_SCOPE = restReadScope("account.profile");
+
 export const PUBLIC_OAUTH_SCOPES = [
   ...BASE_OAUTH_SCOPES,
   ...PUBLIC_REST_SCOPES,

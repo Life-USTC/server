@@ -1,4 +1,5 @@
 import { getSectionListPage } from "@/features/catalog/server/public-page-list-data";
+import { updateSocialMetadata } from "@/lib/social-metadata";
 import type { PageServerLoad } from "./$types";
 
 export const load: PageServerLoad = async ({ locals, parent, url }) => {
@@ -9,10 +10,14 @@ export const load: PageServerLoad = async ({ locals, parent, url }) => {
 
   return {
     ...data,
-    socialMetadata: {
-      ...layoutData.socialMetadata,
+    socialMetadata: updateSocialMetadata(layoutData.socialMetadata, {
+      card: {
+        footer: `Life@USTC · ${data.labels.common.sections}`,
+        label:
+          locals.locale === "zh-cn" ? "CATALOG · 教学班" : "SECTION CATALOG",
+      },
       description: data.labels.sections.subtitle,
       title: `${data.labels.common.sections} - Life@USTC`,
-    },
+    }),
   };
 };
