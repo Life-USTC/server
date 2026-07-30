@@ -92,12 +92,15 @@ $: panelDescriptionData =
     : data.descriptionData;
 
 async function selectTab(tab: SectionDetailTab) {
-  if (tab === activeTab && tabPanelStore.isLoaded(tab)) return;
+  const previousTab = activeTab;
+  if (tab === previousTab && tabPanelStore.isLoaded(tab)) return;
   activeTab = tab;
+  const nextPath = sectionDetailPagePath(data.section.jwId, tab);
+  const hash = typeof window !== "undefined" ? window.location.hash : "";
   history.replaceState(
     history.state,
     "",
-    sectionDetailPagePath(data.section.jwId, tab),
+    tab !== previousTab || !hash ? nextPath : `${nextPath}${hash}`,
   );
   if (tab === "overview" || tab === "comments") return;
   if (tab === "introduction" && data.descriptionData.description.content) {

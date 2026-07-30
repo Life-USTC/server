@@ -162,6 +162,7 @@ export function createSectionDetailTabPanelStore(userId: string | null) {
       },
     ) {
       if (tab === "overview" || tab === "comments" || loaded.has(tab)) {
+        loaded.add(tab);
         return state;
       }
 
