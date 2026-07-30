@@ -16,10 +16,11 @@ import {
 export function mapOidcProfileToUser(profile: OAuthProfile) {
   const accountId = getOidcAccountSubject(profile);
 
-  const email = profileEmail(profile.email);
+  const email = profileEmail(profile.email) ?? profileEmail(profile.fake_email);
   const emailVerified = firstBooleanValue(profile, [
     "email_verified",
     "emailVerified",
+    "fake_email_verified",
   ]);
   const displayName =
     firstProfileName(profile, [

@@ -85,6 +85,26 @@ describe("buildSocialMetadata", () => {
     expect(imageUrl.searchParams.get("label")).toBe("COURSE CATALOG");
     expect(imageUrl.searchParams.get("variant")).toBe("course");
   });
+
+  test("catalog list pages override the layout document title", () => {
+    const layoutMetadata = buildSocialMetadata({
+      canonicalPath: "/catalog/courses",
+      description: "Default",
+      imageAlt: "Social card",
+      locale: "zh-cn",
+      origin: "https://life.example.edu",
+      title: "Life@USTC - Course and Schedule Management",
+    });
+    const coursesMetadata = updateSocialMetadata(layoutMetadata, {
+      description: "Browse courses",
+      title: "课程 - Life@USTC",
+    });
+
+    expect(coursesMetadata.title).toBe("课程 - Life@USTC");
+    expect(layoutMetadata.title).toBe(
+      "Life@USTC - Course and Schedule Management",
+    );
+  });
 });
 
 describe("formatSocialMetadataMessage", () => {

@@ -102,8 +102,6 @@ function teacherFilterHref(overrides: Partial<TeacherListFilters>) {
 }
 </script>
 
-<svelte:head><title>{commonLabels.teachers} - Life@USTC</title></svelte:head>
-
 <section class="grid gap-5">
   <CatalogPageHeader
     description={teacherLabels.subtitle}

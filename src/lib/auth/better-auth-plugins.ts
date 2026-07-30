@@ -8,6 +8,7 @@ import {
   getOidcAccountSubject,
   mapOidcProfileToUser,
 } from "@/lib/auth/oauth-profile";
+import { buildUstcOidcProviderEndpoints } from "@/lib/auth/ustc-oidc-endpoints";
 import { ustcOidcIdentityPlugin } from "@/lib/auth/ustc-oidc-identity-plugin";
 import { stageUstcOidcIdentityFromProfile } from "@/lib/auth/ustc-oidc-identity-profile";
 import { webhookLoginPlugin } from "@/lib/auth/webhook-login-plugin";
@@ -21,9 +22,9 @@ export function buildBetterAuthPlugins(input: {
   authEnv: AuthEnv;
   authPublicOrigin: string;
   oauthProxySecret: string | undefined;
-  oidcDiscoveryUrl: string;
   oidcIssuer: string;
 }) {
+  const ustcOidcEndpoints = buildUstcOidcProviderEndpoints(input.oidcIssuer);
   return [
     jwt({
       jwt: {
@@ -51,7 +52,7 @@ export function buildBetterAuthPlugins(input: {
       config: [
         {
           providerId: "oidc",
-          discoveryUrl: input.oidcDiscoveryUrl,
+          ...ustcOidcEndpoints,
           clientId: input.authEnv.AUTH_OIDC_CLIENT_ID ?? "",
           clientSecret: input.authEnv.AUTH_OIDC_CLIENT_SECRET ?? "",
           scopes: [OAUTH_OPENID_SCOPE],

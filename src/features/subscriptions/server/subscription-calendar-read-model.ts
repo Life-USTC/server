@@ -1,5 +1,5 @@
 import { sectionCompactInclude } from "@/features/catalog/server/academic-query-includes";
-import { DEFAULT_LOCALE } from "@/i18n/config";
+import { type AppLocale, DEFAULT_LOCALE } from "@/i18n/config";
 import { prisma, withUserDbContext } from "@/lib/db/prisma";
 import { getPublicOrigin } from "@/lib/site-url";
 import {
@@ -8,6 +8,7 @@ import {
   type UserSectionSubscriptionState,
   userSectionSubscriptionSelect,
 } from "./subscription-read-model-shared";
+import { localizeCompactSubscriptionSection } from "./subscription-section-localize";
 
 export async function getUserSectionSubscriptionState(
   userId: string,
@@ -34,7 +35,7 @@ export async function getUserSectionSubscriptionState(
 
 export async function getUserCalendarSubscription(
   userId: string,
-  _locale = DEFAULT_LOCALE,
+  locale: AppLocale = DEFAULT_LOCALE,
 ) {
   const user = await withUserDbContext(userId, (tx) =>
     tx.user.findUnique({
@@ -65,7 +66,9 @@ export async function getUserCalendarSubscription(
   );
   return {
     userId: user.id,
-    sections: user.sectionSubscriptions.map((row) => row.section),
+    sections: user.sectionSubscriptions.map((row) =>
+      localizeCompactSubscriptionSection(row.section, locale),
+    ),
     calendarPath,
     calendarUrl: `${getPublicOrigin()}${calendarPath}`,
     note: SECTION_SUBSCRIPTION_NOTE,

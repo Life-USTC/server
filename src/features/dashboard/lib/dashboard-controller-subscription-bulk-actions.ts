@@ -79,8 +79,9 @@ export function createDashboardBulkImportActions(
       input.setConfirmImportOpen(false);
       input.setBulkImportOpen(false);
       resetBulkImport();
-      await input.invalidateAll();
-      input.setBulkImportMessage(message);
+      void input.invalidateAll().then(() => {
+        input.setBulkImportMessage(message);
+      });
     } catch (error) {
       input.setBulkImportError(error instanceof Error ? error.message : "");
     } finally {

@@ -96,7 +96,6 @@ describe("Better Auth CIMD plugin", () => {
       } as never,
       authPublicOrigin: "https://life.example",
       oauthProxySecret: undefined,
-      oidcDiscoveryUrl: "https://idp.example/.well-known/openid-configuration",
       oidcIssuer: "https://idp.example",
     });
 

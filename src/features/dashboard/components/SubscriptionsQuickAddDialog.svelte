@@ -135,9 +135,10 @@ async function subscribeSelectedSections() {
   if (selectedSectionIds.length === 0 || isSubmitting) return;
   error = "";
   isSubmitting = true;
+  const sectionIds = [...selectedSectionIds];
 
   try {
-    await subscribeQuickAddSections(selectedSectionIds);
+    await subscribeQuickAddSections(sectionIds);
     closeDialog();
   } catch (subscribeError) {
     error = subscribeError instanceof Error ? subscribeError.message : "";
