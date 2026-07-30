@@ -56,6 +56,8 @@ type ExpiredPendingUploadCleanupPrisma = {
       where: {
         userId: string;
         expiresAt: { lt: Date };
+        phase: { in: UploadPendingPhase[] };
+        OR: Array<{ leaseExpiresAt: null } | { leaseExpiresAt: { lt: Date } }>;
         NOT?: { key: string };
       };
       orderBy: [{ expiresAt: "asc" }, { key: "asc" }];

@@ -60,7 +60,7 @@ function pinAction(link: DashboardOverviewLinkItem): DashboardLinkPinAction {
   {/each}
   </div>
   <OverviewViewAllFooter
-    href={dashboardTabHref("links")}
+    href="/catalog/links"
     label={dashboardCopy.viewAll as string}
     visible={links.length > previewLimit}
   />

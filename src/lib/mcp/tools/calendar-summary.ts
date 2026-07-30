@@ -1,4 +1,5 @@
 import {
+  type CalendarSection,
   currentSemesterCalendarSections,
   redactCalendarLocationPair,
   summarizeCalendarSection,
@@ -6,25 +7,7 @@ import {
 
 type CalendarSubscriptionSummaryInput = {
   userId: unknown;
-  sections: Array<{
-    id: number;
-    jwId: number;
-    code: string;
-    course: {
-      jwId: number;
-      code: string;
-      namePrimary: string;
-      nameSecondary: string | null;
-    } | null;
-    semester: {
-      id: number;
-      jwId: number;
-      code: string;
-      nameCn: string;
-      startDate?: Date | string | null;
-      endDate?: Date | string | null;
-    } | null;
-  }>;
+  sections: CalendarSection[];
   calendarPath: string | null;
   calendarUrl: string | null;
   note: string;

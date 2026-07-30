@@ -42,6 +42,7 @@ import OverviewMissingCurrentTerm from "./OverviewMissingCurrentTerm.svelte";
 import OverviewSummaryCards from "./OverviewSummaryCards.svelte";
 import OverviewTermSelectionCard from "./OverviewTermSelectionCard.svelte";
 import OverviewTodayOverdueCards from "./OverviewTodayOverdueCards.svelte";
+import OverviewWeekCard from "./OverviewWeekCard.svelte";
 import type {
   OverviewCalendarTimelineItemsForDay,
   OverviewSignedData,

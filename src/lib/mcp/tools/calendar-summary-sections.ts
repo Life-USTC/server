@@ -1,16 +1,20 @@
 import { redactCalendarFeedLocation } from "@/lib/mcp/compact-helpers";
 import { shanghaiDayjs } from "@/lib/time/shanghai-dayjs";
 
-type CalendarSection = {
+type CalendarSectionCourse = {
+  jwId: number;
+  code: string;
+  namePrimary?: string;
+  nameSecondary?: string | null;
+  nameCn?: string;
+  nameEn?: string | null;
+};
+
+export type CalendarSection = {
   id: number;
   jwId: number;
   code: string;
-  course: {
-    jwId: number;
-    code: string;
-    namePrimary: string;
-    nameSecondary: string | null;
-  } | null;
+  course: CalendarSectionCourse | null;
   semester: {
     id: number;
     jwId: number;
@@ -20,6 +24,20 @@ type CalendarSection = {
     endDate?: Date | string | null;
   } | null;
 };
+
+function calendarSectionCourseNames(course: CalendarSectionCourse) {
+  if ("namePrimary" in course && course.namePrimary) {
+    return {
+      namePrimary: course.namePrimary,
+      nameSecondary: course.nameSecondary ?? null,
+    };
+  }
+
+  return {
+    namePrimary: course.nameCn ?? course.code,
+    nameSecondary: course.nameEn ?? null,
+  };
+}
 
 export function currentSemesterCalendarSections(
   sections: CalendarSection[],
@@ -38,18 +56,19 @@ export function currentSemesterCalendarSections(
 }
 
 export function summarizeCalendarSection(section: CalendarSection) {
+  const course = section.course
+    ? {
+        jwId: section.course.jwId,
+        code: section.course.code,
+        ...calendarSectionCourseNames(section.course),
+      }
+    : null;
+
   return {
     id: section.id,
     jwId: section.jwId,
     code: section.code,
-    course: section.course
-      ? {
-          jwId: section.course.jwId,
-          code: section.course.code,
-          namePrimary: section.course.namePrimary,
-          nameSecondary: section.course.nameSecondary,
-        }
-      : null,
+    course,
     semester: section.semester
       ? {
           id: section.semester.id,
