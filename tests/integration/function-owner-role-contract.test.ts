@@ -11,6 +11,13 @@ const expectedFunctions = [
     securityDefiner: true,
     settings: ['search_path=""'],
     signature:
+      "public.claim_upload_pending_storage_cleanup(p_now timestamp without time zone, p_batch_size integer, p_lease_seconds integer)",
+    volatility: "VOLATILE",
+  },
+  {
+    securityDefiner: true,
+    settings: ['search_path=""'],
+    signature:
       "public.cleanup_expired_auth_records(p_cutoff timestamp without time zone, p_batch_size integer)",
     volatility: "VOLATILE",
   },
@@ -29,6 +36,13 @@ const expectedFunctions = [
   {
     securityDefiner: true,
     settings: ['search_path=""'],
+    signature:
+      "public.finalize_upload_pending_storage_cleanup(p_id text, p_attempt_id text)",
+    volatility: "VOLATILE",
+  },
+  {
+    securityDefiner: true,
+    settings: ['search_path=""'],
     signature: "public.find_downloadable_upload(p_upload_id text)",
     volatility: "STABLE",
   },
@@ -43,13 +57,6 @@ const expectedFunctions = [
     securityDefiner: true,
     settings: ['search_path=""'],
     signature:
-      "public.get_public_profile_upload_stats(p_user_id text, p_since timestamp without time zone)",
-    volatility: "STABLE",
-  },
-  {
-    securityDefiner: true,
-    settings: ['search_path=""'],
-    signature:
       "public.get_public_profile_section_subscription_count(p_user_id text)",
     volatility: "STABLE",
   },
@@ -57,15 +64,8 @@ const expectedFunctions = [
     securityDefiner: true,
     settings: ['search_path=""'],
     signature:
-      "public.claim_upload_pending_storage_cleanup(p_now timestamp without time zone, p_batch_size integer, p_lease_seconds integer)",
-    volatility: "VOLATILE",
-  },
-  {
-    securityDefiner: true,
-    settings: ['search_path=""'],
-    signature:
-      "public.finalize_upload_pending_storage_cleanup(p_id text, p_attempt_id text)",
-    volatility: "VOLATILE",
+      "public.get_public_profile_upload_stats(p_user_id text, p_since timestamp without time zone)",
+    volatility: "STABLE",
   },
   {
     securityDefiner: true,
@@ -204,7 +204,7 @@ describe.skipIf(process.env.FUNCTION_OWNER_ROLE_TEST_ENABLED !== "true")(
       expect(ownedSchemas).toEqual([]);
     });
 
-    it("owns exactly the seven audited SECURITY DEFINER functions", async () => {
+    it("owns exactly the eleven audited SECURITY DEFINER functions", async () => {
       const functions = await adminPrisma.$queryRaw<
         Array<{
           securityDefiner: boolean;
@@ -416,7 +416,7 @@ describe.skipIf(process.env.FUNCTION_OWNER_ROLE_TEST_ENABLED !== "true")(
       expect(sequencePrivileges).toEqual([]);
     });
 
-    it("is the sole role on exactly three audited definer-read policies", async () => {
+    it("is the sole role on exactly five audited definer-read policies", async () => {
       const policies = await adminPrisma.$queryRaw<
         Array<{
           checkExpression: string | null;
@@ -479,6 +479,26 @@ describe.skipIf(process.env.FUNCTION_OWNER_ROLE_TEST_ENABLED !== "true")(
           roles: [functionOwnerRole],
           schemaName: "public",
           tableName: "Upload",
+          usingExpression: "true",
+        },
+        {
+          checkExpression: "true",
+          command: "ALL",
+          permissive: "PERMISSIVE",
+          policyName: "UploadPending_cleanup_worker",
+          roles: [functionOwnerRole],
+          schemaName: "public",
+          tableName: "UploadPending",
+          usingExpression: "true",
+        },
+        {
+          checkExpression: null,
+          command: "SELECT",
+          permissive: "PERMISSIVE",
+          policyName: "UserSectionSubscription_profile_reader",
+          roles: [functionOwnerRole],
+          schemaName: "public",
+          tableName: "UserSectionSubscription",
           usingExpression: "true",
         },
       ]);
