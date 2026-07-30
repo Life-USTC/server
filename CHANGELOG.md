@@ -1,3 +1,15 @@
+# [1.80.0](https://github.com/Life-USTC/server/compare/v1.79.0...v1.80.0) (2026-07-30)
+
+
+### Bug Fixes
+
+* social metadata document titles and subscription refresh UX ([#704](https://github.com/Life-USTC/server/issues/704)) ([46e92c8](https://github.com/Life-USTC/server/commit/46e92c82dc9274c822532ef083df7cc5c246f6bb))
+
+
+### Features
+
+* explicit subscriptions, upload leases, and dashboard overview ([#702](https://github.com/Life-USTC/server/issues/702)) ([a8f81bc](https://github.com/Life-USTC/server/commit/a8f81bc93865f5d89e2f1a1157f8cdec20b3ed24))
+
 # [1.79.0](https://github.com/Life-USTC/server/compare/v1.78.1...v1.79.0) (2026-07-30)
 
 
