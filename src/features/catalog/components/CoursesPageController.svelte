@@ -123,8 +123,6 @@ function courseEmptyDescription() {
 }
 </script>
 
-<svelte:head><title>{commonLabels.courses} - Life@USTC</title></svelte:head>
-
 <section class="grid gap-5">
   <CatalogPageHeader
     description={courseLabels.subtitle}

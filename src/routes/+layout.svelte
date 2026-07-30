@@ -8,10 +8,11 @@ import type { LayoutData } from "./$types";
 export let data: LayoutData;
 
 $: socialMetadata = $page.data.socialMetadata;
+$: documentTitle = socialMetadata?.title ?? "Life@USTC";
 </script>
 
 <svelte:head>
-  <title>Life@USTC</title>
+  <title>{documentTitle}</title>
   <link
     rel="icon"
     type="image/png"
