@@ -323,7 +323,7 @@ export async function assertPageContract(
       );
       await expect(page).toHaveURL(
         new RegExp(
-          `/catalog/sections/${DEV_SEED.section.jwId}/comments(?:\\?.*)?#comment-${createBody.id}$`,
+          `/catalog/sections/${DEV_SEED.section.jwId}\\?tab=comments(?:&.*)?#comment-${createBody.id}$`,
         ),
       );
       await expectMainContent(page);

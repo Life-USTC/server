@@ -40,6 +40,18 @@ export function sectionDetailPagePath(
   return `/catalog/sections/${jwId}${sectionDetailTabSearch(tab)}`;
 }
 
+export function sectionDetailHomeworkPath(
+  jwId: number | string,
+  options?: { homeworkId?: number | string },
+) {
+  const params = new URLSearchParams();
+  params.set(SECTION_DETAIL_TAB_QUERY, "homework");
+  if (options?.homeworkId != null) {
+    params.set("homeworkId", String(options.homeworkId));
+  }
+  return `/catalog/sections/${jwId}?${params.toString()}`;
+}
+
 export function resolveSectionDetailTabRedirect(request: Request) {
   if (request.method !== "GET" && request.method !== "HEAD") return null;
 

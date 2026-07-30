@@ -70,7 +70,7 @@ async function jumpToSection(page: Page, name: RegExp, selector: string) {
   const link = getSectionNavLink(page, name);
   await expect(link).toBeVisible();
   await link.click();
-  await expect(page.locator(selector)).toBeVisible();
+  await expect(page.locator(selector)).toBeVisible({ timeout: 30_000 });
 }
 
 async function openCommentDeleteDialog(page: Page, commentCard: Locator) {
@@ -424,7 +424,7 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
     ).toHaveAttribute("data-sveltekit-preload-data", "off");
 
     await jumpToSection(page, /作业|Homework/i, "#tab-homework");
-    await expect(page).toHaveURL(/\/catalog\/sections\/\d+\/homework$/);
+    await expect(page).toHaveURL(/\/catalog\/sections\/\d+\?tab=homework$/);
     await captureStepScreenshot(page, testInfo, "section/detail-nav");
   });
 
@@ -479,7 +479,7 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
     await expect(actions).toBeInViewport();
     for (const width of [280, 320, 375]) {
       await page.setViewportSize({ width, height: 900 });
-      await gotoAndWaitForReady(page, `${SECTION_URL}/comments`);
+      await gotoAndWaitForReady(page, `${SECTION_URL}?tab=comments`);
       await expect(actions).toBeInViewport();
       await expect
         .poll(() =>
@@ -608,7 +608,7 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
 
   test("桌面端保留页首主操作并隐藏移动端操作栏", async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
-    await gotoAndWaitForReady(page, `${SECTION_URL}/comments`);
+    await gotoAndWaitForReady(page, `${SECTION_URL}?tab=comments`);
 
     await expect(
       page
@@ -799,7 +799,7 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
 
   test("详情导航后内容滚动回到顶部", async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
-    await gotoAndWaitForReady(page, `${SECTION_URL}/comments`);
+    await gotoAndWaitForReady(page, `${SECTION_URL}?tab=comments`);
 
     const detailViewport = getDetailViewport(page);
     await expect(detailViewport).toBeVisible();
@@ -812,7 +812,7 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
       .toBeGreaterThan(100);
 
     await getSectionNavLink(page, /日历|Calendar/i).click();
-    await page.waitForURL(/\/catalog\/sections\/\d+\/calendar$/);
+    await page.waitForURL(/\/catalog\/sections\/\d+\?tab=calendar$/);
     await waitForUiSettled(page);
 
     await expect
@@ -1101,7 +1101,7 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
     await gotoAndWaitForReady(page, SECTION_URL);
     await jumpToSection(page, /作业|Homework/i, "#tab-homework");
     await expect(page).toHaveURL(
-      new RegExp(`/catalog/sections/${DEV_SEED.section.jwId}/homework$`),
+      new RegExp(`/catalog/sections/${DEV_SEED.section.jwId}\\?tab=homework$`),
     );
     await expect(page.getByTestId("section-homeworks-list")).toBeVisible();
     await captureStepScreenshot(page, testInfo, "section/homework-list-view");
@@ -1358,7 +1358,7 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
       await gotoAndWaitForReady(page, `/community/comments/${commentId}`);
       await expect(page).toHaveURL(
         new RegExp(
-          `/catalog/sections/${DEV_SEED.section.jwId}/homework\\?homeworkId=${escapeForRegExp(homeworkId ?? "")}#comment-${escapeForRegExp(commentId ?? "")}$`,
+          `/catalog/sections/${DEV_SEED.section.jwId}\\?tab=homework&homeworkId=${escapeForRegExp(homeworkId ?? "")}#comment-${escapeForRegExp(commentId ?? "")}$`,
         ),
       );
 

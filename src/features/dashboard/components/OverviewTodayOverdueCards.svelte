@@ -8,7 +8,12 @@ import type {
   DashboardTodoItem,
   DashboardTodosCopy,
 } from "@/features/dashboard/lib/dashboard-controller-helpers";
+<<<<<<< HEAD
 import { DASHBOARD_OVERVIEW_PREVIEW_LIMIT } from "@/features/dashboard/lib/overview-preview";
+||||||| parent of 93db6b44 (fix(section-detail): update permalinks and e2e for ?tab= URLs)
+=======
+import { sectionDetailHomeworkPath } from "@/features/section-detail/lib/section-detail-tab";
+>>>>>>> 93db6b44 (fix(section-detail): update permalinks and e2e for ?tab= URLs)
 import { Badge } from "$lib/components/ui/badge/index.js";
 import * as Card from "$lib/components/ui/card/index.js";
 import * as Empty from "$lib/components/ui/empty/index.js";
@@ -70,7 +75,7 @@ $: showOverdueViewAll =
             {#snippet child({ props })}
               <a
                 href={homework.section?.jwId
-                  ? `/catalog/sections/${homework.section.jwId}/homework#homework-${homework.id}`
+                  ? `${sectionDetailHomeworkPath(homework.section.jwId)}#homework-${homework.id}`
                   : dashboardTabHref("homeworks")}
                 {...props}
               >

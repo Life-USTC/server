@@ -1,3 +1,5 @@
+import { sectionDetailHomeworkPath } from "@/features/section-detail/lib/section-detail-tab";
+
 type HomeworkCompletionState = {
   completion?: unknown | null;
 };
@@ -44,7 +46,7 @@ export function homeworkDetailHref(
   fallbackHref: string,
 ) {
   return homework.section?.jwId
-    ? `/catalog/sections/${homework.section.jwId}/homework#homework-${homework.id}`
+    ? `${sectionDetailHomeworkPath(homework.section.jwId)}#homework-${homework.id}`
     : fallbackHref;
 }
 

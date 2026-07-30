@@ -363,7 +363,7 @@ test.describe("仪表盘作业", () => {
     await expect(popout).toBeVisible();
     const sectionLink = popout
       .locator(
-        `a[href*="/catalog/sections/${DEV_SEED.section.jwId}/homework#homework-"]`,
+        `a[href*="/catalog/sections/${DEV_SEED.section.jwId}?tab=homework#homework-"]`,
       )
       .first();
     await expect(sectionLink).toBeVisible();

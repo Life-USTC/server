@@ -1,3 +1,8 @@
+import {
+  sectionDetailHomeworkPath,
+  sectionDetailPagePath,
+} from "@/features/section-detail/lib/section-detail-tab";
+
 export function commentPanelSignInHref(pathname: string, search: string) {
   return `/account/sign-in?callbackUrl=${encodeURIComponent(`${pathname}${search}`)}`;
 }
@@ -62,17 +67,6 @@ function pathSegment(value: PermalinkPathValue) {
   return encodeURIComponent(String(value));
 }
 
-function pathWithSearch(
-  pathname: string,
-  search: Record<string, PermalinkPathValue>,
-) {
-  const params = new URLSearchParams();
-  for (const [key, value] of Object.entries(search)) {
-    params.set(key, String(value));
-  }
-  return `${pathname}?${params.toString()}`;
-}
-
 export function commentTargetPermalinkBaseHref(target: CommentPermalinkTarget) {
   if (target.type === "course") {
     return `/catalog/courses/${pathSegment(target.courseJwId)}/comments`;
@@ -81,12 +75,9 @@ export function commentTargetPermalinkBaseHref(target: CommentPermalinkTarget) {
     return `/catalog/teachers/${pathSegment(target.teacherId)}/comments`;
   }
   if (target.type === "homework") {
-    return pathWithSearch(
-      `/catalog/sections/${pathSegment(target.sectionJwId)}/homework`,
-      {
-        homeworkId: target.homeworkId,
-      },
-    );
+    return sectionDetailHomeworkPath(target.sectionJwId, {
+      homeworkId: target.homeworkId,
+    });
   }
-  return `/catalog/sections/${pathSegment(target.sectionJwId)}/comments`;
+  return sectionDetailPagePath(target.sectionJwId, "comments");
 }
