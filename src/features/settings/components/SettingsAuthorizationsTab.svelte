@@ -2,8 +2,8 @@
 import KeyRoundIcon from "@lucide/svelte/icons/key-round";
 import TrashIcon from "@lucide/svelte/icons/trash-2";
 import type { SubmitFunction } from "@sveltejs/kit";
-import type { AppLocale } from "@/i18n/config";
 import { oauthScopeLabel } from "@/features/oauth/lib/oauth-copy";
+import type { AppLocale } from "@/i18n/config";
 import { enhance } from "$app/forms";
 import * as AlertDialog from "$lib/components/ui/alert-dialog/index.js";
 import { Badge } from "$lib/components/ui/badge/index.js";
