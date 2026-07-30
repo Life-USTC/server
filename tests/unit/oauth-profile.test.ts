@@ -24,6 +24,23 @@ describe("OAuth 档案映射", () => {
     });
   });
 
+  it("使用 passport 提供的 fake_email 占位邮箱", () => {
+    const profile = {
+      sub: "812",
+      user_id: 812,
+      gid: "gid-812",
+      fake_email: "fakegid+gid-812@example.com",
+      fake_email_verified: true,
+    };
+
+    expect(mapOidcProfileToUser(profile)).toEqual({
+      email: "fakegid+gid-812@example.com",
+      name: "USTC User 812",
+      image: undefined,
+      emailVerified: true,
+    });
+  });
+
   it("保留上游 OIDC 档案中的 gid 和 sno 供身份同步使用", () => {
     const profile = {
       sub: "812",

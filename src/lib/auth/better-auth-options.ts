@@ -24,7 +24,6 @@ export function buildBetterAuthOptions() {
     authPublicOrigin,
     authPublicProtocol,
     oauthProxySecret,
-    oidcDiscoveryUrl,
     oidcIssuer,
   } = getBetterAuthOptionEnv();
   const debugAuthAllowed = allowDebugAuth();
@@ -70,7 +69,6 @@ export function buildBetterAuthOptions() {
       authEnv,
       authPublicOrigin,
       oauthProxySecret,
-      oidcDiscoveryUrl,
       oidcIssuer,
     }),
     onAPIError: betterAuthApiErrorHandler,
