@@ -33,6 +33,12 @@ export type SectionDetailTabPanelState = {
   >;
 };
 
+type SectionDetailTabPanelPatch = Partial<
+  Omit<SectionDetailTabPanelState, "sectionOverlay">
+> & {
+  sectionOverlay?: Partial<SectionDetailTabPanelState["sectionOverlay"]>;
+};
+
 const emptyHomeworkViewer = (userId: string | null): HomeworkViewer => ({
   isAdmin: false,
   isAuthenticated: Boolean(userId),
@@ -64,6 +70,20 @@ function emptyPanelState(userId: string | null): SectionDetailTabPanelState {
   };
 }
 
+function applyPanelPatch(
+  state: SectionDetailTabPanelState,
+  patch: SectionDetailTabPanelPatch,
+): SectionDetailTabPanelState {
+  return {
+    ...state,
+    ...patch,
+    sectionOverlay: {
+      ...state.sectionOverlay,
+      ...patch.sectionOverlay,
+    },
+  };
+}
+
 async function fetchSectionDetailApi(jwId: number, locale: AppLocale) {
   const result = await apiClient.GET<SectionDetailApiRecord>(
     `/api/catalog/sections/${jwId}`,
@@ -82,48 +102,56 @@ async function fetchSectionDetailApi(jwId: number, locale: AppLocale) {
 async function loadCalendarPanel(
   jwId: number,
   locale: AppLocale,
-  state: SectionDetailTabPanelState,
-) {
+): Promise<SectionDetailTabPanelPatch> {
   const detail = await fetchSectionDetailApi(jwId, locale);
-  state.sectionOverlay.schedules = detail.schedules ?? [];
-  state.sectionOverlay.exams = detail.exams ?? [];
+  return {
+    sectionOverlay: {
+      exams: detail.exams ?? [],
+      schedules: detail.schedules ?? [],
+    },
+  };
 }
 
 async function loadTeachersPanel(
   jwId: number,
   locale: AppLocale,
-  state: SectionDetailTabPanelState,
-) {
+): Promise<SectionDetailTabPanelPatch> {
   const detail = await fetchSectionDetailApi(jwId, locale);
-  state.sectionOverlay.teachers = detail.teachers ?? [];
+  return {
+    sectionOverlay: {
+      teachers: detail.teachers ?? [],
+    },
+  };
 }
 
 async function loadIntroductionPanel(
   sectionId: number,
-  state: SectionDetailTabPanelState,
-) {
+): Promise<SectionDetailTabPanelPatch> {
   const result = await fetchDescriptionPayload({
     targetId: sectionId,
     targetType: "section",
   });
   if (result.ok && result.payload) {
-    state.descriptionData = result.payload;
+    return { descriptionData: result.payload };
   }
+  return {};
 }
 
 async function loadHomeworkPanel(
   sectionId: number,
   errorMessage: string,
   state: SectionDetailTabPanelState,
-) {
+): Promise<SectionDetailTabPanelPatch> {
   const payload = await loadSectionHomeworks<
     HomeworkViewer,
     SectionHomework,
     HomeworkAuditLog
   >(sectionId, errorMessage);
-  state.homeworkViewer = payload.viewer ?? state.homeworkViewer;
-  state.homeworks = payload.homeworks ?? [];
-  state.homeworkAuditLogs = payload.auditLogs ?? [];
+  return {
+    homeworkAuditLogs: payload.auditLogs ?? [],
+    homeworkViewer: payload.viewer ?? state.homeworkViewer,
+    homeworks: payload.homeworks ?? [],
+  };
 }
 
 const tabLoaders: Record<
@@ -134,15 +162,14 @@ const tabLoaders: Record<
     locale: AppLocale;
     sectionId: number;
     state: SectionDetailTabPanelState;
-  }) => Promise<void>
+  }) => Promise<SectionDetailTabPanelPatch>
 > = {
-  introduction: ({ sectionId, state }) =>
-    loadIntroductionPanel(sectionId, state),
-  calendar: ({ jwId, locale, state }) => loadCalendarPanel(jwId, locale, state),
-  exams: ({ jwId, locale, state }) => loadCalendarPanel(jwId, locale, state),
+  introduction: ({ sectionId }) => loadIntroductionPanel(sectionId),
+  calendar: ({ jwId, locale }) => loadCalendarPanel(jwId, locale),
+  exams: ({ jwId, locale }) => loadCalendarPanel(jwId, locale),
   homework: ({ errorMessage, sectionId, state }) =>
     loadHomeworkPanel(sectionId, errorMessage, state),
-  teachers: ({ jwId, locale, state }) => loadTeachersPanel(jwId, locale, state),
+  teachers: ({ jwId, locale }) => loadTeachersPanel(jwId, locale),
 };
 
 export function createSectionDetailTabPanelStore(userId: string | null) {
@@ -167,7 +194,8 @@ export function createSectionDetailTabPanelStore(userId: string | null) {
       }
 
       const loader = tabLoaders[tab];
-      await loader({ ...input, state });
+      const patch = await loader({ ...input, state });
+      state = applyPanelPatch(state, patch);
       loaded.add(tab);
       return state;
     },

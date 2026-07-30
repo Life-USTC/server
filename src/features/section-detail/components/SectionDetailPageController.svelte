@@ -130,20 +130,18 @@ async function selectTab(tab: SectionDetailTab) {
   }
   tabPanelLoading = true;
   try {
-    await tabPanelStore.ensureLoaded(tab, {
+    tabPanelState = await tabPanelStore.ensureLoaded(tab, {
       errorMessage: _sectionCopy.operationFailed,
       jwId: Number(data.section.jwId),
       locale: data.locale,
       sectionId: Number(data.section.id),
     });
     if (tab === "homework") {
-      const state = tabPanelStore.getState();
-      _homeworkViewer = state.homeworkViewer;
-      _homeworks = state.homeworks;
-      _homeworkAuditLogs = state.homeworkAuditLogs;
-      syncFocusedHomework(state.homeworks);
+      _homeworkViewer = tabPanelState.homeworkViewer;
+      _homeworks = tabPanelState.homeworks;
+      _homeworkAuditLogs = tabPanelState.homeworkAuditLogs;
+      syncFocusedHomework(tabPanelState.homeworks);
     }
-    tabPanelState = tabPanelStore.getState();
   } finally {
     tabPanelLoading = false;
   }
