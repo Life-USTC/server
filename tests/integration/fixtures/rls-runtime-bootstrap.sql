@@ -333,7 +333,10 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE
   "DeviceCode",
   "OAuthRefreshToken",
   "OAuthAccessToken",
-  "OAuthConsent"
+  "OAuthConsent",
+  "oauthResource",
+  "oauthClientResource",
+  "oauthClientAssertion"
 TO life_ustc_auth_runtime;
 GRANT DELETE ON TABLE "User" TO life_ustc_auth_runtime;
 GRANT SELECT (

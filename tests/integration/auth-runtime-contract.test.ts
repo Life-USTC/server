@@ -47,6 +47,18 @@ const expectedTablePrivileges = [
   "VerificationToken:INSERT",
   "VerificationToken:SELECT",
   "VerificationToken:UPDATE",
+  "oauthClientAssertion:DELETE",
+  "oauthClientAssertion:INSERT",
+  "oauthClientAssertion:SELECT",
+  "oauthClientAssertion:UPDATE",
+  "oauthClientResource:DELETE",
+  "oauthClientResource:INSERT",
+  "oauthClientResource:SELECT",
+  "oauthClientResource:UPDATE",
+  "oauthResource:DELETE",
+  "oauthResource:INSERT",
+  "oauthResource:SELECT",
+  "oauthResource:UPDATE",
 ] as const;
 
 const expectedColumnPrivileges = [
