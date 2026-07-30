@@ -1,4 +1,5 @@
 import type { SubmitFunction } from "@sveltejs/kit";
+import type { UserUstcIdentitySummary } from "@/features/settings/lib/ustc-identity";
 
 export type SettingsProfileCopy = {
   cancel: string;
@@ -164,16 +165,7 @@ export type SettingsAccount = {
   linked: boolean;
   name: string;
   providerAccountId?: string | null;
-  ustcIdentities?: {
-    upstreamUids: string[];
-    records: {
-      upstreamUid: string;
-      gid: string | null;
-      sno: string | null;
-      firstSeenAt: string;
-      lastSyncedAt: string;
-    }[];
-  } | null;
+  ustcIdentities?: UserUstcIdentitySummary | null;
 };
 
 export type SettingsPendingAccountAction = {

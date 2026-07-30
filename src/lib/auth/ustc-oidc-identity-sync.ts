@@ -1,3 +1,4 @@
+import type { Account } from "@better-auth/core/db";
 import type { UstcOidcIdentityClaims } from "@/features/settings/lib/ustc-identity";
 import { OIDC_PROVIDER_ID } from "@/lib/auth/provider-ids";
 import { withUserDbContext } from "@/lib/db/prisma";
@@ -41,17 +42,16 @@ export async function syncUstcOidcIdentity(input: SyncUstcOidcIdentityInput) {
   });
 }
 
-type AccountIdentityHookPayload = {
-  provider: string;
-  providerAccountId: string;
-  userId: string;
-};
+type AccountIdentityHookPayload = Pick<
+  Account,
+  "providerId" | "providerAccountId" | "userId"
+>;
 
 export async function syncUstcOidcIdentityFromAccountHook(
   account: AccountIdentityHookPayload,
   stagedClaims: UstcOidcIdentityClaims | null,
 ) {
-  if (account.provider !== OIDC_PROVIDER_ID) return;
+  if (account.providerId !== OIDC_PROVIDER_ID) return;
 
   const upstreamUid = account.providerAccountId.trim();
   if (!upstreamUid) return;

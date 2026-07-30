@@ -1,13 +1,8 @@
+import type { Account } from "@better-auth/core/db";
 import { consumeStagedUstcOidcIdentityClaims } from "@/lib/auth/ustc-oidc-identity-staging";
 import { syncUstcOidcIdentityFromAccountHook } from "@/lib/auth/ustc-oidc-identity-sync";
 
-type AccountHookPayload = {
-  provider: string;
-  providerAccountId: string;
-  userId: string;
-};
-
-async function handleAccountIdentityHook(account: AccountHookPayload | null) {
+async function handleAccountIdentityHook(account: Account | null) {
   if (!account?.userId || !account.providerAccountId) return;
 
   const stagedClaims = consumeStagedUstcOidcIdentityClaims(
@@ -25,12 +20,12 @@ export function ustcOidcIdentityPlugin() {
           databaseHooks: {
             account: {
               create: {
-                async after(account: AccountHookPayload) {
+                async after(account: Account) {
                   await handleAccountIdentityHook(account);
                 },
               },
               update: {
-                async after(account: AccountHookPayload) {
+                async after(account: Account) {
                   await handleAccountIdentityHook(account);
                 },
               },

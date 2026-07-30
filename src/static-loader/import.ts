@@ -1663,7 +1663,7 @@ async function upsertTeachers(
   }
 
   if (toInsert.length > 0) {
-    const insertData = toInsert.map(({ build, values }) => ({
+    const insertData = toInsert.map(({ values }) => ({
       personId: values[0] as number | null,
       teacherId: values[1] as number | null,
       code: values[2] as string | null,
