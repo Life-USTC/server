@@ -1,3 +1,10 @@
+# [1.79.0](https://github.com/Life-USTC/server/compare/v1.78.1...v1.79.0) (2026-07-30)
+
+
+### Features
+
+* **auth:** collect USTC OIDC gid/sno identities ([#701](https://github.com/Life-USTC/server/issues/701)) ([bc86d7d](https://github.com/Life-USTC/server/commit/bc86d7d8dde57a38e9b1f5b767ec8d3bb048e749))
+
 ## [1.78.1](https://github.com/Life-USTC/server/compare/v1.78.0...v1.78.1) (2026-07-30)
 
 
