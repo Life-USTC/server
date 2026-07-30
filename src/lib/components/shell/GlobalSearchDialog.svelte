@@ -55,7 +55,7 @@ let groups: SearchResultGroup[] = [];
 let isSearching = false;
 let hasSearched = false;
 let searchGeneration = 0;
-let inputElement: HTMLInputElement | undefined;
+let inputElement: HTMLInputElement | null = null;
 
 const groupIcons: Record<SearchGroupType, typeof BookOpenIcon> = {
   courses: BookOpenIcon,
@@ -133,7 +133,7 @@ $: if (open) {
       <div class="flex items-center gap-2">
         <SearchIcon class="size-4 shrink-0 text-muted-foreground" />
         <Input
-          bind:this={inputElement}
+          bind:ref={inputElement}
           bind:value={query}
           class="h-10 border-0 bg-transparent px-0 shadow-none focus-visible:ring-0"
           oninput={handleInput}

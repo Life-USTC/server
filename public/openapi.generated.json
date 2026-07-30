@@ -532,6 +532,30 @@
         }
       }
     },
+    "/api/search": {
+      "get": {
+        "operationId": "get-api-search",
+        "summary": "Global search across catalog and workspace entities",
+        "tags": [
+          "Api"
+        ],
+        "responses": {
+          "200": {
+            "description": "Response 200"
+          },
+          "400": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/openApiErrorSchema"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/account/preferences": {
       "post": {
         "operationId": "setLocale",

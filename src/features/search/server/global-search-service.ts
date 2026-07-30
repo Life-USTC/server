@@ -51,7 +51,7 @@ function toSectionItem(
   locale: AppLocale,
 ): GlobalSearchResultItem {
   const courseName = catalogPrimaryName(section.course);
-  const semesterName = section.semester
+  const semesterName = section.semester?.nameCn
     ? formatSemesterName(locale, section.semester.nameCn)
     : null;
   return {
@@ -59,20 +59,6 @@ function toSectionItem(
     title: `${courseName} · ${section.code}`,
     description: semesterName,
     href: `/catalog/sections/${section.jwId}`,
-  };
-}
-
-function toTeacherItem(teacher: {
-  code: string;
-  department: { nameCn: string | null } | null;
-  id: number;
-  nameCn: string;
-}): GlobalSearchResultItem {
-  return {
-    id: `teacher:${teacher.id}`,
-    title: teacher.nameCn,
-    description: teacher.department?.nameCn ?? teacher.code,
-    href: `/catalog/teachers/${teacher.id}`,
   };
 }
 
@@ -115,7 +101,12 @@ async function searchCatalogGroups(
   if (teachers.data.length > 0) {
     groups.push({
       type: "teachers",
-      items: teachers.data.map(toTeacherItem),
+      items: teachers.data.map((teacher) => ({
+        id: `teacher:${teacher.id}`,
+        title: teacher.nameCn,
+        description: teacher.department?.nameCn ?? teacher.code,
+        href: `/catalog/teachers/${teacher.id}`,
+      })),
     });
   }
   return groups;
