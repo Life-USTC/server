@@ -4,6 +4,7 @@ import KeyRound from "@lucide/svelte/icons/key-round";
 import Link2 from "@lucide/svelte/icons/link-2";
 import ShieldAlert from "@lucide/svelte/icons/shield-alert";
 import SlidersHorizontal from "@lucide/svelte/icons/sliders-horizontal";
+import { onMount } from "svelte";
 import SettingsAccountsTab from "@/features/settings/components/SettingsAccountsTab.svelte";
 import SettingsAuthorizationsTab from "@/features/settings/components/SettingsAuthorizationsTab.svelte";
 import SettingsDangerTab from "@/features/settings/components/SettingsDangerTab.svelte";
@@ -113,6 +114,10 @@ function tabIcon(icon: string) {
   if (icon === "danger") return ShieldAlert;
   return CircleUserRound;
 }
+
+onMount(() => {
+  _isMounted = true;
+});
 </script>
 
 <svelte:head><title>{copy.settings.title} - Life@USTC</title></svelte:head>
