@@ -1,3 +1,10 @@
+## [1.80.2](https://github.com/Life-USTC/server/compare/v1.80.1...v1.80.2) (2026-07-30)
+
+
+### Bug Fixes
+
+* **db:** grant public profile helper execute to app runtime ([0184d23](https://github.com/Life-USTC/server/commit/0184d231d4b7c4aafb2663fd34b133272d0b7afc))
+
 ## [1.80.1](https://github.com/Life-USTC/server/compare/v1.80.0...v1.80.1) (2026-07-30)
 
 
