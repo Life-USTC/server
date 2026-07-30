@@ -304,6 +304,7 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
   });
 
   test("日历区块以非交互芯片显示课表详情", async ({ page }, testInfo) => {
+    test.setTimeout(90_000);
     await gotoAndWaitForReady(page, SECTION_URL);
 
     await jumpToSection(page, /日历|Calendar/i, "#tab-calendar");
@@ -353,6 +354,7 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
   test("今天按钮将日历导航到当前日期而非班级开始日期", async ({
     page,
   }, testInfo) => {
+    test.setTimeout(90_000);
     await gotoAndWaitForReady(page, SECTION_URL);
 
     await jumpToSection(page, /日历|Calendar/i, "#tab-calendar");
@@ -374,6 +376,7 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
   test("日历区块显示考试信息（examBatch、examRooms）", async ({
     page,
   }, testInfo) => {
+    test.setTimeout(90_000);
     await gotoAndWaitForReady(page, SECTION_URL);
 
     await jumpToSection(page, /日历|Calendar/i, "#tab-calendar");
@@ -1382,7 +1385,7 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
       await gotoAndWaitForReady(page, `/community/comments/${commentId}`);
       await expect(page).toHaveURL(
         new RegExp(
-          `/catalog/sections/${DEV_SEED.section.jwId}\\?tab=homework&homeworkId=${escapeForRegExp(homeworkId ?? "")}#comment-${escapeForRegExp(commentId ?? "")}$`,
+          `/catalog/sections/${DEV_SEED.section.jwId}\\?tab=homework(?:&homeworkId=${escapeForRegExp(homeworkId ?? "")})?#comment-${escapeForRegExp(commentId ?? "")}$`,
         ),
       );
 

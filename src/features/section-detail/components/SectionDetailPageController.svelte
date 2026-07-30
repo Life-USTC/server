@@ -95,13 +95,20 @@ async function selectTab(tab: SectionDetailTab) {
   const previousTab = activeTab;
   if (tab === previousTab && tabPanelStore.isLoaded(tab)) return;
   activeTab = tab;
-  const nextPath = sectionDetailPagePath(data.section.jwId, tab);
-  const hash = typeof window !== "undefined" ? window.location.hash : "";
-  history.replaceState(
-    history.state,
-    "",
-    tab !== previousTab || !hash ? nextPath : `${nextPath}${hash}`,
-  );
+  const preserveQuery = tab === previousTab;
+  const nextUrl = (() => {
+    const nextPath = sectionDetailPagePath(data.section.jwId, tab);
+    if (!preserveQuery || typeof window === "undefined") return nextPath;
+    const current = new URL(window.location.href);
+    const next = new URL(nextPath, current.origin);
+    for (const key of ["homeworkId", "homeworkView", "subscribe"]) {
+      const value = current.searchParams.get(key);
+      if (value !== null) next.searchParams.set(key, value);
+    }
+    if (current.hash) next.hash = current.hash;
+    return `${next.pathname}${next.search}${next.hash}`;
+  })();
+  history.replaceState(history.state, "", nextUrl);
   if (tab === "overview" || tab === "comments") return;
   if (tab === "introduction" && data.descriptionData.description.content) {
     return;
