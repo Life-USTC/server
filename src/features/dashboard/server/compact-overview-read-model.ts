@@ -5,9 +5,7 @@ import {
   listSubscribedSchedules,
   listUpcomingSubscribedExams,
 } from "@/features/subscriptions/server/subscription-read-model";
-import {
-  loadOverviewTodoBundle,
-} from "@/features/todos/server/todo-service";
+import { loadOverviewTodoBundle } from "@/features/todos/server/todo-service";
 import { type AppLocale, DEFAULT_LOCALE } from "@/i18n/config";
 import { runCloudflareTraceSpan } from "@/lib/adapters/cloudflare-runtime";
 import { prisma, withUserDbContext } from "@/lib/db/prisma";

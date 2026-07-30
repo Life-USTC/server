@@ -228,7 +228,12 @@ describe("public runtime cache", () => {
       ),
     ).toBe("v1:section:zh-cn:12345:core-without-exams-schedules-related");
     expect(
-      publicDetailKvCacheKey("course", "en-us", 683001, "core-without-sections"),
+      publicDetailKvCacheKey(
+        "course",
+        "en-us",
+        683001,
+        "core-without-sections",
+      ),
     ).toBe("v1:course:en-us:683001:core-without-sections");
   });
 
