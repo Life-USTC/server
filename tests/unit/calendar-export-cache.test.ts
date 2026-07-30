@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   getCachedUserCalendarExport,
+  invalidateUserCalendarExportCache,
   requestMatchesEtag,
   resetUserCalendarExportCacheForTest,
   USER_CALENDAR_EXPORT_FRESH_TTL_MS,
@@ -16,6 +17,9 @@ const calendarExport = {
 function kvNamespace() {
   const values = new Map<string, string>();
   return {
+    delete: vi.fn(async (key: string) => {
+      values.delete(key);
+    }),
     get: vi.fn(async (key: string) => {
       const value = values.get(key);
       return value ? JSON.parse(value) : null;
@@ -215,5 +219,20 @@ describe("用户 iCal 导出缓存", () => {
         etag,
       ),
     ).toBe(false);
+  });
+
+  it("deletes cached exports from memory and KV", async () => {
+    const namespace = kvNamespace();
+    setCloudflareRuntimeEnv({ CALENDAR_EXPORTS: namespace });
+
+    const buildExport = vi.fn(async () => calendarExport);
+    await getCachedUserCalendarExport("user-1", buildExport);
+    expect(buildExport).toHaveBeenCalledOnce();
+
+    await invalidateUserCalendarExportCache("user-1");
+    await getCachedUserCalendarExport("user-1", buildExport);
+
+    expect(buildExport).toHaveBeenCalledTimes(2);
+    expect(namespace.delete).toHaveBeenCalledWith("user-calendar:v1:user-1");
   });
 });

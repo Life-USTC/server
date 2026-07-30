@@ -1,4 +1,7 @@
-import { getCloudflareCalendarExportsNamespace } from "@/lib/adapters/cloudflare-runtime";
+import {
+  getCloudflareCalendarExportsNamespace,
+  getCloudflareRuntimeTaskScheduler,
+} from "@/lib/adapters/cloudflare-runtime";
 import { sha256Base64Url } from "@/lib/crypto/web-crypto";
 import { writeCalendarFeedCacheAnalytics } from "@/lib/metrics/analytics-engine";
 
@@ -261,4 +264,28 @@ export async function getCachedUserCalendarExport(
 export function resetUserCalendarExportCacheForTest() {
   userCalendarExportCache.clear();
   userCalendarExportRefreshes.clear();
+}
+
+export async function invalidateUserCalendarExportCache(userId: string) {
+  userCalendarExportCache.delete(userId);
+  userCalendarExportRefreshes.delete(userId);
+
+  const namespace = getCloudflareCalendarExportsNamespace();
+  if (!namespace) return;
+
+  try {
+    await namespace.delete(cacheKey(userId));
+  } catch {
+    recordCalendarFeedCacheStatus("store_error");
+  }
+}
+
+export function scheduleInvalidateUserCalendarExportCache(userId: string) {
+  const scheduleTask = getCloudflareRuntimeTaskScheduler();
+  const work = invalidateUserCalendarExportCache(userId);
+  if (scheduleTask) {
+    scheduleTask(work);
+    return;
+  }
+  void work;
 }

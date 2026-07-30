@@ -1,3 +1,4 @@
+import { scheduleInvalidateUserCalendarExportCache } from "@/features/calendar/server/calendar-export-invalidation";
 import type { Prisma } from "@/generated/prisma/client";
 import type { AppLocale } from "@/i18n/config";
 import { DEFAULT_LOCALE } from "@/i18n/config";
@@ -280,9 +281,13 @@ export async function mutateUserSectionSubscriptionsInTransaction(
 async function mutateUserSectionSubscriptions(
   input: LockedSectionSubscriptionMutationInput,
 ) {
-  return withUserDbContext(input.userId, (tx) =>
+  const result = await withUserDbContext(input.userId, (tx) =>
     mutateUserSectionSubscriptionsInTransaction(tx, input),
   );
+  if (result) {
+    scheduleInvalidateUserCalendarExportCache(input.userId);
+  }
+  return result;
 }
 
 type ResolvedCalendarSubscriptionSections = NonNullable<

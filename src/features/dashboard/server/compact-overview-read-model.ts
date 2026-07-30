@@ -172,7 +172,6 @@ export async function getCompactOverview(
               completed: false,
               dueAtFrom: now,
               dueAtTo: homeworkWindowEnd,
-              includeEditors: true,
               limit,
               locale,
               requireDueDate: true,

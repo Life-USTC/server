@@ -1,3 +1,4 @@
+import { scheduleInvalidateCalendarExportsForSection } from "@/features/calendar/server/calendar-export-invalidation";
 import { prisma } from "@/lib/db/prisma";
 import { isPrismaUniqueConstraintError } from "@/lib/db/prisma-errors";
 import { updateHomeworkDescription } from "./homework-description";
@@ -27,7 +28,7 @@ export async function updateHomework(input: {
 
   const homework = await prisma.homework.findUnique({
     where: { id: input.homeworkId },
-    select: { id: true, deletedAt: true },
+    select: { id: true, deletedAt: true, sectionId: true },
   });
 
   if (!homework) {
@@ -64,6 +65,8 @@ export async function updateHomework(input: {
     if (!isPrismaUniqueConstraintError(error)) throw error;
     await writeHomeworkUpdate();
   }
+
+  scheduleInvalidateCalendarExportsForSection(homework.sectionId);
 
   return { ok: true as const };
 }
@@ -119,6 +122,8 @@ export async function deleteHomework(input: {
       },
     });
   });
+
+  scheduleInvalidateCalendarExportsForSection(homework.sectionId);
 
   return { ok: true as const, alreadyDeleted: false };
 }

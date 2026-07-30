@@ -1,3 +1,4 @@
+import { scheduleInvalidateCalendarExportsForSection } from "@/features/calendar/server/calendar-export-invalidation";
 import { prisma } from "@/lib/db/prisma";
 import {
   type HomeworkWriteAuthError,
@@ -110,6 +111,8 @@ export async function createHomeworkForSection(
 
     return homework;
   });
+
+  scheduleInvalidateCalendarExportsForSection(sectionId);
 
   return { ok: true as const, homework };
 }

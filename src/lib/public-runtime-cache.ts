@@ -19,6 +19,7 @@ type CacheEntry<T> = {
 type PublicRuntimeCacheOptions<T> = {
   coloCacheKey?: string;
   kvCacheKey?: string;
+  kvTtlMs?: number;
   shouldCacheResult?: (result: T) => boolean;
   validateColoCacheResult?: (result: unknown) => boolean;
 };
@@ -477,12 +478,13 @@ export function publicRuntimeCacheKey(
 }
 
 export function publicDetailKvCacheKey(
+  revision: string,
   kind: PublicDetailColoCacheKind,
   locale: AppLocale,
   id: number,
-  shape: (typeof publicDetailColoCacheShapes)[PublicDetailColoCacheKind],
+  shape: string,
 ) {
-  return `v1:${kind}:${locale}:${id}:${shape}`;
+  return `v1:${revision}:${kind}:${locale}:${id}:${shape}`;
 }
 
 function resolvePublicDetailKvCacheKey(options: {
@@ -558,11 +560,13 @@ export function cachedPublicRuntimeData<T>(
   const initialStoreSize = store.size;
   let value: Promise<T> | undefined;
   value = (async () => {
-    const kvCacheKey = resolvePublicDetailKvCacheKey(options);
+    const kvCacheKey =
+      options.kvCacheKey ?? resolvePublicDetailKvCacheKey(options);
+    const kvTtlMs = options.kvTtlMs ?? ttlMs;
     const kvRead = kvCacheKey
       ? await readKvCache<T>(
           kvCacheKey,
-          ttlMs,
+          kvTtlMs,
           analyticsNamespace,
           start,
           initialStoreSize,
@@ -603,12 +607,13 @@ export function cachedPublicRuntimeData<T>(
         options.validateColoCacheResult,
       );
       if (resultValid) {
+        const kvTtlMs = options.kvTtlMs ?? ttlMs;
         if (kvCacheKey) {
           scheduleKvCacheWrite(
             kvCacheKey,
             result,
-            expiresAt,
-            ttlMs,
+            Date.now() + kvTtlMs,
+            kvTtlMs,
             analyticsNamespace,
             start,
             initialStoreSize,

@@ -9,6 +9,10 @@ import { getCoursePage } from "@/features/catalog/server/course-page-data";
 import { getTeacherPage } from "@/features/catalog/server/teacher-page-data";
 import { getViewerContext } from "@/lib/auth/viewer-context";
 import {
+  buildPublicDetailRuntimeCacheOptions,
+  PUBLIC_DETAIL_RUNTIME_CACHE_TTL_MS,
+} from "@/lib/catalog-detail-runtime-cache";
+import {
   cachedPublicRuntimeData,
   publicDetailColoCacheKey,
 } from "@/lib/public-runtime-cache";
@@ -39,8 +43,6 @@ const catalogDetailRouteSections = new Set([
   "sections",
   "comments",
 ]);
-
-const PUBLIC_DETAIL_RUNTIME_CACHE_TTL_MS = 60_000;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === "object";
@@ -97,24 +99,31 @@ export async function loadCourseDetailPage({
   const includeSections = detailSection === "sections";
   const loadCourse = () =>
     getCoursePage(jwId, locals.locale, { includeSections });
-  const [course, viewer] = await Promise.all([
+  const courseCacheOptions =
     locals.publicSsr && !locals.authUser && !includeSections
+      ? await buildPublicDetailRuntimeCacheOptions({
+          coloCacheKey: publicDetailColoCacheKey(
+            url.origin,
+            "course",
+            locals.locale,
+            jwId,
+          ),
+          id: jwId,
+          kind: "course",
+          kvShape: "core-without-sections",
+          locale: locals.locale,
+          shouldCacheResult: (result) => result !== null,
+          validateColoCacheResult: (result) => isPublicCourseCore(result, jwId),
+        })
+      : null;
+  const [course, viewer] = await Promise.all([
+    courseCacheOptions
       ? cachedPublicRuntimeData(
           `page:course-detail:${locals.locale}`,
           `catalog-detail:course:${locals.locale}:${jwId}`,
           PUBLIC_DETAIL_RUNTIME_CACHE_TTL_MS,
           loadCourse,
-          {
-            coloCacheKey: publicDetailColoCacheKey(
-              url.origin,
-              "course",
-              locals.locale,
-              jwId,
-            ),
-            shouldCacheResult: (result) => result !== null,
-            validateColoCacheResult: (result) =>
-              isPublicCourseCore(result, jwId),
-          },
+          courseCacheOptions,
         )
       : loadCourse(),
     getViewerContext({ userId: locals.authUser?.id ?? null }),
@@ -196,24 +205,31 @@ export async function loadTeacherDetailPage({
   const includeSections = detailSection === "sections";
   const loadTeacher = () =>
     getTeacherPage(id, locals.locale, { includeSections });
-  const [teacher, viewer] = await Promise.all([
+  const teacherCacheOptions =
     locals.publicSsr && !locals.authUser && !includeSections
+      ? await buildPublicDetailRuntimeCacheOptions({
+          coloCacheKey: publicDetailColoCacheKey(
+            url.origin,
+            "teacher",
+            locals.locale,
+            id,
+          ),
+          id,
+          kind: "teacher",
+          kvShape: "core-without-sections",
+          locale: locals.locale,
+          shouldCacheResult: (result) => result !== null,
+          validateColoCacheResult: (result) => isPublicTeacherCore(result, id),
+        })
+      : null;
+  const [teacher, viewer] = await Promise.all([
+    teacherCacheOptions
       ? cachedPublicRuntimeData(
           `page:teacher-detail:${locals.locale}`,
           `catalog-detail:teacher:${locals.locale}:${id}`,
           PUBLIC_DETAIL_RUNTIME_CACHE_TTL_MS,
           loadTeacher,
-          {
-            coloCacheKey: publicDetailColoCacheKey(
-              url.origin,
-              "teacher",
-              locals.locale,
-              id,
-            ),
-            shouldCacheResult: (result) => result !== null,
-            validateColoCacheResult: (result) =>
-              isPublicTeacherCore(result, id),
-          },
+          teacherCacheOptions,
         )
       : loadTeacher(),
     getViewerContext({ userId: locals.authUser?.id ?? null }),
