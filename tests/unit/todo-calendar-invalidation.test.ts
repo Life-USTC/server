@@ -69,6 +69,7 @@ describe("todo calendar export invalidation", () => {
       userId: "user-1",
       data: {
         title: "Updated",
+        dueAt: undefined,
         hasDueAt: false,
       },
     });
