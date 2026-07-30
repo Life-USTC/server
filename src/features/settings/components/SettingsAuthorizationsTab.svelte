@@ -3,6 +3,7 @@ import KeyRoundIcon from "@lucide/svelte/icons/key-round";
 import TrashIcon from "@lucide/svelte/icons/trash-2";
 import type { SubmitFunction } from "@sveltejs/kit";
 import type { AppLocale } from "@/i18n/config";
+import { oauthScopeLabel } from "@/features/oauth/lib/oauth-copy";
 import { enhance } from "$app/forms";
 import * as AlertDialog from "$lib/components/ui/alert-dialog/index.js";
 import { Badge } from "$lib/components/ui/badge/index.js";
@@ -56,17 +57,9 @@ function revokeAction(consentId: string): SubmitFunction {
 </script>
 
 <Card.Root
-  aria-labelledby="settings-authorizations-title"
+  aria-label={copy.settings.authorizations.title}
   role="region"
 >
-  <Card.Header>
-    <Card.Title id="settings-authorizations-title">
-      {copy.settings.authorizations.title}
-    </Card.Title>
-    <Card.Description>
-      {copy.settings.authorizations.description}
-    </Card.Description>
-  </Card.Header>
   <Card.Content>
     {#if authorizations.length === 0}
       <Empty.Root>
@@ -116,7 +109,9 @@ function revokeAction(consentId: string): SubmitFunction {
                 </span>
                 <div class="flex flex-wrap gap-1.5">
                   {#each authorization.scopes as scope}
-                    <Badge variant="outline">{scope}</Badge>
+                    <Badge variant="outline">
+                      {oauthScopeLabel(locale, scope)}
+                    </Badge>
                   {/each}
                 </div>
               </div>

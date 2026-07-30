@@ -170,6 +170,7 @@ $: activeNavItem =
             initialData={data.descriptionData}
             locale={data.locale as "en-us" | "zh-cn"}
             copy={copy.descriptions}
+            showTitle={false}
           />
         {/key}
       </section>

@@ -5,7 +5,6 @@ export const SETTINGS_TABS = [
   "preferences",
   "accounts",
   "authorizations",
-  "content",
   "danger",
 ] as const;
 
@@ -32,6 +31,9 @@ export function settingsTabFromPathname(pathname: string): SettingsTab {
 function resolveLegacySettingsTab(value: string | null) {
   if (value === "appearance" || value === "language") {
     return "preferences";
+  }
+  if (value === "content") {
+    return "profile";
   }
   return isSettingsTab(value) ? value : null;
 }

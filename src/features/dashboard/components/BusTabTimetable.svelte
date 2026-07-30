@@ -16,7 +16,7 @@ export let busNextTripHighlightKey: string | null;
 export let busPlannerReady: boolean;
 export let busShowsEstimatedHint: boolean;
 export let reverseBusStops: () => void;
-export let showHeader = true;
+export let showHeader = false;
 </script>
 
 <div class="min-w-0">

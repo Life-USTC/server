@@ -32,7 +32,7 @@ export let viewAllLabel = "View all";
 <Card.Root>
   <Card.Header>
     <Card.Title>
-      <a class="no-underline hover:underline" href={dashboardTabHref("todos")}>{dashboardCopy.nav.todos.title}</a>
+      <a class="no-underline hover:underline" href={dashboardTabHref("todos")}>{dashboardCopy.todos.title}</a>
     </Card.Title>
     <Card.Action>
       <div class="flex flex-wrap justify-end gap-1.5">

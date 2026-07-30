@@ -188,6 +188,7 @@ $: activeNavItem =
             initialData={data.descriptionData}
             locale={data.locale}
             copy={data.copy.descriptions}
+            showTitle={false}
           />
         {/key}
       </section>

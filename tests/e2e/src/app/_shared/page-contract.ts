@@ -89,22 +89,26 @@ export async function assertPageContract(
       await gotoContractPage(page, routePath, testInfo);
       await expectMainContent(page);
       const expectedTab = routePath.split("/").pop();
-      const tabHeading =
+      const tabMarker =
         expectedTab === "profile"
-          ? /个人资料|Profile/i
+          ? page.getByRole("heading", { name: /编辑个人资料|Edit Profile/i })
           : expectedTab === "accounts"
-            ? /账号关联|Accounts/i
-            : expectedTab === "content"
-              ? /内容偏好|Content/i
-              : expectedTab === "danger"
-                ? /危险|Danger/i
-                : /设置|Settings/i;
+            ? page.getByRole("region", {
+                name: /关联账户|Linked accounts/i,
+              })
+            : expectedTab === "preferences"
+              ? page.getByText(/外观|Appearance/i).first()
+              : expectedTab === "authorizations"
+                ? page.getByRole("region", {
+                    name: /已授权的 OAuth 应用|Authorized OAuth applications/i,
+                  })
+                : expectedTab === "danger"
+                  ? page.getByRole("heading", { name: /危险|Danger/i })
+                  : page.getByRole("heading", { name: /设置|Settings/i });
       await expect(
         page.getByRole("link", { name: /设置|Settings/i }),
       ).toBeVisible();
-      await expect(
-        page.getByRole("heading", { name: tabHeading }),
-      ).toBeVisible();
+      await expect(tabMarker).toBeVisible();
       return;
     }
   }

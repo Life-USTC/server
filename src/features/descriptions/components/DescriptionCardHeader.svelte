@@ -10,6 +10,7 @@ import type {
 
 export let copy: DescriptionCopy;
 export let description: DescriptionContent;
+export let showTitle = true;
 export let editing: boolean;
 export let editorName: (value: DescriptionContent["lastEditedBy"]) => string;
 export let formatDate: (value: string | null | undefined) => string;
@@ -18,7 +19,9 @@ export let viewer: DescriptionViewer;
 </script>
 
 <Card.Header>
-  <Card.Title class="min-w-0 break-words">{copy.title}</Card.Title>
+  {#if showTitle}
+    <Card.Title class="min-w-0 break-words">{copy.title}</Card.Title>
+  {/if}
   {#if description.lastEditedAt}
     <Card.Description>
       {formatDescriptionCopy(copy.lastEdited, { date: formatDate(description.lastEditedAt) })}

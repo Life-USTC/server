@@ -27,7 +27,7 @@ describe("settings tabs", () => {
   it.each([
     ["profile", "/account/settings/profile"],
     ["accounts", "/account/settings/accounts"],
-    ["content", "/account/settings/content"],
+    ["content", "/account/settings/profile"],
     ["danger", "/account/settings/danger"],
     ["preferences", "/account/settings/preferences"],
     ["appearance", "/account/settings/preferences"],

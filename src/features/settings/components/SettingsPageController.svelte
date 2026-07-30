@@ -1,14 +1,11 @@
 <script lang="ts">
 import CircleUserRound from "@lucide/svelte/icons/circle-user-round";
-import FileText from "@lucide/svelte/icons/file-text";
 import KeyRound from "@lucide/svelte/icons/key-round";
 import Link2 from "@lucide/svelte/icons/link-2";
 import ShieldAlert from "@lucide/svelte/icons/shield-alert";
 import SlidersHorizontal from "@lucide/svelte/icons/sliders-horizontal";
-import { onMount, tick } from "svelte";
 import SettingsAccountsTab from "@/features/settings/components/SettingsAccountsTab.svelte";
 import SettingsAuthorizationsTab from "@/features/settings/components/SettingsAuthorizationsTab.svelte";
-import SettingsContentTab from "@/features/settings/components/SettingsContentTab.svelte";
 import SettingsDangerTab from "@/features/settings/components/SettingsDangerTab.svelte";
 import SettingsHeader from "@/features/settings/components/SettingsHeader.svelte";
 import SettingsPreferencesTab from "@/features/settings/components/SettingsPreferencesTab.svelte";
@@ -20,8 +17,7 @@ import {
   createSettingsAccountAction,
 } from "@/features/settings/lib/settings-page-actions";
 import type { SettingsTab } from "@/features/settings/lib/settings-tabs";
-import { Button } from "$lib/components/ui/button/index.js";
-import { cn } from "$lib/utils";
+import DetailSectionNav from "$lib/components/DetailSectionNav.svelte";
 import type {
   SettingsAccount,
   SettingsCopy,
@@ -88,13 +84,15 @@ $: _unlinkAccount =
   data.accounts.find((account) => account.id === _unlinkAccountId) ?? null;
 $: _hasPendingAccountAction = Boolean(_pendingAccountAction);
 $: copy = data.copy;
-$: activeNavItem =
-  data.settingsNav.tabs.find((item) => item.id === data.activeTab) ??
-  data.settingsNav.tabs[0];
-
-let canScrollNavLeft = false;
-let canScrollNavRight = false;
-let settingsNavigation: HTMLElement | null = null;
+$: sectionNavItems = data.settingsNav.tabs.map((item) => ({
+  href: item.href,
+  icon: tabIcon(item.icon),
+  label: item.title,
+}));
+$: activeNavHref =
+  data.settingsNav.tabs.find((item) => item.id === data.activeTab)?.href ??
+  data.settingsNav.tabs[0]?.href ??
+  "";
 
 const accountAction = createSettingsAccountAction({
   setPendingAccountAction: (value) => {
@@ -112,63 +110,9 @@ function tabIcon(icon: string) {
   if (icon === "preferences") return SlidersHorizontal;
   if (icon === "accounts") return Link2;
   if (icon === "authorizations") return KeyRound;
-  if (icon === "content") return FileText;
   if (icon === "danger") return ShieldAlert;
   return CircleUserRound;
 }
-
-function centerNavigationItem(node: HTMLElement) {
-  if (!settingsNavigation) return;
-  const navigationBox = settingsNavigation.getBoundingClientRect();
-  const nodeBox = node.getBoundingClientRect();
-  settingsNavigation.scrollLeft +=
-    nodeBox.left +
-    nodeBox.width / 2 -
-    (navigationBox.left + navigationBox.width / 2);
-  updateNavigationOverflow();
-}
-
-function revealActive(node: HTMLElement, active: boolean) {
-  function reveal(isActive: boolean) {
-    if (isActive) {
-      void tick().then(() => centerNavigationItem(node));
-    }
-  }
-
-  reveal(active);
-  return { update: reveal };
-}
-
-function updateNavigationOverflow() {
-  if (!settingsNavigation) return;
-  canScrollNavLeft = settingsNavigation.scrollLeft > 1;
-  canScrollNavRight =
-    settingsNavigation.scrollLeft + settingsNavigation.clientWidth <
-    settingsNavigation.scrollWidth - 1;
-}
-
-onMount(() => {
-  _isMounted = true;
-  if (!settingsNavigation) return;
-  const navigation = settingsNavigation;
-  const resizeObserver = new ResizeObserver(updateNavigationOverflow);
-  resizeObserver.observe(navigation);
-  navigation.addEventListener("scroll", updateNavigationOverflow, {
-    passive: true,
-  });
-  void tick().then(() => {
-    const activeLink = navigation.querySelector<HTMLElement>(
-      'a[aria-current="page"]',
-    );
-    if (activeLink) centerNavigationItem(activeLink);
-    else updateNavigationOverflow();
-  });
-
-  return () => {
-    resizeObserver.disconnect();
-    navigation.removeEventListener("scroll", updateNavigationOverflow);
-  };
-});
 </script>
 
 <svelte:head><title>{copy.settings.title} - Life@USTC</title></svelte:head>
@@ -176,56 +120,14 @@ onMount(() => {
 <section class="grid gap-6">
   <SettingsHeader {copy} />
 
-  <div class="grid gap-5 lg:grid-cols-[12rem_minmax(0,1fr)] lg:items-start lg:gap-6">
-    <div
-      class={cn(
-        "relative -mx-4 min-w-0 sm:-mx-5 lg:sticky lg:top-4 lg:mx-0",
-        canScrollNavLeft &&
-          "before:pointer-events-none before:absolute before:inset-y-0 before:left-0 before:z-10 before:w-8 before:bg-gradient-to-r before:from-background before:to-transparent lg:before:hidden",
-        canScrollNavRight &&
-          "after:pointer-events-none after:absolute after:inset-y-0 after:right-0 after:z-10 after:w-8 after:bg-gradient-to-l after:from-background after:to-transparent lg:after:hidden",
-      )}
-      data-overflow-left={canScrollNavLeft}
-      data-overflow-right={canScrollNavRight}
-    >
-      <nav
-        aria-label={data.settingsNav.title}
-        bind:this={settingsNavigation}
-        class="overflow-x-auto px-4 pb-1 sm:px-5 lg:overflow-visible lg:px-0 lg:pb-0"
-        data-settings-navigation
-      >
-        <ul class="flex min-w-max gap-2 pr-8 lg:grid lg:min-w-0 lg:pr-0">
-          {#each data.settingsNav.tabs as item}
-            {@const Icon = tabIcon(item.icon)}
-            {@const isActive = data.activeTab === item.id}
-            <li class="lg:min-w-0" use:revealActive={isActive}>
-              <Button
-                aria-current={isActive ? "page" : undefined}
-                class="min-h-10 justify-start lg:w-full"
-                href={item.href}
-                variant={isActive
-                  ? "secondary"
-                  : item.id === "danger"
-                    ? "destructive"
-                    : "ghost"}
-              >
-                <Icon aria-hidden="true" data-icon="inline-start" />
-                <span>{item.title}</span>
-              </Button>
-            </li>
-          {/each}
-        </ul>
-      </nav>
-    </div>
+  <div class="grid gap-5 lg:grid-cols-[auto_minmax(0,1fr)] lg:items-start lg:gap-6">
+    <DetailSectionNav
+      activeHref={activeNavHref}
+      ariaLabel={data.settingsNav.title}
+      items={sectionNavItems}
+    />
 
     <div class="grid min-w-0 gap-4" data-settings-active-panel>
-      {#if activeNavItem}
-        <header class="grid gap-1" data-settings-active-header>
-          <h2 class="font-semibold text-xl">{activeNavItem.title}</h2>
-          <p class="text-muted-foreground text-sm">{activeNavItem.description}</p>
-        </header>
-      {/if}
-
       <SettingsStatusAlert {copy} {statusMessage} />
 
       {#if data.tab === "profile"}
@@ -258,8 +160,6 @@ onMount(() => {
           {copy}
           locale={data.locale}
         />
-      {:else if data.tab === "content"}
-        <SettingsContentTab {copy} />
       {:else}
         <SettingsDangerTab
           {copy}

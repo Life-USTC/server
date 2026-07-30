@@ -792,7 +792,7 @@
       "departEtaHoursMinutes": "{hours, plural, one {# hour} other {# hours}} {minutes, plural, one {# minute} other {# minutes}}",
       "etaUnknown": "ETA unavailable",
       "estimatedHint": "~ marks an estimated time inferred from nearby stops on the same trip.",
-      "clientHint": "Day type, route matching, and ranking are computed in your browser from the raw timetable data.",
+      "clientHint": "Trip times and routes reflect your stop selections and whether today is a weekday or weekend.",
       "direction": "Direction",
       "routes": "Routes",
       "routeSectionsCount": "{count} route sections",
@@ -967,7 +967,7 @@
       },
       "language": {
         "title": "Language",
-        "description": "Change interface language without adding a locale segment to the URL."
+        "description": "Choose which language the interface uses."
       }
     },
     "authorizations": {
@@ -1054,7 +1054,7 @@
     "searchPlaceholder": "Search course names, course codes, or section codes",
     "searchHelp": "?",
     "searchHelpTitle": "Advanced Search Syntax",
-    "searchHelpDescription": "The form above exposes every common condition. Text syntax is useful for pasting and reusing complex queries; conditions are combined, and values containing spaces must be quoted.",
+    "searchHelpDescription": "Use the filters above for everyday searches. You can combine multiple conditions in the search box—wrap values containing spaces in quotes.",
     "searchHelpExample": "Example:",
     "searchHelpExamples": [
       {

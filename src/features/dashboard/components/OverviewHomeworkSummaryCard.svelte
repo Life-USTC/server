@@ -26,7 +26,7 @@ export let viewAllLabel = "View all";
 <Card.Root>
   <Card.Header>
     <Card.Title>
-      <a class="no-underline hover:underline" href={dashboardTabHref("homeworks")}>{dashboardCopy.nav.homeworks.title}</a>
+      <a class="no-underline hover:underline" href={dashboardTabHref("homeworks")}>{dashboardCopy.homeworks.titleV2}</a>
     </Card.Title>
   </Card.Header>
   <Card.Content>

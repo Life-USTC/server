@@ -23,13 +23,10 @@ export let unlinkAccountId: string | null;
 export let user: SettingsUser;
 </script>
 
-<Card.Root>
-  <Card.Header>
-    <Card.Title>{copy.profile.linkedAccounts}</Card.Title>
-    <Card.Description>
-      {copy.profile.linkedAccountsDescription}
-    </Card.Description>
-  </Card.Header>
+<Card.Root
+  aria-label={copy.profile.linkedAccounts}
+  role="region"
+>
   <Card.Content>
     <Item.Group>
       {#each accounts as account}
