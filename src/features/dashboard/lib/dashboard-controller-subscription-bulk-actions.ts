@@ -111,8 +111,9 @@ export function createDashboardBulkImportActions(
       copy: input.getSubscriptionsCopy(),
       selectedSectionIds,
     });
-    await input.invalidateAll();
-    input.setBulkImportMessage(message);
+    void input.invalidateAll().then(() => {
+      input.setBulkImportMessage(message);
+    });
   }
 
   return {
