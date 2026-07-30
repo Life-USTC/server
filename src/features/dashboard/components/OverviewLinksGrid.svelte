@@ -6,10 +6,10 @@ import type {
 } from "@/features/dashboard/lib/dashboard-controller-helpers";
 import { DASHBOARD_OVERVIEW_PREVIEW_LIMIT } from "@/features/dashboard/lib/overview-preview";
 import * as Empty from "$lib/components/ui/empty/index.js";
-import OverviewViewAllFooter from "./OverviewViewAllFooter.svelte";
 import DashboardLinkVisitAction from "./DashboardLinkVisitAction.svelte";
 import type { DashboardCalendarTabHref } from "./dashboard-calendar-component-types";
 import LinksTabPinButton from "./LinksTabPinButton.svelte";
+import OverviewViewAllFooter from "./OverviewViewAllFooter.svelte";
 
 export let dashboardCopy: DashboardDashboardCopy;
 export let dashboardTabHref: DashboardCalendarTabHref;

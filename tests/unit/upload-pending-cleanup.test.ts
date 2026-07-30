@@ -1,8 +1,8 @@
 import { describe, expect, it, vi } from "vitest";
 import {
+  cleanupStaleUploadPendingStorage,
   UPLOAD_PENDING_CLEANUP_BATCH_SIZE,
   UPLOAD_PENDING_CLEANUP_LEASE_SECONDS,
-  cleanupStaleUploadPendingStorage,
 } from "@/features/uploads/server/upload-pending-cleanup";
 
 const { deleteStorageObjectMock, logAppEventMock } = vi.hoisted(() => ({

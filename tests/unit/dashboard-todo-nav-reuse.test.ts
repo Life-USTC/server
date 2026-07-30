@@ -43,13 +43,13 @@ import { loadSignedDashboardTabData } from "@/features/dashboard/server/dashboar
 
 const context = {
   sectionIds: [12],
-      sectionSubscriptions: {
-        select: {
-          section: {
-            select: { id: true, retiredAt: true, semesterId: true },
-          },
-        },
+  sectionSubscriptions: {
+    select: {
+      section: {
+        select: { id: true, retiredAt: true, semesterId: true },
       },
+    },
+  },
   user: {
     calendarFeedToken: null,
     id: "user-1",

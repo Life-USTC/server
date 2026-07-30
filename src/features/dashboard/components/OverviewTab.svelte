@@ -29,6 +29,7 @@ import {
   todosDueTodayForOverview,
   todosOverdueForOverview,
 } from "@/features/dashboard/lib/overview";
+import { DASHBOARD_OVERVIEW_PREVIEW_LIMIT } from "@/features/dashboard/lib/overview-preview";
 import DashboardNoSubscriptionsState from "./DashboardNoSubscriptionsState.svelte";
 import type {
   DashboardCalendarData,
@@ -41,7 +42,6 @@ import OverviewMissingCurrentTerm from "./OverviewMissingCurrentTerm.svelte";
 import OverviewSummaryCards from "./OverviewSummaryCards.svelte";
 import OverviewTermSelectionCard from "./OverviewTermSelectionCard.svelte";
 import OverviewTodayOverdueCards from "./OverviewTodayOverdueCards.svelte";
-import { DASHBOARD_OVERVIEW_PREVIEW_LIMIT } from "@/features/dashboard/lib/overview-preview";
 import type {
   OverviewCalendarTimelineItemsForDay,
   OverviewSignedData,

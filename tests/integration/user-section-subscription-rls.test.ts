@@ -42,9 +42,9 @@ describe.skipIf(process.env.RLS_TEST_ENABLED !== "true")(
     });
 
     it("defaults to no rows or writes without an owner context", async () => {
-      await expect(
-        prisma.userSectionSubscription.findMany(),
-      ).resolves.toEqual([]);
+      await expect(prisma.userSectionSubscription.findMany()).resolves.toEqual(
+        [],
+      );
       await expect(
         prisma.userSectionSubscription.create({
           data: { sectionId, userId: firstUserId },

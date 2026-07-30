@@ -67,7 +67,10 @@ describe("putUploadObjectRoute", () => {
     vi.setSystemTime(FIXED_NOW);
     withUserDbContextMock.mockImplementation((_userId, action) =>
       action({
-        uploadPending: { findUnique: findUniqueMock, updateMany: updateManyMock },
+        uploadPending: {
+          findUnique: findUniqueMock,
+          updateMany: updateManyMock,
+        },
       }),
     );
     updateManyMock.mockResolvedValue({ count: 1 });
