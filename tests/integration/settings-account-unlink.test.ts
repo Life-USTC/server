@@ -21,12 +21,10 @@ describe("settings account unlink database boundary", () => {
         accounts: {
           create: [
             {
-              issuer: "https://github.com",
               provider: "github",
               providerAccountId: `${marker}-github`,
             },
             {
-              issuer: "https://accounts.google.com",
               provider: "google",
               providerAccountId: `${marker}-google`,
             },

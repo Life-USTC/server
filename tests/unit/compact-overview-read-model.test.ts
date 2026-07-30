@@ -14,6 +14,7 @@ const {
   scheduleCountMock,
   userFindUniqueMock,
   withHomeworkItemStateMock,
+  withUserDbContextMock,
 } = vi.hoisted(() => ({
   analyticsMock: vi.fn(),
   countDueTodosMock: vi.fn(),
@@ -28,6 +29,7 @@ const {
   scheduleCountMock: vi.fn(),
   userFindUniqueMock: vi.fn(),
   withHomeworkItemStateMock: vi.fn(),
+  withUserDbContextMock: vi.fn(),
 }));
 
 vi.mock("@/lib/adapters/cloudflare-runtime", () => ({
@@ -36,10 +38,10 @@ vi.mock("@/lib/adapters/cloudflare-runtime", () => ({
 
 vi.mock("@/lib/db/prisma", () => ({
   prisma: {
-    homework: { count: homeworkCountMock },
     schedule: { count: scheduleCountMock },
     user: { findUnique: userFindUniqueMock },
   },
+  withUserDbContext: withUserDbContextMock,
 }));
 
 vi.mock("@/lib/metrics/analytics-engine", () => ({
@@ -72,6 +74,9 @@ describe("compact workspace overview read model", () => {
     runCloudflareTraceSpanMock.mockImplementation(
       (_name: string, _attributes: object, callback: () => unknown) =>
         callback(),
+    );
+    withUserDbContextMock.mockImplementation((_userId, action) =>
+      action({ homework: { count: homeworkCountMock } }),
     );
     userFindUniqueMock.mockResolvedValue({
       id: "user-1",

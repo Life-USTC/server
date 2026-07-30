@@ -8,6 +8,9 @@ describe("Cloudflare environment parsing", () => {
       {
         AUTH_SECRET: "request-one-secret",
         HYPERDRIVE: { connectionString: "postgresql://example.test/one" },
+        HYPERDRIVE_AUTH: {
+          connectionString: "postgresql://example.test/one-auth",
+        },
         NODE_ENV: "production",
       },
       () => [loadEnv(), loadEnv()],
@@ -16,6 +19,9 @@ describe("Cloudflare environment parsing", () => {
       {
         AUTH_SECRET: "request-two-secret",
         HYPERDRIVE: { connectionString: "postgresql://example.test/two" },
+        HYPERDRIVE_AUTH: {
+          connectionString: "postgresql://example.test/two-auth",
+        },
         NODE_ENV: "production",
       },
       () => loadEnv(),

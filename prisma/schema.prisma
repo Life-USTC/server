@@ -1051,7 +1051,6 @@ model Account {
   userId            String
   type              String   @default("oauth")
   provider          String
-  issuer            String
   providerAccountId String
   refresh_token     String?
   access_token      String?
@@ -1069,7 +1068,7 @@ model Account {
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@unique([issuer, providerAccountId])
+  @@unique([provider, providerAccountId])
   @@index([userId])
   @@index([provider])
 }

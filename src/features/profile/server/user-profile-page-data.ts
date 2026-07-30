@@ -33,7 +33,10 @@ async function getUserProfileData(where: Prisma.UserWhereUniqueInput) {
 
   if (!user) return null;
 
-  const profileSince = shanghaiDayjs().subtract(364, "day").startOf("day").toDate();
+  const profileSince = shanghaiDayjs()
+    .subtract(364, "day")
+    .startOf("day")
+    .toDate();
   const [{ totalContributions, weeks }, totalUploads] = await Promise.all([
     buildUserProfileContributions(prisma, user.id),
     loadPublicProfileUploadCount(prisma, user.id, profileSince),

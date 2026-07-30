@@ -27,6 +27,11 @@ vi.mock("@/generated/prisma/client", () => ({
 
 vi.mock("@/lib/log/app-logger", () => ({ logAppEvent: vi.fn() }));
 
+const poolConfig = {
+  max: 3,
+  idleTimeoutMillis: 5_000,
+};
+
 describe("Prisma database boundaries", () => {
   afterEach(() => {
     adapterConfigs.length = 0;
@@ -65,8 +70,14 @@ describe("Prisma database boundaries", () => {
     );
 
     expect(adapterConfigs).toEqual([
-      { connectionString: "postgresql://app.example/database" },
-      { connectionString: "postgresql://auth.example/database" },
+      {
+        connectionString: "postgresql://app.example/database",
+        ...poolConfig,
+      },
+      {
+        connectionString: "postgresql://auth.example/database",
+        ...poolConfig,
+      },
     ]);
   });
 
@@ -122,12 +133,16 @@ describe("Prisma database boundaries", () => {
 
   it("allows DATABASE_URL fallback for auth only outside production", async () => {
     const { createPrismaAdapter } = await import("@/lib/db/prisma-adapter");
+    vi.stubEnv("AUTH_DATABASE_URL", "");
     vi.stubEnv("DATABASE_URL", "postgresql://local.example/database");
     vi.stubEnv("NODE_ENV", "test");
 
     createPrismaAdapter(undefined, "auth");
     expect(adapterConfigs).toEqual([
-      { connectionString: "postgresql://local.example/database" },
+      {
+        connectionString: "postgresql://local.example/database",
+        ...poolConfig,
+      },
     ]);
 
     vi.stubEnv("NODE_ENV", "production");

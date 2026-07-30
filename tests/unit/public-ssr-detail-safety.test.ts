@@ -1,7 +1,7 @@
 import { getCookies } from "better-auth/cookies";
 import { describe, expect, test } from "vitest";
 import { buildVisibleCommentNode } from "@/features/comments/server/serialized-comment-node";
-import { homeworkItemIncludeForViewer } from "@/features/homeworks/server/homework-read-model";
+import { homeworkItemInclude } from "@/features/homeworks/server/homework-read-model";
 import { getViewerContext } from "@/lib/auth/viewer-context";
 import { resolvePublicSsrMode } from "@/lib/cloudflare/public-ssr-gateway";
 
@@ -55,9 +55,7 @@ describe("public SSR detail safety invariants", () => {
   });
 
   test("does not select per-user homework completion state", () => {
-    expect(homeworkItemIncludeForViewer(null)).not.toHaveProperty(
-      "homeworkCompletions",
-    );
+    expect(homeworkItemInclude()).not.toHaveProperty("homeworkCompletions");
   });
 
   test("does not expose anonymous reaction or moderation capabilities", () => {
