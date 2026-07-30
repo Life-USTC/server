@@ -34,7 +34,7 @@ export function sectionDetailTabSearch(tab: SectionDetailTab) {
 }
 
 export function sectionDetailPagePath(
-  jwId: number,
+  jwId: number | string,
   tab: SectionDetailTab = "overview",
 ) {
   return `/catalog/sections/${jwId}${sectionDetailTabSearch(tab)}`;

@@ -174,7 +174,9 @@ $: sectionNavItems = [
       data-detail-scroll-container
     >
       {#if tabPanelLoading}
-        <p class="text-muted-foreground text-sm">{commonCopy.loading}</p>
+        <p class="text-muted-foreground text-sm">
+          {data.locale === "zh-cn" ? "加载中..." : "Loading..."}
+        </p>
       {:else if activeTab === "overview"}
       <section id="section-overview">
         <SectionBasicInfoCard

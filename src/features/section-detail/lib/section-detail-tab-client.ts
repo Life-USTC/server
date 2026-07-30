@@ -1,6 +1,7 @@
 import type { CommentsInitialData } from "@/features/comments/lib/comment-panel-data";
 import type { DescriptionPayload } from "@/features/descriptions/lib/description-card-actions";
 import { fetchDescriptionPayload } from "@/features/descriptions/lib/description-card-client";
+import type { DescriptionViewer } from "@/features/descriptions/lib/description-payload-types";
 import { emptyDescriptionPayload } from "@/features/descriptions/server/description-payload";
 import type { AppLocale } from "@/i18n/config";
 import { apiClient } from "@/lib/api/client";
@@ -39,16 +40,23 @@ const emptyHomeworkViewer = (userId: string | null): HomeworkViewer => ({
   userId,
 });
 
+function emptyDescriptionViewer(userId: string | null): DescriptionViewer {
+  return {
+    image: null,
+    isAdmin: false,
+    isAuthenticated: Boolean(userId),
+    isSuspended: false,
+    name: null,
+    suspensionExpiresAt: null,
+    suspensionReason: null,
+    userId,
+  };
+}
+
 function emptyPanelState(userId: string | null): SectionDetailTabPanelState {
   return {
     commentsData: null,
-    descriptionData: emptyDescriptionPayload({
-      canEdit: false,
-      isAdmin: false,
-      isAuthenticated: Boolean(userId),
-      isSuspended: false,
-      userId,
-    }),
+    descriptionData: emptyDescriptionPayload(emptyDescriptionViewer(userId)),
     homeworkAuditLogs: [],
     homeworkViewer: emptyHomeworkViewer(userId),
     homeworks: [],

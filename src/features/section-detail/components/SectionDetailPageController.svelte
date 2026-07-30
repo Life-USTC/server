@@ -104,9 +104,9 @@ async function selectTab(tab: SectionDetailTab) {
   try {
     await tabPanelStore.ensureLoaded(tab, {
       errorMessage: _sectionCopy.operationFailed,
-      jwId: data.section.jwId,
+      jwId: Number(data.section.jwId),
       locale: data.locale,
-      sectionId: data.section.id,
+      sectionId: Number(data.section.id),
     });
     if (tab === "homework") {
       const state = tabPanelStore.getState();
