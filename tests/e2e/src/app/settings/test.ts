@@ -3,7 +3,7 @@
  *
  * ## Data Represented
  * - Central settings page using semantic child paths.
- * - Sections: profile (default), preferences, accounts, content, danger.
+ * - Sections: profile (default), preferences, accounts, authorizations, danger.
  * - Each child route renders a different section component server-side.
  * - Layout requires authentication (`requireSignedInUserId`).
  *
@@ -46,24 +46,23 @@ test.describe("/account/settings 设置中心", () => {
     await page.setViewportSize({ width: 390, height: 844 });
     await signInAsDebugUser(page, "/account/settings");
 
-    const navigation = page.locator("[data-settings-navigation]");
+    const navigation = page.getByTestId("detail-section-nav");
+    const scrollViewport = navigation.locator('[data-sidebar="content"]');
     const activePanel = page.locator("[data-settings-active-panel]");
     const profileLink = navigation.getByRole("link", {
       name: /个人资料|Profile/i,
     });
 
     await expect(profileLink).toHaveAttribute("aria-current", "page");
-    await expect(profileLink).toHaveAttribute("data-slot", "button");
     await expect
-      .poll(() => {
-        const wrapper = navigation.locator("..");
-        return Promise.all([
-          wrapper.getAttribute("data-overflow-left"),
-          wrapper.getAttribute("data-overflow-right"),
-        ]);
-      })
+      .poll(() =>
+        Promise.all([
+          navigation.getAttribute("data-overflow-left"),
+          navigation.getAttribute("data-overflow-right"),
+        ]),
+      )
       .toEqual(["false", "true"]);
-    const mobileNavigationBox = await navigation.boundingBox();
+    const mobileNavigationBox = await scrollViewport.boundingBox();
     const mobilePanelBox = await activePanel.boundingBox();
     expect(mobileNavigationBox?.height).toBeLessThan(80);
     expect(mobilePanelBox?.y).toBeLessThan(844);
@@ -74,7 +73,7 @@ test.describe("/account/settings 设置中心", () => {
     const desktopNavigationBox = await navigation.boundingBox();
     const desktopPanelBox = await activePanel.boundingBox();
     expect(desktopNavigationBox?.x).toBeLessThan(desktopPanelBox?.x ?? 0);
-    expect(desktopNavigationBox?.width).toBe(192);
+    expect(desktopNavigationBox?.width).toBe(224);
     await captureStepScreenshot(page, testInfo, "settings-responsive-desktop");
   });
 
@@ -86,7 +85,8 @@ test.describe("/account/settings 设置中心", () => {
     await page.setViewportSize({ width: 375, height: 900 });
     await signInAsDebugUser(page, "/account/settings/danger");
 
-    const navigation = page.locator("[data-settings-navigation]");
+    const navigation = page.getByTestId("detail-section-nav");
+    const scrollViewport = navigation.locator('[data-sidebar="content"]');
     const activeLink = navigation.locator('a[aria-current="page"]');
 
     for (const width of [280, 320, 375]) {
@@ -95,7 +95,7 @@ test.describe("/account/settings 设置中心", () => {
       await expect(activeLink).toBeVisible();
       await expect
         .poll(() =>
-          navigation.evaluate((nav) => {
+          scrollViewport.evaluate((nav) => {
             const link = nav.querySelector<HTMLElement>(
               'a[aria-current="page"]',
             );
@@ -184,11 +184,6 @@ test.describe("/account/settings 设置中心", () => {
     await signInAsDebugUser(page, "/account/settings/accounts");
     await expect(page).toHaveURL(/\/account\/settings\/accounts(?:\?.*)?$/);
     await expect(page.getByText("GitHub").first()).toBeVisible();
-
-    await gotoAndWaitForReady(page, "/account/settings/content");
-    await expect(
-      page.getByRole("link", { name: /浏览班级|Browse sections/i }),
-    ).toBeVisible();
 
     await gotoAndWaitForReady(page, "/account/settings/danger");
     await expect(

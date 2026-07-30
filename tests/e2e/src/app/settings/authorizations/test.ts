@@ -64,10 +64,11 @@ test.describe("/account/settings/authorizations OAuth 授权", () => {
       await expect(
         authorizationItem.getByText(authorization.clientUri),
       ).toBeVisible();
-      for (const scope of scopes) {
-        await expect(
-          authorizationItem.getByText(scope, { exact: true }),
-        ).toBeVisible();
+      for (const scope of [
+        /查看您的个人资料|View your profile information/i,
+        /读取你的日历|Read your calendar/i,
+      ]) {
+        await expect(authorizationItem.getByText(scope)).toBeVisible();
       }
 
       const pageText = await page.locator("#main-content").innerText();

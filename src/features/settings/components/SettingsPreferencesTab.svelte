@@ -39,17 +39,9 @@ onMount(() => {
 </script>
 
 <Card.Root
-  aria-labelledby="settings-preferences-title"
+  aria-label={copy.settings.preferences.title}
   role="region"
 >
-  <Card.Header>
-    <Card.Title id="settings-preferences-title">
-      {copy.settings.preferences.title}
-    </Card.Title>
-    <Card.Description>
-      {copy.settings.preferences.description}
-    </Card.Description>
-  </Card.Header>
   <Card.Content>
     <Field.Group>
       <Field.Field orientation="responsive">

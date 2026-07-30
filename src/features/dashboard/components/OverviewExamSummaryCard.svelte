@@ -27,7 +27,7 @@ export let viewAllLabel = "View all";
 <Card.Root>
   <Card.Header>
     <Card.Title>
-      <a class="no-underline hover:underline" href={dashboardTabHref("exams")}>{dashboardCopy.nav.exams.title}</a>
+      <a class="no-underline hover:underline" href={dashboardTabHref("exams")}>{dashboardCopy.radar.title}</a>
     </Card.Title>
     <Card.Action>
       <Badge variant="outline">{examsCount}</Badge>

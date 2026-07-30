@@ -32,6 +32,7 @@ export let busCopy: DashboardBusCopy;
 export let bus: DashboardBusData | null;
 export let compact = false;
 export let savePreferences = false;
+export let showPageHeader = false;
 
 let loadedBus: DashboardBusData | null = bus;
 let busStateVersion = 0;
@@ -177,9 +178,11 @@ $: busShowsEstimatedHint = hasEstimatedBusTimes(
       compact ? "hidden lg:flex" : "flex",
     )}
   >
-    <div class="grid gap-1">
-      <h2 class="font-semibold text-xl tracking-normal">{busCopy.dashboardTitle}</h2>
-    </div>
+    {#if showPageHeader}
+      <div class="grid gap-1">
+        <h2 class="font-semibold text-xl tracking-normal">{busCopy.dashboardTitle}</h2>
+      </div>
+    {/if}
     <Button class="min-h-11" href="/catalog/bus/map" size="lg" variant="outline">{busCopy.transitMap}</Button>
   </div>
 

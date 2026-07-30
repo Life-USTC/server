@@ -792,7 +792,7 @@
       "departEtaHoursMinutes": "{hours} 小时 {minutes} 分钟",
       "etaUnknown": "到站时间未知",
       "estimatedHint": "~ 表示该时间由同班次相邻站点推算得出。",
-      "clientHint": "工作日/周末判断、路线匹配和排序都在浏览器端基于原始时刻表完成。",
+      "clientHint": "班次与路线会根据你选择的站点以及当天是工作日还是周末而显示。",
       "direction": "方向",
       "routes": "路线",
       "routeSectionsCount": "共 {count} 条路线分组",
@@ -933,7 +933,7 @@
       },
       "language": {
         "title": "语言",
-        "description": "切换界面语言，不在 URL 中增加语言目录。"
+        "description": "选择界面显示语言。"
       }
     },
     "authorizations": {
@@ -1020,7 +1020,7 @@
     "searchPlaceholder": "搜索课程名称、课程代码或班级代码",
     "searchHelp": "?",
     "searchHelpTitle": "高级搜索语法",
-    "searchHelpDescription": "上方界面已覆盖全部常用条件。文本语法适合粘贴和复用复杂查询；多个条件会同时生效，值包含空格时请使用引号。",
+    "searchHelpDescription": "上方筛选适用于日常搜索。可在搜索框中组合多个条件，值包含空格时请用引号括起。",
     "searchHelpExample": "示例：",
     "searchHelpExamples": [
       {

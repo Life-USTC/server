@@ -21,6 +21,7 @@ type PanelTab = "description" | "history";
 export let targetType: DescriptionTargetType;
 export let targetId: number | string;
 export let initialData: DescriptionPayload;
+export let showTitle = true;
 export let locale: AppLocale = "zh-cn";
 export let copy: {
   cancel: string;
@@ -110,6 +111,7 @@ const {
   <DescriptionCardHeader
     {copy}
     {description}
+    {showTitle}
     editing={_editing}
     editorName={_editorName}
     formatDate={_formatDate}

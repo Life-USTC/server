@@ -55,7 +55,6 @@ test.describe("移动端截图", () => {
       "/workspace/subscriptions",
       "/account/settings/profile",
       "/account/settings/accounts",
-      "/account/settings/content",
       "/account/settings/danger",
       `/community/users/${DEV_SEED.debugUsername}`,
     ]) {

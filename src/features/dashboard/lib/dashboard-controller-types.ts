@@ -128,6 +128,7 @@ export type DashboardDashboardCopy = DashboardRecord & {
   };
   homeworks: {
     empty: string;
+    titleV2: string;
   };
   openSlot: string;
   overdue: {
@@ -136,6 +137,7 @@ export type DashboardDashboardCopy = DashboardRecord & {
   };
   radar: {
     empty: string;
+    title: string;
   };
   termSelection: {
     browseCourses: string;
