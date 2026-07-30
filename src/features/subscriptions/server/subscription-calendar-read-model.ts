@@ -1,6 +1,6 @@
 import { sectionCompactInclude } from "@/features/catalog/server/academic-query-includes";
 import { DEFAULT_LOCALE } from "@/i18n/config";
-import { getPrisma, prisma, withUserDbContext } from "@/lib/db/prisma";
+import { prisma, withUserDbContext } from "@/lib/db/prisma";
 import { getPublicOrigin } from "@/lib/site-url";
 import {
   buildCalendarFeedPath,
@@ -34,7 +34,7 @@ export async function getUserSectionSubscriptionState(
 
 export async function getUserCalendarSubscription(
   userId: string,
-  locale = DEFAULT_LOCALE,
+  _locale = DEFAULT_LOCALE,
 ) {
   const user = await withUserDbContext(userId, (tx) =>
     tx.user.findUnique({

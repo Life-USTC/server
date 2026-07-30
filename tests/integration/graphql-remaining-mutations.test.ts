@@ -1,6 +1,10 @@
 import type { RequestEvent } from "@sveltejs/kit";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { signResourceBoundOAuthAccessToken } from "@/features/oauth/server/device-token-issuer.server";
+import {
+  claimUploadPutLease,
+  markUploadPutCompleted,
+} from "@/features/uploads/server/upload-service";
 import type { CloudflareR2Bucket } from "@/lib/adapters/cloudflare-runtime";
 import { runWithCloudflareRuntimeEnv } from "@/lib/adapters/cloudflare-runtime";
 import { prisma } from "@/lib/db/prisma";
@@ -397,6 +401,21 @@ describe.sequential("remaining GraphQL and MCP mutation parity", () => {
     // Simulate the separate authenticated HTTP PUT without sending bytes
     // through GraphQL or the MCP tool.
     bucket.objects.set(session.key, { contentType: "text/plain", size: 12 });
+    const putLease = await runWithCloudflareRuntimeEnv(runtimeEnv, () =>
+      claimUploadPutLease({
+        key: session.key,
+        requestContentLength: 12,
+        requestContentType: "text/plain",
+        userId,
+      }),
+    );
+    await runWithCloudflareRuntimeEnv(runtimeEnv, () =>
+      markUploadPutCompleted({
+        attemptId: putLease.attemptId,
+        key: session.key,
+        userId,
+      }),
+    );
 
     const token = await signToken([restWriteScope("workspace.upload")]);
     const completed = await execute(
