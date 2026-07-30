@@ -181,13 +181,28 @@ export async function listDueTodoSamples(input: {
 }) {
   const userId = normalizeTodoUserId(input.userId);
   return withUserDbContext(userId, (tx) =>
-    tx.todo.findMany({
-      where: buildDueTodoWhere({ ...input, userId }),
-      select: todoDueSampleSelect,
-      orderBy: todoDueDateOrderBy,
-      ...(input.take !== undefined && { take: input.take }),
-    }),
+    listDueTodoSamplesInTransaction(tx, { ...input, userId }),
   );
+}
+
+function listDueTodoSamplesInTransaction(
+  tx: Prisma.TransactionClient,
+  input: {
+    completed?: boolean;
+    dueAtFrom?: Date;
+    dueAtTo?: Date;
+    includeDueAtTo?: boolean;
+    take?: number;
+    userId: string;
+  },
+) {
+  const userId = normalizeTodoUserId(input.userId);
+  return tx.todo.findMany({
+    where: buildDueTodoWhere({ ...input, userId }),
+    select: todoDueSampleSelect,
+    orderBy: todoDueDateOrderBy,
+    ...(input.take !== undefined && { take: input.take }),
+  });
 }
 
 export async function countIncompleteTodos(userId: string) {
@@ -215,10 +230,24 @@ export async function countDueTodos(input: {
 }) {
   const userId = normalizeTodoUserId(input.userId);
   return withUserDbContext(userId, (tx) =>
-    tx.todo.count({
-      where: buildDueTodoWhere({ ...input, userId }),
-    }),
+    countDueTodosInTransaction(tx, { ...input, userId }),
   );
+}
+
+function countDueTodosInTransaction(
+  tx: Prisma.TransactionClient,
+  input: {
+    completed?: boolean;
+    dueAtFrom?: Date;
+    dueAtTo?: Date;
+    includeDueAtTo?: boolean;
+    userId: string;
+  },
+) {
+  const userId = normalizeTodoUserId(input.userId);
+  return tx.todo.count({
+    where: buildDueTodoWhere({ ...input, userId }),
+  });
 }
 
 function buildDueTodoWhere(input: {
@@ -247,6 +276,91 @@ function buildDueTodoWhere(input: {
   return where;
 }
 
+async function loadTodoSummaryInTransaction(
+  tx: Prisma.TransactionClient,
+  input: {
+    filters?: TodoListFilters;
+    now: Date;
+    take?: number;
+    userId: string;
+  },
+) {
+  const userId = normalizeTodoUserId(input.userId);
+  const where = buildTodoListWhere(userId, input.filters);
+  const [incompleteCount, completedCount, overdueCount, todos] =
+    await Promise.all([
+      countIncompleteTodosInTransaction(tx, userId),
+      tx.todo.count({
+        where: { userId, completed: true },
+      }),
+      tx.todo.count({
+        where: {
+          userId,
+          completed: false,
+          dueAt: { lt: input.now },
+        },
+      }),
+      findTodoSnapshots(tx, {
+        where,
+        take: input.take,
+      }),
+    ]);
+
+  return {
+    counts: {
+      incomplete: incompleteCount,
+      completed: completedCount,
+      overdue: overdueCount,
+    },
+    todos,
+  };
+}
+
+export async function loadOverviewTodoBundle(input: {
+  homeworkWindowEnd: Date;
+  limit?: number;
+  now: Date;
+  runDueTodoCount?: <T>(work: () => Promise<T>) => Promise<T>;
+  runDueTodoSample?: <T>(work: () => Promise<T>) => Promise<T>;
+  runTodoSummary?: <T>(work: () => Promise<T>) => Promise<T>;
+  userId: string;
+}) {
+  const userId = normalizeTodoUserId(input.userId);
+  const identity = <T>(work: () => Promise<T>) => work();
+  const runTodoSummary = input.runTodoSummary ?? identity;
+  const runDueTodoCount = input.runDueTodoCount ?? identity;
+  const runDueTodoSample = input.runDueTodoSample ?? identity;
+  const dueInput = {
+    userId,
+    completed: false as const,
+    dueAtFrom: input.now,
+    dueAtTo: input.homeworkWindowEnd,
+    includeDueAtTo: true as const,
+  };
+
+  return withUserDbContext(userId, async (tx) => {
+    const [todos, dueTodosCount, dueTodos] = await Promise.all([
+      runTodoSummary(() =>
+        loadTodoSummaryInTransaction(tx, {
+          userId,
+          now: input.now,
+          filters: { completed: false },
+          take: input.limit,
+        }),
+      ),
+      runDueTodoCount(() => countDueTodosInTransaction(tx, dueInput)),
+      runDueTodoSample(() =>
+        listDueTodoSamplesInTransaction(tx, {
+          ...dueInput,
+          take: input.limit,
+        }),
+      ),
+    ]);
+
+    return { todos, dueTodosCount, dueTodos };
+  });
+}
+
 export async function listTodoSummary(input: {
   filters?: TodoListFilters;
   now?: Date;
@@ -254,34 +368,14 @@ export async function listTodoSummary(input: {
   userId: string;
 }) {
   const userId = normalizeTodoUserId(input.userId);
-  return withUserDbContext(userId, async (tx) => {
-    const now = input.now ?? new Date();
-    const where = buildTodoListWhere(userId, input.filters);
-    const incompleteCount = await countIncompleteTodosInTransaction(tx, userId);
-    const completedCount = await tx.todo.count({
-      where: { userId, completed: true },
-    });
-    const overdueCount = await tx.todo.count({
-      where: {
-        userId,
-        completed: false,
-        dueAt: { lt: now },
-      },
-    });
-    const todos = await findTodoSnapshots(tx, {
-      where,
+  return withUserDbContext(userId, (tx) =>
+    loadTodoSummaryInTransaction(tx, {
+      userId,
+      now: input.now ?? new Date(),
+      filters: input.filters,
       take: input.take,
-    });
-
-    return {
-      counts: {
-        incomplete: incompleteCount,
-        completed: completedCount,
-        overdue: overdueCount,
-      },
-      todos,
-    };
-  });
+    }),
+  );
 }
 
 export async function listTodoPage(input: {

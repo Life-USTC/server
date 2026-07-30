@@ -1,6 +1,7 @@
 /// <reference path="../../src/app.d.ts" />
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { emptyDescriptionPayload } from "@/features/descriptions/server/description-payload";
 import { runWithCloudflareRuntimeEnv } from "@/lib/adapters/cloudflare-runtime";
 
 const {
@@ -491,8 +492,11 @@ describe("catalog detail loader critical path", () => {
       ),
     });
 
-    expect(result.descriptionData).toBe(descriptionData);
+    expect(result.descriptionData).toEqual(
+      emptyDescriptionPayload(anonymousViewer),
+    );
     expect(result.commentsData).toBeNull();
+    expect(getDescriptionPayloadMock).not.toHaveBeenCalled();
     expect(getCommentsPayloadMock).not.toHaveBeenCalled();
   });
 });
@@ -691,7 +695,10 @@ describe("section detail loader critical path", () => {
       ),
     });
 
-    expect(result.descriptionData).toBe(descriptionData);
+    expect(result.descriptionData).toEqual(
+      emptyDescriptionPayload(anonymousViewer),
+    );
+    expect(getDescriptionPayloadMock).not.toHaveBeenCalled();
     expect(getSectionHomeworkDataMock).toHaveBeenCalledWith(section.id, null);
     expect(getCommentsPayloadMock).not.toHaveBeenCalled();
   });
@@ -712,6 +719,7 @@ describe("section detail loader critical path", () => {
 
     expect(result.commentsData).not.toBeNull();
     expect(getCommentsPayloadMock).toHaveBeenCalledTimes(3);
+    expect(getDescriptionPayloadMock).not.toHaveBeenCalled();
     expect(getSectionHomeworkDataMock).not.toHaveBeenCalled();
   });
 
@@ -740,16 +748,17 @@ describe("section detail loader critical path", () => {
       subscriptionIcsUrl: "/api/calendar-feeds/user-1.ics",
     });
     expect(getCommentsPayloadMock).not.toHaveBeenCalled();
+    expect(getDescriptionPayloadMock).not.toHaveBeenCalled();
     expect(getSectionHomeworkDataMock).not.toHaveBeenCalled();
   });
 
-  it("caches the anonymous PublicSsr section core but always loads overview related data outside it", async () => {
+  it("caches the anonymous PublicSsr section overview core with related data included", async () => {
     const relatedSection = {
       ...section,
       sameSemesterOtherTeachers: [{ id: 32 }],
       sameTeacherOtherSemesters: [],
     };
-    withSectionPageRelatedDataMock.mockResolvedValue(relatedSection);
+    getSectionPageMock.mockResolvedValue(relatedSection);
     const { loadSectionDetailPage } = await import(
       "@/features/section-detail/server/section-detail-page-server"
     );
@@ -766,10 +775,11 @@ describe("section detail loader critical path", () => {
     expect(getSectionPageMock).toHaveBeenCalledOnce();
     expect(getSectionPageMock).toHaveBeenCalledWith(section.jwId, "en-us", {
       includeExams: false,
-      includeRelated: false,
+      includeRelated: true,
       includeSchedules: false,
+      includeTeacherDepartments: false,
     });
-    expect(withSectionPageRelatedDataMock).toHaveBeenCalledTimes(2);
+    expect(withSectionPageRelatedDataMock).not.toHaveBeenCalled();
     expect(first.section).toBe(relatedSection);
     expect(second.section).toBe(relatedSection);
   });

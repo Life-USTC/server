@@ -2,13 +2,11 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const {
   analyticsMock,
-  countDueTodosMock,
   countUpcomingSubscribedExamsMock,
   homeworkCountMock,
-  listDueTodoSamplesMock,
   listSubscribedHomeworksMock,
   listSubscribedSchedulesMock,
-  listTodoSummaryMock,
+  loadOverviewTodoBundleMock,
   listUpcomingSubscribedExamsMock,
   runCloudflareTraceSpanMock,
   scheduleCountMock,
@@ -17,13 +15,11 @@ const {
   withUserDbContextMock,
 } = vi.hoisted(() => ({
   analyticsMock: vi.fn(),
-  countDueTodosMock: vi.fn(),
   countUpcomingSubscribedExamsMock: vi.fn(),
   homeworkCountMock: vi.fn(),
-  listDueTodoSamplesMock: vi.fn(),
   listSubscribedHomeworksMock: vi.fn(),
   listSubscribedSchedulesMock: vi.fn(),
-  listTodoSummaryMock: vi.fn(),
+  loadOverviewTodoBundleMock: vi.fn(),
   listUpcomingSubscribedExamsMock: vi.fn(),
   runCloudflareTraceSpanMock: vi.fn(),
   scheduleCountMock: vi.fn(),
@@ -60,13 +56,19 @@ vi.mock("@/features/subscriptions/server/subscription-read-model", () => ({
 }));
 
 vi.mock("@/features/todos/server/todo-service", () => ({
-  countDueTodos: countDueTodosMock,
-  listDueTodoSamples: listDueTodoSamplesMock,
-  listTodoSummary: listTodoSummaryMock,
+  loadOverviewTodoBundle: loadOverviewTodoBundleMock,
 }));
 
 const AT_TIME = new Date("2026-07-29T08:00:00.000Z");
 const TODO_COUNTS = { completed: 2, incomplete: 3, overdue: 1 };
+const TODO_BUNDLE = {
+  todos: {
+    counts: TODO_COUNTS,
+    todos: [{ id: "todo-1" }],
+  },
+  dueTodosCount: 2,
+  dueTodos: [{ id: "due-todo-1" }],
+};
 
 describe("compact workspace overview read model", () => {
   beforeEach(() => {
@@ -85,12 +87,17 @@ describe("compact workspace overview read model", () => {
       name: "User One",
       subscribedSections: [{ id: 11 }],
     });
-    listTodoSummaryMock.mockResolvedValue({
-      counts: TODO_COUNTS,
-      todos: [{ id: "todo-1" }],
-    });
-    countDueTodosMock.mockResolvedValue(2);
-    listDueTodoSamplesMock.mockResolvedValue([{ id: "due-todo-1" }]);
+    loadOverviewTodoBundleMock.mockImplementation(
+      async ({ runTodoSummary, runDueTodoCount, runDueTodoSample }) => ({
+        todos: await runTodoSummary?.(() => Promise.resolve(TODO_BUNDLE.todos)),
+        dueTodosCount: await runDueTodoCount?.(() =>
+          Promise.resolve(TODO_BUNDLE.dueTodosCount),
+        ),
+        dueTodos: await runDueTodoSample?.(() =>
+          Promise.resolve(TODO_BUNDLE.dueTodos),
+        ),
+      }),
+    );
     homeworkCountMock.mockResolvedValueOnce(4).mockResolvedValueOnce(2);
     scheduleCountMock.mockResolvedValue(1);
     countUpcomingSubscribedExamsMock.mockResolvedValue(3);
@@ -121,9 +128,17 @@ describe("compact workspace overview read model", () => {
         },
       },
     });
-    expect(listTodoSummaryMock).toHaveBeenCalledOnce();
-    expect(countDueTodosMock).toHaveBeenCalledOnce();
-    expect(listDueTodoSamplesMock).toHaveBeenCalledOnce();
+    expect(loadOverviewTodoBundleMock).toHaveBeenCalledOnce();
+    expect(loadOverviewTodoBundleMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        userId: "user-1",
+        now: AT_TIME,
+        limit: 3,
+        runTodoSummary: expect.any(Function),
+        runDueTodoCount: expect.any(Function),
+        runDueTodoSample: expect.any(Function),
+      }),
+    );
     expect(countUpcomingSubscribedExamsMock).toHaveBeenCalledWith({
       atTime: AT_TIME,
       sectionIds: [11],
@@ -172,16 +187,25 @@ describe("compact workspace overview read model", () => {
     ]);
   });
 
-  it("starts all three Todo reads independently without waiting for the summary", async () => {
+  it("loads todo reads in one bundle while running the three sub-stages in parallel", async () => {
     let resolveSummary:
       | ((value: {
           counts: typeof TODO_COUNTS;
           todos: { id: string }[];
         }) => void)
       | undefined;
-    listTodoSummaryMock.mockReturnValue(
-      new Promise((resolve) => {
-        resolveSummary = resolve;
+    loadOverviewTodoBundleMock.mockImplementation(
+      async ({ runTodoSummary, runDueTodoCount, runDueTodoSample }) => ({
+        todos: await runTodoSummary?.(
+          () =>
+            new Promise((resolve) => {
+              resolveSummary = resolve;
+            }),
+        ),
+        dueTodosCount: await runDueTodoCount?.(() => Promise.resolve(2)),
+        dueTodos: await runDueTodoSample?.(() =>
+          Promise.resolve([{ id: "due-todo-1" }]),
+        ),
       }),
     );
     const { getCompactOverview } = await import(
@@ -190,9 +214,7 @@ describe("compact workspace overview read model", () => {
 
     const overviewPromise = getCompactOverview("user-1", { atTime: AT_TIME });
 
-    expect(listTodoSummaryMock).toHaveBeenCalledOnce();
-    expect(countDueTodosMock).toHaveBeenCalledOnce();
-    expect(listDueTodoSamplesMock).toHaveBeenCalledOnce();
+    expect(loadOverviewTodoBundleMock).toHaveBeenCalledOnce();
     resolveSummary?.({ counts: TODO_COUNTS, todos: [{ id: "todo-1" }] });
     await overviewPromise;
   });

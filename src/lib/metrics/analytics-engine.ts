@@ -77,6 +77,7 @@ export type PublicRuntimeCacheAnalyticsNamespace =
       | "page:course-detail"
       | "page:course-list"
       | "page:section-detail"
+      | `page:section-detail:overview:${AppLocale}`
       | "page:section-list"
       | "page:teacher-detail"
       | "page:teacher-list"}:${AppLocale}`;
@@ -98,6 +99,12 @@ type CacheEventAnalyticsInput = {
     | "colo_write_error"
     | "colo_write_skip"
     | "hit"
+    | "kv_hit"
+    | "kv_miss"
+    | "kv_read_error"
+    | "kv_write_complete"
+    | "kv_write_error"
+    | "kv_write_skip"
     | "load_error"
     | "load_success"
     | "miss";

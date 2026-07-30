@@ -1,2 +1,6 @@
 export { buildSectionPageLoadData } from "./section-page-load-data";
-export { sectionPageSelect } from "./section-page-select";
+export {
+  sectionPageSelect,
+  sectionPageTeachersSelect,
+  sectionPageTeachersWithDepartmentSelect,
+} from "./section-page-select";

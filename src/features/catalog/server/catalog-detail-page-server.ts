@@ -125,9 +125,12 @@ export async function loadCourseDetailPage({
     redirect(308, `/catalog/courses/${course.jwId}${sectionPath}${url.search}`);
   }
   const displayName = catalogPrimaryName(course) || course.code;
+  const includeDescription =
+    detailSection === "introduction" || detailSection === "overview";
   const { commentsData, descriptionData } = await loadCatalogDetailCommentsData(
     {
       includeComments: detailSection === "comments",
+      includeDescription,
       includeDescriptionHistory: detailSection === "introduction",
       targetId: course.id,
       type: "course",
@@ -217,9 +220,12 @@ export async function loadTeacherDetailPage({
   ]);
   if (!teacher) error(404, copy.notFound.description);
   const displayName = catalogPrimaryName(teacher);
+  const includeDescription =
+    detailSection === "introduction" || detailSection === "overview";
   const { commentsData, descriptionData } = await loadCatalogDetailCommentsData(
     {
       includeComments: detailSection === "comments",
+      includeDescription,
       includeDescriptionHistory: detailSection === "introduction",
       targetId: teacher.id,
       type: "teacher",
