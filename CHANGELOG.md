@@ -1,3 +1,15 @@
+## [1.78.1](https://github.com/Life-USTC/server/compare/v1.78.0...v1.78.1) (2026-07-30)
+
+
+### Bug Fixes
+
+* **observability:** correct overview cache analytics namespace type ([4cfccfa](https://github.com/Life-USTC/server/commit/4cfccfa8aa5285210add1cd3bf936e6958930e9a))
+
+
+### Performance Improvements
+
+* **worker:** add KV catalog core cache and trim detail hot paths ([7d5259e](https://github.com/Life-USTC/server/commit/7d5259e64724084b17c10173ebafd67f847337e3)), closes [hi#cardinality](https://github.com/hi/issues/cardinality) [#530](https://github.com/Life-USTC/server/issues/530)
+
 # [1.78.0](https://github.com/Life-USTC/server/compare/v1.77.32...v1.78.0) (2026-07-30)
 
 
