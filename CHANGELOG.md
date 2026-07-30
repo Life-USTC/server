@@ -1,3 +1,24 @@
+# [1.81.0](https://github.com/Life-USTC/server/compare/v1.80.2...v1.81.0) (2026-07-30)
+
+
+### Bug Fixes
+
+* **section-detail:** keep tab panels visible during lazy load ([6811287](https://github.com/Life-USTC/server/commit/6811287d2684588764ce6f79cc5db190aa6739ed)), closes [#tab-calendar](https://github.com/Life-USTC/server/issues/tab-calendar)
+* **section-detail:** preserve deep-link query params and extend calendar E2E ([d8b69fb](https://github.com/Life-USTC/server/commit/d8b69fb15e2dd592cbc70367b5dcb1228175334c))
+* **section-detail:** preserve permalink hashes during client tab loads ([ca225ab](https://github.com/Life-USTC/server/commit/ca225ab8be6c3ef851cc23c8aa9434c4be0fb376)), closes [#comment-](https://github.com/Life-USTC/server/issues/comment-) [#homework-](https://github.com/Life-USTC/server/issues/homework-)
+* **section-detail:** resolve client-tab TypeScript errors ([19352ef](https://github.com/Life-USTC/server/commit/19352efc970a88d5a272455ba80f2fba0a6b7d59))
+* **section-detail:** resolve overview overdue card merge conflict ([e9d9592](https://github.com/Life-USTC/server/commit/e9d95921d8b3f3c3e4209d805c0b65c024a105d7))
+* **section-detail:** SSR tab data for deep links and overlay merge ([62166bd](https://github.com/Life-USTC/server/commit/62166bd5d46a6235a1680ff0deb89e28b99aa279))
+* **section-detail:** sync client tabs with URL and align E2E expectations ([9b6775f](https://github.com/Life-USTC/server/commit/9b6775fcd97a5c847703cccaa4e9d81cf563a74f))
+* **section-detail:** trigger Svelte updates after lazy tab loads ([cb0519e](https://github.com/Life-USTC/server/commit/cb0519e5a675be2b27df52d4e417279f39eae775))
+* **section-detail:** update permalinks and e2e for ?tab= URLs ([e4d453c](https://github.com/Life-USTC/server/commit/e4d453c50ee50c63180ae8ebc71dff192c6a5dc8))
+* **ui:** consolidate settings, copy, and duplicate-title cleanup ([#706](https://github.com/Life-USTC/server/issues/706)) ([4c53499](https://github.com/Life-USTC/server/commit/4c534997f4e1b3d3cad18f1d77b4892674d2ffdd))
+
+
+### Features
+
+* **section-detail:** collapse tab SSR into one shell with client tabs ([a92b3f9](https://github.com/Life-USTC/server/commit/a92b3f9bfa56ca11a970b487196ea937c60ab7a5))
+
 ## [1.80.2](https://github.com/Life-USTC/server/compare/v1.80.1...v1.80.2) (2026-07-30)
 
 
