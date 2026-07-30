@@ -1,3 +1,4 @@
+import { scheduleInvalidateUserCalendarExportCache } from "@/features/calendar/server/calendar-export-invalidation";
 import { withUserDbContext } from "@/lib/db/prisma";
 
 type HomeworkCompletionTransaction = Parameters<
@@ -28,7 +29,7 @@ export async function setHomeworkCompletion(input: {
   homeworkId: string;
   userId: string;
 }): Promise<HomeworkCompletionResult> {
-  return withUserDbContext(input.userId, async (tx) => {
+  const result = await withUserDbContext(input.userId, async (tx) => {
     const homework = await tx.homework.findUnique({
       where: { id: input.homeworkId },
       select: { id: true, deletedAt: true },
@@ -43,13 +44,17 @@ export async function setHomeworkCompletion(input: {
 
     return writeHomeworkCompletion(tx, input);
   });
+  if (result.success) {
+    scheduleInvalidateUserCalendarExportCache(input.userId);
+  }
+  return result;
 }
 
 export async function setHomeworkCompletions(input: {
   items: Array<{ completed: boolean; homeworkId: string }>;
   userId: string;
 }) {
-  return withUserDbContext(input.userId, async (tx) => {
+  const result = await withUserDbContext(input.userId, async (tx) => {
     const homeworkIds = [
       ...new Set(input.items.map((item) => item.homeworkId)),
     ];
@@ -81,6 +86,10 @@ export async function setHomeworkCompletions(input: {
     }
     return { results };
   });
+  if (result.results.some((item) => item.success)) {
+    scheduleInvalidateUserCalendarExportCache(input.userId);
+  }
+  return result;
 }
 
 async function writeHomeworkCompletion(

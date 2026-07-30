@@ -10,6 +10,10 @@ import {
 import { getSectionPage } from "@/features/section-detail/server/section-page-data";
 import type { AppLocale } from "@/i18n/config";
 import {
+  buildPublicDetailRuntimeCacheOptions,
+  PUBLIC_DETAIL_RUNTIME_CACHE_TTL_MS,
+} from "@/lib/catalog-detail-runtime-cache";
+import {
   cachedPublicRuntimeData,
   publicDetailColoCacheKey,
 } from "@/lib/public-runtime-cache";
@@ -46,7 +50,6 @@ const sectionDetailRouteSections = new Set([
   "comments",
 ]);
 
-const PUBLIC_DETAIL_RUNTIME_CACHE_TTL_MS = 60_000;
 const PUBLIC_DETAIL_COLO_CACHE_PATH =
   "/_life-ustc-internal-cache/catalog-detail-core/v1";
 
@@ -171,7 +174,7 @@ export async function loadSectionDetailPage({
           : `catalog-detail:section:${locals.locale}:${jwId}`,
         PUBLIC_DETAIL_RUNTIME_CACHE_TTL_MS,
         loadSection,
-        {
+        await buildPublicDetailRuntimeCacheOptions({
           coloCacheKey: cachePublicOverviewCore
             ? publicSectionOverviewColoCacheKey(url.origin, locals.locale, jwId)
             : publicDetailColoCacheKey(
@@ -180,12 +183,18 @@ export async function loadSectionDetailPage({
                 locals.locale,
                 jwId,
               ),
+          id: jwId,
+          kind: "section",
+          kvShape: cachePublicOverviewCore
+            ? "core-with-related-overview"
+            : "core-without-exams-schedules-related",
+          locale: locals.locale,
           shouldCacheResult: (result) => result !== null,
           validateColoCacheResult: (result) =>
             cachePublicOverviewCore
               ? isPublicSectionOverviewCore(result, jwId)
               : isPublicSectionCore(result, jwId),
-        },
+        }),
       )
     : await loadSection();
   if (!section) error(404, "Section not found");

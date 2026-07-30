@@ -225,23 +225,27 @@ describe("public runtime cache", () => {
     expect(new Set([course, teacher, section]).size).toBe(3);
   });
 
-  it("builds versioned KV keys isolated by kind, shape, locale, and ID", () => {
+  it("builds versioned KV keys isolated by revision, kind, shape, locale, and ID", () => {
     expect(
       publicDetailKvCacheKey(
+        "abc123def4567890",
         "section",
         "zh-cn",
         12345,
         "core-without-exams-schedules-related",
       ),
-    ).toBe("v1:section:zh-cn:12345:core-without-exams-schedules-related");
+    ).toBe(
+      "v1:abc123def4567890:section:zh-cn:12345:core-without-exams-schedules-related",
+    );
     expect(
       publicDetailKvCacheKey(
+        "abc123def4567890",
         "course",
         "en-us",
         683001,
         "core-without-sections",
       ),
-    ).toBe("v1:course:en-us:683001:core-without-sections");
+    ).toBe("v1:abc123def4567890:course:en-us:683001:core-without-sections");
   });
 
   it("uses a KV hit without loading or colo reads and then serves it from L1", async () => {
@@ -249,19 +253,18 @@ describe("public runtime cache", () => {
     vi.setSystemTime(10_000);
     const cached = { source: "kv" };
     const namespace = kvNamespace();
-    namespace.seed(
-      publicDetailKvCacheKey(
-        "course",
-        "en-us",
-        683001,
-        "core-without-sections",
-      ),
-      {
-        expiresAt: 20_000,
-        schema: "catalog-detail-core-v1",
-        value: cached,
-      },
+    const kvCacheKey = publicDetailKvCacheKey(
+      "rev",
+      "course",
+      "en-us",
+      683001,
+      "core-without-sections",
     );
+    namespace.seed(kvCacheKey, {
+      expiresAt: 20_000,
+      schema: "catalog-detail-core-v1",
+      value: cached,
+    });
     const { match, open, put } = installNamedCache();
     const load = vi.fn(async () => ({ source: "database" }));
     const { context } = runtimeExecutionContext();
@@ -281,6 +284,7 @@ describe("public runtime cache", () => {
               "en-us",
               683001,
             ),
+            kvCacheKey,
             validateColoCacheResult: validatesSource,
           },
         );
@@ -296,6 +300,7 @@ describe("public runtime cache", () => {
               "en-us",
               683001,
             ),
+            kvCacheKey,
             validateColoCacheResult: validatesSource,
           },
         );
@@ -307,10 +312,10 @@ describe("public runtime cache", () => {
     );
 
     expect(namespace.get).toHaveBeenCalledOnce();
-    expect(namespace.get).toHaveBeenCalledWith(
-      "v1:course:en-us:683001:core-without-sections",
-      { cacheTtl: 60, type: "json" },
-    );
+    expect(namespace.get).toHaveBeenCalledWith(kvCacheKey, {
+      cacheTtl: 60,
+      type: "json",
+    });
     expect(open).not.toHaveBeenCalled();
     expect(match).not.toHaveBeenCalled();
     expect(load).not.toHaveBeenCalled();
@@ -330,6 +335,7 @@ describe("public runtime cache", () => {
       683002,
     );
     const kvCacheKey = publicDetailKvCacheKey(
+      "rev",
       "section",
       "en-us",
       683002,
@@ -341,6 +347,7 @@ describe("public runtime cache", () => {
       async () => {
         const options = {
           coloCacheKey,
+          kvCacheKey,
           shouldCacheResult: (result: { source: string }) => result !== null,
           validateColoCacheResult: validatesSource,
         };
