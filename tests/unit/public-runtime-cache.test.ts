@@ -77,9 +77,16 @@ function kvNamespace() {
         return value ? JSON.parse(value) : null;
       },
     ),
-    put: vi.fn(async (key: string, value: string) => {
-      values.set(key, value);
-    }),
+    put: vi.fn(
+      async (
+        key: string,
+        value: string,
+        options?: { expirationTtl?: number },
+      ) => {
+        void options;
+        values.set(key, value);
+      },
+    ),
     seed(key: string, envelope: unknown) {
       values.set(key, JSON.stringify(envelope));
     },
