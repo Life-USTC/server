@@ -1,7 +1,9 @@
 import { redirect } from "@sveltejs/kit";
 import { listUserOAuthAuthorizations } from "@/features/oauth/server/user-authorizations.server";
 import type { SettingsTab } from "@/features/settings/lib/settings-tabs";
+import type { UserUstcIdentitySummary } from "@/features/settings/lib/ustc-identity";
 import { buildSettingsAccountProviders } from "@/features/settings/server/settings-account-providers";
+import { listUserUstcIdentities } from "@/features/settings/server/user-ustc-identity-read-model";
 import { buildSignInPageUrl } from "@/lib/auth/auth-routing";
 import { authPrisma } from "@/lib/db/auth-prisma";
 import { prisma } from "@/lib/db/prisma";
@@ -12,6 +14,7 @@ export type SettingsAccountProvider = {
   linked: boolean;
   accountId: string | null;
   providerAccountId: string | null;
+  ustcIdentities: UserUstcIdentitySummary | null;
 };
 
 export async function requireSettingsUser(request: Request, url: URL) {
@@ -30,7 +33,8 @@ export async function getSettingsPageData(
   tab: SettingsTab,
 ) {
   const sessionUser = await requireSettingsUser(request, url);
-  const [user, accounts, authorizations] = await Promise.all([
+  const loadUstcIdentities = tab === "accounts";
+  const [user, accounts, authorizations, ustcIdentities] = await Promise.all([
     prisma.user.findUnique({
       where: { id: sessionUser.id },
       select: {
@@ -55,13 +59,19 @@ export async function getSettingsPageData(
     tab === "authorizations"
       ? listUserOAuthAuthorizations(sessionUser.id)
       : Promise.resolve([]),
+    loadUstcIdentities
+      ? listUserUstcIdentities(sessionUser.id)
+      : Promise.resolve({ upstreamUids: [], records: [] }),
   ]);
 
   if (!user) {
     throw redirect(303, buildSignInPageUrl(`${url.pathname}${url.search}`));
   }
 
-  const accountProviders = buildSettingsAccountProviders(accounts);
+  const accountProviders = buildSettingsAccountProviders(
+    accounts,
+    ustcIdentities,
+  );
 
   return {
     tab,

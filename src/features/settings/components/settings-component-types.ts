@@ -33,6 +33,14 @@ export type SettingsProfileCopy = {
   username: string;
   usernamePlaceholder: string;
   usernameValidation: string;
+  ustcIdentityTitle: string;
+  ustcIdentityDescription: string;
+  ustcIdentityEmpty: string;
+  ustcIdentityUpstreamUid: string;
+  ustcIdentityGid: string;
+  ustcIdentitySno: string;
+  ustcIdentityLastSyncedAt: string;
+  ustcIdentityUnknown: string;
 };
 
 export type SettingsCopy = {
@@ -156,6 +164,16 @@ export type SettingsAccount = {
   linked: boolean;
   name: string;
   providerAccountId?: string | null;
+  ustcIdentities?: {
+    upstreamUids: string[];
+    records: {
+      upstreamUid: string;
+      gid: string | null;
+      sno: string | null;
+      firstSeenAt: string;
+      lastSyncedAt: string;
+    }[];
+  } | null;
 };
 
 export type SettingsPendingAccountAction = {

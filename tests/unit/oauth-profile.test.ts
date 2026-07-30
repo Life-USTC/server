@@ -24,6 +24,23 @@ describe("OAuth 档案映射", () => {
     });
   });
 
+  it("保留上游 OIDC 档案中的 gid 和 sno 供身份同步使用", () => {
+    const profile = {
+      sub: "812",
+      user_id: 812,
+      gid: "gid-812",
+      sno: "BA12345678",
+    };
+
+    expect(getOidcAccountSubject(profile)).toBe("812");
+    expect(mapOidcProfileToUser(profile)).toEqual({
+      email: "oidc-812@users.local",
+      name: "USTC User 812",
+      image: undefined,
+      emailVerified: false,
+    });
+  });
+
   it("保留提供者提供的 OIDC 档案字段", () => {
     const profile = {
       sub: "abc",

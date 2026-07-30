@@ -8,6 +8,8 @@ import {
   getOidcAccountSubject,
   mapOidcProfileToUser,
 } from "@/lib/auth/oauth-profile";
+import { stageUstcOidcIdentityFromProfile } from "@/lib/auth/ustc-oidc-identity-profile";
+import { ustcOidcIdentityPlugin } from "@/lib/auth/ustc-oidc-identity-plugin";
 import { webhookLoginPlugin } from "@/lib/auth/webhook-login-plugin";
 import { getCanonicalOAuthIssuer } from "@/lib/mcp/urls";
 import { OAUTH_OPENID_SCOPE } from "@/lib/oauth/constants";
@@ -40,6 +42,7 @@ export function buildBetterAuthPlugins(input: {
     }),
     webhookLoginPlugin(),
     buildBetterAuthPasskeyPlugin(),
+    ustcOidcIdentityPlugin(),
     buildOAuthProviderPlugin({
       authPublicOrigin: input.authPublicOrigin,
     }),
@@ -55,7 +58,10 @@ export function buildBetterAuthPlugins(input: {
           pkce: true,
           accountIssuer: input.oidcIssuer,
           accountSubject: ({ profile }) => getOidcAccountSubject(profile),
-          mapProfileToUser: mapOidcProfileToUser,
+          mapProfileToUser: (profile) => {
+            stageUstcOidcIdentityFromProfile(profile);
+            return mapOidcProfileToUser(profile);
+          },
         },
       ],
     }),
