@@ -10,6 +10,7 @@ import {
 
 const {
   betterAuthHandlerMock,
+  ensureOAuthProviderResourcesSeededMock,
   findRefreshTokenMock,
   isOAuthRefreshGrantActiveMock,
   logAppEventMock,
@@ -22,6 +23,7 @@ const {
   verifyAccessTokenJwtPayloadMock,
 } = vi.hoisted(() => ({
   betterAuthHandlerMock: vi.fn(),
+  ensureOAuthProviderResourcesSeededMock: vi.fn().mockResolvedValue(undefined),
   findRefreshTokenMock: vi.fn(),
   isOAuthRefreshGrantActiveMock: vi.fn(),
   logAppEventMock: vi.fn(),
@@ -32,6 +34,10 @@ const {
   signJwtMock: vi.fn(),
   updateRefreshTokenMock: vi.fn(),
   verifyAccessTokenJwtPayloadMock: vi.fn(),
+}));
+
+vi.mock("@/features/oauth/server/ensure-oauth-resources.server", () => ({
+  ensureOAuthProviderResourcesSeeded: ensureOAuthProviderResourcesSeededMock,
 }));
 
 vi.mock("@/lib/log/app-logger", async (importOriginal) => ({
