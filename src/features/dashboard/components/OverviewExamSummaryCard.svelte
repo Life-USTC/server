@@ -4,11 +4,14 @@ import type {
   DashboardOverviewExamItem,
   DashboardSectionCopy,
 } from "@/features/dashboard/lib/dashboard-controller-helpers";
+import { DASHBOARD_OVERVIEW_PREVIEW_LIMIT } from "@/features/dashboard/lib/overview-preview";
 import { Badge } from "$lib/components/ui/badge/index.js";
 import * as Card from "$lib/components/ui/card/index.js";
 import * as Empty from "$lib/components/ui/empty/index.js";
 import * as Item from "$lib/components/ui/item/index.js";
 import type { DashboardCalendarTabHref } from "./dashboard-calendar-component-types";
+
+import OverviewViewAllFooter from "./OverviewViewAllFooter.svelte";
 
 export let calendarExamDetail: (exam: DashboardOverviewExamItem) => string;
 export let dashboardCopy: DashboardDashboardCopy;
@@ -17,6 +20,8 @@ export let examsCount: number;
 export let fmtDate: (date: Date | string | null | undefined) => string;
 export let sectionCopy: DashboardSectionCopy;
 export let upcomingExams: DashboardOverviewExamItem[];
+export let previewLimit = DASHBOARD_OVERVIEW_PREVIEW_LIMIT;
+export let viewAllLabel = "View all";
 </script>
 
 <Card.Root>
@@ -30,7 +35,7 @@ export let upcomingExams: DashboardOverviewExamItem[];
   </Card.Header>
   <Card.Content>
     <Item.Group>
-      {#each upcomingExams.slice(0, 5) as exam}
+      {#each upcomingExams.slice(0, previewLimit) as exam}
         <Item.Root variant="outline" size="sm">
           {#snippet child({ props })}
             <a href={dashboardTabHref("exams")} {...props}>
@@ -51,4 +56,9 @@ export let upcomingExams: DashboardOverviewExamItem[];
       {/each}
     </Item.Group>
   </Card.Content>
+  <OverviewViewAllFooter
+    href={dashboardTabHref("exams")}
+    label={viewAllLabel}
+    visible={upcomingExams.length > previewLimit}
+  />
 </Card.Root>

@@ -557,7 +557,7 @@ INSERT INTO public."Todo" (id, title, content, completed, priority, "dueAt", "cr
 -- Data for Name: UploadPending; Type: TABLE DATA; Schema: public; Owner: -
 --
 
-INSERT INTO public."UploadPending" (id, key, filename, "contentType", size, "expiresAt", "createdAt", "updatedAt", "userId") VALUES ('cmqw1srg60020bqt4ojzcp279', 'dev-scenario/pending-lab-template.xlsx', 'pending-lab-template.xlsx', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 52000, '2026-04-30 15:59:00', '2026-06-27 07:38:10.038', '2026-06-27 07:38:10.038', 'cmqw1sr9g0001bqt44c3s0kqa') ON CONFLICT DO NOTHING;
+INSERT INTO public."UploadPending" (id, key, filename, "contentType", size, "expiresAt", "createdAt", "updatedAt", "userId", "attemptId", phase) VALUES ('cmqw1srg60020bqt4ojzcp279', 'dev-scenario/pending-lab-template.xlsx', 'pending-lab-template.xlsx', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 52000, '2026-04-30 15:59:00', '2026-06-27 07:38:10.038', '2026-06-27 07:38:10.038', 'cmqw1sr9g0001bqt44c3s0kqa', 'dev-seed-pending-lab-template', 'reserved') ON CONFLICT DO NOTHING;
 
 
 --
@@ -621,13 +621,13 @@ INSERT INTO public."_SectionTeachers" ("A", "B") VALUES (2, 2) ON CONFLICT DO NO
 
 
 --
--- Data for Name: _UserCalendarSections; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: UserSectionSubscription; Type: TABLE DATA; Schema: public; Owner: -
 --
 
-INSERT INTO public."_UserCalendarSections" ("A", "B") VALUES (1, 'cmqw1sr9g0001bqt44c3s0kqa') ON CONFLICT DO NOTHING;
-INSERT INTO public."_UserCalendarSections" ("A", "B") VALUES (2, 'cmqw1sr9g0001bqt44c3s0kqa') ON CONFLICT DO NOTHING;
-INSERT INTO public."_UserCalendarSections" ("A", "B") VALUES (3, 'cmqw1sr9g0001bqt44c3s0kqa') ON CONFLICT DO NOTHING;
-INSERT INTO public."_UserCalendarSections" ("A", "B") VALUES (4, 'cmqw1sr9g0001bqt44c3s0kqa') ON CONFLICT DO NOTHING;
+INSERT INTO public."UserSectionSubscription" ("userId", "sectionId") VALUES ('cmqw1sr9g0001bqt44c3s0kqa', 1) ON CONFLICT DO NOTHING;
+INSERT INTO public."UserSectionSubscription" ("userId", "sectionId") VALUES ('cmqw1sr9g0001bqt44c3s0kqa', 2) ON CONFLICT DO NOTHING;
+INSERT INTO public."UserSectionSubscription" ("userId", "sectionId") VALUES ('cmqw1sr9g0001bqt44c3s0kqa', 3) ON CONFLICT DO NOTHING;
+INSERT INTO public."UserSectionSubscription" ("userId", "sectionId") VALUES ('cmqw1sr9g0001bqt44c3s0kqa', 4) ON CONFLICT DO NOTHING;
 
 
 --

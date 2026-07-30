@@ -37,7 +37,10 @@ export async function buildUserCalendarExport(
   user: UserCalendarRecord,
   userId: string,
 ) {
-  const sectionIds = user.subscribedSections.map((section) => section.id);
+  const subscribedSections = user.sectionSubscriptions.map(
+    (row) => row.section,
+  );
+  const sectionIds = subscribedSections.map((section) => section.id);
   const homeworks = await getIncompleteHomeworkCalendarItems(
     userId,
     sectionIds,
@@ -45,7 +48,7 @@ export async function buildUserCalendarExport(
   const todos = userCalendarTodoItems(user.todos);
 
   const calendar = await createUserCalendar({
-    sections: user.subscribedSections,
+    sections: subscribedSections,
     homeworks,
     todos,
   });

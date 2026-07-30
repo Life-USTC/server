@@ -50,6 +50,34 @@ const expectedFunctions = [
     securityDefiner: true,
     settings: ['search_path=""'],
     signature:
+      "public.get_public_profile_section_subscription_count(p_user_id text)",
+    volatility: "STABLE",
+  },
+  {
+    securityDefiner: true,
+    settings: ['search_path=""'],
+    signature:
+      "public.claim_upload_pending_storage_cleanup(p_now timestamp without time zone, p_batch_size integer, p_lease_seconds integer)",
+    volatility: "VOLATILE",
+  },
+  {
+    securityDefiner: true,
+    settings: ['search_path=""'],
+    signature:
+      "public.finalize_upload_pending_storage_cleanup(p_id text, p_attempt_id text)",
+    volatility: "VOLATILE",
+  },
+  {
+    securityDefiner: true,
+    settings: ['search_path=""'],
+    signature:
+      "public.release_upload_pending_storage_cleanup(p_id text, p_attempt_id text, p_now timestamp without time zone, p_retry_lease_seconds integer)",
+    volatility: "VOLATILE",
+  },
+  {
+    securityDefiner: true,
+    settings: ['search_path=""'],
+    signature:
       "public.unlink_settings_account(p_user_id text, p_provider text)",
     volatility: "VOLATILE",
   },

@@ -88,7 +88,7 @@ export function buildSubscribedHomeworkPageQuery(input: {
   return {
     where: {
       section: {
-        subscribedUsers: { some: { id: input.userId } },
+        sectionSubscriptions: { some: { userId: input.userId } },
         ...(input.semesterId !== undefined
           ? { semesterId: input.semesterId }
           : {}),

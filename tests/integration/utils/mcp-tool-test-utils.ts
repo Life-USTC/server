@@ -186,28 +186,27 @@ export async function getUserSubscribedSectionIds(userId = currentDevUserId) {
   const user = await prisma.user.findUniqueOrThrow({
     where: { id: userId },
     select: {
-      subscribedSections: {
-        select: { id: true },
-        orderBy: { id: "asc" },
+      sectionSubscriptions: {
+        select: { sectionId: true },
+        orderBy: { sectionId: "asc" },
       },
     },
   });
 
-  return user.subscribedSections.map((section) => section.id);
+  return user.sectionSubscriptions.map((row) => row.sectionId);
 }
 
 export async function replaceUserSubscribedSections(
   userId: string,
   sectionIds: number[],
 ) {
-  await prisma.user.update({
-    where: { id: userId },
-    data: {
-      subscribedSections: {
-        set: sectionIds.map((id) => ({ id })),
-      },
-    },
-  });
+  await prisma.$transaction([
+    prisma.userSectionSubscription.deleteMany({ where: { userId } }),
+    prisma.userSectionSubscription.createMany({
+      data: sectionIds.map((sectionId) => ({ userId, sectionId })),
+      skipDuplicates: true,
+    }),
+  ]);
 }
 
 export async function ensureDevUserSubscribedToSeedSection(
@@ -225,24 +224,16 @@ export async function ensureDevUserSubscribedToSeedSection(
     throw new Error(`Seed section ${DEV_SEED.section.jwId} not found`);
   }
 
-  const user = await prisma.user.findUniqueOrThrow({
-    where: { id: userId },
-    select: {
-      subscribedSections: {
-        select: { id: true },
-        where: { id: section.id },
-        take: 1,
-      },
-    },
+  const existing = await prisma.userSectionSubscription.findFirst({
+    where: { userId, sectionId: section.id },
+    select: { sectionId: true },
   });
 
-  if (user.subscribedSections.length === 0) {
-    await prisma.user.update({
-      where: { id: userId },
+  if (!existing) {
+    await prisma.userSectionSubscription.create({
       data: {
-        subscribedSections: {
-          connect: { id: section.id },
-        },
+        userId,
+        sectionId: section.id,
       },
     });
   }

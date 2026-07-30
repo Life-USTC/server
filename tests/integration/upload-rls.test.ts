@@ -102,6 +102,7 @@ describe.skipIf(process.env.RLS_TEST_ENABLED !== "true")(
         });
         const pending = await tx.uploadPending.create({
           data: {
+            attemptId: "rls-default-deny-attempt",
             expiresAt: new Date("2099-01-01T00:00:00.000Z"),
             filename: "rls-default-deny-pending.txt",
             key: `uploads/${firstUserId}/rls-default-deny-pending.txt`,
@@ -146,6 +147,7 @@ describe.skipIf(process.env.RLS_TEST_ENABLED !== "true")(
           withUserDbContext(userId, async (tx) => ({
             pending: await tx.uploadPending.create({
               data: {
+                attemptId: `${userId}-attempt`,
                 expiresAt: new Date("2099-01-01T00:00:00.000Z"),
                 filename: `${userId}-pending.txt`,
                 key: `uploads/${userId}/rls-owner-pending.txt`,
@@ -225,6 +227,7 @@ describe.skipIf(process.env.RLS_TEST_ENABLED !== "true")(
           withUserDbContext(userId, (tx) =>
             tx.uploadPending.create({
               data: {
+                attemptId: `${userId}-expired-attempt`,
                 expiresAt: expiredAt,
                 filename: `${userId}-expired.txt`,
                 key: `uploads/${userId}/rls-expired.txt`,

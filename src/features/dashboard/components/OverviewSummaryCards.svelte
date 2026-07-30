@@ -8,6 +8,7 @@ import type {
   DashboardTodoItem,
   DashboardTodosCopy,
 } from "@/features/dashboard/lib/dashboard-controller-helpers";
+import { DASHBOARD_OVERVIEW_PREVIEW_LIMIT } from "@/features/dashboard/lib/overview-preview";
 import type { DashboardCalendarTabHref } from "./dashboard-calendar-component-types";
 import OverviewExamSummaryCard from "./OverviewExamSummaryCard.svelte";
 import OverviewHomeworkSummaryCard from "./OverviewHomeworkSummaryCard.svelte";
@@ -32,6 +33,8 @@ export let todosDueToday: DashboardTodoItem[];
 export let todosDueSoon: DashboardTodoItem[];
 export let upcomingExams: DashboardOverviewExamItem[];
 export let examsCount: number;
+export let previewLimit = DASHBOARD_OVERVIEW_PREVIEW_LIMIT;
+export let viewAllLabel = "View all";
 </script>
 
 <div class="grid gap-4 lg:grid-cols-3">
@@ -42,6 +45,8 @@ export let examsCount: number;
     {fmtDate}
     {homeworkEtaLabel}
     {pendingHomeworks}
+    {previewLimit}
+    {viewAllLabel}
   />
 
   <OverviewTodoSummaryCard
@@ -50,10 +55,12 @@ export let examsCount: number;
     {fmtDate}
     {formatMessage}
     {pendingTodos}
+    {previewLimit}
     {todosCopy}
     {todosDueSoon}
     {todosDueToday}
     {todoStatus}
+    {viewAllLabel}
   />
 
   <OverviewExamSummaryCard
@@ -62,7 +69,9 @@ export let examsCount: number;
     {dashboardTabHref}
     {examsCount}
     {fmtDate}
+    {previewLimit}
     {sectionCopy}
     {upcomingExams}
+    {viewAllLabel}
   />
 </div>

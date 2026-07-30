@@ -12,6 +12,7 @@ const {
   sectionFindManyMock,
   todoCountMock,
   todoFindManyMock,
+  userSectionSubscriptionFindManyMock,
   withUserDbContextMock,
 } = vi.hoisted(() => ({
   examCountMock: vi.fn(),
@@ -25,6 +26,7 @@ const {
   sectionFindManyMock: vi.fn(),
   todoCountMock: vi.fn(),
   todoFindManyMock: vi.fn(),
+  userSectionSubscriptionFindManyMock: vi.fn(),
   withUserDbContextMock: vi.fn(
     async (_userId: string, action: (tx: unknown) => Promise<unknown>) =>
       action({
@@ -33,6 +35,9 @@ const {
           findMany: homeworkFindManyMock,
         },
         todo: { count: todoCountMock, findMany: todoFindManyMock },
+        userSectionSubscription: {
+          findMany: userSectionSubscriptionFindManyMock,
+        },
       }),
   ),
 }));
@@ -78,9 +83,19 @@ describe("viewer page services", () => {
       sectionFindManyMock,
       todoCountMock,
       todoFindManyMock,
+      userSectionSubscriptionFindManyMock,
     ]) {
       mock.mockReset();
     }
+    userSectionSubscriptionFindManyMock.mockImplementation(
+      ({ where }: { where?: { section?: { semesterId?: number } } }) => {
+        const semesterId = where?.section?.semesterId;
+        if (semesterId === 7) return Promise.resolve([{ sectionId: 71 }]);
+        if (semesterId === 8) return Promise.resolve([{ sectionId: 81 }]);
+        if (semesterId === 9) return Promise.resolve([{ sectionId: 91 }]);
+        return Promise.resolve([{ sectionId: 11 }]);
+      },
+    );
     getPrismaMock.mockReturnValue(localizedPrisma);
     for (const mock of [
       examFindManyMock,
@@ -140,7 +155,7 @@ describe("viewer page services", () => {
       pagination: { page: 2, pageSize: 4 },
     });
 
-    const where = { subscribedUsers: { some: { id: "user-1" } } };
+    const where = { id: { in: [11] } };
     expect(sectionFindManyMock).toHaveBeenCalledWith(
       expect.objectContaining({ where, skip: 4, take: 4 }),
     );
@@ -162,7 +177,7 @@ describe("viewer page services", () => {
 
     const where = {
       section: {
-        subscribedUsers: { some: { id: "user-1" } },
+        sectionSubscriptions: { some: { userId: "user-1" } },
         semesterId: 7,
       },
       deletedAt: null,
@@ -190,11 +205,8 @@ describe("viewer page services", () => {
     });
 
     const where = {
-      section: {
-        subscribedUsers: { some: { id: "user-1" } },
-        retiredAt: null,
-        semesterId: 8,
-      },
+      sectionId: { in: [81] },
+      section: { retiredAt: null },
       date: { gte: dateFrom },
       weekday: 3,
     };
@@ -219,7 +231,6 @@ describe("viewer page services", () => {
       }),
     );
     expect(scheduleCountMock).toHaveBeenCalledWith({ where });
-    expect(where).not.toHaveProperty("sectionId");
   });
 
   it("paginates exams through the user subscription relation", async () => {
@@ -236,17 +247,13 @@ describe("viewer page services", () => {
     });
 
     const where = {
-      section: {
-        subscribedUsers: { some: { id: "user-1" } },
-        retiredAt: null,
-        semesterId: 9,
-      },
+      sectionId: { in: [91] },
+      section: { retiredAt: null },
       OR: [{ examDate: { lte: dateTo } }],
     };
     expect(examFindManyMock).toHaveBeenCalledWith(
       expect.objectContaining({ where, skip: 6, take: 6 }),
     );
     expect(examCountMock).toHaveBeenCalledWith({ where });
-    expect(where).not.toHaveProperty("sectionId");
   });
 });

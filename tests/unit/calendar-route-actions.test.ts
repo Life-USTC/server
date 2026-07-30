@@ -63,7 +63,7 @@ describe("personal calendar route cache ordering", () => {
   });
 
   it("loads heavy calendar data only through the cache miss builder", async () => {
-    const user = { id: "user-1", subscribedSections: [], todos: [] };
+    const user = { id: "user-1", sectionSubscriptions: [], todos: [] };
     getUserRecordMock.mockResolvedValue(user);
     buildUserCalendarExportMock.mockResolvedValue({
       cacheControl: "private, max-age=300",

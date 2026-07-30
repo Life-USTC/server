@@ -42,7 +42,7 @@ describe("viewer page services", () => {
         data: {
           email: userEmails[0],
           name: "Viewer Page A",
-          subscribedSections: { connect: { id: firstSectionId } },
+          sectionSubscriptions: { create: { sectionId: firstSectionId } },
         },
         select: { id: true },
       }),
@@ -50,7 +50,7 @@ describe("viewer page services", () => {
         data: {
           email: userEmails[1],
           name: "Viewer Page B",
-          subscribedSections: { connect: { id: secondSectionId } },
+          sectionSubscriptions: { create: { sectionId: secondSectionId } },
         },
         select: { id: true },
       }),

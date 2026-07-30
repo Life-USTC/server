@@ -8,12 +8,14 @@ import type {
   DashboardTodoItem,
   DashboardTodosCopy,
 } from "@/features/dashboard/lib/dashboard-controller-helpers";
+import { DASHBOARD_OVERVIEW_PREVIEW_LIMIT } from "@/features/dashboard/lib/overview-preview";
 import { Badge } from "$lib/components/ui/badge/index.js";
 import * as Card from "$lib/components/ui/card/index.js";
 import * as Empty from "$lib/components/ui/empty/index.js";
 import * as Item from "$lib/components/ui/item/index.js";
 import type { DashboardCalendarTabHref } from "./dashboard-calendar-component-types";
 import OverviewTodayCard from "./OverviewTodayCard.svelte";
+import OverviewViewAllFooter from "./OverviewViewAllFooter.svelte";
 
 export let copy: DashboardRootCopy;
 export let commonCopy: DashboardCommonCopy;
@@ -30,6 +32,16 @@ export let dueTodayTodos: DashboardTodoItem[];
 export let overdueHomeworks: DashboardHomeworkItem[];
 export let overdueTodos: DashboardTodoItem[];
 export let sessionHref: (session: DashboardSessionItem) => string;
+export let previewLimit = DASHBOARD_OVERVIEW_PREVIEW_LIMIT;
+export let viewAllLabel = "View all";
+
+$: overdueHomeworkPreview = overdueHomeworks.slice(0, previewLimit);
+$: overdueTodoPreview = overdueTodos.slice(
+  0,
+  Math.max(0, previewLimit - overdueHomeworkPreview.length),
+);
+$: showOverdueViewAll =
+  overdueHomeworks.length + overdueTodos.length > previewLimit;
 </script>
 
 <div class="grid items-start gap-4 lg:grid-cols-2">
@@ -53,7 +65,7 @@ export let sessionHref: (session: DashboardSessionItem) => string;
     </Card.Header>
     <Card.Content>
       <Item.Group class="grid gap-2 md:grid-cols-2">
-        {#each overdueHomeworks as homework}
+        {#each overdueHomeworkPreview as homework}
           <Item.Root variant="outline" size="sm">
             {#snippet child({ props })}
               <a
@@ -78,7 +90,7 @@ export let sessionHref: (session: DashboardSessionItem) => string;
             {/snippet}
           </Item.Root>
         {/each}
-        {#each overdueTodos as todo}
+        {#each overdueTodoPreview as todo}
           <Item.Root variant="outline" size="sm">
             {#snippet child({ props })}
               <a href={dashboardTabHref("todos")} {...props}>
@@ -116,5 +128,10 @@ export let sessionHref: (session: DashboardSessionItem) => string;
         {/if}
       </Item.Group>
     </Card.Content>
+    <OverviewViewAllFooter
+      href={dashboardTabHref("homeworks")}
+      label={viewAllLabel}
+      visible={showOverdueViewAll}
+    />
   </Card.Root>
 </div>

@@ -41,7 +41,7 @@ import OverviewMissingCurrentTerm from "./OverviewMissingCurrentTerm.svelte";
 import OverviewSummaryCards from "./OverviewSummaryCards.svelte";
 import OverviewTermSelectionCard from "./OverviewTermSelectionCard.svelte";
 import OverviewTodayOverdueCards from "./OverviewTodayOverdueCards.svelte";
-import OverviewWeekCard from "./OverviewWeekCard.svelte";
+import { DASHBOARD_OVERVIEW_PREVIEW_LIMIT } from "@/features/dashboard/lib/overview-preview";
 import type {
   OverviewCalendarTimelineItemsForDay,
   OverviewSignedData,
@@ -175,6 +175,14 @@ function overviewFocus(
   {@const overviewTodosDueSoon = todosDueSoonForOverview(overviewPendingTodos, signedData)}
   {@const overviewOverdueHomeworks = homeworksOverdueForOverview(signedData)}
   {@const overviewOverdueTodos = todosOverdueForOverview(overviewPendingTodos, signedData)}
+  {@const overviewOverdueHomeworkIds = new Set(overviewOverdueHomeworks.map((homework) => homework.id))}
+  {@const overviewOverdueTodoIds = new Set(overviewOverdueTodos.map((todo) => todo.id))}
+  {@const overviewSummaryHomeworks = (signedData.overview?.pendingHomeworks ?? []).filter(
+    (homework) => !overviewOverdueHomeworkIds.has(homework.id),
+  )}
+  {@const overviewSummaryTodos = overviewPendingTodos.filter(
+    (todo) => !overviewOverdueTodoIds.has(todo.id),
+  )}
 
   {#if signedData.overview?.calendar}
     {@const overviewCalendar = signedData.overview.calendar}
@@ -185,43 +193,6 @@ function overviewFocus(
       <OverviewFocusCard
         copy={dashboardCopy.focus}
         focus={overviewFocus(overviewCalendar, agendaDays)}
-      />
-
-      <OverviewTodayOverdueCards
-        {copy}
-        {commonCopy}
-        {dashboardCopy}
-        {dashboardTabHref}
-        dueTodayHomeworks={signedData.overview.dueToday}
-        dueTodayTodos={overviewTodosDueToday}
-        {fmtDate}
-        {fmtTime}
-        {homeworkEtaLabel}
-        overdueHomeworks={overviewOverdueHomeworks}
-        overdueTodos={overviewOverdueTodos}
-        {sessionHref}
-        todaySessions={signedData.overview.todaySessions}
-        {todosCopy}
-        {todoStatus}
-      />
-
-      <OverviewSummaryCards
-        {calendarExamDetail}
-        {commonCopy}
-        {dashboardCopy}
-        {dashboardTabHref}
-        examsCount={signedData.navStats.examsCount}
-        {fmtDate}
-        {formatMessage}
-        {homeworkEtaLabel}
-        pendingHomeworks={signedData.overview.pendingHomeworks}
-        pendingTodos={overviewPendingTodos}
-        {sectionCopy}
-        {todosCopy}
-        todosDueSoon={overviewTodosDueSoon}
-        todosDueToday={overviewTodosDueToday}
-        {todoStatus}
-        upcomingExams={upcomingOverviewExams}
       />
 
       <OverviewWeekCard
@@ -238,6 +209,47 @@ function overviewFocus(
         links={overviewLinkItems}
         {submitDashboardLinkPin}
         {updatingDashboardLinkSlug}
+      />
+
+      <OverviewTodayOverdueCards
+        {copy}
+        {commonCopy}
+        {dashboardCopy}
+        {dashboardTabHref}
+        dueTodayHomeworks={signedData.overview.dueToday}
+        dueTodayTodos={overviewTodosDueToday}
+        {fmtDate}
+        {fmtTime}
+        {homeworkEtaLabel}
+        overdueHomeworks={overviewOverdueHomeworks}
+        overdueTodos={overviewOverdueTodos}
+        previewLimit={DASHBOARD_OVERVIEW_PREVIEW_LIMIT}
+        {sessionHref}
+        todaySessions={signedData.overview.todaySessions}
+        {todosCopy}
+        {todoStatus}
+        viewAllLabel={dashboardCopy.viewAll as string}
+      />
+
+      <OverviewSummaryCards
+        {calendarExamDetail}
+        {commonCopy}
+        {dashboardCopy}
+        {dashboardTabHref}
+        examsCount={signedData.navStats.examsCount}
+        {fmtDate}
+        {formatMessage}
+        {homeworkEtaLabel}
+        pendingHomeworks={overviewSummaryHomeworks}
+        pendingTodos={overviewSummaryTodos}
+        previewLimit={DASHBOARD_OVERVIEW_PREVIEW_LIMIT}
+        {sectionCopy}
+        {todosCopy}
+        todosDueSoon={overviewTodosDueSoon}
+        todosDueToday={overviewTodosDueToday}
+        {todoStatus}
+        upcomingExams={upcomingOverviewExams}
+        viewAllLabel={dashboardCopy.viewAll as string}
       />
     </div>
   {/if}

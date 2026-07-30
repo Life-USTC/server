@@ -78,14 +78,17 @@ describe("compact workspace overview read model", () => {
         callback(),
     );
     withUserDbContextMock.mockImplementation((_userId, action) =>
-      action({ homework: { count: homeworkCountMock } }),
+      action({
+        homework: { count: homeworkCountMock },
+        user: { findUnique: userFindUniqueMock },
+      }),
     );
     userFindUniqueMock.mockResolvedValue({
       id: "user-1",
       image: "avatar.png",
       isAdmin: true,
       name: "User One",
-      subscribedSections: [{ id: 11 }],
+      sectionSubscriptions: [{ sectionId: 11 }],
     });
     loadOverviewTodoBundleMock.mockImplementation(
       async ({ runTodoSummary, runDueTodoCount, runDueTodoSample }) => ({
@@ -122,9 +125,9 @@ describe("compact workspace overview read model", () => {
         image: true,
         isAdmin: true,
         name: true,
-        subscribedSections: {
-          where: { retiredAt: null },
-          select: { id: true },
+        sectionSubscriptions: {
+          where: { section: { retiredAt: null } },
+          select: { sectionId: true },
         },
       },
     });
@@ -227,7 +230,7 @@ describe("compact workspace overview read model", () => {
         image: null,
         isAdmin: false,
         name: "User One",
-        subscribedSections: [],
+        sectionSubscriptions: [],
       },
       expectedUser: {
         image: null,

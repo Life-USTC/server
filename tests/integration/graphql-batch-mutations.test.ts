@@ -462,13 +462,13 @@ describe("GraphQL batch mutations", () => {
       prisma.user.findUniqueOrThrow({
         where: { id: userAId },
         select: {
-          subscribedSections: {
-            where: { id: sectionId },
-            select: { id: true },
+          sectionSubscriptions: {
+            where: { sectionId },
+            select: { sectionId: true },
           },
         },
       }),
-    ).resolves.toEqual({ subscribedSections: [{ id: sectionId }] });
+    ).resolves.toEqual({ sectionSubscriptions: [{ sectionId }] });
 
     const cleared = await execute(
       {
@@ -493,12 +493,12 @@ describe("GraphQL batch mutations", () => {
       prisma.user.findUniqueOrThrow({
         where: { id: userAId },
         select: {
-          subscribedSections: {
-            where: { semesterId },
-            select: { id: true },
+          sectionSubscriptions: {
+            where: { section: { semesterId } },
+            select: { sectionId: true },
           },
         },
       }),
-    ).resolves.toEqual({ subscribedSections: [] });
+    ).resolves.toEqual({ sectionSubscriptions: [] });
   });
 });

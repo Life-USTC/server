@@ -137,6 +137,7 @@ test("/api/workspace/uploads GET 忽略过期预留但不执行清理写入", as
   const pending = await withE2ePrisma((prisma) =>
     prisma.uploadPending.create({
       data: {
+        attemptId: `e2e-expired-read-${Date.now()}`,
         contentType: "text/plain",
         expiresAt: new Date(Date.now() - 60_000),
         filename: "expired-read.txt",

@@ -1,6 +1,6 @@
 import { sectionCompactInclude } from "@/features/catalog/server/academic-query-includes";
 import { DEFAULT_LOCALE } from "@/i18n/config";
-import { getPrisma, prisma } from "@/lib/db/prisma";
+import { getPrisma, prisma, withUserDbContext } from "@/lib/db/prisma";
 import { getPublicOrigin } from "@/lib/site-url";
 import {
   buildCalendarFeedPath,
@@ -12,10 +12,12 @@ import {
 export async function getUserSectionSubscriptionState(
   userId: string,
 ): Promise<UserSectionSubscriptionState | null> {
-  const user = await prisma.user.findUnique({
-    where: { id: userId },
-    select: userSectionSubscriptionSelect,
-  });
+  const user = await withUserDbContext(userId, (tx) =>
+    tx.user.findUnique({
+      where: { id: userId },
+      select: userSectionSubscriptionSelect,
+    }),
+  );
   if (!user) return null;
 
   return {
@@ -24,7 +26,9 @@ export async function getUserSectionSubscriptionState(
       user.id,
       user.calendarFeedToken,
     ),
-    subscribedSections: user.subscribedSections.map(({ id }) => id),
+    subscribedSections: user.sectionSubscriptions.map(
+      ({ section }) => section.id,
+    ),
   };
 }
 
@@ -32,18 +36,26 @@ export async function getUserCalendarSubscription(
   userId: string,
   locale = DEFAULT_LOCALE,
 ) {
-  const localizedPrisma = getPrisma(locale);
-  const user = await localizedPrisma.user.findUnique({
-    where: { id: userId },
-    select: {
-      id: true,
-      calendarFeedToken: true,
-      subscribedSections: {
-        include: sectionCompactInclude,
-        orderBy: [{ semester: { jwId: "desc" } }, { code: "asc" }],
+  const user = await withUserDbContext(userId, (tx) =>
+    tx.user.findUnique({
+      where: { id: userId },
+      select: {
+        id: true,
+        calendarFeedToken: true,
+        sectionSubscriptions: {
+          include: {
+            section: {
+              include: sectionCompactInclude,
+            },
+          },
+          orderBy: [
+            { section: { semester: { jwId: "desc" } } },
+            { section: { code: "asc" } },
+          ],
+        },
       },
-    },
-  });
+    }),
+  );
 
   if (!user) return null;
 
@@ -53,7 +65,7 @@ export async function getUserCalendarSubscription(
   );
   return {
     userId: user.id,
-    sections: user.subscribedSections,
+    sections: user.sectionSubscriptions.map((row) => row.section),
     calendarPath,
     calendarUrl: `${getPublicOrigin()}${calendarPath}`,
     note: SECTION_SUBSCRIPTION_NOTE,

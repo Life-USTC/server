@@ -431,7 +431,7 @@ model Section {
   sectionTeachers        SectionTeacher[]
   teacherAssignments    TeacherAssignment[]
   exams                 Exam[]
-  subscribedUsers       User[]                @relation("UserCalendarSections")
+  sectionSubscriptions UserSectionSubscription[]
   comments              Comment[]
   description           Description?
   homeworks             Homework[]
@@ -818,7 +818,7 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  subscribedSections   Section[]           @relation("UserCalendarSections")
+  sectionSubscriptions UserSectionSubscription[]
   uploads              Upload[]
   uploadPendings       UploadPending[]
   comments             Comment[]
@@ -1030,15 +1030,38 @@ model UserSuspension {
   @@index([userId, liftedAt])
 }
 
+enum UploadPendingPhase {
+  reserved
+  uploading
+  uploaded
+  completing
+  cleaning
+}
+
+model UserSectionSubscription {
+  userId    String
+  sectionId Int
+  createdAt DateTime @default(now())
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  section Section @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+
+  @@id([userId, sectionId])
+  @@index([sectionId])
+}
+
 model UploadPending {
-  id          String   @id @default(cuid())
-  key         String   @unique
-  filename    String
-  contentType String?
-  size        Int
-  expiresAt   DateTime
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id             String             @id @default(cuid())
+  key            String             @unique
+  filename       String
+  contentType    String?
+  size           Int
+  expiresAt      DateTime
+  attemptId      String
+  phase          UploadPendingPhase @default(reserved)
+  leaseExpiresAt DateTime?
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
 
   userId String
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -1046,6 +1069,7 @@ model UploadPending {
   @@index([userId])
   @@index([expiresAt])
   @@index([userId, expiresAt])
+  @@index([phase, leaseExpiresAt])
 }
 
 model VerifiedEmail {

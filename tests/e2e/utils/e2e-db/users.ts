@@ -71,35 +71,29 @@ export async function updateUserProfileById(
 }
 
 export async function getUserSubscribedSectionIds(userId: string) {
-  const user = await withE2ePrisma((prisma) =>
-    prisma.user.findUniqueOrThrow({
-      where: { id: userId },
-      select: {
-        subscribedSections: {
-          select: { id: true },
-          orderBy: { id: "asc" },
-        },
-      },
+  const rows = await withE2ePrisma((prisma) =>
+    prisma.userSectionSubscription.findMany({
+      where: { userId },
+      select: { sectionId: true },
+      orderBy: { sectionId: "asc" },
     }),
   );
 
-  return user.subscribedSections.map((section) => section.id);
+  return rows.map((row) => row.sectionId);
 }
 
 export async function replaceUserSubscribedSectionIds(
   userId: string,
   sectionIds: number[],
 ) {
-  await withE2ePrisma((prisma) =>
-    prisma.user.update({
-      where: { id: userId },
-      data: {
-        subscribedSections: {
-          set: sectionIds.map((id) => ({ id })),
-        },
-      },
-    }),
-  );
+  await withE2ePrisma(async (prisma) => {
+    await prisma.userSectionSubscription.deleteMany({ where: { userId } });
+    if (sectionIds.length === 0) return;
+    await prisma.userSectionSubscription.createMany({
+      data: sectionIds.map((sectionId) => ({ userId, sectionId })),
+      skipDuplicates: true,
+    });
+  });
 }
 
 export async function deletePasskeysForUserFixture(userId: string) {

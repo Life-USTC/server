@@ -4,11 +4,14 @@ import type {
   DashboardDashboardCopy,
   DashboardHomeworkItem,
 } from "@/features/dashboard/lib/dashboard-controller-helpers";
+import { DASHBOARD_OVERVIEW_PREVIEW_LIMIT } from "@/features/dashboard/lib/overview-preview";
 import { Badge } from "$lib/components/ui/badge/index.js";
 import * as Card from "$lib/components/ui/card/index.js";
 import * as Empty from "$lib/components/ui/empty/index.js";
 import * as Item from "$lib/components/ui/item/index.js";
 import type { DashboardCalendarTabHref } from "./dashboard-calendar-component-types";
+
+import OverviewViewAllFooter from "./OverviewViewAllFooter.svelte";
 
 export let commonCopy: DashboardCommonCopy;
 export let dashboardCopy: DashboardDashboardCopy;
@@ -16,6 +19,8 @@ export let dashboardTabHref: DashboardCalendarTabHref;
 export let fmtDate: (date: Date | string | null | undefined) => string;
 export let homeworkEtaLabel: (date: Date | string | null | undefined) => string;
 export let pendingHomeworks: DashboardHomeworkItem[];
+export let previewLimit = DASHBOARD_OVERVIEW_PREVIEW_LIMIT;
+export let viewAllLabel = "View all";
 </script>
 
 <Card.Root>
@@ -26,7 +31,7 @@ export let pendingHomeworks: DashboardHomeworkItem[];
   </Card.Header>
   <Card.Content>
     <Item.Group>
-      {#each pendingHomeworks.slice(0, 5) as homework}
+      {#each pendingHomeworks.slice(0, previewLimit) as homework}
         <Item.Root variant="outline" size="sm">
           {#snippet child({ props })}
             <a
@@ -55,4 +60,9 @@ export let pendingHomeworks: DashboardHomeworkItem[];
       {/each}
     </Item.Group>
   </Card.Content>
+  <OverviewViewAllFooter
+    href={dashboardTabHref("homeworks")}
+    label={viewAllLabel}
+    visible={pendingHomeworks.length > previewLimit}
+  />
 </Card.Root>

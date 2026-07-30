@@ -4,11 +4,14 @@ import type {
   DashboardTodoItem,
   DashboardTodosCopy,
 } from "@/features/dashboard/lib/dashboard-controller-helpers";
+import { DASHBOARD_OVERVIEW_PREVIEW_LIMIT } from "@/features/dashboard/lib/overview-preview";
 import { Badge } from "$lib/components/ui/badge/index.js";
 import * as Card from "$lib/components/ui/card/index.js";
 import * as Empty from "$lib/components/ui/empty/index.js";
 import * as Item from "$lib/components/ui/item/index.js";
 import type { DashboardCalendarTabHref } from "./dashboard-calendar-component-types";
+
+import OverviewViewAllFooter from "./OverviewViewAllFooter.svelte";
 
 export let dashboardCopy: DashboardDashboardCopy;
 export let dashboardTabHref: DashboardCalendarTabHref;
@@ -22,6 +25,8 @@ export let todosCopy: DashboardTodosCopy;
 export let todosDueSoon: DashboardTodoItem[];
 export let todosDueToday: DashboardTodoItem[];
 export let todoStatus: (todo: DashboardTodoItem) => string;
+export let previewLimit = DASHBOARD_OVERVIEW_PREVIEW_LIMIT;
+export let viewAllLabel = "View all";
 </script>
 
 <Card.Root>
@@ -46,7 +51,7 @@ export let todoStatus: (todo: DashboardTodoItem) => string;
   </Card.Header>
   <Card.Content>
     <Item.Group>
-      {#each pendingTodos.slice(0, 5) as todo}
+      {#each pendingTodos.slice(0, previewLimit) as todo}
         <Item.Root variant="outline" size="sm">
           {#snippet child({ props })}
             <a href={dashboardTabHref("todos")} {...props}>
@@ -80,4 +85,9 @@ export let todoStatus: (todo: DashboardTodoItem) => string;
       {/each}
     </Item.Group>
   </Card.Content>
+  <OverviewViewAllFooter
+    href={dashboardTabHref("todos")}
+    label={viewAllLabel}
+    visible={pendingTodos.length > previewLimit}
+  />
 </Card.Root>

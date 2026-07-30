@@ -270,6 +270,21 @@ ALTER FUNCTION public.get_public_profile_homework_completions(
   text,
   timestamp without time zone
 ) OWNER TO life_ustc_function_owner;
+ALTER FUNCTION public.get_public_profile_section_subscription_count(text)
+  OWNER TO life_ustc_function_owner;
+ALTER FUNCTION public.claim_upload_pending_storage_cleanup(
+  timestamp without time zone,
+  integer,
+  integer
+) OWNER TO life_ustc_function_owner;
+ALTER FUNCTION public.finalize_upload_pending_storage_cleanup(text, text)
+  OWNER TO life_ustc_function_owner;
+ALTER FUNCTION public.release_upload_pending_storage_cleanup(
+  text,
+  text,
+  timestamp without time zone,
+  integer
+) OWNER TO life_ustc_function_owner;
 
 DROP POLICY IF EXISTS "Upload_definer_read" ON "Upload";
 CREATE POLICY "Upload_definer_read" ON "Upload"
@@ -284,6 +299,19 @@ ALTER POLICY "CommentReaction_summary_reader" ON "CommentReaction"
 ALTER POLICY "HomeworkCompletion_profile_reader" ON "HomeworkCompletion"
   TO life_ustc_function_owner;
 
+DROP POLICY IF EXISTS "UserSectionSubscription_profile_reader" ON "UserSectionSubscription";
+CREATE POLICY "UserSectionSubscription_profile_reader" ON "UserSectionSubscription"
+  FOR SELECT
+  TO life_ustc_function_owner
+  USING (true);
+
+DROP POLICY IF EXISTS "UploadPending_cleanup_worker" ON "UploadPending";
+CREATE POLICY "UploadPending_cleanup_worker" ON "UploadPending"
+  FOR ALL
+  TO life_ustc_function_owner
+  USING (true)
+  WITH CHECK (true);
+
 GRANT EXECUTE ON FUNCTION public.unlink_settings_account(text, text)
   TO life_ustc_auth_runtime;
 GRANT EXECUTE ON FUNCTION
@@ -291,7 +319,8 @@ GRANT EXECUTE ON FUNCTION
   public.comment_attachment_summaries(text[]),
   public.get_public_profile_upload_stats(text, timestamp without time zone),
   public.comment_reaction_summaries(text[]),
-  public.get_public_profile_homework_completions(text, timestamp without time zone)
+  public.get_public_profile_homework_completions(text, timestamp without time zone),
+  public.get_public_profile_section_subscription_count(text)
 TO life_ustc_runtime;
 
 GRANT CONNECT ON DATABASE :"database_name" TO life_ustc_maintenance_runtime;
@@ -300,3 +329,16 @@ GRANT EXECUTE ON FUNCTION public.cleanup_expired_auth_records(
   timestamp without time zone,
   integer
 ) TO life_ustc_maintenance_runtime;
+GRANT EXECUTE ON FUNCTION public.claim_upload_pending_storage_cleanup(
+  timestamp without time zone,
+  integer,
+  integer
+),
+  public.finalize_upload_pending_storage_cleanup(text, text),
+  public.release_upload_pending_storage_cleanup(
+    text,
+    text,
+    timestamp without time zone,
+    integer
+  )
+TO life_ustc_maintenance_runtime;

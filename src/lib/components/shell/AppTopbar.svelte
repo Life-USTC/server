@@ -30,7 +30,7 @@ export let viewerLoading = false;
   <div class="flex h-full items-center gap-2 px-3 sm:px-5 lg:px-6">
     <Sidebar.Trigger
       aria-label={copy.shell.menu}
-      class="size-11 md:size-7"
+      class="size-11 md:hidden"
       onclick={closeMenus}
     />
 
