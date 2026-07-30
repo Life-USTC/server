@@ -19,6 +19,7 @@ const {
   resolveActiveOAuthRefreshGrantMock,
   signJwtMock,
   updateRefreshTokenMock,
+  verifyAccessTokenJwtPayloadMock,
 } = vi.hoisted(() => ({
   betterAuthHandlerMock: vi.fn(),
   findRefreshTokenMock: vi.fn(),
@@ -30,6 +31,7 @@ const {
   resolveActiveOAuthRefreshGrantMock: vi.fn(),
   signJwtMock: vi.fn(),
   updateRefreshTokenMock: vi.fn(),
+  verifyAccessTokenJwtPayloadMock: vi.fn(),
 }));
 
 vi.mock("@/lib/log/app-logger", async (importOriginal) => ({
@@ -44,6 +46,11 @@ vi.mock("@/lib/auth/core", () => ({
     },
     handler: betterAuthHandlerMock,
   },
+}));
+
+vi.mock("@/lib/auth/jwt-verification", async (importOriginal) => ({
+  ...(await importOriginal()),
+  verifyAccessTokenJwtPayload: verifyAccessTokenJwtPayloadMock,
 }));
 
 vi.mock("@/features/oauth/server/user-authorizations.server", () => ({
@@ -79,6 +86,7 @@ vi.mock("@/lib/mcp/urls", () => ({
 }));
 
 vi.mock("@/lib/oauth/resource-urls", () => ({
+  getCanonicalOAuthIssuer: () => "https://life.example/api/auth",
   getOAuthGraphqlResourceUrl: () => "https://life.example/api/graphql",
   getOAuthMcpResourceUrl: () => "https://life.example/api/mcp",
   getOAuthProviderValidAudiences: () => [
@@ -108,6 +116,7 @@ describe("OAuth 令牌路由", () => {
     resolveActiveOAuthRefreshGrantMock.mockReset();
     signJwtMock.mockReset();
     updateRefreshTokenMock.mockReset();
+    verifyAccessTokenJwtPayloadMock.mockReset().mockResolvedValue({});
     updateRefreshTokenMock.mockResolvedValue({ count: 1 });
     isOAuthRefreshGrantActiveMock.mockResolvedValue(true);
     purgeOAuthGrantTokenRowsMock.mockResolvedValue(undefined);

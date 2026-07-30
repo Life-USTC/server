@@ -12,6 +12,7 @@ import {
 } from "@/lib/oauth/utils";
 
 type DeviceAuthorizationClient = {
+  dpopBoundAccessTokens: boolean | null;
   grantTypes: string[];
   public: boolean | null;
   tokenEndpointAuthMethod: string | null;
@@ -32,6 +33,7 @@ type DeviceAuthorizationPrisma = {
       select: {
         clientId: true;
         disabled: true;
+        dpopBoundAccessTokens: true;
         grantTypes: true;
         name: true;
         public: true;
@@ -59,6 +61,7 @@ type DeviceAuthorizationClientResolution =
       error: OAuthDevicePolicyError;
       reason:
         | "confidential_client"
+        | "dpop_not_supported"
         | "invalid_client"
         | "invalid_resource"
         | "invalid_scope"
@@ -202,6 +205,7 @@ export async function resolveDeviceAuthorizationClient({
     select: {
       clientId: true,
       disabled: true,
+      dpopBoundAccessTokens: true,
       grantTypes: true,
       name: true,
       public: true,
@@ -219,6 +223,18 @@ export async function resolveDeviceAuthorizationClient({
         status: 400,
       },
       reason: "invalid_client",
+    };
+  }
+
+  if (client.dpopBoundAccessTokens === true) {
+    return {
+      error: {
+        error: "unauthorized_client",
+        errorDescription:
+          "DPoP-bound access tokens are not supported by device authorization",
+        status: 400,
+      },
+      reason: "dpop_not_supported",
     };
   }
 

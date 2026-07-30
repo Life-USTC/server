@@ -43,6 +43,12 @@ async function resumeConsentIfSignInPage(page: Page) {
       name: /Sign in with Debug User \(Dev\)|调试用户（开发）/i,
     })
     .first();
+  const expectConsentDestination = async () => {
+    await expect(page.getByText(/回调主机|Redirect host/i)).toBeVisible();
+    await expect(
+      page.getByText(/本地应用|application on your device/i),
+    ).toBeVisible();
+  };
 
   for (let attempt = 0; attempt < 3; attempt += 1) {
     const visibleTarget = await Promise.race([
@@ -57,6 +63,7 @@ async function resumeConsentIfSignInPage(page: Page) {
     ]);
 
     if (visibleTarget === "allow") {
+      await expectConsentDestination();
       return;
     }
     if (visibleTarget === "signin") {
@@ -66,6 +73,7 @@ async function resumeConsentIfSignInPage(page: Page) {
   }
 
   await allowButton.waitFor({ state: "visible" });
+  await expectConsentDestination();
 }
 
 async function registerPublicClient(request: Page["request"], scope: string) {
@@ -79,7 +87,7 @@ async function registerPublicClient(request: Page["request"], scope: string) {
       scope,
     },
   });
-  expect(response.status()).toBe(200);
+  expect(response.status()).toBe(201);
   const body = (await response.json()) as { client_id?: string };
   expect(typeof body.client_id).toBe("string");
   return body.client_id as string;
@@ -139,7 +147,7 @@ export async function issueAccessToken(
     scope: string;
     clientScopes: string[];
     resource?: string;
-    /** Omit `resource` on token exchange → opaque access token (ChatGPT-style). */
+    /** Whether to repeat the authorization request's `resource` at token exchange. */
     includeResourceInTokenExchange?: boolean;
   },
 ) {

@@ -1,6 +1,39 @@
 import { constantTimeEqual, makeSignature } from "better-auth/crypto";
 
-const SIGNED_QUERY_FIELDS = ["sig", "exp", "ba_iat", "ba_pl"] as const;
+const SIGNED_QUERY_FIELDS = [
+  "sig",
+  "exp",
+  "ba_iat",
+  "ba_pl",
+  "ba_param",
+] as const;
+
+function canonicalizeOAuthQueryParams(params: URLSearchParams) {
+  const canonical = new URLSearchParams();
+  const entries = [...params.entries()].sort(
+    ([keyA, valueA], [keyB, valueB]) => {
+      if (keyA < keyB) return -1;
+      if (keyA > keyB) return 1;
+      if (valueA < valueB) return -1;
+      if (valueA > valueB) return 1;
+      return 0;
+    },
+  );
+  for (const [key, value] of entries) canonical.append(key, value);
+  return canonical;
+}
+
+function hasValidSignedParameterNames(params: URLSearchParams) {
+  const declaredNames = params.getAll("ba_param");
+  if (declaredNames.length === 0) return true;
+  const declaredNameSet = new Set(declaredNames);
+  if (declaredNameSet.size !== declaredNames.length) return false;
+  const actualNameSet = new Set(params.keys());
+  return (
+    declaredNameSet.size === actualNameSet.size &&
+    [...actualNameSet].every((name) => declaredNameSet.has(name))
+  );
+}
 
 export type VerifiedSignedOAuthQuery = {
   issuedAt: Date | null;
@@ -31,8 +64,22 @@ export async function verifySignedOAuthQueryState(
 
   const signature = signatures[0];
   params.delete("sig");
-  const expected = await makeSignature(params.toString(), secret);
-  if (!signature || !constantTimeEqual(signature, expected)) return null;
+  if (!hasValidSignedParameterNames(params)) return null;
+  const expected = await makeSignature(
+    canonicalizeOAuthQueryParams(params).toString(),
+    secret,
+  );
+  const validCanonicalSignature =
+    !!signature && constantTimeEqual(signature, expected);
+  const validLegacySignature =
+    !validCanonicalSignature &&
+    !params.has("ba_param") &&
+    !!signature &&
+    constantTimeEqual(
+      signature,
+      await makeSignature(params.toString(), secret),
+    );
+  if (!validCanonicalSignature && !validLegacySignature) return null;
 
   const issuedAtValue = issuedAtValues[0];
   const issuedAtMs = issuedAtValue ? Number(issuedAtValue) : Number.NaN;

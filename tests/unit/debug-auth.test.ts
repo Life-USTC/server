@@ -116,8 +116,8 @@ describe("debug 认证配置", () => {
     });
     expect(prismaMock.account.upsert).toHaveBeenCalledWith({
       where: {
-        provider_providerAccountId: {
-          provider: "credential",
+        issuer_providerAccountId: {
+          issuer: "local:credential",
           providerAccountId: "updated-user",
         },
       },
@@ -125,12 +125,14 @@ describe("debug 认证配置", () => {
         userId: "updated-user",
         type: "credential",
         provider: "credential",
+        issuer: "local:credential",
         password: "hashed-debug-password",
       },
       create: {
         userId: "updated-user",
         type: "credential",
         provider: "credential",
+        issuer: "local:credential",
         providerAccountId: "updated-user",
         password: "hashed-debug-password",
       },

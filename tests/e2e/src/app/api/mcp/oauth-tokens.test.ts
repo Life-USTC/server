@@ -17,7 +17,7 @@ import {
 test.describe("/api/mcp - OAuth token 资源绑定", () => {
   test.describe.configure({ mode: "serial" });
 
-  test("不透明 access token（token exchange 未带 resource）被 /api/mcp 拒绝", async ({
+  test("授权码已绑定 resource 时 token exchange 可省略 resource", async ({
     page,
     request,
   }) => {
@@ -31,7 +31,7 @@ test.describe("/api/mcp - OAuth token 资源绑定", () => {
       includeResourceInTokenExchange: false,
     });
 
-    expect(accessToken.split(".").length).toBeLessThan(3);
+    expect(accessToken.split(".").length).toBe(3);
 
     const response = await request.post("/api/mcp", {
       data: {
@@ -42,7 +42,7 @@ test.describe("/api/mcp - OAuth token 资源绑定", () => {
           protocolVersion: "2025-03-26",
           capabilities: {},
           clientInfo: {
-            name: "opaque-token-e2e-client",
+            name: "code-bound-resource-e2e-client",
             version: "1.0.0",
           },
         },
@@ -54,20 +54,10 @@ test.describe("/api/mcp - OAuth token 资源绑定", () => {
       },
     });
 
-    expect(response.status()).toBe(401);
-    expect(response.headers()["www-authenticate"]).toContain(
-      'error="invalid_token"',
-    );
-    expect(response.headers()["www-authenticate"]).toContain(
-      "resource_metadata=",
-    );
-    await expect(response.json()).resolves.toEqual({ error: "invalid_token" });
+    expect(response.status()).toBe(200);
   });
 
-  test("不透明 MCP access token 被受保护 REST 路由拒绝", async ({
-    page,
-    request,
-  }) => {
+  test("MCP resource JWT 被受保护 REST 路由拒绝", async ({ page, request }) => {
     const resource = `${PLAYWRIGHT_BASE_URL}/api/mcp`;
     await signInAsDebugUser(page, "/");
 
@@ -78,7 +68,7 @@ test.describe("/api/mcp - OAuth token 资源绑定", () => {
       includeResourceInTokenExchange: false,
     });
 
-    expect(accessToken.split(".").length).toBeLessThan(3);
+    expect(accessToken.split(".").length).toBe(3);
 
     const response = await request.get("/api/workspace/todos", {
       headers: {

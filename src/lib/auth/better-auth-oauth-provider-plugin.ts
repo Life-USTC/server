@@ -1,11 +1,15 @@
-import { oauthProvider } from "@better-auth/oauth-provider";
+import { mcp } from "@better-auth/mcp";
 import { APIError } from "better-auth/api";
 import { allowDebugAuth } from "@/lib/auth/auth-config";
-import { getOAuthProviderValidAudiences } from "@/lib/mcp/urls";
+import {
+  getOAuthMcpResourceUrl,
+  getOAuthProviderValidAudiences,
+} from "@/lib/mcp/urls";
 import { hasActiveOAuthUserGrant } from "@/lib/oauth/active-user-grant";
 import {
   OAUTH_GRANT_ID_CLAIM,
   OAUTH_PROFILE_SCOPE,
+  OAUTH_PROVIDER_CLAIMS_SUPPORTED,
   OAUTH_PROVIDER_GRANT_TYPES,
   OAUTH_REFRESH_TOKEN_EXPIRES_IN_SECONDS,
 } from "@/lib/oauth/constants";
@@ -16,7 +20,13 @@ import {
 } from "@/lib/oauth/scope-registry";
 
 export function buildOAuthProviderPlugin(input: { authPublicOrigin: string }) {
-  return oauthProvider({
+  const resources = getOAuthProviderValidAudiences().map((identifier) => ({
+    identifier,
+    allowedScopes: [...OAUTH_PROVIDER_SCOPES],
+    dpopBoundAccessTokensRequired: false,
+  }));
+
+  return mcp({
     // Absolute URLs so redirects stay correct behind Docker/Caddy.
     loginPage: `${input.authPublicOrigin}/account/sign-in`,
     consentPage: `${input.authPublicOrigin}/oauth/authorize`,
@@ -29,10 +39,13 @@ export function buildOAuthProviderPlugin(input: { authPublicOrigin: string }) {
       : undefined,
     scopes: [...OAUTH_PROVIDER_SCOPES],
     grantTypes: [...OAUTH_PROVIDER_GRANT_TYPES],
+    resource: getOAuthMcpResourceUrl(),
+    refreshTokenReuseInterval: 0,
     refreshTokenExpiresIn: OAUTH_REFRESH_TOKEN_EXPIRES_IN_SECONDS,
     clientRegistrationDefaultScopes: [...PUBLIC_OAUTH_SCOPES],
     clientRegistrationAllowedScopes: [...CLIENT_REGISTRATION_ALLOWED_SCOPES],
-    validAudiences: getOAuthProviderValidAudiences(),
+    resources,
+    enforcePerClientResources: false,
     silenceWarnings: {
       oauthAuthServerConfig: true,
       openidConfig: true,
@@ -53,24 +66,19 @@ export function buildOAuthProviderPlugin(input: { authPublicOrigin: string }) {
     },
     advertisedMetadata: {
       scopes_supported: [...PUBLIC_OAUTH_SCOPES],
-      claims_supported: [
-        "sub",
-        "name",
-        "preferred_username",
-        "picture",
-        "email",
-        "email_verified",
-      ],
+      claims_supported: [...OAUTH_PROVIDER_CLAIMS_SUPPORTED],
     },
     customAccessTokenClaims({ referenceId }: { referenceId?: string }) {
       return referenceId ? { [OAUTH_GRANT_ID_CLAIM]: referenceId } : {};
     },
     async customUserInfoClaims({
       jwt,
+      requestedClaims = [],
       user,
       scopes,
     }: {
       jwt: Record<string, unknown>;
+      requestedClaims?: string[];
       user: Record<string, unknown>;
       scopes: string[];
     }) {
@@ -101,7 +109,10 @@ export function buildOAuthProviderPlugin(input: { authPublicOrigin: string }) {
       }
 
       const claims: Record<string, unknown> = {};
-      if (scopes.includes(OAUTH_PROFILE_SCOPE)) {
+      if (
+        scopes.includes(OAUTH_PROFILE_SCOPE) ||
+        requestedClaims.includes("preferred_username")
+      ) {
         const username = user.username;
         if (typeof username === "string" && username.length > 0) {
           claims.preferred_username = username;

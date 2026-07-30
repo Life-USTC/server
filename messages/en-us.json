@@ -2030,6 +2030,9 @@
   "oauth": {
     "authorize": "Authorize Application",
     "consentDescription": "{app} is requesting access to your account.",
+    "clientHostLabel": "Client host",
+    "redirectHostLabel": "Redirect host",
+    "loopbackRedirectWarning": "This callback returns to an application on your device. Continue only if you started this authorization request.",
     "scopesLabel": "This application will be able to:",
     "scope_openid": "Verify your identity",
     "scope_profile": "View your profile information",

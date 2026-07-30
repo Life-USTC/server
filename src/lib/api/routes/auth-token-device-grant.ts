@@ -42,6 +42,10 @@ export async function handleDeviceCodeGrant(
     return deviceCodeError("invalid_request");
   }
 
+  if (request.headers.has("DPoP")) {
+    return deviceCodeError("invalid_dpop_proof");
+  }
+
   const requestedResources = parseTokenRequestResources(params);
   if ("response" in requestedResources) {
     return requestedResources.response;

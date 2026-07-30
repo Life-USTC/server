@@ -58,16 +58,3 @@ export type OAuthProviderMetadataAuth = {
     getOpenIdConfig: (...args: unknown[]) => unknown;
   };
 };
-
-export type GenericOAuthApi = {
-  signInWithOAuth2(input: {
-    body: { providerId: string; callbackURL: string };
-    headers: Headers;
-    returnHeaders: true;
-  }): Promise<{ headers: Headers; response: unknown }>;
-  oAuth2LinkAccount(input: {
-    body: { providerId: string; callbackURL: string };
-    headers: Headers;
-    returnHeaders: true;
-  }): Promise<{ headers: Headers; response: unknown }>;
-};

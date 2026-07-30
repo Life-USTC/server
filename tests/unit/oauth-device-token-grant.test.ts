@@ -47,6 +47,7 @@ function approvedDeviceRecord(resources = ["https://life.example/api/mcp"]) {
     client: {
       clientId: "client-1",
       disabled: false,
+      dpopBoundAccessTokens: false,
       grantTypes: [OAUTH_DEVICE_CODE_GRANT_TYPE],
       public: true,
       tokenEndpointAuthMethod: OAUTH_PUBLIC_CLIENT_AUTH_METHOD,
@@ -103,6 +104,61 @@ describe("设备令牌授予", () => {
       expect.any(Request),
       expect.not.objectContaining({ userId: expect.anything() }),
     );
+  });
+
+  it("携带 DPoP proof 的设备授予在读取或消费 device code 前失败", async () => {
+    const { handleDeviceCodeGrant } = await import(
+      "@/lib/api/routes/auth-token-device-grant"
+    );
+
+    const response = await handleDeviceCodeGrant(
+      new Request("https://life.example/api/auth/oauth2/token", {
+        method: "POST",
+        headers: { DPoP: "unverified-proof" },
+      }),
+      new URLSearchParams({
+        client_id: "client-1",
+        device_code: "device-code-1",
+      }),
+    );
+
+    expect(response.status).toBe(400);
+    await expect(response.json()).resolves.toEqual({
+      error: "invalid_dpop_proof",
+    });
+    expect(findUniqueMock).not.toHaveBeenCalled();
+    expect(updateMock).not.toHaveBeenCalled();
+    expect(issueDeviceGrantTokensMock).not.toHaveBeenCalled();
+  });
+
+  it("DPoP-bound 客户端的设备授予不会消费 device code", async () => {
+    findUniqueMock.mockResolvedValue({
+      ...approvedDeviceRecord(),
+      client: {
+        ...approvedDeviceRecord().client,
+        dpopBoundAccessTokens: true,
+      },
+    });
+    const { handleDeviceCodeGrant } = await import(
+      "@/lib/api/routes/auth-token-device-grant"
+    );
+
+    const response = await handleDeviceCodeGrant(
+      new Request("https://life.example/api/auth/oauth2/token", {
+        method: "POST",
+      }),
+      new URLSearchParams({
+        client_id: "client-1",
+        device_code: "device-code-1",
+      }),
+    );
+
+    expect(response.status).toBe(400);
+    await expect(response.json()).resolves.toEqual({
+      error: "invalid_dpop_proof",
+    });
+    expect(updateMock).not.toHaveBeenCalled();
+    expect(issueDeviceGrantTokensMock).not.toHaveBeenCalled();
   });
 
   it("拒绝更改已批准资源集的令牌轮询", async () => {

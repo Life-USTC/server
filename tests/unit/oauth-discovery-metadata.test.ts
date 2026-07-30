@@ -4,12 +4,15 @@ import {
   PUBLIC_REST_SCOPES,
 } from "@/lib/oauth/scope-registry";
 
-const { authServerMetadataHandlerMock, openIdMetadataHandlerMock } = vi.hoisted(
-  () => ({
-    authServerMetadataHandlerMock: vi.fn(),
-    openIdMetadataHandlerMock: vi.fn(),
-  }),
-);
+const {
+  authServerMetadataHandlerMock,
+  betterAuthHandlerMock,
+  openIdMetadataHandlerMock,
+} = vi.hoisted(() => ({
+  authServerMetadataHandlerMock: vi.fn(),
+  betterAuthHandlerMock: vi.fn(),
+  openIdMetadataHandlerMock: vi.fn(),
+}));
 
 vi.mock("@better-auth/oauth-provider", () => ({
   oauthProviderAuthServerMetadata: () => authServerMetadataHandlerMock,
@@ -22,6 +25,7 @@ vi.mock("@/lib/auth/core", () => ({
       getOAuthServerConfig: vi.fn(),
       getOpenIdConfig: vi.fn(),
     },
+    handler: betterAuthHandlerMock,
   },
 }));
 
@@ -48,6 +52,7 @@ vi.mock("@/lib/oauth/metadata-urls", () => ({
 describe("OAuth 发现元数据路由", () => {
   afterEach(() => {
     authServerMetadataHandlerMock.mockReset();
+    betterAuthHandlerMock.mockReset();
     openIdMetadataHandlerMock.mockReset();
     vi.resetModules();
     vi.unstubAllEnvs();
@@ -152,7 +157,66 @@ describe("OAuth 发现元数据路由", () => {
     expect(body.scopes_supported).not.toContain("admin:write");
   });
 
-  it("MCP protected-resource 元数据只宣告公开非 admin feature scope", async () => {
+  it("MCP protected-resource 元数据透传上游插件响应并保留发现 CORS", async () => {
+    betterAuthHandlerMock.mockResolvedValueOnce(
+      Response.json({
+        resource: "https://life.example/api/mcp",
+        authorization_servers: ["https://life.example/api/auth"],
+        scopes_supported: [...PUBLIC_REST_SCOPES],
+        bearer_methods_supported: ["header"],
+        dpop_signing_alg_values_supported: ["ES256", "RS256"],
+      }),
+    );
+    const { createOAuthDiscoveryRoute } = await import(
+      "@/lib/oauth/discovery-routes"
+    );
+    const route = createOAuthDiscoveryRoute("protectedResourceMetadata");
+    const request = new Request(
+      "https://life.example/.well-known/oauth-protected-resource/api/mcp",
+    );
+
+    const response = await route.GET({
+      request,
+    } as never);
+    const body = await response.json();
+
+    expect(betterAuthHandlerMock).toHaveBeenCalledOnce();
+    expect(betterAuthHandlerMock).toHaveBeenCalledWith(request);
+    expect(response.status).toBe(200);
+    expect(response.headers.get("access-control-allow-origin")).toBe("*");
+    expect(response.headers.get("access-control-allow-methods")).toBe(
+      "GET, OPTIONS",
+    );
+    expect(body.resource).toBe("https://life.example/api/mcp");
+    expect(body.authorization_servers).toEqual([
+      "https://life.example/api/auth",
+    ]);
+    expect(body.scopes_supported).toEqual([...PUBLIC_REST_SCOPES]);
+    expect(body.dpop_signing_alg_values_supported).toBeUndefined();
+    expect(body.scopes_supported).not.toContain("admin:read");
+    expect(body.scopes_supported).not.toContain("admin:write");
+    expect(body.scopes_supported).not.toContain("mcp:tools");
+
+    const optionsResponse = await route.OPTIONS({} as never);
+    expect(optionsResponse.status).toBe(204);
+    expect(optionsResponse.headers.get("access-control-allow-origin")).toBe(
+      "*",
+    );
+    expect(optionsResponse.headers.get("access-control-allow-methods")).toBe(
+      "GET, OPTIONS",
+    );
+    expect(betterAuthHandlerMock).toHaveBeenCalledOnce();
+  });
+
+  it("MCP protected-resource HEAD 使用上游 GET 元数据且返回空 body", async () => {
+    betterAuthHandlerMock.mockImplementationOnce(async (request: Request) => {
+      expect(request.method).toBe("GET");
+      return Response.json({
+        resource: "https://life.example/api/mcp",
+        authorization_servers: ["https://life.example/api/auth"],
+        dpop_signing_alg_values_supported: ["ES256"],
+      });
+    });
     const { createOAuthDiscoveryRoute } = await import(
       "@/lib/oauth/discovery-routes"
     );
@@ -161,18 +225,35 @@ describe("OAuth 发现元数据路由", () => {
     const response = await route.GET({
       request: new Request(
         "https://life.example/.well-known/oauth-protected-resource/api/mcp",
+        { method: "HEAD" },
       ),
     } as never);
-    const body = await response.json();
 
-    expect(body.resource).toBe("https://life.example/api/mcp");
-    expect(body.authorization_servers).toEqual([
-      "https://life.example/api/auth",
-    ]);
-    expect(body.scopes_supported).toEqual([...PUBLIC_REST_SCOPES]);
-    expect(body.scopes_supported).not.toContain("admin:read");
-    expect(body.scopes_supported).not.toContain("admin:write");
-    expect(body.scopes_supported).not.toContain("mcp:tools");
+    expect(response.status).toBe(200);
+    expect(response.headers.get("access-control-allow-origin")).toBe("*");
+    expect(response.headers.get("content-type")).toContain("application/json");
+    await expect(response.text()).resolves.toBe("");
+    expect(betterAuthHandlerMock).toHaveBeenCalledOnce();
+  });
+
+  it("MCP root protected-resource alias 保持 307 到 canonical URL", async () => {
+    const { createOAuthDiscoveryRoute } = await import(
+      "@/lib/oauth/discovery-routes"
+    );
+    const route = createOAuthDiscoveryRoute("protectedResourceAlias");
+
+    const response = await route.GET({
+      request: new Request(
+        "https://life.example/.well-known/oauth-protected-resource",
+      ),
+    } as never);
+
+    expect(response.status).toBe(307);
+    expect(response.headers.get("location")).toBe(
+      "https://life.example/.well-known/oauth-protected-resource/api/mcp",
+    );
+    expect(response.headers.get("access-control-allow-origin")).toBe("*");
+    expect(betterAuthHandlerMock).not.toHaveBeenCalled();
   });
 
   it("GraphQL protected-resource 元数据使用独立 resource", async () => {
@@ -200,6 +281,7 @@ describe("OAuth 发现元数据路由", () => {
     expect(body.scopes_supported).not.toContain("admin:read");
     expect(body.scopes_supported).not.toContain("admin:write");
     expect(body.scopes_supported).not.toContain("mcp:tools");
+    expect(betterAuthHandlerMock).not.toHaveBeenCalled();
 
     const optionsResponse = await route.OPTIONS({} as never);
     expect(optionsResponse.status).toBe(204);

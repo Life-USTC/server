@@ -1,9 +1,7 @@
 import { expect, test } from "@playwright/test";
 import { MCP_JSON_RPC_BATCH_LIMIT } from "@/lib/mcp/request-body";
-import {
-  DEFAULT_OAUTH_CLIENT_SCOPES,
-  restReadScope,
-} from "@/lib/oauth/constants";
+import { DEFAULT_OAUTH_CLIENT_SCOPES } from "@/lib/oauth/constants";
+import { MCP_BOOTSTRAP_SCOPE } from "@/lib/oauth/scope-registry";
 import { signInAsDebugUser } from "../../../../utils/auth";
 import { PLAYWRIGHT_BASE_URL } from "../../../../utils/e2e-db";
 import {
@@ -42,7 +40,14 @@ test.describe("/api/mcp - 传输与授权", () => {
     expect(response.headers()["www-authenticate"]).toContain(
       "resource_metadata=",
     );
-    await expect(response.json()).resolves.toEqual({ error: "invalid_token" });
+    expect(response.headers()["www-authenticate"]).toContain(
+      `scope="${MCP_BOOTSTRAP_SCOPE}"`,
+    );
+    await expect(response.json()).resolves.toMatchObject({
+      jsonrpc: "2.0",
+      error: { code: -32000 },
+      id: null,
+    });
   });
 
   test("/api/mcp 在认证后拒绝超过 64 KiB 的请求体", async ({
@@ -292,7 +297,7 @@ test.describe("/api/mcp - 传输与授权", () => {
       'error="insufficient_scope"',
     );
     expect(response.headers()["www-authenticate"]).toContain(
-      restReadScope("workspace.todo"),
+      MCP_BOOTSTRAP_SCOPE,
     );
     await expect(response.json()).resolves.toEqual({
       error: "insufficient_scope",

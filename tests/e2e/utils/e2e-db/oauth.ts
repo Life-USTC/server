@@ -1,3 +1,4 @@
+import { createOAuthAccountIssuer } from "@better-auth/core/db";
 import {
   DEFAULT_OAUTH_CLIENT_SCOPES,
   OAUTH_AUTHORIZATION_CODE_GRANT_TYPE,
@@ -9,6 +10,17 @@ import {
 } from "@/lib/oauth/constants";
 import { generateToken, PLAYWRIGHT_BASE_URL } from "./core";
 import { withE2ePrisma } from "./prisma";
+
+function accountIssuer(provider: "github" | "google" | "oidc") {
+  if (provider === "google") return "https://accounts.google.com";
+  if (provider === "oidc") {
+    return (
+      process.env.AUTH_OIDC_ISSUER ??
+      "https://sso-proxy.lug.ustc.edu.cn/auth/oauth2"
+    );
+  }
+  return createOAuthAccountIssuer(provider);
+}
 
 export async function createOAuthClientFixture(
   options: {
@@ -176,6 +188,7 @@ export async function ensureLinkedAccountFixture(options: {
         userId: options.userId,
         type: "oauth",
         provider: options.provider,
+        issuer: accountIssuer(options.provider),
         providerAccountId,
       },
     });

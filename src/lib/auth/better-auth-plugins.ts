@@ -1,8 +1,13 @@
+import { cimd } from "@better-auth/cimd";
 import { genericOAuth, jwt, oAuthProxy } from "better-auth/plugins";
 import type { getAuthEnv } from "@/app-env";
 import { buildOAuthProviderPlugin } from "@/lib/auth/better-auth-oauth-provider-plugin";
 import { buildBetterAuthPasskeyPlugin } from "@/lib/auth/better-auth-passkey-plugin";
-import { mapOidcProfileToUser } from "@/lib/auth/oauth-profile";
+import { allowCimdMetadataFetch } from "@/lib/auth/cimd-fetch-policy";
+import {
+  getOidcAccountSubject,
+  mapOidcProfileToUser,
+} from "@/lib/auth/oauth-profile";
 import { webhookLoginPlugin } from "@/lib/auth/webhook-login-plugin";
 import { getCanonicalOAuthIssuer } from "@/lib/mcp/urls";
 import { OAUTH_OPENID_SCOPE } from "@/lib/oauth/constants";
@@ -38,16 +43,18 @@ export function buildBetterAuthPlugins(input: {
     buildOAuthProviderPlugin({
       authPublicOrigin: input.authPublicOrigin,
     }),
+    cimd({ allowFetch: allowCimdMetadataFetch }),
     genericOAuth({
       config: [
         {
           providerId: "oidc",
           discoveryUrl: input.oidcDiscoveryUrl,
-          issuer: input.oidcIssuer,
           clientId: input.authEnv.AUTH_OIDC_CLIENT_ID ?? "",
           clientSecret: input.authEnv.AUTH_OIDC_CLIENT_SECRET ?? "",
           scopes: [OAUTH_OPENID_SCOPE],
           pkce: true,
+          accountIssuer: input.oidcIssuer,
+          accountSubject: ({ profile }) => getOidcAccountSubject(profile),
           mapProfileToUser: mapOidcProfileToUser,
         },
       ],

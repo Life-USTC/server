@@ -1,14 +1,20 @@
+import { getConfirmationJkt } from "better-auth/oauth2";
 import {
   RESOURCE_BOUND_ACCESS_TOKEN_EXPIRES_IN,
   signResourceBoundOAuthAccessToken,
 } from "@/features/oauth/server/device-token-issuer.server";
+import { verifyAccessTokenJwtPayload } from "@/lib/auth/jwt-verification";
 import { authPrisma as defaultPrisma } from "@/lib/db/auth-prisma";
 import {
   OAUTH_AUTHORIZATION_CODE_GRANT_TYPE,
   OAUTH_REFRESH_TOKEN_GRANT_TYPE,
 } from "@/lib/oauth/constants";
+import { getJwksUrlForOAuthVerification } from "@/lib/oauth/metadata-urls";
 import { resolveOAuthResourceAlias } from "@/lib/oauth/resource-aliases";
-import { getOAuthProviderValidAudiences } from "@/lib/oauth/resource-urls";
+import {
+  getCanonicalOAuthIssuer,
+  getOAuthProviderValidAudiences,
+} from "@/lib/oauth/resource-urls";
 import {
   hashOAuthClientSecretForDbStorage,
   normalizeResourceIndicator,
@@ -21,6 +27,7 @@ type RefreshResourcePrisma = {
       where: { token: string };
       select: {
         clientId?: true;
+        confirmation?: true;
         grantId?: true;
         referenceId?: true;
         resources: true;
@@ -29,6 +36,7 @@ type RefreshResourcePrisma = {
       };
     }) => Promise<{
       clientId?: string;
+      confirmation?: unknown;
       grantId?: string | null;
       referenceId?: string | null;
       resources: string[];
@@ -206,6 +214,51 @@ function indicatorsMatch(left: string, right: string) {
   }
 }
 
+function normalizeDpopConfirmation(confirmation: unknown) {
+  if (confirmation === null || confirmation === undefined) return undefined;
+  const jkt = getConfirmationJkt(confirmation);
+  return jkt ? { jkt } : null;
+}
+
+async function getLocalJwks() {
+  const { authApi } = await import("@/lib/auth/core");
+  return authApi.getJwks({});
+}
+
+async function resolveReplacementDpopConfirmation({
+  issuedAccessToken,
+  issuedTokenType,
+  resources,
+  storedConfirmation,
+}: {
+  issuedAccessToken: string;
+  issuedTokenType: unknown;
+  resources: string[];
+  storedConfirmation: unknown;
+}) {
+  const stored = normalizeDpopConfirmation(storedConfirmation);
+  if (stored === null) return null;
+
+  let issuedPayload: Awaited<ReturnType<typeof verifyAccessTokenJwtPayload>>;
+  try {
+    issuedPayload = await verifyAccessTokenJwtPayload(issuedAccessToken, {
+      jwksFetch: getLocalJwks,
+      jwksUrl: getJwksUrlForOAuthVerification(),
+      issuer: getCanonicalOAuthIssuer(),
+      audience: resources,
+    });
+  } catch {
+    return null;
+  }
+  const issued = normalizeDpopConfirmation(issuedPayload?.cnf);
+  if (issued === null) return null;
+  if (issuedTokenType !== (issued ? "DPoP" : "Bearer")) return null;
+  if (stored && issued && stored.jkt !== issued.jkt) return null;
+
+  if (stored && !issued) return null;
+  return issued;
+}
+
 function getIssuedAccessTokenResources(
   accessToken: string | undefined,
   requestedResources: string[],
@@ -311,11 +364,15 @@ export async function validateRefreshTokenResources({
 
 export async function issueResourceBoundRefreshAccessToken({
   effectiveScopes,
+  issuedAccessToken,
+  issuedTokenType,
   prisma = defaultPrisma,
   refreshToken,
   resourceValues,
 }: {
   effectiveScopes: readonly string[];
+  issuedAccessToken: string;
+  issuedTokenType: unknown;
   prisma?: RefreshResourcePrisma;
   refreshToken: string | null;
   resourceValues: string[];
@@ -327,6 +384,7 @@ export async function issueResourceBoundRefreshAccessToken({
     where: { token: tokenHash },
     select: {
       clientId: true,
+      confirmation: true,
       grantId: true,
       referenceId: true,
       resources: true,
@@ -349,10 +407,19 @@ export async function issueResourceBoundRefreshAccessToken({
   );
   if (resources.length === 0) return undefined;
 
+  const confirmation = await resolveReplacementDpopConfirmation({
+    issuedAccessToken,
+    issuedTokenType,
+    resources,
+    storedConfirmation: refreshRecord.confirmation,
+  });
+  if (confirmation === null) return undefined;
+
   const issuedAt = Math.floor(Date.now() / 1000);
   const expiresAt = issuedAt + RESOURCE_BOUND_ACCESS_TOKEN_EXPIRES_IN;
   const accessToken = await signResourceBoundOAuthAccessToken({
     clientId: refreshRecord.clientId,
+    ...(confirmation ? { confirmation } : {}),
     expiresAt,
     grantId: refreshRecord.grantId ?? refreshRecord.referenceId ?? undefined,
     issuedAt,
@@ -365,6 +432,7 @@ export async function issueResourceBoundRefreshAccessToken({
   return {
     accessToken,
     expiresIn: RESOURCE_BOUND_ACCESS_TOKEN_EXPIRES_IN,
+    tokenType: confirmation ? "DPoP" : "Bearer",
   };
 }
 

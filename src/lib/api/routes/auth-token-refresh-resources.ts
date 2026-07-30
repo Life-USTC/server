@@ -129,6 +129,8 @@ export async function replaceOAuthRefreshAccessToken(
 
   const issued = await issueResourceBoundRefreshAccessToken({
     effectiveScopes,
+    issuedAccessToken: body.access_token,
+    issuedTokenType: body.token_type,
     refreshToken: params.get("refresh_token"),
     resourceValues: params.getAll("resource"),
   });
@@ -146,6 +148,7 @@ export async function replaceOAuthRefreshAccessToken(
       ...body,
       access_token: issued.accessToken,
       expires_in: issued.expiresIn,
+      token_type: issued.tokenType,
     },
     {
       headers,

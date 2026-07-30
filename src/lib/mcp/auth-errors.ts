@@ -14,6 +14,8 @@ export type McpAuthFailureDiagnostics = {
   authFailureKind:
     | "missing_bearer"
     | "malformed_authorization_header"
+    | "unsupported_dpop"
+    | "upstream_auth_rejected"
     | "jwt_verify_failed"
     | "inactive_oauth_grant"
     | "opaque_token_miss"
@@ -22,7 +24,7 @@ export type McpAuthFailureDiagnostics = {
     | "token_resource_unbound"
     | "missing_feature_scope"
     | "missing_required_tool_scope";
-  authHeaderKind: "missing" | "malformed" | "bearer";
+  authHeaderKind: "missing" | "malformed" | "bearer" | "dpop";
   authTokenFormat: "missing" | "opaque" | "jwt" | "unknown";
   acceptedAudienceCount?: number;
   acceptedIssuerCount?: number;
@@ -35,6 +37,18 @@ export type McpAuthFailureDiagnostics = {
   toolNameCount?: number;
 };
 
+function quoteBearerParameter(value: string) {
+  for (let index = 0; index < value.length; index += 1) {
+    const code = value.charCodeAt(index);
+    if (code <= 0x1f || code === 0x7f) {
+      throw new TypeError(
+        "Bearer challenge values must not contain control characters",
+      );
+    }
+  }
+  return `"${value.replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"`;
+}
+
 export function buildBearerChallenge({
   error,
   description,
@@ -45,13 +59,13 @@ export function buildBearerChallenge({
   scopes?: string[];
 }) {
   const parts = [
-    `Bearer error="${error}"`,
-    `error_description="${description}"`,
-    `resource_metadata="${getOAuthProtectedResourceMetadataUrl().toString()}"`,
+    `Bearer error=${quoteBearerParameter(error)}`,
+    `error_description=${quoteBearerParameter(description)}`,
+    `resource_metadata=${quoteBearerParameter(getOAuthProtectedResourceMetadataUrl().toString())}`,
   ];
 
   if (scopes && scopes.length > 0) {
-    parts.push(`scope="${scopes.join(" ")}"`);
+    parts.push(`scope=${quoteBearerParameter(scopes.join(" "))}`);
   }
 
   return parts.join(", ");

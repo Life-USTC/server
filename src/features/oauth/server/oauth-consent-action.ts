@@ -4,6 +4,7 @@ import { verifyOAuthProviderSignedQueryState } from "@/features/oauth/server/sig
 import { isTrustedAuthOrigin } from "@/lib/auth/auth-origins";
 import { authPrisma as prisma } from "@/lib/db/auth-prisma";
 import { getCanonicalOAuthIssuer } from "@/lib/mcp/urls";
+import { OAUTH_PROVIDER_CLAIMS_SUPPORTED } from "@/lib/oauth/constants";
 import { hashOAuthClientSecretForDbStorage } from "@/lib/oauth/utils";
 import { parseOAuthConsentForm } from "./oauth-authorize-form";
 
@@ -21,7 +22,12 @@ const OAUTH_SINGLETON_QUERY_FIELDS = [
   "code_challenge_method",
   "nonce",
   "prompt",
+  "claims",
 ] as const;
+
+const SUPPORTED_USERINFO_CLAIMS = new Set<string>(
+  OAUTH_PROVIDER_CLAIMS_SUPPORTED,
+);
 
 type OAuthSession = {
   session: {
@@ -115,6 +121,40 @@ async function getOAuthSession(authApi: unknown, headers: Headers) {
 
 function uniqueScopes(value: string | null) {
   return [...new Set((value ?? "").split(/\s+/).filter(Boolean))];
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function isClaimsRequestSection(value: unknown) {
+  return (
+    value === undefined ||
+    (isRecord(value) &&
+      Object.values(value).every(
+        (member) => member === null || isRecord(member),
+      ))
+  );
+}
+
+function requestedUserInfoClaims(value: string | null) {
+  if (!value) return [];
+  try {
+    const claims = JSON.parse(value) as unknown;
+    if (
+      !isRecord(claims) ||
+      !isClaimsRequestSection(claims.userinfo) ||
+      !isClaimsRequestSection(claims.id_token) ||
+      !isRecord(claims.userinfo)
+    ) {
+      return [];
+    }
+    return Object.keys(claims.userinfo).filter((claim) =>
+      SUPPORTED_USERINFO_CLAIMS.has(claim),
+    );
+  } catch {
+    return [];
+  }
 }
 
 function hasOnlySingletonQueryFields(query: URLSearchParams) {
@@ -279,6 +319,10 @@ export async function createAcceptedOAuthAuthorization(input: {
       userId: input.session.user.id,
     };
     const grantId = crypto.randomUUID();
+    const resources = request.authorizeQuery.getAll("resource");
+    const userInfoClaims = requestedUserInfoClaims(
+      request.authorizeQuery.get("claims"),
+    );
     if (request.client.skipConsent === true) {
       await tx.oAuthConsent.deleteMany({ where: identity });
     } else {
@@ -290,10 +334,14 @@ export async function createAcceptedOAuthAuthorization(input: {
         create: {
           ...identity,
           grantId,
+          resources,
+          requestedUserInfoClaims: userInfoClaims,
           scopes: normalizedAcceptedScopes,
         },
         update: {
           grantId,
+          ...(resources.length > 0 ? { resources } : {}),
+          requestedUserInfoClaims: userInfoClaims,
           scopes: normalizedAcceptedScopes,
         },
       });
