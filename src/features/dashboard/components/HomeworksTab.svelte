@@ -150,7 +150,7 @@ $: ({
           {toggleHomeworkCompletion}
         />
       </div>
-      <div class="hidden md:block">
+      <div class="hidden min-w-0 overflow-x-auto md:block">
         <HomeworksListView
           {filteredHomeworkItems}
           {fmtDate}

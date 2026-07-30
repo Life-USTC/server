@@ -9,7 +9,6 @@ import type {
   ExamTimeLabel,
 } from "./dashboard-exam-component-types";
 
-export let dashboardCopy: ExamsCopyProps["dashboardCopy"];
 export let dashboardTabHref: DashboardTabHref;
 export let exams: DashboardExamRow[];
 export let examTimeLabel: ExamTimeLabel;
@@ -17,10 +16,10 @@ export let sectionCopy: ExamsCopyProps["sectionCopy"];
 export let subscriptionsCopy: ExamsCopyProps["subscriptionsCopy"];
 </script>
 
-<Table.Root>
+<Table.Root class="min-w-0">
   <Table.Header>
     <Table.Row>
-      <Table.Head>{dashboardCopy.nav.exams.title}</Table.Head>
+      <Table.Head>{subscriptionsCopy.courseName}</Table.Head>
       <Table.Head>{subscriptionsCopy.section}</Table.Head>
       <Table.Head class="text-center">{sectionCopy.examDate}</Table.Head>
       <Table.Head class="text-center">{sectionCopy.examTime}</Table.Head>

@@ -28,7 +28,7 @@ export let toggleHomeworkCompletion: (
 ) => void | Promise<void>;
 </script>
 
-<Table.Root data-testid="dashboard-homeworks-list">
+<Table.Root class="min-w-0" data-testid="dashboard-homeworks-list">
   <Table.Header>
     <Table.Row>
       <Table.Head>{homeworksCopy.titleLabel}</Table.Head>

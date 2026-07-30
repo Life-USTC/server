@@ -27,6 +27,7 @@ type PageData = {
   scopes?: Array<{ label: string; value: string }>;
   state: string;
   title?: string;
+  hint?: string;
 };
 
 export let data: PageData;
@@ -37,9 +38,7 @@ $: pageTitle =
     ? (data.title ?? "OAuth")
     : (data.copy?.title ?? "OAuth");
 $: pageDescription =
-  data.state === "error"
-    ? (data.message ?? "")
-    : (data.copy?.description ?? "");
+  data.state === "error" ? "" : (data.copy?.description ?? "");
 </script>
 
 <svelte:head><title>{pageTitle} - Life@USTC</title></svelte:head>
@@ -67,8 +66,8 @@ $: pageDescription =
     <Card.Content class="grid gap-5 p-6">
       {#if data.state === "error"}
         <OAuthAuthorizeErrorPanel
+          hint={data.hint}
           message={data.message ?? ""}
-          title={data.title ?? "OAuth"}
         />
       {:else if data.copy}
         <OAuthAuthorizeConsentPanel

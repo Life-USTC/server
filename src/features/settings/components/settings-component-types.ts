@@ -76,20 +76,6 @@ export type SettingsCopy = {
       unnamedClient: string;
       updatedAt: string;
     };
-    content: {
-      browseSections: {
-        description: string;
-        title: string;
-      };
-      commentGuide: {
-        description: string;
-        title: string;
-      };
-      description: string;
-      emptyDescription: string;
-      emptyTitle: string;
-      title: string;
-    };
     description: string;
     preferences: {
       appearance: {

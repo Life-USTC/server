@@ -52,6 +52,7 @@ export const loadOAuthAuthorizePage = async ({
       state: "error",
       title: copy.errorPageTitle,
       message: copy.errorMissingClientId,
+      hint: copy.errorPageHint,
     };
   }
 
@@ -93,6 +94,7 @@ export const loadOAuthAuthorizePage = async ({
       state: "error",
       title: copy.errorPageTitle,
       message: copy.errorInvalidClient,
+      hint: copy.errorPageHint,
     };
   }
 };

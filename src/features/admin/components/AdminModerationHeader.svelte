@@ -1,6 +1,5 @@
 <script lang="ts">
 import PageHeader from "$lib/components/PageHeader.svelte";
-import PageHeaderMeta from "$lib/components/PageHeaderMeta.svelte";
 import { Badge } from "$lib/components/ui/badge/index.js";
 import { Button } from "$lib/components/ui/button/index.js";
 import type {
@@ -17,8 +16,6 @@ export let isRefreshing: boolean;
 export let moderationHref: (tab: AdminModerationTab) => string;
 export let refreshQueue: () => void | Promise<void>;
 export let tabs: AdminModerationHeaderTab[];
-
-$: currentTabLabel = tabs.find(([id]) => id === currentTab)?.[1] ?? currentTab;
 </script>
 
 <PageHeader title={copy.title} description={copy.pageDescription} eyebrow={adminCopy.title}>
@@ -32,9 +29,6 @@ $: currentTabLabel = tabs.find(([id]) => id === currentTab)?.[1] ?? currentTab;
     >
       {isRefreshing ? copy.refreshingQueue : copy.refreshQueue}
     </Button>
-  {/snippet}
-  {#snippet meta()}
-    <PageHeaderMeta label={copy.currentView} value={currentTabLabel} />
   {/snippet}
 </PageHeader>
 

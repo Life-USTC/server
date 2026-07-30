@@ -500,19 +500,6 @@
     "invalidUsername": "Invalid username",
     "usernameTaken": "Username already taken"
   },
-  "myComments": {
-    "title": "My Comments",
-    "description": "Review all comments you posted.",
-    "content": "Content",
-    "postedIn": "Posted in",
-    "status": "Status",
-    "createdAt": "Created",
-    "viewThread": "View thread",
-    "noResults": "No comments yet",
-    "statusActive": "Active",
-    "statusSoftbanned": "Private",
-    "statusDeleted": "Deleted"
-  },
   "myHomeworks": {
     "title": "My Homework",
     "description": "Track homework for your subscribed sections.",
@@ -932,31 +919,10 @@
         "title": "Authorized apps",
         "description": "Review and revoke third-party access"
       },
-      "content": {
-        "title": "Content",
-        "description": "Uploads and my comments"
-      },
       "danger": {
         "title": "Danger zone",
         "description": "Irreversible actions like deleting account"
       }
-    },
-    "content": {
-      "title": "Content",
-      "description": "Uploads and comments stay with the course, section, or homework where they belong.",
-      "emptyTitle": "No standalone content settings",
-      "emptyDescription": "Manage uploads and comments from the course, section, or homework where they belong. Use the links below to continue from the right context.",
-      "browseSections": {
-        "title": "Browse sections",
-        "description": "Open a section page to review comments, homework, and attached uploads."
-      },
-      "commentGuide": {
-        "title": "Comment guide",
-        "description": "Review visibility, anonymous posting, and formatting rules before joining a discussion."
-      },
-      "comments": "Comments",
-      "uploads": "Uploads",
-      "subscriptions": "Subscriptions"
     },
     "preferences": {
       "title": "Preferences",
@@ -1069,7 +1035,7 @@
       },
       {
         "syntax": "sectioncode:code",
-        "description": "Search by section code (alias: lecturecode:code)",
+        "description": "Search by section code",
         "example": "sectioncode:01"
       },
       {
@@ -1079,12 +1045,12 @@
       },
       {
         "syntax": "credits:number",
-        "description": "Search by exact credit value (alias: credit:number)",
+        "description": "Search by exact credit value",
         "example": "credits:3"
       },
       {
         "syntax": "department:name",
-        "description": "Search by department name (alias: dept:name)",
+        "description": "Search by department name",
         "example": "department:计算机"
       },
       {
@@ -1099,17 +1065,17 @@
       },
       {
         "syntax": "level:name",
-        "description": "Search by education level (alias: edulevel:name)",
+        "description": "Search by education level",
         "example": "level:本科"
       },
       {
         "syntax": "type:name",
-        "description": "Search by class type (alias: classtype:name)",
+        "description": "Search by class type",
         "example": "type:必修"
       },
       {
         "syntax": "sort:field",
-        "description": "Sort results by field (alias: sortby:field). capacity uses current enrollment; teacher uses teacher count",
+        "description": "Sort results by field. credits sorts by credit value; capacity uses enrollment; teacher uses teacher count",
         "example": "sort:credits"
       },
       {

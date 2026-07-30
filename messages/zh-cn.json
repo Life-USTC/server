@@ -500,19 +500,6 @@
     "invalidUsername": "用户名无效",
     "usernameTaken": "用户名已被占用"
   },
-  "myComments": {
-    "title": "我的评论",
-    "description": "查看你发布的所有评论。",
-    "content": "内容",
-    "postedIn": "发布于",
-    "status": "状态",
-    "createdAt": "创建时间",
-    "viewThread": "查看讨论",
-    "noResults": "暂无评论",
-    "statusActive": "正常",
-    "statusSoftbanned": "仅自己可见",
-    "statusDeleted": "已删除"
-  },
   "myHomeworks": {
     "title": "我的作业",
     "description": "查看你订阅的教学班的作业信息。",
@@ -898,31 +885,10 @@
         "title": "已授权应用",
         "description": "查看并撤销第三方访问"
       },
-      "content": {
-        "title": "内容管理",
-        "description": "上传资料与我的评论"
-      },
       "danger": {
         "title": "危险操作",
         "description": "删除账户等不可恢复操作"
       }
-    },
-    "content": {
-      "title": "内容管理",
-      "description": "上传与评论会保留在所属课程、班级或作业对象中管理。",
-      "emptyTitle": "没有独立的内容设置页",
-      "emptyDescription": "请在对应课程、班级或作业页面中管理上传与评论。下面提供继续操作的入口。",
-      "browseSections": {
-        "title": "浏览班级",
-        "description": "打开班级详情页，查看相关评论、作业与附加上传。"
-      },
-      "commentGuide": {
-        "title": "评论指南",
-        "description": "参与讨论前，先了解可见性、匿名发布与格式支持规则。"
-      },
-      "comments": "评论",
-      "uploads": "上传",
-      "subscriptions": "订阅"
     },
     "preferences": {
       "title": "偏好设置",
@@ -1035,7 +1001,7 @@
       },
       {
         "syntax": "sectioncode:班级代码",
-        "description": "按班级代码搜索（别名：lecturecode:班级代码）",
+        "description": "按班级代码搜索",
         "example": "sectioncode:01"
       },
       {
@@ -1045,12 +1011,12 @@
       },
       {
         "syntax": "credits:学分数",
-        "description": "按精确学分值搜索（别名：credit:学分数）",
+        "description": "按精确学分值搜索",
         "example": "credits:3"
       },
       {
         "syntax": "department:院系名",
-        "description": "按院系名称搜索（别名：dept:院系名）",
+        "description": "按院系名称搜索",
         "example": "department:计算机"
       },
       {
@@ -1065,17 +1031,17 @@
       },
       {
         "syntax": "level:教育层次",
-        "description": "按教育层次搜索（别名：edulevel:教育层次）",
+        "description": "按教育层次搜索",
         "example": "level:本科"
       },
       {
         "syntax": "type:课程类型",
-        "description": "按课程类型搜索（别名：classtype:课程类型）",
+        "description": "按课程类型搜索",
         "example": "type:必修"
       },
       {
         "syntax": "sort:字段",
-        "description": "按字段排序结果（别名：sortby:字段）。capacity 按当前人数排序，teacher 按教师数量排序",
+        "description": "按字段排序结果。credits 按学分，capacity 按当前人数，teacher 按教师数量",
         "example": "sort:credits"
       },
       {
