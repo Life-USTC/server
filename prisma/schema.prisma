@@ -839,6 +839,7 @@ model User {
   dashboardLinkPins    DashboardLinkPin[]
   todos                Todo[]
   busPreference        BusUserPreference?
+  ustcIdentities       UserUstcIdentity[]
 
   oauthClients       OAuthClient[]
   oauthAccessTokens  OAuthAccessToken[]
@@ -847,6 +848,21 @@ model User {
   deviceCodes        DeviceCode[]
 }
 
+
+model UserUstcIdentity {
+  id          String   @id @default(cuid())
+  userId      String
+  upstreamUid String
+  gid         String?
+  sno         String?
+  firstSeenAt DateTime @default(now())
+  lastSyncedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, upstreamUid])
+  @@index([userId])
+}
 
 model DashboardLinkClick {
   id String @id @default(cuid())
