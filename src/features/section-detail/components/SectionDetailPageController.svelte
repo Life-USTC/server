@@ -12,6 +12,12 @@ import { createSectionDetailCalendarDisplayActions } from "@/features/section-de
 import { createSectionCalendarClipboardActions } from "@/features/section-detail/lib/section-detail-calendar-clipboard-actions";
 import { sectionDetailCalendarUrls } from "@/features/section-detail/lib/section-detail-calendar-urls";
 import { mountSectionDetailController } from "@/features/section-detail/lib/section-detail-controller-mount";
+import { createSectionDetailTabPanelStore } from "@/features/section-detail/lib/section-detail-tab-client";
+import {
+  parseSectionDetailTab,
+  sectionDetailPagePath,
+  type SectionDetailTab,
+} from "@/features/section-detail/lib/section-detail-tab";
 import {
   buildSectionDetailCommentTargets,
   buildSectionPeriodDetailRows,
@@ -66,6 +72,54 @@ let {
   _subscriptionPendingAction,
 } = createSectionDetailControllerDefaultState(data);
 
+let activeTab: SectionDetailTab = parseSectionDetailTab(data.detailSection);
+let tabPanelLoading = false;
+const tabPanelStore = createSectionDetailTabPanelStore(
+  data.homeworkData.viewer.userId ?? null,
+);
+let tabPanelState = tabPanelStore.getState();
+
+$: displaySection = {
+  ...data.section,
+  ...tabPanelState.sectionOverlay,
+};
+$: panelDescriptionData =
+  activeTab === "introduction" && tabPanelStore.isLoaded("introduction")
+    ? tabPanelState.descriptionData
+    : data.descriptionData;
+
+async function selectTab(tab: SectionDetailTab) {
+  if (tab === activeTab && tabPanelStore.isLoaded(tab)) return;
+  activeTab = tab;
+  history.replaceState(
+    history.state,
+    "",
+    sectionDetailPagePath(data.section.jwId, tab),
+  );
+  if (tab === "overview" || tab === "comments") return;
+  if (tab === "introduction" && data.descriptionData.description.content) {
+    return;
+  }
+  tabPanelLoading = true;
+  try {
+    await tabPanelStore.ensureLoaded(tab, {
+      errorMessage: _sectionCopy.operationFailed,
+      jwId: data.section.jwId,
+      locale: data.locale,
+      sectionId: data.section.id,
+    });
+    if (tab === "homework") {
+      const state = tabPanelStore.getState();
+      _homeworkViewer = state.homeworkViewer;
+      _homeworks = state.homeworks;
+      _homeworkAuditLogs = state.homeworkAuditLogs;
+    }
+    tabPanelState = tabPanelStore.getState();
+  } finally {
+    tabPanelLoading = false;
+  }
+}
+
 const {
   auditActionLabel: _homeworkAuditActionLabel,
   auditActorName: _homeworkAuditActorName,
@@ -81,7 +135,7 @@ const {
   getCommonCopy: () => _commonCopy,
   getHomeworkCopy: () => _homeworkCopy,
   getNotAvailable: () => _notAvailable,
-  getSection: () => data.section,
+  getSection: () => displaySection,
   getSectionCopy: () => _sectionCopy,
 });
 
@@ -123,7 +177,7 @@ $: _canManageSelectedHomework = canManageSectionHomework(
 );
 $: sectionCalendarEvents = buildSectionDetailCalendarEvents({
   notAvailable: _notAvailable,
-  section: data.section,
+  section: displaySection,
   sectionCopy: _sectionCopy,
 });
 $: todayCalendarKey = data.todayCalendarKey;
@@ -163,7 +217,7 @@ const {
   startEditHomework: _startEditHomework,
   subscriptionAction: _subscriptionAction,
 } = createSectionDetailUiActions({
-  getSection: () => data.section,
+  getSection: () => displaySection,
   getSelectedHomework: () => _selectedHomework,
   setCreateHomeworkPublishedAt: (value) => {
     _createHomeworkPublishedAt = value;
@@ -319,7 +373,7 @@ function _auditLogsForHomework(homeworkId: string) {
 }
 
 onMount(() => {
-  return mountSectionDetailController({
+  const cleanup = mountSectionDetailController({
     clearClipboardTimer: _clearClipboardTimer,
     getHomeworkView: () => _homeworkView,
     loadHomeworks: _loadHomeworks,
@@ -329,8 +383,12 @@ onMount(() => {
     setOrigin: (origin) => {
       _origin = origin;
     },
-    shouldLoadHomeworks: data.detailSection === "homework",
+    shouldLoadHomeworks: false,
   });
+  if (activeTab !== "overview") {
+    void selectTab(activeTab);
+  }
+  return cleanup;
 });
 </script>
 
@@ -344,6 +402,7 @@ onMount(() => {
 
 <section class="min-h-full lg:h-full lg:min-h-0">
   <SectionDetailMainContent
+    {activeTab}
     {calendarMonthLabel}
     bind:calendarMonthOffset={_calendarMonthOffset}
     canWriteHomework={_canWriteHomework}
@@ -352,6 +411,8 @@ onMount(() => {
     courseName={_courseName}
     courseSecondaryName={_courseSecondaryName}
     {data}
+    descriptionData={panelDescriptionData}
+    displaySection={displaySection}
     formError={form?.error}
     fmtDate={_fmtDate}
     fmtDateTime={_fmtDateTime}
@@ -361,6 +422,7 @@ onMount(() => {
     homeworkView={_homeworkView}
     homeworks={_homeworks}
     notAvailable={_notAvailable}
+    onSelectTab={selectTab}
     openCalendarDialog={_openCalendarDialog}
     openCreateHomeworkDialog={_openCreateHomeworkDialog}
     openSubscribeDialog={_openSubscribeDialog}
@@ -379,6 +441,7 @@ onMount(() => {
     }}
     subscriptionAction={_subscriptionAction}
     subscriptionPendingAction={_subscriptionPendingAction}
+    {tabPanelLoading}
     teacherName={_teacherName}
     {todayCalendarMonthOffset}
     {unscheduledCalendarEvents}

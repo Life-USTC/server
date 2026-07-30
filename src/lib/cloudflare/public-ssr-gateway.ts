@@ -49,6 +49,8 @@ const CATALOG_DETAIL_SECTIONS: Record<string, ReadonlySet<string>> = {
   ]),
   teachers: new Set(["introduction", "sections", "comments"]),
 };
+const SECTION_DETAIL_LEGACY_TAB_PATH =
+  /^\/catalog\/sections\/([1-9]\d*)\/(introduction|calendar|exams|homework|teachers|comments)\/?$/;
 
 const DYNAMIC_OR_PRIVATE_ROOTS = [
   "/account",
@@ -71,6 +73,22 @@ export function resolveLegacyCatalogRedirect(request: Request) {
   return `/catalog/${match[1]}/${match[2]}${url.search}`;
 }
 
+export function resolveSectionDetailTabRedirect(request: Request) {
+  if (request.method !== "GET" && request.method !== "HEAD") return null;
+
+  const url = new URL(request.url);
+  const match = SECTION_DETAIL_LEGACY_TAB_PATH.exec(url.pathname);
+  if (!match) return null;
+
+  const [, jwId, tab] = match;
+  const redirectUrl = new URL(`/catalog/sections/${jwId}`, url.origin);
+  for (const [key, value] of url.searchParams) {
+    redirectUrl.searchParams.append(key, value);
+  }
+  redirectUrl.searchParams.set("tab", tab);
+  return `${redirectUrl.pathname}${redirectUrl.search}`;
+}
+
 function matchesPathRoot(pathname: string, root: string) {
   return pathname === root || pathname.startsWith(`${root}/`);
 }
@@ -91,6 +109,7 @@ function isCanonicalCatalogDetailPath(pathname: string) {
   const [, collection, identifier, section] = match;
   const id = Number(identifier);
   if (!Number.isSafeInteger(id)) return false;
+  if (collection === "sections") return !section;
   return !section || CATALOG_DETAIL_SECTIONS[collection]?.has(section) === true;
 }
 

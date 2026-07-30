@@ -19,6 +19,7 @@ import {
   resolveLegacyCatalogRedirect,
   resolvePublicSsrLocale,
   resolvePublicSsrMode,
+  resolveSectionDetailTabRedirect,
 } from "./lib/cloudflare/public-ssr-gateway";
 import { buildContentSecurityPolicy } from "./lib/security/csp";
 import { CONTENT_SIGNAL } from "./lib/seo/content-signal";
@@ -189,6 +190,16 @@ export default {
         headers: {
           "Cache-Control": "public, max-age=86400",
           Location: legacyRedirect,
+        },
+      });
+    }
+    const sectionTabRedirect = resolveSectionDetailTabRedirect(request);
+    if (sectionTabRedirect) {
+      return new Response(null, {
+        status: 308,
+        headers: {
+          "Cache-Control": "public, max-age=86400",
+          Location: sectionTabRedirect,
         },
       });
     }
