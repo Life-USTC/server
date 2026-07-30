@@ -177,16 +177,8 @@ jobs:
                   --file=tests/integration/fixtures/rls-runtime-bootstrap.sql
               done
               runtime_database_url="postgresql://life_ustc_runtime:runtime-test-password@127.0.0.1:5432/${{ inputs.database-name }}"
-              expected_table_privileges='public.BusCampus:SELECT'
-              expected_table_privileges+=',public.BusUserPreference:DELETE,public.BusUserPreference:INSERT,public.BusUserPreference:SELECT,public.BusUserPreference:UPDATE'
-              expected_table_privileges+=',public.CommentReaction:DELETE,public.CommentReaction:INSERT,public.CommentReaction:SELECT'
-              expected_table_privileges+=',public.DashboardLinkClick:DELETE,public.DashboardLinkClick:INSERT,public.DashboardLinkClick:SELECT,public.DashboardLinkClick:UPDATE'
-              expected_table_privileges+=',public.DashboardLinkPin:DELETE,public.DashboardLinkPin:INSERT,public.DashboardLinkPin:SELECT,public.DashboardLinkPin:UPDATE'
-              expected_table_privileges+=',public.Homework:SELECT,public.HomeworkCompletion:DELETE,public.HomeworkCompletion:INSERT,public.HomeworkCompletion:SELECT,public.HomeworkCompletion:UPDATE'
-              expected_table_privileges+=',public.Todo:DELETE,public.Todo:INSERT,public.Todo:SELECT,public.Todo:UPDATE'
-              expected_table_privileges+=',public.Upload:DELETE,public.Upload:INSERT,public.Upload:SELECT,public.Upload:UPDATE'
-              expected_table_privileges+=',public.UploadPending:DELETE,public.UploadPending:INSERT,public.UploadPending:SELECT,public.UploadPending:UPDATE'
-              expected_table_privileges+=',public.User:SELECT'
+              expected_table_privileges="$(psql "$runtime_database_url" -X -tA \
+                --file=prisma/roles/export-app-runtime-table-privileges.sql)"
               expected_function_privileges='public.comment_attachment_summaries(p_comment_ids text[]):EXECUTE'
               expected_function_privileges+=',public.comment_reaction_summaries(comment_ids text[]):EXECUTE'
               expected_function_privileges+=',public.find_downloadable_upload(p_upload_id text):EXECUTE'

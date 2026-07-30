@@ -6,8 +6,8 @@ const { findUniqueMock, createMock } = vi.hoisted(() => ({
   createMock: vi.fn(),
 }));
 
-vi.mock("@/lib/db/prisma", () => ({
-  prisma: {
+vi.mock("@/lib/db/auth-prisma", () => ({
+  authPrisma: {
     oauthResource: {
       findUnique: findUniqueMock,
       create: createMock,

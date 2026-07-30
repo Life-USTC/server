@@ -1,4 +1,4 @@
-import { prisma as defaultPrisma } from "@/lib/db/prisma";
+import { authPrisma } from "@/lib/db/auth-prisma";
 import { getOAuthProviderValidAudiences } from "@/lib/oauth/resource-urls";
 import { OAUTH_PROVIDER_SCOPES } from "@/lib/oauth/scope-registry";
 
@@ -53,7 +53,7 @@ async function seedOAuthProviderResources(prisma: EnsureOAuthResourcesPrisma) {
 }
 
 export async function ensureOAuthProviderResourcesSeeded(
-  prisma: EnsureOAuthResourcesPrisma = defaultPrisma,
+  prisma: EnsureOAuthResourcesPrisma = authPrisma,
 ) {
   if (!seedPromise) {
     seedPromise = seedOAuthProviderResources(prisma).catch((error) => {

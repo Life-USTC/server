@@ -4,10 +4,10 @@ import {
   saveBusPreference,
 } from "@/features/bus/server/bus-service";
 import { deleteOwnAccount } from "@/features/settings/server/account-deletion-service";
+import { authPrisma } from "@/lib/db/auth-prisma";
 import { prisma, withUserDbContext } from "@/lib/db/prisma";
 
 const rlsTestUserIds = ["rls-test-user-a", "rls-test-user-b"] as const;
-const rlsAccountDeletionUserId = "rls-test-account-delete";
 
 describe.skipIf(process.env.RLS_TEST_ENABLED !== "true")(
   "personal preference PostgreSQL row security",
@@ -297,22 +297,29 @@ describe.skipIf(process.env.RLS_TEST_ENABLED !== "true")(
     });
 
     it("keeps self-service account deletion cascades inside owner context", async () => {
-      await withUserDbContext(rlsAccountDeletionUserId, () =>
+      const accountDeletionUserId = `rls-acct-del-${crypto.randomUUID()}`;
+      await authPrisma.user.create({
+        data: {
+          id: accountDeletionUserId,
+          email: `${accountDeletionUserId}@example.invalid`,
+          updatedAt: new Date(),
+        },
+      });
+
+      await withUserDbContext(accountDeletionUserId, () =>
         prisma.todo.create({
           data: {
             title: "[rls-test] account cascade",
-            userId: rlsAccountDeletionUserId,
+            userId: accountDeletionUserId,
           },
         }),
       );
 
-      await expect(deleteOwnAccount(rlsAccountDeletionUserId)).resolves.toEqual(
-        {
-          ok: true,
-        },
-      );
+      await expect(deleteOwnAccount(accountDeletionUserId)).resolves.toEqual({
+        ok: true,
+      });
       await expect(
-        prisma.user.findUnique({ where: { id: rlsAccountDeletionUserId } }),
+        prisma.user.findUnique({ where: { id: accountDeletionUserId } }),
       ).resolves.toBeNull();
     });
   },

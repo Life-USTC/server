@@ -175,20 +175,7 @@ REVOKE EXECUTE ON ALL FUNCTIONS IN SCHEMA public FROM life_ustc_function_owner;
 
 GRANT CONNECT ON DATABASE :"database_name" TO life_ustc_runtime;
 GRANT USAGE ON SCHEMA public TO life_ustc_runtime;
-GRANT SELECT ON TABLE "User" TO life_ustc_runtime;
-GRANT SELECT ON TABLE "BusCampus" TO life_ustc_runtime;
-GRANT SELECT ON TABLE "Homework" TO life_ustc_runtime;
-GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE
-  "Todo",
-  "DashboardLinkClick",
-  "DashboardLinkPin",
-  "BusUserPreference",
-  "Upload",
-  "UploadPending",
-  "HomeworkCompletion"
-TO life_ustc_runtime;
-GRANT SELECT, INSERT, DELETE ON TABLE "CommentReaction"
-TO life_ustc_runtime;
+\ir app-runtime-table-grants.sql
 
 GRANT CONNECT ON DATABASE :"database_name" TO life_ustc_auth_runtime;
 GRANT USAGE ON SCHEMA public TO life_ustc_auth_runtime;

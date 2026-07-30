@@ -209,11 +209,6 @@ VALUES
     'rls-test-user-b',
     'rls-test-user-b@example.invalid',
     CURRENT_TIMESTAMP
-  ),
-  (
-    'rls-test-account-delete',
-    'rls-test-account-delete@example.invalid',
-    CURRENT_TIMESTAMP
   )
 ON CONFLICT (id) DO UPDATE SET
   email = EXCLUDED.email,
@@ -305,20 +300,7 @@ ON CONFLICT ("id") DO UPDATE SET
 
 GRANT CONNECT ON DATABASE :"database_name" TO life_ustc_runtime;
 GRANT USAGE ON SCHEMA public TO life_ustc_runtime;
-GRANT SELECT ON TABLE "User" TO life_ustc_runtime;
-GRANT SELECT ON TABLE "BusCampus" TO life_ustc_runtime;
-GRANT SELECT ON TABLE "Homework" TO life_ustc_runtime;
-GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE
-  "Todo",
-  "DashboardLinkClick",
-  "DashboardLinkPin",
-  "BusUserPreference",
-  "Upload",
-  "UploadPending",
-  "HomeworkCompletion"
-TO life_ustc_runtime;
-GRANT SELECT, INSERT, DELETE ON TABLE "CommentReaction"
-TO life_ustc_runtime;
+\ir ../../../prisma/roles/app-runtime-table-grants.sql
 
 GRANT CONNECT
   ON DATABASE :"database_name"
