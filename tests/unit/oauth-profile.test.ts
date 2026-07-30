@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  getOidcAccountSubject,
   mapGithubProfileToUser,
   mapGoogleProfileToUser,
   mapOidcProfileToUser,
@@ -7,15 +8,15 @@ import {
 
 describe("OAuth 档案映射", () => {
   it("接受仅含 id 的稀疏 USTC OIDC 档案", () => {
-    expect(
-      mapOidcProfileToUser({
-        id: "435",
-        sub: "435",
-        user_id: 435,
-        emailVerified: false,
-      }),
-    ).toEqual({
+    const profile = {
       id: "435",
+      sub: "435",
+      user_id: 435,
+      emailVerified: false,
+    };
+
+    expect(getOidcAccountSubject(profile)).toBe("435");
+    expect(mapOidcProfileToUser(profile)).toEqual({
       email: "oidc-435@users.local",
       name: "USTC User 435",
       image: undefined,
@@ -24,16 +25,16 @@ describe("OAuth 档案映射", () => {
   });
 
   it("保留提供者提供的 OIDC 档案字段", () => {
-    expect(
-      mapOidcProfileToUser({
-        sub: "abc",
-        email: "student@example.com",
-        email_verified: true,
-        name: "Student Name",
-        picture: "https://example.com/avatar.png",
-      }),
-    ).toEqual({
-      id: "abc",
+    const profile = {
+      sub: "abc",
+      email: "student@example.com",
+      email_verified: true,
+      name: "Student Name",
+      picture: "https://example.com/avatar.png",
+    };
+
+    expect(getOidcAccountSubject(profile)).toBe("abc");
+    expect(mapOidcProfileToUser(profile)).toEqual({
       email: "student@example.com",
       name: "Student Name",
       image: "https://example.com/avatar.png",

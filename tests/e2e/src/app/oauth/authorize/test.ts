@@ -34,7 +34,7 @@ async function registerPublicClient(request: APIRequestContext) {
       scope: "openid profile",
     },
   });
-  expect(response.status()).toBe(200);
+  expect(response.status()).toBe(201);
   const body = (await response.json()) as { client_id?: string };
   expect(typeof body.client_id).toBe("string");
   return body.client_id as string;

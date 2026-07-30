@@ -119,6 +119,29 @@ describe("verifyAccessTokenJwt", () => {
     ).rejects.toThrow("Missing sub claim");
   });
 
+  it("rejects a DPoP-bound token on bearer-only resource paths", async () => {
+    jwtVerifyMock.mockResolvedValue({
+      payload: {
+        sub: "user-1",
+        aud: "https://life.example/api/graphql",
+        cnf: { jkt: "dpop-thumbprint" },
+      },
+    });
+    const { verifyAccessTokenJwt } = await import(
+      "@/lib/auth/jwt-verification"
+    );
+
+    await expect(
+      verifyAccessTokenJwt("token", {
+        jwksUrl: "https://life.example/api/auth/jwks",
+        issuer: "https://life.example/api/auth",
+        audience: "https://life.example/api/graphql",
+      }),
+    ).rejects.toThrow(
+      "DPoP-bound access token cannot be used as a bearer token",
+    );
+  });
+
   it("supports array scope, issuer, and audience values", async () => {
     jwtVerifyMock.mockResolvedValue({
       payload: {

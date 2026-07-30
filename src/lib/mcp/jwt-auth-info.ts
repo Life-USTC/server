@@ -10,6 +10,7 @@ export function jwtClaimsToAuthInfo({
   jwtClaims: {
     aud?: unknown;
     azp?: unknown;
+    client_id?: unknown;
     exp?: unknown;
     scope?: unknown;
     sub?: unknown;
@@ -29,9 +30,16 @@ export function jwtClaimsToAuthInfo({
     audValue = mcpMatch ?? String(aud[0] ?? "");
   }
 
+  const azp = typeof jwtClaims.azp === "string" ? jwtClaims.azp : undefined;
+  const clientId =
+    typeof jwtClaims.client_id === "string" ? jwtClaims.client_id : undefined;
+
   return {
     token,
-    clientId: typeof jwtClaims.azp === "string" ? jwtClaims.azp : "unknown",
+    clientId:
+      azp && clientId && azp !== clientId
+        ? "unknown"
+        : (clientId ?? azp ?? "unknown"),
     scopes,
     expiresAt:
       typeof jwtClaims.exp === "number"

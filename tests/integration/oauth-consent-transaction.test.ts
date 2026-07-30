@@ -2,6 +2,7 @@ import { afterAll, describe, expect, it, vi } from "vitest";
 import { bindOAuthAuthorizationCodeRedirectToActiveGrant } from "@/features/oauth/server/oauth-authorization-code-grant.server";
 import { createAcceptedOAuthAuthorization } from "@/features/oauth/server/oauth-consent-action";
 import { prisma } from "@/lib/db/prisma";
+import { getOAuthMcpResourceUrl } from "@/lib/oauth/resource-urls";
 import { hashOAuthClientSecretForDbStorage } from "@/lib/oauth/utils";
 
 describe.sequential("OAuth consent transaction", () => {
@@ -9,6 +10,7 @@ describe.sequential("OAuth consent transaction", () => {
   const clientIds: string[] = [];
   const userIds: string[] = [];
   const verificationIdentifiers: string[] = [];
+  const encoder = new TextEncoder();
 
   async function createFixture(label: string, skipConsent = false) {
     const user = await prisma.user.create({
@@ -23,9 +25,14 @@ describe.sequential("OAuth consent transaction", () => {
       data: {
         clientId,
         name: `OAuth consent ${label}`,
+        grantTypes: ["authorization_code", "refresh_token"],
+        public: true,
+        requirePKCE: true,
         redirectUris: ["https://client.example/callback"],
+        responseTypes: ["code"],
         scopes: ["openid", "profile"],
         skipConsent,
+        tokenEndpointAuthMethod: "none",
       },
     });
     const consent = await prisma.oAuthConsent.create({
@@ -101,6 +108,35 @@ describe.sequential("OAuth consent transaction", () => {
     };
   }
 
+  async function createSessionCookie(userId: string) {
+    const token = crypto.randomUUID();
+    await prisma.session.create({
+      data: {
+        expires: new Date(Date.now() + 60 * 60 * 1000),
+        sessionToken: token,
+        userId,
+      },
+    });
+    const { getBetterAuthInstance } = await import("@/lib/auth/core");
+    const context = await getBetterAuthInstance().$context;
+    const key = await crypto.subtle.importKey(
+      "raw",
+      encoder.encode(context.secret),
+      { name: "HMAC", hash: "SHA-256" },
+      false,
+      ["sign"],
+    );
+    const signature = await crypto.subtle.sign(
+      "HMAC",
+      key,
+      encoder.encode(token),
+    );
+    const value = encodeURIComponent(
+      `${token}.${btoa(String.fromCharCode(...new Uint8Array(signature)))}`,
+    );
+    return `${context.authCookies.sessionToken.name}=${value}`;
+  }
+
   async function expectFixtureUnchanged(input: {
     clientId: string;
     grantId: string;
@@ -154,8 +190,17 @@ describe.sequential("OAuth consent transaction", () => {
   it("原子轮换 consent、清理旧凭据并创建 exact-bound code", async () => {
     const fixture = await createFixture("success");
     const query = authorizeQuery(fixture.clientId);
-    query.append("resource", "https://life.example/api/graphql");
-    query.append("resource", "https://life.example/api/mcp");
+    const resource = getOAuthMcpResourceUrl();
+    query.append("resource", resource);
+    query.set(
+      "claims",
+      JSON.stringify({
+        userinfo: {
+          preferred_username: null,
+          unsupported_claim: null,
+        },
+      }),
+    );
     const authorization = await createAcceptedOAuthAuthorization({
       acceptedScopes: ["openid", "profile"],
       authorizeQuery: query,
@@ -178,7 +223,12 @@ describe.sequential("OAuth consent transaction", () => {
             userId: fixture.userId,
           },
         },
-        select: { grantId: true, scopes: true },
+        select: {
+          grantId: true,
+          requestedUserInfoClaims: true,
+          resources: true,
+          scopes: true,
+        },
       }),
       prisma.verificationToken.findFirstOrThrow({
         where: { identifier },
@@ -198,14 +248,13 @@ describe.sequential("OAuth consent transaction", () => {
     ]);
 
     expect(consent.grantId).not.toBe(fixture.consent.grantId);
+    expect(consent.requestedUserInfoClaims).toEqual(["preferred_username"]);
+    expect(consent.resources).toEqual([resource]);
     expect(consent.scopes).toEqual(["openid", "profile"]);
     expect(counts).toEqual([0, 0, 0]);
     expect(JSON.parse(codeRow.token)).toMatchObject({
       query: {
-        resource: [
-          "https://life.example/api/graphql",
-          "https://life.example/api/mcp",
-        ],
+        resource,
       },
       referenceId: consent.grantId,
       type: "authorization_code",
@@ -218,6 +267,59 @@ describe.sequential("OAuth consent transaction", () => {
         consent.grantId,
       ),
     ).resolves.toBe(true);
+
+    const noResourceQuery = new URLSearchParams(query);
+    noResourceQuery.delete("resource");
+    const noResourceAuthorization = await createAcceptedOAuthAuthorization({
+      acceptedScopes: ["openid", "profile"],
+      authorizeQuery: noResourceQuery,
+      session: session(fixture.userId),
+    });
+    expect(noResourceAuthorization).not.toBeNull();
+    if (!noResourceAuthorization) {
+      throw new Error("Expected authorization without resource");
+    }
+    const noResourceCode = new URL(
+      noResourceAuthorization.redirectTarget,
+    ).searchParams.get("code");
+    expect(noResourceCode).toBeTruthy();
+    if (noResourceCode) {
+      verificationIdentifiers.push(
+        await hashOAuthClientSecretForDbStorage(noResourceCode),
+      );
+    }
+    await expect(
+      prisma.oAuthConsent.findUniqueOrThrow({
+        where: {
+          clientId_userId: {
+            clientId: fixture.clientId,
+            userId: fixture.userId,
+          },
+        },
+        select: { resources: true },
+      }),
+    ).resolves.toEqual({ resources: [resource] });
+
+    const reuseQuery = new URLSearchParams(query);
+    reuseQuery.set("prompt", "none");
+    reuseQuery.set("state", `reuse-${marker}`);
+    const { getBetterAuthInstance } = await import("@/lib/auth/core");
+    const reuseResponse = await getBetterAuthInstance().handler(
+      new Request(
+        `http://localhost:3000/api/auth/oauth2/authorize?${reuseQuery}`,
+        { headers: { cookie: await createSessionCookie(fixture.userId) } },
+      ),
+    );
+    expect(reuseResponse.status).toBe(302);
+    const reuseLocation = new URL(reuseResponse.headers.get("location") ?? "");
+    expect(reuseLocation.searchParams.get("error")).toBeNull();
+    const reuseCode = reuseLocation.searchParams.get("code");
+    expect(typeof reuseCode).toBe("string");
+    if (reuseCode) {
+      verificationIdentifiers.push(
+        await hashOAuthClientSecretForDbStorage(reuseCode),
+      );
+    }
   });
 
   it("grantId rotation 冲突时回滚 consent 与旧凭据清理", async () => {

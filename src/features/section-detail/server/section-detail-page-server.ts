@@ -171,6 +171,13 @@ export async function loadSectionDetailPage({
           },
     ]);
   const socialMetadata = buildSocialMetadata({
+    card: {
+      footer: `Life@USTC · ${copy.common.sections}`,
+      label: locals.locale === "zh-cn" ? "SECTION · 教学班" : "SECTION",
+      subtitle: section.code,
+      title: courseName,
+      variant: "section",
+    },
     canonicalPath: `/catalog/sections/${jwId}`,
     description: formatSocialMetadataMessage(
       copy.metadata.social.sectionDescription,

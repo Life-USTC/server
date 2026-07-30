@@ -94,6 +94,12 @@ function expectCompleteSocialMetadata(
     imageAlt: string;
     locale: "en-us" | "zh-cn";
     title: string;
+    card?: {
+      label?: string;
+      subtitle?: string;
+      title?: string;
+      variant?: string;
+    };
   },
 ) {
   for (const [key, values] of Object.entries(metadata.values)) {
@@ -101,9 +107,13 @@ function expectCompleteSocialMetadata(
   }
 
   const canonicalUrl = `${metadata.origin}${expected.canonicalPath}`;
-  const imageUrl = `${metadata.origin}/images/social-card.png`;
+  const imageUrl = new URL(metadata.values.ogImage[0] ?? "");
   const locale = expected.locale === "zh-cn" ? "zh_CN" : "en_US";
   const alternateLocale = expected.locale === "zh-cn" ? "en_US" : "zh_CN";
+  const expectedCardTitle =
+    expected.card?.title ??
+    expected.title.replace(/\s+-\s+Life@USTC$/u, "").trim();
+  const expectedCardSubtitle = expected.card?.subtitle ?? expected.description;
 
   expect(metadata.htmlLang).toBe(expected.locale);
   expect(metadata.contentLanguage).toBe(expected.locale);
@@ -119,7 +129,18 @@ function expectCompleteSocialMetadata(
   expect(metadata.values.ogSiteName[0]).toBe("Life@USTC");
   expect(metadata.values.ogLocale[0]).toBe(locale);
   expect(metadata.values.ogLocaleAlternate[0]).toBe(alternateLocale);
-  expect(metadata.values.ogImage[0]).toBe(imageUrl);
+  expect(imageUrl.origin).toBe(metadata.origin);
+  expect(imageUrl.pathname).toBe("/open-graph.png");
+  expect(imageUrl.searchParams.get("title")).toBe(expectedCardTitle);
+  expect(imageUrl.searchParams.get("subtitle")).toBe(expectedCardSubtitle);
+  expect(imageUrl.searchParams.get("variant")).toBe(
+    expected.card?.variant ?? "default",
+  );
+  if (expected.card?.label) {
+    expect(imageUrl.searchParams.get("label")).toBe(expected.card.label);
+  } else {
+    expect(imageUrl.searchParams.get("label")).toBeTruthy();
+  }
   expect(metadata.values.ogImageType[0]).toBe("image/png");
   expect(metadata.values.ogImageWidth[0]).toBe("1200");
   expect(metadata.values.ogImageHeight[0]).toBe("630");
@@ -127,7 +148,7 @@ function expectCompleteSocialMetadata(
   expect(metadata.values.twitterCard[0]).toBe("summary_large_image");
   expect(metadata.values.twitterTitle[0]).toBe(expected.title);
   expect(metadata.values.twitterDescription[0]).toBe(expected.description);
-  expect(metadata.values.twitterImage[0]).toBe(imageUrl);
+  expect(metadata.values.twitterImage[0]).toBe(imageUrl.href);
   expect(metadata.values.twitterImageAlt[0]).toBe(expected.imageAlt);
 }
 
@@ -247,6 +268,12 @@ test("课程与班级详情子路由规范化 canonical 并使用受控摘要", 
     `/catalog/courses/${DEV_SEED.course.jwId}/introduction?utm_source=e2e`,
   );
   expectCompleteSocialMetadata(courseMetadata, {
+    card: {
+      label: "COURSE · 课程",
+      subtitle: `${DEV_SEED.course.code} · 班级`,
+      title: DEV_SEED.course.nameCn,
+      variant: "course",
+    },
     canonicalPath: `/catalog/courses/${DEV_SEED.course.jwId}`,
     description: `在 Life@USTC 查看${DEV_SEED.course.nameCn}（${DEV_SEED.course.code}）的班级、简介与讨论。`,
     imageAlt: "Life@USTC 课程与日程工作台分享卡片",
@@ -260,6 +287,12 @@ test("课程与班级详情子路由规范化 canonical 并使用受控摘要", 
     `/catalog/sections/${DEV_SEED.section.jwId}/calendar?subscribe=1#week`,
   );
   expectCompleteSocialMetadata(sectionMetadata, {
+    card: {
+      label: "SECTION",
+      subtitle: DEV_SEED.section.code,
+      title: DEV_SEED.course.nameEn,
+      variant: "section",
+    },
     canonicalPath: `/catalog/sections/${DEV_SEED.section.jwId}`,
     description: `View section ${DEV_SEED.section.code} for ${DEV_SEED.course.nameEn}, including schedules, homework, exams, teachers, and discussions on Life@USTC.`,
     imageAlt: "Life@USTC course and schedule workspace social card",
@@ -285,6 +318,12 @@ test("教师详情原始 SSR HTML 使用实体根路径与本地化摘要", asyn
     `${teacherHref}/sections?utm_source=e2e`,
   );
   expectCompleteSocialMetadata(metadata, {
+    card: {
+      label: "TEACHER",
+      subtitle: `View ${DEV_SEED.teacher.nameEn}'s profile, teaching sections, descriptions, and discussions on Life@USTC.`,
+      title: DEV_SEED.teacher.nameEn,
+      variant: "teacher",
+    },
     canonicalPath: teacherHref ?? "",
     description: `View ${DEV_SEED.teacher.nameEn}'s profile, teaching sections, descriptions, and discussions on Life@USTC.`,
     imageAlt: "Life@USTC course and schedule workspace social card",
@@ -369,8 +408,17 @@ test("公开实体的原始 SSR HTML 输出双语 JSON-LD 且不包含用户字�
   }
 });
 
-test("社交分享图片是可抓取的 1200×630 8-bit RGBA PNG", async ({ request }) => {
-  const response = await request.get("/images/social-card.png");
+test("动态社交分享图片是可抓取的 1200×630 8-bit RGBA PNG", async ({
+  request,
+}) => {
+  const searchParams = new URLSearchParams({
+    footer: "Life @ USTC · 课程信息",
+    label: "课程 / CS1002A",
+    subtitle: "2026 春季学期 · 少年班学院 · 金寨路 96 号",
+    title: "数据结构与算法（实验）",
+    variant: "course",
+  });
+  const response = await request.get(`/open-graph.png?${searchParams}`);
   expect(response.status()).toBe(200);
   expect(response.headers()["content-type"]).toContain("image/png");
 

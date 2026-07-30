@@ -70,6 +70,28 @@ describe("OAuth 注册路由", () => {
     expect(oauthClientUpdateMock).not.toHaveBeenCalled();
   });
 
+  it("动态客户端注册时拒绝强制 DPoP 的客户端", async () => {
+    const response = await authPostRoute(
+      new Request("https://life.example/api/auth/oauth2/register", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          client_name: "dpop-only-client",
+          dpop_bound_access_tokens: true,
+        }),
+      }),
+    );
+
+    expect(response.status).toBe(400);
+    expect(await response.json()).toEqual({
+      error: "invalid_client_metadata",
+      error_description:
+        "DPoP-bound access tokens are not supported by this Bearer-only resource server",
+    });
+    expect(betterAuthHandlerMock).not.toHaveBeenCalled();
+    expect(oauthClientUpdateMock).not.toHaveBeenCalled();
+  });
+
   it("动态客户端注册时拒绝 falsy 的不支持授权值", async () => {
     const response = await authPostRoute(
       new Request("https://life.example/api/auth/oauth2/register", {

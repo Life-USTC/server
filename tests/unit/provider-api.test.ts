@@ -7,7 +7,6 @@ import {
   OAUTH_PUBLIC_CLIENT_AUTH_METHOD,
 } from "@/lib/oauth/constants";
 import {
-  asGenericOAuthApi,
   asOAuthProviderApi,
   asOAuthProviderMetadataAuth,
 } from "@/lib/oauth/provider-api";
@@ -62,31 +61,5 @@ describe("provider-api 守卫", () => {
     expect(() => asOAuthProviderMetadataAuth({ api: {} })).toThrow(
       /missing getOAuthServerConfig\(\)/,
     );
-  });
-
-  it("接受 Svelte 认证动作使用的通用 OAuth API 方法", () => {
-    const api = asGenericOAuthApi({
-      signInWithOAuth2: async () => ({
-        headers: new Headers(),
-        response: { url: "https://example.com/account/sign-in" },
-      }),
-      oAuth2LinkAccount: async () => ({
-        headers: new Headers(),
-        response: { url: "https://example.com/link" },
-      }),
-    });
-
-    expect(api.signInWithOAuth2).toBeTypeOf("function");
-    expect(api.oAuth2LinkAccount).toBeTypeOf("function");
-  });
-
-  it("当通用 OAuth API 缺少 signInWithOAuth2 时抛出明确错误", () => {
-    expect(() => asGenericOAuthApi({})).toThrow(/missing signInWithOAuth2\(\)/);
-  });
-
-  it("当通用 OAuth API 缺少 oAuth2LinkAccount 时抛出明确错误", () => {
-    expect(() =>
-      asGenericOAuthApi({ signInWithOAuth2: async () => ({}) }),
-    ).toThrow(/missing oAuth2LinkAccount\(\)/);
   });
 });

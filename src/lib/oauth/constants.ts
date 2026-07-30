@@ -25,6 +25,14 @@ export const OAUTH_OPENID_SCOPE = "openid";
 export const OAUTH_PROFILE_SCOPE = "profile";
 export const OAUTH_EMAIL_SCOPE = "email";
 export const OAUTH_OFFLINE_ACCESS_SCOPE = "offline_access";
+export const OAUTH_PROVIDER_CLAIMS_SUPPORTED = [
+  "sub",
+  "name",
+  "preferred_username",
+  "picture",
+  "email",
+  "email_verified",
+] as const;
 export const DEFAULT_OAUTH_CLIENT_SCOPES = [
   OAUTH_OPENID_SCOPE,
   OAUTH_PROFILE_SCOPE,

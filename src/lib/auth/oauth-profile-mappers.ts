@@ -14,10 +14,7 @@ import {
 } from "@/lib/auth/oauth-profile-values";
 
 export function mapOidcProfileToUser(profile: OAuthProfile) {
-  const accountId = firstStringValue(profile, ["sub", "id", "user_id"]);
-  if (!accountId) {
-    throw new Error("OIDC profile is missing a stable account identifier");
-  }
+  const accountId = getOidcAccountSubject(profile);
 
   const email = profileEmail(profile.email);
   const emailVerified = firstBooleanValue(profile, [
@@ -33,12 +30,19 @@ export function mapOidcProfileToUser(profile: OAuthProfile) {
     ]) ?? `USTC User ${accountId}`;
 
   return {
-    id: accountId,
     email: email ?? fallbackEmail("oidc", accountId),
     name: displayName,
     image: profileImage(profile.picture),
     emailVerified: Boolean(email && emailVerified),
   };
+}
+
+export function getOidcAccountSubject(profile: OAuthProfile) {
+  const accountId = firstStringValue(profile, ["sub", "id", "user_id"]);
+  if (!accountId) {
+    throw new Error("OIDC profile is missing a stable account identifier");
+  }
+  return accountId;
 }
 
 export function mapGithubProfileToUser(profile: GithubProfile) {

@@ -137,7 +137,18 @@ describe("OAuth consent 操作", () => {
   });
 
   it("在同一事务轮换 grant、清理旧行并创建 exact-bound code", async () => {
-    const oauthQuery = await signedOAuthQuery({ prompt: "consent" });
+    const oauthQuery = await signedOAuthQuery({
+      claims: JSON.stringify({
+        id_token: { name: null },
+        userinfo: {
+          email: { essential: true },
+          preferred_username: null,
+          unsupported_claim: null,
+        },
+      }),
+      prompt: "consent",
+      resource: "https://life.example/api/mcp",
+    });
 
     await expect(
       submitOAuthConsentAction({
@@ -166,11 +177,15 @@ describe("OAuth consent 操作", () => {
       create: expect.objectContaining({
         clientId: "client-1",
         grantId: expect.any(String),
+        requestedUserInfoClaims: ["email", "preferred_username"],
+        resources: ["https://life.example/api/mcp"],
         scopes: ["openid", "profile"],
         userId: "user-1",
       }),
       update: expect.objectContaining({
         grantId: expect.any(String),
+        requestedUserInfoClaims: ["email", "preferred_username"],
+        resources: ["https://life.example/api/mcp"],
         scopes: ["openid", "profile"],
       }),
     });
@@ -280,13 +295,44 @@ describe("OAuth consent 操作", () => {
     expect(consentUpsertMock).toHaveBeenCalledWith(
       expect.objectContaining({
         create: expect.objectContaining({
+          requestedUserInfoClaims: [],
+          resources: [],
           scopes: ["openid", "workspace.todo:read"],
         }),
         update: expect.objectContaining({
+          requestedUserInfoClaims: [],
           scopes: ["openid", "workspace.todo:read"],
         }),
       }),
     );
+    expect(consentUpsertMock.mock.calls[0]?.[0].update).not.toHaveProperty(
+      "resources",
+    );
+  });
+
+  it("拒绝重复的 signed claims 参数", async () => {
+    const query = new URLSearchParams(
+      await signedOAuthQuery({ claims: '{"userinfo":{"email":null}}' }),
+    );
+    query.delete("sig");
+    query.append("claims", '{"userinfo":{"name":null}}');
+    query.set("sig", await makeSignature(query.toString(), AUTH_SECRET));
+
+    await expect(
+      submitOAuthConsentAction({
+        request: consentRequest({
+          accept: "true",
+          scope: "openid profile",
+          oauthQuery: query.toString(),
+        }),
+      }),
+    ).rejects.toMatchObject({
+      status: 303,
+      location: "/error?error=consent_failed",
+    });
+
+    expect(transactionMock).toHaveBeenCalledOnce();
+    expect(consentUpsertMock).not.toHaveBeenCalled();
   });
 
   it("signed state 无效时不触发任何数据库写入", async () => {

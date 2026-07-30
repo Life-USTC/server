@@ -39,7 +39,19 @@ describe.sequential("OAuth authorization continuation grant binding", () => {
       code_challenge_method: "S256",
       exp: String(Math.floor(Date.now() / 1000) + 600),
     });
-    query.set("sig", await makeSignature(query.toString(), AUTH_SECRET));
+    for (const name of [...new Set([...query.keys(), "ba_param"])].sort()) {
+      query.append("ba_param", name);
+    }
+    const canonical = new URLSearchParams(
+      [...query.entries()].sort(([keyA, valueA], [keyB, valueB]) => {
+        if (keyA < keyB) return -1;
+        if (keyA > keyB) return 1;
+        if (valueA < valueB) return -1;
+        if (valueA > valueB) return 1;
+        return 0;
+      }),
+    );
+    query.set("sig", await makeSignature(canonical.toString(), AUTH_SECRET));
     return query.toString();
   }
 
@@ -77,7 +89,7 @@ describe.sequential("OAuth authorization continuation grant binding", () => {
       };
       const signed = new URLSearchParams(body.oauth_query);
       const state = signed.get("state") ?? "";
-      for (const field of ["sig", "exp", "ba_iat", "ba_pl"]) {
+      for (const field of ["sig", "exp", "ba_iat", "ba_pl", "ba_param"]) {
         signed.delete(field);
       }
       const code = `continuation-${state}-${marker}`;

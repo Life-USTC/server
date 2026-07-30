@@ -7,16 +7,22 @@ import OAuthAuthorizeErrorPanel from "./OAuthAuthorizeErrorPanel.svelte";
 import OAuthAuthorizeSidePanel from "./OAuthAuthorizeSidePanel.svelte";
 
 type OAuthAuthorizeCopy = {
+  clientHostLabel: string;
   description: string;
+  loopbackRedirectWarning: string;
+  redirectHostLabel: string;
   scopesLabel: string;
   title: string;
 };
 
 type PageData = {
+  clientHost?: string;
   clientName?: string;
   copy?: OAuthAuthorizeCopy;
   message?: string;
   oauthQuery?: string;
+  redirectHost?: string;
+  redirectIsLoopback?: boolean;
   scope?: string;
   scopes?: Array<{ label: string; value: string }>;
   state: string;
@@ -41,7 +47,15 @@ $: pageDescription =
 <section class="mx-auto grid min-h-[calc(100vh-14rem)] w-full max-w-2xl place-items-center px-4 py-10">
   <Card.Root class="w-full">
     <Card.Header class="gap-5 p-6">
-      <OAuthAuthorizeSidePanel {appName} />
+      <OAuthAuthorizeSidePanel
+        {appName}
+        clientHost={data.clientHost}
+        clientHostLabel={data.copy?.clientHostLabel}
+        redirectHost={data.redirectHost}
+        redirectHostLabel={data.copy?.redirectHostLabel}
+        redirectIsLoopback={data.redirectIsLoopback ?? false}
+        loopbackRedirectWarning={data.copy?.loopbackRedirectWarning}
+      />
       <PageHeader
         class="py-0"
         title={pageTitle}

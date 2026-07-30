@@ -1,5 +1,5 @@
 import type { AuthInfo } from "@modelcontextprotocol/sdk/server/auth/types.js";
-import { hasMcpScope, PUBLIC_REST_SCOPES } from "@/lib/oauth/scope-registry";
+import { hasMcpScope, MCP_BOOTSTRAP_SCOPE } from "@/lib/oauth/scope-registry";
 import { resourceIndicatorsMatch } from "@/lib/oauth/utils";
 import {
   buildAuthErrorResponse,
@@ -7,29 +7,12 @@ import {
   INVALID_TOKEN_ERROR,
   type McpAuthFailureDiagnostics,
 } from "./auth-errors";
-import { verifyAccessToken } from "./auth-token-verification";
-import { accessTokenLooksLikeJwt } from "./opaque-token-verification";
+import {
+  accessTokenLooksLikeJwt,
+  verifyMcpAccessTokenRequest,
+} from "./auth-token-verification";
 import { getRequiredMcpScopes } from "./tool-scopes";
 import { getOAuthMcpResourceUrl } from "./urls";
-
-export { verifyAccessToken };
-
-type BearerTokenParseResult =
-  | { kind: "missing" }
-  | { kind: "malformed" }
-  | { kind: "bearer"; token: string };
-
-function parseBearerToken(request: Request): BearerTokenParseResult {
-  const authHeader = request.headers.get("authorization");
-  if (!authHeader) return { kind: "missing" };
-
-  const [type, token] = authHeader.split(" ");
-  if (type?.toLowerCase() !== "bearer" || !token) {
-    return { kind: "malformed" };
-  }
-
-  return { kind: "bearer", token };
-}
 
 function tokenFormat(
   token: string,
@@ -58,38 +41,9 @@ export async function authenticateMcpRequest(
   | { authInfo: AuthInfo }
   | { authFailureDiagnostics: McpAuthFailureDiagnostics; response: Response }
 > {
-  const parsedToken = parseBearerToken(request);
-  if (parsedToken.kind !== "bearer") {
-    const diagnostics: McpAuthFailureDiagnostics = {
-      authFailureKind:
-        parsedToken.kind === "missing"
-          ? "missing_bearer"
-          : "malformed_authorization_header",
-      authHeaderKind: parsedToken.kind,
-      authTokenFormat: parsedToken.kind === "missing" ? "missing" : "unknown",
-    };
-    return {
-      authFailureDiagnostics: diagnostics,
-      response: buildAuthErrorResponse({
-        diagnostics,
-        error: INVALID_TOKEN_ERROR,
-        status: 401,
-        description:
-          parsedToken.kind === "missing"
-            ? "Missing bearer token"
-            : "Malformed authorization header",
-      }),
-    };
-  }
-
-  const token = parsedToken.token;
-  const authInfo = await verifyAccessToken(request, token);
-  if ("error" in authInfo) {
-    return {
-      authFailureDiagnostics: authInfo.diagnostics,
-      response: buildAuthErrorResponse(authInfo),
-    };
-  }
+  const verified = await verifyMcpAccessTokenRequest(request);
+  if ("response" in verified) return verified;
+  const { authInfo } = verified;
 
   const tokenResourceMatchesMcp =
     authInfo.resource !== undefined &&
@@ -98,19 +52,22 @@ export async function authenticateMcpRequest(
     const diagnostics: McpAuthFailureDiagnostics = {
       authFailureKind: "token_resource_unbound",
       authHeaderKind: "bearer",
-      authTokenFormat: tokenFormat(token),
+      authTokenFormat: tokenFormat(authInfo.token),
       scopeCount: authInfo.scopes.length,
       tokenResourceMatchesMcp,
       tokenResourcePresent: authInfo.resource !== undefined,
     };
     return {
       authFailureDiagnostics: diagnostics,
-      response: buildAuthErrorResponse({
-        diagnostics,
-        error: INVALID_TOKEN_ERROR,
-        status: 401,
-        description: "Access token is not bound to this MCP resource",
-      }),
+      response: buildAuthErrorResponse(
+        {
+          diagnostics,
+          error: INVALID_TOKEN_ERROR,
+          status: 401,
+          description: "Access token is not bound to this MCP resource",
+        },
+        [MCP_BOOTSTRAP_SCOPE],
+      ),
     };
   }
 
@@ -118,8 +75,8 @@ export async function authenticateMcpRequest(
     const diagnostics: McpAuthFailureDiagnostics = {
       authFailureKind: "missing_feature_scope",
       authHeaderKind: "bearer",
-      authTokenFormat: tokenFormat(token),
-      requiredScopeCount: PUBLIC_REST_SCOPES.length,
+      authTokenFormat: tokenFormat(authInfo.token),
+      requiredScopeCount: 1,
       scopeCount: authInfo.scopes.length,
       tokenResourceMatchesMcp: true,
       tokenResourcePresent: true,
@@ -133,7 +90,7 @@ export async function authenticateMcpRequest(
           status: 403,
           description: "Access token does not include a feature scope",
         },
-        PUBLIC_REST_SCOPES,
+        [MCP_BOOTSTRAP_SCOPE],
       ),
     };
   }
@@ -171,7 +128,7 @@ export function authorizeMcpToolScopes(
           diagnostics,
           error: INSUFFICIENT_SCOPE_ERROR,
           status: 403,
-          description: `Access token does not include a required scope for tool(s): ${Array.isArray(toolName) ? toolName.join(", ") : toolName}`,
+          description: "Access token does not include the required tool scope",
         },
         requiredScopes,
       ),

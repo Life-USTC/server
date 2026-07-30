@@ -58,6 +58,19 @@ describe("bounded MCP request bodies", () => {
     }
   });
 
+  it("rejects an empty JSON-RPC batch as an invalid request", async () => {
+    const result = await readMcpJsonBodyWithinLimit(post("[]"));
+
+    expect("response" in result && result.response.status).toBe(400);
+    if ("response" in result) {
+      await expect(result.response.json()).resolves.toEqual({
+        error: { code: -32600, message: "Invalid Request" },
+        id: null,
+        jsonrpc: "2.0",
+      });
+    }
+  });
+
   it("rejects a JSON-RPC batch above the message limit", async () => {
     const result = await readMcpJsonBodyWithinLimit(
       post(

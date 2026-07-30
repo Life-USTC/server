@@ -1,4 +1,5 @@
 export {
+  getOidcAccountSubject,
   mapGithubProfileToUser,
   mapGoogleProfileToUser,
   mapOidcProfileToUser,

@@ -49,6 +49,7 @@ function publicDeviceClient(overrides: Record<string, unknown> = {}) {
   return {
     clientId: "client-1",
     disabled: false,
+    dpopBoundAccessTokens: false,
     grantTypes: [OAUTH_DEVICE_CODE_GRANT_TYPE],
     name: "Client",
     public: true,
@@ -115,6 +116,26 @@ describe("设备授权", () => {
     expect(result.error.status).toBe(400);
     expect(result.error).toMatchObject({
       error: "unauthorized_client",
+    });
+  });
+
+  it("拒绝 DPoP-bound 客户端进入不支持 proof 的自定义设备流", async () => {
+    findUniqueMock.mockResolvedValue(
+      publicDeviceClient({ dpopBoundAccessTokens: true }),
+    );
+    const { resolveDeviceAuthorizationClient } = await import(
+      "@/features/oauth/server/device-authorization-policy.server"
+    );
+
+    const result = await resolveDeviceAuthorizationClient({
+      clientId: "client-1",
+      scope: OAUTH_OPENID_SCOPE,
+      resourceEntries: [],
+    });
+
+    expect(result).toMatchObject({
+      error: { error: "unauthorized_client", status: 400 },
+      reason: "dpop_not_supported",
     });
   });
 

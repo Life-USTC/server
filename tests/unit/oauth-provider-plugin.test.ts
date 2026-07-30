@@ -10,13 +10,13 @@ import {
   PUBLIC_OAUTH_SCOPES,
 } from "@/lib/oauth/scope-registry";
 
-const { hasActiveOAuthUserGrantMock, oauthProviderMock } = vi.hoisted(() => ({
+const { hasActiveOAuthUserGrantMock, mcpMock } = vi.hoisted(() => ({
   hasActiveOAuthUserGrantMock: vi.fn(),
-  oauthProviderMock: vi.fn((options) => ({ id: "oauth-provider", options })),
+  mcpMock: vi.fn((options) => ({ id: "oauth-provider", options })),
 }));
 
-vi.mock("@better-auth/oauth-provider", () => ({
-  oauthProvider: oauthProviderMock,
+vi.mock("@better-auth/mcp", () => ({
+  mcp: mcpMock,
 }));
 
 vi.mock("@/lib/auth/auth-config", () => ({
@@ -28,6 +28,7 @@ vi.mock("@/lib/oauth/active-user-grant", () => ({
 }));
 
 vi.mock("@/lib/mcp/urls", () => ({
+  getOAuthMcpResourceUrl: () => "https://life.example/api/mcp",
   getOAuthProviderValidAudiences: () => ["https://life.example/api/mcp"],
 }));
 
@@ -41,14 +42,24 @@ describe("buildOAuthProviderPlugin", () => {
       authPublicOrigin: "https://life.example",
     });
 
-    expect(oauthProviderMock).toHaveBeenCalledWith(
+    expect(mcpMock).toHaveBeenCalledWith(
       expect.objectContaining({
         grantTypes: [...OAUTH_PROVIDER_GRANT_TYPES],
         loginPage: "https://life.example/account/sign-in",
+        refreshTokenReuseInterval: 0,
         refreshTokenExpiresIn: OAUTH_REFRESH_TOKEN_EXPIRES_IN_SECONDS,
+        resource: "https://life.example/api/mcp",
+        enforcePerClientResources: false,
+        resources: [
+          {
+            allowedScopes: [...OAUTH_PROVIDER_SCOPES],
+            dpopBoundAccessTokensRequired: false,
+            identifier: "https://life.example/api/mcp",
+          },
+        ],
       }),
     );
-    expect(oauthProviderMock.mock.calls[0]?.[0].grantTypes).not.toContain(
+    expect(mcpMock.mock.calls[0]?.[0].grantTypes).not.toContain(
       "client_credentials",
     );
   });
@@ -62,7 +73,7 @@ describe("buildOAuthProviderPlugin", () => {
       authPublicOrigin: "https://life.example",
     });
 
-    expect(oauthProviderMock).toHaveBeenCalledWith(
+    expect(mcpMock).toHaveBeenCalledWith(
       expect.objectContaining({
         clientRegistrationDefaultScopes: [...PUBLIC_OAUTH_SCOPES],
         clientRegistrationAllowedScopes: [
@@ -74,7 +85,7 @@ describe("buildOAuthProviderPlugin", () => {
         }),
       }),
     );
-    const options = oauthProviderMock.mock.calls[0]?.[0];
+    const options = mcpMock.mock.calls[0]?.[0];
     expect(options.clientRegistrationAllowedScopes).not.toContain("admin:read");
     expect(options.clientRegistrationAllowedScopes).not.toContain(
       "admin:write",
@@ -92,7 +103,7 @@ describe("buildOAuthProviderPlugin", () => {
       authPublicOrigin: "https://life.example",
     });
 
-    const options = oauthProviderMock.mock.calls[0]?.[0];
+    const options = mcpMock.mock.calls[0]?.[0];
     expect(options.scopes).not.toContain("rest:read");
     expect(options.scopes).not.toContain("rest:write");
     expect(options.scopes).not.toContain("mcp:tools");
@@ -128,7 +139,7 @@ describe("buildOAuthProviderPlugin", () => {
     buildOAuthProviderPlugin({
       authPublicOrigin: "https://life.example",
     });
-    const options = oauthProviderMock.mock.calls.at(-1)?.[0];
+    const options = mcpMock.mock.calls.at(-1)?.[0];
 
     hasActiveOAuthUserGrantMock.mockResolvedValueOnce(false);
     await expect(
@@ -160,6 +171,19 @@ describe("buildOAuthProviderPlugin", () => {
         user: { id: "user-1", username: "alice" },
       }),
     ).resolves.toEqual({ preferred_username: "alice" });
+
+    hasActiveOAuthUserGrantMock.mockResolvedValueOnce(true);
+    await expect(
+      options.customUserInfoClaims({
+        jwt: {
+          azp: "client-1",
+          [OAUTH_GRANT_ID_CLAIM]: "grant-1",
+        },
+        requestedClaims: ["preferred_username"],
+        scopes: ["openid"],
+        user: { id: "user-1", username: "alice" },
+      }),
+    ).resolves.toEqual({ preferred_username: "alice" });
   });
 
   it("propagates opaque-token lineage and validates its client_id", async () => {
@@ -169,7 +193,7 @@ describe("buildOAuthProviderPlugin", () => {
     buildOAuthProviderPlugin({
       authPublicOrigin: "https://life.example",
     });
-    const options = oauthProviderMock.mock.calls.at(-1)?.[0];
+    const options = mcpMock.mock.calls.at(-1)?.[0];
 
     expect(
       options.customAccessTokenClaims({ referenceId: "grant-opaque" }),
