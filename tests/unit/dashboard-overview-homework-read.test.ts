@@ -146,7 +146,7 @@ describe("dashboard overview homework read", () => {
     );
     expect(buildSemesterCalendarPayloadMock).toHaveBeenCalledWith(
       expect.objectContaining({
-        calendarHomeworks: [incompleteWithDue, completedWithDue],
+        calendarHomeworks: [incompleteWithDue],
       }),
     );
   });
