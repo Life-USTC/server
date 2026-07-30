@@ -91,9 +91,24 @@ $: panelDescriptionData =
     ? tabPanelState.descriptionData
     : data.descriptionData;
 
+function syncFocusedHomework(homeworks: SectionHomework[]) {
+  if (data.focusedHomeworkId == null) return;
+  const focused = homeworks.find(
+    (homework) => homework.id === data.focusedHomeworkId,
+  );
+  if (focused) {
+    _selectedHomework = focused;
+  }
+}
+
 async function selectTab(tab: SectionDetailTab) {
   const previousTab = activeTab;
-  if (tab === previousTab && tabPanelStore.isLoaded(tab)) return;
+  if (tab === previousTab && tabPanelStore.isLoaded(tab)) {
+    if (tab === "homework") {
+      syncFocusedHomework(_homeworks);
+    }
+    return;
+  }
   activeTab = tab;
   const preserveQuery = tab === previousTab;
   const nextUrl = (() => {
@@ -126,6 +141,7 @@ async function selectTab(tab: SectionDetailTab) {
       _homeworkViewer = state.homeworkViewer;
       _homeworks = state.homeworks;
       _homeworkAuditLogs = state.homeworkAuditLogs;
+      syncFocusedHomework(state.homeworks);
     }
     tabPanelState = tabPanelStore.getState();
   } finally {

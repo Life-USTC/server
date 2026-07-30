@@ -171,13 +171,15 @@ $: sectionNavItems = [
 
     <div
       class="min-w-0 min-h-0 overflow-y-auto px-4 py-4 sm:px-5 lg:px-6"
+      aria-busy={tabPanelLoading}
       data-detail-scroll-container
     >
       {#if tabPanelLoading}
-        <p class="text-muted-foreground text-sm">
+        <p class="sr-only">
           {data.locale === "zh-cn" ? "加载中..." : "Loading..."}
         </p>
-      {:else if activeTab === "overview"}
+      {/if}
+      {#if activeTab === "overview"}
       <section id="section-overview">
         <SectionBasicInfoCard
           {commonCopy}
