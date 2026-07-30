@@ -716,10 +716,7 @@ describe("section detail loader critical path", () => {
     expect(commentsResult.commentsData).toBeNull();
     expect(getDescriptionPayloadMock).not.toHaveBeenCalled();
     expect(getSectionHomeworkDataMock).toHaveBeenCalledOnce();
-    expect(getSectionHomeworkDataMock).toHaveBeenCalledWith(
-      section.id,
-      null,
-    );
+    expect(getSectionHomeworkDataMock).toHaveBeenCalledWith(section.id, null);
     expect(getCommentsPayloadMock).not.toHaveBeenCalled();
   });
 
@@ -787,32 +784,29 @@ describe("section detail loader critical path", () => {
   it.each([
     ["calendar", true, true] as const,
     ["exams", false, true] as const,
-  ])(
-    "loads tab-specific section data for anonymous %s deep links without overview cache",
-    async (tab, includeSchedules, includeExams) => {
-      const { loadSectionDetailPage } = await import(
-        "@/features/section-detail/server/section-detail-page-server"
-      );
-      const load = () =>
-        loadSectionDetailPage({
-          locals: locals(null, true),
-          params: { jwId: String(section.jwId) },
-          request: request(`/catalog/sections/${section.jwId}?tab=${tab}`),
-          url: new URL(
-            `https://example.test/catalog/sections/${section.jwId}?tab=${tab}`,
-          ),
-        });
-
-      await load();
-      await load();
-
-      expect(getSectionPageMock).toHaveBeenCalledTimes(2);
-      expect(getSectionPageMock).toHaveBeenCalledWith(section.jwId, "en-us", {
-        includeExams,
-        includeRelated: false,
-        includeSchedules,
-        includeTeacherDepartments: false,
+  ])("loads tab-specific section data for anonymous %s deep links without overview cache", async (tab, includeSchedules, includeExams) => {
+    const { loadSectionDetailPage } = await import(
+      "@/features/section-detail/server/section-detail-page-server"
+    );
+    const load = () =>
+      loadSectionDetailPage({
+        locals: locals(null, true),
+        params: { jwId: String(section.jwId) },
+        request: request(`/catalog/sections/${section.jwId}?tab=${tab}`),
+        url: new URL(
+          `https://example.test/catalog/sections/${section.jwId}?tab=${tab}`,
+        ),
       });
-    },
-  );
+
+    await load();
+    await load();
+
+    expect(getSectionPageMock).toHaveBeenCalledTimes(2);
+    expect(getSectionPageMock).toHaveBeenCalledWith(section.jwId, "en-us", {
+      includeExams,
+      includeRelated: false,
+      includeSchedules,
+      includeTeacherDepartments: false,
+    });
+  });
 });
