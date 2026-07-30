@@ -1,3 +1,23 @@
+# [1.78.0](https://github.com/Life-USTC/server/compare/v1.77.32...v1.78.0) (2026-07-30)
+
+
+### Bug Fixes
+
+* **ci,db:** regenerate wrangler types and apply app runtime grants ([#699](https://github.com/Life-USTC/server/issues/699)) ([f09cd38](https://github.com/Life-USTC/server/commit/f09cd3886c87c42e0dd7ea4f59d276e70a4844e0))
+* **ci:** split production database secrets by runtime role ([2b0a5b2](https://github.com/Life-USTC/server/commit/2b0a5b2d0627c7cb79471fe3a5a9a02a035acf0a))
+* **ci:** unset ALLOW_DATABASE_SEED in seed guard negative case ([a73b8e0](https://github.com/Life-USTC/server/commit/a73b8e06bd785483424dbbe16b596395e2a117c1))
+* **db:** align merge fixes and restore post-main test coverage ([3a1b041](https://github.com/Life-USTC/server/commit/3a1b0414acc5698ad71aac2f490d30c6e368bb62))
+* **db:** grant auth runtime access to Better Auth 1.7 OAuth resource tables ([46d1470](https://github.com/Life-USTC/server/commit/46d1470ac4052732b79872f65b0a88d7b3b93a1e))
+* **db:** grant catalog reads and community writes to app runtime role ([4e9e650](https://github.com/Life-USTC/server/commit/4e9e650a6ee434bcc6829141fb4aa668b6d1f57a))
+* **oauth:** move oauthResource seed helper under lib/db ([#698](https://github.com/Life-USTC/server/issues/698)) ([a1692f2](https://github.com/Life-USTC/server/commit/a1692f20d6cc69f4d806c4a4a66cf6dfacff83d4))
+* **oauth:** seed oauthResource rows before resource-bound token refresh ([#697](https://github.com/Life-USTC/server/issues/697)) ([10d8617](https://github.com/Life-USTC/server/commit/10d86176ceb920ea362907bcf8d5923dbe25d42d))
+* **tests:** restore Account.issuer fixtures after better-auth 1.7 merge ([9b4757f](https://github.com/Life-USTC/server/commit/9b4757f6dcae24d0bb5fe7173c0abb7d83c00e44))
+
+
+### Features
+
+* **db:** harden PostgreSQL RLS for owner-scoped app data ([a349901](https://github.com/Life-USTC/server/commit/a349901aec9e5ba43e2d81f3b407ae2480a41306))
+
 ## [1.77.32](https://github.com/Life-USTC/server/compare/v1.77.31...v1.77.32) (2026-07-29)
 
 
