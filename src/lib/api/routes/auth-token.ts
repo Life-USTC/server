@@ -1,5 +1,5 @@
-import { ensureOAuthProviderResourcesSeeded } from "@/features/oauth/server/ensure-oauth-resources.server";
 import { jsonResponse } from "@/lib/api/helpers";
+import { ensureOAuthProviderResourcesSeeded } from "@/lib/db/ensure-oauth-provider-resources";
 import { observedApiRoute } from "@/lib/log/api-observability";
 import { withBetterAuthOAuthDebug } from "@/lib/log/oauth-debug";
 import { writeOAuthEventAnalytics } from "@/lib/metrics/analytics-engine";

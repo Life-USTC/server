@@ -36,7 +36,7 @@ const {
   verifyAccessTokenJwtPayloadMock: vi.fn(),
 }));
 
-vi.mock("@/features/oauth/server/ensure-oauth-resources.server", () => ({
+vi.mock("@/lib/db/ensure-oauth-provider-resources", () => ({
   ensureOAuthProviderResourcesSeeded: ensureOAuthProviderResourcesSeededMock,
 }));
 

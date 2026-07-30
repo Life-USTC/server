@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { resetOAuthProviderResourceSeedForTests } from "@/features/oauth/server/ensure-oauth-resources.server";
+import { resetOAuthProviderResourceSeedForTests } from "@/lib/db/ensure-oauth-provider-resources";
 
 const { findUniqueMock, createMock } = vi.hoisted(() => ({
   findUniqueMock: vi.fn(),
@@ -39,7 +39,7 @@ describe("ensureOAuthProviderResourcesSeeded", () => {
     createMock.mockResolvedValue({ id: "resource-1" });
 
     const { ensureOAuthProviderResourcesSeeded } = await import(
-      "@/features/oauth/server/ensure-oauth-resources.server"
+      "@/lib/db/ensure-oauth-provider-resources"
     );
 
     await ensureOAuthProviderResourcesSeeded();
@@ -68,7 +68,7 @@ describe("ensureOAuthProviderResourcesSeeded", () => {
     createMock.mockResolvedValue({ id: "resource-2" });
 
     const { ensureOAuthProviderResourcesSeeded } = await import(
-      "@/features/oauth/server/ensure-oauth-resources.server"
+      "@/lib/db/ensure-oauth-provider-resources"
     );
 
     await ensureOAuthProviderResourcesSeeded();
