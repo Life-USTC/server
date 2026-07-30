@@ -1,3 +1,10 @@
+## [1.81.1](https://github.com/Life-USTC/server/compare/v1.81.0...v1.81.1) (2026-07-30)
+
+
+### Bug Fixes
+
+* **ui:** polish copy, tables, and duplicate titles ([0d452ad](https://github.com/Life-USTC/server/commit/0d452ad7e1ad56b89d1ceb20b52e8b9913e084df))
+
 # [1.81.0](https://github.com/Life-USTC/server/compare/v1.80.2...v1.81.0) (2026-07-30)
 
 
