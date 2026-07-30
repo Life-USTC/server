@@ -206,6 +206,7 @@ describe.skipIf(process.env.AUTH_ROLE_TEST_ENABLED !== "true")(
         await expect(
           authPrisma.account.create({
             data: {
+              issuer: "https://issuer.example.test",
               provider: "test",
               providerAccountId: marker,
               userId: user.id,
