@@ -6,6 +6,7 @@ const layoutMessages = {
     accessibility: enUsMessages.accessibility,
     admin: enUsMessages.admin,
     common: enUsMessages.common,
+    globalSearch: enUsMessages.globalSearch,
     homepage: enUsMessages.homepage,
     language: enUsMessages.language,
     meDashboard: enUsMessages.meDashboard,
@@ -19,6 +20,7 @@ const layoutMessages = {
     accessibility: zhCnMessages.accessibility,
     admin: zhCnMessages.admin,
     common: zhCnMessages.common,
+    globalSearch: zhCnMessages.globalSearch,
     homepage: zhCnMessages.homepage,
     language: zhCnMessages.language,
     meDashboard: zhCnMessages.meDashboard,
@@ -121,6 +123,7 @@ export function buildLayoutCopy(locale: LayoutLocale) {
     },
     language: messages.language,
     theme: messages.theme,
+    globalSearch: messages.globalSearch,
   };
 }
 

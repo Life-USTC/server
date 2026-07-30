@@ -77,6 +77,24 @@
     "userNotFound": "未找到用户",
     "unknown": "未知"
   },
+  "globalSearch": {
+    "title": "搜索",
+    "placeholder": "搜索课程、班级、教师…",
+    "placeholderSignedIn": "搜索课程、班级、作业、待办…",
+    "shortcut": "Ctrl K",
+    "shortcutMac": "⌘ K",
+    "noResults": "未找到相关结果",
+    "searching": "搜索中…",
+    "hint": "输入至少 2 个字符开始搜索",
+    "openSearch": "打开搜索",
+    "groups": {
+      "courses": "课程",
+      "sections": "班级",
+      "teachers": "教师",
+      "homeworks": "作业",
+      "todos": "待办"
+    }
+  },
   "CalendarEventCard": {
     "session": "课程",
     "exam": "考试",
