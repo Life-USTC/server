@@ -1,6 +1,7 @@
 import type { AppLocale } from "@/i18n/config";
 import {
   type CloudflareCache,
+  getCloudflareCatalogDetailCoreNamespace,
   getCloudflareNamedCache,
   getCloudflareRuntimeTaskScheduler,
 } from "@/lib/adapters/cloudflare-runtime";
@@ -17,27 +18,38 @@ type CacheEntry<T> = {
 
 type PublicRuntimeCacheOptions<T> = {
   coloCacheKey?: string;
+  kvCacheKey?: string;
   shouldCacheResult?: (result: T) => boolean;
   validateColoCacheResult?: (result: unknown) => boolean;
 };
 
-type ColoCacheEnvelope = {
+type RuntimeCacheEnvelope = {
   expiresAt: number;
   schema: string;
   value: unknown;
 };
 
+type RuntimeCacheRead<T> =
+  | { expiresAt: number; hit: true; value: T }
+  | { hit: false };
+
 type ColoCacheRead<T> =
   | { expiresAt: number; hit: true; value: T }
   | { cache?: CloudflareCache; hit: false; request?: Request };
 
-type ColoCacheEvent =
+type RuntimeCacheEvent =
   | "colo_hit"
   | "colo_miss"
   | "colo_read_error"
   | "colo_write_error"
   | "colo_write_complete"
-  | "colo_write_skip";
+  | "colo_write_skip"
+  | "kv_hit"
+  | "kv_miss"
+  | "kv_read_error"
+  | "kv_write_complete"
+  | "kv_write_error"
+  | "kv_write_skip";
 
 const MAX_ENTRIES = 100;
 const PUBLIC_DETAIL_COLO_CACHE_NAME = "life-ustc-public-detail-core-v1";
@@ -100,8 +112,8 @@ function shortenCurrentEntryExpiry(
   }
 }
 
-function writeColoCacheEvent(
-  event: ColoCacheEvent,
+function writeRuntimeCacheEvent(
+  event: RuntimeCacheEvent,
   namespace: PublicRuntimeCacheAnalyticsNamespace,
   start: number,
   storeSize: number,
@@ -118,13 +130,13 @@ function writeColoCacheEvent(
   });
 }
 
-function validColoCacheEnvelope(
+function validRuntimeCacheEnvelope(
   value: unknown,
   now: number,
   ttlMs: number,
-): value is ColoCacheEnvelope {
+): value is RuntimeCacheEnvelope {
   if (!value || typeof value !== "object") return false;
-  const envelope = value as Partial<ColoCacheEnvelope>;
+  const envelope = value as Partial<RuntimeCacheEnvelope>;
   return (
     envelope.schema === PUBLIC_DETAIL_COLO_CACHE_SCHEMA &&
     typeof envelope.expiresAt === "number" &&
@@ -135,7 +147,7 @@ function validColoCacheEnvelope(
   );
 }
 
-function validColoCacheResult(
+function validRuntimeCacheResult(
   value: unknown,
   validate: ((result: unknown) => boolean) | undefined,
 ) {
@@ -143,6 +155,158 @@ function validColoCacheResult(
     return validate?.(value) ?? false;
   } catch {
     return false;
+  }
+}
+
+async function readKvCache<T>(
+  cacheKey: string,
+  ttlMs: number,
+  namespace: PublicRuntimeCacheAnalyticsNamespace,
+  start: number,
+  storeSize: number,
+  validateColoCacheResult?: (result: unknown) => boolean,
+): Promise<RuntimeCacheRead<T>> {
+  const kv = getCloudflareCatalogDetailCoreNamespace();
+  if (!kv) return { hit: false };
+
+  const cacheTtlSeconds = Math.ceil(ttlMs / 1_000);
+  try {
+    const parsed = await kv.get<RuntimeCacheEnvelope>(cacheKey, {
+      cacheTtl: cacheTtlSeconds,
+      type: "json",
+    });
+    const now = Date.now();
+    if (!parsed || !validRuntimeCacheEnvelope(parsed, now, ttlMs)) {
+      writeRuntimeCacheEvent("kv_miss", namespace, start, storeSize, ttlMs);
+      return { hit: false };
+    }
+    if (!validRuntimeCacheResult(parsed.value, validateColoCacheResult)) {
+      throw new TypeError("Invalid cached result");
+    }
+    const value = parsed.value as T;
+    writeRuntimeCacheEvent("kv_hit", namespace, start, storeSize, ttlMs);
+    return { expiresAt: parsed.expiresAt, hit: true, value };
+  } catch {
+    writeRuntimeCacheEvent("kv_read_error", namespace, start, storeSize, ttlMs);
+    return { hit: false };
+  }
+}
+
+function scheduleKvCacheWrite<T>(
+  cacheKey: string,
+  value: T,
+  expiresAt: number,
+  ttlMs: number,
+  namespace: PublicRuntimeCacheAnalyticsNamespace,
+  start: number,
+  storeSize: number,
+  validateColoCacheResult?: (result: unknown) => boolean,
+) {
+  const kv = getCloudflareCatalogDetailCoreNamespace();
+  const scheduleTask = getCloudflareRuntimeTaskScheduler();
+  const remainingTtlMs = expiresAt - Date.now();
+  if (!kv) return;
+  if (!scheduleTask || remainingTtlMs <= 0) {
+    if (!scheduleTask) {
+      writeRuntimeCacheEvent(
+        "kv_write_error",
+        namespace,
+        start,
+        storeSize,
+        ttlMs,
+        "scheduler_unavailable",
+      );
+    }
+    return;
+  }
+
+  if (!validRuntimeCacheResult(value, validateColoCacheResult)) {
+    writeRuntimeCacheEvent(
+      "kv_write_skip",
+      namespace,
+      start,
+      storeSize,
+      ttlMs,
+      "result_invalid",
+    );
+    return;
+  }
+
+  let serialized: string;
+  try {
+    serialized = JSON.stringify({
+      expiresAt,
+      schema: PUBLIC_DETAIL_COLO_CACHE_SCHEMA,
+      value,
+    } satisfies RuntimeCacheEnvelope);
+  } catch {
+    writeRuntimeCacheEvent(
+      "kv_write_error",
+      namespace,
+      start,
+      storeSize,
+      ttlMs,
+      "response_build_failed",
+    );
+    return;
+  }
+
+  let kvWrite: Promise<void>;
+  try {
+    kvWrite = kv.put(cacheKey, serialized, {
+      expirationTtl: Math.ceil(remainingTtlMs / 1_000),
+    });
+  } catch {
+    writeRuntimeCacheEvent(
+      "kv_write_error",
+      namespace,
+      start,
+      storeSize,
+      ttlMs,
+      "cache_put_rejected",
+    );
+    return;
+  }
+
+  let scheduled = false;
+  const write = kvWrite.then(
+    () => {
+      if (scheduled) {
+        writeRuntimeCacheEvent(
+          "kv_write_complete",
+          namespace,
+          start,
+          storeSize,
+          ttlMs,
+        );
+      }
+    },
+    () => {
+      if (scheduled) {
+        writeRuntimeCacheEvent(
+          "kv_write_error",
+          namespace,
+          start,
+          storeSize,
+          ttlMs,
+          "cache_put_rejected",
+        );
+      }
+    },
+  );
+  try {
+    scheduleTask(write);
+    scheduled = true;
+  } catch {
+    void write;
+    writeRuntimeCacheEvent(
+      "kv_write_error",
+      namespace,
+      start,
+      storeSize,
+      ttlMs,
+      "task_scheduling_failed",
+    );
   }
 }
 
@@ -163,7 +327,7 @@ async function readColoCache<T>(
     cache = await cachePromise;
     const response = await cache.match(request);
     if (!response) {
-      writeColoCacheEvent("colo_miss", namespace, start, storeSize, ttlMs);
+      writeRuntimeCacheEvent("colo_miss", namespace, start, storeSize, ttlMs);
       return { cache, hit: false, request };
     }
 
@@ -171,18 +335,24 @@ async function readColoCache<T>(
     const now = Date.now();
     if (
       response.status !== 200 ||
-      !validColoCacheEnvelope(parsed, now, ttlMs)
+      !validRuntimeCacheEnvelope(parsed, now, ttlMs)
     ) {
       throw new TypeError("Invalid cache envelope");
     }
-    if (!validColoCacheResult(parsed.value, validateColoCacheResult)) {
+    if (!validRuntimeCacheResult(parsed.value, validateColoCacheResult)) {
       throw new TypeError("Invalid cached result");
     }
     const value = parsed.value as T;
-    writeColoCacheEvent("colo_hit", namespace, start, storeSize, ttlMs);
+    writeRuntimeCacheEvent("colo_hit", namespace, start, storeSize, ttlMs);
     return { expiresAt: parsed.expiresAt, hit: true, value };
   } catch {
-    writeColoCacheEvent("colo_read_error", namespace, start, storeSize, ttlMs);
+    writeRuntimeCacheEvent(
+      "colo_read_error",
+      namespace,
+      start,
+      storeSize,
+      ttlMs,
+    );
     return { cache, hit: false, request };
   }
 }
@@ -201,7 +371,7 @@ function scheduleColoCacheWrite<T>(
   const remainingTtlMs = expiresAt - Date.now();
   if (!scheduleTask || remainingTtlMs <= 0) {
     if (!scheduleTask) {
-      writeColoCacheEvent(
+      writeRuntimeCacheEvent(
         "colo_write_error",
         namespace,
         start,
@@ -220,7 +390,7 @@ function scheduleColoCacheWrite<T>(
         expiresAt,
         schema: PUBLIC_DETAIL_COLO_CACHE_SCHEMA,
         value,
-      } satisfies ColoCacheEnvelope),
+      } satisfies RuntimeCacheEnvelope),
       {
         headers: {
           "Cache-Control": `public, max-age=${Math.ceil(remainingTtlMs / 1_000)}`,
@@ -229,7 +399,7 @@ function scheduleColoCacheWrite<T>(
       },
     );
   } catch {
-    writeColoCacheEvent(
+    writeRuntimeCacheEvent(
       "colo_write_error",
       namespace,
       start,
@@ -244,7 +414,7 @@ function scheduleColoCacheWrite<T>(
   try {
     cacheWrite = cache.put(request, response);
   } catch {
-    writeColoCacheEvent(
+    writeRuntimeCacheEvent(
       "colo_write_error",
       namespace,
       start,
@@ -259,7 +429,7 @@ function scheduleColoCacheWrite<T>(
   const write = cacheWrite.then(
     () => {
       if (scheduled) {
-        writeColoCacheEvent(
+        writeRuntimeCacheEvent(
           "colo_write_complete",
           namespace,
           start,
@@ -270,7 +440,7 @@ function scheduleColoCacheWrite<T>(
     },
     () => {
       if (scheduled) {
-        writeColoCacheEvent(
+        writeRuntimeCacheEvent(
           "colo_write_error",
           namespace,
           start,
@@ -286,7 +456,7 @@ function scheduleColoCacheWrite<T>(
     scheduled = true;
   } catch {
     void write;
-    writeColoCacheEvent(
+    writeRuntimeCacheEvent(
       "colo_write_error",
       namespace,
       start,
@@ -304,6 +474,40 @@ export function publicRuntimeCacheKey(
   const normalized = new URLSearchParams(searchParams);
   normalized.sort();
   return `${prefix}:${normalized.toString()}`;
+}
+
+export function publicDetailKvCacheKey(
+  kind: PublicDetailColoCacheKind,
+  locale: AppLocale,
+  id: number,
+  shape: (typeof publicDetailColoCacheShapes)[PublicDetailColoCacheKind],
+) {
+  return `v1:${kind}:${locale}:${id}:${shape}`;
+}
+
+function resolvePublicDetailKvCacheKey(options: {
+  coloCacheKey?: string;
+  kvCacheKey?: string;
+}) {
+  if (options.kvCacheKey) return options.kvCacheKey;
+  if (!options.coloCacheKey) return undefined;
+
+  try {
+    const url = new URL(options.coloCacheKey);
+    const parts = url.pathname.split("/").filter(Boolean);
+    const versionIndex = parts.indexOf("v1");
+    if (versionIndex === -1 || parts.length < versionIndex + 5) {
+      return undefined;
+    }
+    const kind = parts[versionIndex + 1];
+    const shape = parts[versionIndex + 2];
+    const locale = parts[versionIndex + 3];
+    const id = decodeURIComponent(parts[versionIndex + 4] ?? "");
+    if (!kind || !shape || !locale || !id) return undefined;
+    return `v1:${kind}:${locale}:${id}:${shape}`;
+  } catch {
+    return undefined;
+  }
 }
 
 export function publicDetailColoCacheKey(
@@ -354,6 +558,24 @@ export function cachedPublicRuntimeData<T>(
   const initialStoreSize = store.size;
   let value: Promise<T> | undefined;
   value = (async () => {
+    const kvCacheKey = resolvePublicDetailKvCacheKey(options);
+    const kvRead = kvCacheKey
+      ? await readKvCache<T>(
+          kvCacheKey,
+          ttlMs,
+          analyticsNamespace,
+          start,
+          initialStoreSize,
+          options.validateColoCacheResult,
+        )
+      : undefined;
+    if (kvRead?.hit) {
+      if (value) {
+        shortenCurrentEntryExpiry(store, key, value, kvRead.expiresAt);
+      }
+      return kvRead.value;
+    }
+
     const coloRead = options.coloCacheKey
       ? await readColoCache<T>(
           options.coloCacheKey,
@@ -375,27 +597,57 @@ export function cachedPublicRuntimeData<T>(
     const retain = options.shouldCacheResult?.(result) ?? true;
     if (!retain) {
       if (value) deleteCurrentEntry(store, key, value);
-    } else if (coloRead?.cache && coloRead.request) {
-      if (validColoCacheResult(result, options.validateColoCacheResult)) {
-        scheduleColoCacheWrite(
-          coloRead.cache,
-          coloRead.request,
-          result,
-          expiresAt,
-          ttlMs,
-          analyticsNamespace,
-          start,
-          initialStoreSize,
-        );
+    } else {
+      const resultValid = validRuntimeCacheResult(
+        result,
+        options.validateColoCacheResult,
+      );
+      if (resultValid) {
+        if (kvCacheKey) {
+          scheduleKvCacheWrite(
+            kvCacheKey,
+            result,
+            expiresAt,
+            ttlMs,
+            analyticsNamespace,
+            start,
+            initialStoreSize,
+            options.validateColoCacheResult,
+          );
+        }
+        if (coloRead?.cache && coloRead.request) {
+          scheduleColoCacheWrite(
+            coloRead.cache,
+            coloRead.request,
+            result,
+            expiresAt,
+            ttlMs,
+            analyticsNamespace,
+            start,
+            initialStoreSize,
+          );
+        }
       } else {
-        writeColoCacheEvent(
-          "colo_write_skip",
-          analyticsNamespace,
-          start,
-          initialStoreSize,
-          ttlMs,
-          "result_invalid",
-        );
+        if (kvCacheKey) {
+          writeRuntimeCacheEvent(
+            "kv_write_skip",
+            analyticsNamespace,
+            start,
+            initialStoreSize,
+            ttlMs,
+            "result_invalid",
+          );
+        }
+        if (coloRead?.cache && coloRead.request) {
+          writeRuntimeCacheEvent(
+            "colo_write_skip",
+            analyticsNamespace,
+            start,
+            initialStoreSize,
+            ttlMs,
+            "result_invalid",
+          );
+        }
       }
     }
     writeCacheEventAnalytics({

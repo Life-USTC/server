@@ -84,6 +84,7 @@ type CloudflareRuntimeEnv = Record<string, unknown> & {
   ANALYTICS?: CloudflareAnalyticsEngineDataset;
   ASSETS?: CloudflareAssetsBinding;
   CALENDAR_EXPORTS?: CloudflareKVNamespace;
+  CATALOG_DETAIL_CORE?: CloudflareKVNamespace;
   HYPERDRIVE?: {
     connectionString?: unknown;
   };
@@ -269,6 +270,10 @@ export function getCloudflareAssetsBinding() {
 
 export function getCloudflareCalendarExportsNamespace() {
   return getCurrentCloudflareRuntimeEnv()?.CALENDAR_EXPORTS;
+}
+
+export function getCloudflareCatalogDetailCoreNamespace() {
+  return getCurrentCloudflareRuntimeEnv()?.CATALOG_DETAIL_CORE;
 }
 
 export function getCloudflareNamedCache(name: string) {

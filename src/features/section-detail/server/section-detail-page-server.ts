@@ -7,10 +7,8 @@ import {
   formatMessage,
   primaryName,
 } from "@/features/section-detail/lib/display";
-import {
-  getSectionPage,
-  withSectionPageRelatedData,
-} from "@/features/section-detail/server/section-page-data";
+import { getSectionPage } from "@/features/section-detail/server/section-page-data";
+import type { AppLocale } from "@/i18n/config";
 import {
   cachedPublicRuntimeData,
   publicDetailColoCacheKey,
@@ -49,6 +47,19 @@ const sectionDetailRouteSections = new Set([
 ]);
 
 const PUBLIC_DETAIL_RUNTIME_CACHE_TTL_MS = 60_000;
+const PUBLIC_DETAIL_COLO_CACHE_PATH =
+  "/_life-ustc-internal-cache/catalog-detail-core/v1";
+
+function publicSectionOverviewColoCacheKey(
+  origin: string,
+  locale: AppLocale,
+  jwId: number,
+) {
+  return new URL(
+    `${PUBLIC_DETAIL_COLO_CACHE_PATH}/section/core-with-related-overview/${locale}/${encodeURIComponent(String(jwId))}`,
+    origin,
+  ).toString();
+}
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === "object";
@@ -84,6 +95,32 @@ function isPublicSectionCore(value: unknown, jwId: number) {
   );
 }
 
+function isPublicSectionOverviewCore(value: unknown, jwId: number) {
+  return (
+    isRecord(value) &&
+    typeof value.id === "number" &&
+    value.jwId === jwId &&
+    typeof value.code === "string" &&
+    typeof value.courseId === "number" &&
+    (value.semesterId === null || typeof value.semesterId === "number") &&
+    isRecord(value.course) &&
+    typeof value.course.id === "number" &&
+    typeof value.course.jwId === "number" &&
+    typeof value.course.namePrimary === "string" &&
+    Array.isArray(value.adminClasses) &&
+    Array.isArray(value.teachers) &&
+    value.teachers.every(
+      (teacher) => isRecord(teacher) && typeof teacher.id === "number",
+    ) &&
+    typeof value.examCount === "number" &&
+    typeof value.scheduleCount === "number" &&
+    isEmptyArray(value.exams) &&
+    isEmptyArray(value.schedules) &&
+    Array.isArray(value.sameSemesterOtherTeachers) &&
+    Array.isArray(value.sameTeacherOtherSemesters)
+  );
+}
+
 function resolveSectionDetailRouteSection(
   section: string | undefined,
 ): SectionDetailRouteSection | null {
@@ -112,38 +149,46 @@ export async function loadSectionDetailPage({
     detailSection === "calendar" || detailSection === "exams";
   const includeRelated = detailSection === "overview";
   const includeSchedules = detailSection === "calendar";
+  const includeTeacherDepartments = detailSection === "teachers";
   const cachePublicCore =
     locals.publicSsr && !userId && !includeExams && !includeSchedules;
+  const cachePublicOverviewCore = cachePublicCore && includeRelated;
   const loadSection = () =>
     getSectionPage(jwId, locals.locale, {
       includeExams,
-      includeRelated: cachePublicCore ? false : includeRelated,
+      includeRelated:
+        cachePublicCore && !cachePublicOverviewCore ? false : includeRelated,
       includeSchedules,
+      includeTeacherDepartments,
     });
-  const sectionCore = cachePublicCore
+  const section = cachePublicCore
     ? await cachedPublicRuntimeData(
-        `page:section-detail:${locals.locale}`,
-        `catalog-detail:section:${locals.locale}:${jwId}`,
+        cachePublicOverviewCore
+          ? `page:section-detail:overview:${locals.locale}`
+          : `page:section-detail:${locals.locale}`,
+        cachePublicOverviewCore
+          ? `catalog-detail:section:overview:${locals.locale}:${jwId}`
+          : `catalog-detail:section:${locals.locale}:${jwId}`,
         PUBLIC_DETAIL_RUNTIME_CACHE_TTL_MS,
         loadSection,
         {
-          coloCacheKey: publicDetailColoCacheKey(
-            url.origin,
-            "section",
-            locals.locale,
-            jwId,
-          ),
+          coloCacheKey: cachePublicOverviewCore
+            ? publicSectionOverviewColoCacheKey(url.origin, locals.locale, jwId)
+            : publicDetailColoCacheKey(
+                url.origin,
+                "section",
+                locals.locale,
+                jwId,
+              ),
           shouldCacheResult: (result) => result !== null,
           validateColoCacheResult: (result) =>
-            isPublicSectionCore(result, jwId),
+            cachePublicOverviewCore
+              ? isPublicSectionOverviewCore(result, jwId)
+              : isPublicSectionCore(result, jwId),
         },
       )
     : await loadSection();
-  if (!sectionCore) error(404, "Section not found");
-  const section =
-    cachePublicCore && includeRelated
-      ? await withSectionPageRelatedData(sectionCore, locals.locale)
-      : sectionCore;
+  if (!section) error(404, "Section not found");
   const copy = getSectionDetailPageCopy(locals.locale);
   const courseName = primaryName(section.course) || section.code;
   const [subscriptionState, descriptionAndComments, homeworkData] =
@@ -155,6 +200,8 @@ export async function loadSectionDetailPage({
         : null,
       getSectionDetailDescriptionAndComments(section, userId, {
         includeComments: detailSection === "comments",
+        includeDescription:
+          detailSection === "introduction" || detailSection === "overview",
         includeDescriptionHistory: detailSection === "introduction",
       }),
       detailSection === "homework"

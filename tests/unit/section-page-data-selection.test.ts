@@ -43,6 +43,15 @@ describe("section page data selection", () => {
     expect(select).not.toHaveProperty("description");
     expect(select?.exams).toBe(false);
     expect(select?.schedules).toBe(false);
+    expect(select?.teachers).toEqual({
+      select: {
+        id: true,
+        nameCn: true,
+        nameEn: true,
+        namePrimary: true,
+        nameSecondary: true,
+      },
+    });
     expect(result).toMatchObject({
       examCount: 4,
       exams: [],
@@ -52,6 +61,38 @@ describe("section page data selection", () => {
       schedules: [],
     });
     expect(result).not.toHaveProperty("otherSections");
+  });
+
+  it("loads teacher departments only when the teachers tab is requested", async () => {
+    const { getSectionPage } = await import(
+      "@/features/section-detail/server/section-page-data"
+    );
+
+    await getSectionPage(30, "zh-cn", {
+      includeExams: false,
+      includeRelated: false,
+      includeSchedules: false,
+      includeTeacherDepartments: true,
+    });
+
+    const select = sectionFindUnique.mock.calls[0]?.[0]?.select;
+    expect(select?.teachers).toEqual({
+      select: {
+        id: true,
+        nameCn: true,
+        nameEn: true,
+        namePrimary: true,
+        nameSecondary: true,
+        department: {
+          select: {
+            nameCn: true,
+            nameEn: true,
+            namePrimary: true,
+            nameSecondary: true,
+          },
+        },
+      },
+    });
   });
 
   it("returns a JSON-clean base shape before it can enter the public cache", async () => {

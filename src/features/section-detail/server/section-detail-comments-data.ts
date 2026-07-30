@@ -1,4 +1,5 @@
 import { getCommentsPayload } from "@/features/comments/server/comments-server";
+import { emptyDescriptionPayload } from "@/features/descriptions/server/description-payload";
 import { getDescriptionPayload } from "@/features/descriptions/server/descriptions-server";
 import { getViewerContext } from "@/lib/auth/viewer-context";
 
@@ -11,16 +12,20 @@ export async function getSectionDetailDescriptionAndComments(
   userId: string | null,
   {
     includeComments,
+    includeDescription,
     includeDescriptionHistory,
-  }: { includeComments: boolean; includeDescriptionHistory: boolean },
+  }: {
+    includeComments: boolean;
+    includeDescription: boolean;
+    includeDescriptionHistory: boolean;
+  },
 ) {
   const descriptionViewer = await getViewerContext({ userId });
-  const descriptionDataPromise = getDescriptionPayload(
-    "section",
-    section.id,
-    descriptionViewer,
-    { includeHistory: includeDescriptionHistory },
-  );
+  const descriptionDataPromise = includeDescription
+    ? getDescriptionPayload("section", section.id, descriptionViewer, {
+        includeHistory: includeDescriptionHistory,
+      })
+    : Promise.resolve(emptyDescriptionPayload(descriptionViewer));
   if (!includeComments) {
     return {
       commentsData: null,

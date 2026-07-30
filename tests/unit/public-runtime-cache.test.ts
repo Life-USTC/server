@@ -3,6 +3,7 @@ import { runWithCloudflareRuntimeEnv } from "@/lib/adapters/cloudflare-runtime";
 import {
   cachedPublicRuntimeData,
   publicDetailColoCacheKey,
+  publicDetailKvCacheKey,
 } from "@/lib/public-runtime-cache";
 
 function clearPublicRuntimeCache() {
@@ -66,7 +67,33 @@ function runtimeExecutionContext() {
   return { context, scheduled };
 }
 
-function expectColoCacheEvent(
+function kvNamespace() {
+  const values = new Map<string, string>();
+  return {
+    get: vi.fn(
+      async (key: string, options?: { cacheTtl?: number; type: "json" }) => {
+        void options;
+        const value = values.get(key);
+        return value ? JSON.parse(value) : null;
+      },
+    ),
+    put: vi.fn(
+      async (
+        key: string,
+        value: string,
+        options?: { expirationTtl?: number },
+      ) => {
+        void options;
+        values.set(key, value);
+      },
+    ),
+    seed(key: string, envelope: unknown) {
+      values.set(key, JSON.stringify(envelope));
+    },
+  };
+}
+
+function expectCacheEvent(
   writeDataPoint: ReturnType<typeof vi.fn>,
   event: string,
   reason: string,
@@ -87,6 +114,14 @@ function expectColoCacheEvent(
     ],
     doubles: [expect.any(Number), 60_000, expect.any(Number)],
   });
+}
+
+function expectColoCacheEvent(
+  writeDataPoint: ReturnType<typeof vi.fn>,
+  event: string,
+  reason: string,
+) {
+  expectCacheEvent(writeDataPoint, event, reason);
 }
 
 type ObservedColoMissOptions = {
@@ -188,6 +223,198 @@ describe("public runtime cache", () => {
       "/v1/section/core-without-exams-schedules-related/zh-cn/683002",
     );
     expect(new Set([course, teacher, section]).size).toBe(3);
+  });
+
+  it("builds versioned KV keys isolated by kind, shape, locale, and ID", () => {
+    expect(
+      publicDetailKvCacheKey(
+        "section",
+        "zh-cn",
+        12345,
+        "core-without-exams-schedules-related",
+      ),
+    ).toBe("v1:section:zh-cn:12345:core-without-exams-schedules-related");
+    expect(
+      publicDetailKvCacheKey(
+        "course",
+        "en-us",
+        683001,
+        "core-without-sections",
+      ),
+    ).toBe("v1:course:en-us:683001:core-without-sections");
+  });
+
+  it("uses a KV hit without loading or colo reads and then serves it from L1", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(10_000);
+    const cached = { source: "kv" };
+    const namespace = kvNamespace();
+    namespace.seed(
+      publicDetailKvCacheKey(
+        "course",
+        "en-us",
+        683001,
+        "core-without-sections",
+      ),
+      {
+        expiresAt: 20_000,
+        schema: "catalog-detail-core-v1",
+        value: cached,
+      },
+    );
+    const { match, open, put } = installNamedCache();
+    const load = vi.fn(async () => ({ source: "database" }));
+    const { context } = runtimeExecutionContext();
+
+    await runWithCloudflareRuntimeEnv(
+      { CATALOG_DETAIL_CORE: namespace },
+      async () => {
+        const first = await cachedPublicRuntimeData(
+          "page:course-detail:en-us",
+          "course:683001",
+          60_000,
+          load,
+          {
+            coloCacheKey: publicDetailColoCacheKey(
+              "https://example.test",
+              "course",
+              "en-us",
+              683001,
+            ),
+            validateColoCacheResult: validatesSource,
+          },
+        );
+        const second = await cachedPublicRuntimeData(
+          "page:course-detail:en-us",
+          "course:683001",
+          60_000,
+          load,
+          {
+            coloCacheKey: publicDetailColoCacheKey(
+              "https://example.test",
+              "course",
+              "en-us",
+              683001,
+            ),
+            validateColoCacheResult: validatesSource,
+          },
+        );
+
+        expect(first).toEqual(cached);
+        expect(second).toBe(first);
+      },
+      context,
+    );
+
+    expect(namespace.get).toHaveBeenCalledOnce();
+    expect(namespace.get).toHaveBeenCalledWith(
+      "v1:course:en-us:683001:core-without-sections",
+      { cacheTtl: 60, type: "json" },
+    );
+    expect(open).not.toHaveBeenCalled();
+    expect(match).not.toHaveBeenCalled();
+    expect(load).not.toHaveBeenCalled();
+    expect(put).not.toHaveBeenCalled();
+  });
+
+  it("falls through KV miss to colo and schedules KV and colo writes", async () => {
+    const pending = deferred<{ source: string }>();
+    const namespace = kvNamespace();
+    const { match, put } = installNamedCache();
+    const load = vi.fn(() => pending.promise);
+    const { context, scheduled } = runtimeExecutionContext();
+    const coloCacheKey = publicDetailColoCacheKey(
+      "https://example.test",
+      "section",
+      "en-us",
+      683002,
+    );
+    const kvCacheKey = publicDetailKvCacheKey(
+      "section",
+      "en-us",
+      683002,
+      "core-without-exams-schedules-related",
+    );
+
+    await runWithCloudflareRuntimeEnv(
+      { CATALOG_DETAIL_CORE: namespace },
+      async () => {
+        const options = {
+          coloCacheKey,
+          shouldCacheResult: (result: { source: string }) => result !== null,
+          validateColoCacheResult: validatesSource,
+        };
+        const first = cachedPublicRuntimeData(
+          "page:section-detail:en-us",
+          "section:683002",
+          60_000,
+          load,
+          options,
+        );
+        await vi.waitFor(() => expect(load).toHaveBeenCalledOnce());
+        pending.resolve({ source: "database" });
+        await expect(first).resolves.toEqual({ source: "database" });
+        expect(scheduled).toHaveLength(2);
+        await Promise.all(scheduled);
+      },
+      context,
+    );
+
+    expect(namespace.get).toHaveBeenCalledOnce();
+    expect(match).toHaveBeenCalledOnce();
+    expect(put).toHaveBeenCalledOnce();
+    expect(namespace.put).toHaveBeenCalledOnce();
+    const [kvKey, kvValue, kvOptions] = namespace.put.mock.calls[0] ?? [];
+    expect(kvKey).toBe(kvCacheKey);
+    expect(kvOptions).toEqual({ expirationTtl: 60 });
+    await expect(JSON.parse(kvValue as string)).toMatchObject({
+      expiresAt: expect.any(Number),
+      schema: "catalog-detail-core-v1",
+      value: { source: "database" },
+    });
+  });
+
+  it("reports KV read errors without failing the request path", async () => {
+    const namespace = {
+      get: vi.fn(async () => {
+        throw new Error("kv read failed");
+      }),
+      put: vi.fn(async () => undefined),
+    };
+    const { put } = installNamedCache();
+    const load = vi.fn(async () => ({ source: "database" }));
+    const writeDataPoint = vi.fn();
+    const { context, scheduled } = runtimeExecutionContext();
+
+    await runWithCloudflareRuntimeEnv(
+      { ANALYTICS: { writeDataPoint }, CATALOG_DETAIL_CORE: namespace },
+      async () => {
+        await expect(
+          cachedPublicRuntimeData(
+            "page:course-detail:en-us",
+            "kv-read-error",
+            60_000,
+            load,
+            {
+              coloCacheKey: publicDetailColoCacheKey(
+                "https://example.test",
+                "course",
+                "en-us",
+                683007,
+              ),
+              validateColoCacheResult: validatesSource,
+            },
+          ),
+        ).resolves.toEqual({ source: "database" });
+        await Promise.all(scheduled);
+      },
+      context,
+    );
+
+    expect(load).toHaveBeenCalledOnce();
+    expectCacheEvent(writeDataPoint, "kv_read_error", "none");
+    expect(put).toHaveBeenCalledOnce();
+    expect(namespace.put).toHaveBeenCalledOnce();
   });
 
   it("returns one in-flight promise for concurrent callers of the same key", async () => {

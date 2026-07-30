@@ -5,11 +5,7 @@ import {
   listSubscribedSchedules,
   listUpcomingSubscribedExams,
 } from "@/features/subscriptions/server/subscription-read-model";
-import {
-  countDueTodos,
-  listDueTodoSamples,
-  listTodoSummary,
-} from "@/features/todos/server/todo-service";
+import { loadOverviewTodoBundle } from "@/features/todos/server/todo-service";
 import { type AppLocale, DEFAULT_LOCALE } from "@/i18n/config";
 import { runCloudflareTraceSpan } from "@/lib/adapters/cloudflare-runtime";
 import { prisma, withUserDbContext } from "@/lib/db/prisma";
@@ -61,6 +57,10 @@ async function runOverviewStage<T>(
   }
 }
 
+function runOverviewSubStage(stage: WorkspaceOverviewStage) {
+  return <T>(work: () => Promise<T>) => runOverviewStage(stage, work);
+}
+
 export async function getCompactOverview(
   userId: string,
   {
@@ -82,7 +82,7 @@ export async function getCompactOverview(
     .add(homeworkWindowDays, "day")
     .toDate();
 
-  const [user, todos, dueTodosCount, dueTodos] = await Promise.all([
+  const [user, todoBundle] = await Promise.all([
     runOverviewStage("user_sections", () =>
       prisma.user.findUnique({
         where: { id: userId },
@@ -98,34 +98,17 @@ export async function getCompactOverview(
         },
       }),
     ),
-    runOverviewStage("todo_summary", () =>
-      listTodoSummary({
-        filters: { completed: false },
-        now,
-        take: limit,
-        userId,
-      }),
-    ),
-    runOverviewStage("due_todo_count", () =>
-      countDueTodos({
-        completed: false,
-        dueAtFrom: now,
-        dueAtTo: homeworkWindowEnd,
-        includeDueAtTo: true,
-        userId,
-      }),
-    ),
-    runOverviewStage("due_todo_sample", () =>
-      listDueTodoSamples({
-        completed: false,
-        dueAtFrom: now,
-        dueAtTo: homeworkWindowEnd,
-        includeDueAtTo: true,
-        take: limit,
-        userId,
-      }),
-    ),
+    loadOverviewTodoBundle({
+      userId,
+      now,
+      homeworkWindowEnd,
+      limit,
+      runTodoSummary: runOverviewSubStage("todo_summary"),
+      runDueTodoCount: runOverviewSubStage("due_todo_count"),
+      runDueTodoSample: runOverviewSubStage("due_todo_sample"),
+    }),
   ]);
+  const { todos, dueTodosCount, dueTodos } = todoBundle;
   const sectionIds =
     user?.subscribedSections.map((section) => section.id) ?? [];
 

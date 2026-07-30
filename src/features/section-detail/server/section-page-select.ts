@@ -6,6 +6,19 @@ import {
 import { sectionPageScheduleSelect } from "@/features/section-detail/server/section-page-schedule-select";
 import type { Prisma } from "@/generated/prisma/client";
 
+export const sectionPageTeachersSelect = {
+  select: entityNameSelect,
+} satisfies Prisma.Section$teachersArgs;
+
+export const sectionPageTeachersWithDepartmentSelect = {
+  select: {
+    ...entityNameSelect,
+    department: {
+      select: localizedNameSelect,
+    },
+  },
+} satisfies Prisma.Section$teachersArgs;
+
 export const sectionPageSelect = {
   id: true,
   jwId: true,
@@ -53,14 +66,7 @@ export const sectionPageSelect = {
   roomType: {
     select: localizedNameSelect,
   },
-  teachers: {
-    select: {
-      ...entityNameSelect,
-      department: {
-        select: localizedNameSelect,
-      },
-    },
-  },
+  teachers: sectionPageTeachersWithDepartmentSelect,
   adminClasses: {
     select: {
       ...entityNameSelect,
