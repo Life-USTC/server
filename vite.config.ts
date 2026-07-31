@@ -58,7 +58,7 @@ export function assetInlineDecision(filePath: string) {
   return FONT_ASSET_PATTERN.test(filePath) ? false : undefined;
 }
 
-export default defineConfig({
+export default defineConfig(({ command }) => ({
   build: {
     assetsInlineLimit: assetInlineDecision,
   },
@@ -71,7 +71,7 @@ export default defineConfig({
   ],
   ssr: {
     resolve: {
-      conditions: ["cloudflare"],
+      conditions: command === "serve" ? ["node", "development"] : ["cloudflare"],
     },
     external: [
       "better-auth",
@@ -80,4 +80,4 @@ export default defineConfig({
       "@better-auth/cimd",
     ],
   },
-});
+}));

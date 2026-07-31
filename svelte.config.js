@@ -1,11 +1,16 @@
 import adapterCloudflare from "@sveltejs/adapter-cloudflare";
 import { vitePreprocess } from "@sveltejs/vite-plugin-svelte";
 
+const useNodePrismaClient = process.env.NODE_ENV !== "production";
+
 /** @type {import('@sveltejs/kit').Config} */
 const config = {
   preprocess: vitePreprocess(),
   kit: {
-    adapter: adapterCloudflare({ config: "wrangler.adapter.jsonc" }),
+    adapter: adapterCloudflare({
+      config: "wrangler.adapter.jsonc",
+      platformProxy: { configPath: "wrangler.dev.jsonc" },
+    }),
     csrf: {
       // OAuth token and device endpoints accept cross-origin form requests. The
       // production hook in src/hooks.server.ts is the single CSRF gate so it can
@@ -13,7 +18,9 @@ const config = {
       trustedOrigins: ["*"],
     },
     alias: {
-      "@/generated/prisma/client": "./src/generated/prisma/client",
+      "@/generated/prisma/client": useNodePrismaClient
+        ? "./src/generated/prisma-node/client"
+        : "./src/generated/prisma/client",
       "@/*": "./src/*",
     },
     files: {

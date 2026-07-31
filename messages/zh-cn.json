@@ -87,6 +87,7 @@
     "searching": "搜索中…",
     "hint": "输入至少 2 个字符开始搜索",
     "openSearch": "打开搜索",
+    "close": "关闭",
     "groups": {
       "courses": "课程",
       "sections": "班级",

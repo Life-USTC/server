@@ -1,0 +1,80 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "life-ustc-dev",
+  "main": "src/worker.js",
+  "compatibility_date": "2026-07-23",
+  "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
+  "vars": {
+    "NODE_ENV": "development",
+    "APP_PUBLIC_ORIGIN": "http://127.0.0.1:3000",
+    "DEV_DEBUG_USERNAME": "dev-user",
+    "DEV_DEBUG_NAME": "Dev User",
+    "DEV_DEBUG_EMAIL": "dev-user@debug.local",
+    "DEV_DEBUG_PASSWORD": "dev-debug-password",
+    "DEV_ADMIN_USERNAME": "dev-admin",
+    "DEV_ADMIN_NAME": "Dev Admin User",
+    "DEV_ADMIN_EMAIL": "dev-admin@debug.local",
+    "DEV_ADMIN_PASSWORD": "dev-admin-password",
+    "UPLOAD_TOTAL_QUOTA_MB": "1024"
+  },
+  "assets": {
+    "directory": ".svelte-kit/cloudflare",
+    "binding": "ASSETS"
+  },
+  "observability": {
+    "enabled": false
+  },
+  "alias": {
+    "life-ustc-sveltekit-worker": "./.svelte-kit/cloudflare/_sveltekit.js",
+    "kysely": "./src/lib/cloudflare/kysely-worker-shim.ts",
+    "@better-auth/kysely-adapter/dist/bun-sqlite-dialect-DzNwOpKv.mjs": "./src/lib/cloudflare/empty-optional-module.ts",
+    "@better-auth/kysely-adapter/dist/d1-sqlite-dialect-C2B7YsIT.mjs": "./src/lib/cloudflare/empty-optional-module.ts",
+    "@better-auth/kysely-adapter/dist/node-sqlite-dialect.mjs": "./src/lib/cloudflare/empty-optional-module.ts"
+  },
+  "hyperdrive": [
+    {
+      "binding": "HYPERDRIVE",
+      "id": "local",
+      "localConnectionString": "postgresql://postgres:postgres@127.0.0.1:5432/life_ustc_dev"
+    },
+    {
+      "binding": "HYPERDRIVE_AUTH",
+      "id": "local-auth",
+      "localConnectionString": "postgresql://postgres:postgres@127.0.0.1:5432/life_ustc_dev"
+    }
+  ],
+  "kv_namespaces": [
+    {
+      "binding": "CALENDAR_EXPORTS",
+      "id": "c7411aac14fa45a6bb6f8b8f6b8e1a1d"
+    },
+    {
+      "binding": "CATALOG_DETAIL_CORE",
+      "id": "cd40f139a6c14613adba65dc294dc168"
+    }
+  ],
+  "ratelimits": [
+    {
+      "name": "USER_WRITE_RATE_LIMITER",
+      "namespace_id": "414001",
+      "simple": {
+        "limit": 10000,
+        "period": 60
+      }
+    },
+    {
+      "name": "USER_BATCH_WRITE_RATE_LIMITER",
+      "namespace_id": "414002",
+      "simple": {
+        "limit": 10000,
+        "period": 60
+      }
+    }
+  ],
+  "r2_buckets": [
+    {
+      "binding": "R2_UPLOADS",
+      "bucket_name": "life-ustc"
+    }
+  ]
+}

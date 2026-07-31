@@ -87,6 +87,7 @@
     "searching": "Searching…",
     "hint": "Type at least 2 characters to search",
     "openSearch": "Open search",
+    "close": "Close",
     "groups": {
       "courses": "Courses",
       "sections": "Sections",
