@@ -7,7 +7,7 @@ import {
   PUBLIC_SEARCH_CACHE_HEADERS,
 } from "@/lib/public-cache-control";
 
-const MAX_LIMIT = 10;
+const MAX_LIMIT = 25;
 
 function parseSearchQuery(request: Request) {
   const searchParams = new URL(request.url).searchParams;

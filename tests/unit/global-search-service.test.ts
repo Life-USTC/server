@@ -4,12 +4,14 @@ const {
   searchCoursesForGlobalMock,
   searchSectionsForGlobalMock,
   searchTeachersForGlobalMock,
+  searchLinksForGlobalMock,
   withUserDbContextMock,
   cachedCatalogRuntimeDataMock,
 } = vi.hoisted(() => ({
   searchCoursesForGlobalMock: vi.fn(),
   searchSectionsForGlobalMock: vi.fn(),
   searchTeachersForGlobalMock: vi.fn(),
+  searchLinksForGlobalMock: vi.fn(),
   withUserDbContextMock: vi.fn(),
   cachedCatalogRuntimeDataMock: vi.fn(),
 }));
@@ -18,6 +20,10 @@ vi.mock("@/features/search/server/global-search-catalog-queries", () => ({
   searchCoursesForGlobal: searchCoursesForGlobalMock,
   searchSectionsForGlobal: searchSectionsForGlobalMock,
   searchTeachersForGlobal: searchTeachersForGlobalMock,
+}));
+
+vi.mock("@/features/search/server/global-search-link-queries", () => ({
+  searchLinksForGlobal: searchLinksForGlobalMock,
 }));
 
 vi.mock("@/lib/catalog-runtime-cache", () => ({
@@ -41,6 +47,7 @@ describe("global search service", () => {
     searchCoursesForGlobalMock.mockResolvedValue([]);
     searchSectionsForGlobalMock.mockResolvedValue([]);
     searchTeachersForGlobalMock.mockResolvedValue([]);
+    searchLinksForGlobalMock.mockResolvedValue([]);
     cachedCatalogRuntimeDataMock.mockImplementation(
       async (
         _namespace: string,
@@ -86,7 +93,7 @@ describe("global search service", () => {
     });
 
     expect(cachedCatalogRuntimeDataMock).toHaveBeenCalledWith(
-      "search:catalog:zh-cn",
+      "search:catalog:v2:zh-cn",
       "5:数据",
       ORIGIN,
       expect.any(Function),
@@ -209,6 +216,67 @@ describe("global search service", () => {
 
     expect(result.groups).toHaveLength(1);
     expect(searchCoursesForGlobalMock).not.toHaveBeenCalled();
+  });
+
+  it("includes link matches in catalog results", async () => {
+    searchLinksForGlobalMock.mockReturnValue([
+      {
+        slug: "mail",
+        title: "邮箱",
+        description: "USTC 邮件系统。",
+        url: "https://mail.ustc.edu.cn/",
+      },
+    ]);
+
+    const result = await searchGlobally({
+      locale: "zh-cn",
+      origin: ORIGIN,
+      query: "邮箱",
+    });
+
+    expect(result.groups).toEqual([
+      {
+        type: "links",
+        items: [
+          {
+            id: "link:mail",
+            title: "邮箱",
+            description: "USTC 邮件系统。",
+            href: "https://mail.ustc.edu.cn/",
+            external: true,
+          },
+        ],
+      },
+    ]);
+  });
+
+  it("orders teachers before sections in catalog results", async () => {
+    searchTeachersForGlobalMock.mockResolvedValue([
+      { id: 1, nameCn: "程艺", code: "T001", department: null },
+    ]);
+    searchSectionsForGlobalMock.mockResolvedValue([
+      {
+        jwId: 42,
+        code: "001",
+        course: {
+          code: "CS101",
+          nameCn: "数据结构",
+          namePrimary: "数据结构",
+        },
+        semester: { nameCn: "2026 春" },
+      },
+    ]);
+
+    const result = await searchGlobally({
+      locale: "zh-cn",
+      origin: ORIGIN,
+      query: "程艺",
+    });
+
+    expect(result.groups.map((group) => group.type)).toEqual([
+      "teachers",
+      "sections",
+    ]);
   });
 
   it("detects minimum query length", () => {
