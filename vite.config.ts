@@ -71,7 +71,8 @@ export default defineConfig(({ command }) => ({
   ],
   ssr: {
     resolve: {
-      conditions: command === "serve" ? ["node", "development"] : ["cloudflare"],
+      conditions:
+        command === "serve" ? ["node", "development"] : ["cloudflare"],
     },
     external: [
       "better-auth",

@@ -18,7 +18,9 @@ test("global search shortcut returns catalog results", async ({ page }) => {
   await searchResponse;
 
   await expect(
-    dialog.getByRole("button", { name: /Advanced Linear Algebra|MATH2001/ }).first(),
+    dialog
+      .getByRole("button", { name: /Advanced Linear Algebra|MATH2001/ })
+      .first(),
   ).toBeVisible();
 });
 
@@ -38,7 +40,9 @@ test("global search trigger opens dialog and navigates to a result", async ({
   await input.fill("MATH2001");
 
   await expect(
-    dialog.getByRole("button", { name: /Advanced Linear Algebra|MATH2001/ }).first(),
+    dialog
+      .getByRole("button", { name: /Advanced Linear Algebra|MATH2001/ })
+      .first(),
   ).toBeVisible();
   await dialog
     .getByRole("button", { name: /Advanced Linear Algebra · MATH2001\.01/ })
