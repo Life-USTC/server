@@ -2,7 +2,10 @@ import "dotenv/config";
 import { createHash } from "node:crypto";
 import { createReadStream, existsSync } from "node:fs";
 import { writeFile } from "node:fs/promises";
-import { CATALOG_EDGE_CACHE_TAG, purgeCloudflareCacheByTags } from "./edge-cache-purge";
+import {
+  CATALOG_EDGE_CACHE_TAG,
+  purgeCloudflareCacheByTags,
+} from "./edge-cache-purge";
 import { runImport } from "./import";
 import { createPrismaClient } from "./prisma";
 import { Snapshot } from "./snapshot";
