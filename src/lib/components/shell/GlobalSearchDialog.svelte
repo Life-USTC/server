@@ -58,7 +58,6 @@ let groups: SearchResultGroup[] = [];
 let isSearching = false;
 let hasSearched = false;
 let searchGeneration = 0;
-let isComposing = false;
 let searchDebounceTimer: ReturnType<typeof setTimeout> | undefined;
 let inputElement: HTMLInputElement | null = null;
 
@@ -82,7 +81,6 @@ function resetSearchState() {
   groups = [];
   hasSearched = false;
   isSearching = false;
-  isComposing = false;
 }
 
 function handleOpenChange(nextOpen: boolean) {
@@ -107,17 +105,17 @@ function scheduleSearch() {
   }, SEARCH_DEBOUNCE_MS);
 }
 
-function handleQueryInput() {
-  if (isComposing) return;
+function handleQueryInput(event: Event) {
+  const input = event.currentTarget as HTMLInputElement;
+  query = input.value;
+  if (event instanceof InputEvent && event.isComposing) {
+    return;
+  }
   scheduleSearch();
 }
 
-function handleCompositionStart() {
-  isComposing = true;
-}
-
-function handleCompositionEnd() {
-  isComposing = false;
+function handleCompositionEnd(event: CompositionEvent) {
+  query = (event.currentTarget as HTMLInputElement).value;
   scheduleSearch();
 }
 
@@ -175,7 +173,6 @@ $: if (open) {
             "placeholder:text-muted-foreground h-9 min-w-0 flex-1 border-0 bg-transparent px-0 text-base outline-none md:text-sm",
           )}
           oncompositionend={handleCompositionEnd}
-          oncompositionstart={handleCompositionStart}
           oninput={handleQueryInput}
           placeholder={placeholder}
           type="text"
