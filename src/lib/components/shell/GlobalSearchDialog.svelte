@@ -50,6 +50,8 @@ const dispatch = createEventDispatcher<{
   openChange: boolean;
 }>();
 
+const MIN_QUERY_LENGTH = 2;
+
 let query = "";
 let groups: SearchResultGroup[] = [];
 let isSearching = false;
@@ -66,7 +68,8 @@ const groupIcons: Record<SearchGroupType, typeof BookOpenIcon> = {
 };
 
 $: placeholder = signedIn ? copy.placeholderSignedIn : copy.placeholder;
-$: showHint = query.trim().length > 0 && query.trim().length < 2;
+$: showHint = query.trim().length > 0 && query.trim().length < MIN_QUERY_LENGTH;
+$: showInitialHint = open && !hasSearched && query.trim().length === 0;
 $: showEmpty = hasSearched && !isSearching && groups.length === 0 && !showHint;
 
 function resetSearchState() {
@@ -84,7 +87,7 @@ function handleOpenChange(nextOpen: boolean) {
 
 async function runSearch() {
   const trimmed = query.trim();
-  if (trimmed.length < 2) {
+  if (trimmed.length < MIN_QUERY_LENGTH) {
     groups = [];
     hasSearched = false;
     return;
@@ -112,7 +115,8 @@ async function runSearch() {
   }
 }
 
-function handleInput() {
+function handleQueryInput(event: Event) {
+  query = (event.currentTarget as HTMLInputElement).value;
   void runSearch();
 }
 
@@ -134,10 +138,11 @@ $: if (open) {
         <SearchIcon class="size-4 shrink-0 text-muted-foreground" />
         <Input
           bind:ref={inputElement}
-          bind:value={query}
           class="h-10 border-0 bg-transparent px-0 shadow-none focus-visible:ring-0"
-          oninput={handleInput}
+          oninput={handleQueryInput}
           placeholder={placeholder}
+          type="search"
+          value={query}
         />
         {#if isSearching}
           <Spinner class="size-4 shrink-0" />
@@ -147,7 +152,7 @@ $: if (open) {
 
     <ScrollArea class="max-h-[min(60vh,28rem)]">
       <div class="p-2">
-        {#if showHint}
+        {#if showInitialHint || showHint}
           <p class="px-2 py-6 text-center text-muted-foreground text-sm">
             {copy.hint}
           </p>
