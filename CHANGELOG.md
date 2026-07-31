@@ -1,3 +1,19 @@
+# [1.82.0](https://github.com/Life-USTC/server/compare/v1.81.1...v1.82.0) (2026-07-31)
+
+
+### Bug Fixes
+
+* **search:** harden global search dialog and local dev setup ([d9c3a8d](https://github.com/Life-USTC/server/commit/d9c3a8da3c8ad3ef27e6a3248349f8c62e6fa630))
+* **search:** resolve CI type errors and update OpenAPI spec ([8cdffc1](https://github.com/Life-USTC/server/commit/8cdffc1fd960349d9b3314ed699145ee22a1f9d9))
+* **search:** unblock Chinese IME queries in global search dialog ([cc315f9](https://github.com/Life-USTC/server/commit/cc315f963401c4072c38126cb21b7038109d0030))
+* **search:** wire dialog input updates for Svelte 5 Input component ([573404b](https://github.com/Life-USTC/server/commit/573404b603910c740b2fbfd46311c3a729d953d2))
+* **shell:** lazy-load GlobalSearchDialog to meet client budget ([#713](https://github.com/Life-USTC/server/issues/713)) ([d4cde98](https://github.com/Life-USTC/server/commit/d4cde989479f2451ae49e1793200d3c418467647))
+
+
+### Features
+
+* **search:** add global search and fix calendar export freshness ([#708](https://github.com/Life-USTC/server/issues/708)) ([241e917](https://github.com/Life-USTC/server/commit/241e9179ede57fd2a377df6fd71372931477c8fd))
+
 ## [1.81.1](https://github.com/Life-USTC/server/compare/v1.81.0...v1.81.1) (2026-07-30)
 
 
