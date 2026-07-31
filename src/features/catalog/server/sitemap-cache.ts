@@ -1,8 +1,8 @@
-import { sha256Base64Url } from "@/lib/crypto/web-crypto";
 import {
   cachedCatalogRuntimeData,
   PUBLIC_CATALOG_RUNTIME_CACHE_TTL_MS,
 } from "@/lib/catalog-runtime-cache";
+import { sha256Base64Url } from "@/lib/crypto/web-crypto";
 import { getCanonicalOrigin } from "@/lib/site-url";
 
 export const SITEMAP_RUNTIME_CACHE_TTL_MS = PUBLIC_CATALOG_RUNTIME_CACHE_TTL_MS;

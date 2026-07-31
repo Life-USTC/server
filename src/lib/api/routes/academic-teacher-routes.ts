@@ -8,8 +8,8 @@ import { parseResourceIdRouteParam } from "@/lib/api/routes/academic-route-helpe
 import { resolvePublicCatalogLocale } from "@/lib/api/routes/request-locale";
 import { teachersQuerySchema } from "@/lib/api/schemas/request-schemas";
 import {
-  catalogListCacheNamespace,
   cachedCatalogListRuntimeData,
+  catalogListCacheNamespace,
 } from "@/lib/catalog-runtime-cache";
 
 export async function getTeachersRoute(request: Request) {

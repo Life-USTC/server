@@ -8,8 +8,8 @@ import { parseJwIdRouteParam } from "@/lib/api/routes/academic-route-helpers";
 import { resolvePublicCatalogLocale } from "@/lib/api/routes/request-locale";
 import { coursesQuerySchema } from "@/lib/api/schemas/request-schemas";
 import {
-  catalogListCacheNamespace,
   cachedCatalogListRuntimeData,
+  catalogListCacheNamespace,
 } from "@/lib/catalog-runtime-cache";
 
 export async function getCoursesRoute(request: Request) {

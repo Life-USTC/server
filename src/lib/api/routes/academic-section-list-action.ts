@@ -1,8 +1,8 @@
 import type { AppLocale } from "@/i18n/config";
 import { jsonResponse } from "@/lib/api/helpers";
 import {
-  catalogListCacheNamespace,
   cachedCatalogRuntimeData,
+  catalogListCacheNamespace,
 } from "@/lib/catalog-runtime-cache";
 
 export async function listSectionsAction(

@@ -10,9 +10,7 @@ import {
   parseRouteQuery,
 } from "@/lib/api/helpers";
 import { semestersQuerySchema } from "@/lib/api/schemas/request-schemas";
-import {
-  cachedCatalogRuntimeData,
-} from "@/lib/catalog-runtime-cache";
+import { cachedCatalogRuntimeData } from "@/lib/catalog-runtime-cache";
 import { PUBLIC_CATALOG_HEADERS } from "@/lib/public-cache-control";
 import { getCanonicalOrigin } from "@/lib/site-url";
 

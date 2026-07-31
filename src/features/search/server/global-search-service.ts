@@ -16,7 +16,8 @@ import { formatSemesterName } from "@/lib/text/format-semester-name";
 
 const DEFAULT_LIMIT = 5;
 const MIN_QUERY_LENGTH = 2;
-const SEARCH_CACHE_TTL_MS = 120_000;
+/** Catalog search is shared across users; short L1 TTL keeps results fresh enough. */
+const SEARCH_CATALOG_CACHE_TTL_MS = 300_000;
 
 function catalogPrimaryName(item: {
   nameCn?: string | null;
@@ -102,55 +103,73 @@ async function searchCatalogGroups(
   return groups;
 }
 
+function catalogSearchCacheKey(query: string, limit: number) {
+  return `${limit}:${query}`;
+}
+
+async function searchCachedCatalogGroups(input: {
+  limit: number;
+  locale: AppLocale;
+  origin: string;
+  query: string;
+}): Promise<GlobalSearchResultGroup[]> {
+  const namespace = `search:catalog:${input.locale}`;
+  return cachedCatalogRuntimeData(
+    namespace,
+    catalogSearchCacheKey(input.query, input.limit),
+    input.origin,
+    () => searchCatalogGroups(input.query, input.locale, input.limit),
+    { ttlMs: SEARCH_CATALOG_CACHE_TTL_MS },
+  );
+}
+
 async function searchWorkspaceGroups(
   query: string,
   userId: string,
   limit: number,
 ): Promise<GlobalSearchResultGroup[]> {
   return withUserDbContext(userId, async (tx) => {
-    const [homeworks, todos] = await Promise.all([
-      tx.homework.findMany({
-        where: {
-          deletedAt: null,
-          title: ilike(query),
-          section: {
-            retiredAt: null,
-            subscriptions: { some: { userId } },
-          },
+    const homeworks = await tx.homework.findMany({
+      where: {
+        deletedAt: null,
+        title: ilike(query),
+        section: {
+          retiredAt: null,
+          subscriptions: { some: { userId } },
         },
-        select: {
-          id: true,
-          title: true,
-          section: {
-            select: {
-              jwId: true,
-              course: {
-                select: {
-                  namePrimary: true,
-                  nameCn: true,
-                },
+      },
+      select: {
+        id: true,
+        title: true,
+        section: {
+          select: {
+            jwId: true,
+            course: {
+              select: {
+                namePrimary: true,
+                nameCn: true,
               },
             },
           },
         },
-        orderBy: [{ submissionDueAt: "asc" }, { createdAt: "desc" }],
-        take: limit,
-      }),
-      tx.todo.findMany({
-        where: {
-          userId,
-          OR: [{ title: ilike(query) }, { content: ilike(query) }],
-        },
-        select: {
-          id: true,
-          title: true,
-          dueAt: true,
-          completed: true,
-        },
-        orderBy: [{ dueAt: "asc" }, { createdAt: "desc" }],
-        take: limit,
-      }),
-    ]);
+      },
+      orderBy: [{ submissionDueAt: "asc" }, { createdAt: "desc" }],
+      take: limit,
+    });
+    const todos = await tx.todo.findMany({
+      where: {
+        userId,
+        OR: [{ title: ilike(query) }, { content: ilike(query) }],
+      },
+      select: {
+        id: true,
+        title: true,
+        dueAt: true,
+        completed: true,
+      },
+      orderBy: [{ dueAt: "asc" }, { createdAt: "desc" }],
+      take: limit,
+    });
 
     const groups: GlobalSearchResultGroup[] = [];
     if (homeworks.length > 0) {
@@ -187,34 +206,6 @@ async function searchWorkspaceGroups(
   });
 }
 
-function searchCacheKey(
-  _locale: AppLocale,
-  query: string,
-  limit: number,
-  userId: string | null | undefined,
-) {
-  return `${userId ?? "anon"}:${limit}:${query}`;
-}
-
-async function loadSearchResponse(input: {
-  limit: number;
-  locale: AppLocale;
-  query: string;
-  userId?: string | null;
-}): Promise<GlobalSearchResponse> {
-  const [catalogGroups, workspaceGroups] = await Promise.all([
-    searchCatalogGroups(input.query, input.locale, input.limit),
-    input.userId
-      ? searchWorkspaceGroups(input.query, input.userId, input.limit)
-      : Promise.resolve([]),
-  ]);
-
-  return {
-    query: input.query,
-    groups: [...catalogGroups, ...workspaceGroups],
-  };
-}
-
 export async function searchGlobally(input: {
   limit?: number;
   locale: AppLocale;
@@ -228,22 +219,26 @@ export async function searchGlobally(input: {
     return { query, groups: [] };
   }
 
-  const namespace = `search:${input.locale}`;
-  const cacheKey = searchCacheKey(input.locale, query, limit, input.userId);
+  const catalogGroups = await searchCachedCatalogGroups({
+    limit,
+    locale: input.locale,
+    origin: input.origin,
+    query,
+  });
 
-  return cachedCatalogRuntimeData(
-    namespace,
-    cacheKey,
-    input.origin,
-    () =>
-      loadSearchResponse({
-        limit,
-        locale: input.locale,
-        query,
-        userId: input.userId,
-      }),
-    { ttlMs: SEARCH_CACHE_TTL_MS },
-  );
+  let workspaceGroups: GlobalSearchResultGroup[] = [];
+  if (input.userId) {
+    try {
+      workspaceGroups = await searchWorkspaceGroups(query, input.userId, limit);
+    } catch (error) {
+      console.error("Global search workspace query failed", error);
+    }
+  }
+
+  return {
+    query,
+    groups: [...catalogGroups, ...workspaceGroups],
+  };
 }
 
 export function hasGlobalSearchQuery(query: string) {

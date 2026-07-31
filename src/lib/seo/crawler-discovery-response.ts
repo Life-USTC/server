@@ -1,7 +1,6 @@
+import { CATALOG_EDGE_CACHE_TAG } from "@/lib/catalog-runtime-cache";
 import { sha256Base64Url } from "@/lib/crypto/web-crypto";
 import { CONTENT_SIGNAL } from "@/lib/seo/content-signal";
-
-import { CATALOG_EDGE_CACHE_TAG } from "@/lib/catalog-runtime-cache";
 
 export const CRAWLER_DISCOVERY_BROWSER_CACHE_CONTROL =
   "public, max-age=0, must-revalidate";

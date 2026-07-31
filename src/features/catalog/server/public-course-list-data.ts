@@ -3,16 +3,16 @@ import { CATALOG_PAGE_SIZE } from "@/features/catalog/server/catalog-page-consta
 import { listCourseSummaries } from "@/features/catalog/server/course-section-queries";
 import { type AppLocale, DEFAULT_LOCALE } from "@/i18n/config";
 import { getMessages } from "@/i18n/messages.server";
+import {
+  cachedCatalogListRuntimeData,
+  catalogListCacheNamespace,
+} from "@/lib/catalog-runtime-cache";
 import { getPrisma } from "@/lib/db/prisma";
 import {
   optionalValue,
   parsePositivePage,
   toLoadData,
 } from "@/lib/load-data-utils";
-import {
-  catalogListCacheNamespace,
-  cachedCatalogListRuntimeData,
-} from "@/lib/catalog-runtime-cache";
 
 export async function getCourseListPage(
   url: URL,
@@ -23,11 +23,8 @@ export async function getCourseListPage(
     url.searchParams,
   );
   const namespace = catalogListCacheNamespace("courses", locale, "page");
-  return cachedCatalogListRuntimeData(
-    namespace,
-    url.origin,
-    searchParams,
-    () => getUncachedCourseListPage(searchParams, locale),
+  return cachedCatalogListRuntimeData(namespace, url.origin, searchParams, () =>
+    getUncachedCourseListPage(searchParams, locale),
   );
 }
 

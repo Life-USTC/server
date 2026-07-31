@@ -1,5 +1,12 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+const PUBLIC_CATALOG_CDN_CACHE =
+  "public, max-age=86400, stale-while-revalidate=300";
+
+vi.mock("@/lib/catalog-detail-cache-revision", () => ({
+  getCatalogDetailCacheRevision: vi.fn().mockResolvedValue("test-revision"),
+}));
+
 const {
   buildCourseListWhereMock,
   buildTeacherWhereMock,
@@ -372,7 +379,7 @@ describe("academic REST 语言适配器", () => {
         "public, max-age=0, stale-while-revalidate=300",
       );
       expect(response.headers.get("Cloudflare-CDN-Cache-Control")).toBe(
-        "public, max-age=60, stale-while-revalidate=300",
+        PUBLIC_CATALOG_CDN_CACHE,
       );
     }
 

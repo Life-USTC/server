@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { signInAsDebugUser } from "../../../utils/auth";
 import { gotoAndWaitForReady } from "../../../utils/page-ready";
 
 test("global search shortcut returns catalog results", async ({ page }) => {
@@ -110,4 +111,27 @@ test("global search trigger opens dialog and navigates to a result", async ({
 
   await expect(page).toHaveURL(/\/catalog\/(courses|sections)\/\d+/);
   await expect(dialog).toBeHidden();
+});
+
+test("signed-in global search returns catalog results", async ({ page }) => {
+  await signInAsDebugUser(page, "/workspace/overview");
+
+  const searchResponse = page.waitForResponse(
+    (response) =>
+      response.url().includes("/api/search") &&
+      response.url().includes(encodeURIComponent("线性代数")) &&
+      response.ok(),
+  );
+
+  await page.keyboard.press("Control+k");
+  const dialog = page.locator('[data-slot="dialog-content"]');
+  await expect(dialog).toBeVisible();
+  await dialog.locator("input").first().fill("线性代数");
+  await searchResponse;
+
+  await expect(
+    dialog
+      .getByRole("button", { name: /线性代数进阶|Advanced Linear Algebra/ })
+      .first(),
+  ).toBeVisible();
 });
