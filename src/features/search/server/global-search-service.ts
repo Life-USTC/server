@@ -1,8 +1,12 @@
 import {
-  listCourseSummaries,
-  listSectionSummaries,
-  listTeacherSummaries,
-} from "@/features/catalog/server/course-section-queries";
+  searchCoursesForGlobal,
+  searchSectionsForGlobal,
+  searchTeachersForGlobal,
+} from "@/features/search/server/global-search-catalog-queries";
+import {
+  readCachedGlobalSearch,
+  writeCachedGlobalSearch,
+} from "@/features/search/server/global-search-response-cache";
 import type {
   GlobalSearchResponse,
   GlobalSearchResultGroup,
@@ -68,40 +72,28 @@ async function searchCatalogGroups(
   limit: number,
 ): Promise<GlobalSearchResultGroup[]> {
   const [courses, sections, teachers] = await Promise.all([
-    listCourseSummaries({
-      filters: { search: query },
-      locale,
-      pagination: { page: 1, pageSize: limit },
-    }),
-    listSectionSummaries({
-      filters: { search: query },
-      locale,
-      pagination: { page: 1, pageSize: limit },
-    }),
-    listTeacherSummaries({
-      filters: { search: query },
-      locale,
-      pagination: { page: 1, pageSize: limit },
-    }),
+    searchCoursesForGlobal(query, locale, limit),
+    searchSectionsForGlobal(query, locale, limit),
+    searchTeachersForGlobal(query, locale, limit),
   ]);
 
   const groups: GlobalSearchResultGroup[] = [];
-  if (courses.data.length > 0) {
+  if (courses.length > 0) {
     groups.push({
       type: "courses",
-      items: courses.data.map(toCourseItem),
+      items: courses.map(toCourseItem),
     });
   }
-  if (sections.data.length > 0) {
+  if (sections.length > 0) {
     groups.push({
       type: "sections",
-      items: sections.data.map((section) => toSectionItem(section, locale)),
+      items: sections.map((section) => toSectionItem(section, locale)),
     });
   }
-  if (teachers.data.length > 0) {
+  if (teachers.length > 0) {
     groups.push({
       type: "teachers",
-      items: teachers.data.map((teacher) => ({
+      items: teachers.map((teacher) => ({
         id: `teacher:${teacher.id}`,
         title: teacher.nameCn,
         description: teacher.department?.nameCn ?? teacher.code,
@@ -209,6 +201,16 @@ export async function searchGlobally(input: {
     return { query, groups: [] };
   }
 
+  const cached = readCachedGlobalSearch(
+    input.locale,
+    query,
+    limit,
+    input.userId,
+  );
+  if (cached) {
+    return cached;
+  }
+
   const [catalogGroups, workspaceGroups] = await Promise.all([
     searchCatalogGroups(query, input.locale, limit),
     input.userId
@@ -216,10 +218,12 @@ export async function searchGlobally(input: {
       : Promise.resolve([]),
   ]);
 
-  return {
+  const response = {
     query,
     groups: [...catalogGroups, ...workspaceGroups],
   };
+  writeCachedGlobalSearch(input.locale, query, limit, input.userId, response);
+  return response;
 }
 
 export function hasGlobalSearchQuery(query: string) {

@@ -1,27 +1,28 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const {
-  listCourseSummariesMock,
-  listSectionSummariesMock,
-  listTeacherSummariesMock,
+  searchCoursesForGlobalMock,
+  searchSectionsForGlobalMock,
+  searchTeachersForGlobalMock,
   withUserDbContextMock,
 } = vi.hoisted(() => ({
-  listCourseSummariesMock: vi.fn(),
-  listSectionSummariesMock: vi.fn(),
-  listTeacherSummariesMock: vi.fn(),
+  searchCoursesForGlobalMock: vi.fn(),
+  searchSectionsForGlobalMock: vi.fn(),
+  searchTeachersForGlobalMock: vi.fn(),
   withUserDbContextMock: vi.fn(),
 }));
 
-vi.mock("@/features/catalog/server/course-section-queries", () => ({
-  listCourseSummaries: listCourseSummariesMock,
-  listSectionSummaries: listSectionSummariesMock,
-  listTeacherSummaries: listTeacherSummariesMock,
+vi.mock("@/features/search/server/global-search-catalog-queries", () => ({
+  searchCoursesForGlobal: searchCoursesForGlobalMock,
+  searchSectionsForGlobal: searchSectionsForGlobalMock,
+  searchTeachersForGlobal: searchTeachersForGlobalMock,
 }));
 
 vi.mock("@/lib/db/prisma", () => ({
   withUserDbContext: withUserDbContextMock,
 }));
 
+import { resetGlobalSearchCacheForTest } from "@/features/search/server/global-search-response-cache";
 import {
   hasGlobalSearchQuery,
   searchGlobally,
@@ -30,9 +31,10 @@ import {
 describe("global search service", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    listCourseSummariesMock.mockResolvedValue({ data: [] });
-    listSectionSummariesMock.mockResolvedValue({ data: [] });
-    listTeacherSummariesMock.mockResolvedValue({ data: [] });
+    resetGlobalSearchCacheForTest();
+    searchCoursesForGlobalMock.mockResolvedValue([]);
+    searchSectionsForGlobalMock.mockResolvedValue([]);
+    searchTeachersForGlobalMock.mockResolvedValue([]);
     withUserDbContextMock.mockImplementation(
       async (_userId: string, work: (tx: unknown) => Promise<unknown>) =>
         work({
@@ -49,31 +51,35 @@ describe("global search service", () => {
     });
 
     expect(result.groups).toEqual([]);
-    expect(listCourseSummariesMock).not.toHaveBeenCalled();
+    expect(searchCoursesForGlobalMock).not.toHaveBeenCalled();
   });
 
   it("searches catalog entities for public users", async () => {
-    listCourseSummariesMock.mockResolvedValue({
-      data: [
-        {
-          jwId: 101,
-          code: "CS101",
-          nameCn: "数据结构",
-          namePrimary: "数据结构",
-        },
-      ],
-    });
+    searchCoursesForGlobalMock.mockResolvedValue([
+      {
+        jwId: 101,
+        code: "CS101",
+        nameCn: "数据结构",
+        namePrimary: "数据结构",
+      },
+    ]);
 
     const result = await searchGlobally({
       locale: "zh-cn",
       query: "数据",
     });
 
-    expect(listCourseSummariesMock).toHaveBeenCalledWith({
-      filters: { search: "数据" },
-      locale: "zh-cn",
-      pagination: { page: 1, pageSize: 5 },
-    });
+    expect(searchCoursesForGlobalMock).toHaveBeenCalledWith("数据", "zh-cn", 5);
+    expect(searchSectionsForGlobalMock).toHaveBeenCalledWith(
+      "数据",
+      "zh-cn",
+      5,
+    );
+    expect(searchTeachersForGlobalMock).toHaveBeenCalledWith(
+      "数据",
+      "zh-cn",
+      5,
+    );
     expect(result.groups).toEqual([
       {
         type: "courses",
@@ -87,6 +93,22 @@ describe("global search service", () => {
         ],
       },
     ]);
+  });
+
+  it("serves repeated queries from the response cache", async () => {
+    searchCoursesForGlobalMock.mockResolvedValue([
+      {
+        jwId: 101,
+        code: "CS101",
+        nameCn: "数据结构",
+        namePrimary: "数据结构",
+      },
+    ]);
+
+    await searchGlobally({ locale: "zh-cn", query: "数据" });
+    await searchGlobally({ locale: "zh-cn", query: "数据" });
+
+    expect(searchCoursesForGlobalMock).toHaveBeenCalledTimes(1);
   });
 
   it("includes workspace groups for signed-in users", async () => {
