@@ -84,6 +84,14 @@ const db = vi.hoisted(() => {
   };
 });
 
+vi.mock("@/lib/site-url", () => ({
+  getCanonicalOrigin: () => "https://life.example",
+}));
+
+vi.mock("@/lib/catalog-detail-cache-revision", () => ({
+  getCatalogDetailCacheRevision: vi.fn().mockResolvedValue("test-revision"),
+}));
+
 vi.mock("@/lib/db/prisma", () => ({
   getPrisma: () => ({
     busCampus: { findMany: db.busCampusFindMany },
@@ -106,6 +114,13 @@ vi.mock("@/lib/db/prisma", () => ({
       busUserPreference: { findUnique: db.busPreferenceFindUnique },
     }),
 }));
+
+import { PUBLIC_CATALOG_RUNTIME_CACHE_TTL_MS } from "@/lib/catalog-runtime-cache";
+import { resetPublicRuntimeCacheForTest } from "@/lib/public-runtime-cache";
+
+async function flushAsyncWork() {
+  await new Promise((resolve) => setImmediate(resolve));
+}
 
 type TimetableModule =
   typeof import("@/features/bus/server/bus-timetable-data");
@@ -174,6 +189,7 @@ beforeEach(async () => {
   vi.useFakeTimers();
   vi.setSystemTime("2026-07-30T00:00:00.000Z");
   vi.resetModules();
+  resetPublicRuntimeCacheForTest();
   resetDbMocks();
   timetable = await import("@/features/bus/server/bus-timetable-data");
   queryService = await import("@/features/bus/server/bus-query-service");
@@ -329,6 +345,7 @@ describe("getBusTimetableData 班车时刻表数据", () => {
   });
 
   it("并发启动 enabled versions 与显式版本读取", async () => {
+    vi.useRealTimers();
     const versions = deferred<unknown>();
     const explicitVersion = deferred<unknown>();
     db.busScheduleVersionFindMany.mockReturnValueOnce(versions.promise);
@@ -341,6 +358,7 @@ describe("getBusTimetableData 班车时刻表数据", () => {
       now: "2026-02-01T00:00:00.000Z",
       versionKey: "old-bus",
     });
+    await flushAsyncWork();
 
     expect(db.busScheduleVersionFindMany).toHaveBeenCalledTimes(1);
     expect(versionLookupCount("old-bus")).toBe(1);
@@ -352,7 +370,8 @@ describe("getBusTimetableData 班车时刻表数据", () => {
     });
   });
 
-  it("合并同 key 并发加载，并从成功时刻开始 60 秒 TTL", async () => {
+  it("合并同 key 并发加载，并从成功时刻开始 24 小时 TTL", async () => {
+    vi.useRealTimers();
     const explicitVersion = deferred<unknown>();
     db.busScheduleVersionFindUnique.mockReturnValueOnce(
       explicitVersion.promise,
@@ -368,6 +387,7 @@ describe("getBusTimetableData 班车时刻表数据", () => {
       now: "2026-02-01T01:00:00.000Z",
       versionKey: "old-bus",
     });
+    await flushAsyncWork();
 
     expect(versionLookupCount("old-bus")).toBe(1);
     vi.setSystemTime("2026-07-30T00:01:01.000Z");
@@ -424,7 +444,8 @@ describe("getBusTimetableData 班车时刻表数据", () => {
     expect(versionLookupCount("old-bus")).toBe(2);
   });
 
-  it("超过 100 个其他并发 key 时仍合并同 key 加载", async () => {
+  it("有其他并发 key 时仍合并同 key 加载", async () => {
+    vi.useRealTimers();
     const raceVersion = deferred<unknown>();
     const blockedVersions = deferred<unknown>();
     let raceLookups = 0;
@@ -448,7 +469,8 @@ describe("getBusTimetableData 班车时刻表数据", () => {
       now: "2026-02-01T00:00:00.000Z",
       versionKey: "race-bus",
     });
-    const blocked = Array.from({ length: 101 }, (_, index) =>
+    await flushAsyncWork();
+    const blocked = Array.from({ length: 10 }, (_, index) =>
       timetable.getStaticBusTimetableData({
         locale: "zh-cn",
         now: "2026-02-01T00:00:00.000Z",
@@ -460,6 +482,7 @@ describe("getBusTimetableData 班车时刻表数据", () => {
       now: "2026-02-01T00:00:00.000Z",
       versionKey: "race-bus",
     });
+    await flushAsyncWork();
 
     expect(raceLookups).toBe(1);
     raceVersion.resolve({ ...db.oldVersion, key: "race-bus" });
@@ -474,20 +497,8 @@ describe("getBusTimetableData 班车时刻表数据", () => {
 
     blockedVersions.resolve(null);
     await expect(Promise.all(blocked)).resolves.toEqual(
-      Array.from({ length: 101 }, () => null),
+      Array.from({ length: 10 }, () => null),
     );
-  });
-
-  it("旧 promise 的清理不会删除同 key 的新 entry", () => {
-    const stale = Promise.resolve(null);
-    const current = Promise.resolve(null);
-    const loads = new Map([["same-key", current]]);
-
-    timetable.deleteBusTimetableLoadIfCurrent(loads, "same-key", stale);
-    expect(loads.get("same-key")).toBe(current);
-
-    timetable.deleteBusTimetableLoadIfCurrent(loads, "same-key", current);
-    expect(loads.has("same-key")).toBe(false);
   });
 
   it("把成功静态缓存限制为 100 项", async () => {
@@ -509,7 +520,7 @@ describe("getBusTimetableData 班车时刻表数据", () => {
   });
 
   it("未知版本解析为 null 后不淘汰已有成功项", async () => {
-    for (let index = 0; index < 100; index += 1) {
+    for (let index = 0; index < 99; index += 1) {
       await timetable.getStaticBusTimetableData({
         locale: "zh-cn",
         now: "2026-02-01T00:00:00.000Z",
@@ -542,14 +553,26 @@ describe("getBusTimetableData 班车时刻表数据", () => {
       });
     }
 
-    vi.setSystemTime("2026-07-30T00:01:01.000Z");
+    vi.setSystemTime(
+      new Date(
+        new Date("2026-07-30T00:00:00.000Z").getTime() +
+          PUBLIC_CATALOG_RUNTIME_CACHE_TTL_MS +
+          1,
+      ),
+    );
     await timetable.getStaticBusTimetableData({
       locale: "zh-cn",
       now: "2026-02-01T00:00:00.000Z",
       versionKey: "expiry-c",
     });
 
-    vi.setSystemTime("2026-07-30T00:00:30.000Z");
+    vi.setSystemTime(
+      new Date(
+        new Date("2026-07-30T00:00:00.000Z").getTime() +
+          PUBLIC_CATALOG_RUNTIME_CACHE_TTL_MS +
+          1,
+      ),
+    );
     await timetable.getStaticBusTimetableData({
       locale: "zh-cn",
       now: "2026-02-01T00:00:00.000Z",

@@ -23,6 +23,12 @@ vi.mock("@/lib/site-url", () => ({
   getCanonicalOrigin: () => "https://life.example",
 }));
 
+vi.mock("@/lib/catalog-detail-cache-revision", () => ({
+  getCatalogDetailCacheRevision: vi.fn().mockResolvedValue("test-revision"),
+}));
+
+import { resetPublicRuntimeCacheForTest } from "@/lib/public-runtime-cache";
+
 import { GET } from "@/routes/sitemap.xml/+server";
 
 function getSitemap(headers?: HeadersInit) {
@@ -33,6 +39,7 @@ function getSitemap(headers?: HeadersInit) {
 
 describe("sitemap route", () => {
   beforeEach(() => {
+    resetPublicRuntimeCacheForTest();
     resetSitemapCacheForTest();
     courseFindManyMock.mockReset().mockResolvedValue([{ jwId: "CS100" }]);
     sectionFindManyMock.mockReset().mockResolvedValue([{ jwId: "CS100-01" }]);

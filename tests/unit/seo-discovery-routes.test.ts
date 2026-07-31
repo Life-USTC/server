@@ -4,6 +4,14 @@ import { GET as getLlmsTxt } from "@/routes/llms.txt/+server";
 import { GET as getRobotsTxt } from "@/routes/robots.txt/+server";
 import { GET as getSitemapXml } from "@/routes/sitemap.xml/+server";
 
+vi.mock("@/lib/catalog-detail-cache-revision", () => ({
+  getCatalogDetailCacheRevision: vi.fn().mockResolvedValue("test-revision"),
+}));
+
+vi.mock("@/lib/site-url", () => ({
+  getCanonicalOrigin: () => ORIGIN,
+}));
+
 vi.mock("@/lib/db/prisma", () => ({
   prisma: {
     course: {

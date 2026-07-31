@@ -9,7 +9,7 @@ export const PUBLIC_SSR_MODE_CACHE_PARAM = "__life_mode";
 export const PUBLIC_SSR_BROWSER_CACHE_CONTROL =
   "public, max-age=0, stale-while-revalidate=300, stale-if-error=0";
 export const PUBLIC_SSR_PAGE_EDGE_CACHE_CONTROL =
-  "public, max-age=60, stale-while-revalidate=300, stale-if-error=0";
+  "public, max-age=86400, stale-while-revalidate=300, stale-if-error=0";
 
 export type PublicSsrMode = "page" | "not-found";
 export type PublicSsrLocale = "en-us" | "zh-cn";

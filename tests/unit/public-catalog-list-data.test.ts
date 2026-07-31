@@ -10,15 +10,19 @@ import { getTeacherListPage } from "@/features/catalog/server/public-teacher-lis
 
 const mocks = vi.hoisted(() => {
   const findMany = vi.fn().mockResolvedValue([]);
+  const cacheList = vi.fn(
+    (
+      _namespace: string,
+      _origin: string,
+      searchParams: URLSearchParams,
+      load: () => Promise<unknown>,
+    ) => {
+      void searchParams;
+      return load();
+    },
+  );
   return {
-    cache: vi.fn(
-      (
-        _namespace: string,
-        _key: string,
-        _ttlMs: number,
-        load: () => Promise<unknown>,
-      ) => load(),
-    ),
+    cacheList,
     findMany,
     listCourseSummaries: vi.fn().mockResolvedValue({
       data: [],
@@ -35,10 +39,13 @@ const mocks = vi.hoisted(() => {
   };
 });
 
-vi.mock("@/lib/public-runtime-cache", () => ({
-  cachedPublicRuntimeData: mocks.cache,
-  publicRuntimeCacheKey: (prefix: string, params: URLSearchParams) =>
-    `${prefix}:${params.toString()}`,
+vi.mock("@/lib/catalog-runtime-cache", () => ({
+  cachedCatalogListRuntimeData: mocks.cacheList,
+  catalogListCacheNamespace: (
+    kind: "courses" | "sections" | "teachers",
+    locale: string,
+    scope: "api" | "page",
+  ) => `${scope}:${kind}-list:${locale}`,
 }));
 
 vi.mock("@/features/catalog/server/course-section-queries", () => ({
@@ -98,9 +105,13 @@ describe("public catalog list loaders", () => {
       locale: "zh-cn",
       pagination: { page: CATALOG_MAX_PAGE, pageSize: 20 },
     });
-    expect(mocks.cache.mock.calls[0]?.[0]).toBe("page:course-list:zh-cn");
-    expect(mocks.cache.mock.calls[0]?.[1]).toBe(mocks.cache.mock.calls[1]?.[1]);
-    expect(mocks.cache.mock.calls[0]?.[1]).toMatch(/^page:course-list:zh-cn:/);
+    expect(mocks.cacheList.mock.calls[0]?.[0]).toBe("page:courses-list:zh-cn");
+    expect(mocks.cacheList.mock.calls[0]?.[2].toString()).toBe(
+      mocks.cacheList.mock.calls[1]?.[2].toString(),
+    );
+    expect(mocks.cacheList.mock.calls[0]?.[2].toString()).toContain(
+      "categoryId=7",
+    );
   });
 
   test("bounds teacher page/search and canonicalizes the ID before querying", async () => {
@@ -118,14 +129,13 @@ describe("public catalog list loaders", () => {
       { nameCn: "asc" },
       "zh-cn",
     );
-    expect(mocks.cache.mock.calls[0]?.[1]).toContain(
+    expect(mocks.cacheList.mock.calls[0]?.[2].toString()).toContain(
       `page=${CATALOG_MAX_PAGE}`,
     );
-    expect(mocks.cache.mock.calls[0]?.[1]).toContain(
+    expect(mocks.cacheList.mock.calls[0]?.[2].toString()).toContain(
       `search=${"t".repeat(CATALOG_SEARCH_MAX_LENGTH)}`,
     );
-    expect(mocks.cache.mock.calls[0]?.[0]).toBe("page:teacher-list:zh-cn");
-    expect(mocks.cache.mock.calls[0]?.[1]).toMatch(/^page:teacher-list:zh-cn:/);
+    expect(mocks.cacheList.mock.calls[0]?.[0]).toBe("page:teachers-list:zh-cn");
   });
 
   test("bounds section input and queries from the normalized runtime key", async () => {
@@ -156,10 +166,15 @@ describe("public catalog list loaders", () => {
       locale: "zh-cn",
       pagination: { page: CATALOG_MAX_PAGE, pageSize: 20 },
     });
-    expect(mocks.cache.mock.calls[0]?.[0]).toBe("page:section-list:zh-cn");
-    expect(mocks.cache.mock.calls[0]?.[1]).not.toContain("campusId");
-    expect(mocks.cache.mock.calls[0]?.[1]).toContain("courseCode=MATH");
-    expect(mocks.cache.mock.calls[0]?.[1]).toContain("credits=2.5");
-    expect(mocks.cache.mock.calls[0]?.[1]).toMatch(/^page:section-list:zh-cn:/);
+    expect(mocks.cacheList.mock.calls[0]?.[0]).toBe("page:sections-list:zh-cn");
+    expect(mocks.cacheList.mock.calls[0]?.[2].toString()).not.toContain(
+      "campusId",
+    );
+    expect(mocks.cacheList.mock.calls[0]?.[2].toString()).toContain(
+      "courseCode=MATH",
+    );
+    expect(mocks.cacheList.mock.calls[0]?.[2].toString()).toContain(
+      "credits=2.5",
+    );
   });
 });

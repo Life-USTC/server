@@ -1,3 +1,4 @@
+import { CATALOG_EDGE_CACHE_TAG } from "@/lib/catalog-runtime-cache";
 import { sha256Base64Url } from "@/lib/crypto/web-crypto";
 import { CONTENT_SIGNAL } from "@/lib/seo/content-signal";
 
@@ -32,6 +33,7 @@ export async function createCrawlerDiscoveryResponse({
   const responseEtag = etag ?? `"sha256-${await sha256Base64Url(body)}"`;
   const headers = {
     "Cache-Control": CRAWLER_DISCOVERY_BROWSER_CACHE_CONTROL,
+    "Cache-Tag": CATALOG_EDGE_CACHE_TAG,
     "Cloudflare-CDN-Cache-Control": CRAWLER_DISCOVERY_CDN_CACHE_CONTROL,
     "Content-Signal": CONTENT_SIGNAL,
     "Content-Type": contentType,

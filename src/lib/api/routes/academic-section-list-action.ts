@@ -1,8 +1,9 @@
 import type { AppLocale } from "@/i18n/config";
 import { jsonResponse } from "@/lib/api/helpers";
-import { cachedPublicRuntimeData } from "@/lib/public-runtime-cache";
-
-const SECTION_LIST_API_CACHE_TTL_MS = 60_000;
+import {
+  cachedCatalogRuntimeData,
+  catalogListCacheNamespace,
+} from "@/lib/catalog-runtime-cache";
 
 export async function listSectionsAction(
   parsedQuery: {
@@ -23,12 +24,15 @@ export async function listSectionsAction(
     pageSize: number;
   },
   locale: AppLocale,
+  origin: string,
   cacheHeaders: HeadersInit,
 ) {
-  const result = await cachedPublicRuntimeData(
-    `api:sections:${locale}`,
-    `api:sections:${JSON.stringify({ locale, parsedQuery, pagination })}`,
-    SECTION_LIST_API_CACHE_TTL_MS,
+  const namespace = catalogListCacheNamespace("sections", locale, "api");
+  const cacheKey = `api:sections:${JSON.stringify({ locale, parsedQuery, pagination })}`;
+  const result = await cachedCatalogRuntimeData(
+    namespace,
+    cacheKey,
+    origin,
     () => listUncachedSectionsAction(parsedQuery, pagination, locale),
   );
   return jsonResponse(result, {

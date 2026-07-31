@@ -8,11 +8,9 @@ import { parseJwIdRouteParam } from "@/lib/api/routes/academic-route-helpers";
 import { resolvePublicCatalogLocale } from "@/lib/api/routes/request-locale";
 import { coursesQuerySchema } from "@/lib/api/schemas/request-schemas";
 import {
-  cachedPublicRuntimeData,
-  publicRuntimeCacheKey,
-} from "@/lib/public-runtime-cache";
-
-const COURSES_API_CACHE_TTL_MS = 60_000;
+  cachedCatalogListRuntimeData,
+  catalogListCacheNamespace,
+} from "@/lib/catalog-runtime-cache";
 
 export async function getCoursesRoute(request: Request) {
   const localeResolution = resolvePublicCatalogLocale(request);
@@ -35,11 +33,14 @@ export async function getCoursesRoute(request: Request) {
   const { locale: _locale, ...filters } = parsedQuery;
   const { cacheHeaders, locale } = localeResolution;
 
+  const origin = new URL(request.url).origin;
+  const namespace = catalogListCacheNamespace("courses", locale, "api");
+
   try {
-    const result = await cachedPublicRuntimeData(
-      `api:courses:${locale}`,
-      publicRuntimeCacheKey(`api:courses:${locale}`, searchParams),
-      COURSES_API_CACHE_TTL_MS,
+    const result = await cachedCatalogListRuntimeData(
+      namespace,
+      origin,
+      searchParams,
       async () => {
         const { listCourseSummaries } = await import(
           "@/features/catalog/server/course-section-queries"

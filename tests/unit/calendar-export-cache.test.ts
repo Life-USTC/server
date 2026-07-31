@@ -62,7 +62,7 @@ describe("用户 iCal 导出缓存", () => {
       { expirationTtl: 86_400 },
     );
     expect(namespace.get).toHaveBeenLastCalledWith("user-calendar:v1:user-1", {
-      cacheTtl: 30,
+      cacheTtl: 3_600,
       type: "json",
     });
     expect(second.calendar?.etag).toMatch(/^"sha256-[A-Za-z0-9_-]+"$/);

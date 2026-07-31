@@ -1,20 +1,24 @@
 import {
-  listCourseSummaries,
-  listSectionSummaries,
-  listTeacherSummaries,
-} from "@/features/catalog/server/course-section-queries";
+  searchCoursesForGlobal,
+  searchSectionsForGlobal,
+  searchTeachersForGlobal,
+} from "@/features/search/server/global-search-catalog-queries";
 import type {
   GlobalSearchResponse,
   GlobalSearchResultGroup,
   GlobalSearchResultItem,
 } from "@/features/search/server/global-search-types";
 import type { AppLocale } from "@/i18n/config";
+import { cachedCatalogRuntimeData } from "@/lib/catalog-runtime-cache";
 import { withUserDbContext } from "@/lib/db/prisma";
+import type { PublicRuntimeCacheAnalyticsNamespace } from "@/lib/metrics/analytics-engine";
 import { ilike } from "@/lib/query-filter-helpers";
 import { formatSemesterName } from "@/lib/text/format-semester-name";
 
 const DEFAULT_LIMIT = 5;
 const MIN_QUERY_LENGTH = 2;
+/** Catalog search is shared across users; short L1 TTL keeps results fresh enough. */
+const SEARCH_CATALOG_CACHE_TTL_MS = 300_000;
 
 function catalogPrimaryName(item: {
   nameCn?: string | null;
@@ -68,40 +72,28 @@ async function searchCatalogGroups(
   limit: number,
 ): Promise<GlobalSearchResultGroup[]> {
   const [courses, sections, teachers] = await Promise.all([
-    listCourseSummaries({
-      filters: { search: query },
-      locale,
-      pagination: { page: 1, pageSize: limit },
-    }),
-    listSectionSummaries({
-      filters: { search: query },
-      locale,
-      pagination: { page: 1, pageSize: limit },
-    }),
-    listTeacherSummaries({
-      filters: { search: query },
-      locale,
-      pagination: { page: 1, pageSize: limit },
-    }),
+    searchCoursesForGlobal(query, locale, limit),
+    searchSectionsForGlobal(query, locale, limit),
+    searchTeachersForGlobal(query, locale, limit),
   ]);
 
   const groups: GlobalSearchResultGroup[] = [];
-  if (courses.data.length > 0) {
+  if (courses.length > 0) {
     groups.push({
       type: "courses",
-      items: courses.data.map(toCourseItem),
+      items: courses.map(toCourseItem),
     });
   }
-  if (sections.data.length > 0) {
+  if (sections.length > 0) {
     groups.push({
       type: "sections",
-      items: sections.data.map((section) => toSectionItem(section, locale)),
+      items: sections.map((section) => toSectionItem(section, locale)),
     });
   }
-  if (teachers.data.length > 0) {
+  if (teachers.length > 0) {
     groups.push({
       type: "teachers",
-      items: teachers.data.map((teacher) => ({
+      items: teachers.map((teacher) => ({
         id: `teacher:${teacher.id}`,
         title: teacher.nameCn,
         description: teacher.department?.nameCn ?? teacher.code,
@@ -112,55 +104,83 @@ async function searchCatalogGroups(
   return groups;
 }
 
+function catalogSearchCacheKey(query: string, limit: number) {
+  return `${limit}:${query}`;
+}
+
+async function searchCachedCatalogGroups(input: {
+  limit: number;
+  locale: AppLocale;
+  origin: string;
+  query: string;
+}): Promise<GlobalSearchResultGroup[]> {
+  const namespace: PublicRuntimeCacheAnalyticsNamespace = `search:catalog:${input.locale}`;
+  return cachedCatalogRuntimeData(
+    namespace,
+    catalogSearchCacheKey(input.query, input.limit),
+    input.origin,
+    () => searchCatalogGroups(input.query, input.locale, input.limit),
+    { ttlMs: SEARCH_CATALOG_CACHE_TTL_MS },
+  );
+}
+
+function workspaceCourseName(
+  course: { nameCn: string | null; nameEn: string | null },
+  locale: AppLocale,
+) {
+  if (locale === "en-us") {
+    return course.nameEn ?? course.nameCn ?? "";
+  }
+  return course.nameCn ?? course.nameEn ?? "";
+}
+
 async function searchWorkspaceGroups(
   query: string,
   userId: string,
+  locale: AppLocale,
   limit: number,
 ): Promise<GlobalSearchResultGroup[]> {
   return withUserDbContext(userId, async (tx) => {
-    const [homeworks, todos] = await Promise.all([
-      tx.homework.findMany({
-        where: {
-          deletedAt: null,
-          title: ilike(query),
-          section: {
-            retiredAt: null,
-            subscriptions: { some: { userId } },
-          },
+    const homeworks = await tx.homework.findMany({
+      where: {
+        deletedAt: null,
+        title: ilike(query),
+        section: {
+          sectionSubscriptions: { some: { userId } },
         },
-        select: {
-          id: true,
-          title: true,
-          section: {
-            select: {
-              jwId: true,
-              course: {
-                select: {
-                  namePrimary: true,
-                  nameCn: true,
-                },
+      },
+      select: {
+        id: true,
+        title: true,
+        section: {
+          select: {
+            jwId: true,
+            course: {
+              select: {
+                nameCn: true,
+                nameEn: true,
               },
             },
           },
         },
-        orderBy: [{ submissionDueAt: "asc" }, { createdAt: "desc" }],
-        take: limit,
-      }),
-      tx.todo.findMany({
-        where: {
-          userId,
-          OR: [{ title: ilike(query) }, { content: ilike(query) }],
-        },
-        select: {
-          id: true,
-          title: true,
-          dueAt: true,
-          completed: true,
-        },
-        orderBy: [{ dueAt: "asc" }, { createdAt: "desc" }],
-        take: limit,
-      }),
-    ]);
+      },
+      orderBy: [{ submissionDueAt: "asc" }, { createdAt: "desc" }],
+      take: limit,
+    });
+    const todos = await tx.todo.findMany({
+      where: {
+        userId,
+        OR: [{ title: ilike(query) }, { content: ilike(query) }],
+      },
+      select: {
+        id: true,
+        title: true,
+        dueAt: true,
+        completed: true,
+      },
+      orderBy: [{ dueAt: "asc" }, { createdAt: "desc" }],
+      take: limit,
+    });
 
     const groups: GlobalSearchResultGroup[] = [];
     if (homeworks.length > 0) {
@@ -170,7 +190,7 @@ async function searchWorkspaceGroups(
           id: `homework:${homework.id}`,
           title: homework.title,
           description: homework.section
-            ? catalogPrimaryName(homework.section.course)
+            ? workspaceCourseName(homework.section.course, locale)
             : null,
           href: homework.section?.jwId
             ? `/catalog/sections/${homework.section.jwId}?tab=homework&homeworkId=${encodeURIComponent(homework.id)}`
@@ -200,6 +220,7 @@ async function searchWorkspaceGroups(
 export async function searchGlobally(input: {
   limit?: number;
   locale: AppLocale;
+  origin: string;
   query: string;
   userId?: string | null;
 }): Promise<GlobalSearchResponse> {
@@ -209,12 +230,26 @@ export async function searchGlobally(input: {
     return { query, groups: [] };
   }
 
-  const [catalogGroups, workspaceGroups] = await Promise.all([
-    searchCatalogGroups(query, input.locale, limit),
-    input.userId
-      ? searchWorkspaceGroups(query, input.userId, limit)
-      : Promise.resolve([]),
-  ]);
+  const catalogGroups = await searchCachedCatalogGroups({
+    limit,
+    locale: input.locale,
+    origin: input.origin,
+    query,
+  });
+
+  let workspaceGroups: GlobalSearchResultGroup[] = [];
+  if (input.userId) {
+    try {
+      workspaceGroups = await searchWorkspaceGroups(
+        query,
+        input.userId,
+        input.locale,
+        limit,
+      );
+    } catch (error) {
+      console.error("Global search workspace query failed", error);
+    }
+  }
 
   return {
     query,
