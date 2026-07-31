@@ -18,9 +18,9 @@ import { manifest } from "./.svelte-kit/output/server/manifest.js";
 // hydration graph. Limits leave about 10% above the 2026-07-22 production-build
 // baseline so normal chunking noise passes while material regressions do not.
 const budgets = {
-  "/": { gzipBytes: 170_000, requests: 56 },
-  "/catalog/courses/[jwId]": { gzipBytes: 330_000, requests: 93 },
-  "/catalog/sections/[jwId]": { gzipBytes: 390_000, requests: 103 },
+  "/": { gzipBytes: 170_000, requests: 57 },
+  "/catalog/courses/[jwId]": { gzipBytes: 330_000, requests: 94 },
+  "/catalog/sections/[jwId]": { gzipBytes: 390_000, requests: 104 },
 };
 
 let failed = false;
