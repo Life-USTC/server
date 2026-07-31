@@ -78,7 +78,10 @@ test("/admin/users 搜索表单可过滤用户", async ({ page }, testInfo) => {
   await signInAsDevAdmin(page, "/admin/users");
 
   await page.getByRole("searchbox").fill(DEV_SEED.debugUsername);
-  await page.getByRole("button", { name: /搜索|Search/i }).click();
+  await page
+    .getByTestId("admin-workspace")
+    .getByRole("button", { name: /^(搜索|Search)$/ })
+    .click();
 
   await expect(page).toHaveURL(new RegExp(`search=${DEV_SEED.debugUsername}`));
   await expect(visibleText(page, DEV_SEED.debugUsername)).toBeVisible();
@@ -102,7 +105,7 @@ test("/admin/users 移动端工作区可搜索并管理首条记录", async ({
   await expect(workspace).toBeVisible();
   await expect(workspace.locator("table")).toBeHidden();
   await page.getByRole("searchbox").fill(DEV_SEED.debugUsername);
-  await page.getByRole("button", { name: /搜索|Search/i }).click();
+  await workspace.getByRole("button", { name: /^(搜索|Search)$/ }).click();
 
   const record = page
     .getByTestId("admin-users-mobile-list")

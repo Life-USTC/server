@@ -337,9 +337,9 @@ test.describe("/catalog/courses 课程目录", () => {
     await expect(searchbox).toBeVisible();
 
     await searchbox.fill(DEV_SEED.course.code);
-    const searchButton = page
-      .getByRole("button", { name: /搜索|Search/i })
-      .first();
+    const searchButton = page.getByRole("button", {
+      name: /^(搜索|Search)$/,
+    });
     await expect(searchButton).toBeVisible();
     await searchButton.click();
 

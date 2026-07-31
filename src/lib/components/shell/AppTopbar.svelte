@@ -31,7 +31,7 @@ export let signedIn = false;
   data-shell-topbar
   class="bg-card/95 sticky top-0 z-20 h-14 shrink-0 border-b backdrop-blur md:h-12"
 >
-  <div class="flex h-full items-center gap-2 px-3 sm:px-5 lg:px-6">
+  <div class="flex h-full items-center gap-1 px-2 sm:gap-2 sm:px-3 lg:px-6">
     <Sidebar.Trigger
       aria-label={copy.shell.menu}
       class="size-11 md:hidden"
