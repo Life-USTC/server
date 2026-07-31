@@ -72,7 +72,7 @@ test.describe("GET /api/catalog/courses 接口", () => {
       "public, max-age=0, stale-while-revalidate=300",
     );
     expect(explicit.headers()["cloudflare-cdn-cache-control"]).toBe(
-      "public, max-age=60, stale-while-revalidate=300",
+      "public, max-age=86400, stale-while-revalidate=300",
     );
 
     const fallback = await request.get("/api/catalog/courses?pageSize=1", {

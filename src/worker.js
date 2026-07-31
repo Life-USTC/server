@@ -5,7 +5,7 @@ import {
   normalizeCatalogListQuery,
   resolveCatalogListPublicSsrMode,
 } from "./features/catalog/lib/catalog-list-query";
-import { CATALOG_EDGE_CACHE_TAG } from "./lib/catalog-runtime-cache";
+import { CATALOG_EDGE_CACHE_TAG } from "./lib/catalog-edge-cache-tag";
 import {
   buildPublicNotFoundHtml,
   PUBLIC_SSR_BROWSER_CACHE_CONTROL,

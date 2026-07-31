@@ -1,46 +1,31 @@
 <script lang="ts">
-import BookOpenIcon from "@lucide/svelte/icons/book-open";
-import ClipboardCheckIcon from "@lucide/svelte/icons/clipboard-check";
-import ListTodoIcon from "@lucide/svelte/icons/list-todo";
-import RouteIcon from "@lucide/svelte/icons/route";
 import SearchIcon from "@lucide/svelte/icons/search";
-import SearchXIcon from "@lucide/svelte/icons/search-x";
-import UsersIcon from "@lucide/svelte/icons/users";
 import XIcon from "@lucide/svelte/icons/x";
 import { createEventDispatcher } from "svelte";
+import {
+  fetchGlobalSearch,
+  GLOBAL_SEARCH_DEBOUNCE_MS,
+  GLOBAL_SEARCH_DIALOG_LIMIT,
+  GLOBAL_SEARCH_MIN_QUERY_LENGTH,
+} from "@/features/search/lib/global-search-client";
+import {
+  activeItemIdFromIndex,
+  flattenSearchGroups,
+  GLOBAL_SEARCH_LISTBOX_ID,
+  globalSearchItemDomId,
+  handleSearchListboxKeydown,
+} from "@/features/search/lib/global-search-keyboard";
+import type {
+  GlobalSearchResultGroup,
+  GlobalSearchResultItem,
+} from "@/features/search/server/global-search-types";
 import { goto } from "$app/navigation";
+import GlobalSearchResults from "$lib/components/shell/GlobalSearchResults.svelte";
 import { Button } from "$lib/components/ui/button/index.js";
 import * as Dialog from "$lib/components/ui/dialog/index.js";
-import * as Empty from "$lib/components/ui/empty/index.js";
 import { ScrollArea } from "$lib/components/ui/scroll-area/index.js";
-import { Separator } from "$lib/components/ui/separator/index.js";
-import { Spinner } from "$lib/components/ui/spinner/index.js";
 import type { LayoutCopy } from "$lib/shell/layout-server-data";
 import { cn } from "$lib/utils.js";
-
-type SearchGroupType =
-  | "courses"
-  | "homeworks"
-  | "sections"
-  | "teachers"
-  | "todos";
-
-type SearchResultItem = {
-  description: string | null;
-  href: string;
-  id: string;
-  title: string;
-};
-
-type SearchResultGroup = {
-  items: SearchResultItem[];
-  type: SearchGroupType;
-};
-
-type SearchResponse = {
-  groups: SearchResultGroup[];
-  query: string;
-};
 
 export let copy: LayoutCopy["globalSearch"];
 export let open = false;
@@ -50,29 +35,29 @@ const dispatch = createEventDispatcher<{
   openChange: boolean;
 }>();
 
-const MIN_QUERY_LENGTH = 2;
-const SEARCH_DEBOUNCE_MS = 200;
-
 let query = "";
-let groups: SearchResultGroup[] = [];
+let groups: GlobalSearchResultGroup[] = [];
 let isSearching = false;
 let hasSearched = false;
 let searchGeneration = 0;
 let searchDebounceTimer: ReturnType<typeof setTimeout> | undefined;
 let inputElement: HTMLInputElement | null = null;
+let activeIndex = -1;
 
-const groupIcons: Record<SearchGroupType, typeof BookOpenIcon> = {
-  courses: BookOpenIcon,
-  homeworks: ClipboardCheckIcon,
-  sections: RouteIcon,
-  teachers: UsersIcon,
-  todos: ListTodoIcon,
-};
+$: flatItems = flattenSearchGroups(groups);
+$: activeItemId = activeItemIdFromIndex(flatItems, activeIndex);
+$: canNavigateResults =
+  !isSearching && !showHint && !showInitialHint && flatItems.length > 0;
 
 $: placeholder = signedIn ? copy.placeholderSignedIn : copy.placeholder;
-$: showHint = query.trim().length > 0 && query.trim().length < MIN_QUERY_LENGTH;
+$: showHint =
+  query.trim().length > 0 &&
+  query.trim().length < GLOBAL_SEARCH_MIN_QUERY_LENGTH;
 $: showInitialHint = open && !hasSearched && query.trim().length === 0;
-$: showEmpty = hasSearched && !isSearching && groups.length === 0 && !showHint;
+$: viewAllHref =
+  query.trim().length >= GLOBAL_SEARCH_MIN_QUERY_LENGTH
+    ? `/search?q=${encodeURIComponent(query.trim())}`
+    : "/search";
 
 function resetSearchState() {
   clearTimeout(searchDebounceTimer);
@@ -81,6 +66,11 @@ function resetSearchState() {
   groups = [];
   hasSearched = false;
   isSearching = false;
+  activeIndex = -1;
+}
+
+function resetSelection() {
+  activeIndex = -1;
 }
 
 function handleOpenChange(nextOpen: boolean) {
@@ -93,16 +83,18 @@ function scheduleSearch() {
   clearTimeout(searchDebounceTimer);
 
   const trimmed = query.trim();
-  if (trimmed.length < MIN_QUERY_LENGTH) {
+  if (trimmed.length < GLOBAL_SEARCH_MIN_QUERY_LENGTH) {
     groups = [];
     hasSearched = false;
     isSearching = false;
+    resetSelection();
     return;
   }
 
+  resetSelection();
   searchDebounceTimer = setTimeout(() => {
     void runSearch();
-  }, SEARCH_DEBOUNCE_MS);
+  }, GLOBAL_SEARCH_DEBOUNCE_MS);
 }
 
 function handleQueryInput(event: Event) {
@@ -121,7 +113,7 @@ function handleCompositionEnd(event: CompositionEvent) {
 
 async function runSearch() {
   const trimmed = query.trim();
-  if (trimmed.length < MIN_QUERY_LENGTH) {
+  if (trimmed.length < GLOBAL_SEARCH_MIN_QUERY_LENGTH) {
     groups = [];
     hasSearched = false;
     return;
@@ -132,11 +124,7 @@ async function runSearch() {
   hasSearched = true;
 
   try {
-    const response = await fetch(
-      `/api/search?q=${encodeURIComponent(trimmed)}&limit=5`,
-    );
-    if (!response.ok || generation !== searchGeneration) return;
-    const body = (await response.json()) as SearchResponse;
+    const body = await fetchGlobalSearch(trimmed, GLOBAL_SEARCH_DIALOG_LIMIT);
     if (generation !== searchGeneration) return;
     groups = body.groups ?? [];
   } catch {
@@ -149,9 +137,49 @@ async function runSearch() {
   }
 }
 
-function navigateTo(href: string) {
+function handleInputKeydown(event: KeyboardEvent) {
+  handleSearchListboxKeydown({
+    activeIndex,
+    event,
+    inputElement,
+    isInteractive: canNavigateResults,
+    items: flatItems,
+    onActiveIndexChange: (index) => {
+      activeIndex = index;
+    },
+    onSelect: navigateTo,
+  });
+}
+
+function handleResultKeydown(event: KeyboardEvent, itemIndex: number) {
+  if (itemIndex >= 0 && itemIndex !== activeIndex) {
+    activeIndex = itemIndex;
+  }
+  handleSearchListboxKeydown({
+    activeIndex: itemIndex,
+    event,
+    inputElement,
+    isInteractive: canNavigateResults,
+    items: flatItems,
+    onActiveIndexChange: (index) => {
+      activeIndex = index;
+    },
+    onSelect: navigateTo,
+  });
+}
+
+function navigateTo(item: GlobalSearchResultItem) {
   handleOpenChange(false);
-  void goto(href);
+  if (item.external) {
+    window.open(item.href, "_blank", "noopener,noreferrer");
+    return;
+  }
+  void goto(item.href);
+}
+
+function openSearchPage() {
+  handleOpenChange(false);
+  void goto(viewAllHref);
 }
 
 $: if (open) {
@@ -168,13 +196,20 @@ $: if (open) {
         <input
           bind:this={inputElement}
           bind:value={query}
+          aria-activedescendant={activeItemId
+            ? globalSearchItemDomId(activeItemId)
+            : undefined}
           aria-busy={isSearching}
+          aria-controls={GLOBAL_SEARCH_LISTBOX_ID}
+          aria-expanded={canNavigateResults}
           class={cn(
             "placeholder:text-muted-foreground h-9 min-w-0 flex-1 border-0 bg-transparent px-0 text-base outline-none md:text-sm",
           )}
           oncompositionend={handleCompositionEnd}
           oninput={handleQueryInput}
+          onkeydown={handleInputKeydown}
           placeholder={placeholder}
+          role="combobox"
           type="text"
         />
         <Button
@@ -192,60 +227,28 @@ $: if (open) {
 
     <ScrollArea class="max-h-[min(60vh,28rem)]">
       <div class="min-h-48 p-2">
-        {#if isSearching}
-          <div
-            class="text-muted-foreground flex items-center justify-center gap-2 px-2 py-10 text-sm"
-            role="status"
-          >
-            <Spinner class="size-4 shrink-0" />
-            <span>{copy.searching}</span>
-          </div>
-        {:else if showInitialHint || showHint}
-          <p class="px-2 py-6 text-center text-muted-foreground text-sm">
-            {copy.hint}
-          </p>
-        {:else if showEmpty}
-          <Empty.Root class="py-8">
-            <Empty.Media variant="icon">
-              <SearchXIcon />
-            </Empty.Media>
-            <Empty.Title>{copy.noResults}</Empty.Title>
-          </Empty.Root>
-        {:else}
-          {#each groups as group, groupIndex (group.type)}
-            {@const Icon = groupIcons[group.type]}
-            {#if groupIndex > 0}
-              <Separator class="my-2" />
-            {/if}
-            <div class="px-2 py-1">
-              <p class="px-2 py-1 font-medium text-muted-foreground text-xs uppercase tracking-wide">
-                {copy.groups[group.type]}
-              </p>
-              <ul class="grid gap-1">
-                {#each group.items as item (item.id)}
-                  <li>
-                    <button
-                      class="hover:bg-muted flex w-full min-w-0 items-start gap-3 rounded-md px-2 py-2 text-left transition-colors"
-                      onclick={() => navigateTo(item.href)}
-                      type="button"
-                    >
-                      <Icon class="mt-0.5 size-4 shrink-0 text-muted-foreground" />
-                      <span class="min-w-0">
-                        <span class="block truncate font-medium">{item.title}</span>
-                        {#if item.description}
-                          <span class="block truncate text-muted-foreground text-sm">
-                            {item.description}
-                          </span>
-                        {/if}
-                      </span>
-                    </button>
-                  </li>
-                {/each}
-              </ul>
-            </div>
-          {/each}
-        {/if}
+        <GlobalSearchResults
+          {activeItemId}
+          {copy}
+          {groups}
+          {isSearching}
+          {showHint}
+          {showInitialHint}
+          onResultKeydown={handleResultKeydown}
+          onSelect={navigateTo}
+        />
       </div>
     </ScrollArea>
+
+    <div class="border-t px-4 py-2">
+      <Button
+        class="w-full justify-center"
+        onclick={openSearchPage}
+        type="button"
+        variant="ghost"
+      >
+        {copy.viewAllResults}
+      </Button>
+    </div>
   </Dialog.Content>
 </Dialog.Root>

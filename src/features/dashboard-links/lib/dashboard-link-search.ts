@@ -1,3 +1,5 @@
+import { pinyin } from "pinyin-pro";
+import type { DashboardLinkItem } from "@/features/dashboard-links/lib/dashboard-links";
 import {
   DASHBOARD_LINK_GROUP_ORDER,
   type DashboardLinkGroup,
@@ -32,6 +34,40 @@ export function linkMatchesTokens(
       description.includes(token) ||
       link.titlePinyin.includes(token) ||
       link.descriptionPinyin.includes(token),
+  );
+}
+
+function toSearchPinyin(text: string) {
+  if (!text.trim()) return "";
+  return pinyin(text, { toneType: "none" }).replace(/\s+/g, "").toLowerCase();
+}
+
+function toSearchableFields(
+  title: string,
+  description: string,
+): DashboardLinkSearchable {
+  return {
+    title,
+    description,
+    titlePinyin: toSearchPinyin(title),
+    descriptionPinyin: toSearchPinyin(description),
+    group: "life",
+  };
+}
+
+export function dashboardLinkItemMatchesTokens(
+  link: DashboardLinkItem,
+  tokens: string[],
+) {
+  const localizedFields = [
+    { title: link.title, description: link.description },
+    link.localizations["en-us"],
+  ];
+  return localizedFields.some((fields) =>
+    linkMatchesTokens(
+      toSearchableFields(fields.title, fields.description),
+      tokens,
+    ),
   );
 }
 

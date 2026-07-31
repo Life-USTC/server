@@ -20,7 +20,7 @@ test("global search shortcut returns catalog results", async ({ page }) => {
 
   await expect(
     dialog
-      .getByRole("button", { name: /Advanced Linear Algebra|MATH2001/ })
+      .getByRole("option", { name: /Advanced Linear Algebra|MATH2001/ })
       .first(),
   ).toBeVisible();
 });
@@ -43,7 +43,7 @@ test("global search returns Chinese catalog matches", async ({ page }) => {
 
   await expect(
     dialog
-      .getByRole("button", { name: /线性代数进阶|Advanced Linear Algebra/ })
+      .getByRole("option", { name: /线性代数进阶|Advanced Linear Algebra/ })
       .first(),
   ).toBeVisible();
 });
@@ -80,7 +80,7 @@ test("global search still works after interrupted IME composition", async ({
 
   await expect(
     dialog
-      .getByRole("button", { name: /线性代数进阶|Advanced Linear Algebra/ })
+      .getByRole("option", { name: /线性代数进阶|Advanced Linear Algebra/ })
       .first(),
   ).toBeVisible();
 });
@@ -102,11 +102,11 @@ test("global search trigger opens dialog and navigates to a result", async ({
 
   await expect(
     dialog
-      .getByRole("button", { name: /Advanced Linear Algebra|MATH2001/ })
+      .getByRole("option", { name: /Advanced Linear Algebra|MATH2001/ })
       .first(),
   ).toBeVisible();
   await dialog
-    .getByRole("button", { name: /Advanced Linear Algebra · MATH2001\.01/ })
+    .getByRole("option", { name: /Advanced Linear Algebra · MATH2001\.01/ })
     .click();
 
   await expect(page).toHaveURL(/\/catalog\/(courses|sections)\/\d+/);
@@ -131,7 +131,7 @@ test("signed-in global search returns catalog results", async ({ page }) => {
 
   await expect(
     dialog
-      .getByRole("button", { name: /线性代数进阶|Advanced Linear Algebra/ })
+      .getByRole("option", { name: /线性代数进阶|Advanced Linear Algebra/ })
       .first(),
   ).toBeVisible();
 });

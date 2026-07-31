@@ -142,6 +142,8 @@ describe("public SSR gateway", () => {
     "/llms.txt",
     "/open-graph.png",
     "/robots.txt",
+    "/search",
+    "/search?q=邮箱",
     "/sitemap.xml",
     "/workspace/overview",
   ])("bypasses private or mixed route %s", (path) => {

@@ -1,9 +1,24 @@
 import { buildCourseListWhere } from "@/features/catalog/server/course-query-filters";
-import { buildSectionListQuery } from "@/features/catalog/server/section-query-filters";
 import { SECTION_SUMMARY_DEFAULT_ORDER_BY } from "@/features/catalog/server/section-summary-read-model";
 import { buildTeacherWhere } from "@/features/catalog/server/teacher-query";
+import type { Prisma } from "@/generated/prisma/client";
 import type { AppLocale } from "@/i18n/config";
 import { getPrisma } from "@/lib/db/prisma";
+import { ilike } from "@/lib/query-filter-helpers";
+
+function buildGlobalSectionSearchWhere(
+  query: string,
+): Prisma.SectionWhereInput {
+  return {
+    retiredAt: null,
+    OR: [
+      { course: { nameCn: ilike(query) } },
+      { course: { nameEn: ilike(query) } },
+      { course: { code: ilike(query) } },
+      { code: ilike(query) },
+    ],
+  };
+}
 
 export async function searchCoursesForGlobal(
   query: string,
@@ -28,10 +43,9 @@ export async function searchSectionsForGlobal(
   locale: AppLocale,
   limit: number,
 ) {
-  const { orderBy, where } = buildSectionListQuery({ search: query });
   return getPrisma(locale).section.findMany({
-    where,
-    orderBy: orderBy ?? SECTION_SUMMARY_DEFAULT_ORDER_BY,
+    where: buildGlobalSectionSearchWhere(query),
+    orderBy: SECTION_SUMMARY_DEFAULT_ORDER_BY,
     select: {
       code: true,
       jwId: true,

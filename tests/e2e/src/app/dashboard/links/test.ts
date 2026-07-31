@@ -10,7 +10,6 @@
  *
  * ## UI/UX Elements
  * - Search box to filter links by name/description
- * - Ctrl+K / Cmd+K keyboard shortcut focuses search
  * - Pin/unpin button per card (visible on hover, authenticated only)
  * - Group labels (study, life, tech…) shown in "all" variant
  * - Credit text linking to SmartHypercube/ustclife repo
@@ -146,7 +145,7 @@ test.describe("仪表盘网站链接", () => {
       name: /搜索网站名称或描述|Search by name or description/i,
     });
     await expect(searchInput).toBeVisible();
-    await page.keyboard.press("Control+K");
+    await searchInput.click();
     await expect(searchInput).toBeFocused();
 
     // Search for a specific link

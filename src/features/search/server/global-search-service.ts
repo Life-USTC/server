@@ -3,11 +3,14 @@ import {
   searchSectionsForGlobal,
   searchTeachersForGlobal,
 } from "@/features/search/server/global-search-catalog-queries";
+import { searchLinksForGlobal } from "@/features/search/server/global-search-link-queries";
 import type {
   GlobalSearchResponse,
   GlobalSearchResultGroup,
+  GlobalSearchResultGroupType,
   GlobalSearchResultItem,
 } from "@/features/search/server/global-search-types";
+import { GLOBAL_SEARCH_GROUP_ORDER } from "@/features/search/server/global-search-types";
 import type { AppLocale } from "@/i18n/config";
 import { cachedCatalogRuntimeData } from "@/lib/catalog-runtime-cache";
 import { withUserDbContext } from "@/lib/db/prisma";
@@ -71,37 +74,40 @@ async function searchCatalogGroups(
   locale: AppLocale,
   limit: number,
 ): Promise<GlobalSearchResultGroup[]> {
-  const [courses, sections, teachers] = await Promise.all([
+  const [courses, teachers, sections, links] = await Promise.all([
     searchCoursesForGlobal(query, locale, limit),
-    searchSectionsForGlobal(query, locale, limit),
     searchTeachersForGlobal(query, locale, limit),
+    searchSectionsForGlobal(query, locale, limit),
+    Promise.resolve(searchLinksForGlobal(query, locale, limit)),
   ]);
 
-  const groups: GlobalSearchResultGroup[] = [];
-  if (courses.length > 0) {
-    groups.push({
-      type: "courses",
-      items: courses.map(toCourseItem),
-    });
-  }
-  if (sections.length > 0) {
-    groups.push({
-      type: "sections",
-      items: sections.map((section) => toSectionItem(section, locale)),
-    });
-  }
-  if (teachers.length > 0) {
-    groups.push({
-      type: "teachers",
-      items: teachers.map((teacher) => ({
-        id: `teacher:${teacher.id}`,
-        title: teacher.nameCn,
-        description: teacher.department?.nameCn ?? teacher.code,
-        href: `/catalog/teachers/${teacher.id}`,
-      })),
-    });
-  }
-  return groups;
+  const groupItems: Record<
+    GlobalSearchResultGroupType,
+    GlobalSearchResultItem[]
+  > = {
+    courses: courses.map(toCourseItem),
+    teachers: teachers.map((teacher) => ({
+      id: `teacher:${teacher.id}`,
+      title: teacher.nameCn,
+      description: teacher.department?.nameCn ?? teacher.code,
+      href: `/catalog/teachers/${teacher.id}`,
+    })),
+    sections: sections.map((section) => toSectionItem(section, locale)),
+    links: links.map((link) => ({
+      id: `link:${link.slug}`,
+      title: link.title,
+      description: link.description,
+      href: link.url,
+      external: true,
+    })),
+    homeworks: [],
+    todos: [],
+  };
+
+  return GLOBAL_SEARCH_GROUP_ORDER.flatMap((type) => {
+    const items = groupItems[type];
+    return items.length > 0 ? [{ type, items }] : [];
+  });
 }
 
 function catalogSearchCacheKey(query: string, limit: number) {
@@ -114,7 +120,7 @@ async function searchCachedCatalogGroups(input: {
   origin: string;
   query: string;
 }): Promise<GlobalSearchResultGroup[]> {
-  const namespace: PublicRuntimeCacheAnalyticsNamespace = `search:catalog:${input.locale}`;
+  const namespace: PublicRuntimeCacheAnalyticsNamespace = `search:catalog:v2:${input.locale}`;
   return cachedCatalogRuntimeData(
     namespace,
     catalogSearchCacheKey(input.query, input.limit),

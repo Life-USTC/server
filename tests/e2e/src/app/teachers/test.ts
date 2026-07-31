@@ -112,9 +112,9 @@ test.describe("/catalog/teachers", () => {
     await expect(searchbox).toBeVisible();
 
     await searchbox.fill(DEV_SEED.teacher.nameCn);
-    const searchButton = page
-      .getByRole("button", { name: /搜索|Search/i })
-      .first();
+    const searchButton = page.getByRole("button", {
+      name: /^(搜索|Search)$/,
+    });
     await expect(searchButton).toBeVisible();
     await searchButton.click();
 

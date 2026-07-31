@@ -60,6 +60,7 @@ const DYNAMIC_OR_PRIVATE_ROOTS = [
   "/community",
   "/e2e",
   "/oauth",
+  "/search",
   "/workspace",
 ];
 

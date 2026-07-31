@@ -79,8 +79,10 @@
   },
   "globalSearch": {
     "title": "Search",
-    "placeholder": "Search courses, sections, teachers…",
-    "placeholderSignedIn": "Search courses, sections, homework, todos…",
+    "pageTitle": "Search",
+    "pageDescription": "Search courses, teachers, sections, campus links, and your homework or todos.",
+    "placeholder": "Search courses, teachers, links…",
+    "placeholderSignedIn": "Search courses, teachers, links, homework, todos…",
     "shortcut": "Ctrl K",
     "shortcutMac": "⌘ K",
     "noResults": "No results found",
@@ -88,10 +90,12 @@
     "hint": "Type at least 2 characters to search",
     "openSearch": "Open search",
     "close": "Close",
+    "viewAllResults": "View all search results",
     "groups": {
       "courses": "Courses",
       "sections": "Sections",
       "teachers": "Teachers",
+      "links": "Links",
       "homeworks": "Homework",
       "todos": "Todos"
     }

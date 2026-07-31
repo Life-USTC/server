@@ -26,7 +26,6 @@ import {
   SHELL_THEME_CHANGE_EVENT,
   setStoredThemeMode,
 } from "$lib/components/shell/app-shell-actions";
-import GlobalSearchDialog from "$lib/components/shell/GlobalSearchDialog.svelte";
 import {
   applyShellTheme,
   buildFooterLinks,
@@ -60,6 +59,9 @@ export let data: AppShellData;
 let themeMode: ThemeMode = "system";
 let sidebarOpen = true;
 let globalSearchOpen = false;
+let GlobalSearchDialog:
+  | typeof import("$lib/components/shell/GlobalSearchDialog.svelte").default
+  | null = null;
 let userMenuOpen = false;
 let localeMenuOpen = false;
 let themeMenuOpen = false;
@@ -105,14 +107,21 @@ $: globalSearchShortcutLabel =
     ? data.copy.globalSearch.shortcutMac
     : data.copy.globalSearch.shortcut;
 
-function openGlobalSearch() {
+async function ensureGlobalSearchDialog() {
+  GlobalSearchDialog ??= (
+    await import("$lib/components/shell/GlobalSearchDialog.svelte")
+  ).default;
+}
+
+async function openGlobalSearch() {
+  await ensureGlobalSearchDialog();
   globalSearchOpen = true;
 }
 
-function handleGlobalSearchKeydown(event: KeyboardEvent) {
+async function handleGlobalSearchKeydown(event: KeyboardEvent) {
   if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
     event.preventDefault();
-    openGlobalSearch();
+    await openGlobalSearch();
   }
 }
 
@@ -689,11 +698,14 @@ afterNavigate(({ from, to }) => {
     {/if}
 </Sidebar.Provider>
 
-<GlobalSearchDialog
-  copy={data.copy.globalSearch}
-  bind:open={globalSearchOpen}
-  signedIn={Boolean(viewerUser)}
-  on:openChange={(event) => {
-    globalSearchOpen = event.detail;
-  }}
-/>
+{#if GlobalSearchDialog}
+  <svelte:component
+    this={GlobalSearchDialog}
+    copy={data.copy.globalSearch}
+    bind:open={globalSearchOpen}
+    signedIn={Boolean(viewerUser)}
+    on:openChange={(event) => {
+      globalSearchOpen = event.detail;
+    }}
+  />
+{/if}
