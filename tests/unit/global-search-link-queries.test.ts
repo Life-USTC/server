@@ -11,7 +11,9 @@ describe("searchLinksForGlobal", () => {
   it("matches Chinese queries against English locale results", () => {
     const results = searchLinksForGlobal("邮箱", "en-us", 5);
     expect(results.length).toBeGreaterThan(0);
-    expect(results.some((link) => link.title.includes("USTC Email"))).toBe(true);
+    expect(results.some((link) => link.title.includes("USTC Email"))).toBe(
+      true,
+    );
   });
 
   it("returns empty results for short queries", () => {

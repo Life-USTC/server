@@ -2,7 +2,6 @@
 import SearchIcon from "@lucide/svelte/icons/search";
 import XIcon from "@lucide/svelte/icons/x";
 import { createEventDispatcher } from "svelte";
-import { goto } from "$app/navigation";
 import {
   fetchGlobalSearch,
   GLOBAL_SEARCH_DEBOUNCE_MS,
@@ -12,12 +11,15 @@ import {
 import {
   activeItemIdFromIndex,
   flattenSearchGroups,
-  globalSearchItemDomId,
   GLOBAL_SEARCH_LISTBOX_ID,
+  globalSearchItemDomId,
   handleSearchListboxKeydown,
 } from "@/features/search/lib/global-search-keyboard";
-import type { GlobalSearchResultGroup } from "@/features/search/server/global-search-types";
-import type { GlobalSearchResultItem } from "@/features/search/server/global-search-types";
+import type {
+  GlobalSearchResultGroup,
+  GlobalSearchResultItem,
+} from "@/features/search/server/global-search-types";
+import { goto } from "$app/navigation";
 import GlobalSearchResults from "$lib/components/shell/GlobalSearchResults.svelte";
 import { Button } from "$lib/components/ui/button/index.js";
 import * as Dialog from "$lib/components/ui/dialog/index.js";

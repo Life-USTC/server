@@ -1,8 +1,5 @@
 <script lang="ts">
 import SearchIcon from "@lucide/svelte/icons/search";
-import { afterNavigate } from "$app/navigation";
-import { goto } from "$app/navigation";
-import { page } from "$app/stores";
 import { onMount } from "svelte";
 import {
   fetchGlobalSearch,
@@ -13,12 +10,16 @@ import {
 import {
   activeItemIdFromIndex,
   flattenSearchGroups,
-  globalSearchItemDomId,
   GLOBAL_SEARCH_LISTBOX_ID,
+  globalSearchItemDomId,
   handleSearchListboxKeydown,
 } from "@/features/search/lib/global-search-keyboard";
-import type { GlobalSearchResultGroup } from "@/features/search/server/global-search-types";
-import type { GlobalSearchResultItem } from "@/features/search/server/global-search-types";
+import type {
+  GlobalSearchResultGroup,
+  GlobalSearchResultItem,
+} from "@/features/search/server/global-search-types";
+import { afterNavigate, goto } from "$app/navigation";
+import { page } from "$app/stores";
 import GlobalSearchResults from "$lib/components/shell/GlobalSearchResults.svelte";
 import { cn } from "$lib/utils.js";
 import type { PageData } from "./$types";

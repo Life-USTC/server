@@ -1,8 +1,8 @@
 import { buildCourseListWhere } from "@/features/catalog/server/course-query-filters";
 import { SECTION_SUMMARY_DEFAULT_ORDER_BY } from "@/features/catalog/server/section-summary-read-model";
 import { buildTeacherWhere } from "@/features/catalog/server/teacher-query";
-import type { AppLocale } from "@/i18n/config";
 import type { Prisma } from "@/generated/prisma/client";
+import type { AppLocale } from "@/i18n/config";
 import { getPrisma } from "@/lib/db/prisma";
 import { ilike } from "@/lib/query-filter-helpers";
 

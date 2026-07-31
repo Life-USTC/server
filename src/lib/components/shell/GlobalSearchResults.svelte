@@ -8,8 +8,8 @@ import RouteIcon from "@lucide/svelte/icons/route";
 import SearchXIcon from "@lucide/svelte/icons/search-x";
 import UsersIcon from "@lucide/svelte/icons/users";
 import {
-  GLOBAL_SEARCH_LISTBOX_ID,
   flattenSearchGroups,
+  GLOBAL_SEARCH_LISTBOX_ID,
   globalSearchItemDomId,
 } from "@/features/search/lib/global-search-keyboard";
 import type {
