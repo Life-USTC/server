@@ -115,7 +115,7 @@ describe("global search service", () => {
         title: "Lab 1",
         section: {
           jwId: 42,
-          course: { nameCn: "操作系统", namePrimary: "操作系统" },
+          course: { nameCn: "操作系统", nameEn: "Operating Systems" },
         },
       },
     ]);

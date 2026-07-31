@@ -1,5 +1,6 @@
 import type { AppLocale } from "@/i18n/config";
 import { getCatalogDetailCacheRevision } from "@/lib/catalog-detail-cache-revision";
+import type { PublicRuntimeCacheAnalyticsNamespace } from "@/lib/metrics/analytics-engine";
 import {
   cachedPublicRuntimeData,
   publicRuntimeCacheKey,
@@ -39,7 +40,7 @@ export function publicCatalogColoCacheKey(
 
 export async function buildPublicCatalogRuntimeCacheOptions(input: {
   cacheKey: string;
-  namespace: string;
+  namespace: PublicRuntimeCacheAnalyticsNamespace;
   origin: string;
 }) {
   const revision = await getCatalogDetailCacheRevision();
@@ -59,7 +60,7 @@ export async function buildPublicCatalogRuntimeCacheOptions(input: {
 }
 
 export async function cachedCatalogRuntimeData<T>(
-  namespace: string,
+  namespace: PublicRuntimeCacheAnalyticsNamespace,
   cacheKey: string,
   origin: string,
   load: () => Promise<T>,
@@ -80,7 +81,7 @@ export async function cachedCatalogRuntimeData<T>(
 }
 
 export async function cachedCatalogListRuntimeData<T>(
-  namespace: string,
+  namespace: PublicRuntimeCacheAnalyticsNamespace,
   origin: string,
   searchParams: URLSearchParams,
   load: () => Promise<T>,
@@ -93,6 +94,6 @@ export function catalogListCacheNamespace(
   kind: "courses" | "sections" | "teachers",
   locale: AppLocale,
   scope: "api" | "page",
-) {
+): PublicRuntimeCacheAnalyticsNamespace {
   return `${scope}:${kind}-list:${locale}`;
 }

@@ -70,17 +70,26 @@ type StorageOperationAnalyticsInput = {
 export type PublicRuntimeCacheAnalyticsNamespace =
   | "api:metadata"
   | "api:semesters"
+  | "sitemap"
   | `page:section-detail:overview:${AppLocale}`
+  | `search:catalog:${AppLocale}`
+  | `bus:timetable:${AppLocale}`
   | `${
       | "api:courses"
+      | "api:courses-list"
       | "api:sections"
+      | "api:sections-list"
       | "api:teachers"
+      | "api:teachers-list"
       | "page:course-detail"
       | "page:course-list"
+      | "page:courses-list"
       | "page:section-detail"
       | "page:section-list"
+      | "page:sections-list"
       | "page:teacher-detail"
-      | "page:teacher-list"}:${AppLocale}`;
+      | "page:teacher-list"
+      | "page:teachers-list"}:${AppLocale}`;
 
 export type PublicRuntimeCacheAnalyticsReason =
   | "cache_put_rejected"

@@ -10,6 +10,7 @@ import type {
 } from "@/features/search/server/global-search-types";
 import type { AppLocale } from "@/i18n/config";
 import { cachedCatalogRuntimeData } from "@/lib/catalog-runtime-cache";
+import type { PublicRuntimeCacheAnalyticsNamespace } from "@/lib/metrics/analytics-engine";
 import { withUserDbContext } from "@/lib/db/prisma";
 import { ilike } from "@/lib/query-filter-helpers";
 import { formatSemesterName } from "@/lib/text/format-semester-name";
@@ -113,7 +114,7 @@ async function searchCachedCatalogGroups(input: {
   origin: string;
   query: string;
 }): Promise<GlobalSearchResultGroup[]> {
-  const namespace = `search:catalog:${input.locale}`;
+  const namespace: PublicRuntimeCacheAnalyticsNamespace = `search:catalog:${input.locale}`;
   return cachedCatalogRuntimeData(
     namespace,
     catalogSearchCacheKey(input.query, input.limit),
@@ -123,9 +124,20 @@ async function searchCachedCatalogGroups(input: {
   );
 }
 
+function workspaceCourseName(
+  course: { nameCn: string | null; nameEn: string | null },
+  locale: AppLocale,
+) {
+  if (locale === "en-us") {
+    return course.nameEn ?? course.nameCn ?? "";
+  }
+  return course.nameCn ?? course.nameEn ?? "";
+}
+
 async function searchWorkspaceGroups(
   query: string,
   userId: string,
+  locale: AppLocale,
   limit: number,
 ): Promise<GlobalSearchResultGroup[]> {
   return withUserDbContext(userId, async (tx) => {
@@ -134,8 +146,7 @@ async function searchWorkspaceGroups(
         deletedAt: null,
         title: ilike(query),
         section: {
-          retiredAt: null,
-          subscriptions: { some: { userId } },
+          sectionSubscriptions: { some: { userId } },
         },
       },
       select: {
@@ -146,8 +157,8 @@ async function searchWorkspaceGroups(
             jwId: true,
             course: {
               select: {
-                namePrimary: true,
                 nameCn: true,
+                nameEn: true,
               },
             },
           },
@@ -179,7 +190,7 @@ async function searchWorkspaceGroups(
           id: `homework:${homework.id}`,
           title: homework.title,
           description: homework.section
-            ? catalogPrimaryName(homework.section.course)
+            ? workspaceCourseName(homework.section.course, locale)
             : null,
           href: homework.section?.jwId
             ? `/catalog/sections/${homework.section.jwId}?tab=homework&homeworkId=${encodeURIComponent(homework.id)}`
@@ -229,7 +240,12 @@ export async function searchGlobally(input: {
   let workspaceGroups: GlobalSearchResultGroup[] = [];
   if (input.userId) {
     try {
-      workspaceGroups = await searchWorkspaceGroups(query, input.userId, limit);
+      workspaceGroups = await searchWorkspaceGroups(
+        query,
+        input.userId,
+        input.locale,
+        limit,
+      );
     } catch (error) {
       console.error("Global search workspace query failed", error);
     }
