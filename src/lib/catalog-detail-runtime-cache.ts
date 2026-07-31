@@ -1,12 +1,20 @@
 import type { AppLocale } from "@/i18n/config";
 import { getCatalogDetailCacheRevision } from "@/lib/catalog-detail-cache-revision";
 import {
+  PUBLIC_CATALOG_KV_CACHE_TTL_MS,
+  PUBLIC_CATALOG_RUNTIME_CACHE_TTL_MS,
+} from "@/lib/catalog-runtime-cache";
+import {
   type PublicDetailColoCacheKind,
   publicDetailKvCacheKey,
 } from "@/lib/public-runtime-cache";
 
-export const PUBLIC_DETAIL_RUNTIME_CACHE_TTL_MS = 60_000;
-export const PUBLIC_DETAIL_KV_CACHE_TTL_MS = 3_600_000;
+/** L1 isolate + colo Cache API TTL for anonymous catalog entity core. */
+export const PUBLIC_DETAIL_RUNTIME_CACHE_TTL_MS =
+  PUBLIC_CATALOG_RUNTIME_CACHE_TTL_MS;
+
+/** Cross-PoP KV TTL; revision-scoped keys invalidate on static import. */
+export const PUBLIC_DETAIL_KV_CACHE_TTL_MS = PUBLIC_CATALOG_KV_CACHE_TTL_MS;
 
 export async function buildPublicDetailRuntimeCacheOptions<T>(input: {
   coloCacheKey?: string;

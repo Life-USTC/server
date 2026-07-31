@@ -10,11 +10,9 @@ import {
   toLoadData,
 } from "@/lib/load-data-utils";
 import {
-  cachedPublicRuntimeData,
-  publicRuntimeCacheKey,
-} from "@/lib/public-runtime-cache";
-
-const COURSE_LIST_CACHE_TTL_MS = 60_000;
+  catalogListCacheNamespace,
+  cachedCatalogListRuntimeData,
+} from "@/lib/catalog-runtime-cache";
 
 export async function getCourseListPage(
   url: URL,
@@ -24,10 +22,11 @@ export async function getCourseListPage(
     "/catalog/courses",
     url.searchParams,
   );
-  return cachedPublicRuntimeData(
-    `page:course-list:${locale}`,
-    publicRuntimeCacheKey(`page:course-list:${locale}`, searchParams),
-    COURSE_LIST_CACHE_TTL_MS,
+  const namespace = catalogListCacheNamespace("courses", locale, "page");
+  return cachedCatalogListRuntimeData(
+    namespace,
+    url.origin,
+    searchParams,
     () => getUncachedCourseListPage(searchParams, locale),
   );
 }

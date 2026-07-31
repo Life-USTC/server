@@ -10,11 +10,9 @@ import {
   toLoadData,
 } from "@/lib/load-data-utils";
 import {
-  cachedPublicRuntimeData,
-  publicRuntimeCacheKey,
-} from "@/lib/public-runtime-cache";
-
-const SECTION_LIST_CACHE_TTL_MS = 60_000;
+  catalogListCacheNamespace,
+  cachedCatalogListRuntimeData,
+} from "@/lib/catalog-runtime-cache";
 
 export async function getSectionListPage(
   url: URL,
@@ -24,10 +22,11 @@ export async function getSectionListPage(
     "/catalog/sections",
     url.searchParams,
   );
-  return cachedPublicRuntimeData(
-    `page:section-list:${locale}`,
-    publicRuntimeCacheKey(`page:section-list:${locale}`, searchParams),
-    SECTION_LIST_CACHE_TTL_MS,
+  const namespace = catalogListCacheNamespace("sections", locale, "page");
+  return cachedCatalogListRuntimeData(
+    namespace,
+    url.origin,
+    searchParams,
     () => getUncachedSectionListPage(searchParams, locale),
   );
 }

@@ -1,4 +1,9 @@
+import {
+  cachedCatalogRuntimeData,
+  PUBLIC_CATALOG_RUNTIME_CACHE_TTL_MS,
+} from "@/lib/catalog-runtime-cache";
 import { prisma } from "@/lib/db/prisma";
+import { getCanonicalOrigin } from "@/lib/site-url";
 import { shanghaiDayjs } from "@/lib/time/shanghai-dayjs";
 import { buildRouteSummary } from "../lib/bus-route-descriptions";
 import { buildTripSummary } from "../lib/bus-trip-summary";
@@ -21,16 +26,7 @@ import {
 type StaticBusTimetableData = Omit<BusTimetableData, "preferences">;
 type CachedStaticBusTimetableData = Omit<StaticBusTimetableData, "fetchedAt">;
 
-const STATIC_BUS_TIMETABLE_CACHE_TTL_MS = 60_000;
-const STATIC_BUS_TIMETABLE_CACHE_MAX_ENTRIES = 100;
-const staticBusTimetableCache = new Map<
-  string,
-  { data: CachedStaticBusTimetableData; expiresAt: number }
->();
-const staticBusTimetableLoads = new Map<
-  string,
-  Promise<CachedStaticBusTimetableData | null>
->();
+const STATIC_BUS_TIMETABLE_CACHE_TTL_MS = PUBLIC_CATALOG_RUNTIME_CACHE_TTL_MS;
 
 function busVersionNotice(version: {
   sourceMessage?: string | null;
@@ -56,35 +52,6 @@ function getStaticBusTimetableCacheKey(input: {
       ? { type: "auto" }
       : { key: input.versionKey, type: "explicit" },
   ]);
-}
-
-function pruneExpiredStaticBusTimetableEntries(now: number) {
-  for (const [key, entry] of staticBusTimetableCache) {
-    if (entry.expiresAt <= now) staticBusTimetableCache.delete(key);
-  }
-}
-
-function setBoundedStaticBusTimetableCacheEntry(
-  key: string,
-  value: { data: CachedStaticBusTimetableData; expiresAt: number },
-) {
-  staticBusTimetableCache.delete(key);
-  while (
-    staticBusTimetableCache.size >= STATIC_BUS_TIMETABLE_CACHE_MAX_ENTRIES
-  ) {
-    const oldestKey = staticBusTimetableCache.keys().next().value;
-    if (oldestKey === undefined) break;
-    staticBusTimetableCache.delete(oldestKey);
-  }
-  staticBusTimetableCache.set(key, value);
-}
-
-export function deleteBusTimetableLoadIfCurrent<T>(
-  loads: Map<string, T>,
-  key: string,
-  load: T,
-) {
-  if (loads.get(key) === load) loads.delete(key);
 }
 
 async function loadStaticBusTimetableData(input: {
@@ -160,34 +127,24 @@ export async function getStaticBusTimetableData(
     locale,
     versionKey: input.versionKey,
   });
-  pruneExpiredStaticBusTimetableEntries(Date.now());
-  const cached = staticBusTimetableCache.get(cacheKey);
-  if (cached) {
-    return { ...cached.data, fetchedAt: now.toISOString() };
-  }
 
-  let load = staticBusTimetableLoads.get(cacheKey);
-  if (!load) {
-    load = loadStaticBusTimetableData({
-      dateKey,
-      locale,
-      versionKey: input.versionKey,
-    });
-    staticBusTimetableLoads.set(cacheKey, load);
-  }
+  const data = await cachedCatalogRuntimeData(
+    `bus:timetable:${locale}`,
+    cacheKey,
+    getCanonicalOrigin(),
+    () =>
+      loadStaticBusTimetableData({
+        dateKey,
+        locale,
+        versionKey: input.versionKey,
+      }),
+    {
+      shouldCacheResult: (result) => result !== null,
+      ttlMs: STATIC_BUS_TIMETABLE_CACHE_TTL_MS,
+    },
+  );
 
-  try {
-    const data = await load;
-    if (data && staticBusTimetableLoads.get(cacheKey) === load) {
-      setBoundedStaticBusTimetableCacheEntry(cacheKey, {
-        data,
-        expiresAt: Date.now() + STATIC_BUS_TIMETABLE_CACHE_TTL_MS,
-      });
-    }
-    return data ? { ...data, fetchedAt: now.toISOString() } : null;
-  } finally {
-    deleteBusTimetableLoadIfCurrent(staticBusTimetableLoads, cacheKey, load);
-  }
+  return data ? { ...data, fetchedAt: now.toISOString() } : null;
 }
 
 export async function getBusTimetableData(

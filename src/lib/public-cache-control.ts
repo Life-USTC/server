@@ -1,12 +1,25 @@
+import { CATALOG_EDGE_CACHE_TAG } from "@/lib/catalog-runtime-cache";
+
+const HOUR_SECONDS = 3_600;
+
 export const PUBLIC_CATALOG_CACHE_CONTROL =
   "public, max-age=0, stale-while-revalidate=300";
 
-export const PUBLIC_CATALOG_CDN_CACHE_CONTROL =
-  "public, max-age=60, stale-while-revalidate=300";
+export const PUBLIC_CATALOG_CDN_CACHE_CONTROL = `public, max-age=${24 * HOUR_SECONDS}, stale-while-revalidate=300`;
 
 export const PUBLIC_CATALOG_HEADERS = {
   "Cache-Control": PUBLIC_CATALOG_CACHE_CONTROL,
+  "Cache-Tag": CATALOG_EDGE_CACHE_TAG,
   "Cloudflare-CDN-Cache-Control": PUBLIC_CATALOG_CDN_CACHE_CONTROL,
+} as const;
+
+export const PUBLIC_SEARCH_CACHE_HEADERS = {
+  "Cache-Control":
+    "public, max-age=0, s-maxage=120, stale-while-revalidate=300",
+  "Cache-Tag": CATALOG_EDGE_CACHE_TAG,
+  "Cloudflare-CDN-Cache-Control":
+    "public, max-age=120, stale-while-revalidate=300",
+  Vary: "Accept-Language",
 } as const;
 
 export const PUBLIC_LOCALE_CATALOG_HEADERS = {

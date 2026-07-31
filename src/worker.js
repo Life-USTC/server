@@ -5,6 +5,7 @@ import {
   normalizeCatalogListQuery,
   resolveCatalogListPublicSsrMode,
 } from "./features/catalog/lib/catalog-list-query";
+import { CATALOG_EDGE_CACHE_TAG } from "./lib/catalog-runtime-cache";
 import {
   buildPublicNotFoundHtml,
   PUBLIC_SSR_BROWSER_CACHE_CONTROL,
@@ -44,6 +45,7 @@ function prepareCachedRepresentation(response) {
     "Cloudflare-CDN-Cache-Control",
     PUBLIC_SSR_PAGE_EDGE_CACHE_CONTROL,
   );
+  headers.set("Cache-Tag", CATALOG_EDGE_CACHE_TAG);
   headers.delete("Vary");
   headers.delete("Content-Length");
   return new Response(response.body, {

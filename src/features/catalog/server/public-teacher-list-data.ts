@@ -11,11 +11,9 @@ import {
   toLoadData,
 } from "@/lib/load-data-utils";
 import {
-  cachedPublicRuntimeData,
-  publicRuntimeCacheKey,
-} from "@/lib/public-runtime-cache";
-
-const TEACHER_LIST_CACHE_TTL_MS = 60_000;
+  catalogListCacheNamespace,
+  cachedCatalogListRuntimeData,
+} from "@/lib/catalog-runtime-cache";
 
 export async function getTeacherListPage(
   url: URL,
@@ -25,10 +23,11 @@ export async function getTeacherListPage(
     "/catalog/teachers",
     url.searchParams,
   );
-  return cachedPublicRuntimeData(
-    `page:teacher-list:${locale}`,
-    publicRuntimeCacheKey(`page:teacher-list:${locale}`, searchParams),
-    TEACHER_LIST_CACHE_TTL_MS,
+  const namespace = catalogListCacheNamespace("teachers", locale, "page");
+  return cachedCatalogListRuntimeData(
+    namespace,
+    url.origin,
+    searchParams,
     () => getUncachedTeacherListPage(searchParams, locale),
   );
 }

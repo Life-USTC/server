@@ -39,6 +39,7 @@ export async function getSectionsRoute(request: Request) {
       },
       pagination,
       localeResolution.locale,
+      new URL(request.url).origin,
       localeResolution.cacheHeaders,
     );
   } catch (error) {

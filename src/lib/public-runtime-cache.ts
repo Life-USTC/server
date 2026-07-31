@@ -70,6 +70,10 @@ const globalForPublicRuntimeCache = globalThis as typeof globalThis & {
   __lifeUstcPublicRuntimeCache?: Map<string, CacheEntry<unknown>>;
 };
 
+export function resetPublicRuntimeCacheForTest() {
+  globalForPublicRuntimeCache.__lifeUstcPublicRuntimeCache?.clear();
+}
+
 function cacheStore() {
   globalForPublicRuntimeCache.__lifeUstcPublicRuntimeCache ??= new Map();
   return globalForPublicRuntimeCache.__lifeUstcPublicRuntimeCache;
@@ -153,7 +157,7 @@ function validRuntimeCacheResult(
   validate: ((result: unknown) => boolean) | undefined,
 ) {
   try {
-    return validate?.(value) ?? false;
+    return validate?.(value) ?? true;
   } catch {
     return false;
   }

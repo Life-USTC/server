@@ -10,18 +10,18 @@ import {
   parseRouteQuery,
 } from "@/lib/api/helpers";
 import { semestersQuerySchema } from "@/lib/api/schemas/request-schemas";
+import {
+  cachedCatalogRuntimeData,
+} from "@/lib/catalog-runtime-cache";
 import { PUBLIC_CATALOG_HEADERS } from "@/lib/public-cache-control";
-import { cachedPublicRuntimeData } from "@/lib/public-runtime-cache";
-
-const METADATA_API_CACHE_TTL_MS = 60_000;
-const SEMESTERS_API_CACHE_TTL_MS = 60_000;
+import { getCanonicalOrigin } from "@/lib/site-url";
 
 export async function getMetadataRoute() {
   try {
-    const metadata = await cachedPublicRuntimeData(
+    const metadata = await cachedCatalogRuntimeData(
       "api:metadata",
       "api:metadata",
-      METADATA_API_CACHE_TTL_MS,
+      getCanonicalOrigin(),
       getAcademicMetadata,
     );
 
@@ -47,10 +47,11 @@ export async function getSemestersRoute(request: Request) {
     }
     const { page, pageSize } = parsed.pagination;
 
-    const result = await cachedPublicRuntimeData(
+    const origin = new URL(request.url).origin;
+    const result = await cachedCatalogRuntimeData(
       "api:semesters",
       `api:semesters:${JSON.stringify({ page, pageSize })}`,
-      SEMESTERS_API_CACHE_TTL_MS,
+      origin,
       () => listSemesters({ page, pageSize }),
     );
 

@@ -1,20 +1,22 @@
 import {
-  listCourseSummaries,
-  listSectionSummaries,
-  listTeacherSummaries,
-} from "@/features/catalog/server/course-section-queries";
+  searchCoursesForGlobal,
+  searchSectionsForGlobal,
+  searchTeachersForGlobal,
+} from "@/features/search/server/global-search-catalog-queries";
 import type {
   GlobalSearchResponse,
   GlobalSearchResultGroup,
   GlobalSearchResultItem,
 } from "@/features/search/server/global-search-types";
 import type { AppLocale } from "@/i18n/config";
+import { cachedCatalogRuntimeData } from "@/lib/catalog-runtime-cache";
 import { withUserDbContext } from "@/lib/db/prisma";
 import { ilike } from "@/lib/query-filter-helpers";
 import { formatSemesterName } from "@/lib/text/format-semester-name";
 
 const DEFAULT_LIMIT = 5;
 const MIN_QUERY_LENGTH = 2;
+const SEARCH_CACHE_TTL_MS = 120_000;
 
 function catalogPrimaryName(item: {
   nameCn?: string | null;
@@ -68,40 +70,28 @@ async function searchCatalogGroups(
   limit: number,
 ): Promise<GlobalSearchResultGroup[]> {
   const [courses, sections, teachers] = await Promise.all([
-    listCourseSummaries({
-      filters: { search: query },
-      locale,
-      pagination: { page: 1, pageSize: limit },
-    }),
-    listSectionSummaries({
-      filters: { search: query },
-      locale,
-      pagination: { page: 1, pageSize: limit },
-    }),
-    listTeacherSummaries({
-      filters: { search: query },
-      locale,
-      pagination: { page: 1, pageSize: limit },
-    }),
+    searchCoursesForGlobal(query, locale, limit),
+    searchSectionsForGlobal(query, locale, limit),
+    searchTeachersForGlobal(query, locale, limit),
   ]);
 
   const groups: GlobalSearchResultGroup[] = [];
-  if (courses.data.length > 0) {
+  if (courses.length > 0) {
     groups.push({
       type: "courses",
-      items: courses.data.map(toCourseItem),
+      items: courses.map(toCourseItem),
     });
   }
-  if (sections.data.length > 0) {
+  if (sections.length > 0) {
     groups.push({
       type: "sections",
-      items: sections.data.map((section) => toSectionItem(section, locale)),
+      items: sections.map((section) => toSectionItem(section, locale)),
     });
   }
-  if (teachers.data.length > 0) {
+  if (teachers.length > 0) {
     groups.push({
       type: "teachers",
-      items: teachers.data.map((teacher) => ({
+      items: teachers.map((teacher) => ({
         id: `teacher:${teacher.id}`,
         title: teacher.nameCn,
         description: teacher.department?.nameCn ?? teacher.code,
@@ -197,9 +187,38 @@ async function searchWorkspaceGroups(
   });
 }
 
+function searchCacheKey(
+  _locale: AppLocale,
+  query: string,
+  limit: number,
+  userId: string | null | undefined,
+) {
+  return `${userId ?? "anon"}:${limit}:${query}`;
+}
+
+async function loadSearchResponse(input: {
+  limit: number;
+  locale: AppLocale;
+  query: string;
+  userId?: string | null;
+}): Promise<GlobalSearchResponse> {
+  const [catalogGroups, workspaceGroups] = await Promise.all([
+    searchCatalogGroups(input.query, input.locale, input.limit),
+    input.userId
+      ? searchWorkspaceGroups(input.query, input.userId, input.limit)
+      : Promise.resolve([]),
+  ]);
+
+  return {
+    query: input.query,
+    groups: [...catalogGroups, ...workspaceGroups],
+  };
+}
+
 export async function searchGlobally(input: {
   limit?: number;
   locale: AppLocale;
+  origin: string;
   query: string;
   userId?: string | null;
 }): Promise<GlobalSearchResponse> {
@@ -209,17 +228,22 @@ export async function searchGlobally(input: {
     return { query, groups: [] };
   }
 
-  const [catalogGroups, workspaceGroups] = await Promise.all([
-    searchCatalogGroups(query, input.locale, limit),
-    input.userId
-      ? searchWorkspaceGroups(query, input.userId, limit)
-      : Promise.resolve([]),
-  ]);
+  const namespace = `search:${input.locale}`;
+  const cacheKey = searchCacheKey(input.locale, query, limit, input.userId);
 
-  return {
-    query,
-    groups: [...catalogGroups, ...workspaceGroups],
-  };
+  return cachedCatalogRuntimeData(
+    namespace,
+    cacheKey,
+    input.origin,
+    () =>
+      loadSearchResponse({
+        limit,
+        locale: input.locale,
+        query,
+        userId: input.userId,
+      }),
+    { ttlMs: SEARCH_CACHE_TTL_MS },
+  );
 }
 
 export function hasGlobalSearchQuery(query: string) {

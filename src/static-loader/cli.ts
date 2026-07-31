@@ -2,6 +2,8 @@ import "dotenv/config";
 import { createHash } from "node:crypto";
 import { createReadStream, existsSync } from "node:fs";
 import { writeFile } from "node:fs/promises";
+import { CATALOG_EDGE_CACHE_TAG } from "../lib/catalog-runtime-cache";
+import { purgeCloudflareCacheByTags } from "../lib/cloudflare/edge-cache-purge";
 import { runImport } from "./import";
 import { createPrismaClient } from "./prisma";
 import { Snapshot } from "./snapshot";
@@ -100,6 +102,21 @@ async function main() {
       expectedSectionRetirementCandidates,
     });
     console.log("Import report:", report);
+
+    if (!dryRun) {
+      const purgeResult = await purgeCloudflareCacheByTags([
+        CATALOG_EDGE_CACHE_TAG,
+      ]);
+      if (purgeResult.skipped) {
+        console.log(
+          "Skipped Cloudflare edge cache purge (CLOUDFLARE_ZONE_ID or CLOUDFLARE_API_TOKEN not set)",
+        );
+      } else {
+        console.log(
+          `Purged Cloudflare edge cache for tag: ${CATALOG_EDGE_CACHE_TAG}`,
+        );
+      }
+    }
 
     const statsFile = process.env.STATIC_LOADER_STATS_FILE;
     if (statsFile) {
