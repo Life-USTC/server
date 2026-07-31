@@ -1,5 +1,6 @@
 import type { AppLocale } from "@/i18n/config";
 import { getCatalogDetailCacheRevision } from "@/lib/catalog-detail-cache-revision";
+import { CATALOG_EDGE_CACHE_TAG } from "@/lib/catalog-edge-cache-tag";
 import type { PublicRuntimeCacheAnalyticsNamespace } from "@/lib/metrics/analytics-engine";
 import {
   cachedPublicRuntimeData,
@@ -14,7 +15,7 @@ export const PUBLIC_CATALOG_RUNTIME_CACHE_TTL_MS = 24 * HOUR_MS;
 /** Cross-PoP KV TTL for catalog list, metadata, search, and sitemap caches. */
 export const PUBLIC_CATALOG_KV_CACHE_TTL_MS = 24 * HOUR_MS;
 
-export const CATALOG_EDGE_CACHE_TAG = "catalog";
+export { CATALOG_EDGE_CACHE_TAG };
 
 const PUBLIC_CATALOG_COLO_CACHE_PATH =
   "/_life-ustc-internal-cache/catalog-runtime/v1";
