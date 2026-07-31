@@ -10,8 +10,8 @@ import type {
 } from "@/features/search/server/global-search-types";
 import type { AppLocale } from "@/i18n/config";
 import { cachedCatalogRuntimeData } from "@/lib/catalog-runtime-cache";
-import type { PublicRuntimeCacheAnalyticsNamespace } from "@/lib/metrics/analytics-engine";
 import { withUserDbContext } from "@/lib/db/prisma";
+import type { PublicRuntimeCacheAnalyticsNamespace } from "@/lib/metrics/analytics-engine";
 import { ilike } from "@/lib/query-filter-helpers";
 import { formatSemesterName } from "@/lib/text/format-semester-name";
 
