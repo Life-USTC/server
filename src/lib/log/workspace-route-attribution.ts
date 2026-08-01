@@ -126,7 +126,9 @@ function writeWorkspaceRouteStageAnalyticsForRoute(input: {
   writeWorkspaceRouteStageAnalytics({
     ioObservedDurationMs: input.ioObservedDurationMs,
     route: "subscriptions_current",
-    stage: input.stage as WorkspaceSubscriptionsCurrentRouteStage | "db_context",
+    stage: input.stage as
+      | WorkspaceSubscriptionsCurrentRouteStage
+      | "db_context",
     status: input.status,
   });
 }
