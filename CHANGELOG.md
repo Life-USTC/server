@@ -1,3 +1,24 @@
+# [1.83.0](https://github.com/Life-USTC/server/compare/v1.82.0...v1.83.0) (2026-08-01)
+
+
+### Bug Fixes
+
+* **mcp:** compact workspace_schedule_next default output ([#716](https://github.com/Life-USTC/server/issues/716)) ([28fbf9a](https://github.com/Life-USTC/server/commit/28fbf9a53a436a1168b9627baaebee92dc06478f))
+* **workspace:** match withHomeworkItemState arity on main ([da4ac17](https://github.com/Life-USTC/server/commit/da4ac17eeb236c165f1dfebf7c0cc1e0a199d6b1))
+
+
+### Features
+
+* **observability:** add sampled workspace route stage attribution ([#672](https://github.com/Life-USTC/server/issues/672)) ([79ef8be](https://github.com/Life-USTC/server/commit/79ef8bed40b5ba2d659c6ba0bae8c5e69463d75a))
+
+
+### Performance Improvements
+
+* **bundle:** lazy-load catalog and section detail client tabs ([#533](https://github.com/Life-USTC/server/issues/533)) ([#720](https://github.com/Life-USTC/server/issues/720)) ([dce3915](https://github.com/Life-USTC/server/commit/dce3915711762a6112b5df64673db69e1083b848))
+* **catalog:** extend client-tab shell to course and teacher detail ([#710](https://github.com/Life-USTC/server/issues/710)) ([#724](https://github.com/Life-USTC/server/issues/724)) ([a687019](https://github.com/Life-USTC/server/commit/a68701941db41a45b941955af654ac675764e77e)), closes [#703](https://github.com/Life-USTC/server/issues/703)
+* **dashboard:** parallelize overview independent reads ([#714](https://github.com/Life-USTC/server/issues/714)) ([221471c](https://github.com/Life-USTC/server/commit/221471ca92698ea548d2a3ca7ed9017378c4910b))
+* **observability:** attribute page SSR class and catalog detail tab ([#715](https://github.com/Life-USTC/server/issues/715)) ([70f84b7](https://github.com/Life-USTC/server/commit/70f84b787877f3f98c3ba10626c64c7f060a161d)), closes [#530](https://github.com/Life-USTC/server/issues/530)
+
 # [1.82.0](https://github.com/Life-USTC/server/compare/v1.81.1...v1.82.0) (2026-07-31)
 
 
