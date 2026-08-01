@@ -99,6 +99,21 @@ function target(whereTarget: Record<string, number | string>) {
   } satisfies Parameters<typeof loadCommentThread>[0]["target"];
 }
 
+function rawQuerySql(query: unknown): string {
+  if (Array.isArray(query)) {
+    return query.join("");
+  }
+  if (
+    query &&
+    typeof query === "object" &&
+    "strings" in query &&
+    Array.isArray((query as { strings: string[] }).strings)
+  ) {
+    return (query as { strings: string[] }).strings.join(" ");
+  }
+  return "";
+}
+
 describe("loadCommentThread pagination", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -110,12 +125,12 @@ describe("loadCommentThread pagination", () => {
     reactionSummaryQueryMock.mockResolvedValue([]);
     attachmentSummaryQueryMock.mockResolvedValue([]);
     contextQueryMock.mockImplementation((query) =>
-      query.strings.join(" ").includes("comment_attachment_summaries")
+      rawQuerySql(query).includes("comment_attachment_summaries")
         ? attachmentSummaryQueryMock(query)
         : reactionSummaryQueryMock(query),
     );
     publicQueryMock.mockImplementation((query) => {
-      const sql = query?.strings?.join?.(" ") ?? "";
+      const sql = rawQuerySql(query);
       if (sql.includes("comment_hidden_root_count")) {
         return Promise.resolve([{ count: 0n }]);
       }
