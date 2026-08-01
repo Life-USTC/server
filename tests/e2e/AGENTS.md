@@ -91,7 +91,12 @@ await page.waitForTimeout(1000); // rejected by $life-ustc-dev-loop checks
 
 ## Concurrency
 
-The canonical Playwright run uses one worker because multiple files mutate the
+The canonical full-suite command is `bun run e2e:test`, which runs four CI
+shards sequentially and reseeds the database before each shard. Do not use a
+single unsharded `playwright test` invocation as a release gate; it reuses one
+seed across all files and projects while CI gives each shard a fresh database.
+
+Within a shard, Playwright uses one worker because multiple files mutate the
 same seeded debug user. Files with shared-state mutations also use
 `test.describe.configure({ mode: "serial" })` to make the dependency explicit.
 Current examples:
