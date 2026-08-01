@@ -24,7 +24,11 @@ high-cardinality resource IDs.
   diagnosis.
 - Successful page completion logs are deterministically sampled at 10% in
   production while the full Analytics Engine datapoint remains unsampled. Responses
-  taking at least one second and all 4xx/5xx outcomes remain in logs. API
+  taking at least one second and all 4xx/5xx outcomes remain in logs. Page finish
+  and error logs and `page_request_v2` datapoints include low-cardinality route
+  attribution: normalized route id, `public-ssr` vs `dynamic-ssr` class, auth
+  signal presence (`present`/`absent`), and catalog detail tab when the route is a
+  course, section, or teacher detail page (`not_applicable` otherwise). API
   requests emit one finish or error event rather than a redundant start event.
 - Production API request metrics are written to Cloudflare Analytics Engine.
 - API request metrics live in `src/lib/log/api-observability-recording.ts`.

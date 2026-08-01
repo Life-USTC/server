@@ -18,6 +18,11 @@ describe("页面性能可观测性", () => {
     setCloudflareRuntimeEnv({ ANALYTICS: { writeDataPoint } });
 
     recordPageRequestFinish({
+      attribution: {
+        authSignalPresence: "present",
+        catalogDetailTab: "not_applicable",
+        ssrClass: "dynamic-ssr",
+      },
       authMode: "authenticated",
       locale: "zh-cn",
       method: "GET",
@@ -44,6 +49,9 @@ describe("页面性能可观测性", () => {
         "zh-cn",
         "authenticated",
         "response_bytes_known",
+        "dynamic-ssr",
+        "present",
+        "not_applicable",
       ],
       doubles: [95, 200, 12345, 12, 80],
     });
@@ -58,6 +66,11 @@ describe("页面性能可观测性", () => {
     setCloudflareRuntimeEnv({ ANALYTICS: { writeDataPoint } });
 
     recordPageRequestFinish({
+      attribution: {
+        authSignalPresence: "absent",
+        catalogDetailTab: "not_applicable",
+        ssrClass: "dynamic-ssr",
+      },
       authMode: "anonymous",
       locale: "en-us",
       method: "GET",
@@ -83,6 +96,9 @@ describe("页面性能可观测性", () => {
         "en-us",
         "anonymous",
         "response_bytes_unknown",
+        "dynamic-ssr",
+        "absent",
+        "not_applicable",
       ],
       doubles: [6, 404, 0, 0, 5],
     });
@@ -95,6 +111,11 @@ describe("页面性能可观测性", () => {
     setCloudflareRuntimeEnv({ ANALYTICS: { writeDataPoint } });
 
     recordPageRequestFinish({
+      attribution: {
+        authSignalPresence: "absent",
+        catalogDetailTab: "not_applicable",
+        ssrClass: "dynamic-ssr",
+      },
       authMode: "anonymous",
       locale: "zh-cn",
       method: "GET",
@@ -124,6 +145,11 @@ describe("页面性能可观测性", () => {
 
     expect(() =>
       recordPageRequestFinish({
+        attribution: {
+          authSignalPresence: "absent",
+          catalogDetailTab: "not_applicable",
+          ssrClass: "dynamic-ssr",
+        },
         authMode: "anonymous",
         locale: "zh-cn",
         method: "GET",
@@ -143,6 +169,11 @@ describe("页面性能可观测性", () => {
     const error = vi.spyOn(console, "error").mockImplementation(() => {});
 
     recordPageRequestFinish({
+      attribution: {
+        authSignalPresence: "absent",
+        catalogDetailTab: "not_applicable",
+        ssrClass: "dynamic-ssr",
+      },
       authMode: "anonymous",
       locale: "zh-cn",
       method: "POST",
@@ -172,6 +203,11 @@ describe("页面性能可观测性", () => {
     setCloudflareRuntimeEnv({ ANALYTICS: { writeDataPoint } });
 
     recordPageRequestError({
+      attribution: {
+        authSignalPresence: "present",
+        catalogDetailTab: "not_applicable",
+        ssrClass: "dynamic-ssr",
+      },
       authMode: "authenticated",
       errorName: "TypeError",
       locale: "en-us",
