@@ -60,9 +60,14 @@ test.describe("/catalog/courses 课程目录", () => {
   });
 
   test("目录链接悬停时不预取 __data.json", async ({ page }) => {
-    await gotoAndWaitForReady(page, "/catalog/courses");
+    await gotoAndWaitForReady(
+      page,
+      `/catalog/courses?search=${encodeURIComponent(DEV_SEED.course.code)}`,
+    );
     const courseLink = page
-      .locator(`a[href="/catalog/courses/${DEV_SEED.course.jwId}"]`)
+      .locator(
+        `#main-content a[href="/catalog/courses/${DEV_SEED.course.jwId}"]:visible`,
+      )
       .first();
     await expect(courseLink).toBeVisible();
 
