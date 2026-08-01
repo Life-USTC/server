@@ -1,4 +1,8 @@
 import { error, redirect } from "@sveltejs/kit";
+import {
+  type CatalogDetailTab,
+  parseCatalogDetailTab,
+} from "@/features/catalog/lib/catalog-detail-tab";
 import { catalogPrimaryName } from "@/features/catalog/lib/catalog-list-display";
 import {
   buildCourseStructuredData,
@@ -26,23 +30,15 @@ import {
   getTeacherDetailCopy,
 } from "./catalog-detail-copy";
 
-export type CourseDetailRouteSection =
-  | "overview"
-  | "introduction"
-  | "sections"
-  | "comments";
+export type CourseDetailRouteSection = CatalogDetailTab;
+export type TeacherDetailRouteSection = CatalogDetailTab;
 
-export type TeacherDetailRouteSection =
-  | "overview"
-  | "introduction"
-  | "sections"
-  | "comments";
-
-const catalogDetailRouteSections = new Set([
-  "introduction",
-  "sections",
-  "comments",
-]);
+function resolveCatalogDetailInitialTab(
+  section: string | undefined,
+  url: URL,
+): CatalogDetailTab {
+  return parseCatalogDetailTab(section ?? url.searchParams.get("tab"));
+}
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === "object";
@@ -72,15 +68,6 @@ function isPublicTeacherCore(value: unknown, id: number) {
   );
 }
 
-function resolveCatalogDetailRouteSection(
-  section: string | undefined,
-): CourseDetailRouteSection | null {
-  if (!section) return "overview";
-  return catalogDetailRouteSections.has(section)
-    ? (section as CourseDetailRouteSection)
-    : null;
-}
-
 export async function loadCourseDetailPage({
   locals,
   params,
@@ -92,11 +79,10 @@ export async function loadCourseDetailPage({
   url: URL;
 }) {
   const copy = getCourseDetailCopy(locals.locale);
-  const detailSection = resolveCatalogDetailRouteSection(params.section);
-  if (!detailSection) error(404, copy.notFound.description);
+  const initialTab = resolveCatalogDetailInitialTab(params.section, url);
   const jwId = Number(params.jwId);
   if (!Number.isInteger(jwId)) error(404, copy.notFound.description);
-  const includeSections = detailSection === "sections";
+  const includeSections = initialTab === "sections";
   const loadCourse = () =>
     getCoursePage(jwId, locals.locale, { includeSections });
   const courseCacheOptions =
@@ -130,17 +116,23 @@ export async function loadCourseDetailPage({
   ]);
   if (!course) error(404, copy.notFound.description);
   if (course.jwId !== jwId) {
-    const sectionPath = detailSection === "overview" ? "" : `/${detailSection}`;
-    redirect(308, `/catalog/courses/${course.jwId}${sectionPath}${url.search}`);
+    const redirectUrl = new URL(`/catalog/courses/${course.jwId}`, url.origin);
+    for (const [key, value] of url.searchParams) {
+      redirectUrl.searchParams.append(key, value);
+    }
+    if (initialTab !== "overview") {
+      redirectUrl.searchParams.set("tab", initialTab);
+    }
+    redirect(308, `${redirectUrl.pathname}${redirectUrl.search}`);
   }
   const displayName = catalogPrimaryName(course) || course.code;
   const includeDescription =
-    detailSection === "introduction" || detailSection === "overview";
+    initialTab === "introduction" || initialTab === "overview";
   const { commentsData, descriptionData } = await loadCatalogDetailCommentsData(
     {
-      includeComments: detailSection === "comments",
+      includeComments: false,
       includeDescription,
-      includeDescriptionHistory: detailSection === "introduction",
+      includeDescriptionHistory: initialTab === "introduction",
       targetId: course.id,
       type: "course",
       viewer,
@@ -170,7 +162,7 @@ export async function loadCourseDetailPage({
     copy,
     descriptionData,
     commentsData,
-    detailSection,
+    detailSection: initialTab,
     socialMetadata,
     structuredDataJson: serializeStructuredData(
       buildCourseStructuredData({
@@ -198,11 +190,10 @@ export async function loadTeacherDetailPage({
   url: URL;
 }) {
   const copy = getTeacherDetailCopy(locals.locale);
-  const detailSection = resolveCatalogDetailRouteSection(params.section);
-  if (!detailSection) error(404, copy.notFound.description);
+  const initialTab = resolveCatalogDetailInitialTab(params.section, url);
   const id = Number(params.id);
   if (!Number.isInteger(id)) error(404, copy.notFound.description);
-  const includeSections = detailSection === "sections";
+  const includeSections = initialTab === "sections";
   const loadTeacher = () =>
     getTeacherPage(id, locals.locale, { includeSections });
   const teacherCacheOptions =
@@ -237,12 +228,12 @@ export async function loadTeacherDetailPage({
   if (!teacher) error(404, copy.notFound.description);
   const displayName = catalogPrimaryName(teacher);
   const includeDescription =
-    detailSection === "introduction" || detailSection === "overview";
+    initialTab === "introduction" || initialTab === "overview";
   const { commentsData, descriptionData } = await loadCatalogDetailCommentsData(
     {
-      includeComments: detailSection === "comments",
+      includeComments: false,
       includeDescription,
-      includeDescriptionHistory: detailSection === "introduction",
+      includeDescriptionHistory: initialTab === "introduction",
       targetId: teacher.id,
       type: "teacher",
       viewer,
@@ -277,7 +268,7 @@ export async function loadTeacherDetailPage({
     copy,
     descriptionData,
     commentsData,
-    detailSection,
+    detailSection: initialTab,
     socialMetadata,
     structuredDataJson: serializeStructuredData(
       buildTeacherStructuredData({

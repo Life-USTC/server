@@ -213,7 +213,7 @@ test.describe("/catalog/teachers/[id] 教师详情页", () => {
     ).toBeVisible();
 
     await jumpToTeacherSection(page, /评论|Comments/i, "#teacher-comments");
-    await expect(page).toHaveURL(/\/catalog\/teachers\/\d+\/comments$/);
+    await expect(page).toHaveURL(/\/catalog\/teachers\/\d+\?tab=comments$/);
     await captureStepScreenshot(page, testInfo, "teacher/detail-nav");
   });
 
@@ -323,7 +323,7 @@ test.describe("/catalog/teachers/[id] 教师详情页", () => {
           await navigateToSeedTeacher(page);
         }
         await jumpToTeacherSection(page, /评论|Comments/i, "#teacher-comments");
-        await expect(page).toHaveURL(/\/catalog\/teachers\/\d+\/comments$/);
+        await expect(page).toHaveURL(/\/catalog\/teachers\/\d+\?tab=comments$/);
       }).toPass({
         timeout: 10_000,
         intervals: [250, 500, 1_000],

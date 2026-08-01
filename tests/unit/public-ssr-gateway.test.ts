@@ -5,9 +5,11 @@ import {
   PUBLIC_SSR_BROWSER_CACHE_CONTROL,
   PUBLIC_SSR_PAGE_EDGE_CACHE_CONTROL,
   resolvePublicSsrMode as resolveBasePublicSsrMode,
+  resolveCourseDetailTabRedirect,
   resolveLegacyCatalogRedirect,
   resolvePublicSsrLocale,
   resolveSectionDetailTabRedirect,
+  resolveTeacherDetailTabRedirect,
 } from "@/lib/cloudflare/public-ssr-gateway";
 
 function resolvePublicSsrMode(request: Request) {
@@ -45,8 +47,21 @@ describe("public SSR gateway", () => {
       "/catalog/sections/159446/calendar?page=2",
       "/catalog/sections/159446?page=2&tab=calendar",
     ],
-  ])("redirects legacy section tab path %s to query tab", (path, target) => {
-    expect(resolveSectionDetailTabRedirect(request(path))).toBe(target);
+    [
+      "/catalog/courses/11145/introduction",
+      "/catalog/courses/11145?tab=introduction",
+    ],
+    [
+      "/catalog/courses/11145/sections?page=2",
+      "/catalog/courses/11145?page=2&tab=sections",
+    ],
+    ["/catalog/teachers/42/comments", "/catalog/teachers/42?tab=comments"],
+  ])("redirects legacy catalog tab path %s to query tab", (path, target) => {
+    const redirect =
+      resolveSectionDetailTabRedirect(request(path)) ??
+      resolveCourseDetailTabRedirect(request(path)) ??
+      resolveTeacherDetailTabRedirect(request(path));
+    expect(redirect).toBe(target);
   });
 
   test("does not redirect a non-read legacy request", () => {
@@ -80,26 +95,26 @@ describe("public SSR gateway", () => {
 
   test.each([
     "/catalog/courses/11145",
-    "/catalog/courses/11145/introduction",
-    "/catalog/courses/11145/sections",
-    "/catalog/courses/11145/comments",
     "/catalog/teachers/42",
-    "/catalog/teachers/42/introduction",
-    "/catalog/teachers/42/sections",
-    "/catalog/teachers/42/comments",
     "/catalog/sections/159446",
   ])("caches canonical anonymous catalog detail page %s", (path) => {
     expect(resolvePublicSsrMode(request(path))).toBe("page");
   });
 
   test.each([
+    "/catalog/courses/11145/introduction",
+    "/catalog/courses/11145/sections",
+    "/catalog/courses/11145/comments",
+    "/catalog/teachers/42/introduction",
+    "/catalog/teachers/42/sections",
+    "/catalog/teachers/42/comments",
     "/catalog/sections/159446/introduction",
     "/catalog/sections/159446/calendar",
     "/catalog/sections/159446/exams",
     "/catalog/sections/159446/homework",
     "/catalog/sections/159446/teachers",
     "/catalog/sections/159446/comments",
-  ])("bypasses legacy section tab path %s", (path) => {
+  ])("bypasses legacy catalog tab path %s", (path) => {
     expect(resolvePublicSsrMode(request(path))).toBeNull();
   });
 

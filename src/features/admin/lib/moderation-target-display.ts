@@ -4,6 +4,10 @@ import type {
   ModerationDescriptionLike,
 } from "@/features/admin/lib/moderation-display-types";
 import {
+  courseDetailPagePath,
+  teacherDetailPagePath,
+} from "@/features/catalog/lib/catalog-detail-tab";
+import {
   commentPermalinkHref,
   commentTargetPermalinkBaseHref,
 } from "@/features/comments/lib/comment-panel-links";
@@ -115,9 +119,9 @@ export function moderationDescriptionTargetHref(
   if (description.section?.jwId)
     return sectionDetailPagePath(description.section.jwId, "introduction");
   if (description.course?.jwId)
-    return `/catalog/courses/${description.course.jwId}/introduction`;
+    return courseDetailPagePath(description.course.jwId, "introduction");
   if (description.teacher?.id)
-    return `/catalog/teachers/${description.teacher.id}/introduction`;
+    return teacherDetailPagePath(description.teacher.id, "introduction");
   if (description.homework?.id) return "/admin/moderation?tab=homeworks";
   return "/admin/moderation?tab=descriptions";
 }
