@@ -1,12 +1,16 @@
-import { runCloudflareTraceSpan } from "@/lib/adapters/cloudflare-runtime";
 import { handleRouteError, jsonResponse } from "@/lib/api/helpers";
 import { getRequestLocale } from "@/lib/api/routes/request-locale";
 import { requireAuth } from "@/lib/auth/api-auth";
+import {
+  runWithWorkspaceRouteAttribution,
+  runWorkspaceRouteStage,
+} from "@/lib/log/workspace-route-attribution";
 
 export async function getSubscribedHomeworksRoute(request: Request) {
-  const auth = await runCloudflareTraceSpan(
-    "workspace.homeworks.auth",
-    {},
+  const auth = await runWorkspaceRouteStage(
+    "homeworks",
+    "auth",
+    { request },
     () =>
       requireAuth(request, {
         bearerScope: { feature: "workspace.homework", action: "read" },
@@ -16,67 +20,70 @@ export async function getSubscribedHomeworksRoute(request: Request) {
   const { userId } = auth;
   const locale = getRequestLocale(request);
 
-  try {
-    const [{ getViewerContext }, subscriptionReadModel, homeworkItemState] =
-      await Promise.all([
-        import("@/lib/auth/viewer-context"),
-        import("@/features/subscriptions/server/subscription-read-model"),
-        import("@/features/homeworks/server/homework-item-state"),
+  return runWithWorkspaceRouteAttribution("homeworks", request, async () => {
+    try {
+      const [{ getViewerContext }, subscriptionReadModel, homeworkItemState] =
+        await Promise.all([
+          import("@/lib/auth/viewer-context"),
+          import("@/features/subscriptions/server/subscription-read-model"),
+          import("@/features/homeworks/server/homework-item-state"),
+        ]);
+      const {
+        getSubscribedSectionIds,
+        listSubscribedHomeworkAuditLogs,
+        listSubscribedHomeworks,
+      } = subscriptionReadModel;
+      const { withHomeworkItemState } = homeworkItemState;
+
+      const [viewer, sectionIds] = await Promise.all([
+        runWorkspaceRouteStage("homeworks", "viewer", { request }, () =>
+          getViewerContext({
+            includeAdmin: true,
+            userId,
+          }),
+        ),
+        runWorkspaceRouteStage("homeworks", "section_ids", { request }, () =>
+          getSubscribedSectionIds(userId),
+        ),
       ]);
-    const {
-      getSubscribedSectionIds,
-      listSubscribedHomeworkAuditLogs,
-      listSubscribedHomeworks,
-    } = subscriptionReadModel;
-    const { withHomeworkItemState } = homeworkItemState;
 
-    const [viewer, sectionIds] = await Promise.all([
-      runCloudflareTraceSpan("workspace.homeworks.viewer", {}, () =>
-        getViewerContext({
-          includeAdmin: true,
-          userId,
-        }),
-      ),
-      runCloudflareTraceSpan("workspace.homeworks.section_ids", {}, () =>
-        getSubscribedSectionIds(userId),
-      ),
-    ]);
+      if (sectionIds.length === 0) {
+        return jsonResponse({
+          viewer,
+          homeworks: [],
+          auditLogs: [],
+          sectionIds: [],
+        });
+      }
 
-    if (sectionIds.length === 0) {
+      const [homeworks, auditLogs] = await Promise.all([
+        runWorkspaceRouteStage("homeworks", "read", { request }, () =>
+          listSubscribedHomeworks(userId, {
+            locale,
+            includeEditors: true,
+            sectionIds,
+          }),
+        ),
+        runWorkspaceRouteStage("homeworks", "audit", { request }, () =>
+          listSubscribedHomeworkAuditLogs(userId, 50, sectionIds),
+        ),
+      ]);
+
+      const responseHomeworks = await runWorkspaceRouteStage(
+        "homeworks",
+        "item_state",
+        { request },
+        () => withHomeworkItemState(homeworks, userId),
+      );
+
       return jsonResponse({
         viewer,
-        homeworks: [],
-        auditLogs: [],
-        sectionIds: [],
+        homeworks: responseHomeworks,
+        auditLogs,
+        sectionIds,
       });
+    } catch (error) {
+      return handleRouteError("Failed to fetch subscribed homeworks", error);
     }
-
-    const [homeworks, auditLogs] = await Promise.all([
-      runCloudflareTraceSpan("workspace.homeworks.read", {}, () =>
-        listSubscribedHomeworks(userId, {
-          locale,
-          includeEditors: true,
-          sectionIds,
-        }),
-      ),
-      runCloudflareTraceSpan("workspace.homeworks.audit", {}, () =>
-        listSubscribedHomeworkAuditLogs(userId, 50, sectionIds),
-      ),
-    ]);
-
-    const responseHomeworks = await runCloudflareTraceSpan(
-      "workspace.homeworks.item_state",
-      {},
-      () => withHomeworkItemState(homeworks),
-    );
-
-    return jsonResponse({
-      viewer,
-      homeworks: responseHomeworks,
-      auditLogs,
-      sectionIds,
-    });
-  } catch (error) {
-    return handleRouteError("Failed to fetch subscribed homeworks", error);
-  }
+  });
 }

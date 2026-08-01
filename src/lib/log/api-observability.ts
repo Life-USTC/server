@@ -12,3 +12,7 @@ export {
   recordObservedApiError,
   recordObservedApiResponse,
 } from "@/lib/log/api-observability-wrapper";
+export {
+  runWithWorkspaceRouteAttribution,
+  runWorkspaceRouteStage,
+} from "@/lib/log/workspace-route-attribution";

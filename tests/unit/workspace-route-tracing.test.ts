@@ -22,9 +22,23 @@ const {
   withHomeworkItemStateMock: vi.fn(),
 }));
 
-vi.mock("@/lib/adapters/cloudflare-runtime", () => ({
-  runCloudflareTraceSpan: runCloudflareTraceSpanMock,
-}));
+vi.mock("@/lib/adapters/cloudflare-runtime", async (importOriginal) => {
+  const actual =
+    await importOriginal<typeof import("@/lib/adapters/cloudflare-runtime")>();
+  return {
+    ...actual,
+    runCloudflareTraceSpan: runCloudflareTraceSpanMock,
+  };
+});
+
+vi.mock("@/lib/metrics/analytics-engine", async (importOriginal) => {
+  const actual =
+    await importOriginal<typeof import("@/lib/metrics/analytics-engine")>();
+  return {
+    ...actual,
+    writeWorkspaceRouteStageAnalytics: vi.fn(),
+  };
+});
 
 vi.mock("@/lib/auth/api-auth", () => ({
   requireAuth: requireAuthMock,
