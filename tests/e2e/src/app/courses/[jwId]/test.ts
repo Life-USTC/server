@@ -219,10 +219,9 @@ test.describe("/catalog/courses/[jwId] 课程详情", () => {
     await expect(
       nav.getByRole("link", { name: /评论|Comments/i }),
     ).toBeVisible();
-    await expect(nav.locator("a[href]")).toHaveAttribute(
-      "data-sveltekit-preload-data",
-      "off",
-    );
+    await expect(
+      nav.getByRole("link", { name: /班级|Sections/i }),
+    ).toHaveAttribute("data-sveltekit-preload-data", "off");
 
     await jumpToCourseSection(page, /评论|Comments/i, "#course-comments");
     await expect(page).toHaveURL(/\/catalog\/courses\/\d+\/comments$/);
