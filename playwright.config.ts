@@ -22,6 +22,15 @@ export default defineConfig({
         ["list"],
         ["html", { open: "never", outputFolder: "playwright-report/html" }],
       ],
+  snapshotPathTemplate:
+    "{testDir}/visual-matrix/snapshots/{arg}{-projectName}{ext}",
+  expect: {
+    toHaveScreenshot: {
+      animations: "disabled",
+      caret: "hide",
+      maxDiffPixelRatio: 0.02,
+    },
+  },
   use: {
     baseURL,
     trace: "on-first-retry",
@@ -43,22 +52,26 @@ export default defineConfig({
     {
       name: "mobile-chrome",
       use: { ...devices["Pixel 7"] },
-      testMatch: [
-        "mobile-screenshots/**/*.spec.ts",
-        "visual-matrix/**/*.spec.ts",
-      ],
+      testMatch: ["mobile-screenshots/**/*.spec.ts"],
     },
     {
-      name: "visual-tablet",
+      name: "visual-mobile",
       use: {
         ...devices["Desktop Chrome"],
-        viewport: { height: 1180, width: 820 },
+        viewport: { width: 390, height: 844 },
+        deviceScaleFactor: 1,
+        isMobile: true,
+        hasTouch: true,
       },
       testMatch: ["visual-matrix/**/*.spec.ts"],
     },
     {
       name: "visual-desktop",
-      use: { ...devices["Desktop Chrome"] },
+      use: {
+        ...devices["Desktop Chrome"],
+        viewport: { width: 1280, height: 720 },
+        deviceScaleFactor: 1,
+      },
       testMatch: ["visual-matrix/**/*.spec.ts"],
     },
   ],
