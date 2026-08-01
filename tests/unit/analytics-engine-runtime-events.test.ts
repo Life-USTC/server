@@ -9,6 +9,7 @@ import { withBetterAuthOAuthDebug } from "@/lib/log/oauth-debug";
 import {
   writeOAuthEventAnalytics,
   writeWorkspaceOverviewStageAnalytics,
+  writeWorkspaceRouteStageAnalytics,
 } from "@/lib/metrics/analytics-engine";
 import {
   cachedPublicRuntimeData,
@@ -82,6 +83,39 @@ describe("Cloudflare Analytics Engine runtime events", () => {
           index === stages.length - 1 ? "error" : "success",
         ],
         doubles: [index + 1],
+      });
+    });
+  });
+
+  it("writes fixed low-cardinality workspace route stage datapoints", () => {
+    const writeDataPoint = installAnalyticsBinding();
+    const stages = [
+      { route: "homeworks", stage: "auth" },
+      { route: "homeworks", stage: "section_ids" },
+      { route: "homeworks", stage: "db_context" },
+      { route: "subscriptions_current", stage: "read" },
+    ] as const;
+
+    stages.forEach((entry, index) => {
+      writeWorkspaceRouteStageAnalytics({
+        ioObservedDurationMs: index + 10,
+        route: entry.route,
+        stage: entry.stage,
+        status: "success",
+      });
+    });
+
+    expect(writeDataPoint).toHaveBeenCalledTimes(stages.length);
+    stages.forEach((entry, index) => {
+      expect(writeDataPoint).toHaveBeenNthCalledWith(index + 1, {
+        indexes: [`workspace:${entry.route}:${entry.stage}`],
+        blobs: [
+          "workspace_route_stage_v1",
+          entry.route,
+          entry.stage,
+          "success",
+        ],
+        doubles: [index + 10],
       });
     });
   });

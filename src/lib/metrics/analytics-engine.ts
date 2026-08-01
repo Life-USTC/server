@@ -167,9 +167,33 @@ export type WorkspaceOverviewStage =
   | "todo_summary"
   | "user_sections";
 
+export type WorkspaceRouteName = "homeworks" | "subscriptions_current";
+
+export type WorkspaceHomeworksRouteStage =
+  | "audit"
+  | "auth"
+  | "item_state"
+  | "read"
+  | "section_ids"
+  | "viewer";
+
+export type WorkspaceSubscriptionsCurrentRouteStage = "auth" | "read";
+
+export type WorkspaceRouteStage =
+  | "db_context"
+  | WorkspaceHomeworksRouteStage
+  | WorkspaceSubscriptionsCurrentRouteStage;
+
 type WorkspaceOverviewStageAnalyticsInput = {
   ioObservedDurationMs: number;
   stage: WorkspaceOverviewStage;
+  status: "error" | "success";
+};
+
+type WorkspaceRouteStageAnalyticsInput = {
+  ioObservedDurationMs: number;
+  route: WorkspaceRouteName;
+  stage: WorkspaceRouteStage;
   status: "error" | "success";
 };
 
@@ -364,6 +388,16 @@ export function writeWorkspaceOverviewStageAnalytics(
   writeAnalyticsDataPoint({
     indexes: [`workspace:overview:${input.stage}`],
     blobs: ["workspace_overview_stage_v1", input.stage, input.status],
+    doubles: [input.ioObservedDurationMs],
+  });
+}
+
+export function writeWorkspaceRouteStageAnalytics(
+  input: WorkspaceRouteStageAnalyticsInput,
+) {
+  writeAnalyticsDataPoint({
+    indexes: [`workspace:${input.route}:${input.stage}`],
+    blobs: ["workspace_route_stage_v1", input.route, input.stage, input.status],
     doubles: [input.ioObservedDurationMs],
   });
 }

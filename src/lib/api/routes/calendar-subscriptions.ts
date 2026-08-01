@@ -1,4 +1,3 @@
-import { runCloudflareTraceSpan } from "@/lib/adapters/cloudflare-runtime";
 import {
   badRequest,
   handleRouteError,
@@ -17,12 +16,17 @@ import {
   calendarSubscriptionRemoveRequestSchema,
 } from "@/lib/api/schemas/request-schemas";
 import { requireAuth } from "@/lib/auth/api-auth";
+import {
+  runWithWorkspaceRouteAttribution,
+  runWorkspaceRouteStage,
+} from "@/lib/log/workspace-route-attribution";
 
 export async function getCurrentCalendarSubscriptionRoute(request: Request) {
   try {
-    const auth = await runCloudflareTraceSpan(
-      "workspace.subscriptions.current.auth",
-      {},
+    const auth = await runWorkspaceRouteStage(
+      "subscriptions_current",
+      "auth",
+      { request },
       () =>
         requireAuth(request, {
           bearerScope: { feature: "workspace.subscription", action: "read" },
@@ -31,20 +35,27 @@ export async function getCurrentCalendarSubscriptionRoute(request: Request) {
     if (auth instanceof Response) return auth;
     const { userId } = auth;
 
-    const { getUserCalendarSubscription } = await import(
-      "@/features/subscriptions/server/subscription-read-model"
-    );
-    const subscription = await runCloudflareTraceSpan(
-      "workspace.subscriptions.current.read",
-      {},
-      () => getUserCalendarSubscription(userId, getRequestLocale(request)),
-    );
+    return runWithWorkspaceRouteAttribution(
+      "subscriptions_current",
+      request,
+      async () => {
+        const { getUserCalendarSubscription } = await import(
+          "@/features/subscriptions/server/subscription-read-model"
+        );
+        const subscription = await runWorkspaceRouteStage(
+          "subscriptions_current",
+          "read",
+          { request },
+          () => getUserCalendarSubscription(userId, getRequestLocale(request)),
+        );
 
-    if (!subscription) {
-      return jsonResponse({ subscription: null });
-    }
+        if (!subscription) {
+          return jsonResponse({ subscription: null });
+        }
 
-    return jsonResponse({ subscription });
+        return jsonResponse({ subscription });
+      },
+    );
   } catch (error) {
     return handleRouteError("Failed to fetch calendar subscription", error);
   }
