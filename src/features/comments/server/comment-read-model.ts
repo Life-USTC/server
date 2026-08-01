@@ -289,6 +289,7 @@ export async function loadCommentThread(input: {
         },
       ],
     } satisfies Prisma.CommentWhereInput;
+    const pagination = input.pagination;
     const [total, rootComments, hiddenCount] = await withCommentDbContext(
       input.viewerUserId,
       (client) =>
@@ -297,8 +298,8 @@ export async function loadCommentThread(input: {
           client.comment.findMany({
             where: rootWhere,
             orderBy: [{ createdAt: "asc" }, { id: "asc" }],
-            skip: input.pagination.skip,
-            take: input.pagination.pageSize,
+            skip: pagination.skip,
+            take: pagination.pageSize,
             select: { id: true },
           }),
           viewer.isAuthenticated

@@ -24,7 +24,11 @@ export async function getAdminModerationReadData({
   prisma: AdminModerationPrisma;
 }) {
   const comments = await withUserDbContext(adminUserId, (tx) =>
-    listModerationComments({ commentWhere, pageSize, prisma: tx }),
+    listModerationComments({
+      commentWhere,
+      pageSize,
+      prisma: tx as AdminModerationPrisma,
+    }),
   );
 
   return Promise.all([
