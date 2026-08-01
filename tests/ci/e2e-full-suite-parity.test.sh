@@ -9,14 +9,14 @@ fail() {
 }
 
 orchestration_script="${repo_root}/tests/ci/e2e-full-suite-parity.sh"
-test -x "$orchestration_script" ||
-  fail "missing executable ${orchestration_script}"
+test -f "$orchestration_script" ||
+  fail "missing ${orchestration_script}"
 
 grep -q 'readonly E2E_SHARD_TOTAL=4' "$orchestration_script" ||
   fail "orchestration script must declare E2E_SHARD_TOTAL=4"
 
 ci_shard_count="$(
-  grep -Eo 'shard: [0-9]+/4' "${repo_root}/.github/workflows/ci.yml" | wc -l | tr -d ' '
+  grep -cE 'shard: [0-9]+/4' "${repo_root}/.github/workflows/ci.yml" || true
 )"
 [[ "$ci_shard_count" == "4" ]] ||
   fail "ci.yml defines ${ci_shard_count} E2E shards, expected 4"

@@ -72,7 +72,7 @@ CI sets `DATABASE_URL`, seeds data, and runs migrations before each E2E shard. F
 
 ## Reporting
 
-- Per-shard HTML reports (local full suite): `playwright-report/html/`
+- HTML reporter output (local full suite): `playwright-report/html/` — each shard overwrites the same folder, so only the last shard's HTML remains unless you archive between runs.
 - Per-shard raw results: `playwright-report/e2e-results/`
 - CI uploads blob reports per shard; merge them via the `Publish E2E HTML report` workflow when debugging shard-only failures.
 
