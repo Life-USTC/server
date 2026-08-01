@@ -85,7 +85,7 @@ test.describe("/catalog/courses/[jwId] 课程详情", () => {
       `/catalog/courses/${DEV_SEED.course.legacyJwId}/sections?from=legacy`,
     );
     await expect(page).toHaveURL(
-      `/catalog/courses/${DEV_SEED.course.jwId}/sections?from=legacy`,
+      `/catalog/courses/${DEV_SEED.course.jwId}?from=legacy&tab=sections`,
     );
     await expect(page.getByRole("heading", { level: 1 }).first()).toContainText(
       new RegExp(`${DEV_SEED.course.nameCn}|${DEV_SEED.course.nameEn}`),
@@ -221,7 +221,7 @@ test.describe("/catalog/courses/[jwId] 课程详情", () => {
     ).toBeVisible();
 
     await jumpToCourseSection(page, /评论|Comments/i, "#course-comments");
-    await expect(page).toHaveURL(/\/catalog\/courses\/\d+\/comments$/);
+    await expect(page).toHaveURL(/\/catalog\/courses\/\d+\?tab=comments$/);
     await captureStepScreenshot(page, testInfo, "course/detail-nav");
   });
 
@@ -288,7 +288,7 @@ test.describe("/catalog/courses/[jwId] 课程详情", () => {
 
   test("登录用户可以编辑课程简介", async ({ page }, testInfo) => {
     test.setTimeout(60_000);
-    await signInAsDebugUser(page, `${COURSE_URL}/introduction`);
+    await signInAsDebugUser(page, `${COURSE_URL}?tab=introduction`);
     const snapshot = await snapshotDescriptionTargetForE2e(
       page.request,
       { courseJwId: DEV_SEED.course.jwId, targetType: "course" },
@@ -350,7 +350,7 @@ test.describe("/catalog/courses/[jwId] 课程详情", () => {
 
     try {
       await jumpToCourseSection(page, /评论|Comments/i, "#course-comments");
-      await expect(page).toHaveURL(/\/catalog\/courses\/\d+\/comments$/);
+      await expect(page).toHaveURL(/\/catalog\/courses\/\d+\?tab=comments$/);
 
       const body = `e2e-course-comment-${Date.now()}`;
       const composer = page.locator("#course-comments textarea").first();

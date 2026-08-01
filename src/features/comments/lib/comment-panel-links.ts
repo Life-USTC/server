@@ -1,4 +1,8 @@
 import {
+  courseDetailPagePath,
+  teacherDetailPagePath,
+} from "@/features/catalog/lib/catalog-detail-tab";
+import {
   sectionDetailHomeworkPath,
   sectionDetailPagePath,
 } from "@/features/section-detail/lib/section-detail-tab";
@@ -63,16 +67,12 @@ export type CommentPermalinkTarget =
       type: "homework";
     };
 
-function pathSegment(value: PermalinkPathValue) {
-  return encodeURIComponent(String(value));
-}
-
 export function commentTargetPermalinkBaseHref(target: CommentPermalinkTarget) {
   if (target.type === "course") {
-    return `/catalog/courses/${pathSegment(target.courseJwId)}/comments`;
+    return courseDetailPagePath(target.courseJwId, "comments");
   }
   if (target.type === "teacher") {
-    return `/catalog/teachers/${pathSegment(target.teacherId)}/comments`;
+    return teacherDetailPagePath(target.teacherId, "comments");
   }
   if (target.type === "homework") {
     return sectionDetailHomeworkPath(target.sectionJwId, {

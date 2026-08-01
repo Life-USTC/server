@@ -17,10 +17,12 @@ import {
   PUBLIC_SSR_NONCE_PLACEHOLDER,
   PUBLIC_SSR_PAGE_EDGE_CACHE_CONTROL,
   removePublicSsrHeaders,
+  resolveCourseDetailTabRedirect,
   resolveLegacyCatalogRedirect,
   resolvePublicSsrLocale,
   resolvePublicSsrMode,
   resolveSectionDetailTabRedirect,
+  resolveTeacherDetailTabRedirect,
 } from "./lib/cloudflare/public-ssr-gateway";
 import { buildContentSecurityPolicy } from "./lib/security/csp";
 import { CONTENT_SIGNAL } from "./lib/seo/content-signal";
@@ -202,6 +204,26 @@ export default {
         headers: {
           "Cache-Control": "public, max-age=86400",
           Location: sectionTabRedirect,
+        },
+      });
+    }
+    const courseTabRedirect = resolveCourseDetailTabRedirect(request);
+    if (courseTabRedirect) {
+      return new Response(null, {
+        status: 308,
+        headers: {
+          "Cache-Control": "public, max-age=86400",
+          Location: courseTabRedirect,
+        },
+      });
+    }
+    const teacherTabRedirect = resolveTeacherDetailTabRedirect(request);
+    if (teacherTabRedirect) {
+      return new Response(null, {
+        status: 308,
+        headers: {
+          "Cache-Control": "public, max-age=86400",
+          Location: teacherTabRedirect,
         },
       });
     }

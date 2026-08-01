@@ -1,3 +1,4 @@
+import { resolveCatalogDetailTabRedirect } from "@/features/catalog/lib/catalog-detail-tab";
 import { hasRequestAuthSignal } from "@/lib/auth/request-auth-signal";
 
 export const PUBLIC_SSR_HEADER = "x-life-public-ssr";
@@ -37,18 +38,6 @@ const DIRECT_REQUEST_PATHS = new Set([
 
 const CATALOG_DETAIL_PATH =
   /^\/catalog\/(courses|sections|teachers)\/([1-9]\d*)(?:\/([^/]+))?$/;
-const CATALOG_DETAIL_SECTIONS: Record<string, ReadonlySet<string>> = {
-  courses: new Set(["introduction", "sections", "comments"]),
-  sections: new Set([
-    "introduction",
-    "calendar",
-    "exams",
-    "homework",
-    "teachers",
-    "comments",
-  ]),
-  teachers: new Set(["introduction", "sections", "comments"]),
-};
 const SECTION_DETAIL_LEGACY_TAB_PATH =
   /^\/catalog\/sections\/([1-9]\d*)\/(introduction|calendar|exams|homework|teachers|comments)\/?$/;
 
@@ -90,6 +79,14 @@ export function resolveSectionDetailTabRedirect(request: Request) {
   return `${redirectUrl.pathname}${redirectUrl.search}`;
 }
 
+export function resolveCourseDetailTabRedirect(request: Request) {
+  return resolveCatalogDetailTabRedirect(request, "courses");
+}
+
+export function resolveTeacherDetailTabRedirect(request: Request) {
+  return resolveCatalogDetailTabRedirect(request, "teachers");
+}
+
 function matchesPathRoot(pathname: string, root: string) {
   return pathname === root || pathname.startsWith(`${root}/`);
 }
@@ -107,11 +104,10 @@ function acceptsHtml(request: Request) {
 function isCanonicalCatalogDetailPath(pathname: string) {
   const match = CATALOG_DETAIL_PATH.exec(pathname);
   if (!match) return false;
-  const [, collection, identifier, section] = match;
+  const [, , identifier, section] = match;
   const id = Number(identifier);
   if (!Number.isSafeInteger(id)) return false;
-  if (collection === "sections") return !section;
-  return !section || CATALOG_DETAIL_SECTIONS[collection]?.has(section) === true;
+  return !section;
 }
 
 export function resolvePublicSsrMode(

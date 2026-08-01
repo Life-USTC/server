@@ -243,27 +243,22 @@ describe("catalog detail loader critical path", () => {
     expect(getCommentsPayloadMock).not.toHaveBeenCalled();
   });
 
-  it("loads comments only for the course comments section", async () => {
+  it("skips comments for the course comments tab deep link", async () => {
     const { loadCourseDetailPage } = await import(
       "@/features/catalog/server/catalog-detail-page-server"
     );
 
     const result = await loadCourseDetailPage({
       locals: locals(),
-      params: { jwId: String(course.jwId), section: "comments" },
-      request: request(`/catalog/courses/${course.jwId}/comments`),
+      params: { jwId: String(course.jwId) },
+      request: request(`/catalog/courses/${course.jwId}?tab=comments`),
       url: new URL(
-        `https://example.test/catalog/courses/${course.jwId}/comments`,
+        `https://example.test/catalog/courses/${course.jwId}?tab=comments`,
       ),
     });
 
-    expect(result.commentsData).not.toBeNull();
-    expect(getCommentsPayloadMock).toHaveBeenCalledOnce();
-    expect(getCommentsPayloadMock).toHaveBeenCalledWith(
-      { targetId: course.id, type: "course" },
-      anonymousViewer,
-      { pageSize: 20 },
-    );
+    expect(result.commentsData).toBeNull();
+    expect(getCommentsPayloadMock).not.toHaveBeenCalled();
   });
 
   it("loads description history only for the introduction section", async () => {
@@ -273,10 +268,10 @@ describe("catalog detail loader critical path", () => {
 
     await loadCourseDetailPage({
       locals: locals(),
-      params: { jwId: String(course.jwId), section: "introduction" },
-      request: request(`/catalog/courses/${course.jwId}/introduction`),
+      params: { jwId: String(course.jwId) },
+      request: request(`/catalog/courses/${course.jwId}?tab=introduction`),
       url: new URL(
-        `https://example.test/catalog/courses/${course.jwId}/introduction`,
+        `https://example.test/catalog/courses/${course.jwId}?tab=introduction`,
       ),
     });
 
@@ -307,10 +302,10 @@ describe("catalog detail loader critical path", () => {
     });
     const introduction = loadCourseDetailPage({
       locals: locals(null, true),
-      params: { jwId: String(course.jwId), section: "introduction" },
-      request: request(`/catalog/courses/${course.jwId}/introduction`),
+      params: { jwId: String(course.jwId) },
+      request: request(`/catalog/courses/${course.jwId}?tab=introduction`),
       url: new URL(
-        `https://example.test/catalog/courses/${course.jwId}/introduction`,
+        `https://example.test/catalog/courses/${course.jwId}?tab=introduction`,
       ),
     });
 
@@ -352,17 +347,17 @@ describe("catalog detail loader critical path", () => {
     const { loadTeacherDetailPage } = await import(
       "@/features/catalog/server/catalog-detail-page-server"
     );
-    const load = (section?: "sections") =>
-      loadTeacherDetailPage({
+    const load = (tab?: "sections") => {
+      const query = tab ? `?tab=${tab}` : "";
+      return loadTeacherDetailPage({
         locals: locals(null, true),
-        params: { id: String(teacher.id), section },
-        request: request(
-          `/catalog/teachers/${teacher.id}${section ? `/${section}` : ""}`,
-        ),
+        params: { id: String(teacher.id) },
+        request: request(`/catalog/teachers/${teacher.id}${query}`),
         url: new URL(
-          `https://example.test/catalog/teachers/${teacher.id}${section ? `/${section}` : ""}`,
+          `https://example.test/catalog/teachers/${teacher.id}${query}`,
         ),
       });
+    };
 
     await load();
     await load();
@@ -488,10 +483,10 @@ describe("catalog detail loader critical path", () => {
 
     const result = await loadTeacherDetailPage({
       locals: locals(),
-      params: { id: String(teacher.id), section: "sections" },
-      request: request(`/catalog/teachers/${teacher.id}/sections`),
+      params: { id: String(teacher.id) },
+      request: request(`/catalog/teachers/${teacher.id}?tab=sections`),
       url: new URL(
-        `https://example.test/catalog/teachers/${teacher.id}/sections`,
+        `https://example.test/catalog/teachers/${teacher.id}?tab=sections`,
       ),
     });
 

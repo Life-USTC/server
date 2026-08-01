@@ -38,12 +38,12 @@ describe("评论面板链接", () => {
     [
       "course",
       commentTargetPermalinkBaseHref({ courseJwId: 67890, type: "course" }),
-      "/catalog/courses/67890/comments#comment-comment-1",
+      "/catalog/courses/67890?tab=comments#comment-comment-1",
     ],
     [
       "teacher",
       commentTargetPermalinkBaseHref({ teacherId: 42, type: "teacher" }),
-      "/catalog/teachers/42/comments#comment-comment-1",
+      "/catalog/teachers/42?tab=comments#comment-comment-1",
     ],
   ])("根据目标类型保留 %s 评论永久链接", (_, baseHref, expected) => {
     expect(commentPermalinkHref(baseHref, "comment-1")).toBe(expected);
