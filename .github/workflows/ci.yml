@@ -178,6 +178,27 @@ jobs:
       upload-artifact-no-files-found: ignore
       upload-artifact-always: true
 
+  test-visual-regression:
+    name: Visual regression (opt-in)
+    if: ${{ vars.VISUAL_REGRESSION == '1' }}
+    needs:
+      - check
+      - build-e2e-artifacts
+    permissions:
+      contents: read
+    uses: ./.github/workflows/db-backed-bun-job.yml
+    with:
+      database-name: life_ustc_dev
+      install-playwright: true
+      webhook-secret: e2e-ci-secret
+      extra-env: |
+        NO_PROXY=127.0.0.1,localhost,::1
+        VISUAL_REGRESSION=1
+      download-artifact-name: e2e-svelte-kit
+      download-artifact-path: .svelte-kit
+      job-phase: ci:visual-regression
+      timeout-minutes: 45
+
   publish-e2e-html-report:
     name: Publish E2E HTML report
     needs: test-e2e
