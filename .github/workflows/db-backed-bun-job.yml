@@ -147,6 +147,7 @@ jobs:
             ci:verify)
               bash tests/ci/retry.test.sh
               bash tests/ci/seed-guard.test.sh
+              bash tests/ci/e2e-full-suite-parity.test.sh
               bun run app:prepare
               bunx wrangler types --include-runtime=false --check
               bunx biome check

@@ -4,26 +4,46 @@ Playwright specs live under `tests/e2e/src`. CI runs them in four shards to stay
 
 ## Match CI locally
 
-Start the E2E worker (in a separate terminal):
+Prerequisites:
+
+- PostgreSQL available at `DATABASE_URL` (see root README)
+- Migrations applied at least once
+- `ALLOW_DATABASE_SEED=true` in your environment
+
+Start from a clean database when validating the complete suite:
 
 ```bash
-bun run e2e:server
+bun run app:prepare
+bun run db:migrate:deploy
+ALLOW_DATABASE_SEED=true bunx prisma db seed
+ALLOW_DATABASE_SEED=true bun run build
+ALLOW_DATABASE_SEED=true bun run e2e:test
 ```
 
-Run one shard (same as CI `E2E_SHARD=current/total`):
+`bun run e2e:test` is the canonical full-suite command. It runs the same four shards as GitHub Actions and **reseeds the database before each shard**, which matches CI's per-job lifecycle. A single unsharded `bunx playwright test` reuses one seed across all files and projects; several specs mutate the shared debug user, todos, OAuth clients, and homework fixtures, so that command is not equivalent to CI and may fail even when all shards pass.
+
+Run one shard manually (same as CI `E2E_SHARD=current/total`):
 
 ```bash
+bun run app:prepare
+bun run db:migrate:deploy
+ALLOW_DATABASE_SEED=true bunx prisma db seed
 bunx playwright test --shard=1/4
 bunx playwright test --shard=2/4
 bunx playwright test --shard=3/4
 bunx playwright test --shard=4/4
 ```
 
-Run the full suite sequentially (slower, closer to a release smoke check):
+Or use the package aliases:
 
 ```bash
-bun run e2e:test
+bun run e2e:test:shard1
+bun run e2e:test:shard2
+bun run e2e:test:shard3
+bun run e2e:test:shard4
 ```
+
+For a focused local run after setup, `bunx playwright test <path>` is fine. Playwright starts the E2E server automatically via `bun run e2e:server` unless you start it yourself in another terminal.
 
 ## Visual regression matrix
 
@@ -48,8 +68,12 @@ Deterministic setup uses `NEXT_LOCALE` cookies, `life-ustc-theme=light` in `loca
 
 ## Environment
 
-CI sets `DATABASE_URL`, seeds data, and runs migrations before E2E. For local runs, use the same `.env` values documented in the root README and ensure migrations are applied.
+CI sets `DATABASE_URL`, seeds data, and runs migrations before each E2E shard. For local runs, use the same `.env` values documented in the root README and ensure migrations are applied.
 
 ## Reporting
 
-Failed CI shards upload Playwright HTML reports. Merge them via the `Publish E2E HTML report` workflow when debugging shard-only failures.
+- HTML reporter output (local full suite): `playwright-report/html/` — each shard overwrites the same folder, so only the last shard's HTML remains unless you archive between runs.
+- Per-shard raw results: `playwright-report/e2e-results/`
+- CI uploads blob reports per shard; merge them via the `Publish E2E HTML report` workflow when debugging shard-only failures.
+
+Remove local `playwright-report/` output before committing unless you are attaching artifacts for debugging.
