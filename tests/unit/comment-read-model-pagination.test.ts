@@ -119,7 +119,13 @@ describe("loadCommentThread pagination", () => {
         : publicReactionSummaryQueryMock(query),
     );
     withUserDbContextMock.mockImplementation((_userId, callback) =>
-      callback({ $queryRaw: contextQueryMock }),
+      callback({
+        $queryRaw: contextQueryMock,
+        comment: {
+          count: commentCountMock,
+          findMany: commentFindManyMock,
+        },
+      }),
     );
   });
 

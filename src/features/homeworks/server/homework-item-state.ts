@@ -1,4 +1,4 @@
-import { prisma } from "@/lib/db/prisma";
+import { withCommentDbContext } from "@/features/comments/server/comment-db-context";
 
 type HomeworkCompletionRecord = {
   completedAt: Date;
@@ -17,19 +17,24 @@ export type HomeworkItemWithState<T extends HomeworkWithOptionalCompletions> =
 
 export async function withHomeworkItemState<
   T extends HomeworkWithOptionalCompletions,
->(homeworks: T[]): Promise<Array<HomeworkItemWithState<T>>> {
+>(
+  homeworks: T[],
+  viewerUserId: string | null = null,
+): Promise<Array<HomeworkItemWithState<T>>> {
   if (homeworks.length === 0) {
     return [];
   }
 
-  const commentCountRows = await prisma.comment.groupBy({
-    by: ["homeworkId"],
-    where: {
-      homeworkId: { in: homeworks.map((homework) => homework.id) },
-      status: { not: "deleted" },
-    },
-    _count: { _all: true },
-  });
+  const commentCountRows = await withCommentDbContext(viewerUserId, (client) =>
+    client.comment.groupBy({
+      by: ["homeworkId"],
+      where: {
+        homeworkId: { in: homeworks.map((homework) => homework.id) },
+        status: { not: "deleted" },
+      },
+      _count: { _all: true },
+    }),
+  );
 
   const commentCounts = new Map(
     commentCountRows.flatMap((row: (typeof commentCountRows)[number]) =>

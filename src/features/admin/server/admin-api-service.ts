@@ -3,7 +3,7 @@ import { DESCRIPTION_CONTENT_MAX_LENGTH } from "@/features/descriptions/lib/desc
 import { isValidProfileUsername } from "@/features/profile/lib/profile-username";
 import type { CommentStatus } from "@/generated/prisma/client";
 import { writeAuditLog } from "@/lib/audit/write-audit-log";
-import { prisma } from "@/lib/db/prisma";
+import { prisma, withUserDbContext } from "@/lib/db/prisma";
 import { isPrismaUniqueConstraintError } from "@/lib/db/prisma-errors";
 import { runSerializableTransaction } from "@/lib/db/serializable-transaction";
 import { parseDateInput } from "@/lib/time/parse-date-input";
@@ -280,7 +280,7 @@ export async function moderateComment(
   input: AdminModerateCommentInput,
 ) {
   const { status, moderationNote } = input;
-  const result = await prisma.$transaction(async (tx) => {
+  const result = await withUserDbContext(adminUserId, async (tx) => {
     const existing = await tx.comment.findUnique({
       where: { id },
       select: { id: true },

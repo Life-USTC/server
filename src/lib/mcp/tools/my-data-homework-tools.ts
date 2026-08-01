@@ -36,7 +36,7 @@ export function registerMyHomeworkTools(server: McpServer) {
         limit,
         semesterId,
       });
-      const homeworkItems = await withHomeworkItemState(homeworks);
+      const homeworkItems = await withHomeworkItemState(homeworks, userId);
 
       return jsonToolResult(
         { homeworks: homeworkItems },

@@ -15,13 +15,14 @@ const MODERATION_PAGE_SIZE = 50;
 const MODERATION_DESCRIPTION_PAGE_SIZE = 200;
 
 export async function getAdminModerationPage(request: Request, url: URL) {
-  await requireAdminPage(request);
+  const admin = await requireAdminPage(request);
   const prisma = await getPrismaClient();
   const { tab, search, status, descriptionContent, descriptionTarget } =
     getModerationFilters(url);
 
   const [comments, descriptions, homeworks, suspensions] =
     await getAdminModerationReadData({
+      adminUserId: admin.id,
       commentWhere: buildCommentWhere(status),
       descriptionPageSize: MODERATION_DESCRIPTION_PAGE_SIZE,
       descriptionWhere: buildDescriptionWhere(

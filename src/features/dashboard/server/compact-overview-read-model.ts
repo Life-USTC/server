@@ -189,7 +189,7 @@ export async function getCompactOverview(
   ]);
 
   const dueSoonHomeworks = await runOverviewStage("item_state", () =>
-    withHomeworkItemState(dueSoonHomeworksRaw),
+    withHomeworkItemState(dueSoonHomeworksRaw, userId),
   );
 
   return {

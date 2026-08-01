@@ -63,7 +63,7 @@ export async function loadCalendarEventSources({
 
   return {
     exams,
-    homeworkItems: await withHomeworkItemState(homeworks),
+    homeworkItems: await withHomeworkItemState(homeworks, userId),
     schedules,
     todos,
   };

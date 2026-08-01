@@ -236,6 +236,9 @@ jobs:
                 tests/integration/comment-reaction-rls.test.ts
               bunx vitest run \
                 --config vitest.integration.config.ts \
+                tests/integration/comment-rls.test.ts
+              bunx vitest run \
+                --config vitest.integration.config.ts \
                 tests/integration/upload-rls.test.ts
               bunx vitest run \
                 --config vitest.integration.config.ts \

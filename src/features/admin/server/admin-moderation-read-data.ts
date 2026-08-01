@@ -4,8 +4,10 @@ import { listModerationHomeworks } from "@/features/admin/server/admin-moderatio
 import { listModerationSuspensions } from "@/features/admin/server/admin-moderation-suspension-read-data";
 import type { AdminModerationPrisma } from "@/features/admin/server/admin-moderation-types";
 import type { Prisma } from "@/generated/prisma/client";
+import { withUserDbContext } from "@/lib/db/prisma";
 
 export async function getAdminModerationReadData({
+  adminUserId,
   commentWhere,
   descriptionWhere,
   homeworkWhere,
@@ -13,6 +15,7 @@ export async function getAdminModerationReadData({
   descriptionPageSize,
   prisma,
 }: {
+  adminUserId: string;
   commentWhere: Prisma.CommentWhereInput;
   descriptionWhere: Prisma.DescriptionWhereInput;
   homeworkWhere: Prisma.HomeworkWhereInput;
@@ -20,8 +23,12 @@ export async function getAdminModerationReadData({
   descriptionPageSize: number;
   prisma: AdminModerationPrisma;
 }) {
+  const comments = await withUserDbContext(adminUserId, (tx) =>
+    listModerationComments({ commentWhere, pageSize, prisma: tx }),
+  );
+
   return Promise.all([
-    listModerationComments({ commentWhere, pageSize, prisma }),
+    Promise.resolve(comments),
     listModerationDescriptions({
       descriptionPageSize,
       descriptionWhere,
