@@ -107,11 +107,35 @@ function logWorkspaceRouteStage(input: {
   );
 }
 
+function writeWorkspaceRouteStageAnalyticsForRoute(input: {
+  ioObservedDurationMs: number;
+  route: WorkspaceRouteName;
+  stage: WorkspaceRouteStage;
+  status: "error" | "success";
+}) {
+  if (input.route === "homeworks") {
+    writeWorkspaceRouteStageAnalytics({
+      ioObservedDurationMs: input.ioObservedDurationMs,
+      route: "homeworks",
+      stage: input.stage as WorkspaceHomeworksRouteStage | "db_context",
+      status: input.status,
+    });
+    return;
+  }
+
+  writeWorkspaceRouteStageAnalytics({
+    ioObservedDurationMs: input.ioObservedDurationMs,
+    route: "subscriptions_current",
+    stage: input.stage as WorkspaceSubscriptionsCurrentRouteStage | "db_context",
+    status: input.status,
+  });
+}
+
 export function recordWorkspaceRouteDbContext(ioObservedDurationMs: number) {
   const attribution = getWorkspaceRouteAttribution();
   if (!attribution) return;
 
-  writeWorkspaceRouteStageAnalytics({
+  writeWorkspaceRouteStageAnalyticsForRoute({
     ioObservedDurationMs,
     route: attribution.route,
     stage: "db_context",
@@ -159,7 +183,7 @@ export async function runWorkspaceRouteStage<T>(
       work,
     );
     const ioObservedDurationMs = Date.now() - startMs;
-    writeWorkspaceRouteStageAnalytics({
+    writeWorkspaceRouteStageAnalyticsForRoute({
       ioObservedDurationMs,
       route,
       stage,
@@ -175,7 +199,7 @@ export async function runWorkspaceRouteStage<T>(
     return result;
   } catch (error) {
     const ioObservedDurationMs = Date.now() - startMs;
-    writeWorkspaceRouteStageAnalytics({
+    writeWorkspaceRouteStageAnalyticsForRoute({
       ioObservedDurationMs,
       route,
       stage,
