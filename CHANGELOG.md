@@ -1,3 +1,10 @@
+## [1.84.1](https://github.com/Life-USTC/server/compare/v1.84.0...v1.84.1) (2026-08-01)
+
+
+### Bug Fixes
+
+* address unresolved review feedback from merged PR batch ([#725](https://github.com/Life-USTC/server/issues/725)) ([5373246](https://github.com/Life-USTC/server/commit/537324602e898671f5b3afda4fed7a4d3d694be6))
+
 # [1.84.0](https://github.com/Life-USTC/server/compare/v1.83.0...v1.84.0) (2026-08-01)
 
 
