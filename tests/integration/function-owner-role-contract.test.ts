@@ -423,7 +423,7 @@ describe.skipIf(process.env.FUNCTION_OWNER_ROLE_TEST_ENABLED !== "true")(
       expect(sequencePrivileges).toEqual([]);
     });
 
-    it("is the sole role on exactly five audited definer-read policies", async () => {
+    it("is the sole role on exactly six audited definer-read policies", async () => {
       const policies = await adminPrisma.$queryRaw<
         Array<{
           checkExpression: string | null;
@@ -456,6 +456,16 @@ describe.skipIf(process.env.FUNCTION_OWNER_ROLE_TEST_ENABLED !== "true")(
           usingExpression: policy.usingExpression.replaceAll("::text", ""),
         })),
       ).toEqual([
+        {
+          checkExpression: null,
+          command: "SELECT",
+          permissive: "PERMISSIVE",
+          policyName: "Comment_hidden_count_reader",
+          roles: [functionOwnerRole],
+          schemaName: "public",
+          tableName: "Comment",
+          usingExpression: "true",
+        },
         {
           checkExpression: null,
           command: "SELECT",
