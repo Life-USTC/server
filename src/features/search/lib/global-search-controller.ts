@@ -186,6 +186,7 @@ export function createGlobalSearchController(
 
     const trimmed = get(query).trim();
     if (trimmed.length < GLOBAL_SEARCH_MIN_QUERY_LENGTH) {
+      searchGeneration += 1;
       groups.set([]);
       hasSearched.set(false);
       isSearching.set(false);

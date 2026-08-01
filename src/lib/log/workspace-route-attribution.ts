@@ -6,7 +6,6 @@ import { isProductionEnvironment } from "@/lib/log/app-logger-core";
 import {
   type WorkspaceHomeworksRouteStage,
   type WorkspaceRouteName,
-  type WorkspaceRouteStage,
   type WorkspaceSubscriptionsCurrentRouteStage,
   writeWorkspaceRouteStageAnalytics,
 } from "@/lib/metrics/analytics-engine";
@@ -60,7 +59,10 @@ function shouldLogWorkspaceStage(
 
 function workspaceTraceSpanName(
   route: WorkspaceRouteName,
-  stage: WorkspaceRouteStage,
+  stage:
+    | WorkspaceHomeworksRouteStage
+    | WorkspaceSubscriptionsCurrentRouteStage
+    | "db_context",
 ) {
   if (route === "homeworks") {
     return `workspace.homeworks.${stage}`;
@@ -79,7 +81,10 @@ function logWorkspaceRouteStage(input: {
   ioObservedDurationMs: number;
   requestId: string | undefined;
   route: WorkspaceRouteName;
-  stage: WorkspaceRouteStage;
+  stage:
+    | WorkspaceHomeworksRouteStage
+    | WorkspaceSubscriptionsCurrentRouteStage
+    | "db_context";
   status: "error" | "success";
 }) {
   if (
@@ -165,8 +170,23 @@ export async function runWorkspaceRouteStage<T>(
   work: () => Promise<T>,
 ): Promise<T>;
 export async function runWorkspaceRouteStage<T>(
+  route: "homeworks",
+  stage: WorkspaceHomeworksRouteStage | "db_context",
+  input: { request?: Request },
+  work: () => Promise<T>,
+): Promise<T>;
+export async function runWorkspaceRouteStage<T>(
+  route: "subscriptions_current",
+  stage: WorkspaceSubscriptionsCurrentRouteStage | "db_context",
+  input: { request?: Request },
+  work: () => Promise<T>,
+): Promise<T>;
+export async function runWorkspaceRouteStage<T>(
   route: WorkspaceRouteName,
-  stage: WorkspaceRouteStage,
+  stage:
+    | WorkspaceHomeworksRouteStage
+    | WorkspaceSubscriptionsCurrentRouteStage
+    | "db_context",
   input: { request?: Request },
   work: () => Promise<T>,
 ): Promise<T> {

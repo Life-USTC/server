@@ -29,6 +29,13 @@ const expectedFunctions = [
   },
   {
     securityDefiner: true,
+    settings: ['search_path=""'],
+    signature:
+      "public.comment_hidden_root_count(p_section_id integer, p_course_id integer, p_teacher_id integer, p_homework_id text, p_section_teacher_id integer)",
+    volatility: "STABLE",
+  },
+  {
+    securityDefiner: true,
     settings: ['search_path=""', "app.comment_reaction_summary=on"],
     signature: "public.comment_reaction_summaries(comment_ids text[])",
     volatility: "STABLE",

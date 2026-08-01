@@ -39,8 +39,10 @@ export async function syncAuthenticatedLocale(
   locale: VisualMatrixLocale,
 ) {
   const sessionResponse = await page.request.get("/api/auth/get-session");
-  if (sessionResponse.status() !== 200) {
-    return;
+  if (!sessionResponse.ok()) {
+    throw new Error(
+      `Failed to load session before locale sync: ${sessionResponse.status()}`,
+    );
   }
 
   const session = (await sessionResponse.json()) as {

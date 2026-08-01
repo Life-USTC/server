@@ -398,6 +398,13 @@ ALTER FUNCTION public.get_public_profile_upload_stats(
 ) OWNER TO life_ustc_function_owner;
 ALTER FUNCTION public.comment_reaction_summaries(text[])
   OWNER TO life_ustc_function_owner;
+ALTER FUNCTION public.comment_hidden_root_count(
+  integer,
+  integer,
+  integer,
+  text,
+  integer
+) OWNER TO life_ustc_function_owner;
 ALTER FUNCTION public.get_public_profile_homework_completions(
   text,
   timestamp without time zone
@@ -426,6 +433,10 @@ CREATE POLICY "Upload_definer_read" ON "Upload"
 
 DROP POLICY IF EXISTS "CommentReaction_definer_read" ON "CommentReaction";
 ALTER POLICY "CommentReaction_summary_reader" ON "CommentReaction"
+  TO life_ustc_function_owner;
+
+DROP POLICY IF EXISTS "Comment_hidden_count_definer_read" ON "Comment";
+ALTER POLICY "Comment_hidden_count_reader" ON "Comment"
   TO life_ustc_function_owner;
 
 ALTER POLICY "HomeworkCompletion_profile_reader" ON "HomeworkCompletion"
