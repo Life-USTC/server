@@ -7,8 +7,6 @@ import InfoIcon from "@lucide/svelte/icons/info";
 import MessageSquareIcon from "@lucide/svelte/icons/message-square";
 import UsersIcon from "@lucide/svelte/icons/users";
 import type { SubmitFunction } from "@sveltejs/kit";
-import CommentsPanel from "@/features/comments/components/CommentsPanel.svelte";
-import DescriptionCard from "@/features/descriptions/components/DescriptionCard.svelte";
 import type { SectionDetailPageData } from "@/features/section-detail/lib/section-detail-controller-helpers";
 import type { SectionDetailSection } from "@/features/section-detail/lib/section-detail-controller-types";
 import {
@@ -21,11 +19,8 @@ import { Button } from "$lib/components/ui/button/index.js";
 import { Separator } from "$lib/components/ui/separator/index.js";
 import { cn } from "$lib/utils.js";
 import SectionBasicInfoCard from "./SectionBasicInfoCard.svelte";
-import SectionCalendarTab from "./SectionCalendarTab.svelte";
 import SectionDetailHeader from "./SectionDetailHeader.svelte";
 import SectionDetailPrimaryActions from "./SectionDetailPrimaryActions.svelte";
-import SectionExamSection from "./SectionExamSection.svelte";
-import SectionHomeworkTab from "./SectionHomeworkTab.svelte";
 import SectionTeachersCard from "./SectionTeachersCard.svelte";
 import type {
   BooleanSetter,
@@ -78,6 +73,62 @@ export let todayCalendarMonthOffset: number;
 export let unscheduledCalendarEvents: SectionDetailMainContentProps["unscheduledCalendarEvents"];
 export let viewer: SectionDetailMainContentProps["viewer"];
 export let yesNo: SectionDetailMainContentProps["yesNo"];
+
+let DescriptionCard:
+  | typeof import("@/features/descriptions/components/DescriptionCard.svelte").default
+  | null = null;
+let CommentsPanel:
+  | typeof import("@/features/comments/components/CommentsPanel.svelte").default
+  | null = null;
+let SectionCalendarTab:
+  | typeof import("./SectionCalendarTab.svelte").default
+  | null = null;
+let SectionExamSection:
+  | typeof import("./SectionExamSection.svelte").default
+  | null = null;
+let SectionHomeworkTab:
+  | typeof import("./SectionHomeworkTab.svelte").default
+  | null = null;
+
+async function ensureDescriptionCard() {
+  DescriptionCard ??= (
+    await import("@/features/descriptions/components/DescriptionCard.svelte")
+  ).default;
+}
+
+async function ensureCommentsPanel() {
+  CommentsPanel ??= (
+    await import("@/features/comments/components/CommentsPanel.svelte")
+  ).default;
+}
+
+async function ensureSectionCalendarTab() {
+  SectionCalendarTab ??= (await import("./SectionCalendarTab.svelte")).default;
+}
+
+async function ensureSectionExamSection() {
+  SectionExamSection ??= (await import("./SectionExamSection.svelte")).default;
+}
+
+async function ensureSectionHomeworkTab() {
+  SectionHomeworkTab ??= (await import("./SectionHomeworkTab.svelte")).default;
+}
+
+$: if (activeTab === "introduction") {
+  void ensureDescriptionCard();
+}
+$: if (activeTab === "comments") {
+  void ensureCommentsPanel();
+}
+$: if (activeTab === "calendar") {
+  void ensureSectionCalendarTab();
+}
+$: if (activeTab === "exams") {
+  void ensureSectionExamSection();
+}
+$: if (activeTab === "homework") {
+  void ensureSectionHomeworkTab();
+}
 
 $: sectionExamEvents = sectionCalendarEvents.filter(
   (event) => event.kind === "exam",
@@ -195,56 +246,72 @@ $: sectionNavItems = [
       {:else if activeTab === "introduction"}
       <section id="section-description">
         {#key `description:section:${data.section.id}`}
-          <DescriptionCard
-            targetType="section"
-            targetId={data.section.id}
-            initialData={descriptionData}
-            locale={data.locale}
-            copy={data.copy.descriptions}
-            showTitle={false}
-          />
+          {#if DescriptionCard}
+            <svelte:component
+              this={DescriptionCard}
+              targetType="section"
+              targetId={data.section.id}
+              initialData={descriptionData}
+              locale={data.locale}
+              copy={data.copy.descriptions}
+              showTitle={false}
+            />
+          {:else if descriptionData.description.renderedHtml}
+            <div class="markdown-preview" data-slot="markdown-preview">
+              {@html descriptionData.description.renderedHtml}
+            </div>
+          {/if}
         {/key}
       </section>
       {:else if activeTab === "calendar"}
       <section id="tab-calendar">
-        <SectionCalendarTab
-          bind:calendarMonthOffset
-          calendarGridWeeks={sectionCalendarGridWeeks}
-          {calendarMonthLabel}
-          dateTimePlaceText={displaySection.dateTimePlaceText}
-          {formatMessage}
-          {openCalendarDialog}
-          {sectionCalendarEvents}
-          {sectionCopy}
-          {todayCalendarMonthOffset}
-          {unscheduledCalendarEvents}
-        />
+        {#if SectionCalendarTab}
+          <svelte:component
+            this={SectionCalendarTab}
+            bind:calendarMonthOffset
+            calendarGridWeeks={sectionCalendarGridWeeks}
+            {calendarMonthLabel}
+            dateTimePlaceText={displaySection.dateTimePlaceText}
+            {formatMessage}
+            {openCalendarDialog}
+            {sectionCalendarEvents}
+            {sectionCopy}
+            {todayCalendarMonthOffset}
+            {unscheduledCalendarEvents}
+          />
+        {/if}
       </section>
       {:else if activeTab === "exams"}
       <section id="tab-exams">
-        <SectionExamSection
-          events={sectionExamEvents}
-          {fmtDate}
-          {sectionCopy}
-        />
+        {#if SectionExamSection}
+          <svelte:component
+            this={SectionExamSection}
+            events={sectionExamEvents}
+            {fmtDate}
+            {sectionCopy}
+          />
+        {/if}
       </section>
       {:else if activeTab === "homework"}
       <section id="tab-homework">
-        <SectionHomeworkTab
-          {canWriteHomework}
-          {fmtDateTime}
-          {homeworkCopy}
-          {homeworkStatus}
-          {homeworkView}
-          {homeworks}
-          isAuthenticated={viewer.isAuthenticated ?? viewer.signedIn === true}
-          openAuditDialog={() => setHomeworkAuditDialogOpen(true)}
-          {openCreateHomeworkDialog}
-          {sectionCopy}
-          sectionJwId={data.section.jwId}
-          selectHomework={setSelectedHomework}
-          {setHomeworkView}
-        />
+        {#if SectionHomeworkTab}
+          <svelte:component
+            this={SectionHomeworkTab}
+            {canWriteHomework}
+            {fmtDateTime}
+            {homeworkCopy}
+            {homeworkStatus}
+            {homeworkView}
+            {homeworks}
+            isAuthenticated={viewer.isAuthenticated ?? viewer.signedIn === true}
+            openAuditDialog={() => setHomeworkAuditDialogOpen(true)}
+            {openCreateHomeworkDialog}
+            {sectionCopy}
+            sectionJwId={data.section.jwId}
+            selectHomework={setSelectedHomework}
+            {setHomeworkView}
+          />
+        {/if}
       </section>
       {:else if activeTab === "teachers"}
       <section id="section-teachers">
@@ -258,13 +325,16 @@ $: sectionNavItems = [
       {:else if activeTab === "comments"}
       <section id="tab-comments">
         {#key `comments:section:${data.section.id}`}
-          <CommentsPanel
-            initialData={data.commentsData}
-            targetType="section"
-            targetId={data.section.id}
-            targets={commentTargets}
-            showAllTargets
-          />
+          {#if CommentsPanel}
+            <svelte:component
+              this={CommentsPanel}
+              initialData={data.commentsData}
+              targetType="section"
+              targetId={data.section.id}
+              targets={commentTargets}
+              showAllTargets
+            />
+          {/if}
         {/key}
       </section>
       {/if}
