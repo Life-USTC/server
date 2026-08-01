@@ -102,8 +102,9 @@ function target(whereTarget: Record<string, number | string>) {
 describe("loadCommentThread pagination", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    accountFindManyMock.mockResolvedValue([]);
+    commentCountMock.mockReset();
     commentCountMock.mockResolvedValue(3);
+    accountFindManyMock.mockResolvedValue([]);
     publicReactionSummaryQueryMock.mockResolvedValue([]);
     publicAttachmentSummaryQueryMock.mockResolvedValue([]);
     reactionSummaryQueryMock.mockResolvedValue([]);
@@ -113,11 +114,16 @@ describe("loadCommentThread pagination", () => {
         ? attachmentSummaryQueryMock(query)
         : reactionSummaryQueryMock(query),
     );
-    publicQueryMock.mockImplementation((query) =>
-      query.strings.join(" ").includes("comment_attachment_summaries")
-        ? publicAttachmentSummaryQueryMock(query)
-        : publicReactionSummaryQueryMock(query),
-    );
+    publicQueryMock.mockImplementation((query) => {
+      const sql = query?.strings?.join?.(" ") ?? "";
+      if (sql.includes("comment_hidden_root_count")) {
+        return Promise.resolve([{ count: 0n }]);
+      }
+      if (sql.includes("comment_attachment_summaries")) {
+        return publicAttachmentSummaryQueryMock(query);
+      }
+      return publicReactionSummaryQueryMock(query);
+    });
     withUserDbContextMock.mockImplementation((_userId, callback) =>
       callback({
         $queryRaw: contextQueryMock,
