@@ -1,3 +1,10 @@
+# [1.84.0](https://github.com/Life-USTC/server/compare/v1.83.0...v1.84.0) (2026-08-01)
+
+
+### Features
+
+* **data:** add Comment collaborative RLS policies ([#723](https://github.com/Life-USTC/server/issues/723)) ([4ecba46](https://github.com/Life-USTC/server/commit/4ecba464301002972a195a75df64ffd74043c037)), closes [#601](https://github.com/Life-USTC/server/issues/601)
+
 # [1.83.0](https://github.com/Life-USTC/server/compare/v1.82.0...v1.83.0) (2026-08-01)
 
 
