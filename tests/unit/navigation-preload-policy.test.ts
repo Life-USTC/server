@@ -17,7 +17,8 @@ const hoverBooleanAttributePattern =
 
 function hasHoverDataPreload(source: string): boolean {
   return (
-    hoverLiteralPattern.test(source) || hoverBooleanAttributePattern.test(source)
+    hoverLiteralPattern.test(source) ||
+    hoverBooleanAttributePattern.test(source)
   );
 }
 
