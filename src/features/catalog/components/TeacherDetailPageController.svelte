@@ -198,6 +198,10 @@ $: activeNavItem =
               copy={copy.descriptions}
               showTitle={false}
             />
+          {:else if data.descriptionData.description.renderedHtml}
+            <div class="markdown-preview" data-slot="markdown-preview">
+              {@html data.descriptionData.description.renderedHtml}
+            </div>
           {/if}
         {/key}
       </section>

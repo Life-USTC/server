@@ -256,6 +256,10 @@ $: sectionNavItems = [
               copy={data.copy.descriptions}
               showTitle={false}
             />
+          {:else if descriptionData.description.renderedHtml}
+            <div class="markdown-preview" data-slot="markdown-preview">
+              {@html descriptionData.description.renderedHtml}
+            </div>
           {/if}
         {/key}
       </section>
