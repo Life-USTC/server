@@ -211,7 +211,7 @@ describe.skipIf(process.env.FUNCTION_OWNER_ROLE_TEST_ENABLED !== "true")(
       expect(ownedSchemas).toEqual([]);
     });
 
-    it("owns exactly the eleven audited SECURITY DEFINER functions", async () => {
+    it("owns exactly the twelve audited SECURITY DEFINER functions", async () => {
       const functions = await adminPrisma.$queryRaw<
         Array<{
           securityDefiner: boolean;
