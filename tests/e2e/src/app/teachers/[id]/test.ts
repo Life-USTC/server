@@ -211,6 +211,9 @@ test.describe("/catalog/teachers/[id] 教师详情页", () => {
     await expect(
       nav.getByRole("link", { name: /评论|Comments/i }),
     ).toBeVisible();
+    await expect(
+      nav.getByRole("link", { name: /授课班级|Teaching Sections/i }),
+    ).toHaveAttribute("data-sveltekit-preload-data", "off");
 
     await jumpToTeacherSection(page, /评论|Comments/i, "#teacher-comments");
     await expect(page).toHaveURL(/\/catalog\/teachers\/\d+\?tab=comments$/);
