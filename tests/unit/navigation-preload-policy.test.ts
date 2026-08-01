@@ -10,8 +10,16 @@ const repoRoot = path.resolve(
 
 const sourceRoots = ["src"];
 
-const hoverDataPreloadPattern =
-  /data-sveltekit-preload-data\s*=\s*(?:"hover"|'hover'|""|''|{[^}]*hover[^}]*})/;
+const hoverLiteralPattern =
+  /data-sveltekit-preload-data\s*=\s*(?:"hover"|'hover'|\{\s*["']hover["']\s*\})/;
+const hoverBooleanAttributePattern =
+  /data-sveltekit-preload-data(?=[\s/>])(?!\s*=)/;
+
+function hasHoverDataPreload(source: string): boolean {
+  return (
+    hoverLiteralPattern.test(source) || hoverBooleanAttributePattern.test(source)
+  );
+}
 
 async function collectSourceFiles(directory: string): Promise<string[]> {
   const entries = await readdir(directory, { withFileTypes: true });
@@ -37,7 +45,7 @@ describe("navigation preload policy", () => {
 
     expect(appHtml).toMatch(/data-sveltekit-preload-code\s*=\s*["']hover["']/);
     expect(appHtml).toMatch(/data-sveltekit-preload-data\s*=\s*["']tap["']/);
-    expect(appHtml).not.toMatch(hoverDataPreloadPattern);
+    expect(hasHoverDataPreload(appHtml)).toBe(false);
   });
 
   it("disables SvelteKit data preload on detail section nav links", async () => {
@@ -56,7 +64,7 @@ describe("navigation preload policy", () => {
       const files = await collectSourceFiles(path.join(repoRoot, root));
       for (const file of files) {
         const source = await readFile(file, "utf8");
-        if (!hoverDataPreloadPattern.test(source)) continue;
+        if (!hasHoverDataPreload(source)) continue;
         violations.push(path.relative(repoRoot, file));
       }
     }
