@@ -1,6 +1,7 @@
 import { describe, expect, test } from "vitest";
 import {
   courseDetailPagePath,
+  isCatalogDetailLegacyPathTab,
   parseCatalogDetailTab,
   resolveCatalogDetailTabRedirect,
   teacherDetailPagePath,
@@ -64,5 +65,8 @@ describe("catalog detail tab helpers", () => {
         "courses",
       ),
     ).toBeNull();
+    expect(isCatalogDetailLegacyPathTab("overview")).toBe(false);
+    expect(isCatalogDetailLegacyPathTab("foo")).toBe(false);
+    expect(isCatalogDetailLegacyPathTab("introduction")).toBe(true);
   });
 });

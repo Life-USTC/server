@@ -13,6 +13,10 @@ const catalogDetailTabSet = new Set<string>(catalogDetailTabs);
 
 const catalogDetailLegacyPathTab = /^(introduction|sections|comments)$/;
 
+export function isCatalogDetailLegacyPathTab(segment: string): boolean {
+  return catalogDetailLegacyPathTab.test(segment);
+}
+
 export function isCatalogDetailTab(
   value: string | null | undefined,
 ): value is CatalogDetailTab {
@@ -56,7 +60,7 @@ export function resolveCatalogDetailTabRedirect(
   if (!match) return null;
 
   const [, identifier, segment] = match;
-  if (!catalogDetailLegacyPathTab.test(segment)) return null;
+  if (!isCatalogDetailLegacyPathTab(segment)) return null;
 
   const redirectUrl = new URL(`/catalog/${kind}/${identifier}`, url.origin);
   for (const [key, value] of url.searchParams) {
