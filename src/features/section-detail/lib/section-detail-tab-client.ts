@@ -1,8 +1,8 @@
 import type { CommentsInitialData } from "@/features/comments/lib/comment-panel-data";
 import type { DescriptionPayload } from "@/features/descriptions/lib/description-card-actions";
 import { fetchDescriptionPayload } from "@/features/descriptions/lib/description-card-client";
+import { emptyDescriptionPayload } from "@/features/descriptions/lib/description-empty-payload";
 import type { DescriptionViewer } from "@/features/descriptions/lib/description-payload-types";
-import { emptyDescriptionPayload } from "@/features/descriptions/server/description-payload";
 import type { AppLocale } from "@/i18n/config";
 import { apiClient } from "@/lib/api/client";
 import { loadSectionHomeworks } from "./homeworks";

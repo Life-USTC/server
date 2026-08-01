@@ -1,8 +1,10 @@
+import {
+  emptyDescriptionData,
+  emptyDescriptionPayload,
+} from "@/features/descriptions/lib/description-empty-payload";
 import type {
   DescriptionData,
   DescriptionHistoryItem,
-  DescriptionPayload,
-  DescriptionViewer,
   EditorSummary,
 } from "@/features/descriptions/lib/description-payload-types";
 import { campusReferenceMarkdownPlugins } from "@/features/markdown/lib/campus-reference-markdown";
@@ -15,6 +17,8 @@ export type {
   DescriptionViewer,
   EditorSummary,
 } from "@/features/descriptions/lib/description-payload-types";
+
+export { emptyDescriptionData, emptyDescriptionPayload };
 
 import { toShanghaiIsoString } from "@/lib/time/serialize-date-output";
 
@@ -35,27 +39,6 @@ type DescriptionHistoryRecord = {
   nextContent?: string | null;
   previousContent?: string | null;
 };
-
-export function emptyDescriptionData(): DescriptionData {
-  return {
-    id: null,
-    content: "",
-    renderedHtml: "",
-    updatedAt: null,
-    lastEditedAt: null,
-    lastEditedBy: null,
-  };
-}
-
-export function emptyDescriptionPayload(
-  viewer: DescriptionViewer,
-): DescriptionPayload {
-  return {
-    description: emptyDescriptionData(),
-    history: [],
-    viewer,
-  };
-}
 
 export function serializeDescriptionRecord(
   description: DescriptionRecord | null | undefined,

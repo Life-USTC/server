@@ -3,9 +3,7 @@ import BookOpenTextIcon from "@lucide/svelte/icons/book-open-text";
 import InfoIcon from "@lucide/svelte/icons/info";
 import ListIcon from "@lucide/svelte/icons/list";
 import MessageSquareIcon from "@lucide/svelte/icons/message-square";
-import CommentsPanel from "@/features/comments/components/CommentsPanel.svelte";
 import { commentTargetPermalinkBaseHref } from "@/features/comments/lib/comment-panel-controller";
-import DescriptionCard from "@/features/descriptions/components/DescriptionCard.svelte";
 import DetailSectionNav from "$lib/components/DetailSectionNav.svelte";
 import PageHeader from "$lib/components/PageHeader.svelte";
 import { Badge } from "$lib/components/ui/badge/index.js";
@@ -60,6 +58,32 @@ type PageData = {
 };
 
 export let data: PageData;
+
+let DescriptionCard:
+  | typeof import("@/features/descriptions/components/DescriptionCard.svelte").default
+  | null = null;
+let CommentsPanel:
+  | typeof import("@/features/comments/components/CommentsPanel.svelte").default
+  | null = null;
+
+async function ensureDescriptionCard() {
+  DescriptionCard ??= (
+    await import("@/features/descriptions/components/DescriptionCard.svelte")
+  ).default;
+}
+
+async function ensureCommentsPanel() {
+  CommentsPanel ??= (
+    await import("@/features/comments/components/CommentsPanel.svelte")
+  ).default;
+}
+
+$: if (data.detailSection === "introduction") {
+  void ensureDescriptionCard();
+}
+$: if (data.detailSection === "comments") {
+  void ensureCommentsPanel();
+}
 
 $: copy = data.copy;
 $: detailCopy = copy satisfies TeacherDetailCopy;
@@ -164,14 +188,17 @@ $: activeNavItem =
       {:else if data.detailSection === "introduction"}
       <section id="teacher-description">
         {#key `description:teacher:${data.teacher.id}`}
-          <DescriptionCard
-            targetType="teacher"
-            targetId={data.teacher.id}
-            initialData={data.descriptionData}
-            locale={data.locale as "en-us" | "zh-cn"}
-            copy={copy.descriptions}
-            showTitle={false}
-          />
+          {#if DescriptionCard}
+            <svelte:component
+              this={DescriptionCard}
+              targetType="teacher"
+              targetId={data.teacher.id}
+              initialData={data.descriptionData}
+              locale={data.locale as "en-us" | "zh-cn"}
+              copy={copy.descriptions}
+              showTitle={false}
+            />
+          {/if}
         {/key}
       </section>
       {:else if data.detailSection === "sections"}
@@ -187,15 +214,18 @@ $: activeNavItem =
       {:else if data.detailSection === "comments"}
       <section id="teacher-comments">
         {#key `comments:teacher:${data.teacher.id}`}
-          <CommentsPanel
-            initialData={data.commentsData}
-            permalinkBaseHref={commentTargetPermalinkBaseHref({
-              teacherId: data.teacher.id,
-              type: "teacher",
-            })}
-            targetType="teacher"
-            targetId={data.teacher.id}
-          />
+          {#if CommentsPanel}
+            <svelte:component
+              this={CommentsPanel}
+              initialData={data.commentsData}
+              permalinkBaseHref={commentTargetPermalinkBaseHref({
+                teacherId: data.teacher.id,
+                type: "teacher",
+              })}
+              targetType="teacher"
+              targetId={data.teacher.id}
+            />
+          {/if}
         {/key}
       </section>
       {/if}

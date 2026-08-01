@@ -1,7 +1,5 @@
 <script lang="ts">
 import type { SectionDetailPageData } from "@/features/section-detail/lib/section-detail-controller-helpers";
-import SectionCalendarDialog from "./SectionCalendarDialog.svelte";
-import SectionHomeworkDialogs from "./SectionHomeworkDialogs.svelte";
 import SectionSubscribeDialog from "./SectionSubscribeDialog.svelte";
 import type {
   BooleanSetter,
@@ -74,9 +72,40 @@ export let applyEditDueInWeek: SectionDetailDialogsProps["applyEditDueInWeek"];
 export let applyEditPublishNow: SectionDetailDialogsProps["applyEditPublishNow"];
 export let applyEditStartAtSemesterStart: SectionDetailDialogsProps["applyEditStartAtSemesterStart"];
 export let applyEditStartNow: SectionDetailDialogsProps["applyEditStartNow"];
+
+let SectionHomeworkDialogs:
+  | typeof import("./SectionHomeworkDialogs.svelte").default
+  | null = null;
+let SectionCalendarDialog:
+  | typeof import("./SectionCalendarDialog.svelte").default
+  | null = null;
+
+async function ensureSectionHomeworkDialogs() {
+  SectionHomeworkDialogs ??= (await import("./SectionHomeworkDialogs.svelte"))
+    .default;
+}
+
+async function ensureSectionCalendarDialog() {
+  SectionCalendarDialog ??= (await import("./SectionCalendarDialog.svelte"))
+    .default;
+}
+
+$: if (
+  showCreateHomework ||
+  selectedHomework ||
+  deleteHomeworkTarget ||
+  isHomeworkAuditDialogOpen
+) {
+  void ensureSectionHomeworkDialogs();
+}
+$: if (isCalendarDialogOpen) {
+  void ensureSectionCalendarDialog();
+}
 </script>
 
-<SectionHomeworkDialogs
+{#if SectionHomeworkDialogs}
+  <svelte:component
+    this={SectionHomeworkDialogs}
   {applyCreateDueAtSemesterEnd}
   {applyCreateDueInMonth}
   {applyCreateDueInWeek}
@@ -129,9 +158,12 @@ export let applyEditStartNow: SectionDetailDialogsProps["applyEditStartNow"];
   {startEditHomework}
   {toggleHomeworkCompletion}
   {updateHomework}
-/>
+  />
+{/if}
 
-<SectionCalendarDialog
+{#if SectionCalendarDialog}
+  <svelte:component
+    this={SectionCalendarDialog}
   {clipboardError}
   {clipboardMessage}
   close={closeCalendarDialog}
@@ -142,7 +174,8 @@ export let applyEditStartNow: SectionDetailDialogsProps["applyEditStartNow"];
   setOpen={setCalendarDialogOpen}
   {singleCalendarUrl}
   {subscriptionCalendarUrl}
-/>
+  />
+{/if}
 
 {#if showSubscribeDialog && data.section.retiredAt == null}
   <SectionSubscribeDialog
