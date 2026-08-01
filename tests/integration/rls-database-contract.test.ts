@@ -38,6 +38,7 @@ const protectedTables = [
 
 const expectedRuntimeFunctionPrivileges = [
   "public.comment_attachment_summaries(p_comment_ids text[]):EXECUTE",
+  "public.comment_hidden_root_count(p_section_id integer, p_course_id integer, p_teacher_id integer, p_homework_id text, p_section_teacher_id integer):EXECUTE",
   "public.comment_reaction_summaries(comment_ids text[]):EXECUTE",
   "public.find_downloadable_upload(p_upload_id text):EXECUTE",
   "public.get_public_profile_homework_completions(p_user_id text, p_since timestamp without time zone):EXECUTE",
