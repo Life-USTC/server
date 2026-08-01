@@ -41,7 +41,9 @@ export function registerDashboardTools(server: McpServer) {
     "workspace_schedule_next",
     {
       description:
-        "Next upcoming class from subscribed sections. Lightweight alternative when only the next class is needed.",
+        "Focused extract for 'what is my next class?' from subscribed sections. " +
+        "Prefer workspace_snapshot_get when deadlines, todos, or bus context are also needed. " +
+        "Default mode compacts schedule payloads; use full mode for raw nested room and teacher fields.",
       inputSchema: {
         locale: mcpLocaleInputSchema,
         mode: mcpModeInputSchema,

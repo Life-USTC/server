@@ -348,6 +348,18 @@ describe("MCP tool descriptors", () => {
     expect(description("workspace_exam_list")).toContain("all semesters");
   });
 
+  it("advertises assistant dashboard tool hierarchy", async () => {
+    const result = await listTools();
+    const description = (name: string) =>
+      result.tools.find((tool) => tool.name === name)?.description ?? "";
+
+    expect(description("workspace_snapshot_get")).toContain("Start here");
+    expect(description("workspace_schedule_next")).toContain(
+      "workspace_snapshot_get",
+    );
+    expect(description("workspace_schedule_next")).toContain("full mode");
+  });
+
   it("advertises the advisory homework writing convention", async () => {
     const result = await listTools();
 
