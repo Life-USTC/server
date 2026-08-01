@@ -59,6 +59,29 @@ test.describe("/catalog/courses 课程目录", () => {
     expect(html).toContain(DEV_SEED.course.code);
   });
 
+  test("目录链接悬停时不预取 __data.json", async ({ page }) => {
+    const dataJsonRequests: string[] = [];
+    page.on("request", (request) => {
+      if (request.url().includes("__data.json")) {
+        dataJsonRequests.push(request.url());
+      }
+    });
+
+    await gotoAndWaitForReady(page, "/catalog/courses");
+    const courseLink = page
+      .locator(`a[href="/catalog/courses/${DEV_SEED.course.jwId}"]`)
+      .first();
+    await expect(courseLink).toBeVisible();
+    await courseLink.hover();
+
+    await expect(
+      page.waitForRequest((request) => request.url().includes("__data.json"), {
+        timeout: 750,
+      }),
+    ).rejects.toThrow();
+    expect(dataJsonRequests).toEqual([]);
+  });
+
   test("语言切换正常工作", async ({ page, baseURL }, testInfo) => {
     await gotoAndWaitForReady(page, "/catalog/courses", {
       testInfo,
