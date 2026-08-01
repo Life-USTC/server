@@ -191,6 +191,70 @@ describe("workspace_snapshot_get — 默认模式紧凑性", () => {
   });
 });
 
+describe("workspace_schedule_next — 聚焦下一节课", () => {
+  let originalSubscriptionSectionIds: number[] = [];
+
+  beforeAll(async () => {
+    originalSubscriptionSectionIds = await fixtures.getUserSubscribedSectionIds(
+      context.devUserId,
+    );
+    await fixtures.ensureDevUserSubscribedToSeedSection(context.devUserId);
+  });
+
+  afterAll(async () => {
+    await fixtures.replaceUserSubscribedSections(
+      context.devUserId,
+      originalSubscriptionSectionIds,
+    );
+  });
+
+  it("atTime 锚定下一节课并与 snapshot 一致", async () => {
+    const [snapshot, next] = await Promise.all([
+      context.client.call<{
+        nextClass?: { type?: string; at?: string | null };
+      }>("workspace_snapshot_get", {
+        locale: "zh-cn",
+        atTime: fixtures.SEED_AT_TIME,
+      }),
+      context.client.call<{
+        found?: boolean;
+        nextClass?: { type?: string; at?: string | null };
+        currentSemester?: { code?: string | null; nameCn?: string | null };
+      }>("workspace_schedule_next", {
+        locale: "zh-cn",
+        atTime: fixtures.SEED_AT_TIME,
+      }),
+    ]);
+
+    expect(next.found).toBe(true);
+    expect(next.nextClass).toEqual(snapshot.nextClass);
+    expect(next.nextClass?.type).toBe("schedule");
+    expect(next.nextClass?.at?.slice(0, 10)).toBe(fixtures.SEED_DATE);
+    expect(next.currentSemester?.code).toBeDefined();
+  });
+
+  it("default 模式紧凑化 nextClass payload", async () => {
+    const next = await context.client.call<{
+      found?: boolean;
+      nextClass?: {
+        payload?: {
+          scheduleGroup?: unknown;
+          roomType?: unknown;
+        };
+      };
+    }>("workspace_schedule_next", {
+      locale: "zh-cn",
+      atTime: fixtures.SEED_AT_TIME,
+    });
+
+    expect(next.found).toBe(true);
+    if (next.nextClass?.payload) {
+      expect(next.nextClass.payload).not.toHaveProperty("scheduleGroup");
+      expect(next.nextClass.payload).not.toHaveProperty("roomType");
+    }
+  });
+});
+
 // ---------------------------------------------------------------------------
 // Dashboard link tools — list/search and pin state
 // ---------------------------------------------------------------------------

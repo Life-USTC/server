@@ -15,6 +15,7 @@
     "upcoming-exam-counts": "Upcoming exam counts are shared between the dashboard web navigation, REST overview, and MCP overview. They include known-date exams that have not ended or start later today, and exclude date-unknown exam records that cannot be placed in the upcoming timeline.",
     "non-current-not-disguised": "Non-current-semester subscribed sections must not be disguised as current learning tasks.",
     "aggregate-first-for-assistants": "Prefer a single aggregated snapshot tool for common assistant prompts before fanning out into multiple narrower tool calls.",
+    "assistant-tool-hierarchy": "Use workspace_snapshot_get for broad assistant context; workspace_schedule_next for 'what is my next class?'; workspace_deadline_list for merged upcoming deadlines; workspace_overview_get only when lighter counts and samples suffice.",
     "historical-subscriptions-remain-discoverable": "A zero current-semester subscription count must not be presented as no course history when total subscriptions remain; web and assistant surfaces must offer a path to past-term sections, homework, schedules, and exams.",
     "focused-extracts-share-window": "Focused tools such as next-class and upcoming-deadlines should stay aligned with the same short-horizon window as the broader dashboard snapshot.",
     "dashboard-card-priority": "Dashboard cards prioritize the actionable object title, timing/status, and direct destination over raw nested identifiers. Titles retain usable horizontal space at common desktop widths; secondary context such as course, section, campus, or priority badge remains visible for disambiguation without crowding the title. Platform audit timestamps and repeated parent objects stay out of compact cards and MCP default output."
@@ -126,7 +127,8 @@
             "name": "workspace_schedule_next",
             "returns": "{ found: Boolean, nextClass, currentSemester }",
             "notes": [
-              "Focused extract for 'what is my next class?' prompts.",
+              "Focused extract for 'what is my next class?' prompts; prefer workspace_snapshot_get when broader dashboard context is needed.",
+              "Default mode compacts nextClass schedule payloads the same way as workspace_snapshot_get; request full mode for raw nested schedule, room, and teacher fields.",
               "Accepts optional atTime to anchor the lookup instead of using the server clock."
             ]
           },

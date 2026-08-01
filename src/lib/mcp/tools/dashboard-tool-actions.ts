@@ -10,6 +10,10 @@ import {
   compactDashboardSnapshot,
 } from "@/lib/mcp/tools/dashboard-compact-summary";
 import {
+  summarizeDashboardCalendarEvent,
+  summarizeDashboardCurrentSemester,
+} from "@/lib/mcp/tools/dashboard-summary-common";
+import {
   loadDashboardSnapshotForTool,
   parseOptionalDashboardAtTime,
 } from "./dashboard-tool-snapshot";
@@ -51,6 +55,7 @@ export async function getNextClassTool(
   }: { locale: AppLocale; mode?: McpModeInput; atTime?: string },
   extra: ToolExtra,
 ) {
+  const resolvedMode = resolveMcpMode(mode);
   const loaded = await loadDashboardSnapshotForTool({
     atTime,
     extra,
@@ -58,13 +63,25 @@ export async function getNextClassTool(
   });
   if (!loaded.ok) return loaded.result;
   const { snapshot } = loaded;
+  if (resolvedMode === "full") {
+    return jsonToolResult(
+      {
+        found: Boolean(snapshot.nextClass),
+        nextClass: snapshot.nextClass,
+        currentSemester: snapshot.currentSemester,
+      },
+      { mode: "full" },
+    );
+  }
   return jsonToolResult(
     {
       found: Boolean(snapshot.nextClass),
-      nextClass: snapshot.nextClass,
-      currentSemester: snapshot.currentSemester,
+      nextClass: snapshot.nextClass
+        ? summarizeDashboardCalendarEvent(snapshot.nextClass)
+        : null,
+      currentSemester: summarizeDashboardCurrentSemester(snapshot),
     },
-    { mode: resolveMcpMode(mode) },
+    { mode: "default" },
   );
 }
 
