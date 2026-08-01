@@ -59,6 +59,16 @@ vi.mock("@/lib/db/prisma-errors", () => ({
 
 vi.mock("@/lib/db/prisma", () => ({
   prisma: prismaMock,
+  withUserDbContext: vi.fn((_userId, action) =>
+    action({
+      auditLog: prismaMock.auditLog,
+      comment: prismaMock.comment,
+      description: prismaMock.description,
+      descriptionEdit: prismaMock.descriptionEdit,
+      user: prismaMock.user,
+      userSuspension: prismaMock.userSuspension,
+    }),
+  ),
 }));
 
 describe("admin API 服务", () => {

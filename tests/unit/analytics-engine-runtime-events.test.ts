@@ -97,9 +97,19 @@ describe("Cloudflare Analytics Engine runtime events", () => {
     ] as const;
 
     stages.forEach((entry, index) => {
+      if (entry.route === "homeworks") {
+        writeWorkspaceRouteStageAnalytics({
+          ioObservedDurationMs: index + 10,
+          route: "homeworks",
+          stage: entry.stage,
+          status: "success",
+        });
+        return;
+      }
+
       writeWorkspaceRouteStageAnalytics({
         ioObservedDurationMs: index + 10,
-        route: entry.route,
+        route: "subscriptions_current",
         stage: entry.stage,
         status: "success",
       });

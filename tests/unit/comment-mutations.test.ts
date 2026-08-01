@@ -73,6 +73,13 @@ vi.mock("@/lib/db/prisma", () => ({
   withUserDbContext: withUserDbContextMock,
 }));
 
+vi.mock("@/features/comments/server/comment-db-context", () => ({
+  withCommentDbContext: (
+    _viewerUserId: string | null,
+    action: (client: { comment: typeof prismaMock.comment }) => unknown,
+  ) => action({ comment: prismaMock.comment }),
+}));
+
 vi.mock("@/lib/db/prisma-errors", () => ({
   isPrismaUniqueConstraintError: isPrismaUniqueConstraintErrorMock,
 }));

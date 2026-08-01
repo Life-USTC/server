@@ -73,7 +73,7 @@ export async function getSubscribedHomeworksRoute(request: Request) {
         "homeworks",
         "item_state",
         { request },
-        () => withHomeworkItemState(homeworks),
+        () => withHomeworkItemState(homeworks, userId),
       );
 
       return jsonResponse({

@@ -50,7 +50,7 @@ TO life_ustc_runtime;
 GRANT SELECT, INSERT, DELETE ON TABLE "CommentReaction"
 TO life_ustc_runtime;
 
-GRANT INSERT, UPDATE ON TABLE "Comment" TO life_ustc_runtime;
+GRANT SELECT, INSERT, UPDATE ON TABLE "Comment" TO life_ustc_runtime;
 GRANT INSERT, DELETE ON TABLE "CommentAttachment" TO life_ustc_runtime;
 GRANT INSERT, UPDATE ON TABLE "Homework" TO life_ustc_runtime;
 GRANT INSERT ON TABLE "HomeworkAuditLog" TO life_ustc_runtime;

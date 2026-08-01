@@ -65,6 +65,6 @@ export async function listSubscribedHomeworkPage(
 
   return {
     ...page,
-    data: await withHomeworkItemState(orderedHomeworks),
+    data: await withHomeworkItemState(orderedHomeworks, userId),
   };
 }

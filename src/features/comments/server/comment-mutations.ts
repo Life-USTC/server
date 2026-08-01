@@ -5,8 +5,9 @@ import type {
 } from "@/generated/prisma/client";
 import { writeAuditLog } from "@/lib/audit/write-audit-log";
 import { getViewerContext } from "@/lib/auth/viewer-context";
-import { prisma, withUserDbContext } from "@/lib/db/prisma";
+import { withUserDbContext } from "@/lib/db/prisma";
 import { isPrismaUniqueConstraintError } from "@/lib/db/prisma-errors";
+import { withCommentDbContext } from "./comment-db-context";
 import { canViewerWriteCommentInteraction } from "./comment-interaction-policy";
 import {
   commentThreadInclude,
@@ -168,7 +169,7 @@ async function createCommentRecord({
   viewer: ViewerInfo;
   visibility: CommentVisibility;
 }) {
-  return prisma.$transaction(async (tx) => {
+  return withUserDbContext(userId, async (tx) => {
     const parent = await resolveCreateCommentParentForWrite({
       parentId,
       tx,
@@ -254,7 +255,7 @@ export async function updateOwnComment({
 
   let updated = false;
   try {
-    await prisma.$transaction(async (tx) => {
+    await withUserDbContext(userId, async (tx) => {
       const result = await tx.comment.updateMany({
         where: { id, status: "active", userId },
         data: {
@@ -302,10 +303,12 @@ export async function deleteOwnComment(input: {
   const actor = await loadActiveCommentActor(input.userId);
   if (!actor.ok) return actor;
 
-  const comment = await prisma.comment.findUnique({
-    where: { id: input.commentId },
-    select: { id: true, status: true, userId: true, visibility: true },
-  });
+  const comment = await withCommentDbContext(input.userId, (client) =>
+    client.comment.findUnique({
+      where: { id: input.commentId },
+      select: { id: true, status: true, userId: true, visibility: true },
+    }),
+  );
 
   if (!comment) {
     return { ok: false as const, error: "not_found" as const };
@@ -319,7 +322,7 @@ export async function deleteOwnComment(input: {
     return { ok: false as const, error: "locked" as const };
   }
 
-  const deleted = await prisma.$transaction(async (tx) => {
+  const deleted = await withUserDbContext(input.userId, async (tx) => {
     const result = await tx.comment.updateMany({
       where: { id: input.commentId, status: "active", userId: input.userId },
       data: {
@@ -358,10 +361,12 @@ export async function createCommentReaction(input: {
   const actor = await loadActiveCommentActor(input.userId);
   if (!actor.ok) return actor;
 
-  const comment = await prisma.comment.findUnique({
-    where: { id: input.commentId },
-    select: { id: true, status: true, visibility: true },
-  });
+  const comment = await withCommentDbContext(input.userId, (client) =>
+    client.comment.findUnique({
+      where: { id: input.commentId },
+      select: { id: true, status: true, visibility: true },
+    }),
+  );
 
   if (!comment) {
     return { ok: false as const, error: "not_found" as const };
@@ -407,10 +412,12 @@ export async function deleteCommentReaction(input: {
   const actor = await loadActiveCommentActor(input.userId);
   if (!actor.ok) return actor;
 
-  const comment = await prisma.comment.findUnique({
-    where: { id: input.commentId },
-    select: { id: true, status: true, visibility: true },
-  });
+  const comment = await withCommentDbContext(input.userId, (client) =>
+    client.comment.findUnique({
+      where: { id: input.commentId },
+      select: { id: true, status: true, visibility: true },
+    }),
+  );
 
   if (!comment) {
     return { ok: true as const, changed: false };
@@ -567,10 +574,12 @@ async function loadOwnActiveCommentFailure({
   userId: string;
   viewer: ViewerInfo;
 }): Promise<CommentMutationFailure> {
-  const comment = await prisma.comment.findUnique({
-    where: { id },
-    select: { id: true, status: true, userId: true, visibility: true },
-  });
+  const comment = await withCommentDbContext(userId, (client) =>
+    client.comment.findUnique({
+      where: { id },
+      select: { id: true, status: true, userId: true, visibility: true },
+    }),
+  );
 
   if (!comment) {
     return { ok: false, error: "not_found" };
@@ -602,10 +611,12 @@ async function loadEditableCommentContext({
     return { ok: false, error: "suspended", reason: viewer.suspensionReason };
   }
 
-  const comment = await prisma.comment.findUnique({
-    where: { id },
-    select: { id: true, status: true, userId: true },
-  });
+  const comment = await withCommentDbContext(userId, (client) =>
+    client.comment.findUnique({
+      where: { id },
+      select: { id: true, status: true, userId: true },
+    }),
+  );
 
   if (!comment) {
     return { ok: false, error: "not_found" };
@@ -679,10 +690,12 @@ async function syncCommentAttachments(
 }
 
 async function loadCommentResponse(id: string, viewer: ViewerInfo) {
-  const updatedComment = await prisma.comment.findUnique({
-    where: { id },
-    include: commentThreadInclude,
-  });
+  const updatedComment = await withCommentDbContext(viewer.userId, (client) =>
+    client.comment.findUnique({
+      where: { id },
+      include: commentThreadInclude,
+    }),
+  );
 
   if (!updatedComment) return null;
   const commentsWithMetadata = await withCommentReadMetadata(

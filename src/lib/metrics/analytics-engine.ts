@@ -190,12 +190,19 @@ type WorkspaceOverviewStageAnalyticsInput = {
   status: "error" | "success";
 };
 
-type WorkspaceRouteStageAnalyticsInput = {
-  ioObservedDurationMs: number;
-  route: WorkspaceRouteName;
-  stage: WorkspaceRouteStage;
-  status: "error" | "success";
-};
+type WorkspaceRouteStageAnalyticsInput =
+  | {
+      ioObservedDurationMs: number;
+      route: "homeworks";
+      stage: WorkspaceHomeworksRouteStage | "db_context";
+      status: "error" | "success";
+    }
+  | {
+      ioObservedDurationMs: number;
+      route: "subscriptions_current";
+      stage: WorkspaceSubscriptionsCurrentRouteStage | "db_context";
+      status: "error" | "success";
+    };
 
 function statusClass(status: number) {
   if (!Number.isFinite(status)) return "unknown";

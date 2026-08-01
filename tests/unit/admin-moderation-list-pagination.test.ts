@@ -7,6 +7,7 @@ const {
   descriptionFindManyMock,
   homeworkCountMock,
   homeworkFindManyMock,
+  withUserDbContextMock,
 } = vi.hoisted(() => ({
   commentCountMock: vi.fn(),
   commentFindManyMock: vi.fn(),
@@ -14,6 +15,7 @@ const {
   descriptionFindManyMock: vi.fn(),
   homeworkCountMock: vi.fn(),
   homeworkFindManyMock: vi.fn(),
+  withUserDbContextMock: vi.fn(),
 }));
 
 vi.mock("@/lib/db/prisma", () => ({
@@ -25,6 +27,7 @@ vi.mock("@/lib/db/prisma", () => ({
     },
     homework: { count: homeworkCountMock, findMany: homeworkFindManyMock },
   },
+  withUserDbContext: withUserDbContextMock,
 }));
 
 import {
@@ -36,6 +39,11 @@ import {
 describe("admin moderation list pagination", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    withUserDbContextMock.mockImplementation((_adminUserId, callback) =>
+      callback({
+        comment: { count: commentCountMock, findMany: commentFindManyMock },
+      }),
+    );
     commentFindManyMock.mockResolvedValue([{ id: "comment-2" }]);
     commentCountMock.mockResolvedValue(5);
     descriptionFindManyMock.mockResolvedValue([{ id: "description-2" }]);
@@ -46,9 +54,18 @@ describe("admin moderation list pagination", () => {
 
   it("applies skip/take and returns a matching total for comments", async () => {
     await expect(
-      listAdminModerationComments({ pageSize: 2, skip: 2, status: "active" }),
+      listAdminModerationComments({
+        adminUserId: "admin-1",
+        pageSize: 2,
+        skip: 2,
+        status: "active",
+      }),
     ).resolves.toEqual({ data: [{ id: "comment-2" }], total: 5 });
 
+    expect(withUserDbContextMock).toHaveBeenCalledWith(
+      "admin-1",
+      expect.any(Function),
+    );
     expect(commentFindManyMock).toHaveBeenCalledWith(
       expect.objectContaining({ skip: 2, take: 2 }),
     );

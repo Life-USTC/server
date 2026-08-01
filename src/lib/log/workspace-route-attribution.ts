@@ -4,8 +4,10 @@ import { getApiRequestObservabilityRequestId } from "@/lib/log/api-observability
 import { logAppEvent } from "@/lib/log/app-logger";
 import { isProductionEnvironment } from "@/lib/log/app-logger-core";
 import {
+  type WorkspaceHomeworksRouteStage,
   type WorkspaceRouteName,
   type WorkspaceRouteStage,
+  type WorkspaceSubscriptionsCurrentRouteStage,
   writeWorkspaceRouteStageAnalytics,
 } from "@/lib/metrics/analytics-engine";
 
@@ -105,11 +107,37 @@ function logWorkspaceRouteStage(input: {
   );
 }
 
+function writeWorkspaceRouteStageAnalyticsForRoute(input: {
+  ioObservedDurationMs: number;
+  route: WorkspaceRouteName;
+  stage: WorkspaceRouteStage;
+  status: "error" | "success";
+}) {
+  if (input.route === "homeworks") {
+    writeWorkspaceRouteStageAnalytics({
+      ioObservedDurationMs: input.ioObservedDurationMs,
+      route: "homeworks",
+      stage: input.stage as WorkspaceHomeworksRouteStage | "db_context",
+      status: input.status,
+    });
+    return;
+  }
+
+  writeWorkspaceRouteStageAnalytics({
+    ioObservedDurationMs: input.ioObservedDurationMs,
+    route: "subscriptions_current",
+    stage: input.stage as
+      | WorkspaceSubscriptionsCurrentRouteStage
+      | "db_context",
+    status: input.status,
+  });
+}
+
 export function recordWorkspaceRouteDbContext(ioObservedDurationMs: number) {
   const attribution = getWorkspaceRouteAttribution();
   if (!attribution) return;
 
-  writeWorkspaceRouteStageAnalytics({
+  writeWorkspaceRouteStageAnalyticsForRoute({
     ioObservedDurationMs,
     route: attribution.route,
     stage: "db_context",
@@ -124,6 +152,18 @@ export function recordWorkspaceRouteDbContext(ioObservedDurationMs: number) {
   });
 }
 
+export async function runWorkspaceRouteStage<T>(
+  route: "homeworks",
+  stage: WorkspaceHomeworksRouteStage | "db_context",
+  input: { request?: Request },
+  work: () => Promise<T>,
+): Promise<T>;
+export async function runWorkspaceRouteStage<T>(
+  route: "subscriptions_current",
+  stage: WorkspaceSubscriptionsCurrentRouteStage | "db_context",
+  input: { request?: Request },
+  work: () => Promise<T>,
+): Promise<T>;
 export async function runWorkspaceRouteStage<T>(
   route: WorkspaceRouteName,
   stage: WorkspaceRouteStage,
@@ -145,7 +185,7 @@ export async function runWorkspaceRouteStage<T>(
       work,
     );
     const ioObservedDurationMs = Date.now() - startMs;
-    writeWorkspaceRouteStageAnalytics({
+    writeWorkspaceRouteStageAnalyticsForRoute({
       ioObservedDurationMs,
       route,
       stage,
@@ -161,7 +201,7 @@ export async function runWorkspaceRouteStage<T>(
     return result;
   } catch (error) {
     const ioObservedDurationMs = Date.now() - startMs;
-    writeWorkspaceRouteStageAnalytics({
+    writeWorkspaceRouteStageAnalyticsForRoute({
       ioObservedDurationMs,
       route,
       stage,

@@ -5,6 +5,7 @@ import {
 } from "@/lib/auth/viewer-context";
 import { authPrisma } from "@/lib/db/auth-prisma";
 import { prisma, withUserDbContext } from "@/lib/db/prisma";
+import { withCommentDbContext } from "./comment-db-context";
 import {
   buildCommentNodes,
   type CommentNode,
@@ -255,6 +256,34 @@ function directlyVisibleCommentWhere(
   };
 }
 
+async function countAnonymousHiddenRoots(
+  whereTarget: Record<string, number | string>,
+): Promise<number> {
+  const sectionId =
+    typeof whereTarget.sectionId === "number" ? whereTarget.sectionId : null;
+  const courseId =
+    typeof whereTarget.courseId === "number" ? whereTarget.courseId : null;
+  const teacherId =
+    typeof whereTarget.teacherId === "number" ? whereTarget.teacherId : null;
+  const homeworkId =
+    typeof whereTarget.homeworkId === "string" ? whereTarget.homeworkId : null;
+  const sectionTeacherId =
+    typeof whereTarget.sectionTeacherId === "number"
+      ? whereTarget.sectionTeacherId
+      : null;
+
+  const [row] = await prisma.$queryRaw<{ count: bigint }[]>`
+    SELECT public.comment_hidden_root_count(
+      ${sectionId},
+      ${courseId},
+      ${teacherId},
+      ${homeworkId},
+      ${sectionTeacherId}
+    ) AS count
+  `;
+  return Number(row?.count ?? 0);
+}
+
 export async function loadCommentThread(input: {
   pagination?: { pageSize: number; skip: number };
   target: ResolvedCommentTarget;
@@ -288,41 +317,42 @@ export async function loadCommentThread(input: {
         },
       ],
     } satisfies Prisma.CommentWhereInput;
-    const [total, rootComments, hiddenCount] = await Promise.all([
-      prisma.comment.count({ where: rootWhere }),
-      prisma.comment.findMany({
-        where: rootWhere,
-        orderBy: [{ createdAt: "asc" }, { id: "asc" }],
-        skip: input.pagination.skip,
-        take: input.pagination.pageSize,
-        select: { id: true },
-      }),
-      viewer.isAuthenticated
-        ? Promise.resolve(0)
-        : prisma.comment.count({
-            where: {
-              AND: [
-                input.target.whereTarget,
-                { visibility: "logged_in_only" },
-                { status: { not: "deleted" } },
-              ],
-            },
+    const pagination = input.pagination;
+    const [total, rootComments, hiddenCount] = await withCommentDbContext(
+      input.viewerUserId,
+      (client) =>
+        Promise.all([
+          client.comment.count({ where: rootWhere }),
+          client.comment.findMany({
+            where: rootWhere,
+            orderBy: [{ createdAt: "asc" }, { id: "asc" }],
+            skip: pagination.skip,
+            take: pagination.pageSize,
+            select: { id: true },
           }),
-    ]);
+          viewer.isAuthenticated
+            ? Promise.resolve(0)
+            : countAnonymousHiddenRoots(input.target.whereTarget),
+        ]),
+    );
     const rootIds = rootComments.map((comment) => comment.id);
     const comments =
       rootIds.length === 0
         ? []
-        : await prisma.comment.findMany({
-            where: {
-              AND: [
-                input.target.whereTarget,
-                { OR: [{ id: { in: rootIds } }, { rootId: { in: rootIds } }] },
-              ],
-            },
-            include: commentThreadInclude,
-            orderBy: [{ createdAt: "asc" }, { id: "asc" }],
-          });
+        : await withCommentDbContext(input.viewerUserId, (client) =>
+            client.comment.findMany({
+              where: {
+                AND: [
+                  input.target.whereTarget,
+                  {
+                    OR: [{ id: { in: rootIds } }, { rootId: { in: rootIds } }],
+                  },
+                ],
+              },
+              include: commentThreadInclude,
+              orderBy: [{ createdAt: "asc" }, { id: "asc" }],
+            }),
+          );
 
     const commentsWithMetadata = await withCommentReadMetadata(
       comments,
@@ -336,11 +366,13 @@ export async function loadCommentThread(input: {
     input.viewer
       ? Promise.resolve(input.viewer)
       : getViewerContext({ includeAdmin: false, userId: input.viewerUserId }),
-    prisma.comment.findMany({
-      where: input.target.whereTarget,
-      include: commentThreadInclude,
-      orderBy: { createdAt: "asc" },
-    }),
+    withCommentDbContext(input.viewerUserId, (client) =>
+      client.comment.findMany({
+        where: input.target.whereTarget,
+        include: commentThreadInclude,
+        orderBy: { createdAt: "asc" },
+      }),
+    ),
   ]);
 
   const commentsWithMetadata = await withCommentReadMetadata(
@@ -359,10 +391,12 @@ export async function loadFocusedCommentThread(input: {
   viewerUserId: string | null;
 }) {
   const [comment, viewer] = await Promise.all([
-    prisma.comment.findUnique({
-      where: { id: input.commentId },
-      select: commentTargetLookupSelect,
-    }),
+    withCommentDbContext(input.viewerUserId, (client) =>
+      client.comment.findUnique({
+        where: { id: input.commentId },
+        select: commentTargetLookupSelect,
+      }),
+    ),
     getViewerContext({
       includeAdmin: false,
       userId: input.viewerUserId,
@@ -374,13 +408,17 @@ export async function loadFocusedCommentThread(input: {
   }
 
   const threadKey = comment.rootId ?? comment.id;
-  const threadComments = await prisma.comment.findMany({
-    where: {
-      OR: [{ id: threadKey }, { rootId: threadKey }],
-    },
-    include: commentThreadInclude,
-    orderBy: { createdAt: "asc" },
-  });
+  const threadComments = await withCommentDbContext(
+    input.viewerUserId,
+    (client) =>
+      client.comment.findMany({
+        where: {
+          OR: [{ id: threadKey }, { rootId: threadKey }],
+        },
+        include: commentThreadInclude,
+        orderBy: { createdAt: "asc" },
+      }),
+  );
 
   const commentsWithMetadata = await withCommentReadMetadata(
     threadComments,

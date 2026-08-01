@@ -99,27 +99,54 @@ function target(whereTarget: Record<string, number | string>) {
   } satisfies Parameters<typeof loadCommentThread>[0]["target"];
 }
 
+function rawQuerySql(query: unknown): string {
+  if (Array.isArray(query)) {
+    return query.join("");
+  }
+  if (
+    query &&
+    typeof query === "object" &&
+    "strings" in query &&
+    Array.isArray((query as { strings: string[] }).strings)
+  ) {
+    return (query as { strings: string[] }).strings.join(" ");
+  }
+  return "";
+}
+
 describe("loadCommentThread pagination", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    accountFindManyMock.mockResolvedValue([]);
+    commentCountMock.mockReset();
     commentCountMock.mockResolvedValue(3);
+    accountFindManyMock.mockResolvedValue([]);
     publicReactionSummaryQueryMock.mockResolvedValue([]);
     publicAttachmentSummaryQueryMock.mockResolvedValue([]);
     reactionSummaryQueryMock.mockResolvedValue([]);
     attachmentSummaryQueryMock.mockResolvedValue([]);
     contextQueryMock.mockImplementation((query) =>
-      query.strings.join(" ").includes("comment_attachment_summaries")
+      rawQuerySql(query).includes("comment_attachment_summaries")
         ? attachmentSummaryQueryMock(query)
         : reactionSummaryQueryMock(query),
     );
-    publicQueryMock.mockImplementation((query) =>
-      query.strings.join(" ").includes("comment_attachment_summaries")
-        ? publicAttachmentSummaryQueryMock(query)
-        : publicReactionSummaryQueryMock(query),
-    );
+    publicQueryMock.mockImplementation((query) => {
+      const sql = rawQuerySql(query);
+      if (sql.includes("comment_hidden_root_count")) {
+        return Promise.resolve([{ count: 0n }]);
+      }
+      if (sql.includes("comment_attachment_summaries")) {
+        return publicAttachmentSummaryQueryMock(query);
+      }
+      return publicReactionSummaryQueryMock(query);
+    });
     withUserDbContextMock.mockImplementation((_userId, callback) =>
-      callback({ $queryRaw: contextQueryMock }),
+      callback({
+        $queryRaw: contextQueryMock,
+        comment: {
+          count: commentCountMock,
+          findMany: commentFindManyMock,
+        },
+      }),
     );
   });
 
@@ -404,7 +431,9 @@ describe("loadCommentThread pagination", () => {
 
   it("counts anonymous hidden comments across the target without paging them", async () => {
     commentCountMock.mockReset();
-    commentCountMock.mockResolvedValueOnce(1).mockResolvedValueOnce(2);
+    publicQueryMock.mockReset();
+    commentCountMock.mockResolvedValueOnce(1);
+    publicQueryMock.mockResolvedValueOnce([{ count: 2n }]);
     commentFindManyMock.mockResolvedValueOnce([]);
 
     const result = await loadCommentThread({
@@ -420,14 +449,7 @@ describe("loadCommentThread pagination", () => {
     });
 
     expect(result).toMatchObject({ comments: [], hiddenCount: 2, total: 1 });
-    expect(commentCountMock).toHaveBeenNthCalledWith(2, {
-      where: {
-        AND: [
-          { teacherId: 5 },
-          { visibility: "logged_in_only" },
-          { status: { not: "deleted" } },
-        ],
-      },
-    });
+    expect(commentCountMock).toHaveBeenCalledTimes(1);
+    expect(publicQueryMock).toHaveBeenCalledTimes(1);
   });
 });

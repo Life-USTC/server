@@ -267,7 +267,7 @@ describe("compact workspace overview read model", () => {
     expect(listSubscribedSchedulesMock).not.toHaveBeenCalled();
     expect(listSubscribedHomeworksMock).not.toHaveBeenCalled();
     expect(listUpcomingSubscribedExamsMock).not.toHaveBeenCalled();
-    expect(withHomeworkItemStateMock).toHaveBeenCalledWith([]);
+    expect(withHomeworkItemStateMock).toHaveBeenCalledWith([], "user-1");
     expect(overview.user).toEqual(expectedUser);
     expect(overview.counts).toEqual({
       dueSoonHomeworks: 0,
