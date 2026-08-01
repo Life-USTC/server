@@ -5,6 +5,7 @@ const {
   buildDashboardOverviewScheduleMock,
   buildSemesterCalendarPayloadMock,
   getDashboardOverviewLinksDataMock,
+  listSemesterCalendarTodosMock,
   listSubscribedHomeworksMock,
   resolveDashboardOverviewContextMock,
   resolveDashboardOverviewSectionScopeMock,
@@ -12,6 +13,7 @@ const {
   buildDashboardOverviewScheduleMock: vi.fn(),
   buildSemesterCalendarPayloadMock: vi.fn(),
   getDashboardOverviewLinksDataMock: vi.fn(),
+  listSemesterCalendarTodosMock: vi.fn(),
   listSubscribedHomeworksMock: vi.fn(),
   resolveDashboardOverviewContextMock: vi.fn(),
   resolveDashboardOverviewSectionScopeMock: vi.fn(),
@@ -21,9 +23,22 @@ vi.mock("@/features/subscriptions/server/subscription-read-model", () => ({
   listSubscribedHomeworks: listSubscribedHomeworksMock,
 }));
 
-vi.mock("@/features/dashboard/server/dashboard-overview-calendar", () => ({
-  buildSemesterCalendarPayload: buildSemesterCalendarPayloadMock,
-}));
+vi.mock("@/features/dashboard/server/dashboard-overview-calendar", async () => {
+  const actual = await vi.importActual<
+    typeof import("@/features/dashboard/server/dashboard-overview-calendar")
+  >("@/features/dashboard/server/dashboard-overview-calendar");
+  return {
+    ...actual,
+    buildSemesterCalendarPayload: buildSemesterCalendarPayloadMock,
+  };
+});
+
+vi.mock(
+  "@/features/dashboard/server/dashboard-overview-semester-todos",
+  () => ({
+    listSemesterCalendarTodos: listSemesterCalendarTodosMock,
+  }),
+);
 
 vi.mock("@/features/dashboard/server/dashboard-overview-context", () => ({
   resolveDashboardOverviewContext: resolveDashboardOverviewContextMock,
@@ -92,6 +107,7 @@ describe("dashboard overview homework read", () => {
       pinnedLinks: [],
       recommendedLinks: [],
     });
+    listSemesterCalendarTodosMock.mockResolvedValue([]);
     buildDashboardOverviewScheduleMock.mockImplementation(() => ({
       calendarDays: [],
       calendarHomeworks: [],
@@ -107,13 +123,12 @@ describe("dashboard overview homework read", () => {
       weekDays: [],
       weeklySessions: [],
     }));
-    buildSemesterCalendarPayloadMock.mockResolvedValue({
+    buildSemesterCalendarPayloadMock.mockReturnValue({
       allExams: [],
       allSessions: [],
       semesterEnd: null,
       semesterHomeworks: [],
       semesterStart: null,
-      semesterTodos: [],
       semesterWeeks: [],
     });
   });
@@ -147,8 +162,60 @@ describe("dashboard overview homework read", () => {
     expect(buildSemesterCalendarPayloadMock).toHaveBeenCalledWith(
       expect.objectContaining({
         calendarHomeworks: [incompleteWithDue],
+        semesterTodos: [],
       }),
     );
+  });
+
+  it("starts links and semester todos before section scope completes", async () => {
+    let releaseSectionScope!: () => void;
+    const sectionScopeGate = new Promise<void>((resolve) => {
+      releaseSectionScope = resolve;
+    });
+    let linksStarted = false;
+    let semesterTodosStarted = false;
+
+    resolveDashboardOverviewSectionScopeMock.mockImplementation(async () => {
+      await sectionScopeGate;
+      return {
+        calendarSemesterNavList: [],
+        calendarSemesterPicker: [],
+        currentTermName: "—",
+        dashboardSections: [],
+        hasAnySelection: true,
+        hasCurrentTermSelection: true,
+        homeworkSectionIds: [12],
+        sectionsForCalendarGrid: [],
+      };
+    });
+    getDashboardOverviewLinksDataMock.mockImplementation(() => {
+      linksStarted = true;
+      return Promise.resolve({
+        dashboardLinks: [],
+        overviewLinks: [],
+        pinnedLinks: [],
+        recommendedLinks: [],
+      });
+    });
+    listSemesterCalendarTodosMock.mockImplementation(() => {
+      semesterTodosStarted = true;
+      return Promise.resolve([]);
+    });
+    listSubscribedHomeworksMock.mockResolvedValue([]);
+
+    const pending = getDashboardOverviewData("user-1", { locale: "en-us" });
+
+    await vi.waitFor(() => {
+      expect(linksStarted).toBe(true);
+      expect(semesterTodosStarted).toBe(true);
+    });
+    expect(resolveDashboardOverviewSectionScopeMock).toHaveBeenCalled();
+    expect(listSubscribedHomeworksMock).not.toHaveBeenCalled();
+
+    releaseSectionScope();
+    await pending;
+
+    expect(listSubscribedHomeworksMock).toHaveBeenCalledOnce();
   });
 
   it("builds the exact database union and excludes completed undated rows", () => {
