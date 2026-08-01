@@ -18,12 +18,15 @@ type PageRequestAnalyticsInput = {
   appIoObservedDurationMs: number;
   authIoObservedDurationMs: number;
   authMode: "anonymous" | "authenticated";
+  authSignalPresence: "absent" | "present";
+  catalogDetailTab: string;
   event: "finish" | "error";
   ioObservedDurationMs: number;
   locale: string;
   method: string;
   responseBytes?: number;
   route: string;
+  ssrClass: "dynamic-ssr" | "public-ssr";
   status: number;
 };
 
@@ -239,6 +242,9 @@ export function writePageRequestAnalytics(input: PageRequestAnalyticsInput) {
       boundedValue(input.locale),
       input.authMode,
       hasResponseBytes ? "response_bytes_known" : "response_bytes_unknown",
+      input.ssrClass,
+      input.authSignalPresence,
+      boundedValue(input.catalogDetailTab),
     ],
     doubles: [
       input.ioObservedDurationMs,

@@ -34,6 +34,11 @@ import {
   recordPageRequestFinish,
 } from "@/lib/metrics/page-observability";
 import {
+  classifyPageAuthSignalPresence,
+  classifyPageSsrClass,
+  resolvePageCatalogDetailTab,
+} from "@/lib/metrics/page-request-attribution";
+import {
   OAUTH_DEVICE_AUTHORIZATION_ENDPOINT_PATH,
   OAUTH_TOKEN_ENDPOINT_PATH,
 } from "@/lib/oauth/constants";
@@ -211,10 +216,20 @@ const handleWithRuntimeEnv: Handle = async ({ event, resolve }) => {
     authIoObservedDurationMs,
     totalIoObservedDurationMs: Date.now() - startMs,
   });
+  const pageAttribution = () => ({
+    authSignalPresence: classifyPageAuthSignalPresence(hasAuthSignal),
+    catalogDetailTab: resolvePageCatalogDetailTab(
+      event.route.id,
+      event.url,
+      event.params,
+    ),
+    ssrClass: classifyPageSsrClass(event.locals.publicSsr),
+  });
   const recordPageFinish = (status: number, responseBytes?: number) => {
     if (apiObservability || pageObservationRecorded) return;
     pageObservationRecorded = true;
     recordPageRequestFinish({
+      attribution: pageAttribution(),
       authMode: pageAuthMode,
       locale,
       method: event.request.method,
@@ -229,6 +244,7 @@ const handleWithRuntimeEnv: Handle = async ({ event, resolve }) => {
     if (apiObservability || pageObservationRecorded) return;
     pageObservationRecorded = true;
     recordPageRequestError({
+      attribution: pageAttribution(),
       authMode: pageAuthMode,
       errorName: getSafeErrorName(error),
       locale,
