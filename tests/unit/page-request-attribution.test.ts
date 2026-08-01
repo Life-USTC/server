@@ -31,6 +31,23 @@ describe("page request attribution", () => {
     ).toBe("calendar");
   });
 
+  it("resolves section detail legacy redirect routes from path params", () => {
+    expect(
+      resolvePageCatalogDetailTab(
+        "/catalog/sections/[jwId]/[section]",
+        new URL("https://life.example/catalog/sections/12345/homework"),
+        { section: "homework" },
+      ),
+    ).toBe("homework");
+    expect(
+      resolvePageCatalogDetailTab(
+        "/catalog/sections/[jwId]/[section]",
+        new URL("https://life.example/catalog/sections/12345/unknown"),
+        { section: "unknown" },
+      ),
+    ).toBe("overview");
+  });
+
   it("defaults section and course detail routes without tabs to overview", () => {
     expect(
       resolvePageCatalogDetailTab(

@@ -63,6 +63,7 @@ describe.skipIf(process.env.RLS_TEST_ENABLED !== "true")(
         { policyName: "Comment_admin_moderator", command: "UPDATE" },
         { policyName: "Comment_admin_reader", command: "SELECT" },
         { policyName: "Comment_authenticated_reader", command: "SELECT" },
+        { policyName: "Comment_hidden_count_reader", command: "SELECT" },
         { policyName: "Comment_owner_isolation", command: "ALL" },
         { policyName: "Comment_public_reader", command: "SELECT" },
       ]);

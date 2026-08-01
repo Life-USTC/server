@@ -35,7 +35,7 @@ export async function getCurrentCalendarSubscriptionRoute(request: Request) {
     if (auth instanceof Response) return auth;
     const { userId } = auth;
 
-    return runWithWorkspaceRouteAttribution(
+    return await runWithWorkspaceRouteAttribution(
       "subscriptions_current",
       request,
       async () => {

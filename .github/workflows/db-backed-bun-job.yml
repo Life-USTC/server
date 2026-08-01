@@ -156,9 +156,6 @@ jobs:
               bunx tsc --noEmit -p tsconfig.typecheck.tests.json
               bunx tsc --noEmit -p tsconfig.typecheck.operational.json
               bunx vitest run
-              if [ "${VISUAL_REGRESSION:-}" = "1" ]; then
-                bash tests/ci/visual-regression.test.sh
-              fi
               ;;
             ci:integration)
               bun run app:prepare
@@ -188,6 +185,7 @@ jobs:
               expected_sequence_privileges="$(psql "$runtime_database_url" -X -tA \
                 --file=prisma/roles/export-app-runtime-sequence-privileges.sql)"
               expected_function_privileges='public.comment_attachment_summaries(p_comment_ids text[]):EXECUTE'
+              expected_function_privileges+=',public.comment_hidden_root_count(p_section_id integer, p_course_id integer, p_teacher_id integer, p_homework_id text, p_section_teacher_id integer):EXECUTE'
               expected_function_privileges+=',public.comment_reaction_summaries(comment_ids text[]):EXECUTE'
               expected_function_privileges+=',public.find_downloadable_upload(p_upload_id text):EXECUTE'
               expected_function_privileges+=',public.get_public_profile_homework_completions(p_user_id text, p_since timestamp without time zone):EXECUTE'

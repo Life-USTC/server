@@ -59,7 +59,7 @@ The matrix is **opt-in** so default CI stays fast:
 | --- | --- |
 | Local update | `bun run build && bun run e2e:visual:update` |
 | Local verify | `bun run build && bun run e2e:visual` |
-| CI check phase | Set repository variable `VISUAL_REGRESSION=1` to enable the `Visual regression (opt-in)` job, or export `VISUAL_REGRESSION=1` when invoking `ci:verify` with Playwright installed |
+| CI check phase | Set repository variable `VISUAL_REGRESSION=1` to enable the dedicated `Visual regression (opt-in)` workflow job |
 | Default E2E shards | Skipped (`VISUAL_REGRESSION` unset) |
 
 Tradeoff: pixel baselines catch real UI regressions but add maintenance cost (update snapshots on intentional design changes) and roughly double Playwright runtime when enabled. Keeping them opt-in avoids blocking every PR on screenshot drift while the baseline set is still small.

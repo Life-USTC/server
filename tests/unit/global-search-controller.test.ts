@@ -76,6 +76,52 @@ describe("createGlobalSearchController", () => {
     vi.useRealTimers();
   });
 
+  it("drops in-flight results after the query drops below the minimum length", async () => {
+    vi.useFakeTimers();
+    let resolveSearch: ((response: unknown) => void) | undefined;
+    const fetchMock = vi.fn().mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          resolveSearch = resolve;
+        }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    const controller = createGlobalSearchController({ limit: 5 });
+    controller.query.set("ab");
+    controller.scheduleSearch();
+    await vi.advanceTimersByTimeAsync(GLOBAL_SEARCH_DEBOUNCE_MS);
+
+    controller.query.set("a");
+    controller.scheduleSearch();
+
+    resolveSearch?.({
+      ok: true,
+      json: () =>
+        Promise.resolve({
+          groups: [
+            {
+              type: "courses",
+              items: [
+                {
+                  id: "course:stale",
+                  title: "Stale",
+                  description: null,
+                  href: "/catalog/courses/stale",
+                },
+              ],
+            },
+          ],
+        }),
+    });
+    await vi.runAllTimersAsync();
+
+    expect(get(controller.groups)).toEqual([]);
+    expect(get(controller.hasSearched)).toBe(false);
+
+    vi.useRealTimers();
+  });
+
   it("ignores stale responses when a newer search starts", async () => {
     vi.useFakeTimers();
     let resolveFirst: ((response: unknown) => void) | undefined;

@@ -4,6 +4,11 @@ import type {
   McpRequestSummary,
   McpResponsePhase,
 } from "@/lib/mcp/observability-types";
+import type {
+  PageAuthSignalPresence,
+  PageCatalogDetailTab,
+  PageSsrClass,
+} from "@/lib/metrics/page-request-attribution";
 
 type ApiRequestAnalyticsInput = {
   authMode: string;
@@ -18,15 +23,15 @@ type PageRequestAnalyticsInput = {
   appIoObservedDurationMs: number;
   authIoObservedDurationMs: number;
   authMode: "anonymous" | "authenticated";
-  authSignalPresence: "absent" | "present";
-  catalogDetailTab: string;
+  authSignalPresence: PageAuthSignalPresence;
+  catalogDetailTab: PageCatalogDetailTab;
   event: "finish" | "error";
   ioObservedDurationMs: number;
   locale: string;
   method: string;
   responseBytes?: number;
   route: string;
-  ssrClass: "dynamic-ssr" | "public-ssr";
+  ssrClass: PageSsrClass;
   status: number;
 };
 

@@ -29,6 +29,13 @@ const expectedFunctions = [
   },
   {
     securityDefiner: true,
+    settings: ['search_path=""'],
+    signature:
+      "public.comment_hidden_root_count(p_section_id integer, p_course_id integer, p_teacher_id integer, p_homework_id text, p_section_teacher_id integer)",
+    volatility: "STABLE",
+  },
+  {
+    securityDefiner: true,
     settings: ['search_path=""', "app.comment_reaction_summary=on"],
     signature: "public.comment_reaction_summaries(comment_ids text[])",
     volatility: "STABLE",
@@ -204,7 +211,7 @@ describe.skipIf(process.env.FUNCTION_OWNER_ROLE_TEST_ENABLED !== "true")(
       expect(ownedSchemas).toEqual([]);
     });
 
-    it("owns exactly the eleven audited SECURITY DEFINER functions", async () => {
+    it("owns exactly the twelve audited SECURITY DEFINER functions", async () => {
       const functions = await adminPrisma.$queryRaw<
         Array<{
           securityDefiner: boolean;
@@ -416,7 +423,7 @@ describe.skipIf(process.env.FUNCTION_OWNER_ROLE_TEST_ENABLED !== "true")(
       expect(sequencePrivileges).toEqual([]);
     });
 
-    it("is the sole role on exactly five audited definer-read policies", async () => {
+    it("is the sole role on exactly six audited definer-read policies", async () => {
       const policies = await adminPrisma.$queryRaw<
         Array<{
           checkExpression: string | null;
@@ -449,6 +456,16 @@ describe.skipIf(process.env.FUNCTION_OWNER_ROLE_TEST_ENABLED !== "true")(
           usingExpression: policy.usingExpression.replaceAll("::text", ""),
         })),
       ).toEqual([
+        {
+          checkExpression: null,
+          command: "SELECT",
+          permissive: "PERMISSIVE",
+          policyName: "Comment_hidden_count_reader",
+          roles: [functionOwnerRole],
+          schemaName: "public",
+          tableName: "Comment",
+          usingExpression: "true",
+        },
         {
           checkExpression: null,
           command: "SELECT",

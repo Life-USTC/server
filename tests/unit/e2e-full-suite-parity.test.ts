@@ -1,8 +1,9 @@
 import { readFileSync } from "node:fs";
-import { resolve } from "node:path";
+import { dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 import { describe, expect, test } from "vitest";
 
-const repoRoot = resolve(import.meta.dirname, "../..");
+const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 
 describe("E2E full-suite parity orchestration", () => {
   test("package.json routes e2e:test through the CI-parity script", () => {

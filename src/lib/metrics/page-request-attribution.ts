@@ -26,6 +26,7 @@ const COURSE_TEACHER_DETAIL_TABS = new Set([
 ]);
 
 const SECTION_DETAIL_ROUTE = "/catalog/sections/[jwId]";
+const SECTION_DETAIL_SECTION_ROUTE = "/catalog/sections/[jwId]/[section]";
 const COURSE_DETAIL_ROUTE = "/catalog/courses/[jwId]";
 const COURSE_DETAIL_SECTION_ROUTE = "/catalog/courses/[jwId]/[section]";
 const TEACHER_DETAIL_ROUTE = "/catalog/teachers/[id]";
@@ -61,6 +62,10 @@ export function resolvePageCatalogDetailTab(
     return parseSectionDetailTab(
       url.searchParams.get(SECTION_DETAIL_TAB_QUERY),
     );
+  }
+
+  if (routeId === SECTION_DETAIL_SECTION_ROUTE) {
+    return parseSectionDetailTab(params.section);
   }
 
   if (routeId === COURSE_DETAIL_ROUTE || routeId === TEACHER_DETAIL_ROUTE) {

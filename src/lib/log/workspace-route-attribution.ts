@@ -6,7 +6,6 @@ import { isProductionEnvironment } from "@/lib/log/app-logger-core";
 import {
   type WorkspaceHomeworksRouteStage,
   type WorkspaceRouteName,
-  type WorkspaceRouteStage,
   type WorkspaceSubscriptionsCurrentRouteStage,
   writeWorkspaceRouteStageAnalytics,
 } from "@/lib/metrics/analytics-engine";
@@ -60,7 +59,10 @@ function shouldLogWorkspaceStage(
 
 function workspaceTraceSpanName(
   route: WorkspaceRouteName,
-  stage: WorkspaceRouteStage,
+  stage:
+    | WorkspaceHomeworksRouteStage
+    | WorkspaceSubscriptionsCurrentRouteStage
+    | "db_context",
 ) {
   if (route === "homeworks") {
     return `workspace.homeworks.${stage}`;
@@ -79,7 +81,10 @@ function logWorkspaceRouteStage(input: {
   ioObservedDurationMs: number;
   requestId: string | undefined;
   route: WorkspaceRouteName;
-  stage: WorkspaceRouteStage;
+  stage:
+    | WorkspaceHomeworksRouteStage
+    | WorkspaceSubscriptionsCurrentRouteStage
+    | "db_context";
   status: "error" | "success";
 }) {
   if (
@@ -107,42 +112,43 @@ function logWorkspaceRouteStage(input: {
   );
 }
 
-function writeWorkspaceRouteStageAnalyticsForRoute(input: {
-  ioObservedDurationMs: number;
-  route: WorkspaceRouteName;
-  stage: WorkspaceRouteStage;
-  status: "error" | "success";
-}) {
-  if (input.route === "homeworks") {
-    writeWorkspaceRouteStageAnalytics({
-      ioObservedDurationMs: input.ioObservedDurationMs,
-      route: "homeworks",
-      stage: input.stage as WorkspaceHomeworksRouteStage | "db_context",
-      status: input.status,
-    });
-    return;
-  }
-
-  writeWorkspaceRouteStageAnalytics({
-    ioObservedDurationMs: input.ioObservedDurationMs,
-    route: "subscriptions_current",
-    stage: input.stage as
-      | WorkspaceSubscriptionsCurrentRouteStage
-      | "db_context",
-    status: input.status,
-  });
+function writeWorkspaceRouteStageAnalyticsForRoute(
+  input:
+    | {
+        ioObservedDurationMs: number;
+        route: "homeworks";
+        stage: WorkspaceHomeworksRouteStage | "db_context";
+        status: "error" | "success";
+      }
+    | {
+        ioObservedDurationMs: number;
+        route: "subscriptions_current";
+        stage: WorkspaceSubscriptionsCurrentRouteStage | "db_context";
+        status: "error" | "success";
+      },
+) {
+  writeWorkspaceRouteStageAnalytics(input);
 }
 
 export function recordWorkspaceRouteDbContext(ioObservedDurationMs: number) {
   const attribution = getWorkspaceRouteAttribution();
   if (!attribution) return;
 
-  writeWorkspaceRouteStageAnalyticsForRoute({
-    ioObservedDurationMs,
-    route: attribution.route,
-    stage: "db_context",
-    status: "success",
-  });
+  writeWorkspaceRouteStageAnalyticsForRoute(
+    attribution.route === "homeworks"
+      ? {
+          ioObservedDurationMs,
+          route: "homeworks",
+          stage: "db_context",
+          status: "success",
+        }
+      : {
+          ioObservedDurationMs,
+          route: "subscriptions_current",
+          stage: "db_context",
+          status: "success",
+        },
+  );
   logWorkspaceRouteStage({
     ioObservedDurationMs,
     requestId: attribution.requestId,
@@ -166,7 +172,10 @@ export async function runWorkspaceRouteStage<T>(
 ): Promise<T>;
 export async function runWorkspaceRouteStage<T>(
   route: WorkspaceRouteName,
-  stage: WorkspaceRouteStage,
+  stage:
+    | WorkspaceHomeworksRouteStage
+    | WorkspaceSubscriptionsCurrentRouteStage
+    | "db_context",
   input: { request?: Request },
   work: () => Promise<T>,
 ): Promise<T> {
@@ -185,12 +194,21 @@ export async function runWorkspaceRouteStage<T>(
       work,
     );
     const ioObservedDurationMs = Date.now() - startMs;
-    writeWorkspaceRouteStageAnalyticsForRoute({
-      ioObservedDurationMs,
-      route,
-      stage,
-      status: "success",
-    });
+    if (route === "homeworks") {
+      writeWorkspaceRouteStageAnalyticsForRoute({
+        ioObservedDurationMs,
+        route,
+        stage: stage as WorkspaceHomeworksRouteStage | "db_context",
+        status: "success",
+      });
+    } else {
+      writeWorkspaceRouteStageAnalyticsForRoute({
+        ioObservedDurationMs,
+        route,
+        stage: stage as WorkspaceSubscriptionsCurrentRouteStage | "db_context",
+        status: "success",
+      });
+    }
     logWorkspaceRouteStage({
       ioObservedDurationMs,
       requestId,
@@ -201,12 +219,21 @@ export async function runWorkspaceRouteStage<T>(
     return result;
   } catch (error) {
     const ioObservedDurationMs = Date.now() - startMs;
-    writeWorkspaceRouteStageAnalyticsForRoute({
-      ioObservedDurationMs,
-      route,
-      stage,
-      status: "error",
-    });
+    if (route === "homeworks") {
+      writeWorkspaceRouteStageAnalyticsForRoute({
+        ioObservedDurationMs,
+        route,
+        stage: stage as WorkspaceHomeworksRouteStage | "db_context",
+        status: "error",
+      });
+    } else {
+      writeWorkspaceRouteStageAnalyticsForRoute({
+        ioObservedDurationMs,
+        route,
+        stage: stage as WorkspaceSubscriptionsCurrentRouteStage | "db_context",
+        status: "error",
+      });
+    }
     logWorkspaceRouteStage({
       ioObservedDurationMs,
       requestId,
