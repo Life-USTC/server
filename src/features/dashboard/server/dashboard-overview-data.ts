@@ -1,10 +1,14 @@
 import { listSubscribedHomeworks } from "@/features/subscriptions/server/subscription-read-model";
 import { formatSemesterName } from "@/lib/text/format-semester-name";
-import { buildSemesterCalendarPayload } from "./dashboard-overview-calendar";
+import {
+  buildSemesterCalendarPayload,
+  resolveGridSemesterBounds,
+} from "./dashboard-overview-calendar";
 import { resolveDashboardOverviewContext } from "./dashboard-overview-context";
 import { getDashboardOverviewLinksData } from "./dashboard-overview-links";
 import { buildDashboardOverviewSchedule } from "./dashboard-overview-schedule";
 import { resolveDashboardOverviewSectionScope } from "./dashboard-overview-section-scope";
+import { listSemesterCalendarTodos } from "./dashboard-overview-semester-todos";
 import type {
   OverviewData,
   OverviewDataOptions,
@@ -40,21 +44,9 @@ export async function getDashboardOverviewData(
     scheduleDateStart,
   } = semesterContext;
 
-  const linksPromise = getDashboardOverviewLinksData(userId, {
-    locale,
-    skipLinks: options.skipLinks,
-  });
-
-  const {
-    calendarSemesterNavList,
-    calendarSemesterPicker,
-    currentTermName,
-    dashboardSections,
-    hasAnySelection,
-    hasCurrentTermSelection,
-    homeworkSectionIds,
-    sectionsForCalendarGrid,
-  } = await resolveDashboardOverviewSectionScope({
+  const { semesterEnd, semesterStart } =
+    resolveGridSemesterBounds(gridSemesterRow);
+  const sectionScopePromise = resolveDashboardOverviewSectionScope({
     calendarSemesterId: options.calendarSemesterId,
     currentSemester,
     gridSemesterRow,
@@ -66,14 +58,42 @@ export async function getDashboardOverviewData(
     semesters,
     userId,
   });
+  const linksPromise = getDashboardOverviewLinksData(userId, {
+    locale,
+    skipLinks: options.skipLinks,
+  });
+  const semesterTodosPromise = listSemesterCalendarTodos({
+    semesterEnd,
+    semesterStart,
+    userId,
+  });
+
+  const {
+    calendarSemesterNavList,
+    calendarSemesterPicker,
+    currentTermName,
+    dashboardSections,
+    hasAnySelection,
+    hasCurrentTermSelection,
+    homeworkSectionIds,
+    sectionsForCalendarGrid,
+  } = await sectionScopePromise;
 
   const now = referenceNow;
-  const overviewHomeworks = await listSubscribedHomeworks(userId, {
-    incompleteOrHasDueDate: true,
-    locale,
-    sectionIds: homeworkSectionIds,
-    shape: "dashboard",
-  });
+  const [
+    overviewHomeworks,
+    { dashboardLinks, recommendedLinks, pinnedLinks, overviewLinks },
+    semesterTodos,
+  ] = await Promise.all([
+    listSubscribedHomeworks(userId, {
+      incompleteOrHasDueDate: true,
+      locale,
+      sectionIds: homeworkSectionIds,
+      shape: "dashboard",
+    }),
+    linksPromise,
+    semesterTodosPromise,
+  ]);
   const homeworks = overviewHomeworks.filter(
     (homework) => homework.homeworkCompletions.length === 0,
   );
@@ -88,26 +108,19 @@ export async function getDashboardOverviewData(
     locale,
     referenceNow: now,
   });
-  const [
-    {
-      allExams,
-      allSessions,
-      semesterEnd,
-      semesterHomeworks,
-      semesterStart,
-      semesterTodos,
-      semesterWeeks,
-    },
-    { dashboardLinks, recommendedLinks, pinnedLinks, overviewLinks },
-  ] = await Promise.all([
-    buildSemesterCalendarPayload({
-      calendarHomeworks,
-      gridSemesterRow,
-      sectionsForCalendarGrid,
-      userId,
-    }),
-    linksPromise,
-  ]);
+  const {
+    allExams,
+    allSessions,
+    semesterEnd: calendarSemesterEnd,
+    semesterHomeworks,
+    semesterStart: calendarSemesterStart,
+    semesterWeeks,
+  } = buildSemesterCalendarPayload({
+    calendarHomeworks,
+    gridSemesterRow,
+    sectionsForCalendarGrid,
+    semesterTodos,
+  });
 
   const defaultCalendarSemesterId = currentSemester?.id ?? null;
   const activeCalendarSemesterId = gridSemesterRow?.id ?? null;
@@ -138,8 +151,8 @@ export async function getDashboardOverviewData(
     weekDayFormatter: schedule.weekDayFormatter,
     referenceNow: now,
     todayStart: schedule.todayStart,
-    semesterStart,
-    semesterEnd,
+    semesterStart: calendarSemesterStart,
+    semesterEnd: calendarSemesterEnd,
     semesterWeeks,
     allSessions,
     allExams,

@@ -5,25 +5,17 @@ import {
   getSemesterWeeks,
   sortSessionsByStart,
 } from "./dashboard-helpers";
-import { listSemesterCalendarTodos } from "./dashboard-overview-semester-todos";
+import type { CalendarTodoItem } from "./dashboard-overview-types";
 import type { HomeworkWithSection } from "./dashboard-types";
 
-export async function buildSemesterCalendarPayload({
-  calendarHomeworks,
-  gridSemesterRow,
-  sectionsForCalendarGrid,
-  userId,
-}: {
-  calendarHomeworks: HomeworkWithSection[];
-  gridSemesterRow: {
-    id: number;
-    nameCn: string | null;
-    startDate: Date | null;
-    endDate: Date | null;
-  } | null;
-  sectionsForCalendarGrid: Parameters<typeof buildSessions>[0];
-  userId: string;
-}) {
+type GridSemesterRow = {
+  id: number;
+  nameCn: string | null;
+  startDate: Date | null;
+  endDate: Date | null;
+} | null;
+
+export function resolveGridSemesterBounds(gridSemesterRow: GridSemesterRow) {
   const semesterStart =
     gridSemesterRow?.startDate != null
       ? shanghaiDayjs(gridSemesterRow.startDate).startOf("day")
@@ -32,6 +24,23 @@ export async function buildSemesterCalendarPayload({
     gridSemesterRow?.endDate != null
       ? shanghaiDayjs(gridSemesterRow.endDate).endOf("day")
       : null;
+
+  return { semesterEnd, semesterStart };
+}
+
+export function buildSemesterCalendarPayload({
+  calendarHomeworks,
+  gridSemesterRow,
+  sectionsForCalendarGrid,
+  semesterTodos,
+}: {
+  calendarHomeworks: HomeworkWithSection[];
+  gridSemesterRow: GridSemesterRow;
+  sectionsForCalendarGrid: Parameters<typeof buildSessions>[0];
+  semesterTodos: CalendarTodoItem[];
+}) {
+  const { semesterEnd, semesterStart } =
+    resolveGridSemesterBounds(gridSemesterRow);
   const semesterWeeks =
     semesterStart && semesterEnd && !semesterStart.isAfter(semesterEnd)
       ? getSemesterWeeks(semesterStart, semesterEnd)
@@ -51,11 +60,6 @@ export async function buildSemesterCalendarPayload({
           );
         })
       : [];
-  const semesterTodos = await listSemesterCalendarTodos({
-    semesterEnd,
-    semesterStart,
-    userId,
-  });
 
   return {
     allExams,
