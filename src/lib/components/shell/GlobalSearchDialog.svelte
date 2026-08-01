@@ -2,23 +2,17 @@
 import SearchIcon from "@lucide/svelte/icons/search";
 import XIcon from "@lucide/svelte/icons/x";
 import { createEventDispatcher } from "svelte";
+import { writable } from "svelte/store";
 import {
-  fetchGlobalSearch,
-  GLOBAL_SEARCH_DEBOUNCE_MS,
   GLOBAL_SEARCH_DIALOG_LIMIT,
   GLOBAL_SEARCH_MIN_QUERY_LENGTH,
 } from "@/features/search/lib/global-search-client";
+import { createGlobalSearchController } from "@/features/search/lib/global-search-controller";
 import {
-  activeItemIdFromIndex,
-  flattenSearchGroups,
   GLOBAL_SEARCH_LISTBOX_ID,
   globalSearchItemDomId,
-  handleSearchListboxKeydown,
 } from "@/features/search/lib/global-search-keyboard";
-import type {
-  GlobalSearchResultGroup,
-  GlobalSearchResultItem,
-} from "@/features/search/server/global-search-types";
+import type { GlobalSearchResultItem } from "@/features/search/server/global-search-types";
 import { goto } from "$app/navigation";
 import GlobalSearchResults from "$lib/components/shell/GlobalSearchResults.svelte";
 import { Button } from "$lib/components/ui/button/index.js";
@@ -35,147 +29,56 @@ const dispatch = createEventDispatcher<{
   openChange: boolean;
 }>();
 
-let query = "";
-let groups: GlobalSearchResultGroup[] = [];
-let isSearching = false;
-let hasSearched = false;
-let searchGeneration = 0;
-let searchDebounceTimer: ReturnType<typeof setTimeout> | undefined;
 let inputElement: HTMLInputElement | null = null;
-let activeIndex = -1;
+const dialogOpen = writable(false);
+$: dialogOpen.set(open);
 
-$: flatItems = flattenSearchGroups(groups);
-$: activeItemId = activeItemIdFromIndex(flatItems, activeIndex);
-$: canNavigateResults =
-  !isSearching && !showHint && !showInitialHint && flatItems.length > 0;
+const search = createGlobalSearchController({
+  limit: GLOBAL_SEARCH_DIALOG_LIMIT,
+  showInitialHintDeps: dialogOpen,
+  getShowInitialHint: ({ hasSearched, query }) =>
+    open && !hasSearched && query.trim().length === 0,
+  onNavigate: (item) => {
+    handleOpenChange(false);
+    navigateToItem(item);
+  },
+});
 
-$: placeholder = signedIn ? copy.placeholderSignedIn : copy.placeholder;
-$: showHint =
-  query.trim().length > 0 &&
-  query.trim().length < GLOBAL_SEARCH_MIN_QUERY_LENGTH;
-$: showInitialHint = open && !hasSearched && query.trim().length === 0;
-$: viewAllHref =
-  query.trim().length >= GLOBAL_SEARCH_MIN_QUERY_LENGTH
-    ? `/search?q=${encodeURIComponent(query.trim())}`
-    : "/search";
+const {
+  query,
+  groups,
+  isSearching,
+  activeItemId,
+  showHint,
+  showInitialHint,
+  canNavigateResults,
+  reset,
+  handleCompositionEnd,
+  handleQueryInput,
+  handleInputKeydown,
+  handleResultKeydown,
+  navigateTo,
+} = search;
 
-function resetSearchState() {
-  clearTimeout(searchDebounceTimer);
-  searchGeneration += 1;
-  query = "";
-  groups = [];
-  hasSearched = false;
-  isSearching = false;
-  activeIndex = -1;
-}
-
-function resetSelection() {
-  activeIndex = -1;
-}
-
-function handleOpenChange(nextOpen: boolean) {
-  open = nextOpen;
-  dispatch("openChange", nextOpen);
-  if (!nextOpen) resetSearchState();
-}
-
-function scheduleSearch() {
-  clearTimeout(searchDebounceTimer);
-
-  const trimmed = query.trim();
-  if (trimmed.length < GLOBAL_SEARCH_MIN_QUERY_LENGTH) {
-    groups = [];
-    hasSearched = false;
-    isSearching = false;
-    resetSelection();
-    return;
-  }
-
-  resetSelection();
-  searchDebounceTimer = setTimeout(() => {
-    void runSearch();
-  }, GLOBAL_SEARCH_DEBOUNCE_MS);
-}
-
-function handleQueryInput(event: Event) {
-  const input = event.currentTarget as HTMLInputElement;
-  query = input.value;
-  if (event instanceof InputEvent && event.isComposing) {
-    return;
-  }
-  scheduleSearch();
-}
-
-function handleCompositionEnd(event: CompositionEvent) {
-  query = (event.currentTarget as HTMLInputElement).value;
-  scheduleSearch();
-}
-
-async function runSearch() {
-  const trimmed = query.trim();
-  if (trimmed.length < GLOBAL_SEARCH_MIN_QUERY_LENGTH) {
-    groups = [];
-    hasSearched = false;
-    return;
-  }
-
-  const generation = ++searchGeneration;
-  isSearching = true;
-  hasSearched = true;
-
-  try {
-    const body = await fetchGlobalSearch(trimmed, GLOBAL_SEARCH_DIALOG_LIMIT);
-    if (generation !== searchGeneration) return;
-    groups = body.groups ?? [];
-  } catch {
-    if (generation !== searchGeneration) return;
-    groups = [];
-  } finally {
-    if (generation === searchGeneration) {
-      isSearching = false;
-    }
-  }
-}
-
-function handleInputKeydown(event: KeyboardEvent) {
-  handleSearchListboxKeydown({
-    activeIndex,
-    event,
-    inputElement,
-    isInteractive: canNavigateResults,
-    items: flatItems,
-    onActiveIndexChange: (index) => {
-      activeIndex = index;
-    },
-    onSelect: navigateTo,
-  });
-}
-
-function handleResultKeydown(event: KeyboardEvent, itemIndex: number) {
-  if (itemIndex >= 0 && itemIndex !== activeIndex) {
-    activeIndex = itemIndex;
-  }
-  handleSearchListboxKeydown({
-    activeIndex: itemIndex,
-    event,
-    inputElement,
-    isInteractive: canNavigateResults,
-    items: flatItems,
-    onActiveIndexChange: (index) => {
-      activeIndex = index;
-    },
-    onSelect: navigateTo,
-  });
-}
-
-function navigateTo(item: GlobalSearchResultItem) {
-  handleOpenChange(false);
+function navigateToItem(item: GlobalSearchResultItem) {
   if (item.external) {
     window.open(item.href, "_blank", "noopener,noreferrer");
     return;
   }
   void goto(item.href);
 }
+
+function handleOpenChange(nextOpen: boolean) {
+  open = nextOpen;
+  dispatch("openChange", nextOpen);
+  if (!nextOpen) reset();
+}
+
+$: placeholder = signedIn ? copy.placeholderSignedIn : copy.placeholder;
+$: viewAllHref =
+  $query.trim().length >= GLOBAL_SEARCH_MIN_QUERY_LENGTH
+    ? `/search?q=${encodeURIComponent($query.trim())}`
+    : "/search";
 
 function openSearchPage() {
   handleOpenChange(false);
@@ -195,19 +98,19 @@ $: if (open) {
         <SearchIcon class="size-4 shrink-0 text-muted-foreground" />
         <input
           bind:this={inputElement}
-          bind:value={query}
-          aria-activedescendant={activeItemId
-            ? globalSearchItemDomId(activeItemId)
+          bind:value={$query}
+          aria-activedescendant={$activeItemId
+            ? globalSearchItemDomId($activeItemId)
             : undefined}
-          aria-busy={isSearching}
+          aria-busy={$isSearching}
           aria-controls={GLOBAL_SEARCH_LISTBOX_ID}
-          aria-expanded={canNavigateResults}
+          aria-expanded={$canNavigateResults}
           class={cn(
             "placeholder:text-muted-foreground h-9 min-w-0 flex-1 border-0 bg-transparent px-0 text-base outline-none md:text-sm",
           )}
           oncompositionend={handleCompositionEnd}
           oninput={handleQueryInput}
-          onkeydown={handleInputKeydown}
+          onkeydown={(event) => handleInputKeydown(event, inputElement)}
           placeholder={placeholder}
           role="combobox"
           type="text"
@@ -228,13 +131,14 @@ $: if (open) {
     <ScrollArea class="max-h-[min(60vh,28rem)]">
       <div class="min-h-48 p-2">
         <GlobalSearchResults
-          {activeItemId}
+          activeItemId={$activeItemId}
           {copy}
-          {groups}
-          {isSearching}
-          {showHint}
-          {showInitialHint}
-          onResultKeydown={handleResultKeydown}
+          groups={$groups}
+          isSearching={$isSearching}
+          showHint={$showHint}
+          showInitialHint={$showInitialHint}
+          onResultKeydown={(event, itemIndex) =>
+            handleResultKeydown(event, itemIndex, inputElement)}
           onSelect={navigateTo}
         />
       </div>

@@ -1,23 +1,15 @@
 <script lang="ts">
 import SearchIcon from "@lucide/svelte/icons/search";
 import { onMount } from "svelte";
+import { GLOBAL_SEARCH_PAGE_LIMIT } from "@/features/search/lib/global-search-client";
 import {
-  fetchGlobalSearch,
-  GLOBAL_SEARCH_DEBOUNCE_MS,
-  GLOBAL_SEARCH_MIN_QUERY_LENGTH,
-  GLOBAL_SEARCH_PAGE_LIMIT,
-} from "@/features/search/lib/global-search-client";
+  createGlobalSearchController,
+  mountGlobalSearchUrlSync,
+} from "@/features/search/lib/global-search-controller";
 import {
-  activeItemIdFromIndex,
-  flattenSearchGroups,
   GLOBAL_SEARCH_LISTBOX_ID,
   globalSearchItemDomId,
-  handleSearchListboxKeydown,
 } from "@/features/search/lib/global-search-keyboard";
-import type {
-  GlobalSearchResultGroup,
-  GlobalSearchResultItem,
-} from "@/features/search/server/global-search-types";
 import { afterNavigate, goto } from "$app/navigation";
 import { page } from "$app/stores";
 import GlobalSearchResults from "$lib/components/shell/GlobalSearchResults.svelte";
@@ -26,170 +18,42 @@ import type { PageData } from "./$types";
 
 export let data: PageData;
 
-let query = "";
-let groups: GlobalSearchResultGroup[] = [];
-let isSearching = false;
-let hasSearched = false;
-let searchGeneration = 0;
-let searchDebounceTimer: ReturnType<typeof setTimeout> | undefined;
 let inputElement: HTMLInputElement | null = null;
-let activeIndex = -1;
 
-$: flatItems = flattenSearchGroups(groups);
-$: activeItemId = activeItemIdFromIndex(flatItems, activeIndex);
-$: showHint =
-  query.trim().length > 0 &&
-  query.trim().length < GLOBAL_SEARCH_MIN_QUERY_LENGTH;
-$: showInitialHint = !hasSearched && query.trim().length === 0;
-$: canNavigateResults =
-  !isSearching && !showHint && !showInitialHint && flatItems.length > 0;
+const search = createGlobalSearchController({
+  limit: GLOBAL_SEARCH_PAGE_LIMIT,
+  urlSync: {
+    getPageUrl: () => $page.url,
+    goto,
+  },
+});
 
-function resetSelection() {
-  activeIndex = -1;
-}
+const {
+  query,
+  groups,
+  isSearching,
+  activeItemId,
+  showHint,
+  showInitialHint,
+  canNavigateResults,
+  handleCompositionEnd,
+  handleQueryInput,
+  handleInputKeydown,
+  handleResultKeydown,
+  navigateTo,
+} = search;
 
-function applyQueryFromUrl(urlQuery: string, runImmediately = false) {
-  query = urlQuery;
-  if (urlQuery.trim().length >= GLOBAL_SEARCH_MIN_QUERY_LENGTH) {
-    if (runImmediately) {
-      void runSearch();
-      return;
-    }
-    scheduleSearch();
-    return;
-  }
-  groups = [];
-  hasSearched = false;
-  isSearching = false;
-  resetSelection();
-}
-
-function updateUrlQuery(nextQuery: string) {
-  const url = new URL($page.url);
-  const trimmed = nextQuery.trim();
-  if (trimmed) {
-    url.searchParams.set("q", trimmed);
-  } else {
-    url.searchParams.delete("q");
-  }
-  const nextHref = `${url.pathname}${url.search}`;
-  if (nextHref !== `${$page.url.pathname}${$page.url.search}`) {
-    void goto(nextHref, {
-      keepFocus: true,
-      noScroll: true,
-      replaceState: true,
-    });
-  }
-}
-
-function scheduleSearch() {
-  clearTimeout(searchDebounceTimer);
-  updateUrlQuery(query);
-
-  const trimmed = query.trim();
-  if (trimmed.length < GLOBAL_SEARCH_MIN_QUERY_LENGTH) {
-    groups = [];
-    hasSearched = false;
-    isSearching = false;
-    resetSelection();
-    return;
-  }
-
-  resetSelection();
-  searchDebounceTimer = setTimeout(() => {
-    void runSearch();
-  }, GLOBAL_SEARCH_DEBOUNCE_MS);
-}
-
-function handleQueryInput(event: Event) {
-  const input = event.currentTarget as HTMLInputElement;
-  query = input.value;
-  if (event instanceof InputEvent && event.isComposing) {
-    return;
-  }
-  scheduleSearch();
-}
-
-function handleCompositionEnd(event: CompositionEvent) {
-  query = (event.currentTarget as HTMLInputElement).value;
-  scheduleSearch();
-}
-
-async function runSearch() {
-  const trimmed = query.trim();
-  if (trimmed.length < GLOBAL_SEARCH_MIN_QUERY_LENGTH) {
-    groups = [];
-    hasSearched = false;
-    return;
-  }
-
-  const generation = ++searchGeneration;
-  isSearching = true;
-  hasSearched = true;
-
-  try {
-    const body = await fetchGlobalSearch(trimmed, GLOBAL_SEARCH_PAGE_LIMIT);
-    if (generation !== searchGeneration) return;
-    groups = body.groups ?? [];
-  } catch {
-    if (generation !== searchGeneration) return;
-    groups = [];
-  } finally {
-    if (generation === searchGeneration) {
-      isSearching = false;
-    }
-  }
-}
-
-function handleInputKeydown(event: KeyboardEvent) {
-  handleSearchListboxKeydown({
-    activeIndex,
-    event,
-    inputElement,
-    isInteractive: canNavigateResults,
-    items: flatItems,
-    onActiveIndexChange: (index) => {
-      activeIndex = index;
-    },
-    onSelect: navigateTo,
-  });
-}
-
-function handleResultKeydown(event: KeyboardEvent, itemIndex: number) {
-  if (itemIndex >= 0 && itemIndex !== activeIndex) {
-    activeIndex = itemIndex;
-  }
-  handleSearchListboxKeydown({
-    activeIndex: itemIndex,
-    event,
-    inputElement,
-    isInteractive: canNavigateResults,
-    items: flatItems,
-    onActiveIndexChange: (index) => {
-      activeIndex = index;
-    },
-    onSelect: navigateTo,
-  });
-}
-
-function navigateTo(item: GlobalSearchResultItem) {
-  if (item.external) {
-    window.open(item.href, "_blank", "noopener,noreferrer");
-    return;
-  }
-  void goto(item.href);
-}
+let urlSyncMount: ReturnType<typeof mountGlobalSearchUrlSync>;
 
 onMount(() => {
-  applyQueryFromUrl($page.url.searchParams.get("q") ?? "", true);
+  urlSyncMount = mountGlobalSearchUrlSync(search, {
+    getPageUrl: () => $page.url,
+  });
   queueMicrotask(() => inputElement?.focus());
 });
 
 afterNavigate(({ to }) => {
-  if (!to) return;
-  const urlQuery = to.url.searchParams.get("q") ?? "";
-  if (urlQuery === query) return;
-  applyQueryFromUrl(urlQuery, true);
+  urlSyncMount?.handleAfterNavigate(to?.url);
 });
 </script>
 
@@ -211,19 +75,19 @@ afterNavigate(({ to }) => {
     />
     <input
       bind:this={inputElement}
-      bind:value={query}
-      aria-activedescendant={activeItemId
-        ? globalSearchItemDomId(activeItemId)
+      bind:value={$query}
+      aria-activedescendant={$activeItemId
+        ? globalSearchItemDomId($activeItemId)
         : undefined}
-      aria-busy={isSearching}
+      aria-busy={$isSearching}
       aria-controls={GLOBAL_SEARCH_LISTBOX_ID}
-      aria-expanded={canNavigateResults}
+      aria-expanded={$canNavigateResults}
       class={cn(
         "border-input focus-visible:border-ring focus-visible:ring-ring/50 h-11 w-full rounded-lg border bg-transparent pr-3 pl-9 text-base outline-none focus-visible:ring-3 md:text-sm",
       )}
       oncompositionend={handleCompositionEnd}
       oninput={handleQueryInput}
-      onkeydown={handleInputKeydown}
+      onkeydown={(event) => handleInputKeydown(event, inputElement)}
       placeholder={data.copy.placeholderSignedIn}
       role="combobox"
       type="search"
@@ -232,13 +96,14 @@ afterNavigate(({ to }) => {
 
   <div class="rounded-xl border bg-card p-2 shadow-sm">
     <GlobalSearchResults
-      {activeItemId}
+      activeItemId={$activeItemId}
       copy={data.copy}
-      {groups}
-      {isSearching}
-      {showHint}
-      {showInitialHint}
-      onResultKeydown={handleResultKeydown}
+      groups={$groups}
+      isSearching={$isSearching}
+      showHint={$showHint}
+      showInitialHint={$showInitialHint}
+      onResultKeydown={(event, itemIndex) =>
+        handleResultKeydown(event, itemIndex, inputElement)}
       onSelect={navigateTo}
     />
   </div>
