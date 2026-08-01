@@ -463,6 +463,7 @@ GRANT EXECUTE ON FUNCTION
   public.comment_attachment_summaries(text[]),
   public.get_public_profile_upload_stats(text, timestamp without time zone),
   public.comment_reaction_summaries(text[]),
+  public.comment_hidden_root_count(integer, integer, integer, text, integer),
   public.get_public_profile_homework_completions(
     text,
     timestamp without time zone
