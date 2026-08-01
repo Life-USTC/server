@@ -410,7 +410,9 @@ describe("loadCommentThread pagination", () => {
 
   it("counts anonymous hidden comments across the target without paging them", async () => {
     commentCountMock.mockReset();
-    commentCountMock.mockResolvedValueOnce(1).mockResolvedValueOnce(2);
+    publicQueryMock.mockReset();
+    commentCountMock.mockResolvedValueOnce(1);
+    publicQueryMock.mockResolvedValueOnce([{ count: 2n }]);
     commentFindManyMock.mockResolvedValueOnce([]);
 
     const result = await loadCommentThread({
@@ -426,14 +428,7 @@ describe("loadCommentThread pagination", () => {
     });
 
     expect(result).toMatchObject({ comments: [], hiddenCount: 2, total: 1 });
-    expect(commentCountMock).toHaveBeenNthCalledWith(2, {
-      where: {
-        AND: [
-          { teacherId: 5 },
-          { visibility: "logged_in_only" },
-          { status: { not: "deleted" } },
-        ],
-      },
-    });
+    expect(commentCountMock).toHaveBeenCalledTimes(1);
+    expect(publicQueryMock).toHaveBeenCalledTimes(1);
   });
 });

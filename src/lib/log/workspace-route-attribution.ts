@@ -4,8 +4,10 @@ import { getApiRequestObservabilityRequestId } from "@/lib/log/api-observability
 import { logAppEvent } from "@/lib/log/app-logger";
 import { isProductionEnvironment } from "@/lib/log/app-logger-core";
 import {
+  type WorkspaceHomeworksRouteStage,
   type WorkspaceRouteName,
   type WorkspaceRouteStage,
+  type WorkspaceSubscriptionsCurrentRouteStage,
   writeWorkspaceRouteStageAnalytics,
 } from "@/lib/metrics/analytics-engine";
 
@@ -124,6 +126,18 @@ export function recordWorkspaceRouteDbContext(ioObservedDurationMs: number) {
   });
 }
 
+export async function runWorkspaceRouteStage<T>(
+  route: "homeworks",
+  stage: WorkspaceHomeworksRouteStage | "db_context",
+  input: { request?: Request },
+  work: () => Promise<T>,
+): Promise<T>;
+export async function runWorkspaceRouteStage<T>(
+  route: "subscriptions_current",
+  stage: WorkspaceSubscriptionsCurrentRouteStage | "db_context",
+  input: { request?: Request },
+  work: () => Promise<T>,
+): Promise<T>;
 export async function runWorkspaceRouteStage<T>(
   route: WorkspaceRouteName,
   stage: WorkspaceRouteStage,

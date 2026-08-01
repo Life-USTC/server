@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { setApiRequestObservabilityContext } from "@/lib/log/api-observability";
 
 const {
@@ -40,6 +40,7 @@ describe("workspace route attribution", () => {
   });
 
   afterEach(() => {
+    vi.useRealTimers();
     vi.unstubAllEnvs();
     vi.restoreAllMocks();
   });

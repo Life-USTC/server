@@ -256,6 +256,34 @@ function directlyVisibleCommentWhere(
   };
 }
 
+async function countAnonymousHiddenRoots(
+  whereTarget: Record<string, number | string>,
+): Promise<number> {
+  const sectionId =
+    typeof whereTarget.sectionId === "number" ? whereTarget.sectionId : null;
+  const courseId =
+    typeof whereTarget.courseId === "number" ? whereTarget.courseId : null;
+  const teacherId =
+    typeof whereTarget.teacherId === "number" ? whereTarget.teacherId : null;
+  const homeworkId =
+    typeof whereTarget.homeworkId === "string" ? whereTarget.homeworkId : null;
+  const sectionTeacherId =
+    typeof whereTarget.sectionTeacherId === "number"
+      ? whereTarget.sectionTeacherId
+      : null;
+
+  const [row] = await prisma.$queryRaw<{ count: bigint }[]>`
+    SELECT public.comment_hidden_root_count(
+      ${sectionId},
+      ${courseId},
+      ${teacherId},
+      ${homeworkId},
+      ${sectionTeacherId}
+    ) AS count
+  `;
+  return Number(row?.count ?? 0);
+}
+
 export async function loadCommentThread(input: {
   pagination?: { pageSize: number; skip: number };
   target: ResolvedCommentTarget;
@@ -304,15 +332,7 @@ export async function loadCommentThread(input: {
           }),
           viewer.isAuthenticated
             ? Promise.resolve(0)
-            : client.comment.count({
-                where: {
-                  AND: [
-                    input.target.whereTarget,
-                    { visibility: "logged_in_only" },
-                    { status: { not: "deleted" } },
-                  ],
-                },
-              }),
+            : countAnonymousHiddenRoots(input.target.whereTarget),
         ]),
     );
     const rootIds = rootComments.map((comment) => comment.id);
