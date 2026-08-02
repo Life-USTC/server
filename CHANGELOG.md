@@ -1,3 +1,10 @@
+## [1.84.2](https://github.com/Life-USTC/server/compare/v1.84.1...v1.84.2) (2026-08-02)
+
+
+### Bug Fixes
+
+* **ci:** allow self-signed TLS in Node PrismaPg cron CLIs ([#726](https://github.com/Life-USTC/server/issues/726)) ([ad3274c](https://github.com/Life-USTC/server/commit/ad3274c7bd1d087562465e65b3ae38ff75414901))
+
 ## [1.84.1](https://github.com/Life-USTC/server/compare/v1.84.0...v1.84.1) (2026-08-01)
 
 
