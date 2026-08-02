@@ -1,3 +1,10 @@
+## [1.84.3](https://github.com/Life-USTC/server/compare/v1.84.2...v1.84.3) (2026-08-02)
+
+
+### Performance Improvements
+
+* **workspace:** speed up compact overview API (closes [#672](https://github.com/Life-USTC/server/issues/672)) ([#727](https://github.com/Life-USTC/server/issues/727)) ([6f9c368](https://github.com/Life-USTC/server/commit/6f9c3684c5e2dcd893c55a5b0250e6f00ab44f54))
+
 ## [1.84.2](https://github.com/Life-USTC/server/compare/v1.84.1...v1.84.2) (2026-08-02)
 
 
