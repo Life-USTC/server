@@ -10,6 +10,10 @@ import { parseDateInput } from "@/lib/time/parse-date-input";
 import { shanghaiDayjs } from "@/lib/time/shanghai-dayjs";
 import { formatShanghaiDate } from "@/lib/time/shanghai-format";
 import {
+  overviewExamSelect,
+  overviewScheduleSelect,
+} from "./subscription-overview-selects";
+import {
   getSubscribedSectionIds,
   getSubscribedSectionIdsForSemester,
   withSubscribedSections,
@@ -114,6 +118,7 @@ export async function listSubscribedSchedules(
     limit,
     sectionIds,
     semesterId,
+    shape = "full",
   }: {
     locale?: string;
     dateFrom?: Date;
@@ -122,6 +127,7 @@ export async function listSubscribedSchedules(
     limit?: number;
     sectionIds?: readonly number[];
     semesterId?: number;
+    shape?: "compact" | "full";
   } = {},
 ) {
   const resolvedSectionIds =
@@ -134,17 +140,27 @@ export async function listSubscribedSchedules(
     async (ids) => {
       const localizedPrisma = getPrisma(locale);
       const dateFilter = dateRangeFilter(dateFrom, dateTo);
-
-      return localizedPrisma.schedule.findMany({
+      const query = {
         where: {
           sectionId: { in: ids },
           section: { retiredAt: null },
           ...(dateFilter ? { date: dateFilter } : {}),
           ...(weekday ? { weekday } : {}),
         },
-        include: subscribedScheduleInclude,
         orderBy: subscribedScheduleOrderBy,
         ...(limit ? { take: limit } : {}),
+      } satisfies Prisma.ScheduleFindManyArgs;
+
+      if (shape === "compact") {
+        return localizedPrisma.schedule.findMany({
+          ...query,
+          select: overviewScheduleSelect,
+        });
+      }
+
+      return localizedPrisma.schedule.findMany({
+        ...query,
+        include: subscribedScheduleInclude,
       });
     },
     resolvedSectionIds,
@@ -311,22 +327,35 @@ export async function listUpcomingSubscribedExams(
     locale = DEFAULT_LOCALE,
     limit,
     sectionIds,
+    shape = "full",
   }: {
     atTime: Date;
     locale?: string;
     limit?: number;
     sectionIds?: readonly number[];
+    shape?: "compact" | "full";
   },
 ) {
   return withSubscribedSections(
     userId,
     async (ids) => {
       const localizedPrisma = getPrisma(locale);
-      return localizedPrisma.exam.findMany({
+      const query = {
         where: upcomingKnownExamWhere({ atTime, sectionIds: ids }),
-        include: subscribedExamInclude,
         orderBy: subscribedExamOrderBy,
         ...(limit ? { take: limit } : {}),
+      } satisfies Prisma.ExamFindManyArgs;
+
+      if (shape === "compact") {
+        return localizedPrisma.exam.findMany({
+          ...query,
+          select: overviewExamSelect,
+        });
+      }
+
+      return localizedPrisma.exam.findMany({
+        ...query,
+        include: subscribedExamInclude,
       });
     },
     sectionIds,

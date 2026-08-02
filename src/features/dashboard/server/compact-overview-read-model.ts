@@ -82,115 +82,145 @@ export async function getCompactOverview(
     .add(homeworkWindowDays, "day")
     .toDate();
 
-  const [user, todoBundle] = await Promise.all([
-    runOverviewStage("user_sections", () =>
-      withUserDbContext(userId, (tx) =>
-        tx.user.findUnique({
-          where: { id: userId },
-          select: {
-            id: true,
-            image: true,
-            isAdmin: true,
-            name: true,
-            sectionSubscriptions: {
-              where: { section: { retiredAt: null } },
-              select: { sectionId: true },
-            },
+  const todoBundlePromise = loadOverviewTodoBundle({
+    userId,
+    now,
+    homeworkWindowEnd,
+    limit,
+    runTodoSummary: runOverviewSubStage("todo_summary"),
+    runDueTodoCount: runOverviewSubStage("due_todo_count"),
+    runDueTodoSample: runOverviewSubStage("due_todo_sample"),
+  });
+
+  const user = await runOverviewStage("user_sections", () =>
+    withUserDbContext(userId, (tx) =>
+      tx.user.findUnique({
+        where: { id: userId },
+        select: {
+          id: true,
+          image: true,
+          isAdmin: true,
+          name: true,
+          sectionSubscriptions: {
+            where: { section: { retiredAt: null } },
+            select: { sectionId: true },
           },
-        }),
-      ),
+        },
+      }),
     ),
-    loadOverviewTodoBundle({
-      userId,
-      now,
-      homeworkWindowEnd,
-      limit,
-      runTodoSummary: runOverviewSubStage("todo_summary"),
-      runDueTodoCount: runOverviewSubStage("due_todo_count"),
-      runDueTodoSample: runOverviewSubStage("due_todo_sample"),
-    }),
-  ]);
-  const { todos, dueTodosCount, dueTodos } = todoBundle;
+  );
   const sectionIds =
     user?.sectionSubscriptions?.map((row) => row.sectionId) ?? [];
 
-  const [
-    [
+  const [todoBundle, overviewReads] = await Promise.all([
+    todoBundlePromise,
+    (async () => {
+      const [
+        [
+          pendingHomeworksCount,
+          todaySchedulesCount,
+          upcomingExamsCount,
+          dueSoonHomeworksCount,
+        ],
+        [schedules, dueSoonHomeworksRaw, upcomingExams],
+      ] = await Promise.all([
+        runOverviewStage("counts", () =>
+          sectionIds.length > 0
+            ? Promise.all([
+                withUserDbContext(userId, (tx) =>
+                  tx.homework.count({
+                    where: {
+                      deletedAt: null,
+                      homeworkCompletions: { none: { userId } },
+                      sectionId: { in: sectionIds },
+                    },
+                  }),
+                ),
+                prisma.schedule.count({
+                  where: {
+                    date: { gte: todayStart, lt: tomorrowStart },
+                    sectionId: { in: sectionIds },
+                  },
+                }),
+                countUpcomingSubscribedExams({
+                  atTime: now,
+                  sectionIds,
+                }),
+                withUserDbContext(userId, (tx) =>
+                  tx.homework.count({
+                    where: {
+                      deletedAt: null,
+                      homeworkCompletions: { none: { userId } },
+                      sectionId: { in: sectionIds },
+                      submissionDueAt: { gte: now, lte: homeworkWindowEnd },
+                    },
+                  }),
+                ),
+              ])
+            : Promise.resolve<[number, number, number, number]>([0, 0, 0, 0]),
+        ),
+        runOverviewStage("lists", () =>
+          sectionIds.length > 0
+            ? Promise.all([
+                listSubscribedSchedules(userId, {
+                  dateFrom: todayStart,
+                  dateTo: todayStart,
+                  limit,
+                  locale,
+                  sectionIds,
+                  shape: "compact",
+                }),
+                listSubscribedHomeworks(userId, {
+                  completed: false,
+                  dueAtFrom: now,
+                  dueAtTo: homeworkWindowEnd,
+                  limit,
+                  locale,
+                  requireDueDate: true,
+                  sectionIds,
+                  shape: "dashboard",
+                }),
+                listUpcomingSubscribedExams(userId, {
+                  atTime: now,
+                  limit,
+                  locale,
+                  sectionIds,
+                  shape: "compact",
+                }),
+              ])
+            : Promise.resolve<[never[], never[], never[]]>([[], [], []]),
+        ),
+      ]);
+
+      const dueSoonHomeworks = await runOverviewStage("item_state", () =>
+        withHomeworkItemState(dueSoonHomeworksRaw, userId),
+      );
+
+      return {
+        counts: {
+          pendingHomeworksCount,
+          todaySchedulesCount,
+          upcomingExamsCount,
+          dueSoonHomeworksCount,
+        },
+        dueSoonHomeworks,
+        schedules,
+        upcomingExams,
+      };
+    })(),
+  ]);
+  const {
+    counts: {
       pendingHomeworksCount,
       todaySchedulesCount,
       upcomingExamsCount,
       dueSoonHomeworksCount,
-    ],
-    [schedules, dueSoonHomeworksRaw, upcomingExams],
-  ] = await Promise.all([
-    runOverviewStage("counts", () =>
-      sectionIds.length > 0
-        ? Promise.all([
-            withUserDbContext(userId, (tx) =>
-              tx.homework.count({
-                where: {
-                  deletedAt: null,
-                  homeworkCompletions: { none: { userId } },
-                  sectionId: { in: sectionIds },
-                },
-              }),
-            ),
-            prisma.schedule.count({
-              where: {
-                date: { gte: todayStart, lt: tomorrowStart },
-                sectionId: { in: sectionIds },
-              },
-            }),
-            countUpcomingSubscribedExams({
-              atTime: now,
-              sectionIds,
-            }),
-            withUserDbContext(userId, (tx) =>
-              tx.homework.count({
-                where: {
-                  deletedAt: null,
-                  homeworkCompletions: { none: { userId } },
-                  sectionId: { in: sectionIds },
-                  submissionDueAt: { gte: now, lte: homeworkWindowEnd },
-                },
-              }),
-            ),
-          ])
-        : Promise.resolve<[number, number, number, number]>([0, 0, 0, 0]),
-    ),
-    runOverviewStage("lists", () =>
-      sectionIds.length > 0
-        ? Promise.all([
-            listSubscribedSchedules(userId, {
-              dateFrom: todayStart,
-              dateTo: todayStart,
-              limit,
-              locale,
-              sectionIds,
-            }),
-            listSubscribedHomeworks(userId, {
-              completed: false,
-              dueAtFrom: now,
-              dueAtTo: homeworkWindowEnd,
-              limit,
-              locale,
-              requireDueDate: true,
-              sectionIds,
-            }),
-            listUpcomingSubscribedExams(userId, {
-              atTime: now,
-              limit,
-              locale,
-              sectionIds,
-            }),
-          ])
-        : Promise.resolve<[never[], never[], never[]]>([[], [], []]),
-    ),
-  ]);
-
-  const dueSoonHomeworks = await runOverviewStage("item_state", () =>
-    withHomeworkItemState(dueSoonHomeworksRaw, userId),
-  );
+    },
+    dueSoonHomeworks,
+    schedules,
+    upcomingExams,
+  } = overviewReads;
+  const { todos, dueTodosCount, dueTodos } = todoBundle;
 
   return {
     user: {
