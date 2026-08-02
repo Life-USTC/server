@@ -1,6 +1,7 @@
 import "dotenv/config";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "@/generated/prisma-node/client";
+import { createNodePgPoolConfig } from "@/lib/db/node-pg-pool-config";
 import { cleanupExpiredAuthRecords } from "./auth-record-cleanup";
 
 async function main() {
@@ -10,7 +11,7 @@ async function main() {
   }
 
   const prisma = new PrismaClient({
-    adapter: new PrismaPg({ connectionString }),
+    adapter: new PrismaPg(createNodePgPoolConfig(connectionString)),
   });
 
   try {
