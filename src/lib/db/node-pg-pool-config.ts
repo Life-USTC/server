@@ -1,5 +1,5 @@
 import type { PoolConfig } from "pg";
-import parseConnectionString from "pg-connection-string";
+import { parse as parseConnectionString } from "pg-connection-string";
 
 /**
  * Pool config for Node-side PrismaPg CLIs (static loader, maintenance crons).
