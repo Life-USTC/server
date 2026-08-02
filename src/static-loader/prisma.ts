@@ -1,6 +1,6 @@
 import "dotenv/config";
 import { PrismaPg } from "@prisma/adapter-pg";
-import { createNodePgPoolConfig } from "@/lib/db/node-pg-pool-config";
+import { createNodePgPoolConfig } from "../lib/db/node-pg-pool-config";
 import { PrismaClient } from "../generated/prisma-node/client";
 
 export function createPrismaClient(): PrismaClient {
