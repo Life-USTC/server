@@ -148,7 +148,15 @@ describe("compact workspace overview read model", () => {
     });
     expect(listSubscribedSchedulesMock).toHaveBeenCalledWith(
       "user-1",
-      expect.objectContaining({ sectionIds: [11] }),
+      expect.objectContaining({ sectionIds: [11], shape: "compact" }),
+    );
+    expect(listSubscribedHomeworksMock).toHaveBeenCalledWith(
+      "user-1",
+      expect.objectContaining({ sectionIds: [11], shape: "dashboard" }),
+    );
+    expect(listUpcomingSubscribedExamsMock).toHaveBeenCalledWith(
+      "user-1",
+      expect.objectContaining({ sectionIds: [11], shape: "compact" }),
     );
     expect(overview.user).toEqual({
       image: "avatar.png",
@@ -168,26 +176,30 @@ describe("compact workspace overview read model", () => {
         name,
         attributes,
       ]),
-    ).toEqual([
-      ["workspace.overview.user_sections", {}],
-      ["workspace.overview.todo_summary", {}],
-      ["workspace.overview.due_todo_count", {}],
-      ["workspace.overview.due_todo_sample", {}],
-      ["workspace.overview.counts", {}],
-      ["workspace.overview.lists", {}],
-      ["workspace.overview.item_state", {}],
-    ]);
+    ).toEqual(
+      expect.arrayContaining([
+        ["workspace.overview.user_sections", {}],
+        ["workspace.overview.todo_summary", {}],
+        ["workspace.overview.due_todo_count", {}],
+        ["workspace.overview.due_todo_sample", {}],
+        ["workspace.overview.counts", {}],
+        ["workspace.overview.lists", {}],
+        ["workspace.overview.item_state", {}],
+      ]),
+    );
     expect(
       analyticsMock.mock.calls.map(([input]) => [input.stage, input.status]),
-    ).toEqual([
-      ["user_sections", "success"],
-      ["todo_summary", "success"],
-      ["due_todo_count", "success"],
-      ["due_todo_sample", "success"],
-      ["counts", "success"],
-      ["lists", "success"],
-      ["item_state", "success"],
-    ]);
+    ).toEqual(
+      expect.arrayContaining([
+        ["user_sections", "success"],
+        ["todo_summary", "success"],
+        ["due_todo_count", "success"],
+        ["due_todo_sample", "success"],
+        ["counts", "success"],
+        ["lists", "success"],
+        ["item_state", "success"],
+      ]),
+    );
   });
 
   it("loads todo reads in one bundle while running the three sub-stages in parallel", async () => {
@@ -276,6 +288,41 @@ describe("compact workspace overview read model", () => {
       todos: TODO_COUNTS,
       upcomingExams: 0,
     });
+  });
+
+  it("overlaps todo loading with section-scoped overview reads", async () => {
+    let resolveTodoSummary:
+      | ((value: {
+          counts: typeof TODO_COUNTS;
+          todos: Array<{ id: string }>;
+        }) => void)
+      | undefined;
+    loadOverviewTodoBundleMock.mockImplementation(
+      async ({ runTodoSummary, runDueTodoCount, runDueTodoSample }) => ({
+        todos: await runTodoSummary?.(
+          () =>
+            new Promise((resolve) => {
+              resolveTodoSummary = resolve;
+            }),
+        ),
+        dueTodosCount: await runDueTodoCount?.(() => Promise.resolve(2)),
+        dueTodos: await runDueTodoSample?.(() =>
+          Promise.resolve([{ id: "due-todo-1" }]),
+        ),
+      }),
+    );
+    const { getCompactOverview } = await import(
+      "@/features/dashboard/server/compact-overview-read-model"
+    );
+
+    const overviewPromise = getCompactOverview("user-1", { atTime: AT_TIME });
+
+    await vi.waitFor(() => {
+      expect(homeworkCountMock).toHaveBeenCalled();
+      expect(listSubscribedSchedulesMock).toHaveBeenCalled();
+    });
+    resolveTodoSummary?.({ counts: TODO_COUNTS, todos: [{ id: "todo-1" }] });
+    await overviewPromise;
   });
 
   it("starts count and list groups together while preserving each group fan-out", async () => {
