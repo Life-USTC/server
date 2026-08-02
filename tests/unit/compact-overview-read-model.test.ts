@@ -291,10 +291,12 @@ describe("compact workspace overview read model", () => {
   });
 
   it("overlaps todo loading with section-scoped overview reads", async () => {
-    let resolveTodoSummary: ((value: {
-      counts: typeof TODO_COUNTS;
-      todos: Array<{ id: string }>;
-    }) => void) | undefined;
+    let resolveTodoSummary:
+      | ((value: {
+          counts: typeof TODO_COUNTS;
+          todos: Array<{ id: string }>;
+        }) => void)
+      | undefined;
     loadOverviewTodoBundleMock.mockImplementation(
       async ({ runTodoSummary, runDueTodoCount, runDueTodoSample }) => ({
         todos: await runTodoSummary?.(
