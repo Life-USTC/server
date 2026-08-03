@@ -11,6 +11,7 @@ import {
 import { buildUstcOidcProviderEndpoints } from "@/lib/auth/ustc-oidc-endpoints";
 import { ustcOidcIdentityPlugin } from "@/lib/auth/ustc-oidc-identity-plugin";
 import { stageUstcOidcIdentityFromProfile } from "@/lib/auth/ustc-oidc-identity-profile";
+import { isWebhookLoginEnabled } from "@/lib/auth/webhook-login-handler";
 import { webhookLoginPlugin } from "@/lib/auth/webhook-login-plugin";
 import { getCanonicalOAuthIssuer } from "@/lib/mcp/urls";
 import { OAUTH_OPENID_SCOPE } from "@/lib/oauth/constants";
@@ -41,7 +42,7 @@ export function buildBetterAuthPlugins(input: {
       currentURL: input.authPublicOrigin,
       ...(input.oauthProxySecret ? { secret: input.oauthProxySecret } : {}),
     }),
-    webhookLoginPlugin(),
+    ...(isWebhookLoginEnabled() ? [webhookLoginPlugin()] : []),
     buildBetterAuthPasskeyPlugin(),
     ustcOidcIdentityPlugin(),
     buildOAuthProviderPlugin({

@@ -16,6 +16,7 @@ import {
   betterAuthVerificationOptions,
 } from "@/lib/auth/better-auth-schema-options";
 import { buildBetterAuthSocialProviders } from "@/lib/auth/better-auth-social-providers";
+import { webhookLoginRateLimitRules } from "@/lib/auth/webhook-login-plugin";
 import { authPrisma } from "@/lib/db/auth-prisma";
 
 export function buildBetterAuthOptions() {
@@ -41,7 +42,13 @@ export function buildBetterAuthOptions() {
     // don't get throttled with 429 responses.
     rateLimit: debugAuthAllowed
       ? { enabled: false }
-      : { enabled: true, customRules: betterAuthPasskeyRateLimitRules },
+      : {
+          enabled: true,
+          customRules: {
+            ...betterAuthPasskeyRateLimitRules,
+            ...webhookLoginRateLimitRules,
+          },
+        },
     advanced: {
       ipAddress: {
         ipAddressHeaders: ["cf-connecting-ip"],
