@@ -31,7 +31,8 @@ export default defineConfig({
       // wrangler.e2e.jsonc hardcodes life_ustc_dev; point Hyperdrive at the
       // job DATABASE_URL so ci:integration (life_ustc_integration) works.
       CLOUDFLARE_HYPERDRIVE_LOCAL_CONNECTION_STRING_HYPERDRIVE: databaseUrl,
-      CLOUDFLARE_HYPERDRIVE_LOCAL_CONNECTION_STRING_HYPERDRIVE_AUTH: databaseUrl,
+      CLOUDFLARE_HYPERDRIVE_LOCAL_CONNECTION_STRING_HYPERDRIVE_AUTH:
+        databaseUrl,
     },
   },
 });
