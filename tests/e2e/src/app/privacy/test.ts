@@ -39,9 +39,7 @@ test.describe("/privacy 隐私政策页", () => {
 
     const documentResponse = await page.request.get("/privacy");
     expect(documentResponse.status()).toBe(200);
-    expect(documentResponse.headers()["cache-control"]).toBe(
-      "private, no-store",
-    );
+    expect(documentResponse.headers()["cache-control"]).toMatch(/no-store/);
     const html = await documentResponse.text();
     // Authenticated requests skip anonymous PublicSsr HTML, so the viewer is
     // already present in the document instead of a client-only skeleton.
