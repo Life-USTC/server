@@ -163,14 +163,15 @@ test.describe("仪表盘考试", () => {
     ).toHaveText(/.+/);
 
     // exam.examDate — smart datetime (or TBD), not necessarily YYYY-MM-DD
-    await expect(
-      firstCard.locator("dl dd").first(),
-    ).toBeVisible();
+    await expect(firstCard.locator("dl dd").first()).toBeVisible();
     await expect(firstCard.locator("dl dd").first()).toHaveText(/.+/);
 
     // exam.startTime - endTime — HH:mm-HH:mm format
     await expect(
-      firstCard.locator("dl dd").nth(1).getByText(/\d{2}:\d{2}/),
+      firstCard
+        .locator("dl dd")
+        .nth(1)
+        .getByText(/\d{2}:\d{2}/),
     ).toBeVisible();
 
     // exam.examMode — Exam.examMode is a raw string (e.g. "闭卷"), not locale-dependent

@@ -241,9 +241,7 @@ export async function assertPageContract(
           .getByRole("link", { name: /班级|Sections/i }),
       ).toBeVisible();
       await expect(
-        page
-          .getByTestId("detail-section-nav")
-          .locator('[aria-current="page"]'),
+        page.getByTestId("detail-section-nav").locator('[aria-current="page"]'),
       ).toBeVisible();
       await maybeCapture(page, testInfo, "courses-jwId");
       return;
@@ -263,9 +261,7 @@ export async function assertPageContract(
           .getByRole("link", { name: /授课班级|Teaching Sections/i }),
       ).toBeVisible();
       await expect(
-        page
-          .getByTestId("detail-section-nav")
-          .locator('[aria-current="page"]'),
+        page.getByTestId("detail-section-nav").locator('[aria-current="page"]'),
       ).toBeVisible();
       await maybeCapture(page, testInfo, "teachers-id");
       return;
