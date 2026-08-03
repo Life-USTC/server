@@ -16,7 +16,7 @@
 /test-results
 
 # svelte
-/.svelte-kit/
+/.svelte-kit
 /.wrangler/
 /out/
 
