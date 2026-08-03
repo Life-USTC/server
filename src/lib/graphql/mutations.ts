@@ -135,6 +135,7 @@ export const graphqlMutationTypeDefs = /* GraphQL */ `
     FORBIDDEN
     LOCKED
     DELETED
+    SUSPENDED
   }
 
   enum SectionSubscriptionBatchAction {
@@ -592,6 +593,7 @@ const batchMutationErrorCodeResolver = {
   FORBIDDEN: "forbidden",
   LOCKED: "locked",
   DELETED: "deleted",
+  SUSPENDED: "suspended",
 } as const;
 
 const sectionSubscriptionBatchActionResolver = {
@@ -894,7 +896,7 @@ export const graphqlMutationResolvers = {
     ) {
       const principal = await requireGraphqlMutation(
         context,
-        "workspace.homework",
+        "community.section-homework",
       );
       const input = args.input;
       const publishedAt = dateTimeInput(input.publishedAt) ?? null;
@@ -934,7 +936,7 @@ export const graphqlMutationResolvers = {
     ) {
       const principal = await requireGraphqlMutation(
         context,
-        "workspace.homework",
+        "community.section-homework",
       );
       const id = requireMutationId(args.id, "id");
       const input = args.input;
@@ -1007,7 +1009,7 @@ export const graphqlMutationResolvers = {
     ) {
       const principal = await requireGraphqlMutation(
         context,
-        "workspace.homework",
+        "community.section-homework",
       );
       const id = requireMutationId(args.id, "id");
       const result = await deleteHomework({

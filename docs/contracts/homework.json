@@ -138,7 +138,7 @@
             "name": "homeworkCreate",
             "arguments": { "input": "CreateHomeworkInput!" },
             "returns": "HomeworkMutationPayload!",
-            "required_scopes": ["workspace.homework:write"],
+            "required_scopes": ["community.section-homework:write"],
             "rest_equivalent": "POST /api/community/section-homeworks",
             "mcp_equivalent": "community_section_homework_create",
             "notes": [
@@ -152,7 +152,7 @@
               "input": "UpdateHomeworkInput!"
             },
             "returns": "HomeworkMutationPayload!",
-            "required_scopes": ["workspace.homework:write"],
+            "required_scopes": ["community.section-homework:write"],
             "rest_equivalent": "PATCH /api/community/section-homeworks/[id]",
             "mcp_equivalent": "community_section_homework_update",
             "notes": [
@@ -164,7 +164,7 @@
             "name": "homeworkDelete",
             "arguments": { "id": "ID!" },
             "returns": "HomeworkDeleteMutationPayload!",
-            "required_scopes": ["workspace.homework:write"],
+            "required_scopes": ["community.section-homework:write"],
             "rest_equivalent": "DELETE /api/community/section-homeworks/[id]",
             "mcp_equivalent": "community_section_homework_delete",
             "notes": [

@@ -103,15 +103,15 @@ beforeAll(async () => {
         create: [
           {
             scopes: [
-              restReadScope("workspace.homework"),
-              restWriteScope("workspace.homework"),
+              restReadScope("community.section-homework"),
+              restWriteScope("community.section-homework"),
             ],
             userId: creatorId,
           },
           {
             scopes: [
-              restReadScope("workspace.homework"),
-              restWriteScope("workspace.homework"),
+              restReadScope("community.section-homework"),
+              restWriteScope("community.section-homework"),
             ],
             userId: collaboratorId,
           },
@@ -151,7 +151,7 @@ afterAll(async () => {
 describe("GraphQL homework CRUD mutations", () => {
   it("requires the exact homework write scope before resolving a section", async () => {
     const readToken = await signToken(creatorId, [
-      restReadScope("workspace.homework"),
+      restReadScope("community.section-homework"),
     ]);
     const result = await execute(
       {
@@ -174,7 +174,7 @@ describe("GraphQL homework CRUD mutations", () => {
 
     expectErrorCode(result.payload, "FORBIDDEN");
     expect(result.payload.errors?.[0]?.extensions?.requiredScopes).toEqual([
-      "workspace.homework:write",
+      "community.section-homework:write",
     ]);
     await expect(
       prisma.homework.count({
@@ -185,7 +185,7 @@ describe("GraphQL homework CRUD mutations", () => {
 
   it("validates the shared homework submission window before writing", async () => {
     const token = await signToken(creatorId, [
-      restWriteScope("workspace.homework"),
+      restWriteScope("community.section-homework"),
     ]);
     const result = await execute(
       {
@@ -229,8 +229,8 @@ describe("GraphQL homework CRUD mutations", () => {
 
   it("creates, collaboratively updates, and creator-deletes with shared audit semantics", async () => {
     const [creatorToken, collaboratorToken] = await Promise.all([
-      signToken(creatorId, [restWriteScope("workspace.homework")]),
-      signToken(collaboratorId, [restWriteScope("workspace.homework")]),
+      signToken(creatorId, [restWriteScope("community.section-homework")]),
+      signToken(collaboratorId, [restWriteScope("community.section-homework")]),
     ]);
     const created = await execute(
       {
