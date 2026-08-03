@@ -144,13 +144,19 @@ export async function waitForDescriptionAuditRows(
   snapshot: DescriptionSnapshot,
   expectedNewRows: number,
 ) {
+  let count = 0;
   for (let attempt = 0; attempt < 40; attempt += 1) {
-    const count = await withE2ePrisma((prisma) =>
+    count = await withE2ePrisma((prisma) =>
       prisma.auditLog.count({ where: newAuditWhere(snapshot) }),
     );
     if (count >= expectedNewRows) return;
     await sleep(25);
   }
+  // Returning quietly here would let a caller assert against audit rows that
+  // were never written, so the timeout has to fail the test.
+  throw new Error(
+    `Timed out waiting for ${expectedNewRows} new description audit row(s); saw ${count}.`,
+  );
 }
 
 export async function restoreDescriptionSnapshot(
