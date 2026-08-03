@@ -159,6 +159,9 @@ jobs:
               bunx vitest run
               ;;
             ci:integration)
+              # Match wrangler.e2e.jsonc so JWKS rows seeded here decrypt when
+              # the Playwright API suite starts `bun run e2e:server`.
+              export AUTH_SECRET=e2e-dev-secret-not-for-production
               bun run app:prepare
               bun run db:migrate:deploy
               bunx prisma db seed
