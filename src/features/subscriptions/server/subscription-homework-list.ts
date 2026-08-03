@@ -1,4 +1,5 @@
 import { attachHomeworkCompletionsForViewer } from "@/features/homeworks/server/homework-read-model";
+import type { Prisma } from "@/generated/prisma/client";
 import { DEFAULT_LOCALE } from "@/i18n/config";
 import { getPrisma, withUserDbContext } from "@/lib/db/prisma";
 import type { HomeworkWithSection } from "./subscription-dashboard-types";
@@ -15,35 +16,64 @@ import {
   withSubscribedSections,
 } from "./subscription-read-model-shared";
 
-async function fetchSubscribedHomeworkDashboardItems(
+type SubscribedHomeworkIdsAndCompletions = {
+  completions: Array<{ homeworkId: string; completedAt: Date }>;
+  homeworkIds: string[];
+};
+
+type SubscribedHomeworkRlsSnapshot = SubscribedHomeworkIdsAndCompletions & {
+  total: number;
+};
+
+async function fetchSubscribedHomeworkIdsAndCompletionsInTransaction(
+  tx: Prisma.TransactionClient,
   userId: string,
   query: ReturnType<typeof buildSubscribedHomeworkQuery>,
+): Promise<SubscribedHomeworkIdsAndCompletions> {
+  const scopedHomeworks = await tx.homework.findMany({
+    ...query,
+    select: { id: true },
+  });
+  const homeworkIds = scopedHomeworks.map((homework) => homework.id);
+  if (homeworkIds.length === 0) {
+    return { homeworkIds: [], completions: [] };
+  }
+
+  const completions = await tx.homeworkCompletion.findMany({
+    where: {
+      userId,
+      homeworkId: { in: homeworkIds },
+    },
+    select: { homeworkId: true, completedAt: true },
+  });
+  return { homeworkIds, completions };
+}
+
+export async function fetchSubscribedHomeworkRlsSnapshot(
+  tx: Prisma.TransactionClient,
+  userId: string,
+  query: ReturnType<typeof buildSubscribedHomeworkQuery>,
+  includeItems: boolean,
+): Promise<SubscribedHomeworkRlsSnapshot> {
+  const total = await tx.homework.count({ where: query.where });
+  if (!includeItems) {
+    return { total, homeworkIds: [], completions: [] };
+  }
+
+  const { homeworkIds, completions } =
+    await fetchSubscribedHomeworkIdsAndCompletionsInTransaction(
+      tx,
+      userId,
+      query,
+    );
+  return { total, homeworkIds, completions };
+}
+
+export async function localizeSubscribedHomeworkDashboardItems(
+  snapshot: Pick<SubscribedHomeworkRlsSnapshot, "completions" | "homeworkIds">,
   locale: string,
 ): Promise<HomeworkWithSection[]> {
-  const { homeworkIds, completions } = await withUserDbContext(
-    userId,
-    async (tx) => {
-      const scopedHomeworks = await tx.homework.findMany({
-        ...query,
-        select: { id: true },
-      });
-      const idsForCompletions = scopedHomeworks.map((homework) => homework.id);
-      if (idsForCompletions.length === 0) {
-        return { homeworkIds: [] as string[], completions: [] };
-      }
-      const completionRows = await tx.homeworkCompletion.findMany({
-        where: {
-          userId,
-          homeworkId: { in: idsForCompletions },
-        },
-        select: { homeworkId: true, completedAt: true },
-      });
-      return {
-        homeworkIds: idsForCompletions,
-        completions: completionRows,
-      };
-    },
-  );
+  const { homeworkIds, completions } = snapshot;
   if (homeworkIds.length === 0) return [];
 
   const localizedPrisma = getPrisma(locale);
@@ -57,17 +87,30 @@ async function fetchSubscribedHomeworkDashboardItems(
   );
 }
 
+async function fetchSubscribedHomeworkDashboardItems(
+  userId: string,
+  query: ReturnType<typeof buildSubscribedHomeworkQuery>,
+  locale: string,
+): Promise<HomeworkWithSection[]> {
+  const snapshot = await withUserDbContext(userId, (tx) =>
+    fetchSubscribedHomeworkIdsAndCompletionsInTransaction(tx, userId, query),
+  );
+  return localizeSubscribedHomeworkDashboardItems(snapshot, locale);
+}
+
 export async function listDueSoonSubscribedHomeworksWithCount(
   userId: string,
   {
     dueAtFrom,
     dueAtTo,
+    includeItems = true,
     locale = DEFAULT_LOCALE,
     limit,
     sectionIds,
   }: {
     dueAtFrom: Date;
     dueAtTo: Date;
+    includeItems?: boolean;
     locale?: string;
     limit?: number;
     sectionIds?: readonly number[];
@@ -86,12 +129,13 @@ export async function listDueSoonSubscribedHomeworksWithCount(
         sectionIds: ids,
         userId,
       });
-      const where = query.where;
-      const [total, items] = await Promise.all([
-        withUserDbContext(userId, (tx) => tx.homework.count({ where })),
-        fetchSubscribedHomeworkDashboardItems(userId, query, locale),
-      ]);
-      return { total, items };
+      const snapshot = await withUserDbContext(userId, (tx) =>
+        fetchSubscribedHomeworkRlsSnapshot(tx, userId, query, includeItems),
+      );
+      const items = includeItems
+        ? await localizeSubscribedHomeworkDashboardItems(snapshot, locale)
+        : [];
+      return { total: snapshot.total, items };
     },
     sectionIds,
     { total: 0, items: [] },
@@ -147,42 +191,23 @@ export async function listSubscribedHomeworks(
         return fetchSubscribedHomeworkDashboardItems(userId, query, locale);
       }
 
-      const { homeworkIds, completions } = await withUserDbContext(
-        userId,
-        async (tx) => {
-          const scopedHomeworks = await tx.homework.findMany({
-            ...query,
-            select: { id: true },
-          });
-          const idsForCompletions = scopedHomeworks.map(
-            (homework) => homework.id,
-          );
-          if (idsForCompletions.length === 0) {
-            return { homeworkIds: [] as string[], completions: [] };
-          }
-          const completionRows = await tx.homeworkCompletion.findMany({
-            where: {
-              userId,
-              homeworkId: { in: idsForCompletions },
-            },
-            select: { homeworkId: true, completedAt: true },
-          });
-          return {
-            homeworkIds: idsForCompletions,
-            completions: completionRows,
-          };
-        },
+      const snapshot = await withUserDbContext(userId, (tx) =>
+        fetchSubscribedHomeworkIdsAndCompletionsInTransaction(
+          tx,
+          userId,
+          query,
+        ),
       );
-      if (homeworkIds.length === 0) return [];
+      if (snapshot.homeworkIds.length === 0) return [];
 
       const localizedPrisma = getPrisma(locale);
       const homeworks = await localizedPrisma.homework.findMany({
-        where: { id: { in: homeworkIds } },
+        where: { id: { in: snapshot.homeworkIds } },
         include: buildSubscribedHomeworkInclude(includeEditors),
       });
       return orderHomeworksById(
-        attachHomeworkCompletionsForViewer(homeworks, completions),
-        homeworkIds,
+        attachHomeworkCompletionsForViewer(homeworks, snapshot.completions),
+        snapshot.homeworkIds,
       );
     },
     resolvedSectionIds,

@@ -9,20 +9,22 @@ const TOMORROW_START = new Date(TODAY_START.getTime() + 24 * 60 * 60 * 1000);
 const HOMEWORK_WINDOW_END = new Date("2026-05-06T08:00:00+08:00");
 
 const {
+  fetchSubscribedHomeworkRlsSnapshotMock,
   homeworkCountMock,
-  listDueSoonSubscribedHomeworksWithCountMock,
   listTodaySubscribedSchedulesWithCountMock,
   listUpcomingSubscribedExamsWithCountMock,
+  localizeSubscribedHomeworkDashboardItemsMock,
   withHomeworkItemStateMock,
   withUserDbContextMock,
 } = vi.hoisted(() => {
   const homeworkCount = vi.fn();
   const tx = { homework: { count: homeworkCount } };
   return {
+    fetchSubscribedHomeworkRlsSnapshotMock: vi.fn(),
     homeworkCountMock: homeworkCount,
-    listDueSoonSubscribedHomeworksWithCountMock: vi.fn(),
     listTodaySubscribedSchedulesWithCountMock: vi.fn(),
     listUpcomingSubscribedExamsWithCountMock: vi.fn(),
+    localizeSubscribedHomeworkDashboardItemsMock: vi.fn(),
     withHomeworkItemStateMock: vi.fn(async (items: unknown[]) => items),
     withUserDbContextMock: vi.fn(async (_userId, action) => action(tx)),
   };
@@ -47,9 +49,13 @@ vi.mock("@/features/homeworks/server/homework-item-state", () => ({
   withHomeworkItemState: withHomeworkItemStateMock,
 }));
 
+vi.mock("@/features/subscriptions/server/subscription-homework-list", () => ({
+  fetchSubscribedHomeworkRlsSnapshot: fetchSubscribedHomeworkRlsSnapshotMock,
+  localizeSubscribedHomeworkDashboardItems:
+    localizeSubscribedHomeworkDashboardItemsMock,
+}));
+
 vi.mock("@/features/subscriptions/server/subscription-read-model", () => ({
-  listDueSoonSubscribedHomeworksWithCount:
-    listDueSoonSubscribedHomeworksWithCountMock,
   listTodaySubscribedSchedulesWithCount:
     listTodaySubscribedSchedulesWithCountMock,
   listUpcomingSubscribedExamsWithCount:
@@ -81,13 +87,17 @@ describe("compact overview subscription bundle", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     homeworkCountMock.mockResolvedValue(4);
+    fetchSubscribedHomeworkRlsSnapshotMock.mockResolvedValue({
+      total: 2,
+      homeworkIds: ["homework-1"],
+      completions: [],
+    });
+    localizeSubscribedHomeworkDashboardItemsMock.mockResolvedValue([
+      { id: "homework-1" },
+    ]);
     listTodaySubscribedSchedulesWithCountMock.mockResolvedValue({
       total: 1,
       items: [{ id: "schedule-1" }],
-    });
-    listDueSoonSubscribedHomeworksWithCountMock.mockResolvedValue({
-      total: 2,
-      items: [{ id: "homework-1" }],
     });
     listUpcomingSubscribedExamsWithCountMock.mockResolvedValue({
       total: 3,
@@ -100,8 +110,8 @@ describe("compact overview subscription bundle", () => {
     const result = await loadReads([]);
 
     expect(homeworkCountMock).not.toHaveBeenCalled();
+    expect(fetchSubscribedHomeworkRlsSnapshotMock).not.toHaveBeenCalled();
     expect(listTodaySubscribedSchedulesWithCountMock).not.toHaveBeenCalled();
-    expect(listDueSoonSubscribedHomeworksWithCountMock).not.toHaveBeenCalled();
     expect(listUpcomingSubscribedExamsWithCountMock).not.toHaveBeenCalled();
     expect(withHomeworkItemStateMock).not.toHaveBeenCalled();
     expect(runStageMock).not.toHaveBeenCalledWith(
@@ -122,25 +132,35 @@ describe("compact overview subscription bundle", () => {
   it("loads subscribed overview reads with paired count+list helpers and a single homework fetch", async () => {
     const result = await loadReads([11]);
 
-    expect(listDueSoonSubscribedHomeworksWithCountMock).toHaveBeenCalledOnce();
-    expect(listDueSoonSubscribedHomeworksWithCountMock).toHaveBeenCalledWith(
+    expect(withUserDbContextMock).toHaveBeenCalledOnce();
+    expect(fetchSubscribedHomeworkRlsSnapshotMock).toHaveBeenCalledOnce();
+    expect(fetchSubscribedHomeworkRlsSnapshotMock).toHaveBeenCalledWith(
+      expect.anything(),
+      "user-1",
+      expect.objectContaining({
+        where: expect.objectContaining({
+          sectionId: { in: [11] },
+        }),
+      }),
+      true,
+    );
+    expect(localizeSubscribedHomeworkDashboardItemsMock).toHaveBeenCalledOnce();
+    expect(listTodaySubscribedSchedulesWithCountMock).toHaveBeenCalledWith(
       "user-1",
       expect.objectContaining({
         sectionIds: [11],
-        dueAtFrom: AT_TIME,
-        dueAtTo: HOMEWORK_WINDOW_END,
         limit: 3,
+        includeItems: true,
       }),
-    );
-    expect(listTodaySubscribedSchedulesWithCountMock).toHaveBeenCalledWith(
-      "user-1",
-      expect.objectContaining({ sectionIds: [11], limit: 3 }),
     );
     expect(listUpcomingSubscribedExamsWithCountMock).toHaveBeenCalledWith(
       "user-1",
-      expect.objectContaining({ sectionIds: [11], limit: 3 }),
+      expect.objectContaining({
+        sectionIds: [11],
+        limit: 3,
+        includeItems: true,
+      }),
     );
-    expect(withUserDbContextMock).toHaveBeenCalledOnce();
     expect(result.counts).toEqual({
       pendingHomeworksCount: 4,
       todaySchedulesCount: 1,
@@ -162,17 +182,24 @@ describe("compact overview subscription bundle", () => {
     const result = await loadReads([11], { includeSamples: false });
 
     expect(withHomeworkItemStateMock).not.toHaveBeenCalled();
-    expect(listDueSoonSubscribedHomeworksWithCountMock).toHaveBeenCalledWith(
+    expect(localizeSubscribedHomeworkDashboardItemsMock).not.toHaveBeenCalled();
+    expect(fetchSubscribedHomeworkRlsSnapshotMock).toHaveBeenCalledWith(
+      expect.anything(),
       "user-1",
-      expect.objectContaining({ sectionIds: [11], limit: 1 }),
+      expect.objectContaining({
+        where: expect.objectContaining({
+          sectionId: { in: [11] },
+        }),
+      }),
+      false,
     );
     expect(listTodaySubscribedSchedulesWithCountMock).toHaveBeenCalledWith(
       "user-1",
-      expect.objectContaining({ sectionIds: [11], limit: 1 }),
+      expect.objectContaining({ sectionIds: [11], includeItems: false }),
     );
     expect(listUpcomingSubscribedExamsWithCountMock).toHaveBeenCalledWith(
       "user-1",
-      expect.objectContaining({ sectionIds: [11], limit: 1 }),
+      expect.objectContaining({ sectionIds: [11], includeItems: false }),
     );
     expect(result.schedules).toEqual([]);
     expect(result.upcomingExams).toEqual([]);
@@ -186,20 +213,27 @@ describe("compact overview subscription bundle", () => {
   });
 
   it("runs item_state while counts and schedule list work are still pending", async () => {
-    const { promise: homeworkPromise, resolve: resolveHomework } =
-      createDeferred<{ total: number; items: Array<{ id: string }> }>();
-    listDueSoonSubscribedHomeworksWithCountMock.mockReturnValue(
-      homeworkPromise,
-    );
+    const { promise: homeworkRlsDeferred, resolve: resolveHomeworkRls } =
+      createDeferred<{
+        pendingHomeworksCount: number;
+        dueSoonRls: {
+          total: number;
+          homeworkIds: string[];
+          completions: [];
+        };
+      }>();
+    withUserDbContextMock.mockImplementationOnce(() => homeworkRlsDeferred);
 
     const readsPromise = loadReads([11]);
 
     await vi.waitFor(() => {
-      expect(homeworkCountMock).toHaveBeenCalled();
       expect(listTodaySubscribedSchedulesWithCountMock).toHaveBeenCalled();
     });
     expect(withHomeworkItemStateMock).not.toHaveBeenCalled();
-    resolveHomework({ total: 2, items: [{ id: "homework-1" }] });
+    resolveHomeworkRls({
+      pendingHomeworksCount: 4,
+      dueSoonRls: { total: 2, homeworkIds: ["homework-1"], completions: [] },
+    });
     await readsPromise;
     expect(withHomeworkItemStateMock).toHaveBeenCalledWith(
       [{ id: "homework-1" }],
