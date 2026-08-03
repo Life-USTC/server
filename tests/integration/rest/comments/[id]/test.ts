@@ -102,6 +102,7 @@ test("/api/community/comments/[id] GET 不存在的 ID 返回 404", async ({
 
 test("/api/community/comments/[id] GET 隐藏聚焦线程返回 403", async ({
   request,
+  playwright,
 }) => {
   await signInAsDebugUserApi(request, "/");
   const sectionId = await resolveSeedSectionId(request);
@@ -123,8 +124,16 @@ test("/api/community/comments/[id] GET 隐藏聚焦线程返回 403", async ({
   }
 
   try {
-    const response = await request.get(`/api/community/comments/${commentId}`);
-    expect(response.status()).toBe(403);
+    // Focus GET for logged_in_only must stay forbidden for anonymous viewers.
+    const anonymous = await playwright.request.newContext();
+    try {
+      const response = await anonymous.get(
+        `/api/community/comments/${commentId}`,
+      );
+      expect(response.status()).toBe(403);
+    } finally {
+      await anonymous.dispose();
+    }
   } finally {
     await request.delete(`/api/community/comments/${commentId}`);
   }
