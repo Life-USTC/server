@@ -30,11 +30,29 @@ export function shouldLog(level: AppLogLevel): boolean {
   return LOG_LEVEL_INDEX[level] >= LOG_LEVEL_INDEX[parseConfiguredLogLevel()];
 }
 
+const PRISMA_ERROR_CODE_PATTERN = /^P\d{4}$/;
+
+/**
+ * Prisma error codes are stable, documented identifiers with no request data in
+ * them, so they are safe to keep in production where the message is not.
+ * Without the code a production `PrismaClientKnownRequestError` is undiagnosable.
+ */
+function safePrismaErrorCode(error: unknown) {
+  if (typeof error !== "object" || error === null || !("code" in error)) {
+    return undefined;
+  }
+  const { code } = error as { code: unknown };
+  return typeof code === "string" && PRISMA_ERROR_CODE_PATTERN.test(code)
+    ? code
+    : undefined;
+}
+
 export function serializeError(error: unknown) {
   if (!error) return undefined;
 
   if (isProductionEnvironment()) {
-    return { name: getSafeErrorName(error) };
+    const code = safePrismaErrorCode(error);
+    return { name: getSafeErrorName(error), ...(code ? { code } : {}) };
   }
 
   if (error instanceof Error) {
