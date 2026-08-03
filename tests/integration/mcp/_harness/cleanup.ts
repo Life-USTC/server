@@ -1,4 +1,20 @@
-import { DEV_SEED, prisma, sleep } from "./fixtures";
+import { expect } from "vitest";
+import { DEV_SEED, prisma } from "./fixtures";
+
+type AuditLogRow = { id: string; metadata: unknown };
+
+async function pollForAuditLog(
+  lookup: () => Promise<AuditLogRow | null | undefined>,
+) {
+  let log: AuditLogRow | null = null;
+  await expect
+    .poll(async () => {
+      log = (await lookup()) ?? null;
+      return log;
+    }, { timeout: 500, interval: 25 })
+    .not.toBeNull();
+  return log!;
+}
 
 export async function findDescriptionEditAuditLog(
   descriptionId: string,
@@ -7,8 +23,9 @@ export async function findDescriptionEditAuditLog(
   if (!userId) {
     throw new Error("userId is required for findDescriptionEditAuditLog");
   }
-  for (let attempt = 0; attempt < 20; attempt += 1) {
-    const log = await prisma.auditLog.findFirst({
+
+  return pollForAuditLog(() =>
+    prisma.auditLog.findFirst({
       where: {
         action: "description_edit",
         targetId: descriptionId,
@@ -16,12 +33,8 @@ export async function findDescriptionEditAuditLog(
         userId,
       },
       select: { id: true, metadata: true },
-    });
-    if (log) return log;
-    await sleep(25);
-  }
-
-  return null;
+    }),
+  );
 }
 
 export function metadataMatches(
@@ -48,7 +61,8 @@ export async function findCommentAuditLog(input: {
   if (!input.userId) {
     throw new Error("userId is required for findCommentAuditLog");
   }
-  for (let attempt = 0; attempt < 20; attempt += 1) {
+
+  return pollForAuditLog(async () => {
     const logs = await prisma.auditLog.findMany({
       where: {
         action: input.action,
@@ -60,14 +74,10 @@ export async function findCommentAuditLog(input: {
       select: { id: true, metadata: true },
       take: 10,
     });
-    const log = logs.find((entry) =>
+    return logs.find((entry) =>
       metadataMatches(entry.metadata, input.metadata),
     );
-    if (log) return log;
-    await sleep(25);
-  }
-
-  return null;
+  });
 }
 
 export async function findUploadDeleteAuditLog(input: {
@@ -78,7 +88,8 @@ export async function findUploadDeleteAuditLog(input: {
   if (!input.userId) {
     throw new Error("userId is required for findUploadDeleteAuditLog");
   }
-  for (let attempt = 0; attempt < 20; attempt += 1) {
+
+  return pollForAuditLog(async () => {
     const logs = await prisma.auditLog.findMany({
       where: {
         action: "upload_delete",
@@ -90,14 +101,10 @@ export async function findUploadDeleteAuditLog(input: {
       select: { id: true, metadata: true },
       take: 10,
     });
-    const log = logs.find((entry) =>
+    return logs.find((entry) =>
       metadataMatches(entry.metadata, input.metadata),
     );
-    if (log) return log;
-    await sleep(25);
-  }
-
-  return null;
+  });
 }
 
 export async function deleteCommentRecords(commentIds: string[]) {

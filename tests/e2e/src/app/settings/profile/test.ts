@@ -85,8 +85,7 @@ test.describe("/account/settings/profile 个人资料设置", () => {
     await saveButton.click();
     await saveResponsePromise;
     await expect(successToast).toBeVisible();
-    await page.reload();
-    await page.waitForLoadState("networkidle");
+    await page.reload({ waitUntil: "domcontentloaded" });
     await expect(page.locator("input#name")).toHaveValue(newName, {
       timeout: 10_000,
     });
@@ -101,8 +100,7 @@ test.describe("/account/settings/profile 个人资料设置", () => {
     await saveButton.click();
     await rollbackResponsePromise;
     await expect(successToast).toBeVisible();
-    await page.reload();
-    await page.waitForLoadState("networkidle");
+    await page.reload({ waitUntil: "domcontentloaded" });
     await expect(page.locator("input#name")).toHaveValue(originalName, {
       timeout: 10_000,
     });

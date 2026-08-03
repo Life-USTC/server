@@ -42,6 +42,11 @@ import { getCurrentSessionUser } from "../../../../utils/e2e-db";
 import { withE2ePrisma } from "../../../../utils/e2e-db/prisma";
 import { cleanupHomeworksForE2e } from "../../../../utils/homeworks";
 import {
+  restoreDescriptionTargetSnapshot,
+  snapshotDescriptionTargetForE2e,
+  waitForDescriptionAuditRows,
+} from "../../../../utils/description-state";
+import {
   gotoAndWaitForReady,
   waitForUiSettled,
 } from "../../../../utils/page-ready";
@@ -951,10 +956,10 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
       .getByTestId("detail-pinned-summary")
       .getByRole("button", { name: /添加到日历|Add to calendar/i })
       .first();
-    if ((await calendarButton.count()) === 0) {
-      await expect(page.locator("#main-content")).toBeVisible();
-      return;
-    }
+    test.skip(
+      (await calendarButton.count()) === 0,
+      "section page rendered without calendar export control",
+    );
 
     await calendarButton.click();
     const calDialog = page.locator('[data-slot="dialog-content"]').first();
@@ -1002,6 +1007,59 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
     ).toHaveAttribute("href", "/workspace/subscriptions");
 
     await captureStepScreenshot(page, testInfo, "section/calendar-dialog");
+  });
+
+  // ── Description ─────────────────────────────────────────────────────────────
+
+  test("已登录用户可编辑班级简介", async ({ page }, testInfo) => {
+    test.setTimeout(60_000);
+    await signInAsDebugUser(page, `${SECTION_URL}?tab=introduction`);
+    const snapshot = await snapshotDescriptionTargetForE2e(
+      page.request,
+      { sectionJwId: DEV_SEED.section.jwId, targetType: "section" },
+      ["description_edit"],
+    );
+
+    try {
+      await expect(page.locator("#section-description")).toBeVisible();
+      const descCard = page
+        .locator('[data-slot="card"]')
+        .filter({ has: page.getByText(/简介|Description/i) })
+        .first();
+      await expect(descCard).toBeVisible();
+
+      const content = `e2e-section-desc-${Date.now()}`;
+      const editor = descCard.locator("textarea").first();
+      await descCard.getByRole("button", { name: /^编辑$|^Edit$/i }).click();
+      await expect(editor).toBeVisible();
+      await editor.fill(content);
+      await descCard.getByRole("tab", { name: /预览|Preview/i }).click();
+      await expect(
+        descCard
+          .getByRole("tabpanel", { name: /预览|Preview/i })
+          .getByText(content),
+      ).toBeVisible();
+
+      const saveResponse = page.waitForResponse(
+        (r) =>
+          r.url().includes("/api/community/descriptions") &&
+          r.request().method() === "POST" &&
+          r.status() === 200,
+      );
+      await descCard.getByRole("button", { name: /保存|Save/i }).click();
+      await saveResponse;
+      await expect(
+        descCard
+          .getByRole("tabpanel", { name: /简介|Description/i })
+          .getByText(content),
+      ).toBeVisible();
+      await captureStepScreenshot(page, testInfo, "section/description-updated");
+    } finally {
+      if (snapshot.original) {
+        await waitForDescriptionAuditRows(snapshot.original, 1);
+      }
+      await restoreDescriptionTargetSnapshot(page.request, snapshot);
+    }
   });
 
   // ── Homework CRUD ───────────────────────────────────────────────────────────
@@ -1104,10 +1162,10 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
     await gotoAndWaitForReady(page, SECTION_URL);
 
     const homeworksLink = getSectionNavLink(page, /作业|Homework/i);
-    if ((await homeworksLink.count()) === 0) {
-      await expect(page.locator("#main-content")).toBeVisible();
-      return;
-    }
+    test.skip(
+      (await homeworksLink.count()) === 0,
+      "section page rendered without homework tab",
+    );
     await jumpToSection(page, /作业|Homework/i, "#tab-homework");
 
     await expect(page.getByTestId("section-homeworks-cards")).toBeVisible();
@@ -1143,10 +1201,10 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
 
     try {
       const homeworksLink = getSectionNavLink(page, /作业|Homework/i);
-      if ((await homeworksLink.count()) === 0) {
-        await expect(page.locator("#main-content")).toBeVisible();
-        return;
-      }
+      test.skip(
+        (await homeworksLink.count()) === 0,
+        "section page rendered without homework tab",
+      );
       await jumpToSection(page, /作业|Homework/i, "#tab-homework");
 
       // Create
@@ -1238,7 +1296,6 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
       );
       await deleteDialog.getByRole("button", { name: /删除|Delete/i }).click();
       await deleteResponse;
-      await page.waitForLoadState("networkidle");
       await expect(hwCard).toHaveCount(0);
     } finally {
       await cleanupHomeworksForE2e([homeworkId]);
@@ -1445,7 +1502,6 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
       };
       expect(createResponseBody.id).toBeTruthy();
       commentId = createResponseBody.id;
-      await page.waitForLoadState("networkidle");
       await expect(page.getByText(body).first()).toBeVisible();
       await captureStepScreenshot(page, testInfo, "section/comment-posted");
 
@@ -1505,7 +1561,6 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
       );
       await editCard.getByRole("button", { name: /保存|Save/i }).click();
       await editResponse;
-      await page.waitForLoadState("networkidle");
       // comment.updatedAt / edited timestamp visible
       await expect(page.getByText(editedBody).first()).toBeVisible();
       await captureStepScreenshot(page, testInfo, "section/comment-edited");
@@ -1541,7 +1596,6 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
       };
       expect(replyResponseBody.id).toBeTruthy();
       replyId = replyResponseBody.id;
-      await page.waitForLoadState("networkidle");
       await expect(page.getByText(replyBody).first()).toBeVisible();
       await captureStepScreenshot(page, testInfo, "section/comment-replied");
 
@@ -1558,7 +1612,6 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
       );
       await deleteDialog.getByRole("button", { name: /删除|Delete/i }).click();
       await deleteResponse;
-      await page.waitForLoadState("networkidle");
       await expect(editedCommentCard).toHaveCount(0);
       await captureStepScreenshot(page, testInfo, "section/comment-deleted");
     } finally {
@@ -1611,7 +1664,6 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
       };
       expect(createResponseBody.id).toBeTruthy();
       commentId = createResponseBody.id;
-      await page.waitForLoadState("networkidle");
 
       const commentCard = page
         .locator('[id^="comment-"]')

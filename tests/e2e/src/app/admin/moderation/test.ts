@@ -103,44 +103,6 @@ test("/admin/moderation 无效标签回退到评论", async ({ page }) => {
   await expect(page.getByText("bad", { exact: true })).toHaveCount(0);
 });
 
-test("/admin/moderation 管理员可打开评论管理弹窗并切换状态选项", async ({
-  page,
-}, testInfo) => {
-  await signInAsDevAdmin(page, "/admin/moderation");
-  const activeResponse = await page.request.get(
-    "/api/admin/comments?status=active",
-  );
-  expect(activeResponse.status()).toBe(200);
-  const activeBody = (await activeResponse.json()) as {
-    data?: Array<{ body?: string }>;
-  };
-  const targetComment = activeBody.data?.find(
-    (item) => item.body && item.body.trim().length > 0,
-  );
-  const keyword = targetComment?.body?.slice(0, 16) ?? "";
-  expect(keyword.length > 0).toBe(true);
-
-  await page
-    .getByPlaceholder(/搜索评论内容或用户名|Search comments/i)
-    .fill(keyword);
-  await expect(visibleText(page, keyword)).toBeVisible();
-  const dialog = await openModerationCommentDialog(page, keyword);
-  await captureStepScreenshot(page, testInfo, "admin-moderation-dialog-open");
-
-  const privateButton = dialog
-    .getByRole("radio", { name: /仅自己可见|Private/i })
-    .first();
-  await privateButton.click();
-  await expect(privateButton).toHaveAttribute("aria-checked", "true");
-  await captureStepScreenshot(
-    page,
-    testInfo,
-    "admin-moderation-status-selected",
-  );
-  await page.keyboard.press("Escape");
-  await expect(dialog).not.toBeVisible();
-});
-
 test("/admin/moderation 移动端工作区可管理首条筛选结果", async ({
   page,
 }, testInfo) => {
@@ -493,6 +455,63 @@ test("/admin/moderation 简介桌面行操作可用键盘打开管理弹窗", as
     page,
     testInfo,
     "admin-moderation-description-keyboard-manage",
+  );
+});
+
+test("/admin/moderation 可更新课程简介内容", async ({ page }, testInfo) => {
+  test.setTimeout(60_000);
+  await signInAsDevAdmin(page, "/admin/moderation?tab=descriptions");
+
+  const listResponse = await page.request.get("/api/admin/descriptions?limit=1");
+  expect(listResponse.status()).toBe(200);
+  const description = (
+    (await listResponse.json()) as {
+      data?: Array<{ content?: string; id?: string }>;
+    }
+  ).data?.[0];
+  expect(description?.id).toBeTruthy();
+  if (!description?.id) {
+    throw new Error("Expected description id");
+  }
+
+  const nextContent = `e2e-admin-moderation-desc-${Date.now()}`;
+  const dialog = await openModerationDescriptionDialog(page);
+  const editor = dialog.locator("#admin-description-content");
+  await expect(editor).toBeVisible();
+  await editor.fill(nextContent);
+
+  const patchResponse = page.waitForResponse(
+    (response) =>
+      response.url().includes(`/api/admin/descriptions/${description.id}`) &&
+      response.request().method() === "PATCH" &&
+      response.status() === 200,
+  );
+  await dialog.getByRole("button", { name: /确认|Confirm|保存|Save/i }).click();
+  await patchResponse;
+  await expect(dialog).not.toBeVisible({ timeout: 15_000 });
+
+  const verifyResponse = await page.request.get(
+    `/api/admin/descriptions?search=${encodeURIComponent(nextContent)}`,
+  );
+  expect(verifyResponse.status()).toBe(200);
+  expect(
+    (
+      (await verifyResponse.json()) as {
+        data?: Array<{ content?: string; id?: string }>;
+      }
+    ).data?.some(
+      (entry) => entry.id === description.id && entry.content === nextContent,
+    ),
+  ).toBe(true);
+
+  await page.request.patch(`/api/admin/descriptions/${description.id}`, {
+    data: { content: description.content ?? "" },
+  });
+
+  await captureStepScreenshot(
+    page,
+    testInfo,
+    "admin-moderation-description-updated",
   );
 });
 

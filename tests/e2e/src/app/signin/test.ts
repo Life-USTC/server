@@ -14,6 +14,8 @@
  * ## Edge Cases
  * - Already authenticated user navigating to /signin redirects away
  * - jwId is NOT displayed
+ * - Live USTC/GitHub/Google OAuth round-trips are not exercised in CI; set
+ *   `E2E_LIVE_OAUTH=1` locally with real provider credentials to test them.
  */
 import { expect, type Page, test } from "@playwright/test";
 import { signInAsDebugUser, signInAsDevAdmin } from "../../../utils/auth";
