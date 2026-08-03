@@ -9,6 +9,7 @@ type BatchMutationError {
 
 enum BatchMutationErrorCode {
   DELETED
+  SUSPENDED
   FORBIDDEN
   LOCKED
   NOT_FOUND
