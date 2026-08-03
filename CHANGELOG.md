@@ -1,3 +1,10 @@
+## [1.84.5](https://github.com/Life-USTC/server/compare/v1.84.4...v1.84.5) (2026-08-03)
+
+
+### Bug Fixes
+
+* **graphql:** reject malformed date input instead of writing Invalid Date ([#736](https://github.com/Life-USTC/server/issues/736)) ([105e95d](https://github.com/Life-USTC/server/commit/105e95d0caf15c705ebdfea7e7c34f7967e00b5b)), closes [#728](https://github.com/Life-USTC/server/issues/728)
+
 ## [1.84.4](https://github.com/Life-USTC/server/compare/v1.84.3...v1.84.4) (2026-08-03)
 
 
