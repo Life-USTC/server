@@ -76,7 +76,7 @@ describe("GraphQL homework mutation resolvers", () => {
 
     expect(requireGraphqlMutationMock).toHaveBeenCalledWith(
       context,
-      "workspace.homework",
+      "community.section-homework",
     );
     expect(createHomeworkForSectionMock).toHaveBeenCalledWith("user-1", {
       description: "第一题",

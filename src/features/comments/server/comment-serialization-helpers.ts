@@ -5,6 +5,7 @@ import type {
   RawComment,
   ViewerInfo,
 } from "./comment-serialization-types";
+import { shouldHideCommentByVisibilityPolicy } from "./comment-visibility-policy";
 
 export function buildAuthorSummary(comment: RawComment) {
   const user = comment.user;
@@ -73,12 +74,15 @@ export function shouldHideComment(
   hasVisibleDescendant: boolean,
 ) {
   if (comment.status === "deleted" && !hasVisibleDescendant) return true;
-  if (comment.status === "softbanned" && !viewer.isAdmin && !isAuthor)
-    return true;
-  if (comment.visibility === "logged_in_only" && !viewer.isAuthenticated)
-    return true;
-
-  return false;
+  return shouldHideCommentByVisibilityPolicy(
+    {
+      status: comment.status,
+      userId: comment.userId ?? null,
+      visibility: comment.visibility,
+    },
+    viewer,
+    isAuthor,
+  );
 }
 
 export function shouldHideAuthor(

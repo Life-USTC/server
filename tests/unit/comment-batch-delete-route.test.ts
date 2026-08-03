@@ -118,7 +118,7 @@ describe("deleteCommentBatchRoute", () => {
     ]);
   });
 
-  it("将 suspended 错误映射为 forbidden", async () => {
+  it("preserves suspended as a distinct batch error code", async () => {
     requireAuthMock.mockResolvedValue({ userId: "user-1" });
     deleteOwnCommentMock.mockResolvedValueOnce({
       ok: false,
@@ -136,7 +136,7 @@ describe("deleteCommentBatchRoute", () => {
       {
         success: false,
         id: "comment-1",
-        error: { code: "forbidden", message: "Forbidden" },
+        error: { code: "suspended", message: "Suspended" },
       },
     ]);
   });

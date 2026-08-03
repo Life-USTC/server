@@ -12,6 +12,7 @@ import {
   type RawComment,
 } from "./comment-serialization";
 import type { ResolvedCommentTarget } from "./comment-utils";
+import { directlyVisibleCommentWhere } from "./comment-visibility-policy";
 
 export const commentThreadInclude = {
   user: {
@@ -233,28 +234,6 @@ export const commentTargetLookupSelect = {
 export type CommentTargetLookupRecord = Prisma.CommentGetPayload<{
   select: typeof commentTargetLookupSelect;
 }>;
-
-function directlyVisibleCommentWhere(
-  viewer: ViewerContext,
-): Prisma.CommentWhereInput {
-  const visibleStatus: Prisma.CommentWhereInput = viewer.isAdmin
-    ? { status: { in: ["active", "softbanned"] } }
-    : viewer.userId
-      ? {
-          OR: [
-            { status: "active" },
-            { status: "softbanned", userId: viewer.userId },
-          ],
-        }
-      : { status: "active" };
-
-  return {
-    AND: [
-      visibleStatus,
-      ...(viewer.isAuthenticated ? [] : [{ visibility: "public" as const }]),
-    ],
-  };
-}
 
 async function countAnonymousHiddenRoots(
   whereTarget: Record<string, number | string>,

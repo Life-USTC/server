@@ -1,5 +1,3 @@
-import { homeworkDateError } from "@/features/homeworks/server/homework-dates";
-import { buildHomeworkUpdateIntent } from "@/features/homeworks/server/homework-update-intent";
 import type { AppLocale } from "@/i18n/config";
 import {
   jsonToolResult,
@@ -25,24 +23,16 @@ type HomeworkUpdateDateInputs = Pick<
   "publishedAt" | "submissionDueAt" | "submissionStartAt"
 >;
 
-type HomeworkUpdateScalarInputs = Pick<
-  UpdateHomeworkOnSectionArgs,
-  "isMajor" | "requiresTeam" | "title"
->;
-
-type ParsedHomeworkUpdateDates = {
-  hasPublishedAt: boolean;
-  hasSubmissionDueAt: boolean;
-  hasSubmissionStartAt: boolean;
-  publishedAt: Date | null | undefined;
-  submissionDueAt: Date | null | undefined;
-  submissionStartAt: Date | null | undefined;
-};
-
-export function parseHomeworkUpdateDates(
-  { publishedAt, submissionDueAt, submissionStartAt }: HomeworkUpdateDateInputs,
-  mode: ReturnType<typeof resolveMcpMode>,
-) {
+/**
+ * Coerces the three optional date args into the shape
+ * `prepareHomeworkUpdate` expects. Cross-field validation lives there, so this
+ * only reports strings it could not parse at all.
+ */
+export function parseHomeworkUpdateDates({
+  publishedAt,
+  submissionDueAt,
+  submissionStartAt,
+}: HomeworkUpdateDateInputs) {
   const hasPublishedAt = publishedAt !== undefined;
   const hasSubmissionStartAt = submissionStartAt !== undefined;
   const hasSubmissionDueAt = submissionDueAt !== undefined;
@@ -71,20 +61,6 @@ export function parseHomeworkUpdateDates(
   if (!parsedSubmissionDueAt.ok) {
     return parsedSubmissionDueAt;
   }
-  const dateError = homeworkDateError({
-    publishedAt: parsedPublishedAt.value,
-    publishedAtProvided: hasPublishedAt,
-    submissionDueAt: parsedSubmissionDueAt.value,
-    submissionDueAtProvided: hasSubmissionDueAt,
-    submissionStartAt: parsedSubmissionStartAt.value,
-    submissionStartAtProvided: hasSubmissionStartAt,
-  });
-  if (dateError) {
-    return {
-      ok: false as const,
-      result: jsonToolResult({ success: false, message: dateError }, { mode }),
-    };
-  }
 
   return {
     ok: true as const,
@@ -99,19 +75,9 @@ export function parseHomeworkUpdateDates(
   };
 }
 
-export function buildHomeworkUpdateIntentForTool(
-  { isMajor, requiresTeam, title }: HomeworkUpdateScalarInputs,
-  userId: string,
-  dates: ParsedHomeworkUpdateDates,
-  description?: string | null,
+export function homeworkUpdateToolFailure(
+  message: string,
+  mode: ReturnType<typeof resolveMcpMode>,
 ) {
-  return buildHomeworkUpdateIntent({
-    dates,
-    description,
-    hasDescription: description !== undefined,
-    isMajor,
-    requiresTeam,
-    title,
-    userId,
-  });
+  return jsonToolResult({ success: false, message }, { mode });
 }

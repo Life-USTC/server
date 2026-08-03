@@ -766,7 +766,7 @@ export const persistedGraphqlOperationDefinitions = [
         }
       }
     `,
-    scopes: ["workspace.homework:write"],
+    scopes: ["community.section-homework:write"],
     destructive: false,
     openWorld: true,
   }),
@@ -798,7 +798,7 @@ export const persistedGraphqlOperationDefinitions = [
         }
       }
     `,
-    scopes: ["workspace.homework:write"],
+    scopes: ["community.section-homework:write"],
     destructive: true,
     openWorld: true,
   }),
@@ -815,7 +815,7 @@ export const persistedGraphqlOperationDefinitions = [
         }
       }
     `,
-    scopes: ["workspace.homework:write"],
+    scopes: ["community.section-homework:write"],
     destructive: true,
     openWorld: true,
   }),

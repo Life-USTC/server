@@ -40,7 +40,7 @@ describe("deleteOwnCommentsBatch", () => {
         {
           success: false,
           id: "comment-suspended",
-          error: { code: "forbidden", message: "Forbidden" },
+          error: { code: "suspended", message: "Suspended" },
         },
       ],
     });

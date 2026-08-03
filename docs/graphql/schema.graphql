@@ -12,6 +12,7 @@ enum BatchMutationErrorCode {
   FORBIDDEN
   LOCKED
   NOT_FOUND
+  SUSPENDED
 }
 
 type BusCampus {
