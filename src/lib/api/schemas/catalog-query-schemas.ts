@@ -1,6 +1,7 @@
 import * as z from "zod";
 import { APP_LOCALES } from "@/i18n/config";
 import {
+  booleanQuerySchema,
   dateQuerySchema,
   deprecatedPaginationLimitParam,
   integerQueryRangeSchema,
@@ -69,6 +70,12 @@ export const sectionSchedulesQuerySchema = catalogLocaleQuerySchema.extend({
   dateFrom: dateQuerySchema().optional(),
   dateTo: dateQuerySchema().optional(),
   limit: sectionScheduleLimitSchema.optional(),
+});
+
+export const sectionDetailQuerySchema = catalogLocaleQuerySchema.extend({
+  includeExams: booleanQuerySchema.optional(),
+  includeSchedules: booleanQuerySchema.optional(),
+  includeTeacherDepartments: booleanQuerySchema.optional(),
 });
 
 export const teachersQuerySchema = catalogLocaleQuerySchema.extend({

@@ -7,6 +7,7 @@ import {
 } from "@/lib/api/helpers";
 import {
   matchSectionCodesRequestSchema,
+  sectionDetailQuerySchema,
   sectionSchedulesQuerySchema,
   sectionsQuerySchema,
 } from "@/lib/api/schemas/request-schemas";
@@ -27,6 +28,16 @@ export function parseSectionSchedulesRouteQuery(request: Request) {
     searchParams,
     sectionSchedulesQuerySchema,
     "Invalid section schedule query",
+    { logErrors: true },
+  );
+}
+
+export function parseSectionDetailRouteQuery(request: Request) {
+  const searchParams = new URL(request.url).searchParams;
+  return parseRouteSearchParams(
+    searchParams,
+    sectionDetailQuerySchema,
+    "Invalid section detail query",
     { logErrors: true },
   );
 }

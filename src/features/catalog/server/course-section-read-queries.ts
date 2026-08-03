@@ -94,18 +94,80 @@ export async function findSectionByJwId(
 export async function findSectionDetailByJwId(
   jwId: number,
   locale: AppLocale = DEFAULT_LOCALE,
+  options?: {
+    includeExams?: boolean;
+    includeSchedules?: boolean;
+    includeTeacherDepartments?: boolean;
+  },
 ) {
+  const hasPartialFlags =
+    options != null &&
+    (options.includeExams !== undefined ||
+      options.includeSchedules !== undefined ||
+      options.includeTeacherDepartments !== undefined);
+
+  const include = hasPartialFlags
+    ? buildPartialSectionDetailInclude(options)
+    : sectionDetailInclude;
+
   const section = await getPrisma(locale).section.findUnique({
     where: { jwId },
-    include: sectionDetailInclude,
+    include,
   });
 
   if (!section) return null;
 
   return {
     ...section,
-    schedules: section.schedules.map(serializeScheduleTimeFields),
+    exams: "exams" in section && section.exams ? section.exams : [],
+    scheduleGroups:
+      "scheduleGroups" in section && section.scheduleGroups
+        ? section.scheduleGroups
+        : [],
+    schedules:
+      "schedules" in section && section.schedules
+        ? section.schedules.map(serializeScheduleTimeFields)
+        : [],
+    teacherAssignments:
+      "teacherAssignments" in section && section.teacherAssignments
+        ? section.teacherAssignments
+        : [],
+    teachers: section.teachers ?? [],
   };
+}
+
+function buildPartialSectionDetailInclude(options: {
+  includeExams?: boolean;
+  includeSchedules?: boolean;
+  includeTeacherDepartments?: boolean;
+}) {
+  const includeExams = options.includeExams === true;
+  const includeSchedules = options.includeSchedules === true;
+  const includeTeacherDepartments = options.includeTeacherDepartments === true;
+
+  return {
+    ...sectionInclude,
+    roomType: true,
+    schedules: includeSchedules,
+    scheduleGroups: includeSchedules,
+    teachers: includeTeacherDepartments
+      ? {
+          include: {
+            department: true,
+            teacherTitle: true,
+          },
+        }
+      : true,
+    teacherAssignments: includeTeacherDepartments,
+    exams: includeExams
+      ? {
+          include: {
+            examBatch: true,
+            examRooms: true,
+          },
+        }
+      : false,
+  } as const;
 }
 
 export async function findSectionsByJwIds(
