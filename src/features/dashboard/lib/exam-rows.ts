@@ -36,6 +36,7 @@ export function flattenExamRows<Section extends DashboardExamSection>(
           dateKey: exam.examDate
             ? formatDateOnly(exam.examDate, options.dateFallback)
             : null,
+          examDate: exam.examDate,
           startTime: exam.startTime,
           endTime: exam.endTime,
           examType: exam.examType,

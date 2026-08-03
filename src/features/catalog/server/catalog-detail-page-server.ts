@@ -130,7 +130,6 @@ export async function loadCourseDetailPage({
     initialTab === "introduction" || initialTab === "overview";
   const { commentsData, descriptionData } = await loadCatalogDetailCommentsData(
     {
-      includeComments: false,
       includeDescription,
       includeDescriptionHistory: initialTab === "introduction",
       targetId: course.id,
@@ -231,7 +230,6 @@ export async function loadTeacherDetailPage({
     initialTab === "introduction" || initialTab === "overview";
   const { commentsData, descriptionData } = await loadCatalogDetailCommentsData(
     {
-      includeComments: false,
       includeDescription,
       includeDescriptionHistory: initialTab === "introduction",
       targetId: teacher.id,

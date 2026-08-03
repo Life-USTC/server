@@ -170,6 +170,7 @@ export type DashboardDashboardCopy = DashboardRecord & {
 
 export type DashboardSectionCopy = DashboardRecord & {
   dateTBD: string;
+  examDateTBD: string;
   examCount: string;
   examTypeFinal: string;
   examTypeMidterm: string;

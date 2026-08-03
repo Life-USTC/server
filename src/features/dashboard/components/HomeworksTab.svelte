@@ -89,6 +89,11 @@ $: filteredHomeworkItems = filterDashboardHomeworks(
   homeworkItems,
   homeworkFilter,
 );
+$: hasHomeworkItems = homeworkItems.length > 0;
+
+function clearHomeworkFilter() {
+  homeworkFilter = "all";
+}
 
 $: ({
   fmtDate,
@@ -139,6 +144,8 @@ $: ({
       <div class="md:hidden">
         <HomeworksCardsView
           {filteredHomeworkItems}
+          {hasHomeworkItems}
+          onClearFilter={clearHomeworkFilter}
           {fmtDate}
           {homeworkCompletionActionLabel}
           {homeworkCopy}
@@ -153,6 +160,8 @@ $: ({
       <div class="hidden min-w-0 overflow-x-auto md:block">
         <HomeworksListView
           {filteredHomeworkItems}
+          {hasHomeworkItems}
+          onClearFilter={clearHomeworkFilter}
           {fmtDate}
           {homeworkCompletionActionLabel}
           {homeworkCopy}
@@ -167,6 +176,8 @@ $: ({
     {:else}
       <HomeworksCardsView
         {filteredHomeworkItems}
+        {hasHomeworkItems}
+        onClearFilter={clearHomeworkFilter}
         {fmtDate}
         {homeworkCompletionActionLabel}
         {homeworkCopy}

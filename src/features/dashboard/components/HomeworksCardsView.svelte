@@ -14,6 +14,8 @@ type HomeworkOverduePredicate = (
 type HomeworkAction = (homework: DashboardHomeworkItem) => string;
 
 export let filteredHomeworkItems: DashboardHomeworkItem[];
+export let hasHomeworkItems: boolean;
+export let onClearFilter: () => void;
 export let fmtDate: HomeworkDateFormatter;
 export let homeworkCompletionActionLabel: HomeworkAction;
 export let homeworkCopy: Record<string, string>;
@@ -80,10 +82,22 @@ export let toggleHomeworkCompletion: (
       </Card.Footer>
     </Card.Root>
   {:else}
-    <Empty.Root class="min-h-24 md:col-span-2">
-      <Empty.Header>
+    <Empty.Root class="min-h-24 items-start text-left md:col-span-2">
+      <Empty.Header class="items-start text-left">
         <Empty.Title>{homeworksCopy.filterEmptyTitle}</Empty.Title>
+        {#if hasHomeworkItems}
+          <Empty.Description>
+            {homeworksCopy.filterEmptyDescription}
+          </Empty.Description>
+        {/if}
       </Empty.Header>
+      {#if hasHomeworkItems}
+        <Empty.Content class="items-start">
+          <Button variant="outline" onclick={onClearFilter}>
+            {homeworksCopy.clearFilter}
+          </Button>
+        </Empty.Content>
+      {/if}
     </Empty.Root>
   {/each}
 </div>

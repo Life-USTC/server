@@ -6,7 +6,6 @@ import {
 } from "../../../utils/auth";
 import { DEV_SEED } from "../../../utils/dev-seed";
 import {
-  appSidebar,
   expandWorkspaceSidebarGroup,
   sidebarNavigationLink,
   visibleText,
@@ -45,14 +44,6 @@ async function maybeCapture(
     return;
   }
   await captureStepScreenshot(page, testInfo, name);
-}
-
-function escapeForRegExp(value: string) {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-}
-
-function localizedNamePattern(nameCn: string, nameEn: string) {
-  return new RegExp(`${escapeForRegExp(nameCn)}|${escapeForRegExp(nameEn)}`);
 }
 
 async function gotoContractPage(
@@ -219,16 +210,9 @@ export async function assertPageContract(
       await expectMainContent(page);
       await expect(visibleText(page, DEV_SEED.section.code)).toBeVisible();
       await expect(visibleText(page, DEV_SEED.course.nameCn)).toBeVisible();
-      await expect(
-        appSidebar(page)
-          .getByRole("link", {
-            name: localizedNamePattern(
-              DEV_SEED.course.nameCn,
-              DEV_SEED.course.nameEn,
-            ),
-          })
-          .first(),
-      ).toHaveAttribute("aria-current", "page");
+      // Detail workspace pages no longer inject the current entity into the
+      // global sidebar; the in-page DetailSectionNav is the current location.
+      await expect(page.getByTestId("detail-section-nav")).toBeVisible();
       await maybeCapture(page, testInfo, "sections-jwId");
       return;
     }
@@ -248,15 +232,8 @@ export async function assertPageContract(
           .getByRole("link", { name: /班级|Sections/i }),
       ).toBeVisible();
       await expect(
-        appSidebar(page)
-          .getByRole("link", {
-            name: localizedNamePattern(
-              DEV_SEED.course.nameCn,
-              DEV_SEED.course.nameEn,
-            ),
-          })
-          .first(),
-      ).toHaveAttribute("aria-current", "page");
+        page.getByTestId("detail-section-nav").locator('[aria-current="page"]'),
+      ).toBeVisible();
       await maybeCapture(page, testInfo, "courses-jwId");
       return;
     }
@@ -275,15 +252,8 @@ export async function assertPageContract(
           .getByRole("link", { name: /授课班级|Teaching Sections/i }),
       ).toBeVisible();
       await expect(
-        appSidebar(page)
-          .getByRole("link", {
-            name: localizedNamePattern(
-              DEV_SEED.teacher.nameCn,
-              DEV_SEED.teacher.nameEn,
-            ),
-          })
-          .first(),
-      ).toHaveAttribute("aria-current", "page");
+        page.getByTestId("detail-section-nav").locator('[aria-current="page"]'),
+      ).toBeVisible();
       await maybeCapture(page, testInfo, "teachers-id");
       return;
     }

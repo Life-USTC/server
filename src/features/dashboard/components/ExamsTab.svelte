@@ -7,6 +7,7 @@ import type {
   SignedDashboardData,
 } from "@/features/dashboard/lib/dashboard-controller-types";
 import { hasDashboardSubscriptions } from "@/features/dashboard/lib/dashboard-subscription-state";
+import { createExamTabDisplayActions } from "@/features/dashboard/lib/exams-tab-display";
 import { Button } from "$lib/components/ui/button/index.js";
 import * as Empty from "$lib/components/ui/empty/index.js";
 import DashboardNoSubscriptionsState from "./DashboardNoSubscriptionsState.svelte";
@@ -41,6 +42,13 @@ export let examView: ExamView;
 export let examFilter: DashboardExamFilter;
 export let examRows: DashboardExamRow[];
 export let filteredExamRows: DashboardExamRow[];
+export let locale: string;
+
+$: ({ fmtExamDate } = createExamTabDisplayActions({
+  locale,
+  referenceNow: signedData.referenceNow,
+  sectionCopy,
+}));
 </script>
 
 <section class="grid gap-4">
@@ -97,6 +105,7 @@ export let filteredExamRows: DashboardExamRow[];
           {examMetadataLabels}
           exams={filteredExamRows}
           {examTimeLabel}
+          {fmtExamDate}
           {namePrimary}
           {sectionCopy}
           {subscriptionsCopy}
@@ -107,6 +116,7 @@ export let filteredExamRows: DashboardExamRow[];
           {dashboardTabHref}
           {examTimeLabel}
           exams={filteredExamRows}
+          {fmtExamDate}
           {sectionCopy}
           {subscriptionsCopy}
         />
@@ -118,6 +128,7 @@ export let filteredExamRows: DashboardExamRow[];
         {examMetadataLabels}
         exams={filteredExamRows}
         {examTimeLabel}
+        {fmtExamDate}
         {namePrimary}
         {sectionCopy}
         {subscriptionsCopy}

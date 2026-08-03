@@ -155,7 +155,6 @@ export async function loadSectionDetailPage({
           ).getUserSectionSubscriptionState(userId)
         : null,
       getSectionDetailDescriptionAndComments(section, userId, {
-        includeComments: false,
         includeDescription,
         includeDescriptionHistory: false,
       }),

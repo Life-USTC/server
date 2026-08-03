@@ -1652,6 +1652,7 @@
     "listView": "列表",
     "filterEmptyTitle": "当前筛选下暂无作业",
     "filterEmptyDescription": "切换筛选条件，或稍后再试。",
+    "clearFilter": "清除筛选",
     "addButton": "添加作业",
     "sectionLabel": "班级",
     "sectionPlaceholder": "选择班级",

@@ -152,6 +152,7 @@ export let updateTodoAction: DashboardTaskTabsProps["updateTodoAction"];
     {examView}
     {examRows}
     {filteredExamRows}
+    locale={data.locale}
     bind:examFilter
   />
 {/if}
