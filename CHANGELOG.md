@@ -1,3 +1,10 @@
+## [1.84.7](https://github.com/Life-USTC/server/compare/v1.84.6...v1.84.7) (2026-08-03)
+
+
+### Bug Fixes
+
+* **comments:** grant the app role EXECUTE on comment_hidden_root_count ([#741](https://github.com/Life-USTC/server/issues/741)) ([5b4660e](https://github.com/Life-USTC/server/commit/5b4660eef680ecbc3858f808f15f15b7e8be89b2)), closes [#729](https://github.com/Life-USTC/server/issues/729)
+
 ## [1.84.6](https://github.com/Life-USTC/server/compare/v1.84.5...v1.84.6) (2026-08-03)
 
 
