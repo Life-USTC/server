@@ -141,6 +141,7 @@ describe("admin 路由认证", () => {
       user: { id: "admin-1" },
     });
     resolveAdminByUserIdMock.mockResolvedValue({ userId: "admin-1" });
+    findActiveSuspensionMock.mockResolvedValue(null);
     const { requireAdminRequest } = await import(
       "@/lib/api/routes/admin-route-auth"
     );
@@ -174,15 +175,14 @@ describe("admin 路由认证", () => {
     const request = new Request(
       "https://example.test/api/admin/comments/comment-1",
       {
+        method: "DELETE",
         headers: {
           cookie: "better-auth.session_token=session-token",
         },
       },
     );
 
-    const response = await requireAdminRequest(request, {
-      requireActive: true,
-    });
+    const response = await requireAdminRequest(request);
 
     expect(response).toBeInstanceOf(Response);
     expect((response as Response).status).toBe(403);
@@ -193,6 +193,32 @@ describe("admin 路由认证", () => {
     expect(findActiveSuspensionMock).toHaveBeenCalledWith("admin-1");
   });
 
+  it("暂停的管理员无法读取 moderation 队列", async () => {
+    getSessionFromHeadersMock.mockResolvedValue({
+      user: { id: "admin-1" },
+    });
+    resolveAdminByUserIdMock.mockResolvedValue({ userId: "admin-1" });
+    findActiveSuspensionMock.mockResolvedValue({
+      reason: "community hold",
+    });
+    const { requireAdminRequest } = await import(
+      "@/lib/api/routes/admin-route-auth"
+    );
+
+    const response = await requireAdminRequest(
+      new Request("https://example.test/api/admin/comments", {
+        headers: { cookie: "better-auth.session_token=session-token" },
+      }),
+    );
+
+    expect(response).toBeInstanceOf(Response);
+    expect((response as Response).status).toBe(403);
+    await expect((response as Response).json()).resolves.toEqual({
+      error: "Suspended",
+      reason: "community hold",
+    });
+  });
+
   it("管理员读取不消耗写入预算", async () => {
     const limit = vi.fn().mockResolvedValue({ success: false });
     setCloudflareRuntimeEnv({ USER_WRITE_RATE_LIMITER: { limit } });
@@ -200,6 +226,7 @@ describe("admin 路由认证", () => {
       user: { id: "admin-1" },
     });
     resolveAdminByUserIdMock.mockResolvedValue({ userId: "admin-1" });
+    findActiveSuspensionMock.mockResolvedValue(null);
     const { requireAdminRequest } = await import(
       "@/lib/api/routes/admin-route-auth"
     );
@@ -231,7 +258,6 @@ describe("admin 路由认证", () => {
         method: "DELETE",
         headers: { cookie: "better-auth.session_token=session-token" },
       }),
-      { requireActive: true },
     );
 
     expect(response).toBeInstanceOf(Response);

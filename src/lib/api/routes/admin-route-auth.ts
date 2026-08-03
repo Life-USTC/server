@@ -16,7 +16,8 @@ import {
 } from "@/lib/security/user-mutation-rate-limit";
 
 type AdminGuardOptions = {
-  requireActive?: boolean;
+  /** When true, suspended admins may access the route. Defaults to false. */
+  allowSuspended?: boolean;
 };
 
 const ADMIN_MUTATION_RESOURCES = new Set([
@@ -47,7 +48,7 @@ export async function requireAdminRequest(
   const admin = await resolveAdminByUserId(userId);
   if (!admin) return unauthorized();
 
-  if (options.requireActive) {
+  if (!options.allowSuspended) {
     const suspension = await findActiveSuspension(admin.userId);
     if (suspension) return suspensionForbidden(suspension.reason);
   }

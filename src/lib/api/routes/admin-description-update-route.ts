@@ -37,6 +37,5 @@ export async function patchAdminDescriptionRoute(
 
       return jsonResponse({ description: result.description });
     },
-    { requireActive: true },
   );
 }
