@@ -30,6 +30,7 @@ import {
   localeUpdateRequestSchema,
   matchSectionCodesRequestSchema,
   schedulesQuerySchema,
+  sectionDetailQuerySchema,
   sectionSchedulesQuerySchema,
   sectionsQuerySchema,
   semestersQuerySchema,
@@ -564,6 +565,17 @@ describe("其他请求 schema", () => {
 
     expect(sectionSchedulesQuerySchema.parse({ limit: "25" })).toMatchObject({
       limit: 25,
+    });
+    expect(
+      sectionDetailQuerySchema.parse({
+        includeExams: "true",
+        includeSchedules: "false",
+        includeTeacherDepartments: "true",
+      }),
+    ).toMatchObject({
+      includeExams: true,
+      includeSchedules: false,
+      includeTeacherDepartments: true,
     });
     expect(
       busRouteSearchQuerySchema.parse({

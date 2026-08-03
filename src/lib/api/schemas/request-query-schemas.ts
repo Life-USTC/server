@@ -8,6 +8,7 @@ export {
   catalogLocaleQuerySchema,
   coursesQuerySchema,
   schedulesQuerySchema,
+  sectionDetailQuerySchema,
   sectionSchedulesQuerySchema,
   sectionsQuerySchema,
   teachersQuerySchema,

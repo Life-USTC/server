@@ -15,6 +15,7 @@ export type SectionDetailNamed = {
 };
 
 export type SectionDetailTeacher = SectionDetailNamed & {
+  department?: SectionDetailNamed | null;
   id: string | number;
 };
 

@@ -106,7 +106,8 @@
             "path": "/api/catalog/sections/[jwId]",
             "returns": "SectionDetail (schedules without room/teacher expansion)",
             "notes": [
-              "Direct historical lookup remains available for retired Sections; retiredAt identifies retirement and sourceLastSeenAt records the last successful source observation."
+              "Direct historical lookup remains available for retired Sections; retiredAt identifies retirement and sourceLastSeenAt records the last successful source observation.",
+              "Optional includeExams, includeSchedules, and includeTeacherDepartments query flags return narrow tab payloads without loading unrelated child collections."
             ]
           }
         ]

@@ -4,6 +4,7 @@ import { withParsedSectionJwId } from "@/lib/api/routes/academic-section-jw-rout
 import { listSectionsAction } from "@/lib/api/routes/academic-section-list-action";
 import { matchSectionCodesAction } from "@/lib/api/routes/academic-section-match-action";
 import {
+  parseSectionDetailRouteQuery,
   parseSectionMatchCodesRequest,
   parseSectionSchedulesRouteQuery,
   parseSectionsRouteQuery,
@@ -56,6 +57,11 @@ export async function getSectionDetailRoute(
     return localeResolution;
   }
 
+  const parsedQuery = parseSectionDetailRouteQuery(request);
+  if (parsedQuery instanceof Response) {
+    return parsedQuery;
+  }
+
   return withParsedSectionJwId(
     params,
     "Failed to fetch section",
@@ -64,6 +70,11 @@ export async function getSectionDetailRoute(
         parsedJwId,
         localeResolution.locale,
         localeResolution.cacheHeaders,
+        {
+          includeExams: parsedQuery.includeExams,
+          includeSchedules: parsedQuery.includeSchedules,
+          includeTeacherDepartments: parsedQuery.includeTeacherDepartments,
+        },
       ),
   );
 }

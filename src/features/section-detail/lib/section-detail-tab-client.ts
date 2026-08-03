@@ -3,6 +3,8 @@ import type { DescriptionPayload } from "@/features/descriptions/lib/description
 import { fetchDescriptionPayload } from "@/features/descriptions/lib/description-card-client";
 import { emptyDescriptionPayload } from "@/features/descriptions/lib/description-empty-payload";
 import type { DescriptionViewer } from "@/features/descriptions/lib/description-payload-types";
+import type { SectionDetailPageData } from "@/features/section-detail/lib/section-detail-controller-types";
+import { buildSectionDetailTabPanelSsrSeed } from "@/features/section-detail/lib/section-detail-tab-ssr-seed";
 import type { AppLocale } from "@/i18n/config";
 import { apiClient } from "@/lib/api/client";
 import { loadSectionHomeworks } from "./homeworks";
@@ -39,6 +41,11 @@ type SectionDetailTabPanelPatch = Partial<
   sectionOverlay?: Partial<SectionDetailTabPanelState["sectionOverlay"]>;
 };
 
+export type SectionDetailTabPanelSsrSeed = {
+  loadedTabs: readonly SectionDetailTab[];
+  state: SectionDetailTabPanelState;
+};
+
 const emptyHomeworkViewer = (userId: string | null): HomeworkViewer => ({
   isAdmin: false,
   isAuthenticated: Boolean(userId),
@@ -59,7 +66,9 @@ function emptyDescriptionViewer(userId: string | null): DescriptionViewer {
   };
 }
 
-function emptyPanelState(userId: string | null): SectionDetailTabPanelState {
+export function emptySectionDetailTabPanelState(
+  userId: string | null,
+): SectionDetailTabPanelState {
   return {
     commentsData: null,
     descriptionData: emptyDescriptionPayload(emptyDescriptionViewer(userId)),
@@ -70,7 +79,7 @@ function emptyPanelState(userId: string | null): SectionDetailTabPanelState {
   };
 }
 
-function applyPanelPatch(
+export function applySectionDetailTabPanelPatch(
   state: SectionDetailTabPanelState,
   patch: SectionDetailTabPanelPatch,
 ): SectionDetailTabPanelState {
@@ -84,12 +93,29 @@ function applyPanelPatch(
   };
 }
 
-async function fetchSectionDetailApi(jwId: number, locale: AppLocale) {
+type SectionDetailPartialQuery = {
+  includeExams?: boolean;
+  includeSchedules?: boolean;
+  includeTeacherDepartments?: boolean;
+};
+
+async function fetchSectionDetailPartial(
+  jwId: number,
+  locale: AppLocale,
+  query: SectionDetailPartialQuery,
+) {
   const result = await apiClient.GET<SectionDetailApiRecord>(
     `/api/catalog/sections/${jwId}`,
     {
       params: {
-        query: { locale },
+        query: {
+          locale,
+          ...(query.includeExams ? { includeExams: "true" } : {}),
+          ...(query.includeSchedules ? { includeSchedules: "true" } : {}),
+          ...(query.includeTeacherDepartments
+            ? { includeTeacherDepartments: "true" }
+            : {}),
+        },
       },
     },
   );
@@ -103,7 +129,10 @@ async function loadCalendarPanel(
   jwId: number,
   locale: AppLocale,
 ): Promise<SectionDetailTabPanelPatch> {
-  const detail = await fetchSectionDetailApi(jwId, locale);
+  const detail = await fetchSectionDetailPartial(jwId, locale, {
+    includeExams: true,
+    includeSchedules: true,
+  });
   return {
     sectionOverlay: {
       exams: detail.exams ?? [],
@@ -112,11 +141,27 @@ async function loadCalendarPanel(
   };
 }
 
+async function loadExamsPanel(
+  jwId: number,
+  locale: AppLocale,
+): Promise<SectionDetailTabPanelPatch> {
+  const detail = await fetchSectionDetailPartial(jwId, locale, {
+    includeExams: true,
+  });
+  return {
+    sectionOverlay: {
+      exams: detail.exams ?? [],
+    },
+  };
+}
+
 async function loadTeachersPanel(
   jwId: number,
   locale: AppLocale,
 ): Promise<SectionDetailTabPanelPatch> {
-  const detail = await fetchSectionDetailApi(jwId, locale);
+  const detail = await fetchSectionDetailPartial(jwId, locale, {
+    includeTeacherDepartments: true,
+  });
   return {
     sectionOverlay: {
       teachers: detail.teachers ?? [],
@@ -166,15 +211,28 @@ const tabLoaders: Record<
 > = {
   introduction: ({ sectionId }) => loadIntroductionPanel(sectionId),
   calendar: ({ jwId, locale }) => loadCalendarPanel(jwId, locale),
-  exams: ({ jwId, locale }) => loadCalendarPanel(jwId, locale),
+  exams: ({ jwId, locale }) => loadExamsPanel(jwId, locale),
   homework: ({ errorMessage, sectionId, state }) =>
     loadHomeworkPanel(sectionId, errorMessage, state),
   teachers: ({ jwId, locale }) => loadTeachersPanel(jwId, locale),
 };
 
-export function createSectionDetailTabPanelStore(userId: string | null) {
-  const loaded = new Set<SectionDetailTab>();
-  let state = emptyPanelState(userId);
+export function createSectionDetailTabPanelSsrSeedFromPageData(
+  data: SectionDetailPageData,
+  userId: string | null,
+): SectionDetailTabPanelSsrSeed {
+  return buildSectionDetailTabPanelSsrSeed(data, userId, {
+    applyPatch: applySectionDetailTabPanelPatch,
+    createEmptyState: emptySectionDetailTabPanelState,
+  });
+}
+
+export function createSectionDetailTabPanelStore(
+  userId: string | null,
+  ssrSeed?: SectionDetailTabPanelSsrSeed,
+) {
+  const loaded = new Set<SectionDetailTab>(ssrSeed?.loadedTabs ?? []);
+  let state = ssrSeed?.state ?? emptySectionDetailTabPanelState(userId);
 
   return {
     getState: () => state,
@@ -195,13 +253,13 @@ export function createSectionDetailTabPanelStore(userId: string | null) {
 
       const loader = tabLoaders[tab];
       const patch = await loader({ ...input, state });
-      state = applyPanelPatch(state, patch);
+      state = applySectionDetailTabPanelPatch(state, patch);
       loaded.add(tab);
       return state;
     },
     reset() {
       loaded.clear();
-      state = emptyPanelState(userId);
+      state = emptySectionDetailTabPanelState(userId);
     },
   };
 }

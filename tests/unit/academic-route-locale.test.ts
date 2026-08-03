@@ -175,8 +175,33 @@ describe("academic REST 语言适配器", () => {
       },
     );
 
-    expect(findSectionDetailByJwIdMock).toHaveBeenCalledWith(123, "en-us");
+    expect(findSectionDetailByJwIdMock).toHaveBeenCalledWith(123, "en-us", {
+      includeExams: undefined,
+      includeSchedules: undefined,
+      includeTeacherDepartments: undefined,
+    });
     expect(response.headers.get("Vary")).toBe("Accept-Language, Cookie");
+  });
+
+  it("将部分查询标志传递给班级详情读取", async () => {
+    const { getSectionDetailRoute } = await import(
+      "@/lib/api/routes/academic-section-routes"
+    );
+
+    await getSectionDetailRoute(
+      request(
+        "/api/catalog/sections/123?includeExams=true&includeSchedules=true",
+      ),
+      {
+        jwId: "123",
+      },
+    );
+
+    expect(findSectionDetailByJwIdMock).toHaveBeenCalledWith(123, "en-us", {
+      includeExams: true,
+      includeSchedules: true,
+      includeTeacherDepartments: undefined,
+    });
   });
 
   it("将请求语言传递给教师详情读取", async () => {
@@ -385,7 +410,11 @@ describe("academic REST 语言适配器", () => {
 
     expect(findCourseDetailByJwIdMock).toHaveBeenCalledWith(123, "zh-cn");
     expect(findTeacherDetailByIdMock).toHaveBeenCalledWith(456, "zh-cn");
-    expect(findSectionDetailByJwIdMock).toHaveBeenCalledWith(123, "zh-cn");
+    expect(findSectionDetailByJwIdMock).toHaveBeenCalledWith(123, "zh-cn", {
+      includeExams: undefined,
+      includeSchedules: undefined,
+      includeTeacherDepartments: undefined,
+    });
     expect(listPublicSchedulesMock).toHaveBeenCalledWith(
       expect.objectContaining({ locale: "zh-cn" }),
     );
