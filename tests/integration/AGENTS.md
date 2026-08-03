@@ -13,7 +13,14 @@ Run integration tests from `$life-ustc-dev-loop`:
 bun run db:migrate:deploy
 bunx prisma db seed
 bunx vitest run --config vitest.integration.config.ts
+bun run rest:test
 ```
+
+## REST contract tests (`tests/integration/rest/`)
+
+REST-only Playwright specs (no browser) live beside MCP integration tests.
+They use `playwright.api.config.ts` and `_harness/auth.ts` for request-based
+debug sign-in. Run with `bun run rest:test` (also part of `ci:integration`).
 
 ## MCP layout
 

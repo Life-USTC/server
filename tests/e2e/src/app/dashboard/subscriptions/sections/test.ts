@@ -337,30 +337,45 @@ test.describe("仪表盘教学班订阅", () => {
     );
   });
 
-  test("详情中的取消订阅操作进入明确确认弹窗", async ({ page }, testInfo) => {
+  test("详情中的取消订阅操作确认后移除订阅", async ({ page }, testInfo) => {
     await signInAsDebugUser(page, "/workspace/subscriptions");
     await ensureSeedSectionSubscription(page);
     await gotoAndWaitForReady(page, "/workspace/subscriptions");
 
-    await page
-      .getByRole("button", {
-        name: new RegExp(escapeForRegExp(DEV_SEED.section.code)),
-      })
-      .click();
+    const sectionButton = page.getByRole("button", {
+      name: new RegExp(escapeForRegExp(DEV_SEED.section.code)),
+    });
+    await expect(sectionButton).toBeVisible();
+    await sectionButton.click();
+
     await page
       .getByRole("button", { name: /^(取消订阅|Unsubscribe)$/i })
       .click();
 
-    await expect(
-      page.getByRole("alertdialog", {
-        name: /确认取消订阅|Unsubscribe from this section/i,
-      }),
-    ).toBeVisible();
+    const confirmDialog = page.getByRole("alertdialog", {
+      name: /确认取消订阅|Unsubscribe from this section/i,
+    });
+    await expect(confirmDialog).toBeVisible();
+
+    const unsubscribeResponse = page.waitForResponse(
+      (response) =>
+        response.url().includes("/api/workspace/subscriptions/batch") &&
+        response.request().method() === "POST" &&
+        response.ok(),
+    );
+    await confirmDialog
+      .getByRole("button", {
+        name: /确认取消订阅|Confirm Unsubscribe/i,
+      })
+      .click();
+    await unsubscribeResponse;
+    await expect(confirmDialog).not.toBeVisible();
+    await expect(sectionButton).toHaveCount(0);
 
     await captureStepScreenshot(
       page,
       testInfo,
-      "dashboard-subscriptions-opt-out-confirm",
+      "dashboard-subscriptions-opt-out-confirmed",
     );
   });
 
@@ -662,7 +677,7 @@ test.describe("仪表盘教学班订阅", () => {
         )
         .first(),
     ).toBeVisible({ timeout: 15_000 });
-    await page.waitForLoadState("networkidle");
+    await waitForUiSettled(page);
 
     await captureStepScreenshot(
       page,

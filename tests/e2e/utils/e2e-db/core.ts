@@ -1,4 +1,4 @@
-import { expect, type Page } from "@playwright/test";
+import { type APIRequestContext, expect, type Page } from "@playwright/test";
 
 export const PLAYWRIGHT_BASE_URL = "http://localhost:3000";
 
@@ -11,8 +11,14 @@ export function generateToken(bytes = 24) {
     .replace(/=+$/, "");
 }
 
-export async function getCurrentSessionUser(page: Page) {
-  const response = await page.request.get("/api/auth/get-session");
+function getRequestFromSessionSource(source: APIRequestContext | Page) {
+  return "request" in source ? source.request : source;
+}
+
+export async function getCurrentSessionUser(source: APIRequestContext | Page) {
+  const response = await getRequestFromSessionSource(source).get(
+    "/api/auth/get-session",
+  );
   expect(response.status()).toBe(200);
   const session = (await response.json()) as {
     user?: {

@@ -57,6 +57,10 @@ test.describe("/account/settings/accounts 关联账号设置", () => {
   });
 
   test("连接按钮启动账号关联 OAuth 流程", async ({ page }, testInfo) => {
+    test.skip(
+      !process.env.E2E_LIVE_OAUTH,
+      "Live OAuth account linking requires E2E_LIVE_OAUTH and real provider credentials.",
+    );
     await signInAsDebugUser(page, "/account/settings/accounts");
 
     const providerCard = page
@@ -66,13 +70,10 @@ test.describe("/account/settings/accounts 关联账号设置", () => {
     const connectButton = providerCard.getByRole("button", {
       name: /连接|Connect/i,
     });
-    if (
-      (await providerCard.count()) === 0 ||
-      (await connectButton.count()) === 0
-    ) {
-      await expect(page.locator("#main-content")).toBeVisible();
-      return;
-    }
+    test.skip(
+      (await providerCard.count()) === 0 || (await connectButton.count()) === 0,
+      "settings accounts page rendered without a USTC connect action",
+    );
 
     await waitForUiSettled(page);
     await expect(connectButton).toBeEnabled();

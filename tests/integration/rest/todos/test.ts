@@ -1,0 +1,190 @@
+/**
+ * E2E tests for GET /api/workspace/todos and POST /api/workspace/todos.
+ *
+ * ## GET /api/workspace/todos
+ * - Response: { counts: { incomplete, completed, overdue }, todos: Array<{ id, title, content, priority, completed, dueAt, ... }> }
+ * - Auth required (401 if unauthenticated)
+ * - Returns all todos belonging to the current user
+ *
+ * ## POST /api/workspace/todos
+ * - Body: { title, content?, priority?, dueAt? }
+ * - Response: { id: string }
+ * - Auth required (401 if unauthenticated)
+ * - Creates a new todo for the current user
+ * - Returns 400 for missing title
+ *
+ * ## Edge cases
+ * - Unauthenticated GET/POST → 401
+ * - Seed todo appears in list with correct priority and completed status
+ * - Full create → verify in list → cleanup via DELETE
+ */
+import { expect, test } from "@playwright/test";
+import { TODO_CONTENT_MAX_LENGTH } from "@/features/todos/lib/todo-limits";
+import { DEV_SEED, DEV_SEED_ANCHOR } from "../../../e2e/utils/dev-seed";
+import {
+  assertTodoCreateSuccess,
+  assertTodoListedWithFields,
+} from "../../../shared/scenarios/todo-crud";
+import { signInAsDebugUserApi } from "../_harness/auth";
+import { assertApiContract } from "../_shared/api-contract";
+
+test("/api/workspace/todos", async ({ request }) => {
+  await assertApiContract(request, { routePath: "/api/workspace/todos" });
+});
+
+test("/api/workspace/todos GET 未登录返回 401", async ({ request }) => {
+  const response = await request.get("/api/workspace/todos");
+  expect(response.status()).toBe(401);
+});
+
+test("/api/workspace/todos GET 登录后返回 seed 待办", async ({ request }) => {
+  await signInAsDebugUserApi(request, "/");
+
+  const response = await request.get("/api/workspace/todos");
+  expect(response.status()).toBe(200);
+  const body = (await response.json()) as {
+    counts?: { completed?: number; incomplete?: number; overdue?: number };
+    todos?: Array<{ title?: string; completed?: boolean }>;
+  };
+  expect(typeof body.counts?.incomplete).toBe("number");
+  expect(typeof body.counts?.completed).toBe("number");
+  expect(typeof body.counts?.overdue).toBe("number");
+  expect(
+    body.todos?.some(
+      (todo) =>
+        todo.title === DEV_SEED.todos.dueTodayTitle && todo.completed === false,
+    ),
+  ).toBe(true);
+});
+
+test("/api/workspace/todos GET 支持 completed 筛选与 limit", async ({
+  request,
+}) => {
+  await signInAsDebugUserApi(request, "/");
+
+  const response = await request.get(
+    "/api/workspace/todos?completed=false&limit=1",
+  );
+  expect(response.status()).toBe(200);
+  const body = (await response.json()) as {
+    todos?: Array<{ completed?: boolean }>;
+  };
+
+  expect(body.todos).toHaveLength(1);
+  expect(body.todos?.every((todo) => todo.completed === false)).toBe(true);
+});
+
+test("/api/workspace/todos GET 接受裸日期筛选并拒绝无效日期", async ({
+  request,
+}) => {
+  await signInAsDebugUserApi(request, "/");
+
+  const response = await request.get(
+    `/api/workspace/todos?completed=false&dueBefore=${DEV_SEED_ANCHOR.date}&limit=10`,
+  );
+  expect(response.status()).toBe(200);
+  const body = (await response.json()) as {
+    todos?: Array<{ completed?: boolean; title?: string }>;
+  };
+  expect(
+    body.todos?.some(
+      (todo) =>
+        todo.title === DEV_SEED.todos.overdueTitle && todo.completed === false,
+    ),
+  ).toBe(true);
+  expect(
+    body.todos?.some((todo) => todo.title === DEV_SEED.todos.dueTodayTitle),
+  ).toBe(false);
+
+  const invalidResponse = await request.get(
+    "/api/workspace/todos?dueBefore=not-a-date",
+  );
+  expect(invalidResponse.status()).toBe(400);
+});
+
+test("/api/workspace/todos GET 拒绝无效 limit", async ({ request }) => {
+  await signInAsDebugUserApi(request, "/");
+
+  const response = await request.get("/api/workspace/todos?limit=0");
+  expect(response.status()).toBe(400);
+});
+
+test("待办包含所有必需的 TodoItem 字段", async ({ request }) => {
+  await signInAsDebugUserApi(request, "/");
+
+  const response = await request.get("/api/workspace/todos");
+  expect(response.status()).toBe(200);
+  const body = (await response.json()) as {
+    todos?: Array<Record<string, unknown>>;
+  };
+
+  const todo = body.todos?.find(
+    (t) => t.title === DEV_SEED.todos.dueTodayTitle,
+  );
+  expect(todo).toBeDefined();
+  if (!todo) return;
+
+  expect(typeof todo.id).toBe("string");
+  expect(todo.id).toBeTruthy();
+  expect(typeof todo.title).toBe("string");
+  expect(Object.hasOwn(todo, "content")).toBe(true);
+  expect(typeof todo.completed).toBe("boolean");
+  expect(typeof todo.priority).toBe("string");
+  expect(Object.hasOwn(todo, "dueAt")).toBe(true);
+  expect(typeof todo.createdAt).toBe("string");
+  expect(typeof todo.updatedAt).toBe("string");
+});
+
+test("/api/workspace/todos POST 未登录返回 401", async ({ request }) => {
+  const response = await request.post("/api/workspace/todos", {
+    data: { title: "should fail" },
+  });
+  expect(response.status()).toBe(401);
+});
+
+test("/api/workspace/todos POST 登录后可创建新待办并清理", async ({
+  request,
+}) => {
+  await signInAsDebugUserApi(request, "/");
+
+  const title = `e2e-api-todo-${Date.now()}`;
+  const content = "x".repeat(TODO_CONTENT_MAX_LENGTH);
+  const createResponse = await request.post("/api/workspace/todos", {
+    data: {
+      title,
+      content: ` ${content} `,
+      priority: "high",
+    },
+  });
+  expect(createResponse.status()).toBe(201);
+
+  const created = (await createResponse.json()) as { id?: string };
+  assertTodoCreateSuccess(created);
+  const createdId = created.id;
+  expect(createResponse.headers().location).toBe(
+    `/api/workspace/todos/${createdId}`,
+  );
+
+  try {
+    const listResponse = await request.get("/api/workspace/todos");
+    expect(listResponse.status()).toBe(200);
+    const listBody = (await listResponse.json()) as {
+      todos?: Array<{
+        content?: string | null;
+        id?: string;
+        priority?: string;
+        title?: string;
+      }>;
+    };
+    assertTodoListedWithFields(listBody.todos ?? [], {
+      id: createdId,
+      title,
+      content,
+      priority: "high",
+    });
+  } finally {
+    if (createdId) {
+      await request.delete(`/api/workspace/todos/${createdId}`);
+    }
+  }
+});
