@@ -164,15 +164,18 @@ describe("compact overview subscription bundle", () => {
     expect(withHomeworkItemStateMock).not.toHaveBeenCalled();
     expect(listDueSoonSubscribedHomeworksWithCountMock).toHaveBeenCalledWith(
       "user-1",
-      expect.objectContaining({ sectionIds: [11], limit: 1 }),
+      expect.objectContaining({
+        sectionIds: [11],
+        includeItems: false,
+      }),
     );
     expect(listTodaySubscribedSchedulesWithCountMock).toHaveBeenCalledWith(
       "user-1",
-      expect.objectContaining({ sectionIds: [11], limit: 1 }),
+      expect.objectContaining({ sectionIds: [11], includeItems: false }),
     );
     expect(listUpcomingSubscribedExamsWithCountMock).toHaveBeenCalledWith(
       "user-1",
-      expect.objectContaining({ sectionIds: [11], limit: 1 }),
+      expect.objectContaining({ sectionIds: [11], includeItems: false }),
     );
     expect(result.schedules).toEqual([]);
     expect(result.upcomingExams).toEqual([]);

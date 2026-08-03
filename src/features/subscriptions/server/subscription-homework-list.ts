@@ -62,12 +62,14 @@ export async function listDueSoonSubscribedHomeworksWithCount(
   {
     dueAtFrom,
     dueAtTo,
+    includeItems = true,
     locale = DEFAULT_LOCALE,
     limit,
     sectionIds,
   }: {
     dueAtFrom: Date;
     dueAtTo: Date;
+    includeItems?: boolean;
     locale?: string;
     limit?: number;
     sectionIds?: readonly number[];
@@ -87,10 +89,12 @@ export async function listDueSoonSubscribedHomeworksWithCount(
         userId,
       });
       const where = query.where;
-      const [total, items] = await Promise.all([
-        withUserDbContext(userId, (tx) => tx.homework.count({ where })),
-        fetchSubscribedHomeworkDashboardItems(userId, query, locale),
-      ]);
+      const total = await withUserDbContext(userId, (tx) =>
+        tx.homework.count({ where }),
+      );
+      const items = includeItems
+        ? await fetchSubscribedHomeworkDashboardItems(userId, query, locale)
+        : [];
       return { total, items };
     },
     sectionIds,

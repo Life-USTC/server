@@ -88,15 +88,16 @@ export async function loadOverviewSubscriptionReads(input: {
     {
       todayStart,
       tomorrowStart,
-      // Counts-only callers still need totals; limit 1 keeps the paired findMany cheap.
-      limit: includeSamples ? limit : 1,
+      includeItems: includeSamples,
+      limit: includeSamples ? limit : undefined,
       locale,
       sectionIds,
     },
   );
   const examsOverviewPromise = listUpcomingSubscribedExamsWithCount(userId, {
     atTime,
-    limit: includeSamples ? limit : 1,
+    includeItems: includeSamples,
+    limit: includeSamples ? limit : undefined,
     locale,
     sectionIds,
   });
@@ -104,7 +105,8 @@ export async function loadOverviewSubscriptionReads(input: {
     listDueSoonSubscribedHomeworksWithCount(userId, {
       dueAtFrom: atTime,
       dueAtTo: homeworkWindowEnd,
-      limit: includeSamples ? limit : 1,
+      includeItems: includeSamples,
+      limit: includeSamples ? limit : undefined,
       locale,
       sectionIds,
     });

@@ -225,12 +225,14 @@ export async function listTodaySubscribedSchedulesWithCount(
   {
     todayStart,
     tomorrowStart,
+    includeItems = true,
     locale = DEFAULT_LOCALE,
     limit,
     sectionIds,
   }: {
     todayStart: Date;
     tomorrowStart: Date;
+    includeItems?: boolean;
     locale?: string;
     limit?: number;
     sectionIds?: readonly number[];
@@ -245,15 +247,15 @@ export async function listTodaySubscribedSchedulesWithCount(
         date: { gte: todayStart, lt: tomorrowStart },
       } satisfies Prisma.ScheduleWhereInput;
       const localizedPrisma = getPrisma(locale);
-      const [total, items] = await Promise.all([
-        localizedPrisma.schedule.count({ where }),
-        localizedPrisma.schedule.findMany({
-          where,
-          select: overviewScheduleSelect,
-          orderBy: subscribedScheduleOrderBy,
-          ...(limit ? { take: limit } : {}),
-        }),
-      ]);
+      const total = await localizedPrisma.schedule.count({ where });
+      const items = includeItems
+        ? await localizedPrisma.schedule.findMany({
+            where,
+            select: overviewScheduleSelect,
+            orderBy: subscribedScheduleOrderBy,
+            ...(limit ? { take: limit } : {}),
+          })
+        : [];
       return { total, items };
     },
     sectionIds,
@@ -265,11 +267,13 @@ export async function listUpcomingSubscribedExamsWithCount(
   userId: string,
   {
     atTime,
+    includeItems = true,
     locale = DEFAULT_LOCALE,
     limit,
     sectionIds,
   }: {
     atTime: Date;
+    includeItems?: boolean;
     locale?: string;
     limit?: number;
     sectionIds?: readonly number[];
@@ -279,16 +283,18 @@ export async function listUpcomingSubscribedExamsWithCount(
     userId,
     async (ids) => {
       const where = upcomingKnownExamWhere({ atTime, sectionIds: ids });
-      const localizedPrisma = getPrisma(locale);
-      const [total, items] = await Promise.all([
-        localizedPrisma.exam.count({ where }),
-        localizedPrisma.exam.findMany({
-          where,
-          select: overviewExamSelect,
-          orderBy: subscribedExamOrderBy,
-          ...(limit ? { take: limit } : {}),
-        }),
-      ]);
+      const total = await countUpcomingSubscribedExams({
+        atTime,
+        sectionIds: ids,
+      });
+      const items = includeItems
+        ? await getPrisma(locale).exam.findMany({
+            where,
+            select: overviewExamSelect,
+            orderBy: subscribedExamOrderBy,
+            ...(limit ? { take: limit } : {}),
+          })
+        : [];
       return { total, items };
     },
     sectionIds,
