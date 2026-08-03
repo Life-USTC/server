@@ -482,14 +482,19 @@ test("/admin/moderation 可更新课程简介内容", async ({ page }, testInfo)
   await expect(editor).toBeVisible();
   await editor.fill(nextContent);
 
-  const patchResponse = page.waitForResponse(
-    (response) =>
-      response.url().includes(`/api/admin/descriptions/${description.id}`) &&
-      response.request().method() === "PATCH" &&
-      response.status() === 200,
-  );
-  await dialog.getByRole("button", { name: /确认|Confirm|保存|Save/i }).click();
-  await patchResponse;
+  const saveResponse = page.waitForResponse((response) => {
+    if (response.request().method() !== "POST" || !response.ok()) {
+      return false;
+    }
+    const url = response.url();
+    return (
+      url.includes("/admin/moderation") &&
+      (url.includes("moderateDescription") ||
+        response.request().postData()?.includes("moderateDescription") === true)
+    );
+  });
+  await dialog.getByRole("button", { name: /确认|Confirm/i }).click();
+  await saveResponse;
   await expect(dialog).not.toBeVisible({ timeout: 15_000 });
 
   const verifyResponse = await page.request.get(

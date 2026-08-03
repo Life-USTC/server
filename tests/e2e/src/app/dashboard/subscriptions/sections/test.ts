@@ -359,12 +359,14 @@ test.describe("仪表盘教学班订阅", () => {
 
     const unsubscribeResponse = page.waitForResponse(
       (response) =>
-        response.url().includes("/api/workspace/subscriptions") &&
-        response.request().method() === "DELETE" &&
-        response.status() === 200,
+        response.url().includes("/api/workspace/subscriptions/batch") &&
+        response.request().method() === "POST" &&
+        response.ok(),
     );
     await confirmDialog
-      .getByRole("button", { name: /确认|Confirm|取消订阅|Unsubscribe/i })
+      .getByRole("button", {
+        name: /确认取消订阅|Confirm Unsubscribe/i,
+      })
       .click();
     await unsubscribeResponse;
     await expect(confirmDialog).not.toBeVisible();

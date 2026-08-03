@@ -125,7 +125,9 @@ test("/api/community/comments/[id] GET 隐藏聚焦线程返回 403", async ({
 
   try {
     // Focus GET for logged_in_only must stay forbidden for anonymous viewers.
-    const anonymous = await playwright.request.newContext();
+    const anonymous = await playwright.request.newContext({
+      baseURL: "http://localhost:3000",
+    });
     try {
       const response = await anonymous.get(
         `/api/community/comments/${commentId}`,
