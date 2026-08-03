@@ -14,7 +14,10 @@ import { createSectionDetailCalendarDisplayActions } from "@/features/section-de
 import { createSectionCalendarClipboardActions } from "@/features/section-detail/lib/section-detail-calendar-clipboard-actions";
 import { sectionDetailCalendarUrls } from "@/features/section-detail/lib/section-detail-calendar-urls";
 import { mountSectionDetailController } from "@/features/section-detail/lib/section-detail-controller-mount";
-import { createSectionDetailTabPanelStore } from "@/features/section-detail/lib/section-detail-tab-client";
+import {
+  createSectionDetailTabPanelStore,
+  createSectionDetailTabPanelSsrSeedFromPageData,
+} from "@/features/section-detail/lib/section-detail-tab-client";
 import {
   parseSectionDetailTab,
   SECTION_DETAIL_TAB_QUERY,
@@ -79,6 +82,10 @@ let activeTab: SectionDetailTab = parseSectionDetailTab(data.detailSection);
 let tabPanelLoading = false;
 const tabPanelStore = createSectionDetailTabPanelStore(
   data.homeworkData.viewer.userId ?? null,
+  createSectionDetailTabPanelSsrSeedFromPageData(
+    data,
+    data.homeworkData.viewer.userId ?? null,
+  ),
 );
 let tabPanelState = tabPanelStore.getState();
 
