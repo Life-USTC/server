@@ -1,8 +1,10 @@
 import type { SectionDetailPageData } from "@/features/section-detail/lib/section-detail-controller-types";
 import type { SectionDetailTab } from "@/features/section-detail/lib/section-detail-tab";
-import type {
-  SectionDetailTabPanelSsrSeed,
-  SectionDetailTabPanelState,
+import {
+  applySectionDetailTabPanelPatch,
+  emptySectionDetailTabPanelState,
+  type SectionDetailTabPanelSsrSeed,
+  type SectionDetailTabPanelState,
 } from "@/features/section-detail/lib/section-detail-tab-client";
 
 export function sectionTeachersIncludeDepartments(
@@ -57,12 +59,7 @@ export function getSsrLoadedSectionDetailTabs(
 export function buildSectionDetailTabPanelSsrState(
   data: SectionDetailPageData,
   createEmptyState: (userId: string | null) => SectionDetailTabPanelState,
-  applyPatch: (
-    state: SectionDetailTabPanelState,
-    patch: Partial<SectionDetailTabPanelState> & {
-      sectionOverlay?: Partial<SectionDetailTabPanelState["sectionOverlay"]>;
-    },
-  ) => SectionDetailTabPanelState,
+  applyPatch: typeof applySectionDetailTabPanelPatch,
   userId: string | null,
 ): SectionDetailTabPanelState {
   const loadedTabs = getSsrLoadedSectionDetailTabs(data);
@@ -108,21 +105,16 @@ export function buildSectionDetailTabPanelSsrSeed(
   data: SectionDetailPageData,
   userId: string | null,
   helpers: {
-    applyPatch: (
-      state: SectionDetailTabPanelState,
-      patch: Partial<SectionDetailTabPanelState> & {
-        sectionOverlay?: Partial<SectionDetailTabPanelState["sectionOverlay"]>;
-      },
-    ) => SectionDetailTabPanelState;
-    createEmptyState: (userId: string | null) => SectionDetailTabPanelState;
-  },
+    applyPatch?: typeof applySectionDetailTabPanelPatch;
+    createEmptyState?: (userId: string | null) => SectionDetailTabPanelState;
+  } = {},
 ): SectionDetailTabPanelSsrSeed {
   return {
     loadedTabs: getSsrLoadedSectionDetailTabs(data),
     state: buildSectionDetailTabPanelSsrState(
       data,
-      helpers.createEmptyState,
-      helpers.applyPatch,
+      helpers.createEmptyState ?? emptySectionDetailTabPanelState,
+      helpers.applyPatch ?? applySectionDetailTabPanelPatch,
       userId,
     ),
   };
