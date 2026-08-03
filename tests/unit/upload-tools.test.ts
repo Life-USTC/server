@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { registerUploadTools } from "@/lib/mcp/tools/upload-tools";
+import { registerUploadTools } from "@/lib/mcp/tools/uploads/upload-tools";
 
 const { deleteOwnedUploadMock, listUploadsMock, renameOwnedUploadMock } =
   vi.hoisted(() => ({

@@ -12,7 +12,7 @@ import { createGraphqlRequestHandler } from "@/lib/graphql/server";
 import { getOAuthGraphqlResourceUrl } from "@/lib/oauth/resource-urls";
 import { restWriteScope } from "@/lib/oauth/scope-registry";
 import { DEV_SEED } from "../fixtures/dev-seed";
-import { createMcpHarness, type McpHarness } from "./utils/mcp-harness";
+import { createMcpHarness, type McpHarness } from "./mcp/_harness";
 
 const handler = createGraphqlRequestHandler(false);
 const marker = `[integration-test] graphql-remaining-${Date.now()}`;

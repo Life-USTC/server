@@ -4,7 +4,7 @@ import { sharedAlias } from "./vitest.base";
 export default defineConfig({
   test: {
     environment: "node",
-    include: ["tests/unit/**/*.test.ts", "src/**/*.test.ts"],
+    include: ["tests/unit/**/*.test.ts"],
     globals: true,
     coverage: {
       provider: "v8",

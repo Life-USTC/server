@@ -52,7 +52,7 @@ Start Postgres first for local migration work:
 ```bash
 docker compose -f docker-compose.dev.yml up -d postgres
 bunx prisma migrate dev # Create migration
-bun run build # Generate artifacts and verify the production build
+bun run app:prepare # Regenerate Prisma client
 # Update seed scenarios
 # Update E2E tests
 ```

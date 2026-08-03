@@ -1,6 +1,7 @@
 import { afterAll, describe, expect, it } from "vitest";
 import { mutateUserSectionSubscriptionsInTransaction } from "@/features/subscriptions/server/subscription-write-model";
 import { reconcileSectionSourceLifecycle } from "@/static-loader/section-lifecycle";
+import { createDeferred } from "../shared/deferred";
 import {
   createTestPrisma,
   disconnectTestPrisma,
@@ -11,14 +12,6 @@ const prisma = createTestPrisma();
 let fixtureSequence = 0;
 
 afterAll(() => disconnectTestPrisma(prisma));
-
-function deferred() {
-  let resolve: () => void = () => {};
-  const promise = new Promise<void>((done) => {
-    resolve = done;
-  });
-  return { promise, resolve };
-}
 
 async function waitForSignal(
   signal: Promise<void>,
@@ -125,9 +118,9 @@ describe("Section subscription retirement linearization", () => {
     const fixture = await createFixture({ subscribedToFirst: true });
     const importerPrisma = createTestPrisma();
     const subscriberPrisma = createTestPrisma();
-    const importerLocked = deferred();
-    const releaseImporter = deferred();
-    const subscriberPidReady = deferred();
+    const importerLocked = createDeferred();
+    const releaseImporter = createDeferred();
+    const subscriberPidReady = createDeferred();
     const retiredAt = new Date("2026-07-18T04:00:00.000Z");
     let subscriberPid = 0;
     let importer: Promise<void> | undefined;
@@ -233,9 +226,9 @@ describe("Section subscription retirement linearization", () => {
     const fixture = await createFixture({ subscribedToFirst: false });
     const importerPrisma = createTestPrisma();
     const subscriberPrisma = createTestPrisma();
-    const subscriberMutated = deferred();
-    const releaseSubscriber = deferred();
-    const importerPidReady = deferred();
+    const subscriberMutated = createDeferred();
+    const releaseSubscriber = createDeferred();
+    const importerPidReady = createDeferred();
     const retiredAt = new Date("2026-07-18T05:00:00.000Z");
     let importerPid = 0;
     let subscriber: Promise<void> | undefined;

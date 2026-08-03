@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { createDeferred } from "../shared/deferred";
 
 const catalogService = vi.hoisted(() => ({
   getCurrentSemester: vi.fn(),
@@ -103,14 +104,6 @@ function run(
     signal: input.signal ?? new AbortController().signal,
     variables: input.variables,
   });
-}
-
-function deferred<T>() {
-  let resolve!: (value: T | PromiseLike<T>) => void;
-  const promise = new Promise<T>((resolvePromise) => {
-    resolve = resolvePromise;
-  });
-  return { promise, resolve };
 }
 
 const currentSemester = {
@@ -265,8 +258,8 @@ describe("registered GraphQL operation runner", () => {
 
   it("times out a running query at the runner boundary", async () => {
     vi.useFakeTimers();
-    const result = deferred<typeof currentSemester>();
-    const started = deferred<void>();
+    const result = createDeferred<typeof currentSemester>();
+    const started = createDeferred<void>();
     catalogService.getCurrentSemester.mockImplementation(() => {
       started.resolve(undefined);
       return result.promise;
@@ -286,8 +279,8 @@ describe("registered GraphQL operation runner", () => {
 
   it("times out a running serial mutation at the runner boundary", async () => {
     vi.useFakeTimers();
-    const result = deferred<{ id: string }>();
-    const started = deferred<void>();
+    const result = createDeferred<{ id: string }>();
+    const started = createDeferred<void>();
     todoService.createTodo.mockImplementation(() => {
       started.resolve(undefined);
       return result.promise;
@@ -309,8 +302,8 @@ describe("registered GraphQL operation runner", () => {
   });
 
   it("cancels a running query at the runner boundary", async () => {
-    const result = deferred<typeof currentSemester>();
-    const started = deferred<void>();
+    const result = createDeferred<typeof currentSemester>();
+    const started = createDeferred<void>();
     const controller = new AbortController();
     catalogService.getCurrentSemester.mockImplementation(() => {
       started.resolve(undefined);
@@ -330,8 +323,8 @@ describe("registered GraphQL operation runner", () => {
   });
 
   it("cancels a running serial mutation at the runner boundary", async () => {
-    const result = deferred<{ id: string }>();
-    const started = deferred<void>();
+    const result = createDeferred<{ id: string }>();
+    const started = createDeferred<void>();
     const controller = new AbortController();
     todoService.createTodo.mockImplementation(() => {
       started.resolve(undefined);

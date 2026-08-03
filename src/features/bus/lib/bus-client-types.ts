@@ -1,16 +1,12 @@
+import type { BusComputedStopTime } from "./bus-stop-time-computation";
 import type {
   BusRouteStopSummary,
   BusRouteSummary,
   BusTripStatus,
-  BusTripStopTime,
   BusTripSummary,
 } from "./bus-types";
 
-export type BusComputedStopTime = BusTripStopTime & {
-  displayTime: string | null;
-  displayMinutes: number | null;
-  isEstimated: boolean;
-};
+export type { BusComputedStopTime };
 
 export type BusApplicableTrip = {
   trip: BusTripSummary;

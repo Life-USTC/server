@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { createDeferred } from "../shared/deferred";
 
 const { getRequestEventMock, logAppEventMock, prismaMock } = vi.hoisted(() => ({
   getRequestEventMock: vi.fn(),
@@ -30,16 +31,6 @@ const auditParams = {
   userId: "user-1",
 };
 
-function deferred<T>() {
-  let resolve!: (value: T | PromiseLike<T>) => void;
-  let reject!: (reason?: unknown) => void;
-  const promise = new Promise<T>((resolvePromise, rejectPromise) => {
-    resolve = resolvePromise;
-    reject = rejectPromise;
-  });
-  return { promise, reject, resolve };
-}
-
 describe("fireAuditLog", () => {
   beforeEach(() => {
     getRequestEventMock.mockReset();
@@ -57,7 +48,7 @@ describe("fireAuditLog", () => {
         },
       },
     });
-    const auditWrite = deferred<unknown>();
+    const auditWrite = createDeferred<unknown>();
     prismaMock.auditLog.create.mockReturnValue(auditWrite.promise);
     const { fireAuditLog } = await import("@/lib/audit/write-audit-log");
 
@@ -115,7 +106,7 @@ describe("fireAuditLog", () => {
     getRequestEventMock.mockImplementation(() => {
       throw new Error("outside request");
     });
-    const auditWrite = deferred<unknown>();
+    const auditWrite = createDeferred<unknown>();
     prismaMock.auditLog.create.mockReturnValue(auditWrite.promise);
     const { fireAuditLog } = await import("@/lib/audit/write-audit-log");
 

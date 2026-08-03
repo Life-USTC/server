@@ -5,6 +5,11 @@
  * schedule, todo, homework, and exam samples without client-side fan-out.
  */
 import { expect, test } from "@playwright/test";
+import {
+  assertOverviewSampleLimit,
+  assertSeedDayOverviewScheduleCounts,
+  normalizeRestOverviewPayload,
+} from "../../../../../../shared/scenarios/overview";
 import { signInAsDebugUser } from "../../../../../utils/auth";
 import { DEV_SEED, DEV_SEED_ANCHOR } from "../../../../../utils/dev-seed";
 import { withE2ePrisma } from "../../../../../utils/e2e-db/prisma";
@@ -54,10 +59,12 @@ test.describe("GET /api/workspace/overview - 个人概览", () => {
     expect(body.user?.name).toBe(DEV_SEED.debugName);
     expect(body.anchor?.homeworkWindowDays).toBe(7);
     expect(body.anchor?.limit).toBe(3);
-    expect((body.counts?.todos?.incomplete ?? 0) > 0).toBe(true);
-    expect((body.counts?.pendingHomeworks ?? 0) > 0).toBe(true);
-    expect((body.counts?.todaySchedules ?? 0) > 0).toBe(true);
-    expect((body.counts?.upcomingExams ?? 0) > 0).toBe(true);
+    const snapshot = normalizeRestOverviewPayload(body);
+    assertSeedDayOverviewScheduleCounts(snapshot);
+    assertOverviewSampleLimit(snapshot, 3);
+    expect((snapshot.pendingTodosCount ?? 0) > 0).toBe(true);
+    expect((snapshot.pendingHomeworksCount ?? 0) > 0).toBe(true);
+    expect((snapshot.upcomingExamsCount ?? 0) > 0).toBe(true);
     expect(
       body.schedules?.items?.some(
         (schedule) => schedule.section?.code === DEV_SEED.section.code,

@@ -1,4 +1,5 @@
 import { sectionCatalogInclude } from "@/features/catalog/server/academic-query-includes";
+import { localizedNameSelect } from "@/features/section-detail/server/section-page-name-selects";
 import type { Prisma } from "@/generated/prisma/client";
 
 export function buildSubscribedHomeworkInclude(includeEditors: boolean) {
@@ -29,6 +30,11 @@ export function buildDashboardHomeworkSelect() {
     submissionStartAt: true,
     submissionDueAt: true,
     description: { select: { content: true } },
-    section: { select: { jwId: true, course: true } },
+    section: {
+      select: {
+        jwId: true,
+        course: { select: localizedNameSelect },
+      },
+    },
   } satisfies Prisma.HomeworkSelect;
 }

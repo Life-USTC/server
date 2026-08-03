@@ -60,6 +60,7 @@
           "exam.examDate",
           "exam.startTime - endTime",
           "exam.examMode",
+          "exam.examBatch.id",
           "exam.examBatch.namePrimary",
           "exam.examType",
           "exam.examTakeCount",
@@ -96,6 +97,7 @@
           "exam.examDate",
           "exam.startTime - endTime",
           "exam.examMode",
+          "exam.examBatch.id",
           "exam.examBatch.namePrimary",
           "exam.examRooms[]"
         ]

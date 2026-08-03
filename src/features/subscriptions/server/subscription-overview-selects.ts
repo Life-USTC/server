@@ -1,13 +1,55 @@
-import { sectionSummarySelect } from "@/features/catalog/server/academic-query-includes";
+import {
+  entityNameSelect,
+  localizedNameSelect,
+} from "@/features/section-detail/server/section-page-name-selects";
 import type { Prisma } from "@/generated/prisma/client";
 
-const localizedNameSelect = {
+const overviewCampusSelect = {
   id: true,
+  ...localizedNameSelect,
+} satisfies Prisma.CampusSelect;
+
+const overviewCourseSelect = {
+  id: true,
+  jwId: true,
+  code: true,
+  ...localizedNameSelect,
+} satisfies Prisma.CourseSelect;
+
+const overviewSemesterSelect = {
+  id: true,
+  jwId: true,
+  code: true,
   nameCn: true,
-  nameEn: true,
-  namePrimary: true,
-  nameSecondary: true,
-} as const;
+} satisfies Prisma.SemesterSelect;
+
+const overviewSectionSelect = {
+  id: true,
+  jwId: true,
+  code: true,
+  course: { select: overviewCourseSelect },
+  semester: { select: overviewSemesterSelect },
+} satisfies Prisma.SectionSelect;
+
+const overviewTeacherSelect = {
+  id: true,
+  code: true,
+  ...localizedNameSelect,
+} satisfies Prisma.TeacherSelect;
+
+const overviewRoomSelect = {
+  id: true,
+  jwId: true,
+  ...localizedNameSelect,
+  building: {
+    select: {
+      id: true,
+      jwId: true,
+      ...localizedNameSelect,
+      campus: { select: overviewCampusSelect },
+    },
+  },
+} satisfies Prisma.RoomSelect;
 
 export const overviewScheduleSelect = {
   id: true,
@@ -17,38 +59,9 @@ export const overviewScheduleSelect = {
   endTime: true,
   weekIndex: true,
   customPlace: true,
-  room: {
-    select: {
-      id: true,
-      jwId: true,
-      nameCn: true,
-      nameEn: true,
-      code: true,
-      building: {
-        select: {
-          id: true,
-          jwId: true,
-          nameCn: true,
-          nameEn: true,
-          code: true,
-          campus: { select: sectionSummarySelect.campus.select },
-        },
-      },
-    },
-  },
-  teachers: {
-    select: sectionSummarySelect.teachers.select,
-  },
-  section: {
-    select: {
-      id: true,
-      jwId: true,
-      code: true,
-      course: { select: sectionSummarySelect.course.select },
-      semester: { select: sectionSummarySelect.semester.select },
-      campus: { select: sectionSummarySelect.campus.select },
-    },
-  },
+  room: { select: overviewRoomSelect },
+  teachers: { select: overviewTeacherSelect },
+  section: { select: overviewSectionSelect },
 } satisfies Prisma.ScheduleSelect;
 
 export const overviewExamSelect = {
@@ -60,18 +73,8 @@ export const overviewExamSelect = {
   examType: true,
   examMode: true,
   examTakeCount: true,
-  section: {
-    select: {
-      id: true,
-      jwId: true,
-      code: true,
-      course: { select: sectionSummarySelect.course.select },
-      semester: { select: sectionSummarySelect.semester.select },
-    },
-  },
-  examBatch: {
-    select: localizedNameSelect,
-  },
+  section: { select: overviewSectionSelect },
+  examBatch: { select: entityNameSelect },
   examRooms: {
     select: {
       id: true,

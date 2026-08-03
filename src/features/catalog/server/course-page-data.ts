@@ -1,4 +1,5 @@
 import type { CourseDetailSection } from "@/features/catalog/components/catalog-detail-component-types";
+import { localizedNameSelect } from "@/features/section-detail/server/section-page-name-selects";
 import { getPrisma } from "@/lib/db/prisma";
 import { toLoadData } from "@/lib/load-data-utils";
 import { resolveCourseIdByJwId } from "./course-jw-id";
@@ -11,18 +12,12 @@ const coursePageSectionsSelect = {
   semester: { select: { nameCn: true } },
   campus: {
     select: {
-      nameCn: true,
-      nameEn: true,
-      namePrimary: true,
-      nameSecondary: true,
+      ...localizedNameSelect,
     },
   },
   teachers: {
     select: {
-      nameCn: true,
-      nameEn: true,
-      namePrimary: true,
-      nameSecondary: true,
+      ...localizedNameSelect,
     },
   },
 } as const;
@@ -41,40 +36,25 @@ export async function getCoursePage(
       id: true,
       jwId: true,
       code: true,
-      nameCn: true,
-      nameEn: true,
-      namePrimary: true,
-      nameSecondary: true,
+      ...localizedNameSelect,
       educationLevel: {
         select: {
-          nameCn: true,
-          nameEn: true,
-          namePrimary: true,
-          nameSecondary: true,
+          ...localizedNameSelect,
         },
       },
       category: {
         select: {
-          nameCn: true,
-          nameEn: true,
-          namePrimary: true,
-          nameSecondary: true,
+          ...localizedNameSelect,
         },
       },
       classType: {
         select: {
-          nameCn: true,
-          nameEn: true,
-          namePrimary: true,
-          nameSecondary: true,
+          ...localizedNameSelect,
         },
       },
       type: {
         select: {
-          nameCn: true,
-          nameEn: true,
-          namePrimary: true,
-          nameSecondary: true,
+          ...localizedNameSelect,
         },
       },
       _count: { select: { sections: true } },

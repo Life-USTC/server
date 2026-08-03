@@ -6,41 +6,32 @@ function inactiveStage<T>(value: T) {
   return Promise.resolve(value);
 }
 
-async function timeDashboardTabStage<T>(
+export async function timeDashboardStage<T>(
   stage: string,
   input: {
     requestId: string | undefined;
-    subscribedSectionCount: number;
+    subscribedSectionCount?: number;
     tab: string;
   },
   work: () => Promise<T>,
 ) {
   const startMs = Date.now();
+  let status: "error" | "ok" = "error";
   try {
     const result = await work();
-    logAppEvent("info", "dashboard.load.stage", {
-      event: "dashboard.load.stage",
-      ioObservedDurationMs: Date.now() - startMs,
-      requestId: input.requestId,
-      source: "dashboard",
-      stage,
-      status: "ok",
-      subscribedSectionCount: input.subscribedSectionCount,
-      tab: input.tab,
-    });
+    status = "ok";
     return result;
-  } catch (error) {
-    logAppEvent("warn", "dashboard.load.stage", {
+  } finally {
+    logAppEvent(status === "ok" ? "info" : "warn", "dashboard.load.stage", {
       event: "dashboard.load.stage",
       ioObservedDurationMs: Date.now() - startMs,
       requestId: input.requestId,
       source: "dashboard",
       stage,
-      status: "error",
+      status,
       subscribedSectionCount: input.subscribedSectionCount,
       tab: input.tab,
     });
-    throw error;
   }
 }
 
@@ -65,7 +56,7 @@ export async function loadSignedDashboardTabData(input: {
   };
   const shouldLoadTodos = input.tab === "todos" || input.tab === "overview";
   const todosPromise = shouldLoadTodos
-    ? timeDashboardTabStage("todos", stageContext, () =>
+    ? timeDashboardStage("todos", stageContext, () =>
         dashboardTabs.getTodosTabData(input.userId),
       )
     : inactiveStage(null);
@@ -85,7 +76,7 @@ export async function loadSignedDashboardTabData(input: {
     todos,
     bus,
   ] = await Promise.all([
-    timeDashboardTabStage("nav-stats", stageContext, () =>
+    timeDashboardStage("nav-stats", stageContext, () =>
       dashboard.getDashboardNavStats(
         input.context.user,
         input.context.subscribedSections,
@@ -94,7 +85,7 @@ export async function loadSignedDashboardTabData(input: {
       ),
     ),
     input.tab === "overview" || input.tab === "calendar"
-      ? timeDashboardTabStage("overview", stageContext, () =>
+      ? timeDashboardStage("overview", stageContext, () =>
           dashboard.getDashboardOverviewData(input.userId, {
             locale: input.locale,
             user: input.context.user,
@@ -106,19 +97,19 @@ export async function loadSignedDashboardTabData(input: {
         )
       : inactiveStage(null),
     input.tab === "links"
-      ? timeDashboardTabStage("links", stageContext, () =>
+      ? timeDashboardStage("links", stageContext, () =>
           dashboardLinks.getLinksTabData(input.userId, input.locale),
         )
       : inactiveStage(null),
     input.tab === "homeworks"
-      ? timeDashboardTabStage("homeworks", stageContext, () =>
+      ? timeDashboardStage("homeworks", stageContext, () =>
           dashboardTabs.getHomeworksTabData(input.userId, input.locale, {
             sectionIds: input.context.sectionIds,
           }),
         )
       : inactiveStage(null),
     input.tab === "subscriptions" || input.tab === "exams"
-      ? timeDashboardTabStage("subscriptions", stageContext, () =>
+      ? timeDashboardStage("subscriptions", stageContext, () =>
           dashboardTabs.getSubscriptionsTabData(input.userId, input.locale, {
             calendarFeedToken: input.context.user.calendarFeedToken,
             includeExams: input.tab === "exams",
@@ -127,7 +118,7 @@ export async function loadSignedDashboardTabData(input: {
         )
       : inactiveStage(null),
     input.tab === "calendar"
-      ? timeDashboardTabStage("calendar-subscription", stageContext, () =>
+      ? timeDashboardStage("calendar-subscription", stageContext, () =>
           dashboardTabs.getCalendarSubscriptionUrl(
             input.userId,
             input.context.user.calendarFeedToken,
@@ -136,7 +127,7 @@ export async function loadSignedDashboardTabData(input: {
       : inactiveStage(null),
     todosPromise,
     input.tab === "bus"
-      ? timeDashboardTabStage("bus", stageContext, () =>
+      ? timeDashboardStage("bus", stageContext, () =>
           dashboardTabs.getBusTabData(input.userId, input.locale),
         )
       : inactiveStage(null),

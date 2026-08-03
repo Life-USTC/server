@@ -5,13 +5,18 @@ MCP server and tools.
 ## Structure
 
 ```
-server.ts        MCP server registration
-tools/           Tool implementations
-  _helpers.ts    Shared utilities
-  dashboard.ts
-  homework.ts
-  ...
+server.ts              MCP server registration
+tools/
+  workspace/           overview, todos, subscriptions, schedules, exams, dashboard, calendar
+  catalog/             course/section/teacher search, section match, section records
+  community/           comments, descriptions, section homework mutations
+  bus/                 departures, timetable, preferences
+  uploads/             upload tools
+  graphql/             graphql_operation_run
+  _shared/             helpers, date parsing, cross-domain section helpers
 ```
+
+Tool **names** and schemas stay stable across folder moves. Prefer move + import updates over renames.
 
 ## Tool Pattern
 
@@ -23,7 +28,7 @@ import {
   jsonToolResult,
   mcpModeInputSchema,
   resolveMcpMode,
-} from "@/lib/mcp/tools/_helpers";
+} from "@/lib/mcp/tools/_shared/helpers";
 
 const inputSchema = z.object({
   sectionJwId: z.number().describe("Section JW ID"),
@@ -39,6 +44,10 @@ export async function myTool(args: unknown, authInfo?: AuthInfo) {
   return jsonToolResult(result, { mode });
 }
 ```
+
+## Adapter role
+
+MCP handlers are thin adapters: parse auth/scope → call `src/features/*/server` use-cases → map transport shape (`jsonToolResult` + compact mode). MCP-only presentation (compact pickers, mode summary/full) stays here as a view layer, not business logic.
 
 ## Mode Guidance
 
@@ -74,7 +83,7 @@ const localPrisma = getPrisma(locale);
 await localPrisma.model.findMany();
 
 // Dates
-import { flexDateInputSchema } from "@/lib/mcp/tools/_helpers";
+import { flexDateInputSchema } from "@/lib/mcp/tools/_shared/helpers";
 import { parseDateInput } from "@/lib/time/parse-date-input";
 
 // Output

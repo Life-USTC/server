@@ -5,6 +5,7 @@ import {
   publicDetailColoCacheKey,
   publicDetailKvCacheKey,
 } from "@/lib/public-runtime-cache";
+import { createDeferred } from "../shared/deferred";
 
 function clearPublicRuntimeCache() {
   delete (
@@ -12,16 +13,6 @@ function clearPublicRuntimeCache() {
       __lifeUstcPublicRuntimeCache?: unknown;
     }
   ).__lifeUstcPublicRuntimeCache;
-}
-
-function deferred<T>() {
-  let resolve!: (value: T) => void;
-  let reject!: (reason: unknown) => void;
-  const promise = new Promise<T>((resolvePromise, rejectPromise) => {
-    resolve = resolvePromise;
-    reject = rejectPromise;
-  });
-  return { promise, reject, resolve };
 }
 
 function coloResponse(value: unknown, expiresAt: number, schema?: string) {
@@ -323,7 +314,7 @@ describe("public runtime cache", () => {
   });
 
   it("falls through KV miss to colo and schedules KV and colo writes", async () => {
-    const pending = deferred<{ source: string }>();
+    const pending = createDeferred<{ source: string }>();
     const namespace = kvNamespace();
     const { match, put } = installNamedCache();
     const load = vi.fn(() => pending.promise);
@@ -425,7 +416,7 @@ describe("public runtime cache", () => {
   });
 
   it("returns one in-flight promise for concurrent callers of the same key", async () => {
-    const pending = deferred<{ source: string }>();
+    const pending = createDeferred<{ source: string }>();
     const load = vi.fn(() => pending.promise);
 
     const first = cachedPublicRuntimeData(
@@ -506,8 +497,8 @@ describe("public runtime cache", () => {
   it("does not let an expired null load delete its successor", async () => {
     vi.useFakeTimers();
     vi.setSystemTime(0);
-    const expired = deferred<{ source: string } | null>();
-    const successor = deferred<{ source: string } | null>();
+    const expired = createDeferred<{ source: string } | null>();
+    const successor = createDeferred<{ source: string } | null>();
     const options = {
       shouldCacheResult: (result: { source: string } | null) => result !== null,
     };
@@ -548,8 +539,8 @@ describe("public runtime cache", () => {
   it("does not let an expired failed load delete its successor", async () => {
     vi.useFakeTimers();
     vi.setSystemTime(0);
-    const expired = deferred<{ source: string }>();
-    const successor = deferred<{ source: string }>();
+    const expired = createDeferred<{ source: string }>();
+    const successor = createDeferred<{ source: string }>();
 
     const first = cachedPublicRuntimeData(
       "api:metadata",
@@ -641,7 +632,7 @@ describe("public runtime cache", () => {
   });
 
   it("coalesces one colo miss and schedules one JSON-clean write", async () => {
-    const pending = deferred<{ source: string }>();
+    const pending = createDeferred<{ source: string }>();
     const { match, put } = installNamedCache();
     const load = vi.fn(() => pending.promise);
     const { context, scheduled } = runtimeExecutionContext();

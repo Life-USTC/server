@@ -1,47 +1,11 @@
 import { serializeDashboardOverview } from "@/features/dashboard/server/dashboard-overview-serialization";
 import type { DashboardPageCopy } from "@/features/dashboard/server/dashboard-page-load-types";
-import { loadSignedDashboardTabData } from "@/features/dashboard/server/dashboard-page-tab-data";
+import {
+  loadSignedDashboardTabData,
+  timeDashboardStage,
+} from "@/features/dashboard/server/dashboard-page-tab-data";
 import type { AppLocale } from "@/i18n/config";
-import { logAppEvent } from "@/lib/log/app-logger";
 import { toShanghaiIsoString } from "@/lib/time/serialize-date-output";
-
-async function timeSignedDashboardStage<T>(
-  stage: string,
-  input: {
-    requestId: string | undefined;
-    subscribedSectionCount?: number;
-    tab: string;
-  },
-  work: () => Promise<T>,
-) {
-  const startMs = Date.now();
-  try {
-    const result = await work();
-    logAppEvent("info", "dashboard.load.stage", {
-      event: "dashboard.load.stage",
-      ioObservedDurationMs: Date.now() - startMs,
-      requestId: input.requestId,
-      source: "dashboard",
-      stage,
-      status: "ok",
-      subscribedSectionCount: input.subscribedSectionCount,
-      tab: input.tab,
-    });
-    return result;
-  } catch (error) {
-    logAppEvent("warn", "dashboard.load.stage", {
-      event: "dashboard.load.stage",
-      ioObservedDurationMs: Date.now() - startMs,
-      requestId: input.requestId,
-      source: "dashboard",
-      stage,
-      status: "error",
-      subscribedSectionCount: input.subscribedSectionCount,
-      tab: input.tab,
-    });
-    throw error;
-  }
-}
 
 export async function loadSignedDashboardPageData(input: {
   calendarSemesterId: number | undefined;
@@ -56,7 +20,7 @@ export async function loadSignedDashboardPageData(input: {
   const dashboard = await import(
     "@/features/dashboard/server/dashboard-overview-data"
   );
-  const context = await timeSignedDashboardStage(
+  const context = await timeDashboardStage(
     "user-context",
     {
       requestId: input.requestId,
@@ -84,7 +48,7 @@ export async function loadSignedDashboardPageData(input: {
     overview,
     subscriptions,
     todos,
-  } = await timeSignedDashboardStage(
+  } = await timeDashboardStage(
     "tab-data",
     {
       requestId: input.requestId,

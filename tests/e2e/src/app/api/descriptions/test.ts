@@ -32,6 +32,7 @@ import {
 } from "../../../../utils/description-state";
 import { DEV_SEED } from "../../../../utils/dev-seed";
 import { withE2ePrisma } from "../../../../utils/e2e-db/prisma";
+import { resolveSeedSectionId } from "../../../../utils/seed-lookups";
 import { assertApiContract } from "../../_shared/api-contract";
 
 type DisposableDescriptionFixture = {
@@ -123,22 +124,6 @@ async function deleteDisposableDescriptionFixture(
 }
 
 /** Resolve the seed section's internal DB id via match-codes. */
-async function resolveSeedSectionId(
-  request: import("@playwright/test").APIRequestContext,
-) {
-  const response = await request.post("/api/catalog/sections/match-codes", {
-    data: { codes: [DEV_SEED.section.code] },
-  });
-  expect(response.status()).toBe(200);
-  const body = (await response.json()) as {
-    sections?: Array<{ id?: number; code?: string | null }>;
-  };
-  const section = body.sections?.find((s) => s.code === DEV_SEED.section.code);
-  expect(section?.id).toBeDefined();
-  // biome-ignore lint/style/noNonNullAssertion: guarded by expect above
-  return section!.id!;
-}
-
 test("/api/community/descriptions 接口契约", async ({ request }) => {
   await assertApiContract(request, {
     routePath: "/api/community/descriptions",

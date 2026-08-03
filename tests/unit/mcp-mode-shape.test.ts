@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { buildFullBusTimetable } from "@/lib/mcp/tools/bus-timetable-summary";
+import { buildFullBusTimetable } from "@/lib/mcp/tools/bus/bus-timetable-summary";
 import {
   getCalendarSubscriptionMutationPayload,
   getCalendarSubscriptionReadPayload,
-} from "@/lib/mcp/tools/calendar-subscription-payload";
-import { buildFullDashboardSnapshot } from "@/lib/mcp/tools/dashboard-compact-summary";
+} from "@/lib/mcp/tools/workspace/calendar-subscription-payload";
+import { buildFullDashboardSnapshot } from "@/lib/mcp/tools/workspace/dashboard-compact-summary";
 
 describe("MCP full mode canonical shapes", () => {
   it("keeps dashboard collection wrappers and derived keys", () => {

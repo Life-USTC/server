@@ -5,7 +5,7 @@ vi.mock("@/lib/db/prisma", () => ({
   prisma: {},
 }));
 
-import { jsonToolResult } from "@/lib/mcp/tools/_helpers";
+import { jsonToolResult } from "@/lib/mcp/tools/_shared/helpers";
 
 function parseToolText(result: ReturnType<typeof jsonToolResult>) {
   const text = result.content.find(

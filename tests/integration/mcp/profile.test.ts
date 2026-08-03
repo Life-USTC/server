@@ -1,0 +1,83 @@
+import { describe, expect, it } from "vitest";
+import * as fixtures from "./_harness";
+
+const context = fixtures.createMcpToolTestContext();
+
+describe("account_profile_get", () => {
+  it("返回认证用户的 REST 等价资料字段", async () => {
+    const profile = await context.client.call<{
+      id?: string;
+      email?: string | null;
+      name?: string | null;
+      username?: string | null;
+      isAdmin?: boolean;
+      createdAt?: string;
+      updatedAt?: string;
+    }>("account_profile_get");
+
+    expect(profile.id).toBe(context.devUserId);
+    expect(typeof profile.email).toBe("string");
+    expect(profile.name).toBe(fixtures.DEV_SEED.debugName);
+    expect(profile.username).toBe(fixtures.DEV_SEED.debugUsername);
+    expect(profile.isAdmin).toBe(false);
+    // Dates are serialized in Asia/Shanghai (+08:00)
+    expect(profile.createdAt).toMatch(/\+08:00$/);
+    expect(profile.updatedAt).toMatch(/\+08:00$/);
+  });
+});
+
+describe("community_user_get", () => {
+  it("按用户名返回公开资料层级", async () => {
+    const profile = await context.client.call<{
+      found?: boolean;
+      user?: {
+        id?: string;
+        name?: string | null;
+        username?: string | null;
+        _count?: {
+          comments?: number;
+          homeworksCreated?: number;
+          subscribedSections?: number;
+          uploads?: number;
+        };
+      };
+      sectionCount?: number;
+      totalContributions?: number;
+      weeks?: Array<Array<{ date?: string; count?: number }>>;
+    }>("community_user_get", {
+      identifier: fixtures.DEV_SEED.debugUsername,
+      mode: "full",
+    });
+
+    expect(profile.found).toBe(true);
+    expect(profile.user?.id).toBe(context.devUserId);
+    expect(profile.user?.name).toBe(fixtures.DEV_SEED.debugName);
+    expect(profile.user?.username).toBe(fixtures.DEV_SEED.debugUsername);
+    expect(typeof profile.sectionCount).toBe("number");
+    expect(typeof profile.totalContributions).toBe("number");
+    expect((profile.weeks?.length ?? 0) > 0).toBe(true);
+    expect(profile.weeks?.[0]?.[0]?.date).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    expect(typeof profile.user?._count?.comments).toBe("number");
+    expect(typeof profile.user?._count?.uploads).toBe("number");
+    expect(typeof profile.user?._count?.homeworksCreated).toBe("number");
+    expect(typeof profile.user?._count?.subscribedSections).toBe("number");
+  });
+
+  it("缺失用户返回 not_found", async () => {
+    const result = await context.client.call<{
+      success?: boolean;
+      found?: boolean;
+      error?: string;
+    }>("community_user_get", {
+      identifier: "missing-integration-user",
+    });
+
+    expect(result.success).toBe(false);
+    expect(result.found).toBe(false);
+    expect(result.error).toBe("not_found");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Comments
+// ---------------------------------------------------------------------------

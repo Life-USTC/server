@@ -4,17 +4,17 @@ import {
   registerGraphqlPrompts,
 } from "@/lib/graphql/prompts";
 import { registerGraphqlResources } from "@/lib/graphql/resources";
-import { registerBusTools } from "@/lib/mcp/tools/bus-tools";
-import { registerCalendarTools } from "@/lib/mcp/tools/calendar-tools";
-import { registerCommentTools } from "@/lib/mcp/tools/comment-tools";
-import { registerCourseTools } from "@/lib/mcp/tools/course-tools";
-import { registerDashboardTools } from "@/lib/mcp/tools/dashboard-tools";
-import { registerDescriptionTools } from "@/lib/mcp/tools/description-tools";
-import { registerGraphqlOperationTool } from "@/lib/mcp/tools/graphql-operation-tool";
-import { registerMyDataTools } from "@/lib/mcp/tools/my-data-tools";
-import { registerProfileTools } from "@/lib/mcp/tools/profile-tools";
-import { registerSectionDataTools } from "@/lib/mcp/tools/section-data-tools";
-import { registerUploadTools } from "@/lib/mcp/tools/upload-tools";
+import { registerBusTools } from "@/lib/mcp/tools/bus/bus-tools";
+import { registerCourseTools } from "@/lib/mcp/tools/catalog/course-tools";
+import { registerSectionDataTools } from "@/lib/mcp/tools/catalog/section-data-tools";
+import { registerCommentTools } from "@/lib/mcp/tools/community/comment-tools";
+import { registerDescriptionTools } from "@/lib/mcp/tools/community/description-tools";
+import { registerGraphqlOperationTool } from "@/lib/mcp/tools/graphql/graphql-operation-tool";
+import { registerUploadTools } from "@/lib/mcp/tools/uploads/upload-tools";
+import { registerCalendarTools } from "@/lib/mcp/tools/workspace/calendar-tools";
+import { registerDashboardTools } from "@/lib/mcp/tools/workspace/dashboard-tools";
+import { registerMyDataTools } from "@/lib/mcp/tools/workspace/my-data-tools";
+import { registerProfileTools } from "@/lib/mcp/tools/workspace/profile-tools";
 import {
   assertRegisteredMcpToolMetadata,
   installMcpToolDescriptorDefaults,

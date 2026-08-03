@@ -29,7 +29,6 @@
     "e2e:test:shard4": "playwright test --shard=4/4",
     "e2e:visual": "VISUAL_REGRESSION=1 playwright test visual-matrix",
     "e2e:visual:update": "VISUAL_REGRESSION=1 playwright test visual-matrix --update-snapshots",
-    "format": "biome format",
     "hooks:install": "git config core.hooksPath .githooks",
     "openapi:generate": "bun run scripts/openapi/generate.ts",
     "openapi:check": "bun run openapi:generate && git diff --exit-code public/openapi.generated.json",

@@ -197,9 +197,7 @@ export function compactExam(value: unknown) {
     ...compactRelations(value, {
       section: compactSection,
       examBatch: (v) =>
-        isRecord(v)
-          ? pick(v, ["id", "jwId", "namePrimary", "nameSecondary"])
-          : v,
+        isRecord(v) ? pick(v, ["id", "namePrimary", "nameSecondary"]) : v,
     }),
     ...(Object.hasOwn(value, "examRooms") && Array.isArray(value.examRooms)
       ? {

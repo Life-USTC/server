@@ -1,3 +1,4 @@
+import { localizedNameSelect } from "@/features/section-detail/server/section-page-name-selects";
 import type { getPrisma } from "@/lib/db/prisma";
 
 type PagePrisma = ReturnType<typeof getPrisma>;
@@ -20,10 +21,7 @@ const relatedSectionSelect = {
   teachers: {
     select: {
       id: true,
-      nameCn: true,
-      nameEn: true,
-      namePrimary: true,
-      nameSecondary: true,
+      ...localizedNameSelect,
     },
   },
 } as const;

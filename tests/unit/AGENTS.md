@@ -1,16 +1,15 @@
 # tests/unit/
 
-Unit tests for pure helpers.
+Unit tests for pure helpers and read-model orchestration.
 
 ## Run
 
-Use the canonical command list in the repo root `AGENTS.md`; for this layer that
-is `bunx vitest run tests/unit`.
+See `tests/AGENTS.md` for commands. Shared mock templates: `tests/unit/helpers/AGENTS.md`.
 
 ## Scope
 
-- Pure functions only
-- No DB, browser, server, network
+- Pure functions and orchestration with mocked I/O boundaries
+- No real DB, browser, server, or network
 - Fast, deterministic
 
 ## Conventions
@@ -18,7 +17,8 @@ is `bunx vitest run tests/unit`.
 - Tests beside behavior area
 - Table tests for edge cases
 - Mock only process/env/time boundaries
-- Don't import Prisma clients
+- Prefer `tests/fixtures/dev-seed.ts` anchors over ad-hoc dates
+- Don't import real Prisma clients
 
 ## Coverage Priorities
 

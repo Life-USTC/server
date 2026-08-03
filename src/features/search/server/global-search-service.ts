@@ -14,6 +14,7 @@ import { GLOBAL_SEARCH_GROUP_ORDER } from "@/features/search/server/global-searc
 import type { AppLocale } from "@/i18n/config";
 import { cachedCatalogRuntimeData } from "@/lib/catalog-runtime-cache";
 import { withUserDbContext } from "@/lib/db/prisma";
+import { logAppEvent } from "@/lib/log/app-logger";
 import type { PublicRuntimeCacheAnalyticsNamespace } from "@/lib/metrics/analytics-engine";
 import { ilike } from "@/lib/query-filter-helpers";
 import { formatSemesterName } from "@/lib/text/format-semester-name";
@@ -253,7 +254,13 @@ export async function searchGlobally(input: {
         limit,
       );
     } catch (error) {
-      console.error("Global search workspace query failed", error);
+      // Workspace results are optional; catalog results still stand on their own.
+      logAppEvent(
+        "warn",
+        "Global search workspace query failed",
+        { source: "global-search" },
+        error,
+      );
     }
   }
 

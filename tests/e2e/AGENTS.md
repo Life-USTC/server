@@ -86,8 +86,11 @@ await expect(page).toHaveURL(/expected/);
 await expect(element).toBeVisible();
 
 // DON'T
-await page.waitForTimeout(1000); // rejected by $life-ustc-dev-loop checks
+await page.waitForTimeout(1000); // fixed sleep: slow when passing, flaky when not
+await page.waitForLoadState("networkidle"); // never settles with polling/websockets
 ```
+
+No tooling enforces this; it is a review rule.
 
 ## Concurrency
 

@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   summarizeCalendarSubscription,
   summarizeCalendarSubscriptionBrief,
-} from "@/lib/mcp/tools/calendar-summary";
+} from "@/lib/mcp/tools/workspace/calendar-summary";
 
 describe("summarizeCalendarSubscription 日历订阅摘要", () => {
   it("将缺少边界的学期视为开放式", () => {

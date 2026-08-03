@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
-import { parseCreateHomeworkTimestamps } from "@/lib/mcp/tools/section-data/homework-create-actions";
-import { parseHomeworkUpdateDates } from "@/lib/mcp/tools/section-data/homework-update-input";
+import { parseCreateHomeworkTimestamps } from "@/lib/mcp/tools/community/homework/homework-create-actions";
+import { parseHomeworkUpdateDates } from "@/lib/mcp/tools/community/homework/homework-update-input";
 
 function parseToolPayload(result: {
   content: Array<{ text: string; type: "text" }>;

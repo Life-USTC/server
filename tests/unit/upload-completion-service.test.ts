@@ -5,6 +5,7 @@ import {
   completeUploadSession,
   deleteOwnedUpload,
 } from "@/features/uploads/server/upload-service";
+import { createDeferred } from "../shared/deferred";
 
 const {
   auditLogCreateMock,
@@ -144,16 +145,6 @@ const ownerPrisma = {
     findUnique: pendingFindUniqueMock,
   },
 };
-
-function deferred<T>() {
-  let resolve!: (value: T | PromiseLike<T>) => void;
-  let reject!: (reason?: unknown) => void;
-  const promise = new Promise<T>((promiseResolve, promiseReject) => {
-    resolve = promiseResolve;
-    reject = promiseReject;
-  });
-  return { promise, reject, resolve };
-}
 
 describe("completeUploadSession", () => {
   beforeEach(() => {
@@ -452,7 +443,7 @@ describe("deleteOwnedUpload", () => {
   });
 
   it("在返回前等待上传删除审计写入", async () => {
-    const auditWrite = deferred<void>();
+    const auditWrite = createDeferred<void>();
     auditLogCreateMock.mockReturnValue(auditWrite.promise);
     const settled = vi.fn();
 

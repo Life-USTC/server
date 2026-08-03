@@ -9,6 +9,8 @@ export default defineConfig({
   test: {
     environment: "node",
     include: ["tests/integration/**/*.test.ts"],
+    // `auth-record-cleanup` and `oauth-consent-transaction` assert exact
+    // whole-table auth row counts, so concurrent files make them flaky.
     fileParallelism: false,
     globals: true,
     testTimeout: 30_000,

@@ -75,7 +75,7 @@ Docker runtime is the static loader.
 - `prisma/seed.sql` contains the executable canonical scenario, including the shared users, catalog, schedule, bus, and collaboration records used by E2E/integration tests.
 - The shared anchor comes from `DEV_SEED_ANCHOR` in `tests/fixtures/dev-seed.ts`. Use `.date` for bare date filters, `.recommendedAtTime` for time-sensitive tool calls, and `.startOfDayAtTime` when a test needs the seed day boundary.
 - `$life-ustc-dev-loop` loads that canonical scenario; if you invoke integration specs directly, run `bunx prisma db seed` first. The seed runner invokes host `psql`, so install the PostgreSQL client locally.
-- Scoped `tests/**/AGENTS.md` files should only add layer-specific caveats and link shared commands/setup back here or to helper files such as `tests/integration/utils/mcp-harness.ts`.
+- Scoped `tests/**/AGENTS.md` files should only add layer-specific caveats and link shared commands/setup back here or to helper files such as `tests/integration/mcp/_harness/client.ts`.
 
 ## Local Dev Environment
 
@@ -169,8 +169,8 @@ buildPaginatedResponse(items, page, pageSize, total)
 4. Run the check sequence in `$life-ustc-dev-loop`, escalating to the integration and E2E sequences when data flows, auth, browser flows, docs/contracts, or shared tooling change.
 
 **Documentation Alignment**:
-- Public REST API change → update route OpenAPI annotations, `docs/contracts/openapi.json` when relevant, then run `bun run build`.
-- Public GraphQL change → update the affected module contract and `docs/contracts/graphql.json`, regenerate `docs/graphql/schema.graphql`, then run the GraphQL schema compatibility gate and Worker smoke test.
+- Public REST API change → update route OpenAPI annotations, `docs/contracts/openapi.json` when relevant, then run `bun run openapi:check`.
+- Public GraphQL change → update the affected module contract and `docs/contracts/graphql.json`, regenerate the SDL snapshot with `bunx vitest run --update tests/unit/graphql-schema-snapshot.test.ts`, then rerun that test without `--update`.
 - MCP tool/parameter/output change → update the matching `docs/contracts/<module>.json` and integration coverage.
 - User-visible behavior change → update the affected contract JSON and user-facing docs if present.
 - Architecture or dependency-boundary change → update `docs/index.md`, the nearest scoped `AGENTS.md`, or an ADR/runbook if one exists.
