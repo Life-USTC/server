@@ -6,7 +6,6 @@ import {
 } from "../../../utils/auth";
 import { DEV_SEED } from "../../../utils/dev-seed";
 import {
-  appSidebar,
   expandWorkspaceSidebarGroup,
   sidebarNavigationLink,
   visibleText,
@@ -45,14 +44,6 @@ async function maybeCapture(
     return;
   }
   await captureStepScreenshot(page, testInfo, name);
-}
-
-function escapeForRegExp(value: string) {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-}
-
-function localizedNamePattern(nameCn: string, nameEn: string) {
-  return new RegExp(`${escapeForRegExp(nameCn)}|${escapeForRegExp(nameEn)}`);
 }
 
 async function gotoContractPage(
