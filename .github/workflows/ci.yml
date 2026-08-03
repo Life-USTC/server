@@ -23,7 +23,9 @@ jobs:
       contents: read
     uses: ./.github/workflows/db-backed-bun-job.yml
     with:
-      database-name: life_ustc_integration
+      # Must match wrangler.e2e.jsonc Hyperdrive localConnectionString so the
+      # Playwright API suite (bun run e2e:server) can reach the seeded DB.
+      database-name: life_ustc_dev
       install-playwright: true
       job-phase: ci:integration
       timeout-minutes: 60
