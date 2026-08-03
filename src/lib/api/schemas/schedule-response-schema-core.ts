@@ -38,7 +38,8 @@ const localizedRoomWithBuildingCampusSchema = roomSchema.extend({
 
 const localizedDepartmentSchema = departmentSchema.extend(localizedNameFields);
 
-const localizedTeacherTitleSchema = teacherTitleSchema.extend(localizedNameFields);
+const localizedTeacherTitleSchema =
+  teacherTitleSchema.extend(localizedNameFields);
 
 const scheduleTeacherSchema = z.object({
   id: z.number().int(),

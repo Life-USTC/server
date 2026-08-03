@@ -84,10 +84,6 @@ const sectionScheduleContextSelect = {
   },
 } as const satisfies Prisma.SectionSelect;
 
-type SectionScheduleContext = Prisma.SectionGetPayload<{
-  select: typeof sectionScheduleContextSelect;
-}>;
-
 export async function listPublicSchedules(input: {
   filters: ScheduleListFilters;
   locale?: AppLocale;
