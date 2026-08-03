@@ -23,6 +23,7 @@ import {
   resolvePublicSsrMode,
   resolveSectionDetailTabRedirect,
   resolveTeacherDetailTabRedirect,
+  shouldRoutePublicSsrCache,
 } from "./lib/cloudflare/public-ssr-gateway";
 import { buildContentSecurityPolicy } from "./lib/security/csp";
 import { CONTENT_SIGNAL } from "./lib/seo/content-signal";
@@ -228,7 +229,9 @@ export default {
       });
     }
     const mode = resolvePublicSsrMode(request, resolveCatalogListPublicSsrMode);
-    if (!mode) return app.fetch(directRequest(request), env, context);
+    if (!shouldRoutePublicSsrCache(request, mode)) {
+      return app.fetch(directRequest(request), env, context);
+    }
 
     const locale = resolvePublicSsrLocale(request);
     if (mode === "not-found") {

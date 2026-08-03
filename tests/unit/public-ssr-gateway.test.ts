@@ -10,6 +10,7 @@ import {
   resolvePublicSsrLocale,
   resolveSectionDetailTabRedirect,
   resolveTeacherDetailTabRedirect,
+  shouldRoutePublicSsrCache,
 } from "@/lib/cloudflare/public-ssr-gateway";
 
 function resolvePublicSsrMode(request: Request) {
@@ -177,14 +178,25 @@ describe("public SSR gateway", () => {
     ).toBeNull();
   });
 
-  test("keeps viewer-independent catalog list caching with auth signals", () => {
-    expect(
-      resolvePublicSsrMode(
-        request("/catalog/courses", {
-          cookie: "better-auth.session_token=session-token",
-        }),
-      ),
-    ).toBe("page");
+  test.each([
+    "/catalog/courses",
+    "/catalog/sections",
+    "/privacy",
+    "/wp-login.php",
+  ])("bypasses public SSR cache routing for authenticated page %s", (path) => {
+    const authenticated = request(path, {
+      cookie: "better-auth.session_token=session-token",
+    });
+    expect(resolvePublicSsrMode(authenticated)).toBeNull();
+    expect(shouldRoutePublicSsrCache(authenticated, "page")).toBe(false);
+    expect(shouldRoutePublicSsrCache(authenticated, "not-found")).toBe(false);
+  });
+
+  test("routes anonymous catalog list pages through public SSR cache", () => {
+    const anonymous = request("/catalog/courses");
+    expect(resolvePublicSsrMode(anonymous)).toBe("page");
+    expect(shouldRoutePublicSsrCache(anonymous, "page")).toBe(true);
+    expect(shouldRoutePublicSsrCache(anonymous, null)).toBe(false);
   });
 
   test("bypasses non-read and non-document catalog detail requests", () => {

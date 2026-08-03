@@ -110,12 +110,20 @@ function isCanonicalCatalogDetailPath(pathname: string) {
   return !section;
 }
 
+export function shouldRoutePublicSsrCache(
+  request: Request,
+  mode: PublicSsrMode | null,
+): mode is PublicSsrMode {
+  return mode !== null && !hasRequestAuthSignal(request.headers);
+}
+
 export function resolvePublicSsrMode(
   request: Request,
   resolveFeatureRoute?: PublicSsrRouteResolver,
 ): PublicSsrMode | null {
   if (request.method !== "GET" && request.method !== "HEAD") return null;
   if (!acceptsHtml(request)) return null;
+  if (hasRequestAuthSignal(request.headers)) return null;
 
   const url = new URL(request.url);
   if (url.pathname.endsWith("/__data.json")) return null;
@@ -124,9 +132,7 @@ export function resolvePublicSsrMode(
   if (featureMode !== undefined) return featureMode;
 
   if (isCanonicalCatalogDetailPath(url.pathname)) {
-    return !url.search && !hasRequestAuthSignal(request.headers)
-      ? "page"
-      : null;
+    return !url.search ? "page" : null;
   }
 
   if (
