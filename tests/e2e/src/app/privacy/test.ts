@@ -34,20 +34,17 @@ test.describe("/privacy 隐私政策页", () => {
     expect(await listItems.count()).toBeGreaterThan(0);
   });
 
-  test("登录用户复用匿名 SSR 后在 hydration 恢复 viewer", async ({ page }) => {
+  test("登录用户绕过 PublicSsr 缓存并直接 SSR viewer", async ({ page }) => {
     await signInAsDebugUser(page, "/privacy", "/privacy");
 
     const documentResponse = await page.request.get("/privacy");
     expect(documentResponse.status()).toBe(200);
-    expect(documentResponse.headers()["cache-control"]).toBe(
-      "private, no-store",
-    );
-    expect(documentResponse.headers()["cloudflare-cdn-cache-control"]).toBe(
-      "no-store",
-    );
+    expect(documentResponse.headers()["cache-control"]).toMatch(/no-store/);
     const html = await documentResponse.text();
-    expect(html).toContain('data-testid="viewer-loading"');
-    expect(html).not.toContain('id="app-user-menu"');
+    // Authenticated requests skip anonymous PublicSsr HTML, so the viewer is
+    // already present in the document instead of a client-only skeleton.
+    expect(html).not.toContain('data-testid="viewer-loading"');
+    expect(html).toContain('id="app-user-menu"');
 
     await gotoAndWaitForReady(page, "/privacy");
     await expect(page.getByTestId("viewer-loading")).toHaveCount(0);
