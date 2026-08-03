@@ -253,6 +253,108 @@ function countDueTodosInTransaction(
   });
 }
 
+export type OverviewTodoBundleCounts = {
+  completed: number;
+  dueSoon: number;
+  incomplete: number;
+  overdue: number;
+};
+
+export async function countOverviewTodoBundleInTransaction(
+  tx: Prisma.TransactionClient,
+  input: {
+    homeworkWindowEnd: Date;
+    now: Date;
+    userId: string;
+  },
+): Promise<OverviewTodoBundleCounts> {
+  const userId = normalizeTodoUserId(input.userId);
+  const rows = await tx.$queryRaw<
+    [
+      {
+        completed: bigint;
+        due_soon: bigint;
+        incomplete: bigint;
+        overdue: bigint;
+      },
+    ]
+  >`
+    SELECT
+      count(*) FILTER (WHERE NOT completed) AS incomplete,
+      count(*) FILTER (WHERE completed) AS completed,
+      count(*) FILTER (
+        WHERE NOT completed AND "dueAt" IS NOT NULL AND "dueAt" < ${input.now}
+      ) AS overdue,
+      count(*) FILTER (
+        WHERE NOT completed
+          AND "dueAt" IS NOT NULL
+          AND "dueAt" >= ${input.now}
+          AND "dueAt" <= ${input.homeworkWindowEnd}
+      ) AS due_soon
+    FROM "Todo"
+    WHERE "userId" = ${userId}
+  `;
+  const row = rows[0];
+  return {
+    incomplete: Number(row.incomplete),
+    completed: Number(row.completed),
+    overdue: Number(row.overdue),
+    dueSoon: Number(row.due_soon),
+  };
+}
+
+async function loadOverviewTodoBundleInTransaction(
+  tx: Prisma.TransactionClient,
+  input: {
+    homeworkWindowEnd: Date;
+    includeSamples: boolean;
+    limit?: number;
+    now: Date;
+    userId: string;
+  },
+) {
+  const userId = normalizeTodoUserId(input.userId);
+  const fusedCounts = await countOverviewTodoBundleInTransaction(tx, {
+    userId,
+    now: input.now,
+    homeworkWindowEnd: input.homeworkWindowEnd,
+  });
+  const dueInput = {
+    userId,
+    completed: false as const,
+    dueAtFrom: input.now,
+    dueAtTo: input.homeworkWindowEnd,
+    includeDueAtTo: true as const,
+  };
+  const [todos, dueTodos] = await Promise.all([
+    input.includeSamples
+      ? findTodoSnapshots(tx, {
+          where: buildTodoListWhere(userId, { completed: false }),
+          take: input.limit,
+        })
+      : Promise.resolve([]),
+    input.includeSamples
+      ? listDueTodoSamplesInTransaction(tx, {
+          ...dueInput,
+          take: input.limit,
+        })
+      : Promise.resolve([]),
+  ]);
+
+  return {
+    todos: {
+      counts: {
+        incomplete: fusedCounts.incomplete,
+        completed: fusedCounts.completed,
+        overdue: fusedCounts.overdue,
+      },
+      todos,
+    },
+    dueTodosCount: fusedCounts.dueSoon,
+    dueTodos,
+  };
+}
+
 function buildDueTodoWhere(input: {
   completed?: boolean;
   dueAtFrom?: Date;
@@ -337,31 +439,23 @@ export async function loadOverviewTodoBundle(input: {
   const runTodoSummary = input.runTodoSummary ?? identity;
   const runDueTodoCount = input.runDueTodoCount ?? identity;
   const runDueTodoSample = input.runDueTodoSample ?? identity;
-  const dueInput = {
-    userId,
-    completed: false as const,
-    dueAtFrom: input.now,
-    dueAtTo: input.homeworkWindowEnd,
-    includeDueAtTo: true as const,
-  };
 
   return withUserDbContext(userId, async (tx) => {
+    const bundlePromise = loadOverviewTodoBundleInTransaction(tx, {
+      userId,
+      now: input.now,
+      homeworkWindowEnd: input.homeworkWindowEnd,
+      includeSamples,
+      limit: input.limit,
+    });
     const [todos, dueTodosCount, dueTodos] = await Promise.all([
-      runTodoSummary(() =>
-        loadTodoSummaryInTransaction(tx, {
-          userId,
-          now: input.now,
-          filters: { completed: false },
-          take: includeSamples ? input.limit : 0,
-        }),
+      runTodoSummary(() => bundlePromise.then((bundle) => bundle.todos)),
+      runDueTodoCount(() =>
+        bundlePromise.then((bundle) => bundle.dueTodosCount),
       ),
-      runDueTodoCount(() => countDueTodosInTransaction(tx, dueInput)),
       includeSamples
         ? runDueTodoSample(() =>
-            listDueTodoSamplesInTransaction(tx, {
-              ...dueInput,
-              take: input.limit,
-            }),
+            bundlePromise.then((bundle) => bundle.dueTodos),
           )
         : Promise.resolve([]),
     ]);
