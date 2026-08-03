@@ -6,6 +6,7 @@ import type {
   CommentReactionType,
   CommentVisibility,
 } from "@/generated/prisma/client";
+import { parseDateInput } from "@/lib/time/parse-date-input";
 import { badMutationInput } from "./mutation-errors";
 
 export const commentVisibilityResolver = {
@@ -109,5 +110,9 @@ export function rejectDuplicateMutationTargets(
 
 export function dateTimeInput(value: string | null | undefined) {
   if (value == null) return value;
-  return new Date(value);
+  const parsed = parseDateInput(value);
+  if (parsed === undefined) {
+    badMutationInput("Invalid date/time input.");
+  }
+  return parsed;
 }
