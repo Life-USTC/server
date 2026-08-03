@@ -235,7 +235,6 @@ export type CommentTargetLookupRecord = Prisma.CommentGetPayload<{
   select: typeof commentTargetLookupSelect;
 }>;
 
-
 async function countAnonymousHiddenRoots(
   whereTarget: Record<string, number | string>,
 ): Promise<number> {

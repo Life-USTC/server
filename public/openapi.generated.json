@@ -26165,7 +26165,8 @@
                           "enum": [
                             "not_found",
                             "forbidden",
-                            "locked"
+                            "locked",
+                            "suspended"
                           ]
                         },
                         "message": {

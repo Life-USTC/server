@@ -108,7 +108,7 @@ describe("deleteCommentBatchRoute", () => {
       {
         success: false,
         id: "comment-owned-by-other",
-        error: { code: "suspended", message: "Suspended" },
+        error: { code: "forbidden", message: "Forbidden" },
       },
       {
         success: false,

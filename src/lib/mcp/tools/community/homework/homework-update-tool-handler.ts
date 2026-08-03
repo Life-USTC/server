@@ -1,14 +1,14 @@
 import type { AuthInfo } from "@modelcontextprotocol/sdk/server/auth/types.js";
 import { updateHomework } from "@/features/homeworks/server/homework-mutations";
 import { requireHomeworkItemById } from "@/features/homeworks/server/homework-read-model";
-import { hasHomeworkUpdateIntentChanges } from "@/features/homeworks/server/homework-update-intent";
+import { prepareHomeworkUpdate } from "@/features/homeworks/server/prepare-homework-update";
 import {
   getUserId,
   jsonToolResult,
   resolveMcpMode,
 } from "@/lib/mcp/tools/_shared/helpers";
 import {
-  buildHomeworkUpdateIntentForTool,
+  homeworkUpdateToolFailure,
   parseHomeworkUpdateDates,
   type UpdateHomeworkOnSectionArgs,
 } from "./homework-update-input";
@@ -33,35 +33,34 @@ export async function updateHomeworkOnSectionTool(
   const resolvedMode = resolveMcpMode(mode);
   const userId = getUserId(extra.authInfo);
 
-  const parsedDates = parseHomeworkUpdateDates(
-    {
-      publishedAt,
-      submissionDueAt,
-      submissionStartAt,
-    },
-    resolvedMode,
-  );
+  const parsedDates = parseHomeworkUpdateDates({
+    publishedAt,
+    submissionDueAt,
+    submissionStartAt,
+  });
   if (!parsedDates.ok) {
     return parsedDates.result;
   }
 
-  const update = buildHomeworkUpdateIntentForTool(
-    { isMajor, requiresTeam, title },
-    userId,
-    parsedDates.value,
+  const prepared = prepareHomeworkUpdate({
+    dates: parsedDates.value,
     description,
-  );
-
-  if (!hasHomeworkUpdateIntentChanges(update)) {
-    return jsonToolResult(
-      { success: false, message: "No changes" },
-      { mode: resolvedMode },
+    hasDescription: description !== undefined,
+    isMajor,
+    requiresTeam,
+    title,
+    userId,
+  });
+  if (!prepared.ok) {
+    return homeworkUpdateToolFailure(
+      prepared.error === "no_changes" ? "No changes" : prepared.message,
+      resolvedMode,
     );
   }
 
   const result = await updateHomework({
     homeworkId,
-    update,
+    update: prepared.update,
     userId,
   });
   if (!result.ok) {
