@@ -1,9 +1,14 @@
 import { withHomeworkItemState } from "@/features/homeworks/server/homework-item-state";
 import {
-  listDueSoonSubscribedHomeworksWithCount,
+  fetchSubscribedHomeworkRlsSnapshot,
+  localizeSubscribedHomeworkDashboardItems,
+} from "@/features/subscriptions/server/subscription-homework-list";
+import { buildSubscribedHomeworkQuery } from "@/features/subscriptions/server/subscription-homework-read-helpers";
+import {
   listTodaySubscribedSchedulesWithCount,
   listUpcomingSubscribedExamsWithCount,
 } from "@/features/subscriptions/server/subscription-read-model";
+import type { Prisma } from "@/generated/prisma/client";
 import type { AppLocale } from "@/i18n/config";
 import { withUserDbContext } from "@/lib/db/prisma";
 import type { WorkspaceOverviewStage } from "@/lib/metrics/analytics-engine";
@@ -36,19 +41,55 @@ const emptySubscriptionReads: OverviewSubscriptionReads = {
   upcomingExams: [],
 };
 
-function countPendingOverviewHomeworks(
+function countPendingOverviewHomeworksInTransaction(
+  tx: Prisma.TransactionClient,
   userId: string,
   sectionIds: readonly number[],
 ) {
-  return withUserDbContext(userId, (tx) =>
-    tx.homework.count({
-      where: {
-        deletedAt: null,
-        homeworkCompletions: { none: { userId } },
-        sectionId: { in: [...sectionIds] },
-      },
-    }),
-  );
+  return tx.homework.count({
+    where: {
+      deletedAt: null,
+      homeworkCompletions: { none: { userId } },
+      sectionId: { in: [...sectionIds] },
+    },
+  });
+}
+
+async function loadOverviewHomeworkRlsReads(input: {
+  atTime: Date;
+  homeworkWindowEnd: Date;
+  includeSamples: boolean;
+  limit: number;
+  sectionIds: readonly number[];
+  userId: string;
+}) {
+  const dueSoonQuery = buildSubscribedHomeworkQuery({
+    completed: false,
+    dueAtFrom: input.atTime,
+    dueAtTo: input.homeworkWindowEnd,
+    includeDeleted: false,
+    limit: input.includeSamples ? input.limit : undefined,
+    requireDueDate: true,
+    sectionIds: [...input.sectionIds],
+    userId: input.userId,
+  });
+
+  return withUserDbContext(input.userId, async (tx) => {
+    const [pendingHomeworksCount, dueSoonRls] = await Promise.all([
+      countPendingOverviewHomeworksInTransaction(
+        tx,
+        input.userId,
+        input.sectionIds,
+      ),
+      fetchSubscribedHomeworkRlsSnapshot(
+        tx,
+        input.userId,
+        dueSoonQuery,
+        input.includeSamples,
+      ),
+    ]);
+    return { pendingHomeworksCount, dueSoonRls };
+  });
 }
 
 export async function loadOverviewSubscriptionReads(input: {
@@ -101,37 +142,32 @@ export async function loadOverviewSubscriptionReads(input: {
     locale,
     sectionIds,
   });
-  const dueSoonHomeworksOverviewPromise =
-    listDueSoonSubscribedHomeworksWithCount(userId, {
-      dueAtFrom: atTime,
-      dueAtTo: homeworkWindowEnd,
-      includeItems: includeSamples,
-      limit: includeSamples ? limit : undefined,
-      locale,
-      sectionIds,
-    });
+  const homeworkRlsPromise = loadOverviewHomeworkRlsReads({
+    atTime,
+    homeworkWindowEnd,
+    includeSamples,
+    limit,
+    sectionIds,
+    userId,
+  });
 
   if (!includeSamples) {
-    const [
-      pendingHomeworksCount,
-      todaySchedulesCount,
-      upcomingExamsCount,
-      dueSoonHomeworksCount,
-    ] = await runStage("counts", () =>
-      Promise.all([
-        countPendingOverviewHomeworks(userId, sectionIds),
-        schedulesOverviewPromise.then((result) => result.total),
-        examsOverviewPromise.then((result) => result.total),
-        dueSoonHomeworksOverviewPromise.then((result) => result.total),
-      ]),
+    const [homeworkRls, schedulesOverview, examsOverview] = await runStage(
+      "counts",
+      () =>
+        Promise.all([
+          homeworkRlsPromise,
+          schedulesOverviewPromise,
+          examsOverviewPromise,
+        ]),
     );
 
     return {
       counts: {
-        pendingHomeworksCount,
-        todaySchedulesCount,
-        upcomingExamsCount,
-        dueSoonHomeworksCount,
+        pendingHomeworksCount: homeworkRls.pendingHomeworksCount,
+        todaySchedulesCount: schedulesOverview.total,
+        upcomingExamsCount: examsOverview.total,
+        dueSoonHomeworksCount: homeworkRls.dueSoonRls.total,
       },
       dueSoonHomeworks: [],
       schedules: [],
@@ -139,49 +175,38 @@ export async function loadOverviewSubscriptionReads(input: {
     };
   }
 
-  const dueSoonHomeworksRawPromise = dueSoonHomeworksOverviewPromise.then(
-    (result) => result.items,
-  );
+  const dueSoonHomeworksRawPromise = homeworkRlsPromise.then((homeworkRls) => {
+    if (homeworkRls.dueSoonRls.homeworkIds.length === 0) {
+      return [];
+    }
+    return runStage("lists", () =>
+      localizeSubscribedHomeworkDashboardItems(homeworkRls.dueSoonRls, locale),
+    );
+  });
   const dueSoonHomeworksPromise = dueSoonHomeworksRawPromise.then((raw) =>
     runStage("item_state", () => withHomeworkItemState(raw, userId)),
   );
 
   const [
-    [
-      pendingHomeworksCount,
-      dueSoonHomeworksCount,
-      todaySchedulesCount,
-      upcomingExamsCount,
-    ],
-    [schedulesOverview, upcomingExamsOverview],
+    [homeworkRls, schedulesOverview, upcomingExamsOverview],
     dueSoonHomeworks,
   ] = await Promise.all([
     runStage("counts", () =>
       Promise.all([
-        countPendingOverviewHomeworks(userId, sectionIds),
-        dueSoonHomeworksOverviewPromise.then((result) => result.total),
-        schedulesOverviewPromise.then((result) => result.total),
-        examsOverviewPromise.then((result) => result.total),
-      ]),
-    ),
-    runStage("lists", () =>
-      Promise.all([
+        homeworkRlsPromise,
         schedulesOverviewPromise,
-        // Include homework in the lists fan-out so its latency is attributed
-        // to `lists` while `item_state` still chains off the same promise.
-        dueSoonHomeworksRawPromise,
         examsOverviewPromise,
-      ]).then(([schedules, , exams]) => [schedules, exams] as const),
+      ]),
     ),
     dueSoonHomeworksPromise,
   ]);
 
   return {
     counts: {
-      pendingHomeworksCount,
-      todaySchedulesCount,
-      upcomingExamsCount,
-      dueSoonHomeworksCount,
+      pendingHomeworksCount: homeworkRls.pendingHomeworksCount,
+      todaySchedulesCount: schedulesOverview.total,
+      upcomingExamsCount: upcomingExamsOverview.total,
+      dueSoonHomeworksCount: homeworkRls.dueSoonRls.total,
     },
     dueSoonHomeworks,
     schedules: schedulesOverview.items,
