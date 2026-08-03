@@ -394,9 +394,11 @@ describe("compactMcpPayload MCP 载荷压缩", () => {
       const result = compactMcpPayload(input) as Record<string, unknown>;
       const exam = (result.exams as Record<string, unknown>[])[0];
       expect(exam).not.toHaveProperty("extraField");
-      expect(exam.examBatch as Record<string, unknown>).not.toHaveProperty(
-        "extraField",
-      );
+      expect(exam.examBatch).toEqual({
+        id: "eb1",
+        namePrimary: "Final Exam Batch 1",
+        nameSecondary: "期末考试第一批",
+      });
       expect(
         (exam.examRooms as Record<string, unknown>[])[0],
       ).not.toHaveProperty("capacity");

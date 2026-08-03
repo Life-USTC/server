@@ -1,3 +1,4 @@
+import { localizedNameSelect } from "@/features/section-detail/server/section-page-name-selects";
 import type { Prisma } from "@/generated/prisma/client";
 
 export const sectionSummarySelect = {
@@ -16,10 +17,7 @@ export const sectionSummarySelect = {
       id: true,
       jwId: true,
       code: true,
-      nameCn: true,
-      nameEn: true,
-      namePrimary: true,
-      nameSecondary: true,
+      ...localizedNameSelect,
     },
   },
   semester: {
@@ -34,10 +32,7 @@ export const sectionSummarySelect = {
     select: {
       id: true,
       jwId: true,
-      nameCn: true,
-      nameEn: true,
-      namePrimary: true,
-      nameSecondary: true,
+      ...localizedNameSelect,
       code: true,
     },
   },
@@ -47,10 +42,7 @@ export const sectionSummarySelect = {
       personId: true,
       teacherId: true,
       code: true,
-      nameCn: true,
-      nameEn: true,
-      namePrimary: true,
-      nameSecondary: true,
+      ...localizedNameSelect,
     },
   },
 };

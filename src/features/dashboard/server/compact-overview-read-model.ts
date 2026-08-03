@@ -1,64 +1,41 @@
-import { withHomeworkItemState } from "@/features/homeworks/server/homework-item-state";
-import {
-  countUpcomingSubscribedExams,
-  listSubscribedHomeworks,
-  listSubscribedSchedules,
-  listUpcomingSubscribedExams,
-} from "@/features/subscriptions/server/subscription-read-model";
 import { loadOverviewTodoBundle } from "@/features/todos/server/todo-service";
 import { type AppLocale, DEFAULT_LOCALE } from "@/i18n/config";
 import { runCloudflareTraceSpan } from "@/lib/adapters/cloudflare-runtime";
-import { prisma, withUserDbContext } from "@/lib/db/prisma";
+import { withUserDbContext } from "@/lib/db/prisma";
 import {
   type WorkspaceOverviewStage,
   writeWorkspaceOverviewStageAnalytics,
 } from "@/lib/metrics/analytics-engine";
-import { parseDateInput } from "@/lib/time/parse-date-input";
+import { parseRequiredDateInput } from "@/lib/time/date-time-from-hhmm";
 import { shanghaiDayjs } from "@/lib/time/shanghai-dayjs";
 import { formatShanghaiDate } from "@/lib/time/shanghai-format";
 import { serializeScheduleTimeFields } from "@/shared/lib/schedule-serialization";
+import { loadOverviewSubscriptionReads } from "./compact-overview-subscription-bundle";
 
 const DEFAULT_OVERVIEW_LIMIT = 3;
 const DEFAULT_HOMEWORK_WINDOW_DAYS = 7;
-
-function requiredDate(value: Date | null | undefined, label: string) {
-  if (value instanceof Date) return value;
-  throw new Error(`Failed to derive ${label}`);
-}
-
-function shanghaiDateOnlyStart(input: Date) {
-  return requiredDate(parseDateInput(formatShanghaiDate(input)), "day start");
-}
 
 async function runOverviewStage<T>(
   stage: WorkspaceOverviewStage,
   work: () => Promise<T>,
 ) {
   const startMs = Date.now();
+  let status: "error" | "success" = "error";
   try {
     const result = await runCloudflareTraceSpan(
       `workspace.overview.${stage}`,
       {},
       work,
     );
-    writeWorkspaceOverviewStageAnalytics({
-      ioObservedDurationMs: Date.now() - startMs,
-      stage,
-      status: "success",
-    });
+    status = "success";
     return result;
-  } catch (error) {
+  } finally {
     writeWorkspaceOverviewStageAnalytics({
       ioObservedDurationMs: Date.now() - startMs,
       stage,
-      status: "error",
+      status,
     });
-    throw error;
   }
-}
-
-function runOverviewSubStage(stage: WorkspaceOverviewStage) {
-  return <T>(work: () => Promise<T>) => runOverviewStage(stage, work);
 }
 
 export async function getCompactOverview(
@@ -66,30 +43,33 @@ export async function getCompactOverview(
   {
     atTime = new Date(),
     homeworkWindowDays = DEFAULT_HOMEWORK_WINDOW_DAYS,
+    includeSamples = true,
     limit = DEFAULT_OVERVIEW_LIMIT,
     locale = DEFAULT_LOCALE,
   }: {
     atTime?: Date;
     homeworkWindowDays?: number;
+    /** When false, skip sample list queries (GraphQL counts-only). REST/MCP keep samples. */
+    includeSamples?: boolean;
     limit?: number;
     locale?: AppLocale;
   } = {},
 ) {
-  const now = atTime;
-  const todayStart = shanghaiDateOnlyStart(now);
+  const todayStart = parseRequiredDateInput(formatShanghaiDate(atTime));
   const tomorrowStart = new Date(todayStart.getTime() + 24 * 60 * 60 * 1000);
-  const homeworkWindowEnd = shanghaiDayjs(now)
+  const homeworkWindowEnd = shanghaiDayjs(atTime)
     .add(homeworkWindowDays, "day")
     .toDate();
 
   const todoBundlePromise = loadOverviewTodoBundle({
     userId,
-    now,
+    now: atTime,
     homeworkWindowEnd,
+    includeSamples,
     limit,
-    runTodoSummary: runOverviewSubStage("todo_summary"),
-    runDueTodoCount: runOverviewSubStage("due_todo_count"),
-    runDueTodoSample: runOverviewSubStage("due_todo_sample"),
+    runTodoSummary: (work) => runOverviewStage("todo_summary", work),
+    runDueTodoCount: (work) => runOverviewStage("due_todo_count", work),
+    runDueTodoSample: (work) => runOverviewStage("due_todo_sample", work),
   });
 
   const user = await runOverviewStage("user_sections", () =>
@@ -114,112 +94,19 @@ export async function getCompactOverview(
 
   const [todoBundle, overviewReads] = await Promise.all([
     todoBundlePromise,
-    (async () => {
-      const [
-        [
-          pendingHomeworksCount,
-          todaySchedulesCount,
-          upcomingExamsCount,
-          dueSoonHomeworksCount,
-        ],
-        [schedules, dueSoonHomeworksRaw, upcomingExams],
-      ] = await Promise.all([
-        runOverviewStage("counts", () =>
-          sectionIds.length > 0
-            ? Promise.all([
-                withUserDbContext(userId, (tx) =>
-                  tx.homework.count({
-                    where: {
-                      deletedAt: null,
-                      homeworkCompletions: { none: { userId } },
-                      sectionId: { in: sectionIds },
-                    },
-                  }),
-                ),
-                prisma.schedule.count({
-                  where: {
-                    date: { gte: todayStart, lt: tomorrowStart },
-                    sectionId: { in: sectionIds },
-                  },
-                }),
-                countUpcomingSubscribedExams({
-                  atTime: now,
-                  sectionIds,
-                }),
-                withUserDbContext(userId, (tx) =>
-                  tx.homework.count({
-                    where: {
-                      deletedAt: null,
-                      homeworkCompletions: { none: { userId } },
-                      sectionId: { in: sectionIds },
-                      submissionDueAt: { gte: now, lte: homeworkWindowEnd },
-                    },
-                  }),
-                ),
-              ])
-            : Promise.resolve<[number, number, number, number]>([0, 0, 0, 0]),
-        ),
-        runOverviewStage("lists", () =>
-          sectionIds.length > 0
-            ? Promise.all([
-                listSubscribedSchedules(userId, {
-                  dateFrom: todayStart,
-                  dateTo: todayStart,
-                  limit,
-                  locale,
-                  sectionIds,
-                  shape: "compact",
-                }),
-                listSubscribedHomeworks(userId, {
-                  completed: false,
-                  dueAtFrom: now,
-                  dueAtTo: homeworkWindowEnd,
-                  limit,
-                  locale,
-                  requireDueDate: true,
-                  sectionIds,
-                  shape: "dashboard",
-                }),
-                listUpcomingSubscribedExams(userId, {
-                  atTime: now,
-                  limit,
-                  locale,
-                  sectionIds,
-                  shape: "compact",
-                }),
-              ])
-            : Promise.resolve<[never[], never[], never[]]>([[], [], []]),
-        ),
-      ]);
-
-      const dueSoonHomeworks = await runOverviewStage("item_state", () =>
-        withHomeworkItemState(dueSoonHomeworksRaw, userId),
-      );
-
-      return {
-        counts: {
-          pendingHomeworksCount,
-          todaySchedulesCount,
-          upcomingExamsCount,
-          dueSoonHomeworksCount,
-        },
-        dueSoonHomeworks,
-        schedules,
-        upcomingExams,
-      };
-    })(),
+    loadOverviewSubscriptionReads({
+      atTime,
+      homeworkWindowEnd,
+      includeSamples,
+      limit,
+      locale,
+      runStage: runOverviewStage,
+      sectionIds,
+      todayStart,
+      tomorrowStart,
+      userId,
+    }),
   ]);
-  const {
-    counts: {
-      pendingHomeworksCount,
-      todaySchedulesCount,
-      upcomingExamsCount,
-      dueSoonHomeworksCount,
-    },
-    dueSoonHomeworks,
-    schedules,
-    upcomingExams,
-  } = overviewReads;
   const { todos, dueTodosCount, dueTodos } = todoBundle;
 
   return {
@@ -230,7 +117,7 @@ export async function getCompactOverview(
       isAdmin: user?.isAdmin ?? false,
     },
     anchor: {
-      atTime: now,
+      atTime,
       todayStart,
       tomorrowStart,
       homeworkWindowDays,
@@ -239,14 +126,14 @@ export async function getCompactOverview(
     },
     counts: {
       todos: todos.counts,
-      pendingHomeworks: pendingHomeworksCount,
-      dueSoonHomeworks: dueSoonHomeworksCount,
-      todaySchedules: todaySchedulesCount,
-      upcomingExams: upcomingExamsCount,
+      pendingHomeworks: overviewReads.counts.pendingHomeworksCount,
+      dueSoonHomeworks: overviewReads.counts.dueSoonHomeworksCount,
+      todaySchedules: overviewReads.counts.todaySchedulesCount,
+      upcomingExams: overviewReads.counts.upcomingExamsCount,
     },
     schedules: {
-      total: todaySchedulesCount,
-      items: schedules.map(serializeScheduleTimeFields),
+      total: overviewReads.counts.todaySchedulesCount,
+      items: overviewReads.schedules.map(serializeScheduleTimeFields),
     },
     todos: {
       counts: todos.counts,
@@ -257,12 +144,12 @@ export async function getCompactOverview(
       items: dueTodos,
     },
     homeworks: {
-      total: dueSoonHomeworksCount,
-      items: dueSoonHomeworks,
+      total: overviewReads.counts.dueSoonHomeworksCount,
+      items: overviewReads.dueSoonHomeworks,
     },
     exams: {
-      total: upcomingExamsCount,
-      items: upcomingExams,
+      total: overviewReads.counts.upcomingExamsCount,
+      items: overviewReads.upcomingExams,
     },
   };
 }

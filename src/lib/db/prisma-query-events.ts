@@ -1,4 +1,3 @@
-import { getOptionalTrimmedEnv } from "@/app-env";
 import { type Prisma, PrismaClient } from "@/generated/prisma/client";
 import {
   createPrismaAdapter,
@@ -23,9 +22,6 @@ export function logPrismaQuery(event: Prisma.QueryEvent) {
   const slowThresholdMs = getPrismaSlowQueryThresholdMs();
   const debugMode = getPrismaQueryDebugMode();
   const isSlow = slowThresholdMs != null && event.duration >= slowThresholdMs;
-  const shouldLogParams =
-    debugMode === "verbose" &&
-    getOptionalTrimmedEnv("NODE_ENV") !== "production";
 
   if (!isSlow && debugMode === "off") {
     return;
@@ -36,8 +32,9 @@ export function logPrismaQuery(event: Prisma.QueryEvent) {
     event: isSlow ? "prisma.slow-query" : "prisma.query",
     durationMs: event.duration,
     target: event.target,
+    // `event.params` carries bound values (emails, comment bodies, titles), so
+    // it is never logged — the query text plus duration is enough to profile.
     query: compactQueryText(event.query),
-    ...(shouldLogParams ? { params: compactQueryText(event.params) } : {}),
   });
 }
 

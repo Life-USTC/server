@@ -20,6 +20,10 @@
  */
 import { expect, test } from "@playwright/test";
 import { TODO_CONTENT_MAX_LENGTH } from "@/features/todos/lib/todo-limits";
+import {
+  assertTodoCreateSuccess,
+  assertTodoListedWithFields,
+} from "../../../../../shared/scenarios/todo-crud";
 import { signInAsDebugUser } from "../../../../utils/auth";
 import { DEV_SEED, DEV_SEED_ANCHOR } from "../../../../utils/dev-seed";
 import { assertApiContract } from "../../_shared/api-contract";
@@ -152,8 +156,9 @@ test("/api/workspace/todos POST 登录后可创建新待办并清理", async ({ 
   });
   expect(createResponse.status()).toBe(201);
 
-  const createdId = ((await createResponse.json()) as { id?: string }).id;
-  expect(createdId).toBeTruthy();
+  const created = (await createResponse.json()) as { id?: string };
+  assertTodoCreateSuccess(created);
+  const createdId = created.id;
   expect(createResponse.headers().location).toBe(
     `/api/workspace/todos/${createdId}`,
   );
@@ -169,15 +174,12 @@ test("/api/workspace/todos POST 登录后可创建新待办并清理", async ({ 
         title?: string;
       }>;
     };
-    expect(
-      listBody.todos?.some(
-        (todo) =>
-          todo.id === createdId &&
-          todo.content === content &&
-          todo.title === title &&
-          todo.priority === "high",
-      ),
-    ).toBe(true);
+    assertTodoListedWithFields(listBody.todos ?? [], {
+      id: createdId,
+      title,
+      content,
+      priority: "high",
+    });
   } finally {
     if (createdId) {
       await page.request.delete(`/api/workspace/todos/${createdId}`);

@@ -29,7 +29,7 @@ is the project map: start here, then follow the closest source of truth.
 
 | Change area | Update docs |
 |-------------|-------------|
-| Public REST API, route params, response shape, or status | Route OpenAPI JSDoc in `src/routes/api/**/+server.ts`; `docs/contracts/openapi.json` when contract coverage changes; regenerate with `bun run build`. |
+| Public REST API, route params, response shape, or status | Route OpenAPI JSDoc in `src/routes/api/**/+server.ts`; `docs/contracts/openapi.json` when contract coverage changes; regenerate with `bun run openapi:check`. |
 | GraphQL field, input, output, request budget, or schema resource | Matching `docs/contracts/<module>.json`; `docs/contracts/graphql.json`; canonical SDL snapshot and GraphQL tests. |
 | MCP tool, input parameter, auth behavior, output shape, or compaction | Matching `docs/contracts/<module>.json`; integration tests under `tests/integration/`. |
 | User-visible web behavior, permissions, workflows, or labels | Matching `docs/contracts/<module>.json`; both message files when text changes. |
@@ -44,7 +44,8 @@ is the project map: start here, then follow the closest source of truth.
 - [docs/contracts/AGENTS.md](contracts/AGENTS.md) - contract JSON workflow and validation.
 - [docs/contracts.schema.json](contracts.schema.json) - schema for contract files.
 - [docs/contracts/_product.json](contracts/_product.json) - product roles, workflow, and display conventions.
-- [docs/contracts/openapi.json](contracts/openapi.json) - OpenAPI contract surface.
+- [docs/contracts/openapi.json](contracts/openapi.json) - REST capability contract (not the generated spec)
+- [public/openapi.generated.json](../public/openapi.generated.json) - machine OpenAPI 3 spec (`bun run openapi:check`)
 - [docs/contracts/graphql.json](contracts/graphql.json) - GraphQL contract surface.
 - [docs/graphql/mutation-capabilities.json](graphql/mutation-capabilities.json) - REST/GraphQL/MCP business-write parity matrix and intentional exclusions.
 - [docs/contracts/mcp.json](contracts/mcp.json) - MCP contract surface.
@@ -57,4 +58,5 @@ is the project map: start here, then follow the closest source of truth.
 
 - Use `$life-ustc-dev-loop` for the canonical check, test, integration, E2E, and handoff sequences.
 - Core aliases remain in `package.json`: `bun run app:prepare`, `bun run build`, `bun run dev`, `bun run e2e:server`.
-- Regenerate Prisma/OpenAPI artifacts with `bun run build`.
+- Regenerate OpenAPI with `bun run openapi:generate` or verify with `bun run openapi:check`.
+- Regenerate the GraphQL SDL snapshot with `bunx vitest run --update tests/unit/graphql-schema-snapshot.test.ts`.

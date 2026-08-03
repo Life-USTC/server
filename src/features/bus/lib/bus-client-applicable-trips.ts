@@ -1,5 +1,5 @@
-import { buildComputedStopTime } from "./bus-client-stop-times";
 import type { BusApplicableRoute, BusApplicableTrip } from "./bus-client-types";
+import { buildComputedStopTime } from "./bus-stop-time-computation";
 import type { BusTripSummary } from "./bus-types";
 
 export function buildApplicableBusTrips({

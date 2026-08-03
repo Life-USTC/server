@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { BusStaticPayload } from "@/features/bus/lib/bus-types";
+import { createDeferred } from "../shared/deferred";
 
 const db = vi.hoisted(() => {
   const east = { id: 1, name: "东区", latitude: 31.1, longitude: 117.1 };
@@ -129,16 +130,6 @@ type QueryServiceModule =
 
 let timetable: TimetableModule;
 let queryService: QueryServiceModule;
-
-function deferred<T>() {
-  let resolve!: (value: T | PromiseLike<T>) => void;
-  let reject!: (reason?: unknown) => void;
-  const promise = new Promise<T>((resolvePromise, rejectPromise) => {
-    resolve = resolvePromise;
-    reject = rejectPromise;
-  });
-  return { promise, reject, resolve };
-}
 
 function versionLookupCount(key: string) {
   return db.busScheduleVersionFindUnique.mock.calls.filter(([args]) => {
@@ -346,8 +337,8 @@ describe("getBusTimetableData 班车时刻表数据", () => {
 
   it("并发启动 enabled versions 与显式版本读取", async () => {
     vi.useRealTimers();
-    const versions = deferred<unknown>();
-    const explicitVersion = deferred<unknown>();
+    const versions = createDeferred<unknown>();
+    const explicitVersion = createDeferred<unknown>();
     db.busScheduleVersionFindMany.mockReturnValueOnce(versions.promise);
     db.busScheduleVersionFindUnique.mockReturnValueOnce(
       explicitVersion.promise,
@@ -372,7 +363,7 @@ describe("getBusTimetableData 班车时刻表数据", () => {
 
   it("合并同 key 并发加载，并从成功时刻开始 24 小时 TTL", async () => {
     vi.useRealTimers();
-    const explicitVersion = deferred<unknown>();
+    const explicitVersion = createDeferred<unknown>();
     db.busScheduleVersionFindUnique.mockReturnValueOnce(
       explicitVersion.promise,
     );
@@ -446,8 +437,8 @@ describe("getBusTimetableData 班车时刻表数据", () => {
 
   it("有其他并发 key 时仍合并同 key 加载", async () => {
     vi.useRealTimers();
-    const raceVersion = deferred<unknown>();
-    const blockedVersions = deferred<unknown>();
+    const raceVersion = createDeferred<unknown>();
+    const blockedVersions = createDeferred<unknown>();
     let raceLookups = 0;
     db.busScheduleVersionFindUnique.mockImplementation(
       async (args: unknown) => {

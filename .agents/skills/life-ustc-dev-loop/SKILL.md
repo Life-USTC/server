@@ -72,16 +72,20 @@ bun run db:migrate:deploy
 bunx prisma db seed
 bun run app:prepare
 bun run build
-bunx playwright test
+bun run e2e:test
 ```
 
 Playwright starts the E2E server automatically via `bun run e2e:server`.
+`e2e:test` runs the sharded parity suite (`tests/ci/e2e-full-suite-parity.sh`),
+which is what CI runs. A bare `playwright test` reuses one seed across all
+shards and will report failures CI does not.
 
 ## 6. Manual checklist before PR
 
 Scripts cannot check these; review them yourself or include them in the subagent handoff:
 
 - Updated `docs/contracts/*.json` if behavior, permissions, or workflow changed.
+- Ran `bun run openapi:check` when REST route shapes or OpenAPI JSDoc changed.
 - Checked REST/MCP parity when one public surface changed.
 - Checked seeded test coverage for the changed behavior.
 - No `node:*`, `bun:*`, `fs`, `path`, `child_process`, or `process` imports outside `src/lib/adapters/`.

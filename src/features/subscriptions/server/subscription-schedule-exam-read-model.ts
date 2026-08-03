@@ -118,7 +118,6 @@ export async function listSubscribedSchedules(
     limit,
     sectionIds,
     semesterId,
-    shape = "full",
   }: {
     locale?: string;
     dateFrom?: Date;
@@ -127,7 +126,6 @@ export async function listSubscribedSchedules(
     limit?: number;
     sectionIds?: readonly number[];
     semesterId?: number;
-    shape?: "compact" | "full";
   } = {},
 ) {
   const resolvedSectionIds =
@@ -150,13 +148,6 @@ export async function listSubscribedSchedules(
         orderBy: subscribedScheduleOrderBy,
         ...(limit ? { take: limit } : {}),
       } satisfies Prisma.ScheduleFindManyArgs;
-
-      if (shape === "compact") {
-        return localizedPrisma.schedule.findMany({
-          ...query,
-          select: overviewScheduleSelect,
-        });
-      }
 
       return localizedPrisma.schedule.findMany({
         ...query,
@@ -227,6 +218,82 @@ export async function countUpcomingSubscribedExams({
   return prisma.exam.count({
     where: upcomingKnownExamWhere({ atTime, sectionIds }),
   });
+}
+
+export async function listTodaySubscribedSchedulesWithCount(
+  userId: string,
+  {
+    todayStart,
+    tomorrowStart,
+    locale = DEFAULT_LOCALE,
+    limit,
+    sectionIds,
+  }: {
+    todayStart: Date;
+    tomorrowStart: Date;
+    locale?: string;
+    limit?: number;
+    sectionIds?: readonly number[];
+  },
+) {
+  return withSubscribedSections(
+    userId,
+    async (ids) => {
+      const where = {
+        sectionId: { in: ids },
+        section: { retiredAt: null },
+        date: { gte: todayStart, lt: tomorrowStart },
+      } satisfies Prisma.ScheduleWhereInput;
+      const localizedPrisma = getPrisma(locale);
+      const [total, items] = await Promise.all([
+        localizedPrisma.schedule.count({ where }),
+        localizedPrisma.schedule.findMany({
+          where,
+          select: overviewScheduleSelect,
+          orderBy: subscribedScheduleOrderBy,
+          ...(limit ? { take: limit } : {}),
+        }),
+      ]);
+      return { total, items };
+    },
+    sectionIds,
+    { total: 0, items: [] },
+  );
+}
+
+export async function listUpcomingSubscribedExamsWithCount(
+  userId: string,
+  {
+    atTime,
+    locale = DEFAULT_LOCALE,
+    limit,
+    sectionIds,
+  }: {
+    atTime: Date;
+    locale?: string;
+    limit?: number;
+    sectionIds?: readonly number[];
+  },
+) {
+  return withSubscribedSections(
+    userId,
+    async (ids) => {
+      const where = upcomingKnownExamWhere({ atTime, sectionIds: ids });
+      const localizedPrisma = getPrisma(locale);
+      const [total, items] = await Promise.all([
+        localizedPrisma.exam.count({ where }),
+        localizedPrisma.exam.findMany({
+          where,
+          select: overviewExamSelect,
+          orderBy: subscribedExamOrderBy,
+          ...(limit ? { take: limit } : {}),
+        }),
+      ]);
+      return { total, items };
+    },
+    sectionIds,
+    { total: 0, items: [] },
+  );
 }
 
 export async function listSubscribedExams(
@@ -317,47 +384,5 @@ export async function listSubscribedExamPage(
     () => localizedPrisma.exam.count({ where }),
     pagination.page,
     pagination.pageSize,
-  );
-}
-
-export async function listUpcomingSubscribedExams(
-  userId: string,
-  {
-    atTime,
-    locale = DEFAULT_LOCALE,
-    limit,
-    sectionIds,
-    shape = "full",
-  }: {
-    atTime: Date;
-    locale?: string;
-    limit?: number;
-    sectionIds?: readonly number[];
-    shape?: "compact" | "full";
-  },
-) {
-  return withSubscribedSections(
-    userId,
-    async (ids) => {
-      const localizedPrisma = getPrisma(locale);
-      const query = {
-        where: upcomingKnownExamWhere({ atTime, sectionIds: ids }),
-        orderBy: subscribedExamOrderBy,
-        ...(limit ? { take: limit } : {}),
-      } satisfies Prisma.ExamFindManyArgs;
-
-      if (shape === "compact") {
-        return localizedPrisma.exam.findMany({
-          ...query,
-          select: overviewExamSelect,
-        });
-      }
-
-      return localizedPrisma.exam.findMany({
-        ...query,
-        include: subscribedExamInclude,
-      });
-    },
-    sectionIds,
   );
 }

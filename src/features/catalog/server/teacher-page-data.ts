@@ -1,4 +1,5 @@
 import type { TeacherDetailSection } from "@/features/catalog/components/catalog-detail-component-types";
+import { localizedNameSelect } from "@/features/section-detail/server/section-page-name-selects";
 import { getPrisma } from "@/lib/db/prisma";
 import { toLoadData } from "@/lib/load-data-utils";
 
@@ -8,10 +9,7 @@ const teacherPageSectionsSelect = {
   credits: true,
   course: {
     select: {
-      nameCn: true,
-      nameEn: true,
-      namePrimary: true,
-      nameSecondary: true,
+      ...localizedNameSelect,
     },
   },
   semester: { select: { nameCn: true } },
@@ -27,28 +25,19 @@ export async function getTeacherPage(
     where: { id },
     select: {
       id: true,
-      nameCn: true,
-      nameEn: true,
-      namePrimary: true,
-      nameSecondary: true,
+      ...localizedNameSelect,
       email: true,
       telephone: true,
       mobile: true,
       address: true,
       department: {
         select: {
-          nameCn: true,
-          nameEn: true,
-          namePrimary: true,
-          nameSecondary: true,
+          ...localizedNameSelect,
         },
       },
       teacherTitle: {
         select: {
-          nameCn: true,
-          nameEn: true,
-          namePrimary: true,
-          nameSecondary: true,
+          ...localizedNameSelect,
         },
       },
       _count: { select: { sections: true } },

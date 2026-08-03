@@ -28,7 +28,7 @@ describe("updateHomeworkOnSectionTool", () => {
       section: { course: { name: "Algorithms" } },
     });
     const { updateHomeworkOnSectionTool } = await import(
-      "@/lib/mcp/tools/section-data/homework-update-tool-handler"
+      "@/lib/mcp/tools/community/homework/homework-update-tool-handler"
     );
 
     await updateHomeworkOnSectionTool(

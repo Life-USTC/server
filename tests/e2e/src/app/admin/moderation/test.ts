@@ -293,14 +293,15 @@ test("/admin/moderation 可切换状态筛选下拉", async ({ page }, testInfo)
   await signInAsDevAdmin(page, "/admin/moderation");
 
   const filter = page.getByRole("combobox").first();
-  if ((await filter.count()) === 0) {
-    await expect(page.locator("#main-content")).toBeVisible();
-    return;
-  }
+  test.skip(
+    (await filter.count()) === 0,
+    "moderation page rendered without a status filter",
+  );
   const option = page.getByRole("option", { name: /已删除|Deleted/i }).first();
-  if ((await option.count()) === 0) {
-    return;
-  }
+  test.skip(
+    (await option.count()) === 0,
+    "status filter rendered without a Deleted option",
+  );
   await filter.selectOption("deleted");
   await expect(filter).toHaveValue("deleted");
   await captureStepScreenshot(

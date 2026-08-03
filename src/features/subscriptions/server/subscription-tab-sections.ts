@@ -1,3 +1,4 @@
+import { localizedNameSelect } from "@/features/section-detail/server/section-page-name-selects";
 import { DEFAULT_LOCALE } from "@/i18n/config";
 import { getPrisma } from "@/lib/db/prisma";
 import { toShanghaiIsoString } from "@/lib/time/serialize-date-output";
@@ -56,10 +57,7 @@ export async function listSubscribedSectionsForSubscriptionsTab(
             examTakeCount: true,
             examBatch: {
               select: {
-                nameCn: true,
-                nameEn: true,
-                namePrimary: true,
-                nameSecondary: true,
+                ...localizedNameSelect,
               },
             },
             examRooms: { select: { room: true, count: true } },

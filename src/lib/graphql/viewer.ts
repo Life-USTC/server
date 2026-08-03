@@ -396,6 +396,7 @@ export const graphqlScopeResolvers = {
       const userId = requireViewerUserId(context, READ_SCOPES.overview);
       return getCompactOverview(userId, {
         atTime: optionalInstant(args.atTime, "atTime"),
+        includeSamples: false,
         locale: context.locale,
       });
     },

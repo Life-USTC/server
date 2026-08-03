@@ -1,6 +1,35 @@
 # src/features/
 
-Business domain logic.
+Business domain logic and **application use-cases**.
+
+## Adapter rule
+
+One use-case function per capability lives under `src/features/<domain>/server/`.
+Transport surfaces are thin adapters only:
+
+1. Parse auth / scope / locale / query or tool args
+2. Call the feature use-case
+3. Map the result to the transport shape (HTTP JSON, GraphQL fields, or MCP
+   `jsonToolResult` + compact mode)
+
+Do **not** put business rules in `src/lib/api`, `src/lib/graphql`, or
+`src/lib/mcp`. MCP-only presentation (compact pickers, `mode` summary/full)
+stays in `src/lib/mcp` as a **view layer**, not as a second write path.
+
+### Worked example: workspace overview
+
+| Surface | Adapter | Use-case |
+|---------|---------|----------|
+| REST `GET /api/workspace/overview` | `src/lib/api/routes/me-overview-route.ts` | `getCompactOverview` |
+| GraphQL `workspace.overview` | `src/lib/graphql/viewer.ts` | `getCompactOverview` |
+| MCP `workspace_overview_get` | `src/lib/mcp/tools/workspace/my-data-overview-action.ts` | `getCompactOverview` |
+
+Shared cross-adapter assertions live in `tests/shared/scenarios/`
+(`overview.ts`, `todo-crud.ts`, `homework-create.ts`).
+
+Homework create/update/delete and todo CRUD already follow the same pattern
+(`createHomeworkForSection` / `updateHomework` / `deleteHomework`,
+`createTodo` / … in `features/*/server`).
 
 ## Structure
 
@@ -21,7 +50,7 @@ subscriptions/ Section subscription read/write services and import helpers
 
 ```
 feature/
-  server/      Server data functions
+  server/      Use-case / server data functions (shared by REST, GraphQL, MCP, pages)
   lib/         Domain utilities
 ```
 

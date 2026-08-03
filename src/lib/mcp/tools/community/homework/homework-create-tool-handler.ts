@@ -1,0 +1,95 @@
+import { requireHomeworkItemById } from "@/features/homeworks/server/homework-read-model";
+import type { AppLocale } from "@/i18n/config";
+import {
+  getUserId,
+  jsonToolResult,
+  resolveMcpMode,
+} from "@/lib/mcp/tools/_shared/helpers";
+import { sectionNotFoundToolResult } from "@/lib/mcp/tools/_shared/section-tool-shared";
+import {
+  createHomeworkOnSectionRecord,
+  parseCreateHomeworkTimestamps,
+} from "./homework-create-actions";
+
+type McpModeInput = Parameters<typeof resolveMcpMode>[0];
+
+export async function createHomeworkOnSectionTool(
+  {
+    sectionJwId,
+    title,
+    description,
+    isMajor,
+    requiresTeam,
+    publishedAt,
+    submissionStartAt,
+    submissionDueAt,
+    locale,
+    mode,
+  }: {
+    description?: string | null;
+    isMajor?: boolean;
+    locale: AppLocale;
+    mode?: McpModeInput;
+    publishedAt?: string | null;
+    requiresTeam?: boolean;
+    sectionJwId: number;
+    submissionDueAt?: string | null;
+    submissionStartAt?: string | null;
+    title: string;
+  },
+  extra: { authInfo?: Parameters<typeof getUserId>[0] },
+) {
+  const resolvedMode = resolveMcpMode(mode);
+  const userId = getUserId(extra.authInfo);
+
+  const parsedTimestamps = parseCreateHomeworkTimestamps(
+    {
+      publishedAt,
+      submissionStartAt,
+      submissionDueAt,
+    },
+    resolvedMode,
+  );
+  if (!parsedTimestamps.ok) return parsedTimestamps.result;
+
+  const createResult = await createHomeworkOnSectionRecord({
+    description,
+    isMajor,
+    publishedAt: parsedTimestamps.publishedAt ?? null,
+    requiresTeam,
+    sectionJwId,
+    submissionDueAt: parsedTimestamps.submissionDueAt ?? null,
+    submissionStartAt: parsedTimestamps.submissionStartAt ?? null,
+    title,
+    userId,
+  });
+  if (!createResult.ok) {
+    if (createResult.error === "not_found") {
+      return sectionNotFoundToolResult(sectionJwId, resolvedMode);
+    }
+    const payload: {
+      message: string;
+      reason?: string | null;
+      success: false;
+    } = {
+      success: false,
+      message: createResult.error === "suspended" ? "Suspended" : "Forbidden",
+    };
+    if (createResult.error === "suspended") {
+      payload.reason = createResult.reason ?? null;
+    }
+    return jsonToolResult(payload, { mode: resolvedMode });
+  }
+
+  const homework = createResult.homework;
+  const homeworkItem = await requireHomeworkItemById({
+    homeworkId: homework.id,
+    locale,
+    userId,
+  });
+
+  return jsonToolResult(
+    { success: true, id: homework.id, homework: homeworkItem },
+    { mode: resolvedMode },
+  );
+}

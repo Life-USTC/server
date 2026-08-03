@@ -879,10 +879,10 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
     const subscribeButton = page
       .getByRole("button", { name: /订阅教学班|Subscribe to section/i })
       .first();
-    if ((await subscribeButton.count()) === 0) {
-      await expect(page.locator("#main-content")).toBeVisible();
-      return;
-    }
+    test.skip(
+      (await subscribeButton.count()) === 0,
+      "section page rendered without a subscribe control",
+    );
 
     await subscribeButton.click();
     const loginDialog = page
@@ -908,10 +908,10 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
       name: /取消订阅|Unsubscribe from section/i,
     });
 
-    if ((await subscribe.count()) === 0 && (await unsubscribe.count()) === 0) {
-      await expect(page.locator("#main-content")).toBeVisible();
-      return;
-    }
+    test.skip(
+      (await subscribe.count()) === 0 && (await unsubscribe.count()) === 0,
+      "section page rendered without subscribe/unsubscribe controls",
+    );
 
     if ((await subscribe.count()) > 0) {
       await subscribe.first().click();

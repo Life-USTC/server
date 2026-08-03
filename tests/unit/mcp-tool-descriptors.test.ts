@@ -13,7 +13,7 @@ import {
   getMarkdownMcpToolOutputSchemaForMode,
   getMcpToolOutputSchema,
 } from "@/lib/mcp/tool-output-schemas";
-import { jsonToolResult } from "@/lib/mcp/tools/_helpers";
+import { jsonToolResult } from "@/lib/mcp/tools/_shared/helpers";
 import { restReadScope, restWriteScope } from "@/lib/oauth/constants";
 
 async function listTools() {

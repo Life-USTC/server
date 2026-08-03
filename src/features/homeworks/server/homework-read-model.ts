@@ -32,10 +32,7 @@ export async function withHomeworkCompletionsForViewer<
   viewerUserId?: string | null,
 ): Promise<Array<T & { homeworkCompletions: Array<{ completedAt: Date }> }>> {
   if (!viewerUserId || homeworks.length === 0) {
-    return homeworks.map((homework) => ({
-      ...homework,
-      homeworkCompletions: [],
-    }));
+    return attachHomeworkCompletionsForViewer(homeworks, []);
   }
 
   const completions = await withUserDbContext(viewerUserId, (tx) =>
@@ -47,6 +44,13 @@ export async function withHomeworkCompletionsForViewer<
       select: { homeworkId: true, completedAt: true },
     }),
   );
+  return attachHomeworkCompletionsForViewer(homeworks, completions);
+}
+
+export function attachHomeworkCompletionsForViewer<T extends { id: string }>(
+  homeworks: T[],
+  completions: Array<{ homeworkId: string; completedAt: Date }>,
+): Array<T & { homeworkCompletions: Array<{ completedAt: Date }> }> {
   const completionByHomeworkId = new Map(
     completions.map(({ homeworkId, completedAt }) => [
       homeworkId,

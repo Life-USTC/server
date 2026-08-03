@@ -21,27 +21,16 @@
  * - Full create → verify in list → cleanup via DELETE
  */
 import { expect, test } from "@playwright/test";
+import {
+  assertHomeworkCreateSuccess,
+  assertHomeworkListedByTitle,
+} from "../../../../../shared/scenarios/homework-create";
 import { signInAsDebugUser } from "../../../../utils/auth";
 import { DEV_SEED } from "../../../../utils/dev-seed";
+import { resolveSeedSectionId } from "../../../../utils/seed-lookups";
 import { assertApiContract } from "../../_shared/api-contract";
 
 /** Resolve the seed section's internal DB id via match-codes. */
-async function resolveSeedSectionId(
-  request: import("@playwright/test").APIRequestContext,
-) {
-  const response = await request.post("/api/catalog/sections/match-codes", {
-    data: { codes: [DEV_SEED.section.code] },
-  });
-  expect(response.status()).toBe(200);
-  const body = (await response.json()) as {
-    sections?: Array<{ id?: number; code?: string | null }>;
-  };
-  const section = body.sections?.find((s) => s.code === DEV_SEED.section.code);
-  expect(section?.id).toBeDefined();
-  // biome-ignore lint/style/noNonNullAssertion: guarded by expect above
-  return section!.id!;
-}
-
 test("/api/community/section-homeworks 接口契约", async ({ request }) => {
   await assertApiContract(request, {
     routePath: "/api/community/section-homeworks",
@@ -175,11 +164,10 @@ test("/api/community/section-homeworks POST 登录后可创建作业并清理", 
     homework?: { commentCount?: number; id?: string; title?: string } | null;
     id?: string;
   };
-  expect(createBody.id).toBeTruthy();
+  assertHomeworkCreateSuccess(createBody);
   expect(createResponse.headers().location).toBe(
     `/api/community/section-homeworks/${createBody.id}`,
   );
-  expect(createBody.homework?.id).toBe(createBody.id);
   expect(createBody.homework?.title).toBe(title);
   expect(createBody.homework?.commentCount).toBe(0);
 
@@ -191,11 +179,13 @@ test("/api/community/section-homeworks POST 登录后可创建作业并清理", 
   const listBody = (await listResponse.json()) as {
     homeworks?: Array<{ id?: string; title?: string }>;
   };
-  const created = listBody.homeworks?.find((h) => h.title === title);
-  expect(created?.id).toBeTruthy();
+  assertHomeworkListedByTitle(listBody.homeworks ?? [], {
+    id: createBody.id,
+    title,
+  });
 
   // Cleanup
-  if (created?.id) {
-    await page.request.delete(`/api/community/section-homeworks/${created.id}`);
-  }
+  await page.request.delete(
+    `/api/community/section-homeworks/${createBody.id}`,
+  );
 });

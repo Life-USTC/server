@@ -64,14 +64,8 @@ describe("subscribed homework owner context", () => {
       shape: "dashboard",
     });
 
-    expect(withUserDbContextMock).toHaveBeenCalledTimes(2);
-    expect(withUserDbContextMock).toHaveBeenNthCalledWith(
-      1,
-      "user-1",
-      expect.any(Function),
-    );
-    expect(withUserDbContextMock).toHaveBeenNthCalledWith(
-      2,
+    expect(withUserDbContextMock).toHaveBeenCalledOnce();
+    expect(withUserDbContextMock).toHaveBeenCalledWith(
       "user-1",
       expect.any(Function),
     );
@@ -84,6 +78,13 @@ describe("subscribed homework owner context", () => {
         select: { id: true },
       }),
     );
+    expect(completionFindManyMock).toHaveBeenCalledWith({
+      where: {
+        userId: "user-1",
+        homeworkId: { in: ["homework-2", "homework-1"] },
+      },
+      select: { homeworkId: true, completedAt: true },
+    });
     expect(localizedHomeworkFindManyMock).toHaveBeenCalledWith({
       where: { id: { in: ["homework-2", "homework-1"] } },
       select: expect.not.objectContaining({

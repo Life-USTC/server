@@ -6,23 +6,28 @@ type DashboardHomeworkBase = Prisma.HomeworkGetPayload<{
 }>;
 
 type DashboardHomeworkSection = NonNullable<DashboardHomeworkBase["section"]>;
-type DashboardHomeworkCourse = NonNullable<DashboardHomeworkSection["course"]>;
 
-export type HomeworkWithSection = {
-  [Key in keyof Omit<
-    DashboardHomeworkBase,
-    "description" | "section"
-  >]: DashboardHomeworkBase[Key];
-} & {
+/**
+ * `namePrimary`/`nameSecondary` come from the localized-names Prisma client
+ * extension, so `HomeworkGetPayload` resolves them to `never`. Declare the
+ * selected course shape instead of deriving it.
+ */
+type DashboardHomeworkCourse = {
+  nameCn: string;
+  nameEn: string | null;
+  namePrimary: string | null;
+  nameSecondary: string | null;
+};
+
+export type HomeworkWithSection = Omit<
+  DashboardHomeworkBase,
+  "description" | "section"
+> & {
   description?: DashboardHomeworkBase["description"];
   homeworkCompletions: Array<{ completedAt: Date }>;
   section:
     | (Omit<DashboardHomeworkSection, "course"> & {
-        course:
-          | (DashboardHomeworkCourse & {
-              namePrimary: string | null;
-            })
-          | null;
+        course: DashboardHomeworkCourse | null;
       })
     | null;
 };

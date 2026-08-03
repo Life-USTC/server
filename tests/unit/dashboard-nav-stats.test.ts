@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { createDeferred } from "../shared/deferred";
 
 const {
   countIncompleteTodosMock,
@@ -87,10 +88,7 @@ describe("仪表盘导航统计", () => {
   });
 
   it("复用待办列表计数时并行启动其他导航查询", async () => {
-    let resolvePendingTodosCount: (value: number) => void = () => undefined;
-    const pendingTodosCount = new Promise<number>((resolve) => {
-      resolvePendingTodosCount = resolve;
-    });
+    const pendingTodos = createDeferred<number>();
     homeworkCountMock.mockResolvedValue(2);
     homeworkFindFirstMock.mockResolvedValue(null);
     countUpcomingSubscribedExamsMock.mockResolvedValue(3);
@@ -104,7 +102,7 @@ describe("仪表盘导航统计", () => {
       { id: "user-1", name: "User", username: "user" },
       [{ id: 12, semesterId: 1 }],
       new Date("2026-05-22T10:30:00.000Z"),
-      pendingTodosCount,
+      pendingTodos.promise,
     );
 
     expect(countIncompleteTodosMock).not.toHaveBeenCalled();
@@ -113,7 +111,7 @@ describe("仪表盘导航统计", () => {
     expect(countUpcomingSubscribedExamsMock).toHaveBeenCalledOnce();
     expect(getDashboardCalendarItemsCountMock).toHaveBeenCalledOnce();
 
-    resolvePendingTodosCount(5);
+    pendingTodos.resolve(5);
     await expect(resultPromise).resolves.toMatchObject({
       pendingTodosCount: 5,
     });

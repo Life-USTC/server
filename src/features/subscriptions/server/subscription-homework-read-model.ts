@@ -1,5 +1,8 @@
 export { listSubscribedHomeworkAuditLogs } from "./subscription-homework-audit-read";
-export { listSubscribedHomeworks } from "./subscription-homework-list";
+export {
+  listDueSoonSubscribedHomeworksWithCount,
+  listSubscribedHomeworks,
+} from "./subscription-homework-list";
 export type { ListSubscribedHomeworksOptions } from "./subscription-homework-read-types";
 export {
   getHomeworksTabData,

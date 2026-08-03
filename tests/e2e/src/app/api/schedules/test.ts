@@ -27,25 +27,8 @@
  */
 import { expect, test } from "@playwright/test";
 import { DEV_SEED } from "../../../../utils/dev-seed";
+import { resolveSeedSectionId } from "../../../../utils/seed-lookups";
 import { assertApiContract } from "../../_shared/api-contract";
-
-async function resolveSeedSectionId(
-  request: import("@playwright/test").APIRequestContext,
-) {
-  const response = await request.post("/api/catalog/sections/match-codes", {
-    data: { codes: [DEV_SEED.section.code] },
-  });
-  expect(response.status()).toBe(200);
-  const body = (await response.json()) as {
-    sections?: Array<{ id?: number; code?: string | null }>;
-  };
-  const section = body.sections?.find(
-    (entry) => entry.code === DEV_SEED.section.code,
-  );
-  expect(section).toBeDefined();
-  // biome-ignore lint/style/noNonNullAssertion: guarded by expect above
-  return section!.id!;
-}
 
 test.describe("GET /api/catalog/schedules - 排课列表", () => {
   test("契约", async ({ request }) => {

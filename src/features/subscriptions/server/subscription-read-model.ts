@@ -8,6 +8,7 @@ export { listSubscribedHomeworkPage } from "./subscription-homework-page";
 export {
   getHomeworksTabData,
   type HomeworkSummaryItem,
+  listDueSoonSubscribedHomeworksWithCount,
   listSubscribedHomeworkAuditLogs,
   listSubscribedHomeworks,
 } from "./subscription-homework-read-model";
@@ -24,7 +25,8 @@ export {
   listSubscribedExams,
   listSubscribedSchedulePage,
   listSubscribedSchedules,
-  listUpcomingSubscribedExams,
+  listTodaySubscribedSchedulesWithCount,
+  listUpcomingSubscribedExamsWithCount,
 } from "./subscription-schedule-exam-read-model";
 export { listSubscribedSectionPage } from "./subscription-section-page";
 export {

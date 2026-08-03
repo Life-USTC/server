@@ -303,10 +303,12 @@ async function loadTodoSummaryInTransaction(
           dueAt: { lt: input.now },
         },
       }),
-      findTodoSnapshots(tx, {
-        where,
-        take: input.take,
-      }),
+      input.take === 0
+        ? Promise.resolve([])
+        : findTodoSnapshots(tx, {
+            where,
+            take: input.take,
+          }),
     ]);
 
   return {
@@ -321,6 +323,7 @@ async function loadTodoSummaryInTransaction(
 
 export async function loadOverviewTodoBundle(input: {
   homeworkWindowEnd: Date;
+  includeSamples?: boolean;
   limit?: number;
   now: Date;
   runDueTodoCount?: <T>(work: () => Promise<T>) => Promise<T>;
@@ -329,6 +332,7 @@ export async function loadOverviewTodoBundle(input: {
   userId: string;
 }) {
   const userId = normalizeTodoUserId(input.userId);
+  const includeSamples = input.includeSamples ?? true;
   const identity = <T>(work: () => Promise<T>) => work();
   const runTodoSummary = input.runTodoSummary ?? identity;
   const runDueTodoCount = input.runDueTodoCount ?? identity;
@@ -348,16 +352,18 @@ export async function loadOverviewTodoBundle(input: {
           userId,
           now: input.now,
           filters: { completed: false },
-          take: input.limit,
+          take: includeSamples ? input.limit : 0,
         }),
       ),
       runDueTodoCount(() => countDueTodosInTransaction(tx, dueInput)),
-      runDueTodoSample(() =>
-        listDueTodoSamplesInTransaction(tx, {
-          ...dueInput,
-          take: input.limit,
-        }),
-      ),
+      includeSamples
+        ? runDueTodoSample(() =>
+            listDueTodoSamplesInTransaction(tx, {
+              ...dueInput,
+              take: input.limit,
+            }),
+          )
+        : Promise.resolve([]),
     ]);
 
     return { todos, dueTodosCount, dueTodos };

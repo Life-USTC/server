@@ -1,5 +1,5 @@
 import { withHomeworkItemState } from "@/features/homeworks/server/homework-item-state";
-import { withHomeworkCompletionsForViewer } from "@/features/homeworks/server/homework-read-model";
+import { attachHomeworkCompletionsForViewer } from "@/features/homeworks/server/homework-read-model";
 import { type AppLocale, DEFAULT_LOCALE } from "@/i18n/config";
 import { getPrisma, withUserDbContext } from "@/lib/db/prisma";
 import { paginatedQuery } from "@/lib/query-pagination";
@@ -37,8 +37,8 @@ export async function listSubscribedHomeworkPage(
     semesterId,
     userId,
   });
-  const page = await withUserDbContext(userId, (tx) =>
-    paginatedQuery(
+  const { page, completions } = await withUserDbContext(userId, async (tx) => {
+    const result = await paginatedQuery(
       (skip, take) =>
         tx.homework.findMany({
           ...query,
@@ -49,8 +49,20 @@ export async function listSubscribedHomeworkPage(
       () => tx.homework.count({ where: query.where }),
       pagination.page,
       pagination.pageSize,
-    ),
-  );
+    );
+    const homeworkIds = result.data.map((homework) => homework.id);
+    if (homeworkIds.length === 0) {
+      return { page: result, completions: [] };
+    }
+    const completionRows = await tx.homeworkCompletion.findMany({
+      where: {
+        userId,
+        homeworkId: { in: homeworkIds },
+      },
+      select: { homeworkId: true, completedAt: true },
+    });
+    return { page: result, completions: completionRows };
+  });
   const homeworkIds = page.data.map((homework) => homework.id);
   if (homeworkIds.length === 0) return { ...page, data: [] };
 
@@ -59,7 +71,7 @@ export async function listSubscribedHomeworkPage(
     include: buildSubscribedHomeworkInclude(false),
   });
   const orderedHomeworks = orderHomeworksById(
-    await withHomeworkCompletionsForViewer(homeworks, userId),
+    attachHomeworkCompletionsForViewer(homeworks, completions),
     homeworkIds,
   );
 

@@ -96,25 +96,16 @@ function buildHomework(
     submissionDueAt: new Date("2026-04-29T23:59:00+08:00"),
     homeworkCompletions: [],
     section: {
-      id: 101,
       jwId: 101,
       course: {
-        id: 1,
-        jwId: 1001,
-        code: "CS101",
         nameCn: "计算机导论",
         nameEn: null,
-        categoryId: null,
-        classTypeId: null,
-        classifyId: null,
-        educationLevelId: null,
-        gradationId: null,
-        typeId: null,
         namePrimary: "计算机导论",
+        nameSecondary: null,
       },
-    } as HomeworkWithSection["section"],
+    },
     ...overrides,
-  } as HomeworkWithSection;
+  };
 }
 
 function buildLinkSummary() {
@@ -284,23 +275,14 @@ describe("仪表盘概览序列化", () => {
         buildHomework({
           id: "empty-course-name",
           section: {
-            id: 102,
             jwId: 102,
             course: {
-              id: 2,
-              jwId: 1002,
-              code: "CS102",
               nameCn: "",
               nameEn: null,
-              categoryId: null,
-              classTypeId: null,
-              classifyId: null,
-              educationLevelId: null,
-              gradationId: null,
-              typeId: null,
               namePrimary: null,
+              nameSecondary: null,
             },
-          } as HomeworkWithSection["section"],
+          },
         }),
       ],
     });

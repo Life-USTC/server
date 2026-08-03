@@ -20,7 +20,9 @@ export let toggleHomeworkCompletion: SectionHomeworkAction;
 </script>
 
 <div class="flex justify-end gap-2">
-  {#if canManage}
+  <!-- Editing section homework is collaborative: any active signed-in user may
+       edit, matching `updateHomework`. Only the creator or an admin may delete. -->
+  {#if canWrite}
     <Button
       variant="outline"
       type="button"

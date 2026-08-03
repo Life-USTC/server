@@ -9,6 +9,10 @@ import {
   getOAuthRestAudienceUrls,
 } from "@/lib/oauth/resource-urls";
 import { restReadScope } from "@/lib/oauth/scope-registry";
+import {
+  assertOverviewCountsAreNumbers,
+  normalizeGraphqlOverviewPayload,
+} from "../shared/scenarios/overview";
 
 const handler = createGraphqlRequestHandler(false);
 const encoder = new TextEncoder();
@@ -435,7 +439,13 @@ describe.sequential("GraphQL Viewer integration", () => {
     expect(payload.errors).toBeUndefined();
     const account = payload.data?.account as { profile: { id: string } };
     const viewer = payload.data?.viewer as {
-      overview: { today: string };
+      overview: {
+        today: string;
+        incompleteTodos?: number;
+        pendingHomeworks?: number;
+        todaySchedules?: number;
+        upcomingExams?: number;
+      };
       todos: {
         items: Array<{ title: string }>;
         pageInfo: { pageSize: number; total: number };
@@ -459,6 +469,9 @@ describe.sequential("GraphQL Viewer integration", () => {
     };
     expect(account.profile.id).toBe(firstUserId);
     expect(viewer.overview.today).toBe("2026-04-29");
+    assertOverviewCountsAreNumbers(
+      normalizeGraphqlOverviewPayload(viewer.overview),
+    );
     expect(viewer.todos.pageInfo).toMatchObject({ pageSize: 20, total: 1 });
     expect(viewer.todos.items[0]?.title).toContain("graphql-viewer-a");
     expect(viewer.subscribedSections.pageInfo).toMatchObject({
