@@ -24,6 +24,7 @@ jobs:
     uses: ./.github/workflows/db-backed-bun-job.yml
     with:
       database-name: life_ustc_integration
+      install-playwright: true
       job-phase: ci:integration
 
   test-rls:

@@ -42,10 +42,13 @@ Use the repo root `AGENTS.md` for the canonical shared seed/setup flow and
 
 ```
 tests/e2e/fixtures/             Canonical test data (scenario.json)
-tests/e2e/src/app/**/test.ts    Route tests
-tests/e2e/src/app/**/*.test.ts  Focused API/feature route tests
+tests/e2e/src/app/**/test.ts    Route tests (browser UI)
+tests/e2e/src/app/api/docs/     API docs UI smoke tests
+tests/e2e/src/app/api/oauth/    OAuth UI/consent smoke tests
+tests/e2e/src/app/api/mcp/      MCP transport UI helpers
 tests/e2e/src/app/_shared/      Helpers
 tests/e2e/utils/                Auth, DB, subscriptions, uploads
+tests/integration/rest/         REST contract tests (`playwright.api.config.ts`)
 ```
 
 ## Helpers
@@ -110,9 +113,6 @@ Current examples:
 - `tests/e2e/src/app/dashboard/homeworks/test.ts`
 - `tests/e2e/src/app/dashboard/subscriptions/sections/test.ts`
 - `tests/e2e/src/app/teachers/[id]/test.ts`
-- `tests/e2e/src/app/api/calendar-subscriptions/test.ts`
-- `tests/e2e/src/app/api/calendar-subscriptions/current/test.ts`
-- `tests/e2e/src/app/api/users/[userId]/calendar.ics/test.ts`
 - `tests/e2e/src/app/api/mcp/*.test.ts`
 
 If you add a shared-state mutating test to a new file, add serial mode and

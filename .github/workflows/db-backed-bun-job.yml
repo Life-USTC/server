@@ -165,6 +165,8 @@ jobs:
               # The canonical scenario must be safe to load repeatedly.
               bunx prisma db seed
               bunx vitest run --config vitest.integration.config.ts
+              bun run build
+              bunx playwright test --config playwright.api.config.ts
               ;;
             ci:rls)
               bun run app:prepare
