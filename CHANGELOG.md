@@ -1,3 +1,10 @@
+## [1.84.4](https://github.com/Life-USTC/server/compare/v1.84.3...v1.84.4) (2026-08-03)
+
+
+### Bug Fixes
+
+* **comments:** repair the migration that left anonymous comment reads failing ([#734](https://github.com/Life-USTC/server/issues/734)) ([4467ce0](https://github.com/Life-USTC/server/commit/4467ce09988ebbacc76135335288271a2857b607)), closes [#729](https://github.com/Life-USTC/server/issues/729)
+
 ## [1.84.3](https://github.com/Life-USTC/server/compare/v1.84.2...v1.84.3) (2026-08-02)
 
 
