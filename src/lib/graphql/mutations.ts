@@ -35,10 +35,7 @@ import {
   updateHomework,
 } from "@/features/homeworks/server/homework-mutations";
 import { requireHomeworkItemById } from "@/features/homeworks/server/homework-read-model";
-import {
-  buildHomeworkUpdateIntent,
-  hasHomeworkUpdateIntentChanges,
-} from "@/features/homeworks/server/homework-update-intent";
+import { prepareHomeworkUpdate } from "@/features/homeworks/server/prepare-homework-update";
 import {
   batchUpdateUserSectionSubscriptions,
   setUserSectionSubscriptionByJwId,
@@ -955,17 +952,7 @@ export const graphqlMutationResolvers = {
       const submissionDueAt = hasSubmissionDueAt
         ? dateTimeInput(input.submissionDueAt)
         : undefined;
-      const dateError = homeworkDateError({
-        publishedAt,
-        publishedAtProvided: hasPublishedAt,
-        submissionDueAt,
-        submissionDueAtProvided: hasSubmissionDueAt,
-        submissionStartAt,
-        submissionStartAtProvided: hasSubmissionStartAt,
-      });
-      if (dateError) badMutationInput(dateError);
-
-      const update = buildHomeworkUpdateIntent({
+      const prepared = prepareHomeworkUpdate({
         dates: {
           hasPublishedAt,
           hasSubmissionDueAt,
@@ -984,13 +971,17 @@ export const graphqlMutationResolvers = {
           input.title == null ? undefined : normalizeHomeworkTitle(input.title),
         userId: principal.userId,
       });
-      if (!hasHomeworkUpdateIntentChanges(update)) {
-        badMutationInput("No homework changes were provided.");
+      if (!prepared.ok) {
+        badMutationInput(
+          prepared.error === "no_changes"
+            ? "No homework changes were provided."
+            : prepared.message,
+        );
       }
 
       const result = await updateHomework({
         homeworkId: id,
-        update,
+        update: prepared.update,
         userId: principal.userId,
       });
       if (!result.ok) handleHomeworkFailure(result, "Homework");

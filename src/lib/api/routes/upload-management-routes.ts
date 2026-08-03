@@ -8,12 +8,14 @@ import {
   badRequest,
   buildPaginatedResponse,
   errorResponse,
+  forbidden,
   getRequestSearchParams,
   handleRouteError,
   jsonResponse,
   notFound,
   parseRouteJsonBody,
   parseRouteQuery,
+  suspensionForbidden,
 } from "@/lib/api/helpers";
 import { parseUploadId } from "@/lib/api/routes/upload-route-helpers";
 import {
@@ -24,6 +26,22 @@ import { getAuditRequestMetadata } from "@/lib/audit/write-audit-log";
 import { requireAuth, requireWriteAuth } from "@/lib/auth/api-auth";
 
 type IdParams = { id: string };
+
+type OwnedUploadMutationFailure = {
+  error: "forbidden" | "not_found" | "storage_delete_failed" | "suspended";
+  reason?: string | null;
+};
+
+function mapOwnedUploadMutationFailure(result: OwnedUploadMutationFailure) {
+  if (result.error === "suspended") {
+    return suspensionForbidden("reason" in result ? result.reason : null);
+  }
+  if (result.error === "forbidden") return forbidden();
+  if (result.error === "storage_delete_failed") {
+    return errorResponse("Failed to delete upload object", 502);
+  }
+  return notFound();
+}
 
 export async function getUploadsRoute(request: Request) {
   return withUploadAuth(request, "Failed to list uploads", async (userId) => {
@@ -81,7 +99,9 @@ export async function patchUploadRoute(request: Request, params: IdParams) {
       id: parsed.id,
       userId: auth.userId,
     });
-    return result.ok ? jsonResponse({ upload: result.upload }) : notFound();
+    return result.ok
+      ? jsonResponse({ upload: result.upload })
+      : mapOwnedUploadMutationFailure(result);
   } catch (error) {
     return handleRouteError("Failed to rename upload", error);
   }
@@ -103,10 +123,7 @@ export async function deleteUploadRoute(request: Request, params: IdParams) {
         userId,
       });
       if (!result.ok) {
-        if (result.error === "storage_delete_failed") {
-          return errorResponse("Failed to delete upload object", 502);
-        }
-        return notFound();
+        return mapOwnedUploadMutationFailure(result);
       }
 
       return jsonResponse({

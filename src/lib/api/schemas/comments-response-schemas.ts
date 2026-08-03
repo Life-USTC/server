@@ -37,7 +37,7 @@ export const commentBatchDeleteResponseSchema = z.object({
         success: z.literal(false),
         id: z.string(),
         error: z.object({
-          code: z.enum(["not_found", "forbidden", "locked"]),
+          code: z.enum(["not_found", "forbidden", "locked", "suspended"]),
           message: z.string(),
         }),
       }),

@@ -6,7 +6,11 @@ type CommentBatchDeleteAuditMetadata = {
   userAgent?: string;
 };
 
-type CommentBatchDeleteErrorCode = "forbidden" | "locked" | "not_found";
+type CommentBatchDeleteErrorCode =
+  | "forbidden"
+  | "locked"
+  | "not_found"
+  | "suspended";
 
 function commentBatchDeleteErrorMessage(
   code: CommentBatchDeleteErrorCode,
@@ -16,6 +20,8 @@ function commentBatchDeleteErrorMessage(
       return "Comment not found";
     case "locked":
       return "Comment locked";
+    case "suspended":
+      return "Suspended";
     default:
       return "Forbidden";
   }
@@ -34,8 +40,7 @@ export async function deleteOwnCommentsBatch(input: {
         userId: input.userId,
       });
       if (!result.ok) {
-        const code: CommentBatchDeleteErrorCode =
-          result.error === "suspended" ? "forbidden" : result.error;
+        const code: CommentBatchDeleteErrorCode = result.error;
         return {
           success: false as const,
           id,
