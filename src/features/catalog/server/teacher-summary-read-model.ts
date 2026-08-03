@@ -3,8 +3,8 @@ import { DEFAULT_LOCALE } from "@/i18n/config";
 import { getPrisma } from "@/lib/db/prisma";
 import { paginatedTeacherQuery } from "./academic-paginated-queries";
 import {
-  teacherDetailInclude,
-  teacherListInclude,
+  teacherPublicDetailSelect,
+  teacherPublicListSelect,
 } from "./academic-query-includes";
 import { buildTeacherWhere } from "./teacher-query";
 
@@ -34,7 +34,7 @@ export function listTeacherSummaries({
 export function findTeacherDetailById(id: number, locale = DEFAULT_LOCALE) {
   return getPrisma(locale).teacher.findUnique({
     where: { id },
-    include: teacherDetailInclude,
+    select: teacherPublicDetailSelect,
   });
 }
 
@@ -44,7 +44,7 @@ export async function findTeachersByIds(
 ) {
   const teachers = await getPrisma(locale).teacher.findMany({
     where: { id: { in: [...new Set(ids)] } },
-    include: teacherListInclude,
+    select: teacherPublicListSelect,
   });
   const byId = new Map(teachers.map((teacher) => [teacher.id, teacher]));
   return ids.map((id) => byId.get(id) ?? null);

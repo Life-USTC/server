@@ -4,7 +4,7 @@ import {
   sectionCompactInclude,
   sectionInclude,
   sectionSummarySelect,
-  teacherListInclude,
+  teacherPublicListSelect,
 } from "@/features/catalog/server/academic-query-includes";
 import type { Prisma } from "@/generated/prisma/client";
 import { getPrisma } from "@/lib/db/prisma";
@@ -151,7 +151,7 @@ export function paginatedTeacherQuery(
         where,
         skip,
         take,
-        include: teacherListInclude,
+        select: teacherPublicListSelect,
         orderBy,
       }),
     () => prisma.teacher.count({ where }),
