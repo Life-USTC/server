@@ -2,6 +2,10 @@ import type {
   CommentStatus,
   CommentVisibility,
 } from "@/generated/prisma/client";
+import {
+  type CommentVisibilityViewer,
+  canViewerAccessCommentAttachment as canViewerAccessCommentAttachmentByPolicy,
+} from "./comment-visibility-policy";
 
 export type CommentAttachmentAccessComment = {
   status: CommentStatus;
@@ -9,22 +13,11 @@ export type CommentAttachmentAccessComment = {
   visibility: CommentVisibility;
 };
 
-export type CommentAttachmentAccessViewer = {
-  isAdmin: boolean;
-  isAuthenticated: boolean;
-  userId: string | null;
-};
+export type CommentAttachmentAccessViewer = CommentVisibilityViewer;
 
 export function canViewerAccessCommentAttachment(
   comment: CommentAttachmentAccessComment,
   viewer: CommentAttachmentAccessViewer,
 ) {
-  if (!viewer.isAuthenticated) return false;
-  if (comment.status === "deleted") return false;
-  if (comment.status === "softbanned") {
-    return viewer.isAdmin || comment.userId === viewer.userId;
-  }
-  return (
-    comment.visibility === "public" || comment.visibility === "logged_in_only"
-  );
+  return canViewerAccessCommentAttachmentByPolicy(comment, viewer);
 }
