@@ -9,8 +9,11 @@ import {
   scheduleGroupSchema,
   sectionBaseSchema,
   semesterSchema,
-  teacherSchema,
 } from "./academic-response-schema-core";
+import {
+  departmentSchema,
+  teacherTitleSchema,
+} from "./academic-teacher-response-schemas";
 import { createPaginatedSchema } from "./response-schema-primitives";
 
 const localizedNameFields = {
@@ -33,24 +36,31 @@ const localizedRoomWithBuildingCampusSchema = roomSchema.extend({
   roomType: localizedRoomTypeSchema.nullable(),
 });
 
-const localizedTeacherWithDepartmentSchema = teacherSchema.extend({
-  ...localizedNameFields,
-  department: z
+const localizedDepartmentSchema = departmentSchema.extend(localizedNameFields);
+
+const localizedTeacherTitleSchema = teacherTitleSchema.extend(localizedNameFields);
+
+const scheduleTeacherSchema = z.object({
+  id: z.number().int(),
+  personId: z.number().int().nullable(),
+  teacherId: z.number().int().nullable(),
+  code: z.string().nullable(),
+  nameCn: z.string(),
+  nameEn: z.string().nullable(),
+  namePrimary: z.string(),
+  nameSecondary: z.string().nullable(),
+  department: localizedDepartmentSchema.nullable(),
+  teacherTitle: localizedTeacherTitleSchema.nullable().optional(),
+  _count: z
     .object({
-      id: z.number().int(),
-      code: z.string(),
-      nameCn: z.string(),
-      nameEn: z.string().nullable(),
-      isCollege: z.boolean().nullable(),
-      namePrimary: z.string(),
-      nameSecondary: z.string().nullable(),
+      sections: z.number().int(),
     })
-    .nullable(),
+    .optional(),
 });
 
 export const scheduleEntrySchema = scheduleBaseSchema.extend({
   room: localizedRoomWithBuildingCampusSchema.nullable(),
-  teachers: z.array(localizedTeacherWithDepartmentSchema),
+  teachers: z.array(scheduleTeacherSchema),
   section: sectionBaseSchema.extend({
     course: localizedCourseBaseSchema,
     semester: semesterSchema.nullable(),

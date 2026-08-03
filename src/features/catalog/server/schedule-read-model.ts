@@ -3,6 +3,7 @@ import {
   buildScheduleListWhere,
   type ScheduleListFilters,
 } from "@/features/catalog/lib/schedule-filters";
+import { scheduleTeacherSelect } from "@/features/catalog/server/academic-query-includes";
 import type { Prisma } from "@/generated/prisma/client";
 import type { AppLocale } from "@/i18n/config";
 import { DEFAULT_LOCALE } from "@/i18n/config";
@@ -25,9 +26,7 @@ export const publicScheduleInclude = {
     },
   },
   teachers: {
-    include: {
-      department: true,
-    },
+    select: scheduleTeacherSelect,
   },
   section: {
     include: {
@@ -36,7 +35,7 @@ export const publicScheduleInclude = {
     },
   },
   scheduleGroup: true,
-} as const satisfies Prisma.ScheduleInclude;
+} satisfies Prisma.ScheduleInclude;
 
 export const sectionScheduleInclude = {
   room: {
@@ -50,12 +49,10 @@ export const sectionScheduleInclude = {
     },
   },
   teachers: {
-    include: {
-      department: true,
-    },
+    select: scheduleTeacherSelect,
   },
   scheduleGroup: true,
-} as const satisfies Prisma.ScheduleInclude;
+} satisfies Prisma.ScheduleInclude;
 
 export const sectionScheduleListInclude = {
   ...sectionScheduleInclude,
@@ -64,7 +61,7 @@ export const sectionScheduleListInclude = {
       course: true,
     },
   },
-} as const satisfies Prisma.ScheduleInclude;
+} satisfies Prisma.ScheduleInclude;
 
 const sectionScheduleContextSelect = {
   id: true,
@@ -90,26 +87,6 @@ const sectionScheduleContextSelect = {
 type SectionScheduleContext = Prisma.SectionGetPayload<{
   select: typeof sectionScheduleContextSelect;
 }>;
-type SectionSchedule = Prisma.ScheduleGetPayload<{
-  include: typeof sectionScheduleInclude;
-}>;
-type SectionScheduleWithSection = Prisma.ScheduleGetPayload<{
-  include: typeof sectionScheduleListInclude;
-}>;
-type SerializedSectionSchedule = ReturnType<
-  typeof serializeScheduleTimeFields<SectionSchedule>
->;
-type SerializedSectionScheduleWithSection = ReturnType<
-  typeof serializeScheduleTimeFields<SectionScheduleWithSection>
->;
-
-type SectionScheduleResult<TSchedule> =
-  | {
-      found: true;
-      section: SectionScheduleContext;
-      schedules: TSchedule[];
-    }
-  | { found: false };
 
 export async function listPublicSchedules(input: {
   filters: ScheduleListFilters;
@@ -154,29 +131,11 @@ export async function findSectionScheduleContextByJwId(input: {
 export async function listSchedulesBySectionId(input: {
   dateFrom?: Date;
   dateTo?: Date;
-  includeSection: true;
-  limit?: number;
-  locale?: AppLocale;
-  sectionId: number;
-}): Promise<SerializedSectionScheduleWithSection[]>;
-export async function listSchedulesBySectionId(input: {
-  dateFrom?: Date;
-  dateTo?: Date;
-  includeSection?: false;
-  limit?: number;
-  locale?: AppLocale;
-  sectionId: number;
-}): Promise<SerializedSectionSchedule[]>;
-export async function listSchedulesBySectionId(input: {
-  dateFrom?: Date;
-  dateTo?: Date;
   includeSection?: boolean;
   limit?: number;
   locale?: AppLocale;
   sectionId: number;
-}): Promise<
-  SerializedSectionSchedule[] | SerializedSectionScheduleWithSection[]
-> {
+}) {
   const prisma = getPrisma(input.locale ?? DEFAULT_LOCALE);
   const where = {
     sectionId: input.sectionId,
@@ -207,31 +166,11 @@ export async function listSchedulesBySectionId(input: {
 export async function getSectionSchedulesByJwId(input: {
   dateFrom?: Date;
   dateTo?: Date;
-  includeSection: true;
-  limit?: number;
-  locale?: AppLocale;
-  sectionJwId: number;
-}): Promise<SectionScheduleResult<SerializedSectionScheduleWithSection>>;
-export async function getSectionSchedulesByJwId(input: {
-  dateFrom?: Date;
-  dateTo?: Date;
-  includeSection?: false;
-  limit?: number;
-  locale?: AppLocale;
-  sectionJwId: number;
-}): Promise<SectionScheduleResult<SerializedSectionSchedule>>;
-export async function getSectionSchedulesByJwId(input: {
-  dateFrom?: Date;
-  dateTo?: Date;
   includeSection?: boolean;
   limit?: number;
   locale?: AppLocale;
   sectionJwId: number;
-}): Promise<
-  SectionScheduleResult<
-    SerializedSectionSchedule | SerializedSectionScheduleWithSection
-  >
-> {
+}) {
   const section = await findSectionScheduleContextByJwId(input);
   if (!section) return { found: false as const };
 
