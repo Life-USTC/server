@@ -26,7 +26,7 @@ jobs:
       database-name: life_ustc_integration
       install-playwright: true
       job-phase: ci:integration
-
+      timeout-minutes: 60
   test-rls:
     name: PostgreSQL RLS Isolation Test
     needs: check
