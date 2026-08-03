@@ -55,7 +55,7 @@ function basePageData(
       sameSemesterOtherTeachers: [],
       sameTeacherOtherSemesters: [],
       scheduleCount: 1,
-      schedules: [{ id: 8, teachers: [] }],
+      schedules: [{ teachers: [] }],
       teachers: [{ id: 1, namePrimary: "Ada" }],
     },
     showSubscribeDialog: false,
@@ -119,7 +119,7 @@ describe("getSsrLoadedSectionDetailTabs", () => {
                 department: { namePrimary: "CS" },
                 id: 1,
                 namePrimary: "Ada",
-              },
+              } as SectionDetailPageData["section"]["teachers"][number],
             ],
           },
         }),
@@ -169,7 +169,7 @@ describe("buildSectionDetailTabPanelSsrState", () => {
       section: {
         ...basePageData().section,
         exams: [{ examRooms: [], id: 42 }],
-        schedules: [{ id: 7, teachers: [] }],
+        schedules: [{ teachers: [] }],
       },
     });
 
@@ -180,7 +180,7 @@ describe("buildSectionDetailTabPanelSsrState", () => {
       userId,
     );
 
-    expect(state.sectionOverlay.schedules).toEqual([{ id: 7, teachers: [] }]);
+    expect(state.sectionOverlay.schedules).toEqual([{ teachers: [] }]);
     expect(state.sectionOverlay.exams).toEqual([{ examRooms: [], id: 42 }]);
   });
 
@@ -206,7 +206,11 @@ describe("sectionTeachersIncludeDepartments", () => {
   it("detects department-expanded teacher payloads", () => {
     expect(
       sectionTeachersIncludeDepartments([
-        { department: { namePrimary: "CS" }, id: 1, namePrimary: "Ada" },
+        {
+          department: { namePrimary: "CS" },
+          id: 1,
+          namePrimary: "Ada",
+        } as SectionDetailPageData["section"]["teachers"][number],
       ]),
     ).toBe(true);
     expect(

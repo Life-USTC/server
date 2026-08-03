@@ -52,7 +52,7 @@ describe("createSectionDetailTabPanelStore", () => {
         homeworks: [],
         sectionOverlay: {
           exams: [{ examRooms: [], id: 1 }],
-          schedules: [{ id: 2, teachers: [] }],
+          schedules: [{ teachers: [] }],
           teachers: [],
         },
       },
@@ -73,7 +73,7 @@ describe("createSectionDetailTabPanelStore", () => {
     getMock.mockResolvedValue({
       data: {
         exams: [{ examRooms: [], id: 3 }],
-        schedules: [{ id: 4, teachers: [] }],
+        schedules: [{ teachers: [] }],
         teachers: [
           {
             department: { namePrimary: "CS" },
