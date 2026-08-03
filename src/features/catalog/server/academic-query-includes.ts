@@ -1,6 +1,85 @@
 import { localizedNameSelect } from "@/features/section-detail/server/section-page-name-selects";
 import type { Prisma } from "@/generated/prisma/client";
 
+export const departmentSummarySelect = {
+  id: true,
+  code: true,
+  isCollege: true,
+  nameCn: true,
+  nameEn: true,
+  namePrimary: true,
+  nameSecondary: true,
+};
+
+export const teacherTitleSummarySelect = {
+  id: true,
+  jwId: true,
+  code: true,
+  enabled: true,
+  nameCn: true,
+  nameEn: true,
+  namePrimary: true,
+  nameSecondary: true,
+};
+
+const teacherPublicScalarSelect = {
+  id: true,
+  personId: true,
+  teacherId: true,
+  code: true,
+  ...localizedNameSelect,
+  email: true,
+  telephone: true,
+  mobile: true,
+  address: true,
+  departmentId: true,
+  teacherTitleId: true,
+} satisfies Prisma.TeacherSelect;
+
+/** Narrow teacher payload for schedule entries: names and department only. */
+export const scheduleTeacherSelect = {
+  id: true,
+  personId: true,
+  teacherId: true,
+  code: true,
+  nameCn: true,
+  nameEn: true,
+  namePrimary: true,
+  nameSecondary: true,
+  department: {
+    select: departmentSummarySelect,
+  },
+};
+
+/** Schedule teacher payload with title and section count for subscribed/workspace surfaces. */
+export const scheduleTeacherContextSelect = {
+  ...scheduleTeacherSelect,
+  teacherTitle: {
+    select: teacherTitleSummarySelect,
+  },
+  _count: {
+    select: {
+      sections: { where: { retiredAt: null } },
+    },
+  },
+};
+
+/** Public catalog teacher list/detail fields (no postcode, qq, wechat, or age). */
+export const teacherPublicListSelect = {
+  ...teacherPublicScalarSelect,
+  department: {
+    select: departmentSummarySelect,
+  },
+  teacherTitle: {
+    select: teacherTitleSummarySelect,
+  },
+  _count: {
+    select: {
+      sections: { where: { retiredAt: null } },
+    },
+  },
+} satisfies Prisma.TeacherSelect;
+
 export const sectionSummarySelect = {
   id: true,
   jwId: true,
@@ -96,6 +175,34 @@ export const courseInclude = {
   type: true,
 } satisfies Prisma.CourseInclude;
 
+/** Public catalog teacher detail (no postcode, qq, wechat, or age). */
+export const teacherPublicDetailSelect = {
+  ...teacherPublicScalarSelect,
+  department: {
+    select: departmentSummarySelect,
+  },
+  teacherTitle: {
+    select: teacherTitleSummarySelect,
+  },
+  sections: {
+    include: {
+      course: {
+        include: courseInclude,
+      },
+      semester: true,
+    },
+    orderBy: [
+      { semester: { jwId: "desc" as const } },
+      { course: { nameCn: "asc" as const } },
+    ],
+  },
+  _count: {
+    select: {
+      sections: true,
+    },
+  },
+} satisfies Prisma.TeacherSelect;
+
 /** Public catalog Section shape without unbounded child collections. */
 export const sectionCatalogInclude = {
   course: {
@@ -120,36 +227,8 @@ export const courseDetailInclude = {
   },
 } satisfies Prisma.CourseInclude;
 
-/** Lightweight include for teacher list pages (no sections data, only count). */
-export const teacherListInclude = {
-  department: true,
-  teacherTitle: true,
-  _count: {
-    select: {
-      sections: { where: { retiredAt: null } },
-    },
-  },
-} satisfies Prisma.TeacherInclude;
+/** @deprecated Use teacherPublicListSelect with select instead of include. */
+export const teacherListInclude = teacherPublicListSelect;
 
-/** Full include for teacher detail pages (includes all sections). */
-export const teacherDetailInclude = {
-  department: true,
-  teacherTitle: true,
-  sections: {
-    include: {
-      course: {
-        include: courseInclude,
-      },
-      semester: true,
-    },
-    orderBy: [
-      { semester: { jwId: "desc" as const } },
-      { course: { nameCn: "asc" as const } },
-    ],
-  },
-  _count: {
-    select: {
-      sections: true,
-    },
-  },
-} satisfies Prisma.TeacherInclude;
+/** @deprecated Use teacherPublicDetailSelect with select instead of include. */
+export const teacherDetailInclude = teacherPublicDetailSelect;

@@ -48,7 +48,9 @@ export async function listSchedulesBySectionAction({
     return sectionNotFoundToolResult(sectionJwId, mode);
   }
 
-  const scopedSchedules = omitScheduleSection(result.schedules);
+  const scopedSchedules = omitScheduleSection(
+    result.schedules as Array<{ section?: unknown }>,
+  );
 
   return jsonToolResult(
     {

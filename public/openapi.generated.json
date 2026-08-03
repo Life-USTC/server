@@ -11357,52 +11357,6 @@
                         "nullable": true,
                         "type": "string"
                       },
-                      "age": {
-                        "nullable": true,
-                        "type": "integer",
-                        "minimum": -9007199254740991,
-                        "maximum": 9007199254740991
-                      },
-                      "email": {
-                        "nullable": true,
-                        "type": "string"
-                      },
-                      "telephone": {
-                        "nullable": true,
-                        "type": "string"
-                      },
-                      "mobile": {
-                        "nullable": true,
-                        "type": "string"
-                      },
-                      "address": {
-                        "nullable": true,
-                        "type": "string"
-                      },
-                      "postcode": {
-                        "nullable": true,
-                        "type": "string"
-                      },
-                      "qq": {
-                        "nullable": true,
-                        "type": "string"
-                      },
-                      "wechat": {
-                        "nullable": true,
-                        "type": "string"
-                      },
-                      "departmentId": {
-                        "nullable": true,
-                        "type": "integer",
-                        "minimum": -9007199254740991,
-                        "maximum": 9007199254740991
-                      },
-                      "teacherTitleId": {
-                        "nullable": true,
-                        "type": "integer",
-                        "minimum": -9007199254740991,
-                        "maximum": 9007199254740991
-                      },
                       "namePrimary": {
                         "type": "string"
                       },
@@ -11451,6 +11405,68 @@
                           "nameSecondary"
                         ],
                         "additionalProperties": false
+                      },
+                      "teacherTitle": {
+                        "nullable": true,
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          },
+                          "jwId": {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          },
+                          "nameCn": {
+                            "type": "string"
+                          },
+                          "nameEn": {
+                            "nullable": true,
+                            "type": "string"
+                          },
+                          "code": {
+                            "type": "string"
+                          },
+                          "enabled": {
+                            "nullable": true,
+                            "type": "boolean"
+                          },
+                          "namePrimary": {
+                            "type": "string"
+                          },
+                          "nameSecondary": {
+                            "nullable": true,
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "jwId",
+                          "nameCn",
+                          "nameEn",
+                          "code",
+                          "enabled",
+                          "namePrimary",
+                          "nameSecondary"
+                        ],
+                        "additionalProperties": false
+                      },
+                      "_count": {
+                        "type": "object",
+                        "properties": {
+                          "sections": {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          }
+                        },
+                        "required": [
+                          "sections"
+                        ],
+                        "additionalProperties": false
                       }
                     },
                     "required": [
@@ -11460,16 +11476,6 @@
                       "code",
                       "nameCn",
                       "nameEn",
-                      "age",
-                      "email",
-                      "telephone",
-                      "mobile",
-                      "address",
-                      "postcode",
-                      "qq",
-                      "wechat",
-                      "departmentId",
-                      "teacherTitleId",
                       "namePrimary",
                       "nameSecondary",
                       "department"
@@ -12253,12 +12259,6 @@
                   "nullable": true,
                   "type": "string"
                 },
-                "age": {
-                  "nullable": true,
-                  "type": "integer",
-                  "minimum": -9007199254740991,
-                  "maximum": 9007199254740991
-                },
                 "email": {
                   "nullable": true,
                   "type": "string"
@@ -12272,18 +12272,6 @@
                   "type": "string"
                 },
                 "address": {
-                  "nullable": true,
-                  "type": "string"
-                },
-                "postcode": {
-                  "nullable": true,
-                  "type": "string"
-                },
-                "qq": {
-                  "nullable": true,
-                  "type": "string"
-                },
-                "wechat": {
                   "nullable": true,
                   "type": "string"
                 },
@@ -12393,14 +12381,10 @@
                 "code",
                 "nameCn",
                 "nameEn",
-                "age",
                 "email",
                 "telephone",
                 "mobile",
                 "address",
-                "postcode",
-                "qq",
-                "wechat",
                 "departmentId",
                 "teacherTitleId",
                 "department",
@@ -15967,52 +15951,6 @@
                             "nullable": true,
                             "type": "string"
                           },
-                          "age": {
-                            "nullable": true,
-                            "type": "integer",
-                            "minimum": -9007199254740991,
-                            "maximum": 9007199254740991
-                          },
-                          "email": {
-                            "nullable": true,
-                            "type": "string"
-                          },
-                          "telephone": {
-                            "nullable": true,
-                            "type": "string"
-                          },
-                          "mobile": {
-                            "nullable": true,
-                            "type": "string"
-                          },
-                          "address": {
-                            "nullable": true,
-                            "type": "string"
-                          },
-                          "postcode": {
-                            "nullable": true,
-                            "type": "string"
-                          },
-                          "qq": {
-                            "nullable": true,
-                            "type": "string"
-                          },
-                          "wechat": {
-                            "nullable": true,
-                            "type": "string"
-                          },
-                          "departmentId": {
-                            "nullable": true,
-                            "type": "integer",
-                            "minimum": -9007199254740991,
-                            "maximum": 9007199254740991
-                          },
-                          "teacherTitleId": {
-                            "nullable": true,
-                            "type": "integer",
-                            "minimum": -9007199254740991,
-                            "maximum": 9007199254740991
-                          },
                           "namePrimary": {
                             "type": "string"
                           },
@@ -16061,6 +15999,68 @@
                               "nameSecondary"
                             ],
                             "additionalProperties": false
+                          },
+                          "teacherTitle": {
+                            "nullable": true,
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "integer",
+                                "minimum": -9007199254740991,
+                                "maximum": 9007199254740991
+                              },
+                              "jwId": {
+                                "type": "integer",
+                                "minimum": -9007199254740991,
+                                "maximum": 9007199254740991
+                              },
+                              "nameCn": {
+                                "type": "string"
+                              },
+                              "nameEn": {
+                                "nullable": true,
+                                "type": "string"
+                              },
+                              "code": {
+                                "type": "string"
+                              },
+                              "enabled": {
+                                "nullable": true,
+                                "type": "boolean"
+                              },
+                              "namePrimary": {
+                                "type": "string"
+                              },
+                              "nameSecondary": {
+                                "nullable": true,
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "id",
+                              "jwId",
+                              "nameCn",
+                              "nameEn",
+                              "code",
+                              "enabled",
+                              "namePrimary",
+                              "nameSecondary"
+                            ],
+                            "additionalProperties": false
+                          },
+                          "_count": {
+                            "type": "object",
+                            "properties": {
+                              "sections": {
+                                "type": "integer",
+                                "minimum": -9007199254740991,
+                                "maximum": 9007199254740991
+                              }
+                            },
+                            "required": [
+                              "sections"
+                            ],
+                            "additionalProperties": false
                           }
                         },
                         "required": [
@@ -16070,16 +16070,6 @@
                           "code",
                           "nameCn",
                           "nameEn",
-                          "age",
-                          "email",
-                          "telephone",
-                          "mobile",
-                          "address",
-                          "postcode",
-                          "qq",
-                          "wechat",
-                          "departmentId",
-                          "teacherTitleId",
                           "namePrimary",
                           "nameSecondary",
                           "department"
@@ -18040,52 +18030,6 @@
                         "nullable": true,
                         "type": "string"
                       },
-                      "age": {
-                        "nullable": true,
-                        "type": "integer",
-                        "minimum": -9007199254740991,
-                        "maximum": 9007199254740991
-                      },
-                      "email": {
-                        "nullable": true,
-                        "type": "string"
-                      },
-                      "telephone": {
-                        "nullable": true,
-                        "type": "string"
-                      },
-                      "mobile": {
-                        "nullable": true,
-                        "type": "string"
-                      },
-                      "address": {
-                        "nullable": true,
-                        "type": "string"
-                      },
-                      "postcode": {
-                        "nullable": true,
-                        "type": "string"
-                      },
-                      "qq": {
-                        "nullable": true,
-                        "type": "string"
-                      },
-                      "wechat": {
-                        "nullable": true,
-                        "type": "string"
-                      },
-                      "departmentId": {
-                        "nullable": true,
-                        "type": "integer",
-                        "minimum": -9007199254740991,
-                        "maximum": 9007199254740991
-                      },
-                      "teacherTitleId": {
-                        "nullable": true,
-                        "type": "integer",
-                        "minimum": -9007199254740991,
-                        "maximum": 9007199254740991
-                      },
                       "namePrimary": {
                         "type": "string"
                       },
@@ -18134,6 +18078,68 @@
                           "nameSecondary"
                         ],
                         "additionalProperties": false
+                      },
+                      "teacherTitle": {
+                        "nullable": true,
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          },
+                          "jwId": {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          },
+                          "nameCn": {
+                            "type": "string"
+                          },
+                          "nameEn": {
+                            "nullable": true,
+                            "type": "string"
+                          },
+                          "code": {
+                            "type": "string"
+                          },
+                          "enabled": {
+                            "nullable": true,
+                            "type": "boolean"
+                          },
+                          "namePrimary": {
+                            "type": "string"
+                          },
+                          "nameSecondary": {
+                            "nullable": true,
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "jwId",
+                          "nameCn",
+                          "nameEn",
+                          "code",
+                          "enabled",
+                          "namePrimary",
+                          "nameSecondary"
+                        ],
+                        "additionalProperties": false
+                      },
+                      "_count": {
+                        "type": "object",
+                        "properties": {
+                          "sections": {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          }
+                        },
+                        "required": [
+                          "sections"
+                        ],
+                        "additionalProperties": false
                       }
                     },
                     "required": [
@@ -18143,16 +18149,6 @@
                       "code",
                       "nameCn",
                       "nameEn",
-                      "age",
-                      "email",
-                      "telephone",
-                      "mobile",
-                      "address",
-                      "postcode",
-                      "qq",
-                      "wechat",
-                      "departmentId",
-                      "teacherTitleId",
                       "namePrimary",
                       "nameSecondary",
                       "department"
@@ -19124,12 +19120,6 @@
                             "nullable": true,
                             "type": "string"
                           },
-                          "age": {
-                            "nullable": true,
-                            "type": "integer",
-                            "minimum": -9007199254740991,
-                            "maximum": 9007199254740991
-                          },
                           "email": {
                             "nullable": true,
                             "type": "string"
@@ -19143,18 +19133,6 @@
                             "type": "string"
                           },
                           "address": {
-                            "nullable": true,
-                            "type": "string"
-                          },
-                          "postcode": {
-                            "nullable": true,
-                            "type": "string"
-                          },
-                          "qq": {
-                            "nullable": true,
-                            "type": "string"
-                          },
-                          "wechat": {
                             "nullable": true,
                             "type": "string"
                           },
@@ -19185,14 +19163,10 @@
                           "code",
                           "nameCn",
                           "nameEn",
-                          "age",
                           "email",
                           "telephone",
                           "mobile",
                           "address",
-                          "postcode",
-                          "qq",
-                          "wechat",
                           "departmentId",
                           "teacherTitleId",
                           "namePrimary",
@@ -19841,12 +19815,6 @@
                             "nullable": true,
                             "type": "string"
                           },
-                          "age": {
-                            "nullable": true,
-                            "type": "integer",
-                            "minimum": -9007199254740991,
-                            "maximum": 9007199254740991
-                          },
                           "email": {
                             "nullable": true,
                             "type": "string"
@@ -19860,18 +19828,6 @@
                             "type": "string"
                           },
                           "address": {
-                            "nullable": true,
-                            "type": "string"
-                          },
-                          "postcode": {
-                            "nullable": true,
-                            "type": "string"
-                          },
-                          "qq": {
-                            "nullable": true,
-                            "type": "string"
-                          },
-                          "wechat": {
                             "nullable": true,
                             "type": "string"
                           },
@@ -19902,14 +19858,10 @@
                           "code",
                           "nameCn",
                           "nameEn",
-                          "age",
                           "email",
                           "telephone",
                           "mobile",
                           "address",
-                          "postcode",
-                          "qq",
-                          "wechat",
                           "departmentId",
                           "teacherTitleId",
                           "namePrimary",
@@ -20570,12 +20522,6 @@
                             "nullable": true,
                             "type": "string"
                           },
-                          "age": {
-                            "nullable": true,
-                            "type": "integer",
-                            "minimum": -9007199254740991,
-                            "maximum": 9007199254740991
-                          },
                           "email": {
                             "nullable": true,
                             "type": "string"
@@ -20589,18 +20535,6 @@
                             "type": "string"
                           },
                           "address": {
-                            "nullable": true,
-                            "type": "string"
-                          },
-                          "postcode": {
-                            "nullable": true,
-                            "type": "string"
-                          },
-                          "qq": {
-                            "nullable": true,
-                            "type": "string"
-                          },
-                          "wechat": {
                             "nullable": true,
                             "type": "string"
                           },
@@ -20631,14 +20565,10 @@
                           "code",
                           "nameCn",
                           "nameEn",
-                          "age",
                           "email",
                           "telephone",
                           "mobile",
                           "address",
-                          "postcode",
-                          "qq",
-                          "wechat",
                           "departmentId",
                           "teacherTitleId",
                           "namePrimary",
@@ -22942,12 +22872,6 @@
                         "nullable": true,
                         "type": "string"
                       },
-                      "age": {
-                        "nullable": true,
-                        "type": "integer",
-                        "minimum": -9007199254740991,
-                        "maximum": 9007199254740991
-                      },
                       "email": {
                         "nullable": true,
                         "type": "string"
@@ -22961,18 +22885,6 @@
                         "type": "string"
                       },
                       "address": {
-                        "nullable": true,
-                        "type": "string"
-                      },
-                      "postcode": {
-                        "nullable": true,
-                        "type": "string"
-                      },
-                      "qq": {
-                        "nullable": true,
-                        "type": "string"
-                      },
-                      "wechat": {
                         "nullable": true,
                         "type": "string"
                       },
@@ -22996,14 +22908,10 @@
                       "code",
                       "nameCn",
                       "nameEn",
-                      "age",
                       "email",
                       "telephone",
                       "mobile",
                       "address",
-                      "postcode",
-                      "qq",
-                      "wechat",
                       "departmentId",
                       "teacherTitleId"
                     ],
@@ -23842,12 +23750,6 @@
                   "nullable": true,
                   "type": "string"
                 },
-                "age": {
-                  "nullable": true,
-                  "type": "integer",
-                  "minimum": -9007199254740991,
-                  "maximum": 9007199254740991
-                },
                 "email": {
                   "nullable": true,
                   "type": "string"
@@ -23861,18 +23763,6 @@
                   "type": "string"
                 },
                 "address": {
-                  "nullable": true,
-                  "type": "string"
-                },
-                "postcode": {
-                  "nullable": true,
-                  "type": "string"
-                },
-                "qq": {
-                  "nullable": true,
-                  "type": "string"
-                },
-                "wechat": {
                   "nullable": true,
                   "type": "string"
                 },
@@ -23968,14 +23858,10 @@
                 "code",
                 "nameCn",
                 "nameEn",
-                "age",
                 "email",
                 "telephone",
                 "mobile",
                 "address",
-                "postcode",
-                "qq",
-                "wechat",
                 "departmentId",
                 "teacherTitleId",
                 "department",
@@ -24064,12 +23950,6 @@
                       "nullable": true,
                       "type": "string"
                     },
-                    "age": {
-                      "nullable": true,
-                      "type": "integer",
-                      "minimum": -9007199254740991,
-                      "maximum": 9007199254740991
-                    },
                     "email": {
                       "nullable": true,
                       "type": "string"
@@ -24083,18 +23963,6 @@
                       "type": "string"
                     },
                     "address": {
-                      "nullable": true,
-                      "type": "string"
-                    },
-                    "postcode": {
-                      "nullable": true,
-                      "type": "string"
-                    },
-                    "qq": {
-                      "nullable": true,
-                      "type": "string"
-                    },
-                    "wechat": {
                       "nullable": true,
                       "type": "string"
                     },
@@ -24118,14 +23986,10 @@
                     "code",
                     "nameCn",
                     "nameEn",
-                    "age",
                     "email",
                     "telephone",
                     "mobile",
                     "address",
-                    "postcode",
-                    "qq",
-                    "wechat",
                     "departmentId",
                     "teacherTitleId"
                   ],
@@ -25070,12 +24934,6 @@
                         "nullable": true,
                         "type": "string"
                       },
-                      "age": {
-                        "nullable": true,
-                        "type": "integer",
-                        "minimum": -9007199254740991,
-                        "maximum": 9007199254740991
-                      },
                       "email": {
                         "nullable": true,
                         "type": "string"
@@ -25089,18 +24947,6 @@
                         "type": "string"
                       },
                       "address": {
-                        "nullable": true,
-                        "type": "string"
-                      },
-                      "postcode": {
-                        "nullable": true,
-                        "type": "string"
-                      },
-                      "qq": {
-                        "nullable": true,
-                        "type": "string"
-                      },
-                      "wechat": {
                         "nullable": true,
                         "type": "string"
                       },
@@ -25131,14 +24977,10 @@
                       "code",
                       "nameCn",
                       "nameEn",
-                      "age",
                       "email",
                       "telephone",
                       "mobile",
                       "address",
-                      "postcode",
-                      "qq",
-                      "wechat",
                       "departmentId",
                       "teacherTitleId",
                       "namePrimary",
@@ -25239,12 +25081,6 @@
             "nullable": true,
             "type": "string"
           },
-          "age": {
-            "nullable": true,
-            "type": "integer",
-            "minimum": -9007199254740991,
-            "maximum": 9007199254740991
-          },
           "email": {
             "nullable": true,
             "type": "string"
@@ -25258,18 +25094,6 @@
             "type": "string"
           },
           "address": {
-            "nullable": true,
-            "type": "string"
-          },
-          "postcode": {
-            "nullable": true,
-            "type": "string"
-          },
-          "qq": {
-            "nullable": true,
-            "type": "string"
-          },
-          "wechat": {
             "nullable": true,
             "type": "string"
           },
@@ -25834,14 +25658,10 @@
           "code",
           "nameCn",
           "nameEn",
-          "age",
           "email",
           "telephone",
           "mobile",
           "address",
-          "postcode",
-          "qq",
-          "wechat",
           "departmentId",
           "teacherTitleId",
           "department",
@@ -27770,12 +27590,6 @@
                         "nullable": true,
                         "type": "string"
                       },
-                      "age": {
-                        "nullable": true,
-                        "type": "integer",
-                        "minimum": -9007199254740991,
-                        "maximum": 9007199254740991
-                      },
                       "email": {
                         "nullable": true,
                         "type": "string"
@@ -27789,18 +27603,6 @@
                         "type": "string"
                       },
                       "address": {
-                        "nullable": true,
-                        "type": "string"
-                      },
-                      "postcode": {
-                        "nullable": true,
-                        "type": "string"
-                      },
-                      "qq": {
-                        "nullable": true,
-                        "type": "string"
-                      },
-                      "wechat": {
                         "nullable": true,
                         "type": "string"
                       },
@@ -27831,14 +27633,10 @@
                       "code",
                       "nameCn",
                       "nameEn",
-                      "age",
                       "email",
                       "telephone",
                       "mobile",
                       "address",
-                      "postcode",
-                      "qq",
-                      "wechat",
                       "departmentId",
                       "teacherTitleId",
                       "namePrimary",
@@ -28469,12 +28267,6 @@
                             "nullable": true,
                             "type": "string"
                           },
-                          "age": {
-                            "nullable": true,
-                            "type": "integer",
-                            "minimum": -9007199254740991,
-                            "maximum": 9007199254740991
-                          },
                           "email": {
                             "nullable": true,
                             "type": "string"
@@ -28488,18 +28280,6 @@
                             "type": "string"
                           },
                           "address": {
-                            "nullable": true,
-                            "type": "string"
-                          },
-                          "postcode": {
-                            "nullable": true,
-                            "type": "string"
-                          },
-                          "qq": {
-                            "nullable": true,
-                            "type": "string"
-                          },
-                          "wechat": {
                             "nullable": true,
                             "type": "string"
                           },
@@ -28530,14 +28310,10 @@
                           "code",
                           "nameCn",
                           "nameEn",
-                          "age",
                           "email",
                           "telephone",
                           "mobile",
                           "address",
-                          "postcode",
-                          "qq",
-                          "wechat",
                           "departmentId",
                           "teacherTitleId",
                           "namePrimary",
@@ -29180,12 +28956,6 @@
                             "nullable": true,
                             "type": "string"
                           },
-                          "age": {
-                            "nullable": true,
-                            "type": "integer",
-                            "minimum": -9007199254740991,
-                            "maximum": 9007199254740991
-                          },
                           "email": {
                             "nullable": true,
                             "type": "string"
@@ -29199,18 +28969,6 @@
                             "type": "string"
                           },
                           "address": {
-                            "nullable": true,
-                            "type": "string"
-                          },
-                          "postcode": {
-                            "nullable": true,
-                            "type": "string"
-                          },
-                          "qq": {
-                            "nullable": true,
-                            "type": "string"
-                          },
-                          "wechat": {
                             "nullable": true,
                             "type": "string"
                           },
@@ -29241,14 +28999,10 @@
                           "code",
                           "nameCn",
                           "nameEn",
-                          "age",
                           "email",
                           "telephone",
                           "mobile",
                           "address",
-                          "postcode",
-                          "qq",
-                          "wechat",
                           "departmentId",
                           "teacherTitleId",
                           "namePrimary",
@@ -29917,12 +29671,6 @@
                         "nullable": true,
                         "type": "string"
                       },
-                      "age": {
-                        "nullable": true,
-                        "type": "integer",
-                        "minimum": -9007199254740991,
-                        "maximum": 9007199254740991
-                      },
                       "email": {
                         "nullable": true,
                         "type": "string"
@@ -29936,18 +29684,6 @@
                         "type": "string"
                       },
                       "address": {
-                        "nullable": true,
-                        "type": "string"
-                      },
-                      "postcode": {
-                        "nullable": true,
-                        "type": "string"
-                      },
-                      "qq": {
-                        "nullable": true,
-                        "type": "string"
-                      },
-                      "wechat": {
                         "nullable": true,
                         "type": "string"
                       },
@@ -29978,14 +29714,10 @@
                       "code",
                       "nameCn",
                       "nameEn",
-                      "age",
                       "email",
                       "telephone",
                       "mobile",
                       "address",
-                      "postcode",
-                      "qq",
-                      "wechat",
                       "departmentId",
                       "teacherTitleId",
                       "namePrimary",
@@ -30586,12 +30318,6 @@
                         "nullable": true,
                         "type": "string"
                       },
-                      "age": {
-                        "nullable": true,
-                        "type": "integer",
-                        "minimum": -9007199254740991,
-                        "maximum": 9007199254740991
-                      },
                       "email": {
                         "nullable": true,
                         "type": "string"
@@ -30605,18 +30331,6 @@
                         "type": "string"
                       },
                       "address": {
-                        "nullable": true,
-                        "type": "string"
-                      },
-                      "postcode": {
-                        "nullable": true,
-                        "type": "string"
-                      },
-                      "qq": {
-                        "nullable": true,
-                        "type": "string"
-                      },
-                      "wechat": {
                         "nullable": true,
                         "type": "string"
                       },
@@ -30647,14 +30361,10 @@
                       "code",
                       "nameCn",
                       "nameEn",
-                      "age",
                       "email",
                       "telephone",
                       "mobile",
                       "address",
-                      "postcode",
-                      "qq",
-                      "wechat",
                       "departmentId",
                       "teacherTitleId",
                       "namePrimary",
@@ -31255,12 +30965,6 @@
                         "nullable": true,
                         "type": "string"
                       },
-                      "age": {
-                        "nullable": true,
-                        "type": "integer",
-                        "minimum": -9007199254740991,
-                        "maximum": 9007199254740991
-                      },
                       "email": {
                         "nullable": true,
                         "type": "string"
@@ -31274,18 +30978,6 @@
                         "type": "string"
                       },
                       "address": {
-                        "nullable": true,
-                        "type": "string"
-                      },
-                      "postcode": {
-                        "nullable": true,
-                        "type": "string"
-                      },
-                      "qq": {
-                        "nullable": true,
-                        "type": "string"
-                      },
-                      "wechat": {
                         "nullable": true,
                         "type": "string"
                       },
@@ -31316,14 +31008,10 @@
                       "code",
                       "nameCn",
                       "nameEn",
-                      "age",
                       "email",
                       "telephone",
                       "mobile",
                       "address",
-                      "postcode",
-                      "qq",
-                      "wechat",
                       "departmentId",
                       "teacherTitleId",
                       "namePrimary",
@@ -31926,12 +31614,6 @@
                             "nullable": true,
                             "type": "string"
                           },
-                          "age": {
-                            "nullable": true,
-                            "type": "integer",
-                            "minimum": -9007199254740991,
-                            "maximum": 9007199254740991
-                          },
                           "email": {
                             "nullable": true,
                             "type": "string"
@@ -31945,18 +31627,6 @@
                             "type": "string"
                           },
                           "address": {
-                            "nullable": true,
-                            "type": "string"
-                          },
-                          "postcode": {
-                            "nullable": true,
-                            "type": "string"
-                          },
-                          "qq": {
-                            "nullable": true,
-                            "type": "string"
-                          },
-                          "wechat": {
                             "nullable": true,
                             "type": "string"
                           },
@@ -31987,14 +31657,10 @@
                           "code",
                           "nameCn",
                           "nameEn",
-                          "age",
                           "email",
                           "telephone",
                           "mobile",
                           "address",
-                          "postcode",
-                          "qq",
-                          "wechat",
                           "departmentId",
                           "teacherTitleId",
                           "namePrimary",
@@ -32724,12 +32390,6 @@
                         "nullable": true,
                         "type": "string"
                       },
-                      "age": {
-                        "nullable": true,
-                        "type": "integer",
-                        "minimum": -9007199254740991,
-                        "maximum": 9007199254740991
-                      },
                       "email": {
                         "nullable": true,
                         "type": "string"
@@ -32743,18 +32403,6 @@
                         "type": "string"
                       },
                       "address": {
-                        "nullable": true,
-                        "type": "string"
-                      },
-                      "postcode": {
-                        "nullable": true,
-                        "type": "string"
-                      },
-                      "qq": {
-                        "nullable": true,
-                        "type": "string"
-                      },
-                      "wechat": {
                         "nullable": true,
                         "type": "string"
                       },
@@ -32785,14 +32433,10 @@
                       "code",
                       "nameCn",
                       "nameEn",
-                      "age",
                       "email",
                       "telephone",
                       "mobile",
                       "address",
-                      "postcode",
-                      "qq",
-                      "wechat",
                       "departmentId",
                       "teacherTitleId",
                       "namePrimary",

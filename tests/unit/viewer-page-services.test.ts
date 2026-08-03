@@ -215,9 +215,30 @@ describe("viewer page services", () => {
         where,
         include: expect.objectContaining({
           teachers: {
-            include: expect.objectContaining({
-              department: true,
-              teacherTitle: true,
+            select: expect.objectContaining({
+              department: {
+                select: expect.objectContaining({
+                  id: true,
+                  code: true,
+                  isCollege: true,
+                  nameCn: true,
+                  nameEn: true,
+                  namePrimary: true,
+                  nameSecondary: true,
+                }),
+              },
+              teacherTitle: {
+                select: expect.objectContaining({
+                  id: true,
+                  jwId: true,
+                  code: true,
+                  enabled: true,
+                  nameCn: true,
+                  nameEn: true,
+                  namePrimary: true,
+                  nameSecondary: true,
+                }),
+              },
               _count: {
                 select: {
                   sections: { where: { retiredAt: null } },

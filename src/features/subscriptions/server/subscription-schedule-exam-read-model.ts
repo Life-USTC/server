@@ -1,6 +1,6 @@
 import {
+  scheduleTeacherContextSelect,
   sectionCatalogInclude,
-  teacherListInclude,
 } from "@/features/catalog/server/academic-query-includes";
 import type { Prisma } from "@/generated/prisma/client";
 import { DEFAULT_LOCALE } from "@/i18n/config";
@@ -26,7 +26,7 @@ const subscribedScheduleInclude = {
       roomType: true,
     },
   },
-  teachers: { include: teacherListInclude },
+  teachers: { select: scheduleTeacherContextSelect },
   section: { include: sectionCatalogInclude },
   scheduleGroup: true,
 } satisfies Prisma.ScheduleInclude;
