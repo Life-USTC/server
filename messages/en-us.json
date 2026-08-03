@@ -1686,6 +1686,7 @@
     "listView": "List",
     "filterEmptyTitle": "No homework under this filter",
     "filterEmptyDescription": "Try another filter, or check back later.",
+    "clearFilter": "Clear filter",
     "addButton": "Add homework",
     "sectionLabel": "Section",
     "sectionPlaceholder": "Select a section",

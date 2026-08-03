@@ -8,6 +8,7 @@ import DetailSectionNav from "$lib/components/DetailSectionNav.svelte";
 import PageHeader from "$lib/components/PageHeader.svelte";
 import TruncatedCode from "$lib/components/TruncatedCode.svelte";
 import { Badge } from "$lib/components/ui/badge/index.js";
+import { courseDetailPagePath } from "../lib/catalog-detail-tab";
 import type { CatalogNamed } from "../lib/catalog-list-display";
 import {
   formatCatalogDetailMessage as formatMessage,
@@ -102,7 +103,7 @@ $: detailCopy = copy satisfies CourseDetailCopy;
 $: notAvailable = copy.courseDetail.notAvailable;
 $: displayName = primaryName(data.course) || data.course.code;
 $: secondaryDisplayName = secondaryName(data.course);
-$: courseBaseHref = `/catalog/courses/${data.course.jwId}`;
+$: courseJwId = data.course.jwId;
 $: commentsCount = data.commentsData
   ? Object.values(data.commentsData.commentMap).reduce(
       (sum, comments) => sum + comments.length,
@@ -111,26 +112,26 @@ $: commentsCount = data.commentsData
   : 0;
 $: sectionNavItems = [
   {
-    href: courseBaseHref,
+    href: courseDetailPagePath(courseJwId, "overview"),
     icon: InfoIcon,
     key: "overview" as const,
     label: copy.course.basicInfo,
   },
   {
-    href: `${courseBaseHref}/introduction`,
+    href: courseDetailPagePath(courseJwId, "introduction"),
     icon: BookOpenTextIcon,
     key: "introduction" as const,
     label: copy.courseDetail.tabs.description,
   },
   {
-    href: `${courseBaseHref}/sections`,
+    href: courseDetailPagePath(courseJwId, "sections"),
     icon: ListIcon,
     key: "sections" as const,
     label: copy.courseDetail.teachingSections,
     meta: data.course.sectionCount,
   },
   {
-    href: `${courseBaseHref}/comments`,
+    href: courseDetailPagePath(courseJwId, "comments"),
     icon: MessageSquareIcon,
     key: "comments" as const,
     label: copy.courseDetail.tabs.comments,
@@ -178,7 +179,7 @@ $: activeNavItem =
 
   <div class="grid min-h-0 grid-rows-[auto_minmax(0,1fr)] bg-card lg:grid-cols-[auto_minmax(0,1fr)] lg:grid-rows-none">
     <DetailSectionNav
-      activeHref={activeNavItem?.href ?? courseBaseHref}
+      activeHref={activeNavItem?.href ?? courseDetailPagePath(courseJwId)}
       ariaLabel={formatMessage(copy.metadata.pages.courseDetail, { name: displayName })}
       items={sectionNavItems}
       label={copy.common.courses}

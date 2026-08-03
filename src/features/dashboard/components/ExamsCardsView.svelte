@@ -16,6 +16,7 @@ export let dashboardTabHref: DashboardTabHref;
 export let exams: DashboardExamRow[];
 export let examMetadataLabels: ExamMetadataLabels;
 export let examTimeLabel: ExamTimeLabel;
+export let fmtExamDate: (value: Date | string | null | undefined) => string;
 export let namePrimary: NamePrimary;
 export let sectionCopy: ExamsCopyProps["sectionCopy"];
 export let subscriptionsCopy: ExamsCopyProps["subscriptionsCopy"];
@@ -43,7 +44,7 @@ export let subscriptionsCopy: ExamsCopyProps["subscriptionsCopy"];
         <dl class="grid gap-2 text-sm">
           <div class="flex items-center justify-between gap-3">
             <dt class="text-muted-foreground">{sectionCopy.examDate}</dt>
-            <dd class="font-medium">{#if exam.dateKey}{exam.dateKey}{:else}<span class="text-muted-foreground">{sectionCopy.examDateTBD}</span>{/if}</dd>
+            <dd class="font-medium">{#if exam.examDate}{fmtExamDate(exam.examDate)}{:else}<span class="text-muted-foreground">{sectionCopy.examDateTBD}</span>{/if}</dd>
           </div>
           <div class="flex items-center justify-between gap-3">
             <dt class="text-muted-foreground">{sectionCopy.examTime}</dt>

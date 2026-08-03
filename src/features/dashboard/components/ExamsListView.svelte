@@ -12,6 +12,7 @@ import type {
 export let dashboardTabHref: DashboardTabHref;
 export let exams: DashboardExamRow[];
 export let examTimeLabel: ExamTimeLabel;
+export let fmtExamDate: (value: Date | string | null | undefined) => string;
 export let sectionCopy: ExamsCopyProps["sectionCopy"];
 export let subscriptionsCopy: ExamsCopyProps["subscriptionsCopy"];
 </script>
@@ -39,7 +40,7 @@ export let subscriptionsCopy: ExamsCopyProps["subscriptionsCopy"];
           <TruncatedText text={exam.section.code ?? subscriptionsCopy.section} />
         </Table.Cell>
         <Table.Cell class="text-center">
-          {#if exam.dateKey}{exam.dateKey}{:else}<span class="text-muted-foreground">{sectionCopy.examDateTBD}</span>{/if}
+          {#if exam.examDate}{fmtExamDate(exam.examDate)}{:else}<span class="text-muted-foreground">{sectionCopy.examDateTBD}</span>{/if}
         </Table.Cell>
         <Table.Cell class="text-center">{examTimeLabel(exam.startTime, exam.endTime) || "—"}</Table.Cell>
         <Table.Cell class="max-w-56">

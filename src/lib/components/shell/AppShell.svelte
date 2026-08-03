@@ -137,7 +137,9 @@ function buildShellNavGroups(
   pathname: string,
   pageData: Record<string, unknown>,
 ): ShellNavGroup[] {
-  const detailSecondaryLinks = buildDetailSecondaryLinks(pathname, pageData);
+  const detailSecondaryLinks = isDetailWorkspacePath(pathname)
+    ? undefined
+    : buildDetailSecondaryLinks(pathname, pageData);
   const catalogLinks: ShellLink[] = [
     {
       href: "/catalog/courses",
@@ -283,7 +285,9 @@ function buildMobileSecondaryNavGroups(
   pathname: string,
   pageData: Record<string, unknown>,
 ): ShellNavGroup[] {
-  const detailSecondaryLinks = buildDetailSecondaryLinks(pathname, pageData);
+  const detailSecondaryLinks = isDetailWorkspacePath(pathname)
+    ? undefined
+    : buildDetailSecondaryLinks(pathname, pageData);
   const dashboardNavStats = pageData.navStats as
     | {
         examsCount?: number;

@@ -35,6 +35,7 @@ export type DashboardExamRow<Section extends DashboardExamSection> = {
   section: Section;
   courseName: string;
   dateKey: string | null;
+  examDate: Date | string | null;
   startTime: number | null;
   endTime: number | null;
   examType: number | null;

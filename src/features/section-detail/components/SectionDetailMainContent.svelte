@@ -17,6 +17,7 @@ import DetailSectionNav from "$lib/components/DetailSectionNav.svelte";
 import * as Alert from "$lib/components/ui/alert/index.js";
 import { Button } from "$lib/components/ui/button/index.js";
 import { Separator } from "$lib/components/ui/separator/index.js";
+import { Spinner } from "$lib/components/ui/spinner/index.js";
 import { cn } from "$lib/utils.js";
 import SectionBasicInfoCard from "./SectionBasicInfoCard.svelte";
 import SectionDetailHeader from "./SectionDetailHeader.svelte";
@@ -226,9 +227,13 @@ $: sectionNavItems = [
       data-detail-scroll-container
     >
       {#if tabPanelLoading}
-        <p class="sr-only">
-          {data.locale === "zh-cn" ? "加载中..." : "Loading..."}
-        </p>
+        <div
+          class="text-muted-foreground flex items-center justify-center gap-2 px-2 py-10 text-sm"
+          role="status"
+        >
+          <Spinner class="size-4 shrink-0" />
+          <span>{data.locale === "zh-cn" ? "加载中..." : "Loading..."}</span>
+        </div>
       {/if}
       {#if activeTab === "overview"}
       <section id="section-overview">

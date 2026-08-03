@@ -7,6 +7,7 @@ import { commentTargetPermalinkBaseHref } from "@/features/comments/lib/comment-
 import DetailSectionNav from "$lib/components/DetailSectionNav.svelte";
 import PageHeader from "$lib/components/PageHeader.svelte";
 import { Badge } from "$lib/components/ui/badge/index.js";
+import { teacherDetailPagePath } from "../lib/catalog-detail-tab";
 import {
   type CatalogNamed,
   catalogPrimaryName as primaryName,
@@ -93,7 +94,7 @@ $: secondaryDisplayName = secondaryName(data.teacher);
 $: teacherDescription = data.teacher.department
   ? primaryName(data.teacher.department)
   : secondaryDisplayName;
-$: teacherBaseHref = `/catalog/teachers/${data.teacher.id}`;
+$: teacherId = data.teacher.id;
 $: commentsCount = data.commentsData
   ? Object.values(data.commentsData.commentMap).reduce(
       (sum, comments) => sum + comments.length,
@@ -102,26 +103,26 @@ $: commentsCount = data.commentsData
   : 0;
 $: sectionNavItems = [
   {
-    href: teacherBaseHref,
+    href: teacherDetailPagePath(teacherId, "overview"),
     icon: InfoIcon,
     key: "overview" as const,
     label: copy.teacherDetail.basicInfo,
   },
   {
-    href: `${teacherBaseHref}/introduction`,
+    href: teacherDetailPagePath(teacherId, "introduction"),
     icon: BookOpenTextIcon,
     key: "introduction" as const,
     label: copy.descriptions.title,
   },
   {
-    href: `${teacherBaseHref}/sections`,
+    href: teacherDetailPagePath(teacherId, "sections"),
     icon: ListIcon,
     key: "sections" as const,
     label: copy.teacherDetail.teachingSectionsTitle,
     meta: data.teacher.sectionCount,
   },
   {
-    href: `${teacherBaseHref}/comments`,
+    href: teacherDetailPagePath(teacherId, "comments"),
     icon: MessageSquareIcon,
     key: "comments" as const,
     label: copy.comments.title,
@@ -164,7 +165,7 @@ $: activeNavItem =
 
   <div class="grid min-h-0 grid-rows-[auto_minmax(0,1fr)] bg-card lg:grid-cols-[auto_minmax(0,1fr)] lg:grid-rows-none">
     <DetailSectionNav
-      activeHref={activeNavItem?.href ?? teacherBaseHref}
+      activeHref={activeNavItem?.href ?? teacherDetailPagePath(teacherId)}
       ariaLabel={formatMessage(copy.metadata.pages.teacherDetail, { name: displayName })}
       items={sectionNavItems}
       label={copy.common.teachers}

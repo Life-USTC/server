@@ -28,6 +28,7 @@ export let examRows: DashboardExamRow[];
 export let examTimeLabel: ExamTimeLabel;
 export let examView: ExamView;
 export let filteredExamRows: DashboardExamRow[];
+export let locale: string;
 export let namePrimary: NamePrimary;
 export let sectionCopy: DashboardSectionCopy;
 export let setExamView: (view: ExamView) => void;
@@ -48,5 +49,6 @@ export let subscriptionsCopy: DashboardSubscriptionsCopy;
   {examView}
   {examRows}
   {filteredExamRows}
+  {locale}
   bind:examFilter
 />
