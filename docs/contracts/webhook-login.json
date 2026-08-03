@@ -3,13 +3,16 @@
   "access": {
     "anon": "Not applicable.",
     "user": "Not applicable.",
-    "admin": "Must hold the WEBHOOK_SECRET environment variable value.",
+    "admin": "Must set WEBHOOK_LOGIN_ENABLED=true and hold the WEBHOOK_SECRET value.",
     "agent": "Not applicable."
   },
   "rules": {
-    "requires-secret": "Only available when the server is configured with the WEBHOOK_SECRET environment variable; all requests return 403 when not configured.",
+    "requires-opt-in": "Plugin is registered only when WEBHOOK_LOGIN_ENABLED=true and WEBHOOK_SECRET is non-empty. Secret alone is insufficient; unset the flag in production except during active debugging.",
+    "requires-secret": "Authenticated requests must supply the WEBHOOK_SECRET value; invalid or missing secrets return 403.",
     "debug-only": "Used for passwordless login in production debugging scenarios; not a regular user sign-in entry point.",
-    "session-via-betterauth": "Locates the target user by email or userId and establishes a session via Better Auth session primitives; no longer hand-writes session cookie signing."
+    "cookie-only-session": "Establishes a Better Auth session via setSessionCookie. The session token is never returned in the JSON body.",
+    "rate-limited": "Better Auth customRules throttle /webhook/login to 5 requests per 60 seconds when rate limiting is enabled.",
+    "audited": "Successful logins write an AuditAction.webhook_login row (no secrets or session tokens in metadata)."
   },
   "capabilities": {
     "webhook-login": {
@@ -29,7 +32,7 @@
         "fields": [
           "Webhook URL handled through Better Auth catch-all",
           "User info payload",
-          "Session creation JSON response"
+          "Session cookie + JSON without sessionToken"
         ]
       }
     }

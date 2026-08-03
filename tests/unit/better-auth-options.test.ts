@@ -84,6 +84,10 @@ describe("Better Auth options", () => {
           window: 60,
           max: 10,
         },
+        "/webhook/login": {
+          window: 60,
+          max: 5,
+        },
       },
     });
     expect(options.trustedOrigins).toEqual(["https://life.example.com"]);
