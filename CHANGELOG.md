@@ -1,3 +1,12 @@
+## [1.84.8](https://github.com/Life-USTC/server/compare/v1.84.7...v1.84.8) (2026-08-03)
+
+
+### Bug Fixes
+
+* **section-detail:** seed SSR tab panels and narrow section detail fetches ([#745](https://github.com/Life-USTC/server/issues/745)) ([8163196](https://github.com/Life-USTC/server/commit/8163196d16c9f9f92752df02a8e02e565013f33b))
+* **ui:** nav presentation cleanup (PR C, [#733](https://github.com/Life-USTC/server/issues/733)) ([#744](https://github.com/Life-USTC/server/issues/744)) ([85f6ee2](https://github.com/Life-USTC/server/commit/85f6ee2e15095b420d71f648dc1ccb7fffd3e35f))
+* **worker:** bypass PublicSsr edge cache when auth signal is present ([#743](https://github.com/Life-USTC/server/issues/743)) ([941b309](https://github.com/Life-USTC/server/commit/941b3096adc762fa39452ea5773236ce2173fcb2)), closes [#733](https://github.com/Life-USTC/server/issues/733)
+
 ## [1.84.7](https://github.com/Life-USTC/server/compare/v1.84.6...v1.84.7) (2026-08-03)
 
 
