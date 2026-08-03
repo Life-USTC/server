@@ -5,58 +5,6 @@ function escapeForRegExp(value: string) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
-export async function uploadFileFromDashboard(
-  page: Page,
-  options: {
-    filename: string;
-    mimeType?: string;
-    contents: string;
-  },
-) {
-  const createResponsePromise = page.waitForResponse(
-    (response) =>
-      response.url().includes("/api/workspace/uploads") &&
-      response.request().method() === "POST" &&
-      response.status() === 200,
-  );
-  const completeResponsePromise = page.waitForResponse(
-    (response) =>
-      response.url().includes("/api/workspace/uploads/complete") &&
-      response.request().method() === "POST" &&
-      response.status() === 200,
-  );
-  const putResponsePromise = page.waitForResponse(
-    (response) =>
-      response.request().method() === "PUT" &&
-      response.status() === 200 &&
-      response.url().startsWith("http"),
-  );
-
-  await page.locator("input#upload-file").setInputFiles({
-    name: options.filename,
-    mimeType: options.mimeType ?? "text/plain",
-    buffer: Buffer.from(options.contents),
-  });
-
-  const createResponse = await createResponsePromise;
-  const createBody = (await createResponse.json()) as { url?: string };
-  expect(createBody.url).toMatch(/^https?:\/\//);
-
-  await putResponsePromise;
-
-  const completeResponse = await completeResponsePromise;
-  const completeBody = (await completeResponse.json()) as {
-    upload?: { id?: string; filename?: string };
-  };
-  expect(typeof completeBody.upload?.id).toBe("string");
-
-  const row = await expectUploadRow(page, options.filename);
-  return {
-    row,
-    uploadId: completeBody.upload?.id as string,
-  };
-}
-
 export async function expectUploadRow(page: Page, filename: string) {
   const row = page
     .locator("tr")
