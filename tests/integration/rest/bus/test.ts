@@ -22,8 +22,8 @@
  */
 import { expect, test } from "@playwright/test";
 import { DEV_SEED, DEV_SEED_ANCHOR } from "../../../e2e/utils/dev-seed";
-import { assertApiContract } from "../_shared/api-contract";
 import { signInAsDebugUserApi } from "../_harness/auth";
+import { assertApiContract } from "../_shared/api-contract";
 
 const BASE = "/api/catalog/bus";
 const PREF_BASE = "/api/workspace/bus-preferences";

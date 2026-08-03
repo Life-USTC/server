@@ -27,7 +27,9 @@ test.describe("GET /api/workspace/homeworks - 订阅作业", () => {
     expect(response.status()).toBe(401);
   });
 
-  test("认证并关注种子班级后返回订阅作业、审计日志与班级 ID 列表", async ({ request, }) => {
+  test("认证并关注种子班级后返回订阅作业、审计日志与班级 ID 列表", async ({
+    request,
+  }) => {
     await signInAsDebugUserApi(request, "/");
     await ensureSeedSectionSubscription(request);
 

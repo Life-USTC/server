@@ -1,8 +1,8 @@
+import { type APIRequestContext, expect } from "@playwright/test";
 import {
   DEV_ADMIN_PROVIDER_ID,
   DEV_DEBUG_PROVIDER_ID,
 } from "@/lib/auth/provider-ids";
-import { expect, type APIRequestContext } from "@playwright/test";
 
 async function signInWithProvider(
   request: APIRequestContext,

@@ -26,8 +26,8 @@ import { DEV_SEED } from "../../../e2e/utils/dev-seed";
 import { withE2ePrisma } from "../../../e2e/utils/e2e-db/prisma";
 import { resolveSeedSectionId } from "../../../e2e/utils/seed-lookups";
 import { createUploadedFileViaApi } from "../../../e2e/utils/uploads";
-import { assertApiContract } from "../_shared/api-contract";
 import { signInAsDebugUserApi } from "../_harness/auth";
+import { assertApiContract } from "../_shared/api-contract";
 
 type DisposableSectionTeacherFixture = {
   courseId: number;
@@ -201,7 +201,9 @@ test("/api/community/comments GET 不存在的目标返回 404", async ({
   expect(response.status()).toBe(404);
 });
 
-test("/api/community/comments GET 按根评论分页并保留完整回复树", async ({ request, }, testInfo) => {
+test("/api/community/comments GET 按根评论分页并保留完整回复树", async ({
+  request,
+}, testInfo) => {
   await signInAsDebugUserApi(request, "/");
   const fixture = await createDisposableSectionTeacherFixture(testInfo, {
     connectTeacher: false,
@@ -362,7 +364,9 @@ test("/api/community/comments POST 拒绝匿名可见性", async ({ request }) =
   expect(created).toBeNull();
 });
 
-test("/api/community/comments POST 登录后可发布新评论并清理", async ({ request, }) => {
+test("/api/community/comments POST 登录后可发布新评论并清理", async ({
+  request,
+}) => {
   await signInAsDebugUserApi(request, "/");
   const sectionId = await resolveSeedSectionId(request);
 
@@ -398,7 +402,9 @@ test("/api/community/comments POST 登录后可发布新评论并清理", async 
   }
 });
 
-test("/api/community/comments POST 接受公开 section JW id", async ({ request, }) => {
+test("/api/community/comments POST 接受公开 section JW id", async ({
+  request,
+}) => {
   await signInAsDebugUserApi(request, "/");
 
   const content = `e2e-create-comment-section-jwid-${Date.now()}`;
@@ -430,7 +436,9 @@ test("/api/community/comments POST 接受公开 section JW id", async ({ request
   }
 });
 
-test("/api/community/comments POST 拒绝格式错误的公开 section JW id 并回退 targetId", async ({ request, }) => {
+test("/api/community/comments POST 拒绝格式错误的公开 section JW id 并回退 targetId", async ({
+  request,
+}) => {
   await signInAsDebugUserApi(request, "/");
   const sectionId = await resolveSeedSectionId(request);
   const content = `e2e-invalid-section-jwid-${Date.now()}`;
@@ -558,7 +566,9 @@ test("/api/community/comments POST 可创建回复评论", async ({ request }) =
   }
 });
 
-test("/api/community/comments POST 拒绝对失效父评论回复", async ({ request }) => {
+test("/api/community/comments POST 拒绝对失效父评论回复", async ({
+  request,
+}) => {
   await signInAsDebugUserApi(request, "/");
   const sectionId = await resolveSeedSectionId(request);
 
@@ -586,17 +596,14 @@ test("/api/community/comments POST 拒绝对失效父评论回复", async ({ req
       }),
     );
 
-    const deletedReplyResponse = await request.post(
-      "/api/community/comments",
-      {
-        data: {
-          targetType: "section",
-          targetId: String(sectionId),
-          body: `${content}-reply-deleted`,
-          parentId: commentId,
-        },
+    const deletedReplyResponse = await request.post("/api/community/comments", {
+      data: {
+        targetType: "section",
+        targetId: String(sectionId),
+        body: `${content}-reply-deleted`,
+        parentId: commentId,
       },
-    );
+    });
     expect(deletedReplyResponse.status()).toBe(403);
 
     await withE2ePrisma((prisma) =>

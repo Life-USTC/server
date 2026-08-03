@@ -108,7 +108,9 @@ test.describe("POST /api/workspace/link-pins 接口", () => {
     }
   });
 
-  test("未知 slug 在 JSON 模式下返回 200 且 pinnedSlugs 为空", async ({ request, }) => {
+  test("未知 slug 在 JSON 模式下返回 200 且 pinnedSlugs 为空", async ({
+    request,
+  }) => {
     await signInAsDebugUserApi(request, "/");
 
     const response = await request.post(BASE, {

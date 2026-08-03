@@ -22,8 +22,8 @@
 import { expect, test } from "@playwright/test";
 import { DEV_SEED } from "../../../../../e2e/utils/dev-seed";
 import { resolveSeedSectionId } from "../../../../../e2e/utils/seed-lookups";
-import { assertApiContract } from "../../../_shared/api-contract";
 import { signInAsDebugUserApi } from "../../../_harness/auth";
+import { assertApiContract } from "../../../_shared/api-contract";
 
 /** Resolve the seed section's internal DB id via match-codes. */
 /** Find the seed homework's id by matching on known title. */
@@ -68,7 +68,9 @@ test("/api/workspace/homeworks/[id]/completion PUT 未登录返回 401", async (
   expect(response.status()).toBe(401);
 });
 
-test("/api/workspace/homeworks/[id]/completion PUT 可切换完成状态并还原", async ({ request, }) => {
+test("/api/workspace/homeworks/[id]/completion PUT 可切换完成状态并还原", async ({
+  request,
+}) => {
   await signInAsDebugUserApi(request, "/");
   const sectionId = await resolveSeedSectionId(request);
   const homeworkId = await findSeedHomeworkId(request, sectionId);
@@ -105,11 +107,8 @@ test("/api/workspace/homeworks/[id]/completion PUT 可切换完成状态并还�
     }).toPass({ timeout: 10_000 });
   } finally {
     // Restore to completed state (matches seed)
-    await request.put(
-      `/api/workspace/homeworks/${homeworkId}/completion`,
-      {
-        data: { completed: true },
-      },
-    );
+    await request.put(`/api/workspace/homeworks/${homeworkId}/completion`, {
+      data: { completed: true },
+    });
   }
 });

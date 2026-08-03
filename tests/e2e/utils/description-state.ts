@@ -225,10 +225,10 @@ export async function restoreDescriptionTargetSnapshot(
 
   await deleteCreatedDescriptionOnce();
   await expect
-    .poll(
-      () => findDescriptionIdForTarget(request, snapshot.target),
-      { timeout: 1_000, intervals: [50] },
-    )
+    .poll(() => findDescriptionIdForTarget(request, snapshot.target), {
+      timeout: 1_000,
+      intervals: [50],
+    })
     .toBeNull();
   await deleteCreatedDescriptionOnce();
 }

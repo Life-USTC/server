@@ -25,8 +25,8 @@ import { expect, test } from "@playwright/test";
 import { DEV_SEED } from "../../../../../e2e/utils/dev-seed";
 import { withE2ePrisma } from "../../../../../e2e/utils/e2e-db/prisma";
 import { resolveSeedSectionId } from "../../../../../e2e/utils/seed-lookups";
-import { assertApiContract } from "../../../_shared/api-contract";
 import { signInAsDebugUserApi } from "../../../_harness/auth";
+import { assertApiContract } from "../../../_shared/api-contract";
 
 /** Resolve the seed section's internal DB id via match-codes. */
 /** Find the seed root comment by body content. */
@@ -74,7 +74,9 @@ test("/api/community/comments/[id]/reactions DELETE 未登录返回 401", async 
   expect(response.status()).toBe(401);
 });
 
-test("/api/community/comments/[id]/reactions 登录后可添加并验证再删除", async ({ request, }) => {
+test("/api/community/comments/[id]/reactions 登录后可添加并验证再删除", async ({
+  request,
+}) => {
   await signInAsDebugUserApi(request, "/");
   const sectionId = await resolveSeedSectionId(request);
   const commentId = await findSeedCommentId(request, sectionId);
@@ -121,7 +123,9 @@ test("/api/community/comments/[id]/reactions 登录后可添加并验证再删�
   });
 });
 
-test("/api/community/comments/[id]/reactions POST 不存在的评论返回 404", async ({ request, }) => {
+test("/api/community/comments/[id]/reactions POST 不存在的评论返回 404", async ({
+  request,
+}) => {
   await signInAsDebugUserApi(request, "/");
 
   const response = await request.post(
@@ -131,7 +135,9 @@ test("/api/community/comments/[id]/reactions POST 不存在的评论返回 404",
   expect(response.status()).toBe(404);
 });
 
-test("/api/community/comments/[id]/reactions POST 对失效评论返回 403", async ({ request, }) => {
+test("/api/community/comments/[id]/reactions POST 对失效评论返回 403", async ({
+  request,
+}) => {
   await signInAsDebugUserApi(request, "/");
   const sectionId = await resolveSeedSectionId(request);
 
@@ -184,7 +190,9 @@ test("/api/community/comments/[id]/reactions POST 对失效评论返回 403", as
   }
 });
 
-test("/api/community/comments/[id]/reactions DELETE 对失效评论返回 403", async ({ request, }) => {
+test("/api/community/comments/[id]/reactions DELETE 对失效评论返回 403", async ({
+  request,
+}) => {
   await signInAsDebugUserApi(request, "/");
   const sectionId = await resolveSeedSectionId(request);
 

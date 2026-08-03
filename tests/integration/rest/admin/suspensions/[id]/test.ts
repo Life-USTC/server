@@ -10,10 +10,14 @@
  * - Returns 400 for invalid suspension ID
  */
 import { expect, test } from "@playwright/test";
-import { createTempUsersFixture,
+import {
+  createTempUsersFixture,
   deleteUsersByPrefix,
 } from "../../../../../e2e/utils/e2e-db";
-import { signInAsDebugUserApi, signInAsDevAdminApi } from "../../../_harness/auth";
+import {
+  signInAsDebugUserApi,
+  signInAsDevAdminApi,
+} from "../../../_harness/auth";
 import { assertApiContract } from "../../../_shared/api-contract";
 
 const BASE = "/api/admin/suspensions";

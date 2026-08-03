@@ -18,8 +18,8 @@
  */
 import { expect, test } from "@playwright/test";
 import { DEV_SEED } from "../../../../e2e/utils/dev-seed";
-import { assertApiContract } from "../../_shared/api-contract";
 import { signInAsDebugUserApi } from "../../_harness/auth";
+import { assertApiContract } from "../../_shared/api-contract";
 
 const BASE = "/api/workspace/subscriptions/current";
 
@@ -39,12 +39,9 @@ test.describe("GET /api/workspace/subscriptions/current 接口", () => {
     await signInAsDebugUserApi(request, "/");
 
     // Resolve seed section ID
-    const matchRes = await request.post(
-      "/api/catalog/sections/match-codes",
-      {
-        data: { codes: [DEV_SEED.section.code] },
-      },
-    );
+    const matchRes = await request.post("/api/catalog/sections/match-codes", {
+      data: { codes: [DEV_SEED.section.code] },
+    });
     expect(matchRes.status()).toBe(200);
     const matchBody = (await matchRes.json()) as {
       sections?: Array<{ id?: number; code?: string | null }>;

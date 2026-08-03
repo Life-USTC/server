@@ -7,11 +7,15 @@
  */
 import { expect, test } from "@playwright/test";
 import { DESCRIPTION_CONTENT_MAX_LENGTH } from "@/features/descriptions/lib/description-limits";
-import { restoreDescriptionSnapshot,
+import {
+  restoreDescriptionSnapshot,
   snapshotDescriptionForE2e,
   waitForDescriptionAuditRows,
 } from "../../../../../e2e/utils/description-state";
-import { signInAsDebugUserApi, signInAsDevAdminApi } from "../../../_harness/auth";
+import {
+  signInAsDebugUserApi,
+  signInAsDevAdminApi,
+} from "../../../_harness/auth";
 import { assertApiContract } from "../../../_shared/api-contract";
 
 const BASE = "/api/admin/descriptions";

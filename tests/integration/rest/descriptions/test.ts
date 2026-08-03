@@ -25,13 +25,14 @@
  * - Same content twice → updated: false on second call
  */
 import { expect, type TestInfo, test } from "@playwright/test";
-import { snapshotDescriptionForE2e,
+import {
+  snapshotDescriptionForE2e,
   waitForDescriptionAuditRows,
 } from "../../../e2e/utils/description-state";
-import { signInAsDebugUserApi } from "../_harness/auth";
 import { DEV_SEED } from "../../../e2e/utils/dev-seed";
 import { withE2ePrisma } from "../../../e2e/utils/e2e-db/prisma";
 import { resolveSeedSectionId } from "../../../e2e/utils/seed-lookups";
+import { signInAsDebugUserApi } from "../_harness/auth";
 import { assertApiContract } from "../_shared/api-contract";
 
 type DisposableDescriptionFixture = {
@@ -203,7 +204,9 @@ test("/api/community/descriptions POST 未登录返回 401", async ({ request })
   expect(response.status()).toBe(401);
 });
 
-test("/api/community/descriptions POST 登录后可更新描述并清理", async ({ request, }, testInfo) => {
+test("/api/community/descriptions POST 登录后可更新描述并清理", async ({
+  request,
+}, testInfo) => {
   await signInAsDebugUserApi(request, "/");
   const fixture = await createDisposableDescriptionFixture(testInfo);
   let snapshot: Awaited<ReturnType<typeof snapshotDescriptionForE2e>> | null =
@@ -227,16 +230,13 @@ test("/api/community/descriptions POST 登录后可更新描述并清理", async
     const newContent = `e2e-description-${Date.now()}`;
 
     // POST: update description
-    const postResponse = await request.post(
-      "/api/community/descriptions",
-      {
-        data: {
-          targetType: "section",
-          targetId: String(fixture.sectionId),
-          content: newContent,
-        },
+    const postResponse = await request.post("/api/community/descriptions", {
+      data: {
+        targetType: "section",
+        targetId: String(fixture.sectionId),
+        content: newContent,
       },
-    );
+    });
     expect(postResponse.status()).toBe(200);
     const postBody = (await postResponse.json()) as {
       id?: string;
@@ -281,7 +281,9 @@ test("/api/community/descriptions POST 登录后可更新描述并清理", async
   }
 });
 
-test("/api/community/descriptions POST 接受公开 section JW id", async ({ request, }, testInfo) => {
+test("/api/community/descriptions POST 接受公开 section JW id", async ({
+  request,
+}, testInfo) => {
   await signInAsDebugUserApi(request, "/");
   const fixture = await createDisposableDescriptionFixture(testInfo);
   let snapshot: Awaited<ReturnType<typeof snapshotDescriptionForE2e>> | null =
@@ -303,16 +305,13 @@ test("/api/community/descriptions POST 接受公开 section JW id", async ({ req
 
     const newContent = `e2e-description-public-id-${Date.now()}`;
 
-    const postResponse = await request.post(
-      "/api/community/descriptions",
-      {
-        data: {
-          targetType: "section",
-          sectionJwId: fixture.sectionJwId,
-          content: newContent,
-        },
+    const postResponse = await request.post("/api/community/descriptions", {
+      data: {
+        targetType: "section",
+        sectionJwId: fixture.sectionJwId,
+        content: newContent,
       },
-    );
+    });
     expect(postResponse.status()).toBe(200);
     const postBody = (await postResponse.json()) as {
       id?: string;
@@ -337,7 +336,9 @@ test("/api/community/descriptions POST 接受公开 section JW id", async ({ req
   }
 });
 
-test("/api/community/descriptions POST 不存在的 target 返回 404", async ({ request }) => {
+test("/api/community/descriptions POST 不存在的 target 返回 404", async ({
+  request,
+}) => {
   await signInAsDebugUserApi(request, "/");
 
   const response = await request.post("/api/community/descriptions", {

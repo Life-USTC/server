@@ -9,8 +9,8 @@
  */
 import { expect, test } from "@playwright/test";
 import { resolveSeedSectionId } from "../../../../e2e/utils/seed-lookups";
-import { assertApiContract } from "../../_shared/api-contract";
 import { signInAsDebugUserApi } from "../../_harness/auth";
+import { assertApiContract } from "../../_shared/api-contract";
 
 async function createTempHomework(
   request: import("@playwright/test").APIRequestContext,
@@ -60,7 +60,9 @@ test("/api/workspace/homeworks/completions PUT 未登录返回 401", async ({
   expect(response.status()).toBe(401);
 });
 
-test("/api/workspace/homeworks/completions PUT 返回每项结果", async ({ request, }) => {
+test("/api/workspace/homeworks/completions PUT 返回每项结果", async ({
+  request,
+}) => {
   await signInAsDebugUserApi(request, "/");
   const sectionId = await resolveSeedSectionId(request);
   const suffix = `${Date.now()}`;
@@ -81,18 +83,15 @@ test("/api/workspace/homeworks/completions PUT 返回每项结果", async ({ req
     );
     expect(deleteResponse.status()).toBe(200);
 
-    const response = await request.put(
-      "/api/workspace/homeworks/completions",
-      {
-        data: {
-          items: [
-            { homeworkId: activeHomeworkId, completed: true },
-            { homeworkId: deletedHomeworkId, completed: true },
-            { homeworkId: "missing-e2e-homework", completed: false },
-          ],
-        },
+    const response = await request.put("/api/workspace/homeworks/completions", {
+      data: {
+        items: [
+          { homeworkId: activeHomeworkId, completed: true },
+          { homeworkId: deletedHomeworkId, completed: true },
+          { homeworkId: "missing-e2e-homework", completed: false },
+        ],
       },
-    );
+    });
     expect(response.status()).toBe(200);
     const body = (await response.json()) as {
       results?: Array<{

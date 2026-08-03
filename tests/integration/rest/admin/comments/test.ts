@@ -11,8 +11,8 @@
  * - Returns 401 for unauthenticated or non-admin requests
  */
 import { expect, test } from "@playwright/test";
-import { assertApiContract } from "../../_shared/api-contract";
 import { signInAsDebugUserApi, signInAsDevAdminApi } from "../../_harness/auth";
+import { assertApiContract } from "../../_shared/api-contract";
 
 const BASE = "/api/admin/comments";
 

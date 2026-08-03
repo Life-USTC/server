@@ -18,8 +18,8 @@
  * - Full flow: POST /api/workspace/uploads session → PUT object → POST /api/workspace/uploads/complete
  */
 import { expect, test } from "@playwright/test";
-import { assertApiContract } from "../../_shared/api-contract";
 import { signInAsDebugUserApi } from "../../_harness/auth";
+import { assertApiContract } from "../../_shared/api-contract";
 
 test("/api/workspace/uploads/object", async ({ request }) => {
   await assertApiContract(request, {
@@ -43,7 +43,9 @@ test("PUT /api/workspace/uploads/object 未登录返回 401", async ({
   expect(response.status()).toBe(401);
 });
 
-test("PUT /api/workspace/uploads/object 缺少 key 返回 400", async ({ request, }) => {
+test("PUT /api/workspace/uploads/object 缺少 key 返回 400", async ({
+  request,
+}) => {
   await signInAsDebugUserApi(request, "/");
   const response = await request.put("/api/workspace/uploads/object", {
     data: Buffer.from("hello"),
@@ -55,7 +57,9 @@ test("PUT /api/workspace/uploads/object 缺少 key 返回 400", async ({ request
   expect(response.status()).toBe(400);
 });
 
-test("PUT /api/workspace/uploads/object key 前缀不匹配返回 403", async ({ request, }) => {
+test("PUT /api/workspace/uploads/object key 前缀不匹配返回 403", async ({
+  request,
+}) => {
   await signInAsDebugUserApi(request, "/");
   const response = await request.put(
     "/api/workspace/uploads/object?key=uploads/other-user/test.txt",
@@ -70,7 +74,9 @@ test("PUT /api/workspace/uploads/object key 前缀不匹配返回 403", async ({
   expect(response.status()).toBe(403);
 });
 
-test("PUT /api/workspace/uploads/object 可上传二进制对象并完成", async ({ request, }) => {
+test("PUT /api/workspace/uploads/object 可上传二进制对象并完成", async ({
+  request,
+}) => {
   test.setTimeout(60_000);
   await signInAsDebugUserApi(request, "/");
 
@@ -125,7 +131,5 @@ test("PUT /api/workspace/uploads/object 可上传二进制对象并完成", asyn
   expect(completeBody.upload?.size).toBe(size);
 
   // Cleanup
-  await request.delete(
-    `/api/workspace/uploads/${completeBody.upload?.id}`,
-  );
+  await request.delete(`/api/workspace/uploads/${completeBody.upload?.id}`);
 });

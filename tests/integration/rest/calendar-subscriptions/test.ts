@@ -26,12 +26,13 @@
  */
 import { expect, test } from "@playwright/test";
 import { DEV_SEED } from "../../../e2e/utils/dev-seed";
-import { getCurrentSessionUser,
+import {
+  getCurrentSessionUser,
   getSeedSectionSemesterFixture,
 } from "../../../e2e/utils/e2e-db";
-import { signInAsDebugUserApi } from "../_harness/auth";
 import { withE2ePrisma } from "../../../e2e/utils/e2e-db/prisma";
 import { resolveSeedSectionMatches } from "../../../e2e/utils/seed-lookups";
+import { signInAsDebugUserApi } from "../_harness/auth";
 import { assertApiContract } from "../_shared/api-contract";
 
 const BASE = "/api/workspace/subscriptions";
@@ -77,7 +78,9 @@ test.describe("日历订阅 API", () => {
     expect(response.status()).toBe(401);
   });
 
-  test("append sections 格式错误的 section id 返回 400", async ({ request }) => {
+  test("append sections 格式错误的 section id 返回 400", async ({
+    request,
+  }) => {
     await signInAsDebugUserApi(request, "/");
 
     const response = await request.patch(BASE, {
@@ -87,7 +90,9 @@ test.describe("日历订阅 API", () => {
     expect(response.status()).toBe(400);
   });
 
-  test("remove sections 格式错误的 section id 返回 400", async ({ request }) => {
+  test("remove sections 格式错误的 section id 返回 400", async ({
+    request,
+  }) => {
     await signInAsDebugUserApi(request, "/");
 
     const response = await request.delete(BASE, {
@@ -161,7 +166,8 @@ test.describe("日历订阅 API", () => {
 
   test("append sections 添加指定 id 且不替换已有订阅", async ({ request }) => {
     await signInAsDebugUserApi(request, "/");
-    const [firstSection, secondSection] = await resolveSeedSectionMatches(request);
+    const [firstSection, secondSection] =
+      await resolveSeedSectionMatches(request);
     expect(firstSection?.id).toBeDefined();
     expect(secondSection?.id).toBeDefined();
 
@@ -308,7 +314,9 @@ test.describe("日历订阅 API", () => {
     }
   });
 
-  test("replace 和 set 保留请求中已有的退役班级但不能重新添加", async ({ request }) => {
+  test("replace 和 set 保留请求中已有的退役班级但不能重新添加", async ({
+    request,
+  }) => {
     await signInAsDebugUserApi(request, "/");
     const sessionUser = await getCurrentSessionUser(request);
     const previous = await withE2ePrisma(async (prisma) => {
@@ -472,7 +480,8 @@ test.describe("日历订阅 API", () => {
 
   test("remove sections 删除指定 id 且不替换并发添加", async ({ request }) => {
     await signInAsDebugUserApi(request, "/");
-    const [firstSection, secondSection] = await resolveSeedSectionMatches(request);
+    const [firstSection, secondSection] =
+      await resolveSeedSectionMatches(request);
     expect(firstSection?.id).toBeDefined();
     expect(secondSection?.id).toBeDefined();
 
@@ -513,12 +522,9 @@ test.describe("日历订阅 API", () => {
   test("订阅 seed 课程并返回正确结构", async ({ request }) => {
     await signInAsDebugUserApi(request, "/");
 
-    const matchRes = await request.post(
-      "/api/catalog/sections/match-codes",
-      {
-        data: { codes: [DEV_SEED.section.code] },
-      },
-    );
+    const matchRes = await request.post("/api/catalog/sections/match-codes", {
+      data: { codes: [DEV_SEED.section.code] },
+    });
     expect(matchRes.status()).toBe(200);
     const matchBody = (await matchRes.json()) as {
       sections?: Array<{ id?: number; code?: string | null }>;
@@ -597,12 +603,9 @@ test.describe("日历订阅 API", () => {
   test("不存在的 section ID 被静默忽略", async ({ request }) => {
     await signInAsDebugUserApi(request, "/");
 
-    const matchRes = await request.post(
-      "/api/catalog/sections/match-codes",
-      {
-        data: { codes: [DEV_SEED.section.code] },
-      },
-    );
+    const matchRes = await request.post("/api/catalog/sections/match-codes", {
+      data: { codes: [DEV_SEED.section.code] },
+    });
     const matchBody = (await matchRes.json()) as {
       sections?: Array<{ id?: number; code?: string | null }>;
     };

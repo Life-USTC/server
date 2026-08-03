@@ -20,11 +20,12 @@
  */
 import { expect, test } from "@playwright/test";
 import { TODO_CONTENT_MAX_LENGTH } from "@/features/todos/lib/todo-limits";
-import { assertTodoCreateSuccess,
+import { DEV_SEED, DEV_SEED_ANCHOR } from "../../../e2e/utils/dev-seed";
+import {
+  assertTodoCreateSuccess,
   assertTodoListedWithFields,
 } from "../../../shared/scenarios/todo-crud";
 import { signInAsDebugUserApi } from "../_harness/auth";
-import { DEV_SEED, DEV_SEED_ANCHOR } from "../../../e2e/utils/dev-seed";
 import { assertApiContract } from "../_shared/api-contract";
 
 test("/api/workspace/todos", async ({ request }) => {
@@ -56,7 +57,9 @@ test("/api/workspace/todos GET 登录后返回 seed 待办", async ({ request })
   ).toBe(true);
 });
 
-test("/api/workspace/todos GET 支持 completed 筛选与 limit", async ({ request }) => {
+test("/api/workspace/todos GET 支持 completed 筛选与 limit", async ({
+  request,
+}) => {
   await signInAsDebugUserApi(request, "/");
 
   const response = await request.get(
@@ -71,7 +74,9 @@ test("/api/workspace/todos GET 支持 completed 筛选与 limit", async ({ reque
   expect(body.todos?.every((todo) => todo.completed === false)).toBe(true);
 });
 
-test("/api/workspace/todos GET 接受裸日期筛选并拒绝无效日期", async ({ request }) => {
+test("/api/workspace/todos GET 接受裸日期筛选并拒绝无效日期", async ({
+  request,
+}) => {
   await signInAsDebugUserApi(request, "/");
 
   const response = await request.get(
@@ -137,7 +142,9 @@ test("/api/workspace/todos POST 未登录返回 401", async ({ request }) => {
   expect(response.status()).toBe(401);
 });
 
-test("/api/workspace/todos POST 登录后可创建新待办并清理", async ({ request }) => {
+test("/api/workspace/todos POST 登录后可创建新待办并清理", async ({
+  request,
+}) => {
   await signInAsDebugUserApi(request, "/");
 
   const title = `e2e-api-todo-${Date.now()}`;

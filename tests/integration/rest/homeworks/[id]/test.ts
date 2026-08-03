@@ -21,8 +21,8 @@
  */
 import { expect, test } from "@playwright/test";
 import { resolveSeedSectionId } from "../../../../e2e/utils/seed-lookups";
-import { assertApiContract } from "../../_shared/api-contract";
 import { signInAsDebugUserApi } from "../../_harness/auth";
+import { assertApiContract } from "../../_shared/api-contract";
 
 /** Resolve the seed section's internal DB id via match-codes. */
 /** Create a temporary homework and return its id (for mutation tests). */
@@ -75,7 +75,9 @@ test("/api/community/section-homeworks/[id] PATCH 未登录返回 401", async ({
   expect(response.status()).toBe(401);
 });
 
-test("/api/community/section-homeworks/[id] PATCH 登录后可更新作业标题和描述", async ({ request, }) => {
+test("/api/community/section-homeworks/[id] PATCH 登录后可更新作业标题和描述", async ({
+  request,
+}) => {
   await signInAsDebugUserApi(request, "/");
   const sectionId = await resolveSeedSectionId(request);
   const homework = await createTempHomework(request, sectionId);
@@ -121,13 +123,13 @@ test("/api/community/section-homeworks/[id] PATCH 登录后可更新作业标题
       ),
     ).toBe(true);
   } finally {
-    await request.delete(
-      `/api/community/section-homeworks/${homework.id}`,
-    );
+    await request.delete(`/api/community/section-homeworks/${homework.id}`);
   }
 });
 
-test("/api/community/section-homeworks/[id] PATCH 登录后可只更新作业描述", async ({ request, }) => {
+test("/api/community/section-homeworks/[id] PATCH 登录后可只更新作业描述", async ({
+  request,
+}) => {
   await signInAsDebugUserApi(request, "/");
   const sectionId = await resolveSeedSectionId(request);
   const homework = await createTempHomework(request, sectionId);
@@ -171,13 +173,13 @@ test("/api/community/section-homeworks/[id] PATCH 登录后可只更新作业描
       ),
     ).toBe(true);
   } finally {
-    await request.delete(
-      `/api/community/section-homeworks/${homework.id}`,
-    );
+    await request.delete(`/api/community/section-homeworks/${homework.id}`);
   }
 });
 
-test("/api/community/section-homeworks/[id] PATCH 登录后空更新返回 400", async ({ request, }) => {
+test("/api/community/section-homeworks/[id] PATCH 登录后空更新返回 400", async ({
+  request,
+}) => {
   await signInAsDebugUserApi(request, "/");
   const sectionId = await resolveSeedSectionId(request);
   const homework = await createTempHomework(request, sectionId);
@@ -192,9 +194,7 @@ test("/api/community/section-homeworks/[id] PATCH 登录后空更新返回 400",
       error: "No changes",
     });
   } finally {
-    await request.delete(
-      `/api/community/section-homeworks/${homework.id}`,
-    );
+    await request.delete(`/api/community/section-homeworks/${homework.id}`);
   }
 });
 
@@ -207,7 +207,9 @@ test("/api/community/section-homeworks/[id] DELETE 未登录返回 401", async (
   expect(response.status()).toBe(401);
 });
 
-test("/api/community/section-homeworks/[id] DELETE 登录后可删除作业", async ({ request, }) => {
+test("/api/community/section-homeworks/[id] DELETE 登录后可删除作业", async ({
+  request,
+}) => {
   await signInAsDebugUserApi(request, "/");
   const sectionId = await resolveSeedSectionId(request);
   const homework = await createTempHomework(request, sectionId);

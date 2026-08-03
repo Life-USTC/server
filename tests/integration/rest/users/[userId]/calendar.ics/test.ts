@@ -28,7 +28,8 @@
  */
 import { expect, test } from "@playwright/test";
 import { DEV_SEED } from "../../../../../e2e/utils/dev-seed";
-import { createTempUsersFixture,
+import {
+  createTempUsersFixture,
   deleteUsersByPrefix,
   ensureUserCalendarFeedFixture,
   getCurrentSessionUser,
@@ -86,12 +87,9 @@ test.describe("GET /api/calendar-feeds/[credential].ics", () => {
     const originalIds =
       currentBody.subscription?.sections?.map((s) => s.id as number) ?? [];
 
-    const matchRes = await request.post(
-      "/api/catalog/sections/match-codes",
-      {
-        data: { codes: [DEV_SEED.section.code] },
-      },
-    );
+    const matchRes = await request.post("/api/catalog/sections/match-codes", {
+      data: { codes: [DEV_SEED.section.code] },
+    });
     expect(matchRes.status()).toBe(200);
     const matchBody = (await matchRes.json()) as {
       sections?: Array<{ id?: number; code?: string | null }>;
@@ -109,9 +107,7 @@ test.describe("GET /api/calendar-feeds/[credential].ics", () => {
         data: { sectionIds: [seedSection.id] },
       });
 
-      const response = await request.get(
-        `/api/calendar-feeds/${userId}.ics`,
-      );
+      const response = await request.get(`/api/calendar-feeds/${userId}.ics`);
       expect(response.status()).toBe(200);
       expect(response.headers()["content-type"]).toContain("text/calendar");
 

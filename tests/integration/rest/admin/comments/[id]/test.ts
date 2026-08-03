@@ -12,8 +12,11 @@
  * - Returns 400 for missing/invalid body (e.g. empty object)
  */
 import { expect, test } from "@playwright/test";
+import {
+  signInAsDebugUserApi,
+  signInAsDevAdminApi,
+} from "../../../_harness/auth";
 import { assertApiContract } from "../../../_shared/api-contract";
-import { signInAsDebugUserApi, signInAsDevAdminApi } from "../../../_harness/auth";
 
 const BASE = "/api/admin/comments";
 
@@ -58,9 +61,7 @@ test.describe("PATCH /api/admin/comments/[id] 评论管理", () => {
     await signInAsDevAdminApi(request, "/admin");
 
     // Find an active comment to moderate.
-    const listResponse = await request.get(
-      `${BASE}?status=active&limit=1`,
-    );
+    const listResponse = await request.get(`${BASE}?status=active&limit=1`);
     expect(listResponse.status()).toBe(200);
     const comment = (
       (await listResponse.json()) as {

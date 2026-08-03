@@ -30,7 +30,9 @@ test("/api/workspace/uploads GET 未登录返回 401", async ({ request }) => {
   expect(response.status()).toBe(401);
 });
 
-test("/api/workspace/uploads GET 返回上传列表与配额元数据", async ({ request, }) => {
+test("/api/workspace/uploads GET 返回上传列表与配额元数据", async ({
+  request,
+}) => {
   await signInAsDebugUserApi(request, "/");
 
   const response = await request.get("/api/workspace/uploads");
@@ -52,7 +54,9 @@ test("/api/workspace/uploads GET 返回上传列表与配额元数据", async ({
   expect(body.pagination).toMatchObject({ page: 1, pageSize: 20 });
 });
 
-test("/api/workspace/uploads GET 支持稳定的第二页与废弃 limit 别名", async ({ request, }) => {
+test("/api/workspace/uploads GET 支持稳定的第二页与废弃 limit 别名", async ({
+  request,
+}) => {
   await signInAsDebugUserApi(request, "/");
   const sessionResponse = await request.get("/api/auth/get-session");
   const userId = ((await sessionResponse.json()) as { user?: { id?: string } })
@@ -112,7 +116,9 @@ test("/api/workspace/uploads GET 支持稳定的第二页与废弃 limit 别名"
   }
 });
 
-test("/api/workspace/uploads GET 忽略过期预留但不执行清理写入", async ({ request, }) => {
+test("/api/workspace/uploads GET 忽略过期预留但不执行清理写入", async ({
+  request,
+}) => {
   await signInAsDebugUserApi(request, "/");
 
   const sessionResponse = await request.get("/api/auth/get-session");
@@ -172,7 +178,9 @@ test("/api/workspace/uploads POST 未登录返回 401", async ({ request }) => {
   expect(response.status()).toBe(401);
 });
 
-test("/api/workspace/uploads POST 超出单文件大小返回 413", async ({ request }) => {
+test("/api/workspace/uploads POST 超出单文件大小返回 413", async ({
+  request,
+}) => {
   await signInAsDebugUserApi(request, "/");
 
   const response = await request.post("/api/workspace/uploads", {
@@ -187,7 +195,9 @@ test("/api/workspace/uploads POST 超出单文件大小返回 413", async ({ req
   expect(await response.json()).toEqual({ error: "File too large" });
 });
 
-test("/api/workspace/uploads POST 可申请上传并完成文件入库", async ({ request, }) => {
+test("/api/workspace/uploads POST 可申请上传并完成文件入库", async ({
+  request,
+}) => {
   test.setTimeout(60_000);
   await signInAsDebugUserApi(request, "/");
 

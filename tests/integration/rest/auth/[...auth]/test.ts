@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
-import { assertApiContract } from "../../_shared/api-contract";
 import { signInAsDebugUserApi, signInAsDevAdminApi } from "../../_harness/auth";
+import { assertApiContract } from "../../_shared/api-contract";
 
 test("/api/auth/[...auth] 契约检查", async ({ request }) => {
   await assertApiContract(request, { routePath: "/api/auth/[...auth]" });
@@ -30,7 +30,9 @@ test("/api/auth/[...auth] 普通用户登录后 session 正确", async ({ reques
   expect(body.user?.isAdmin).toBe(false);
 });
 
-test("/api/auth/[...auth] 管理员登录后 session 标记 admin", async ({ request, }) => {
+test("/api/auth/[...auth] 管理员登录后 session 标记 admin", async ({
+  request,
+}) => {
   await signInAsDevAdminApi(request);
 
   const response = await request.get("/api/auth/get-session");

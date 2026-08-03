@@ -10,8 +10,11 @@
  */
 import { expect, test } from "@playwright/test";
 import { resolveSeedSectionId } from "../../../../../e2e/utils/seed-lookups";
+import {
+  signInAsDebugUserApi,
+  signInAsDevAdminApi,
+} from "../../../_harness/auth";
 import { assertApiContract } from "../../../_shared/api-contract";
-import { signInAsDebugUserApi, signInAsDevAdminApi } from "../../../_harness/auth";
 
 const BASE = "/api/admin/homeworks";
 
@@ -33,9 +36,7 @@ test.describe("DELETE /api/admin/homeworks/[id] 作业管理", () => {
 
   test("管理员删除不存在的作业返回 404", async ({ request }) => {
     await signInAsDevAdminApi(request, "/admin");
-    const response = await request.delete(
-      `${BASE}/nonexistent-homework-id`,
-    );
+    const response = await request.delete(`${BASE}/nonexistent-homework-id`);
     expect(response.status()).toBe(404);
   });
 

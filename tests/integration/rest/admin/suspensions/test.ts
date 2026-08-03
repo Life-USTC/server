@@ -12,7 +12,8 @@
  */
 import { expect, test } from "@playwright/test";
 import { DEV_SEED } from "../../../../e2e/utils/dev-seed";
-import { createTempUsersFixture,
+import {
+  createTempUsersFixture,
   deleteUsersByPrefix,
 } from "../../../../e2e/utils/e2e-db";
 import { signInAsDebugUserApi, signInAsDevAdminApi } from "../../_harness/auth";

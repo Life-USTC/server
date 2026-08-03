@@ -11,8 +11,11 @@
  * - Returns 400 for invalid body or username format
  */
 import { expect, test } from "@playwright/test";
+import {
+  signInAsDebugUserApi,
+  signInAsDevAdminApi,
+} from "../../../_harness/auth";
 import { assertApiContract } from "../../../_shared/api-contract";
-import { signInAsDebugUserApi, signInAsDevAdminApi } from "../../../_harness/auth";
 
 const BASE = "/api/admin/users";
 

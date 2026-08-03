@@ -37,15 +37,15 @@ import { expect, type Locator, type Page, test } from "@playwright/test";
 import { formatSemesterName } from "@/lib/text/format-semester-name";
 import { signInAsDebugUser, signInAsDevAdmin } from "../../../../utils/auth";
 import { cleanupCommentsForE2e } from "../../../../utils/comments";
-import { DEV_SEED } from "../../../../utils/dev-seed";
-import { getCurrentSessionUser } from "../../../../utils/e2e-db";
-import { withE2ePrisma } from "../../../../utils/e2e-db/prisma";
-import { cleanupHomeworksForE2e } from "../../../../utils/homeworks";
 import {
   restoreDescriptionTargetSnapshot,
   snapshotDescriptionTargetForE2e,
   waitForDescriptionAuditRows,
 } from "../../../../utils/description-state";
+import { DEV_SEED } from "../../../../utils/dev-seed";
+import { getCurrentSessionUser } from "../../../../utils/e2e-db";
+import { withE2ePrisma } from "../../../../utils/e2e-db/prisma";
+import { cleanupHomeworksForE2e } from "../../../../utils/homeworks";
 import {
   gotoAndWaitForReady,
   waitForUiSettled,
@@ -1053,7 +1053,11 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
           .getByRole("tabpanel", { name: /简介|Description/i })
           .getByText(content),
       ).toBeVisible();
-      await captureStepScreenshot(page, testInfo, "section/description-updated");
+      await captureStepScreenshot(
+        page,
+        testInfo,
+        "section/description-updated",
+      );
     } finally {
       if (snapshot.original) {
         await waitForDescriptionAuditRows(snapshot.original, 1);

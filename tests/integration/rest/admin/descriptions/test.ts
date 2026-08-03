@@ -90,7 +90,9 @@ test.describe("GET /api/admin/descriptions 课程简介管理", () => {
     expect(body.data?.every((item) => item.homeworkId === null)).toBe(true);
   });
 
-  test("管理员可按 hasContent=withContent 筛选非空课程简介", async ({ request, }) => {
+  test("管理员可按 hasContent=withContent 筛选非空课程简介", async ({
+    request,
+  }) => {
     await signInAsDevAdminApi(request, "/admin");
     const response = await request.get(`${BASE}?hasContent=withContent`);
     expect(response.status()).toBe(200);

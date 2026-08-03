@@ -15,8 +15,8 @@
  * - Key prefix mismatch → 403
  */
 import { expect, test } from "@playwright/test";
-import { assertApiContract } from "../../_shared/api-contract";
 import { signInAsDebugUserApi } from "../../_harness/auth";
+import { assertApiContract } from "../../_shared/api-contract";
 
 test("/api/workspace/uploads/complete", async ({ request }) => {
   await assertApiContract(request, {
@@ -36,7 +36,9 @@ test("/api/workspace/uploads/complete POST 未登录返回 401", async ({
   expect(response.status()).toBe(401);
 });
 
-test("/api/workspace/uploads/complete POST key 前缀不匹配返回 403", async ({ request, }) => {
+test("/api/workspace/uploads/complete POST key 前缀不匹配返回 403", async ({
+  request,
+}) => {
   await signInAsDebugUserApi(request, "/");
   const response = await request.post("/api/workspace/uploads/complete", {
     data: {
@@ -47,7 +49,9 @@ test("/api/workspace/uploads/complete POST key 前缀不匹配返回 403", async
   expect(response.status()).toBe(403);
 });
 
-test("/api/workspace/uploads/complete POST 无 pending 时返回 400 且清理 R2 对象", async ({ request, }) => {
+test("/api/workspace/uploads/complete POST 无 pending 时返回 400 且清理 R2 对象", async ({
+  request,
+}) => {
   test.setTimeout(60_000);
   await signInAsDebugUserApi(request, "/");
 

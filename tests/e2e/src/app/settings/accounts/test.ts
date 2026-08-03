@@ -71,8 +71,7 @@ test.describe("/account/settings/accounts 关联账号设置", () => {
       name: /连接|Connect/i,
     });
     test.skip(
-      (await providerCard.count()) === 0 ||
-        (await connectButton.count()) === 0,
+      (await providerCard.count()) === 0 || (await connectButton.count()) === 0,
       "settings accounts page rendered without a USTC connect action",
     );
 

@@ -5,13 +5,14 @@
  * schedule, todo, homework, and exam samples without client-side fan-out.
  */
 import { expect, test } from "@playwright/test";
-import { assertOverviewSampleLimit,
+import { DEV_SEED, DEV_SEED_ANCHOR } from "../../../../e2e/utils/dev-seed";
+import { withE2ePrisma } from "../../../../e2e/utils/e2e-db/prisma";
+import {
+  assertOverviewSampleLimit,
   assertSeedDayOverviewScheduleCounts,
   normalizeRestOverviewPayload,
 } from "../../../../shared/scenarios/overview";
 import { signInAsDebugUserApi } from "../../_harness/auth";
-import { DEV_SEED, DEV_SEED_ANCHOR } from "../../../../e2e/utils/dev-seed";
-import { withE2ePrisma } from "../../../../e2e/utils/e2e-db/prisma";
 import { assertApiContract } from "../../_shared/api-contract";
 
 const BASE = "/api/workspace/overview";

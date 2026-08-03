@@ -24,13 +24,13 @@
  * - Soft-deletes: sets status="deleted" and deletedAt
  * - Returns 404 if comment does not exist
  */
-import { expect, test  } from "@playwright/test";
+import { expect, test } from "@playwright/test";
 import { DEV_SEED } from "../../../../e2e/utils/dev-seed";
 import { withE2ePrisma } from "../../../../e2e/utils/e2e-db/prisma";
 import { resolveSeedSectionId } from "../../../../e2e/utils/seed-lookups";
 import { createUploadedFileViaApi } from "../../../../e2e/utils/uploads";
-import { assertApiContract } from "../../_shared/api-contract";
 import { signInAsDebugUserApi, signInAsDevAdminApi } from "../../_harness/auth";
+import { assertApiContract } from "../../_shared/api-contract";
 
 /** Resolve the seed section's internal DB id via match-codes. */
 /** Find the seed root comment by body content. */
@@ -100,7 +100,9 @@ test("/api/community/comments/[id] GET 不存在的 ID 返回 404", async ({
   expect(response.status()).toBe(404);
 });
 
-test("/api/community/comments/[id] GET 隐藏聚焦线程返回 403", async ({ request }) => {
+test("/api/community/comments/[id] GET 隐藏聚焦线程返回 403", async ({
+  request,
+}) => {
   await signInAsDebugUserApi(request, "/");
   const sectionId = await resolveSeedSectionId(request);
 
@@ -147,7 +149,9 @@ test("/api/community/comments/[id] DELETE 未登录返回 401", async ({
   expect(response.status()).toBe(401);
 });
 
-test("/api/community/comments/[id] PATCH 拒绝匿名可见性", async ({ request }) => {
+test("/api/community/comments/[id] PATCH 拒绝匿名可见性", async ({
+  request,
+}) => {
   await signInAsDebugUserApi(request, "/");
   const sectionId = await resolveSeedSectionId(request);
   const content = `e2e-reject-edit-anonymous-visibility-${Date.now()}`;
@@ -185,7 +189,9 @@ test("/api/community/comments/[id] PATCH 拒绝匿名可见性", async ({ reques
   }
 });
 
-test("/api/community/comments/[id] PATCH 可修改评论并 DELETE 清理", async ({ request, }) => {
+test("/api/community/comments/[id] PATCH 可修改评论并 DELETE 清理", async ({
+  request,
+}) => {
   await signInAsDebugUserApi(request, "/");
   const sectionId = await resolveSeedSectionId(request);
 
@@ -242,24 +248,23 @@ test("/api/community/comments/[id] PATCH 可修改评论并 DELETE 清理", asyn
   }
 });
 
-test("/api/community/comments/[id] PATCH 非所有者管理员被拒绝", async ({ playwright }) => {
+test("/api/community/comments/[id] PATCH 非所有者管理员被拒绝", async ({
+  playwright,
+}) => {
   const debugContext = await playwright.request.newContext();
   const adminContext = await playwright.request.newContext();
   await signInAsDebugUserApi(debugContext, "/");
   const sectionId = await resolveSeedSectionId(debugContext);
 
   const content = `e2e-admin-public-edit-forbidden-${Date.now()}`;
-  const createResponse = await debugContext.post(
-    "/api/community/comments",
-    {
-      data: {
-        targetType: "section",
-        targetId: String(sectionId),
-        body: content,
-        visibility: "public",
-      },
+  const createResponse = await debugContext.post("/api/community/comments", {
+    data: {
+      targetType: "section",
+      targetId: String(sectionId),
+      body: content,
+      visibility: "public",
     },
-  );
+  });
   expect(createResponse.status()).toBe(201);
   const commentId = ((await createResponse.json()) as { id?: string }).id;
   expect(commentId).toBeTruthy();
@@ -286,7 +291,9 @@ test("/api/community/comments/[id] PATCH 非所有者管理员被拒绝", async 
   }
 });
 
-test("/api/community/comments/[id] PATCH 拒绝绑定到其他评论的上传文件", async ({ request, }) => {
+test("/api/community/comments/[id] PATCH 拒绝绑定到其他评论的上传文件", async ({
+  request,
+}) => {
   await signInAsDebugUserApi(request, "/");
   const sectionId = await resolveSeedSectionId(request);
   const marker = `e2e-upload-edit-reuse-${Date.now()}`;
@@ -345,7 +352,9 @@ test("/api/community/comments/[id] PATCH 拒绝绑定到其他评论的上传文
   }
 });
 
-test("/api/community/comments/[id] PATCH 对失效评论返回 403", async ({ request, }) => {
+test("/api/community/comments/[id] PATCH 对失效评论返回 403", async ({
+  request,
+}) => {
   await signInAsDebugUserApi(request, "/");
   const sectionId = await resolveSeedSectionId(request);
 

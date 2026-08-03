@@ -19,8 +19,8 @@
  */
 import { expect, test } from "@playwright/test";
 import { createUploadedFileViaApi } from "../../../../e2e/utils/uploads";
-import { assertApiContract } from "../../_shared/api-contract";
 import { signInAsDebugUserApi } from "../../_harness/auth";
+import { assertApiContract } from "../../_shared/api-contract";
 
 test("/api/workspace/uploads/[id]", async ({ request }) => {
   await assertApiContract(request, {
@@ -37,7 +37,9 @@ test("/api/workspace/uploads/[id] PATCH 未登录返回 401", async ({
   expect(response.status()).toBe(401);
 });
 
-test("/api/workspace/uploads/[id] PATCH 可重命名上传文件", async ({ request }) => {
+test("/api/workspace/uploads/[id] PATCH 可重命名上传文件", async ({
+  request,
+}) => {
   test.setTimeout(60_000);
   await signInAsDebugUserApi(request, "/");
 
@@ -80,7 +82,9 @@ test("/api/workspace/uploads/[id] DELETE 未登录返回 401", async ({
   expect(response.status()).toBe(401);
 });
 
-test("/api/workspace/uploads/[id] DELETE 可删除上传文件并返回大小", async ({ request, }) => {
+test("/api/workspace/uploads/[id] DELETE 可删除上传文件并返回大小", async ({
+  request,
+}) => {
   test.setTimeout(60_000);
   await signInAsDebugUserApi(request, "/");
 
@@ -110,7 +114,9 @@ test("/api/workspace/uploads/[id] DELETE 可删除上传文件并返回大小", 
   expect(listBody.data?.some((u) => u.id === uploaded.uploadId)).toBe(false);
 });
 
-test("/api/workspace/uploads/[id] DELETE 不存在的 id 返回 404", async ({ request, }) => {
+test("/api/workspace/uploads/[id] DELETE 不存在的 id 返回 404", async ({
+  request,
+}) => {
   await signInAsDebugUserApi(request, "/");
   const response = await request.delete(
     "/api/workspace/uploads/00000000-0000-0000-0000-000000000000",

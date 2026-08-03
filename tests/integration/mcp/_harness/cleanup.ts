@@ -8,10 +8,13 @@ async function pollForAuditLog(
 ) {
   let log: AuditLogRow | null = null;
   await expect
-    .poll(async () => {
-      log = (await lookup()) ?? null;
-      return log;
-    }, { timeout: 500, interval: 25 })
+    .poll(
+      async () => {
+        log = (await lookup()) ?? null;
+        return log;
+      },
+      { timeout: 500, interval: 25 },
+    )
     .not.toBeNull();
   return log!;
 }

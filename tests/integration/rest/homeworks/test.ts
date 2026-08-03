@@ -21,12 +21,13 @@
  * - Full create → verify in list → cleanup via DELETE
  */
 import { expect, test } from "@playwright/test";
-import { assertHomeworkCreateSuccess,
+import { DEV_SEED } from "../../../e2e/utils/dev-seed";
+import { resolveSeedSectionId } from "../../../e2e/utils/seed-lookups";
+import {
+  assertHomeworkCreateSuccess,
   assertHomeworkListedByTitle,
 } from "../../../shared/scenarios/homework-create";
 import { signInAsDebugUserApi } from "../_harness/auth";
-import { DEV_SEED } from "../../../e2e/utils/dev-seed";
-import { resolveSeedSectionId } from "../../../e2e/utils/seed-lookups";
 import { assertApiContract } from "../_shared/api-contract";
 
 /** Resolve the seed section's internal DB id via match-codes. */
@@ -36,7 +37,9 @@ test("/api/community/section-homeworks 接口契约", async ({ request }) => {
   });
 });
 
-test("/api/community/section-homeworks GET 返回 seed 作业、completion 与审计日志", async ({ request }) => {
+test("/api/community/section-homeworks GET 返回 seed 作业、completion 与审计日志", async ({
+  request,
+}) => {
   await signInAsDebugUserApi(request, "/");
   const sectionId = await resolveSeedSectionId(request);
 
@@ -136,7 +139,9 @@ test("/api/community/section-homeworks POST 未登录返回 401", async ({
   expect(response.status()).toBe(401);
 });
 
-test("/api/community/section-homeworks POST 登录后可创建作业并清理", async ({ request }) => {
+test("/api/community/section-homeworks POST 登录后可创建作业并清理", async ({
+  request,
+}) => {
   await signInAsDebugUserApi(request, "/");
   const sectionId = await resolveSeedSectionId(request);
 
@@ -180,7 +185,5 @@ test("/api/community/section-homeworks POST 登录后可创建作业并清理", 
   });
 
   // Cleanup
-  await request.delete(
-    `/api/community/section-homeworks/${createBody.id}`,
-  );
+  await request.delete(`/api/community/section-homeworks/${createBody.id}`);
 });
