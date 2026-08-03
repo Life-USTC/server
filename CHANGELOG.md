@@ -1,3 +1,10 @@
+## [1.84.6](https://github.com/Life-USTC/server/compare/v1.84.5...v1.84.6) (2026-08-03)
+
+
+### Performance Improvements
+
+* **overview:** cut the workspace overview from ~49 statements and 6 transactions ([#739](https://github.com/Life-USTC/server/issues/739)) ([70cc11f](https://github.com/Life-USTC/server/commit/70cc11f148fcbedf9a8c51865e5ba5aeeefdb921)), closes [#730](https://github.com/Life-USTC/server/issues/730)
+
 ## [1.84.5](https://github.com/Life-USTC/server/compare/v1.84.4...v1.84.5) (2026-08-03)
 
 
