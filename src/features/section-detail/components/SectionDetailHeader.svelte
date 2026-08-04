@@ -31,7 +31,10 @@ type SectionHeaderSection = {
     nameCn?: string | null;
   } | null;
   stdCount?: number | null;
+  teachers?: Array<{ id: number | string }>;
 };
+
+type SectionTeacherName = (teacher: { id: number | string }) => string;
 
 type SectionHeaderViewer = {
   isSubscribed?: boolean;
@@ -52,6 +55,7 @@ export let subscriptionAction: (
   action: SubscriptionActionKey,
 ) => SubmitFunction;
 export let subscriptionPendingAction: SubscriptionActionKey | null;
+export let teacherName: SectionTeacherName;
 export let viewer: SectionHeaderViewer;
 
 $: locale = $page.data.locale ?? "zh-cn";
@@ -88,6 +92,9 @@ $: locale = $page.data.locale ?? "zh-cn";
         {#if section.stdCount !== null || section.limitCount !== null}
           <Badge variant="ghost">{section.stdCount ?? 0} / {section.limitCount ?? notAvailable}</Badge>
         {/if}
+        {#each section.teachers ?? [] as teacher (teacher.id)}
+          <Badge variant="outline">{teacherName(teacher)}</Badge>
+        {/each}
       </div>
 
       {#if section.retiredAt != null}

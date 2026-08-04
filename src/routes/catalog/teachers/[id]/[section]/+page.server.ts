@@ -1,7 +1,8 @@
 import { error, redirect } from "@sveltejs/kit";
 import {
-  CATALOG_DETAIL_TAB_QUERY,
+  catalogDetailHashForTab,
   isCatalogDetailLegacyPathTab,
+  parseCatalogDetailTab,
 } from "@/features/catalog/lib/catalog-detail-tab";
 import type { PageServerLoad } from "./$types";
 
@@ -10,10 +11,14 @@ export const load: PageServerLoad = ({ params, url }) => {
     error(404);
   }
 
+  const tab = parseCatalogDetailTab(params.section);
   const redirectUrl = new URL(`/catalog/teachers/${params.id}`, url);
   for (const [key, value] of url.searchParams) {
+    if (key === "tab") continue;
     redirectUrl.searchParams.append(key, value);
   }
-  redirectUrl.searchParams.set(CATALOG_DETAIL_TAB_QUERY, params.section);
-  redirect(308, `${redirectUrl.pathname}${redirectUrl.search}`);
+  redirect(
+    308,
+    `${redirectUrl.pathname}${redirectUrl.search}${catalogDetailHashForTab(tab)}`,
+  );
 };

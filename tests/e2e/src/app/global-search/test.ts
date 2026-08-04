@@ -106,7 +106,8 @@ test("global search trigger opens dialog and navigates to a result", async ({
       .first(),
   ).toBeVisible();
   await dialog
-    .getByRole("option", { name: /Advanced Linear Algebra · MATH2001\.01/ })
+    .getByRole("option", { name: /Advanced Linear Algebra · / })
+    .first()
     .click();
 
   await expect(page).toHaveURL(/\/catalog\/(courses|sections)\/\d+/);

@@ -81,7 +81,7 @@ export type PublicRuntimeCacheAnalyticsNamespace =
   | "sitemap"
   | `page:section-detail:overview:${AppLocale}`
   | `search:catalog:${AppLocale}`
-  | `search:catalog:v2:${AppLocale}`
+  | `search:catalog:v3:${AppLocale}`
   | `bus:timetable:${AppLocale}`
   | `${
       | "api:courses"

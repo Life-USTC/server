@@ -1,13 +1,8 @@
 <script lang="ts">
-import BookOpenTextIcon from "@lucide/svelte/icons/book-open-text";
-import InfoIcon from "@lucide/svelte/icons/info";
-import ListIcon from "@lucide/svelte/icons/list";
-import MessageSquareIcon from "@lucide/svelte/icons/message-square";
+import { onMount } from "svelte";
 import { commentTargetPermalinkBaseHref } from "@/features/comments/lib/comment-panel-controller";
-import DetailSectionNav from "$lib/components/DetailSectionNav.svelte";
 import PageHeader from "$lib/components/PageHeader.svelte";
 import { Badge } from "$lib/components/ui/badge/index.js";
-import { teacherDetailPagePath } from "../lib/catalog-detail-tab";
 import {
   type CatalogNamed,
   catalogPrimaryName as primaryName,
@@ -67,24 +62,16 @@ let CommentsPanel:
   | typeof import("@/features/comments/components/CommentsPanel.svelte").default
   | null = null;
 
-async function ensureDescriptionCard() {
-  DescriptionCard ??= (
-    await import("@/features/descriptions/components/DescriptionCard.svelte")
-  ).default;
-}
-
-async function ensureCommentsPanel() {
-  CommentsPanel ??= (
-    await import("@/features/comments/components/CommentsPanel.svelte")
-  ).default;
-}
-
-$: if (data.detailSection === "introduction") {
-  void ensureDescriptionCard();
-}
-$: if (data.detailSection === "comments") {
-  void ensureCommentsPanel();
-}
+onMount(() => {
+  void (async () => {
+    DescriptionCard ??= (
+      await import("@/features/descriptions/components/DescriptionCard.svelte")
+    ).default;
+    CommentsPanel ??= (
+      await import("@/features/comments/components/CommentsPanel.svelte")
+    ).default;
+  })();
+});
 
 $: copy = data.copy;
 $: detailCopy = copy satisfies TeacherDetailCopy;
@@ -94,44 +81,6 @@ $: secondaryDisplayName = secondaryName(data.teacher);
 $: teacherDescription = data.teacher.department
   ? primaryName(data.teacher.department)
   : secondaryDisplayName;
-$: teacherId = data.teacher.id;
-$: commentsCount = data.commentsData
-  ? Object.values(data.commentsData.commentMap).reduce(
-      (sum, comments) => sum + comments.length,
-      0,
-    )
-  : 0;
-$: sectionNavItems = [
-  {
-    href: teacherDetailPagePath(teacherId, "overview"),
-    icon: InfoIcon,
-    key: "overview" as const,
-    label: copy.teacherDetail.basicInfo,
-  },
-  {
-    href: teacherDetailPagePath(teacherId, "introduction"),
-    icon: BookOpenTextIcon,
-    key: "introduction" as const,
-    label: copy.descriptions.title,
-  },
-  {
-    href: teacherDetailPagePath(teacherId, "sections"),
-    icon: ListIcon,
-    key: "sections" as const,
-    label: copy.teacherDetail.teachingSectionsTitle,
-    meta: data.teacher.sectionCount,
-  },
-  {
-    href: teacherDetailPagePath(teacherId, "comments"),
-    icon: MessageSquareIcon,
-    key: "comments" as const,
-    label: copy.comments.title,
-    meta: data.commentsData ? commentsCount : undefined,
-  },
-];
-$: activeNavItem =
-  sectionNavItems.find((item) => item.key === data.detailSection) ??
-  sectionNavItems[0];
 </script>
 
 <svelte:head>
@@ -163,77 +112,81 @@ $: activeNavItem =
     </PageHeader>
   </div>
 
-  <div class="grid min-h-0 grid-rows-[auto_minmax(0,1fr)] bg-card lg:grid-cols-[auto_minmax(0,1fr)] lg:grid-rows-none">
-    <DetailSectionNav
-      activeHref={activeNavItem?.href ?? teacherDetailPagePath(teacherId)}
-      ariaLabel={formatMessage(copy.metadata.pages.teacherDetail, { name: displayName })}
-      items={sectionNavItems}
-      label={copy.common.teachers}
-    />
+  <div
+    class="min-w-0 min-h-0 overflow-y-auto px-4 py-4 sm:px-5 lg:px-6"
+    data-detail-scroll-container
+  >
+    <div class="grid gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(16rem,20rem)] lg:items-start lg:gap-10">
+      <div class="grid min-w-0 gap-10">
+        <section id="introduction" class="scroll-mt-4">
+          <h2 class="mb-3 text-lg font-semibold tracking-tight">
+            {copy.descriptions.title}
+          </h2>
+          {#key `description:teacher:${data.teacher.id}`}
+            {#if DescriptionCard}
+              <svelte:component
+                this={DescriptionCard}
+                targetType="teacher"
+                targetId={data.teacher.id}
+                initialData={data.descriptionData}
+                locale={data.locale as "en-us" | "zh-cn"}
+                copy={copy.descriptions}
+                showTitle={false}
+              />
+            {:else if data.descriptionData.description.renderedHtml}
+              <div class="markdown-preview" data-slot="markdown-preview">
+                {@html data.descriptionData.description.renderedHtml}
+              </div>
+            {/if}
+          {/key}
+        </section>
 
-    <div
-      class="min-w-0 min-h-0 overflow-y-auto px-4 py-4 sm:px-5 lg:px-6"
-      data-detail-scroll-container
-    >
-      {#if data.detailSection === "overview"}
-      <section id="teacher-overview">
-        <TeacherDetailBasicInfo
-          copy={detailCopy}
-          {displayName}
-          {notAvailable}
-          {primaryName}
-          {secondaryDisplayName}
-          teacher={data.teacher}
-        />
-      </section>
-      {:else if data.detailSection === "introduction"}
-      <section id="teacher-description">
-        {#key `description:teacher:${data.teacher.id}`}
-          {#if DescriptionCard}
-            <svelte:component
-              this={DescriptionCard}
-              targetType="teacher"
-              targetId={data.teacher.id}
-              initialData={data.descriptionData}
-              locale={data.locale as "en-us" | "zh-cn"}
-              copy={copy.descriptions}
-              showTitle={false}
-            />
-          {:else if data.descriptionData.description.renderedHtml}
-            <div class="markdown-preview" data-slot="markdown-preview">
-              {@html data.descriptionData.description.renderedHtml}
-            </div>
-          {/if}
-        {/key}
-      </section>
-      {:else if data.detailSection === "sections"}
-      <section id="teacher-sections">
-        <TeacherDetailSections
-          copy={detailCopy}
-          {notAvailable}
-          {primaryName}
-          {secondaryName}
-          teacher={data.teacher}
-        />
-      </section>
-      {:else if data.detailSection === "comments"}
-      <section id="teacher-comments">
-        {#key `comments:teacher:${data.teacher.id}`}
-          {#if CommentsPanel}
-            <svelte:component
-              this={CommentsPanel}
-              initialData={data.commentsData}
-              permalinkBaseHref={commentTargetPermalinkBaseHref({
-                teacherId: data.teacher.id,
-                type: "teacher",
-              })}
-              targetType="teacher"
-              targetId={data.teacher.id}
-            />
-          {/if}
-        {/key}
-      </section>
-      {/if}
+        <section id="sections" class="scroll-mt-4">
+          <h2 class="mb-3 text-lg font-semibold tracking-tight">
+            {copy.teacherDetail.teachingSectionsTitle}
+          </h2>
+          <TeacherDetailSections
+            copy={detailCopy}
+            {notAvailable}
+            {primaryName}
+            {secondaryName}
+            teacher={data.teacher}
+          />
+        </section>
+
+        <section id="comments" class="scroll-mt-4">
+          <h2 class="mb-3 text-lg font-semibold tracking-tight">
+            {copy.comments.title}
+          </h2>
+          {#key `comments:teacher:${data.teacher.id}`}
+            {#if CommentsPanel}
+              <svelte:component
+                this={CommentsPanel}
+                initialData={data.commentsData}
+                permalinkBaseHref={commentTargetPermalinkBaseHref({
+                  teacherId: data.teacher.id,
+                  type: "teacher",
+                })}
+                targetType="teacher"
+                targetId={data.teacher.id}
+              />
+            {/if}
+          {/key}
+        </section>
+      </div>
+
+      <aside class="grid min-w-0 gap-6 lg:sticky lg:top-4">
+        <section id="overview">
+          <TeacherDetailBasicInfo
+            copy={detailCopy}
+            {displayName}
+            {notAvailable}
+            {primaryName}
+            {secondaryDisplayName}
+            teacher={data.teacher}
+          />
+        </section>
+      </aside>
     </div>
   </div>
 </section>

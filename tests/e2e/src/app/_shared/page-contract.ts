@@ -210,9 +210,10 @@ export async function assertPageContract(
       await expectMainContent(page);
       await expect(visibleText(page, DEV_SEED.section.code)).toBeVisible();
       await expect(visibleText(page, DEV_SEED.course.nameCn)).toBeVisible();
-      // Detail workspace pages no longer inject the current entity into the
-      // global sidebar; the in-page DetailSectionNav is the current location.
-      await expect(page.getByTestId("detail-section-nav")).toBeVisible();
+      await expect(page.locator("#introduction")).toBeVisible();
+      await expect(
+        page.getByRole("heading", { name: /日历|Calendar/i }),
+      ).toBeVisible();
       await maybeCapture(page, testInfo, "sections-jwId");
       return;
     }
@@ -226,13 +227,9 @@ export async function assertPageContract(
       await expectMainContent(page);
       await expect(visibleText(page, DEV_SEED.course.nameCn)).toBeVisible();
       await expect(visibleText(page, DEV_SEED.course.code)).toBeVisible();
+      await expect(page.locator("#introduction")).toBeVisible();
       await expect(
-        page
-          .getByTestId("detail-section-nav")
-          .getByRole("link", { name: /班级|Sections/i }),
-      ).toBeVisible();
-      await expect(
-        page.getByTestId("detail-section-nav").locator('[aria-current="page"]'),
+        page.getByRole("heading", { name: /授课班级|Teaching Sections/i }),
       ).toBeVisible();
       await maybeCapture(page, testInfo, "courses-jwId");
       return;
@@ -246,13 +243,9 @@ export async function assertPageContract(
       );
       await expectMainContent(page);
       await expect(visibleText(page, DEV_SEED.teacher.nameCn)).toBeVisible();
+      await expect(page.locator("#introduction")).toBeVisible();
       await expect(
-        page
-          .getByTestId("detail-section-nav")
-          .getByRole("link", { name: /授课班级|Teaching Sections/i }),
-      ).toBeVisible();
-      await expect(
-        page.getByTestId("detail-section-nav").locator('[aria-current="page"]'),
+        page.getByRole("heading", { name: /授课班级|Teaching Sections/i }),
       ).toBeVisible();
       await maybeCapture(page, testInfo, "teachers-id");
       return;
@@ -297,7 +290,7 @@ export async function assertPageContract(
       );
       await expect(page).toHaveURL(
         new RegExp(
-          `/catalog/sections/${DEV_SEED.section.jwId}\\?tab=comments(?:&.*)?#comment-${createBody.id}$`,
+          `/catalog/sections/${DEV_SEED.section.jwId}#comment-${createBody.id}$`,
         ),
       );
       await expectMainContent(page);

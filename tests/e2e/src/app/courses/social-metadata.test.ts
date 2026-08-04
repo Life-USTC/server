@@ -284,7 +284,7 @@ test("课程与班级详情子路由规范化 canonical 并使用受控摘要", 
   await setLocale(page, "en-us");
   const sectionMetadata = await readRawSocialMetadata(
     page,
-    `/catalog/sections/${DEV_SEED.section.jwId}?tab=calendar&subscribe=1#week`,
+    `/catalog/sections/${DEV_SEED.section.jwId}?subscribe=1#calendar`,
   );
   expectCompleteSocialMetadata(sectionMetadata, {
     card: {
@@ -356,7 +356,7 @@ test("公开实体的原始 SSR HTML 输出双语 JSON-LD 且不包含用户字�
   await setLocale(page, "en-us");
   const sectionResult = await readRawStructuredData(
     page,
-    `/catalog/sections/${DEV_SEED.section.jwId}?tab=teachers`,
+    `/catalog/sections/${DEV_SEED.section.jwId}#teachers`,
   );
   expect(sectionResult.count).toBe(1);
   expect(sectionResult.data[0]?.["@graph"]).toEqual(

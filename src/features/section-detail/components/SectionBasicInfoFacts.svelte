@@ -18,7 +18,7 @@ $: locale = $page.data.locale ?? "zh-cn";
 <dl class="grid gap-x-8 gap-y-4 text-sm sm:grid-cols-2 xl:grid-cols-3">
   <div class="min-w-0 py-1.5 sm:min-h-14">
     <dt class="text-muted-foreground text-xs">{sectionCopy.sectionCode}</dt>
-    <dd class="mt-1 font-mono font-medium">{section.code}</dd>
+    <dd class="text-muted-foreground mt-1 font-mono text-sm">{section.code}</dd>
   </div>
   <div class="min-w-0 py-1.5 sm:min-h-14">
     <dt class="text-muted-foreground text-xs">{sectionCopy.semester}</dt>

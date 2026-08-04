@@ -1,7 +1,7 @@
 import { error, redirect } from "@sveltejs/kit";
 import {
   type CatalogDetailTab,
-  parseCatalogDetailTab,
+  resolveCatalogDetailTabQueryRedirect,
 } from "@/features/catalog/lib/catalog-detail-tab";
 import { catalogPrimaryName } from "@/features/catalog/lib/catalog-list-display";
 import {
@@ -12,14 +12,6 @@ import {
 import { getCoursePage } from "@/features/catalog/server/course-page-data";
 import { getTeacherPage } from "@/features/catalog/server/teacher-page-data";
 import { getViewerContext } from "@/lib/auth/viewer-context";
-import {
-  buildPublicDetailRuntimeCacheOptions,
-  PUBLIC_DETAIL_RUNTIME_CACHE_TTL_MS,
-} from "@/lib/catalog-detail-runtime-cache";
-import {
-  cachedPublicRuntimeData,
-  publicDetailColoCacheKey,
-} from "@/lib/public-runtime-cache";
 import {
   buildSocialMetadata,
   formatSocialMetadataMessage,
@@ -33,44 +25,10 @@ import {
 export type CourseDetailRouteSection = CatalogDetailTab;
 export type TeacherDetailRouteSection = CatalogDetailTab;
 
-function resolveCatalogDetailInitialTab(
-  section: string | undefined,
-  url: URL,
-): CatalogDetailTab {
-  return parseCatalogDetailTab(section ?? url.searchParams.get("tab"));
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return Boolean(value) && typeof value === "object";
-}
-
-function isPublicCourseCore(value: unknown, jwId: number) {
-  return (
-    isRecord(value) &&
-    typeof value.id === "number" &&
-    value.jwId === jwId &&
-    typeof value.code === "string" &&
-    typeof value.namePrimary === "string" &&
-    typeof value.sectionCount === "number" &&
-    Array.isArray(value.sections) &&
-    value.sections.length === 0
-  );
-}
-
-function isPublicTeacherCore(value: unknown, id: number) {
-  return (
-    isRecord(value) &&
-    value.id === id &&
-    typeof value.namePrimary === "string" &&
-    typeof value.sectionCount === "number" &&
-    Array.isArray(value.sections) &&
-    value.sections.length === 0
-  );
-}
-
 export async function loadCourseDetailPage({
   locals,
   params,
+  request,
   url,
 }: {
   locals: App.Locals;
@@ -78,60 +36,36 @@ export async function loadCourseDetailPage({
   request: Request;
   url: URL;
 }) {
+  const tabQueryRedirect = resolveCatalogDetailTabQueryRedirect(
+    request,
+    "courses",
+  );
+  if (tabQueryRedirect) {
+    redirect(308, tabQueryRedirect);
+  }
+
   const copy = getCourseDetailCopy(locals.locale);
-  const initialTab = resolveCatalogDetailInitialTab(params.section, url);
   const jwId = Number(params.jwId);
   if (!Number.isInteger(jwId)) error(404, copy.notFound.description);
-  const includeSections = initialTab === "sections";
-  const loadCourse = () =>
-    getCoursePage(jwId, locals.locale, { includeSections });
-  const courseCacheOptions =
-    locals.publicSsr && !locals.authUser && !includeSections
-      ? await buildPublicDetailRuntimeCacheOptions({
-          coloCacheKey: publicDetailColoCacheKey(
-            url.origin,
-            "course",
-            locals.locale,
-            jwId,
-          ),
-          id: jwId,
-          kind: "course",
-          kvShape: "core-without-sections",
-          locale: locals.locale,
-          shouldCacheResult: (result) => result !== null,
-          validateColoCacheResult: (result) => isPublicCourseCore(result, jwId),
-        })
-      : null;
+  // Stream layout always shows the sections table; include on first load.
   const [course, viewer] = await Promise.all([
-    courseCacheOptions
-      ? cachedPublicRuntimeData(
-          `page:course-detail:${locals.locale}`,
-          `catalog-detail:course:${locals.locale}:${jwId}`,
-          PUBLIC_DETAIL_RUNTIME_CACHE_TTL_MS,
-          loadCourse,
-          courseCacheOptions,
-        )
-      : loadCourse(),
+    getCoursePage(jwId, locals.locale, { includeSections: true }),
     getViewerContext({ userId: locals.authUser?.id ?? null }),
   ]);
   if (!course) error(404, copy.notFound.description);
   if (course.jwId !== jwId) {
     const redirectUrl = new URL(`/catalog/courses/${course.jwId}`, url.origin);
     for (const [key, value] of url.searchParams) {
+      if (key === "tab") continue;
       redirectUrl.searchParams.append(key, value);
-    }
-    if (initialTab !== "overview") {
-      redirectUrl.searchParams.set("tab", initialTab);
     }
     redirect(308, `${redirectUrl.pathname}${redirectUrl.search}`);
   }
   const displayName = catalogPrimaryName(course) || course.code;
-  const includeDescription =
-    initialTab === "introduction" || initialTab === "overview";
   const { commentsData, descriptionData } = await loadCatalogDetailCommentsData(
     {
-      includeDescription,
-      includeDescriptionHistory: initialTab === "introduction",
+      includeDescription: true,
+      includeDescriptionHistory: false,
       targetId: course.id,
       type: "course",
       viewer,
@@ -161,7 +95,7 @@ export async function loadCourseDetailPage({
     copy,
     descriptionData,
     commentsData,
-    detailSection: initialTab,
+    detailSection: "overview" as const,
     socialMetadata,
     structuredDataJson: serializeStructuredData(
       buildCourseStructuredData({
@@ -181,6 +115,7 @@ export async function loadCourseDetailPage({
 export async function loadTeacherDetailPage({
   locals,
   params,
+  request,
   url,
 }: {
   locals: App.Locals;
@@ -188,50 +123,28 @@ export async function loadTeacherDetailPage({
   request: Request;
   url: URL;
 }) {
+  const tabQueryRedirect = resolveCatalogDetailTabQueryRedirect(
+    request,
+    "teachers",
+  );
+  if (tabQueryRedirect) {
+    redirect(308, tabQueryRedirect);
+  }
+
   const copy = getTeacherDetailCopy(locals.locale);
-  const initialTab = resolveCatalogDetailInitialTab(params.section, url);
   const id = Number(params.id);
   if (!Number.isInteger(id)) error(404, copy.notFound.description);
-  const includeSections = initialTab === "sections";
-  const loadTeacher = () =>
-    getTeacherPage(id, locals.locale, { includeSections });
-  const teacherCacheOptions =
-    locals.publicSsr && !locals.authUser && !includeSections
-      ? await buildPublicDetailRuntimeCacheOptions({
-          coloCacheKey: publicDetailColoCacheKey(
-            url.origin,
-            "teacher",
-            locals.locale,
-            id,
-          ),
-          id,
-          kind: "teacher",
-          kvShape: "core-without-sections",
-          locale: locals.locale,
-          shouldCacheResult: (result) => result !== null,
-          validateColoCacheResult: (result) => isPublicTeacherCore(result, id),
-        })
-      : null;
+  // Stream layout always shows teaching sections; include on first load.
   const [teacher, viewer] = await Promise.all([
-    teacherCacheOptions
-      ? cachedPublicRuntimeData(
-          `page:teacher-detail:${locals.locale}`,
-          `catalog-detail:teacher:${locals.locale}:${id}`,
-          PUBLIC_DETAIL_RUNTIME_CACHE_TTL_MS,
-          loadTeacher,
-          teacherCacheOptions,
-        )
-      : loadTeacher(),
+    getTeacherPage(id, locals.locale, { includeSections: true }),
     getViewerContext({ userId: locals.authUser?.id ?? null }),
   ]);
   if (!teacher) error(404, copy.notFound.description);
   const displayName = catalogPrimaryName(teacher);
-  const includeDescription =
-    initialTab === "introduction" || initialTab === "overview";
   const { commentsData, descriptionData } = await loadCatalogDetailCommentsData(
     {
-      includeDescription,
-      includeDescriptionHistory: initialTab === "introduction",
+      includeDescription: true,
+      includeDescriptionHistory: false,
       targetId: teacher.id,
       type: "teacher",
       viewer,
@@ -266,7 +179,7 @@ export async function loadTeacherDetailPage({
     copy,
     descriptionData,
     commentsData,
-    detailSection: initialTab,
+    detailSection: "overview" as const,
     socialMetadata,
     structuredDataJson: serializeStructuredData(
       buildTeacherStructuredData({

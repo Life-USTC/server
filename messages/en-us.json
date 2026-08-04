@@ -80,9 +80,9 @@
   "globalSearch": {
     "title": "Search",
     "pageTitle": "Search",
-    "pageDescription": "Search courses, teachers, sections, campus links, and your homework or todos.",
-    "placeholder": "Search courses, teachers, links…",
-    "placeholderSignedIn": "Search courses, teachers, links, homework, todos…",
+    "pageDescription": "Search sections, teachers, courses, campus links, and your homework or todos.",
+    "placeholder": "Search sections, teachers, courses…",
+    "placeholderSignedIn": "Search sections, teachers, courses, homework, todos…",
     "shortcut": "Ctrl K",
     "shortcutMac": "⌘ K",
     "noResults": "No results found",

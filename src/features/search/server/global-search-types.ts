@@ -25,9 +25,9 @@ export type GlobalSearchResponse = {
 };
 
 export const GLOBAL_SEARCH_GROUP_ORDER: GlobalSearchResultGroupType[] = [
-  "courses",
-  "teachers",
   "sections",
+  "teachers",
+  "courses",
   "links",
   "homeworks",
   "todos",

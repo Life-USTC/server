@@ -41,7 +41,7 @@ import { captureStepScreenshot } from "../../../../utils/screenshot";
 import { assertPageContract } from "../../_shared/page-contract";
 
 const COURSE_URL = `/catalog/courses/${DEV_SEED.course.jwId}`;
-const COURSE_WITH_DESCRIPTION_URL = `/catalog/courses/${scenarioData.courses[2].jwId}/introduction`;
+const COURSE_WITH_DESCRIPTION_URL = `/catalog/courses/${scenarioData.courses[2].jwId}#introduction`;
 const COURSE_WITH_DESCRIPTION_TEXT = "实验课建议准备护目镜并提前完成预习问答。";
 
 async function jumpToCourseSection(
@@ -49,12 +49,19 @@ async function jumpToCourseSection(
   name: RegExp,
   selector: string,
 ) {
-  const link = page
-    .getByTestId("detail-section-nav")
-    .getByRole("link", { name })
-    .first();
-  await expect(link).toBeVisible();
-  await link.click();
+  const hash = selector.replace(/^#/, "");
+  if (hash === "sections" || hash === "comments" || hash === "introduction") {
+    await gotoAndWaitForReady(
+      page,
+      `${COURSE_URL}${hash === "introduction" ? "#introduction" : `#${hash}`}`,
+    );
+    await expect(page.locator(selector)).toBeVisible();
+    return;
+  }
+
+  const heading = page.getByRole("heading", { name }).first();
+  await expect(heading).toBeVisible();
+  await heading.scrollIntoViewIfNeeded();
   await expect(page.locator(selector)).toBeVisible();
 }
 
@@ -85,7 +92,7 @@ test.describe("/catalog/courses/[jwId] 课程详情", () => {
       `/catalog/courses/${DEV_SEED.course.legacyJwId}/sections?from=legacy`,
     );
     await expect(page).toHaveURL(
-      `/catalog/courses/${DEV_SEED.course.jwId}?from=legacy&tab=sections`,
+      `/catalog/courses/${DEV_SEED.course.jwId}?from=legacy#sections`,
     );
     await expect(page.getByRole("heading", { level: 1 }).first()).toContainText(
       new RegExp(`${DEV_SEED.course.nameCn}|${DEV_SEED.course.nameEn}`),
@@ -158,7 +165,7 @@ test.describe("/catalog/courses/[jwId] 课程详情", () => {
     page,
   }, testInfo) => {
     await gotoAndWaitForReady(page, COURSE_URL);
-    await jumpToCourseSection(page, /班级|Sections/i, "#course-sections");
+    await jumpToCourseSection(page, /班级|Sections/i, "#sections");
 
     // section.semester.nameCn
     await expect(visibleText(page, DEV_SEED.semesterNameCn)).toBeVisible();
@@ -205,30 +212,24 @@ test.describe("/catalog/courses/[jwId] 课程详情", () => {
 
   // ── Navigation ──────────────────────────────────────────────────────────────
 
-  test("详情导航可跳转到主要区块", async ({ page }, testInfo) => {
+  test("详情流式布局包含主要锚点区块", async ({ page }, testInfo) => {
     await gotoAndWaitForReady(page, COURSE_URL);
 
-    const nav = page.getByTestId("detail-section-nav");
-    await expect(nav).toBeVisible();
+    await expect(page.locator("#introduction")).toBeVisible();
     await expect(
-      nav.getByRole("link", { name: /简介|Description/i }),
+      page.getByRole("heading", { name: /授课班级|Teaching Sections/i }),
     ).toBeVisible();
     await expect(
-      nav.getByRole("link", { name: /班级|Sections/i }),
+      page.getByRole("heading", { name: /评论|Comments/i }),
     ).toBeVisible();
-    await expect(
-      nav.getByRole("link", { name: /评论|Comments/i }),
-    ).toBeVisible();
-    await expect(
-      nav.getByRole("link", { name: /班级|Sections/i }),
-    ).toHaveAttribute("data-sveltekit-preload-data", "off");
 
-    await jumpToCourseSection(page, /评论|Comments/i, "#course-comments");
-    await expect(page).toHaveURL(/\/catalog\/courses\/\d+\?tab=comments$/);
+    await gotoAndWaitForReady(page, `${COURSE_URL}#comments`);
+    await expect(page).toHaveURL(/\/catalog\/courses\/\d+#comments$/);
+    await expect(page.locator("#comments")).toBeVisible();
     await captureStepScreenshot(page, testInfo, "course/detail-nav");
   });
 
-  test("移动端标题层级紧凑且详情导航横向可用", async ({ page }, testInfo) => {
+  test("移动端标题层级紧凑且流式区块可用", async ({ page }, testInfo) => {
     await page.setViewportSize({ width: 390, height: 844 });
     await gotoAndWaitForReady(page, COURSE_URL);
 
@@ -243,21 +244,15 @@ test.describe("/catalog/courses/[jwId] 课程详情", () => {
       await page.evaluate(() => document.documentElement.scrollWidth),
     ).toBeLessThanOrEqual(390);
 
-    const nav = page.getByTestId("detail-section-nav");
-    await expect(nav).toBeVisible();
-    await expect(nav.locator("[data-sidebar='menu']")).toHaveCSS(
-      "flex-direction",
-      "row",
-    );
-    await expect(nav.locator('a[aria-current="page"]')).toHaveCount(1);
-    await jumpToCourseSection(page, /评论|Comments/i, "#course-comments");
+    await gotoAndWaitForReady(page, `${COURSE_URL}#comments`);
+    await expect(page.locator("#comments")).toBeVisible();
 
     await captureStepScreenshot(page, testInfo, "course/detail-mobile");
   });
 
   test("班级行链接到班级详情", async ({ page }, testInfo) => {
     await gotoAndWaitForReady(page, COURSE_URL);
-    await jumpToCourseSection(page, /班级|Sections/i, "#course-sections");
+    await jumpToCourseSection(page, /班级|Sections/i, "#sections");
     const sectionLink = page
       .locator(`a[href="/catalog/sections/${DEV_SEED.section.jwId}"]:visible`)
       .or(page.locator("tbody a[href^='/catalog/sections/']:visible"))
@@ -291,7 +286,7 @@ test.describe("/catalog/courses/[jwId] 课程详情", () => {
 
   test("登录用户可以编辑课程简介", async ({ page }, testInfo) => {
     test.setTimeout(60_000);
-    await signInAsDebugUser(page, `${COURSE_URL}?tab=introduction`);
+    await signInAsDebugUser(page, `${COURSE_URL}#introduction`);
     const snapshot = await snapshotDescriptionTargetForE2e(
       page.request,
       { courseJwId: DEV_SEED.course.jwId, targetType: "course" },
@@ -352,11 +347,11 @@ test.describe("/catalog/courses/[jwId] 课程详情", () => {
     let commentId: string | undefined;
 
     try {
-      await jumpToCourseSection(page, /评论|Comments/i, "#course-comments");
-      await expect(page).toHaveURL(/\/catalog\/courses\/\d+\?tab=comments$/);
+      await jumpToCourseSection(page, /评论|Comments/i, "#comments");
+      await expect(page).toHaveURL(/\/catalog\/courses\/\d+#comments$/);
 
       const body = `e2e-course-comment-${Date.now()}`;
-      const composer = page.locator("#course-comments textarea").first();
+      const composer = page.locator("#comments textarea").first();
       await expect(composer).toBeVisible({ timeout: 15_000 });
       await composer.fill(body);
       const createResponse = page.waitForResponse(
@@ -444,8 +439,6 @@ test.describe("/catalog/courses/[jwId]/introduction 无 JavaScript", () => {
     await page.goto(COURSE_WITH_DESCRIPTION_URL);
 
     await expect(page.getByText(COURSE_WITH_DESCRIPTION_TEXT)).toBeVisible();
-    await expect(
-      page.locator("#course-description .markdown-preview"),
-    ).toBeVisible();
+    await expect(page.locator("#introduction .markdown-preview")).toBeVisible();
   });
 });

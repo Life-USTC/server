@@ -80,9 +80,9 @@
   "globalSearch": {
     "title": "搜索",
     "pageTitle": "搜索",
-    "pageDescription": "搜索课程、教师、班级、校园链接，以及你的作业与待办。",
-    "placeholder": "搜索课程、教师、链接…",
-    "placeholderSignedIn": "搜索课程、教师、链接、作业、待办…",
+    "pageDescription": "搜索班级、教师、课程、校园链接，以及你的作业与待办。",
+    "placeholder": "搜索班级、教师、课程…",
+    "placeholderSignedIn": "搜索班级、教师、课程、作业、待办…",
     "shortcut": "Ctrl K",
     "shortcutMac": "⌘ K",
     "noResults": "未找到相关结果",

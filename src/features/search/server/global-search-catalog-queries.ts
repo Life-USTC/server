@@ -49,6 +49,12 @@ export async function searchSectionsForGlobal(
     select: {
       code: true,
       jwId: true,
+      campus: {
+        select: {
+          nameCn: true,
+          namePrimary: true,
+        },
+      },
       course: {
         select: {
           code: true,
@@ -60,6 +66,14 @@ export async function searchSectionsForGlobal(
         select: {
           nameCn: true,
         },
+      },
+      teachers: {
+        select: {
+          nameCn: true,
+          namePrimary: true,
+        },
+        orderBy: { nameCn: "asc" },
+        take: 4,
       },
     },
     take: limit,

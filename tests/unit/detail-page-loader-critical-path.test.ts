@@ -1,7 +1,6 @@
 /// <reference path="../../src/app.d.ts" />
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { emptyDescriptionPayload } from "@/features/descriptions/server/description-payload";
 import { runWithCloudflareRuntimeEnv } from "@/lib/adapters/cloudflare-runtime";
 
 const {
@@ -243,7 +242,7 @@ describe("catalog detail loader critical path", () => {
     expect(getCommentsPayloadMock).not.toHaveBeenCalled();
   });
 
-  it("skips comments for the course comments tab deep link", async () => {
+  it("skips comments on course detail (client-fetched only)", async () => {
     const { loadCourseDetailPage } = await import(
       "@/features/catalog/server/catalog-detail-page-server"
     );
@@ -251,17 +250,15 @@ describe("catalog detail loader critical path", () => {
     const result = await loadCourseDetailPage({
       locals: locals(),
       params: { jwId: String(course.jwId) },
-      request: request(`/catalog/courses/${course.jwId}?tab=comments`),
-      url: new URL(
-        `https://example.test/catalog/courses/${course.jwId}?tab=comments`,
-      ),
+      request: request(`/catalog/courses/${course.jwId}`),
+      url: new URL(`https://example.test/catalog/courses/${course.jwId}`),
     });
 
     expect(result.commentsData).toBeNull();
     expect(getCommentsPayloadMock).not.toHaveBeenCalled();
   });
 
-  it("loads description history only for the introduction section", async () => {
+  it("loads description without history on the stream layout", async () => {
     const { loadCourseDetailPage } = await import(
       "@/features/catalog/server/catalog-detail-page-server"
     );
@@ -269,52 +266,40 @@ describe("catalog detail loader critical path", () => {
     await loadCourseDetailPage({
       locals: locals(),
       params: { jwId: String(course.jwId) },
-      request: request(`/catalog/courses/${course.jwId}?tab=introduction`),
-      url: new URL(
-        `https://example.test/catalog/courses/${course.jwId}?tab=introduction`,
-      ),
+      request: request(`/catalog/courses/${course.jwId}`),
+      url: new URL(`https://example.test/catalog/courses/${course.jwId}`),
     });
 
     expect(getDescriptionPayloadMock).toHaveBeenCalledWith(
       "course",
       course.id,
       anonymousViewer,
-      { includeHistory: true },
+      { includeHistory: false },
     );
   });
 
-  it("coalesces the same anonymous PublicSsr course core across default and introduction tabs", async () => {
-    let resolveCourse: ((value: typeof course) => void) | undefined;
-    getCoursePageMock.mockReturnValue(
-      new Promise<typeof course>((resolve) => {
-        resolveCourse = resolve;
-      }),
-    );
+  it("loads course sections for anonymous PublicSsr stream pages", async () => {
+    getCoursePageMock.mockResolvedValue(course);
     const { loadCourseDetailPage } = await import(
       "@/features/catalog/server/catalog-detail-page-server"
     );
 
-    const overview = loadCourseDetailPage({
+    await loadCourseDetailPage({
       locals: locals(null, true),
       params: { jwId: String(course.jwId) },
       request: request(`/catalog/courses/${course.jwId}`),
       url: new URL(`https://example.test/catalog/courses/${course.jwId}`),
     });
-    const introduction = loadCourseDetailPage({
+    await loadCourseDetailPage({
       locals: locals(null, true),
       params: { jwId: String(course.jwId) },
-      request: request(`/catalog/courses/${course.jwId}?tab=introduction`),
-      url: new URL(
-        `https://example.test/catalog/courses/${course.jwId}?tab=introduction`,
-      ),
+      request: request(`/catalog/courses/${course.jwId}`),
+      url: new URL(`https://example.test/catalog/courses/${course.jwId}`),
     });
 
-    await vi.waitFor(() => expect(getCoursePageMock).toHaveBeenCalledOnce());
-    resolveCourse?.(course);
-    await Promise.all([overview, introduction]);
-
+    expect(getCoursePageMock).toHaveBeenCalledTimes(2);
     expect(getCoursePageMock).toHaveBeenCalledWith(course.jwId, "en-us", {
-      includeSections: false,
+      includeSections: true,
     });
   });
 
@@ -340,35 +325,37 @@ describe("catalog detail loader critical path", () => {
     await load(course.jwId + 1, "en-us");
     await load(course.jwId, "en-us");
 
-    expect(getCoursePageMock).toHaveBeenCalledTimes(3);
+    // Stream pages always include sections, so PublicSsr no longer caches the
+    // lightweight core-without-sections payload.
+    expect(getCoursePageMock).toHaveBeenCalledTimes(4);
   });
 
-  it("caches the final anonymous PublicSsr teacher core but bypasses the sections shape", async () => {
+  it("loads teacher sections for anonymous and signed-in stream pages", async () => {
     const { loadTeacherDetailPage } = await import(
       "@/features/catalog/server/catalog-detail-page-server"
     );
-    const load = (tab?: "sections") => {
-      const query = tab ? `?tab=${tab}` : "";
-      return loadTeacherDetailPage({
+    const loadPublicCore = () =>
+      loadTeacherDetailPage({
         locals: locals(null, true),
         params: { id: String(teacher.id) },
-        request: request(`/catalog/teachers/${teacher.id}${query}`),
-        url: new URL(
-          `https://example.test/catalog/teachers/${teacher.id}${query}`,
-        ),
+        request: request(`/catalog/teachers/${teacher.id}`),
+        url: new URL(`https://example.test/catalog/teachers/${teacher.id}`),
       });
-    };
+    const loadSignedInWithSections = () =>
+      loadTeacherDetailPage({
+        locals: locals(signedInUser, true),
+        params: { id: String(teacher.id) },
+        request: request(`/catalog/teachers/${teacher.id}`),
+        url: new URL(`https://example.test/catalog/teachers/${teacher.id}`),
+      });
 
-    await load();
-    await load();
-    await load("sections");
-    await load("sections");
+    await loadPublicCore();
+    await loadPublicCore();
+    await loadSignedInWithSections();
+    await loadSignedInWithSections();
 
-    expect(getTeacherPageMock).toHaveBeenCalledTimes(3);
-    expect(getTeacherPageMock).toHaveBeenNthCalledWith(1, teacher.id, "en-us", {
-      includeSections: false,
-    });
-    expect(getTeacherPageMock).toHaveBeenNthCalledWith(2, teacher.id, "en-us", {
+    expect(getTeacherPageMock).toHaveBeenCalledTimes(4);
+    expect(getTeacherPageMock).toHaveBeenCalledWith(teacher.id, "en-us", {
       includeSections: true,
     });
   });
@@ -393,7 +380,7 @@ describe("catalog detail loader critical path", () => {
     expect(getCoursePageMock).toHaveBeenCalledTimes(4);
   });
 
-  it("uses the colo cache only for reviewed anonymous PublicSsr detail shapes", async () => {
+  it("does not use colo cache for stream catalog detail pages", async () => {
     const match = vi.fn(async (_request: Request) => undefined);
     const put = vi.fn(
       async (_request: Request, _response: Response) => undefined,
@@ -422,51 +409,19 @@ describe("catalog detail loader critical path", () => {
           request: request(`/catalog/courses/${course.jwId}`),
           url: new URL(`https://example.test/catalog/courses/${course.jwId}`),
         });
-        await Promise.all(scheduled);
-      },
-      executionContext,
-    );
-
-    expect(open).toHaveBeenCalledWith("life-ustc-public-detail-core-v1");
-    expect(match).toHaveBeenCalledOnce();
-    const matchedRequest = match.mock.calls[0]?.[0];
-    expect(matchedRequest?.url).toBe(
-      `https://example.test/_life-ustc-internal-cache/catalog-detail-core/v1/course/core-without-sections/en-us/${course.jwId}`,
-    );
-    expect(put).toHaveBeenCalledOnce();
-
-    open.mockClear();
-    match.mockClear();
-    put.mockClear();
-    await runWithCloudflareRuntimeEnv(
-      {},
-      async () => {
-        await loadCourseDetailPage({
-          locals: locals(),
-          params: { jwId: String(course.jwId) },
-          request: request(`/catalog/courses/${course.jwId}`),
-          url: new URL(`https://example.test/catalog/courses/${course.jwId}`),
-        });
-        await loadCourseDetailPage({
-          locals: locals(signedInUser, true),
-          params: { jwId: String(course.jwId) },
-          request: request(`/catalog/courses/${course.jwId}`),
-          url: new URL(`https://example.test/catalog/courses/${course.jwId}`),
-        });
         await loadTeacherDetailPage({
           locals: locals(null, true),
-          params: { id: String(teacher.id), section: "sections" },
-          request: request(`/catalog/teachers/${teacher.id}/sections`),
-          url: new URL(
-            `https://example.test/catalog/teachers/${teacher.id}/sections`,
-          ),
+          params: { id: String(teacher.id) },
+          request: request(`/catalog/teachers/${teacher.id}`),
+          url: new URL(`https://example.test/catalog/teachers/${teacher.id}`),
         });
         await loadSectionDetailPage({
-          locals: locals(signedInUser, true),
+          locals: locals(null, true),
           params: { jwId: String(section.jwId) },
           request: request(`/catalog/sections/${section.jwId}`),
           url: new URL(`https://example.test/catalog/sections/${section.jwId}`),
         });
+        await Promise.all(scheduled);
       },
       executionContext,
     );
@@ -476,7 +431,7 @@ describe("catalog detail loader critical path", () => {
     expect(put).not.toHaveBeenCalled();
   });
 
-  it("skips comments outside the teacher comments section", async () => {
+  it("loads description in stream layout and defers comments to client", async () => {
     const { loadTeacherDetailPage } = await import(
       "@/features/catalog/server/catalog-detail-page-server"
     );
@@ -484,17 +439,15 @@ describe("catalog detail loader critical path", () => {
     const result = await loadTeacherDetailPage({
       locals: locals(),
       params: { id: String(teacher.id) },
-      request: request(`/catalog/teachers/${teacher.id}?tab=sections`),
+      request: request(`/catalog/teachers/${teacher.id}#sections`),
       url: new URL(
-        `https://example.test/catalog/teachers/${teacher.id}?tab=sections`,
+        `https://example.test/catalog/teachers/${teacher.id}#sections`,
       ),
     });
 
-    expect(result.descriptionData).toEqual(
-      emptyDescriptionPayload(anonymousViewer),
-    );
+    expect(result.descriptionData).toEqual(descriptionData);
     expect(result.commentsData).toBeNull();
-    expect(getDescriptionPayloadMock).not.toHaveBeenCalled();
+    expect(getDescriptionPayloadMock).toHaveBeenCalled();
     expect(getCommentsPayloadMock).not.toHaveBeenCalled();
   });
 });
@@ -572,7 +525,7 @@ describe("detail request session resolution", () => {
     expect(getViewerContextMock).toHaveBeenCalledWith({ userId: null });
   });
 
-  it("enables the core cache only for the internal anonymous PublicSsr marker", async () => {
+  it("does not cache anonymous PublicSsr course stream pages without sections omit", async () => {
     vi.spyOn(console, "info").mockImplementation(() => {});
     const publicSsrHeaders = {
       "x-life-public-ssr": "1",
@@ -584,52 +537,34 @@ describe("detail request session resolution", () => {
     await resolveCourseThroughHook(publicSsrHeaders);
 
     expect(getSessionFromHeadersMock).not.toHaveBeenCalled();
-    expect(getCoursePageMock).toHaveBeenCalledOnce();
+    expect(getCoursePageMock).toHaveBeenCalledTimes(2);
+    expect(getCoursePageMock).toHaveBeenCalledWith(course.jwId, "en-us", {
+      includeSections: true,
+    });
   });
 });
 
 describe("section detail loader critical path", () => {
-  it("fails open when a versioned colo entry omits a required section field", async () => {
-    const match = vi.fn(
-      async () =>
-        new Response(
-          JSON.stringify({
-            expiresAt: Date.now() + 30_000,
-            schema: "catalog-detail-core-v1",
-            value: { ...section, adminClasses: undefined },
-          }),
-        ),
-    );
+  it("loads section detail without public overview colo cache on stream pages", async () => {
+    const match = vi.fn(async () => undefined);
     const put = vi.fn(async () => undefined);
     vi.stubGlobal("caches", {
       open: vi.fn(async () => ({ match, put })),
     });
-    const scheduled: Promise<unknown>[] = [];
-    const executionContext = {
-      waitUntil(promise: Promise<unknown>) {
-        scheduled.push(promise);
-      },
-    };
     const { loadSectionDetailPage } = await import(
       "@/features/section-detail/server/section-detail-page-server"
     );
 
-    const result = await runWithCloudflareRuntimeEnv(
-      {},
-      () =>
-        loadSectionDetailPage({
-          locals: locals(null, true),
-          params: { jwId: String(section.jwId) },
-          request: request(`/catalog/sections/${section.jwId}`),
-          url: new URL(`https://example.test/catalog/sections/${section.jwId}`),
-        }),
-      executionContext,
-    );
-    await Promise.all(scheduled);
+    const result = await loadSectionDetailPage({
+      locals: locals(null, true),
+      params: { jwId: String(section.jwId) },
+      request: request(`/catalog/sections/${section.jwId}`),
+      url: new URL(`https://example.test/catalog/sections/${section.jwId}`),
+    });
 
-    expect(match).toHaveBeenCalledOnce();
+    expect(match).not.toHaveBeenCalled();
+    expect(put).not.toHaveBeenCalled();
     expect(getSectionPageMock).toHaveBeenCalledOnce();
-    expect(put).toHaveBeenCalledOnce();
     expect(result.section).toBe(section);
   });
 
@@ -679,37 +614,44 @@ describe("section detail loader critical path", () => {
     expect(getUserSectionSubscriptionStateMock).not.toHaveBeenCalled();
   });
 
-  it("loads homework on deep links and still defers comments to client tabs", async () => {
+  it("redirects legacy tab query params to canonical hash URLs", async () => {
     const { loadSectionDetailPage } = await import(
       "@/features/section-detail/server/section-detail-page-server"
     );
 
-    const homeworkResult = await loadSectionDetailPage({
-      locals: locals(),
-      params: { jwId: String(section.jwId) },
-      request: request(`/catalog/sections/${section.jwId}?tab=homework`),
-      url: new URL(
-        `https://example.test/catalog/sections/${section.jwId}?tab=homework`,
-      ),
+    await expect(
+      loadSectionDetailPage({
+        locals: locals(),
+        params: { jwId: String(section.jwId) },
+        request: request(`/catalog/sections/${section.jwId}?tab=homework`),
+        url: new URL(
+          `https://example.test/catalog/sections/${section.jwId}?tab=homework`,
+        ),
+      }),
+    ).rejects.toMatchObject({
+      location: `/catalog/sections/${section.jwId}#homework`,
+      status: 308,
     });
-    const commentsResult = await loadSectionDetailPage({
+  });
+
+  it("loads homework when homeworkId is present and still defers comments to client", async () => {
+    const { loadSectionDetailPage } = await import(
+      "@/features/section-detail/server/section-detail-page-server"
+    );
+
+    const result = await loadSectionDetailPage({
       locals: locals(),
       params: { jwId: String(section.jwId) },
-      request: request(`/catalog/sections/${section.jwId}?tab=comments`),
+      request: request(`/catalog/sections/${section.jwId}?homeworkId=hw-1`),
       url: new URL(
-        `https://example.test/catalog/sections/${section.jwId}?tab=comments`,
+        `https://example.test/catalog/sections/${section.jwId}?homeworkId=hw-1`,
       ),
     });
 
-    expect(homeworkResult.detailSection).toBe("homework");
-    expect(homeworkResult.descriptionData).toEqual(
-      emptyDescriptionPayload(anonymousViewer),
-    );
-    expect(homeworkResult.commentsData).toBeNull();
-    expect(homeworkResult.homeworkData.homeworks).toEqual([]);
-    expect(commentsResult.detailSection).toBe("comments");
-    expect(commentsResult.commentsData).toBeNull();
-    expect(getDescriptionPayloadMock).not.toHaveBeenCalled();
+    expect(result.detailSection).toBe("overview");
+    expect(result.focusedHomeworkId).toBe("hw-1");
+    expect(result.commentsData).toBeNull();
+    expect(result.homeworkData.homeworks).toEqual([]);
     expect(getSectionHomeworkDataMock).toHaveBeenCalledOnce();
     expect(getSectionHomeworkDataMock).toHaveBeenCalledWith(section.id, null);
     expect(getCommentsPayloadMock).not.toHaveBeenCalled();
@@ -727,10 +669,8 @@ describe("section detail loader critical path", () => {
     const result = await loadSectionDetailPage({
       locals: locals(signedInUser),
       params: { jwId: String(section.jwId) },
-      request: request(`/catalog/sections/${section.jwId}?tab=teachers`),
-      url: new URL(
-        `https://example.test/catalog/sections/${section.jwId}?tab=teachers`,
-      ),
+      request: request(`/catalog/sections/${section.jwId}`),
+      url: new URL(`https://example.test/catalog/sections/${section.jwId}`),
     });
 
     expect(getUserSectionSubscriptionStateMock).toHaveBeenCalledWith("user-1");
@@ -740,11 +680,14 @@ describe("section detail loader critical path", () => {
       subscriptionIcsUrl: "/api/calendar-feeds/user-1.ics",
     });
     expect(getCommentsPayloadMock).not.toHaveBeenCalled();
-    expect(getDescriptionPayloadMock).not.toHaveBeenCalled();
-    expect(getSectionHomeworkDataMock).not.toHaveBeenCalled();
+    expect(getDescriptionPayloadMock).toHaveBeenCalled();
+    expect(getSectionHomeworkDataMock).toHaveBeenCalledWith(
+      section.id,
+      signedInUser.id,
+    );
   });
 
-  it("caches the anonymous PublicSsr section overview core with related data included", async () => {
+  it("loads full stream section data for anonymous PublicSsr requests", async () => {
     const relatedSection = {
       ...section,
       sameSemesterOtherTeachers: [{ id: 32 }],
@@ -764,44 +707,42 @@ describe("section detail loader critical path", () => {
 
     const [first, second] = await Promise.all([load(), load()]);
 
-    expect(getSectionPageMock).toHaveBeenCalledOnce();
+    expect(getSectionPageMock).toHaveBeenCalledTimes(2);
     expect(getSectionPageMock).toHaveBeenCalledWith(section.jwId, "en-us", {
-      includeExams: false,
+      includeExams: true,
       includeRelated: true,
-      includeSchedules: false,
-      includeTeacherDepartments: false,
+      includeSchedules: true,
+      includeTeacherDepartments: true,
     });
     expect(withSectionPageRelatedDataMock).not.toHaveBeenCalled();
     expect(first.section).toBe(relatedSection);
     expect(second.section).toBe(relatedSection);
   });
 
-  it.each([
-    ["calendar", true, true] as const,
-    ["exams", false, true] as const,
-  ])("loads tab-specific section data for anonymous %s deep links without overview cache", async (tab, includeSchedules, includeExams) => {
+  it("loads full stream section data for signed-in requests without overview cache", async () => {
     const { loadSectionDetailPage } = await import(
       "@/features/section-detail/server/section-detail-page-server"
     );
-    const load = () =>
-      loadSectionDetailPage({
-        locals: locals(null, true),
-        params: { jwId: String(section.jwId) },
-        request: request(`/catalog/sections/${section.jwId}?tab=${tab}`),
-        url: new URL(
-          `https://example.test/catalog/sections/${section.jwId}?tab=${tab}`,
-        ),
-      });
 
-    await load();
-    await load();
+    await loadSectionDetailPage({
+      locals: locals(signedInUser),
+      params: { jwId: String(section.jwId) },
+      request: request(`/catalog/sections/${section.jwId}`),
+      url: new URL(`https://example.test/catalog/sections/${section.jwId}`),
+    });
+    await loadSectionDetailPage({
+      locals: locals(signedInUser),
+      params: { jwId: String(section.jwId) },
+      request: request(`/catalog/sections/${section.jwId}`),
+      url: new URL(`https://example.test/catalog/sections/${section.jwId}`),
+    });
 
     expect(getSectionPageMock).toHaveBeenCalledTimes(2);
     expect(getSectionPageMock).toHaveBeenCalledWith(section.jwId, "en-us", {
-      includeExams,
-      includeRelated: false,
-      includeSchedules,
-      includeTeacherDepartments: false,
+      includeExams: true,
+      includeRelated: true,
+      includeSchedules: true,
+      includeTeacherDepartments: true,
     });
   });
 });

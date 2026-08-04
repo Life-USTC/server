@@ -1,7 +1,5 @@
 <script lang="ts">
 // biome-ignore assist/source/organizeImports: keep Svelte template/action imports grouped with local suppressions.
-import { afterNavigate } from "$app/navigation";
-import { page } from "$app/stores";
 import { onMount } from "svelte";
 import { createSectionDetailDisplayActions } from "@/features/section-detail/lib/section-detail-display-actions";
 import {
@@ -18,12 +16,7 @@ import {
   createSectionDetailTabPanelStore,
   createSectionDetailTabPanelSsrSeedFromPageData,
 } from "@/features/section-detail/lib/section-detail-tab-client";
-import {
-  parseSectionDetailTab,
-  SECTION_DETAIL_TAB_QUERY,
-  sectionDetailPagePath,
-  type SectionDetailTab,
-} from "@/features/section-detail/lib/section-detail-tab";
+import type { SectionDetailTab } from "@/features/section-detail/lib/section-detail-tab";
 import {
   buildSectionDetailCommentTargets,
   buildSectionPeriodDetailRows,
@@ -46,6 +39,14 @@ import SectionDetailMainContent from "@/features/section-detail/components/Secti
 import SectionDetailPageHead from "@/features/section-detail/components/SectionDetailPageHead.svelte";
 type PageData = SectionDetailPageData;
 type ActionData = SectionDetailActionData;
+
+const STREAM_PANEL_TABS = [
+  "introduction",
+  "calendar",
+  "exams",
+  "homework",
+  "teachers",
+] as const satisfies readonly SectionDetailTab[];
 
 export let data: PageData;
 export let form: ActionData;
@@ -78,8 +79,7 @@ let {
   _subscriptionPendingAction,
 } = createSectionDetailControllerDefaultState(data);
 
-let activeTab: SectionDetailTab = parseSectionDetailTab(data.detailSection);
-let tabPanelLoading = false;
+let streamLoading = false;
 const tabPanelStore = createSectionDetailTabPanelStore(
   data.homeworkData.viewer.userId ?? null,
   createSectionDetailTabPanelSsrSeedFromPageData(
@@ -108,10 +108,9 @@ $: displaySection = {
     data.section.teachers ?? [],
   ),
 };
-$: panelDescriptionData =
-  activeTab === "introduction" && tabPanelStore.isLoaded("introduction")
-    ? tabPanelState.descriptionData
-    : data.descriptionData;
+$: panelDescriptionData = tabPanelStore.isLoaded("introduction")
+  ? tabPanelState.descriptionData
+  : data.descriptionData;
 
 function syncFocusedHomework(homeworks: SectionHomework[]) {
   if (data.focusedHomeworkId == null) return;
@@ -123,50 +122,38 @@ function syncFocusedHomework(homeworks: SectionHomework[]) {
   }
 }
 
-async function selectTab(tab: SectionDetailTab) {
-  const previousTab = activeTab;
-  if (tab === previousTab && tabPanelStore.isLoaded(tab)) {
-    if (tab === "homework") {
-      syncFocusedHomework(_homeworks);
-    }
-    return;
-  }
-  activeTab = tab;
-  const preserveQuery = tab === previousTab;
-  const nextUrl = (() => {
-    const nextPath = sectionDetailPagePath(data.section.jwId, tab);
-    if (!preserveQuery || typeof window === "undefined") return nextPath;
-    const current = new URL(window.location.href);
-    const next = new URL(nextPath, current.origin);
-    for (const key of ["homeworkId", "homeworkView", "subscribe"]) {
-      const value = current.searchParams.get(key);
-      if (value !== null) next.searchParams.set(key, value);
-    }
-    if (current.hash) next.hash = current.hash;
-    return `${next.pathname}${next.search}${next.hash}`;
-  })();
-  history.replaceState(history.state, "", nextUrl);
-  if (tab === "overview" || tab === "comments") return;
-  if (tab === "introduction" && data.descriptionData.description.content) {
-    return;
-  }
-  tabPanelLoading = true;
+function applyHomeworkPanelState() {
+  _homeworkViewer = tabPanelState.homeworkViewer;
+  _homeworks = tabPanelState.homeworks;
+  _homeworkAuditLogs = tabPanelState.homeworkAuditLogs;
+  syncFocusedHomework(tabPanelState.homeworks);
+}
+
+async function ensureStreamPanelsLoaded() {
+  const panelInput = {
+    errorMessage: _sectionCopy.operationFailed,
+    jwId: Number(data.section.jwId),
+    locale: data.locale,
+    sectionId: Number(data.section.id),
+  };
+  streamLoading = true;
   try {
-    tabPanelState = await tabPanelStore.ensureLoaded(tab, {
-      errorMessage: _sectionCopy.operationFailed,
-      jwId: Number(data.section.jwId),
-      locale: data.locale,
-      sectionId: Number(data.section.id),
-    });
-    if (tab === "homework") {
-      _homeworkViewer = tabPanelState.homeworkViewer;
-      _homeworks = tabPanelState.homeworks;
-      _homeworkAuditLogs = tabPanelState.homeworkAuditLogs;
-      syncFocusedHomework(tabPanelState.homeworks);
+    for (const tab of STREAM_PANEL_TABS) {
+      if (tabPanelStore.isLoaded(tab)) continue;
+      tabPanelState = await tabPanelStore.ensureLoaded(tab, panelInput);
+      if (tab === "homework") {
+        applyHomeworkPanelState();
+      }
     }
+    syncFocusedHomework(_homeworks);
   } finally {
-    tabPanelLoading = false;
+    streamLoading = false;
   }
+}
+
+function scrollToFocusedHomework() {
+  if (data.focusedHomeworkId == null) return;
+  document.getElementById("homework")?.scrollIntoView({ behavior: "smooth" });
 }
 
 const {
@@ -434,19 +421,11 @@ onMount(() => {
     },
     shouldLoadHomeworks: false,
   });
-  if (activeTab !== "overview") {
-    void selectTab(activeTab);
-  }
+  void (async () => {
+    await ensureStreamPanelsLoaded();
+    scrollToFocusedHomework();
+  })();
   return cleanup;
-});
-
-afterNavigate(() => {
-  const tab = parseSectionDetailTab(
-    new URL($page.url).searchParams.get(SECTION_DETAIL_TAB_QUERY),
-  );
-  if (tab !== activeTab) {
-    void selectTab(tab);
-  }
 });
 </script>
 
@@ -460,7 +439,6 @@ afterNavigate(() => {
 
 <section class="min-h-full lg:h-full lg:min-h-0">
   <SectionDetailMainContent
-    {activeTab}
     {calendarMonthLabel}
     bind:calendarMonthOffset={_calendarMonthOffset}
     canWriteHomework={_canWriteHomework}
@@ -480,7 +458,6 @@ afterNavigate(() => {
     homeworkView={_homeworkView}
     homeworks={_homeworks}
     notAvailable={_notAvailable}
-    onSelectTab={selectTab}
     openCalendarDialog={_openCalendarDialog}
     openCreateHomeworkDialog={_openCreateHomeworkDialog}
     openSubscribeDialog={_openSubscribeDialog}
@@ -497,9 +474,9 @@ afterNavigate(() => {
     setSelectedHomework={(homework) => {
       _selectedHomework = homework;
     }}
+    {streamLoading}
     subscriptionAction={_subscriptionAction}
     subscriptionPendingAction={_subscriptionPendingAction}
-    {tabPanelLoading}
     teacherName={_teacherName}
     {todayCalendarMonthOffset}
     {unscheduledCalendarEvents}

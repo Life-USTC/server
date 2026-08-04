@@ -93,7 +93,7 @@ describe("global search service", () => {
     });
 
     expect(cachedCatalogRuntimeDataMock).toHaveBeenCalledWith(
-      "search:catalog:v2:zh-cn",
+      "search:catalog:v3:zh-cn",
       "5:数据",
       ORIGIN,
       expect.any(Function),
@@ -157,6 +157,8 @@ describe("global search service", () => {
       "todos",
     ]);
     expect(result.groups[0]?.items[0]?.href).toContain("homeworkId=hw-1");
+    expect(result.groups[0]?.items[0]?.href).toContain("#homework");
+    expect(result.groups[0]?.items[0]?.href).not.toContain("tab=homework");
   });
 
   it("returns catalog results when workspace search fails", async () => {
@@ -250,7 +252,7 @@ describe("global search service", () => {
     ]);
   });
 
-  it("orders teachers before sections in catalog results", async () => {
+  it("orders sections before teachers and courses in catalog results", async () => {
     searchTeachersForGlobalMock.mockResolvedValue([
       { id: 1, nameCn: "程艺", code: "T001", department: null },
     ]);
@@ -258,12 +260,22 @@ describe("global search service", () => {
       {
         jwId: 42,
         code: "001",
+        campus: { nameCn: "东区", namePrimary: "东区" },
         course: {
           code: "CS101",
           nameCn: "数据结构",
           namePrimary: "数据结构",
         },
         semester: { nameCn: "2026 春" },
+        teachers: [{ nameCn: "程艺", namePrimary: "程艺" }],
+      },
+    ]);
+    searchCoursesForGlobalMock.mockResolvedValue([
+      {
+        jwId: 101,
+        code: "CS101",
+        nameCn: "数据结构",
+        namePrimary: "数据结构",
       },
     ]);
 
@@ -274,9 +286,46 @@ describe("global search service", () => {
     });
 
     expect(result.groups.map((group) => group.type)).toEqual([
-      "teachers",
       "sections",
+      "teachers",
+      "courses",
     ]);
+    expect(result.groups[0]?.items[0]).toEqual({
+      id: "section:42",
+      title: "数据结构 · 程艺",
+      description: "2026 春 · 东区 · 001",
+      href: "/catalog/sections/42",
+    });
+  });
+
+  it("falls back section titles to course · code when teachers are empty", async () => {
+    searchSectionsForGlobalMock.mockResolvedValue([
+      {
+        jwId: 7,
+        code: "02",
+        campus: null,
+        course: {
+          code: "MA101",
+          nameCn: "数学分析",
+          namePrimary: "数学分析",
+        },
+        semester: { nameCn: "2026 秋" },
+        teachers: [],
+      },
+    ]);
+
+    const result = await searchGlobally({
+      locale: "zh-cn",
+      origin: ORIGIN,
+      query: "数学分析",
+    });
+
+    expect(result.groups[0]?.items[0]).toEqual({
+      id: "section:7",
+      title: "数学分析 · 02",
+      description: "2026 秋 · 02",
+      href: "/catalog/sections/7",
+    });
   });
 
   it("detects minimum query length", () => {
