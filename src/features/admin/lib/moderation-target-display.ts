@@ -113,7 +113,7 @@ export function moderationTargetHref(comment: ModerationCommentLike) {
 export function moderationDescriptionTargetHref(
   description: ModerationDescriptionLike,
 ) {
-  if (description.homework?.section?.jwId) {
+  if (description.homework?.section?.jwId && description.homework.id) {
     return sectionDetailHomeworkPath(description.homework.section.jwId, {
       homeworkId: description.homework.id,
     });
