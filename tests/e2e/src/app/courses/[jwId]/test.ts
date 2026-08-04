@@ -439,8 +439,6 @@ test.describe("/catalog/courses/[jwId]/introduction 无 JavaScript", () => {
     await page.goto(COURSE_WITH_DESCRIPTION_URL);
 
     await expect(page.getByText(COURSE_WITH_DESCRIPTION_TEXT)).toBeVisible();
-    await expect(
-      page.locator("#introduction .markdown-preview"),
-    ).toBeVisible();
+    await expect(page.locator("#introduction .markdown-preview")).toBeVisible();
   });
 });
