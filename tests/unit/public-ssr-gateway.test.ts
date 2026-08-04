@@ -42,22 +42,22 @@ describe("public SSR gateway", () => {
   test.each([
     [
       "/catalog/sections/159446/introduction",
-      "/catalog/sections/159446?tab=introduction",
+      "/catalog/sections/159446#introduction",
     ],
     [
       "/catalog/sections/159446/calendar?page=2",
-      "/catalog/sections/159446?page=2&tab=calendar",
+      "/catalog/sections/159446?page=2#calendar",
     ],
     [
       "/catalog/courses/11145/introduction",
-      "/catalog/courses/11145?tab=introduction",
+      "/catalog/courses/11145#introduction",
     ],
     [
       "/catalog/courses/11145/sections?page=2",
-      "/catalog/courses/11145?page=2&tab=sections",
+      "/catalog/courses/11145?page=2#sections",
     ],
-    ["/catalog/teachers/42/comments", "/catalog/teachers/42?tab=comments"],
-  ])("redirects legacy catalog tab path %s to query tab", (path, target) => {
+    ["/catalog/teachers/42/comments", "/catalog/teachers/42#comments"],
+  ])("redirects legacy catalog tab path %s to hash anchor", (path, target) => {
     const redirect =
       resolveSectionDetailTabRedirect(request(path)) ??
       resolveCourseDetailTabRedirect(request(path)) ??

@@ -15,8 +15,10 @@
     "retired-read-semantics": "Public Section/search/match and public/current calendar collection queries exclude retired rows. Direct Section detail and single-Section calendar access remain available for historical references; the detail page labels the record historical and does not offer a new subscription. Course/Teacher detail histories and the owner's subscribed Sections list also retain retired rows. New subscription discovery/add operations reject retired rows, while an existing owner can still remove one.",
     "subscription-not-enrollment": "Pages involving subscription actions must clearly state this is not official academic course enrollment.",
     "jwid-url-only": "jwId is used only for routing and API endpoints; it should not be directly displayed in ordinary section UI.",
+    "student-identity-teachers": "Student-facing section identity is the course display name plus teachers. Section code is secondary (monospace in lists, search descriptions, and the Basic Info Card) and must not dominate search titles or the detail hero.",
     "public-list-cache": "Section REST responses may use short shared CDN caching only when a supported locale is explicit in the locale URL query; responses localized from Cookie/Accept-Language fallback are private/no-store. Server-side list data may still use short locale-keyed runtime caching. Localized HTML pages must not use shared edge caching unless the cache key varies by locale.",
-    "mobile-detail-actions": "Section detail pages present stable section metadata before a responsive course title, use touch-scrollable horizontal context navigation on mobile, and keep the primary calendar and subscription actions available in a bottom sticky action bar that stays above the signed-in shell navigation."
+    "mobile-detail-actions": "Section detail pages present concise metadata and teachers with a responsive course title, use the Detail Two-Column Stream (no context-tab rail), and keep the primary calendar and subscription actions available in a bottom sticky action bar that stays above the signed-in shell navigation.",
+    "detail-canonical-url": "The canonical section detail URL is `/catalog/sections/[jwId]`. Legacy path segments and `?tab=` deep links permanently redirect to the root; optional hash anchors scroll within the page."
   },
   "capabilities": {
     "section-list": {
@@ -75,11 +77,11 @@
       },
       "display": {
         "fields": [
-          "section.semester.nameCn",
-          "section.code",
           "section.course.namePrimary",
           "section.teachers[].namePrimary",
+          "section.semester.nameCn",
           "section.campus.namePrimary",
+          "section.code (secondary monospace)",
           "section.credits",
           "section.stdCount / section.limitCount (capacity)"
         ],
@@ -95,7 +97,7 @@
       "auth": "anon",
       "links": {
         "models": ["Section"],
-        "ui": ["Detail Hero", "Context Tabs", "Basic Info Card"]
+        "ui": ["Detail Hero", "Detail Two-Column Stream", "Basic Info Card"]
       },
       "web": {
         "pages": ["/catalog/sections/[jwId]"]
@@ -107,7 +109,7 @@
             "returns": "SectionDetail (schedules without room/teacher expansion)",
             "notes": [
               "Direct historical lookup remains available for retired Sections; retiredAt identifies retirement and sourceLastSeenAt records the last successful source observation.",
-              "Optional includeExams, includeSchedules, and includeTeacherDepartments query flags return narrow tab payloads without loading unrelated child collections."
+              "Optional includeExams, includeSchedules, and includeTeacherDepartments query flags return narrow stream-block payloads without loading unrelated child collections."
             ]
           }
         ]
@@ -137,15 +139,15 @@
         "fields": [
           "section.course.namePrimary (h1)",
           "section.course.nameSecondary (Locale subtitle)",
+          "section.teachers[] (hero + side linked list)",
           "section.semester.nameCn",
-          "section.code (Monospace)",
           "section.campus.namePrimary + nameSecondary",
+          "section.code (Monospace secondary in side column)",
           "section.graduateAndPostgraduate (yes/no)",
           "section.credits",
           "section.period + actualPeriods (if different)",
           "section.examMode.namePrimary",
           "section.remark (Whitespace-preserved)",
-          "section.teachers[] (Linked badge list)",
           "section.adminClasses[] (Collapsible details)",
           "section.timesPerWeek",
           "section.periodsPerWeek",
@@ -157,34 +159,11 @@
           "section.testPeriods",
           "section.teachLanguage.namePrimary",
           "section.roomType.namePrimary",
-          "scheduleDateKeys (Set<string> YYYY-MM-DD)",
-          "examDateKeys (Set<string> YYYY-MM-DD)",
-          "todayKey (Current date marker)",
-          "schedule.date (ISO)",
-          "schedule.startTime, endTime",
-          "schedule.startUnit, endUnit",
-          "schedule.weekIndex",
-          "schedule.room.namePrimary",
-          "schedule.room.building.namePrimary",
-          "schedule.room.building.campus.namePrimary",
-          "schedule.teachers[].namePrimary",
-          "exam.examDate",
-          "exam.startTime, endTime",
-          "exam.examMode",
-          "exam.examTakeCount",
-          "exam.examRooms[]",
-          "homework.title",
-          "homework.submissionDueAt",
-          "homework.description.content",
-          "section.course.namePrimary (Context)",
-          "completionStatus (per user)",
-          "comment.id",
-          "comment.author.name",
-          "comment.author.image (Avatar)",
-          "comment.body (Markdown)",
-          "comment.createdAt",
-          "comment.status (non-active states shown)",
-          "comment.reactions[]"
+          "description.content (main stream)",
+          "scheduleDateKeys / schedule.* (main stream calendar)",
+          "examDateKeys / exam.* (main stream exams)",
+          "homework.title, submissionDueAt, description, completionStatus",
+          "comment.* (client-fetched main stream only)"
         ]
       }
     },

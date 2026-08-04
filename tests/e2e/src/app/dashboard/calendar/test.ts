@@ -30,7 +30,7 @@ import { ensureSeedSectionSubscription } from "../../../../utils/subscriptions";
 test.describe("仪表盘日历", () => {
   test("未登录旧 calendar tab 重定向到语义路径", async ({ page }) => {
     const response = await page.request.get(
-      "/?tab=calendar&calendarView=week",
+      "/#calendar&calendarView=week",
       {
         maxRedirects: 0,
       },
@@ -44,7 +44,7 @@ test.describe("仪表盘日历", () => {
 
   test("dashboard 查询 tab 也仅作为永久兼容入口", async ({ page }) => {
     const response = await page.request.get(
-      "/workspace?tab=calendar&calendarView=week",
+      "/workspace#calendar&calendarView=week",
       {
         maxRedirects: 0,
       },

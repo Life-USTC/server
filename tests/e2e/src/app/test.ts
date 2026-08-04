@@ -24,7 +24,7 @@ test("/ 登录用户的旧 tab 永久重定向至语义 dashboard 路径", async
   await signInAsDebugUser(page, "/workspace");
 
   const response = await page.request.get(
-    "/?tab=calendar&calendarView=week&calendarSemester=42&utm_source=ignored",
+    "/#calendar&calendarView=week&calendarSemester=42&utm_source=ignored",
     { maxRedirects: 0 },
   );
 

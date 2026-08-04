@@ -1,5 +1,5 @@
 /**
- * E2E tests for invalid tab fallback (`?tab=comments`)
+ * E2E tests for invalid tab fallback (`#comments`)
  *
  * ## Data Represented
  * - There is no "comments" tab in the dashboard. Valid authenticated tabs are:
@@ -11,7 +11,7 @@
  * - Authenticated view: falls back to overview tab content
  *
  * ## Edge Cases
- * - `?tab=comments` is not a recognized tab value. It does not select another
+ * - `#comments` is not a recognized tab value. It does not select another
  *   public resource, while authenticated requests redirect to
  *   `/workspace/overview`.
  */
@@ -35,14 +35,14 @@ test.describe("仪表盘无效标签（comments）", () => {
     await expect(page.getByText(/not found|找不到/i)).toBeVisible();
   });
 
-  test("未登录 ?tab=comments 保持轻量公共首页", async ({ page }, testInfo) => {
-    await gotoAndWaitForReady(page, "/?tab=comments", {
+  test("未登录 #comments 保持轻量公共首页", async ({ page }, testInfo) => {
+    await gotoAndWaitForReady(page, "/#comments", {
       testInfo,
       screenshotLabel: "dashboard-invalid-tab",
     });
 
     // URL retains the invalid tab param
-    await expect(page).toHaveURL(/\/\?tab=comments$/);
+    await expect(page).toHaveURL(/\/\?#comments$/);
     await expect(page.locator("#app-logo")).toBeVisible();
 
     await expect(
@@ -56,8 +56,8 @@ test.describe("仪表盘无效标签（comments）", () => {
     await captureStepScreenshot(page, testInfo, "home-comments-public");
   });
 
-  test("登录后 ?tab=comments 回退到总览", async ({ page }, testInfo) => {
-    await signInAsDebugUser(page, "/?tab=comments", "/workspace/overview");
+  test("登录后 #comments 回退到总览", async ({ page }, testInfo) => {
+    await signInAsDebugUser(page, "/#comments", "/workspace/overview");
 
     await expect(page.locator("#main-content")).toBeVisible();
     await expect(page.locator("#app-user-menu")).toBeVisible();

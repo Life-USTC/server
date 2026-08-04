@@ -17,11 +17,14 @@ import {
   PUBLIC_SSR_NONCE_PLACEHOLDER,
   PUBLIC_SSR_PAGE_EDGE_CACHE_CONTROL,
   removePublicSsrHeaders,
+  resolveCourseDetailTabQueryRedirect,
   resolveCourseDetailTabRedirect,
   resolveLegacyCatalogRedirect,
   resolvePublicSsrLocale,
   resolvePublicSsrMode,
+  resolveSectionDetailTabQueryRedirect,
   resolveSectionDetailTabRedirect,
+  resolveTeacherDetailTabQueryRedirect,
   resolveTeacherDetailTabRedirect,
   shouldRoutePublicSsrCache,
 } from "./lib/cloudflare/public-ssr-gateway";
@@ -208,6 +211,17 @@ export default {
         },
       });
     }
+    const sectionTabQueryRedirect =
+      resolveSectionDetailTabQueryRedirect(request);
+    if (sectionTabQueryRedirect) {
+      return new Response(null, {
+        status: 308,
+        headers: {
+          "Cache-Control": "public, max-age=86400",
+          Location: sectionTabQueryRedirect,
+        },
+      });
+    }
     const courseTabRedirect = resolveCourseDetailTabRedirect(request);
     if (courseTabRedirect) {
       return new Response(null, {
@@ -218,6 +232,16 @@ export default {
         },
       });
     }
+    const courseTabQueryRedirect = resolveCourseDetailTabQueryRedirect(request);
+    if (courseTabQueryRedirect) {
+      return new Response(null, {
+        status: 308,
+        headers: {
+          "Cache-Control": "public, max-age=86400",
+          Location: courseTabQueryRedirect,
+        },
+      });
+    }
     const teacherTabRedirect = resolveTeacherDetailTabRedirect(request);
     if (teacherTabRedirect) {
       return new Response(null, {
@@ -225,6 +249,17 @@ export default {
         headers: {
           "Cache-Control": "public, max-age=86400",
           Location: teacherTabRedirect,
+        },
+      });
+    }
+    const teacherTabQueryRedirect =
+      resolveTeacherDetailTabQueryRedirect(request);
+    if (teacherTabQueryRedirect) {
+      return new Response(null, {
+        status: 308,
+        headers: {
+          "Cache-Control": "public, max-age=86400",
+          Location: teacherTabQueryRedirect,
         },
       });
     }

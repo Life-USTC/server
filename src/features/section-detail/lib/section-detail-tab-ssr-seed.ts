@@ -19,38 +19,53 @@ export function sectionTeachersIncludeDepartments(
   );
 }
 
+function sectionSchedulesSsrLoaded(
+  section: SectionDetailPageData["section"],
+): boolean {
+  if (section.scheduleCount === 0) return true;
+  return (section.schedules?.length ?? 0) > 0;
+}
+
+function sectionExamsSsrLoaded(
+  section: SectionDetailPageData["section"],
+): boolean {
+  if (section.examCount === 0) return true;
+  return (section.exams?.length ?? 0) > 0;
+}
+
+function sectionTeachersSsrLoaded(
+  teachers: SectionDetailPageData["section"]["teachers"],
+): boolean {
+  if (teachers.length === 0) return true;
+  return sectionTeachersIncludeDepartments(teachers);
+}
+
 export function getSsrLoadedSectionDetailTabs(
   data: Pick<
     SectionDetailPageData,
-    "descriptionData" | "detailSection" | "focusedHomeworkId" | "section"
+    "descriptionData" | "focusedHomeworkId" | "homeworkData" | "section"
   >,
 ): SectionDetailTab[] {
-  const loaded: SectionDetailTab[] = [];
+  const loaded: SectionDetailTab[] = ["introduction"];
 
-  if (data.detailSection === "homework" || data.focusedHomeworkId != null) {
+  if (
+    data.focusedHomeworkId != null ||
+    data.homeworkData.homeworks.length > 0 ||
+    data.homeworkData.viewer.isAuthenticated
+  ) {
     loaded.push("homework");
   }
 
-  if (
-    data.detailSection === "introduction" ||
-    data.descriptionData.description.content
-  ) {
-    loaded.push("introduction");
-  }
-
-  if (
-    data.detailSection === "teachers" &&
-    sectionTeachersIncludeDepartments(data.section.teachers)
-  ) {
-    loaded.push("teachers");
-  }
-
-  if (data.detailSection === "calendar") {
+  if (sectionSchedulesSsrLoaded(data.section)) {
     loaded.push("calendar");
   }
 
-  if (data.detailSection === "exams" || data.detailSection === "calendar") {
+  if (sectionExamsSsrLoaded(data.section)) {
     loaded.push("exams");
+  }
+
+  if (sectionTeachersSsrLoaded(data.section.teachers)) {
+    loaded.push("teachers");
   }
 
   return loaded;

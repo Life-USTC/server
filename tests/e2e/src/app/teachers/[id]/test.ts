@@ -61,12 +61,19 @@ async function jumpToTeacherSection(
   name: RegExp,
   selector: string,
 ) {
-  const link = page
-    .getByTestId("detail-section-nav")
-    .getByRole("link", { name })
-    .first();
-  await expect(link).toBeVisible();
-  await link.click();
+  const hash = selector.replace(/^#/, "");
+  if (hash === "sections" || hash === "comments" || hash === "introduction") {
+    await gotoAndWaitForReady(
+      page,
+      `${page.url().split("#")[0]}${hash === "introduction" ? "#introduction" : `#${hash}`}`,
+    );
+    await expect(page.locator(selector)).toBeVisible();
+    return;
+  }
+
+  const heading = page.getByRole("heading", { name }).first();
+  await expect(heading).toBeVisible();
+  await heading.scrollIntoViewIfNeeded();
   await expect(page.locator(selector)).toBeVisible();
 }
 
@@ -155,7 +162,7 @@ test.describe("/catalog/teachers/[id] 教师详情页", () => {
     await jumpToTeacherSection(
       page,
       /授课班级|Teaching Sections/i,
-      "#teacher-sections",
+      "#sections",
     );
 
     // section.semester.nameCn badge
@@ -183,7 +190,7 @@ test.describe("/catalog/teachers/[id] 教师详情页", () => {
     await jumpToTeacherSection(
       page,
       /授课班级|Teaching Sections/i,
-      "#teacher-sections",
+      "#sections",
     );
 
     const sectionLink = page
@@ -197,30 +204,24 @@ test.describe("/catalog/teachers/[id] 教师详情页", () => {
 
   // ── Navigation ──────────────────────────────────────────────────────────────
 
-  test("详情导航可跳转到主要区块", async ({ page }, testInfo) => {
+  test("详情流式布局包含主要锚点区块", async ({ page }, testInfo) => {
     await navigateToSeedTeacher(page);
 
-    const nav = page.getByTestId("detail-section-nav");
-    await expect(nav).toBeVisible();
+    await expect(page.locator("#introduction")).toBeVisible();
     await expect(
-      nav.getByRole("link", { name: /简介|Description/i }),
+      page.getByRole("heading", { name: /授课班级|Teaching Sections/i }),
     ).toBeVisible();
     await expect(
-      nav.getByRole("link", { name: /授课班级|Teaching Sections/i }),
+      page.getByRole("heading", { name: /评论|Comments/i }),
     ).toBeVisible();
-    await expect(
-      nav.getByRole("link", { name: /评论|Comments/i }),
-    ).toBeVisible();
-    await expect(
-      nav.getByRole("link", { name: /授课班级|Teaching Sections/i }),
-    ).toHaveAttribute("data-sveltekit-preload-data", "off");
 
-    await jumpToTeacherSection(page, /评论|Comments/i, "#teacher-comments");
-    await expect(page).toHaveURL(/\/catalog\/teachers\/\d+\?tab=comments$/);
+    await gotoAndWaitForReady(page, `${page.url().split("#")[0]}#comments`);
+    await expect(page).toHaveURL(/\/catalog\/teachers\/\d+#comments$/);
+    await expect(page.locator("#comments")).toBeVisible();
     await captureStepScreenshot(page, testInfo, "teacher/detail-nav");
   });
 
-  test("移动端教师标题与详情导航保持紧凑", async ({ page }, testInfo) => {
+  test("移动端教师标题与流式区块保持紧凑", async ({ page }, testInfo) => {
     await page.setViewportSize({ width: 390, height: 844 });
     await navigateToSeedTeacher(page);
 
@@ -230,13 +231,8 @@ test.describe("/catalog/teachers/[id] 教师详情页", () => {
       await page.evaluate(() => document.documentElement.scrollWidth),
     ).toBeLessThanOrEqual(390);
 
-    const nav = page.getByTestId("detail-section-nav");
-    await expect(nav.locator("[data-sidebar='menu']")).toHaveCSS(
-      "flex-direction",
-      "row",
-    );
-    await expect(nav.locator('a[aria-current="page"]')).toHaveCount(1);
-    await jumpToTeacherSection(page, /评论|Comments/i, "#teacher-comments");
+    await gotoAndWaitForReady(page, `${page.url().split("#")[0]}#comments`);
+    await expect(page.locator("#comments")).toBeVisible();
 
     await captureStepScreenshot(page, testInfo, "teacher/detail-mobile");
   });
@@ -264,7 +260,7 @@ test.describe("/catalog/teachers/[id] 教师详情页", () => {
       await jumpToTeacherSection(
         page,
         /简介|Description/i,
-        "#teacher-description",
+        "#introduction",
       );
       const descCard = page
         .locator('[data-slot="card"]')
@@ -325,8 +321,8 @@ test.describe("/catalog/teachers/[id] 教师详情页", () => {
         if (!page.url().includes("/catalog/teachers/")) {
           await navigateToSeedTeacher(page);
         }
-        await jumpToTeacherSection(page, /评论|Comments/i, "#teacher-comments");
-        await expect(page).toHaveURL(/\/catalog\/teachers\/\d+\?tab=comments$/);
+        await jumpToTeacherSection(page, /评论|Comments/i, "#comments");
+        await expect(page).toHaveURL(/\/catalog\/teachers\/\d+#comments$/);
       }).toPass({
         timeout: 10_000,
         intervals: [250, 500, 1_000],
@@ -342,7 +338,7 @@ test.describe("/catalog/teachers/[id] 教师详情页", () => {
 
       const body = `e2e-teacher-comment-${Date.now()}`;
       const composer = page
-        .locator("#teacher-comments")
+        .locator("#comments")
         .getByRole("textbox", { name: /评论内容|Comment body/i })
         .first();
       await expect(composer).toBeVisible({ timeout: 15_000 });

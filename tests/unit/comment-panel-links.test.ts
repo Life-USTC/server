@@ -14,10 +14,10 @@ describe("评论面板链接", () => {
     });
 
     expect(baseHref).toBe(
-      "/catalog/sections/12345?tab=homework&homeworkId=homework-1",
+      "/catalog/sections/12345?homeworkId=homework-1#homework",
     );
     expect(commentPermalinkHref(baseHref, "comment-1")).toBe(
-      "/catalog/sections/12345?tab=homework&homeworkId=homework-1#comment-comment-1",
+      "/catalog/sections/12345?homeworkId=homework-1#comment-comment-1",
     );
   });
 
@@ -25,7 +25,7 @@ describe("评论面板链接", () => {
     [
       "section",
       commentTargetPermalinkBaseHref({ sectionJwId: 12345, type: "section" }),
-      "/catalog/sections/12345?tab=comments#comment-comment-1",
+      "/catalog/sections/12345#comment-comment-1",
     ],
     [
       "section-teacher",
@@ -33,17 +33,17 @@ describe("评论面板链接", () => {
         sectionJwId: 12345,
         type: "section-teacher",
       }),
-      "/catalog/sections/12345?tab=comments#comment-comment-1",
+      "/catalog/sections/12345#comment-comment-1",
     ],
     [
       "course",
       commentTargetPermalinkBaseHref({ courseJwId: 67890, type: "course" }),
-      "/catalog/courses/67890?tab=comments#comment-comment-1",
+      "/catalog/courses/67890#comment-comment-1",
     ],
     [
       "teacher",
       commentTargetPermalinkBaseHref({ teacherId: 42, type: "teacher" }),
-      "/catalog/teachers/42?tab=comments#comment-comment-1",
+      "/catalog/teachers/42#comment-comment-1",
     ],
   ])("根据目标类型保留 %s 评论永久链接", (_, baseHref, expected) => {
     expect(commentPermalinkHref(baseHref, "comment-1")).toBe(expected);
@@ -55,10 +55,10 @@ describe("评论面板链接", () => {
         commentId: "comment-1",
         currentHref: "https://life.example/workspace/homeworks",
         permalinkBaseHref:
-          "/catalog/sections/12345?tab=homework&homeworkId=homework-1",
+          "/catalog/sections/12345?homeworkId=homework-1#homework",
       }),
     ).toBe(
-      "https://life.example/catalog/sections/12345?tab=homework&homeworkId=homework-1#comment-comment-1",
+      "https://life.example/catalog/sections/12345?homeworkId=homework-1#comment-comment-1",
     );
   });
 });

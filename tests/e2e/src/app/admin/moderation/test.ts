@@ -204,16 +204,10 @@ test("/admin/moderation 目标链接可跳转到原页面锚点", async ({
   await signInAsDevAdmin(page, sectionPath);
   await gotoAndWaitForReady(page, sectionPath);
 
-  const commentsLink = page
-    .getByTestId("detail-section-nav")
-    .getByRole("link", { name: /评论|Comments/i })
-    .first();
-  await expect(commentsLink).toBeVisible();
-  await commentsLink.click();
-  await expect(page.locator("#tab-comments")).toBeVisible();
+  await gotoAndWaitForReady(page, `${sectionPath}#comments`);
 
   const body = `e2e-target-link-${Date.now()}`;
-  await page.locator("#tab-comments textarea").first().fill(body);
+  await page.locator("#comments textarea").first().fill(body);
   const createResponse = page.waitForResponse(
     (response) =>
       response.url().includes("/api/community/comments") &&

@@ -1,7 +1,4 @@
-import {
-  parseSectionDetailTab,
-  SECTION_DETAIL_TAB_QUERY,
-} from "@/features/section-detail/lib/section-detail-tab";
+import { parseSectionDetailTab } from "@/features/section-detail/lib/section-detail-tab";
 
 export type PageSsrClass = "dynamic-ssr" | "public-ssr";
 
@@ -53,23 +50,23 @@ function resolveCourseTeacherDetailTab(
 
 export function resolvePageCatalogDetailTab(
   routeId: string | null,
-  url: URL,
+  _url: URL,
   params: Record<string, string> = {},
 ): PageCatalogDetailTab {
   if (!routeId) return "not_applicable";
 
-  if (routeId === SECTION_DETAIL_ROUTE) {
-    return parseSectionDetailTab(
-      url.searchParams.get(SECTION_DETAIL_TAB_QUERY),
-    );
+  // Catalog detail pages are a single stream (no Context Tabs). Hash anchors are
+  // client-only; server attribution treats the canonical page as overview.
+  if (
+    routeId === SECTION_DETAIL_ROUTE ||
+    routeId === COURSE_DETAIL_ROUTE ||
+    routeId === TEACHER_DETAIL_ROUTE
+  ) {
+    return "overview";
   }
 
   if (routeId === SECTION_DETAIL_SECTION_ROUTE) {
     return parseSectionDetailTab(params.section);
-  }
-
-  if (routeId === COURSE_DETAIL_ROUTE || routeId === TEACHER_DETAIL_ROUTE) {
-    return "overview";
   }
 
   if (

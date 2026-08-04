@@ -47,6 +47,10 @@ function toCourseItem(course: {
 
 function toSectionItem(
   section: {
+    campus: {
+      nameCn: string | null;
+      namePrimary: string | null;
+    } | null;
     code: string;
     course: {
       code: string;
@@ -55,17 +59,33 @@ function toSectionItem(
     };
     jwId: number;
     semester: { nameCn: string | null } | null;
+    teachers: Array<{
+      nameCn: string | null;
+      namePrimary: string | null;
+    }>;
   },
   locale: AppLocale,
 ): GlobalSearchResultItem {
   const courseName = catalogPrimaryName(section.course);
+  const teacherNames = section.teachers
+    .map((teacher) => catalogPrimaryName(teacher))
+    .filter(Boolean);
+  const teacherSeparator = locale === "en-us" ? ", " : "、";
+  const title =
+    teacherNames.length > 0
+      ? `${courseName} · ${teacherNames.join(teacherSeparator)}`
+      : `${courseName} · ${section.code}`;
   const semesterName = section.semester?.nameCn
     ? formatSemesterName(locale, section.semester.nameCn)
     : null;
+  const campusName = section.campus ? catalogPrimaryName(section.campus) : null;
+  const description = [semesterName, campusName || null, section.code]
+    .filter((part): part is string => Boolean(part))
+    .join(" · ");
   return {
     id: `section:${section.jwId}`,
-    title: `${courseName} · ${section.code}`,
-    description: semesterName,
+    title,
+    description: description || null,
     href: `/catalog/sections/${section.jwId}`,
   };
 }
@@ -121,7 +141,7 @@ async function searchCachedCatalogGroups(input: {
   origin: string;
   query: string;
 }): Promise<GlobalSearchResultGroup[]> {
-  const namespace: PublicRuntimeCacheAnalyticsNamespace = `search:catalog:v2:${input.locale}`;
+  const namespace: PublicRuntimeCacheAnalyticsNamespace = `search:catalog:v3:${input.locale}`;
   return cachedCatalogRuntimeData(
     namespace,
     catalogSearchCacheKey(input.query, input.limit),
@@ -200,7 +220,7 @@ async function searchWorkspaceGroups(
             ? workspaceCourseName(homework.section.course, locale)
             : null,
           href: homework.section?.jwId
-            ? `/catalog/sections/${homework.section.jwId}?tab=homework&homeworkId=${encodeURIComponent(homework.id)}`
+            ? `/catalog/sections/${homework.section.jwId}?homeworkId=${encodeURIComponent(homework.id)}#homework`
             : "/workspace/homeworks",
         })),
       });

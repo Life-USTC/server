@@ -1,5 +1,17 @@
-import { resolveCatalogDetailTabRedirect } from "@/features/catalog/lib/catalog-detail-tab";
+import {
+  resolveCatalogDetailTabQueryRedirect,
+  resolveCatalogDetailTabRedirect,
+} from "@/features/catalog/lib/catalog-detail-tab";
+import {
+  resolveSectionDetailTabQueryRedirect,
+  resolveSectionDetailTabRedirect,
+} from "@/features/section-detail/lib/section-detail-tab";
 import { hasRequestAuthSignal } from "@/lib/auth/request-auth-signal";
+
+export {
+  resolveSectionDetailTabQueryRedirect,
+  resolveSectionDetailTabRedirect,
+};
 
 export const PUBLIC_SSR_HEADER = "x-life-public-ssr";
 export const PUBLIC_SSR_LOCALE_HEADER = "x-life-public-ssr-locale";
@@ -38,8 +50,6 @@ const DIRECT_REQUEST_PATHS = new Set([
 
 const CATALOG_DETAIL_PATH =
   /^\/catalog\/(courses|sections|teachers)\/([1-9]\d*)(?:\/([^/]+))?$/;
-const SECTION_DETAIL_LEGACY_TAB_PATH =
-  /^\/catalog\/sections\/([1-9]\d*)\/(introduction|calendar|exams|homework|teachers|comments)\/?$/;
 
 const DYNAMIC_OR_PRIVATE_ROOTS = [
   "/account",
@@ -63,28 +73,20 @@ export function resolveLegacyCatalogRedirect(request: Request) {
   return `/catalog/${match[1]}/${match[2]}${url.search}`;
 }
 
-export function resolveSectionDetailTabRedirect(request: Request) {
-  if (request.method !== "GET" && request.method !== "HEAD") return null;
-
-  const url = new URL(request.url);
-  const match = SECTION_DETAIL_LEGACY_TAB_PATH.exec(url.pathname);
-  if (!match) return null;
-
-  const [, jwId, tab] = match;
-  const redirectUrl = new URL(`/catalog/sections/${jwId}`, url.origin);
-  for (const [key, value] of url.searchParams) {
-    redirectUrl.searchParams.append(key, value);
-  }
-  redirectUrl.searchParams.set("tab", tab);
-  return `${redirectUrl.pathname}${redirectUrl.search}`;
-}
-
 export function resolveCourseDetailTabRedirect(request: Request) {
   return resolveCatalogDetailTabRedirect(request, "courses");
 }
 
 export function resolveTeacherDetailTabRedirect(request: Request) {
   return resolveCatalogDetailTabRedirect(request, "teachers");
+}
+
+export function resolveCourseDetailTabQueryRedirect(request: Request) {
+  return resolveCatalogDetailTabQueryRedirect(request, "courses");
+}
+
+export function resolveTeacherDetailTabQueryRedirect(request: Request) {
+  return resolveCatalogDetailTabQueryRedirect(request, "teachers");
 }
 
 function matchesPathRoot(pathname: string, root: string) {

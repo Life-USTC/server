@@ -16,19 +16,19 @@ describe("page request attribution", () => {
     expect(classifyPageAuthSignalPresence(false)).toBe("absent");
   });
 
-  it("resolves section detail tabs from the canonical query param only", () => {
+  it("treats canonical catalog detail routes as overview (stream layout)", () => {
     const url = new URL(
       "https://life.example/catalog/sections/12345?tab=calendar",
     );
 
     expect(resolvePageCatalogDetailTab("/catalog/sections/[jwId]", url)).toBe(
-      "calendar",
+      "overview",
     );
     expect(
       resolvePageCatalogDetailTab("/catalog/sections/[jwId]", url, {
         section: "introduction",
       }),
-    ).toBe("calendar");
+    ).toBe("overview");
   });
 
   it("resolves section detail legacy redirect routes from path params", () => {

@@ -60,46 +60,27 @@ function escapeForRegExp(value: string) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
-function getSectionNavLink(page: Page, name: RegExp) {
-  return page
-    .getByTestId("detail-section-nav")
-    .getByRole("link", { name })
-    .first();
-}
-
-function getDetailViewport(page: Page) {
-  return page.locator("[data-detail-scroll-container]").first();
-}
-
-type SectionDetailTabName = "calendar" | "comments" | "homework" | "teachers";
-
-function resolveSectionTab(selector: string): SectionDetailTabName | null {
-  switch (selector) {
-    case "#tab-calendar":
-      return "calendar";
-    case "#tab-homework":
-      return "homework";
-    case "#tab-comments":
-      return "comments";
-    case "#section-teachers":
-      return "teachers";
-    default:
-      return null;
-  }
-}
-
 async function jumpToSection(page: Page, name: RegExp, selector: string) {
-  const tab = resolveSectionTab(selector);
-  if (tab) {
-    await gotoAndWaitForReady(page, `${SECTION_URL}?tab=${tab}`);
+  const hash = selector.replace(/^#/, "");
+  if (
+    hash === "calendar" ||
+    hash === "homework" ||
+    hash === "comments" ||
+    hash === "teachers"
+  ) {
+    await gotoAndWaitForReady(page, `${SECTION_URL}#${hash}`);
     await expect(page.locator(selector)).toBeVisible({ timeout: 60_000 });
     return;
   }
 
-  const link = getSectionNavLink(page, name);
-  await expect(link).toBeVisible();
-  await link.click();
+  const heading = page.getByRole("heading", { name }).first();
+  await expect(heading).toBeVisible();
+  await heading.scrollIntoViewIfNeeded();
   await expect(page.locator(selector)).toBeVisible({ timeout: 60_000 });
+}
+
+function getDetailViewport(page: Page) {
+  return page.locator("[data-detail-scroll-container]").first();
 }
 
 async function openCommentDeleteDialog(page: Page, commentCard: Locator) {
@@ -178,7 +159,7 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
     await expect(
       sectionCode.locator("xpath=ancestor::*[@data-slot='badge']"),
     ).toHaveCount(0);
-    await expect(page.getByTestId("detail-section-nav")).toBeVisible();
+    await expect(page.locator("#introduction")).toBeVisible();
 
     await captureStepScreenshot(page, testInfo, "section/heading");
   });
@@ -202,7 +183,7 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
         .or(page.getByText(DEV_SEED.campus.nameEn))
         .first(),
     ).toBeVisible();
-    await jumpToSection(page, /教师|Teachers/i, "#section-teachers");
+    await jumpToSection(page, /教师|Teachers/i, "#teachers");
     // section.teachers[] — teacher badge/link (locale-dependent)
     await expect(
       page
@@ -312,7 +293,7 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
     test.setTimeout(90_000);
     await gotoAndWaitForReady(page, SECTION_URL);
 
-    await jumpToSection(page, /日历|Calendar/i, "#tab-calendar");
+    await jumpToSection(page, /日历|Calendar/i, "#calendar");
 
     // Class schedule information is now rendered as chips inside the calendar
     // month grid, not as a separate list of cards.
@@ -362,7 +343,7 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
     test.setTimeout(90_000);
     await gotoAndWaitForReady(page, SECTION_URL);
 
-    await jumpToSection(page, /日历|Calendar/i, "#tab-calendar");
+    await jumpToSection(page, /日历|Calendar/i, "#calendar");
 
     const monthView = getSectionCalendarMonthView(page);
     const monthHeading = monthView.locator("h3").first();
@@ -384,7 +365,7 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
     test.setTimeout(90_000);
     await gotoAndWaitForReady(page, SECTION_URL);
 
-    await jumpToSection(page, /日历|Calendar/i, "#tab-calendar");
+    await jumpToSection(page, /日历|Calendar/i, "#calendar");
 
     // Navigate forward to find exam event — exam batch name or room should appear
     await expect(
@@ -436,31 +417,30 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
 
   // ── Navigation ──────────────────────────────────────────────────────────────
 
-  test("详情导航可跳转到主要区块", async ({ page }, testInfo) => {
+  test("详情流式布局包含主要锚点区块", async ({ page }, testInfo) => {
     await gotoAndWaitForReady(page, SECTION_URL);
 
-    const nav = page.getByTestId("detail-section-nav");
-    await expect(nav).toBeVisible();
+    await expect(page.locator("#introduction")).toBeVisible();
     await expect(
-      nav.getByRole("link", { name: /日历|Calendar/i }),
+      page.getByRole("heading", { name: /日历|Calendar/i }),
     ).toBeVisible();
     await expect(
-      nav.getByRole("link", { name: /作业|Homework/i }),
-    ).toBeVisible();
-    await expect(nav.getByRole("link", { name: /考试|Exams/i })).toBeVisible();
-    await expect(
-      nav.getByRole("link", { name: /评论|Comments/i }),
+      page.getByRole("heading", { name: /作业|Homework/i }),
     ).toBeVisible();
     await expect(
-      nav.getByRole("link", { name: /日历|Calendar/i }),
-    ).toHaveAttribute("data-sveltekit-preload-data", "off");
+      page.getByRole("heading", { name: /考试|Exams/i }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("heading", { name: /评论|Comments/i }),
+    ).toBeVisible();
 
-    await jumpToSection(page, /作业|Homework/i, "#tab-homework");
-    await expect(page).toHaveURL(/\/catalog\/sections\/\d+\?tab=homework$/);
+    await gotoAndWaitForReady(page, `${SECTION_URL}#homework`);
+    await expect(page).toHaveURL(/\/catalog\/sections\/\d+#homework$/);
+    await expect(page.locator("#homework")).toBeVisible();
     await captureStepScreenshot(page, testInfo, "section/detail-nav");
   });
 
-  test("移动端标题、横向导航与底部主操作保持可达", async ({
+  test("移动端标题、流式区块与底部主操作保持可达", async ({
     page,
   }, testInfo) => {
     const runtimeErrors: string[] = [];
@@ -476,13 +456,6 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
     expect(
       await page.evaluate(() => document.documentElement.scrollWidth),
     ).toBeLessThanOrEqual(375);
-
-    const nav = page.getByTestId("detail-section-nav");
-    await expect(nav.locator("[data-sidebar='menu']")).toHaveCSS(
-      "flex-direction",
-      "row",
-    );
-    await expect(nav.locator('a[aria-current="page"]')).toHaveCount(1);
 
     const actions = page.getByTestId("section-mobile-primary-actions");
     const mobileNavigation = page.getByRole("navigation", {
@@ -507,50 +480,16 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
     ).toBeVisible();
     await page.keyboard.press("Escape");
 
-    await jumpToSection(page, /评论|Comments/i, "#tab-comments");
+    await jumpToSection(page, /评论|Comments/i, "#comments");
     await expect(actions).toBeInViewport();
     for (const width of [280, 320, 375]) {
       await page.setViewportSize({ width, height: 900 });
-      await gotoAndWaitForReady(page, `${SECTION_URL}?tab=comments`);
+      await gotoAndWaitForReady(page, `${SECTION_URL}#comments`);
       await expect(actions).toBeInViewport();
+      await expect(page.locator("#comments")).toBeVisible();
       await expect
         .poll(() =>
-          nav.evaluate((root, viewportWidth) => {
-            const viewport = root.querySelector<HTMLElement>(
-              '[data-sidebar="content"]',
-            );
-            const active = root.querySelector<HTMLElement>(
-              'a[aria-current="page"]',
-            );
-            if (!viewport || !active) return null;
-            const viewportBox = viewport.getBoundingClientRect();
-            const activeBox = active.getBoundingClientRect();
-            const rootBox = root.getBoundingClientRect();
-            const leftFade = getComputedStyle(root, "::before");
-            const rightFade = getComputedStyle(root, "::after");
-            const leftFadeWidth = Number.parseFloat(leftFade.width || "0");
-            const leftOpaqueWidth = Number.parseFloat(
-              getComputedStyle(root).getPropertyValue(
-                "--detail-nav-left-opaque",
-              ) || "0",
-            );
-            const menuItems = Array.from(
-              root.querySelectorAll<HTMLElement>('[data-sidebar="menu-item"]'),
-            );
-            const activeItem = active.closest<HTMLElement>(
-              '[data-sidebar="menu-item"]',
-            );
-            const activeItemIndex = activeItem
-              ? menuItems.indexOf(activeItem)
-              : -1;
-            const previousContent = menuItems
-              .slice(0, activeItemIndex)
-              .flatMap((item) => Array.from(item.querySelectorAll("a > span")))
-              .map((item) => item.getBoundingClientRect());
-            const clippedPreviousContent = previousContent.filter(
-              (itemBox) =>
-                itemBox.left < rootBox.left && itemBox.right > rootBox.left,
-            );
+          page.evaluate((viewportWidth) => {
             const mobileActions = document.querySelector<HTMLElement>(
               '[data-testid="section-mobile-primary-actions"]',
             );
@@ -559,7 +498,7 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
             );
             const actionBox = mobileActions?.getBoundingClientRect();
             const commentComposer = document.querySelector<HTMLElement>(
-              '#tab-comments [data-slot="card"]',
+              '#comments [data-slot="card"]',
             );
             return {
               actionButtonsFit:
@@ -581,32 +520,12 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
                       actionButtons[1].getBoundingClientRect().top -
                         actionButtons[0].getBoundingClientRect().top,
                     ) < 1),
-              clearOfLeftFade:
-                activeBox.left >= rootBox.left + leftFadeWidth - 1,
-              clippedPreviousContentCovered:
-                clippedPreviousContent.length === 0 ||
-                clippedPreviousContent.every(
-                  (itemBox) => itemBox.right <= rootBox.left + leftOpaqueWidth,
-                ),
-              previousContentClearOfFade: previousContent.every(
-                (itemBox) =>
-                  itemBox.right <= rootBox.left + leftOpaqueWidth + 1 ||
-                  itemBox.left >= rootBox.left + leftFadeWidth - 1,
-              ),
               commentComposerFits:
                 commentComposer != null &&
                 commentComposer.scrollWidth <= commentComposer.clientWidth,
               documentFitsViewport:
                 document.documentElement.scrollWidth <=
                 document.documentElement.clientWidth,
-              left: activeBox.left >= viewportBox.left,
-              right: activeBox.right <= viewportBox.right,
-              leftFadeVisible:
-                root.dataset.overflowLeft === "true" &&
-                leftFade.backgroundImage !== "none",
-              rightFadeHidden:
-                root.dataset.overflowRight === "false" &&
-                rightFade.backgroundImage === "none",
               windowScrollX: window.scrollX,
             };
           }, width),
@@ -614,15 +533,8 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
         .toEqual({
           actionButtonsFit: true,
           actionLayoutMatchesWidth: true,
-          clearOfLeftFade: true,
-          clippedPreviousContentCovered: true,
-          previousContentClearOfFade: true,
           commentComposerFits: true,
           documentFitsViewport: true,
-          left: true,
-          right: true,
-          leftFadeVisible: true,
-          rightFadeHidden: true,
           windowScrollX: 0,
         });
     }
@@ -640,7 +552,7 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
 
   test("桌面端保留页首主操作并隐藏移动端操作栏", async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
-    await gotoAndWaitForReady(page, `${SECTION_URL}?tab=comments`);
+    await gotoAndWaitForReady(page, `${SECTION_URL}#comments`);
 
     await expect(
       page
@@ -651,7 +563,7 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
       page.getByTestId("section-mobile-primary-actions"),
     ).toBeHidden();
 
-    const composer = page.locator('#tab-comments [data-slot="card"]').first();
+    const composer = page.locator('#comments [data-slot="card"]').first();
     const composerBox = await composer.boundingBox();
     const headerControls = composer
       .locator('[data-slot="card-header"]')
@@ -831,7 +743,7 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
 
   test("详情导航后内容滚动回到顶部", async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
-    await gotoAndWaitForReady(page, `${SECTION_URL}?tab=comments`);
+    await gotoAndWaitForReady(page, `${SECTION_URL}#comments`);
 
     const detailViewport = getDetailViewport(page);
     await expect(detailViewport).toBeVisible();
@@ -843,8 +755,8 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
       .poll(() => detailViewport.evaluate((element) => element.scrollTop))
       .toBeGreaterThan(100);
 
-    await getSectionNavLink(page, /日历|Calendar/i).click();
-    await page.waitForURL(/\/catalog\/sections\/\d+\?tab=calendar$/);
+    await gotoAndWaitForReady(page, `${SECTION_URL}#calendar`);
+    await page.waitForURL(/\/catalog\/sections\/\d+#calendar$/);
     await waitForUiSettled(page);
 
     await expect
@@ -1013,7 +925,7 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
 
   test("已登录用户可编辑班级简介", async ({ page }, testInfo) => {
     test.setTimeout(60_000);
-    await signInAsDebugUser(page, `${SECTION_URL}?tab=introduction`);
+    await signInAsDebugUser(page, `${SECTION_URL}#introduction`);
     const snapshot = await snapshotDescriptionTargetForE2e(
       page.request,
       { sectionJwId: DEV_SEED.section.jwId, targetType: "section" },
@@ -1078,7 +990,7 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
     });
     expect(localeResponse.status()).toBe(200);
     await gotoAndWaitForReady(page, SECTION_URL);
-    await jumpToSection(page, /作业|Homework/i, "#tab-homework");
+    await jumpToSection(page, /作业|Homework/i, "#homework");
 
     await page
       .getByRole("button", { name: /新建|创建作业|Create/i })
@@ -1165,12 +1077,7 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
   test("可切换班级作业区块为列表视图并记住偏好", async ({ page }, testInfo) => {
     await gotoAndWaitForReady(page, SECTION_URL);
 
-    const homeworksLink = getSectionNavLink(page, /作业|Homework/i);
-    test.skip(
-      (await homeworksLink.count()) === 0,
-      "section page rendered without homework tab",
-    );
-    await jumpToSection(page, /作业|Homework/i, "#tab-homework");
+    await jumpToSection(page, /作业|Homework/i, "#homework");
 
     await expect(page.getByTestId("section-homeworks-cards")).toBeVisible();
     await page
@@ -1188,9 +1095,9 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
       .toBe("list");
 
     await gotoAndWaitForReady(page, SECTION_URL);
-    await jumpToSection(page, /作业|Homework/i, "#tab-homework");
+    await jumpToSection(page, /作业|Homework/i, "#homework");
     await expect(page).toHaveURL(
-      new RegExp(`/catalog/sections/${DEV_SEED.section.jwId}\\?tab=homework$`),
+      new RegExp(`/catalog/sections/${DEV_SEED.section.jwId}#homework$`),
     );
     await expect(page.getByTestId("section-homeworks-list")).toBeVisible();
     await captureStepScreenshot(page, testInfo, "section/homework-list-view");
@@ -1204,12 +1111,7 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
     let homeworkId: string | undefined;
 
     try {
-      const homeworksLink = getSectionNavLink(page, /作业|Homework/i);
-      test.skip(
-        (await homeworksLink.count()) === 0,
-        "section page rendered without homework tab",
-      );
-      await jumpToSection(page, /作业|Homework/i, "#tab-homework");
+      await jumpToSection(page, /作业|Homework/i, "#homework");
 
       // Create
       const showCreate = page
@@ -1334,12 +1236,7 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
       expect(homeworkId).toBeTruthy();
 
       await gotoAndWaitForReady(page, SECTION_URL);
-      const homeworksLink = getSectionNavLink(page, /作业|Homework/i);
-      if ((await homeworksLink.count()) === 0) {
-        await expect(page.locator("#main-content")).toBeVisible();
-        return;
-      }
-      await jumpToSection(page, /作业|Homework/i, "#tab-homework");
+      await jumpToSection(page, /作业|Homework/i, "#homework");
 
       const hwCard = page
         .getByRole("button", { name: new RegExp(escapeForRegExp(title)) })
@@ -1446,7 +1343,7 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
       await gotoAndWaitForReady(page, `/community/comments/${commentId}`);
       await expect(page).toHaveURL(
         new RegExp(
-          `/catalog/sections/${DEV_SEED.section.jwId}\\?tab=homework(?:&homeworkId=${escapeForRegExp(homeworkId ?? "")})?#comment-${escapeForRegExp(commentId ?? "")}$`,
+          `/catalog/sections/${DEV_SEED.section.jwId}\\?homeworkId=${escapeForRegExp(homeworkId ?? "")}#comment-${escapeForRegExp(commentId ?? "")}$`,
         ),
       );
 
@@ -1482,7 +1379,7 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
     let replyId: string | undefined;
 
     try {
-      await jumpToSection(page, /评论|Comments/i, "#tab-comments");
+      await jumpToSection(page, /评论|Comments/i, "#comments");
 
       // Post comment
       const body = `e2e-section-comment-${Date.now()}`;
@@ -1631,7 +1528,7 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
     try {
       await signInAsDebugUser(page, SECTION_URL);
 
-      await jumpToSection(page, /评论|Comments/i, "#tab-comments");
+      await jumpToSection(page, /评论|Comments/i, "#comments");
 
       const composerCard = page
         .locator('[data-slot="card"]')
@@ -1691,7 +1588,7 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
       // View the same comment without signing in: identity is masked
       await page.context().clearCookies();
       await gotoAndWaitForReady(page, SECTION_URL);
-      await jumpToSection(page, /评论|Comments/i, "#tab-comments");
+      await jumpToSection(page, /评论|Comments/i, "#comments");
 
       const anonymousCommentCard = page
         .locator('[id^="comment-"]')
@@ -1734,7 +1631,7 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
         ) {
           await gotoAndWaitForReady(page, SECTION_URL);
         }
-        await jumpToSection(page, /评论|Comments/i, "#tab-comments");
+        await jumpToSection(page, /评论|Comments/i, "#comments");
       }).toPass({
         timeout: 10_000,
         intervals: [250, 500, 1_000],

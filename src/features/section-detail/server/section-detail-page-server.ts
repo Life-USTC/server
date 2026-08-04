@@ -1,4 +1,4 @@
-import { error } from "@sveltejs/kit";
+import { error, redirect } from "@sveltejs/kit";
 import {
   buildSectionStructuredData,
   serializeStructuredData,
@@ -7,11 +7,7 @@ import {
   formatMessage,
   primaryName,
 } from "@/features/section-detail/lib/display";
-import {
-  parseSectionDetailTab,
-  SECTION_DETAIL_TAB_QUERY,
-  type SectionDetailTab,
-} from "@/features/section-detail/lib/section-detail-tab";
+import { resolveSectionDetailTabQueryRedirect } from "@/features/section-detail/lib/section-detail-tab";
 import { getSectionPage } from "@/features/section-detail/server/section-page-data";
 import type { AppLocale } from "@/i18n/config";
 import {
@@ -32,8 +28,6 @@ export {
   subscribeSectionAction,
   unsubscribeSectionAction,
 } from "./section-detail-subscription-actions";
-
-export type SectionDetailRouteSection = SectionDetailTab;
 
 const PUBLIC_DETAIL_COLO_CACHE_PATH =
   "/_life-ustc-internal-cache/catalog-detail-core/v1";
@@ -86,6 +80,7 @@ function isPublicSectionOverviewCore(value: unknown, jwId: number) {
 export async function loadSectionDetailPage({
   locals,
   params,
+  request,
   url,
 }: {
   locals: App.Locals;
@@ -93,19 +88,22 @@ export async function loadSectionDetailPage({
   request: Request;
   url: URL;
 }) {
+  const tabQueryRedirect = resolveSectionDetailTabQueryRedirect(request);
+  if (tabQueryRedirect) {
+    redirect(308, tabQueryRedirect);
+  }
+
   const jwId = parseSectionJwId(params.jwId);
   if (jwId === null) error(404, "Section not found");
-  const initialTab = parseSectionDetailTab(
-    params.section ?? url.searchParams.get(SECTION_DETAIL_TAB_QUERY),
-  );
   const userId = locals.authUser?.id ?? null;
-  const includeSchedules = initialTab === "calendar";
-  const includeExams = initialTab === "calendar" || initialTab === "exams";
-  const includeTeacherDepartments = initialTab === "teachers";
-  const includeRelated = initialTab === "overview";
+  // Stream layout: load schedule/exam/teacher expansions unless PublicSsr anonymous
+  // overview cache path (empty child arrays; client hydrates overlays).
   const focusedHomeworkId = url.searchParams.get("homeworkId");
-  const shouldLoadHomework =
-    initialTab === "homework" || focusedHomeworkId != null;
+  const includeSchedules = !locals.publicSsr || Boolean(userId);
+  const includeExams = includeSchedules;
+  const includeTeacherDepartments = includeSchedules;
+  const includeRelated = true;
+  const shouldLoadHomework = Boolean(userId) || focusedHomeworkId != null;
   const cachePublicCore =
     locals.publicSsr &&
     !userId &&
@@ -145,8 +143,6 @@ export async function loadSectionDetailPage({
   if (!section) error(404, "Section not found");
   const copy = getSectionDetailPageCopy(locals.locale);
   const courseName = primaryName(section.course) || section.code;
-  const includeDescription =
-    initialTab === "introduction" || initialTab === "overview";
   const [subscriptionState, descriptionAndComments, homeworkData] =
     await Promise.all([
       userId
@@ -155,7 +151,7 @@ export async function loadSectionDetailPage({
           ).getUserSectionSubscriptionState(userId)
         : null,
       getSectionDetailDescriptionAndComments(section, userId, {
-        includeDescription,
+        includeDescription: true,
         includeDescriptionHistory: false,
       }),
       shouldLoadHomework
@@ -205,7 +201,7 @@ export async function loadSectionDetailPage({
     copy,
     descriptionData: descriptionAndComments.descriptionData,
     commentsData: null,
-    detailSection: initialTab,
+    detailSection: "overview" as const,
     homeworkData,
     focusedHomeworkId,
     homeworkView:

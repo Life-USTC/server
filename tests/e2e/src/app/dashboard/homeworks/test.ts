@@ -34,7 +34,7 @@ test.describe("仪表盘作业", () => {
 
   test("未登录旧 homework tab 重定向到语义路径", async ({ page }) => {
     const response = await page.request.get(
-      "/?tab=homeworks&homeworkView=list",
+      "/?#homeworks&homeworkView=list",
       {
         maxRedirects: 0,
       },
@@ -363,14 +363,14 @@ test.describe("仪表盘作业", () => {
     await expect(popout).toBeVisible();
     const sectionLink = popout
       .locator(
-        `a[href*="/catalog/sections/${DEV_SEED.section.jwId}?tab=homework#homework-"]`,
+        `a[href*="/catalog/sections/${DEV_SEED.section.jwId}?#homework#homework-"]`,
       )
       .first();
     await expect(sectionLink).toBeVisible();
     await sectionLink.click();
 
     await expect(page).toHaveURL(
-      /\/catalog\/sections\/\d+\?tab=homework#homework-/,
+      /\/catalog\/sections\/\d+\?#homework#homework-/,
     );
     await captureStepScreenshot(page, testInfo, "homeworks/view-details");
   });

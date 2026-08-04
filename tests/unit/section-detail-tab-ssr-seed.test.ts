@@ -48,14 +48,14 @@ function basePageData(
       code: "001",
       course: { id: 1, jwId: 101, namePrimary: "Calculus" },
       courseId: 1,
-      examCount: 1,
-      exams: [{ examRooms: [], id: 9 }],
+      examCount: 0,
+      exams: [],
       id: 31,
       jwId: 301,
       sameSemesterOtherTeachers: [],
       sameTeacherOtherSemesters: [],
-      scheduleCount: 1,
-      schedules: [{ teachers: [] }],
+      scheduleCount: 0,
+      schedules: [],
       teachers: [{ id: 1, namePrimary: "Ada" }],
     },
     showSubscribeDialog: false,
@@ -67,10 +67,21 @@ function basePageData(
 }
 
 describe("getSsrLoadedSectionDetailTabs", () => {
-  it("marks homework when the homework tab or focused homework is SSR-loaded", () => {
+  it("always marks introduction from SSR description payload", () => {
+    expect(getSsrLoadedSectionDetailTabs(basePageData())).toContain(
+      "introduction",
+    );
+  });
+
+  it("marks homework when SSR fetched homework or focused homework", () => {
     expect(
       getSsrLoadedSectionDetailTabs(
-        basePageData({ detailSection: "homework" }),
+        basePageData({
+          homeworkData: {
+            ...basePageData().homeworkData,
+            homeworks: [{ id: "hw-1" } as never],
+          },
+        }),
       ),
     ).toContain("homework");
     expect(
@@ -78,40 +89,53 @@ describe("getSsrLoadedSectionDetailTabs", () => {
         basePageData({ focusedHomeworkId: "hw-1" }),
       ),
     ).toContain("homework");
+    expect(
+      getSsrLoadedSectionDetailTabs(
+        basePageData({
+          homeworkData: {
+            ...basePageData().homeworkData,
+            viewer: {
+              ...basePageData().homeworkData.viewer,
+              isAuthenticated: true,
+            },
+          },
+        }),
+      ),
+    ).toContain("homework");
     expect(getSsrLoadedSectionDetailTabs(basePageData())).not.toContain(
       "homework",
     );
   });
 
-  it("marks introduction when SSR fetched description content", () => {
-    expect(
-      getSsrLoadedSectionDetailTabs(
-        basePageData({ detailSection: "introduction" }),
-      ),
-    ).toContain("introduction");
+  it("marks calendar and exams when SSR included child arrays", () => {
     expect(
       getSsrLoadedSectionDetailTabs(
         basePageData({
-          descriptionData: {
-            ...basePageData().descriptionData,
-            description: {
-              ...basePageData().descriptionData.description,
-              content: "Course intro",
-            },
+          section: {
+            ...basePageData().section,
+            examCount: 1,
+            exams: [{ examRooms: [], id: 9 }],
+            scheduleCount: 1,
+            schedules: [{ teachers: [] }],
           },
         }),
       ),
-    ).toContain("introduction");
-    expect(getSsrLoadedSectionDetailTabs(basePageData())).not.toContain(
-      "introduction",
-    );
+    ).toEqual(expect.arrayContaining(["introduction", "calendar", "exams"]));
   });
 
-  it("marks teachers only when department-expanded teachers were SSR-loaded", () => {
+  it("treats zero-count schedule and exam sections as SSR-loaded", () => {
+    const loaded = getSsrLoadedSectionDetailTabs(basePageData());
+    expect(loaded).toContain("calendar");
+    expect(loaded).toContain("exams");
+  });
+
+  it("defers teachers when departments were not SSR-expanded", () => {
+    expect(getSsrLoadedSectionDetailTabs(basePageData())).not.toContain(
+      "teachers",
+    );
     expect(
       getSsrLoadedSectionDetailTabs(
         basePageData({
-          detailSection: "teachers",
           section: {
             ...basePageData().section,
             teachers: [
@@ -125,50 +149,17 @@ describe("getSsrLoadedSectionDetailTabs", () => {
         }),
       ),
     ).toContain("teachers");
-
-    expect(
-      getSsrLoadedSectionDetailTabs(
-        basePageData({
-          detailSection: "teachers",
-          section: {
-            ...basePageData().section,
-            teachers: [{ id: 1, namePrimary: "Ada" }],
-          },
-        }),
-      ),
-    ).not.toContain("teachers");
-  });
-
-  it("marks calendar and exams from the matching SSR tab", () => {
-    expect(
-      getSsrLoadedSectionDetailTabs(
-        basePageData({ detailSection: "calendar" }),
-      ),
-    ).toEqual(expect.arrayContaining(["calendar", "exams"]));
-
-    expect(
-      getSsrLoadedSectionDetailTabs(basePageData({ detailSection: "exams" })),
-    ).toEqual(["exams"]);
-
-    expect(getSsrLoadedSectionDetailTabs(basePageData())).not.toContain(
-      "calendar",
-    );
-  });
-
-  it("does not treat overview schedules as calendar SSR data", () => {
-    const loaded = getSsrLoadedSectionDetailTabs(basePageData());
-    expect(loaded).not.toContain("calendar");
-    expect(loaded).not.toContain("exams");
   });
 });
 
 describe("buildSectionDetailTabPanelSsrState", () => {
   it("seeds overlay fields from SSR section data", () => {
     const data = basePageData({
-      detailSection: "calendar",
       section: {
         ...basePageData().section,
+        examCount: 1,
         exams: [{ examRooms: [], id: 42 }],
+        scheduleCount: 1,
         schedules: [{ teachers: [] }],
       },
     });
@@ -184,15 +175,9 @@ describe("buildSectionDetailTabPanelSsrState", () => {
     expect(state.sectionOverlay.exams).toEqual([{ examRooms: [], id: 42 }]);
   });
 
-  it("leaves overlay empty when SSR tab mapping does not match", () => {
+  it("leaves teacher overlay empty when departments were not SSR-expanded", () => {
     const state = buildSectionDetailTabPanelSsrState(
-      basePageData({
-        detailSection: "teachers",
-        section: {
-          ...basePageData().section,
-          teachers: [{ id: 1, namePrimary: "Ada" }],
-        },
-      }),
+      basePageData(),
       emptySectionDetailTabPanelState,
       applySectionDetailTabPanelPatch,
       userId,
