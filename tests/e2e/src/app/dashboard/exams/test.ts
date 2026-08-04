@@ -28,7 +28,7 @@ import { ensureSeedSectionSubscription } from "../../../../utils/subscriptions";
 
 test.describe("仪表盘考试", () => {
   test("未登录旧 exams tab 重定向到语义路径", async ({ page }) => {
-    const response = await page.request.get("/#exams&examView=list", {
+    const response = await page.request.get("/?tab=exams&examView=list", {
       maxRedirects: 0,
     });
 

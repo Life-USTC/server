@@ -70,6 +70,11 @@ async function jumpToSection(page: Page, name: RegExp, selector: string) {
   ) {
     await gotoAndWaitForReady(page, `${SECTION_URL}#${hash}`);
     await expect(page.locator(selector)).toBeVisible({ timeout: 60_000 });
+    if (hash === "calendar") {
+      await expect(
+        page.getByRole("button", { name: /今天|Today/i }).first(),
+      ).toBeVisible({ timeout: 60_000 });
+    }
     return;
   }
 
@@ -302,7 +307,7 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
       .locator('[data-slot="tooltip-trigger"]')
       .filter({ hasText: /上课事件|Class event/i })
       .first();
-    await expect(classEventChip).toBeVisible();
+    await expect(classEventChip).toBeVisible({ timeout: 30_000 });
     await expect(classEventChip).not.toHaveAttribute("href", /.+/);
     await expect(classEventChip).toHaveAttribute("tabindex", "0");
     await expect(monthView.locator('a[href^="#"]')).toHaveCount(0);
@@ -741,29 +746,23 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
     }
   });
 
-  test("详情导航后内容滚动回到顶部", async ({ page }) => {
+  test("详情锚点导航滚动到目标区块", async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
-    await gotoAndWaitForReady(page, `${SECTION_URL}#comments`);
+    await gotoAndWaitForReady(page, SECTION_URL);
 
     const detailViewport = getDetailViewport(page);
     await expect(detailViewport).toBeVisible();
-    await detailViewport.evaluate((element) => {
-      element.scrollTo({ top: element.scrollHeight });
-    });
-
-    await expect
-      .poll(() => detailViewport.evaluate((element) => element.scrollTop))
-      .toBeGreaterThan(100);
 
     await gotoAndWaitForReady(page, `${SECTION_URL}#calendar`);
     await page.waitForURL(/\/catalog\/sections\/\d+#calendar$/);
     await waitForUiSettled(page);
 
+    await expect(page.locator("#calendar")).toBeInViewport();
     await expect
       .poll(() =>
         getDetailViewport(page).evaluate((element) => element.scrollTop),
       )
-      .toBeLessThan(8);
+      .toBeGreaterThan(8);
   });
 
   test("关注弹窗显示非选课声明", async ({ page }, testInfo) => {
@@ -933,12 +932,12 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
     );
 
     try {
-      await expect(page.locator("#section-description")).toBeVisible();
-      const descCard = page
-        .locator('[data-slot="card"]')
-        .filter({ has: page.getByText(/简介|Description/i) })
-        .first();
-      await expect(descCard).toBeVisible();
+      const introduction = page.locator("#introduction");
+      await expect(introduction).toBeVisible();
+      const descCard = introduction.locator('[data-slot="card"]').first();
+      await expect(
+        descCard.getByRole("button", { name: /^编辑$|^Edit$/i }),
+      ).toBeVisible({ timeout: 60_000 });
 
       const content = `e2e-section-desc-${Date.now()}`;
       const editor = descCard.locator("textarea").first();

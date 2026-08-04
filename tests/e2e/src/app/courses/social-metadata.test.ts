@@ -284,7 +284,7 @@ test("课程与班级详情子路由规范化 canonical 并使用受控摘要", 
   await setLocale(page, "en-us");
   const sectionMetadata = await readRawSocialMetadata(
     page,
-    `/catalog/sections/${DEV_SEED.section.jwId}#calendar&subscribe=1#week`,
+    `/catalog/sections/${DEV_SEED.section.jwId}?subscribe=1#calendar`,
   );
   expectCompleteSocialMetadata(sectionMetadata, {
     card: {

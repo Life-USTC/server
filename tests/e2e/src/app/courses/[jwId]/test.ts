@@ -41,7 +41,7 @@ import { captureStepScreenshot } from "../../../../utils/screenshot";
 import { assertPageContract } from "../../_shared/page-contract";
 
 const COURSE_URL = `/catalog/courses/${DEV_SEED.course.jwId}`;
-const COURSE_WITH_DESCRIPTION_URL = `/catalog/courses/${scenarioData.courses[2].jwId}/introduction`;
+const COURSE_WITH_DESCRIPTION_URL = `/catalog/courses/${scenarioData.courses[2].jwId}#introduction`;
 const COURSE_WITH_DESCRIPTION_TEXT = "实验课建议准备护目镜并提前完成预习问答。";
 
 async function jumpToCourseSection(
@@ -92,7 +92,7 @@ test.describe("/catalog/courses/[jwId] 课程详情", () => {
       `/catalog/courses/${DEV_SEED.course.legacyJwId}/sections?from=legacy`,
     );
     await expect(page).toHaveURL(
-      `/catalog/courses/${DEV_SEED.course.jwId}?from=legacy`,
+      `/catalog/courses/${DEV_SEED.course.jwId}?from=legacy#sections`,
     );
     await expect(page.getByRole("heading", { level: 1 }).first()).toContainText(
       new RegExp(`${DEV_SEED.course.nameCn}|${DEV_SEED.course.nameEn}`),
@@ -440,7 +440,7 @@ test.describe("/catalog/courses/[jwId]/introduction 无 JavaScript", () => {
 
     await expect(page.getByText(COURSE_WITH_DESCRIPTION_TEXT)).toBeVisible();
     await expect(
-      page.locator("#course-description .markdown-preview"),
+      page.locator("#introduction .markdown-preview"),
     ).toBeVisible();
   });
 });

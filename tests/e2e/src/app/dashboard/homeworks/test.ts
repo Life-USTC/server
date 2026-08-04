@@ -13,7 +13,7 @@
  *
  * ## Features
  * - Hover card to reveal completion button
- * - "View details" link → /sections/{jwId}/homework#homework-{id}
+ * - "View details" link → /catalog/sections/{jwId}?homeworkId={id}#homework
  * - Create homework button → modal form
  *
  * ## Edge Cases
@@ -33,9 +33,12 @@ test.describe("仪表盘作业", () => {
   test.describe.configure({ mode: "serial" });
 
   test("未登录旧 homework tab 重定向到语义路径", async ({ page }) => {
-    const response = await page.request.get("/?#homeworks&homeworkView=list", {
-      maxRedirects: 0,
-    });
+    const response = await page.request.get(
+      "/?tab=homeworks&homeworkView=list",
+      {
+        maxRedirects: 0,
+      },
+    );
 
     expect(response.status()).toBe(308);
     expect(response.headers().location).toBe(
@@ -360,14 +363,14 @@ test.describe("仪表盘作业", () => {
     await expect(popout).toBeVisible();
     const sectionLink = popout
       .locator(
-        `a[href*="/catalog/sections/${DEV_SEED.section.jwId}?#homework#homework-"]`,
+        `a[href*="/catalog/sections/${DEV_SEED.section.jwId}?homeworkId="][href$="#homework"]`,
       )
       .first();
     await expect(sectionLink).toBeVisible();
     await sectionLink.click();
 
     await expect(page).toHaveURL(
-      /\/catalog\/sections\/\d+\?#homework#homework-/,
+      /\/catalog\/sections\/\d+\?homeworkId=[^&#]+#homework$/,
     );
     await captureStepScreenshot(page, testInfo, "homeworks/view-details");
   });

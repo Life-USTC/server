@@ -33,6 +33,7 @@ test("search page supports keyboard navigation into results", async ({
 
   const input = page.getByRole("combobox");
   await expect(input).toBeVisible();
+  await expect(page.getByRole("option").first()).toBeVisible();
   await input.press("ArrowDown");
 
   await expect(page.getByRole("option").first()).toBeFocused();

@@ -30,9 +30,12 @@ import { ensureSeedSectionSubscription } from "../../../utils/subscriptions";
 
 test.describe("仪表盘", () => {
   test("未登录旧 homework tab 永久重定向到受保护语义路径", async ({ page }) => {
-    const response = await page.request.get("/?#homeworks&homeworkView=list", {
-      maxRedirects: 0,
-    });
+    const response = await page.request.get(
+      "/?tab=homeworks&homeworkView=list",
+      {
+        maxRedirects: 0,
+      },
+    );
 
     expect(response.status()).toBe(308);
     expect(response.headers().location).toBe(
