@@ -9,12 +9,6 @@ import {
 } from "@/features/section-detail/lib/display";
 import { resolveSectionDetailTabQueryRedirect } from "@/features/section-detail/lib/section-detail-tab";
 import { getSectionPage } from "@/features/section-detail/server/section-page-data";
-import type { AppLocale } from "@/i18n/config";
-import {
-  buildPublicDetailRuntimeCacheOptions,
-  PUBLIC_DETAIL_RUNTIME_CACHE_TTL_MS,
-} from "@/lib/catalog-detail-runtime-cache";
-import { cachedPublicRuntimeData } from "@/lib/public-runtime-cache";
 import {
   buildSocialMetadata,
   formatSocialMetadataMessage,
@@ -28,54 +22,6 @@ export {
   subscribeSectionAction,
   unsubscribeSectionAction,
 } from "./section-detail-subscription-actions";
-
-const PUBLIC_DETAIL_COLO_CACHE_PATH =
-  "/_life-ustc-internal-cache/catalog-detail-core/v1";
-
-function publicSectionOverviewColoCacheKey(
-  origin: string,
-  locale: AppLocale,
-  jwId: number,
-) {
-  return new URL(
-    `${PUBLIC_DETAIL_COLO_CACHE_PATH}/section/core-with-related-overview/${locale}/${encodeURIComponent(String(jwId))}`,
-    origin,
-  ).toString();
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return Boolean(value) && typeof value === "object";
-}
-
-function isEmptyArray(value: unknown) {
-  return Array.isArray(value) && value.length === 0;
-}
-
-function isPublicSectionOverviewCore(value: unknown, jwId: number) {
-  return (
-    isRecord(value) &&
-    typeof value.id === "number" &&
-    value.jwId === jwId &&
-    typeof value.code === "string" &&
-    typeof value.courseId === "number" &&
-    (value.semesterId === null || typeof value.semesterId === "number") &&
-    isRecord(value.course) &&
-    typeof value.course.id === "number" &&
-    typeof value.course.jwId === "number" &&
-    typeof value.course.namePrimary === "string" &&
-    Array.isArray(value.adminClasses) &&
-    Array.isArray(value.teachers) &&
-    value.teachers.every(
-      (teacher) => isRecord(teacher) && typeof teacher.id === "number",
-    ) &&
-    typeof value.examCount === "number" &&
-    typeof value.scheduleCount === "number" &&
-    isEmptyArray(value.exams) &&
-    isEmptyArray(value.schedules) &&
-    Array.isArray(value.sameSemesterOtherTeachers) &&
-    Array.isArray(value.sameTeacherOtherSemesters)
-  );
-}
 
 export async function loadSectionDetailPage({
   locals,
@@ -96,50 +42,16 @@ export async function loadSectionDetailPage({
   const jwId = parseSectionJwId(params.jwId);
   if (jwId === null) error(404, "Section not found");
   const userId = locals.authUser?.id ?? null;
-  // Stream layout: load schedule/exam/teacher expansions unless PublicSsr anonymous
-  // overview cache path (empty child arrays; client hydrates overlays).
+  // Stream layout always renders calendar/exams/teachers in-page, so expand
+  // those payloads on first load (including PublicSsr anonymous).
   const focusedHomeworkId = url.searchParams.get("homeworkId");
-  const includeSchedules = !locals.publicSsr || Boolean(userId);
-  const includeExams = includeSchedules;
-  const includeTeacherDepartments = includeSchedules;
-  const includeRelated = true;
   const shouldLoadHomework = Boolean(userId) || focusedHomeworkId != null;
-  const cachePublicCore =
-    locals.publicSsr &&
-    !userId &&
-    !includeExams &&
-    !includeSchedules &&
-    !includeTeacherDepartments &&
-    !shouldLoadHomework;
-  const loadSection = () =>
-    getSectionPage(jwId, locals.locale, {
-      includeExams,
-      includeRelated,
-      includeSchedules,
-      includeTeacherDepartments,
-    });
-  const section = cachePublicCore
-    ? await cachedPublicRuntimeData(
-        `page:section-detail:overview:${locals.locale}`,
-        `catalog-detail:section:overview:${locals.locale}:${jwId}`,
-        PUBLIC_DETAIL_RUNTIME_CACHE_TTL_MS,
-        loadSection,
-        await buildPublicDetailRuntimeCacheOptions({
-          coloCacheKey: publicSectionOverviewColoCacheKey(
-            url.origin,
-            locals.locale,
-            jwId,
-          ),
-          id: jwId,
-          kind: "section",
-          kvShape: "core-with-related-overview",
-          locale: locals.locale,
-          shouldCacheResult: (result) => result !== null,
-          validateColoCacheResult: (result) =>
-            isPublicSectionOverviewCore(result, jwId),
-        }),
-      )
-    : await loadSection();
+  const section = await getSectionPage(jwId, locals.locale, {
+    includeExams: true,
+    includeRelated: true,
+    includeSchedules: true,
+    includeTeacherDepartments: true,
+  });
   if (!section) error(404, "Section not found");
   const copy = getSectionDetailPageCopy(locals.locale);
   const courseName = primaryName(section.course) || section.code;
