@@ -1,3 +1,10 @@
+# [1.85.0](https://github.com/Life-USTC/server/compare/v1.84.8...v1.85.0) (2026-08-04)
+
+
+### Features
+
+* **catalog:** section-first search and tabless two-column detail ([#747](https://github.com/Life-USTC/server/issues/747)) ([91f03b7](https://github.com/Life-USTC/server/commit/91f03b7593a3ec6ec14d44593d844c95660d4f80))
+
 ## [1.84.8](https://github.com/Life-USTC/server/compare/v1.84.7...v1.84.8) (2026-08-03)
 
 
