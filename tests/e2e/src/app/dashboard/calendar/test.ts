@@ -29,12 +29,9 @@ import { ensureSeedSectionSubscription } from "../../../../utils/subscriptions";
 
 test.describe("仪表盘日历", () => {
   test("未登录旧 calendar tab 重定向到语义路径", async ({ page }) => {
-    const response = await page.request.get(
-      "/#calendar&calendarView=week",
-      {
-        maxRedirects: 0,
-      },
-    );
+    const response = await page.request.get("/#calendar&calendarView=week", {
+      maxRedirects: 0,
+    });
 
     expect(response.status()).toBe(308);
     expect(response.headers().location).toBe(

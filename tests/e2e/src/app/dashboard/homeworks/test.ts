@@ -33,12 +33,9 @@ test.describe("仪表盘作业", () => {
   test.describe.configure({ mode: "serial" });
 
   test("未登录旧 homework tab 重定向到语义路径", async ({ page }) => {
-    const response = await page.request.get(
-      "/?#homeworks&homeworkView=list",
-      {
-        maxRedirects: 0,
-      },
-    );
+    const response = await page.request.get("/?#homeworks&homeworkView=list", {
+      maxRedirects: 0,
+    });
 
     expect(response.status()).toBe(308);
     expect(response.headers().location).toBe(

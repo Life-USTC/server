@@ -1,7 +1,6 @@
 /// <reference path="../../src/app.d.ts" />
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { emptyDescriptionPayload } from "@/features/descriptions/server/description-payload";
 import { runWithCloudflareRuntimeEnv } from "@/lib/adapters/cloudflare-runtime";
 
 const {

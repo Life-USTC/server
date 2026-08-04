@@ -257,11 +257,7 @@ test.describe("/catalog/teachers/[id] 教师详情页", () => {
     );
 
     try {
-      await jumpToTeacherSection(
-        page,
-        /简介|Description/i,
-        "#introduction",
-      );
+      await jumpToTeacherSection(page, /简介|Description/i, "#introduction");
       const descCard = page
         .locator('[data-slot="card"]')
         .filter({ has: page.getByText(/简介|Description/i) })

@@ -57,7 +57,10 @@ describe("section detail redirects", () => {
 
   it.each([
     ["/catalog/sections/159446?tab=overview", "/catalog/sections/159446"],
-    ["/catalog/sections/159446?tab=calendar", "/catalog/sections/159446#calendar"],
+    [
+      "/catalog/sections/159446?tab=calendar",
+      "/catalog/sections/159446#calendar",
+    ],
     [
       "/catalog/sections/159446?tab=calendar&page=2",
       "/catalog/sections/159446?page=2#calendar",
