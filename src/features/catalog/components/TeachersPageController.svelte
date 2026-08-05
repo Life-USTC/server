@@ -3,8 +3,9 @@ import {
   type CatalogNamed,
   catalogHref,
   catalogPrimaryName as primaryName,
-  catalogSecondaryName as secondaryName,
 } from "@/features/catalog/lib/catalog-list-display";
+import { catalogListPageHref } from "@/features/catalog/lib/catalog-list-query";
+import { page } from "$app/stores";
 import CatalogMobileFilters from "./CatalogMobileFilters.svelte";
 import CatalogPageHeader from "./CatalogPageHeader.svelte";
 import CatalogPagination from "./CatalogPagination.svelte";
@@ -52,7 +53,6 @@ $: totalPages = data.pagination.totalPages;
 $: teacherSearch = data.filters.search ?? "";
 $: commonLabels = data.labels.common;
 $: teacherLabels = data.labels.teachers;
-$: showSecondaryNames = data.locale === "en-us";
 $: activeFilterCount = [data.filters.search, data.filters.departmentId].filter(
   Boolean,
 ).length;
@@ -85,11 +85,10 @@ $: teacherActiveFilters = [
 );
 $: teacherHiddenFilters = [
   { name: "departmentId", value: data.filters.departmentId ?? "" },
-];
+].filter((filter) => Boolean(filter.value));
 
 function pageHref(targetPage: number) {
-  const { search, departmentId } = data.filters;
-  return catalogHref("/catalog/teachers", { search, departmentId }, targetPage);
+  return catalogListPageHref($page.url, targetPage);
 }
 
 function teacherFilterHref(overrides: Partial<TeacherListFilters>) {
@@ -140,9 +139,7 @@ function teacherFilterHref(overrides: Partial<TeacherListFilters>) {
         filters={data.filters}
         page={data.pagination.page}
         {primaryName}
-        {secondaryName}
         {selectedDepartment}
-        {showSecondaryNames}
         {teacherLabels}
         teachers={data.data}
         total={data.pagination.total}

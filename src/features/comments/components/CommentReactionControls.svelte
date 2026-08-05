@@ -49,7 +49,6 @@ $: if (
             {...props}
             aria-label={commentCopy.reactionMenu}
             disabled={!comment.canReact}
-            size="sm"
             variant="outline"
           >
             {commentCopy.reactionMenu}
@@ -84,7 +83,6 @@ $: if (
     <Button
       aria-label={`${reactionLabel(reaction.type)} ${reaction.count}`}
       disabled={!comment.canReact || pendingReactionKey === reactionKey(comment.id, reaction.type)}
-      size="sm"
       type="button"
       variant={reaction.viewerHasReacted ? "default" : "outline"}
       onclick={() => react(comment, reaction.type)}

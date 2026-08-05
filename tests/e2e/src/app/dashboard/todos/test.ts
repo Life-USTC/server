@@ -47,15 +47,14 @@ test.describe("仪表盘待办", () => {
     ).toBeVisible();
     await expect(page.getByRole("switch")).toHaveCount(0);
 
-    const card = page
-      .locator('[data-slot="card"]')
+    const row = page
+      .getByRole("row")
       .filter({ hasText: DEV_SEED.todos.dueTodayTitle })
       .first();
-    await expect(card).toBeVisible();
-    const completionButton = card
+    await expect(row).toBeVisible();
+    const completionButton = row
       .getByRole("button", { name: /标记为完成|Mark as complete/i })
       .first();
-    await card.hover();
     await expect(completionButton).toBeVisible();
     await expect(completionButton).toBeEnabled();
 
@@ -102,16 +101,15 @@ test.describe("仪表盘待办", () => {
   test("可切换待办完成状态并更新筛选", async ({ page }, testInfo) => {
     await signInAsDebugUser(page, "/workspace/todos");
 
-    const card = page
-      .locator('[data-slot="card"]')
+    const row = page
+      .getByRole("row")
       .filter({ hasText: DEV_SEED.todos.dueTodayTitle })
       .first();
-    await expect(card).toBeVisible();
+    await expect(row).toBeVisible();
 
-    const completeButton = card
+    const completeButton = row
       .getByRole("button", { name: /标记为完成|Mark as complete/i })
       .first();
-    await card.hover();
     await expect(completeButton).toBeVisible();
     await completeButton.click();
 
@@ -130,14 +128,13 @@ test.describe("仪表盘待办", () => {
     ).toBeVisible({ timeout: 5_000 });
 
     // Toggle back to restore seed state
-    const completedCard = page
-      .locator('[data-slot="card"]')
+    const completedRow = page
+      .getByRole("row")
       .filter({ hasText: DEV_SEED.todos.dueTodayTitle })
       .first();
-    const incompleteButton = completedCard
+    const incompleteButton = completedRow
       .getByRole("button", { name: /取消完成|Mark as incomplete/i })
       .first();
-    await completedCard.hover();
     await incompleteButton.click();
 
     await expect(

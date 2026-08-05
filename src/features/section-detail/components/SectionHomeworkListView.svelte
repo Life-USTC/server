@@ -1,8 +1,6 @@
 <script lang="ts">
-import TruncatedText from "$lib/components/TruncatedText.svelte";
+import SoftEmptyMessage from "$lib/components/SoftEmptyMessage.svelte";
 import { Badge } from "$lib/components/ui/badge/index.js";
-import { Button } from "$lib/components/ui/button/index.js";
-import * as Empty from "$lib/components/ui/empty/index.js";
 import * as Table from "$lib/components/ui/table/index.js";
 import type {
   SectionCopy,
@@ -18,48 +16,49 @@ export let selectHomework: (homework: SectionHomework) => void;
 </script>
 
 <div data-testid="section-homeworks-list">
-  <Table.Root>
-    <Table.Header>
-      <Table.Row>
-        <Table.Head>{sectionCopy.title}</Table.Head>
-        <Table.Head>{sectionCopy.due}</Table.Head>
-        <Table.Head>{sectionCopy.flags}</Table.Head>
-      </Table.Row>
-    </Table.Header>
-    <Table.Body>
-      {#each homeworks as homework}
-        <Table.Row>
-          <Table.Cell class="max-w-0">
-            <Button
-              class="h-auto w-full min-w-0 justify-start overflow-hidden text-left"
-              type="button"
-              variant="link"
-              onclick={() => {
-                selectHomework(homework);
-              }}
-            >
-              <TruncatedText text={homework.title} />
-            </Button>
-          </Table.Cell>
-          <Table.Cell>{fmtDateTime(homework.submissionDueAt)}</Table.Cell>
-          <Table.Cell>
-            <div class="flex gap-2">
-              {#if homework.isMajor}<Badge variant="secondary">{homeworkCopy.tagMajor}</Badge>{/if}
-              {#if homework.requiresTeam}<Badge variant="secondary">{homeworkCopy.tagTeam}</Badge>{/if}
-            </div>
-          </Table.Cell>
-        </Table.Row>
-      {:else}
-        <Table.Row>
-          <Table.Cell class="p-0" colspan={3}>
-            <Empty.Root class="py-6">
-              <Empty.Header>
-                <Empty.Description>{sectionCopy.noHomework}</Empty.Description>
-              </Empty.Header>
-            </Empty.Root>
-          </Table.Cell>
-        </Table.Row>
-      {/each}
-    </Table.Body>
-  </Table.Root>
+  {#if homeworks.length === 0}
+    <SoftEmptyMessage message={sectionCopy.noHomework} />
+  {:else}
+    <div class="min-w-0 overflow-x-auto">
+      <Table.Root>
+        <Table.Header>
+          <Table.Row>
+            <Table.Head>{sectionCopy.title}</Table.Head>
+            <Table.Head>{sectionCopy.due}</Table.Head>
+            <Table.Head>{sectionCopy.flags}</Table.Head>
+          </Table.Row>
+        </Table.Header>
+        <Table.Body>
+          {#each homeworks as homework}
+            <Table.Row>
+              <Table.Cell>
+                <button
+                  class="text-left hover:underline"
+                  type="button"
+                  onclick={() => {
+                    selectHomework(homework);
+                  }}
+                >
+                  {homework.title}
+                </button>
+              </Table.Cell>
+              <Table.Cell
+                >{fmtDateTime(homework.submissionDueAt)}</Table.Cell
+              >
+              <Table.Cell>
+                <div class="flex min-w-0 flex-wrap gap-2">
+                  {#if homework.isMajor}<Badge variant="secondary"
+                      >{homeworkCopy.tagMajor}</Badge
+                    >{/if}
+                  {#if homework.requiresTeam}<Badge variant="secondary"
+                      >{homeworkCopy.tagTeam}</Badge
+                    >{/if}
+                </div>
+              </Table.Cell>
+            </Table.Row>
+          {/each}
+        </Table.Body>
+      </Table.Root>
+    </div>
+  {/if}
 </div>

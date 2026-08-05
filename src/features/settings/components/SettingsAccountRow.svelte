@@ -33,7 +33,7 @@ export let user: SettingsUser;
     {#if account.linked}
       <Badge variant="secondary">{copy.profile.connected}</Badge>
       <Button
-        size="sm"
+       
         variant="outline"
         type="button"
         disabled={!isMounted || user.accountCount <= 1 || hasPendingAccountAction}
@@ -51,7 +51,6 @@ export let user: SettingsUser;
       >
         <input type="hidden" name="providerId" value={account.id} />
         <Button
-          size="sm"
           type="submit"
           disabled={!isMounted || hasPendingAccountAction}
         >

@@ -35,15 +35,6 @@ export type AdminBusCopy = {
   importDescription: string;
   importWarning: string;
   noVersions: string;
-  statActive: string;
-  statActiveMeta: string;
-  statCampuses: string;
-  statCampusesMeta: string;
-  statNone: string;
-  statRoutes: string;
-  statRoutesMeta: string;
-  statVersions: string;
-  statVersionsMeta: string;
   statusActive: string;
   statusInactive: string;
   subtitle: string;

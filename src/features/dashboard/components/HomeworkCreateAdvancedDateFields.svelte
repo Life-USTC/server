@@ -33,7 +33,6 @@ export let toShanghaiDateTimeLocalValue: (value: Date) => string;
     <ButtonGroup.Root class="ml-auto max-w-full flex-wrap justify-end">
       <Button
         disabled={isCreatingHomework}
-        size="sm"
         type="button"
         variant="outline"
         onclick={() => {
@@ -44,7 +43,6 @@ export let toShanghaiDateTimeLocalValue: (value: Date) => string;
       </Button>
       <Button
         disabled={isCreatingHomework}
-        size="sm"
         type="button"
         variant="outline"
         onclick={() => {
@@ -69,12 +67,11 @@ export let toShanghaiDateTimeLocalValue: (value: Date) => string;
       placeholder={homeworksCopy.submissionStart}
     />
     <ButtonGroup.Root class="ml-auto max-w-full flex-wrap justify-end">
-      <Button disabled={isCreatingHomework} size="sm" type="button" variant="outline" onclick={applyHomeworkStartNow}>
+      <Button disabled={isCreatingHomework} type="button" variant="outline" onclick={applyHomeworkStartNow}>
         {homeworksCopy.helperStartNow}
       </Button>
       <Button
         disabled={isCreatingHomework}
-        size="sm"
         type="button"
         variant="outline"
         onclick={() => {

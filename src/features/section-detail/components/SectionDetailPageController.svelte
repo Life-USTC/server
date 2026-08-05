@@ -454,8 +454,6 @@ onMount(() => {
     fmtDateTime={_fmtDateTime}
     formatMessage={_formatMessage}
     homeworkCopy={_homeworkCopy}
-    homeworkStatus={_homeworkStatus}
-    homeworkView={_homeworkView}
     homeworks={_homeworks}
     notAvailable={_notAvailable}
     openCalendarDialog={_openCalendarDialog}
@@ -467,10 +465,6 @@ onMount(() => {
     {sectionCalendarGridWeeks}
     sectionCopy={_sectionCopy}
     sectionTeachersLabel={_sectionTeachersLabel}
-    setHomeworkAuditDialogOpen={(open) => {
-      _isHomeworkAuditDialogOpen = open;
-    }}
-    setHomeworkView={_setHomeworkView}
     setSelectedHomework={(homework) => {
       _selectedHomework = homework;
     }}

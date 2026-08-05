@@ -118,7 +118,7 @@ test.describe("仪表盘网站链接", () => {
 
   test("登录后可以导航到链接标签", async ({ page }, testInfo) => {
     await signInAsDebugUser(page, "/");
-    await expandSidebarGroup(page, /^(发现|Explore)$/i);
+    await expandSidebarGroup(page, /^(课程目录|Catalog)$/i);
 
     const linksTab = sidebarNavigationLink(page, /^(网站|Websites)$/i);
     await expect(linksTab).toBeVisible();
@@ -186,7 +186,7 @@ test.describe("仪表盘网站链接", () => {
       await expect(linkButton).toBeVisible();
 
       const card = linkButton.locator(
-        "xpath=ancestor::div[contains(@class, 'group')][1]",
+        "xpath=ancestor::*[contains(concat(' ', normalize-space(@class), ' '), ' group ')][1]",
       );
       await card.hover();
 
@@ -286,7 +286,7 @@ test.describe("仪表盘网站链接", () => {
       await expect(linkButton).toBeVisible();
 
       const card = linkButton.locator(
-        "xpath=ancestor::div[contains(@class, 'group')][1]",
+        "xpath=ancestor::*[contains(concat(' ', normalize-space(@class), ' '), ' group ')][1]",
       );
       await card.hover();
 

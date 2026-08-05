@@ -116,7 +116,7 @@ describe("Better Auth passkey plugin", () => {
     expect(passkeyMock).not.toHaveBeenCalled();
   });
 
-  it("does not mix localhost and 127.0.0.1 under one local RP ID", async () => {
+  it("maps loopback IP origins to localhost for WebAuthn RP ID", async () => {
     vi.stubEnv("NODE_ENV", "development");
     vi.stubEnv("APP_CANONICAL_ORIGIN", "http://localhost:3000");
     vi.stubEnv("APP_PUBLIC_ORIGIN", "http://127.0.0.1:3000");
@@ -125,13 +125,17 @@ describe("Better Auth passkey plugin", () => {
       "@/lib/auth/better-auth-passkey-plugin"
     );
 
-    expect(() => buildBetterAuthPasskeyPlugin()).toThrow(
-      "Non-local passkey origins must use https",
+    buildBetterAuthPasskeyPlugin();
+
+    expect(passkeyMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        rpID: "localhost",
+        origin: ["http://localhost:3000"],
+      }),
     );
-    expect(passkeyMock).not.toHaveBeenCalled();
   });
 
-  it("rejects an IP literal as a local WebAuthn RP ID", async () => {
+  it("maps an IP-literal public origin to localhost RP ID", async () => {
     vi.stubEnv("NODE_ENV", "development");
     vi.stubEnv("APP_CANONICAL_ORIGIN", "http://127.0.0.1:3000");
     vi.stubEnv("APP_PUBLIC_ORIGIN", "http://127.0.0.1:3000");
@@ -140,10 +144,14 @@ describe("Better Auth passkey plugin", () => {
       "@/lib/auth/better-auth-passkey-plugin"
     );
 
-    expect(() => buildBetterAuthPasskeyPlugin()).toThrow(
-      "Non-local passkey origins must use https",
+    buildBetterAuthPasskeyPlugin();
+
+    expect(passkeyMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        rpID: "localhost",
+        origin: ["http://localhost:3000"],
+      }),
     );
-    expect(passkeyMock).not.toHaveBeenCalled();
   });
 
   it("limits only the anonymous authentication endpoints", async () => {

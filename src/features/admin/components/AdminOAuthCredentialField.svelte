@@ -18,7 +18,7 @@ export let value: string;
   </Item.Content>
   {#if showCopy}
     <Item.Actions>
-      <Button size="sm" type="button" variant="outline" onclick={() => copyText(value, copiedMessage)}>
+      <Button type="button" variant="outline" onclick={() => copyText(value, copiedMessage)}>
         <CopyIcon data-icon="inline-start" />
         <span>{copyLabel}</span>
       </Button>

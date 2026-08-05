@@ -7,15 +7,20 @@ import * as InputGroup from "$lib/components/ui/input-group/index.js";
 export let buttonLabel: string;
 export let copied: boolean;
 export let copiedLabel: string;
+export let description = "";
 export let id: string;
 export let label: string;
 export let missingLabel = "";
 export let onCopy: () => void | Promise<void>;
 export let value: string;
+export let warning = "";
 </script>
 
 <Field.Field>
   <Field.Label for={id}>{label}</Field.Label>
+  {#if description}
+    <Field.Description>{description}</Field.Description>
+  {/if}
   <InputGroup.Root>
     <InputGroup.Input
       {id}
@@ -43,4 +48,7 @@ export let value: string;
       </InputGroup.Button>
     </InputGroup.Addon>
   </InputGroup.Root>
+  {#if warning}
+    <p class="text-muted-foreground text-xs leading-5">{warning}</p>
+  {/if}
 </Field.Field>

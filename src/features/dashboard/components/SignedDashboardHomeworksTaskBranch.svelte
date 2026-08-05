@@ -24,14 +24,12 @@ export let homeworkFilter: DashboardHomeworksTaskProps["homeworkFilter"];
 export let homeworkItems: DashboardHomeworksTaskProps["homeworkItems"];
 export let homeworkReferenceDate: DashboardHomeworksTaskProps["homeworkReferenceDate"];
 export let homeworkSavingById: DashboardHomeworksTaskProps["homeworkSavingById"];
-export let homeworkView: DashboardHomeworksTaskProps["homeworkView"];
 export let homeworksCopy: DashboardHomeworksTaskProps["homeworksCopy"];
 export let isCreatingHomework: boolean;
 export let openCreateHomeworkDialog: DashboardHomeworksTaskProps["openCreateHomeworkDialog"];
 export let sectionCopy: DashboardHomeworksTaskProps["sectionCopy"];
 export let selectedCreateHomeworkSection: DashboardHomeworksTaskProps["selectedCreateHomeworkSection"];
 export let selectedHomework: DashboardHomeworksTaskProps["selectedHomework"];
-export let setHomeworkView: DashboardHomeworksTaskProps["setHomeworkView"];
 export let showCreateHomework: boolean;
 export let signedData: DashboardHomeworksTaskProps["signedData"];
 export let toggleHomeworkCompletion: DashboardHomeworksTaskProps["toggleHomeworkCompletion"];
@@ -56,10 +54,8 @@ export let toggleHomeworkCompletion: DashboardHomeworksTaskProps["toggleHomework
   {applyHomeworkDueInMonth}
   {applyHomeworkDueAtSemesterEnd}
   {toggleHomeworkCompletion}
-  {setHomeworkView}
   {createHomeworkAction}
   bind:homeworkFilter
-  bind:homeworkView
   bind:showCreateHomework
   bind:createHomeworkAdvancedOpen
   bind:createHomeworkPublishedAt

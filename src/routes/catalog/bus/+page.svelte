@@ -1,4 +1,5 @@
 <script lang="ts">
+import CatalogPageHeader from "@/features/catalog/components/CatalogPageHeader.svelte";
 import BusTab from "@/features/dashboard/components/BusTab.svelte";
 import type { PageData } from "./$types";
 
@@ -9,18 +10,11 @@ export let data: PageData;
   <title>{data.copy.dashboard.nav.bus.title} - Life@USTC</title>
 </svelte:head>
 
-<div class="mx-auto grid w-full max-w-7xl gap-5">
-  <div class="grid gap-1">
-    <p class="font-medium text-muted-foreground text-sm">
-      {data.copy.homepage.publicDashboard.title}
-    </p>
-    <h1 class="font-semibold text-2xl tracking-normal sm:text-3xl">
-      {data.copy.dashboard.nav.bus.title}
-    </h1>
-    <p class="max-w-3xl text-muted-foreground text-sm">
-      {data.copy.dashboard.nav.bus.description}
-    </p>
-  </div>
+<section class="grid gap-5">
+  <CatalogPageHeader
+    description={data.copy.dashboard.nav.bus.description}
+    title={data.copy.dashboard.nav.bus.title}
+  />
 
   <BusTab
     busCopy={data.copy.bus}
@@ -28,4 +22,4 @@ export let data: PageData;
     compact
     savePreferences={data.signedIn}
   />
-</div>
+</section>

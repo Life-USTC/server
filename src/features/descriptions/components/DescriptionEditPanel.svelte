@@ -41,13 +41,12 @@ export let saveDescription: () => void;
   <div class="flex flex-wrap justify-end gap-2">
     <Button
       disabled={isSaving}
-      size="sm"
       type="button"
       onclick={saveDescription}
     >
       {isSaving ? copy.saving : copy.save}
     </Button>
-    <Button size="sm" type="button" variant="outline" onclick={cancelEdit}>
+    <Button type="button" variant="outline" onclick={cancelEdit}>
       {copy.cancel}
     </Button>
   </div>

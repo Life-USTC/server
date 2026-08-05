@@ -34,7 +34,6 @@ export { className as class };
         <Button
           class="w-full sm:w-auto"
           href={action.href}
-          size="lg"
           type={action.href ? undefined : "button"}
           variant={action.variant}
           onclick={action.onclick}

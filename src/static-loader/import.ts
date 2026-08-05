@@ -96,7 +96,6 @@ import {
   sectionConflictUpdateColumns,
 } from "./upsert-policy";
 import {
-  missingSnapshotRowsWhere,
   parseSnapshotGeneratedAt,
   validateMappedSectionJwIds,
   validateSectionRetirementSnapshotApproval,
@@ -473,20 +472,18 @@ export async function runImport(
       "reconcileRemovedSnapshotRows",
       scheduleGroups.length + exams.length,
       async () => {
-        const scheduleGroupWhere = missingSnapshotRowsWhere(
+        await deleteMissingSnapshotRows(
+          tx,
+          "scheduleGroup",
           sectionDbIds,
           scheduleGroups.map((group) => group.jwId),
         );
-        if (scheduleGroupWhere != null) {
-          await tx.scheduleGroup.deleteMany({ where: scheduleGroupWhere });
-        }
-        const examWhere = missingSnapshotRowsWhere(
+        await deleteMissingSnapshotRows(
+          tx,
+          "exam",
           sectionDbIds,
           exams.map((exam) => exam.jwId),
         );
-        if (examWhere != null) {
-          await tx.exam.deleteMany({ where: examWhere });
-        }
       },
     );
     courseMergeStats = await logStep(
@@ -2871,6 +2868,40 @@ function chunks<T>(array: T[], size: number): T[][] {
     result.push(array.slice(i, i + size));
   }
   return result;
+}
+
+async function deleteMissingSnapshotRows(
+  tx: Prisma.TransactionClient,
+  model: "exam" | "scheduleGroup",
+  sectionDbIds: number[],
+  currentJwIds: number[],
+) {
+  if (sectionDbIds.length === 0) return;
+
+  const keepJwIds = new Set(currentJwIds);
+  for (const sectionChunk of chunks(sectionDbIds, 1000)) {
+    const existing =
+      model === "scheduleGroup"
+        ? await tx.scheduleGroup.findMany({
+            where: { sectionId: { in: sectionChunk } },
+            select: { id: true, jwId: true },
+          })
+        : await tx.exam.findMany({
+            where: { sectionId: { in: sectionChunk } },
+            select: { id: true, jwId: true },
+          });
+    const staleIds = existing
+      .filter((row) => !keepJwIds.has(row.jwId))
+      .map((row) => row.id);
+    for (const idChunk of chunks(staleIds, 1000)) {
+      if (idChunk.length === 0) continue;
+      if (model === "scheduleGroup") {
+        await tx.scheduleGroup.deleteMany({ where: { id: { in: idChunk } } });
+      } else {
+        await tx.exam.deleteMany({ where: { id: { in: idChunk } } });
+      }
+    }
+  }
 }
 
 type ColumnValue =

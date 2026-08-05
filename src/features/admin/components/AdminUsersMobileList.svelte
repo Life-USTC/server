@@ -17,16 +17,12 @@ export let users: AdminUserRow[];
 
 <Item.Group class="md:hidden" data-testid="admin-users-mobile-list">
   {#each users as user}
-    <Item.Root
-      class={`items-start border-l-4 text-left ${user.activeSuspension ? "border-l-warning" : user.isAdmin ? "border-l-success" : "border-l-primary"}`}
-      size="sm"
-      variant="outline"
-    >
+    <Item.Root class="items-start text-left" size="sm" variant="outline">
       {#snippet child({ props })}
         <button {...props} type="button" onclick={() => onSelect(user)}>
           <Item.Content class="min-w-0">
             <Item.Title>{displayName(user)}</Item.Title>
-            <Item.Description>
+            <Item.Description class="font-mono">
               @{user.username ?? copy.noUsername}
             </Item.Description>
             <Item.Description class="line-clamp-none break-words">
@@ -46,7 +42,16 @@ export let users: AdminUserRow[];
               </div>
               <div>
                 <dt class="text-muted-foreground">{copy.suspension}</dt>
-                <dd>{suspensionLabel(user)}</dd>
+                <dd>
+                  {#if user.activeSuspension}
+                    <Badge class="mb-1" variant="destructive">{copy.suspendedStatus}</Badge>
+                    <span class="block text-muted-foreground">
+                      {suspensionLabel(user)}
+                    </span>
+                  {:else}
+                    {copy.clearStatus}
+                  {/if}
+                </dd>
               </div>
             </dl>
           </Item.Footer>

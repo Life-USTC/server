@@ -190,3 +190,23 @@ export function resolveCatalogListPublicSsrMode(url: URL) {
     ? ("page" as const)
     : null;
 }
+
+/** Build a catalog list URL for `targetPage`, preserving current filter params. */
+export function catalogListPageHref(url: URL, targetPage: number) {
+  const params = new URLSearchParams(url.searchParams);
+  if (targetPage > 1) {
+    params.set("page", String(targetPage));
+  } else {
+    params.delete("page");
+  }
+
+  const pathname = url.pathname;
+  if (!isCatalogListPath(pathname)) {
+    const query = params.toString();
+    return query ? `${pathname}?${query}` : pathname;
+  }
+
+  const normalized = normalizeCatalogListQuery(pathname, params);
+  const query = normalized.toString();
+  return query ? `${pathname}?${query}` : pathname;
+}

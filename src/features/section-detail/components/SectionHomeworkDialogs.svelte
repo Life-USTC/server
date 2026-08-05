@@ -78,6 +78,7 @@ export let updateHomework: SectionDetailHomeworkDialogsProps["updateHomework"];
   {hasSemesterStart}
   {homeworkCopy}
   {homeworkMessage}
+  openAuditDialog={() => setHomeworkAuditDialogOpen(true)}
   bind:publishedAt={createHomeworkPublishedAt}
   {sectionCopy}
   show={showCreateHomework}

@@ -11,6 +11,7 @@ export type SectionBasicInfoCopy = {
   adminClasses: string;
   basicInfo: string;
   basicInfoDescription: string;
+  campus: string;
   credits: string;
   department: string;
   examMode: string;
@@ -20,12 +21,11 @@ export type SectionBasicInfoCopy = {
   periodsPerWeek: string;
   remark: string;
   roomType: string;
-  sameSemesterOtherTeachers: string;
-  sameTeacherOtherSemesters: string;
+  scheduleRemark: string;
   sectionCode: string;
   semester: string;
+  summaryCapacityMeta: string;
   teachLanguage: string;
-  viewAllCourseSections: string;
 };
 
 export type SectionCommonInfoCopy = {
@@ -44,6 +44,7 @@ export type SectionRelatedSummary = {
 export type SectionBasicInfo = {
   actualPeriods?: number | null;
   adminClasses: SectionLocalizedName[];
+  campus?: SectionLocalizedName | null;
   code: string;
   course: {
     jwId: number | string;
@@ -51,16 +52,18 @@ export type SectionBasicInfo = {
   credits?: number | null;
   examMode?: SectionLocalizedName | null;
   graduateAndPostgraduate?: boolean | null;
+  limitCount?: number | null;
   openDepartment?: SectionLocalizedName | null;
   period?: number | null;
   periodsPerWeek?: number | null;
   remark?: string | null;
   roomType?: SectionLocalizedName | null;
-  sameSemesterOtherTeachers: SectionRelatedSummary[];
-  sameTeacherOtherSemesters: SectionRelatedSummary[];
+  otherCourseSections: SectionRelatedSummary[];
+  scheduleRemark?: string | null;
   semester?: {
     nameCn?: string | null;
   } | null;
+  stdCount?: number | null;
   teachLanguage?: SectionLocalizedName | null;
   timesPerWeek?: number | null;
 };

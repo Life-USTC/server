@@ -4,7 +4,6 @@ import type {
   DashboardLinkPinAction,
   DashboardLinkPinSubmit,
   DashboardOverviewLinkItem,
-  LinkView,
   SignedLinkGroup,
 } from "@/features/dashboard/lib/dashboard-controller-helpers";
 import LinksTabGrid from "./LinksTabGrid.svelte";
@@ -14,7 +13,6 @@ export let dashboardCopy: DashboardDashboardCopy;
 export let entry: SignedLinkGroup;
 export let linkIconLabel: (icon: string) => string;
 export let linkReturnTo: string;
-export let linkView: LinkView;
 export let submitDashboardLinkPin: DashboardLinkPinSubmit;
 export let updatingDashboardLinkSlug: string | null;
 
@@ -33,7 +31,7 @@ function pinAction(link: DashboardOverviewLinkItem): DashboardLinkPinAction {
   <h3 class="font-medium text-muted-foreground text-sm">
     {entry.label}
   </h3>
-  {#if linkView === "grid"}
+  <div class="xl:hidden">
     <LinksTabGrid
       links={entry.links}
       {linkIconLabel}
@@ -43,8 +41,12 @@ function pinAction(link: DashboardOverviewLinkItem): DashboardLinkPinAction {
       {submitDashboardLinkPin}
       {updatingDashboardLinkSlug}
     />
-  {:else}
+  </div>
+  <div class="hidden xl:block">
     <LinksTabList
+      colActions={dashboardCopy.linkHub.colActions}
+      colDescription={dashboardCopy.linkHub.colDescription}
+      colName={dashboardCopy.linkHub.colName}
       links={entry.links}
       {linkIconLabel}
       {linkReturnTo}
@@ -53,5 +55,5 @@ function pinAction(link: DashboardOverviewLinkItem): DashboardLinkPinAction {
       {submitDashboardLinkPin}
       {updatingDashboardLinkSlug}
     />
-  {/if}
+  </div>
 </section>

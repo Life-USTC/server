@@ -23,8 +23,6 @@ export function createDashboardControllerDefaultState() {
     bulkImportMessage: "",
     bulkImportSemesterId: "",
     bulkImportText: "",
-    calendarCopyError: "",
-    calendarCopyMessage: "",
     calendarData: null as CalendarData | null,
     calendarMonth: "",
     calendarSemesterId: null as number | null,

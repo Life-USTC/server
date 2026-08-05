@@ -66,7 +66,6 @@ export let suspensionReason: string;
   </Field.Group>
   <Button
     disabled={isSuspendingUser || !comment.user?.id}
-    size="sm"
     type="button"
     variant="destructive"
     onclick={suspendCommentAuthor}

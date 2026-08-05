@@ -47,8 +47,7 @@ export async function getSectionPage(
   const relatedData =
     options.includeRelated === false
       ? {
-          sameSemesterOtherTeachers: [],
-          sameTeacherOtherSemesters: [],
+          otherCourseSections: [],
         }
       : await getSectionPageRelatedData({ prisma, section });
 

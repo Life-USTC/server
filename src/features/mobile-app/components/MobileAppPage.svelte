@@ -1,74 +1,24 @@
 <script lang="ts">
-import BellIcon from "@lucide/svelte/icons/bell";
-import BookOpenIcon from "@lucide/svelte/icons/book-open";
-import CalendarDaysIcon from "@lucide/svelte/icons/calendar-days";
-import ExternalLinkIcon from "@lucide/svelte/icons/external-link";
-import LayoutDashboardIcon from "@lucide/svelte/icons/layout-dashboard";
-import RouteIcon from "@lucide/svelte/icons/route";
-import SearchIcon from "@lucide/svelte/icons/search";
-import ShieldCheckIcon from "@lucide/svelte/icons/shield-check";
-import SmartphoneIcon from "@lucide/svelte/icons/smartphone";
-import UsersIcon from "@lucide/svelte/icons/users";
-import appIconUrl from "$lib/assets/life-ustc-icon-192.png";
-import { Badge } from "$lib/components/ui/badge/index.js";
-import { Button } from "$lib/components/ui/button/index.js";
-import * as Card from "$lib/components/ui/card/index.js";
-import * as Item from "$lib/components/ui/item/index.js";
+import { onMount } from "svelte";
 
-type LinkCopy = {
-  description: string;
-  title: string;
-};
-
-type MobileFeatureCopy = {
-  description: string;
+type ScreenshotCopy = {
+  alt: string;
   title: string;
 };
 
 type PageData = {
   copy: {
     homepage: {
-      actions: { openDashboard: string };
-      appIconAlt: string;
       downloadBadgeAlt: string;
-      quickAccess: {
-        browseCourses: LinkCopy;
-        browseTeachers: LinkCopy;
-        openDashboard: LinkCopy;
-        viewSections: LinkCopy;
-      };
     };
     metadata: { mobileApp: string };
     mobileAppPage: {
-      availability: string;
-      eyebrow: string;
-      featureTitle: string;
-      features: {
-        bus: MobileFeatureCopy;
-        catalog: MobileFeatureCopy;
-        profile: MobileFeatureCopy;
-        schedule: MobileFeatureCopy;
-      };
-      preview: {
-        busLabel: string;
-        busStatus: string;
-        calendarStatus: string;
-        linksLabel: string;
-        linksStatus: string;
-        scheduleLabel: string;
-      };
-      previewStatusDescription: string;
-      previewStatusTitle: string;
-      previewSubtitle: string;
-      previewTitle: string;
-      quickLinksTitle: string;
-      stats: {
-        accessLabel: string;
-        accessValue: string;
-        companionLabel: string;
-        companionValue: string;
-        platformLabel: string;
-        platformValue: string;
+      galleryTitle: string;
+      screenshots: {
+        bus: ScreenshotCopy;
+        catalog: ScreenshotCopy;
+        schedule: ScreenshotCopy;
+        workspace: ScreenshotCopy;
       };
       subtitle: string;
       title: string;
@@ -78,242 +28,292 @@ type PageData = {
 
 export let data: PageData;
 
+const HERO_COUNT = 3;
+const HERO_INTERVAL_MS = 2800;
+
+/** Official Apple Design Resources — iPhone 16 Pro Max Black Titanium Portrait */
+const IPHONE_BEZEL_SRC = "/images/mobile-app/iphone-16-pro-max-bezel.png";
+
 $: homeCopy = data.copy.homepage;
 $: pageCopy = data.copy.mobileAppPage;
-$: featureItems = [
+$: heroShots = [
   {
-    copy: pageCopy.features.schedule,
-    icon: CalendarDaysIcon,
+    copy: pageCopy.screenshots.schedule,
+    src: "/images/mobile-app/screenshot-01.png",
   },
   {
-    copy: pageCopy.features.bus,
-    icon: RouteIcon,
+    copy: pageCopy.screenshots.bus,
+    src: "/images/mobile-app/screenshot-02.png",
   },
   {
-    copy: pageCopy.features.catalog,
-    icon: SearchIcon,
-  },
-  {
-    copy: pageCopy.features.profile,
-    icon: ShieldCheckIcon,
+    copy: pageCopy.screenshots.catalog,
+    src: "/images/mobile-app/screenshot-03.png",
   },
 ];
-$: previewItems = [
+$: screenshots = [
+  ...heroShots,
   {
-    label: pageCopy.preview.scheduleLabel,
-    status: pageCopy.preview.calendarStatus,
-    icon: CalendarDaysIcon,
-  },
-  {
-    label: pageCopy.preview.busLabel,
-    status: pageCopy.preview.busStatus,
-    icon: RouteIcon,
-  },
-  {
-    label: pageCopy.preview.linksLabel,
-    status: pageCopy.preview.linksStatus,
-    icon: BookOpenIcon,
+    copy: pageCopy.screenshots.workspace,
+    src: "/images/mobile-app/screenshot-04.png",
   },
 ];
-$: quickLinks = [
-  {
-    copy: homeCopy.quickAccess.openDashboard,
-    href: "/",
-    icon: LayoutDashboardIcon,
-  },
-  {
-    copy: homeCopy.quickAccess.browseCourses,
-    href: "/catalog/courses",
-    icon: BookOpenIcon,
-  },
-  {
-    copy: homeCopy.quickAccess.viewSections,
-    href: "/catalog/sections",
-    icon: CalendarDaysIcon,
-  },
-  {
-    copy: homeCopy.quickAccess.browseTeachers,
-    href: "/catalog/teachers",
-    icon: UsersIcon,
-  },
-];
-$: stats = [
-  {
-    label: pageCopy.stats.companionLabel,
-    value: pageCopy.stats.companionValue,
-  },
-  {
-    label: pageCopy.stats.platformLabel,
-    value: pageCopy.stats.platformValue,
-  },
-  {
-    label: pageCopy.stats.accessLabel,
-    value: pageCopy.stats.accessValue,
-  },
-];
+
+let frontIndex = 0;
+
+onMount(() => {
+  const media = window.matchMedia("(prefers-reduced-motion: reduce)");
+  const tick = () => {
+    if (media.matches) return;
+    frontIndex = (frontIndex + 1) % HERO_COUNT;
+  };
+  const id = window.setInterval(tick, HERO_INTERVAL_MS);
+  return () => window.clearInterval(id);
+});
 </script>
+
+<style>
+  @keyframes -global-mobile-app-rise {
+    from {
+      opacity: 0;
+      transform: translateY(1.25rem);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes -global-mobile-app-drift {
+    from {
+      opacity: 0;
+      transform: translateY(2rem) scale(0.96);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+  }
+
+  .hero-copy {
+    animation: mobile-app-rise 0.7s ease-out both;
+  }
+
+  .hero-phone {
+    animation: mobile-app-drift 0.9s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  .phone-slot {
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    width: 78%;
+    transition:
+      transform 0.75s cubic-bezier(0.22, 1, 0.36, 1),
+      opacity 0.75s ease,
+      width 0.75s cubic-bezier(0.22, 1, 0.36, 1);
+    will-change: transform, opacity, width;
+  }
+
+  .phone-slot-front {
+    z-index: 20;
+    width: 100%;
+    opacity: 1;
+    transform: translateX(-50%) rotate(0deg) scale(1);
+  }
+
+  .phone-slot-left {
+    z-index: 0;
+    opacity: 0.9;
+    transform: translateX(calc(-50% - 48%)) rotate(-6deg) scale(0.96);
+  }
+
+  .phone-slot-right {
+    z-index: 10;
+    opacity: 0.9;
+    transform: translateX(calc(-50% + 48%)) rotate(6deg) scale(0.96);
+  }
+
+  /* Official Apple bezel overlay; screen hole measured from the PNG. */
+  .phone-frame {
+    position: relative;
+    filter: drop-shadow(0 25px 50px rgb(0 0 0 / 0.28));
+  }
+
+  .phone-screen {
+    position: absolute;
+    /* Slightly under the bezel lip to hide subpixel hairlines. */
+    inset: 2.05% 4.95%;
+    z-index: 0;
+    overflow: hidden;
+    /* Match iPhone 16 Pro Max screen corners (~224px on the 1470×3000 bezel). */
+    border-radius: 17% / 7.7%;
+    background: #000;
+  }
+
+  .phone-screen img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center top;
+    /* Bleed under the bezel so no 1px gap remains at the clip edge. */
+    transform: scale(1.02);
+    transform-origin: center top;
+  }
+
+  .phone-bezel {
+    position: relative;
+    z-index: 1;
+    display: block;
+    width: 100%;
+    height: auto;
+    pointer-events: none;
+    user-select: none;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .phone-slot {
+      transition: none;
+    }
+  }
+
+  .gallery-item {
+    animation: mobile-app-rise 0.65s ease-out both;
+  }
+
+  .gallery-item:nth-child(1) {
+    animation-delay: 0.05s;
+  }
+  .gallery-item:nth-child(2) {
+    animation-delay: 0.12s;
+  }
+  .gallery-item:nth-child(3) {
+    animation-delay: 0.19s;
+  }
+  .gallery-item:nth-child(4) {
+    animation-delay: 0.26s;
+  }
+</style>
 
 <svelte:head><title>{data.copy.metadata.mobileApp} - Life@USTC</title></svelte:head>
 
-<section class="grid gap-5">
-  <div class="grid gap-5 xl:grid-cols-[minmax(0,1fr)_22rem] xl:items-start">
-    <Card.Root class="overflow-hidden">
-      <Card.Header class="p-4 sm:p-5">
-        <div class="flex min-w-0 items-center gap-3">
-          <img
-            class="size-12 rounded-md border border-border bg-background"
-            src={appIconUrl}
-            alt={homeCopy.appIconAlt}
-          />
-          <div class="min-w-0">
-            <p class="font-medium text-muted-foreground text-xs uppercase tracking-normal">
-              {pageCopy.eyebrow}
-            </p>
-            <h1 class="text-balance font-semibold text-2xl leading-tight tracking-normal sm:text-3xl">
-              {pageCopy.title}
-            </h1>
-          </div>
-        </div>
-        <Card.Action>
-          <Badge variant="outline">{pageCopy.availability}</Badge>
-        </Card.Action>
-        <Card.Description class="max-w-3xl">
-          {pageCopy.subtitle}
-        </Card.Description>
-      </Card.Header>
+<section class="grid gap-10 pb-8">
+  <div
+    class="relative -mx-4 -mt-4 bg-[radial-gradient(120%_80%_at_10%_0%,color-mix(in_oklab,var(--primary)_14%,transparent),transparent_55%),linear-gradient(180deg,color-mix(in_oklab,var(--muted)_55%,transparent),var(--background))] sm:-mx-5 lg:-mx-6"
+  >
+    <div
+      class="grid items-end gap-8 px-4 pt-8 pb-10 sm:px-5 sm:pt-10 sm:pb-12 lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)] lg:gap-10 lg:px-6 lg:pt-12 lg:pb-14"
+    >
+      <div class="hero-copy grid max-w-xl content-center gap-5 pb-2 lg:pb-6">
+        <img
+          alt=""
+          class="size-14 rounded-2xl border border-border shadow-sm"
+          height="56"
+          src="/images/mobile-app/app-icon.png"
+          width="56"
+        />
 
-      <Card.Content class="grid gap-5 px-4 sm:px-5">
-        <Item.Group class="grid gap-2 sm:grid-cols-3">
-          {#each stats as item}
-            <Item.Root class="items-start" size="sm" variant="muted">
-              <Item.Content>
-                <Item.Title class="line-clamp-none">{item.value}</Item.Title>
-                <Item.Description class="line-clamp-none break-words">{item.label}</Item.Description>
-              </Item.Content>
-            </Item.Root>
-          {/each}
-        </Item.Group>
-      </Card.Content>
-
-      <Card.Footer class="flex-wrap gap-2 px-4 sm:px-5">
-        <div class="flex flex-wrap items-center gap-2">
-          <a
-            class="inline-flex rounded-md no-underline transition hover:opacity-90"
-            href="https://apps.apple.com/us/app/life-ustc/id1660437438"
-            target="_blank"
-            rel="noreferrer"
+        <div class="grid gap-3">
+          <h1
+            class="text-balance font-semibold text-4xl tracking-tight sm:text-5xl lg:text-6xl"
           >
-            <img
-              src="/images/appstore.svg"
-              alt={homeCopy.downloadBadgeAlt}
-              width="150"
-              height="44"
-            />
-          </a>
-          <Button href="/" variant="outline">
-            <LayoutDashboardIcon data-icon="inline-start" />
-            {homeCopy.actions.openDashboard}
-          </Button>
+            {pageCopy.title}
+          </h1>
+          <p class="max-w-md text-pretty text-base text-muted-foreground sm:text-lg">
+            {pageCopy.subtitle}
+          </p>
         </div>
-      </Card.Footer>
-    </Card.Root>
 
-    <Card.Root class="overflow-hidden">
-      <Card.Header class="p-4">
-        <div class="flex items-center gap-3">
-          <Item.Media variant="icon">
-            <SmartphoneIcon />
-          </Item.Media>
-          <div class="min-w-0">
-            <Card.Title>{pageCopy.previewTitle}</Card.Title>
-            <Card.Description>{pageCopy.previewSubtitle}</Card.Description>
-          </div>
-        </div>
-      </Card.Header>
-      <Card.Content class="grid gap-3 p-4">
-        <Item.Root variant="muted">
-          <Item.Media variant="icon">
-            <BellIcon />
-          </Item.Media>
-          <Item.Content>
-            <Item.Title class="line-clamp-none">{pageCopy.previewStatusTitle}</Item.Title>
-            <Item.Description class="line-clamp-none break-words">
-              {pageCopy.previewStatusDescription}
-            </Item.Description>
-          </Item.Content>
-        </Item.Root>
+        <a
+          class="inline-flex w-fit rounded-md no-underline transition hover:opacity-90"
+          href="https://apps.apple.com/us/app/life-ustc/id1660437438"
+          rel="noreferrer"
+          target="_blank"
+        >
+          <img
+            alt={homeCopy.downloadBadgeAlt}
+            height="44"
+            src="/images/appstore.svg"
+            width="150"
+          />
+        </a>
+      </div>
 
-        <Item.Group class="gap-2">
-          {#each previewItems as item}
-            <Item.Root size="sm" variant="outline">
-              <Item.Media variant="icon">
-                <svelte:component this={item.icon} />
-              </Item.Media>
-              <Item.Content>
-                <Item.Title class="line-clamp-none">{item.label}</Item.Title>
-              </Item.Content>
-              <Item.Actions class="shrink-0">
-                {item.status}
-              </Item.Actions>
-            </Item.Root>
+      <div
+        class="hero-phone relative mx-auto w-full max-w-md lg:max-w-xl lg:justify-self-end"
+      >
+        <div
+          class="pointer-events-none absolute inset-x-8 bottom-8 h-24 rounded-full bg-foreground/10 blur-3xl"
+          aria-hidden="true"
+        ></div>
+        <div class="relative mx-auto w-[78%] sm:w-[68%]" aria-live="polite">
+          <img
+            alt=""
+            aria-hidden="true"
+            class="invisible block h-auto w-full"
+            decoding="async"
+            src={IPHONE_BEZEL_SRC}
+          />
+          {#each heroShots as shot, index (shot.src)}
+            {@const relative = (index - frontIndex + HERO_COUNT) % HERO_COUNT}
+            <figure
+              class="phone-slot"
+              class:phone-slot-front={relative === 0}
+              class:phone-slot-right={relative === 1}
+              class:phone-slot-left={relative === 2}
+            >
+              <div class="phone-frame">
+                <div class="phone-screen">
+                  <img
+                    alt={shot.copy.alt}
+                    decoding="async"
+                    fetchpriority={index === 0 ? "high" : undefined}
+                    loading="eager"
+                    src={shot.src}
+                  />
+                </div>
+                <img
+                  alt=""
+                  aria-hidden="true"
+                  class="phone-bezel"
+                  decoding="async"
+                  src={IPHONE_BEZEL_SRC}
+                />
+              </div>
+            </figure>
           {/each}
-        </Item.Group>
-      </Card.Content>
-    </Card.Root>
+        </div>
+      </div>
+    </div>
   </div>
 
-  <div class="grid gap-5 xl:grid-cols-[minmax(0,1fr)_22rem] xl:items-start">
-    <Card.Root>
-      <Card.Header class="p-4 pb-0 sm:p-5 sm:pb-0">
-        <Card.Title>{pageCopy.featureTitle}</Card.Title>
-      </Card.Header>
-      <Card.Content class="p-4 sm:p-5">
-        <Item.Group class="grid gap-2 sm:grid-cols-2">
-          {#each featureItems as item}
-            <Item.Root class="items-start" variant="outline">
-              <Item.Media variant="icon">
-                <svelte:component this={item.icon} />
-              </Item.Media>
-              <Item.Content>
-                <Item.Title class="line-clamp-none">{item.copy.title}</Item.Title>
-                <Item.Description class="line-clamp-none break-words">
-                  {item.copy.description}
-                </Item.Description>
-              </Item.Content>
-            </Item.Root>
-          {/each}
-        </Item.Group>
-      </Card.Content>
-    </Card.Root>
+  <div class="grid gap-4">
+    <h2 class="font-semibold text-2xl tracking-normal">{pageCopy.galleryTitle}</h2>
 
-    <Card.Root>
-      <Card.Header class="p-4 pb-0">
-        <Card.Title>{pageCopy.quickLinksTitle}</Card.Title>
-      </Card.Header>
-      <Card.Content class="p-4">
-        <Item.Group class="gap-1.5">
-          {#each quickLinks as item}
-            <Item.Root size="sm">
-              {#snippet child({ props })}
-                <a {...props} href={item.href}>
-                  <Item.Media variant="icon">
-                    <svelte:component this={item.icon} />
-                  </Item.Media>
-                  <Item.Content>
-                    <Item.Title class="line-clamp-none">{item.copy.title}</Item.Title>
-                    <Item.Description class="line-clamp-none break-words">
-                      {item.copy.description}
-                    </Item.Description>
-                  </Item.Content>
-                  <Item.Actions>
-                    <ExternalLinkIcon />
-                  </Item.Actions>
-                </a>
-              {/snippet}
-            </Item.Root>
-          {/each}
-        </Item.Group>
-      </Card.Content>
-    </Card.Root>
+    <div class="grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
+      {#each screenshots as shot}
+        <figure class="gallery-item grid gap-3">
+          <div class="phone-frame transition duration-300 hover:-translate-y-1">
+            <div class="phone-screen">
+              <img
+                alt={shot.copy.alt}
+                decoding="async"
+                loading="lazy"
+                src={shot.src}
+              />
+            </div>
+            <img
+              alt=""
+              aria-hidden="true"
+              class="phone-bezel"
+              decoding="async"
+              loading="lazy"
+              src={IPHONE_BEZEL_SRC}
+            />
+          </div>
+          <figcaption class="px-1 font-medium text-sm">{shot.copy.title}</figcaption>
+        </figure>
+      {/each}
+    </div>
   </div>
 </section>

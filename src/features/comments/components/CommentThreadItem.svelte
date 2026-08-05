@@ -5,7 +5,6 @@ import {
 } from "@/features/comments/lib/comment-ui";
 import type { CommentNode } from "@/features/comments/server/comment-types";
 import type { ViewerContext } from "@/lib/auth/viewer-context";
-import * as Card from "$lib/components/ui/card/index.js";
 import CommentReactionControls from "./CommentReactionControls.svelte";
 import CommentReplyEditor from "./CommentReplyEditor.svelte";
 import CommentThreadBody from "./CommentThreadBody.svelte";
@@ -77,84 +76,78 @@ export let viewer: ViewerContext;
 </script>
 
 <article
-  class="grid gap-3"
+  class={`grid gap-3 border-b border-border/70 py-4 last:border-b-0 ${
+    highlightedId === comment.id ? "rounded-lg ring-2 ring-primary/40" : ""
+  }`}
   id={`comment-${comment.id}`}
   style={`margin-left: ${Math.min(depth, 3) * 1.25}rem`}
 >
-  <Card.Root
-    class={highlightedId === comment.id ? "ring-2 ring-primary/40" : ""}
-  >
-    <Card.Header class="px-4 md:px-5">
-      <CommentThreadHeader
-        bind:actionMenuId
-        {authorInitials}
-        {authorName}
-        {comment}
-        {commentCopy}
-        {copyCommentLink}
-        {formatTime}
-        {openDeleteDialog}
-        {startEdit}
-        {statusLabel}
-        {toggleReply}
-      />
-    </Card.Header>
+  <CommentThreadHeader
+    bind:actionMenuId
+    {authorInitials}
+    {authorName}
+    {comment}
+    {commentCopy}
+    {copyCommentLink}
+    {formatTime}
+    {openDeleteDialog}
+    {startEdit}
+    {statusLabel}
+    {toggleReply}
+  />
 
-    <Card.Content class="px-4 md:px-5">
-      <CommentThreadBody
-        {cancelEdit}
+  <CommentThreadBody
+    {cancelEdit}
+    {comment}
+    {commentCopy}
+    bind:editAttachmentIds
+    {editAttachmentOptions}
+    bind:editDraft
+    {editingId}
+    bind:editIsAnonymous
+    bind:editVisibility
+    {formatSize}
+    {saveEdit}
+    {uploadCopy}
+    uploading={editUploading}
+    {uploadFile}
+    {visibilityOptions}
+  />
+
+  <div class="grid gap-4">
+    <CommentReactionControls
+      {comment}
+      {commentCopy}
+      {pendingReactionKey}
+      {react}
+      {reactionEntry}
+      {reactionKey}
+      {reactionLabel}
+      bind:reactionMenuId
+      {reactionName}
+      {reactionOptions}
+      {viewer}
+    />
+
+    {#if replyingId === comment.id}
+      <CommentReplyEditor
+        {cancelReply}
         {comment}
         {commentCopy}
-        bind:editAttachmentIds
-        {editAttachmentOptions}
-        bind:editDraft
-        {editingId}
-        bind:editIsAnonymous
-        bind:editVisibility
-        {formatSize}
-        {saveEdit}
+        {commentTarget}
+        {removeReplyAttachment}
+        bind:replyDraft
+        bind:replyIsAnonymous
+        {replyUploadedFiles}
+        bind:replyVisibility
+        {submitting}
+        {submitComment}
         {uploadCopy}
-        uploading={editUploading}
+        uploading={replyUploading}
         {uploadFile}
         {visibilityOptions}
-      />
-    </Card.Content>
-
-    <Card.Footer class="flex-col items-stretch gap-4 px-4 md:px-5">
-      <CommentReactionControls
-        {comment}
-        {commentCopy}
-        {pendingReactionKey}
-        {react}
-        {reactionEntry}
-        {reactionKey}
-        {reactionLabel}
-        bind:reactionMenuId
-        {reactionName}
-        {reactionOptions}
         {viewer}
       />
-
-      {#if replyingId === comment.id}
-        <CommentReplyEditor
-          {cancelReply}
-          {comment}
-          {commentCopy}
-          {commentTarget}
-          {removeReplyAttachment}
-          bind:replyDraft
-          bind:replyIsAnonymous
-          {replyUploadedFiles}
-          bind:replyVisibility
-          {submitting}
-          {submitComment}
-          {uploadCopy}
-          uploading={replyUploading}
-          {uploadFile}
-          {visibilityOptions}
-          {viewer}
-        />
-      {/if}
-    </Card.Footer>
-  </Card.Root>
+    {/if}
+  </div>
 </article>

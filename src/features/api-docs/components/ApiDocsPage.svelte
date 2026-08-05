@@ -198,7 +198,7 @@ function scheduleReferenceRouteRestore() {
 <section class="grid gap-5">
   <PageHeader title={data.copy.apiDocs.title} description={data.copy.apiDocs.description}>
     {#snippet actions()}
-      <Button class="w-full sm:w-auto" href={specPath} size="sm" variant="outline">{data.copy.apiDocs.rawSpecLink}</Button>
+      <Button class="w-full sm:w-auto" href={specPath} variant="outline">{data.copy.apiDocs.rawSpecLink}</Button>
     {/snippet}
   </PageHeader>
 

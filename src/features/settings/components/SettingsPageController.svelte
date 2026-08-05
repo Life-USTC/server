@@ -71,7 +71,7 @@ let {
 $: avatarOptions =
   data.user.profilePictures.length > 0 ? data.user.profilePictures : [];
 $: currentImage = data.user.image ?? "";
-$: previewImage = selectedImage || "/images/icon.png";
+$: previewImage = selectedImage || currentImage || "/images/icon.png";
 $: statusMessage = form?.message ?? data.message;
 $: if (
   _unlinkAccountId &&

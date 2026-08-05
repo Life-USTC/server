@@ -21,6 +21,8 @@ test("/mobile-app 展示下载入口并可返回公开仪表盘", async ({
       name: /Life@USTC.*App Store|在 App Store 下载 Life@USTC/i,
     }),
   ).toBeVisible();
-  await expect(page.locator('a[href="/"]').first()).toBeVisible();
+  await expect(
+    page.locator('img[src="/images/mobile-app/screenshot-01.png"]').first(),
+  ).toBeVisible();
   await captureStepScreenshot(page, testInfo, "mobile-app-intro");
 });

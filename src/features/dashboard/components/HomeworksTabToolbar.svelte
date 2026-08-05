@@ -1,44 +1,17 @@
 <script lang="ts">
-import LayoutGrid from "@lucide/svelte/icons/layout-grid";
-import List from "@lucide/svelte/icons/list";
 import Plus from "@lucide/svelte/icons/plus";
-import type {
-  HomeworkFilter,
-  HomeworkView,
-} from "@/features/dashboard/lib/dashboard-controller-types";
+import type { HomeworkFilter } from "@/features/dashboard/lib/dashboard-controller-types";
 import { Button } from "$lib/components/ui/button/index.js";
 import * as ToggleGroup from "$lib/components/ui/toggle-group/index.js";
 
 export let homeworksCopy: Record<string, string>;
 export let homeworkFilter: HomeworkFilter;
-export let homeworkView: HomeworkView;
+export let onHomeworkFilterChange: (value: HomeworkFilter) => void;
 export let openCreateHomeworkDialog: () => void;
-export let setHomeworkView: (view: HomeworkView) => void;
 </script>
 
 <div class="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-2 md:grid-cols-[minmax(0,1fr)_auto] md:items-center">
   <div class="min-w-0 md:flex md:flex-wrap md:items-center md:gap-2 md:justify-start">
-    <ToggleGroup.Root
-      aria-label={homeworksCopy.viewMode}
-      class="hidden md:flex"
-      type="single"
-      value={homeworkView}
-      variant="outline"
-      onValueChange={(value) => {
-        if (value === "cards" || value === "list") {
-          setHomeworkView(value);
-        }
-      }}
-    >
-      <ToggleGroup.Item value="cards">
-        <LayoutGrid data-icon="inline-start" />
-        {homeworksCopy.cardView}
-      </ToggleGroup.Item>
-      <ToggleGroup.Item value="list">
-        <List data-icon="inline-start" />
-        {homeworksCopy.listView}
-      </ToggleGroup.Item>
-    </ToggleGroup.Root>
     <ToggleGroup.Root
       aria-label={homeworksCopy.title}
       class="w-full min-w-0 md:w-fit"
@@ -51,7 +24,7 @@ export let setHomeworkView: (view: HomeworkView) => void;
           value === "completed" ||
           value === "all"
         ) {
-          homeworkFilter = value;
+          onHomeworkFilterChange(value);
         }
       }}
     >
@@ -69,7 +42,7 @@ export let setHomeworkView: (view: HomeworkView) => void;
   <div class="flex items-center gap-2 md:justify-end">
     <Button
       aria-label={homeworksCopy.addButton}
-      class="size-11 md:h-9 md:w-auto md:min-w-28"
+      class="size-11 md:h-8 md:w-auto md:min-w-28"
       data-testid="dashboard-homeworks-add"
       type="button"
       onclick={openCreateHomeworkDialog}

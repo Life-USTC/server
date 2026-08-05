@@ -1,19 +1,17 @@
 <script lang="ts">
+import CalendarIcon from "@lucide/svelte/icons/calendar";
 import type { SubmitFunction } from "@sveltejs/kit";
 import { onMount } from "svelte";
 import type { SectionDetailPageData } from "@/features/section-detail/lib/section-detail-controller-helpers";
 import type { SectionDetailSection } from "@/features/section-detail/lib/section-detail-controller-types";
+import { Button } from "$lib/components/ui/button/index.js";
 import { Separator } from "$lib/components/ui/separator/index.js";
 import { Spinner } from "$lib/components/ui/spinner/index.js";
 import { cn } from "$lib/utils.js";
 import SectionBasicInfoCard from "./SectionBasicInfoCard.svelte";
 import SectionDetailHeader from "./SectionDetailHeader.svelte";
 import SectionDetailPrimaryActions from "./SectionDetailPrimaryActions.svelte";
-import SectionTeachersCard from "./SectionTeachersCard.svelte";
-import type {
-  BooleanSetter,
-  FormatMessage,
-} from "./section-detail-component-types";
+import type { FormatMessage } from "./section-detail-component-types";
 import type { SectionDetailMainContentProps } from "./section-detail-dialog-types";
 
 type SubscriptionActionKey = "subscribe" | "unsubscribe";
@@ -33,8 +31,6 @@ export let fmtDate: SectionDetailMainContentProps["fmtDate"];
 export let fmtDateTime: SectionDetailMainContentProps["fmtDateTime"];
 export let formatMessage: FormatMessage;
 export let homeworkCopy: SectionDetailMainContentProps["homeworkCopy"];
-export let homeworkStatus: SectionDetailMainContentProps["homeworkStatus"];
-export let homeworkView: SectionDetailMainContentProps["homeworkView"];
 export let homeworks: SectionDetailMainContentProps["homeworks"];
 export let notAvailable: string;
 export let openCalendarDialog: SectionDetailMainContentProps["openCalendarDialog"];
@@ -46,8 +42,6 @@ export let sectionCalendarEvents: SectionDetailMainContentProps["sectionCalendar
 export let sectionCalendarGridWeeks: SectionDetailMainContentProps["sectionCalendarGridWeeks"];
 export let sectionCopy: SectionDetailMainContentProps["sectionCopy"];
 export let sectionTeachersLabel: SectionDetailMainContentProps["sectionTeachersLabel"];
-export let setHomeworkAuditDialogOpen: BooleanSetter;
-export let setHomeworkView: SectionDetailMainContentProps["setHomeworkView"];
 export let setSelectedHomework: SectionDetailMainContentProps["setSelectedHomework"];
 export let streamLoading: boolean;
 export let subscriptionAction: (
@@ -104,15 +98,12 @@ $: sectionExamEvents = sectionCalendarEvents.filter(
       courseName={courseName}
       courseSecondaryName={courseSecondaryName}
       formError={formError}
-      notAvailable={notAvailable}
       onOpenCalendar={openCalendarDialog}
       onOpenSubscribe={openSubscribeDialog}
-      primaryName={primaryName}
       section={displaySection}
       sectionCopy={sectionCopy}
       subscriptionAction={subscriptionAction}
       subscriptionPendingAction={subscriptionPendingAction}
-      {teacherName}
       viewer={data.viewer}
     />
   </div>
@@ -135,9 +126,6 @@ $: sectionExamEvents = sectionCalendarEvents.filter(
     <div class="grid gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(16rem,20rem)] lg:items-start lg:gap-10">
       <div class="grid min-w-0 gap-10">
         <section id="introduction" class="scroll-mt-4">
-          <h2 class="mb-3 text-lg font-semibold tracking-tight">
-            {data.copy.descriptions.title}
-          </h2>
           {#key `description:section:${data.section.id}`}
             {#if DescriptionCard}
               <svelte:component
@@ -147,9 +135,13 @@ $: sectionExamEvents = sectionCalendarEvents.filter(
                 initialData={descriptionData}
                 locale={data.locale}
                 copy={data.copy.descriptions}
+                heading={data.copy.descriptions.title}
                 showTitle={false}
               />
             {:else if descriptionData.description.renderedHtml}
+              <h2 class="mb-3 text-lg font-semibold tracking-tight">
+                {data.copy.descriptions.title}
+              </h2>
               <div class="markdown-preview" data-slot="markdown-preview">
                 {@html descriptionData.description.renderedHtml}
               </div>
@@ -158,21 +150,20 @@ $: sectionExamEvents = sectionCalendarEvents.filter(
         </section>
 
         <section id="calendar" class="scroll-mt-4">
-          <h2 class="mb-3 text-lg font-semibold tracking-tight">
-            {sectionCopy.tabs.calendar}
-          </h2>
+          <div class="mb-3 flex flex-wrap items-center justify-between gap-3">
+            <h2 class="text-lg font-semibold tracking-tight">
+              {sectionCopy.tabs.calendar}
+            </h2>
+            <Button variant="outline" type="button" onclick={openCalendarDialog}>
+              <CalendarIcon data-icon="inline-start" />
+              {sectionCopy.addToCalendar}
+            </Button>
+          </div>
           {#if SectionCalendarTab}
             <svelte:component
               this={SectionCalendarTab}
-              bind:calendarMonthOffset
-              calendarGridWeeks={sectionCalendarGridWeeks}
-              {calendarMonthLabel}
-              dateTimePlaceText={displaySection.dateTimePlaceText}
-              {formatMessage}
-              {openCalendarDialog}
               {sectionCalendarEvents}
               {sectionCopy}
-              {todayCalendarMonthOffset}
               {unscheduledCalendarEvents}
             />
           {/if}
@@ -193,33 +184,36 @@ $: sectionExamEvents = sectionCalendarEvents.filter(
         </section>
 
         <section id="homework" class="scroll-mt-4">
-          <h2 class="mb-3 text-lg font-semibold tracking-tight">
-            {sectionCopy.tabs.homeworks}
-          </h2>
+          <div class="mb-3 flex flex-wrap items-center justify-between gap-3">
+            <h2 class="text-lg font-semibold tracking-tight">
+              {sectionCopy.tabs.homeworks}
+            </h2>
+            {#if canWriteHomework}
+              <Button type="button" onclick={openCreateHomeworkDialog}>
+                {homeworkCopy.showCreate}
+              </Button>
+            {:else if !(viewer.isAuthenticated ?? viewer.signedIn === true)}
+              <Button
+                href={`/account/sign-in?callbackUrl=${encodeURIComponent(`/catalog/sections/${data.section.jwId}`)}`}
+                variant="outline"
+              >
+                {homeworkCopy.loginToCreate}
+              </Button>
+            {/if}
+          </div>
           {#if SectionHomeworkTab}
             <svelte:component
               this={SectionHomeworkTab}
-              {canWriteHomework}
               {fmtDateTime}
               {homeworkCopy}
-              {homeworkStatus}
-              {homeworkView}
               {homeworks}
-              isAuthenticated={viewer.isAuthenticated ?? viewer.signedIn === true}
-              openAuditDialog={() => setHomeworkAuditDialogOpen(true)}
-              {openCreateHomeworkDialog}
               {sectionCopy}
-              sectionJwId={data.section.jwId}
               selectHomework={setSelectedHomework}
-              {setHomeworkView}
             />
           {/if}
         </section>
 
         <section id="comments" class="scroll-mt-4">
-          <h2 class="mb-3 text-lg font-semibold tracking-tight">
-            {sectionCopy.tabs.comments}
-          </h2>
           {#key `comments:section:${data.section.id}`}
             {#if CommentsPanel}
               <svelte:component
@@ -229,36 +223,26 @@ $: sectionExamEvents = sectionCalendarEvents.filter(
                 targetId={data.section.id}
                 targets={commentTargets}
                 showAllTargets
+                heading={sectionCopy.tabs.comments}
               />
             {/if}
           {/key}
         </section>
       </div>
 
-      <aside class="grid min-w-0 gap-6 lg:sticky lg:top-4">
-        <section id="overview">
-          <SectionBasicInfoCard
-            {commonCopy}
-            {notAvailable}
-            {periodDetailRows}
-            {primaryName}
-            section={displaySection}
-            {sectionCopy}
-            {sectionTeachersLabel}
-            {yesNo}
-          />
-        </section>
-        <section id="teachers">
-          <h2 class="mb-3 text-lg font-semibold tracking-tight">
-            {sectionCopy.teachers}
-          </h2>
-          <SectionTeachersCard
-            {primaryName}
-            {sectionCopy}
-            {teacherName}
-            teachers={displaySection.teachers}
-          />
-        </section>
+      <aside class="min-w-0 lg:sticky lg:top-4" id="overview">
+        <SectionBasicInfoCard
+          {commonCopy}
+          {notAvailable}
+          {periodDetailRows}
+          {primaryName}
+          section={displaySection}
+          {sectionCopy}
+          {sectionTeachersLabel}
+          {teacherName}
+          teachers={displaySection.teachers}
+          {yesNo}
+        />
       </aside>
     </div>
   </div>

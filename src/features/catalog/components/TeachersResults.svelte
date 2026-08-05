@@ -1,12 +1,14 @@
 <script lang="ts">
-import type { CatalogNamed } from "@/features/catalog/lib/catalog-list-display";
+import {
+  type CatalogNamed,
+  catalogLocalizedDisplayName,
+} from "@/features/catalog/lib/catalog-list-display";
 import {
   catalogShowingSummary,
   optionalCatalogFilterSummary,
 } from "@/features/catalog/lib/catalog-results-summary";
-import TruncatedBadge from "$lib/components/TruncatedBadge.svelte";
+import { page as appPage } from "$app/stores";
 import TruncatedText from "$lib/components/TruncatedText.svelte";
-import { Badge } from "$lib/components/ui/badge/index.js";
 import * as Item from "$lib/components/ui/item/index.js";
 import * as Table from "$lib/components/ui/table/index.js";
 import CatalogResultsEmpty from "./CatalogResultsEmpty.svelte";
@@ -23,14 +25,13 @@ export let commonLabels: TeacherListCommonLabels;
 export let filters: TeacherListFilters;
 export let page: number;
 export let primaryName: (item: CatalogNamed | null | undefined) => string;
-export let secondaryName: (item: CatalogNamed | null | undefined) => string;
 export let selectedDepartment: CatalogNamed | null | undefined;
-export let showSecondaryNames: boolean;
 export let teacherLabels: TeacherListLabels;
 export let teachers: TeacherListRow[];
 export let total: number;
 export let totalPages: number;
 
+$: locale = $appPage.data.locale ?? "zh-cn";
 $: teacherSummaryBase = catalogShowingSummary(
   teacherLabels.showing,
   teachers.length,
@@ -70,17 +71,16 @@ $: pageLabel = teacherLabels.pageOf
             {#snippet child({ props })}
               <a href={teacherHref} {...props}>
                 <Item.Content>
-                  <Item.Title>{primaryName(teacher)}</Item.Title>
-                  {#if showSecondaryNames && secondaryName(teacher)}
-                    <Item.Description>({secondaryName(teacher)})</Item.Description>
-                  {/if}
+                  <Item.Title>{catalogLocalizedDisplayName(teacher, locale)}</Item.Title>
                 </Item.Content>
                 <Item.Actions>
-                  <Badge variant="outline">{teacher._count.sections}</Badge>
+                  <span class="tabular-nums text-muted-foreground text-sm"
+                    >{teacher._count.sections}</span
+                  >
                 </Item.Actions>
-                <Item.Footer class="flex-wrap justify-start">
+                <Item.Footer class="flex-wrap justify-start gap-x-3 gap-y-1 text-sm">
                   {#if teacher.code}
-                    <Badge variant="outline">{teacher.code}</Badge>
+                    <span class="font-mono text-muted-foreground">{teacher.code}</span>
                   {/if}
                   <span>{teacher.department ? primaryName(teacher.department) : teacherLabels.noDepartment}</span>
                   <span>{teacher.teacherTitle ? primaryName(teacher.teacherTitle) : commonLabels.unknown}</span>
@@ -93,45 +93,34 @@ $: pageLabel = teacherLabels.pageOf
       </Item.Group>
     </div>
     <div class="hidden xl:block">
-      <Table.Root class="table-fixed">
+      <Table.Root class="">
         <Table.Header>
           <Table.Row>
-            <Table.Head class="min-w-56">{teacherLabels.name}</Table.Head>
-            <Table.Head class="w-28">{teacherLabels.code}</Table.Head>
-            <Table.Head class="min-w-44">{teacherLabels.department}</Table.Head>
-            <Table.Head class="w-36">{teacherLabels.title_label}</Table.Head>
-            <Table.Head class="min-w-56">{teacherLabels.email}</Table.Head>
-            <Table.Head class="w-24 text-right">{teacherLabels.sections}</Table.Head>
+            <Table.Head>{teacherLabels.name}</Table.Head>
+            <Table.Head>{teacherLabels.code}</Table.Head>
+            <Table.Head>{teacherLabels.department}</Table.Head>
+            <Table.Head>{teacherLabels.title_label}</Table.Head>
+            <Table.Head>{teacherLabels.email}</Table.Head>
+            <Table.Head>{teacherLabels.sections}</Table.Head>
           </Table.Row>
         </Table.Header>
         <Table.Body>
           {#each teachers as teacher}
             {@const teacherHref = `/catalog/teachers/${teacher.id}`}
             <Table.Row>
-              <Table.Cell class="min-w-56 p-0 align-top">
+              <Table.Cell class="p-0">
                 <CatalogTableLink href={teacherHref}>
                   <TruncatedText
-                    class="font-medium"
-                    text={primaryName(teacher)}
-                  />
-                  <TruncatedText
-                    class="text-muted-foreground text-xs"
-                    text={showSecondaryNames && secondaryName(teacher)
-                      ? `(${secondaryName(teacher)})`
-                      : null}
+                    text={catalogLocalizedDisplayName(teacher, locale)}
                   />
                 </CatalogTableLink>
               </Table.Cell>
-              <Table.Cell class="p-0 align-top">
-                <CatalogTableLink href={teacherHref}>
-                  {#if teacher.code}
-                    <TruncatedBadge text={teacher.code} />
-                  {:else}
-                    -
-                  {/if}
+              <Table.Cell class="p-0">
+                <CatalogTableLink href={teacherHref} mono nowrap>
+                  {teacher.code || "-"}
                 </CatalogTableLink>
               </Table.Cell>
-              <Table.Cell class="min-w-44 p-0 align-top">
+              <Table.Cell class="p-0">
                 <CatalogTableLink href={teacherHref}>
                   <TruncatedText
                     text={teacher.department
@@ -140,23 +129,21 @@ $: pageLabel = teacherLabels.pageOf
                   />
                 </CatalogTableLink>
               </Table.Cell>
-              <Table.Cell class="p-0 align-top">
+              <Table.Cell class="p-0">
                 <CatalogTableLink href={teacherHref}>
-                  <TruncatedText
-                    text={teacher.teacherTitle
-                      ? primaryName(teacher.teacherTitle)
-                      : commonLabels.unknown}
-                  />
+                  {teacher.teacherTitle
+                    ? primaryName(teacher.teacherTitle)
+                    : commonLabels.unknown}
                 </CatalogTableLink>
               </Table.Cell>
-              <Table.Cell class="min-w-56 p-0 align-top">
+              <Table.Cell class="p-0">
                 <CatalogTableLink href={teacherHref}>
                   <TruncatedText text={teacher.email ?? "-"} />
                 </CatalogTableLink>
               </Table.Cell>
-              <Table.Cell class="p-0 text-right align-top">
-                <CatalogTableLink href={teacherHref}>
-                  <Badge variant="outline">{teacher._count.sections}</Badge>
+              <Table.Cell class="p-0">
+                <CatalogTableLink href={teacherHref} nowrap numeric>
+                  {teacher._count.sections}
                 </CatalogTableLink>
               </Table.Cell>
             </Table.Row>

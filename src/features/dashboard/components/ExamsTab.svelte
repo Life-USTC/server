@@ -3,10 +3,10 @@ import type {
   DashboardDashboardCopy,
   DashboardSectionCopy,
   DashboardSubscriptionsCopy,
-  ExamView,
   SignedDashboardData,
 } from "@/features/dashboard/lib/dashboard-controller-types";
 import { hasDashboardSubscriptions } from "@/features/dashboard/lib/dashboard-subscription-state";
+import { resolveDashboardTaskFilter } from "@/features/dashboard/lib/dashboard-task-filter";
 import { createExamTabDisplayActions } from "@/features/dashboard/lib/exams-tab-display";
 import { Button } from "$lib/components/ui/button/index.js";
 import * as Empty from "$lib/components/ui/empty/index.js";
@@ -36,9 +36,7 @@ export let dashboardTabHref: DashboardTabHref;
 export let examTimeLabel: ExamTimeLabel;
 export let examMetadataLabels: ExamMetadataLabels;
 export let namePrimary: NamePrimary;
-export let setExamView: (view: ExamView) => void;
 
-export let examView: ExamView;
 export let examFilter: DashboardExamFilter;
 export let examRows: DashboardExamRow[];
 export let filteredExamRows: DashboardExamRow[];
@@ -49,6 +47,10 @@ $: ({ fmtExamDate } = createExamTabDisplayActions({
   referenceNow: signedData.referenceNow,
   sectionCopy,
 }));
+$: displayExamFilter = resolveDashboardTaskFilter(
+  examFilter,
+  examRows.some((row) => !row.completed),
+);
 </script>
 
 <section class="grid gap-4">
@@ -64,9 +66,10 @@ $: ({ fmtExamDate } = createExamTabDisplayActions({
   {:else}
     <ExamsTabToolbar
       {dashboardCopy}
-      bind:examFilter
-      {examView}
-      {setExamView}
+      examFilter={displayExamFilter}
+      onExamFilterChange={(value) => {
+        examFilter = value;
+      }}
     />
 
     {#if examRows.length === 0}
@@ -97,7 +100,7 @@ $: ({ fmtExamDate } = createExamTabDisplayActions({
           </Button>
         </Empty.Content>
       </Empty.Root>
-    {:else if examView === "list"}
+    {:else}
       <div class="md:hidden">
         <ExamsCardsView
           {dashboardCopy}
@@ -121,18 +124,6 @@ $: ({ fmtExamDate } = createExamTabDisplayActions({
           {subscriptionsCopy}
         />
       </div>
-    {:else}
-      <ExamsCardsView
-        {dashboardCopy}
-        {dashboardTabHref}
-        {examMetadataLabels}
-        exams={filteredExamRows}
-        {examTimeLabel}
-        {fmtExamDate}
-        {namePrimary}
-        {sectionCopy}
-        {subscriptionsCopy}
-      />
     {/if}
   {/if}
 </section>

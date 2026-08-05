@@ -76,16 +76,20 @@ export function buildSectionClassCalendarEvents({
             week: String(schedule.weekIndex),
           })
         : null,
-      `${sectionCopy.units} ${schedule.startUnit ?? "?"}-${schedule.endUnit ?? "?"}`,
+      schedule.startUnit || schedule.endUnit
+        ? `${sectionCopy.units} ${schedule.startUnit ?? "?"}-${schedule.endUnit ?? "?"}`
+        : null,
       ...schedule.teachers.map(teacherName),
     ].filter((badge): badge is string => Boolean(badge)),
     details: [
       ...calendarDetail(sectionCopy.week, schedule.weekIndex, notAvailable),
-      ...calendarDetail(
-        sectionCopy.units,
-        `${schedule.startUnit ?? "?"}-${schedule.endUnit ?? "?"}`,
-        notAvailable,
-      ),
+      ...(schedule.startUnit || schedule.endUnit
+        ? calendarDetail(
+            sectionCopy.units,
+            `${schedule.startUnit ?? "?"}-${schedule.endUnit ?? "?"}`,
+            notAvailable,
+          )
+        : []),
       ...roomDetailRows(schedule, sectionCopy, notAvailable),
       ...calendarDetail(
         sectionCopy.teacher,

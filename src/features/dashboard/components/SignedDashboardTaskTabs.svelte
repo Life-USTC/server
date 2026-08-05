@@ -35,7 +35,6 @@ export let examFilter: DashboardTaskTabsProps["examFilter"];
 export let examMetadataLabels: DashboardTaskTabsProps["examMetadataLabels"];
 export let examRows: DashboardTaskTabsProps["examRows"];
 export let examTimeLabel: DashboardTaskTabsProps["examTimeLabel"];
-export let examView: DashboardTaskTabsProps["examView"];
 export let filteredExamRows: DashboardTaskTabsProps["filteredExamRows"];
 export let filteredTodos: DashboardTaskTabsProps["filteredTodos"];
 export let homeworkActionError: string;
@@ -44,7 +43,6 @@ export let homeworkFilter: DashboardTaskTabsProps["homeworkFilter"];
 export let homeworkItems: DashboardTaskTabsProps["homeworkItems"];
 export let homeworkReferenceDate: DashboardTaskTabsProps["homeworkReferenceDate"];
 export let homeworkSavingById: DashboardTaskTabsProps["homeworkSavingById"];
-export let homeworkView: DashboardTaskTabsProps["homeworkView"];
 export let homeworksCopy: DashboardTaskTabsProps["homeworksCopy"];
 export let isCreatingHomework: boolean;
 export let isCreatingTodo: boolean;
@@ -56,18 +54,15 @@ export let sectionCopy: DashboardTaskTabsProps["sectionCopy"];
 export let selectedCreateHomeworkSection: DashboardTaskTabsProps["selectedCreateHomeworkSection"];
 export let selectedHomework: DashboardTaskTabsProps["selectedHomework"];
 export let selectedTodo: DashboardTaskTabsProps["selectedTodo"];
-export let setExamView: DashboardTaskTabsProps["setExamView"];
-export let setHomeworkView: DashboardTaskTabsProps["setHomeworkView"];
-export let setTodoView: DashboardTaskTabsProps["setTodoView"];
 export let showCreateHomework: boolean;
 export let showCreateTodo: boolean;
 export let signedData: DashboardTaskTabsProps["signedData"];
 export let subscriptionsCopy: DashboardTaskTabsProps["subscriptionsCopy"];
 export let todoActionError: string;
 export let todoFilter: DashboardTaskTabsProps["todoFilter"];
+export let todoItems: DashboardTaskTabsProps["todoItems"];
 export let todoPriorityOptions: DashboardTaskTabsProps["todoPriorityOptions"];
 export let todoSavingById: DashboardTaskTabsProps["todoSavingById"];
-export let todoView: DashboardTaskTabsProps["todoView"];
 export let todosCopy: DashboardTaskTabsProps["todosCopy"];
 export let toggleHomeworkCompletion: DashboardTaskTabsProps["toggleHomeworkCompletion"];
 export let toggleTodoCompletion: DashboardTaskTabsProps["toggleTodoCompletion"];
@@ -86,12 +81,11 @@ export let updateTodoAction: DashboardTaskTabsProps["updateTodoAction"];
     {openTodoEditor}
     {toggleTodoCompletion}
     {deleteTodo}
-    {setTodoView}
     {createTodoAction}
     {updateTodoAction}
-    {todoView}
     {filteredTodos}
     {todoActionError}
+    {todoItems}
     {todoSavingById}
     {isCreatingTodo}
     {isUpdatingTodo}
@@ -121,10 +115,8 @@ export let updateTodoAction: DashboardTaskTabsProps["updateTodoAction"];
     {applyHomeworkDueInMonth}
     {applyHomeworkDueAtSemesterEnd}
     {toggleHomeworkCompletion}
-    {setHomeworkView}
     {createHomeworkAction}
     bind:homeworkFilter
-    bind:homeworkView
     bind:showCreateHomework
     bind:createHomeworkAdvancedOpen
     bind:createHomeworkPublishedAt
@@ -148,8 +140,6 @@ export let updateTodoAction: DashboardTaskTabsProps["updateTodoAction"];
     {examTimeLabel}
     {examMetadataLabels}
     {namePrimary}
-    {setExamView}
-    {examView}
     {examRows}
     {filteredExamRows}
     locale={data.locale}

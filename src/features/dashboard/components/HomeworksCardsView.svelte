@@ -1,9 +1,13 @@
 <script lang="ts">
+import CheckCircleIcon from "@lucide/svelte/icons/check-circle";
+import LoaderCircle from "@lucide/svelte/icons/loader-circle";
+import RefreshCw from "@lucide/svelte/icons/refresh-cw";
 import type { DashboardHomeworkItem } from "@/features/dashboard/lib/dashboard-controller-types";
 import { Badge } from "$lib/components/ui/badge/index.js";
 import { Button } from "$lib/components/ui/button/index.js";
 import * as Card from "$lib/components/ui/card/index.js";
 import * as Empty from "$lib/components/ui/empty/index.js";
+import DashboardTableIconButton from "./DashboardTableIconButton.svelte";
 
 type HomeworkDateFormatter = (
   value: Date | string | null | undefined,
@@ -21,6 +25,7 @@ export let homeworkCompletionActionLabel: HomeworkAction;
 export let homeworkCopy: Record<string, string>;
 export let homeworkEtaLabel: HomeworkDateFormatter;
 export let homeworkIsOverdue: HomeworkOverduePredicate;
+export let homeworkSectionHref: HomeworkAction;
 export let homeworksCopy: Record<string, string>;
 export let homeworkSavingById: Record<string, boolean>;
 export let selectedHomework: DashboardHomeworkItem | null;
@@ -49,7 +54,10 @@ export let toggleHomeworkCompletion: (
           </button>
         </Card.Title>
         <Card.Description>
-          {homework.section?.courseName ?? homeworkCopy.section} · {homeworkCopy.due}:
+          <a class="hover:underline" href={homeworkSectionHref(homework)}
+            >{homework.section?.courseName ?? homeworkCopy.section}</a
+          >
+          · {homeworkCopy.due}:
           {fmtDate(homework.submissionDueAt)}
         </Card.Description>
         <Card.Action>
@@ -68,17 +76,21 @@ export let toggleHomeworkCompletion: (
         </div>
       </Card.Content>
       <Card.Footer class="justify-end">
-        <Button
+        <DashboardTableIconButton
           disabled={homeworkSavingById[homework.id]}
-          size="sm"
-          type="button"
-          variant="outline"
-          onclick={() => toggleHomeworkCompletion(homework)}
-        >
-          {homeworkSavingById[homework.id]
+          label={homeworkSavingById[homework.id]
             ? homeworksCopy.saving
             : homeworkCompletionActionLabel(homework)}
-        </Button>
+          onclick={() => toggleHomeworkCompletion(homework)}
+        >
+          {#if homeworkSavingById[homework.id]}
+            <LoaderCircle class="animate-spin" />
+          {:else if homework.completion}
+            <RefreshCw />
+          {:else}
+            <CheckCircleIcon />
+          {/if}
+        </DashboardTableIconButton>
       </Card.Footer>
     </Card.Root>
   {:else}

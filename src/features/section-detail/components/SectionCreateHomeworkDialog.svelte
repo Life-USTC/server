@@ -22,6 +22,7 @@ export let hasSemesterEnd: boolean;
 export let hasSemesterStart: boolean;
 export let homeworkCopy: SectionCreateHomeworkCopy;
 export let homeworkMessage: string;
+export let openAuditDialog: (() => void) | null = null;
 export let publishedAt: string;
 export let sectionCopy: SectionCreateHomeworkSectionCopy;
 export let show: boolean;
@@ -44,8 +45,17 @@ export let submissionStartAt: string;
         onsubmit={createHomework}
       >
         <Dialog.Header>
-          <Dialog.Title>{homeworkCopy.createTitle}</Dialog.Title>
-          <Dialog.Description>{homeworkCopy.subtitle}</Dialog.Description>
+          <div class="flex flex-wrap items-start justify-between gap-3">
+            <div class="min-w-0 grid gap-1.5">
+              <Dialog.Title>{homeworkCopy.createTitle}</Dialog.Title>
+              <Dialog.Description>{homeworkCopy.subtitle}</Dialog.Description>
+            </div>
+            {#if openAuditDialog}
+              <Button type="button" variant="outline" onclick={openAuditDialog}>
+                {homeworkCopy.auditTitle}
+              </Button>
+            {/if}
+          </div>
         </Dialog.Header>
         <ScrollArea class="h-[min(64vh,36rem)]">
           <SectionCreateHomeworkFields

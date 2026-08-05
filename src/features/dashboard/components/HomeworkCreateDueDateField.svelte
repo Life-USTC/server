@@ -31,15 +31,14 @@ export let selectedCreateHomeworkSection: DashboardHomeworkCreateSectionGetter;
     placeholder={homeworksCopy.submissionDue}
   />
   <ButtonGroup.Root class="ml-auto max-w-full flex-wrap justify-end">
-    <Button disabled={isCreatingHomework} size="sm" type="button" variant="outline" onclick={applyHomeworkDueInWeek}>
+    <Button disabled={isCreatingHomework} type="button" variant="outline" onclick={applyHomeworkDueInWeek}>
       {homeworksCopy.helperWeek}
     </Button>
-    <Button disabled={isCreatingHomework} size="sm" type="button" variant="outline" onclick={applyHomeworkDueInMonth}>
+    <Button disabled={isCreatingHomework} type="button" variant="outline" onclick={applyHomeworkDueInMonth}>
       {homeworksCopy.helperMonth}
     </Button>
     <Button
       disabled={isCreatingHomework || !selectedCreateHomeworkSection()?.semesterEnd}
-      size="sm"
       type="button"
       variant="outline"
       onclick={applyHomeworkDueAtSemesterEnd}

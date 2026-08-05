@@ -8,8 +8,8 @@ import type {
   DashboardTodoPriorityOption,
   DashboardTodosCopy,
   TodoFilter,
-  TodoView,
 } from "@/features/dashboard/lib/dashboard-controller-types";
+import { resolveDashboardTaskFilter } from "@/features/dashboard/lib/dashboard-task-filter";
 import { createTodoTabDisplayActions } from "@/features/dashboard/lib/todos-tab-display";
 import * as Alert from "$lib/components/ui/alert/index.js";
 import TodosCardsView from "./TodosCardsView.svelte";
@@ -32,12 +32,11 @@ export let referenceDate: Date | string;
 export let openTodoEditor: (todo: DashboardTodoItem) => void;
 export let toggleTodoCompletion: TodoCompletionToggle;
 export let deleteTodo: (todo: DashboardTodoItem) => void | Promise<void>;
-export let setTodoView: (view: TodoView) => void;
 export let createTodoAction: SubmitFunction;
 export let updateTodoAction: SubmitFunction;
 
 export let todoFilter: TodoFilter;
-export let todoView: TodoView;
+export let todoItems: DashboardTodoItem[];
 export let showCreateTodo: boolean;
 export let selectedTodo: DashboardTodoItem | null;
 export let editingTodo: DashboardTodoItem | null;
@@ -61,16 +60,21 @@ $: ({ datetimeLocalValue, fmtDate, todoActionLabel, todoStatus } =
     sectionCopy,
     todosCopy,
   }));
+$: displayTodoFilter = resolveDashboardTaskFilter(
+  todoFilter,
+  todoItems.some((todo) => !todo.completed),
+);
 </script>
 
 <section class="grid gap-4">
   <TodosTabToolbar
     bind:createTodoError
-    {setTodoView}
     bind:showCreateTodo
-    bind:todoFilter
+    todoFilter={displayTodoFilter}
+    onTodoFilterChange={(value) => {
+      todoFilter = value;
+    }}
     {todosCopy}
-    {todoView}
   />
 
   {#if todoActionError}
@@ -79,45 +83,29 @@ $: ({ datetimeLocalValue, fmtDate, todoActionLabel, todoStatus } =
     </Alert.Root>
   {/if}
 
-  {#if todoView === "cards"}
+  <div class="md:hidden">
     <TodosCardsView
       {filteredTodos}
       {fmtDate}
       {openTodoEditor}
-      bind:selectedTodo
       {todoActionLabel}
       {todoSavingById}
       {todosCopy}
       {todoStatus}
       {toggleTodoCompletion}
     />
-  {:else}
-    <div class="md:hidden">
-      <TodosCardsView
-        {filteredTodos}
-        {fmtDate}
-        {openTodoEditor}
-        bind:selectedTodo
-        {todoActionLabel}
-        {todoSavingById}
-        {todosCopy}
-        {todoStatus}
-        {toggleTodoCompletion}
-      />
-    </div>
-    <div class="hidden md:block">
-      <TodosListView
-        {filteredTodos}
-        {fmtDate}
-        {openTodoEditor}
-        bind:selectedTodo
-        {todoActionLabel}
-        {todoSavingById}
-        {todosCopy}
-        {toggleTodoCompletion}
-      />
-    </div>
-  {/if}
+  </div>
+  <div class="hidden min-w-0 overflow-x-auto md:block">
+    <TodosListView
+      {filteredTodos}
+      {fmtDate}
+      {openTodoEditor}
+      {todoActionLabel}
+      {todoSavingById}
+      {todosCopy}
+      {toggleTodoCompletion}
+    />
+  </div>
 
   <TodosTabDialogs
     {commentsCopy}

@@ -46,7 +46,7 @@ $: welcomeCopy = copy.welcome;
 $: avatarOptions =
   data.user.profilePictures.length > 0 ? data.user.profilePictures : [];
 $: currentImage = data.user.image ?? "";
-$: previewImage = selectedImage || "/images/icon.png";
+$: previewImage = selectedImage || currentImage || "/images/icon.png";
 $: selectedSectionIdSet = new Set(selectedSectionIds);
 $: selectedCount = selectedSectionIds.length;
 $: canMatch = importText.trim().length > 0 && !isMatching;

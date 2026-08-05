@@ -1,5 +1,9 @@
 <script lang="ts">
-import type { CatalogNamed } from "@/features/catalog/lib/catalog-list-display";
+import {
+  type CatalogNamed,
+  catalogLocalizedDisplayName,
+  catalogLocalizedNames,
+} from "@/features/catalog/lib/catalog-list-display";
 import {
   catalogShowingSummary,
   optionalCatalogFilterSummary,
@@ -26,9 +30,7 @@ export let page: number;
 export let primaryName: (item: CatalogNamed | null | undefined) => string;
 export let sectionEmptyDescription: () => string;
 export let sectionLabels: SectionListLabels;
-export let secondaryName: (item: CatalogNamed | null | undefined) => string;
 export let selectedSemester: SectionListSemester | null | undefined;
-export let teacherNames: (teachers: CatalogNamed[]) => string;
 export let totalPages: number;
 
 $: filters = data.filters as SectionListFilters;
@@ -69,13 +71,10 @@ $: sectionSemesterSummary = selectedSemester
             {#snippet child({ props })}
               <a href={sectionHref} {...props}>
                 <Item.Content>
-                  <Item.Title>{primaryName(section.course)}</Item.Title>
-                  {#if secondaryName(section.course)}
-                    <Item.Description>{secondaryName(section.course)}</Item.Description>
-                  {/if}
+                  <Item.Title>{catalogLocalizedDisplayName(section.course, locale)}</Item.Title>
                   <Item.Description>
                     {section.semester?.nameCn ? formatSemesterName(locale, section.semester.nameCn) : sectionLabels.noSemester}
-                    · {teacherNames(section.teachers) || "-"}
+                    · {catalogLocalizedNames(section.teachers, locale) || "-"}
                   </Item.Description>
                 </Item.Content>
                 <Item.Actions>
@@ -93,68 +92,61 @@ $: sectionSemesterSummary = selectedSemester
       </Item.Group>
     </div>
     <div class="hidden min-w-0 max-w-full xl:block">
-      <Table.Root class="table-fixed">
-        <Table.Header class="bg-muted/30">
+      <Table.Root class="">
+        <Table.Header>
           <Table.Row>
-            <Table.Head class="w-36">{sectionLabels.semester}</Table.Head>
+            <Table.Head>{sectionLabels.semester}</Table.Head>
             <Table.Head>{sectionLabels.courseName}</Table.Head>
-            <Table.Head class="w-36">{sectionLabels.sectionCode}</Table.Head>
-            <Table.Head class="w-36">{sectionLabels.teachers}</Table.Head>
-            <Table.Head class="w-16 text-right">{sectionLabels.credits}</Table.Head>
-            <Table.Head class="w-24 text-right">{sectionLabels.capacity}</Table.Head>
-            <Table.Head class="w-28">{sectionLabels.campus}</Table.Head>
+            <Table.Head>{sectionLabels.sectionCode}</Table.Head>
+            <Table.Head>{sectionLabels.teachers}</Table.Head>
+            <Table.Head>{sectionLabels.credits}</Table.Head>
+            <Table.Head>{sectionLabels.capacity}</Table.Head>
+            <Table.Head>{sectionLabels.campus}</Table.Head>
           </Table.Row>
         </Table.Header>
         <Table.Body>
           {#each data.data as section}
             {@const sectionHref = `/catalog/sections/${section.jwId}`}
             <Table.Row>
-              <Table.Cell class="p-0 align-top">
+              <Table.Cell class="p-0">
                 <CatalogTableLink href={sectionHref} nowrap>
-                  <TruncatedText
-                    text={section.semester?.nameCn ? formatSemesterName(locale, section.semester.nameCn) : sectionLabels.noSemester}
-                  />
+                  {section.semester?.nameCn
+                    ? formatSemesterName(locale, section.semester.nameCn)
+                    : sectionLabels.noSemester}
                 </CatalogTableLink>
               </Table.Cell>
-              <Table.Cell class="p-0 align-top whitespace-normal">
+              <Table.Cell class={`p-0 whitespace-normal`}>
                 <CatalogTableLink href={sectionHref}>
                   <TruncatedText
-                    class="font-medium"
-                    text={primaryName(section.course)}
-                  />
-                  <TruncatedText
-                    class="text-muted-foreground text-xs"
-                    text={secondaryName(section.course)}
+                    text={catalogLocalizedDisplayName(section.course, locale)}
                   />
                 </CatalogTableLink>
               </Table.Cell>
-              <Table.Cell class="p-0 align-top">
+              <Table.Cell class="p-0">
                 <CatalogTableLink href={sectionHref}>
                   <TruncatedCode text={section.code} />
                 </CatalogTableLink>
               </Table.Cell>
-              <Table.Cell class="p-0 align-top whitespace-normal">
+              <Table.Cell class={`p-0 whitespace-normal`}>
                 <CatalogTableLink href={sectionHref}>
                   <TruncatedText
-                    text={teacherNames(section.teachers) || "-"}
+                    text={catalogLocalizedNames(section.teachers, locale) || "-"}
                   />
                 </CatalogTableLink>
               </Table.Cell>
-              <Table.Cell class="p-0 text-right align-top">
+              <Table.Cell class="p-0">
                 <CatalogTableLink href={sectionHref} numeric>
                   {section.credits ?? "-"}
                 </CatalogTableLink>
               </Table.Cell>
-              <Table.Cell class="p-0 text-right align-top">
+              <Table.Cell class="p-0">
                 <CatalogTableLink href={sectionHref} numeric>
                   {section.stdCount ?? 0} / {section.limitCount ?? "-"}
                 </CatalogTableLink>
               </Table.Cell>
-              <Table.Cell class="p-0 align-top">
+              <Table.Cell class="p-0">
                 <CatalogTableLink href={sectionHref}>
-                  <TruncatedText
-                    text={section.campus ? primaryName(section.campus) : "-"}
-                  />
+                  {section.campus ? primaryName(section.campus) : "-"}
                 </CatalogTableLink>
               </Table.Cell>
             </Table.Row>

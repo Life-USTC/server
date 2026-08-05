@@ -5,7 +5,8 @@
  * - **Public (unauthenticated):** A lightweight catalog entry at `/`, with bus
  *   and links exposed as independent public routes.
  * - **Authenticated:** Task destinations are direct links in the "Workspace"
- *   group. Bus, websites, catalog, and campus destinations live in "Explore".
+ *   group. Catalog and campus destinations use the same "Catalog" / "Campus"
+ *   groups as the guest sidebar.
  *
  * ## UI/UX Elements
  * - Sidebar navigation with collapsible groups
@@ -53,7 +54,7 @@ test.describe("仪表盘", () => {
     await expect(
       page.getByRole("heading", {
         level: 1,
-        name: /先从公开校园工具开始|Start with public campus tools/i,
+        name: /课程、课表与校园生活，一站搞定|Courses, schedules, and campus life/i,
       }),
     ).toBeVisible();
     await expect(page.getByTestId("bus-compact-summary")).toHaveCount(0);
@@ -225,9 +226,7 @@ test.describe("仪表盘", () => {
     await gotoAndWaitForReady(page, "/workspace/overview");
     await expect(page.locator("html")).toHaveAttribute("lang", "zh-cn");
 
-    const weekCard = page
-      .getByRole("link", { name: "本周" })
-      .locator('xpath=ancestor::*[@data-slot="card"][1]');
+    const weekCard = page.getByTestId("dashboard-overview-week");
     await expect(weekCard).toBeVisible();
     await expect(weekCard.getByText("周日", { exact: true })).toBeVisible();
     await expect(weekCard.getByText("Sun", { exact: true })).toHaveCount(0);

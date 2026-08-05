@@ -87,11 +87,11 @@ export let signedIn = false;
       {#if viewerLoading}
         <div
           aria-hidden="true"
-          class="h-9 w-20 animate-pulse rounded-md bg-muted"
+          class="h-8 w-20 animate-pulse rounded-md bg-muted"
           data-testid="viewer-loading"
         ></div>
       {:else if !user}
-        <Button href="/account/sign-in" size="sm">
+        <Button href="/account/sign-in">
           {copy.menu.signIn}
         </Button>
       {/if}

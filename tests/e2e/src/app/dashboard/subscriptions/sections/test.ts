@@ -3,19 +3,18 @@
  *
  * ## Data Represented (subscribed-sections.yml → subscribed-sections-tab.display.fields)
  * - semester group label
- * - subscription.sections[].code
  * - subscription.sections[].course.namePrimary
  * - section.teachers[]
  * - section.credits
- * - Row details with an Unsubscribe action
+ * - Row unsubscribe action with confirmation
  * - Calendar subscription URL for iCal feed
  *
  * ## UI/UX Elements
  * - One responsive table per semester with shared column headers
- * - Clicking a row opens details with course navigation and unsubscribe actions
+ * - Course title links to the section page
  * - Bulk import dialog (textarea → query section/course codes → confirm dialog)
  * - iCal calendar link copy button
- * - Unsubscribe action: details dialog → destructive confirmation
+ * - Unsubscribe action: row action → destructive confirmation
  * - Empty state with bulk import + browse courses buttons
  *
  * ## Edge Cases
@@ -111,11 +110,19 @@ test.describe("仪表盘教学班订阅", () => {
       ).toHaveCount(0);
 
       const subscriptionsContent = page.locator("#main-content").first();
-      await expect(
-        subscriptionsContent.getByRole("button", {
-          name: new RegExp(escapeForRegExp(DEV_SEED.section.code)),
-        }),
-      ).toBeVisible({ timeout: 3_000 });
+      const courseLink = subscriptionsContent
+        .getByTestId("subscription-course-link")
+        .filter({
+          hasText: new RegExp(
+            `${escapeForRegExp(DEV_SEED.course.nameCn)}|${escapeForRegExp(DEV_SEED.course.nameEn)}`,
+          ),
+        })
+        .first();
+      await expect(courseLink).toBeVisible({ timeout: 3_000 });
+      await expect(courseLink).toHaveAttribute(
+        "href",
+        `/catalog/sections/${DEV_SEED.section.jwId}`,
+      );
 
       // subscription.sections[].course.namePrimary
       await expect(
@@ -128,12 +135,6 @@ test.describe("仪表盘教学班订阅", () => {
           })
           .first(),
       ).toBeVisible({ timeout: 3_000 });
-      // subscription.sections[].code
-      await expect(
-        subscriptionsContent.getByText(DEV_SEED.section.code).first(),
-      ).toBeVisible({
-        timeout: 3_000,
-      });
       // section.teachers[] (locale-dependent)
       await expect(
         subscriptionsContent
@@ -315,40 +316,53 @@ test.describe("仪表盘教学班订阅", () => {
     );
   });
 
-  test("点击关注行打开详情并提供课程主页操作", async ({ page }, testInfo) => {
+  test("课程名称链接到教学班主页", async ({ page }, testInfo) => {
     await signInAsDebugUser(page, "/workspace/subscriptions");
     await ensureSeedSectionSubscription(page);
     await gotoAndWaitForReady(page, "/workspace/subscriptions");
 
-    await page
-      .getByRole("button", {
-        name: new RegExp(escapeForRegExp(DEV_SEED.section.code)),
+    const courseLink = page
+      .getByTestId("subscription-course-link")
+      .filter({
+        hasText: new RegExp(
+          `${escapeForRegExp(DEV_SEED.course.nameCn)}|${escapeForRegExp(DEV_SEED.course.nameEn)}`,
+        ),
       })
-      .click();
-    const dialog = page.getByRole("dialog").first();
-    await expect(dialog).toContainText(DEV_SEED.section.code);
-    await expect(
-      dialog.getByRole("link", { name: /前往课程主页|Go to Course/i }),
-    ).toHaveAttribute("href", /^\/catalog\/courses\/\d+$/);
+      .first();
+    await expect(courseLink).toHaveAttribute(
+      "href",
+      `/catalog/sections/${DEV_SEED.section.jwId}`,
+    );
+    await expect(page.getByRole("dialog")).toHaveCount(0);
     await captureStepScreenshot(
       page,
       testInfo,
-      "dashboard-subscriptions-section-details",
+      "dashboard-subscriptions-section-link",
     );
   });
 
-  test("详情中的取消订阅操作确认后移除订阅", async ({ page }, testInfo) => {
+  test("取消订阅操作确认后移除订阅", async ({ page }, testInfo) => {
     await signInAsDebugUser(page, "/workspace/subscriptions");
     await ensureSeedSectionSubscription(page);
     await gotoAndWaitForReady(page, "/workspace/subscriptions");
 
-    const sectionButton = page.getByRole("button", {
-      name: new RegExp(escapeForRegExp(DEV_SEED.section.code)),
-    });
-    await expect(sectionButton).toBeVisible();
-    await sectionButton.click();
+    const courseLink = page
+      .getByTestId("subscription-course-link")
+      .filter({
+        hasText: new RegExp(
+          `${escapeForRegExp(DEV_SEED.course.nameCn)}|${escapeForRegExp(DEV_SEED.course.nameEn)}`,
+        ),
+      })
+      .first();
+    await expect(courseLink).toBeVisible();
 
-    await page
+    const courseRow = page
+      .locator("tr")
+      .filter({
+        has: courseLink,
+      })
+      .first();
+    await courseRow
       .getByRole("button", { name: /^(取消订阅|Unsubscribe)$/i })
       .click();
 
@@ -356,6 +370,7 @@ test.describe("仪表盘教学班订阅", () => {
       name: /确认取消订阅|Unsubscribe from this section/i,
     });
     await expect(confirmDialog).toBeVisible();
+    await expect(confirmDialog).not.toContainText(DEV_SEED.section.code);
 
     const unsubscribeResponse = page.waitForResponse(
       (response) =>
@@ -370,7 +385,7 @@ test.describe("仪表盘教学班订阅", () => {
       .click();
     await unsubscribeResponse;
     await expect(confirmDialog).not.toBeVisible();
-    await expect(sectionButton).toHaveCount(0);
+    await expect(courseLink).toHaveCount(0);
 
     await captureStepScreenshot(
       page,
@@ -392,6 +407,10 @@ test.describe("仪表盘教学班订阅", () => {
       .first();
     await expect(copyButton).toBeVisible();
     await copyButton.click();
+
+    const dialog = page.getByRole("dialog");
+    await expect(dialog).toBeVisible();
+    await dialog.getByRole("button", { name: /^复制$|^Copy$/i }).click();
 
     const clipboardText = await page.evaluate(async () =>
       navigator.clipboard.readText(),

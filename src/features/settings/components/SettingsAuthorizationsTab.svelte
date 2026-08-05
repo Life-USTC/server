@@ -8,7 +8,6 @@ import { enhance } from "$app/forms";
 import * as AlertDialog from "$lib/components/ui/alert-dialog/index.js";
 import { Badge } from "$lib/components/ui/badge/index.js";
 import { Button } from "$lib/components/ui/button/index.js";
-import * as Card from "$lib/components/ui/card/index.js";
 import * as Empty from "$lib/components/ui/empty/index.js";
 import * as Item from "$lib/components/ui/item/index.js";
 import { Spinner } from "$lib/components/ui/spinner/index.js";
@@ -56,76 +55,74 @@ function revokeAction(consentId: string): SubmitFunction {
 }
 </script>
 
-<Card.Root
+<section
   aria-label={copy.settings.authorizations.title}
+  class="grid gap-4"
   role="region"
 >
-  <Card.Content>
-    {#if authorizations.length === 0}
-      <Empty.Root>
-        <Empty.Header>
-          <Empty.Media variant="icon"><KeyRoundIcon /></Empty.Media>
-          <Empty.Title>{copy.settings.authorizations.emptyTitle}</Empty.Title>
-          <Empty.Description>
-            {copy.settings.authorizations.emptyDescription}
-          </Empty.Description>
-        </Empty.Header>
-      </Empty.Root>
-    {:else}
-      <Item.Group>
-        {#each authorizations as authorization}
-          <Item.Root role="listitem" variant="outline">
-            <Item.Content class="min-w-0">
-              <Item.Title>
-                {clientName(authorization)}
-                {#if authorization.disabled}
-                  <Badge variant="destructive">
-                    {copy.settings.authorizations.disabled}
-                  </Badge>
-                {/if}
-              </Item.Title>
-              {#if authorization.clientUri}
-                <Item.Description class="break-all">
-                  {authorization.clientUri}
-                </Item.Description>
+  {#if authorizations.length === 0}
+    <Empty.Root>
+      <Empty.Header>
+        <Empty.Media variant="icon"><KeyRoundIcon /></Empty.Media>
+        <Empty.Title>{copy.settings.authorizations.emptyTitle}</Empty.Title>
+        <Empty.Description>
+          {copy.settings.authorizations.emptyDescription}
+        </Empty.Description>
+      </Empty.Header>
+    </Empty.Root>
+  {:else}
+    <Item.Group>
+      {#each authorizations as authorization}
+        <Item.Root role="listitem" variant="outline">
+          <Item.Content class="min-w-0">
+            <Item.Title>
+              {clientName(authorization)}
+              {#if authorization.disabled}
+                <Badge variant="destructive">
+                  {copy.settings.authorizations.disabled}
+                </Badge>
               {/if}
-            </Item.Content>
-            <Item.Actions>
-              <Button
-                size="sm"
-                type="button"
-                variant="outline"
-                onclick={() => {
-                  pendingAuthorization = authorization;
-                }}
-              >
-                {copy.settings.authorizations.revoke}
-              </Button>
-            </Item.Actions>
-            <Item.Footer class="flex-wrap">
-              <div class="flex min-w-0 flex-1 flex-col gap-2">
-                <span class="text-muted-foreground text-xs">
-                  {copy.settings.authorizations.permissions}
-                </span>
-                <div class="flex flex-wrap gap-1.5">
-                  {#each authorization.scopes as scope}
-                    <Badge variant="outline">
-                      {oauthScopeLabel(locale, scope)}
-                    </Badge>
-                  {/each}
-                </div>
-              </div>
+            </Item.Title>
+            {#if authorization.clientUri}
+              <Item.Description class="break-all">
+                {authorization.clientUri}
+              </Item.Description>
+            {/if}
+          </Item.Content>
+          <Item.Actions>
+            <Button
+              type="button"
+              variant="outline"
+              onclick={() => {
+                pendingAuthorization = authorization;
+              }}
+            >
+              {copy.settings.authorizations.revoke}
+            </Button>
+          </Item.Actions>
+          <Item.Footer class="flex-wrap">
+            <div class="flex min-w-0 flex-1 flex-col gap-2">
               <span class="text-muted-foreground text-xs">
-                {copy.settings.authorizations.updatedAt}:
-                {formatUpdatedAt(authorization.updatedAt)}
+                {copy.settings.authorizations.permissions}
               </span>
-            </Item.Footer>
-          </Item.Root>
-        {/each}
-      </Item.Group>
-    {/if}
-  </Card.Content>
-</Card.Root>
+              <div class="flex flex-wrap gap-1.5">
+                {#each authorization.scopes as scope}
+                  <Badge variant="outline">
+                    {oauthScopeLabel(locale, scope)}
+                  </Badge>
+                {/each}
+              </div>
+            </div>
+            <span class="text-muted-foreground text-xs">
+              {copy.settings.authorizations.updatedAt}:
+              {formatUpdatedAt(authorization.updatedAt)}
+            </span>
+          </Item.Footer>
+        </Item.Root>
+      {/each}
+    </Item.Group>
+  {/if}
+</section>
 
 {#if pendingAuthorization}
   <AlertDialog.Root

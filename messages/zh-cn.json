@@ -146,7 +146,7 @@
     "openCourse": "前往课程主页",
     "unsubscribe": "取消订阅",
     "unsubscribeTitle": "确认取消订阅？",
-    "unsubscribeDescription": "取消订阅教学班 {code} 后，其课程表、考试与作业将不再出现在你的仪表盘中。",
+    "unsubscribeDescription": "取消订阅「{name}」后，其课程表、考试与作业将不再出现在你的仪表盘中。",
     "cancelUnsubscribe": "保留订阅",
     "confirmUnsubscribe": "确认取消订阅",
     "calendarTitle": "日历（{count}）",
@@ -272,28 +272,37 @@
     "downloadBadgeAlt": "在 App Store 下载 Life@USTC",
     "appIconAlt": "Life@USTC 应用图标",
     "publicDashboard": {
-      "title": "先从公开校园工具开始",
-      "description": "登录前也可以先浏览常用网站、课程、班级和教师，登录后再进入你的个人仪表盘。",
+      "title": "课程、课表与校园生活，一站搞定",
+      "description": "公开浏览课程目录、班级、教师、校车与常用网站；登录后同步个人课表、作业、订阅和仪表盘。",
+      "exploreLabel": "继续浏览",
       "cards": {
         "signIn": {
           "title": "登录进入个人仪表盘",
           "description": "解锁个人课表、作业、教学班订阅和账户设置。"
         },
         "mobileApp": {
-          "title": "查看移动应用",
+          "title": "App",
           "description": "打开 App Store 页面，并查看 iPhone 端的应用介绍。"
         },
         "sections": {
-          "title": "浏览班级",
+          "title": "班级",
           "description": "查看上课时间、教室、教师与日历订阅信息。"
         },
         "courses": {
-          "title": "浏览课程",
+          "title": "课程",
           "description": "搜索课程目录，并继续查看各个班级详情。"
         },
         "teachers": {
-          "title": "浏览教师",
+          "title": "教师",
           "description": "查看教师资料以及他们当前授课的班级。"
+        },
+        "links": {
+          "title": "网站",
+          "description": "教务、邮箱等校园常用入口，一键直达。"
+        },
+        "bus": {
+          "title": "校车",
+          "description": "按出发与到达校区查看下一班车。"
         }
       }
     },
@@ -349,48 +358,30 @@
   },
   "mobileAppPage": {
     "eyebrow": "iPhone 校园工具",
-    "title": "Life@USTC 移动应用",
-    "subtitle": "面向学生高频校园查询的移动入口：课表、校车、课程发现与个人工作台都放在更顺手的位置。",
+    "title": "Life@USTC",
+    "subtitle": "课表、校车、课程与作业——装进口袋里的科大日常。",
     "availability": "已上架 App Store",
-    "featureTitle": "面向日常校园查询",
-    "quickLinksTitle": "网页版工具",
-    "previewTitle": "校园工具栈",
-    "previewSubtitle": "为日常流程压缩操作路径",
-    "previewStatusTitle": "适合今天的校园安排",
-    "previewStatusDescription": "从移动端快速打开课表、校车与课程资源。",
-    "stats": {
-      "companionLabel": "校园助手",
-      "companionValue": "Life@USTC",
-      "platformLabel": "平台",
-      "platformValue": "iPhone",
-      "accessLabel": "访问方式",
-      "accessValue": "公开工具"
-    },
-    "features": {
+    "galleryTitle": "应用截图",
+    "gallerySubtitle": "来自 Life@USTC iOS 客户端。",
+    "openWeb": "打开网页版",
+    "repoCredit": "截图来自",
+    "screenshots": {
       "schedule": {
-        "title": "课表感知",
-        "description": "把课程时间、地点和日历导向的学业事项放在手边。"
+        "title": "课表",
+        "alt": "Life@USTC 课表界面截图"
       },
       "bus": {
-        "title": "校车查询",
-        "description": "规划站点和校区之间的移动时，快速进入校车线路。"
+        "title": "校车",
+        "alt": "Life@USTC 校车查询截图"
       },
       "catalog": {
-        "title": "课程发现",
-        "description": "在课程、班级和教师之间切换时保持上下文。"
+        "title": "课程",
+        "alt": "Life@USTC 课程发现截图"
       },
-      "profile": {
-        "title": "个人工作台",
-        "description": "登录后管理教学班订阅、个人资料和仪表盘工具。"
+      "workspace": {
+        "title": "工作台",
+        "alt": "Life@USTC 个人工作台截图"
       }
-    },
-    "preview": {
-      "scheduleLabel": "课表",
-      "calendarStatus": "课程与任务",
-      "busLabel": "校车",
-      "busStatus": "路线规划",
-      "linksLabel": "校园链接",
-      "linksStatus": "快速访问"
     }
   },
   "admin": {
@@ -425,15 +416,6 @@
   "adminBus": {
     "title": "校车管理",
     "subtitle": "查看与管理校车时刻表版本，从静态仓库导入数据。",
-    "statVersions": "时刻表版本",
-    "statVersionsMeta": "已导入的时刻表快照",
-    "statActive": "当前激活",
-    "statActiveMeta": "公共校车工具当前使用",
-    "statNone": "无",
-    "statCampuses": "校区数",
-    "statCampusesMeta": "已知校车站点",
-    "statRoutes": "路线数",
-    "statRoutesMeta": "存储中的路线定义",
     "versionsTitle": "版本列表",
     "versionsDescription": "在切换当前时刻表前查看激活版本与历史导入。",
     "importAction": "从 Static 导入",
@@ -706,12 +688,15 @@
       "description": "搜索中国科大常用服务，并置顶你经常访问的入口。",
       "publicDescription": "搜索校园链接，登录后即可置顶常用入口。",
       "searchPlaceholder": "搜索网站名称或描述…",
-      "searchShortcutHint": "按 Ctrl+K 或 ⌘K 聚焦搜索",
+      "searchShortcutHint": "按 Ctrl+Shift+K 或 ⌘⇧K 聚焦搜索",
       "allSitesTab": "全部网站",
       "overviewHint": "总览仅展示 4 个网站：优先展示你的置顶，其余按推荐补齐。",
       "viewMode": "网站视图",
       "gridView": "卡片",
       "listView": "列表",
+      "colName": "名称",
+      "colDescription": "描述",
+      "colActions": "操作",
       "pin": "置顶",
       "unpin": "取消置顶",
       "pinFailedTitle": "置顶更新失败",
@@ -1177,18 +1162,22 @@
     "today": "今天",
     "moreEvents": "+{count} 个更多",
     "roomTbd": "教室待定",
+    "room": "教室",
     "classEventTitle": "上课事件",
     "calendarSheetTitle": "添加到日历",
-    "calendarSheetDescription": "复制下面的链接，然后在您的日历应用中添加此日历",
-    "calendarUrlLabel": "单个班级日历链接",
-    "subscriptionUrlLabel": "教学班订阅日历链接",
+    "calendarSheetDescription": "复制下方链接，在日历应用中通过「订阅日历」添加。",
+    "calendarUrlLabel": "仅此班级",
+    "calendarUrlDescription": "只包含本班级的上课、考试与作业。",
+    "subscriptionUrlLabel": "我的全部订阅",
+    "subscriptionUrlDescription": "包含你在 Life@USTC 中订阅的所有班级，以及待办等个人日程，会自动同步。",
     "subscriptionMissing": "登录后生成你的个人订阅链接",
     "subscriptionHintLabel": "此链接包含您在 Life@USTC 中订阅的所有教学班，会自动同步更新，不代表学校官方选课结果。",
+    "subscriptionPrivacyNote": "此链接相当于你的私人凭证，请勿公开分享。",
     "subscribeLabel": "订阅教学班",
     "unsubscribeLabel": "取消订阅",
     "copyToClipboard": "复制",
     "close": "关闭",
-    "learnMoreAboutICalendar": "了解更多关于 iCalendar 格式",
+    "learnMoreAboutICalendar": "如何用链接订阅日历（Apple 支持）",
     "copied": "已复制！",
     "subscribing": "订阅中...",
     "unsubscribing": "移除中...",
@@ -1233,9 +1222,11 @@
     "calendarEmpty": "此班级暂无课程或考试安排",
     "classEvent": "上课",
     "examEvent": "考试",
+    "lecture": "课次",
+    "lectureNumber": "第 {num} 讲",
     "classSession": "课程安排",
     "examSession": "考试安排",
-    "examBatch": "考试批次",
+    "examBatch": "批次",
     "dateTBD": "日期待定",
     "previousMonth": "上个月",
     "nextMonth": "下个月",
@@ -1251,14 +1242,14 @@
     "location": "地点",
     "teacher": "教师",
     "exams": "考试 ({count})",
-    "examDate": "考试日期",
-    "examTime": "考试时间",
-    "examDateTBD": "考试日期待定",
+    "examDate": "日期",
+    "examTime": "时间",
+    "examDateTBD": "日期待定",
     "examType": "考试类型",
     "examTypeMidterm": "期中考试",
     "examTypeFinal": "期末考试",
-    "examMode": "考试方式",
-    "examCount": "考试人数",
+    "examMode": "方式",
+    "examCount": "人数",
     "viewAllSections": "查看这门课全部开课班级",
     "viewMySubscriptions": "查看我的教学班订阅",
     "viewTeacherCourses": "查看 {teacher} 教授的其他课程",
@@ -1856,6 +1847,7 @@
     "actions": "操作",
     "homeworkTitle": "标题",
     "homeworkSection": "班级",
+    "homeworkDue": "截止",
     "homeworkStatusActive": "正常",
     "homeworkStatusDeleted": "已删除",
     "deleteHomeworkAction": "删除",
@@ -2074,6 +2066,41 @@
     "enableMcpScope": "为该客户端启用 MCP 工具访问权限",
     "permissionsTitle": "权限范围",
     "permissionsHint": "按需选择该客户端可申请的 scopes。",
+    "authorizeAllScopes": "授权全部",
+    "clearAllScopes": "清除全部",
+    "scopeGroupSelectAll": "全选本组",
+    "scopeActionRead": "读取",
+    "scopeActionWrite": "管理",
+    "scopeGroup_identity": "身份",
+    "scopeGroup_account": "账号",
+    "scopeGroup_catalog": "目录",
+    "scopeGroup_community": "社区",
+    "scopeGroup_workspace": "工作台",
+    "scopeGroup_admin": "管理后台",
+    "scopeGroup_other": "其他",
+    "scopeFeature_account.profile": "个人资料",
+    "scopeFeature_catalog.bus": "校车",
+    "scopeFeature_catalog.course": "课程",
+    "scopeFeature_catalog.exam": "考试",
+    "scopeFeature_catalog.link": "网站",
+    "scopeFeature_catalog.schedule": "课表",
+    "scopeFeature_catalog.section": "班级",
+    "scopeFeature_catalog.teacher": "教师",
+    "scopeFeature_community.comment": "评论",
+    "scopeFeature_community.description": "简介",
+    "scopeFeature_community.section-homework": "班级作业",
+    "scopeFeature_community.user": "用户主页",
+    "scopeFeature_workspace.bus-preferences": "校车偏好",
+    "scopeFeature_workspace.calendar": "日历",
+    "scopeFeature_workspace.exam": "考试",
+    "scopeFeature_workspace.homework": "作业",
+    "scopeFeature_workspace.link-pin": "置顶网站",
+    "scopeFeature_workspace.overview": "总览",
+    "scopeFeature_workspace.schedule": "课表",
+    "scopeFeature_workspace.subscription": "订阅",
+    "scopeFeature_workspace.todo": "待办",
+    "scopeFeature_workspace.upload": "上传",
+    "scopeFeature_admin": "管理后台",
     "scopeOpenIdDescription": "当客户端需要识别当前登录用户身份时必须启用。",
     "scopeMcpToolsDescription": "允许客户端调用本服务暴露的 MCP 工具。",
     "creating": "创建中…",

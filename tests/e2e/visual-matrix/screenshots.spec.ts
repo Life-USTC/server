@@ -41,7 +41,7 @@ const VISUAL_SCREENS: VisualScreen[] = [
           level: 1,
           name:
             locale === "zh-cn"
-              ? /先从公开校园工具开始/
+              ? /课程、课表与校园生活，一站搞定/
               : /start with public campus tools/i,
         }),
       ).toBeVisible();

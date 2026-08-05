@@ -1,12 +1,10 @@
 <script lang="ts">
 import { formatSemesterName } from "@/lib/text/format-semester-name";
 import { page } from "$app/stores";
-import TruncatedCode from "$lib/components/TruncatedCode.svelte";
-import * as Accordion from "$lib/components/ui/accordion/index.js";
-import { Button } from "$lib/components/ui/button/index.js";
 import type {
   SectionBasicInfo,
   SectionBasicInfoCopy,
+  SectionRelatedSummary,
   SectionTeachersLabel,
 } from "./section-basic-info-types";
 
@@ -16,42 +14,31 @@ export let sectionCopy: SectionBasicInfoCopy;
 export let sectionTeachersLabel: SectionTeachersLabel;
 
 $: locale = $page.data.locale ?? "zh-cn";
+
+function semesterLabel(related: SectionRelatedSummary) {
+  return related.semester?.nameCn
+    ? formatSemesterName(locale, related.semester.nameCn)
+    : notAvailable;
+}
 </script>
 
-{#if section.sameSemesterOtherTeachers.length > 0 || section.sameTeacherOtherSemesters.length > 0}
-  <Accordion.Root type="single">
-    <Accordion.Item value="related-sections">
-      <Accordion.Trigger>{sectionCopy.otherSections}</Accordion.Trigger>
-      <Accordion.Content>
-        <div class="grid gap-4">
-          {#if section.sameSemesterOtherTeachers.length > 0}
-            <div class="grid gap-2">
-              <p class="text-muted-foreground text-sm">{sectionCopy.sameSemesterOtherTeachers}</p>
-              <div class="flex flex-wrap gap-2">
-                {#each section.sameSemesterOtherTeachers.slice(0, 10) as related}
-                  <Button class="h-auto min-h-8 whitespace-normal px-2 py-1 text-left" href={`/catalog/sections/${related.jwId}`} variant="outline">
-                    <span>{sectionTeachersLabel(related)}</span>
-                    <TruncatedCode text={related.code} />
-                  </Button>
-                {/each}
-              </div>
-            </div>
-          {/if}
-          {#if section.sameTeacherOtherSemesters.length > 0}
-            <div class="grid gap-2">
-              <p class="text-muted-foreground text-sm">{sectionCopy.sameTeacherOtherSemesters}</p>
-              <div class="flex flex-wrap gap-2">
-                {#each section.sameTeacherOtherSemesters.slice(0, 10) as related}
-                  <Button class="h-auto min-h-8 whitespace-normal px-2 py-1 text-left" href={`/catalog/sections/${related.jwId}`} variant="outline">
-                    <span>{related.semester?.nameCn ? formatSemesterName(locale, related.semester.nameCn) : notAvailable}</span>
-                    <TruncatedCode text={related.code} />
-                  </Button>
-                {/each}
-              </div>
-            </div>
-          {/if}
-        </div>
-      </Accordion.Content>
-    </Accordion.Item>
-  </Accordion.Root>
+{#if section.otherCourseSections.length > 0}
+  <section class="grid gap-3">
+    <h3 class="text-sm font-semibold tracking-tight">{sectionCopy.otherSections}</h3>
+    <ul class="grid gap-1.5 text-sm leading-relaxed">
+      {#each section.otherCourseSections as related}
+        <li class="min-w-0">
+          <a
+            class="text-foreground hover:underline"
+            href={`/catalog/sections/${related.jwId}`}
+          >
+            {semesterLabel(related)}
+            <span class="text-muted-foreground">
+              · {sectionTeachersLabel(related)}
+            </span>
+          </a>
+        </li>
+      {/each}
+    </ul>
+  </section>
 {/if}

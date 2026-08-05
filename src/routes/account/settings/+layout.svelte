@@ -1,3 +1,3 @@
-<section class="mx-auto grid w-full max-w-5xl gap-6">
+<section class="grid w-full gap-6">
   <slot />
 </section>

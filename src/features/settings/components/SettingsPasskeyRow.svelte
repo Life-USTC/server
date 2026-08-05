@@ -128,7 +128,7 @@ async function deletePasskey() {
       onclick={() => {
         deleteOpen = true;
       }}
-      size="sm"
+     
       type="button"
       variant="outline"
     >

@@ -36,11 +36,10 @@ export let semesterDate: SectionHomeworkSemesterDate;
       placeholder={homeworkCopy.publishedAt}
     />
     <ButtonGroup.Root class="ml-auto max-w-full flex-wrap justify-end">
-      <Button size="sm" type="button" variant="outline" onclick={applyPublishNow}>
+      <Button type="button" variant="outline" onclick={applyPublishNow}>
         {homeworkCopy.helperPublishNow}
       </Button>
       <Button
-        size="sm"
         type="button"
         variant="outline"
         onclick={() => {
@@ -64,12 +63,11 @@ export let semesterDate: SectionHomeworkSemesterDate;
       placeholder={homeworkCopy.submissionStart}
     />
     <ButtonGroup.Root class="ml-auto max-w-full flex-wrap justify-end">
-      <Button size="sm" type="button" variant="outline" onclick={applyStartNow}>
+      <Button type="button" variant="outline" onclick={applyStartNow}>
         {homeworkCopy.helperStartNow}
       </Button>
       <Button
         disabled={!semesterDate("start")}
-        size="sm"
         type="button"
         variant="outline"
         onclick={applyStartAtSemesterStart}
@@ -77,7 +75,6 @@ export let semesterDate: SectionHomeworkSemesterDate;
         {homeworkCopy.helperSemesterStart}
       </Button>
       <Button
-        size="sm"
         type="button"
         variant="outline"
         onclick={() => {
@@ -100,15 +97,14 @@ export let semesterDate: SectionHomeworkSemesterDate;
       placeholder={homeworkCopy.submissionDue}
     />
     <ButtonGroup.Root class="ml-auto max-w-full flex-wrap justify-end">
-      <Button size="sm" type="button" variant="outline" onclick={applyDueInWeek}>
+      <Button type="button" variant="outline" onclick={applyDueInWeek}>
         {homeworkCopy.helperWeek}
       </Button>
-      <Button size="sm" type="button" variant="outline" onclick={applyDueInMonth}>
+      <Button type="button" variant="outline" onclick={applyDueInMonth}>
         {homeworkCopy.helperMonth}
       </Button>
       <Button
         disabled={!semesterDate("end")}
-        size="sm"
         type="button"
         variant="outline"
         onclick={applyDueAtSemesterEnd}

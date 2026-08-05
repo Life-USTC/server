@@ -75,19 +75,13 @@ export const loadOAuthAuthorizePage = async ({
         label: oauthScopeLabel(locals.locale, scope),
       })),
       copy: {
+        ...copy,
         title: copy.authorize,
         description: formatOAuthMessage(copy.consentDescription, {
           app: client.client_name ?? client.client_id,
         }),
-        clientHostLabel: copy.clientHostLabel,
-        redirectHostLabel: copy.redirectHostLabel,
-        loopbackRedirectWarning: copy.loopbackRedirectWarning,
-        scopesLabel: copy.scopesLabel,
-        allow: copy.allow,
-        deny: copy.deny,
-        authorizing: copy.authorizing,
-        consentFailed: copy.errorConsentFailed,
       },
+      locale: locals.locale,
     };
   } catch {
     return {

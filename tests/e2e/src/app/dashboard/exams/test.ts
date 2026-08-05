@@ -11,7 +11,7 @@
  *
  * ## Features
  * - Exams flattened from subscribed sections, sorted by date then start time
- * - Cards link to /sections/{jwId}
+ * - Desktop table / mobile cards link to /sections/{jwId}
  * - Completed vs incomplete: exam end time vs now
  *
  * ## Edge Cases
@@ -36,7 +36,7 @@ test.describe("仪表盘考试", () => {
     expect(response.headers().location).toBe("/workspace/exams?examView=list");
   });
 
-  test("登录后显示考试筛选工具栏和卡片", async ({ page }, testInfo) => {
+  test("登录后显示考试筛选工具栏和列表", async ({ page }, testInfo) => {
     await signInAsDebugUser(page, "/workspace/exams");
     await ensureSeedSectionSubscription(page);
     await gotoAndWaitForReady(page, "/workspace/exams", {
@@ -56,24 +56,17 @@ test.describe("仪表盘考试", () => {
     await expect(
       filterTabs.getByRole("radio", { name: /Ended|已结束|已完成/i }),
     ).toBeVisible();
-    await expect(
-      filterTabs.getByRole("radio", {
-        name: /Upcoming|即将|即将考试|待完成/i,
-      }),
-    ).toHaveAttribute("aria-checked", "true");
-
-    const clearFilter = page.getByRole("button", {
-      name: /清除筛选|Clear filter/i,
-    });
-    await expect(clearFilter).toBeVisible();
-    await clearFilter.click();
+    // Seed exams are in the past, so incomplete falls back to "all".
     await expect(
       filterTabs.getByRole("radio", { name: /全部|All/i }),
     ).toHaveAttribute("aria-checked", "true");
     await expect(
       page
-        .locator('[data-slot="card"]')
-        .filter({ has: page.locator('a[href^="/catalog/sections/"]') })
+        .getByRole("table")
+        .getByRole("row")
+        .filter({
+          has: page.locator('a[href^="/catalog/sections/"]'),
+        })
         .first(),
     ).toBeVisible();
 
@@ -123,7 +116,7 @@ test.describe("仪表盘考试", () => {
     await captureStepScreenshot(page, testInfo, "exams/mobile-toolbar");
   });
 
-  test("考试卡片显示必填字段", async ({ page }, testInfo) => {
+  test("考试列表显示必填字段", async ({ page }, testInfo) => {
     await signInAsDebugUser(page, "/workspace/exams");
     await ensureSeedSectionSubscription(page);
     await gotoAndWaitForReady(page, "/workspace/exams", {
@@ -138,70 +131,51 @@ test.describe("仪表盘考试", () => {
       filterTabs.getByRole("radio", { name: /全部|All/i }),
     ).toHaveAttribute("aria-checked", "true");
 
-    // exam cards should be visible
-    const examCards = page.locator('[data-slot="card"]').filter({
-      has: page.locator('a[href^="/catalog/sections/"]'),
-    });
-    await expect(examCards.first()).toBeVisible({ timeout: 15_000 });
+    const examRows = page
+      .getByRole("table")
+      .getByRole("row")
+      .filter({
+        has: page.locator('a[href^="/catalog/sections/"]'),
+      });
+    await expect(examRows.first()).toBeVisible({ timeout: 15_000 });
 
-    const seedExamCard = examCards
+    const seedExamRow = examRows
       .filter({
         hasText: new RegExp(
-          `${DEV_SEED.examBatch.nameCn}|${DEV_SEED.examBatch.nameEn}`,
+          `${DEV_SEED.course.nameCn}|${DEV_SEED.course.nameEn}`,
         ),
       })
       .first();
-    const firstCard = seedExamCard;
-    await expect(firstCard).toBeVisible();
+    await expect(seedExamRow).toBeVisible();
 
-    // section.course.namePrimary (exam.yml cross-section-exam-list.display.fields)
+    // section.course.namePrimary
     await expect(
-      firstCard.locator('a[href^="/catalog/sections/"]').first(),
+      seedExamRow.locator('a[href^="/catalog/sections/"]').first(),
     ).toBeVisible();
     await expect(
-      firstCard.locator('a[href^="/catalog/sections/"]').first(),
+      seedExamRow.locator('a[href^="/catalog/sections/"]').first(),
     ).toHaveText(/.+/);
 
-    // exam.examDate — smart datetime (or TBD), not necessarily YYYY-MM-DD
-    await expect(firstCard.locator("dl dd").first()).toBeVisible();
-    await expect(firstCard.locator("dl dd").first()).toHaveText(/.+/);
+    // exam.examDate — YYYY-MM-DD (or TBD)
+    await expect(seedExamRow.getByRole("cell").nth(2)).toHaveText(/.+/);
 
     // exam.startTime - endTime — HH:mm-HH:mm format
     await expect(
-      firstCard
-        .locator("dl dd")
-        .nth(1)
+      seedExamRow
+        .getByRole("cell")
+        .nth(3)
         .getByText(/\d{2}:\d{2}/),
     ).toBeVisible();
 
-    // exam.examMode — Exam.examMode is a raw string (e.g. "闭卷"), not locale-dependent
-    await expect(
-      firstCard.getByText(/闭卷|开卷|closed|open/i).first(),
-    ).toBeVisible();
-
     // exam.examRooms[] — room name present
-    const roomValue = firstCard.locator("dl dd").nth(2);
+    const roomValue = seedExamRow.getByRole("cell").nth(4);
     await expect(roomValue).toHaveText(/\S/);
     await expect(roomValue).not.toHaveText(/TBD|待定|未定|—/i);
 
-    // Cross-section exam cards must identify semester and exam batch metadata.
-    await expect(
-      firstCard.getByText(
-        new RegExp(
-          `${DEV_SEED.semesterNameCn}|${DEV_SEED.previousSemesterNameCn}`,
-        ),
-      ),
-    ).toBeVisible();
-    await expect(
-      firstCard
-        .getByText(DEV_SEED.examBatch.nameCn)
-        .or(firstCard.getByText(DEV_SEED.examBatch.nameEn)),
-    ).toBeVisible();
-
-    await captureStepScreenshot(page, testInfo, "exams/card-fields");
+    await captureStepScreenshot(page, testInfo, "exams/list-fields");
   });
 
-  test("考试卡片链接到班级详情页", async ({ page }, testInfo) => {
+  test("考试列表链接到班级详情页", async ({ page }, testInfo) => {
     await signInAsDebugUser(page, "/workspace/exams");
     await ensureSeedSectionSubscription(page);
     await gotoAndWaitForReady(page, "/workspace/exams", {
@@ -215,7 +189,8 @@ test.describe("仪表盘考试", () => {
       .click();
 
     const sectionLink = page
-      .locator('#main-content a[href^="/catalog/sections/"]')
+      .getByRole("table")
+      .locator('a[href^="/catalog/sections/"]')
       .first();
     await expect(sectionLink).toBeVisible();
     await sectionLink.click();
@@ -242,34 +217,25 @@ test.describe("仪表盘考试", () => {
     });
     await completedTab.click();
     await expect(completedTab).toHaveAttribute("aria-checked", "true");
-    const endedExamCards = page.locator('[data-slot="card"]').filter({
-      has: page.locator('a[href^="/catalog/sections/"]'),
-    });
-    await expect(endedExamCards.first()).toBeVisible({ timeout: 15_000 });
+    const endedExamRows = page
+      .getByRole("table")
+      .getByRole("row")
+      .filter({
+        has: page.locator('a[href^="/catalog/sections/"]'),
+      });
+    await expect(endedExamRows.first()).toBeVisible({ timeout: 15_000 });
     await expect(
-      endedExamCards
-        .first()
-        .getByText(/Ended|已结束|已完成/i)
-        .first(),
-    ).toBeVisible();
-    await expect(
-      endedExamCards
-        .first()
-        .getByText(
-          new RegExp(
-            `${DEV_SEED.semesterNameCn}|${DEV_SEED.previousSemesterNameCn}`,
-          ),
-        )
-        .first(),
-    ).toBeVisible();
+      endedExamRows.first().locator('a[href^="/catalog/sections/"]').first(),
+    ).toHaveText(/.+/);
     await captureStepScreenshot(page, testInfo, "exams/filter-completed");
 
-    // Switch back to incomplete/upcoming
+    // Switch back to incomplete/upcoming — falls back to "all" when empty.
     const incompleteTab = filterTabs.getByRole("radio", {
-      name: /Upcoming|即将|即将考试|待完成/i,
+      name: /Upcoming|即将|即将考试|待完成|未结束/i,
     });
     await incompleteTab.click();
-    await expect(incompleteTab).toHaveAttribute("aria-checked", "true");
+    const allTab = filterTabs.getByRole("radio", { name: /全部|All/i });
+    await expect(allTab).toHaveAttribute("aria-checked", "true");
     await captureStepScreenshot(page, testInfo, "exams/filter-incomplete");
   });
 });

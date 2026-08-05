@@ -34,11 +34,10 @@ export let submissionStartAt: string;
       placeholder={homeworkCopy.publishedAt}
     />
     <ButtonGroup.Root class="ml-auto max-w-full flex-wrap justify-end">
-      <Button size="sm" type="button" variant="outline" onclick={applyPublishNow}>
+      <Button type="button" variant="outline" onclick={applyPublishNow}>
         {homeworkCopy.helperPublishNow}
       </Button>
       <Button
-        size="sm"
         type="button"
         variant="outline"
         onclick={() => {
@@ -62,12 +61,11 @@ export let submissionStartAt: string;
       placeholder={homeworkCopy.submissionStart}
     />
     <ButtonGroup.Root class="ml-auto max-w-full flex-wrap justify-end">
-      <Button size="sm" type="button" variant="outline" onclick={applyStartNow}>
+      <Button type="button" variant="outline" onclick={applyStartNow}>
         {homeworkCopy.helperStartNow}
       </Button>
       <Button
         disabled={!hasSemesterStart}
-        size="sm"
         type="button"
         variant="outline"
         onclick={applyStartAtSemesterStart}
@@ -75,7 +73,6 @@ export let submissionStartAt: string;
         {homeworkCopy.helperSemesterStart}
       </Button>
       <Button
-        size="sm"
         type="button"
         variant="outline"
         onclick={() => {
@@ -98,15 +95,14 @@ export let submissionStartAt: string;
       placeholder={homeworkCopy.submissionDue}
     />
     <ButtonGroup.Root class="ml-auto max-w-full flex-wrap justify-end">
-      <Button size="sm" type="button" variant="outline" onclick={applyDueInWeek}>
+      <Button type="button" variant="outline" onclick={applyDueInWeek}>
         {homeworkCopy.helperWeek}
       </Button>
-      <Button size="sm" type="button" variant="outline" onclick={applyDueInMonth}>
+      <Button type="button" variant="outline" onclick={applyDueInMonth}>
         {homeworkCopy.helperMonth}
       </Button>
       <Button
         disabled={!hasSemesterEnd}
-        size="sm"
         type="button"
         variant="outline"
         onclick={applyDueAtSemesterEnd}

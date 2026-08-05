@@ -1,8 +1,9 @@
 <script lang="ts">
 import type { SubmitFunction } from "@sveltejs/kit";
+import OAuthScopesPicker from "@/features/oauth/components/OAuthScopesPicker.svelte";
+import { buildOAuthScopesPickerCopy } from "@/features/oauth/lib/oauth-scopes-picker-copy";
 import { enhance } from "$app/forms";
 import { Button } from "$lib/components/ui/button/index.js";
-import { Checkbox } from "$lib/components/ui/checkbox/index.js";
 import * as Dialog from "$lib/components/ui/dialog/index.js";
 import * as Field from "$lib/components/ui/field/index.js";
 import { Input } from "$lib/components/ui/input/index.js";
@@ -31,7 +32,16 @@ export let scopeOptions: ScopeOption[];
 export let selectedAuthMethod: string;
 export let selectedAuthPattern: AuthPatternOption;
 export let selectedScopes: string[];
-export let toggleScope: (scope: string, checked: boolean) => void;
+
+$: scopeItems = scopeOptions.map((scope) => ({
+  value: scope.value,
+  label: scopeLabel(scope.value),
+}));
+$: scopesPickerCopy = buildOAuthScopesPickerCopy(copy, {
+  hint: copy.permissionsHint,
+  selectedCountLabel: scopeCountLabel(selectedScopes.length),
+  title: copy.permissionsTitle,
+});
 </script>
 
 {#if open}
@@ -128,36 +138,18 @@ export let toggleScope: (scope: string, checked: boolean) => void;
                 <Field.Description>{copy.redirectUrisHint}</Field.Description>
               </Field.Field>
 
-              <Field.Set>
-                <div class="flex flex-wrap items-center justify-between gap-2">
-                  <Field.Legend variant="label">
-                    {copy.permissionsTitle}
-                  </Field.Legend>
-                  <Field.Description aria-live="polite">
-                    {scopeCountLabel(selectedScopes.length)}
-                  </Field.Description>
-                </div>
-                <Field.Description>{copy.permissionsHint}</Field.Description>
-                <Field.Group class="grid gap-2 sm:grid-cols-2">
-                  {#each scopeOptions as scope}
-                    {@const scopeId = `admin-oauth-scope-${scope.value.replace(/:/g, "-")}`}
-                    <Field.Field orientation="horizontal">
-                      <Checkbox
-                        id={scopeId}
-                        checked={selectedScopes.includes(scope.value)}
-                        onCheckedChange={(checked) =>
-                          toggleScope(scope.value, checked)}
-                      />
-                      <Field.Label for={scopeId} class="cursor-pointer">
-                        {scopeLabel(scope.value)}
-                      </Field.Label>
-                    </Field.Field>
-                  {/each}
-                </Field.Group>
-                {#each selectedScopes as scope}
-                  <input type="hidden" name="scopes" value={scope} />
-                {/each}
-              </Field.Set>
+              <OAuthScopesPicker
+                copy={scopesPickerCopy}
+                idPrefix="admin-oauth-scope"
+                items={scopeItems}
+                {selectedScopes}
+                onSelectedChange={(next) => {
+                  selectedScopes = next;
+                }}
+              />
+              {#each selectedScopes as scope}
+                <input type="hidden" name="scopes" value={scope} />
+              {/each}
             </Field.Group>
           </Field.Set>
         </div>

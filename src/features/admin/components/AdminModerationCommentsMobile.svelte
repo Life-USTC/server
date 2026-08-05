@@ -17,10 +17,7 @@ export let targetLabel: AdminModerationCommentFormatter;
 
 <Item.Group class="md:hidden" data-testid="admin-moderation-mobile-list">
   {#each comments as comment}
-    <Item.Root
-      variant="outline"
-      class={`items-start border-l-4 ${comment.status === "active" ? "border-l-success" : comment.status === "deleted" ? "border-l-destructive" : "border-l-warning"}`}
-    >
+    <Item.Root variant="outline" class="items-start">
       {#snippet child({ props })}
         <button {...props} type="button" onclick={() => onManage(comment)}>
           <Item.Content class="min-w-0">

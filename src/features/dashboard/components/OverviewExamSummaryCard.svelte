@@ -5,13 +5,9 @@ import type {
   DashboardSectionCopy,
 } from "@/features/dashboard/lib/dashboard-controller-helpers";
 import { DASHBOARD_OVERVIEW_PREVIEW_LIMIT } from "@/features/dashboard/lib/overview-preview";
-import { Badge } from "$lib/components/ui/badge/index.js";
-import * as Card from "$lib/components/ui/card/index.js";
-import * as Empty from "$lib/components/ui/empty/index.js";
-import * as Item from "$lib/components/ui/item/index.js";
+import SoftEmptyMessage from "$lib/components/SoftEmptyMessage.svelte";
 import type { DashboardCalendarTabHref } from "./dashboard-calendar-component-types";
-
-import OverviewViewAllFooter from "./OverviewViewAllFooter.svelte";
+import OverviewSection from "./OverviewSection.svelte";
 
 export let calendarExamDetail: (exam: DashboardOverviewExamItem) => string;
 export let dashboardCopy: DashboardDashboardCopy;
@@ -24,41 +20,39 @@ export let previewLimit = DASHBOARD_OVERVIEW_PREVIEW_LIMIT;
 export let viewAllLabel = "View all";
 </script>
 
-<Card.Root>
-  <Card.Header>
-    <Card.Title>
-      <a class="no-underline hover:underline" href={dashboardTabHref("exams")}>{dashboardCopy.radar.title}</a>
-    </Card.Title>
-    <Card.Action>
-      <Badge variant="outline">{examsCount}</Badge>
-    </Card.Action>
-  </Card.Header>
-  <Card.Content>
-    <Item.Group>
+<OverviewSection
+  href={dashboardTabHref("exams")}
+  title={dashboardCopy.radar.title}
+  viewAllHref={dashboardTabHref("exams")}
+  viewAllLabel={viewAllLabel}
+  viewAllVisible={upcomingExams.length > previewLimit}
+>
+  {#snippet action()}
+    <span class="text-muted-foreground text-xs tabular-nums">{examsCount}</span>
+  {/snippet}
+
+  {#if upcomingExams.length === 0}
+    <SoftEmptyMessage message={dashboardCopy.radar.empty} />
+  {:else}
+    <ul class="divide-y divide-border/60">
       {#each upcomingExams.slice(0, previewLimit) as exam}
-        <Item.Root variant="outline" size="sm">
-          {#snippet child({ props })}
-            <a href={dashboardTabHref("exams")} {...props}>
-              <Item.Content>
-                <Item.Title>{exam.courseName}</Item.Title>
-                <Item.Description>{calendarExamDetail(exam) || sectionCopy.dateTBD}</Item.Description>
-              </Item.Content>
-              <Item.Actions>{fmtDate(exam.date)}</Item.Actions>
-            </a>
-          {/snippet}
-        </Item.Root>
-      {:else}
-        <Empty.Root class="min-h-24">
-          <Empty.Header>
-            <Empty.Title>{dashboardCopy.radar.empty}</Empty.Title>
-          </Empty.Header>
-        </Empty.Root>
+        <li>
+          <a
+            class="flex items-start justify-between gap-3 py-2.5 transition-colors hover:bg-muted/40 -mx-2 px-2 rounded-md"
+            href={dashboardTabHref("exams")}
+          >
+            <span class="grid min-w-0 gap-0.5">
+              <span class="font-medium text-sm">{exam.courseName}</span>
+              <span class="text-muted-foreground text-xs">
+                {calendarExamDetail(exam) || sectionCopy.dateTBD}
+              </span>
+            </span>
+            <span class="shrink-0 text-muted-foreground text-xs tabular-nums">
+              {fmtDate(exam.date)}
+            </span>
+          </a>
+        </li>
       {/each}
-    </Item.Group>
-  </Card.Content>
-  <OverviewViewAllFooter
-    href={dashboardTabHref("exams")}
-    label={viewAllLabel}
-    visible={upcomingExams.length > previewLimit}
-  />
-</Card.Root>
+    </ul>
+  {/if}
+</OverviewSection>

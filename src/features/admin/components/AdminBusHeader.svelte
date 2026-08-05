@@ -12,7 +12,7 @@ export let onImport: () => void;
 
 <PageHeader title={copy.title} description={copy.subtitle} eyebrow={adminCopy.title}>
   {#snippet actions()}
-    <Button class="w-full sm:w-auto" size="sm" type="button" {disabled} onclick={onImport}>
+    <Button class="w-full sm:w-auto" type="button" {disabled} onclick={onImport}>
       <Download data-icon="inline-start" />
       {copy.importAction}
     </Button>

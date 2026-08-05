@@ -31,6 +31,12 @@ type CalendarDayEvents<
   todos: Todo[];
 };
 
+type CalendarEventChipFields = {
+  detail: string;
+  meta: string;
+  tooltipDetail?: string;
+};
+
 type CalendarGridEventOptions<
   Session extends CalendarSession,
   Exam extends CalendarExam,
@@ -38,15 +44,27 @@ type CalendarGridEventOptions<
   Todo extends CalendarTodo,
 > = {
   calendarEventParts: (parts: string[]) => string;
-  calendarExamDetail: (exam: Exam) => string;
-  calendarHomeworkDetail: (homework: Homework) => string;
+  calendarExamChipFields: (exam: Exam) => CalendarEventChipFields;
+  calendarHomeworkChipFields: (homework: Homework) => CalendarEventChipFields;
   calendarHomeworkHref: (homework: Homework) => string;
-  calendarSessionDetail: (session: Session) => string;
-  calendarTodoDetail: (todo: Todo) => string;
+  calendarSessionChipFields: (session: Session) => CalendarEventChipFields;
+  calendarTodoChipFields: (todo: Todo) => CalendarEventChipFields;
   dashboardTabHref: (tab: "exams" | "todos") => string;
   examLabel: string;
   sessionHref: (session: Session) => string;
 };
+
+function chipTooltip(
+  label: string,
+  fields: CalendarEventChipFields,
+  calendarEventParts: (parts: string[]) => string,
+) {
+  return calendarEventParts([
+    label,
+    fields.meta,
+    fields.tooltipDetail ?? fields.detail,
+  ]);
+}
 
 export function calendarGridEventsForDay<
   Session extends CalendarSession,
@@ -58,47 +76,64 @@ export function calendarGridEventsForDay<
   options: CalendarGridEventOptions<Session, Exam, Homework, Todo>,
 ): CalendarGridEvent[] {
   return [
-    ...events.sessions.map((session) => ({
-      href: options.sessionHref(session),
-      label: session.courseName,
-      meta: options.calendarSessionDetail(session),
-      tooltip: options.calendarEventParts([
-        session.courseName,
-        options.calendarSessionDetail(session),
-      ]),
-      tone: "info" as const,
-    })),
-    ...events.exams.map((exam) => ({
-      href: options.dashboardTabHref("exams"),
-      label: `${exam.courseName} · ${options.examLabel}`,
-      meta: options.calendarExamDetail(exam),
-      tooltip: options.calendarEventParts([
-        `${exam.courseName} · ${options.examLabel}`,
-        options.calendarExamDetail(exam),
-      ]),
-      tone: "error" as const,
-    })),
-    ...events.homeworks.map((homework) => ({
-      done: Boolean(homework.completed ?? homework.completion),
-      href: options.calendarHomeworkHref(homework),
-      label: homework.title,
-      meta: options.calendarHomeworkDetail(homework),
-      tooltip: options.calendarEventParts([
-        homework.title,
-        options.calendarHomeworkDetail(homework),
-      ]),
-      tone: "warning" as const,
-    })),
-    ...events.todos.map((todo) => ({
-      done: Boolean(todo.completed),
-      href: options.dashboardTabHref("todos"),
-      label: todo.title,
-      meta: options.calendarTodoDetail(todo),
-      tooltip: options.calendarEventParts([
-        todo.title,
-        options.calendarTodoDetail(todo),
-      ]),
-      tone: "success" as const,
-    })),
+    ...events.sessions.map((session) => {
+      const fields = options.calendarSessionChipFields(session);
+      return {
+        href: options.sessionHref(session),
+        label: session.courseName,
+        meta: fields.meta,
+        detail: fields.detail,
+        tooltipDetail: fields.tooltipDetail,
+        tooltip: chipTooltip(
+          session.courseName,
+          fields,
+          options.calendarEventParts,
+        ),
+        tone: "info" as const,
+      };
+    }),
+    ...events.exams.map((exam) => {
+      const fields = options.calendarExamChipFields(exam);
+      const label = `${exam.courseName} · ${options.examLabel}`;
+      return {
+        href: options.dashboardTabHref("exams"),
+        label,
+        meta: fields.meta,
+        detail: fields.detail,
+        tooltipDetail: fields.tooltipDetail,
+        tooltip: chipTooltip(label, fields, options.calendarEventParts),
+        tone: "error" as const,
+      };
+    }),
+    ...events.homeworks.map((homework) => {
+      const fields = options.calendarHomeworkChipFields(homework);
+      return {
+        done: Boolean(homework.completed ?? homework.completion),
+        href: options.calendarHomeworkHref(homework),
+        label: homework.title,
+        meta: fields.meta,
+        detail: fields.detail,
+        tooltipDetail: fields.tooltipDetail,
+        tooltip: chipTooltip(
+          homework.title,
+          fields,
+          options.calendarEventParts,
+        ),
+        tone: "warning" as const,
+      };
+    }),
+    ...events.todos.map((todo) => {
+      const fields = options.calendarTodoChipFields(todo);
+      return {
+        done: Boolean(todo.completed),
+        href: options.dashboardTabHref("todos"),
+        label: todo.title,
+        meta: fields.meta,
+        detail: fields.detail,
+        tooltipDetail: fields.tooltipDetail,
+        tooltip: chipTooltip(todo.title, fields, options.calendarEventParts),
+        tone: "success" as const,
+      };
+    }),
   ];
 }

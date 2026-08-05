@@ -1,7 +1,6 @@
 <script lang="ts">
+import SoftEmptyMessage from "$lib/components/SoftEmptyMessage.svelte";
 import { Badge } from "$lib/components/ui/badge/index.js";
-import * as Card from "$lib/components/ui/card/index.js";
-import * as Empty from "$lib/components/ui/empty/index.js";
 import AdminUsersDesktopTable from "./AdminUsersDesktopTable.svelte";
 import AdminUsersMobileList from "./AdminUsersMobileList.svelte";
 import type {
@@ -29,46 +28,35 @@ export let suspensionLabel: AdminUserFormatter;
 export let users: AdminUserRow[];
 </script>
 
-<Card.Root>
-  <Card.Header>
-    <Card.Title>{copy.accountsTitle}</Card.Title>
-    <Card.Description>
-      {copy.accountsDescription}
-    </Card.Description>
-    <Card.Action>
-      <Badge variant="ghost">
-        {formatMessage(copy.showing, {
-          count: String(users.length),
-          total: String(pagination.total),
-        })}
-      </Badge>
-    </Card.Action>
-  </Card.Header>
-  <Card.Content class="grid grid-cols-[minmax(0,1fr)] gap-4">
-    {#if users.length === 0}
-      <Empty.Root class="min-h-24">
-        <Empty.Header>
-          <Empty.Description>{copy.noResults}</Empty.Description>
-        </Empty.Header>
-      </Empty.Root>
-    {:else}
-      <AdminUsersMobileList
-        {copy}
-        {displayName}
-        {formatDate}
-        {onSelect}
-        {suspensionLabel}
-        {users}
-      />
+<section class="grid min-w-0 gap-3">
+  <div class="flex justify-end">
+    <Badge variant="ghost">
+      {formatMessage(copy.showing, {
+        count: String(users.length),
+        total: String(pagination.total),
+      })}
+    </Badge>
+  </div>
 
-      <AdminUsersDesktopTable
-        {copy}
-        {displayName}
-        {formatDate}
-        {onSelect}
-        {suspensionLabel}
-        {users}
-      />
-    {/if}
-  </Card.Content>
-</Card.Root>
+  {#if users.length === 0}
+    <SoftEmptyMessage message={copy.noResults} />
+  {:else}
+    <AdminUsersMobileList
+      {copy}
+      {displayName}
+      {formatDate}
+      {onSelect}
+      {suspensionLabel}
+      {users}
+    />
+
+    <AdminUsersDesktopTable
+      {copy}
+      {displayName}
+      {formatDate}
+      {onSelect}
+      {suspensionLabel}
+      {users}
+    />
+  {/if}
+</section>

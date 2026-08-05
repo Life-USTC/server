@@ -1,8 +1,9 @@
 <script lang="ts">
+import SquarePen from "@lucide/svelte/icons/square-pen";
+import DashboardTableIconButton from "@/features/dashboard/components/DashboardTableIconButton.svelte";
+import DashboardTableRowActions from "@/features/dashboard/components/DashboardTableRowActions.svelte";
 import TruncatedText from "$lib/components/TruncatedText.svelte";
-import { Button } from "$lib/components/ui/button/index.js";
 import * as Table from "$lib/components/ui/table/index.js";
-import { cn } from "$lib/utils.js";
 import type {
   AdminModerationComment,
   AdminModerationCommentFormatter,
@@ -21,34 +22,27 @@ export let targetHref: AdminModerationCommentFormatter;
 export let targetLabel: AdminModerationCommentFormatter;
 </script>
 
-<Table.Row
-  class={cn(
-    "border-l-4",
-    comment.status === "active"
-      ? "border-l-success"
-      : comment.status === "deleted"
-        ? "border-l-destructive"
-        : "border-l-warning",
-  )}
->
-  <Table.Cell class="max-w-md">
-    <TruncatedText
-      class="text-sm"
-      lines={2}
-      preserveWhitespace
-      text={comment.body}
-    />
-    <TruncatedText
-      class="mt-1 text-muted-foreground text-xs"
-      text={comment.moderationNote
-        ? `${copy.moderationNote}: ${comment.moderationNote}`
-        : null}
-    />
+<Table.Row class="group">
+  <Table.Cell>
+    <div class="grid min-w-0 gap-1">
+      <TruncatedText
+        class="text-sm"
+        lines={2}
+        preserveWhitespace
+        text={comment.body}
+      />
+      {#if comment.moderationNote}
+        <TruncatedText
+          class="text-muted-foreground text-xs"
+          text={`${copy.moderationNote}: ${comment.moderationNote}`}
+        />
+      {/if}
+    </div>
   </Table.Cell>
-  <Table.Cell class="max-w-48">
-    <TruncatedText text={commentAuthorLabel(comment)} />
+  <Table.Cell>
+    {commentAuthorLabel(comment)}
   </Table.Cell>
-  <Table.Cell class="max-w-sm">
+  <Table.Cell>
     <a
       class="block min-w-0 overflow-hidden hover:underline"
       href={targetHref(comment)}
@@ -56,7 +50,7 @@ export let targetLabel: AdminModerationCommentFormatter;
       <TruncatedText text={targetLabel(comment)} />
     </a>
   </Table.Cell>
-  <Table.Cell>
+  <Table.Cell class="whitespace-nowrap tabular-nums text-muted-foreground">
     {formatDate(comment.createdAt)}
   </Table.Cell>
   <Table.Cell>
@@ -65,16 +59,16 @@ export let targetLabel: AdminModerationCommentFormatter;
       status={comment.status}
     />
   </Table.Cell>
-  <Table.Cell class="text-right">
-    <Button
-      size="sm"
-      type="button"
-      variant="outline"
-      onclick={() => {
-        onManage(comment);
-      }}
-    >
-      {copy.manageComment}
-    </Button>
+  <Table.Cell>
+    <DashboardTableRowActions>
+      <DashboardTableIconButton
+        label={copy.manageComment}
+        onclick={() => {
+          onManage(comment);
+        }}
+      >
+        <SquarePen />
+      </DashboardTableIconButton>
+    </DashboardTableRowActions>
   </Table.Cell>
 </Table.Row>

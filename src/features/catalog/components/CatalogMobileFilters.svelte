@@ -14,6 +14,9 @@ export type CatalogHiddenFilter = {
 import SearchIcon from "@lucide/svelte/icons/search";
 import SlidersHorizontalIcon from "@lucide/svelte/icons/sliders-horizontal";
 import XIcon from "@lucide/svelte/icons/x";
+import { onMount } from "svelte";
+import { mountPageSearchShortcut } from "@/lib/browser/page-search-shortcut";
+import PageSearchShortcutHint from "$lib/components/shell/PageSearchShortcutHint.svelte";
 import { Badge } from "$lib/components/ui/badge/index.js";
 import { Button } from "$lib/components/ui/button/index.js";
 import * as InputGroup from "$lib/components/ui/input-group/index.js";
@@ -33,6 +36,10 @@ export let searchId: string;
 export let searchLabel: string;
 export let searchPlaceholder: string;
 export let searchValue: string;
+
+let searchInput: HTMLInputElement | null = null;
+
+onMount(() => mountPageSearchShortcut(() => searchInput));
 </script>
 
 <div
@@ -55,7 +62,6 @@ export let searchValue: string;
     <label class="sr-only" for={searchId}>{searchLabel}</label>
     <InputGroup.Root
       class={cn(
-        "h-11",
         inlineFilters ? "" : "col-span-2 min-[420px]:col-span-1",
       )}
     >
@@ -63,22 +69,26 @@ export let searchValue: string;
         <SearchIcon aria-hidden="true" />
       </InputGroup.Addon>
       <InputGroup.Input
-          id={searchId}
-          name="search"
-          placeholder={searchPlaceholder}
-          type="search"
-          value={searchValue}
-          oninput={(event: Event) => {
-            searchValue = (event.currentTarget as HTMLInputElement).value;
-          }}
-        />
+        id={searchId}
+        bind:ref={searchInput}
+        name="search"
+        placeholder={searchPlaceholder}
+        type="search"
+        value={searchValue}
+        oninput={(event: Event) => {
+          searchValue = (event.currentTarget as HTMLInputElement).value;
+        }}
+      />
+      <InputGroup.Addon align="inline-end">
+        <PageSearchShortcutHint />
+      </InputGroup.Addon>
     </InputGroup.Root>
     {#each hiddenFilters as filter}
       {#if filter.value}
         <input name={filter.name} type="hidden" value={filter.value} />
       {/if}
     {/each}
-    <Button class="h-11 w-full min-[420px]:w-auto" type="submit">
+    <Button class="w-full min-[420px]:w-auto" type="submit">
       {searchLabel}
     </Button>
 
@@ -87,13 +97,16 @@ export let searchValue: string;
         <Sheet.Trigger>
           {#snippet child({ props })}
             <Button
+              {...props}
               aria-label={activeFilters.length > 0
                 ? `${filterTitle} (${activeFilters.length})`
                 : filterTitle}
-              class="relative h-11 w-full min-w-0 min-[420px]:w-auto"
+              class={cn(
+                "relative w-full min-w-0 min-[420px]:w-auto",
+                typeof props.class === "string" ? props.class : undefined,
+              )}
               type="button"
               variant="outline"
-              {...props}
             >
               <SlidersHorizontalIcon aria-hidden="true" data-icon="inline-start" />
               <span class="min-w-0 truncate">{filterTitle}</span>
@@ -148,9 +161,8 @@ export let searchValue: string;
       {#each activeFilters as filter}
         <Button
           aria-label={`${clearLabel}: ${filter.label}`}
-          class="min-h-11 max-w-full min-w-0 sm:min-h-8"
+          class="max-w-full min-w-0"
           href={filter.href}
-          size="sm"
           title={filter.label}
           variant="secondary"
         >
@@ -160,9 +172,7 @@ export let searchValue: string;
       {/each}
       {#if activeFilters.length > 1}
         <Button
-          class="min-h-11 sm:min-h-8"
           href={clearHref}
-          size="sm"
           variant="ghost"
         >
           {clearLabel}

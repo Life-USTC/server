@@ -21,7 +21,6 @@ export let selectedImportSectionIdSet: Set<number>;
 export let selectedImportCount: number;
 export let canMatchImportSections: boolean;
 export let formatMessage: FormatMessage;
-export let copyCalendarLink: DashboardSubscriptionsTabProps["copyCalendarLink"];
 export let namePrimary: NameFormatter;
 export let nameSecondary: NameFormatter;
 export let resetBulkImport: DashboardSubscriptionsTabProps["resetBulkImport"];
@@ -54,13 +53,13 @@ function openQuickAddDialog() {
 }
 </script>
 
-<section class="grid min-w-0 gap-4">
+<section class="grid gap-4">
   {#if signedData.subscriptions.subscriptions.length > 0}
     <SubscriptionsTabToolbar
       calendarSubscriptionUrl={signedData.subscriptions.calendarSubscriptionUrl ?? null}
-      {copyCalendarLink}
       {openBulkImportDialog}
       {openQuickAddDialog}
+      {sectionCopy}
       {subscriptionsCopy}
     />
   {/if}

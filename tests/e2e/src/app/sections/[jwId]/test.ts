@@ -207,18 +207,22 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
   test("显示学分、考试方式与备注", async ({ page }, testInfo) => {
     await gotoAndWaitForReady(page, SECTION_URL);
 
-    const creditsValue = page
-      .getByText(/学分|Credits/i)
-      .first()
-      .locator("xpath=parent::*/*[last()]");
-    const examModeValue = page
-      .getByText(/考试方式|Exam Mode/i)
-      .first()
-      .locator("xpath=parent::*/*[last()]");
-    const remarkValue = page
-      .getByText(/备注|Remark/i)
-      .first()
-      .locator("xpath=parent::*/*[last()]");
+    const facts = page
+      .locator("dl")
+      .filter({ hasText: /学分|Credits/i })
+      .first();
+    const creditsValue = facts
+      .locator("dt")
+      .filter({ hasText: /学分|Credits/i })
+      .locator("xpath=following-sibling::dd[1]");
+    const examModeValue = facts
+      .locator("dt")
+      .filter({ hasText: /^(方式|Mode)$/i })
+      .locator("xpath=following-sibling::dd[1]");
+    const remarkValue = facts
+      .locator("dt")
+      .filter({ hasText: /备注|Remark/i })
+      .locator("xpath=following-sibling::dd[1]");
 
     // section.credits
     await expect(creditsValue).toHaveText(String(DEV_SEED.section.credits));
@@ -1073,31 +1077,11 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
     ).toBe(true);
   });
 
-  test("可切换班级作业区块为列表视图并记住偏好", async ({ page }, testInfo) => {
+  test("班级作业区块默认以列表展示", async ({ page }, testInfo) => {
     await gotoAndWaitForReady(page, SECTION_URL);
 
     await jumpToSection(page, /作业|Homework/i, "#homework");
 
-    await expect(page.getByTestId("section-homeworks-cards")).toBeVisible();
-    await page
-      .getByRole("radio", { name: /列表|List/i })
-      .first()
-      .click();
-    await expect(page).toHaveURL(/homeworkView=list/);
-    await expect(page.getByTestId("section-homeworks-list")).toBeVisible();
-    await expect
-      .poll(() =>
-        page.evaluate(() =>
-          localStorage.getItem("life-ustc-dashboard-homework-view-mode"),
-        ),
-      )
-      .toBe("list");
-
-    await gotoAndWaitForReady(page, SECTION_URL);
-    await jumpToSection(page, /作业|Homework/i, "#homework");
-    await expect(page).toHaveURL(
-      new RegExp(`/catalog/sections/${DEV_SEED.section.jwId}#homework$`),
-    );
     await expect(page.getByTestId("section-homeworks-list")).toBeVisible();
     await captureStepScreenshot(page, testInfo, "section/homework-list-view");
   });

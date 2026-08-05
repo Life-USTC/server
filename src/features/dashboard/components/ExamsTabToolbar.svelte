@@ -1,40 +1,15 @@
 <script lang="ts">
-import LayoutGrid from "@lucide/svelte/icons/layout-grid";
-import List from "@lucide/svelte/icons/list";
-import type {
-  DashboardDashboardCopy,
-  ExamView,
-} from "@/features/dashboard/lib/dashboard-controller-types";
+import type { DashboardDashboardCopy } from "@/features/dashboard/lib/dashboard-controller-types";
 import * as ToggleGroup from "$lib/components/ui/toggle-group/index.js";
 import type { DashboardExamFilter } from "./dashboard-exam-component-types";
 
 export let dashboardCopy: DashboardDashboardCopy;
 export let examFilter: DashboardExamFilter;
-export let examView: ExamView;
-export let setExamView: (view: ExamView) => void;
+export let onExamFilterChange: (value: DashboardExamFilter) => void;
 </script>
 
 <div class="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-2 md:flex md:flex-wrap md:items-center">
   <div class="min-w-0 md:flex md:flex-wrap md:items-center md:gap-2">
-    <ToggleGroup.Root
-      aria-label={dashboardCopy.nav.exams.viewMode}
-      class="hidden md:flex"
-      type="single"
-      value={examView}
-      variant="outline"
-      onValueChange={(value) => {
-        if (value === "cards" || value === "list") setExamView(value);
-      }}
-    >
-      <ToggleGroup.Item value="cards">
-        <LayoutGrid data-icon="inline-start" />
-        {dashboardCopy.nav.exams.cardView}
-      </ToggleGroup.Item>
-      <ToggleGroup.Item value="list">
-        <List data-icon="inline-start" />
-        {dashboardCopy.nav.exams.listView}
-      </ToggleGroup.Item>
-    </ToggleGroup.Root>
     <ToggleGroup.Root
       aria-label={dashboardCopy.nav.exams.title}
       class="w-full min-w-0 md:w-fit"
@@ -47,7 +22,7 @@ export let setExamView: (view: ExamView) => void;
           value === "completed" ||
           value === "all"
         ) {
-          examFilter = value;
+          onExamFilterChange(value);
         }
       }}
     >

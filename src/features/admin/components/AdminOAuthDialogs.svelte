@@ -46,7 +46,6 @@ export let selectedAuthPattern: AuthPatternOption;
 export let selectedScopes: string[];
 export let setPendingDeleteClient: (client: AdminOAuthClient | null) => void;
 export let showCreateDialog: boolean;
-export let toggleScope: (scope: string, checked: boolean) => void;
 export let clientTypeLabel: (method: string) => string;
 </script>
 
@@ -67,7 +66,6 @@ export let clientTypeLabel: (method: string) => string;
   bind:selectedAuthMethod
   {selectedAuthPattern}
   bind:selectedScopes
-  {toggleScope}
 />
 
 <AdminOAuthCredentialsDialog

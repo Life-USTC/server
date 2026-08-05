@@ -50,7 +50,7 @@ $: stats = [
 ];
 </script>
 
-<section class="mx-auto grid w-full max-w-6xl gap-6 lg:grid-cols-[20rem_minmax(0,1fr)] lg:items-start">
+<section class="grid w-full gap-6 lg:grid-cols-[20rem_minmax(0,1fr)] lg:items-start">
   <ProfileSummaryCard
     {copy}
     {displayName}

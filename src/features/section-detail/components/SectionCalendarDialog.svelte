@@ -5,6 +5,10 @@ import { Button } from "$lib/components/ui/button/index.js";
 import * as Dialog from "$lib/components/ui/dialog/index.js";
 import SectionCalendarUrlRow from "./SectionCalendarUrlRow.svelte";
 
+/** Apple Calendar: subscribe by URL guide (locale-neutral). */
+const ICAL_SUBSCRIBE_GUIDE_HREF =
+  "https://support.apple.com/guide/calendar/subscribe-to-calendars-icl1022/mac";
+
 export let clipboardError: string;
 export let clipboardMessage: string;
 export let close: () => void;
@@ -17,11 +21,15 @@ export let isOpen: boolean;
 export let sectionCopy: {
   calendarSheetDescription: string;
   calendarSheetTitle: string;
+  calendarUrlDescription: string;
   calendarUrlLabel: string;
   close?: string;
   copied: string;
   copyToClipboard: string;
+  learnMoreAboutICalendar: string;
   subscriptionMissing: string;
+  subscriptionPrivacyNote: string;
+  subscriptionUrlDescription: string;
   subscriptionUrlLabel: string;
   viewAllSubscriptions: string;
 };
@@ -44,6 +52,15 @@ export let subscriptionCalendarUrl: string;
       </Dialog.Title>
       <Dialog.Description>
         {sectionCopy.calendarSheetDescription}
+        {" "}
+        <a
+          class="text-primary underline-offset-4 hover:underline"
+          href={ICAL_SUBSCRIBE_GUIDE_HREF}
+          rel="noopener noreferrer"
+          target="_blank"
+        >
+          {sectionCopy.learnMoreAboutICalendar}
+        </a>
       </Dialog.Description>
     </Dialog.Header>
     <section class="grid min-w-0 gap-4 px-5 py-4">
@@ -61,6 +78,7 @@ export let subscriptionCalendarUrl: string;
         buttonLabel={sectionCopy.copyToClipboard}
         copied={copiedCalendarTarget === "single"}
         copiedLabel={sectionCopy.copied}
+        description={sectionCopy.calendarUrlDescription}
         id="calendar-url"
         label={sectionCopy.calendarUrlLabel}
         onCopy={() => copyText(singleCalendarUrl, "single")}
@@ -70,13 +88,15 @@ export let subscriptionCalendarUrl: string;
         buttonLabel={sectionCopy.copyToClipboard}
         copied={copiedCalendarTarget === "subscription"}
         copiedLabel={sectionCopy.copied}
+        description={sectionCopy.subscriptionUrlDescription}
         id="subscription-url"
         label={sectionCopy.subscriptionUrlLabel}
         missingLabel={sectionCopy.subscriptionMissing}
         onCopy={() => copyText(subscriptionCalendarUrl, "subscription")}
         value={subscriptionCalendarUrl}
+        warning={sectionCopy.subscriptionPrivacyNote}
       />
-      <Button class="w-fit" href="/workspace/subscriptions" size="sm" variant="link">
+      <Button class="w-fit" href="/workspace/subscriptions" variant="link">
         {sectionCopy.viewAllSubscriptions}
       </Button>
     </section>

@@ -12,6 +12,8 @@ export type CalendarGridEvent = {
   label: string;
   title?: string;
   tooltip?: string;
+  /** Untruncated third-line body for hover; falls back to detail. */
+  tooltipDetail?: string;
   meta?: string;
   detail?: string;
   tone?: CalendarTone;

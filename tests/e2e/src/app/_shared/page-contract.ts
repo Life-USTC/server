@@ -123,10 +123,8 @@ export async function assertPageContract(
     case "/admin": {
       await signInAsDevAdmin(page, "/admin");
       await gotoContractPage(page, routePath, testInfo);
+      await expect(page).toHaveURL(/\/admin\/users(?:\?.*)?$/);
       await expectMainContent(page);
-      await expect(
-        page.getByRole("link", { name: /管理员|Admin/i }),
-      ).toBeVisible();
       await expect(
         page.getByRole("link", { name: /用户管理|User Management/i }),
       ).toBeVisible();
@@ -139,7 +137,7 @@ export async function assertPageContract(
       await expect(
         page.getByRole("link", { name: /校车管理|Shuttle Bus/i }),
       ).toBeVisible();
-      await maybeCapture(page, testInfo, "admin-home");
+      await maybeCapture(page, testInfo, "admin-entry");
       return;
     }
 
@@ -148,7 +146,7 @@ export async function assertPageContract(
       await gotoContractPage(page, routePath, testInfo);
       await expectMainContent(page);
       await expect(
-        page.getByRole("heading", { name: /时刻表版本|Versions/i }),
+        page.getByRole("heading", { name: /校车管理|Shuttle Bus/i }),
       ).toBeVisible();
       await expect(
         page.getByRole("button", { name: /导入|Import/i }),
@@ -408,7 +406,7 @@ export async function assertPageContract(
         page.getByRole("link", { name: /App Store|下载/i }),
       ).toBeVisible();
       await expect(
-        page.getByRole("link", { name: /打开仪表盘|Open Dashboard/i }).first(),
+        page.locator('img[src="/images/mobile-app/screenshot-01.png"]').first(),
       ).toBeVisible();
       await maybeCapture(page, testInfo, "mobile-app");
       return;
@@ -484,11 +482,11 @@ export async function assertPageContract(
       await expect(
         page.getByRole("heading", {
           level: 1,
-          name: /先从公开校园工具开始|Start with public campus tools/i,
+          name: /课程、课表与校园生活，一站搞定|Courses, schedules, and campus life/i,
         }),
       ).toBeVisible();
       await expect(
-        page.getByRole("link", { name: /浏览课程|Browse courses/i }),
+        page.getByRole("link", { name: /^(课程|Courses)$/i }),
       ).toBeVisible();
       await expect(page.getByTestId("bus-compact-summary")).toHaveCount(0);
       await maybeCapture(page, testInfo, "home");

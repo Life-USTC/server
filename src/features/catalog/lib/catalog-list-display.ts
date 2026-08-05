@@ -20,9 +20,39 @@ export function catalogSecondaryName(item: CatalogNamed | null | undefined) {
   return item?.nameSecondary ?? item?.nameEn ?? "";
 }
 
+/**
+ * Locale-aware entity title for lists/headers.
+ * - zh-cn: primary (CN) only; secondary only if primary is missing
+ * - en-us: always "EN (CN)" when both differ; otherwise whichever exists
+ */
+export function catalogLocalizedDisplayName(
+  item: CatalogNamed | null | undefined,
+  locale: string | null | undefined,
+) {
+  const primary = catalogPrimaryName(item);
+  const secondary = catalogSecondaryName(item);
+  if (locale === "en-us") {
+    if (primary && secondary && primary !== secondary) {
+      return `${primary} (${secondary})`;
+    }
+    return primary || secondary;
+  }
+  return primary || secondary;
+}
+
 export function catalogNames(items: CatalogNamed[]) {
   return items
     .map((item) => catalogPrimaryName(item))
+    .filter(Boolean)
+    .join(", ");
+}
+
+export function catalogLocalizedNames(
+  items: CatalogNamed[],
+  locale: string | null | undefined,
+) {
+  return items
+    .map((item) => catalogLocalizedDisplayName(item, locale))
     .filter(Boolean)
     .join(", ");
 }

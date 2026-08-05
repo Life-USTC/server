@@ -1,6 +1,5 @@
 <script lang="ts">
 import ChevronsUpDownIcon from "@lucide/svelte/icons/chevrons-up-down";
-import KeyRoundIcon from "@lucide/svelte/icons/key-round";
 import LogOutIcon from "@lucide/svelte/icons/log-out";
 import SettingsIcon from "@lucide/svelte/icons/settings";
 import UserRoundIcon from "@lucide/svelte/icons/user-round";
@@ -31,10 +30,6 @@ function isSettingsPath(pathname: string) {
     pathname === "/account/settings" ||
     pathname.startsWith("/account/settings/")
   );
-}
-
-function isAuthorizationsPath(pathname: string) {
-  return pathname === "/account/settings/authorizations";
 }
 </script>
 
@@ -93,7 +88,7 @@ function isAuthorizationsPath(pathname: string) {
                   href={profileHref}
                 >
                   <UserRoundIcon />
-                  {copy.menu.me}
+                  {copy.menu.personalPage}
                 </a>
               {/snippet}
             </DropdownMenu.Item>
@@ -101,28 +96,13 @@ function isAuthorizationsPath(pathname: string) {
               {#snippet child({ props })}
                 <a
                   {...props}
-                  aria-current={isSettingsPath(currentPathname) &&
-                  !isAuthorizationsPath(currentPathname)
+                  aria-current={isSettingsPath(currentPathname)
                     ? "page"
                     : undefined}
                   href="/account/settings/preferences"
                 >
                   <SettingsIcon />
                   {copy.menu.settings}
-                </a>
-              {/snippet}
-            </DropdownMenu.Item>
-            <DropdownMenu.Item onSelect={closeAccountNavigation}>
-              {#snippet child({ props })}
-                <a
-                  {...props}
-                  aria-current={isAuthorizationsPath(currentPathname)
-                    ? "page"
-                    : undefined}
-                  href="/account/settings/authorizations"
-                >
-                  <KeyRoundIcon />
-                  {copy.menu.authorizedApps}
                 </a>
               {/snippet}
             </DropdownMenu.Item>

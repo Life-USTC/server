@@ -42,11 +42,11 @@ test("/ 首页快速入口可见", async ({ page }, testInfo) => {
   await expect(
     page.getByRole("heading", {
       level: 1,
-      name: /先从公开校园工具开始|Start with public campus tools/i,
+      name: /课程、课表与校园生活，一站搞定|Courses, schedules, and campus life/i,
     }),
   ).toBeVisible();
   await expect(
-    page.getByRole("link", { name: /浏览课程|Browse courses/i }),
+    page.getByRole("link", { name: /^(课程|Courses)$/i }),
   ).toBeVisible();
   // Bus and links are independent public destinations in the shell.
   await expect(
@@ -330,11 +330,10 @@ test("/ shell 桌面导航以任务为一级入口且当前位置唯一", async 
     navigation.getByRole("link", { name: /^(日历|Calendar)$/i }),
   ).toHaveAttribute("aria-current", "page");
 
-  const explore = navigation.getByRole("button", {
-    name: /^(发现|Explore)$/i,
+  const catalog = navigation.getByRole("button", {
+    name: /^(课程目录|Catalog)$/i,
   });
-  await expect(explore).toHaveAttribute("aria-expanded", "false");
-  await explore.click();
+  await expect(catalog).toHaveAttribute("aria-expanded", "true");
   await expect(
     navigation.getByRole("link", { name: /^(课程|Courses)$/i }),
   ).toBeVisible();
@@ -385,17 +384,16 @@ test("/ shell 当前分组在导航后保持展开", async ({ page }) => {
   const navigation = page.getByTestId("app-sidebar").getByRole("navigation", {
     name: /主导航|Primary navigation/i,
   });
-  const explore = navigation.getByRole("button", {
-    name: /^(发现|Explore)$/i,
+  const catalog = navigation.getByRole("button", {
+    name: /^(课程目录|Catalog)$/i,
   });
 
-  await explore.click();
-  await expect(explore).toHaveAttribute("aria-expanded", "true");
+  await expect(catalog).toHaveAttribute("aria-expanded", "true");
   await expect(
     navigation.getByRole("link", { name: /^(课程|Courses)$/i }),
   ).toBeVisible();
-  await explore.click();
-  await expect(explore).toHaveAttribute("aria-expanded", "false");
+  await catalog.click();
+  await expect(catalog).toHaveAttribute("aria-expanded", "false");
 
   await page.evaluate(() => {
     const link = document.createElement("a");
@@ -408,7 +406,7 @@ test("/ shell 当前分组在导航后保持展开", async ({ page }) => {
   await page.waitForURL("**/catalog/courses");
   await waitForUiSettled(page);
 
-  await expect(explore).toHaveAttribute("aria-expanded", "true");
+  await expect(catalog).toHaveAttribute("aria-expanded", "true");
   await expect(
     navigation.getByRole("link", { name: /^(课程|Courses)$/i }),
   ).toHaveAttribute("aria-current", "page");
@@ -542,7 +540,9 @@ test("/ shell 菜单支持键盘菜单语义", async ({ page }) => {
 
   const menu = page.getByRole("menu");
   await expect(menu).toBeVisible();
-  const profileItem = page.getByRole("menuitem", { name: /^(我的|Me)$/i });
+  const profileItem = page.getByRole("menuitem", {
+    name: /^(个人主页|Personal page)$/i,
+  });
   await expect(profileItem).toBeFocused();
   await page.evaluate(
     () => new Promise((resolve) => requestAnimationFrame(resolve)),

@@ -17,7 +17,6 @@ export let toggleReply: (comment: CommentNode) => void;
 <div class="flex flex-wrap items-center gap-1">
   {#if comment.canReply}
     <Button
-      size="sm"
       type="button"
       variant="ghost"
       onclick={() => {
@@ -28,7 +27,7 @@ export let toggleReply: (comment: CommentNode) => void;
     </Button>
   {/if}
   {#if comment.canEdit}
-    <Button size="sm" type="button" variant="ghost" onclick={() => startEdit(comment)}>
+    <Button type="button" variant="ghost" onclick={() => startEdit(comment)}>
       {commentCopy.editAction}
     </Button>
   {/if}
@@ -44,7 +43,6 @@ export let toggleReply: (comment: CommentNode) => void;
           <Button
             {...props}
             aria-label={commentCopy.moreActions}
-            size="sm"
             variant="ghost"
           >
             {commentCopy.moreActions}

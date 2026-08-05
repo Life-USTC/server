@@ -1,7 +1,4 @@
 <script lang="ts">
-import { Badge } from "$lib/components/ui/badge/index.js";
-import * as Empty from "$lib/components/ui/empty/index.js";
-import * as Item from "$lib/components/ui/item/index.js";
 import type {
   SectionPrimaryName,
   SectionTeacherCopy,
@@ -15,27 +12,27 @@ export let teacherName: SectionTeacherName;
 export let teachers: SectionTeacherSummary[];
 </script>
 
-<Item.Group>
-  {#each teachers as teacher}
-    <Item.Root size="sm">
-      {#snippet child({ props })}
-        <a href={`/catalog/teachers/${teacher.id}`} {...props}>
-          <Item.Content>
-            <Item.Title>{teacherName(teacher)}</Item.Title>
-          </Item.Content>
-          {#if teacher.department}
-            <Item.Actions>
-              <Badge variant="secondary">{primaryName(teacher.department)}</Badge>
-            </Item.Actions>
-          {/if}
-        </a>
-      {/snippet}
-    </Item.Root>
+<section id="teachers" class="grid gap-3">
+  <h3 class="text-sm font-semibold tracking-tight">{sectionCopy.teachers}</h3>
+  {#if teachers.length > 0}
+    <ul class="grid gap-1.5 text-sm leading-relaxed">
+      {#each teachers as teacher}
+        <li class="min-w-0">
+          <a
+            class="text-foreground hover:underline"
+            href={`/catalog/teachers/${teacher.id}`}
+          >
+            {teacherName(teacher)}
+            {#if teacher.department}
+              <span class="text-muted-foreground">
+                · {primaryName(teacher.department)}
+              </span>
+            {/if}
+          </a>
+        </li>
+      {/each}
+    </ul>
   {:else}
-    <Empty.Root class="min-h-20 p-4">
-      <Empty.Header>
-        <Empty.Description>{sectionCopy.noTeachersListed}</Empty.Description>
-      </Empty.Header>
-    </Empty.Root>
-  {/each}
-</Item.Group>
+    <p class="text-muted-foreground text-sm">{sectionCopy.noTeachersListed}</p>
+  {/if}
+</section>

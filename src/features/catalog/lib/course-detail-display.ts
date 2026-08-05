@@ -1,16 +1,16 @@
-type LocalizedName = {
-  namePrimary?: string | null;
-  nameSecondary?: string | null;
-  nameCn?: string | null;
-  nameEn?: string | null;
-};
+import {
+  type CatalogNamed,
+  catalogLocalizedNames,
+  catalogPrimaryName,
+  catalogSecondaryName,
+} from "./catalog-list-display";
 
-export function courseDetailPrimaryName(item?: LocalizedName | null) {
-  return item?.namePrimary ?? item?.nameCn ?? "";
+export function courseDetailPrimaryName(item?: CatalogNamed | null) {
+  return catalogPrimaryName(item);
 }
 
-export function courseDetailSecondaryName(item?: LocalizedName | null) {
-  return item?.nameSecondary ?? item?.nameEn ?? "";
+export function courseDetailSecondaryName(item?: CatalogNamed | null) {
+  return catalogSecondaryName(item);
 }
 
 export function formatCatalogDetailMessage(
@@ -23,13 +23,6 @@ export function formatCatalogDetailMessage(
   );
 }
 
-export function teacherNames(teachers: LocalizedName[]) {
-  return teachers
-    .map((teacher) => {
-      const primary = courseDetailPrimaryName(teacher);
-      const secondary = courseDetailSecondaryName(teacher);
-      return secondary ? `${primary} (${secondary})` : primary;
-    })
-    .filter(Boolean)
-    .join(", ");
+export function teacherNames(teachers: CatalogNamed[], locale?: string | null) {
+  return catalogLocalizedNames(teachers, locale);
 }

@@ -10,11 +10,11 @@ import type {
   DashboardMyHomeworksCopy,
   DashboardSectionCopy,
   HomeworkFilter,
-  HomeworkView,
   SignedDashboardData,
 } from "@/features/dashboard/lib/dashboard-controller-types";
 import { filterDashboardHomeworks } from "@/features/dashboard/lib/dashboard-homework-filter";
 import { hasDashboardSubscriptions } from "@/features/dashboard/lib/dashboard-subscription-state";
+import { resolveDashboardTaskFilter } from "@/features/dashboard/lib/dashboard-task-filter";
 import { createHomeworkTabDisplayActions } from "@/features/dashboard/lib/homeworks-tab-display";
 import * as Alert from "$lib/components/ui/alert/index.js";
 import DashboardNoSubscriptionsState from "./DashboardNoSubscriptionsState.svelte";
@@ -59,11 +59,9 @@ export let applyHomeworkDueAtSemesterEnd: () => void;
 export let toggleHomeworkCompletion: (
   homework: DashboardHomeworkItem,
 ) => void | Promise<void>;
-export let setHomeworkView: (view: HomeworkView) => void;
 export let createHomeworkAction: SubmitFunction;
 
 export let homeworkFilter: HomeworkFilter;
-export let homeworkView: HomeworkView;
 export let showCreateHomework: boolean;
 export let createHomeworkAdvancedOpen: boolean;
 export let createHomeworkPublishedAt: string;
@@ -87,7 +85,14 @@ let homeworkStatus: HomeworkAction;
 
 $: filteredHomeworkItems = filterDashboardHomeworks(
   homeworkItems,
+  resolveDashboardTaskFilter(
+    homeworkFilter,
+    homeworkItems.some((item) => !item.completion),
+  ),
+);
+$: displayHomeworkFilter = resolveDashboardTaskFilter(
   homeworkFilter,
+  homeworkItems.some((item) => !item.completion),
 );
 $: hasHomeworkItems = homeworkItems.length > 0;
 
@@ -128,10 +133,11 @@ $: ({
   {:else}
     <HomeworksTabToolbar
       {homeworksCopy}
-      bind:homeworkFilter
-      {homeworkView}
+      homeworkFilter={displayHomeworkFilter}
+      onHomeworkFilterChange={(value) => {
+        homeworkFilter = value;
+      }}
       {openCreateHomeworkDialog}
-      {setHomeworkView}
     />
 
     {#if homeworkActionError}
@@ -140,40 +146,7 @@ $: ({
       </Alert.Root>
     {/if}
 
-    {#if homeworkView === "list"}
-      <div class="md:hidden">
-        <HomeworksCardsView
-          {filteredHomeworkItems}
-          {hasHomeworkItems}
-          onClearFilter={clearHomeworkFilter}
-          {fmtDate}
-          {homeworkCompletionActionLabel}
-          {homeworkCopy}
-          {homeworkEtaLabel}
-          {homeworkIsOverdue}
-          {homeworksCopy}
-          {homeworkSavingById}
-          bind:selectedHomework
-          {toggleHomeworkCompletion}
-        />
-      </div>
-      <div class="hidden min-w-0 overflow-x-auto md:block">
-        <HomeworksListView
-          {filteredHomeworkItems}
-          {hasHomeworkItems}
-          onClearFilter={clearHomeworkFilter}
-          {fmtDate}
-          {homeworkCompletionActionLabel}
-          {homeworkCopy}
-          {homeworkEtaLabel}
-          {homeworkIsOverdue}
-          {homeworksCopy}
-          {homeworkSavingById}
-          bind:selectedHomework
-          {toggleHomeworkCompletion}
-        />
-      </div>
-    {:else}
+    <div class="md:hidden">
       <HomeworksCardsView
         {filteredHomeworkItems}
         {hasHomeworkItems}
@@ -183,12 +156,30 @@ $: ({
         {homeworkCopy}
         {homeworkEtaLabel}
         {homeworkIsOverdue}
+        {homeworkSectionHref}
         {homeworksCopy}
         {homeworkSavingById}
         bind:selectedHomework
         {toggleHomeworkCompletion}
       />
-    {/if}
+    </div>
+    <div class="hidden min-w-0 overflow-x-auto md:block">
+      <HomeworksListView
+        {filteredHomeworkItems}
+        {hasHomeworkItems}
+        onClearFilter={clearHomeworkFilter}
+        {fmtDate}
+        {homeworkCompletionActionLabel}
+        {homeworkCopy}
+        {homeworkEtaLabel}
+        {homeworkIsOverdue}
+        {homeworkSectionHref}
+        {homeworksCopy}
+        {homeworkSavingById}
+        bind:selectedHomework
+        {toggleHomeworkCompletion}
+      />
+    </div>
 
     <HomeworksTabDialogs
       {CommentsPanel}

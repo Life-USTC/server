@@ -187,8 +187,8 @@ test.describe("校车面板标签页", () => {
       }),
     ).toBeVisible();
     await expect(
-      page.getByRole("link", { name: /Transit map|线路图/ }),
-    ).toHaveAttribute("href", "/catalog/bus/map");
+      page.getByRole("main").getByRole("link", { name: /Transit map|线路图/ }),
+    ).toHaveCount(0);
     await captureStepScreenshot(page, testInfo, "bus-planner-public");
   });
 
@@ -229,7 +229,6 @@ test.describe("校车面板标签页", () => {
     expect(response.status()).toBe(200);
     const html = await response.text();
 
-    expect(html).toContain('href="/catalog/bus/map"');
     expect(html).not.toMatch(
       /data-slot="alert"[\s\S]{0,240}当前暂无可用的校车数据。/,
     );
@@ -243,7 +242,6 @@ test.describe("校车面板标签页", () => {
     expect(response.status()).toBe(200);
     const html = await response.text();
 
-    expect(html).toContain('href="/catalog/bus/map"');
     expect(html).not.toMatch(
       /data-slot="alert"[\s\S]{0,240}当前暂无可用的校车数据。/,
     );
@@ -548,47 +546,5 @@ test.describe("校车面板标签页", () => {
         showDepartedTrips: original.preference?.showDepartedTrips ?? false,
       });
     }
-  });
-
-  test("登录规划器显示偏好保存失败", async ({ page }, testInfo) => {
-    await signInAsDebugUser(page, "/catalog/bus");
-    await page.route("**/api/workspace/bus-preferences", async (route) => {
-      if (route.request().method() !== "POST") {
-        await route.continue();
-        return;
-      }
-
-      await route.fulfill({
-        body: JSON.stringify({ error: "e2e preference save failure" }),
-        contentType: "application/json",
-        status: 500,
-      });
-    });
-
-    await gotoAndWaitForReady(page, "/catalog/bus", {
-      testInfo,
-      screenshotLabel: "bus-save-error",
-    });
-    await openRouteControls(page);
-
-    const departedToggle = page.getByRole("switch", {
-      name: /Show departed trips|显示已发车班次/,
-    });
-    const [saveResponse] = await Promise.all([
-      page.waitForResponse(
-        (response) =>
-          response.url().includes("/api/workspace/bus-preferences") &&
-          response.request().method() === "POST",
-      ),
-      departedToggle.click(),
-    ]);
-
-    expect(saveResponse.status()).toBe(500);
-    await expect(
-      page
-        .getByRole("alert")
-        .filter({ hasText: /偏好保存失败|Failed to save preferences/i }),
-    ).toBeVisible();
-    await captureStepScreenshot(page, testInfo, "bus-planner-autosave-error");
   });
 });

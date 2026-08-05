@@ -71,9 +71,9 @@ function triggerProps(props: Record<string, unknown>) {
     class: cn(
       "block min-w-0 max-w-full overflow-hidden",
       lines === 1
-        ? "min-h-[1lh] truncate"
+        ? "truncate"
         : cn(
-            "min-h-[2lh] line-clamp-2",
+            "line-clamp-2",
             preserveWhitespace
               ? "whitespace-pre-wrap break-words"
               : "whitespace-normal",

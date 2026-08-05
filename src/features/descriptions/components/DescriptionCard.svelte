@@ -9,8 +9,9 @@ import {
 } from "@/features/descriptions/lib/description-card-actions";
 import type { AppLocale } from "@/i18n/config";
 import { createShanghaiDateTimeFormatter } from "@/lib/time/shanghai-format";
+import SoftEmptyMessage from "$lib/components/SoftEmptyMessage.svelte";
 import * as Alert from "$lib/components/ui/alert/index.js";
-import * as Card from "$lib/components/ui/card/index.js";
+import { Button } from "$lib/components/ui/button/index.js";
 import DescriptionCardHeader from "./DescriptionCardHeader.svelte";
 import DescriptionEditPanel from "./DescriptionEditPanel.svelte";
 import DescriptionReadPanel from "./DescriptionReadPanel.svelte";
@@ -21,6 +22,8 @@ type PanelTab = "description" | "history";
 export let targetType: DescriptionTargetType;
 export let targetId: number | string;
 export let initialData: DescriptionPayload;
+/** When set, renders a page-style h2 + primary action row above the body. */
+export let heading: string | null = null;
 export let showTitle = true;
 export let locale: AppLocale = "zh-cn";
 export let copy: {
@@ -67,6 +70,13 @@ $: _dateTimeFormatter = createShanghaiDateTimeFormatter(locale, {
   timeStyle: "short",
 });
 
+$: softEmpty =
+  !_editing && !description.content && history.length === 0 && !_message;
+
+$: usePageHeading = Boolean(heading);
+$: showInlineTitle = showTitle && !usePageHeading;
+$: showInlineAction = !usePageHeading;
+
 function _formatDate(value: string | null | undefined) {
   if (!value) return "";
   return _dateTimeFormatter.format(new Date(value));
@@ -107,46 +117,91 @@ const {
 });
 </script>
 
-<Card.Root class="w-full">
-  <DescriptionCardHeader
-    {copy}
-    {description}
-    {showTitle}
-    editing={_editing}
-    editorName={_editorName}
-    formatDate={_formatDate}
-    onStartEdit={_startEdit}
-    viewer={_viewer}
-  />
+{#if usePageHeading}
+  <div class="mb-3 flex flex-wrap items-center justify-between gap-3">
+    <h2 class="text-lg font-semibold tracking-tight">{heading}</h2>
+    {#if !_editing}
+      {#if _viewer.isAuthenticated && !_viewer.isSuspended}
+        <Button type="button" variant="outline" onclick={_startEdit}>
+          {copy.edit}
+        </Button>
+      {:else if !_viewer.isAuthenticated}
+        <Button href="/account/sign-in" variant="outline">{copy.loginToEdit}</Button>
+      {/if}
+    {/if}
+  </div>
+{/if}
 
-  <Card.Content class="grid gap-5">
+{#if softEmpty}
+  <div class="grid gap-3">
+    {#if showInlineTitle || showInlineAction}
+      <div
+        class="flex flex-wrap items-center gap-3"
+        class:justify-between={showInlineTitle}
+        class:justify-end={!showInlineTitle}
+      >
+        {#if showInlineTitle}
+          <h3 class="min-w-0 text-base font-semibold tracking-tight">{copy.title}</h3>
+        {/if}
+        {#if showInlineAction}
+          {#if _viewer.isAuthenticated && !_viewer.isSuspended}
+            <Button type="button" variant="outline" onclick={_startEdit}>
+              {copy.edit}
+            </Button>
+          {:else if !_viewer.isAuthenticated}
+            <Button href="/account/sign-in" variant="outline">{copy.loginToEdit}</Button>
+          {/if}
+        {/if}
+      </div>
+    {/if}
     {#if _viewer.isSuspended}
       <DescriptionSuspensionAlert {copy} formatDate={_formatDate} viewer={_viewer} />
     {/if}
+    <SoftEmptyMessage message={copy.empty} />
+  </div>
+{:else}
+  <div class="grid w-full gap-4">
+    <DescriptionCardHeader
+      {copy}
+      {description}
+      showTitle={showInlineTitle}
+      showAction={showInlineAction}
+      editing={_editing}
+      editorName={_editorName}
+      formatDate={_formatDate}
+      onStartEdit={_startEdit}
+      viewer={_viewer}
+    />
 
-    {#if _message}
-      <Alert.Root variant="destructive">
-        <Alert.Description>{_message}</Alert.Description>
-      </Alert.Root>
-    {/if}
+    <div class="grid gap-5">
+      {#if _viewer.isSuspended}
+        <DescriptionSuspensionAlert {copy} formatDate={_formatDate} viewer={_viewer} />
+      {/if}
 
-    {#if _editing}
-      <DescriptionEditPanel
-        cancelEdit={_cancelEdit}
-        {copy}
-        bind:draft
-        isDisabled={!_viewer.isAuthenticated || _viewer.isSuspended}
-        isSaving={_saving}
-        saveDescription={_saveDescription}
-      />
-    {:else}
-      <DescriptionReadPanel
-        bind:activePanelTab={_activePanelTab}
-        {copy}
-        {description}
-        formatDate={_formatDate}
-        {history}
-      />
-    {/if}
-  </Card.Content>
-</Card.Root>
+      {#if _message}
+        <Alert.Root variant="destructive">
+          <Alert.Description>{_message}</Alert.Description>
+        </Alert.Root>
+      {/if}
+
+      {#if _editing}
+        <DescriptionEditPanel
+          cancelEdit={_cancelEdit}
+          {copy}
+          bind:draft
+          isDisabled={!_viewer.isAuthenticated || _viewer.isSuspended}
+          isSaving={_saving}
+          saveDescription={_saveDescription}
+        />
+      {:else}
+        <DescriptionReadPanel
+          bind:activePanelTab={_activePanelTab}
+          {copy}
+          {description}
+          formatDate={_formatDate}
+          {history}
+        />
+      {/if}
+    </div>
+  </div>
+{/if}

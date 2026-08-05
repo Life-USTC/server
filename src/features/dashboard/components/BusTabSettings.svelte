@@ -1,6 +1,5 @@
 <script lang="ts">
 import ArrowLeftRightIcon from "@lucide/svelte/icons/arrow-left-right";
-import type { BusPreferenceSaveState } from "@/features/dashboard/lib/bus";
 import type {
   DashboardBusCopy,
   DashboardBusData,
@@ -9,7 +8,6 @@ import { Button } from "$lib/components/ui/button/index.js";
 import * as Field from "$lib/components/ui/field/index.js";
 import { Switch } from "$lib/components/ui/switch/index.js";
 import * as ToggleGroup from "$lib/components/ui/toggle-group/index.js";
-import { cn } from "$lib/utils.js";
 import BusCampusPickerGroup from "./BusCampusPickerGroup.svelte";
 
 export let bus: DashboardBusData;
@@ -17,8 +15,6 @@ export let busCopy: DashboardBusCopy;
 export let busDayType: "weekday" | "weekend";
 export let busEndCampusId: number | null;
 export let busPlannerReady: boolean;
-export let busPreferenceSaveState: BusPreferenceSaveState;
-export let busPreferenceStatus: string;
 export let busShowDepartedTrips: boolean;
 export let busStartCampusId: number | null;
 export let reverseBusStops: () => void;
@@ -28,10 +24,10 @@ export let setBusDayType: (dayType: "weekday" | "weekend") => void;
 export let toggleBusDepartedTrips: () => void;
 </script>
 
-<Field.Group class="gap-4">
+<Field.Group class="gap-3">
   <Field.Set>
     <Field.Legend class="sr-only">{busCopy.dashboardTitle}</Field.Legend>
-    <Field.Group class="gap-4">
+    <Field.Group class="gap-3">
       <BusCampusPickerGroup
         campuses={bus.campuses}
         disabled={!busPlannerReady}
@@ -44,7 +40,7 @@ export let toggleBusDepartedTrips: () => void;
       <Field.Field>
         <Button
           aria-label={busCopy.planner.reverse}
-          class="min-h-11 w-full justify-center"
+          class="h-11 w-full justify-center md:h-8"
           disabled={!busPlannerReady}
           type="button"
           onclick={reverseBusStops}
@@ -86,14 +82,14 @@ export let toggleBusDepartedTrips: () => void;
           }}
         >
           <ToggleGroup.Item
-            class="min-h-11"
+            class="h-11 md:h-8"
             disabled={!busPlannerReady}
             value="weekday"
           >
             {busCopy.dayType.weekday}
           </ToggleGroup.Item>
           <ToggleGroup.Item
-            class="min-h-11"
+            class="h-11 md:h-8"
             disabled={!busPlannerReady}
             value="weekend"
           >
@@ -120,14 +116,4 @@ export let toggleBusDepartedTrips: () => void;
       </Field.Field>
     </Field.Group>
   </Field.Set>
-
-  {#if busPreferenceStatus}
-    <Field.Description
-      aria-live="polite"
-      class={busPreferenceSaveState === "error" ? "text-destructive" : undefined}
-      role={busPreferenceSaveState === "error" ? "alert" : "status"}
-    >
-      {busPreferenceStatus}
-    </Field.Description>
-  {/if}
 </Field.Group>

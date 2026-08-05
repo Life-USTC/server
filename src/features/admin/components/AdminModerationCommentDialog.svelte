@@ -54,7 +54,7 @@ export let targetLabel: (comment: AdminModerationComment) => string;
               {commentAuthorLabel(comment)} · {targetLabel(comment)}
             </Dialog.Description>
           </div>
-          <Button size="sm" type="button" variant="ghost" onclick={close}>{copy.close}</Button>
+          <Button type="button" variant="ghost" onclick={close}>{copy.close}</Button>
         </div>
       </Dialog.Header>
 

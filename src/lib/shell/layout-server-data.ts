@@ -13,7 +13,6 @@ const layoutMessages = {
     metadata: enUsMessages.metadata,
     notFound: enUsMessages.notFound,
     profile: enUsMessages.profile,
-    settingsAuthorization: enUsMessages.settings.nav.authorizations.title,
     theme: enUsMessages.theme,
   },
   "zh-cn": {
@@ -27,7 +26,6 @@ const layoutMessages = {
     metadata: zhCnMessages.metadata,
     notFound: zhCnMessages.notFound,
     profile: zhCnMessages.profile,
-    settingsAuthorization: zhCnMessages.settings.nav.authorizations.title,
     theme: zhCnMessages.theme,
   },
 };
@@ -87,9 +85,9 @@ export function buildLayoutCopy(locale: LayoutLocale) {
       },
     },
     menu: {
-      authorizedApps: messages.settingsAuthorization,
       home: messages.common.home,
       me: messages.common.me,
+      personalPage: locale === "zh-cn" ? "个人主页" : "Personal page",
       settings: messages.metadata.pages.settings,
       signIn: messages.common.signIn,
       signOut: messages.profile.signOut,

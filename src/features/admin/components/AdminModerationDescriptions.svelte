@@ -1,5 +1,5 @@
 <script lang="ts">
-import * as Empty from "$lib/components/ui/empty/index.js";
+import SoftEmptyMessage from "$lib/components/SoftEmptyMessage.svelte";
 import AdminModerationDescriptionCards from "./AdminModerationDescriptionCards.svelte";
 import AdminModerationDescriptionSummary from "./AdminModerationDescriptionSummary.svelte";
 import AdminModerationDescriptionTable from "./AdminModerationDescriptionTable.svelte";
@@ -30,10 +30,6 @@ export let targetLabel: (description: AdminModerationDescription) => string;
 <section class="grid grid-cols-[minmax(0,1fr)] gap-3">
   <AdminModerationDescriptionSummary
     {copy}
-    {descriptionContentFilter}
-    {descriptionContentOptions}
-    {descriptionTargetFilter}
-    {descriptionTargetOptions}
     count={descriptions.length}
     {formatMessage}
   />
@@ -56,10 +52,6 @@ export let targetLabel: (description: AdminModerationDescription) => string;
       {targetLabel}
     />
   {:else}
-    <Empty.Root class="min-h-24">
-      <Empty.Header>
-        <Empty.Description>{copy.noDescriptions}</Empty.Description>
-      </Empty.Header>
-    </Empty.Root>
+    <SoftEmptyMessage message={copy.noDescriptions} />
   {/if}
 </section>

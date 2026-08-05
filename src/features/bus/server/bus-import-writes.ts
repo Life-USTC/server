@@ -1,5 +1,6 @@
 import {
   buildBusRouteNameData,
+  normalizeBusCampusCoordinates,
   normalizeBusCampusName,
 } from "../lib/bus-import-route-data";
 import type {
@@ -27,18 +28,19 @@ export async function upsertBusCampuses(
   payload: BusStaticPayload,
 ) {
   for (const campus of payload.campuses) {
+    const { latitude, longitude } = normalizeBusCampusCoordinates(campus);
     await prisma.busCampus.upsert({
       where: { id: campus.id },
       update: {
         nameCn: normalizeBusCampusName(campus.name),
-        latitude: campus.latitude,
-        longitude: campus.longitude,
+        latitude,
+        longitude,
       },
       create: {
         id: campus.id,
         nameCn: normalizeBusCampusName(campus.name),
-        latitude: campus.latitude,
-        longitude: campus.longitude,
+        latitude,
+        longitude,
       },
     });
   }

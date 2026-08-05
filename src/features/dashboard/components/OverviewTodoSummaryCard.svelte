@@ -5,13 +5,10 @@ import type {
   DashboardTodosCopy,
 } from "@/features/dashboard/lib/dashboard-controller-helpers";
 import { DASHBOARD_OVERVIEW_PREVIEW_LIMIT } from "@/features/dashboard/lib/overview-preview";
+import SoftEmptyMessage from "$lib/components/SoftEmptyMessage.svelte";
 import { Badge } from "$lib/components/ui/badge/index.js";
-import * as Card from "$lib/components/ui/card/index.js";
-import * as Empty from "$lib/components/ui/empty/index.js";
-import * as Item from "$lib/components/ui/item/index.js";
 import type { DashboardCalendarTabHref } from "./dashboard-calendar-component-types";
-
-import OverviewViewAllFooter from "./OverviewViewAllFooter.svelte";
+import OverviewSection from "./OverviewSection.svelte";
 
 export let dashboardCopy: DashboardDashboardCopy;
 export let dashboardTabHref: DashboardCalendarTabHref;
@@ -29,65 +26,62 @@ export let previewLimit = DASHBOARD_OVERVIEW_PREVIEW_LIMIT;
 export let viewAllLabel = "View all";
 </script>
 
-<Card.Root>
-  <Card.Header>
-    <Card.Title>
-      <a class="no-underline hover:underline" href={dashboardTabHref("todos")}>{dashboardCopy.todos.title}</a>
-    </Card.Title>
-    <Card.Action>
-      <div class="flex flex-wrap justify-end gap-1.5">
-        <Badge>
-          {formatMessage(dashboardCopy.todos.dueToday, {
-            count: todosDueToday.length,
-          })}
-        </Badge>
-        <Badge variant="outline">
-          {formatMessage(dashboardCopy.todos.dueSoon, {
-            count: todosDueSoon.length,
-          })}
-        </Badge>
-      </div>
-    </Card.Action>
-  </Card.Header>
-  <Card.Content>
-    <Item.Group>
+<OverviewSection
+  href={dashboardTabHref("todos")}
+  title={dashboardCopy.todos.title}
+  viewAllHref={dashboardTabHref("todos")}
+  viewAllLabel={viewAllLabel}
+  viewAllVisible={pendingTodos.length > previewLimit}
+>
+  {#snippet action()}
+    <div class="flex flex-wrap gap-1.5 text-muted-foreground text-xs">
+      <span>
+        {formatMessage(dashboardCopy.todos.dueToday, {
+          count: todosDueToday.length,
+        })}
+      </span>
+      <span aria-hidden="true">·</span>
+      <span>
+        {formatMessage(dashboardCopy.todos.dueSoon, {
+          count: todosDueSoon.length,
+        })}
+      </span>
+    </div>
+  {/snippet}
+
+  {#if pendingTodos.length === 0}
+    <SoftEmptyMessage message={todosCopy.filterEmptyTitle} />
+  {:else}
+    <ul class="divide-y divide-border/60">
       {#each pendingTodos.slice(0, previewLimit) as todo}
-        <Item.Root variant="outline" size="sm">
-          {#snippet child({ props })}
-            <a href={dashboardTabHref("todos")} {...props}>
-              <Item.Content>
-                <Item.Title>{todo.title}</Item.Title>
-                <Item.Description class="flex flex-wrap gap-1.5">
-                  <Badge
-                    variant={todo.priority === "high"
-                      ? "destructive"
-                      : todo.priority === "medium"
-                        ? "secondary"
-                        : "outline"}
-                  >
-                    {todosCopy.priority[todo.priority]}
-                  </Badge>
-                  <Badge variant="ghost">{todoStatus(todo)}</Badge>
-                </Item.Description>
-              </Item.Content>
-              {#if todo.dueAt}
-                <Item.Actions class="sm:text-right">{fmtDate(todo.dueAt)}</Item.Actions>
-              {/if}
-            </a>
-          {/snippet}
-        </Item.Root>
-      {:else}
-        <Empty.Root class="min-h-24">
-          <Empty.Header>
-            <Empty.Title>{todosCopy.filterEmptyTitle}</Empty.Title>
-          </Empty.Header>
-        </Empty.Root>
+        <li>
+          <a
+            class="flex items-start justify-between gap-3 py-2.5 transition-colors hover:bg-muted/40 -mx-2 px-2 rounded-md"
+            href={dashboardTabHref("todos")}
+          >
+            <span class="grid min-w-0 gap-1">
+              <span class="font-medium text-sm">{todo.title}</span>
+              <span class="flex flex-wrap gap-1.5">
+                <Badge
+                  variant={todo.priority === "high"
+                    ? "destructive"
+                    : todo.priority === "medium"
+                      ? "secondary"
+                      : "outline"}
+                >
+                  {todosCopy.priority[todo.priority]}
+                </Badge>
+                <Badge variant="ghost">{todoStatus(todo)}</Badge>
+              </span>
+            </span>
+            {#if todo.dueAt}
+              <span class="shrink-0 text-muted-foreground text-xs tabular-nums">
+                {fmtDate(todo.dueAt)}
+              </span>
+            {/if}
+          </a>
+        </li>
       {/each}
-    </Item.Group>
-  </Card.Content>
-  <OverviewViewAllFooter
-    href={dashboardTabHref("todos")}
-    label={viewAllLabel}
-    visible={pendingTodos.length > previewLimit}
-  />
-</Card.Root>
+    </ul>
+  {/if}
+</OverviewSection>

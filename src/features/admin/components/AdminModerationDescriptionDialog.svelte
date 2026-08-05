@@ -58,7 +58,7 @@ export let targetLabel: (description: AdminModerationDescription) => string;
                   {targetLabel(description)} · {formatMessage(copy.editedAt, { date: formatDate(descriptionEditedAt(description)) })}
                 </Dialog.Description>
               </div>
-              <Button size="sm" type="button" variant="ghost" onclick={close}>{copy.close}</Button>
+              <Button type="button" variant="ghost" onclick={close}>{copy.close}</Button>
             </div>
           </Dialog.Header>
 

@@ -34,7 +34,6 @@ import type {
   SectionHomeworkTimestampAction,
 } from "./section-homework-display-types";
 import type {
-  HomeworkView,
   SectionHomework,
   SectionHomeworkCopy as SectionHomeworkTabCopy,
   SectionCopy as SectionHomeworkTabSectionCopy,
@@ -55,6 +54,7 @@ export type SectionDetailCommentsCopy = SectionCreateHomeworkCommentsCopy &
 export type SectionDetailSectionCopy = SectionCreateHomeworkSectionCopy & {
   calendarSheetDescription: string;
   calendarSheetTitle: string;
+  calendarUrlDescription: string;
   calendarUrlLabel: string;
   copied: string;
   copyToClipboard: string;
@@ -62,11 +62,14 @@ export type SectionDetailSectionCopy = SectionCreateHomeworkSectionCopy & {
   historicalSectionDescription: string;
   historicalSectionLabel: string;
   homeworkDescription: string;
+  learnMoreAboutICalendar: string;
   loginRequired: string;
   subscribeLabel: string;
   subscribing: string;
   subscriptionDisclaimer: string;
   subscriptionMissing: string;
+  subscriptionPrivacyNote: string;
+  subscriptionUrlDescription: string;
   subscriptionUrlLabel: string;
   unsubscribeLabel: string;
   unsubscribing: string;
@@ -171,11 +174,19 @@ export type SectionDetailMainSectionCopy = SectionCalendarCopy &
     calendarDescription: string;
     calendarMiniDescription: string;
     classLegend: string;
+    date: string;
+    examBatch: string;
+    examCount: string;
+    examDate: string;
     examLegend: string;
+    examTime: string;
     exams: string;
     homeworkDescription: string;
     historicalSectionDescription: string;
     historicalSectionLabel: string;
+    lecture: string;
+    lectureNumber: string;
+    location: string;
     tabs: {
       calendar: string;
       comments: string;
@@ -184,8 +195,10 @@ export type SectionDetailMainSectionCopy = SectionCalendarCopy &
     };
     subscribeLabel: string;
     teachingSection: string;
+    time: string;
     unsubscribeLabel: string;
     unsubscribing: string;
+    week: string;
   };
 
 export type SectionDetailMainContentProps = {
@@ -197,8 +210,6 @@ export type SectionDetailMainContentProps = {
   fmtDate: SectionDetailDateFormatter;
   fmtDateTime: SectionDetailDateFormatter;
   homeworkCopy: SectionHomeworkTabCopy;
-  homeworkStatus: (homework: SectionHomework) => string;
-  homeworkView: HomeworkView;
   homeworks: SectionHomework[];
   notAvailable: string;
   openCalendarDialog: () => void;
@@ -209,7 +220,6 @@ export type SectionDetailMainContentProps = {
   sectionCalendarGridWeeks: CalendarGridWeek[];
   sectionCopy: SectionDetailMainSectionCopy;
   sectionTeachersLabel: SectionTeachersLabel;
-  setHomeworkView: (view: HomeworkView) => void;
   setSelectedHomework: (homework: SectionHomework) => void;
   teacherName: SectionTeacherName;
   todayCalendarMonthOffset: number;
