@@ -81,8 +81,6 @@ describe("retired Section discovery boundaries", () => {
       section: {
         courseId: 77,
         id: 11,
-        semesterId: 44,
-        teachers: [{ id: 5 }],
       },
     });
 
