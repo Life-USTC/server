@@ -50,9 +50,7 @@ test("/ 首页快速入口可见", async ({ page }, testInfo) => {
     main.getByRole("link", { name: /^(课程|Courses)$/i }),
   ).toBeVisible();
   // Bus and links are independent public destinations in the shell.
-  await expect(
-    main.getByRole("link", { name: /^(校车|Bus)$/i }),
-  ).toBeVisible();
+  await expect(main.getByRole("link", { name: /^(校车|Bus)$/i })).toBeVisible();
   await expect(
     main.getByRole("link", { name: /^(网站|Websites)$/i }),
   ).toBeVisible();

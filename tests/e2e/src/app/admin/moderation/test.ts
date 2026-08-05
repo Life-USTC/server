@@ -4,13 +4,13 @@ import {
   signInAsDebugUser,
   signInAsDevAdmin,
 } from "../../../../utils/auth";
+import { openCommentComposer } from "../../../../utils/comments";
 import { DEV_SEED } from "../../../../utils/dev-seed";
 import {
   createTempUsersFixture,
   deleteUsersByPrefix,
 } from "../../../../utils/e2e-db";
 import { withE2ePrisma } from "../../../../utils/e2e-db/prisma";
-import { openCommentComposer } from "../../../../utils/comments";
 import { visibleText } from "../../../../utils/locators";
 import { gotoAndWaitForReady } from "../../../../utils/page-ready";
 import { captureStepScreenshot } from "../../../../utils/screenshot";
