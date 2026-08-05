@@ -45,18 +45,19 @@ test("/ 首页快速入口可见", async ({ page }, testInfo) => {
       name: /课程、课表与校园生活，一站搞定|Courses, schedules, and campus life/i,
     }),
   ).toBeVisible();
+  const main = page.locator("#main-content");
   await expect(
-    page.getByRole("link", { name: /^(课程|Courses)$/i }),
+    main.getByRole("link", { name: /^(课程|Courses)$/i }),
   ).toBeVisible();
   // Bus and links are independent public destinations in the shell.
   await expect(
-    page.getByRole("link", { name: /^(校车|Shuttle Bus)$/i }),
+    main.getByRole("link", { name: /^(校车|Bus)$/i }),
   ).toBeVisible();
   await expect(
-    page.getByRole("link", { name: /^(网站|Websites)$/i }),
+    main.getByRole("link", { name: /^(网站|Websites)$/i }),
   ).toBeVisible();
   await expect(
-    page.getByRole("link", { name: /^(登录|Sign in)$/i }).first(),
+    main.getByRole("link", { name: /^(登录|Sign in)$/i }),
   ).toBeVisible();
   await expect(page.getByTestId("bus-compact-summary")).toHaveCount(0);
   await captureStepScreenshot(page, testInfo, "home-shortcuts");

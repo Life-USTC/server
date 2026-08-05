@@ -18,6 +18,9 @@ function authenticatedLandingPath(path: string) {
   if (path === "/" || path === "/workspace") {
     return "/workspace/overview";
   }
+  if (path === "/admin") {
+    return "/admin/users";
+  }
   return path === "/account/settings" ? "/account/settings/profile" : path;
 }
 

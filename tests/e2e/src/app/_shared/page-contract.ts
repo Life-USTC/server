@@ -486,7 +486,9 @@ export async function assertPageContract(
         }),
       ).toBeVisible();
       await expect(
-        page.getByRole("link", { name: /^(课程|Courses)$/i }),
+        page
+          .locator("#main-content")
+          .getByRole("link", { name: /^(课程|Courses)$/i }),
       ).toBeVisible();
       await expect(page.getByTestId("bus-compact-summary")).toHaveCount(0);
       await maybeCapture(page, testInfo, "home");
