@@ -79,7 +79,7 @@ test("/admin/bus 主导航入口可见且可跳转", async ({ page }, testInfo) 
 
   const busLink = page
     .getByTestId("app-sidebar")
-    .getByRole("link", { name: /校车管理|Shuttle Bus/i });
+    .getByRole("link", { name: /校车管理|Bus Management/i });
   await expect(busLink).toBeVisible();
 
   await Promise.all([

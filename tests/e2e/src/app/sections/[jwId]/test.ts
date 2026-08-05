@@ -36,7 +36,10 @@
 import { expect, type Locator, type Page, test } from "@playwright/test";
 import { formatSemesterName } from "@/lib/text/format-semester-name";
 import { signInAsDebugUser, signInAsDevAdmin } from "../../../../utils/auth";
-import { cleanupCommentsForE2e } from "../../../../utils/comments";
+import {
+  cleanupCommentsForE2e,
+  openCommentComposer,
+} from "../../../../utils/comments";
 import {
   restoreDescriptionTargetSnapshot,
   snapshotDescriptionTargetForE2e,
@@ -572,25 +575,17 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
       page.getByTestId("section-mobile-primary-actions"),
     ).toBeHidden();
 
-    const composer = page.locator('#comments [data-slot="card"]').first();
-    const composerBox = await composer.boundingBox();
-    const headerControls = composer
-      .locator('[data-slot="card-header"]')
-      .locator("button, select");
-    expect(composerBox).not.toBeNull();
-    await expect(headerControls).toHaveCount(2);
-    for (let index = 0; index < (await headerControls.count()); index += 1) {
-      const controlBox = await headerControls.nth(index).boundingBox();
-      expect(controlBox).not.toBeNull();
-      expect(controlBox?.x ?? 0).toBeGreaterThanOrEqual(
-        (composerBox?.x ?? 0) - 1,
-      );
-      expect(
-        (controlBox?.x ?? 0) + (controlBox?.width ?? 0),
-      ).toBeLessThanOrEqual(
-        (composerBox?.x ?? 0) + (composerBox?.width ?? 0) + 1,
-      );
-    }
+    const comments = page.locator("#comments");
+    await expect(
+      comments.getByRole("button", { name: /发布评论|Post comment/i }),
+    ).toBeVisible();
+    await openCommentComposer(page, comments);
+    await expect(
+      comments.getByRole("textbox", { name: /评论内容|Comment body/i }),
+    ).toBeVisible();
+    expect(
+      await page.evaluate(() => document.documentElement.scrollWidth),
+    ).toBeLessThanOrEqual(1440);
   });
 
   test("已退役班级保留历史详情与日历但禁止新增关注", async ({ page }) => {
@@ -1366,10 +1361,7 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
 
       // Post comment
       const body = `e2e-section-comment-${Date.now()}`;
-      const composer = page
-        .getByRole("textbox", { name: /评论内容|Comment body/i })
-        .first();
-      await expect(composer).toBeVisible();
+      const composer = await openCommentComposer(page);
       await composer.fill(body);
       const createResponse = page.waitForResponse(
         (r) =>
@@ -1378,6 +1370,7 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
           r.status() === 201,
       );
       await page
+        .locator("#comments")
         .getByRole("button", { name: /发布评论|Post comment/i })
         .click();
       const createdCommentResponse = await createResponse;
@@ -1513,22 +1506,17 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
 
       await jumpToSection(page, /评论|Comments/i, "#comments");
 
-      const composerCard = page
-        .locator('[data-slot="card"]')
-        .filter({
-          has: page.getByRole("button", { name: /发布评论|Post comment/i }),
-        })
-        .first();
-      await expect(composerCard).toBeVisible();
+      const comments = page.locator("#comments");
+      await openCommentComposer(page, comments);
 
-      const anonymousCheckbox = composerCard
+      const anonymousCheckbox = comments
         .getByRole("checkbox", { name: /匿名|Anonymous/i })
         .first();
       await expect(anonymousCheckbox).toBeVisible();
       await anonymousCheckbox.click();
       await expect(anonymousCheckbox).toHaveAttribute("aria-checked", "true");
 
-      await composerCard
+      await comments
         .getByRole("textbox", { name: /评论内容|Comment body/i })
         .first()
         .fill(body);
@@ -1539,7 +1527,7 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
           r.request().method() === "POST" &&
           r.status() === 201,
       );
-      await composerCard
+      await comments
         .getByRole("button", { name: /发布评论|Post comment/i })
         .click();
       const createdCommentResponse = await createResponse;
@@ -1620,16 +1608,11 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
         intervals: [250, 500, 1_000],
       });
 
-      const composerCard = page
-        .locator('[data-slot="card"]')
-        .filter({
-          has: page.getByRole("button", { name: /发布评论|Post comment/i }),
-        })
-        .first();
-      await expect(composerCard).toBeVisible();
-      const uploadInput = composerCard.locator('input[type="file"]').first();
+      const comments = page.locator("#comments");
+      await openCommentComposer(page, comments);
+      const uploadInput = comments.locator('input[type="file"]').first();
       await expect(uploadInput).toBeAttached();
-      const uploadButton = composerCard
+      const uploadButton = comments
         .getByRole("button", {
           name: /上传文件|上传附件|Upload file|Upload attachment/i,
         })
@@ -1658,7 +1641,7 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
           r.status() === 200,
       );
 
-      await composerCard.locator('input[type="file"]').setInputFiles({
+      await comments.locator('input[type="file"]').setInputFiles({
         name: filename,
         mimeType: "text/plain",
         buffer: Buffer.from("section-attachment"),
@@ -1672,11 +1655,11 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
       expect(typeof uploadCompleteBody.upload?.id).toBe("string");
       uploadId = uploadCompleteBody.upload?.id;
 
-      await composerCard
+      await comments
         .getByRole("textbox", { name: /评论内容|Comment body/i })
         .first()
         .fill(body);
-      const postButton = composerCard
+      const postButton = comments
         .getByRole("button", { name: /发布评论|Post comment/i })
         .first();
       await expect(postButton).toBeEnabled();

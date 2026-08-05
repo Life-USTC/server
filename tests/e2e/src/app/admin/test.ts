@@ -50,7 +50,7 @@ test("/admin 主导航在所有管理页面保持唯一当前位置", async ({
     { path: "/admin/users", name: /用户管理|User Management/i },
     { path: "/admin/moderation", name: /内容审核|Moderation/i },
     { path: "/admin/oauth", name: /OAuth|OAuth 客户端/i },
-    { path: "/admin/bus", name: /校车管理|Shuttle Bus/i },
+    { path: "/admin/bus", name: /校车管理|Bus Management/i },
   ] as const;
 
   for (const { path, name } of paths) {
@@ -111,7 +111,7 @@ test("/admin 主导航可跳转到各管理工具", async ({ page }, testInfo) =
       shot: "admin/navigate-oauth",
     },
     {
-      name: /校车管理|Shuttle Bus/i,
+      name: /校车管理|Bus Management/i,
       url: /\/admin\/bus(?:\?.*)?$/,
       shot: "admin/navigate-bus",
     },

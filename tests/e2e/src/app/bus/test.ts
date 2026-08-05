@@ -261,7 +261,7 @@ test.describe("校车面板标签页", () => {
 
     const summary = page.getByTestId("bus-compact-summary");
     await expect(summary).toBeVisible();
-    await expect(summary.locator("[data-slot='card-title']")).toHaveCSS(
+    await expect(summary.locator("p.font-mono").first()).toHaveCSS(
       "font-size",
       "36px",
     );

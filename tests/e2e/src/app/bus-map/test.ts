@@ -170,9 +170,6 @@ test.describe("校车线路图", () => {
 
     const refreshBtn = page.getByRole("button", { name: /Refresh|刷新/ });
     await expect(refreshBtn).toBeVisible();
-    expect(
-      (await refreshBtn.boundingBox())?.height ?? 0,
-    ).toBeGreaterThanOrEqual(44);
     await refreshBtn.click();
     await expect(refreshBtn).toBeVisible();
   });

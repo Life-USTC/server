@@ -25,7 +25,10 @@
  */
 import { expect, test } from "@playwright/test";
 import { signInAsDebugUser } from "../../../../utils/auth";
-import { cleanupCommentsForE2e } from "../../../../utils/comments";
+import {
+  cleanupCommentsForE2e,
+  openCommentComposer,
+} from "../../../../utils/comments";
 import {
   restoreDescriptionTargetSnapshot,
   snapshotDescriptionTargetForE2e,
@@ -324,20 +327,18 @@ test.describe("/catalog/teachers/[id] 教师详情页", () => {
         intervals: [250, 500, 1_000],
       });
 
-      const anonymousCheckbox = page.getByRole("checkbox", {
-        name: /匿名|Anonymous/i,
-      });
+      const composer = await openCommentComposer(page);
+      const anonymousCheckbox = page
+        .locator("#comments")
+        .getByRole("checkbox", {
+          name: /匿名|Anonymous/i,
+        });
       if (await anonymousCheckbox.isChecked()) {
         await anonymousCheckbox.click();
       }
       await expect(anonymousCheckbox).not.toBeChecked();
 
       const body = `e2e-teacher-comment-${Date.now()}`;
-      const composer = page
-        .locator("#comments")
-        .getByRole("textbox", { name: /评论内容|Comment body/i })
-        .first();
-      await expect(composer).toBeVisible({ timeout: 15_000 });
       await composer.fill(body);
       const createResponse = page.waitForResponse(
         (r) =>
@@ -346,6 +347,7 @@ test.describe("/catalog/teachers/[id] 教师详情页", () => {
           r.status() === 201,
       );
       await page
+        .locator("#comments")
         .getByRole("button", { name: /发布评论|Post comment/i })
         .click();
       const createdCommentResponse = await createResponse;

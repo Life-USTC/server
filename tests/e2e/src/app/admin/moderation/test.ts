@@ -10,6 +10,7 @@ import {
   deleteUsersByPrefix,
 } from "../../../../utils/e2e-db";
 import { withE2ePrisma } from "../../../../utils/e2e-db/prisma";
+import { openCommentComposer } from "../../../../utils/comments";
 import { visibleText } from "../../../../utils/locators";
 import { gotoAndWaitForReady } from "../../../../utils/page-ready";
 import { captureStepScreenshot } from "../../../../utils/screenshot";
@@ -207,14 +208,18 @@ test("/admin/moderation 目标链接可跳转到原页面锚点", async ({
   await gotoAndWaitForReady(page, `${sectionPath}#comments`);
 
   const body = `e2e-target-link-${Date.now()}`;
-  await page.locator("#comments textarea").first().fill(body);
+  const composer = await openCommentComposer(page);
+  await composer.fill(body);
   const createResponse = page.waitForResponse(
     (response) =>
       response.url().includes("/api/community/comments") &&
       response.request().method() === "POST" &&
       response.status() === 201,
   );
-  await page.getByRole("button", { name: /发布评论|Post comment/i }).click();
+  await page
+    .locator("#comments")
+    .getByRole("button", { name: /发布评论|Post comment/i })
+    .click();
   const created = await createResponse;
   const createdBody = (await created.json()) as { id?: string };
   const id = createdBody.id;

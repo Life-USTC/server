@@ -28,7 +28,10 @@ import scenarioData from "../../../../fixtures/scenario.json" with {
   type: "json",
 };
 import { signInAsDebugUser } from "../../../../utils/auth";
-import { cleanupCommentsForE2e } from "../../../../utils/comments";
+import {
+  cleanupCommentsForE2e,
+  openCommentComposer,
+} from "../../../../utils/comments";
 import {
   restoreDescriptionTargetSnapshot,
   snapshotDescriptionTargetForE2e,
@@ -108,15 +111,8 @@ test.describe("/catalog/courses/[jwId] 课程详情", () => {
     await expect(heading).toContainText(
       new RegExp(`${DEV_SEED.course.nameCn}|${DEV_SEED.course.nameEn}`),
     );
-
-    const headingText = (await heading.textContent())?.trim();
-    const expectedSubtitle =
-      headingText === DEV_SEED.course.nameEn
-        ? DEV_SEED.course.nameCn
-        : DEV_SEED.course.nameEn;
-    await expect(
-      heading.locator("xpath=following-sibling::*[1]"),
-    ).toContainText(expectedSubtitle);
+    await expect(heading).toContainText(DEV_SEED.course.nameCn);
+    await expect(heading).toContainText(DEV_SEED.course.nameEn);
     // course.code (plain monospace text)
     const courseCode = page
       .locator('[data-slot="catalog-code"]')
@@ -351,8 +347,7 @@ test.describe("/catalog/courses/[jwId] 课程详情", () => {
       await expect(page).toHaveURL(/\/catalog\/courses\/\d+#comments$/);
 
       const body = `e2e-course-comment-${Date.now()}`;
-      const composer = page.locator("#comments textarea").first();
-      await expect(composer).toBeVisible({ timeout: 15_000 });
+      const composer = await openCommentComposer(page);
       await composer.fill(body);
       const createResponse = page.waitForResponse(
         (r) =>
@@ -361,6 +356,7 @@ test.describe("/catalog/courses/[jwId] 课程详情", () => {
           r.status() === 201,
       );
       await page
+        .locator("#comments")
         .getByRole("button", { name: /发布评论|Post comment/i })
         .click();
       const createdCommentResponse = await createResponse;

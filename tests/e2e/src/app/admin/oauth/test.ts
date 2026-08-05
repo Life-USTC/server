@@ -268,6 +268,7 @@ test("/admin/oauth 桌面表格保持徽标单行并为 scopes 溢出提供完�
     "calendar:write",
     "subscriptions:read",
     "subscriptions:write",
+    `overflow-probe:${"scope-token-".repeat(24)}`,
   ];
 
   try {

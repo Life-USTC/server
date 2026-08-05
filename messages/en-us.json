@@ -393,7 +393,7 @@
     "usersDescription": "All users",
     "oauthTitle": "OAuth Clients",
     "oauthDescription": "OAuth apps",
-    "busTitle": "Shuttle Bus",
+    "busTitle": "Bus Management",
     "busDescription": "Bus timetables",
     "dashboard": {
       "active": "active",

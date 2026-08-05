@@ -135,7 +135,7 @@ export async function assertPageContract(
         page.getByRole("link", { name: /OAuth|OAuth 客户端/i }),
       ).toBeVisible();
       await expect(
-        page.getByRole("link", { name: /校车管理|Shuttle Bus/i }),
+        page.getByRole("link", { name: /校车管理|Bus Management/i }),
       ).toBeVisible();
       await maybeCapture(page, testInfo, "admin-entry");
       return;
@@ -146,7 +146,7 @@ export async function assertPageContract(
       await gotoContractPage(page, routePath, testInfo);
       await expectMainContent(page);
       await expect(
-        page.getByRole("heading", { name: /校车管理|Shuttle Bus/i }),
+        page.getByRole("heading", { name: /校车管理|Bus Management/i }),
       ).toBeVisible();
       await expect(
         page.getByRole("button", { name: /导入|Import/i }),
