@@ -1,3 +1,21 @@
+## [1.85.1](https://github.com/Life-USTC/server/compare/v1.85.0...v1.85.1) (2026-08-06)
+
+
+### Bug Fixes
+
+* **ci:** drop unused fields from related-section discovery fixture ([3879e82](https://github.com/Life-USTC/server/commit/3879e82d1675d1ad45acdea64c11ceac41a0d522))
+* **dashboard/e2e:** sync task filters, restore form errors, unify description edit ([cd5bf81](https://github.com/Life-USTC/server/commit/cd5bf81df1bd3575794e11f490aacbf6932ed1fe))
+* **dashboard:** avoid cyclic filter sync; commit toggle on deselect ([5130c5b](https://github.com/Life-USTC/server/commit/5130c5b108f23306fb0b68e9bca4748e8fa62202))
+* **descriptions:** keep edit action away from sticky aside ([d408650](https://github.com/Life-USTC/server/commit/d40865006ec6ebe5fade39e2104163cae4f99f92))
+* **descriptions:** keep edit action on description header ([4db24b9](https://github.com/Life-USTC/server/commit/4db24b970a2a1c47889c27331c7dbe341ccf6db3))
+* **e2e/descriptions:** harden edit controls and dual-layout assertions ([8ac1cf9](https://github.com/Life-USTC/server/commit/8ac1cf9ecc6cbe093d3ad6fd7f697c25dfe9980e))
+* **e2e/ui:** align polish regressions with new shell layouts ([b129fa1](https://github.com/Life-USTC/server/commit/b129fa186b19eb51c72a1082bccdd8fbc8d59435))
+* **e2e/ui:** unblock polish CI with description edit and layout asserts ([12d9945](https://github.com/Life-USTC/server/commit/12d99458fab022256b2df88f17db3f01de85146a))
+* **e2e:** align tests with admin bus label and collapsed composer ([4b0a704](https://github.com/Life-USTC/server/commit/4b0a70472b1dc872109a8461b515a3b828164826))
+* **e2e:** resolve home link strict mode and /admin auth landing ([f73d053](https://github.com/Life-USTC/server/commit/f73d053708934384d40bdcb03c4474d6c63f7a17))
+* **e2e:** tighten remaining polish regressions ([a4552ee](https://github.com/Life-USTC/server/commit/a4552eee48f28401c17f914fd3296cea544bed3f)), closes [#introduction](https://github.com/Life-USTC/server/issues/introduction)
+* **ui/e2e:** TruncatedText semantics and dual-layout locators ([ad171f8](https://github.com/Life-USTC/server/commit/ad171f848117705e490d9280ef30aa7e75ad4774))
+
 # [1.85.0](https://github.com/Life-USTC/server/compare/v1.84.8...v1.85.0) (2026-08-04)
 
 
