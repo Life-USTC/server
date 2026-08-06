@@ -64,7 +64,6 @@ export let open: boolean;
           />
           <div>
             <Button
-              size="sm"
               type="button"
               variant="outline"
               onclick={() => copyText(credentialsJson, copy.credentialsCopied)}

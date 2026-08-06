@@ -55,6 +55,8 @@ export let initialData: CommentsInitialData | null = null;
 export let permalinkBaseHref: string | null = null;
 export let targets: CommentTargetOption[] = [];
 export let teacherId: number | null = null;
+/** When set, composer primary action sits on the same row as this heading. */
+export let heading: string | null = null;
 
 const reactionOptions = COMMENT_REACTION_OPTIONS;
 let {
@@ -428,6 +430,7 @@ $: _editUploading = commentUploadPendingForMode(_uploadPending, "edit");
     appliedInitialData={_appliedInitialData}
     bind:body={_body}
     commentCopy={_commentCopy}
+    {heading}
     handleEditorDrop={_handleEditorDrop}
     handleSubmitShortcut={_handleSubmitShortcut}
     bind:isAnonymous={_isAnonymous}

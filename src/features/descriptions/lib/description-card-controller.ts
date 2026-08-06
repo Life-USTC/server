@@ -26,7 +26,7 @@ export function createDescriptionCardActions(input: {
   setViewer: (value: DescriptionViewer) => void;
 }) {
   function startEdit() {
-    input.setDraft(input.getDescription().content);
+    input.setDraft(input.getDescription().content ?? "");
     input.setEditing(true);
     input.setMessage("");
   }

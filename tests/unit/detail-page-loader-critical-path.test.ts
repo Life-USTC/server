@@ -131,8 +131,7 @@ const section = {
   id: 31,
   jwId: 301,
   retiredAt: null,
-  sameSemesterOtherTeachers: [],
-  sameTeacherOtherSemesters: [],
+  otherCourseSections: [],
   scheduleCount: 0,
   schedules: [],
   semesterId: 1,
@@ -690,8 +689,7 @@ describe("section detail loader critical path", () => {
   it("loads full stream section data for anonymous PublicSsr requests", async () => {
     const relatedSection = {
       ...section,
-      sameSemesterOtherTeachers: [{ id: 32 }],
-      sameTeacherOtherSemesters: [],
+      otherCourseSections: [{ id: 32 }],
     };
     getSectionPageMock.mockResolvedValue(relatedSection);
     const { loadSectionDetailPage } = await import(

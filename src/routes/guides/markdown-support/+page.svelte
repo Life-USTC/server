@@ -12,7 +12,7 @@ $: sections = buildMarkdownGuideSections(guide);
 
 <svelte:head><title>{guide.title} - Life@USTC</title></svelte:head>
 
-<section class="grid gap-6 pb-12">
+<section class="grid gap-5 pb-12">
   <PageHeader title={guide.title} description={guide.subtitle} />
 
   <div class="grid gap-6">

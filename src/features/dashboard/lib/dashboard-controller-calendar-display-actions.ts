@@ -1,6 +1,7 @@
 import type { calendarEventsForDay } from "./calendar";
 import {
   calendarHomeworkHref as buildCalendarHomeworkHref,
+  calendarTodoChipFields as buildCalendarTodoChipFields,
   calendarTodoDetail as buildCalendarTodoDetail,
 } from "./calendar-display";
 import {
@@ -49,6 +50,13 @@ export function createDashboardCalendarDisplayActions(input: {
     );
   }
 
+  function calendarTodoChipFields(todo: CalendarData["semesterTodos"][number]) {
+    return buildCalendarTodoChipFields(
+      todo,
+      input.getTodoPriorityLabel(todo.priority),
+    );
+  }
+
   function calendarTimelineItemsForDay(
     events: ReturnType<typeof calendarEventsForDay>,
   ) {
@@ -69,6 +77,7 @@ export function createDashboardCalendarDisplayActions(input: {
   return {
     calendarHomeworkHref,
     calendarTimelineItemsForDay,
+    calendarTodoChipFields,
     calendarTodoDetail,
     calendarWeekLabel,
     sessionHref,

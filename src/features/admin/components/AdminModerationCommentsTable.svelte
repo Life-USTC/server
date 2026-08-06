@@ -19,7 +19,7 @@ export let targetLabel: AdminModerationCommentFormatter;
 </script>
 
 <div class="hidden min-w-0 md:block">
-  <Table.Root>
+  <Table.Root class="w-full">
     <Table.Header>
       <Table.Row>
         <Table.Head>{copy.content}</Table.Head>
@@ -27,7 +27,9 @@ export let targetLabel: AdminModerationCommentFormatter;
         <Table.Head>{copy.postedIn}</Table.Head>
         <Table.Head>{copy.createdAt}</Table.Head>
         <Table.Head>{copy.status}</Table.Head>
-        <Table.Head class="w-24 text-right">{copy.actions}</Table.Head>
+        <Table.Head>
+          <span class="sr-only">{copy.actions}</span>
+        </Table.Head>
       </Table.Row>
     </Table.Header>
     <Table.Body>

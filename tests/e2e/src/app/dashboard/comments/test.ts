@@ -48,7 +48,7 @@ test.describe("仪表盘无效标签（comments）", () => {
     await expect(
       page.getByRole("heading", {
         level: 1,
-        name: /先从公开校园工具开始|Start with public campus tools/i,
+        name: /课程、课表与校园生活，一站搞定|Courses, schedules, and campus life/i,
       }),
     ).toBeVisible();
     await expect(page.getByTestId("bus-compact-summary")).toHaveCount(0);

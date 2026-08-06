@@ -39,17 +39,15 @@ test.describe("/account/settings/authorizations OAuth 授权", () => {
     });
 
     try {
-      await gotoAndWaitForReady(page, "/account/settings/authorizations");
-      await page.locator("#app-user-menu").getByRole("button").click();
-      const menuLink = page.getByRole("menuitem", {
+      await gotoAndWaitForReady(page, "/account/settings");
+      const authorizationsTab = page.getByRole("link", {
         name: /已授权应用|Authorized apps/i,
       });
-      await expect(menuLink).toHaveAttribute(
-        "href",
-        "/account/settings/authorizations",
+      await expect(authorizationsTab).toBeVisible();
+      await authorizationsTab.click();
+      await expect(page).toHaveURL(
+        /\/account\/settings\/authorizations(?:\?.*)?$/,
       );
-      await expect(menuLink).toHaveAttribute("aria-current", "page");
-      await page.keyboard.press("Escape");
 
       const region = page.getByRole("region", {
         name: /已授权的 OAuth 应用|Authorized OAuth applications/i,

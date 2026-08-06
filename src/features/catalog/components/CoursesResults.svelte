@@ -1,9 +1,13 @@
 <script lang="ts">
-import type { CatalogNamed } from "@/features/catalog/lib/catalog-list-display";
+import {
+  type CatalogNamed,
+  catalogLocalizedDisplayName,
+} from "@/features/catalog/lib/catalog-list-display";
 import {
   catalogShowingSummary,
   optionalCatalogFilterSummary,
 } from "@/features/catalog/lib/catalog-results-summary";
+import { page as appPage } from "$app/stores";
 import TruncatedCode from "$lib/components/TruncatedCode.svelte";
 import TruncatedText from "$lib/components/TruncatedText.svelte";
 import * as Item from "$lib/components/ui/item/index.js";
@@ -21,9 +25,9 @@ export let courseLabels: CourseListLabels;
 export let data: CourseListResultData;
 export let page: number;
 export let primaryName: (item: CatalogNamed | null | undefined) => string;
-export let secondaryName: (item: CatalogNamed | null | undefined) => string;
 export let totalPages: number;
 
+$: locale = $appPage.data.locale ?? "zh-cn";
 $: courseSummaryBase = catalogShowingSummary(
   courseLabels.showing,
   data.data.length,
@@ -52,10 +56,7 @@ $: courseSearchSummary = optionalCatalogFilterSummary(
             {#snippet child({ props })}
               <a href={courseHref} {...props}>
                 <Item.Content>
-                  <Item.Title>{primaryName(course)}</Item.Title>
-                  {#if secondaryName(course)}
-                    <Item.Description>{secondaryName(course)}</Item.Description>
-                  {/if}
+                  <Item.Title>{catalogLocalizedDisplayName(course, locale)}</Item.Title>
                 </Item.Content>
                 <Item.Actions>
                   <TruncatedCode text={course.code} />
@@ -72,60 +73,47 @@ $: courseSearchSummary = optionalCatalogFilterSummary(
       </Item.Group>
     </div>
     <div class="hidden xl:block">
-      <Table.Root class="table-fixed">
+      <Table.Root class="">
         <Table.Header>
           <Table.Row>
-            <Table.Head class="min-w-72">{courseLabels.courseName}</Table.Head>
-            <Table.Head class="w-28">{courseLabels.courseCode}</Table.Head>
-            <Table.Head class="w-36">{courseLabels.educationLevel}</Table.Head>
-            <Table.Head class="w-40">{courseLabels.category}</Table.Head>
-            <Table.Head class="w-36">{courseLabels.classType}</Table.Head>
+            <Table.Head>{courseLabels.courseName}</Table.Head>
+            <Table.Head>{courseLabels.courseCode}</Table.Head>
+            <Table.Head>{courseLabels.educationLevel}</Table.Head>
+            <Table.Head>{courseLabels.category}</Table.Head>
+            <Table.Head>{courseLabels.classType}</Table.Head>
           </Table.Row>
         </Table.Header>
         <Table.Body>
           {#each data.data as course}
             {@const courseHref = `/catalog/courses/${course.jwId}`}
             <Table.Row>
-              <Table.Cell class="min-w-72 p-0 align-top">
+              <Table.Cell class="p-0">
                 <CatalogTableLink href={courseHref}>
                   <TruncatedText
-                    class="font-medium"
-                    text={primaryName(course)}
-                  />
-                  <TruncatedText
-                    class="text-muted-foreground text-xs"
-                    text={secondaryName(course)}
+                    text={catalogLocalizedDisplayName(course, locale)}
                   />
                 </CatalogTableLink>
               </Table.Cell>
-              <Table.Cell class="p-0 align-top">
+              <Table.Cell class="p-0">
                 <CatalogTableLink href={courseHref}>
                   <TruncatedCode text={course.code} />
                 </CatalogTableLink>
               </Table.Cell>
-              <Table.Cell class="p-0 align-top">
+              <Table.Cell class="p-0">
                 <CatalogTableLink href={courseHref}>
-                  <TruncatedText
-                    text={course.educationLevel
-                      ? primaryName(course.educationLevel)
-                      : "-"}
-                  />
+                  {course.educationLevel
+                    ? primaryName(course.educationLevel)
+                    : "-"}
                 </CatalogTableLink>
               </Table.Cell>
-              <Table.Cell class="p-0 align-top">
+              <Table.Cell class="p-0">
                 <CatalogTableLink href={courseHref}>
-                  <TruncatedText
-                    text={course.category ? primaryName(course.category) : "-"}
-                  />
+                  {course.category ? primaryName(course.category) : "-"}
                 </CatalogTableLink>
               </Table.Cell>
-              <Table.Cell class="p-0 align-top">
+              <Table.Cell class="p-0">
                 <CatalogTableLink href={courseHref}>
-                  <TruncatedText
-                    text={course.classType
-                      ? primaryName(course.classType)
-                      : "-"}
-                  />
+                  {course.classType ? primaryName(course.classType) : "-"}
                 </CatalogTableLink>
               </Table.Cell>
             </Table.Row>

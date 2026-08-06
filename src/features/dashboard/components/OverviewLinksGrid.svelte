@@ -5,11 +5,10 @@ import type {
   DashboardOverviewLinkItem,
 } from "@/features/dashboard/lib/dashboard-controller-helpers";
 import { DASHBOARD_OVERVIEW_PREVIEW_LIMIT } from "@/features/dashboard/lib/overview-preview";
-import * as Empty from "$lib/components/ui/empty/index.js";
-import DashboardLinkVisitAction from "./DashboardLinkVisitAction.svelte";
+import SoftEmptyMessage from "$lib/components/SoftEmptyMessage.svelte";
 import type { DashboardCalendarTabHref } from "./dashboard-calendar-component-types";
 import LinksTabPinButton from "./LinksTabPinButton.svelte";
-import OverviewViewAllFooter from "./OverviewViewAllFooter.svelte";
+import OverviewSection from "./OverviewSection.svelte";
 
 export let dashboardCopy: DashboardDashboardCopy;
 export let dashboardTabHref: DashboardCalendarTabHref;
@@ -35,33 +34,61 @@ function pinAction(link: DashboardOverviewLinkItem): DashboardLinkPinAction {
 }
 </script>
 
-<div data-testid="dashboard-overview-links">
-  <div class="grid min-w-0 gap-3 sm:grid-cols-2 xl:grid-cols-4">
-  {#each previewLinks as link}
-    <div class="group relative min-w-0 overflow-hidden rounded-lg">
-      <DashboardLinkVisitAction {link} {linkIconLabel} reserveActionSpace />
-      <div class={`absolute top-2 right-2 opacity-100 transition-opacity ${link.isPinned ? "" : "md:pointer-events-none md:opacity-0 md:group-focus-within:pointer-events-auto md:group-focus-within:opacity-100 md:group-hover:pointer-events-auto md:group-hover:opacity-100"}`}>
-        <LinksTabPinButton
-          {link}
-          linkReturnTo={dashboardTabHref("overview")}
-          {pinAction}
-          {pinLabel}
-          {submitDashboardLinkPin}
-          {updatingDashboardLinkSlug}
-        />
-      </div>
+<OverviewSection
+  href="/catalog/links"
+  testId="dashboard-overview-links"
+  title={dashboardCopy.linkHub.title}
+  viewAllHref="/catalog/links"
+  viewAllLabel={dashboardCopy.viewAll as string}
+  viewAllVisible={links.length > previewLimit}
+>
+  {#if previewLinks.length > 0}
+    <div class="grid min-w-0 gap-1 sm:grid-cols-2 xl:grid-cols-4">
+      {#each previewLinks as link}
+        <div class="group relative min-w-0">
+          <form
+            action="/api/catalog/links/resolve"
+            class="min-w-0"
+            method="POST"
+            rel="noopener"
+            target="_blank"
+          >
+            <input name="slug" type="hidden" value={link.slug} />
+            <button
+              class="flex w-full min-w-0 items-start gap-3 rounded-lg px-2 py-2.5 text-left transition-colors hover:bg-muted/50"
+              class:pe-10={true}
+              type="submit"
+            >
+              <span
+                aria-hidden="true"
+                class="flex size-8 shrink-0 items-center justify-center rounded-md bg-muted text-xs font-medium"
+              >
+                {linkIconLabel(link.icon)}
+              </span>
+              <span class="grid min-w-0 gap-0.5">
+                <span class="truncate font-medium text-sm">{link.title}</span>
+                <span class="line-clamp-2 text-muted-foreground text-xs"
+                  >{link.description}</span
+                >
+              </span>
+            </button>
+          </form>
+          <div
+            class={`absolute top-2 right-1 ${link.isPinned ? "" : "md:pointer-events-none md:opacity-0 md:transition-opacity md:group-focus-within:pointer-events-auto md:group-focus-within:opacity-100 md:group-hover:pointer-events-auto md:group-hover:opacity-100"}`}
+          >
+            <LinksTabPinButton
+              {link}
+              linkReturnTo={dashboardTabHref("overview")}
+              {pinAction}
+              {pinLabel}
+              {submitDashboardLinkPin}
+              {updatingDashboardLinkSlug}
+            />
+          </div>
+        </div>
+      {/each}
     </div>
   {:else}
-    <Empty.Root class="min-h-24 sm:col-span-2 xl:col-span-4">
-      <Empty.Header>
-        <Empty.Title>{dashboardCopy.linkHub.empty}</Empty.Title>
-      </Empty.Header>
-    </Empty.Root>
-  {/each}
-  </div>
-  <OverviewViewAllFooter
-    href="/catalog/links"
-    label={dashboardCopy.viewAll as string}
-    visible={links.length > previewLimit}
-  />
-</div>
+    <SoftEmptyMessage message={dashboardCopy.linkHub.empty} />
+  {/if}
+</OverviewSection>

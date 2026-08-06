@@ -9,15 +9,13 @@ import {
   weekDaysFor,
 } from "@/features/dashboard/lib/calendar";
 import {
-  calendarExamDetail,
-  calendarHomeworkDetail,
+  calendarExamChipFields,
+  calendarHomeworkChipFields,
   calendarSemesterIndex,
-  calendarSessionDetail,
+  calendarSessionChipFields,
 } from "@/features/dashboard/lib/calendar-display";
 import { createDashboardCalendarActions } from "@/features/dashboard/lib/dashboard-controller-calendar-actions";
-import { createDashboardCalendarCopyActions } from "@/features/dashboard/lib/dashboard-controller-calendar-copy-actions";
 import { createDashboardCalendarDisplayActions } from "@/features/dashboard/lib/dashboard-controller-calendar-display-actions";
-import { createDashboardCardViewActions } from "@/features/dashboard/lib/dashboard-controller-card-view-actions";
 import { createDashboardCreateHomeworkActions } from "@/features/dashboard/lib/dashboard-controller-create-homework-actions";
 import { createDashboardControllerDefaultState } from "@/features/dashboard/lib/dashboard-controller-default-state";
 import {
@@ -59,7 +57,6 @@ import { todoPriorityOptions as buildTodoPriorityOptions } from "@/features/dash
 import { goto, invalidateAll, replaceState } from "$app/navigation";
 import { page } from "$app/stores";
 import * as Alert from "$lib/components/ui/alert/index.js";
-import DashboardStatusAlerts from "./DashboardStatusAlerts.svelte";
 import type { DashboardCalendarTabProps } from "./dashboard-calendar-component-types";
 import SignedDashboardOverviewBranch from "./SignedDashboardOverviewBranch.svelte";
 import SignedDashboardPublicTabs from "./SignedDashboardPublicTabs.svelte";
@@ -78,8 +75,6 @@ let {
   bulkImportMessage,
   bulkImportSemesterId,
   bulkImportText,
-  calendarCopyError,
-  calendarCopyMessage,
   calendarData,
   calendarMonth,
   calendarSemesterId,
@@ -174,17 +169,6 @@ function openTodoEditor(todo: TodoItem) {
   editTodoError = "";
   editingTodo = todo;
 }
-
-const { copyCalendarLink, copyCalendarUrl } =
-  createDashboardCalendarCopyActions({
-    getCopyLabels: () => subscriptionsCopy,
-    setCalendarCopyError: (value) => {
-      calendarCopyError = value;
-    },
-    setCalendarCopyMessage: (value) => {
-      calendarCopyMessage = value;
-    },
-  });
 
 const {
   applyHomeworkDueAtSemesterEnd,
@@ -344,15 +328,6 @@ function applyDashboardViewState(state: DashboardViewState) {
   examView = state.examView;
   linkView = state.linkView;
 }
-
-const { setExamView, setHomeworkView, setTodoView } =
-  createDashboardCardViewActions({
-    applyDashboardViewState,
-    replaceState: (href) => {
-      replaceState(href, {});
-    },
-  });
-
 const { toggleHomeworkCompletion } = createDashboardHomeworkStateActions({
   getHomeworkItems: () => homeworkItems,
   getHomeworkSavingById: () => homeworkSavingById,
@@ -372,39 +347,37 @@ const { toggleHomeworkCompletion } = createDashboardHomeworkStateActions({
   },
 });
 
-const { setLinkView, submitDashboardLinkPin } = createDashboardLinkStateActions(
-  {
-    applyDashboardViewState,
-    getDashboardCopy: () => dashboardCopy,
-    getDashboardLinkItems: () => dashboardLinkSourceItems,
-    getLinkReturnTo: () => linkReturnTo,
-    getOverviewLinkItems: () => overviewLinkSourceItems,
-    getUpdatingDashboardLinkSlug: () => updatingDashboardLinkSlug,
-    replaceState: (href) => {
-      replaceState(href, {});
-    },
-    setDashboardLinkItems: (value) => {
-      dashboardLinkSourceItems = value;
-    },
-    setLinkActionError: (value) => {
-      linkActionError = value;
-    },
-    setLinkReturnTo: (value) => {
-      linkReturnTo = value;
-    },
-    setOverviewLinkItems: (value) => {
-      overviewLinkSourceItems = value;
-    },
-    setUpdatingDashboardLinkSlug: (value) => {
-      updatingDashboardLinkSlug = value;
-    },
+const { submitDashboardLinkPin } = createDashboardLinkStateActions({
+  applyDashboardViewState,
+  getDashboardCopy: () => dashboardCopy,
+  getDashboardLinkItems: () => dashboardLinkSourceItems,
+  getLinkReturnTo: () => linkReturnTo,
+  getOverviewLinkItems: () => overviewLinkSourceItems,
+  getUpdatingDashboardLinkSlug: () => updatingDashboardLinkSlug,
+  replaceState: (href) => {
+    replaceState(href, {});
   },
-);
+  setDashboardLinkItems: (value) => {
+    dashboardLinkSourceItems = value;
+  },
+  setLinkActionError: (value) => {
+    linkActionError = value;
+  },
+  setLinkReturnTo: (value) => {
+    linkReturnTo = value;
+  },
+  setOverviewLinkItems: (value) => {
+    overviewLinkSourceItems = value;
+  },
+  setUpdatingDashboardLinkSlug: (value) => {
+    updatingDashboardLinkSlug = value;
+  },
+});
 
 const {
   calendarHomeworkHref,
   calendarTimelineItemsForDay,
-  calendarTodoDetail,
+  calendarTodoChipFields,
   calendarWeekLabel,
   sessionHref,
 } = createDashboardCalendarDisplayActions({
@@ -517,16 +490,16 @@ onMount(() => {
   <title>{pageTitle} - Life@USTC</title>
 </svelte:head>
 
-<div class="mx-auto grid w-full max-w-7xl gap-6">
+<div class="grid w-full gap-6">
   {#if data.signedIn && data.mainContentLabel}
     <h1 class="sr-only">{data.mainContentLabel}</h1>
   {/if}
 
-  <DashboardStatusAlerts
-    {actionError}
-    {calendarCopyError}
-    {calendarCopyMessage}
-  />
+  {#if actionError}
+    <Alert.Root variant="destructive">
+      <Alert.Description>{actionError}</Alert.Description>
+    </Alert.Root>
+  {/if}
 
   {#if signedData}
     {#if signedData.tab === "overview"}
@@ -564,7 +537,6 @@ onMount(() => {
         {examMetadataLabels}
         {examRows}
         {examTimeLabel}
-        {examView}
         {filteredExamRows}
         {filteredTodos}
         {homeworkActionError}
@@ -578,15 +550,12 @@ onMount(() => {
         {openTodoEditor}
         {sectionCopy}
         {selectedCreateHomeworkSection}
-        {setExamView}
-        {setHomeworkView}
-        {setTodoView}
         {signedData}
         {subscriptionsCopy}
         {todoActionError}
+        {todoItems}
         {todoPriorityOptions}
         {todoSavingById}
-        {todoView}
         {todosCopy}
         {toggleHomeworkCompletion}
         {toggleTodoCompletion}
@@ -604,7 +573,6 @@ onMount(() => {
         bind:homeworkFilter
         bind:homeworkItems
         bind:homeworkSavingById
-        bind:homeworkView
         bind:isCreatingHomework
         bind:selectedHomework
         bind:selectedTodo
@@ -623,7 +591,6 @@ onMount(() => {
         {selectedImportCount}
         {canMatchImportSections}
         {formatMessage}
-        {copyCalendarLink}
         {namePrimary}
         {nameSecondary}
         {resetBulkImport}
@@ -661,8 +628,6 @@ onMount(() => {
         signedData={calendarSignedData}
         {dashboardTabHref}
         {formatMessage}
-        {copyCalendarLink}
-        {copyCalendarUrl}
         {sessionHref}
         {setCalendarView}
         {setCalendarMonth}
@@ -676,10 +641,10 @@ onMount(() => {
         {calendarWeekLabel}
         {calendarEventParts}
         {calendarHomeworkHref}
-        {calendarSessionDetail}
-        {calendarExamDetail}
-        {calendarHomeworkDetail}
-        {calendarTodoDetail}
+        {calendarSessionChipFields}
+        {calendarExamChipFields}
+        {calendarHomeworkChipFields}
+        {calendarTodoChipFields}
         {calendarSemesterIndex}
         {calendarView}
         {calendarMonth}
@@ -691,8 +656,6 @@ onMount(() => {
         {linkReturnTo}
         bind:linkSearchInput
         bind:linkSearchQuery
-        {linkView}
-        {setLinkView}
         {signedLinkGroups}
         {submitDashboardLinkPin}
         {updatingDashboardLinkSlug}

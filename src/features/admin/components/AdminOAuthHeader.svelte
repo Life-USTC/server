@@ -18,7 +18,7 @@ export let onCreate: () => void;
 
 <PageHeader title={copy.adminTitle} description={copy.adminSubtitle} eyebrow={adminCopy.title}>
   {#snippet actions()}
-    <Button class="w-full sm:w-auto" size="sm" type="button" {disabled} onclick={onCreate}>
+    <Button class="w-full sm:w-auto" type="button" {disabled} onclick={onCreate}>
       {copy.createClient}
     </Button>
   {/snippet}

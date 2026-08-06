@@ -80,17 +80,31 @@ export type DashboardCalendarTabProps = DashboardCalendarControlsProps & {
   calendarEventParts: DashboardCalendarEventParts;
   calendarEventsForDay: DashboardCalendarEventsForDay;
   calendarTimelineItemsForDay: DashboardCalendarTimelineItemsForDay;
-  calendarExamDetail: (exam: DashboardCalendarExam) => string;
-  calendarHomeworkDetail: (homework: DashboardCalendarHomework) => string;
+  calendarExamChipFields: (exam: DashboardCalendarExam) => {
+    detail: string;
+    meta: string;
+    tooltipDetail?: string;
+  };
+  calendarHomeworkChipFields: (homework: DashboardCalendarHomework) => {
+    detail: string;
+    meta: string;
+    tooltipDetail?: string;
+  };
   calendarHomeworkHref: (homework: DashboardCalendarHomework) => string;
   calendarSemesterId: number | null;
-  calendarSessionDetail: (session: DashboardCalendarSession) => string;
-  calendarTodoDetail: (todo: DashboardCalendarTodo) => string;
+  calendarSessionChipFields: (session: DashboardCalendarSession) => {
+    detail: string;
+    meta: string;
+    tooltipDetail?: string;
+  };
+  calendarTodoChipFields: (todo: DashboardCalendarTodo) => {
+    detail: string;
+    meta: string;
+    tooltipDetail?: string;
+  };
   calendarWeekLabel: (weekIndex: number) => string;
   calendarWeekdayLabels: string[];
   copy: DashboardRootCopy;
-  copyCalendarLink: (event: MouseEvent) => void | Promise<void>;
-  copyCalendarUrl: (url: string) => void | Promise<void>;
   dashboardTabHref: DashboardCalendarTabHref;
   monthWeeks: DashboardCalendarMonthWeeks;
   sessionHref: (session: DashboardCalendarSession) => string;

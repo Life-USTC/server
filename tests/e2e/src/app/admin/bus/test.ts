@@ -50,7 +50,7 @@ test("/admin/bus 显示所有必需的版本字段", async ({ page }, testInfo) 
   await signInAsDevAdmin(page, "/admin/bus");
 
   // Heading
-  await expect(visibleText(page, /Versions|时刻表版本/)).toBeVisible();
+  await expect(visibleText(page, /Shuttle Bus|校车管理/)).toBeVisible();
 
   // version title (admin.yml bus-management.display.fields)
   await expect(visibleText(page, DEV_SEED.bus.versionTitle)).toBeVisible();
@@ -60,9 +60,6 @@ test("/admin/bus 显示所有必需的版本字段", async ({ page }, testInfo) 
   await expect(visibleText(page, /\d{4}-\d{2}-\d{2}/)).toBeVisible();
   // enabled status — "Active" in English, "启用" in Chinese
   await expect(visibleText(page, /Active|启用/i)).toBeVisible();
-  await expect(visibleText(page, /Versions|时刻表版本/)).toBeVisible();
-  await expect(visibleText(page, /Campuses|校区数/)).toBeVisible();
-  await expect(visibleText(page, /Routes|路线数/)).toBeVisible();
 
   await captureStepScreenshot(page, testInfo, "admin-bus/version-fields");
 });
@@ -77,19 +74,23 @@ test("/admin/bus 版本表格包含班次数量", async ({ page }, testInfo) => 
   await captureStepScreenshot(page, testInfo, "admin-bus/trip-count");
 });
 
-test("/admin/bus 管理首页入口可见且可跳转", async ({ page }, testInfo) => {
-  await signInAsDevAdmin(page, "/admin");
+test("/admin/bus 主导航入口可见且可跳转", async ({ page }, testInfo) => {
+  await signInAsDevAdmin(page, "/admin/users");
 
-  const busCard = page
-    .getByTestId("admin-active-panel")
-    .getByRole("link", { name: /校车管理|Shuttle Bus/i });
-  await expect(busCard).toBeVisible();
+  const busLink = page
+    .getByTestId("app-sidebar")
+    .getByRole("link", { name: /校车管理|Bus Management/i });
+  await expect(busLink).toBeVisible();
 
   await Promise.all([
     page.waitForURL(/\/admin\/bus(?:\?.*)?$/),
-    busCard.click(),
+    busLink.click(),
   ]);
-  await captureStepScreenshot(page, testInfo, "admin-bus/navigate-from-home");
+  await captureStepScreenshot(
+    page,
+    testInfo,
+    "admin-bus/navigate-from-sidebar",
+  );
 });
 
 test("/admin/bus 激活版本受保护且导入弹窗可打开", async ({
@@ -127,20 +128,16 @@ test("/admin/bus 激活版本受保护且导入弹窗可打开", async ({
   await importDialog.getByRole("button", { name: /取消|Cancel/i }).click();
 });
 
-test("/admin/bus 移动端摘要紧凑且首条版本操作可达", async ({
-  page,
-}, testInfo) => {
+test("/admin/bus 移动端首条版本操作可达", async ({ page }, testInfo) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await signInAsDevAdmin(page, "/admin/bus");
 
   const workspace = page.getByTestId("admin-workspace");
-  const summary = page.getByTestId("admin-bus-summary");
   const firstVersion = page
     .getByTestId("admin-bus-mobile-list")
     .locator("[data-slot='item']")
     .first();
   await expect(workspace).toBeVisible();
-  await expect(summary.locator(":scope > [data-slot='item']")).toHaveCount(4);
   await expect(workspace.locator("table")).toBeHidden();
   await expect(firstVersion).toBeVisible();
   await expect(firstVersion).toBeInViewport();

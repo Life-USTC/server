@@ -1,3 +1,4 @@
+export { computeMapViewBox } from "./bus-transit-map-campus-layout";
 export {
   BUS_H,
   BUS_W,

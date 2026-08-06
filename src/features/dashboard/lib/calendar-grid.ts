@@ -48,11 +48,27 @@ type DashboardCalendarGridOptions<
     calendar: Calendar,
     dayKey: string,
   ) => CalendarDayEvents<Session, Exam, Homework, Todo>;
-  calendarExamDetail: (exam: Exam) => string;
-  calendarHomeworkDetail: (homework: Homework) => string;
+  calendarExamChipFields: (exam: Exam) => {
+    detail: string;
+    meta: string;
+    tooltipDetail?: string;
+  };
+  calendarHomeworkChipFields: (homework: Homework) => {
+    detail: string;
+    meta: string;
+    tooltipDetail?: string;
+  };
   calendarHomeworkHref: (homework: Homework) => string;
-  calendarSessionDetail: (session: Session) => string;
-  calendarTodoDetail: (todo: Todo) => string;
+  calendarSessionChipFields: (session: Session) => {
+    detail: string;
+    meta: string;
+    tooltipDetail?: string;
+  };
+  calendarTodoChipFields: (todo: Todo) => {
+    detail: string;
+    meta: string;
+    tooltipDetail?: string;
+  };
   calendarWeekLabel: (weekIndex: number) => string;
   dashboardTabHref: (tab: "exams" | "todos") => string;
   examLabel: string;

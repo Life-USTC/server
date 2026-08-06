@@ -80,7 +80,7 @@ export let sectionJwId: number | string;
               {_sectionCopy.due} {_fmtDateTime(_selectedHomework.submissionDueAt)} · {_homeworkStatus(_selectedHomework)}
             </Dialog.Description>
           </div>
-          <Button size="sm" type="button" variant="ghost" onclick={close}>
+          <Button type="button" variant="ghost" onclick={close}>
             {_sectionCopy.close}
           </Button>
         </div>

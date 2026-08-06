@@ -10,13 +10,11 @@ import type {
 } from "@/features/dashboard/lib/dashboard-controller-helpers";
 import { DASHBOARD_OVERVIEW_PREVIEW_LIMIT } from "@/features/dashboard/lib/overview-preview";
 import { sectionDetailHomeworkPath } from "@/features/section-detail/lib/section-detail-tab";
+import SoftEmptyMessage from "$lib/components/SoftEmptyMessage.svelte";
 import { Badge } from "$lib/components/ui/badge/index.js";
-import * as Card from "$lib/components/ui/card/index.js";
-import * as Empty from "$lib/components/ui/empty/index.js";
-import * as Item from "$lib/components/ui/item/index.js";
 import type { DashboardCalendarTabHref } from "./dashboard-calendar-component-types";
+import OverviewSection from "./OverviewSection.svelte";
 import OverviewTodayCard from "./OverviewTodayCard.svelte";
-import OverviewViewAllFooter from "./OverviewViewAllFooter.svelte";
 
 export let copy: DashboardRootCopy;
 export let commonCopy: DashboardCommonCopy;
@@ -43,9 +41,10 @@ $: overdueTodoPreview = overdueTodos.slice(
 );
 $: showOverdueViewAll =
   overdueHomeworks.length + overdueTodos.length > previewLimit;
+$: overdueEmpty = overdueHomeworks.length === 0 && overdueTodos.length === 0;
 </script>
 
-<div class="grid items-start gap-4 lg:grid-cols-2">
+<div class="grid items-start gap-8 lg:grid-cols-2">
   <OverviewTodayCard
     {copy}
     {dashboardCopy}
@@ -58,83 +57,69 @@ $: showOverdueViewAll =
     {todaySessions}
   />
 
-  <Card.Root>
-    <Card.Header>
-      <Card.Title>
-        <a class="no-underline hover:underline" href={dashboardTabHref("homeworks")}>{dashboardCopy.overdue.title}</a>
-      </Card.Title>
-    </Card.Header>
-    <Card.Content>
-      <Item.Group class="grid gap-2 md:grid-cols-2">
+  <OverviewSection
+    href={dashboardTabHref("homeworks")}
+    title={dashboardCopy.overdue.title}
+    viewAllHref={dashboardTabHref("homeworks")}
+    viewAllLabel={viewAllLabel}
+    viewAllVisible={showOverdueViewAll}
+  >
+    {#if overdueEmpty}
+      <SoftEmptyMessage message={dashboardCopy.overdue.empty} />
+    {:else}
+      <ul class="divide-y divide-border/60">
         {#each overdueHomeworkPreview as homework}
-          <Item.Root variant="outline" size="sm">
-            {#snippet child({ props })}
-              <a
-                href={homework.section?.jwId
-                  ? sectionDetailHomeworkPath(homework.section.jwId, {
-                      homeworkId: homework.id,
-                    })
-                  : dashboardTabHref("homeworks")}
-                {...props}
-              >
-                <Item.Content>
-                  <Item.Title class="line-clamp-2 w-full">
-                    {homework.title}
-                  </Item.Title>
-                  <Item.Description class="flex flex-wrap items-center gap-1.5">
-                    <Badge variant="secondary">{copy.CalendarEventCard.homework}</Badge>
-                    <span>{homework.section?.course?.namePrimary ?? commonCopy.sections}</span>
-                  </Item.Description>
-                </Item.Content>
-                <Item.Actions>
-                  {homeworkEtaLabel(homework.submissionDueAt)}
-                </Item.Actions>
-              </a>
-            {/snippet}
-          </Item.Root>
+          <li>
+            <a
+              class="flex items-start justify-between gap-3 py-2.5 transition-colors hover:bg-muted/40 -mx-2 px-2 rounded-md"
+              href={homework.section?.jwId
+                ? sectionDetailHomeworkPath(homework.section.jwId, {
+                    homeworkId: homework.id,
+                  })
+                : dashboardTabHref("homeworks")}
+            >
+              <span class="grid min-w-0 gap-1">
+                <span class="line-clamp-2 font-medium text-sm">{homework.title}</span>
+                <span class="flex flex-wrap items-center gap-1.5 text-muted-foreground text-xs">
+                  <Badge variant="secondary">{copy.CalendarEventCard.homework}</Badge>
+                  <span>{homework.section?.course?.namePrimary ?? commonCopy.sections}</span>
+                </span>
+              </span>
+              <span class="shrink-0 text-muted-foreground text-xs tabular-nums">
+                {homeworkEtaLabel(homework.submissionDueAt)}
+              </span>
+            </a>
+          </li>
         {/each}
         {#each overdueTodoPreview as todo}
-          <Item.Root variant="outline" size="sm">
-            {#snippet child({ props })}
-              <a href={dashboardTabHref("todos")} {...props}>
-                <Item.Content>
-                  <Item.Title class="line-clamp-2 w-full">
-                    {todo.title}
-                  </Item.Title>
-                  <Item.Description class="flex flex-wrap gap-1.5">
-                    <Badge variant="secondary">{copy.CalendarEventCard.todo}</Badge>
-                    <Badge
-                      variant={todo.priority === "high"
-                        ? "destructive"
-                        : todo.priority === "medium"
-                          ? "secondary"
-                          : "outline"}
-                    >
-                      {todosCopy.priority[todo.priority]}
-                    </Badge>
-                    <Badge variant="ghost">{todoStatus(todo)}</Badge>
-                  </Item.Description>
-                </Item.Content>
-                <Item.Actions>
-                  {fmtDate(todo.dueAt)}
-                </Item.Actions>
-              </a>
-            {/snippet}
-          </Item.Root>
+          <li>
+            <a
+              class="flex items-start justify-between gap-3 py-2.5 transition-colors hover:bg-muted/40 -mx-2 px-2 rounded-md"
+              href={dashboardTabHref("todos")}
+            >
+              <span class="grid min-w-0 gap-1">
+                <span class="line-clamp-2 font-medium text-sm">{todo.title}</span>
+                <span class="flex flex-wrap gap-1.5">
+                  <Badge variant="secondary">{copy.CalendarEventCard.todo}</Badge>
+                  <Badge
+                    variant={todo.priority === "high"
+                      ? "destructive"
+                      : todo.priority === "medium"
+                        ? "secondary"
+                        : "outline"}
+                  >
+                    {todosCopy.priority[todo.priority]}
+                  </Badge>
+                  <Badge variant="ghost">{todoStatus(todo)}</Badge>
+                </span>
+              </span>
+              <span class="shrink-0 text-muted-foreground text-xs tabular-nums">
+                {fmtDate(todo.dueAt)}
+              </span>
+            </a>
+          </li>
         {/each}
-        {#if overdueHomeworks.length === 0 && overdueTodos.length === 0}
-          <Empty.Root class="min-h-24 md:col-span-2">
-            <Empty.Header>
-              <Empty.Title>{dashboardCopy.overdue.empty}</Empty.Title>
-            </Empty.Header>
-          </Empty.Root>
-        {/if}
-      </Item.Group>
-    </Card.Content>
-    <OverviewViewAllFooter
-      href={dashboardTabHref("homeworks")}
-      label={viewAllLabel}
-      visible={showOverdueViewAll}
-    />
-  </Card.Root>
+      </ul>
+    {/if}
+  </OverviewSection>
 </div>

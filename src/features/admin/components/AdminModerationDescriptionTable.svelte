@@ -1,6 +1,8 @@
 <script lang="ts">
+import SquarePen from "@lucide/svelte/icons/square-pen";
+import DashboardTableIconButton from "@/features/dashboard/components/DashboardTableIconButton.svelte";
+import DashboardTableRowActions from "@/features/dashboard/components/DashboardTableRowActions.svelte";
 import TruncatedText from "$lib/components/TruncatedText.svelte";
-import { Button } from "$lib/components/ui/button/index.js";
 import * as Table from "$lib/components/ui/table/index.js";
 import {
   adminModerationDescriptionEditedAt,
@@ -22,20 +24,22 @@ export let targetLabel: (description: AdminModerationDescription) => string;
 </script>
 
 <div class="hidden min-w-0 md:block">
-  <Table.Root>
+  <Table.Root class="w-full">
     <Table.Header>
       <Table.Row>
         <Table.Head>{copy.descriptionPreview}</Table.Head>
         <Table.Head>{copy.author}</Table.Head>
         <Table.Head>{copy.postedIn}</Table.Head>
         <Table.Head>{copy.editedAtLabel}</Table.Head>
-        <Table.Head class="w-24 text-right">{copy.actions}</Table.Head>
+        <Table.Head>
+          <span class="sr-only">{copy.actions}</span>
+        </Table.Head>
       </Table.Row>
     </Table.Header>
     <Table.Body>
       {#each descriptions as description}
-        <Table.Row>
-          <Table.Cell class="max-w-md">
+        <Table.Row class="group">
+          <Table.Cell>
             <TruncatedText
               class="text-sm"
               lines={2}
@@ -45,12 +49,10 @@ export let targetLabel: (description: AdminModerationDescription) => string;
                 : copy.emptyDescription}
             />
           </Table.Cell>
-          <Table.Cell class="max-w-48">
-            <TruncatedText
-              text={adminModerationDescriptionLastEditor(description, copy)}
-            />
+          <Table.Cell>
+            {adminModerationDescriptionLastEditor(description, copy)}
           </Table.Cell>
-          <Table.Cell class="max-w-sm">
+          <Table.Cell>
             <a
               class="block min-w-0 overflow-hidden hover:underline"
               href={descriptionTargetHref(description)}
@@ -58,20 +60,20 @@ export let targetLabel: (description: AdminModerationDescription) => string;
               <TruncatedText text={targetLabel(description)} />
             </a>
           </Table.Cell>
-          <Table.Cell>
+          <Table.Cell class="whitespace-nowrap tabular-nums text-muted-foreground">
             {formatDate(adminModerationDescriptionEditedAt(description))}
           </Table.Cell>
-          <Table.Cell class="text-right">
-            <Button
-              size="sm"
-              type="button"
-              variant="outline"
-              onclick={() => {
-                onManage(description);
-              }}
-            >
-              {copy.manageDescription}
-            </Button>
+          <Table.Cell>
+            <DashboardTableRowActions>
+              <DashboardTableIconButton
+                label={copy.manageDescription}
+                onclick={() => {
+                  onManage(description);
+                }}
+              >
+                <SquarePen />
+              </DashboardTableIconButton>
+            </DashboardTableRowActions>
           </Table.Cell>
         </Table.Row>
       {/each}

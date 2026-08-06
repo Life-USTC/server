@@ -132,6 +132,11 @@ export function formatCampusDate(
 ) {
   const date = resolveCampusDate(value);
   if (!date) return fallback;
+  // Default date-only UI format is always YYYY-MM-DD (campus calendar key).
+  // Callers that need localized month/weekday labels pass explicit options.
+  if (!options) {
+    return formatShanghaiDate(date);
+  }
   return createShanghaiDateTimeFormatter(locale, options).format(date);
 }
 

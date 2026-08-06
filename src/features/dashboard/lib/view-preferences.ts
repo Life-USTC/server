@@ -36,18 +36,12 @@ export function dashboardViewsForLinkMode(
 }
 
 export function dashboardViewsFromPreference(
-  url: URL,
-  storedView: string | null,
+  _url: URL,
+  _storedView: string | null,
 ): DashboardViewState {
-  const prefersList =
-    url.searchParams.get("homeworkView") === "list" ||
-    url.searchParams.get("todoView") === "list" ||
-    url.searchParams.get("examView") === "list" ||
-    url.searchParams.get("linkView") === "list" ||
-    storedView === "list";
-  return prefersList
-    ? dashboardViewsForCardMode("list")
-    : dashboardViewsForCardMode("cards");
+  // Task tabs always use open list on desktop / cards on mobile.
+  // Keep returning "list" so legacy ?todoView=list URLs stay coherent.
+  return dashboardViewsForCardMode("list");
 }
 
 export function persistDashboardViewMode(mode: DashboardCardView) {

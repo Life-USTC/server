@@ -33,7 +33,7 @@ function selectCampus(value: string) {
   >
     {#each campuses as campus}
       <ToggleGroup.Item
-        class="min-h-11 w-full justify-start"
+        class="h-11 w-full justify-center md:h-8"
         {disabled}
         value={String(campus.id)}
       >

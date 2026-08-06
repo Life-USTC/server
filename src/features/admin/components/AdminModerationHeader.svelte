@@ -37,7 +37,6 @@ export let tabs: AdminModerationHeaderTab[];
     <Button
       aria-current={id === currentTab ? "page" : undefined}
       href={moderationHref(id)}
-      size="sm"
       variant={id === currentTab ? "secondary" : "ghost"}
     >
       {label}

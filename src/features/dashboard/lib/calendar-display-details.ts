@@ -37,6 +37,37 @@ export function calendarExamRoomsLabel(exam: { rooms?: unknown }) {
   );
 }
 
+export type CalendarEventChipFields = {
+  detail: string;
+  meta: string;
+  /** Full third-line (and extras) for hover; defaults to detail when omitted. */
+  tooltipDetail?: string;
+};
+
+/** First location segment — room / custom place (e.g. 一教101). */
+export function calendarClassroomLabel(
+  location: string | null | undefined,
+): string {
+  const text = String(location ?? "").trim();
+  if (!text || text === "—") return "";
+  return text.split(" · ")[0]?.trim() ?? text;
+}
+
+export function calendarSessionChipFields(
+  session: CalendarSessionEvent,
+): CalendarEventChipFields {
+  const classroom = calendarClassroomLabel(session.location);
+  const fullDetail = calendarEventParts([
+    session.location,
+    session.teacherDisplay,
+  ]);
+  return {
+    meta: calendarTimeRange(session.startTime, session.endTime),
+    detail: classroom,
+    tooltipDetail: fullDetail || undefined,
+  };
+}
+
 export function calendarSessionDetail(session: CalendarSessionEvent) {
   return calendarEventParts([
     calendarTimeRange(session.startTime, session.endTime),
@@ -45,37 +76,60 @@ export function calendarSessionDetail(session: CalendarSessionEvent) {
   ]);
 }
 
-export function calendarExamDetail(exam: CalendarExamEvent) {
-  return calendarEventParts([
-    calendarTimeRange(exam.startTime, exam.endTime),
-    exam.examMode,
-    calendarExamRoomsLabel(exam),
-  ]);
+export function calendarExamChipFields(
+  exam: CalendarExamEvent,
+): CalendarEventChipFields {
+  return {
+    meta: calendarTimeRange(exam.startTime, exam.endTime),
+    detail: calendarEventParts([exam.examMode, calendarExamRoomsLabel(exam)]),
+  };
 }
 
-export function calendarHomeworkDetail(homework: CalendarHomeworkEvent) {
+export function calendarExamDetail(exam: CalendarExamEvent) {
+  const { meta, detail } = calendarExamChipFields(exam);
+  return calendarEventParts([meta, detail]);
+}
+
+export function calendarHomeworkChipFields(
+  homework: CalendarHomeworkEvent,
+): CalendarEventChipFields {
   const dueTime = homework.submissionDueAt
     ? new Date(homework.submissionDueAt).toLocaleTimeString(undefined, {
         hour: "2-digit",
         minute: "2-digit",
       })
     : "";
-  return calendarEventParts([dueTime, compactDetail(homework.description)]);
+  return {
+    meta: dueTime,
+    detail: compactDetail(homework.description),
+  };
 }
 
-export function calendarTodoDetail(
+export function calendarHomeworkDetail(homework: CalendarHomeworkEvent) {
+  const { meta, detail } = calendarHomeworkChipFields(homework);
+  return calendarEventParts([meta, detail]);
+}
+
+export function calendarTodoChipFields(
   todo: CalendarTodoEvent,
   priorityLabel: string,
-) {
+): CalendarEventChipFields {
   const dueTime = todo.dueAt
     ? new Date(todo.dueAt).toLocaleTimeString(undefined, {
         hour: "2-digit",
         minute: "2-digit",
       })
     : "";
-  return calendarEventParts([
-    dueTime,
-    priorityLabel,
-    compactDetail(todo.content),
-  ]);
+  return {
+    meta: dueTime,
+    detail: calendarEventParts([priorityLabel, compactDetail(todo.content)]),
+  };
+}
+
+export function calendarTodoDetail(
+  todo: CalendarTodoEvent,
+  priorityLabel: string,
+) {
+  const { meta, detail } = calendarTodoChipFields(todo, priorityLabel);
+  return calendarEventParts([meta, detail]);
 }

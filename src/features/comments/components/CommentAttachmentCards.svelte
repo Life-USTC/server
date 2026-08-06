@@ -25,7 +25,6 @@ export let openLabel: string;
           <Button
             class="w-fit"
             href={`/api/workspace/uploads/${attachment.uploadId}/download?preview=1`}
-            size="sm"
             target="_blank"
             variant="outline"
           >

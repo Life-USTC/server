@@ -12,6 +12,7 @@ import {
 } from "@/features/search/lib/global-search-keyboard";
 import { afterNavigate, goto } from "$app/navigation";
 import { page } from "$app/stores";
+import PageHeader from "$lib/components/PageHeader.svelte";
 import GlobalSearchResults from "$lib/components/shell/GlobalSearchResults.svelte";
 import { cn } from "$lib/utils.js";
 import type { PageData } from "./$types";
@@ -61,13 +62,11 @@ afterNavigate(({ to }) => {
   <title>{data.copy.pageTitle} - Life@USTC</title>
 </svelte:head>
 
-<div class="mx-auto grid w-full max-w-3xl gap-5 px-4 py-6 sm:px-6">
-  <div class="grid gap-1">
-    <h1 class="font-semibold text-2xl tracking-normal sm:text-3xl">
-      {data.copy.pageTitle}
-    </h1>
-    <p class="text-muted-foreground text-sm">{data.copy.pageDescription}</p>
-  </div>
+<section class="grid gap-5">
+  <PageHeader
+    title={data.copy.pageTitle}
+    description={data.copy.pageDescription}
+  />
 
   <div class="relative">
     <SearchIcon
@@ -107,4 +106,4 @@ afterNavigate(({ to }) => {
       onSelect={navigateTo}
     />
   </div>
-</div>
+</section>

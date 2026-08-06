@@ -1,4 +1,5 @@
 import { getLocalStorageItem } from "@/lib/browser/local-storage";
+import { mountPageSearchShortcut } from "@/lib/browser/page-search-shortcut";
 import type { DashboardViewState } from "./dashboard-controller-helpers";
 import { currentDashboardLinkReturnTo } from "./dashboard-link-ui";
 import { formatMessage } from "./overview";
@@ -66,21 +67,11 @@ export function mountDashboardController(input: {
     ),
   );
 
-  function handleShortcut(event: KeyboardEvent) {
-    const linkSearchInput = input.getLinkSearchInput();
-    if (
-      (event.metaKey || event.ctrlKey) &&
-      event.key.toLowerCase() === "k" &&
-      linkSearchInput
-    ) {
-      event.preventDefault();
-      linkSearchInput.focus();
-    }
-  }
-
-  window.addEventListener("keydown", handleShortcut);
+  const unmountPageSearchShortcut = mountPageSearchShortcut(() =>
+    input.getLinkSearchInput(),
+  );
   return () => {
-    window.removeEventListener("keydown", handleShortcut);
+    unmountPageSearchShortcut();
     input.clearPendingRemoveSection();
   };
 }

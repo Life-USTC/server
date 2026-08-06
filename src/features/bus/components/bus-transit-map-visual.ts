@@ -2,13 +2,14 @@ import type {
   BusMapActiveTrip,
   BusMapRouteEdge,
 } from "@/features/bus/lib/bus-types";
+import type { Pos } from "./bus-transit-map-campus-layout";
 import {
   NODE_R,
   ROUTE_PALETTE,
   SVG_H,
   SVG_W,
 } from "./bus-transit-map-constants";
-import { canonicalPerpendicular, type Pos } from "./bus-transit-map-geometry";
+import { canonicalPerpendicular } from "./bus-transit-map-routes";
 
 type LabelOffset = {
   dx: number;
@@ -22,22 +23,29 @@ export function routeColor(routeId: number, allRouteIds: number[]): string {
 }
 
 export function labelOffset(position: Pos, label?: string): LabelOffset {
+  const sideGap = NODE_R + 20;
+  // West campuses sit on the far left — label inward so text isn't cropped.
+  if (label?.includes("高新") || label?.includes("先研院")) {
+    return { dx: sideGap, dy: 8, textAnchor: "start" };
+  }
+  if (label?.includes("东区") || label?.includes("南区")) {
+    return { dx: sideGap, dy: 8, textAnchor: "start" };
+  }
   if (position.y > SVG_H * 0.75) {
     return position.x < SVG_W / 2
-      ? { dx: -(NODE_R + 14), dy: 6, textAnchor: "end" }
-      : { dx: NODE_R + 14, dy: 6, textAnchor: "start" };
-  }
-  if (label?.includes("东区")) {
-    return { dx: NODE_R + 14, dy: 6, textAnchor: "start" };
-  }
-  if (label?.includes("南区")) {
-    return { dx: -(NODE_R + 14), dy: 6, textAnchor: "end" };
+      ? { dx: -sideGap, dy: 8, textAnchor: "end" }
+      : { dx: sideGap, dy: 8, textAnchor: "start" };
   }
   return {
     dx: 0,
-    dy: position.y < SVG_H / 2 ? NODE_R + 18 : -(NODE_R + 8),
+    dy: position.y < SVG_H / 2 ? NODE_R + 28 : -(NODE_R + 14),
     textAnchor: "middle",
   };
+}
+
+/** Approximate rendered width for campus labels (28px CJK + stroke). */
+export function estimateCampusLabelWidth(label: string): number {
+  return Math.max(label.trim().length, 1) * 28 + 8;
 }
 
 export function hhmmToMin(value: string | null): number | null {

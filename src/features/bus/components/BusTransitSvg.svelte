@@ -1,6 +1,4 @@
 <script lang="ts">
-import { onMount } from "svelte";
-import { SVG_H, SVG_W } from "@/features/bus/components/bus-transit-map-layout";
 import type {
   BusMapActiveTrip,
   BusMapCopy,
@@ -12,6 +10,7 @@ import BusTransitCampusNodes from "./BusTransitCampusNodes.svelte";
 import BusTransitDepartingTrips from "./BusTransitDepartingTrips.svelte";
 import BusTransitEnRouteTrips from "./BusTransitEnRouteTrips.svelte";
 import BusTransitRouteLayers from "./BusTransitRouteLayers.svelte";
+import type { MapViewBox } from "./bus-transit-map-campus-layout";
 
 export let activeRouteIds: Set<number>;
 export let allRouteIds: number[];
@@ -24,22 +23,19 @@ export let mapData: BusMapData;
 export let offsets: Map<string, Map<number, number>>;
 export let positions: Map<number, BusMapPoint>;
 export let routePaths: Map<number, BusMapRoutePath>;
+export let viewBox: MapViewBox;
 
-let svgElement: SVGSVGElement;
-
-onMount(() => {
-  const viewport = svgElement.closest<HTMLElement>(
-    '[data-slot="scroll-area-viewport"]',
-  );
-  if (!viewport || viewport.scrollWidth <= viewport.clientWidth) return;
-  viewport.scrollLeft = (viewport.scrollWidth - viewport.clientWidth) / 2;
-});
+$: mapSizeStyle = [
+  `aspect-ratio:${viewBox.width}/${viewBox.height}`,
+  `width:min(100%,calc(min(52vh,26rem)*${viewBox.width}/${viewBox.height}))`,
+].join(";");
 </script>
 
 <svg
-  bind:this={svgElement}
-  viewBox={`0 0 ${SVG_W} ${SVG_H}`}
-  class="h-auto w-full min-w-[45rem] rounded-md border border-border bg-card md:min-h-[34rem] md:min-w-0"
+  viewBox={`${viewBox.minX} ${viewBox.minY} ${viewBox.width} ${viewBox.height}`}
+  class="mx-auto block h-auto max-w-full rounded-md border border-border bg-card"
+  style={mapSizeStyle}
+  preserveAspectRatio="xMidYMid meet"
   role="img"
   aria-label={copy.mapTitle}
   onmouseleave={() => {

@@ -2,7 +2,6 @@
 import type {
   AnonymousLinkGroup,
   DashboardDashboardCopy,
-  LinkView,
 } from "@/features/dashboard/lib/dashboard-controller-helpers";
 import { Button } from "$lib/components/ui/button/index.js";
 import * as Empty from "$lib/components/ui/empty/index.js";
@@ -11,10 +10,8 @@ import AnonymousLinksToolbar from "./AnonymousLinksToolbar.svelte";
 
 export let dashboardCopy: Pick<DashboardDashboardCopy, "linkHub">;
 export let linkIconLabel: (icon: string) => string;
-export let setLinkView: (view: LinkView) => void;
 
 export let linkSearchQuery: string;
-export let linkView: LinkView;
 export let linkSearchInput: HTMLInputElement | null;
 export let anonymousLinkGroups: AnonymousLinkGroup[];
 </script>
@@ -24,15 +21,14 @@ export let anonymousLinkGroups: AnonymousLinkGroup[];
     {dashboardCopy}
     bind:linkSearchInput
     bind:linkSearchQuery
-    {linkView}
-    {setLinkView}
   />
 
   {#each anonymousLinkGroups as entry}
     <AnonymousLinksGroup
+      colDescription={dashboardCopy.linkHub.colDescription}
+      colName={dashboardCopy.linkHub.colName}
       {entry}
       {linkIconLabel}
-      {linkView}
     />
   {:else}
     <Empty.Root class="items-start text-left">

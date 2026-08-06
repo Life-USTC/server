@@ -24,8 +24,6 @@ export let signedData: DashboardCalendarTabProps["signedData"];
 
 export let dashboardTabHref: DashboardCalendarTabProps["dashboardTabHref"];
 export let formatMessage: FormatMessage;
-export let copyCalendarLink: DashboardCalendarTabProps["copyCalendarLink"];
-export let copyCalendarUrl: DashboardCalendarTabProps["copyCalendarUrl"];
 export let sessionHref: DashboardCalendarTabProps["sessionHref"];
 
 export let setCalendarView: DashboardCalendarTabProps["setCalendarView"];
@@ -40,10 +38,10 @@ export let calendarTimelineItemsForDay: DashboardCalendarTabProps["calendarTimel
 export let calendarWeekLabel: DashboardCalendarTabProps["calendarWeekLabel"];
 export let calendarEventParts: DashboardCalendarTabProps["calendarEventParts"];
 export let calendarHomeworkHref: DashboardCalendarTabProps["calendarHomeworkHref"];
-export let calendarSessionDetail: DashboardCalendarTabProps["calendarSessionDetail"];
-export let calendarExamDetail: DashboardCalendarTabProps["calendarExamDetail"];
-export let calendarHomeworkDetail: DashboardCalendarTabProps["calendarHomeworkDetail"];
-export let calendarTodoDetail: DashboardCalendarTabProps["calendarTodoDetail"];
+export let calendarSessionChipFields: DashboardCalendarTabProps["calendarSessionChipFields"];
+export let calendarExamChipFields: DashboardCalendarTabProps["calendarExamChipFields"];
+export let calendarHomeworkChipFields: DashboardCalendarTabProps["calendarHomeworkChipFields"];
+export let calendarTodoChipFields: DashboardCalendarTabProps["calendarTodoChipFields"];
 export let calendarSemesterIndex: DashboardCalendarTabProps["calendarSemesterIndex"];
 
 export let calendarView: DashboardCalendarTabProps["calendarView"];
@@ -75,11 +73,11 @@ $: calendarGridWeeks = calendarData
       calendar: calendarData,
       calendarEventParts,
       calendarEventsForDay,
-      calendarExamDetail,
-      calendarHomeworkDetail,
+      calendarExamChipFields,
+      calendarHomeworkChipFields,
       calendarHomeworkHref,
-      calendarSessionDetail,
-      calendarTodoDetail,
+      calendarSessionChipFields,
+      calendarTodoChipFields,
       calendarWeekLabel,
       dashboardTabHref,
       examLabel: copy.CalendarEventCard.exam,
@@ -114,8 +112,6 @@ $: calendarGridWeeks = calendarData
       {calendarWeekStart}
       {agendaWeekStart}
       {commonCopy}
-      {copyCalendarLink}
-      {copyCalendarUrl}
       {dashboardCopy}
       {formatMessage}
       {sectionCopy}

@@ -14,13 +14,9 @@ import {
 describe("课程详情日期展示", () => {
   it("根据校区日期边界派生日历键", () => {
     const boundary = new Date("2026-03-01T16:00:00.000Z");
-    const campusFormatted = new Intl.DateTimeFormat(undefined, {
-      timeZone: "Asia/Shanghai",
-    }).format(boundary);
-
     expect(dateKey(new Date("2026-03-01T15:59:59.000Z"))).toBe("2026-03-01");
     expect(dateKey(boundary)).toBe("2026-03-02");
-    expect(formatDate(boundary, "n/a")).toBe(campusFormatted);
+    expect(formatDate(boundary, "n/a")).toBe("2026-03-02");
   });
 
   it("基于共享的周日周策略构建课程月份网格键", () => {

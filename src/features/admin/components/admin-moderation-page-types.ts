@@ -34,20 +34,26 @@ export type AdminModerationCopy = AdminModerationCommentsCopy &
     filterQueueDescription: string;
     editedAt: string;
     expiresAt: string;
+    expires: string;
     guestLabel: string;
+    homeworkDue: string;
+    homeworkSection: string;
     homeworkStatusActive: string;
     homeworkStatusDeleted: string;
     homeworkForbidden: string;
     homeworkTiming: string;
+    homeworkTitle: string;
     lifted: string;
     liftSuspensionAction: string;
     manageUser: string;
     noHomeworks: string;
     noReason: string;
     noSuspensions: string;
+    notAvailable: string;
     openTarget: string;
     pageDescription: string;
     permanent: string;
+    reason: string;
     refreshQueue: string;
     refreshingQueue: string;
     saving: string;
@@ -64,6 +70,7 @@ export type AdminModerationCopy = AdminModerationCommentsCopy &
     tabsLabel: string;
     title: string;
     updateFailed: string;
+    user: string;
   };
 
 export type AdminModerationAdminCopy = {

@@ -24,9 +24,9 @@ export let formatMessage: (
     </Item.Description>
   </Item.Content>
   <Item.Actions class="flex-wrap">
-    <Button href={descriptionTargetHref(description)} size="sm" variant="outline">{copy.openTarget}</Button>
+    <Button href={descriptionTargetHref(description)} variant="outline">{copy.openTarget}</Button>
     {#if description.lastEditedBy?.id}
-      <Button href={`/admin/users?search=${encodeURIComponent(description.lastEditedBy.id)}`} size="sm" variant="outline">{copy.manageUser}</Button>
+      <Button href={`/admin/users?search=${encodeURIComponent(description.lastEditedBy.id)}`} variant="outline">{copy.manageUser}</Button>
     {/if}
   </Item.Actions>
 </Item.Root>

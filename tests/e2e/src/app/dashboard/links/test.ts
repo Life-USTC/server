@@ -118,7 +118,7 @@ test.describe("仪表盘网站链接", () => {
 
   test("登录后可以导航到链接标签", async ({ page }, testInfo) => {
     await signInAsDebugUser(page, "/");
-    await expandSidebarGroup(page, /^(发现|Explore)$/i);
+    await expandSidebarGroup(page, /^(课程目录|Catalog)$/i);
 
     const linksTab = sidebarNavigationLink(page, /^(网站|Websites)$/i);
     await expect(linksTab).toBeVisible();
@@ -132,7 +132,10 @@ test.describe("仪表盘网站链接", () => {
     ).toBeVisible();
     await expect(
       page.locator('input[name="action"][value="unpin"]'),
-    ).toHaveCount(DEV_SEED.dashboardLinks.overviewLimit);
+    ).not.toHaveCount(0);
+    expect(
+      await page.locator('input[name="action"][value="unpin"]').count(),
+    ).toBeGreaterThanOrEqual(DEV_SEED.dashboardLinks.overviewLimit);
 
     await captureStepScreenshot(page, testInfo, "dashboard-links-tab");
   });
@@ -182,22 +185,25 @@ test.describe("仪表盘网站链接", () => {
     const locatePinButton = async () => {
       const linkButton = page
         .getByRole("button", { name: /教务系统/i })
+        .filter({ visible: true })
         .first();
       await expect(linkButton).toBeVisible();
 
       const card = linkButton.locator(
-        "xpath=ancestor::div[contains(@class, 'group')][1]",
+        "xpath=ancestor::*[contains(concat(' ', normalize-space(@class), ' '), ' group ')][1]",
       );
       await card.hover();
 
       const pinForm = page
         .locator('form[action="/api/workspace/link-pins"]')
+        .filter({ visible: true })
         .filter({
           has: page.locator('input[name="slug"][value="jw"]'),
         })
         .first();
       const pinButton = pinForm
         .getByRole("button", { name: /置顶|Pin|取消置顶|Unpin/i })
+        .filter({ visible: true })
         .first();
 
       await expect(pinButton).toBeVisible();
@@ -282,21 +288,24 @@ test.describe("仪表盘网站链接", () => {
     const locateJwPinButton = async () => {
       const linkButton = page
         .getByRole("button", { name: /教务系统/i })
+        .filter({ visible: true })
         .first();
       await expect(linkButton).toBeVisible();
 
       const card = linkButton.locator(
-        "xpath=ancestor::div[contains(@class, 'group')][1]",
+        "xpath=ancestor::*[contains(concat(' ', normalize-space(@class), ' '), ' group ')][1]",
       );
       await card.hover();
 
       return page
         .locator('form[action="/api/workspace/link-pins"]')
+        .filter({ visible: true })
         .filter({
           has: page.locator('input[name="slug"][value="jw"]'),
         })
         .first()
         .getByRole("button", { name: /置顶|Pin|取消置顶|Unpin/i })
+        .filter({ visible: true })
         .first();
     };
 

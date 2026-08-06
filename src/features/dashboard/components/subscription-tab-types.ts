@@ -94,7 +94,6 @@ export type DashboardSubscriptionsTabProps = {
   bulkImportText: string;
   canMatchImportSections: boolean;
   confirmImportSections: () => void | Promise<void>;
-  copyCalendarLink: (event: MouseEvent) => void | Promise<void>;
   dashboardCopy: DashboardDashboardCopy;
   formatMessage: FormatMessage;
   isBulkImportOpen: boolean;

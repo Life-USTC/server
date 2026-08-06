@@ -2,15 +2,12 @@
 import { onMount } from "svelte";
 import { commentTargetPermalinkBaseHref } from "@/features/comments/lib/comment-panel-controller";
 import PageHeader from "$lib/components/PageHeader.svelte";
-import TruncatedCode from "$lib/components/TruncatedCode.svelte";
-import { Badge } from "$lib/components/ui/badge/index.js";
 import type { CatalogNamed } from "../lib/catalog-list-display";
 import {
-  formatCatalogDetailMessage as formatMessage,
-  courseDetailPrimaryName as primaryName,
-  courseDetailSecondaryName as secondaryName,
-  teacherNames,
-} from "../lib/course-detail-display";
+  catalogLocalizedDisplayName,
+  catalogPrimaryName as primaryName,
+} from "../lib/catalog-list-display";
+import { formatCatalogDetailMessage as formatMessage } from "../lib/course-detail-display";
 import CourseDetailBasicInfo from "./CourseDetailBasicInfo.svelte";
 import CourseDetailSections from "./CourseDetailSections.svelte";
 import type {
@@ -88,8 +85,8 @@ onMount(() => {
 $: copy = data.copy;
 $: detailCopy = copy satisfies CourseDetailCopy;
 $: notAvailable = copy.courseDetail.notAvailable;
-$: displayName = primaryName(data.course) || data.course.code;
-$: secondaryDisplayName = secondaryName(data.course);
+$: displayName =
+  catalogLocalizedDisplayName(data.course, data.locale) || data.course.code;
 </script>
 
 <svelte:head>
@@ -101,29 +98,8 @@ $: secondaryDisplayName = secondaryName(data.course);
   <div class="bg-card px-4 sm:px-5 lg:px-6">
     <PageHeader
       title={displayName}
-      description={secondaryDisplayName}
       titleClass="text-2xl leading-tight sm:text-3xl"
-    >
-      {#snippet eyebrowContent()}
-        <TruncatedCode class="text-muted-foreground" text={data.course.code} />
-      {/snippet}
-      {#snippet after()}
-        <div class="flex flex-wrap gap-2">
-          {#if data.course.educationLevel}
-            <Badge variant="ghost">{primaryName(data.course.educationLevel)}</Badge>
-          {/if}
-          {#if data.course.category}
-            <Badge variant="ghost">{primaryName(data.course.category)}</Badge>
-          {/if}
-          {#if data.course.classType}
-            <Badge variant="ghost">{primaryName(data.course.classType)}</Badge>
-          {/if}
-          {#if data.course.type}
-            <Badge variant="ghost">{primaryName(data.course.type)}</Badge>
-          {/if}
-        </div>
-      {/snippet}
-    </PageHeader>
+    />
   </div>
 
   <div
@@ -133,9 +109,6 @@ $: secondaryDisplayName = secondaryName(data.course);
     <div class="grid gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(16rem,20rem)] lg:items-start lg:gap-10">
       <div class="grid min-w-0 gap-10">
         <section id="introduction" class="scroll-mt-4">
-          <h2 class="mb-3 text-lg font-semibold tracking-tight">
-            {copy.courseDetail.tabs.description}
-          </h2>
           {#key `description:course:${data.course.id}`}
             {#if DescriptionCard}
               <svelte:component
@@ -145,9 +118,13 @@ $: secondaryDisplayName = secondaryName(data.course);
                 initialData={data.descriptionData}
                 locale={data.locale as "en-us" | "zh-cn"}
                 copy={copy.descriptions}
+                heading={copy.courseDetail.tabs.description}
                 showTitle={false}
               />
             {:else if data.descriptionData.description.renderedHtml}
+              <h2 class="mb-3 text-lg font-semibold tracking-tight">
+                {copy.courseDetail.tabs.description}
+              </h2>
               <div class="markdown-preview" data-slot="markdown-preview">
                 {@html data.descriptionData.description.renderedHtml}
               </div>
@@ -162,16 +139,13 @@ $: secondaryDisplayName = secondaryName(data.course);
           <CourseDetailSections
             copy={detailCopy}
             course={data.course}
+            locale={data.locale}
             {notAvailable}
             {primaryName}
-            {teacherNames}
           />
         </section>
 
         <section id="comments" class="scroll-mt-4">
-          <h2 class="mb-3 text-lg font-semibold tracking-tight">
-            {copy.courseDetail.tabs.comments}
-          </h2>
           {#key `comments:course:${data.course.id}`}
             {#if CommentsPanel}
               <svelte:component
@@ -183,6 +157,7 @@ $: secondaryDisplayName = secondaryName(data.course);
                 })}
                 targetType="course"
                 targetId={data.course.id}
+                heading={copy.courseDetail.tabs.comments}
               />
             {/if}
           {/key}

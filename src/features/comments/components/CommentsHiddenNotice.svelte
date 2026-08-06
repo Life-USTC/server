@@ -11,7 +11,7 @@ export let signInHref: string;
 <Alert.Root>
   <Alert.Description>{commentCopy.hiddenNotice.replace("{count}", String(hiddenCount))}</Alert.Description>
   <Alert.Action>
-    <Button href={signInHref} size="sm" variant="outline">
+    <Button href={signInHref} variant="outline">
       {commentCopy.loginToView}
     </Button>
   </Alert.Action>

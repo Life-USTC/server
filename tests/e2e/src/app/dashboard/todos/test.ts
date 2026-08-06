@@ -22,6 +22,7 @@
 import { expect, test } from "@playwright/test";
 import { signInAsDebugUser } from "../../../../utils/auth";
 import { DEV_SEED } from "../../../../utils/dev-seed";
+import { visibleText } from "../../../../utils/locators";
 import { gotoAndWaitForReady } from "../../../../utils/page-ready";
 import { captureStepScreenshot } from "../../../../utils/screenshot";
 
@@ -39,23 +40,18 @@ test.describe("仪表盘待办", () => {
     await signInAsDebugUser(page, "/workspace/todos");
 
     await expect(page.locator("#main-content")).toBeVisible();
-    await expect(
-      page.getByText(DEV_SEED.todos.dueTodayTitle).first(),
-    ).toBeVisible();
-    await expect(
-      page.getByText(DEV_SEED.todos.overdueTitle).first(),
-    ).toBeVisible();
+    await expect(visibleText(page, DEV_SEED.todos.dueTodayTitle)).toBeVisible();
+    await expect(visibleText(page, DEV_SEED.todos.overdueTitle)).toBeVisible();
     await expect(page.getByRole("switch")).toHaveCount(0);
 
-    const card = page
-      .locator('[data-slot="card"]')
+    const row = page
+      .getByRole("row")
       .filter({ hasText: DEV_SEED.todos.dueTodayTitle })
       .first();
-    await expect(card).toBeVisible();
-    const completionButton = card
+    await expect(row).toBeVisible();
+    const completionButton = row
       .getByRole("button", { name: /标记为完成|Mark as complete/i })
       .first();
-    await card.hover();
     await expect(completionButton).toBeVisible();
     await expect(completionButton).toBeEnabled();
 
@@ -102,47 +98,47 @@ test.describe("仪表盘待办", () => {
   test("可切换待办完成状态并更新筛选", async ({ page }, testInfo) => {
     await signInAsDebugUser(page, "/workspace/todos");
 
-    const card = page
-      .locator('[data-slot="card"]')
+    const row = page
+      .getByRole("row")
       .filter({ hasText: DEV_SEED.todos.dueTodayTitle })
       .first();
-    await expect(card).toBeVisible();
+    await expect(row).toBeVisible();
 
-    const completeButton = card
+    const completeButton = row
       .getByRole("button", { name: /标记为完成|Mark as complete/i })
       .first();
-    await card.hover();
     await expect(completeButton).toBeVisible();
     await completeButton.click();
 
     // Optimistic update removes it from the default incomplete filter
-    await expect(
-      page.getByText(DEV_SEED.todos.dueTodayTitle).first(),
-    ).toHaveCount(0, { timeout: 5_000 });
+    await expect(visibleText(page, DEV_SEED.todos.dueTodayTitle)).toHaveCount(
+      0,
+      { timeout: 5_000 },
+    );
 
     // It now appears under the completed filter
     const completedFilter = page
       .getByRole("radio", { name: /已完成|Completed/i })
       .first();
     await completedFilter.click();
-    await expect(
-      page.getByText(DEV_SEED.todos.dueTodayTitle).first(),
-    ).toBeVisible({ timeout: 5_000 });
+    await expect(visibleText(page, DEV_SEED.todos.dueTodayTitle)).toBeVisible({
+      timeout: 5_000,
+    });
 
     // Toggle back to restore seed state
-    const completedCard = page
-      .locator('[data-slot="card"]')
+    const completedRow = page
+      .getByRole("row")
       .filter({ hasText: DEV_SEED.todos.dueTodayTitle })
       .first();
-    const incompleteButton = completedCard
+    const incompleteButton = completedRow
       .getByRole("button", { name: /取消完成|Mark as incomplete/i })
       .first();
-    await completedCard.hover();
     await incompleteButton.click();
 
-    await expect(
-      page.getByText(DEV_SEED.todos.dueTodayTitle).first(),
-    ).toHaveCount(0, { timeout: 5_000 });
+    await expect(visibleText(page, DEV_SEED.todos.dueTodayTitle)).toHaveCount(
+      0,
+      { timeout: 5_000 },
+    );
 
     await captureStepScreenshot(page, testInfo, "dashboard-todos-toggle");
   });
@@ -153,7 +149,7 @@ test.describe("仪表盘待办", () => {
     const completedFilter = page
       .getByRole("radio", { name: /已完成|Completed/i })
       .first();
-    const completedTodo = page.getByText(DEV_SEED.todos.completedTitle).first();
+    const completedTodo = visibleText(page, DEV_SEED.todos.completedTitle);
     await expect(async () => {
       await completedFilter.click();
       await expect(completedTodo).toBeVisible({ timeout: 3_000 });
@@ -183,7 +179,7 @@ test.describe("仪表盘待办", () => {
 
     await expect((await postResponse).status()).toBe(400);
     await expect(
-      page.getByText(/请输入标题|Please enter a title/i).first(),
+      visibleText(page, /请输入标题|Please enter a title/i),
     ).toBeVisible();
 
     await captureStepScreenshot(page, testInfo, "dashboard-todos-action-error");
@@ -215,13 +211,13 @@ test.describe("仪表盘待办", () => {
       .first()
       .click();
 
-    await expect(page.getByText(title).first()).toBeVisible({
+    await expect(visibleText(page, title)).toBeVisible({
       timeout: 15_000,
     });
     await captureStepScreenshot(page, testInfo, "dashboard-todos-created");
 
     // Delete the todo via detail modal
-    await page.getByText(title).first().click();
+    await visibleText(page, title).click();
     await page
       .getByRole("button", { name: /删除待办|Delete todo/i })
       .first()

@@ -30,7 +30,11 @@ export function getAnonymousHomePageCopy(locale: AppLocale) {
   const copy = messages[locale];
   return {
     homepage: {
+      actions: copy.homepage.actions,
+      appIconAlt: copy.homepage.appIconAlt,
       publicDashboard: copy.homepage.publicDashboard,
+      subtitle: copy.homepage.subtitle,
+      title: copy.homepage.title,
     },
     metadata: {
       home: copy.metadata.pages.home,
@@ -47,11 +51,6 @@ export function getPublicBusPageCopy(locale: AppLocale) {
         bus: copy.meDashboard.nav.bus,
       },
     },
-    homepage: {
-      publicDashboard: {
-        title: copy.homepage.publicDashboard.title,
-      },
-    },
     metadata: {
       home: copy.metadata.pages.home,
     },
@@ -65,11 +64,6 @@ export function getPublicLinksPageCopy(locale: AppLocale) {
       linkHub: copy.meDashboard.linkHub,
       nav: {
         links: copy.meDashboard.nav.links,
-      },
-    },
-    homepage: {
-      publicDashboard: {
-        title: copy.homepage.publicDashboard.title,
       },
     },
     metadata: {

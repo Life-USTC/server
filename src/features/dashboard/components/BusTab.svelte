@@ -2,8 +2,6 @@
 import ChevronDownIcon from "@lucide/svelte/icons/chevron-down";
 import { onMount } from "svelte";
 import {
-  type BusPreferenceSaveState,
-  busPreferenceStatusText,
   hasEstimatedBusTimes,
   nextBusTripHighlightKey,
 } from "@/features/dashboard/lib/bus";
@@ -21,7 +19,6 @@ import {
 import { Button } from "$lib/components/ui/button/index.js";
 import * as Collapsible from "$lib/components/ui/collapsible/index.js";
 import * as Empty from "$lib/components/ui/empty/index.js";
-import { cn } from "$lib/utils.js";
 import BusTabCompactSummary from "./BusTabCompactSummary.svelte";
 import BusTabSettings from "./BusTabSettings.svelte";
 import BusTabTimetable from "./BusTabTimetable.svelte";
@@ -39,9 +36,6 @@ let busStateVersion = 0;
 let busDayType: "weekday" | "weekend" = "weekday";
 let busEndCampusId: number | null = null;
 let busPlannerReady = false;
-let busPreferenceSaveError = "";
-let busPreferenceSaveState: BusPreferenceSaveState = "idle";
-let busPreferenceStatus = "";
 let busShowDepartedTrips = false;
 let busStartCampusId: number | null = null;
 let routeControlsOpen = false;
@@ -148,21 +142,9 @@ $: {
   busDayType = state.values.busDayType;
   busEndCampusId = state.values.busEndCampusId;
   busPlannerReady = state.values.busPlannerReady;
-  busPreferenceSaveError = state.values.busPreferenceSaveError;
-  busPreferenceSaveState = state.values.busPreferenceSaveState;
   busShowDepartedTrips = state.values.busShowDepartedTrips;
   busStartCampusId = state.values.busStartCampusId;
 }
-$: busPreferenceStatus = savePreferences
-  ? busPreferenceStatusText({
-      autosaveHint: busCopy.preferences.autosaveHint,
-      error: busPreferenceSaveError,
-      saveFailed: busCopy.preferences.saveFailed,
-      saved: busCopy.preferences.saved,
-      saving: busCopy.preferences.saving,
-      state: busPreferenceSaveState,
-    })
-  : "";
 $: busNextTripHighlightKey = nextBusTripHighlightKey(busApplicableRoutes);
 $: busShowsEstimatedHint = hasEstimatedBusTimes(
   loadedBus,
@@ -172,19 +154,13 @@ $: busShowsEstimatedHint = hasEstimatedBusTimes(
 </script>
 
 <div class="grid min-w-0 gap-5">
-  <div
-    class={cn(
-      "flex-col gap-3 md:flex-row md:items-start md:justify-between",
-      compact ? "hidden lg:flex" : "flex",
-    )}
-  >
-    {#if showPageHeader}
+  {#if showPageHeader}
+    <div class="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
       <div class="grid gap-1">
         <h2 class="font-semibold text-xl tracking-normal">{busCopy.dashboardTitle}</h2>
       </div>
-    {/if}
-    <Button class="min-h-11" href="/catalog/bus/map" size="lg" variant="outline">{busCopy.transitMap}</Button>
-  </div>
+    </div>
+  {/if}
 
   {#if loadedBus}
     {#if compact}
@@ -206,11 +182,12 @@ $: busShowsEstimatedHint = hasEstimatedBusTimes(
             {#snippet child({ props })}
               <Button
                 {...props}
-                class="min-h-11 w-full justify-between lg:hidden"
-                size="lg"
+                class="h-11 w-full justify-between lg:hidden"
                 variant="outline"
               >
-                {routeControlsOpen ? busCopy.hideRouteControls : busCopy.changeRoute}
+                {routeControlsOpen
+                  ? busCopy.hideRouteControls
+                  : busCopy.changeRoute}
                 <ChevronDownIcon
                   data-icon="inline-end"
                   class="transition-transform group-data-[state=open]/route-controls:rotate-180"
@@ -222,7 +199,7 @@ $: busShowsEstimatedHint = hasEstimatedBusTimes(
             class="data-[state=closed]:hidden lg:!block"
             forceMount
           >
-            <div class="min-w-0 pt-4 lg:pt-0">
+            <div class="min-w-0 pt-3 lg:pt-0">
               <BusTabSettings
                 bus={loadedBus}
                 {busCopy}
@@ -235,8 +212,6 @@ $: busShowsEstimatedHint = hasEstimatedBusTimes(
                 {selectBusEnd}
                 {selectBusStart}
                 setBusDayType={state.actions.setBusDayType}
-                {busPreferenceSaveState}
-                {busPreferenceStatus}
                 toggleBusDepartedTrips={state.actions.toggleBusDepartedTrips}
               />
             </div>
@@ -248,8 +223,7 @@ $: busShowsEstimatedHint = hasEstimatedBusTimes(
             {#snippet child({ props })}
               <Button
                 {...props}
-                class="min-h-11 w-full justify-between lg:hidden"
-                size="lg"
+                class="h-11 w-full justify-between lg:hidden"
                 variant="outline"
               >
                 {timetableOpen ? busCopy.hideFullTimetable : busCopy.fullTimetable}
@@ -264,7 +238,7 @@ $: busShowsEstimatedHint = hasEstimatedBusTimes(
             class="data-[state=closed]:hidden lg:!block"
             forceMount
           >
-            <div class="min-w-0 pt-4 lg:pt-0">
+            <div class="min-w-0 pt-3 lg:pt-0">
               <BusTabTimetable
                 bus={loadedBus}
                 {busApplicableRoutes}
@@ -280,7 +254,7 @@ $: busShowsEstimatedHint = hasEstimatedBusTimes(
         </Collapsible.Root>
       </div>
     {:else}
-      <div class="grid min-w-0 gap-4 lg:grid-cols-[22rem_minmax(0,1fr)] lg:items-start">
+      <div class="grid min-w-0 gap-3 lg:grid-cols-[22rem_minmax(0,1fr)] lg:items-start lg:gap-4">
         <BusTabSettings
           bus={loadedBus}
           {busCopy}
@@ -293,8 +267,6 @@ $: busShowsEstimatedHint = hasEstimatedBusTimes(
           {selectBusEnd}
           {selectBusStart}
           setBusDayType={state.actions.setBusDayType}
-          {busPreferenceSaveState}
-          {busPreferenceStatus}
           toggleBusDepartedTrips={state.actions.toggleBusDepartedTrips}
         />
 

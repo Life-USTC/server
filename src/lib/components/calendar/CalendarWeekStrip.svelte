@@ -1,5 +1,4 @@
 <script lang="ts">
-import { Badge } from "$lib/components/ui/badge/index.js";
 import { ScrollArea } from "$lib/components/ui/scroll-area/index.js";
 import { cn } from "$lib/utils.js";
 import CalendarEventChip from "./CalendarEventChip.svelte";
@@ -10,6 +9,7 @@ type CalendarWeekEvent = {
   label: string;
   title?: string;
   tooltip?: string;
+  tooltipDetail?: string;
   meta?: string;
   detail?: string;
   tone?: "primary" | "warning" | "success" | "info" | "error" | "neutral";
@@ -30,26 +30,29 @@ export let emptyLabel = "";
 export let moreLabel: (count: number) => string = (count) => `+${count}`;
 </script>
 
-<ScrollArea orientation="horizontal">
-  <div class="grid grid-cols-7 gap-2" style={`min-width: ${minWidth};`}>
+<ScrollArea
+  class="min-w-0 w-full max-w-full overflow-hidden"
+  orientation="horizontal"
+>
+  <div class="grid grid-cols-7 gap-3" style={`min-width: ${minWidth};`}>
     {#each days as day}
       <section
         class={cn(
-          "min-h-52 rounded-xl border bg-background p-2",
+          "min-h-44 border-t-2 pt-2",
           day.isToday ? "border-primary" : "border-border",
         )}
       >
-        <div class="flex items-start justify-between gap-2">
-          <div>
-            <div class="font-medium text-xs">{day.label}</div>
-            {#if day.sublabel}
-              <div class="text-muted-foreground text-xs">{day.sublabel}</div>
-            {/if}
+        <div class="grid gap-0.5">
+          <div
+            class={cn(
+              "font-medium text-xs",
+              day.isToday ? "text-primary" : "text-foreground",
+            )}
+          >
+            {day.label}
           </div>
-          {#if day.events.length > 0}
-            <Badge class="h-5 min-w-5 px-1" variant="outline">
-              {day.events.length}
-            </Badge>
+          {#if day.sublabel}
+            <div class="text-muted-foreground text-xs">{day.sublabel}</div>
           {/if}
         </div>
         <div class="mt-3 grid gap-1.5">
@@ -59,6 +62,7 @@ export let moreLabel: (count: number) => string = (count) => `+${count}`;
               label={event.label}
               title={event.title}
               tooltip={event.tooltip}
+              tooltipDetail={event.tooltipDetail}
               meta={event.meta}
               detail={event.detail}
               tone={event.tone}

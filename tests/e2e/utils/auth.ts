@@ -205,7 +205,9 @@ export async function signInAsDevAdmin(
   expectedPath = callbackPath,
   options: { ui?: boolean } = {},
 ) {
-  const landingPath = authenticatedLandingPath(expectedPath);
+  const adminLanding =
+    expectedPath === "/admin" ? "/admin/users" : expectedPath;
+  const landingPath = authenticatedLandingPath(adminLanding);
   if (!options.ui && (await applyCachedSession(page, "admin", landingPath))) {
     return;
   }

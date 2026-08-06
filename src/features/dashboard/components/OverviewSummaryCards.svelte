@@ -37,7 +37,7 @@ export let previewLimit = DASHBOARD_OVERVIEW_PREVIEW_LIMIT;
 export let viewAllLabel = "View all";
 </script>
 
-<div class="grid gap-4 lg:grid-cols-3">
+<div class="grid gap-8 lg:grid-cols-3 lg:gap-6">
   <OverviewHomeworkSummaryCard
     {commonCopy}
     {dashboardCopy}

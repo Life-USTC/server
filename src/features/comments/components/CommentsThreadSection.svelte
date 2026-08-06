@@ -1,7 +1,7 @@
 <script lang="ts">
 import type { CommentNodeWithContext } from "@/features/comments/lib/comment-ui";
 import type { ViewerContext } from "@/lib/auth/viewer-context";
-import * as Empty from "$lib/components/ui/empty/index.js";
+import SoftEmptyMessage from "$lib/components/SoftEmptyMessage.svelte";
 import { Skeleton } from "$lib/components/ui/skeleton/index.js";
 import CommentsThreadList from "./CommentsThreadList.svelte";
 import type {
@@ -63,11 +63,7 @@ export let visibilityOptions: CommentThreadProps["visibilityOptions"];
     <Skeleton class="h-24 w-full" />
   </div>
 {:else if comments.length === 0}
-  <Empty.Root class="min-h-24">
-    <Empty.Header>
-      <Empty.Title>{commentCopy.emptyTitle}</Empty.Title>
-    </Empty.Header>
-  </Empty.Root>
+  <SoftEmptyMessage message={commentCopy.emptyTitle} />
 {:else}
   <CommentsThreadList
     bind:actionMenuId

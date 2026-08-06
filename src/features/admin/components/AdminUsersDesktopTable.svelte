@@ -1,7 +1,9 @@
 <script lang="ts">
+import SquarePen from "@lucide/svelte/icons/square-pen";
+import DashboardTableIconButton from "@/features/dashboard/components/DashboardTableIconButton.svelte";
+import DashboardTableRowActions from "@/features/dashboard/components/DashboardTableRowActions.svelte";
 import TruncatedText from "$lib/components/TruncatedText.svelte";
 import { Badge } from "$lib/components/ui/badge/index.js";
-import { Button } from "$lib/components/ui/button/index.js";
 import * as Table from "$lib/components/ui/table/index.js";
 import type {
   AdminUserFormatter,
@@ -18,7 +20,7 @@ export let users: AdminUserRow[];
 </script>
 
 <div class="hidden min-w-0 md:block">
-  <Table.Root>
+  <Table.Root class="w-full">
     <Table.Header>
       <Table.Row>
         <Table.Head>{copy.name}</Table.Head>
@@ -27,23 +29,27 @@ export let users: AdminUserRow[];
         <Table.Head>{copy.role}</Table.Head>
         <Table.Head>{copy.suspension}</Table.Head>
         <Table.Head>{copy.createdAt}</Table.Head>
-        <Table.Head class="w-24 text-right">{copy.editTitle}</Table.Head>
+        <Table.Head>
+          <span class="sr-only">{copy.editTitle}</span>
+        </Table.Head>
       </Table.Row>
     </Table.Header>
     <Table.Body>
       {#each users as user}
-        <Table.Row>
-          <Table.Cell class="max-w-56">
+        <Table.Row class="group">
+          <Table.Cell>
             <TruncatedText class="font-medium" text={displayName(user)} />
             <TruncatedText
               class="font-mono text-muted-foreground text-xs"
               text={user.id}
             />
           </Table.Cell>
-          <Table.Cell class="max-w-48">
-            <TruncatedText text={user.username ?? copy.noUsername} />
+          <Table.Cell>
+            <span class="font-mono text-sm">
+              {user.username ?? copy.noUsername}
+            </span>
           </Table.Cell>
-          <Table.Cell class="max-w-64">
+          <Table.Cell>
             <TruncatedText text={user.email ?? copy.noVerifiedEmail} />
           </Table.Cell>
           <Table.Cell>
@@ -52,7 +58,7 @@ export let users: AdminUserRow[];
             </Badge>
           </Table.Cell>
           <Table.Cell>
-            <div class="grid gap-1">
+            <div class="grid min-w-0 gap-1">
               {#if user.activeSuspension}
                 <Badge class="w-fit" variant="destructive">{copy.suspendedStatus}</Badge>
               {:else}
@@ -64,16 +70,18 @@ export let users: AdminUserRow[];
               />
             </div>
           </Table.Cell>
-          <Table.Cell>{formatDate(user.createdAt)}</Table.Cell>
-          <Table.Cell class="text-right">
-            <Button
-              size="sm"
-              type="button"
-              variant="outline"
-              onclick={() => onSelect(user)}
-            >
-              {copy.editTitle}
-            </Button>
+          <Table.Cell class="whitespace-nowrap tabular-nums text-muted-foreground">
+            {formatDate(user.createdAt)}
+          </Table.Cell>
+          <Table.Cell>
+            <DashboardTableRowActions>
+              <DashboardTableIconButton
+                label={copy.editTitle}
+                onclick={() => onSelect(user)}
+              >
+                <SquarePen />
+              </DashboardTableIconButton>
+            </DashboardTableRowActions>
           </Table.Cell>
         </Table.Row>
       {/each}

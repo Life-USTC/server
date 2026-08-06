@@ -1,8 +1,6 @@
 <script lang="ts">
 import AdminBusDialogs from "@/features/admin/components/AdminBusDialogs.svelte";
 import AdminBusHeader from "@/features/admin/components/AdminBusHeader.svelte";
-import AdminBusStatusAlert from "@/features/admin/components/AdminBusStatusAlert.svelte";
-import AdminBusSummaryStats from "@/features/admin/components/AdminBusSummaryStats.svelte";
 import AdminBusVersions from "@/features/admin/components/AdminBusVersions.svelte";
 import AdminWorkspace from "@/features/admin/components/AdminWorkspace.svelte";
 import { createAdminBusControllerDefaultState } from "@/features/admin/lib/admin-bus-controller-default-state";
@@ -21,18 +19,10 @@ type PageData = {
     adminBus: AdminBusCopy;
   };
   locale: string;
-  summary: {
-    active?: string | null;
-    campuses: number;
-    routes: number;
-    versions: number;
-  };
   versions: AdminBusVersion[];
 };
-type ActionData = Record<string, unknown> | null | undefined;
 
 export let data: PageData;
-export let form: ActionData;
 
 let { isImportDialogOpen, pendingAction, pendingDeleteVersion } =
   createAdminBusControllerDefaultState();
@@ -88,12 +78,6 @@ const enhancedAction = createPendingEnhancedAction({
       disabled={Boolean(pendingAction)}
       onImport={openImportDialog}
     />
-  {/snippet}
-  {#snippet feedback()}
-    <AdminBusStatusAlert {form} />
-  {/snippet}
-  {#snippet summary()}
-    <AdminBusSummaryStats {copy} summary={data.summary} />
   {/snippet}
   <AdminBusVersions
     {copy}

@@ -20,7 +20,7 @@ export let showHeader = false;
 </script>
 
 <div class="min-w-0">
-  <div class="grid min-w-0 gap-5">
+  <div class="grid min-w-0 gap-4">
     {#if showHeader}
       <div class="flex flex-wrap items-start justify-between gap-3">
         <div>
@@ -28,12 +28,14 @@ export let showHeader = false;
             {busCopy.dashboardTitle}
           </h2>
         </div>
-        <Button class="min-h-11" href="/catalog/bus/map" size="lg" variant="outline">{busCopy.transitMap}</Button>
+        <Button class="h-11 md:h-8" href="/catalog/bus/map" variant="outline">
+          {busCopy.transitMap}
+        </Button>
       </div>
     {/if}
 
     {#if busApplicableRoutes.length > 0}
-      <div class="grid min-w-0 gap-4">
+      <div class="grid min-w-0 gap-6">
         {#each busApplicableRoutes as route}
           <BusTabRouteTable
             {busNextTripHighlightKey}
@@ -48,9 +50,8 @@ export let showHeader = false;
         </Empty.Header>
         <Empty.Content>
           <Button
-            class="min-h-11"
+            class="h-11 md:h-8"
             disabled={!busPlannerReady}
-            size="sm"
             type="button"
             variant="outline"
             onclick={reverseBusStops}

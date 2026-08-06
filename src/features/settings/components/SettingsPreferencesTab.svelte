@@ -6,7 +6,6 @@ import {
   setStoredThemeMode,
 } from "$lib/components/shell/app-shell-actions";
 import type { ThemeMode } from "$lib/components/shell/layout-shell";
-import * as Card from "$lib/components/ui/card/index.js";
 import * as Field from "$lib/components/ui/field/index.js";
 import * as ToggleGroup from "$lib/components/ui/toggle-group/index.js";
 import { setClientLocale } from "$lib/locale/client-locale";
@@ -38,68 +37,67 @@ onMount(() => {
 });
 </script>
 
-<Card.Root
+<section
   aria-label={copy.settings.preferences.title}
+  class="grid gap-5"
   role="region"
 >
-  <Card.Content>
-    <Field.Group>
-      <Field.Field orientation="responsive">
-        <Field.Content>
-          <Field.Title id="settings-appearance-label">
-            {copy.settings.preferences.appearance.title}
-          </Field.Title>
-          <Field.Description>
-            {copy.settings.preferences.appearance.description}
-          </Field.Description>
-        </Field.Content>
-        <ToggleGroup.Root
-          aria-labelledby="settings-appearance-label"
-          class="grid w-full grid-cols-3"
-          spacing={2}
-          type="single"
-          value={themeMode}
-          variant="outline"
-          onValueChange={selectTheme}
-        >
-          <ToggleGroup.Item class="w-full" value="system">
-            {copy.theme.system}
-          </ToggleGroup.Item>
-          <ToggleGroup.Item class="w-full" value="light">
-            {copy.theme.light}
-          </ToggleGroup.Item>
-          <ToggleGroup.Item class="w-full" value="dark">
-            {copy.theme.dark}
-          </ToggleGroup.Item>
-        </ToggleGroup.Root>
-      </Field.Field>
+  <Field.Group>
+    <Field.Field orientation="responsive">
+      <Field.Content>
+        <Field.Title id="settings-appearance-label">
+          {copy.settings.preferences.appearance.title}
+        </Field.Title>
+        <Field.Description>
+          {copy.settings.preferences.appearance.description}
+        </Field.Description>
+      </Field.Content>
+      <ToggleGroup.Root
+        aria-labelledby="settings-appearance-label"
+        class="grid w-full grid-cols-3"
+        spacing={2}
+        type="single"
+        value={themeMode}
+        variant="outline"
+        onValueChange={selectTheme}
+      >
+        <ToggleGroup.Item class="w-full" value="system">
+          {copy.theme.system}
+        </ToggleGroup.Item>
+        <ToggleGroup.Item class="w-full" value="light">
+          {copy.theme.light}
+        </ToggleGroup.Item>
+        <ToggleGroup.Item class="w-full" value="dark">
+          {copy.theme.dark}
+        </ToggleGroup.Item>
+      </ToggleGroup.Root>
+    </Field.Field>
 
-      <Field.Field orientation="responsive">
-        <Field.Content>
-          <Field.Title id="settings-language-label">
-            {copy.settings.preferences.language.title}
-          </Field.Title>
-          <Field.Description>
-            {copy.settings.preferences.language.description}
-          </Field.Description>
-        </Field.Content>
-        <ToggleGroup.Root
-          aria-labelledby="settings-language-label"
-          class="grid w-full grid-cols-2"
-          spacing={2}
-          type="single"
-          value={locale}
-          variant="outline"
-          onValueChange={selectLocale}
-        >
-          <ToggleGroup.Item class="w-full" value="zh-cn">
-            {copy.language.chinese}
-          </ToggleGroup.Item>
-          <ToggleGroup.Item class="w-full" value="en-us">
-            {copy.language.english}
-          </ToggleGroup.Item>
-        </ToggleGroup.Root>
-      </Field.Field>
-    </Field.Group>
-  </Card.Content>
-</Card.Root>
+    <Field.Field orientation="responsive">
+      <Field.Content>
+        <Field.Title id="settings-language-label">
+          {copy.settings.preferences.language.title}
+        </Field.Title>
+        <Field.Description>
+          {copy.settings.preferences.language.description}
+        </Field.Description>
+      </Field.Content>
+      <ToggleGroup.Root
+        aria-labelledby="settings-language-label"
+        class="grid w-full grid-cols-2"
+        spacing={2}
+        type="single"
+        value={locale}
+        variant="outline"
+        onValueChange={selectLocale}
+      >
+        <ToggleGroup.Item class="w-full" value="zh-cn">
+          {copy.language.chinese}
+        </ToggleGroup.Item>
+        <ToggleGroup.Item class="w-full" value="en-us">
+          {copy.language.english}
+        </ToggleGroup.Item>
+      </ToggleGroup.Root>
+    </Field.Field>
+  </Field.Group>
+</section>

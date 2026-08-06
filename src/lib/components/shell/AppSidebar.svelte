@@ -15,11 +15,13 @@ let {
   closeMenus,
   copy,
   currentPathname,
+  dockAboveFooter = false,
   isActiveLink,
   mobileNavGroups,
   navGroups,
   profileHref,
   setUserMenuOpen,
+  showAccountFooter = true,
   user,
   userMenuOpen,
   viewerLoading,
@@ -28,11 +30,13 @@ let {
   closeMenus: () => void;
   copy: LayoutCopy;
   currentPathname: string;
+  dockAboveFooter?: boolean;
   isActiveLink: (link: ShellLink) => boolean;
   mobileNavGroups: ShellNavGroup[];
   navGroups: ShellNavGroup[];
   profileHref: string;
   setUserMenuOpen: (open: boolean) => void;
+  showAccountFooter?: boolean;
   user: LayoutUserSummary;
   userMenuOpen: boolean;
   viewerLoading: boolean;
@@ -263,7 +267,13 @@ function closeMobileSidebar(): void {
   </nav>
 {/snippet}
 
-<Sidebar.Root collapsible="icon" data-testid="app-sidebar">
+<Sidebar.Root
+  class={dockAboveFooter
+    ? "top-0! bottom-16! h-auto! max-h-none!"
+    : undefined}
+  collapsible="icon"
+  data-testid="app-sidebar"
+>
   {#if sidebar.isMobile}
     {@render navigation(mobileNavGroups, true)}
   {:else}
@@ -271,30 +281,32 @@ function closeMobileSidebar(): void {
     <Sidebar.Rail />
   {/if}
 
-  <Sidebar.Footer class="border-t">
-    {#if viewerLoading}
-      <div
-        aria-hidden="true"
-        class="flex h-12 items-center gap-2 px-2"
-        data-testid="sidebar-viewer-loading"
-      >
-        <div class="size-8 animate-pulse rounded-lg bg-sidebar-accent"></div>
-        <div class="grid flex-1 gap-1 group-data-[collapsible=icon]:hidden">
-          <div class="h-3 w-24 animate-pulse rounded bg-sidebar-accent"></div>
-          <div class="h-2.5 w-16 animate-pulse rounded bg-sidebar-accent"></div>
+  {#if showAccountFooter || sidebar.isMobile}
+    <Sidebar.Footer class="h-16 justify-center border-t p-2">
+      {#if viewerLoading}
+        <div
+          aria-hidden="true"
+          class="flex h-12 items-center gap-2 px-2"
+          data-testid="sidebar-viewer-loading"
+        >
+          <div class="size-8 animate-pulse rounded-lg bg-sidebar-accent"></div>
+          <div class="grid flex-1 gap-1 group-data-[collapsible=icon]:hidden">
+            <div class="h-3 w-24 animate-pulse rounded bg-sidebar-accent"></div>
+            <div class="h-2.5 w-16 animate-pulse rounded bg-sidebar-accent"></div>
+          </div>
         </div>
-      </div>
-    {:else}
-      <AppUserMenu
-        {avatarFallback}
-        {closeMenus}
-        {copy}
-        {currentPathname}
-        {profileHref}
-        {setUserMenuOpen}
-        {user}
-        {userMenuOpen}
-      />
-    {/if}
-  </Sidebar.Footer>
+      {:else}
+        <AppUserMenu
+          {avatarFallback}
+          {closeMenus}
+          {copy}
+          {currentPathname}
+          {profileHref}
+          {setUserMenuOpen}
+          {user}
+          {userMenuOpen}
+        />
+      {/if}
+    </Sidebar.Footer>
+  {/if}
 </Sidebar.Root>

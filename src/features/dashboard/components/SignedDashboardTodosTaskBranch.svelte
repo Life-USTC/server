@@ -17,13 +17,12 @@ export let isUpdatingTodo: boolean;
 export let openTodoEditor: DashboardTodosTaskProps["openTodoEditor"];
 export let sectionCopy: DashboardTodosTaskProps["sectionCopy"];
 export let selectedTodo: DashboardTodosTaskProps["selectedTodo"];
-export let setTodoView: DashboardTodosTaskProps["setTodoView"];
 export let showCreateTodo: boolean;
 export let todoActionError: string;
 export let todoFilter: DashboardTodosTaskProps["todoFilter"];
+export let todoItems: DashboardTodosTaskProps["todoItems"];
 export let todoPriorityOptions: DashboardTodosTaskProps["todoPriorityOptions"];
 export let todoSavingById: DashboardTodosTaskProps["todoSavingById"];
-export let todoView: DashboardTodosTaskProps["todoView"];
 export let todosCopy: DashboardTodosTaskProps["todosCopy"];
 export let toggleTodoCompletion: DashboardTodosTaskProps["toggleTodoCompletion"];
 export let updateTodoAction: DashboardTodosTaskProps["updateTodoAction"];
@@ -40,12 +39,11 @@ export let updateTodoAction: DashboardTodosTaskProps["updateTodoAction"];
   {openTodoEditor}
   {toggleTodoCompletion}
   {deleteTodo}
-  {setTodoView}
   {createTodoAction}
   {updateTodoAction}
-  {todoView}
   {filteredTodos}
   {todoActionError}
+  {todoItems}
   {todoSavingById}
   {isCreatingTodo}
   {isUpdatingTodo}

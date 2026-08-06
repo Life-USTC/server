@@ -28,16 +28,30 @@ export type DashboardCommonCopy = DashboardRecord & {
 };
 
 export type DashboardHomepageCopy = DashboardRecord & {
+  actions: {
+    mobileApp: string;
+    openDashboard: string;
+    signIn: string;
+  };
+  appIconAlt: string;
   publicDashboard: {
     cards: {
+      bus: { description: string; title: string };
       courses: { description: string; title: string };
+      links: { description: string; title: string };
       mobileApp: { description: string; title: string };
       sections: { description: string; title: string };
       signIn: { description: string; title: string };
       teachers: { description: string; title: string };
     };
     description: string;
+    exploreLabel: string;
     title: string;
+  };
+  subtitle: string;
+  title: {
+    line1: string;
+    line2: string;
   };
 };
 
@@ -64,6 +78,9 @@ export type DashboardRootCopy = DashboardRecord & {
 
 export type DashboardDashboardCopy = DashboardRecord & {
   linkHub: {
+    colActions: string;
+    colDescription: string;
+    colName: string;
     credit: string;
     creditSuffix: string;
     empty: string;
@@ -74,6 +91,7 @@ export type DashboardDashboardCopy = DashboardRecord & {
     pinFailedDescription: string;
     pinFailedTitle: string;
     searchPlaceholder: string;
+    title: string;
     unpin: string;
     viewMode: string;
   };
@@ -169,15 +187,30 @@ export type DashboardDashboardCopy = DashboardRecord & {
 };
 
 export type DashboardSectionCopy = DashboardRecord & {
+  calendarSheetDescription: string;
+  calendarSheetTitle: string;
+  close: string;
+  copied: string;
+  copyToClipboard: string;
   dateTBD: string;
+  examDate: string;
   examDateTBD: string;
   examCount: string;
+  examTime: string;
   examTypeFinal: string;
   examTypeMidterm: string;
+  learnMoreAboutICalendar: string;
+  moreDetails: string;
   nextMonth: string;
   noTeachersListed: string;
   previousMonth: string;
+  room: string;
   roomTbd: string;
+  subscriptionMissing: string;
+  subscriptionPrivacyNote: string;
+  subscriptionUrlDescription: string;
+  subscriptionUrlLabel: string;
+  viewAllSubscriptions: string;
   weekLabel: string;
   weekNumber: string;
   weekdays: {

@@ -87,8 +87,7 @@ export type SectionDetailSection = {
   roomType?: SectionDetailNamed | null;
   schedules: SectionDetailSchedule[];
   scheduleCount: number;
-  sameSemesterOtherTeachers: SectionDetailRelatedSection[];
-  sameTeacherOtherSemesters: SectionDetailRelatedSection[];
+  otherCourseSections: SectionDetailRelatedSection[];
   semester?: SectionDetailSemester | null;
   semesterId?: number | null;
   stdCount?: number | null;
@@ -206,6 +205,7 @@ export type SectionDetailCopy = {
     calendarEmpty: string;
     calendarSheetDescription: string;
     calendarSheetTitle: string;
+    calendarUrlDescription: string;
     calendarUrlLabel: string;
     cardsView: string;
     classEventTitle: string;
@@ -216,19 +216,24 @@ export type SectionDetailCopy = {
     copyToClipboard: string;
     courseComments: string;
     credits: string;
+    date: string;
     dateTBD: string;
     department: string;
     designPeriods: string;
     examBatch: string;
     examCount: string;
+    examDate: string;
+    examDateTBD: string;
     examEvent: string;
     examLegend: string;
     examMode: string;
+    examTime: string;
     exams: string;
     experimentPeriods: string;
     location: string;
     loginRequired: string;
     listView: string;
+    learnMoreAboutICalendar: string;
     machinePeriods: string;
     no: string;
     noTeacher: string;
@@ -241,10 +246,9 @@ export type SectionDetailCopy = {
     periodsPerWeek: string;
     practicePeriods: string;
     remark: string;
+    room: string;
     roomTbd: string;
     roomType: string;
-    sameSemesterOtherTeachers: string;
-    sameTeacherOtherSemesters: string;
     schedulingDetails: string;
     sectionComments: string;
     sectionCode: string;
@@ -253,7 +257,11 @@ export type SectionDetailCopy = {
     subscribing: string;
     subscriptionDisclaimer: string;
     subscriptionMissing: string;
+    subscriptionPrivacyNote: string;
+    subscriptionUrlDescription: string;
     subscriptionUrlLabel: string;
+    summaryCapacityMeta: string;
+    scheduleRemark: string;
     tabs: {
       calendar: string;
       comments: string;
@@ -267,6 +275,7 @@ export type SectionDetailCopy = {
     teachingSection: string;
     testPeriods: string;
     theoryPeriods: string;
+    time: string;
     title: string;
     units: string;
     unsubscribeLabel: string;
@@ -294,7 +303,8 @@ export type SectionDetailCopy = {
       shortWednesday: string;
     };
     weekNumber: string;
-    viewAllCourseSections: string;
+    lecture: string;
+    lectureNumber: string;
     viewAllSubscriptions: string;
     yes: string;
   };

@@ -1,4 +1,6 @@
 <script lang="ts">
+import ArrowUpRight from "@lucide/svelte/icons/arrow-up-right";
+import UserMinus from "@lucide/svelte/icons/user-minus";
 import type {
   DashboardDashboardCopy,
   DashboardSectionCopy,
@@ -6,15 +8,15 @@ import type {
   SubscriptionsData,
 } from "@/features/dashboard/lib/dashboard-controller-types";
 import { groupSubscribedSectionsBySemester } from "@/features/dashboard/lib/subscriptions";
-import { formatSemesterName } from "@/lib/text/format-semester-name";
 import { page } from "$app/stores";
 import TruncatedText from "$lib/components/TruncatedText.svelte";
 import * as AlertDialog from "$lib/components/ui/alert-dialog/index.js";
-import { Button } from "$lib/components/ui/button/index.js";
-import * as Dialog from "$lib/components/ui/dialog/index.js";
 import { Spinner } from "$lib/components/ui/spinner/index.js";
 import * as Table from "$lib/components/ui/table/index.js";
 import DashboardNoSubscriptionsState from "./DashboardNoSubscriptionsState.svelte";
+import DashboardTableIconButton from "./DashboardTableIconButton.svelte";
+import DashboardTableRowActions from "./DashboardTableRowActions.svelte";
+import SubscriptionsCardsView from "./SubscriptionsCardsView.svelte";
 import type { FormatMessage } from "./subscription-tab-types";
 
 type SubscriptionListData = SubscriptionsData["subscriptions"];
@@ -32,8 +34,7 @@ export let subscriptionsCopy: DashboardSubscriptionsCopy;
 export let openBulkImportDialog: () => void;
 export let openQuickAddDialog: () => void;
 
-let selectedSection: SubscriptionSection | null = null;
-let removeConfirmOpen = false;
+let pendingRemoveSection: SubscriptionSection | null = null;
 
 $: locale = $page.data.locale ?? "zh-cn";
 $: sectionGroups = subscriptions.flatMap((subscription) =>
@@ -53,33 +54,30 @@ function teacherNames(section: SubscriptionSection) {
   );
 }
 
-function openSectionDetails(section: SubscriptionSection) {
-  selectedSection = section;
+function courseName(section: SubscriptionSection) {
+  return section.course.namePrimary ?? dashboardCopy.notAvailable;
 }
 
-function handleRowKeydown(event: KeyboardEvent, section: SubscriptionSection) {
-  if (event.key !== "Enter" && event.key !== " ") return;
-  event.preventDefault();
-  openSectionDetails(section);
+function requestRemoveSection(section: SubscriptionSection) {
+  pendingRemoveSection = section;
 }
 
 async function confirmRemoveSection() {
-  if (!selectedSection) return;
-  const removed = await removeSubscribedSection(selectedSection.id);
+  if (!pendingRemoveSection) return;
+  const removed = await removeSubscribedSection(pendingRemoveSection.id);
   if (removed) {
-    removeConfirmOpen = false;
-    selectedSection = null;
+    pendingRemoveSection = null;
   }
 }
 </script>
 
 {#if subscriptions.length > 0}
   <div
-    class="subscription-semester-groups grid min-w-0 gap-4 2xl:grid-cols-2 2xl:items-start"
+    class="subscription-semester-groups grid min-w-0 gap-6"
     data-testid="subscription-semester-groups"
   >
     {#each sectionGroups as group}
-      <section class="grid min-w-0 gap-2">
+      <section class="grid min-w-0 gap-3">
         <div class="flex flex-wrap items-center justify-between gap-2 text-sm">
           <h3 class="font-medium">
             {formatMessage(subscriptionsCopy.semesterGroup, {
@@ -87,65 +85,85 @@ async function confirmRemoveSection() {
             })}
           </h3>
           <span class="text-muted-foreground">
-            {formatMessage(group.sections.length === 1
-              ? subscriptionsCopy.sectionIncluded
-              : subscriptionsCopy.sectionsIncluded, {
-              count: group.sections.length,
-            })}
+            {formatMessage(
+              group.sections.length === 1
+                ? subscriptionsCopy.sectionIncluded
+                : subscriptionsCopy.sectionsIncluded,
+              {
+                count: group.sections.length,
+              },
+            )}
           </span>
         </div>
-        <div class="min-w-0 overflow-hidden rounded-lg border">
-          <Table.Root class="table-fixed">
+        <div class="md:hidden">
+          <SubscriptionsCardsView
+            {dashboardCopy}
+            {requestRemoveSection}
+            {removingSectionId}
+            {sectionCopy}
+            sections={group.sections}
+            {subscriptionsCopy}
+          />
+        </div>
+        <div class="hidden min-w-0 overflow-x-auto md:block">
+          <Table.Root
+            class="min-w-0 w-full"
+            data-testid="subscription-semester-table"
+          >
             <Table.Header>
               <Table.Row>
-                <Table.Head class="w-28">{subscriptionsCopy.section}</Table.Head>
-                <Table.Head class="hidden md:table-cell">
-                  {subscriptionsCopy.courseName}
-                </Table.Head>
-                <Table.Head class="hidden lg:table-cell">
-                  {sectionCopy.teachers}
-                </Table.Head>
-                <Table.Head class="w-20 text-end">
+                <Table.Head>{subscriptionsCopy.courseName}</Table.Head>
+                <Table.Head>{sectionCopy.teachers}</Table.Head>
+                <Table.Head class="text-end">
                   {subscriptionsCopy.credits}
+                </Table.Head>
+                <Table.Head>
+                  <span class="sr-only">{sectionCopy.moreDetails}</span>
                 </Table.Head>
               </Table.Row>
             </Table.Header>
             <Table.Body>
-          {#each group.sections as section}
-            <Table.Row
-              class="cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
-              role="button"
-              tabindex={0}
-              aria-label={formatMessage(subscriptionsCopy.openDetails, {
-                code: String(section.code),
-              })}
-              onclick={() => openSectionDetails(section)}
-              onkeydown={(event) => handleRowKeydown(event, section)}
-            >
-              <Table.Cell class="min-w-0 overflow-hidden align-top">
-                <TruncatedText class="font-medium" text={section.code} />
-                <TruncatedText
-                  class="mt-1 text-sm md:hidden"
-                  text={section.course.namePrimary ?? dashboardCopy.notAvailable}
-                />
-                <TruncatedText
-                  class="mt-1 text-xs text-muted-foreground lg:hidden"
-                  text={teacherNames(section)}
-                />
-              </Table.Cell>
-              <Table.Cell class="hidden min-w-0 overflow-hidden align-top md:table-cell">
-                <TruncatedText
-                  text={section.course.namePrimary ?? dashboardCopy.notAvailable}
-                />
-              </Table.Cell>
-              <Table.Cell class="hidden min-w-0 overflow-hidden align-top lg:table-cell">
-                <TruncatedText text={teacherNames(section)} />
-              </Table.Cell>
-              <Table.Cell class="w-20 text-end align-top">
-                {section.credits ?? dashboardCopy.notAvailable}
-              </Table.Cell>
-            </Table.Row>
-          {/each}
+              {#each group.sections as section}
+                <Table.Row class="group">
+                  <Table.Cell>
+                    <a
+                      class="block min-w-0 max-w-full overflow-hidden hover:underline"
+                      href={`/catalog/sections/${section.jwId}`}
+                      data-testid="subscription-course-link"
+                    >
+                      <TruncatedText text={courseName(section)} />
+                    </a>
+                  </Table.Cell>
+                  <Table.Cell>
+                    {teacherNames(section)}
+                  </Table.Cell>
+                  <Table.Cell class="text-end">
+                    {section.credits ?? dashboardCopy.notAvailable}
+                  </Table.Cell>
+                  <Table.Cell>
+                    <DashboardTableRowActions>
+                      <DashboardTableIconButton
+                        disabled={removingSectionId === section.id}
+                        label={subscriptionsCopy.unsubscribe}
+                        variant="destructive"
+                        onclick={() => requestRemoveSection(section)}
+                      >
+                        {#if removingSectionId === section.id}
+                          <Spinner />
+                        {:else}
+                          <UserMinus />
+                        {/if}
+                      </DashboardTableIconButton>
+                      <DashboardTableIconButton
+                        href={`/catalog/sections/${section.jwId}`}
+                        label={sectionCopy.moreDetails}
+                      >
+                        <ArrowUpRight />
+                      </DashboardTableIconButton>
+                    </DashboardTableRowActions>
+                  </Table.Cell>
+                </Table.Row>
+              {/each}
             </Table.Body>
           </Table.Root>
         </div>
@@ -158,100 +176,38 @@ async function confirmRemoveSection() {
     description={subscriptionsCopy.noSubscriptionsDescription}
     actions={[
       { label: subscriptionsCopy.quickAdd.title, onclick: openQuickAddDialog },
-      { label: subscriptionsCopy.bulkImport.title, onclick: openBulkImportDialog, variant: "outline" },
-      { href: "/catalog/sections", label: subscriptionsCopy.browseSections, variant: "outline" },
-      { href: "/catalog/courses", label: subscriptionsCopy.browseCourses, variant: "ghost" },
+      {
+        label: subscriptionsCopy.bulkImport.title,
+        onclick: openBulkImportDialog,
+        variant: "outline",
+      },
+      {
+        href: "/catalog/sections",
+        label: subscriptionsCopy.browseSections,
+        variant: "outline",
+      },
+      {
+        href: "/catalog/courses",
+        label: subscriptionsCopy.browseCourses,
+        variant: "ghost",
+      },
     ]}
   />
 {/if}
 
-<style>
-@media (min-width: 96rem) {
-  @supports (display: grid-lanes) {
-    .subscription-semester-groups {
-      display: grid-lanes;
-    }
-  }
-}
-</style>
-
-<Dialog.Root
-  open={selectedSection !== null}
+<AlertDialog.Root
+  open={pendingRemoveSection !== null}
   onOpenChange={(open) => {
-    if (!open && !removeConfirmOpen) selectedSection = null;
+    if (!open && removingSectionId === null) pendingRemoveSection = null;
   }}
 >
-  {#if selectedSection}
-    <Dialog.Content class="max-w-lg sm:max-w-lg">
-      <Dialog.Header>
-        <Dialog.Title class="break-words">
-          {selectedSection.course.namePrimary ?? dashboardCopy.notAvailable}
-        </Dialog.Title>
-        <Dialog.Description>
-          {formatMessage(subscriptionsCopy.detailsDescription, {
-            code: String(selectedSection.code),
-          })}
-        </Dialog.Description>
-      </Dialog.Header>
-
-      <dl class="grid gap-4 px-5 py-4 sm:grid-cols-2">
-        <div class="grid gap-1">
-          <dt class="text-sm text-muted-foreground">{subscriptionsCopy.section}</dt>
-          <dd class="font-medium">{selectedSection.code}</dd>
-        </div>
-        <div class="grid gap-1">
-          <dt class="text-sm text-muted-foreground">{subscriptionsCopy.semester}</dt>
-          <dd class="font-medium">
-            {selectedSection.semester?.nameCn ? formatSemesterName(locale, selectedSection.semester.nameCn) : dashboardCopy.notAvailable}
-          </dd>
-        </div>
-        <div class="grid gap-1">
-          <dt class="text-sm text-muted-foreground">{sectionCopy.teachers}</dt>
-          <dd class="break-words font-medium">{teacherNames(selectedSection)}</dd>
-        </div>
-        <div class="grid gap-1">
-          <dt class="text-sm text-muted-foreground">{subscriptionsCopy.credits}</dt>
-          <dd class="font-medium">
-            {selectedSection.credits ?? dashboardCopy.notAvailable}
-          </dd>
-        </div>
-      </dl>
-
-      <Dialog.Footer class="sm:justify-between">
-        <Button
-          disabled={removingSectionId === selectedSection.id}
-          type="button"
-          variant="destructive"
-          onclick={() => (removeConfirmOpen = true)}
-        >
-          {#if removingSectionId === selectedSection.id}
-            <Spinner data-icon="inline-start" />
-          {/if}
-          {subscriptionsCopy.unsubscribe}
-        </Button>
-        <div class="flex flex-col-reverse gap-2 sm:flex-row">
-          <Button type="button" variant="outline" onclick={() => (selectedSection = null)}>
-            {subscriptionsCopy.closeDetails}
-          </Button>
-          {#if selectedSection.course.jwId}
-            <Button href={`/catalog/courses/${selectedSection.course.jwId}`}>
-              {subscriptionsCopy.openCourse}
-            </Button>
-          {/if}
-        </div>
-      </Dialog.Footer>
-    </Dialog.Content>
-  {/if}
-</Dialog.Root>
-
-<AlertDialog.Root bind:open={removeConfirmOpen}>
-  {#if selectedSection}
+  {#if pendingRemoveSection}
     <AlertDialog.Content>
       <AlertDialog.Header>
         <AlertDialog.Title>{subscriptionsCopy.unsubscribeTitle}</AlertDialog.Title>
         <AlertDialog.Description>
           {formatMessage(subscriptionsCopy.unsubscribeDescription, {
-            code: String(selectedSection.code),
+            name: courseName(pendingRemoveSection),
           })}
         </AlertDialog.Description>
       </AlertDialog.Header>
@@ -259,10 +215,10 @@ async function confirmRemoveSection() {
         <AlertDialog.Cancel>{subscriptionsCopy.cancelUnsubscribe}</AlertDialog.Cancel>
         <AlertDialog.Action
           variant="destructive"
-          disabled={removingSectionId === selectedSection.id}
+          disabled={removingSectionId === pendingRemoveSection.id}
           onclick={confirmRemoveSection}
         >
-          {#if removingSectionId === selectedSection.id}
+          {#if removingSectionId === pendingRemoveSection.id}
             <Spinner data-icon="inline-start" />
           {/if}
           {subscriptionsCopy.confirmUnsubscribe}

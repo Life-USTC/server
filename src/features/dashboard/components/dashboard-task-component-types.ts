@@ -17,7 +17,6 @@ import type {
   HomeworkView,
   SignedDashboardData,
   TodoFilter,
-  TodoView,
 } from "@/features/dashboard/lib/dashboard-controller-helpers";
 import type { WorkspaceTabId } from "@/features/dashboard/lib/dashboard-nav";
 import type {
@@ -104,13 +103,12 @@ export type DashboardTodosTaskProps = DashboardTaskBaseProps & {
   isUpdatingTodo: boolean;
   openTodoEditor: DashboardTodoEditor;
   selectedTodo: DashboardTodoItem | null;
-  setTodoView: (view: TodoView) => void;
   showCreateTodo: boolean;
   todoActionError: string;
   todoFilter: TodoFilter;
+  todoItems: DashboardTodoItem[];
   todoPriorityOptions: DashboardTodoPriorityOption[];
   todoSavingById: DashboardTaskSavingById;
-  todoView: TodoView;
   todosCopy: DashboardTodosCopy;
   toggleTodoCompletion: DashboardTodoToggle;
   updateTodoAction: SubmitFunction;

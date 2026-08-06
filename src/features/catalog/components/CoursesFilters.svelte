@@ -25,7 +25,7 @@ export let inline = false;
 export let showClear = true;
 export let showSearch = true;
 
-const controlClass = "w-full [&>select]:h-11";
+const controlClass = "w-full";
 </script>
 
 <form method="GET">
@@ -125,12 +125,12 @@ const controlClass = "w-full [&>select]:h-11";
     {#if showSearch || (showClear && activeFilterCount > 0)}
       <ButtonGroup.Root class="w-full pt-1" orientation="vertical">
         {#if showSearch}
-          <Button class="w-full" size="lg" type="submit">
+          <Button class="w-full" type="submit">
             {commonLabels.search}
           </Button>
         {/if}
         {#if showClear && activeFilterCount > 0}
-          <Button class="w-full" href="/catalog/courses" size="lg" variant="outline">{commonLabels.clear}</Button>
+          <Button class="w-full" href="/catalog/courses" variant="outline">{commonLabels.clear}</Button>
         {/if}
       </ButtonGroup.Root>
     {/if}

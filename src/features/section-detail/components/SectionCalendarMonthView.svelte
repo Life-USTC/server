@@ -26,7 +26,6 @@ export let sectionCopy: SectionCalendarCopy;
     <ButtonGroup.Root aria-label={calendarMonthLabel}>
       <Button
         aria-label={sectionCopy.previousMonth}
-        size="sm"
         type="button"
         variant="outline"
         onclick={() => (calendarMonthOffset -= 1)}
@@ -35,7 +34,6 @@ export let sectionCopy: SectionCalendarCopy;
         <span>{sectionCopy.previousMonth}</span>
       </Button>
       <Button
-        size="sm"
         type="button"
         variant="outline"
         onclick={() => (calendarMonthOffset = todayCalendarMonthOffset)}
@@ -44,7 +42,6 @@ export let sectionCopy: SectionCalendarCopy;
       </Button>
       <Button
         aria-label={sectionCopy.nextMonth}
-        size="sm"
         type="button"
         variant="outline"
         onclick={() => (calendarMonthOffset += 1)}

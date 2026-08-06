@@ -6,19 +6,12 @@ import OAuthAuthorizeConsentPanel from "./OAuthAuthorizeConsentPanel.svelte";
 import OAuthAuthorizeErrorPanel from "./OAuthAuthorizeErrorPanel.svelte";
 import OAuthAuthorizeSidePanel from "./OAuthAuthorizeSidePanel.svelte";
 
-type OAuthAuthorizeCopy = {
-  clientHostLabel: string;
-  description: string;
-  loopbackRedirectWarning: string;
-  redirectHostLabel: string;
-  scopesLabel: string;
-  title: string;
-};
-
 type PageData = {
   clientHost?: string;
   clientName?: string;
-  copy?: OAuthAuthorizeCopy;
+  copy?: Record<string, string>;
+  hint?: string;
+  locale?: string;
   message?: string;
   oauthQuery?: string;
   redirectHost?: string;
@@ -27,7 +20,6 @@ type PageData = {
   scopes?: Array<{ label: string; value: string }>;
   state: string;
   title?: string;
-  hint?: string;
 };
 
 export let data: PageData;
@@ -72,6 +64,7 @@ $: pageDescription =
       {:else if data.copy}
         <OAuthAuthorizeConsentPanel
           copy={data.copy}
+          locale={data.locale ?? "zh-cn"}
           oauthQuery={data.oauthQuery ?? ""}
           scope={data.scope ?? ""}
           scopes={data.scopes ?? []}

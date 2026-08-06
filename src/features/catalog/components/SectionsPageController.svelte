@@ -2,9 +2,8 @@
 import {
   catalogHref,
   catalogPrimaryName as primaryName,
-  catalogSecondaryName as secondaryName,
-  catalogNames as teacherNames,
 } from "@/features/catalog/lib/catalog-list-display";
+import { catalogListPageHref } from "@/features/catalog/lib/catalog-list-query";
 import { formatSemesterName } from "@/lib/text/format-semester-name";
 import { page } from "$app/stores";
 import CatalogMobileFilters from "./CatalogMobileFilters.svelte";
@@ -139,14 +138,15 @@ $: sectionActiveFilters = [
 );
 $: sectionHiddenFilters = Object.entries(
   sectionFilterParams({ ...data.filters, search: null }),
-).map(([name, value]) => ({ name, value: value ?? "" }));
+)
+  .filter(
+    (entry): entry is [string, string] =>
+      entry[0] !== "search" && Boolean(entry[1]),
+  )
+  .map(([name, value]) => ({ name, value }));
 
 function pageHref(targetPage: number) {
-  return catalogHref(
-    "/catalog/sections",
-    sectionFilterParams(data.filters),
-    targetPage,
-  );
+  return catalogListPageHref($page.url, targetPage);
 }
 
 function sectionFilterHref(overrides: Partial<SectionListFilters>) {
@@ -295,9 +295,7 @@ function sectionEmptyDescription() {
         {primaryName}
         {sectionEmptyDescription}
         {sectionLabels}
-        {secondaryName}
         {selectedSemester}
-        {teacherNames}
         {totalPages}
       />
 

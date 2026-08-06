@@ -187,6 +187,10 @@ test.describe("仪表盘日历", () => {
     await expect(copyButton).toBeVisible();
     await copyButton.click();
 
+    const dialog = page.getByRole("dialog");
+    await expect(dialog).toBeVisible();
+    await dialog.getByRole("button", { name: /^复制$|^Copy$/i }).click();
+
     const clipboardText = await page.evaluate(async () =>
       navigator.clipboard.readText(),
     );
@@ -197,7 +201,6 @@ test.describe("仪表盘日历", () => {
     expect(calendarResponse.headers()["content-type"]).toContain(
       "text/calendar",
     );
-    await expect(page.getByText(/已复制链接|Link Copied/i)).toBeVisible();
   });
 
   test("移动端使用可读周日程且导航控件满足触控尺寸", async ({
@@ -246,9 +249,15 @@ test.describe("仪表盘日历", () => {
     });
     await expect(iCalAction).toBeVisible();
     await iCalAction.click();
+    const dialog = page.getByRole("dialog");
+    await expect(dialog).toBeVisible();
+    await dialog.getByRole("button", { name: /^复制$|^Copy$/i }).click();
     expect(
       await page.evaluate(async () => navigator.clipboard.readText()),
     ).toMatch(/\/api\/calendar-feeds\/[^/]+\.ics$/);
+
+    await page.keyboard.press("Escape");
+    await expect(dialog).toBeHidden();
 
     await next.click();
     await expect(page).toHaveURL(/calendarView=week/);

@@ -36,7 +36,10 @@
 import { expect, type Locator, type Page, test } from "@playwright/test";
 import { formatSemesterName } from "@/lib/text/format-semester-name";
 import { signInAsDebugUser, signInAsDevAdmin } from "../../../../utils/auth";
-import { cleanupCommentsForE2e } from "../../../../utils/comments";
+import {
+  cleanupCommentsForE2e,
+  openCommentComposer,
+} from "../../../../utils/comments";
 import {
   restoreDescriptionTargetSnapshot,
   snapshotDescriptionTargetForE2e,
@@ -72,7 +75,11 @@ async function jumpToSection(page: Page, name: RegExp, selector: string) {
     await expect(page.locator(selector)).toBeVisible({ timeout: 60_000 });
     if (hash === "calendar") {
       await expect(
-        page.getByRole("button", { name: /今天|Today/i }).first(),
+        page
+          .locator("#calendar")
+          .getByRole("heading", { name: /日历|Calendar/i })
+          .or(page.locator("#calendar table"))
+          .first(),
       ).toBeVisible({ timeout: 60_000 });
     }
     return;
@@ -109,13 +116,6 @@ async function openCommentDeleteDialog(page: Page, commentCard: Locator) {
   });
   await expect(deleteDialog).toBeVisible();
   return deleteDialog;
-}
-
-function getSectionCalendarMonthView(page: Page) {
-  return page
-    .locator("section")
-    .filter({ has: page.getByRole("button", { name: /今天|Today/i }) })
-    .first();
 }
 
 test.describe("/catalog/sections/[jwId] 班级详情页", () => {
@@ -207,18 +207,22 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
   test("显示学分、考试方式与备注", async ({ page }, testInfo) => {
     await gotoAndWaitForReady(page, SECTION_URL);
 
-    const creditsValue = page
-      .getByText(/学分|Credits/i)
-      .first()
-      .locator("xpath=parent::*/*[last()]");
-    const examModeValue = page
-      .getByText(/考试方式|Exam Mode/i)
-      .first()
-      .locator("xpath=parent::*/*[last()]");
-    const remarkValue = page
-      .getByText(/备注|Remark/i)
-      .first()
-      .locator("xpath=parent::*/*[last()]");
+    const facts = page
+      .locator("dl")
+      .filter({ hasText: /学分|Credits/i })
+      .first();
+    const creditsValue = facts
+      .locator("dt")
+      .filter({ hasText: /学分|Credits/i })
+      .locator("xpath=following-sibling::dd[1]");
+    const examModeValue = facts
+      .locator("dt")
+      .filter({ hasText: /^(方式|Mode)$/i })
+      .locator("xpath=following-sibling::dd[1]");
+    const remarkValue = facts
+      .locator("dt")
+      .filter({ hasText: /^(备注|Remark)$/i })
+      .locator("xpath=following-sibling::dd[1]");
 
     // section.credits
     await expect(creditsValue).toHaveText(String(DEV_SEED.section.credits));
@@ -242,34 +246,24 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
   test("基本信息中显示授课语言与教室类型", async ({ page }, testInfo) => {
     await gotoAndWaitForReady(page, SECTION_URL);
 
-    // Expand "More Details" inner accordion to reveal teachLanguage and roomType.
-    const moreDetailsTrigger = page
-      .getByRole("button", { name: /^(更多信息|More Details)$/i })
-      .first();
-    const teachLanguage = page
-      .getByText(DEV_SEED.section.teachLanguageNameCn)
-      .or(page.getByText(DEV_SEED.section.teachLanguageNameEn))
-      .first();
-    const roomType = page
-      .getByText(DEV_SEED.section.roomTypeNameCn)
-      .or(page.getByText(DEV_SEED.section.roomTypeNameEn))
-      .first();
-    await expect(async () => {
-      await expect(moreDetailsTrigger).toBeVisible();
-      if ((await moreDetailsTrigger.getAttribute("aria-expanded")) !== "true") {
-        await moreDetailsTrigger.click();
-      }
-      await expect(teachLanguage).toBeVisible({ timeout: 2_000 });
-      await expect(roomType).toBeVisible({ timeout: 2_000 });
-    }).toPass({
-      timeout: 10_000,
-      intervals: [250, 500, 1_000],
-    });
+    await expect(
+      page.getByRole("heading", { name: /^(更多信息|More Details)$/i }),
+    ).toBeVisible();
 
     // section.teachLanguage.namePrimary (locale-dependent)
-    await expect(teachLanguage).toBeVisible({ timeout: 8_000 });
+    await expect(
+      page
+        .getByText(DEV_SEED.section.teachLanguageNameCn)
+        .or(page.getByText(DEV_SEED.section.teachLanguageNameEn))
+        .first(),
+    ).toBeVisible();
     // section.roomType.namePrimary (locale-dependent)
-    await expect(roomType).toBeVisible({ timeout: 8_000 });
+    await expect(
+      page
+        .getByText(DEV_SEED.section.roomTypeNameCn)
+        .or(page.getByText(DEV_SEED.section.roomTypeNameEn))
+        .first(),
+    ).toBeVisible();
 
     await captureStepScreenshot(page, testInfo, "section/teach-lang-roomtype");
   });
@@ -294,72 +288,55 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
     await captureStepScreenshot(page, testInfo, "section/admin-classes");
   });
 
-  test("日历区块以非交互芯片显示课表详情", async ({ page }, testInfo) => {
+  test("日历区块以课表表格显示日程详情", async ({ page }, testInfo) => {
     test.setTimeout(90_000);
     await gotoAndWaitForReady(page, SECTION_URL);
 
     await jumpToSection(page, /日历|Calendar/i, "#calendar");
 
-    // Class schedule information is now rendered as chips inside the calendar
-    // month grid, not as a separate list of cards.
-    const monthView = getSectionCalendarMonthView(page);
-    const classEventChip = monthView
-      .locator('[data-slot="tooltip-trigger"]')
-      .filter({ hasText: /上课事件|Class event/i })
-      .first();
-    await expect(classEventChip).toBeVisible({ timeout: 30_000 });
-    await expect(classEventChip).not.toHaveAttribute("href", /.+/);
-    await expect(classEventChip).toHaveAttribute("tabindex", "0");
-    await expect(monthView.locator('a[href^="#"]')).toHaveCount(0);
+    const calendar = page.locator("#calendar");
+    const scheduleTable = calendar.locator("table").first();
+    await expect(scheduleTable).toBeVisible({ timeout: 30_000 });
+    await expect(scheduleTable.locator("tbody tr").first()).toBeVisible();
 
-    // schedule.room.namePrimary and schedule.room.building.namePrimary
-    // are rendered in the chip meta text.
+    // schedule.room / building / campus appear in the location column.
     await expect(
-      classEventChip
+      scheduleTable
         .getByText(DEV_SEED.room.nameCn, { exact: false })
-        .or(classEventChip.getByText(DEV_SEED.room.nameEn, { exact: false }))
+        .or(scheduleTable.getByText(DEV_SEED.room.nameEn, { exact: false }))
         .first(),
     ).toBeVisible();
     await expect(
-      classEventChip
+      scheduleTable
         .getByText(DEV_SEED.building.nameCn, { exact: false })
-        .or(
-          classEventChip.getByText(DEV_SEED.building.nameEn, { exact: false }),
-        )
+        .or(scheduleTable.getByText(DEV_SEED.building.nameEn, { exact: false }))
         .first(),
     ).toBeVisible();
     await expect(
-      classEventChip
+      scheduleTable
         .getByText(DEV_SEED.campus.nameCn, { exact: false })
-        .or(classEventChip.getByText(DEV_SEED.campus.nameEn, { exact: false }))
+        .or(scheduleTable.getByText(DEV_SEED.campus.nameEn, { exact: false }))
         .first(),
     ).toBeVisible();
-
-    const beforeClickUrl = page.url();
-    await classEventChip.click();
-    expect(page.url()).toBe(beforeClickUrl);
 
     await captureStepScreenshot(page, testInfo, "section/schedule-calendar");
   });
 
-  test("今天按钮将日历导航到当前日期而非班级开始日期", async ({
-    page,
-  }, testInfo) => {
+  test("日历区块以课表表格展示班级日程", async ({ page }, testInfo) => {
     test.setTimeout(90_000);
     await gotoAndWaitForReady(page, SECTION_URL);
 
     await jumpToSection(page, /日历|Calendar/i, "#calendar");
 
-    const monthView = getSectionCalendarMonthView(page);
-    const monthHeading = monthView.locator("h3").first();
-    const initialMonthLabel = (await monthHeading.innerText()).trim();
-
-    await monthView.getByRole("button", { name: /下个月|Next month/i }).click();
-    await expect(monthHeading).not.toHaveText(initialMonthLabel);
-
-    await monthView.getByRole("button", { name: /今天|Today/i }).click();
-    await expect(monthView.locator('[aria-current="date"]')).toHaveCount(1);
-    await expect(monthHeading).not.toHaveText(initialMonthLabel);
+    const calendar = page.locator("#calendar");
+    await expect(
+      calendar.getByRole("heading", { name: /日历|Calendar/i }),
+    ).toBeVisible();
+    await expect(calendar.locator("table").first()).toBeVisible();
+    await expect(calendar.locator("tbody tr").first()).toBeVisible();
+    await expect(
+      calendar.getByRole("button", { name: /今天|Today/i }),
+    ).toHaveCount(0);
 
     await captureStepScreenshot(page, testInfo, "section/calendar-today");
   });
@@ -502,9 +479,6 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
               mobileActions?.querySelectorAll<HTMLElement>("button") ?? [],
             );
             const actionBox = mobileActions?.getBoundingClientRect();
-            const commentComposer = document.querySelector<HTMLElement>(
-              '#comments [data-slot="card"]',
-            );
             return {
               actionButtonsFit:
                 actionBox != null &&
@@ -525,9 +499,14 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
                       actionButtons[1].getBoundingClientRect().top -
                         actionButtons[0].getBoundingClientRect().top,
                     ) < 1),
-              commentComposerFits:
-                commentComposer != null &&
-                commentComposer.scrollWidth <= commentComposer.clientWidth,
+              commentComposerFits: (() => {
+                const comments =
+                  document.querySelector<HTMLElement>("#comments");
+                return (
+                  comments != null &&
+                  comments.scrollWidth <= comments.clientWidth + 1
+                );
+              })(),
               documentFitsViewport:
                 document.documentElement.scrollWidth <=
                 document.documentElement.clientWidth,
@@ -568,25 +547,21 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
       page.getByTestId("section-mobile-primary-actions"),
     ).toBeHidden();
 
-    const composer = page.locator('#comments [data-slot="card"]').first();
-    const composerBox = await composer.boundingBox();
-    const headerControls = composer
-      .locator('[data-slot="card-header"]')
-      .locator("button, select");
-    expect(composerBox).not.toBeNull();
-    await expect(headerControls).toHaveCount(2);
-    for (let index = 0; index < (await headerControls.count()); index += 1) {
-      const controlBox = await headerControls.nth(index).boundingBox();
-      expect(controlBox).not.toBeNull();
-      expect(controlBox?.x ?? 0).toBeGreaterThanOrEqual(
-        (composerBox?.x ?? 0) - 1,
-      );
-      expect(
-        (controlBox?.x ?? 0) + (controlBox?.width ?? 0),
-      ).toBeLessThanOrEqual(
-        (composerBox?.x ?? 0) + (composerBox?.width ?? 0) + 1,
-      );
-    }
+    const comments = page.locator("#comments");
+    await expect(
+      comments
+        .getByRole("link", {
+          name: /登录.*评论|Log in to comment|Sign in to comment/i,
+        })
+        .or(
+          comments.getByRole("button", {
+            name: /登录.*评论|Log in to comment|Sign in to comment/i,
+          }),
+        ),
+    ).toBeVisible();
+    expect(
+      await page.evaluate(() => document.documentElement.scrollWidth),
+    ).toBeLessThanOrEqual(1440);
   });
 
   test("已退役班级保留历史详情与日历但禁止新增关注", async ({ page }) => {
@@ -934,19 +909,22 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
     try {
       const introduction = page.locator("#introduction");
       await expect(introduction).toBeVisible();
-      const descCard = introduction.locator('[data-slot="card"]').first();
-      await expect(
-        descCard.getByRole("button", { name: /^编辑$|^Edit$/i }),
-      ).toBeVisible({ timeout: 60_000 });
+      await expect(introduction.getByTestId("description-edit")).toBeVisible({
+        timeout: 60_000,
+      });
 
       const content = `e2e-section-desc-${Date.now()}`;
-      const editor = descCard.locator("textarea").first();
-      await descCard.getByRole("button", { name: /^编辑$|^Edit$/i }).click();
+      const editor = introduction.locator(
+        '[data-slot="markdown-editor"] textarea',
+      );
+      const editButton = introduction.getByTestId("description-edit");
+      await editButton.scrollIntoViewIfNeeded();
+      await editButton.click();
       await expect(editor).toBeVisible();
       await editor.fill(content);
-      await descCard.getByRole("tab", { name: /预览|Preview/i }).click();
+      await introduction.getByRole("tab", { name: /预览|Preview/i }).click();
       await expect(
-        descCard
+        introduction
           .getByRole("tabpanel", { name: /预览|Preview/i })
           .getByText(content),
       ).toBeVisible();
@@ -957,10 +935,10 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
           r.request().method() === "POST" &&
           r.status() === 200,
       );
-      await descCard.getByRole("button", { name: /保存|Save/i }).click();
+      await introduction.getByRole("button", { name: /保存|Save/i }).click();
       await saveResponse;
       await expect(
-        descCard
+        introduction
           .getByRole("tabpanel", { name: /简介|Description/i })
           .getByText(content),
       ).toBeVisible();
@@ -1073,31 +1051,11 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
     ).toBe(true);
   });
 
-  test("可切换班级作业区块为列表视图并记住偏好", async ({ page }, testInfo) => {
+  test("班级作业区块默认以列表展示", async ({ page }, testInfo) => {
     await gotoAndWaitForReady(page, SECTION_URL);
 
     await jumpToSection(page, /作业|Homework/i, "#homework");
 
-    await expect(page.getByTestId("section-homeworks-cards")).toBeVisible();
-    await page
-      .getByRole("radio", { name: /列表|List/i })
-      .first()
-      .click();
-    await expect(page).toHaveURL(/homeworkView=list/);
-    await expect(page.getByTestId("section-homeworks-list")).toBeVisible();
-    await expect
-      .poll(() =>
-        page.evaluate(() =>
-          localStorage.getItem("life-ustc-dashboard-homework-view-mode"),
-        ),
-      )
-      .toBe("list");
-
-    await gotoAndWaitForReady(page, SECTION_URL);
-    await jumpToSection(page, /作业|Homework/i, "#homework");
-    await expect(page).toHaveURL(
-      new RegExp(`/catalog/sections/${DEV_SEED.section.jwId}#homework$`),
-    );
     await expect(page.getByTestId("section-homeworks-list")).toBeVisible();
     await captureStepScreenshot(page, testInfo, "section/homework-list-view");
   });
@@ -1382,10 +1340,7 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
 
       // Post comment
       const body = `e2e-section-comment-${Date.now()}`;
-      const composer = page
-        .getByRole("textbox", { name: /评论内容|Comment body/i })
-        .first();
-      await expect(composer).toBeVisible();
+      const composer = await openCommentComposer(page);
       await composer.fill(body);
       const createResponse = page.waitForResponse(
         (r) =>
@@ -1394,6 +1349,7 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
           r.status() === 201,
       );
       await page
+        .locator("#comments")
         .getByRole("button", { name: /发布评论|Post comment/i })
         .click();
       const createdCommentResponse = await createResponse;
@@ -1529,22 +1485,17 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
 
       await jumpToSection(page, /评论|Comments/i, "#comments");
 
-      const composerCard = page
-        .locator('[data-slot="card"]')
-        .filter({
-          has: page.getByRole("button", { name: /发布评论|Post comment/i }),
-        })
-        .first();
-      await expect(composerCard).toBeVisible();
+      const comments = page.locator("#comments");
+      await openCommentComposer(page, comments);
 
-      const anonymousCheckbox = composerCard
+      const anonymousCheckbox = comments
         .getByRole("checkbox", { name: /匿名|Anonymous/i })
         .first();
       await expect(anonymousCheckbox).toBeVisible();
       await anonymousCheckbox.click();
       await expect(anonymousCheckbox).toHaveAttribute("aria-checked", "true");
 
-      await composerCard
+      await comments
         .getByRole("textbox", { name: /评论内容|Comment body/i })
         .first()
         .fill(body);
@@ -1555,7 +1506,7 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
           r.request().method() === "POST" &&
           r.status() === 201,
       );
-      await composerCard
+      await comments
         .getByRole("button", { name: /发布评论|Post comment/i })
         .click();
       const createdCommentResponse = await createResponse;
@@ -1636,16 +1587,11 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
         intervals: [250, 500, 1_000],
       });
 
-      const composerCard = page
-        .locator('[data-slot="card"]')
-        .filter({
-          has: page.getByRole("button", { name: /发布评论|Post comment/i }),
-        })
-        .first();
-      await expect(composerCard).toBeVisible();
-      const uploadInput = composerCard.locator('input[type="file"]').first();
+      const comments = page.locator("#comments");
+      await openCommentComposer(page, comments);
+      const uploadInput = comments.locator('input[type="file"]').first();
       await expect(uploadInput).toBeAttached();
-      const uploadButton = composerCard
+      const uploadButton = comments
         .getByRole("button", {
           name: /上传文件|上传附件|Upload file|Upload attachment/i,
         })
@@ -1674,7 +1620,7 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
           r.status() === 200,
       );
 
-      await composerCard.locator('input[type="file"]').setInputFiles({
+      await comments.locator('input[type="file"]').setInputFiles({
         name: filename,
         mimeType: "text/plain",
         buffer: Buffer.from("section-attachment"),
@@ -1688,11 +1634,11 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
       expect(typeof uploadCompleteBody.upload?.id).toBe("string");
       uploadId = uploadCompleteBody.upload?.id;
 
-      await composerCard
+      await comments
         .getByRole("textbox", { name: /评论内容|Comment body/i })
         .first()
         .fill(body);
-      const postButton = composerCard
+      const postButton = comments
         .getByRole("button", { name: /发布评论|Post comment/i })
         .first();
       await expect(postButton).toBeEnabled();

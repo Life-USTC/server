@@ -3,7 +3,6 @@ import type {
   DashboardDashboardCopy,
   DashboardSectionCopy,
   DashboardSubscriptionsCopy,
-  ExamView,
   SignedDashboardData,
 } from "@/features/dashboard/lib/dashboard-controller-types";
 import type {
@@ -26,12 +25,10 @@ export let examFilter: DashboardExamFilter;
 export let examMetadataLabels: ExamMetadataLabels;
 export let examRows: DashboardExamRow[];
 export let examTimeLabel: ExamTimeLabel;
-export let examView: ExamView;
 export let filteredExamRows: DashboardExamRow[];
 export let locale: string;
 export let namePrimary: NamePrimary;
 export let sectionCopy: DashboardSectionCopy;
-export let setExamView: (view: ExamView) => void;
 export let signedData: SignedDashboardExamData;
 export let subscriptionsCopy: DashboardSubscriptionsCopy;
 </script>
@@ -45,8 +42,6 @@ export let subscriptionsCopy: DashboardSubscriptionsCopy;
   {examTimeLabel}
   {examMetadataLabels}
   {namePrimary}
-  {setExamView}
-  {examView}
   {examRows}
   {filteredExamRows}
   {locale}

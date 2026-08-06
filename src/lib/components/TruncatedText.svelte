@@ -23,8 +23,8 @@ const observeOverflow: Action<HTMLSpanElement, string> = (node) => {
   );
   const measure = () => {
     overflowing =
-      node.scrollWidth > node.clientWidth + 1 ||
-      node.scrollHeight > node.clientHeight + 1;
+      node.scrollWidth > node.clientWidth ||
+      node.scrollHeight > node.clientHeight;
   };
   const show = () => {
     measure();
@@ -33,8 +33,8 @@ const observeOverflow: Action<HTMLSpanElement, string> = (node) => {
           parent.querySelectorAll<HTMLElement>('[data-slot="truncated-text"]'),
         ).find(
           (child) =>
-            child.scrollWidth > child.clientWidth + 1 ||
-            child.scrollHeight > child.clientHeight + 1,
+            child.scrollWidth > child.clientWidth ||
+            child.scrollHeight > child.clientHeight,
         )
       : node;
     if (firstOverflowingChild !== node) return;
@@ -65,15 +65,17 @@ const observeOverflow: Action<HTMLSpanElement, string> = (node) => {
 };
 
 function triggerProps(props: Record<string, unknown>) {
-  const { class: triggerClass, ...rest } = props;
+  // bits-ui Trigger defaults to button semantics; do not copy those onto a <span>,
+  // especially when TruncatedText is nested under a real <button>/<a>.
+  const { class: triggerClass, type: _type, role: _role, ...rest } = props;
   return {
     ...rest,
     class: cn(
       "block min-w-0 max-w-full overflow-hidden",
       lines === 1
-        ? "min-h-[1lh] truncate"
+        ? "truncate"
         : cn(
-            "min-h-[2lh] line-clamp-2",
+            "line-clamp-2",
             preserveWhitespace
               ? "whitespace-pre-wrap break-words"
               : "whitespace-normal",

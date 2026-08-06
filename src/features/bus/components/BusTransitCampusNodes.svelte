@@ -17,32 +17,32 @@ export let positions: Map<number, BusMapPoint>;
   {#if position}
     {@const label = labelOffset(position, campus.namePrimary)}
     <g>
-      <circle cx={position.x} cy={position.y} r={NODE_R + 8} fill="#f6f8fa" stroke="#d0d7de" stroke-width="1.5" />
-      <circle cx={position.x} cy={position.y} r={NODE_R} fill="white" stroke="#d0d7de" stroke-width="2.5" />
-      <circle cx={position.x} cy={position.y} r={NODE_R - 6} fill="#f6f8fa" stroke="#57606a" stroke-width="1.5" />
+      <circle cx={position.x} cy={position.y} r={NODE_R + 10} fill="var(--background)" stroke="var(--border)" stroke-width="2" />
+      <circle cx={position.x} cy={position.y} r={NODE_R} fill="var(--card)" stroke="var(--border)" stroke-width="3" />
+      <circle cx={position.x} cy={position.y} r={NODE_R - 8} fill="var(--muted)" stroke="#57606a" stroke-width="2" />
       <text
         x={position.x + label.dx}
         y={position.y + label.dy}
         text-anchor={label.textAnchor}
-        class="fill-current font-semibold text-[12px]"
+        class="fill-current font-semibold text-[28px]"
         data-campus-label={campus.namePrimary}
         paint-order="stroke"
         stroke="var(--card)"
         stroke-linejoin="round"
-        stroke-width="5"
+        stroke-width="8"
       >
         {campus.namePrimary}
       </text>
       {#if campus.nameSecondary}
         <text
           x={position.x + label.dx}
-          y={position.y + label.dy + 15}
+          y={position.y + label.dy + 22}
           text-anchor={label.textAnchor}
-          class="fill-[#57606a] text-[10px]"
+          class="fill-[#57606a] text-[16px]"
           paint-order="stroke"
           stroke="var(--card)"
           stroke-linejoin="round"
-          stroke-width="5"
+          stroke-width="7"
         >
           {campus.nameSecondary}
         </text>

@@ -10,22 +10,20 @@ export let calendarData: DashboardCalendarTabProps["calendarData"];
 export let calendarEventParts: DashboardCalendarTabProps["calendarEventParts"];
 export let calendarEventsForDay: DashboardCalendarTabProps["calendarEventsForDay"];
 export let calendarTimelineItemsForDay: DashboardCalendarTabProps["calendarTimelineItemsForDay"];
-export let calendarExamDetail: DashboardCalendarTabProps["calendarExamDetail"];
-export let calendarHomeworkDetail: DashboardCalendarTabProps["calendarHomeworkDetail"];
+export let calendarExamChipFields: DashboardCalendarTabProps["calendarExamChipFields"];
+export let calendarHomeworkChipFields: DashboardCalendarTabProps["calendarHomeworkChipFields"];
 export let calendarHomeworkHref: DashboardCalendarTabProps["calendarHomeworkHref"];
 export let calendarMonth: DashboardCalendarTabProps["calendarMonth"];
 export let calendarSemesterId: DashboardCalendarTabProps["calendarSemesterId"];
 export let calendarSemesterIndex: DashboardCalendarTabProps["calendarSemesterIndex"];
-export let calendarSessionDetail: DashboardCalendarTabProps["calendarSessionDetail"];
-export let calendarTodoDetail: DashboardCalendarTabProps["calendarTodoDetail"];
+export let calendarSessionChipFields: DashboardCalendarTabProps["calendarSessionChipFields"];
+export let calendarTodoChipFields: DashboardCalendarTabProps["calendarTodoChipFields"];
 export let calendarView: DashboardCalendarTabProps["calendarView"];
 export let calendarWeekLabel: DashboardCalendarTabProps["calendarWeekLabel"];
 export let calendarWeekStart: DashboardCalendarTabProps["calendarWeekStart"];
 export let calendarWeekdayLabels: DashboardCalendarTabProps["calendarWeekdayLabels"];
 export let commonCopy: DashboardCalendarTabProps["commonCopy"];
 export let copy: DashboardRootCopy;
-export let copyCalendarLink: DashboardCalendarTabProps["copyCalendarLink"];
-export let copyCalendarUrl: DashboardCalendarTabProps["copyCalendarUrl"];
 export let dashboardCopy: DashboardCalendarTabProps["dashboardCopy"];
 export let dashboardTabHref: DashboardCalendarTabProps["dashboardTabHref"];
 export let formatMessage: FormatMessage;
@@ -50,8 +48,6 @@ export let subscriptionsCopy: DashboardCalendarTabProps["subscriptionsCopy"];
   {signedData}
   {dashboardTabHref}
   {formatMessage}
-  {copyCalendarLink}
-  {copyCalendarUrl}
   {sessionHref}
   {setCalendarView}
   {setCalendarMonth}
@@ -65,10 +61,10 @@ export let subscriptionsCopy: DashboardCalendarTabProps["subscriptionsCopy"];
   {calendarWeekLabel}
   {calendarEventParts}
   {calendarHomeworkHref}
-  {calendarSessionDetail}
-  {calendarExamDetail}
-  {calendarHomeworkDetail}
-  {calendarTodoDetail}
+  {calendarSessionChipFields}
+  {calendarExamChipFields}
+  {calendarHomeworkChipFields}
+  {calendarTodoChipFields}
   {calendarSemesterIndex}
   {calendarView}
   {calendarMonth}

@@ -146,7 +146,7 @@
     "openCourse": "Go to Course",
     "unsubscribe": "Unsubscribe",
     "unsubscribeTitle": "Unsubscribe from this section?",
-    "unsubscribeDescription": "After unsubscribing from section {code}, its schedule, exams, and homework will no longer appear on your dashboard.",
+    "unsubscribeDescription": "After unsubscribing from “{name}”, its schedule, exams, and homework will no longer appear on your dashboard.",
     "cancelUnsubscribe": "Keep Subscription",
     "confirmUnsubscribe": "Confirm Unsubscribe",
     "calendarTitle": "Calendar ({count})",
@@ -272,28 +272,37 @@
     "downloadBadgeAlt": "Download Life@USTC on the App Store",
     "appIconAlt": "Life@USTC app icon",
     "publicDashboard": {
-      "title": "Start with public campus tools",
-      "description": "Browse campus websites, courses, sections, and teachers before you sign in for your personal dashboard.",
+      "title": "Courses, schedules, and campus life — in one place",
+      "description": "Browse the public catalog, sections, teachers, shuttle bus, and campus links anytime. Sign in to sync your schedule, homework, subscriptions, and dashboard.",
+      "exploreLabel": "Keep exploring",
       "cards": {
         "signIn": {
           "title": "Sign in for your dashboard",
           "description": "Unlock your personal schedule, homework, section subscriptions, and settings."
         },
         "mobileApp": {
-          "title": "See the mobile app",
+          "title": "App",
           "description": "Open the App Store page and overview for the iPhone app experience."
         },
         "sections": {
-          "title": "Browse sections",
+          "title": "Sections",
           "description": "Inspect schedules, classrooms, teachers, and calendar feeds."
         },
         "courses": {
-          "title": "Browse courses",
+          "title": "Courses",
           "description": "Search the course catalog and jump into section details."
         },
         "teachers": {
-          "title": "Browse teachers",
+          "title": "Teachers",
           "description": "Look up teacher profiles and the sections they teach."
+        },
+        "links": {
+          "title": "Websites",
+          "description": "Jump to academic affairs, email, and other frequently used services."
+        },
+        "bus": {
+          "title": "Bus",
+          "description": "Check the next departure between campuses."
         }
       }
     },
@@ -348,49 +357,31 @@
     }
   },
   "mobileAppPage": {
-    "eyebrow": "iPhone companion",
-    "title": "Life@USTC Mobile App",
-    "subtitle": "A focused mobile surface for the campus checks students repeat most: schedules, shuttle routes, course discovery, and personal workspace access.",
-    "availability": "Available on App Store",
-    "featureTitle": "Built for daily campus checks",
-    "quickLinksTitle": "Web tools",
-    "previewTitle": "Campus stack",
-    "previewSubtitle": "Compact checks for daily routines",
-    "previewStatusTitle": "Ready for today's planning",
-    "previewStatusDescription": "Open schedule, transit, and catalog resources from a focused mobile workflow.",
-    "stats": {
-      "companionLabel": "Companion app",
-      "companionValue": "Life@USTC",
-      "platformLabel": "Platform",
-      "platformValue": "iPhone",
-      "accessLabel": "Access model",
-      "accessValue": "Public tools"
-    },
-    "features": {
+    "eyebrow": "iPhone campus companion",
+    "title": "Life@USTC",
+    "subtitle": "Schedules, shuttles, courses, and homework — campus life in your pocket.",
+    "availability": "Available on the App Store",
+    "galleryTitle": "App screenshots",
+    "gallerySubtitle": "From the Life@USTC iOS client.",
+    "openWeb": "Open web app",
+    "repoCredit": "Screenshots from",
+    "screenshots": {
       "schedule": {
-        "title": "Schedule awareness",
-        "description": "Keep class timing, locations, and calendar-oriented schoolwork close at hand."
+        "title": "Schedule",
+        "alt": "Life@USTC schedule screenshot"
       },
       "bus": {
-        "title": "Shuttle checks",
-        "description": "Jump into campus transit routes when planning movement between stops and campuses."
+        "title": "Shuttle",
+        "alt": "Life@USTC shuttle bus screenshot"
       },
       "catalog": {
-        "title": "Course discovery",
-        "description": "Move from courses to sections and teachers without losing context."
+        "title": "Courses",
+        "alt": "Life@USTC course discovery screenshot"
       },
-      "profile": {
-        "title": "Personal workspace",
-        "description": "Sign in when you need subscriptions, profile settings, and personal dashboard tools."
+      "workspace": {
+        "title": "Workspace",
+        "alt": "Life@USTC personal workspace screenshot"
       }
-    },
-    "preview": {
-      "scheduleLabel": "Schedule",
-      "calendarStatus": "Classes and tasks",
-      "busLabel": "Shuttle",
-      "busStatus": "Route planning",
-      "linksLabel": "Campus links",
-      "linksStatus": "Quick access"
     }
   },
   "admin": {
@@ -402,7 +393,7 @@
     "usersDescription": "All users",
     "oauthTitle": "OAuth Clients",
     "oauthDescription": "OAuth apps",
-    "busTitle": "Shuttle Bus",
+    "busTitle": "Bus Management",
     "busDescription": "Bus timetables",
     "dashboard": {
       "active": "active",
@@ -425,15 +416,6 @@
   "adminBus": {
     "title": "Shuttle Bus Management",
     "subtitle": "View and manage timetable versions, import data from the static repository.",
-    "statVersions": "Versions",
-    "statVersionsMeta": "Imported timetable snapshots",
-    "statActive": "Active",
-    "statActiveMeta": "Currently used by public bus tools",
-    "statNone": "None",
-    "statCampuses": "Campuses",
-    "statCampusesMeta": "Known shuttle stops",
-    "statRoutes": "Routes",
-    "statRoutesMeta": "Route definitions in storage",
     "versionsTitle": "Timetable Versions",
     "versionsDescription": "Review active and historical imports before changing the active timetable.",
     "importAction": "Import from Static",
@@ -706,12 +688,15 @@
       "description": "Search USTC services and pin frequently used entries.",
       "publicDescription": "Search campus links and sign in to pin your favorites.",
       "searchPlaceholder": "Search by name or description…",
-      "searchShortcutHint": "Press ⌘K or Ctrl+K to focus search",
+      "searchShortcutHint": "Press ⌘⇧K or Ctrl+Shift+K to focus search",
       "allSitesTab": "All websites",
       "overviewHint": "Overview shows 4 sites only: your pins first, then recommended ones.",
       "viewMode": "Website view",
       "gridView": "Card",
       "listView": "List",
+      "colName": "Name",
+      "colDescription": "Description",
+      "colActions": "Actions",
       "pin": "Pin",
       "unpin": "Unpin",
       "pinFailedTitle": "Pin update failed",
@@ -1211,18 +1196,22 @@
     "today": "Today",
     "moreEvents": "+{count} more",
     "roomTbd": "Room TBD",
+    "room": "Room",
     "classEventTitle": "Class event",
     "calendarSheetTitle": "Add to Calendar",
-    "calendarSheetDescription": "Copy the link below and add this calendar in your calendar app",
-    "calendarUrlLabel": "Single Section Calendar URL",
-    "subscriptionUrlLabel": "Section Subscription Calendar URL",
+    "calendarSheetDescription": "Copy a link below, then add it in your calendar app as a subscribed calendar.",
+    "calendarUrlLabel": "This section only",
+    "calendarUrlDescription": "Lectures, exams, and homework for this section.",
+    "subscriptionUrlLabel": "All your subscriptions",
+    "subscriptionUrlDescription": "Every section you subscribe to in Life@USTC, plus todos and other personal schedule items. Updates automatically.",
     "subscriptionMissing": "Sign in to generate your personal feed",
     "subscriptionHintLabel": "This URL includes all sections you subscribe to in Life@USTC and auto-syncs. It does not change official USTC course enrollment.",
+    "subscriptionPrivacyNote": "Treat this link like a private credential. Do not share it publicly.",
     "subscribeLabel": "Subscribe to section",
     "unsubscribeLabel": "Unsubscribe from section",
     "copyToClipboard": "Copy",
     "close": "Close",
-    "learnMoreAboutICalendar": "Learn more about iCalendar format",
+    "learnMoreAboutICalendar": "How to subscribe with a calendar link (Apple Support)",
     "copied": "Copied!",
     "subscribing": "Adding...",
     "unsubscribing": "Removing...",
@@ -1267,9 +1256,11 @@
     "calendarEmpty": "No schedule or exam events available for this section",
     "classEvent": "Class",
     "examEvent": "Exam",
+    "lecture": "Lecture",
+    "lectureNumber": "Lecture #{num}",
     "classSession": "Class Session",
     "examSession": "Exam Session",
-    "examBatch": "Exam Batch",
+    "examBatch": "Batch",
     "dateTBD": "Date TBD",
     "previousMonth": "Previous month",
     "nextMonth": "Next month",
@@ -1285,14 +1276,14 @@
     "location": "Location",
     "teacher": "Teacher",
     "exams": "Exams ({count})",
-    "examDate": "Exam date",
-    "examTime": "Exam time",
-    "examDateTBD": "Exam Date TBD",
+    "examDate": "Date",
+    "examTime": "Time",
+    "examDateTBD": "Date TBD",
     "examType": "Exam Type",
     "examTypeMidterm": "Midterm",
     "examTypeFinal": "Final",
-    "examMode": "Exam Mode",
-    "examCount": "Number of Examinees",
+    "examMode": "Mode",
+    "examCount": "People",
     "viewAllSections": "View all sections for this course",
     "viewMySubscriptions": "View my section subscriptions",
     "viewTeacherCourses": "View other courses taught by {teacher}",
@@ -1890,6 +1881,7 @@
     "actions": "Actions",
     "homeworkTitle": "Title",
     "homeworkSection": "Section",
+    "homeworkDue": "Due",
     "homeworkStatusActive": "Active",
     "homeworkStatusDeleted": "Deleted",
     "deleteHomeworkAction": "Delete",
@@ -2108,6 +2100,41 @@
     "enableMcpScope": "Enable MCP tool access for this client",
     "permissionsTitle": "Permissions",
     "permissionsHint": "Select exactly which scopes this client should be allowed to request.",
+    "authorizeAllScopes": "Authorize all",
+    "clearAllScopes": "Clear all",
+    "scopeGroupSelectAll": "Select group",
+    "scopeActionRead": "Read",
+    "scopeActionWrite": "Manage",
+    "scopeGroup_identity": "Identity",
+    "scopeGroup_account": "Account",
+    "scopeGroup_catalog": "Catalog",
+    "scopeGroup_community": "Community",
+    "scopeGroup_workspace": "Workspace",
+    "scopeGroup_admin": "Admin",
+    "scopeGroup_other": "Other",
+    "scopeFeature_account.profile": "Profile",
+    "scopeFeature_catalog.bus": "Shuttle",
+    "scopeFeature_catalog.course": "Courses",
+    "scopeFeature_catalog.exam": "Exams",
+    "scopeFeature_catalog.link": "Websites",
+    "scopeFeature_catalog.schedule": "Class schedules",
+    "scopeFeature_catalog.section": "Sections",
+    "scopeFeature_catalog.teacher": "Teachers",
+    "scopeFeature_community.comment": "Comments",
+    "scopeFeature_community.description": "Descriptions",
+    "scopeFeature_community.section-homework": "Section homework",
+    "scopeFeature_community.user": "User profiles",
+    "scopeFeature_workspace.bus-preferences": "Shuttle preferences",
+    "scopeFeature_workspace.calendar": "Calendar",
+    "scopeFeature_workspace.exam": "Exams",
+    "scopeFeature_workspace.homework": "Homework",
+    "scopeFeature_workspace.link-pin": "Pinned websites",
+    "scopeFeature_workspace.overview": "Overview",
+    "scopeFeature_workspace.schedule": "Schedule",
+    "scopeFeature_workspace.subscription": "Subscriptions",
+    "scopeFeature_workspace.todo": "Todos",
+    "scopeFeature_workspace.upload": "Uploads",
+    "scopeFeature_admin": "Admin backend",
     "scopeOpenIdDescription": "Required when the client needs an authenticated user identity.",
     "scopeMcpToolsDescription": "Lets the client call MCP tools exposed by this server.",
     "creating": "Creating…",

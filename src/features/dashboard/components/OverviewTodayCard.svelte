@@ -7,10 +7,9 @@ import type {
   DashboardTodoItem,
 } from "@/features/dashboard/lib/dashboard-controller-helpers";
 import { sectionDetailHomeworkPath } from "@/features/section-detail/lib/section-detail-tab";
-import * as Card from "$lib/components/ui/card/index.js";
-import * as Empty from "$lib/components/ui/empty/index.js";
-import * as Item from "$lib/components/ui/item/index.js";
+import SoftEmptyMessage from "$lib/components/SoftEmptyMessage.svelte";
 import type { DashboardCalendarTabHref } from "./dashboard-calendar-component-types";
+import OverviewSection from "./OverviewSection.svelte";
 
 export let copy: DashboardRootCopy;
 export let dashboardCopy: DashboardDashboardCopy;
@@ -21,68 +20,64 @@ export let fmtDate: (date: Date | string | null | undefined) => string;
 export let fmtTime: (time: number) => string;
 export let sessionHref: (session: DashboardSessionItem) => string;
 export let todaySessions: DashboardSessionItem[];
+
+$: isEmpty =
+  todaySessions.length === 0 &&
+  dueTodayHomeworks.length === 0 &&
+  dueTodayTodos.length === 0;
 </script>
 
-<Card.Root>
-  <Card.Header>
-    <Card.Title>
-      <a class="no-underline hover:underline" href={dashboardTabHref("calendar")}>{dashboardCopy.today.title}</a>
-    </Card.Title>
-  </Card.Header>
-  <Card.Content>
-    <Item.Group class="grid gap-2 md:grid-cols-2">
+<OverviewSection
+  href={dashboardTabHref("calendar")}
+  title={dashboardCopy.today.title}
+>
+  {#if isEmpty}
+    <SoftEmptyMessage message={dashboardCopy.today.empty} />
+  {:else}
+    <ul class="divide-y divide-border/60">
       {#each todaySessions as session}
-        <Item.Root variant="outline" size="sm">
-          {#snippet child({ props })}
-            <a href={sessionHref(session)} {...props}>
-              <Item.Content>
-                <Item.Title>{session.courseName}</Item.Title>
-                <Item.Description>
-                  {fmtTime(session.startTime)}-{fmtTime(session.endTime)} · {session.location}
-                </Item.Description>
-              </Item.Content>
-            </a>
-          {/snippet}
-        </Item.Root>
+        <li>
+          <a
+            class="grid gap-0.5 py-2.5 transition-colors hover:bg-muted/40 -mx-2 px-2 rounded-md"
+            href={sessionHref(session)}
+          >
+            <span class="font-medium text-sm">{session.courseName}</span>
+            <span class="text-muted-foreground text-xs">
+              {fmtTime(session.startTime)}-{fmtTime(session.endTime)} · {session.location}
+            </span>
+          </a>
+        </li>
       {/each}
       {#each dueTodayHomeworks as homework}
-        <Item.Root variant="muted" size="sm">
-          {#snippet child({ props })}
-            <a
-              href={homework.section?.jwId
-                ? sectionDetailHomeworkPath(homework.section.jwId, {
-                    homeworkId: homework.id,
-                  })
-                : dashboardTabHref("homeworks")}
-              {...props}
-            >
-              <Item.Content>
-                <Item.Title>{homework.title}</Item.Title>
-                <Item.Description>{copy.CalendarEventCard.homework} · {fmtDate(homework.submissionDueAt)}</Item.Description>
-              </Item.Content>
-            </a>
-          {/snippet}
-        </Item.Root>
+        <li>
+          <a
+            class="grid gap-0.5 py-2.5 transition-colors hover:bg-muted/40 -mx-2 px-2 rounded-md"
+            href={homework.section?.jwId
+              ? sectionDetailHomeworkPath(homework.section.jwId, {
+                  homeworkId: homework.id,
+                })
+              : dashboardTabHref("homeworks")}
+          >
+            <span class="font-medium text-sm">{homework.title}</span>
+            <span class="text-muted-foreground text-xs">
+              {copy.CalendarEventCard.homework} · {fmtDate(homework.submissionDueAt)}
+            </span>
+          </a>
+        </li>
       {/each}
       {#each dueTodayTodos as todo}
-        <Item.Root variant="muted" size="sm">
-          {#snippet child({ props })}
-            <a href={dashboardTabHref("todos")} {...props}>
-              <Item.Content>
-                <Item.Title>{todo.title}</Item.Title>
-                <Item.Description>{copy.CalendarEventCard.todo} · {fmtDate(todo.dueAt)}</Item.Description>
-              </Item.Content>
-            </a>
-          {/snippet}
-        </Item.Root>
+        <li>
+          <a
+            class="grid gap-0.5 py-2.5 transition-colors hover:bg-muted/40 -mx-2 px-2 rounded-md"
+            href={dashboardTabHref("todos")}
+          >
+            <span class="font-medium text-sm">{todo.title}</span>
+            <span class="text-muted-foreground text-xs">
+              {copy.CalendarEventCard.todo} · {fmtDate(todo.dueAt)}
+            </span>
+          </a>
+        </li>
       {/each}
-      {#if todaySessions.length === 0 && dueTodayHomeworks.length === 0 && dueTodayTodos.length === 0}
-        <Empty.Root class="py-2 md:col-span-2">
-          <Empty.Header>
-            <Empty.Title>{dashboardCopy.today.empty}</Empty.Title>
-          </Empty.Header>
-        </Empty.Root>
-      {/if}
-    </Item.Group>
-  </Card.Content>
-</Card.Root>
+    </ul>
+  {/if}
+</OverviewSection>

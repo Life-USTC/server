@@ -1,7 +1,8 @@
 <script lang="ts">
+import ArrowUpRight from "@lucide/svelte/icons/arrow-up-right";
 import { Badge } from "$lib/components/ui/badge/index.js";
-import { Button } from "$lib/components/ui/button/index.js";
 import * as Card from "$lib/components/ui/card/index.js";
+import DashboardTableIconButton from "./DashboardTableIconButton.svelte";
 import type {
   DashboardExamRow,
   DashboardTabHref,
@@ -22,12 +23,15 @@ export let sectionCopy: ExamsCopyProps["sectionCopy"];
 export let subscriptionsCopy: ExamsCopyProps["subscriptionsCopy"];
 </script>
 
-<div class="grid gap-3 md:grid-cols-2 xl:grid-cols-3" data-testid="dashboard-exams-cards">
+<div class="grid gap-3 md:grid-cols-2" data-testid="dashboard-exams-cards">
   {#each exams as exam}
+    {@const detailHref = exam.section.jwId
+      ? `/catalog/sections/${exam.section.jwId}`
+      : dashboardTabHref("subscriptions")}
     <Card.Root data-slot="card">
       <Card.Header>
         <Card.Title>
-          <a class="underline-offset-4 hover:underline" href={exam.section.jwId ? `/catalog/sections/${exam.section.jwId}` : dashboardTabHref("subscriptions")}>
+          <a class="underline-offset-4 hover:underline" href={detailHref}>
             {exam.courseName}
           </a>
         </Card.Title>
@@ -61,9 +65,9 @@ export let subscriptionsCopy: ExamsCopyProps["subscriptionsCopy"];
           {#if exam.examMode}<Badge variant="secondary">{exam.examMode}</Badge>{/if}
           {#each examMetadataLabels(exam) as label}<Badge variant="secondary">{label}</Badge>{/each}
         </div>
-        <Button href={exam.section.jwId ? `/catalog/sections/${exam.section.jwId}` : dashboardTabHref("subscriptions")} size="sm" variant="outline">
-          {sectionCopy.moreDetails}
-        </Button>
+        <DashboardTableIconButton href={detailHref} label={sectionCopy.moreDetails}>
+          <ArrowUpRight />
+        </DashboardTableIconButton>
       </Card.Footer>
     </Card.Root>
   {/each}

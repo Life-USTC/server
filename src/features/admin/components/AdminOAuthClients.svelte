@@ -1,5 +1,7 @@
 <script lang="ts">
 import TrashIcon from "@lucide/svelte/icons/trash-2";
+import DashboardTableIconButton from "@/features/dashboard/components/DashboardTableIconButton.svelte";
+import DashboardTableRowActions from "@/features/dashboard/components/DashboardTableRowActions.svelte";
 import TruncatedBadge from "$lib/components/TruncatedBadge.svelte";
 import TruncatedText from "$lib/components/TruncatedText.svelte";
 import { Badge } from "$lib/components/ui/badge/index.js";
@@ -23,13 +25,7 @@ export let scopeLabel: (scope: string) => string;
 </script>
 
 <section class="flex min-w-0 flex-col gap-3">
-  <div class="flex min-w-0 items-start justify-between gap-3">
-    <div class="min-w-0">
-      <h2 class="font-semibold text-lg">{copy.existingClients}</h2>
-      <p class="text-muted-foreground text-sm">
-        {copy.existingClientsDescription}
-      </p>
-    </div>
+  <div class="flex justify-end">
     <Badge variant="secondary">
       {copy.clientCount.replace("{count}", String(clients.length))}
     </Badge>
@@ -49,7 +45,7 @@ export let scopeLabel: (scope: string) => string;
     </Empty.Root>
   {:else}
     <div class="hidden min-w-0 max-w-full xl:block">
-      <Table.Root>
+      <Table.Root class="w-full">
         <Table.Caption class="sr-only">
           {copy.existingClientsDescription}
         </Table.Caption>
@@ -59,12 +55,15 @@ export let scopeLabel: (scope: string) => string;
             <Table.Head>{copy.tableColumnType}</Table.Head>
             <Table.Head>{copy.tableColumnScopes}</Table.Head>
             <Table.Head>{copy.createdAtLabel}</Table.Head>
+            <Table.Head>
+              <span class="sr-only">{copy.deleteClient}</span>
+            </Table.Head>
           </Table.Row>
         </Table.Header>
         <Table.Body>
           {#each clients as client (client.clientId)}
-            <Table.Row>
-              <Table.Cell class="max-w-64 whitespace-normal">
+            <Table.Row class="group">
+              <Table.Cell class="whitespace-normal">
                 <div class="flex min-w-0 flex-col gap-1">
                   <TruncatedText
                     class="font-medium"
@@ -77,48 +76,41 @@ export let scopeLabel: (scope: string) => string;
                 </div>
               </Table.Cell>
               <Table.Cell>
-                <div class="flex max-w-56 min-w-0 flex-nowrap gap-1.5">
-                  <TruncatedBadge
-                    class="flex-1"
-                    text={client.skipConsent
+                <div class="flex flex-nowrap gap-1.5">
+                  <Badge variant={client.skipConsent ? "secondary" : "outline"}>
+                    {client.skipConsent
                       ? copy.clientTrustTrusted
                       : copy.clientTrustConsent}
-                    variant={client.skipConsent ? "secondary" : "outline"}
-                  />
-                  <TruncatedBadge
-                    class="flex-1"
-                    text={clientTypeLabel(client.tokenEndpointAuthMethod)}
-                    variant="ghost"
-                  />
-                  <TruncatedBadge
-                    class="flex-1"
-                    text={client.disabled ? copy.disabled : copy.enabled}
-                    variant={client.disabled ? "destructive" : "default"}
-                  />
+                  </Badge>
+                  <Badge variant="ghost">
+                    {clientTypeLabel(client.tokenEndpointAuthMethod)}
+                  </Badge>
+                  <Badge variant={client.disabled ? "destructive" : "default"}>
+                    {client.disabled ? copy.disabled : copy.enabled}
+                  </Badge>
                 </div>
               </Table.Cell>
-              <Table.Cell class="max-w-72">
+              <Table.Cell class="max-w-[14rem]">
                 <TruncatedBadge
-                  class="w-full"
+                  class="w-full max-w-full"
                   text={client.scopes.length > 0
                     ? client.scopes.join(", ")
                     : copy.notAvailable}
                 />
               </Table.Cell>
+              <Table.Cell class="whitespace-nowrap tabular-nums text-muted-foreground">
+                {formatCreatedAt(client.createdAt)}
+              </Table.Cell>
               <Table.Cell>
-                <div class="flex flex-col items-start gap-2">
-                  <span>{formatCreatedAt(client.createdAt)}</span>
-                  <Button
-                    aria-label={`${copy.deleteClient}: ${client.name ?? copy.unnamedClient}`}
-                    size="sm"
-                    type="button"
+                <DashboardTableRowActions>
+                  <DashboardTableIconButton
+                    label={`${copy.deleteClient}: ${client.name ?? copy.unnamedClient}`}
                     variant="destructive"
                     onclick={() => onDelete(client)}
                   >
-                    <TrashIcon data-icon="inline-start" />
-                    <span>{copy.deleteClient}</span>
-                  </Button>
-                </div>
+                    <TrashIcon />
+                  </DashboardTableIconButton>
+                </DashboardTableRowActions>
               </Table.Cell>
             </Table.Row>
           {/each}
@@ -170,16 +162,13 @@ export let scopeLabel: (scope: string) => string;
               </Item.Description>
             </Item.Content>
             <Item.Actions class="w-full justify-end">
-              <Button
-                aria-label={`${copy.deleteClient}: ${client.name ?? copy.unnamedClient}`}
-                size="sm"
-                type="button"
+              <DashboardTableIconButton
+                label={`${copy.deleteClient}: ${client.name ?? copy.unnamedClient}`}
                 variant="destructive"
                 onclick={() => onDelete(client)}
               >
-                <TrashIcon data-icon="inline-start" />
-                <span>{copy.deleteClient}</span>
-              </Button>
+                <TrashIcon />
+              </DashboardTableIconButton>
             </Item.Actions>
           </Item.Root>
         {/each}

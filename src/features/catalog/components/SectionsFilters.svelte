@@ -26,7 +26,7 @@ export let onSubmit: () => void;
 export let sectionLabels: SectionListLabels;
 export let semesterOptions: SectionListOption[];
 
-const controlClass = "w-full [&>select]:h-11";
+const controlClass = "w-full";
 let selectedSort = filters.sort ?? "";
 
 $: selectedSort = filters.sort ?? "";
@@ -61,7 +61,6 @@ $: selectedSort = filters.sort ?? "";
         <Field.Field>
           <Field.Label for={`${idPrefix}-teacher`}>{sectionLabels.teachers}</Field.Label>
           <Input
-            class="h-11"
             id={`${idPrefix}-teacher`}
             name="teacher"
             value={filters.teacher ?? ""}
@@ -72,7 +71,6 @@ $: selectedSort = filters.sort ?? "";
           <Field.Field>
             <Field.Label for={`${idPrefix}-course-code`}>{sectionLabels.courseCode}</Field.Label>
             <Input
-              class="h-11"
               id={`${idPrefix}-course-code`}
               name="courseCode"
               value={filters.courseCode ?? ""}
@@ -81,7 +79,6 @@ $: selectedSort = filters.sort ?? "";
           <Field.Field>
             <Field.Label for={`${idPrefix}-section-code`}>{sectionLabels.sectionCode}</Field.Label>
             <Input
-              class="h-11"
               id={`${idPrefix}-section-code`}
               name="sectionCode"
               value={filters.sectionCode ?? ""}
@@ -125,7 +122,6 @@ $: selectedSort = filters.sort ?? "";
         <Field.Field>
           <Field.Label for={`${idPrefix}-credits`}>{sectionLabels.credits}</Field.Label>
           <Input
-            class="h-11"
             id={`${idPrefix}-credits`}
             min="0"
             name="credits"
@@ -263,14 +259,13 @@ $: selectedSort = filters.sort ?? "";
     </Accordion.Root>
 
     <ButtonGroup.Root class="w-full" orientation="vertical">
-      <Button class="w-full" size="lg" type="submit">
+      <Button class="w-full" type="submit">
         {sectionLabels.filters.apply}
       </Button>
       <Button
         class="w-full"
         href={clearHref}
         onclick={onSubmit}
-        size="lg"
         variant="outline"
       >
         {commonLabels.clear}

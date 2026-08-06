@@ -2,11 +2,10 @@
 import { onMount } from "svelte";
 import { commentTargetPermalinkBaseHref } from "@/features/comments/lib/comment-panel-controller";
 import PageHeader from "$lib/components/PageHeader.svelte";
-import { Badge } from "$lib/components/ui/badge/index.js";
 import {
   type CatalogNamed,
+  catalogLocalizedDisplayName,
   catalogPrimaryName as primaryName,
-  catalogSecondaryName as secondaryName,
 } from "../lib/catalog-list-display";
 import { formatCatalogDetailMessage as formatMessage } from "../lib/course-detail-display";
 import type {
@@ -76,11 +75,7 @@ onMount(() => {
 $: copy = data.copy;
 $: detailCopy = copy satisfies TeacherDetailCopy;
 $: notAvailable = copy.teacherDetail.notAvailable;
-$: displayName = primaryName(data.teacher);
-$: secondaryDisplayName = secondaryName(data.teacher);
-$: teacherDescription = data.teacher.department
-  ? primaryName(data.teacher.department)
-  : secondaryDisplayName;
+$: displayName = catalogLocalizedDisplayName(data.teacher, data.locale);
 </script>
 
 <svelte:head>
@@ -92,24 +87,8 @@ $: teacherDescription = data.teacher.department
   <div class="bg-card px-4 sm:px-5 lg:px-6">
     <PageHeader
       title={displayName}
-      description={teacherDescription}
-      eyebrow={copy.common.teachers}
       titleClass="text-2xl leading-tight sm:text-3xl"
-    >
-      {#snippet after()}
-        <div class="flex flex-wrap gap-2">
-          {#if data.teacher.department}
-            <Badge class="font-mono" variant="outline">{primaryName(data.teacher.department)}</Badge>
-          {/if}
-          {#if data.teacher.teacherTitle}
-            <Badge variant="ghost">{primaryName(data.teacher.teacherTitle)}</Badge>
-          {/if}
-          {#if data.teacher.email}
-            <Badge variant="secondary">{data.teacher.email}</Badge>
-          {/if}
-        </div>
-      {/snippet}
-    </PageHeader>
+    />
   </div>
 
   <div
@@ -119,9 +98,6 @@ $: teacherDescription = data.teacher.department
     <div class="grid gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(16rem,20rem)] lg:items-start lg:gap-10">
       <div class="grid min-w-0 gap-10">
         <section id="introduction" class="scroll-mt-4">
-          <h2 class="mb-3 text-lg font-semibold tracking-tight">
-            {copy.descriptions.title}
-          </h2>
           {#key `description:teacher:${data.teacher.id}`}
             {#if DescriptionCard}
               <svelte:component
@@ -131,9 +107,13 @@ $: teacherDescription = data.teacher.department
                 initialData={data.descriptionData}
                 locale={data.locale as "en-us" | "zh-cn"}
                 copy={copy.descriptions}
+                heading={copy.descriptions.title}
                 showTitle={false}
               />
             {:else if data.descriptionData.description.renderedHtml}
+              <h2 class="mb-3 text-lg font-semibold tracking-tight">
+                {copy.descriptions.title}
+              </h2>
               <div class="markdown-preview" data-slot="markdown-preview">
                 {@html data.descriptionData.description.renderedHtml}
               </div>
@@ -147,17 +127,13 @@ $: teacherDescription = data.teacher.department
           </h2>
           <TeacherDetailSections
             copy={detailCopy}
+            locale={data.locale}
             {notAvailable}
-            {primaryName}
-            {secondaryName}
             teacher={data.teacher}
           />
         </section>
 
         <section id="comments" class="scroll-mt-4">
-          <h2 class="mb-3 text-lg font-semibold tracking-tight">
-            {copy.comments.title}
-          </h2>
           {#key `comments:teacher:${data.teacher.id}`}
             {#if CommentsPanel}
               <svelte:component
@@ -169,6 +145,7 @@ $: teacherDescription = data.teacher.department
                 })}
                 targetType="teacher"
                 targetId={data.teacher.id}
+                heading={copy.comments.title}
               />
             {/if}
           {/key}
@@ -179,10 +156,8 @@ $: teacherDescription = data.teacher.department
         <section id="overview">
           <TeacherDetailBasicInfo
             copy={detailCopy}
-            {displayName}
             {notAvailable}
             {primaryName}
-            {secondaryDisplayName}
             teacher={data.teacher}
           />
         </section>

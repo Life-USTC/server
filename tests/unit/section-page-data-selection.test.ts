@@ -55,8 +55,7 @@ describe("section page data selection", () => {
     expect(result).toMatchObject({
       examCount: 4,
       exams: [],
-      sameSemesterOtherTeachers: [],
-      sameTeacherOtherSemesters: [],
+      otherCourseSections: [],
       scheduleCount: 18,
       schedules: [],
     });
@@ -157,7 +156,7 @@ describe("section page data selection", () => {
     if (!base) throw new Error("expected section base");
 
     const result = await withSectionPageRelatedData(base, "zh-cn");
-    const related = result.sameSemesterOtherTeachers[0];
+    const related = result.otherCourseSections[0];
 
     expect(result).not.toBe(base);
     expect(result.course).toBe(base.course);

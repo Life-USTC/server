@@ -112,7 +112,7 @@ function setActiveTab(value: string) {
 
   {#if guideLabel}
     <div class="flex justify-end">
-      <Button href={guideHref} size="sm" variant="ghost">{guideLabel}</Button>
+      <Button href={guideHref} variant="ghost">{guideLabel}</Button>
     </div>
   {/if}
 </div>

@@ -8,24 +8,20 @@ import { toShanghaiIsoString } from "@/lib/time/serialize-date-output";
 export async function getAdminBusPage(request: Request) {
   await requireAdminPage(request);
   const prisma = await getPrismaClient();
-  const [versions, campusCount, routeCount] = await Promise.all([
-    prisma.busScheduleVersion.findMany({
-      select: {
-        id: true,
-        key: true,
-        title: true,
-        isEnabled: true,
-        importedAt: true,
-        effectiveFrom: true,
-        effectiveUntil: true,
-        sourceMessage: true,
-        _count: { select: { trips: true } },
-      },
-      orderBy: { importedAt: "desc" },
-    }),
-    prisma.busCampus.count(),
-    prisma.busRoute.count(),
-  ]);
+  const versions = await prisma.busScheduleVersion.findMany({
+    select: {
+      id: true,
+      key: true,
+      title: true,
+      isEnabled: true,
+      importedAt: true,
+      effectiveFrom: true,
+      effectiveUntil: true,
+      sourceMessage: true,
+      _count: { select: { trips: true } },
+    },
+    orderBy: { importedAt: "desc" },
+  });
 
   return toLoadData({
     versions: versions.map((version) => ({
@@ -43,11 +39,5 @@ export async function getAdminBusPage(request: Request) {
         ? toShanghaiIsoString(version.effectiveUntil)
         : null,
     })),
-    summary: {
-      versions: versions.length,
-      active: versions.find((version) => version.isEnabled)?.title ?? null,
-      campuses: campusCount,
-      routes: routeCount,
-    },
   });
 }

@@ -1,8 +1,8 @@
 <script lang="ts">
 import type { DashboardDashboardCopy } from "@/features/dashboard/lib/dashboard-controller-helpers";
 import CalendarWeekStrip from "$lib/components/calendar/CalendarWeekStrip.svelte";
-import * as Card from "$lib/components/ui/card/index.js";
 import type { DashboardCalendarTabHref } from "./dashboard-calendar-component-types";
+import OverviewSection from "./OverviewSection.svelte";
 import type { OverviewWeekDay } from "./overview-tab-types";
 
 export let dashboardCopy: DashboardDashboardCopy;
@@ -14,20 +14,17 @@ export let formatMessage: (
 ) => string;
 </script>
 
-<Card.Root>
-  <Card.Header>
-    <Card.Title>
-      <a class="no-underline hover:underline" href={dashboardTabHref("calendar")}>{dashboardCopy.week.title}</a>
-    </Card.Title>
-  </Card.Header>
-  <Card.Content>
-    <CalendarWeekStrip
-      {days}
-      emptyLabel={dashboardCopy.openSlot}
-      moreLabel={(count) =>
-        formatMessage(dashboardCopy.moreItems, {
-          count: String(count),
-        })}
-    />
-  </Card.Content>
-</Card.Root>
+<OverviewSection
+  href={dashboardTabHref("calendar")}
+  testId="dashboard-overview-week"
+  title={dashboardCopy.week.title}
+>
+  <CalendarWeekStrip
+    {days}
+    emptyLabel={dashboardCopy.openSlot}
+    moreLabel={(count) =>
+      formatMessage(dashboardCopy.moreItems, {
+        count: String(count),
+      })}
+  />
+</OverviewSection>

@@ -1,5 +1,4 @@
 <script lang="ts">
-import type { CatalogNamed } from "@/features/catalog/lib/catalog-list-display";
 import type {
   TeacherDetailCopy,
   TeacherDetailTeacher,
@@ -8,25 +7,22 @@ import TeacherDetailSectionsMobile from "./TeacherDetailSectionsMobile.svelte";
 import TeacherDetailSectionsTable from "./TeacherDetailSectionsTable.svelte";
 
 export let copy: TeacherDetailCopy;
+export let locale: string;
 export let notAvailable: string;
-export let primaryName: (item: CatalogNamed | null | undefined) => string;
-export let secondaryName: (item: CatalogNamed | null | undefined) => string;
 export let teacher: TeacherDetailTeacher;
 </script>
 
 <section class="grid gap-4">
   <TeacherDetailSectionsMobile
     {copy}
+    {locale}
     {notAvailable}
-    {primaryName}
-    {secondaryName}
     {teacher}
   />
   <TeacherDetailSectionsTable
     {copy}
+    {locale}
     {notAvailable}
-    {primaryName}
-    {secondaryName}
     {teacher}
   />
 </section>

@@ -1,7 +1,6 @@
 <script lang="ts">
 import AdminBusVersionsMobileList from "@/features/admin/components/AdminBusVersionsMobileList.svelte";
 import AdminBusVersionsTable from "@/features/admin/components/AdminBusVersionsTable.svelte";
-import * as Card from "$lib/components/ui/card/index.js";
 import type {
   AdminBusCopy,
   AdminBusEnhancedAction,
@@ -19,34 +18,26 @@ export let pendingAction: string | null;
 export let versions: AdminBusVersion[];
 </script>
 
-<Card.Root>
-  <Card.Header>
-    <Card.Title>{copy.versionsTitle}</Card.Title>
-    <Card.Description>
-      {copy.versionsDescription}
-    </Card.Description>
-  </Card.Header>
-  <Card.Content class="grid grid-cols-[minmax(0,1fr)] gap-4">
-    <AdminBusVersionsMobileList
-      {copy}
-      {enhancedAction}
-      {formatEffectiveRange}
-      {formatImportedAt}
-      {isPending}
-      {onDelete}
-      {pendingAction}
-      {versions}
-    />
+<section class="grid min-w-0 gap-3">
+  <AdminBusVersionsMobileList
+    {copy}
+    {enhancedAction}
+    {formatEffectiveRange}
+    {formatImportedAt}
+    {isPending}
+    {onDelete}
+    {pendingAction}
+    {versions}
+  />
 
-    <AdminBusVersionsTable
-      {copy}
-      {enhancedAction}
-      {formatEffectiveRange}
-      {formatImportedAt}
-      {isPending}
-      {onDelete}
-      {pendingAction}
-      {versions}
-    />
-  </Card.Content>
-</Card.Root>
+  <AdminBusVersionsTable
+    {copy}
+    {enhancedAction}
+    {formatEffectiveRange}
+    {formatImportedAt}
+    {isPending}
+    {onDelete}
+    {pendingAction}
+    {versions}
+  />
+</section>

@@ -12,7 +12,7 @@
  * - filter: incomplete / completed / all
  *
  * ## Features
- * - Hover card to reveal completion button
+ * - Desktop list rows expose a completion button; mobile uses cards
  * - "View details" link → /catalog/sections/{jwId}?homeworkId={id}#homework
  * - Create homework button → modal form
  *
@@ -25,6 +25,7 @@ import { expect, test } from "@playwright/test";
 import { signInAsDebugUser } from "../../../../utils/auth";
 import { DEV_SEED } from "../../../../utils/dev-seed";
 import { cleanupHomeworksForE2e } from "../../../../utils/homeworks";
+import { visibleText } from "../../../../utils/locators";
 import { gotoAndWaitForReady } from "../../../../utils/page-ready";
 import { captureStepScreenshot } from "../../../../utils/screenshot";
 import { ensureSeedSectionSubscription } from "../../../../utils/subscriptions";
@@ -71,25 +72,25 @@ test.describe("仪表盘作业", () => {
       .first()
       .click();
 
-    const hwCard = page
-      .locator('[data-slot="card"]')
+    const hwRow = page
+      .getByRole("row")
       .filter({ hasText: DEV_SEED.homeworks.title })
       .first();
-    await expect(hwCard).toBeVisible();
+    await expect(hwRow).toBeVisible();
 
     // homework.title
-    await expect(hwCard.getByText(DEV_SEED.homeworks.title)).toBeVisible();
-    await expect(hwCard.getByText(/\d{1,2}:\d{2}/).first()).toBeVisible();
+    await expect(hwRow.getByText(DEV_SEED.homeworks.title)).toBeVisible();
+    await expect(hwRow.getByText(/\d{1,2}:\d{2}/).first()).toBeVisible();
 
     // section.course.namePrimary appears in the homework subtitle.
     await expect(
-      hwCard
+      hwRow
         .getByText(DEV_SEED.course.nameCn)
-        .or(hwCard.getByText(DEV_SEED.course.nameEn))
+        .or(hwRow.getByText(DEV_SEED.course.nameEn))
         .first(),
     ).toBeVisible();
 
-    await captureStepScreenshot(page, testInfo, "homeworks/seed-card-fields");
+    await captureStepScreenshot(page, testInfo, "homeworks/seed-list-fields");
   });
 
   test("移动端保留直接筛选并将视图切换收进紧凑菜单", async ({
@@ -151,13 +152,13 @@ test.describe("仪表盘作业", () => {
       .first()
       .click();
 
-    const hwCard = page
-      .locator('[data-slot="card"]')
+    const hwRow = page
+      .getByRole("row")
       .filter({ hasText: DEV_SEED.homeworks.title })
       .first();
-    await expect(hwCard).toBeVisible();
-    await expect(hwCard.getByText(/重要|Major|重大/i)).toBeVisible();
-    await expect(hwCard.getByText(/团队|Team/i)).toBeVisible();
+    await expect(hwRow).toBeVisible();
+    await expect(hwRow.getByText(/重要|Major|重大/i)).toBeVisible();
+    await expect(hwRow.getByText(/团队|Team/i)).toBeVisible();
 
     await captureStepScreenshot(page, testInfo, "homeworks/major-team-badges");
   });
@@ -169,7 +170,9 @@ test.describe("仪表盘作业", () => {
       testInfo,
       screenshotLabel: "homeworks",
     });
-    await expect(page.getByText(DEV_SEED.homeworks.overdueTitle)).toBeVisible();
+    await expect(
+      visibleText(page, DEV_SEED.homeworks.overdueTitle),
+    ).toBeVisible();
 
     // Completed filter
     const completedTab = page
@@ -178,22 +181,24 @@ test.describe("仪表盘作业", () => {
     await expect(completedTab).toBeVisible();
     await completedTab.click();
     await expect(
-      page.getByText(DEV_SEED.homeworks.completedTitle),
+      visibleText(page, DEV_SEED.homeworks.completedTitle),
     ).toBeVisible();
-    await expect(page.getByText(DEV_SEED.homeworks.overdueTitle)).toHaveCount(
-      0,
-    );
+    await expect(
+      visibleText(page, DEV_SEED.homeworks.overdueTitle),
+    ).toHaveCount(0);
     await captureStepScreenshot(page, testInfo, "homeworks/filter-completed");
 
     // All filter
     const allTab = page.getByRole("radio", { name: /全部|All/i }).first();
     await expect(allTab).toBeVisible();
     await allTab.click();
-    await expect(page.getByText(DEV_SEED.homeworks.overdueTitle)).toBeVisible();
+    await expect(
+      visibleText(page, DEV_SEED.homeworks.overdueTitle),
+    ).toBeVisible();
     await captureStepScreenshot(page, testInfo, "homeworks/filter-all");
   });
 
-  test("可切换到列表视图并持久化偏好", async ({ page }, testInfo) => {
+  test("桌面端默认显示作业列表", async ({ page }, testInfo) => {
     await signInAsDebugUser(page, "/workspace/homeworks");
     await ensureSeedSectionSubscription(page);
     await gotoAndWaitForReady(page, "/workspace/homeworks", {
@@ -206,25 +211,18 @@ test.describe("仪表盘作业", () => {
       .first()
       .click();
 
-    await expect(page.getByTestId("dashboard-homeworks-cards")).toBeVisible();
-    await page.getByRole("radio", { name: /列表|List/i }).click();
-    await expect(page).toHaveURL(/homeworkView=list/);
+    await expect(
+      page.getByRole("radio", { name: /列表|List|卡片|Cards/i }),
+    ).toHaveCount(0);
     await expect(page.getByTestId("dashboard-homeworks-list")).toBeVisible();
-    await expect
-      .poll(() =>
-        page.evaluate(() =>
-          localStorage.getItem("life-ustc-dashboard-view-mode"),
-        ),
-      )
-      .toBe("list");
+    await expect(page.getByTestId("dashboard-homeworks-cards")).toBeHidden();
+    await expect(
+      page
+        .getByRole("row")
+        .filter({ hasText: DEV_SEED.homeworks.title })
+        .first(),
+    ).toBeVisible();
 
-    await gotoAndWaitForReady(page, "/workspace/homeworks");
-    await page
-      .getByRole("radio", { name: /全部|All/i })
-      .first()
-      .click();
-    await expect(page).toHaveURL(/\/workspace\/homeworks$/);
-    await expect(page.getByTestId("dashboard-homeworks-list")).toBeVisible();
     await captureStepScreenshot(page, testInfo, "homeworks/list-view");
   });
 
@@ -245,21 +243,21 @@ test.describe("仪表盘作业", () => {
 
     await expect(page.getByRole("switch")).toHaveCount(0);
 
-    const card = page
-      .locator('[data-slot="card"]')
+    const row = page
+      .getByRole("row")
       .filter({ hasText: DEV_SEED.homeworks.title })
       .first();
-    await expect(card).toBeVisible();
-    await card.hover();
+    await expect(row).toBeVisible();
 
-    const completionButton = card
+    const completionButton = row
       .getByRole("button", {
         name: /标记为完成|取消完成|Mark as complete|Mark as incomplete/i,
       })
       .first();
-    await expect(completionButton).toHaveCSS("opacity", "1");
+    await expect(completionButton).toBeVisible();
 
-    const before = (await completionButton.textContent())?.trim() ?? "";
+    const before =
+      (await completionButton.getAttribute("aria-label"))?.trim() ?? "";
 
     const completionResponse = page.waitForResponse(
       (r) =>
@@ -269,9 +267,12 @@ test.describe("仪表盘作业", () => {
     );
     await completionButton.click();
     await completionResponse;
-    await expect(completionButton).not.toHaveText(before, { timeout: 15_000 });
+    await expect(completionButton).not.toHaveAttribute("aria-label", before, {
+      timeout: 15_000,
+    });
 
-    const after = (await completionButton.textContent())?.trim() ?? "";
+    const after =
+      (await completionButton.getAttribute("aria-label"))?.trim() ?? "";
     expect(after).not.toBe(before);
     await captureStepScreenshot(page, testInfo, "homeworks/completion-toggled");
 
@@ -309,19 +310,18 @@ test.describe("仪表盘作业", () => {
       .first()
       .click();
 
-    const card = page
-      .locator('[data-slot="card"]')
+    const row = page
+      .getByRole("row")
       .filter({ hasText: DEV_SEED.homeworks.title })
       .first();
-    await expect(card).toBeVisible();
-    await card.hover();
+    await expect(row).toBeVisible();
 
-    const completionButton = card
+    const completionButton = row
       .getByRole("button", {
         name: /标记为完成|取消完成|Mark as complete|Mark as incomplete/i,
       })
       .first();
-    await expect(completionButton).toHaveCSS("opacity", "1");
+    await expect(completionButton).toBeVisible();
 
     const completionResponse = page.waitForResponse(
       (r) =>
@@ -351,11 +351,11 @@ test.describe("仪表盘作业", () => {
       .first()
       .click();
 
-    const detailLink = page
-      .locator('[data-slot="card"]')
+    const detailRow = page
+      .getByRole("row")
       .filter({ hasText: DEV_SEED.homeworks.title })
       .first();
-    await detailLink
+    await detailRow
       .getByRole("button", { name: new RegExp(DEV_SEED.homeworks.title) })
       .first()
       .click();
@@ -407,7 +407,7 @@ test.describe("仪表盘作业", () => {
     await titleInput.fill(title);
     await page.getByTestId("dashboard-homework-create").click();
 
-    await expect(page.getByText(title).first()).toBeVisible({
+    await expect(visibleText(page, title)).toBeVisible({
       timeout: 15_000,
     });
     await captureStepScreenshot(page, testInfo, "homeworks/created");
@@ -508,30 +508,23 @@ test.describe("仪表盘作业", () => {
 
     try {
       await page.getByTestId("dashboard-homework-create").click();
-      const card = page
-        .locator('[data-slot="card"]')
-        .filter({ hasText: title })
-        .first();
-      await expect(card).toBeVisible({ timeout: 15_000 });
+      const row = page.getByRole("row").filter({ hasText: title }).first();
+      await expect(row).toBeVisible({ timeout: 15_000 });
 
       await page.keyboard.press("Escape");
       await expect(
         page.locator('[data-slot="dialog-content"]').first(),
       ).toHaveCount(0, { timeout: 5_000 });
 
-      await expect(card.getByText(/Major assignment|大作业/i)).toBeVisible();
-      await expect(card.getByText(/Team required|需要组队/i)).toBeVisible();
+      await expect(row.getByText(/Major assignment|大作业/i)).toBeVisible();
+      await expect(row.getByText(/Team required|需要组队/i)).toBeVisible();
 
-      const dueText = card
-        .locator("p")
-        .filter({ hasText: /Due:|截止/ })
-        .first();
-      await expect(dueText).toContainText(
+      await expect(row).toContainText(
         /2026-12-31|2026\/12\/31|12月31日|Dec 31/,
       );
-      await expect(dueText).toContainText(/23:59|11:59 PM/);
+      await expect(row).toContainText(/23:59|11:59 PM/);
 
-      await card.getByRole("button", { name: new RegExp(title) }).click();
+      await row.getByRole("button", { name: new RegExp(title) }).click();
       const detailDialog = page.locator('[data-slot="dialog-content"]').first();
       await expect(detailDialog).toBeVisible();
       await expect(detailDialog.getByText(description)).toBeVisible();
@@ -541,8 +534,14 @@ test.describe("仪表盘作业", () => {
         "homeworks/created-full-fields",
       );
 
-      const cardId = await card.getAttribute("id");
-      homeworkId = cardId?.replace("homework-", "");
+      const sectionLink = detailDialog
+        .locator('a[href*="homeworkId="]')
+        .first();
+      const href = await sectionLink.getAttribute("href");
+      homeworkId = href
+        ? (new URL(href, "http://localhost").searchParams.get("homeworkId") ??
+          undefined)
+        : undefined;
     } finally {
       await cleanupHomeworksForE2e([homeworkId]);
     }

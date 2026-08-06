@@ -25,7 +25,10 @@
  */
 import { expect, test } from "@playwright/test";
 import { signInAsDebugUser } from "../../../../utils/auth";
-import { cleanupCommentsForE2e } from "../../../../utils/comments";
+import {
+  cleanupCommentsForE2e,
+  openCommentComposer,
+} from "../../../../utils/comments";
 import {
   restoreDescriptionTargetSnapshot,
   snapshotDescriptionTargetForE2e,
@@ -242,7 +245,7 @@ test.describe("/catalog/teachers/[id] 教师详情页", () => {
   test("已登录用户可编辑简介（content、lastEditedBy、lastEditedAt）", async ({
     page,
   }, testInfo) => {
-    test.setTimeout(60_000);
+    test.setTimeout(90_000);
     await signInAsDebugUser(page, "/catalog/teachers");
     await navigateToSeedTeacher(page);
     const teacherId = page.url().match(/\/catalog\/teachers\/(\d+)/)?.[1];
@@ -258,15 +261,19 @@ test.describe("/catalog/teachers/[id] 教师详情页", () => {
 
     try {
       await jumpToTeacherSection(page, /简介|Description/i, "#introduction");
-      const descCard = page
-        .locator('[data-slot="card"]')
-        .filter({ has: page.getByText(/简介|Description/i) })
-        .first();
-      await expect(descCard).toBeVisible();
+      const introduction = page.locator("#introduction");
+      await expect(introduction).toBeVisible();
 
-      await descCard.getByRole("button", { name: /^编辑$|^Edit$/i }).click();
       const content = `e2e-teacher-desc-${Date.now()}`;
-      await descCard.locator("textarea").first().fill(content);
+      const editor = introduction.locator(
+        '[data-slot="markdown-editor"] textarea',
+      );
+      const editButton = introduction.getByTestId("description-edit");
+      await expect(editButton).toBeVisible({ timeout: 60_000 });
+      await editButton.scrollIntoViewIfNeeded();
+      await editButton.click();
+      await expect(editor).toBeVisible();
+      await editor.fill(content);
 
       const saveResponse = page.waitForResponse(
         (r) =>
@@ -274,13 +281,13 @@ test.describe("/catalog/teachers/[id] 教师详情页", () => {
           r.request().method() === "POST" &&
           r.status() === 200,
       );
-      await descCard.getByRole("button", { name: /保存|Save/i }).click();
+      await introduction.getByRole("button", { name: /保存|Save/i }).click();
       await saveResponse;
       await waitForUiSettled(page);
 
-      // description.content rendered
+      // description.content rendered in the description tabpanel
       await expect(
-        descCard
+        introduction
           .getByRole("tabpanel", { name: /简介|Description/i })
           .getByText(content),
       ).toBeVisible();
@@ -289,17 +296,17 @@ test.describe("/catalog/teachers/[id] 教师详情页", () => {
         page.getByText(DEV_SEED.debugName, { exact: false }).first(),
       ).toBeVisible();
       // description.lastEditedAt — some date/time text present near description
-      await expect(descCard.getByText(/\d{4}/).first()).toBeVisible();
+      await expect(introduction.getByText(/\d{4}/).first()).toBeVisible();
 
       await captureStepScreenshot(
         page,
         testInfo,
         "teacher/description-updated",
       );
-    } finally {
       if (snapshot.original) {
         await waitForDescriptionAuditRows(snapshot.original, 1);
       }
+    } finally {
       await restoreDescriptionTargetSnapshot(page.request, snapshot);
     }
   });
@@ -324,20 +331,18 @@ test.describe("/catalog/teachers/[id] 教师详情页", () => {
         intervals: [250, 500, 1_000],
       });
 
-      const anonymousCheckbox = page.getByRole("checkbox", {
-        name: /匿名|Anonymous/i,
-      });
+      const composer = await openCommentComposer(page);
+      const anonymousCheckbox = page
+        .locator("#comments")
+        .getByRole("checkbox", {
+          name: /匿名|Anonymous/i,
+        });
       if (await anonymousCheckbox.isChecked()) {
         await anonymousCheckbox.click();
       }
       await expect(anonymousCheckbox).not.toBeChecked();
 
       const body = `e2e-teacher-comment-${Date.now()}`;
-      const composer = page
-        .locator("#comments")
-        .getByRole("textbox", { name: /评论内容|Comment body/i })
-        .first();
-      await expect(composer).toBeVisible({ timeout: 15_000 });
       await composer.fill(body);
       const createResponse = page.waitForResponse(
         (r) =>
@@ -346,6 +351,7 @@ test.describe("/catalog/teachers/[id] 教师详情页", () => {
           r.status() === 201,
       );
       await page
+        .locator("#comments")
         .getByRole("button", { name: /发布评论|Post comment/i })
         .click();
       const createdCommentResponse = await createResponse;

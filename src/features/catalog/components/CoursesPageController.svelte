@@ -1,13 +1,12 @@
 <script lang="ts">
-import {
-  catalogPrimaryName as primaryName,
-  catalogSecondaryName as secondaryName,
-} from "@/features/catalog/lib/catalog-list-display";
+import { catalogPrimaryName as primaryName } from "@/features/catalog/lib/catalog-list-display";
+import { catalogListPageHref } from "@/features/catalog/lib/catalog-list-query";
 import {
   activeCourseFilterCount,
   buildCourseFilterOptions,
   coursePageHref,
 } from "@/features/catalog/lib/courses-page-view-model";
+import { page } from "$app/stores";
 import CatalogMobileFilters from "./CatalogMobileFilters.svelte";
 import CatalogPageHeader from "./CatalogPageHeader.svelte";
 import CatalogPagination from "./CatalogPagination.svelte";
@@ -93,10 +92,10 @@ $: courseHiddenFilters = [
   { name: "educationLevelId", value: data.filters.educationLevelId ?? "" },
   { name: "categoryId", value: data.filters.categoryId ?? "" },
   { name: "classTypeId", value: data.filters.classTypeId ?? "" },
-];
+].filter((filter) => Boolean(filter.value));
 
 function pageHref(targetPage: number) {
-  return coursePageHref({ filters: data.filters, targetPage });
+  return catalogListPageHref($page.url, targetPage);
 }
 
 function courseFilterHref(overrides: Partial<CourseListFilters>) {
@@ -163,7 +162,6 @@ function courseEmptyDescription() {
         data={courseResultsData}
         page={data.pagination.page}
         {primaryName}
-        {secondaryName}
         {totalPages}
       />
 

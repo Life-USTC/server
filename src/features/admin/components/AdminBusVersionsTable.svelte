@@ -1,6 +1,6 @@
 <script lang="ts">
+import SoftEmptyMessage from "$lib/components/SoftEmptyMessage.svelte";
 import TruncatedText from "$lib/components/TruncatedText.svelte";
-import * as Empty from "$lib/components/ui/empty/index.js";
 import * as Table from "$lib/components/ui/table/index.js";
 import AdminBusVersionActions from "./AdminBusVersionActions.svelte";
 import AdminBusVersionStatusBadge from "./AdminBusVersionStatusBadge.svelte";
@@ -22,7 +22,7 @@ export let versions: AdminBusVersion[];
 </script>
 
 <div class="hidden min-w-0 md:block">
-  <Table.Root>
+  <Table.Root class="w-full">
     <Table.Header>
       <Table.Row>
         <Table.Head>{copy.colTitle}</Table.Head>
@@ -31,49 +31,51 @@ export let versions: AdminBusVersion[];
         <Table.Head>{copy.colEffective}</Table.Head>
         <Table.Head>{copy.colImported}</Table.Head>
         <Table.Head>{copy.colStatus}</Table.Head>
-        <Table.Head class="text-right">{copy.colActions}</Table.Head>
+        <Table.Head>
+          <span class="sr-only">{copy.colActions}</span>
+        </Table.Head>
       </Table.Row>
     </Table.Header>
     <Table.Body>
       {#each versions as version}
-        <Table.Row>
-          <Table.Cell class="max-w-72">
+        <Table.Row class="group">
+          <Table.Cell>
             <TruncatedText class="font-medium" text={version.title} />
             <TruncatedText
               class="text-muted-foreground text-xs"
               text={version.sourceMessage}
             />
           </Table.Cell>
-          <Table.Cell class="max-w-48">
-            <TruncatedText text={version.key} />
+          <Table.Cell>
+            <span class="font-mono text-sm">{version.key}</span>
           </Table.Cell>
-          <Table.Cell>{version.tripCount}</Table.Cell>
-          <Table.Cell>{formatEffectiveRange(version)}</Table.Cell>
-          <Table.Cell>{formatImportedAt(version.importedAt)}</Table.Cell>
+          <Table.Cell class="tabular-nums">{version.tripCount}</Table.Cell>
+          <Table.Cell class="text-muted-foreground">
+            {formatEffectiveRange(version)}
+          </Table.Cell>
+          <Table.Cell class="whitespace-nowrap tabular-nums text-muted-foreground">
+            {formatImportedAt(version.importedAt)}
+          </Table.Cell>
           <Table.Cell>
             <AdminBusVersionStatusBadge {copy} {version} />
           </Table.Cell>
           <Table.Cell>
-            <div class="flex justify-end gap-2">
-              <AdminBusVersionActions
-                {copy}
-                {enhancedAction}
-                {isPending}
-                {onDelete}
-                {pendingAction}
-                {version}
-              />
-            </div>
+            <AdminBusVersionActions
+              {copy}
+              {enhancedAction}
+              {isPending}
+              {onDelete}
+              {pendingAction}
+              {version}
+            />
           </Table.Cell>
         </Table.Row>
       {:else}
         <Table.Row>
           <Table.Cell class="p-0" colspan={7}>
-            <Empty.Root class="py-6">
-              <Empty.Header>
-                <Empty.Description>{copy.noVersions}</Empty.Description>
-              </Empty.Header>
-            </Empty.Root>
+            <div class="px-2 py-6">
+              <SoftEmptyMessage message={copy.noVersions} />
+            </div>
           </Table.Cell>
         </Table.Row>
       {/each}

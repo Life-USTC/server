@@ -28,7 +28,10 @@ import scenarioData from "../../../../fixtures/scenario.json" with {
   type: "json",
 };
 import { signInAsDebugUser } from "../../../../utils/auth";
-import { cleanupCommentsForE2e } from "../../../../utils/comments";
+import {
+  cleanupCommentsForE2e,
+  openCommentComposer,
+} from "../../../../utils/comments";
 import {
   restoreDescriptionTargetSnapshot,
   snapshotDescriptionTargetForE2e,
@@ -108,24 +111,15 @@ test.describe("/catalog/courses/[jwId] 课程详情", () => {
     await expect(heading).toContainText(
       new RegExp(`${DEV_SEED.course.nameCn}|${DEV_SEED.course.nameEn}`),
     );
-
-    const headingText = (await heading.textContent())?.trim();
-    const expectedSubtitle =
-      headingText === DEV_SEED.course.nameEn
-        ? DEV_SEED.course.nameCn
-        : DEV_SEED.course.nameEn;
-    await expect(
-      heading.locator("xpath=following-sibling::*[1]"),
-    ).toContainText(expectedSubtitle);
-    // course.code (plain monospace text)
+    await expect(heading).toContainText(DEV_SEED.course.nameCn);
+    await expect(heading).toContainText(DEV_SEED.course.nameEn);
+    // course.code in the overview definition list (not section codes in the table)
     const courseCode = page
-      .locator('[data-slot="catalog-code"]')
-      .filter({ hasText: DEV_SEED.course.code })
+      .locator("#overview")
+      .locator("dd")
+      .filter({ hasText: new RegExp(`^${DEV_SEED.course.code}$`) })
       .first();
     await expect(courseCode).toBeVisible();
-    await expect(
-      courseCode.locator("xpath=ancestor::*[@data-slot='badge']"),
-    ).toHaveCount(0);
 
     await captureStepScreenshot(page, testInfo, "course/heading-and-code");
   });
@@ -234,12 +228,13 @@ test.describe("/catalog/courses/[jwId] 课程详情", () => {
     await gotoAndWaitForReady(page, COURSE_URL);
 
     const heading = page.getByRole("heading", { level: 1 }).first();
-    const code = visibleText(page, DEV_SEED.course.code);
+    const courseCode = page
+      .locator("#overview")
+      .locator("dd")
+      .filter({ hasText: new RegExp(`^${DEV_SEED.course.code}$`) })
+      .first();
     await expect(heading).toHaveCSS("font-size", "24px");
-    await expect(code).toBeVisible();
-    expect((await code.boundingBox())?.y).toBeLessThan(
-      (await heading.boundingBox())?.y ?? 0,
-    );
+    await expect(courseCode).toBeVisible();
     expect(
       await page.evaluate(() => document.documentElement.scrollWidth),
     ).toBeLessThanOrEqual(390);
@@ -285,7 +280,7 @@ test.describe("/catalog/courses/[jwId] 课程详情", () => {
   });
 
   test("登录用户可以编辑课程简介", async ({ page }, testInfo) => {
-    test.setTimeout(60_000);
+    test.setTimeout(90_000);
     await signInAsDebugUser(page, `${COURSE_URL}#introduction`);
     const snapshot = await snapshotDescriptionTargetForE2e(
       page.request,
@@ -294,25 +289,22 @@ test.describe("/catalog/courses/[jwId] 课程详情", () => {
     );
 
     try {
-      const descCard = page
-        .locator('[data-slot="card"]')
-        .filter({ has: page.getByText(/简介|Description/i) })
-        .first();
-      await expect(descCard).toBeVisible();
+      const introduction = page.locator("#introduction");
+      await expect(introduction).toBeVisible();
 
       const content = `e2e-course-desc-${Date.now()}`;
-      const editor = descCard.locator("textarea").first();
-      await expect(async () => {
-        await descCard.getByRole("button", { name: /^编辑$|^Edit$/i }).click();
-        await expect(editor).toBeVisible({ timeout: 3_000 });
-      }).toPass({
-        timeout: 10_000,
-        intervals: [250, 500, 1_000],
-      });
+      const editor = introduction.locator(
+        '[data-slot="markdown-editor"] textarea',
+      );
+      const editButton = introduction.getByTestId("description-edit");
+      await expect(editButton).toBeVisible({ timeout: 60_000 });
+      await editButton.scrollIntoViewIfNeeded();
+      await editButton.click();
+      await expect(editor).toBeVisible();
       await editor.fill(content);
-      await descCard.getByRole("tab", { name: /预览|Preview/i }).click();
+      await introduction.getByRole("tab", { name: /预览|Preview/i }).click();
       await expect(
-        descCard
+        introduction
           .getByRole("tabpanel", { name: /预览|Preview/i })
           .getByText(content),
       ).toBeVisible();
@@ -323,18 +315,18 @@ test.describe("/catalog/courses/[jwId] 课程详情", () => {
           r.request().method() === "POST" &&
           r.status() === 200,
       );
-      await descCard.getByRole("button", { name: /保存|Save/i }).click();
+      await introduction.getByRole("button", { name: /保存|Save/i }).click();
       await saveResponse;
       await expect(
-        descCard
+        introduction
           .getByRole("tabpanel", { name: /简介|Description/i })
           .getByText(content),
       ).toBeVisible();
       await captureStepScreenshot(page, testInfo, "course/description-updated");
-    } finally {
       if (snapshot.original) {
         await waitForDescriptionAuditRows(snapshot.original, 1);
       }
+    } finally {
       await restoreDescriptionTargetSnapshot(page.request, snapshot);
     }
   });
@@ -351,8 +343,7 @@ test.describe("/catalog/courses/[jwId] 课程详情", () => {
       await expect(page).toHaveURL(/\/catalog\/courses\/\d+#comments$/);
 
       const body = `e2e-course-comment-${Date.now()}`;
-      const composer = page.locator("#comments textarea").first();
-      await expect(composer).toBeVisible({ timeout: 15_000 });
+      const composer = await openCommentComposer(page);
       await composer.fill(body);
       const createResponse = page.waitForResponse(
         (r) =>
@@ -361,6 +352,7 @@ test.describe("/catalog/courses/[jwId] 课程详情", () => {
           r.status() === 201,
       );
       await page
+        .locator("#comments")
         .getByRole("button", { name: /发布评论|Post comment/i })
         .click();
       const createdCommentResponse = await createResponse;

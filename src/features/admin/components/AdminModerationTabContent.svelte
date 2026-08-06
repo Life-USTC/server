@@ -58,7 +58,6 @@ export let visibleComments: AdminModerationComment[];
   <AdminModerationHomeworks
     {copy}
     formatDate={formatDate}
-    formatMessage={moderationFormatMessage}
     homeworks={data.homeworks}
     onDelete={onDeleteHomework}
   />

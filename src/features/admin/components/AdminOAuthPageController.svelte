@@ -113,7 +113,6 @@ const {
   createClientAction,
   deleteClientAction,
   openCreateDialog: _openCreateDialog,
-  toggleScope: _toggleScope,
 } = createOAuthPageActions<OAuthClient>({
   getAuthMethods: () => data.authMethods,
   getCopy: () => _copy,
@@ -218,5 +217,4 @@ onMount(() => {
     pendingDeleteClient = client;
   }}
   showCreateDialog={isCreateDialogOpen}
-  toggleScope={_toggleScope}
 />

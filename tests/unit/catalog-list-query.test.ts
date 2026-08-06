@@ -4,6 +4,7 @@ import {
   CATALOG_MAX_PAGE,
   CATALOG_SEARCH_MAX_LENGTH,
   CATALOG_TEXT_FILTER_MAX_LENGTH,
+  catalogListPageHref,
   isCacheableCatalogListQuery,
   normalizeCatalogListQuery,
 } from "@/features/catalog/lib/catalog-list-query";
@@ -102,5 +103,31 @@ describe("catalog list shared-cache admission", () => {
     expect(
       isCacheableCatalogListQuery(pathname, new URLSearchParams(query)),
     ).toBe(false);
+  });
+});
+
+describe("catalogListPageHref", () => {
+  test("preserves section filters when changing page", () => {
+    const href = catalogListPageHref(
+      new URL(
+        "https://example.test/catalog/sections?semesterId=3&teacher=%E5%BC%A0&sort=code&order=desc&search=math",
+      ),
+      2,
+    );
+
+    expect(href).toBe(
+      "/catalog/sections?order=desc&page=2&search=math&semesterId=3&sort=code&teacher=%E5%BC%A0",
+    );
+  });
+
+  test("drops page=1 and keeps course filters", () => {
+    const href = catalogListPageHref(
+      new URL(
+        "https://example.test/catalog/courses?categoryId=7&search=algo&page=4",
+      ),
+      1,
+    );
+
+    expect(href).toBe("/catalog/courses?categoryId=7&search=algo");
   });
 });

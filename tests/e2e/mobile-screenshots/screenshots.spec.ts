@@ -117,11 +117,10 @@ test.describe("移动端截图", () => {
 
   test.describe("管理员页面", () => {
     test.beforeEach(async ({ page }) => {
-      await signInAsDevAdmin(page, "/admin");
+      await signInAsDevAdmin(page, "/admin/users");
     });
 
     for (const path of [
-      "/admin",
       "/admin/users",
       "/admin/moderation",
       "/admin/oauth",

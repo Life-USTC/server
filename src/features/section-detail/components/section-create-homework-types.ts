@@ -22,6 +22,7 @@ export interface SectionCreateHomeworkFieldsCopy
 }
 
 export type SectionCreateHomeworkCopy = SectionCreateHomeworkFieldsCopy & {
+  auditTitle: string;
   createAction: string;
   createTitle: string;
   subtitle: string;

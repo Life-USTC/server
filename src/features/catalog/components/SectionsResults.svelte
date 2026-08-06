@@ -1,5 +1,9 @@
 <script lang="ts">
-import type { CatalogNamed } from "@/features/catalog/lib/catalog-list-display";
+import {
+  type CatalogNamed,
+  catalogLocalizedDisplayName,
+  catalogLocalizedNames,
+} from "@/features/catalog/lib/catalog-list-display";
 import {
   catalogShowingSummary,
   optionalCatalogFilterSummary,
@@ -26,9 +30,7 @@ export let page: number;
 export let primaryName: (item: CatalogNamed | null | undefined) => string;
 export let sectionEmptyDescription: () => string;
 export let sectionLabels: SectionListLabels;
-export let secondaryName: (item: CatalogNamed | null | undefined) => string;
 export let selectedSemester: SectionListSemester | null | undefined;
-export let teacherNames: (teachers: CatalogNamed[]) => string;
 export let totalPages: number;
 
 $: filters = data.filters as SectionListFilters;
@@ -69,13 +71,10 @@ $: sectionSemesterSummary = selectedSemester
             {#snippet child({ props })}
               <a href={sectionHref} {...props}>
                 <Item.Content>
-                  <Item.Title>{primaryName(section.course)}</Item.Title>
-                  {#if secondaryName(section.course)}
-                    <Item.Description>{secondaryName(section.course)}</Item.Description>
-                  {/if}
+                  <Item.Title>{catalogLocalizedDisplayName(section.course, locale)}</Item.Title>
                   <Item.Description>
                     {section.semester?.nameCn ? formatSemesterName(locale, section.semester.nameCn) : sectionLabels.noSemester}
-                    · {teacherNames(section.teachers) || "-"}
+                    · {catalogLocalizedNames(section.teachers, locale) || "-"}
                   </Item.Description>
                 </Item.Content>
                 <Item.Actions>
@@ -111,20 +110,15 @@ $: sectionSemesterSummary = selectedSemester
             <Table.Row>
               <Table.Cell class="p-0 align-top">
                 <CatalogTableLink href={sectionHref} nowrap>
-                  <TruncatedText
-                    text={section.semester?.nameCn ? formatSemesterName(locale, section.semester.nameCn) : sectionLabels.noSemester}
-                  />
+                  {section.semester?.nameCn
+                    ? formatSemesterName(locale, section.semester.nameCn)
+                    : sectionLabels.noSemester}
                 </CatalogTableLink>
               </Table.Cell>
               <Table.Cell class="p-0 align-top whitespace-normal">
                 <CatalogTableLink href={sectionHref}>
                   <TruncatedText
-                    class="font-medium"
-                    text={primaryName(section.course)}
-                  />
-                  <TruncatedText
-                    class="text-muted-foreground text-xs"
-                    text={secondaryName(section.course)}
+                    text={catalogLocalizedDisplayName(section.course, locale)}
                   />
                 </CatalogTableLink>
               </Table.Cell>
@@ -136,7 +130,7 @@ $: sectionSemesterSummary = selectedSemester
               <Table.Cell class="p-0 align-top whitespace-normal">
                 <CatalogTableLink href={sectionHref}>
                   <TruncatedText
-                    text={teacherNames(section.teachers) || "-"}
+                    text={catalogLocalizedNames(section.teachers, locale) || "-"}
                   />
                 </CatalogTableLink>
               </Table.Cell>
@@ -152,9 +146,7 @@ $: sectionSemesterSummary = selectedSemester
               </Table.Cell>
               <Table.Cell class="p-0 align-top">
                 <CatalogTableLink href={sectionHref}>
-                  <TruncatedText
-                    text={section.campus ? primaryName(section.campus) : "-"}
-                  />
+                  {section.campus ? primaryName(section.campus) : "-"}
                 </CatalogTableLink>
               </Table.Cell>
             </Table.Row>

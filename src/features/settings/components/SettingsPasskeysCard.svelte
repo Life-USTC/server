@@ -8,7 +8,6 @@ import {
 } from "$lib/auth/passkey-client";
 import * as Alert from "$lib/components/ui/alert/index.js";
 import { Button } from "$lib/components/ui/button/index.js";
-import * as Card from "$lib/components/ui/card/index.js";
 import * as Empty from "$lib/components/ui/empty/index.js";
 import * as Field from "$lib/components/ui/field/index.js";
 import * as InputGroup from "$lib/components/ui/input-group/index.js";
@@ -77,12 +76,13 @@ async function addPasskey() {
 }
 </script>
 
-<Card.Root data-passkey-settings>
-  <Card.Header>
-    <Card.Title>{copy.settings.passkeys.title}</Card.Title>
-    <Card.Description>{copy.settings.passkeys.description}</Card.Description>
-  </Card.Header>
-  <Card.Content class="flex flex-col gap-4">
+<section class="grid gap-4" data-passkey-settings>
+  <div class="grid gap-1">
+    <h2 class="text-base font-normal tracking-tight">{copy.settings.passkeys.title}</h2>
+    <p class="text-muted-foreground text-sm">{copy.settings.passkeys.description}</p>
+  </div>
+
+  <div class="flex flex-col gap-4">
     {#if supported === false}
       <Alert.Root>
         <Fingerprint />
@@ -153,7 +153,6 @@ async function addPasskey() {
             onclick={() => {
               void $passkeyQuery.refetch();
             }}
-            size="sm"
             type="button"
             variant="outline"
           >
@@ -184,5 +183,5 @@ async function addPasskey() {
         {/each}
       </Item.Group>
     {/if}
-  </Card.Content>
-</Card.Root>
+  </div>
+</section>

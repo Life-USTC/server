@@ -1,14 +1,17 @@
 <script lang="ts">
-import { Button } from "$lib/components/ui/button/index.js";
 import SectionBasicInfoAdminClasses from "./SectionBasicInfoAdminClasses.svelte";
 import SectionBasicInfoDetails from "./SectionBasicInfoDetails.svelte";
 import SectionBasicInfoFacts from "./SectionBasicInfoFacts.svelte";
 import SectionBasicInfoRelatedSections from "./SectionBasicInfoRelatedSections.svelte";
+import SectionTeachersCard from "./SectionTeachersCard.svelte";
 import type {
   SectionBasicInfo,
   SectionBasicInfoCopy,
   SectionCommonInfoCopy,
   SectionPrimaryName,
+  SectionTeacherCopy,
+  SectionTeacherName,
+  SectionTeacherSummary,
   SectionTeachersLabel,
 } from "./section-basic-info-types";
 
@@ -17,12 +20,14 @@ export let notAvailable: string;
 export let periodDetailRows: Array<[string, number]>;
 export let primaryName: SectionPrimaryName;
 export let section: SectionBasicInfo;
-export let sectionCopy: SectionBasicInfoCopy;
+export let sectionCopy: SectionBasicInfoCopy & SectionTeacherCopy;
 export let sectionTeachersLabel: SectionTeachersLabel;
+export let teacherName: SectionTeacherName;
+export let teachers: SectionTeacherSummary[];
 export let yesNo: (value: boolean | null | undefined) => string;
 </script>
 
-<div class="grid gap-4">
+<div class="grid gap-10">
   <SectionBasicInfoFacts
     {notAvailable}
     {primaryName}
@@ -40,6 +45,13 @@ export let yesNo: (value: boolean | null | undefined) => string;
     {yesNo}
   />
 
+  <SectionTeachersCard
+    {primaryName}
+    {sectionCopy}
+    {teacherName}
+    {teachers}
+  />
+
   <SectionBasicInfoAdminClasses
     {primaryName}
     {section}
@@ -52,8 +64,4 @@ export let yesNo: (value: boolean | null | undefined) => string;
     {sectionCopy}
     {sectionTeachersLabel}
   />
-
-  <Button class="h-auto w-fit" href={`/catalog/courses/${section.course.jwId}`} variant="link">
-    {sectionCopy.viewAllCourseSections}
-  </Button>
 </div>

@@ -1,12 +1,12 @@
 <script lang="ts">
 import CheckCircle from "@lucide/svelte/icons/check-circle";
-import ShieldAlert from "@lucide/svelte/icons/shield-alert";
-import { Badge } from "$lib/components/ui/badge/index.js";
+import { oauthScopeCountLabel } from "@/features/admin/lib/oauth-controller";
+import OAuthScopesPicker from "@/features/oauth/components/OAuthScopesPicker.svelte";
+import { buildOAuthScopesPickerCopy } from "@/features/oauth/lib/oauth-scopes-picker-copy";
 import { Button } from "$lib/components/ui/button/index.js";
-import { Checkbox } from "$lib/components/ui/checkbox/index.js";
-import * as Field from "$lib/components/ui/field/index.js";
 
 export let copy: Record<string, string>;
+export let locale: string = "zh-cn";
 export let oauthQuery: string;
 export let scope: string;
 export let scopes: Array<{ label: string; value: string }>;
@@ -22,58 +22,35 @@ $: {
   }
 }
 
-function toggleScope(value: string, checked: boolean) {
-  selectedScopes = checked
-    ? Array.from(new Set([...selectedScopes, value]))
-    : selectedScopes.filter((selectedScope) => selectedScope !== value);
-}
-
-function scopeCheckboxId(value: string) {
-  return `oauth-scope-${value.replace(/[^a-zA-Z0-9_-]/g, "-")}`;
-}
+$: scopesPickerCopy = buildOAuthScopesPickerCopy(copy, {
+  selectedCountLabel: oauthScopeCountLabel(selectedScopes.length, locale),
+  title: copy.scopesLabel,
+});
 
 $: selectedScopeValue = selectedScopes.join(" ");
 $: canAllow = scopes.length === 0 || selectedScopes.length > 0;
 </script>
 
-<Field.Set>
-  <Field.Legend class="flex min-w-0 items-center gap-2" variant="label">
-    <ShieldAlert class="size-4 shrink-0" />
-    <span class="min-w-0 break-words">{copy.scopesLabel}</span>
-  </Field.Legend>
-  {#if scopes.length > 0}
-    <Field.Group data-slot="checkbox-group">
-      {#each scopes as scopeItem}
-        {@const checkboxId = scopeCheckboxId(scopeItem.value)}
-        <Field.Field orientation="horizontal">
-          <Checkbox
-            id={checkboxId}
-            checked={selectedScopes.includes(scopeItem.value)}
-            onCheckedChange={(checked) => toggleScope(scopeItem.value, checked)}
-          />
-          <Field.Content>
-            <Field.Label
-              class="w-full cursor-pointer flex-wrap items-start gap-2"
-              for={checkboxId}
-            >
-              <Badge class="max-w-full whitespace-normal break-all text-left" variant="outline">{scopeItem.label}</Badge>
-            </Field.Label>
-            <Field.Description class="break-words">
-              {scopeItem.value}
-            </Field.Description>
-          </Field.Content>
-        </Field.Field>
-      {/each}
-    </Field.Group>
-  {/if}
-</Field.Set>
+{#if scopes.length > 0}
+  <OAuthScopesPicker
+    copy={scopesPickerCopy}
+    idPrefix="oauth-consent-scope"
+    items={scopes}
+    {selectedScopes}
+    onSelectedChange={(next) => {
+      selectedScopes = next;
+    }}
+  />
+{:else}
+  <p class="text-muted-foreground text-sm">{copy.scopesLabel}</p>
+{/if}
 
 <div class="grid gap-3 sm:grid-cols-2">
   <form method="POST" action="?/consent">
     <input type="hidden" name="accept" value="false" />
     <input type="hidden" name="scope" value={scope} />
     <input type="hidden" name="oauthQuery" value={oauthQuery} />
-    <Button class="h-10 w-full" type="submit" variant="outline">
+    <Button class="w-full" type="submit" variant="outline">
       {copy.deny}
     </Button>
   </form>
@@ -85,7 +62,7 @@ $: canAllow = scopes.length === 0 || selectedScopes.length > 0;
       <input type="hidden" name="scopes" value={selectedScope} />
     {/each}
     <input type="hidden" name="oauthQuery" value={oauthQuery} />
-    <Button class="h-10 w-full" disabled={!canAllow} type="submit">
+    <Button class="w-full" disabled={!canAllow} type="submit">
       <CheckCircle data-icon="inline-start" />
       {copy.allow}
     </Button>

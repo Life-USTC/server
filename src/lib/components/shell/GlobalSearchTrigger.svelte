@@ -16,7 +16,7 @@ $: placeholder = signedIn ? copy.placeholderSignedIn : copy.placeholder;
 {#if variant === "desktop"}
   <Button
     aria-label={copy.openSearch}
-    class="h-9 w-full max-w-sm justify-start gap-2 px-3 text-muted-foreground lg:max-w-md"
+    class="h-8 w-full max-w-sm justify-start gap-2 px-3 text-muted-foreground lg:max-w-md"
     onclick={onOpen}
     type="button"
     variant="outline"

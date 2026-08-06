@@ -13,7 +13,6 @@ export let bulkImportSemesterId: string;
 export let bulkImportText: string;
 export let canMatchImportSections: boolean;
 export let confirmImportSections: DashboardSubscriptionsTabProps["confirmImportSections"];
-export let copyCalendarLink: DashboardSubscriptionsTabProps["copyCalendarLink"];
 export let dashboardCopy: DashboardSubscriptionsTabProps["dashboardCopy"];
 export let formatMessage: FormatMessage;
 export let isBulkImportOpen: boolean;
@@ -50,7 +49,6 @@ export let unmatchedSectionCodes: string[];
   {selectedImportCount}
   {canMatchImportSections}
   {formatMessage}
-  {copyCalendarLink}
   {namePrimary}
   {nameSecondary}
   {resetBulkImport}

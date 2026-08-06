@@ -5,6 +5,7 @@ import { getCanonicalOrigin } from "@/lib/site-url";
 
 const PASSKEY_RP_NAME = "Life@USTC";
 const LOCAL_PASSKEY_HOSTS = new Set(["localhost"]);
+const LOOPBACK_PASSKEY_HOSTS = new Set(["127.0.0.1", "::1", "[::1]"]);
 
 export const betterAuthPasskeyRateLimitRules = {
   "/passkey/generate-authenticate-options": {
@@ -35,13 +36,23 @@ function requireConfiguredProductionOrigin() {
   }
 }
 
-function validatePasskeyOrigin(origin: string) {
+/** WebAuthn RP IDs cannot be IP literals; map loopback to localhost. */
+function normalizePasskeyOrigin(origin: string) {
   const url = new URL(origin);
+  if (LOOPBACK_PASSKEY_HOSTS.has(url.hostname)) {
+    url.hostname = "localhost";
+  }
+  return url.origin;
+}
+
+function validatePasskeyOrigin(origin: string) {
+  const normalizedOrigin = normalizePasskeyOrigin(origin);
+  const url = new URL(normalizedOrigin);
   if (url.protocol !== "http:" && url.protocol !== "https:") {
     throw new Error("Passkey origins must use http or https");
   }
   if (url.protocol !== "https:" && !LOCAL_PASSKEY_HOSTS.has(url.hostname)) {
-    throw new Error("Non-local passkey origins must use https");
+    throw new Error(`Non-local passkey origins must use https (got ${origin})`);
   }
   return url.origin;
 }
@@ -71,7 +82,7 @@ export function buildBetterAuthPasskeyPlugin() {
   return passkey({
     rpID,
     rpName: PASSKEY_RP_NAME,
-    origin: allowedOrigins,
+    origin: [...new Set(allowedOrigins)],
     registration: {
       requireSession: true,
     },
