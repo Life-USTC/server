@@ -1,12 +1,14 @@
 import { mcp } from "@better-auth/mcp";
 import { APIError } from "better-auth/api";
 import { allowDebugAuth } from "@/lib/auth/auth-config";
+import { resolveOAuthUserEmail } from "@/lib/auth/oauth-user-email-resolve";
 import {
   getOAuthMcpResourceUrl,
   getOAuthProviderValidAudiences,
 } from "@/lib/mcp/urls";
 import { hasActiveOAuthUserGrant } from "@/lib/oauth/active-user-grant";
 import {
+  OAUTH_EMAIL_SCOPE,
   OAUTH_GRANT_ID_CLAIM,
   OAUTH_PROFILE_SCOPE,
   OAUTH_PROVIDER_CLAIMS_SUPPORTED,
@@ -118,6 +120,28 @@ export function buildOAuthProviderPlugin(input: { authPublicOrigin: string }) {
           claims.preferred_username = username;
         }
       }
+
+      const wantsEmail =
+        scopes.includes(OAUTH_EMAIL_SCOPE) ||
+        requestedClaims.includes("email") ||
+        requestedClaims.includes("email_verified");
+      if (wantsEmail) {
+        const resolved = await resolveOAuthUserEmail({
+          userId: user.id,
+          userEmail: typeof user.email === "string" ? user.email : null,
+          userEmailVerified:
+            typeof user.emailVerified === "boolean" ? user.emailVerified : null,
+        });
+        // Only override when we have a publishable mailbox (GitHub/Google
+        // VerifiedEmail or a real User.email). Leave Better Auth's base claim
+        // alone otherwise so existing OAuth clients keep current behavior for
+        // USTC-only `@users.local` accounts.
+        if (resolved) {
+          claims.email = resolved.email;
+          claims.email_verified = resolved.emailVerified;
+        }
+      }
+
       return claims;
     },
   });

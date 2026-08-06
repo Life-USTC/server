@@ -13,6 +13,10 @@ describe("USTC identity helpers", () => {
           user_id: 435,
           gid: "gid-abc",
           sno: "BA12345678",
+          email: "student@mail.ustc.edu.cn",
+          email_verified: true,
+          name: "Student",
+          picture: "https://example.com/a.png",
         },
         "435",
       ),
@@ -20,6 +24,23 @@ describe("USTC identity helpers", () => {
       upstreamUid: "435",
       gid: "gid-abc",
       sno: "BA12345678",
+    });
+  });
+
+  it("ignores passport fake_email placeholders", () => {
+    expect(
+      extractUstcOidcIdentityClaims(
+        {
+          sub: "435",
+          fake_email: "fakegid+gid-435@example.com",
+          fake_email_verified: true,
+        },
+        "435",
+      ),
+    ).toEqual({
+      upstreamUid: "435",
+      gid: null,
+      sno: null,
     });
   });
 

@@ -10,10 +10,12 @@ import {
   PUBLIC_OAUTH_SCOPES,
 } from "@/lib/oauth/scope-registry";
 
-const { hasActiveOAuthUserGrantMock, mcpMock } = vi.hoisted(() => ({
-  hasActiveOAuthUserGrantMock: vi.fn(),
-  mcpMock: vi.fn((options) => ({ id: "oauth-provider", options })),
-}));
+const { hasActiveOAuthUserGrantMock, mcpMock, resolveOAuthUserEmailMock } =
+  vi.hoisted(() => ({
+    hasActiveOAuthUserGrantMock: vi.fn(),
+    mcpMock: vi.fn((options) => ({ id: "oauth-provider", options })),
+    resolveOAuthUserEmailMock: vi.fn(),
+  }));
 
 vi.mock("@better-auth/mcp", () => ({
   mcp: mcpMock,
@@ -25,6 +27,11 @@ vi.mock("@/lib/auth/auth-config", () => ({
 
 vi.mock("@/lib/oauth/active-user-grant", () => ({
   hasActiveOAuthUserGrant: hasActiveOAuthUserGrantMock,
+}));
+
+vi.mock("@/lib/auth/oauth-user-email-resolve", () => ({
+  resolveOAuthUserEmail: (...args: unknown[]) =>
+    resolveOAuthUserEmailMock(...args),
 }));
 
 vi.mock("@/lib/mcp/urls", () => ({
@@ -219,5 +226,58 @@ describe("buildOAuthProviderPlugin", () => {
       scopes: ["profile"],
       userId: "user-1",
     });
+  });
+
+  it("returns verified GitHub/Google email when available without clearing placeholders", async () => {
+    const { buildOAuthProviderPlugin } = await import(
+      "@/lib/auth/better-auth-oauth-provider-plugin"
+    );
+    buildOAuthProviderPlugin({
+      authPublicOrigin: "https://life.example",
+    });
+    const options = mcpMock.mock.calls.at(-1)?.[0];
+
+    hasActiveOAuthUserGrantMock.mockResolvedValueOnce(true);
+    resolveOAuthUserEmailMock.mockResolvedValueOnce({
+      email: "student@gmail.com",
+      emailVerified: true,
+      source: "verified-email",
+    });
+
+    await expect(
+      options.customUserInfoClaims({
+        jwt: {
+          azp: "client-1",
+          [OAUTH_GRANT_ID_CLAIM]: "grant-1",
+        },
+        scopes: ["openid", "email"],
+        user: {
+          id: "user-1",
+          email: "oidc-1@users.local",
+          emailVerified: false,
+        },
+      }),
+    ).resolves.toEqual({
+      email: "student@gmail.com",
+      email_verified: true,
+    });
+
+    hasActiveOAuthUserGrantMock.mockResolvedValueOnce(true);
+    resolveOAuthUserEmailMock.mockResolvedValueOnce(null);
+    // No custom email claims → Better Auth keeps its base User.email claim.
+    await expect(
+      options.customUserInfoClaims({
+        jwt: {
+          azp: "client-1",
+          [OAUTH_GRANT_ID_CLAIM]: "grant-1",
+        },
+        scopes: ["email"],
+        user: {
+          id: "user-1",
+          email: "oidc-1@users.local",
+          emailVerified: false,
+        },
+      }),
+    ).resolves.toEqual({});
   });
 });

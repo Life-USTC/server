@@ -8,6 +8,7 @@ import {
   getOidcAccountSubject,
   mapOidcProfileToUser,
 } from "@/lib/auth/oauth-profile";
+import { socialVerifiedEmailPlugin } from "@/lib/auth/social-verified-email-plugin";
 import { buildUstcOidcProviderEndpoints } from "@/lib/auth/ustc-oidc-endpoints";
 import { ustcOidcIdentityPlugin } from "@/lib/auth/ustc-oidc-identity-plugin";
 import { stageUstcOidcIdentityFromProfile } from "@/lib/auth/ustc-oidc-identity-profile";
@@ -45,6 +46,7 @@ export function buildBetterAuthPlugins(input: {
     ...(isWebhookLoginEnabled() ? [webhookLoginPlugin()] : []),
     buildBetterAuthPasskeyPlugin(),
     ustcOidcIdentityPlugin(),
+    socialVerifiedEmailPlugin(),
     buildOAuthProviderPlugin({
       authPublicOrigin: input.authPublicOrigin,
     }),
