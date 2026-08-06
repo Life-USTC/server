@@ -75,7 +75,7 @@ $: softEmpty =
 
 $: usePageHeading = Boolean(heading);
 $: showInlineTitle = showTitle && !usePageHeading;
-$: showInlineAction = !usePageHeading;
+$: showInlineAction = true;
 
 function _formatDate(value: string | null | undefined) {
   if (!value) return "";
@@ -118,17 +118,8 @@ const {
 </script>
 
 {#if usePageHeading}
-  <div class="mb-3 flex flex-wrap items-center justify-between gap-3">
+  <div class="mb-3">
     <h2 class="text-lg font-semibold tracking-tight">{heading}</h2>
-    {#if !_editing}
-      {#if _viewer.isAuthenticated && !_viewer.isSuspended}
-        <Button type="button" variant="outline" onclick={_startEdit}>
-          {copy.edit}
-        </Button>
-      {:else if !_viewer.isAuthenticated}
-        <Button href="/account/sign-in" variant="outline">{copy.loginToEdit}</Button>
-      {/if}
-    {/if}
   </div>
 {/if}
 
