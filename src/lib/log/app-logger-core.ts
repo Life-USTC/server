@@ -31,27 +31,30 @@ export function shouldLog(level: AppLogLevel): boolean {
 }
 
 const PRISMA_ERROR_CODE_PATTERN = /^P\d{4}$/;
+const SQLSTATE_CODE_PATTERN = /^[0-9A-Z]{5}$/;
 
 /**
- * Prisma error codes are stable, documented identifiers with no request data in
- * them, so they are safe to keep in production where the message is not.
- * Without the code a production `PrismaClientKnownRequestError` is undiagnosable.
+ * Prisma `P####` codes and PostgreSQL SQLSTATE codes are stable, documented
+ * identifiers with no request data in them, so they are safe to keep in
+ * production where the message is not. Without the code a production
+ * permission or constraint failure is undiagnosable.
  */
-function safePrismaErrorCode(error: unknown) {
+function safeDatabaseErrorCode(error: unknown) {
   if (typeof error !== "object" || error === null || !("code" in error)) {
     return undefined;
   }
   const { code } = error as { code: unknown };
-  return typeof code === "string" && PRISMA_ERROR_CODE_PATTERN.test(code)
-    ? code
-    : undefined;
+  if (typeof code !== "string") return undefined;
+  if (PRISMA_ERROR_CODE_PATTERN.test(code)) return code;
+  if (SQLSTATE_CODE_PATTERN.test(code)) return code;
+  return undefined;
 }
 
 export function serializeError(error: unknown) {
   if (!error) return undefined;
 
   if (isProductionEnvironment()) {
-    const code = safePrismaErrorCode(error);
+    const code = safeDatabaseErrorCode(error);
     return { name: getSafeErrorName(error), ...(code ? { code } : {}) };
   }
 
