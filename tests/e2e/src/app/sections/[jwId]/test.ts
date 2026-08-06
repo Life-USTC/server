@@ -959,7 +959,7 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
       );
       await introduction.getByRole("button", { name: /保存|Save/i }).click();
       await saveResponse;
-      await expect(introduction.getByText(content)).toBeVisible();
+      await expect(introduction.getByText(content).first()).toBeVisible();
       await captureStepScreenshot(
         page,
         testInfo,

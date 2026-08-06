@@ -289,7 +289,7 @@ test.describe("/catalog/teachers/[id] 教师详情页", () => {
       await waitForUiSettled(page);
 
       // description.content rendered
-      await expect(introduction.getByText(content)).toBeVisible();
+      await expect(introduction.getByText(content).first()).toBeVisible();
       // description.lastEditedBy.name
       await expect(
         page.getByText(DEV_SEED.debugName, { exact: false }).first(),

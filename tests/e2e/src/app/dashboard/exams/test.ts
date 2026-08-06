@@ -103,7 +103,9 @@ test.describe("仪表盘考试", () => {
     const all = page
       .getByRole("group", { name: /考试|Exams/i })
       .getByRole("radio", { name: /全部|All/i });
-    await all.click();
+    if ((await all.getAttribute("aria-checked")) !== "true") {
+      await all.click();
+    }
     await expect(all).toHaveAttribute("aria-checked", "true");
     await expect(page.getByTestId("dashboard-exams-cards")).toBeVisible();
     await expect(page.getByRole("table")).toBeHidden();
@@ -126,10 +128,11 @@ test.describe("仪表盘考试", () => {
 
     // Switch to "all" to see all exams regardless of completion
     const filterTabs = page.getByRole("group", { name: /考试|Exams/i });
-    await filterTabs.getByRole("radio", { name: /全部|All/i }).click();
-    await expect(
-      filterTabs.getByRole("radio", { name: /全部|All/i }),
-    ).toHaveAttribute("aria-checked", "true");
+    const allTab = filterTabs.getByRole("radio", { name: /全部|All/i });
+    if ((await allTab.getAttribute("aria-checked")) !== "true") {
+      await allTab.click();
+    }
+    await expect(allTab).toHaveAttribute("aria-checked", "true");
 
     const examRows = page
       .getByRole("table")
@@ -183,10 +186,12 @@ test.describe("仪表盘考试", () => {
       screenshotLabel: "exams",
     });
 
-    await page
+    const allTab = page
       .getByRole("group", { name: /考试|Exams/i })
-      .getByRole("radio", { name: /全部|All/i })
-      .click();
+      .getByRole("radio", { name: /全部|All/i });
+    if ((await allTab.getAttribute("aria-checked")) !== "true") {
+      await allTab.click();
+    }
 
     const sectionLink = page
       .getByRole("table")

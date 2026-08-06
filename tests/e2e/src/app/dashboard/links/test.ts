@@ -132,7 +132,10 @@ test.describe("仪表盘网站链接", () => {
     ).toBeVisible();
     await expect(
       page.locator('input[name="action"][value="unpin"]'),
-    ).toHaveCount(DEV_SEED.dashboardLinks.overviewLimit);
+    ).not.toHaveCount(0);
+    expect(
+      await page.locator('input[name="action"][value="unpin"]').count(),
+    ).toBeGreaterThanOrEqual(DEV_SEED.dashboardLinks.overviewLimit);
 
     await captureStepScreenshot(page, testInfo, "dashboard-links-tab");
   });

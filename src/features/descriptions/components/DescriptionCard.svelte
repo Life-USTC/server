@@ -57,62 +57,58 @@ export let copy: {
 
 let description = initialData.description;
 let history = initialData.history;
-let _viewer = initialData.viewer;
-let _editing = false;
+let viewer = initialData.viewer;
+let isEditing = false;
 let draft = "";
-let _saving = false;
-let _message = "";
-let _activePanelTab: PanelTab = "description";
+let isSaving = false;
+let message = "";
+let activePanelTab: PanelTab = "description";
 
-$: _dateTimeFormatter = createShanghaiDateTimeFormatter(locale, {
+$: dateTimeFormatter = createShanghaiDateTimeFormatter(locale, {
   dateStyle: "medium",
   timeStyle: "short",
 });
 
-$: softEmpty = !description.content && history.length === 0 && !_message;
+$: softEmpty = !description.content && history.length === 0 && !message;
 
 $: usePageHeading = Boolean(heading);
 $: showInlineTitle = showTitle && !usePageHeading;
 $: showInlineAction = true;
 
-function _formatDate(value: string | null | undefined) {
+function formatDate(value: string | null | undefined) {
   if (!value) return "";
-  return _dateTimeFormatter.format(new Date(value));
+  return dateTimeFormatter.format(new Date(value));
 }
 
-const {
-  cancelEdit: _cancelEdit,
-  editorName: _editorName,
-  saveDescription: _saveDescription,
-  startEdit: _startEdit,
-} = createDescriptionCardActions({
-  getCopy: () => copy,
-  getDescription: () => description,
-  getDraft: () => draft,
-  getTargetId: () => targetId,
-  getTargetType: () => targetType,
-  setDescription: (value: DescriptionData) => {
-    description = value;
-  },
-  setDraft: (value: string) => {
-    draft = value;
-  },
-  setEditing: (value: boolean) => {
-    _editing = value;
-  },
-  setHistory: (value: DescriptionHistoryItem[]) => {
-    history = value;
-  },
-  setMessage: (value: string) => {
-    _message = value;
-  },
-  setSaving: (value: boolean) => {
-    _saving = value;
-  },
-  setViewer: (value: DescriptionViewer) => {
-    _viewer = value;
-  },
-});
+const { cancelEdit, editorName, saveDescription, startEdit } =
+  createDescriptionCardActions({
+    getCopy: () => copy,
+    getDescription: () => description,
+    getDraft: () => draft,
+    getTargetId: () => targetId,
+    getTargetType: () => targetType,
+    setDescription: (value: DescriptionData) => {
+      description = value;
+    },
+    setDraft: (value: string) => {
+      draft = value;
+    },
+    setEditing: (value: boolean) => {
+      isEditing = value;
+    },
+    setHistory: (value: DescriptionHistoryItem[]) => {
+      history = value;
+    },
+    setMessage: (value: string) => {
+      message = value;
+    },
+    setSaving: (value: boolean) => {
+      isSaving = value;
+    },
+    setViewer: (value: DescriptionViewer) => {
+      viewer = value;
+    },
+  });
 </script>
 
 {#if usePageHeading}
@@ -127,41 +123,41 @@ const {
     {description}
     showTitle={showInlineTitle}
     showAction={showInlineAction}
-    editing={_editing}
-    editorName={_editorName}
-    formatDate={_formatDate}
-    onStartEdit={_startEdit}
-    viewer={_viewer}
+    editing={isEditing}
+    editorName={editorName}
+    formatDate={formatDate}
+    onStartEdit={startEdit}
+    viewer={viewer}
   />
 
   <div class="grid gap-5">
-    {#if _viewer.isSuspended}
-      <DescriptionSuspensionAlert {copy} formatDate={_formatDate} viewer={_viewer} />
+    {#if viewer.isSuspended}
+      <DescriptionSuspensionAlert {copy} formatDate={formatDate} {viewer} />
     {/if}
 
-    {#if _message}
+    {#if message}
       <Alert.Root variant="destructive">
-        <Alert.Description>{_message}</Alert.Description>
+        <Alert.Description>{message}</Alert.Description>
       </Alert.Root>
     {/if}
 
-    {#if _editing}
+    {#if isEditing}
       <DescriptionEditPanel
-        cancelEdit={_cancelEdit}
+        {cancelEdit}
         {copy}
         bind:draft
-        isDisabled={!_viewer.isAuthenticated || _viewer.isSuspended}
-        isSaving={_saving}
-        saveDescription={_saveDescription}
+        isDisabled={!viewer.isAuthenticated || viewer.isSuspended}
+        {isSaving}
+        {saveDescription}
       />
     {:else if softEmpty}
       <SoftEmptyMessage message={copy.empty} />
     {:else}
       <DescriptionReadPanel
-        bind:activePanelTab={_activePanelTab}
+        bind:activePanelTab
         {copy}
         {description}
-        formatDate={_formatDate}
+        formatDate={formatDate}
         {history}
       />
     {/if}
