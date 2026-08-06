@@ -1,3 +1,4 @@
+import { extractUstcOidcProfileEmail } from "@/features/settings/lib/ustc-identity";
 import type {
   GithubProfile,
   GoogleProfile,
@@ -5,7 +6,6 @@ import type {
 } from "@/lib/auth/oauth-profile-types";
 import {
   fallbackEmail,
-  firstBooleanValue,
   firstProfileName,
   firstStringValue,
   profileEmail,
@@ -15,13 +15,9 @@ import {
 
 export function mapOidcProfileToUser(profile: OAuthProfile) {
   const accountId = getOidcAccountSubject(profile);
+  const { email: realEmail, emailVerified } =
+    extractUstcOidcProfileEmail(profile);
 
-  const email = profileEmail(profile.email) ?? profileEmail(profile.fake_email);
-  const emailVerified = firstBooleanValue(profile, [
-    "email_verified",
-    "emailVerified",
-    "fake_email_verified",
-  ]);
   const displayName =
     firstProfileName(profile, [
       "name",
@@ -31,10 +27,12 @@ export function mapOidcProfileToUser(profile: OAuthProfile) {
     ]) ?? `USTC User ${accountId}`;
 
   return {
-    email: email ?? fallbackEmail("oidc", accountId),
+    // Keep Better Auth's required unique email local when upstream only
+    // supplies passport fake_email placeholders.
+    email: realEmail ?? fallbackEmail("oidc", accountId),
     name: displayName,
     image: profileImage(profile.picture),
-    emailVerified: Boolean(email && emailVerified),
+    emailVerified: Boolean(realEmail && emailVerified),
   };
 }
 

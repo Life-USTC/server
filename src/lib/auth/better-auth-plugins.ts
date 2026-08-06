@@ -14,7 +14,11 @@ import { stageUstcOidcIdentityFromProfile } from "@/lib/auth/ustc-oidc-identity-
 import { isWebhookLoginEnabled } from "@/lib/auth/webhook-login-handler";
 import { webhookLoginPlugin } from "@/lib/auth/webhook-login-plugin";
 import { getCanonicalOAuthIssuer } from "@/lib/mcp/urls";
-import { OAUTH_OPENID_SCOPE } from "@/lib/oauth/constants";
+import {
+  OAUTH_EMAIL_SCOPE,
+  OAUTH_OPENID_SCOPE,
+  OAUTH_PROFILE_SCOPE,
+} from "@/lib/oauth/constants";
 import { getCanonicalOrigin } from "@/lib/site-url";
 
 type AuthEnv = ReturnType<typeof getAuthEnv>;
@@ -56,7 +60,7 @@ export function buildBetterAuthPlugins(input: {
           ...ustcOidcEndpoints,
           clientId: input.authEnv.AUTH_OIDC_CLIENT_ID ?? "",
           clientSecret: input.authEnv.AUTH_OIDC_CLIENT_SECRET ?? "",
-          scopes: [OAUTH_OPENID_SCOPE],
+          scopes: [OAUTH_OPENID_SCOPE, OAUTH_PROFILE_SCOPE, OAUTH_EMAIL_SCOPE],
           pkce: true,
           accountIssuer: input.oidcIssuer,
           accountSubject: ({ profile }) => getOidcAccountSubject(profile),

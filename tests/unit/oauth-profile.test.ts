@@ -24,7 +24,7 @@ describe("OAuth 档案映射", () => {
     });
   });
 
-  it("使用 passport 提供的 fake_email 占位邮箱", () => {
+  it("忽略 passport fake_email 占位邮箱并回退到本地邮箱", () => {
     const profile = {
       sub: "812",
       user_id: 812,
@@ -34,10 +34,10 @@ describe("OAuth 档案映射", () => {
     };
 
     expect(mapOidcProfileToUser(profile)).toEqual({
-      email: "fakegid+gid-812@example.com",
+      email: "oidc-812@users.local",
       name: "USTC User 812",
       image: undefined,
-      emailVerified: true,
+      emailVerified: false,
     });
   });
 
