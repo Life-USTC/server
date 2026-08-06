@@ -228,7 +228,7 @@ describe("buildOAuthProviderPlugin", () => {
     });
   });
 
-  it("returns verified GitHub/Google email instead of @users.local placeholders", async () => {
+  it("returns verified GitHub/Google email when available without clearing placeholders", async () => {
     const { buildOAuthProviderPlugin } = await import(
       "@/lib/auth/better-auth-oauth-provider-plugin"
     );
@@ -264,6 +264,7 @@ describe("buildOAuthProviderPlugin", () => {
 
     hasActiveOAuthUserGrantMock.mockResolvedValueOnce(true);
     resolveOAuthUserEmailMock.mockResolvedValueOnce(null);
+    // No custom email claims → Better Auth keeps its base User.email claim.
     await expect(
       options.customUserInfoClaims({
         jwt: {
@@ -277,9 +278,6 @@ describe("buildOAuthProviderPlugin", () => {
           emailVerified: false,
         },
       }),
-    ).resolves.toEqual({
-      email: null,
-      email_verified: false,
-    });
+    ).resolves.toEqual({});
   });
 });

@@ -132,14 +132,13 @@ export function buildOAuthProviderPlugin(input: { authPublicOrigin: string }) {
           userEmailVerified:
             typeof user.emailVerified === "boolean" ? user.emailVerified : null,
         });
+        // Only override when we have a publishable mailbox (GitHub/Google
+        // VerifiedEmail or a real User.email). Leave Better Auth's base claim
+        // alone otherwise so existing OAuth clients keep current behavior for
+        // USTC-only `@users.local` accounts.
         if (resolved) {
           claims.email = resolved.email;
           claims.email_verified = resolved.emailVerified;
-        } else {
-          // Override Better Auth's base User.email claim so `@users.local`
-          // placeholders are never returned to OAuth clients.
-          claims.email = null;
-          claims.email_verified = false;
         }
       }
 
