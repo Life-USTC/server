@@ -261,15 +261,14 @@ test.describe("/catalog/teachers/[id] 教师详情页", () => {
 
     try {
       await jumpToTeacherSection(page, /简介|Description/i, "#introduction");
-      const descCard = page
-        .locator('[data-slot="card"]')
-        .filter({ has: page.getByText(/简介|Description/i) })
-        .first();
-      await expect(descCard).toBeVisible();
+      const introduction = page.locator("#introduction");
+      await expect(introduction).toBeVisible();
 
-      await descCard.getByRole("button", { name: /^编辑$|^Edit$/i }).click();
+      await introduction
+        .getByRole("button", { name: /^编辑$|^Edit$/i })
+        .click();
       const content = `e2e-teacher-desc-${Date.now()}`;
-      await descCard.locator("textarea").first().fill(content);
+      await introduction.locator("textarea").first().fill(content);
 
       const saveResponse = page.waitForResponse(
         (r) =>
@@ -277,22 +276,18 @@ test.describe("/catalog/teachers/[id] 教师详情页", () => {
           r.request().method() === "POST" &&
           r.status() === 200,
       );
-      await descCard.getByRole("button", { name: /保存|Save/i }).click();
+      await introduction.getByRole("button", { name: /保存|Save/i }).click();
       await saveResponse;
       await waitForUiSettled(page);
 
       // description.content rendered
-      await expect(
-        descCard
-          .getByRole("tabpanel", { name: /简介|Description/i })
-          .getByText(content),
-      ).toBeVisible();
+      await expect(introduction.getByText(content)).toBeVisible();
       // description.lastEditedBy.name
       await expect(
         page.getByText(DEV_SEED.debugName, { exact: false }).first(),
       ).toBeVisible();
       // description.lastEditedAt — some date/time text present near description
-      await expect(descCard.getByText(/\d{4}/).first()).toBeVisible();
+      await expect(introduction.getByText(/\d{4}/).first()).toBeVisible();
 
       await captureStepScreenshot(
         page,

@@ -54,9 +54,7 @@ async function chooseStop(page: Page, label: RegExp, option: RegExp) {
 }
 
 function routeSectionRows(page: Page) {
-  return page.locator("section:visible").filter({
-    has: page.locator("table"),
-  });
+  return page.getByTestId("bus-timetable-scroll-region");
 }
 
 async function openRouteControls(page: Page) {

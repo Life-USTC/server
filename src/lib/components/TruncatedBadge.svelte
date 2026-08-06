@@ -11,6 +11,6 @@ let className = "";
 export { className as class };
 </script>
 
-<Badge class={cn("min-w-0 max-w-full shrink", className)} {variant}>
-  <TruncatedText class="min-h-0" {text} />
+<Badge class={cn("min-w-0 max-w-full shrink overflow-hidden", className)} {variant}>
+  <TruncatedText class="min-h-0 min-w-0" {text} />
 </Badge>

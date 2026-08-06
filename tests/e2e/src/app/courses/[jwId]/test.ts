@@ -113,15 +113,13 @@ test.describe("/catalog/courses/[jwId] 课程详情", () => {
     );
     await expect(heading).toContainText(DEV_SEED.course.nameCn);
     await expect(heading).toContainText(DEV_SEED.course.nameEn);
-    // course.code (plain monospace text)
+    // course.code in the overview definition list (not section codes in the table)
     const courseCode = page
-      .locator('[data-slot="catalog-code"]')
-      .filter({ hasText: DEV_SEED.course.code })
+      .locator("#overview")
+      .locator("dd")
+      .filter({ hasText: new RegExp(`^${DEV_SEED.course.code}$`) })
       .first();
     await expect(courseCode).toBeVisible();
-    await expect(
-      courseCode.locator("xpath=ancestor::*[@data-slot='badge']"),
-    ).toHaveCount(0);
 
     await captureStepScreenshot(page, testInfo, "course/heading-and-code");
   });
@@ -290,25 +288,24 @@ test.describe("/catalog/courses/[jwId] 课程详情", () => {
     );
 
     try {
-      const descCard = page
-        .locator('[data-slot="card"]')
-        .filter({ has: page.getByText(/简介|Description/i) })
-        .first();
-      await expect(descCard).toBeVisible();
+      const introduction = page.locator("#introduction");
+      await expect(introduction).toBeVisible();
 
       const content = `e2e-course-desc-${Date.now()}`;
-      const editor = descCard.locator("textarea").first();
+      const editor = introduction.locator("textarea").first();
       await expect(async () => {
-        await descCard.getByRole("button", { name: /^编辑$|^Edit$/i }).click();
+        await introduction
+          .getByRole("button", { name: /^编辑$|^Edit$/i })
+          .click();
         await expect(editor).toBeVisible({ timeout: 3_000 });
       }).toPass({
         timeout: 10_000,
         intervals: [250, 500, 1_000],
       });
       await editor.fill(content);
-      await descCard.getByRole("tab", { name: /预览|Preview/i }).click();
+      await introduction.getByRole("tab", { name: /预览|Preview/i }).click();
       await expect(
-        descCard
+        introduction
           .getByRole("tabpanel", { name: /预览|Preview/i })
           .getByText(content),
       ).toBeVisible();
@@ -319,13 +316,9 @@ test.describe("/catalog/courses/[jwId] 课程详情", () => {
           r.request().method() === "POST" &&
           r.status() === 200,
       );
-      await descCard.getByRole("button", { name: /保存|Save/i }).click();
+      await introduction.getByRole("button", { name: /保存|Save/i }).click();
       await saveResponse;
-      await expect(
-        descCard
-          .getByRole("tabpanel", { name: /简介|Description/i })
-          .getByText(content),
-      ).toBeVisible();
+      await expect(introduction.getByText(content)).toBeVisible();
       await captureStepScreenshot(page, testInfo, "course/description-updated");
     } finally {
       if (snapshot.original) {

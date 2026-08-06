@@ -90,9 +90,9 @@ export let scopeLabel: (scope: string) => string;
                   </Badge>
                 </div>
               </Table.Cell>
-              <Table.Cell>
+              <Table.Cell class="max-w-[14rem]">
                 <TruncatedBadge
-                  class="w-full"
+                  class="w-full max-w-full"
                   text={client.scopes.length > 0
                     ? client.scopes.join(", ")
                     : copy.notAvailable}
