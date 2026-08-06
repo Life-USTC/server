@@ -54,7 +54,7 @@ async function chooseStop(page: Page, label: RegExp, option: RegExp) {
 }
 
 function routeSectionRows(page: Page) {
-  return page.getByTestId("bus-timetable-scroll-region");
+  return page.getByTestId("bus-route-section");
 }
 
 async function openRouteControls(page: Page) {

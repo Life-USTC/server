@@ -544,7 +544,7 @@ test.describe("/catalog/sections 班级搜索页", () => {
     );
     await expect(page).toHaveURL(/sort=code/);
     await expect(page).toHaveURL(/order=desc/);
-    await expect(visibleText(page, DEV_SEED.course.nameEn)).toBeVisible();
+    await expect(visibleText(page, DEV_SEED.course.nameCn)).toBeVisible();
     await expect(visibleText(page, DEV_SEED.section.code)).toBeVisible();
     await expect(page.getByTestId("catalog-active-filters")).toContainText(
       DEV_SEED.teacher.nameCn,

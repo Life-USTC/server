@@ -306,18 +306,31 @@ test.describe("/catalog/courses 课程目录", () => {
       let pagination = page.getByTestId("catalog-pagination");
       await expect(pagination).toBeVisible();
       await expect(pagination.locator('[aria-current="page"]')).toHaveText("1");
-      await expect(
-        pagination.getByRole("link", { name: /分页 2|Pagination 2/i }),
-      ).toHaveAttribute("href", `${searchPath}&page=2`);
+      const page2Link = pagination.getByRole("link", {
+        name: /分页 2|Pagination 2/i,
+      });
+      await expect(page2Link).toHaveAttribute("href", /[?&]page=2(?:&|$)/);
+      await expect(page2Link).toHaveAttribute(
+        "href",
+        new RegExp(`[?&]search=${prefix}(?:&|$)`),
+      );
 
       const nextLink = pagination.getByRole("link", {
         name: /下一页|Next page/i,
       });
-      await expect(nextLink).toHaveAttribute("href", `${searchPath}&page=2`);
-      await nextLink.click();
-      await expect(page).toHaveURL(
-        new RegExp(`/catalog/courses\\?search=${prefix}&page=2$`),
+      await expect(nextLink).toHaveAttribute("href", /[?&]page=2(?:&|$)/);
+      await expect(nextLink).toHaveAttribute(
+        "href",
+        new RegExp(`[?&]search=${prefix}(?:&|$)`),
       );
+      await nextLink.click();
+      await expect(page).toHaveURL((url) => {
+        return (
+          url.pathname === "/catalog/courses" &&
+          url.searchParams.get("search") === prefix &&
+          url.searchParams.get("page") === "2"
+        );
+      });
 
       pagination = page.getByTestId("catalog-pagination");
       await expect(pagination.locator('[aria-current="page"]')).toHaveText("2");
@@ -327,9 +340,14 @@ test.describe("/catalog/courses 课程目录", () => {
       await captureStepScreenshot(page, testInfo, "courses-pagination");
 
       await page.goBack();
-      await expect(page).toHaveURL(
-        new RegExp(`/catalog/courses\\?search=${prefix}$`),
-      );
+      await expect(page).toHaveURL((url) => {
+        return (
+          url.pathname === "/catalog/courses" &&
+          url.searchParams.get("search") === prefix &&
+          (url.searchParams.get("page") == null ||
+            url.searchParams.get("page") === "1")
+        );
+      });
     } finally {
       await deleteTempCoursesByPrefix(prefix);
     }

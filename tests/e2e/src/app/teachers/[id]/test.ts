@@ -268,14 +268,10 @@ test.describe("/catalog/teachers/[id] 教师详情页", () => {
       const editor = introduction.locator(
         '[data-slot="markdown-editor"] textarea',
       );
-      await expect(async () => {
-        if (!(await editor.isVisible().catch(() => false))) {
-          await introduction
-            .getByRole("button", { name: /^编辑$|^Edit$/i })
-            .click();
-        }
-        await expect(editor).toBeVisible({ timeout: 3_000 });
-      }).toPass({ timeout: 15_000, intervals: [250, 500, 1_000] });
+      const editButton = introduction.getByTestId("description-edit");
+      await expect(editButton).toBeVisible({ timeout: 60_000 });
+      await editButton.click();
+      await expect(editor).toBeVisible();
       await editor.fill(content);
 
       const saveResponse = page.waitForResponse(

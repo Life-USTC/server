@@ -11,6 +11,7 @@ import type { AppLocale } from "@/i18n/config";
 import { createShanghaiDateTimeFormatter } from "@/lib/time/shanghai-format";
 import SoftEmptyMessage from "$lib/components/SoftEmptyMessage.svelte";
 import * as Alert from "$lib/components/ui/alert/index.js";
+import { Button } from "$lib/components/ui/button/index.js";
 import DescriptionCardHeader from "./DescriptionCardHeader.svelte";
 import DescriptionEditPanel from "./DescriptionEditPanel.svelte";
 import DescriptionReadPanel from "./DescriptionReadPanel.svelte";
@@ -73,20 +74,15 @@ $: softEmpty = !description.content && history.length === 0 && !message;
 
 $: usePageHeading = Boolean(heading);
 $: showInlineTitle = showTitle && !usePageHeading;
-$: showInlineAction = true;
+/** Page heading owns the primary edit/login action when present. */
+$: showInlineAction = !usePageHeading;
 
 function formatDate(value: string | null | undefined) {
   if (!value) return "";
   return dateTimeFormatter.format(new Date(value));
 }
 
-function handleStartEdit() {
-  draft = description.content ?? "";
-  isEditing = true;
-  message = "";
-}
-
-const { cancelEdit, editorName, saveDescription } =
+const { cancelEdit, editorName, saveDescription, startEdit } =
   createDescriptionCardActions({
     getCopy: () => copy,
     getDescription: () => description,
@@ -118,8 +114,26 @@ const { cancelEdit, editorName, saveDescription } =
 </script>
 
 {#if usePageHeading}
-  <div class="mb-3">
+  <div class="mb-3 flex flex-wrap items-center justify-between gap-3">
     <h2 class="text-lg font-semibold tracking-tight">{heading}</h2>
+    {#if viewer.isAuthenticated && !viewer.isSuspended && !isEditing}
+      <Button
+        data-testid="description-edit"
+        type="button"
+        variant="outline"
+        onclick={startEdit}
+      >
+        {copy.edit}
+      </Button>
+    {:else if !viewer.isAuthenticated}
+      <Button
+        data-testid="description-edit-login"
+        href="/account/sign-in"
+        variant="outline"
+      >
+        {copy.loginToEdit}
+      </Button>
+    {/if}
   </div>
 {/if}
 
@@ -132,7 +146,7 @@ const { cancelEdit, editorName, saveDescription } =
     editing={isEditing}
     editorName={editorName}
     formatDate={formatDate}
-    onStartEdit={handleStartEdit}
+    onStartEdit={startEdit}
     viewer={viewer}
   />
 

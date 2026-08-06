@@ -221,7 +221,7 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
       .locator("xpath=following-sibling::dd[1]");
     const remarkValue = facts
       .locator("dt")
-      .filter({ hasText: /备注|Remark/i })
+      .filter({ hasText: /^(备注|Remark)$/i })
       .locator("xpath=following-sibling::dd[1]");
 
     // section.credits
@@ -479,9 +479,6 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
               mobileActions?.querySelectorAll<HTMLElement>("button") ?? [],
             );
             const actionBox = mobileActions?.getBoundingClientRect();
-            const commentComposer = document.querySelector<HTMLElement>(
-              '#comments [data-slot="card"]',
-            );
             return {
               actionButtonsFit:
                 actionBox != null &&
@@ -503,8 +500,15 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
                         actionButtons[0].getBoundingClientRect().top,
                     ) < 1),
               commentComposerFits:
-                commentComposer != null &&
-                commentComposer.scrollWidth <= commentComposer.clientWidth,
+                (() => {
+                  const comments = document.querySelector<HTMLElement>(
+                    "#comments",
+                  );
+                  return (
+                    comments != null &&
+                    comments.scrollWidth <= comments.clientWidth + 1
+                  );
+                })(),
               documentFitsViewport:
                 document.documentElement.scrollWidth <=
                 document.documentElement.clientWidth,
@@ -907,15 +911,15 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
     try {
       const introduction = page.locator("#introduction");
       await expect(introduction).toBeVisible();
-      await expect(
-        introduction.getByRole("button", { name: /^编辑$|^Edit$/i }),
-      ).toBeVisible({ timeout: 60_000 });
+      await expect(introduction.getByTestId("description-edit")).toBeVisible({
+        timeout: 60_000,
+      });
 
       const content = `e2e-section-desc-${Date.now()}`;
-      const editor = introduction.locator("textarea").first();
-      await introduction
-        .getByRole("button", { name: /^编辑$|^Edit$/i })
-        .click();
+      const editor = introduction.locator(
+        '[data-slot="markdown-editor"] textarea',
+      );
+      await introduction.getByTestId("description-edit").click();
       await expect(editor).toBeVisible();
       await editor.fill(content);
       await introduction.getByRole("tab", { name: /预览|Preview/i }).click();

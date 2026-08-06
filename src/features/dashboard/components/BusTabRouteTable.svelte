@@ -48,7 +48,7 @@ onMount(() => {
 });
 </script>
 
-<section class="grid min-w-0 gap-3">
+<section class="grid min-w-0 gap-3" data-testid="bus-route-section">
   <h3 class="min-w-0 font-medium text-sm">
     <BusRouteDescription description={route.route.descriptionPrimary} />
   </h3>

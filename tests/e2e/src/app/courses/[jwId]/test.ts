@@ -293,18 +293,13 @@ test.describe("/catalog/courses/[jwId] 课程详情", () => {
       await expect(introduction).toBeVisible();
 
       const content = `e2e-course-desc-${Date.now()}`;
-      const editor = introduction.locator("textarea").first();
-      await expect(async () => {
-        if (!(await editor.isVisible().catch(() => false))) {
-          await introduction
-            .getByRole("button", { name: /^编辑$|^Edit$/i })
-            .click();
-        }
-        await expect(editor).toBeVisible({ timeout: 3_000 });
-      }).toPass({
-        timeout: 15_000,
-        intervals: [250, 500, 1_000],
-      });
+      const editor = introduction.locator(
+        '[data-slot="markdown-editor"] textarea',
+      );
+      const editButton = introduction.getByTestId("description-edit");
+      await expect(editButton).toBeVisible({ timeout: 60_000 });
+      await editButton.click();
+      await expect(editor).toBeVisible();
       await editor.fill(content);
       await introduction.getByRole("tab", { name: /预览|Preview/i }).click();
       await expect(

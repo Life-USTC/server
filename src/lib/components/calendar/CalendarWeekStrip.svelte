@@ -30,7 +30,10 @@ export let emptyLabel = "";
 export let moreLabel: (count: number) => string = (count) => `+${count}`;
 </script>
 
-<ScrollArea orientation="horizontal">
+<ScrollArea
+  class="min-w-0 w-full max-w-full overflow-hidden"
+  orientation="horizontal"
+>
   <div class="grid grid-cols-7 gap-3" style={`min-width: ${minWidth};`}>
     {#each days as day}
       <section

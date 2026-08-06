@@ -45,14 +45,21 @@ export let viewer: DescriptionViewer;
     {#if showAction}
       {#if viewer.isAuthenticated && !viewer.isSuspended && !editing}
         <Button
+          data-testid="description-edit"
           type="button"
           variant="outline"
-          onclick={() => onStartEdit()}
+          onclick={onStartEdit}
         >
           {copy.edit}
         </Button>
       {:else if !viewer.isAuthenticated}
-        <Button href="/account/sign-in" variant="outline">{copy.loginToEdit}</Button>
+        <Button
+          data-testid="description-edit-login"
+          href="/account/sign-in"
+          variant="outline"
+        >
+          {copy.loginToEdit}
+        </Button>
       {/if}
     {/if}
   </div>
