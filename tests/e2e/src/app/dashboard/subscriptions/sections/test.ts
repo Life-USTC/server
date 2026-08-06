@@ -151,6 +151,7 @@ test.describe("仪表盘教学班订阅", () => {
       await expect(
         subscriptionsContent
           .getByText(String(DEV_SEED.section.credits))
+          .filter({ visible: true })
           .first(),
       ).toBeVisible({ timeout: 3_000 });
       // semester group label — semester name shown as group header

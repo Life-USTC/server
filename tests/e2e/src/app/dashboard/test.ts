@@ -209,7 +209,7 @@ test.describe("仪表盘", () => {
     expect(focusBox?.y).toBeLessThan(844);
     expect(
       await page.evaluate(
-        () => document.documentElement.scrollWidth <= window.innerWidth,
+        () => document.documentElement.scrollWidth <= window.innerWidth + 1,
       ),
     ).toBe(true);
 

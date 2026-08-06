@@ -60,17 +60,20 @@ $: ({ datetimeLocalValue, fmtDate, todoActionLabel, todoStatus } =
     sectionCopy,
     todosCopy,
   }));
-$: displayTodoFilter = resolveDashboardTaskFilter(
+$: resolvedTodoFilter = resolveDashboardTaskFilter(
   todoFilter,
   todoItems.some((todo) => !todo.completed),
 );
+$: if (todoFilter !== resolvedTodoFilter) {
+  todoFilter = resolvedTodoFilter;
+}
 </script>
 
 <section class="grid gap-4">
   <TodosTabToolbar
     bind:createTodoError
     bind:showCreateTodo
-    todoFilter={displayTodoFilter}
+    {todoFilter}
     onTodoFilterChange={(value) => {
       todoFilter = value;
     }}

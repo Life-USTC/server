@@ -181,7 +181,7 @@ test.describe("仪表盘作业", () => {
     await expect(completedTab).toBeVisible();
     await completedTab.click();
     await expect(
-      page.getByText(DEV_SEED.homeworks.completedTitle),
+      visibleText(page, DEV_SEED.homeworks.completedTitle),
     ).toBeVisible();
     await expect(
       visibleText(page, DEV_SEED.homeworks.overdueTitle),

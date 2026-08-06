@@ -47,10 +47,13 @@ $: ({ fmtExamDate } = createExamTabDisplayActions({
   referenceNow: signedData.referenceNow,
   sectionCopy,
 }));
-$: displayExamFilter = resolveDashboardTaskFilter(
+$: resolvedExamFilter = resolveDashboardTaskFilter(
   examFilter,
   examRows.some((row) => !row.completed),
 );
+$: if (examFilter !== resolvedExamFilter) {
+  examFilter = resolvedExamFilter;
+}
 </script>
 
 <section class="grid gap-4">
@@ -66,7 +69,7 @@ $: displayExamFilter = resolveDashboardTaskFilter(
   {:else}
     <ExamsTabToolbar
       {dashboardCopy}
-      examFilter={displayExamFilter}
+      examFilter={examFilter}
       onExamFilterChange={(value) => {
         examFilter = value;
       }}

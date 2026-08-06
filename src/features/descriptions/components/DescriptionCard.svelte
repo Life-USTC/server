@@ -11,7 +11,6 @@ import type { AppLocale } from "@/i18n/config";
 import { createShanghaiDateTimeFormatter } from "@/lib/time/shanghai-format";
 import SoftEmptyMessage from "$lib/components/SoftEmptyMessage.svelte";
 import * as Alert from "$lib/components/ui/alert/index.js";
-import { Button } from "$lib/components/ui/button/index.js";
 import DescriptionCardHeader from "./DescriptionCardHeader.svelte";
 import DescriptionEditPanel from "./DescriptionEditPanel.svelte";
 import DescriptionReadPanel from "./DescriptionReadPanel.svelte";
@@ -70,8 +69,7 @@ $: _dateTimeFormatter = createShanghaiDateTimeFormatter(locale, {
   timeStyle: "short",
 });
 
-$: softEmpty =
-  !_editing && !description.content && history.length === 0 && !_message;
+$: softEmpty = !description.content && history.length === 0 && !_message;
 
 $: usePageHeading = Boolean(heading);
 $: showInlineTitle = showTitle && !usePageHeading;
@@ -123,76 +121,49 @@ const {
   </div>
 {/if}
 
-{#if softEmpty}
-  <div class="grid gap-3">
-    {#if showInlineTitle || showInlineAction}
-      <div
-        class="flex flex-wrap items-center gap-3"
-        class:justify-between={showInlineTitle}
-        class:justify-end={!showInlineTitle}
-      >
-        {#if showInlineTitle}
-          <h3 class="min-w-0 text-base font-semibold tracking-tight">{copy.title}</h3>
-        {/if}
-        {#if showInlineAction}
-          {#if _viewer.isAuthenticated && !_viewer.isSuspended}
-            <Button type="button" variant="outline" onclick={_startEdit}>
-              {copy.edit}
-            </Button>
-          {:else if !_viewer.isAuthenticated}
-            <Button href="/account/sign-in" variant="outline">{copy.loginToEdit}</Button>
-          {/if}
-        {/if}
-      </div>
-    {/if}
+<div class="grid w-full gap-4">
+  <DescriptionCardHeader
+    {copy}
+    {description}
+    showTitle={showInlineTitle}
+    showAction={showInlineAction}
+    editing={_editing}
+    editorName={_editorName}
+    formatDate={_formatDate}
+    onStartEdit={_startEdit}
+    viewer={_viewer}
+  />
+
+  <div class="grid gap-5">
     {#if _viewer.isSuspended}
       <DescriptionSuspensionAlert {copy} formatDate={_formatDate} viewer={_viewer} />
     {/if}
-    <SoftEmptyMessage message={copy.empty} />
+
+    {#if _message}
+      <Alert.Root variant="destructive">
+        <Alert.Description>{_message}</Alert.Description>
+      </Alert.Root>
+    {/if}
+
+    {#if _editing}
+      <DescriptionEditPanel
+        cancelEdit={_cancelEdit}
+        {copy}
+        bind:draft
+        isDisabled={!_viewer.isAuthenticated || _viewer.isSuspended}
+        isSaving={_saving}
+        saveDescription={_saveDescription}
+      />
+    {:else if softEmpty}
+      <SoftEmptyMessage message={copy.empty} />
+    {:else}
+      <DescriptionReadPanel
+        bind:activePanelTab={_activePanelTab}
+        {copy}
+        {description}
+        formatDate={_formatDate}
+        {history}
+      />
+    {/if}
   </div>
-{:else}
-  <div class="grid w-full gap-4">
-    <DescriptionCardHeader
-      {copy}
-      {description}
-      showTitle={showInlineTitle}
-      showAction={showInlineAction}
-      editing={_editing}
-      editorName={_editorName}
-      formatDate={_formatDate}
-      onStartEdit={_startEdit}
-      viewer={_viewer}
-    />
-
-    <div class="grid gap-5">
-      {#if _viewer.isSuspended}
-        <DescriptionSuspensionAlert {copy} formatDate={_formatDate} viewer={_viewer} />
-      {/if}
-
-      {#if _message}
-        <Alert.Root variant="destructive">
-          <Alert.Description>{_message}</Alert.Description>
-        </Alert.Root>
-      {/if}
-
-      {#if _editing}
-        <DescriptionEditPanel
-          cancelEdit={_cancelEdit}
-          {copy}
-          bind:draft
-          isDisabled={!_viewer.isAuthenticated || _viewer.isSuspended}
-          isSaving={_saving}
-          saveDescription={_saveDescription}
-        />
-      {:else}
-        <DescriptionReadPanel
-          bind:activePanelTab={_activePanelTab}
-          {copy}
-          {description}
-          formatDate={_formatDate}
-          {history}
-        />
-      {/if}
-    </div>
-  </div>
-{/if}
+</div>

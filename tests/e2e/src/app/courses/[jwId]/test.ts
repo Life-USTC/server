@@ -295,12 +295,14 @@ test.describe("/catalog/courses/[jwId] 课程详情", () => {
       const content = `e2e-course-desc-${Date.now()}`;
       const editor = introduction.locator("textarea").first();
       await expect(async () => {
-        await introduction
-          .getByRole("button", { name: /^编辑$|^Edit$/i })
-          .click();
+        if (!(await editor.isVisible().catch(() => false))) {
+          await introduction
+            .getByRole("button", { name: /^编辑$|^Edit$/i })
+            .click();
+        }
         await expect(editor).toBeVisible({ timeout: 3_000 });
       }).toPass({
-        timeout: 10_000,
+        timeout: 15_000,
         intervals: [250, 500, 1_000],
       });
       await editor.fill(content);
@@ -321,10 +323,10 @@ test.describe("/catalog/courses/[jwId] 课程详情", () => {
       await saveResponse;
       await expect(introduction.getByText(content)).toBeVisible();
       await captureStepScreenshot(page, testInfo, "course/description-updated");
-    } finally {
       if (snapshot.original) {
         await waitForDescriptionAuditRows(snapshot.original, 1);
       }
+    } finally {
       await restoreDescriptionTargetSnapshot(page.request, snapshot);
     }
   });

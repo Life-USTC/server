@@ -95,7 +95,13 @@ export function buildDashboardControllerDerivedState(input: {
         examRows.some((row) => !row.completed),
       ),
     ),
-    filteredTodos: filterTodos(todoItems, input.todoFilter),
+    filteredTodos: filterTodos(
+      todoItems,
+      resolveDashboardTaskFilter(
+        input.todoFilter,
+        todoItems.some((todo) => !todo.completed),
+      ),
+    ),
     homeworkItems,
     overviewLinkItems,
     signedData,

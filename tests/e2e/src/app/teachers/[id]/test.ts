@@ -302,10 +302,10 @@ test.describe("/catalog/teachers/[id] 教师详情页", () => {
         testInfo,
         "teacher/description-updated",
       );
-    } finally {
       if (snapshot.original) {
         await waitForDescriptionAuditRows(snapshot.original, 1);
       }
+    } finally {
       await restoreDescriptionTargetSnapshot(page.request, snapshot);
     }
   });

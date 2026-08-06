@@ -83,16 +83,16 @@ let homeworkSectionHref: HomeworkAction;
 let homeworkSectionLabel: (section: DashboardHomeworkCreateSection) => string;
 let homeworkStatus: HomeworkAction;
 
-$: filteredHomeworkItems = filterDashboardHomeworks(
-  homeworkItems,
-  resolveDashboardTaskFilter(
-    homeworkFilter,
-    homeworkItems.some((item) => !item.completion),
-  ),
-);
-$: displayHomeworkFilter = resolveDashboardTaskFilter(
+$: resolvedHomeworkFilter = resolveDashboardTaskFilter(
   homeworkFilter,
   homeworkItems.some((item) => !item.completion),
+);
+$: if (homeworkFilter !== resolvedHomeworkFilter) {
+  homeworkFilter = resolvedHomeworkFilter;
+}
+$: filteredHomeworkItems = filterDashboardHomeworks(
+  homeworkItems,
+  homeworkFilter,
 );
 $: hasHomeworkItems = homeworkItems.length > 0;
 
@@ -133,7 +133,7 @@ $: ({
   {:else}
     <HomeworksTabToolbar
       {homeworksCopy}
-      homeworkFilter={displayHomeworkFilter}
+      {homeworkFilter}
       onHomeworkFilterChange={(value) => {
         homeworkFilter = value;
       }}

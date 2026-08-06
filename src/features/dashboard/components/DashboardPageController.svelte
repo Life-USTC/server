@@ -138,6 +138,7 @@ let overviewLinkSourceItems: DashboardLinkItem[] = [];
 let todoSourceItems: TodoItem[] = [];
 let linkSourceData: PageData | null = null;
 $: copy = data.copy;
+$: actionError = form?.error ?? "";
 $: commonCopy = copy.common;
 $: dashboardCopy = copy.dashboard;
 $: busCopy = copy.bus;
@@ -492,6 +493,12 @@ onMount(() => {
 <div class="grid w-full gap-6">
   {#if data.signedIn && data.mainContentLabel}
     <h1 class="sr-only">{data.mainContentLabel}</h1>
+  {/if}
+
+  {#if actionError}
+    <Alert.Root variant="destructive">
+      <Alert.Description>{actionError}</Alert.Description>
+    </Alert.Root>
   {/if}
 
   {#if signedData}
