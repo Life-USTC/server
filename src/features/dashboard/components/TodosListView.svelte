@@ -21,6 +21,7 @@ type TodoCompletionToggle = (todo: DashboardTodoItem) => void | Promise<void>;
 export let filteredTodos: DashboardTodoItem[];
 export let fmtDate: TodoDateFormatter;
 export let openTodoEditor: (todo: DashboardTodoItem) => void;
+export let selectedTodo: DashboardTodoItem | null = null;
 export let todoActionLabel: TodoAction;
 export let todoSavingById: Record<string, boolean>;
 export let todosCopy: DashboardTodosCopy;
@@ -46,7 +47,7 @@ export let toggleTodoCompletion: TodoCompletionToggle;
           const target = event.target;
           if (!(target instanceof Element)) return;
           if (target.closest("button, a")) return;
-          openTodoEditor(todo);
+          selectedTodo = todo;
         }}
       >
         <Table.Cell>
@@ -54,7 +55,9 @@ export let toggleTodoCompletion: TodoCompletionToggle;
             class="block min-w-0 max-w-full overflow-hidden text-left hover:underline"
             class:line-through={todo.completed}
             type="button"
-            onclick={() => openTodoEditor(todo)}
+            onclick={() => {
+              selectedTodo = todo;
+            }}
           >
             <TruncatedText text={todo.title} />
           </button>

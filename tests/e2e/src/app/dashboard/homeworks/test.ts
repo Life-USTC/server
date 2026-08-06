@@ -256,7 +256,8 @@ test.describe("仪表盘作业", () => {
       .first();
     await expect(completionButton).toBeVisible();
 
-    const before = (await completionButton.textContent())?.trim() ?? "";
+    const before =
+      (await completionButton.getAttribute("aria-label"))?.trim() ?? "";
 
     const completionResponse = page.waitForResponse(
       (r) =>
@@ -266,9 +267,12 @@ test.describe("仪表盘作业", () => {
     );
     await completionButton.click();
     await completionResponse;
-    await expect(completionButton).not.toHaveText(before, { timeout: 15_000 });
+    await expect(completionButton).not.toHaveAttribute("aria-label", before, {
+      timeout: 15_000,
+    });
 
-    const after = (await completionButton.textContent())?.trim() ?? "";
+    const after =
+      (await completionButton.getAttribute("aria-label"))?.trim() ?? "";
     expect(after).not.toBe(before);
     await captureStepScreenshot(page, testInfo, "homeworks/completion-toggled");
 

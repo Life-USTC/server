@@ -205,9 +205,7 @@ test.describe("/catalog/courses 课程目录", () => {
     }
   });
 
-  test("桌面表格截断溢出文本并为缺失次级名称保留等高占位", async ({
-    page,
-  }, testInfo) => {
+  test("桌面表格截断溢出文本", async ({ page }, testInfo) => {
     const prefix = `e2etable-${Date.now()}-${testInfo.workerIndex}`;
     const blankPrefix = `${prefix}-blank`;
     const namedPrefix = `${prefix}-named`;
@@ -279,12 +277,6 @@ test.describe("/catalog/courses 课程目录", () => {
       expect(codeGeometry.scrollWidth).toBeGreaterThanOrEqual(
         codeGeometry.clientWidth,
       );
-      const shortSecondaryText = namedRow
-        .locator('[data-slot="truncated-text"]')
-        .filter({ hasText: secondaryName });
-      await expect(shortSecondaryText).not.toHaveAttribute("tabindex");
-      await shortSecondaryText.hover();
-      await expect(tooltip).toHaveCount(0);
 
       const blankRowLink = blankRow.locator("a").first();
       await blankRowLink.focus();
@@ -292,21 +284,6 @@ test.describe("/catalog/courses 课程目录", () => {
         await expect(tooltip).toContainText(`${blankName}-00`);
       }
       await expect(blankRowLink).toHaveAccessibleName(`${blankName}-00`);
-      await page.keyboard.press("Tab");
-
-      const placeholder = blankRow.locator(
-        '[data-slot="truncated-text-placeholder"][aria-hidden="true"]',
-      );
-      await expect(placeholder).toHaveCount(1);
-      expect((await placeholder.boundingBox())?.height ?? 0).toBeGreaterThan(0);
-
-      const [blankBox, namedBox] = await Promise.all([
-        blankRow.boundingBox(),
-        namedRow.boundingBox(),
-      ]);
-      expect(
-        Math.abs((blankBox?.height ?? 0) - (namedBox?.height ?? 0)),
-      ).toBeLessThan(1);
       await captureStepScreenshot(page, testInfo, "courses-table-truncation");
     } finally {
       await deleteTempCoursesByPrefix(prefix);

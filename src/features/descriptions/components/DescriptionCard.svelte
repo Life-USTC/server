@@ -80,7 +80,13 @@ function formatDate(value: string | null | undefined) {
   return dateTimeFormatter.format(new Date(value));
 }
 
-const { cancelEdit, editorName, saveDescription, startEdit } =
+function handleStartEdit() {
+  draft = description.content ?? "";
+  isEditing = true;
+  message = "";
+}
+
+const { cancelEdit, editorName, saveDescription } =
   createDescriptionCardActions({
     getCopy: () => copy,
     getDescription: () => description,
@@ -126,7 +132,7 @@ const { cancelEdit, editorName, saveDescription, startEdit } =
     editing={isEditing}
     editorName={editorName}
     formatDate={formatDate}
-    onStartEdit={startEdit}
+    onStartEdit={handleStartEdit}
     viewer={viewer}
   />
 

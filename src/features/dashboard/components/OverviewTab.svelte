@@ -190,18 +190,20 @@ function overviewFocus(
     {@const overviewWeekStart = dashboardOverviewWeekStart()}
     {@const upcomingOverviewExams = overviewUpcomingExams(overviewCalendar)}
     {@const agendaDays = overviewAgendaDays(overviewCalendar)}
-    <div class="grid gap-8 lg:gap-10">
+    <div class="grid min-w-0 gap-8 lg:gap-10">
       <OverviewFocusCard
         copy={dashboardCopy.focus}
         focus={overviewFocus(overviewCalendar, agendaDays)}
       />
 
-      <OverviewWeekCard
-        {dashboardCopy}
-        {dashboardTabHref}
-        days={overviewCalendarWeekDays(overviewCalendar, overviewWeekStart)}
-        {formatMessage}
-      />
+      <div class="min-w-0">
+        <OverviewWeekCard
+          {dashboardCopy}
+          {dashboardTabHref}
+          days={overviewCalendarWeekDays(overviewCalendar, overviewWeekStart)}
+          {formatMessage}
+        />
+      </div>
 
       <OverviewLinksGrid
         {dashboardCopy}

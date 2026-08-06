@@ -88,6 +88,7 @@ $: displayTodoFilter = resolveDashboardTaskFilter(
       {filteredTodos}
       {fmtDate}
       {openTodoEditor}
+      bind:selectedTodo
       {todoActionLabel}
       {todoSavingById}
       {todosCopy}
@@ -100,6 +101,7 @@ $: displayTodoFilter = resolveDashboardTaskFilter(
       {filteredTodos}
       {fmtDate}
       {openTodoEditor}
+      bind:selectedTodo
       {todoActionLabel}
       {todoSavingById}
       {todosCopy}

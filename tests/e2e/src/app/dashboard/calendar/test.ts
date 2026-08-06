@@ -256,6 +256,9 @@ test.describe("仪表盘日历", () => {
       await page.evaluate(async () => navigator.clipboard.readText()),
     ).toMatch(/\/api\/calendar-feeds\/[^/]+\.ics$/);
 
+    await page.keyboard.press("Escape");
+    await expect(dialog).toBeHidden();
+
     await next.click();
     await expect(page).toHaveURL(/calendarView=week/);
     await expect(page).toHaveURL(/calendarWeek=\d{4}-\d{2}-\d{2}/);

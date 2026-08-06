@@ -62,6 +62,7 @@ onMount(() => mountPageSearchShortcut(() => searchInput));
     <label class="sr-only" for={searchId}>{searchLabel}</label>
     <InputGroup.Root
       class={cn(
+        "h-11",
         inlineFilters ? "" : "col-span-2 min-[420px]:col-span-1",
       )}
     >
@@ -88,7 +89,7 @@ onMount(() => mountPageSearchShortcut(() => searchInput));
         <input name={filter.name} type="hidden" value={filter.value} />
       {/if}
     {/each}
-    <Button class="w-full min-[420px]:w-auto" type="submit">
+    <Button class="h-11 w-full min-[420px]:w-auto" type="submit">
       {searchLabel}
     </Button>
 
@@ -102,7 +103,7 @@ onMount(() => mountPageSearchShortcut(() => searchInput));
                 ? `${filterTitle} (${activeFilters.length})`
                 : filterTitle}
               class={cn(
-                "relative w-full min-w-0 min-[420px]:w-auto",
+                "relative h-11 w-full min-w-0 min-[420px]:w-auto",
                 typeof props.class === "string" ? props.class : undefined,
               )}
               type="button"
@@ -161,8 +162,9 @@ onMount(() => mountPageSearchShortcut(() => searchInput));
       {#each activeFilters as filter}
         <Button
           aria-label={`${clearLabel}: ${filter.label}`}
-          class="max-w-full min-w-0"
+          class="min-h-11 max-w-full min-w-0 sm:min-h-8"
           href={filter.href}
+          size="sm"
           title={filter.label}
           variant="secondary"
         >
@@ -172,7 +174,9 @@ onMount(() => mountPageSearchShortcut(() => searchInput));
       {/each}
       {#if activeFilters.length > 1}
         <Button
+          class="min-h-11 sm:min-h-8"
           href={clearHref}
+          size="sm"
           variant="ghost"
         >
           {clearLabel}

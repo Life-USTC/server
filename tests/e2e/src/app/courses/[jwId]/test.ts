@@ -321,7 +321,11 @@ test.describe("/catalog/courses/[jwId] 课程详情", () => {
       );
       await introduction.getByRole("button", { name: /保存|Save/i }).click();
       await saveResponse;
-      await expect(introduction.getByText(content).first()).toBeVisible();
+      await expect(
+        introduction
+          .getByRole("tabpanel", { name: /简介|Description/i })
+          .getByText(content),
+      ).toBeVisible();
       await captureStepScreenshot(page, testInfo, "course/description-updated");
       if (snapshot.original) {
         await waitForDescriptionAuditRows(snapshot.original, 1);

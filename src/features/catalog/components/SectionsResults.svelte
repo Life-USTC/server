@@ -92,59 +92,59 @@ $: sectionSemesterSummary = selectedSemester
       </Item.Group>
     </div>
     <div class="hidden min-w-0 max-w-full xl:block">
-      <Table.Root class="">
-        <Table.Header>
+      <Table.Root class="table-fixed">
+        <Table.Header class="bg-muted/30">
           <Table.Row>
-            <Table.Head>{sectionLabels.semester}</Table.Head>
+            <Table.Head class="w-36">{sectionLabels.semester}</Table.Head>
             <Table.Head>{sectionLabels.courseName}</Table.Head>
-            <Table.Head>{sectionLabels.sectionCode}</Table.Head>
-            <Table.Head>{sectionLabels.teachers}</Table.Head>
-            <Table.Head>{sectionLabels.credits}</Table.Head>
-            <Table.Head>{sectionLabels.capacity}</Table.Head>
-            <Table.Head>{sectionLabels.campus}</Table.Head>
+            <Table.Head class="w-36">{sectionLabels.sectionCode}</Table.Head>
+            <Table.Head class="w-36">{sectionLabels.teachers}</Table.Head>
+            <Table.Head class="w-16 text-right">{sectionLabels.credits}</Table.Head>
+            <Table.Head class="w-24 text-right">{sectionLabels.capacity}</Table.Head>
+            <Table.Head class="w-28">{sectionLabels.campus}</Table.Head>
           </Table.Row>
         </Table.Header>
         <Table.Body>
           {#each data.data as section}
             {@const sectionHref = `/catalog/sections/${section.jwId}`}
             <Table.Row>
-              <Table.Cell class="p-0">
+              <Table.Cell class="p-0 align-top">
                 <CatalogTableLink href={sectionHref} nowrap>
                   {section.semester?.nameCn
                     ? formatSemesterName(locale, section.semester.nameCn)
                     : sectionLabels.noSemester}
                 </CatalogTableLink>
               </Table.Cell>
-              <Table.Cell class={`p-0 whitespace-normal`}>
+              <Table.Cell class="p-0 align-top whitespace-normal">
                 <CatalogTableLink href={sectionHref}>
                   <TruncatedText
                     text={catalogLocalizedDisplayName(section.course, locale)}
                   />
                 </CatalogTableLink>
               </Table.Cell>
-              <Table.Cell class="p-0">
+              <Table.Cell class="p-0 align-top">
                 <CatalogTableLink href={sectionHref}>
                   <TruncatedCode text={section.code} />
                 </CatalogTableLink>
               </Table.Cell>
-              <Table.Cell class={`p-0 whitespace-normal`}>
+              <Table.Cell class="p-0 align-top whitespace-normal">
                 <CatalogTableLink href={sectionHref}>
                   <TruncatedText
                     text={catalogLocalizedNames(section.teachers, locale) || "-"}
                   />
                 </CatalogTableLink>
               </Table.Cell>
-              <Table.Cell class="p-0">
+              <Table.Cell class="p-0 text-right align-top">
                 <CatalogTableLink href={sectionHref} numeric>
                   {section.credits ?? "-"}
                 </CatalogTableLink>
               </Table.Cell>
-              <Table.Cell class="p-0">
+              <Table.Cell class="p-0 text-right align-top">
                 <CatalogTableLink href={sectionHref} numeric>
                   {section.stdCount ?? 0} / {section.limitCount ?? "-"}
                 </CatalogTableLink>
               </Table.Cell>
-              <Table.Cell class="p-0">
+              <Table.Cell class="p-0 align-top">
                 <CatalogTableLink href={sectionHref}>
                   {section.campus ? primaryName(section.campus) : "-"}
                 </CatalogTableLink>

@@ -75,7 +75,11 @@ async function jumpToSection(page: Page, name: RegExp, selector: string) {
     await expect(page.locator(selector)).toBeVisible({ timeout: 60_000 });
     if (hash === "calendar") {
       await expect(
-        page.getByRole("button", { name: /今天|Today/i }).first(),
+        page
+          .locator("#calendar")
+          .getByRole("heading", { name: /日历|Calendar/i })
+          .or(page.locator("#calendar table"))
+          .first(),
       ).toBeVisible({ timeout: 60_000 });
     }
     return;
@@ -112,13 +116,6 @@ async function openCommentDeleteDialog(page: Page, commentCard: Locator) {
   });
   await expect(deleteDialog).toBeVisible();
   return deleteDialog;
-}
-
-function getSectionCalendarMonthView(page: Page) {
-  return page
-    .locator("section")
-    .filter({ has: page.getByRole("button", { name: /今天|Today/i }) })
-    .first();
 }
 
 test.describe("/catalog/sections/[jwId] 班级详情页", () => {
@@ -249,34 +246,24 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
   test("基本信息中显示授课语言与教室类型", async ({ page }, testInfo) => {
     await gotoAndWaitForReady(page, SECTION_URL);
 
-    // Expand "More Details" inner accordion to reveal teachLanguage and roomType.
-    const moreDetailsTrigger = page
-      .getByRole("button", { name: /^(更多信息|More Details)$/i })
-      .first();
-    const teachLanguage = page
-      .getByText(DEV_SEED.section.teachLanguageNameCn)
-      .or(page.getByText(DEV_SEED.section.teachLanguageNameEn))
-      .first();
-    const roomType = page
-      .getByText(DEV_SEED.section.roomTypeNameCn)
-      .or(page.getByText(DEV_SEED.section.roomTypeNameEn))
-      .first();
-    await expect(async () => {
-      await expect(moreDetailsTrigger).toBeVisible();
-      if ((await moreDetailsTrigger.getAttribute("aria-expanded")) !== "true") {
-        await moreDetailsTrigger.click();
-      }
-      await expect(teachLanguage).toBeVisible({ timeout: 2_000 });
-      await expect(roomType).toBeVisible({ timeout: 2_000 });
-    }).toPass({
-      timeout: 10_000,
-      intervals: [250, 500, 1_000],
-    });
+    await expect(
+      page.getByRole("heading", { name: /^(更多信息|More Details)$/i }),
+    ).toBeVisible();
 
     // section.teachLanguage.namePrimary (locale-dependent)
-    await expect(teachLanguage).toBeVisible({ timeout: 8_000 });
+    await expect(
+      page
+        .getByText(DEV_SEED.section.teachLanguageNameCn)
+        .or(page.getByText(DEV_SEED.section.teachLanguageNameEn))
+        .first(),
+    ).toBeVisible();
     // section.roomType.namePrimary (locale-dependent)
-    await expect(roomType).toBeVisible({ timeout: 8_000 });
+    await expect(
+      page
+        .getByText(DEV_SEED.section.roomTypeNameCn)
+        .or(page.getByText(DEV_SEED.section.roomTypeNameEn))
+        .first(),
+    ).toBeVisible();
 
     await captureStepScreenshot(page, testInfo, "section/teach-lang-roomtype");
   });
@@ -301,72 +288,55 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
     await captureStepScreenshot(page, testInfo, "section/admin-classes");
   });
 
-  test("日历区块以非交互芯片显示课表详情", async ({ page }, testInfo) => {
+  test("日历区块以课表表格显示日程详情", async ({ page }, testInfo) => {
     test.setTimeout(90_000);
     await gotoAndWaitForReady(page, SECTION_URL);
 
     await jumpToSection(page, /日历|Calendar/i, "#calendar");
 
-    // Class schedule information is now rendered as chips inside the calendar
-    // month grid, not as a separate list of cards.
-    const monthView = getSectionCalendarMonthView(page);
-    const classEventChip = monthView
-      .locator('[data-slot="tooltip-trigger"]')
-      .filter({ hasText: /上课事件|Class event/i })
-      .first();
-    await expect(classEventChip).toBeVisible({ timeout: 30_000 });
-    await expect(classEventChip).not.toHaveAttribute("href", /.+/);
-    await expect(classEventChip).toHaveAttribute("tabindex", "0");
-    await expect(monthView.locator('a[href^="#"]')).toHaveCount(0);
+    const calendar = page.locator("#calendar");
+    const scheduleTable = calendar.locator("table").first();
+    await expect(scheduleTable).toBeVisible({ timeout: 30_000 });
+    await expect(scheduleTable.locator("tbody tr").first()).toBeVisible();
 
-    // schedule.room.namePrimary and schedule.room.building.namePrimary
-    // are rendered in the chip meta text.
+    // schedule.room / building / campus appear in the location column.
     await expect(
-      classEventChip
+      scheduleTable
         .getByText(DEV_SEED.room.nameCn, { exact: false })
-        .or(classEventChip.getByText(DEV_SEED.room.nameEn, { exact: false }))
+        .or(scheduleTable.getByText(DEV_SEED.room.nameEn, { exact: false }))
         .first(),
     ).toBeVisible();
     await expect(
-      classEventChip
+      scheduleTable
         .getByText(DEV_SEED.building.nameCn, { exact: false })
-        .or(
-          classEventChip.getByText(DEV_SEED.building.nameEn, { exact: false }),
-        )
+        .or(scheduleTable.getByText(DEV_SEED.building.nameEn, { exact: false }))
         .first(),
     ).toBeVisible();
     await expect(
-      classEventChip
+      scheduleTable
         .getByText(DEV_SEED.campus.nameCn, { exact: false })
-        .or(classEventChip.getByText(DEV_SEED.campus.nameEn, { exact: false }))
+        .or(scheduleTable.getByText(DEV_SEED.campus.nameEn, { exact: false }))
         .first(),
     ).toBeVisible();
-
-    const beforeClickUrl = page.url();
-    await classEventChip.click();
-    expect(page.url()).toBe(beforeClickUrl);
 
     await captureStepScreenshot(page, testInfo, "section/schedule-calendar");
   });
 
-  test("今天按钮将日历导航到当前日期而非班级开始日期", async ({
-    page,
-  }, testInfo) => {
+  test("日历区块以课表表格展示班级日程", async ({ page }, testInfo) => {
     test.setTimeout(90_000);
     await gotoAndWaitForReady(page, SECTION_URL);
 
     await jumpToSection(page, /日历|Calendar/i, "#calendar");
 
-    const monthView = getSectionCalendarMonthView(page);
-    const monthHeading = monthView.locator("h3").first();
-    const initialMonthLabel = (await monthHeading.innerText()).trim();
-
-    await monthView.getByRole("button", { name: /下个月|Next month/i }).click();
-    await expect(monthHeading).not.toHaveText(initialMonthLabel);
-
-    await monthView.getByRole("button", { name: /今天|Today/i }).click();
-    await expect(monthView.locator('[aria-current="date"]')).toHaveCount(1);
-    await expect(monthHeading).not.toHaveText(initialMonthLabel);
+    const calendar = page.locator("#calendar");
+    await expect(
+      calendar.getByRole("heading", { name: /日历|Calendar/i }),
+    ).toBeVisible();
+    await expect(calendar.locator("table").first()).toBeVisible();
+    await expect(calendar.locator("tbody tr").first()).toBeVisible();
+    await expect(
+      calendar.getByRole("button", { name: /今天|Today/i }),
+    ).toHaveCount(0);
 
     await captureStepScreenshot(page, testInfo, "section/calendar-today");
   });
@@ -577,11 +547,15 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
 
     const comments = page.locator("#comments");
     await expect(
-      comments.getByRole("button", { name: /发布评论|Post comment/i }),
-    ).toBeVisible();
-    await openCommentComposer(page, comments);
-    await expect(
-      comments.getByRole("textbox", { name: /评论内容|Comment body/i }),
+      comments
+        .getByRole("link", {
+          name: /登录.*评论|Log in to comment|Sign in to comment/i,
+        })
+        .or(
+          comments.getByRole("button", {
+            name: /登录.*评论|Log in to comment|Sign in to comment/i,
+          }),
+        ),
     ).toBeVisible();
     expect(
       await page.evaluate(() => document.documentElement.scrollWidth),
@@ -959,7 +933,11 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
       );
       await introduction.getByRole("button", { name: /保存|Save/i }).click();
       await saveResponse;
-      await expect(introduction.getByText(content).first()).toBeVisible();
+      await expect(
+        introduction
+          .getByRole("tabpanel", { name: /简介|Description/i })
+          .getByText(content),
+      ).toBeVisible();
       await captureStepScreenshot(
         page,
         testInfo,

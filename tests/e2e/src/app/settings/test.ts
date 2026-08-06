@@ -165,8 +165,9 @@ test.describe("/account/settings 设置中心", () => {
       page.getByRole("button", { name: /删除|Delete/i }).first(),
     ).toBeVisible();
     await expect(
-      page.getByRole("region", { name: /删除账户|Delete Account/i }),
-    ).toHaveAttribute("data-settings-danger-region", "true");
+      page.getByRole("heading", { name: /删除账户|Delete Account/i }),
+    ).toBeVisible();
+    await expect(page.locator("[data-settings-danger-region]")).toBeVisible();
     await captureStepScreenshot(page, testInfo, "settings-danger-tab");
 
     // Navigate back to profile tab

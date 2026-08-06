@@ -20,6 +20,7 @@ type TodoCompletionToggle = (todo: DashboardTodoItem) => void | Promise<void>;
 export let filteredTodos: DashboardTodoItem[];
 export let fmtDate: TodoDateFormatter;
 export let openTodoEditor: (todo: DashboardTodoItem) => void;
+export let selectedTodo: DashboardTodoItem | null = null;
 export let todoActionLabel: TodoAction;
 export let todoSavingById: Record<string, boolean>;
 export let todosCopy: DashboardTodosCopy;
@@ -39,7 +40,9 @@ export let toggleTodoCompletion: TodoCompletionToggle;
             class:line-through={todo.completed}
             class="text-left underline-offset-4 hover:underline"
             type="button"
-            onclick={() => openTodoEditor(todo)}
+            onclick={() => {
+              selectedTodo = todo;
+            }}
           >
             {todo.title}
           </button>

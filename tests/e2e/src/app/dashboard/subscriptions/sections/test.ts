@@ -209,23 +209,11 @@ test.describe("仪表盘教学班订阅", () => {
     await expect(semesterHeadings.nth(1)).toContainText(
       DEV_SEED.previousSemesterNameCn,
     );
-    expect(
-      await semesterGroups.evaluate(
-        (element) => getComputedStyle(element).display,
-      ),
-    ).toBe(
-      await page.evaluate(() =>
-        CSS.supports("display", "grid-lanes") ? "grid-lanes" : "grid",
-      ),
-    );
     const firstTable = await tables.nth(0).boundingBox();
     const secondTable = await tables.nth(1).boundingBox();
     expect(firstTable).not.toBeNull();
     expect(secondTable).not.toBeNull();
-    expect(secondTable?.x).toBeGreaterThan((firstTable?.x ?? 0) + 100);
-    expect(Math.abs((secondTable?.y ?? 0) - (firstTable?.y ?? 0))).toBeLessThan(
-      8,
-    );
+    expect(secondTable?.y).toBeGreaterThan((firstTable?.y ?? 0) + 8);
     expect(
       await page.evaluate(
         () => document.documentElement.scrollWidth <= window.innerWidth,

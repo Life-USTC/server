@@ -185,6 +185,7 @@ test.describe("仪表盘网站链接", () => {
     const locatePinButton = async () => {
       const linkButton = page
         .getByRole("button", { name: /教务系统/i })
+        .filter({ visible: true })
         .first();
       await expect(linkButton).toBeVisible();
 
@@ -195,12 +196,14 @@ test.describe("仪表盘网站链接", () => {
 
       const pinForm = page
         .locator('form[action="/api/workspace/link-pins"]')
+        .filter({ visible: true })
         .filter({
           has: page.locator('input[name="slug"][value="jw"]'),
         })
         .first();
       const pinButton = pinForm
         .getByRole("button", { name: /置顶|Pin|取消置顶|Unpin/i })
+        .filter({ visible: true })
         .first();
 
       await expect(pinButton).toBeVisible();
@@ -285,6 +288,7 @@ test.describe("仪表盘网站链接", () => {
     const locateJwPinButton = async () => {
       const linkButton = page
         .getByRole("button", { name: /教务系统/i })
+        .filter({ visible: true })
         .first();
       await expect(linkButton).toBeVisible();
 
@@ -295,11 +299,13 @@ test.describe("仪表盘网站链接", () => {
 
       return page
         .locator('form[action="/api/workspace/link-pins"]')
+        .filter({ visible: true })
         .filter({
           has: page.locator('input[name="slug"][value="jw"]'),
         })
         .first()
         .getByRole("button", { name: /置顶|Pin|取消置顶|Unpin/i })
+        .filter({ visible: true })
         .first();
     };
 

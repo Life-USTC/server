@@ -43,17 +43,17 @@ export let viewer: DescriptionViewer;
       {/if}
     </div>
     {#if showAction}
-    {#if viewer.isAuthenticated && !viewer.isSuspended && !editing}
-      <button
-        class="border-border bg-background hover:bg-muted inline-flex h-8 items-center justify-center rounded-lg border px-2.5 text-sm font-medium"
-        type="button"
-        onclick={onStartEdit}
-      >
-        {copy.edit}
-      </button>
-    {:else if !viewer.isAuthenticated}
-      <Button href="/account/sign-in" variant="outline">{copy.loginToEdit}</Button>
-    {/if}
+      {#if viewer.isAuthenticated && !viewer.isSuspended && !editing}
+        <Button
+          type="button"
+          variant="outline"
+          onclick={() => onStartEdit()}
+        >
+          {copy.edit}
+        </Button>
+      {:else if !viewer.isAuthenticated}
+        <Button href="/account/sign-in" variant="outline">{copy.loginToEdit}</Button>
+      {/if}
     {/if}
   </div>
 {/if}
