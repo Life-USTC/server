@@ -11,11 +11,7 @@ describe("admin 用户读取模型", () => {
         { id: { contains: "alice", mode: "insensitive" } },
         { name: { contains: "alice", mode: "insensitive" } },
         { username: { contains: "alice", mode: "insensitive" } },
-        {
-          verifiedEmails: {
-            some: { email: { contains: "alice", mode: "insensitive" } },
-          },
-        },
+        { email: { contains: "alice", mode: "insensitive" } },
       ],
     });
   });
@@ -25,9 +21,9 @@ describe("admin 用户读取模型", () => {
       id: "user-1",
       name: "Alice",
       username: "alice",
+      email: "alice@example.com",
       isAdmin: false,
       createdAt: new Date("2026-01-01T00:00:00.000Z"),
-      verifiedEmails: [{ email: "alice@example.com" }],
     };
 
     expect(toAdminUserListItem(baseUser)).toEqual({
