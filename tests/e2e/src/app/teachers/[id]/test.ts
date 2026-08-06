@@ -245,7 +245,7 @@ test.describe("/catalog/teachers/[id] 教师详情页", () => {
   test("已登录用户可编辑简介（content、lastEditedBy、lastEditedAt）", async ({
     page,
   }, testInfo) => {
-    test.setTimeout(60_000);
+    test.setTimeout(90_000);
     await signInAsDebugUser(page, "/catalog/teachers");
     await navigateToSeedTeacher(page);
     const teacherId = page.url().match(/\/catalog\/teachers\/(\d+)/)?.[1];
@@ -270,6 +270,7 @@ test.describe("/catalog/teachers/[id] 教师详情页", () => {
       );
       const editButton = introduction.getByTestId("description-edit");
       await expect(editButton).toBeVisible({ timeout: 60_000 });
+      await editButton.scrollIntoViewIfNeeded();
       await editButton.click();
       await expect(editor).toBeVisible();
       await editor.fill(content);

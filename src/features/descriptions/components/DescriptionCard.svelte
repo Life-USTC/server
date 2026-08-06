@@ -114,7 +114,7 @@ const { cancelEdit, editorName, saveDescription, startEdit } =
 </script>
 
 {#if usePageHeading}
-  <div class="mb-3 flex flex-wrap items-center justify-between gap-3">
+  <div class="mb-3 flex flex-wrap items-center gap-3">
     <h2 class="text-lg font-semibold tracking-tight">{heading}</h2>
     {#if viewer.isAuthenticated && !viewer.isSuspended && !isEditing}
       <Button

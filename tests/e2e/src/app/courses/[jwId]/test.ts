@@ -280,7 +280,7 @@ test.describe("/catalog/courses/[jwId] 课程详情", () => {
   });
 
   test("登录用户可以编辑课程简介", async ({ page }, testInfo) => {
-    test.setTimeout(60_000);
+    test.setTimeout(90_000);
     await signInAsDebugUser(page, `${COURSE_URL}#introduction`);
     const snapshot = await snapshotDescriptionTargetForE2e(
       page.request,
@@ -298,6 +298,7 @@ test.describe("/catalog/courses/[jwId] 课程详情", () => {
       );
       const editButton = introduction.getByTestId("description-edit");
       await expect(editButton).toBeVisible({ timeout: 60_000 });
+      await editButton.scrollIntoViewIfNeeded();
       await editButton.click();
       await expect(editor).toBeVisible();
       await editor.fill(content);

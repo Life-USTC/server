@@ -22,7 +22,6 @@ export let viewer: DescriptionViewer;
   <div
     class="flex flex-wrap items-start gap-3"
     class:justify-between={showTitle || description.lastEditedAt}
-    class:justify-end={!showTitle && !description.lastEditedAt}
   >
     <div class="grid min-w-0 gap-1">
       {#if showTitle}

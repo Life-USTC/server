@@ -917,7 +917,9 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
       const editor = introduction.locator(
         '[data-slot="markdown-editor"] textarea',
       );
-      await introduction.getByTestId("description-edit").click();
+      const editButton = introduction.getByTestId("description-edit");
+      await editButton.scrollIntoViewIfNeeded();
+      await editButton.click();
       await expect(editor).toBeVisible();
       await editor.fill(content);
       await introduction.getByRole("tab", { name: /预览|Preview/i }).click();
