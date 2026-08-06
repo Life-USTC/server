@@ -12,6 +12,7 @@ import {
   type TodoItem,
 } from "./dashboard-controller-helpers";
 import { groupDashboardLinks } from "./dashboard-link-ui";
+import { resolveDashboardTaskFilter } from "./dashboard-task-filter";
 import type { ExamFilter } from "./exams";
 import { filterExamRows } from "./exams";
 import { filterTodos } from "./todos";
@@ -87,7 +88,13 @@ export function buildDashboardControllerDerivedState(input: {
       null) as CalendarData | null,
     dashboardLinkItems,
     examRows,
-    filteredExamRows: filterExamRows(examRows, input.examFilter),
+    filteredExamRows: filterExamRows(
+      examRows,
+      resolveDashboardTaskFilter(
+        input.examFilter,
+        examRows.some((row) => !row.completed),
+      ),
+    ),
     filteredTodos: filterTodos(todoItems, input.todoFilter),
     homeworkItems,
     overviewLinkItems,

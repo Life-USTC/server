@@ -131,7 +131,7 @@ test.describe("仪表盘网站链接", () => {
       }),
     ).toBeVisible();
     await expect(
-      page.locator('input[name="action"][value="unpin"]'),
+      page.locator('input[name="action"][value="unpin"]:visible'),
     ).toHaveCount(DEV_SEED.dashboardLinks.overviewLimit);
 
     await captureStepScreenshot(page, testInfo, "dashboard-links-tab");

@@ -264,11 +264,19 @@ test.describe("/catalog/teachers/[id] 教师详情页", () => {
       const introduction = page.locator("#introduction");
       await expect(introduction).toBeVisible();
 
-      await introduction
-        .getByRole("button", { name: /^编辑$|^Edit$/i })
-        .click();
       const content = `e2e-teacher-desc-${Date.now()}`;
-      await introduction.locator("textarea").first().fill(content);
+      const editor = introduction.locator(
+        '[data-slot="markdown-editor"] textarea',
+      );
+      await expect(async () => {
+        if (!(await editor.isVisible().catch(() => false))) {
+          await introduction
+            .getByRole("button", { name: /^编辑$|^Edit$/i })
+            .click();
+        }
+        await expect(editor).toBeVisible({ timeout: 3_000 });
+      }).toPass({ timeout: 15_000, intervals: [250, 500, 1_000] });
+      await editor.fill(content);
 
       const saveResponse = page.waitForResponse(
         (r) =>

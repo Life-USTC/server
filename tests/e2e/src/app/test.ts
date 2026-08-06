@@ -763,7 +763,9 @@ test("/ 仅关注往期班级时可恢复历史作业和课表入口", async ({
       .click();
     await expect(page).toHaveURL(/\/workspace\/homeworks/);
     await expect(
-      page.getByText(DEV_SEED.homeworks.historicalTitle),
+      page
+        .getByText(DEV_SEED.homeworks.historicalTitle)
+        .filter({ visible: true }),
     ).toBeVisible();
 
     await page.setViewportSize({ height: 900, width: 1280 });

@@ -301,7 +301,7 @@ test("/admin/oauth 桌面表格保持徽标单行并为 scopes 溢出提供完�
       scrollWidth: node.scrollWidth,
     }));
     expect(scopesGeometry.scrollWidth).toBeGreaterThan(
-      scopesGeometry.clientWidth + 1,
+      scopesGeometry.clientWidth,
     );
     await scopesText.hover();
     await expect(

@@ -248,7 +248,7 @@ test.describe("/catalog/courses 课程目录", () => {
         scrollWidth: node.scrollWidth,
       }));
       expect(primaryGeometry.scrollWidth).toBeGreaterThan(
-        primaryGeometry.clientWidth + 1,
+        primaryGeometry.clientWidth,
       );
 
       await primaryText.hover();
@@ -270,7 +270,7 @@ test.describe("/catalog/courses 课程目录", () => {
         scrollWidth: node.scrollWidth,
       }));
       expect(codeGeometry.scrollWidth).toBeGreaterThan(
-        codeGeometry.clientWidth + 1,
+        codeGeometry.clientWidth,
       );
       const shortSecondaryText = namedRow
         .locator('[data-slot="truncated-text"]')

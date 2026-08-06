@@ -25,6 +25,7 @@ import { expect, test } from "@playwright/test";
 import { signInAsDebugUser } from "../../../../utils/auth";
 import { DEV_SEED } from "../../../../utils/dev-seed";
 import { cleanupHomeworksForE2e } from "../../../../utils/homeworks";
+import { visibleText } from "../../../../utils/locators";
 import { gotoAndWaitForReady } from "../../../../utils/page-ready";
 import { captureStepScreenshot } from "../../../../utils/screenshot";
 import { ensureSeedSectionSubscription } from "../../../../utils/subscriptions";
@@ -169,7 +170,9 @@ test.describe("仪表盘作业", () => {
       testInfo,
       screenshotLabel: "homeworks",
     });
-    await expect(page.getByText(DEV_SEED.homeworks.overdueTitle)).toBeVisible();
+    await expect(
+      visibleText(page, DEV_SEED.homeworks.overdueTitle),
+    ).toBeVisible();
 
     // Completed filter
     const completedTab = page
@@ -180,16 +183,18 @@ test.describe("仪表盘作业", () => {
     await expect(
       page.getByText(DEV_SEED.homeworks.completedTitle),
     ).toBeVisible();
-    await expect(page.getByText(DEV_SEED.homeworks.overdueTitle)).toHaveCount(
-      0,
-    );
+    await expect(
+      visibleText(page, DEV_SEED.homeworks.overdueTitle),
+    ).toHaveCount(0);
     await captureStepScreenshot(page, testInfo, "homeworks/filter-completed");
 
     // All filter
     const allTab = page.getByRole("radio", { name: /全部|All/i }).first();
     await expect(allTab).toBeVisible();
     await allTab.click();
-    await expect(page.getByText(DEV_SEED.homeworks.overdueTitle)).toBeVisible();
+    await expect(
+      visibleText(page, DEV_SEED.homeworks.overdueTitle),
+    ).toBeVisible();
     await captureStepScreenshot(page, testInfo, "homeworks/filter-all");
   });
 
@@ -398,7 +403,7 @@ test.describe("仪表盘作业", () => {
     await titleInput.fill(title);
     await page.getByTestId("dashboard-homework-create").click();
 
-    await expect(page.getByText(title).first()).toBeVisible({
+    await expect(visibleText(page, title)).toBeVisible({
       timeout: 15_000,
     });
     await captureStepScreenshot(page, testInfo, "homeworks/created");

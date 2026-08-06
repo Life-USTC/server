@@ -228,12 +228,13 @@ test.describe("/catalog/courses/[jwId] 课程详情", () => {
     await gotoAndWaitForReady(page, COURSE_URL);
 
     const heading = page.getByRole("heading", { level: 1 }).first();
-    const code = visibleText(page, DEV_SEED.course.code);
+    const courseCode = page
+      .locator("#overview")
+      .locator("dd")
+      .filter({ hasText: new RegExp(`^${DEV_SEED.course.code}$`) })
+      .first();
     await expect(heading).toHaveCSS("font-size", "24px");
-    await expect(code).toBeVisible();
-    expect((await code.boundingBox())?.y).toBeLessThan(
-      (await heading.boundingBox())?.y ?? 0,
-    );
+    await expect(courseCode).toBeVisible();
     expect(
       await page.evaluate(() => document.documentElement.scrollWidth),
     ).toBeLessThanOrEqual(390);

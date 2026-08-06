@@ -22,6 +22,7 @@
 import { expect, test } from "@playwright/test";
 import { signInAsDebugUser } from "../../../../utils/auth";
 import { DEV_SEED } from "../../../../utils/dev-seed";
+import { visibleText } from "../../../../utils/locators";
 import { gotoAndWaitForReady } from "../../../../utils/page-ready";
 import { captureStepScreenshot } from "../../../../utils/screenshot";
 
@@ -39,12 +40,8 @@ test.describe("仪表盘待办", () => {
     await signInAsDebugUser(page, "/workspace/todos");
 
     await expect(page.locator("#main-content")).toBeVisible();
-    await expect(
-      page.getByText(DEV_SEED.todos.dueTodayTitle).first(),
-    ).toBeVisible();
-    await expect(
-      page.getByText(DEV_SEED.todos.overdueTitle).first(),
-    ).toBeVisible();
+    await expect(visibleText(page, DEV_SEED.todos.dueTodayTitle)).toBeVisible();
+    await expect(visibleText(page, DEV_SEED.todos.overdueTitle)).toBeVisible();
     await expect(page.getByRole("switch")).toHaveCount(0);
 
     const row = page
@@ -114,18 +111,19 @@ test.describe("仪表盘待办", () => {
     await completeButton.click();
 
     // Optimistic update removes it from the default incomplete filter
-    await expect(
-      page.getByText(DEV_SEED.todos.dueTodayTitle).first(),
-    ).toHaveCount(0, { timeout: 5_000 });
+    await expect(visibleText(page, DEV_SEED.todos.dueTodayTitle)).toHaveCount(
+      0,
+      { timeout: 5_000 },
+    );
 
     // It now appears under the completed filter
     const completedFilter = page
       .getByRole("radio", { name: /已完成|Completed/i })
       .first();
     await completedFilter.click();
-    await expect(
-      page.getByText(DEV_SEED.todos.dueTodayTitle).first(),
-    ).toBeVisible({ timeout: 5_000 });
+    await expect(visibleText(page, DEV_SEED.todos.dueTodayTitle)).toBeVisible({
+      timeout: 5_000,
+    });
 
     // Toggle back to restore seed state
     const completedRow = page
@@ -137,9 +135,10 @@ test.describe("仪表盘待办", () => {
       .first();
     await incompleteButton.click();
 
-    await expect(
-      page.getByText(DEV_SEED.todos.dueTodayTitle).first(),
-    ).toHaveCount(0, { timeout: 5_000 });
+    await expect(visibleText(page, DEV_SEED.todos.dueTodayTitle)).toHaveCount(
+      0,
+      { timeout: 5_000 },
+    );
 
     await captureStepScreenshot(page, testInfo, "dashboard-todos-toggle");
   });
@@ -150,7 +149,7 @@ test.describe("仪表盘待办", () => {
     const completedFilter = page
       .getByRole("radio", { name: /已完成|Completed/i })
       .first();
-    const completedTodo = page.getByText(DEV_SEED.todos.completedTitle).first();
+    const completedTodo = visibleText(page, DEV_SEED.todos.completedTitle);
     await expect(async () => {
       await completedFilter.click();
       await expect(completedTodo).toBeVisible({ timeout: 3_000 });
@@ -180,7 +179,7 @@ test.describe("仪表盘待办", () => {
 
     await expect((await postResponse).status()).toBe(400);
     await expect(
-      page.getByText(/请输入标题|Please enter a title/i).first(),
+      visibleText(page, /请输入标题|Please enter a title/i),
     ).toBeVisible();
 
     await captureStepScreenshot(page, testInfo, "dashboard-todos-action-error");
@@ -212,13 +211,13 @@ test.describe("仪表盘待办", () => {
       .first()
       .click();
 
-    await expect(page.getByText(title).first()).toBeVisible({
+    await expect(visibleText(page, title)).toBeVisible({
       timeout: 15_000,
     });
     await captureStepScreenshot(page, testInfo, "dashboard-todos-created");
 
     // Delete the todo via detail modal
-    await page.getByText(title).first().click();
+    await visibleText(page, title).click();
     await page
       .getByRole("button", { name: /删除待办|Delete todo/i })
       .first()

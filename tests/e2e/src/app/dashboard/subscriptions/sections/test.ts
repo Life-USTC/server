@@ -112,6 +112,7 @@ test.describe("仪表盘教学班订阅", () => {
       const subscriptionsContent = page.locator("#main-content").first();
       const courseLink = subscriptionsContent
         .getByTestId("subscription-course-link")
+        .filter({ visible: true })
         .filter({
           hasText: new RegExp(
             `${escapeForRegExp(DEV_SEED.course.nameCn)}|${escapeForRegExp(DEV_SEED.course.nameEn)}`,

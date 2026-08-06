@@ -933,19 +933,18 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
     try {
       const introduction = page.locator("#introduction");
       await expect(introduction).toBeVisible();
-      const descCard = introduction.locator('[data-slot="card"]').first();
       await expect(
-        descCard.getByRole("button", { name: /^编辑$|^Edit$/i }),
+        introduction.getByRole("button", { name: /^编辑$|^Edit$/i }),
       ).toBeVisible({ timeout: 60_000 });
 
       const content = `e2e-section-desc-${Date.now()}`;
-      const editor = descCard.locator("textarea").first();
-      await descCard.getByRole("button", { name: /^编辑$|^Edit$/i }).click();
+      const editor = introduction.locator("textarea").first();
+      await introduction.getByRole("button", { name: /^编辑$|^Edit$/i }).click();
       await expect(editor).toBeVisible();
       await editor.fill(content);
-      await descCard.getByRole("tab", { name: /预览|Preview/i }).click();
+      await introduction.getByRole("tab", { name: /预览|Preview/i }).click();
       await expect(
-        descCard
+        introduction
           .getByRole("tabpanel", { name: /预览|Preview/i })
           .getByText(content),
       ).toBeVisible();
@@ -956,13 +955,9 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
           r.request().method() === "POST" &&
           r.status() === 200,
       );
-      await descCard.getByRole("button", { name: /保存|Save/i }).click();
+      await introduction.getByRole("button", { name: /保存|Save/i }).click();
       await saveResponse;
-      await expect(
-        descCard
-          .getByRole("tabpanel", { name: /简介|Description/i })
-          .getByText(content),
-      ).toBeVisible();
+      await expect(introduction.getByText(content)).toBeVisible();
       await captureStepScreenshot(
         page,
         testInfo,
