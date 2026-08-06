@@ -29,7 +29,9 @@ export let todosCopy: DashboardTodosCopy;
           value === "all"
         ) {
           onTodoFilterChange(value);
+          return;
         }
+        onTodoFilterChange(todoFilter);
       }}
     >
       <ToggleGroup.Item class="h-11 min-w-0 flex-1 text-xs md:h-8 md:flex-none md:text-sm" value="incomplete">

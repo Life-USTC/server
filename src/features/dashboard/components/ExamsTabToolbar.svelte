@@ -23,7 +23,10 @@ export let onExamFilterChange: (value: DashboardExamFilter) => void;
           value === "all"
         ) {
           onExamFilterChange(value);
+          return;
         }
+        // Re-commit the controlled value when bits-ui clears a selected item.
+        onExamFilterChange(examFilter);
       }}
     >
       <ToggleGroup.Item class="h-11 min-w-0 flex-1 text-xs md:h-8 md:flex-none md:text-sm" value="incomplete">

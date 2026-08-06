@@ -25,7 +25,9 @@ export let openCreateHomeworkDialog: () => void;
           value === "all"
         ) {
           onHomeworkFilterChange(value);
+          return;
         }
+        onHomeworkFilterChange(homeworkFilter);
       }}
     >
       <ToggleGroup.Item class="h-11 min-w-0 flex-1 text-xs md:h-8 md:flex-none md:text-sm" value="incomplete">
