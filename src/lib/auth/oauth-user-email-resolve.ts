@@ -2,7 +2,6 @@ import {
   isPlaceholderUserEmail,
   isPublishableUserEmail,
 } from "@/lib/auth/oauth-user-email";
-import { OIDC_PROVIDER_ID } from "@/lib/auth/provider-ids";
 import { authPrisma } from "@/lib/db/auth-prisma";
 
 export type ResolvedOAuthUserEmail = {
@@ -11,9 +10,12 @@ export type ResolvedOAuthUserEmail = {
   source: "verified-email" | "user-email";
 };
 
+const SOCIAL_VERIFIED_EMAIL_PROVIDER_PRIORITY = ["google", "github"] as const;
+
 /**
- * Prefer a stored upstream VerifiedEmail over User.email. Never surfaces
- * `@users.local` / passport fake placeholders to OAuth clients.
+ * Prefer a stored GitHub/Google VerifiedEmail over User.email. Never surfaces
+ * `@users.local` / passport fake placeholders to OAuth clients. USTC OIDC does
+ * not provide real mailboxes, so oidc VerifiedEmail rows are ignored.
  */
 export async function resolveOAuthUserEmail(input: {
   userId: string;
@@ -26,11 +28,12 @@ export async function resolveOAuthUserEmail(input: {
     select: { email: true, provider: true },
   });
 
-  const preferredVerified =
-    verifiedCandidates.find(
-      (row) =>
-        row.provider === OIDC_PROVIDER_ID && isPublishableUserEmail(row.email),
-    ) ?? verifiedCandidates.find((row) => isPublishableUserEmail(row.email));
+  const preferredVerified = SOCIAL_VERIFIED_EMAIL_PROVIDER_PRIORITY.map(
+    (provider) =>
+      verifiedCandidates.find(
+        (row) => row.provider === provider && isPublishableUserEmail(row.email),
+      ),
+  ).find((row) => row != null);
 
   if (preferredVerified) {
     return {

@@ -5,7 +5,7 @@ import {
 } from "@/features/settings/lib/ustc-identity";
 
 describe("USTC identity helpers", () => {
-  it("extracts gid, sno, and publishable email from OIDC profile claims", () => {
+  it("extracts gid and sno from OIDC profile claims", () => {
     expect(
       extractUstcOidcIdentityClaims(
         {
@@ -24,10 +24,6 @@ describe("USTC identity helpers", () => {
       upstreamUid: "435",
       gid: "gid-abc",
       sno: "BA12345678",
-      email: "student@mail.ustc.edu.cn",
-      emailVerified: true,
-      name: "Student",
-      picture: "https://example.com/a.png",
     });
   });
 
@@ -45,10 +41,6 @@ describe("USTC identity helpers", () => {
       upstreamUid: "435",
       gid: null,
       sno: null,
-      email: null,
-      emailVerified: false,
-      name: null,
-      picture: null,
     });
   });
 
@@ -65,10 +57,6 @@ describe("USTC identity helpers", () => {
       upstreamUid: "435",
       gid: null,
       sno: null,
-      email: null,
-      emailVerified: false,
-      name: null,
-      picture: null,
     });
   });
 

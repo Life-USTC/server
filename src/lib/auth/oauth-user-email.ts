@@ -1,9 +1,10 @@
 const USERS_LOCAL_SUFFIX = "@users.local";
 
 /**
- * Better Auth requires a unique User.email. When upstream OIDC does not expose
- * a real mailbox we store `oidc-<id>@users.local` (or historical passport
- * `fake_email` placeholders). Those must not be returned to OAuth clients.
+ * Better Auth requires a unique User.email. USTC OIDC does not expose a real
+ * mailbox, so we store `oidc-<id>@users.local` (or historical passport
+ * `fake_email` placeholders). Real mailboxes come from GitHub/Google and are
+ * stored in VerifiedEmail. Placeholders must not be returned to OAuth clients.
  */
 export function isPlaceholderUserEmail(email: string | null | undefined) {
   if (typeof email !== "string") return true;

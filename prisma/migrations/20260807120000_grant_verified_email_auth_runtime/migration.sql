@@ -1,4 +1,4 @@
--- Auth runtime needs VerifiedEmail to persist upstream OIDC mailboxes and to
+-- Auth runtime needs VerifiedEmail to persist GitHub/Google mailboxes and to
 -- resolve OAuth userinfo without returning @users.local placeholders.
 
 DO $grant_verified_email_auth_runtime$

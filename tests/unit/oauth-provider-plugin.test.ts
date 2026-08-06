@@ -228,7 +228,7 @@ describe("buildOAuthProviderPlugin", () => {
     });
   });
 
-  it("returns verified upstream email instead of @users.local placeholders", async () => {
+  it("returns verified GitHub/Google email instead of @users.local placeholders", async () => {
     const { buildOAuthProviderPlugin } = await import(
       "@/lib/auth/better-auth-oauth-provider-plugin"
     );
@@ -239,7 +239,7 @@ describe("buildOAuthProviderPlugin", () => {
 
     hasActiveOAuthUserGrantMock.mockResolvedValueOnce(true);
     resolveOAuthUserEmailMock.mockResolvedValueOnce({
-      email: "student@mail.ustc.edu.cn",
+      email: "student@gmail.com",
       emailVerified: true,
       source: "verified-email",
     });
@@ -258,7 +258,7 @@ describe("buildOAuthProviderPlugin", () => {
         },
       }),
     ).resolves.toEqual({
-      email: "student@mail.ustc.edu.cn",
+      email: "student@gmail.com",
       email_verified: true,
     });
 

@@ -1,12 +1,20 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 import {
   getOidcAccountSubject,
   mapGithubProfileToUser,
   mapGoogleProfileToUser,
   mapOidcProfileToUser,
 } from "@/lib/auth/oauth-profile";
+import {
+  clearStagedSocialVerifiedEmails,
+  consumeStagedSocialVerifiedEmail,
+} from "@/lib/auth/social-verified-email-staging";
 
 describe("OAuth 档案映射", () => {
+  afterEach(() => {
+    clearStagedSocialVerifiedEmails();
+  });
+
   it("接受仅含 id 的稀疏 USTC OIDC 档案", () => {
     const profile = {
       id: "435",
@@ -41,24 +49,7 @@ describe("OAuth 档案映射", () => {
     });
   });
 
-  it("保留上游 OIDC 档案中的 gid 和 sno 供身份同步使用", () => {
-    const profile = {
-      sub: "812",
-      user_id: 812,
-      gid: "gid-812",
-      sno: "BA12345678",
-    };
-
-    expect(getOidcAccountSubject(profile)).toBe("812");
-    expect(mapOidcProfileToUser(profile)).toEqual({
-      email: "oidc-812@users.local",
-      name: "USTC User 812",
-      image: undefined,
-      emailVerified: false,
-    });
-  });
-
-  it("保留提供者提供的 OIDC 档案字段", () => {
+  it("USTC OIDC 始终使用本地邮箱，不信任上游 email 声明", () => {
     const profile = {
       sub: "abc",
       email: "student@example.com",
@@ -69,21 +60,11 @@ describe("OAuth 档案映射", () => {
 
     expect(getOidcAccountSubject(profile)).toBe("abc");
     expect(mapOidcProfileToUser(profile)).toEqual({
-      email: "student@example.com",
+      email: "oidc-abc@users.local",
       name: "Student Name",
       image: "https://example.com/avatar.png",
-      emailVerified: true,
+      emailVerified: false,
     });
-  });
-
-  it("接受 OIDC 档案中的驼峰式邮箱验证字段", () => {
-    expect(
-      mapOidcProfileToUser({
-        sub: "abc",
-        email: "student@example.com",
-        emailVerified: true,
-      }).emailVerified,
-    ).toBe(true);
   });
 
   it("使用第一个非空的档案显示名称", () => {
@@ -97,7 +78,7 @@ describe("OAuth 档案映射", () => {
     ).toBe("student");
   });
 
-  it("映射 GitHub 档案时不信任邮箱验证状态", () => {
+  it("映射 GitHub 档案时暂存可发布邮箱", () => {
     expect(
       mapGithubProfileToUser({
         id: "octocat",
@@ -111,6 +92,14 @@ describe("OAuth 档案映射", () => {
       name: "Octo Cat",
       image: "https://example.com/octocat.png",
       emailVerified: false,
+    });
+    expect(consumeStagedSocialVerifiedEmail("github", "octocat")).toEqual({
+      provider: "github",
+      accountId: "octocat",
+      email: "octocat@example.com",
+      emailVerified: true,
+      name: "Octo Cat",
+      image: "https://example.com/octocat.png",
     });
   });
 
@@ -127,9 +116,10 @@ describe("OAuth 档案映射", () => {
       image: undefined,
       emailVerified: false,
     });
+    expect(consumeStagedSocialVerifiedEmail("github", "octocat")).toBeNull();
   });
 
-  it("仅在存在邮箱时映射 Google 邮箱验证状态", () => {
+  it("仅在邮箱已验证时暂存 Google 邮箱", () => {
     expect(
       mapGoogleProfileToUser({
         sub: "google-user",
@@ -144,12 +134,24 @@ describe("OAuth 档案映射", () => {
       image: "https://example.com/google.png",
       emailVerified: true,
     });
+    expect(consumeStagedSocialVerifiedEmail("google", "google-user")).toEqual({
+      provider: "google",
+      accountId: "google-user",
+      email: "student@example.com",
+      emailVerified: true,
+      name: "Student",
+      image: "https://example.com/google.png",
+    });
 
     expect(
       mapGoogleProfileToUser({
         sub: "google-user",
-        email_verified: true,
+        email: "unverified@example.com",
+        email_verified: false,
       }).emailVerified,
     ).toBe(false);
+    expect(
+      consumeStagedSocialVerifiedEmail("google", "google-user"),
+    ).toBeNull();
   });
 });
