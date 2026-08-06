@@ -939,7 +939,9 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
 
       const content = `e2e-section-desc-${Date.now()}`;
       const editor = introduction.locator("textarea").first();
-      await introduction.getByRole("button", { name: /^编辑$|^Edit$/i }).click();
+      await introduction
+        .getByRole("button", { name: /^编辑$|^Edit$/i })
+        .click();
       await expect(editor).toBeVisible();
       await editor.fill(content);
       await introduction.getByRole("tab", { name: /预览|Preview/i }).click();
