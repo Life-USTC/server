@@ -499,16 +499,14 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
                       actionButtons[1].getBoundingClientRect().top -
                         actionButtons[0].getBoundingClientRect().top,
                     ) < 1),
-              commentComposerFits:
-                (() => {
-                  const comments = document.querySelector<HTMLElement>(
-                    "#comments",
-                  );
-                  return (
-                    comments != null &&
-                    comments.scrollWidth <= comments.clientWidth + 1
-                  );
-                })(),
+              commentComposerFits: (() => {
+                const comments =
+                  document.querySelector<HTMLElement>("#comments");
+                return (
+                  comments != null &&
+                  comments.scrollWidth <= comments.clientWidth + 1
+                );
+              })(),
               documentFitsViewport:
                 document.documentElement.scrollWidth <=
                 document.documentElement.clientWidth,
