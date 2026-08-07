@@ -18,7 +18,7 @@ vi.mock("@/lib/auth/api-auth", () => ({
   resolveApiUserId: resolveApiUserIdMock,
 }));
 
-describe("POST /api/catalog/links/resolve", () => {
+describe("GET /api/catalog/links/resolve", () => {
   beforeEach(() => {
     setCloudflareRuntimeEnv(undefined);
     resolveApiUserIdMock.mockResolvedValue("user-1");
@@ -32,20 +32,15 @@ describe("POST /api/catalog/links/resolve", () => {
   it("超过点击写入预算时跳过计数但仍重定向", async () => {
     const limit = vi.fn().mockResolvedValue({ success: false });
     setCloudflareRuntimeEnv({ USER_WRITE_RATE_LIMITER: { limit } });
-    const { postDashboardLinkVisitRoute } = await import(
+    const { getDashboardLinkVisitRoute } = await import(
       "@/lib/api/routes/dashboard-link-visit-routes"
     );
-    const form = new FormData();
-    form.set("slug", "jw");
 
-    const response = await postDashboardLinkVisitRoute(
-      new Request("https://life.example/api/catalog/links/resolve", {
-        method: "POST",
-        body: form,
-      }),
+    const response = await getDashboardLinkVisitRoute(
+      new Request("https://life.example/api/catalog/links/resolve?slug=jw"),
     );
 
-    expect(response.status).toBe(303);
+    expect(response.status).toBe(307);
     expect(response.headers.get("Location")).toBe("https://jw.ustc.edu.cn/");
     expect(recordDashboardLinkClickMock).not.toHaveBeenCalled();
     expect(limit).toHaveBeenCalledOnce();
@@ -57,20 +52,30 @@ describe("POST /api/catalog/links/resolve", () => {
         limit: vi.fn().mockResolvedValue({ success: true }),
       },
     });
-    const { postDashboardLinkVisitRoute } = await import(
+    const { getDashboardLinkVisitRoute } = await import(
       "@/lib/api/routes/dashboard-link-visit-routes"
     );
-    const form = new FormData();
-    form.set("slug", "jw");
 
-    const response = await postDashboardLinkVisitRoute(
-      new Request("https://life.example/api/catalog/links/resolve", {
-        method: "POST",
-        body: form,
-      }),
+    const response = await getDashboardLinkVisitRoute(
+      new Request("https://life.example/api/catalog/links/resolve?slug=jw"),
     );
 
-    expect(response.status).toBe(303);
+    expect(response.status).toBe(307);
     expect(recordDashboardLinkClickMock).toHaveBeenCalledWith("user-1", "jw");
+  });
+
+  it("未登录时不记录点击但仍重定向", async () => {
+    resolveApiUserIdMock.mockResolvedValue(null);
+    const { getDashboardLinkVisitRoute } = await import(
+      "@/lib/api/routes/dashboard-link-visit-routes"
+    );
+
+    const response = await getDashboardLinkVisitRoute(
+      new Request("https://life.example/api/catalog/links/resolve?slug=jw"),
+    );
+
+    expect(response.status).toBe(307);
+    expect(response.headers.get("Location")).toBe("https://jw.ustc.edu.cn/");
+    expect(recordDashboardLinkClickMock).not.toHaveBeenCalled();
   });
 });

@@ -49,7 +49,6 @@ const FORM_URLENCODED_PATHS = new Set([
   "POST /api/auth/oauth2/token",
   "POST /api/auth/oauth2/device-authorization",
   "POST /api/workspace/link-pins",
-  "POST /api/catalog/links/resolve",
 ]);
 
 const REDIRECT_DESCRIPTIONS: Record<
@@ -69,18 +68,7 @@ const REDIRECT_DESCRIPTIONS: Record<
   },
   "GET /api/catalog/links/resolve": {
     "307": {
-      description: "Temporary redirect to target link",
-      headers: {
-        Location: {
-          description: "Redirect target URL",
-          schema: { type: "string" },
-        },
-      },
-    },
-  },
-  "POST /api/catalog/links/resolve": {
-    "303": {
-      description: "Redirect after recording link click",
+      description: "Temporary redirect to target link after recording visit",
       headers: {
         Location: {
           description: "Redirect target URL",
@@ -161,7 +149,6 @@ const OPERATION_ID_OVERRIDES: Record<string, string> = {
   "GET /api/catalog/courses/{jwId}": "getCourse",
   "GET /api/catalog/links": "catalog_link_list",
   "GET /api/catalog/links/resolve": "catalog_link_resolve",
-  "POST /api/catalog/links/resolve": "catalog_link_visit_record",
   "GET /api/workspace/link-pins": "workspace_link_pin_list",
   "POST /api/workspace/link-pins": "workspace_link_pin_set",
   "POST /api/workspace/link-pins/batch": "workspace_link_pin_batch_set",

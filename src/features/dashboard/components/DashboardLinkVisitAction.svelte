@@ -1,5 +1,6 @@
 <script lang="ts">
 import type { DashboardOverviewLinkItem } from "@/features/dashboard/lib/dashboard-controller-helpers";
+import { dashboardLinkVisitHref } from "@/features/dashboard-links/lib/dashboard-links";
 import * as Item from "$lib/components/ui/item/index.js";
 import { cn } from "$lib/utils.js";
 
@@ -7,19 +8,12 @@ export let link: DashboardOverviewLinkItem;
 export let linkIconLabel: (icon: string) => string;
 export let reserveActionSpace = false;
 
-function visitButtonClass(props: Record<string, unknown>) {
+function visitLinkClass(props: Record<string, unknown>) {
   return cn(props.class as string, "bg-background text-left hover:bg-muted");
 }
 </script>
 
-<form
-  action="/api/catalog/links/resolve"
-  class="h-full min-w-0"
-  method="POST"
-  rel="noopener"
-  target="_blank"
->
-  <input name="slug" type="hidden" value={link.slug} />
+<div class="h-full min-w-0">
   <Item.Root
     class={cn(
       "h-full min-h-24 min-w-0 items-start overflow-hidden text-left",
@@ -28,7 +22,13 @@ function visitButtonClass(props: Record<string, unknown>) {
     variant="outline"
   >
     {#snippet child({ props })}
-      <button {...props} class={visitButtonClass(props)} type="submit">
+      <a
+        {...props}
+        class={visitLinkClass(props)}
+        href={dashboardLinkVisitHref(link.slug)}
+        rel="noopener noreferrer"
+        target="_blank"
+      >
         <Item.Media aria-hidden="true" class="size-8" variant="icon">
           {linkIconLabel(link.icon)}
         </Item.Media>
@@ -38,7 +38,7 @@ function visitButtonClass(props: Record<string, unknown>) {
             {link.description}
           </Item.Description>
         </Item.Content>
-      </button>
+      </a>
     {/snippet}
   </Item.Root>
-</form>
+</div>

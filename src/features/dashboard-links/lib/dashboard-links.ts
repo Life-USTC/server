@@ -34,6 +34,11 @@ export function getDashboardLinkGroup(slug: string): DashboardLinkGroup {
 
 export type LinkClickStats = Record<string, number>;
 
+/** Tracking redirect that records an authenticated visit then 307s to the target. */
+export function dashboardLinkVisitHref(slug: string) {
+  return `/api/catalog/links/resolve?slug=${encodeURIComponent(slug)}`;
+}
+
 export function recommendDashboardLinks(
   clickStats: LinkClickStats,
   options: {

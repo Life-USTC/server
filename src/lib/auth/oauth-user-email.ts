@@ -16,7 +16,9 @@ export function isPlaceholderUserEmail(email: string | null | undefined) {
   return false;
 }
 
-export function isPublishableUserEmail(email: string | null | undefined) {
+export function isPublishableUserEmail(
+  email: string | null | undefined,
+): email is string {
   return (
     typeof email === "string" &&
     email.trim().length > 0 &&

@@ -2,7 +2,7 @@
   "name": "Catalog Link and Workspace Link Pin",
   "access": {
     "anon": "Can browse frequent links and follow public visit redirects but cannot pin them.",
-    "user": "Can pin and unpin links; authenticated POST visits record click counts before redirecting.",
+    "user": "Can pin and unpin links; authenticated GET visit redirects record click counts before redirecting.",
     "admin": "Has no dedicated link management interface separate from regular users.",
     "agent": "Can list/search catalog links and manage the authenticated user's link-pin state through MCP; visit redirects remain browser/REST navigation."
   },
@@ -12,7 +12,8 @@
     "links-vs-buttons": "Links are for navigation; buttons are for actions.",
     "pin-limit": "Currently a maximum of 4 links can be pinned; exceeding this displaces the earliest pinned link.",
     "semantic-public-route": "Legacy query navigation resolves to the canonical /catalog/links page for both anonymous and signed-in users.",
-    "pin-error-clear": "When pin/unpin writes fail, the endpoint returns a clear error; failures are not disguised as successes."
+    "pin-error-clear": "When pin/unpin writes fail, the endpoint returns a clear error; failures are not disguised as successes.",
+    "visit-tracking-link": "Campus link cards use GET /api/catalog/links/resolve?slug=… tracking links (not POST forms) so navigation works as a normal hyperlink."
   },
   "capabilities": {
     "link-browse": {
@@ -128,16 +129,11 @@
           },
           {
             "path": "/api/catalog/links/resolve",
+            "method": "GET",
             "returns": "307 redirect",
             "auth": "anon",
-            "notes": ["Invalid or missing slug redirects to /."]
-          },
-          {
-            "path": "/api/catalog/links/resolve",
-            "method": "POST",
-            "returns": "303 redirect",
-            "auth": "anon",
             "notes": [
+              "Query: slug. Invalid or missing slug redirects to /.",
               "Redirect is public; click count is recorded only when the request has an authenticated user."
             ]
           }

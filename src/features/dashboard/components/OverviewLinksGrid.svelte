@@ -5,6 +5,7 @@ import type {
   DashboardOverviewLinkItem,
 } from "@/features/dashboard/lib/dashboard-controller-helpers";
 import { DASHBOARD_OVERVIEW_PREVIEW_LIMIT } from "@/features/dashboard/lib/overview-preview";
+import { dashboardLinkVisitHref } from "@/features/dashboard-links/lib/dashboard-links";
 import SoftEmptyMessage from "$lib/components/SoftEmptyMessage.svelte";
 import type { DashboardCalendarTabHref } from "./dashboard-calendar-component-types";
 import LinksTabPinButton from "./LinksTabPinButton.svelte";
@@ -46,33 +47,26 @@ function pinAction(link: DashboardOverviewLinkItem): DashboardLinkPinAction {
     <div class="grid min-w-0 gap-1 sm:grid-cols-2 xl:grid-cols-4">
       {#each previewLinks as link}
         <div class="group relative min-w-0">
-          <form
-            action="/api/catalog/links/resolve"
-            class="min-w-0"
-            method="POST"
-            rel="noopener"
+          <a
+            class="flex w-full min-w-0 items-start gap-3 rounded-lg px-2 py-2.5 text-left transition-colors hover:bg-muted/50"
+            class:pe-10={true}
+            href={dashboardLinkVisitHref(link.slug)}
+            rel="noopener noreferrer"
             target="_blank"
           >
-            <input name="slug" type="hidden" value={link.slug} />
-            <button
-              class="flex w-full min-w-0 items-start gap-3 rounded-lg px-2 py-2.5 text-left transition-colors hover:bg-muted/50"
-              class:pe-10={true}
-              type="submit"
+            <span
+              aria-hidden="true"
+              class="flex size-8 shrink-0 items-center justify-center rounded-md bg-muted text-xs font-medium"
             >
-              <span
-                aria-hidden="true"
-                class="flex size-8 shrink-0 items-center justify-center rounded-md bg-muted text-xs font-medium"
+              {linkIconLabel(link.icon)}
+            </span>
+            <span class="grid min-w-0 gap-0.5">
+              <span class="truncate font-medium text-sm">{link.title}</span>
+              <span class="line-clamp-2 text-muted-foreground text-xs"
+                >{link.description}</span
               >
-                {linkIconLabel(link.icon)}
-              </span>
-              <span class="grid min-w-0 gap-0.5">
-                <span class="truncate font-medium text-sm">{link.title}</span>
-                <span class="line-clamp-2 text-muted-foreground text-xs"
-                  >{link.description}</span
-                >
-              </span>
-            </button>
-          </form>
+            </span>
+          </a>
           <div
             class={`absolute top-2 right-1 ${link.isPinned ? "" : "md:pointer-events-none md:opacity-0 md:transition-opacity md:group-focus-within:pointer-events-auto md:group-focus-within:opacity-100 md:group-hover:pointer-events-auto md:group-hover:opacity-100"}`}
           >

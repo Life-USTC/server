@@ -1,24 +1,18 @@
 /**
- * E2E tests for GET & POST /api/catalog/links/resolve
+ * E2E tests for GET /api/catalog/links/resolve
  *
  * ## Endpoints
- * - `GET /api/catalog/links/resolve?slug=X` — Redirect to the dashboard link URL (no side effects)
- * - `POST /api/catalog/links/resolve` — Record a visit click and redirect to the link URL
+ * - `GET /api/catalog/links/resolve?slug=X` — Record an authenticated visit
+ *   (best-effort) and redirect to the dashboard link URL
  *
  * ## GET Request
  * - Query: `{ slug: string }`
  * - 307: redirect to the link's URL
+ * - Records click count for authenticated users (upsert with increment)
  * - Invalid/missing slug: redirect to /
  *
- * ## POST Request
- * - Form data: `{ slug: string }`
- * - 303: redirect to the link's URL
- * - Records click count for authenticated users (upsert with increment)
- * - Invalid/missing slug: 303 redirect to /
- *
  * ## Auth Requirements
- * - GET: no auth required (pure redirect)
- * - POST: no auth required for redirect, but click is only recorded when authenticated
+ * - No auth required for redirect; click is only recorded when authenticated
  *
  * ## Edge Cases
  * - Invalid slug redirects to / instead of erroring
@@ -29,8 +23,18 @@ import { signInAsDebugUserApi } from "../../_harness/auth";
 
 const BASE = "/api/catalog/links/resolve";
 
-test.describe("GET & POST /api/catalog/links/resolve 接口", () => {
+test.describe("GET /api/catalog/links/resolve 接口", () => {
   test("GET 重定向到目标链接 URL", async ({ request }) => {
+    const response = await request.get(`${BASE}?slug=jw`, {
+      maxRedirects: 0,
+    });
+    expect(response.status()).toBe(307);
+    expect(response.headers().location).toBe("https://jw.ustc.edu.cn/");
+  });
+
+  test("GET 登录后仍重定向到目标 URL", async ({ request }) => {
+    await signInAsDebugUserApi(request, "/");
+
     const response = await request.get(`${BASE}?slug=jw`, {
       maxRedirects: 0,
     });
@@ -52,36 +56,5 @@ test.describe("GET & POST /api/catalog/links/resolve 接口", () => {
     });
     expect(response.status()).toBe(307);
     expect(response.headers().location).toMatch(/\/$/);
-  });
-
-  test("POST 有效 slug 重定向到目标 URL", async ({ request }) => {
-    await signInAsDebugUserApi(request, "/");
-
-    const response = await request.post(BASE, {
-      form: { slug: "jw" },
-      maxRedirects: 0,
-    });
-    expect(response.status()).toBe(303);
-    expect(response.headers().location).toBe("https://jw.ustc.edu.cn/");
-  });
-
-  test("POST 无效 slug 重定向到 /", async ({ request }) => {
-    await signInAsDebugUserApi(request, "/");
-
-    const response = await request.post(BASE, {
-      form: { slug: "nonexistent-e2e" },
-      maxRedirects: 0,
-    });
-    expect(response.status()).toBe(303);
-    expect(response.headers().location).toMatch(/\/$/);
-  });
-
-  test("POST 未登录仍重定向", async ({ request }) => {
-    const response = await request.post(BASE, {
-      form: { slug: "jw" },
-      maxRedirects: 0,
-    });
-    expect(response.status()).toBe(303);
-    expect(response.headers().location).toBe("https://jw.ustc.edu.cn/");
   });
 });
