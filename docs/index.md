@@ -25,7 +25,7 @@ project map.
 | GraphQL | module contract, `graphql.json`, SDL snapshot, resolver tests |
 | MCP | `src/lib/mcp/AGENTS.md`, tool handler, module contract |
 | Data shape | `prisma/schema.prisma` + migrations |
-| Setup / ops | [README](../README.md), [operations.md](operations.md), [observability.md](observability.md) |
+| Setup / ops | `$life-ustc-dev-loop`, [operations.md](operations.md), [observability.md](observability.md) |
 
 ## Keep In Sync
 
@@ -36,7 +36,7 @@ project map.
 | MCP tool/auth/output | Module contract; `tests/integration/` |
 | User-visible web behavior | Module contract; both message files when text changes |
 | Prisma / seed | schema, migrations, shared seed files |
-| Setup / CI / ops | README, `operations.md`, `.env.example`, `.github/workflows/AGENTS.md` |
+| Setup / CI / ops | `$life-ustc-dev-loop`, `operations.md`, `.env.example`, `.github/workflows/AGENTS.md` |
 | Architecture / agent mistakes | Nearest `AGENTS.md` or `.agents/skills` |
 
 ## Major Docs
