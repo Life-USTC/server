@@ -82,5 +82,5 @@ When one of REST / GraphQL / MCP changes:
 - [ ] No native IO in ordinary features/routes (see root `AGENTS.md`)
 - [ ] No scratch plans/reports left in the tree
 
-Run whatever local checks prove the above; shipping through git/CI/PR is outside
-this skill.
+Run whatever local checks from root `AGENTS.md` Commands prove the above;
+shipping through git/CI/PR is outside this skill.

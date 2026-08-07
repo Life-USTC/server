@@ -21,4 +21,4 @@ import { helper } from "./helper"; // relative within folder
 ```
 
 Locales: `zh-cn` (default), `en-us`; no URL prefix; both message files for user text.
-See root `AGENTS.md` for auth, dates, Prisma, errors.
+Root map + Commands: `AGENTS.md`. New capabilities: `$life-ustc-feature`.

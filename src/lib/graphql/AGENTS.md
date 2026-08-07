@@ -10,22 +10,19 @@ Explicit public GraphQL transport and schema infrastructure.
 - Personal collection services derive ownership from `userId` relations. Never expose trusted `sectionIds`, deleted/editor/shape switches, or other transport-internal flags as GraphQL inputs.
 - A GraphQL object must have the same observable field shape whether returned by a list or detail query.
 
-## Runtime and Security
+## Runtime and security
 
-- Keep one `graphql` runtime version compatible with Yoga and every Envelop plugin. A duplicate GraphQL module realm breaks schema inspection and MCP resources.
-- Every collection is explicitly capped or uses `PageInput`; keep request size, batching, depth, cost, alias, directive, token, top-level-field, and timeout limits enforced in `server.ts` and `security.ts`. Cost must weight paginated selections by the effective `pageSize`, including variable values.
-- `DateTime` inputs require an ISO 8601 timestamp with an explicit timezone, with identical coercion for variables and inline literals.
-- Normalize schedule/exam `@db.Date` filters to the Asia/Shanghai calendar day after strict `DateTime` coercion; validate every range before calling a feature service.
-- Keep DataLoaders request-scoped, production errors masked, production introspection disabled, and responses `Cache-Control: no-store`.
-- Personal mutations use the same feature-owned `feature:write` scope and shared per-user mutation rate-limit action key as REST and MCP.
+- Keep one `graphql` runtime version compatible with Yoga and every Envelop plugin.
+- Every collection is capped or uses `PageInput`; enforce request size, batching, depth, cost, alias, directive, token, top-level-field, and timeout limits in `server.ts` and `security.ts`. Cost weights paginated selections by effective `pageSize`.
+- `DateTime` inputs require ISO 8601 with an explicit timezone (variables and literals).
+- Normalize schedule/exam `@db.Date` filters to the Asia/Shanghai calendar day after strict coercion.
+- DataLoaders request-scoped; production errors masked; production introspection off; `Cache-Control: no-store`.
+- Personal mutations use the same `feature:write` scope and per-user mutation rate-limit key as REST and MCP.
 
-## Contracts and Verification
+## Contracts
 
-- A schema change updates the affected `docs/contracts/<module>.json`, `docs/contracts/graphql.json`, and `docs/graphql/schema.graphql`.
-- Regenerate intentionally with `bunx vitest run --update tests/unit/graphql-schema-snapshot.test.ts`, then rerun that test without `--update`; never hand-edit the SDL snapshot.
-- Keep contract Query/Mutation names and return types aligned with the SDL parity test.
-- Verify protocol helpers with unit tests, public queries/security with real PostgreSQL integration tests, MCP SDL resources through the in-process MCP harness, and `/api/graphql` through the Cloudflare Worker Playwright smoke test.
-- MCP may execute arbitrary documents only through the shared production Yoga
-  validation/security pipeline. Keep resolver-level scopes authoritative,
-  require confirmation for every mutation, and retain registered operations for
-  compatibility.
+- Schema change updates `docs/contracts/<module>.json`, `docs/contracts/graphql.json`, and `docs/graphql/schema.graphql`.
+- Regenerate with `bunx vitest run --update tests/unit/graphql-schema-snapshot.test.ts`, then rerun without `--update`.
+- MCP may execute documents only through the shared production Yoga pipeline; require confirmation for mutations.
+
+Root Commands: `AGENTS.md`. Feature split: `$life-ustc-feature`.

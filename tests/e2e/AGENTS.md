@@ -1,26 +1,21 @@
 # tests/e2e/
 
-Playwright browser tests against the Cloudflare Worker.
-
-## Commands
+Playwright browser tests against the Cloudflare Worker. Full command recipes:
+root `AGENTS.md` Commands.
 
 ```bash
-# Full suite (CI parity — four shards with reseed). Not a bare playwright test.
-bun run e2e:test
-
-# Focused local run (free localhost:3000 first)
-bunx playwright test path/to/test
-bunx playwright test --headed path/to/test
+bun run e2e:test                          # CI parity (four shards + reseed)
+bunx playwright test path/to/test         # focused (free localhost:3000 first)
 CAPTURE_STEP_SCREENSHOTS=1 bunx playwright test path/to/test
 ```
 
 Playwright starts the Worker via `bun run e2e:server` (`wrangler.e2e.jsonc`).
-R2 uses local `R2_UPLOADS`. First time: `bunx playwright install --with-deps chromium`.
+R2 uses local `R2_UPLOADS`.
 
 ## Seed
 
-Edit `tests/e2e/fixtures/scenario.json` → `prisma/seed.sql` →
-`tests/fixtures/dev-seed.ts` (see root `AGENTS.md`).
+`tests/e2e/fixtures/scenario.json` → `prisma/seed.sql` →
+`tests/fixtures/dev-seed.ts` (root `AGENTS.md`).
 
 ## Layout
 
@@ -29,7 +24,7 @@ tests/e2e/fixtures/             scenario.json
 tests/e2e/src/app/**/test.ts    Route tests (browser UI)
 tests/e2e/src/app/dashboard/**  Covers /workspace/* UI (feature still named dashboard)
 tests/e2e/utils/                Auth, DB, subscriptions, uploads
-tests/integration/rest/         REST contracts (playwright.api.config.ts) — not browser E2E
+tests/integration/rest/         REST contracts — not browser E2E
 ```
 
 Helpers: `signInAsDebugUser`, `gotoAndWaitForReady`, `DEV_SEED` under `utils/`.

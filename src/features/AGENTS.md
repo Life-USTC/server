@@ -16,15 +16,14 @@ Example — workspace overview: REST `me-overview-route.ts`, GraphQL
 
 ```text
 feature/
-  server/   Use-cases shared by all surfaces
-  lib/      Domain utilities
+  server/      Use-cases shared by all surfaces
+  lib/         Domain utilities
   components/  Feature-owned UI (when needed)
 ```
 
-Feature folders under this directory are the inventory; do not maintain a
-parallel list here. `dashboard/` is the signed-in workspace UI (routes under
-`/workspace/[tab]`); keep overview assembly there and consume
-`subscriptions/` services for section membership.
+Feature folders under this directory are the inventory. `dashboard/` is the
+signed-in workspace UI (routes `/workspace/[tab]`); keep overview assembly there
+and consume `subscriptions/` for section membership.
 
 ## Domain rules
 
@@ -38,5 +37,4 @@ parallel list here. `dashboard/` is the signed-in workspace UI (routes under
 | calendar | Feature event queries + iCal; generic time helpers stay in `src/lib/time` |
 | subscriptions | Section membership R/W + import match helpers; public section facts stay in `catalog/` |
 
-See root `AGENTS.md` for the architecture map. New capabilities: `$life-ustc-feature`.
-Auth, dates, and Prisma conventions are summarized there.
+Architecture map: root `AGENTS.md`. New capabilities: `$life-ustc-feature`.

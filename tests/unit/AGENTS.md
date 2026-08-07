@@ -2,22 +2,30 @@
 
 Pure helpers and mocked orchestration. No real DB, browser, server, or network.
 Mock only process/env/time boundaries; prefer `tests/fixtures/dev-seed.ts`
-anchors; never import real Prisma clients.
+anchors; never import real Prisma clients. Commands: root `AGENTS.md`.
 
-Hoisted mock templates: see `helpers/AGENTS.md`.
+## Hoisted mocks (`helpers/`)
+
+Vitest hoisting means each test file owns top-level `vi.hoisted()` / `vi.mock()` —
+do not import mock factories inside hoisted callbacks. Use
+`createDeferred<T>()` from `tests/shared/deferred.ts` outside hoisted blocks.
 
 ```typescript
-import { describe, test, expect } from "vitest";
-
-describe("parseDateInput", () => {
-  test.each([
-    ["2026-05-06", new Date("2026-05-06T00:00:00.000Z")],
-    ["invalid", null],
-  ])("parseDateInput(%s)", (input, expected) => {
-    expect(parseDateInput(input)).toEqual(expected);
-  });
+const { withUserDbContextMock, homeworkCountMock } = vi.hoisted(() => {
+  const homeworkCount = vi.fn();
+  const tx = { homework: { count: homeworkCount } };
+  return {
+    homeworkCountMock: homeworkCount,
+    withUserDbContextMock: vi.fn(async (_userId, action) => action(tx)),
+  };
 });
+
+const { runCloudflareTraceSpanMock } = vi.hoisted(() => ({
+  runCloudflareTraceSpanMock: vi.fn((_name, _attrs, callback) => callback()),
+}));
 ```
 
-Priorities: date helpers, API schemas, permission helpers, compact payloads.
-Deterministic: no live `Date.now()` / `Math.random()` / network / FS (except fixtures).
+## Priorities
+
+Date helpers, API schemas, permission helpers, compact payloads. Deterministic:
+no live `Date.now()` / `Math.random()` / network / FS (except fixtures).

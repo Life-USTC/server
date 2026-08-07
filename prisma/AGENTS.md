@@ -1,8 +1,8 @@
 # prisma/
 
 - Source of truth: `schema.prisma` + `migrations/`
-- Seed SQL: `seed.sql` (canonical scenario; see root `AGENTS.md` Shared Test Seed)
-- Generated (DO NOT EDIT): `src/generated/prisma/`, `src/generated/prisma-node/`
+- Seed SQL: `seed.sql` (see root `AGENTS.md` for the seed trio)
+- Generated (do not edit): `src/generated/prisma/`, `src/generated/prisma-node/`
 - Static loader entry: `docker-entrypoint.load.sh`
 - App imports: `import { prisma, getPrisma } from "@/lib/db/prisma"`
 

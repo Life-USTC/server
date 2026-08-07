@@ -1,7 +1,7 @@
 # tests/
 
-Test layers. Architecture context: root `AGENTS.md`. Feature coverage
-expectations: `$life-ustc-feature`.
+Test layers. Architecture + Commands: root `AGENTS.md`. Coverage expectations
+when adding features: `$life-ustc-feature`.
 
 | Layer | Path | Runner |
 |-------|------|--------|
@@ -23,7 +23,7 @@ Unit tests live under `tests/unit/` only; do not colocate `*.test.ts` under `src
 
 | Utility | Path |
 |---------|------|
-| Unit mock templates | `tests/unit/helpers/AGENTS.md` |
+| Unit hoisted mock notes | `tests/unit/AGENTS.md` |
 | MCP in-process client | `tests/integration/mcp/_harness/client.ts` |
 | E2E page contracts | `tests/e2e/src/app/_shared/page-contract.ts` |
 

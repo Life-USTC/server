@@ -1,7 +1,6 @@
 # src/lib/
 
-Infrastructure and shared helpers. No business rules (those live in
-`src/features/`).
+Infrastructure and shared helpers. No business rules (`src/features/` owns those).
 
 ## Rules
 
@@ -28,4 +27,4 @@ import { prisma, getPrisma } from "@/lib/db/prisma";
 import { parseDateInput } from "@/lib/time/parse-date-input";
 ```
 
-Scoped guides: `components/`, `graphql/`, `mcp/`. See root `AGENTS.md`.
+Scoped guides: `components/`, `graphql/`, `mcp/`. Root map + Commands: `AGENTS.md`.

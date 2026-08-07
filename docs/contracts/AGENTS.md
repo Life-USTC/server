@@ -1,6 +1,6 @@
 # docs/contracts/
 
-Modular product/API/MCP contracts stored as formatted JSON.
+Modular product/API/MCP contracts as formatted JSON.
 
 ## Structure
 
@@ -20,10 +20,8 @@ Contract modules
 
 1. Update the affected `docs/contracts/<module>.json` first.
 2. Implement via `$life-ustc-feature` (use-case + transports + tests).
-3. Validate against schema / OpenAPI / GraphQL SDL / MCP integration as those
-   surfaces require (`bun run openapi:check`, GraphQL snapshot test, etc.).
-
-Keep required doc edits tightly scoped unless the user asked for a rewrite.
+3. Validate with root `AGENTS.md` Commands (`openapi:check`, GraphQL SDL
+   snapshot, integration) for the surfaces you touched.
 
 ## Queries
 
@@ -34,9 +32,7 @@ rg '^model ' prisma/schema.prisma
 find docs/contracts -maxdepth 1 -type f -name '*.json' ! -name '_*.json' -exec basename {} .json \; | sort
 ```
 
-## Module Shape
+## Module shape
 
-Each module file contains `name`, `access`, `rules`, `capabilities`.
-
-Shared UI/case/audit metadata stays in `_*.json`; model/enum shape stays in
-`prisma/schema.prisma`.
+Each module has `name`, `access`, `rules`, `capabilities`. Shared UI/case/audit
+metadata stays in `_*.json`; model/enum shape stays in `prisma/schema.prisma`.
