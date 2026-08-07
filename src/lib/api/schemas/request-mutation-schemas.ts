@@ -38,7 +38,6 @@ export {
   calendarSubscriptionCreateRequestSchema,
   calendarSubscriptionQueryRequestSchema,
   calendarSubscriptionRemoveRequestSchema,
-  catalogLinkVisitRequestSchema,
   localeUpdateRequestSchema,
   todoBatchDeleteRequestSchema,
   todoCompletionBatchRequestSchema,

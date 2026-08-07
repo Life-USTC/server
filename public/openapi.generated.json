@@ -5055,7 +5055,7 @@
     "/api/catalog/links/resolve": {
       "get": {
         "operationId": "catalog_link_resolve",
-        "summary": "Resolve a public campus link",
+        "summary": "Resolve a public campus link and record an authenticated visit",
         "tags": [
           "catalog.link"
         ],
@@ -5072,37 +5072,7 @@
         ],
         "responses": {
           "307": {
-            "description": "Temporary redirect to target link",
-            "headers": {
-              "Location": {
-                "description": "Redirect target URL",
-                "schema": {
-                  "type": "string"
-                }
-              }
-            }
-          }
-        }
-      },
-      "post": {
-        "operationId": "catalog_link_visit_record",
-        "summary": "Resolve a public campus link and record an authenticated visit",
-        "tags": [
-          "catalog.link"
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/x-www-form-urlencoded": {
-              "schema": {
-                "$ref": "#/components/schemas/catalogLinkVisitRequestSchema"
-              }
-            }
-          }
-        },
-        "responses": {
-          "303": {
-            "description": "Redirect after recording link click",
+            "description": "Temporary redirect to target link after recording visit",
             "headers": {
               "Location": {
                 "description": "Redirect target URL",
@@ -23014,19 +22984,6 @@
           "gradation",
           "type",
           "sections"
-        ],
-        "additionalProperties": false
-      },
-      "catalogLinkVisitRequestSchema": {
-        "type": "object",
-        "properties": {
-          "slug": {
-            "type": "string",
-            "minLength": 1
-          }
-        },
-        "required": [
-          "slug"
         ],
         "additionalProperties": false
       },

@@ -148,8 +148,8 @@ test.describe("GET /api/openapi - OpenAPI 规范", () => {
       body.paths?.["/api/catalog/links/resolve"]?.get?.responses?.["307"],
     ).toBeTruthy();
     expect(
-      body.paths?.["/api/catalog/links/resolve"]?.post?.responses?.["303"],
-    ).toBeTruthy();
+      body.paths?.["/api/catalog/links/resolve"]?.post,
+    ).toBeUndefined();
     expect(
       body.paths?.["/api/workspace/link-pins"]?.post?.requestBody?.content?.[
         "application/x-www-form-urlencoded"
@@ -225,9 +225,6 @@ test.describe("GET /api/openapi - OpenAPI 规范", () => {
     ).toBe("admin");
     expect(
       body.paths?.["/api/catalog/links/resolve"]?.get?.security,
-    ).toBeUndefined();
-    expect(
-      body.paths?.["/api/catalog/links/resolve"]?.post?.security,
     ).toBeUndefined();
     const mcpGetOperation = body.paths?.["/api/mcp"]?.get as
       | { responses?: Record<string, unknown>; security?: unknown[] }

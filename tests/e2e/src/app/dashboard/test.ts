@@ -126,7 +126,7 @@ test.describe("仪表盘", () => {
       48,
     );
     await expect(
-      page.locator('form[action="/api/catalog/links/resolve"]'),
+      page.locator('a[href^="/api/catalog/links/resolve?slug="]'),
     ).toHaveCount(DEV_SEED.dashboardLinks.overviewLimit);
     await expect(page.locator("vite-error-overlay")).toHaveCount(0);
 

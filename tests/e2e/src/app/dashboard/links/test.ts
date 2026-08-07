@@ -5,7 +5,7 @@
  * - Dashboard links grouped by category (study, life, tech, classroom, etc.)
  *   sourced from USTC_DASHBOARD_LINKS
  * - Each link card: name, description, visit tracking via
- *   POST /api/catalog/links/resolve
+ *   GET /api/catalog/links/resolve?slug=…
  * - Pin state per user via POST /api/workspace/link-pins
  *
  * ## UI/UX Elements
@@ -58,7 +58,7 @@ test.describe("仪表盘网站链接", () => {
     });
     await expect(searchInput).toBeVisible();
     await expect(
-      page.getByRole("button", { name: /教务系统/i }).first(),
+      page.getByRole("link", { name: /教务系统/i }).first(),
     ).toBeVisible();
 
     // No pin forms in public view
@@ -91,7 +91,7 @@ test.describe("仪表盘网站链接", () => {
     });
     await expect(searchInput).toBeVisible();
     await expect(
-      page.getByRole("button", { name: /Academic Affairs System/i }).first(),
+      page.getByRole("link", { name: /Academic Affairs System/i }).first(),
     ).toBeVisible();
 
     await expect(async () => {
@@ -99,10 +99,10 @@ test.describe("仪表盘网站链接", () => {
       await searchInput.clear();
       await searchInput.pressSequentially("email");
       await expect(
-        page.getByRole("button", { name: /USTC Email/i }).first(),
+        page.getByRole("link", { name: /USTC Email/i }).first(),
       ).toBeVisible({ timeout: 3_000 });
       await expect(
-        page.getByRole("button", { name: /Academic Affairs System/i }),
+        page.getByRole("link", { name: /Academic Affairs System/i }),
       ).toHaveCount(0, { timeout: 3_000 });
     }).toPass({
       timeout: 10_000,
@@ -157,10 +157,10 @@ test.describe("仪表盘网站链接", () => {
       await searchInput.clear();
       await searchInput.pressSequentially("邮箱");
       await expect(
-        page.getByRole("button", { name: /邮箱/i }).first(),
+        page.getByRole("link", { name: /邮箱/i }).first(),
       ).toBeVisible({ timeout: 3_000 });
       await expect(
-        page.getByRole("button", { name: /教务系统/i }).first(),
+        page.getByRole("link", { name: /教务系统/i }).first(),
       ).toHaveCount(0);
     }).toPass({
       timeout: 10_000,
@@ -184,7 +184,7 @@ test.describe("仪表盘网站链接", () => {
 
     const locatePinButton = async () => {
       const linkButton = page
-        .getByRole("button", { name: /教务系统/i })
+        .getByRole("link", { name: /教务系统/i })
         .filter({ visible: true })
         .first();
       await expect(linkButton).toBeVisible();
@@ -287,7 +287,7 @@ test.describe("仪表盘网站链接", () => {
 
     const locateJwPinButton = async () => {
       const linkButton = page
-        .getByRole("button", { name: /教务系统/i })
+        .getByRole("link", { name: /教务系统/i })
         .filter({ visible: true })
         .first();
       await expect(linkButton).toBeVisible();
