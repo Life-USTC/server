@@ -1,3 +1,17 @@
+# [1.86.0](https://github.com/Life-USTC/server/compare/v1.85.1...v1.86.0) (2026-08-07)
+
+
+### Bug Fixes
+
+* **db:** grant User.updatedAt for Prisma calendar token writes ([055266f](https://github.com/Life-USTC/server/commit/055266f19083632dc906ac5d42090225330a1a19))
+* **db:** restore calendar token writes and admin email reads ([a4f994a](https://github.com/Life-USTC/server/commit/a4f994a8f350cad9d1a823127db244da5da7e438))
+* **links:** replace visit POST forms with GET tracking redirects ([#752](https://github.com/Life-USTC/server/issues/752)) ([84fd0ba](https://github.com/Life-USTC/server/commit/84fd0ba5576ee36039d3e71de153577f717aa77a)), closes [#751](https://github.com/Life-USTC/server/issues/751)
+
+
+### Features
+
+* **auth:** persist GitHub/Google email for OAuth clients ([#751](https://github.com/Life-USTC/server/issues/751)) ([6b1d345](https://github.com/Life-USTC/server/commit/6b1d34524f751c77568193046b4d3bec77d319f7))
+
 ## [1.85.1](https://github.com/Life-USTC/server/compare/v1.85.0...v1.85.1) (2026-08-06)
 
 
