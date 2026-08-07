@@ -7,8 +7,9 @@ parse auth/args, call the use-case, and map the result.
 Do **not** put business rules in `src/lib/api`, `src/lib/graphql`, or
 `src/lib/mcp`. MCP compact/`mode` shaping is a view layer only.
 
-Example — workspace overview: REST `me-overview-route`, GraphQL `viewer`, and
-MCP `my-data-overview-action` all call `getCompactOverview`. Shared assertions:
+Example — workspace overview: REST `me-overview-route.ts`, GraphQL
+`workspace.overview` (resolver module still named `viewer.ts`), and MCP
+`my-data-overview-action` all call `getCompactOverview`. Shared assertions:
 `tests/shared/scenarios/`.
 
 ## Layout

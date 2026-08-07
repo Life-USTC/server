@@ -118,7 +118,7 @@ $: destinations = [
         <div>
           <Button
             class="h-11 min-w-28 justify-between gap-3 px-5"
-            href="/signin"
+            href="/account/sign-in"
             size="lg"
           >
             <span>{home.actions.signIn}</span>

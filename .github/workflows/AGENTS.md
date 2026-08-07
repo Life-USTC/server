@@ -2,7 +2,7 @@
 
 | Workflow | Trigger | Jobs |
 |----------|---------|------|
-| CI | push main, PRs | Default checks, MCP integration, Worker E2E artifact, E2E shards |
+| CI (`ci.yml`) | push main, PRs | Check; MCP Integration; PostgreSQL RLS; Build E2E artifacts; Static Loader Image; E2E shards; Visual regression (opt-in); Publish E2E HTML report |
 | DB-backed Bun job | workflow_call | Reusable Postgres-backed Bun job |
 | DB migrate deploy | `prisma/**` on main, or manual | Production migrate deploy |
 | Auth Record Cleanup | every 6h, manual | Bounded expired auth-record cleanup |

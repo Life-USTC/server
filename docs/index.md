@@ -7,8 +7,9 @@ project map.
 
 - [Root agent guide](../AGENTS.md)
 - [Repo skills](../.agents/skills/) — `$life-ustc-dev-loop` is the check/test SSOT
-- [README](../README.md) — local quick start
+- [README](../README.md) — product overview (capabilities and surfaces)
 - [Operations](operations.md) — production auth DB, Workers Builds, cleanup jobs
+- [Dev loop skill](../.agents/skills/life-ustc-dev-loop/SKILL.md) — local setup and checks
 - [Contracts](contracts/)
 - [Interface hierarchy](interface-hierarchy.md)
 

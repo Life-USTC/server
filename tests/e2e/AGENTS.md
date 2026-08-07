@@ -19,7 +19,8 @@ CAPTURE_STEP_SCREENSHOTS=1 bunx playwright test path/to/test
 - Full suite is four sequential shards with reseed; do not treat a single
   unsharded `playwright test` as a release gate.
 - One worker per shard; shared-state files use `test.describe.configure({ mode: "serial" })`
-  (e.g. `tests/e2e/src/app/test.ts`, welcome/settings, `dashboard/**`, MCP UI).
+  (e.g. `tests/e2e/src/app/test.ts`, welcome/settings,
+  `tests/e2e/src/app/dashboard/**` covering `/workspace/*` UI, MCP UI).
   Restore seeded state in `finally` when adding new shared-state files.
 
 Helpers: `signInAsDebugUser`, `gotoAndWaitForReady`, `DEV_SEED` under `utils/`.

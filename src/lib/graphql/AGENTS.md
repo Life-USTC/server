@@ -6,9 +6,8 @@ Explicit public GraphQL transport and schema infrastructure.
 
 - Keep the SDL explicit; do not expose Prisma models or generate CRUD automatically.
 - Resolvers call `src/features/*/server` services directly. They do not call REST/MCP routes, make loopback HTTP requests, or query Prisma.
-- Public catalog queries remain anonymous. Viewer and personal mutation fields require a trusted session or a GraphQL-audience OAuth token with the matching feature scope.
-- `Query.viewer` returns null for anonymous callers. Resolve one bearer-first principal per request; each Viewer child enforces its exact feature read scope, while trusted-origin Sessions retain normal user authority.
-- Viewer collection services derive ownership from `userId` relations. Never expose trusted `sectionIds`, deleted/editor/shape switches, or other transport-internal flags as GraphQL inputs.
+- Public `catalog` (and public `community` reads) stay anonymous. Personal queries live under `workspace` / `account` and return null without a trusted session or GraphQL-audience OAuth token; each field enforces its feature read scope. Trusted-origin Sessions retain normal user authority.
+- Personal collection services derive ownership from `userId` relations. Never expose trusted `sectionIds`, deleted/editor/shape switches, or other transport-internal flags as GraphQL inputs.
 - A GraphQL object must have the same observable field shape whether returned by a list or detail query.
 
 ## Runtime and Security

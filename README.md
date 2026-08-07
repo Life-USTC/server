@@ -1,44 +1,41 @@
 # Life@USTC Server
 
-SvelteKit campus workspace with REST, GraphQL, and MCP APIs.
+科大校园工作区的主应用与 API 真源。用户通过 Web 使用；CLI、Bot、iOS 与 MCP
+代理都连到这里。生产站点：
+[https://life-ustc.tiankaima.dev](https://life-ustc.tiankaima.dev)
 
-Start with [docs/index.md](./docs/index.md). Product/API/MCP contracts live in
-[docs/contracts/](./docs/contracts/). Cross-surface capability tree:
-[docs/interface-hierarchy.md](./docs/interface-hierarchy.md).
+## 产品能力
 
-## Quick start
+| 域 | 用户能做什么 |
+|----|--------------|
+| **校园目录** | 搜课程 / 教学班 / 教师并看详情；查学期课表与考试；校车时刻与地图；校园链接目录；全局搜索 |
+| **工作区** | 登录后看概览与日历；管理待办；标记作业完成；查看考试；订阅教学班（含导入）；导出 iCal；置顶常用链接；上传文件 |
+| **社区** | 公开用户主页；对课程等内容评论 / 反应；编辑描述；共建教学班作业 |
+| **账户** | USTC OAuth / Passkey 等登录；资料与偏好（语言）；关联账号与授权；注销相关设置 |
+| **管理** | 用户与封禁、内容审核、OAuth 客户端、校车数据治理 |
 
-Needs Bun (see `.bun-version`), Docker Compose, and a host `psql` client (seed
-uses it):
+工作区 Web 页签：`/workspace/{overview,calendar,homeworks,todos,exams,subscriptions}`
+（另有订阅子路由）。课表 / 上传等能力主要走 API 与其它表面，不一定有独立 Web 页。
 
-```bash
-bun install --frozen-lockfile
-bun run hooks:install
-cp .env.example .env
-docker compose -f docker-compose.dev.yml up -d
-bun run app:prepare
-bun run db:migrate:deploy
-bunx prisma db seed
-bun run dev
-```
+## 对外接口
 
-`bun run dev` only starts Vite on `127.0.0.1:3000`. Prepare, migrate, and seed
-separately when schema or fixtures change. Upload storage uses the Cloudflare
-`R2_UPLOADS` binding (exercise via Wrangler). Production deploys through
-Cloudflare Git integration; Docker here is only for local Postgres and the
-static data loader.
+同一套能力通过多种传输暴露（命名见
+[docs/interface-hierarchy.md](./docs/interface-hierarchy.md)）：
 
-First browser/E2E run: `bunx playwright install chromium`.
+- **Web** — SvelteKit 页面（公开目录 + 登录工作区 + 管理端）
+- **REST** — `/api/catalog|workspace|community|account|admin|…`（OpenAPI 见 `/api-docs`）
+- **GraphQL** — `/api/graphql`（`catalog` / `workspace` / `community` / `account`）
+- **MCP** — `/api/mcp`，供代理与 Bot agent 调用 capability 级工具
+- **OAuth** — 授权页、设备码等，供 CLI / Bot / 第三方客户端登录
 
-## Operations
+契约与模块说明在 [docs/contracts/](./docs/contracts/)。文档导航：
+[docs/index.md](./docs/index.md)。
 
-Auth DB separation, Workers Builds settings, runtime role preflight, and Auth
-Record Cleanup are documented in
-[docs/operations.md](./docs/operations.md). Rendering/cache boundaries:
-[docs/rendering-and-cache.md](./docs/rendering-and-cache.md).
+## 给贡献者
 
-## Agent workflows
+本地启动、检查、测试与运维细节不在本 README：
 
-- Checks/tests/handoff: `$life-ustc-dev-loop`
-  ([`.agents/skills/life-ustc-dev-loop/SKILL.md`](./.agents/skills/life-ustc-dev-loop/SKILL.md))
-- Coding rules: [AGENTS.md](./AGENTS.md)
+- 编码与验收契约 → [AGENTS.md](./AGENTS.md)
+- 命令序列 → [`.agents/skills/life-ustc-dev-loop`](./.agents/skills/life-ustc-dev-loop/SKILL.md)
+- 生产连接 / Workers Builds → [docs/operations.md](./docs/operations.md)
+- 公开页 SSR 与缓存边界 → [docs/rendering-and-cache.md](./docs/rendering-and-cache.md)

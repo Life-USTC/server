@@ -59,9 +59,9 @@ caveats and link back here.
 ## Common Patterns
 
 ### Auth
-- Pages: `requireSignedInUserId()` → `/signin`
+- Pages: gate on `event.locals.authUser`; unauthenticated → `buildSignInPageUrl(...)` (`/account/sign-in?callbackUrl=…`)
 - REST: `resolveApiUserId()` (Bearer or cookie)
-- GraphQL: bearer-first principal; `/api/graphql` audience; cookies need trusted Origin
+- GraphQL: bearer-first principal; `/api/graphql` audience; cookies need trusted Origin; personal fields under `workspace` / `account` (no root `viewer`)
 - MCP: Bearer only, audience `/api/mcp`; `getUserId(extra.authInfo)`
 - Check permissions before mutations; suspended users blocked from collaborative writes
 

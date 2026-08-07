@@ -12,17 +12,17 @@ component at a time.
 
 The currently cacheable public set is intentionally explicit: the course,
 section, and teacher list pages; canonical anonymous course, section, and
-teacher detail pages; the bus map; mobile app, privacy, terms, Markdown guide,
-and API documentation pages. Catalog detail cache admission requires a positive
-decimal ID without leading zeroes, no query or trailing slash, and either the
-base overview path or a supported tab. Course and teacher tabs are
-`introduction`, `sections`, and `comments`; section tabs are `introduction`,
-`calendar`, `exams`, `homework`, `teachers`, and `comments`. Any recognized
-Bearer or session-cookie auth signal keeps the detail request on dynamic SSR.
-Unknown paths outside known app route roots use a small script-free 404 response
-without entering SvelteKit or the shared cache. Links, bus planner, community,
-and home pages stay dynamic because they still contain page-specific viewer
-behavior.
+teacher detail **root** paths; the bus map; mobile app, privacy, terms, Markdown
+guide, and API documentation pages. Catalog detail cache admission requires a
+positive decimal ID without leading zeroes, no query string, no trailing slash,
+and **no path section** — only `/catalog/{courses|sections|teachers}/:id`.
+In-page sections are hash anchors on that single page; legacy path tabs such as
+`/…/introduction` stay on dynamic SSR (and may 308 to the hash form). Any
+recognized Bearer or session-cookie auth signal keeps the detail request on
+dynamic SSR. Unknown paths outside known app route roots use a small script-free
+404 response without entering SvelteKit or the shared cache. Links, bus planner,
+community, and home pages stay dynamic because they still contain page-specific
+viewer behavior.
 
 Catalog list cache admission also requires one value per query key and the
 canonical non-empty value form. Empty controls emitted by the existing GET
@@ -40,7 +40,8 @@ normalization bounds database input and runtime cache keys.
    rejects private routes, SvelteKit data requests, non-document requests, and
    unknown query fields before making a cached call. Catalog detail additionally
    rejects auth signals, every query, non-canonical IDs, trailing slashes, and
-   unknown tabs; these requests continue through the normal dynamic Worker.
+   any path section after the ID; these requests continue through the normal
+   dynamic Worker.
 2. For an allowlisted page, it resolves the locale, removes Cookie and
    Authorization, canonicalizes allowlisted query fields, and adds the locale
    to an internal URL cache key.
