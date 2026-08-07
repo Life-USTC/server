@@ -1,232 +1,202 @@
-# Life@USTC Server - Agent Guide
+# Life@USTC Server
 
-SvelteKit campus workspace with REST + GraphQL + MCP APIs. This is the canonical coding-agent instruction file; nested `AGENTS.md` files only add scoped rules.
+Start here instead of grepping the whole tree. Nested `AGENTS.md` files go
+deeper on one area (closest file wins). Shared names live in
+`docs/interface-hierarchy.md` and `docs/contracts/`. To add or change behavior,
+use `$life-ustc-implement`. Git / PR / CI / merge: global skills, not this repo.
 
-## Repo Map
+## How the system fits together
 
 ```text
-src/routes/           SvelteKit pages, layouts, REST handlers, OAuth/MCP routes
-src/features/         Domain logic and feature-owned components
-src/lib/              Infrastructure: ports/adapters, GraphQL/MCP, helpers, and shared UI in `src/lib/components`
-src/lib/ports/        Abstract runtime contracts imported by domain code
-src/lib/adapters/     Concrete runtime implementations (node:*, bun:*, fs, process, etc.)
-messages/             i18n strings (`zh-cn`, `en-us`)
-prisma/               Prisma schema and migrations
-docs/contracts/        Product/API/GraphQL/MCP contracts checked against their public schemas
-tests/                Unit, integration MCP harness, and Playwright E2E tests
-.agents/skills/       Repo-scoped reusable agent workflows
-.github/workflows/    CI/CD workflows
+Clients:  Web · CLI · Bot · iOS · MCP agents
+    │
+    ▼
+SvelteKit Worker (Cloudflare) + Node tools (migrate, static loader, CLI scripts)
+    │
+    ├── REST      /api/...
+    ├── GraphQL   /api/graphql
+    ├── MCP       /api/mcp
+    ├── OAuth     /oauth, /api/auth, device flows
+    └── Pages     /catalog/*, /workspace/*, /account/*, /admin/*, …
+    │
+    ▼
+src/features/<domain>/server   ← shared use-cases (REST/GraphQL/MCP/Web call here)
+    │
+    ▼
+Prisma (PostgreSQL) · R2 uploads · Better Auth
 ```
 
-## Tool Stages
+Upstream data comes from the **static** repo; the Docker **static loader** here
+imports it. Production app deploys via Cloudflare Git (`wrangler.jsonc`).
+Secrets and environment bindings live in the Cloudflare Dashboard — not in docs.
 
-Use `$life-ustc-dev-loop` for the canonical setup/check/test/handoff sequence. The only package-level shortcuts are:
+## Where code lives
+
+```text
+src/routes/              SvelteKit pages + thin HTTP handlers
+src/features/            Domain use-cases + feature-owned UI
+  <domain>/server/       Shared application logic
+  <domain>/components/   Feature UI (not in src/lib/components)
+  dashboard/             Signed-in workspace UI (routes: /workspace/*)
+src/lib/                 Infrastructure only
+  ports/                 Env contracts (`env.ts`)
+  adapters/              Cloudflare runtime wiring
+  api/routes/            REST adapters (may call features; keep route files thin)
+  graphql/ · mcp/tools/  Yoga schema; MCP tools by domain
+  components/            Shared, feature-neutral UI
+  auth/ · db/ · oauth/ · storage/ · time/ · …
+messages/                i18n: zh-cn (default), en-us — no locale URL prefix
+prisma/                  schema.prisma + migrations + seed.sql
+docs/contracts/          Product / API / GraphQL / MCP JSON contracts
+docs/graphql/            SDL snapshot + mutation matrix
+tests/unit|integration|e2e
+.agents/skills/          Project skills (how to implement changes)
+.github/workflows/       CI phases in db-backed-bun-job.yml
+```
+
+**Do not edit:** `src/generated/prisma/`, `src/generated/prisma-node/`,
+`public/openapi.generated.json`.
+
+## Local checks
+
+Needs Bun (`.bun-version`), Docker Compose, and host `psql`. Locally you can use
+one `DATABASE_URL` (production uses separate app/auth database bindings). First
+Playwright run: `bunx playwright install --with-deps chromium`.
 
 ```bash
-bun install --frozen-lockfile
-bun run dev             # app dev; start local Docker infra first when DB/storage is needed
-bun run build           # production build
-bun run app:prepare     # generate Prisma client and sync SvelteKit
-bun run db:migrate:deploy # run migrations
+# Dev
+bun install --frozen-lockfile && bun run hooks:install
+cp .env.example .env   # once
+docker compose -f docker-compose.dev.yml up -d
+bun run app:prepare && bun run db:migrate:deploy && bunx prisma db seed
+bun run dev            # http://127.0.0.1:3000
+
+# Default checks (what you usually run before handoff)
+bun run app:prepare
+bunx wrangler types --include-runtime=false --check
+bunx biome check
+bunx svelte-check --tsconfig ./tsconfig.json
+bunx tsc --noEmit -p tsconfig.typecheck.json
+bunx tsc --noEmit -p tsconfig.typecheck.tests.json
+bunx tsc --noEmit -p tsconfig.typecheck.operational.json
+bunx vitest run
+bun run openapi:check
+bunx vitest run tests/unit/graphql-schema-snapshot.test.ts
+
+# CI ci:verify also runs these shell guards — run if you touch them or CI fails there
+# bash tests/ci/retry.test.sh
+# bash tests/ci/seed-guard.test.sh
+# bash tests/ci/e2e-full-suite-parity.test.sh
+
+# Integration (same shape as CI ci:integration)
+bun run db:migrate:deploy && bunx prisma db seed
+bunx vitest run --config vitest.integration.config.ts
+bun run build && bun run rest:test
+
+# E2E — script prepares, builds, migrates, and reseeds per shard
+ALLOW_DATABASE_SEED=true bun run e2e:test
+
+docker compose -f docker-compose.dev.yml down
 ```
 
-Local Postgres runs through Docker Compose directly:
-`docker compose -f docker-compose.dev.yml up -d` to start and
-`docker compose -f docker-compose.dev.yml down` to stop. Upload storage is the
-Cloudflare `R2_UPLOADS` binding and needs Wrangler-backed flows when exercised
-locally. Production deploys through Cloudflare Git integration. The only durable
-Docker runtime is the static loader.
+CI phase scripts live in `.github/workflows/db-backed-bun-job.yml`. Uploads in
+E2E/Worker flows use Wrangler local `R2_UPLOADS` — don't add MinIO unless you're
+specifically testing object storage.
 
-## Agent Operating Contract
+## Where things live
 
-- Treat this file as the compact project contract. Before touching a scoped area, also read the nearest `AGENTS.md`; closer files override broader guidance.
-- Keep durable rules here short and actionable. Move repeated, specialized workflows into `.agents/skills` or the closest scoped `AGENTS.md` instead of bloating root guidance.
-- Keep `AGENTS.md` as the canonical agent instruction surface. Do not add parallel files such as `copilot-instructions.md`, `CLAUDE.md`, or `GEMINI.md` unless the user explicitly asks for a compatibility shim.
-- Keep reusable repo skills in `.agents/skills` so they follow the open Agent Skills discovery path. Do not add `.codex/skills` unless the user explicitly asks for a Codex-private experiment.
-- Use checked-in skills for repeatable workflows: `$life-ustc-dev-loop` for the development loop and `$life-ustc-pr-workflow` for PR/check loops.
-- For non-trivial feature or fix work, split the job into at least two fresh passes when tooling allows: one checks/updates contracts and docs, the other implements against current source. Integrate, verify, and repeat until behavior and contracts match.
-- Work in this loop: inspect code/docs first, plan the smallest safe edit, implement, run the relevant gate, inspect the diff, and verify the final behavior against the user request.
-- Done means evidence-backed: cite the files changed, commands run, and any skipped checks with the reason. Passing tests alone is not enough if they do not cover the requested behavior.
-- Do not infer contracts from old docs, generated files, or optimistic commit messages. Check the source of truth: route handlers, Prisma schema/migrations, contract JSON, tests, and current package scripts.
-- Think forward: prefer clean, simple, durable code over monkeypatches, brittle one-off shortcuts, or fixes that knowingly leave avoidable tech debt.
-- Inspect `git diff` before the final answer. Call out unverified commands, risky changes, and any docs updates intentionally skipped.
-- Do not rewrite git history, remove attribution, or force-push unless the user explicitly asks for that operation in the current task.
-- Update the nearest `AGENTS.md` when repeated agent mistakes reveal missing durable guidance; keep the change concise and operational.
+| Concern | Where |
+|---------|--------|
+| Product / API contract | `docs/contracts/<module>.json` |
+| Shared naming | `docs/interface-hierarchy.md` |
+| Use-case | `src/features/<domain>/server/` |
+| Web | `src/routes/...` + `src/features/<domain>/components/` |
+| REST | `src/routes/api/**/+server.ts` → `src/lib/api/routes/` → feature |
+| GraphQL | `src/lib/graphql/` (`catalog` / `workspace` / `community` / `account`) |
+| MCP | `src/lib/mcp/tools/<domain>/` — tool name matches the contract id |
+| Copy | `messages/zh-cn.json`, `messages/en-us.json` |
+| Schema | `prisma/schema.prisma` + migration |
+| Unit / integration / E2E | `tests/unit/`, `tests/integration/`, `tests/e2e/` |
 
-## Architecture Boundaries
+Fixtures: `tests/e2e/fixtures/scenario.json` feeds `tests/fixtures/dev-seed.ts`
+(`DEV_SEED_ANCHOR`). `prisma/seed.sql` is the executable DB seed (kept in sync
+with that scenario; not auto-generated in-repo).
 
-- Keep `src/routes` thin: routing, pages, handlers, metadata. Put domain logic in `src/features`.
-- Keep `src/lib` for infrastructure helpers and cross-cutting utilities, not feature rules.
-- Keep shared `src/lib/components` free of feature-specific data fetching and mutations.
-- Do not call SvelteKit page handlers or REST route handlers from features or page actions. Extract shared work into `src/features/*/server` and let routes adapt it to HTTP.
-- Before exposing a feature through multiple surfaces, put shared gates, common operations, and update/read services in `src/features/<feature>/server`; surface code should only handle transport-specific auth, validation, redirects, serialization, or output shaping.
-- REST, GraphQL, MCP, contract JSON, public schemas, and tests are coupled surfaces; check all matching surfaces when one changes.
-- Treat `prisma/schema.prisma`, migrations, route handlers, contract JSON, and tests as source of truth over stale docs or generated output.
+## Old names still in the tree
 
-## Complete-Loop Checks
+| Idea | Product name | Code today |
+|------|--------------|------------|
+| Signed-in home | `workspace` | Feature folder `dashboard/`, routes `/workspace/[tab]` |
+| Overview REST | workspace overview | File `me-overview-route.ts` |
+| GraphQL personal data | `workspace.*` / `account.*` | Some files still `viewer.ts` |
+| MCP tools | `workspace_*` ids | Files may say `my-data-*` / `dashboard-*` |
 
-- UI/layout changes: run the narrowest browser check that exercises the changed screen, inspect a screenshot/headed run/trace for the affected area, and iterate on visible regressions before handoff.
-- REST/GraphQL/MCP behavior changes: decide which surfaces should change. If only one changes, document why; then exercise at least one representative public request or MCP tool call when feasible, inspect the serialized success/error output, and compare it with contracts/tests.
-- Keep screenshots, traces, temporary payloads, and ad hoc probes out of the repo unless they are intentional fixtures.
+Don't add a second `workspace` feature folder or a root GraphQL `viewer`.
 
-## Shared Test Seed
+## Web and auth
 
-- Canonical seeded fixture data lives in `tests/e2e/fixtures/scenario.json`; `tests/fixtures/dev-seed.ts` exports the named constants used by tests.
-- `prisma/seed.sql` contains the executable canonical scenario, including the shared users, catalog, schedule, bus, and collaboration records used by E2E/integration tests.
-- The shared anchor comes from `DEV_SEED_ANCHOR` in `tests/fixtures/dev-seed.ts`. Use `.date` for bare date filters, `.recommendedAtTime` for time-sensitive tool calls, and `.startOfDayAtTime` when a test needs the seed day boundary.
-- `$life-ustc-dev-loop` loads that canonical scenario; if you invoke integration specs directly, run `bunx prisma db seed` first. The seed runner invokes host `psql`, so install the PostgreSQL client locally.
-- Scoped `tests/**/AGENTS.md` files should only add layer-specific caveats and link shared commands/setup back here or to helper files such as `tests/integration/mcp/_harness/client.ts`.
+- Catalog: `/catalog/courses|sections|teachers|bus|links`, `/search`
+- Workspace tabs: `/workspace/{overview,calendar,homeworks,todos,exams,subscriptions}`
+- Account: `/account/sign-in` (+ settings); Admin: `/admin/...`
+- Schedules list and uploads are mostly API / MCP / CLI — not always a Web tab
+- Public HTML cache rules: `docs/rendering-and-cache.md` (lists, detail roots,
+  bus map, legal pages, and a few others — not only catalog detail)
 
-## Local Dev Environment
+| Entry | Auth |
+|-------|------|
+| Pages | `event.locals.authUser`, else `buildSignInPageUrl` → `/account/sign-in?callbackUrl=…` |
+| REST | `resolveApiUserId()` (Bearer or cookie) |
+| GraphQL | Bearer-first; audience `/api/graphql`; cookies need trusted Origin |
+| MCP | Bearer only; audience `/api/mcp`; `getUserId(authInfo)` |
 
-- `.env` is configured for host-native dev (`bun run dev`) against local Postgres on `127.0.0.1`.
-- Upload storage is provided by the Cloudflare `R2_UPLOADS` binding; use `wrangler dev` based flows when exercising upload storage locally.
-- Install local browser runtime once before browser/E2E checks: `bunx playwright install chromium`. Use `bunx playwright install --with-deps chromium` on Linux if system libraries are missing.
-- `bun run dev` starts Vite directly; run `bun run app:prepare` and `bun run db:migrate:deploy` (or follow `$life-ustc-dev-loop`) before the first start. It no longer auto-runs OpenAPI generation or migrations.
-- Host-native `bun run dev` is pinned to `127.0.0.1:3000`.
-- Prefer these flows for pain-free setup:
-  1. Start Postgres with `docker compose -f docker-compose.dev.yml up -d`.
-  2. Run `bun run app:prepare`, `bun run db:migrate:deploy`, and `bunx prisma db seed`.
-  3. Run `bun run dev` for the host-native app.
+Suspended users can't collaborative-write. Upload downloads use the shared
+permission gate.
 
-## Production Deployment
+## Conventions
 
-- The production app runs on Cloudflare Workers via Cloudflare Git integration and `wrangler.jsonc`; do not reintroduce GitHub Actions deploy jobs, manual deploy scripts, Docker app, or compose runtime paths for frontend/backend serving.
-- The only durable Docker image in this repo is the static data loader. It requires `DATABASE_URL`, runs migrations, then executes `docker-entrypoint.load.sh`.
+- Dates: `parseDateInput`; `@db.Date` → Asia/Shanghai day; `startOfShanghaiDay` /
+  `shanghaiDayjs`
+- Prisma: `import { prisma, getPrisma } from "@/lib/db/prisma"`
+- REST errors: `handleRouteError`; MCP: Zod inputs, let unexpected errors throw
+- Pagination: `buildPaginatedResponse`
+- Native IO (`node:*` / `bun:*` / `fs` / …): approved infra (`auth` / `db` /
+  `log` / `cloudflare`), Cloudflare `adapters/`, or entrypoints (`static-loader`,
+  `*-cli.ts`) — not ordinary features or routes
 
-## Documentation Structure
+## Boundaries
 
-```
-docs/index.md          Navigation map for repo docs
-docs/contracts/          Product/API/MCP contracts (modular JSON)
-  _meta.json           Product metadata
-  _product.json        Roles, workflow
-  _ui.json             UI patterns
-  _cases.json          Cross-feature scenarios
-  _audit.json          Audit actions
-  user.json            Contract modules
-  course.json          ...
-  ...
+**Always**
 
-src/*/AGENTS.md         Scoped implementation guides
-.agents/skills/         Reusable repo workflows loaded on demand
-```
+- Put domain logic in `src/features/*/server`; keep routes / MCP / GraphQL thin.
+- When behavior changes, update the matching contracts and REST/GraphQL/MCP/Web
+  (`$life-ustc-implement`).
+- Run the local checks that cover what you touched.
+- Keep secrets, tokens, cookies, and upload URLs out of logs and commits.
 
-## Common Patterns
+**Ask first**
 
-### Auth
-- **Pages**: `requireSignedInUserId()` → redirects to `/signin`
-- **API**: `resolveApiUserId()` → accepts Bearer OR cookie
-- **GraphQL**: resolve one bearer-first principal per request; `/api/graphql` tokens must use the GraphQL audience, Session cookies require a trusted Origin, and each `Viewer` child checks its exact feature scope
-- **MCP**: Bearer only, audience `/api/mcp`; read user id with `getUserId(extra.authInfo)`
-- Check permissions BEFORE mutations
-- Suspended users blocked from collaborative writes
+- Broad doc rewrites or new parallel instruction files (`CLAUDE.md`, etc.).
+- Exposing admin/governance through GraphQL, MCP, or Bot.
+- Adding MinIO/S3 emulation, app-serving Docker, or repo-managed production deploys.
 
-### Dates
-- **Input**: `parseDateInput(str)` accepts YYYY-MM-DD or ISO
-- **GraphQL `@db.Date` filters**: accept strict zoned `DateTime`, then normalize to the Asia/Shanghai calendar day
-- **Output**: `jsonResponse(data)` serializes dates
-- **Display**: `getShanghaiDay()` for boundaries
+**Never**
 
-### Prisma
-- **Import**: `import { prisma, getPrisma } from "@/lib/db/prisma"`
-- **Writes**: `prisma.model.create()`
-- **Localized reads**: `getPrisma(locale).model.findMany()`
+- Hand-edit generated Prisma or OpenAPI output.
+- Put business rules in `src/lib/api`, `src/lib/graphql`, or `src/lib/mcp`.
+- Change shared seed rows from parallel tests.
+- Leave scratch plans, probes, or Playwright output in the tree.
+- Publish production monitoring, log/metrics query playbooks, deploy runbooks,
+  unfinished security roadmaps, or internal host/path defaults in this repo.
+- Force-push or rewrite history unless the user explicitly asks.
 
-### Errors
-- **API**: `handleRouteError(err)`
-- **Status**: `unauthorized()`, `forbidden()`, `notFound()`, `badRequest()`
-- **MCP**: validate inputs with Zod; let unexpected errors throw so the SDK reports tool failure
+## Deeper guides
 
-### i18n
-- Supported: `zh-cn` (default), `en-us`
-- No locale prefix in URLs
-- User text needs both message files
-- **Import**: `import { Link } from "@/i18n/routing"`
-
-### Validation
-```typescript
-const schema = z.object({ name: z.string().min(1) });
-const data = schema.parse(input);
-```
-
-### Pagination
-```typescript
-buildPaginatedResponse(items, page, pageSize, total)
-```
-
-## File Rules
-
-**Generated - DO NOT EDIT**:
-- `src/generated/prisma/`
-- `src/generated/prisma-node/`
-- `public/openapi.generated.json`
-
-**Feature Changes**:
-1. Check the affected contract module before implementation.
-2. Update `docs/contracts/<module>.json` only when behavior, API/MCP shape, permissions, or user-visible workflow changes.
-3. Implement code and update tests where behavior is observed.
-4. Run the check sequence in `$life-ustc-dev-loop`, escalating to the integration and E2E sequences when data flows, auth, browser flows, docs/contracts, or shared tooling change.
-
-**Documentation Alignment**:
-- Public REST API change → update route OpenAPI annotations, `docs/contracts/openapi.json` when relevant, then run `bun run openapi:check`.
-- Public GraphQL change → update the affected module contract and `docs/contracts/graphql.json`, regenerate the SDL snapshot with `bunx vitest run --update tests/unit/graphql-schema-snapshot.test.ts`, then rerun that test without `--update`.
-- MCP tool/parameter/output change → update the matching `docs/contracts/<module>.json` and integration coverage.
-- User-visible behavior change → update the affected contract JSON and user-facing docs if present.
-- Architecture or dependency-boundary change → update `docs/index.md`, the nearest scoped `AGENTS.md`, or an ADR/runbook if one exists.
-- Operational/setup/config change → update `README.md`, `docs/index.md`, workflow docs, or `.env.example` as applicable.
-- If no docs update is needed, state why in the final summary.
-
-**Security & Privacy**:
-- Never log tokens, secrets, session cookies, OAuth codes, upload URLs, or personal data beyond what a test explicitly requires.
-- Preserve auth surface differences: pages redirect, REST returns status responses, MCP is bearer-only with `/api/mcp` audience.
-- Check permissions before mutations; suspended users are blocked from collaborative writes.
-- Upload downloads require a shared permission gate: owners may download their files, and signed-in viewers may download files attached to comments they are allowed to read.
-
-**Documentation Changes**:
-- Ask before broad documentation rewrites or restructures when the user did not explicitly request doc edits.
-- When docs must change as part of code work, keep the edits narrow and run the same default gate.
-
-**Default Verification**:
-- Use `$life-ustc-dev-loop` for the canonical check sequence.
-- Run the integration and E2E sequences from `$life-ustc-dev-loop` before pushing changes that affect data flows, auth, browser flows, docs contracts, or shared tooling.
-- Repo-owned checks should keep success output concise and print actionable failures.
-
-**No Stray Reports**:
-- Do not leave migration plans, improvement reports, status summaries, scratch artifacts, or one-time analysis outputs in the repo.
-- Temporary planning files, local verification scripts, ad hoc probes, and throwaway code are acceptable only if removed before finishing.
-- Before handoff, inspect `git status --short` and ensure only intentional durable source, docs, config, or test changes remain.
-- Use GitHub issues/PRs for durable tracking
-
-**PR / Change Summary**:
-- Summaries should name changed files, behavior/doc impact, commands run, skipped checks with reasons, and residual risks.
-- Review the diff for unrelated rewrites, generated-file edits, missing docs/tests, and REST/MCP parity gaps before handing off.
-
-## Scoped Guides
-
-- **Contracts**: `docs/contracts/<module>.json` - Product/API/MCP specifications
-- **Source**: `src/AGENTS.md` - Organization
-- **Routes**: `src/routes/` - SvelteKit pages and REST handlers
-- **GraphQL**: `src/lib/graphql/AGENTS.md` - schema, resolver, security, snapshot, and MCP resource rules
-- **MCP**: `src/lib/mcp/AGENTS.md` - MCP tools
-- **Features**: `src/features/AGENTS.md` - Business logic
-- **Components**: `src/lib/components/AGENTS.md` - UI
-- **Prisma**: `prisma/AGENTS.md` - Schema
-- **Tests**: `tests/{e2e,integration,unit}/AGENTS.md` (layer-specific notes only)
-- **CI/CD**: `.github/workflows/AGENTS.md`
-
-## Known Issues
-
-**Better Auth social providers**: Profile types must match library exactly:
-- `GithubProfile.email` is `string | null` not `string | undefined`
-- Mismatches break typecheck and Docker build
-
-## Agent Audit Guardrails
-
-History shows agent-assisted changes in this repo most often went wrong when they trusted stale shape assumptions, fought CI/E2E bootstrap, crossed Worker/Node runtime boundaries, or created convenience artifacts that later had to be removed. Guard against these patterns:
-
-- **Contracts**: Keep contract JSON hand-maintained and schema-checked. Do not add one-off generators or broad rewrites unless the user explicitly asks for that migration.
-- **OAuth/Auth**: Prefer Better Auth provider APIs and shared URL helpers over hand-built OAuth/DCR/JWKS/cookie logic. Watch for doubled `/api/auth` paths, audience/resource mismatches, and public PKCE vs trusted-client boundaries.
-- **REST/GraphQL/MCP parity**: When changing one surface, check the matching contract JSON, REST route, GraphQL field/SDL snapshot, MCP tool, OpenAPI annotation, and seeded E2E/integration coverage.
-- **Shared seed tests**: Do not mutate canonical seed records in parallel tests. Use unique temporary records, cleanup, `DEV_SEED_ANCHOR`, and serial E2E execution for shared user state.
-- **Tooling/runtime**: Scripts that run in Docker/CI/Copilot must use the same Bun-based setup and generated Prisma client as the workflows.
+| Area | File |
+|------|------|
+| Doc index | `docs/index.md` |
+| Contracts | `docs/contracts/AGENTS.md` |
+| Features / lib / GraphQL / MCP / components | `src/**/AGENTS.md` |
+| Prisma | `prisma/AGENTS.md` |
+| Tests | `tests/**/AGENTS.md` |
+| CI workflows | `.github/workflows/AGENTS.md` |
+| Public SSR cache notes | `docs/rendering-and-cache.md` |

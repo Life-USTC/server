@@ -1,126 +1,38 @@
 # tests/e2e/
 
-Playwright browser tests.
-
-## Commands
-
-Use `$life-ustc-dev-loop` for the canonical E2E sequence. Playwright starts the
-E2E server automatically via `bun run e2e:server` (using `wrangler.e2e.jsonc`).
-
-For a focused local Playwright run after setup:
+Playwright browser tests against the Cloudflare Worker. Full recipes: root
+`AGENTS.md`.
 
 ```bash
-bunx playwright test path/to/test
-bunx playwright test --headed path/to/test
-bunx playwright test --ui
+ALLOW_DATABASE_SEED=true bun run e2e:test   # CI parity (four shards + reseed)
+bunx playwright test path/to/test          # focused (free localhost:3000 first)
 CAPTURE_STEP_SCREENSHOTS=1 bunx playwright test path/to/test
 ```
 
-Named step screenshots are compressed JPEG report attachments. They are enabled
-in CI and opt-in locally through `CAPTURE_STEP_SCREENSHOTS=1`.
+Playwright starts the Worker via `bun run e2e:server` (`wrangler.e2e.jsonc`).
+R2 uses local `R2_UPLOADS`.
 
-## Local Setup
+## Seed
 
-Use the root `AGENTS.md` for the shared setup flow. E2E-only caveats:
+`tests/e2e/fixtures/scenario.json` and `tests/fixtures/dev-seed.ts` share fixture
+data; `prisma/seed.sql` is what the DB load uses. Keep them aligned when you
+change scenarios.
 
-- Package scripts build the Cloudflare Worker bundle before Playwright starts.
-- Playwright starts the local Worker with `bun run e2e:server`, which runs `wrangler dev` with `wrangler.e2e.jsonc` and proxy variables cleared for localhost.
-- Playwright and the local Worker use `localhost:3000`; stop any existing
-  process using that port before starting E2E locally.
-- R2 is provided by Wrangler's local `R2_UPLOADS` binding.
+## Layout
 
-## Test Data
-
-Use the repo root `AGENTS.md` for the canonical shared seed/setup flow and
-`DEV_SEED_ANCHOR` guidance. E2E-specific fixture edits still follow this path:
-
-- Update `tests/e2e/fixtures/scenario.json`
-- Update `prisma/seed.sql` if new entities must be created
-- Update `tests/fixtures/dev-seed.ts` when tests need a named export
-
-## Structure
-
-```
-tests/e2e/fixtures/             Canonical test data (scenario.json)
+```text
+tests/e2e/fixtures/             scenario.json
 tests/e2e/src/app/**/test.ts    Route tests (browser UI)
-tests/e2e/src/app/api/docs/     API docs UI smoke tests
-tests/e2e/src/app/api/oauth/    OAuth UI/consent smoke tests
-tests/e2e/src/app/api/mcp/      MCP transport UI helpers
-tests/e2e/src/app/_shared/      Helpers
+tests/e2e/src/app/dashboard/**  Covers /workspace/* UI (feature still named dashboard)
 tests/e2e/utils/                Auth, DB, subscriptions, uploads
-tests/integration/rest/         REST contract tests (`playwright.api.config.ts`)
+tests/integration/rest/         REST contracts — not browser E2E
 ```
 
-## Helpers
+Helpers: `signInAsDebugUser`, `gotoAndWaitForReady`, `DEV_SEED` under `utils/`.
 
-```typescript
-import { signInAsDebugUser, signInAsDevAdmin } from "../utils/auth";
-import { expectRequiresSignIn } from "../utils/auth";
-import { gotoAndWaitForReady } from "../utils/page-ready";
-import { DEV_SEED } from "../utils/dev-seed";
-```
+## Conventions
 
-## Test Shape
-
-1. Route contract (loads, no 500, expected shell)
-2. Behavior tests for user journeys
-3. One test = one user story
-4. Idempotent across repeated runs
-5. Clean up created data
-
-## Selectors
-
-```typescript
-// Prefer
-page.getByRole("button", { name: "Submit" })
-page.getByLabel("Email")
-page.getByText("Welcome")
-
-// Avoid
-page.locator(".class") // brittle
-```
-
-## Flake Prevention
-
-```typescript
-// DO
-await page.waitForResponse(url);
-await expect(page).toHaveURL(/expected/);
-await expect(element).toBeVisible();
-
-// DON'T
-await page.waitForTimeout(1000); // fixed sleep: slow when passing, flaky when not
-await page.waitForLoadState("networkidle"); // never settles with polling/websockets
-```
-
-No tooling enforces this; it is a review rule.
-
-## Concurrency
-
-The canonical full-suite command is `bun run e2e:test`, which runs four CI
-shards sequentially and reseeds the database before each shard. Do not use a
-single unsharded `playwright test` invocation as a release gate; it reuses one
-seed across all files and projects while CI gives each shard a fresh database.
-
-Within a shard, Playwright uses one worker because multiple files mutate the
-same seeded debug user. Files with shared-state mutations also use
-`test.describe.configure({ mode: "serial" })` to make the dependency explicit.
-Current examples:
-
-- `tests/e2e/src/app/test.ts`
-- `tests/e2e/src/app/welcome/test.ts`
-- `tests/e2e/src/app/settings/profile/test.ts`
-- `tests/e2e/src/app/dashboard/homeworks/test.ts`
-- `tests/e2e/src/app/dashboard/subscriptions/sections/test.ts`
-- `tests/e2e/src/app/teachers/[id]/test.ts`
-- `tests/e2e/src/app/api/mcp/*.test.ts`
-
-If you add a shared-state mutating test to a new file, add serial mode and
-restore the original seeded state in `finally`.
-
-## Coverage Priorities
-
-- Permissions (anon, user, admin distinct)
-- Subscription not enrollment
-- Homework vs completion separation
-- Upload authorization
+- Prefer role/label selectors; never `waitForTimeout` or `networkidle`.
+- One worker per shard; shared-state files use
+  `test.describe.configure({ mode: "serial" })` and restore seed in `finally`
+  (e.g. `tests/e2e/src/app/test.ts`, welcome/settings, `dashboard/**`, MCP UI).

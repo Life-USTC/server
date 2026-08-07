@@ -1,50 +1,31 @@
 # tests/unit/
 
-Unit tests for pure helpers and read-model orchestration.
+Pure helpers and mocked orchestration. No real DB, browser, server, or network.
+Mock only process/env/time boundaries; prefer `tests/fixtures/dev-seed.ts`
+anchors; never import real Prisma clients.
 
-## Run
+## Hoisted mocks
 
-See `tests/AGENTS.md` for commands. Shared mock templates: `tests/unit/helpers/AGENTS.md`.
-
-## Scope
-
-- Pure functions and orchestration with mocked I/O boundaries
-- No real DB, browser, server, or network
-- Fast, deterministic
-
-## Conventions
-
-- Tests beside behavior area
-- Table tests for edge cases
-- Mock only process/env/time boundaries
-- Prefer `tests/fixtures/dev-seed.ts` anchors over ad-hoc dates
-- Don't import real Prisma clients
-
-## Coverage Priorities
-
-- Date parsing/serialization
-- API schemas and query builders
-- Permission helpers (no session needed)
-- Compact payload helpers
-
-## Examples
+Vitest hoisting means each test file owns top-level `vi.hoisted()` / `vi.mock()` —
+don't import mock factories inside hoisted callbacks. Use
+`createDeferred<T>()` from `tests/shared/deferred.ts` outside hoisted blocks.
 
 ```typescript
-import { describe, test, expect } from "vitest";
-
-describe("parseDateInput", () => {
-  test.each([
-    ["2026-05-06", new Date("2026-05-06T00:00:00.000Z")],
-    ["invalid", null],
-  ])("parseDateInput(%s) = %s", (input, expected) => {
-    expect(parseDateInput(input)).toEqual(expected);
-  });
+const { withUserDbContextMock, homeworkCountMock } = vi.hoisted(() => {
+  const homeworkCount = vi.fn();
+  const tx = { homework: { count: homeworkCount } };
+  return {
+    homeworkCountMock: homeworkCount,
+    withUserDbContextMock: vi.fn(async (_userId, action) => action(tx)),
+  };
 });
+
+const { runCloudflareTraceSpanMock } = vi.hoisted(() => ({
+  runCloudflareTraceSpanMock: vi.fn((_name, _attrs, callback) => callback()),
+}));
 ```
 
-## Deterministic Tests
+## Priorities
 
-- No `Date.now()` (mock if needed)
-- No `Math.random()`
-- No network calls
-- No file system (except fixtures)
+Date helpers, API schemas, permission helpers, compact payloads. Deterministic:
+no live `Date.now()` / `Math.random()` / network / FS (except fixtures).

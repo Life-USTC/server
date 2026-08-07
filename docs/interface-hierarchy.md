@@ -77,9 +77,7 @@ Life@USTC
 │   ├── profile
 │   ├── session
 │   ├── sign-in / sign-out
-│   ├── preferences
-│   │   ├── locale
-│   │   └── notifications
+│   ├── preferences                 locale only today
 │   └── authorizations
 └── admin                           platform governance
     ├── overview
@@ -100,7 +98,7 @@ fields, MCP tools, capability IDs, or CLI command paths.
 | `catalog` | Public academic and transit facts | User state or shared user-authored content |
 | `workspace` | The current user's todos, completion state, subscriptions, preferences, files, and derived schedule views | Identity, authentication, or globally shared records |
 | `community` | Public user profiles and shared comments, descriptions, and section homework records | Private account data or file ownership |
-| `account` | The current principal's profile, session, security, locale, notifications, and authorizations | Campus work or another user's public profile |
+| `account` | The current principal's profile, session, security, locale preferences, and authorizations | Campus work or another user's public profile |
 | `admin` | Moderation, user governance, OAuth client governance, and managed source data | Ordinary user workflows |
 
 The following distinctions are contractual:
@@ -123,7 +121,7 @@ The following distinctions are contractual:
 | Surface | Canonical form | Example |
 |---|---|---|
 | Capability ID | `<scope>_<domain>_<action>` | `workspace_todo_create` |
-| Web | `/<scope>/<plural-resource>` | `/workspace/todos` |
+| Web | `/<scope>/…` | `/workspace/todos` (signed-in tabs: overview, calendar, homeworks, todos, exams, subscriptions) |
 | REST | `/api/<scope>/<plural-resource>` | `/api/workspace/todos` |
 | GraphQL query | `<scope>.<field>` | `workspace.todos` |
 | GraphQL mutation | `<domain><Action>` | `todoCreate` |
@@ -196,11 +194,11 @@ and retry guidance must make the distinction explicit.
 | `catalog_link_list` | `/catalog/links` | `GET /api/catalog/links` | `catalog.links` | `网站 列表` | `catalog link` |
 | `workspace_overview_get` | `/workspace/overview` | `GET /api/workspace/overview` | `workspace.overview` | `概览` | `workspace overview` |
 | `workspace_calendar_event_list` | `/workspace/calendar` | — | — | `日程 今日/本周` | `workspace calendar events` |
-| `workspace_schedule_list` | `/workspace/schedules` | `GET /api/workspace/schedules` | `workspace.schedules` | `课表` | `workspace schedule list` |
+| `workspace_schedule_list` | `/workspace/overview` (no dedicated schedules tab) | `GET /api/workspace/schedules` | `workspace.schedules` | `课表` | `workspace schedule list` |
 | `workspace_todo_create` | `/workspace/todos` | `POST /api/workspace/todos` | `todoCreate` | `待办 添加` | `workspace todo create` |
 | `workspace_homework_completion_set` | `/workspace/homeworks` | `PUT /api/workspace/homeworks/:id/completion` | `homeworkCompletionSet` | `作业 完成/恢复` | `workspace homework complete/reopen` |
 | `workspace_subscription_add` | `/workspace/subscriptions` | `POST /api/workspace/subscriptions` | `subscriptionAdd` | `订阅 添加` | `workspace subscription add` |
-| `workspace_calendar_feed_export` | `/workspace/subscriptions` | `GET /api/calendar-feeds/:credential.ics` | — | `日历 导出` | `workspace calendar feed` |
+| `workspace_calendar_feed_get` | `/workspace/subscriptions` | `GET /api/calendar-feeds/:credential.ics` | — | `日历 导出` | `workspace calendar feed` |
 | `workspace_bus_preferences_set` | `/catalog/bus` | `POST /api/workspace/bus-preferences` | `busPreferencesSet` | `校车 偏好 设置` | `workspace bus-preferences set` |
 | `workspace_link_pin_set` | `/catalog/links` | `POST /api/workspace/link-pins` | `linkPinSet` | `网站 置顶/取消置顶` | `workspace link-pin pin/unpin` |
 | `community_comment_create` | target comment panel | `POST /api/community/comments` | `commentCreate` | `评论 添加` | `community comment create` |
@@ -216,7 +214,11 @@ routes, fields, tools, permissions, and return shapes.
   bytes are transport operations, not business capabilities. They do not need
   GraphQL or MCP equivalents.
 - Web routes may omit `/catalog` for the anonymous landing page only. Public
-  resource pages use `/catalog/*`; signed-in work uses `/workspace/*`.
+  resource pages use `/catalog/*`; signed-in work uses `/workspace/[tab]`
+  (`overview`, `calendar`, `homeworks`, `todos`, `exams`, `subscriptions`) plus
+  nested paths such as `/workspace/subscriptions`. Tree entries like
+  `workspace/schedules` or `workspace/uploads` are API/MCP/CLI capabilities and
+  do not imply a matching Web page.
 - Bot exposes deterministic commands only for frequent, short interactions.
   Its AI mode may reach long-tail capabilities through MCP.
 - CLI-local configuration and Bot-local AI/tool settings are client state and

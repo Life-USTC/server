@@ -1,69 +1,30 @@
 # prisma/
 
-Database schema and migrations.
+- Source of truth: `schema.prisma` + `migrations/`
+- Seed SQL: `seed.sql` (see root `AGENTS.md` for fixture relationship)
+- Generated (do not edit): `src/generated/prisma/`, `src/generated/prisma-node/`
+- Static loader entry (repo root): `docker-entrypoint.load.sh`
+- App imports: `import { prisma, getPrisma } from "@/lib/db/prisma"`
 
-## Files
+## Boundaries
 
-```
-schema.prisma    Source of truth
-migrations/      Migration history
-seed.sql         Canonical dev seed data
-```
+- JW/Import: Semester, Course, Section, Teacher, Schedule, Exam
+- User state: subscriptions, completions, todos, pins
+- Collaborative: Homework, descriptions, comments, uploads
+- Auth/OAuth: Better Auth models
+- Bus: campuses, routes, stops, versions, trips
 
-## Generated Output
+Normal users don't edit JW facts. Subscriptions are per current user. Homework
+completion must not mutate the homework row. Todos are owner-scoped. Honor
+`deletedAt` on reads.
 
-```
-src/generated/prisma/       → Cloudflare app client, DO NOT EDIT
-src/generated/prisma-node/  → Node/Bun tool client, DO NOT EDIT
-```
-
-## Imports
-
-```typescript
-// App code and scripts use the generated app client
-import { prisma, getPrisma } from "@/lib/db/prisma";
-import type { User } from "@/generated/prisma/client";
-```
-
-Canonical seed data lives in `tests/e2e/fixtures/scenario.json`, `prisma/seed.sql`, and `tests/fixtures/dev-seed.ts`.
-
-The static data loader entrypoint is `docker-entrypoint.load.sh`.
-
-## Model Boundaries
-
-- **JW/Import**: Semester, Course, Section, Teacher, Schedule, Exam
-- **User State**: Subscriptions, completions, todos, pins
-- **Collaborative**: Homework, descriptions, comments, uploads
-- **Auth/OAuth**: Better Auth models
-- **Bus**: Campuses, routes, stops, versions, trips
-
-## Mutation Rules
-
-- Normal users don't edit JW facts
-- Subscription → current user only
-- Homework completion → don't mutate homework
-- Todo → scoped to owner
-- Soft-delete (`deletedAt`) → check read paths
-
-## Schema Changes
-
-Start Postgres first for local migration work:
+## Schema changes
 
 ```bash
 docker compose -f docker-compose.dev.yml up -d postgres
-bunx prisma migrate dev # Create migration
-bun run app:prepare # Regenerate Prisma client
-# Update seed scenarios
-# Update E2E tests
+bunx prisma migrate dev
+bun run app:prepare
+# update seed fixtures + tests as needed
 ```
 
-## Naming
-
-- `id` - Primary key
-- `jwId` - JW external key
-- `code` - Imported code
-- `nameCn`/`nameEn` - Bilingual
-- `createdAt`/`updatedAt` - Timestamps
-- `deletedAt` - Soft delete
-
-See root `AGENTS.md` for Prisma patterns.
+Naming: `id`, `jwId`, `code`, `nameCn`/`nameEn`, `createdAt`/`updatedAt`, `deletedAt`.

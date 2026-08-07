@@ -54,7 +54,9 @@ test("/ 首页快速入口可见", async ({ page }, testInfo) => {
   await expect(
     main.getByRole("link", { name: /^(网站|Websites)$/i }),
   ).toBeVisible();
-  await expect(main.locator('a[href="/signin"]')).toBeVisible();
+  await expect(
+    main.locator('a[href="/account/sign-in"]').first(),
+  ).toBeVisible();
   await expect(page.getByTestId("bus-compact-summary")).toHaveCount(0);
   await captureStepScreenshot(page, testInfo, "home-shortcuts");
 });

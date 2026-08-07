@@ -1,7 +1,6 @@
 \set ON_ERROR_STOP on
 
--- CI-only runtime contract. Production roles have separate app, auth,
--- migration, import, and maintenance boundaries tracked by issue #603.
+-- CI-only runtime contract for local/integration role fixtures.
 SELECT 'CREATE ROLE life_ustc_runtime'
 WHERE NOT EXISTS (
   SELECT 1

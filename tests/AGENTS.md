@@ -1,31 +1,28 @@
 # tests/
 
-Test layers for the server repo. Shared setup and commands live in the repo root
-`AGENTS.md` and `$life-ustc-dev-loop`.
+Test layers. Layout and local checks: root `AGENTS.md`. Coverage expectations
+when changing behavior: `$life-ustc-implement`.
 
 | Layer | Path | Runner |
 |-------|------|--------|
 | Unit | `tests/unit/` | `bunx vitest run tests/unit` |
-| Integration | `tests/integration/` | `bunx vitest run --config vitest.integration.config.ts` |
-| E2E | `tests/e2e/` | `bunx playwright test` |
+| Integration | `tests/integration/` | vitest integration config + `bun run rest:test` |
+| E2E | `tests/e2e/` | `ALLOW_DATABASE_SEED=true bun run e2e:test` / focused `bunx playwright test` |
 
-Unit tests live under `tests/unit/` only; do not colocate `*.test.ts` under `src/`.
+Unit tests live under `tests/unit/` only; don't colocate `*.test.ts` under `src/`.
 
 ## Shared fixtures
 
-- `tests/fixtures/dev-seed.ts` — canonical seed constants (`DEV_SEED`, `DEV_SEED_ANCHOR`)
-- `tests/e2e/fixtures/scenario.json` — source data for seed SQL
-- `tests/shared/deferred.ts` — `createDeferred` for concurrency/overlap tests
-- `tests/shared/prisma.ts` — dedicated Prisma client for non-MCP integration tests
-- `tests/shared/scenarios/` — cross-adapter arrange/assert helpers (overview, todo CRUD, homework create)
+- `tests/fixtures/dev-seed.ts` — `DEV_SEED`, `DEV_SEED_ANCHOR`
+- `tests/e2e/fixtures/scenario.json` — shared scenario data for fixtures / seed
+- `tests/shared/deferred.ts` — concurrency helpers
+- `tests/shared/prisma.ts` — Prisma client for non-MCP integration
+- `tests/shared/scenarios/` — cross-transport arrange/assert helpers
 
 ## Harness utilities
 
 | Utility | Path |
 |---------|------|
-| Unit mock templates | `tests/unit/helpers/AGENTS.md` |
-| MCP in-process client | `tests/integration/mcp/_harness/client.ts` (`createMcpHarness`, `createAnonymousMcpHarness`) |
-| MCP integration setup | `tests/integration/mcp/_harness/` |
+| Unit hoisted mock notes | `tests/unit/AGENTS.md` |
+| MCP in-process client | `tests/integration/mcp/_harness/client.ts` |
 | E2E page contracts | `tests/e2e/src/app/_shared/page-contract.ts` |
-
-Layer-specific notes: `tests/unit/AGENTS.md`, `tests/integration/AGENTS.md`, `tests/e2e/AGENTS.md`.
