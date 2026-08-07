@@ -9,8 +9,10 @@ shared/       Pure utilities
 generated/    DO NOT EDIT
 ```
 
-Domain code imports runtime only through `src/lib/ports/`; concrete `node:*` /
-`bun:*` / `fs` / `process` usage stays in `src/lib/adapters/`.
+Domain code imports runtime only through `src/lib/ports/`. Concrete `node:*` /
+`bun:*` / `fs` / `process` usage stays in `src/lib/adapters/`, approved infra
+(`auth` / `db` / `log` / `cloudflare`), or entrypoints (`static-loader`, `*-cli.ts`)
+— not ordinary features or routes.
 
 ```typescript
 import { prisma } from "@/lib/db/prisma";
