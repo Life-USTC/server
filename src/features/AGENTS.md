@@ -38,4 +38,5 @@ parallel list here. `dashboard/` is the signed-in workspace UI (routes under
 | calendar | Feature event queries + iCal; generic time helpers stay in `src/lib/time` |
 | subscriptions | Section membership R/W + import match helpers; public section facts stay in `catalog/` |
 
-See root `AGENTS.md` for auth, dates, Prisma.
+See root `AGENTS.md` for the architecture map. New capabilities: `$life-ustc-feature`.
+Auth, dates, and Prisma conventions are summarized there.
