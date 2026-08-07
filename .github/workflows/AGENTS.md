@@ -1,44 +1,24 @@
 # .github/workflows/
 
-CI/CD pipelines.
-
-## Workflows
-
 | Workflow | Trigger | Jobs |
 |----------|---------|------|
-| CI | push to main, PR to any branch | Default verification, MCP integration, Worker E2E artifact build, E2E shards |
+| CI | push main, PRs | Default checks, MCP integration, Worker E2E artifact, E2E shards |
 | DB-backed Bun job | workflow_call | Reusable Postgres-backed Bun job |
-| DB migrate deploy | push to main when `prisma/**` changes, or manual | Production Prisma migrate deploy |
-| Auth Record Cleanup | every 6 hours, manual | Bounded expired authentication-record cleanup |
-| Copilot Setup Steps | manual or setup workflow changes | Copilot bootstrap validation |
-| Release | successful CI completion on main | Semantic release |
-
-## Version Alignment
-
-Keep Bun versions aligned with:
-- `.bun-version`
+| DB migrate deploy | `prisma/**` on main, or manual | Production migrate deploy |
+| Auth Record Cleanup | every 6h, manual | Bounded expired auth-record cleanup |
+| Static sync | scheduled / manual | Pull static SQLite into loader flow |
+| Upload pending cleanup | scheduled / manual | Pending upload garbage collection |
+| Copilot Setup Steps | manual / setup changes | Copilot bootstrap validation |
+| Release | successful CI on main | Semantic release |
 
 ## Rules
 
-- Use repo's `bun`-based commands; do not add Node setup steps
-- Workflows that exercise app code should provision their own Postgres service and set `DATABASE_URL` explicitly. Upload storage uses Cloudflare R2 bindings in Worker flows; do not add MinIO/S3 emulation to CI unless a test explicitly covers object storage behavior.
-- Production deploy is owned by Cloudflare's Git integration; do not add repo-managed deploy jobs.
-- Docker is only for local infra, CI service containers, and the static loader image; do not add app-serving Docker jobs.
-- Keep workflow YAML as orchestration. Reusable check, test, and seed sequences live in `$life-ustc-dev-loop`.
-- E2E HTML report publication is non-required infrastructure: keep it
-  `continue-on-error`, and keep its global concurrency group on `queue: max` so
-  artifact-repository writes stay serial without replacing pending publishers.
-- Never commit secrets
-- `copilot-setup-steps.yml` must keep a direct job named exactly `copilot-setup-steps`; inline `runs-on`, `permissions`, `services`, `timeout-minutes`, and `steps` instead of delegating the job through a reusable workflow.
-- When changing Copilot setup, run it through `workflow_dispatch` or a PR check. If setup fails, Copilot can still start from the partially prepared environment, so setup logs are part of the verification evidence.
-
-## Common Tasks
-
-```bash
-bun install --frozen-lockfile
-bunx biome check
-bunx vitest run
-```
-
-For full check, integration, E2E, and handoff sequences, use `$life-ustc-dev-loop`.
-Cloudflare Git integration handles production deploys from the connected branch.
+- Align Bun with `.bun-version`; no Node setup steps.
+- App-exercising workflows provision their own Postgres + `DATABASE_URL`. Upload
+  storage uses R2 bindings; do not add MinIO unless testing object storage.
+- Production deploy is Cloudflare Git integration only — no repo deploy jobs.
+- Docker is local infra, CI services, and the static loader image only.
+- Keep YAML as orchestration; sequences live in `$life-ustc-dev-loop`.
+- E2E HTML publish stays `continue-on-error` with serial artifact concurrency.
+- `copilot-setup-steps.yml` must keep a job named exactly `copilot-setup-steps`
+  with inline `runs-on` / steps (no reusable-workflow delegation for that job).

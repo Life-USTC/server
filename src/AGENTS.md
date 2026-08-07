@@ -1,40 +1,22 @@
 # src/
 
-Source code organization.
-
-## Structure
-
-```
-routes/       SvelteKit pages and endpoint handlers
-features/     Business domain logic
-lib/          Infrastructure
-  ports/      Abstract runtime contracts imported by domain code
-  adapters/   Concrete runtime implementations (node:*, bun:*, fs, process, etc.)
-  components/ Shared UI primitives
-  mcp/        MCP server
+```text
+routes/       SvelteKit pages and handlers
+features/     Domain use-cases (see features/AGENTS.md)
+lib/          Infrastructure (ports/, adapters/, components/, mcp/, …)
 i18n/         Locale config
 shared/       Pure utilities
-generated/    DO NOT EDIT (Prisma, OpenAPI)
+generated/    DO NOT EDIT
 ```
 
-Domain code in `src/features/` and `src/routes/` imports only from `src/lib/ports/`;
-concrete runtime details stay behind `src/lib/adapters/`.
-
-## Imports
+Domain code imports runtime only through `src/lib/ports/`; concrete `node:*` /
+`bun:*` / `fs` / `process` usage stays in `src/lib/adapters/`.
 
 ```typescript
-// Use @ aliases
 import { prisma } from "@/lib/db/prisma";
 import type { User } from "@/generated/prisma/client";
-
-// Relative for same folder
-import { helper } from "./helper";
+import { helper } from "./helper"; // relative within folder
 ```
 
-## Locales
-
-- `zh-cn` (default), `en-us`
-- No locale in URLs
-- All user text needs both message files
-
-See root `AGENTS.md` for auth, dates, Prisma, error patterns.
+Locales: `zh-cn` (default), `en-us`; no URL prefix; both message files for user text.
+See root `AGENTS.md` for auth, dates, Prisma, errors.

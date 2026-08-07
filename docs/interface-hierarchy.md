@@ -123,7 +123,7 @@ The following distinctions are contractual:
 | Surface | Canonical form | Example |
 |---|---|---|
 | Capability ID | `<scope>_<domain>_<action>` | `workspace_todo_create` |
-| Web | `/<scope>/<plural-resource>` | `/workspace/todos` |
+| Web | `/<scope>/<resource-or-tab>` | `/workspace/todos` (signed-in tabs under `/workspace/[tab]`) |
 | REST | `/api/<scope>/<plural-resource>` | `/api/workspace/todos` |
 | GraphQL query | `<scope>.<field>` | `workspace.todos` |
 | GraphQL mutation | `<domain><Action>` | `todoCreate` |
@@ -216,7 +216,9 @@ routes, fields, tools, permissions, and return shapes.
   bytes are transport operations, not business capabilities. They do not need
   GraphQL or MCP equivalents.
 - Web routes may omit `/catalog` for the anonymous landing page only. Public
-  resource pages use `/catalog/*`; signed-in work uses `/workspace/*`.
+  resource pages use `/catalog/*`; signed-in work uses `/workspace/[tab]`
+  (e.g. `/workspace/overview`, `/workspace/todos`) plus nested paths such as
+  `/workspace/subscriptions`.
 - Bot exposes deterministic commands only for frequent, short interactions.
   Its AI mode may reach long-tail capabilities through MCP.
 - CLI-local configuration and Bot-local AI/tool settings are client state and
