@@ -147,9 +147,7 @@ test.describe("GET /api/openapi - OpenAPI 规范", () => {
     expect(
       body.paths?.["/api/catalog/links/resolve"]?.get?.responses?.["307"],
     ).toBeTruthy();
-    expect(
-      body.paths?.["/api/catalog/links/resolve"]?.post,
-    ).toBeUndefined();
+    expect(body.paths?.["/api/catalog/links/resolve"]?.post).toBeUndefined();
     expect(
       body.paths?.["/api/workspace/link-pins"]?.post?.requestBody?.content?.[
         "application/x-www-form-urlencoded"
