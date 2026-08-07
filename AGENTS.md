@@ -33,8 +33,13 @@ tests/                Unit, integration, Playwright E2E
 ## Architecture Boundaries
 
 - Keep `src/routes` thin. Domain logic lives in `src/features/*/server`.
+- Signed-in workspace UI lives in `src/features/dashboard/`; Web routes are
+  `/workspace/*`. Do not add a parallel `workspace` feature folder.
 - `src/lib` is infrastructure; shared `src/lib/components` must not own feature
   data fetching or mutations.
+- Domain/route code imports runtime through `src/lib/ports/`. Native IO belongs
+  in adapters, approved infra (`auth`/`db`/`log`/`cloudflare`), or entrypoints
+  (`static-loader`, `*-cli.ts`) — not ordinary features/routes.
 - Do not call page/REST handlers from features. Surfaces adapt feature use-cases.
 - REST, GraphQL, MCP, contract JSON, public schemas, and tests are coupled;
   check matching surfaces when one changes.
@@ -83,8 +88,8 @@ change).
 
 **Keep in sync:** REST → OpenAPI JSDoc + `openapi:check`; GraphQL → module +
 `graphql.json` + SDL snapshot test; MCP → module contract + integration tests;
-user-visible text → both message files; setup/ops → README / `docs/operations.md`
-/ workflows AGENTS / `.env.example`.
+user-visible text → both message files; setup/ops → `$life-ustc-dev-loop` /
+`docs/operations.md` / workflows AGENTS / `.env.example`.
 
 **Security:** never log tokens, secrets, cookies, OAuth codes, upload URLs, or
 excess PII. Preserve auth surface differences. Upload downloads need the shared

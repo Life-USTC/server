@@ -7,12 +7,13 @@ Integration tests with in-process MCP harness.
 Commands, fixtures, and harness utilities: `tests/AGENTS.md` and the repo root
 `AGENTS.md`.
 
-Run integration tests from `$life-ustc-dev-loop`:
+Run integration tests from `$life-ustc-dev-loop` (matches CI `ci:integration`):
 
 ```bash
 bun run db:migrate:deploy
 bunx prisma db seed
 bunx vitest run --config vitest.integration.config.ts
+bun run build
 bun run rest:test
 ```
 

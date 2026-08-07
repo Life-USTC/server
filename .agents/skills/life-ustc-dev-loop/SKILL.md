@@ -1,24 +1,37 @@
 ---
 name: life-ustc-dev-loop
-description: "Single source of truth for the entire Life@USTC development loop: setup, checks, tests, verification, and handoff to PR workflow."
+description: "Single source of truth for the Life@USTC server local development loop: setup, checks, tests, verification, and handoff to PR workflow. CI phase scripts live in .github/workflows/db-backed-bun-job.yml and should stay intentionally aligned."
 ---
 
 # Life@USTC Dev Loop
 
-This skill records the canonical order of commands for developing, checking, and shipping changes in the Life@USTC server repo. No TypeScript orchestrates these commands; they are run directly from the shell or dispatched through subagents.
+Canonical **local** command order for the server repo. Run these from the shell
+or via subagents. CI phases are defined in
+`.github/workflows/db-backed-bun-job.yml` (`ci:verify`, `ci:integration`, …) —
+keep this skill and those phases in sync when either changes.
+
+`package.json` may expose CI/convenience aliases (`rest:test`, `e2e:test`,
+`openapi:check`, …). **Order and which gates to run** are defined here, not by
+discovering scripts ad hoc.
 
 ## Core constraints
 
-- TypeScript in `src/` contains only application/domain logic.
-- Native module usage (`node:*`, `bun:*`, `process`, `fs`, etc.) lives only in `src/lib/adapters/`.
-- Domain code imports only from `src/lib/ports/`.
-- `package.json` contains only core build/dev aliases. Verification, test, check, and link commands live in this skill.
+- Domain / use-case logic lives in `src/features/*/server`. Keep `src/routes`
+  thin (transport, pages, wiring only).
+- Feature UI for the signed-in workspace lives under `src/features/dashboard/`
+  but Web routes are `/workspace/*` — do not invent a parallel `workspace`
+  feature folder.
+- Domain and route code import runtime only through `src/lib/ports/`.
+- Native IO (`node:*`, `bun:*`, `fs`, `path`, `child_process`, direct `process`
+  usage) belongs in `src/lib/adapters/`, approved infra (e.g. `src/lib/auth`,
+  `src/lib/db`, `src/lib/log`, `src/lib/cloudflare`), or entrypoints such as
+  `src/static-loader/` and `features/*-cli.ts` — not in ordinary features or
+  routes.
 
 ## 1. Start dev environment
 
-Install the Bun version pinned in `.bun-version`, Docker Compose, and the
-PostgreSQL client first. The Prisma seed command delegates to host `psql`
-through `prisma/seed.sh`.
+Needs Bun (`.bun-version`), Docker Compose, and host `psql` (seed uses
+`prisma/seed.sh`).
 
 ```bash
 bun install --frozen-lockfile
@@ -31,20 +44,29 @@ bunx prisma db seed
 bun run dev
 ```
 
-The dev server is hardcoded to `http://127.0.0.1:3000`. Do not override ports or proxies locally.
+- App listens at `http://127.0.0.1:3000` — do not override ports/proxies locally.
+- Local `.env` may use a single `DATABASE_URL`; Better Auth can fall back to it.
+  Do not require production-style separate `AUTH_DATABASE_URL` for default local
+  work (see `docs/operations.md` for production).
+- First browser / REST Playwright / E2E run:
+  `bunx playwright install --with-deps chromium` (or `bunx playwright install chromium`).
+- Upload/object storage in E2E and Worker flows uses Wrangler local `R2_UPLOADS`.
+  Do not add MinIO/S3 emulation unless a test specifically covers it.
 
 ## 2. Make changes
 
-- Domain logic goes in `src/features/` and `src/routes/`.
-- Runtime concerns go behind `src/lib/ports/`; implementations go in `src/lib/adapters/`.
-- Do not add new TypeScript scripts, checkers, or harnesses.
+- Implement use-cases in `src/features/*/server`; adapt in routes / GraphQL / MCP.
+- Put new runtime behind ports/adapters (or approved infra — see Core constraints).
+- Prefer not to add new TypeScript command orchestrators; extend this skill or
+  package aliases instead.
 
 ## 3. Run checks — dispatch a subagent
 
-For any non-trivial change, dispatch a subagent to run the full check sequence and report pass/fail for each step:
+Default local gate (mirrors most of CI `ci:verify`, minus a few CI-only scripts):
 
 ```bash
 bun run app:prepare
+bunx wrangler types --include-runtime=false --check
 bunx biome check
 bunx svelte-check --tsconfig ./tsconfig.json
 bunx tsc --noEmit -p tsconfig.typecheck.json
@@ -53,18 +75,39 @@ bunx tsc --noEmit -p tsconfig.typecheck.operational.json
 bunx vitest run
 ```
 
-The subagent should:
-1. Run each command in order.
-2. Stop on first failure and report the failing command and error.
-3. On success, report which commands passed.
+When REST OpenAPI JSDoc or public REST shape changed, also run:
+
+```bash
+bun run openapi:check
+```
+
+When GraphQL schema / contracts changed, also run:
+
+```bash
+bunx vitest run tests/unit/graphql-schema-snapshot.test.ts
+# After intentional SDL updates: rerun with --update, then without --update
+```
+
+CI `ci:verify` additionally runs `tests/ci/{retry,seed-guard,e2e-full-suite-parity}.test.sh`
+and a base-ref GraphQL compatibility step on PRs — run those when touching the
+matching scripts or when CI fails on them.
+
+Subagent: run in order, stop on first failure, report pass/fail per step.
 
 ## 4. Run integration tests — dispatch a subagent
+
+Aligns with CI `ci:integration` (MCP vitest + REST Playwright):
 
 ```bash
 bun run db:migrate:deploy
 bunx prisma db seed
 bunx vitest run --config vitest.integration.config.ts
+bun run build
+bun run rest:test
 ```
+
+`rest:test` needs Playwright Chromium and a free path to start `e2e:server`.
+See `tests/integration/AGENTS.md` for harness rules.
 
 ## 5. Run E2E tests — dispatch a subagent
 
@@ -76,60 +119,46 @@ bun run build
 bun run e2e:test
 ```
 
-Playwright starts the E2E server automatically via `bun run e2e:server`.
-`e2e:test` runs the sharded parity suite (`tests/ci/e2e-full-suite-parity.sh`),
-which is what CI runs. A bare `playwright test` reuses one seed across all
-shards and will report failures CI does not.
+Playwright starts the Worker via `bun run e2e:server`. `e2e:test` is the sharded
+CI parity suite. A bare `playwright test` reuses one seed and is not a release
+gate.
 
 ## 6. Manual checklist before PR
 
-Scripts cannot check these; review them yourself or include them in the subagent handoff:
+Scripts cannot check these:
 
-- Updated `docs/contracts/*.json` if behavior, permissions, or workflow changed.
-- Ran `bun run openapi:check` when REST route shapes or OpenAPI JSDoc changed.
-- Checked REST/MCP parity when one public surface changed.
-- Checked seeded test coverage for the changed behavior.
-- No `node:*`, `bun:*`, `fs`, `path`, `child_process`, or `process` imports outside `src/lib/adapters/`.
-- No new TypeScript scripts or command orchestration added.
+- Updated `docs/contracts/*.json` when behavior, permissions, or workflow changed.
+- Ran `bun run openapi:check` when REST shapes / OpenAPI JSDoc changed.
+- Ran GraphQL SDL snapshot when schema changed.
+- Explicit REST / GraphQL / MCP parity decision when one public surface changed.
+- Seeded coverage for the changed behavior.
+- No native IO in ordinary features/routes (see Core constraints).
+- No stray scratch reports, Playwright output, or probes left in the tree.
 
 ## 7. UI verification — dispatch a subagent
 
-For user-visible changes (pages, components, CSS, responsive layout, copy, navigation):
+For user-visible changes:
 
-1. Identify the smallest screen or journey that exercises the change.
-2. Run the E2E flow above with a focused path:
-   ```bash
-   bunx playwright test <path>
-   ```
-3. Inspect a screenshot, headed run, or trace for the affected area.
-4. Remove local screenshots, Playwright output, and temporary traces before committing.
+1. Smallest screen/journey that exercises the change.
+2. Focused Playwright: `bunx playwright test <path>` (after seed/build as needed).
+3. Inspect screenshot, headed run, or trace.
+4. Delete local screenshots/traces before committing.
 
-## 8. API/MCP verification — dispatch a subagent
+## 8. API surface verification — dispatch a subagent
 
-For REST/MCP behavior changes (routes, tools, auth, permissions, status codes, pagination, date serialization):
+For REST / GraphQL / MCP changes (routes, tools, fields, auth, status, dates):
 
-1. Identify the coupled surfaces: route handler, MCP tool, feature/server function, contract JSON, and tests.
-2. Decide REST/MCP parity explicitly.
-3. Exercise the route or MCP tool through the public surface.
-4. Inspect serialized output and compare with contracts and tests.
-5. Redact tokens, cookies, OAuth codes, upload URLs, and personal data from output.
+1. List coupled surfaces: feature use-case, transport adapter, contract JSON, tests.
+2. Decide parity across REST / GraphQL / MCP explicitly (document intentional gaps).
+3. Exercise one public request or tool call when feasible.
+4. Compare serialized output with contracts/tests; redact secrets and PII.
 
-## 9. Open PR and finish the loop — dispatch $life-ustc-pr-workflow
+## 9. Open PR — `$life-ustc-pr-workflow`
 
-After local checks pass, use `$life-ustc-pr-workflow` to:
-
-1. Commit only intentional durable changes.
-2. Push the branch.
-3. Open or update the PR.
-4. Monitor CI and Cloudflare checks.
-5. Resolve review comments.
-6. Merge when checks pass.
-
+Commit, push, open/update PR, watch CI/Cloudflare, address review, merge.
 Do not rewrite history or force-push.
 
 ## 10. Static loader
-
-To run the Docker static loader image:
 
 ```bash
 docker build --target loader -t life-ustc-static-loader:check .

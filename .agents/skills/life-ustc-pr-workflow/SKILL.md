@@ -27,11 +27,14 @@ Use this skill for PR lifecycle work only: branch publishing, PR body updates, C
 
 ## Local verification
 
-Before creating or updating a PR, run the relevant checks from `$life-ustc-dev-loop`:
+Before creating or updating a PR, run the relevant gates from `$life-ustc-dev-loop`:
 
-- Default change: dispatch a subagent to run the full check sequence (biome, svelte-check, tsc, vitest).
-- Data/auth/browser/shared-tooling changes: also run integration and E2E tests.
-- Production build or Cloudflare concern: `bun run app:prepare && bun run build` and, when useful, `bunx wrangler deploy --dry-run --outdir /tmp/life-ustc-wrangler-dry-run`.
+- Default: full check sequence (prepare, wrangler types check, biome, svelte-check, tsc, vitest).
+- REST shape changes: also `openapi:check`; include `rest:test` when exercising HTTP contracts.
+- GraphQL schema changes: SDL snapshot test (update then re-run without `--update`).
+- Data/auth/browser/shared-tooling: integration (vitest + `rest:test`) and E2E as in the skill.
+- Production build / Cloudflare: `bun run app:prepare && bun run build`, and when useful
+  `bunx wrangler deploy --dry-run --outdir /tmp/life-ustc-wrangler-dry-run`.
 
 Stop Docker services you started:
 
