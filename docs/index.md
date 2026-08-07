@@ -8,9 +8,9 @@ Git / PR / CI / merge: global agent skills.
 
 - [AGENTS.md](../AGENTS.md) — layout and local checks
 - [README](../README.md) — product overview
-- [Operations](operations.md)
 - [Contracts](contracts/)
 - [Interface hierarchy](interface-hierarchy.md)
+- [Rendering and cache](rendering-and-cache.md) — which pages may be anonymously cached
 
 ## Read by task
 
@@ -23,7 +23,7 @@ Git / PR / CI / merge: global agent skills.
 | GraphQL | Module contract, `graphql.json`, SDL snapshot, resolvers |
 | MCP | `src/lib/mcp/AGENTS.md`, tool handler, module contract |
 | Data shape | `prisma/schema.prisma` + migrations |
-| Ops / observability | [operations.md](operations.md), [observability.md](observability.md) |
+| Env / CI | `.env.example`, `.github/workflows/AGENTS.md` |
 
 ## Keep in sync
 
@@ -34,7 +34,7 @@ Git / PR / CI / merge: global agent skills.
 | MCP | Module contract; `tests/integration/` |
 | User-visible web | Module contract; both message files when text changes |
 | Prisma / seed | schema, migrations, shared seed files |
-| Setup / CI / ops | `operations.md`, `.env.example`, `.github/workflows/AGENTS.md` |
+| Setup / CI | `.env.example`, `.github/workflows/AGENTS.md` |
 | Layout / boundaries | Root or nearest `AGENTS.md` |
 | How to split a change | `.agents/skills/life-ustc-implement` |
 
@@ -42,9 +42,11 @@ Git / PR / CI / merge: global agent skills.
 
 - [contracts/AGENTS.md](contracts/AGENTS.md)
 - [contracts.schema.json](contracts.schema.json)
-- [observability.md](observability.md)
 - [rendering-and-cache.md](rendering-and-cache.md)
 - [interface-hierarchy.md](interface-hierarchy.md)
 - [conventions/homework-naming.md](conventions/homework-naming.md)
 - [graphql/mutation-capabilities.json](graphql/mutation-capabilities.json)
 - Generated OpenAPI: [`public/openapi.generated.json`](../public/openapi.generated.json)
+
+Production monitoring, role grants, and deploy runbooks are **not** published in
+this repository.

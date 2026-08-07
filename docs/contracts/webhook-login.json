@@ -1,38 +1,27 @@
 {
   "name": "Webhook Login",
   "access": {
-    "anon": "Not applicable.",
+    "anon": "Not a public product entry point.",
     "user": "Not applicable.",
-    "admin": "Must set WEBHOOK_LOGIN_ENABLED=true and hold the WEBHOOK_SECRET value.",
+    "admin": "Internal ops only when explicitly enabled in a private environment.",
     "agent": "Not applicable."
   },
   "rules": {
-    "requires-opt-in": "Plugin is registered only when WEBHOOK_LOGIN_ENABLED=true and WEBHOOK_SECRET is non-empty. Secret alone is insufficient; unset the flag in production except during active debugging.",
-    "requires-secret": "Authenticated requests must supply the WEBHOOK_SECRET value; invalid or missing secrets return 403.",
-    "debug-only": "Used for passwordless login in production debugging scenarios; not a regular user sign-in entry point.",
-    "cookie-only-session": "Establishes a Better Auth session via setSessionCookie. The session token is never returned in the JSON body.",
-    "rate-limited": "Better Auth customRules throttle /webhook/login to 5 requests per 60 seconds when rate limiting is enabled.",
-    "audited": "Successful logins write an AuditAction.webhook_login row (no secrets or session tokens in metadata)."
+    "not-product": "Webhook login is an internal debugging aid, not a Life@USTC product capability. Do not document enablement flags, paths, or rate limits in public materials.",
+    "no-session-in-body": "When used, the session token must never appear in JSON response bodies."
   },
   "capabilities": {
     "webhook-login": {
       "title": "Webhook Login",
       "auth": "admin",
       "web": "unavailable",
-      "rest": {
-        "routes": [
-          {
-            "path": "/api/auth/{auth}",
-            "method": "POST",
-            "reference_only": true
-          }
-        ]
-      },
+      "rest": "unavailable",
+      "graphql": "unavailable",
+      "mcp": "unavailable",
       "display": {
         "fields": [
-          "Webhook URL handled through Better Auth catch-all",
-          "User info payload",
-          "Session cookie + JSON without sessionToken"
+          "Internal debugging aid only",
+          "Session established via cookie; never returned in JSON bodies"
         ]
       }
     }

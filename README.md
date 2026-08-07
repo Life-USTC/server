@@ -37,6 +37,7 @@ Contracts: [docs/contracts/](./docs/contracts/). Doc map: [docs/index.md](./docs
 - Layout and local checks → [AGENTS.md](./AGENTS.md)
 - How to split a change and which tests to add →
   [`.agents/skills/life-ustc-implement`](./.agents/skills/life-ustc-implement/SKILL.md)
-- Production DB / Workers Builds → [docs/operations.md](./docs/operations.md)
-- Public SSR and cache → [docs/rendering-and-cache.md](./docs/rendering-and-cache.md)
+- Public SSR and cache (product-level) → [docs/rendering-and-cache.md](./docs/rendering-and-cache.md)
 - Commit / PR / CI / review / merge → global agent skills (not in this repo)
+
+Production monitoring and deploy runbooks are kept out of the public tree.

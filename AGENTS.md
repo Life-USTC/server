@@ -27,8 +27,8 @@ Prisma (PostgreSQL) · R2 uploads · Better Auth
 ```
 
 Upstream data comes from the **static** repo; the Docker **static loader** here
-imports it. Production app deploys via Cloudflare Git (`wrangler.jsonc`) — see
-`docs/operations.md`.
+imports it. Production app deploys via Cloudflare Git (`wrangler.jsonc`).
+Secrets and environment bindings live in the Cloudflare Dashboard — not in docs.
 
 ## Where code lives
 
@@ -60,7 +60,7 @@ tests/unit|integration|e2e
 ## Local checks
 
 Needs Bun (`.bun-version`), Docker Compose, and host `psql`. Locally you can use
-one `DATABASE_URL` (production splits app/auth — `docs/operations.md`). First
+one `DATABASE_URL` (production uses separate app/auth database bindings). First
 Playwright run: `bunx playwright install --with-deps chromium`.
 
 ```bash
@@ -185,6 +185,8 @@ permission gate.
 - Put business rules in `src/lib/api`, `src/lib/graphql`, or `src/lib/mcp`.
 - Change shared seed rows from parallel tests.
 - Leave scratch plans, probes, or Playwright output in the tree.
+- Publish production monitoring, log/metrics query playbooks, deploy runbooks,
+  unfinished security roadmaps, or internal host/path defaults in this repo.
 - Force-push or rewrite history unless the user explicitly asks.
 
 ## Deeper guides
@@ -197,4 +199,4 @@ permission gate.
 | Prisma | `prisma/AGENTS.md` |
 | Tests | `tests/**/AGENTS.md` |
 | CI workflows | `.github/workflows/AGENTS.md` |
-| Ops | `docs/operations.md` |
+| Public SSR cache notes | `docs/rendering-and-cache.md` |

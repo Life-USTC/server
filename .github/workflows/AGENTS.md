@@ -2,20 +2,20 @@
 
 | Workflow | Trigger | Jobs |
 |----------|---------|------|
-| CI (`ci.yml`) | push main, PRs | Check; MCP Integration; PostgreSQL RLS; Build E2E artifacts; Static Loader Image; E2E shards; Visual regression (opt-in); Publish E2E HTML report |
-| DB-backed Bun job | workflow_call | Reusable Postgres-backed Bun job (`ci:verify`, `ci:integration`, …) |
+| CI (`ci.yml`) | push main, PRs | Check, integration, RLS tests, E2E artifacts/shards, optional visual regression, report publish |
+| DB-backed Bun job | workflow_call | Reusable Postgres-backed Bun job |
 | DB migrate deploy | `prisma/**` on main, or manual | Production migrate deploy |
-| Auth Record Cleanup | every 6h, manual | Bounded expired auth-record cleanup |
-| Static sync | scheduled / manual | Pull static SQLite into loader flow |
-| Upload pending cleanup | scheduled / manual | Pending upload garbage collection |
-| Copilot Setup Steps | manual / setup changes | Copilot bootstrap validation |
 | Release | successful CI on main | Semantic release |
+| Copilot Setup Steps | manual / setup changes | Copilot bootstrap validation |
+
+Scheduled maintenance workflows may also exist for auth/upload cleanup and
+static sync. Treat their schedules and secret names as operational detail —
+don't expand them in public docs.
 
 ## Rules
 
 - Align Bun with `.bun-version`; no Node setup steps.
-- App-exercising workflows provision their own Postgres + `DATABASE_URL`. Upload
-  storage uses R2 bindings; don't add MinIO unless testing object storage.
+- App-exercising workflows provision their own Postgres + `DATABASE_URL`.
 - Production deploy is Cloudflare Git integration only.
 - Docker is local infra, CI services, and the static loader image only.
 - Keep YAML as orchestration; phase command lists live in `db-backed-bun-job.yml`.

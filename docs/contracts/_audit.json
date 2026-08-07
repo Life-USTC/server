@@ -49,9 +49,9 @@
       "description": "Admin updates description content from the moderation workflow. The description row, edit history, and audit row are committed together."
     },
     "webhook_login": {
-      "trigger": "POST /api/auth/webhook/login",
-      "description": "Ops/debug webhook login creates a Better Auth session for a resolved user. Metadata records the lookup mode only; secrets and session tokens are never stored."
+      "trigger": "Reserved",
+      "description": "Internal debug login aid (not a product surface). When enabled in a private environment, audit metadata records the lookup mode only; secrets and session tokens are never stored."
     }
   },
-  "writer": "writeAuditLog records app audit rows and Cloudflare Analytics Engine datapoints. The Node-only static loader writes Section lifecycle rows directly with its import transaction. Required trails are awaited in the same transaction where practical; fireAuditLog remains non-critical telemetry."
+  "writer": "writeAuditLog records app audit rows. The Node-only static loader writes Section lifecycle rows directly with its import transaction. Required trails are awaited in the same transaction where practical; fireAuditLog remains non-critical telemetry."
 }
