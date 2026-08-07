@@ -2,12 +2,12 @@
 
 Pure helpers and mocked orchestration. No real DB, browser, server, or network.
 Mock only process/env/time boundaries; prefer `tests/fixtures/dev-seed.ts`
-anchors; never import real Prisma clients. Commands: root `AGENTS.md`.
+anchors; never import real Prisma clients.
 
-## Hoisted mocks (`helpers/`)
+## Hoisted mocks
 
 Vitest hoisting means each test file owns top-level `vi.hoisted()` / `vi.mock()` —
-do not import mock factories inside hoisted callbacks. Use
+don't import mock factories inside hoisted callbacks. Use
 `createDeferred<T>()` from `tests/shared/deferred.ts` outside hoisted blocks.
 
 ```typescript

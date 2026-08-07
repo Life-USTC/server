@@ -10,8 +10,8 @@ generated/    DO NOT EDIT
 ```
 
 Domain code imports runtime only through `src/lib/ports/`. Concrete `node:*` /
-`bun:*` / `fs` / `process` usage stays in `src/lib/adapters/`, approved infra
-(`auth` / `db` / `log` / `cloudflare`), or entrypoints (`static-loader`, `*-cli.ts`)
+`bun:*` / `fs` / `process` usage stays in approved infra (`auth` / `db` / `log` /
+`cloudflare`), Cloudflare `adapters/`, or entrypoints (`static-loader`, `*-cli.ts`)
 — not ordinary features or routes.
 
 ```typescript
@@ -21,4 +21,3 @@ import { helper } from "./helper"; // relative within folder
 ```
 
 Locales: `zh-cn` (default), `en-us`; no URL prefix; both message files for user text.
-Root map + Commands: `AGENTS.md`. New capabilities: `$life-ustc-feature`.

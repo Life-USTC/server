@@ -1,7 +1,7 @@
 # tests/integration/
 
 MCP in-process harness + REST Playwright contracts. Full recipes: root
-`AGENTS.md` Commands (`ci:integration` alignment).
+`AGENTS.md` (same shape as CI `ci:integration`).
 
 ```bash
 bun run db:migrate:deploy && bunx prisma db seed
@@ -28,7 +28,7 @@ tests/integration/mcp/
 - `createMcpHarness` / `createAnonymousMcpHarness` — `client.ts`
 - `createMcpToolTestContext()` — shared seed user, read-mostly
 - `createIsolatedMcpToolTestContext()` — throwaway user for mutations; read
-  `context.client` / `context.userId` at call time (do not destructure early)
+  `context.client` / `context.userId` at call time (don't destructure early)
 - `createSubscribedIsolatedMcpToolTestContext()` — isolated + seed section
 - `createEphemeralMcpUser()` — single-`it` user; call `close()` after cleanup
 - Non-MCP DB tests: `createTestPrisma()` from `tests/shared/prisma.ts`

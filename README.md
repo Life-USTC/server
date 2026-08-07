@@ -1,7 +1,7 @@
 # Life@USTC Server
 
-Canonical Life@USTC application and API. Web users, CLI, Bot, iOS, and MCP
-agents all talk to this service.
+The Life@USTC app and API. Web users, CLI, Bot, iOS, and MCP agents all talk to
+this service.
 
 Production: [https://life-ustc.tiankaima.dev](https://life-ustc.tiankaima.dev)
 
@@ -17,26 +17,26 @@ Production: [https://life-ustc.tiankaima.dev](https://life-ustc.tiankaima.dev)
 
 Workspace Web tabs: `/workspace/{overview,calendar,homeworks,todos,exams,subscriptions}`
 (plus subscription sub-routes). Schedules / uploads are mostly API and other
-surfaces — not always a dedicated tab.
+clients — not always a dedicated tab.
 
-## Surfaces
+## Clients / APIs
 
-Same capability tree across transports
+Web, REST, GraphQL, and MCP share one naming tree
 ([docs/interface-hierarchy.md](./docs/interface-hierarchy.md)):
 
 - **Web** — SvelteKit (public catalog + signed-in workspace + admin)
 - **REST** — `/api/catalog|workspace|community|account|admin|…` (OpenAPI at `/api-docs`)
 - **GraphQL** — `/api/graphql` (`catalog` / `workspace` / `community` / `account`)
-- **MCP** — `/api/mcp` (capability-named tools)
+- **MCP** — `/api/mcp` (tools named like the contract ids)
 - **OAuth** — authorize / device flows for CLI, Bot, and third parties
 
 Contracts: [docs/contracts/](./docs/contracts/). Doc map: [docs/index.md](./docs/index.md).
 
 ## Contributors
 
-- Architecture map and local Commands → [AGENTS.md](./AGENTS.md)
-- How to split a new capability and which tests to add →
-  [`.agents/skills/life-ustc-feature`](./.agents/skills/life-ustc-feature/SKILL.md)
+- Layout and local checks → [AGENTS.md](./AGENTS.md)
+- How to split a change and which tests to add →
+  [`.agents/skills/life-ustc-implement`](./.agents/skills/life-ustc-implement/SKILL.md)
 - Production DB / Workers Builds → [docs/operations.md](./docs/operations.md)
 - Public SSR and cache → [docs/rendering-and-cache.md](./docs/rendering-and-cache.md)
 - Commit / PR / CI / review / merge → global agent skills (not in this repo)

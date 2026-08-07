@@ -1,12 +1,12 @@
 # src/lib/mcp/
 
 MCP server and tools under `tools/{workspace,catalog,community,bus,uploads,graphql,_shared}/`.
-Tool **names**/schemas stay stable across folder moves.
+Tool names and schemas stay stable across folder moves.
 
 ## Pattern
 
 Thin adapter: Zod parse → `getUserId(authInfo)` → `src/features/*/server` →
-`jsonToolResult(result, { mode })`. Do not write business logic or call Prisma
+`jsonToolResult(result, { mode })`. Don't write business logic or call Prisma
 directly from tools.
 
 ```typescript
@@ -17,13 +17,12 @@ const result = await featureUseCase(userId, input);
 return jsonToolResult(result, { mode });
 ```
 
-## Mode / Auth / Permissions
+## Mode / auth / permissions
 
-- **default**: compact canonical shape; **summary** is a deprecated alias;
-  **full** adds nested fields without changing top-level structure
+- **default**: compact shape; **summary** is a deprecated alias; **full** adds
+  nested fields without changing top-level structure
 - Bearer only; audience `/api/mcp`
 - Personal tools scope to `getUserId`; check suspension for collaborative writes;
-  normal users do not mutate JW/import facts
+  normal users don't mutate JW / import facts
 
-Coverage: `$life-ustc-feature` + root `AGENTS.md` Commands. Architecture: root
-`AGENTS.md`.
+Wire new tools like other transports; see `$life-ustc-implement`.

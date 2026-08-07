@@ -1,11 +1,11 @@
 # tests/e2e/
 
-Playwright browser tests against the Cloudflare Worker. Full command recipes:
-root `AGENTS.md` Commands.
+Playwright browser tests against the Cloudflare Worker. Full recipes: root
+`AGENTS.md`.
 
 ```bash
-bun run e2e:test                          # CI parity (four shards + reseed)
-bunx playwright test path/to/test         # focused (free localhost:3000 first)
+ALLOW_DATABASE_SEED=true bun run e2e:test   # CI parity (four shards + reseed)
+bunx playwright test path/to/test          # focused (free localhost:3000 first)
 CAPTURE_STEP_SCREENSHOTS=1 bunx playwright test path/to/test
 ```
 
@@ -14,8 +14,9 @@ R2 uses local `R2_UPLOADS`.
 
 ## Seed
 
-`tests/e2e/fixtures/scenario.json` → `prisma/seed.sql` →
-`tests/fixtures/dev-seed.ts` (root `AGENTS.md`).
+`tests/e2e/fixtures/scenario.json` and `tests/fixtures/dev-seed.ts` share fixture
+data; `prisma/seed.sql` is what the DB load uses. Keep them aligned when you
+change scenarios.
 
 ## Layout
 

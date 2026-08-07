@@ -1,13 +1,12 @@
 # Documentation Index
 
-Root [`AGENTS.md`](../AGENTS.md) is the architecture map (plus Commands). Feature
-implementation: [`$life-ustc-feature`](../.agents/skills/life-ustc-feature/SKILL.md).
-Commit / PR / CI / merge: global agent skills.
+Start with root [`AGENTS.md`](../AGENTS.md). For an end-to-end change, use
+[`$life-ustc-implement`](../.agents/skills/life-ustc-implement/SKILL.md).
+Git / PR / CI / merge: global agent skills.
 
 ## Start here
 
-- [Architecture map + Commands](../AGENTS.md)
-- [Feature skill](../.agents/skills/life-ustc-feature/SKILL.md)
+- [AGENTS.md](../AGENTS.md) — layout and local checks
 - [README](../README.md) — product overview
 - [Operations](operations.md)
 - [Contracts](contracts/)
@@ -17,8 +16,8 @@ Commit / PR / CI / merge: global agent skills.
 
 | Task | Read first |
 |------|------------|
-| Orient in the codebase | [AGENTS.md](../AGENTS.md), then nearest scoped `AGENTS.md` |
-| Add or change a capability | `$life-ustc-feature` + `docs/contracts/<module>.json` |
+| Find your way around | Nearest `AGENTS.md` under the folder you are editing |
+| Add or change behavior | `$life-ustc-implement`, then `docs/contracts/<module>.json` |
 | UI / layout | Feature components + Playwright under `tests/e2e/` |
 | REST | Route handler, OpenAPI JSDoc, `docs/contracts/openapi.json` |
 | GraphQL | Module contract, `graphql.json`, SDL snapshot, resolvers |
@@ -36,8 +35,8 @@ Commit / PR / CI / merge: global agent skills.
 | User-visible web | Module contract; both message files when text changes |
 | Prisma / seed | schema, migrations, shared seed files |
 | Setup / CI / ops | `operations.md`, `.env.example`, `.github/workflows/AGENTS.md` |
-| Architecture map | Root or nearest `AGENTS.md` |
-| How features split | `.agents/skills/life-ustc-feature` |
+| Layout / boundaries | Root or nearest `AGENTS.md` |
+| How to split a change | `.agents/skills/life-ustc-implement` |
 
 ## Major docs
 
