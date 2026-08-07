@@ -48,13 +48,26 @@ function normalizeSafeErrorName(name: string) {
   return name;
 }
 
-export function getSafeErrorName(error: unknown) {
-  const name = readErrorName(error);
-  if (!name) return "UnknownError";
+export function getSafeErrorName(error: unknown, depth = 0): string {
+  if (depth > 5) return "UnknownError";
 
-  const normalized = normalizeSafeErrorName(name);
-  if (!SAFE_ERROR_NAMES.has(normalized)) {
-    return "UnknownError";
+  const name = readErrorName(error);
+  if (name) {
+    const normalized = normalizeSafeErrorName(name);
+    if (SAFE_ERROR_NAMES.has(normalized)) {
+      return normalized;
+    }
   }
-  return normalized;
+
+  if (typeof error === "object" && error !== null && "cause" in error) {
+    const nested = getSafeErrorName(
+      (error as { cause: unknown }).cause,
+      depth + 1,
+    );
+    if (nested !== "UnknownError") {
+      return nested;
+    }
+  }
+
+  return "UnknownError";
 }

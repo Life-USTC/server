@@ -6,7 +6,9 @@ import { sha256Base64Url } from "@/lib/crypto/web-crypto";
 import { writeCalendarFeedCacheAnalytics } from "@/lib/metrics/analytics-engine";
 
 const USER_CALENDAR_EXPORT_CACHE_VERSION = 1;
-export const USER_CALENDAR_EXPORT_FRESH_TTL_MS = 5 * 60_000;
+// Keep feeds "fresh" longer so calendar clients that poll often do not force a
+// rebuild on every hit after 5 minutes. Writes still invalidate the cache.
+export const USER_CALENDAR_EXPORT_FRESH_TTL_MS = 30 * 60_000;
 export const USER_CALENDAR_EXPORT_STALE_TTL_MS = 24 * 60 * 60_000;
 const USER_CALENDAR_EXPORT_KV_CACHE_TTL_SECONDS = 3_600;
 const USER_CALENDAR_EXPORT_KV_EXPIRATION_TTL_SECONDS =
@@ -186,17 +188,6 @@ function refreshUserCalendarExport(
   return refresh;
 }
 
-function backgroundRefresh(
-  refresh: Promise<UserCalendarExportWithEtag | null>,
-) {
-  return refresh.then(
-    () => undefined,
-    () => {
-      recordCalendarFeedCacheStatus("refresh_error");
-    },
-  );
-}
-
 export async function getCachedUserCalendarExport(
   userId: string,
   buildExport: () => Promise<UserCalendarExport | null>,
@@ -217,9 +208,12 @@ export async function getCachedUserCalendarExport(
     }
 
     if (ageMs <= USER_CALENDAR_EXPORT_STALE_TTL_MS) {
-      const refresh = refreshUserCalendarExport(userId, buildExport);
+      // Do not rebuild ICS inside waitUntil/defer. Production showed Worker wall
+      // ~12s / CPU p95 ~3s on this path (cpu_ms limit 1000) while the response
+      // itself returned in ~100ms — calendar clients re-poll and the deferred
+      // rebuilds cancel or hit the CPU limit. Freshness comes from write-time
+      // invalidation plus a sync rebuild once the entry is past STALE_TTL.
       if (options.defer) {
-        options.defer(backgroundRefresh(refresh));
         recordCalendarFeedCacheStatus("stale");
         return {
           calendar: cached,
@@ -228,7 +222,7 @@ export async function getCachedUserCalendarExport(
       }
 
       try {
-        const refreshed = await refresh;
+        const refreshed = await refreshUserCalendarExport(userId, buildExport);
         if (refreshed) {
           return {
             calendar: refreshed,

@@ -18,6 +18,10 @@ vi.mock("@/lib/db/prisma", () => ({
   },
 }));
 
+vi.mock("@/lib/log/app-logger", () => ({
+  logAppEvent: vi.fn(),
+}));
+
 const findUniqueMock = vi.mocked(prisma.user.findUnique);
 const randomBytesBase64UrlMock = vi.mocked(randomBytesBase64Url);
 const updateMock = vi.mocked(prisma.user.update);
@@ -117,5 +121,20 @@ describe("getCalendarSubscriptionUrl 日历订阅地址", () => {
       where: { id: "user-1" },
       select: { id: true, calendarFeedToken: true },
     });
+  });
+
+  it("令牌写入失败时返回 null 而不抛出", async () => {
+    findUniqueMock.mockResolvedValueOnce(userWithToken(null));
+    randomBytesBase64UrlMock.mockReturnValue("generated-token");
+    updateManyMock.mockRejectedValueOnce(
+      Object.assign(new Error("permission denied"), {
+        code: "42501",
+        name: "error",
+      }),
+    );
+
+    await expect(
+      getCalendarSubscriptionUrl("user-1", null),
+    ).resolves.toBeNull();
   });
 });

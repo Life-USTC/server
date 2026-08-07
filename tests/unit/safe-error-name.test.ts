@@ -30,4 +30,14 @@ describe("safe error names", () => {
   it("rejects non-errors", () => {
     expect(getSafeErrorName("private detail")).toBe("UnknownError");
   });
+
+  it("walks cause for allowlisted nested names", () => {
+    const cause = new Error("permission denied");
+    cause.name = "PrismaClientKnownRequestError";
+    const wrapper = new Error("route failed");
+    wrapper.name = "ApiKeyABC123";
+    (wrapper as Error & { cause: Error }).cause = cause;
+
+    expect(getSafeErrorName(wrapper)).toBe("PrismaClientKnownRequestError");
+  });
 });

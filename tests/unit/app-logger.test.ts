@@ -129,4 +129,56 @@ describe("应用日志记录器", () => {
       route: "/api/todos/:id",
     });
   });
+
+  it("生产环境保留嵌套 cause / meta 上的数据库错误码", () => {
+    vi.stubEnv("NODE_ENV", "production");
+    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+
+    const cause = Object.assign(new Error("permission denied"), {
+      code: "42501",
+      name: "error",
+    });
+    const prismaError = Object.assign(new Error("raw query failed"), {
+      cause,
+      code: "P2010",
+      name: "PrismaClientKnownRequestError",
+    });
+
+    logRouteFailure("Failed to fetch comments", 500, prismaError, {
+      route: "/api/community/comments",
+    });
+
+    const [payload] = errorSpy.mock.calls[0] ?? [];
+    expect(JSON.parse(String(payload))).toMatchObject({
+      error: {
+        code: "P2010",
+        name: "PrismaClientKnownRequestError",
+      },
+    });
+    expect(String(payload)).not.toContain("permission denied");
+  });
+
+  it("生产环境从仅含 cause SQLSTATE 的包装错误提取 code", () => {
+    vi.stubEnv("NODE_ENV", "production");
+    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+
+    const cause = Object.assign(new Error("permission denied for function"), {
+      code: "42501",
+      name: "error",
+    });
+    const wrapper = Object.assign(new Error("wrapped"), {
+      cause,
+      name: "DriverAdapterError",
+    });
+
+    logRouteFailure("Failed to fetch comments", 500, wrapper);
+
+    const [payload] = errorSpy.mock.calls[0] ?? [];
+    expect(JSON.parse(String(payload))).toMatchObject({
+      error: {
+        code: "42501",
+        name: "DriverAdapterError",
+      },
+    });
+  });
 });

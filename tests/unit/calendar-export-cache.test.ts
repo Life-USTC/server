@@ -9,7 +9,7 @@ import {
 import { setCloudflareRuntimeEnv } from "@/lib/adapters/cloudflare-runtime";
 
 const calendarExport = {
-  cacheControl: "private, max-age=300",
+  cacheControl: "private, max-age=1800",
   filename: "life-ustc-subscriptions.ics",
   text: "BEGIN:VCALENDAR\nEND:VCALENDAR",
 };
@@ -80,7 +80,7 @@ describe("用户 iCal 导出缓存", () => {
     expect(JSON.stringify(writeDataPoint.mock.calls)).not.toContain("user-1");
   });
 
-  it("stale 导出立即返回并通过 defer 后台刷新", async () => {
+  it("stale 导出立即返回且不通过 defer 后台重建", async () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-06-07T00:00:00.000Z"));
     const namespace = kvNamespace();
@@ -102,11 +102,12 @@ describe("用户 iCal 导出缓存", () => {
 
     expect(stale.status).toBe("stale");
     expect(stale.calendar?.text).toBe(calendarExport.text);
-    expect(tasks).toHaveLength(1);
+    expect(tasks).toHaveLength(0);
+    expect(buildExport).toHaveBeenCalledTimes(1);
 
-    await tasks[0];
+    // Without defer (e.g. local/Node), stale still rebuilds synchronously.
     const refreshed = await getCachedUserCalendarExport("user-1", buildExport);
-    expect(refreshed.status).toBe("fresh");
+    expect(refreshed.status).toBe("miss");
     expect(refreshed.calendar?.text).toContain("X-UPDATED:1");
     expect(buildExport).toHaveBeenCalledTimes(2);
   });
@@ -160,7 +161,7 @@ describe("用户 iCal 导出缓存", () => {
     expect(namespace.put).toHaveBeenCalledTimes(1);
   });
 
-  it("后台刷新失败时继续返回 stale 导出", async () => {
+  it("无 defer 时同步刷新失败仍返回 stale 导出", async () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-06-07T00:00:00.000Z"));
     const buildExport = vi
@@ -170,14 +171,11 @@ describe("用户 iCal 导出缓存", () => {
 
     await getCachedUserCalendarExport("user-1", buildExport);
     vi.advanceTimersByTime(USER_CALENDAR_EXPORT_FRESH_TTL_MS + 1);
-    const tasks: Promise<unknown>[] = [];
-    const stale = await getCachedUserCalendarExport("user-1", buildExport, {
-      defer: (promise) => tasks.push(promise),
-    });
+    const stale = await getCachedUserCalendarExport("user-1", buildExport);
 
-    await expect(tasks[0]).resolves.toBeUndefined();
     expect(stale.status).toBe("stale");
     expect(stale.calendar?.text).toBe(calendarExport.text);
+    expect(buildExport).toHaveBeenCalledTimes(2);
   });
 
   it("KV 不可用时仍使用 isolate 内存缓存", async () => {

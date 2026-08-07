@@ -54,7 +54,7 @@ export async function buildUserCalendarExport(
   });
 
   return {
-    cacheControl: "private, max-age=300",
+    cacheControl: "private, max-age=1800",
     filename: "life-ustc-subscriptions.ics",
     text: calendar.toString(),
   };

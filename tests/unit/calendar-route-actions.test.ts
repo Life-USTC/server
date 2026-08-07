@@ -41,7 +41,7 @@ describe("personal calendar route cache ordering", () => {
   it("does not load calendar relations when the rendered export is cached", async () => {
     getCachedExportMock.mockResolvedValue({
       calendar: {
-        cacheControl: "private, max-age=300",
+        cacheControl: "private, max-age=1800",
         etag: '"sha256-cached"',
         filename: "life-ustc-subscriptions.ics",
         text: "BEGIN:VCALENDAR\nEND:VCALENDAR",
@@ -66,7 +66,7 @@ describe("personal calendar route cache ordering", () => {
     const user = { id: "user-1", sectionSubscriptions: [], todos: [] };
     getUserRecordMock.mockResolvedValue(user);
     buildUserCalendarExportMock.mockResolvedValue({
-      cacheControl: "private, max-age=300",
+      cacheControl: "private, max-age=1800",
       filename: "life-ustc-subscriptions.ics",
       text: "BEGIN:VCALENDAR\nEND:VCALENDAR",
     });
