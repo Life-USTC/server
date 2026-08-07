@@ -38,20 +38,28 @@ describe("Wrangler mutation rate-limit bindings", () => {
     ]);
   });
 
-  it("keeps public workers.dev and automatic request metadata logs disabled", async () => {
+  it("keeps public workers.dev disabled and enables invocation logs for CPU diagnosis", async () => {
     const source = await readFile(
       new URL("../../wrangler.jsonc", import.meta.url),
       "utf8",
     );
     const config = JSON.parse(source) as {
-      observability?: { logs?: { invocation_logs?: boolean } };
+      observability?: {
+        logs?: {
+          head_sampling_rate?: number;
+          invocation_logs?: boolean;
+        };
+        traces?: { head_sampling_rate?: number };
+      };
       preview_urls?: boolean;
       workers_dev?: boolean;
     };
 
     expect(config.preview_urls).toBe(false);
     expect(config.workers_dev).toBe(false);
-    expect(config.observability?.logs?.invocation_logs).toBe(false);
+    expect(config.observability?.logs?.invocation_logs).toBe(true);
+    expect(config.observability?.logs?.head_sampling_rate).toBe(0.5);
+    expect(config.observability?.traces?.head_sampling_rate).toBe(0.1);
   });
 
   it("uploads production source maps for trace and exception symbolication", async () => {

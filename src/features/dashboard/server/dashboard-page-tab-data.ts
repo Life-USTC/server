@@ -17,21 +17,30 @@ export async function timeDashboardStage<T>(
 ) {
   const startMs = Date.now();
   let status: "error" | "ok" = "error";
+  let stageError: unknown;
   try {
     const result = await work();
     status = "ok";
     return result;
+  } catch (error) {
+    stageError = error;
+    throw error;
   } finally {
-    logAppEvent(status === "ok" ? "info" : "warn", "dashboard.load.stage", {
-      event: "dashboard.load.stage",
-      ioObservedDurationMs: Date.now() - startMs,
-      requestId: input.requestId,
-      source: "dashboard",
-      stage,
-      status,
-      subscribedSectionCount: input.subscribedSectionCount,
-      tab: input.tab,
-    });
+    logAppEvent(
+      status === "ok" ? "info" : "warn",
+      "dashboard.load.stage",
+      {
+        event: "dashboard.load.stage",
+        ioObservedDurationMs: Date.now() - startMs,
+        requestId: input.requestId,
+        source: "dashboard",
+        stage,
+        status,
+        subscribedSectionCount: input.subscribedSectionCount,
+        tab: input.tab,
+      },
+      stageError,
+    );
   }
 }
 

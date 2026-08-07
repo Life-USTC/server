@@ -1,6 +1,7 @@
 import { sectionCompactInclude } from "@/features/catalog/server/academic-query-includes";
 import { type AppLocale, DEFAULT_LOCALE } from "@/i18n/config";
 import { prisma, withUserDbContext } from "@/lib/db/prisma";
+import { logAppEvent } from "@/lib/log/app-logger";
 import { getPublicOrigin } from "@/lib/site-url";
 import {
   buildCalendarFeedPath,
@@ -79,13 +80,28 @@ export async function getCalendarSubscriptionUrl(
   userId: string,
   calendarFeedToken?: string | null,
 ) {
-  if (calendarFeedToken !== undefined) {
-    return buildCalendarFeedPath(userId, calendarFeedToken);
+  try {
+    if (calendarFeedToken !== undefined) {
+      return await buildCalendarFeedPath(userId, calendarFeedToken);
+    }
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true, calendarFeedToken: true },
+    });
+    if (!user) return null;
+    return await buildCalendarFeedPath(user.id, user.calendarFeedToken);
+  } catch (error) {
+    // Token minting can fail on missing column grants; empty subscription SSR
+    // should still render instead of 500ing the whole workspace tab.
+    logAppEvent(
+      "warn",
+      "calendar.subscription-url.failed",
+      {
+        event: "calendar.subscription-url.failed",
+        source: "subscriptions",
+      },
+      error,
+    );
+    return null;
   }
-  const user = await prisma.user.findUnique({
-    where: { id: userId },
-    select: { id: true, calendarFeedToken: true },
-  });
-  if (!user) return null;
-  return buildCalendarFeedPath(user.id, user.calendarFeedToken);
 }

@@ -109,4 +109,40 @@ describe("dashboard subscription calendar token reuse", () => {
       sectionIds: [12],
     });
   });
+
+  it("records the thrown error on a failed dashboard stage", async () => {
+    const { logAppEvent } = await import("@/lib/log/app-logger");
+    const { timeDashboardStage } = await import(
+      "@/features/dashboard/server/dashboard-page-tab-data"
+    );
+    const stageError = Object.assign(new Error("permission denied"), {
+      code: "P2010",
+      name: "PrismaClientKnownRequestError",
+    });
+
+    await expect(
+      timeDashboardStage(
+        "subscriptions",
+        {
+          requestId: "request-1",
+          subscribedSectionCount: 0,
+          tab: "subscriptions",
+        },
+        async () => {
+          throw stageError;
+        },
+      ),
+    ).rejects.toBe(stageError);
+
+    expect(logAppEvent).toHaveBeenCalledWith(
+      "warn",
+      "dashboard.load.stage",
+      expect.objectContaining({
+        stage: "subscriptions",
+        status: "error",
+        subscribedSectionCount: 0,
+      }),
+      stageError,
+    );
+  });
 });

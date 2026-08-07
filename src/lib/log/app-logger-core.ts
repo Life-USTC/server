@@ -38,15 +38,38 @@ const SQLSTATE_CODE_PATTERN = /^[0-9A-Z]{5}$/;
  * identifiers with no request data in them, so they are safe to keep in
  * production where the message is not. Without the code a production
  * permission or constraint failure is undiagnosable.
+ *
+ * Walk `cause` / Prisma `meta` because driver-adapter failures often nest the
+ * real SQLSTATE under the top-level Prisma wrapper.
  */
-function safeDatabaseErrorCode(error: unknown) {
-  if (typeof error !== "object" || error === null || !("code" in error)) {
+function safeDatabaseErrorCode(error: unknown, depth = 0): string | undefined {
+  if (depth > 5 || typeof error !== "object" || error === null) {
     return undefined;
   }
-  const { code } = error as { code: unknown };
-  if (typeof code !== "string") return undefined;
-  if (PRISMA_ERROR_CODE_PATTERN.test(code)) return code;
-  if (SQLSTATE_CODE_PATTERN.test(code)) return code;
+
+  if ("code" in error) {
+    const { code } = error as { code: unknown };
+    if (typeof code === "string") {
+      if (PRISMA_ERROR_CODE_PATTERN.test(code)) return code;
+      if (SQLSTATE_CODE_PATTERN.test(code)) return code;
+    }
+  }
+
+  if ("meta" in error) {
+    const fromMeta = safeDatabaseErrorCode(
+      (error as { meta: unknown }).meta,
+      depth + 1,
+    );
+    if (fromMeta) return fromMeta;
+  }
+
+  if ("cause" in error) {
+    return safeDatabaseErrorCode(
+      (error as { cause: unknown }).cause,
+      depth + 1,
+    );
+  }
+
   return undefined;
 }
 
