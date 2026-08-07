@@ -92,10 +92,6 @@ export const localeUpdateRequestSchema = z.object({
   locale: z.enum(APP_LOCALES),
 });
 
-export const catalogLinkVisitRequestSchema = z.object({
-  slug: z.string().trim().min(1),
-});
-
 export const workspaceLinkPinRequestSchema = z.object({
   slug: z.string().trim().min(1),
   returnTo: z.string().trim().optional(),

@@ -2,44 +2,21 @@ import {
   recordDashboardLinkClick,
   resolveDashboardLinkBySlug,
 } from "@/features/dashboard-links/server/dashboard-link-service";
-import {
-  catalogLinkVisitRequestSchema,
-  dashboardLinkVisitQuerySchema,
-} from "@/lib/api/schemas/request-schemas";
+import { dashboardLinkVisitQuerySchema } from "@/lib/api/schemas/request-schemas";
 import { resolveApiUserId } from "@/lib/auth/api-auth";
 import { checkUserMutationRateLimit } from "@/lib/security/user-mutation-rate-limit";
 
-function resolveVisitTarget(
-  schema: typeof dashboardLinkVisitQuerySchema,
-  slug: FormDataEntryValue | string | null,
-) {
-  const parsed = schema.safeParse({ slug });
-  return parsed.success ? resolveDashboardLinkBySlug(parsed.data.slug) : null;
-}
-
 export async function getDashboardLinkVisitRoute(request: Request) {
   const { searchParams } = new URL(request.url);
-  const target = resolveVisitTarget(
-    dashboardLinkVisitQuerySchema,
-    searchParams.get("slug"),
-  );
+  const parsed = dashboardLinkVisitQuerySchema.safeParse({
+    slug: searchParams.get("slug"),
+  });
+  const target = parsed.success
+    ? resolveDashboardLinkBySlug(parsed.data.slug)
+    : null;
 
   if (!target) {
     return Response.redirect(new URL("/", request.url), 307);
-  }
-
-  return Response.redirect(target.url, 307);
-}
-
-export async function postDashboardLinkVisitRoute(request: Request) {
-  const formData = await request.formData();
-  const target = resolveVisitTarget(
-    catalogLinkVisitRequestSchema,
-    formData.get("slug"),
-  );
-
-  if (!target) {
-    return Response.redirect(new URL("/", request.url), 303);
   }
 
   const userId = await resolveApiUserId(request);
@@ -56,5 +33,5 @@ export async function postDashboardLinkVisitRoute(request: Request) {
     }
   }
 
-  return Response.redirect(target.url, 303);
+  return Response.redirect(target.url, 307);
 }
