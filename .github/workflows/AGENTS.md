@@ -18,9 +18,8 @@
   storage uses R2 bindings; do not add MinIO unless testing object storage.
 - Production deploy is Cloudflare Git integration only — no repo deploy jobs.
 - Docker is local infra, CI services, and the static loader image only.
-- Keep YAML as orchestration. **Local** check order is `$life-ustc-dev-loop`;
-  **CI phase** commands are the cases in `db-backed-bun-job.yml`
-  (`ci:verify`, `ci:integration`, …). When changing either, keep them intentionally aligned.
+- Keep YAML as orchestration. Phase command lists live in
+  `db-backed-bun-job.yml` (`ci:verify`, `ci:integration`, …).
 - E2E HTML publish stays `continue-on-error` with serial artifact concurrency.
 - `copilot-setup-steps.yml` must keep a job named exactly `copilot-setup-steps`
   with inline `runs-on` / steps (no reusable-workflow delegation for that job).

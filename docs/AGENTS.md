@@ -1,5 +1,6 @@
 # docs/
 
-- Navigation map: `docs/index.md` (update when adding major docs).
-- Contracts: `docs/contracts/` + `docs/contracts/AGENTS.md`.
-- See root `AGENTS.md` for documentation hygiene rules.
+- Navigation: `docs/index.md`
+- Contracts: `docs/contracts/` + `docs/contracts/AGENTS.md`
+- Architecture map: root `AGENTS.md`
+- Feature module split: `$life-ustc-feature`

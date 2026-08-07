@@ -1,117 +1,142 @@
-# Life@USTC Server - Agent Guide
+# Life@USTC Server — Architecture Map
 
-SvelteKit campus workspace with REST + GraphQL + MCP. This is the canonical
-agent contract; nested `AGENTS.md` files only add layer-specific rules. Commands
-and check sequences live in `$life-ustc-dev-loop`.
+Read this instead of grepping the whole tree. Nested `AGENTS.md` files deepen
+one area. Product capability names live in `docs/interface-hierarchy.md` and
+`docs/contracts/`. How to **implement** a new capability is
+`$life-ustc-feature`. Commit / PR / CI / merge follows **global** agent skills,
+not this repo.
 
-## Repo Map
+## System shape
 
 ```text
-src/routes/           SvelteKit pages, layouts, REST/OAuth/MCP handlers
-src/features/         Domain use-cases and feature-owned UI
-src/lib/              Infrastructure (ports/adapters, GraphQL/MCP, shared UI)
-messages/             i18n (`zh-cn`, `en-us`)
-prisma/               Schema and migrations
-docs/contracts/       Product/API/GraphQL/MCP contracts
-tests/                Unit, integration, Playwright E2E
-.agents/skills/       Repo skills (`$life-ustc-dev-loop`, `$life-ustc-pr-workflow`)
+Clients:  Web · CLI · Bot · iOS · MCP agents
+    │
+    ▼
+SvelteKit Worker (Cloudflare) + Node tools (migrate, static loader, CLI scripts)
+    │
+    ├── REST      /api/...
+    ├── GraphQL   /api/graphql
+    ├── MCP       /api/mcp
+    ├── OAuth     /oauth, /api/auth, device flows
+    └── Pages     /catalog/*, /workspace/*, /account/*, /admin/*, …
+    │
+    ▼
+src/features/<domain>/server   ← domain use-cases (shared by all surfaces)
+    │
+    ▼
+Prisma (PostgreSQL) · R2 uploads · Better Auth
 ```
 
-## Agent Operating Contract
+Upstream campus snapshots come from the **static** repo; this repo’s Docker
+**static loader** imports them. Production app deploy is Cloudflare Git
+integration (`wrangler.jsonc`); see `docs/operations.md`.
 
-- Read this file, then the nearest scoped `AGENTS.md` before editing that area.
-- Keep durable rules short; put repeatable workflows in `.agents/skills`.
-- Do not add parallel instruction files (`CLAUDE.md`, `copilot-instructions.md`, …)
-  or `.codex/skills` unless the user explicitly asks.
-- Prefer two passes on non-trivial work: contracts/docs first, then implementation.
-- Done means evidence: files changed, commands run, skipped checks with reasons.
-- Trust route handlers, Prisma schema/migrations, contract JSON, tests, and
-  package scripts over stale docs or generated output.
-- Do not rewrite history, remove attribution, or force-push unless asked.
-- Update the nearest `AGENTS.md` when repeated agent mistakes show a missing rule.
+## Directory map
 
-## Architecture Boundaries
-
-- Keep `src/routes` thin. Domain logic lives in `src/features/*/server`.
-- Signed-in workspace UI lives in `src/features/dashboard/`; Web routes are
-  `/workspace/*`. Do not add a parallel `workspace` feature folder.
-- `src/lib` is infrastructure; shared `src/lib/components` must not own feature
-  data fetching or mutations.
-- Domain/route code imports runtime through `src/lib/ports/`. Native IO belongs
-  in adapters, approved infra (`auth`/`db`/`log`/`cloudflare`), or entrypoints
-  (`static-loader`, `*-cli.ts`) — not ordinary features/routes.
-- Do not call page/REST handlers from features. Surfaces adapt feature use-cases.
-- REST, GraphQL, MCP, contract JSON, public schemas, and tests are coupled;
-  check matching surfaces when one changes.
-
-## Complete-Loop Checks
-
-- UI: narrowest browser check that exercises the changed screen; inspect
-  screenshot/headed run/trace before handoff.
-- REST/GraphQL/MCP: decide which surfaces change; exercise one representative
-  request or tool call when feasible and compare with contracts/tests.
-- Keep probes, traces, and temporary payloads out of the repo unless fixtures.
-
-## Shared Test Seed
-
-Canonical fixtures: `tests/e2e/fixtures/scenario.json`, executable
-`prisma/seed.sql`, named exports in `tests/fixtures/dev-seed.ts`
-(`DEV_SEED_ANCHOR`: `.date`, `.recommendedAtTime`, `.startOfDayAtTime`).
-`$life-ustc-dev-loop` loads the scenario; direct integration runs need
-`bunx prisma db seed` (host `psql` required). Layer test guides only add
-caveats and link back here.
-
-## Common Patterns
-
-### Auth
-- Pages: gate on `event.locals.authUser`; unauthenticated → `buildSignInPageUrl(...)` (`/account/sign-in?callbackUrl=…`)
-- REST: `resolveApiUserId()` (Bearer or cookie)
-- GraphQL: bearer-first principal; `/api/graphql` audience; cookies need trusted Origin; personal fields under `workspace` / `account` (no root `viewer`)
-- MCP: Bearer only, audience `/api/mcp`; `getUserId(extra.authInfo)`
-- Check permissions before mutations; suspended users blocked from collaborative writes
-
-### Dates / Prisma / Errors / i18n
-- Input: `parseDateInput`; GraphQL `@db.Date` → Asia/Shanghai day; display via `getShanghaiDay()`
-- `import { prisma, getPrisma } from "@/lib/db/prisma"`; localized reads use `getPrisma(locale)`
-- API: `handleRouteError` + status helpers; MCP: Zod inputs, let unexpected errors throw
-- Locales: `zh-cn` (default), `en-us`; no URL prefix; both message files for user text
-- Validation: Zod; pagination: `buildPaginatedResponse`
-
-## File Rules
+```text
+src/routes/              SvelteKit pages + thin HTTP handlers
+src/features/            Domain use-cases + feature-owned UI
+  <domain>/server/       Shared application logic (REST/GQL/MCP/pages call here)
+  <domain>/components/   Feature UI (not in src/lib/components)
+  dashboard/             Signed-in workspace UI (routes: /workspace/*)
+src/lib/                 Infrastructure only
+  ports/ · adapters/     Runtime contracts vs node/bun/fs implementations
+  api/routes/            REST adapter helpers (may call features)
+  graphql/               Yoga schema + resolvers
+  mcp/tools/             MCP tools by domain (workspace, catalog, community, …)
+  components/            Shared, feature-neutral UI
+  auth/ · db/ · oauth/ · storage/ · time/ · …
+messages/                i18n: zh-cn (default), en-us — no locale URL prefix
+prisma/                  schema.prisma + migrations + seed.sql
+docs/contracts/          Modular product/API/GraphQL/MCP JSON contracts
+docs/graphql/            SDL snapshot + mutation capability matrix
+tests/
+  unit/                  Pure / mocked (no real DB)
+  integration/           MCP harness + REST Playwright (playwright.api.config.ts)
+  e2e/                   Browser Playwright against Worker (paths may still say dashboard/)
+.agents/skills/          Project skills: feature implementation only
+.github/workflows/       CI phases in db-backed-bun-job.yml (ci:verify, ci:integration, …)
+```
 
 **Do not edit:** `src/generated/prisma/`, `src/generated/prisma-node/`,
 `public/openapi.generated.json`.
 
-**Feature changes:** check `docs/contracts/<module>.json` → implement + tests →
-`$life-ustc-dev-loop` (escalate to integration/E2E when data/auth/browser/contracts
-change).
+## Capability → code
 
-**Keep in sync:** REST → OpenAPI JSDoc + `openapi:check`; GraphQL → module +
-`graphql.json` + SDL snapshot test; MCP → module contract + integration tests;
-user-visible text → both message files; setup/ops → `$life-ustc-dev-loop` /
-`docs/operations.md` / workflows AGENTS / `.env.example`.
+| Concern | Where |
+|---------|--------|
+| Product / API contract | `docs/contracts/<module>.json` (+ `_meta` / `_product` / …) |
+| Cross-surface naming | `docs/interface-hierarchy.md` |
+| Use-case | `src/features/<domain>/server/` |
+| Web page | `src/routes/...` + often `src/features/<domain>/components/` |
+| REST | `src/routes/api/**/+server.ts` → `src/lib/api/routes/` → feature server |
+| GraphQL | `src/lib/graphql/` (roots: `catalog`, `workspace`, `community`, `account`) |
+| MCP tool | `src/lib/mcp/tools/<domain>/` — tool name = capability id |
+| Copy | `messages/zh-cn.json`, `messages/en-us.json` |
+| Schema | `prisma/schema.prisma` + migration |
+| Unit tests | `tests/unit/` (never under `src/`) |
+| MCP / REST integration | `tests/integration/mcp/`, `tests/integration/rest/` |
+| Browser E2E | `tests/e2e/src/app/` |
 
-**Security:** never log tokens, secrets, cookies, OAuth codes, upload URLs, or
-excess PII. Preserve auth surface differences. Upload downloads need the shared
+Canonical seed: `tests/e2e/fixtures/scenario.json` → `prisma/seed.sql` →
+`tests/fixtures/dev-seed.ts` (`DEV_SEED_ANCHOR`).
+
+## Naming drift (intentional)
+
+| Concept | Canonical product name | Code location today |
+|---------|------------------------|---------------------|
+| Signed-in home | `workspace` | Feature folder `dashboard/`, routes `/workspace/[tab]` |
+| Overview REST helper | workspace overview | File still `me-overview-route.ts` |
+| GraphQL personal data | `workspace.*` / `account.*` | Some modules still named `viewer.ts` |
+| MCP tools | `workspace_*` capability ids | Files may say `my-data-*` / `dashboard-tools` |
+
+Do not introduce a second `workspace` feature folder or a root GraphQL `viewer`.
+
+## Web surface sketch
+
+- Public catalog: `/catalog/courses|sections|teachers|bus|links`, `/search`
+- Workspace tabs: `/workspace/{overview,calendar,homeworks,todos,exams,subscriptions}`
+- Account: `/account/sign-in`, settings under `/account/...`
+- Admin: `/admin/...`
+- Some capabilities (e.g. schedules list, uploads) are API/MCP/CLI-first — no dedicated tab
+
+Public SSR cache rules: `docs/rendering-and-cache.md` (canonical catalog detail
+**root** paths only).
+
+## Auth by surface
+
+| Surface | Auth |
+|---------|------|
+| Pages | `event.locals.authUser`; else `buildSignInPageUrl` → `/account/sign-in?callbackUrl=…` |
+| REST | `resolveApiUserId()` — Bearer or cookie |
+| GraphQL | Bearer-first; audience `/api/graphql`; cookies need trusted Origin |
+| MCP | Bearer only; audience `/api/mcp`; `getUserId(authInfo)` |
+
+Suspended users cannot collaborative-write. Upload downloads use the shared
 permission gate.
 
-**Hygiene:** no stray migration plans or scratch reports in the repo; use GitHub
-issues/PRs. PR summaries name files, impact, commands, skips, and risks.
+## Cross-cutting conventions
 
-## Scoped Guides
+- Dates: `parseDateInput`; `@db.Date` filters → Asia/Shanghai day; `getShanghaiDay()`
+- Prisma: `import { prisma, getPrisma } from "@/lib/db/prisma"`; localized reads via `getPrisma(locale)`
+- REST errors: `handleRouteError` + status helpers; MCP: Zod in, unexpected errors throw
+- Pagination: `buildPaginatedResponse`
+- Native IO (`node:*` / `bun:*` / `fs` / …): adapters, approved infra (`auth`/`db`/`log`/`cloudflare`), or entrypoints (`static-loader`, `*-cli.ts`) — not ordinary features/routes
 
-- Docs map: `docs/index.md`
-- Contracts: `docs/contracts/AGENTS.md`
-- Source / features / lib / GraphQL / MCP / components: under `src/**/AGENTS.md`
-- Prisma: `prisma/AGENTS.md`
-- Tests: `tests/{e2e,integration,unit}/AGENTS.md`
-- CI/CD: `.github/workflows/AGENTS.md`
-- Ops: `docs/operations.md`
+## Scoped maps
 
-## Agent Audit Guardrails
+| Area | File |
+|------|------|
+| Docs index | `docs/index.md` |
+| Contracts workflow shape | `docs/contracts/AGENTS.md` |
+| Features / lib / GraphQL / MCP / components | `src/**/AGENTS.md` |
+| Prisma | `prisma/AGENTS.md` |
+| Tests | `tests/**/AGENTS.md` |
+| CI workflows | `.github/workflows/AGENTS.md` |
+| Ops (prod DB, Workers Builds) | `docs/operations.md` |
 
-- Keep contract JSON hand-maintained; no one-off generators unless asked.
-- Prefer Better Auth APIs and shared URL helpers over hand-built OAuth/JWKS logic.
-- When changing one surface, check contract, REST, GraphQL SDL, MCP, OpenAPI, and seeded tests.
-- Do not mutate canonical seed rows in parallel tests; use temp records + cleanup + serial E2E where needed.
-- Docker/CI/Copilot scripts must use the same Bun setup and generated Prisma client as workflows.
+## Feature work
+
+Use project skill `$life-ustc-feature` for module placement, surface parity, and
+required tests when adding or changing a capability. Do not put commit/PR/CI
+loops in project skills.

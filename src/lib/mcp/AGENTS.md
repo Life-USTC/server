@@ -25,4 +25,5 @@ return jsonToolResult(result, { mode });
 - Personal tools scope to `getUserId`; check suspension for collaborative writes;
   normal users do not mutate JW/import facts
 
-Verify REST/MCP changes via `$life-ustc-dev-loop`. See root `AGENTS.md`.
+Verify REST/MCP changes with the matching integration/unit coverage (see
+`$life-ustc-feature`). Architecture: root `AGENTS.md`.

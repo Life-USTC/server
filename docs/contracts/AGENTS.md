@@ -16,40 +16,27 @@ Contract modules
   <module>.json
 ```
 
-## Workflow
-
-When behavior, API, MCP, parameters, or outputs change:
+## When behavior changes
 
 1. Update the affected `docs/contracts/<module>.json` first.
-2. Implement code changes.
-3. Run the check sequence from `$life-ustc-dev-loop` (including OpenAPI /
-   GraphQL snapshot gates when those surfaces changed) to validate contracts
-   against schema, Prisma, REST, GraphQL, and MCP.
-4. Update relevant tests.
+2. Implement via `$life-ustc-feature` (use-case + transports + tests).
+3. Validate against schema / OpenAPI / GraphQL SDL / MCP integration as those
+   surfaces require (`bun run openapi:check`, GraphQL snapshot test, etc.).
 
-If the user did not explicitly ask for documentation changes, ask before broad restructures or rewrites and keep any required doc edits tightly scoped.
+Keep required doc edits tightly scoped unless the user asked for a rewrite.
 
 ## Queries
 
 ```bash
-# Single module
 jq '.capabilities | keys' docs/contracts/homework.json
 jq '.rules' docs/contracts/user.json
-
-# Models and enums
 rg '^model ' prisma/schema.prisma
-rg '^enum ' prisma/schema.prisma
-
-# All modules
 find docs/contracts -maxdepth 1 -type f -name '*.json' ! -name '_*.json' -exec basename {} .json \; | sort
 ```
 
 ## Module Shape
 
-Each module file contains:
-- `name`
-- `access`
-- `rules`
-- `capabilities`
+Each module file contains `name`, `access`, `rules`, `capabilities`.
 
-Keep module files focused. Shared UI, case, and audit metadata stays in the `_*.json` files; model and enum shape stays in `prisma/schema.prisma`.
+Shared UI/case/audit metadata stays in `_*.json`; model/enum shape stays in
+`prisma/schema.prisma`.

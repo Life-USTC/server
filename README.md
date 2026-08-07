@@ -33,9 +33,8 @@
 
 ## 给贡献者
 
-本地启动、检查、测试与运维细节不在本 README：
-
-- 编码与验收契约 → [AGENTS.md](./AGENTS.md)
-- 命令序列 → [`.agents/skills/life-ustc-dev-loop`](./.agents/skills/life-ustc-dev-loop/SKILL.md)
+- 架构地图（目录与表面）→ [AGENTS.md](./AGENTS.md)
+- 新功能如何拆模块与补测试 → [`.agents/skills/life-ustc-feature`](./.agents/skills/life-ustc-feature/SKILL.md)
 - 生产连接 / Workers Builds → [docs/operations.md](./docs/operations.md)
-- 公开页 SSR 与缓存边界 → [docs/rendering-and-cache.md](./docs/rendering-and-cache.md)
+- 公开页 SSR 与缓存 → [docs/rendering-and-cache.md](./docs/rendering-and-cache.md)
+- 提交、PR、等 CI、review、合并 → 使用全局 agent skills（不在本仓库）

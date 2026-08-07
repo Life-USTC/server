@@ -1,15 +1,15 @@
 # Documentation Index
 
-`AGENTS.md` is the canonical agent instruction surface. This index is the
-project map.
+Root [`AGENTS.md`](../AGENTS.md) is the architecture map. Feature implementation
+rules live in [`$life-ustc-feature`](../.agents/skills/life-ustc-feature/SKILL.md).
+Commit / PR / CI / merge use global agent skills.
 
 ## Start Here
 
-- [Root agent guide](../AGENTS.md)
-- [Repo skills](../.agents/skills/) — `$life-ustc-dev-loop` is the check/test SSOT
-- [README](../README.md) — product overview (capabilities and surfaces)
-- [Operations](operations.md) — production auth DB, Workers Builds, cleanup jobs
-- [Dev loop skill](../.agents/skills/life-ustc-dev-loop/SKILL.md) — local setup and checks
+- [Architecture map](../AGENTS.md)
+- [Feature skill](../.agents/skills/life-ustc-feature/SKILL.md)
+- [README](../README.md) — product overview
+- [Operations](operations.md) — production auth DB, Workers Builds, cleanup
 - [Contracts](contracts/)
 - [Interface hierarchy](interface-hierarchy.md)
 
@@ -17,15 +17,14 @@ project map.
 
 | Task | Read first |
 |------|------------|
-| Understand the system | [AGENTS.md](../AGENTS.md), then nearest scoped `AGENTS.md` |
-| PR/check loop | `$life-ustc-pr-workflow` |
-| Change a feature | `docs/contracts/<module>.json`, then `src/features/` |
-| UI / layout | `$life-ustc-dev-loop` UI gate + affected Playwright spec |
-| REST | route handler, OpenAPI JSDoc, `docs/contracts/openapi.json` |
-| GraphQL | module contract, `graphql.json`, SDL snapshot, resolver tests |
+| Orient in the codebase | [AGENTS.md](../AGENTS.md), then nearest scoped `AGENTS.md` |
+| Add or change a capability | `$life-ustc-feature` + `docs/contracts/<module>.json` |
+| UI / layout | Affected feature components + Playwright under `tests/e2e/` |
+| REST | Route handler, OpenAPI JSDoc, `docs/contracts/openapi.json` |
+| GraphQL | Module contract, `graphql.json`, SDL snapshot, resolvers |
 | MCP | `src/lib/mcp/AGENTS.md`, tool handler, module contract |
 | Data shape | `prisma/schema.prisma` + migrations |
-| Setup / ops | `$life-ustc-dev-loop`, [operations.md](operations.md), [observability.md](observability.md) |
+| Ops / observability | [operations.md](operations.md), [observability.md](observability.md) |
 
 ## Keep In Sync
 
@@ -36,12 +35,13 @@ project map.
 | MCP tool/auth/output | Module contract; `tests/integration/` |
 | User-visible web behavior | Module contract; both message files when text changes |
 | Prisma / seed | schema, migrations, shared seed files |
-| Setup / CI / ops | `$life-ustc-dev-loop`, `operations.md`, `.env.example`, `.github/workflows/AGENTS.md` |
-| Architecture / agent mistakes | Nearest `AGENTS.md` or `.agents/skills` |
+| Setup / CI / ops | `operations.md`, `.env.example`, `.github/workflows/AGENTS.md` |
+| Architecture map or layer rules | Root or nearest `AGENTS.md` |
+| How features must be split | `.agents/skills/life-ustc-feature` |
 
 ## Major Docs
 
-- [contracts/AGENTS.md](contracts/AGENTS.md) — contract JSON workflow
+- [contracts/AGENTS.md](contracts/AGENTS.md)
 - [contracts.schema.json](contracts.schema.json)
 - [observability.md](observability.md)
 - [rendering-and-cache.md](rendering-and-cache.md)
@@ -50,8 +50,9 @@ project map.
 - [graphql/mutation-capabilities.json](graphql/mutation-capabilities.json)
 - Generated OpenAPI: [`public/openapi.generated.json`](../public/openapi.generated.json)
 
-## Verification
+## Useful commands (reference)
 
-Use `$life-ustc-dev-loop`. Core aliases: `bun run app:prepare`, `bun run build`,
-`bun run dev`, `bun run e2e:server`. OpenAPI: `bun run openapi:check`. GraphQL
-SDL: `bunx vitest run --update tests/unit/graphql-schema-snapshot.test.ts`.
+Core aliases: `bun run app:prepare`, `bun run build`, `bun run dev`,
+`bun run e2e:server`, `bun run rest:test`, `bun run e2e:test`,
+`bun run openapi:check`. CI phase scripts:
+`.github/workflows/db-backed-bun-job.yml`.

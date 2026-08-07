@@ -1,27 +1,42 @@
 # tests/e2e/
 
-Playwright browser tests. Use `$life-ustc-dev-loop` for the canonical E2E
-sequence (`bun run e2e:test` = sharded CI parity). Focused local runs:
+Playwright browser tests against the Cloudflare Worker.
+
+## Commands
 
 ```bash
+# Full suite (CI parity — four shards with reseed). Not a bare playwright test.
+bun run e2e:test
+
+# Focused local run (free localhost:3000 first)
 bunx playwright test path/to/test
 bunx playwright test --headed path/to/test
 CAPTURE_STEP_SCREENSHOTS=1 bunx playwright test path/to/test
 ```
 
-## Caveats
+Playwright starts the Worker via `bun run e2e:server` (`wrangler.e2e.jsonc`).
+R2 uses local `R2_UPLOADS`. First time: `bunx playwright install --with-deps chromium`.
 
-- Playwright starts the Worker via `bun run e2e:server` (`wrangler.e2e.jsonc`) on
-  `localhost:3000` — free that port first. R2 comes from local `R2_UPLOADS`.
-- Seed edits: `tests/e2e/fixtures/scenario.json` → `prisma/seed.sql` →
-  `tests/fixtures/dev-seed.ts` (see root Shared Test Seed).
-- Prefer role/label selectors; never `waitForTimeout` or `networkidle`.
-- Full suite is four sequential shards with reseed; do not treat a single
-  unsharded `playwright test` as a release gate.
-- One worker per shard; shared-state files use `test.describe.configure({ mode: "serial" })`
-  (e.g. `tests/e2e/src/app/test.ts`, welcome/settings,
-  `tests/e2e/src/app/dashboard/**` covering `/workspace/*` UI, MCP UI).
-  Restore seeded state in `finally` when adding new shared-state files.
+## Seed
+
+Edit `tests/e2e/fixtures/scenario.json` → `prisma/seed.sql` →
+`tests/fixtures/dev-seed.ts` (see root `AGENTS.md`).
+
+## Layout
+
+```text
+tests/e2e/fixtures/             scenario.json
+tests/e2e/src/app/**/test.ts    Route tests (browser UI)
+tests/e2e/src/app/dashboard/**  Covers /workspace/* UI (feature still named dashboard)
+tests/e2e/utils/                Auth, DB, subscriptions, uploads
+tests/integration/rest/         REST contracts (playwright.api.config.ts) — not browser E2E
+```
 
 Helpers: `signInAsDebugUser`, `gotoAndWaitForReady`, `DEV_SEED` under `utils/`.
-REST contract tests live in `tests/integration/rest/` (`playwright.api.config.ts`).
+
+## Conventions
+
+- Prefer role/label selectors; never `waitForTimeout` or `networkidle`.
+- One worker per shard; shared-state files use
+  `test.describe.configure({ mode: "serial" })` and restore seed in `finally`
+  (e.g. `tests/e2e/src/app/test.ts`, welcome/settings, `dashboard/**`, MCP UI).
