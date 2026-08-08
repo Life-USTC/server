@@ -167,10 +167,12 @@ describe.sequential("Better Auth CIMD registration", () => {
     await expect(
       prisma.oAuthClient.findUnique({ where: { clientId } }),
     ).resolves.toMatchObject({
+      applicationType: null,
       clientId,
+      clientCredentialsScopes: [],
+      clientDiscoveryId: "cimd",
       clientSecret: null,
       name: "Integration MCP Client",
-      public: true,
       redirectUris: ["https://client.example/callback"],
       grantTypes: ["authorization_code", "refresh_token"],
       responseTypes: ["code"],
@@ -210,9 +212,12 @@ describe.sequential("Better Auth CIMD registration", () => {
     await expect(
       prisma.oAuthClient.findUnique({ where: { clientId: body.client_id } }),
     ).resolves.toMatchObject({
+      applicationType: "web",
       clientId: body.client_id,
+      clientCredentialsScopes: [],
+      clientDiscoveryId: null,
       name: "Integration DCR Client",
-      public: true,
+      tokenEndpointAuthMethod: "none",
     });
   });
 });
