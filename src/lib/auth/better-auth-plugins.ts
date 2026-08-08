@@ -3,7 +3,10 @@ import { genericOAuth, jwt, oAuthProxy } from "better-auth/plugins";
 import type { getAuthEnv } from "@/app-env";
 import { buildOAuthProviderPlugin } from "@/lib/auth/better-auth-oauth-provider-plugin";
 import { buildBetterAuthPasskeyPlugin } from "@/lib/auth/better-auth-passkey-plugin";
-import { allowCimdMetadataFetch } from "@/lib/auth/cimd-fetch-policy";
+import {
+  allowCimdMetadataFetch,
+  fetchCimdMetadataResource,
+} from "@/lib/auth/cimd-fetch-policy";
 import {
   getOidcAccountSubject,
   mapOidcProfileToUser,
@@ -50,7 +53,11 @@ export function buildBetterAuthPlugins(input: {
     buildOAuthProviderPlugin({
       authPublicOrigin: input.authPublicOrigin,
     }),
-    cimd({ allowFetch: allowCimdMetadataFetch }),
+    cimd({
+      fetchClientMetadataResource: fetchCimdMetadataResource,
+      isMetadataDocumentUrlAllowed: allowCimdMetadataFetch,
+      metadataProfile: "mcp-2026-07-28",
+    }),
     genericOAuth({
       config: [
         {

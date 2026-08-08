@@ -1,4 +1,4 @@
-import { mcpHandler } from "@better-auth/mcp";
+import { createMcpProtectedRequestHandler } from "@better-auth/mcp";
 import type { AuthInfo } from "@modelcontextprotocol/sdk/server/auth/types.js";
 import {
   type AccessTokenAuthorization,
@@ -171,21 +171,26 @@ export async function verifyMcpAccessTokenRequest(request: Request): Promise<
   }
 
   let jwtClaims: JWTPayload | undefined;
-  const verifyRequest = mcpHandler(
-    {
-      verifyOptions: {
+  let upstreamResponse: Response | undefined;
+  for (const audience of getOAuthMcpResourceUrls()) {
+    const verifyRequest = createMcpProtectedRequestHandler(
+      {
         issuer: getCanonicalOAuthIssuer(),
-        audience: getOAuthMcpResourceUrls(),
+        audience,
+        jwksUrl: getJwksUrlForOAuthVerification(),
       },
-      jwksUrl: getJwksUrlForOAuthVerification(),
-    },
-    (_request, verifiedClaims) => {
-      jwtClaims = verifiedClaims;
-      return new Response(null, { status: 204 });
-    },
-  );
-
-  const upstreamResponse = await verifyRequest(request);
+      (_request, verifiedClaims) => {
+        jwtClaims = verifiedClaims;
+        return new Response(null, { status: 204 });
+      },
+    );
+    const response = await verifyRequest(request);
+    upstreamResponse ??= response;
+    if (jwtClaims) {
+      upstreamResponse = response;
+      break;
+    }
+  }
   if (!jwtClaims) {
     const kind = authHeaderKind(authorization);
     const token = authorization?.token;
@@ -201,7 +206,9 @@ export async function verifyMcpAccessTokenRequest(request: Request): Promise<
               ? "unknown"
               : tokenFormat(token),
       },
-      response: addBootstrapScopeToBearerChallenges(upstreamResponse),
+      response: addBootstrapScopeToBearerChallenges(
+        upstreamResponse ?? new Response(null, { status: 401 }),
+      ),
     };
   }
 
