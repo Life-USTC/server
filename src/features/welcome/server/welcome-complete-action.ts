@@ -6,6 +6,7 @@ import {
   processProfileAvatarUpload,
 } from "@/features/profile/server/profile-avatar-service";
 import { updateOwnProfile } from "@/features/profile/server/profile-update-service";
+import { buildWelcomeStepUrl } from "@/features/welcome/lib/welcome-steps";
 import { buildSignInPageUrl } from "@/lib/auth/auth-routing";
 import { getSessionFromHeaders } from "@/lib/auth/core";
 import { applyAuthResponseCookies } from "@/lib/auth/svelte-auth-actions";
@@ -104,5 +105,5 @@ export async function completeWelcomeProfile({
   }
 
   applyAuthResponseCookies(result.headers, cookies);
-  throw redirect(303, redirectTo);
+  throw redirect(303, buildWelcomeStepUrl("subscriptions", redirectTo));
 }

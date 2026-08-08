@@ -1,6 +1,15 @@
 import { redirect, type ServerLoadEvent } from "@sveltejs/kit";
 import { providerNames } from "@/features/auth/server/signin-page-copy";
 import { getCurrentSemester } from "@/features/catalog/server/academic-metadata-read-model";
+import {
+  buildWelcomeStepUrl,
+  nextWelcomeStep,
+  parseWelcomeStep,
+  previousWelcomeStep,
+  WELCOME_STEPS,
+  type WelcomeStep,
+  welcomeStepNumber,
+} from "@/features/welcome/lib/welcome-steps";
 import { buildSignInPageUrl } from "@/lib/auth/auth-routing";
 import { getSessionFromHeaders } from "@/lib/auth/core";
 import { prisma } from "@/lib/db/prisma";
@@ -10,6 +19,30 @@ import { refreshWelcomeOAuthProfile } from "./welcome-oauth-refresh-action";
 import { getWelcomeCopy } from "./welcome-page-copy";
 
 const REFRESHABLE_PROVIDERS = new Set(["github", "google", "oidc"]);
+
+const STEP_TITLE_KEYS = {
+  profile: "stepProfile",
+  subscriptions: "stepSubscriptions",
+  finish: "stepFinish",
+} as const satisfies Record<WelcomeStep, string>;
+
+function buildStepIndicators(
+  step: WelcomeStep,
+  copy: ReturnType<typeof getWelcomeCopy>,
+) {
+  const currentNumber = welcomeStepNumber(step);
+  return WELCOME_STEPS.map((id) => ({
+    id,
+    label: copy.welcome[STEP_TITLE_KEYS[id]],
+    number: welcomeStepNumber(id),
+    state:
+      id === step
+        ? ("current" as const)
+        : welcomeStepNumber(id) < currentNumber
+          ? ("complete" as const)
+          : ("upcoming" as const),
+  }));
+}
 
 export const loadWelcomePage = async ({
   locals,
@@ -60,11 +93,29 @@ export const loadWelcomePage = async ({
     );
   }
 
-  if (user.name && user.username) {
+  // Profile is the only required step, so an incomplete profile always returns
+  // there and a complete profile never lands back on it.
+  const hasCompleteProfile = Boolean(user.name && user.username);
+  const step = hasCompleteProfile
+    ? parseWelcomeStep(url.searchParams.get("step"))
+    : "profile";
+  if (hasCompleteProfile && step === "profile") {
     throw redirect(303, callbackUrl);
   }
 
+  const copy = getWelcomeCopy(locals.locale);
+  const previousStep = previousWelcomeStep(step);
+  const followingStep = nextWelcomeStep(step);
+
   return {
+    step,
+    stepIndicators: buildStepIndicators(step, copy),
+    backUrl: previousStep
+      ? buildWelcomeStepUrl(previousStep, callbackUrl)
+      : null,
+    nextUrl: followingStep
+      ? buildWelcomeStepUrl(followingStep, callbackUrl)
+      : callbackUrl,
     user: {
       id: user.id,
       name: user.name,
@@ -90,7 +141,7 @@ export const loadWelcomePage = async ({
     defaultSemesterId: currentSemester?.id ?? null,
     callbackUrl,
     locale: locals.locale,
-    copy: getWelcomeCopy(locals.locale),
+    copy,
   };
 };
 
