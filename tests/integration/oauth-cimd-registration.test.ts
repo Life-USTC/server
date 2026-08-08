@@ -154,6 +154,7 @@ describe.sequential("Better Auth CIMD registration", () => {
         "authorization_code",
         "refresh_token",
         OAUTH_DEVICE_CODE_GRANT_TYPE,
+        "urn:ietf:params:oauth:grant-type:jwt-bearer",
       ],
       response_types: ["code", "token"],
       scope: restReadScope("account.profile"),
