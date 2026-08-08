@@ -156,13 +156,15 @@ describe.sequential("Better Auth CIMD registration", () => {
         OAUTH_DEVICE_CODE_GRANT_TYPE,
         "urn:ietf:params:oauth:grant-type:jwt-bearer",
       ],
-      response_types: ["code", "token"],
+      response_types: ["code"],
       scope: restReadScope("account.profile"),
     });
 
     const response = await authorizeRequest(clientId);
+    const errorBody =
+      response.status >= 400 ? await response.clone().json() : undefined;
 
-    expect(response.status).toBe(302);
+    expect(response.status, JSON.stringify(errorBody)).toBe(302);
     expect(response.headers.get("location")).toContain("/account/sign-in");
     await expect(
       prisma.oAuthClient.findUnique({ where: { clientId } }),
