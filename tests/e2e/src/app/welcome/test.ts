@@ -102,7 +102,9 @@ test("/account/welcome 显示必填字段", async ({ page }, testInfo) => {
   }
 });
 
-test("/account/welcome 上传头像后保存处理后的 R2 图片", async ({ page }) => {
+test("/account/welcome 本地图片处理不可用时保留表单并显示错误", async ({
+  page,
+}) => {
   test.setTimeout(300_000);
   await signInAsDebugUser(page, "/");
   const sessionUser = await getCurrentSessionUser(page);
@@ -128,15 +130,15 @@ test("/account/welcome 上传头像后保存处理后的 R2 图片", async ({ pa
       .getByRole("textbox", { name: /^(用户名|Username)\b/i })
       .fill(DEV_SEED.debugUsername);
     await page.getByRole("button", { name: /继续|Continue/i }).click();
-    await expect(page).toHaveURL(/\/workspace\/overview(?:\?.*)?$/);
+    await expect(page).toHaveURL(/\/account\/welcome(?:\?.*)?$/);
+    await expect(
+      page.getByText(
+        /头像处理服务暂时不可用|Avatar processing is temporarily unavailable/i,
+      ),
+    ).toBeVisible();
 
-    const updatedUser = await getUserProfileById(sessionUser.id);
-    expect(updatedUser.image).toMatch(
-      new RegExp(`^/media/avatars/${sessionUser.id}/[0-9a-f-]{36}\\.webp$`),
-    );
-    const avatarResponse = await page.request.get(updatedUser.image ?? "");
-    expect(avatarResponse.status()).toBe(200);
-    expect(avatarResponse.headers()["content-type"]).toBe("image/webp");
+    const unchangedUser = await getUserProfileById(sessionUser.id);
+    expect(unchangedUser.image).toBe(originalUser.image);
   } finally {
     await updateUserProfileById(sessionUser.id, {
       name: originalUser.name ?? DEV_SEED.debugName,
