@@ -124,6 +124,35 @@ describe.skipIf(process.env.RLS_TEST_ENABLED !== "true")(
       }
     });
 
+    it("allows the app runtime to append trusted profile picture URLs", async () => {
+      const marker = `runtime-avatar-${crypto.randomUUID()}`;
+      const user = await adminPrisma.user.create({
+        data: {
+          email: `${marker}@example.test`,
+          name: marker,
+        },
+        select: { id: true },
+      });
+
+      try {
+        await expect(
+          prisma.user.update({
+            where: { id: user.id },
+            data: {
+              profilePictures: {
+                push: `https://example.test/${marker}.webp`,
+              },
+            },
+            select: { profilePictures: true },
+          }),
+        ).resolves.toEqual({
+          profilePictures: [`https://example.test/${marker}.webp`],
+        });
+      } finally {
+        await adminPrisma.user.delete({ where: { id: user.id } });
+      }
+    });
+
     it("keeps exactly one runtime-applicable owner policy per table", async () => {
       const policies = await prisma.$queryRaw<
         {

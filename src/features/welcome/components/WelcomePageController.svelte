@@ -1,7 +1,10 @@
 <script lang="ts">
+import WelcomeGuideCard from "@/features/welcome/components/WelcomeGuideCard.svelte";
 import WelcomeImportDialogs from "@/features/welcome/components/WelcomeImportDialogs.svelte";
 import WelcomeNextStepsCard from "@/features/welcome/components/WelcomeNextStepsCard.svelte";
+import WelcomeOAuthProfileCard from "@/features/welcome/components/WelcomeOAuthProfileCard.svelte";
 import WelcomeProfileForm from "@/features/welcome/components/WelcomeProfileForm.svelte";
+import WelcomeStepper from "@/features/welcome/components/WelcomeStepper.svelte";
 import { createWelcomeBulkImportActions } from "@/features/welcome/lib/welcome-bulk-import-actions";
 import { createWelcomeControllerDefaultState } from "@/features/welcome/lib/welcome-controller-default-state";
 import {
@@ -12,6 +15,7 @@ import {
   displayWelcomeName,
   formatWelcomeCopy,
 } from "@/features/welcome/lib/welcome-display";
+import { welcomeStepNumber } from "@/features/welcome/lib/welcome-steps";
 import type {
   WelcomeActionData,
   WelcomeMatchedSection,
@@ -51,6 +55,10 @@ $: selectedSectionIdSet = new Set(selectedSectionIds);
 $: selectedCount = selectedSectionIds.length;
 $: canMatch = importText.trim().length > 0 && !isMatching;
 $: semesterOptions = buildWelcomeSemesterOptions(data.semesters, data.locale);
+$: progressLabel = formatCopy(welcomeCopy.stepProgress, {
+  current: welcomeStepNumber(data.step),
+  total: data.stepIndicators.length,
+});
 
 function formatCopy(value: string, params: Record<string, number | string>) {
   return formatWelcomeCopy(value, params);
@@ -110,52 +118,71 @@ const completeProfileAction = createCompleteProfileAction({
 
 <svelte:head><title>{welcomeCopy.title} - Life@USTC</title></svelte:head>
 
-<section class="mx-auto grid min-h-[calc(100vh-14rem)] w-full max-w-5xl content-center gap-6 lg:grid-cols-[minmax(0,1.2fr)_minmax(18rem,0.8fr)]">
-  <WelcomeProfileForm
-    {avatarOptions}
-    callbackUrl={data.callbackUrl}
-    {completeProfileAction}
-    {copy}
-    {currentImage}
-    formMessage={form?.message}
-    isCompletingProfile={_isCompletingProfile}
-    {previewImage}
-    {profileCopy}
-    bind:selectedImage
-    user={data.user}
-    {welcomeCopy}
-  />
+<section class="mx-auto grid min-h-[calc(100vh-14rem)] w-full max-w-xl content-start gap-6 py-10">
+  <WelcomeStepper {progressLabel} steps={data.stepIndicators} />
 
-  <WelcomeNextStepsCard
-    {importMessage}
-    onOpenBulkImport={() => {
-      isBulkImportOpen = true;
-    }}
-    {welcomeCopy}
-  />
+  {#if data.step === "profile"}
+    <WelcomeProfileForm
+      {avatarOptions}
+      callbackUrl={data.callbackUrl}
+      {completeProfileAction}
+      {copy}
+      {currentImage}
+      formMessage={form?.message}
+      isCompletingProfile={_isCompletingProfile}
+      {previewImage}
+      {profileCopy}
+      bind:selectedImage
+      user={data.user}
+      {welcomeCopy}
+    />
 
-  <WelcomeImportDialogs
-    {bulkCopy}
-    {canMatch}
-    {confirmImport}
-    {displayName}
-    {formatCopy}
-    {importError}
-    {importMessage}
-    bind:importText
-    bind:isBulkImportOpen
-    bind:isConfirmImportOpen
-    {isImporting}
-    {isMatching}
-    {matchSections}
-    {matchedSections}
-    {resetBulkImport}
-    {selectedCount}
-    {selectedSectionIdSet}
-    bind:selectedSemesterId
-    {semesterOptions}
-    {setSectionSelection}
-    {unmatchedCodes}
-    {welcomeCopy}
-  />
+    <WelcomeOAuthProfileCard
+      callbackUrl={data.callbackUrl}
+      oauthProviders={data.oauthProviders}
+      oauthRefreshed={data.oauthRefreshed}
+      {welcomeCopy}
+    />
+  {:else if data.step === "subscriptions"}
+    <WelcomeNextStepsCard
+      backUrl={data.backUrl}
+      {importMessage}
+      nextUrl={data.nextUrl}
+      onOpenBulkImport={() => {
+        isBulkImportOpen = true;
+      }}
+      {welcomeCopy}
+    />
+
+    <WelcomeImportDialogs
+      {bulkCopy}
+      {canMatch}
+      {confirmImport}
+      {displayName}
+      {formatCopy}
+      {importError}
+      {importMessage}
+      bind:importText
+      bind:isBulkImportOpen
+      bind:isConfirmImportOpen
+      {isImporting}
+      {isMatching}
+      {matchSections}
+      {matchedSections}
+      {resetBulkImport}
+      {selectedCount}
+      {selectedSectionIdSet}
+      bind:selectedSemesterId
+      {semesterOptions}
+      {setSectionSelection}
+      {unmatchedCodes}
+      {welcomeCopy}
+    />
+  {:else}
+    <WelcomeGuideCard
+      backUrl={data.backUrl}
+      finishUrl={data.nextUrl}
+      {welcomeCopy}
+    />
+  {/if}
 </section>

@@ -6,8 +6,10 @@ import {
 import { upsertVerifiedEmail } from "@/lib/auth/oauth-user-email-resolve";
 import { consumeStagedSocialVerifiedEmail } from "@/lib/auth/social-verified-email-staging";
 import { authPrisma } from "@/lib/db/auth-prisma";
+import { prisma } from "@/lib/db/prisma";
+import { logAppEvent } from "@/lib/log/app-logger";
 
-const SOCIAL_VERIFIED_EMAIL_PROVIDERS = new Set(["github", "google"]);
+const SOCIAL_PROFILE_PROVIDERS = new Set(["github", "google", "oidc"]);
 
 type AccountHookPayload = Pick<
   Account,
@@ -16,14 +18,14 @@ type AccountHookPayload = Pick<
 
 async function applySocialVerifiedEmailToUser(input: {
   userId: string;
-  email: string;
+  email: string | null;
   emailVerified: boolean;
   name: string | null;
   image: string | null;
 }) {
   const current = await authPrisma.user.findUnique({
     where: { id: input.userId },
-    select: { email: true, name: true, image: true },
+    select: { email: true, name: true, image: true, profilePictures: true },
   });
   if (!current) return;
 
@@ -34,7 +36,11 @@ async function applySocialVerifiedEmailToUser(input: {
     image?: string | null;
   } = {};
 
-  if (isPlaceholderUserEmail(current.email)) {
+  if (
+    input.email &&
+    isPublishableUserEmail(input.email) &&
+    isPlaceholderUserEmail(current.email)
+  ) {
     profileUpdate.email = input.email;
     profileUpdate.emailVerified = input.emailVerified;
   }
@@ -44,24 +50,39 @@ async function applySocialVerifiedEmailToUser(input: {
   if (input.image && !current.image) {
     profileUpdate.image = input.image;
   }
-
-  if (Object.keys(profileUpdate).length === 0) return;
-
-  try {
-    await authPrisma.user.update({
-      where: { id: input.userId },
-      data: profileUpdate,
-    });
-  } catch {
-    // Unique email conflicts should not fail social login; VerifiedEmail still
-    // holds the upstream mailbox for OAuth userinfo resolution.
+  if (Object.keys(profileUpdate).length > 0) {
+    try {
+      await authPrisma.user.update({
+        where: { id: input.userId },
+        data: profileUpdate,
+      });
+    } catch {
+      // Unique email conflicts should not fail social login; VerifiedEmail still
+      // holds the upstream mailbox for OAuth userinfo resolution.
+    }
+  }
+  if (input.image && !current.profilePictures.includes(input.image)) {
+    try {
+      await prisma.user.update({
+        where: { id: input.userId },
+        data: { profilePictures: { push: input.image } },
+        select: { id: true },
+      });
+    } catch (error) {
+      logAppEvent(
+        "warn",
+        "Failed to persist upstream avatar as a profile option",
+        { source: "auth" },
+        error,
+      );
+    }
   }
 }
 
 export async function syncSocialVerifiedEmailFromAccountHook(
   account: AccountHookPayload,
 ) {
-  if (!SOCIAL_VERIFIED_EMAIL_PROVIDERS.has(account.providerId)) return;
+  if (!SOCIAL_PROFILE_PROVIDERS.has(account.providerId)) return;
 
   const accountId = account.providerAccountId.trim();
   if (!accountId) return;
@@ -70,14 +91,19 @@ export async function syncSocialVerifiedEmailFromAccountHook(
     account.providerId,
     accountId,
   );
-  if (!staged || !isPublishableUserEmail(staged.email)) return;
+  if (!staged) return;
 
-  const email = staged.email.trim();
-  await upsertVerifiedEmail({
-    userId: account.userId,
-    provider: account.providerId,
-    email,
-  });
+  const email =
+    staged.email && isPublishableUserEmail(staged.email)
+      ? staged.email.trim()
+      : null;
+  if (email) {
+    await upsertVerifiedEmail({
+      userId: account.userId,
+      provider: account.providerId,
+      email,
+    });
+  }
   await applySocialVerifiedEmailToUser({
     userId: account.userId,
     email,

@@ -109,6 +109,14 @@ async function completeWelcomeProfileIfNeeded(
   await nameInput.fill(DEV_SEED.debugName);
   await usernameInput.fill(DEV_SEED.debugUsername);
   await page.getByRole("button", { name: /继续|Continue/i }).click();
+  // The profile step hands off to the optional onboarding steps, which the
+  // harness skips by navigating straight to the destination.
+  await page.waitForURL(
+    (url) =>
+      !url.pathname.startsWith("/account/welcome") ||
+      url.searchParams.get("step") !== null,
+    { timeout: 15_000 },
+  );
   await gotoAndWaitForReady(page, expectedPath);
 }
 
