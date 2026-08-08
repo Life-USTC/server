@@ -76,9 +76,9 @@ describe("仪表盘链接推荐", () => {
     ).toMatchObject({
       url: "https://cwjf.ustc.edu.cn/payment/",
     });
-    expect(
-      USTC_DASHBOARD_LINKS.some((link) => link.slug === "legacy-jw"),
-    ).toBe(false);
+    expect(USTC_DASHBOARD_LINKS.some((link) => link.slug === "legacy-jw")).toBe(
+      false,
+    );
   });
 
   it("按地区设置投影仪表盘链接标签", () => {
