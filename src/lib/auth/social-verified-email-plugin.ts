@@ -11,7 +11,7 @@ const SOCIAL_VERIFIED_EMAIL_PROVIDERS = new Set(["github", "google"]);
 
 type AccountHookPayload = Pick<
   Account,
-  "providerId" | "providerAccountId" | "userId"
+  "accountId" | "providerId" | "userId"
 >;
 
 async function applySocialVerifiedEmailToUser(input: {
@@ -63,7 +63,7 @@ export async function syncSocialVerifiedEmailFromAccountHook(
 ) {
   if (!SOCIAL_VERIFIED_EMAIL_PROVIDERS.has(account.providerId)) return;
 
-  const accountId = account.providerAccountId.trim();
+  const accountId = account.accountId.trim();
   if (!accountId) return;
 
   const staged = consumeStagedSocialVerifiedEmail(

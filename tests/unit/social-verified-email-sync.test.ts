@@ -48,8 +48,8 @@ describe("social verified email sync", () => {
     userUpdateMock.mockResolvedValue(undefined);
 
     await syncSocialVerifiedEmailFromAccountHook({
+      accountId: "octocat",
       providerId: "github",
-      providerAccountId: "octocat",
       userId: "user-1",
     });
 
@@ -81,15 +81,15 @@ describe("social verified email sync", () => {
 
   it("skips non-social providers and missing staged emails", async () => {
     await syncSocialVerifiedEmailFromAccountHook({
+      accountId: "435",
       providerId: "oidc",
-      providerAccountId: "435",
       userId: "user-1",
     });
     expect(verifiedEmailUpsertMock).not.toHaveBeenCalled();
 
     await syncSocialVerifiedEmailFromAccountHook({
+      accountId: "google-user",
       providerId: "google",
-      providerAccountId: "google-user",
       userId: "user-1",
     });
     expect(verifiedEmailUpsertMock).not.toHaveBeenCalled();
