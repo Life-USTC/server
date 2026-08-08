@@ -9,10 +9,7 @@ import { authPrisma } from "@/lib/db/auth-prisma";
 
 const SOCIAL_VERIFIED_EMAIL_PROVIDERS = new Set(["github", "google"]);
 
-type AccountHookPayload = Pick<
-  Account,
-  "accountId" | "providerId" | "userId"
->;
+type AccountHookPayload = Pick<Account, "accountId" | "providerId" | "userId">;
 
 async function applySocialVerifiedEmailToUser(input: {
   userId: string;
