@@ -178,6 +178,7 @@ test.describe("OAuth 提供者", () => {
       "/api/auth/oauth2/register",
       {
         data: {
+          application_type: "native",
           client_name: `e2e-public-${Date.now()}`,
           redirect_uris: [REDIRECT_URI],
           token_endpoint_auth_method: OAUTH_PUBLIC_CLIENT_AUTH_METHOD,
@@ -329,13 +330,13 @@ test.describe("OAuth 提供者", () => {
       "/api/auth/oauth2/register",
       {
         data: {
+          application_type: "native",
           client_name: `e2e-loopback-${Date.now()}`,
           redirect_uris: [LOOPBACK_REDIRECT_URI],
           token_endpoint_auth_method: OAUTH_PUBLIC_CLIENT_AUTH_METHOD,
           grant_types: [OAUTH_AUTHORIZATION_CODE_GRANT_TYPE],
           response_types: [OAUTH_CODE_RESPONSE_TYPE],
           scope: DCR_CLIENT_SCOPE,
-          type: "native",
         },
       },
     );

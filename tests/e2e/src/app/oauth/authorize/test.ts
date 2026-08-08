@@ -27,6 +27,7 @@ const REDIRECT_URI = `${PLAYWRIGHT_BASE_URL}/e2e/oauth/callback`;
 async function registerPublicClient(request: APIRequestContext) {
   const response = await request.post("/api/auth/oauth2/register", {
     data: {
+      application_type: "native",
       client_name: `oauth-authorize-e2e-${Date.now()}`,
       redirect_uris: [REDIRECT_URI],
       token_endpoint_auth_method: "none",
