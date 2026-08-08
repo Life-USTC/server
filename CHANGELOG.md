@@ -1,3 +1,10 @@
+# [1.88.0](https://github.com/Life-USTC/server/compare/v1.87.0...v1.88.0) (2026-08-08)
+
+
+### Features
+
+* refresh campus link catalog ([#766](https://github.com/Life-USTC/server/issues/766)) ([6806c5c](https://github.com/Life-USTC/server/commit/6806c5c5e32e06d03f6ae22d954e4a814dd5029a))
+
 # [1.87.0](https://github.com/Life-USTC/server/compare/v1.86.0...v1.87.0) (2026-08-08)
 
 
