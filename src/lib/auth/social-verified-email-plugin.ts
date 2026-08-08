@@ -7,7 +7,7 @@ import { upsertVerifiedEmail } from "@/lib/auth/oauth-user-email-resolve";
 import { consumeStagedSocialVerifiedEmail } from "@/lib/auth/social-verified-email-staging";
 import { authPrisma } from "@/lib/db/auth-prisma";
 
-const SOCIAL_VERIFIED_EMAIL_PROVIDERS = new Set(["github", "google"]);
+const SOCIAL_PROFILE_PROVIDERS = new Set(["github", "google", "oidc"]);
 
 type AccountHookPayload = Pick<
   Account,
@@ -16,14 +16,14 @@ type AccountHookPayload = Pick<
 
 async function applySocialVerifiedEmailToUser(input: {
   userId: string;
-  email: string;
+  email: string | null;
   emailVerified: boolean;
   name: string | null;
   image: string | null;
 }) {
   const current = await authPrisma.user.findUnique({
     where: { id: input.userId },
-    select: { email: true, name: true, image: true },
+    select: { email: true, name: true, image: true, profilePictures: true },
   });
   if (!current) return;
 
@@ -32,9 +32,14 @@ async function applySocialVerifiedEmailToUser(input: {
     emailVerified?: boolean;
     name?: string;
     image?: string | null;
+    profilePictures?: { push: string };
   } = {};
 
-  if (isPlaceholderUserEmail(current.email)) {
+  if (
+    input.email &&
+    isPublishableUserEmail(input.email) &&
+    isPlaceholderUserEmail(current.email)
+  ) {
     profileUpdate.email = input.email;
     profileUpdate.emailVerified = input.emailVerified;
   }
@@ -43,6 +48,9 @@ async function applySocialVerifiedEmailToUser(input: {
   }
   if (input.image && !current.image) {
     profileUpdate.image = input.image;
+  }
+  if (input.image && !current.profilePictures.includes(input.image)) {
+    profileUpdate.profilePictures = { push: input.image };
   }
 
   if (Object.keys(profileUpdate).length === 0) return;
@@ -61,7 +69,7 @@ async function applySocialVerifiedEmailToUser(input: {
 export async function syncSocialVerifiedEmailFromAccountHook(
   account: AccountHookPayload,
 ) {
-  if (!SOCIAL_VERIFIED_EMAIL_PROVIDERS.has(account.providerId)) return;
+  if (!SOCIAL_PROFILE_PROVIDERS.has(account.providerId)) return;
 
   const accountId = account.providerAccountId.trim();
   if (!accountId) return;
@@ -70,14 +78,19 @@ export async function syncSocialVerifiedEmailFromAccountHook(
     account.providerId,
     accountId,
   );
-  if (!staged || !isPublishableUserEmail(staged.email)) return;
+  if (!staged) return;
 
-  const email = staged.email.trim();
-  await upsertVerifiedEmail({
-    userId: account.userId,
-    provider: account.providerId,
-    email,
-  });
+  const email =
+    staged.email && isPublishableUserEmail(staged.email)
+      ? staged.email.trim()
+      : null;
+  if (email) {
+    await upsertVerifiedEmail({
+      userId: account.userId,
+      provider: account.providerId,
+      email,
+    });
+  }
   await applySocialVerifiedEmailToUser({
     userId: account.userId,
     email,

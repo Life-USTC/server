@@ -7,6 +7,7 @@ type ProfileUpdateInput = {
   headers: Headers;
   image: string | null;
   name: string;
+  trustedImageUrl?: string | null;
   userId: string;
   username: string;
 };
@@ -38,6 +39,7 @@ export async function updateOwnProfile(
   if (
     input.image &&
     input.image !== current.image &&
+    input.image !== input.trustedImageUrl &&
     !current.profilePictures.includes(input.image)
   ) {
     return { ok: false, reason: "avatar_invalid" };

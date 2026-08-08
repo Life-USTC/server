@@ -25,5 +25,19 @@ export let welcomeCopy: WelcomeCopy;
     <Button class="justify-start" href="/catalog/sections" variant="outline">{welcomeCopy.browseSections}</Button>
     <Button class="justify-start" href="/catalog/courses" variant="outline">{welcomeCopy.browseCourses}</Button>
     <Button class="justify-start" type="button" variant="outline" onclick={onOpenBulkImport}>{welcomeCopy.bulkImportCta}</Button>
+    <div class="mt-3 grid gap-3 border-t pt-4">
+      <div>
+        <p class="font-medium text-sm">{welcomeCopy.guideWorkspaceTitle}</p>
+        <p class="text-muted-foreground text-xs">{welcomeCopy.guideWorkspaceDescription}</p>
+      </div>
+      <div>
+        <p class="font-medium text-sm">{welcomeCopy.guidePlanningTitle}</p>
+        <p class="text-muted-foreground text-xs">{welcomeCopy.guidePlanningDescription}</p>
+      </div>
+      <div>
+        <p class="font-medium text-sm">{welcomeCopy.guideAccountTitle}</p>
+        <p class="text-muted-foreground text-xs">{welcomeCopy.guideAccountDescription}</p>
+      </div>
+    </div>
   </Card.Content>
 </Card.Root>

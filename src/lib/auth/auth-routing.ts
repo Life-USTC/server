@@ -106,6 +106,7 @@ function isOAuthCallbackContinuation(url: URL): boolean {
 function isNonPageRequestPath(pathname: string): boolean {
   return (
     pathname.startsWith("/api/") ||
+    pathname.startsWith("/media/") ||
     pathname.startsWith("/.well-known/") ||
     pathname.startsWith("/_app/") ||
     pathname === "/llms.txt" ||

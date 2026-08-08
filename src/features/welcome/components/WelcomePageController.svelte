@@ -1,6 +1,7 @@
 <script lang="ts">
 import WelcomeImportDialogs from "@/features/welcome/components/WelcomeImportDialogs.svelte";
 import WelcomeNextStepsCard from "@/features/welcome/components/WelcomeNextStepsCard.svelte";
+import WelcomeOAuthProfileCard from "@/features/welcome/components/WelcomeOAuthProfileCard.svelte";
 import WelcomeProfileForm from "@/features/welcome/components/WelcomeProfileForm.svelte";
 import { createWelcomeBulkImportActions } from "@/features/welcome/lib/welcome-bulk-import-actions";
 import { createWelcomeControllerDefaultState } from "@/features/welcome/lib/welcome-controller-default-state";
@@ -111,20 +112,29 @@ const completeProfileAction = createCompleteProfileAction({
 <svelte:head><title>{welcomeCopy.title} - Life@USTC</title></svelte:head>
 
 <section class="mx-auto grid min-h-[calc(100vh-14rem)] w-full max-w-5xl content-center gap-6 lg:grid-cols-[minmax(0,1.2fr)_minmax(18rem,0.8fr)]">
-  <WelcomeProfileForm
-    {avatarOptions}
-    callbackUrl={data.callbackUrl}
-    {completeProfileAction}
-    {copy}
-    {currentImage}
-    formMessage={form?.message}
-    isCompletingProfile={_isCompletingProfile}
-    {previewImage}
-    {profileCopy}
-    bind:selectedImage
-    user={data.user}
-    {welcomeCopy}
-  />
+  <div class="grid gap-6">
+    <WelcomeProfileForm
+      {avatarOptions}
+      callbackUrl={data.callbackUrl}
+      {completeProfileAction}
+      {copy}
+      {currentImage}
+      formMessage={form?.message}
+      isCompletingProfile={_isCompletingProfile}
+      {previewImage}
+      {profileCopy}
+      bind:selectedImage
+      user={data.user}
+      {welcomeCopy}
+    />
+
+    <WelcomeOAuthProfileCard
+      callbackUrl={data.callbackUrl}
+      oauthProviders={data.oauthProviders}
+      oauthRefreshed={data.oauthRefreshed}
+      {welcomeCopy}
+    />
+  </div>
 
   <WelcomeNextStepsCard
     {importMessage}

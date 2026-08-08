@@ -2,6 +2,8 @@ import type { SubmitFunction } from "@sveltejs/kit";
 import type { WelcomeMatchedSection } from "@/features/welcome/lib/welcome-bulk-import-types";
 
 export type WelcomeProfileCopy = {
+  avatarUpload: string;
+  avatarUploadHint: string;
   name: string;
   namePlaceholder: string;
   profilePicture: string;
@@ -87,6 +89,8 @@ export type WelcomePageData = {
   copy: WelcomePageCopy;
   defaultSemesterId?: number | string | null;
   locale: string;
+  oauthProviders: Array<{ id: string; name: string }>;
+  oauthRefreshed: boolean;
   semesters: WelcomeSemester[];
   user: WelcomePageUser;
 };

@@ -4,6 +4,7 @@ import {
   PROFILE_USERNAME_PATTERN,
 } from "@/features/profile/lib/profile-username";
 import { enhance } from "$app/forms";
+import { onDestroy } from "svelte";
 import * as Alert from "$lib/components/ui/alert/index.js";
 import * as Avatar from "$lib/components/ui/avatar/index.js";
 import { Badge } from "$lib/components/ui/badge/index.js";
@@ -37,9 +38,23 @@ export let welcomeCopy: WelcomeCopy;
 $: avatarFallback = (user.name ?? user.username ?? "U")
   .slice(0, 1)
   .toUpperCase();
+
+let uploadedAvatarPreview = "";
+
+function handleAvatarUpload(event: Event) {
+  if (uploadedAvatarPreview) URL.revokeObjectURL(uploadedAvatarPreview);
+  const input = event.currentTarget as HTMLInputElement;
+  const file = input.files?.[0];
+  uploadedAvatarPreview = file ? URL.createObjectURL(file) : "";
+  if (file) selectedImage = undefined;
+}
+
+onDestroy(() => {
+  if (uploadedAvatarPreview) URL.revokeObjectURL(uploadedAvatarPreview);
+});
 </script>
 
-<form method="POST" action="?/complete" use:enhance={completeProfileAction}>
+<form method="POST" action="?/complete" enctype="multipart/form-data" use:enhance={completeProfileAction}>
   <input type="hidden" name="callbackUrl" value={callbackUrl} />
   <Card.Root>
     <Card.Header class="items-center text-center">
@@ -62,7 +77,7 @@ $: avatarFallback = (user.name ?? user.username ?? "U")
         <Field.Legend variant="label">{profileCopy.profilePicture}</Field.Legend>
         <div class="flex flex-wrap items-center gap-4">
           <Avatar.Root class="size-20 shrink-0">
-            <Avatar.Image alt={profileCopy.profilePicture} src={previewImage} />
+            <Avatar.Image alt={profileCopy.profilePicture} src={uploadedAvatarPreview || previewImage} />
             <Avatar.Fallback>{avatarFallback}</Avatar.Fallback>
           </Avatar.Root>
           {#if avatarOptions.length > 0}
@@ -94,6 +109,17 @@ $: avatarFallback = (user.name ?? user.username ?? "U")
             </Field.Description>
           {/if}
         </div>
+        <Field.Field>
+          <Field.Label for="avatar">{profileCopy.avatarUpload}</Field.Label>
+          <Input
+            id="avatar"
+            name="avatar"
+            type="file"
+            accept="image/avif,image/jpeg,image/png,image/webp"
+            onchange={handleAvatarUpload}
+          />
+          <Field.Description>{profileCopy.avatarUploadHint}</Field.Description>
+        </Field.Field>
       </Field.Set>
 
       <Field.Group class="gap-4">

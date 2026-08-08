@@ -30,6 +30,9 @@
       "!/openapi.generated.json"
     ]
   },
+  "images": {
+    "binding": "IMAGES"
+  },
   "observability": {
     "enabled": true,
     "logs": {

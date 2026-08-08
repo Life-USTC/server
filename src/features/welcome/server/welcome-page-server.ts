@@ -1,4 +1,5 @@
 import { redirect, type ServerLoadEvent } from "@sveltejs/kit";
+import { providerNames } from "@/features/auth/server/signin-page-copy";
 import { getCurrentSemester } from "@/features/catalog/server/academic-metadata-read-model";
 import { buildSignInPageUrl } from "@/lib/auth/auth-routing";
 import { getSessionFromHeaders } from "@/lib/auth/core";
@@ -6,6 +7,9 @@ import { prisma } from "@/lib/db/prisma";
 import { resolveWelcomeCallbackUrl } from "./welcome-callback-url";
 import { completeWelcomeProfile } from "./welcome-complete-action";
 import { getWelcomeCopy } from "./welcome-page-copy";
+import { refreshWelcomeOAuthProfile } from "./welcome-oauth-refresh-action";
+
+const REFRESHABLE_PROVIDERS = new Set(["github", "google", "oidc"]);
 
 export const loadWelcomePage = async ({
   locals,
@@ -34,6 +38,9 @@ export const loadWelcomePage = async ({
         username: true,
         image: true,
         profilePictures: true,
+        accounts: {
+          select: { provider: true },
+        },
       },
     }),
     prisma.semester.findMany({
@@ -58,7 +65,27 @@ export const loadWelcomePage = async ({
   }
 
   return {
-    user,
+    user: {
+      id: user.id,
+      name: user.name,
+      username: user.username,
+      image: user.image,
+      profilePictures: user.profilePictures,
+    },
+    oauthProviders: Array.from(
+      new Set(
+        user.accounts
+          .map(({ provider }) => provider)
+          .filter((provider) => REFRESHABLE_PROVIDERS.has(provider)),
+      ),
+    ).map((id) => ({
+      id,
+      name:
+        providerNames(locals.locale)[
+          id as keyof ReturnType<typeof providerNames>
+        ] ?? id,
+    })),
+    oauthRefreshed: url.searchParams.get("oauthRefreshed") === "1",
     semesters,
     defaultSemesterId: currentSemester?.id ?? null,
     callbackUrl,
@@ -69,4 +96,5 @@ export const loadWelcomePage = async ({
 
 export const welcomeActions = {
   complete: completeWelcomeProfile,
+  refreshOAuth: refreshWelcomeOAuthProfile,
 };
