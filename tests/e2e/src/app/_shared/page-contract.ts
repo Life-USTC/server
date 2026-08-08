@@ -94,7 +94,9 @@ export async function assertPageContract(
                     name: /已授权的 OAuth 应用|Authorized OAuth applications/i,
                   })
                 : expectedTab === "danger"
-                  ? page.getByRole("heading", { name: /危险|Danger/i })
+                  ? page.getByRole("region", {
+                      name: /删除账户|Delete Account/i,
+                    })
                   : page.getByRole("heading", { name: /设置|Settings/i });
       await expect(
         page.getByRole("heading", { name: /设置|Settings/i, level: 1 }),
