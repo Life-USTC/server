@@ -61,6 +61,9 @@ test("/account/welcome 显示必填字段", async ({ page }, testInfo) => {
     await expect(
       page.getByRole("textbox", { name: /^(用户名|Username)\b/i }),
     ).toBeVisible();
+    await expect(
+      page.getByLabel(/上传自己的头像|Upload your own avatar/i),
+    ).toBeVisible();
 
     // user.image / user.profilePictures[] — avatar area should be visible
     const avatarArea = page
@@ -90,6 +93,50 @@ test("/account/welcome 显示必填字段", async ({ page }, testInfo) => {
     await page.keyboard.press("Escape");
 
     await captureStepScreenshot(page, testInfo, "welcome/fields");
+  } finally {
+    await updateUserProfileById(sessionUser.id, {
+      name: originalUser.name ?? DEV_SEED.debugName,
+      username: originalUser.username ?? DEV_SEED.debugUsername,
+      image: originalUser.image ?? null,
+    });
+  }
+});
+
+test("/account/welcome 上传头像后保存处理后的 R2 图片", async ({ page }) => {
+  test.setTimeout(300_000);
+  await signInAsDebugUser(page, "/");
+  const sessionUser = await getCurrentSessionUser(page);
+  const originalUser = await getUserProfileById(sessionUser.id);
+  await updateUserProfileById(sessionUser.id, { name: null, username: null });
+
+  try {
+    await gotoAndWaitForReady(page, "/account/welcome");
+    await page
+      .getByLabel(/上传自己的头像|Upload your own avatar/i)
+      .setInputFiles({
+        name: "avatar.png",
+        mimeType: "image/png",
+        buffer: Buffer.from(
+          "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Wl6n0sAAAAASUVORK5CYII=",
+          "base64",
+        ),
+      });
+    await page
+      .getByRole("textbox", { name: /^(姓名|Name)\b/i })
+      .fill(DEV_SEED.debugName);
+    await page
+      .getByRole("textbox", { name: /^(用户名|Username)\b/i })
+      .fill(DEV_SEED.debugUsername);
+    await page.getByRole("button", { name: /继续|Continue/i }).click();
+    await expect(page).toHaveURL(/\/workspace\/overview(?:\?.*)?$/);
+
+    const updatedUser = await getUserProfileById(sessionUser.id);
+    expect(updatedUser.image).toMatch(
+      new RegExp(`^/media/avatars/${sessionUser.id}/[0-9a-f-]{36}\\.webp$`),
+    );
+    const avatarResponse = await page.request.get(updatedUser.image ?? "");
+    expect(avatarResponse.status()).toBe(200);
+    expect(avatarResponse.headers()["content-type"]).toBe("image/webp");
   } finally {
     await updateUserProfileById(sessionUser.id, {
       name: originalUser.name ?? DEV_SEED.debugName,
@@ -250,6 +297,15 @@ test("/account/welcome 提供浏览班级与批量匹配入口", async ({
       page.getByRole("button", {
         name: /批量添加订阅|Bulk Add Subscriptions/i,
       }),
+    ).toBeVisible();
+    await expect(
+      page.getByText(/订阅与工作区|Subscriptions and workspace/i),
+    ).toBeVisible();
+    await expect(
+      page.getByText(/日历与待办|Calendar and todos/i),
+    ).toBeVisible();
+    await expect(
+      page.getByText(/账户与安全|Account and security/i),
     ).toBeVisible();
 
     await captureStepScreenshot(page, testInfo, "welcome/next-steps");

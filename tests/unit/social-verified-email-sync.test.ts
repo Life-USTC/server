@@ -44,6 +44,7 @@ describe("social verified email sync", () => {
       email: "oidc-1@users.local",
       name: "USTC User 1",
       image: null,
+      profilePictures: [],
     });
     userUpdateMock.mockResolvedValue(undefined);
 
@@ -75,18 +76,45 @@ describe("social verified email sync", () => {
         email: "octocat@example.com",
         emailVerified: true,
         image: "https://example.com/octocat.png",
+        profilePictures: { push: "https://example.com/octocat.png" },
       },
     });
   });
 
-  it("skips non-social providers and missing staged emails", async () => {
+  it("syncs OIDC profile images without publishing a provider email", async () => {
+    stageSocialVerifiedEmail({
+      provider: "oidc",
+      accountId: "435",
+      email: null,
+      emailVerified: false,
+      name: "Student",
+      image: "https://example.com/ustc.png",
+    });
+    userFindUniqueMock.mockResolvedValue({
+      email: "oidc-435@users.local",
+      name: "",
+      image: null,
+      profilePictures: [],
+    });
+    userUpdateMock.mockResolvedValue(undefined);
+
     await syncSocialVerifiedEmailFromAccountHook({
       providerId: "oidc",
       providerAccountId: "435",
       userId: "user-1",
     });
     expect(verifiedEmailUpsertMock).not.toHaveBeenCalled();
+    expect(userUpdateMock).toHaveBeenCalledWith({
+      where: { id: "user-1" },
+      data: {
+        name: "Student",
+        image: "https://example.com/ustc.png",
+        profilePictures: { push: "https://example.com/ustc.png" },
+      },
+    });
+  });
 
+  it("skips providers without staged profile data", async () => {
     await syncSocialVerifiedEmailFromAccountHook({
       providerId: "google",
       providerAccountId: "google-user",

@@ -234,6 +234,18 @@ export const PAGE_INVENTORY: readonly PageInventoryEntry[] = [
         e2eSpec: E2E.welcome,
       },
       {
+        id: "welcome-avatar-upload",
+        role: "button",
+        name: "/上传自己的头像|Upload your own avatar/i",
+        e2eSpec: E2E.welcome,
+      },
+      {
+        id: "welcome-complete",
+        role: "button",
+        name: "/继续|Continue/i",
+        e2eSpec: E2E.welcome,
+      },
+      {
         id: "bulk-import",
         role: "button",
         name: "/批量添加订阅|Bulk Add Subscriptions/i",

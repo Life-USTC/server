@@ -87,6 +87,25 @@ test("/account/sign-in 显示所有必填字段", async ({ page }, testInfo) => 
   await captureStepScreenshot(page, testInfo, "signin/all-fields");
 });
 
+test("/account/sign-in 显示账户未关联错误", async ({ page }) => {
+  await gotoAndWaitForReady(
+    page,
+    "/account/sign-in?error=OAuthAccountNotLinked",
+  );
+  await expect(
+    page.getByText(/此账户已关联到其他用户|already linked to another user/i),
+  ).toBeVisible();
+});
+
+test("/account/sign-in 已登录用户直接返回回调页面", async ({ page }) => {
+  await signInAsDebugUser(page, "/");
+  await page.goto(
+    "/account/sign-in?callbackUrl=%2Faccount%2Fsettings%2Fprofile",
+    { waitUntil: "domcontentloaded" },
+  );
+  await expect(page).toHaveURL(/\/account\/settings\/profile(?:\?.*)?$/);
+});
+
 test("/account/sign-in 调试用户按钮可登录", async ({ page }, testInfo) => {
   await gotoAndWaitForReady(page, "/account/sign-in", {
     testInfo,
