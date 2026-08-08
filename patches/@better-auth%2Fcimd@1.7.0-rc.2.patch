@@ -1,0 +1,63 @@
+diff --git a/dist/index.mjs b/dist/index.mjs
+index a6360f4396f822f02d4faee0e4710f846036d8ac..6c0728866bb7b58994fd9957d1af112b59e2334d 100644
+--- a/dist/index.mjs
++++ b/dist/index.mjs
+@@ -94,6 +94,14 @@ function validateCimdMetadata(fetchUrl, raw, originBoundFields) {
+ 		valid: false,
+ 		error: `client_id "${String(doc.client_id)}" does not match the metadata document URL`
+ 	};
++	if (typeof doc.client_name !== "string" || doc.client_name.trim().length === 0) return {
++		valid: false,
++		error: "client_name must be a non-empty string"
++	};
++	if (doc.dpop_bound_access_tokens === true) return {
++		valid: false,
++		error: "DPoP-bound access tokens are not supported by this Bearer-only resource server"
++	};
+ 	for (const field of PROHIBITED_FIELDS) if (field in doc) return {
+ 		valid: false,
+ 		error: `metadata document MUST NOT contain "${field}"`
+@@ -121,14 +129,26 @@ function validateCimdMetadata(fetchUrl, raw, originBoundFields) {
+ 		valid: false,
+ 		error: "redirect_uris must be a non-empty array of absolute HTTP(S) URIs"
+ 	};
+-	if (doc.grant_types !== void 0 && !(Array.isArray(doc.grant_types) && doc.grant_types.every((g) => typeof g === "string" && ALLOWED_GRANT_TYPES.has(g)))) return {
+-		valid: false,
+-		error: `grant_types must be a subset of [${[...ALLOWED_GRANT_TYPES].map((g) => `"${g}"`).join(", ")}]`
+-	};
+-	if (doc.response_types !== void 0 && !(Array.isArray(doc.response_types) && doc.response_types.every((r) => typeof r === "string" && ALLOWED_RESPONSE_TYPES.has(r)))) return {
+-		valid: false,
+-		error: "response_types must be a subset of [\"code\"]"
+-	};
++	if (doc.grant_types !== void 0) {
++		if (!Array.isArray(doc.grant_types) || !doc.grant_types.every((g) => typeof g === "string")) return {
++			valid: false,
++			error: "grant_types must be an array of strings"
++		};
++		if (!doc.grant_types.includes("authorization_code")) return {
++			valid: false,
++			error: "grant_types must include \"authorization_code\""
++		};
++	}
++	if (doc.response_types !== void 0) {
++		if (!Array.isArray(doc.response_types) || !doc.response_types.every((r) => typeof r === "string")) return {
++			valid: false,
++			error: "response_types must be an array of strings"
++		};
++		if (!doc.response_types.includes("code")) return {
++			valid: false,
++			error: "response_types must include \"code\""
++		};
++	}
+ 	for (const field of ["client_uri", "logo_uri"]) {
+ 		if (doc[field] !== void 0 && typeof doc[field] !== "string") return {
+ 			valid: false,
+@@ -292,6 +312,8 @@ const ALLOWED_METADATA_FIELDS = /* @__PURE__ */ new Set([
+ function toOAuthClientBody(metadata) {
+ 	const filtered = {};
+ 	for (const key of ALLOWED_METADATA_FIELDS) if (key in metadata) filtered[key] = metadata[key];
++	if (Array.isArray(filtered.grant_types)) filtered.grant_types = filtered.grant_types.filter((grantType) => typeof grantType === "string" && ALLOWED_GRANT_TYPES.has(grantType));
++	if (Array.isArray(filtered.response_types)) filtered.response_types = filtered.response_types.filter((responseType) => typeof responseType === "string" && ALLOWED_RESPONSE_TYPES.has(responseType));
+ 	return {
+ 		...filtered,
+ 		token_endpoint_auth_method: filtered.token_endpoint_auth_method ?? "none"
