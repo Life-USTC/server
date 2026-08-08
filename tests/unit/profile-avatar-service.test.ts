@@ -34,9 +34,8 @@ vi.mock("@/lib/storage/r2-object", () => ({
 
 import {
   getPublicProfileAvatar,
-  processProfileAvatarUpload,
-  ProfileAvatarUploadError,
   PROFILE_AVATAR_MAX_BYTES,
+  processProfileAvatarUpload,
 } from "@/features/profile/server/profile-avatar-service";
 
 describe("profile avatar service", () => {
@@ -101,7 +100,7 @@ describe("profile avatar service", () => {
   ] as const)("rejects invalid uploads", async (file, reason) => {
     await expect(
       processProfileAvatarUpload({ file, userId: "user-1" }),
-    ).rejects.toMatchObject<ProfileAvatarUploadError>({ reason });
+    ).rejects.toMatchObject({ reason });
     expect(putStorageObjectMock).not.toHaveBeenCalled();
   });
 

@@ -1,10 +1,10 @@
+import { getCloudflareImagesBinding } from "@/lib/adapters/cloudflare-runtime";
 import { prisma } from "@/lib/db/prisma";
 import {
   deleteStorageObject,
   getStorageObjectResponse,
   putStorageObject,
 } from "@/lib/storage/r2-object";
-import { getCloudflareImagesBinding } from "@/lib/adapters/cloudflare-runtime";
 
 export const PROFILE_AVATAR_DIMENSION = 256;
 export const PROFILE_AVATAR_MAX_BYTES = 5 * 1024 * 1024;

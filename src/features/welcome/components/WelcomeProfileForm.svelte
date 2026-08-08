@@ -1,10 +1,10 @@
 <script lang="ts">
+import { onDestroy } from "svelte";
 import {
   PROFILE_USERNAME_MAX_LENGTH,
   PROFILE_USERNAME_PATTERN,
 } from "@/features/profile/lib/profile-username";
 import { enhance } from "$app/forms";
-import { onDestroy } from "svelte";
 import * as Alert from "$lib/components/ui/alert/index.js";
 import * as Avatar from "$lib/components/ui/avatar/index.js";
 import { Badge } from "$lib/components/ui/badge/index.js";

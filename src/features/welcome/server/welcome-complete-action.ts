@@ -2,8 +2,8 @@ import type { Cookies } from "@sveltejs/kit";
 import { fail, redirect } from "@sveltejs/kit";
 import {
   deleteProcessedProfileAvatar,
-  processProfileAvatarUpload,
   ProfileAvatarUploadError,
+  processProfileAvatarUpload,
 } from "@/features/profile/server/profile-avatar-service";
 import { updateOwnProfile } from "@/features/profile/server/profile-update-service";
 import { buildSignInPageUrl } from "@/lib/auth/auth-routing";

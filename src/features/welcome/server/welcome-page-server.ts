@@ -6,8 +6,8 @@ import { getSessionFromHeaders } from "@/lib/auth/core";
 import { prisma } from "@/lib/db/prisma";
 import { resolveWelcomeCallbackUrl } from "./welcome-callback-url";
 import { completeWelcomeProfile } from "./welcome-complete-action";
-import { getWelcomeCopy } from "./welcome-page-copy";
 import { refreshWelcomeOAuthProfile } from "./welcome-oauth-refresh-action";
+import { getWelcomeCopy } from "./welcome-page-copy";
 
 const REFRESHABLE_PROVIDERS = new Set(["github", "google", "oidc"]);
 
