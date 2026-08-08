@@ -1,10 +1,9 @@
 <script lang="ts">
 import type { Component } from "svelte";
 import { commentTargetPermalinkBaseHref } from "@/features/comments/lib/comment-panel-controller";
-import { Button } from "$lib/components/ui/button/index.js";
+import { Badge } from "$lib/components/ui/badge/index.js";
 import * as Dialog from "$lib/components/ui/dialog/index.js";
 import { ScrollArea } from "$lib/components/ui/scroll-area/index.js";
-import { Separator } from "$lib/components/ui/separator/index.js";
 import SectionHomeworkActionBar from "./SectionHomeworkActionBar.svelte";
 import SectionHomeworkAuditTrail from "./SectionHomeworkAuditTrail.svelte";
 import SectionHomeworkEditForm from "./SectionHomeworkEditForm.svelte";
@@ -70,25 +69,27 @@ export let sectionJwId: number | string;
     }}
   >
     <Dialog.Content
-      class="max-w-5xl sm:max-w-5xl"
+      class="max-w-6xl gap-0 overflow-hidden p-0 sm:max-w-6xl [&>[data-slot=dialog-close]]:top-4 [&>[data-slot=dialog-close]]:right-4"
     >
-      <Dialog.Header>
-        <div class="flex items-start justify-between gap-3">
-          <div class="min-w-0">
-            <Dialog.Title>{_selectedHomework.title}</Dialog.Title>
-            <Dialog.Description>
-              {_sectionCopy.due} {_fmtDateTime(_selectedHomework.submissionDueAt)} · {_homeworkStatus(_selectedHomework)}
-            </Dialog.Description>
+      <Dialog.Header class="border-b px-5 py-4 pr-14 sm:px-6 sm:py-5 sm:pr-16">
+        <div class="grid min-w-0 gap-2">
+          <div class="flex min-w-0 flex-wrap items-center gap-2">
+            <Dialog.Title class="text-lg leading-tight">
+              {_selectedHomework.title}
+            </Dialog.Title>
+            <Badge variant={_selectedHomework.completion ? "default" : "secondary"}>
+              {_homeworkStatus(_selectedHomework)}
+            </Badge>
           </div>
-          <Button type="button" variant="ghost" onclick={close}>
-            {_sectionCopy.close}
-          </Button>
+          <Dialog.Description>
+            {_sectionCopy.due} · {_fmtDateTime(_selectedHomework.submissionDueAt)}
+          </Dialog.Description>
         </div>
       </Dialog.Header>
 
-      <ScrollArea class="h-[min(70vh,44rem)]">
-        <div class="grid gap-5 px-5 py-4 lg:grid-cols-[minmax(0,1fr)_auto_minmax(22rem,26rem)]">
-          <section class="grid gap-4">
+      <ScrollArea class="h-[min(76vh,48rem)]">
+        <div class="grid lg:grid-cols-[minmax(0,1.2fr)_minmax(20rem,0.8fr)]">
+          <section class="grid min-w-0 content-start gap-5 p-5 sm:p-6">
             {#if _editingHomework}
               <SectionHomeworkEditForm
                 applyDueAtSemesterEnd={_applyEditDueAtSemesterEnd}
@@ -139,10 +140,7 @@ export let sectionJwId: number | string;
             />
           </section>
 
-          <Separator class="hidden lg:block" orientation="vertical" />
-
-          <section class="min-w-0">
-            <Separator class="mb-4 lg:hidden" />
+          <aside class="min-w-0 border-t bg-muted/20 p-5 sm:p-6 lg:min-h-[34rem] lg:border-t-0 lg:border-l">
             {#key `comments:homework:${_selectedHomework.id}`}
               <CommentsPanel
                 permalinkBaseHref={commentTargetPermalinkBaseHref({
@@ -154,7 +152,7 @@ export let sectionJwId: number | string;
                 targetId={_selectedHomework.id}
               />
             {/key}
-          </section>
+          </aside>
         </div>
       </ScrollArea>
     </Dialog.Content>

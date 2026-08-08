@@ -13,7 +13,7 @@ export let homework: SectionHomeworkDisplay;
 export let homeworkCopy: SectionHomeworkCopy;
 </script>
 
-<Item.Root variant="muted" class="items-start">
+<Item.Root variant="muted" class="min-h-24 items-start p-4">
   <Item.Content>
     {#if homework.description?.content}
       {#if homework.description.renderedHtml}
@@ -37,17 +37,21 @@ export let homeworkCopy: SectionHomeworkCopy;
 </Item.Root>
 
 <dl class="grid gap-3 sm:grid-cols-3">
-  <Item.Root variant="outline" size="sm" class="block">
+  <Item.Root variant="outline" size="sm" class="block bg-background">
     <dt class="text-muted-foreground text-xs">{homeworkCopy.publishedAt}</dt>
-    <dd class="mt-1 font-medium text-sm">{fmtDateTime(homework.publishedAt)}</dd>
+    <dd class="mt-1 font-medium text-sm tabular-nums">{fmtDateTime(homework.publishedAt)}</dd>
   </Item.Root>
-  <Item.Root variant="outline" size="sm" class="block">
+  <Item.Root variant="outline" size="sm" class="block bg-background">
     <dt class="text-muted-foreground text-xs">{homeworkCopy.submissionStart}</dt>
-    <dd class="mt-1 font-medium text-sm">{fmtDateTime(homework.submissionStartAt)}</dd>
+    <dd class="mt-1 font-medium text-sm tabular-nums">
+      {fmtDateTime(homework.submissionStartAt)}
+    </dd>
   </Item.Root>
-  <Item.Root variant="outline" size="sm" class="block">
+  <Item.Root variant="outline" size="sm" class="block border-primary/30 bg-primary/5">
     <dt class="text-muted-foreground text-xs">{homeworkCopy.submissionDue}</dt>
-    <dd class="mt-1 font-medium text-sm">{fmtDateTime(homework.submissionDueAt)}</dd>
+    <dd class="mt-1 font-semibold text-sm tabular-nums">
+      {fmtDateTime(homework.submissionDueAt)}
+    </dd>
   </Item.Root>
 </dl>
 
