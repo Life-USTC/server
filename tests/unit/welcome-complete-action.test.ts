@@ -89,7 +89,8 @@ describe("completeWelcomeProfile", () => {
         }),
       }),
     ).rejects.toMatchObject({
-      location: "/workspace/overview",
+      location:
+        "/account/welcome?step=subscriptions&callbackUrl=%2Fworkspace%2Foverview",
       status: 303,
     });
     expect(updateOwnProfileMock).toHaveBeenCalledWith({

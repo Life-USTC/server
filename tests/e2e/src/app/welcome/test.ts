@@ -11,13 +11,15 @@
  *
  * ## Features
  * - Unauthenticated → redirect to /signin
- * - Users with no name/username must complete before proceeding to /
- * - Avatar selector grid is shown
- * - Semester dropdown pre-selects the current semester
- * - Links to browse sections / courses and bulk import
+ * - Staged flow: required profile step, then optional subscriptions and
+ *   orientation steps, each with a progress indicator
+ * - Users with no name/username must complete the profile step first
+ * - Avatar selector grid and custom avatar upload are shown
+ * - Semester dropdown pre-selects the current semester (subscriptions step)
  *
  * ## Edge Cases
- * - After successful save redirects to /
+ * - A complete profile requesting the profile step leaves onboarding
+ * - The final step returns to the original callbackUrl
  * - Name and username fields are restored to seed values after test
  */
 import { expect, test } from "@playwright/test";
@@ -40,7 +42,9 @@ test("/account/welcome 未登录重定向到登录页", async ({ page }, testInf
   await captureStepScreenshot(page, testInfo, "welcome/unauthorized");
 });
 
-test("/account/welcome 显示必填字段", async ({ page }, testInfo) => {
+test("/account/welcome 资料步骤显示必填字段与进度", async ({
+  page,
+}, testInfo) => {
   test.setTimeout(300_000);
   await signInAsDebugUser(page, "/");
   const sessionUser = await getCurrentSessionUser(page);
@@ -71,26 +75,13 @@ test("/account/welcome 显示必填字段", async ({ page }, testInfo) => {
       .first();
     await expect(avatarArea).toBeVisible();
 
-    // semesters[] dropdown options (defaultSemesterId preselected)
-    // The semester selector is inside the Bulk Import dialog
-    const bulkImportBtn = page.getByRole("button", {
-      name: /批量添加订阅|Bulk Add Subscriptions/i,
-    });
-    await expect(bulkImportBtn).toBeVisible();
-    await bulkImportBtn.click();
-    // Dialog opens, semester selector inside
-    const dialog = page
-      .getByRole("dialog")
-      .or(page.getByRole("alertdialog"))
-      .first();
-    await expect(dialog).toBeVisible({ timeout: 8_000 });
-    const semesterSelector = dialog
-      .getByRole("combobox", { name: /^(学期|Semester)\b/i })
-      .first();
-    await expect(semesterSelector).toBeVisible();
-    await expect(semesterSelector).toContainText(DEV_SEED.semesterNameCn);
-    // Close dialog
-    await page.keyboard.press("Escape");
+    // Only the current step is rendered, so later steps stay out of the way.
+    await expect(page.getByText(/第 1 步|Step 1 of/i)).toBeVisible();
+    await expect(
+      page.getByRole("button", {
+        name: /批量添加订阅|Bulk Add Subscriptions/i,
+      }),
+    ).toHaveCount(0);
 
     await captureStepScreenshot(page, testInfo, "welcome/fields");
   } finally {
@@ -207,6 +198,18 @@ test("/account/welcome 完成后返回原回调页面", async ({ page }, testInf
 
     await page.getByRole("button", { name: /继续|Continue/i }).click();
 
+    await expect(page).toHaveURL(
+      /\/account\/welcome\?step=subscriptions&callbackUrl=%2Faccount%2Fsettings$/,
+      { timeout: 15_000 },
+    );
+    await page.getByRole("link", { name: /暂时跳过|Skip for now/i }).click();
+    await expect(page).toHaveURL(
+      /\/account\/welcome\?step=finish&callbackUrl=%2Faccount%2Fsettings$/,
+    );
+    await page
+      .getByRole("link", { name: /进入工作区|Go to workspace/i })
+      .click();
+
     await expect(page).toHaveURL(/\/account\/settings\/profile(?:\?.*)?$/, {
       timeout: 15_000,
     });
@@ -251,6 +254,14 @@ test("/account/welcome 未完善资料的用户可完成资料并返回首页", 
 
     await page.getByRole("button", { name: /继续|Continue/i }).click();
 
+    await expect(page).toHaveURL(/step=subscriptions/, { timeout: 15_000 });
+    await expect(page.getByText(/第 2 步|Step 2 of/i)).toBeVisible();
+    await page.getByRole("link", { name: /暂时跳过|Skip for now/i }).click();
+    await expect(page.getByText(/第 3 步|Step 3 of/i)).toBeVisible();
+    await page
+      .getByRole("link", { name: /进入工作区|Go to workspace/i })
+      .click();
+
     await expect(page).toHaveURL(/\/workspace\/overview(?:\?.*)?$/, {
       timeout: 15_000,
     });
@@ -269,55 +280,69 @@ test("/account/welcome 未完善资料的用户可完成资料并返回首页", 
   }
 });
 
-test("/account/welcome 提供浏览班级与批量匹配入口", async ({
+test("/account/welcome 订阅步骤提供浏览班级与批量匹配入口", async ({
   page,
 }, testInfo) => {
   test.setTimeout(300_000);
   await signInAsDebugUser(page, "/");
 
-  const sessionUser = await getCurrentSessionUser(page);
-  const originalUser = await getUserProfileById(sessionUser.id);
+  await gotoAndWaitForReady(
+    page,
+    "/account/welcome?step=subscriptions&callbackUrl=%2Fworkspace%2Foverview",
+    { testInfo, screenshotLabel: "welcome-subscriptions" },
+  );
 
-  await updateUserProfileById(sessionUser.id, {
-    name: null,
-    username: null,
+  await expect(
+    page.getByRole("link", { name: /浏览班级|Browse Sections/i }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("link", { name: /浏览课程|Browse Courses/i }),
+  ).toBeVisible();
+
+  // semesters[] dropdown options (defaultSemesterId preselected)
+  const bulkImportBtn = page.getByRole("button", {
+    name: /批量添加订阅|Bulk Add Subscriptions/i,
   });
+  await expect(bulkImportBtn).toBeVisible();
+  await bulkImportBtn.click();
+  const dialog = page
+    .getByRole("dialog")
+    .or(page.getByRole("alertdialog"))
+    .first();
+  await expect(dialog).toBeVisible({ timeout: 8_000 });
+  const semesterSelector = dialog
+    .getByRole("combobox", { name: /^(学期|Semester)\b/i })
+    .first();
+  await expect(semesterSelector).toBeVisible();
+  await expect(semesterSelector).toContainText(DEV_SEED.semesterNameCn);
+  await page.keyboard.press("Escape");
 
-  try {
-    await gotoAndWaitForReady(page, "/account/welcome", {
-      testInfo,
-      screenshotLabel: "welcome",
-    });
+  await captureStepScreenshot(page, testInfo, "welcome/next-steps");
+});
 
-    await expect(
-      page.getByRole("link", { name: /浏览班级|Browse Sections/i }),
-    ).toBeVisible();
-    await expect(
-      page.getByRole("link", { name: /浏览课程|Browse Courses/i }),
-    ).toBeVisible();
-    await expect(
-      page.getByRole("button", {
-        name: /批量添加订阅|Bulk Add Subscriptions/i,
-      }),
-    ).toBeVisible();
-    await expect(
-      page.getByText(/订阅与工作区|Subscriptions and workspace/i),
-    ).toBeVisible();
-    await expect(
-      page.getByText(/日历与待办|Calendar and todos/i),
-    ).toBeVisible();
-    await expect(
-      page.getByText(/账户与安全|Account and security/i),
-    ).toBeVisible();
+test("/account/welcome 最后一步展示平台引导并可返回上一步", async ({
+  page,
+}, testInfo) => {
+  test.setTimeout(300_000);
+  await signInAsDebugUser(page, "/");
 
-    await captureStepScreenshot(page, testInfo, "welcome/next-steps");
-  } finally {
-    await updateUserProfileById(sessionUser.id, {
-      name: originalUser.name ?? DEV_SEED.debugName,
-      username: originalUser.username ?? DEV_SEED.debugUsername,
-      image: originalUser.image ?? null,
-    });
-  }
+  await gotoAndWaitForReady(
+    page,
+    "/account/welcome?step=finish&callbackUrl=%2Fworkspace%2Foverview",
+    { testInfo, screenshotLabel: "welcome-finish" },
+  );
+
+  await expect(
+    page.getByText(/订阅与工作区|Subscriptions and workspace/i),
+  ).toBeVisible();
+  await expect(page.getByText(/日历与待办|Calendar and todos/i)).toBeVisible();
+  await expect(
+    page.getByText(/账户与安全|Account and security/i),
+  ).toBeVisible();
+  await captureStepScreenshot(page, testInfo, "welcome/finish");
+
+  await page.getByRole("link", { name: /上一步|Back/i }).click();
+  await expect(page).toHaveURL(/step=subscriptions/);
 });
 
 test("页面契约", async ({ page }, testInfo) => {

@@ -251,6 +251,24 @@ export const PAGE_INVENTORY: readonly PageInventoryEntry[] = [
         name: "/批量添加订阅|Bulk Add Subscriptions/i",
         e2eSpec: E2E.welcome,
       },
+      {
+        id: "welcome-skip-step",
+        role: "link",
+        name: "/暂时跳过|Skip for now/i",
+        e2eSpec: E2E.welcome,
+      },
+      {
+        id: "welcome-finish",
+        role: "link",
+        name: "/进入工作区|Go to workspace/i",
+        e2eSpec: E2E.welcome,
+      },
+      {
+        id: "welcome-back-step",
+        role: "link",
+        name: "/上一步|Back/i",
+        e2eSpec: E2E.welcome,
+      },
     ],
   },
   {
