@@ -97,7 +97,7 @@ export async function assertPageContract(
                   ? page.getByRole("heading", { name: /危险|Danger/i })
                   : page.getByRole("heading", { name: /设置|Settings/i });
       await expect(
-        page.getByRole("link", { name: /设置|Settings/i }),
+        page.getByRole("heading", { name: /设置|Settings/i, level: 1 }),
       ).toBeVisible();
       await expect(tabMarker).toBeVisible();
       return;
@@ -515,10 +515,11 @@ export async function assertPageContract(
     }
 
     case "/oauth/authorize": {
+      // Bare authorize URL (no client_id / PKCE) redirects to sign-in.
       await gotoContractPage(page, routePath, testInfo);
       await expectMainContent(page);
       await expect(
-        page.getByRole("heading", { name: /OAuth|授权|Authorize/i }),
+        page.getByRole("heading", { name: /登录|Sign In/i }),
       ).toBeVisible();
       await maybeCapture(page, testInfo, "oauth-authorize");
       return;
