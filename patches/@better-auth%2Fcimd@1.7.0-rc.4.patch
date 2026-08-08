@@ -2,7 +2,7 @@ diff --git a/dist/index.mjs b/dist/index.mjs
 index 2b6db54..e9751ae 100644
 --- a/dist/index.mjs
 +++ b/dist/index.mjs
-@@ -102,10 +102,14 @@ function validateCimdMetadata(clientIdUrl, raw, options = {}) {
+@@ -102,10 +102,18 @@ function validateCimdMetadata(clientIdUrl, raw, options = {}) {
  		valid: false,
  		error: `client_id "${String(doc.client_id)}" does not match the metadata document URL`
  	};
@@ -14,6 +14,10 @@ index 2b6db54..e9751ae 100644
 +	if (doc.dpop_bound_access_tokens === true) return {
 +		valid: false,
 +		error: "DPoP-bound access tokens are not supported by this Bearer-only resource server"
++	};
++	if (doc.grant_types !== void 0 && !doc.grant_types.includes("authorization_code")) return {
++		valid: false,
++		error: "grant_types must include \"authorization_code\""
 +	};
  	for (const field of ["backchannel_logout_uri", "backchannel_logout_session_required"]) if (doc[field] !== void 0) return {
  		valid: false,
