@@ -87,7 +87,7 @@ export let sectionJwId: number | string;
         </div>
       </Dialog.Header>
 
-      <ScrollArea class="h-[min(76vh,48rem)]">
+      <ScrollArea class="max-h-[min(76vh,48rem)]">
         <div class="grid lg:grid-cols-[minmax(0,1.2fr)_minmax(20rem,0.8fr)]">
           <section class="grid min-w-0 content-start gap-5 p-5 sm:p-6">
             {#if _editingHomework}
