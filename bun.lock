@@ -87,6 +87,9 @@
     "@better-auth/cimd@1.7.0-rc.2": "patches/@better-auth%2Fcimd@1.7.0-rc.2.patch",
   },
   "overrides": {
+    "@better-auth/core": "1.7.0-rc.2",
+    "@better-auth/oauth-provider": "1.7.0-rc.2",
+    "better-auth": "1.7.0-rc.2",
     "graphql": "16.14.2",
   },
   "packages": {
@@ -2297,8 +2300,6 @@
     "zwitch": ["zwitch@2.0.4", "", {}, "sha512-bXE4cR/kVZhKZX/RjPEflHaKVhUVl85noU3v6b8apfQEc1x4A+zBxjZ4lN8LqGd6WZ3dl98pY4o717VFmoPp+A=="],
 
     "@babel/code-frame/js-tokens": ["js-tokens@4.0.0", "", {}, "sha512-RdJUflcE3cUzKiMqQgsCu06FPu9UdIJO0beYbPhHN4k6apgJtifcoCtT9bcxOpYBtpD2kCM6Sbzg4CausW/PKQ=="],
-
-    "@better-auth/mcp/@better-auth/oauth-provider": ["@better-auth/oauth-provider@1.7.0-rc.4", "", { "dependencies": { "jose": "^6.2.3", "zod": "^4.3.6" }, "peerDependencies": { "@better-auth/core": "^1.7.0-rc.4", "@better-auth/utils": "0.4.2", "@better-fetch/fetch": "1.3.1", "better-auth": "^1.7.0-rc.4", "better-call": "1.3.7" } }, "sha512-7br1e+gJsFAC0EB4IDuEefF005CeaB8hbY59c8FMpcqiR5Vp+8mT2e8dmYSSjfH13Y34ObGR+ORI7mGQhzxlHQ=="],
 
     "@commitlint/parse/conventional-changelog-angular": ["conventional-changelog-angular@9.2.1", "", { "dependencies": { "@conventional-changelog/template": "^1.2.1" } }, "sha512-oWSL6ZhnXbYraOFTK3PgRAQJ8fADDAEv5K6AdeyQPLvjFmhG8+ejL0jZZp/R7vTmGJaBvZEE+sE7dB4bCv7sAw=="],
 
