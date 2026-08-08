@@ -142,20 +142,6 @@ export const USTC_ESSENTIAL_LINKS: DashboardLinkItem[] = [
     icon: "building",
   },
   {
-    slug: "legacy-jw",
-    title: "旧版教务系统",
-    url: "https://mis.teach.ustc.edu.cn/",
-    description: "历史教务系统入口。",
-    localizations: {
-      "en-us": {
-        title: "Legacy Academic Affairs System",
-        description: "Entry point for the legacy academic affairs system.",
-      },
-    },
-    category: "academic",
-    icon: "clipboard-list",
-  },
-  {
     slug: "physics-lab-1",
     title: "大物实验 1",
     url: "https://jxzy.ustc.edu.cn/",

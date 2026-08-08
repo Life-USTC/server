@@ -100,7 +100,6 @@ export const DASHBOARD_LINK_GROUPS: Record<DashboardLinkGroup, string[]> = {
   ],
   study: [
     "staff-homepage",
-    "legacy-jw",
     "physics-lab-1",
     "catalog-query",
     "ta-management",
@@ -136,6 +135,7 @@ export const DASHBOARD_LINK_GROUPS: Record<DashboardLinkGroup, string[]> = {
     "lug-gitlab",
     "ustc-latex",
     "vlab",
+    "llm-platform",
   ],
   classroom: ["classroom-2", "classroom-3", "classroom-5"],
   external: ["zhihu", "bilibili", "weibo"],
