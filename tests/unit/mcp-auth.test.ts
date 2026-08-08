@@ -2,13 +2,14 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { buildBearerChallenge } from "@/lib/mcp/auth-errors";
 import { restReadScope, restWriteScope } from "@/lib/oauth/constants";
 
-const { hasActiveOAuthUserGrantMock, mcpHandlerMock } = vi.hoisted(() => ({
-  hasActiveOAuthUserGrantMock: vi.fn(),
-  mcpHandlerMock: vi.fn(),
-}));
+const { createMcpProtectedRequestHandlerMock, hasActiveOAuthUserGrantMock } =
+  vi.hoisted(() => ({
+    hasActiveOAuthUserGrantMock: vi.fn(),
+    createMcpProtectedRequestHandlerMock: vi.fn(),
+  }));
 
 vi.mock("@better-auth/mcp", () => ({
-  mcpHandler: mcpHandlerMock,
+  createMcpProtectedRequestHandler: createMcpProtectedRequestHandlerMock,
 }));
 
 vi.mock("@/lib/oauth/active-user-grant", () => ({
@@ -108,16 +109,18 @@ describe("MCP upstream authentication", () => {
   beforeEach(() => {
     vi.resetModules();
     hasActiveOAuthUserGrantMock.mockReset().mockResolvedValue(true);
-    mcpHandlerMock.mockReset().mockImplementation((_options, handler) => {
-      return async (request: Request) => {
-        if (upstreamMode.kind === "reject") return upstreamMode.response;
-        return handler(request, upstreamMode.claims);
-      };
-    });
+    createMcpProtectedRequestHandlerMock
+      .mockReset()
+      .mockImplementation((_options, handler) => {
+        return async (request: Request) => {
+          if (upstreamMode.kind === "reject") return upstreamMode.response;
+          return handler(request, upstreamMode.claims);
+        };
+      });
     upstreamMode = { kind: "accept", claims: validClaims() };
   });
 
-  it("uses mcpHandler with explicit dynamic-baseURL verification options", async () => {
+  it("uses the protected-request handler with explicit verification options", async () => {
     const { authenticateMcpRequest } = await import("@/lib/mcp/auth");
 
     const first = await authenticateMcpRequest(authenticatedRequest());
@@ -131,15 +134,10 @@ describe("MCP upstream authentication", () => {
       },
     });
     expect(second).toMatchObject({ authInfo: { clientId: "client-id" } });
-    expect(mcpHandlerMock).toHaveBeenCalledWith(
+    expect(createMcpProtectedRequestHandlerMock).toHaveBeenCalledWith(
       {
-        verifyOptions: {
-          issuer: "https://life.example/api/auth",
-          audience: [
-            "https://life.example/api/mcp",
-            "https://loopback.example/api/mcp",
-          ],
-        },
+        issuer: "https://life.example/api/auth",
+        audience: "https://life.example/api/mcp",
         jwksUrl: "https://life.example/api/auth/jwks",
       },
       expect.any(Function),
@@ -195,7 +193,7 @@ describe("MCP upstream authentication", () => {
     expect(result.response.headers.get("WWW-Authenticate")).toContain(
       "Bearer error=",
     );
-    expect(mcpHandlerMock).not.toHaveBeenCalled();
+    expect(createMcpProtectedRequestHandlerMock).not.toHaveBeenCalled();
   });
 
   it("classifies opaque tokens rejected by the upstream JWT verifier", async () => {
@@ -281,12 +279,14 @@ describe("MCP per-tool scope enforcement", () => {
   beforeEach(() => {
     vi.resetModules();
     hasActiveOAuthUserGrantMock.mockReset().mockResolvedValue(true);
-    mcpHandlerMock.mockReset().mockImplementation((_options, handler) => {
-      return async (request: Request) => {
-        if (upstreamMode.kind !== "accept") return upstreamMode.response;
-        return handler(request, upstreamMode.claims);
-      };
-    });
+    createMcpProtectedRequestHandlerMock
+      .mockReset()
+      .mockImplementation((_options, handler) => {
+        return async (request: Request) => {
+          if (upstreamMode.kind !== "accept") return upstreamMode.response;
+          return handler(request, upstreamMode.claims);
+        };
+      });
     upstreamMode = { kind: "accept", claims: validClaims() };
   });
 
