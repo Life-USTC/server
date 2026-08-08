@@ -1,6 +1,14 @@
 <script lang="ts">
+import HomeworkDetailTags from "@/features/homeworks/components/HomeworkDetailTags.svelte";
+import HomeworkDueSummary from "@/features/homeworks/components/HomeworkDueSummary.svelte";
+import HomeworkMetaList from "@/features/homeworks/components/HomeworkMetaList.svelte";
+import {
+  buildHomeworkDetailTags,
+  buildHomeworkDueSummary,
+  buildHomeworkMetadataRows,
+  homeworkCompletionStatusLabel,
+} from "@/features/homeworks/lib/homework-detail-meta";
 import RenderedMarkdown from "$lib/components/RenderedMarkdown.svelte";
-import { Badge } from "$lib/components/ui/badge/index.js";
 import * as Item from "$lib/components/ui/item/index.js";
 import type {
   SectionHomeworkCopy,
@@ -11,9 +19,27 @@ import type {
 export let fmtDateTime: SectionHomeworkFormatter;
 export let homework: SectionHomeworkDisplay;
 export let homeworkCopy: SectionHomeworkCopy;
+
+$: completed = Boolean(homework.completion);
+$: dueSummary = buildHomeworkDueSummary({
+  completed,
+  dueLabel: homeworkCopy.submissionDue,
+  formatDate: fmtDateTime,
+  homework,
+  statusLabel: homeworkCompletionStatusLabel(completed, {
+    completedStatus: homeworkCopy.completedLabel,
+    incompleteStatus: homeworkCopy.filterIncomplete,
+  }),
+});
+$: metaRows = buildHomeworkMetadataRows({
+  formatDate: fmtDateTime,
+  homework,
+  labels: homeworkCopy,
+});
+$: tags = buildHomeworkDetailTags({ homework, labels: homeworkCopy });
 </script>
 
-<Item.Root variant="muted" class="items-start">
+<Item.Root variant="outline" class="items-start">
   <Item.Content>
     {#if homework.description?.content}
       {#if homework.description.renderedHtml}
@@ -36,22 +62,8 @@ export let homeworkCopy: SectionHomeworkCopy;
   </Item.Content>
 </Item.Root>
 
-<dl class="grid gap-3 sm:grid-cols-3">
-  <Item.Root variant="outline" size="sm" class="block">
-    <dt class="text-muted-foreground text-xs">{homeworkCopy.publishedAt}</dt>
-    <dd class="mt-1 font-medium text-sm">{fmtDateTime(homework.publishedAt)}</dd>
-  </Item.Root>
-  <Item.Root variant="outline" size="sm" class="block">
-    <dt class="text-muted-foreground text-xs">{homeworkCopy.submissionStart}</dt>
-    <dd class="mt-1 font-medium text-sm">{fmtDateTime(homework.submissionStartAt)}</dd>
-  </Item.Root>
-  <Item.Root variant="outline" size="sm" class="block">
-    <dt class="text-muted-foreground text-xs">{homeworkCopy.submissionDue}</dt>
-    <dd class="mt-1 font-medium text-sm">{fmtDateTime(homework.submissionDueAt)}</dd>
-  </Item.Root>
-</dl>
+<HomeworkDueSummary summary={dueSummary} />
 
-<div class="flex flex-wrap gap-2">
-  {#if homework.isMajor}<Badge variant="secondary">{homeworkCopy.tagMajor}</Badge>{/if}
-  {#if homework.requiresTeam}<Badge variant="outline">{homeworkCopy.tagTeam}</Badge>{/if}
-</div>
+<HomeworkMetaList rows={metaRows} />
+
+<HomeworkDetailTags {tags} />

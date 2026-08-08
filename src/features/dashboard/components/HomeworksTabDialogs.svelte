@@ -36,13 +36,11 @@ export let createHomeworkSubmissionDueAt: string;
 export let createHomeworkSubmissionStartAt: string;
 export let fmtDate: DashboardHomeworkDetailFormatter;
 export let homeworkCompletionActionLabel: HomeworkAction;
-export let homeworkCopy: DashboardMyHomeworksCopy;
 export let homeworkCourseLabel: HomeworkAction;
 export let homeworkDetailHref: HomeworkAction;
 export let homeworkEtaLabel: DashboardHomeworkDetailFormatter;
 export let homeworksCopy: DashboardHomeworksCopy;
 export let homeworkSavingById: Record<string, boolean>;
-export let homeworkSectionHref: HomeworkAction;
 export let homeworkSectionLabel: (
   section: DashboardHomeworkCreateSection,
 ) => string;
@@ -92,9 +90,7 @@ export let toggleHomeworkCompletion: (
   {homeworkEtaLabel}
   {homeworkCourseLabel}
   {homeworkSavingById}
-  {homeworkSectionHref}
   {homeworksCopy}
-  {homeworkCopy}
   {homeworkStatus}
   onClose={() => {
     selectedHomework = null;

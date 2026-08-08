@@ -21,6 +21,11 @@
  */
 import { expect, test } from "@playwright/test";
 import { signInAsDebugUser } from "../../../../utils/auth";
+import {
+  closeDetailDialog,
+  detailDialog,
+  expectDialogActionsInBody,
+} from "../../../../utils/detail-dialog";
 import { DEV_SEED } from "../../../../utils/dev-seed";
 import { visibleText } from "../../../../utils/locators";
 import { gotoAndWaitForReady } from "../../../../utils/page-ready";
@@ -159,6 +164,31 @@ test.describe("仪表盘待办", () => {
     });
 
     await captureStepScreenshot(page, testInfo, "dashboard-todos-completed");
+  });
+
+  test("待办详情弹窗展示优先级、状态与底部操作", async ({ page }, testInfo) => {
+    await signInAsDebugUser(page, "/workspace/todos");
+
+    await visibleText(page, DEV_SEED.todos.dueTodayTitle).first().click();
+
+    const dialog = detailDialog(page);
+    await expect(dialog).toBeVisible();
+    await expect(
+      dialog.getByRole("heading", {
+        name: new RegExp(DEV_SEED.todos.dueTodayTitle),
+      }),
+    ).toBeVisible();
+    await expect(
+      dialog.getByText(/待处理|已完成|Pending|Completed/i).first(),
+    ).toBeVisible();
+
+    await expectDialogActionsInBody(dialog, /删除待办|Delete todo/i);
+    await expectDialogActionsInBody(dialog, /编辑待办|Edit Todo/i);
+    await expectDialogActionsInBody(dialog, /标记为完成|Mark as complete/i);
+
+    await captureStepScreenshot(page, testInfo, "todos/detail-dialog");
+
+    await closeDetailDialog(page, dialog);
   });
 
   test("嵌套待办路由渲染服务端操作错误", async ({ page }, testInfo) => {

@@ -9,6 +9,7 @@ export interface SectionHomeworkCopy extends HomeworkStyleGuideCopy {
   auditTitle: string;
   calendarButtonLabel: string;
   cancel: string;
+  completedLabel: string;
   contentHistoryAction: string;
   contentHistoryActor: string;
   deleteAction: string;
@@ -18,6 +19,7 @@ export interface SectionHomeworkCopy extends HomeworkStyleGuideCopy {
   descriptionLabel: string;
   descriptionPlaceholder: string;
   editAction: string;
+  filterIncomplete: string;
   helperClear: string;
   helperMonth: string;
   helperPublishNow: string;
@@ -36,10 +38,6 @@ export interface SectionHomeworkCopy extends HomeworkStyleGuideCopy {
   titleLabel: string;
   titlePlaceholder: string;
 }
-
-export type SectionHomeworkSectionCopy = {
-  close?: string;
-};
 
 export type SectionHomeworkCommonCopy = {
   unknown: string;

@@ -23,7 +23,6 @@ import {
   canManageSectionHomework,
   canWriteSectionHomework,
   sectionHomeworkAuditLogs,
-  sectionHomeworkStatus,
 } from "@/features/section-detail/lib/section-detail-derived-state";
 import { createSectionDetailHomeworkActions } from "@/features/section-detail/lib/section-detail-homework-actions";
 import { createSectionHomeworkTimestampActions } from "@/features/section-detail/lib/section-detail-homework-timestamp-actions";
@@ -400,10 +399,6 @@ const {
   },
 });
 
-function _homeworkStatus(homework: SectionHomework) {
-  return sectionHomeworkStatus(homework, _homeworkCopy);
-}
-
 function _auditLogsForHomework(homeworkId: string) {
   return sectionHomeworkAuditLogs(_homeworkAuditLogs, homeworkId);
 }
@@ -526,7 +521,6 @@ onMount(() => {
   homeworkAuditLogs={_homeworkAuditLogs}
   homeworkCopy={_homeworkCopy}
   homeworkMessage={_homeworkMessage}
-  homeworkStatus={_homeworkStatus}
   isCalendarDialogOpen={_isCalendarDialogOpen}
   isHomeworkAuditDialogOpen={_isHomeworkAuditDialogOpen}
   sectionCopy={_sectionCopy}
