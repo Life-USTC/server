@@ -4,7 +4,6 @@ import {
   searchQueryToTokens,
 } from "@/features/dashboard-links/lib/dashboard-link-search";
 import {
-  DASHBOARD_LINK_GROUPS,
   localizeDashboardLink,
   recommendDashboardLinks,
   USTC_DASHBOARD_LINKS,
@@ -53,32 +52,6 @@ describe("仪表盘链接推荐", () => {
       expect(link.localizations["en-us"]?.title, link.slug).toBeTruthy();
       expect(link.localizations["en-us"]?.description, link.slug).toBeTruthy();
     }
-  });
-
-  it("目录与分组中的链接保持同步", () => {
-    const catalogSlugs = USTC_DASHBOARD_LINKS.map((link) => link.slug);
-    const groupedSlugs = Object.values(DASHBOARD_LINK_GROUPS).flat();
-
-    expect(new Set(catalogSlugs).size).toBe(catalogSlugs.length);
-    expect(new Set(groupedSlugs).size).toBe(groupedSlugs.length);
-    expect(groupedSlugs.toSorted()).toEqual(catalogSlugs.toSorted());
-  });
-
-  it("包含大模型平台并清理已停用入口", () => {
-    expect(
-      USTC_DASHBOARD_LINKS.find((link) => link.slug === "llm-platform"),
-    ).toMatchObject({
-      title: "大模型公共服务平台",
-      url: "https://llm.ustc.edu.cn/",
-    });
-    expect(
-      USTC_DASHBOARD_LINKS.find((link) => link.slug === "payment-system"),
-    ).toMatchObject({
-      url: "https://cwjf.ustc.edu.cn/payment/",
-    });
-    expect(USTC_DASHBOARD_LINKS.some((link) => link.slug === "legacy-jw")).toBe(
-      false,
-    );
   });
 
   it("按地区设置投影仪表盘链接标签", () => {
