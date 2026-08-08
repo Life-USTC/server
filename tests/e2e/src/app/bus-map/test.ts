@@ -20,6 +20,7 @@ import {
   gotoAndWaitForReady,
 } from "../../../utils/page-ready";
 import { captureStepScreenshot } from "../../../utils/screenshot";
+import { assertPageContract } from "../_shared/page-contract";
 
 test.describe("校车线路图", () => {
   test("SVG 中渲染校区节点与线路", async ({ page }, testInfo) => {
@@ -173,4 +174,8 @@ test.describe("校车线路图", () => {
     await refreshBtn.click();
     await expect(refreshBtn).toBeVisible();
   });
+});
+
+test("页面契约", async ({ page }, testInfo) => {
+  await assertPageContract(page, { routePath: "/catalog/bus/map", testInfo });
 });

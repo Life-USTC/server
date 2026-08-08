@@ -13,6 +13,7 @@ import {
 import { sidebarNavigationLink } from "../../../../utils/locators";
 import { gotoAndWaitForReady } from "../../../../utils/page-ready";
 import { captureStepScreenshot } from "../../../../utils/screenshot";
+import { assertPageContract } from "../../_shared/page-contract";
 
 const dashboardTabRoutes = {
   overview: "/workspace/overview",
@@ -133,4 +134,15 @@ test("查询参数别名永久跳转后使用规范化的工作台页面身份",
 
   await expect(page).toHaveURL(/\/workspace\/todos$/);
   await expectDashboardPageIdentity(page, "zh-cn", "待办");
+});
+
+test("页面契约", async ({ page }, testInfo) => {
+  await assertPageContract(page, {
+    routePath: "/workspace/overview",
+    testInfo,
+  });
+});
+
+test("页面契约 /workspace", async ({ page }, testInfo) => {
+  await assertPageContract(page, { routePath: "/workspace", testInfo });
 });

@@ -43,6 +43,7 @@ import {
   capturePageScreenshot,
   captureStepScreenshot,
 } from "../../../../utils/screenshot";
+import { assertPageContract } from "../../_shared/page-contract";
 
 type DeviceAuthorizationResult = {
   clientId: string;
@@ -575,4 +576,8 @@ test("/oauth/device 发现文档包含设备授权端点", async ({ request }) =
       "urn:ietf:params:oauth:grant-type:device_code",
     ),
   ).toBe(true);
+});
+
+test("页面契约", async ({ page }, testInfo) => {
+  await assertPageContract(page, { routePath: "/oauth/device", testInfo });
 });

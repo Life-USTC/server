@@ -42,7 +42,10 @@ const SQLSTATE_CODE_PATTERN = /^[0-9A-Z]{5}$/;
  * Walk `cause` / Prisma `meta` because driver-adapter failures often nest the
  * real SQLSTATE under the top-level Prisma wrapper.
  */
-function safeDatabaseErrorCode(error: unknown, depth = 0): string | undefined {
+export function getSafeDatabaseErrorCode(
+  error: unknown,
+  depth = 0,
+): string | undefined {
   if (depth > 5 || typeof error !== "object" || error === null) {
     return undefined;
   }
@@ -56,7 +59,7 @@ function safeDatabaseErrorCode(error: unknown, depth = 0): string | undefined {
   }
 
   if ("meta" in error) {
-    const fromMeta = safeDatabaseErrorCode(
+    const fromMeta = getSafeDatabaseErrorCode(
       (error as { meta: unknown }).meta,
       depth + 1,
     );
@@ -64,7 +67,7 @@ function safeDatabaseErrorCode(error: unknown, depth = 0): string | undefined {
   }
 
   if ("cause" in error) {
-    return safeDatabaseErrorCode(
+    return getSafeDatabaseErrorCode(
       (error as { cause: unknown }).cause,
       depth + 1,
     );
@@ -77,7 +80,7 @@ export function serializeError(error: unknown) {
   if (!error) return undefined;
 
   if (isProductionEnvironment()) {
-    const code = safeDatabaseErrorCode(error);
+    const code = getSafeDatabaseErrorCode(error);
     return { name: getSafeErrorName(error), ...(code ? { code } : {}) };
   }
 

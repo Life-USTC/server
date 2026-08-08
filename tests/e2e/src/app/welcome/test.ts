@@ -30,6 +30,7 @@ import {
 } from "../../../utils/e2e-db";
 import { gotoAndWaitForReady } from "../../../utils/page-ready";
 import { captureStepScreenshot } from "../../../utils/screenshot";
+import { assertPageContract } from "../_shared/page-contract";
 
 // These tests mutate the shared debug user profile.
 test.describe.configure({ mode: "serial" });
@@ -259,4 +260,8 @@ test("/account/welcome 提供浏览班级与批量匹配入口", async ({
       image: originalUser.image ?? null,
     });
   }
+});
+
+test("页面契约", async ({ page }, testInfo) => {
+  await assertPageContract(page, { routePath: "/account/welcome", testInfo });
 });

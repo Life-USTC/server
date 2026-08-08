@@ -9,6 +9,7 @@ import { signInAsDebugUser } from "../../../../utils/auth";
 import { PLAYWRIGHT_BASE_URL } from "../../../../utils/e2e-db";
 import { gotoAndWaitForReady } from "../../../../utils/page-ready";
 import { captureStepScreenshot } from "../../../../utils/screenshot";
+import { assertPageContract } from "../../_shared/page-contract";
 
 async function generateCodeChallenge(codeVerifier: string) {
   return sha256Base64Url(codeVerifier);
@@ -208,4 +209,8 @@ test("/oauth/authorize 允许授权时带 code 回跳", async ({ page }, testInf
   expect(redirected.searchParams.get("state")).toBe("allow-state");
 
   await captureStepScreenshot(page, testInfo, "oauth-authorize-allowed");
+});
+
+test("页面契约", async ({ page }, testInfo) => {
+  await assertPageContract(page, { routePath: "/oauth/authorize", testInfo });
 });

@@ -23,18 +23,29 @@ function shouldLogBetterAuthPath(
   return pathname.includes("/oauth2");
 }
 
+function stableBetterAuthResponseEvent(path: string, status: number) {
+  if (status < 400) return "better-auth.response";
+  if (path.includes("/callback")) return "oauth.callback.error";
+  if (path === OAUTH_TOKEN_ENDPOINT_PATH || path.endsWith("/token")) {
+    return "oauth.token.error_response";
+  }
+  return "better-auth.response";
+}
+
 function recordBetterAuthResponseAnalytics(input: {
   method: string;
   path: string;
   start: number;
   status: number;
+  statusReason?: string;
 }) {
   writeOAuthEventAnalytics({
-    event: "better-auth.response",
+    event: stableBetterAuthResponseEvent(input.path, input.status),
     ioObservedDurationMs: Date.now() - input.start,
     method: input.method,
     path: input.path,
     status: input.status,
+    statusReason: input.statusReason,
   });
 }
 
@@ -143,6 +154,8 @@ export async function withBetterAuthOAuthDebug(
       path,
       start,
       status: res.status,
+      statusReason:
+        typeof errorBody?.error === "string" ? errorBody.error : undefined,
     });
     return res;
   } catch (err) {

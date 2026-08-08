@@ -1,7 +1,5 @@
-import {
-  getCloudflareCalendarExportsNamespace,
-  getCloudflareRuntimeTaskScheduler,
-} from "@/lib/adapters/cloudflare-runtime";
+import { enqueueUserCalendarExportRebuild } from "@/features/calendar/server/calendar-export-queue";
+import { getCloudflareCalendarExportsNamespace } from "@/lib/adapters/cloudflare-runtime";
 import { sha256Base64Url } from "@/lib/crypto/web-crypto";
 import { writeCalendarFeedCacheAnalytics } from "@/lib/metrics/analytics-engine";
 
@@ -150,6 +148,32 @@ async function persistStoredCalendar(
   }
 }
 
+/**
+ * Persist a built ICS export to isolate memory + KV (queue rebuild / sync miss).
+ */
+export async function storeBuiltUserCalendarExport(
+  userId: string,
+  calendar: UserCalendarExport,
+  options: UserCalendarExportCacheOptions = {},
+) {
+  const stored: StoredUserCalendarExport = {
+    ...calendar,
+    etag: await createCalendarEtag(calendar.text),
+    generatedAtMs: Date.now(),
+    version: USER_CALENDAR_EXPORT_CACHE_VERSION,
+  };
+  userCalendarExportCache.set(userId, stored);
+  pruneOldestEntries();
+  const persistence = persistStoredCalendar(userId, stored);
+  if (options.defer) {
+    options.defer(persistence);
+  } else {
+    await persistence;
+  }
+  recordCalendarFeedCacheStatus("refresh_success");
+  return stored;
+}
+
 function refreshUserCalendarExport(
   userId: string,
   buildExport: () => Promise<UserCalendarExport | null>,
@@ -161,23 +185,7 @@ function refreshUserCalendarExport(
   const refresh = (async () => {
     const calendar = await buildExport();
     if (!calendar) return null;
-
-    const stored: StoredUserCalendarExport = {
-      ...calendar,
-      etag: await createCalendarEtag(calendar.text),
-      generatedAtMs: Date.now(),
-      version: USER_CALENDAR_EXPORT_CACHE_VERSION,
-    };
-    userCalendarExportCache.set(userId, stored);
-    pruneOldestEntries();
-    const persistence = persistStoredCalendar(userId, stored);
-    if (defer) {
-      defer(persistence);
-    } else {
-      await persistence;
-    }
-    recordCalendarFeedCacheStatus("refresh_success");
-    return stored;
+    return storeBuiltUserCalendarExport(userId, calendar, { defer });
   })();
 
   userCalendarExportRefreshes.set(userId, refresh);
@@ -186,6 +194,12 @@ function refreshUserCalendarExport(
     () => userCalendarExportRefreshes.delete(userId),
   );
   return refresh;
+}
+
+function scheduleStaleCalendarExportRebuild(userId: string) {
+  void enqueueUserCalendarExportRebuild(userId).catch(() => {
+    // Stale-serve path must never fail because enqueue failed.
+  });
 }
 
 export async function getCachedUserCalendarExport(
@@ -208,31 +222,9 @@ export async function getCachedUserCalendarExport(
     }
 
     if (ageMs <= USER_CALENDAR_EXPORT_STALE_TTL_MS) {
-      // Do not rebuild ICS inside waitUntil/defer. Production showed Worker wall
-      // ~12s / CPU p95 ~3s on this path (cpu_ms limit 1000) while the response
-      // itself returned in ~100ms — calendar clients re-poll and the deferred
-      // rebuilds cancel or hit the CPU limit. Freshness comes from write-time
-      // invalidation plus a sync rebuild once the entry is past STALE_TTL.
-      if (options.defer) {
-        recordCalendarFeedCacheStatus("stale");
-        return {
-          calendar: cached,
-          status: "stale" satisfies UserCalendarExportCacheStatus,
-        };
-      }
-
-      try {
-        const refreshed = await refreshUserCalendarExport(userId, buildExport);
-        if (refreshed) {
-          return {
-            calendar: refreshed,
-            status: "miss" satisfies UserCalendarExportCacheStatus,
-          };
-        }
-      } catch {
-        recordCalendarFeedCacheStatus("refresh_error");
-      }
-
+      // Serve stale immediately and enqueue a Queue rebuild. Do not rebuild ICS
+      // on the request path (or inside waitUntil) — that path hit cpu_ms / cancel.
+      scheduleStaleCalendarExportRebuild(userId);
       recordCalendarFeedCacheStatus("stale");
       return {
         calendar: cached,
@@ -272,14 +264,4 @@ export async function invalidateUserCalendarExportCache(userId: string) {
   } catch {
     recordCalendarFeedCacheStatus("store_error");
   }
-}
-
-export function scheduleInvalidateUserCalendarExportCache(userId: string) {
-  const scheduleTask = getCloudflareRuntimeTaskScheduler();
-  const work = invalidateUserCalendarExportCache(userId);
-  if (scheduleTask) {
-    scheduleTask(work);
-    return;
-  }
-  void work;
 }

@@ -68,6 +68,18 @@ type CloudflareTracing = {
   enterSpan<T>(name: string, callback: (span: CloudflareSpan) => T): T;
 };
 
+export type CloudflareQueueSendOptions = {
+  contentType?: string;
+  delaySeconds?: number;
+};
+
+export type CloudflareQueue = {
+  send(message: unknown, options?: CloudflareQueueSendOptions): Promise<void>;
+  sendBatch?(
+    messages: Array<{ body: unknown; options?: CloudflareQueueSendOptions }>,
+  ): Promise<void>;
+};
+
 export type CloudflareKVNamespace = {
   delete(key: string): Promise<void>;
   get<T = unknown>(
@@ -84,6 +96,7 @@ export type CloudflareKVNamespace = {
 type CloudflareRuntimeEnv = Record<string, unknown> & {
   ANALYTICS?: CloudflareAnalyticsEngineDataset;
   ASSETS?: CloudflareAssetsBinding;
+  CALENDAR_EXPORT_REBUILD?: CloudflareQueue;
   CALENDAR_EXPORTS?: CloudflareKVNamespace;
   CATALOG_DETAIL_CORE?: CloudflareKVNamespace;
   HYPERDRIVE?: {
@@ -271,6 +284,10 @@ export function getCloudflareAssetsBinding() {
 
 export function getCloudflareCalendarExportsNamespace() {
   return getCurrentCloudflareRuntimeEnv()?.CALENDAR_EXPORTS;
+}
+
+export function getCloudflareCalendarExportRebuildQueue() {
+  return getCurrentCloudflareRuntimeEnv()?.CALENDAR_EXPORT_REBUILD;
 }
 
 export function getCloudflareCatalogDetailCoreNamespace() {

@@ -28,6 +28,7 @@ import {
 } from "../../../../utils/locators";
 import { gotoAndWaitForReady } from "../../../../utils/page-ready";
 import { captureStepScreenshot } from "../../../../utils/screenshot";
+import { assertPageContract } from "../../_shared/page-contract";
 
 test.describe.configure({ mode: "serial" });
 
@@ -350,4 +351,8 @@ test.describe("仪表盘网站链接", () => {
       });
     }
   });
+});
+
+test("页面契约", async ({ page }, testInfo) => {
+  await assertPageContract(page, { routePath: "/catalog/links", testInfo });
 });

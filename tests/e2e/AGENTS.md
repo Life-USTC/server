@@ -36,3 +36,18 @@ Helpers: `signInAsDebugUser`, `gotoAndWaitForReady`, `DEV_SEED` under `utils/`.
 - One worker per shard; shared-state files use
   `test.describe.configure({ mode: "serial" })` and restore seed in `finally`
   (e.g. `tests/e2e/src/app/test.ts`, welcome/settings, `dashboard/**`, MCP UI).
+
+
+## Page inventory (L0 / L1 / L2)
+
+- **L0 — inventory gate:** `tests/e2e/src/app/_shared/page-inventory.ts` lists every
+  `src/routes/**/+page.svelte`. `tests/unit/page-inventory.test.ts` fails if a
+  new page is orphaned or a `primaryActions` entry lacks a spec / exemption.
+- **L1 — page identity:** call `assertPageContract` from the page’s
+  `tests/e2e/src/app/**/test.ts` (reuse `gotoAndWaitForReady` / role labels).
+- **L2 — primary actions:** each actionable control that changes state or
+  navigates needs a role/label case in the page spec, **or** an inventory
+  exemption: `decorative` | `live-oauth` | `covered-by:<spec>`.
+- Prefer `getByRole` / bilingual labels. Do not soft-skip expected product
+  controls with `test.skip` when `count() === 0` — use `expect(...).toBeVisible()`.
+- Mobile screenshot paths come from `mobileScreenshotPaths()` in the inventory.

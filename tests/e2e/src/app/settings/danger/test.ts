@@ -30,6 +30,7 @@ import {
   signInAsDebugUser,
 } from "../../../../utils/auth";
 import { captureStepScreenshot } from "../../../../utils/screenshot";
+import { assertPageContract } from "../../_shared/page-contract";
 
 test.describe("/account/settings/danger 危险区设置", () => {
   test("需要登录", async ({ page }, testInfo) => {
@@ -152,5 +153,12 @@ test.describe("/account/settings/danger 危险区设置", () => {
     // Recreate the debug fixture user so subsequent tests can sign in again
     await signInAsDebugUser(page, "/", "/", { ui: true });
     await expect(page.locator("#app-user-menu")).toBeVisible();
+  });
+});
+
+test("页面契约", async ({ page }, testInfo) => {
+  await assertPageContract(page, {
+    routePath: "/account/settings/danger",
+    testInfo,
   });
 });

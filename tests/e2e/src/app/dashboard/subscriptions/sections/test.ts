@@ -33,6 +33,7 @@ import { absoluteTestUrl } from "../../../../../utils/request-url";
 import { captureStepScreenshot } from "../../../../../utils/screenshot";
 import { resolveSeedSectionMatches } from "../../../../../utils/seed-lookups";
 import { ensureSeedSectionSubscription } from "../../../../../utils/subscriptions";
+import { assertPageContract } from "../../../_shared/page-contract";
 
 function escapeForRegExp(value: string) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -694,5 +695,21 @@ test.describe("仪表盘教学班订阅", () => {
       testInfo,
       "dashboard-subscriptions-bulk-import-success",
     );
+  });
+});
+
+test("页面契约", async ({ page }, testInfo) => {
+  await assertPageContract(page, {
+    routePath: "/workspace/subscriptions",
+    testInfo,
+  });
+});
+
+test("页面契约 /workspace/subscriptions/sections", async ({
+  page,
+}, testInfo) => {
+  await assertPageContract(page, {
+    routePath: "/workspace/subscriptions/sections",
+    testInfo,
   });
 });

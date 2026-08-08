@@ -29,6 +29,7 @@ import {
 import { DEV_SEED } from "../../../../utils/dev-seed";
 import { visibleText } from "../../../../utils/locators";
 import { captureStepScreenshot } from "../../../../utils/screenshot";
+import { assertPageContract } from "../../_shared/page-contract";
 
 test.describe.configure({ mode: "serial" });
 
@@ -156,4 +157,8 @@ test("/admin/bus 移动端首条版本操作可达", async ({ page }, testInfo) 
   ).toBeLessThanOrEqual(390);
 
   await captureStepScreenshot(page, testInfo, "admin-bus/mobile-workspace");
+});
+
+test("页面契约", async ({ page }, testInfo) => {
+  await assertPageContract(page, { routePath: "/admin/bus", testInfo });
 });

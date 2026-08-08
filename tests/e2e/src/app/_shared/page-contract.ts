@@ -94,14 +94,24 @@ export async function assertPageContract(
                     name: /已授权的 OAuth 应用|Authorized OAuth applications/i,
                   })
                 : expectedTab === "danger"
-                  ? page.getByRole("heading", { name: /危险|Danger/i })
+                  ? page.getByRole("region", {
+                      name: /删除账户|Delete Account/i,
+                    })
                   : page.getByRole("heading", { name: /设置|Settings/i });
       await expect(
-        page.getByRole("link", { name: /设置|Settings/i }),
+        page.getByRole("heading", { name: /设置|Settings/i, level: 1 }),
       ).toBeVisible();
       await expect(tabMarker).toBeVisible();
       return;
     }
+  }
+
+  if (routePath === "/workspace/subscriptions/sections") {
+    await signInAsDebugUser(page, "/workspace/subscriptions");
+    await gotoContractPage(page, routePath, testInfo);
+    await expect(page).toHaveURL(/\/workspace\/subscriptions(?:\?.*)?$/);
+    await expectMainContent(page);
+    return;
   }
 
   if (
@@ -176,8 +186,9 @@ export async function assertPageContract(
       await expect(
         page.getByRole("heading", { name: /OAuth|OAuth 客户端/i }),
       ).toBeVisible();
+      // Header + empty-state both expose Create Client; L1 only needs one.
       await expect(
-        page.getByRole("button", { name: /创建客户端|Create Client/i }),
+        page.getByRole("button", { name: /创建客户端|Create Client/i }).first(),
       ).toBeVisible();
       await maybeCapture(page, testInfo, "admin-oauth");
       return;
@@ -314,6 +325,23 @@ export async function assertPageContract(
       return;
     }
 
+    case "/catalog/bus": {
+      await gotoContractPage(page, routePath, testInfo);
+      await expectMainContent(page);
+      await expect(
+        page.getByRole("heading", { level: 1, name: /校车|Shuttle Bus/i }),
+      ).toBeVisible();
+      // Mobile-only collapsible triggers are lg:hidden; assert desktop planner.
+      await expect(
+        page.locator("[data-testid='bus-start-stop-group']"),
+      ).toBeVisible();
+      await expect(
+        page.getByRole("button", { name: /Reverse|反向/i }),
+      ).toBeVisible();
+      await maybeCapture(page, testInfo, "bus");
+      return;
+    }
+
     case "/catalog/bus/map": {
       await gotoContractPage(page, routePath, testInfo);
       await expectMainContent(page);
@@ -322,6 +350,82 @@ export async function assertPageContract(
         page.getByRole("button", { name: /Refresh|刷新/i }),
       ).toBeVisible();
       await maybeCapture(page, testInfo, "bus-map");
+      return;
+    }
+
+    case "/catalog/links": {
+      await gotoContractPage(page, routePath, testInfo);
+      await expectMainContent(page);
+      await expect(
+        page.getByRole("searchbox", {
+          name: /搜索网站名称或描述|Search by name or description/i,
+        }),
+      ).toBeVisible();
+      await expect(
+        page.getByRole("link", { name: /教务系统|Academic Affairs/i }).first(),
+      ).toBeVisible();
+      await maybeCapture(page, testInfo, "links");
+      return;
+    }
+
+    case "/search": {
+      await gotoContractPage(page, routePath, testInfo);
+      await expectMainContent(page);
+      await expect(
+        page.getByRole("heading", { name: /搜索|Search/i }),
+      ).toBeVisible();
+      await expect(page.getByRole("combobox")).toBeVisible();
+      await maybeCapture(page, testInfo, "search");
+      return;
+    }
+
+    case "/api/docs": {
+      await gotoContractPage(page, routePath, testInfo);
+      await expect(page).toHaveURL(
+        /\/api\/docs\/tag\/catalog-section(?:\?.*)?$/,
+      );
+      await expectMainContent(page);
+      await maybeCapture(page, testInfo, "api-docs-redirect");
+      return;
+    }
+
+    case "/catalog/courses/[jwId]/[section]": {
+      await gotoContractPage(
+        page,
+        `/catalog/courses/${DEV_SEED.course.jwId}/introduction`,
+        testInfo,
+      );
+      await expect(page).toHaveURL(
+        new RegExp(`/catalog/courses/${DEV_SEED.course.jwId}#introduction$`),
+      );
+      await expectMainContent(page);
+      return;
+    }
+
+    case "/catalog/sections/[jwId]/[section]": {
+      await gotoContractPage(
+        page,
+        `/catalog/sections/${DEV_SEED.section.jwId}/introduction`,
+        testInfo,
+      );
+      await expect(page).toHaveURL(
+        new RegExp(`/catalog/sections/${DEV_SEED.section.jwId}#introduction$`),
+      );
+      await expectMainContent(page);
+      return;
+    }
+
+    case "/catalog/teachers/[id]/[section]": {
+      const teacherId = await resolveSeedTeacherId(page);
+      await gotoContractPage(
+        page,
+        `/catalog/teachers/${teacherId}/introduction`,
+        testInfo,
+      );
+      await expect(page).toHaveURL(
+        new RegExp(`/catalog/teachers/${teacherId}#introduction$`),
+      );
+      await expectMainContent(page);
       return;
     }
 
@@ -413,10 +517,11 @@ export async function assertPageContract(
     }
 
     case "/oauth/authorize": {
+      // Bare authorize URL (no client_id / PKCE) redirects to sign-in.
       await gotoContractPage(page, routePath, testInfo);
       await expectMainContent(page);
       await expect(
-        page.getByRole("heading", { name: /OAuth|授权|Authorize/i }),
+        page.getByRole("heading", { name: /登录|Sign In/i }),
       ).toBeVisible();
       await maybeCapture(page, testInfo, "oauth-authorize");
       return;

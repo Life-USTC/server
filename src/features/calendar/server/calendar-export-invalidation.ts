@@ -1,15 +1,23 @@
+import { invalidateUserCalendarExportCache } from "@/features/calendar/server/calendar-export-cache";
 import {
-  invalidateUserCalendarExportCache,
-  scheduleInvalidateUserCalendarExportCache,
-} from "@/features/calendar/server/calendar-export-cache";
-import { getCloudflareRuntimeTaskScheduler } from "@/lib/adapters/cloudflare-runtime";
+  scheduleSectionCalendarExportRebuild,
+  scheduleUserCalendarExportRebuild,
+} from "@/features/calendar/server/calendar-export-queue";
 import { prisma } from "@/lib/db/prisma";
 
-export {
-  invalidateUserCalendarExportCache,
-  scheduleInvalidateUserCalendarExportCache,
-};
+export { invalidateUserCalendarExportCache };
 
+/**
+ * After a user-scoped write, enqueue an ICS rebuild (overwrite KV) instead of
+ * waitUntil delete/fan-out.
+ */
+export function scheduleInvalidateUserCalendarExportCache(userId: string) {
+  scheduleUserCalendarExportRebuild(userId);
+}
+
+/**
+ * Sync helper for tests/local: delete cached exports for every subscriber.
+ */
 export async function invalidateCalendarExportsForSection(sectionId: number) {
   const subscribers = await prisma.userSectionSubscription.findMany({
     where: { sectionId },
@@ -22,12 +30,10 @@ export async function invalidateCalendarExportsForSection(sectionId: number) {
   );
 }
 
+/**
+ * After a section-scoped write, enqueue one section rebuild message. The queue
+ * consumer expands subscribers and rebuilds (no N deletes in waitUntil).
+ */
 export function scheduleInvalidateCalendarExportsForSection(sectionId: number) {
-  const scheduleTask = getCloudflareRuntimeTaskScheduler();
-  const work = invalidateCalendarExportsForSection(sectionId);
-  if (scheduleTask) {
-    scheduleTask(work);
-    return;
-  }
-  void work;
+  scheduleSectionCalendarExportRebuild(sectionId);
 }

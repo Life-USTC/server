@@ -55,7 +55,29 @@ describe("personal calendar access", () => {
     });
 
     expect(access.ok).toBe(false);
-    if (!access.ok) expect(access.response.status).toBe(403);
+    if (!access.ok) {
+      expect(access.response.status).toBe(410);
+      expect(access.response.headers.get("Cache-Control")).toBe(
+        "private, max-age=60",
+      );
+    }
     expect(resolveApiUserIdMock).not.toHaveBeenCalled();
+  });
+
+  it("returns 404 for an unknown user even when a feed token is present", async () => {
+    getAccessRecordMock.mockResolvedValue(null);
+    const { resolveUserCalendarAccess } = await import(
+      "@/lib/api/routes/calendar-route-user-access"
+    );
+
+    const access = await resolveUserCalendarAccess({
+      rawUserId: "missing-user",
+      request: new Request(
+        "https://example.test/api/calendar-feeds/missing-user.ics?token=any-token",
+      ),
+    });
+
+    expect(access.ok).toBe(false);
+    if (!access.ok) expect(access.response.status).toBe(404);
   });
 });

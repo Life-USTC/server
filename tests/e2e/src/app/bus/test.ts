@@ -20,6 +20,7 @@ import {
 } from "../../../utils/page-ready";
 import { absoluteTestUrl } from "../../../utils/request-url";
 import { captureStepScreenshot } from "../../../utils/screenshot";
+import { assertPageContract } from "../_shared/page-contract";
 
 async function setLocale(
   page: Page,
@@ -551,4 +552,8 @@ test.describe("校车面板标签页", () => {
       });
     }
   });
+});
+
+test("页面契约", async ({ page }, testInfo) => {
+  await assertPageContract(page, { routePath: "/catalog/bus", testInfo });
 });

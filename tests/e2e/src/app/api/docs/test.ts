@@ -180,3 +180,7 @@ test.describe("/api-docs 页面", () => {
     await expect(page).toHaveURL(/\/api\/docs\/tag\/catalog-section$/);
   });
 });
+
+test("页面契约 /api/docs", async ({ page }, testInfo) => {
+  await assertPageContract(page, { routePath: "/api/docs", testInfo });
+});

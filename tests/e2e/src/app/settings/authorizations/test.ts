@@ -10,6 +10,7 @@ import {
 } from "../../../../utils/e2e-db";
 import { gotoAndWaitForReady } from "../../../../utils/page-ready";
 import { captureStepScreenshot } from "../../../../utils/screenshot";
+import { assertPageContract } from "../../_shared/page-contract";
 
 test.describe.configure({ mode: "serial" });
 
@@ -105,5 +106,12 @@ test.describe("/account/settings/authorizations OAuth 授权", () => {
     } finally {
       await deleteOAuthClientsByName(name);
     }
+  });
+});
+
+test("页面契约", async ({ page }, testInfo) => {
+  await assertPageContract(page, {
+    routePath: "/account/settings/authorizations",
+    testInfo,
   });
 });

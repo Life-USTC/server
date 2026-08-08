@@ -27,6 +27,7 @@ import {
 } from "../../../../utils/auth";
 import { DEV_SEED } from "../../../../utils/dev-seed";
 import { captureStepScreenshot } from "../../../../utils/screenshot";
+import { assertPageContract } from "../../_shared/page-contract";
 
 test.describe("/account/settings/profile 个人资料设置", () => {
   // Serial mode avoids intra-file contention on the shared debug user profile.
@@ -127,5 +128,12 @@ test.describe("/account/settings/profile 个人资料设置", () => {
       testInfo,
       "settings/profile-username-required",
     );
+  });
+});
+
+test("页面契约", async ({ page }, testInfo) => {
+  await assertPageContract(page, {
+    routePath: "/account/settings/profile",
+    testInfo,
   });
 });
