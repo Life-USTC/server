@@ -1,6 +1,11 @@
 <script lang="ts">
+import HomeworkDetailMetaGrid from "@/features/homeworks/components/HomeworkDetailMetaGrid.svelte";
+import HomeworkDetailTags from "@/features/homeworks/components/HomeworkDetailTags.svelte";
+import {
+  buildHomeworkDetailMetaRows,
+  buildHomeworkDetailTags,
+} from "@/features/homeworks/lib/homework-detail-meta";
 import RenderedMarkdown from "$lib/components/RenderedMarkdown.svelte";
-import { Badge } from "$lib/components/ui/badge/index.js";
 import * as Item from "$lib/components/ui/item/index.js";
 import type {
   SectionHomeworkCopy,
@@ -11,9 +16,16 @@ import type {
 export let fmtDateTime: SectionHomeworkFormatter;
 export let homework: SectionHomeworkDisplay;
 export let homeworkCopy: SectionHomeworkCopy;
+
+$: metaRows = buildHomeworkDetailMetaRows({
+  formatDate: fmtDateTime,
+  homework,
+  labels: homeworkCopy,
+});
+$: tags = buildHomeworkDetailTags({ homework, labels: homeworkCopy });
 </script>
 
-<Item.Root variant="muted" class="min-h-24 items-start p-4">
+<Item.Root variant="muted" class="items-start p-4">
   <Item.Content>
     {#if homework.description?.content}
       {#if homework.description.renderedHtml}
@@ -36,26 +48,6 @@ export let homeworkCopy: SectionHomeworkCopy;
   </Item.Content>
 </Item.Root>
 
-<dl class="grid gap-3 sm:grid-cols-3">
-  <Item.Root variant="outline" size="sm" class="block bg-background">
-    <dt class="text-muted-foreground text-xs">{homeworkCopy.publishedAt}</dt>
-    <dd class="mt-1 font-medium text-sm tabular-nums">{fmtDateTime(homework.publishedAt)}</dd>
-  </Item.Root>
-  <Item.Root variant="outline" size="sm" class="block bg-background">
-    <dt class="text-muted-foreground text-xs">{homeworkCopy.submissionStart}</dt>
-    <dd class="mt-1 font-medium text-sm tabular-nums">
-      {fmtDateTime(homework.submissionStartAt)}
-    </dd>
-  </Item.Root>
-  <Item.Root variant="outline" size="sm" class="block border-primary/30 bg-primary/5">
-    <dt class="text-muted-foreground text-xs">{homeworkCopy.submissionDue}</dt>
-    <dd class="mt-1 font-semibold text-sm tabular-nums">
-      {fmtDateTime(homework.submissionDueAt)}
-    </dd>
-  </Item.Root>
-</dl>
+<HomeworkDetailMetaGrid rows={metaRows} />
 
-<div class="flex flex-wrap gap-2">
-  {#if homework.isMajor}<Badge variant="secondary">{homeworkCopy.tagMajor}</Badge>{/if}
-  {#if homework.requiresTeam}<Badge variant="outline">{homeworkCopy.tagTeam}</Badge>{/if}
-</div>
+<HomeworkDetailTags {tags} />

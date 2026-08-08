@@ -203,7 +203,6 @@ $: ({
       {homeworkEtaLabel}
       {homeworksCopy}
       {homeworkSavingById}
-      {homeworkSectionHref}
       {homeworkSectionLabel}
       {homeworkStatus}
       {isCreatingHomework}

@@ -42,7 +42,6 @@ export let homeworkDetailHref: HomeworkAction;
 export let homeworkEtaLabel: DashboardHomeworkDetailFormatter;
 export let homeworksCopy: DashboardHomeworksCopy;
 export let homeworkSavingById: Record<string, boolean>;
-export let homeworkSectionHref: HomeworkAction;
 export let homeworkSectionLabel: (
   section: DashboardHomeworkCreateSection,
 ) => string;
@@ -92,7 +91,6 @@ export let toggleHomeworkCompletion: (
   {homeworkEtaLabel}
   {homeworkCourseLabel}
   {homeworkSavingById}
-  {homeworkSectionHref}
   {homeworksCopy}
   {homeworkCopy}
   {homeworkStatus}

@@ -11,7 +11,7 @@ export let homework: DashboardHomeworkDetailItem;
 export let homeworksCopy: DashboardHomeworkDetailCopy;
 </script>
 
-<Item.Root variant="outline" class="items-start">
+<Item.Root variant="muted" class="items-start p-4">
   <Item.Content>
     {#if homework.description}
       <MarkdownPreview
