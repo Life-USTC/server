@@ -1,17 +1,23 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const { authApiMock, isPrismaUniqueConstraintErrorMock, prismaMock } =
-  vi.hoisted(() => ({
-    authApiMock: {
-      updateUser: vi.fn(),
+const {
+  authApiMock,
+  isPrismaUniqueConstraintErrorMock,
+  logAppEventMock,
+  prismaMock,
+} = vi.hoisted(() => ({
+  authApiMock: {
+    updateUser: vi.fn(),
+  },
+  isPrismaUniqueConstraintErrorMock: vi.fn(),
+  logAppEventMock: vi.fn(),
+  prismaMock: {
+    user: {
+      findUnique: vi.fn(),
+      update: vi.fn(),
     },
-    isPrismaUniqueConstraintErrorMock: vi.fn(),
-    prismaMock: {
-      user: {
-        findUnique: vi.fn(),
-      },
-    },
-  }));
+  },
+}));
 
 vi.mock("@/lib/auth/core", () => ({
   authApi: authApiMock,
@@ -23,6 +29,10 @@ vi.mock("@/lib/db/prisma-errors", () => ({
 
 vi.mock("@/lib/db/prisma", () => ({
   prisma: prismaMock,
+}));
+
+vi.mock("@/lib/log/app-logger", () => ({
+  logAppEvent: logAppEventMock,
 }));
 
 const profileInput = {
@@ -39,6 +49,8 @@ describe("updateOwnProfile", () => {
     isPrismaUniqueConstraintErrorMock.mockReset();
     isPrismaUniqueConstraintErrorMock.mockReturnValue(false);
     prismaMock.user.findUnique.mockReset();
+    prismaMock.user.update.mockReset();
+    logAppEventMock.mockReset();
     vi.resetModules();
   });
 
@@ -140,6 +152,46 @@ describe("updateOwnProfile", () => {
       headers: profileInput.headers,
       returnHeaders: true,
     });
+    expect(prismaMock.user.update).toHaveBeenCalledWith({
+      where: { id: "user-1" },
+      data: {
+        profilePictures: { push: image },
+      },
+      select: { id: true },
+    });
+  });
+
+  it("keeps profile completion successful if saving the reusable avatar option fails", async () => {
+    const headers = new Headers();
+    const storageError = new Error("profile picture list unavailable");
+    prismaMock.user.findUnique
+      .mockResolvedValueOnce({
+        id: "user-1",
+        image: null,
+        profilePictures: [],
+      })
+      .mockResolvedValueOnce(null);
+    prismaMock.user.update.mockRejectedValueOnce(storageError);
+    authApiMock.updateUser.mockResolvedValueOnce({ headers });
+    const { updateOwnProfile } = await import(
+      "@/features/profile/server/profile-update-service"
+    );
+    const image =
+      "/media/avatars/user-1/123e4567-e89b-12d3-a456-426614174000.webp";
+
+    await expect(
+      updateOwnProfile({
+        ...profileInput,
+        image,
+        trustedImageUrl: image,
+      }),
+    ).resolves.toEqual({ headers, ok: true });
+    expect(logAppEventMock).toHaveBeenCalledWith(
+      "warn",
+      "Failed to persist processed avatar as a profile option",
+      { source: "profile" },
+      storageError,
+    );
   });
 
   it("将用户名唯一性竞争映射为 username_taken", async () => {
