@@ -52,10 +52,8 @@ function publicDeviceClient(overrides: Record<string, unknown> = {}) {
     dpopBoundAccessTokens: false,
     grantTypes: [OAUTH_DEVICE_CODE_GRANT_TYPE],
     name: "Client",
-    public: true,
     scopes: [OAUTH_OPENID_SCOPE, OAUTH_PROFILE_SCOPE, TODO_READ_SCOPE],
     tokenEndpointAuthMethod: OAUTH_PUBLIC_CLIENT_AUTH_METHOD,
-    type: "public",
     ...overrides,
   };
 }
@@ -94,9 +92,7 @@ describe("设备授权", () => {
   it("拒绝机密客户端使用设备授权", async () => {
     findUniqueMock.mockResolvedValue(
       publicDeviceClient({
-        public: false,
         tokenEndpointAuthMethod: "client_secret_basic",
-        type: "web",
       }),
     );
     const { resolveDeviceAuthorizationClient } = await import(
