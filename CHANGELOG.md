@@ -1,3 +1,16 @@
+# [1.87.0](https://github.com/Life-USTC/server/compare/v1.86.0...v1.87.0) (2026-08-08)
+
+
+### Bug Fixes
+
+* **e2e:** align settings and oauth page contracts with real UI ([8f0af0e](https://github.com/Life-USTC/server/commit/8f0af0e418551ab336f18b61dd2c88ef04183bbd))
+* **e2e:** match danger settings marker to Delete Account region ([e084e49](https://github.com/Life-USTC/server/commit/e084e4932766bfdbe62b0f2eb98499a3388ccf2e))
+
+
+### Features
+
+* page inventory gates, calendar export queue, and CI trust ([e77ba15](https://github.com/Life-USTC/server/commit/e77ba15b20240bc2bdcf1a356dd1e0daab8a2e73))
+
 # [1.86.0](https://github.com/Life-USTC/server/compare/v1.85.1...v1.86.0) (2026-08-07)
 
 
