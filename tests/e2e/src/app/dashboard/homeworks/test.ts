@@ -27,8 +27,9 @@ import {
   closeDetailDialog,
   detailDialog,
   detailDialogAside,
-  detailDialogFooter,
-  expectHomeworkTimelineCells,
+  detailDialogBody,
+  expectDialogActionsInBody,
+  expectHomeworkDetailOrder,
 } from "../../../../utils/detail-dialog";
 import { DEV_SEED } from "../../../../utils/dev-seed";
 import { cleanupHomeworksForE2e } from "../../../../utils/homeworks";
@@ -377,7 +378,7 @@ test.describe("仪表盘作业", () => {
       dialog.getByText(/待处理|已完成|Pending|Completed/i).first(),
     ).toBeVisible();
 
-    await expectHomeworkTimelineCells(dialog);
+    await expectHomeworkDetailOrder(dialog);
 
     await expect(
       detailDialogAside(dialog).getByRole("heading", {
@@ -385,15 +386,15 @@ test.describe("仪表盘作业", () => {
       }),
     ).toBeVisible();
 
-    const footer = detailDialogFooter(dialog);
     await expect(
-      footer.getByRole("link", { name: /查看详情|View details/i }),
-    ).toBeVisible();
-    await expect(
-      footer.getByRole("button", {
-        name: /标记为完成|取消完成|Mark as complete|Mark as incomplete/i,
+      detailDialogBody(dialog).getByRole("link", {
+        name: /查看详情|View details/i,
       }),
     ).toBeVisible();
+    await expectDialogActionsInBody(
+      dialog,
+      /标记为完成|取消完成|Mark as complete|Mark as incomplete/i,
+    );
 
     await captureStepScreenshot(page, testInfo, "homeworks/detail-dialog");
 

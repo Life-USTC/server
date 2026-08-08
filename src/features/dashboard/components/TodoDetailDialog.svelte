@@ -12,6 +12,7 @@ import MarkdownPreview from "$lib/components/MarkdownPreview.svelte";
 import { Badge } from "$lib/components/ui/badge/index.js";
 import { Button } from "$lib/components/ui/button/index.js";
 import * as Item from "$lib/components/ui/item/index.js";
+import { Separator } from "$lib/components/ui/separator/index.js";
 
 export let deleteTodo: (todo: DashboardTodoItem) => void;
 export let fmtDate: (value: string | Date | null | undefined) => string;
@@ -27,28 +28,11 @@ export let toggleTodoCompletion: (todo: DashboardTodoItem) => void;
 
 {#if todo}
   {@const selected = todo}
-  <DetailDialog
-    onClose={onClose}
-    subtitle={`${todosCopy.dueLabel} · ${fmtDate(selected.dueAt)}`}
-    title={selected.title}
-  >
-    {#snippet badges()}
-      <Badge
-        variant={selected.priority === "high"
-          ? "destructive"
-          : selected.priority === "medium"
-            ? "secondary"
-            : "outline"}
-      >
-        {todosCopy.priority[selected.priority]}
-      </Badge>
-      <Badge variant={selected.completed ? "default" : "outline"}>
-        {todoStatus(selected)}
-      </Badge>
-    {/snippet}
-
+  <!-- Same reading order as the homework popup: content, due summary, vertical
+       metadata, then action controls. -->
+  <DetailDialog onClose={onClose} title={selected.title}>
     {#snippet body()}
-      <Item.Root variant="muted" class="items-start p-4">
+      <Item.Root variant="outline" class="items-start">
         <Item.Content>
           {#if selected.content}
             <MarkdownPreview class="text-sm" content={selected.content} />
@@ -57,47 +41,82 @@ export let toggleTodoCompletion: (todo: DashboardTodoItem) => void;
           {/if}
         </Item.Content>
       </Item.Root>
-    {/snippet}
 
-    {#snippet footer()}
-      <Button
-        aria-label={todosCopy.deleteAriaLabel}
-        class="sm:mr-auto"
-        disabled={todoSavingById[selected.id]}
-        type="button"
-        variant="destructive"
-        onclick={() => {
-          deleteTodo(selected);
-        }}
-      >
-        <Trash2 data-icon="inline-start" />
-        {todoSavingById[selected.id] ? todosCopy.saving : todosCopy.delete}
-      </Button>
-      <Button
-        type="button"
-        variant="outline"
-        onclick={() => {
-          openTodoEditor(selected);
-        }}
-      >
-        <PencilIcon data-icon="inline-start" />
-        {todosCopy.editTitle}
-      </Button>
-      <Button
-        disabled={todoSavingById[selected.id]}
-        type="button"
-        variant={selected.completed ? "outline" : "default"}
-        onclick={() => {
-          toggleTodoCompletion(selected);
-        }}
-      >
-        {#if selected.completed}
-          <RotateCcwIcon data-icon="inline-start" />
-        {:else}
-          <CheckCircleIcon data-icon="inline-start" />
-        {/if}
-        {todoSavingById[selected.id] ? todosCopy.saving : todoActionLabel(selected)}
-      </Button>
+      <Item.Root variant="muted" class="items-start">
+        <Item.Header>
+          <Item.Content>
+            <Item.Description>{todosCopy.dueLabel}</Item.Description>
+            <Item.Title class="text-base tabular-nums">{fmtDate(selected.dueAt)}</Item.Title>
+          </Item.Content>
+          <Item.Actions>
+            <Badge variant={selected.completed ? "default" : "secondary"}>
+              {todoStatus(selected)}
+            </Badge>
+          </Item.Actions>
+        </Item.Header>
+      </Item.Root>
+
+      <dl class="divide-y rounded-lg border">
+        <div class="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-0.5 px-3.5 py-2.5">
+          <dt class="text-muted-foreground text-xs">{todosCopy.priorityLabel}</dt>
+          <dd>
+            <Badge
+              variant={selected.priority === "high"
+                ? "destructive"
+                : selected.priority === "medium"
+                  ? "secondary"
+                  : "outline"}
+            >
+              {todosCopy.priority[selected.priority]}
+            </Badge>
+          </dd>
+        </div>
+      </dl>
+
+      <div class="grid gap-4">
+        <Separator />
+        <div class="flex flex-wrap items-center justify-between gap-2">
+          <Button
+            aria-label={todosCopy.deleteAriaLabel}
+            disabled={todoSavingById[selected.id]}
+            type="button"
+            variant="destructive"
+            onclick={() => {
+              deleteTodo(selected);
+            }}
+          >
+            <Trash2 data-icon="inline-start" />
+            {todoSavingById[selected.id] ? todosCopy.saving : todosCopy.delete}
+          </Button>
+          <div class="ml-auto flex flex-wrap justify-end gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              onclick={() => {
+                openTodoEditor(selected);
+              }}
+            >
+              <PencilIcon data-icon="inline-start" />
+              {todosCopy.editTitle}
+            </Button>
+            <Button
+              disabled={todoSavingById[selected.id]}
+              type="button"
+              variant="outline"
+              onclick={() => {
+                toggleTodoCompletion(selected);
+              }}
+            >
+              {#if selected.completed}
+                <RotateCcwIcon data-icon="inline-start" />
+              {:else}
+                <CheckCircleIcon data-icon="inline-start" />
+              {/if}
+              {todoSavingById[selected.id] ? todosCopy.saving : todoActionLabel(selected)}
+            </Button>
+          </div>
+        </div>
+      </div>
     {/snippet}
   </DetailDialog>
 {/if}

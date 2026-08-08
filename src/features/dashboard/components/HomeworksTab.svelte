@@ -197,7 +197,6 @@ $: ({
       bind:createHomeworkSubmissionStartAt
       {fmtDate}
       {homeworkCompletionActionLabel}
-      {homeworkCopy}
       {homeworkCourseLabel}
       {homeworkDetailHref}
       {homeworkEtaLabel}

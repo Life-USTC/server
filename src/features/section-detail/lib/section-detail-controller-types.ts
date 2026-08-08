@@ -172,6 +172,7 @@ export type SectionDetailCopy = {
     descriptionLabel: string;
     descriptionPlaceholder: string;
     editAction: string;
+    filterIncomplete: string;
     helperClear: string;
     helperMonth: string;
     helperPublishNow: string;

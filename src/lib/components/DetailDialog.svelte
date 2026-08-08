@@ -5,31 +5,26 @@ import { ScrollArea } from "$lib/components/ui/scroll-area/index.js";
 import { cn } from "$lib/utils.js";
 
 type Props = {
-  /** Secondary column, e.g. a discussion rail. Widens the dialog when set. */
+  /**
+   * Discussion column. Per `docs/contracts/_ui.json` layout principles, popups
+   * with discussion keep details on the left and discussion on the right on
+   * desktop, and stack in that order on mobile.
+   */
   aside?: Snippet;
-  badges?: Snippet;
   body: Snippet;
   class?: string;
-  footer?: Snippet;
-  footerClass?: string;
   onClose: () => void;
   open?: boolean;
-  /** Lets callers keep one footer snippet and drop the bar in some states. */
-  showFooter?: boolean;
   subtitle?: string;
   title: string;
 };
 
 let {
   aside,
-  badges,
   body,
   class: className = "",
-  footer,
-  footerClass = "",
   onClose,
   open = true,
-  showFooter = true,
   subtitle = "",
   title,
 }: Props = $props();
@@ -49,13 +44,10 @@ let {
       className,
     )}
   >
-    <Dialog.Header class="shrink-0 gap-1.5 border-b px-5 py-4 pr-14 sm:px-6">
-      <div class="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1.5">
-        <Dialog.Title class="min-w-0 break-words text-lg leading-tight">
-          {title}
-        </Dialog.Title>
-        {#if badges}{@render badges()}{/if}
-      </div>
+    <Dialog.Header class="shrink-0 gap-1 border-b px-5 py-4 pr-14 sm:px-6">
+      <Dialog.Title class="min-w-0 break-words leading-tight">
+        {title}
+      </Dialog.Title>
       {#if subtitle}
         <Dialog.Description>{subtitle}</Dialog.Description>
       {/if}
@@ -79,13 +71,5 @@ let {
         {/if}
       </div>
     </ScrollArea>
-
-    {#if footer && showFooter}
-      <Dialog.Footer
-        class={cn("mx-0 mb-0 shrink-0 rounded-none px-5 py-3 sm:px-6", footerClass)}
-      >
-        {@render footer()}
-      </Dialog.Footer>
-    {/if}
   </Dialog.Content>
 </Dialog.Root>

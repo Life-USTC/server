@@ -24,7 +24,7 @@ import { signInAsDebugUser } from "../../../../utils/auth";
 import {
   closeDetailDialog,
   detailDialog,
-  detailDialogFooter,
+  expectDialogActionsInBody,
 } from "../../../../utils/detail-dialog";
 import { DEV_SEED } from "../../../../utils/dev-seed";
 import { visibleText } from "../../../../utils/locators";
@@ -182,16 +182,9 @@ test.describe("仪表盘待办", () => {
       dialog.getByText(/待处理|已完成|Pending|Completed/i).first(),
     ).toBeVisible();
 
-    const footer = detailDialogFooter(dialog);
-    await expect(
-      footer.getByRole("button", { name: /删除待办|Delete todo/i }),
-    ).toBeVisible();
-    await expect(
-      footer.getByRole("button", { name: /编辑待办|Edit Todo/i }),
-    ).toBeVisible();
-    await expect(
-      footer.getByRole("button", { name: /标记为完成|Mark as complete/i }),
-    ).toBeVisible();
+    await expectDialogActionsInBody(dialog, /删除待办|Delete todo/i);
+    await expectDialogActionsInBody(dialog, /编辑待办|Edit Todo/i);
+    await expectDialogActionsInBody(dialog, /标记为完成|Mark as complete/i);
 
     await captureStepScreenshot(page, testInfo, "todos/detail-dialog");
 

@@ -1,11 +1,14 @@
 <script lang="ts">
-import HomeworkDetailMetaGrid from "@/features/homeworks/components/HomeworkDetailMetaGrid.svelte";
 import HomeworkDetailTags from "@/features/homeworks/components/HomeworkDetailTags.svelte";
+import HomeworkDueSummary from "@/features/homeworks/components/HomeworkDueSummary.svelte";
+import HomeworkMetaList from "@/features/homeworks/components/HomeworkMetaList.svelte";
 import {
-  buildHomeworkDetailMetaRows,
   buildHomeworkDetailTags,
+  buildHomeworkDueSummary,
+  buildHomeworkMetadataRows,
 } from "@/features/homeworks/lib/homework-detail-meta";
 import type {
+  DashboardHomeworkDetailAction,
   DashboardHomeworkDetailCopy,
   DashboardHomeworkDetailFormatter,
   DashboardHomeworkDetailItem,
@@ -14,21 +17,30 @@ import type {
 export let fmtDate: DashboardHomeworkDetailFormatter;
 export let homework: DashboardHomeworkDetailItem;
 export let homeworkEtaLabel: DashboardHomeworkDetailFormatter;
+export let homeworkStatus: DashboardHomeworkDetailAction;
 export let homeworksCopy: DashboardHomeworkDetailCopy;
 
-$: metaRows = buildHomeworkDetailMetaRows({
-  dueHint: homeworkEtaLabel(homework.submissionDueAt),
+$: dueSummary = buildHomeworkDueSummary({
+  completed: Boolean(homework.completion),
+  dueLabel: homeworksCopy.submissionDue,
+  etaLabel: homeworkEtaLabel(homework.submissionDueAt),
+  formatDate: fmtDate,
+  homework,
+  statusLabel: homeworkStatus(homework),
+});
+$: metaRows = buildHomeworkMetadataRows({
   formatDate: fmtDate,
   homework,
   labels: {
     publishedAt: homeworksCopy.homeworkPublishedAt,
-    submissionDue: homeworksCopy.submissionDue,
     submissionStart: homeworksCopy.submissionStart,
   },
 });
 $: tags = buildHomeworkDetailTags({ homework, labels: homeworksCopy });
 </script>
 
-<HomeworkDetailMetaGrid rows={metaRows} />
+<HomeworkDueSummary summary={dueSummary} />
+
+<HomeworkMetaList rows={metaRows} />
 
 <HomeworkDetailTags {tags} />

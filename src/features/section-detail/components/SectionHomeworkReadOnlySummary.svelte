@@ -1,9 +1,12 @@
 <script lang="ts">
-import HomeworkDetailMetaGrid from "@/features/homeworks/components/HomeworkDetailMetaGrid.svelte";
 import HomeworkDetailTags from "@/features/homeworks/components/HomeworkDetailTags.svelte";
+import HomeworkDueSummary from "@/features/homeworks/components/HomeworkDueSummary.svelte";
+import HomeworkMetaList from "@/features/homeworks/components/HomeworkMetaList.svelte";
 import {
-  buildHomeworkDetailMetaRows,
   buildHomeworkDetailTags,
+  buildHomeworkDueSummary,
+  buildHomeworkMetadataRows,
+  homeworkCompletionStatusLabel,
 } from "@/features/homeworks/lib/homework-detail-meta";
 import RenderedMarkdown from "$lib/components/RenderedMarkdown.svelte";
 import * as Item from "$lib/components/ui/item/index.js";
@@ -17,7 +20,18 @@ export let fmtDateTime: SectionHomeworkFormatter;
 export let homework: SectionHomeworkDisplay;
 export let homeworkCopy: SectionHomeworkCopy;
 
-$: metaRows = buildHomeworkDetailMetaRows({
+$: completed = Boolean(homework.completion);
+$: dueSummary = buildHomeworkDueSummary({
+  completed,
+  dueLabel: homeworkCopy.submissionDue,
+  formatDate: fmtDateTime,
+  homework,
+  statusLabel: homeworkCompletionStatusLabel(completed, {
+    completedStatus: homeworkCopy.completedLabel,
+    incompleteStatus: homeworkCopy.filterIncomplete,
+  }),
+});
+$: metaRows = buildHomeworkMetadataRows({
   formatDate: fmtDateTime,
   homework,
   labels: homeworkCopy,
@@ -25,7 +39,7 @@ $: metaRows = buildHomeworkDetailMetaRows({
 $: tags = buildHomeworkDetailTags({ homework, labels: homeworkCopy });
 </script>
 
-<Item.Root variant="muted" class="items-start p-4">
+<Item.Root variant="outline" class="items-start">
   <Item.Content>
     {#if homework.description?.content}
       {#if homework.description.renderedHtml}
@@ -48,6 +62,8 @@ $: tags = buildHomeworkDetailTags({ homework, labels: homeworkCopy });
   </Item.Content>
 </Item.Root>
 
-<HomeworkDetailMetaGrid rows={metaRows} />
+<HomeworkDueSummary summary={dueSummary} />
+
+<HomeworkMetaList rows={metaRows} />
 
 <HomeworkDetailTags {tags} />

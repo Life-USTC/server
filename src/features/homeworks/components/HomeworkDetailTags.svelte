@@ -8,7 +8,7 @@ export let tags: HomeworkDetailTag[];
 {#if tags.length > 0}
   <div class="flex flex-wrap gap-2">
     {#each tags as tag (tag.key)}
-      <Badge variant={tag.variant}>{tag.label}</Badge>
+      <Badge variant="secondary">{tag.label}</Badge>
     {/each}
   </div>
 {/if}

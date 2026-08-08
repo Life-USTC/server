@@ -14,10 +14,6 @@ export function detailDialogAside(dialog: Locator) {
   return dialog.locator('[data-slot="detail-dialog-aside"]');
 }
 
-export function detailDialogFooter(dialog: Locator) {
-  return dialog.locator('[data-slot="dialog-footer"]');
-}
-
 /**
  * The shared dialog shell names its close control with `aria-label` only, so a
  * visible "Close" string next to the icon is a regression.
@@ -56,14 +52,46 @@ export async function expectDetailDialogFitsViewport(
   expect(box.height).toBeLessThanOrEqual(viewport.height);
 }
 
-/** Publish → submission window cells rendered by `HomeworkDetailMetaGrid`. */
-export async function expectHomeworkTimelineCells(dialog: Locator) {
+/**
+ * Documented homework popup order (`docs/contracts/homework.json`): description,
+ * due summary, vertical metadata excluding platform createdAt, action controls,
+ * then discussion. The due summary carries the primary properties, so it must
+ * come before the metadata rows, and the metadata list must not repeat the due
+ * date or expose a creation timestamp.
+ */
+export async function expectHomeworkDetailOrder(dialog: Locator) {
   const body = detailDialogBody(dialog);
-  await expect(body.getByText(/发布日期|Published/i).first()).toBeVisible();
-  await expect(
-    body.getByText(/提交开始|Submission opens/i).first(),
-  ).toBeVisible();
-  await expect(
-    body.getByText(/提交截止|Submission due/i).first(),
-  ).toBeVisible();
+
+  const dueSummary = body
+    .locator('[data-slot="item"]')
+    .filter({ hasText: /提交截止|Submission due/i })
+    .first();
+  await expect(dueSummary).toBeVisible();
+
+  const metadata = body.locator("dl").first();
+  await expect(metadata).toBeVisible();
+  await expect(metadata.getByText(/发布日期|Published/i)).toBeVisible();
+  await expect(metadata.getByText(/提交开始|Submission opens/i)).toBeVisible();
+  await expect(metadata.getByText(/提交截止|Submission due/i)).toHaveCount(0);
+  await expect(metadata.getByText(/创建于|Created/i)).toHaveCount(0);
+
+  const dueBox = await dueSummary.boundingBox();
+  const metadataBox = await metadata.boundingBox();
+  expect(dueBox).not.toBeNull();
+  expect(metadataBox).not.toBeNull();
+  if (dueBox && metadataBox) {
+    expect(dueBox.y).toBeLessThan(metadataBox.y);
+  }
+}
+
+/** Action controls belong in the details column, ahead of the discussion. */
+export async function expectDialogActionsInBody(
+  dialog: Locator,
+  actionName: RegExp,
+) {
+  const action = detailDialogBody(dialog)
+    .getByRole("button", { name: actionName })
+    .first();
+  await expect(action).toBeVisible();
+  return action;
 }

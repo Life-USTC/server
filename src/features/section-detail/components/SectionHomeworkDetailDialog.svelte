@@ -2,7 +2,6 @@
 import type { Component } from "svelte";
 import { commentTargetPermalinkBaseHref } from "@/features/comments/lib/comment-panel-controller";
 import DetailDialog from "$lib/components/DetailDialog.svelte";
-import { Badge } from "$lib/components/ui/badge/index.js";
 import SectionHomeworkActionBar from "./SectionHomeworkActionBar.svelte";
 import SectionHomeworkAuditTrail from "./SectionHomeworkAuditTrail.svelte";
 import SectionHomeworkEditForm from "./SectionHomeworkEditForm.svelte";
@@ -16,7 +15,6 @@ import type {
   SectionHomeworkDisplay,
   SectionHomeworkFormatter,
   SectionHomeworkMarkdownCopy,
-  SectionHomeworkSectionCopy,
   SectionHomeworkSemesterDate,
   SectionHomeworkSubmitHandler,
   SectionHomeworkTimestampAction,
@@ -49,8 +47,6 @@ export let _fmtDateTime: SectionHomeworkFormatter;
 export let _formatMessage: FormatMessage;
 export let _homeworkAuditActionLabel: (action: string) => string;
 export let _homeworkCopy: SectionHomeworkCopy;
-export let _homeworkStatus: (homework: SectionHomeworkDisplay) => string;
-export let _sectionCopy: SectionHomeworkSectionCopy & { due: string };
 export let _selectedHomework: SectionHomeworkDisplay | null;
 export let _semesterDate: SectionHomeworkSemesterDate;
 export let _setDeleteHomeworkTarget: SectionHomeworkAction;
@@ -63,18 +59,11 @@ export let sectionJwId: number | string;
 
 {#if _selectedHomework}
   {@const homework = _selectedHomework}
-  <DetailDialog
-    onClose={close}
-    showFooter={!_editingHomework && (_canWriteHomework || _canManageSelectedHomework)}
-    subtitle={`${_sectionCopy.due} · ${_fmtDateTime(homework.submissionDueAt)}`}
-    title={homework.title}
-  >
-    {#snippet badges()}
-      <Badge variant={homework.completion ? "default" : "outline"}>
-        {_homeworkStatus(homework)}
-      </Badge>
-    {/snippet}
-
+  <!-- No course subtitle here: the section page already shows it as the page
+       heading, and repeated parent objects are tertiary. -->
+  <DetailDialog onClose={close} title={homework.title}>
+    <!-- Documented popup order: description, due summary, vertical metadata,
+         edit/completion controls, then discussion. -->
     {#snippet body()}
       {#if _editingHomework}
         <SectionHomeworkEditForm
@@ -101,6 +90,16 @@ export let sectionJwId: number | string;
           {homework}
           homeworkCopy={_homeworkCopy}
         />
+
+        <SectionHomeworkActionBar
+          canManage={_canManageSelectedHomework}
+          canWrite={_canWriteHomework}
+          {homework}
+          homeworkCopy={_homeworkCopy}
+          setDeleteHomeworkTarget={_setDeleteHomeworkTarget}
+          startEdit={_startEditHomework}
+          toggleHomeworkCompletion={_toggleHomeworkCompletion}
+        />
       {/if}
 
       <SectionHomeworkAuditTrail
@@ -126,18 +125,6 @@ export let sectionJwId: number | string;
           targetId={homework.id}
         />
       {/key}
-    {/snippet}
-
-    {#snippet footer()}
-      <SectionHomeworkActionBar
-        canManage={_canManageSelectedHomework}
-        canWrite={_canWriteHomework}
-        {homework}
-        homeworkCopy={_homeworkCopy}
-        setDeleteHomeworkTarget={_setDeleteHomeworkTarget}
-        startEdit={_startEditHomework}
-        toggleHomeworkCompletion={_toggleHomeworkCompletion}
-      />
     {/snippet}
   </DetailDialog>
 {/if}

@@ -1,7 +1,5 @@
 <script lang="ts">
-import type { DashboardMyHomeworksCopy } from "@/features/dashboard/lib/dashboard-controller-types";
 import DetailDialog from "$lib/components/DetailDialog.svelte";
-import { Badge } from "$lib/components/ui/badge/index.js";
 import type {
   DashboardHomeworkCommentsPanel,
   DashboardHomeworkCompletionToggle,
@@ -25,7 +23,6 @@ export let homeworkEtaLabel: DashboardHomeworkDetailFormatter;
 export let homeworkCourseLabel: DashboardHomeworkDetailAction;
 export let homeworkSavingById: Record<string, boolean>;
 export let homeworksCopy: DashboardHomeworkDetailCopy;
-export let homeworkCopy: DashboardMyHomeworksCopy;
 export let homeworkStatus: DashboardHomeworkDetailAction;
 export let onClose: () => void;
 export let toggleHomeworkCompletion: DashboardHomeworkCompletionToggle;
@@ -33,25 +30,32 @@ export let toggleHomeworkCompletion: DashboardHomeworkCompletionToggle;
 
 {#if homework}
   {@const selected = homework}
-  {@const courseLabel = homeworkCourseLabel(selected)}
+  <!-- Cross-section list: the course is the disambiguating context, so it stays
+       in the subtitle. Documented popup order: description, due summary,
+       vertical metadata, action controls, discussion. -->
   <DetailDialog
     onClose={onClose}
-    subtitle={`${courseLabel} · ${homeworkCopy.due}: ${fmtDate(selected.submissionDueAt)}`}
+    subtitle={homeworkCourseLabel(selected)}
     title={selected.title}
   >
-    {#snippet badges()}
-      <Badge variant={selected.completion ? "default" : "outline"}>
-        {homeworkStatus(selected)}
-      </Badge>
-    {/snippet}
-
     {#snippet body()}
       <HomeworkDetailDescription homework={selected} {homeworksCopy} />
+
       <HomeworkDetailMetadata
         {fmtDate}
         homework={selected}
         {homeworkEtaLabel}
+        {homeworkStatus}
         {homeworksCopy}
+      />
+
+      <HomeworkDetailActions
+        homework={selected}
+        {homeworkCompletionActionLabel}
+        {homeworkDetailHref}
+        {homeworkSavingById}
+        {homeworksCopy}
+        {toggleHomeworkCompletion}
       />
     {/snippet}
 
@@ -60,17 +64,6 @@ export let toggleHomeworkCompletion: DashboardHomeworkCompletionToggle;
         {CommentsPanel}
         homework={selected}
         {homeworksCopy}
-      />
-    {/snippet}
-
-    {#snippet footer()}
-      <HomeworkDetailActions
-        homework={selected}
-        {homeworkCompletionActionLabel}
-        {homeworkDetailHref}
-        {homeworkSavingById}
-        {homeworksCopy}
-        {toggleHomeworkCompletion}
       />
     {/snippet}
   </DetailDialog>

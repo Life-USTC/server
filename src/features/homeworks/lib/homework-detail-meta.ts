@@ -1,13 +1,25 @@
-export type HomeworkDetailMetaValue = Date | string | null | undefined;
+export type HomeworkDetailDateValue = Date | string | null | undefined;
 
-export type HomeworkDetailMetaKey =
-  | "publishedAt"
-  | "submissionDueAt"
-  | "submissionStartAt";
+export type HomeworkDetailDateFormatter = (
+  value: HomeworkDetailDateValue,
+) => string;
+
+/**
+ * Primary homework properties per `docs/contracts/_ui.json` "Model Property
+ * Priority": the due time, the completion status, and the relative label users
+ * scan for. Rendered as the "due summary" block of the detail popup.
+ */
+export type HomeworkDueSummary = {
+  completed: boolean;
+  dueLabel: string;
+  dueValue: string;
+  etaLabel: string | null;
+  statusLabel: string;
+};
+
+export type HomeworkDetailMetaKey = "publishedAt" | "submissionStartAt";
 
 export type HomeworkDetailMetaRow = {
-  emphasis: boolean;
-  hint: string | null;
   key: HomeworkDetailMetaKey;
   label: string;
   value: string;
@@ -18,18 +30,6 @@ export type HomeworkDetailTagKey = "major" | "team";
 export type HomeworkDetailTag = {
   key: HomeworkDetailTagKey;
   label: string;
-  variant: "secondary";
-};
-
-type HomeworkDetailDates = {
-  publishedAt?: HomeworkDetailMetaValue;
-  submissionDueAt?: HomeworkDetailMetaValue;
-  submissionStartAt?: HomeworkDetailMetaValue;
-};
-
-type HomeworkDetailFlags = {
-  isMajor?: boolean | null;
-  requiresTeam?: boolean | null;
 };
 
 function optionalText(value: string | null | undefined) {
@@ -38,59 +38,89 @@ function optionalText(value: string | null | undefined) {
 }
 
 /**
- * Homework timeline cells in reading order (publish → submission window). The
- * due cell carries `emphasis` because it is the value users scan for, and an
- * optional `hint` for a relative label such as "in 3 days".
+ * Completion status, never the "standard homework" tag: default homework does
+ * not get a badge of its own.
  */
-export function buildHomeworkDetailMetaRows({
-  dueHint,
+export function homeworkCompletionStatusLabel(
+  completed: boolean,
+  labels: {
+    completedStatus: string;
+    incompleteStatus: string;
+  },
+) {
+  return completed ? labels.completedStatus : labels.incompleteStatus;
+}
+
+export function buildHomeworkDueSummary({
+  completed,
+  dueLabel,
+  etaLabel,
+  formatDate,
+  homework,
+  statusLabel,
+}: {
+  completed: boolean;
+  dueLabel: string;
+  etaLabel?: string | null;
+  formatDate: HomeworkDetailDateFormatter;
+  homework: { submissionDueAt?: HomeworkDetailDateValue };
+  statusLabel: string;
+}): HomeworkDueSummary {
+  return {
+    completed,
+    dueLabel,
+    dueValue: formatDate(homework.submissionDueAt),
+    etaLabel: optionalText(etaLabel),
+    statusLabel,
+  };
+}
+
+/**
+ * Secondary/tertiary timestamps for the vertical metadata list. The due date
+ * lives in the due summary and platform `createdAt` is intentionally excluded,
+ * matching the documented detail popup order.
+ */
+export function buildHomeworkMetadataRows({
   formatDate,
   homework,
   labels,
 }: {
-  dueHint?: string | null;
-  formatDate: (value: HomeworkDetailMetaValue) => string;
-  homework: HomeworkDetailDates;
+  formatDate: HomeworkDetailDateFormatter;
+  homework: {
+    publishedAt?: HomeworkDetailDateValue;
+    submissionStartAt?: HomeworkDetailDateValue;
+  };
   labels: {
     publishedAt: string;
-    submissionDue: string;
     submissionStart: string;
   };
 }): HomeworkDetailMetaRow[] {
   return [
     {
-      emphasis: false,
-      hint: null,
       key: "publishedAt",
       label: labels.publishedAt,
       value: formatDate(homework.publishedAt),
     },
     {
-      emphasis: false,
-      hint: null,
       key: "submissionStartAt",
       label: labels.submissionStart,
       value: formatDate(homework.submissionStartAt),
-    },
-    {
-      emphasis: true,
-      hint: optionalText(dueHint),
-      key: "submissionDueAt",
-      label: labels.submissionDue,
-      value: formatDate(homework.submissionDueAt),
     },
   ];
 }
 
 /**
- * Attribute chips share one variant so they read as a uniform group next to the
- * completion status badge, which carries its own emphasis.
+ * Only non-default attributes become chips: standard homework never gets a
+ * "standard" badge.
  */
 export function buildHomeworkDetailTags({
   homework,
   labels,
 }: {
-  homework: HomeworkDetailFlags;
+  homework: {
+    isMajor?: boolean | null;
+    requiresTeam?: boolean | null;
+  };
   labels: {
     tagMajor: string;
     tagTeam: string;
@@ -98,10 +128,10 @@ export function buildHomeworkDetailTags({
 }): HomeworkDetailTag[] {
   const tags: HomeworkDetailTag[] = [];
   if (homework.isMajor) {
-    tags.push({ key: "major", label: labels.tagMajor, variant: "secondary" });
+    tags.push({ key: "major", label: labels.tagMajor });
   }
   if (homework.requiresTeam) {
-    tags.push({ key: "team", label: labels.tagTeam, variant: "secondary" });
+    tags.push({ key: "team", label: labels.tagTeam });
   }
   return tags;
 }

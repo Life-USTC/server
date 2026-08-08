@@ -49,9 +49,9 @@ import {
   closeDetailDialog,
   detailDialog,
   detailDialogAside,
-  detailDialogFooter,
   expectDetailDialogFitsViewport,
-  expectHomeworkTimelineCells,
+  expectDialogActionsInBody,
+  expectHomeworkDetailOrder,
 } from "../../../../utils/detail-dialog";
 import { DEV_SEED } from "../../../../utils/dev-seed";
 import { getCurrentSessionUser } from "../../../../utils/e2e-db";
@@ -1186,10 +1186,10 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
       }),
     ).toBeVisible();
     await expect(
-      dialog.getByText(/常规作业|已完成|Standard|Completed/i).first(),
+      dialog.getByText(/未完成|已完成|Incomplete|Completed/i).first(),
     ).toBeVisible();
 
-    await expectHomeworkTimelineCells(dialog);
+    await expectHomeworkDetailOrder(dialog);
 
     await expect(
       detailDialogAside(dialog).getByRole("heading", {
@@ -1197,15 +1197,11 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
       }),
     ).toBeVisible();
 
-    const footer = detailDialogFooter(dialog);
-    await expect(
-      footer.getByRole("button", { name: /编辑信息|Edit details/i }),
-    ).toBeVisible();
-    await expect(
-      footer.getByRole("button", {
-        name: /标记为完成|取消完成|Mark as complete|Mark as incomplete/i,
-      }),
-    ).toBeVisible();
+    await expectDialogActionsInBody(dialog, /编辑信息|Edit details/i);
+    await expectDialogActionsInBody(
+      dialog,
+      /标记为完成|取消完成|Mark as complete|Mark as incomplete/i,
+    );
 
     await captureStepScreenshot(
       page,
@@ -1234,14 +1230,11 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
     const dialog = detailDialog(page);
     await expect(dialog).toBeVisible();
     await expectDetailDialogFitsViewport(page, dialog);
-    await expectHomeworkTimelineCells(dialog);
-
-    const primaryAction = detailDialogFooter(dialog)
-      .getByRole("button", {
-        name: /标记为完成|取消完成|Mark as complete|Mark as incomplete/i,
-      })
-      .first();
-    await expect(primaryAction).toBeVisible();
+    await expectHomeworkDetailOrder(dialog);
+    await expectDialogActionsInBody(
+      dialog,
+      /标记为完成|取消完成|Mark as complete|Mark as incomplete/i,
+    );
 
     await expect(
       detailDialogAside(dialog).getByRole("heading", {
@@ -1332,7 +1325,7 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
       ).toBeVisible();
 
       const dueValue = detailDialog
-        .locator("dl")
+        .locator('[data-slot="item"]')
         .filter({ hasText: /Submission due|提交截止/ })
         .first();
       await expect(dueValue).toContainText(
