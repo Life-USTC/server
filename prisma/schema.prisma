@@ -1336,13 +1336,15 @@ model BusUserPreference {
 model OAuthClient {
   id String @id @default(cuid())
 
-  clientId         String   @unique
-  clientSecret     String?
-  disabled         Boolean  @default(false)
-  skipConsent      Boolean?
-  enableEndSession Boolean?
-  subjectType      String?
-  scopes           String[] @default([])
+  clientId               String   @unique
+  clientSecret           String?
+  clientDiscoveryId      String?
+  disabled               Boolean  @default(false)
+  skipConsent            Boolean?
+  enableEndSession       Boolean?
+  subjectType            String?
+  scopes                 String[] @default([])
+  clientCredentialsScopes String[] @default([])
 
   userId String?
   user   User?   @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -1364,6 +1366,7 @@ model OAuthClient {
   backchannelLogoutUri             String?
   backchannelLogoutSessionRequired Boolean?
   tokenEndpointAuthMethod          String?
+  applicationType                  String?
   jwks                             String?
   jwksUri                          String?
   grantTypes                       String[] @default([])
@@ -1545,6 +1548,7 @@ model OauthClientResource {
 
   @@index([clientId])
   @@index([resourceId])
+  @@unique([clientId, resourceId])
   @@map("oauthClientResource")
 }
 
