@@ -1,7 +1,7 @@
 import { resolve4, resolve6 } from "node:dns/promises";
 import { isIP } from "node:net";
-import type { ClientMetadataResourceFetch } from "@better-auth/oauth-provider";
 import { isPublicRoutableHost } from "@better-auth/core/utils/host";
+import type { ClientMetadataResourceFetch } from "@better-auth/oauth-provider";
 
 function isNoAddressError(error: unknown) {
   if (!error || typeof error !== "object" || !("code" in error)) return false;

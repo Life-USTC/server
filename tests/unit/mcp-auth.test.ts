@@ -4,7 +4,7 @@ import { restReadScope, restWriteScope } from "@/lib/oauth/constants";
 
 const { createMcpProtectedRequestHandlerMock, hasActiveOAuthUserGrantMock } =
   vi.hoisted(() => ({
-  hasActiveOAuthUserGrantMock: vi.fn(),
+    hasActiveOAuthUserGrantMock: vi.fn(),
     createMcpProtectedRequestHandlerMock: vi.fn(),
   }));
 
