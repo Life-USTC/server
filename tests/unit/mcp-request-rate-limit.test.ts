@@ -277,7 +277,7 @@ describe("MCP mutation rate limits", () => {
 
     expect(recordAndLogMcpResponseMock).toHaveBeenCalledWith(
       expect.objectContaining({
-        errorName: "UnknownError",
+        errorName: "TypeError",
         phase: "error",
         status: 500,
       }),

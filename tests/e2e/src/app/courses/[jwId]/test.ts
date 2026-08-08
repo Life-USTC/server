@@ -434,3 +434,10 @@ test.describe("/catalog/courses/[jwId]/introduction 无 JavaScript", () => {
     await expect(page.locator("#introduction .markdown-preview")).toBeVisible();
   });
 });
+
+test("页面契约", async ({ page }, testInfo) => {
+  await assertPageContract(page, {
+    routePath: "/catalog/courses/[jwId]/[section]",
+    testInfo,
+  });
+});

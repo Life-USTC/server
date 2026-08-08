@@ -54,7 +54,7 @@
     "mode": "smart"
   },
   "limits": {
-    "cpu_ms": 1000
+    "cpu_ms": 30000
   },
   "alias": {
     "life-ustc-sveltekit-worker": "./.svelte-kit/cloudflare/_sveltekit.js",
@@ -114,5 +114,21 @@
       "binding": "R2_UPLOADS",
       "bucket_name": "life-ustc"
     }
-  ]
+  ],
+  "queues": {
+    "producers": [
+      {
+        "binding": "CALENDAR_EXPORT_REBUILD",
+        "queue": "life-ustc-calendar-export-rebuild"
+      }
+    ],
+    "consumers": [
+      {
+        "queue": "life-ustc-calendar-export-rebuild",
+        "max_batch_size": 5,
+        "max_retries": 3,
+        "dead_letter_queue": "life-ustc-calendar-export-rebuild-dlq"
+      }
+    ]
+  }
 }

@@ -6,6 +6,7 @@ import {
   resetUserCalendarExportCacheForTest,
   USER_CALENDAR_EXPORT_FRESH_TTL_MS,
 } from "@/features/calendar/server/calendar-export-cache";
+import { setCalendarExportRebuildSenderForTest } from "@/features/calendar/server/calendar-export-queue";
 import { setCloudflareRuntimeEnv } from "@/lib/adapters/cloudflare-runtime";
 
 const calendarExport = {
@@ -33,6 +34,7 @@ function kvNamespace() {
 describe("用户 iCal 导出缓存", () => {
   afterEach(() => {
     resetUserCalendarExportCacheForTest();
+    setCalendarExportRebuildSenderForTest(undefined);
     setCloudflareRuntimeEnv(undefined);
     vi.useRealTimers();
     vi.restoreAllMocks();
@@ -85,13 +87,11 @@ describe("用户 iCal 导出缓存", () => {
     vi.setSystemTime(new Date("2026-06-07T00:00:00.000Z"));
     const namespace = kvNamespace();
     setCloudflareRuntimeEnv({ CALENDAR_EXPORTS: namespace });
-    const buildExport = vi
-      .fn()
-      .mockResolvedValueOnce(calendarExport)
-      .mockResolvedValueOnce({
-        ...calendarExport,
-        text: "BEGIN:VCALENDAR\nX-UPDATED:1\nEND:VCALENDAR",
-      });
+    const enqueued: unknown[] = [];
+    setCalendarExportRebuildSenderForTest(async (message) => {
+      enqueued.push(message);
+    });
+    const buildExport = vi.fn().mockResolvedValue(calendarExport);
 
     await getCachedUserCalendarExport("user-1", buildExport);
     vi.advanceTimersByTime(USER_CALENDAR_EXPORT_FRESH_TTL_MS + 1);
@@ -104,12 +104,16 @@ describe("用户 iCal 导出缓存", () => {
     expect(stale.calendar?.text).toBe(calendarExport.text);
     expect(tasks).toHaveLength(0);
     expect(buildExport).toHaveBeenCalledTimes(1);
+    await vi.waitFor(() => expect(enqueued).toHaveLength(1));
+    expect(enqueued[0]).toEqual({ type: "user", userId: "user-1" });
 
-    // Without defer (e.g. local/Node), stale still rebuilds synchronously.
-    const refreshed = await getCachedUserCalendarExport("user-1", buildExport);
-    expect(refreshed.status).toBe("miss");
-    expect(refreshed.calendar?.text).toContain("X-UPDATED:1");
-    expect(buildExport).toHaveBeenCalledTimes(2);
+    // Without defer, stale still serves immediately and enqueues rebuild —
+    // never rebuilds ICS on the request path.
+    const stillStale = await getCachedUserCalendarExport("user-1", buildExport);
+    expect(stillStale.status).toBe("stale");
+    expect(stillStale.calendar?.text).toBe(calendarExport.text);
+    expect(buildExport).toHaveBeenCalledTimes(1);
+    await vi.waitFor(() => expect(enqueued).toHaveLength(2));
   });
 
   it("cold miss 将 KV 写入移出响应关键路径", async () => {
@@ -161,13 +165,14 @@ describe("用户 iCal 导出缓存", () => {
     expect(namespace.put).toHaveBeenCalledTimes(1);
   });
 
-  it("无 defer 时同步刷新失败仍返回 stale 导出", async () => {
+  it("无 defer 时仍立即返回 stale 且不在请求路径重建", async () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-06-07T00:00:00.000Z"));
-    const buildExport = vi
-      .fn()
-      .mockResolvedValueOnce(calendarExport)
-      .mockRejectedValueOnce(new Error("database unavailable"));
+    const enqueued: unknown[] = [];
+    setCalendarExportRebuildSenderForTest(async (message) => {
+      enqueued.push(message);
+    });
+    const buildExport = vi.fn().mockResolvedValue(calendarExport);
 
     await getCachedUserCalendarExport("user-1", buildExport);
     vi.advanceTimersByTime(USER_CALENDAR_EXPORT_FRESH_TTL_MS + 1);
@@ -175,7 +180,10 @@ describe("用户 iCal 导出缓存", () => {
 
     expect(stale.status).toBe("stale");
     expect(stale.calendar?.text).toBe(calendarExport.text);
-    expect(buildExport).toHaveBeenCalledTimes(2);
+    // Request path must not call buildExport again; rebuild is queued.
+    expect(buildExport).toHaveBeenCalledTimes(1);
+    await vi.waitFor(() => expect(enqueued).toHaveLength(1));
+    expect(enqueued[0]).toEqual({ type: "user", userId: "user-1" });
   });
 
   it("KV 不可用时仍使用 isolate 内存缓存", async () => {

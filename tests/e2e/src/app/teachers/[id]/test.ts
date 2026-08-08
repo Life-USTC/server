@@ -434,3 +434,10 @@ test.describe("/catalog/teachers/[id] 教师详情页", () => {
     }
   });
 });
+
+test("页面契约", async ({ page }, testInfo) => {
+  await assertPageContract(page, {
+    routePath: "/catalog/teachers/[id]/[section]",
+    testInfo,
+  });
+});

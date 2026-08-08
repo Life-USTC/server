@@ -29,6 +29,9 @@ failed_shards=()
 
 for shard in $(seq 1 "$E2E_SHARD_TOTAL"); do
   echo "=== E2E shard ${shard}/${E2E_SHARD_TOTAL} ==="
+  # Keep prepare on the wasm Prisma client alias (see svelte.config.js). A
+  # non-production sync previously retargeted Kit aliases to prisma-node and
+  # wrangler then rebundled a broken worker for Playwright.
   bun run app:prepare
   bun run db:migrate:deploy
   bunx prisma db seed

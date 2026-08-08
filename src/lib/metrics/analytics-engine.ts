@@ -146,6 +146,10 @@ type CalendarFeedCacheAnalyticsInput = {
   ttlMs: number;
 };
 
+type CalendarExportRebuildAnalyticsInput = {
+  status: "enqueued" | "ok" | "error";
+};
+
 type GraphqlOperationAnalyticsInput = {
   authMode: string;
   errorCount: number;
@@ -391,6 +395,16 @@ export function writeCalendarFeedCacheAnalytics(
     indexes: [`cache:calendar:${boundedValue(input.feed)}`],
     blobs: ["calendar_feed_cache", input.feed, input.status],
     doubles: [input.ttlMs, input.storeSize],
+  });
+}
+
+export function writeCalendarExportRebuildAnalytics(
+  input: CalendarExportRebuildAnalyticsInput,
+) {
+  writeAnalyticsDataPoint({
+    indexes: [`calendar_export_rebuild_${input.status}`],
+    blobs: ["calendar_export_rebuild", input.status],
+    doubles: [1],
   });
 }
 

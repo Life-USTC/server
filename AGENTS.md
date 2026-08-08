@@ -3,7 +3,7 @@
 Start here instead of grepping the whole tree. Nested `AGENTS.md` files go
 deeper on one area (closest file wins). Shared names live in
 `docs/interface-hierarchy.md` and `docs/contracts/`. To add or change behavior,
-use `$life-ustc-implement`. Git / PR / CI / merge: global skills, not this repo.
+use `$life-ustc-implement`.
 
 ## How the system fits together
 

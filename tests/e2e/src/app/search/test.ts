@@ -1,5 +1,6 @@
 import { expect, test } from "@playwright/test";
 import { gotoAndWaitForReady } from "../../../utils/page-ready";
+import { assertPageContract } from "../_shared/page-contract";
 
 test("search page returns catalog and link results", async ({ page }) => {
   const searchResponse = page.waitForResponse(
@@ -37,4 +38,8 @@ test("search page supports keyboard navigation into results", async ({
   await input.press("ArrowDown");
 
   await expect(page.getByRole("option").first()).toBeFocused();
+});
+
+test("页面契约", async ({ page }, testInfo) => {
+  await assertPageContract(page, { routePath: "/search", testInfo });
 });

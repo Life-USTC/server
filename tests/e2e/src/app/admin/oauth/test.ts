@@ -22,6 +22,7 @@ import {
   gotoAndWaitForReady,
 } from "../../../../utils/page-ready";
 import { captureStepScreenshot } from "../../../../utils/screenshot";
+import { assertPageContract } from "../../_shared/page-contract";
 
 test.describe.configure({ mode: "serial" });
 
@@ -353,4 +354,8 @@ test("/admin/oauth 移动端使用紧凑列表且无页面横向溢出", async (
   } finally {
     await deleteOAuthClientsByName(name);
   }
+});
+
+test("页面契约", async ({ page }, testInfo) => {
+  await assertPageContract(page, { routePath: "/admin/oauth", testInfo });
 });

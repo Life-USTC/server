@@ -1,10 +1,12 @@
 import { WorkerEntrypoint } from "cloudflare:workers";
 import svelteKitWorker from "life-ustc-sveltekit-worker";
+import { handleCalendarExportRebuildBatch } from "./features/calendar/server/calendar-export-rebuild";
 import {
   isCatalogListPath,
   normalizeCatalogListQuery,
   resolveCatalogListPublicSsrMode,
 } from "./features/catalog/lib/catalog-list-query";
+import { runWithCloudflareRuntimeEnv } from "./lib/adapters/cloudflare-runtime";
 import { CATALOG_EDGE_CACHE_TAG } from "./lib/catalog-edge-cache-tag";
 import {
   buildPublicNotFoundHtml,
@@ -280,5 +282,12 @@ export default {
         cf: { cacheKey: cacheUrl.pathname + cacheUrl.search },
       });
     return personalizeCachedResponse(response);
+  },
+  async queue(batch, env, context) {
+    await runWithCloudflareRuntimeEnv(
+      env,
+      () => handleCalendarExportRebuildBatch(batch),
+      context,
+    );
   },
 };

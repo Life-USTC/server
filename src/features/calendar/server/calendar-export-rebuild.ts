@@ -1,0 +1,111 @@
+import { storeBuiltUserCalendarExport } from "@/features/calendar/server/calendar-export-cache";
+import { getUserCalendarRecord } from "@/features/calendar/server/calendar-export-data";
+import {
+  type CalendarExportRebuildMessage,
+  parseCalendarExportRebuildMessage,
+} from "@/features/calendar/server/calendar-export-queue";
+import { buildUserCalendarExport } from "@/features/calendar/server/calendar-export-service";
+import { prisma } from "@/lib/db/prisma";
+import { writeCalendarExportRebuildAnalytics } from "@/lib/metrics/analytics-engine";
+
+export async function rebuildUserCalendarExport(userId: string) {
+  const user = await getUserCalendarRecord(userId);
+  if (!user) return null;
+  const calendar = await buildUserCalendarExport(user, userId);
+  return storeBuiltUserCalendarExport(userId, calendar);
+}
+
+async function listSectionSubscriberUserIds(sectionId: number) {
+  const subscribers = await prisma.userSectionSubscription.findMany({
+    where: { sectionId },
+    select: { userId: true },
+  });
+  return subscribers.map((subscriber) => subscriber.userId);
+}
+
+export async function collectCalendarExportRebuildUserIds(
+  messages: CalendarExportRebuildMessage[],
+) {
+  const userIds = new Set<string>();
+  const sectionIds = new Set<number>();
+
+  for (const message of messages) {
+    if (message.type === "user") {
+      userIds.add(message.userId);
+      continue;
+    }
+    sectionIds.add(message.sectionId);
+  }
+
+  for (const sectionId of sectionIds) {
+    for (const userId of await listSectionSubscriberUserIds(sectionId)) {
+      userIds.add(userId);
+    }
+  }
+
+  return [...userIds];
+}
+
+export async function processCalendarExportRebuildMessage(
+  message: CalendarExportRebuildMessage,
+) {
+  await processCalendarExportRebuildMessages([message]);
+}
+
+export async function processCalendarExportRebuildMessages(
+  messages: CalendarExportRebuildMessage[],
+) {
+  const userIds = await collectCalendarExportRebuildUserIds(messages);
+  for (const userId of userIds) {
+    try {
+      await rebuildUserCalendarExport(userId);
+      writeCalendarExportRebuildAnalytics({ status: "ok" });
+    } catch {
+      writeCalendarExportRebuildAnalytics({ status: "error" });
+      throw new Error("calendar_export_rebuild_failed");
+    }
+  }
+}
+
+export type CalendarExportRebuildQueueMessage = {
+  ack(): void;
+  body: unknown;
+  retry(): void;
+};
+
+export type CalendarExportRebuildQueueBatch = {
+  messages: readonly CalendarExportRebuildQueueMessage[];
+};
+
+/**
+ * Worker queue entrypoint: parse, coalesce, rebuild, ack/retry per message.
+ */
+export async function handleCalendarExportRebuildBatch(
+  batch: CalendarExportRebuildQueueBatch,
+) {
+  const parsed: CalendarExportRebuildMessage[] = [];
+  const validMessages: CalendarExportRebuildQueueMessage[] = [];
+
+  for (const message of batch.messages) {
+    const body = parseCalendarExportRebuildMessage(message.body);
+    if (!body) {
+      message.ack();
+      continue;
+    }
+    parsed.push(body);
+    validMessages.push(message);
+  }
+
+  if (parsed.length === 0) return;
+
+  try {
+    await processCalendarExportRebuildMessages(parsed);
+    for (const message of validMessages) {
+      message.ack();
+    }
+  } catch {
+    for (const message of validMessages) {
+      message.retry();
+    }
+  }
+}

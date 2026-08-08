@@ -6,6 +6,7 @@ const {
   commentCountMock,
   commentFindManyMock,
   contextQueryMock,
+  logAppEventMock,
   publicAttachmentSummaryQueryMock,
   publicQueryMock,
   publicReactionSummaryQueryMock,
@@ -17,6 +18,7 @@ const {
   commentCountMock: vi.fn(),
   commentFindManyMock: vi.fn(),
   contextQueryMock: vi.fn(),
+  logAppEventMock: vi.fn(),
   publicAttachmentSummaryQueryMock: vi.fn(),
   publicQueryMock: vi.fn(),
   publicReactionSummaryQueryMock: vi.fn(),
@@ -41,6 +43,10 @@ vi.mock("@/lib/db/prisma", () => ({
     },
   },
   withUserDbContext: withUserDbContextMock,
+}));
+
+vi.mock("@/lib/log/app-logger", () => ({
+  logAppEvent: logAppEventMock,
 }));
 
 import { loadCommentThread } from "@/features/comments/server/comment-read-model";
@@ -120,6 +126,7 @@ describe("loadCommentThread pagination", () => {
     commentCountMock.mockReset();
     commentCountMock.mockResolvedValue(3);
     accountFindManyMock.mockResolvedValue([]);
+    logAppEventMock.mockReset();
     publicReactionSummaryQueryMock.mockResolvedValue([]);
     publicAttachmentSummaryQueryMock.mockResolvedValue([]);
     reactionSummaryQueryMock.mockResolvedValue([]);
@@ -427,6 +434,107 @@ describe("loadCommentThread pagination", () => {
 
     expect(result).toMatchObject({ comments: [], hiddenCount: 0, total: 3 });
     expect(commentFindManyMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("degrades to empty reactions when comment_reaction_summaries throws P2010", async () => {
+    commentFindManyMock
+      .mockResolvedValueOnce([{ id: "root-2" }])
+      .mockResolvedValueOnce([comment("root-2")]);
+    attachmentSummaryQueryMock.mockResolvedValue([
+      {
+        commentId: "root-2",
+        contentType: "text/plain",
+        filename: "note.txt",
+        id: "attachment-1",
+        size: 12,
+        uploadId: "upload-1",
+      },
+    ]);
+    const prismaError = Object.assign(new Error("raw query failed"), {
+      cause: Object.assign(new Error("permission denied for function"), {
+        code: "42501",
+        name: "error",
+      }),
+      code: "P2010",
+      name: "PrismaClientKnownRequestError",
+    });
+    reactionSummaryQueryMock.mockRejectedValue(prismaError);
+
+    const result = await loadCommentThread({
+      pagination: { pageSize: 1, skip: 1 },
+      target: target({ sectionId: 7 }),
+      viewer,
+      viewerUserId: viewer.userId,
+    });
+
+    expect(result.comments).toHaveLength(1);
+    expect(result.comments[0]).toMatchObject({
+      id: "root-2",
+      reactions: [],
+      attachments: [
+        expect.objectContaining({
+          id: "attachment-1",
+          uploadId: "upload-1",
+        }),
+      ],
+    });
+    expect(logAppEventMock).toHaveBeenCalledWith(
+      "warn",
+      "comment.reaction-summaries.failed",
+      {
+        code: "P2010",
+        event: "comment.reaction-summaries.failed",
+        source: "comments",
+      },
+      prismaError,
+    );
+  });
+
+  it("degrades to empty attachments when comment_attachment_summaries throws SQLSTATE 42501", async () => {
+    commentFindManyMock
+      .mockResolvedValueOnce([{ id: "root-2" }])
+      .mockResolvedValueOnce([comment("root-2")]);
+    reactionSummaryQueryMock.mockResolvedValue([
+      {
+        commentId: "root-2",
+        count: 1n,
+        type: "heart",
+        viewerHasReacted: false,
+      },
+    ]);
+    const cause = Object.assign(new Error("permission denied for function"), {
+      code: "42501",
+      name: "error",
+    });
+    const wrapper = Object.assign(new Error("wrapped"), {
+      cause,
+      name: "DriverAdapterError",
+    });
+    attachmentSummaryQueryMock.mockRejectedValue(wrapper);
+
+    const result = await loadCommentThread({
+      pagination: { pageSize: 1, skip: 1 },
+      target: target({ sectionId: 7 }),
+      viewer,
+      viewerUserId: viewer.userId,
+    });
+
+    expect(result.comments).toHaveLength(1);
+    expect(result.comments[0]).toMatchObject({
+      id: "root-2",
+      reactions: [{ count: 1, type: "heart", viewerHasReacted: false }],
+      attachments: [],
+    });
+    expect(logAppEventMock).toHaveBeenCalledWith(
+      "warn",
+      "comment.attachment-summaries.failed",
+      {
+        code: "42501",
+        event: "comment.attachment-summaries.failed",
+        source: "comments",
+      },
+      wrapper,
+    );
   });
 
   it("counts anonymous hidden comments across the target without paging them", async () => {

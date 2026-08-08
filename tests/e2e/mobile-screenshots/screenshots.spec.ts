@@ -1,5 +1,6 @@
 import { expect, test } from "@playwright/test";
 import { DEV_SEED } from "../../fixtures/dev-seed";
+import { mobileScreenshotPaths } from "../src/app/_shared/page-inventory";
 import { signInAsDebugUser, signInAsDevAdmin } from "../utils/auth";
 import {
   getCurrentSessionUser,
@@ -14,28 +15,16 @@ import {
 
 function screenshotRoute(name: string, path: string) {
   test(name, async ({ page }) => {
-    await gotoAndWaitForReady(page, path);
+    const response = await gotoAndWaitForReady(page, path);
+    if (response) {
+      expect(response.status()).toBeLessThan(500);
+    }
   });
 }
 
 test.describe("移动端截图", () => {
   test.describe("公开页面", () => {
-    for (const path of [
-      "/",
-      "/catalog/courses",
-      `/catalog/courses/${DEV_SEED.course.jwId}`,
-      "/catalog/sections",
-      `/catalog/sections/${DEV_SEED.section.jwId}`,
-      "/catalog/teachers",
-      "/catalog/bus/map",
-      "/community/comments/guide",
-      "/guides/markdown-support",
-      "/privacy",
-      "/terms",
-      "/mobile-app",
-      "/account/sign-in",
-      "/oauth/device",
-    ]) {
+    for (const path of mobileScreenshotPaths("public")) {
       screenshotRoute(path, path);
     }
   });
@@ -45,19 +34,7 @@ test.describe("移动端截图", () => {
       await signInAsDebugUser(page, "/");
     });
 
-    for (const path of [
-      "/workspace/overview",
-      "/workspace/homeworks",
-      "/workspace/todos",
-      "/workspace/calendar",
-      "/workspace/exams",
-      "/catalog/links",
-      "/workspace/subscriptions",
-      "/account/settings/profile",
-      "/account/settings/accounts",
-      "/account/settings/danger",
-      `/community/users/${DEV_SEED.debugUsername}`,
-    ]) {
+    for (const path of mobileScreenshotPaths("authed")) {
       screenshotRoute(path, path);
     }
 
@@ -120,12 +97,7 @@ test.describe("移动端截图", () => {
       await signInAsDevAdmin(page, "/admin/users");
     });
 
-    for (const path of [
-      "/admin/users",
-      "/admin/moderation",
-      "/admin/oauth",
-      "/admin/bus",
-    ]) {
+    for (const path of mobileScreenshotPaths("admin")) {
       screenshotRoute(path, path);
     }
   });

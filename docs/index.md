@@ -2,7 +2,6 @@
 
 Start with root [`AGENTS.md`](../AGENTS.md). For an end-to-end change, use
 [`$life-ustc-implement`](../.agents/skills/life-ustc-implement/SKILL.md).
-Git / PR / CI / merge: global agent skills.
 
 ## Start here
 

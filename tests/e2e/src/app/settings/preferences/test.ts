@@ -5,6 +5,7 @@ import {
 } from "../../../../utils/auth";
 import { expectNoPageHorizontalOverflow } from "../../../../utils/page-ready";
 import { captureStepScreenshot } from "../../../../utils/screenshot";
+import { assertPageContract } from "../../_shared/page-contract";
 
 test.describe("/account/settings/preferences 外观与语言偏好", () => {
   test("canonical 路径需要登录", async ({ page }, testInfo) => {
@@ -87,5 +88,12 @@ test.describe("/account/settings/preferences 外观与语言偏好", () => {
       page.getByRole("region", { name: "Preferences" }),
     ).toBeVisible();
     await captureStepScreenshot(page, testInfo, "settings-preferences-english");
+  });
+});
+
+test("页面契约", async ({ page }, testInfo) => {
+  await assertPageContract(page, {
+    routePath: "/account/settings/preferences",
+    testInfo,
   });
 });

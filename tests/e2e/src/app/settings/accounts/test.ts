@@ -35,6 +35,7 @@ import {
 } from "../../../../utils/e2e-db";
 import { waitForUiSettled } from "../../../../utils/page-ready";
 import { captureStepScreenshot } from "../../../../utils/screenshot";
+import { assertPageContract } from "../../_shared/page-contract";
 
 test.describe("/account/settings/accounts 关联账号设置", () => {
   test("需要登录", async ({ page }, testInfo) => {
@@ -70,10 +71,8 @@ test.describe("/account/settings/accounts 关联账号设置", () => {
     const connectButton = providerCard.getByRole("button", {
       name: /连接|Connect/i,
     });
-    test.skip(
-      (await providerCard.count()) === 0 || (await connectButton.count()) === 0,
-      "settings accounts page rendered without a USTC connect action",
-    );
+    await expect(providerCard).toBeVisible();
+    await expect(connectButton).toBeVisible();
 
     await waitForUiSettled(page);
     await expect(connectButton).toBeEnabled();
@@ -180,5 +179,12 @@ test.describe("/account/settings/accounts 关联账号设置", () => {
     } finally {
       await deleteLinkedAccountFixture({ userId: user.id, provider });
     }
+  });
+});
+
+test("页面契约", async ({ page }, testInfo) => {
+  await assertPageContract(page, {
+    routePath: "/account/settings/accounts",
+    testInfo,
   });
 });

@@ -770,10 +770,7 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
     const subscribeButton = page
       .getByRole("button", { name: /订阅教学班|Subscribe to section/i })
       .first();
-    test.skip(
-      (await subscribeButton.count()) === 0,
-      "section page rendered without a subscribe control",
-    );
+    await expect(subscribeButton).toBeVisible();
 
     await subscribeButton.click();
     const loginDialog = page
@@ -799,10 +796,7 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
       name: /取消订阅|Unsubscribe from section/i,
     });
 
-    test.skip(
-      (await subscribe.count()) === 0 && (await unsubscribe.count()) === 0,
-      "section page rendered without subscribe/unsubscribe controls",
-    );
+    await expect(subscribe.or(unsubscribe).first()).toBeVisible();
 
     if ((await subscribe.count()) > 0) {
       await subscribe.first().click();
@@ -842,10 +836,7 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
       .getByTestId("detail-pinned-summary")
       .getByRole("button", { name: /添加到日历|Add to calendar/i })
       .first();
-    test.skip(
-      (await calendarButton.count()) === 0,
-      "section page rendered without calendar export control",
-    );
+    await expect(calendarButton).toBeVisible();
 
     await calendarButton.click();
     const calDialog = page.locator('[data-slot="dialog-content"]').first();
@@ -1697,5 +1688,12 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
         await deleteUploadById(page, uploadId);
       }
     }
+  });
+});
+
+test("页面契约", async ({ page }, testInfo) => {
+  await assertPageContract(page, {
+    routePath: "/catalog/sections/[jwId]/[section]",
+    testInfo,
   });
 });

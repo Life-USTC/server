@@ -15,6 +15,7 @@ import { visibleText } from "../../../../utils/locators";
 import { gotoAndWaitForReady } from "../../../../utils/page-ready";
 import { captureStepScreenshot } from "../../../../utils/screenshot";
 import { resolveSeedSectionId } from "../../../../utils/subscriptions";
+import { assertPageContract } from "../../_shared/page-contract";
 
 function moderationTableRow(page: Page, text: string) {
   return page.locator("tbody tr:visible").filter({ hasText: text }).first();
@@ -254,15 +255,9 @@ test("/admin/moderation 可切换状态筛选下拉", async ({ page }, testInfo)
   await signInAsDevAdmin(page, "/admin/moderation");
 
   const filter = page.getByRole("combobox").first();
-  test.skip(
-    (await filter.count()) === 0,
-    "moderation page rendered without a status filter",
-  );
+  await expect(filter).toBeVisible();
   const option = page.getByRole("option", { name: /已删除|Deleted/i }).first();
-  test.skip(
-    (await option.count()) === 0,
-    "status filter rendered without a Deleted option",
-  );
+  await expect(option).toBeAttached();
   await filter.selectOption("deleted");
   await expect(filter).toHaveValue("deleted");
   await captureStepScreenshot(
@@ -550,4 +545,8 @@ test("/admin/moderation 作业治理可访问", async ({ page }, testInfo) => {
     testInfo,
     "admin-moderation/homework-governance",
   );
+});
+
+test("页面契约", async ({ page }, testInfo) => {
+  await assertPageContract(page, { routePath: "/admin/moderation", testInfo });
 });

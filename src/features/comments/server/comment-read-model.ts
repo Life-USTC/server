@@ -5,6 +5,8 @@ import {
 } from "@/lib/auth/viewer-context";
 import { authPrisma } from "@/lib/db/auth-prisma";
 import { prisma, withUserDbContext } from "@/lib/db/prisma";
+import { logAppEvent } from "@/lib/log/app-logger";
+import { getSafeDatabaseErrorCode } from "@/lib/log/app-logger-core";
 import { withCommentDbContext } from "./comment-db-context";
 import {
   buildCommentNodes,
@@ -129,6 +131,51 @@ async function loadCommentAttachmentSummaries(
   return viewerUserId ? withUserDbContext(viewerUserId, query) : query(prisma);
 }
 
+function logCommentSummaryFailure(
+  event:
+    | "comment.reaction-summaries.failed"
+    | "comment.attachment-summaries.failed",
+  error: unknown,
+) {
+  const code = getSafeDatabaseErrorCode(error);
+  // Summary RPCs are optional for the thread list; grant/query failures must
+  // not 500 the whole comments endpoint (historically the dominant 500 source).
+  logAppEvent(
+    "warn",
+    event,
+    {
+      event,
+      source: "comments",
+      ...(code ? { code } : {}),
+    },
+    error,
+  );
+}
+
+async function loadCommentReactionSummariesOrEmpty(
+  commentIds: string[],
+  viewerUserId: string | null,
+): Promise<CommentReactionSummaryRow[]> {
+  try {
+    return await loadCommentReactionSummaries(commentIds, viewerUserId);
+  } catch (error) {
+    logCommentSummaryFailure("comment.reaction-summaries.failed", error);
+    return [];
+  }
+}
+
+async function loadCommentAttachmentSummariesOrEmpty(
+  commentIds: string[],
+  viewerUserId: string | null,
+): Promise<CommentAttachmentSummaryRow[]> {
+  try {
+    return await loadCommentAttachmentSummaries(commentIds, viewerUserId);
+  } catch (error) {
+    logCommentSummaryFailure("comment.attachment-summaries.failed", error);
+    return [];
+  }
+}
+
 export async function withCommentReadMetadata(
   comments: RawComment[],
   viewerUserId: string | null,
@@ -137,8 +184,8 @@ export async function withCommentReadMetadata(
   const [commentsWithProviders, reactionRows, attachmentRows] =
     await Promise.all([
       withCommentAuthorProviders(comments),
-      loadCommentReactionSummaries(commentIds, viewerUserId),
-      loadCommentAttachmentSummaries(commentIds, viewerUserId),
+      loadCommentReactionSummariesOrEmpty(commentIds, viewerUserId),
+      loadCommentAttachmentSummariesOrEmpty(commentIds, viewerUserId),
     ]);
   const reactionsByCommentId = new Map<
     string,

@@ -12,6 +12,7 @@ import {
 import { visibleText } from "../../../../utils/locators";
 import { gotoAndWaitForReady } from "../../../../utils/page-ready";
 import { captureStepScreenshot } from "../../../../utils/screenshot";
+import { assertPageContract } from "../../_shared/page-contract";
 
 test.describe.configure({ mode: "serial" });
 
@@ -317,4 +318,8 @@ test("/admin/users 可创建默认时长封禁并通过 API 解除", async ({
     }
     await deleteUsersByPrefix(prefix);
   }
+});
+
+test("页面契约", async ({ page }, testInfo) => {
+  await assertPageContract(page, { routePath: "/admin/users", testInfo });
 });

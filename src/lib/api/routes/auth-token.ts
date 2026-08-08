@@ -123,8 +123,22 @@ async function runObservedTokenHandler(
         ? [...new Set((params.get("scope") ?? "").split(/\s+/).filter(Boolean))]
         : undefined,
     );
+    const errorBody = response.ok ? undefined : await parseJsonBody(response);
+    const errorCode =
+      errorBody &&
+      typeof errorBody === "object" &&
+      "error" in errorBody &&
+      typeof errorBody.error === "string"
+        ? errorBody.error
+        : undefined;
     writeOAuthEventAnalytics({
-      event: "token.response",
+      event: response.ok
+        ? "token.response"
+        : errorCode === "invalid_grant"
+          ? "oauth.token.invalid_grant"
+          : errorCode === "invalid_request"
+            ? "oauth.token.invalid_request"
+            : "oauth.token.error_response",
       ioObservedDurationMs: Date.now() - start,
       grantType,
       hasResource: params.has("resource"),
@@ -132,6 +146,7 @@ async function runObservedTokenHandler(
       path: url.pathname,
       resourceCount: params.getAll("resource").length,
       status: response.status,
+      statusReason: errorCode,
     });
     return response;
   } catch (err) {

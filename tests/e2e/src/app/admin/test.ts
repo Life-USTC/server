@@ -14,6 +14,7 @@ import {
 } from "../../../utils/auth";
 import { gotoAndWaitForReady } from "../../../utils/page-ready";
 import { captureStepScreenshot } from "../../../utils/screenshot";
+import { assertPageContract } from "../_shared/page-contract";
 
 function adminPrimaryNav(page: import("@playwright/test").Page) {
   return page.getByTestId("app-sidebar").getByRole("navigation", {
@@ -128,4 +129,8 @@ test("/admin 主导航可跳转到各管理工具", async ({ page }, testInfo) =
     await Promise.all([page.waitForURL(url), link.click()]);
     await captureStepScreenshot(page, testInfo, shot);
   }
+});
+
+test("页面契约", async ({ page }, testInfo) => {
+  await assertPageContract(page, { routePath: "/admin", testInfo });
 });

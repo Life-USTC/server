@@ -60,6 +60,16 @@ export function notFound(message = "Not found") {
   return errorResponse(message, 404);
 }
 
+export function gone(message = "Gone") {
+  return jsonResponse(
+    { error: message },
+    {
+      status: 410,
+      headers: { "Cache-Control": "private, max-age=60" },
+    },
+  );
+}
+
 export function notFoundText() {
   return new Response("Not found\n", { status: 404 });
 }

@@ -10,6 +10,7 @@ import { observedApiRoute } from "@/lib/log/api-observability";
  * @response 401:openApiErrorSchema
  * @response 403:openApiErrorSchema
  * @response 404:openApiErrorSchema
+ * @response 410:openApiErrorSchema
  */
 export const GET: RequestHandler = ({ request, params, platform }) =>
   observedApiRoute(() =>

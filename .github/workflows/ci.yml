@@ -15,6 +15,9 @@ jobs:
     with:
       database-name: life_ustc_ci
       job-phase: ci:verify
+      upload-artifact-name: vitest-coverage
+      upload-artifact-path: coverage
+      upload-artifact-no-files-found: warn
 
   test-integration:
     name: MCP Integration Test

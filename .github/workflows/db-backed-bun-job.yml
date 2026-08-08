@@ -156,7 +156,7 @@ jobs:
               bunx tsc --noEmit -p tsconfig.typecheck.json
               bunx tsc --noEmit -p tsconfig.typecheck.tests.json
               bunx tsc --noEmit -p tsconfig.typecheck.operational.json
-              bunx vitest run
+              bunx vitest run --coverage
               ;;
             ci:integration)
               # Match wrangler.e2e.jsonc so JWKS rows seeded here decrypt when
@@ -231,22 +231,7 @@ jobs:
                 tests/integration/function-owner-role-contract.test.ts
               bunx vitest run \
                 --config vitest.integration.config.ts \
-                tests/integration/todo-rls.test.ts
-              bunx vitest run \
-                --config vitest.integration.config.ts \
-                tests/integration/personal-preferences-rls.test.ts
-              bunx vitest run \
-                --config vitest.integration.config.ts \
-                tests/integration/comment-reaction-rls.test.ts
-              bunx vitest run \
-                --config vitest.integration.config.ts \
-                tests/integration/comment-rls.test.ts
-              bunx vitest run \
-                --config vitest.integration.config.ts \
-                tests/integration/upload-rls.test.ts
-              bunx vitest run \
-                --config vitest.integration.config.ts \
-                tests/integration/homework-completion-rls.test.ts
+                tests/integration/*-rls.test.ts
               ;;
             ci:e2e:build-artifacts)
               bun run app:prepare

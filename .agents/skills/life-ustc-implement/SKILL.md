@@ -6,7 +6,7 @@ description: "Add or change Life@USTC server behavior end-to-end: contracts, src
 # Implement a Life@USTC server change
 
 How to land a behavior change in this repo. Layout and local checks: root
-`AGENTS.md`. Git / PR / CI / merge: global skills, not this file.
+`AGENTS.md`.
 
 ## When to use
 

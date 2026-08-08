@@ -21,6 +21,7 @@ import { expectRequiresSignIn, signInAsDebugUser } from "../../../utils/auth";
 import { DEV_SEED } from "../../../utils/dev-seed";
 import { gotoAndWaitForReady } from "../../../utils/page-ready";
 import { captureStepScreenshot } from "../../../utils/screenshot";
+import { assertPageContract } from "../_shared/page-contract";
 
 test.describe("/account/settings 设置中心", () => {
   test("需要登录", async ({ page }, testInfo) => {
@@ -195,4 +196,8 @@ test.describe("/account/settings 设置中心", () => {
     await expect(page.locator("input#name")).toBeVisible();
     await captureStepScreenshot(page, testInfo, "settings-path-profile");
   });
+});
+
+test("页面契约", async ({ page }, testInfo) => {
+  await assertPageContract(page, { routePath: "/account/settings", testInfo });
 });

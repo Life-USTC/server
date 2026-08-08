@@ -12,18 +12,20 @@
  * ## Response
  * - 200: `text/calendar; charset=utf-8` with iCalendar data
  * - 401: unauthorized (no session and no token)
- * - 403: forbidden (wrong user or invalid token)
- * - 404: user not found or no calendar items
+ * - 403: forbidden (session accessing another user's calendar)
+ * - 404: unknown user (including unknown user with a token)
+ * - 410: existing user with wrong/revoked feed token
  *
  * ## Content
  * - Includes subscribed section schedules and exams
  * - Includes incomplete homework with due dates
  * - Includes todos with due dates (excludes completed)
- * - Returns 404 if user has no calendar items at all
+ * - Empty calendars still return 200 with an empty VCALENDAR
  *
  * ## Edge Cases
  * - Path token format: `userId:token` in the [userId] segment
- * - Invalid token for an existing user returns 403
+ * - Invalid token for an existing user returns 410 Gone
+ * - Unknown user with a token returns 404
  * - Accessing another user's calendar via session returns 403
  */
 import { expect, test } from "@playwright/test";
@@ -58,11 +60,11 @@ test.describe("GET /api/calendar-feeds/[credential].ics", () => {
     expect(response.status()).toBe(401);
   });
 
-  test("无效 token 返回 403", async ({ request }) => {
+  test("未知用户带 token 返回 404", async ({ request }) => {
     const response = await request.get(
       "/api/calendar-feeds/invalid-e2e.ics?token=invalid-token",
     );
-    expect(response.status()).toBe(403);
+    expect(response.status()).toBe(404);
   });
 
   test("访问其他用户日历时返回 403", async ({ request }) => {
@@ -163,14 +165,15 @@ test.describe("GET /api/calendar-feeds/[credential].ics", () => {
     expect(body).toContain("BEGIN:VCALENDAR");
   });
 
-  test("现有用户无效 token 返回 403", async ({ request }) => {
+  test("现有用户无效 token 返回 410", async ({ request }) => {
     await signInAsDebugUserApi(request, "/");
     const { id: userId } = await getCurrentSessionUser(request);
 
     const response = await request.get(
       `/api/calendar-feeds/${userId}.ics?token=bogus-token-e2e`,
     );
-    expect(response.status()).toBe(403);
+    expect(response.status()).toBe(410);
+    expect(response.headers()["cache-control"]).toBe("private, max-age=60");
   });
 
   test("有效 token 在没有日历项目时返回空 iCalendar", async ({ request }) => {

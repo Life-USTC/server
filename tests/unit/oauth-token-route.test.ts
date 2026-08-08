@@ -586,7 +586,7 @@ describe("OAuth 令牌路由", () => {
       "error",
       "oauth.token.grant-validation-failed",
       {
-        errorName: "UnknownError",
+        errorName: "Error",
         phase: "resolve-active-refresh-grant",
       },
     );
