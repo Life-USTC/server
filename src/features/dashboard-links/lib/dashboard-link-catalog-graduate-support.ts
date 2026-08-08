@@ -88,7 +88,7 @@ export const USTC_GRADUATE_AND_SUPPORT_LINKS: DashboardLinkItem[] = [
   {
     slug: "payment-system",
     title: "网上缴费系统",
-    url: "https://sf.ustc.edu.cn/",
+    url: "https://cwjf.ustc.edu.cn/payment/",
     description: "校内缴费服务平台。",
     localizations: {
       "en-us": {
