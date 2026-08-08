@@ -7,6 +7,7 @@ import {
 const verifiedEmailUpsertMock = vi.fn();
 const userFindUniqueMock = vi.fn();
 const userUpdateMock = vi.fn();
+const profilePictureUpdateMock = vi.fn();
 
 vi.mock("@/lib/db/auth-prisma", () => ({
   authPrisma: {
@@ -20,6 +21,14 @@ vi.mock("@/lib/db/auth-prisma", () => ({
   },
 }));
 
+vi.mock("@/lib/db/prisma", () => ({
+  prisma: {
+    user: {
+      update: (...args: unknown[]) => profilePictureUpdateMock(...args),
+    },
+  },
+}));
+
 import { syncSocialVerifiedEmailFromAccountHook } from "@/lib/auth/social-verified-email-plugin";
 
 describe("social verified email sync", () => {
@@ -28,6 +37,7 @@ describe("social verified email sync", () => {
     verifiedEmailUpsertMock.mockReset();
     userFindUniqueMock.mockReset();
     userUpdateMock.mockReset();
+    profilePictureUpdateMock.mockReset();
   });
 
   it("persists GitHub email into VerifiedEmail and upgrades placeholder User.email", async () => {
@@ -76,8 +86,14 @@ describe("social verified email sync", () => {
         email: "octocat@example.com",
         emailVerified: true,
         image: "https://example.com/octocat.png",
+      },
+    });
+    expect(profilePictureUpdateMock).toHaveBeenCalledWith({
+      where: { id: "user-1" },
+      data: {
         profilePictures: { push: "https://example.com/octocat.png" },
       },
+      select: { id: true },
     });
   });
 
@@ -109,8 +125,14 @@ describe("social verified email sync", () => {
       data: {
         name: "Student",
         image: "https://example.com/ustc.png",
+      },
+    });
+    expect(profilePictureUpdateMock).toHaveBeenCalledWith({
+      where: { id: "user-1" },
+      data: {
         profilePictures: { push: "https://example.com/ustc.png" },
       },
+      select: { id: true },
     });
   });
 

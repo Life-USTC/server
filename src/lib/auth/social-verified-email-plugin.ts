@@ -6,6 +6,8 @@ import {
 import { upsertVerifiedEmail } from "@/lib/auth/oauth-user-email-resolve";
 import { consumeStagedSocialVerifiedEmail } from "@/lib/auth/social-verified-email-staging";
 import { authPrisma } from "@/lib/db/auth-prisma";
+import { prisma } from "@/lib/db/prisma";
+import { logAppEvent } from "@/lib/log/app-logger";
 
 const SOCIAL_PROFILE_PROVIDERS = new Set(["github", "google", "oidc"]);
 
@@ -32,7 +34,6 @@ async function applySocialVerifiedEmailToUser(input: {
     emailVerified?: boolean;
     name?: string;
     image?: string | null;
-    profilePictures?: { push: string };
   } = {};
 
   if (
@@ -49,20 +50,32 @@ async function applySocialVerifiedEmailToUser(input: {
   if (input.image && !current.image) {
     profileUpdate.image = input.image;
   }
-  if (input.image && !current.profilePictures.includes(input.image)) {
-    profileUpdate.profilePictures = { push: input.image };
+  if (Object.keys(profileUpdate).length > 0) {
+    try {
+      await authPrisma.user.update({
+        where: { id: input.userId },
+        data: profileUpdate,
+      });
+    } catch {
+      // Unique email conflicts should not fail social login; VerifiedEmail still
+      // holds the upstream mailbox for OAuth userinfo resolution.
+    }
   }
-
-  if (Object.keys(profileUpdate).length === 0) return;
-
-  try {
-    await authPrisma.user.update({
-      where: { id: input.userId },
-      data: profileUpdate,
-    });
-  } catch {
-    // Unique email conflicts should not fail social login; VerifiedEmail still
-    // holds the upstream mailbox for OAuth userinfo resolution.
+  if (input.image && !current.profilePictures.includes(input.image)) {
+    try {
+      await prisma.user.update({
+        where: { id: input.userId },
+        data: { profilePictures: { push: input.image } },
+        select: { id: true },
+      });
+    } catch (error) {
+      logAppEvent(
+        "warn",
+        "Failed to persist upstream avatar as a profile option",
+        { source: "auth" },
+        error,
+      );
+    }
   }
 }
 
