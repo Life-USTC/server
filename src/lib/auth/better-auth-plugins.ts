@@ -50,7 +50,11 @@ export function buildBetterAuthPlugins(input: {
     buildOAuthProviderPlugin({
       authPublicOrigin: input.authPublicOrigin,
     }),
-    cimd({ allowFetch: allowCimdMetadataFetch }),
+    cimd({
+      fetchClientMetadataResource: (url, init) => fetch(url, init),
+      isMetadataDocumentUrlAllowed: allowCimdMetadataFetch,
+      metadataProfile: "mcp-2026-07-28",
+    }),
     genericOAuth({
       config: [
         {
