@@ -59,7 +59,7 @@ describe("Better Auth CIMD plugin", () => {
           "refresh_token",
           "urn:ietf:params:oauth:grant-type:device_code",
         ],
-        response_types: ["code"],
+        response_types: ["code", "token"],
       }),
     ).toMatchObject({ valid: true });
 
