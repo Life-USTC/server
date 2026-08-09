@@ -1,3 +1,10 @@
+## [1.88.2](https://github.com/Life-USTC/server/compare/v1.88.1...v1.88.2) (2026-08-09)
+
+
+### Bug Fixes
+
+* run auth cleanup in Worker cron ([#771](https://github.com/Life-USTC/server/issues/771)) ([a7f2bc7](https://github.com/Life-USTC/server/commit/a7f2bc7fd0a4f9c4cef83dc9b60d1397c924e7f5))
+
 ## [1.88.1](https://github.com/Life-USTC/server/compare/v1.88.0...v1.88.1) (2026-08-09)
 
 
