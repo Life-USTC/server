@@ -150,7 +150,6 @@ describe("static section campus mapping", () => {
       undefined,
       {
         course: { id: 3001 },
-        courseSourceKey: "course-source-key",
         campus: { cn: "国际金融研究院", en: "International Institute" },
       },
     );

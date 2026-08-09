@@ -30,9 +30,6 @@ describe("catalog detail page data", () => {
       jwId: 101,
       sections: [],
     };
-    courseFindManyMock.mockResolvedValue([
-      { aliases: [], id: course.id, jwId: course.jwId },
-    ]);
     courseFindUniqueMock.mockResolvedValue(course);
 
     const { getCoursePage } = await import(
@@ -49,7 +46,7 @@ describe("catalog detail page data", () => {
       sectionCount: 3,
       sections: [],
     });
-    const courseSelect = courseFindUniqueMock.mock.calls[0]?.[0]?.select;
+    const courseSelect = courseFindUniqueMock.mock.calls[1]?.[0]?.select;
     expect(courseSelect).not.toHaveProperty("description");
     expect(courseSelect?.sections).toBe(false);
     expect(result).not.toHaveProperty("commentCount");
@@ -88,7 +85,6 @@ describe("catalog detail page data", () => {
   it("strips Prisma extension symbols before returning load data", async () => {
     const localizedNameSymbol = Symbol("localizedName");
     const courseSections = [{ code: "001", jwId: 301 }];
-    courseFindManyMock.mockResolvedValue([{ aliases: [], id: 11, jwId: 101 }]);
     courseFindUniqueMock.mockResolvedValue({
       _count: { sections: 1 },
       id: 11,

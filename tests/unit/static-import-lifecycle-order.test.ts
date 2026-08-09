@@ -32,7 +32,6 @@ describe("static Section lifecycle orchestration", () => {
       "upsertExams",
       "writeExamRooms",
       "reconcileRemovedSnapshotRows",
-      "mergeLegacyCourseDuplicates",
       "countDatabaseRecords",
     ]) {
       expect(lifecycleIndex).toBeGreaterThan(stageIndex(source, stage));

@@ -55,29 +55,11 @@ export async function findCoursesByJwIds(
 ) {
   const prisma = getPrisma(locale);
   const requestedJwIds = [...new Set(jwIds)];
-  const [courses, aliases] = await Promise.all([
-    prisma.course.findMany({
-      where: { jwId: { in: requestedJwIds } },
-      include: courseInclude,
-    }),
-    prisma.courseAlias.findMany({
-      where: { jwId: { in: requestedJwIds } },
-      include: {
-        course: {
-          include: courseInclude,
-        },
-      },
-    }),
-  ]);
+  const courses = await prisma.course.findMany({
+    where: { jwId: { in: requestedJwIds } },
+    include: courseInclude,
+  });
   const byJwId = new Map(courses.map((course) => [course.jwId, course]));
-  for (const alias of aliases) {
-    if (byJwId.has(alias.jwId)) {
-      throw new Error(
-        `Course jwId namespace collision: ${alias.jwId} is both a Course and CourseAlias`,
-      );
-    }
-    byJwId.set(alias.jwId, alias.course);
-  }
   return jwIds.map((jwId) => byJwId.get(jwId) ?? null);
 }
 

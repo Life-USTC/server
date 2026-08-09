@@ -1,4 +1,3 @@
-import { courseSourceIdentityKey } from "./course-identity";
 import type { AdminClassBuild, TeacherBuild } from "./identity-types";
 import {
   asBoolean,
@@ -20,6 +19,7 @@ export type SemesterBuild = {
 };
 
 export type DepartmentBuild = {
+  jwId: number;
   code: string;
   nameCn: string;
   nameEn?: string;
@@ -33,7 +33,6 @@ export type LookupBuild = {
 
 export type CourseBuild = {
   jwId: number;
-  sourceKey: string;
   code: string;
   nameCn: string;
   nameEn?: string;
@@ -72,7 +71,7 @@ export type SectionBuild = {
   selectedStdCount?: number;
   remark?: string;
   scheduleRemark?: string;
-  courseSourceKey: string;
+  courseJwId: number;
   semesterCode: number;
   campusId?: number;
   campusName?: string;
@@ -120,7 +119,7 @@ export type ExamBuild = {
   examDate?: Date;
   examTakeCount?: number;
   examMode?: string;
-  examBatchName?: string;
+  examBatchJwId?: number;
   sectionJwId: number;
   rooms: { room: string; count: number }[];
 };
@@ -179,6 +178,7 @@ export type TeacherLessonTypeBuild = {
 };
 
 export type ExamBatchBuild = {
+  jwId: number;
   nameCn: string;
 };
 
@@ -208,11 +208,6 @@ export type SectionTeacherPair = {
 export type AdminClassSectionPair = {
   adminClassJwId: number;
   sectionJwId: number;
-};
-
-export type DepartmentPlaceholderRequest = {
-  code: string;
-  nameCn: string;
 };
 
 export function firstChild(
@@ -250,15 +245,17 @@ export function flattenDepartments(
   }
 
   const result: DepartmentBuild[] = [];
-  const seen = new Set<string>();
+  const seen = new Set<number>();
 
   function add(row: SnapshotRow) {
+    const jwId = asInt(row.id);
     const code = asString(row.code);
     const nameCn = asString(row.nameZh) ?? asString(row.name);
-    if (!code || !nameCn) return;
-    if (seen.has(code)) return;
-    seen.add(code);
+    if (jwId == null || !code || !nameCn) return;
+    if (seen.has(jwId)) return;
+    seen.add(jwId);
     result.push({
+      jwId,
       code,
       nameCn,
       nameEn: asString(row.nameEn),
@@ -302,7 +299,7 @@ export function mapCourse(
   const nameCn = asString(courseRow?.cn);
   const code = asString(courseRow?.code) ?? "";
   if (jwId == null || !nameCn) return undefined;
-  const course = {
+  return {
     jwId,
     code,
     nameCn,
@@ -314,7 +311,6 @@ export function mapCourse(
     classTypeName: mapLookup(lookups.classType)?.nameCn,
     educationLevelName: mapLookup(lookups.education)?.nameCn,
   };
-  return { ...course, sourceKey: courseSourceIdentityKey(course) };
 }
 
 export function mapTeacherFromScheduleAssignment(
@@ -363,7 +359,6 @@ export function mapSection(
   dtpptRows: SnapshotRow[] | undefined,
   catalogLookups: {
     course?: SnapshotRow;
-    courseSourceKey?: string;
     examMode?: SnapshotRow;
     openDepartment?: SnapshotRow;
     teachLanguage?: SnapshotRow;
@@ -373,15 +368,8 @@ export function mapSection(
   const jwId = asInt(lessonRow.id);
   const code = asString(lessonRow.code);
   const courseJwId = asInt(catalogLookups.course?.id);
-  const courseSourceKey = catalogLookups.courseSourceKey;
   const semesterCode = asInt(lessonRow.semester_id);
-  if (
-    jwId == null ||
-    !code ||
-    courseJwId == null ||
-    courseSourceKey == null ||
-    semesterCode == null
-  ) {
+  if (jwId == null || !code || courseJwId == null || semesterCode == null) {
     return undefined;
   }
 
@@ -435,7 +423,7 @@ export function mapSection(
     scheduleRemark: scheduleLesson
       ? asString(scheduleLesson.scheduleRemark)
       : undefined,
-    courseSourceKey,
+    courseJwId,
     semesterCode,
     campusId: scheduleLesson ? asInt(scheduleLesson.campusId) : undefined,
     campusName: asString(catalogLookups.campus?.cn),
@@ -689,9 +677,10 @@ export function mapTeacherLessonType(
 }
 
 export function mapExamBatch(row: SnapshotRow): ExamBatchBuild | undefined {
+  const jwId = asInt(row.id);
   const name = asString(row.name);
-  if (!name) return undefined;
-  return { nameCn: name };
+  if (jwId == null || !name) return undefined;
+  return { jwId, nameCn: name };
 }
 
 export function mapExam(
@@ -711,7 +700,7 @@ export function mapExam(
     examDate: asDate(row.examDate),
     examTakeCount: asInt(row.examTakeCount),
     examMode: asString(row.examMode),
-    examBatchName: asString(examBatchRow?.name),
+    examBatchJwId: asInt(examBatchRow?.id),
     sectionJwId,
     rooms: roomRows
       .map((r) => ({
@@ -748,15 +737,4 @@ export function mapTeacherAssignment(
     weekIndicesMsg: asString(row.weekIndicesMsg),
     teacherLessonTypeId,
   };
-}
-
-export function stablePlaceholderCode(name: string): string {
-  let hash = 0;
-  for (let i = 0; i < name.length; i++) {
-    const char = name.charCodeAt(i);
-    hash = (hash << 5) - hash + char;
-    hash |= 0;
-  }
-  const suffix = Math.abs(hash).toString(36).slice(0, 12);
-  return `static-${suffix}`;
 }
