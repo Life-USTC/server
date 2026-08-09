@@ -3,22 +3,30 @@ import { getOptionalTrimmedEnv } from "@/app-env";
 import {
   getCloudflareAuthHyperdriveConnectionString,
   getCloudflareHyperdriveConnectionString,
+  getCloudflareMaintenanceHyperdriveConnectionString,
   hasCloudflareRuntimeEnv,
 } from "@/lib/adapters/cloudflare-runtime";
 import { logAppEvent } from "@/lib/log/app-logger";
 import { getSafeErrorName } from "@/lib/log/safe-error-name";
 import { writeDatabaseEventAnalytics } from "@/lib/metrics/analytics-engine";
 
-export type RuntimeDatabase = "app" | "auth";
+export type RuntimeDatabase = "app" | "auth" | "maintenance";
 
 function getRuntimeDatabaseUrl(database: RuntimeDatabase) {
   const hyperdriveConnectionString =
     database === "auth"
       ? getCloudflareAuthHyperdriveConnectionString()
-      : getCloudflareHyperdriveConnectionString();
+      : database === "maintenance"
+        ? getCloudflareMaintenanceHyperdriveConnectionString()
+        : getCloudflareHyperdriveConnectionString();
   if (hasCloudflareRuntimeEnv()) {
     if (!hyperdriveConnectionString) {
-      const binding = database === "auth" ? "HYPERDRIVE_AUTH" : "HYPERDRIVE";
+      const binding =
+        database === "auth"
+          ? "HYPERDRIVE_AUTH"
+          : database === "maintenance"
+            ? "HYPERDRIVE_MAINTENANCE"
+            : "HYPERDRIVE";
       throw new Error(
         `${binding} is required to initialize ${database} Prisma in Cloudflare runtime`,
       );
@@ -32,6 +40,14 @@ function getRuntimeDatabaseUrl(database: RuntimeDatabase) {
     if (getOptionalTrimmedEnv("NODE_ENV") === "production") return undefined;
     return getOptionalTrimmedEnv("DATABASE_URL");
   }
+  if (database === "maintenance") {
+    const maintenanceDatabaseUrl = getOptionalTrimmedEnv(
+      "MAINTENANCE_DATABASE_URL",
+    );
+    if (maintenanceDatabaseUrl) return maintenanceDatabaseUrl;
+    if (getOptionalTrimmedEnv("NODE_ENV") === "production") return undefined;
+    return getOptionalTrimmedEnv("DATABASE_URL");
+  }
   return getOptionalTrimmedEnv("DATABASE_URL");
 }
 
@@ -42,13 +58,21 @@ export function createPrismaAdapter(
   const resolvedConnectionString =
     connectionString ?? getRuntimeDatabaseUrl(database);
   if (!resolvedConnectionString) {
-    throw new Error(
-      database === "auth"
-        ? getOptionalTrimmedEnv("NODE_ENV") === "production"
+    if (database === "auth") {
+      throw new Error(
+        getOptionalTrimmedEnv("NODE_ENV") === "production"
           ? "AUTH_DATABASE_URL is required to initialize auth Prisma in production"
-          : "AUTH_DATABASE_URL or DATABASE_URL is required to initialize auth Prisma"
-        : "DATABASE_URL is required to initialize app Prisma",
-    );
+          : "AUTH_DATABASE_URL or DATABASE_URL is required to initialize auth Prisma",
+      );
+    }
+    if (database === "maintenance") {
+      throw new Error(
+        getOptionalTrimmedEnv("NODE_ENV") === "production"
+          ? "MAINTENANCE_DATABASE_URL is required to initialize maintenance Prisma in production"
+          : "MAINTENANCE_DATABASE_URL or DATABASE_URL is required to initialize maintenance Prisma",
+      );
+    }
+    throw new Error("DATABASE_URL is required to initialize app Prisma");
   }
 
   return new PrismaPg(

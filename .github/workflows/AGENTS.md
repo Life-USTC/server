@@ -8,9 +8,9 @@
 | Release | successful CI on main | Semantic release |
 | Copilot Setup Steps | manual / setup changes | Copilot bootstrap validation |
 
-Scheduled maintenance workflows may also exist for auth/upload cleanup and
-static sync. Treat their schedules and secret names as operational detail —
-don't expand them in public docs.
+Scheduled maintenance workflows may also exist for static sync. Treat their
+schedules and secret names as operational detail — don't expand them in public
+docs.
 
 ## Rules
 
