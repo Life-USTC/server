@@ -1,3 +1,12 @@
+## [1.88.3](https://github.com/Life-USTC/server/compare/v1.88.2...v1.88.3) (2026-08-09)
+
+
+### Bug Fixes
+
+* apply upload cleanup RLS policy ([cd6f720](https://github.com/Life-USTC/server/commit/cd6f72039a2248fdc7e73f91193290c66776fe98))
+* grant upload cleanup owner access ([4f448f5](https://github.com/Life-USTC/server/commit/4f448f56d1f36d441797ffe3b24fd488e30ea6d4))
+* grant upload cleanup owner access ([#772](https://github.com/Life-USTC/server/issues/772)) ([7713fe6](https://github.com/Life-USTC/server/commit/7713fe6c4ace204539f1744a6e127cc171c00881))
+
 ## [1.88.2](https://github.com/Life-USTC/server/compare/v1.88.1...v1.88.2) (2026-08-09)
 
 
