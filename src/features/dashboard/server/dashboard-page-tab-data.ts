@@ -1,5 +1,6 @@
 import type { DashboardUserContext } from "@/features/dashboard/server/dashboard-user-context";
 import type { AppLocale } from "@/i18n/config";
+import { withUserDbContext } from "@/lib/db/prisma";
 import { logAppEvent } from "@/lib/log/app-logger";
 
 function inactiveStage<T>(value: T) {
@@ -64,35 +65,46 @@ export async function loadSignedDashboardTabData(input: {
     tab: input.tab,
   };
   const shouldLoadTodos = input.tab === "todos" || input.tab === "overview";
-  const todosPromise = shouldLoadTodos
-    ? timeDashboardStage("todos", stageContext, () =>
-        dashboardTabs.getTodosTabData(input.userId),
-      )
-    : inactiveStage(null);
-  const pendingTodosCountPromise = shouldLoadTodos
-    ? todosPromise.then(
-        (todos) => todos?.filter((todo) => !todo.completed).length ?? 0,
-      )
-    : undefined;
+  const semesters = await timeDashboardStage("semesters", stageContext, () =>
+    dashboard.getDashboardSemesters(),
+  );
+  const { navStats, todos } = await withUserDbContext(
+    input.userId,
+    async () => {
+      const todosPromise = shouldLoadTodos
+        ? timeDashboardStage("todos", stageContext, () =>
+            dashboardTabs.getTodosTabData(input.userId),
+          )
+        : inactiveStage(null);
+      const pendingTodosCountPromise = shouldLoadTodos
+        ? todosPromise.then(
+            (items) => items?.filter((todo) => !todo.completed).length ?? 0,
+          )
+        : undefined;
+      const [resolvedNavStats, resolvedTodos] = await Promise.all([
+        timeDashboardStage("nav-stats", stageContext, () =>
+          dashboard.getDashboardNavStats(
+            input.context.user,
+            input.context.subscribedSections,
+            input.referenceNow,
+            pendingTodosCountPromise,
+            semesters,
+          ),
+        ),
+        todosPromise,
+      ]);
+      return { navStats: resolvedNavStats, todos: resolvedTodos };
+    },
+  );
 
   const [
-    navStats,
     overview,
     links,
     homeworks,
     subscriptions,
     calendarSubscriptionUrl,
-    todos,
     bus,
   ] = await Promise.all([
-    timeDashboardStage("nav-stats", stageContext, () =>
-      dashboard.getDashboardNavStats(
-        input.context.user,
-        input.context.subscribedSections,
-        input.referenceNow,
-        pendingTodosCountPromise,
-      ),
-    ),
     input.tab === "overview" || input.tab === "calendar"
       ? timeDashboardStage("overview", stageContext, () =>
           dashboard.getDashboardOverviewData(input.userId, {
@@ -101,6 +113,7 @@ export async function loadSignedDashboardTabData(input: {
             sectionIds: input.context.sectionIds,
             calendarSemesterId: input.calendarSemesterId,
             referenceNow: input.referenceNow,
+            semesters,
             skipLinks: input.tab === "calendar",
           }),
         )
@@ -134,7 +147,6 @@ export async function loadSignedDashboardTabData(input: {
           ),
         )
       : inactiveStage(null),
-    todosPromise,
     input.tab === "bus"
       ? timeDashboardStage("bus", stageContext, () =>
           dashboardTabs.getBusTabData(input.userId, input.locale),

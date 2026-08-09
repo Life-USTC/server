@@ -1,6 +1,7 @@
-export const CATALOG_MAX_PAGE = 5_000;
+export const CATALOG_MAX_PAGE = 100;
 export const CATALOG_MAX_ID = 2_147_483_647;
-export const CATALOG_SEARCH_MAX_LENGTH = 256;
+export const CATALOG_SEARCH_MIN_LENGTH = 2;
+export const CATALOG_SEARCH_MAX_LENGTH = 200;
 export const CATALOG_TEXT_FILTER_MAX_LENGTH = 128;
 
 export type CatalogListPath =
@@ -84,6 +85,13 @@ function boundedText(value: string | null, maximumLength: number) {
   return trimmed.slice(0, maximumLength);
 }
 
+function boundedSearch(value: string | null) {
+  const search = boundedText(value, CATALOG_SEARCH_MAX_LENGTH);
+  return search && search.length >= CATALOG_SEARCH_MIN_LENGTH
+    ? search
+    : undefined;
+}
+
 function decimalNumber(value: string | null) {
   const trimmed = value?.trim();
   if (!trimmed || !DECIMAL_NUMBER.test(trimmed)) return undefined;
@@ -112,7 +120,7 @@ export function normalizeCatalogListQuery(
   setNormalized(
     normalized,
     "search",
-    boundedText(searchParams.get("search"), CATALOG_SEARCH_MAX_LENGTH),
+    boundedSearch(searchParams.get("search")),
   );
 
   if (pathname === "/catalog/courses") {

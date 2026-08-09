@@ -28,6 +28,15 @@ export type OverviewDataOptions = {
   user?: DashboardUserSummary;
   /** Subscription ids already loaded by the page shell. */
   sectionIds?: readonly number[];
+  /** Semester rows already loaded by the page shell. */
+  semesters?: readonly DashboardSemester[];
+};
+
+export type DashboardSemester = {
+  id: number;
+  nameCn: string | null;
+  startDate: Date | null;
+  endDate: Date | null;
 };
 
 export type CalendarTodoItem = {

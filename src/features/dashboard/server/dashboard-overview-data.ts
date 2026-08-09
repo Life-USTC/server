@@ -21,6 +21,7 @@ export {
   getDashboardNavStats,
   getDashboardUserContext,
 } from "./dashboard-nav-stats";
+export { getDashboardSemesters } from "./dashboard-overview-context";
 export type {
   CalendarTodoItem,
   OverviewData,

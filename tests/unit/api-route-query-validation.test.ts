@@ -30,6 +30,23 @@ describe("API 路由查询校验", () => {
     );
   });
 
+  it("在查询前拒绝过大的公共目录页码与搜索字符串", async () => {
+    await expectInvalidQueryResponse(
+      getCoursesRoute(
+        new Request("https://example.test/api/catalog/courses?page=101"),
+      ),
+      "Invalid course query",
+    );
+    await expectInvalidQueryResponse(
+      getCoursesRoute(
+        new Request(
+          `https://example.test/api/catalog/courses?search=${"x".repeat(201)}`,
+        ),
+      ),
+      "Invalid course query",
+    );
+  });
+
   it("序列化下一班车与待办事项限制校验失败", async () => {
     await expectInvalidQueryResponse(
       getBusNextDeparturesRoute(

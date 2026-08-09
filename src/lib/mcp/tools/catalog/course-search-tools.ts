@@ -1,6 +1,11 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import * as z from "zod";
 import {
+  CATALOG_MAX_PAGE,
+  CATALOG_SEARCH_MAX_LENGTH,
+  CATALOG_SEARCH_MIN_LENGTH,
+} from "@/features/catalog/lib/catalog-list-query";
+import {
   mcpLocaleInputSchema,
   mcpModeInputSchema,
 } from "@/lib/mcp/tools/_shared/helpers";
@@ -20,11 +25,16 @@ export function registerCourseSearchTools(server: McpServer) {
       description:
         "Search public courses by Chinese/English name, course code, education level, category, or class type. Use this before catalog_section_search when starting from a course name.",
       inputSchema: {
-        search: z.string().trim().optional(),
+        search: z
+          .string()
+          .trim()
+          .min(CATALOG_SEARCH_MIN_LENGTH)
+          .max(CATALOG_SEARCH_MAX_LENGTH)
+          .optional(),
         educationLevelId: z.number().int().positive().optional(),
         categoryId: z.number().int().positive().optional(),
         classTypeId: z.number().int().positive().optional(),
-        page: z.number().int().min(1).default(1),
+        page: z.number().int().min(1).max(CATALOG_MAX_PAGE).default(1),
         limit: z.number().int().min(1).max(100).default(20),
         locale: mcpLocaleInputSchema,
         mode: mcpModeInputSchema,
@@ -77,8 +87,13 @@ export function registerCourseSearchTools(server: McpServer) {
         teacherCode: z.string().trim().min(1).optional(),
         ids: z.array(z.number().int().positive()).optional(),
         jwIds: z.array(z.number().int().positive()).optional(),
-        search: z.string().trim().optional(),
-        page: z.number().int().min(1).default(1),
+        search: z
+          .string()
+          .trim()
+          .min(CATALOG_SEARCH_MIN_LENGTH)
+          .max(CATALOG_SEARCH_MAX_LENGTH)
+          .optional(),
+        page: z.number().int().min(1).max(CATALOG_MAX_PAGE).default(1),
         limit: z.number().int().min(1).max(100).default(20),
         locale: mcpLocaleInputSchema,
         mode: mcpModeInputSchema,

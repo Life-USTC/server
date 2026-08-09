@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  catalogApiListCacheKey,
   catalogListCacheNamespace,
   publicCatalogColoCacheKey,
   publicCatalogKvCacheKey,
@@ -24,6 +25,20 @@ describe("catalog runtime cache keys", () => {
   it("namespaces list caches by kind, locale, and scope", () => {
     expect(catalogListCacheNamespace("courses", "en-us", "api")).toBe(
       "api:courses-list:en-us",
+    );
+  });
+
+  it("builds API list keys only from canonical filters and pagination", () => {
+    expect(
+      catalogApiListCacheKey({
+        filters: { categoryId: "7", search: "math" },
+        pagination: { page: 2, pageSize: 20 },
+      }),
+    ).toBe(
+      JSON.stringify({
+        filters: { categoryId: "7", search: "math" },
+        pagination: { page: 2, pageSize: 20 },
+      }),
     );
   });
 });

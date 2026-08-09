@@ -5,6 +5,7 @@ const {
   getCalendarSubscriptionUrlMock,
   getDashboardNavStatsMock,
   getDashboardOverviewDataMock,
+  getDashboardSemestersMock,
   getHomeworksTabDataMock,
   getLinksTabDataMock,
   getSubscriptionsTabDataMock,
@@ -14,6 +15,7 @@ const {
   getCalendarSubscriptionUrlMock: vi.fn(),
   getDashboardNavStatsMock: vi.fn(),
   getDashboardOverviewDataMock: vi.fn(),
+  getDashboardSemestersMock: vi.fn(),
   getHomeworksTabDataMock: vi.fn(),
   getLinksTabDataMock: vi.fn(),
   getSubscriptionsTabDataMock: vi.fn(),
@@ -23,6 +25,7 @@ const {
 vi.mock("@/features/dashboard/server/dashboard-overview-data", () => ({
   getDashboardNavStats: getDashboardNavStatsMock,
   getDashboardOverviewData: getDashboardOverviewDataMock,
+  getDashboardSemesters: getDashboardSemestersMock,
 }));
 
 vi.mock("@/features/dashboard/server/dashboard-tab-data", () => ({
@@ -38,6 +41,15 @@ vi.mock("@/features/dashboard-links/server/dashboard-link-data", () => ({
 }));
 
 vi.mock("@/lib/log/app-logger", () => ({ logAppEvent: vi.fn() }));
+const { withUserDbContextMock } = vi.hoisted(() => ({
+  withUserDbContextMock: vi.fn(
+    async (_userId: string, action: () => Promise<unknown>) => action(),
+  ),
+}));
+
+vi.mock("@/lib/db/prisma", () => ({
+  withUserDbContext: withUserDbContextMock,
+}));
 
 import { loadSignedDashboardTabData } from "@/features/dashboard/server/dashboard-page-tab-data";
 
@@ -68,6 +80,14 @@ describe("dashboard todo count reuse", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     getDashboardOverviewDataMock.mockResolvedValue({});
+    getDashboardSemestersMock.mockResolvedValue([
+      {
+        id: 1,
+        nameCn: "2026春",
+        startDate: new Date("2026-02-01T00:00:00.000Z"),
+        endDate: new Date("2026-07-01T00:00:00.000Z"),
+      },
+    ]);
     getLinksTabDataMock.mockResolvedValue({});
   });
 
@@ -100,9 +120,8 @@ describe("dashboard todo count reuse", () => {
       expect(getTodosTabDataMock).toHaveBeenCalledOnce();
       expect(getDashboardNavStatsMock).toHaveBeenCalledOnce();
     });
-    expect(getDashboardOverviewDataMock).toHaveBeenCalledTimes(
-      tab === "overview" ? 1 : 0,
-    );
+    expect(getDashboardOverviewDataMock).not.toHaveBeenCalled();
+    expect(withUserDbContextMock).toHaveBeenCalledOnce();
 
     resolveTodos([
       { completed: false },
@@ -114,6 +133,9 @@ describe("dashboard todo count reuse", () => {
       navStats: { pendingTodosCount: 2 },
       todos: [{ completed: false }, { completed: true }, { completed: false }],
     });
+    expect(getDashboardOverviewDataMock).toHaveBeenCalledTimes(
+      tab === "overview" ? 1 : 0,
+    );
   });
 
   it("leaves non-todo tabs on the nav count fallback", async () => {
@@ -127,6 +149,29 @@ describe("dashboard todo count reuse", () => {
       context.subscribedSections,
       undefined,
       undefined,
+      expect.any(Array),
+    );
+  });
+
+  it("shares one RLS transaction and semester snapshot across todo and nav reads", async () => {
+    getTodosTabDataMock.mockResolvedValue([{ completed: false }]);
+    getDashboardNavStatsMock.mockResolvedValue({ pendingTodosCount: 1 });
+
+    await loadTab("overview");
+
+    expect(withUserDbContextMock).toHaveBeenCalledOnce();
+    expect(getDashboardSemestersMock).toHaveBeenCalledOnce();
+    const semesters = await getDashboardSemestersMock.mock.results[0]?.value;
+    expect(getDashboardNavStatsMock).toHaveBeenCalledWith(
+      context.user,
+      context.subscribedSections,
+      undefined,
+      expect.any(Promise),
+      semesters,
+    );
+    expect(getDashboardOverviewDataMock).toHaveBeenCalledWith(
+      "user-1",
+      expect.objectContaining({ semesters }),
     );
   });
 });

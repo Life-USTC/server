@@ -1,3 +1,4 @@
+import { CATALOG_SEARCH_MIN_LENGTH } from "@/features/catalog/lib/catalog-list-query";
 import {
   searchCoursesForGlobal,
   searchSectionsForGlobal,
@@ -20,7 +21,6 @@ import { ilike } from "@/lib/query-filter-helpers";
 import { formatSemesterName } from "@/lib/text/format-semester-name";
 
 const DEFAULT_LIMIT = 5;
-const MIN_QUERY_LENGTH = 2;
 /** Catalog search is shared across users; short L1 TTL keeps results fresh enough. */
 const SEARCH_CATALOG_CACHE_TTL_MS = 300_000;
 
@@ -253,7 +253,7 @@ export async function searchGlobally(input: {
 }): Promise<GlobalSearchResponse> {
   const query = input.query.trim();
   const limit = input.limit ?? DEFAULT_LIMIT;
-  if (query.length < MIN_QUERY_LENGTH) {
+  if (query.length < CATALOG_SEARCH_MIN_LENGTH) {
     return { query, groups: [] };
   }
 
@@ -291,5 +291,5 @@ export async function searchGlobally(input: {
 }
 
 export function hasGlobalSearchQuery(query: string) {
-  return query.trim().length >= MIN_QUERY_LENGTH;
+  return query.trim().length >= CATALOG_SEARCH_MIN_LENGTH;
 }
