@@ -31,7 +31,7 @@
     ]
   },
   "triggers": {
-    "crons": ["7 */2 * * *"]
+    "crons": ["7 */2 * * *", "23 */6 * * *"]
   },
   "observability": {
     "enabled": true,
@@ -75,6 +75,11 @@
     {
       "binding": "HYPERDRIVE_AUTH",
       "id": "b7f9049677d44b47881f5ceccb45d890",
+      "localConnectionString": "postgresql://postgres:postgres@127.0.0.1:5432/life_ustc_dev"
+    },
+    {
+      "binding": "HYPERDRIVE_MAINTENANCE",
+      "id": "ad3117a4ce234e2387cf44522b65a7d9",
       "localConnectionString": "postgresql://postgres:postgres@127.0.0.1:5432/life_ustc_dev"
     }
   ],
