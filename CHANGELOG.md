@@ -1,3 +1,10 @@
+## [1.88.1](https://github.com/Life-USTC/server/compare/v1.88.0...v1.88.1) (2026-08-09)
+
+
+### Bug Fixes
+
+* repair runtime cleanup and sequence drift ([#770](https://github.com/Life-USTC/server/issues/770)) ([6546001](https://github.com/Life-USTC/server/commit/6546001bedbc3a75d90e1980bb546e31b18ea1ec))
+
 # [1.88.0](https://github.com/Life-USTC/server/compare/v1.87.0...v1.88.0) (2026-08-08)
 
 
