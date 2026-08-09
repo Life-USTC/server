@@ -172,6 +172,9 @@ model Course {
   @@index([code])
   @@index([nameCn])
   @@index([nameEn])
+  @@index([code(ops: raw("gin_trgm_ops"))], type: Gin, map: "Course_code_trgm_idx")
+  @@index([nameCn(ops: raw("gin_trgm_ops"))], type: Gin, map: "Course_nameCn_trgm_idx")
+  @@index([nameEn(ops: raw("gin_trgm_ops"))], type: Gin, map: "Course_nameEn_trgm_idx")
   @@index([categoryId])
   @@index([classTypeId])
   @@index([classifyId])
@@ -440,6 +443,7 @@ model Section {
 
   @@index([jwId])
   @@index([code])
+  @@index([code(ops: raw("gin_trgm_ops"))], type: Gin, map: "Section_code_trgm_idx")
   @@index([bizTypeId])
   @@index([period])
   @@index([graduateAndPostgraduate])
@@ -561,6 +565,9 @@ model Teacher {
   @@index([code])
   @@index([nameCn])
   @@index([nameEn])
+  @@index([code(ops: raw("gin_trgm_ops"))], type: Gin, map: "Teacher_code_trgm_idx")
+  @@index([nameCn(ops: raw("gin_trgm_ops"))], type: Gin, map: "Teacher_nameCn_trgm_idx")
+  @@index([nameEn(ops: raw("gin_trgm_ops"))], type: Gin, map: "Teacher_nameEn_trgm_idx")
   @@index([teacherTitleId])
   @@index([departmentId])
 }

@@ -4,6 +4,18 @@ import { shanghaiDayjs } from "@/lib/time/shanghai-dayjs";
 import { resolveOverviewSemesterContext } from "./dashboard-overview-semesters";
 import type { OverviewDataOptions } from "./dashboard-overview-types";
 
+export function getDashboardSemesters() {
+  return basePrisma.semester.findMany({
+    select: {
+      id: true,
+      nameCn: true,
+      startDate: true,
+      endDate: true,
+    },
+    orderBy: { startDate: "asc" },
+  });
+}
+
 export async function resolveDashboardOverviewContext(
   userId: string,
   options: OverviewDataOptions,
@@ -16,15 +28,9 @@ export async function resolveDashboardOverviewContext(
   const referenceDate = referenceNow.toDate();
 
   const [semesters, user] = await Promise.all([
-    localizedPrisma.semester.findMany({
-      select: {
-        id: true,
-        nameCn: true,
-        startDate: true,
-        endDate: true,
-      },
-      orderBy: { startDate: "asc" },
-    }),
+    options.semesters
+      ? Promise.resolve(Array.from(options.semesters))
+      : getDashboardSemesters(),
     options.user
       ? Promise.resolve(options.user)
       : basePrisma.user.findUnique({

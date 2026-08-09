@@ -3,7 +3,15 @@ import type { Prisma } from "@/generated/prisma/client";
 
 const { baseClient, extendedClient, todoFindManyMock } = vi.hoisted(() => {
   const todoFindMany = vi.fn().mockResolvedValue([]);
+  const tx = {
+    $queryRaw: vi.fn().mockResolvedValue([{ set_config: "" }]),
+    kind: "localized-transaction",
+    todo: { findMany: todoFindMany },
+  };
   const extended = {
+    $transaction: vi.fn(async (action: (current: typeof tx) => unknown) =>
+      action(tx),
+    ),
     kind: "localized",
     todo: { findMany: todoFindMany },
   };
@@ -46,6 +54,23 @@ describe("localized Prisma clients in RLS context", () => {
         "Localized Prisma clients cannot be used inside an RLS context",
       );
     });
+  });
+
+  it("reuses the transaction from an explicitly localized RLS context", async () => {
+    const { getPrisma, withLocalizedUserDbContext, withUserDbContext } =
+      await import("@/lib/db/prisma");
+
+    await withLocalizedUserDbContext("en-us", "user-1", async (tx) => {
+      expect(getPrisma("en-us")).toBe(tx);
+      await withUserDbContext("user-1", async (nestedTx) => {
+        expect(nestedTx).toBe(tx);
+      });
+      expect(() => getPrisma("zh-cn")).toThrow(
+        "matching localized RLS context",
+      );
+    });
+
+    expect(extendedClient.$transaction).toHaveBeenCalledOnce();
   });
 
   it("fails closed for a prewarmed Cloudflare request cache", async () => {

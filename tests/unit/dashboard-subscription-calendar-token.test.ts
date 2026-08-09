@@ -28,11 +28,15 @@ vi.mock("@/features/subscriptions/server/subscription-tab-sections", () => ({
 
 vi.mock("@/lib/db/prisma", () => ({
   getPrisma: () => ({ semester: { findMany: semesterFindManyMock } }),
+  withUserDbContext: vi.fn(
+    async (_userId: string, action: () => Promise<unknown>) => action(),
+  ),
 }));
 
 vi.mock("@/features/dashboard/server/dashboard-overview-data", () => ({
   getDashboardNavStats: getDashboardNavStatsMock,
   getDashboardOverviewData: vi.fn(),
+  getDashboardSemesters: semesterFindManyMock,
 }));
 
 vi.mock("@/features/dashboard/server/dashboard-tab-data", () => ({

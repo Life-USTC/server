@@ -7,6 +7,7 @@ import {
   dashboardNavUserSummary,
   emptyDashboardNavStats,
 } from "./dashboard-nav-stats-helpers";
+import type { DashboardSemester } from "./dashboard-overview-types";
 import type {
   DashboardSubscribedSection,
   DashboardUserSummary,
@@ -32,6 +33,7 @@ export async function getDashboardNavStats(
   subscribedSections: readonly DashboardSubscribedSection[],
   referenceDate?: Date,
   providedPendingTodosCount?: Promise<number>,
+  providedSemesters?: readonly DashboardSemester[],
 ): Promise<DashboardNavStats> {
   const referenceNow = referenceDate
     ? shanghaiDayjs(referenceDate)
@@ -93,6 +95,7 @@ export async function getDashboardNavStats(
       user.id,
       activeSubscribedSections,
       referenceNow,
+      providedSemesters,
     ),
   ]);
 
