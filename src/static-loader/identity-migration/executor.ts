@@ -58,7 +58,7 @@ export async function applyIdentityMigrationPlan(
   const rebuiltEdges = await rebuildEdges(tx, plan.edgeMappings, targetIds);
 
   await migrateComments(tx, plan.entityMappings, targetIds);
-  await migrateDescriptions(tx, plan.entityMappings, targetIds);
+  await migrateDescriptions(tx, plan.entityMappings, targetIds, database);
   await tx.$executeRawUnsafe(
     `DELETE FROM "CourseAlias" WHERE "courseId" = ANY($1::int[])`,
     database.courses.map((row) => row.id),
@@ -527,9 +527,21 @@ async function migrateDescriptions(
   tx: IdentityMigrationSql,
   mappings: readonly EntityMapping[],
   targets: TargetIds,
+  database: DatabaseState,
 ) {
   for (const entity of ["course", "teacher"] as const) {
     const column = entity === "course" ? "courseId" : "teacherId";
+    const sourceRows =
+      entity === "course" ? database.courses : database.teachers;
+    const descriptionsWithUserContent = new Set<string>();
+    for (const row of sourceRows) {
+      if (
+        row.description != null &&
+        row.description.contentFingerprint !== ""
+      ) {
+        descriptionsWithUserContent.add(row.description.id);
+      }
+    }
     const descriptionsByTarget = new Map<number, string[]>();
     for (const mapping of mappings.filter((item) => item.entity === entity)) {
       for (const targetJwId of mapping.targetJwIds) {
@@ -537,7 +549,9 @@ async function migrateDescriptions(
           `SELECT "id" FROM "Description" WHERE "${column}" = $1`,
           mapping.legacyId,
         );
-        if (rows[0] == null) continue;
+        if (rows[0] == null || !descriptionsWithUserContent.has(rows[0].id)) {
+          continue;
+        }
         const ids = descriptionsByTarget.get(targetJwId) ?? [];
         ids.push(rows[0].id);
         descriptionsByTarget.set(targetJwId, ids);
@@ -548,10 +562,6 @@ async function migrateDescriptions(
       const canonical = uniqueIds[0];
       const targetId = targets.get(entity)?.get(targetJwId);
       if (canonical == null || targetId == null) continue;
-      await tx.$executeRawUnsafe(
-        `UPDATE "Description" SET "${column}" = NULL WHERE "id" = ANY($1::text[])`,
-        uniqueIds,
-      );
       for (const duplicate of uniqueIds.slice(1)) {
         await tx.$executeRawUnsafe(
           `UPDATE "DescriptionEdit" SET "descriptionId" = $2 WHERE "descriptionId" = $1`,

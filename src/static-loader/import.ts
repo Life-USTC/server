@@ -498,6 +498,15 @@ export async function runImport(
 async function assertStaticIdentityMigrationComplete(
   tx: Prisma.TransactionClient,
 ): Promise<void> {
+  const migrationState = await tx.staticIdentityMigrationState.findUnique({
+    where: { id: "raw-jwid-v1" },
+    select: { id: true },
+  });
+  if (migrationState == null) {
+    throw new Error(
+      "Static identity data migration raw-jwid-v1 has not completed",
+    );
+  }
   const legacyIndexes = await tx.$queryRaw<
     Array<{ indexname: string }>
   >`SELECT indexname

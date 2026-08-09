@@ -304,13 +304,10 @@ export function readIdentityMigrationSnapshot(
           assignmentId == null
             ? undefined
             : firstChild(contactRows, assignmentId),
-          assignmentId == null
-            ? undefined
-            : firstChild(titleRows, assignmentId),
         );
-        if (teacher?.teacherId == null) continue;
+        if (teacher == null) continue;
         teachers.push({
-          jwId: teacher.teacherId,
+          jwId: teacher.jwId,
           personId: teacher.personId,
           code: teacher.code,
           nameCn: teacher.nameCn,
@@ -318,19 +315,22 @@ export function readIdentityMigrationSnapshot(
         if (teacher.departmentCode != null) {
           departmentCodeReferences.push({
             ownerType: "teacher",
-            ownerJwId: teacher.teacherId,
+            ownerJwId: teacher.jwId,
             departmentCode: teacher.departmentCode,
           });
         }
         if (importedSectionJwIds.has(sectionJwId)) {
           sectionTeachers.push({
             sectionJwId,
-            teacherJwId: teacher.teacherId,
+            teacherJwId: teacher.jwId,
           });
           teacherAssignments.push({
             sectionJwId,
-            teacherJwId: teacher.teacherId,
-            titleJwId: teacher.teacherTitleId ?? null,
+            teacherJwId: teacher.jwId,
+            titleJwId:
+              assignmentId == null
+                ? null
+                : (asInt(firstChild(titleRows, assignmentId)?.id) ?? null),
           });
         }
       }

@@ -1,4 +1,6 @@
-import { afterAll, describe, expect, it } from "vitest";
+/// <reference path="../../src/static-loader/bun-sqlite.d.ts" />
+
+import { afterAll, describe, expect, it, vi } from "vitest";
 import { applyIdentityMigrationPlan } from "@/static-loader/identity-migration/executor";
 import { buildIdentityMigrationPlan } from "@/static-loader/identity-migration/planner";
 import {
@@ -11,6 +13,8 @@ import type {
 } from "@/static-loader/identity-migration/types";
 import { acquireStaticImportLock } from "@/static-loader/import-lock";
 import { createTestPrisma, disconnectTestPrisma } from "../shared/prisma";
+
+vi.mock("bun:sqlite", () => ({ Database: class {} }));
 
 const prisma = createTestPrisma();
 const SHA = "a".repeat(64);
@@ -108,6 +112,14 @@ describe("identity migration executor", () => {
           },
           select: { id: true, jwId: true, code: true, nameCn: true },
         });
+        const emptyLegacy = await tx.course.create({
+          data: {
+            jwId: marker + 3,
+            code: `MIGRATION-${rawJwId}`,
+            nameCn: `迁移课程 ${rawJwId}`,
+          },
+          select: { id: true, jwId: true, code: true, nameCn: true },
+        });
         const legacyCampus = await tx.campus.create({
           data: { nameCn: `迁移校区 ${marker}`, code: `C-${marker}` },
         });
@@ -139,6 +151,9 @@ describe("identity migration executor", () => {
         const secondDescription = await tx.description.create({
           data: { courseId: secondLegacy.id, content: "相同内容" },
         });
+        const emptyDescription = await tx.description.create({
+          data: { courseId: emptyLegacy.id, content: "" },
+        });
         await tx.descriptionEdit.createMany({
           data: [
             {
@@ -155,7 +170,7 @@ describe("identity migration executor", () => {
         snapshotState.courses = [
           {
             ...snapshotState.courses[0],
-            legacySyntheticJwIds: [marker, marker + 2],
+            legacySyntheticJwIds: [marker, marker + 2, marker + 3],
           },
         ];
         snapshotState.campuses = [
@@ -193,6 +208,14 @@ describe("identity migration executor", () => {
             description: {
               id: secondDescription.id,
               contentFingerprint: "same-content",
+            },
+          },
+          {
+            ...emptyLegacy,
+            directCommentCount: 0,
+            description: {
+              id: emptyDescription.id,
+              contentFingerprint: "",
             },
           },
         ];
@@ -234,6 +257,9 @@ describe("identity migration executor", () => {
         ).toBeNull();
         expect(
           await tx.course.findUnique({ where: { jwId: marker + 2 } }),
+        ).toBeNull();
+        expect(
+          await tx.course.findUnique({ where: { jwId: marker + 3 } }),
         ).toBeNull();
         const migratedDescriptions = await tx.description.findMany({
           where: { course: { jwId: rawJwId } },
