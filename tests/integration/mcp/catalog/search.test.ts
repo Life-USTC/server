@@ -201,7 +201,7 @@ describe("学期查询工具", () => {
     expect(semester?.nameCn).toBe(fixtures.DEV_SEED.semesterNameCn);
   });
 
-  it("catalog_semester_list 越界页码返回空数据与正确分页元数据", async () => {
+  it("catalog_semester_list 合法高页码返回空数据与正确分页元数据", async () => {
     const result = await context.client.call<{
       data?: unknown[];
       pagination?: {
@@ -211,13 +211,13 @@ describe("学期查询工具", () => {
         totalPages?: number;
       };
     }>("catalog_semester_list", {
-      page: 9999,
+      page: 100,
       limit: 10,
       mode: "default",
     });
 
     expect(result.data).toHaveLength(0);
-    expect(result.pagination?.page).toBe(9999);
+    expect(result.pagination?.page).toBe(100);
     expect(result.pagination?.pageSize).toBe(10);
     expect((result.pagination?.total ?? 0) > 0).toBe(true);
     expect(result.pagination?.totalPages).toBeGreaterThanOrEqual(1);
@@ -226,6 +226,10 @@ describe("学期查询工具", () => {
   it("catalog_semester_list 拒绝越界或无效分页参数", async () => {
     await expect(
       context.client.call("catalog_semester_list", { page: 0, limit: 10 }),
+    ).rejects.toThrow();
+
+    await expect(
+      context.client.call("catalog_semester_list", { page: 101, limit: 10 }),
     ).rejects.toThrow();
 
     await expect(
