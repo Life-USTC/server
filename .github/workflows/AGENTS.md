@@ -3,6 +3,8 @@
 | Workflow | Trigger | Jobs |
 |----------|---------|------|
 | CI (`ci.yml`) | push main, PRs | Check, integration, RLS tests, E2E artifacts/shards, optional visual regression, report publish |
+| OpenAPI compatibility | PRs | Block breaking changes unless `api-breaking-approved` is present |
+| OpenAPI consumer sync | OpenAPI changes on main, manual | Notify Bot and CLI with the exact server revision |
 | DB-backed Bun job | workflow_call | Reusable Postgres-backed Bun job |
 | DB migrate deploy | `prisma/**` on main, or manual | Production migrate deploy |
 | Release | successful CI on main | Semantic release |
