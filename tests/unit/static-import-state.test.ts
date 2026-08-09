@@ -57,7 +57,7 @@ describe("global static import state", () => {
         tx,
         input({ bootstrapEnabled: true, dryRun: true }),
       ),
-    ).resolves.toBeUndefined();
+    ).resolves.toBe(false);
   });
 
   it("requires the exact hash and disables retirement for a committed bootstrap", async () => {
@@ -97,7 +97,7 @@ describe("global static import state", () => {
           expectedSnapshotSha256: SNAPSHOT_SHA,
         }),
       ),
-    ).resolves.toBeUndefined();
+    ).resolves.toBe(false);
   });
 
   it("rejects older snapshots and equal timestamps with different content", async () => {
@@ -128,7 +128,7 @@ describe("global static import state", () => {
     });
     await expect(
       assertStaticImportStateAllowsSnapshot(tx, input()),
-    ).resolves.toBeUndefined();
+    ).resolves.toBe(true);
 
     tx.staticImportState.findUnique.mockResolvedValue({
       snapshotGeneratedAt: new Date("2026-07-17T03:00:00.000Z"),
@@ -136,7 +136,7 @@ describe("global static import state", () => {
     });
     await expect(
       assertStaticImportStateAllowsSnapshot(tx, input()),
-    ).resolves.toBeUndefined();
+    ).resolves.toBe(false);
   });
 
   it("records the watermark through the singleton upsert", async () => {

@@ -105,7 +105,7 @@ async function main() {
     });
     console.log("Import report:", report);
 
-    if (!dryRun) {
+    if (report.outcome === "committed") {
       const purgeResult = await purgeCloudflareCacheByTags([
         CATALOG_EDGE_CACHE_TAG,
       ]);

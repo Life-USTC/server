@@ -113,10 +113,35 @@ describe("static direct upstream identity", () => {
   it("rejects conflicting Campus payloads for one upstream id", () => {
     expect(() =>
       selectCampuses([
-        { jwId: 9, nameCn: "东校区" },
-        { jwId: 9, nameCn: "西校区" },
+        {
+          semesterCode: 421,
+          source: "catalog",
+          campus: { jwId: 9, nameCn: "东校区" },
+        },
+        {
+          semesterCode: 421,
+          source: "catalog",
+          campus: { jwId: 9, nameCn: "西校区" },
+        },
       ]),
-    ).toThrow("conflicting metadata");
+    ).toThrow("conflicting catalog metadata");
+  });
+
+  it("merges Campus metadata while keeping the raw campus id", () => {
+    expect(
+      selectCampuses([
+        {
+          semesterCode: 401,
+          source: "building",
+          campus: { jwId: 102, nameCn: "太湖路", code: "11" },
+        },
+        {
+          semesterCode: 421,
+          source: "catalog",
+          campus: { jwId: 102, nameCn: "太湖路校区" },
+        },
+      ]),
+    ).toEqual([{ jwId: 102, nameCn: "太湖路校区", code: "11" }]);
   });
 
   it("creates only code-only Department placeholders with null identity", () => {

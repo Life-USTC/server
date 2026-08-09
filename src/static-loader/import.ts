@@ -1,6 +1,6 @@
 import type { Prisma, PrismaClient } from "../generated/prisma-node/client";
 import { selectLatestAdminClasses } from "./admin-class-selection";
-import { selectCampuses } from "./campus-selection";
+import { type CampusOccurrence, selectCampuses } from "./campus-selection";
 import { type CourseOccurrence, selectLatestCourses } from "./course-selection";
 import { collectCodeOnlyDepartmentPlaceholders } from "./department-placeholder";
 import { selectLatestExamBatches } from "./exam-batch-selection";
@@ -24,6 +24,7 @@ import {
   mapAdminClass,
   mapBuilding,
   mapCampus,
+  mapCampusFromSection,
   mapCourse,
   mapExam,
   mapExamBatch,
@@ -100,7 +101,7 @@ export type ImportRecordCounts = {
 
 export type ImportReport = {
   mode: "apply" | "dry-run";
-  outcome: "committed" | "rolled-back";
+  outcome: "committed" | "rolled-back" | "unchanged";
   snapshot: {
     sha256: string;
     schemaVersion: string;
@@ -228,6 +229,7 @@ export async function runImport(
     config.retireMissingSections,
   );
   const observedAt = snapshotGeneratedAt;
+  let unchanged = false;
 
   async function logStep<T>(
     name: string,
@@ -250,7 +252,7 @@ export async function runImport(
     await logStep("validateStaticIdentityMigration", 1, () =>
       assertStaticIdentityMigrationComplete(tx),
     );
-    await logStep("validateStaticImportState", 1, () =>
+    const alreadyImported = await logStep("validateStaticImportState", 1, () =>
       assertStaticImportStateAllowsSnapshot(tx, {
         bootstrapEnabled: config.bootstrapImportState,
         dryRun: config.dryRun,
@@ -260,6 +262,10 @@ export async function runImport(
         snapshotSha256: config.snapshotSha256,
       }),
     );
+    if (alreadyImported && !config.dryRun && !config.retireMissingSections) {
+      unchanged = true;
+      return logStep("countDatabaseRecords", 12, () => countStats(tx));
+    }
     const semesterMap = await logStep("upsertSemesters", semesters.length, () =>
       upsertSemesters(tx, semesters),
     );
@@ -471,7 +477,11 @@ export async function runImport(
 
   return {
     mode: config.dryRun ? "dry-run" : "apply",
-    outcome: config.dryRun ? "rolled-back" : "committed",
+    outcome: config.dryRun
+      ? "rolled-back"
+      : unchanged
+        ? "unchanged"
+        : "committed",
     snapshot: {
       sha256: config.snapshotSha256,
       schemaVersion,
@@ -740,7 +750,21 @@ function loadScheduleInfrastructure(snapshot: Snapshot) {
   const adminClassRows = snapshot.queryAll(
     "jw_ws_schedule_table_datum_result_lessonList_adminclasses",
   );
-  const campusOccurrences: CampusBuild[] = [];
+  const catalogLessonRows = snapshot.queryAll(
+    "catalog_teach_lesson_list_for_teach",
+  );
+  const catalogCampusRows = snapshot.queryGrouped(
+    "catalog_teach_lesson_list_for_teach_campus",
+  );
+  const scheduleLessonRows = snapshot.queryAll(
+    "jw_ws_schedule_table_datum_result_lessonList",
+  );
+  const scheduleLessonByJwId = new Map<number, SnapshotRow>();
+  for (const row of scheduleLessonRows) {
+    const jwId = asInt(row.id);
+    if (jwId != null) scheduleLessonByJwId.set(jwId, row);
+  }
+  const campusOccurrences: CampusOccurrence[] = [];
   const buildings = new Map<number, BuildingBuild>();
   const rooms = new Map<number, RoomBuild>();
   const roomTypes = new Map<number, RoomTypeBuild>();
@@ -763,7 +787,11 @@ function loadScheduleInfrastructure(snapshot: Snapshot) {
       if (campus) {
         const c = mapCampus(campus);
         if (c != null) {
-          campusOccurrences.push(c);
+          campusOccurrences.push({
+            campus: c,
+            semesterCode: asInt(campus.semester_id) ?? 0,
+            source: "building",
+          });
         }
       }
       const b = mapBuilding(building, campus);
@@ -774,6 +802,22 @@ function loadScheduleInfrastructure(snapshot: Snapshot) {
       const rt = mapRoomType(roomType);
       if (rt != null && !roomTypes.has(rt.jwId)) roomTypes.set(rt.jwId, rt);
     }
+  }
+
+  for (const lesson of catalogLessonRows) {
+    const lessonJwId = asInt(lesson.id);
+    const parentId = asInt(lesson.store_id);
+    if (lessonJwId == null || parentId == null) continue;
+    const campus = mapCampusFromSection(
+      scheduleLessonByJwId.get(lessonJwId),
+      firstChild(catalogCampusRows, parentId),
+    );
+    if (campus == null) continue;
+    campusOccurrences.push({
+      campus,
+      semesterCode: asInt(lesson.semester_id) ?? 0,
+      source: "catalog",
+    });
   }
 
   for (const row of adminClassRows) {

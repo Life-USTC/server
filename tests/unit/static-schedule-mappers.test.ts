@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   mapCampus,
+  mapCampusFromSection,
   mapSchedule,
   mapSection,
   mapTeacherAssignment,
@@ -125,6 +126,17 @@ describe("static section campus mapping", () => {
       code: undefined,
     });
     expect(mapCampus({ nameZh: "无 ID 校区" })).toBeUndefined();
+    expect(
+      mapCampusFromSection(
+        { campusId: 23 },
+        { cn: "融合学院", en: "Fusion College" },
+      ),
+    ).toEqual({
+      jwId: 23,
+      nameCn: "融合学院",
+      nameEn: "Fusion College",
+    });
+    expect(mapCampusFromSection(undefined, { cn: "只有名称" })).toBeUndefined();
   });
 
   it("uses scheduleLesson.campusId only as the Section foreign key", () => {

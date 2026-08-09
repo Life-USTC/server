@@ -9,18 +9,7 @@ export function selectLatestAdminClasses(
   occurrences: readonly AdminClassOccurrence[],
 ): AdminClassBuild[] {
   const byJwId = new Map<number, AdminClassOccurrence>();
-  const jwIdByCode = new Map<string, number>();
   for (const occurrence of occurrences) {
-    const code = occurrence.adminClass.code;
-    if (code) {
-      const codeOwner = jwIdByCode.get(code);
-      if (codeOwner != null && codeOwner !== occurrence.adminClass.jwId) {
-        throw new Error(
-          `AdminClass code ${code} maps to multiple jwIds: ${codeOwner}, ${occurrence.adminClass.jwId}`,
-        );
-      }
-      jwIdByCode.set(code, occurrence.adminClass.jwId);
-    }
     const existing = byJwId.get(occurrence.adminClass.jwId);
     if (
       existing != null &&

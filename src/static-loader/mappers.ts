@@ -604,6 +604,20 @@ export function mapCampus(row: SnapshotRow): CampusBuild | undefined {
   };
 }
 
+export function mapCampusFromSection(
+  scheduleLesson: SnapshotRow | undefined,
+  catalogCampus: SnapshotRow | undefined,
+): CampusBuild | undefined {
+  const jwId = asInt(scheduleLesson?.campusId);
+  const nameCn = asString(catalogCampus?.cn);
+  if (jwId == null || !nameCn) return undefined;
+  return {
+    jwId,
+    nameCn,
+    nameEn: asString(catalogCampus?.en),
+  };
+}
+
 export function mapRoomType(row: SnapshotRow): RoomTypeBuild | undefined {
   const jwId = asInt(row.id);
   const nameCn = asString(row.nameZh);

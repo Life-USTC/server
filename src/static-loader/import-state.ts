@@ -28,7 +28,7 @@ function validateSnapshotSha256(snapshotSha256: string) {
 export async function assertStaticImportStateAllowsSnapshot(
   tx: StaticImportStateTransaction,
   input: StaticImportStateInput,
-) {
+): Promise<boolean> {
   validateSnapshotSha256(input.snapshotSha256);
   const current = await tx.staticImportState.findUnique({
     where: { id: GLOBAL_IMPORT_STATE_ID },
@@ -59,7 +59,7 @@ export async function assertStaticImportStateAllowsSnapshot(
         `Approved static snapshot SHA-256 ${input.expectedSnapshotSha256} does not match downloaded snapshot ${input.snapshotSha256}`,
       );
     }
-    return;
+    return false;
   }
 
   const incomingTime = input.observedAt.getTime();
@@ -77,6 +77,7 @@ export async function assertStaticImportStateAllowsSnapshot(
       `Refusing snapshot SHA-256 ${input.snapshotSha256} because generated_at ${input.observedAt.toISOString()} was already committed with SHA-256 ${current.snapshotSha256}`,
     );
   }
+  return input.snapshotSha256 === current.snapshotSha256;
 }
 
 export async function recordStaticImportState(
