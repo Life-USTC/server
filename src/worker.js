@@ -309,10 +309,8 @@ export default {
         }
 
         if (controller.cron === AUTH_RECORD_CLEANUP_CRON) {
-          const report = await cleanupExpiredAuthRecords(maintenancePrisma);
-          console.log(
-            `Expired auth record cleanup completed: ${JSON.stringify(report)}`,
-          );
+          await cleanupExpiredAuthRecords(maintenancePrisma);
+          console.log("Expired auth record cleanup completed");
           return;
         }
 
