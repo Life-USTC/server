@@ -232,11 +232,14 @@ TO life_ustc_auth_runtime;
 GRANT USAGE ON SCHEMA public TO life_ustc_function_owner;
 GRANT SELECT ON TABLE
   "Upload",
+  "UploadPending",
   "CommentAttachment",
   "Comment",
   "User",
   "CommentReaction",
   "HomeworkCompletion"
+TO life_ustc_function_owner;
+GRANT UPDATE, DELETE ON TABLE "UploadPending"
 TO life_ustc_function_owner;
 GRANT SELECT, DELETE ON TABLE
   "Account",
