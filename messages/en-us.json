@@ -2266,7 +2266,7 @@
             "Account information, such as name, username, avatar, and linked sign-in providers.",
             "Usage data, such as page visits, feature interactions, and error logs to improve service quality.",
             "Content you submit, such as comments, homework records, and uploaded files.",
-            "Analytics data collected via Google Analytics (Google Tag Manager), including anonymized page views, session duration, and general device/browser information. No personally identifiable information is sent to Google Analytics."
+            "Analytics data collected via the Google Analytics Google tag (gtag.js), including page views, session duration, client identifiers, and general device/browser information. We do not intentionally send names, email addresses, or similar personally identifiable information to Google Analytics."
           ]
         },
         {
@@ -2284,7 +2284,7 @@
             "We do not sell your personal information.",
             "Data is shared only when necessary to provide the service or required by law.",
             "If third-party services are used (for example, identity providers), required data is processed under their terms.",
-            "Google Analytics (provided by Google LLC) processes anonymized usage data on our behalf. You can opt out using the Google Analytics Opt-out Browser Add-on (https://tools.google.com/dlpage/gaoptout)."
+            "Google Analytics (provided by Google LLC) processes usage data on our behalf. You can opt out using the Google Analytics Opt-out Browser Add-on (https://tools.google.com/dlpage/gaoptout), browser tracking protection, or content blocking."
           ]
         },
         {
@@ -2308,7 +2308,7 @@
           "items": [
             "We may update this Privacy Policy from time to time.",
             "Material changes will be announced through in-app notice or other reasonable channels.",
-            "This version was last updated on 2026-04-10."
+            "This version was last updated on 2026-08-09."
           ]
         }
       ]
@@ -2323,7 +2323,7 @@
             "Life@USTC provides course, section, comments, and related learning information services.",
             "We may improve, change, suspend, or discontinue parts of the service over time.",
             "Some features may require sign-in.",
-            "We use Google Analytics to collect anonymized usage statistics. By using the service, you consent to this data collection as described in our Privacy Policy."
+            "We use Google Analytics to collect usage statistics. By using the service, you consent to this data collection as described in our Privacy Policy."
           ]
         },
         {
@@ -2363,7 +2363,7 @@
           "items": [
             "We may revise these Terms from time to time.",
             "Continued use of the service means you accept the updated Terms.",
-            "This version was last updated on 2026-04-10."
+            "This version was last updated on 2026-08-09."
           ]
         }
       ]
