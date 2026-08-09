@@ -1,7 +1,10 @@
 # prisma/
 
 - Source of truth: `schema.prisma` + `migrations/`
-- Seed SQL: `seed.sql` (see root `AGENTS.md` for fixture relationship)
+- Seed SQL: `seed.sql` (see root `AGENTS.md` for fixture relationship). It is
+  only for disposable local development and CI databases; never run it against
+  production. Invoke it only with `ALLOW_DATABASE_SEED=true` after verifying
+  that `DATABASE_URL` points to the intended disposable database.
 - Generated (do not edit): `src/generated/prisma/`, `src/generated/prisma-node/`
 - Static loader entry (repo root): `docker-entrypoint.load.sh`
 - App imports: `import { prisma, getPrisma } from "@/lib/db/prisma"`

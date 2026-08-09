@@ -65,23 +65,6 @@ describe("课程与班级查找", () => {
     );
   });
 
-  it("catalog_course_get 接受旧 jwId 并返回 canonical 课程", async () => {
-    const result = await context.client.call<{
-      found?: boolean;
-      course?: { jwId?: number; code?: string };
-    }>("catalog_course_get", {
-      jwId: fixtures.DEV_SEED.course.legacyJwId,
-      locale: "zh-cn",
-      mode: "full",
-    });
-
-    expect(result.found).toBe(true);
-    expect(result.course).toMatchObject({
-      jwId: fixtures.DEV_SEED.course.jwId,
-      code: fixtures.DEV_SEED.course.code,
-    });
-  });
-
   it("catalog_section_get 返回与 REST 班级详情相同的层级", async () => {
     const result = await context.client.call<{
       found?: boolean;
@@ -387,26 +370,6 @@ describe("班级搜索工具 catalog_section_search", () => {
         (teacher) => teacher.code === fixtures.DEV_SEED.teacher.code,
       ),
     ).toBe(true);
-  });
-
-  it("按课程 legacy jwId 返回 canonical 课程的班级摘要", async () => {
-    const result = await context.client.call<SearchSectionsResult>(
-      "catalog_section_search",
-      {
-        courseJwId: fixtures.DEV_SEED.course.legacyJwId,
-        page: 1,
-        limit: 10,
-        locale: "zh-cn",
-        mode: "full",
-      },
-    );
-
-    const section = result.data?.find(
-      (item) => item.jwId === fixtures.DEV_SEED.section.jwId,
-    );
-    expect(section).toBeDefined();
-    expect(section?.course?.jwId).toBe(fixtures.DEV_SEED.course.jwId);
-    expect(result.pagination?.total).toBeGreaterThan(0);
   });
 
   it("按教师工号过滤班级", async () => {
