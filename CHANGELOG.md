@@ -1,3 +1,21 @@
+# [1.89.0](https://github.com/Life-USTC/server/compare/v1.88.3...v1.89.0) (2026-08-09)
+
+
+### Bug Fixes
+
+* allow GA collection endpoint in CSP ([8e24f45](https://github.com/Life-USTC/server/commit/8e24f45474c2cd96ceabeb120ec9bbea2312c45b))
+* bound catalog queries and isolate runtime caches ([d34fd5d](https://github.com/Life-USTC/server/commit/d34fd5d65cee5bebef103d6c1fd37af1159d634f))
+
+
+### Features
+
+* add GA4 measurement tag ([e7caf76](https://github.com/Life-USTC/server/commit/e7caf76f8614ce5f0d7c925a00b53e38172041e7))
+
+
+### Performance Improvements
+
+* reuse workspace database context ([21653a2](https://github.com/Life-USTC/server/commit/21653a24233ce6e2766ddd3ae117d4a176730f89))
+
 ## [1.88.3](https://github.com/Life-USTC/server/compare/v1.88.2...v1.88.3) (2026-08-09)
 
 
