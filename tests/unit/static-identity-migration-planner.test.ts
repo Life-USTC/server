@@ -17,7 +17,7 @@ function snapshotState(): SnapshotState {
         jwId: 101,
         code: "COURSE-1",
         nameCn: "课程一",
-        legacySyntheticJwId: 1_500_000_101,
+        legacySyntheticJwIds: [1_500_000_101],
       },
     ],
     sectionCourses: [
@@ -42,6 +42,14 @@ function snapshotState(): SnapshotState {
       { examJwId: 602, examBatchJwId: 502 },
     ],
     departments: [{ jwId: 701, code: "CS", nameCn: "计算机学院" }],
+    departmentCodeReferences: [
+      { ownerType: "section", ownerJwId: 201, departmentCode: "CS" },
+      { ownerType: "teacher", ownerJwId: 801, departmentCode: "CS" },
+      { ownerType: "teacher", ownerJwId: 802, departmentCode: "CS" },
+    ],
+    campuses: [],
+    buildingCampuses: [],
+    sectionCampuses: [],
     teachers: [
       {
         jwId: 801,
@@ -87,8 +95,8 @@ function databaseState(): DatabaseState {
     ],
     courseAliases: [{ jwId: 99, courseId: 1 }],
     sections: [
-      { id: 11, jwId: 201, courseId: 1 },
-      { id: 12, jwId: 202, courseId: 1 },
+      { id: 11, jwId: 201, courseId: 1, campusId: null },
+      { id: 12, jwId: 202, courseId: 1, campusId: null },
     ],
     adminClasses: [{ id: 2, jwId: 301, code: "CLASS-A", nameCn: "同名班级" }],
     sectionAdminClasses: [
@@ -102,6 +110,8 @@ function databaseState(): DatabaseState {
       { id: 42, jwId: 602, examBatchId: 4 },
     ],
     departments: [{ id: 5, jwId: null, code: "CS", nameCn: "计算机学院" }],
+    campuses: [],
+    buildings: [],
     departmentReferences: [
       { ownerType: "section", ownerId: 11, departmentId: 5 },
     ],
@@ -131,6 +141,7 @@ function databaseState(): DatabaseState {
         directCommentCount: 0,
       },
     ],
+    sectionTeacherJoins: [],
     teacherAssignments: [
       {
         id: 71,
@@ -145,6 +156,7 @@ function databaseState(): DatabaseState {
         legacyTeacherTitleId: 3,
       },
     ],
+    scheduleTeachers: [],
   };
 }
 
@@ -158,6 +170,7 @@ describe("identity migration planner", () => {
       courses: 1,
       adminClasses: 1,
       teachers: 1,
+      retainedDepartmentPlaceholders: 0,
     });
     expect(
       plan.entityMappings.find(
@@ -189,6 +202,22 @@ describe("identity migration planner", () => {
       { entity: "teacherAssignmentTitle", ownerId: 71, targetJwId: 401 },
       { entity: "teacherAssignmentTitle", ownerId: 72, targetJwId: 401 },
     ]);
+    expect(
+      plan.edgeMappings.filter(
+        (edge) => edge.entity === "teacherAssignmentTeacher",
+      ),
+    ).toEqual([
+      { entity: "teacherAssignmentTeacher", ownerId: 71, targetJwId: 801 },
+      { entity: "teacherAssignmentTeacher", ownerId: 72, targetJwId: 802 },
+    ]);
+    expect(
+      plan.edgeMappings.find((edge) => edge.entity === "departmentEdge"),
+    ).toEqual({
+      entity: "departmentEdge",
+      ownerId: 11,
+      ownerType: "section",
+      targetJwId: 701,
+    });
   });
 
   it("returns stable output independent of DTO ordering", () => {
@@ -278,7 +307,78 @@ describe("identity migration planner", () => {
     ).toEqual([
       { code: "LEGACY_EDGE_MULTI_TARGET", entity: "departmentEdge" },
       { code: "LEGACY_EDGE_MULTI_TARGET", entity: "examBatchEdge" },
+      { code: "LEGACY_ENTITY_MULTI_TARGET", entity: "department" },
     ]);
+  });
+
+  it("retains source-proven code-only Department placeholders", () => {
+    const snapshot = snapshotState();
+    snapshot.departmentCodeReferences = [
+      ...snapshot.departmentCodeReferences,
+      { ownerType: "section", ownerJwId: 201, departmentCode: "PLACEHOLDER" },
+    ];
+    const database = databaseState();
+    database.departments = [
+      ...database.departments,
+      {
+        id: 8,
+        jwId: null,
+        code: "PLACEHOLDER",
+        nameCn: "占位院系",
+      },
+    ];
+    database.departmentReferences = [
+      { ownerType: "section", ownerId: 11, departmentId: 8 },
+    ];
+
+    const plan = buildIdentityMigrationPlan(snapshot, database);
+    expect(plan.blockers).toEqual([]);
+    expect(plan.entityMappings).toContainEqual({
+      entity: "department",
+      legacyId: 8,
+      targetJwIds: [],
+      provenance: ["placeholder"],
+    });
+    expect(plan.report.splitCounts.retainedDepartmentPlaceholders).toBe(1);
+    expect(
+      plan.edgeMappings.some((edge) => edge.entity === "departmentEdge"),
+    ).toBe(false);
+  });
+
+  it("splits same-name Campus rows only through source-backed edges", () => {
+    const snapshot = snapshotState();
+    snapshot.campuses = [
+      { jwId: 901, nameCn: "中校区", code: "EAST" },
+      { jwId: 902, nameCn: "中校区", code: "WEST" },
+    ];
+    snapshot.sectionCampuses = [{ sectionJwId: 201, campusJwId: 901 }];
+    snapshot.buildingCampuses = [{ buildingJwId: 1001, campusJwId: 902 }];
+    const database = databaseState();
+    database.campuses = [{ id: 9, jwId: null, nameCn: "中校区" }];
+    database.sections = [
+      { ...database.sections[0], campusId: 9 },
+      database.sections[1],
+    ];
+    database.buildings = [{ id: 10, jwId: 1001, campusId: 9 }];
+
+    const plan = buildIdentityMigrationPlan(snapshot, database);
+    expect(plan.blockers).toEqual([]);
+    expect(plan.entityMappings).toContainEqual({
+      entity: "campus",
+      legacyId: 9,
+      targetJwIds: [901, 902],
+      provenance: ["name"],
+    });
+    expect(plan.edgeMappings).toContainEqual({
+      entity: "sectionCampus",
+      ownerId: 11,
+      targetJwId: 901,
+    });
+    expect(plan.edgeMappings).toContainEqual({
+      entity: "buildingCampus",
+      ownerId: 10,
+      targetJwId: 902,
+    });
   });
 
   it("blocks alias provenance loss and multi-target teacher UGC", () => {
@@ -378,6 +478,108 @@ describe("identity migration planner", () => {
         code: "SOURCE_EDGE_UNMAPPED",
         entity: "teacherAssignmentTitle",
         legacyId: 71,
+      }),
+    );
+  });
+
+  it("proves schedule teachers within a section and blocks ambiguous splits", () => {
+    const database = databaseState();
+    database.scheduleTeachers = [
+      { scheduleId: 91, sectionId: 11, teacherId: 6 },
+    ];
+    database.sectionTeacherJoins = [{ sectionId: 11, teacherId: 6 }];
+    expect(
+      buildIdentityMigrationPlan(snapshotState(), database).edgeMappings,
+    ).toContainEqual({
+      entity: "scheduleTeacher",
+      ownerId: 91,
+      targetJwId: 801,
+    });
+    expect(
+      buildIdentityMigrationPlan(snapshotState(), database).edgeMappings,
+    ).toContainEqual({
+      entity: "implicitSectionTeacher",
+      ownerId: 11,
+      targetJwId: 801,
+    });
+
+    const snapshot = snapshotState();
+    snapshot.sectionTeachers = [
+      ...snapshot.sectionTeachers,
+      { sectionJwId: 201, teacherJwId: 802 },
+    ];
+    expect(
+      buildIdentityMigrationPlan(snapshot, database).blockers,
+    ).toContainEqual(
+      expect.objectContaining({
+        code: "LEGACY_EDGE_MULTI_TARGET",
+        entity: "scheduleTeacher",
+        legacyId: 91,
+      }),
+    );
+  });
+
+  it("treats an empty current description with edit history as UGC", () => {
+    const database = databaseState();
+    database.courses = [
+      {
+        ...database.courses[0],
+        description: {
+          id: "history-backed-empty",
+          contentFingerprint: "history-preserved-fingerprint",
+        },
+      },
+    ];
+
+    expect(
+      buildIdentityMigrationPlan(snapshotState(), database).blockers,
+    ).toContainEqual(
+      expect.objectContaining({
+        code: "COURSE_ALIAS_UGC_PROVENANCE_LOST",
+        entity: "course",
+        legacyId: 1,
+      }),
+    );
+  });
+
+  it("blocks UGC when a historical synthetic ID collides across raw courses", () => {
+    const snapshot = snapshotState();
+    snapshot.courses = [
+      {
+        jwId: 101,
+        code: "COLLISION-A",
+        nameCn: "碰撞 A",
+        legacySyntheticJwIds: [1_500_000_777],
+      },
+      {
+        jwId: 102,
+        code: "COLLISION-B",
+        nameCn: "碰撞 B",
+        legacySyntheticJwIds: [1_500_000_777],
+      },
+    ];
+    snapshot.sectionCourses = [];
+    const database = databaseState();
+    database.courses = [
+      {
+        id: 1,
+        jwId: 1_500_000_777,
+        code: "COLLISION-A",
+        nameCn: "碰撞 A",
+        directCommentCount: 1,
+        description: null,
+      },
+    ];
+    database.courseAliases = [];
+    database.sections = [];
+
+    expect(
+      buildIdentityMigrationPlan(snapshot, database).blockers,
+    ).toContainEqual(
+      expect.objectContaining({
+        code: "UGC_MULTI_TARGET",
+        entity: "course",
+        legacyId: 1,
       }),
     );
   });

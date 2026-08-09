@@ -7,8 +7,8 @@ export type SnapshotEntity = {
 };
 
 export type SnapshotCourse = SnapshotEntity & {
-  /** Synthetic ID produced by the retired semantic-identity loader. */
-  legacySyntheticJwId?: number | null;
+  /** Synthetic IDs produced by retired code- and semantic-identity loaders. */
+  legacySyntheticJwIds?: readonly number[];
 };
 
 export type SnapshotTeacher = SnapshotEntity & {
@@ -35,6 +35,14 @@ export type SnapshotState = {
   examBatches: readonly SnapshotEntity[];
   examBatchesByExam: readonly { examJwId: number; examBatchJwId: number }[];
   departments: readonly SnapshotEntity[];
+  departmentCodeReferences: readonly {
+    ownerType: "section" | "teacher";
+    ownerJwId: number;
+    departmentCode: string;
+  }[];
+  campuses: readonly SnapshotEntity[];
+  buildingCampuses: readonly { buildingJwId: number; campusJwId: number }[];
+  sectionCampuses: readonly { sectionJwId: number; campusJwId: number }[];
   teachers: readonly SnapshotTeacher[];
   sectionTeachers: readonly {
     sectionJwId: number;
@@ -79,7 +87,12 @@ export type DatabaseState = {
   } | null;
   courses: readonly DatabaseCourse[];
   courseAliases: readonly { jwId: number; courseId: number }[];
-  sections: readonly { id: number; jwId: number; courseId: number }[];
+  sections: readonly {
+    id: number;
+    jwId: number;
+    courseId: number;
+    campusId: number | null;
+  }[];
   adminClasses: readonly DatabaseEntity[];
   sectionAdminClasses: readonly {
     sectionId: number;
@@ -89,6 +102,12 @@ export type DatabaseState = {
   examBatches: readonly DatabaseEntity[];
   exams: readonly { id: number; jwId: number; examBatchId: number | null }[];
   departments: readonly DatabaseEntity[];
+  campuses: readonly DatabaseEntity[];
+  buildings: readonly {
+    id: number;
+    jwId: number;
+    campusId: number | null;
+  }[];
   departmentReferences: readonly {
     ownerType: "section" | "teacher";
     ownerId: number;
@@ -101,12 +120,21 @@ export type DatabaseState = {
     teacherId: number;
     directCommentCount: number;
   }[];
+  sectionTeacherJoins: readonly {
+    sectionId: number;
+    teacherId: number;
+  }[];
   teacherAssignments: readonly {
     id: number;
     sectionId: number;
     teacherId: number;
     /** Legacy Teacher-level title inherited by this assignment, if any. */
     legacyTeacherTitleId: number | null;
+  }[];
+  scheduleTeachers: readonly {
+    scheduleId: number;
+    sectionId: number;
+    teacherId: number;
   }[];
 };
 
@@ -116,12 +144,18 @@ export type IdentityEntityKind =
   | "teacherTitle"
   | "examBatch"
   | "department"
+  | "campus"
   | "teacher"
   | "sectionCourse"
   | "sectionAdminClass"
   | "examBatchEdge"
   | "departmentEdge"
+  | "buildingCampus"
+  | "sectionCampus"
   | "sectionTeacher"
+  | "implicitSectionTeacher"
+  | "teacherAssignmentTeacher"
+  | "scheduleTeacher"
   | "teacherAssignmentTitle";
 
 export type IdentityMigrationBlockerCode =
@@ -130,6 +164,7 @@ export type IdentityMigrationBlockerCode =
   | "LEGACY_IDENTITY_CONSTRAINTS_MISSING"
   | "SOURCE_ID_PAYLOAD_CONFLICT"
   | "LEGACY_ENTITY_UNMAPPED"
+  | "LEGACY_ENTITY_MULTI_TARGET"
   | "SOURCE_EDGE_UNMAPPED"
   | "LEGACY_EDGE_MULTI_TARGET"
   | "UGC_MULTI_TARGET"
@@ -152,12 +187,19 @@ export type EntityMapping = {
     | "sectionAdminClass"
     | "examBatchEdge"
     | "departmentEdge"
+    | "buildingCampus"
+    | "sectionCampus"
     | "sectionTeacher"
+    | "implicitSectionTeacher"
+    | "teacherAssignmentTeacher"
+    | "scheduleTeacher"
     | "teacherAssignmentTitle"
   >;
   legacyId: number;
   targetJwIds: number[];
-  provenance: Array<"raw" | "synthetic" | "alias" | "code" | "name" | "person">;
+  provenance: Array<
+    "raw" | "synthetic" | "alias" | "code" | "name" | "person" | "placeholder"
+  >;
 };
 
 export type EdgeMapping = {
@@ -167,11 +209,17 @@ export type EdgeMapping = {
     | "sectionAdminClass"
     | "examBatchEdge"
     | "departmentEdge"
+    | "buildingCampus"
+    | "sectionCampus"
     | "sectionTeacher"
+    | "implicitSectionTeacher"
+    | "teacherAssignmentTeacher"
+    | "scheduleTeacher"
     | "teacherAssignmentTitle"
   >;
   ownerId: number;
   targetJwId: number;
+  ownerType?: "section" | "teacher";
 };
 
 export type IdentityMigrationReport = {
@@ -184,6 +232,7 @@ export type IdentityMigrationReport = {
     courses: number;
     adminClasses: number;
     teachers: number;
+    retainedDepartmentPlaceholders: number;
   };
 };
 

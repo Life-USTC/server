@@ -467,6 +467,13 @@ model StaticImportState {
   updatedAt DateTime @updatedAt
 }
 
+model StaticIdentityMigrationState {
+  id String @id
+
+  snapshotSha256 String
+  completedAt    DateTime
+}
+
 model Exam {
   id   Int @id @default(autoincrement())
   jwId Int @unique

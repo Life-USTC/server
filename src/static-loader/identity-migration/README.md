@@ -20,3 +20,23 @@ Comments can be rebound when multiple legacy rows converge on one raw target.
 Descriptions are unique per target, so non-empty descriptions may converge only
 when their content fingerprints are identical; different fingerprints produce a
 `DESCRIPTION_CONFLICT`. Empty descriptions do not conflict with user content.
+
+The migration entrypoint is `bun run static:migrate-identities`. It requires
+`STATIC_SNAPSHOT_PATH` and an explicit
+`STATIC_IDENTITY_MIGRATION_EXPECTED_SNAPSHOT_SHA256`; dry-run defaults to true.
+Dry-run opens a PostgreSQL `SERIALIZABLE READ ONLY` transaction. Apply uses the
+same static-loader advisory lock and one serializable transaction for planning,
+transactional legacy-index removal, edge/UGC migration, and the final
+`raw-jwid-v1` completion record. It never invokes the normal static import.
+
+Teacher schedule and assignment edges are source-backed. A schedule teacher is
+resolved only when the fixed snapshot proves one raw teacher within that
+section. Assignment titles additionally require the assignment-title schema;
+the executor fails closed when that schema has not landed.
+
+Course provenance recognizes both retired synthetic namespaces: the original
+`sha256("course:" + code)` ID and the later semantic-variant ID. Collisions map
+to multiple raw targets and therefore block any ambiguous UGC. Department codes
+that do not exist in the authoritative tree remain code-only placeholders with
+`jwId = NULL`; their unique code constraint and existing references are kept.
+Campus splits rebuild Building and Section edges from raw snapshot campus IDs.

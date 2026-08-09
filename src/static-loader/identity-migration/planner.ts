@@ -104,7 +104,13 @@ export function buildIdentityMigrationPlan(
       entityMappings,
       blockers,
     );
-    planDepartmentEdges(databaseState, entityMappings, edgeMappings, blockers);
+    planNamedEntities(
+      "campus",
+      snapshotState.campuses,
+      databaseState.campuses,
+      entityMappings,
+      blockers,
+    );
     planTeachers(
       snapshotState,
       databaseState,
@@ -112,7 +118,35 @@ export function buildIdentityMigrationPlan(
       edgeMappings,
       blockers,
     );
-    planTeacherAssignmentTitles(
+    planDepartmentEdges(
+      snapshotState,
+      databaseState,
+      entityMappings,
+      edgeMappings,
+      blockers,
+    );
+    planCampusEdges(
+      snapshotState,
+      databaseState,
+      entityMappings,
+      edgeMappings,
+      blockers,
+    );
+    planTeacherAssignmentEdges(
+      snapshotState,
+      databaseState,
+      entityMappings,
+      edgeMappings,
+      blockers,
+    );
+    planScheduleTeacherEdges(
+      snapshotState,
+      databaseState,
+      entityMappings,
+      edgeMappings,
+      blockers,
+    );
+    planImplicitSectionTeacherEdges(
       snapshotState,
       databaseState,
       entityMappings,
@@ -164,6 +198,7 @@ function validateSnapshotState(
     ["teacherTitle", snapshot.teacherTitles],
     ["examBatch", snapshot.examBatches],
     ["department", snapshot.departments],
+    ["campus", snapshot.campuses],
     ["teacher", snapshot.teachers],
   ] as const) {
     const byJwId = groupBy(rows, (row) => row.jwId);
@@ -196,8 +231,13 @@ function planCourses(
     (row) => row.code as string,
   );
   const bySynthetic = groupBy(
-    snapshot.courses.filter((row) => row.legacySyntheticJwId != null),
-    (row) => row.legacySyntheticJwId as number,
+    snapshot.courses.flatMap((row) =>
+      (row.legacySyntheticJwIds ?? []).map((legacyJwId) => ({
+        legacyJwId,
+        row,
+      })),
+    ),
+    (entry) => entry.legacyJwId,
   );
   const aliasesByCourseId = groupBy(
     database.courseAliases,
@@ -212,7 +252,7 @@ function planCourses(
       provenance.add("raw");
     }
     for (const target of bySynthetic.get(course.jwId) ?? []) {
-      targets.add(target.jwId);
+      targets.add(target.row.jwId);
       provenance.add("synthetic");
     }
     const aliases = aliasesByCourseId.get(course.id) ?? [];
@@ -339,7 +379,15 @@ function planCodeEntities(
               row.code != null && row.code !== "" && item.code === row.code,
           )
           .map((item) => item.jwId),
-        provenance: ["code"],
+        provenance:
+          entity === "department" &&
+          row.jwId == null &&
+          !snapshot.some(
+            (item) =>
+              row.code != null && row.code !== "" && item.code === row.code,
+          )
+            ? ["placeholder"]
+            : ["code"],
       };
     },
     mappings,
@@ -361,7 +409,20 @@ function planSimpleEntities(
   for (const row of databaseRows) {
     const resolved = resolve(row, snapshotRows);
     const targetJwIds = sortedNumbers(new Set(resolved.targets));
-    if (targetJwIds.length === 0) addUnmappedBlocker(entity, row.id, blockers);
+    if (
+      targetJwIds.length === 0 &&
+      !resolved.provenance.includes("placeholder")
+    ) {
+      addUnmappedBlocker(entity, row.id, blockers);
+    }
+    if (entity === "department" && targetJwIds.length > 1) {
+      blockers.push({
+        code: "LEGACY_ENTITY_MULTI_TARGET",
+        entity,
+        legacyId: row.id,
+        detail: `Department ${row.id} code maps to raw jwIds ${targetJwIds.join(",")}`,
+      });
+    }
     mappings.push({
       entity,
       legacyId: row.id,
@@ -454,23 +515,128 @@ function planExamBatchEdges(
 }
 
 function planDepartmentEdges(
+  snapshot: SnapshotState,
   database: DatabaseState,
   mappings: EntityMapping[],
   edges: EdgeMapping[],
   blockers: IdentityMigrationBlocker[],
 ) {
   const departmentMappings = mappingByLegacyId(mappings, "department");
+  const sectionById = new Map(database.sections.map((row) => [row.id, row]));
+  const teacherMappings = mappingByLegacyId(mappings, "teacher");
+  const sourceReferencesByOwner = groupBy(
+    snapshot.departmentCodeReferences,
+    (row) => `${row.ownerType}:${row.ownerJwId}`,
+  );
+  const departmentById = new Map(
+    database.departments.map((row) => [row.id, row]),
+  );
   for (const reference of database.departmentReferences) {
-    const targets =
-      departmentMappings.get(reference.departmentId)?.targetJwIds ?? [];
+    const mapping = departmentMappings.get(reference.departmentId);
+    if (mapping?.provenance.includes("placeholder")) {
+      const departmentCode = departmentById.get(reference.departmentId)?.code;
+      const ownerJwIds =
+        reference.ownerType === "section"
+          ? [sectionById.get(reference.ownerId)?.jwId].filter(
+              (jwId): jwId is number => jwId != null,
+            )
+          : (teacherMappings.get(reference.ownerId)?.targetJwIds ?? []);
+      const sourceReferences = ownerJwIds.flatMap(
+        (ownerJwId) =>
+          sourceReferencesByOwner.get(`${reference.ownerType}:${ownerJwId}`) ??
+          [],
+      );
+      if (
+        sourceReferences.length > 0 &&
+        !sourceReferences.some(
+          (source) => source.departmentCode === departmentCode,
+        )
+      ) {
+        blockers.push({
+          code: "SOURCE_EDGE_UNMAPPED",
+          entity: "departmentEdge",
+          legacyId: reference.ownerId,
+          detail: `${reference.ownerType} ${reference.ownerId} does not prove retained Department code ${departmentCode ?? "missing"}`,
+        });
+      }
+      continue;
+    }
+    const targets = mapping?.targetJwIds ?? [];
     planLegacyEdge(
       "departmentEdge",
       reference.ownerId,
       targets,
       edges,
       blockers,
+      {
+        ownerType: reference.ownerType,
+      },
     );
   }
+}
+
+function planCampusEdges(
+  snapshot: SnapshotState,
+  database: DatabaseState,
+  mappings: EntityMapping[],
+  edges: EdgeMapping[],
+  blockers: IdentityMigrationBlocker[],
+) {
+  const validCampusIds = new Set(snapshot.campuses.map((row) => row.jwId));
+  const campusMappings = mappingByLegacyId(mappings, "campus");
+  const buildingSource = new Map(
+    snapshot.buildingCampuses.map((edge) => [
+      edge.buildingJwId,
+      edge.campusJwId,
+    ]),
+  );
+  for (const building of database.buildings) {
+    if (building.campusId == null) continue;
+    planSourceBackedOrLegacyEdge(
+      "buildingCampus",
+      building.id,
+      buildingSource.get(building.jwId),
+      campusMappings.get(building.campusId)?.targetJwIds ?? [],
+      validCampusIds,
+      edges,
+      blockers,
+    );
+  }
+  const sectionSource = new Map(
+    snapshot.sectionCampuses.map((edge) => [edge.sectionJwId, edge.campusJwId]),
+  );
+  for (const section of database.sections) {
+    if (section.campusId == null) continue;
+    planSourceBackedOrLegacyEdge(
+      "sectionCampus",
+      section.id,
+      sectionSource.get(section.jwId),
+      campusMappings.get(section.campusId)?.targetJwIds ?? [],
+      validCampusIds,
+      edges,
+      blockers,
+    );
+  }
+}
+
+function planSourceBackedOrLegacyEdge(
+  entity: EdgeMapping["entity"],
+  ownerId: number,
+  sourceTarget: number | undefined,
+  legacyTargets: readonly number[],
+  validTargets: ReadonlySet<number>,
+  edges: EdgeMapping[],
+  blockers: IdentityMigrationBlocker[],
+) {
+  if (sourceTarget == null) {
+    planLegacyEdge(entity, ownerId, legacyTargets, edges, blockers);
+    return;
+  }
+  if (!validTargets.has(sourceTarget)) {
+    addSourceEdgeBlocker(entity, ownerId, sourceTarget, blockers);
+    return;
+  }
+  edges.push({ entity, ownerId, targetJwId: sourceTarget });
 }
 
 function planTeachers(
@@ -554,7 +720,7 @@ function planTeachers(
   }
 }
 
-function planTeacherAssignmentTitles(
+function planTeacherAssignmentEdges(
   snapshot: SnapshotState,
   database: DatabaseState,
   mappings: EntityMapping[],
@@ -575,6 +741,20 @@ function planTeacherAssignmentTitles(
       teacherMappings.get(assignment.teacherId)?.targetJwIds ?? [];
     const sourceAssignments =
       section == null ? [] : (sourceBySection.get(section.jwId) ?? []);
+    const assignmentTeacherTargets = sortedNumbers(
+      new Set(
+        sourceAssignments
+          .map((row) => row.teacherJwId)
+          .filter((jwId) => teacherTargets.includes(jwId)),
+      ),
+    );
+    planLegacyEdge(
+      "teacherAssignmentTeacher",
+      assignment.id,
+      assignmentTeacherTargets,
+      edges,
+      blockers,
+    );
     const titleTargets = sourceAssignments
       .filter((row) => teacherTargets.includes(row.teacherJwId))
       .map((row) => row.titleJwId)
@@ -603,6 +783,83 @@ function planTeacherAssignmentTitles(
       edges,
       blockers,
     );
+  }
+}
+
+function planScheduleTeacherEdges(
+  snapshot: SnapshotState,
+  database: DatabaseState,
+  mappings: EntityMapping[],
+  edges: EdgeMapping[],
+  blockers: IdentityMigrationBlocker[],
+) {
+  const sectionById = new Map(database.sections.map((row) => [row.id, row]));
+  const teacherMappings = mappingByLegacyId(mappings, "teacher");
+  const sourceTargetsBySection = groupBy(
+    snapshot.sectionTeachers,
+    (row) => row.sectionJwId,
+  );
+  for (const relation of database.scheduleTeachers) {
+    const section = sectionById.get(relation.sectionId);
+    const legacyTargets =
+      teacherMappings.get(relation.teacherId)?.targetJwIds ?? [];
+    const sourceTargets =
+      section == null
+        ? []
+        : (sourceTargetsBySection.get(section.jwId) ?? [])
+            .map((row) => row.teacherJwId)
+            .filter((jwId) => legacyTargets.includes(jwId));
+    planLegacyEdge(
+      "scheduleTeacher",
+      relation.scheduleId,
+      sortedNumbers(new Set(sourceTargets)),
+      edges,
+      blockers,
+    );
+  }
+}
+
+function planImplicitSectionTeacherEdges(
+  snapshot: SnapshotState,
+  database: DatabaseState,
+  mappings: EntityMapping[],
+  edges: EdgeMapping[],
+  blockers: IdentityMigrationBlocker[],
+) {
+  const sectionById = new Map(database.sections.map((row) => [row.id, row]));
+  const teacherMappings = mappingByLegacyId(mappings, "teacher");
+  const sourceTargetsBySection = groupBy(
+    snapshot.sectionTeachers,
+    (row) => row.sectionJwId,
+  );
+  for (const relation of database.sectionTeacherJoins) {
+    const section = sectionById.get(relation.sectionId);
+    const legacyTargets =
+      teacherMappings.get(relation.teacherId)?.targetJwIds ?? [];
+    const sourceTargets =
+      section == null
+        ? []
+        : (sourceTargetsBySection.get(section.jwId) ?? [])
+            .map((row) => row.teacherJwId)
+            .filter((jwId) => legacyTargets.includes(jwId));
+    const targets = sortedNumbers(new Set(sourceTargets));
+    if (targets.length === 0) {
+      planLegacyEdge(
+        "implicitSectionTeacher",
+        relation.sectionId,
+        targets,
+        edges,
+        blockers,
+      );
+      continue;
+    }
+    for (const targetJwId of targets) {
+      edges.push({
+        entity: "implicitSectionTeacher",
+        ownerId: relation.sectionId,
+        targetJwId,
+      });
+    }
   }
 }
 
@@ -658,9 +915,10 @@ function planLegacyEdge(
   targets: readonly number[],
   edges: EdgeMapping[],
   blockers: IdentityMigrationBlocker[],
+  metadata: Pick<EdgeMapping, "ownerType"> = {},
 ) {
   if (targets.length === 1) {
-    edges.push({ entity, ownerId, targetJwId: targets[0] });
+    edges.push({ entity, ownerId, targetJwId: targets[0], ...metadata });
     return;
   }
   blockers.push({
@@ -756,6 +1014,7 @@ function finalizePlan(
     (left, right) =>
       left.entity.localeCompare(right.entity) ||
       left.ownerId - right.ownerId ||
+      (left.ownerType ?? "").localeCompare(right.ownerType ?? "") ||
       left.targetJwId - right.targetJwId,
   );
   const stableBlockers = [...blockers].sort(
@@ -787,6 +1046,11 @@ function finalizePlan(
         courses: splitCount("course"),
         adminClasses: splitCount("adminClass"),
         teachers: splitCount("teacher"),
+        retainedDepartmentPlaceholders: entityMappings.filter(
+          (mapping) =>
+            mapping.entity === "department" &&
+            mapping.provenance.includes("placeholder"),
+        ).length,
       },
     },
   };
