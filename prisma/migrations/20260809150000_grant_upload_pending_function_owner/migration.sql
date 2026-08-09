@@ -15,5 +15,14 @@ BEGIN
   EXECUTE
     'GRANT SELECT, UPDATE, DELETE ON TABLE public."UploadPending" '
     'TO life_ustc_function_owner';
+
+  EXECUTE
+    'DROP POLICY IF EXISTS "UploadPending_cleanup_worker" '
+    'ON public."UploadPending"';
+  EXECUTE
+    'CREATE POLICY "UploadPending_cleanup_worker" '
+    'ON public."UploadPending" '
+    'FOR ALL TO life_ustc_function_owner '
+    'USING (true) WITH CHECK (true)';
 END
 $grant_upload_pending_function_owner$;
