@@ -52,6 +52,7 @@ describe("CSP 辅助函数", () => {
 
     expect(connectDirective).toBeDefined();
     expect(connectDirective).toContain("'self'");
+    expect(connectDirective).toContain("https://www.google.com");
     expect(connectDirective).not.toContain("amazonaws.com");
     expect(connectDirective).not.toContain("r2.cloudflarestorage.com");
   });

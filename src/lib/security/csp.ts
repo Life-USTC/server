@@ -5,6 +5,7 @@ const ANALYTICS_SCRIPT_SOURCES = [
 ];
 
 const ANALYTICS_CONNECT_SOURCES = [
+  "https://www.google.com",
   "https://www.google-analytics.com",
   "https://www.googletagmanager.com",
   "https://analytics.google.com",
