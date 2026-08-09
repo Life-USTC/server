@@ -1,11 +1,13 @@
 import { WorkerEntrypoint } from "cloudflare:workers";
 import svelteKitWorker from "life-ustc-sveltekit-worker";
+import { cleanupExpiredAuthRecords } from "./features/auth/server/auth-record-cleanup";
 import { handleCalendarExportRebuildBatch } from "./features/calendar/server/calendar-export-rebuild";
 import {
   isCatalogListPath,
   normalizeCatalogListQuery,
   resolveCatalogListPublicSsrMode,
 } from "./features/catalog/lib/catalog-list-query";
+import { cleanupStaleUploadPendingStorage } from "./features/uploads/server/upload-pending-cleanup";
 import { runWithCloudflareRuntimeEnv } from "./lib/adapters/cloudflare-runtime";
 import { CATALOG_EDGE_CACHE_TAG } from "./lib/catalog-edge-cache-tag";
 import {
@@ -30,10 +32,14 @@ import {
   resolveTeacherDetailTabRedirect,
   shouldRoutePublicSsrCache,
 } from "./lib/cloudflare/public-ssr-gateway";
+import { maintenancePrisma } from "./lib/db/maintenance-prisma";
+import { prisma } from "./lib/db/prisma";
 import { buildContentSecurityPolicy } from "./lib/security/csp";
 import { CONTENT_SIGNAL } from "./lib/seo/content-signal";
 
 const app = svelteKitWorker;
+const UPLOAD_PENDING_CLEANUP_CRON = "7 */2 * * *";
+const AUTH_RECORD_CLEANUP_CRON = "23 */6 * * *";
 
 function cacheablePublicResponse(response) {
   return (
@@ -287,6 +293,29 @@ export default {
     await runWithCloudflareRuntimeEnv(
       env,
       () => handleCalendarExportRebuildBatch(batch),
+      context,
+    );
+  },
+  async scheduled(controller, env, context) {
+    await runWithCloudflareRuntimeEnv(
+      env,
+      async () => {
+        if (controller.cron === UPLOAD_PENDING_CLEANUP_CRON) {
+          const report = await cleanupStaleUploadPendingStorage(prisma);
+          console.log(
+            `Upload pending storage cleanup completed: ${JSON.stringify(report)}`,
+          );
+          return;
+        }
+
+        if (controller.cron === AUTH_RECORD_CLEANUP_CRON) {
+          await cleanupExpiredAuthRecords(maintenancePrisma);
+          console.log("Expired auth record cleanup completed");
+          return;
+        }
+
+        console.log(`Ignoring unknown scheduled cron: ${controller.cron}`);
+      },
       context,
     );
   },

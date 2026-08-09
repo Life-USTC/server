@@ -1,3 +1,46 @@
+## [1.88.3](https://github.com/Life-USTC/server/compare/v1.88.2...v1.88.3) (2026-08-09)
+
+
+### Bug Fixes
+
+* apply upload cleanup RLS policy ([cd6f720](https://github.com/Life-USTC/server/commit/cd6f72039a2248fdc7e73f91193290c66776fe98))
+* grant upload cleanup owner access ([4f448f5](https://github.com/Life-USTC/server/commit/4f448f56d1f36d441797ffe3b24fd488e30ea6d4))
+* grant upload cleanup owner access ([#772](https://github.com/Life-USTC/server/issues/772)) ([7713fe6](https://github.com/Life-USTC/server/commit/7713fe6c4ace204539f1744a6e127cc171c00881))
+
+## [1.88.2](https://github.com/Life-USTC/server/compare/v1.88.1...v1.88.2) (2026-08-09)
+
+
+### Bug Fixes
+
+* run auth cleanup in Worker cron ([#771](https://github.com/Life-USTC/server/issues/771)) ([a7f2bc7](https://github.com/Life-USTC/server/commit/a7f2bc7fd0a4f9c4cef83dc9b60d1397c924e7f5))
+
+## [1.88.1](https://github.com/Life-USTC/server/compare/v1.88.0...v1.88.1) (2026-08-09)
+
+
+### Bug Fixes
+
+* repair runtime cleanup and sequence drift ([#770](https://github.com/Life-USTC/server/issues/770)) ([6546001](https://github.com/Life-USTC/server/commit/6546001bedbc3a75d90e1980bb546e31b18ea1ec))
+
+# [1.88.0](https://github.com/Life-USTC/server/compare/v1.87.0...v1.88.0) (2026-08-08)
+
+
+### Features
+
+* refresh campus link catalog ([#766](https://github.com/Life-USTC/server/issues/766)) ([6806c5c](https://github.com/Life-USTC/server/commit/6806c5c5e32e06d03f6ae22d954e4a814dd5029a))
+
+# [1.87.0](https://github.com/Life-USTC/server/compare/v1.86.0...v1.87.0) (2026-08-08)
+
+
+### Bug Fixes
+
+* **e2e:** align settings and oauth page contracts with real UI ([8f0af0e](https://github.com/Life-USTC/server/commit/8f0af0e418551ab336f18b61dd2c88ef04183bbd))
+* **e2e:** match danger settings marker to Delete Account region ([e084e49](https://github.com/Life-USTC/server/commit/e084e4932766bfdbe62b0f2eb98499a3388ccf2e))
+
+
+### Features
+
+* page inventory gates, calendar export queue, and CI trust ([e77ba15](https://github.com/Life-USTC/server/commit/e77ba15b20240bc2bdcf1a356dd1e0daab8a2e73))
+
 # [1.86.0](https://github.com/Life-USTC/server/compare/v1.85.1...v1.86.0) (2026-08-07)
 
 

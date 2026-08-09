@@ -358,11 +358,14 @@ TO life_ustc_auth_runtime;
 GRANT USAGE ON SCHEMA public TO life_ustc_function_owner;
 GRANT SELECT ON TABLE
   "Upload",
+  "UploadPending",
   "CommentAttachment",
   "Comment",
   "User",
   "CommentReaction",
   "HomeworkCompletion"
+TO life_ustc_function_owner;
+GRANT UPDATE, DELETE ON TABLE "UploadPending"
 TO life_ustc_function_owner;
 GRANT SELECT, DELETE ON TABLE
   "Account",
@@ -471,7 +474,19 @@ GRANT EXECUTE ON FUNCTION
     text,
     timestamp without time zone
   ),
-  public.get_public_profile_section_subscription_count(text)
+  public.get_public_profile_section_subscription_count(text),
+  public.claim_upload_pending_storage_cleanup(
+    timestamp without time zone,
+    integer,
+    integer
+  ),
+  public.finalize_upload_pending_storage_cleanup(text, text),
+  public.release_upload_pending_storage_cleanup(
+    text,
+    text,
+    timestamp without time zone,
+    integer
+  )
 TO life_ustc_runtime;
 
 GRANT CONNECT

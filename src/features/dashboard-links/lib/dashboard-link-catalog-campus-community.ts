@@ -156,6 +156,20 @@ export const USTC_CAMPUS_COMMUNITY_LINKS: DashboardLinkItem[] = [
     icon: "monitor-play",
   },
   {
+    slug: "llm-platform",
+    title: "大模型公共服务平台",
+    url: "https://llm.ustc.edu.cn/",
+    description: "校内大模型对话与 API 服务。",
+    localizations: {
+      "en-us": {
+        title: "Large Model Public Service Platform",
+        description: "Campus large-model chat and API services.",
+      },
+    },
+    category: "services",
+    icon: "monitor-play",
+  },
+  {
     slug: "classroom-2",
     title: "二教",
     url: "http://bigscreen.cmet.ustc.edu.cn/#/2",
