@@ -290,9 +290,9 @@ INSERT INTO public."TeacherTitle" (id, "jwId", "nameCn", "nameEn", code, enabled
 -- Data for Name: Teacher; Type: TABLE DATA; Schema: public; Owner: -
 --
 
-INSERT INTO public."Teacher" (id, "personId", "teacherId", code, "nameCn", "nameEn", age, email, telephone, mobile, address, postcode, qq, wechat, "departmentId", "teacherTitleId") VALUES (1, NULL, NULL, 'T2401001', '林璟锵', 'Lin Jingqiang', NULL, 'jqlin@ustc.edu.cn', NULL, '13800001111', '中国科学技术大学', NULL, NULL, NULL, 1, 1) ON CONFLICT DO NOTHING;
-INSERT INTO public."Teacher" (id, "personId", "teacherId", code, "nameCn", "nameEn", age, email, telephone, mobile, address, postcode, qq, wechat, "departmentId", "teacherTitleId") VALUES (2, NULL, NULL, 'T2401002', '王伟', 'Wang Wei', NULL, 'wangwei@ustc.edu.cn', NULL, '13800002222', '中国科学技术大学', NULL, NULL, NULL, 1, 1) ON CONFLICT DO NOTHING;
-INSERT INTO public."Teacher" (id, "personId", "teacherId", code, "nameCn", "nameEn", age, email, telephone, mobile, address, postcode, qq, wechat, "departmentId", "teacherTitleId") VALUES (3, NULL, NULL, 'T2401003', '童中华', 'Tong Zhonghua', NULL, 'zhtong@ustc.edu.cn', NULL, '13800003333', '中国科学技术大学', NULL, NULL, NULL, 1, 1) ON CONFLICT DO NOTHING;
+INSERT INTO public."Teacher" (id, "jwId", "personId", "teacherId", code, "nameCn", "nameEn", age, email, telephone, mobile, address, postcode, qq, wechat, "departmentId", "teacherTitleId") VALUES (1, 9910101, NULL, NULL, 'T2401001', '林璟锵', 'Lin Jingqiang', NULL, 'jqlin@ustc.edu.cn', NULL, '13800001111', '中国科学技术大学', NULL, NULL, NULL, 1, 1) ON CONFLICT DO NOTHING;
+INSERT INTO public."Teacher" (id, "jwId", "personId", "teacherId", code, "nameCn", "nameEn", age, email, telephone, mobile, address, postcode, qq, wechat, "departmentId", "teacherTitleId") VALUES (2, 9910102, NULL, NULL, 'T2401002', '王伟', 'Wang Wei', NULL, 'wangwei@ustc.edu.cn', NULL, '13800002222', '中国科学技术大学', NULL, NULL, NULL, 1, 1) ON CONFLICT DO NOTHING;
+INSERT INTO public."Teacher" (id, "jwId", "personId", "teacherId", code, "nameCn", "nameEn", age, email, telephone, mobile, address, postcode, qq, wechat, "departmentId", "teacherTitleId") VALUES (3, 9910103, NULL, NULL, 'T2401003', '童中华', 'Tong Zhonghua', NULL, 'zhtong@ustc.edu.cn', NULL, '13800003333', '中国科学技术大学', NULL, NULL, NULL, 1, 1) ON CONFLICT DO NOTHING;
 
 
 --

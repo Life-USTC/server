@@ -1,8 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
-  mapCampusFromSection,
+  mapCampus,
   mapSchedule,
   mapSection,
+  mapTeacherAssignment,
   mergeSchedule,
   scheduleKey,
 } from "@/static-loader/mappers";
@@ -41,7 +42,7 @@ describe("static schedule meeting mapping", () => {
 
     mergeSchedule(existing, row, 12, 5301);
 
-    expect(existing.teacherPersonIds).toEqual([11, 12]);
+    expect(existing.teacherJwIds).toEqual([11, 12]);
     expect(existing.roomJwId).toBe(5301);
   });
 
@@ -114,49 +115,46 @@ describe("static schedule meeting mapping", () => {
 });
 
 describe("static section campus mapping", () => {
-  it("builds a Campus from the JW campus ID and Catalog names", () => {
+  it("maps only JW Campus entities that carry an upstream id", () => {
     expect(
-      mapCampusFromSection(
-        { campusId: 901 },
-        { cn: "国际金融研究院", en: "International Institute" },
-      ),
+      mapCampus({ id: 901, nameZh: "东校区", nameEn: "East Campus" }),
     ).toEqual({
       jwId: 901,
-      nameCn: "国际金融研究院",
-      nameEn: "International Institute",
+      nameCn: "东校区",
+      nameEn: "East Campus",
+      code: undefined,
     });
+    expect(mapCampus({ nameZh: "无 ID 校区" })).toBeUndefined();
   });
 
-  it("builds a name-only Campus when the JW lesson is missing", () => {
-    expect(
-      mapCampusFromSection(undefined, {
-        cn: "国际金融研究院",
-        en: "International Institute",
-      }),
-    ).toEqual({
-      jwId: undefined,
-      nameCn: "国际金融研究院",
-      nameEn: "International Institute",
-    });
-  });
-
-  it("retains the Catalog campus name when the JW lesson is missing", () => {
+  it("uses scheduleLesson.campusId only as the Section foreign key", () => {
     const section = mapSection(
       { id: 1001, code: "MATH1001.01", semester_id: 401 },
-      undefined,
+      { campusId: 901 },
       undefined,
       undefined,
       undefined,
       undefined,
       {
         course: { id: 3001 },
-        campus: { cn: "国际金融研究院", en: "International Institute" },
       },
     );
 
     expect(section).toMatchObject({
-      campusId: undefined,
-      campusName: "国际金融研究院",
+      campusId: 901,
+    });
+  });
+});
+
+describe("static teacher assignment mapping", () => {
+  it("keeps title identity on the assignment edge", () => {
+    expect(
+      mapTeacherAssignment(1001, { teacherId: 20, name: "张三" }, [], 30, 40),
+    ).toMatchObject({
+      sectionJwId: 1001,
+      teacherJwId: 20,
+      teacherLessonTypeId: 30,
+      teacherTitleJwId: 40,
     });
   });
 });

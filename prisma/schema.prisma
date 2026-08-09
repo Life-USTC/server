@@ -115,7 +115,7 @@ model Campus {
   id   Int  @id @default(autoincrement())
   jwId Int? @unique
 
-  nameCn String  @unique
+  nameCn String
   nameEn String?
   code   String?
 
@@ -245,7 +245,7 @@ model Department {
   id   Int  @id @default(autoincrement())
   jwId Int? @unique
 
-  code      String
+  code      String   @unique
   nameCn    String
   nameEn    String?
   isCollege Boolean?
@@ -533,11 +533,13 @@ model Semester {
 }
 
 model Teacher {
-  id Int @id @default(autoincrement())
+  id   Int  @id @default(autoincrement())
+  jwId Int? @unique
 
-  personId  Int?    @unique
-  teacherId Int?    @unique
-  code      String? @unique
+  personId Int?
+  /// Legacy provenance retained for the snapshot-backed data migration; new imports use jwId.
+  teacherId Int?
+  code      String?
   nameCn    String
   nameEn    String?
   age       Int?
@@ -563,6 +565,9 @@ model Teacher {
   comments           Comment[]
   description        Description?
 
+  @@index([jwId])
+  @@index([personId])
+  @@index([teacherId])
   @@index([code])
   @@index([nameCn])
   @@index([nameEn])
@@ -760,6 +765,7 @@ model TeacherTitle {
   enabled Boolean?
 
   teachers Teacher[]
+  teacherAssignments TeacherAssignment[]
 
   @@index([jwId])
   @@index([nameCn])
@@ -793,15 +799,18 @@ model TeacherAssignment {
   weekIndicesMsg String?
 
   teacherLessonTypeId Int?
+  teacherTitleId      Int?
 
   teacher           Teacher            @relation(fields: [teacherId], references: [id])
   section           Section            @relation(fields: [sectionId], references: [id])
   teacherLessonType TeacherLessonType? @relation(fields: [teacherLessonTypeId], references: [id])
+  teacherTitle      TeacherTitle?      @relation(fields: [teacherTitleId], references: [id])
 
   @@unique([teacherId, sectionId])
   @@index([teacherId])
   @@index([sectionId])
   @@index([teacherLessonTypeId])
+  @@index([teacherTitleId])
 }
 
 model User {

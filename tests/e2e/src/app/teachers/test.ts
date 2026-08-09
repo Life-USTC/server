@@ -129,7 +129,7 @@ test.describe("/catalog/teachers", () => {
   });
 
   test("院系筛选保留教师结果", async ({ page }, testInfo) => {
-    const filter = await getSeedTeacherDepartmentFixture(DEV_SEED.teacher.code);
+    const filter = await getSeedTeacherDepartmentFixture(DEV_SEED.teacher.jwId);
     if (!filter.departmentName) {
       await gotoAndWaitForReady(page, "/catalog/teachers");
       await expect(page.locator("#main-content")).toBeVisible();

@@ -9,7 +9,15 @@ export function selectLatestCourses(
   occurrences: readonly CourseOccurrence[],
 ): CourseBuild[] {
   const byJwId = new Map<number, CourseOccurrence>();
+  const jwIdByCode = new Map<string, number>();
   for (const occurrence of occurrences) {
+    const codeOwner = jwIdByCode.get(occurrence.course.code);
+    if (codeOwner != null && codeOwner !== occurrence.course.jwId) {
+      throw new Error(
+        `Course code ${occurrence.course.code} maps to multiple jwIds: ${codeOwner}, ${occurrence.course.jwId}`,
+      );
+    }
+    jwIdByCode.set(occurrence.course.code, occurrence.course.jwId);
     const existing = byJwId.get(occurrence.course.jwId);
     if (existing != null && existing.course.code !== occurrence.course.code) {
       throw new Error(

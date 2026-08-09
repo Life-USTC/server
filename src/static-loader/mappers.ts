@@ -26,6 +26,11 @@ export type DepartmentBuild = {
   isCollege?: boolean;
 };
 
+export type DepartmentPlaceholderRequest = {
+  code: string;
+  nameCn: string;
+};
+
 export type LookupBuild = {
   nameCn: string;
   nameEn?: string;
@@ -74,7 +79,6 @@ export type SectionBuild = {
   courseJwId: number;
   semesterCode: number;
   campusId?: number;
-  campusName?: string;
   examModeName?: string;
   openDepartmentCode?: string;
   teachLanguageName?: string;
@@ -108,7 +112,7 @@ export type ScheduleBuild = {
   roomJwId?: number;
   lessonJwId: number;
   scheduleGroupJwId: number;
-  teacherPersonIds: number[];
+  teacherJwIds: number[];
 };
 
 export type ExamBuild = {
@@ -147,7 +151,7 @@ export type BuildingBuild = {
 };
 
 export type CampusBuild = {
-  jwId?: number;
+  jwId: number;
   nameCn: string;
   nameEn?: string;
   code?: string;
@@ -184,8 +188,7 @@ export type ExamBatchBuild = {
 
 export type TeacherAssignmentBuild = {
   sectionJwId: number;
-  personId?: number;
-  teacherId?: number;
+  teacherJwId: number;
   code?: string;
   nameCn: string;
   departmentCode?: string;
@@ -194,15 +197,12 @@ export type TeacherAssignmentBuild = {
   weekIndices?: number[];
   weekIndicesMsg?: string;
   teacherLessonTypeId?: number;
+  teacherTitleJwId?: number;
 };
 
 export type SectionTeacherPair = {
   sectionJwId: number;
-  personId?: number;
-  teacherId?: number;
-  code?: string;
-  nameCn: string;
-  departmentCode?: string;
+  teacherJwId: number;
 };
 
 export type AdminClassSectionPair = {
@@ -245,22 +245,36 @@ export function flattenDepartments(
   }
 
   const result: DepartmentBuild[] = [];
-  const seen = new Set<number>();
+  const byJwId = new Map<number, DepartmentBuild>();
+  const jwIdByCode = new Map<string, number>();
 
   function add(row: SnapshotRow) {
     const jwId = asInt(row.id);
     const code = asString(row.code);
     const nameCn = asString(row.nameZh) ?? asString(row.name);
     if (jwId == null || !code || !nameCn) return;
-    if (seen.has(jwId)) return;
-    seen.add(jwId);
-    result.push({
+    const department = {
       jwId,
       code,
       nameCn,
       nameEn: asString(row.nameEn),
       isCollege: asBoolean(row.isCollege),
-    });
+    };
+    const existing = byJwId.get(jwId);
+    if (
+      existing != null &&
+      JSON.stringify(existing) !== JSON.stringify(department)
+    ) {
+      throw new Error(`Department jwId ${jwId} has conflicting metadata`);
+    }
+    const codeOwner = jwIdByCode.get(code);
+    if (codeOwner != null && codeOwner !== jwId) {
+      throw new Error(`Department code ${code} maps to multiple jwIds`);
+    }
+    if (existing != null) return;
+    byJwId.set(jwId, department);
+    jwIdByCode.set(code, jwId);
+    result.push(department);
     const parentStoreId = asInt(row.store_id);
     if (parentStoreId == null) return;
     for (const child of childrenMap.get(parentStoreId) ?? []) {
@@ -316,13 +330,13 @@ export function mapCourse(
 export function mapTeacherFromScheduleAssignment(
   row: SnapshotRow,
   contactRow: SnapshotRow | undefined,
-  titleRow: SnapshotRow | undefined,
 ): TeacherBuild | undefined {
   const nameCn = asString(row.name);
-  if (!nameCn) return undefined;
+  const teacherId = asInt(row.teacherId);
+  if (!nameCn || teacherId == null) return undefined;
   return {
+    jwId: teacherId,
     personId: asInt(row.personId),
-    teacherId: asInt(row.teacherId),
     code: asString(row.code),
     nameCn,
     age: asInt(row.age),
@@ -333,19 +347,6 @@ export function mapTeacherFromScheduleAssignment(
     postcode: asString(contactRow?.postcode),
     qq: asString(contactRow?.qq),
     wechat: asString(contactRow?.wechat),
-    departmentCode: asString(row.departmentCode),
-    teacherTitleId: asInt(titleRow?.id),
-  };
-}
-
-export function mapTeacherFromCatalogAssignment(
-  row: SnapshotRow,
-): TeacherBuild | undefined {
-  const nameCn = asString(row.cn);
-  if (!nameCn) return undefined;
-  return {
-    nameCn,
-    nameEn: asString(row.en),
     departmentCode: asString(row.departmentCode),
   };
 }
@@ -362,7 +363,6 @@ export function mapSection(
     examMode?: SnapshotRow;
     openDepartment?: SnapshotRow;
     teachLanguage?: SnapshotRow;
-    campus?: SnapshotRow;
   },
 ): SectionBuild | undefined {
   const jwId = asInt(lessonRow.id);
@@ -426,7 +426,6 @@ export function mapSection(
     courseJwId,
     semesterCode,
     campusId: scheduleLesson ? asInt(scheduleLesson.campusId) : undefined,
-    campusName: asString(catalogLookups.campus?.cn),
     examModeName: asString(catalogLookups.examMode?.cn),
     openDepartmentCode: asString(catalogLookups.openDepartment?.code),
     teachLanguageName: asString(catalogLookups.teachLanguage?.cn),
@@ -487,10 +486,10 @@ function mergeScheduleValue<T extends string | number | boolean>(
 export function mergeSchedule(
   existing: ScheduleBuild,
   row: SnapshotRow,
-  personId?: number,
+  teacherJwId?: number,
   roomJwId = asInt(row.roomId),
 ): ScheduleBuild {
-  const incoming = mapSchedule(row, personId, roomJwId);
+  const incoming = mapSchedule(row, teacherJwId, roomJwId);
   const key = scheduleKey(row, roomJwId);
   if (existing.roomJwId !== incoming.roomJwId) {
     throw new Error(`Cannot merge schedules from different rooms for ${key}`);
@@ -519,15 +518,15 @@ export function mergeSchedule(
     incoming.exerciseClass,
     key,
   );
-  existing.teacherPersonIds = Array.from(
-    new Set([...existing.teacherPersonIds, ...incoming.teacherPersonIds]),
+  existing.teacherJwIds = Array.from(
+    new Set([...existing.teacherJwIds, ...incoming.teacherJwIds]),
   ).sort((a, b) => a - b);
   return existing;
 }
 
 export function mapSchedule(
   row: SnapshotRow,
-  personId?: number,
+  teacherJwId?: number,
   roomJwId = asInt(row.roomId),
 ): ScheduleBuild {
   const periods = asFloat(row.periods);
@@ -548,7 +547,7 @@ export function mapSchedule(
     roomJwId,
     lessonJwId: asInt(row.lessonId) ?? 0,
     scheduleGroupJwId: asInt(row.scheduleGroupId) ?? 0,
-    teacherPersonIds: personId == null ? [] : [personId],
+    teacherJwIds: teacherJwId == null ? [] : [teacherJwId],
   };
 }
 
@@ -594,26 +593,14 @@ export function mapBuilding(
 }
 
 export function mapCampus(row: SnapshotRow): CampusBuild | undefined {
+  const jwId = asInt(row.id);
   const nameCn = asString(row.nameZh);
-  if (!nameCn) return undefined;
+  if (jwId == null || !nameCn) return undefined;
   return {
-    jwId: asInt(row.id),
+    jwId,
     nameCn,
     nameEn: asString(row.nameEn),
     code: asString(row.code),
-  };
-}
-
-export function mapCampusFromSection(
-  scheduleLesson: SnapshotRow | undefined,
-  catalogCampus: SnapshotRow | undefined,
-): CampusBuild | undefined {
-  const nameCn = asString(catalogCampus?.cn);
-  if (!nameCn) return undefined;
-  return {
-    jwId: asInt(scheduleLesson?.campusId),
-    nameCn,
-    nameEn: asString(catalogCampus?.en),
   };
 }
 
@@ -716,13 +703,14 @@ export function mapTeacherAssignment(
   row: SnapshotRow,
   weekIndices: SnapshotRow[],
   teacherLessonTypeId?: number,
+  teacherTitleJwId?: number,
 ): TeacherAssignmentBuild | undefined {
   const nameCn = asString(row.name);
-  if (!nameCn) return undefined;
+  const teacherJwId = asInt(row.teacherId);
+  if (!nameCn || teacherJwId == null) return undefined;
   return {
     sectionJwId,
-    personId: asInt(row.personId),
-    teacherId: asInt(row.teacherId),
+    teacherJwId,
     code: asString(row.code),
     nameCn,
     departmentCode: asString(row.departmentCode),
@@ -736,5 +724,6 @@ export function mapTeacherAssignment(
       .filter((v): v is number => v != null),
     weekIndicesMsg: asString(row.weekIndicesMsg),
     teacherLessonTypeId,
+    teacherTitleJwId,
   };
 }

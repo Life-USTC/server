@@ -65,6 +65,7 @@ export const DEV_SEED = {
     code: previousSection.code,
   },
   teacher: {
+    jwId: s.teachers[0].jwId,
     code: s.teachers[0].code,
     nameCn: s.teachers[0].nameCn,
     nameEn: s.teachers[0].nameEn,

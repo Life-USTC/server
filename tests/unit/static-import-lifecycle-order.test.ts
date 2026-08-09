@@ -28,7 +28,6 @@ describe("static Section lifecycle orchestration", () => {
       "writeTeacherAssignments",
       "writeAdminClassSections",
       "writeSchedules",
-      "reconcileCatalogTeacherFallbacks",
       "upsertExams",
       "writeExamRooms",
       "reconcileRemovedSnapshotRows",
