@@ -1,5 +1,6 @@
 import * as z from "zod";
 import { busVersionKeySchema } from "@/features/bus/lib/bus-version-key";
+import { CATALOG_MAX_PAGE } from "@/features/catalog/lib/catalog-list-query";
 import { APP_LOCALES } from "@/i18n/config";
 import {
   booleanQuerySchema,
@@ -7,7 +8,6 @@ import {
   deprecatedPaginationLimitParam,
   integerQueryRangeSchema,
   integerStringRangeSchema,
-  integerStringSchema,
   paginationPageSizeParam,
   todoPrioritySchema,
 } from "./request-schema-primitives";
@@ -27,6 +27,12 @@ const publicPaginationPageSizeSchema = integerStringRangeSchema({
   minimum: 1,
   maximum: 100,
   message: "pageSize must be between 1 and 100",
+});
+
+const publicCatalogPageSchema = integerStringRangeSchema({
+  minimum: 1,
+  maximum: CATALOG_MAX_PAGE,
+  message: `page must be between 1 and ${CATALOG_MAX_PAGE}`,
 });
 
 const subscribedSchedulesWeekdaySchema = integerQueryRangeSchema({
@@ -97,7 +103,7 @@ export const dashboardLinkVisitQuerySchema = z.object({
 });
 
 export const semestersQuerySchema = z.object({
-  page: integerStringSchema.optional(),
+  page: publicCatalogPageSchema.optional(),
   pageSize: paginationPageSizeParam(publicPaginationPageSizeSchema),
   limit: deprecatedPaginationLimitParam(publicPaginationPageSizeSchema),
 });

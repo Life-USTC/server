@@ -442,6 +442,31 @@ describe("public runtime cache", () => {
     ]);
   });
 
+  it("isolates identical L1 keys across namespaces", async () => {
+    const chineseLoad = vi.fn(async () => ({ locale: "zh-cn" }));
+    const englishLoad = vi.fn(async () => ({ locale: "en-us" }));
+
+    await expect(
+      cachedPublicRuntimeData(
+        "search:catalog:v3:zh-cn",
+        "5:calculus",
+        60_000,
+        chineseLoad,
+      ),
+    ).resolves.toEqual({ locale: "zh-cn" });
+    await expect(
+      cachedPublicRuntimeData(
+        "search:catalog:v3:en-us",
+        "5:calculus",
+        60_000,
+        englishLoad,
+      ),
+    ).resolves.toEqual({ locale: "en-us" });
+
+    expect(chineseLoad).toHaveBeenCalledOnce();
+    expect(englishLoad).toHaveBeenCalledOnce();
+  });
+
   it("does not retain null results", async () => {
     const load = vi.fn(async () => null);
     const options = { shouldCacheResult: (result: null) => result !== null };

@@ -78,7 +78,7 @@ describe("public SSR gateway", () => {
   test.each([
     "/catalog/courses",
     "/catalog/courses?page=2&search=math",
-    "/catalog/courses?page=5000&categoryId=7",
+    "/catalog/courses?page=100&categoryId=7",
     "/catalog/courses?search=&educationLevelId=&categoryId=7&classTypeId=",
     "/catalog/sections?semesterId=301&teacher=Li",
     "/catalog/sections?credits=2.5&sort=credits&order=asc",

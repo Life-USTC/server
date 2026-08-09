@@ -37,7 +37,7 @@
             "path": "/api/catalog/courses",
             "returns": "PaginatedResponse<Course>",
             "notes": [
-              "REST pageSize accepts 1-100; the deprecated limit alias remains accepted and pageSize wins when both are supplied. Out-of-range values are rejected instead of clamped."
+              "REST page accepts 1-100, pageSize accepts 1-100, and search accepts 2-200 characters; the deprecated limit alias remains accepted and pageSize wins when both are supplied. Out-of-range values are rejected instead of clamped."
             ]
           }
         ]
@@ -55,7 +55,7 @@
             "rest_equivalent": "GET /api/catalog/courses",
             "mcp_equivalent": "catalog_course_search",
             "notes": [
-              "PageInput defaults to page=1 and pageSize=20; pageSize must remain within 1-100."
+              "PageInput defaults to page=1 and pageSize=20; page and pageSize must remain within 1-100, and search within 2-200 characters."
             ]
           }
         ]

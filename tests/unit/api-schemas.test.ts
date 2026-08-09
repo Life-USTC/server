@@ -673,12 +673,24 @@ describe("其他请求 schema", () => {
       semestersQuerySchema,
     ];
     for (const schema of paginatedSchemas) {
+      expect(schema.safeParse({ page: "100" }).success).toBe(true);
+      expect(schema.safeParse({ page: "101" }).success).toBe(false);
       expect(schema.safeParse({ pageSize: "100" }).success).toBe(true);
       expect(schema.safeParse({ pageSize: "101" }).success).toBe(false);
       expect(schema.safeParse({ pageSize: "0" }).success).toBe(false);
       expect(schema.safeParse({ limit: "100" }).success).toBe(true);
       expect(schema.safeParse({ limit: "101" }).success).toBe(false);
       expect(schema.safeParse({ limit: "0" }).success).toBe(false);
+    }
+
+    for (const schema of [
+      coursesQuerySchema,
+      sectionsQuerySchema,
+      teachersQuerySchema,
+    ]) {
+      expect(schema.safeParse({ search: "x".repeat(200) }).success).toBe(true);
+      expect(schema.safeParse({ search: "x".repeat(201) }).success).toBe(false);
+      expect(schema.safeParse({ search: "x" }).success).toBe(false);
     }
 
     for (const input of [

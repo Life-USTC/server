@@ -539,9 +539,10 @@ export function cachedPublicRuntimeData<T>(
   const now = Date.now();
   const start = Date.now();
   const store = cacheStore();
+  const storeKey = JSON.stringify([analyticsNamespace, key]);
   pruneExpired(store, now);
 
-  const existing = store.get(key) as CacheEntry<T> | undefined;
+  const existing = store.get(storeKey) as CacheEntry<T> | undefined;
   if (existing && existing.expiresAt > now) {
     writeCacheEventAnalytics({
       event: "hit",
@@ -579,7 +580,7 @@ export function cachedPublicRuntimeData<T>(
       : undefined;
     if (kvRead?.hit) {
       if (value) {
-        shortenCurrentEntryExpiry(store, key, value, kvRead.expiresAt);
+        shortenCurrentEntryExpiry(store, storeKey, value, kvRead.expiresAt);
       }
       return kvRead.value;
     }
@@ -596,7 +597,7 @@ export function cachedPublicRuntimeData<T>(
       : undefined;
     if (coloRead?.hit) {
       if (value) {
-        shortenCurrentEntryExpiry(store, key, value, coloRead.expiresAt);
+        shortenCurrentEntryExpiry(store, storeKey, value, coloRead.expiresAt);
       }
       return coloRead.value;
     }
@@ -604,7 +605,7 @@ export function cachedPublicRuntimeData<T>(
     const result = await load();
     const retain = options.shouldCacheResult?.(result) ?? true;
     if (!retain) {
-      if (value) deleteCurrentEntry(store, key, value);
+      if (value) deleteCurrentEntry(store, storeKey, value);
     } else {
       const resultValid = validRuntimeCacheResult(
         result,
@@ -668,7 +669,7 @@ export function cachedPublicRuntimeData<T>(
     });
     return result;
   })().catch((error) => {
-    if (value) deleteCurrentEntry(store, key, value);
+    if (value) deleteCurrentEntry(store, storeKey, value);
     writeCacheEventAnalytics({
       event: "load_error",
       ioObservedDurationMs: Date.now() - start,
@@ -678,7 +679,7 @@ export function cachedPublicRuntimeData<T>(
     });
     throw error;
   });
-  store.set(key, { expiresAt, value });
+  store.set(storeKey, { expiresAt, value });
   pruneOldest(store);
   return value;
 }

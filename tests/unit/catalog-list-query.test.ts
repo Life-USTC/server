@@ -70,7 +70,7 @@ describe("catalog list shared-cache admission", () => {
       "/catalog/sections",
       "search=&semesterId=3&teacher=&courseCode=&sectionCode=&campusId=&departmentId=&credits=&categoryId=&educationLevelId=&classTypeId=&sort=",
     ],
-    ["/catalog/teachers", `departmentId=${CATALOG_MAX_ID}&page=5000`],
+    ["/catalog/teachers", `departmentId=${CATALOG_MAX_ID}&page=100`],
   ] as const)("accepts canonical %s query %s", (pathname, query) => {
     expect(
       isCacheableCatalogListQuery(pathname, new URLSearchParams(query)),
@@ -82,7 +82,7 @@ describe("catalog list shared-cache admission", () => {
     ["/catalog/courses", "unknown=value"],
     ["/catalog/courses", "page=1"],
     ["/catalog/courses", "page=01"],
-    ["/catalog/courses", "page=5001"],
+    ["/catalog/courses", "page=101"],
     ["/catalog/courses", "search=%20math"],
     ["/catalog/courses", `search=${"x".repeat(CATALOG_SEARCH_MAX_LENGTH + 1)}`],
     ["/catalog/courses", "categoryId=01"],
