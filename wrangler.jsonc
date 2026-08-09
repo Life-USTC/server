@@ -30,6 +30,9 @@
       "!/openapi.generated.json"
     ]
   },
+  "triggers": {
+    "crons": ["7 */2 * * *"]
+  },
   "observability": {
     "enabled": true,
     "logs": {

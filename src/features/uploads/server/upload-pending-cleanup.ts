@@ -1,4 +1,4 @@
-import { Prisma } from "@/generated/prisma-node/client";
+import { Prisma } from "@/generated/prisma/client";
 import { logAppEvent } from "@/lib/log/app-logger";
 import { deleteStorageObject } from "@/lib/storage/r2-object";
 

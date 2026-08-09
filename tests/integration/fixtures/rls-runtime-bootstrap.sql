@@ -471,7 +471,19 @@ GRANT EXECUTE ON FUNCTION
     text,
     timestamp without time zone
   ),
-  public.get_public_profile_section_subscription_count(text)
+  public.get_public_profile_section_subscription_count(text),
+  public.claim_upload_pending_storage_cleanup(
+    timestamp without time zone,
+    integer,
+    integer
+  ),
+  public.finalize_upload_pending_storage_cleanup(text, text),
+  public.release_upload_pending_storage_cleanup(
+    text,
+    text,
+    timestamp without time zone,
+    integer
+  )
 TO life_ustc_runtime;
 
 GRANT CONNECT

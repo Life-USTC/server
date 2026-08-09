@@ -6,6 +6,7 @@ import {
   normalizeCatalogListQuery,
   resolveCatalogListPublicSsrMode,
 } from "./features/catalog/lib/catalog-list-query";
+import { cleanupStaleUploadPendingStorage } from "./features/uploads/server/upload-pending-cleanup";
 import { runWithCloudflareRuntimeEnv } from "./lib/adapters/cloudflare-runtime";
 import { CATALOG_EDGE_CACHE_TAG } from "./lib/catalog-edge-cache-tag";
 import {
@@ -30,6 +31,7 @@ import {
   resolveTeacherDetailTabRedirect,
   shouldRoutePublicSsrCache,
 } from "./lib/cloudflare/public-ssr-gateway";
+import { prisma } from "./lib/db/prisma";
 import { buildContentSecurityPolicy } from "./lib/security/csp";
 import { CONTENT_SIGNAL } from "./lib/seo/content-signal";
 
@@ -287,6 +289,19 @@ export default {
     await runWithCloudflareRuntimeEnv(
       env,
       () => handleCalendarExportRebuildBatch(batch),
+      context,
+    );
+  },
+  async scheduled(controller, env, context) {
+    void controller;
+    await runWithCloudflareRuntimeEnv(
+      env,
+      async () => {
+        const report = await cleanupStaleUploadPendingStorage(prisma);
+        console.log(
+          `Upload pending storage cleanup completed: ${JSON.stringify(report)}`,
+        );
+      },
       context,
     );
   },
