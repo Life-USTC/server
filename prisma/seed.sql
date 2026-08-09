@@ -1,3 +1,13 @@
+\if :{?allow_database_seed}
+\else
+DO $seed_guard$
+BEGIN
+  RAISE EXCEPTION
+    'Refusing to run prisma/seed.sql without the explicit allow_database_seed psql variable.';
+END
+$seed_guard$;
+\endif
+
 BEGIN;
 SET CONSTRAINTS ALL DEFERRED;
 
@@ -850,6 +860,46 @@ SELECT pg_catalog.setval('public."VerifiedEmail_id_seq"', 1, true);
 --
 -- PostgreSQL database dump complete
 --
+
+-- Keep the generated snapshot's fixed sequence values from moving a reused
+-- database backwards. This also repairs databases seeded by older snapshots.
+DO $$
+DECLARE
+  item record;
+  table_max bigint;
+  sequence_last bigint;
+  sequence_called boolean;
+BEGIN
+  FOR item IN
+    SELECT
+      seq_ns.nspname AS sequence_schema,
+      seq.relname AS sequence_name,
+      tbl_ns.nspname AS table_schema,
+      tbl.relname AS table_name,
+      attr.attname AS column_name
+    FROM pg_class AS seq
+    JOIN pg_namespace AS seq_ns ON seq_ns.oid = seq.relnamespace
+    JOIN pg_depend AS dep ON dep.objid = seq.oid AND dep.deptype IN ('a', 'i')
+    JOIN pg_class AS tbl ON tbl.oid = dep.refobjid
+    JOIN pg_namespace AS tbl_ns ON tbl_ns.oid = tbl.relnamespace
+    JOIN pg_attribute AS attr ON attr.attrelid = tbl.oid AND attr.attnum = dep.refobjsubid
+    WHERE seq.relkind = 'S' AND tbl_ns.nspname = 'public'
+  LOOP
+    EXECUTE format('SELECT max(%I)::bigint FROM %I.%I', item.column_name, item.table_schema, item.table_name)
+      INTO table_max;
+    EXECUTE format('SELECT last_value::bigint, is_called FROM %I.%I', item.sequence_schema, item.sequence_name)
+      INTO sequence_last, sequence_called;
+    IF table_max IS NOT NULL
+      AND (sequence_last < table_max OR (NOT sequence_called AND sequence_last = table_max))
+    THEN
+      PERFORM setval(
+        format('%I.%I', item.sequence_schema, item.sequence_name)::regclass,
+        table_max,
+        true
+      );
+    END IF;
+  END LOOP;
+END $$;
 
 
 

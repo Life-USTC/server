@@ -37,13 +37,16 @@ const protectedTables = [
 ] as const;
 
 const expectedRuntimeFunctionPrivileges = [
+  "public.claim_upload_pending_storage_cleanup(p_now timestamp without time zone, p_batch_size integer, p_lease_seconds integer):EXECUTE",
   "public.comment_attachment_summaries(p_comment_ids text[]):EXECUTE",
   "public.comment_hidden_root_count(p_section_id integer, p_course_id integer, p_teacher_id integer, p_homework_id text, p_section_teacher_id integer):EXECUTE",
   "public.comment_reaction_summaries(comment_ids text[]):EXECUTE",
+  "public.finalize_upload_pending_storage_cleanup(p_id text, p_attempt_id text):EXECUTE",
   "public.find_downloadable_upload(p_upload_id text):EXECUTE",
   "public.get_public_profile_homework_completions(p_user_id text, p_since timestamp without time zone):EXECUTE",
   "public.get_public_profile_section_subscription_count(p_user_id text):EXECUTE",
   "public.get_public_profile_upload_stats(p_user_id text, p_since timestamp without time zone):EXECUTE",
+  "public.release_upload_pending_storage_cleanup(p_id text, p_attempt_id text, p_now timestamp without time zone, p_retry_lease_seconds integer):EXECUTE",
 ] as const;
 
 describe.skipIf(process.env.RLS_TEST_ENABLED !== "true")(
