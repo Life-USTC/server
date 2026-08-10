@@ -80,7 +80,7 @@
     "tailwind-variants": "^3.2.2",
     "unified": "^11.0.5",
     "unist-util-visit": "^5.1.0",
-    "zod": "4.3.6"
+    "zod": "4.4.3"
   },
   "devDependencies": {
     "@biomejs/biome": "2.4.13",
