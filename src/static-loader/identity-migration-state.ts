@@ -5,6 +5,7 @@ export const RAW_JWID_MIGRATION_ID = "raw-jwid-v1";
 export const LEGACY_STATIC_IDENTITY_INDEXES = [
   "Campus_nameCn_key",
   "AdminClass_nameCn_key",
+  "Department_code_key",
   "ExamBatch_nameCn_key",
   "TeacherTitle_nameCn_key",
   "Room_buildingId_code_key",

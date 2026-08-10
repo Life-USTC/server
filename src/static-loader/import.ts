@@ -1141,24 +1141,6 @@ async function upsertDepartments(
   builds: DepartmentBuild[],
   placeholders: DepartmentPlaceholderRequest[],
 ): Promise<Map<string, number>> {
-  const incomingCodes = [...new Set(builds.map((build) => build.code))];
-  const existingByCode = new Map(
-    (
-      await tx.department.findMany({
-        where: { code: { in: incomingCodes } },
-        select: { id: true, jwId: true, code: true },
-      })
-    ).map((row) => [row.code, row] as const),
-  );
-  for (const build of builds) {
-    const existing = existingByCode.get(build.code);
-    if (existing != null && existing.jwId !== build.jwId) {
-      throw new Error(
-        `Authoritative Department jwId ${build.jwId} conflicts with existing code-only or different-jwId row for code ${build.code}`,
-      );
-    }
-  }
-
   const jwIdToId = new Map<number, number>();
   for (const build of builds) {
     const result = await tx.department.upsert({
@@ -1179,38 +1161,30 @@ async function upsertDepartments(
     });
     jwIdToId.set(build.jwId, result.id);
   }
-  for (const placeholder of placeholders) {
-    const existing = await tx.department.findUnique({
-      where: { code: placeholder.code },
-      select: { id: true, jwId: true },
-    });
-    if (existing?.jwId != null) {
-      throw new Error(
-        `Code-only Department reference ${placeholder.code} conflicts with authoritative jwId ${existing.jwId}`,
-      );
-    }
-    if (existing == null) {
-      await tx.department.create({
-        data: {
-          jwId: null,
-          code: placeholder.code,
-          nameCn: placeholder.nameCn,
-          isCollege: false,
-        },
-      });
-    }
-  }
   const map = new Map<string, number>();
   for (const build of builds) {
     const id = jwIdToId.get(build.jwId);
     if (id != null) map.set(build.code, id);
   }
   for (const placeholder of placeholders) {
-    const row = await tx.department.findUnique({
-      where: { code: placeholder.code },
+    const existing = await tx.department.findFirst({
+      where: { code: placeholder.code, jwId: null },
       select: { id: true },
     });
-    if (row != null) map.set(placeholder.code, row.id);
+    const id =
+      existing?.id ??
+      (
+        await tx.department.create({
+          data: {
+            jwId: null,
+            code: placeholder.code,
+            nameCn: placeholder.nameCn,
+            isCollege: false,
+          },
+          select: { id: true },
+        })
+      ).id;
+    map.set(placeholder.code, id);
   }
   return map;
 }
