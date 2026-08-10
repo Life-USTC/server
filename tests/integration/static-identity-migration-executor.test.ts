@@ -447,6 +447,88 @@ describe("identity migration executor", () => {
     }
   });
 
+  it("rebuilds a SectionTeacher relation with a raw Teacher jwId", async () => {
+    const rollback = new Error("ROLLBACK_SECTION_TEACHER_IDENTITY");
+    const marker = 720_000_000 + (Date.now() % 10_000_000);
+    const teacherJwId = marker + 1;
+    try {
+      await prisma.$transaction(async (tx) => {
+        const course = await tx.course.create({
+          data: {
+            jwId: marker,
+            code: `SECTION-TEACHER-${marker}`,
+            nameCn: `教师关系测试课程 ${marker}`,
+          },
+          select: { id: true, jwId: true, code: true, nameCn: true },
+        });
+        const teacher = await tx.teacher.create({
+          data: {
+            jwId: null,
+            teacherId: teacherJwId,
+            nameCn: `关系教师 ${teacherJwId}`,
+          },
+          select: {
+            id: true,
+            jwId: true,
+            teacherId: true,
+            personId: true,
+            code: true,
+            nameCn: true,
+          },
+        });
+        const section = await tx.section.create({
+          data: {
+            jwId: marker,
+            code: `SECTION-${marker}`,
+            courseId: course.id,
+          },
+          select: { id: true, jwId: true, courseId: true, campusId: true },
+        });
+        const relation = await tx.sectionTeacher.create({
+          data: { sectionId: section.id, teacherId: teacher.id },
+          select: { id: true, sectionId: true, teacherId: true },
+        });
+        const snapshotState = snapshot(marker, marker);
+        snapshotState.teachers = [
+          { jwId: teacherJwId, nameCn: teacher.nameCn },
+        ];
+        snapshotState.sectionTeachers = [
+          { sectionJwId: section.jwId, teacherJwId },
+        ];
+        const databaseState = database(course);
+        databaseState.sections = [section];
+        databaseState.teachers = [
+          {
+            ...teacher,
+            directCommentCount: 0,
+            description: null,
+          },
+        ];
+        databaseState.sectionTeachers = [
+          { ...relation, directCommentCount: 0 },
+        ];
+        const plan = buildIdentityMigrationPlan(snapshotState, databaseState);
+        expect(plan.blockers).toEqual([]);
+
+        await applyIdentityMigrationPlan(
+          tx,
+          plan,
+          snapshotState,
+          databaseState,
+        );
+
+        expect(
+          await tx.sectionTeacher.findFirst({
+            where: { sectionId: section.id, teacher: { jwId: teacherJwId } },
+          }),
+        ).not.toBeNull();
+        throw rollback;
+      });
+    } catch (error) {
+      if (error !== rollback) throw error;
+    }
+  });
+
   it("rejects a blocked plan before mutating the database", async () => {
     const blocked = buildIdentityMigrationPlan(
       snapshot(700_000_001, 700_000_000),
