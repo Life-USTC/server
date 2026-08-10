@@ -251,7 +251,18 @@ function planCourses(
     }
     const targetJwIds = sortedNumbers(targets);
     if (targetJwIds.length === 0) {
-      addUnmappedBlocker("course", course.id, blockers);
+      addUnmappedBlocker(
+        "course",
+        course.id,
+        blockers,
+        stableJson({
+          jwId: course.jwId,
+          code: course.code,
+          nameCn: course.nameCn,
+          directCommentCount: course.directCommentCount,
+          descriptionId: course.description?.id ?? null,
+        }),
+      );
     }
     const hasDirectUgc =
       course.directCommentCount > 0 || hasNonemptyDescription(course);
@@ -377,7 +388,7 @@ function planSimpleEntities(
       targetJwIds.length === 0 &&
       !resolved.provenance.includes("placeholder")
     ) {
-      addUnmappedBlocker(entity, row.id, blockers);
+      addUnmappedBlocker(entity, row.id, blockers, stableJson(row));
     }
     if (entity === "department" && targetJwIds.length > 1) {
       blockers.push({
@@ -637,7 +648,20 @@ function planTeachers(
     }
     const targetJwIds = sortedNumbers(targets);
     if (targetJwIds.length === 0) {
-      addUnmappedBlocker("teacher", teacher.id, blockers);
+      addUnmappedBlocker(
+        "teacher",
+        teacher.id,
+        blockers,
+        stableJson({
+          jwId: teacher.jwId,
+          teacherId: teacher.teacherId,
+          personId: teacher.personId,
+          code: teacher.code,
+          nameCn: teacher.nameCn,
+          directCommentCount: teacher.directCommentCount,
+          descriptionId: teacher.description?.id ?? null,
+        }),
+      );
     }
     if (
       (teacher.directCommentCount > 0 || hasNonemptyDescription(teacher)) &&
@@ -891,12 +915,13 @@ function addUnmappedBlocker(
   entity: MappingEntity,
   legacyId: number,
   blockers: IdentityMigrationBlocker[],
+  context: string,
 ) {
   blockers.push({
     code: "LEGACY_ENTITY_UNMAPPED",
     entity,
     legacyId,
-    detail: `${entity} ${legacyId} has no provable raw jwId`,
+    detail: `${entity} ${legacyId} has no provable raw jwId: ${context}`,
   });
 }
 
