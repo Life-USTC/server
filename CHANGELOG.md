@@ -1,3 +1,10 @@
+## [1.89.8](https://github.com/Life-USTC/server/compare/v1.89.7...v1.89.8) (2026-08-10)
+
+
+### Bug Fixes
+
+* **static:** serialize section teacher inserts ([7bc7289](https://github.com/Life-USTC/server/commit/7bc728900cf9a2c2e971fc227f8cd38e316bac7d))
+
 ## [1.89.7](https://github.com/Life-USTC/server/compare/v1.89.6...v1.89.7) (2026-08-10)
 
 
