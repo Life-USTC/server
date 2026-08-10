@@ -1,6 +1,7 @@
 export type AdminCreateOAuthClientInput = {
   headers: Headers;
   body: {
+    application_type: "native" | "web";
     client_name: string;
     redirect_uris: string[];
     token_endpoint_auth_method: string;

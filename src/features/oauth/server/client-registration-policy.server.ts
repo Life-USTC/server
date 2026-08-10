@@ -112,6 +112,7 @@ export function prepareOAuthClientRegistrationDelegation(
       ...(delegatedRedirectUris
         ? { redirect_uris: delegatedRedirectUris }
         : {}),
+      ...(shouldInjectRedirectUri ? { application_type: "native" } : {}),
     },
     deviceRegistration: {
       grantTypes: requestedGrantTypes,

@@ -82,6 +82,11 @@ describe("admin OAuth action error logging", () => {
     );
 
     expect(result).toMatchObject({ status: 500 });
+    expect(adminCreateOAuthClientMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        body: expect.objectContaining({ application_type: "web" }),
+      }),
+    );
     expect(logServerActionErrorMock).toHaveBeenCalledWith(
       "admin.oauth-client.create.failed",
       expect.any(Error),
@@ -90,6 +95,31 @@ describe("admin OAuth action error logging", () => {
         requestId: "request-create",
         route: "/admin/oauth",
       },
+    );
+  });
+
+  it("classifies public PKCE clients as native applications", async () => {
+    parseAdminOAuthCreateRequestMock.mockResolvedValue({
+      value: {
+        name: "Native client",
+        redirectUris: ["http://127.0.0.1/callback"],
+        scopes: ["openid"],
+        tokenEndpointAuthMethod: "none",
+      },
+    });
+    adminCreateOAuthClientMock.mockResolvedValue({
+      client_id: "native-client",
+    });
+    const { createAdminOAuthClientAction } = await import(
+      "@/features/admin/server/admin-oauth-create-action"
+    );
+
+    await createAdminOAuthClientAction(request(), "en-us", "request-native");
+
+    expect(adminCreateOAuthClientMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        body: expect.objectContaining({ application_type: "native" }),
+      }),
     );
   });
 

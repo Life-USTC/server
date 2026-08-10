@@ -543,7 +543,7 @@ model Teacher {
   id   Int  @id @default(autoincrement())
   jwId Int? @unique
 
-  personId Int?
+  personId  Int?
   /// Legacy provenance retained for the snapshot-backed data migration; new imports use jwId.
   teacherId Int?
   code      String?
@@ -771,7 +771,7 @@ model TeacherTitle {
   code    String
   enabled Boolean?
 
-  teachers Teacher[]
+  teachers           Teacher[]
   teacherAssignments TeacherAssignment[]
 
   @@index([jwId])
@@ -1336,14 +1336,14 @@ model BusUserPreference {
 model OAuthClient {
   id String @id @default(cuid())
 
-  clientId               String   @unique
-  clientSecret           String?
-  clientDiscoveryId      String?
-  disabled               Boolean  @default(false)
-  skipConsent            Boolean?
-  enableEndSession       Boolean?
-  subjectType            String?
-  scopes                 String[] @default([])
+  clientId                String   @unique
+  clientSecret            String?
+  clientDiscoveryId       String?
+  disabled                Boolean  @default(false)
+  skipConsent             Boolean?
+  enableEndSession        Boolean?
+  subjectType             String?
+  scopes                  String[] @default([])
   clientCredentialsScopes String[] @default([])
 
   userId String?
@@ -1546,9 +1546,9 @@ model OauthClientResource {
   metadata  Json?
   createdAt DateTime @default(now())
 
+  @@unique([clientId, resourceId])
   @@index([clientId])
   @@index([resourceId])
-  @@unique([clientId, resourceId])
   @@map("oauthClientResource")
 }
 
