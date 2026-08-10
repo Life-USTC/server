@@ -20,15 +20,16 @@ function requiredEnvironment(name: string) {
 function summarizePlan(plan: IdentityMigrationPlan) {
   const blockersByKind = new Map<
     string,
-    { count: number; example: (typeof plan.blockers)[number] }
+    { count: number; examples: (typeof plan.blockers)[number][] }
   >();
   for (const blocker of plan.blockers) {
     const key = `${blocker.code}:${blocker.entity}`;
     const existing = blockersByKind.get(key);
     if (existing == null) {
-      blockersByKind.set(key, { count: 1, example: blocker });
+      blockersByKind.set(key, { count: 1, examples: [blocker] });
     } else {
       existing.count += 1;
+      if (existing.examples.length < 10) existing.examples.push(blocker);
     }
   }
   const blockerGroups = [...blockersByKind.entries()].sort(([left], [right]) =>
@@ -39,7 +40,9 @@ function summarizePlan(plan: IdentityMigrationPlan) {
     blockerCountsByCodeAndEntity: Object.fromEntries(
       blockerGroups.map(([kind, group]) => [kind, group.count]),
     ),
-    blockerExamples: blockerGroups.map(([, group]) => group.example),
+    blockerExamplesByCodeAndEntity: Object.fromEntries(
+      blockerGroups.map(([kind, group]) => [kind, group.examples]),
+    ),
   };
 }
 
