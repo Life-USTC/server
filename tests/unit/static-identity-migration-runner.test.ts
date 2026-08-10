@@ -140,6 +140,26 @@ describe("identity migration runner", () => {
     expect(test.applyCalls()).toBe(0);
   });
 
+  it("fails a blocked dry-run instead of reporting it as planned", async () => {
+    const database = emptyDatabase();
+    database.legacyIdentityConstraintsPresent = false;
+    const test = harness(database);
+
+    await expect(
+      runIdentityMigration(
+        test.prisma,
+        {
+          snapshotPath: "snapshot.db",
+          expectedSnapshotSha256: SHA,
+          dryRun: true,
+        },
+        test.dependencies,
+      ),
+    ).rejects.toBeInstanceOf(IdentityMigrationBlockedError);
+    expect(test.events).toEqual(["SET TRANSACTION READ ONLY", "lock", "read"]);
+    expect(test.applyCalls()).toBe(0);
+  });
+
   it("returns same-SHA completed as a zero-write operation", async () => {
     const database = emptyDatabase();
     database.migrationState = {

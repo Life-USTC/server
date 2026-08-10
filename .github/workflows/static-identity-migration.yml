@@ -77,10 +77,12 @@ jobs:
         run: bun run static:migrate-identities
 
       - name: Report migration plan
-        if: success()
+        if: always()
         run: |
-          echo '## Static Identity Migration' >> "$GITHUB_STEP_SUMMARY"
-          echo '```json' >> "$GITHUB_STEP_SUMMARY"
-          cat /tmp/static-identity-migration-report.json >> "$GITHUB_STEP_SUMMARY"
-          echo '' >> "$GITHUB_STEP_SUMMARY"
-          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          if test -f /tmp/static-identity-migration-report.json; then
+            echo '## Static Identity Migration' >> "$GITHUB_STEP_SUMMARY"
+            echo '```json' >> "$GITHUB_STEP_SUMMARY"
+            cat /tmp/static-identity-migration-report.json >> "$GITHUB_STEP_SUMMARY"
+            echo '' >> "$GITHUB_STEP_SUMMARY"
+            echo '```' >> "$GITHUB_STEP_SUMMARY"
+          fi

@@ -5,6 +5,7 @@ import {
   IdentityMigrationBlockedError,
   runIdentityMigration,
 } from "./identity-migration/runner";
+import type { IdentityMigrationPlan } from "./identity-migration/types";
 import { createPrismaClient } from "./prisma";
 import {
   parseBooleanSetting,
@@ -18,6 +19,26 @@ function requiredEnvironment(name: string) {
     throw new Error(`Environment variable ${name} is required`);
   }
   return value;
+}
+
+const MAX_REPORTED_BLOCKERS = 100;
+
+function summarizePlan(plan: IdentityMigrationPlan) {
+  return {
+    report: plan.report,
+    blockers: plan.blockers.slice(0, MAX_REPORTED_BLOCKERS),
+    omittedBlockerCount: Math.max(
+      0,
+      plan.blockers.length - MAX_REPORTED_BLOCKERS,
+    ),
+  };
+}
+
+async function writeReport(report: unknown) {
+  const serialized = JSON.stringify(report, null, 2);
+  console.log(serialized);
+  const reportPath = process.env.STATIC_IDENTITY_MIGRATION_REPORT_FILE;
+  if (reportPath) await writeFile(reportPath, serialized);
 }
 
 async function main() {
@@ -52,14 +73,20 @@ async function main() {
       dryRun,
       minSemester,
     });
-    console.log(JSON.stringify(report, null, 2));
-    const reportPath = process.env.STATIC_IDENTITY_MIGRATION_REPORT_FILE;
-    if (reportPath) {
-      await writeFile(reportPath, JSON.stringify(report, null, 2));
-    }
+    await writeReport({
+      mode: report.mode,
+      outcome: report.outcome,
+      ...summarizePlan(report.plan),
+      applied: report.applied,
+    });
   } catch (error) {
     if (error instanceof IdentityMigrationBlockedError) {
-      console.error(JSON.stringify(error.plan, null, 2));
+      await writeReport({
+        mode: dryRun ? "dry-run" : "apply",
+        outcome: "blocked",
+        ...summarizePlan(error.plan),
+        applied: null,
+      });
     }
     throw error;
   } finally {
@@ -68,6 +95,9 @@ async function main() {
 }
 
 main().catch((error) => {
-  console.error("Identity migration failed:", error);
+  console.error(
+    "Identity migration failed:",
+    error instanceof Error ? error.message : String(error),
+  );
   process.exitCode = 1;
 });
