@@ -104,6 +104,10 @@ async function ensureEntityTargets(
 ) {
   let created = 0;
   const recovered: Array<{ legacyId: number; targetJwId: number }> = [];
+  const historical = new Map<
+    EntityMapping["entity"],
+    Array<{ legacyId: number; targetJwId: number }>
+  >();
   const targets = new Map<
     EntityMapping["entity"],
     Array<{ legacyId: number; source: SnapshotEntity }>
@@ -115,7 +119,12 @@ async function ensureEntityTargets(
     for (const targetJwId of mapping.targetJwIds) {
       const source = snapshotByEntity.get(mapping.entity)?.get(targetJwId);
       if (source == null) {
-        if (mapping.provenance.includes("historical")) continue;
+        if (mapping.provenance.includes("historical")) {
+          const entityRows = historical.get(mapping.entity) ?? [];
+          entityRows.push({ legacyId: mapping.legacyId, targetJwId });
+          historical.set(mapping.entity, entityRows);
+          continue;
+        }
         if (
           mapping.entity === "course" &&
           mapping.provenance.includes("recovered") &&
@@ -152,6 +161,24 @@ async function ensureEntityTargets(
          )`,
       recovered.map((item) => item.legacyId),
       recovered.map((item) => item.targetJwId),
+    );
+  }
+  for (const [entity, entityRows] of historical) {
+    await tx.$executeRawUnsafe(
+      `WITH input("legacyId", "targetJwId") AS (
+         SELECT * FROM UNNEST($1::int[], $2::int[])
+       )
+       UPDATE "${tableForEntity(entity)}" source
+       SET "jwId" = input."targetJwId"
+       FROM input
+       WHERE source."id" = input."legacyId"
+         AND source."jwId" IS NULL
+         AND NOT EXISTS (
+           SELECT 1 FROM "${tableForEntity(entity)}" target
+           WHERE target."jwId" = input."targetJwId"
+         )`,
+      entityRows.map((item) => item.legacyId),
+      entityRows.map((item) => item.targetJwId),
     );
   }
   for (const [entity, entityTargets] of targets) {

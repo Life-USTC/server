@@ -389,6 +389,64 @@ describe("identity migration executor", () => {
     }
   });
 
+  it("promotes a historical Teacher upstream ID into jwId", async () => {
+    const rollback = new Error("ROLLBACK_HISTORICAL_TEACHER_IDENTITY");
+    const marker = 710_000_000 + (Date.now() % 10_000_000);
+    const historicalJwId = marker + 1;
+    try {
+      await prisma.$transaction(async (tx) => {
+        const course = await tx.course.create({
+          data: {
+            jwId: marker,
+            code: `HISTORICAL-TEACHER-${marker}`,
+            nameCn: `历史教师测试课程 ${marker}`,
+          },
+          select: { id: true, jwId: true, code: true, nameCn: true },
+        });
+        const teacher = await tx.teacher.create({
+          data: {
+            jwId: null,
+            teacherId: historicalJwId,
+            nameCn: `历史教师 ${historicalJwId}`,
+          },
+          select: {
+            id: true,
+            jwId: true,
+            teacherId: true,
+            personId: true,
+            code: true,
+            nameCn: true,
+          },
+        });
+        const snapshotState = snapshot(marker, marker);
+        const databaseState = database(course);
+        databaseState.teachers = [
+          {
+            ...teacher,
+            directCommentCount: 0,
+            description: null,
+          },
+        ];
+        const plan = buildIdentityMigrationPlan(snapshotState, databaseState);
+        expect(plan.blockers).toEqual([]);
+
+        await applyIdentityMigrationPlan(
+          tx,
+          plan,
+          snapshotState,
+          databaseState,
+        );
+
+        expect(
+          await tx.teacher.findUnique({ where: { id: teacher.id } }),
+        ).toMatchObject({ jwId: historicalJwId });
+        throw rollback;
+      });
+    } catch (error) {
+      if (error !== rollback) throw error;
+    }
+  });
+
   it("rejects a blocked plan before mutating the database", async () => {
     const blocked = buildIdentityMigrationPlan(
       snapshot(700_000_001, 700_000_000),
