@@ -1,3 +1,10 @@
+## [1.89.1](https://github.com/Life-USTC/server/compare/v1.89.0...v1.89.1) (2026-08-10)
+
+
+### Bug Fixes
+
+* **static:** retain historical upstream identities ([2a285f7](https://github.com/Life-USTC/server/commit/2a285f78a3e05b3446fb22227a8444398b02a146))
+
 # [1.89.0](https://github.com/Life-USTC/server/compare/v1.88.3...v1.89.0) (2026-08-09)
 
 
