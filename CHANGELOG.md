@@ -1,3 +1,10 @@
+## [1.89.5](https://github.com/Life-USTC/server/compare/v1.89.4...v1.89.5) (2026-08-10)
+
+
+### Bug Fixes
+
+* **static:** retire department code identity ([5633f7a](https://github.com/Life-USTC/server/commit/5633f7ad2b924be71600f7a1c8640a5c38a147b3))
+
 ## [1.89.4](https://github.com/Life-USTC/server/compare/v1.89.3...v1.89.4) (2026-08-10)
 
 
