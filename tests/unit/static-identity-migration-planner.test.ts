@@ -93,7 +93,6 @@ function databaseState(): DatabaseState {
         description: null,
       },
     ],
-    courseAliases: [{ jwId: 99, courseId: 1 }],
     sections: [
       { id: 11, jwId: 201, courseId: 1, campusId: null },
       { id: 12, jwId: 202, courseId: 1, campusId: null },
@@ -159,13 +158,13 @@ function databaseState(): DatabaseState {
 }
 
 describe("identity migration planner", () => {
-  it("plans raw, synthetic, alias, same-name, and person-split identities", () => {
+  it("plans raw, synthetic, same-name, and person-split identities", () => {
     const plan = buildIdentityMigrationPlan(snapshotState(), databaseState());
 
     expect(plan.mode).toBe("plan");
     expect(plan.blockers).toEqual([]);
     expect(plan.report.splitCounts).toEqual({
-      courses: 1,
+      courses: 0,
       adminClasses: 1,
       teachers: 1,
       retainedDepartmentPlaceholders: 0,
@@ -177,8 +176,8 @@ describe("identity migration planner", () => {
     ).toEqual({
       entity: "course",
       legacyId: 1,
-      targetJwIds: [99, 101],
-      provenance: ["alias", "synthetic"],
+      targetJwIds: [101],
+      provenance: ["synthetic"],
     });
     expect(
       plan.edgeMappings.filter((edge) => edge.entity === "sectionAdminClass"),
@@ -379,7 +378,7 @@ describe("identity migration planner", () => {
     });
   });
 
-  it("blocks alias provenance loss and multi-target teacher UGC", () => {
+  it("blocks multi-target teacher UGC", () => {
     const database = databaseState();
     database.courses = [{ ...database.courses[0], directCommentCount: 2 }];
     database.teachers = [{ ...database.teachers[0], directCommentCount: 1 }];
@@ -390,11 +389,6 @@ describe("identity migration planner", () => {
       ),
     ).toEqual([
       {
-        code: "COURSE_ALIAS_UGC_PROVENANCE_LOST",
-        entity: "course",
-        legacyId: 1,
-      },
-      {
         code: "UGC_MULTI_TARGET",
         entity: "teacher",
         legacyId: 6,
@@ -402,19 +396,8 @@ describe("identity migration planner", () => {
     ]);
   });
 
-  it("never promotes a stale CourseAlias to a snapshot target", () => {
-    const snapshot = snapshotState();
-    snapshot.courses = snapshot.courses.filter((course) => course.jwId !== 99);
-
-    const plan = buildIdentityMigrationPlan(snapshot, databaseState());
-
-    expect(plan.blockers).toContainEqual(
-      expect.objectContaining({
-        code: "COURSE_ALIAS_TARGET_NOT_IN_SNAPSHOT",
-        legacyId: 1,
-        sourceJwId: 99,
-      }),
-    );
+  it("never promotes an obsolete CourseAlias into a source target", () => {
+    const plan = buildIdentityMigrationPlan(snapshotState(), databaseState());
     expect(
       plan.entityMappings.find(
         (mapping) => mapping.entity === "course" && mapping.legacyId === 1,
@@ -426,7 +409,6 @@ describe("identity migration planner", () => {
     const snapshot = snapshotState();
     snapshot.courses = snapshot.courses.filter((course) => course.jwId === 101);
     const database = databaseState();
-    database.courseAliases = [];
     database.courses = [
       {
         ...database.courses[0],
@@ -530,13 +512,7 @@ describe("identity migration planner", () => {
 
     expect(
       buildIdentityMigrationPlan(snapshotState(), database).blockers,
-    ).toContainEqual(
-      expect.objectContaining({
-        code: "COURSE_ALIAS_UGC_PROVENANCE_LOST",
-        entity: "course",
-        legacyId: 1,
-      }),
-    );
+    ).toEqual([]);
   });
 
   it("blocks UGC when a historical synthetic ID collides across raw courses", () => {
@@ -567,7 +543,6 @@ describe("identity migration planner", () => {
         description: null,
       },
     ];
-    database.courseAliases = [];
     database.sections = [];
 
     expect(

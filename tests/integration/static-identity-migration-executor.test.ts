@@ -70,7 +70,6 @@ function database(course: {
         description: null,
       },
     ],
-    courseAliases: [],
     sections: [],
     adminClasses: [],
     sectionAdminClasses: [],

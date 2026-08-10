@@ -86,7 +86,6 @@ export type DatabaseState = {
     completed: boolean;
   } | null;
   courses: readonly DatabaseCourse[];
-  courseAliases: readonly { jwId: number; courseId: number }[];
   sections: readonly {
     id: number;
     jwId: number;
@@ -166,8 +165,6 @@ export type IdentityMigrationBlockerCode =
   | "SOURCE_EDGE_UNMAPPED"
   | "LEGACY_EDGE_MULTI_TARGET"
   | "UGC_MULTI_TARGET"
-  | "COURSE_ALIAS_UGC_PROVENANCE_LOST"
-  | "COURSE_ALIAS_TARGET_NOT_IN_SNAPSHOT"
   | "DESCRIPTION_CONFLICT";
 
 export type IdentityMigrationBlocker = {

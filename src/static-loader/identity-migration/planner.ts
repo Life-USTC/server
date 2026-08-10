@@ -231,11 +231,6 @@ function planCourses(
     ),
     (entry) => entry.legacyJwId,
   );
-  const aliasesByCourseId = groupBy(
-    database.courseAliases,
-    (row) => row.courseId,
-  );
-
   for (const course of database.courses) {
     const targets = new Set<number>();
     const provenance = new Set<Provenance>();
@@ -246,22 +241,6 @@ function planCourses(
     for (const target of bySynthetic.get(course.jwId) ?? []) {
       targets.add(target.row.jwId);
       provenance.add("synthetic");
-    }
-    const aliases = aliasesByCourseId.get(course.id) ?? [];
-    const validAliases = aliases.filter((alias) => {
-      if (rawByJwId.has(alias.jwId)) return true;
-      blockers.push({
-        code: "COURSE_ALIAS_TARGET_NOT_IN_SNAPSHOT",
-        entity: "course",
-        legacyId: course.id,
-        sourceJwId: alias.jwId,
-        detail: `Course alias ${alias.jwId} for ${course.id} is absent from the fixed snapshot`,
-      });
-      return false;
-    });
-    for (const alias of validAliases) {
-      targets.add(alias.jwId);
-      provenance.add("alias");
     }
     if (targets.size === 0 && course.code != null && course.code !== "") {
       const codeMatches = byCode.get(course.code) ?? [];
@@ -276,14 +255,7 @@ function planCourses(
     }
     const hasDirectUgc =
       course.directCommentCount > 0 || hasNonemptyDescription(course);
-    if (hasDirectUgc && validAliases.length > 0 && targetJwIds.length > 1) {
-      blockers.push({
-        code: "COURSE_ALIAS_UGC_PROVENANCE_LOST",
-        entity: "course",
-        legacyId: course.id,
-        detail: `Course ${course.id} has UGC and multiple source-backed alias targets whose original raw source cannot be recovered`,
-      });
-    } else if (hasDirectUgc && targetJwIds.length > 1) {
+    if (hasDirectUgc && targetJwIds.length > 1) {
       addUgcBlocker("course", course.id, targetJwIds, blockers);
     }
     mappings.push({
