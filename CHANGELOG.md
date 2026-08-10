@@ -1,3 +1,10 @@
+## [1.89.9](https://github.com/Life-USTC/server/compare/v1.89.8...v1.89.9) (2026-08-10)
+
+
+### Bug Fixes
+
+* **static:** bound createMany batches ([06a9365](https://github.com/Life-USTC/server/commit/06a936593c637c5dc8e387668e4b4fe0fd7f4dec))
+
 ## [1.89.8](https://github.com/Life-USTC/server/compare/v1.89.7...v1.89.8) (2026-08-10)
 
 
