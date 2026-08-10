@@ -93,7 +93,6 @@ function databaseState(): DatabaseState {
         description: null,
       },
     ],
-    courseAliases: [],
     sections: [
       { id: 11, jwId: 201, courseId: 1, campusId: null },
       { id: 12, jwId: 202, courseId: 1, campusId: null },
@@ -435,14 +434,13 @@ describe("identity migration planner", () => {
     });
   });
 
-  it("restores a synthetic Course from its single recorded raw jwId", () => {
+  it("restores a synthetic Course from the verified catalog recovery map", () => {
     const snapshot = snapshotState();
     snapshot.courses = [];
     snapshot.sectionCourses = [];
     const database = databaseState();
-    database.courseAliases = [
-      { jwId: 145_964, courseId: 1 },
-      { jwId: 1_600_000_001, courseId: 1 },
+    database.courses = [
+      { ...database.courses[0], jwId: 1_649_808_882, code: "001010" },
     ];
     database.sections = [];
     database.sectionAdminClasses = [];
@@ -455,23 +453,9 @@ describe("identity migration planner", () => {
     expect(plan.entityMappings).toContainEqual({
       entity: "course",
       legacyId: 1,
-      targetJwIds: [145_964],
-      provenance: ["alias"],
+      targetJwIds: [7_070],
+      provenance: ["recovered"],
     });
-
-    database.courseAliases = [
-      { jwId: 145_964, courseId: 1 },
-      { jwId: 145_965, courseId: 1 },
-    ];
-    expect(
-      buildIdentityMigrationPlan(snapshot, database).blockers,
-    ).toContainEqual(
-      expect.objectContaining({
-        code: "LEGACY_ENTITY_MULTI_TARGET",
-        entity: "course",
-        legacyId: 1,
-      }),
-    );
   });
 
   it("drops source-less Teacher rows and relations only when they have no UGC", () => {

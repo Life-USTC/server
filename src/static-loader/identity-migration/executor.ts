@@ -120,7 +120,7 @@ async function ensureEntityTargets(
       if (mapping.provenance.includes("historical")) continue;
       if (
         mapping.entity === "course" &&
-        mapping.provenance.includes("alias") &&
+        mapping.provenance.includes("recovered") &&
         mapping.targetJwIds.length === 1
       ) {
         await tx.$executeRawUnsafe(

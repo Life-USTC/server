@@ -86,7 +86,6 @@ export type DatabaseState = {
     completed: boolean;
   } | null;
   courses: readonly DatabaseCourse[];
-  courseAliases: readonly { jwId: number; courseId: number }[];
   sections: readonly {
     id: number;
     jwId: number;
@@ -196,7 +195,7 @@ export type EntityMapping = {
   provenance: Array<
     | "raw"
     | "historical"
-    | "alias"
+    | "recovered"
     | "synthetic"
     | "code"
     | "name"
