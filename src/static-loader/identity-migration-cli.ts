@@ -21,16 +21,28 @@ function requiredEnvironment(name: string) {
   return value;
 }
 
-const MAX_REPORTED_BLOCKERS = 100;
-
 function summarizePlan(plan: IdentityMigrationPlan) {
+  const blockersByCode = new Map<
+    string,
+    { count: number; example: (typeof plan.blockers)[number] }
+  >();
+  for (const blocker of plan.blockers) {
+    const existing = blockersByCode.get(blocker.code);
+    if (existing == null) {
+      blockersByCode.set(blocker.code, { count: 1, example: blocker });
+    } else {
+      existing.count += 1;
+    }
+  }
+  const blockerGroups = [...blockersByCode.entries()].sort(([left], [right]) =>
+    left.localeCompare(right),
+  );
   return {
     report: plan.report,
-    blockers: plan.blockers.slice(0, MAX_REPORTED_BLOCKERS),
-    omittedBlockerCount: Math.max(
-      0,
-      plan.blockers.length - MAX_REPORTED_BLOCKERS,
+    blockerCountsByCode: Object.fromEntries(
+      blockerGroups.map(([code, group]) => [code, group.count]),
     ),
+    blockerExamples: blockerGroups.map(([, group]) => group.example),
   };
 }
 
