@@ -91,6 +91,7 @@ export async function runIdentityMigration(
         applied: null,
       };
     }
+    if (plan.blockers.length > 0) throw new IdentityMigrationBlockedError(plan);
     if (config.dryRun) {
       return {
         mode: "dry-run",
@@ -99,7 +100,6 @@ export async function runIdentityMigration(
         applied: null,
       };
     }
-    if (plan.blockers.length > 0) throw new IdentityMigrationBlockedError(plan);
     const applied = await dependencies.applyPlan(tx, plan, snapshot, database);
     return { mode: "apply", outcome: "committed", plan, applied };
   });
