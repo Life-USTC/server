@@ -93,6 +93,7 @@ function databaseState(): DatabaseState {
         description: null,
       },
     ],
+    courseAliases: [],
     sections: [
       { id: 11, jwId: 201, courseId: 1, campusId: null },
       { id: 12, jwId: 202, courseId: 1, campusId: null },
@@ -432,6 +433,45 @@ describe("identity migration planner", () => {
       targetJwIds: [145_964],
       provenance: ["historical"],
     });
+  });
+
+  it("restores a synthetic Course from its single recorded raw jwId", () => {
+    const snapshot = snapshotState();
+    snapshot.courses = [];
+    snapshot.sectionCourses = [];
+    const database = databaseState();
+    database.courseAliases = [
+      { jwId: 145_964, courseId: 1 },
+      { jwId: 1_600_000_001, courseId: 1 },
+    ];
+    database.sections = [];
+    database.sectionAdminClasses = [];
+    database.departmentReferences = [];
+    database.sectionTeachers = [];
+    database.teacherAssignments = [];
+
+    const plan = buildIdentityMigrationPlan(snapshot, database);
+    expect(plan.blockers).toEqual([]);
+    expect(plan.entityMappings).toContainEqual({
+      entity: "course",
+      legacyId: 1,
+      targetJwIds: [145_964],
+      provenance: ["alias"],
+    });
+
+    database.courseAliases = [
+      { jwId: 145_964, courseId: 1 },
+      { jwId: 145_965, courseId: 1 },
+    ];
+    expect(
+      buildIdentityMigrationPlan(snapshot, database).blockers,
+    ).toContainEqual(
+      expect.objectContaining({
+        code: "LEGACY_ENTITY_MULTI_TARGET",
+        entity: "course",
+        legacyId: 1,
+      }),
+    );
   });
 
   it("drops source-less Teacher rows and relations only when they have no UGC", () => {

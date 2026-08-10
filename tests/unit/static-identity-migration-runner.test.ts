@@ -45,6 +45,7 @@ function emptyDatabase(): DatabaseState {
     legacyIdentityConstraintsPresent: true,
     migrationState: null,
     courses: [],
+    courseAliases: [],
     sections: [],
     adminClasses: [],
     sectionAdminClasses: [],
