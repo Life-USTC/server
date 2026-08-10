@@ -83,7 +83,7 @@ describe("static import write churn", () => {
     }
   });
 
-  it("reassigns AdminClass jwIds without colliding with stale owners", async () => {
+  it("upserts AdminClass metadata directly by jwId", async () => {
     const rollback = new Error("ROLLBACK_ADMIN_CLASS_IDENTITY_TEST");
     const marker = 1_600_000_000 + (Date.now() % 100_000_000) * 2;
 
@@ -97,30 +97,28 @@ describe("static import write churn", () => {
         });
 
         const idByJwId = await upsertAdminClasses(tx, [
-          {
-            semesterCode: 461,
-            adminClass: { jwId: marker + 1, nameCn: `${marker}-first` },
-          },
-          {
-            semesterCode: 461,
-            adminClass: { jwId: marker, nameCn: `${marker}-second` },
-          },
+          { jwId: marker, nameCn: `${marker}-first-updated` },
+          { jwId: marker + 1, nameCn: `${marker}-second-updated` },
         ]);
 
         await expect(
           tx.adminClass.findMany({
             where: { id: { in: [first.id, second.id] } },
-            orderBy: { nameCn: "asc" },
+            orderBy: { jwId: "asc" },
             select: { id: true, jwId: true, nameCn: true },
           }),
         ).resolves.toEqual([
-          { id: first.id, jwId: marker + 1, nameCn: `${marker}-first` },
-          { id: second.id, jwId: marker, nameCn: `${marker}-second` },
+          { id: first.id, jwId: marker, nameCn: `${marker}-first-updated` },
+          {
+            id: second.id,
+            jwId: marker + 1,
+            nameCn: `${marker}-second-updated`,
+          },
         ]);
         expect(idByJwId).toEqual(
           new Map([
-            [marker, second.id],
-            [marker + 1, first.id],
+            [marker, first.id],
+            [marker + 1, second.id],
           ]),
         );
 
@@ -222,6 +220,7 @@ describe("static import write churn", () => {
         });
         const firstTeacher = await tx.teacher.create({
           data: {
+            jwId: marker,
             personId: marker,
             code: `${marker}`,
             nameCn: `${marker}`,
@@ -230,6 +229,7 @@ describe("static import write churn", () => {
         });
         const secondTeacher = await tx.teacher.create({
           data: {
+            jwId: marker + 1,
             personId: marker + 1,
             code: `${marker + 1}`,
             nameCn: `${marker + 1}`,
@@ -238,15 +238,10 @@ describe("static import write churn", () => {
         });
         const sectionMap = new Map([[section.jwId, section.id]]);
         const groupMap = new Map([[group.jwId, group.id]]);
-        const teacherMap = {
-          byPersonId: new Map([
-            [marker, firstTeacher.id],
-            [marker + 1, secondTeacher.id],
-          ]),
-          byTeacherId: new Map<number, number>(),
-          byCode: new Map<string, number>(),
-          byNameDept: new Map<string, number>(),
-        };
+        const teacherMap = new Map([
+          [marker, firstTeacher.id],
+          [marker + 1, secondTeacher.id],
+        ]);
         const schedule: ScheduleBuild = {
           periods: 2,
           weekday: 1,
@@ -260,7 +255,7 @@ describe("static import write churn", () => {
           endUnit: 2,
           lessonJwId: section.jwId,
           scheduleGroupJwId: group.jwId,
-          teacherPersonIds: [marker],
+          teacherJwIds: [marker],
         };
 
         await writeSchedules(
@@ -316,7 +311,7 @@ describe("static import write churn", () => {
               ...schedule,
               periods: 3,
               lessonType: "seminar",
-              teacherPersonIds: [marker + 1],
+              teacherJwIds: [marker + 1],
             },
           ],
           sectionMap,
@@ -390,6 +385,7 @@ describe("static import write churn", () => {
         });
         const teacher = await tx.teacher.create({
           data: {
+            jwId: marker,
             personId: marker,
             code: `${marker}`,
             nameCn: `${marker}`,
@@ -400,17 +396,11 @@ describe("static import write churn", () => {
           data: { jwId: marker, nameCn: `${marker}` },
         });
         const sectionMap = new Map([[section.jwId, section.id]]);
-        const teacherMap = {
-          byPersonId: new Map([[marker, teacher.id]]),
-          byTeacherId: new Map<number, number>(),
-          byCode: new Map<string, number>(),
-          byNameDept: new Map<string, number>(),
-        };
+        const teacherMap = new Map([[marker, teacher.id]]);
         const teacherPairs = [
           {
             sectionJwId: section.jwId,
-            personId: marker,
-            nameCn: `${marker}`,
+            teacherJwId: marker,
           },
         ];
         const adminPairs = [

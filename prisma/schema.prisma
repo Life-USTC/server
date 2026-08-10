@@ -1,14 +1,14 @@
 generator client {
-  provider = "prisma-client"
-  runtime  = "cloudflare"
-  output   = "../src/generated/prisma"
+  provider        = "prisma-client"
+  runtime         = "cloudflare"
+  output          = "../src/generated/prisma"
   previewFeatures = ["partialIndexes"]
 }
 
 generator toolClient {
-  provider = "prisma-client"
-  runtime  = "nodejs"
-  output   = "../src/generated/prisma-node"
+  provider        = "prisma-client"
+  runtime         = "nodejs"
+  output          = "../src/generated/prisma-node"
   previewFeatures = ["partialIndexes"]
 }
 
@@ -70,14 +70,13 @@ enum BusScheduleDayType {
   weekend
 }
 
-
 model AdminClass {
   id   Int  @id @default(autoincrement())
   jwId Int? @unique
 
   code      String?
   grade     String?
-  nameCn    String   @unique
+  nameCn    String
   nameEn    String?
   stdCount  Int?
   planCount Int?
@@ -116,7 +115,7 @@ model Campus {
   id   Int  @id @default(autoincrement())
   jwId Int? @unique
 
-  nameCn String  @unique
+  nameCn String
   nameEn String?
   code   String?
 
@@ -163,10 +162,10 @@ model Course {
   gradation      CourseGradation? @relation(fields: [gradationId], references: [id])
   type           CourseType?      @relation(fields: [typeId], references: [id])
 
-  sections Section[]
-  comments Comment[]
+  sections    Section[]
+  comments    Comment[]
   description Description?
-  aliases CourseAlias[]
+  aliases     CourseAlias[]
 
   @@index([jwId])
   @@index([code])
@@ -243,7 +242,8 @@ model CourseType {
 }
 
 model Department {
-  id Int @id @default(autoincrement())
+  id   Int  @id @default(autoincrement())
+  jwId Int? @unique
 
   code      String   @unique
   nameCn    String
@@ -303,8 +303,8 @@ model Room {
 
   schedules Schedule[]
 
-  @@unique([buildingId, code])
   @@index([jwId])
+  @@index([buildingId, code])
   @@index([nameCn])
   @@index([nameEn])
 }
@@ -428,18 +428,18 @@ model Section {
   teachLanguage  TeachLanguage? @relation(fields: [teachLanguageId], references: [id])
   roomType       RoomType?      @relation(fields: [roomTypeId], references: [id])
 
-  schedules             Schedule[]
-  scheduleGroups        ScheduleGroup[]
-  adminClasses          AdminClass[]           @relation("SectionAdminClasses")
-  teachers              Teacher[]              @relation("SectionTeachers")
-  sectionTeachers        SectionTeacher[]
-  teacherAssignments    TeacherAssignment[]
-  exams                 Exam[]
+  schedules            Schedule[]
+  scheduleGroups       ScheduleGroup[]
+  adminClasses         AdminClass[]              @relation("SectionAdminClasses")
+  teachers             Teacher[]                 @relation("SectionTeachers")
+  sectionTeachers      SectionTeacher[]
+  teacherAssignments   TeacherAssignment[]
+  exams                Exam[]
   sectionSubscriptions UserSectionSubscription[]
-  comments              Comment[]
-  description           Description?
-  homeworks             Homework[]
-  homeworkAuditLogs     HomeworkAuditLog[]
+  comments             Comment[]
+  description          Description?
+  homeworks            Homework[]
+  homeworkAuditLogs    HomeworkAuditLog[]
 
   @@index([jwId])
   @@index([code])
@@ -465,6 +465,13 @@ model StaticImportState {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+model StaticIdentityMigrationState {
+  id String @id
+
+  snapshotSha256 String
+  completedAt    DateTime
 }
 
 model Exam {
@@ -494,9 +501,10 @@ model Exam {
 }
 
 model ExamBatch {
-  id Int @id @default(autoincrement())
+  id   Int  @id @default(autoincrement())
+  jwId Int? @unique
 
-  nameCn String  @unique
+  nameCn String
   nameEn String?
 
   exams Exam[]
@@ -532,11 +540,13 @@ model Semester {
 }
 
 model Teacher {
-  id Int @id @default(autoincrement())
+  id   Int  @id @default(autoincrement())
+  jwId Int? @unique
 
-  personId  Int?    @unique
-  teacherId Int?    @unique
-  code      String? @unique
+  personId Int?
+  /// Legacy provenance retained for the snapshot-backed data migration; new imports use jwId.
+  teacherId Int?
+  code      String?
   nameCn    String
   nameEn    String?
   age       Int?
@@ -562,6 +572,9 @@ model Teacher {
   comments           Comment[]
   description        Description?
 
+  @@index([jwId])
+  @@index([personId])
+  @@index([teacherId])
   @@index([code])
   @@index([nameCn])
   @@index([nameEn])
@@ -577,21 +590,21 @@ model Description {
 
   content String @default("")
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
   lastEditedAt DateTime?
 
   lastEditedById String?
   lastEditedBy   User?   @relation("DescriptionLastEditor", fields: [lastEditedById], references: [id], onDelete: SetNull)
 
-  sectionId Int? @unique
-  courseId  Int? @unique
-  teacherId Int? @unique
+  sectionId  Int?    @unique
+  courseId   Int?    @unique
+  teacherId  Int?    @unique
   homeworkId String? @unique
 
-  section Section? @relation(fields: [sectionId], references: [id], onDelete: Cascade)
-  course  Course?  @relation(fields: [courseId], references: [id], onDelete: Cascade)
-  teacher Teacher? @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+  section  Section?  @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  course   Course?   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  teacher  Teacher?  @relation(fields: [teacherId], references: [id], onDelete: Cascade)
   homework Homework? @relation(fields: [homeworkId], references: [id], onDelete: Cascade)
 
   edits DescriptionEdit[]
@@ -603,7 +616,7 @@ model Description {
 model Homework {
   id String @id @default(cuid())
 
-  title String
+  title        String
   isMajor      Boolean @default(false)
   requiresTeam Boolean @default(false)
 
@@ -611,8 +624,8 @@ model Homework {
   submissionStartAt DateTime?
   submissionDueAt   DateTime?
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
   deletedAt DateTime?
 
   sectionId Int
@@ -627,9 +640,9 @@ model Homework {
   deletedById String?
   deletedBy   User?   @relation("HomeworkDeletedBy", fields: [deletedById], references: [id], onDelete: SetNull)
 
-  description Description?
-  comments    Comment[]
-  auditLogs   HomeworkAuditLog[]
+  description         Description?
+  comments            Comment[]
+  auditLogs           HomeworkAuditLog[]
   homeworkCompletions HomeworkCompletion[]
 
   @@index([sectionId])
@@ -643,8 +656,8 @@ model Homework {
 }
 
 model HomeworkCompletion {
-  userId     String
-  homeworkId String
+  userId      String
+  homeworkId  String
   completedAt DateTime @default(now())
 
   user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -658,7 +671,7 @@ model HomeworkCompletion {
 model HomeworkAuditLog {
   id String @id @default(cuid())
 
-  action HomeworkAuditAction
+  action        HomeworkAuditAction
   titleSnapshot String
 
   createdAt DateTime @default(now())
@@ -727,8 +740,8 @@ model SectionTeacher {
 
   comments Comment[]
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
   retiredAt DateTime?
 
   @@unique([sectionId, teacherId])
@@ -753,12 +766,13 @@ model TeacherTitle {
   id   Int @id @default(autoincrement())
   jwId Int @unique
 
-  nameCn  String   @unique
+  nameCn  String
   nameEn  String?
   code    String
   enabled Boolean?
 
   teachers Teacher[]
+  teacherAssignments TeacherAssignment[]
 
   @@index([jwId])
   @@index([nameCn])
@@ -792,28 +806,31 @@ model TeacherAssignment {
   weekIndicesMsg String?
 
   teacherLessonTypeId Int?
+  teacherTitleId      Int?
 
   teacher           Teacher            @relation(fields: [teacherId], references: [id])
   section           Section            @relation(fields: [sectionId], references: [id])
   teacherLessonType TeacherLessonType? @relation(fields: [teacherLessonTypeId], references: [id])
+  teacherTitle      TeacherTitle?      @relation(fields: [teacherTitleId], references: [id])
 
   @@unique([teacherId, sectionId])
   @@index([teacherId])
   @@index([sectionId])
   @@index([teacherLessonTypeId])
+  @@index([teacherTitleId])
 }
 
 model User {
-  id              String   @id @default(cuid())
-  email           String   @unique
-  emailVerified   Boolean  @default(false)
-  name            String   @default("")
-  username        String?  @unique
-  image           String?
+  id                String   @id @default(cuid())
+  email             String   @unique
+  emailVerified     Boolean  @default(false)
+  name              String   @default("")
+  username          String?  @unique
+  image             String?
   // Migrations define false/empty-array defaults; dbgenerated keeps auth runtime INSERT off them.
-  profilePictures String[] @default(dbgenerated())
-  isAdmin         Boolean  @default(dbgenerated())
-  calendarFeedToken String? @unique
+  profilePictures   String[] @default(dbgenerated())
+  isAdmin           Boolean  @default(dbgenerated())
+  calendarFeedToken String?  @unique
 
   accounts      Account[]
   sessions      Session[]
@@ -830,17 +847,17 @@ model User {
   uploads              Upload[]
   uploadPendings       UploadPending[]
   comments             Comment[]
-  moderatedComments    Comment[]           @relation("ModeratedComments")
+  moderatedComments    Comment[]                 @relation("ModeratedComments")
   commentReactions     CommentReaction[]
-  suspensions          UserSuspension[]    @relation("SuspendedUser")
-  suspensionsIssued    UserSuspension[]    @relation("SuspensionCreatedBy")
-  suspensionsLifted    UserSuspension[]    @relation("SuspensionLiftedBy")
-  descriptionEdits     DescriptionEdit[]   @relation("DescriptionEdits")
-  descriptionLastEdits Description[]       @relation("DescriptionLastEditor")
-  homeworksCreated     Homework[]          @relation("HomeworkCreatedBy")
-  homeworksUpdated     Homework[]          @relation("HomeworkUpdatedBy")
-  homeworksDeleted     Homework[]          @relation("HomeworkDeletedBy")
-  homeworkAuditLogs    HomeworkAuditLog[]  @relation("HomeworkAuditActor")
+  suspensions          UserSuspension[]          @relation("SuspendedUser")
+  suspensionsIssued    UserSuspension[]          @relation("SuspensionCreatedBy")
+  suspensionsLifted    UserSuspension[]          @relation("SuspensionLiftedBy")
+  descriptionEdits     DescriptionEdit[]         @relation("DescriptionEdits")
+  descriptionLastEdits Description[]             @relation("DescriptionLastEditor")
+  homeworksCreated     Homework[]                @relation("HomeworkCreatedBy")
+  homeworksUpdated     Homework[]                @relation("HomeworkUpdatedBy")
+  homeworksDeleted     Homework[]                @relation("HomeworkDeletedBy")
+  homeworkAuditLogs    HomeworkAuditLog[]        @relation("HomeworkAuditActor")
   auditLogs            AuditLog[]
   homeworkCompletions  HomeworkCompletion[]
   dashboardLinkClicks  DashboardLinkClick[]
@@ -856,14 +873,13 @@ model User {
   deviceCodes        DeviceCode[]
 }
 
-
 model UserUstcIdentity {
-  id          String   @id @default(cuid())
-  userId      String
-  upstreamUid String
-  gid         String?
-  sno         String?
-  firstSeenAt DateTime @default(now())
+  id           String   @id @default(cuid())
+  userId       String
+  upstreamUid  String
+  gid          String?
+  sno          String?
+  firstSeenAt  DateTime @default(now())
   lastSyncedAt DateTime @updatedAt
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -875,12 +891,12 @@ model UserUstcIdentity {
 model DashboardLinkClick {
   id String @id @default(cuid())
 
-  userId String
-  slug   String
-  count  Int      @default(0)
+  userId        String
+  slug          String
+  count         Int      @default(0)
   lastClickedAt DateTime @default(now())
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -888,13 +904,12 @@ model DashboardLinkClick {
   @@index([userId])
   @@index([slug])
 }
-
 
 model DashboardLinkPin {
   id String @id @default(cuid())
 
-  userId String
-  slug   String
+  userId    String
+  slug      String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -904,6 +919,7 @@ model DashboardLinkPin {
   @@index([userId])
   @@index([slug])
 }
+
 model Upload {
   id          String   @id @default(cuid())
   key         String   @unique
@@ -925,26 +941,26 @@ model Upload {
 model Comment {
   id String @id @default(cuid())
 
-  body       String
-  visibility CommentVisibility @default(public)
-  status     CommentStatus     @default(active)
-  isAnonymous Boolean          @default(false)
-  authorName String?
+  body        String
+  visibility  CommentVisibility @default(public)
+  status      CommentStatus     @default(active)
+  isAnonymous Boolean           @default(false)
+  authorName  String?
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  deletedAt DateTime?
-  moderatedAt DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  deletedAt      DateTime?
+  moderatedAt    DateTime?
   moderationNote String?
 
   userId String?
   user   User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
 
   moderatedById String?
-  moderatedBy   User? @relation("ModeratedComments", fields: [moderatedById], references: [id], onDelete: SetNull)
+  moderatedBy   User?   @relation("ModeratedComments", fields: [moderatedById], references: [id], onDelete: SetNull)
 
   parentId String?
-  parent   Comment? @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  parent   Comment?  @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
   replies  Comment[] @relation("CommentReplies")
 
   rootId String?
@@ -957,11 +973,11 @@ model Comment {
   sectionTeacherId Int?
   homeworkId       String?
 
-  section        Section?       @relation(fields: [sectionId], references: [id], onDelete: Cascade)
-  course         Course?        @relation(fields: [courseId], references: [id], onDelete: Cascade)
-  teacher        Teacher?       @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+  section        Section?        @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  course         Course?         @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  teacher        Teacher?        @relation(fields: [teacherId], references: [id], onDelete: Cascade)
   sectionTeacher SectionTeacher? @relation(fields: [sectionTeacherId], references: [id], onDelete: Cascade)
-  homework       Homework?      @relation(fields: [homeworkId], references: [id], onDelete: Cascade)
+  homework       Homework?       @relation(fields: [homeworkId], references: [id], onDelete: Cascade)
 
   attachments CommentAttachment[]
   reactions   CommentReaction[]
@@ -1000,13 +1016,13 @@ model CommentReaction {
   id String @id @default(cuid())
 
   type      CommentReactionType
-  createdAt DateTime @default(now())
+  createdAt DateTime            @default(now())
 
   commentId String
   userId    String
 
   comment Comment @relation(fields: [commentId], references: [id], onDelete: Cascade)
-  user    User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([commentId, userId, type])
   @@index([userId])
@@ -1018,7 +1034,7 @@ model UserSuspension {
 
   userId      String
   createdById String?
-  createdAt   DateTime @default(now())
+  createdAt   DateTime  @default(now())
   reason      String?
   note        String?
   expiresAt   DateTime?
@@ -1095,22 +1111,22 @@ model VerifiedEmail {
 }
 
 model Account {
-  id                String   @id @default(cuid())
-  userId            String
-  type              String   @default("oauth")
-  provider          String
-  issuer            String
-  providerAccountId String
-  refresh_token     String?
-  access_token      String?
-  expires_at        Int?
-  token_type        String?
-  scope             String?
-  id_token          String?
-  session_state     String?
-  accessTokenExpiresAt DateTime?
+  id                    String    @id @default(cuid())
+  userId                String
+  type                  String    @default("oauth")
+  provider              String
+  issuer                String
+  providerAccountId     String
+  refresh_token         String?
+  access_token          String?
+  expires_at            Int?
+  token_type            String?
+  scope                 String?
+  id_token              String?
+  session_state         String?
+  accessTokenExpiresAt  DateTime?
   refreshTokenExpiresAt DateTime?
-  password          String?
+  password              String?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -1134,11 +1150,11 @@ model Session {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  @@index([userId])
-  @@index([expires])
-
   oauthAccessTokens  OAuthAccessToken[]
   oauthRefreshTokens OAuthRefreshToken[]
+
+  @@index([userId])
+  @@index([expires])
 }
 
 model VerificationToken {
@@ -1192,11 +1208,11 @@ model Authenticator {
 model Todo {
   id String @id @default(cuid())
 
-  title    String
-  content  String?
-  completed Boolean   @default(false)
+  title     String
+  content   String?
+  completed Boolean      @default(false)
   priority  TodoPriority @default(medium)
-  dueAt    DateTime?
+  dueAt     DateTime?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -1213,14 +1229,14 @@ model Todo {
 model BusCampus {
   id Int @id
 
-  nameCn String @unique
+  nameCn String  @unique
   nameEn String?
 
   latitude  Float
   longitude Float
 
-  routeStops              BusRouteStop[]
-  preferredByOriginUsers  BusUserPreference[] @relation("BusPreferenceOrigin")
+  routeStops                  BusRouteStop[]
+  preferredByOriginUsers      BusUserPreference[] @relation("BusPreferenceOrigin")
   preferredByDestinationUsers BusUserPreference[] @relation("BusPreferenceDestination")
 
   @@index([nameCn])
@@ -1243,8 +1259,8 @@ model BusRoute {
 model BusRouteStop {
   id Int @id @default(autoincrement())
 
-  routeId  Int
-  campusId Int
+  routeId   Int
+  campusId  Int
   stopOrder Int
 
   route  BusRoute  @relation(fields: [routeId], references: [id], onDelete: Cascade)
@@ -1257,14 +1273,14 @@ model BusRouteStop {
 model BusScheduleVersion {
   id Int @id @default(autoincrement())
 
-  key          String @unique
-  title        String
-  checksum     String @unique
+  key           String  @unique
+  title         String
+  checksum      String  @unique
   sourceMessage String?
-  sourceUrl    String?
-  rawJson      Json
+  sourceUrl     String?
+  rawJson       Json
 
-  effectiveFrom DateTime? @db.Date
+  effectiveFrom  DateTime? @db.Date
   effectiveUntil DateTime? @db.Date
 
   isEnabled  Boolean  @default(true)
@@ -1299,15 +1315,15 @@ model BusUserPreference {
 
   preferredOriginCampusId      Int?
   preferredDestinationCampusId Int?
-  favoriteCampusIds            Int[] @default([])
-  favoriteRouteIds             Int[] @default([])
+  favoriteCampusIds            Int[]   @default([])
+  favoriteRouteIds             Int[]   @default([])
   showDepartedTrips            Boolean @default(false)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-  preferredOriginCampus BusCampus? @relation("BusPreferenceOrigin", fields: [preferredOriginCampusId], references: [id], onDelete: SetNull)
+  user                       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  preferredOriginCampus      BusCampus? @relation("BusPreferenceOrigin", fields: [preferredOriginCampusId], references: [id], onDelete: SetNull)
   preferredDestinationCampus BusCampus? @relation("BusPreferenceDestination", fields: [preferredDestinationCampusId], references: [id], onDelete: SetNull)
 
   @@index([preferredOriginCampusId])
@@ -1320,44 +1336,44 @@ model BusUserPreference {
 model OAuthClient {
   id String @id @default(cuid())
 
-  clientId     String @unique
-  clientSecret String?
-  disabled     Boolean @default(false)
-  skipConsent  Boolean?
+  clientId         String   @unique
+  clientSecret     String?
+  disabled         Boolean  @default(false)
+  skipConsent      Boolean?
   enableEndSession Boolean?
-  subjectType  String?
-  scopes       String[] @default([])
+  subjectType      String?
+  scopes           String[] @default([])
 
   userId String?
-  user   User? @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user   User?   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  name              String?
-  uri               String?
-  icon              String?
-  contacts          String[] @default([])
-  tos               String?
-  policy            String?
-  softwareId        String?
-  softwareVersion   String?
-  softwareStatement String?
-  redirectUris      String[]
-  postLogoutRedirectUris String[] @default([])
-  backchannelLogoutUri String?
+  name                             String?
+  uri                              String?
+  icon                             String?
+  contacts                         String[] @default([])
+  tos                              String?
+  policy                           String?
+  softwareId                       String?
+  softwareVersion                  String?
+  softwareStatement                String?
+  redirectUris                     String[]
+  postLogoutRedirectUris           String[] @default([])
+  backchannelLogoutUri             String?
   backchannelLogoutSessionRequired Boolean?
-  tokenEndpointAuthMethod String?
-  jwks              String?
-  jwksUri           String?
-  grantTypes        String[] @default([])
-  responseTypes     String[] @default([])
-  public            Boolean?
-  type              String?
-  requirePKCE       Boolean?
-  dpopBoundAccessTokens Boolean? @default(false)
-  referenceId       String?
-  metadata          Json?
+  tokenEndpointAuthMethod          String?
+  jwks                             String?
+  jwksUri                          String?
+  grantTypes                       String[] @default([])
+  responseTypes                    String[] @default([])
+  public                           Boolean?
+  type                             String?
+  requirePKCE                      Boolean?
+  dpopBoundAccessTokens            Boolean? @default(false)
+  referenceId                      String?
+  metadata                         Json?
 
   accessTokens  OAuthAccessToken[]
   refreshTokens OAuthRefreshToken[]
@@ -1380,12 +1396,12 @@ model DeviceCode {
   client   OAuthClient @relation(fields: [clientId], references: [clientId], onDelete: Cascade)
 
   userId String?
-  user   User?  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user   User?   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  status       String   @default("pending") // pending, approved, denied
+  status       String    @default("pending") // pending, approved, denied
   lastPolledAt DateTime?
   expiresAt    DateTime
-  createdAt    DateTime @default(now())
+  createdAt    DateTime  @default(now())
 
   @@index([deviceCode])
   @@index([userCode])
@@ -1397,30 +1413,30 @@ model DeviceCode {
 model OAuthRefreshToken {
   id String @id @default(cuid())
 
-  token     String @unique
-  grantId   String?
-  clientId  String
-  client    OAuthClient @relation(fields: [clientId], references: [clientId], onDelete: Cascade)
+  token    String      @unique
+  grantId  String?
+  clientId String
+  client   OAuthClient @relation(fields: [clientId], references: [clientId], onDelete: Cascade)
 
   sessionId String?
   session   Session? @relation(fields: [sessionId], references: [id], onDelete: SetNull)
 
   userId String
-  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  referenceId String?
-  authorizationCodeId String?
-  expiresAt   DateTime
-  createdAt   DateTime @default(now())
-  revoked     DateTime?
-  rotatedAt   DateTime?
-  rotationReplayResponse String?
+  referenceId             String?
+  authorizationCodeId     String?
+  expiresAt               DateTime
+  createdAt               DateTime  @default(now())
+  revoked                 DateTime?
+  rotatedAt               DateTime?
+  rotationReplayResponse  String?
   rotationReplayExpiresAt DateTime?
-  authTime    DateTime?
-  confirmation Json?
-  scopes      String[] @default([])
-  resources   String[] @default([])
-  requestedUserInfoClaims String[] @default([])
+  authTime                DateTime?
+  confirmation            Json?
+  scopes                  String[]  @default([])
+  resources               String[]  @default([])
+  requestedUserInfoClaims String[]  @default([])
 
   accessTokens OAuthAccessToken[]
 
@@ -1435,29 +1451,29 @@ model OAuthRefreshToken {
 model OAuthAccessToken {
   id String @id @default(cuid())
 
-  token     String @unique
-  grantId   String?
-  clientId  String
-  client    OAuthClient @relation(fields: [clientId], references: [clientId], onDelete: Cascade)
+  token    String      @unique
+  grantId  String?
+  clientId String
+  client   OAuthClient @relation(fields: [clientId], references: [clientId], onDelete: Cascade)
 
   sessionId String?
   session   Session? @relation(fields: [sessionId], references: [id], onDelete: SetNull)
 
   userId String?
-  user   User? @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user   User?   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  referenceId String?
+  referenceId         String?
   authorizationCodeId String?
-  refreshId   String?
-  refresh     OAuthRefreshToken? @relation(fields: [refreshId], references: [id], onDelete: SetNull)
+  refreshId           String?
+  refresh             OAuthRefreshToken? @relation(fields: [refreshId], references: [id], onDelete: SetNull)
 
-  expiresAt DateTime
-  createdAt DateTime @default(now())
-  revoked   DateTime?
-  confirmation Json?
-  scopes    String[] @default([])
-  resources String[] @default([])
-  requestedUserInfoClaims String[] @default([])
+  expiresAt               DateTime
+  createdAt               DateTime  @default(now())
+  revoked                 DateTime?
+  confirmation            Json?
+  scopes                  String[]  @default([])
+  resources               String[]  @default([])
+  requestedUserInfoClaims String[]  @default([])
 
   @@index([clientId])
   @@index([grantId])
@@ -1475,12 +1491,12 @@ model OAuthConsent {
   client   OAuthClient @relation(fields: [clientId], references: [clientId], onDelete: Cascade)
 
   userId String?
-  user   User? @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user   User?   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  grantId     String   @unique @default(uuid())
-  referenceId String?
-  scopes      String[] @default([])
-  resources   String[] @default([])
+  grantId                 String   @unique @default(uuid())
+  referenceId             String?
+  scopes                  String[] @default([])
+  resources               String[] @default([])
   requestedUserInfoClaims String[] @default([])
 
   createdAt DateTime @default(now())
@@ -1496,16 +1512,16 @@ model OauthResource {
   identifier String @unique
   name       String
 
-  accessTokenTtl    Int?
-  refreshTokenTtl   Int?
-  signingAlgorithm  String?
-  signingKeyId      String?
-  allowedScopes     String[] @default([])
-  customClaims      Json?
+  accessTokenTtl                Int?
+  refreshTokenTtl               Int?
+  signingAlgorithm              String?
+  signingKeyId                  String?
+  allowedScopes                 String[] @default([])
+  customClaims                  Json?
   dpopBoundAccessTokensRequired Boolean? @default(false)
-  disabled          Boolean? @default(false)
-  policyVersion     Int? @default(1)
-  metadata          Json?
+  disabled                      Boolean? @default(false)
+  policyVersion                 Int?     @default(1)
+  metadata                      Json?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -1533,7 +1549,7 @@ model OauthClientResource {
 }
 
 model OauthClientAssertion {
-  id        String @id
+  id        String   @id
   expiresAt DateTime
 
   @@map("oauthClientAssertion")
@@ -1545,7 +1561,7 @@ model Jwks {
   publicKey  String
   privateKey String
 
-  createdAt DateTime @default(now())
+  createdAt DateTime  @default(now())
   expiresAt DateTime?
   alg       String?
   crv       String?

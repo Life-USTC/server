@@ -28,11 +28,9 @@ describe("static Section lifecycle orchestration", () => {
       "writeTeacherAssignments",
       "writeAdminClassSections",
       "writeSchedules",
-      "reconcileCatalogTeacherFallbacks",
       "upsertExams",
       "writeExamRooms",
       "reconcileRemovedSnapshotRows",
-      "mergeLegacyCourseDuplicates",
       "countDatabaseRecords",
     ]) {
       expect(lifecycleIndex).toBeGreaterThan(stageIndex(source, stage));

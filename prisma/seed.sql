@@ -216,14 +216,13 @@ INSERT INTO public."Course" (id, "jwId", code, "nameCn", "nameEn", "categoryId",
 INSERT INTO public."Course" (id, "jwId", code, "nameCn", "nameEn", "categoryId", "classTypeId", "classifyId", "educationLevelId", "gradationId", "typeId") VALUES (2, 9901004, 'MATH2001', '线性代数进阶', 'Advanced Linear Algebra', 1, 1, 1, 1, 1, 1) ON CONFLICT DO NOTHING;
 INSERT INTO public."Course" (id, "jwId", code, "nameCn", "nameEn", "categoryId", "classTypeId", "classifyId", "educationLevelId", "gradationId", "typeId") VALUES (4, 9901001, 'IS3003', '密码工程原理与实践', 'Cryptographic Engineering: Principles and Practice', 1, 1, 1, 1, 1, 1) ON CONFLICT DO NOTHING;
 
-INSERT INTO public."CourseAlias" ("jwId", "courseId") VALUES (19901001, 4) ON CONFLICT DO NOTHING;
 
 
 --
 -- Data for Name: Department; Type: TABLE DATA; Schema: public; Owner: -
 --
 
-INSERT INTO public."Department" (id, code, "nameCn", "nameEn", "isCollege") VALUES (1, 'DPT-IS', '网络空间安全学院', 'School of Cyber Science and Technology', true) ON CONFLICT DO NOTHING;
+INSERT INTO public."Department" (id, "jwId", code, "nameCn", "nameEn", "isCollege") VALUES (1, 9910071, 'DPT-IS', '网络空间安全学院', 'School of Cyber Science and Technology', true) ON CONFLICT DO NOTHING;
 
 
 --
@@ -291,9 +290,9 @@ INSERT INTO public."TeacherTitle" (id, "jwId", "nameCn", "nameEn", code, enabled
 -- Data for Name: Teacher; Type: TABLE DATA; Schema: public; Owner: -
 --
 
-INSERT INTO public."Teacher" (id, "personId", "teacherId", code, "nameCn", "nameEn", age, email, telephone, mobile, address, postcode, qq, wechat, "departmentId", "teacherTitleId") VALUES (1, NULL, NULL, 'T2401001', '林璟锵', 'Lin Jingqiang', NULL, 'jqlin@ustc.edu.cn', NULL, '13800001111', '中国科学技术大学', NULL, NULL, NULL, 1, 1) ON CONFLICT DO NOTHING;
-INSERT INTO public."Teacher" (id, "personId", "teacherId", code, "nameCn", "nameEn", age, email, telephone, mobile, address, postcode, qq, wechat, "departmentId", "teacherTitleId") VALUES (2, NULL, NULL, 'T2401002', '王伟', 'Wang Wei', NULL, 'wangwei@ustc.edu.cn', NULL, '13800002222', '中国科学技术大学', NULL, NULL, NULL, 1, 1) ON CONFLICT DO NOTHING;
-INSERT INTO public."Teacher" (id, "personId", "teacherId", code, "nameCn", "nameEn", age, email, telephone, mobile, address, postcode, qq, wechat, "departmentId", "teacherTitleId") VALUES (3, NULL, NULL, 'T2401003', '童中华', 'Tong Zhonghua', NULL, 'zhtong@ustc.edu.cn', NULL, '13800003333', '中国科学技术大学', NULL, NULL, NULL, 1, 1) ON CONFLICT DO NOTHING;
+INSERT INTO public."Teacher" (id, "jwId", "personId", "teacherId", code, "nameCn", "nameEn", age, email, telephone, mobile, address, postcode, qq, wechat, "departmentId", "teacherTitleId") VALUES (1, 9910101, NULL, NULL, 'T2401001', '林璟锵', 'Lin Jingqiang', NULL, 'jqlin@ustc.edu.cn', NULL, '13800001111', '中国科学技术大学', NULL, NULL, NULL, 1, 1) ON CONFLICT DO NOTHING;
+INSERT INTO public."Teacher" (id, "jwId", "personId", "teacherId", code, "nameCn", "nameEn", age, email, telephone, mobile, address, postcode, qq, wechat, "departmentId", "teacherTitleId") VALUES (2, 9910102, NULL, NULL, 'T2401002', '王伟', 'Wang Wei', NULL, 'wangwei@ustc.edu.cn', NULL, '13800002222', '中国科学技术大学', NULL, NULL, NULL, 1, 1) ON CONFLICT DO NOTHING;
+INSERT INTO public."Teacher" (id, "jwId", "personId", "teacherId", code, "nameCn", "nameEn", age, email, telephone, mobile, address, postcode, qq, wechat, "departmentId", "teacherTitleId") VALUES (3, 9910103, NULL, NULL, 'T2401003', '童中华', 'Tong Zhonghua', NULL, 'zhtong@ustc.edu.cn', NULL, '13800003333', '中国科学技术大学', NULL, NULL, NULL, 1, 1) ON CONFLICT DO NOTHING;
 
 
 --
@@ -419,7 +418,7 @@ INSERT INTO public."DescriptionEdit" (id, "descriptionId", "editorId", "previous
 -- Data for Name: ExamBatch; Type: TABLE DATA; Schema: public; Owner: -
 --
 
-INSERT INTO public."ExamBatch" (id, "nameCn", "nameEn") VALUES (1, '2026年春季学期 期末考试', 'Final Exam 2026 Spring') ON CONFLICT DO NOTHING;
+INSERT INTO public."ExamBatch" (id, "jwId", "nameCn", "nameEn") VALUES (1, 9910081, '2026年春季学期 期末考试', 'Final Exam 2026 Spring') ON CONFLICT DO NOTHING;
 
 
 --

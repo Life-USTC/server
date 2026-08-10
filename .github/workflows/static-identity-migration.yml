@@ -1,0 +1,86 @@
+name: Static Identity Migration
+
+on:
+  workflow_dispatch:
+    inputs:
+      static_artifact_run_id:
+        description: "Immutable Life-USTC/static Update Repo run containing the approved snapshot"
+        required: true
+        type: string
+      expected_snapshot_sha256:
+        description: "Exact SHA-256 already recorded by the production static import state"
+        required: true
+        type: string
+      dry_run:
+        description: "Plan in a serializable read-only transaction"
+        required: true
+        default: true
+        type: boolean
+
+concurrency:
+  group: static-sync
+  cancel-in-progress: false
+
+jobs:
+  migrate:
+    name: Migrate production static identities
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 150
+    permissions:
+      actions: read
+      contents: read
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version-file: .bun-version
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Prepare application artifacts
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/life_ustc_generate
+        run: bun run app:prepare
+
+      - name: Deploy expand migrations
+        env:
+          DATABASE_URL: ${{ secrets.MIGRATOR_DATABASE_URL }}
+        run: bun run db:migrate:deploy
+
+      - name: Download immutable static snapshot
+        env:
+          GH_TOKEN: ${{ github.token }}
+          STATIC_ARTIFACT_RUN_ID: ${{ inputs.static_artifact_run_id }}
+        run: |
+          mkdir -p /tmp/static-identity-artifact
+          gh run download "$STATIC_ARTIFACT_RUN_ID" \
+            --repo Life-USTC/static \
+            --name github-pages \
+            --dir /tmp/static-identity-artifact
+          tar -xf /tmp/static-identity-artifact/artifact.tar \
+            -C /tmp/static-identity-artifact
+          test -s /tmp/static-identity-artifact/life-ustc-static.sqlite
+
+      - name: Run identity migration
+        env:
+          DATABASE_URL: ${{ secrets.MIGRATOR_DATABASE_URL }}
+          STATIC_SNAPSHOT_PATH: /tmp/static-identity-artifact/life-ustc-static.sqlite
+          STATIC_LOADER_MIN_SEMESTER: ${{ vars.STATIC_LOADER_MIN_SEMESTER || '401' }}
+          STATIC_IDENTITY_MIGRATION_EXPECTED_SNAPSHOT_SHA256: ${{ inputs.expected_snapshot_sha256 }}
+          STATIC_IDENTITY_MIGRATION_DRY_RUN: ${{ inputs.dry_run }}
+          STATIC_IDENTITY_MIGRATION_REPORT_FILE: /tmp/static-identity-migration-report.json
+        run: bun run static:migrate-identities
+
+      - name: Report migration plan
+        if: success()
+        run: |
+          echo '## Static Identity Migration' >> "$GITHUB_STEP_SUMMARY"
+          echo '```json' >> "$GITHUB_STEP_SUMMARY"
+          cat /tmp/static-identity-migration-report.json >> "$GITHUB_STEP_SUMMARY"
+          echo '' >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"

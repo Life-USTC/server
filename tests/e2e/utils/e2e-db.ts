@@ -191,10 +191,10 @@ export const getSeedCourseFilterFixture = (jwId: number) =>
     classTypeName: string | null;
   }>("getSeedCourseFilterFixture", [jwId]);
 
-export const getSeedTeacherDepartmentFixture = (code: string) =>
+export const getSeedTeacherDepartmentFixture = (jwId: number) =>
   runDbFixture<{ departmentId: number | null; departmentName: string | null }>(
     "getSeedTeacherDepartmentFixture",
-    [code],
+    [jwId],
   );
 
 export const getSeedSectionSemesterFixture = (jwId: number) =>

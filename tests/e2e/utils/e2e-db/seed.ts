@@ -25,10 +25,10 @@ export async function getSeedCourseFilterFixture(jwId: number) {
   };
 }
 
-export async function getSeedTeacherDepartmentFixture(code: string) {
+export async function getSeedTeacherDepartmentFixture(jwId: number) {
   const teacher = await withE2ePrisma((prisma) =>
     prisma.teacher.findUniqueOrThrow({
-      where: { code },
+      where: { jwId },
       select: {
         departmentId: true,
         department: { select: { nameCn: true } },

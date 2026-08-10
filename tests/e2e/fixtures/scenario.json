@@ -89,6 +89,7 @@
   "teachers": [
     {
       "index": 0,
+      "jwId": 9910101,
       "code": "T2401001",
       "nameCn": "林璟锵",
       "nameEn": "Lin Jingqiang",
@@ -97,6 +98,7 @@
     },
     {
       "index": 1,
+      "jwId": 9910102,
       "code": "T2401002",
       "nameCn": "王伟",
       "nameEn": "Wang Wei",
@@ -105,6 +107,7 @@
     },
     {
       "index": 2,
+      "jwId": 9910103,
       "code": "T2401003",
       "nameCn": "童中华",
       "nameEn": "Tong Zhonghua",
@@ -116,7 +119,6 @@
     {
       "index": 0,
       "jwId": 9901001,
-      "legacyJwId": 19901001,
       "code": "IS3003",
       "nameCn": "密码工程原理与实践",
       "nameEn": "Cryptographic Engineering: Principles and Practice"
