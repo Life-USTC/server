@@ -128,8 +128,6 @@ export type DatabaseState = {
     id: number;
     sectionId: number;
     teacherId: number;
-    /** Legacy Teacher-level title inherited by this assignment, if any. */
-    legacyTeacherTitleId: number | null;
   }[];
   scheduleTeachers: readonly {
     scheduleId: number;
