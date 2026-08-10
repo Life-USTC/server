@@ -219,5 +219,4 @@ test.describe("GET /api/catalog/courses 接口", () => {
     expect(typeof seedSection?.stdCount).toBe("number");
     expect(typeof seedSection?.limitCount).toBe("number");
   });
-
 });
