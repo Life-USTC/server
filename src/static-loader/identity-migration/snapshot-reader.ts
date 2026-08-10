@@ -40,7 +40,6 @@ export function legacyCodeCourseJwId(code: string): number {
 export function readIdentityMigrationSnapshot(
   path: string,
   sha256: string,
-  minSemester = 401,
 ): SnapshotState {
   const snapshot = new Snapshot(path);
   try {
@@ -54,7 +53,6 @@ export function readIdentityMigrationSnapshot(
     const lessons = snapshot.queryAll("catalog_teach_lesson_list_for_teach");
     const importedSectionJwIds = new Set(
       lessons
-        .filter((row) => (asInt(row.semester_id) ?? 0) >= minSemester)
         .map((row) => asInt(row.id))
         .filter((id): id is number => id != null),
     );
