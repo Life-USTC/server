@@ -1,3 +1,10 @@
+## [1.89.6](https://github.com/Life-USTC/server/compare/v1.89.5...v1.89.6) (2026-08-10)
+
+
+### Bug Fixes
+
+* **static:** promote historical teacher IDs ([8b48ef1](https://github.com/Life-USTC/server/commit/8b48ef1f220334ce5f0e59de023073177adbdb4f))
+
 ## [1.89.5](https://github.com/Life-USTC/server/compare/v1.89.4...v1.89.5) (2026-08-10)
 
 
