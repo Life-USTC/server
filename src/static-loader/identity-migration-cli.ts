@@ -18,25 +18,26 @@ function requiredEnvironment(name: string) {
 }
 
 function summarizePlan(plan: IdentityMigrationPlan) {
-  const blockersByCode = new Map<
+  const blockersByKind = new Map<
     string,
     { count: number; example: (typeof plan.blockers)[number] }
   >();
   for (const blocker of plan.blockers) {
-    const existing = blockersByCode.get(blocker.code);
+    const key = `${blocker.code}:${blocker.entity}`;
+    const existing = blockersByKind.get(key);
     if (existing == null) {
-      blockersByCode.set(blocker.code, { count: 1, example: blocker });
+      blockersByKind.set(key, { count: 1, example: blocker });
     } else {
       existing.count += 1;
     }
   }
-  const blockerGroups = [...blockersByCode.entries()].sort(([left], [right]) =>
+  const blockerGroups = [...blockersByKind.entries()].sort(([left], [right]) =>
     left.localeCompare(right),
   );
   return {
     report: plan.report,
-    blockerCountsByCode: Object.fromEntries(
-      blockerGroups.map(([code, group]) => [code, group.count]),
+    blockerCountsByCodeAndEntity: Object.fromEntries(
+      blockerGroups.map(([kind, group]) => [kind, group.count]),
     ),
     blockerExamples: blockerGroups.map(([, group]) => group.example),
   };
