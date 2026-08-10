@@ -23,6 +23,7 @@ export async function readIdentityMigrationDatabase(
     migrationStates,
     constraintRows,
     courses,
+    courseAliases,
     sections,
     adminClasses,
     sectionAdminClasses,
@@ -68,6 +69,9 @@ export async function readIdentityMigrationDatabase(
     tx.$queryRawUnsafe<
       Array<{ id: number; jwId: number; code: string; nameCn: string }>
     >(`SELECT "id", "jwId", "code", "nameCn" FROM "Course"`),
+    tx.$queryRawUnsafe<Array<{ jwId: number; courseId: number }>>(
+      `SELECT "jwId", "courseId" FROM "CourseAlias"`,
+    ),
     tx.$queryRawUnsafe<
       Array<{
         id: number;
@@ -219,6 +223,7 @@ export async function readIdentityMigrationDatabase(
       directCommentCount: courseCommentCounts.get(row.id) ?? 0,
       description: descriptionByCourse.get(row.id) ?? null,
     })),
+    courseAliases,
     sections,
     adminClasses,
     sectionAdminClasses,

@@ -118,6 +118,23 @@ async function ensureEntityTargets(
     const source = sourceEntity(snapshot, mapping.entity, targetJwId);
     if (source == null) {
       if (mapping.provenance.includes("historical")) continue;
+      if (
+        mapping.entity === "course" &&
+        mapping.provenance.includes("alias") &&
+        mapping.targetJwIds.length === 1
+      ) {
+        await tx.$executeRawUnsafe(
+          `UPDATE "Course" source
+           SET "jwId" = $2
+           WHERE source."id" = $1
+             AND NOT EXISTS (
+               SELECT 1 FROM "Course" target WHERE target."jwId" = $2
+             )`,
+          mapping.legacyId,
+          targetJwId,
+        );
+        continue;
+      }
       throw new Error(
         `${mapping.entity} target ${targetJwId} is absent from the fixed snapshot`,
       );

@@ -13,8 +13,10 @@ before the data transaction would allow the runtime loader to create a second
 row for the same legacy identity. The contract migration may remove them only
 after the planner's mappings have committed and its invariants have passed.
 
-Every new or changed target must exist in that fixed snapshot. `CourseAlias` is
-obsolete migration input and is deleted, never promoted into a source identity.
+Every new or changed target must exist in that fixed snapshot. The sole
+exception is a single raw `CourseAlias` recorded by the retired loader for a
+synthetic Course whose source row has since disappeared; the migration restores
+that recorded upstream `jwId` and deletes the alias table's contents.
 Teacher titles are assignment-level source data: the planner only emits a title
 edge when the snapshot proves it for the exact section/teacher assignment; it
 never copies a legacy Teacher title by name or by convenience.

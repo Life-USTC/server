@@ -232,6 +232,10 @@ function planCourses(
     ),
     (entry) => entry.legacyJwId,
   );
+  const aliasesByCourseId = groupBy(
+    database.courseAliases,
+    (row) => row.courseId,
+  );
   for (const course of database.courses) {
     const targets = new Set<number>();
     const provenance = new Set<Provenance>();
@@ -242,6 +246,25 @@ function planCourses(
     for (const target of bySynthetic.get(course.jwId) ?? []) {
       targets.add(target.row.jwId);
       provenance.add("synthetic");
+    }
+    if (targets.size === 0 && isLegacySyntheticCourseJwId(course.jwId)) {
+      const aliasJwIds = sortedNumbers(
+        new Set(
+          (aliasesByCourseId.get(course.id) ?? [])
+            .map((alias) => alias.jwId)
+            .filter((jwId) => !isLegacySyntheticCourseJwId(jwId)),
+        ),
+      );
+      for (const jwId of aliasJwIds) targets.add(jwId);
+      if (aliasJwIds.length > 0) provenance.add("alias");
+      if (aliasJwIds.length > 1) {
+        blockers.push({
+          code: "LEGACY_ENTITY_MULTI_TARGET",
+          entity: "course",
+          legacyId: course.id,
+          detail: `Synthetic Course ${course.id} has multiple recorded raw jwIds: ${aliasJwIds.join(", ")}`,
+        });
+      }
     }
     if (targets.size === 0 && !isLegacySyntheticCourseJwId(course.jwId)) {
       targets.add(course.jwId);
