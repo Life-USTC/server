@@ -1,3 +1,10 @@
+## [1.89.4](https://github.com/Life-USTC/server/compare/v1.89.3...v1.89.4) (2026-08-10)
+
+
+### Bug Fixes
+
+* **static:** apply identity migration in sets ([3a5dce3](https://github.com/Life-USTC/server/commit/3a5dce3eaeb71394b4d0fb2678151255f94c385a))
+
 ## [1.89.3](https://github.com/Life-USTC/server/compare/v1.89.2...v1.89.3) (2026-08-10)
 
 
