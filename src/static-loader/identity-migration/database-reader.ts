@@ -158,11 +158,8 @@ export async function readIdentityMigrationDatabase(
         id: number;
         sectionId: number;
         teacherId: number;
-        legacyTeacherTitleId: number | null;
       }>
-    >(`SELECT ta."id", ta."sectionId", ta."teacherId", t."teacherTitleId" AS "legacyTeacherTitleId"
-       FROM "TeacherAssignment" ta
-       JOIN "Teacher" t ON t."id" = ta."teacherId"`),
+    >(`SELECT "id", "sectionId", "teacherId" FROM "TeacherAssignment"`),
     tx.$queryRawUnsafe<
       Array<{ scheduleId: number; sectionId: number; teacherId: number }>
     >(`SELECT st."A" AS "scheduleId", s."sectionId", st."B" AS "teacherId"

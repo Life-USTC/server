@@ -28,10 +28,7 @@ export async function applyIdentityMigrationPlan(
   }
 
   await lockAffectedRows(tx);
-  const titleEdges = plan.edgeMappings.filter(
-    (edge) => edge.entity === "teacherAssignmentTitle",
-  );
-  if (titleEdges.length > 0 && !(await hasAssignmentTitleColumn(tx))) {
+  if (!(await hasAssignmentTitleColumn(tx))) {
     throw new Error(
       "TeacherAssignment title schema is not installed; refusing to guess legacy Teacher titles",
     );
@@ -286,6 +283,12 @@ async function rebuildEdges(
   targetIds: TargetIds,
 ) {
   let rebuilt = 0;
+  await tx.$executeRawUnsafe(`DELETE FROM "_SectionTeachers"`);
+  await tx.$executeRawUnsafe(`DELETE FROM "_SectionAdminClasses"`);
+  await tx.$executeRawUnsafe(`DELETE FROM "_ScheduleTeachers"`);
+  await tx.$executeRawUnsafe(
+    `UPDATE "TeacherAssignment" SET "teacherTitleId" = NULL WHERE "teacherTitleId" IS NOT NULL`,
+  );
   for (const edge of edges.filter(
     (item) =>
       item.entity !== "sectionAdminClass" &&
@@ -475,10 +478,6 @@ async function rebuildJoinEdges(
   }
   let count = 0;
   for (const [ownerId, ownerEdges] of byOwner) {
-    await tx.$executeRawUnsafe(
-      `DELETE FROM "${table}" WHERE "${ownerColumn}" = $1`,
-      ownerId,
-    );
     for (const edge of ownerEdges) {
       const targetId = targets.get(edge.targetJwId);
       if (targetId == null) throw new Error(`${edge.entity} target is missing`);

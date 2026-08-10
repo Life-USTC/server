@@ -69,13 +69,7 @@ export function buildIdentityMigrationPlan(
       entityMappings,
       blockers,
     );
-    planAdminClassEdges(
-      snapshotState,
-      databaseState,
-      entityMappings,
-      edgeMappings,
-      blockers,
-    );
+    planAdminClassEdges(snapshotState, databaseState, edgeMappings, blockers);
     planNamedEntities(
       "teacherTitle",
       snapshotState.teacherTitles,
@@ -144,14 +138,12 @@ export function buildIdentityMigrationPlan(
       databaseState,
       entityMappings,
       edgeMappings,
-      blockers,
     );
     planImplicitSectionTeacherEdges(
       snapshotState,
       databaseState,
       entityMappings,
       edgeMappings,
-      blockers,
     );
     validateDescriptionConflicts(
       "course",
@@ -435,7 +427,6 @@ function planSimpleEntities(
 function planAdminClassEdges(
   snapshot: SnapshotState,
   database: DatabaseState,
-  mappings: EntityMapping[],
   edges: EdgeMapping[],
   blockers: IdentityMigrationBlocker[],
 ) {
@@ -448,7 +439,6 @@ function planAdminClassEdges(
       edge.adminClassJwId,
     );
   }
-  const adminMappings = mappingByLegacyId(mappings, "adminClass");
   for (const edge of database.sectionAdminClasses) {
     const section = sectionById.get(edge.sectionId);
     if (section == null) {
@@ -472,10 +462,7 @@ function planAdminClassEdges(
           targetJwId,
         });
       }
-      continue;
     }
-    const targets = adminMappings.get(edge.adminClassId)?.targetJwIds ?? [];
-    planLegacyEdge("sectionAdminClass", section.id, targets, edges, blockers);
   }
 }
 
@@ -741,13 +728,19 @@ function planTeacherAssignmentEdges(
       teacherMappings.get(assignment.teacherId)?.targetJwIds ?? [];
     const sourceAssignments =
       section == null ? [] : (sourceBySection.get(section.jwId) ?? []);
-    const assignmentTeacherTargets = sortedNumbers(
+    const sourceTeacherTargets = sortedNumbers(
       new Set(
         sourceAssignments
           .map((row) => row.teacherJwId)
           .filter((jwId) => teacherTargets.includes(jwId)),
       ),
     );
+    const assignmentTeacherTargets =
+      sourceTeacherTargets.length > 0
+        ? sourceTeacherTargets
+        : teacherTargets.length === 1
+          ? teacherTargets
+          : [];
     planLegacyEdge(
       "teacherAssignmentTeacher",
       assignment.id,
@@ -773,16 +766,15 @@ function planTeacherAssignmentEdges(
     const validTargets = sortedNumbers(
       new Set(titleTargets.filter((jwId) => validTitleIds.has(jwId))),
     );
-    if (validTargets.length === 0 && assignment.legacyTeacherTitleId == null) {
-      continue;
+    if (validTargets.length > 0) {
+      planLegacyEdge(
+        "teacherAssignmentTitle",
+        assignment.id,
+        validTargets,
+        edges,
+        blockers,
+      );
     }
-    planLegacyEdge(
-      "teacherAssignmentTitle",
-      assignment.id,
-      validTargets,
-      edges,
-      blockers,
-    );
   }
 }
 
@@ -791,7 +783,6 @@ function planScheduleTeacherEdges(
   database: DatabaseState,
   mappings: EntityMapping[],
   edges: EdgeMapping[],
-  blockers: IdentityMigrationBlocker[],
 ) {
   const sectionById = new Map(database.sections.map((row) => [row.id, row]));
   const teacherMappings = mappingByLegacyId(mappings, "teacher");
@@ -809,13 +800,13 @@ function planScheduleTeacherEdges(
         : (sourceTargetsBySection.get(section.jwId) ?? [])
             .map((row) => row.teacherJwId)
             .filter((jwId) => legacyTargets.includes(jwId));
-    planLegacyEdge(
-      "scheduleTeacher",
-      relation.scheduleId,
-      sortedNumbers(new Set(sourceTargets)),
-      edges,
-      blockers,
-    );
+    for (const targetJwId of sortedNumbers(new Set(sourceTargets))) {
+      edges.push({
+        entity: "scheduleTeacher",
+        ownerId: relation.scheduleId,
+        targetJwId,
+      });
+    }
   }
 }
 
@@ -824,7 +815,6 @@ function planImplicitSectionTeacherEdges(
   database: DatabaseState,
   mappings: EntityMapping[],
   edges: EdgeMapping[],
-  blockers: IdentityMigrationBlocker[],
 ) {
   const sectionById = new Map(database.sections.map((row) => [row.id, row]));
   const teacherMappings = mappingByLegacyId(mappings, "teacher");
@@ -843,16 +833,6 @@ function planImplicitSectionTeacherEdges(
             .map((row) => row.teacherJwId)
             .filter((jwId) => legacyTargets.includes(jwId));
     const targets = sortedNumbers(new Set(sourceTargets));
-    if (targets.length === 0) {
-      planLegacyEdge(
-        "implicitSectionTeacher",
-        relation.sectionId,
-        targets,
-        edges,
-        blockers,
-      );
-      continue;
-    }
     for (const targetJwId of targets) {
       edges.push({
         entity: "implicitSectionTeacher",

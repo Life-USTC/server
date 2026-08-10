@@ -147,13 +147,11 @@ function databaseState(): DatabaseState {
         id: 71,
         sectionId: 11,
         teacherId: 6,
-        legacyTeacherTitleId: 3,
       },
       {
         id: 72,
         sectionId: 12,
         teacherId: 6,
-        legacyTeacherTitleId: 3,
       },
     ],
     scheduleTeachers: [],
@@ -465,24 +463,26 @@ describe("identity migration planner", () => {
     ]);
   });
 
-  it("does not guess a TeacherAssignment title without a snapshot edge", () => {
+  it("drops a legacy Teacher title without a snapshot assignment edge", () => {
     const snapshot = snapshotState();
-    snapshot.teacherAssignments = snapshot.teacherAssignments.filter(
-      (assignment) => assignment.sectionJwId !== 201,
+    snapshot.teacherAssignments = snapshot.teacherAssignments.map(
+      (assignment) =>
+        assignment.sectionJwId === 201
+          ? { ...assignment, titleJwId: null }
+          : assignment,
     );
 
+    const plan = buildIdentityMigrationPlan(snapshot, databaseState());
+    expect(plan.blockers).toEqual([]);
     expect(
-      buildIdentityMigrationPlan(snapshot, databaseState()).blockers,
-    ).toContainEqual(
-      expect.objectContaining({
-        code: "SOURCE_EDGE_UNMAPPED",
-        entity: "teacherAssignmentTitle",
-        legacyId: 71,
-      }),
-    );
+      plan.edgeMappings.filter(
+        (edge) =>
+          edge.entity === "teacherAssignmentTitle" && edge.ownerId === 71,
+      ),
+    ).toEqual([]);
   });
 
-  it("proves schedule teachers within a section and blocks ambiguous splits", () => {
+  it("rebuilds only source-proven derived teacher joins", () => {
     const database = databaseState();
     database.scheduleTeachers = [
       { scheduleId: 91, sectionId: 11, teacherId: 6 },
@@ -508,15 +508,12 @@ describe("identity migration planner", () => {
       ...snapshot.sectionTeachers,
       { sectionJwId: 201, teacherJwId: 802 },
     ];
+    const ambiguousPlan = buildIdentityMigrationPlan(snapshot, database);
     expect(
-      buildIdentityMigrationPlan(snapshot, database).blockers,
-    ).toContainEqual(
-      expect.objectContaining({
-        code: "LEGACY_EDGE_MULTI_TARGET",
-        entity: "scheduleTeacher",
-        legacyId: 91,
-      }),
-    );
+      ambiguousPlan.blockers.filter(
+        (blocker) => blocker.entity === "scheduleTeacher",
+      ),
+    ).toEqual([]);
   });
 
   it("treats an empty current description with edit history as UGC", () => {
