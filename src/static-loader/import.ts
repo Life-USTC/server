@@ -4,6 +4,7 @@ import { type CampusOccurrence, selectCampuses } from "./campus-selection";
 import { type CourseOccurrence, selectLatestCourses } from "./course-selection";
 import { collectCodeOnlyDepartmentPlaceholders } from "./department-placeholder";
 import { selectLatestExamBatches } from "./exam-batch-selection";
+import { ensureStaticIdentityMigrationComplete } from "./identity-migration-state";
 import { acquireStaticImportLock } from "./import-lock";
 import {
   assertStaticImportStateAllowsSnapshot,
@@ -250,7 +251,10 @@ export async function runImport(
       acquireStaticImportLock(tx),
     );
     await logStep("validateStaticIdentityMigration", 1, () =>
-      assertStaticIdentityMigrationComplete(tx),
+      ensureStaticIdentityMigrationComplete(tx, {
+        bootstrapEnabled: config.bootstrapImportState,
+        snapshotSha256: config.snapshotSha256,
+      }),
     );
     const alreadyImported = await logStep("validateStaticImportState", 1, () =>
       assertStaticImportStateAllowsSnapshot(tx, {
@@ -493,41 +497,6 @@ export async function runImport(
       sectionLifecycle: sectionLifecycleStats,
     },
   };
-}
-
-async function assertStaticIdentityMigrationComplete(
-  tx: Prisma.TransactionClient,
-): Promise<void> {
-  const migrationState = await tx.staticIdentityMigrationState.findUnique({
-    where: { id: "raw-jwid-v1" },
-    select: { id: true },
-  });
-  if (migrationState == null) {
-    throw new Error(
-      "Static identity data migration raw-jwid-v1 has not completed",
-    );
-  }
-  const legacyIndexes = await tx.$queryRaw<
-    Array<{ indexname: string }>
-  >`SELECT indexname
-    FROM pg_indexes
-    WHERE schemaname = current_schema()
-      AND indexname IN (
-        'Campus_nameCn_key',
-        'AdminClass_nameCn_key',
-        'ExamBatch_nameCn_key',
-        'TeacherTitle_nameCn_key',
-        'Room_buildingId_code_key',
-        'Teacher_personId_key',
-        'Teacher_teacherId_key',
-        'Teacher_code_key'
-      )
-    ORDER BY indexname`;
-  if (legacyIndexes.length > 0) {
-    throw new Error(
-      `Static identity data migration is incomplete; legacy unique indexes remain: ${legacyIndexes.map(({ indexname }) => indexname).join(", ")}`,
-    );
-  }
 }
 
 function loadSemesters(snapshot: Snapshot): SemesterBuild[] {

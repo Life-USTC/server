@@ -40,7 +40,7 @@ describe("global static import state persistence", () => {
             retirementEnabled: false,
             snapshotSha256: snapshotSha,
           }),
-        ).resolves.toBeUndefined();
+        ).resolves.toBe(false);
         await recordStaticImportState(tx, {
           observedAt,
           snapshotSha256: snapshotSha,

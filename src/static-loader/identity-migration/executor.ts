@@ -1,3 +1,4 @@
+import { LEGACY_STATIC_IDENTITY_INDEXES } from "../identity-migration-state";
 import type { IdentityMigrationSql } from "./database-reader";
 import type {
   DatabaseState,
@@ -13,16 +14,6 @@ export type IdentityMigrationApplyReport = {
   rebuiltEdges: number;
   deletedLegacyRows: number;
 };
-
-const LEGACY_UNIQUE_INDEXES = [
-  "AdminClass_nameCn_key",
-  "ExamBatch_nameCn_key",
-  "TeacherTitle_nameCn_key",
-  "Campus_nameCn_key",
-  "Teacher_personId_key",
-  "Teacher_teacherId_key",
-  "Teacher_code_key",
-] as const;
 
 type TargetIds = Map<EntityMapping["entity"], Map<number, number>>;
 
@@ -46,7 +37,7 @@ export async function applyIdentityMigrationPlan(
     );
   }
 
-  for (const index of LEGACY_UNIQUE_INDEXES) {
+  for (const index of LEGACY_STATIC_IDENTITY_INDEXES) {
     await tx.$executeRawUnsafe(`DROP INDEX IF EXISTS "${index}"`);
   }
 
