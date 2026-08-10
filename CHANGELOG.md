@@ -1,3 +1,10 @@
+## [1.89.7](https://github.com/Life-USTC/server/compare/v1.89.6...v1.89.7) (2026-08-10)
+
+
+### Bug Fixes
+
+* **static:** type rebuilt teacher retirement ([0c23076](https://github.com/Life-USTC/server/commit/0c23076deaf92f4447cb1360c179016da42963d5))
+
 ## [1.89.6](https://github.com/Life-USTC/server/compare/v1.89.5...v1.89.6) (2026-08-10)
 
 
