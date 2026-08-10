@@ -9,7 +9,10 @@ import type { AppLocale } from "@/i18n/config";
 import { authApi } from "@/lib/auth/core";
 import { logServerActionError } from "@/lib/log/app-logger";
 import { resolveOAuthClientGrantTypes } from "@/lib/oauth/client-registration";
-import { OAUTH_CODE_RESPONSE_TYPE } from "@/lib/oauth/constants";
+import {
+  OAUTH_CODE_RESPONSE_TYPE,
+  OAUTH_PUBLIC_CLIENT_AUTH_METHOD,
+} from "@/lib/oauth/constants";
 import { asOAuthProviderApi } from "@/lib/oauth/provider-api";
 import { parseAdminOAuthCreateRequest } from "./admin-oauth-create-request";
 
@@ -31,6 +34,10 @@ export async function createAdminOAuthClientAction(
       headers: request.headers,
       body: {
         client_name: name,
+        application_type:
+          tokenEndpointAuthMethod === OAUTH_PUBLIC_CLIENT_AUTH_METHOD
+            ? "native"
+            : "web",
         redirect_uris: redirectUris,
         token_endpoint_auth_method: tokenEndpointAuthMethod,
         grant_types: resolveOAuthClientGrantTypes(scopes),

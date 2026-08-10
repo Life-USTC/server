@@ -14,9 +14,7 @@ import {
 type DeviceAuthorizationClient = {
   dpopBoundAccessTokens: boolean | null;
   grantTypes: string[];
-  public: boolean | null;
   tokenEndpointAuthMethod: string | null;
-  type: string | null;
 };
 
 type DeviceAuthorizationClientRecord = DeviceAuthorizationClient & {
@@ -36,10 +34,8 @@ type DeviceAuthorizationPrisma = {
         dpopBoundAccessTokens: true;
         grantTypes: true;
         name: true;
-        public: true;
         scopes: true;
         tokenEndpointAuthMethod: true;
-        type: true;
       };
     }) => Promise<DeviceAuthorizationClientRecord | null>;
   };
@@ -75,13 +71,7 @@ export function getDeviceAuthorizationClientPolicyFailure(
     return "unsupported_grant";
   }
 
-  if (
-    client.tokenEndpointAuthMethod === OAUTH_PUBLIC_CLIENT_AUTH_METHOD ||
-    client.public === true ||
-    client.type === "native" ||
-    client.type === "public" ||
-    client.type === "user-agent-based"
-  ) {
+  if (client.tokenEndpointAuthMethod === OAUTH_PUBLIC_CLIENT_AUTH_METHOD) {
     return null;
   }
 
@@ -208,10 +198,8 @@ export async function resolveDeviceAuthorizationClient({
       dpopBoundAccessTokens: true,
       grantTypes: true,
       name: true,
-      public: true,
       scopes: true,
       tokenEndpointAuthMethod: true,
-      type: true,
     },
   });
 

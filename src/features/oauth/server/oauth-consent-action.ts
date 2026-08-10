@@ -56,24 +56,22 @@ type OAuthConsentClientReader = {
     findUnique(input: {
       where: { clientId: string };
       select: {
+        applicationType: true;
         disabled: true;
-        public: true;
         requirePKCE: true;
         redirectUris: true;
         scopes: true;
         skipConsent: true;
         tokenEndpointAuthMethod: true;
-        type: true;
       };
     }): Promise<{
+      applicationType: string | null;
       disabled: boolean;
-      public: boolean | null;
       requirePKCE: boolean | null;
       redirectUris: string[];
       scopes: string[];
       skipConsent: boolean | null;
       tokenEndpointAuthMethod: string | null;
-      type: string | null;
     } | null>;
   };
 };
@@ -189,14 +187,13 @@ async function validateConsentRequest(
   const client = await reader.oAuthClient.findUnique({
     where: { clientId },
     select: {
+      applicationType: true,
       disabled: true,
-      public: true,
       requirePKCE: true,
       redirectUris: true,
       scopes: true,
       skipConsent: true,
       tokenEndpointAuthMethod: true,
-      type: true,
     },
   });
   const requestedScopes = uniqueScopes(authorizeQuery.get("scope"));
@@ -204,9 +201,7 @@ async function validateConsentRequest(
   const codeChallengeMethod = authorizeQuery.get("code_challenge_method");
   const requiresPkce =
     client?.tokenEndpointAuthMethod === "none" ||
-    client?.type === "native" ||
-    client?.type === "user-agent-based" ||
-    client?.public === true ||
+    client?.applicationType === "native" ||
     requestedScopes.includes("offline_access") ||
     (client?.requirePKCE ?? true);
   if (

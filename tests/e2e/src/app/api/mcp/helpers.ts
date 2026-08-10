@@ -79,6 +79,7 @@ async function resumeConsentIfSignInPage(page: Page) {
 async function registerPublicClient(request: Page["request"], scope: string) {
   const response = await request.post("/api/auth/oauth2/register", {
     data: {
+      application_type: "native",
       client_name: `mcp-e2e-${Date.now()}`,
       redirect_uris: [REDIRECT_URI],
       token_endpoint_auth_method: OAUTH_PUBLIC_CLIENT_AUTH_METHOD,

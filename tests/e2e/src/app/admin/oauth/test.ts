@@ -138,7 +138,11 @@ test("/admin/oauth 可创建三种固定客户端且密钥只显示一次", asyn
       await dialog.getByLabel(/应用名称|Application Name/i).fill(name);
       await dialog
         .getByLabel(/重定向 URI|Redirect URIs/i)
-        .fill(`${PLAYWRIGHT_BASE_URL}/oauth-e2e/${pattern.suffix}/callback`);
+        .fill(
+          pattern.method === "none"
+            ? `${PLAYWRIGHT_BASE_URL}/oauth-e2e/${pattern.suffix}/callback`
+            : `https://client.example/oauth-e2e/${pattern.suffix}/callback`,
+        );
 
       const emailScope = dialog.getByRole("checkbox", {
         name: /查看您的邮箱地址|View your email address/i,

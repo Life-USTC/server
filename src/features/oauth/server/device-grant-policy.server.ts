@@ -41,9 +41,7 @@ type DeviceGrantPrisma = {
             disabled: true;
             dpopBoundAccessTokens: true;
             grantTypes: true;
-            public: true;
             tokenEndpointAuthMethod: true;
-            type: true;
           };
         };
       };
@@ -53,9 +51,7 @@ type DeviceGrantPrisma = {
         disabled: boolean;
         dpopBoundAccessTokens: boolean | null;
         grantTypes: string[];
-        public: boolean | null;
         tokenEndpointAuthMethod: string | null;
-        type: string | null;
       };
       expiresAt: Date;
       id: string;
@@ -85,9 +81,7 @@ type DeviceGrantRecordRow = {
   clientDisabled: boolean;
   clientDpopBoundAccessTokens: boolean | null;
   clientGrantTypes: string[];
-  clientPublic: boolean | null;
   clientTokenEndpointAuthMethod: string | null;
-  clientType: string | null;
   expiresAt: Date;
   id: string;
   lastPolledAt: Date | null;
@@ -169,9 +163,7 @@ export async function resolveDeviceGrantRecord({
               disabled: true,
               dpopBoundAccessTokens: true,
               grantTypes: true,
-              public: true,
               tokenEndpointAuthMethod: true,
-              type: true,
             },
           },
         },
@@ -247,9 +239,7 @@ async function resolveFreshDeviceGrantRecord(
       c."disabled" AS "clientDisabled",
       c."dpopBoundAccessTokens" AS "clientDpopBoundAccessTokens",
       c."grantTypes" AS "clientGrantTypes",
-      c."public" AS "clientPublic",
-      c."tokenEndpointAuthMethod" AS "clientTokenEndpointAuthMethod",
-      c."type" AS "clientType"
+      c."tokenEndpointAuthMethod" AS "clientTokenEndpointAuthMethod"
     FROM "DeviceCode" dc
     JOIN "OAuthClient" c ON c."clientId" = dc."clientId"
     WHERE dc."deviceCode" = ${deviceCode}
@@ -271,9 +261,7 @@ async function resolveFreshDeviceGrantRecord(
           disabled: row.clientDisabled,
           dpopBoundAccessTokens: row.clientDpopBoundAccessTokens,
           grantTypes: row.clientGrantTypes,
-          public: row.clientPublic,
           tokenEndpointAuthMethod: row.clientTokenEndpointAuthMethod,
-          type: row.clientType,
         },
       }
     : null;
