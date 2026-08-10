@@ -44,6 +44,11 @@ export async function applyIdentityMigrationPlan(
   }
   const targetIds = await readTargetIds(tx, plan.entityMappings);
   const rebuiltEdges = await rebuildEdges(tx, plan.edgeMappings, targetIds);
+  await deleteUnmappedTeacherAssignments(
+    tx,
+    database.teacherAssignments,
+    plan.edgeMappings,
+  );
 
   await migrateComments(tx, plan.entityMappings, targetIds);
   await migrateDescriptions(tx, plan.entityMappings, targetIds, database);
@@ -112,6 +117,7 @@ async function ensureEntityTargets(
   for (const targetJwId of mapping.targetJwIds) {
     const source = sourceEntity(snapshot, mapping.entity, targetJwId);
     if (source == null) {
+      if (mapping.provenance.includes("historical")) continue;
       throw new Error(
         `${mapping.entity} target ${targetJwId} is absent from the fixed snapshot`,
       );
@@ -578,6 +584,15 @@ async function deleteLegacyRows(
   targets: TargetIds,
 ) {
   let deleted = 0;
+  await tx.$executeRawUnsafe(
+    `DELETE FROM "SectionTeacher" st
+     WHERE NOT EXISTS (
+       SELECT 1 FROM "_SectionTeachers" j
+       WHERE j."A" = st."sectionId" AND j."B" = st."teacherId"
+     ) AND NOT EXISTS (
+       SELECT 1 FROM "Comment" c WHERE c."sectionTeacherId" = st."id"
+     )`,
+  );
   for (const entity of [
     "course",
     "adminClass",
@@ -588,7 +603,14 @@ async function deleteLegacyRows(
     "teacherTitle",
   ] as const) {
     for (const mapping of mappings.filter((item) => item.entity === entity)) {
-      if (mapping.targetJwIds.length === 0) continue;
+      if (mapping.targetJwIds.length === 0) {
+        if (mapping.provenance.includes("placeholder")) continue;
+        deleted += await tx.$executeRawUnsafe(
+          `DELETE FROM "${tableForEntity(entity)}" WHERE "id" = $1`,
+          mapping.legacyId,
+        );
+        continue;
+      }
       const targetDatabaseIds = new Set(
         mapping.targetJwIds
           .map((jwId) => targets.get(entity)?.get(jwId))
@@ -607,16 +629,27 @@ async function deleteLegacyRows(
       );
     }
   }
-  await tx.$executeRawUnsafe(
-    `DELETE FROM "SectionTeacher" st
-     WHERE NOT EXISTS (
-       SELECT 1 FROM "_SectionTeachers" j
-       WHERE j."A" = st."sectionId" AND j."B" = st."teacherId"
-     ) AND NOT EXISTS (
-       SELECT 1 FROM "Comment" c WHERE c."sectionTeacherId" = st."id"
-     )`,
-  );
   return deleted;
+}
+
+async function deleteUnmappedTeacherAssignments(
+  tx: IdentityMigrationSql,
+  assignments: DatabaseState["teacherAssignments"],
+  edges: readonly EdgeMapping[],
+) {
+  const mappedIds = new Set(
+    edges
+      .filter((edge) => edge.entity === "teacherAssignmentTeacher")
+      .map((edge) => edge.ownerId),
+  );
+  const staleIds = assignments
+    .map((assignment) => assignment.id)
+    .filter((id) => !mappedIds.has(id));
+  if (staleIds.length === 0) return;
+  await tx.$executeRawUnsafe(
+    `DELETE FROM "TeacherAssignment" WHERE "id" = ANY($1::int[])`,
+    staleIds,
+  );
 }
 
 function tableForEntity(entity: EntityMapping["entity"]) {

@@ -13,12 +13,16 @@ before the data transaction would allow the runtime loader to create a second
 row for the same legacy identity. The contract migration may remove them only
 after the planner's mappings have committed and its invariants have passed.
 
-Every planned entity and edge target must exist in that fixed snapshot.
-`CourseAlias` is obsolete migration input and is deleted, never promoted into a
-source identity. Teacher titles are assignment-level source data: the planner
-only emits a title edge when the snapshot proves it for the exact
-section/teacher assignment; it never copies a legacy Teacher title by name or
-by convenience.
+Every new or changed target must exist in that fixed snapshot. `CourseAlias` is
+obsolete migration input and is deleted, never promoted into a source identity.
+Teacher titles are assignment-level source data: the planner only emits a title
+edge when the snapshot proves it for the exact section/teacher assignment; it
+never copies a legacy Teacher title by name or by convenience.
+
+An existing non-synthetic `jwId` remains authoritative for historical rows no
+longer returned by the current snapshot. Name-only Teacher rows have no source
+identity: rows without UGC and their unprovable assignments are removed, while
+UGC on such a row blocks the migration.
 
 Comments can be rebound when multiple legacy rows converge on one raw target.
 Descriptions are unique per target, so non-empty descriptions may converge only

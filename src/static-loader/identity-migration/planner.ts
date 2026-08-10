@@ -1,3 +1,4 @@
+import { isLegacySyntheticCourseJwId } from "./legacy-course-identity";
 import {
   type DatabaseEntity,
   type DatabaseState,
@@ -242,6 +243,10 @@ function planCourses(
       targets.add(target.row.jwId);
       provenance.add("synthetic");
     }
+    if (targets.size === 0 && !isLegacySyntheticCourseJwId(course.jwId)) {
+      targets.add(course.jwId);
+      provenance.add("historical");
+    }
     if (targets.size === 0 && course.code != null && course.code !== "") {
       const codeMatches = byCode.get(course.code) ?? [];
       if (codeMatches.length === 1) {
@@ -324,6 +329,8 @@ function planNamedEntities(
       if (row.jwId != null && snapshot.some((item) => item.jwId === row.jwId)) {
         targets.push(row.jwId);
         provenance.push("raw");
+      } else if (row.jwId != null) {
+        return { targets: [row.jwId], provenance: ["historical"] };
       }
       return { targets, provenance };
     },
@@ -346,6 +353,9 @@ function planCodeEntities(
     (row, snapshot) => {
       if (row.jwId != null && snapshot.some((item) => item.jwId === row.jwId)) {
         return { targets: [row.jwId], provenance: ["raw"] };
+      }
+      if (row.jwId != null) {
+        return { targets: [row.jwId], provenance: ["historical"] };
       }
       return {
         targets: snapshot
@@ -384,12 +394,6 @@ function planSimpleEntities(
   for (const row of databaseRows) {
     const resolved = resolve(row, snapshotRows);
     const targetJwIds = sortedNumbers(new Set(resolved.targets));
-    if (
-      targetJwIds.length === 0 &&
-      !resolved.provenance.includes("placeholder")
-    ) {
-      addUnmappedBlocker(entity, row.id, blockers, stableJson(row));
-    }
     if (entity === "department" && targetJwIds.length > 1) {
       blockers.push({
         code: "LEGACY_ENTITY_MULTI_TARGET",
@@ -632,6 +636,9 @@ function planTeachers(
     if (directJwId != null && rawByJwId.has(directJwId)) {
       targets.add(directJwId);
       provenance.add("raw");
+    } else if (directJwId != null) {
+      targets.add(directJwId);
+      provenance.add("historical");
     }
     if (teacher.personId != null) {
       for (const target of byPerson.get(teacher.personId) ?? []) {
@@ -647,7 +654,9 @@ function planTeachers(
       }
     }
     const targetJwIds = sortedNumbers(targets);
-    if (targetJwIds.length === 0) {
+    const hasDirectUgc =
+      teacher.directCommentCount > 0 || hasNonemptyDescription(teacher);
+    if (targetJwIds.length === 0 && hasDirectUgc) {
       addUnmappedBlocker(
         "teacher",
         teacher.id,
@@ -663,10 +672,7 @@ function planTeachers(
         }),
       );
     }
-    if (
-      (teacher.directCommentCount > 0 || hasNonemptyDescription(teacher)) &&
-      targetJwIds.length > 1
-    ) {
+    if (hasDirectUgc && targetJwIds.length > 1) {
       addUgcBlocker("teacher", teacher.id, targetJwIds, blockers);
     }
     mappings.push({
@@ -696,10 +702,15 @@ function planTeachers(
       constrainedTargets.length > 0
         ? sortedNumbers(new Set(constrainedTargets))
         : oldTargets;
-    if (relation.directCommentCount > 0 && targets.length > 1) {
-      addUgcBlocker("sectionTeacher", relation.id, targets, blockers);
+    if (targets.length === 1) {
+      planLegacyEdge("sectionTeacher", relation.id, targets, edges, blockers);
+    } else if (relation.directCommentCount > 0) {
+      if (targets.length > 1) {
+        addUgcBlocker("sectionTeacher", relation.id, targets, blockers);
+      } else {
+        planLegacyEdge("sectionTeacher", relation.id, targets, edges, blockers);
+      }
     }
-    planLegacyEdge("sectionTeacher", relation.id, targets, edges, blockers);
   }
 }
 
@@ -737,13 +748,15 @@ function planTeacherAssignmentEdges(
         : teacherTargets.length === 1
           ? teacherTargets
           : [];
-    planLegacyEdge(
-      "teacherAssignmentTeacher",
-      assignment.id,
-      assignmentTeacherTargets,
-      edges,
-      blockers,
-    );
+    if (assignmentTeacherTargets.length === 1) {
+      planLegacyEdge(
+        "teacherAssignmentTeacher",
+        assignment.id,
+        assignmentTeacherTargets,
+        edges,
+        blockers,
+      );
+    } else continue;
     const titleTargets = sourceAssignments
       .filter((row) => teacherTargets.includes(row.teacherJwId))
       .map((row) => row.titleJwId)
