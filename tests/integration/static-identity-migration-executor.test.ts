@@ -70,7 +70,6 @@ function database(course: {
         description: null,
       },
     ],
-    courseAliases: [],
     sections: [],
     adminClasses: [],
     sectionAdminClasses: [],
@@ -353,28 +352,23 @@ describe("identity migration executor", () => {
     }
   });
 
-  it("restores a synthetic Course to a historical raw alias", async () => {
-    const rollback = new Error("ROLLBACK_HISTORICAL_COURSE_ALIAS");
-    const suffix = Date.now() % 10_000_000;
-    const syntheticJwId = 1_800_000_000 + suffix;
-    const rawJwId = 1_200_000_000 + suffix;
+  it("restores a synthetic Course from the verified catalog recovery map", async () => {
+    const rollback = new Error("ROLLBACK_RECOVERED_COURSE_IDENTITY");
+    const syntheticJwId = 1_623_423_958;
+    const rawJwId = 143_302;
     try {
       await prisma.$transaction(async (tx) => {
         const course = await tx.course.create({
           data: {
             jwId: syntheticJwId,
-            code: `ALIAS-${suffix}`,
-            nameCn: `历史课程 ${suffix}`,
+            code: "206701e",
+            nameCn: "物理化学III(H)(英)",
           },
           select: { id: true, jwId: true, code: true, nameCn: true },
-        });
-        await tx.courseAlias.create({
-          data: { jwId: rawJwId, courseId: course.id },
         });
         const snapshotState = snapshot(rawJwId, syntheticJwId);
         snapshotState.courses = [];
         const databaseState = database(course);
-        databaseState.courseAliases = [{ jwId: rawJwId, courseId: course.id }];
         const plan = buildIdentityMigrationPlan(snapshotState, databaseState);
         expect(plan.blockers).toEqual([]);
 
@@ -388,9 +382,6 @@ describe("identity migration executor", () => {
         expect(
           await tx.course.findUnique({ where: { id: course.id } }),
         ).toMatchObject({ jwId: rawJwId });
-        expect(
-          await tx.courseAlias.findUnique({ where: { jwId: rawJwId } }),
-        ).toBeNull();
         throw rollback;
       });
     } catch (error) {
