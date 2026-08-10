@@ -499,7 +499,7 @@ async function rebuildSectionTeachers(
        JOIN "SectionTeacher" relation ON relation."id" = input."legacyId"
      ), inserted AS (
      INSERT INTO "SectionTeacher" ("sectionId", "teacherId", "createdAt", "updatedAt", "retiredAt")
-     SELECT DISTINCT "sectionId", "targetTeacherId", CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, NULL
+     SELECT DISTINCT "sectionId", "targetTeacherId", CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, NULL::timestamp
      FROM source
      ON CONFLICT ("sectionId", "teacherId") DO UPDATE SET "retiredAt" = NULL
      RETURNING "id", "sectionId", "teacherId"
