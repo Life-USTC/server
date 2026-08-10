@@ -245,7 +245,7 @@ model Department {
   id   Int  @id @default(autoincrement())
   jwId Int? @unique
 
-  code      String   @unique
+  code      String
   nameCn    String
   nameEn    String?
   isCollege Boolean?
