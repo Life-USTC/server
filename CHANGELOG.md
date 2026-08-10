@@ -1,3 +1,10 @@
+## [1.89.3](https://github.com/Life-USTC/server/compare/v1.89.2...v1.89.3) (2026-08-10)
+
+
+### Bug Fixes
+
+* **static:** recover archived upstream course IDs ([5243015](https://github.com/Life-USTC/server/commit/5243015165085cc86e2e5916dfbdb3b9800886e7))
+
 ## [1.89.2](https://github.com/Life-USTC/server/compare/v1.89.1...v1.89.2) (2026-08-10)
 
 
