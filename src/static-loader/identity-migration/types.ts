@@ -193,7 +193,13 @@ export type EntityMapping = {
   legacyId: number;
   targetJwIds: number[];
   provenance: Array<
-    "raw" | "synthetic" | "alias" | "code" | "name" | "person" | "placeholder"
+    | "raw"
+    | "historical"
+    | "synthetic"
+    | "code"
+    | "name"
+    | "person"
+    | "placeholder"
   >;
 };
 

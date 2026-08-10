@@ -1,4 +1,3 @@
-import { createHash } from "node:crypto";
 import { selectLatestAdminClasses } from "../admin-class-selection";
 import { selectLatestCourses } from "../course-selection";
 import {
@@ -14,28 +13,16 @@ import {
   mapTeacherTitle,
 } from "../mappers";
 import { asInt, asString, Snapshot } from "../snapshot";
+import {
+  legacyCodeCourseJwId,
+  legacySemanticCourseJwId,
+} from "./legacy-course-identity";
 import type { SnapshotCourse, SnapshotState } from "./types";
 
-const SYNTHETIC_JWID_BASE = 1_500_000_000;
-const SYNTHETIC_JWID_SPAN = 400_000_000;
-
-export function legacySemanticCourseJwId(sourceKey: string): number {
-  const digest = createHash("sha256")
-    .update(`course-variant:v1:${sourceKey}`)
-    .digest("hex");
-  return (
-    SYNTHETIC_JWID_BASE +
-    (Number.parseInt(digest.slice(0, 8), 16) % SYNTHETIC_JWID_SPAN)
-  );
-}
-
-export function legacyCodeCourseJwId(code: string): number {
-  const digest = createHash("sha256").update(`course:${code}`).digest("hex");
-  return (
-    SYNTHETIC_JWID_BASE +
-    (Number.parseInt(digest.slice(0, 8), 16) % SYNTHETIC_JWID_SPAN)
-  );
-}
+export {
+  legacyCodeCourseJwId,
+  legacySemanticCourseJwId,
+} from "./legacy-course-identity";
 
 export function readIdentityMigrationSnapshot(
   path: string,

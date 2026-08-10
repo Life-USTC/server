@@ -405,6 +405,81 @@ describe("identity migration planner", () => {
     ).toEqual([101]);
   });
 
+  it("retains an existing historical raw identity absent from the snapshot", () => {
+    const snapshot = snapshotState();
+    snapshot.courses = [];
+    snapshot.sectionCourses = [];
+    const database = databaseState();
+    database.courses = [
+      {
+        ...database.courses[0],
+        jwId: 145_964,
+        code: "NSE4022",
+        nameCn: "真空技术与科学仪器",
+      },
+    ];
+    database.sections = [];
+    database.sectionAdminClasses = [];
+    database.departmentReferences = [];
+    database.sectionTeachers = [];
+    database.teacherAssignments = [];
+
+    const plan = buildIdentityMigrationPlan(snapshot, database);
+    expect(plan.blockers).toEqual([]);
+    expect(plan.entityMappings).toContainEqual({
+      entity: "course",
+      legacyId: 1,
+      targetJwIds: [145_964],
+      provenance: ["historical"],
+    });
+  });
+
+  it("drops source-less Teacher rows and relations only when they have no UGC", () => {
+    const snapshot = snapshotState();
+    snapshot.teachers = [];
+    snapshot.sectionTeachers = [];
+    snapshot.teacherAssignments = [];
+    const database = databaseState();
+    database.teachers = [
+      {
+        ...database.teachers[0],
+        jwId: null,
+        teacherId: null,
+        personId: null,
+        code: null,
+        directCommentCount: 0,
+      },
+    ];
+    database.sectionTeachers = [
+      { ...database.sectionTeachers[0], directCommentCount: 0 },
+    ];
+
+    const plan = buildIdentityMigrationPlan(snapshot, database);
+    expect(plan.blockers).toEqual([]);
+    expect(plan.entityMappings).toContainEqual({
+      entity: "teacher",
+      legacyId: 6,
+      targetJwIds: [],
+      provenance: [],
+    });
+    expect(
+      plan.edgeMappings.filter((edge) =>
+        ["sectionTeacher", "teacherAssignmentTeacher"].includes(edge.entity),
+      ),
+    ).toEqual([]);
+
+    database.teachers = [{ ...database.teachers[0], directCommentCount: 1 }];
+    expect(
+      buildIdentityMigrationPlan(snapshot, database).blockers,
+    ).toContainEqual(
+      expect.objectContaining({
+        code: "LEGACY_ENTITY_UNMAPPED",
+        entity: "teacher",
+        legacyId: 6,
+      }),
+    );
+  });
+
   it("merges identical descriptions many-to-one but blocks different content", () => {
     const snapshot = snapshotState();
     snapshot.courses = snapshot.courses.filter((course) => course.jwId === 101);

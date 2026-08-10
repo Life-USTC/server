@@ -144,6 +144,26 @@ describe("identity migration executor", () => {
             openDepartmentId: placeholderDepartment.id,
           },
         });
+        const sourceLessTeacher = await tx.teacher.create({
+          data: { nameCn: `无来源教师 ${marker}` },
+        });
+        const sourceLessRelation = await tx.sectionTeacher.create({
+          data: {
+            sectionId: section.id,
+            teacherId: sourceLessTeacher.id,
+          },
+        });
+        const sourceLessAssignment = await tx.teacherAssignment.create({
+          data: {
+            sectionId: section.id,
+            teacherId: sourceLessTeacher.id,
+          },
+        });
+        await tx.$executeRawUnsafe(
+          `INSERT INTO "_SectionTeachers" ("A", "B") VALUES ($1, $2)`,
+          section.id,
+          sourceLessTeacher.id,
+        );
         const firstDescription = await tx.description.create({
           data: { courseId: legacy.id, content: "相同内容" },
         });
@@ -238,6 +258,31 @@ describe("identity migration executor", () => {
             departmentId: placeholderDepartment.id,
           },
         ];
+        databaseState.teachers = [
+          {
+            ...sourceLessTeacher,
+            directCommentCount: 0,
+            description: null,
+          },
+        ];
+        databaseState.sectionTeachers = [
+          {
+            id: sourceLessRelation.id,
+            sectionId: section.id,
+            teacherId: sourceLessTeacher.id,
+            directCommentCount: 0,
+          },
+        ];
+        databaseState.sectionTeacherJoins = [
+          { sectionId: section.id, teacherId: sourceLessTeacher.id },
+        ];
+        databaseState.teacherAssignments = [
+          {
+            id: sourceLessAssignment.id,
+            sectionId: section.id,
+            teacherId: sourceLessTeacher.id,
+          },
+        ];
         const plan = buildIdentityMigrationPlan(snapshotState, databaseState);
         expect(plan.blockers).toEqual([]);
 
@@ -287,6 +332,19 @@ describe("identity migration executor", () => {
             where: { id: "raw-jwid-v1" },
           }),
         ).toMatchObject({ snapshotSha256: SHA });
+        expect(
+          await tx.teacher.findUnique({ where: { id: sourceLessTeacher.id } }),
+        ).toBeNull();
+        expect(
+          await tx.teacherAssignment.findUnique({
+            where: { id: sourceLessAssignment.id },
+          }),
+        ).toBeNull();
+        expect(
+          await tx.sectionTeacher.findUnique({
+            where: { id: sourceLessRelation.id },
+          }),
+        ).toBeNull();
         throw rollback;
       });
     } catch (error) {
