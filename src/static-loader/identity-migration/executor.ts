@@ -38,10 +38,11 @@ export async function applyIdentityMigrationPlan(
     await tx.$executeRawUnsafe(`DROP INDEX IF EXISTS "${index}"`);
   }
 
-  let createdTargets = 0;
-  for (const mapping of plan.entityMappings) {
-    createdTargets += await ensureEntityTargets(tx, mapping, snapshot);
-  }
+  const createdTargets = await ensureEntityTargets(
+    tx,
+    plan.entityMappings,
+    snapshot,
+  );
   const targetIds = await readTargetIds(tx, plan.entityMappings);
   const rebuiltEdges = await rebuildEdges(tx, plan.edgeMappings, targetIds);
   await deleteUnmappedTeacherAssignments(
@@ -74,26 +75,14 @@ export async function applyIdentityMigrationPlan(
 }
 
 async function lockAffectedRows(tx: IdentityMigrationSql) {
-  for (const table of [
-    "Course",
-    "AdminClass",
-    "TeacherTitle",
-    "ExamBatch",
-    "Department",
-    "Campus",
-    "Building",
-    "Teacher",
-    "Section",
-    "Exam",
-    "SectionTeacher",
-    "TeacherAssignment",
-    "Description",
-    "Comment",
-  ]) {
-    await tx.$queryRawUnsafe(
-      `SELECT "id" FROM "${table}" ORDER BY "id" FOR UPDATE`,
-    );
-  }
+  await tx.$executeRawUnsafe(
+    `LOCK TABLE "Course", "AdminClass", "TeacherTitle", "ExamBatch",
+       "Department", "Campus", "Building", "Teacher", "Section", "Exam",
+       "SectionTeacher", "TeacherAssignment", "Description", "DescriptionEdit",
+       "Comment", "CourseAlias", "_SectionTeachers", "_SectionAdminClasses",
+       "_ScheduleTeachers", "StaticIdentityMigrationState"
+     IN SHARE ROW EXCLUSIVE MODE`,
+  );
 }
 
 async function hasAssignmentTitleColumn(tx: IdentityMigrationSql) {
@@ -110,156 +99,181 @@ async function hasAssignmentTitleColumn(tx: IdentityMigrationSql) {
 
 async function ensureEntityTargets(
   tx: IdentityMigrationSql,
-  mapping: EntityMapping,
+  mappings: readonly EntityMapping[],
   snapshot: SnapshotState,
 ) {
   let created = 0;
-  for (const targetJwId of mapping.targetJwIds) {
-    const source = sourceEntity(snapshot, mapping.entity, targetJwId);
-    if (source == null) {
-      if (mapping.provenance.includes("historical")) continue;
-      if (
-        mapping.entity === "course" &&
-        mapping.provenance.includes("recovered") &&
-        mapping.targetJwIds.length === 1
-      ) {
-        await tx.$executeRawUnsafe(
-          `UPDATE "Course" source
-           SET "jwId" = $2
-           WHERE source."id" = $1
-             AND NOT EXISTS (
-               SELECT 1 FROM "Course" target WHERE target."jwId" = $2
-             )`,
-          mapping.legacyId,
-          targetJwId,
+  const recovered: Array<{ legacyId: number; targetJwId: number }> = [];
+  const targets = new Map<
+    EntityMapping["entity"],
+    Array<{ legacyId: number; source: SnapshotEntity }>
+  >();
+  const seen = new Map<EntityMapping["entity"], Set<number>>();
+  const snapshotByEntity = snapshotEntitiesByJwId(snapshot);
+
+  for (const mapping of mappings) {
+    for (const targetJwId of mapping.targetJwIds) {
+      const source = snapshotByEntity.get(mapping.entity)?.get(targetJwId);
+      if (source == null) {
+        if (mapping.provenance.includes("historical")) continue;
+        if (
+          mapping.entity === "course" &&
+          mapping.provenance.includes("recovered") &&
+          mapping.targetJwIds.length === 1
+        ) {
+          recovered.push({ legacyId: mapping.legacyId, targetJwId });
+          continue;
+        }
+        throw new Error(
+          `${mapping.entity} target ${targetJwId} is absent from the fixed snapshot`,
         );
-        continue;
       }
-      throw new Error(
-        `${mapping.entity} target ${targetJwId} is absent from the fixed snapshot`,
-      );
+      const entitySeen = seen.get(mapping.entity) ?? new Set<number>();
+      if (entitySeen.has(targetJwId)) continue;
+      entitySeen.add(targetJwId);
+      seen.set(mapping.entity, entitySeen);
+      const entityTargets = targets.get(mapping.entity) ?? [];
+      entityTargets.push({ legacyId: mapping.legacyId, source });
+      targets.set(mapping.entity, entityTargets);
     }
-    created += await insertTarget(tx, mapping.entity, mapping.legacyId, source);
+  }
+
+  if (recovered.length > 0) {
+    await tx.$executeRawUnsafe(
+      `WITH input("legacyId", "targetJwId") AS (
+         SELECT * FROM UNNEST($1::int[], $2::int[])
+       )
+       UPDATE "Course" source SET "jwId" = input."targetJwId"
+       FROM input
+       WHERE source."id" = input."legacyId"
+         AND NOT EXISTS (
+           SELECT 1 FROM "Course" target
+           WHERE target."jwId" = input."targetJwId"
+         )`,
+      recovered.map((item) => item.legacyId),
+      recovered.map((item) => item.targetJwId),
+    );
+  }
+  for (const [entity, entityTargets] of targets) {
+    created += await insertTargets(tx, entity, entityTargets);
   }
   return created;
 }
 
-async function insertTarget(
+async function insertTargets(
   tx: IdentityMigrationSql,
   entity: EntityMapping["entity"],
-  legacyId: number,
-  source: SnapshotEntity,
+  targets: readonly { legacyId: number; source: SnapshotEntity }[],
 ) {
+  const legacyIds = targets.map((target) => target.legacyId);
+  const jwIds = targets.map((target) => target.source.jwId);
+  const codes = targets.map((target) => target.source.code ?? null);
+  const names = targets.map((target) => target.source.nameCn);
+  const input = `UNNEST($1::int[], $2::int[], $3::text[], $4::text[])
+                 AS input("legacyId", "jwId", "code", "nameCn")`;
   switch (entity) {
     case "course":
       return tx.$executeRawUnsafe(
         `INSERT INTO "Course" ("jwId", "code", "nameCn", "nameEn", "categoryId", "classTypeId", "classifyId", "educationLevelId", "gradationId", "typeId")
-         SELECT $2, $3, $4, c."nameEn", c."categoryId", c."classTypeId", c."classifyId", c."educationLevelId", c."gradationId", c."typeId"
-         FROM "Course" c WHERE c."id" = $1
+         SELECT input."jwId", COALESCE(input."code", ''), input."nameCn", c."nameEn", c."categoryId", c."classTypeId", c."classifyId", c."educationLevelId", c."gradationId", c."typeId"
+         FROM ${input} JOIN "Course" c ON c."id" = input."legacyId"
          ON CONFLICT ("jwId") DO NOTHING`,
-        legacyId,
-        source.jwId,
-        source.code ?? "",
-        source.nameCn,
+        legacyIds,
+        jwIds,
+        codes,
+        names,
       );
     case "adminClass":
-      return cloneJwIdEntity(
+      return cloneJwIdEntities(
         tx,
         "AdminClass",
-        legacyId,
-        source,
+        targets,
         `"code", "grade", "nameCn", "nameEn", "stdCount", "planCount", "enabled", "abbrZh", "abbrEn"`,
-        `$3, a."grade", $4, a."nameEn", a."stdCount", a."planCount", a."enabled", a."abbrZh", a."abbrEn"`,
+        `input."code", a."grade", input."nameCn", a."nameEn", a."stdCount", a."planCount", a."enabled", a."abbrZh", a."abbrEn"`,
       );
     case "teacherTitle":
-      return cloneJwIdEntity(
+      return cloneJwIdEntities(
         tx,
         "TeacherTitle",
-        legacyId,
-        source,
+        targets,
         `"nameCn", "nameEn", "code", "enabled"`,
-        `$4, a."nameEn", $3, a."enabled"`,
+        `input."nameCn", a."nameEn", input."code", a."enabled"`,
       );
     case "examBatch":
-      return cloneJwIdEntity(
+      return cloneJwIdEntities(
         tx,
         "ExamBatch",
-        legacyId,
-        source,
+        targets,
         `"nameCn", "nameEn"`,
-        `$4, a."nameEn"`,
+        `input."nameCn", a."nameEn"`,
       );
     case "department":
-      return cloneJwIdEntity(
+      return cloneJwIdEntities(
         tx,
         "Department",
-        legacyId,
-        source,
+        targets,
         `"code", "nameCn", "nameEn", "isCollege"`,
-        `$3, $4, a."nameEn", a."isCollege"`,
+        `input."code", input."nameCn", a."nameEn", a."isCollege"`,
       );
     case "campus":
-      return cloneJwIdEntity(
+      return cloneJwIdEntities(
         tx,
         "Campus",
-        legacyId,
-        source,
+        targets,
         `"nameCn", "nameEn", "code"`,
-        `$4, a."nameEn", $3`,
+        `input."nameCn", a."nameEn", input."code"`,
       );
     case "teacher":
       return tx.$executeRawUnsafe(
         `INSERT INTO "Teacher" ("jwId", "personId", "teacherId", "code", "nameCn", "nameEn", "age", "email", "telephone", "mobile", "address", "postcode", "qq", "wechat", "departmentId", "teacherTitleId")
-         SELECT $2, t."personId", NULL, $3, $4, t."nameEn", t."age", t."email", t."telephone", t."mobile", t."address", t."postcode", t."qq", t."wechat", t."departmentId", t."teacherTitleId"
-         FROM "Teacher" t WHERE t."id" = $1
+         SELECT input."jwId", t."personId", NULL, input."code", input."nameCn", t."nameEn", t."age", t."email", t."telephone", t."mobile", t."address", t."postcode", t."qq", t."wechat", t."departmentId", t."teacherTitleId"
+         FROM ${input} JOIN "Teacher" t ON t."id" = input."legacyId"
          ON CONFLICT ("jwId") DO NOTHING`,
-        legacyId,
-        source.jwId,
-        source.code ?? null,
-        source.nameCn,
+        legacyIds,
+        jwIds,
+        codes,
+        names,
       );
   }
 }
 
-function cloneJwIdEntity(
+function cloneJwIdEntities(
   tx: IdentityMigrationSql,
   table: string,
-  legacyId: number,
-  source: SnapshotEntity,
+  targets: readonly { legacyId: number; source: SnapshotEntity }[],
   columns: string,
   values: string,
 ) {
   return tx.$executeRawUnsafe(
     `INSERT INTO "${table}" ("jwId", ${columns})
-     SELECT $2, ${values} FROM "${table}" a WHERE a."id" = $1
+     SELECT input."jwId", ${values}
+     FROM UNNEST($1::int[], $2::int[], $3::text[], $4::text[])
+       AS input("legacyId", "jwId", "code", "nameCn")
+     JOIN "${table}" a ON a."id" = input."legacyId"
      ON CONFLICT ("jwId") DO NOTHING`,
-    legacyId,
-    source.jwId,
-    source.code ?? null,
-    source.nameCn,
+    targets.map((target) => target.legacyId),
+    targets.map((target) => target.source.jwId),
+    targets.map((target) => target.source.code ?? null),
+    targets.map((target) => target.source.nameCn),
   );
 }
 
-function sourceEntity(
-  snapshot: SnapshotState,
-  entity: EntityMapping["entity"],
-  jwId: number,
-) {
-  const rows =
-    entity === "course"
-      ? snapshot.courses
-      : entity === "adminClass"
-        ? snapshot.adminClasses
-        : entity === "teacherTitle"
-          ? snapshot.teacherTitles
-          : entity === "examBatch"
-            ? snapshot.examBatches
-            : entity === "department"
-              ? snapshot.departments
-              : entity === "campus"
-                ? snapshot.campuses
-                : snapshot.teachers;
-  return rows.find((row) => row.jwId === jwId);
+function snapshotEntitiesByJwId(snapshot: SnapshotState) {
+  return new Map<EntityMapping["entity"], Map<number, SnapshotEntity>>([
+    ["course", new Map(snapshot.courses.map((row) => [row.jwId, row]))],
+    [
+      "adminClass",
+      new Map(snapshot.adminClasses.map((row) => [row.jwId, row])),
+    ],
+    [
+      "teacherTitle",
+      new Map(snapshot.teacherTitles.map((row) => [row.jwId, row])),
+    ],
+    ["examBatch", new Map(snapshot.examBatches.map((row) => [row.jwId, row]))],
+    ["department", new Map(snapshot.departments.map((row) => [row.jwId, row]))],
+    ["campus", new Map(snapshot.campuses.map((row) => [row.jwId, row]))],
+    ["teacher", new Map(snapshot.teachers.map((row) => [row.jwId, row]))],
+  ]);
 }
 
 async function readTargetIds(
@@ -312,85 +326,69 @@ async function rebuildEdges(
   await tx.$executeRawUnsafe(
     `UPDATE "TeacherAssignment" SET "teacherTitleId" = NULL WHERE "teacherTitleId" IS NOT NULL`,
   );
-  for (const edge of edges.filter(
-    (item) =>
-      item.entity !== "sectionAdminClass" &&
-      item.entity !== "implicitSectionTeacher" &&
-      item.entity !== "scheduleTeacher",
-  )) {
-    const targetId = edgeTargetId(edge, targetIds);
-    switch (edge.entity) {
-      case "sectionCourse":
-        rebuilt += await updateForeignKey(
-          tx,
-          "Section",
-          edge.ownerId,
-          "courseId",
-          targetId,
-        );
-        break;
-      case "examBatchEdge":
-        rebuilt += await updateForeignKey(
-          tx,
-          "Exam",
-          edge.ownerId,
-          "examBatchId",
-          targetId,
-        );
-        break;
-      case "departmentEdge":
-        if (edge.ownerType == null) {
-          throw new Error("Department edge is missing its owner type");
-        }
-        rebuilt += await updateForeignKey(
-          tx,
-          edge.ownerType === "section" ? "Section" : "Teacher",
-          edge.ownerId,
-          edge.ownerType === "section" ? "openDepartmentId" : "departmentId",
-          targetId,
-        );
-        break;
-      case "buildingCampus":
-        rebuilt += await updateForeignKey(
-          tx,
-          "Building",
-          edge.ownerId,
-          "campusId",
-          targetId,
-        );
-        break;
-      case "sectionCampus":
-        rebuilt += await updateForeignKey(
-          tx,
-          "Section",
-          edge.ownerId,
-          "campusId",
-          targetId,
-        );
-        break;
-      case "sectionTeacher":
-        rebuilt += await rebuildSectionTeacher(tx, edge.ownerId, targetId);
-        break;
-      case "teacherAssignmentTeacher":
-        rebuilt += await updateForeignKey(
-          tx,
-          "TeacherAssignment",
-          edge.ownerId,
-          "teacherId",
-          targetId,
-        );
-        break;
-      case "teacherAssignmentTitle":
-        rebuilt += await updateForeignKey(
-          tx,
-          "TeacherAssignment",
-          edge.ownerId,
-          "teacherTitleId",
-          targetId,
-        );
-        break;
-    }
+  rebuilt += await rebuildForeignKeyEdges(
+    tx,
+    edges,
+    targetIds,
+    "sectionCourse",
+    "Section",
+    "courseId",
+  );
+  rebuilt += await rebuildForeignKeyEdges(
+    tx,
+    edges,
+    targetIds,
+    "examBatchEdge",
+    "Exam",
+    "examBatchId",
+  );
+  rebuilt += await rebuildForeignKeyEdges(
+    tx,
+    edges,
+    targetIds,
+    "buildingCampus",
+    "Building",
+    "campusId",
+  );
+  rebuilt += await rebuildForeignKeyEdges(
+    tx,
+    edges,
+    targetIds,
+    "sectionCampus",
+    "Section",
+    "campusId",
+  );
+  rebuilt += await rebuildForeignKeyEdges(
+    tx,
+    edges,
+    targetIds,
+    "teacherAssignmentTeacher",
+    "TeacherAssignment",
+    "teacherId",
+  );
+  rebuilt += await rebuildForeignKeyEdges(
+    tx,
+    edges,
+    targetIds,
+    "teacherAssignmentTitle",
+    "TeacherAssignment",
+    "teacherTitleId",
+  );
+  for (const ownerType of ["section", "teacher"] as const) {
+    rebuilt += await rebuildForeignKeyEdges(
+      tx,
+      edges.filter((edge) => edge.ownerType === ownerType),
+      targetIds,
+      "departmentEdge",
+      ownerType === "section" ? "Section" : "Teacher",
+      ownerType === "section" ? "openDepartmentId" : "departmentId",
+    );
   }
+  rebuilt += await rebuildSectionTeachers(
+    tx,
+    edges.filter((edge) => edge.entity === "sectionTeacher"),
+    targetIds,
+  );
   rebuilt += await rebuildJoinEdges(
     tx,
     edges.filter((edge) => edge.entity === "implicitSectionTeacher"),
@@ -436,54 +434,66 @@ function edgeTargetId(edge: EdgeMapping, targets: TargetIds) {
   return id;
 }
 
-function updateForeignKey(
+async function rebuildForeignKeyEdges(
   tx: IdentityMigrationSql,
+  edges: readonly EdgeMapping[],
+  targetIds: TargetIds,
+  entity: EdgeMapping["entity"],
   table: string,
-  ownerId: number,
   column: string,
-  targetId: number,
 ) {
-  return tx.$executeRawUnsafe(
-    `UPDATE "${table}" SET "${column}" = $2 WHERE "id" = $1`,
-    ownerId,
-    targetId,
+  let rebuilt = 0;
+  const matchingEdges = edges.filter((edge) => edge.entity === entity);
+  if (matchingEdges.length === 0) return rebuilt;
+  rebuilt += await tx.$executeRawUnsafe(
+    `WITH input("ownerId", "targetId") AS (
+       SELECT * FROM UNNEST($1::int[], $2::int[])
+     )
+     UPDATE "${table}" target SET "${column}" = input."targetId"
+     FROM input WHERE target."id" = input."ownerId"`,
+    matchingEdges.map((edge) => edge.ownerId),
+    matchingEdges.map((edge) => edgeTargetId(edge, targetIds)),
   );
+  return rebuilt;
 }
 
-async function rebuildSectionTeacher(
+async function rebuildSectionTeachers(
   tx: IdentityMigrationSql,
-  legacyRelationId: number,
-  targetTeacherId: number,
+  edges: readonly EdgeMapping[],
+  targetIds: TargetIds,
 ) {
-  const rows = await tx.$queryRawUnsafe<
-    Array<{ sectionId: number; targetRelationId: number }>
-  >(
-    `WITH source AS (
-       SELECT "sectionId" FROM "SectionTeacher" WHERE "id" = $1
+  if (edges.length === 0) return 0;
+  await tx.$executeRawUnsafe(
+    `WITH input("legacyId", "targetTeacherId") AS (
+       SELECT * FROM UNNEST($1::int[], $2::int[])
+     ), source AS (
+       SELECT input."legacyId", relation."sectionId", input."targetTeacherId"
+       FROM input
+       JOIN "SectionTeacher" relation ON relation."id" = input."legacyId"
      ), inserted AS (
-       INSERT INTO "SectionTeacher" ("sectionId", "teacherId", "createdAt", "updatedAt", "retiredAt")
-       SELECT "sectionId", $2, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, NULL FROM source
-       ON CONFLICT ("sectionId", "teacherId") DO UPDATE SET "retiredAt" = NULL
-       RETURNING "id", "sectionId"
+     INSERT INTO "SectionTeacher" ("sectionId", "teacherId", "createdAt", "updatedAt", "retiredAt")
+     SELECT DISTINCT "sectionId", "targetTeacherId", CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, NULL
+     FROM source
+     ON CONFLICT ("sectionId", "teacherId") DO UPDATE SET "retiredAt" = NULL
+     RETURNING "id", "sectionId", "teacherId"
+     ), resolved AS (
+       SELECT source."legacyId", source."sectionId", source."targetTeacherId",
+              inserted."id" AS "targetRelationId"
+       FROM source
+       JOIN inserted ON inserted."sectionId" = source."sectionId"
+                    AND inserted."teacherId" = source."targetTeacherId"
+     ), comments AS (
+       UPDATE "Comment" comment SET "sectionTeacherId" = resolved."targetRelationId"
+       FROM resolved
+       WHERE comment."sectionTeacherId" = resolved."legacyId"
      )
-     SELECT "sectionId", "id" AS "targetRelationId" FROM inserted`,
-    legacyRelationId,
-    targetTeacherId,
+     INSERT INTO "_SectionTeachers" ("A", "B")
+     SELECT DISTINCT "sectionId", "targetTeacherId" FROM resolved
+     ON CONFLICT DO NOTHING`,
+    edges.map((edge) => edge.ownerId),
+    edges.map((edge) => edgeTargetId(edge, targetIds)),
   );
-  const target = rows[0];
-  if (target == null)
-    throw new Error(`SectionTeacher ${legacyRelationId} is missing`);
-  await tx.$executeRawUnsafe(
-    `UPDATE "Comment" SET "sectionTeacherId" = $2 WHERE "sectionTeacherId" = $1`,
-    legacyRelationId,
-    target.targetRelationId,
-  );
-  await tx.$executeRawUnsafe(
-    `INSERT INTO "_SectionTeachers" ("A", "B") VALUES ($1, $2) ON CONFLICT DO NOTHING`,
-    target.sectionId,
-    targetTeacherId,
-  );
-  return 1;
+  return edges.length;
 }
 
 async function rebuildJoinEdges(
@@ -493,26 +503,23 @@ async function rebuildJoinEdges(
   ownerColumn: "A" | "B",
   targets: Map<number, number>,
 ) {
-  const byOwner = new Map<number, EdgeMapping[]>();
-  for (const edge of edges) {
-    const group = byOwner.get(edge.ownerId) ?? [];
-    group.push(edge);
-    byOwner.set(edge.ownerId, group);
-  }
   let count = 0;
-  for (const [ownerId, ownerEdges] of byOwner) {
-    for (const edge of ownerEdges) {
-      const targetId = targets.get(edge.targetJwId);
-      if (targetId == null) throw new Error(`${edge.entity} target is missing`);
-      const a = ownerColumn === "A" ? ownerId : targetId;
-      const b = ownerColumn === "A" ? targetId : ownerId;
-      count += await tx.$executeRawUnsafe(
-        `INSERT INTO "${table}" ("A", "B") VALUES ($1, $2) ON CONFLICT DO NOTHING`,
-        a,
-        b,
-      );
-    }
+  const a: number[] = [];
+  const b: number[] = [];
+  for (const edge of edges) {
+    const targetId = targets.get(edge.targetJwId);
+    if (targetId == null) throw new Error(`${edge.entity} target is missing`);
+    a.push(ownerColumn === "A" ? edge.ownerId : targetId);
+    b.push(ownerColumn === "A" ? targetId : edge.ownerId);
   }
+  if (a.length === 0) return count;
+  count += await tx.$executeRawUnsafe(
+    `INSERT INTO "${table}" ("A", "B")
+     SELECT * FROM UNNEST($1::int[], $2::int[])
+     ON CONFLICT DO NOTHING`,
+    a,
+    b,
+  );
   return count;
 }
 
@@ -523,14 +530,28 @@ async function migrateComments(
 ) {
   for (const entity of ["course", "teacher"] as const) {
     const column = entity === "course" ? "courseId" : "teacherId";
-    for (const mapping of mappings.filter((item) => item.entity === entity)) {
-      if (mapping.targetJwIds.length !== 1) continue;
-      const targetId = targets.get(entity)?.get(mapping.targetJwIds[0]);
-      if (targetId == null || targetId === mapping.legacyId) continue;
+    const updates = mappings
+      .filter(
+        (mapping) =>
+          mapping.entity === entity && mapping.targetJwIds.length === 1,
+      )
+      .map((mapping) => ({
+        legacyId: mapping.legacyId,
+        targetId: targets.get(entity)?.get(mapping.targetJwIds[0]),
+      }))
+      .filter(
+        (mapping): mapping is { legacyId: number; targetId: number } =>
+          mapping.targetId != null && mapping.targetId !== mapping.legacyId,
+      );
+    if (updates.length > 0) {
       await tx.$executeRawUnsafe(
-        `UPDATE "Comment" SET "${column}" = $2 WHERE "${column}" = $1`,
-        mapping.legacyId,
-        targetId,
+        `WITH input("legacyId", "targetId") AS (
+           SELECT * FROM UNNEST($1::int[], $2::int[])
+         )
+         UPDATE "Comment" comment SET "${column}" = input."targetId"
+         FROM input WHERE comment."${column}" = input."legacyId"`,
+        updates.map((mapping) => mapping.legacyId),
+        updates.map((mapping) => mapping.targetId),
       );
     }
   }
@@ -546,6 +567,7 @@ async function migrateDescriptions(
     const column = entity === "course" ? "courseId" : "teacherId";
     const sourceRows =
       entity === "course" ? database.courses : database.teachers;
+    const sourceById = new Map(sourceRows.map((row) => [row.id, row]));
     const descriptionsWithUserContent = new Set<string>();
     for (const row of sourceRows) {
       if (
@@ -557,39 +579,56 @@ async function migrateDescriptions(
     }
     const descriptionsByTarget = new Map<number, string[]>();
     for (const mapping of mappings.filter((item) => item.entity === entity)) {
+      const source = sourceById.get(mapping.legacyId);
+      if (
+        source?.description == null ||
+        !descriptionsWithUserContent.has(source.description.id)
+      ) {
+        continue;
+      }
       for (const targetJwId of mapping.targetJwIds) {
-        const rows = await tx.$queryRawUnsafe<Array<{ id: string }>>(
-          `SELECT "id" FROM "Description" WHERE "${column}" = $1`,
-          mapping.legacyId,
-        );
-        if (rows[0] == null || !descriptionsWithUserContent.has(rows[0].id)) {
-          continue;
-        }
         const ids = descriptionsByTarget.get(targetJwId) ?? [];
-        ids.push(rows[0].id);
+        ids.push(source.description.id);
         descriptionsByTarget.set(targetJwId, ids);
       }
     }
+    const duplicateUpdates: Array<{ duplicate: string; canonical: string }> =
+      [];
+    const canonicalUpdates: Array<{ id: string; targetId: number }> = [];
     for (const [targetJwId, ids] of descriptionsByTarget) {
       const uniqueIds = [...new Set(ids)].sort((a, b) => a.localeCompare(b));
       const canonical = uniqueIds[0];
       const targetId = targets.get(entity)?.get(targetJwId);
       if (canonical == null || targetId == null) continue;
       for (const duplicate of uniqueIds.slice(1)) {
-        await tx.$executeRawUnsafe(
-          `UPDATE "DescriptionEdit" SET "descriptionId" = $2 WHERE "descriptionId" = $1`,
-          duplicate,
-          canonical,
-        );
-        await tx.$executeRawUnsafe(
-          `DELETE FROM "Description" WHERE "id" = $1`,
-          duplicate,
-        );
+        duplicateUpdates.push({ duplicate, canonical });
       }
+      canonicalUpdates.push({ id: canonical, targetId });
+    }
+    if (duplicateUpdates.length > 0) {
       await tx.$executeRawUnsafe(
-        `UPDATE "Description" SET "${column}" = $2 WHERE "id" = $1`,
-        canonical,
-        targetId,
+        `WITH input("duplicate", "canonical") AS (
+           SELECT * FROM UNNEST($1::text[], $2::text[])
+         )
+         UPDATE "DescriptionEdit" edit SET "descriptionId" = input."canonical"
+         FROM input WHERE edit."descriptionId" = input."duplicate"`,
+        duplicateUpdates.map((item) => item.duplicate),
+        duplicateUpdates.map((item) => item.canonical),
+      );
+      await tx.$executeRawUnsafe(
+        `DELETE FROM "Description" WHERE "id" = ANY($1::text[])`,
+        duplicateUpdates.map((item) => item.duplicate),
+      );
+    }
+    if (canonicalUpdates.length > 0) {
+      await tx.$executeRawUnsafe(
+        `WITH input("id", "targetId") AS (
+           SELECT * FROM UNNEST($1::text[], $2::int[])
+         )
+         UPDATE "Description" description SET "${column}" = input."targetId"
+         FROM input WHERE description."id" = input."id"`,
+        canonicalUpdates.map((item) => item.id),
+        canonicalUpdates.map((item) => item.targetId),
       );
     }
   }
@@ -619,13 +658,11 @@ async function deleteLegacyRows(
     "teacher",
     "teacherTitle",
   ] as const) {
+    const legacyIds: number[] = [];
     for (const mapping of mappings.filter((item) => item.entity === entity)) {
       if (mapping.targetJwIds.length === 0) {
         if (mapping.provenance.includes("placeholder")) continue;
-        deleted += await tx.$executeRawUnsafe(
-          `DELETE FROM "${tableForEntity(entity)}" WHERE "id" = $1`,
-          mapping.legacyId,
-        );
+        legacyIds.push(mapping.legacyId);
         continue;
       }
       const targetDatabaseIds = new Set(
@@ -634,15 +671,19 @@ async function deleteLegacyRows(
           .filter((id): id is number => id != null),
       );
       if (targetDatabaseIds.has(mapping.legacyId)) continue;
+      legacyIds.push(mapping.legacyId);
+    }
+    if (legacyIds.length > 0) {
       if (entity === "teacherTitle") {
         await tx.$executeRawUnsafe(
-          `UPDATE "Teacher" SET "teacherTitleId" = NULL WHERE "teacherTitleId" = $1`,
-          mapping.legacyId,
+          `UPDATE "Teacher" SET "teacherTitleId" = NULL
+           WHERE "teacherTitleId" = ANY($1::int[])`,
+          legacyIds,
         );
       }
       deleted += await tx.$executeRawUnsafe(
-        `DELETE FROM "${tableForEntity(entity)}" WHERE "id" = $1`,
-        mapping.legacyId,
+        `DELETE FROM "${tableForEntity(entity)}" WHERE "id" = ANY($1::int[])`,
+        legacyIds,
       );
     }
   }
