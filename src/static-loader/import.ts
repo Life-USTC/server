@@ -1892,15 +1892,10 @@ export async function writeSectionTeachers(
 
   if (resolved.length > 0) {
     for (const chunk of chunks(resolved, 1000)) {
-      const values = chunk
-        .map(
-          (pair) =>
-            `(${pair.sectionId},${pair.teacherId},NULL::timestamp,CURRENT_TIMESTAMP)`,
-        )
-        .join(",");
-      await tx.$executeRawUnsafe(
-        `INSERT INTO "SectionTeacher" ("sectionId","teacherId","retiredAt","updatedAt") VALUES ${values} ON CONFLICT ("sectionId","teacherId") DO NOTHING`,
-      );
+      await tx.sectionTeacher.createMany({
+        data: chunk.map((pair) => ({ ...pair, retiredAt: null })),
+        skipDuplicates: true,
+      });
     }
   }
 
@@ -1967,7 +1962,9 @@ async function writeTeacherAssignments(
   });
 
   if (resolved.length > 0) {
-    await tx.teacherAssignment.createMany({ data: resolved });
+    for (const chunk of chunks(resolved, 1000)) {
+      await tx.teacherAssignment.createMany({ data: chunk });
+    }
   }
 }
 
