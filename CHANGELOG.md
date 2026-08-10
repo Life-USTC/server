@@ -1,3 +1,11 @@
+## [1.89.2](https://github.com/Life-USTC/server/compare/v1.89.1...v1.89.2) (2026-08-10)
+
+
+### Bug Fixes
+
+* **auth:** coordinate dependency upgrades ([#785](https://github.com/Life-USTC/server/issues/785)) ([ef0343e](https://github.com/Life-USTC/server/commit/ef0343e64d62413edc5411d032a2811edeefac91))
+* **static:** restore recorded raw course identities ([8140218](https://github.com/Life-USTC/server/commit/8140218afda824279c393fb03ded5042f2dcd53d))
+
 ## [1.89.1](https://github.com/Life-USTC/server/compare/v1.89.0...v1.89.1) (2026-08-10)
 
 
