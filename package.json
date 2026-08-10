@@ -48,7 +48,7 @@
     "@graphql-tools/executor": "1.5.6",
     "@graphql-yoga/plugin-disable-introspection": "2.22.2",
     "@internationalized/date": "^3.12.2",
-    "@lucide/svelte": "^1.23.0",
+    "@lucide/svelte": "^1.30.0",
     "@modelcontextprotocol/sdk": "1.30.0",
     "@prisma/adapter-pg": "7.9.1",
     "@prisma/client": "7.9.1",
