@@ -3,6 +3,8 @@
 This folder contains the deterministic planner plus the dedicated snapshot
 reader and transactional executor. The planner itself remains pure; the CLI
 pins one SQLite file by SHA-256 and applies the resulting plan to PostgreSQL.
+The migration reads the fixed snapshot's complete history because existing
+production rows may predate the runtime loader's minimum-semester boundary.
 
 The planner enforces an expand/data/contract boundary: legacy unique identities
 such as `Department.code` and `ExamBatch.nameCn` must remain enforced while raw

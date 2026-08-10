@@ -70,7 +70,6 @@ jobs:
         env:
           DATABASE_URL: ${{ secrets.MIGRATOR_DATABASE_URL }}
           STATIC_SNAPSHOT_PATH: /tmp/static-identity-artifact/life-ustc-static.sqlite
-          STATIC_LOADER_MIN_SEMESTER: ${{ vars.STATIC_LOADER_MIN_SEMESTER || '401' }}
           STATIC_IDENTITY_MIGRATION_EXPECTED_SNAPSHOT_SHA256: ${{ inputs.expected_snapshot_sha256 }}
           STATIC_IDENTITY_MIGRATION_DRY_RUN: ${{ inputs.dry_run }}
           STATIC_IDENTITY_MIGRATION_REPORT_FILE: /tmp/static-identity-migration-report.json

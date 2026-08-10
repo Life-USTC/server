@@ -16,7 +16,6 @@ export type IdentityMigrationRunConfig = {
   snapshotPath: string;
   expectedSnapshotSha256: string;
   dryRun: boolean;
-  minSemester?: number;
 };
 
 export type IdentityMigrationRunReport = {
@@ -67,11 +66,7 @@ export async function runIdentityMigration(
       `Expected snapshot SHA-256 ${config.expectedSnapshotSha256} does not match file SHA-256 ${fileSha256}`,
     );
   }
-  const snapshot = dependencies.readSnapshot(
-    config.snapshotPath,
-    fileSha256,
-    config.minSemester ?? 401,
-  );
+  const snapshot = dependencies.readSnapshot(config.snapshotPath, fileSha256);
 
   return runSerializableWithRetry(prisma, async (tx) => {
     if (config.dryRun) {

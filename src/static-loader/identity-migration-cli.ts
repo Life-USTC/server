@@ -7,11 +7,7 @@ import {
 } from "./identity-migration/runner";
 import type { IdentityMigrationPlan } from "./identity-migration/types";
 import { createPrismaClient } from "./prisma";
-import {
-  parseBooleanSetting,
-  parseOptionalSha256Setting,
-  parsePositiveIntegerSetting,
-} from "./validation";
+import { parseBooleanSetting, parseOptionalSha256Setting } from "./validation";
 
 function requiredEnvironment(name: string) {
   const value = process.env[name];
@@ -72,18 +68,12 @@ async function main() {
     process.env.STATIC_IDENTITY_MIGRATION_DRY_RUN,
     true,
   );
-  const minSemester = parsePositiveIntegerSetting(
-    "STATIC_LOADER_MIN_SEMESTER",
-    process.env.STATIC_LOADER_MIN_SEMESTER,
-    401,
-  );
   const prisma = createPrismaClient();
   try {
     const report = await runIdentityMigration(prisma, {
       snapshotPath,
       expectedSnapshotSha256,
       dryRun,
-      minSemester,
     });
     await writeReport({
       mode: report.mode,
