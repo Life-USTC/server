@@ -1891,14 +1891,17 @@ export async function writeSectionTeachers(
   }
 
   if (resolved.length > 0) {
-    await tx.sectionTeacher.createMany({
-      data: resolved.map((p) => ({
-        sectionId: p.sectionId,
-        teacherId: p.teacherId,
-        retiredAt: null,
-      })),
-      skipDuplicates: true,
-    });
+    for (const chunk of chunks(resolved, 1000)) {
+      const values = chunk
+        .map(
+          (pair) =>
+            `(${pair.sectionId},${pair.teacherId},NULL::timestamp,CURRENT_TIMESTAMP)`,
+        )
+        .join(",");
+      await tx.$executeRawUnsafe(
+        `INSERT INTO "SectionTeacher" ("sectionId","teacherId","retiredAt","updatedAt") VALUES ${values} ON CONFLICT ("sectionId","teacherId") DO NOTHING`,
+      );
+    }
   }
 
   if (sectionDbIds.length === 0) {
