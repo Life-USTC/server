@@ -1,77 +1,58 @@
 import type { Prisma, PrismaClient } from "../generated/prisma-node/client";
-import { selectLatestAdminClasses } from "./admin-class-selection";
-import { type CampusOccurrence, selectCampuses } from "./campus-selection";
-import { type CourseOccurrence, selectLatestCourses } from "./course-selection";
 import {
-  bulkUpdate,
+  loadCatalogLookups,
+  loadCourses,
+  loadDepartments,
+  loadScheduleLookups,
+  loadSemesters,
+} from "./catalog-plan";
+import {
   bulkUpsert,
   type ColumnValue,
-  chunks,
   deleteMissingSnapshotRows,
-  syncJoinPairs,
 } from "./database-writes";
 import { collectCodeOnlyDepartmentPlaceholders } from "./department-placeholder";
-import { selectLatestExamBatches } from "./exam-batch-selection";
 import { acquireStaticImportLock } from "./import-lock";
 import {
   assertStaticImportStateAllowsSnapshot,
   recordStaticImportState,
 } from "./import-state";
-import {
-  type AdminClassBuild,
-  type AdminClassSectionPair,
-  type BuildingBuild,
-  type CampusBuild,
-  type CourseBuild,
-  type DepartmentBuild,
-  type DepartmentPlaceholderRequest,
-  type ExamBatchBuild,
-  type ExamBuild,
-  firstChild,
-  flattenDepartments,
-  mapAdminClass,
-  mapBuilding,
-  mapCampus,
-  mapCampusFromSection,
-  mapCourse,
-  mapExam,
-  mapExamBatch,
-  mapRoom,
-  mapRoomType,
-  mapSchedule,
-  mapScheduleGroup,
-  mapSection,
-  mapSemester,
-  mapTeacherAssignment,
-  mapTeacherFromScheduleAssignment,
-  mapTeacherLessonType,
-  mapTeacherTitle,
-  mergeSchedule,
-  type RoomBuild,
-  type RoomTypeBuild,
-  type ScheduleBuild,
-  type ScheduleGroupBuild,
-  type SectionBuild,
-  type SectionTeacherPair,
-  type SemesterBuild,
-  scheduleKey,
-  type TeacherAssignmentBuild,
-  type TeacherBuild,
-  type TeacherLessonTypeBuild,
-  type TeacherTitleBuild,
+import { loadScheduleInfrastructure } from "./infrastructure-plan";
+import type {
+  AdminClassBuild,
+  AdminClassSectionPair,
+  BuildingBuild,
+  CampusBuild,
+  CourseBuild,
+  DepartmentBuild,
+  DepartmentPlaceholderRequest,
+  ExamBatchBuild,
+  ExamBuild,
+  RoomBuild,
+  RoomTypeBuild,
+  ScheduleGroupBuild,
+  SectionBuild,
+  SectionTeacherPair,
+  SemesterBuild,
+  TeacherAssignmentBuild,
+  TeacherBuild,
+  TeacherLessonTypeBuild,
+  TeacherTitleBuild,
 } from "./mappers";
+import {
+  writeAdminClassSections,
+  writeSectionTeachers,
+  writeTeacherAssignments,
+} from "./relation-writes";
+import { optionalId, requiredId } from "./required-id";
+import { writeSchedules } from "./schedule-writes";
 import {
   reconcileSectionPresence,
   type SectionPresenceStats,
 } from "./section-lifecycle";
-import { asInt, asString, Snapshot, type SnapshotRow } from "./snapshot";
-import {
-  type CatalogTeacherOccurrence,
-  planTeacherImport,
-  sectionTeacherNameKey,
-  type TeacherImportPlan,
-  type TeacherOccurrence,
-} from "./teacher-identity";
+import { loadExams, loadScheduleData, loadSections } from "./section-plan";
+import { Snapshot } from "./snapshot";
+import { loadTeachers } from "./teacher-plan";
 import {
   parseSnapshotGeneratedAt,
   validateMappedSectionJwIds,
@@ -108,7 +89,7 @@ export type ImportReport = {
     schemaVersion: string;
     generatedAt: string | null;
   };
-  plannedRecordCounts: ImportRecordCounts;
+  plannedRecordCounts: ImportRecordCounts | null;
   databaseRecordCounts: ImportRecordCounts | null;
   reconciliation: {
     sectionPresence: SectionPresenceStats | { status: "already-applied" };
@@ -147,6 +128,36 @@ export async function runImport(
     throw error;
   }
 
+  if (!config.dryRun) {
+    const alreadyImported = await prisma.$transaction(
+      async (tx) => {
+        await acquireStaticImportLock(tx);
+        return assertStaticImportStateAllowsSnapshot(tx, {
+          observedAt: snapshotGeneratedAt,
+          snapshotSha256: config.snapshotSha256,
+        });
+      },
+      { maxWait: 60_000, timeout: 60_000 },
+    );
+    if (alreadyImported) {
+      snapshot.close();
+      return {
+        mode: "apply",
+        outcome: "unchanged",
+        snapshot: {
+          sha256: config.snapshotSha256,
+          schemaVersion,
+          generatedAt: metadata.generated_at ?? null,
+        },
+        plannedRecordCounts: null,
+        databaseRecordCounts: null,
+        reconciliation: {
+          sectionPresence: { status: "already-applied" },
+        },
+      };
+    }
+  }
+
   const allSectionJwIds = new Set<number>();
   const sectionTeacherPairs: SectionTeacherPair[] = [];
   const teacherAssignments: TeacherAssignmentBuild[] = [];
@@ -181,9 +192,9 @@ export async function runImport(
     config.minSemester,
     courseJwIdByParentId,
     catalogTeacherJwIdBySectionName,
-    (sectionJwId) => allSectionJwIds.add(sectionJwId),
     sectionTeacherPairs,
   );
+  for (const section of sections) allSectionJwIds.add(section.jwId);
   validateMappedSectionJwIds(
     completeness.sectionJwIds,
     sections.map((section) => section.jwId),
@@ -253,7 +264,7 @@ export async function runImport(
     );
     if (alreadyImported && !config.dryRun) {
       unchanged = true;
-      return logStep("countDatabaseRecords", 12, () => countStats(tx));
+      return null;
     }
     const semesterMap = await logStep("upsertSemesters", semesters.length, () =>
       upsertSemesters(tx, semesters),
@@ -475,641 +486,22 @@ export async function runImport(
   };
 }
 
-function loadSemesters(snapshot: Snapshot): SemesterBuild[] {
-  const rows = snapshot.queryAll("catalog_teach_semester_list");
-  return rows.map(mapSemester).filter((s): s is SemesterBuild => s != null);
-}
-
-function loadDepartments(snapshot: Snapshot): DepartmentBuild[] {
-  const rows = snapshot.queryAll("catalog_teach_department_college_tree");
-  const children = snapshot.queryAll(
-    "catalog_teach_department_college_tree_children",
-  );
-  return flattenDepartments(rows, children);
-}
-
-function loadCatalogLookups(snapshot: Snapshot) {
-  function collect(table: string) {
-    return snapshot
-      .queryAll(table)
-      .map((row) => ({ nameCn: asString(row.cn), nameEn: asString(row.en) }))
-      .filter(
-        (l): l is { nameCn: string; nameEn: string | undefined } =>
-          l.nameCn != null,
-      );
-  }
-
-  return {
-    courseCategories: collect(
-      "catalog_teach_lesson_list_for_teach_courseCategory",
-    ),
-    courseClassifies: collect(
-      "catalog_teach_lesson_list_for_teach_courseClassify",
-    ),
-    courseGradations: collect(
-      "catalog_teach_lesson_list_for_teach_courseGradation",
-    ),
-    courseTypes: collect("catalog_teach_lesson_list_for_teach_courseType"),
-    educationLevels: collect("catalog_teach_lesson_list_for_teach_education"),
-    classTypes: collect("catalog_teach_lesson_list_for_teach_classType"),
-    examModes: collect("catalog_teach_lesson_list_for_teach_examMode"),
-    teachLanguages: collect("catalog_teach_lesson_list_for_teach_teachLang"),
-  };
-}
-
-function loadCourses(snapshot: Snapshot): {
-  courses: CourseBuild[];
-  courseJwIdByParentId: Map<number, number>;
-} {
-  const lessons = snapshot.queryAll("catalog_teach_lesson_list_for_teach");
-  const courses = snapshot.queryGrouped(
-    "catalog_teach_lesson_list_for_teach_course",
-  );
-  const types = snapshot.queryGrouped(
-    "catalog_teach_lesson_list_for_teach_courseType",
-  );
-  const categories = snapshot.queryGrouped(
-    "catalog_teach_lesson_list_for_teach_courseCategory",
-  );
-  const gradations = snapshot.queryGrouped(
-    "catalog_teach_lesson_list_for_teach_courseGradation",
-  );
-  const classifies = snapshot.queryGrouped(
-    "catalog_teach_lesson_list_for_teach_courseClassify",
-  );
-  const classTypes = snapshot.queryGrouped(
-    "catalog_teach_lesson_list_for_teach_classType",
-  );
-  const educations = snapshot.queryGrouped(
-    "catalog_teach_lesson_list_for_teach_education",
-  );
-
-  const occurrences: CourseOccurrence[] = [];
-  const courseJwIdByParentId = new Map<number, number>();
-  for (const lesson of lessons) {
-    const parentId = asInt(lesson.store_id);
-    if (parentId == null) continue;
-    const course = mapCourse(lesson, firstChild(courses, parentId), {
-      courseType: firstChild(types, parentId),
-      courseCategory: firstChild(categories, parentId),
-      courseGradation: firstChild(gradations, parentId),
-      courseClassify: firstChild(classifies, parentId),
-      classType: firstChild(classTypes, parentId),
-      education: firstChild(educations, parentId),
-    });
-    if (course == null) continue;
-    const existingJwId = courseJwIdByParentId.get(parentId);
-    if (existingJwId != null && existingJwId !== course.jwId) {
-      throw new Error(
-        `Lesson parent ${parentId} maps to conflicting course jwIds`,
-      );
-    }
-    courseJwIdByParentId.set(parentId, course.jwId);
-    occurrences.push({
-      semesterCode: asInt(lesson.semester_id) ?? 0,
-      course,
-    });
-  }
-  return {
-    courses: selectLatestCourses(occurrences),
-    courseJwIdByParentId,
-  };
-}
-
-function loadScheduleLookups(snapshot: Snapshot) {
-  const titleRows = snapshot.queryAll(
-    "jw_ws_schedule_table_datum_result_lessonList_teacherAssignmentList_title",
-  );
-  const lessonTypeRows = snapshot.queryAll(
-    "jw_ws_schedule_table_datum_result_lessonList_teacherAssignmentList_teacherLessonType",
-  );
-  const examBatchRows = snapshot.queryAll("catalog_teach_exam_list_examBatch");
-
-  const titles: TeacherTitleBuild[] = [];
-  const seenTitles = new Set<number>();
-  for (const row of titleRows) {
-    const t = mapTeacherTitle(row);
-    if (t == null || seenTitles.has(t.jwId)) continue;
-    seenTitles.add(t.jwId);
-    titles.push(t);
-  }
-
-  const lessonTypes: TeacherLessonTypeBuild[] = [];
-  const seenLessonTypes = new Set<number>();
-  for (const row of lessonTypeRows) {
-    const t = mapTeacherLessonType(row);
-    if (t == null || seenLessonTypes.has(t.jwId)) continue;
-    seenLessonTypes.add(t.jwId);
-    lessonTypes.push(t);
-  }
-
-  const batchOccurrences: Array<{
-    semesterCode: number;
-    examBatch: ExamBatchBuild;
-  }> = [];
-  for (const row of examBatchRows) {
-    const b = mapExamBatch(row);
-    if (b == null) continue;
-    batchOccurrences.push({
-      semesterCode: asInt(row.semester_id) ?? 0,
-      examBatch: b,
-    });
-  }
-
-  return {
-    teacherTitles: titles,
-    teacherLessonTypes: lessonTypes,
-    examBatches: selectLatestExamBatches(batchOccurrences),
-  };
-}
-
-function loadTeachers(snapshot: Snapshot): TeacherImportPlan {
-  const scheduleLessonRows = snapshot.queryAll(
-    "jw_ws_schedule_table_datum_result_lessonList",
-  );
-  const assignmentRows = snapshot.queryGrouped(
-    "jw_ws_schedule_table_datum_result_lessonList_teacherAssignmentList",
-  );
-  const contactRows = snapshot.queryGrouped(
-    "jw_ws_schedule_table_datum_result_lessonList_teacherAssignmentList_contactInfo",
-  );
-  const catalogAssignmentRows = snapshot.queryGrouped(
-    "catalog_teach_lesson_list_for_teach_teacherAssignmentList",
-  );
-
-  const scheduleOccurrences: TeacherOccurrence[] = [];
-  const catalogOccurrences: CatalogTeacherOccurrence[] = [];
-
-  for (const lesson of scheduleLessonRows) {
-    const lessonId = asInt(lesson.id);
-    if (lessonId == null) continue;
-    const parentId = asInt(lesson.store_id);
-    if (parentId == null) continue;
-    for (const assignment of assignmentRows.get(parentId) ?? []) {
-      if (asString(assignment.name) && asInt(assignment.teacherId) == null) {
-        throw new Error(
-          `Teacher assignment for section jwId ${lessonId} is missing teacherId`,
-        );
-      }
-      const contact = firstChild(contactRows, asInt(assignment.store_id) ?? -1);
-      const build = mapTeacherFromScheduleAssignment(assignment, contact);
-      if (build == null) continue;
-      scheduleOccurrences.push({
-        sectionJwId: lessonId,
-        semesterCode:
-          asInt(assignment.semester_id) ?? asInt(lesson.semester_id) ?? 0,
-        teacher: build,
-      });
-    }
-  }
-
-  const lessons = snapshot.queryAll("catalog_teach_lesson_list_for_teach");
-  for (const lesson of lessons) {
-    const lessonId = asInt(lesson.id);
-    if (lessonId == null) continue;
-    const parentId = asInt(lesson.store_id);
-    if (parentId == null) continue;
-    for (const assignment of catalogAssignmentRows.get(parentId) ?? []) {
-      const nameCn = asString(assignment.cn);
-      if (!nameCn) continue;
-      catalogOccurrences.push({
-        sectionJwId: lessonId,
-        semesterCode:
-          asInt(assignment.semester_id) ?? asInt(lesson.semester_id) ?? 0,
-        teacher: {
-          nameCn,
-          nameEn: asString(assignment.en),
-          departmentCode: asString(assignment.departmentCode),
-        },
-      });
-    }
-  }
-
-  return planTeacherImport(scheduleOccurrences, catalogOccurrences);
-}
-
-function loadScheduleInfrastructure(snapshot: Snapshot) {
-  const roomRows = snapshot.queryAll(
-    "jw_ws_schedule_table_datum_result_scheduleList_room",
-  );
-  const buildingRows = snapshot.queryGrouped(
-    "jw_ws_schedule_table_datum_result_scheduleList_room_building",
-  );
-  const campusRows = snapshot.queryGrouped(
-    "jw_ws_schedule_table_datum_result_scheduleList_room_building_campus",
-  );
-  const roomTypeRows = snapshot.queryGrouped(
-    "jw_ws_schedule_table_datum_result_scheduleList_room_roomType",
-  );
-  const adminClassRows = snapshot.queryAll(
-    "jw_ws_schedule_table_datum_result_lessonList_adminclasses",
-  );
-  const catalogLessonRows = snapshot.queryAll(
-    "catalog_teach_lesson_list_for_teach",
-  );
-  const catalogCampusRows = snapshot.queryGrouped(
-    "catalog_teach_lesson_list_for_teach_campus",
-  );
-  const scheduleLessonRows = snapshot.queryAll(
-    "jw_ws_schedule_table_datum_result_lessonList",
-  );
-  const scheduleLessonByJwId = new Map<number, SnapshotRow>();
-  for (const row of scheduleLessonRows) {
-    const jwId = asInt(row.id);
-    if (jwId != null) scheduleLessonByJwId.set(jwId, row);
-  }
-  const campusOccurrences: CampusOccurrence[] = [];
-  const buildings = new Map<number, BuildingBuild>();
-  const rooms = new Map<number, RoomBuild>();
-  const roomTypes = new Map<number, RoomTypeBuild>();
-  const adminClassOccurrences: Array<{
-    semesterCode: number;
-    adminClass: AdminClassBuild;
-  }> = [];
-
-  for (const row of roomRows) {
-    const parentId = asInt(row.store_id);
-    if (parentId == null) continue;
-    const building = firstChild(buildingRows, parentId);
-    const roomType = firstChild(roomTypeRows, parentId);
-    const room = mapRoom(row, building, roomType);
-    if (room == null || rooms.has(room.jwId)) continue;
-    rooms.set(room.jwId, room);
-
-    if (building) {
-      const campus = firstChild(campusRows, asInt(building.store_id) ?? -1);
-      if (campus) {
-        const c = mapCampus(campus);
-        if (c != null) {
-          campusOccurrences.push({
-            campus: c,
-            semesterCode: asInt(campus.semester_id) ?? 0,
-            source: "building",
-          });
-        }
-      }
-      const b = mapBuilding(building, campus);
-      if (b != null && !buildings.has(b.jwId)) buildings.set(b.jwId, b);
-    }
-
-    if (roomType) {
-      const rt = mapRoomType(roomType);
-      if (rt != null && !roomTypes.has(rt.jwId)) roomTypes.set(rt.jwId, rt);
-    }
-  }
-
-  for (const lesson of catalogLessonRows) {
-    const lessonJwId = asInt(lesson.id);
-    const parentId = asInt(lesson.store_id);
-    if (lessonJwId == null || parentId == null) continue;
-    const campus = mapCampusFromSection(
-      scheduleLessonByJwId.get(lessonJwId),
-      firstChild(catalogCampusRows, parentId),
-    );
-    if (campus == null) continue;
-    campusOccurrences.push({
-      campus,
-      semesterCode: asInt(lesson.semester_id) ?? 0,
-      source: "catalog",
-    });
-  }
-
-  for (const row of adminClassRows) {
-    const ac = mapAdminClass(row);
-    const semesterCode = asInt(row.semester_id);
-    if (ac == null || semesterCode == null) continue;
-    adminClassOccurrences.push({ semesterCode, adminClass: ac });
-  }
-
-  const adminClasses = selectLatestAdminClasses(adminClassOccurrences);
-
-  return {
-    campuses: selectCampuses(campusOccurrences),
-    roomTypes: Array.from(roomTypes.values()),
-    buildings: Array.from(buildings.values()),
-    rooms: Array.from(rooms.values()),
-    adminClasses,
-  };
-}
-
-function loadSections(
-  snapshot: Snapshot,
-  minSemester: number,
-  courseJwIdByParentId: Map<number, number>,
-  catalogTeacherJwIdBySectionName: Map<string, number>,
-  onSection: (jwId: number) => void,
-  sectionTeacherPairs: SectionTeacherPair[],
-): SectionBuild[] {
-  const lessons = snapshot.queryAll("catalog_teach_lesson_list_for_teach");
-  const scheduleLessonRows = snapshot.queryAll(
-    "jw_ws_schedule_table_datum_result_lessonList",
-  );
-  const scheduleLessonMap = new Map<number, SnapshotRow>();
-  for (const row of scheduleLessonRows) {
-    const id = asInt(row.id);
-    if (id != null) scheduleLessonMap.set(id, row);
-  }
-
-  const requiredInfoMap = snapshot.queryGrouped(
-    "jw_ws_schedule_table_datum_result_lessonList_requiredPeriodInfo",
-  );
-  const suggestWeeksMap = snapshot.queryGrouped(
-    "jw_ws_schedule_table_datum_result_lessonList_suggestScheduleWeeks",
-  );
-  const jsonParamsMap = snapshot.queryGrouped(
-    "jw_ws_schedule_table_datum_result_lessonList_scheduleJsonParams",
-  );
-
-  const courses = snapshot.queryGrouped(
-    "catalog_teach_lesson_list_for_teach_course",
-  );
-  const openDepartments = snapshot.queryGrouped(
-    "catalog_teach_lesson_list_for_teach_openDepartment",
-  );
-  const examModes = snapshot.queryGrouped(
-    "catalog_teach_lesson_list_for_teach_examMode",
-  );
-  const teachLanguages = snapshot.queryGrouped(
-    "catalog_teach_lesson_list_for_teach_teachLang",
-  );
-  const dtpptMap = snapshot.queryGrouped(
-    "catalog_teach_lesson_list_for_teach_dateTimePlacePersonText",
-  );
-  const catalogAssignments = snapshot.queryGrouped(
-    "catalog_teach_lesson_list_for_teach_teacherAssignmentList",
-  );
-
-  const sections: SectionBuild[] = [];
-
-  for (const lesson of lessons) {
-    const semesterCode = asInt(lesson.semester_id);
-    if (semesterCode == null || semesterCode < minSemester) continue;
-
-    const parentId = asInt(lesson.store_id);
-    if (parentId == null) continue;
-
-    const courseRow = firstChild(courses, parentId);
-    const courseJwId = courseJwIdByParentId.get(parentId);
-    if (courseJwId == null) {
-      throw new Error(`Course jwId is missing for lesson parent ${parentId}`);
-    }
-    const openDeptRow = firstChild(openDepartments, parentId);
-    const scheduleLesson = scheduleLessonMap.get(asInt(lesson.id) ?? -1);
-    const scheduleStoreId = asInt(scheduleLesson?.store_id);
-    const section = mapSection(
-      lesson,
-      scheduleLesson,
-      scheduleStoreId == null
-        ? undefined
-        : firstChild(requiredInfoMap, scheduleStoreId),
-      scheduleStoreId == null
-        ? undefined
-        : suggestWeeksMap.get(scheduleStoreId),
-      scheduleStoreId == null ? undefined : jsonParamsMap.get(scheduleStoreId),
-      dtpptMap.get(parentId),
-      {
-        course: courseRow,
-        examMode: firstChild(examModes, parentId),
-        openDepartment: openDeptRow,
-        teachLanguage: firstChild(teachLanguages, parentId),
-      },
-    );
-    if (section == null) continue;
-
-    sections.push(section);
-    onSection(section.jwId);
-
-    for (const assignment of catalogAssignments.get(parentId) ?? []) {
-      const nameCn = asString(assignment.cn) ?? "";
-      const teacherJwId = catalogTeacherJwIdBySectionName.get(
-        sectionTeacherNameKey(section.jwId, nameCn),
-      );
-      if (teacherJwId != null) {
-        sectionTeacherPairs.push({ sectionJwId: section.jwId, teacherJwId });
-      }
-    }
-  }
-
-  return sections;
-}
-
-function loadScheduleData(
-  snapshot: Snapshot,
-  importedSectionJwIds: Set<number>,
-  teacherAssignments: TeacherAssignmentBuild[],
-  adminClassSectionPairs: AdminClassSectionPair[],
-): {
-  scheduleGroups: ScheduleGroupBuild[];
-  schedules: ScheduleBuild[];
-  scheduleInfrastructureTeacherPairs: SectionTeacherPair[];
-} {
-  const scheduleGroupRows = snapshot.queryAll(
-    "jw_ws_schedule_table_datum_result_scheduleGroupList",
-  );
-  const scheduleListRows = snapshot.queryAll(
-    "jw_ws_schedule_table_datum_result_scheduleList",
-  );
-  const roomMap = snapshot.queryGrouped(
-    "jw_ws_schedule_table_datum_result_scheduleList_room",
-  );
-
-  const scheduleLessonRows = snapshot.queryAll(
-    "jw_ws_schedule_table_datum_result_lessonList",
-  );
-  const assignmentRows = snapshot.queryGrouped(
-    "jw_ws_schedule_table_datum_result_lessonList_teacherAssignmentList",
-  );
-  const teacherLessonTypeRows = snapshot.queryGrouped(
-    "jw_ws_schedule_table_datum_result_lessonList_teacherAssignmentList_teacherLessonType",
-  );
-  const teacherTitleRows = snapshot.queryGrouped(
-    "jw_ws_schedule_table_datum_result_lessonList_teacherAssignmentList_title",
-  );
-  const weekIndicesRows = snapshot.queryGrouped(
-    "jw_ws_schedule_table_datum_result_lessonList_teacherAssignmentList_weekIndices",
-  );
-  const adminClassRows = snapshot.queryGrouped(
-    "jw_ws_schedule_table_datum_result_lessonList_adminclasses",
-  );
-
-  const scheduleInfrastructureTeacherPairs: SectionTeacherPair[] = [];
-  const teacherJwIdBySectionPerson = new Map<string, number>();
-  for (const lesson of scheduleLessonRows) {
-    const lessonId = asInt(lesson.id);
-    const parentId = asInt(lesson.store_id);
-    if (
-      lessonId == null ||
-      parentId == null ||
-      !importedSectionJwIds.has(lessonId)
-    ) {
-      continue;
-    }
-    for (const assignment of assignmentRows.get(parentId) ?? []) {
-      const teacherJwId = asInt(assignment.teacherId);
-      const nameCn = asString(assignment.name);
-      if (nameCn && teacherJwId == null) {
-        throw new Error(
-          `Teacher assignment for section jwId ${lessonId} is missing teacherId`,
-        );
-      }
-      if (teacherJwId == null) continue;
-      const personId = asInt(assignment.personId);
-      if (personId == null) continue;
-      const key = `${lessonId}:${personId}`;
-      const existing = teacherJwIdBySectionPerson.get(key);
-      if (existing != null && existing !== teacherJwId) {
-        throw new Error(
-          `Section jwId ${lessonId} personId ${personId} maps to multiple teacherIds: ${existing}, ${teacherJwId}`,
-        );
-      }
-      teacherJwIdBySectionPerson.set(key, teacherJwId);
-    }
-  }
-
-  const scheduleGroups: ScheduleGroupBuild[] = [];
-  const seenGroups = new Set<number>();
-  for (const row of scheduleGroupRows) {
-    const group = mapScheduleGroup(row);
-    if (group == null || !importedSectionJwIds.has(group.lessonJwId)) continue;
-    if (seenGroups.has(group.jwId)) continue;
-    seenGroups.add(group.jwId);
-    scheduleGroups.push(group);
-  }
-
-  const schedules = new Map<string, ScheduleBuild>();
-  for (const row of scheduleListRows) {
-    const lessonJwId = asInt(row.lessonId);
-    if (lessonJwId == null || !importedSectionJwIds.has(lessonJwId)) continue;
-    const room = firstChild(roomMap, asInt(row.store_id) ?? -1);
-    const roomJwId = asInt(room?.id) ?? asInt(row.roomId);
-    const key = scheduleKey(row, roomJwId);
-    const personId = asInt(row.personId);
-    const teacherJwId =
-      asInt(row.teacherId) ??
-      (personId == null
-        ? undefined
-        : teacherJwIdBySectionPerson.get(`${lessonJwId}:${personId}`));
-    if (personId != null && teacherJwId == null) {
-      throw new Error(
-        `Schedule for section jwId ${lessonJwId} personId ${personId} did not resolve to a teacherId`,
-      );
-    }
-    const existing = schedules.get(key);
-    if (existing) {
-      mergeSchedule(existing, row, teacherJwId, roomJwId);
-      continue;
-    }
-
-    const schedule = mapSchedule(row, teacherJwId, roomJwId);
-    schedules.set(key, schedule);
-  }
-
-  for (const lesson of scheduleLessonRows) {
-    const lessonId = asInt(lesson.id);
-    if (lessonId == null || !importedSectionJwIds.has(lessonId)) continue;
-    const parentId = asInt(lesson.store_id);
-    if (parentId == null) continue;
-
-    for (const assignment of assignmentRows.get(parentId) ?? []) {
-      const teacherJwId = asInt(assignment.teacherId);
-      if (teacherJwId != null) {
-        scheduleInfrastructureTeacherPairs.push({
-          sectionJwId: lessonId,
-          teacherJwId,
-        });
-      }
-
-      const teacherLessonType = firstChild(
-        teacherLessonTypeRows,
-        asInt(assignment.store_id) ?? -1,
-      );
-      const weekIndices =
-        weekIndicesRows.get(asInt(assignment.store_id) ?? -1) ?? [];
-
-      const teacherLessonTypeId = asInt(teacherLessonType?.id);
-      const teacherTitleJwId = asInt(
-        firstChild(teacherTitleRows, asInt(assignment.store_id) ?? -1)?.id,
-      );
-
-      const ta = mapTeacherAssignment(
-        lessonId,
-        assignment,
-        weekIndices,
-        teacherLessonTypeId ?? undefined,
-        teacherTitleJwId ?? undefined,
-      );
-      if (ta == null) continue;
-      teacherAssignments.push(ta);
-    }
-
-    for (const ac of adminClassRows.get(parentId) ?? []) {
-      const adminClassJwId = asInt(ac.id);
-      if (adminClassJwId == null) continue;
-      adminClassSectionPairs.push({ adminClassJwId, sectionJwId: lessonId });
-    }
-  }
-
-  return {
-    scheduleGroups,
-    schedules: Array.from(schedules.values()),
-    scheduleInfrastructureTeacherPairs,
-  };
-}
-
-function loadExams(
-  snapshot: Snapshot,
-  importedSectionJwIds: Set<number>,
-): ExamBuild[] {
-  const examRows = snapshot.queryAll("catalog_teach_exam_list");
-  const lessonMap = snapshot.queryGrouped("catalog_teach_exam_list_lesson");
-  const batchMap = snapshot.queryGrouped("catalog_teach_exam_list_examBatch");
-  const roomsMap = snapshot.queryGrouped("catalog_teach_exam_list_examRooms");
-
-  const result: ExamBuild[] = [];
-  for (const row of examRows) {
-    const parentId = asInt(row.store_id);
-    if (parentId == null) continue;
-    const lesson = firstChild(lessonMap, parentId);
-    const sectionJwId = asInt(lesson?.id);
-    if (sectionJwId == null || !importedSectionJwIds.has(sectionJwId)) continue;
-
-    const exam = mapExam(
-      row,
-      lesson,
-      firstChild(batchMap, parentId),
-      roomsMap.get(parentId) ?? [],
-    );
-    if (exam == null) continue;
-    result.push(exam);
-  }
-  return result;
-}
-
 async function upsertSemesters(
   tx: Prisma.TransactionClient,
   builds: SemesterBuild[],
 ): Promise<Map<number, number>> {
-  const map = new Map<number, number>();
-  for (const build of builds) {
-    const result = await tx.semester.upsert({
-      where: { jwId: build.jwId },
-      create: {
-        jwId: build.jwId,
-        nameCn: build.nameCn,
-        code: build.code,
-        startDate: build.start,
-        endDate: build.end,
-      },
-      update: {
-        nameCn: build.nameCn,
-        code: build.code,
-        startDate: build.start,
-        endDate: build.end,
-      },
-    });
-    map.set(build.jwId, result.id);
-  }
-  return map;
+  return bulkUpsert(
+    tx,
+    "Semester",
+    "jwId",
+    "int",
+    ["nameCn", "code", "startDate", "endDate"],
+    ["text", "text", "date", "date"],
+    builds.map((build) => ({
+      key: build.jwId,
+      values: [build.nameCn, build.code, build.start, build.end],
+    })),
+  );
 }
 
 async function upsertDepartments(
@@ -1190,43 +582,40 @@ async function loadLookupTables(
   },
 ): Promise<LookupMaps> {
   async function loadModel(
-    model:
-      | "courseCategory"
-      | "courseClassify"
-      | "courseGradation"
-      | "courseType"
-      | "educationLevel"
-      | "classType"
-      | "examMode"
-      | "teachLanguage",
+    table:
+      | "CourseCategory"
+      | "CourseClassify"
+      | "CourseGradation"
+      | "CourseType"
+      | "EducationLevel"
+      | "ClassType"
+      | "ExamMode"
+      | "TeachLanguage",
     items: { nameCn: string; nameEn?: string }[],
   ) {
-    if (items.length === 0) return new Map<string, number>();
-    const data = items.map((i) => ({ nameCn: i.nameCn, nameEn: i.nameEn }));
-    await tx[model].createMany({ data, skipDuplicates: true });
-    // @ts-expect-error dynamic model access not statically typed
-    const rows = await tx[model].findMany({
-      select: { id: true, nameCn: true },
-    });
-    const map = new Map<string, number>();
-    for (const row of rows) {
-      map.set(row.nameCn, row.id);
-    }
-    return map;
+    return bulkUpsert(
+      tx,
+      table,
+      "nameCn",
+      "text",
+      ["nameEn"],
+      ["text"],
+      items.map((item) => ({ key: item.nameCn, values: [item.nameEn] })),
+    );
   }
 
   return {
-    courseCategory: await loadModel("courseCategory", lookups.courseCategories),
-    courseClassify: await loadModel("courseClassify", lookups.courseClassifies),
+    courseCategory: await loadModel("CourseCategory", lookups.courseCategories),
+    courseClassify: await loadModel("CourseClassify", lookups.courseClassifies),
     courseGradation: await loadModel(
-      "courseGradation",
+      "CourseGradation",
       lookups.courseGradations,
     ),
-    courseType: await loadModel("courseType", lookups.courseTypes),
-    educationLevel: await loadModel("educationLevel", lookups.educationLevels),
-    classType: await loadModel("classType", lookups.classTypes),
-    examMode: await loadModel("examMode", lookups.examModes),
-    teachLanguage: await loadModel("teachLanguage", lookups.teachLanguages),
+    courseType: await loadModel("CourseType", lookups.courseTypes),
+    educationLevel: await loadModel("EducationLevel", lookups.educationLevels),
+    classType: await loadModel("ClassType", lookups.classTypes),
+    examMode: await loadModel("ExamMode", lookups.examModes),
+    teachLanguage: await loadModel("TeachLanguage", lookups.teachLanguages),
   };
 }
 
@@ -1252,22 +641,36 @@ async function upsertCourses(
       build.code,
       build.nameCn,
       build.nameEn,
-      build.categoryName
-        ? lookupMaps.courseCategory.get(build.categoryName)
-        : null,
-      build.classTypeName
-        ? lookupMaps.classType.get(build.classTypeName)
-        : null,
-      build.classifyName
-        ? lookupMaps.courseClassify.get(build.classifyName)
-        : null,
-      build.educationLevelName
-        ? lookupMaps.educationLevel.get(build.educationLevelName)
-        : null,
-      build.gradationName
-        ? lookupMaps.courseGradation.get(build.gradationName)
-        : null,
-      build.typeName ? lookupMaps.courseType.get(build.typeName) : null,
+      optionalId(
+        lookupMaps.courseCategory,
+        build.categoryName,
+        `CourseCategory ${build.categoryName} for Course jwId ${build.jwId}`,
+      ),
+      optionalId(
+        lookupMaps.classType,
+        build.classTypeName,
+        `ClassType ${build.classTypeName} for Course jwId ${build.jwId}`,
+      ),
+      optionalId(
+        lookupMaps.courseClassify,
+        build.classifyName,
+        `CourseClassify ${build.classifyName} for Course jwId ${build.jwId}`,
+      ),
+      optionalId(
+        lookupMaps.educationLevel,
+        build.educationLevelName,
+        `EducationLevel ${build.educationLevelName} for Course jwId ${build.jwId}`,
+      ),
+      optionalId(
+        lookupMaps.courseGradation,
+        build.gradationName,
+        `CourseGradation ${build.gradationName} for Course jwId ${build.jwId}`,
+      ),
+      optionalId(
+        lookupMaps.courseType,
+        build.typeName,
+        `CourseType ${build.typeName} for Course jwId ${build.jwId}`,
+      ),
     ] satisfies ColumnValue[],
   }));
   return bulkUpsert(
@@ -1285,72 +688,57 @@ async function upsertTeacherTitles(
   tx: Prisma.TransactionClient,
   builds: TeacherTitleBuild[],
 ): Promise<Map<number, number>> {
-  const map = new Map<number, number>();
-  for (const build of builds) {
-    const result = await tx.teacherTitle.upsert({
-      where: { jwId: build.jwId },
-      create: {
-        jwId: build.jwId,
-        nameCn: build.nameCn,
-        nameEn: build.nameEn,
-        code: build.code,
-        enabled: build.enabled,
-      },
-      update: {
-        nameCn: build.nameCn,
-        nameEn: build.nameEn,
-        code: build.code,
-        enabled: build.enabled,
-      },
-    });
-    map.set(build.jwId, result.id);
-  }
-  return map;
+  return bulkUpsert(
+    tx,
+    "TeacherTitle",
+    "jwId",
+    "int",
+    ["nameCn", "nameEn", "code", "enabled"],
+    ["text", "text", "text", "boolean"],
+    builds.map((build) => ({
+      key: build.jwId,
+      values: [build.nameCn, build.nameEn, build.code, build.enabled],
+    })),
+  );
 }
 
 async function upsertTeacherLessonTypes(
   tx: Prisma.TransactionClient,
   builds: TeacherLessonTypeBuild[],
 ): Promise<Map<number, number>> {
-  const map = new Map<number, number>();
-  for (const build of builds) {
-    const result = await tx.teacherLessonType.upsert({
-      where: { jwId: build.jwId },
-      create: {
-        jwId: build.jwId,
-        nameCn: build.nameCn,
-        nameEn: build.nameEn,
-        code: build.code,
-        role: build.role,
-        enabled: build.enabled,
-      },
-      update: {
-        nameCn: build.nameCn,
-        nameEn: build.nameEn,
-        code: build.code,
-        role: build.role,
-        enabled: build.enabled,
-      },
-    });
-    map.set(build.jwId, result.id);
-  }
-  return map;
+  return bulkUpsert(
+    tx,
+    "TeacherLessonType",
+    "jwId",
+    "int",
+    ["nameCn", "nameEn", "code", "role", "enabled"],
+    ["text", "text", "text", "text", "boolean"],
+    builds.map((build) => ({
+      key: build.jwId,
+      values: [
+        build.nameCn,
+        build.nameEn,
+        build.code,
+        build.role,
+        build.enabled,
+      ],
+    })),
+  );
 }
 
 async function upsertExamBatches(
   tx: Prisma.TransactionClient,
   builds: ExamBatchBuild[],
 ): Promise<Map<number, number>> {
-  const map = new Map<number, number>();
-  for (const build of builds) {
-    const result = await tx.examBatch.upsert({
-      where: { jwId: build.jwId },
-      create: { jwId: build.jwId, nameCn: build.nameCn },
-      update: { nameCn: build.nameCn },
-    });
-    map.set(build.jwId, result.id);
-  }
-  return map;
+  return bulkUpsert(
+    tx,
+    "ExamBatch",
+    "jwId",
+    "int",
+    ["nameCn"],
+    ["text"],
+    builds.map((build) => ({ key: build.jwId, values: [build.nameCn] })),
+  );
 }
 
 async function upsertTeachers(
@@ -1439,61 +827,40 @@ async function upsertTeachers(
 
 type TeacherMap = Map<number, number>;
 
-function resolveTeacherId(
-  build: TeacherAssignmentBuild | SectionTeacherPair,
-  map: TeacherMap,
-): number | undefined {
-  return map.get(build.teacherJwId);
-}
-
 async function upsertCampuses(
   tx: Prisma.TransactionClient,
   builds: CampusBuild[],
 ): Promise<Map<number, number>> {
-  const map = new Map<number, number>();
-  for (const build of builds) {
-    const result = await tx.campus.upsert({
-      where: { jwId: build.jwId },
-      create: {
-        jwId: build.jwId,
-        nameCn: build.nameCn,
-        nameEn: build.nameEn,
-        code: build.code,
-      },
-      update: {
-        nameCn: build.nameCn,
-        nameEn: build.nameEn,
-        code: build.code,
-      },
-    });
-    map.set(build.jwId, result.id);
-  }
-  return map;
+  return bulkUpsert(
+    tx,
+    "Campus",
+    "jwId",
+    "int",
+    ["nameCn", "nameEn", "code"],
+    ["text", "text", "text"],
+    builds.map((build) => ({
+      key: build.jwId,
+      values: [build.nameCn, build.nameEn, build.code],
+    })),
+  );
 }
 
 async function upsertRoomTypes(
   tx: Prisma.TransactionClient,
   builds: RoomTypeBuild[],
 ): Promise<Map<number, number>> {
-  const map = new Map<number, number>();
-  for (const build of builds) {
-    const result = await tx.roomType.upsert({
-      where: { jwId: build.jwId },
-      create: {
-        jwId: build.jwId,
-        nameCn: build.nameCn,
-        nameEn: build.nameEn,
-        code: build.code,
-      },
-      update: {
-        nameCn: build.nameCn,
-        nameEn: build.nameEn,
-        code: build.code,
-      },
-    });
-    map.set(build.jwId, result.id);
-  }
-  return map;
+  return bulkUpsert(
+    tx,
+    "RoomType",
+    "jwId",
+    "int",
+    ["nameCn", "nameEn", "code"],
+    ["text", "text", "text"],
+    builds.map((build) => ({
+      key: build.jwId,
+      values: [build.nameCn, build.nameEn, build.code],
+    })),
+  );
 }
 
 async function upsertBuildings(
@@ -1501,31 +868,29 @@ async function upsertBuildings(
   builds: BuildingBuild[],
   campusMap: Map<number, number>,
 ): Promise<Map<number, number>> {
-  const map = new Map<number, number>();
-  for (const build of builds) {
-    const result = await tx.building.upsert({
-      where: { jwId: build.jwId },
-      create: {
-        jwId: build.jwId,
-        nameCn: build.nameCn,
-        nameEn: build.nameEn,
-        code: build.code,
-        campusId: build.campusJwId
-          ? campusMap.get(build.campusJwId)
-          : undefined,
-      },
-      update: {
-        nameCn: build.nameCn,
-        nameEn: build.nameEn,
-        code: build.code,
-        campusId: build.campusJwId
-          ? campusMap.get(build.campusJwId)
-          : undefined,
-      },
-    });
-    map.set(build.jwId, result.id);
-  }
-  return map;
+  return bulkUpsert(
+    tx,
+    "Building",
+    "jwId",
+    "int",
+    ["nameCn", "nameEn", "code", "campusId"],
+    ["text", "text", "text", "int"],
+    builds.map((build) => ({
+      key: build.jwId,
+      values: [
+        build.nameCn,
+        build.nameEn,
+        build.code,
+        build.campusJwId == null
+          ? null
+          : requiredId(
+              campusMap,
+              build.campusJwId,
+              `Campus jwId ${build.campusJwId} for Building jwId ${build.jwId}`,
+            ),
+      ],
+    })),
+  );
 }
 
 async function upsertRooms(
@@ -1557,8 +922,20 @@ async function upsertRooms(
       build.seatsForSection,
       build.remark,
       build.seats,
-      build.buildingJwId ? buildingMap.get(build.buildingJwId) : null,
-      build.roomTypeJwId ? roomTypeMap.get(build.roomTypeJwId) : null,
+      build.buildingJwId == null
+        ? null
+        : requiredId(
+            buildingMap,
+            build.buildingJwId,
+            `Building jwId ${build.buildingJwId} for Room jwId ${build.jwId}`,
+          ),
+      build.roomTypeJwId == null
+        ? null
+        : requiredId(
+            roomTypeMap,
+            build.roomTypeJwId,
+            `RoomType jwId ${build.roomTypeJwId} for Room jwId ${build.jwId}`,
+          ),
     ] satisfies ColumnValue[],
   }));
   return bulkUpsert(
@@ -1676,8 +1053,11 @@ async function upsertSections(
         `Course jwId ${build.courseJwId} did not resolve for section jwId ${build.jwId}`,
       );
     }
-    const semesterId = semesterMap.get(build.semesterCode);
-    if (semesterId == null) continue;
+    const semesterId = requiredId(
+      semesterMap,
+      build.semesterCode,
+      `Semester jwId ${build.semesterCode} for Section jwId ${build.jwId}`,
+    );
     const openDepartmentId = build.openDepartmentCode
       ? departmentMap.get(build.openDepartmentCode)
       : null;
@@ -1728,12 +1108,28 @@ async function upsertSections(
         courseId,
         semesterId,
         campusId,
-        build.examModeName ? lookupMaps.examMode.get(build.examModeName) : null,
+        build.examModeName == null
+          ? null
+          : requiredId(
+              lookupMaps.examMode,
+              build.examModeName,
+              `ExamMode ${build.examModeName} for Section jwId ${build.jwId}`,
+            ),
         openDepartmentId,
-        build.teachLanguageName
-          ? lookupMaps.teachLanguage.get(build.teachLanguageName)
-          : null,
-        build.roomTypeId != null ? roomTypeMap.get(build.roomTypeId) : null,
+        build.teachLanguageName == null
+          ? null
+          : requiredId(
+              lookupMaps.teachLanguage,
+              build.teachLanguageName,
+              `TeachLanguage ${build.teachLanguageName} for Section jwId ${build.jwId}`,
+            ),
+        build.roomTypeId == null
+          ? null
+          : requiredId(
+              roomTypeMap,
+              build.roomTypeId,
+              `RoomType jwId ${build.roomTypeId} for Section jwId ${build.jwId}`,
+            ),
       ],
     });
   }
@@ -1801,8 +1197,11 @@ async function upsertScheduleGroups(
   ];
   const records: Array<{ key: number; values: ColumnValue[] }> = [];
   for (const build of builds) {
-    const sectionId = sectionMap.get(build.lessonJwId);
-    if (sectionId == null) continue;
+    const sectionId = requiredId(
+      sectionMap,
+      build.lessonJwId,
+      `Section jwId ${build.lessonJwId} for ScheduleGroup jwId ${build.jwId}`,
+    );
     records.push({
       key: build.jwId,
       values: [
@@ -1826,489 +1225,6 @@ async function upsertScheduleGroups(
   );
 }
 
-export async function writeSectionTeachers(
-  tx: Prisma.TransactionClient,
-  sectionMap: Map<number, number>,
-  teacherMap: TeacherMap,
-  pairs: SectionTeacherPair[],
-  sectionDbIds: number[],
-): Promise<void> {
-  const resolved: Array<{ sectionId: number; teacherId: number }> = [];
-  const seen = new Set<string>();
-
-  for (const pair of pairs) {
-    const sectionId = sectionMap.get(pair.sectionJwId);
-    if (sectionId == null) continue;
-    const teacherId = resolveTeacherId(pair, teacherMap);
-    if (teacherId == null) continue;
-    const key = `${sectionId}:${teacherId}`;
-    if (seen.has(key)) continue;
-    seen.add(key);
-    resolved.push({ sectionId, teacherId });
-  }
-
-  await syncJoinPairs(
-    tx,
-    "_SectionTeachers",
-    "A",
-    sectionDbIds,
-    resolved.map((pair) => ({ a: pair.sectionId, b: pair.teacherId })),
-  );
-
-  const now = new Date();
-  for (const chunk of chunks(resolved, 1000)) {
-    const tuples = chunk
-      .map((p) => `(${p.sectionId},${p.teacherId})`)
-      .join(",");
-    await tx.$executeRawUnsafe(
-      `UPDATE "SectionTeacher" SET "retiredAt" = NULL, "updatedAt" = $1 WHERE ("sectionId","teacherId") IN (${tuples}) AND "retiredAt" IS NOT NULL`,
-      now,
-    );
-  }
-
-  if (resolved.length > 0) {
-    for (const chunk of chunks(resolved, 1000)) {
-      await tx.sectionTeacher.createMany({
-        data: chunk.map((pair) => ({ ...pair, retiredAt: null })),
-        skipDuplicates: true,
-      });
-    }
-  }
-
-  if (sectionDbIds.length === 0) {
-    return;
-  }
-
-  for (const sectionChunk of chunks(sectionDbIds, 1000)) {
-    const sectionIds = sectionChunk.join(",");
-    await tx.$executeRawUnsafe(
-      `UPDATE "SectionTeacher" SET "retiredAt" = $1, "updatedAt" = $2 WHERE "sectionId" IN (${sectionIds}) AND "retiredAt" IS NULL AND ("sectionId","teacherId") NOT IN (SELECT "A","B" FROM "_SectionTeachers" WHERE "A" IN (${sectionIds}))`,
-      now,
-      now,
-    );
-  }
-}
-
-async function writeTeacherAssignments(
-  tx: Prisma.TransactionClient,
-  builds: TeacherAssignmentBuild[],
-  sectionMap: Map<number, number>,
-  teacherMap: TeacherMap,
-  teacherLessonTypeMap: Map<number, number>,
-  teacherTitleMap: Map<number, number>,
-): Promise<void> {
-  const resolved: Array<{
-    teacherId: number;
-    sectionId: number;
-    role?: string;
-    period?: number;
-    weekIndices?: number[];
-    weekIndicesMsg?: string;
-    teacherLessonTypeId?: number;
-    teacherTitleId?: number;
-  }> = [];
-  const seen = new Set<string>();
-
-  for (const build of builds) {
-    const sectionId = sectionMap.get(build.sectionJwId);
-    if (sectionId == null) continue;
-    const teacherId = resolveTeacherId(build, teacherMap);
-    if (teacherId == null) continue;
-    const key = `${sectionId}:${teacherId}`;
-    if (seen.has(key)) continue;
-    seen.add(key);
-    resolved.push({
-      teacherId,
-      sectionId,
-      role: build.role,
-      period: build.period,
-      weekIndices: build.weekIndices,
-      weekIndicesMsg: build.weekIndicesMsg,
-      teacherLessonTypeId: build.teacherLessonTypeId
-        ? teacherLessonTypeMap.get(build.teacherLessonTypeId)
-        : undefined,
-      teacherTitleId: build.teacherTitleJwId
-        ? teacherTitleMap.get(build.teacherTitleJwId)
-        : undefined,
-    });
-  }
-
-  await tx.teacherAssignment.deleteMany({
-    where: { sectionId: { in: Array.from(sectionMap.values()) } },
-  });
-
-  if (resolved.length > 0) {
-    for (const chunk of chunks(resolved, 1000)) {
-      await tx.teacherAssignment.createMany({ data: chunk });
-    }
-  }
-}
-
-export async function writeAdminClassSections(
-  tx: Prisma.TransactionClient,
-  pairs: AdminClassSectionPair[],
-  sectionMap: Map<number, number>,
-  adminClassMap: Map<number, number>,
-): Promise<void> {
-  const resolved: Array<{ a: number; b: number }> = [];
-  const seen = new Set<string>();
-  for (const pair of pairs) {
-    const adminClassId = adminClassMap.get(pair.adminClassJwId);
-    const sectionId = sectionMap.get(pair.sectionJwId);
-    if (adminClassId == null || sectionId == null) continue;
-    const key = `${adminClassId}:${sectionId}`;
-    if (seen.has(key)) continue;
-    seen.add(key);
-    resolved.push({ a: adminClassId, b: sectionId });
-  }
-
-  await syncJoinPairs(
-    tx,
-    "_SectionAdminClasses",
-    "B",
-    Array.from(sectionMap.values()),
-    resolved,
-  );
-}
-
-export async function writeSchedules(
-  tx: Prisma.TransactionClient,
-  builds: ScheduleBuild[],
-  sectionMap: Map<number, number>,
-  scheduleGroupMap: Map<number, number>,
-  roomMap: Map<number, number>,
-  teacherMap: TeacherMap,
-  sectionDbIds: number[],
-): Promise<void> {
-  const resolved = builds
-    .map((build) => {
-      const sectionId = sectionMap.get(build.lessonJwId);
-      const scheduleGroupId = scheduleGroupMap.get(build.scheduleGroupJwId);
-      if (sectionId == null || scheduleGroupId == null) return undefined;
-      const roomId =
-        build.roomJwId != null ? roomMap.get(build.roomJwId) : undefined;
-      if (build.roomJwId != null && roomId == null) {
-        throw new Error(
-          `Room jwId ${build.roomJwId} did not resolve for section jwId ${build.lessonJwId}`,
-        );
-      }
-      return {
-        periods: build.periods ?? 0,
-        date: build.date,
-        weekday: build.weekday,
-        startTime: build.startTime,
-        endTime: build.endTime,
-        experiment: build.experiment,
-        customPlace: build.customPlace,
-        lessonType: build.lessonType,
-        weekIndex: build.weekIndex,
-        exerciseClass: build.exerciseClass,
-        startUnit: build.startUnit,
-        endUnit: build.endUnit,
-        roomId,
-        sectionId,
-        scheduleGroupId,
-        key: scheduleKey(
-          {
-            lessonId: sectionId,
-            scheduleGroupId,
-            date: build.dateStr,
-            weekday: build.weekday,
-            startTime: build.startTime,
-            endTime: build.endTime,
-            startUnit: build.startUnit,
-            endUnit: build.endUnit,
-            customPlace: build.customPlace,
-            weekIndex: build.weekIndex,
-          },
-          roomId,
-        ),
-        teacherJwIds: build.teacherJwIds,
-      };
-    })
-    .filter((s): s is NonNullable<typeof s> => s != null);
-
-  const existingRows = await tx.schedule.findMany({
-    where: { sectionId: { in: sectionDbIds } },
-    select: {
-      id: true,
-      periods: true,
-      date: true,
-      weekday: true,
-      startTime: true,
-      endTime: true,
-      experiment: true,
-      customPlace: true,
-      lessonType: true,
-      weekIndex: true,
-      exerciseClass: true,
-      startUnit: true,
-      endUnit: true,
-      roomId: true,
-      sectionId: true,
-      scheduleGroupId: true,
-    },
-  });
-
-  const existingByKey = new Map<string, (typeof existingRows)[number]>();
-  const staleIds: number[] = [];
-  for (const row of existingRows) {
-    const key = scheduleRowKey(row);
-    if (existingByKey.has(key)) {
-      staleIds.push(row.id);
-    } else {
-      existingByKey.set(key, row);
-    }
-  }
-
-  const desiredKeys = new Set(resolved.map((schedule) => schedule.key));
-  const inserts: typeof resolved = [];
-  const updates: Array<{ id: number; values: ColumnValue[] }> = [];
-  for (const schedule of resolved) {
-    const existing = existingByKey.get(schedule.key);
-    if (existing == null) {
-      inserts.push(schedule);
-      continue;
-    }
-    if (!scheduleRowMatches(existing, schedule)) {
-      updates.push({
-        id: existing.id,
-        values: scheduleColumnValues(schedule),
-      });
-    }
-  }
-  for (const [key, row] of existingByKey) {
-    if (!desiredKeys.has(key)) staleIds.push(row.id);
-  }
-
-  if (staleIds.length > 0) {
-    await tx.schedule.deleteMany({ where: { id: { in: staleIds } } });
-  }
-
-  await bulkUpdate(
-    tx,
-    "Schedule",
-    SCHEDULE_COLUMNS,
-    SCHEDULE_COLUMN_TYPES,
-    updates,
-  );
-
-  for (const chunk of chunks(inserts, 1000)) {
-    await tx.schedule.createMany({
-      data: chunk.map(scheduleCreateData),
-    });
-  }
-
-  const scheduleRows = await tx.schedule.findMany({
-    where: { sectionId: { in: sectionDbIds } },
-    select: {
-      id: true,
-      sectionId: true,
-      scheduleGroupId: true,
-      date: true,
-      weekday: true,
-      startTime: true,
-      endTime: true,
-      startUnit: true,
-      endUnit: true,
-      customPlace: true,
-      weekIndex: true,
-      roomId: true,
-    },
-  });
-
-  const scheduleKeyToId = new Map<string, number>();
-  for (const row of scheduleRows) {
-    scheduleKeyToId.set(scheduleRowKey(row), row.id);
-  }
-
-  const joinPairs: Array<{ scheduleId: number; teacherId: number }> = [];
-  const seen = new Set<string>();
-  for (const schedule of resolved) {
-    const scheduleId = scheduleKeyToId.get(schedule.key);
-    if (scheduleId == null) continue;
-    for (const teacherJwId of schedule.teacherJwIds) {
-      const teacherId = teacherMap.get(teacherJwId);
-      if (teacherId == null) continue;
-      const key = `${scheduleId}:${teacherId}`;
-      if (seen.has(key)) continue;
-      seen.add(key);
-      joinPairs.push({ scheduleId, teacherId });
-    }
-  }
-
-  await syncJoinPairs(
-    tx,
-    "_ScheduleTeachers",
-    "A",
-    scheduleRows.map((row) => row.id),
-    joinPairs.map((pair) => ({ a: pair.scheduleId, b: pair.teacherId })),
-  );
-}
-
-const SCHEDULE_COLUMNS = [
-  "periods",
-  "date",
-  "weekday",
-  "startTime",
-  "endTime",
-  "experiment",
-  "customPlace",
-  "lessonType",
-  "weekIndex",
-  "exerciseClass",
-  "startUnit",
-  "endUnit",
-  "roomId",
-  "sectionId",
-  "scheduleGroupId",
-];
-
-const SCHEDULE_COLUMN_TYPES = [
-  "int",
-  "date",
-  "int",
-  "int",
-  "int",
-  "text",
-  "text",
-  "text",
-  "int",
-  "boolean",
-  "int",
-  "int",
-  "int",
-  "int",
-  "int",
-];
-
-type ResolvedSchedule = {
-  periods: number;
-  date: Date | undefined;
-  weekday: number;
-  startTime: number;
-  endTime: number;
-  experiment: string | undefined;
-  customPlace: string | undefined;
-  lessonType: string | undefined;
-  weekIndex: number;
-  exerciseClass: boolean | undefined;
-  startUnit: number;
-  endUnit: number;
-  roomId: number | undefined;
-  sectionId: number;
-  scheduleGroupId: number;
-};
-
-function scheduleColumnValues(schedule: ResolvedSchedule): ColumnValue[] {
-  return [
-    schedule.periods,
-    schedule.date,
-    schedule.weekday,
-    schedule.startTime,
-    schedule.endTime,
-    schedule.experiment,
-    schedule.customPlace,
-    schedule.lessonType,
-    schedule.weekIndex,
-    schedule.exerciseClass,
-    schedule.startUnit,
-    schedule.endUnit,
-    schedule.roomId,
-    schedule.sectionId,
-    schedule.scheduleGroupId,
-  ];
-}
-
-function scheduleCreateData(schedule: ResolvedSchedule) {
-  return {
-    periods: schedule.periods,
-    date: schedule.date,
-    weekday: schedule.weekday,
-    startTime: schedule.startTime,
-    endTime: schedule.endTime,
-    experiment: schedule.experiment,
-    customPlace: schedule.customPlace,
-    lessonType: schedule.lessonType,
-    weekIndex: schedule.weekIndex,
-    exerciseClass: schedule.exerciseClass,
-    startUnit: schedule.startUnit,
-    endUnit: schedule.endUnit,
-    roomId: schedule.roomId,
-    sectionId: schedule.sectionId,
-    scheduleGroupId: schedule.scheduleGroupId,
-  };
-}
-
-function scheduleRowKey(row: {
-  sectionId: number;
-  scheduleGroupId: number;
-  date: Date | null;
-  weekday: number;
-  startTime: number;
-  endTime: number;
-  startUnit: number;
-  endUnit: number;
-  customPlace: string | null;
-  weekIndex: number;
-  roomId: number | null;
-}): string {
-  return scheduleKey(
-    {
-      lessonId: row.sectionId,
-      scheduleGroupId: row.scheduleGroupId,
-      date: row.date == null ? undefined : formatLocalDate(row.date),
-      weekday: row.weekday,
-      startTime: row.startTime,
-      endTime: row.endTime,
-      startUnit: row.startUnit,
-      endUnit: row.endUnit,
-      customPlace: row.customPlace,
-      weekIndex: row.weekIndex,
-    },
-    row.roomId ?? undefined,
-  );
-}
-
-function scheduleRowMatches(
-  row: Parameters<typeof scheduleRowKey>[0] & {
-    periods: number;
-    experiment: string | null;
-    lessonType: string | null;
-    exerciseClass: boolean | null;
-  },
-  schedule: ResolvedSchedule,
-): boolean {
-  const rowValues = [
-    row.periods,
-    row.date?.getTime(),
-    row.weekday,
-    row.startTime,
-    row.endTime,
-    row.experiment ?? undefined,
-    row.customPlace ?? undefined,
-    row.lessonType ?? undefined,
-    row.weekIndex,
-    row.exerciseClass ?? undefined,
-    row.startUnit,
-    row.endUnit,
-    row.roomId ?? undefined,
-    row.sectionId,
-    row.scheduleGroupId,
-  ];
-  const scheduleValues = scheduleColumnValues(schedule).map((value) =>
-    value instanceof Date ? value.getTime() : value,
-  );
-  return rowValues.every((value, index) => value === scheduleValues[index]);
-}
-
-function formatLocalDate(date: Date): string {
-  const y = date.getFullYear();
-  const m = String(date.getMonth() + 1).padStart(2, "0");
-  const d = String(date.getDate()).padStart(2, "0");
-  return `${y}-${m}-${d}`;
-}
-
 async function upsertExams(
   tx: Prisma.TransactionClient,
   builds: ExamBuild[],
@@ -2327,8 +1243,19 @@ async function upsertExams(
   ];
   const records: Array<{ key: number; values: ColumnValue[] }> = [];
   for (const build of builds) {
-    const sectionId = sectionMap.get(build.sectionJwId);
-    if (sectionId == null) continue;
+    const sectionId = requiredId(
+      sectionMap,
+      build.sectionJwId,
+      `Section jwId ${build.sectionJwId} for Exam jwId ${build.jwId}`,
+    );
+    const examBatchId =
+      build.examBatchJwId == null
+        ? null
+        : requiredId(
+            examBatchMap,
+            build.examBatchJwId,
+            `ExamBatch jwId ${build.examBatchJwId} for Exam jwId ${build.jwId}`,
+          );
     records.push({
       key: build.jwId,
       values: [
@@ -2338,9 +1265,7 @@ async function upsertExams(
         build.examDate,
         build.examTakeCount,
         build.examMode,
-        build.examBatchJwId != null
-          ? examBatchMap.get(build.examBatchJwId)
-          : null,
+        examBatchId,
         sectionId,
       ],
     });
@@ -2361,16 +1286,15 @@ async function writeExamRooms(
   builds: ExamBuild[],
   examMap: Map<number, number>,
 ): Promise<void> {
-  const examIds = builds
-    .map((b) => examMap.get(b.jwId))
-    .filter((id): id is number => id != null);
+  const examIds = builds.map((build) =>
+    requiredId(examMap, build.jwId, `Exam jwId ${build.jwId}`),
+  );
   if (examIds.length === 0) return;
   await tx.examRoom.deleteMany({ where: { examId: { in: examIds } } });
 
   const data: Array<{ examId: number; room: string; count: number }> = [];
   for (const build of builds) {
-    const examId = examMap.get(build.jwId);
-    if (examId == null) continue;
+    const examId = requiredId(examMap, build.jwId, `Exam jwId ${build.jwId}`);
     for (const room of build.rooms) {
       data.push({ examId, room: room.room, count: room.count });
     }

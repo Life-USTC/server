@@ -280,9 +280,12 @@ export function validateMappedSectionJwIds(
 ): void {
   const expected = new Set(expectedJwIds);
   const mapped = new Set(mappedJwIds);
-  const duplicates = mappedJwIds.filter(
-    (jwId, index) => mappedJwIds.indexOf(jwId) !== index,
-  );
+  const seen = new Set<number>();
+  const duplicates: number[] = [];
+  for (const jwId of mappedJwIds) {
+    if (seen.has(jwId)) duplicates.push(jwId);
+    else seen.add(jwId);
+  }
   const missing = [...expected].filter((jwId) => !mapped.has(jwId));
   const unexpected = [...mapped].filter((jwId) => !expected.has(jwId));
   if (

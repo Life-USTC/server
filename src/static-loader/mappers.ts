@@ -351,6 +351,19 @@ export function mapTeacherFromScheduleAssignment(
   };
 }
 
+export function mapTeacherFromSchedule(
+  row: SnapshotRow,
+): TeacherBuild | undefined {
+  const nameCn = asString(row.personName);
+  const teacherId = asInt(row.teacherId);
+  if (!nameCn || teacherId == null) return undefined;
+  return {
+    jwId: teacherId,
+    personId: asInt(row.personId),
+    nameCn,
+  };
+}
+
 export function mapSection(
   lessonRow: SnapshotRow,
   scheduleLesson: SnapshotRow | undefined,

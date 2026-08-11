@@ -4,7 +4,11 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 const GENERATED_AT = "2026-07-18T03:00:00.000Z";
 const SNAPSHOT_SHA = "a".repeat(64);
-const { closeMock } = vi.hoisted(() => ({ closeMock: vi.fn() }));
+const { closeMock, queryAllMock, queryGroupedMock } = vi.hoisted(() => ({
+  closeMock: vi.fn(),
+  queryAllMock: vi.fn().mockReturnValue([]),
+  queryGroupedMock: vi.fn().mockReturnValue(new Map()),
+}));
 
 vi.mock("@/static-loader/snapshot", () => ({
   Snapshot: class {
@@ -20,11 +24,11 @@ vi.mock("@/static-loader/snapshot", () => ({
     }
 
     queryAll() {
-      return [];
+      return queryAllMock();
     }
 
     queryGrouped() {
-      return new Map();
+      return queryGroupedMock();
     }
   },
 }));
@@ -79,6 +83,10 @@ describe("repeated static import", () => {
     expect(report.reconciliation.sectionPresence).toEqual({
       status: "already-applied",
     });
+    expect(report.plannedRecordCounts).toBeNull();
+    expect(report.databaseRecordCounts).toBeNull();
+    expect(queryAllMock).toHaveBeenCalledTimes(3);
+    expect(queryGroupedMock).not.toHaveBeenCalled();
     expect(tx.staticImportState.findUnique).toHaveBeenCalledOnce();
     expect(closeMock).toHaveBeenCalledOnce();
   });
