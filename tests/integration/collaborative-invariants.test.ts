@@ -213,6 +213,7 @@ describe("协作数据不变量", () => {
     const teacher = await prisma.teacher.create({
       data: {
         code: prefix,
+        jwId: 2_110_000_000 + (Date.now() % 10_000_000),
         nameCn: prefix,
       },
       select: { id: true },

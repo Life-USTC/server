@@ -22,7 +22,6 @@
     "db:generate": "prisma generate",
     "db:migrate:deploy": "prisma migrate deploy",
     "static:load": "bun run src/static-loader/cli.ts",
-    "static:migrate-identities": "bun run src/static-loader/identity-migration-cli.ts",
     "e2e:server": "wrangler dev --config wrangler.e2e.jsonc --ip 127.0.0.1 --port 3000 --local",
     "e2e:test": "bash tests/ci/e2e-full-suite-parity.sh",
     "e2e:test:shard1": "playwright test --shard=1/4",

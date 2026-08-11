@@ -10,7 +10,7 @@ const prisma = createTestPrisma();
 afterAll(() => disconnectTestPrisma(prisma));
 
 describe("global static import state persistence", () => {
-  it("bootstraps once and rejects stale or conflicting snapshots", async () => {
+  it("accepts the first snapshot and rejects stale or conflicting snapshots", async () => {
     const rollback = new Error("ROLLBACK_STATIC_IMPORT_STATE_TEST");
     const snapshotSha = "a".repeat(64);
     const otherSnapshotSha = "b".repeat(64);
@@ -22,22 +22,7 @@ describe("global static import state persistence", () => {
 
         await expect(
           assertStaticImportStateAllowsSnapshot(tx, {
-            bootstrapEnabled: false,
-            dryRun: false,
-            expectedSnapshotSha256: null,
             observedAt,
-            retirementEnabled: false,
-            snapshotSha256: snapshotSha,
-          }),
-        ).rejects.toThrow("manual bootstrap");
-
-        await expect(
-          assertStaticImportStateAllowsSnapshot(tx, {
-            bootstrapEnabled: true,
-            dryRun: false,
-            expectedSnapshotSha256: snapshotSha,
-            observedAt,
-            retirementEnabled: false,
             snapshotSha256: snapshotSha,
           }),
         ).resolves.toBe(false);
@@ -60,21 +45,13 @@ describe("global static import state persistence", () => {
         });
         await expect(
           assertStaticImportStateAllowsSnapshot(tx, {
-            bootstrapEnabled: false,
-            dryRun: false,
-            expectedSnapshotSha256: null,
             observedAt,
-            retirementEnabled: false,
             snapshotSha256: otherSnapshotSha,
           }),
         ).rejects.toThrow("already committed with SHA-256");
         await expect(
           assertStaticImportStateAllowsSnapshot(tx, {
-            bootstrapEnabled: false,
-            dryRun: false,
-            expectedSnapshotSha256: null,
             observedAt: new Date("2026-07-17T03:00:00.000Z"),
-            retirementEnabled: false,
             snapshotSha256: snapshotSha,
           }),
         ).rejects.toThrow("last committed snapshot");

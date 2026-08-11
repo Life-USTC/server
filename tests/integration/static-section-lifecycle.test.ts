@@ -1,5 +1,5 @@
 import { afterAll, describe, expect, it } from "vitest";
-import { reconcileSectionSourceLifecycle } from "@/static-loader/section-lifecycle";
+import { reconcileSectionPresence } from "@/static-loader/section-lifecycle";
 import { createTestPrisma, disconnectTestPrisma } from "../shared/prisma";
 
 const prisma = createTestPrisma();
@@ -45,7 +45,6 @@ describe("static Section source lifecycle persistence", () => {
             code: `${marker}-missing`,
             courseId: course.id,
             semesterId: semester.id,
-            sourceLastSeenAt: new Date("2026-07-16T03:00:00.000Z"),
           },
         });
         const user = await tx.user.create({
@@ -86,20 +85,18 @@ describe("static Section source lifecycle persistence", () => {
         });
 
         await expect(
-          reconcileSectionSourceLifecycle(tx, {
+          reconcileSectionPresence(tx, {
             observedAt: firstObservedAt,
-            retirementEnabled: true,
-            expectedRetirementCandidateCount: 1,
             scopedSemesterIds: [semester.id],
             seenSectionJwIds: [reappearingSection.jwId],
             snapshotSha256: "first-snapshot",
           }),
         ).resolves.toEqual({
-          enabled: true,
+          status: "applied",
           scopeSemesterCount: 1,
           seenSectionCount: 1,
-          retirementCandidateCount: 1,
-          retiredCount: 1,
+          missingSectionCount: 1,
+          deactivatedCount: 1,
           reactivatedCount: 1,
           before: { active: 1, retired: 1, total: 2 },
           after: { active: 1, retired: 1, total: 2 },
@@ -112,19 +109,16 @@ describe("static Section source lifecycle persistence", () => {
             select: {
               id: true,
               retiredAt: true,
-              sourceLastSeenAt: true,
             },
           }),
         ).resolves.toEqual([
           {
             id: reappearingSection.id,
             retiredAt: null,
-            sourceLastSeenAt: firstObservedAt,
           },
           {
             id: missingSection.id,
             retiredAt: firstObservedAt,
-            sourceLastSeenAt: new Date("2026-07-16T03:00:00.000Z"),
           },
         ]);
         await expect(
@@ -183,17 +177,15 @@ describe("static Section source lifecycle persistence", () => {
         ]);
 
         await expect(
-          reconcileSectionSourceLifecycle(tx, {
+          reconcileSectionPresence(tx, {
             observedAt: secondObservedAt,
-            retirementEnabled: true,
-            expectedRetirementCandidateCount: 0,
             scopedSemesterIds: [semester.id],
             seenSectionJwIds: [reappearingSection.jwId, missingSection.jwId],
             snapshotSha256: "second-snapshot",
           }),
         ).resolves.toMatchObject({
-          retirementCandidateCount: 0,
-          retiredCount: 0,
+          missingSectionCount: 0,
+          deactivatedCount: 0,
           reactivatedCount: 1,
           after: { active: 2, retired: 0, total: 2 },
         });
@@ -202,7 +194,6 @@ describe("static Section source lifecycle persistence", () => {
             where: { id: missingSection.id },
             select: {
               retiredAt: true,
-              sourceLastSeenAt: true,
               _count: {
                 select: {
                   comments: true,
@@ -216,7 +207,6 @@ describe("static Section source lifecycle persistence", () => {
           }),
         ).resolves.toEqual({
           retiredAt: null,
-          sourceLastSeenAt: secondObservedAt,
           _count: {
             comments: 1,
             homeworks: 1,

@@ -6,13 +6,14 @@ import { createTestPrisma, disconnectTestPrisma } from "../shared/prisma";
 
 vi.mock("bun:sqlite", () => ({ Database: class {} }));
 const {
-  bulkUpsert,
-  syncJoinPairs,
   upsertAdminClasses,
   writeAdminClassSections,
   writeSchedules,
   writeSectionTeachers,
 } = await import("@/static-loader/import");
+const { bulkUpsert, syncJoinPairs } = await import(
+  "@/static-loader/database-writes"
+);
 
 const prisma = createTestPrisma();
 

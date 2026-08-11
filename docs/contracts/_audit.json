@@ -26,11 +26,11 @@
     },
     "section_retire": {
       "trigger": "Reserved",
-      "description": "The importer marks one missing in-scope Section retired without deleting the row or children. The same transaction records the Section target, source snapshot SHA-256, observation time, jwId, and previous sourceLastSeenAt."
+      "description": "The importer marks one missing in-scope Section inactive without deleting the row or children. The same transaction records the Section target, source snapshot SHA-256, observation time, and jwId."
     },
     "section_reactivate": {
       "trigger": "Reserved",
-      "description": "The importer clears retiredAt and refreshes sourceLastSeenAt. The same transaction records the Section target, source snapshot SHA-256, observation time, jwId, and previous retiredAt."
+      "description": "The importer clears retiredAt when a Section reappears. The same transaction records the Section target, source snapshot SHA-256, observation time, jwId, and previous retiredAt."
     },
     "admin_user_suspend": {
       "trigger": "POST /api/admin/suspensions",

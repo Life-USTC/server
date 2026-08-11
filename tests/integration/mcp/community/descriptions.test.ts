@@ -82,6 +82,7 @@ describe("描述工具 — MCP 暴露 REST 描述载荷", () => {
     const teacher = await fixtures.prisma.teacher.create({
       data: {
         code: marker,
+        jwId: 2_140_000_000 + (Date.now() % 1_000_000),
         nameCn: marker,
       },
       select: { id: true },

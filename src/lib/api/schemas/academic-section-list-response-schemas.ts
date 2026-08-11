@@ -36,7 +36,7 @@ const courseSummarySchema = z.object({
 
 const campusSummarySchema = z.object({
   id: z.number().int(),
-  jwId: z.number().int().nullable(),
+  jwId: z.number().int(),
   nameCn: z.string(),
   nameEn: z.string().nullable(),
   code: z.string().nullable(),
@@ -51,8 +51,8 @@ const semesterSummarySchema = z.object({
 
 const teacherSummarySchema = z.object({
   id: z.number().int(),
+  jwId: z.number().int(),
   personId: z.number().int().nullable(),
-  teacherId: z.number().int().nullable(),
   code: z.string().nullable(),
   nameCn: z.string(),
   nameEn: z.string().nullable(),

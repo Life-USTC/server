@@ -24,8 +24,8 @@ export const teacherTitleSummarySelect = {
 
 const teacherPublicScalarSelect = {
   id: true,
+  jwId: true,
   personId: true,
-  teacherId: true,
   code: true,
   ...localizedNameSelect,
   email: true,
@@ -39,8 +39,8 @@ const teacherPublicScalarSelect = {
 /** Narrow teacher payload for schedule entries: names and department only. */
 export const scheduleTeacherSelect = {
   id: true,
+  jwId: true,
   personId: true,
-  teacherId: true,
   code: true,
   nameCn: true,
   nameEn: true,
@@ -118,8 +118,8 @@ export const sectionSummarySelect = {
   teachers: {
     select: {
       id: true,
+      jwId: true,
       personId: true,
-      teacherId: true,
       code: true,
       ...localizedNameSelect,
     },

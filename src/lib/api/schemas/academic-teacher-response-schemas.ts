@@ -29,8 +29,8 @@ export const teacherLessonTypeSchema = z.object({
 
 export const teacherSchema = z.object({
   id: z.number().int(),
+  jwId: z.number().int(),
   personId: z.number().int().nullable(),
-  teacherId: z.number().int().nullable(),
   code: z.string().nullable(),
   nameCn: z.string(),
   nameEn: z.string().nullable(),

@@ -2,12 +2,9 @@ import { describe, expect, it } from "vitest";
 import {
   missingSnapshotRowsWhere,
   parseBooleanSetting,
-  parseOptionalNonNegativeIntegerSetting,
-  parseOptionalSha256Setting,
   parsePositiveIntegerSetting,
   parseSnapshotGeneratedAt,
   validateMappedSectionJwIds,
-  validateSectionRetirementSnapshotApproval,
   validateSnapshotCompleteness,
 } from "@/static-loader/validation";
 
@@ -69,23 +66,6 @@ describe("static loader configuration", () => {
     ).toThrow("STATIC_LOADER_DRY_RUN");
   });
 
-  it("keeps missing-Section retirement disabled unless explicitly enabled", () => {
-    expect(
-      parseBooleanSetting(
-        "STATIC_LOADER_RETIRE_MISSING_SECTIONS",
-        undefined,
-        false,
-      ),
-    ).toBe(false);
-    expect(
-      parseBooleanSetting(
-        "STATIC_LOADER_RETIRE_MISSING_SECTIONS",
-        "true",
-        false,
-      ),
-    ).toBe(true);
-  });
-
   it.each([
     [undefined, 401],
     ["401", 401],
@@ -106,44 +86,6 @@ describe("static loader configuration", () => {
     expect(() =>
       parsePositiveIntegerSetting("STATIC_LOADER_MIN_SEMESTER", value, 401),
     ).toThrow("STATIC_LOADER_MIN_SEMESTER");
-  });
-
-  it("parses optional retirement approval settings", () => {
-    expect(
-      parseOptionalNonNegativeIntegerSetting(
-        "STATIC_LOADER_EXPECTED_SECTION_RETIREMENT_CANDIDATES",
-        "0",
-      ),
-    ).toBe(0);
-    expect(
-      parseOptionalNonNegativeIntegerSetting(
-        "STATIC_LOADER_EXPECTED_SECTION_RETIREMENT_CANDIDATES",
-        "",
-      ),
-    ).toBeNull();
-    expect(
-      parseOptionalSha256Setting(
-        "STATIC_LOADER_EXPECTED_SNAPSHOT_SHA256",
-        "A".repeat(64),
-      ),
-    ).toBe("a".repeat(64));
-  });
-
-  it("requires an exact snapshot approval before retirement", () => {
-    expect(() =>
-      validateSectionRetirementSnapshotApproval({
-        enabled: true,
-        expectedSnapshotSha256: null,
-        snapshotSha256: "a".repeat(64),
-      }),
-    ).toThrow("STATIC_LOADER_EXPECTED_SNAPSHOT_SHA256");
-    expect(() =>
-      validateSectionRetirementSnapshotApproval({
-        enabled: true,
-        expectedSnapshotSha256: "b".repeat(64),
-        snapshotSha256: "a".repeat(64),
-      }),
-    ).toThrow("does not match downloaded snapshot");
   });
 
   it("requires a valid snapshot generation timestamp", () => {

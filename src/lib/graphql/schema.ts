@@ -107,7 +107,7 @@ export const graphqlTypeDefs = /* GraphQL */ `
 
   type Campus {
     id: Int!
-    jwId: Int
+    jwId: Int!
     code: String
     nameCn: String!
     nameEn: String
@@ -157,8 +157,8 @@ export const graphqlTypeDefs = /* GraphQL */ `
 
   type Teacher {
     id: Int!
+    jwId: Int!
     personId: Int
-    teacherId: Int
     code: String
     nameCn: String!
     nameEn: String

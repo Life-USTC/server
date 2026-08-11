@@ -11,11 +11,7 @@ type StaticImportStateTransaction = {
 };
 
 type StaticImportStateInput = {
-  bootstrapEnabled: boolean;
-  dryRun: boolean;
-  expectedSnapshotSha256: string | null;
   observedAt: Date;
-  retirementEnabled: boolean;
   snapshotSha256: string;
 };
 
@@ -35,32 +31,7 @@ export async function assertStaticImportStateAllowsSnapshot(
     select: { snapshotGeneratedAt: true, snapshotSha256: true },
   });
 
-  if (current == null) {
-    if (!input.bootstrapEnabled) {
-      throw new Error(
-        "Static import state is not initialized; run an approved manual bootstrap before importing",
-      );
-    }
-    if (input.retirementEnabled) {
-      throw new Error(
-        "Missing-Section retirement cannot run while bootstrapping static import state",
-      );
-    }
-    if (!input.dryRun && input.expectedSnapshotSha256 == null) {
-      throw new Error(
-        "STATIC_LOADER_EXPECTED_SNAPSHOT_SHA256 is required for a committed static import state bootstrap",
-      );
-    }
-    if (
-      input.expectedSnapshotSha256 != null &&
-      input.expectedSnapshotSha256 !== input.snapshotSha256
-    ) {
-      throw new Error(
-        `Approved static snapshot SHA-256 ${input.expectedSnapshotSha256} does not match downloaded snapshot ${input.snapshotSha256}`,
-      );
-    }
-    return false;
-  }
+  if (current == null) return false;
 
   const incomingTime = input.observedAt.getTime();
   const currentTime = current.snapshotGeneratedAt.getTime();

@@ -14,7 +14,7 @@ export const semesterSchema = z
 
 export const adminClassSchema = z.object({
   id: z.number().int(),
-  jwId: z.number().int().nullable(),
+  jwId: z.number().int(),
   code: z.string().nullable(),
   grade: z.string().nullable(),
   nameCn: z.string(),
@@ -29,7 +29,6 @@ export const adminClassSchema = z.object({
 export const sectionBaseSchema = z.object({
   id: z.number().int(),
   jwId: z.number().int(),
-  sourceLastSeenAt: dateTimeSchema.nullable().optional(),
   retiredAt: dateTimeSchema.nullable().optional(),
   code: z.string(),
   bizTypeId: z.number().int().nullable(),

@@ -71,8 +71,8 @@ enum BusScheduleDayType {
 }
 
 model AdminClass {
-  id   Int  @id @default(autoincrement())
-  jwId Int? @unique
+  id   Int @id @default(autoincrement())
+  jwId Int @unique
 
   code      String?
   grade     String?
@@ -112,8 +112,8 @@ model Building {
 }
 
 model Campus {
-  id   Int  @id @default(autoincrement())
-  jwId Int? @unique
+  id   Int @id @default(autoincrement())
+  jwId Int @unique
 
   nameCn String
   nameEn String?
@@ -381,8 +381,7 @@ model Section {
   id   Int @id @default(autoincrement())
   jwId Int @unique
 
-  sourceLastSeenAt DateTime?
-  retiredAt        DateTime?
+  retiredAt DateTime?
 
   code                    String
   bizTypeId               Int?
@@ -467,13 +466,6 @@ model StaticImportState {
   updatedAt DateTime @updatedAt
 }
 
-model StaticIdentityMigrationState {
-  id String @id
-
-  snapshotSha256 String
-  completedAt    DateTime
-}
-
 model Exam {
   id   Int @id @default(autoincrement())
   jwId Int @unique
@@ -501,8 +493,8 @@ model Exam {
 }
 
 model ExamBatch {
-  id   Int  @id @default(autoincrement())
-  jwId Int? @unique
+  id   Int @id @default(autoincrement())
+  jwId Int @unique
 
   nameCn String
   nameEn String?
@@ -540,13 +532,11 @@ model Semester {
 }
 
 model Teacher {
-  id   Int  @id @default(autoincrement())
-  jwId Int? @unique
+  id   Int @id @default(autoincrement())
+  jwId Int @unique
 
-  personId  Int?
-  /// Legacy provenance retained for the snapshot-backed data migration; new imports use jwId.
-  teacherId Int?
-  code      String?
+  personId Int?
+  code     String?
   nameCn    String
   nameEn    String?
   age       Int?
@@ -574,7 +564,6 @@ model Teacher {
 
   @@index([jwId])
   @@index([personId])
-  @@index([teacherId])
   @@index([code])
   @@index([nameCn])
   @@index([nameEn])

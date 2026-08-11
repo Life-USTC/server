@@ -2,7 +2,7 @@ import * as z from "zod";
 
 export const campusSchema = z.object({
   id: z.number().int(),
-  jwId: z.number().int().nullable(),
+  jwId: z.number().int(),
   nameCn: z.string(),
   nameEn: z.string().nullable(),
   code: z.string().nullable(),
