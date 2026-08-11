@@ -5,12 +5,11 @@ import type { ScheduleBuild } from "@/static-loader/mappers";
 import { createTestPrisma, disconnectTestPrisma } from "../shared/prisma";
 
 vi.mock("bun:sqlite", () => ({ Database: class {} }));
-const {
-  upsertAdminClasses,
-  writeAdminClassSections,
-  writeSchedules,
-  writeSectionTeachers,
-} = await import("@/static-loader/import");
+const { upsertAdminClasses } = await import("@/static-loader/import");
+const { writeAdminClassSections, writeSectionTeachers } = await import(
+  "@/static-loader/relation-writes"
+);
+const { writeSchedules } = await import("@/static-loader/schedule-writes");
 const { bulkUpsert, syncJoinPairs } = await import(
   "@/static-loader/database-writes"
 );

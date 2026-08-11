@@ -14,11 +14,33 @@ type BulkUpsertOptions = {
 };
 
 export function chunks<T>(array: T[], size: number): T[][] {
+  if (!Number.isSafeInteger(size) || size <= 0) {
+    throw new Error("Chunk size must be a positive integer");
+  }
   const result: T[][] = [];
   for (let index = 0; index < array.length; index += size) {
     result.push(array.slice(index, index + size));
   }
   return result;
+}
+
+function assertSqlIdentifier(value: string, description: string): void {
+  if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(value)) {
+    throw new Error(`Invalid ${description}: ${value}`);
+  }
+}
+
+function validateColumns(
+  table: string,
+  columns: string[],
+  columnTypes: string[],
+): void {
+  assertSqlIdentifier(table, "table name");
+  if (columns.length === 0 || columns.length !== columnTypes.length) {
+    throw new Error(`Column definitions do not match for ${table}`);
+  }
+  for (const column of columns) assertSqlIdentifier(column, "column name");
+  for (const type of columnTypes) assertSqlIdentifier(type, "column type");
 }
 
 export async function syncJoinPairs(
@@ -28,6 +50,7 @@ export async function syncJoinPairs(
   scopeIds: number[],
   pairs: Array<{ a: number; b: number }>,
 ): Promise<void> {
+  assertSqlIdentifier(table, "join table name");
   for (const scopeChunk of chunks(scopeIds, 1000)) {
     const scopeSet = new Set(scopeChunk);
     const scopedPairs = pairs.filter((pair) =>
@@ -103,6 +126,13 @@ export async function bulkUpsert<K extends string | number>(
   const map = new Map<K, number>();
   if (records.length === 0) return map;
 
+  validateColumns(table, columns, columnTypes);
+  assertSqlIdentifier(uniqueColumn, "unique column name");
+  assertSqlIdentifier(uniqueColumnType, "unique column type");
+  if (records.some((record) => record.values.length !== columns.length)) {
+    throw new Error(`Record values do not match columns for ${table}`);
+  }
+
   const allColumns = [uniqueColumn, ...columns];
   const allTypes = [uniqueColumnType, ...columnTypes];
   const updateColumns = options.updateColumns ?? columns;
@@ -170,6 +200,10 @@ export async function bulkUpdate(
   columnTypes: string[],
   records: Array<{ id: number; values: ColumnValue[] }>,
 ): Promise<void> {
+  validateColumns(table, columns, columnTypes);
+  if (records.some((record) => record.values.length !== columns.length)) {
+    throw new Error(`Record values do not match columns for ${table}`);
+  }
   for (const batch of chunks(records, 500)) {
     const params: ColumnValue[] = [];
     const valuePlaceholders: string[] = [];
