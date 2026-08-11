@@ -33,7 +33,7 @@ afterEach(() => {
 });
 
 describe("static loader snapshot time gate", () => {
-  it("rejects a far-future snapshot before writes when retirement is disabled", async () => {
+  it("rejects a far-future snapshot before writes", async () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-07-18T03:00:00.000Z"));
     const { runImport } = await import("@/static-loader/import");
@@ -44,12 +44,8 @@ describe("static loader snapshot time gate", () => {
           $transaction: transactionMock,
         } as never,
         {
-          bootstrapImportState: false,
           dryRun: false,
-          expectedSectionRetirementCandidates: null,
-          expectedSnapshotSha256: null,
           minSemester: 401,
-          retireMissingSections: false,
           snapshotPath: "/not-read.sqlite",
           snapshotSha256: "a".repeat(64),
         },

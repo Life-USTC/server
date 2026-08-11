@@ -184,6 +184,7 @@ describe("评论读取工具 — 隔离目录夹具", () => {
     const teacher = await fixtures.prisma.teacher.create({
       data: {
         code: marker,
+        jwId: 2_120_000_000 + (Date.now() % 10_000_000),
         nameCn: marker,
       },
       select: { id: true },
@@ -238,6 +239,7 @@ describe("评论读取工具 — 隔离目录夹具", () => {
       const teacher = await fixtures.prisma.teacher.create({
         data: {
           code: marker,
+          jwId: sectionJwId,
           nameCn: marker,
         },
         select: { id: true },

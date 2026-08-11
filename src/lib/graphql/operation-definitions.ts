@@ -109,8 +109,8 @@ const sectionFields = /* GraphQL */ `
 
 const teacherFields = /* GraphQL */ `
   id
+  jwId
   personId
-  teacherId
   code
   nameCn
   nameEn

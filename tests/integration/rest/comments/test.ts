@@ -92,6 +92,7 @@ async function createDisposableSectionTeacherFixture(
       const teacher = await tx.teacher.create({
         data: {
           code: marker,
+          jwId: sectionJwId,
           nameCn: marker,
         },
         select: { id: true },

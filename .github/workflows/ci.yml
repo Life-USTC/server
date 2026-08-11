@@ -125,7 +125,6 @@ jobs:
             -v "${report_dir}:/tmp/static-loader-report" \
             -e DATABASE_URL="postgresql://postgres:postgres@${postgres}:5432/life_ustc_static_loader" \
             -e STATIC_LOADER_DRY_RUN=true \
-            -e STATIC_LOADER_BOOTSTRAP_IMPORT_STATE=true \
             -e STATIC_LOADER_MIN_SEMESTER=401 \
             -e STATIC_LOADER_STATS_FILE=/tmp/static-loader-report/report.json \
             life-ustc-static-loader:check
@@ -136,10 +135,10 @@ jobs:
               report.mode !== "dry-run" ||
               report.outcome !== "rolled-back" ||
               report.databaseRecordCounts !== null ||
-              report.reconciliation?.sectionLifecycle?.enabled !== false ||
+              report.reconciliation?.sectionPresence?.status !== "applied" ||
               !Number.isInteger(
-                report.reconciliation?.sectionLifecycle
-                  ?.retirementCandidateCount,
+                report.reconciliation?.sectionPresence
+                  ?.missingSectionCount,
               ) ||
               !/^[a-f0-9]{64}$/.test(report.snapshot?.sha256 ?? "")
             ) {

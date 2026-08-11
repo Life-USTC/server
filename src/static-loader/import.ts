@@ -2,9 +2,16 @@ import type { Prisma, PrismaClient } from "../generated/prisma-node/client";
 import { selectLatestAdminClasses } from "./admin-class-selection";
 import { type CampusOccurrence, selectCampuses } from "./campus-selection";
 import { type CourseOccurrence, selectLatestCourses } from "./course-selection";
+import {
+  bulkUpdate,
+  bulkUpsert,
+  type ColumnValue,
+  chunks,
+  deleteMissingSnapshotRows,
+  syncJoinPairs,
+} from "./database-writes";
 import { collectCodeOnlyDepartmentPlaceholders } from "./department-placeholder";
 import { selectLatestExamBatches } from "./exam-batch-selection";
-import { ensureStaticIdentityMigrationComplete } from "./identity-migration-state";
 import { acquireStaticImportLock } from "./import-lock";
 import {
   assertStaticImportStateAllowsSnapshot,
@@ -54,10 +61,8 @@ import {
   type TeacherTitleBuild,
 } from "./mappers";
 import {
-  assertSectionSnapshotNotOlderThanSource,
-  emptySectionLifecycleStats,
-  reconcileSectionSourceLifecycle,
-  type SectionLifecycleStats,
+  reconcileSectionPresence,
+  type SectionPresenceStats,
 } from "./section-lifecycle";
 import { asInt, asString, Snapshot, type SnapshotRow } from "./snapshot";
 import {
@@ -70,7 +75,6 @@ import {
 import {
   parseSnapshotGeneratedAt,
   validateMappedSectionJwIds,
-  validateSectionRetirementSnapshotApproval,
   validateSnapshotCompleteness,
 } from "./validation";
 
@@ -79,10 +83,6 @@ export type ImportConfig = {
   snapshotSha256: string;
   minSemester: number;
   dryRun: boolean;
-  bootstrapImportState: boolean;
-  retireMissingSections: boolean;
-  expectedSnapshotSha256: string | null;
-  expectedSectionRetirementCandidates: number | null;
 };
 
 export type ImportRecordCounts = {
@@ -111,7 +111,7 @@ export type ImportReport = {
   plannedRecordCounts: ImportRecordCounts;
   databaseRecordCounts: ImportRecordCounts | null;
   reconciliation: {
-    sectionLifecycle: SectionLifecycleStats;
+    sectionPresence: SectionPresenceStats | { status: "already-applied" };
   };
 };
 
@@ -119,11 +119,6 @@ export async function runImport(
   prisma: PrismaClient,
   config: ImportConfig,
 ): Promise<ImportReport> {
-  validateSectionRetirementSnapshotApproval({
-    enabled: config.retireMissingSections,
-    expectedSnapshotSha256: config.expectedSnapshotSha256,
-    snapshotSha256: config.snapshotSha256,
-  });
   const snapshot = new Snapshot(config.snapshotPath);
   const metadata = snapshot.metadata();
   const schemaVersion = metadata.schema_version;
@@ -226,9 +221,9 @@ export async function runImport(
     campuses: campuses.length,
     adminClasses: adminClasses.length,
   };
-  let sectionLifecycleStats = emptySectionLifecycleStats(
-    config.retireMissingSections,
-  );
+  let sectionPresenceStats:
+    | SectionPresenceStats
+    | { status: "already-applied" } = { status: "already-applied" };
   const observedAt = snapshotGeneratedAt;
   let unchanged = false;
 
@@ -250,23 +245,13 @@ export async function runImport(
     await logStep("acquireStaticImportLock", 1, () =>
       acquireStaticImportLock(tx),
     );
-    await logStep("validateStaticIdentityMigration", 1, () =>
-      ensureStaticIdentityMigrationComplete(tx, {
-        bootstrapEnabled: config.bootstrapImportState,
-        snapshotSha256: config.snapshotSha256,
-      }),
-    );
     const alreadyImported = await logStep("validateStaticImportState", 1, () =>
       assertStaticImportStateAllowsSnapshot(tx, {
-        bootstrapEnabled: config.bootstrapImportState,
-        dryRun: config.dryRun,
-        expectedSnapshotSha256: config.expectedSnapshotSha256,
         observedAt,
-        retirementEnabled: config.retireMissingSections,
         snapshotSha256: config.snapshotSha256,
       }),
     );
-    if (alreadyImported && !config.dryRun && !config.retireMissingSections) {
+    if (alreadyImported && !config.dryRun) {
       unchanged = true;
       return logStep("countDatabaseRecords", 12, () => countStats(tx));
     }
@@ -283,12 +268,6 @@ export async function runImport(
         }
         return semesterId;
       },
-    );
-    await logStep("validateSnapshotRecency", scopedSemesterIds.length, () =>
-      assertSectionSnapshotNotOlderThanSource(tx, {
-        observedAt,
-        scopedSemesterIds,
-      }),
     );
     const departmentMap = await logStep(
       "upsertDepartments",
@@ -433,15 +412,12 @@ export async function runImport(
     const databaseRecordCounts = await logStep("countDatabaseRecords", 12, () =>
       countStats(tx),
     );
-    sectionLifecycleStats = await logStep(
-      "reconcileSectionSourceLifecycle",
+    sectionPresenceStats = await logStep(
+      "reconcileSectionPresence",
       sections.length,
       () =>
-        reconcileSectionSourceLifecycle(tx, {
+        reconcileSectionPresence(tx, {
           observedAt,
-          retirementEnabled: config.retireMissingSections,
-          expectedRetirementCandidateCount:
-            config.expectedSectionRetirementCandidates,
           scopedSemesterIds,
           seenSectionJwIds: [...allSectionJwIds],
           snapshotSha256: config.snapshotSha256,
@@ -494,7 +470,7 @@ export async function runImport(
     plannedRecordCounts,
     databaseRecordCounts,
     reconciliation: {
-      sectionLifecycle: sectionLifecycleStats,
+      sectionPresence: sectionPresenceStats,
     },
   };
 }
@@ -2402,206 +2378,6 @@ async function writeExamRooms(
 
   if (data.length > 0) {
     await tx.examRoom.createMany({ data });
-  }
-}
-
-export async function syncJoinPairs(
-  tx: Prisma.TransactionClient,
-  table: string,
-  scopeColumn: "A" | "B",
-  scopeIds: number[],
-  pairs: Array<{ a: number; b: number }>,
-): Promise<void> {
-  for (const scopeChunk of chunks(scopeIds, 1000)) {
-    const scopeSet = new Set(scopeChunk);
-    const scopedPairs = pairs.filter((pair) =>
-      scopeSet.has(scopeColumn === "A" ? pair.a : pair.b),
-    );
-    const keepClause =
-      scopedPairs.length === 0
-        ? ""
-        : ` AND NOT EXISTS (
-            SELECT 1
-            FROM (VALUES ${scopedPairs
-              .map((pair) => `(${pair.a},${pair.b})`)
-              .join(",")}) AS desired("A","B")
-            WHERE desired."A" = target."A" AND desired."B" = target."B"
-          )`;
-    await tx.$executeRawUnsafe(
-      `DELETE FROM "${table}" AS target WHERE target."${scopeColumn}" IN (${scopeChunk.join(",")})${keepClause}`,
-    );
-  }
-
-  for (const pairChunk of chunks(pairs, 1000)) {
-    const values = pairChunk.map((pair) => `(${pair.a},${pair.b})`).join(",");
-    await tx.$executeRawUnsafe(
-      `INSERT INTO "${table}" ("A","B") VALUES ${values} ON CONFLICT DO NOTHING`,
-    );
-  }
-}
-
-function chunks<T>(array: T[], size: number): T[][] {
-  const result: T[][] = [];
-  for (let i = 0; i < array.length; i += size) {
-    result.push(array.slice(i, i + size));
-  }
-  return result;
-}
-
-async function deleteMissingSnapshotRows(
-  tx: Prisma.TransactionClient,
-  model: "exam" | "scheduleGroup",
-  sectionDbIds: number[],
-  currentJwIds: number[],
-) {
-  if (sectionDbIds.length === 0) return;
-
-  const keepJwIds = new Set(currentJwIds);
-  for (const sectionChunk of chunks(sectionDbIds, 1000)) {
-    const existing =
-      model === "scheduleGroup"
-        ? await tx.scheduleGroup.findMany({
-            where: { sectionId: { in: sectionChunk } },
-            select: { id: true, jwId: true },
-          })
-        : await tx.exam.findMany({
-            where: { sectionId: { in: sectionChunk } },
-            select: { id: true, jwId: true },
-          });
-    const staleIds = existing
-      .filter((row) => !keepJwIds.has(row.jwId))
-      .map((row) => row.id);
-    for (const idChunk of chunks(staleIds, 1000)) {
-      if (idChunk.length === 0) continue;
-      if (model === "scheduleGroup") {
-        await tx.scheduleGroup.deleteMany({ where: { id: { in: idChunk } } });
-      } else {
-        await tx.exam.deleteMany({ where: { id: { in: idChunk } } });
-      }
-    }
-  }
-}
-
-type ColumnValue =
-  | string
-  | number
-  | boolean
-  | Date
-  | null
-  | undefined
-  | Prisma.InputJsonValue;
-
-type BulkUpsertOptions = {
-  updateColumns?: string[];
-};
-
-export async function bulkUpsert<K extends string | number>(
-  tx: Prisma.TransactionClient,
-  table: string,
-  uniqueColumn: string,
-  uniqueColumnType: string,
-  columns: string[],
-  columnTypes: string[],
-  records: Array<{ key: K; values: ColumnValue[] }>,
-  options: BulkUpsertOptions = {},
-): Promise<Map<K, number>> {
-  const map = new Map<K, number>();
-  if (records.length === 0) return map;
-
-  const allColumns = [uniqueColumn, ...columns];
-  const allTypes = [uniqueColumnType, ...columnTypes];
-  const updateColumns = options.updateColumns ?? columns;
-  if (
-    updateColumns.length === 0 ||
-    updateColumns.some((column) => !columns.includes(column))
-  ) {
-    throw new Error(`Invalid bulk upsert update columns for ${table}`);
-  }
-
-  const batchSize = 500;
-  for (const batch of chunks(records, batchSize)) {
-    const params: ColumnValue[] = [];
-    const valuePlaceholders: string[] = [];
-
-    for (const record of batch) {
-      const placeholders: string[] = [];
-      const rowValues = [record.key, ...record.values];
-      for (let i = 0; i < rowValues.length; i++) {
-        params.push(rowValues[i] ?? null);
-        placeholders.push(`$${params.length}::${allTypes[i]}`);
-      }
-      valuePlaceholders.push(`(${placeholders.join(",")})`);
-    }
-
-    const sql = `
-      INSERT INTO "${table}" (${allColumns.map((c) => `"${c}"`).join(",")})
-      VALUES ${valuePlaceholders.join(",")}
-      ON CONFLICT ("${uniqueColumn}") DO UPDATE SET
-        ${updateColumns.map((c) => `"${c}" = EXCLUDED."${c}"`).join(",\n        ")}
-      WHERE ROW(${updateColumns.map((c) => `"${table}"."${c}"`).join(",")})
-        IS DISTINCT FROM ROW(${updateColumns.map((c) => `EXCLUDED."${c}"`).join(",")})
-      RETURNING "id", "${uniqueColumn}"
-    `;
-
-    const rows = await tx.$queryRawUnsafe<
-      Array<{ id: number } & Record<string, unknown>>
-    >(sql, ...params);
-    for (const row of rows) {
-      map.set(row[uniqueColumn] as K, row.id);
-    }
-
-    const missing = batch.filter((record) => !map.has(record.key));
-    if (missing.length > 0) {
-      const missingRows = await tx.$queryRawUnsafe<
-        Array<{ id: number } & Record<string, unknown>>
-      >(
-        `SELECT "id", "${uniqueColumn}" FROM "${table}" WHERE "${uniqueColumn}" IN (${missing
-          .map((_, index) => `$${index + 1}::${uniqueColumnType}`)
-          .join(",")})`,
-        ...missing.map((record) => record.key),
-      );
-      for (const row of missingRows) {
-        map.set(row[uniqueColumn] as K, row.id);
-      }
-    }
-  }
-
-  return map;
-}
-
-async function bulkUpdate(
-  tx: Prisma.TransactionClient,
-  table: string,
-  columns: string[],
-  columnTypes: string[],
-  records: Array<{ id: number; values: ColumnValue[] }>,
-): Promise<void> {
-  if (records.length === 0) return;
-
-  const batchSize = 500;
-  for (const batch of chunks(records, batchSize)) {
-    const params: ColumnValue[] = [];
-    const valuePlaceholders: string[] = [];
-
-    for (const record of batch) {
-      const placeholders: string[] = [];
-      for (let i = 0; i < record.values.length; i++) {
-        params.push(record.values[i] ?? null);
-        placeholders.push(`$${params.length}::${columnTypes[i]}`);
-      }
-      params.push(record.id);
-      placeholders.push(`$${params.length}::int`);
-      valuePlaceholders.push(`(${placeholders.join(",")})`);
-    }
-
-    const sql = `
-      UPDATE "${table}" AS t SET
-        ${columns.map((c) => `"${c}" = v."${c}"`).join(",\n        ")}
-      FROM (VALUES ${valuePlaceholders.join(",")}) AS v(${columns.map((c) => `"${c}"`).join(",")}, "id")
-      WHERE t."id" = v."id"
-    `;
-
-    await tx.$executeRawUnsafe(sql, ...params);
   }
 }
 

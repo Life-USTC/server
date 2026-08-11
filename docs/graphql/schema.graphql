@@ -79,7 +79,7 @@ type BusTripSlot {
 type Campus {
   code: String
   id: Int!
-  jwId: Int
+  jwId: Int!
   nameCn: String!
   nameEn: String
 }
@@ -550,12 +550,12 @@ type Teacher {
   department: Department
   email: String
   id: Int!
+  jwId: Int!
   mobile: String
   nameCn: String!
   nameEn: String
   personId: Int
   sectionCount: Int!
-  teacherId: Int
   teacherTitle: NamedCatalogValue
   telephone: String
 }

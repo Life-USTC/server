@@ -1,6 +1,6 @@
 import { afterAll, describe, expect, it } from "vitest";
 import { mutateUserSectionSubscriptionsInTransaction } from "@/features/subscriptions/server/subscription-write-model";
-import { reconcileSectionSourceLifecycle } from "@/static-loader/section-lifecycle";
+import { reconcileSectionPresence } from "@/static-loader/section-lifecycle";
 import { createDeferred } from "../shared/deferred";
 import {
   createTestPrisma,
@@ -134,10 +134,8 @@ describe("Section subscription retirement linearization", () => {
 
     try {
       importer = importerPrisma.$transaction(async (tx) => {
-        await reconcileSectionSourceLifecycle(tx, {
+        await reconcileSectionPresence(tx, {
           observedAt: retiredAt,
-          retirementEnabled: true,
-          expectedRetirementCandidateCount: 2,
           scopedSemesterIds: [fixture.semester.id],
           seenSectionJwIds: [fixture.sections[2].jwId],
           snapshotSha256: "importer-first",
@@ -264,10 +262,8 @@ describe("Section subscription retirement linearization", () => {
         `;
         importerPid = backend.pid;
         importerPidReady.resolve();
-        await reconcileSectionSourceLifecycle(tx, {
+        await reconcileSectionPresence(tx, {
           observedAt: retiredAt,
-          retirementEnabled: true,
-          expectedRetirementCandidateCount: 1,
           scopedSemesterIds: [fixture.semester.id],
           seenSectionJwIds: [
             fixture.sections[1].jwId,

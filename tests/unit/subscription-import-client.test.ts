@@ -85,7 +85,7 @@ function compactSection(id: number) {
     },
     campus: {
       id: 1,
-      jwId: null,
+      jwId: 4001,
       nameCn: "东校区",
       nameEn: null,
       namePrimary: "东校区",

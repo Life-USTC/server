@@ -69,34 +69,6 @@ export function parsePositiveIntegerSetting(
   return parsed;
 }
 
-export function parseOptionalNonNegativeIntegerSetting(
-  name: string,
-  value: string | undefined,
-): number | null {
-  if (value == null || value.trim() === "") return null;
-  const normalized = value.trim();
-  if (!/^\d+$/.test(normalized)) {
-    throw new Error(`${name} must be a non-negative integer`);
-  }
-  const parsed = Number(normalized);
-  if (!Number.isSafeInteger(parsed)) {
-    throw new Error(`${name} must be a safe non-negative integer`);
-  }
-  return parsed;
-}
-
-export function parseOptionalSha256Setting(
-  name: string,
-  value: string | undefined,
-): string | null {
-  if (value == null || value.trim() === "") return null;
-  const normalized = value.trim().toLowerCase();
-  if (!/^[a-f0-9]{64}$/.test(normalized)) {
-    throw new Error(`${name} must be a 64-character SHA-256 digest`);
-  }
-  return normalized;
-}
-
 export function parseSnapshotGeneratedAt(
   value: string | undefined,
   now = new Date(),
@@ -116,24 +88,6 @@ export function parseSnapshotGeneratedAt(
     );
   }
   return parsed;
-}
-
-export function validateSectionRetirementSnapshotApproval(input: {
-  enabled: boolean;
-  expectedSnapshotSha256: string | null;
-  snapshotSha256: string;
-}): void {
-  if (!input.enabled) return;
-  if (input.expectedSnapshotSha256 == null) {
-    throw new Error(
-      "STATIC_LOADER_EXPECTED_SNAPSHOT_SHA256 is required when missing-Section retirement is enabled",
-    );
-  }
-  if (input.expectedSnapshotSha256 !== input.snapshotSha256) {
-    throw new Error(
-      `Approved static snapshot SHA-256 ${input.expectedSnapshotSha256} does not match downloaded snapshot ${input.snapshotSha256}`,
-    );
-  }
 }
 
 function optionalNonNegativeIntegerMetadata(
