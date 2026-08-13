@@ -31,7 +31,6 @@ export type PublicSsrRouteResolver = (
 ) => PublicSsrMode | null | undefined;
 
 const STATIC_PUBLIC_PATHS = new Set([
-  "/catalog/bus/map",
   "/guides/markdown-support",
   "/api-docs",
   "/usage/mobile",

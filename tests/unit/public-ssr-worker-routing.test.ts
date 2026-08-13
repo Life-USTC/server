@@ -27,9 +27,12 @@ describe("public SSR worker routing", () => {
     "/catalog/courses",
     "/catalog/sections/159446",
     "/privacy",
-    "/catalog/bus/map",
   ])("serves anonymous %s through the PublicSsr cache path", (path) => {
     expect(workerSsrRoute(request(path))).toBe("public-ssr");
+  });
+
+  test("serves the request-time bus map through dynamic SSR", () => {
+    expect(workerSsrRoute(request("/catalog/bus/map"))).toBe("dynamic-ssr");
   });
 
   test.each([

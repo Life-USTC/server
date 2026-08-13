@@ -1,5 +1,4 @@
 import type { AppLocale } from "@/i18n/config";
-import { prisma } from "@/lib/db/prisma";
 import { shanghaiDayjs } from "@/lib/time/shanghai-dayjs";
 import { resolveBusDayType } from "../lib/bus-departures";
 import { buildBusMapActiveTrips } from "../lib/bus-map-active-trips";
@@ -8,8 +7,7 @@ import {
   buildBusRouteTripCounts,
 } from "../lib/bus-map-route-edges";
 import type { BusMapCampusNode, BusMapData } from "../lib/bus-types";
-import { getBusVersionTopology } from "./bus-route-records";
-import { findEffectiveBusVersion } from "./bus-version";
+import { getStaticBusTimetableData } from "./bus-timetable-data";
 
 export async function getBusMapData(input: {
   locale: AppLocale;
@@ -18,23 +16,17 @@ export async function getBusMapData(input: {
 }): Promise<BusMapData | null> {
   const locale = input.locale;
   const now = input.now ? shanghaiDayjs(input.now) : shanghaiDayjs();
-  const dateKey = now.format("YYYY-MM-DD");
   const todayType = resolveBusDayType(undefined, now);
-  const version = await findEffectiveBusVersion(dateKey, input.versionKey);
-  if (!version) return null;
+  const timetable = await getStaticBusTimetableData({
+    locale,
+    now: now.toISOString(),
+    versionKey: input.versionKey,
+  });
+  if (!timetable) return null;
 
-  const [topology, allTrips] = await Promise.all([
-    getBusVersionTopology(locale, version.id),
-    prisma.busTrip.findMany({
-      where: { versionId: version.id },
-      orderBy: [{ dayType: "asc" }, { routeId: "asc" }, { position: "asc" }],
-    }),
-  ]);
-  if (!topology) return null;
+  const tripCounts = buildBusRouteTripCounts(timetable.trips);
 
-  const tripCounts = buildBusRouteTripCounts(allTrips);
-
-  const campusNodes: BusMapCampusNode[] = topology.campuses.map((c) => ({
+  const campusNodes: BusMapCampusNode[] = timetable.campuses.map((c) => ({
     id: c.id,
     namePrimary: c.namePrimary,
     nameSecondary: c.nameSecondary,
@@ -44,7 +36,7 @@ export async function getBusMapData(input: {
 
   const routeEdges = buildBusRouteEdges({
     locale,
-    records: topology.routes,
+    records: timetable.routes,
     tripCounts,
   });
 
@@ -52,7 +44,10 @@ export async function getBusMapData(input: {
   const activeTrips = buildBusMapActiveTrips({
     nowMinutes,
     todayType,
-    trips: allTrips,
+    trips: timetable.trips.map((trip) => ({
+      ...trip,
+      stopTimes: trip.stopTimes.map((stop) => stop.time),
+    })),
   });
 
   return {
