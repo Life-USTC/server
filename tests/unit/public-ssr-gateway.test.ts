@@ -87,7 +87,10 @@ describe("public SSR gateway", () => {
     "/catalog/bus/map",
     "/api-docs",
     "/api/docs/rest/catalog",
-    "/mobile-app",
+    "/usage/mobile",
+    "/usage/bot",
+    "/usage/mcp",
+    "/usage/cli",
     "/privacy",
     "/terms",
   ])("caches allowlisted anonymous page %s", (path) => {
@@ -164,6 +167,10 @@ describe("public SSR gateway", () => {
     "/workspace/overview",
   ])("bypasses private or mixed route %s", (path) => {
     expect(resolvePublicSsrMode(request(path))).toBeNull();
+  });
+
+  test("treats the retired mobile-app path as not found", () => {
+    expect(resolvePublicSsrMode(request("/mobile-app"))).toBe("not-found");
   });
 
   test.each<Record<string, string>>([

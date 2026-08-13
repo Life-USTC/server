@@ -1,6 +1,8 @@
 <script lang="ts">
 import BookOpenIcon from "@lucide/svelte/icons/book-open";
+import BotIcon from "@lucide/svelte/icons/bot";
 import BusFrontIcon from "@lucide/svelte/icons/bus-front";
+import CableIcon from "@lucide/svelte/icons/cable";
 import CalendarDaysIcon from "@lucide/svelte/icons/calendar-days";
 import ClipboardCheckIcon from "@lucide/svelte/icons/clipboard-check";
 import CompassIcon from "@lucide/svelte/icons/compass";
@@ -13,6 +15,7 @@ import ListTodoIcon from "@lucide/svelte/icons/list-todo";
 import MapIcon from "@lucide/svelte/icons/map";
 import RouteIcon from "@lucide/svelte/icons/route";
 import SmartphoneIcon from "@lucide/svelte/icons/smartphone";
+import TerminalIcon from "@lucide/svelte/icons/terminal";
 import UsersIcon from "@lucide/svelte/icons/users";
 import { onMount } from "svelte";
 import { afterNavigate, goto } from "$app/navigation";
@@ -181,8 +184,15 @@ function buildShellNavGroups(
     },
     { href: "/catalog/links", icon: LinkIcon, label: copy.nav.links },
   ];
-  const campusLinks: ShellLink[] = [
-    { href: "/mobile-app", icon: SmartphoneIcon, label: copy.nav.mobileApp },
+  const usageLinks: ShellLink[] = [
+    {
+      href: "/usage/mobile",
+      icon: SmartphoneIcon,
+      label: copy.nav.mobileApp,
+    },
+    { href: "/usage/bot", icon: BotIcon, label: copy.nav.prestoBot },
+    { href: "/usage/mcp", icon: CableIcon, label: copy.nav.mcp },
+    { href: "/usage/cli", icon: TerminalIcon, label: copy.nav.cli },
   ];
   const dashboardNavStats = pageData.navStats as
     | {
@@ -207,8 +217,8 @@ function buildShellNavGroups(
       },
       {
         defaultOpen: true,
-        label: copy.nav.groups.campus,
-        links: campusLinks,
+        label: copy.nav.groups.usage,
+        links: usageLinks,
       },
     ];
   }
@@ -268,8 +278,8 @@ function buildShellNavGroups(
     },
     {
       defaultOpen: true,
-      label: copy.nav.groups.campus,
-      links: campusLinks,
+      label: copy.nav.groups.usage,
+      links: usageLinks,
     },
     ...(isAdmin
       ? [
@@ -383,13 +393,26 @@ function buildMobileSecondaryNavGroups(
         : undefined,
       label: copy.nav.teachers,
     },
-    { href: "/mobile-app", icon: SmartphoneIcon, label: copy.nav.mobileApp },
   ];
   return [
     {
       defaultOpen: true,
       label: copy.nav.groups.secondary,
       links: secondaryLinks,
+    },
+    {
+      defaultOpen: pathname.startsWith("/usage/"),
+      label: copy.nav.groups.usage,
+      links: [
+        {
+          href: "/usage/mobile",
+          icon: SmartphoneIcon,
+          label: copy.nav.mobileApp,
+        },
+        { href: "/usage/bot", icon: BotIcon, label: copy.nav.prestoBot },
+        { href: "/usage/mcp", icon: CableIcon, label: copy.nav.mcp },
+        { href: "/usage/cli", icon: TerminalIcon, label: copy.nav.cli },
+      ],
     },
     ...(isAdmin
       ? [
@@ -482,12 +505,10 @@ function isMobilePrimaryActive(link: ShellLink): boolean {
   }
   if (link.href === "/catalog/courses") {
     return (
-      [
-        "/catalog/bus",
-        "/catalog/links",
-        "/catalog/bus/map",
-        "/mobile-app",
-      ].includes(pathname) ||
+      ["/catalog/bus", "/catalog/links", "/catalog/bus/map"].includes(
+        pathname,
+      ) ||
+      pathname.startsWith("/usage/") ||
       ["/catalog/courses", "/catalog/sections", "/catalog/teachers"].some(
         (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`),
       )

@@ -109,6 +109,10 @@ test("/ shell 匿名 390px 抽屉只展示公开导航", async ({ page }, testIn
     /^(课程|Courses)$/i,
     /^(班级|Sections)$/i,
     /^(教师|Teachers)$/i,
+    /^(移动应用|Mobile App)$/i,
+    /^(Presto 机器人|Presto Bot)$/i,
+    /^MCP$/i,
+    /^(命令行|CLI)$/i,
   ]) {
     await expect(sidebar.getByRole("link", { name })).toBeVisible();
   }

@@ -30,7 +30,10 @@
       "welcome": "Complete Your Profile",
       "privacy": "Privacy Policy",
       "terms": "Terms of Service",
-      "mobileApp": "Mobile App"
+      "mobileApp": "Mobile App",
+      "prestoBot": "Presto Bot",
+      "mcp": "MCP",
+      "cli": "CLI"
     }
   },
   "common": {
@@ -382,6 +385,135 @@
         "title": "Workspace",
         "alt": "Life@USTC personal workspace screenshot"
       }
+    }
+  },
+  "usagePages": {
+    "bot": {
+      "title": "Meet Presto",
+      "subtitle": "Check campus information and your schedule in QQ.",
+      "primaryAction": "Message Presto",
+      "primaryQrAlt": "Presto QQ QR code",
+      "previewTitle": "Presto · QQ",
+      "previewAriaLabel": "Example conversation with Presto on QQ",
+      "previewLines": [
+        { "kind": "command", "text": "下一节课" },
+        {
+          "kind": "image",
+          "text": "Upcoming class image returned by Presto",
+          "src": "/images/usage/presto-next-class.png"
+        }
+      ],
+      "startTitle": "More examples",
+      "steps": [
+        {
+          "title": "课表",
+          "description": "Weekly schedule image returned by Presto",
+          "imageSrc": "/images/usage/presto-schedule.png"
+        },
+        {
+          "title": "校车 东区 西区",
+          "description": "Shuttle bus image returned by Presto",
+          "imageSrc": "/images/usage/presto-bus.png"
+        },
+        {
+          "title": "作业",
+          "description": "Homework image returned by Presto",
+          "imageSrc": "/images/usage/presto-homework.png"
+        }
+      ]
+    },
+    "mcp": {
+      "title": "Connect with MCP",
+      "subtitle": "Connect Life@USTC to ChatGPT, Claude, or any other MCP-compatible client.",
+      "primaryAction": "Copy MCP endpoint",
+      "copiedAction": "Endpoint copied",
+      "copyValueAction": "Copy",
+      "copiedValueAction": "Copied",
+      "fieldLabels": {
+        "name": "Name",
+        "description": "Description",
+        "serverUrl": "Server URL"
+      },
+      "useCaseTitle": "Life@USTC in ChatGPT",
+      "useCaseAlt": "ChatGPT using Life@USTC to show todos and next semester's schedule",
+      "configurationTitle": "Configuration methods",
+      "endpointLabel": "Remote MCP URL",
+      "clientTabs": {
+        "chatgpt": "ChatGPT",
+        "claude": "Claude.ai",
+        "other": "Other agents",
+        "webLabel": "Web",
+        "localLabel": "Local"
+      },
+      "chatgpt": {
+        "overviewAlt": "ChatGPT plugins page with the add button highlighted",
+        "overviewSrc": "/images/usage/mcp-chatgpt-overview-en.png",
+        "filledSrc": "/images/usage/mcp-chatgpt-filled-en.png",
+        "steps": [
+          "Enable Developer Mode in Settings → Apps → Advanced settings, then create an app.",
+          "Fill in the details below, scan the tools, and create the app.",
+          "Authorize with Life@USTC, then select the app from the tools menu in a new chat."
+        ],
+        "emptyAlt": "Blank ChatGPT new plugin form",
+        "filledAlt": "Completed Life@USTC ChatGPT plugin configuration",
+        "iconAlt": "Life@USTC plugin icon",
+        "iconAction": "Download the ChatGPT plugin icon",
+        "iconHint": "This icon is only used for ChatGPT plugin customization."
+      },
+      "claude": {
+        "steps": [
+          "Open Claude connector settings, click Add, then choose Add custom connector.",
+          "Fill the form with the information below, then click Add.",
+          "Follow the prompt to sign in through Life@USTC."
+        ],
+        "emptyAlt": "Blank Claude custom connector form",
+        "filledAlt": "Completed Life@USTC Claude connector configuration",
+        "note": "Leave OAuth Client ID and Client Secret blank."
+      },
+      "otherClients": {
+        "title": "Codex, Claude Code, and other clients",
+        "description": "Copy the command for Codex or Claude Code. For any other remote-MCP client, use the URL below. Life@USTC signs in with OAuth, so no API key or Authorization header is required."
+      }
+    },
+    "cli": {
+      "title": "Life@USTC in your terminal",
+      "subtitle": "Access campus information and your workspace from the terminal.",
+      "primaryAction": "View on GitHub",
+      "installTitle": "Install with Go",
+      "installCommand": "go install github.com/Life-USTC/CLI/cmd/life-ustc@latest",
+      "startTitle": "Real command results",
+      "steps": [
+        {
+          "title": "life-ustc catalog course -s \"线性代数\" --no-interactive --limit 3",
+          "resultLines": [
+            "Showing 3 of 6 · page 1 of 2",
+            "CODE      NAME          LEVEL  JW ID",
+            "MATH1004  线性代数(A1)  本科   9499",
+            "MATH1005  线性代数(A2)  本科   9202",
+            "MATH1009  线性代数(B1)  本科   9498"
+          ]
+        },
+        {
+          "title": "life-ustc catalog bus --all --limit 4",
+          "resultLines": [
+            "东区 -> 北区 -> 西区",
+            "07:30 → 07:40  (东区 → 西区)",
+            "09:20 → 09:30  (东区 → 西区)",
+            "09:35 → 09:45  (东区 → 西区)",
+            "11:35 → 11:45  (东区 → 西区)"
+          ]
+        },
+        {
+          "title": "life-ustc catalog teacher -s \"zhang\" --no-interactive --limit 3",
+          "resultLines": [
+            "Showing 3 of 236 · page 1 of 79",
+            "NAME    DEPARTMENT    CODE       ID",
+            "吴章友  临床医学院    FY1020026  6458195",
+            "张一飞  研究生院      06896      6455773",
+            "张一鸣  附属第一医院  FY1060422  6457224"
+          ]
+        }
+      ]
     }
   },
   "admin": {
