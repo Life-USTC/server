@@ -55,17 +55,15 @@ export async function fetchSubscribedHomeworkRlsSnapshot(
   query: ReturnType<typeof buildSubscribedHomeworkQuery>,
   includeItems: boolean,
 ): Promise<SubscribedHomeworkRlsSnapshot> {
-  const total = await tx.homework.count({ where: query.where });
   if (!includeItems) {
+    const total = await tx.homework.count({ where: query.where });
     return { total, homeworkIds: [], completions: [] };
   }
 
-  const { homeworkIds, completions } =
-    await fetchSubscribedHomeworkIdsAndCompletionsInTransaction(
-      tx,
-      userId,
-      query,
-    );
+  const [total, { homeworkIds, completions }] = await Promise.all([
+    tx.homework.count({ where: query.where }),
+    fetchSubscribedHomeworkIdsAndCompletionsInTransaction(tx, userId, query),
+  ]);
   return { total, homeworkIds, completions };
 }
 

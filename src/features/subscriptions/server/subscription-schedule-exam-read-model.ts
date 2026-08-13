@@ -247,15 +247,17 @@ export async function listTodaySubscribedSchedulesWithCount(
         date: { gte: todayStart, lt: tomorrowStart },
       } satisfies Prisma.ScheduleWhereInput;
       const localizedPrisma = getPrisma(locale);
-      const total = await localizedPrisma.schedule.count({ where });
-      const items = includeItems
-        ? await localizedPrisma.schedule.findMany({
-            where,
-            select: overviewScheduleSelect,
-            orderBy: subscribedScheduleOrderBy,
-            ...(limit ? { take: limit } : {}),
-          })
-        : [];
+      const [total, items] = await Promise.all([
+        localizedPrisma.schedule.count({ where }),
+        includeItems
+          ? localizedPrisma.schedule.findMany({
+              where,
+              select: overviewScheduleSelect,
+              orderBy: subscribedScheduleOrderBy,
+              ...(limit ? { take: limit } : {}),
+            })
+          : Promise.resolve([]),
+      ]);
       return { total, items };
     },
     sectionIds,
@@ -283,18 +285,18 @@ export async function listUpcomingSubscribedExamsWithCount(
     userId,
     async (ids) => {
       const where = upcomingKnownExamWhere({ atTime, sectionIds: ids });
-      const total = await countUpcomingSubscribedExams({
-        atTime,
-        sectionIds: ids,
-      });
-      const items = includeItems
-        ? await getPrisma(locale).exam.findMany({
-            where,
-            select: overviewExamSelect,
-            orderBy: subscribedExamOrderBy,
-            ...(limit ? { take: limit } : {}),
-          })
-        : [];
+      const localizedPrisma = getPrisma(locale);
+      const [total, items] = await Promise.all([
+        localizedPrisma.exam.count({ where }),
+        includeItems
+          ? localizedPrisma.exam.findMany({
+              where,
+              select: overviewExamSelect,
+              orderBy: subscribedExamOrderBy,
+              ...(limit ? { take: limit } : {}),
+            })
+          : Promise.resolve([]),
+      ]);
       return { total, items };
     },
     sectionIds,

@@ -314,7 +314,7 @@ async function loadOverviewTodoBundleInTransaction(
   },
 ) {
   const userId = normalizeTodoUserId(input.userId);
-  const fusedCounts = await countOverviewTodoBundleInTransaction(tx, {
+  const fusedCountsPromise = countOverviewTodoBundleInTransaction(tx, {
     userId,
     now: input.now,
     homeworkWindowEnd: input.homeworkWindowEnd,
@@ -326,7 +326,8 @@ async function loadOverviewTodoBundleInTransaction(
     dueAtTo: input.homeworkWindowEnd,
     includeDueAtTo: true as const,
   };
-  const [todos, dueTodos] = await Promise.all([
+  const [fusedCounts, todos, dueTodos] = await Promise.all([
+    fusedCountsPromise,
     input.includeSamples
       ? findTodoSnapshots(tx, {
           where: buildTodoListWhere(userId, { completed: false }),
