@@ -503,7 +503,7 @@ export async function assertPageContract(
       return;
     }
 
-    case "/mobile-app": {
+    case "/usage/mobile": {
       await gotoContractPage(page, routePath, testInfo);
       await expectMainContent(page);
       await expect(
@@ -513,6 +513,61 @@ export async function assertPageContract(
         page.locator('img[src="/images/mobile-app/screenshot-01.png"]').first(),
       ).toBeVisible();
       await maybeCapture(page, testInfo, "mobile-app");
+      return;
+    }
+
+    case "/usage/bot": {
+      await gotoContractPage(page, routePath, testInfo);
+      await expectMainContent(page);
+      await expect(
+        page.getByRole("heading", { name: /Presto/i, level: 1 }),
+      ).toBeVisible();
+      await maybeCapture(page, testInfo, "usage-bot");
+      return;
+    }
+
+    case "/usage/mcp": {
+      await gotoContractPage(page, routePath, testInfo);
+      await expectMainContent(page);
+      await expect(
+        page
+          .getByRole("button", {
+            name: /复制 MCP 端点|Copy MCP endpoint/i,
+          })
+          .first(),
+      ).toBeVisible();
+      await expect(
+        page.getByRole("link", {
+          name: /启用开发者模式|Enable Developer Mode/i,
+        }),
+      ).toHaveAttribute(
+        "href",
+        "https://help.openai.com/en/articles/12584461-developer-mode-and-full-mcp-connectors-in-chatgpt-beta",
+      );
+      await expect(
+        page.locator('img[src="/images/usage/mcp-use-case.png"]').first(),
+      ).toBeVisible();
+      await maybeCapture(page, testInfo, "usage-mcp");
+      return;
+    }
+
+    case "/usage/cli": {
+      await gotoContractPage(page, routePath, testInfo);
+      await expectMainContent(page);
+      await expect(
+        page.getByRole("link", { name: /在 GitHub 查看|View on GitHub/i }),
+      ).toHaveAttribute("href", "https://github.com/Life-USTC/CLI");
+      await expect(
+        page.getByText(
+          /go install github\.com\/Life-USTC\/CLI\/cmd\/life-ustc@latest/,
+        ),
+      ).toBeVisible();
+      await expect(
+        page.getByText(
+          /life-ustc catalog course -s "线性代数" --no-interactive --limit 3/,
+        ),
+      ).toBeVisible();
+      await maybeCapture(page, testInfo, "usage-cli");
       return;
     }
 

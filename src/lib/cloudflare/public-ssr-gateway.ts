@@ -34,7 +34,10 @@ const STATIC_PUBLIC_PATHS = new Set([
   "/catalog/bus/map",
   "/guides/markdown-support",
   "/api-docs",
-  "/mobile-app",
+  "/usage/mobile",
+  "/usage/bot",
+  "/usage/mcp",
+  "/usage/cli",
   "/privacy",
   "/terms",
 ]);

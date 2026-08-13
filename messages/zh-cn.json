@@ -30,7 +30,10 @@
       "privacy": "隐私政策",
       "terms": "服务条款",
       "mobileApp": "移动应用",
-      "busMap": "线路图"
+      "busMap": "线路图",
+      "prestoBot": "Presto 机器人",
+      "mcp": "MCP",
+      "cli": "命令行"
     }
   },
   "common": {
@@ -382,6 +385,135 @@
         "title": "工作台",
         "alt": "Life@USTC 个人工作台截图"
       }
+    }
+  },
+  "usagePages": {
+    "bot": {
+      "title": "认识 Presto",
+      "subtitle": "在 QQ 中查询校园信息和个人日程。",
+      "primaryAction": "联系 Presto",
+      "primaryQrAlt": "Presto QQ 二维码",
+      "previewTitle": "Presto · QQ",
+      "previewAriaLabel": "在 QQ 中与 Presto 对话的示例",
+      "previewLines": [
+        { "kind": "command", "text": "下一节课" },
+        {
+          "kind": "image",
+          "text": "Presto 返回的下一节课图片",
+          "src": "/images/usage/presto-next-class.png"
+        }
+      ],
+      "startTitle": "更多示例",
+      "steps": [
+        {
+          "title": "课表",
+          "description": "Presto 返回的本周课表图片",
+          "imageSrc": "/images/usage/presto-schedule.png"
+        },
+        {
+          "title": "校车 东区 西区",
+          "description": "Presto 返回的校车班次图片",
+          "imageSrc": "/images/usage/presto-bus.png"
+        },
+        {
+          "title": "作业",
+          "description": "Presto 返回的作业图片",
+          "imageSrc": "/images/usage/presto-homework.png"
+        }
+      ]
+    },
+    "mcp": {
+      "title": "通过 MCP 连接",
+      "subtitle": "把 Life@USTC 连接到 ChatGPT、Claude 或其他支持 MCP 的客户端。",
+      "primaryAction": "复制 MCP 端点",
+      "copiedAction": "端点已复制",
+      "copyValueAction": "复制",
+      "copiedValueAction": "已复制",
+      "fieldLabels": {
+        "name": "名称",
+        "description": "描述",
+        "serverUrl": "服务器 URL"
+      },
+      "useCaseTitle": "在 ChatGPT 中使用 Life@USTC",
+      "useCaseAlt": "ChatGPT 使用 Life@USTC 查询待办与下学期课程的示例",
+      "configurationTitle": "配置方法",
+      "endpointLabel": "远程 MCP URL",
+      "clientTabs": {
+        "chatgpt": "ChatGPT",
+        "claude": "Claude.ai",
+        "other": "其他客户端",
+        "webLabel": "网页",
+        "localLabel": "本地"
+      },
+      "chatgpt": {
+        "overviewAlt": "突出显示添加按钮的 ChatGPT 插件页面",
+        "overviewSrc": "/images/usage/mcp-chatgpt-overview-zh.png",
+        "filledSrc": "/images/usage/mcp-chatgpt-filled-zh.png",
+        "steps": [
+          "在设置 → Apps → 高级设置中启用开发者模式，然后创建 App。",
+          "使用下方信息填写表单、扫描工具并创建 App。",
+          "完成 Life@USTC 授权；在新对话的工具菜单中选择该 App 即可使用。"
+        ],
+        "emptyAlt": "ChatGPT 新插件空白配置表单",
+        "filledAlt": "填写完成的 Life@USTC ChatGPT 插件配置",
+        "iconAlt": "Life@USTC 插件图标",
+        "iconAction": "下载 ChatGPT 插件图标",
+        "iconHint": "此图标仅用于 ChatGPT 的自定义插件设置。"
+      },
+      "claude": {
+        "steps": [
+          "打开 Claude 连接器设置，点击“Add”，再选择“Add custom connector”。",
+          "使用下方信息填写表单，然后点击 Add。",
+          "按提示通过 Life@USTC 登录即可。"
+        ],
+        "emptyAlt": "Claude 自定义连接器空白配置表单",
+        "filledAlt": "填写完成的 Life@USTC Claude 连接器配置",
+        "note": "OAuth Client ID 和 Client Secret 留空即可。"
+      },
+      "otherClients": {
+        "title": "Codex、Claude Code 与其他客户端",
+        "description": "Codex 和 Claude Code 可直接复制对应命令。其他支持远程 MCP 的客户端使用下方 URL；Life@USTC 通过 OAuth 登录，不需要 API Key 或 Authorization header。"
+      }
+    },
+    "cli": {
+      "title": "终端里的 Life@USTC",
+      "subtitle": "在终端中查询校园信息和个人工作台。",
+      "primaryAction": "在 GitHub 查看",
+      "installTitle": "使用 Go 安装",
+      "installCommand": "go install github.com/Life-USTC/CLI/cmd/life-ustc@latest",
+      "startTitle": "真实运行示例",
+      "steps": [
+        {
+          "title": "life-ustc catalog course -s \"线性代数\" --no-interactive --limit 3",
+          "resultLines": [
+            "Showing 3 of 6 · page 1 of 2",
+            "CODE      NAME          LEVEL  JW ID",
+            "MATH1004  线性代数(A1)  本科   9499",
+            "MATH1005  线性代数(A2)  本科   9202",
+            "MATH1009  线性代数(B1)  本科   9498"
+          ]
+        },
+        {
+          "title": "life-ustc catalog bus --all --limit 4",
+          "resultLines": [
+            "东区 -> 北区 -> 西区",
+            "07:30 → 07:40  (东区 → 西区)",
+            "09:20 → 09:30  (东区 → 西区)",
+            "09:35 → 09:45  (东区 → 西区)",
+            "11:35 → 11:45  (东区 → 西区)"
+          ]
+        },
+        {
+          "title": "life-ustc catalog teacher -s \"zhang\" --no-interactive --limit 3",
+          "resultLines": [
+            "Showing 3 of 236 · page 1 of 79",
+            "NAME    DEPARTMENT    CODE       ID",
+            "吴章友  临床医学院    FY1020026  6458195",
+            "张一飞  研究生院      06896      6455773",
+            "张一鸣  附属第一医院  FY1060422  6457224"
+          ]
+        }
+      ]
     }
   },
   "admin": {

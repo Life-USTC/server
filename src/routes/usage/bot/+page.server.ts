@@ -1,6 +1,6 @@
 import type { AppLocale } from "@/i18n/config";
-import enUsMessages from "../../../messages/en-us.json";
-import zhCnMessages from "../../../messages/zh-cn.json";
+import enUsMessages from "../../../../messages/en-us.json";
+import zhCnMessages from "../../../../messages/zh-cn.json";
 import type { PageServerLoad } from "./$types";
 
 const messages = {
@@ -11,10 +11,7 @@ const messages = {
 export const load: PageServerLoad = ({ locals }) => {
   const copy = messages[locals.locale];
   return {
-    copy: {
-      homepage: copy.homepage,
-      metadata: copy.metadata.pages,
-      mobileAppPage: copy.mobileAppPage,
-    },
+    copy: copy.usagePages.bot,
+    metadataTitle: copy.metadata.pages.prestoBot,
   };
 };
