@@ -1,7 +1,7 @@
 import { loadOverviewTodoBundle } from "@/features/todos/server/todo-service";
 import { type AppLocale, DEFAULT_LOCALE } from "@/i18n/config";
 import { runCloudflareTraceSpan } from "@/lib/adapters/cloudflare-runtime";
-import { withUserDbContext } from "@/lib/db/prisma";
+import { withLocalizedUserDbContext, withUserDbContext } from "@/lib/db/prisma";
 import {
   type WorkspaceOverviewStage,
   writeWorkspaceOverviewStageAnalytics,
@@ -54,6 +54,33 @@ export async function getCompactOverview(
     limit?: number;
     locale?: AppLocale;
   } = {},
+) {
+  return withLocalizedUserDbContext(locale, userId, () =>
+    loadCompactOverview(userId, {
+      atTime,
+      homeworkWindowDays,
+      includeSamples,
+      limit,
+      locale,
+    }),
+  );
+}
+
+async function loadCompactOverview(
+  userId: string,
+  {
+    atTime,
+    homeworkWindowDays,
+    includeSamples,
+    limit,
+    locale,
+  }: {
+    atTime: Date;
+    homeworkWindowDays: number;
+    includeSamples: boolean;
+    limit: number;
+    locale: AppLocale;
+  },
 ) {
   const todayStart = parseRequiredDateInput(formatShanghaiDate(atTime));
   const tomorrowStart = new Date(todayStart.getTime() + 24 * 60 * 60 * 1000);
