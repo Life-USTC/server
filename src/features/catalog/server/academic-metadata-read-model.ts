@@ -1,7 +1,12 @@
-import { buildCurrentSemesterWhere } from "@/features/catalog/lib/current-semester";
+import {
+  buildCurrentSemesterWhere,
+  currentSemesterDateKey,
+} from "@/features/catalog/lib/current-semester";
 import type { PrismaClient, Semester } from "@/generated/prisma/client";
+import { cachedCatalogRuntimeData } from "@/lib/catalog-runtime-cache";
 import { prisma } from "@/lib/db/prisma";
 import { paginatedQuery } from "@/lib/query-pagination";
+import { getCanonicalOrigin } from "@/lib/site-url";
 
 type SemesterFindFirstDelegate = Pick<PrismaClient["semester"], "findFirst">;
 
@@ -21,6 +26,19 @@ export const findCurrentSemester = (
 
 export const getCurrentSemester = (referenceDate = new Date()) =>
   findCurrentSemester(prisma.semester, referenceDate);
+
+export function getCachedCurrentSemester(
+  referenceDate = new Date(),
+  origin = getCanonicalOrigin(),
+) {
+  const dateKey = currentSemesterDateKey(referenceDate);
+  return cachedCatalogRuntimeData(
+    "catalog:current-semester",
+    `current-semester:${dateKey}`,
+    origin,
+    () => getCurrentSemester(referenceDate),
+  );
+}
 
 export async function getAcademicMetadata() {
   const [

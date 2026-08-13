@@ -46,7 +46,11 @@ describe("catalog detail page data", () => {
       sectionCount: 3,
       sections: [],
     });
-    const courseSelect = courseFindUniqueMock.mock.calls[1]?.[0]?.select;
+    expect(courseFindUniqueMock).toHaveBeenCalledTimes(1);
+    expect(courseFindUniqueMock).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { jwId: course.jwId } }),
+    );
+    const courseSelect = courseFindUniqueMock.mock.calls[0]?.[0]?.select;
     expect(courseSelect).not.toHaveProperty("description");
     expect(courseSelect?.sections).toBe(false);
     expect(result).not.toHaveProperty("commentCount");

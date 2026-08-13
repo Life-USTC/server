@@ -1,4 +1,5 @@
 import { CATALOG_EDGE_CACHE_TAG } from "@/lib/catalog-runtime-cache";
+import { shanghaiDayjs } from "@/lib/time/shanghai-dayjs";
 
 const HOUR_SECONDS = 3_600;
 
@@ -12,6 +13,19 @@ export const PUBLIC_CATALOG_HEADERS = {
   "Cache-Tag": CATALOG_EDGE_CACHE_TAG,
   "Cloudflare-CDN-Cache-Control": PUBLIC_CATALOG_CDN_CACHE_CONTROL,
 } as const;
+
+export function currentSemesterCacheHeaders(referenceDate: Date) {
+  const now = shanghaiDayjs(referenceDate);
+  const secondsUntilNextShanghaiDay = Math.max(
+    1,
+    now.add(1, "day").startOf("day").diff(now, "second"),
+  );
+  return {
+    "Cache-Control": "public, max-age=0",
+    "Cache-Tag": CATALOG_EDGE_CACHE_TAG,
+    "Cloudflare-CDN-Cache-Control": `public, max-age=${secondsUntilNextShanghaiDay}`,
+  } as const;
+}
 
 export const PUBLIC_SEARCH_CACHE_HEADERS = {
   "Cache-Control":

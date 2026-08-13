@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { setCloudflareRuntimeEnv } from "@/lib/adapters/cloudflare-runtime";
 
 const catalogService = vi.hoisted(() => ({
-  getCurrentSemester: vi.fn(),
+  getCachedCurrentSemester: vi.fn(),
 }));
 
 vi.mock(
@@ -14,7 +14,7 @@ vi.mock(
       >();
     return {
       ...original,
-      getCurrentSemester: catalogService.getCurrentSemester,
+      getCachedCurrentSemester: catalogService.getCachedCurrentSemester,
     };
   },
 );
@@ -61,7 +61,7 @@ function installAnalytics() {
 describe("arbitrary GraphQL document runner", () => {
   beforeEach(() => {
     vi.spyOn(console, "info").mockImplementation(() => {});
-    catalogService.getCurrentSemester.mockResolvedValue({
+    catalogService.getCachedCurrentSemester.mockResolvedValue({
       id: 1,
       jwId: 202601,
       code: "2026SP",
@@ -73,7 +73,7 @@ describe("arbitrary GraphQL document runner", () => {
 
   afterEach(() => {
     setCloudflareRuntimeEnv(undefined);
-    catalogService.getCurrentSemester.mockReset();
+    catalogService.getCachedCurrentSemester.mockReset();
     vi.restoreAllMocks();
   });
 

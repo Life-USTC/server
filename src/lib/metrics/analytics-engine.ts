@@ -78,6 +78,7 @@ type StorageOperationAnalyticsInput = {
 export type PublicRuntimeCacheAnalyticsNamespace =
   | "api:metadata"
   | "api:semesters"
+  | "catalog:current-semester"
   | "sitemap"
   | `page:section-detail:overview:${AppLocale}`
   | `search:catalog:${AppLocale}`

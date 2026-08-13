@@ -2,7 +2,6 @@ import type { CourseDetailSection } from "@/features/catalog/components/catalog-
 import { localizedNameSelect } from "@/features/section-detail/server/section-page-name-selects";
 import { getPrisma } from "@/lib/db/prisma";
 import { toLoadData } from "@/lib/load-data-utils";
-import { resolveCourseIdByJwId } from "./course-jw-id";
 
 const coursePageSectionsSelect = {
   jwId: true,
@@ -28,10 +27,8 @@ export async function getCoursePage(
   options: { includeSections?: boolean } = {},
 ) {
   const prisma = getPrisma(locale);
-  const courseId = await resolveCourseIdByJwId(prisma, jwId);
-  if (courseId == null) return null;
   const course = await prisma.course.findUnique({
-    where: { id: courseId },
+    where: { jwId },
     select: {
       id: true,
       jwId: true,
