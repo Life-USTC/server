@@ -84,7 +84,6 @@ describe("public SSR gateway", () => {
     "/catalog/sections?credits=2.5&sort=credits&order=asc",
     "/catalog/sections?semesterId=301&teacher=&courseCode=&sectionCode=&campusId=&departmentId=&credits=&categoryId=&educationLevelId=&classTypeId=&sort=",
     "/catalog/teachers?departmentId=1",
-    "/catalog/bus/map",
     "/api-docs",
     "/api/docs/rest/catalog",
     "/usage/mobile",
@@ -95,6 +94,10 @@ describe("public SSR gateway", () => {
     "/terms",
   ])("caches allowlisted anonymous page %s", (path) => {
     expect(resolvePublicSsrMode(request(path))).toBe("page");
+  });
+
+  test("keeps the request-time bus map out of the 24-hour HTML cache", () => {
+    expect(resolvePublicSsrMode(request("/catalog/bus/map"))).toBeNull();
   });
 
   test.each([

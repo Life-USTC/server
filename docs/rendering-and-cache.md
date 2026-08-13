@@ -8,7 +8,11 @@ current viewer.
 
 - Course / section / teacher list pages
 - Catalog detail **root** paths (`/catalog/{courses|sections|teachers}/:id`)
-- Bus map, mobile app, privacy, terms, Markdown guide, API docs
+- Mobile app, privacy, terms, Markdown guide, API docs
+
+The bus map stays on dynamic SSR because its active-trip positions and current
+time are request-sensitive. Its schedule and topology still use the shared
+revision-scoped runtime cache.
 
 Any recognized session or Bearer signal forces dynamic SSR. Pages that still
 embed viewer-specific data (home, links planner, community) stay dynamic.
