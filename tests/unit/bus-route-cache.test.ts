@@ -47,7 +47,7 @@ describe("bus REST cache boundaries", () => {
     vi.clearAllMocks();
   });
 
-  it("publicly edge-caches anonymous raw timetable responses", async () => {
+  it("keeps anonymous raw timetable responses private", async () => {
     const { resolveApiUserId } = await import("@/lib/auth/api-auth");
     vi.mocked(resolveApiUserId).mockResolvedValue(null);
     getBusTimetableDataMock.mockResolvedValue(timetable);
@@ -57,16 +57,13 @@ describe("bus REST cache boundaries", () => {
       new Request("https://life.example/api/catalog/bus"),
     );
 
+    expect(response.headers.get("Cache-Control")).toBe("private, no-store");
     expect(response.headers.get("Cloudflare-CDN-Cache-Control")).toBe(
-      "public, max-age=3600, stale-while-revalidate=300",
+      "no-store",
     );
-    expect(response.headers.get("Cache-Tag")).toBe("catalog");
   });
 
-  it.each([
-    ["authorization", "Bearer token"],
-    ["cookie", "better-auth.session_token=session"],
-  ])("keeps an auth-signaled timetable response private", async (name, value) => {
+  it("keeps an auth-signaled timetable response private", async () => {
     const { resolveApiUserId } = await import("@/lib/auth/api-auth");
     vi.mocked(resolveApiUserId).mockResolvedValue(null);
     getBusTimetableDataMock.mockResolvedValue(timetable);
@@ -74,7 +71,7 @@ describe("bus REST cache boundaries", () => {
 
     const response = await getBusRoute(
       new Request("https://life.example/api/catalog/bus", {
-        headers: { [name]: value },
+        headers: { cookie: "better-auth.session_token=session" },
       }),
     );
 

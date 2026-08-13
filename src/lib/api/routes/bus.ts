@@ -20,7 +20,6 @@ import {
   busRouteSearchResponseSchema,
 } from "@/lib/api/schemas/response-schemas";
 import { requireAuth, resolveApiUserId } from "@/lib/auth/api-auth";
-import { hasRequestAuthSignal } from "@/lib/auth/request-auth-signal";
 import {
   PRIVATE_LOCALE_CATALOG_HEADERS,
   PUBLIC_BUS_CACHE_HEADERS,
@@ -51,11 +50,8 @@ export async function getBusRoute(request: Request) {
     }
 
     const validated = busQueryResponseSchema.parse(result);
-    const publicResponse = !userId && !hasRequestAuthSignal(request.headers);
     return jsonResponse(validated, {
-      headers: publicResponse
-        ? PUBLIC_BUS_CACHE_HEADERS
-        : PRIVATE_LOCALE_CATALOG_HEADERS,
+      headers: PRIVATE_LOCALE_CATALOG_HEADERS,
     });
   } catch (error) {
     return handleRouteError("Failed to query shuttle bus schedules", error);
