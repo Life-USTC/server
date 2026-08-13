@@ -4,7 +4,7 @@ import {
   listBusRoutes,
 } from "@/features/bus/server/bus-catalog";
 import {
-  getCurrentSemester,
+  getCachedCurrentSemester,
   listSemesters,
 } from "@/features/catalog/server/academic-metadata-read-model";
 import { listCourseSummaries } from "@/features/catalog/server/course-summary-read-model";
@@ -331,7 +331,7 @@ export const graphqlSchema = createSchema<
         return listSemesters(pagination);
       },
       currentSemester() {
-        return getCurrentSemester(new Date());
+        return getCachedCurrentSemester(new Date());
       },
       courses(
         _parent,

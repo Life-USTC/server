@@ -2,7 +2,7 @@ import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import * as z from "zod";
 import { CATALOG_MAX_PAGE } from "@/features/catalog/lib/catalog-list-query";
 import {
-  getCurrentSemester,
+  getCachedCurrentSemester,
   listSemesters,
 } from "@/features/catalog/server/academic-metadata-read-model";
 import {
@@ -42,7 +42,7 @@ export function registerCourseSemesterTools(server: McpServer) {
       },
     },
     async ({ mode }) => {
-      const semester = await getCurrentSemester(new Date());
+      const semester = await getCachedCurrentSemester(new Date());
 
       return jsonToolResult(
         {
