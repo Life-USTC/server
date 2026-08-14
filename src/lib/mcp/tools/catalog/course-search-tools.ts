@@ -46,7 +46,8 @@ export function registerCourseSearchTools(server: McpServer) {
   server.registerTool(
     "catalog_course_get",
     {
-      description: "Fetch one detailed course by USTC JW course ID.",
+      description:
+        "Fetch one detailed course by USTC JW course ID, with its 20 most recent sections and complete section count.",
       inputSchema: {
         jwId: z.number().int().positive(),
         locale: mcpLocaleInputSchema,

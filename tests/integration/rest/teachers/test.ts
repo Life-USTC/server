@@ -158,6 +158,14 @@ test.describe("GET /api/catalog/teachers", () => {
       body.sections?.some((section) => section.code === DEV_SEED.section.code),
     ).toBe(true);
     expect((body._count?.sections ?? 0) > 0).toBe(true);
+    expect(body.sections?.length ?? 0).toBeLessThanOrEqual(20);
+    expect(body._count?.sections ?? 0).toBeGreaterThanOrEqual(
+      body.sections?.length ?? 0,
+    );
+    expect(body).not.toHaveProperty("age");
+    expect(body).not.toHaveProperty("postcode");
+    expect(body).not.toHaveProperty("qq");
+    expect(body).not.toHaveProperty("wechat");
     expect(Object.hasOwn(body, "nameEn")).toBe(true);
     expect(Object.hasOwn(body, "telephone")).toBe(true);
     expect(Object.hasOwn(body, "mobile")).toBe(true);

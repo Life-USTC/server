@@ -41,7 +41,7 @@ export function registerCourseTeacherTools(server: McpServer) {
     "catalog_teacher_get",
     {
       description:
-        "Fetch one detailed teacher by numeric ID, including department and related sections.",
+        "Fetch one detailed teacher by numeric ID, including department, the 20 most recent sections, and complete section count.",
       inputSchema: {
         id: z.number().int().positive(),
         locale: mcpLocaleInputSchema,

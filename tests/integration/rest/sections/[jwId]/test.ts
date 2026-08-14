@@ -16,12 +16,15 @@ test("/api/catalog/sections/[jwId] 返回 teacherAssignments 与 exams", async (
   );
   expect(response.status()).toBe(200);
   const body = (await response.json()) as {
-    teacherAssignments?: unknown[];
+    teacherAssignments?: Array<Record<string, unknown>>;
     exams?: unknown[];
     code?: string;
   };
   expect(body.code).toBe(DEV_SEED.section.code);
   expect((body.teacherAssignments?.length ?? 0) > 0).toBe(true);
+  for (const assignment of body.teacherAssignments ?? []) {
+    expect(assignment).not.toHaveProperty("teacher");
+  }
   expect((body.exams?.length ?? 0) > 0).toBe(true);
 });
 
@@ -45,6 +48,12 @@ test("班级详情包含全部 SectionDetail 字段", async ({ request }) => {
   if (firstTeacher) {
     expect(typeof firstTeacher.id).toBe("number");
     expect(typeof firstTeacher.nameCn).toBe("string");
+    expect(firstTeacher).not.toHaveProperty("age");
+    expect(firstTeacher).not.toHaveProperty("postcode");
+    expect(firstTeacher).not.toHaveProperty("qq");
+    expect(firstTeacher).not.toHaveProperty("wechat");
+    expect(firstTeacher).not.toHaveProperty("email");
+    expect(firstTeacher).not.toHaveProperty("mobile");
   }
   expect(Array.isArray(body.schedules)).toBe(true);
   expect(typeof body.schedules?.[0]?.startTime).toBe("string");

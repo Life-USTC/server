@@ -12,6 +12,7 @@ import {
 } from "./academic-section-base-response-schemas";
 import {
   departmentSchema,
+  teacherPublicIdentitySchema,
   teacherSchema,
   teacherWithDepartmentTitleSchema,
 } from "./academic-teacher-response-schemas";
@@ -90,18 +91,19 @@ export const sectionListSchema = sectionBaseSchema.extend({
   openDepartment: departmentSchema.nullable(),
   examMode: examModeSchema.nullable(),
   teachLanguage: teachLanguageSchema.nullable(),
-  teachers: z.array(teacherSchema),
+  teachers: z.array(teacherPublicIdentitySchema),
   adminClasses: z.array(adminClassSchema),
 });
 
 export const courseDetailSectionSchema = sectionBaseSchema.extend({
   semester: semesterSchema.nullable(),
   campus: campusSchema.nullable(),
-  teachers: z.array(teacherSchema),
+  teachers: z.array(teacherPublicIdentitySchema),
 });
 
 export const courseDetailSchema = courseSchema.extend({
   sections: z.array(courseDetailSectionSchema),
+  _count: z.object({ sections: z.number().int() }),
 });
 
 export const teacherDetailSectionSchema = sectionBaseSchema.extend({
