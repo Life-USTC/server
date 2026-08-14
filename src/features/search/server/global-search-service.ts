@@ -13,6 +13,7 @@ import type {
 } from "@/features/search/server/global-search-types";
 import { GLOBAL_SEARCH_GROUP_ORDER } from "@/features/search/server/global-search-types";
 import type { AppLocale } from "@/i18n/config";
+import { runCloudflareTraceSpan } from "@/lib/adapters/cloudflare-runtime";
 import { cachedCatalogRuntimeData } from "@/lib/catalog-runtime-cache";
 import { withUserDbContext } from "@/lib/db/prisma";
 import { logAppEvent } from "@/lib/log/app-logger";
@@ -191,46 +192,56 @@ async function searchWorkspaceGroups(
   limit: number,
 ): Promise<GlobalSearchResultGroup[]> {
   return withUserDbContext(userId, async (tx) => {
-    const homeworks = await tx.homework.findMany({
-      where: {
-        deletedAt: null,
-        title: ilike(query),
-        section: {
-          sectionSubscriptions: { some: { userId } },
-        },
-      },
-      select: {
-        id: true,
-        title: true,
-        section: {
+    const homeworks = await runCloudflareTraceSpan(
+      "search.workspace.homeworks",
+      { "search.scope": "workspace" },
+      () =>
+        tx.homework.findMany({
+          where: {
+            deletedAt: null,
+            title: ilike(query),
+            section: {
+              sectionSubscriptions: { some: { userId } },
+            },
+          },
           select: {
-            jwId: true,
-            course: {
+            id: true,
+            title: true,
+            section: {
               select: {
-                nameCn: true,
-                nameEn: true,
+                jwId: true,
+                course: {
+                  select: {
+                    nameCn: true,
+                    nameEn: true,
+                  },
+                },
               },
             },
           },
-        },
-      },
-      orderBy: [{ submissionDueAt: "asc" }, { createdAt: "desc" }],
-      take: limit,
-    });
-    const todos = await tx.todo.findMany({
-      where: {
-        userId,
-        OR: [{ title: ilike(query) }, { content: ilike(query) }],
-      },
-      select: {
-        id: true,
-        title: true,
-        dueAt: true,
-        completed: true,
-      },
-      orderBy: [{ dueAt: "asc" }, { createdAt: "desc" }],
-      take: limit,
-    });
+          orderBy: [{ submissionDueAt: "asc" }, { createdAt: "desc" }],
+          take: limit,
+        }),
+    );
+    const todos = await runCloudflareTraceSpan(
+      "search.workspace.todos",
+      { "search.scope": "workspace" },
+      () =>
+        tx.todo.findMany({
+          where: {
+            userId,
+            OR: [{ title: ilike(query) }, { content: ilike(query) }],
+          },
+          select: {
+            id: true,
+            title: true,
+            dueAt: true,
+            completed: true,
+          },
+          orderBy: [{ dueAt: "asc" }, { createdAt: "desc" }],
+          take: limit,
+        }),
+    );
 
     const groups: GlobalSearchResultGroup[] = [];
     if (homeworks.length > 0) {
@@ -276,29 +287,37 @@ export async function searchGlobally(input: {
 }): Promise<GlobalSearchResponse> {
   const query = input.query.trim();
   const limit = input.limit ?? DEFAULT_LIMIT;
+  const userId = input.userId;
   if (query.length < CATALOG_SEARCH_MIN_LENGTH) {
     return { query, groups: [] };
   }
 
-  const catalogGroupsPromise = searchCachedCatalogGroups({
-    limit,
-    locale: input.locale,
-    origin: input.origin,
-    query,
-  });
-  const workspaceGroupsPromise = input.userId
-    ? searchWorkspaceGroups(query, input.userId, input.locale, limit).catch(
-        (error): GlobalSearchResultGroup[] => {
-          // Workspace results are optional; catalog results still stand on their own.
-          logAppEvent(
-            "warn",
-            "Global search workspace query failed",
-            { source: "global-search" },
-            error,
-          );
-          return [];
-        },
-      )
+  const catalogGroupsPromise = runCloudflareTraceSpan(
+    "search.catalog",
+    { "search.scope": "catalog" },
+    () =>
+      searchCachedCatalogGroups({
+        limit,
+        locale: input.locale,
+        origin: input.origin,
+        query,
+      }),
+  );
+  const workspaceGroupsPromise = userId
+    ? runCloudflareTraceSpan(
+        "search.workspace",
+        { "search.scope": "workspace" },
+        () => searchWorkspaceGroups(query, userId, input.locale, limit),
+      ).catch((error): GlobalSearchResultGroup[] => {
+        // Workspace results are optional; catalog results still stand on their own.
+        logAppEvent(
+          "warn",
+          "Global search workspace query failed",
+          { source: "global-search" },
+          error,
+        );
+        return [];
+      })
     : Promise.resolve([]);
   const [catalogGroups, workspaceGroups] = await Promise.all([
     catalogGroupsPromise,
