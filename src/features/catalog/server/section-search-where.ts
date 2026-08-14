@@ -14,6 +14,18 @@ function localizedNameCondition(value: string) {
   };
 }
 
+function generalSearchCondition(value: string): Prisma.SectionWhereInput {
+  return {
+    OR: [
+      { course: { nameCn: ilike(value) } },
+      { course: { nameEn: ilike(value) } },
+      { course: { code: ilike(value) } },
+      { code: ilike(value) },
+      { teachers: { some: localizedNameCondition(value) } },
+    ],
+  };
+}
+
 const SECTION_SEARCH_CONDITIONS: Array<{
   key: SectionSearchConditionKey;
   build: (value: string) => Prisma.SectionWhereInput | undefined;
@@ -120,33 +132,9 @@ export function buildSectionSearchWhere(
   });
 
   if (parsed.general) {
-    conditions.push({
-      OR: [
-        {
-          course: {
-            nameCn: ilike(parsed.general),
-          },
-        },
-        {
-          course: {
-            nameEn: ilike(parsed.general),
-          },
-        },
-        {
-          course: {
-            code: ilike(parsed.general),
-          },
-        },
-        {
-          code: ilike(parsed.general),
-        },
-        {
-          teachers: {
-            some: localizedNameCondition(parsed.general),
-          },
-        },
-      ],
-    });
+    conditions.push(
+      ...[...new Set(parsed.general.split(/\s+/u))].map(generalSearchCondition),
+    );
   }
 
   return {

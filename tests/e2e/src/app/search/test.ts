@@ -41,6 +41,39 @@ test("search page supports keyboard navigation into results", async ({
   await expect(page.getByRole("option").first()).toBeFocused();
 });
 
+test("search page matches course and teacher terms in one section", async ({
+  page,
+}) => {
+  const query = "线性代数 林璟锵";
+  const runtimeErrors: string[] = [];
+  page.on("console", (message) => {
+    if (message.type() === "error") runtimeErrors.push(message.text());
+  });
+  page.on("pageerror", (error) => runtimeErrors.push(error.message));
+  await gotoAndWaitForReady(page, "/search");
+
+  const searchResponse = page.waitForResponse(
+    (response) =>
+      response.url().includes("/api/search") &&
+      new URL(response.url()).searchParams.get("q") === query &&
+      response.ok(),
+  );
+  await page.getByRole("combobox").fill(query);
+  await searchResponse;
+
+  await expect(page).toHaveURL(/\/search\?q=/);
+  await expect(page).toHaveTitle(/^(搜索|Search) - Life@USTC$/);
+  await expect(page.locator("vite-error-overlay")).toHaveCount(0);
+  await expect(
+    page
+      .getByRole("option", {
+        name: /线性代数进阶.*林璟锵|Advanced Linear Algebra.*Lin Jingqiang/i,
+      })
+      .first(),
+  ).toBeVisible();
+  expect(runtimeErrors).toEqual([]);
+});
+
 test("页面契约", async ({ page }, testInfo) => {
   await assertPageContract(page, { routePath: "/search", testInfo });
 });
