@@ -57,6 +57,7 @@ describe("buildOAuthProviderPlugin", () => {
         refreshTokenExpiresIn: OAUTH_REFRESH_TOKEN_EXPIRES_IN_SECONDS,
         resource: "https://life.example/api/mcp",
         enforcePerClientResources: false,
+        cachedResources: new Set(["https://life.example/api/mcp"]),
         resources: [
           {
             allowedScopes: [...OAUTH_PROVIDER_SCOPES],
