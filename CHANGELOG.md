@@ -1,3 +1,16 @@
+## [1.89.11](https://github.com/Life-USTC/server/compare/v1.89.10...v1.89.11) (2026-08-14)
+
+
+### Bug Fixes
+
+* **subscriptions:** keep computed names out of RLS queries ([#826](https://github.com/Life-USTC/server/issues/826)) ([8d23547](https://github.com/Life-USTC/server/commit/8d23547ea719a23d61f496c1599c7d599a5beb64))
+
+
+### Performance Improvements
+
+* **catalog:** bound public teacher payloads ([#820](https://github.com/Life-USTC/server/issues/820)) ([92440af](https://github.com/Life-USTC/server/commit/92440afcc423ab6ba90e955910e6c4ee4205e14b))
+* **workspace:** bound overview calendar data ([#822](https://github.com/Life-USTC/server/issues/822)) ([c0b16b1](https://github.com/Life-USTC/server/commit/c0b16b14ece18d1689a4b404cefb26ad6afc00c7))
+
 ## [1.89.10](https://github.com/Life-USTC/server/compare/v1.89.9...v1.89.10) (2026-08-13)
 
 
