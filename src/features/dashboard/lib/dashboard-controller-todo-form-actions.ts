@@ -41,10 +41,12 @@ export function createDashboardTodoAction({
 
 export function updateDashboardTodoAction({
   getTodosCopy,
+  onClose,
   setError,
   setUpdating,
 }: {
   getTodosCopy: () => TodoCopy;
+  onClose: () => void;
   setError: Setter<string>;
   setUpdating: Setter<boolean>;
 }): SubmitFunction {
@@ -53,6 +55,7 @@ export function updateDashboardTodoAction({
     return updateTodoSubmitAction({
       actionResultError,
       fallbackMessage: todosCopy.saveFailed,
+      onClose,
       setError,
       setUpdating,
       validate: (data) => validateDashboardTodoForm(data, todosCopy),

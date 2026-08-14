@@ -252,6 +252,9 @@ const { createHomeworkAction, createTodoAction, updateTodoAction } =
     setEditTodoError: (value) => {
       editTodoError = value;
     },
+    setEditingTodo: (value) => {
+      editingTodo = value;
+    },
     setShowCreateTodo: (value) => {
       showCreateTodo = value;
     },

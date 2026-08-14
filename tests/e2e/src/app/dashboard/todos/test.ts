@@ -263,6 +263,7 @@ test.describe("仪表盘待办", () => {
       await expect(saveButton).toBeEnabled();
       await saveButton.click();
       await expect((await updateResponse).status()).toBe(200);
+      await expect(editDialog).toBeHidden();
       await expect(visibleText(page, editedTitle)).toBeVisible({
         timeout: 15_000,
       });
@@ -271,8 +272,6 @@ test.describe("仪表盘待办", () => {
       ).toHaveCount(0);
       await captureStepScreenshot(page, testInfo, "dashboard-todos-edited");
 
-      // Reload before cleanup so deletion starts from server-confirmed state.
-      await gotoAndWaitForReady(page, "/workspace/todos");
       await page
         .getByRole("button", { name: editedTitle, exact: true })
         .click();
