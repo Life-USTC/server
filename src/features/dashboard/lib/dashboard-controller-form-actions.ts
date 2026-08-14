@@ -28,6 +28,7 @@ export function createDashboardFormSubmitActions({
   setCreatingHomework,
   setCreatingTodo,
   setEditTodoError,
+  setEditingTodo,
   setShowCreateTodo,
   setUpdatingTodo,
 }: {
@@ -38,6 +39,7 @@ export function createDashboardFormSubmitActions({
   setCreatingHomework: Setter<boolean>;
   setCreatingTodo: Setter<boolean>;
   setEditTodoError: Setter<string>;
+  setEditingTodo: Setter<null>;
   setShowCreateTodo: Setter<boolean>;
   setUpdatingTodo: Setter<boolean>;
 }) {
@@ -57,6 +59,9 @@ export function createDashboardFormSubmitActions({
     }),
     updateTodoAction: updateDashboardTodoAction({
       getTodosCopy,
+      onClose: () => {
+        setEditingTodo(null);
+      },
       setError: setEditTodoError,
       setUpdating: setUpdatingTodo,
     }),

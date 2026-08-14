@@ -97,6 +97,31 @@ test("/admin/moderation 管理员访问成功", async ({ page }, testInfo) => {
   await captureStepScreenshot(page, testInfo, "admin-moderation-home");
 });
 
+test("/admin/moderation 刷新队列并保留当前视图", async ({ page }) => {
+  await signInAsDevAdmin(page, "/admin/moderation?tab=descriptions");
+  const refreshButton = page.getByRole("button", {
+    name: /刷新队列|Refresh queue/i,
+  });
+  await expect(refreshButton).toBeVisible();
+  await expect(refreshButton).toBeEnabled();
+
+  const refreshResponse = page.waitForResponse(
+    (response) =>
+      response.request().method() === "GET" &&
+      response.url().includes("/admin/moderation") &&
+      response.url().includes("__data.json"),
+  );
+  await refreshButton.click();
+  await expect((await refreshResponse).status()).toBe(200);
+
+  await expect(page).toHaveURL(/\/admin\/moderation\?tab=descriptions$/);
+  await expect(refreshButton).toBeVisible();
+  await expect(refreshButton).toBeEnabled();
+  await expect(
+    page.getByRole("link", { name: /课程简介|Descriptions/i }),
+  ).toHaveAttribute("aria-current", "page");
+});
+
 test("/admin/moderation 无效标签回退到评论", async ({ page }) => {
   await signInAsDevAdmin(page, "/admin/moderation?tab=bad");
   await expect(page.locator('input[type="hidden"][name="tab"]')).toHaveValue(

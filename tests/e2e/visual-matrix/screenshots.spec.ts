@@ -42,7 +42,7 @@ const VISUAL_SCREENS: VisualScreen[] = [
           name:
             locale === "zh-cn"
               ? /课程、课表与校园生活，一站搞定/
-              : /start with public campus tools/i,
+              : /courses, schedules, and campus life/i,
         }),
       ).toBeVisible();
     },

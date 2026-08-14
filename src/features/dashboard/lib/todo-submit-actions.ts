@@ -50,12 +50,14 @@ export function createTodoSubmitAction({
 
 export function updateTodoSubmitAction({
   fallbackMessage,
+  onClose,
   setError,
   setUpdating,
   validate,
   actionResultError,
 }: {
   fallbackMessage: string;
+  onClose: () => void;
   setError: (value: string) => void;
   setUpdating: (value: boolean) => void;
   validate: (formData: FormData) => string;
@@ -82,6 +84,8 @@ export function updateTodoSubmitAction({
           return;
         }
         await update();
+        setError("");
+        onClose();
       } finally {
         setUpdating(false);
       }
