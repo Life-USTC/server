@@ -1,6 +1,7 @@
 import { type APIRequestContext, expect, type Page } from "@playwright/test";
+import { resolveE2EBaseUrl } from "../base-url";
 
-export const PLAYWRIGHT_BASE_URL = "http://localhost:3000";
+export const PLAYWRIGHT_BASE_URL = resolveE2EBaseUrl();
 
 export function generateToken(bytes = 24) {
   const array = new Uint8Array(bytes);
