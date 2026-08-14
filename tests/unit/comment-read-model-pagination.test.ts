@@ -240,6 +240,7 @@ describe("loadCommentThread pagination", () => {
         },
       }),
     );
+    expect(withUserDbContextMock).toHaveBeenCalledTimes(3);
   });
 
   it("loads OIDC provider badges once for all comment authors", async () => {

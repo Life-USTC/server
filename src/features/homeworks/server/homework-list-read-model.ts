@@ -1,11 +1,11 @@
 import type { AppLocale } from "@/i18n/config";
 import { DEFAULT_LOCALE } from "@/i18n/config";
 import { getViewerContext } from "@/lib/auth/viewer-context";
-import { getPrisma, prisma } from "@/lib/db/prisma";
+import { getPrisma, prisma, withUserDbContext } from "@/lib/db/prisma";
 import {
+  attachHomeworkCompletionsForViewer,
   homeworkItemInclude,
   homeworkItemResponse,
-  withHomeworkCompletionsForViewer,
 } from "./homework-read-model";
 
 type SectionHomeworkListInput = {
@@ -77,20 +77,42 @@ export async function listSectionHomeworkItems({
   sectionIds,
   viewerUserId,
 }: SectionHomeworkItemInput) {
-  const homeworks = await getPrisma(locale).homework.findMany({
-    where: {
-      ...homeworkSectionWhere(sectionIds),
-      ...(includeDeleted ? {} : { deletedAt: null }),
-    },
-    include: homeworkItemInclude(),
-    orderBy: [{ submissionDueAt: "asc" }, { createdAt: "desc" }],
-  });
+  const loadHomeworks = () =>
+    getPrisma(locale).homework.findMany({
+      where: {
+        ...homeworkSectionWhere(sectionIds),
+        ...(includeDeleted ? {} : { deletedAt: null }),
+      },
+      include: homeworkItemInclude(),
+      orderBy: [{ submissionDueAt: "asc" }, { createdAt: "desc" }],
+    });
 
-  const homeworksWithCompletions = await withHomeworkCompletionsForViewer(
-    homeworks,
-    viewerUserId,
+  if (!viewerUserId) {
+    const homeworks = await loadHomeworks();
+    return attachHomeworkCompletionsForViewer(homeworks, []).map(
+      homeworkItemResponse,
+    );
+  }
+
+  const [homeworks, completions] = await Promise.all([
+    loadHomeworks(),
+    withUserDbContext(viewerUserId, (tx) =>
+      tx.homeworkCompletion.findMany({
+        where: {
+          userId: viewerUserId,
+          homework: {
+            ...homeworkSectionWhere(sectionIds),
+            ...(includeDeleted ? {} : { deletedAt: null }),
+          },
+        },
+        select: { homeworkId: true, completedAt: true },
+      }),
+    ),
+  ]);
+
+  return attachHomeworkCompletionsForViewer(homeworks, completions).map(
+    homeworkItemResponse,
   );
-  return homeworksWithCompletions.map(homeworkItemResponse);
 }
 
 export function listSectionHomeworkAuditLogs(sectionIds: readonly number[]) {
@@ -108,17 +130,16 @@ export async function listSectionHomeworksWithAudit({
   sectionIds,
   userId,
 }: SectionHomeworkListWithAuditInput) {
-  const viewer = await getViewerContext({
-    includeAdmin: true,
-    userId: userId ?? null,
-  });
-
-  const [homeworks, auditLogs] = await Promise.all([
+  const [viewer, homeworks, auditLogs] = await Promise.all([
+    getViewerContext({
+      includeAdmin: true,
+      userId: userId ?? null,
+    }),
     listSectionHomeworkItems({
       includeDeleted,
       locale,
       sectionIds,
-      viewerUserId: viewer.userId,
+      viewerUserId: userId,
     }),
     listSectionHomeworkAuditLogs(sectionIds),
   ]);
