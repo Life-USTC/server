@@ -3,7 +3,10 @@ import {
   buildScheduleListWhere,
   type ScheduleListFilters,
 } from "@/features/catalog/lib/schedule-filters";
-import { scheduleTeacherSelect } from "@/features/catalog/server/academic-query-includes";
+import {
+  scheduleTeacherSelect,
+  sectionPublicContextSelect,
+} from "@/features/catalog/server/academic-query-includes";
 import type { Prisma } from "@/generated/prisma/client";
 import type { AppLocale } from "@/i18n/config";
 import { DEFAULT_LOCALE } from "@/i18n/config";
@@ -64,27 +67,6 @@ export const sectionScheduleListInclude = {
   },
 } satisfies Prisma.ScheduleInclude;
 
-const sectionScheduleContextSelect = {
-  id: true,
-  jwId: true,
-  code: true,
-  course: {
-    select: {
-      jwId: true,
-      code: true,
-      nameCn: true,
-      nameEn: true,
-    },
-  },
-  semester: {
-    select: {
-      jwId: true,
-      code: true,
-      nameCn: true,
-    },
-  },
-} as const satisfies Prisma.SectionSelect;
-
 export async function listPublicSchedules(input: {
   filters: ScheduleListFilters;
   locale?: AppLocale;
@@ -125,51 +107,6 @@ export async function listPublicSchedules(input: {
   });
 }
 
-export async function findSectionScheduleContextByJwId(input: {
-  locale?: AppLocale;
-  sectionJwId: number;
-}) {
-  return getPrisma(input.locale ?? DEFAULT_LOCALE).section.findUnique({
-    where: { jwId: input.sectionJwId },
-    select: sectionScheduleContextSelect,
-  });
-}
-
-export async function listSchedulesBySectionId(input: {
-  dateFrom?: Date;
-  dateTo?: Date;
-  includeSection?: boolean;
-  limit?: number;
-  locale?: AppLocale;
-  sectionId: number;
-}) {
-  const prisma = getPrisma(input.locale ?? DEFAULT_LOCALE);
-  const where = {
-    sectionId: input.sectionId,
-    ...buildScheduleDateWhere(input),
-  };
-
-  if (input.includeSection) {
-    const schedules = await prisma.schedule.findMany({
-      where,
-      include: sectionScheduleListInclude,
-      orderBy: [{ date: "asc" }, { startTime: "asc" }],
-      ...(input.limit !== undefined && { take: input.limit }),
-    });
-
-    return schedules.map(serializeScheduleTimeFields);
-  }
-
-  const schedules = await prisma.schedule.findMany({
-    where,
-    include: sectionScheduleInclude,
-    orderBy: [{ date: "asc" }, { startTime: "asc" }],
-    ...(input.limit !== undefined && { take: input.limit }),
-  });
-
-  return schedules.map(serializeScheduleTimeFields);
-}
-
 export async function getSectionSchedulesByJwId(input: {
   dateFrom?: Date;
   dateTo?: Date;
@@ -178,29 +115,27 @@ export async function getSectionSchedulesByJwId(input: {
   locale?: AppLocale;
   sectionJwId: number;
 }) {
-  const section = await findSectionScheduleContextByJwId(input);
-  if (!section) return { found: false as const };
-
-  if (input.includeSection) {
-    const schedules = await listSchedulesBySectionId({
-      dateFrom: input.dateFrom,
-      dateTo: input.dateTo,
-      includeSection: true,
-      limit: input.limit,
-      locale: input.locale,
-      sectionId: section.id,
-    });
-
-    return { found: true as const, section, schedules };
-  }
-
-  const schedules = await listSchedulesBySectionId({
-    dateFrom: input.dateFrom,
-    dateTo: input.dateTo,
-    limit: input.limit,
-    locale: input.locale,
-    sectionId: section.id,
+  const sectionWithSchedules = await getPrisma(
+    input.locale ?? DEFAULT_LOCALE,
+  ).section.findUnique({
+    where: { jwId: input.sectionJwId },
+    select: {
+      ...sectionPublicContextSelect,
+      schedules: {
+        where: buildScheduleDateWhere(input),
+        include: input.includeSection
+          ? sectionScheduleListInclude
+          : sectionScheduleInclude,
+        orderBy: [{ date: "asc" }, { startTime: "asc" }],
+        ...(input.limit !== undefined && { take: input.limit }),
+      },
+    },
   });
+
+  if (!sectionWithSchedules) return { found: false as const };
+
+  const { schedules: rawSchedules, ...section } = sectionWithSchedules;
+  const schedules = rawSchedules.map(serializeScheduleTimeFields);
 
   return { found: true as const, section, schedules };
 }

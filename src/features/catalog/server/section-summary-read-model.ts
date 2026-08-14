@@ -1,14 +1,11 @@
 import type { Prisma } from "@/generated/prisma/client";
 import type { AppLocale } from "@/i18n/config";
 import { DEFAULT_LOCALE } from "@/i18n/config";
-import { getPrisma } from "@/lib/db/prisma";
-import { parseIntegerFilter } from "@/lib/query-filter-helpers";
 import {
   paginatedSectionCatalogQuery,
   paginatedSectionSummaryQuery,
 } from "./academic-paginated-queries";
 import { cachedCatalogListRead } from "./catalog-list-cache";
-import { resolveCourseIdByJwId } from "./course-jw-id";
 import {
   buildSectionListQuery,
   type SectionListFilters,
@@ -17,27 +14,6 @@ import {
 export const SECTION_SUMMARY_DEFAULT_ORDER_BY = {
   semester: { jwId: "desc" },
 } satisfies Prisma.SectionOrderByWithRelationInput;
-
-async function resolveSectionListQuery(
-  filters: SectionListFilters,
-  locale: AppLocale,
-) {
-  const query = buildSectionListQuery(filters);
-  const courseJwId = parseIntegerFilter(filters.courseJwId);
-  if (courseJwId == null) return query;
-
-  const requestedCourseId = parseIntegerFilter(filters.courseId);
-  const canonicalCourseId = await resolveCourseIdByJwId(
-    getPrisma(locale),
-    courseJwId,
-  );
-  query.where.courseId =
-    canonicalCourseId == null ||
-    (requestedCourseId != null && requestedCourseId !== canonicalCourseId)
-      ? { in: [] }
-      : canonicalCourseId;
-  return query;
-}
 
 export async function listSectionSummaries({
   filters,
@@ -58,7 +34,7 @@ export async function listSectionSummaries({
     pagination,
     shape: "summary",
     load: async () => {
-      const { where, orderBy } = await resolveSectionListQuery(filters, locale);
+      const { where, orderBy } = buildSectionListQuery(filters);
       return paginatedSectionSummaryQuery(
         pagination.page,
         pagination.pageSize,
@@ -89,7 +65,7 @@ export async function listSections({
     pagination,
     shape: "catalog",
     load: async () => {
-      const { where, orderBy } = await resolveSectionListQuery(filters, locale);
+      const { where, orderBy } = buildSectionListQuery(filters);
       return paginatedSectionCatalogQuery(
         pagination.page,
         pagination.pageSize,
