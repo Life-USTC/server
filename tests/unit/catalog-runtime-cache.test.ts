@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
-  catalogApiListCacheKey,
+  catalogListReadCacheKey,
+  catalogListReadCacheNamespace,
+} from "@/features/catalog/server/catalog-list-cache";
+import {
   catalogListCacheNamespace,
   publicCatalogColoCacheKey,
   publicCatalogKvCacheKey,
@@ -22,23 +25,39 @@ describe("catalog runtime cache keys", () => {
     );
   });
 
-  it("namespaces list caches by kind, locale, and scope", () => {
-    expect(catalogListCacheNamespace("courses", "en-us", "api")).toBe(
-      "api:courses-list:en-us",
+  it("separates shared read and page cache namespaces", () => {
+    expect(catalogListReadCacheNamespace("courses", "en-us")).toBe(
+      "catalog:courses-list:en-us",
+    );
+    expect(catalogListCacheNamespace("courses", "en-us", "page")).toBe(
+      "page:courses-list:en-us",
     );
   });
 
-  it("builds API list keys only from canonical filters and pagination", () => {
+  it("canonicalizes shared list filters independently of transport key order", () => {
     expect(
-      catalogApiListCacheKey({
-        filters: { categoryId: "7", search: "math" },
+      catalogListReadCacheKey({
+        filters: { search: "math", categoryId: "7", ids: [3, 1] },
         pagination: { page: 2, pageSize: 20 },
+        shape: "summary",
       }),
     ).toBe(
       JSON.stringify({
-        filters: { categoryId: "7", search: "math" },
+        filters: { categoryId: "7", ids: [1, 3], search: "math" },
         pagination: { page: 2, pageSize: 20 },
+        shape: "summary",
       }),
     );
+  });
+
+  it("includes response shape and serializes dates", () => {
+    const filters = { dateFrom: new Date("2026-08-14T00:00:00.000Z") };
+    expect(
+      catalogListReadCacheKey({
+        filters,
+        pagination: { page: 1, pageSize: 20 },
+        shape: "catalog",
+      }),
+    ).toContain("2026-08-14T00:00:00.000Z");
   });
 });

@@ -94,20 +94,7 @@ export async function cachedCatalogListRuntimeData<T>(
 export function catalogListCacheNamespace(
   kind: "courses" | "sections" | "teachers",
   locale: AppLocale,
-  scope: "api" | "page",
+  scope: "page",
 ): PublicRuntimeCacheAnalyticsNamespace {
   return `${scope}:${kind}-list:${locale}`;
-}
-
-export function catalogApiListCacheKey(input: {
-  filters: Readonly<Record<string, unknown>>;
-  pagination: { page: number; pageSize: number };
-}) {
-  return JSON.stringify({
-    filters: input.filters,
-    pagination: {
-      page: input.pagination.page,
-      pageSize: input.pagination.pageSize,
-    },
-  });
 }

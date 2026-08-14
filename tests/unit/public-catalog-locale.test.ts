@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { resolvePublicCatalogLocale } from "@/lib/api/routes/request-locale";
 import {
   PRIVATE_LOCALE_CATALOG_HEADERS,
-  PUBLIC_LOCALE_CATALOG_HEADERS,
+  PUBLIC_CATALOG_HEADERS,
 } from "@/lib/public-cache-control";
 
 function expectHeaders(
@@ -35,10 +35,10 @@ describe("public catalog locale cache policy", () => {
     if (result instanceof Response) return;
 
     expect(result.locale).toBe(locale);
-    expect(result.cacheHeaders).toBe(PUBLIC_LOCALE_CATALOG_HEADERS);
+    expect(result.cacheHeaders).toBe(PUBLIC_CATALOG_HEADERS);
   });
 
-  it("keeps a cookie-derived locale out of browser and CDN caches", () => {
+  it("defaults omitted locale to canonical zh-cn and ignores cookies", () => {
     const result = resolvePublicCatalogLocale(
       new Request("https://example.test/api/catalog/courses?page=1", {
         headers: {
@@ -52,10 +52,10 @@ describe("public catalog locale cache policy", () => {
     if (result instanceof Response) return;
 
     expect(result.locale).toBe("zh-cn");
-    expect(result.cacheHeaders).toBe(PRIVATE_LOCALE_CATALOG_HEADERS);
+    expect(result.cacheHeaders).toBe(PUBLIC_CATALOG_HEADERS);
   });
 
-  it("keeps an Accept-Language-derived locale out of shared caches", () => {
+  it("defaults omitted locale to canonical zh-cn and ignores Accept-Language", () => {
     const result = resolvePublicCatalogLocale(
       new Request("https://example.test/api/catalog/courses?page=1", {
         headers: { "accept-language": "en-US,en;q=0.9" },
@@ -65,8 +65,8 @@ describe("public catalog locale cache policy", () => {
     expect(result).not.toBeInstanceOf(Response);
     if (result instanceof Response) return;
 
-    expect(result.locale).toBe("en-us");
-    expect(result.cacheHeaders).toBe(PRIVATE_LOCALE_CATALOG_HEADERS);
+    expect(result.locale).toBe("zh-cn");
+    expect(result.cacheHeaders).toBe(PUBLIC_CATALOG_HEADERS);
   });
 
   it("rejects an unsupported explicit locale without caching the error", async () => {

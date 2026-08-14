@@ -13,6 +13,7 @@ import {
   serializeScheduleGroupTimeFields,
   serializeScheduleTimeFields,
 } from "@/shared/lib/schedule-serialization";
+import { cachedCatalogListRead } from "./catalog-list-cache";
 
 export const publicScheduleInclude = {
   room: {
@@ -90,28 +91,38 @@ export async function listPublicSchedules(input: {
   page: number;
   pageSize?: number;
 }) {
-  const prisma = getPrisma(input.locale ?? DEFAULT_LOCALE);
-  const where = buildScheduleListWhere(input.filters, {
-    excludeRetiredSections: true,
-  });
-  const result = await paginatedQuery(
-    (skip, take) =>
-      prisma.schedule.findMany({
-        where,
-        skip,
-        take,
-        include: publicScheduleInclude,
-        orderBy: [{ date: "asc" }, { startTime: "asc" }],
-      }),
-    () => prisma.schedule.count({ where }),
-    input.page,
-    input.pageSize,
-  );
+  const locale = input.locale ?? DEFAULT_LOCALE;
+  return cachedCatalogListRead({
+    filters: input.filters,
+    kind: "schedules",
+    locale,
+    pagination: { page: input.page, pageSize: input.pageSize ?? 20 },
+    shape: "catalog",
+    load: async () => {
+      const prisma = getPrisma(locale);
+      const where = buildScheduleListWhere(input.filters, {
+        excludeRetiredSections: true,
+      });
+      const result = await paginatedQuery(
+        (skip, take) =>
+          prisma.schedule.findMany({
+            where,
+            skip,
+            take,
+            include: publicScheduleInclude,
+            orderBy: [{ date: "asc" }, { startTime: "asc" }],
+          }),
+        () => prisma.schedule.count({ where }),
+        input.page,
+        input.pageSize,
+      );
 
-  return {
-    ...result,
-    data: result.data.map(serializeScheduleTimeFields),
-  };
+      return {
+        ...result,
+        data: result.data.map(serializeScheduleTimeFields),
+      };
+    },
+  });
 }
 
 export async function findSectionScheduleContextByJwId(input: {

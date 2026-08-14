@@ -3,10 +3,6 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 const PUBLIC_CATALOG_CDN_CACHE =
   "public, max-age=86400, stale-while-revalidate=300";
 
-vi.mock("@/lib/catalog-detail-cache-revision", () => ({
-  getCatalogDetailCacheRevision: vi.fn().mockResolvedValue("test-revision"),
-}));
-
 const { listCourseSummariesMock, listTeacherSummariesMock } = vi.hoisted(
   () => ({
     listCourseSummariesMock: vi.fn(async () => ({
@@ -30,23 +26,14 @@ vi.mock("@/features/catalog/server/course-section-queries", () => ({
   listTeacherSummaries: listTeacherSummariesMock,
 }));
 
-function clearPublicRuntimeCache() {
-  delete (
-    globalThis as typeof globalThis & {
-      __lifeUstcPublicRuntimeCache?: unknown;
-    }
-  ).__lifeUstcPublicRuntimeCache;
-}
-
-describe("academic 列表路由缓存", () => {
+describe("academic 列表路由公共缓存策略", () => {
   afterEach(() => {
     listCourseSummariesMock.mockClear();
     listTeacherSummariesMock.mockClear();
-    clearPublicRuntimeCache();
     vi.resetModules();
   });
 
-  it("对等价查询字符串缓存课程列表响应", async () => {
+  it("课程列表返回确定性的公共缓存策略", async () => {
     const { getCoursesRoute } = await import(
       "@/lib/api/routes/academic-course-routes"
     );
@@ -68,12 +55,12 @@ describe("academic 列表路由缓存", () => {
     expect(first.headers.get("Cloudflare-CDN-Cache-Control")).toBe(
       PUBLIC_CATALOG_CDN_CACHE,
     );
-    expect(first.headers.get("Vary")).toBe("Accept-Language, Cookie");
+    expect(first.headers.get("Vary")).toBeNull();
     expect(second.status).toBe(200);
-    expect(listCourseSummariesMock).toHaveBeenCalledTimes(1);
+    expect(listCourseSummariesMock).toHaveBeenCalledTimes(2);
   });
 
-  it("对等价查询字符串缓存教师列表响应", async () => {
+  it("教师列表返回确定性的公共缓存策略", async () => {
     const { getTeachersRoute } = await import(
       "@/lib/api/routes/academic-teacher-routes"
     );
@@ -95,12 +82,12 @@ describe("academic 列表路由缓存", () => {
     expect(first.headers.get("Cloudflare-CDN-Cache-Control")).toBe(
       PUBLIC_CATALOG_CDN_CACHE,
     );
-    expect(first.headers.get("Vary")).toBe("Accept-Language, Cookie");
+    expect(first.headers.get("Vary")).toBeNull();
     expect(second.status).toBe(200);
-    expect(listTeacherSummariesMock).toHaveBeenCalledTimes(1);
+    expect(listTeacherSummariesMock).toHaveBeenCalledTimes(2);
   });
 
-  it("does not publicly cache a locale negotiated from request headers", async () => {
+  it("defaults to public zh-cn instead of negotiating request headers", async () => {
     const { getCoursesRoute } = await import(
       "@/lib/api/routes/academic-course-routes"
     );
@@ -111,10 +98,15 @@ describe("academic 列表路由缓存", () => {
       }),
     );
 
-    expect(response.headers.get("Cache-Control")).toBe("private, no-store");
-    expect(response.headers.get("Cloudflare-CDN-Cache-Control")).toBe(
-      "no-store",
+    expect(response.headers.get("Cache-Control")).toBe(
+      "public, max-age=0, stale-while-revalidate=300",
     );
-    expect(response.headers.get("Vary")).toBe("Accept-Language, Cookie");
+    expect(response.headers.get("Cloudflare-CDN-Cache-Control")).toBe(
+      PUBLIC_CATALOG_CDN_CACHE,
+    );
+    expect(response.headers.get("Vary")).toBeNull();
+    expect(listCourseSummariesMock).toHaveBeenCalledWith(
+      expect.objectContaining({ locale: "zh-cn" }),
+    );
   });
 });

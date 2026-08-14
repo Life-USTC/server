@@ -7,11 +7,6 @@ import {
 import { parseResourceIdRouteParam } from "@/lib/api/routes/academic-route-helpers";
 import { resolvePublicCatalogLocale } from "@/lib/api/routes/request-locale";
 import { teachersQuerySchema } from "@/lib/api/schemas/request-schemas";
-import {
-  cachedCatalogRuntimeData,
-  catalogApiListCacheKey,
-  catalogListCacheNamespace,
-} from "@/lib/catalog-runtime-cache";
 
 export async function getTeachersRoute(request: Request) {
   const localeResolution = resolvePublicCatalogLocale(request);
@@ -34,26 +29,15 @@ export async function getTeachersRoute(request: Request) {
   const { locale: _locale, ...filters } = parsedQuery;
   const { cacheHeaders, locale } = localeResolution;
 
-  const origin = new URL(request.url).origin;
-  const namespace = catalogListCacheNamespace("teachers", locale, "api");
-  const cacheKey = catalogApiListCacheKey({ filters, pagination });
-
   try {
-    const result = await cachedCatalogRuntimeData(
-      namespace,
-      cacheKey,
-      origin,
-      async () => {
-        const { listTeacherSummaries } = await import(
-          "@/features/catalog/server/course-section-queries"
-        );
-        return listTeacherSummaries({
-          filters,
-          locale,
-          pagination,
-        });
-      },
+    const { listTeacherSummaries } = await import(
+      "@/features/catalog/server/course-section-queries"
     );
+    const result = await listTeacherSummaries({
+      filters,
+      locale,
+      pagination,
+    });
     return jsonResponse(result, {
       headers: cacheHeaders,
     });

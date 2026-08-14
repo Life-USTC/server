@@ -84,6 +84,11 @@ export type PublicRuntimeCacheAnalyticsNamespace =
   | `search:catalog:${AppLocale}`
   | `search:catalog:v3:${AppLocale}`
   | `bus:timetable:${AppLocale}`
+  | `catalog:${
+      | "courses"
+      | "schedules"
+      | "sections"
+      | "teachers"}-list:${AppLocale}`
   | `${
       | "api:courses"
       | "api:courses-list"

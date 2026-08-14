@@ -54,11 +54,6 @@ export const TIME_SENSITIVE_PRIVATE_HEADERS = {
   Vary: "Accept-Language, Cookie",
 } as const;
 
-export const PUBLIC_LOCALE_CATALOG_HEADERS = {
-  ...PUBLIC_CATALOG_HEADERS,
-  Vary: "Accept-Language, Cookie",
-} as const;
-
 export const PRIVATE_LOCALE_CATALOG_HEADERS = {
   "Cache-Control": "private, no-store",
   "Cloudflare-CDN-Cache-Control": "no-store",

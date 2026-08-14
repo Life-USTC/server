@@ -34,6 +34,10 @@ vi.mock("@/lib/db/prisma", () => ({
   getPrisma: getPrismaMock,
 }));
 
+vi.mock("@/features/catalog/server/catalog-list-cache", () => ({
+  cachedCatalogListRead: ({ load }: { load: () => Promise<unknown> }) => load(),
+}));
+
 describe("课程目录摘要读取模型", () => {
   beforeEach(() => {
     buildCourseListWhereMock.mockReset();
@@ -49,7 +53,7 @@ describe("课程目录摘要读取模型", () => {
     const { COURSE_SUMMARY_DEFAULT_ORDER_BY, listCourseSummaries } =
       await import("@/features/catalog/server/course-summary-read-model");
 
-    listCourseSummaries({
+    await listCourseSummaries({
       filters: { search: "math" },
       locale: "en-us",
       pagination: { page: 2, pageSize: 10 },

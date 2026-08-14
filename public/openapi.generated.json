@@ -1337,6 +1337,7 @@
             "in": "query",
             "name": "locale",
             "schema": {
+              "default": "zh-cn",
               "type": "string",
               "enum": [
                 "en-us",
@@ -1499,6 +1500,7 @@
             "in": "query",
             "name": "locale",
             "schema": {
+              "default": "zh-cn",
               "type": "string",
               "enum": [
                 "en-us",
@@ -1660,6 +1662,7 @@
             "in": "query",
             "name": "locale",
             "schema": {
+              "default": "zh-cn",
               "type": "string",
               "enum": [
                 "en-us",
@@ -1890,6 +1893,7 @@
             "in": "query",
             "name": "locale",
             "schema": {
+              "default": "zh-cn",
               "type": "string",
               "enum": [
                 "en-us",
@@ -5036,6 +5040,7 @@
             "in": "query",
             "name": "locale",
             "schema": {
+              "default": "zh-cn",
               "type": "string",
               "enum": [
                 "en-us",
@@ -5132,6 +5137,7 @@
             "in": "query",
             "name": "locale",
             "schema": {
+              "default": "zh-cn",
               "type": "string",
               "enum": [
                 "en-us",
@@ -5352,6 +5358,7 @@
             "in": "query",
             "name": "locale",
             "schema": {
+              "default": "zh-cn",
               "type": "string",
               "enum": [
                 "en-us",
@@ -7640,6 +7647,7 @@
             "in": "query",
             "name": "locale",
             "schema": {
+              "default": "zh-cn",
               "type": "string",
               "enum": [
                 "en-us",
@@ -7696,6 +7704,7 @@
             "in": "query",
             "name": "locale",
             "schema": {
+              "default": "zh-cn",
               "type": "string",
               "enum": [
                 "en-us",
