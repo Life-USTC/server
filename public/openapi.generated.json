@@ -2497,6 +2497,27 @@
                 "false"
               ]
             }
+          },
+          {
+            "in": "query",
+            "name": "page",
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "minimum": 1,
+              "maximum": 100
+            }
+          },
+          {
+            "in": "query",
+            "name": "pageSize",
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "minimum": 1,
+              "maximum": 50
+            },
+            "description": "Number of items per page."
           }
         ],
         "responses": {
@@ -2805,6 +2826,29 @@
             "sessionCookie": []
           }
         ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "page",
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "minimum": 1,
+              "maximum": 100
+            }
+          },
+          {
+            "in": "query",
+            "name": "pageSize",
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "minimum": 1,
+              "maximum": 50
+            },
+            "description": "Number of items per page."
+          }
+        ],
         "responses": {
           "200": {
             "description": "Successful response",
@@ -2812,6 +2856,16 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/subscribedHomeworksResponseSchema"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/openApiErrorSchema"
                 }
               }
             }
@@ -13188,54 +13242,7 @@
       "homeworksListResponseSchema": {
         "type": "object",
         "properties": {
-          "viewer": {
-            "type": "object",
-            "properties": {
-              "userId": {
-                "nullable": true,
-                "type": "string"
-              },
-              "name": {
-                "nullable": true,
-                "type": "string"
-              },
-              "image": {
-                "nullable": true,
-                "type": "string"
-              },
-              "isAdmin": {
-                "type": "boolean"
-              },
-              "isAuthenticated": {
-                "type": "boolean"
-              },
-              "isSuspended": {
-                "type": "boolean"
-              },
-              "suspensionReason": {
-                "nullable": true,
-                "type": "string"
-              },
-              "suspensionExpiresAt": {
-                "nullable": true,
-                "type": "string",
-                "format": "date-time",
-                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
-              }
-            },
-            "required": [
-              "userId",
-              "name",
-              "image",
-              "isAdmin",
-              "isAuthenticated",
-              "isSuspended",
-              "suspensionReason",
-              "suspensionExpiresAt"
-            ],
-            "additionalProperties": false
-          },
-          "homeworks": {
+          "data": {
             "type": "array",
             "items": {
               "type": "object",
@@ -13806,6 +13813,85 @@
               "additionalProperties": false
             }
           },
+          "pagination": {
+            "type": "object",
+            "properties": {
+              "page": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              },
+              "pageSize": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              },
+              "total": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              },
+              "totalPages": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              }
+            },
+            "required": [
+              "page",
+              "pageSize",
+              "total",
+              "totalPages"
+            ],
+            "additionalProperties": false
+          },
+          "viewer": {
+            "type": "object",
+            "properties": {
+              "userId": {
+                "nullable": true,
+                "type": "string"
+              },
+              "name": {
+                "nullable": true,
+                "type": "string"
+              },
+              "image": {
+                "nullable": true,
+                "type": "string"
+              },
+              "isAdmin": {
+                "type": "boolean"
+              },
+              "isAuthenticated": {
+                "type": "boolean"
+              },
+              "isSuspended": {
+                "type": "boolean"
+              },
+              "suspensionReason": {
+                "nullable": true,
+                "type": "string"
+              },
+              "suspensionExpiresAt": {
+                "nullable": true,
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+              }
+            },
+            "required": [
+              "userId",
+              "name",
+              "image",
+              "isAdmin",
+              "isAuthenticated",
+              "isSuspended",
+              "suspensionReason",
+              "suspensionExpiresAt"
+            ],
+            "additionalProperties": false
+          },
           "auditLogs": {
             "type": "array",
             "items": {
@@ -13886,8 +13972,9 @@
           }
         },
         "required": [
+          "data",
+          "pagination",
           "viewer",
-          "homeworks",
           "auditLogs"
         ],
         "additionalProperties": false
@@ -14719,54 +14806,7 @@
       "subscribedHomeworksResponseSchema": {
         "type": "object",
         "properties": {
-          "viewer": {
-            "type": "object",
-            "properties": {
-              "userId": {
-                "nullable": true,
-                "type": "string"
-              },
-              "name": {
-                "nullable": true,
-                "type": "string"
-              },
-              "image": {
-                "nullable": true,
-                "type": "string"
-              },
-              "isAdmin": {
-                "type": "boolean"
-              },
-              "isAuthenticated": {
-                "type": "boolean"
-              },
-              "isSuspended": {
-                "type": "boolean"
-              },
-              "suspensionReason": {
-                "nullable": true,
-                "type": "string"
-              },
-              "suspensionExpiresAt": {
-                "nullable": true,
-                "type": "string",
-                "format": "date-time",
-                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
-              }
-            },
-            "required": [
-              "userId",
-              "name",
-              "image",
-              "isAdmin",
-              "isAuthenticated",
-              "isSuspended",
-              "suspensionReason",
-              "suspensionExpiresAt"
-            ],
-            "additionalProperties": false
-          },
-          "homeworks": {
+          "data": {
             "type": "array",
             "items": {
               "type": "object",
@@ -15337,98 +15377,42 @@
               "additionalProperties": false
             }
           },
-          "auditLogs": {
-            "type": "array",
-            "items": {
-              "type": "object",
-              "properties": {
-                "id": {
-                  "type": "string"
-                },
-                "action": {
-                  "type": "string",
-                  "enum": [
-                    "created",
-                    "deleted"
-                  ]
-                },
-                "titleSnapshot": {
-                  "type": "string"
-                },
-                "createdAt": {
-                  "type": "string",
-                  "format": "date-time",
-                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
-                },
-                "sectionId": {
-                  "type": "integer",
-                  "minimum": -9007199254740991,
-                  "maximum": 9007199254740991
-                },
-                "homeworkId": {
-                  "nullable": true,
-                  "type": "string"
-                },
-                "actorId": {
-                  "nullable": true,
-                  "type": "string"
-                },
-                "actor": {
-                  "nullable": true,
-                  "type": "object",
-                  "properties": {
-                    "id": {
-                      "type": "string"
-                    },
-                    "name": {
-                      "nullable": true,
-                      "type": "string"
-                    },
-                    "username": {
-                      "nullable": true,
-                      "type": "string"
-                    },
-                    "image": {
-                      "nullable": true,
-                      "type": "string"
-                    }
-                  },
-                  "required": [
-                    "id",
-                    "name",
-                    "username",
-                    "image"
-                  ],
-                  "additionalProperties": false
-                }
+          "pagination": {
+            "type": "object",
+            "properties": {
+              "page": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
               },
-              "required": [
-                "id",
-                "action",
-                "titleSnapshot",
-                "createdAt",
-                "sectionId",
-                "homeworkId",
-                "actorId",
-                "actor"
-              ],
-              "additionalProperties": false
-            }
-          },
-          "sectionIds": {
-            "type": "array",
-            "items": {
-              "type": "integer",
-              "minimum": -9007199254740991,
-              "maximum": 9007199254740991
-            }
+              "pageSize": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              },
+              "total": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              },
+              "totalPages": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              }
+            },
+            "required": [
+              "page",
+              "pageSize",
+              "total",
+              "totalPages"
+            ],
+            "additionalProperties": false
           }
         },
         "required": [
-          "viewer",
-          "homeworks",
-          "auditLogs",
-          "sectionIds"
+          "data",
+          "pagination"
         ],
         "additionalProperties": false
       },

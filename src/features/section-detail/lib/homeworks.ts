@@ -18,13 +18,17 @@ export async function loadSectionHomeworks<Viewer, Homework, AuditLog>(
 ) {
   const result = await apiClient.GET<{
     auditLogs: AuditLog[];
-    homeworks: Homework[];
+    data: Homework[];
     viewer: Viewer;
   }>("/api/community/section-homeworks", {
-    params: { query: { sectionId } },
+    params: { query: { pageSize: 50, sectionId } },
   });
   if (!result.response.ok || !result.data) throw new Error(errorMessage);
-  return result.data;
+  return {
+    auditLogs: result.data.auditLogs,
+    homeworks: result.data.data,
+    viewer: result.data.viewer,
+  };
 }
 
 export async function createSectionHomework(

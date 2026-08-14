@@ -34,6 +34,7 @@ import {
   sectionSchedulesQuerySchema,
   sectionsQuerySchema,
   semestersQuerySchema,
+  subscribedHomeworksQuerySchema,
   subscribedSchedulesQuerySchema,
   teachersQuerySchema,
   todoCompletionBatchRequestSchema,
@@ -73,6 +74,41 @@ describe("matchSectionCodesRequestSchema", () => {
     });
 
     expect(result.success).toBe(true);
+  });
+
+  it("限制公开和订阅作业列表的查询规模", () => {
+    expect(
+      homeworksQuerySchema.safeParse({
+        sectionIds: Array.from({ length: 50 }, (_, index) => index + 1).join(
+          ",",
+        ),
+        page: "100",
+        pageSize: "50",
+      }).success,
+    ).toBe(true);
+    expect(
+      homeworksQuerySchema.safeParse({
+        sectionIds: Array.from({ length: 51 }, (_, index) => index + 1).join(
+          ",",
+        ),
+      }).success,
+    ).toBe(false);
+    expect(
+      homeworksQuerySchema.safeParse({ sectionIds: "1,invalid" }).success,
+    ).toBe(false);
+    expect(homeworksQuerySchema.safeParse({ page: "101" }).success).toBe(false);
+    expect(homeworksQuerySchema.safeParse({ pageSize: "51" }).success).toBe(
+      false,
+    );
+    expect(
+      subscribedHomeworksQuerySchema.safeParse({
+        page: "100",
+        pageSize: "50",
+      }).success,
+    ).toBe(true);
+    expect(
+      subscribedHomeworksQuerySchema.safeParse({ pageSize: "51" }).success,
+    ).toBe(false);
   });
 
   it("拒绝空 code 和无效 code 格式", () => {

@@ -2,12 +2,11 @@
  * E2E tests for GET /api/workspace/homeworks
  *
  * Authenticated endpoint that lists homeworks across the current user's
- * subscribed sections, together with recent audit logs and the resolved
- * section id list.
+ * subscribed sections through a bounded page.
  *
- * - GET returns { viewer, homeworks[], auditLogs[], sectionIds[] }
+ * - GET returns { data[], pagination }
  * - Requires authentication (401 otherwise)
- * - No query parameters
+ * - page is capped at 100 and pageSize is capped at 50
  */
 import { expect, test } from "@playwright/test";
 import { DEV_SEED } from "../../../../../e2e/utils/dev-seed";
@@ -27,41 +26,34 @@ test.describe("GET /api/workspace/homeworks - 订阅作业", () => {
     expect(response.status()).toBe(401);
   });
 
-  test("认证并关注种子班级后返回订阅作业、审计日志与班级 ID 列表", async ({
-    request,
-  }) => {
+  test("认证并关注种子班级后返回分页订阅作业", async ({ request }) => {
     await signInAsDebugUserApi(request, "/");
     await ensureSeedSectionSubscription(request);
 
     const response = await request.get(BASE);
     expect(response.status()).toBe(200);
     const body = (await response.json()) as {
-      viewer?: {
-        userId?: string | null;
-        isAuthenticated?: boolean;
-        isAdmin?: boolean;
-      };
-      homeworks?: Array<{
+      data?: Array<{
         id?: string;
         title?: string;
         sectionId?: number;
         section?: { code?: string; course?: { nameCn?: string } };
         completion?: unknown;
       }>;
-      auditLogs?: Array<{ action?: string; titleSnapshot?: string }>;
-      sectionIds?: number[];
+      pagination?: {
+        page?: number;
+        pageSize?: number;
+        total?: number;
+        totalPages?: number;
+      };
     };
 
-    expect(body.viewer?.isAuthenticated).toBe(true);
-    expect(typeof body.viewer?.userId).toBe("string");
-    expect(body.viewer?.isAdmin).toBe(false);
-
-    expect(Array.isArray(body.homeworks)).toBe(true);
+    expect(Array.isArray(body.data)).toBe(true);
     expect(
-      body.homeworks?.some((item) => item.title === DEV_SEED.homeworks.title),
+      body.data?.some((item) => item.title === DEV_SEED.homeworks.title),
     ).toBe(true);
 
-    const seedHomework = body.homeworks?.find(
+    const seedHomework = body.data?.find(
       (item) => item.title === DEV_SEED.homeworks.title,
     );
     expect(seedHomework).toBeDefined();
@@ -73,19 +65,14 @@ test.describe("GET /api/workspace/homeworks - 订阅作业", () => {
       expect(Object.hasOwn(seedHomework, "completion")).toBe(true);
     }
 
-    expect(Array.isArray(body.auditLogs)).toBe(true);
-    expect(
-      body.auditLogs?.some(
-        (item) =>
-          item.action === "created" &&
-          typeof item.titleSnapshot === "string" &&
-          item.titleSnapshot.length > 0,
-      ),
-    ).toBe(true);
+    expect(body.pagination).toMatchObject({ page: 1, pageSize: 20 });
+    expect(typeof body.pagination?.total).toBe("number");
+  });
 
-    expect(Array.isArray(body.sectionIds)).toBe(true);
-    expect(body.sectionIds?.some((id) => id === seedHomework?.sectionId)).toBe(
-      true,
-    );
+  test("拒绝越界分页参数", async ({ request }) => {
+    await signInAsDebugUserApi(request, "/");
+
+    expect((await request.get(`${BASE}?page=101`)).status()).toBe(400);
+    expect((await request.get(`${BASE}?pageSize=51`)).status()).toBe(400);
   });
 });

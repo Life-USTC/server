@@ -3,7 +3,7 @@
  *
  * ## GET /api/community/section-homeworks
  * - Query: sectionId (required)
- * - Response: { viewer, homeworks[], auditLogs[] }
+ * - Response: { viewer, data[], pagination, auditLogs[] }
  * - Public endpoint: viewer.userId is null when unauthenticated
  * - Returns homeworks with completion status for the current user
  * - Includes audit logs for the section's homeworks
@@ -49,19 +49,20 @@ test("/api/community/section-homeworks GET 返回 seed 作业、completion 与�
   expect(response.status()).toBe(200);
   const body = (await response.json()) as {
     viewer?: { userId?: string | null };
-    homeworks?: Array<Record<string, unknown>>;
+    data?: Array<Record<string, unknown>>;
+    pagination?: { page?: number; pageSize?: number; total?: number };
     auditLogs?: Array<{ action?: string; titleSnapshot?: string }>;
   };
 
   expect(body.viewer?.userId).toBeTruthy();
   expect(
-    body.homeworks?.some((item) => item.title === DEV_SEED.homeworks.title),
+    body.data?.some((item) => item.title === DEV_SEED.homeworks.title),
   ).toBe(true);
+  expect(body.data?.some((item) => Object.hasOwn(item, "completion"))).toBe(
+    true,
+  );
   expect(
-    body.homeworks?.some((item) => Object.hasOwn(item, "completion")),
-  ).toBe(true);
-  expect(
-    body.homeworks?.every(
+    body.data?.every(
       (item) =>
         typeof item.commentCount === "number" &&
         Number.isInteger(item.commentCount as number),
@@ -77,7 +78,8 @@ test("/api/community/section-homeworks GET 返回 seed 作业、completion 与�
   ).toBe(true);
 
   // Verify HomeworkItem fields on the seed homework
-  const seedHomework = body.homeworks?.find(
+  expect(body.pagination).toMatchObject({ page: 1, pageSize: 20 });
+  const seedHomework = body.data?.find(
     (item) => item.title === DEV_SEED.homeworks.title,
   );
   expect(seedHomework).toBeDefined();
@@ -98,10 +100,10 @@ test("/api/community/section-homeworks GET 返回 seed 作业、completion 与�
   );
   expect(jwResponse.status()).toBe(200);
   const jwBody = (await jwResponse.json()) as {
-    homeworks?: Array<Record<string, unknown>>;
+    data?: Array<Record<string, unknown>>;
   };
   expect(
-    jwBody.homeworks?.some((item) => item.title === DEV_SEED.homeworks.title),
+    jwBody.data?.some((item) => item.title === DEV_SEED.homeworks.title),
   ).toBe(true);
 
   const section = seedHomework.section as
@@ -121,6 +123,34 @@ test("/api/community/section-homeworks GET 未找到 sectionJwId 返回 404", as
     "/api/community/section-homeworks?sectionJwId=999999999",
   );
   expect(response.status()).toBe(404);
+});
+
+test("/api/community/section-homeworks GET 拒绝过多班级与越界分页", async ({
+  request,
+}) => {
+  const sectionIds = Array.from({ length: 51 }, (_, index) => index + 1).join(
+    ",",
+  );
+
+  expect(
+    (
+      await request.get(
+        `/api/community/section-homeworks?sectionIds=${sectionIds}`,
+      )
+    ).status(),
+  ).toBe(400);
+  expect(
+    (
+      await request.get("/api/community/section-homeworks?sectionId=1&page=101")
+    ).status(),
+  ).toBe(400);
+  expect(
+    (
+      await request.get(
+        "/api/community/section-homeworks?sectionId=1&pageSize=51",
+      )
+    ).status(),
+  ).toBe(400);
 });
 
 test("/api/community/section-homeworks POST 未登录返回 401", async ({
@@ -177,9 +207,9 @@ test("/api/community/section-homeworks POST 登录后可创建作业并清理", 
   );
   expect(listResponse.status()).toBe(200);
   const listBody = (await listResponse.json()) as {
-    homeworks?: Array<{ id?: string; title?: string }>;
+    data?: Array<{ id?: string; title?: string }>;
   };
-  assertHomeworkListedByTitle(listBody.homeworks ?? [], {
+  assertHomeworkListedByTitle(listBody.data ?? [], {
     id: createBody.id,
     title,
   });

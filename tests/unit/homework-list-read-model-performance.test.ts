@@ -5,12 +5,14 @@ const {
   auditFindManyMock,
   completionFindManyMock,
   getViewerContextMock,
+  homeworkCountMock,
   homeworkFindManyMock,
   withUserDbContextMock,
 } = vi.hoisted(() => ({
   auditFindManyMock: vi.fn(),
   completionFindManyMock: vi.fn(),
   getViewerContextMock: vi.fn(),
+  homeworkCountMock: vi.fn(),
   homeworkFindManyMock: vi.fn(),
   withUserDbContextMock: vi.fn(),
 }));
@@ -21,7 +23,7 @@ vi.mock("@/lib/auth/viewer-context", () => ({
 
 vi.mock("@/lib/db/prisma", () => ({
   getPrisma: vi.fn(() => ({
-    homework: { findMany: homeworkFindManyMock },
+    homework: { count: homeworkCountMock, findMany: homeworkFindManyMock },
   })),
   prisma: {
     homeworkAuditLog: { findMany: auditFindManyMock },
@@ -31,6 +33,7 @@ vi.mock("@/lib/db/prisma", () => ({
 
 import {
   listSectionHomeworkItems,
+  listSectionHomeworkPage,
   listSectionHomeworksWithAudit,
 } from "@/features/homeworks/server/homework-list-read-model";
 
@@ -51,6 +54,7 @@ describe("section homework list read phases", () => {
     homeworkFindManyMock.mockResolvedValue([
       { id: "homework-1", title: "Homework", _count: { comments: 2 } },
     ]);
+    homeworkCountMock.mockResolvedValue(1);
     completionFindManyMock.mockResolvedValue([
       {
         completedAt: new Date("2026-08-01T00:00:00.000Z"),
@@ -131,5 +135,32 @@ describe("section homework list read phases", () => {
     expect(withUserDbContextMock).not.toHaveBeenCalled();
     expect(completionFindManyMock).not.toHaveBeenCalled();
     expect(result[0]).toMatchObject({ completion: null });
+  });
+
+  it("bounds the payload and loads completion state only for page-local IDs", async () => {
+    const result = await listSectionHomeworkPage({
+      locale: "en-us",
+      pagination: { page: 3, pageSize: 10 },
+      sectionIds: [7],
+      viewerUserId: viewer.userId,
+    });
+
+    expect(homeworkFindManyMock).toHaveBeenCalledWith(
+      expect.objectContaining({ skip: 20, take: 10 }),
+    );
+    expect(homeworkCountMock).toHaveBeenCalledWith({
+      where: { sectionId: 7, deletedAt: null },
+    });
+    expect(completionFindManyMock).toHaveBeenCalledWith({
+      where: {
+        userId: viewer.userId,
+        homeworkId: { in: ["homework-1"] },
+      },
+      select: { homeworkId: true, completedAt: true },
+    });
+    expect(result).toMatchObject({
+      data: [expect.objectContaining({ id: "homework-1", commentCount: 2 })],
+      pagination: { page: 3, pageSize: 10, total: 1, totalPages: 1 },
+    });
   });
 });

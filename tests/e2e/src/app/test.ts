@@ -738,11 +738,12 @@ test("/ 仅关注往期班级时可恢复历史作业和课表入口", async ({
     const response = await page.request.get("/api/workspace/homeworks");
     expect(response.status()).toBe(200);
     const body = (await response.json()) as {
-      homeworks?: Array<{ title?: string }>;
-      sectionIds?: number[];
+      data?: Array<{ sectionId?: number; title?: string }>;
     };
-    expect(body.sectionIds).toEqual([previousSection.id]);
-    expect(body.homeworks).toEqual(
+    expect(
+      body.data?.every((item) => item.sectionId === previousSection.id),
+    ).toBe(true);
+    expect(body.data).toEqual(
       expect.arrayContaining([
         expect.objectContaining({ title: DEV_SEED.homeworks.historicalTitle }),
       ]),

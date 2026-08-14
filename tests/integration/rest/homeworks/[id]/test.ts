@@ -108,14 +108,14 @@ test("/api/community/section-homeworks/[id] PATCH 登录后可更新作业标题
       `/api/community/section-homeworks?sectionId=${sectionId}`,
     );
     const listBody = (await listResponse.json()) as {
-      homeworks?: Array<{
+      data?: Array<{
         description?: { content?: string | null } | null;
         id?: string;
         title?: string;
       }>;
     };
     expect(
-      listBody.homeworks?.some(
+      listBody.data?.some(
         (h) =>
           h.id === homework.id &&
           h.title === newTitle &&
@@ -158,14 +158,14 @@ test("/api/community/section-homeworks/[id] PATCH 登录后可只更新作业描
       `/api/community/section-homeworks?sectionId=${sectionId}`,
     );
     const listBody = (await listResponse.json()) as {
-      homeworks?: Array<{
+      data?: Array<{
         description?: { content?: string | null } | null;
         id?: string;
         title?: string;
       }>;
     };
     expect(
-      listBody.homeworks?.some(
+      listBody.data?.some(
         (h) =>
           h.id === homework.id &&
           h.title === homework.title &&
@@ -227,7 +227,7 @@ test("/api/community/section-homeworks/[id] DELETE 登录后可删除作业", as
     `/api/community/section-homeworks?sectionId=${sectionId}`,
   );
   const listBody = (await listResponse.json()) as {
-    homeworks?: Array<{ id?: string }>;
+    data?: Array<{ id?: string }>;
   };
-  expect(listBody.homeworks?.some((h) => h.id === homework.id)).toBe(false);
+  expect(listBody.data?.some((h) => h.id === homework.id)).toBe(false);
 });
