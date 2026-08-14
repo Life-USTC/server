@@ -24,8 +24,8 @@ export async function getSectionPage(jwId: number, locale = "zh-cn") {
   const section = await runCloudflareTraceSpan(
     "catalog.detail.section.query",
     { "catalog.detail.kind": "section" },
-    () =>
-      prisma.section.findUnique({
+    async () =>
+      await prisma.section.findUnique({
         where: { jwId },
         select: {
           ...sectionPageSelect,
