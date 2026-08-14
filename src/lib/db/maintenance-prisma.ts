@@ -3,6 +3,7 @@ import type { PrismaClient } from "@/generated/prisma/client";
 import {
   getCloudflareRuntimeContext,
   hasCloudflareRuntimeEnv,
+  registerCloudflareRuntimeCleanup,
 } from "@/lib/adapters/cloudflare-runtime";
 import { createBasePrisma, logPrismaQuery } from "@/lib/db/prisma-query-events";
 import { shouldEnablePrismaQueryLogging } from "@/lib/db/prisma-query-logging";
@@ -33,6 +34,7 @@ function getBaseMaintenancePrisma() {
         | undefined;
       if (cached) return cached;
       const client = createMaintenancePrismaClient();
+      registerCloudflareRuntimeCleanup(() => client.$disconnect());
       cache.set(cloudflareMaintenancePrismaCacheKey, client);
       return client;
     }

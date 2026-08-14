@@ -17,6 +17,7 @@ const { baseClient, extendedClient, todoFindManyMock } = vi.hoisted(() => {
   };
   return {
     baseClient: {
+      $disconnect: vi.fn(),
       $extends: vi.fn(() => extended),
     },
     extendedClient: extended,
@@ -92,6 +93,7 @@ describe("localized Prisma clients in RLS context", () => {
         );
       });
     });
+    expect(baseClient.$disconnect).toHaveBeenCalledOnce();
   });
 
   it("blocks saved localized clients, delegates, and methods inside RLS context", async () => {

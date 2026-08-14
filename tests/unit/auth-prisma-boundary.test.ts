@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   getCloudflareAuthHyperdriveConnectionString,
   runWithCloudflareRuntimeEnv,
@@ -6,10 +6,16 @@ import {
 
 const { appClient, createBasePrismaMock, firstClient, secondClient } =
   vi.hoisted(() => ({
-    appClient: { user: { boundary: "app" } },
+    appClient: { $disconnect: vi.fn(), user: { boundary: "app" } },
     createBasePrismaMock: vi.fn(),
-    firstClient: { user: { boundary: "first-auth" } },
-    secondClient: { user: { boundary: "second-auth" } },
+    firstClient: {
+      $disconnect: vi.fn(),
+      user: { boundary: "first-auth" },
+    },
+    secondClient: {
+      $disconnect: vi.fn(),
+      user: { boundary: "second-auth" },
+    },
   }));
 
 vi.mock("@/lib/db/prisma-query-events", () => ({
@@ -22,6 +28,12 @@ vi.mock("@/lib/db/prisma-query-logging", () => ({
 }));
 
 describe("auth Prisma boundary", () => {
+  beforeEach(() => {
+    appClient.$disconnect.mockClear();
+    firstClient.$disconnect.mockClear();
+    secondClient.$disconnect.mockClear();
+  });
+
   it("keeps overlapping Cloudflare requests on their own auth clients", async () => {
     createBasePrismaMock.mockReset().mockImplementation((_url, database) => {
       if (database !== "auth") return appClient;
@@ -65,6 +77,8 @@ describe("auth Prisma boundary", () => {
 
     expect(createBasePrismaMock).toHaveBeenCalledTimes(2);
     expect(createBasePrismaMock).toHaveBeenCalledWith(undefined, "auth");
+    expect(firstClient.$disconnect).toHaveBeenCalledOnce();
+    expect(secondClient.$disconnect).toHaveBeenCalledOnce();
   });
 
   it("keeps app and auth clients distinct inside one request", async () => {
@@ -94,5 +108,7 @@ describe("auth Prisma boundary", () => {
     expect(createBasePrismaMock).toHaveBeenCalledTimes(2);
     expect(createBasePrismaMock).toHaveBeenCalledWith();
     expect(createBasePrismaMock).toHaveBeenCalledWith(undefined, "auth");
+    expect(appClient.$disconnect).toHaveBeenCalledOnce();
+    expect(firstClient.$disconnect).toHaveBeenCalledOnce();
   });
 });

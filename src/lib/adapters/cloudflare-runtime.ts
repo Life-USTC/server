@@ -117,6 +117,7 @@ type CloudflareRuntimeEnv = Record<string, unknown> & {
 type CloudflareRuntimeContext = {
   cache: Map<symbol, unknown>;
   cacheStorage?: CloudflareCacheStorage;
+  cleanups: Set<() => Promise<void> | void>;
   env?: CloudflareRuntimeEnv;
   request?: CloudflareRequestContext;
   scheduleTask?: CloudflareTaskScheduler;
@@ -177,6 +178,61 @@ function getCurrentCloudflareRuntimeEnv() {
   return globalForCloudflareRuntime.__lifeUstcCloudflareRuntimeEnv;
 }
 
+async function cleanupCloudflareRuntimeContext(
+  context: CloudflareRuntimeContext,
+) {
+  const cleanupResults = await Promise.allSettled(
+    [...context.cleanups].map((cleanup) => Promise.resolve().then(cleanup)),
+  );
+  context.cache.clear();
+  context.cleanups.clear();
+  const failures = cleanupResults
+    .filter(
+      (cleanupResult): cleanupResult is PromiseRejectedResult =>
+        cleanupResult.status === "rejected",
+    )
+    .map((cleanupResult) => cleanupResult.reason);
+  if (failures.length === 1) throw failures[0];
+  if (failures.length > 1) {
+    throw new AggregateError(failures, "Cloudflare runtime cleanup failed");
+  }
+}
+
+function responseWithRuntimeCleanup(
+  response: Response,
+  cleanup: () => Promise<void>,
+) {
+  if (!response.body) return response;
+  const reader = response.body.getReader();
+  const body = new ReadableStream<Uint8Array>(
+    {
+      async pull(controller) {
+        try {
+          const chunk = await reader.read();
+          if (!chunk.done) {
+            controller.enqueue(chunk.value);
+            return;
+          }
+          await cleanup();
+          controller.close();
+        } catch (error) {
+          await cleanup().catch(() => undefined);
+          controller.error(error);
+        }
+      },
+      async cancel(reason) {
+        try {
+          await reader.cancel(reason);
+        } finally {
+          await cleanup();
+        }
+      },
+    },
+    { highWaterMark: 0 },
+  );
+  return new Response(body, response);
+}
+
 export function runWithCloudflareRuntimeEnv<T>(
   env: unknown,
   callback: () => T | Promise<T>,
@@ -195,18 +251,41 @@ export function runWithCloudflareRuntimeEnv<T>(
   const context: CloudflareRuntimeContext = {
     cache: new Map(),
     cacheStorage: normalizeCloudflareCacheStorage(),
+    cleanups: new Set(),
     env: normalizeCloudflareRuntimeEnv(env),
     scheduleTask: normalizeCloudflareTaskScheduler(executionContext),
     tracing,
   };
 
   return cloudflareRuntimeStorage.run(context, async () => {
+    let cleanupPromise: Promise<void> | undefined;
+    const cleanup = () => {
+      cleanupPromise ??= cleanupCloudflareRuntimeContext(context);
+      return cleanupPromise;
+    };
+    let result: T;
     try {
-      return await callback();
-    } finally {
-      context.cache.clear();
+      result = await callback();
+    } catch (error) {
+      await cleanup().catch(() => undefined);
+      throw error;
     }
+    if (
+      result instanceof Response &&
+      result.body &&
+      context.cleanups.size > 0
+    ) {
+      return responseWithRuntimeCleanup(result, cleanup) as T;
+    }
+    await cleanup();
+    return result;
   });
+}
+
+export function registerCloudflareRuntimeCleanup(
+  cleanup: () => Promise<void> | void,
+) {
+  cloudflareRuntimeStorage.getStore()?.cleanups.add(cleanup);
 }
 
 export function runCloudflareTraceSpan<T>(

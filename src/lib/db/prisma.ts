@@ -3,6 +3,7 @@ import type { PrismaClient } from "@/generated/prisma/client";
 import {
   getCloudflareRuntimeContext,
   hasCloudflareRuntimeEnv,
+  registerCloudflareRuntimeCleanup,
 } from "@/lib/adapters/cloudflare-runtime";
 import { localizedNamesExtension } from "@/lib/db/prisma-localized-names";
 import { createBasePrisma, logPrismaQuery } from "@/lib/db/prisma-query-events";
@@ -67,11 +68,16 @@ function getBasePrisma() {
   if (hasCloudflareRuntimeEnv()) {
     const cache = getCloudflarePrismaCache();
     if (cache) {
-      cache.base ??= createPrismaClient(cache);
+      if (!cache.base) {
+        cache.base = createPrismaClient(cache);
+        registerCloudflareRuntimeCleanup(() => cache.base?.$disconnect());
+      }
       return cache.base;
     }
 
-    return createPrismaClient();
+    const client = createPrismaClient();
+    registerCloudflareRuntimeCleanup(() => client.$disconnect());
+    return client;
   }
 
   const cached = globalForPrisma.prisma ?? basePrisma;
