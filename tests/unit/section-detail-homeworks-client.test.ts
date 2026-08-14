@@ -50,7 +50,7 @@ describe("课程详情作业客户端", () => {
 
   it("请求有界作业页并适配为详情页状态", async () => {
     const fetchMock = vi.fn(
-      async () =>
+      async (..._args: Parameters<typeof fetch>) =>
         new Response(
           JSON.stringify({
             auditLogs: [{ id: "audit-1" }],
