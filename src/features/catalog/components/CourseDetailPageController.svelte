@@ -136,6 +136,9 @@ $: displayName =
           <h2 class="mb-3 text-lg font-semibold tracking-tight">
             {copy.courseDetail.teachingSections}
           </h2>
+          <p class="mb-4 text-sm text-muted-foreground">
+            {copy.courseDetail.teachingSectionsDescription}
+          </p>
           <CourseDetailSections
             copy={detailCopy}
             course={data.course}

@@ -4,6 +4,8 @@ import {
   sectionCatalogInclude,
   sectionCompactInclude,
   sectionInclude,
+  teacherAssignmentPublicSelect,
+  teacherPublicReferenceSelect,
 } from "@/features/catalog/server/academic-query-includes";
 import type { AppLocale } from "@/i18n/config";
 import { DEFAULT_LOCALE } from "@/i18n/config";
@@ -15,18 +17,8 @@ const sectionDetailInclude = {
   roomType: true,
   schedules: true,
   scheduleGroups: true,
-  teachers: {
-    include: {
-      department: true,
-      teacherTitle: true,
-    },
-  },
-  teacherAssignments: {
-    include: {
-      teacher: true,
-      teacherLessonType: true,
-    },
-  },
+  teachers: { select: teacherPublicReferenceSelect },
+  teacherAssignments: { select: teacherAssignmentPublicSelect },
   exams: {
     include: {
       examBatch: true,
@@ -121,22 +113,16 @@ function buildPartialSectionDetailInclude(options: {
 }) {
   const includeExams = options.includeExams === true;
   const includeSchedules = options.includeSchedules === true;
-  const includeTeacherDepartments = options.includeTeacherDepartments === true;
-
   return {
     ...sectionInclude,
     roomType: true,
     schedules: includeSchedules,
     scheduleGroups: includeSchedules,
-    teachers: includeTeacherDepartments
-      ? {
-          include: {
-            department: true,
-            teacherTitle: true,
-          },
-        }
-      : true,
-    teacherAssignments: includeTeacherDepartments,
+    teachers: { select: teacherPublicReferenceSelect },
+    teacherAssignments:
+      options.includeTeacherDepartments === true
+        ? { select: teacherAssignmentPublicSelect }
+        : false,
     exams: includeExams
       ? {
           include: {

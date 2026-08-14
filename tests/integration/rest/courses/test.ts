@@ -193,6 +193,7 @@ test.describe("GET /api/catalog/courses 接口", () => {
       jwId?: number;
       code?: string;
       nameCn?: string;
+      _count?: { sections?: number };
       sections?: Array<{
         jwId?: number;
         code?: string;
@@ -206,6 +207,10 @@ test.describe("GET /api/catalog/courses 接口", () => {
     expect(body.jwId).toBe(DEV_SEED.course.jwId);
     expect(body.code).toBe(DEV_SEED.course.code);
     expect(body.nameCn).toBe(DEV_SEED.course.nameCn);
+    expect(body.sections?.length ?? 0).toBeLessThanOrEqual(20);
+    expect(body._count?.sections ?? 0).toBeGreaterThanOrEqual(
+      body.sections?.length ?? 0,
+    );
     expect(
       body.sections?.some((section) => section.jwId === DEV_SEED.section.jwId),
     ).toBe(true);
@@ -216,6 +221,14 @@ test.describe("GET /api/catalog/courses 接口", () => {
     expect(Object.hasOwn(seedSection as object, "semester")).toBe(true);
     expect(Object.hasOwn(seedSection as object, "campus")).toBe(true);
     expect(Array.isArray(seedSection?.teachers)).toBe(true);
+    for (const teacher of seedSection?.teachers ?? []) {
+      expect(teacher).not.toHaveProperty("age");
+      expect(teacher).not.toHaveProperty("postcode");
+      expect(teacher).not.toHaveProperty("qq");
+      expect(teacher).not.toHaveProperty("wechat");
+      expect(teacher).not.toHaveProperty("email");
+      expect(teacher).not.toHaveProperty("mobile");
+    }
     expect(typeof seedSection?.stdCount).toBe("number");
     expect(typeof seedSection?.limitCount).toBe("number");
   });
