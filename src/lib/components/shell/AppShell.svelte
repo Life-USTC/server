@@ -21,7 +21,6 @@ import { onMount } from "svelte";
 import { afterNavigate, goto } from "$app/navigation";
 import { navigating, page } from "$app/stores";
 import { shouldRedirectIncompleteProfileToWelcome } from "$lib/auth/auth-routing";
-import { getClientViewer } from "$lib/auth/client-viewer";
 import {
   isApplePlatform,
   isGlobalSearchShortcut,
@@ -51,6 +50,11 @@ import type {
   LayoutCopy,
   LayoutUserSummary,
 } from "$lib/shell/layout-server-data";
+import {
+  getClientShellBootstrap,
+  type WorkspaceNavigationSummary,
+  workspaceNavigationFromPageData,
+} from "$lib/shell/shell-bootstrap";
 import { cn } from "$lib/utils.js";
 import { buildDetailSecondaryLinks } from "./shell-nav-helpers";
 import type { ShellLink, ShellNavGroup } from "./types";
@@ -76,10 +80,24 @@ let themeMenuOpen = false;
 let contentScrollContainer: HTMLDivElement | undefined;
 let viewerLoading = data.resolveViewerOnClient && !data.user;
 let viewerUser = data.user;
+let workspaceNavigation: WorkspaceNavigationSummary | null = null;
+let shellBootstrapAbortController: AbortController | null = null;
+let shellBootstrapGeneration = 0;
 
 $: if (!data.resolveViewerOnClient || data.user) {
+  if (viewerUser?.id !== data.user?.id) {
+    cancelShellBootstrap();
+    workspaceNavigation = null;
+  }
   viewerUser = data.user;
   viewerLoading = false;
+}
+$: pageWorkspaceNavigation = workspaceNavigationFromPageData(
+  $page.data,
+  viewerUser?.id,
+);
+$: if (pageWorkspaceNavigation) {
+  workspaceNavigation = pageWorkspaceNavigation;
 }
 $: profileHref = resolveProfileHref(viewerUser);
 $: avatarFallback = resolveAvatarFallback(viewerUser);
@@ -89,6 +107,7 @@ $: navGroups = buildShellNavGroups(
   viewerUser?.isAdmin ?? false,
   $page.url.pathname,
   $page.data,
+  workspaceNavigation,
 );
 $: mobileNavGroups = viewerUser
   ? buildMobileSecondaryNavGroups(
@@ -96,6 +115,7 @@ $: mobileNavGroups = viewerUser
       viewerUser.isAdmin,
       $page.url.pathname,
       $page.data,
+      workspaceNavigation,
     )
   : navGroups;
 $: mobilePrimaryLinks = buildMobilePrimaryLinks(data.copy);
@@ -141,6 +161,7 @@ function buildShellNavGroups(
   isAdmin: boolean,
   pathname: string,
   pageData: Record<string, unknown>,
+  workspaceNavigation: WorkspaceNavigationSummary | null,
 ): ShellNavGroup[] {
   const detailSecondaryLinks = isDetailWorkspacePath(pathname)
     ? undefined
@@ -194,20 +215,6 @@ function buildShellNavGroups(
     { href: "/usage/mcp", icon: CableIcon, label: copy.nav.mcp },
     { href: "/usage/cli", icon: TerminalIcon, label: copy.nav.cli },
   ];
-  const dashboardNavStats = pageData.navStats as
-    | {
-        calendarItemsCount?: number;
-        examsCount?: number;
-        pendingHomeworksCount?: number;
-        pendingTodosCount?: number;
-      }
-    | null
-    | undefined;
-  const dashboardSubscribedSectionCount = pageData.subscribedSectionCount as
-    | number
-    | null
-    | undefined;
-
   if (!signedIn) {
     return [
       {
@@ -236,35 +243,35 @@ function buildShellNavGroups(
         },
         {
           ariaLabel: copy.nav.calendar,
-          badge: dashboardNavStats?.calendarItemsCount,
+          badge: workspaceNavigation?.calendarItemsCount,
           href: "/workspace/calendar",
           icon: CalendarDaysIcon,
           label: copy.nav.calendar,
         },
         {
           ariaLabel: copy.nav.homeworks,
-          badge: dashboardNavStats?.pendingHomeworksCount,
+          badge: workspaceNavigation?.pendingHomeworksCount,
           href: "/workspace/homeworks",
           icon: BookOpenIcon,
           label: copy.nav.homeworks,
         },
         {
           ariaLabel: copy.nav.todos,
-          badge: dashboardNavStats?.pendingTodosCount,
+          badge: workspaceNavigation?.pendingTodosCount,
           href: "/workspace/todos",
           icon: ListTodoIcon,
           label: copy.nav.todos,
         },
         {
           ariaLabel: copy.nav.exams,
-          badge: dashboardNavStats?.examsCount,
+          badge: workspaceNavigation?.examsCount,
           href: "/workspace/exams",
           icon: GraduationCapIcon,
           label: copy.nav.exams,
         },
         {
           ariaLabel: copy.nav.subscriptions,
-          badge: dashboardSubscribedSectionCount,
+          badge: workspaceNavigation?.subscribedSectionCount,
           href: "/workspace/subscriptions",
           icon: RouteIcon,
           label: copy.nav.subscriptions,
@@ -323,39 +330,29 @@ function buildMobileSecondaryNavGroups(
   isAdmin: boolean,
   pathname: string,
   pageData: Record<string, unknown>,
+  workspaceNavigation: WorkspaceNavigationSummary | null,
 ): ShellNavGroup[] {
   const detailSecondaryLinks = isDetailWorkspacePath(pathname)
     ? undefined
     : buildDetailSecondaryLinks(pathname, pageData);
-  const dashboardNavStats = pageData.navStats as
-    | {
-        examsCount?: number;
-        pendingTodosCount?: number;
-      }
-    | null
-    | undefined;
-  const dashboardSubscribedSectionCount = pageData.subscribedSectionCount as
-    | number
-    | null
-    | undefined;
   const secondaryLinks: ShellLink[] = [
     {
       ariaLabel: copy.nav.todos,
-      badge: dashboardNavStats?.pendingTodosCount,
+      badge: workspaceNavigation?.pendingTodosCount,
       href: "/workspace/todos",
       icon: ListTodoIcon,
       label: copy.nav.todos,
     },
     {
       ariaLabel: copy.nav.exams,
-      badge: dashboardNavStats?.examsCount,
+      badge: workspaceNavigation?.examsCount,
       href: "/workspace/exams",
       icon: GraduationCapIcon,
       label: copy.nav.exams,
     },
     {
       ariaLabel: copy.nav.subscriptions,
-      badge: dashboardSubscribedSectionCount,
+      badge: workspaceNavigation?.subscribedSectionCount,
       href: "/workspace/subscriptions",
       icon: RouteIcon,
       label: copy.nav.subscriptions,
@@ -559,11 +556,37 @@ function resetContentScroll() {
     ?.scrollTo({ left: 0, top: 0 });
 }
 
-async function resolveClientViewer() {
-  if (!data.resolveViewerOnClient || data.user) return;
+function cancelShellBootstrap() {
+  shellBootstrapGeneration += 1;
+  shellBootstrapAbortController?.abort();
+  shellBootstrapAbortController = null;
+}
+
+async function resolveClientShell() {
+  const serverNavigation = workspaceNavigationFromPageData(
+    $page.data,
+    viewerUser?.id,
+  );
+  if (serverNavigation) workspaceNavigation = serverNavigation;
+  if (viewerUser && workspaceNavigation?.userId === viewerUser.id) return;
+  if (!data.resolveViewerOnClient && !viewerUser) return;
+
+  cancelShellBootstrap();
+  const controller = new AbortController();
+  shellBootstrapAbortController = controller;
+  const generation = shellBootstrapGeneration;
 
   try {
-    viewerUser = await getClientViewer();
+    const bootstrap = await getClientShellBootstrap(
+      globalThis.fetch,
+      controller.signal,
+    );
+    if (controller.signal.aborted || generation !== shellBootstrapGeneration) {
+      return;
+    }
+    viewerUser = bootstrap.viewer;
+    workspaceNavigation = bootstrap.navigation;
+    viewerLoading = false;
     if (
       shouldRedirectIncompleteProfileToWelcome({
         pathname: $page.url.pathname,
@@ -578,9 +601,14 @@ async function resolveClientViewer() {
       );
     }
   } catch {
-    viewerUser = null;
+    if (controller.signal.aborted || generation !== shellBootstrapGeneration) {
+      return;
+    }
+    if (!viewerUser) workspaceNavigation = null;
   } finally {
-    viewerLoading = false;
+    if (shellBootstrapAbortController === controller) {
+      shellBootstrapAbortController = null;
+    }
   }
 }
 
@@ -596,7 +624,7 @@ onMount(() => {
   if (window.matchMedia("(max-width: 1023px)").matches) {
     sidebarOpen = false;
   }
-  void resolveClientViewer();
+  void resolveClientShell();
   themeMode = loadStoredThemeMode(themeMode);
   applyShellTheme(themeMode);
   document.documentElement.dataset.lifeUstcHydrated = "true";
@@ -620,6 +648,7 @@ onMount(() => {
   systemTheme.addEventListener("change", applySystemTheme);
 
   return () => {
+    cancelShellBootstrap();
     window.removeEventListener("keydown", handleGlobalSearchKeydown);
     window.removeEventListener(SHELL_THEME_CHANGE_EVENT, syncThemeMode);
     systemTheme.removeEventListener("change", applySystemTheme);

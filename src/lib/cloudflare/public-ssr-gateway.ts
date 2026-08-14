@@ -54,6 +54,7 @@ const CATALOG_DETAIL_PATH =
   /^\/catalog\/(courses|sections|teachers)\/([1-9]\d*)(?:\/([^/]+))?$/;
 
 const DYNAMIC_OR_PRIVATE_ROOTS = [
+  "/_internal",
   "/account",
   "/admin",
   "/api",

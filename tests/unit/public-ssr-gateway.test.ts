@@ -138,6 +138,7 @@ describe("public SSR gateway", () => {
 
   test.each([
     "/",
+    "/_internal/shell-bootstrap",
     "/account/sign-in",
     "/admin",
     "/api/auth/get-session",
