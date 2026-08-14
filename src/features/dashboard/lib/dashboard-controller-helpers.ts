@@ -14,6 +14,7 @@ export type {
   DashboardActionData,
   DashboardCalendarControllerState,
   DashboardCalendarData,
+  DashboardCalendarPreviewData,
   DashboardCommonCopy,
   DashboardDashboardCopy,
   DashboardHomepageCopy,
