@@ -4,6 +4,12 @@ const ANALYTICS_SCRIPT_SOURCES = [
   "https://static.cloudflareinsights.com/beacon.min.js",
 ];
 
+// Svelte SSR uses this exact bootstrap handler to preserve image load/error
+// events until hydration. Allow only that generated handler instead of all
+// inline scripts or event handlers.
+const SVELTE_IMAGE_EVENT_HANDLER_HASH =
+  "'sha256-7dQwUgLau1NFCCGjfn9FsYptB6ZtWxJin6VohGIu20I='";
+
 const ANALYTICS_CONNECT_SOURCES = [
   "https://www.google.com",
   "https://www.google-analytics.com",
@@ -61,6 +67,8 @@ export function buildContentSecurityPolicy(
   const scriptSources = [
     "'self'",
     `'nonce-${nonce}'`,
+    "'unsafe-hashes'",
+    SVELTE_IMAGE_EVENT_HANDLER_HASH,
     ...ANALYTICS_SCRIPT_SOURCES,
   ];
 

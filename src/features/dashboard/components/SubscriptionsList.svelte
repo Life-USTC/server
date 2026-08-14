@@ -35,6 +35,7 @@ export let openBulkImportDialog: () => void;
 export let openQuickAddDialog: () => void;
 
 let pendingRemoveSection: SubscriptionSection | null = null;
+let removeDialogOpen = false;
 
 $: locale = $page.data.locale ?? "zh-cn";
 $: sectionGroups = subscriptions.flatMap((subscription) =>
@@ -60,14 +61,25 @@ function courseName(section: SubscriptionSection) {
 
 function requestRemoveSection(section: SubscriptionSection) {
   pendingRemoveSection = section;
+  removeDialogOpen = true;
 }
 
 async function confirmRemoveSection() {
   if (!pendingRemoveSection) return;
-  const removed = await removeSubscribedSection(pendingRemoveSection.id);
-  if (removed) {
-    pendingRemoveSection = null;
+  const section = pendingRemoveSection;
+  removeDialogOpen = false;
+  pendingRemoveSection = null;
+
+  const removed = await removeSubscribedSection(section.id);
+  if (!removed) {
+    pendingRemoveSection = section;
+    removeDialogOpen = true;
   }
+}
+
+function handleRemoveDialogOpenChange(open: boolean) {
+  removeDialogOpen = open;
+  if (!open && removingSectionId === null) pendingRemoveSection = null;
 }
 </script>
 
@@ -196,10 +208,8 @@ async function confirmRemoveSection() {
 {/if}
 
 <AlertDialog.Root
-  open={pendingRemoveSection !== null}
-  onOpenChange={(open) => {
-    if (!open && removingSectionId === null) pendingRemoveSection = null;
-  }}
+  bind:open={removeDialogOpen}
+  onOpenChange={handleRemoveDialogOpenChange}
 >
   {#if pendingRemoveSection}
     <AlertDialog.Content>

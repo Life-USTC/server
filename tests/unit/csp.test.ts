@@ -25,6 +25,10 @@ describe("CSP 辅助函数", () => {
     expect(scriptDirective).toBeDefined();
     expect(scriptDirective).not.toContain("'unsafe-inline'");
     expect(scriptDirective).not.toContain("'unsafe-eval'");
+    expect(scriptDirective).toContain("'unsafe-hashes'");
+    expect(scriptDirective).toContain(
+      "'sha256-7dQwUgLau1NFCCGjfn9FsYptB6ZtWxJin6VohGIu20I='",
+    );
     expect(scriptDirective).not.toContain("unpkg.com");
     expect(scriptDirective).toContain(
       "https://static.cloudflareinsights.com/beacon.min.js",

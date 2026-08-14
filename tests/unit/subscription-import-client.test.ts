@@ -93,7 +93,18 @@ function compactSection(id: number) {
       code: "east",
     },
     openDepartment: null,
-    teachers: [],
+    teachers: [
+      {
+        id,
+        jwId: 5000 + id,
+        personId: null,
+        code: `TEACHER-${id}`,
+        nameCn: `教师 ${id}`,
+        nameEn: null,
+        namePrimary: `Teacher ${id}`,
+        nameSecondary: null,
+      },
+    ],
   };
 }
 
