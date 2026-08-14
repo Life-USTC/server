@@ -5226,9 +5226,11 @@
             "name": "sectionIds",
             "schema": {
               "type": "string",
-              "minLength": 1
+              "minLength": 1,
+              "description": "Comma-separated positive Section database IDs; at most 50 unique IDs."
             },
-            "required": true
+            "required": true,
+            "description": "Comma-separated positive Section database IDs; at most 50 unique IDs."
           }
         ],
         "responses": {
@@ -5241,6 +5243,9 @@
                 }
               }
             }
+          },
+          "308": {
+            "description": "Response 308"
           },
           "400": {
             "description": "Error response",

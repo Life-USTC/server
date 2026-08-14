@@ -44,7 +44,13 @@ export const homeworksQuerySchema = z.object({
 });
 
 export const sectionsCalendarQuerySchema = z.object({
-  sectionIds: z.string().trim().min(1),
+  sectionIds: z
+    .string()
+    .trim()
+    .min(1)
+    .describe(
+      "Comma-separated positive Section database IDs; at most 50 unique IDs.",
+    ),
 });
 
 export const userCalendarQuerySchema = z.object({

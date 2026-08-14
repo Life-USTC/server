@@ -6,6 +6,7 @@ import { observedApiRoute } from "@/lib/log/api-observability";
  * Generate sections calendar.
  * @params sectionsCalendarQuerySchema
  * @response 200:calendar
+ * @response 308
  * @response 400:openApiErrorSchema
  */
 export const GET = svelteRequestHandler(
