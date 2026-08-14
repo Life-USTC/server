@@ -19,6 +19,32 @@ export const sectionPageTeachersWithDepartmentSelect = {
   },
 } satisfies Prisma.Section$teachersArgs;
 
+export const SECTION_RELATED_PREVIEW_LIMIT = 20;
+
+export const sectionPageRelatedSectionSelect = {
+  id: true,
+  jwId: true,
+  code: true,
+  semesterId: true,
+  semester: { select: { endDate: true, nameCn: true, startDate: true } },
+  teachers: {
+    select: {
+      id: true,
+      ...localizedNameSelect,
+    },
+  },
+} satisfies Prisma.SectionSelect;
+
+export const sectionPageDescriptionSelect = {
+  id: true,
+  content: true,
+  updatedAt: true,
+  lastEditedAt: true,
+  lastEditedBy: {
+    select: { id: true, name: true, image: true, username: true },
+  },
+} satisfies Prisma.DescriptionSelect;
+
 export const sectionPageSelect = {
   id: true,
   jwId: true,

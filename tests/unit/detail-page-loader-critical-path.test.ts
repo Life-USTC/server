@@ -132,6 +132,7 @@ const section = {
   jwId: 301,
   retiredAt: null,
   otherCourseSections: [],
+  otherCourseSectionCount: 0,
   scheduleCount: 0,
   schedules: [],
   semesterId: 1,
@@ -186,7 +187,10 @@ beforeEach(() => {
     homeworks: [],
     viewer: anonymousViewer,
   });
-  getSectionPageMock.mockResolvedValue(section);
+  getSectionPageMock.mockResolvedValue({
+    description: descriptionData.description,
+    section,
+  });
   getTeacherPageMock.mockResolvedValue(teacher);
   getUserSectionSubscriptionStateMock.mockResolvedValue({
     subscribedSections: [],
@@ -229,7 +233,7 @@ describe("catalog detail loader critical path", () => {
     resolveCourse?.(course);
     const result = await resultPromise;
 
-    expect(result.descriptionData).toBe(descriptionData);
+    expect(result.descriptionData).toEqual(descriptionData);
     expect(result.structuredDataJson).toContain("Primary SSR description");
     expect(result.commentsData).toBeNull();
     expect(getDescriptionPayloadMock).toHaveBeenCalledWith(
@@ -567,10 +571,18 @@ describe("section detail loader critical path", () => {
     expect(result.section).toBe(section);
   });
 
-  it("loads the section while reusing hook auth and skips comments and homework on overview", async () => {
-    let resolveSection: ((value: typeof section) => void) | undefined;
+  it("starts section and viewer work together and skips extra description, comments, and homework queries", async () => {
+    let resolveSection:
+      | ((value: {
+          description: typeof descriptionData.description;
+          section: typeof section;
+        }) => void)
+      | undefined;
     getSectionPageMock.mockReturnValue(
-      new Promise<typeof section>((resolve) => {
+      new Promise<{
+        description: typeof descriptionData.description;
+        section: typeof section;
+      }>((resolve) => {
         resolveSection = resolve;
       }),
     );
@@ -587,13 +599,17 @@ describe("section detail loader critical path", () => {
 
     await vi.waitFor(() => {
       expect(getSectionPageMock).toHaveBeenCalledOnce();
+      expect(getViewerContextMock).toHaveBeenCalledOnce();
     });
     expect(getDescriptionPayloadMock).not.toHaveBeenCalled();
 
-    resolveSection?.(section);
+    resolveSection?.({
+      description: descriptionData.description,
+      section,
+    });
     const result = await resultPromise;
 
-    expect(result.descriptionData).toBe(descriptionData);
+    expect(result.descriptionData).toEqual(descriptionData);
     expect(result.structuredDataJson).toContain("Primary SSR description");
     expect(result.commentsData).toBeNull();
     expect(result.homeworkData.homeworks).toEqual([]);
@@ -602,12 +618,7 @@ describe("section detail loader critical path", () => {
       signedIn: false,
       subscriptionIcsUrl: null,
     });
-    expect(getDescriptionPayloadMock).toHaveBeenCalledWith(
-      "section",
-      section.id,
-      anonymousViewer,
-      { includeHistory: false },
-    );
+    expect(getDescriptionPayloadMock).not.toHaveBeenCalled();
     expect(getCommentsPayloadMock).not.toHaveBeenCalled();
     expect(getSectionHomeworkDataMock).not.toHaveBeenCalled();
     expect(getUserSectionSubscriptionStateMock).not.toHaveBeenCalled();
@@ -679,7 +690,7 @@ describe("section detail loader critical path", () => {
       subscriptionIcsUrl: "/api/calendar-feeds/user-1.ics",
     });
     expect(getCommentsPayloadMock).not.toHaveBeenCalled();
-    expect(getDescriptionPayloadMock).toHaveBeenCalled();
+    expect(getDescriptionPayloadMock).not.toHaveBeenCalled();
     expect(getSectionHomeworkDataMock).toHaveBeenCalledWith(
       section.id,
       signedInUser.id,
@@ -691,7 +702,10 @@ describe("section detail loader critical path", () => {
       ...section,
       otherCourseSections: [{ id: 32 }],
     };
-    getSectionPageMock.mockResolvedValue(relatedSection);
+    getSectionPageMock.mockResolvedValue({
+      description: descriptionData.description,
+      section: relatedSection,
+    });
     const { loadSectionDetailPage } = await import(
       "@/features/section-detail/server/section-detail-page-server"
     );
