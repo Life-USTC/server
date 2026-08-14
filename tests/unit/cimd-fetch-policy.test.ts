@@ -1,6 +1,9 @@
 import { resolve4, resolve6 } from "node:dns/promises";
-import { beforeEach, describe, expect, it, vi } from "vitest";
-import { allowCimdMetadataFetch } from "@/lib/auth/cimd-fetch-policy";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import {
+  allowCimdMetadataFetch,
+  fetchCimdMetadataResource,
+} from "@/lib/auth/cimd-fetch-policy";
 
 vi.mock("node:dns/promises", () => ({
   resolve4: vi.fn(),
@@ -14,6 +17,34 @@ describe("CIMD metadata fetch policy", () => {
   beforeEach(() => {
     resolve4Mock.mockReset();
     resolve6Mock.mockReset();
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("adapts redirect rejection to the mode supported by Workers", async () => {
+    const response = new Response(null, { status: 200 });
+    const fetchMock = vi.fn().mockResolvedValue(response);
+    vi.stubGlobal("fetch", fetchMock);
+    const signal = new AbortController().signal;
+
+    await expect(
+      fetchCimdMetadataResource("https://client.example/oauth.json", {
+        headers: { accept: "application/json" },
+        redirect: "error",
+        signal,
+      }),
+    ).resolves.toBe(response);
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      "https://client.example/oauth.json",
+      {
+        headers: { accept: "application/json" },
+        redirect: "manual",
+        signal,
+      },
+    );
   });
 
   it("accepts hostnames only when every resolved address is public", async () => {
