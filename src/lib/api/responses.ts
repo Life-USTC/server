@@ -1,3 +1,4 @@
+import { runCloudflareTraceSpan } from "@/lib/adapters/cloudflare-runtime";
 import { logRouteFailure } from "@/lib/log/app-logger";
 import { serializeDatesDeep } from "@/lib/time/serialize-date-output";
 
@@ -20,10 +21,23 @@ export function jsonResponse(body: unknown, init?: ResponseInit) {
     headers.set("Content-Type", "application/json; charset=utf-8");
   }
 
-  return new Response(JSON.stringify(serializeDatesDeep(body)), {
-    ...init,
-    headers,
-  });
+  return runCloudflareTraceSpan(
+    "response.serialize",
+    { "response.format": "json" },
+    (span) => {
+      const serialized = JSON.stringify(serializeDatesDeep(body));
+      if (span?.isTraced) {
+        span.setAttribute(
+          "http.response.body.size",
+          new TextEncoder().encode(serialized).byteLength,
+        );
+      }
+      return new Response(serialized, {
+        ...init,
+        headers,
+      });
+    },
+  );
 }
 
 export function createdJsonResponse(body: unknown, location: string) {

@@ -16,8 +16,11 @@ describe("Cloudflare runtime tracing", () => {
     const enterSpan = vi.fn(
       <T>(
         _name: string,
-        callback: (span: { setAttribute: typeof setAttribute }) => T,
-      ) => callback({ setAttribute }),
+        callback: (span: {
+          readonly isTraced: boolean;
+          setAttribute: typeof setAttribute;
+        }) => T,
+      ) => callback({ isTraced: true, setAttribute }),
     );
 
     const result = await runWithCloudflareRuntimeEnv(
@@ -47,6 +50,72 @@ describe("Cloudflare runtime tracing", () => {
 
   it("runs callbacks unchanged outside the Workers runtime", () => {
     expect(runCloudflareTraceSpan("app.test", {}, () => 42)).toBe(42);
+  });
+
+  it("lets traced callbacks attach result attributes", async () => {
+    const setAttribute = vi.fn();
+    const enterSpan = vi.fn(
+      <T>(
+        _name: string,
+        callback: (span: {
+          readonly isTraced: boolean;
+          setAttribute: typeof setAttribute;
+        }) => T,
+      ) => callback({ isTraced: true, setAttribute }),
+    );
+
+    const result = await runWithCloudflareRuntimeEnv(
+      {},
+      () =>
+        runCloudflareTraceSpan(
+          "response.serialize",
+          { "response.format": "json" },
+          (span) => {
+            span?.setAttribute("http.response.body.size", 17);
+            return "serialized";
+          },
+        ),
+      { tracing: { enterSpan } },
+    );
+
+    expect(result).toBe("serialized");
+    expect(setAttribute).toHaveBeenCalledWith("response.format", "json");
+    expect(setAttribute).toHaveBeenCalledWith("http.response.body.size", 17);
+  });
+
+  it("passes no span when tracing is unavailable", () => {
+    let callbackSpan: unknown = "not-called";
+    expect(
+      runCloudflareTraceSpan("app.test", {}, (span) => {
+        callbackSpan = span;
+        return 42;
+      }),
+    ).toBe(42);
+    expect(callbackSpan).toBeUndefined();
+  });
+
+  it("propagates errors from callbacks that attach attributes", async () => {
+    const enterSpan = vi.fn(
+      <T>(
+        _name: string,
+        callback: (span: {
+          readonly isTraced: boolean;
+          setAttribute(): void;
+        }) => T,
+      ) => callback({ isTraced: true, setAttribute() {} }),
+    );
+    const failure = new Error("serialize failed");
+
+    await expect(
+      runWithCloudflareRuntimeEnv(
+        {},
+        () =>
+          runCloudflareTraceSpan("response.serialize", {}, () => {
+            throw failure;
+          }),
+        { tracing: { enterSpan } },
+      ),
+    ).rejects.toBe(failure);
   });
 
   it("keeps named caches request-scoped and preserves the waitUntil receiver", async () => {

@@ -207,6 +207,67 @@ afterEach(() => {
 });
 
 describe("catalog detail loader critical path", () => {
+  it("traces bounded course data-load phases without entity identifiers", async () => {
+    const spans: Array<{
+      attributes: Record<string, boolean | number | string | undefined>;
+      name: string;
+    }> = [];
+    const enterSpan = <T>(
+      name: string,
+      callback: (span: {
+        setAttribute(key: string, value?: boolean | number | string): void;
+      }) => T,
+    ) => {
+      const attributes: Record<string, boolean | number | string | undefined> =
+        {};
+      spans.push({ attributes, name });
+      return callback({
+        setAttribute(key, value) {
+          attributes[key] = value;
+        },
+      });
+    };
+    const { loadCourseDetailPage } = await import(
+      "@/features/catalog/server/catalog-detail-page-server"
+    );
+
+    await runWithCloudflareRuntimeEnv(
+      {},
+      () =>
+        loadCourseDetailPage({
+          locals: locals(),
+          params: { jwId: String(course.jwId) },
+          request: request(`/catalog/courses/${course.jwId}`),
+          url: new URL(`https://example.test/catalog/courses/${course.jwId}`),
+        }),
+      { tracing: { enterSpan } },
+    );
+
+    expect(spans).toEqual([
+      {
+        attributes: { "catalog.detail.kind": "course" },
+        name: "catalog.detail.data_load",
+      },
+      {
+        attributes: { "catalog.detail.kind": "course" },
+        name: "catalog.detail.core",
+      },
+      {
+        attributes: {
+          "catalog.detail.kind": "course",
+          "user.authenticated": false,
+        },
+        name: "catalog.detail.viewer",
+      },
+      {
+        attributes: { "catalog.detail.kind": "course" },
+        name: "catalog.detail.comments",
+      },
+    ]);
+    expect(JSON.stringify(spans)).not.toContain(String(course.jwId));
+    expect(JSON.stringify(spans)).not.toContain(String(course.id));
+  });
+
   it("starts course and viewer work together and skips comments outside the comments section", async () => {
     let resolveCourse: ((value: typeof course) => void) | undefined;
     getCoursePageMock.mockReturnValue(
