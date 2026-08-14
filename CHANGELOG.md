@@ -1,3 +1,15 @@
+## [1.90.1](https://github.com/Life-USTC/server/compare/v1.90.0...v1.90.1) (2026-08-14)
+
+
+### Bug Fixes
+
+* hydrate workspace sidebar counts on public pages ([#840](https://github.com/Life-USTC/server/issues/840)) ([9780dd3](https://github.com/Life-USTC/server/commit/9780dd3606e8a505b62b152f50979ea1234cd305))
+
+
+### Performance Improvements
+
+* **observability:** trace catalog and response phases ([#841](https://github.com/Life-USTC/server/issues/841)) ([1685c97](https://github.com/Life-USTC/server/commit/1685c97e75bb1586543d7fcc36fb8107d7a9499b))
+
 # [1.90.0](https://github.com/Life-USTC/server/compare/v1.89.14...v1.90.0) (2026-08-14)
 
 
