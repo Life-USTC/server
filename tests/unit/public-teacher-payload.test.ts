@@ -10,6 +10,7 @@ import {
   teacherPublicListSelect,
   teacherPublicReferenceSelect,
 } from "@/features/catalog/server/academic-query-includes";
+import { sectionCompactSchema } from "@/lib/api/schemas/academic-section-list-response-schemas";
 
 const sourceOnlyTeacherFields = ["age", "postcode", "qq", "wechat"];
 const teacherContactFields = ["email", "telephone", "mobile", "address"];
@@ -32,6 +33,24 @@ describe("public teacher payloads", () => {
       expect(teacherPublicIdentitySelect).not.toHaveProperty(field);
       expect(teacherPublicReferenceSelect).not.toHaveProperty(field);
     }
+  });
+
+  it("accepts compact section teachers without private contact fields", () => {
+    const teacher = sectionCompactSchema.shape.teachers.element.parse({
+      id: 1,
+      jwId: 9910101,
+      personId: null,
+      code: "T2401001",
+      nameCn: "林老师",
+      nameEn: "Professor Lin",
+      namePrimary: "林老师",
+      nameSecondary: "Professor Lin",
+    });
+
+    expect(teacher).not.toHaveProperty("email");
+    expect(teacher).not.toHaveProperty("telephone");
+    expect(teacher).not.toHaveProperty("mobile");
+    expect(teacher).not.toHaveProperty("address");
   });
 
   it("never exposes source-only teacher fields on list or detail", () => {
