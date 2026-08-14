@@ -462,7 +462,7 @@ export type DashboardLinkPinSubmit = (
 ) => void;
 
 export type DashboardOverviewData = DashboardRecord & {
-  calendar?: DashboardCalendarData | null;
+  calendar?: DashboardCalendarData | DashboardCalendarPreviewData | null;
   dueToday: DashboardHomeworkItem[];
   hasAnySelection?: boolean;
   hasCurrentTermSelection: boolean;
@@ -471,17 +471,20 @@ export type DashboardOverviewData = DashboardRecord & {
   todaySessions: DashboardSessionItem[];
 };
 
-export type DashboardCalendarData = DashboardRecord & {
-  activeCalendarSemesterId: number | null;
-  activeCalendarSemesterName?: string | null;
+export type DashboardCalendarPreviewData = DashboardRecord & {
   allExams: DashboardOverviewExamItem[];
   allSessions: DashboardSessionItem[];
-  calendarSemesterNavList: Array<{ id: number; name?: string | null }>;
+  calendarSemesterPicker: Array<{ id: number; name?: string | null }>;
   semesterHomeworks: DashboardHomeworkItem[];
   semesterTodos: DashboardCalendarTodoItem[];
-  semesterWeeks: string[][];
-  calendarSemesterPicker: Array<{ id: number; name?: string | null }>;
   todayDate: string;
+};
+
+export type DashboardCalendarData = DashboardCalendarPreviewData & {
+  activeCalendarSemesterId: number | null;
+  activeCalendarSemesterName?: string | null;
+  calendarSemesterNavList: Array<{ id: number; name?: string | null }>;
+  semesterWeeks: string[][];
 };
 
 export type DashboardHomeworksData = DashboardRecord & {
@@ -594,9 +597,7 @@ export type TodoFilter = "incomplete" | "completed" | "all";
 export type TodoView = "cards" | "list";
 export type ExamView = "cards" | "list";
 export type LinkView = "grid" | "list";
-export type CalendarData = NonNullable<
-  NonNullable<SignedDashboardData["overview"]>["calendar"]
->;
+export type CalendarData = DashboardCalendarData;
 export type SubscriptionsData = NonNullable<
   SignedDashboardData["subscriptions"]
 >;

@@ -1,15 +1,13 @@
 import type { DashboardTimelineItem } from "@/features/dashboard/lib/dashboard-agenda";
 import type {
+  DashboardCalendarPreviewData,
   DashboardDashboardCopy,
   DashboardSectionCopy,
   DashboardTodoItem,
   SignedDashboardData,
 } from "@/features/dashboard/lib/dashboard-controller-helpers";
 import type { CalendarGridDay } from "$lib/components/calendar/types";
-import type {
-  DashboardCalendarData,
-  DashboardCalendarEvents,
-} from "./dashboard-calendar-component-types";
+import type { DashboardCalendarEvents } from "./dashboard-calendar-component-types";
 
 export type OverviewTimelineItem = DashboardTimelineItem;
 
@@ -25,7 +23,7 @@ export type OverviewSignedData = SignedDashboardData & {
   overview?:
     | (NonNullable<SignedDashboardData["overview"]> & {
         calendar?:
-          | (DashboardCalendarData & {
+          | (DashboardCalendarPreviewData & {
               referenceDate?: string | null;
             })
           | null;

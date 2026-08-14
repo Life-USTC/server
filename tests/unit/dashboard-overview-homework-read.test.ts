@@ -3,6 +3,7 @@ import { shanghaiDayjs } from "@/lib/time/shanghai-dayjs";
 
 const {
   buildDashboardOverviewScheduleMock,
+  buildPreviewCalendarPayloadMock,
   buildSemesterCalendarPayloadMock,
   getDashboardOverviewLinksDataMock,
   listSemesterCalendarTodosMock,
@@ -11,6 +12,7 @@ const {
   resolveDashboardOverviewSectionScopeMock,
 } = vi.hoisted(() => ({
   buildDashboardOverviewScheduleMock: vi.fn(),
+  buildPreviewCalendarPayloadMock: vi.fn(),
   buildSemesterCalendarPayloadMock: vi.fn(),
   getDashboardOverviewLinksDataMock: vi.fn(),
   listSemesterCalendarTodosMock: vi.fn(),
@@ -29,6 +31,7 @@ vi.mock("@/features/dashboard/server/dashboard-overview-calendar", async () => {
   >("@/features/dashboard/server/dashboard-overview-calendar");
   return {
     ...actual,
+    buildPreviewCalendarPayload: buildPreviewCalendarPayloadMock,
     buildSemesterCalendarPayload: buildSemesterCalendarPayloadMock,
   };
 });
@@ -129,8 +132,70 @@ describe("dashboard overview homework read", () => {
       semesterEnd: null,
       semesterHomeworks: [],
       semesterStart: null,
+      semesterTodos: [],
       semesterWeeks: [],
     });
+    buildPreviewCalendarPayloadMock.mockReturnValue({
+      allExams: [],
+      allSessions: [],
+      semesterEnd: null,
+      semesterHomeworks: [],
+      semesterStart: null,
+      semesterTodos: [],
+      semesterWeeks: [],
+    });
+  });
+
+  it("bounds overview reads to preview dates and skips the semester payload", async () => {
+    listSubscribedHomeworksMock.mockResolvedValue([]);
+
+    await getDashboardOverviewData("user-1", {
+      calendarMode: "preview",
+      locale: "en-us",
+      overviewWeek: "2026-05-17",
+    });
+
+    expect(resolveDashboardOverviewSectionScopeMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        scheduleDateStart: new Date("2026-05-16T16:00:00.000Z"),
+        scheduleDateEnd: new Date("2026-05-28T15:59:59.999Z"),
+      }),
+    );
+    expect(listSemesterCalendarTodosMock).toHaveBeenCalledWith({
+      semesterStart: expect.objectContaining({}),
+      semesterEnd: expect.objectContaining({}),
+      userId: "user-1",
+    });
+    const todoRange = listSemesterCalendarTodosMock.mock.calls[0]?.[0];
+    expect(todoRange.semesterStart.format("YYYY-MM-DD")).toBe("2026-05-17");
+    expect(todoRange.semesterEnd.format("YYYY-MM-DD")).toBe("2026-05-28");
+    expect(buildPreviewCalendarPayloadMock).toHaveBeenCalledOnce();
+    expect(buildSemesterCalendarPayloadMock).not.toHaveBeenCalled();
+  });
+
+  it("reuses a provided todo snapshot instead of querying calendar todos", async () => {
+    listSubscribedHomeworksMock.mockResolvedValue([]);
+    const calendarTodos = [
+      {
+        completed: false,
+        content: null,
+        dueAt: "2026-05-23T10:00:00+08:00",
+        id: "todo-1",
+        priority: "medium" as const,
+        title: "Review",
+      },
+    ];
+
+    await getDashboardOverviewData("user-1", {
+      calendarMode: "preview",
+      calendarTodos,
+      locale: "en-us",
+    });
+
+    expect(listSemesterCalendarTodosMock).not.toHaveBeenCalled();
+    expect(buildPreviewCalendarPayloadMock).toHaveBeenCalledWith(
+      expect.objectContaining({ todos: calendarTodos }),
+    );
   });
 
   it("uses one union read and preserves all four completion/due-date quadrants", async () => {

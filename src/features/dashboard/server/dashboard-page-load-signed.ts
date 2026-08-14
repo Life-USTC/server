@@ -62,6 +62,7 @@ export async function loadSignedDashboardPageData(input: {
           calendarSemesterId: input.calendarSemesterId,
           context,
           locale: input.locale,
+          overviewWeek: input.overviewWeek,
           referenceNow: input.referenceNow ?? undefined,
           requestId: input.requestId,
           tab: input.tab,
