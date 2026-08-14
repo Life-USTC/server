@@ -11,6 +11,7 @@ import {
 } from "@/features/catalog/lib/catalog-structured-data";
 import { getCoursePage } from "@/features/catalog/server/course-page-data";
 import { getTeacherPage } from "@/features/catalog/server/teacher-page-data";
+import { runCloudflareTraceSpan } from "@/lib/adapters/cloudflare-runtime";
 import { getViewerContext } from "@/lib/auth/viewer-context";
 import {
   buildSocialMetadata,
@@ -25,17 +26,26 @@ import {
 export type CourseDetailRouteSection = CatalogDetailTab;
 export type TeacherDetailRouteSection = CatalogDetailTab;
 
-export async function loadCourseDetailPage({
-  locals,
-  params,
-  request,
-  url,
-}: {
+type CourseDetailPageInput = {
   locals: App.Locals;
   params: { jwId: string; section?: string };
   request: Request;
   url: URL;
-}) {
+};
+
+type TeacherDetailPageInput = {
+  locals: App.Locals;
+  params: { id: string; section?: string };
+  request: Request;
+  url: URL;
+};
+
+async function loadCourseDetailPageData({
+  locals,
+  params,
+  request,
+  url,
+}: CourseDetailPageInput) {
   const tabQueryRedirect = resolveCatalogDetailTabQueryRedirect(
     request,
     "courses",
@@ -49,8 +59,19 @@ export async function loadCourseDetailPage({
   if (!Number.isInteger(jwId)) error(404, copy.notFound.description);
   // Stream layout always shows the sections table; include on first load.
   const [course, viewer] = await Promise.all([
-    getCoursePage(jwId, locals.locale, { includeSections: true }),
-    getViewerContext({ userId: locals.authUser?.id ?? null }),
+    runCloudflareTraceSpan(
+      "catalog.detail.core",
+      { "catalog.detail.kind": "course" },
+      () => getCoursePage(jwId, locals.locale, { includeSections: true }),
+    ),
+    runCloudflareTraceSpan(
+      "catalog.detail.viewer",
+      {
+        "catalog.detail.kind": "course",
+        "user.authenticated": Boolean(locals.authUser?.id),
+      },
+      () => getViewerContext({ userId: locals.authUser?.id ?? null }),
+    ),
   ]);
   if (!course) error(404, copy.notFound.description);
   if (course.jwId !== jwId) {
@@ -62,14 +83,17 @@ export async function loadCourseDetailPage({
     redirect(308, `${redirectUrl.pathname}${redirectUrl.search}`);
   }
   const displayName = catalogPrimaryName(course) || course.code;
-  const { commentsData, descriptionData } = await loadCatalogDetailCommentsData(
-    {
-      includeDescription: true,
-      includeDescriptionHistory: false,
-      targetId: course.id,
-      type: "course",
-      viewer,
-    },
+  const { commentsData, descriptionData } = await runCloudflareTraceSpan(
+    "catalog.detail.comments",
+    { "catalog.detail.kind": "course" },
+    () =>
+      loadCatalogDetailCommentsData({
+        includeDescription: true,
+        includeDescriptionHistory: false,
+        targetId: course.id,
+        type: "course",
+        viewer,
+      }),
   );
   const socialMetadata = buildSocialMetadata({
     card: {
@@ -112,17 +136,20 @@ export async function loadCourseDetailPage({
   };
 }
 
-export async function loadTeacherDetailPage({
+export function loadCourseDetailPage(input: CourseDetailPageInput) {
+  return runCloudflareTraceSpan(
+    "catalog.detail.data_load",
+    { "catalog.detail.kind": "course" },
+    () => loadCourseDetailPageData(input),
+  );
+}
+
+async function loadTeacherDetailPageData({
   locals,
   params,
   request,
   url,
-}: {
-  locals: App.Locals;
-  params: { id: string; section?: string };
-  request: Request;
-  url: URL;
-}) {
+}: TeacherDetailPageInput) {
   const tabQueryRedirect = resolveCatalogDetailTabQueryRedirect(
     request,
     "teachers",
@@ -136,19 +163,33 @@ export async function loadTeacherDetailPage({
   if (!Number.isInteger(id)) error(404, copy.notFound.description);
   // Stream layout always shows teaching sections; include on first load.
   const [teacher, viewer] = await Promise.all([
-    getTeacherPage(id, locals.locale, { includeSections: true }),
-    getViewerContext({ userId: locals.authUser?.id ?? null }),
+    runCloudflareTraceSpan(
+      "catalog.detail.core",
+      { "catalog.detail.kind": "teacher" },
+      () => getTeacherPage(id, locals.locale, { includeSections: true }),
+    ),
+    runCloudflareTraceSpan(
+      "catalog.detail.viewer",
+      {
+        "catalog.detail.kind": "teacher",
+        "user.authenticated": Boolean(locals.authUser?.id),
+      },
+      () => getViewerContext({ userId: locals.authUser?.id ?? null }),
+    ),
   ]);
   if (!teacher) error(404, copy.notFound.description);
   const displayName = catalogPrimaryName(teacher);
-  const { commentsData, descriptionData } = await loadCatalogDetailCommentsData(
-    {
-      includeDescription: true,
-      includeDescriptionHistory: false,
-      targetId: teacher.id,
-      type: "teacher",
-      viewer,
-    },
+  const { commentsData, descriptionData } = await runCloudflareTraceSpan(
+    "catalog.detail.comments",
+    { "catalog.detail.kind": "teacher" },
+    () =>
+      loadCatalogDetailCommentsData({
+        includeDescription: true,
+        includeDescriptionHistory: false,
+        targetId: teacher.id,
+        type: "teacher",
+        viewer,
+      }),
   );
   const socialMetadata = buildSocialMetadata({
     card: {
@@ -192,4 +233,12 @@ export async function loadTeacherDetailPage({
       }),
     ),
   };
+}
+
+export function loadTeacherDetailPage(input: TeacherDetailPageInput) {
+  return runCloudflareTraceSpan(
+    "catalog.detail.data_load",
+    { "catalog.detail.kind": "teacher" },
+    () => loadTeacherDetailPageData(input),
+  );
 }

@@ -9,6 +9,7 @@ import {
 } from "@/features/section-detail/lib/display";
 import { resolveSectionDetailTabQueryRedirect } from "@/features/section-detail/lib/section-detail-tab";
 import { getSectionPage } from "@/features/section-detail/server/section-page-data";
+import { runCloudflareTraceSpan } from "@/lib/adapters/cloudflare-runtime";
 import { getViewerContext } from "@/lib/auth/viewer-context";
 import {
   buildSocialMetadata,
@@ -23,17 +24,19 @@ export {
   unsubscribeSectionAction,
 } from "./section-detail-subscription-actions";
 
-export async function loadSectionDetailPage({
-  locals,
-  params,
-  request,
-  url,
-}: {
+type SectionDetailPageInput = {
   locals: App.Locals;
   params: { jwId: string; section?: string };
   request: Request;
   url: URL;
-}) {
+};
+
+async function loadSectionDetailPageData({
+  locals,
+  params,
+  request,
+  url,
+}: SectionDetailPageInput) {
   const tabQueryRedirect = resolveSectionDetailTabQueryRedirect(request);
   if (tabQueryRedirect) {
     redirect(308, tabQueryRedirect);
@@ -53,13 +56,25 @@ export async function loadSectionDetailPage({
       )
     : Promise.resolve(null);
   const [pageData, viewer, subscriptionState] = await Promise.all([
-    getSectionPage(jwId, locals.locale, {
-      includeExams: true,
-      includeRelated: true,
-      includeSchedules: true,
-      includeTeacherDepartments: true,
-    }),
-    getViewerContext({ userId }),
+    runCloudflareTraceSpan(
+      "catalog.detail.core",
+      { "catalog.detail.kind": "section" },
+      () =>
+        getSectionPage(jwId, locals.locale, {
+          includeExams: true,
+          includeRelated: true,
+          includeSchedules: true,
+          includeTeacherDepartments: true,
+        }),
+    ),
+    runCloudflareTraceSpan(
+      "catalog.detail.viewer",
+      {
+        "catalog.detail.kind": "section",
+        "user.authenticated": Boolean(userId),
+      },
+      () => getViewerContext({ userId }),
+    ),
     subscriptionStatePromise,
   ]);
   if (!pageData) error(404, "Section not found");
@@ -148,4 +163,12 @@ export async function loadSectionDetailPage({
       subscriptionIcsUrl: subscriptionState?.subscriptionIcsUrl ?? null,
     },
   };
+}
+
+export function loadSectionDetailPage(input: SectionDetailPageInput) {
+  return runCloudflareTraceSpan(
+    "catalog.detail.data_load",
+    { "catalog.detail.kind": "section" },
+    () => loadSectionDetailPageData(input),
+  );
 }

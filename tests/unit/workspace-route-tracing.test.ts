@@ -81,6 +81,7 @@ describe("workspace route tracing", () => {
     ).toEqual([
       ["workspace.homeworks.auth", {}],
       ["workspace.homeworks.read", {}],
+      ["response.serialize", { "response.format": "json" }],
     ]);
   });
 
@@ -105,6 +106,7 @@ describe("workspace route tracing", () => {
     ).toEqual([
       ["workspace.subscriptions.current.auth", {}],
       ["workspace.subscriptions.current.read", {}],
+      ["response.serialize", { "response.format": "json" }],
     ]);
   });
 
@@ -129,6 +131,7 @@ describe("workspace route tracing", () => {
     ).toEqual([
       ["workspace.overview.auth", {}],
       ["workspace.overview.read", {}],
+      ["response.serialize", { "response.format": "json" }],
     ]);
   });
 });
