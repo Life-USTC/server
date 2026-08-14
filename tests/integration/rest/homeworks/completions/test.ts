@@ -37,9 +37,9 @@ async function createTempHomework(
   );
   expect(listResponse.status()).toBe(200);
   const listBody = (await listResponse.json()) as {
-    homeworks?: Array<{ id?: string; title?: string }>;
+    data?: Array<{ id?: string; title?: string }>;
   };
-  const homework = listBody.homeworks?.find((item) => item.title === title);
+  const homework = listBody.data?.find((item) => item.title === title);
   expect(homework?.id).toBeTruthy();
   // biome-ignore lint/style/noNonNullAssertion: guarded by expect above
   return homework!.id!;

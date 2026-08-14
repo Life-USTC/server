@@ -36,11 +36,11 @@ async function findSeedHomeworkId(
   );
   expect(listResponse.status()).toBe(200);
   const listBody = (await listResponse.json()) as {
-    homeworks?: Array<{ id?: string; title?: string }>;
+    data?: Array<{ id?: string; title?: string }>;
   };
   // Use the pre-seeded completed homework to avoid racing with tests that
   // check for the main seed homework ("迭代二系统设计评审") in the incomplete list.
-  const hw = listBody.homeworks?.find(
+  const hw = listBody.data?.find(
     (h) => h.title === DEV_SEED.homeworks.completedTitle,
   );
   expect(hw?.id).toBeTruthy();

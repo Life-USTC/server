@@ -1,5 +1,15 @@
-import { handleRouteError, jsonResponse } from "@/lib/api/helpers";
+import {
+  HOMEWORK_LIST_DEFAULT_PAGE_SIZE,
+  HOMEWORK_LIST_MAX_PAGE_SIZE,
+} from "@/features/homeworks/lib/homework-list-bounds";
+import {
+  getRequestSearchParams,
+  handleRouteError,
+  jsonResponse,
+  parseRouteQuery,
+} from "@/lib/api/helpers";
 import { getRequestLocale } from "@/lib/api/routes/request-locale";
+import { subscribedHomeworksQuerySchema } from "@/lib/api/schemas/request-schemas";
 import { requireAuth } from "@/lib/auth/api-auth";
 import {
   runWithWorkspaceRouteAttribution,
@@ -20,68 +30,37 @@ export async function getSubscribedHomeworksRoute(request: Request) {
   const { userId } = auth;
   const locale = getRequestLocale(request);
 
+  const parsed = parseRouteQuery(
+    getRequestSearchParams(request),
+    subscribedHomeworksQuerySchema,
+    "Invalid subscribed homework query",
+    {
+      pagination: {
+        defaultPageSize: HOMEWORK_LIST_DEFAULT_PAGE_SIZE,
+        maxPageSize: HOMEWORK_LIST_MAX_PAGE_SIZE,
+        pageSizeAliasParam: "pageSize",
+      },
+    },
+  );
+  if (parsed instanceof Response) return parsed;
+
   return runWithWorkspaceRouteAttribution("homeworks", request, async () => {
     try {
-      const [{ getViewerContext }, subscriptionReadModel, homeworkItemState] =
-        await Promise.all([
-          import("@/lib/auth/viewer-context"),
-          import("@/features/subscriptions/server/subscription-read-model"),
-          import("@/features/homeworks/server/homework-item-state"),
-        ]);
-      const {
-        getSubscribedSectionIds,
-        listSubscribedHomeworkAuditLogs,
-        listSubscribedHomeworks,
-      } = subscriptionReadModel;
-      const { withHomeworkItemState } = homeworkItemState;
-
-      const [viewer, sectionIds] = await Promise.all([
-        runWorkspaceRouteStage("homeworks", "viewer", { request }, () =>
-          getViewerContext({
-            includeAdmin: true,
-            userId,
-          }),
-        ),
-        runWorkspaceRouteStage("homeworks", "section_ids", { request }, () =>
-          getSubscribedSectionIds(userId),
-        ),
-      ]);
-
-      if (sectionIds.length === 0) {
-        return jsonResponse({
-          viewer,
-          homeworks: [],
-          auditLogs: [],
-          sectionIds: [],
-        });
-      }
-
-      const [homeworks, auditLogs] = await Promise.all([
-        runWorkspaceRouteStage("homeworks", "read", { request }, () =>
-          listSubscribedHomeworks(userId, {
-            locale,
-            includeEditors: true,
-            sectionIds,
-          }),
-        ),
-        runWorkspaceRouteStage("homeworks", "audit", { request }, () =>
-          listSubscribedHomeworkAuditLogs(userId, 50, sectionIds),
-        ),
-      ]);
-
-      const responseHomeworks = await runWorkspaceRouteStage(
-        "homeworks",
-        "item_state",
-        { request },
-        () => withHomeworkItemState(homeworks, userId),
+      const { listSubscribedHomeworkPage } = await import(
+        "@/features/subscriptions/server/subscription-read-model"
       );
-
-      return jsonResponse({
-        viewer,
-        homeworks: responseHomeworks,
-        auditLogs,
-        sectionIds,
-      });
+      const page = await runWorkspaceRouteStage(
+        "homeworks",
+        "read",
+        { request },
+        () =>
+          listSubscribedHomeworkPage(userId, {
+            includeEditors: true,
+            locale,
+            pagination: parsed.pagination,
+          }),
+      );
+      return jsonResponse(page);
     } catch (error) {
       return handleRouteError("Failed to fetch subscribed homeworks", error);
     }
