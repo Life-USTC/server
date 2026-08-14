@@ -1,3 +1,21 @@
+## [1.89.12](https://github.com/Life-USTC/server/compare/v1.89.11...v1.89.12) (2026-08-14)
+
+
+### Bug Fixes
+
+* **search:** isolate public and workspace caching ([#829](https://github.com/Life-USTC/server/issues/829)) ([38d811d](https://github.com/Life-USTC/server/commit/38d811d0d218ba834e9964a9e9bad5ab38ebd6e5))
+
+
+### Performance Improvements
+
+* **catalog:** cache details and collapse child reads ([#828](https://github.com/Life-USTC/server/issues/828)) ([40ee9c5](https://github.com/Life-USTC/server/commit/40ee9c5dae793c939f15bdaed704ccc08ef7a716))
+* **catalog:** share public list caches ([#821](https://github.com/Life-USTC/server/issues/821)) ([58515d4](https://github.com/Life-USTC/server/commit/58515d4f18e9243e148560a62e74966549cb7356))
+* **community:** collapse read query phases ([#824](https://github.com/Life-USTC/server/issues/824)) ([db3b210](https://github.com/Life-USTC/server/commit/db3b2102a47fa2f557901df90e1725390a5b44a9))
+* **oauth:** remove duplicate token bootstrap ([#823](https://github.com/Life-USTC/server/issues/823)) ([b357170](https://github.com/Life-USTC/server/commit/b3571708e6cb13a9e3ffb089b71476773329207c))
+* **search:** bound queries and abort stale requests ([#830](https://github.com/Life-USTC/server/issues/830)) ([3ce061d](https://github.com/Life-USTC/server/commit/3ce061d2643bf0ba459d1013f69ea641ad53bd83))
+* **section:** collapse detail page query waterfall ([#827](https://github.com/Life-USTC/server/issues/827)) ([75f7c9f](https://github.com/Life-USTC/server/commit/75f7c9fc1dee52d21210b220cd5cea643eda84e5))
+* **social-card:** collapse upstream render waterfall ([#825](https://github.com/Life-USTC/server/issues/825)) ([6765b31](https://github.com/Life-USTC/server/commit/6765b31d51ebd631064af81ae98fa3e1c9a49ddf))
+
 ## [1.89.11](https://github.com/Life-USTC/server/compare/v1.89.10...v1.89.11) (2026-08-14)
 
 
