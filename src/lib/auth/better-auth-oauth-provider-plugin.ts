@@ -47,6 +47,7 @@ export function buildOAuthProviderPlugin(input: { authPublicOrigin: string }) {
     clientRegistrationDefaultScopes: [...PUBLIC_OAUTH_SCOPES],
     clientRegistrationAllowedScopes: [...CLIENT_REGISTRATION_ALLOWED_SCOPES],
     resources,
+    cachedResources: new Set(resources.map(({ identifier }) => identifier)),
     enforcePerClientResources: false,
     silenceWarnings: {
       oauthAuthServerConfig: true,

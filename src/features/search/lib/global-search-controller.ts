@@ -13,6 +13,7 @@ import type {
   GlobalSearchResultGroup,
   GlobalSearchResultItem,
 } from "@/features/search/server/global-search-types";
+import { type AppLocale, DEFAULT_LOCALE } from "@/i18n/config";
 
 export type GlobalSearchUrlSyncOptions = {
   getPageUrl: () => URL;
@@ -28,6 +29,10 @@ export type GlobalSearchUrlSyncOptions = {
 
 export type GlobalSearchControllerOptions = {
   limit: number;
+  getRequestContext?: () => {
+    includeWorkspace?: boolean;
+    locale: AppLocale;
+  };
   urlSync?: GlobalSearchUrlSyncOptions;
   showInitialHintDeps?: Readable<unknown>;
   getShowInitialHint?: (state: {
@@ -167,7 +172,11 @@ export function createGlobalSearchController(
     hasSearched.set(true);
 
     try {
-      const body = await fetchGlobalSearch(trimmed, options.limit);
+      const body = await fetchGlobalSearch(
+        trimmed,
+        options.limit,
+        options.getRequestContext?.() ?? { locale: DEFAULT_LOCALE },
+      );
       if (generation !== searchGeneration) return;
       groups.set(body.groups ?? []);
     } catch {

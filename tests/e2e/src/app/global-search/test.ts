@@ -11,7 +11,10 @@ test("global search shortcut returns catalog results", async ({ page }) => {
 
   const searchResponse = page.waitForResponse(
     (response) =>
-      response.url().includes("/api/search?q=math") && response.ok(),
+      response.url().includes("/api/search?q=math") &&
+      response.url().includes("locale=") &&
+      !response.url().includes("scope=workspace") &&
+      response.ok(),
   );
 
   const input = dialog.locator("input").first();
@@ -34,7 +37,10 @@ test("global search returns Chinese catalog matches", async ({ page }) => {
 
   const searchResponse = page.waitForResponse(
     (response) =>
-      response.url().includes(encodeURIComponent("线性代数")) && response.ok(),
+      response.url().includes(encodeURIComponent("线性代数")) &&
+      response.url().includes("locale=") &&
+      !response.url().includes("scope=workspace") &&
+      response.ok(),
   );
 
   const input = dialog.locator("input").first();
@@ -121,6 +127,8 @@ test("signed-in global search returns catalog results", async ({ page }) => {
     (response) =>
       response.url().includes("/api/search") &&
       response.url().includes(encodeURIComponent("线性代数")) &&
+      response.url().includes("locale=") &&
+      response.url().includes("scope=workspace") &&
       response.ok(),
   );
 
@@ -128,7 +136,8 @@ test("signed-in global search returns catalog results", async ({ page }) => {
   const dialog = page.locator('[data-slot="dialog-content"]');
   await expect(dialog).toBeVisible();
   await dialog.locator("input").first().fill("线性代数");
-  await searchResponse;
+  const response = await searchResponse;
+  expect(response.headers()["cache-control"]).toBe("private, no-store");
 
   await expect(
     dialog

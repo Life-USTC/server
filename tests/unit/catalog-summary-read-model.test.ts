@@ -26,6 +26,10 @@ vi.mock("@/features/catalog/server/catalog-list-cache", () => ({
   cachedCatalogListRead: ({ load }: { load: () => Promise<unknown> }) => load(),
 }));
 
+vi.mock("@/features/catalog/server/catalog-list-cache", () => ({
+  cachedCatalogListRead: ({ load }: { load: () => Promise<unknown> }) => load(),
+}));
+
 describe("课程目录摘要读取模型", () => {
   beforeEach(() => {
     buildCourseListWhereMock.mockReset();

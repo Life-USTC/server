@@ -1,4 +1,3 @@
-import { sectionCompactInclude } from "@/features/catalog/server/academic-query-includes";
 import { type AppLocale, DEFAULT_LOCALE } from "@/i18n/config";
 import { prisma, withUserDbContext } from "@/lib/db/prisma";
 import { logAppEvent } from "@/lib/log/app-logger";
@@ -9,6 +8,7 @@ import {
   type UserSectionSubscriptionState,
   userSectionSubscriptionSelect,
 } from "./subscription-read-model-shared";
+import { subscriptionSectionCompactInclude } from "./subscription-section-include";
 import { localizeCompactSubscriptionSection } from "./subscription-section-localize";
 
 export async function getUserSectionSubscriptionState(
@@ -47,7 +47,7 @@ export async function getUserCalendarSubscription(
         sectionSubscriptions: {
           include: {
             section: {
-              include: sectionCompactInclude,
+              include: subscriptionSectionCompactInclude,
             },
           },
           orderBy: [

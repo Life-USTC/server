@@ -49,11 +49,36 @@ describe("createGlobalSearchController", () => {
 
     expect(fetchMock).toHaveBeenCalledOnce();
     expect(fetchMock).toHaveBeenCalledWith(
-      `/api/search?q=${encodeURIComponent("math")}&limit=5`,
+      `/api/search?q=${encodeURIComponent("math")}&limit=5&locale=zh-cn`,
     );
     expect(get(controller.groups)).toHaveLength(1);
     expect(get(controller.isSearching)).toBe(false);
     expect(get(controller.hasSearched)).toBe(true);
+
+    vi.useRealTimers();
+  });
+
+  it("uses an explicit locale and isolated workspace scope", async () => {
+    vi.useFakeTimers();
+    const fetchMock = mockSearchFetch({ groups: [] });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const controller = createGlobalSearchController({
+      getRequestContext: () => ({
+        includeWorkspace: true,
+        locale: "en-us",
+      }),
+      limit: 5,
+    });
+    controller.query.set("math");
+    controller.scheduleSearch();
+
+    await vi.advanceTimersByTimeAsync(GLOBAL_SEARCH_DEBOUNCE_MS);
+    await vi.runAllTimersAsync();
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/search?q=math&limit=5&locale=en-us&scope=workspace",
+    );
 
     vi.useRealTimers();
   });

@@ -69,32 +69,6 @@ describe("retired Section discovery boundaries", () => {
     expect(sectionPageSelect.retiredAt).toBe(true);
   });
 
-  it("excludes retired rows from public related-Section discovery", async () => {
-    const { getSectionPageRelatedData } = await import(
-      "@/features/section-detail/server/section-page-related-data"
-    );
-
-    await getSectionPageRelatedData({
-      prisma: {
-        section: { findMany: sectionFindManyMock },
-      } as never,
-      section: {
-        courseId: 77,
-        id: 11,
-      },
-    });
-
-    expect(sectionFindManyMock).toHaveBeenCalledWith(
-      expect.objectContaining({
-        where: expect.objectContaining({
-          courseId: 77,
-          id: { not: 11 },
-          retiredAt: null,
-        }),
-      }),
-    );
-  });
-
   it("counts only active Sections in public teacher results", async () => {
     const { teacherListInclude } = await import(
       "@/features/catalog/server/academic-query-includes"
@@ -116,6 +90,14 @@ describe("retired Section discovery boundaries", () => {
         where: { id: { in: [11] }, retiredAt: null },
       }),
     );
+    const query = sectionFindManyMock.mock.calls.at(-1)?.[0];
+    expect(query.include.teachers.select).toMatchObject({
+      id: true,
+      nameCn: true,
+      nameEn: true,
+    });
+    expect(query.include.teachers.select).not.toHaveProperty("namePrimary");
+    expect(query.include.teachers.select).not.toHaveProperty("nameSecondary");
 
     await resolveCalendarSubscriptionSections({
       includeRetired: true,

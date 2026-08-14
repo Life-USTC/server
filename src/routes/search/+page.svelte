@@ -22,6 +22,10 @@ export let data: PageData;
 let inputElement: HTMLInputElement | null = null;
 
 const search = createGlobalSearchController({
+  getRequestContext: () => ({
+    includeWorkspace: Boolean(data.user),
+    locale: data.locale,
+  }),
   limit: GLOBAL_SEARCH_PAGE_LIMIT,
   urlSync: {
     getPageUrl: () => $page.url,

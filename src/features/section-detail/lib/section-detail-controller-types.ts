@@ -87,6 +87,7 @@ export type SectionDetailSection = {
   roomType?: SectionDetailNamed | null;
   schedules: SectionDetailSchedule[];
   scheduleCount: number;
+  otherCourseSectionCount: number;
   otherCourseSections: SectionDetailRelatedSection[];
   semester?: SectionDetailSemester | null;
   semesterId?: number | null;

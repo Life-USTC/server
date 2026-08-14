@@ -43,10 +43,6 @@ describe("database client boundaries", () => {
         "../../src/features/settings/server/settings-account-unlink.ts",
         import.meta.url,
       ),
-      new URL(
-        "../../src/lib/db/ensure-oauth-provider-resources.ts",
-        import.meta.url,
-      ),
     ];
 
     const violations: string[] = [];

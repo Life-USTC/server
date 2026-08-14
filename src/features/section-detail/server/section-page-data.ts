@@ -1,16 +1,22 @@
-import { getSectionPageRelatedData } from "@/features/section-detail/server/section-page-related-data";
+import { serializeDescriptionRecord } from "@/features/descriptions/server/description-payload";
 import {
   buildSectionPageLoadData,
+  SECTION_RELATED_PREVIEW_LIMIT,
+  sectionPageDescriptionSelect,
+  sectionPageRelatedSectionSelect,
   sectionPageSelect,
   sectionPageTeachersSelect,
   sectionPageTeachersWithDepartmentSelect,
 } from "@/features/section-detail/server/section-page-shape";
 import type { Prisma } from "@/generated/prisma/client";
 import { getPrisma } from "@/lib/db/prisma";
-import { toLoadData } from "@/lib/load-data-utils";
 
 type SectionPageRecord = Prisma.SectionGetPayload<{
   select: typeof sectionPageSelect;
+}>;
+
+type RelatedSectionRecord = Prisma.SectionGetPayload<{
+  select: typeof sectionPageRelatedSectionSelect;
 }>;
 
 export async function getSectionPage(
@@ -28,10 +34,34 @@ export async function getSectionPage(
     options.includeTeacherDepartments === true
       ? sectionPageTeachersWithDepartmentSelect
       : sectionPageTeachersSelect;
+  const relatedWhere = {
+    jwId: { not: jwId },
+    retiredAt: null,
+  } as const;
   const section = await prisma.section.findUnique({
     where: { jwId },
     select: {
       ...sectionPageSelect,
+      course: {
+        select: {
+          ...sectionPageSelect.course.select,
+          ...(options.includeRelated === false
+            ? {}
+            : {
+                _count: { select: { sections: { where: relatedWhere } } },
+                sections: {
+                  where: relatedWhere,
+                  orderBy: [
+                    { semester: { jwId: "desc" as const } },
+                    { code: "asc" as const },
+                  ],
+                  take: SECTION_RELATED_PREVIEW_LIMIT,
+                  select: sectionPageRelatedSectionSelect,
+                },
+              }),
+        },
+      },
+      description: { select: sectionPageDescriptionSelect },
       teachers: teachersSelect,
       _count: { select: { exams: true, schedules: true } },
       exams: options.includeExams === false ? false : sectionPageSelect.exams,
@@ -44,16 +74,25 @@ export async function getSectionPage(
 
   if (!section) return null;
 
-  const relatedData =
-    options.includeRelated === false
-      ? {
-          otherCourseSections: [],
-        }
-      : await getSectionPageRelatedData({ prisma, section });
-
-  const { _count, exams, schedules, ...data } = section;
+  const {
+    _count,
+    course: courseRecord,
+    description,
+    exams,
+    schedules,
+    ...data
+  } = section;
+  const {
+    _count: relatedCount,
+    sections: relatedSections,
+    ...course
+  } = courseRecord as typeof courseRecord & {
+    _count?: { sections: number };
+    sections?: RelatedSectionRecord[];
+  };
   const normalizedSection = {
     ...data,
+    course,
     examCount: _count.exams,
     exams: options.includeExams === false ? [] : exams,
     scheduleCount: _count.schedules,
@@ -63,14 +102,11 @@ export async function getSectionPage(
     scheduleCount: number;
   };
 
-  return buildSectionPageLoadData(normalizedSection, relatedData);
-}
-
-export async function withSectionPageRelatedData(
-  section: NonNullable<Awaited<ReturnType<typeof getSectionPage>>>,
-  locale = "zh-cn",
-) {
-  const prisma = getPrisma(locale);
-  const relatedData = await getSectionPageRelatedData({ prisma, section });
-  return { ...section, ...toLoadData(relatedData) };
+  return {
+    description: serializeDescriptionRecord(description),
+    section: buildSectionPageLoadData(normalizedSection, {
+      otherCourseSectionCount: relatedCount?.sections ?? 0,
+      otherCourseSections: relatedSections ?? [],
+    }),
+  };
 }

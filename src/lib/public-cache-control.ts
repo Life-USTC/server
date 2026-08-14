@@ -33,7 +33,6 @@ export const PUBLIC_SEARCH_CACHE_HEADERS = {
   "Cache-Tag": CATALOG_EDGE_CACHE_TAG,
   "Cloudflare-CDN-Cache-Control":
     "public, max-age=120, stale-while-revalidate=300",
-  Vary: "Accept-Language",
 } as const;
 
 // Bus schedule responses are purged with the catalog revision tag. Keep the

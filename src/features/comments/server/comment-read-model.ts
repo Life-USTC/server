@@ -344,10 +344,10 @@ export async function loadCommentThread(input: {
       ],
     } satisfies Prisma.CommentWhereInput;
     const pagination = input.pagination;
-    const [total, rootComments, hiddenCount] = await withCommentDbContext(
+    const { comments, hiddenCount, total } = await withCommentDbContext(
       input.viewerUserId,
-      (client) =>
-        Promise.all([
+      async (client) => {
+        const [total, rootComments, hiddenCount] = await Promise.all([
           client.comment.count({ where: rootWhere }),
           client.comment.findMany({
             where: rootWhere,
@@ -359,26 +359,30 @@ export async function loadCommentThread(input: {
           viewer.isAuthenticated
             ? Promise.resolve(0)
             : countAnonymousHiddenRoots(input.target.whereTarget),
-        ]),
+        ]);
+        const rootIds = rootComments.map((comment) => comment.id);
+        const comments =
+          rootIds.length === 0
+            ? []
+            : await client.comment.findMany({
+                where: {
+                  AND: [
+                    input.target.whereTarget,
+                    {
+                      OR: [
+                        { id: { in: rootIds } },
+                        { rootId: { in: rootIds } },
+                      ],
+                    },
+                  ],
+                },
+                include: commentThreadInclude,
+                orderBy: [{ createdAt: "asc" }, { id: "asc" }],
+              });
+
+        return { comments, hiddenCount, total };
+      },
     );
-    const rootIds = rootComments.map((comment) => comment.id);
-    const comments =
-      rootIds.length === 0
-        ? []
-        : await withCommentDbContext(input.viewerUserId, (client) =>
-            client.comment.findMany({
-              where: {
-                AND: [
-                  input.target.whereTarget,
-                  {
-                    OR: [{ id: { in: rootIds } }, { rootId: { in: rootIds } }],
-                  },
-                ],
-              },
-              include: commentThreadInclude,
-              orderBy: [{ createdAt: "asc" }, { id: "asc" }],
-            }),
-          );
 
     const commentsWithMetadata = await withCommentReadMetadata(
       comments,
