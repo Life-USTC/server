@@ -1,3 +1,4 @@
+import { CATALOG_SEARCH_MAX_LENGTH } from "@/features/catalog/lib/catalog-list-query";
 import { searchGlobally } from "@/features/search/server/global-search-service";
 import { handleRouteError, jsonResponse } from "@/lib/api/helpers";
 import { resolvePublicCatalogLocale } from "@/lib/api/routes/request-locale";
@@ -16,6 +17,14 @@ function parseSearchQuery(request: Request) {
   const limitParam = searchParams.get("limit");
   const limit = limitParam ? Number(limitParam) : undefined;
   const scope = searchParams.get("scope") ?? "catalog";
+  if (query.trim().length > CATALOG_SEARCH_MAX_LENGTH) {
+    return jsonResponse(
+      {
+        error: `Search query must not exceed ${CATALOG_SEARCH_MAX_LENGTH} characters`,
+      },
+      { status: 400 },
+    );
+  }
   if (
     limit !== undefined &&
     (!Number.isInteger(limit) || limit < 1 || limit > MAX_LIMIT)
