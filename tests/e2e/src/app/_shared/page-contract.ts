@@ -19,11 +19,42 @@ import {
   resolveSeedSectionId,
   resolveSeedTeacherId,
 } from "../../../utils/seed-lookups";
+import type { UiQualityAllowlist } from "../../../utils/ui-quality";
 
 type PageContractCase = {
   routePath: string;
   testInfo?: TestInfo;
 };
+
+const API_REFERENCE_UI_QUALITY_EXCEPTIONS = {
+  structure: [
+    {
+      match: /^main: expected exactly one visible main landmark, found 2$/,
+      reason:
+        "Scalar renders its own main landmark inside the application's documented API reference shell.",
+    },
+  ],
+  "duplicate-id": [
+    {
+      match: /^#scalar-client-\d+-\d+: 2 elements use the same id$/,
+      reason:
+        "Scalar duplicates hidden client examples for responsive render modes; the ids are third-party generated.",
+    },
+  ],
+  "invalid-link": [
+    {
+      match: /^a: visible link has no href$/,
+      reason:
+        "Scalar renders operation toggles as anchors without hrefs inside its generated API reference DOM.",
+    },
+  ],
+} satisfies UiQualityAllowlist;
+
+function getContractUiQuality(routePath: string): UiQualityAllowlist {
+  return routePath.startsWith("/api/docs")
+    ? API_REFERENCE_UI_QUALITY_EXCEPTIONS
+    : {};
+}
 
 function getContractWaitUntil(routePath: string) {
   if (
@@ -53,14 +84,19 @@ async function gotoContractPage(
 ) {
   const response = await gotoAndWaitForReady(page, path, {
     browserHealth: {},
+    expectMeaningfulContent: true,
     expectNoHorizontalOverflow: true,
+    uiQuality: getContractUiQuality(path),
     waitUntil: getContractWaitUntil(path),
     testInfo,
     screenshotLabel: "contract",
   });
 
   if (response) {
-    expect(response.status()).toBeLessThan(500);
+    expect(
+      response.ok(),
+      `Expected ${path} to resolve to a successful document response, received ${response.status()}`,
+    ).toBe(true);
   }
 
   return response;

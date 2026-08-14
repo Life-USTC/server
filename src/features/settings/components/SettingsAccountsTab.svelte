@@ -27,7 +27,7 @@ export let user: SettingsUser;
   class="grid gap-4"
   role="region"
 >
-  <Item.Group>
+  <Item.Group role="list">
     {#each accounts as account}
       <SettingsAccountRow
         {account}

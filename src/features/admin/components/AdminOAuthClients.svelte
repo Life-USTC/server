@@ -119,7 +119,7 @@ export let scopeLabel: (scope: string) => string;
     </div>
 
     <div class="xl:hidden">
-      <Item.Group>
+      <Item.Group role="list">
         {#each clients as client (client.clientId)}
           <Item.Root role="listitem" variant="outline" class="items-start">
             <Item.Content class="min-w-0">

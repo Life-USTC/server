@@ -38,16 +38,39 @@ Helpers: `signInAsDebugUser`, `gotoAndWaitForReady`, `DEV_SEED` under `utils/`.
   (e.g. `tests/e2e/src/app/test.ts`, welcome/settings, `dashboard/**`, MCP UI).
 
 
-## Page inventory (L0 / L1 / L2)
+## Unified UI contract (L0-L4)
 
-- **L0 — inventory gate:** `tests/e2e/src/app/_shared/page-inventory.ts` lists every
-  `src/routes/**/+page.svelte`. `tests/unit/page-inventory.test.ts` fails if a
-  new page is orphaned or a `primaryActions` entry lacks a spec / exemption.
-- **L1 — page identity:** call `assertPageContract` from the page’s
-  `tests/e2e/src/app/**/test.ts` (reuse `gotoAndWaitForReady` / role labels).
-- **L2 — primary actions:** each actionable control that changes state or
-  navigates needs a role/label case in the page spec, **or** an inventory
-  exemption: `decorative` | `live-oauth` | `covered-by:<spec>`.
-- Prefer `getByRole` / bilingual labels. Do not soft-skip expected product
-  controls with `test.skip` when `count() === 0` — use `expect(...).toBeVisible()`.
-- Mobile screenshot paths come from `mobileScreenshotPaths()` in the inventory.
+- **L0 — inventory:** `tests/e2e/src/app/_shared/page-inventory.ts` lists every
+  `src/routes/**/+page.svelte`, redirect, and non-page browser alias. The unit
+  gate fails when a route is orphaned. Every rendered page also owns exactly
+  one mobile contract: inventory-driven public/authed/admin coverage, or a
+  dedicated scenario with a spec, test name, and non-empty reason.
+- **L1 — rendered page baseline:** every page calls `assertPageContract` and is
+  exercised on desktop and mobile. Require a successful document response,
+  final URL/title/language, one visible main content target, a visible level-one
+  heading, meaningful settled content, no runtime/console error or error
+  overlay, and no document-level horizontal overflow.
+- **L2 — UI quality and required elements:** reject duplicate IDs, broken
+  visible images, empty headings, unsafe/missing link destinations, and serious
+  or critical structural WCAG A/AA violations. Page specs assert their required
+  controls with role/label locators. Third-party exceptions must be scoped by
+  issue kind and exact match, and must include a reason; never add a wildcard
+  allowlist. Contrast, link-color, target-size, and pixel-diff checks are visual
+  policy and stay outside the no-visual-change structural gate.
+- **L3 — capabilities and states:** cover the states a page actually owns. Lists
+  exercise results, no-results, filters/search, clear, and pagination when
+  present. Forms exercise validation, pending/disabled state, success,
+  persistence, and failure/rollback. Dialogs exercise open, focus, Escape,
+  cancel, and confirm. Mutating tests create deterministic fixtures, assert the
+  UI and persisted effect, and restore state in `finally`. Dynamic detail pages
+  include missing-record/404 cases; role-sensitive pages cover anonymous, user,
+  and admin behavior as applicable.
+- **L4 — visual evidence:** keep pixel regression opt-in and representative
+  across the shell, a public catalog surface, and an authenticated workspace in
+  both locales and viewports. Do not require pixel snapshots for every page.
+
+Prefer `getByRole` / bilingual labels. Do not blindly click every button:
+destructive, OAuth, download, upload, clipboard, and external-navigation flows
+need capability-specific assertions or an explicit inventory exemption. Never
+soft-pass an expected control with `if (count() === 0) return`; deterministic
+fixtures and `expect(...).toBeVisible()` must make missing UI fail loudly.

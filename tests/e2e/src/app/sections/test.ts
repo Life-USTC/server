@@ -48,6 +48,19 @@ test.describe("/catalog/sections 班级搜索页", () => {
     });
   });
 
+  test("无匹配班级时显示明确空状态且不渲染结果链接", async ({ page }) => {
+    await gotoAndWaitForReady(
+      page,
+      "/catalog/sections?search=e2e-no-matching-section-7f3c9a",
+    );
+
+    await expect(page.getByText(/未找到班级|No sections found/i)).toBeVisible();
+    await expect(
+      page.locator("#main-content a[href^='/catalog/sections/']"),
+    ).toHaveCount(0);
+    await expect(page.getByRole("link", { name: /清除|Clear/i })).toBeVisible();
+  });
+
   test("SSR 输出包含搜索查询", async ({ baseURL }) => {
     const response = await fetch(
       absoluteTestUrl(
@@ -559,12 +572,7 @@ test.describe("/catalog/sections 班级搜索页", () => {
   test("学期筛选保留种子数据结果", async ({ page }, testInfo) => {
     const filter = await getSeedSectionSemesterFixture(DEV_SEED.section.jwId);
     if (!filter.semesterName) {
-      await gotoAndWaitForReady(page, "/catalog/sections", {
-        testInfo,
-        screenshotLabel: "sections",
-      });
-      await expect(page.locator("#main-content")).toBeVisible();
-      return;
+      throw new Error("Expected the seeded section to have a semester fixture");
     }
 
     await gotoAndWaitForReady(

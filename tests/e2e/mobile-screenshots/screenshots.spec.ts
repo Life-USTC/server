@@ -19,6 +19,7 @@ function healthyMobileRoute(name: string, path: string) {
       browserHealth: {},
       expectMeaningfulContent: true,
       expectNoHorizontalOverflow: true,
+      uiQuality: {},
     });
 
     expect(
@@ -62,6 +63,7 @@ test.describe("移动端页面健全性", () => {
         browserHealth: {},
         expectMeaningfulContent: true,
         expectNoHorizontalOverflow: true,
+        uiQuality: {},
       });
     });
 
@@ -81,6 +83,7 @@ test.describe("移动端页面健全性", () => {
             browserHealth: {},
             expectMeaningfulContent: true,
             expectNoHorizontalOverflow: true,
+            uiQuality: {},
           });
           await expect(page).toHaveURL(/\/account\/welcome(?:\?.*)?$/);
           await expect(

@@ -44,7 +44,7 @@ $: avatarFallback = (user.name ?? user.username ?? "U")
   <Card.Root>
     <Card.Header class="items-center text-center">
       <Badge class="w-fit" variant="secondary">{welcomeCopy.firstSignIn}</Badge>
-      <Card.Title>{welcomeCopy.title}</Card.Title>
+      <Card.Title aria-level={1} role="heading">{welcomeCopy.title}</Card.Title>
       <Card.Description>{welcomeCopy.description}</Card.Description>
     </Card.Header>
 

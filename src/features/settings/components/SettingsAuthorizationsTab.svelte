@@ -71,7 +71,7 @@ function revokeAction(consentId: string): SubmitFunction {
       </Empty.Header>
     </Empty.Root>
   {:else}
-    <Item.Group>
+    <Item.Group role="list">
       {#each authorizations as authorization}
         <Item.Root role="listitem" variant="outline">
           <Item.Content class="min-w-0">

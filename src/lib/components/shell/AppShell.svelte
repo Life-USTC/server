@@ -721,7 +721,7 @@ afterNavigate(({ from, to }) => {
     <Sidebar.Inset
       aria-label={mainContentLabel}
       id="main-content"
-      tabindex={-1}
+      tabindex={0}
       class="relative flex w-full min-w-0 flex-1 flex-col lg:min-h-0 lg:overflow-hidden"
     >
       <AppTopbar
@@ -742,9 +742,13 @@ afterNavigate(({ from, to }) => {
         {viewerLoading}
       />
 
+      <!-- svelte-ignore a11y_no_noninteractive_tabindex -- the desktop content region is the keyboard-scrollable viewport -->
       <div
         bind:this={contentScrollContainer}
+        aria-label={mainContentLabel}
         data-shell-scroll-container
+        role="region"
+        tabindex="0"
         class={cn(
           "flex min-w-0 flex-1 flex-col",
           detailWorkspace

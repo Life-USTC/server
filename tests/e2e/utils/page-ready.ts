@@ -6,6 +6,7 @@ import {
   observeBrowserHealth,
   unexpectedBrowserIssues,
 } from "./browser-health";
+import { expectRenderedUiQuality, type UiQualityAllowlist } from "./ui-quality";
 
 type GotoOptions = {
   expectMainContent?: boolean;
@@ -18,6 +19,8 @@ type GotoOptions = {
   expectMeaningfulContent?: boolean;
   /** Assert the document itself does not scroll horizontally. */
   expectNoHorizontalOverflow?: boolean;
+  /** Assert shared document, asset, link, heading, and control integrity. */
+  uiQuality?: false | UiQualityAllowlist;
 };
 
 const GOTO_RETRY_ATTEMPTS = 3;
@@ -103,6 +106,7 @@ export async function gotoAndWaitForReady(
     expectMainContent = true,
     expectMeaningfulContent = false,
     expectNoHorizontalOverflow = false,
+    uiQuality = false,
     waitUntil,
   } = options;
   const healthObserver =
@@ -147,6 +151,10 @@ export async function gotoAndWaitForReady(
 
     if (expectNoHorizontalOverflow) {
       await expectNoPageHorizontalOverflow(page);
+    }
+
+    if (uiQuality !== false) {
+      await expectRenderedUiQuality(page, uiQuality);
     }
 
     return response;

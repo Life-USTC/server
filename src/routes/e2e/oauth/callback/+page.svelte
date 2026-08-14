@@ -12,7 +12,7 @@ $: callbackJson = JSON.stringify(callbackPayload, null, 2);
 
 <svelte:head><title>OAuth E2E Callback - Life@USTC</title></svelte:head>
 
-<main class="grid gap-4">
+<div class="grid gap-4">
   <Card.Root>
     <Card.Header>
       <Card.Title>
@@ -24,4 +24,4 @@ $: callbackJson = JSON.stringify(callbackPayload, null, 2);
       <pre class="overflow-auto rounded-md border bg-muted/30 p-4 text-sm">{callbackJson}</pre>
     </Card.Content>
   </Card.Root>
-</main>
+</div>

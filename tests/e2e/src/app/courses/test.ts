@@ -59,6 +59,19 @@ test.describe("/catalog/courses 课程目录", () => {
     expect(html).toContain(DEV_SEED.course.code);
   });
 
+  test("无匹配课程时显示明确空状态且不渲染结果链接", async ({ page }) => {
+    await gotoAndWaitForReady(
+      page,
+      "/catalog/courses?search=e2e-no-matching-course-7f3c9a",
+    );
+
+    await expect(page.getByText(/未找到课程|No courses found/i)).toBeVisible();
+    await expect(
+      page.locator("#main-content a[href^='/catalog/courses/']"),
+    ).toHaveCount(0);
+    await expect(page.getByRole("link", { name: /清除|Clear/i })).toBeVisible();
+  });
+
   test("目录链接悬停时不预取 __data.json", async ({ page }) => {
     await gotoAndWaitForReady(
       page,
