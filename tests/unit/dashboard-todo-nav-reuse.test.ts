@@ -171,7 +171,45 @@ describe("dashboard todo count reuse", () => {
     );
     expect(getDashboardOverviewDataMock).toHaveBeenCalledWith(
       "user-1",
-      expect.objectContaining({ semesters }),
+      expect.objectContaining({
+        calendarMode: "preview",
+        calendarTodos: expect.any(Array),
+        semesters,
+      }),
+    );
+  });
+
+  it("starts overview work without waiting for navigation counts", async () => {
+    let releaseNav!: () => void;
+    const navGate = new Promise<void>((resolve) => {
+      releaseNav = resolve;
+    });
+    getTodosTabDataMock.mockResolvedValue([]);
+    getDashboardNavStatsMock.mockImplementation(async () => {
+      await navGate;
+      return { pendingTodosCount: 0 };
+    });
+    getDashboardOverviewDataMock.mockResolvedValue({ calendarMode: "preview" });
+
+    const pending = loadTab("overview");
+
+    await vi.waitFor(() => {
+      expect(getDashboardNavStatsMock).toHaveBeenCalledOnce();
+      expect(getDashboardOverviewDataMock).toHaveBeenCalledOnce();
+    });
+
+    releaseNav();
+    await pending;
+  });
+
+  it("keeps the calendar tab on the complete semester model", async () => {
+    getDashboardNavStatsMock.mockResolvedValue({ pendingTodosCount: 0 });
+
+    await loadTab("calendar");
+
+    expect(getDashboardOverviewDataMock).toHaveBeenCalledWith(
+      "user-1",
+      expect.objectContaining({ calendarMode: "semester", skipLinks: true }),
     );
   });
 });

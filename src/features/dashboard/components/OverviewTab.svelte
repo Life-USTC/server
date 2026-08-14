@@ -9,6 +9,7 @@ import {
   dashboardReferenceTime,
 } from "@/features/dashboard/lib/dashboard-agenda";
 import type {
+  DashboardCalendarPreviewData,
   DashboardCommonCopy,
   DashboardDashboardCopy,
   DashboardLinkPinSubmit,
@@ -32,7 +33,6 @@ import {
 import { DASHBOARD_OVERVIEW_PREVIEW_LIMIT } from "@/features/dashboard/lib/overview-preview";
 import DashboardNoSubscriptionsState from "./DashboardNoSubscriptionsState.svelte";
 import type {
-  DashboardCalendarData,
   DashboardCalendarSession,
   DashboardCalendarTabHref,
 } from "./dashboard-calendar-component-types";
@@ -90,7 +90,7 @@ function dashboardOverviewWeekStart() {
   return buildDashboardOverviewWeekStart(signedData);
 }
 
-function overviewUpcomingExams(overviewCalendar: DashboardCalendarData) {
+function overviewUpcomingExams(overviewCalendar: DashboardCalendarPreviewData) {
   return buildOverviewUpcomingExams(overviewCalendar, signedData);
 }
 
@@ -99,7 +99,7 @@ function sessionHref(session: Pick<DashboardCalendarSession, "sectionJwId">) {
 }
 
 function overviewCalendarWeekDays(
-  overviewCalendar: DashboardCalendarData,
+  overviewCalendar: DashboardCalendarPreviewData,
   overviewWeekStart: string,
 ) {
   return buildOverviewCalendarWeekDays(
@@ -111,7 +111,7 @@ function overviewCalendarWeekDays(
 }
 
 function overviewAgendaDays(
-  overviewCalendar: DashboardCalendarData,
+  overviewCalendar: DashboardCalendarPreviewData,
 ): DashboardAgendaDay[] {
   return buildDashboardAgendaDays({
     calendar: overviewCalendar,
@@ -127,7 +127,7 @@ function overviewReference(value: unknown): Date | string | null {
 }
 
 function overviewFocus(
-  overviewCalendar: DashboardCalendarData,
+  overviewCalendar: DashboardCalendarPreviewData,
   days: DashboardAgendaDay[],
 ) {
   const currentTime = dashboardReferenceTime(
