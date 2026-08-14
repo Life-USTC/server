@@ -30,6 +30,18 @@ function localized(value: string) {
   };
 }
 
+function general(value: string) {
+  return {
+    OR: [
+      { course: { nameCn: contains(value) } },
+      { course: { nameEn: contains(value) } },
+      { course: { code: contains(value) } },
+      { code: contains(value) },
+      { teachers: { some: localized(value) } },
+    ],
+  };
+}
+
 describe("课程与开课查询辅助函数", () => {
   it("根据搜索和数字 ID 构建课程筛选条件", () => {
     expect(
@@ -92,45 +104,8 @@ describe("课程与开课查询辅助函数", () => {
             some: localized("smith"),
           },
         },
-        {
-          OR: [
-            {
-              course: {
-                nameCn: {
-                  contains: "linear algebra",
-                  mode: "insensitive",
-                },
-              },
-            },
-            {
-              course: {
-                nameEn: {
-                  contains: "linear algebra",
-                  mode: "insensitive",
-                },
-              },
-            },
-            {
-              course: {
-                code: {
-                  contains: "linear algebra",
-                  mode: "insensitive",
-                },
-              },
-            },
-            {
-              code: {
-                contains: "linear algebra",
-                mode: "insensitive",
-              },
-            },
-            {
-              teachers: {
-                some: localized("linear algebra"),
-              },
-            },
-          ],
-        },
+        general("linear"),
+        general("algebra"),
       ]),
     );
     expect(result.orderBy).toEqual({ semester: { jwId: "desc" } });
