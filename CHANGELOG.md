@@ -1,3 +1,10 @@
+## [1.90.3](https://github.com/Life-USTC/server/compare/v1.90.2...v1.90.3) (2026-08-14)
+
+
+### Bug Fixes
+
+* **observability:** await catalog detail query spans ([#843](https://github.com/Life-USTC/server/issues/843)) ([bfc0e01](https://github.com/Life-USTC/server/commit/bfc0e019b1942af875e24e3937e97aaec3fe8335))
+
 ## [1.90.2](https://github.com/Life-USTC/server/compare/v1.90.1...v1.90.2) (2026-08-14)
 
 
