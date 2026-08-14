@@ -48,7 +48,7 @@ describe("global search service", () => {
     searchCoursesForGlobalMock.mockResolvedValue([]);
     searchSectionsForGlobalMock.mockResolvedValue([]);
     searchTeachersForGlobalMock.mockResolvedValue([]);
-    searchLinksForGlobalMock.mockResolvedValue([]);
+    searchLinksForGlobalMock.mockReturnValue([]);
     cachedCatalogRuntimeDataMock.mockImplementation(
       async (
         _namespace: string,
@@ -246,6 +246,53 @@ describe("global search service", () => {
 
     expect(result.groups).toHaveLength(1);
     expect(searchCoursesForGlobalMock).not.toHaveBeenCalled();
+  });
+
+  it("refreshes source-backed links when database catalog results are cached", async () => {
+    let cachedGroups: GlobalSearchResultGroup[] | undefined;
+    cachedCatalogRuntimeDataMock.mockImplementation(
+      async (
+        _namespace: string,
+        _cacheKey: string,
+        _origin: string,
+        load: () => Promise<GlobalSearchResultGroup[]>,
+      ) => {
+        cachedGroups ??= await load();
+        return cachedGroups;
+      },
+    );
+    searchLinksForGlobalMock.mockReturnValue([
+      {
+        slug: "mail",
+        title: "Old mail title",
+        description: "Old mail description",
+        url: "https://old.example/",
+      },
+    ]);
+
+    const first = await searchGlobally({
+      locale: "en-us",
+      origin: ORIGIN,
+      query: "mail",
+    });
+    searchLinksForGlobalMock.mockReturnValue([
+      {
+        slug: "mail",
+        title: "New mail title",
+        description: "New mail description",
+        url: "https://new.example/",
+      },
+    ]);
+    const second = await searchGlobally({
+      locale: "en-us",
+      origin: ORIGIN,
+      query: "mail",
+    });
+
+    expect(searchCoursesForGlobalMock).toHaveBeenCalledTimes(1);
+    expect(searchLinksForGlobalMock).toHaveBeenCalledTimes(2);
+    expect(first.groups[0]?.items[0]?.href).toBe("https://old.example/");
+    expect(second.groups[0]?.items[0]?.href).toBe("https://new.example/");
   });
 
   it("includes link matches in catalog results", async () => {
