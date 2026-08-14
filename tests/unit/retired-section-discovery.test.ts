@@ -116,6 +116,14 @@ describe("retired Section discovery boundaries", () => {
         where: { id: { in: [11] }, retiredAt: null },
       }),
     );
+    const query = sectionFindManyMock.mock.calls.at(-1)?.[0];
+    expect(query.include.teachers.select).toMatchObject({
+      id: true,
+      nameCn: true,
+      nameEn: true,
+    });
+    expect(query.include.teachers.select).not.toHaveProperty("namePrimary");
+    expect(query.include.teachers.select).not.toHaveProperty("nameSecondary");
 
     await resolveCalendarSubscriptionSections({
       includeRetired: true,

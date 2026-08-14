@@ -13,7 +13,6 @@ import {
 import {
   departmentSchema,
   teacherPublicIdentitySchema,
-  teacherSchema,
   teacherWithDepartmentTitleSchema,
 } from "./academic-teacher-response-schemas";
 
@@ -25,7 +24,7 @@ const localizedNameFields = {
 const localizedCourseSchema = courseSchema.extend(localizedNameFields);
 const localizedCampusSchema = campusSchema.extend(localizedNameFields);
 const localizedDepartmentSchema = departmentSchema.extend(localizedNameFields);
-const localizedTeacherSchema = teacherSchema.extend(localizedNameFields);
+const localizedTeacherSchema = teacherPublicIdentitySchema;
 
 const courseSummarySchema = z.object({
   id: z.number().int(),
