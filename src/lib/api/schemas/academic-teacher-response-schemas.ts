@@ -42,6 +42,32 @@ export const teacherSchema = z.object({
   teacherTitleId: z.number().int().nullable(),
 });
 
+export const teacherPublicIdentitySchema = z.object({
+  id: z.number().int(),
+  jwId: z.number().int(),
+  personId: z.number().int().nullable(),
+  code: z.string().nullable(),
+  nameCn: z.string(),
+  nameEn: z.string().nullable(),
+  namePrimary: z.string(),
+  nameSecondary: z.string().nullable(),
+});
+
+export const teacherPublicReferenceSchema = teacherPublicIdentitySchema.extend({
+  department: departmentSchema
+    .extend({
+      namePrimary: z.string(),
+      nameSecondary: z.string().nullable(),
+    })
+    .nullable(),
+  teacherTitle: teacherTitleSchema
+    .extend({
+      namePrimary: z.string(),
+      nameSecondary: z.string().nullable(),
+    })
+    .nullable(),
+});
+
 export const teacherWithDepartmentTitleSchema = teacherSchema.extend({
   department: departmentSchema.nullable(),
   teacherTitle: teacherTitleSchema.nullable(),

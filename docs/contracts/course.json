@@ -16,7 +16,8 @@
     "public-list-cache": "Public Course REST responses are deterministic by URL: omitted locale uses canonical zh-cn and locale=en-us selects English. They do not derive output from Cookie or Accept-Language and may use shared CDN caching. REST, GraphQL, and MCP lists share revision-scoped locale/filter/pagination runtime caching. Localized HTML pages use their locale-partitioned SSR cache.",
     "mobile-detail-hierarchy": "Course detail pages present the public course code before the localized display name on mobile, use a responsive title size, and use the Detail Two-Column Stream without a context-tab rail.",
     "detail-canonical-url": "The canonical course detail URL is `/catalog/courses/[jwId]`. Legacy path segments and `?tab=` deep links permanently redirect to the root; optional hash anchors scroll within the page.",
-    "static-classification-unsupported": "Static course snapshots do not currently provide CourseClassify source data, so static-loaded courses keep classifyId/classify null and static-loaded metadata may expose courseClassifies as an empty array."
+    "static-classification-unsupported": "Static course snapshots do not currently provide CourseClassify source data, so static-loaded courses keep classifyId/classify null and static-loaded metadata may expose courseClassifies as an empty array.",
+    "bounded-detail-history": "Course detail returns the 20 most recent Section offerings plus the total Section count. Nested teacher references contain only public identity and localized names; contact and private source columns are never embedded."
   },
   "capabilities": {
     "course-list": {
@@ -96,7 +97,10 @@
         "routes": [
           {
             "path": "/api/catalog/courses/[jwId]",
-            "returns": "CourseDetail"
+            "returns": "CourseDetail",
+            "notes": [
+              "sections is a newest-first preview capped at 20 records; _count.sections is the complete historical total."
+            ]
           }
         ]
       },

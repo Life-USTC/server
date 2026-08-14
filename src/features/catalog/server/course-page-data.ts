@@ -1,4 +1,5 @@
 import type { CourseDetailSection } from "@/features/catalog/components/catalog-detail-component-types";
+import { PUBLIC_DETAIL_SECTION_PREVIEW_LIMIT } from "@/features/catalog/server/academic-query-includes";
 import { localizedNameSelect } from "@/features/section-detail/server/section-page-name-selects";
 import { getPrisma } from "@/lib/db/prisma";
 import { toLoadData } from "@/lib/load-data-utils";
@@ -60,6 +61,7 @@ export async function getCoursePage(
           ? false
           : {
               orderBy: [{ semester: { jwId: "desc" } }, { code: "asc" }],
+              take: PUBLIC_DETAIL_SECTION_PREVIEW_LIMIT,
               select: coursePageSectionsSelect,
             },
     },

@@ -1,3 +1,12 @@
+## [1.89.10](https://github.com/Life-USTC/server/compare/v1.89.9...v1.89.10) (2026-08-13)
+
+
+### Performance Improvements
+
+* **bus:** cache public schedules safely ([#817](https://github.com/Life-USTC/server/issues/817)) ([34e4aed](https://github.com/Life-USTC/server/commit/34e4aed820190f4afad1942533700a0210bae9c3))
+* **catalog:** cache current semester reads ([#818](https://github.com/Life-USTC/server/issues/818)) ([4b41e83](https://github.com/Life-USTC/server/commit/4b41e836660e7be357f56077987b3e9bb27c55cd))
+* reuse overview RLS transaction ([#819](https://github.com/Life-USTC/server/issues/819)) ([578db54](https://github.com/Life-USTC/server/commit/578db540913ab2271dfc3aed6f7bf718c3bf0c31))
+
 ## [1.89.9](https://github.com/Life-USTC/server/compare/v1.89.8...v1.89.9) (2026-08-10)
 
 

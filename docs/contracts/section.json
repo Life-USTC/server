@@ -16,7 +16,8 @@
     "student-identity-teachers": "Student-facing section identity is the course display name plus teachers. Section code is secondary (monospace in lists, search descriptions, and the Basic Info Card) and must not dominate search titles or the detail hero.",
     "public-list-cache": "Public Section REST responses are deterministic by URL: omitted locale uses canonical zh-cn and locale=en-us selects English. They do not derive output from Cookie or Accept-Language and may use shared CDN caching. REST, GraphQL, and MCP lists share revision-scoped locale/filter/pagination/shape runtime caching. Localized HTML pages use their locale-partitioned SSR cache.",
     "mobile-detail-actions": "Section detail pages present concise metadata and teachers with a responsive course title, use the Detail Two-Column Stream (no context-tab rail), and keep the primary calendar and subscription actions available in a bottom sticky action bar that stays above the signed-in shell navigation.",
-    "detail-canonical-url": "The canonical section detail URL is `/catalog/sections/[jwId]`. Legacy path segments and `?tab=` deep links permanently redirect to the root; optional hash anchors scroll within the page."
+    "detail-canonical-url": "The canonical section detail URL is `/catalog/sections/[jwId]`. Legacy path segments and `?tab=` deep links permanently redirect to the root; optional hash anchors scroll within the page.",
+    "public-teacher-reference": "Teachers embedded in Section list/detail payloads contain only public identity and localized names, with department/title added only where the detail UI requests that context. TeacherAssignment links by teacherId and does not duplicate the nested Teacher object. Contact and private source columns are available only on the teacher's own public detail where explicitly permitted."
   },
   "capabilities": {
     "section-list": {

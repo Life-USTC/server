@@ -115,6 +115,12 @@ describe("catalog detail page data", () => {
 
     expect(courseResult?.sections).toEqual(courseSections);
     expect(teacherResult?.sections).toEqual(teacherSections);
+    expect(
+      courseFindUniqueMock.mock.calls.at(-1)?.[0]?.select?.sections?.take,
+    ).toBe(20);
+    expect(
+      teacherFindUniqueMock.mock.calls.at(-1)?.[0]?.select?.sections?.take,
+    ).toBe(20);
     expect(Reflect.ownKeys(courseResult ?? {})).not.toContain(
       localizedNameSymbol,
     );
