@@ -34,6 +34,13 @@ import {
 } from "./lib/cloudflare/public-ssr-gateway";
 import { maintenancePrisma } from "./lib/db/maintenance-prisma";
 import { prisma } from "./lib/db/prisma";
+import {
+  logScheduledTaskFinish,
+  logUnknownScheduledTask,
+  normalizePublicSsrObservedRoute,
+  observedEdgeResponse,
+  resolveEdgeCacheOutcome,
+} from "./lib/log/worker-entrypoint-observability";
 import { buildContentSecurityPolicy } from "./lib/security/csp";
 import { CONTENT_SIGNAL } from "./lib/seo/content-signal";
 
@@ -90,7 +97,6 @@ function publicNotFoundResponse(locale, headRequest) {
       Vary: "Accept-Language, Cookie",
       "X-Content-Type-Options": "nosniff",
       "X-Frame-Options": "SAMEORIGIN",
-      "x-request-id": crypto.randomUUID(),
     },
   });
 }
@@ -121,7 +127,6 @@ function personalizeCachedResponse(response) {
   headers.set("Cache-Control", "private, no-store");
   headers.set("Cloudflare-CDN-Cache-Control", "no-store");
   headers.set("Vary", "Accept-Language, Cookie");
-  headers.set("x-request-id", crypto.randomUUID());
 
   const rewritten = new Response(response.body, {
     headers,
@@ -197,97 +202,152 @@ export class PublicSsr extends WorkerEntrypoint {
   }
 }
 
-export default {
-  async fetch(request, env, context) {
-    const legacyRedirect = resolveLegacyCatalogRedirect(request);
-    if (legacyRedirect) {
-      return new Response(null, {
+async function handleFetch(request, env, context) {
+  const startMs = Date.now();
+  const finish = (response, requestClass, route, cacheOutcome = "bypass") =>
+    observedEdgeResponse({
+      cacheOutcome,
+      request,
+      requestClass,
+      requestId: crypto.randomUUID(),
+      response,
+      route,
+      startMs,
+    });
+
+  const legacyRedirect = resolveLegacyCatalogRedirect(request);
+  if (legacyRedirect) {
+    return finish(
+      new Response(null, {
         status: 301,
         headers: {
           "Cache-Control": "public, max-age=86400",
           Location: legacyRedirect,
         },
-      });
-    }
-    const sectionTabRedirect = resolveSectionDetailTabRedirect(request);
-    if (sectionTabRedirect) {
-      return new Response(null, {
+      }),
+      "catalog-redirect",
+      "/:legacy-catalog-route",
+    );
+  }
+  const sectionTabRedirect = resolveSectionDetailTabRedirect(request);
+  if (sectionTabRedirect) {
+    return finish(
+      new Response(null, {
         status: 308,
         headers: {
           "Cache-Control": "public, max-age=86400",
           Location: sectionTabRedirect,
         },
-      });
-    }
-    const sectionTabQueryRedirect =
-      resolveSectionDetailTabQueryRedirect(request);
-    if (sectionTabQueryRedirect) {
-      return new Response(null, {
+      }),
+      "catalog-redirect",
+      "/catalog/sections/:id/:legacy-tab",
+    );
+  }
+  const sectionTabQueryRedirect = resolveSectionDetailTabQueryRedirect(request);
+  if (sectionTabQueryRedirect) {
+    return finish(
+      new Response(null, {
         status: 308,
         headers: {
           "Cache-Control": "public, max-age=86400",
           Location: sectionTabQueryRedirect,
         },
-      });
-    }
-    const courseTabRedirect = resolveCourseDetailTabRedirect(request);
-    if (courseTabRedirect) {
-      return new Response(null, {
+      }),
+      "catalog-redirect",
+      "/catalog/sections/:id",
+    );
+  }
+  const courseTabRedirect = resolveCourseDetailTabRedirect(request);
+  if (courseTabRedirect) {
+    return finish(
+      new Response(null, {
         status: 308,
         headers: {
           "Cache-Control": "public, max-age=86400",
           Location: courseTabRedirect,
         },
-      });
-    }
-    const courseTabQueryRedirect = resolveCourseDetailTabQueryRedirect(request);
-    if (courseTabQueryRedirect) {
-      return new Response(null, {
+      }),
+      "catalog-redirect",
+      "/catalog/courses/:id/:legacy-tab",
+    );
+  }
+  const courseTabQueryRedirect = resolveCourseDetailTabQueryRedirect(request);
+  if (courseTabQueryRedirect) {
+    return finish(
+      new Response(null, {
         status: 308,
         headers: {
           "Cache-Control": "public, max-age=86400",
           Location: courseTabQueryRedirect,
         },
-      });
-    }
-    const teacherTabRedirect = resolveTeacherDetailTabRedirect(request);
-    if (teacherTabRedirect) {
-      return new Response(null, {
+      }),
+      "catalog-redirect",
+      "/catalog/courses/:id",
+    );
+  }
+  const teacherTabRedirect = resolveTeacherDetailTabRedirect(request);
+  if (teacherTabRedirect) {
+    return finish(
+      new Response(null, {
         status: 308,
         headers: {
           "Cache-Control": "public, max-age=86400",
           Location: teacherTabRedirect,
         },
-      });
-    }
-    const teacherTabQueryRedirect =
-      resolveTeacherDetailTabQueryRedirect(request);
-    if (teacherTabQueryRedirect) {
-      return new Response(null, {
+      }),
+      "catalog-redirect",
+      "/catalog/teachers/:id/:legacy-tab",
+    );
+  }
+  const teacherTabQueryRedirect = resolveTeacherDetailTabQueryRedirect(request);
+  if (teacherTabQueryRedirect) {
+    return finish(
+      new Response(null, {
         status: 308,
         headers: {
           "Cache-Control": "public, max-age=86400",
           Location: teacherTabQueryRedirect,
         },
-      });
-    }
-    const mode = resolvePublicSsrMode(request, resolveCatalogListPublicSsrMode);
-    if (!shouldRoutePublicSsrCache(request, mode)) {
-      return app.fetch(directRequest(request), env, context);
-    }
+      }),
+      "catalog-redirect",
+      "/catalog/teachers/:id",
+    );
+  }
+  const mode = resolvePublicSsrMode(request, resolveCatalogListPublicSsrMode);
+  if (!shouldRoutePublicSsrCache(request, mode)) {
+    return app.fetch(directRequest(request), env, context);
+  }
 
-    const locale = resolvePublicSsrLocale(request);
-    if (mode === "not-found") {
-      return publicNotFoundResponse(locale, request.method === "HEAD");
-    }
-    const cachedRequest = publicSsrRequest(request, mode, locale);
-    const cacheUrl = new URL(cachedRequest.url);
-    const response = await context.exports
-      .PublicSsr({ props: { locale, mode } })
-      .fetch(cachedRequest, {
-        cf: { cacheKey: cacheUrl.pathname + cacheUrl.search },
-      });
-    return personalizeCachedResponse(response);
+  const locale = resolvePublicSsrLocale(request);
+  if (mode === "not-found") {
+    return finish(
+      publicNotFoundResponse(locale, request.method === "HEAD"),
+      "public-not-found",
+      "public-not-found",
+    );
+  }
+  const cachedRequest = publicSsrRequest(request, mode, locale);
+  const cacheUrl = new URL(cachedRequest.url);
+  const response = await context.exports
+    .PublicSsr({ props: { locale, mode } })
+    .fetch(cachedRequest, {
+      cf: { cacheKey: cacheUrl.pathname + cacheUrl.search },
+    });
+  return finish(
+    personalizeCachedResponse(response),
+    "public-ssr-cache",
+    normalizePublicSsrObservedRoute(new URL(request.url).pathname),
+    resolveEdgeCacheOutcome(response),
+  );
+}
+
+export default {
+  async fetch(request, env, context) {
+    return runWithCloudflareRuntimeEnv(
+      env,
+      () => handleFetch(request, env, context),
+      context,
+    );
   },
   async queue(batch, env, context) {
     await runWithCloudflareRuntimeEnv(
@@ -302,19 +362,17 @@ export default {
       async () => {
         if (controller.cron === UPLOAD_PENDING_CLEANUP_CRON) {
           const report = await cleanupStaleUploadPendingStorage(prisma);
-          console.log(
-            `Upload pending storage cleanup completed: ${JSON.stringify(report)}`,
-          );
+          logScheduledTaskFinish("upload-pending-cleanup", report);
           return;
         }
 
         if (controller.cron === AUTH_RECORD_CLEANUP_CRON) {
-          await cleanupExpiredAuthRecords(maintenancePrisma);
-          console.log("Expired auth record cleanup completed");
+          const report = await cleanupExpiredAuthRecords(maintenancePrisma);
+          logScheduledTaskFinish("auth-record-cleanup", report);
           return;
         }
 
-        console.log(`Ignoring unknown scheduled cron: ${controller.cron}`);
+        logUnknownScheduledTask();
       },
       context,
     );
