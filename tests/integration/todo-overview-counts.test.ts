@@ -3,6 +3,7 @@ import {
   countDueTodos,
   countIncompleteTodos,
   countOverviewTodoBundleInTransaction,
+  listTodoSummary,
 } from "@/features/todos/server/todo-service";
 import { prisma, withUserDbContext } from "@/lib/db/prisma";
 
@@ -115,5 +116,22 @@ describe("overview todo bundle counts", () => {
     expect(fusedCounts.completed).toBe(completed);
     expect(fusedCounts.overdue).toBe(overdue);
     expect(fusedCounts.dueSoon).toBe(dueSoon);
+  });
+
+  it("keeps complete summary counts independent from the bounded list filters", async () => {
+    const summary = await listTodoSummary({
+      filters: { completed: true },
+      now,
+      take: 1,
+      userId,
+    });
+
+    expect(summary.counts).toEqual({
+      incomplete: 4,
+      completed: 1,
+      overdue: 1,
+    });
+    expect(summary.todos).toHaveLength(1);
+    expect(summary.todos[0]?.completed).toBe(true);
   });
 });

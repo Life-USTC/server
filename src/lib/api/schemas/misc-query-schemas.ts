@@ -1,6 +1,10 @@
 import * as z from "zod";
 import { busVersionKeySchema } from "@/features/bus/lib/bus-version-key";
 import { CATALOG_MAX_PAGE } from "@/features/catalog/lib/catalog-list-query";
+import {
+  TODO_LIST_DEFAULT_LIMIT,
+  TODO_LIST_MAX_LIMIT,
+} from "@/features/todos/lib/todo-list-limits";
 import { APP_LOCALES } from "@/i18n/config";
 import {
   booleanQuerySchema,
@@ -49,8 +53,16 @@ const subscribedSchedulesLimitSchema = integerQueryRangeSchema({
 
 const todoLimitSchema = integerQueryRangeSchema({
   minimum: 1,
-  maximum: 200,
-  message: "limit must be between 1 and 200",
+  maximum: TODO_LIST_MAX_LIMIT,
+  message: `limit must be between 1 and ${TODO_LIST_MAX_LIMIT}`,
+}).meta({
+  override: {
+    type: "integer",
+    format: "int64",
+    minimum: 1,
+    maximum: TODO_LIST_MAX_LIMIT,
+    default: TODO_LIST_DEFAULT_LIMIT,
+  },
 });
 
 const overviewHomeworkWindowDaysSchema = integerQueryRangeSchema({
@@ -152,7 +164,7 @@ export const todosQuerySchema = z.object({
   priority: todoPrioritySchema.optional(),
   dueBefore: dateQuerySchema().optional(),
   dueAfter: dateQuerySchema().optional(),
-  limit: todoLimitSchema.optional(),
+  limit: todoLimitSchema.default(TODO_LIST_DEFAULT_LIMIT),
 });
 
 export const uploadObjectQuerySchema = z.object({

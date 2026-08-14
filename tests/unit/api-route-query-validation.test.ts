@@ -66,4 +66,10 @@ describe("API 路由查询校验", () => {
       "Invalid todo query",
     );
   });
+
+  it("待办查询在省略 limit 时使用有界默认值", () => {
+    expect(
+      parseTodosQuery(new Request("https://example.test/api/workspace/todos")),
+    ).toMatchObject({ limit: 100 });
+  });
 });
