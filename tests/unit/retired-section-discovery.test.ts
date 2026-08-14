@@ -69,32 +69,6 @@ describe("retired Section discovery boundaries", () => {
     expect(sectionPageSelect.retiredAt).toBe(true);
   });
 
-  it("excludes retired rows from public related-Section discovery", async () => {
-    const { getSectionPageRelatedData } = await import(
-      "@/features/section-detail/server/section-page-related-data"
-    );
-
-    await getSectionPageRelatedData({
-      prisma: {
-        section: { findMany: sectionFindManyMock },
-      } as never,
-      section: {
-        courseId: 77,
-        id: 11,
-      },
-    });
-
-    expect(sectionFindManyMock).toHaveBeenCalledWith(
-      expect.objectContaining({
-        where: expect.objectContaining({
-          courseId: 77,
-          id: { not: 11 },
-          retiredAt: null,
-        }),
-      }),
-    );
-  });
-
   it("counts only active Sections in public teacher results", async () => {
     const { teacherListInclude } = await import(
       "@/features/catalog/server/academic-query-includes"

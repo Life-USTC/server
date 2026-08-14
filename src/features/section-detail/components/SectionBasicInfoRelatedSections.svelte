@@ -24,7 +24,14 @@ function semesterLabel(related: SectionRelatedSummary) {
 
 {#if section.otherCourseSections.length > 0}
   <section class="grid gap-3">
-    <h3 class="text-sm font-semibold tracking-tight">{sectionCopy.otherSections}</h3>
+    <h3 class="text-sm font-semibold tracking-tight">
+      {sectionCopy.otherSections}
+      {#if section.otherCourseSectionCount > section.otherCourseSections.length}
+        <span class="text-muted-foreground font-normal">
+          ({section.otherCourseSections.length}/{section.otherCourseSectionCount})
+        </span>
+      {/if}
+    </h3>
     <ul class="grid gap-1.5 text-sm leading-relaxed">
       {#each section.otherCourseSections as related}
         <li class="min-w-0">

@@ -9,12 +9,12 @@ import {
 } from "@/features/section-detail/lib/display";
 import { resolveSectionDetailTabQueryRedirect } from "@/features/section-detail/lib/section-detail-tab";
 import { getSectionPage } from "@/features/section-detail/server/section-page-data";
+import { getViewerContext } from "@/lib/auth/viewer-context";
 import {
   buildSocialMetadata,
   formatSocialMetadataMessage,
 } from "@/lib/social-metadata";
 import { requireCampusDateKeyForValue } from "@/lib/time/campus-date";
-import { getSectionDetailDescriptionAndComments } from "./section-detail-comments-data";
 import { getSectionDetailPageCopy } from "./section-detail-page-copy";
 import { parseSectionJwId } from "./section-detail-params";
 
@@ -46,41 +46,41 @@ export async function loadSectionDetailPage({
   // those payloads on first load (including PublicSsr anonymous).
   const focusedHomeworkId = url.searchParams.get("homeworkId");
   const shouldLoadHomework = Boolean(userId) || focusedHomeworkId != null;
-  const section = await getSectionPage(jwId, locals.locale, {
-    includeExams: true,
-    includeRelated: true,
-    includeSchedules: true,
-    includeTeacherDepartments: true,
-  });
-  if (!section) error(404, "Section not found");
+  const subscriptionStatePromise = userId
+    ? import("@/features/subscriptions/server/subscriptions").then(
+        ({ getUserSectionSubscriptionState }) =>
+          getUserSectionSubscriptionState(userId),
+      )
+    : Promise.resolve(null);
+  const [pageData, viewer, subscriptionState] = await Promise.all([
+    getSectionPage(jwId, locals.locale, {
+      includeExams: true,
+      includeRelated: true,
+      includeSchedules: true,
+      includeTeacherDepartments: true,
+    }),
+    getViewerContext({ userId }),
+    subscriptionStatePromise,
+  ]);
+  if (!pageData) error(404, "Section not found");
+  const { description, section } = pageData;
   const copy = getSectionDetailPageCopy(locals.locale);
   const courseName = primaryName(section.course) || section.code;
-  const [subscriptionState, descriptionAndComments, homeworkData] =
-    await Promise.all([
-      userId
-        ? (
-            await import("@/features/subscriptions/server/subscriptions")
-          ).getUserSectionSubscriptionState(userId)
-        : null,
-      getSectionDetailDescriptionAndComments(section, userId, {
-        includeDescription: true,
-        includeDescriptionHistory: false,
-      }),
-      shouldLoadHomework
-        ? (
-            await import("./section-detail-homework-data")
-          ).getSectionHomeworkData(section.id, userId)
-        : {
-            auditLogs: [],
-            homeworks: [],
-            viewer: {
-              isAdmin: false,
-              isAuthenticated: Boolean(userId),
-              isSuspended: false,
-              userId,
-            },
-          },
-    ]);
+  const homeworkData = shouldLoadHomework
+    ? await (
+        await import("./section-detail-homework-data")
+      ).getSectionHomeworkData(section.id, userId)
+    : {
+        auditLogs: [],
+        homeworks: [],
+        viewer: {
+          isAdmin: false,
+          isAuthenticated: Boolean(userId),
+          isSuspended: false,
+          userId,
+        },
+      };
+  const descriptionData = { description, history: [], viewer };
   const socialMetadata = buildSocialMetadata({
     card: {
       footer: `Life@USTC · ${copy.common.sections}`,
@@ -111,7 +111,7 @@ export async function loadSectionDetailPage({
     locale: locals.locale,
     todayCalendarKey: requireCampusDateKeyForValue(new Date()),
     copy,
-    descriptionData: descriptionAndComments.descriptionData,
+    descriptionData,
     commentsData: null,
     detailSection: "overview" as const,
     homeworkData,
@@ -128,7 +128,7 @@ export async function loadSectionDetailPage({
           jwId: section.course.jwId,
           name: courseName,
         },
-        description: descriptionAndComments.descriptionData.description.content,
+        description: descriptionData.description.content,
         instructors: section.teachers.map((teacher) => ({
           id: teacher.id,
           name: primaryName(teacher),

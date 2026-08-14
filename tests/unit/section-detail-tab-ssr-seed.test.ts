@@ -52,6 +52,7 @@ function basePageData(
       exams: [],
       id: 31,
       jwId: 301,
+      otherCourseSectionCount: 0,
       otherCourseSections: [],
       scheduleCount: 0,
       schedules: [],
