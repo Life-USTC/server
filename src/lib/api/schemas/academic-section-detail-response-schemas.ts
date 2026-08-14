@@ -15,7 +15,7 @@ import {
 } from "./academic-section-base-response-schemas";
 import {
   departmentSchema,
-  teacherWithDepartmentTitleSchema,
+  teacherPublicReferenceSchema,
 } from "./academic-teacher-response-schemas";
 
 export {
@@ -52,7 +52,7 @@ export const sectionDetailSchema = sectionBaseSchema.extend({
   roomType: roomTypeSchema.nullable(),
   schedules: z.array(scheduleBaseSchema),
   scheduleGroups: z.array(scheduleGroupSchema),
-  teachers: z.array(teacherWithDepartmentTitleSchema),
+  teachers: z.array(teacherPublicReferenceSchema),
   teacherAssignments: z.array(teacherAssignmentSchema),
   exams: z.array(examSchema),
   adminClasses: z.array(adminClassSchema),

@@ -11,7 +11,8 @@
     "section-code-auxiliary": "Section codes retain value on teacher pages but appear only as auxiliary fields in the teaching section list.",
     "public-list-cache": "Teacher REST responses may use short shared CDN caching only when a supported locale is explicit in the locale URL query; responses localized from Cookie/Accept-Language fallback are private/no-store. Server-side list data may still use short locale-keyed runtime caching. Localized HTML pages must not use shared edge caching unless the cache key varies by locale.",
     "mobile-detail-hierarchy": "Teacher detail pages use a responsive title size and the Detail Two-Column Stream without a context-tab rail on mobile.",
-    "detail-canonical-url": "The canonical teacher detail URL is `/catalog/teachers/[id]`. Legacy path segments and `?tab=` deep links permanently redirect to the root; optional hash anchors scroll within the page."
+    "detail-canonical-url": "The canonical teacher detail URL is `/catalog/teachers/[id]`. Legacy path segments and `?tab=` deep links permanently redirect to the root; optional hash anchors scroll within the page.",
+    "bounded-detail-history": "Teacher detail returns the 20 most recent Section offerings plus the total Section count. Public teacher payloads explicitly select allowed fields and never expose source-only columns such as age, postcode, QQ, or WeChat."
   },
   "capabilities": {
     "teacher-list": {
@@ -91,7 +92,10 @@
         "routes": [
           {
             "path": "/api/catalog/teachers/[id]",
-            "returns": "TeacherDetail"
+            "returns": "TeacherDetail",
+            "notes": [
+              "sections is a newest-first preview capped at 20 records; _count.sections is the complete historical total."
+            ]
           }
         ]
       },

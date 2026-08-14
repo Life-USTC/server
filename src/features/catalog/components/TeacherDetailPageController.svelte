@@ -125,6 +125,9 @@ $: displayName = catalogLocalizedDisplayName(data.teacher, data.locale);
           <h2 class="mb-3 text-lg font-semibold tracking-tight">
             {copy.teacherDetail.teachingSectionsTitle}
           </h2>
+          <p class="mb-4 text-sm text-muted-foreground">
+            {copy.teacherDetail.teachingSectionsDescription}
+          </p>
           <TeacherDetailSections
             copy={detailCopy}
             locale={data.locale}

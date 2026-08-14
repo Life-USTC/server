@@ -1,4 +1,5 @@
 import type { TeacherDetailSection } from "@/features/catalog/components/catalog-detail-component-types";
+import { PUBLIC_DETAIL_SECTION_PREVIEW_LIMIT } from "@/features/catalog/server/academic-query-includes";
 import { localizedNameSelect } from "@/features/section-detail/server/section-page-name-selects";
 import { getPrisma } from "@/lib/db/prisma";
 import { toLoadData } from "@/lib/load-data-utils";
@@ -49,6 +50,7 @@ export async function getTeacherPage(
                 { semester: { jwId: "desc" } },
                 { course: { nameCn: "asc" } },
               ],
+              take: PUBLIC_DETAIL_SECTION_PREVIEW_LIMIT,
               select: teacherPageSectionsSelect,
             },
     },

@@ -1,8 +1,5 @@
 import * as z from "zod";
-import {
-  teacherLessonTypeSchema,
-  teacherSchema,
-} from "./academic-teacher-response-schemas";
+import { teacherLessonTypeSchema } from "./academic-teacher-response-schemas";
 
 export const teacherAssignmentBaseSchema = z.object({
   id: z.number().int(),
@@ -16,6 +13,5 @@ export const teacherAssignmentBaseSchema = z.object({
 });
 
 export const teacherAssignmentSchema = teacherAssignmentBaseSchema.extend({
-  teacher: teacherSchema,
   teacherLessonType: teacherLessonTypeSchema.nullable(),
 });
