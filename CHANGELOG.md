@@ -1,3 +1,10 @@
+## [1.89.14](https://github.com/Life-USTC/server/compare/v1.89.13...v1.89.14) (2026-08-14)
+
+
+### Performance Improvements
+
+* **search:** trace catalog and workspace reads ([#834](https://github.com/Life-USTC/server/issues/834)) ([d2e0568](https://github.com/Life-USTC/server/commit/d2e0568689197f1c7aa23ae7c08c950abb666610))
+
 ## [1.89.13](https://github.com/Life-USTC/server/compare/v1.89.12...v1.89.13) (2026-08-14)
 
 
