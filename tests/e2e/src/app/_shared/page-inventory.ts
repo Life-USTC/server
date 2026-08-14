@@ -12,6 +12,15 @@ export type PageAuth = "public" | "user" | "admin";
 export type PageKind = "page" | "redirect";
 export type MobileScreenshotGroup = "public" | "authed" | "admin";
 
+export type MobileCoverageReference = {
+  /** Spec path relative to tests/e2e/. */
+  e2eSpec: string;
+  /** Exact test title fragment that owns the mobile contract. */
+  testName: string;
+  /** Why the generic inventory-driven mobile route cannot own this case. */
+  reason: string;
+};
+
 export type PrimaryActionExemption =
   | "decorative"
   | "live-oauth"
@@ -26,6 +35,8 @@ export type PrimaryAction = {
   testId?: string;
   /** Spec path relative to tests/e2e/ that exercises this action. */
   e2eSpec?: string;
+  /** Exact source fragment tying aggregate capability coverage to the spec. */
+  evidence?: string;
   /** Explicit exemption when no dedicated L2 assertion is required. */
   exemption?: PrimaryActionExemption;
 };
@@ -44,8 +55,10 @@ export type PageInventoryEntry = {
   e2eSpec?: string;
   coveredBy?: string;
   primaryActions?: PrimaryAction[];
-  /** Drive mobile-screenshots goto list from inventory. */
-  mobileScreenshot?: MobileScreenshotGroup;
+  /** Drive one or more authenticated-state mobile checks from the inventory. */
+  mobileScreenshots?: readonly MobileScreenshotGroup[];
+  /** Dedicated mobile scenario for pages that need fixture setup or richer UI checks. */
+  mobileCoveredBy?: MobileCoverageReference;
 };
 
 const E2E = {
@@ -102,6 +115,16 @@ const E2E = {
 export const INVENTORY_SETTINGS_TABS = SETTINGS_TABS;
 export const INVENTORY_WORKSPACE_TABS = workspaceTabIds;
 
+/** Browser-facing aliases implemented without +page.svelte files. */
+export const BROWSER_ALIAS_INVENTORY = [
+  {
+    path: "/api-docs",
+    target: "/api/docs/tag/catalog-section",
+    e2eSpec: E2E.apiDocs,
+    testName: "重定向到 /api/docs",
+  },
+] as const;
+
 export const PAGE_INVENTORY: readonly PageInventoryEntry[] = [
   {
     routeId: "/",
@@ -110,7 +133,7 @@ export const PAGE_INVENTORY: readonly PageInventoryEntry[] = [
     auth: "public",
     contractPath: "/",
     e2eSpec: E2E.home,
-    mobileScreenshot: "public",
+    mobileScreenshots: ["public"],
     primaryActions: [
       {
         id: "nav-courses",
@@ -141,7 +164,7 @@ export const PAGE_INVENTORY: readonly PageInventoryEntry[] = [
     contractPath: "/account/settings/profile",
     e2eSpec: E2E.settingsProfile,
     coveredBy: E2E.settings,
-    mobileScreenshot: "authed",
+    mobileScreenshots: ["authed"],
     primaryActions: [
       {
         id: "save-profile",
@@ -152,10 +175,12 @@ export const PAGE_INVENTORY: readonly PageInventoryEntry[] = [
       {
         id: "preferences-appearance",
         e2eSpec: E2E.settingsPreferences,
+        evidence: "外观选择立即应用并写入既有 localStorage",
       },
       {
         id: "accounts-providers",
         e2eSpec: E2E.settingsAccounts,
+        evidence: "显示所有提供商卡片",
       },
       {
         id: "accounts-ustc-connect",
@@ -166,14 +191,17 @@ export const PAGE_INVENTORY: readonly PageInventoryEntry[] = [
       {
         id: "authorizations-list",
         e2eSpec: E2E.settingsAuthorizations,
+        evidence: "仅显示安全的客户端信息，并支持确认后立即撤销",
       },
       {
         id: "danger-delete",
         e2eSpec: E2E.settingsDanger,
+        evidence: "删除账号确认流程",
       },
       {
         id: "passkeys-ui",
         e2eSpec: E2E.settingsPasskeys,
+        evidence: "注册、退出、通行密钥登录、重命名和删除",
       },
       ...SETTINGS_TABS.map(
         (tab): PrimaryAction => ({
@@ -191,7 +219,7 @@ export const PAGE_INVENTORY: readonly PageInventoryEntry[] = [
     auth: "public",
     contractPath: "/account/sign-in",
     e2eSpec: E2E.signin,
-    mobileScreenshot: "public",
+    mobileScreenshots: ["public"],
     primaryActions: [
       {
         id: "provider-ustc",
@@ -220,6 +248,12 @@ export const PAGE_INVENTORY: readonly PageInventoryEntry[] = [
     auth: "user",
     contractPath: "/account/welcome",
     e2eSpec: E2E.welcome,
+    mobileCoveredBy: {
+      e2eSpec: "mobile-screenshots/screenshots.spec.ts",
+      testName: "/account/welcome 页面截图",
+      reason:
+        "The welcome page requires temporarily clearing and restoring the seeded user's profile.",
+    },
     primaryActions: [
       {
         id: "welcome-name",
@@ -256,7 +290,7 @@ export const PAGE_INVENTORY: readonly PageInventoryEntry[] = [
     auth: "admin",
     contractPath: "/admin/bus",
     e2eSpec: E2E.adminBus,
-    mobileScreenshot: "admin",
+    mobileScreenshots: ["admin"],
     primaryActions: [
       {
         id: "import-bus",
@@ -273,7 +307,7 @@ export const PAGE_INVENTORY: readonly PageInventoryEntry[] = [
     auth: "admin",
     contractPath: "/admin/moderation",
     e2eSpec: E2E.adminModeration,
-    mobileScreenshot: "admin",
+    mobileScreenshots: ["admin"],
     primaryActions: [
       {
         id: "status-filter",
@@ -295,7 +329,7 @@ export const PAGE_INVENTORY: readonly PageInventoryEntry[] = [
     auth: "admin",
     contractPath: "/admin/oauth",
     e2eSpec: E2E.adminOauth,
-    mobileScreenshot: "admin",
+    mobileScreenshots: ["admin"],
     primaryActions: [
       {
         id: "create-client",
@@ -312,7 +346,7 @@ export const PAGE_INVENTORY: readonly PageInventoryEntry[] = [
     auth: "admin",
     contractPath: "/admin/users",
     e2eSpec: E2E.adminUsers,
-    mobileScreenshot: "admin",
+    mobileScreenshots: ["admin"],
     primaryActions: [
       {
         id: "manage-user",
@@ -337,10 +371,17 @@ export const PAGE_INVENTORY: readonly PageInventoryEntry[] = [
     auth: "public",
     contractPath: "/api/docs/tag/catalog-section",
     e2eSpec: E2E.apiDocs,
+    mobileCoveredBy: {
+      e2eSpec: E2E.apiDocs,
+      testName: "移动端优先展示参考内容并用抽屉浏览完整导航",
+      reason:
+        "The embedded API reference has a dedicated mobile navigation and focus contract.",
+    },
     primaryActions: [
       {
         id: "scalar-nav",
         e2eSpec: E2E.apiDocs,
+        evidence: "使用路径导航而非哈希导航",
       },
     ],
   },
@@ -351,7 +392,7 @@ export const PAGE_INVENTORY: readonly PageInventoryEntry[] = [
     auth: "public",
     contractPath: "/catalog/bus",
     e2eSpec: E2E.bus,
-    mobileScreenshot: "public",
+    mobileScreenshots: ["public"],
     primaryActions: [
       {
         id: "change-route",
@@ -374,7 +415,7 @@ export const PAGE_INVENTORY: readonly PageInventoryEntry[] = [
     auth: "public",
     contractPath: "/catalog/bus/map",
     e2eSpec: E2E.busMap,
-    mobileScreenshot: "public",
+    mobileScreenshots: ["public"],
     primaryActions: [
       {
         id: "refresh-map",
@@ -391,11 +432,12 @@ export const PAGE_INVENTORY: readonly PageInventoryEntry[] = [
     auth: "public",
     contractPath: "/catalog/courses",
     e2eSpec: E2E.courses,
-    mobileScreenshot: "public",
+    mobileScreenshots: ["public"],
     primaryActions: [
       {
         id: "search-courses",
         e2eSpec: E2E.courses,
+        evidence: "搜索和清除按钮",
       },
     ],
   },
@@ -406,11 +448,12 @@ export const PAGE_INVENTORY: readonly PageInventoryEntry[] = [
     auth: "public",
     contractPath: "/catalog/courses/[jwId]",
     e2eSpec: E2E.coursesJwId,
-    mobileScreenshot: "public",
+    mobileScreenshots: ["public"],
     primaryActions: [
       {
         id: "teaching-sections",
         e2eSpec: E2E.coursesJwId,
+        evidence: "班级行链接到班级详情",
       },
     ],
   },
@@ -429,7 +472,7 @@ export const PAGE_INVENTORY: readonly PageInventoryEntry[] = [
     auth: "public",
     contractPath: "/catalog/links",
     e2eSpec: E2E.dashboardLinks,
-    mobileScreenshot: "authed",
+    mobileScreenshots: ["public", "authed"],
     primaryActions: [
       {
         id: "search-links",
@@ -452,11 +495,12 @@ export const PAGE_INVENTORY: readonly PageInventoryEntry[] = [
     auth: "public",
     contractPath: "/catalog/sections",
     e2eSpec: E2E.sections,
-    mobileScreenshot: "public",
+    mobileScreenshots: ["public"],
     primaryActions: [
       {
         id: "search-sections",
         e2eSpec: E2E.sections,
+        evidence: "结构化筛选、高级语法与清除",
       },
     ],
   },
@@ -467,7 +511,7 @@ export const PAGE_INVENTORY: readonly PageInventoryEntry[] = [
     auth: "public",
     contractPath: "/catalog/sections/[jwId]",
     e2eSpec: E2E.sectionsJwId,
-    mobileScreenshot: "public",
+    mobileScreenshots: ["public"],
     primaryActions: [
       {
         id: "subscribe",
@@ -504,11 +548,12 @@ export const PAGE_INVENTORY: readonly PageInventoryEntry[] = [
     auth: "public",
     contractPath: "/catalog/teachers",
     e2eSpec: E2E.teachers,
-    mobileScreenshot: "public",
+    mobileScreenshots: ["public"],
     primaryActions: [
       {
         id: "search-teachers",
         e2eSpec: E2E.teachers,
+        evidence: "搜索和清除按钮可用",
       },
     ],
   },
@@ -519,10 +564,17 @@ export const PAGE_INVENTORY: readonly PageInventoryEntry[] = [
     auth: "public",
     contractPath: "/catalog/teachers/[id]",
     e2eSpec: E2E.teachersId,
+    mobileCoveredBy: {
+      e2eSpec: E2E.teachersId,
+      testName: "移动端教师标题与流式区块保持紧凑",
+      reason:
+        "The stable teacher URL is discovered from seeded search results before checking the mobile layout.",
+    },
     primaryActions: [
       {
         id: "teaching-sections",
         e2eSpec: E2E.teachersId,
+        evidence: "班级链接导航到班级详情",
       },
     ],
   },
@@ -549,7 +601,7 @@ export const PAGE_INVENTORY: readonly PageInventoryEntry[] = [
     auth: "public",
     contractPath: "/community/comments/guide",
     e2eSpec: E2E.commentsGuide,
-    mobileScreenshot: "public",
+    mobileScreenshots: ["public"],
   },
   {
     routeId: "/community/users/[identifier]",
@@ -558,7 +610,7 @@ export const PAGE_INVENTORY: readonly PageInventoryEntry[] = [
     auth: "public",
     contractPath: "/community/users/[identifier]",
     e2eSpec: E2E.communityUser,
-    mobileScreenshot: "authed",
+    mobileScreenshots: ["public", "authed"],
     primaryActions: [
       {
         id: "profile-identity",
@@ -573,6 +625,7 @@ export const PAGE_INVENTORY: readonly PageInventoryEntry[] = [
     auth: "public",
     contractPath: "/e2e/oauth/callback",
     e2eSpec: E2E.e2eOauthCallback,
+    mobileScreenshots: ["public"],
     primaryActions: [
       {
         id: "callback-payload",
@@ -587,6 +640,7 @@ export const PAGE_INVENTORY: readonly PageInventoryEntry[] = [
     auth: "public",
     contractPath: "/error",
     e2eSpec: E2E.error,
+    mobileScreenshots: ["public"],
     primaryActions: [
       {
         id: "return-home",
@@ -603,7 +657,7 @@ export const PAGE_INVENTORY: readonly PageInventoryEntry[] = [
     auth: "public",
     contractPath: "/guides/markdown-support",
     e2eSpec: E2E.guidesMarkdown,
-    mobileScreenshot: "public",
+    mobileScreenshots: ["public"],
     primaryActions: [
       {
         id: "markdown-preview",
@@ -618,7 +672,7 @@ export const PAGE_INVENTORY: readonly PageInventoryEntry[] = [
     auth: "public",
     contractPath: "/usage/mobile",
     e2eSpec: E2E.usage,
-    mobileScreenshot: "public",
+    mobileScreenshots: ["public"],
     primaryActions: [
       {
         id: "app-store",
@@ -635,7 +689,7 @@ export const PAGE_INVENTORY: readonly PageInventoryEntry[] = [
     auth: "public",
     contractPath: "/usage/bot",
     e2eSpec: E2E.usage,
-    mobileScreenshot: "public",
+    mobileScreenshots: ["public"],
     primaryActions: [
       {
         id: "open-presto-qq",
@@ -652,7 +706,7 @@ export const PAGE_INVENTORY: readonly PageInventoryEntry[] = [
     auth: "public",
     contractPath: "/usage/mcp",
     e2eSpec: E2E.usage,
-    mobileScreenshot: "public",
+    mobileScreenshots: ["public"],
     primaryActions: [
       {
         id: "copy-mcp-endpoint",
@@ -669,7 +723,7 @@ export const PAGE_INVENTORY: readonly PageInventoryEntry[] = [
     auth: "public",
     contractPath: "/usage/cli",
     e2eSpec: E2E.usage,
-    mobileScreenshot: "public",
+    mobileScreenshots: ["public"],
     primaryActions: [
       {
         id: "download-cli",
@@ -686,10 +740,12 @@ export const PAGE_INVENTORY: readonly PageInventoryEntry[] = [
     auth: "public",
     contractPath: "/oauth/authorize",
     e2eSpec: E2E.oauthAuthorize,
+    mobileScreenshots: ["public"],
     primaryActions: [
       {
         id: "authorize-flow",
         e2eSpec: E2E.oauthAuthorize,
+        evidence: "允许授权时带 code 回跳",
       },
     ],
   },
@@ -700,11 +756,12 @@ export const PAGE_INVENTORY: readonly PageInventoryEntry[] = [
     auth: "public",
     contractPath: "/oauth/device",
     e2eSpec: E2E.oauthDevice,
-    mobileScreenshot: "public",
+    mobileScreenshots: ["public"],
     primaryActions: [
       {
         id: "device-code",
         e2eSpec: E2E.oauthDevice,
+        evidence: "已登录用户看到批准界面",
       },
     ],
   },
@@ -715,7 +772,7 @@ export const PAGE_INVENTORY: readonly PageInventoryEntry[] = [
     auth: "public",
     contractPath: "/privacy",
     e2eSpec: E2E.privacy,
-    mobileScreenshot: "public",
+    mobileScreenshots: ["public"],
     primaryActions: [
       {
         id: "policy-body",
@@ -730,7 +787,7 @@ export const PAGE_INVENTORY: readonly PageInventoryEntry[] = [
     auth: "public",
     contractPath: "/search",
     e2eSpec: E2E.search,
-    mobileScreenshot: "public",
+    mobileScreenshots: ["public"],
     primaryActions: [
       {
         id: "search-input",
@@ -740,6 +797,7 @@ export const PAGE_INVENTORY: readonly PageInventoryEntry[] = [
       {
         id: "keyboard-nav",
         e2eSpec: E2E.search,
+        evidence: "search page supports keyboard navigation into results",
       },
     ],
   },
@@ -750,7 +808,7 @@ export const PAGE_INVENTORY: readonly PageInventoryEntry[] = [
     auth: "public",
     contractPath: "/terms",
     e2eSpec: E2E.terms,
-    mobileScreenshot: "public",
+    mobileScreenshots: ["public"],
     primaryActions: [
       {
         id: "terms-body",
@@ -773,38 +831,45 @@ export const PAGE_INVENTORY: readonly PageInventoryEntry[] = [
     auth: "user",
     contractPath: "/workspace/overview",
     e2eSpec: E2E.dashboardTab,
-    mobileScreenshot: "authed",
+    mobileScreenshots: ["authed"],
     primaryActions: [
       ...workspaceTabIds.map(
         (tab): PrimaryAction => ({
           id: `workspace-tab-${tab}`,
           role: "link",
           e2eSpec: E2E.dashboardTab,
+          evidence: "登录工作台各分支提供唯一页面身份",
         }),
       ),
       {
         id: "overview-now-next",
         e2eSpec: E2E.dashboard,
+        evidence: "移动端总览优先显示此刻与下一步",
       },
       {
         id: "calendar-export",
         e2eSpec: E2E.dashboardCalendar,
+        evidence: "复制日历链接生成有效的 iCal URL",
       },
       {
         id: "homework-crud",
         e2eSpec: E2E.dashboardHomeworks,
+        evidence: "可以创建新作业",
       },
       {
         id: "todo-crud",
         e2eSpec: E2E.dashboardTodos,
+        evidence: "可以创建、编辑和删除待办",
       },
       {
         id: "exams-view",
         e2eSpec: E2E.dashboardExams,
+        evidence: "考试列表显示必填字段",
       },
       {
         id: "subscriptions-bulk-import",
         e2eSpec: E2E.dashboardSubscriptions,
+        evidence: "批量导入可确认并显示成功",
       },
     ],
   },
@@ -815,19 +880,22 @@ export const PAGE_INVENTORY: readonly PageInventoryEntry[] = [
     auth: "user",
     contractPath: "/workspace/subscriptions",
     e2eSpec: E2E.dashboardSubscriptions,
-    mobileScreenshot: "authed",
+    mobileScreenshots: ["authed"],
     primaryActions: [
       {
         id: "bulk-import",
         e2eSpec: E2E.dashboardSubscriptions,
+        evidence: "批量导入打开确认对话框并可取消",
       },
       {
         id: "unsubscribe-row",
         e2eSpec: E2E.dashboardSubscriptions,
+        evidence: "取消订阅操作确认后移除订阅",
       },
       {
         id: "calendar-feed-copy",
         e2eSpec: E2E.dashboardSubscriptions,
+        evidence: "复制日历链接生成有效的 iCal URL",
       },
     ],
   },
@@ -848,8 +916,8 @@ export function inventoryByRouteId(
 }
 
 export function mobileScreenshotPaths(group: MobileScreenshotGroup): string[] {
-  const paths = PAGE_INVENTORY.filter(
-    (entry) => entry.mobileScreenshot === group,
+  const paths = PAGE_INVENTORY.filter((entry) =>
+    entry.mobileScreenshots?.includes(group),
   ).map((entry) => entry.samplePath);
 
   if (group === "authed") {
@@ -859,7 +927,7 @@ export function mobileScreenshotPaths(group: MobileScreenshotGroup): string[] {
         paths.push(path);
       }
     }
-    for (const tab of ["profile", "accounts", "danger"] as const) {
+    for (const tab of SETTINGS_TABS) {
       const path = `/account/settings/${tab}`;
       if (!paths.includes(path)) {
         paths.push(path);

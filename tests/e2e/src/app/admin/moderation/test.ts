@@ -430,38 +430,23 @@ test("/admin/moderation 可从评论弹窗封禁并解除用户", async ({
 // ── Description governance ──────────────────────────────────────────────────
 
 test("/admin/moderation 课程简介治理表格可见", async ({ page }, testInfo) => {
-  await signInAsDevAdmin(page, "/admin/moderation");
+  await signInAsDevAdmin(page, "/admin/moderation?tab=descriptions");
 
-  // admin.yml moderation.display.fields: Description moderation table
-  const descTab = page.getByRole("link", { name: /简介|Description/i }).first();
-  if ((await descTab.count()) > 0) {
-    await descTab.click();
-    // description.content / preview visible
-    await expect(page.locator("td, [data-slot='card']").first()).toBeVisible();
-    await captureStepScreenshot(
-      page,
-      testInfo,
-      "admin-moderation/description-table",
-    );
-  } else {
-    // descriptions may be on the same tab — look for the section header
-    const descSection = page.getByText(/简介管理|Descriptions/i).first();
-    if ((await descSection.count()) > 0) {
-      await expect(descSection).toBeVisible();
-    }
-    // Verify the API is accessible
-    const descResponse = await page.request.get("/api/admin/descriptions");
-    expect(descResponse.status()).toBe(200);
-    const descBody = (await descResponse.json()) as {
-      data?: Array<{ id?: string }>;
-    };
-    expect(Array.isArray(descBody.data)).toBe(true);
-    await captureStepScreenshot(
-      page,
-      testInfo,
-      "admin-moderation/descriptions-api",
-    );
-  }
+  await expect(
+    page.getByRole("link", { name: /课程简介|Descriptions/i }),
+  ).toHaveAttribute("aria-current", "page");
+  const firstRow = page.locator("tbody tr:visible").first();
+  await expect(firstRow).toBeVisible();
+  await expect(
+    firstRow.getByRole("button", {
+      name: /管理课程简介|Manage Description/i,
+    }),
+  ).toBeVisible();
+  await captureStepScreenshot(
+    page,
+    testInfo,
+    "admin-moderation/description-table",
+  );
 });
 
 test("/admin/moderation 简介桌面行操作可用键盘打开管理弹窗", async ({
@@ -544,18 +529,16 @@ test("/admin/moderation 可更新课程简介内容", async ({ page }, testInfo)
 // ── Homework governance ─────────────────────────────────────────────────────
 
 test("/admin/moderation 作业治理可访问", async ({ page }, testInfo) => {
-  await signInAsDevAdmin(page, "/admin/moderation");
+  await signInAsDevAdmin(page, "/admin/moderation?tab=homeworks");
 
-  // admin.yml moderation.display.fields (via homework.yml → homework-governance)
-  const hwTab = page.getByRole("link", { name: /作业|Homework/i }).first();
-  if ((await hwTab.count()) > 0) {
-    await hwTab.click();
-    await captureStepScreenshot(
-      page,
-      testInfo,
-      "admin-moderation/homework-tab",
-    );
-  }
+  await expect(
+    page.locator('a[aria-current="page"][href*="tab=homeworks"]'),
+  ).toHaveAttribute("aria-current", "page");
+  const firstRow = page.locator("tbody tr:visible").first();
+  await expect(firstRow).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: /^(删除|Delete)$/i }).first(),
+  ).toBeVisible();
 
   // Verify the homework governance API is accessible
   const hwResponse = await page.request.get("/api/admin/homeworks");

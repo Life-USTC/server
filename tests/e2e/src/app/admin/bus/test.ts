@@ -109,12 +109,9 @@ test("/admin/bus 激活版本受保护且导入弹窗可打开", async ({
     .first();
   await expect(versionRow).toBeVisible();
 
-  // Active seed versions should not expose the delete action; if the seed is
-  // inactive (e.g. left over from an earlier failed run) we just verify the
-  // row is rendered and move on.
+  // The active seed version must never expose a destructive delete action.
   const deleteBtn = versionRow.getByRole("button", { name: /删除|Delete/i });
-  const deleteCount = await deleteBtn.count();
-  expect(deleteCount === 0 || deleteCount === 1).toBe(true);
+  await expect(deleteBtn).toHaveCount(0);
 
   const importBtn = page
     .getByRole("button", { name: /从 Static 导入|Import from Static/i })

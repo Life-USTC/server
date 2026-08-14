@@ -55,6 +55,19 @@ test.describe("/catalog/teachers", () => {
     expect(html).toContain(DEV_SEED.teacher.nameCn);
   });
 
+  test("无匹配教师时显示明确空状态且不渲染结果链接", async ({ page }) => {
+    await gotoAndWaitForReady(
+      page,
+      "/catalog/teachers?search=e2e-no-matching-teacher-7f3c9a",
+    );
+
+    await expect(page.getByText(/未找到教师|No teachers found/i)).toBeVisible();
+    await expect(
+      page.locator("#main-content a[href^='/catalog/teachers/']"),
+    ).toHaveCount(0);
+    await expect(page.getByRole("link", { name: /清除|Clear/i })).toBeVisible();
+  });
+
   test("移动端卡片可点击并导航到详情", async ({ page }, testInfo) => {
     await page.setViewportSize({ width: 390, height: 844 });
     await gotoAndWaitForReady(
@@ -131,9 +144,9 @@ test.describe("/catalog/teachers", () => {
   test("院系筛选保留教师结果", async ({ page }, testInfo) => {
     const filter = await getSeedTeacherDepartmentFixture(DEV_SEED.teacher.jwId);
     if (!filter.departmentName) {
-      await gotoAndWaitForReady(page, "/catalog/teachers");
-      await expect(page.locator("#main-content")).toBeVisible();
-      return;
+      throw new Error(
+        "Expected the seeded teacher to have a department fixture",
+      );
     }
 
     await gotoAndWaitForReady(page, "/catalog/teachers", {

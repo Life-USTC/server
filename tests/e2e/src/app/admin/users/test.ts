@@ -248,12 +248,9 @@ test("/admin/users 自定义封禁时长会展示到期时间输入框", async (
     await expect(reasonInput).toBeVisible();
     await reasonInput.fill(reason);
 
-    let suspendButton = dialog
+    const suspendButton = dialog
       .getByRole("button", { name: /封禁|Suspend|Ban/i })
       .first();
-    if ((await suspendButton.count()) === 0) {
-      suspendButton = dialog.locator('button[class*="bg-destructive"]').first();
-    }
     await expect(suspendButton).toBeVisible();
     await captureStepScreenshot(page, testInfo, "admin-users-suspended-custom");
   } finally {
@@ -283,12 +280,9 @@ test("/admin/users 可创建默认时长封禁并通过 API 解除", async ({
     await expect(reasonInput).toBeVisible();
     await reasonInput.fill(reason);
 
-    let suspendButton = dialog
+    const suspendButton = dialog
       .getByRole("button", { name: /封禁|Suspend|Ban/i })
       .first();
-    if ((await suspendButton.count()) === 0) {
-      suspendButton = dialog.locator('button[class*="bg-destructive"]').first();
-    }
     await expect(suspendButton).toBeVisible();
 
     const responsePromise = page.waitForResponse(
