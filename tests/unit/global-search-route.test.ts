@@ -161,4 +161,24 @@ describe("global search route", () => {
     expect(resolveApiUserId).not.toHaveBeenCalled();
     expect(searchGloballyMock).not.toHaveBeenCalled();
   });
+
+  it("rejects search queries longer than the catalog search bound", async () => {
+    const { resolveApiUserId } = await import("@/lib/auth/api-auth");
+    const { getGlobalSearchRoute } = await import(
+      "@/lib/api/routes/global-search"
+    );
+
+    const response = await getGlobalSearchRoute(
+      new Request(
+        `https://life.example/api/search?q=${"a".repeat(201)}&locale=zh-cn`,
+      ),
+    );
+
+    expect(response.status).toBe(400);
+    expect(await response.json()).toEqual({
+      error: "Search query must not exceed 200 characters",
+    });
+    expect(resolveApiUserId).not.toHaveBeenCalled();
+    expect(searchGloballyMock).not.toHaveBeenCalled();
+  });
 });

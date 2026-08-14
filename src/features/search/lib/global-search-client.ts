@@ -1,7 +1,9 @@
+import { CATALOG_SEARCH_MAX_LENGTH } from "@/features/catalog/lib/catalog-list-query";
 import type { GlobalSearchResponse } from "@/features/search/server/global-search-types";
 import type { AppLocale } from "@/i18n/config";
 
 export const GLOBAL_SEARCH_MIN_QUERY_LENGTH = 2;
+export const GLOBAL_SEARCH_MAX_QUERY_LENGTH = CATALOG_SEARCH_MAX_LENGTH;
 export const GLOBAL_SEARCH_DEBOUNCE_MS = 200;
 export const GLOBAL_SEARCH_DIALOG_LIMIT = 5;
 export const GLOBAL_SEARCH_PAGE_LIMIT = 20;
@@ -12,6 +14,7 @@ export async function fetchGlobalSearch(
   options: {
     includeWorkspace?: boolean;
     locale: AppLocale;
+    signal?: AbortSignal;
   },
 ): Promise<GlobalSearchResponse> {
   const searchParams = new URLSearchParams({
@@ -22,7 +25,9 @@ export async function fetchGlobalSearch(
   if (options.includeWorkspace) {
     searchParams.set("scope", "workspace");
   }
-  const response = await fetch(`/api/search?${searchParams}`);
+  const response = await fetch(`/api/search?${searchParams}`, {
+    signal: options.signal,
+  });
   if (!response.ok) {
     throw new Error("Search request failed");
   }

@@ -1,7 +1,10 @@
 <script lang="ts">
 import SearchIcon from "@lucide/svelte/icons/search";
 import { onMount } from "svelte";
-import { GLOBAL_SEARCH_PAGE_LIMIT } from "@/features/search/lib/global-search-client";
+import {
+  GLOBAL_SEARCH_MAX_QUERY_LENGTH,
+  GLOBAL_SEARCH_PAGE_LIMIT,
+} from "@/features/search/lib/global-search-client";
 import {
   createGlobalSearchController,
   mountGlobalSearchUrlSync,
@@ -92,6 +95,7 @@ afterNavigate(({ to }) => {
       oninput={handleQueryInput}
       onkeydown={(event) => handleInputKeydown(event, inputElement)}
       placeholder={data.copy.placeholderSignedIn}
+      maxlength={GLOBAL_SEARCH_MAX_QUERY_LENGTH}
       role="combobox"
       type="search"
     />

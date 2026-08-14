@@ -5,6 +5,7 @@ import { createEventDispatcher } from "svelte";
 import { writable } from "svelte/store";
 import {
   GLOBAL_SEARCH_DIALOG_LIMIT,
+  GLOBAL_SEARCH_MAX_QUERY_LENGTH,
   GLOBAL_SEARCH_MIN_QUERY_LENGTH,
 } from "@/features/search/lib/global-search-client";
 import { createGlobalSearchController } from "@/features/search/lib/global-search-controller";
@@ -118,6 +119,7 @@ $: if (open) {
           oninput={handleQueryInput}
           onkeydown={(event) => handleInputKeydown(event, inputElement)}
           placeholder={placeholder}
+          maxlength={GLOBAL_SEARCH_MAX_QUERY_LENGTH}
           role="combobox"
           type="text"
         />
