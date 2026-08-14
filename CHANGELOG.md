@@ -1,3 +1,17 @@
+## [1.89.13](https://github.com/Life-USTC/server/compare/v1.89.12...v1.89.13) (2026-08-14)
+
+
+### Bug Fixes
+
+* **search:** keep source links out of catalog cache ([#831](https://github.com/Life-USTC/server/issues/831)) ([18c99d4](https://github.com/Life-USTC/server/commit/18c99d466686f7823c91a87f5bed5d55cbc8f55a))
+
+
+### Performance Improvements
+
+* **calendar:** bound multi-section exports ([#832](https://github.com/Life-USTC/server/issues/832)) ([949815e](https://github.com/Life-USTC/server/commit/949815e79c9c8e70844cc135fd825a2ba59f2ab8))
+* **homeworks:** bound list endpoints ([#833](https://github.com/Life-USTC/server/issues/833)) ([cc53e53](https://github.com/Life-USTC/server/commit/cc53e538d0bf0514636ed225927e4927ece5b1ff))
+* **todos:** bound and fuse summary reads ([#835](https://github.com/Life-USTC/server/issues/835)) ([50603b7](https://github.com/Life-USTC/server/commit/50603b75e4a4d45a8c8b684a48acba533054befd))
+
 ## [1.89.12](https://github.com/Life-USTC/server/compare/v1.89.11...v1.89.12) (2026-08-14)
 
 
