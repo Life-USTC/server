@@ -50,22 +50,23 @@ async function loadSectionDetailPageData({
   const focusedHomeworkId = url.searchParams.get("homeworkId");
   const shouldLoadHomework = Boolean(userId) || focusedHomeworkId != null;
   const subscriptionStatePromise = userId
-    ? import("@/features/subscriptions/server/subscriptions").then(
-        ({ getUserSectionSubscriptionState }) =>
-          getUserSectionSubscriptionState(userId),
+    ? runCloudflareTraceSpan(
+        "catalog.detail.section.subscription",
+        {
+          "catalog.detail.kind": "section",
+          "user.authenticated": true,
+        },
+        async () =>
+          (
+            await import("@/features/subscriptions/server/subscriptions")
+          ).getUserSectionSubscriptionStateForSection(userId, jwId),
       )
     : Promise.resolve(null);
   const [pageData, viewer, subscriptionState] = await Promise.all([
     runCloudflareTraceSpan(
       "catalog.detail.core",
       { "catalog.detail.kind": "section" },
-      () =>
-        getSectionPage(jwId, locals.locale, {
-          includeExams: true,
-          includeRelated: true,
-          includeSchedules: true,
-          includeTeacherDepartments: true,
-        }),
+      () => getSectionPage(jwId, locals.locale),
     ),
     runCloudflareTraceSpan(
       "catalog.detail.viewer",
@@ -73,7 +74,7 @@ async function loadSectionDetailPageData({
         "catalog.detail.kind": "section",
         "user.authenticated": Boolean(userId),
       },
-      () => getViewerContext({ userId }),
+      () => getViewerContext({ includeAdmin: true, userId }),
     ),
     subscriptionStatePromise,
   ]);
@@ -82,9 +83,17 @@ async function loadSectionDetailPageData({
   const copy = getSectionDetailPageCopy(locals.locale);
   const courseName = primaryName(section.course) || section.code;
   const homeworkData = shouldLoadHomework
-    ? await (
-        await import("./section-detail-homework-data")
-      ).getSectionHomeworkData(section.id, userId)
+    ? await runCloudflareTraceSpan(
+        "catalog.detail.section.homework",
+        {
+          "catalog.detail.kind": "section",
+          "user.authenticated": Boolean(userId),
+        },
+        async () =>
+          (
+            await import("./section-detail-homework-data")
+          ).getSectionHomeworkData(section.id, userId),
+      )
     : {
         auditLogs: [],
         homeworks: [],
@@ -157,9 +166,7 @@ async function loadSectionDetailPageData({
     ),
     viewer: {
       signedIn: Boolean(userId),
-      isSubscribed: Boolean(
-        subscriptionState?.subscribedSections.includes(section.id),
-      ),
+      isSubscribed: subscriptionState?.isSubscribed ?? false,
       subscriptionIcsUrl: subscriptionState?.subscriptionIcsUrl ?? null,
     },
   };

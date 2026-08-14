@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { runWithCloudflareRuntimeEnv } from "@/lib/adapters/cloudflare-runtime";
 
 const { sectionFindUnique } = vi.hoisted(() => ({
   sectionFindUnique: vi.fn(),
@@ -12,7 +13,6 @@ vi.mock("@/lib/db/prisma", () => ({
 
 function sectionRecord() {
   return {
-    _count: { exams: 4, schedules: 18 },
     course: {
       _count: { sections: 42 },
       id: 10,
@@ -59,12 +59,40 @@ describe("section page data selection", () => {
       "@/features/section-detail/server/section-page-data"
     );
 
-    const result = await getSectionPage(30, "zh-cn", {
-      includeExams: true,
-      includeRelated: true,
-      includeSchedules: true,
-      includeTeacherDepartments: true,
-    });
+    const spans: Array<{
+      attributes: Record<string, boolean | number | string | undefined>;
+      name: string;
+    }> = [];
+    const result = await runWithCloudflareRuntimeEnv(
+      {},
+      () => getSectionPage(30, "zh-cn"),
+      {
+        tracing: {
+          enterSpan<T>(
+            name: string,
+            callback: (span: {
+              isTraced: boolean;
+              setAttribute(
+                key: string,
+                value?: boolean | number | string,
+              ): void;
+            }) => T,
+          ) {
+            const attributes: Record<
+              string,
+              boolean | number | string | undefined
+            > = {};
+            spans.push({ attributes, name });
+            return callback({
+              isTraced: true,
+              setAttribute(key, value) {
+                attributes[key] = value;
+              },
+            });
+          },
+        },
+      },
+    );
 
     expect(sectionFindUnique).toHaveBeenCalledOnce();
     const select = sectionFindUnique.mock.calls[0]?.[0]?.select;
@@ -82,15 +110,29 @@ describe("section page data selection", () => {
         },
       },
     });
+    expect(select).not.toHaveProperty("_count");
+    expect(select).not.toHaveProperty("dateTimePlaceText");
+    expect(select.teachers.select.department).toBeDefined();
+    expect(spans).toEqual([
+      {
+        attributes: { "catalog.detail.kind": "section" },
+        name: "catalog.detail.section.query",
+      },
+      {
+        attributes: { "catalog.detail.kind": "section" },
+        name: "catalog.detail.section.transform",
+      },
+    ]);
+    expect(JSON.stringify(spans)).not.toContain("30");
     expect(result).toMatchObject({
       description: {
         content: "Section description",
         id: "description-1",
       },
       section: {
-        examCount: 4,
+        examCount: 0,
         otherCourseSectionCount: 42,
-        scheduleCount: 18,
+        scheduleCount: 0,
       },
     });
     expect(result?.section.otherCourseSections).toEqual([
@@ -120,7 +162,7 @@ describe("section page data selection", () => {
             "namePrimary": "Calculus",
           },
           "courseId": 10,
-          "examCount": 4,
+          "examCount": 0,
           "exams": [],
           "id": 20,
           "otherCourseSectionCount": 42,
@@ -138,83 +180,12 @@ describe("section page data selection", () => {
               "teachers": [],
             },
           ],
-          "scheduleCount": 18,
+          "scheduleCount": 0,
           "schedules": [],
           "teachers": [],
         },
       }
     `);
-  });
-
-  it("skips tab-only relations while preserving navigation counts", async () => {
-    sectionFindUnique.mockResolvedValue({
-      ...sectionRecord(),
-      course: { id: 10, jwId: 100, namePrimary: "Calculus" },
-    });
-    const { getSectionPage } = await import(
-      "@/features/section-detail/server/section-page-data"
-    );
-
-    const result = await getSectionPage(30, "zh-cn", {
-      includeExams: false,
-      includeRelated: false,
-      includeSchedules: false,
-    });
-
-    const select = sectionFindUnique.mock.calls[0]?.[0]?.select;
-    expect(select.exams).toBe(false);
-    expect(select.schedules).toBe(false);
-    expect(select.course.select).not.toHaveProperty("sections");
-    expect(select.teachers).toEqual({
-      select: {
-        id: true,
-        nameCn: true,
-        nameEn: true,
-        namePrimary: true,
-        nameSecondary: true,
-      },
-    });
-    expect(result?.section).toMatchObject({
-      examCount: 4,
-      exams: [],
-      otherCourseSectionCount: 0,
-      otherCourseSections: [],
-      scheduleCount: 18,
-      schedules: [],
-    });
-  });
-
-  it("loads teacher departments only when requested", async () => {
-    sectionFindUnique.mockResolvedValue({
-      ...sectionRecord(),
-      course: { id: 10, jwId: 100, namePrimary: "Calculus" },
-    });
-    const { getSectionPage } = await import(
-      "@/features/section-detail/server/section-page-data"
-    );
-
-    await getSectionPage(30, "zh-cn", {
-      includeRelated: false,
-      includeTeacherDepartments: true,
-    });
-
-    expect(sectionFindUnique.mock.calls[0]?.[0]?.select.teachers).toEqual({
-      select: {
-        id: true,
-        nameCn: true,
-        nameEn: true,
-        namePrimary: true,
-        nameSecondary: true,
-        department: {
-          select: {
-            nameCn: true,
-            nameEn: true,
-            namePrimary: true,
-            nameSecondary: true,
-          },
-        },
-      },
-    });
   });
 
   it("returns JSON-clean page data", async () => {

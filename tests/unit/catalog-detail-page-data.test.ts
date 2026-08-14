@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { runWithCloudflareRuntimeEnv } from "@/lib/adapters/cloudflare-runtime";
 
 const { courseFindManyMock, courseFindUniqueMock, teacherFindUniqueMock } =
   vi.hoisted(() => ({
@@ -24,7 +25,6 @@ describe("catalog detail page data", () => {
 
   it("loads a course without unused comment queries", async () => {
     const course = {
-      _count: { sections: 3 },
       code: "MATH1001",
       id: 11,
       jwId: 101,
@@ -35,15 +35,12 @@ describe("catalog detail page data", () => {
     const { getCoursePage } = await import(
       "@/features/catalog/server/course-page-data"
     );
-    const result = await getCoursePage(course.jwId, "zh-cn", {
-      includeSections: false,
-    });
+    const result = await getCoursePage(course.jwId, "zh-cn");
 
     expect(result).toEqual({
       code: course.code,
       id: course.id,
       jwId: course.jwId,
-      sectionCount: 3,
       sections: [],
     });
     expect(courseFindUniqueMock).toHaveBeenCalledTimes(1);
@@ -52,14 +49,14 @@ describe("catalog detail page data", () => {
     );
     const courseSelect = courseFindUniqueMock.mock.calls[0]?.[0]?.select;
     expect(courseSelect).not.toHaveProperty("description");
-    expect(courseSelect?.sections).toBe(false);
+    expect(courseSelect).not.toHaveProperty("_count");
+    expect(courseSelect?.sections?.take).toBe(20);
     expect(result).not.toHaveProperty("commentCount");
     expect(result).not.toHaveProperty("latestComments");
   });
 
   it("loads a teacher without unused comment queries", async () => {
     const teacher = {
-      _count: { sections: 2 },
       id: 21,
       namePrimary: "Ada",
       sections: [],
@@ -69,19 +66,17 @@ describe("catalog detail page data", () => {
     const { getTeacherPage } = await import(
       "@/features/catalog/server/teacher-page-data"
     );
-    const result = await getTeacherPage(teacher.id, "zh-cn", {
-      includeSections: false,
-    });
+    const result = await getTeacherPage(teacher.id, "zh-cn");
 
     expect(result).toEqual({
       id: teacher.id,
       namePrimary: teacher.namePrimary,
-      sectionCount: 2,
       sections: [],
     });
     const teacherSelect = teacherFindUniqueMock.mock.calls[0]?.[0]?.select;
     expect(teacherSelect).not.toHaveProperty("description");
-    expect(teacherSelect?.sections).toBe(false);
+    expect(teacherSelect).not.toHaveProperty("_count");
+    expect(teacherSelect?.sections?.take).toBe(20);
     expect(result).not.toHaveProperty("commentCount");
     expect(result).not.toHaveProperty("latestComments");
   });
@@ -90,7 +85,6 @@ describe("catalog detail page data", () => {
     const localizedNameSymbol = Symbol("localizedName");
     const courseSections = [{ code: "001", jwId: 301 }];
     courseFindUniqueMock.mockResolvedValue({
-      _count: { sections: 1 },
       id: 11,
       jwId: 101,
       [localizedNameSymbol]: "course",
@@ -98,7 +92,6 @@ describe("catalog detail page data", () => {
     });
     const teacherSections = [{ code: "002", jwId: 302 }];
     teacherFindUniqueMock.mockResolvedValue({
-      _count: { sections: 1 },
       id: 21,
       [localizedNameSymbol]: "teacher",
       sections: teacherSections,
@@ -127,5 +120,77 @@ describe("catalog detail page data", () => {
     expect(Reflect.ownKeys(teacherResult ?? {})).not.toContain(
       localizedNameSymbol,
     );
+  });
+
+  it("traces bounded course and teacher query phases", async () => {
+    courseFindUniqueMock.mockResolvedValue({
+      id: 11,
+      jwId: 101,
+      sections: [],
+    });
+    teacherFindUniqueMock.mockResolvedValue({ id: 21, sections: [] });
+    const [{ getCoursePage }, { getTeacherPage }] = await Promise.all([
+      import("@/features/catalog/server/course-page-data"),
+      import("@/features/catalog/server/teacher-page-data"),
+    ]);
+    const spans: Array<{
+      attributes: Record<string, boolean | number | string | undefined>;
+      name: string;
+    }> = [];
+
+    await runWithCloudflareRuntimeEnv(
+      {},
+      async () => {
+        await getCoursePage(101);
+        await getTeacherPage(21);
+      },
+      {
+        tracing: {
+          enterSpan<T>(
+            name: string,
+            callback: (span: {
+              isTraced: boolean;
+              setAttribute(
+                key: string,
+                value?: boolean | number | string,
+              ): void;
+            }) => T,
+          ) {
+            const attributes: Record<
+              string,
+              boolean | number | string | undefined
+            > = {};
+            spans.push({ attributes, name });
+            return callback({
+              isTraced: true,
+              setAttribute(key, value) {
+                attributes[key] = value;
+              },
+            });
+          },
+        },
+      },
+    );
+
+    expect(spans).toEqual([
+      {
+        attributes: { "catalog.detail.kind": "course" },
+        name: "catalog.detail.course.query",
+      },
+      {
+        attributes: { "catalog.detail.kind": "course" },
+        name: "catalog.detail.course.transform",
+      },
+      {
+        attributes: { "catalog.detail.kind": "teacher" },
+        name: "catalog.detail.teacher.query",
+      },
+      {
+        attributes: { "catalog.detail.kind": "teacher" },
+        name: "catalog.detail.teacher.transform",
+      },
+    ]);
+    expect(JSON.stringify(spans)).not.toContain("101");
+    expect(JSON.stringify(spans)).not.toContain("21");
   });
 });

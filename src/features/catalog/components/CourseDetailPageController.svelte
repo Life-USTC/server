@@ -27,7 +27,6 @@ type CourseDetailData = CatalogNamed & {
   educationLevel?: CatalogNamed | null;
   id: number | string;
   jwId: number | string;
-  sectionCount: number;
   sections: CourseDetailSection[];
   type?: CatalogNamed | null;
 };
