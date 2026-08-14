@@ -42,5 +42,27 @@ describe("signed dashboard localized RLS context", () => {
     expect("userMissing" in data).toBe(false);
     expect(data.navStats).toBeDefined();
     expect(data.overview).toBeDefined();
+    expect(data.overview?.calendar).not.toHaveProperty("semesterWeeks");
+    expect(data.overview?.calendar).not.toHaveProperty("semesterStart");
+    expect(data.overview?.calendar).not.toHaveProperty(
+      "calendarSemesterNavList",
+    );
+
+    const calendarData = await loadSignedDashboardPageData({
+      calendarSemesterId: undefined,
+      locale: "en-us",
+      overviewWeek: null,
+      pageCopy: {} as never,
+      referenceNow: new Date("2026-04-29T08:00:00.000+08:00"),
+      requestId: "integration-dashboard-calendar-rls-reuse",
+      tab: "calendar",
+      userId: subscription.userId,
+    });
+
+    expect(calendarData.overview?.calendar).toHaveProperty("semesterWeeks");
+    expect(calendarData.overview?.calendar).toHaveProperty("semesterStart");
+    expect(calendarData.overview?.calendar).toHaveProperty(
+      "calendarSemesterNavList",
+    );
   });
 });
