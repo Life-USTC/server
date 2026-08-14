@@ -74,7 +74,7 @@ describe("课程与班级查找", () => {
           endTime?: unknown;
           startTime?: unknown;
         }>;
-        teacherAssignments?: unknown[];
+        teacherAssignments?: Array<Record<string, unknown>>;
         scheduleGroups?: unknown[];
         exams?: unknown[];
         roomType?: unknown;
@@ -90,6 +90,9 @@ describe("课程与班级查找", () => {
     expect(typeof result.section?.schedules?.[0]?.startTime).toBe("string");
     expect(typeof result.section?.schedules?.[0]?.endTime).toBe("string");
     expect((result.section?.teacherAssignments?.length ?? 0) > 0).toBe(true);
+    for (const assignment of result.section?.teacherAssignments ?? []) {
+      expect(assignment).not.toHaveProperty("teacher");
+    }
     expect(Array.isArray(result.section?.scheduleGroups)).toBe(true);
     expect((result.section?.exams?.length ?? 0) > 0).toBe(true);
     expect(Object.hasOwn(result.section ?? {}, "roomType")).toBe(true);
@@ -327,6 +330,7 @@ type GetCourseResult = {
     educationLevel?: { nameCn?: string | null; nameEn?: string | null } | null;
     category?: { nameCn?: string | null; nameEn?: string | null } | null;
     classType?: { nameCn?: string | null; nameEn?: string | null } | null;
+    _count?: { sections?: number };
     sections?: Array<{
       id?: number;
       jwId?: number;
@@ -463,6 +467,10 @@ describe("课程详情工具 catalog_course_get", () => {
     );
     expect(course?.classType?.nameCn).toBe(
       fixtures.DEV_SEED.course.classTypeNameCn,
+    );
+    expect(course?.sections?.length ?? 0).toBeLessThanOrEqual(20);
+    expect(course?._count?.sections ?? 0).toBeGreaterThanOrEqual(
+      course?.sections?.length ?? 0,
     );
 
     const seedSection = course?.sections?.find(

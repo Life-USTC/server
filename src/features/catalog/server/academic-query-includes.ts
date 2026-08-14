@@ -36,6 +36,50 @@ const teacherPublicScalarSelect = {
   teacherTitleId: true,
 } satisfies Prisma.TeacherSelect;
 
+/** Safe teacher identity for embedding in public course/section summaries. */
+export const teacherPublicIdentitySelect = {
+  id: true,
+  jwId: true,
+  personId: true,
+  code: true,
+  ...localizedNameSelect,
+} satisfies Prisma.TeacherSelect;
+
+/** Public teacher reference with the catalog context used by section detail. */
+export const teacherPublicReferenceSelect = {
+  ...teacherPublicIdentitySelect,
+  department: {
+    select: departmentSummarySelect,
+  },
+  teacherTitle: {
+    select: teacherTitleSummarySelect,
+  },
+} satisfies Prisma.TeacherSelect;
+
+export const PUBLIC_DETAIL_SECTION_PREVIEW_LIMIT = 20;
+
+export const teacherAssignmentPublicSelect = {
+  id: true,
+  teacherId: true,
+  sectionId: true,
+  role: true,
+  period: true,
+  weekIndices: true,
+  weekIndicesMsg: true,
+  teacherLessonTypeId: true,
+  teacherLessonType: {
+    select: {
+      id: true,
+      jwId: true,
+      nameCn: true,
+      nameEn: true,
+      code: true,
+      role: true,
+      enabled: true,
+    },
+  },
+} satisfies Prisma.TeacherAssignmentSelect;
+
 /** Narrow teacher payload for schedule entries: names and department only. */
 export const scheduleTeacherSelect = {
   id: true,
@@ -116,13 +160,7 @@ export const sectionSummarySelect = {
     },
   },
   teachers: {
-    select: {
-      id: true,
-      jwId: true,
-      personId: true,
-      code: true,
-      ...localizedNameSelect,
-    },
+    select: teacherPublicIdentitySelect,
   },
 };
 
@@ -141,7 +179,7 @@ export const sectionCompactInclude = {
   semester: true,
   campus: true,
   openDepartment: true,
-  teachers: true,
+  teachers: { select: teacherPublicIdentitySelect },
 } satisfies Prisma.SectionInclude;
 
 /** Common include object for sections. */
@@ -161,7 +199,7 @@ export const sectionInclude = {
   openDepartment: true,
   examMode: true,
   teachLanguage: true,
-  teachers: true,
+  teachers: { select: teacherPublicIdentitySelect },
   adminClasses: true,
 } satisfies Prisma.SectionInclude;
 
@@ -195,6 +233,7 @@ export const teacherPublicDetailSelect = {
       { semester: { jwId: "desc" as const } },
       { course: { nameCn: "asc" as const } },
     ],
+    take: PUBLIC_DETAIL_SECTION_PREVIEW_LIMIT,
   },
   _count: {
     select: {
@@ -221,10 +260,12 @@ export const courseDetailInclude = {
     include: {
       semester: true,
       campus: true,
-      teachers: true,
+      teachers: { select: teacherPublicIdentitySelect },
     },
     orderBy: [{ semester: { jwId: "desc" } }, { code: "asc" }],
+    take: PUBLIC_DETAIL_SECTION_PREVIEW_LIMIT,
   },
+  _count: { select: { sections: true } },
 } satisfies Prisma.CourseInclude;
 
 /** @deprecated Use teacherPublicListSelect with select instead of include. */

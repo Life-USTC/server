@@ -22814,33 +22814,12 @@
                         "nullable": true,
                         "type": "string"
                       },
-                      "email": {
-                        "nullable": true,
+                      "namePrimary": {
                         "type": "string"
                       },
-                      "telephone": {
+                      "nameSecondary": {
                         "nullable": true,
                         "type": "string"
-                      },
-                      "mobile": {
-                        "nullable": true,
-                        "type": "string"
-                      },
-                      "address": {
-                        "nullable": true,
-                        "type": "string"
-                      },
-                      "departmentId": {
-                        "nullable": true,
-                        "type": "integer",
-                        "minimum": -9007199254740991,
-                        "maximum": 9007199254740991
-                      },
-                      "teacherTitleId": {
-                        "nullable": true,
-                        "type": "integer",
-                        "minimum": -9007199254740991,
-                        "maximum": 9007199254740991
                       }
                     },
                     "required": [
@@ -22850,12 +22829,8 @@
                       "code",
                       "nameCn",
                       "nameEn",
-                      "email",
-                      "telephone",
-                      "mobile",
-                      "address",
-                      "departmentId",
-                      "teacherTitleId"
+                      "namePrimary",
+                      "nameSecondary"
                     ],
                     "additionalProperties": false
                   }
@@ -22902,6 +22877,20 @@
               ],
               "additionalProperties": false
             }
+          },
+          "_count": {
+            "type": "object",
+            "properties": {
+              "sections": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              }
+            },
+            "required": [
+              "sections"
+            ],
+            "additionalProperties": false
           }
         },
         "required": [
@@ -22922,7 +22911,8 @@
           "educationLevel",
           "gradation",
           "type",
-          "sections"
+          "sections",
+          "_count"
         ],
         "additionalProperties": false
       },
@@ -23671,33 +23661,12 @@
                   "nullable": true,
                   "type": "string"
                 },
-                "email": {
-                  "nullable": true,
+                "namePrimary": {
                   "type": "string"
                 },
-                "telephone": {
+                "nameSecondary": {
                   "nullable": true,
                   "type": "string"
-                },
-                "mobile": {
-                  "nullable": true,
-                  "type": "string"
-                },
-                "address": {
-                  "nullable": true,
-                  "type": "string"
-                },
-                "departmentId": {
-                  "nullable": true,
-                  "type": "integer",
-                  "minimum": -9007199254740991,
-                  "maximum": 9007199254740991
-                },
-                "teacherTitleId": {
-                  "nullable": true,
-                  "type": "integer",
-                  "minimum": -9007199254740991,
-                  "maximum": 9007199254740991
                 },
                 "department": {
                   "nullable": true,
@@ -23721,6 +23690,13 @@
                     "isCollege": {
                       "nullable": true,
                       "type": "boolean"
+                    },
+                    "namePrimary": {
+                      "type": "string"
+                    },
+                    "nameSecondary": {
+                      "nullable": true,
+                      "type": "string"
                     }
                   },
                   "required": [
@@ -23728,7 +23704,9 @@
                     "code",
                     "nameCn",
                     "nameEn",
-                    "isCollege"
+                    "isCollege",
+                    "namePrimary",
+                    "nameSecondary"
                   ],
                   "additionalProperties": false
                 },
@@ -23759,6 +23737,13 @@
                     "enabled": {
                       "nullable": true,
                       "type": "boolean"
+                    },
+                    "namePrimary": {
+                      "type": "string"
+                    },
+                    "nameSecondary": {
+                      "nullable": true,
+                      "type": "string"
                     }
                   },
                   "required": [
@@ -23767,7 +23752,9 @@
                     "nameCn",
                     "nameEn",
                     "code",
-                    "enabled"
+                    "enabled",
+                    "namePrimary",
+                    "nameSecondary"
                   ],
                   "additionalProperties": false
                 }
@@ -23779,12 +23766,8 @@
                 "code",
                 "nameCn",
                 "nameEn",
-                "email",
-                "telephone",
-                "mobile",
-                "address",
-                "departmentId",
-                "teacherTitleId",
+                "namePrimary",
+                "nameSecondary",
                 "department",
                 "teacherTitle"
               ],
@@ -23840,81 +23823,6 @@
                   "minimum": -9007199254740991,
                   "maximum": 9007199254740991
                 },
-                "teacher": {
-                  "type": "object",
-                  "properties": {
-                    "id": {
-                      "type": "integer",
-                      "minimum": -9007199254740991,
-                      "maximum": 9007199254740991
-                    },
-                    "jwId": {
-                      "type": "integer",
-                      "minimum": -9007199254740991,
-                      "maximum": 9007199254740991
-                    },
-                    "personId": {
-                      "nullable": true,
-                      "type": "integer",
-                      "minimum": -9007199254740991,
-                      "maximum": 9007199254740991
-                    },
-                    "code": {
-                      "nullable": true,
-                      "type": "string"
-                    },
-                    "nameCn": {
-                      "type": "string"
-                    },
-                    "nameEn": {
-                      "nullable": true,
-                      "type": "string"
-                    },
-                    "email": {
-                      "nullable": true,
-                      "type": "string"
-                    },
-                    "telephone": {
-                      "nullable": true,
-                      "type": "string"
-                    },
-                    "mobile": {
-                      "nullable": true,
-                      "type": "string"
-                    },
-                    "address": {
-                      "nullable": true,
-                      "type": "string"
-                    },
-                    "departmentId": {
-                      "nullable": true,
-                      "type": "integer",
-                      "minimum": -9007199254740991,
-                      "maximum": 9007199254740991
-                    },
-                    "teacherTitleId": {
-                      "nullable": true,
-                      "type": "integer",
-                      "minimum": -9007199254740991,
-                      "maximum": 9007199254740991
-                    }
-                  },
-                  "required": [
-                    "id",
-                    "jwId",
-                    "personId",
-                    "code",
-                    "nameCn",
-                    "nameEn",
-                    "email",
-                    "telephone",
-                    "mobile",
-                    "address",
-                    "departmentId",
-                    "teacherTitleId"
-                  ],
-                  "additionalProperties": false
-                },
                 "teacherLessonType": {
                   "nullable": true,
                   "type": "object",
@@ -23969,7 +23877,6 @@
                 "weekIndices",
                 "weekIndicesMsg",
                 "teacherLessonTypeId",
-                "teacher",
                 "teacherLessonType"
               ],
               "additionalProperties": false
