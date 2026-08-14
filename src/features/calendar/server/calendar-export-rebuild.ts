@@ -6,6 +6,7 @@ import {
 } from "@/features/calendar/server/calendar-export-queue";
 import { buildUserCalendarExport } from "@/features/calendar/server/calendar-export-service";
 import { prisma } from "@/lib/db/prisma";
+import { logAppEvent } from "@/lib/log/app-logger";
 import { writeCalendarExportRebuildAnalytics } from "@/lib/metrics/analytics-engine";
 
 export async function rebuildUserCalendarExport(userId: string) {
@@ -60,9 +61,9 @@ export async function processCalendarExportRebuildMessages(
     try {
       await rebuildUserCalendarExport(userId);
       writeCalendarExportRebuildAnalytics({ status: "ok" });
-    } catch {
+    } catch (error) {
       writeCalendarExportRebuildAnalytics({ status: "error" });
-      throw new Error("calendar_export_rebuild_failed");
+      throw error;
     }
   }
 }
@@ -103,7 +104,20 @@ export async function handleCalendarExportRebuildBatch(
     for (const message of validMessages) {
       message.ack();
     }
-  } catch {
+  } catch (error) {
+    logAppEvent(
+      "error",
+      "calendar-export-rebuild.retry",
+      {
+        batchMessageCount: batch.messages.length,
+        event: "calendar-export-rebuild.retry",
+        messageType: "calendar-export-rebuild",
+        retryCount: validMessages.length,
+        source: "calendar-export-rebuild",
+        validMessageCount: validMessages.length,
+      },
+      error,
+    );
     for (const message of validMessages) {
       message.retry();
     }

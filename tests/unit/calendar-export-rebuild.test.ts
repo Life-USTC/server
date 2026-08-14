@@ -4,11 +4,13 @@ const {
   findManyMock,
   getUserCalendarRecordMock,
   buildUserCalendarExportMock,
+  logAppEventMock,
   storeBuiltUserCalendarExportMock,
 } = vi.hoisted(() => ({
   findManyMock: vi.fn(),
   getUserCalendarRecordMock: vi.fn(),
   buildUserCalendarExportMock: vi.fn(),
+  logAppEventMock: vi.fn(),
   storeBuiltUserCalendarExportMock: vi.fn(),
 }));
 
@@ -30,6 +32,10 @@ vi.mock("@/features/calendar/server/calendar-export-service", () => ({
 
 vi.mock("@/features/calendar/server/calendar-export-cache", () => ({
   storeBuiltUserCalendarExport: storeBuiltUserCalendarExportMock,
+}));
+
+vi.mock("@/lib/log/app-logger", () => ({
+  logAppEvent: logAppEventMock,
 }));
 
 import {
@@ -121,5 +127,47 @@ describe("calendar export rebuild fan-out", () => {
     expect(invalid.retry).not.toHaveBeenCalled();
     expect(valid.ack).toHaveBeenCalledOnce();
     expect(valid.retry).not.toHaveBeenCalled();
+  });
+
+  it("logs safe batch context before retrying a failed batch", async () => {
+    findManyMock.mockResolvedValue([{ userId: "subscriber-secret" }]);
+    getUserCalendarRecordMock.mockRejectedValue(
+      new Error("failure for user-secret"),
+    );
+    const userMessage = {
+      ack: vi.fn(),
+      body: { type: "user", userId: "user-secret" },
+      retry: vi.fn(),
+    };
+    const sectionMessage = {
+      ack: vi.fn(),
+      body: { type: "section", sectionId: 987654 },
+      retry: vi.fn(),
+    };
+
+    await handleCalendarExportRebuildBatch({
+      messages: [userMessage, sectionMessage],
+    });
+
+    expect(userMessage.ack).not.toHaveBeenCalled();
+    expect(sectionMessage.ack).not.toHaveBeenCalled();
+    expect(userMessage.retry).toHaveBeenCalledOnce();
+    expect(sectionMessage.retry).toHaveBeenCalledOnce();
+    expect(logAppEventMock).toHaveBeenCalledOnce();
+    expect(logAppEventMock).toHaveBeenCalledWith(
+      "error",
+      "calendar-export-rebuild.retry",
+      {
+        batchMessageCount: 2,
+        event: "calendar-export-rebuild.retry",
+        messageType: "calendar-export-rebuild",
+        retryCount: 2,
+        source: "calendar-export-rebuild",
+        validMessageCount: 2,
+      },
+      expect.any(Error),
+    );
+    expect(logAppEventMock.mock.calls[0]?.[2]).not.toHaveProperty("userId");
+    expect(logAppEventMock.mock.calls[0]?.[2]).not.toHaveProperty("sectionId");
   });
 });

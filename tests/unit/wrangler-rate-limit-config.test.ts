@@ -38,7 +38,7 @@ describe("Wrangler mutation rate-limit bindings", () => {
     ]);
   });
 
-  it("keeps public workers.dev disabled and enables invocation logs for CPU diagnosis", async () => {
+  it("keeps raw invocation logs disabled while retaining complete safe custom logs", async () => {
     const source = await readFile(
       new URL("../../wrangler.jsonc", import.meta.url),
       "utf8",
@@ -57,8 +57,8 @@ describe("Wrangler mutation rate-limit bindings", () => {
 
     expect(config.preview_urls).toBe(false);
     expect(config.workers_dev).toBe(false);
-    expect(config.observability?.logs?.invocation_logs).toBe(true);
-    expect(config.observability?.logs?.head_sampling_rate).toBe(0.5);
+    expect(config.observability?.logs?.invocation_logs).toBe(false);
+    expect(config.observability?.logs?.head_sampling_rate).toBe(1);
     expect(config.observability?.traces?.head_sampling_rate).toBe(0.1);
   });
 
