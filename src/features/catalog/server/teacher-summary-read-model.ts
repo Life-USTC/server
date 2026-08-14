@@ -6,6 +6,7 @@ import {
   teacherPublicDetailSelect,
   teacherPublicListSelect,
 } from "./academic-query-includes";
+import { cachedCatalogListRead } from "./catalog-list-cache";
 import { buildTeacherWhere } from "./teacher-query";
 
 type TeacherListFilters = Parameters<typeof buildTeacherWhere>[0];
@@ -22,13 +23,21 @@ export function listTeacherSummaries({
     pageSize: number;
   };
 }) {
-  return paginatedTeacherQuery(
-    pagination.page,
-    pagination.pageSize,
-    buildTeacherWhere(filters),
-    { nameCn: "asc" },
+  return cachedCatalogListRead({
+    filters,
+    kind: "teachers",
     locale,
-  );
+    pagination,
+    shape: "summary",
+    load: () =>
+      paginatedTeacherQuery(
+        pagination.page,
+        pagination.pageSize,
+        buildTeacherWhere(filters),
+        { nameCn: "asc" },
+        locale,
+      ),
+  });
 }
 
 export function findTeacherDetailById(id: number, locale = DEFAULT_LOCALE) {

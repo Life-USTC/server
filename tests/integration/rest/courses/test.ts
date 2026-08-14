@@ -57,7 +57,9 @@ test.describe("GET /api/catalog/courses 接口", () => {
     expect(body.pagination?.totalPages).toBeGreaterThanOrEqual(1);
   });
 
-  test("仅显式 locale URL 变体使用共享缓存", async ({ request }) => {
+  test("显式 locale 与默认 zh-cn URL 变体均使用共享缓存", async ({
+    request,
+  }) => {
     const explicit = await request.get(
       "/api/catalog/courses?locale=en-us&pageSize=1",
       {
@@ -79,8 +81,12 @@ test.describe("GET /api/catalog/courses 接口", () => {
       headers: { "accept-language": "en-US" },
     });
     expect(fallback.status()).toBe(200);
-    expect(fallback.headers()["cache-control"]).toBe("private, no-store");
-    expect(fallback.headers()["cloudflare-cdn-cache-control"]).toBe("no-store");
+    expect(fallback.headers()["cache-control"]).toBe(
+      "public, max-age=0, stale-while-revalidate=300",
+    );
+    expect(fallback.headers()["cloudflare-cdn-cache-control"]).toBe(
+      "public, max-age=86400, stale-while-revalidate=300",
+    );
 
     const invalid = await request.get("/api/catalog/courses?locale=fr-fr");
     expect(invalid.status()).toBe(400);

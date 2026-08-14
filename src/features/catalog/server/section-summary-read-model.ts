@@ -7,6 +7,7 @@ import {
   paginatedSectionCatalogQuery,
   paginatedSectionSummaryQuery,
 } from "./academic-paginated-queries";
+import { cachedCatalogListRead } from "./catalog-list-cache";
 import { resolveCourseIdByJwId } from "./course-jw-id";
 import {
   buildSectionListQuery,
@@ -50,14 +51,23 @@ export async function listSectionSummaries({
     pageSize: number;
   };
 }) {
-  const { where, orderBy } = await resolveSectionListQuery(filters, locale);
-  return paginatedSectionSummaryQuery(
-    pagination.page,
-    pagination.pageSize,
-    where,
-    orderBy ?? SECTION_SUMMARY_DEFAULT_ORDER_BY,
+  return cachedCatalogListRead({
+    filters,
+    kind: "sections",
     locale,
-  );
+    pagination,
+    shape: "summary",
+    load: async () => {
+      const { where, orderBy } = await resolveSectionListQuery(filters, locale);
+      return paginatedSectionSummaryQuery(
+        pagination.page,
+        pagination.pageSize,
+        where,
+        orderBy ?? SECTION_SUMMARY_DEFAULT_ORDER_BY,
+        locale,
+      );
+    },
+  });
 }
 
 export async function listSections({
@@ -72,12 +82,21 @@ export async function listSections({
     pageSize: number;
   };
 }) {
-  const { where, orderBy } = await resolveSectionListQuery(filters, locale);
-  return paginatedSectionCatalogQuery(
-    pagination.page,
-    pagination.pageSize,
-    where,
-    orderBy ?? SECTION_SUMMARY_DEFAULT_ORDER_BY,
+  return cachedCatalogListRead({
+    filters,
+    kind: "sections",
     locale,
-  );
+    pagination,
+    shape: "catalog",
+    load: async () => {
+      const { where, orderBy } = await resolveSectionListQuery(filters, locale);
+      return paginatedSectionCatalogQuery(
+        pagination.page,
+        pagination.pageSize,
+        where,
+        orderBy ?? SECTION_SUMMARY_DEFAULT_ORDER_BY,
+        locale,
+      );
+    },
+  });
 }

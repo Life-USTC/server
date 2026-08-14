@@ -2,6 +2,7 @@ import type { Prisma } from "@/generated/prisma/client";
 import type { AppLocale } from "@/i18n/config";
 import { DEFAULT_LOCALE } from "@/i18n/config";
 import { paginatedCourseQuery } from "./academic-paginated-queries";
+import { cachedCatalogListRead } from "./catalog-list-cache";
 import {
   buildCourseListWhere,
   type CourseListFilters,
@@ -24,11 +25,19 @@ export function listCourseSummaries({
     pageSize: number;
   };
 }) {
-  return paginatedCourseQuery(
-    pagination.page,
-    pagination.pageSize,
-    buildCourseListWhere(filters),
-    COURSE_SUMMARY_DEFAULT_ORDER_BY,
+  return cachedCatalogListRead({
+    filters,
+    kind: "courses",
     locale,
-  );
+    pagination,
+    shape: "summary",
+    load: () =>
+      paginatedCourseQuery(
+        pagination.page,
+        pagination.pageSize,
+        buildCourseListWhere(filters),
+        COURSE_SUMMARY_DEFAULT_ORDER_BY,
+        locale,
+      ),
+  });
 }

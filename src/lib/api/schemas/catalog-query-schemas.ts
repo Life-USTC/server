@@ -4,7 +4,7 @@ import {
   CATALOG_SEARCH_MAX_LENGTH,
   CATALOG_SEARCH_MIN_LENGTH,
 } from "@/features/catalog/lib/catalog-list-query";
-import { APP_LOCALES } from "@/i18n/config";
+import { APP_LOCALES, DEFAULT_LOCALE } from "@/i18n/config";
 import {
   booleanQuerySchema,
   dateQuerySchema,
@@ -55,7 +55,7 @@ const sectionScheduleLimitSchema = integerQueryRangeSchema({
 });
 
 export const catalogLocaleQuerySchema = z.object({
-  locale: z.enum(APP_LOCALES).optional(),
+  locale: z.enum(APP_LOCALES).default(DEFAULT_LOCALE),
 });
 
 export const sectionsQuerySchema = catalogLocaleQuerySchema.extend({
