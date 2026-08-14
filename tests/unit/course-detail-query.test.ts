@@ -4,6 +4,10 @@ const { courseFindUniqueMock } = vi.hoisted(() => ({
   courseFindUniqueMock: vi.fn(),
 }));
 
+vi.mock("@/lib/catalog-detail-cache-revision", () => ({
+  getCatalogDetailCacheRevision: vi.fn(async () => "test-revision"),
+}));
+
 vi.mock("@/lib/db/prisma", () => ({
   getPrisma: () => ({
     course: { findUnique: courseFindUniqueMock },

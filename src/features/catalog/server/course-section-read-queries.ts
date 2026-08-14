@@ -9,6 +9,7 @@ import {
 } from "@/features/catalog/server/academic-query-includes";
 import type { AppLocale } from "@/i18n/config";
 import { DEFAULT_LOCALE } from "@/i18n/config";
+import { cachedPublicDetailRuntimeData } from "@/lib/catalog-detail-runtime-cache";
 import { getPrisma } from "@/lib/db/prisma";
 import { serializeScheduleTimeFields } from "@/shared/lib/schedule-serialization";
 
@@ -31,9 +32,16 @@ export async function findCourseDetailByJwId(
   jwId: number,
   locale: AppLocale = DEFAULT_LOCALE,
 ) {
-  return getPrisma(locale).course.findUnique({
-    where: { jwId },
-    include: courseDetailInclude,
+  return cachedPublicDetailRuntimeData({
+    id: jwId,
+    kind: "course",
+    locale,
+    shape: "detail-v1",
+    load: () =>
+      getPrisma(locale).course.findUnique({
+        where: { jwId },
+        include: courseDetailInclude,
+      }),
   });
 }
 
@@ -41,6 +49,10 @@ export async function findCoursesByJwIds(
   jwIds: readonly number[],
   locale: AppLocale = DEFAULT_LOCALE,
 ) {
+  if (jwIds.length === 1) {
+    return [await findCourseDetailByJwId(jwIds[0], locale)];
+  }
+
   const prisma = getPrisma(locale);
   const requestedJwIds = [...new Set(jwIds)];
   const courses = await prisma.course.findMany({
@@ -80,30 +92,42 @@ export async function findSectionDetailByJwId(
     ? buildPartialSectionDetailInclude(options)
     : sectionDetailInclude;
 
-  const section = await getPrisma(locale).section.findUnique({
-    where: { jwId },
-    include,
+  const shape = hasPartialFlags
+    ? `detail-v1:exams=${options.includeExams === true}:schedules=${options.includeSchedules === true}:teacher-departments=${options.includeTeacherDepartments === true}`
+    : "detail-v1:full";
+
+  return cachedPublicDetailRuntimeData({
+    id: jwId,
+    kind: "section",
+    locale,
+    shape,
+    load: async () => {
+      const section = await getPrisma(locale).section.findUnique({
+        where: { jwId },
+        include,
+      });
+
+      if (!section) return null;
+
+      return {
+        ...section,
+        exams: "exams" in section && section.exams ? section.exams : [],
+        scheduleGroups:
+          "scheduleGroups" in section && section.scheduleGroups
+            ? section.scheduleGroups
+            : [],
+        schedules:
+          "schedules" in section && section.schedules
+            ? section.schedules.map(serializeScheduleTimeFields)
+            : [],
+        teacherAssignments:
+          "teacherAssignments" in section && section.teacherAssignments
+            ? section.teacherAssignments
+            : [],
+        teachers: section.teachers ?? [],
+      };
+    },
   });
-
-  if (!section) return null;
-
-  return {
-    ...section,
-    exams: "exams" in section && section.exams ? section.exams : [],
-    scheduleGroups:
-      "scheduleGroups" in section && section.scheduleGroups
-        ? section.scheduleGroups
-        : [],
-    schedules:
-      "schedules" in section && section.schedules
-        ? section.schedules.map(serializeScheduleTimeFields)
-        : [],
-    teacherAssignments:
-      "teacherAssignments" in section && section.teacherAssignments
-        ? section.teacherAssignments
-        : [],
-    teachers: section.teachers ?? [],
-  };
 }
 
 function buildPartialSectionDetailInclude(options: {
@@ -138,6 +162,16 @@ export async function findSectionsByJwIds(
   jwIds: readonly number[],
   locale: AppLocale = DEFAULT_LOCALE,
 ) {
+  if (jwIds.length === 1) {
+    return [
+      await findSectionDetailByJwId(jwIds[0], locale, {
+        includeExams: false,
+        includeSchedules: false,
+        includeTeacherDepartments: false,
+      }),
+    ];
+  }
+
   const sections = await getPrisma(locale).section.findMany({
     where: { jwId: { in: [...new Set(jwIds)] } },
     include: sectionCatalogInclude,

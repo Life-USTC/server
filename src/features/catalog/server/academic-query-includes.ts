@@ -164,6 +164,28 @@ export const sectionSummarySelect = {
   },
 };
 
+/** Stable public section identity and course/semester context for child records. */
+export const sectionPublicContextSelect = {
+  id: true,
+  jwId: true,
+  code: true,
+  course: {
+    select: {
+      jwId: true,
+      code: true,
+      nameCn: true,
+      nameEn: true,
+    },
+  },
+  semester: {
+    select: {
+      jwId: true,
+      code: true,
+      nameCn: true,
+    },
+  },
+} as const satisfies Prisma.SectionSelect;
+
 /** Lightweight section include for list/match scenarios. */
 export const sectionCompactInclude = {
   course: {

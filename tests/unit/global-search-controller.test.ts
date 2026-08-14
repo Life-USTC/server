@@ -50,6 +50,7 @@ describe("createGlobalSearchController", () => {
     expect(fetchMock).toHaveBeenCalledOnce();
     expect(fetchMock).toHaveBeenCalledWith(
       `/api/search?q=${encodeURIComponent("math")}&limit=5&locale=zh-cn`,
+      { signal: expect.any(AbortSignal) },
     );
     expect(get(controller.groups)).toHaveLength(1);
     expect(get(controller.isSearching)).toBe(false);
@@ -78,6 +79,7 @@ describe("createGlobalSearchController", () => {
 
     expect(fetchMock).toHaveBeenCalledWith(
       "/api/search?q=math&limit=5&locale=en-us&scope=workspace",
+      { signal: expect.any(AbortSignal) },
     );
 
     vi.useRealTimers();
@@ -211,6 +213,48 @@ describe("createGlobalSearchController", () => {
     await vi.runAllTimersAsync();
 
     expect(get(controller.groups)[0]?.items[0]?.id).toBe("course:new");
+
+    vi.useRealTimers();
+  });
+
+  it("aborts superseded workspace requests as soon as the query changes", async () => {
+    vi.useFakeTimers();
+    const fetchMock = vi
+      .fn()
+      .mockImplementationOnce((_url: string, init: RequestInit) => {
+        return new Promise((_resolve, reject) => {
+          init.signal?.addEventListener("abort", () => {
+            reject(new DOMException("Aborted", "AbortError"));
+          });
+        });
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({ groups: [] }),
+      });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const controller = createGlobalSearchController({
+      getRequestContext: () => ({
+        includeWorkspace: true,
+        locale: "zh-cn",
+      }),
+      limit: 5,
+    });
+    controller.query.set("old query");
+    controller.scheduleSearch();
+    await vi.advanceTimersByTimeAsync(GLOBAL_SEARCH_DEBOUNCE_MS);
+
+    const firstSignal = fetchMock.mock.calls[0]?.[1]?.signal as AbortSignal;
+    expect(firstSignal.aborted).toBe(false);
+
+    controller.query.set("new query");
+    controller.scheduleSearch();
+
+    expect(firstSignal.aborted).toBe(true);
+    await vi.advanceTimersByTimeAsync(GLOBAL_SEARCH_DEBOUNCE_MS);
+    await vi.runAllTimersAsync();
+    expect(fetchMock).toHaveBeenCalledTimes(2);
 
     vi.useRealTimers();
   });
