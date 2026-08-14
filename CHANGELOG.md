@@ -1,3 +1,16 @@
+# [1.90.0](https://github.com/Life-USTC/server/compare/v1.89.14...v1.90.0) (2026-08-14)
+
+
+### Bug Fixes
+
+* **observability:** redact worker operational logs ([#839](https://github.com/Life-USTC/server/issues/839)) ([cb513a3](https://github.com/Life-USTC/server/commit/cb513a3075ef03b185eed8254f762ec07954c675))
+* **search:** match tokenized catalog queries ([#836](https://github.com/Life-USTC/server/issues/836)) ([2dce7bb](https://github.com/Life-USTC/server/commit/2dce7bbdf49fb6d42bcc06f11d09229c0afec277))
+
+
+### Features
+
+* **observability:** attribute public cache phases ([#838](https://github.com/Life-USTC/server/issues/838)) ([d84488b](https://github.com/Life-USTC/server/commit/d84488bf1fd872c83418f06d6acb45faf196d5e5))
+
 ## [1.89.14](https://github.com/Life-USTC/server/compare/v1.89.13...v1.89.14) (2026-08-14)
 
 
