@@ -14,6 +14,7 @@ const today = shanghaiDayjs(DEV_SEED_ANCHOR.startOfDayAtTime);
 
 function buildOverviewData(partial: Partial<OverviewData> = {}): OverviewData {
   return {
+    calendarMode: "semester",
     user: { id: "user-1", name: "Test User", username: "testuser" },
     currentTermName: "2026春",
     hasAnySelection: true,
@@ -184,7 +185,7 @@ describe("仪表盘概览序列化", () => {
     expect(result.calendar.semesterStart).toBe("2026-03-30");
     expect(result.calendar.semesterEnd).toBe("2026-06-28");
     expect(result.calendar.semesterWeeks).toHaveLength(1);
-    expect(result.calendar.semesterWeeks[0]).toHaveLength(7);
+    expect(result.calendar.semesterWeeks?.[0]).toHaveLength(7);
 
     expect(result.calendar.allSessions).toHaveLength(1);
     const serializedSession = result.calendar.allSessions[0];
@@ -226,6 +227,40 @@ describe("仪表盘概览序列化", () => {
 
     expect(result.overviewLinks).toHaveLength(1);
     expect(result.overviewLinks[0].slug).toBe("library");
+  });
+
+  it("overview preview omits semester-wide calendar metadata", () => {
+    const result = serializeDashboardOverview(
+      buildOverviewData({
+        calendarMode: "preview",
+        allSessions: [buildSession()],
+        allExams: [buildExam()],
+        semesterHomeworks: [buildHomework()],
+        semesterTodos: [
+          {
+            id: "todo-1",
+            title: "复习",
+            dueAt: "2026-05-01T10:00:00+08:00",
+            priority: TodoPriority.medium,
+            content: null,
+            completed: false,
+          },
+        ],
+      }),
+    );
+
+    expect(result.calendar).toMatchObject({
+      allExams: expect.any(Array),
+      allSessions: expect.any(Array),
+      semesterHomeworks: expect.any(Array),
+      semesterTodos: expect.any(Array),
+      todayDate: "2026-04-29",
+    });
+    expect(result.calendar).not.toHaveProperty("semesterWeeks");
+    expect(result.calendar).not.toHaveProperty("semesterStart");
+    expect(result.calendar).not.toHaveProperty("semesterEnd");
+    expect(result.calendar.calendarSemesterPicker).toEqual([]);
+    expect(result.calendar).not.toHaveProperty("calendarSemesterNavList");
   });
 
   it("去重 pendingHomeworks 中的重复作业", () => {

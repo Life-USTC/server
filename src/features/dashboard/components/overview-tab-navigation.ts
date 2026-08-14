@@ -2,9 +2,9 @@ import {
   dashboardOverviewWeekStart as buildDashboardOverviewWeekStart,
   overviewUpcomingExams as buildOverviewUpcomingExams,
 } from "@/features/dashboard/lib/calendar-display";
+import type { DashboardCalendarPreviewData } from "@/features/dashboard/lib/dashboard-controller-helpers";
 import { referenceDate } from "@/features/dashboard/lib/overview";
 import type {
-  DashboardCalendarData,
   DashboardCalendarSession,
   DashboardCalendarTabHref,
 } from "./dashboard-calendar-component-types";
@@ -18,7 +18,7 @@ export function dashboardOverviewWeekStart(signedData: OverviewSignedData) {
 }
 
 export function overviewUpcomingExams(
-  overviewCalendar: DashboardCalendarData,
+  overviewCalendar: DashboardCalendarPreviewData,
   signedData: OverviewSignedData,
 ) {
   return buildOverviewUpcomingExams(
