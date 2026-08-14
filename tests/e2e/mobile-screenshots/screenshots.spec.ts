@@ -13,19 +13,33 @@ import {
   isStepScreenshotCaptureEnabled,
 } from "../utils/screenshot";
 
-function screenshotRoute(name: string, path: string) {
+function healthyMobileRoute(name: string, path: string) {
   test(name, async ({ page }) => {
-    const response = await gotoAndWaitForReady(page, path);
-    if (response) {
-      expect(response.status()).toBeLessThan(500);
-    }
+    const response = await gotoAndWaitForReady(page, path, {
+      browserHealth: {},
+      expectMeaningfulContent: true,
+      expectNoHorizontalOverflow: true,
+    });
+
+    expect(
+      response,
+      `Expected ${path} to return a document response`,
+    ).not.toBeNull();
+    expect(
+      response?.ok(),
+      `Expected ${path} to return a successful status`,
+    ).toBe(true);
+    expect(
+      (await page.title()).trim(),
+      `Expected ${path} to have a page title`,
+    ).not.toBe("");
   });
 }
 
-test.describe("移动端截图", () => {
+test.describe("移动端页面健全性", () => {
   test.describe("公开页面", () => {
     for (const path of mobileScreenshotPaths("public")) {
-      screenshotRoute(path, path);
+      healthyMobileRoute(path, path);
     }
   });
 
@@ -35,7 +49,7 @@ test.describe("移动端截图", () => {
     });
 
     for (const path of mobileScreenshotPaths("authed")) {
-      screenshotRoute(path, path);
+      healthyMobileRoute(path, path);
     }
 
     test(`/community/users/[identifier] ID 页面截图`, async ({ page }) => {
@@ -44,7 +58,11 @@ test.describe("移动端截图", () => {
         user?: { id?: string };
       };
       const userId = session.user?.id ?? "";
-      await gotoAndWaitForReady(page, `/community/users/${userId}`);
+      await gotoAndWaitForReady(page, `/community/users/${userId}`, {
+        browserHealth: {},
+        expectMeaningfulContent: true,
+        expectNoHorizontalOverflow: true,
+      });
     });
 
     test.describe("welcome 共享用户状态", () => {
@@ -59,7 +77,11 @@ test.describe("移动端截图", () => {
         });
 
         try {
-          await gotoAndWaitForReady(page, "/account/welcome");
+          await gotoAndWaitForReady(page, "/account/welcome", {
+            browserHealth: {},
+            expectMeaningfulContent: true,
+            expectNoHorizontalOverflow: true,
+          });
           await expect(page).toHaveURL(/\/account\/welcome(?:\?.*)?$/);
           await expect(
             page.getByRole("textbox", { name: /^(姓名|Name)\b/i }),
@@ -98,7 +120,7 @@ test.describe("移动端截图", () => {
     });
 
     for (const path of mobileScreenshotPaths("admin")) {
-      screenshotRoute(path, path);
+      healthyMobileRoute(path, path);
     }
   });
 });

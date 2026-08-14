@@ -52,6 +52,8 @@ async function gotoContractPage(
   testInfo: TestInfo | undefined,
 ) {
   const response = await gotoAndWaitForReady(page, path, {
+    browserHealth: {},
+    expectNoHorizontalOverflow: true,
     waitUntil: getContractWaitUntil(path),
     testInfo,
     screenshotLabel: "contract",
