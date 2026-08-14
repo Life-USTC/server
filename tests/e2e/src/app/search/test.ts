@@ -7,6 +7,7 @@ test("search page returns catalog and link results", async ({ page }) => {
     (response) =>
       response.url().includes("/api/search") &&
       response.url().includes("email") &&
+      response.url().includes("locale=") &&
       response.ok(),
   );
 

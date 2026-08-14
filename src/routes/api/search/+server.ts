@@ -4,7 +4,7 @@ import { observedApiRoute } from "@/lib/log/api-observability";
 
 /**
  * Global search across catalog and workspace entities.
- * @params q, limit
+ * @params q, limit, locale, scope
  * @response globalSearchResponse
  * @response 400:openApiErrorSchema
  */

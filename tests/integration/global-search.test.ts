@@ -99,4 +99,31 @@ describe("global search integration", () => {
       courseSearchSpy.mockRestore();
     }
   });
+
+  it("keeps runtime search results isolated by locale", async () => {
+    clearPublicRuntimeCache();
+    const courseSearchSpy = vi.spyOn(catalogQueries, "searchCoursesForGlobal");
+
+    try {
+      await searchGlobally({
+        locale: "zh-cn",
+        origin: ORIGIN,
+        query: "线性代数",
+      });
+      const callsAfterChinese = courseSearchSpy.mock.calls.length;
+
+      await searchGlobally({
+        locale: "en-us",
+        origin: ORIGIN,
+        query: "线性代数",
+      });
+
+      expect(callsAfterChinese).toBeGreaterThan(0);
+      expect(courseSearchSpy.mock.calls.length).toBeGreaterThan(
+        callsAfterChinese,
+      );
+    } finally {
+      courseSearchSpy.mockRestore();
+    }
+  });
 });

@@ -38,6 +38,7 @@ import {
   hasGlobalSearchQuery,
   searchGlobally,
 } from "@/features/search/server/global-search-service";
+import type { GlobalSearchResultGroup } from "@/features/search/server/global-search-types";
 
 const ORIGIN = "https://life.example";
 
@@ -192,6 +193,33 @@ describe("global search service", () => {
         ],
       },
     ]);
+  });
+
+  it("starts workspace search without waiting for the catalog cache", async () => {
+    let resolveCatalog:
+      | ((groups: GlobalSearchResultGroup[]) => void)
+      | undefined;
+    cachedCatalogRuntimeDataMock.mockReturnValue(
+      new Promise((resolve) => {
+        resolveCatalog = resolve;
+      }),
+    );
+
+    const resultPromise = searchGlobally({
+      locale: "zh-cn",
+      origin: ORIGIN,
+      query: "数据",
+      userId: "user-1",
+    });
+    await Promise.resolve();
+
+    expect(withUserDbContextMock).toHaveBeenCalledWith(
+      "user-1",
+      expect.any(Function),
+    );
+
+    resolveCatalog?.([]);
+    await expect(resultPromise).resolves.toEqual({ query: "数据", groups: [] });
   });
 
   it("reuses cached catalog results without hitting catalog queries again", async () => {

@@ -257,32 +257,30 @@ export async function searchGlobally(input: {
     return { query, groups: [] };
   }
 
-  const catalogGroups = await searchCachedCatalogGroups({
+  const catalogGroupsPromise = searchCachedCatalogGroups({
     limit,
     locale: input.locale,
     origin: input.origin,
     query,
   });
-
-  let workspaceGroups: GlobalSearchResultGroup[] = [];
-  if (input.userId) {
-    try {
-      workspaceGroups = await searchWorkspaceGroups(
-        query,
-        input.userId,
-        input.locale,
-        limit,
-      );
-    } catch (error) {
-      // Workspace results are optional; catalog results still stand on their own.
-      logAppEvent(
-        "warn",
-        "Global search workspace query failed",
-        { source: "global-search" },
-        error,
-      );
-    }
-  }
+  const workspaceGroupsPromise = input.userId
+    ? searchWorkspaceGroups(query, input.userId, input.locale, limit).catch(
+        (error): GlobalSearchResultGroup[] => {
+          // Workspace results are optional; catalog results still stand on their own.
+          logAppEvent(
+            "warn",
+            "Global search workspace query failed",
+            { source: "global-search" },
+            error,
+          );
+          return [];
+        },
+      )
+    : Promise.resolve([]);
+  const [catalogGroups, workspaceGroups] = await Promise.all([
+    catalogGroupsPromise,
+    workspaceGroupsPromise,
+  ]);
 
   return {
     query,
