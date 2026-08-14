@@ -2,24 +2,16 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const {
   getCompactOverviewMock,
-  getSubscribedSectionIdsMock,
   getUserCalendarSubscriptionMock,
-  getViewerContextMock,
-  listSubscribedHomeworkAuditLogsMock,
-  listSubscribedHomeworksMock,
+  listSubscribedHomeworkPageMock,
   requireAuthMock,
   runCloudflareTraceSpanMock,
-  withHomeworkItemStateMock,
 } = vi.hoisted(() => ({
   getCompactOverviewMock: vi.fn(),
-  getSubscribedSectionIdsMock: vi.fn(),
   getUserCalendarSubscriptionMock: vi.fn(),
-  getViewerContextMock: vi.fn(),
-  listSubscribedHomeworkAuditLogsMock: vi.fn(),
-  listSubscribedHomeworksMock: vi.fn(),
+  listSubscribedHomeworkPageMock: vi.fn(),
   requireAuthMock: vi.fn(),
   runCloudflareTraceSpanMock: vi.fn(),
-  withHomeworkItemStateMock: vi.fn(),
 }));
 
 vi.mock("@/lib/adapters/cloudflare-runtime", async (importOriginal) => {
@@ -44,19 +36,9 @@ vi.mock("@/lib/auth/api-auth", () => ({
   requireAuth: requireAuthMock,
 }));
 
-vi.mock("@/lib/auth/viewer-context", () => ({
-  getViewerContext: getViewerContextMock,
-}));
-
 vi.mock("@/features/subscriptions/server/subscription-read-model", () => ({
-  getSubscribedSectionIds: getSubscribedSectionIdsMock,
   getUserCalendarSubscription: getUserCalendarSubscriptionMock,
-  listSubscribedHomeworkAuditLogs: listSubscribedHomeworkAuditLogsMock,
-  listSubscribedHomeworks: listSubscribedHomeworksMock,
-}));
-
-vi.mock("@/features/homeworks/server/homework-item-state", () => ({
-  withHomeworkItemState: withHomeworkItemStateMock,
+  listSubscribedHomeworkPage: listSubscribedHomeworkPageMock,
 }));
 
 vi.mock("@/features/dashboard/server/compact-overview-read-model", () => ({
@@ -74,11 +56,10 @@ describe("workspace route tracing", () => {
   });
 
   it("separates subscribed-homework reads without trace attributes", async () => {
-    getViewerContextMock.mockResolvedValue({ userId: "user-1" });
-    getSubscribedSectionIdsMock.mockResolvedValue([12]);
-    listSubscribedHomeworksMock.mockResolvedValue([{ id: "homework-1" }]);
-    listSubscribedHomeworkAuditLogsMock.mockResolvedValue([]);
-    withHomeworkItemStateMock.mockResolvedValue([{ id: "homework-1" }]);
+    listSubscribedHomeworkPageMock.mockResolvedValue({
+      data: [{ id: "homework-1" }],
+      pagination: { page: 1, pageSize: 20, total: 1, totalPages: 1 },
+    });
     const { getSubscribedHomeworksRoute } = await import(
       "@/lib/api/routes/homework-subscribed-read-route"
     );
@@ -89,10 +70,8 @@ describe("workspace route tracing", () => {
 
     expect(response.status).toBe(200);
     await expect(response.json()).resolves.toEqual({
-      auditLogs: [],
-      homeworks: [{ id: "homework-1" }],
-      sectionIds: [12],
-      viewer: { userId: "user-1" },
+      data: [{ id: "homework-1" }],
+      pagination: { page: 1, pageSize: 20, total: 1, totalPages: 1 },
     });
     expect(
       runCloudflareTraceSpanMock.mock.calls.map(([name, attributes]) => [
@@ -101,11 +80,7 @@ describe("workspace route tracing", () => {
       ]),
     ).toEqual([
       ["workspace.homeworks.auth", {}],
-      ["workspace.homeworks.viewer", {}],
-      ["workspace.homeworks.section_ids", {}],
       ["workspace.homeworks.read", {}],
-      ["workspace.homeworks.audit", {}],
-      ["workspace.homeworks.item_state", {}],
     ]);
   });
 

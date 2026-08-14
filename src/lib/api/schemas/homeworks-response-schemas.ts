@@ -5,7 +5,10 @@ import {
   semesterSchema,
 } from "./academic-response-schema-core";
 import { viewerContextSchema } from "./misc-response-schema-core";
-import { dateTimeSchema } from "./response-schema-primitives";
+import {
+  createPaginatedSchema,
+  dateTimeSchema,
+} from "./response-schema-primitives";
 import { homeworkAuditActionSchema } from "./shared-enum-schemas";
 
 export const homeworkUserSummarySchema = z.object({
@@ -70,9 +73,10 @@ const homeworkAuditLogSchema = z.object({
   actor: homeworkUserSummarySchema.nullable(),
 });
 
-export const homeworksListResponseSchema = z.object({
+export const homeworksListResponseSchema = createPaginatedSchema(
+  homeworkItemSchema,
+).extend({
   viewer: viewerContextSchema,
-  homeworks: z.array(homeworkItemSchema),
   auditLogs: z.array(homeworkAuditLogSchema),
 });
 
@@ -113,9 +117,5 @@ export const homeworkCompletionBatchResponseSchema = z.object({
   ),
 });
 
-export const subscribedHomeworksResponseSchema = z.object({
-  viewer: viewerContextSchema,
-  homeworks: z.array(homeworkItemSchema),
-  auditLogs: z.array(homeworkAuditLogSchema),
-  sectionIds: z.array(z.number().int()),
-});
+export const subscribedHomeworksResponseSchema =
+  createPaginatedSchema(homeworkItemSchema);

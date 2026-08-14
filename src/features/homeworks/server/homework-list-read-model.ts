@@ -2,10 +2,12 @@ import type { AppLocale } from "@/i18n/config";
 import { DEFAULT_LOCALE } from "@/i18n/config";
 import { getViewerContext } from "@/lib/auth/viewer-context";
 import { getPrisma, prisma, withUserDbContext } from "@/lib/db/prisma";
+import { paginatedQuery } from "@/lib/query-pagination";
 import {
   attachHomeworkCompletionsForViewer,
   homeworkItemInclude,
   homeworkItemResponse,
+  withHomeworkCompletionsForViewer,
 } from "./homework-read-model";
 
 type SectionHomeworkListInput = {
@@ -20,6 +22,14 @@ type SectionHomeworkItemInput = SectionHomeworkListInput & {
 
 type SectionHomeworkListWithAuditInput = SectionHomeworkListInput & {
   userId?: string | null;
+};
+
+type SectionHomeworkPageInput = SectionHomeworkItemInput & {
+  pagination: { page: number; pageSize: number };
+};
+
+type SectionHomeworkPageWithAuditInput = SectionHomeworkListWithAuditInput & {
+  pagination: { page: number; pageSize: number };
 };
 
 type HomeworkSectionReferencesInput = {
@@ -115,6 +125,38 @@ export async function listSectionHomeworkItems({
   );
 }
 
+export async function listSectionHomeworkPage({
+  includeDeleted = false,
+  locale = DEFAULT_LOCALE,
+  pagination,
+  sectionIds,
+  viewerUserId,
+}: SectionHomeworkPageInput) {
+  const client = getPrisma(locale);
+  const where = {
+    ...homeworkSectionWhere(sectionIds),
+    ...(includeDeleted ? {} : { deletedAt: null }),
+  };
+  const page = await paginatedQuery(
+    (skip, take) =>
+      client.homework.findMany({
+        where,
+        include: homeworkItemInclude(),
+        orderBy: [{ submissionDueAt: "asc" }, { createdAt: "desc" }],
+        skip,
+        take,
+      }),
+    () => client.homework.count({ where }),
+    pagination.page,
+    pagination.pageSize,
+  );
+  const homeworks = await withHomeworkCompletionsForViewer(
+    page.data,
+    viewerUserId,
+  );
+  return { ...page, data: homeworks.map(homeworkItemResponse) };
+}
+
 export function listSectionHomeworkAuditLogs(sectionIds: readonly number[]) {
   return prisma.homeworkAuditLog.findMany({
     where: homeworkSectionWhere(sectionIds),
@@ -145,4 +187,29 @@ export async function listSectionHomeworksWithAudit({
   ]);
 
   return { viewer, homeworks, auditLogs };
+}
+
+export async function listSectionHomeworkPageWithAudit({
+  includeDeleted = false,
+  locale = DEFAULT_LOCALE,
+  pagination,
+  sectionIds,
+  userId,
+}: SectionHomeworkPageWithAuditInput) {
+  const [viewer, page, auditLogs] = await Promise.all([
+    getViewerContext({
+      includeAdmin: true,
+      userId: userId ?? null,
+    }),
+    listSectionHomeworkPage({
+      includeDeleted,
+      locale,
+      pagination,
+      sectionIds,
+      viewerUserId: userId,
+    }),
+    listSectionHomeworkAuditLogs(sectionIds),
+  ]);
+
+  return { ...page, viewer, auditLogs };
 }
