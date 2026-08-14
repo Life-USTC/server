@@ -13,6 +13,7 @@ import {
   globalSearchItemDomId,
 } from "@/features/search/lib/global-search-keyboard";
 import type { GlobalSearchResultItem } from "@/features/search/server/global-search-types";
+import type { AppLocale } from "@/i18n/config";
 import { goto } from "$app/navigation";
 import GlobalSearchResults from "$lib/components/shell/GlobalSearchResults.svelte";
 import { Button } from "$lib/components/ui/button/index.js";
@@ -22,6 +23,7 @@ import type { LayoutCopy } from "$lib/shell/layout-server-data";
 import { cn } from "$lib/utils.js";
 
 export let copy: LayoutCopy["globalSearch"];
+export let locale: AppLocale;
 export let open = false;
 export let signedIn = false;
 
@@ -34,6 +36,10 @@ const dialogOpen = writable(false);
 $: dialogOpen.set(open);
 
 const search = createGlobalSearchController({
+  getRequestContext: () => ({
+    includeWorkspace: signedIn,
+    locale,
+  }),
   limit: GLOBAL_SEARCH_DIALOG_LIMIT,
   showInitialHintDeps: dialogOpen,
   getShowInitialHint: ({ hasSearched, query }) =>

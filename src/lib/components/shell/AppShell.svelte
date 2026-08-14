@@ -766,6 +766,7 @@ afterNavigate(({ from, to }) => {
   <svelte:component
     this={GlobalSearchDialog}
     copy={data.copy.globalSearch}
+    locale={data.locale}
     bind:open={globalSearchOpen}
     signedIn={Boolean(viewerUser)}
     on:openChange={(event) => {
