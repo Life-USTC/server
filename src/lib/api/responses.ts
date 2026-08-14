@@ -26,7 +26,7 @@ export function jsonResponse(body: unknown, init?: ResponseInit) {
     { "response.format": "json" },
     (span) => {
       const serialized = JSON.stringify(serializeDatesDeep(body));
-      if (span) {
+      if (span?.isTraced) {
         span.setAttribute(
           "http.response.body.size",
           new TextEncoder().encode(serialized).byteLength,

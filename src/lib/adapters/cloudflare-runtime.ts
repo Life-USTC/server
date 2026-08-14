@@ -61,6 +61,7 @@ type CloudflareCacheStorage = {
 type CloudflareTaskScheduler = (promise: Promise<unknown>) => void;
 
 export type CloudflareTraceSpan = {
+  readonly isTraced: boolean;
   setAttribute(key: string, value?: boolean | number | string): void;
 };
 

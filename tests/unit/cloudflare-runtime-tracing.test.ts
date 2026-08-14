@@ -16,8 +16,11 @@ describe("Cloudflare runtime tracing", () => {
     const enterSpan = vi.fn(
       <T>(
         _name: string,
-        callback: (span: { setAttribute: typeof setAttribute }) => T,
-      ) => callback({ setAttribute }),
+        callback: (span: {
+          readonly isTraced: boolean;
+          setAttribute: typeof setAttribute;
+        }) => T,
+      ) => callback({ isTraced: true, setAttribute }),
     );
 
     const result = await runWithCloudflareRuntimeEnv(
@@ -54,8 +57,11 @@ describe("Cloudflare runtime tracing", () => {
     const enterSpan = vi.fn(
       <T>(
         _name: string,
-        callback: (span: { setAttribute: typeof setAttribute }) => T,
-      ) => callback({ setAttribute }),
+        callback: (span: {
+          readonly isTraced: boolean;
+          setAttribute: typeof setAttribute;
+        }) => T,
+      ) => callback({ isTraced: true, setAttribute }),
     );
 
     const result = await runWithCloudflareRuntimeEnv(
@@ -90,8 +96,13 @@ describe("Cloudflare runtime tracing", () => {
 
   it("propagates errors from callbacks that attach attributes", async () => {
     const enterSpan = vi.fn(
-      <T>(_name: string, callback: (span: { setAttribute(): void }) => T) =>
-        callback({ setAttribute() {} }),
+      <T>(
+        _name: string,
+        callback: (span: {
+          readonly isTraced: boolean;
+          setAttribute(): void;
+        }) => T,
+      ) => callback({ isTraced: true, setAttribute() {} }),
     );
     const failure = new Error("serialize failed");
 
