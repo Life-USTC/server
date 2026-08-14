@@ -167,6 +167,16 @@ describe("retired Section query contracts", () => {
         }),
       }),
     );
+    const query = transactionUserFindUniqueMock.mock.calls[0]?.[0];
+    const teacherSelect =
+      query.select.sectionSubscriptions.include.section.include.teachers.select;
+    expect(teacherSelect).toMatchObject({
+      id: true,
+      nameCn: true,
+      nameEn: true,
+    });
+    expect(teacherSelect).not.toHaveProperty("namePrimary");
+    expect(teacherSelect).not.toHaveProperty("nameSecondary");
     expect(localizedUserFindUniqueMock).not.toHaveBeenCalled();
   });
 
