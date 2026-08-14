@@ -622,6 +622,7 @@ describe("其他请求 schema", () => {
     });
     expect(todos).toMatchObject({ completed: true, limit: 20 });
     expect(todos.dueBefore).toEqual(new Date("2026-03-01T00:00:00.000Z"));
+    expect(todosQuerySchema.parse({}).limit).toBe(100);
 
     expect(homeworksQuerySchema.parse({ includeDeleted: "true" })).toEqual({
       includeDeleted: true,

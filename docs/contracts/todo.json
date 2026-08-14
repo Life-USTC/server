@@ -10,6 +10,7 @@
     "purely-personal": "Todo is a purely personal object and is not bound to any section.",
     "due-date-calendar": "Only incomplete todos with a due date appear in the calendar.",
     "completed-retained": "Completed todos retain history but no longer occupy urgent information areas.",
+    "bounded-summary-read": "REST todo summaries default to 100 items and accept at most 200. The complete incomplete/completed/overdue counts are fused into one RLS-scoped aggregate statement and remain independent of list filters; the bounded list is loaded in one additional statement.",
     "mobile-toolbar-priority": "At mobile widths, completion-status filters stay directly available, card/list display mode moves into an accessible overflow menu, and the create action remains a minimum 44 by 44 CSS pixel target. Desktop toolbar behavior remains unchanged."
   },
   "capabilities": {
@@ -109,7 +110,8 @@
             "notes": [
               "Returns the same count summary as workspace_todo_list plus todos[]; each item contains id, title, content, completed, priority, dueAt, createdAt, and updatedAt.",
               "Supports completed, priority, dueBefore, dueAfter, and limit query parameters.",
-              "REST and MCP share the same limit bounds: 1-200."
+              "REST defaults limit to 100. REST and MCP share the same explicit limit bounds: 1-200.",
+              "Summary counts cover all of the current user's todos regardless of list filters and are computed in one aggregate statement."
             ]
           }
         ]

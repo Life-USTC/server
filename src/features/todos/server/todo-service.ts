@@ -1,4 +1,5 @@
 import { scheduleInvalidateUserCalendarExportCache } from "@/features/calendar/server/calendar-export-invalidation";
+import { TODO_LIST_DEFAULT_LIMIT } from "@/features/todos/lib/todo-list-limits";
 import type { Prisma, TodoPriority } from "@/generated/prisma/client";
 import { buildPaginatedResponse, normalizePagination } from "@/lib/api/helpers";
 import { withUserDbContext } from "@/lib/db/prisma";
@@ -260,7 +261,7 @@ export type OverviewTodoBundleCounts = {
   overdue: number;
 };
 
-export async function countOverviewTodoBundleInTransaction(
+async function countTodoBundleInTransaction(
   tx: Prisma.TransactionClient,
   input: {
     homeworkWindowEnd: Date;
@@ -303,6 +304,17 @@ export async function countOverviewTodoBundleInTransaction(
   };
 }
 
+export function countOverviewTodoBundleInTransaction(
+  tx: Prisma.TransactionClient,
+  input: {
+    homeworkWindowEnd: Date;
+    now: Date;
+    userId: string;
+  },
+) {
+  return countTodoBundleInTransaction(tx, input);
+}
+
 async function loadOverviewTodoBundleInTransaction(
   tx: Prisma.TransactionClient,
   input: {
@@ -314,7 +326,7 @@ async function loadOverviewTodoBundleInTransaction(
   },
 ) {
   const userId = normalizeTodoUserId(input.userId);
-  const fusedCountsPromise = countOverviewTodoBundleInTransaction(tx, {
+  const fusedCountsPromise = countTodoBundleInTransaction(tx, {
     userId,
     now: input.now,
     homeworkWindowEnd: input.homeworkWindowEnd,
@@ -393,32 +405,25 @@ async function loadTodoSummaryInTransaction(
 ) {
   const userId = normalizeTodoUserId(input.userId);
   const where = buildTodoListWhere(userId, input.filters);
-  const [incompleteCount, completedCount, overdueCount, todos] =
-    await Promise.all([
-      countIncompleteTodosInTransaction(tx, userId),
-      tx.todo.count({
-        where: { userId, completed: true },
-      }),
-      tx.todo.count({
-        where: {
-          userId,
-          completed: false,
-          dueAt: { lt: input.now },
-        },
-      }),
-      input.take === 0
-        ? Promise.resolve([])
-        : findTodoSnapshots(tx, {
-            where,
-            take: input.take,
-          }),
-    ]);
+  const [counts, todos] = await Promise.all([
+    countTodoBundleInTransaction(tx, {
+      userId,
+      now: input.now,
+      homeworkWindowEnd: input.now,
+    }),
+    input.take === 0
+      ? Promise.resolve([])
+      : findTodoSnapshots(tx, {
+          where,
+          take: input.take,
+        }),
+  ]);
 
   return {
     counts: {
-      incomplete: incompleteCount,
-      completed: completedCount,
-      overdue: overdueCount,
+      incomplete: counts.incomplete,
+      completed: counts.completed,
+      overdue: counts.overdue,
     },
     todos,
   };
@@ -477,7 +482,7 @@ export async function listTodoSummary(input: {
       userId,
       now: input.now ?? new Date(),
       filters: input.filters,
-      take: input.take,
+      take: input.take ?? TODO_LIST_DEFAULT_LIMIT,
     }),
   );
 }
