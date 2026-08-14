@@ -11,7 +11,7 @@ const {
   getSectionHomeworkDataMock,
   getSectionPageMock,
   getTeacherPageMock,
-  getUserSectionSubscriptionStateMock,
+  getUserSectionSubscriptionStateForSectionMock,
   getViewerContextMock,
   withSectionPageRelatedDataMock,
 } = vi.hoisted(() => ({
@@ -22,7 +22,7 @@ const {
   getSectionHomeworkDataMock: vi.fn(),
   getSectionPageMock: vi.fn(),
   getTeacherPageMock: vi.fn(),
-  getUserSectionSubscriptionStateMock: vi.fn(),
+  getUserSectionSubscriptionStateForSectionMock: vi.fn(),
   getViewerContextMock: vi.fn(),
   withSectionPageRelatedDataMock: vi.fn(),
 }));
@@ -66,7 +66,8 @@ vi.mock(
 );
 
 vi.mock("@/features/subscriptions/server/subscriptions", () => ({
-  getUserSectionSubscriptionState: getUserSectionSubscriptionStateMock,
+  getUserSectionSubscriptionStateForSection:
+    getUserSectionSubscriptionStateForSectionMock,
 }));
 
 vi.mock("@/lib/auth/viewer-context", () => ({
@@ -192,8 +193,8 @@ beforeEach(() => {
     section,
   });
   getTeacherPageMock.mockResolvedValue(teacher);
-  getUserSectionSubscriptionStateMock.mockResolvedValue({
-    subscribedSections: [],
+  getUserSectionSubscriptionStateForSectionMock.mockResolvedValue({
+    isSubscribed: false,
     subscriptionIcsUrl: null,
   });
   getViewerContextMock.mockResolvedValue(anonymousViewer);
@@ -362,9 +363,7 @@ describe("catalog detail loader critical path", () => {
     });
 
     expect(getCoursePageMock).toHaveBeenCalledTimes(2);
-    expect(getCoursePageMock).toHaveBeenCalledWith(course.jwId, "en-us", {
-      includeSections: true,
-    });
+    expect(getCoursePageMock).toHaveBeenCalledWith(course.jwId, "en-us");
   });
 
   it("separates public detail core entries by locale and entity", async () => {
@@ -419,9 +418,7 @@ describe("catalog detail loader critical path", () => {
     await loadSignedInWithSections();
 
     expect(getTeacherPageMock).toHaveBeenCalledTimes(4);
-    expect(getTeacherPageMock).toHaveBeenCalledWith(teacher.id, "en-us", {
-      includeSections: true,
-    });
+    expect(getTeacherPageMock).toHaveBeenCalledWith(teacher.id, "en-us");
   });
 
   it("bypasses public detail core caching for default dynamic and authenticated SSR", async () => {
@@ -602,13 +599,71 @@ describe("detail request session resolution", () => {
 
     expect(getSessionFromHeadersMock).not.toHaveBeenCalled();
     expect(getCoursePageMock).toHaveBeenCalledTimes(2);
-    expect(getCoursePageMock).toHaveBeenCalledWith(course.jwId, "en-us", {
-      includeSections: true,
-    });
+    expect(getCoursePageMock).toHaveBeenCalledWith(course.jwId, "en-us");
   });
 });
 
 describe("section detail loader critical path", () => {
+  it("traces bounded section subscription and homework phases", async () => {
+    const spans: Array<{
+      attributes: Record<string, boolean | number | string | undefined>;
+      name: string;
+    }> = [];
+    const enterSpan = <T>(
+      name: string,
+      callback: (span: {
+        isTraced: boolean;
+        setAttribute(key: string, value?: boolean | number | string): void;
+      }) => T,
+    ) => {
+      const attributes: Record<string, boolean | number | string | undefined> =
+        {};
+      spans.push({ attributes, name });
+      return callback({
+        isTraced: true,
+        setAttribute(key, value) {
+          attributes[key] = value;
+        },
+      });
+    };
+    const { loadSectionDetailPage } = await import(
+      "@/features/section-detail/server/section-detail-page-server"
+    );
+
+    await runWithCloudflareRuntimeEnv(
+      {},
+      () =>
+        loadSectionDetailPage({
+          locals: locals(signedInUser),
+          params: { jwId: String(section.jwId) },
+          request: request(`/catalog/sections/${section.jwId}`),
+          url: new URL(`https://example.test/catalog/sections/${section.jwId}`),
+        }),
+      { tracing: { enterSpan } },
+    );
+
+    expect(spans).toEqual(
+      expect.arrayContaining([
+        {
+          attributes: {
+            "catalog.detail.kind": "section",
+            "user.authenticated": true,
+          },
+          name: "catalog.detail.section.subscription",
+        },
+        {
+          attributes: {
+            "catalog.detail.kind": "section",
+            "user.authenticated": true,
+          },
+          name: "catalog.detail.section.homework",
+        },
+      ]),
+    );
+    expect(JSON.stringify(spans)).not.toContain(String(section.jwId));
+    expect(JSON.stringify(spans)).not.toContain(String(section.id));
+  });
+
   it("loads section detail without public overview colo cache on stream pages", async () => {
     const match = vi.fn(async () => undefined);
     const put = vi.fn(async () => undefined);
@@ -682,7 +737,9 @@ describe("section detail loader critical path", () => {
     expect(getDescriptionPayloadMock).not.toHaveBeenCalled();
     expect(getCommentsPayloadMock).not.toHaveBeenCalled();
     expect(getSectionHomeworkDataMock).not.toHaveBeenCalled();
-    expect(getUserSectionSubscriptionStateMock).not.toHaveBeenCalled();
+    expect(
+      getUserSectionSubscriptionStateForSectionMock,
+    ).not.toHaveBeenCalled();
   });
 
   it("redirects legacy tab query params to canonical hash URLs", async () => {
@@ -729,8 +786,8 @@ describe("section detail loader critical path", () => {
   });
 
   it("retains subscription state on signed-in sections because the fixed header consumes it", async () => {
-    getUserSectionSubscriptionStateMock.mockResolvedValue({
-      subscribedSections: [section.id],
+    getUserSectionSubscriptionStateForSectionMock.mockResolvedValue({
+      isSubscribed: true,
       subscriptionIcsUrl: "/api/calendar-feeds/user-1.ics",
     });
     const { loadSectionDetailPage } = await import(
@@ -744,7 +801,10 @@ describe("section detail loader critical path", () => {
       url: new URL(`https://example.test/catalog/sections/${section.jwId}`),
     });
 
-    expect(getUserSectionSubscriptionStateMock).toHaveBeenCalledWith("user-1");
+    expect(getUserSectionSubscriptionStateForSectionMock).toHaveBeenCalledWith(
+      "user-1",
+      section.jwId,
+    );
     expect(result.viewer).toMatchObject({
       isSubscribed: true,
       signedIn: true,
@@ -756,6 +816,10 @@ describe("section detail loader critical path", () => {
       section.id,
       signedInUser.id,
     );
+    expect(getViewerContextMock).toHaveBeenCalledWith({
+      includeAdmin: true,
+      userId: signedInUser.id,
+    });
   });
 
   it("loads full stream section data for anonymous PublicSsr requests", async () => {
@@ -781,12 +845,7 @@ describe("section detail loader critical path", () => {
     const [first, second] = await Promise.all([load(), load()]);
 
     expect(getSectionPageMock).toHaveBeenCalledTimes(2);
-    expect(getSectionPageMock).toHaveBeenCalledWith(section.jwId, "en-us", {
-      includeExams: true,
-      includeRelated: true,
-      includeSchedules: true,
-      includeTeacherDepartments: true,
-    });
+    expect(getSectionPageMock).toHaveBeenCalledWith(section.jwId, "en-us");
     expect(withSectionPageRelatedDataMock).not.toHaveBeenCalled();
     expect(first.section).toBe(relatedSection);
     expect(second.section).toBe(relatedSection);
@@ -811,11 +870,6 @@ describe("section detail loader critical path", () => {
     });
 
     expect(getSectionPageMock).toHaveBeenCalledTimes(2);
-    expect(getSectionPageMock).toHaveBeenCalledWith(section.jwId, "en-us", {
-      includeExams: true,
-      includeRelated: true,
-      includeSchedules: true,
-      includeTeacherDepartments: true,
-    });
+    expect(getSectionPageMock).toHaveBeenCalledWith(section.jwId, "en-us");
   });
 });

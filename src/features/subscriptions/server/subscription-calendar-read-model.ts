@@ -34,6 +34,36 @@ export async function getUserSectionSubscriptionState(
   };
 }
 
+export async function getUserSectionSubscriptionStateForSection(
+  userId: string,
+  sectionJwId: number,
+) {
+  const user = await withUserDbContext(userId, (tx) =>
+    tx.user.findUnique({
+      where: { id: userId },
+      select: {
+        id: true,
+        calendarFeedToken: true,
+        sectionSubscriptions: {
+          where: { section: { jwId: sectionJwId } },
+          select: { sectionId: true },
+          take: 1,
+        },
+      },
+    }),
+  );
+  if (!user) return null;
+
+  return {
+    userId: user.id,
+    subscriptionIcsUrl: await buildCalendarFeedPath(
+      user.id,
+      user.calendarFeedToken,
+    ),
+    isSubscribed: user.sectionSubscriptions.length > 0,
+  };
+}
+
 export async function getUserCalendarSubscription(
   userId: string,
   locale: AppLocale = DEFAULT_LOCALE,

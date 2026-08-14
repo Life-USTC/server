@@ -1,6 +1,7 @@
 export {
   getUserCalendarSubscription,
   getUserSectionSubscriptionState,
+  getUserSectionSubscriptionStateForSection,
 } from "./subscription-read-model";
 export { resolveCalendarSubscriptionSections } from "./subscription-section-resolver";
 export {

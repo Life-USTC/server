@@ -1,6 +1,7 @@
 import type { CourseDetailSection } from "@/features/catalog/components/catalog-detail-component-types";
 import { PUBLIC_DETAIL_SECTION_PREVIEW_LIMIT } from "@/features/catalog/server/academic-query-includes";
 import { localizedNameSelect } from "@/features/section-detail/server/section-page-name-selects";
+import { runCloudflareTraceSpan } from "@/lib/adapters/cloudflare-runtime";
 import { getPrisma } from "@/lib/db/prisma";
 import { toLoadData } from "@/lib/load-data-utils";
 
@@ -22,59 +23,59 @@ const coursePageSectionsSelect = {
   },
 } as const;
 
-export async function getCoursePage(
-  jwId: number,
-  locale = "zh-cn",
-  options: { includeSections?: boolean } = {},
-) {
+export async function getCoursePage(jwId: number, locale = "zh-cn") {
   const prisma = getPrisma(locale);
-  const course = await prisma.course.findUnique({
-    where: { jwId },
-    select: {
-      id: true,
-      jwId: true,
-      code: true,
-      ...localizedNameSelect,
-      educationLevel: {
+  const course = await runCloudflareTraceSpan(
+    "catalog.detail.course.query",
+    { "catalog.detail.kind": "course" },
+    () =>
+      prisma.course.findUnique({
+        where: { jwId },
         select: {
+          id: true,
+          jwId: true,
+          code: true,
           ...localizedNameSelect,
-        },
-      },
-      category: {
-        select: {
-          ...localizedNameSelect,
-        },
-      },
-      classType: {
-        select: {
-          ...localizedNameSelect,
-        },
-      },
-      type: {
-        select: {
-          ...localizedNameSelect,
-        },
-      },
-      _count: { select: { sections: true } },
-      sections:
-        options.includeSections === false
-          ? false
-          : {
-              orderBy: [{ semester: { jwId: "desc" } }, { code: "asc" }],
-              take: PUBLIC_DETAIL_SECTION_PREVIEW_LIMIT,
-              select: coursePageSectionsSelect,
+          educationLevel: {
+            select: {
+              ...localizedNameSelect,
             },
-    },
-  });
+          },
+          category: {
+            select: {
+              ...localizedNameSelect,
+            },
+          },
+          classType: {
+            select: {
+              ...localizedNameSelect,
+            },
+          },
+          type: {
+            select: {
+              ...localizedNameSelect,
+            },
+          },
+          sections: {
+            orderBy: [{ semester: { jwId: "desc" } }, { code: "asc" }],
+            take: PUBLIC_DETAIL_SECTION_PREVIEW_LIMIT,
+            select: coursePageSectionsSelect,
+          },
+        },
+      }),
+  );
 
   if (!course) return null;
 
-  const { _count, sections, ...data } = course;
-  return toLoadData({
-    ...data,
-    sectionCount: _count.sections,
-    sections: (options.includeSections === false
-      ? []
-      : sections) as unknown as CourseDetailSection[],
-  });
+  return runCloudflareTraceSpan(
+    "catalog.detail.course.transform",
+    { "catalog.detail.kind": "course" },
+    () => {
+      const { sections, ...data } = course;
+      return toLoadData({
+        ...data,
+        sections: sections as unknown as CourseDetailSection[],
+      });
+    },
+  );
 }

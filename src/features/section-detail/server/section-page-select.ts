@@ -64,7 +64,6 @@ export const sectionPageSelect = {
   periodsPerWeek: true,
   stdCount: true,
   limitCount: true,
-  dateTimePlaceText: true,
   scheduleRemark: true,
   remark: true,
   courseId: true,

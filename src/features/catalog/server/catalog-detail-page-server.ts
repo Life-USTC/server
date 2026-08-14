@@ -62,7 +62,7 @@ async function loadCourseDetailPageData({
     runCloudflareTraceSpan(
       "catalog.detail.core",
       { "catalog.detail.kind": "course" },
-      () => getCoursePage(jwId, locals.locale, { includeSections: true }),
+      () => getCoursePage(jwId, locals.locale),
     ),
     runCloudflareTraceSpan(
       "catalog.detail.viewer",
@@ -166,7 +166,7 @@ async function loadTeacherDetailPageData({
     runCloudflareTraceSpan(
       "catalog.detail.core",
       { "catalog.detail.kind": "teacher" },
-      () => getTeacherPage(id, locals.locale, { includeSections: true }),
+      () => getTeacherPage(id, locals.locale),
     ),
     runCloudflareTraceSpan(
       "catalog.detail.viewer",

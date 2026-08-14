@@ -2,6 +2,7 @@ export {
   getCalendarSubscriptionUrl,
   getUserCalendarSubscription,
   getUserSectionSubscriptionState,
+  getUserSectionSubscriptionStateForSection,
 } from "./subscription-calendar-read-model";
 export { listSubscribedDashboardSections } from "./subscription-dashboard-section-read-model";
 export { listSubscribedHomeworkPage } from "./subscription-homework-page";

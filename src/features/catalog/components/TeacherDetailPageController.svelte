@@ -26,7 +26,6 @@ type TeacherDetailData = CatalogNamed & {
   email?: string | null;
   id: number | string;
   mobile?: string | null;
-  sectionCount: number;
   sections: TeacherDetailSection[];
   teacherTitle?: CatalogNamed | null;
   telephone?: string | null;
