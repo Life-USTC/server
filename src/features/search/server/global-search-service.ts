@@ -95,16 +95,14 @@ async function searchCatalogGroups(
   locale: AppLocale,
   limit: number,
 ): Promise<GlobalSearchResultGroup[]> {
-  const [courses, teachers, sections, links] = await Promise.all([
+  const [courses, teachers, sections] = await Promise.all([
     searchCoursesForGlobal(query, locale, limit),
     searchTeachersForGlobal(query, locale, limit),
     searchSectionsForGlobal(query, locale, limit),
-    Promise.resolve(searchLinksForGlobal(query, locale, limit)),
   ]);
 
-  const groupItems: Record<
-    GlobalSearchResultGroupType,
-    GlobalSearchResultItem[]
+  const groupItems: Partial<
+    Record<GlobalSearchResultGroupType, GlobalSearchResultItem[]>
   > = {
     courses: courses.map(toCourseItem),
     teachers: teachers.map((teacher) => ({
@@ -114,19 +112,44 @@ async function searchCatalogGroups(
       href: `/catalog/teachers/${teacher.id}`,
     })),
     sections: sections.map((section) => toSectionItem(section, locale)),
-    links: links.map((link) => ({
-      id: `link:${link.slug}`,
-      title: link.title,
-      description: link.description,
-      href: link.url,
-      external: true,
-    })),
-    homeworks: [],
-    todos: [],
   };
 
   return GLOBAL_SEARCH_GROUP_ORDER.flatMap((type) => {
-    const items = groupItems[type];
+    const items = groupItems[type] ?? [];
+    return items.length > 0 ? [{ type, items }] : [];
+  });
+}
+
+function searchLinkGroups(
+  query: string,
+  locale: AppLocale,
+  limit: number,
+): GlobalSearchResultGroup[] {
+  const items = searchLinksForGlobal(query, locale, limit).map((link) => ({
+    id: `link:${link.slug}`,
+    title: link.title,
+    description: link.description,
+    href: link.url,
+    external: true,
+  }));
+  return items.length > 0 ? [{ type: "links", items }] : [];
+}
+
+function orderSearchGroups(
+  groups: GlobalSearchResultGroup[],
+): GlobalSearchResultGroup[] {
+  const itemsByType = new Map<
+    GlobalSearchResultGroupType,
+    GlobalSearchResultItem[]
+  >();
+  for (const group of groups) {
+    const items = itemsByType.get(group.type) ?? [];
+    items.push(...group.items);
+    itemsByType.set(group.type, items);
+  }
+
+  return GLOBAL_SEARCH_GROUP_ORDER.flatMap((type) => {
+    const items = itemsByType.get(type) ?? [];
     return items.length > 0 ? [{ type, items }] : [];
   });
 }
@@ -281,10 +304,15 @@ export async function searchGlobally(input: {
     catalogGroupsPromise,
     workspaceGroupsPromise,
   ]);
+  const linkGroups = searchLinkGroups(query, input.locale, limit);
 
   return {
     query,
-    groups: [...catalogGroups, ...workspaceGroups],
+    groups: orderSearchGroups([
+      ...catalogGroups,
+      ...linkGroups,
+      ...workspaceGroups,
+    ]),
   };
 }
 
