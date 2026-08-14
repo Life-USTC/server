@@ -10,7 +10,8 @@
     "attached-to-section": "Exams are attached to sections and are high-priority time events.",
     "read-only": "Exams are read-only; no ordinary user edit entry point is provided.",
     "semester-required": "Semesters must be explicitly displayed when browsing exams across semesters.",
-    "mobile-toolbar-priority": "At mobile widths, completion-status filters stay directly available, card/list display mode moves into an accessible overflow menu, and toolbar controls remain a minimum 44 by 44 CSS pixel target. Desktop toolbar behavior remains unchanged."
+    "mobile-toolbar-priority": "At mobile widths, completion-status filters stay directly available, card/list display mode moves into an accessible overflow menu, and toolbar controls remain a minimum 44 by 44 CSS pixel target. Desktop toolbar behavior remains unchanged.",
+    "section-exam-query": "A public section exam read fetches section context and its ordered exam children in one top-level Section query."
   },
   "capabilities": {
     "cross-section-exam-list": {

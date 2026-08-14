@@ -1,5 +1,6 @@
 import type { AppLocale } from "@/i18n/config";
 import { DEFAULT_LOCALE } from "@/i18n/config";
+import { cachedPublicDetailRuntimeData } from "@/lib/catalog-detail-runtime-cache";
 import { getPrisma } from "@/lib/db/prisma";
 import { paginatedTeacherQuery } from "./academic-paginated-queries";
 import {
@@ -41,9 +42,16 @@ export function listTeacherSummaries({
 }
 
 export function findTeacherDetailById(id: number, locale = DEFAULT_LOCALE) {
-  return getPrisma(locale).teacher.findUnique({
-    where: { id },
-    select: teacherPublicDetailSelect,
+  return cachedPublicDetailRuntimeData({
+    id,
+    kind: "teacher",
+    locale,
+    shape: "detail-v1",
+    load: () =>
+      getPrisma(locale).teacher.findUnique({
+        where: { id },
+        select: teacherPublicDetailSelect,
+      }),
   });
 }
 
@@ -51,6 +59,10 @@ export async function findTeachersByIds(
   ids: readonly number[],
   locale = DEFAULT_LOCALE,
 ) {
+  if (ids.length === 1) {
+    return [await findTeacherDetailById(ids[0], locale)];
+  }
+
   const teachers = await getPrisma(locale).teacher.findMany({
     where: { id: { in: [...new Set(ids)] } },
     select: teacherPublicListSelect,

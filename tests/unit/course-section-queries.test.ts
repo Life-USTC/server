@@ -286,9 +286,19 @@ describe("课程与开课查询辅助函数", () => {
     });
     expect(result.where).toMatchObject({
       retiredAt: null,
+      course: { jwId: 101 },
       semester: { jwId: 202 },
     });
-    expect(result.where).not.toHaveProperty("course");
+  });
+
+  it("将 courseId 与 courseJwId 作为 AND 条件保留在同一次查询中", () => {
+    expect(
+      buildSectionListQuery({ courseId: 7, courseJwId: 101 }).where,
+    ).toEqual({
+      retiredAt: null,
+      courseId: 7,
+      course: { jwId: 101 },
+    });
   });
 
   it("在 teachers.some 内构建 teacherCode 筛选条件", () => {

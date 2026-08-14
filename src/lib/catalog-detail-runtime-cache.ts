@@ -5,6 +5,7 @@ import {
   PUBLIC_CATALOG_RUNTIME_CACHE_TTL_MS,
 } from "@/lib/catalog-runtime-cache";
 import {
+  cachedPublicRuntimeData,
   type PublicDetailColoCacheKind,
   publicDetailKvCacheKey,
 } from "@/lib/public-runtime-cache";
@@ -39,4 +40,33 @@ export async function buildPublicDetailRuntimeCacheOptions<T>(input: {
     shouldCacheResult: input.shouldCacheResult,
     validateColoCacheResult: input.validateColoCacheResult,
   };
+}
+
+function isPublicDetailResult(result: unknown) {
+  return result !== null && typeof result === "object";
+}
+
+export async function cachedPublicDetailRuntimeData<T>(input: {
+  id: number;
+  kind: PublicDetailColoCacheKind;
+  load: () => Promise<T | null>;
+  locale: AppLocale;
+  shape: string;
+}) {
+  const options = await buildPublicDetailRuntimeCacheOptions<T | null>({
+    id: input.id,
+    kind: input.kind,
+    kvShape: input.shape,
+    locale: input.locale,
+    shouldCacheResult: isPublicDetailResult,
+    validateColoCacheResult: isPublicDetailResult,
+  });
+
+  return cachedPublicRuntimeData(
+    `catalog:${input.kind}-detail:${input.locale}`,
+    options.kvCacheKey,
+    PUBLIC_DETAIL_RUNTIME_CACHE_TTL_MS,
+    input.load,
+    options,
+  );
 }

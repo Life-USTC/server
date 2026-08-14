@@ -17,7 +17,8 @@
     "mobile-detail-hierarchy": "Course detail pages present the public course code before the localized display name on mobile, use a responsive title size, and use the Detail Two-Column Stream without a context-tab rail.",
     "detail-canonical-url": "The canonical course detail URL is `/catalog/courses/[jwId]`. Legacy path segments and `?tab=` deep links permanently redirect to the root; optional hash anchors scroll within the page.",
     "static-classification-unsupported": "Static course snapshots do not currently provide CourseClassify source data, so static-loaded courses keep classifyId/classify null and static-loaded metadata may expose courseClassifies as an empty array.",
-    "bounded-detail-history": "Course detail returns the 20 most recent Section offerings plus the total Section count. Nested teacher references contain only public identity and localized names; contact and private source columns are never embedded."
+    "bounded-detail-history": "Course detail returns the 20 most recent Section offerings plus the total Section count. Nested teacher references contain only public identity and localized names; contact and private source columns are never embedded.",
+    "public-detail-cache": "Anonymous REST, MCP, and single-entity GraphQL Course reads share a revision-, locale-, ID-, and response-shape-scoped runtime cache. Missing entities are not cached."
   },
   "capabilities": {
     "course-list": {

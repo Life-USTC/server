@@ -14,6 +14,7 @@ export function buildSectionListQuery(filters: SectionListFilters): {
 } {
   const {
     courseId,
+    courseJwId,
     semesterId,
     semesterJwId,
     campusId,
@@ -36,6 +37,10 @@ export function buildSectionListQuery(filters: SectionListFilters): {
   const where: Prisma.SectionWhereInput = { retiredAt: null };
 
   applyIntegerFilter(where, "courseId", courseId);
+  const courseFilter = buildJwIdFilter(courseJwId);
+  if (courseFilter) {
+    where.course = courseFilter;
+  }
 
   applyIntegerFilter(where, "semesterId", semesterId);
   const semesterFilter = buildJwIdFilter(semesterJwId);

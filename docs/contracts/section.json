@@ -18,6 +18,8 @@
     "mobile-detail-actions": "Section detail pages present concise metadata and teachers with a responsive course title, use the Detail Two-Column Stream (no context-tab rail), and keep the primary calendar and subscription actions available in a bottom sticky action bar that stays above the signed-in shell navigation.",
     "detail-canonical-url": "The canonical section detail URL is `/catalog/sections/[jwId]`. Legacy path segments and `?tab=` deep links permanently redirect to the root; optional hash anchors scroll within the page.",
     "public-teacher-reference": "Teachers embedded in Section list/detail payloads contain only public identity and localized names, with department/title added only where the detail UI requests that context. TeacherAssignment links by teacherId and does not duplicate the nested Teacher object. Contact and private source columns are available only on the teacher's own public detail where explicitly permitted.",
+    "public-detail-cache": "Anonymous REST, MCP, and single-entity GraphQL Section reads share revision-, locale-, ID-, and include-shape-scoped runtime caching. Missing entities are not cached.",
+    "relational-course-filter": "Section courseJwId filtering is applied through the Course relation in the same paginated query. When courseId and courseJwId are both present they are ANDed, so mismatches return no rows without a separate Course lookup.",
     "bounded-related-sections": "The Section detail page returns the 20 newest active offerings of the same Course and the complete active related-Section count. The current Section is excluded."
   },
   "capabilities": {
