@@ -1,3 +1,10 @@
+## [1.90.4](https://github.com/Life-USTC/server/compare/v1.90.3...v1.90.4) (2026-08-14)
+
+
+### Bug Fixes
+
+* **auth:** adapt CIMD redirects for Workers ([#845](https://github.com/Life-USTC/server/issues/845)) ([b77a13d](https://github.com/Life-USTC/server/commit/b77a13dc085db435d2f47213697a9182ee016b92))
+
 ## [1.90.3](https://github.com/Life-USTC/server/compare/v1.90.2...v1.90.3) (2026-08-14)
 
 
