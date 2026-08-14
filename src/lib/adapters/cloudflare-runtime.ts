@@ -60,12 +60,12 @@ type CloudflareCacheStorage = {
 
 type CloudflareTaskScheduler = (promise: Promise<unknown>) => void;
 
-type CloudflareSpan = {
+export type CloudflareTraceSpan = {
   setAttribute(key: string, value?: boolean | number | string): void;
 };
 
 type CloudflareTracing = {
-  enterSpan<T>(name: string, callback: (span: CloudflareSpan) => T): T;
+  enterSpan<T>(name: string, callback: (span: CloudflareTraceSpan) => T): T;
 };
 
 export type CloudflareQueueSendOptions = {
@@ -211,16 +211,16 @@ export function runWithCloudflareRuntimeEnv<T>(
 export function runCloudflareTraceSpan<T>(
   name: string,
   attributes: Record<string, boolean | number | string | undefined>,
-  callback: () => T,
+  callback: (span?: CloudflareTraceSpan) => T,
 ): T {
   const tracing = cloudflareRuntimeStorage.getStore()?.tracing;
-  if (!tracing) return callback();
+  if (!tracing) return callback(undefined);
 
   return tracing.enterSpan(name, (span) => {
     for (const [key, value] of Object.entries(attributes)) {
       if (value !== undefined) span.setAttribute(key, value);
     }
-    return callback();
+    return callback(span);
   });
 }
 

@@ -98,7 +98,7 @@ function expectCacheEvent(
   expect(writeDataPoint).toHaveBeenCalledWith({
     indexes: ["cache:page:course-detail:en-us"],
     blobs: [
-      "public_runtime_cache_v2",
+      "public_runtime_cache_v3",
       event,
       "page:course-detail:en-us",
       reason,
@@ -413,6 +413,150 @@ describe("public runtime cache", () => {
     expectCacheEvent(writeDataPoint, "kv_read_error", "none");
     expect(put).toHaveBeenCalledOnce();
     expect(namespace.put).toHaveBeenCalledOnce();
+  });
+
+  it("records phase-local cache durations and fixed low-cardinality spans", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(10_000);
+    const writeDataPoint = vi.fn();
+    const setAttribute = vi.fn();
+    const enterSpan = vi.fn(
+      <T>(
+        name: string,
+        callback: (span: { setAttribute: typeof setAttribute }) => T,
+      ) => {
+        void name;
+        return callback({ setAttribute });
+      },
+    );
+    const namespace = {
+      get: vi.fn(async () => {
+        vi.setSystemTime(Date.now() + 11);
+        return null;
+      }),
+      put: vi.fn(async () => undefined),
+    };
+    const { match } = installNamedCache({
+      match: async () => {
+        vi.setSystemTime(Date.now() + 23);
+        return undefined;
+      },
+    });
+    const scheduled: Promise<unknown>[] = [];
+    const context = {
+      tracing: { enterSpan },
+      waitUntil(promise: Promise<unknown>) {
+        scheduled.push(promise);
+      },
+    };
+    const sensitiveKey = "search=sensitive-marker-683011";
+
+    await runWithCloudflareRuntimeEnv(
+      { ANALYTICS: { writeDataPoint }, CATALOG_DETAIL_CORE: namespace },
+      async () => {
+        await cachedPublicRuntimeData(
+          "page:course-detail:en-us",
+          sensitiveKey,
+          60_000,
+          async () => {
+            vi.setSystemTime(Date.now() + 37);
+            return { source: "database" };
+          },
+          {
+            coloCacheKey: publicDetailColoCacheKey(
+              "https://example.test",
+              "course",
+              "en-us",
+              683011,
+            ),
+            kvCacheKey: publicDetailKvCacheKey(
+              "rev",
+              "course",
+              "en-us",
+              683011,
+              "core-without-sections",
+            ),
+            validateColoCacheResult: validatesSource,
+          },
+        );
+        await Promise.all(scheduled);
+      },
+      context,
+    );
+
+    const durationFor = (event: string) =>
+      writeDataPoint.mock.calls.find(
+        ([dataPoint]) => dataPoint.blobs?.[1] === event,
+      )?.[0].doubles?.[0];
+    expect(durationFor("kv_miss")).toBe(11);
+    expect(durationFor("colo_miss")).toBe(23);
+    expect(durationFor("load_success")).toBe(37);
+    expect(match).toHaveBeenCalledOnce();
+    expect(enterSpan.mock.calls.map(([name]) => name)).toEqual([
+      "cache.kv.read",
+      "cache.colo.read",
+      "cache.origin_load",
+    ]);
+    expect(setAttribute.mock.calls).toEqual([
+      ["cache.layer", "kv"],
+      ["cache.namespace", "page:course-detail:en-us"],
+      ["cache.outcome", "miss"],
+      ["cache.layer", "colo"],
+      ["cache.namespace", "page:course-detail:en-us"],
+      ["cache.outcome", "miss"],
+      ["cache.layer", "origin"],
+      ["cache.namespace", "page:course-detail:en-us"],
+      ["cache.outcome", "success"],
+    ]);
+    expect(JSON.stringify(setAttribute.mock.calls)).not.toContain(sensitiveKey);
+  });
+
+  it("records one phase-local origin error without retaining the failed load", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(20_000);
+    const writeDataPoint = vi.fn();
+    const setAttribute = vi.fn();
+    const enterSpan = vi.fn(
+      <T>(
+        _name: string,
+        callback: (span: { setAttribute: typeof setAttribute }) => T,
+      ) => callback({ setAttribute }),
+    );
+    const load = vi.fn(async () => {
+      vi.setSystemTime(Date.now() + 41);
+      throw new Error("origin failed");
+    });
+
+    await runWithCloudflareRuntimeEnv(
+      { ANALYTICS: { writeDataPoint } },
+      async () => {
+        await expect(
+          cachedPublicRuntimeData(
+            "api:metadata",
+            "private-cache-key",
+            60_000,
+            load,
+          ),
+        ).rejects.toThrow("origin failed");
+      },
+      { tracing: { enterSpan } },
+    );
+
+    const loadErrors = writeDataPoint.mock.calls.filter(
+      ([dataPoint]) => dataPoint.blobs?.[1] === "load_error",
+    );
+    expect(loadErrors).toHaveLength(1);
+    expect(loadErrors[0]?.[0].doubles?.[0]).toBe(41);
+    expect(setAttribute).toHaveBeenCalledWith("cache.outcome", "error");
+    await expect(
+      cachedPublicRuntimeData(
+        "api:metadata",
+        "private-cache-key",
+        60_000,
+        async () => ({ source: "retry" }),
+      ),
+    ).resolves.toEqual({ source: "retry" });
+    expect(load).toHaveBeenCalledOnce();
   });
 
   it("returns one in-flight promise for concurrent callers of the same key", async () => {

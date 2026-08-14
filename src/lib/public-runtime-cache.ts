@@ -4,6 +4,7 @@ import {
   getCloudflareCatalogDetailCoreNamespace,
   getCloudflareNamedCache,
   getCloudflareRuntimeTaskScheduler,
+  runCloudflareTraceSpan,
 } from "@/lib/adapters/cloudflare-runtime";
 import {
   type PublicRuntimeCacheAnalyticsNamespace,
@@ -31,12 +32,17 @@ type RuntimeCacheEnvelope = {
 };
 
 type RuntimeCacheRead<T> =
-  | { expiresAt: number; hit: true; value: T }
-  | { hit: false };
+  | { expiresAt: number; hit: true; outcome: "hit"; value: T }
+  | { hit: false; outcome: "error" | "invalid" | "miss" | "unavailable" };
 
 type ColoCacheRead<T> =
-  | { expiresAt: number; hit: true; value: T }
-  | { cache?: CloudflareCache; hit: false; request?: Request };
+  | { expiresAt: number; hit: true; outcome: "hit"; value: T }
+  | {
+      cache?: CloudflareCache;
+      hit: false;
+      outcome: "error" | "invalid" | "miss";
+      request?: Request;
+    };
 
 type RuntimeCacheEvent =
   | "colo_hit"
@@ -167,13 +173,14 @@ async function readKvCache<T>(
   cacheKey: string,
   ttlMs: number,
   namespace: PublicRuntimeCacheAnalyticsNamespace,
-  start: number,
   storeSize: number,
   validateColoCacheResult?: (result: unknown) => boolean,
 ): Promise<RuntimeCacheRead<T>> {
   const kv = getCloudflareCatalogDetailCoreNamespace();
-  if (!kv) return { hit: false };
+  if (!kv) return { hit: false, outcome: "unavailable" };
 
+  const start = Date.now();
+  let failureOutcome: "error" | "invalid" = "error";
   const cacheTtlSeconds = Math.ceil(ttlMs / 1_000);
   try {
     const parsed = await kv.get<RuntimeCacheEnvelope>(cacheKey, {
@@ -183,17 +190,18 @@ async function readKvCache<T>(
     const now = Date.now();
     if (!parsed || !validRuntimeCacheEnvelope(parsed, now, ttlMs)) {
       writeRuntimeCacheEvent("kv_miss", namespace, start, storeSize, ttlMs);
-      return { hit: false };
+      return { hit: false, outcome: "miss" };
     }
     if (!validRuntimeCacheResult(parsed.value, validateColoCacheResult)) {
+      failureOutcome = "invalid";
       throw new TypeError("Invalid cached result");
     }
     const value = parsed.value as T;
     writeRuntimeCacheEvent("kv_hit", namespace, start, storeSize, ttlMs);
-    return { expiresAt: parsed.expiresAt, hit: true, value };
+    return { expiresAt: parsed.expiresAt, hit: true, outcome: "hit", value };
   } catch {
     writeRuntimeCacheEvent("kv_read_error", namespace, start, storeSize, ttlMs);
-    return { hit: false };
+    return { hit: false, outcome: failureOutcome };
   }
 }
 
@@ -203,10 +211,10 @@ function scheduleKvCacheWrite<T>(
   expiresAt: number,
   ttlMs: number,
   namespace: PublicRuntimeCacheAnalyticsNamespace,
-  start: number,
   storeSize: number,
   validateColoCacheResult?: (result: unknown) => boolean,
 ) {
+  const start = Date.now();
   const kv = getCloudflareCatalogDetailCoreNamespace();
   const scheduleTask = getCloudflareRuntimeTaskScheduler();
   const remainingTtlMs = expiresAt - Date.now();
@@ -319,10 +327,11 @@ async function readColoCache<T>(
   cacheKey: string,
   ttlMs: number,
   namespace: PublicRuntimeCacheAnalyticsNamespace,
-  start: number,
   storeSize: number,
   validateColoCacheResult?: (result: unknown) => boolean,
 ): Promise<ColoCacheRead<T>> {
+  const start = Date.now();
+  let failureOutcome: "error" | "invalid" = "error";
   let cache: CloudflareCache | undefined;
   let request: Request | undefined;
   try {
@@ -333,7 +342,7 @@ async function readColoCache<T>(
     const response = await cache.match(request);
     if (!response) {
       writeRuntimeCacheEvent("colo_miss", namespace, start, storeSize, ttlMs);
-      return { cache, hit: false, request };
+      return { cache, hit: false, outcome: "miss", request };
     }
 
     const parsed: unknown = await response.json();
@@ -342,14 +351,16 @@ async function readColoCache<T>(
       response.status !== 200 ||
       !validRuntimeCacheEnvelope(parsed, now, ttlMs)
     ) {
+      failureOutcome = "invalid";
       throw new TypeError("Invalid cache envelope");
     }
     if (!validRuntimeCacheResult(parsed.value, validateColoCacheResult)) {
+      failureOutcome = "invalid";
       throw new TypeError("Invalid cached result");
     }
     const value = parsed.value as T;
     writeRuntimeCacheEvent("colo_hit", namespace, start, storeSize, ttlMs);
-    return { expiresAt: parsed.expiresAt, hit: true, value };
+    return { expiresAt: parsed.expiresAt, hit: true, outcome: "hit", value };
   } catch {
     writeRuntimeCacheEvent(
       "colo_read_error",
@@ -358,7 +369,7 @@ async function readColoCache<T>(
       storeSize,
       ttlMs,
     );
-    return { cache, hit: false, request };
+    return { cache, hit: false, outcome: failureOutcome, request };
   }
 }
 
@@ -369,9 +380,9 @@ function scheduleColoCacheWrite<T>(
   expiresAt: number,
   ttlMs: number,
   namespace: PublicRuntimeCacheAnalyticsNamespace,
-  start: number,
   storeSize: number,
 ) {
+  const start = Date.now();
   const scheduleTask = getCloudflareRuntimeTaskScheduler();
   const remainingTtlMs = expiresAt - Date.now();
   if (!scheduleTask || remainingTtlMs <= 0) {
@@ -569,13 +580,23 @@ export function cachedPublicRuntimeData<T>(
       options.kvCacheKey ?? resolvePublicDetailKvCacheKey(options);
     const kvTtlMs = options.kvTtlMs ?? ttlMs;
     const kvRead = kvCacheKey
-      ? await readKvCache<T>(
-          kvCacheKey,
-          kvTtlMs,
-          analyticsNamespace,
-          start,
-          initialStoreSize,
-          options.validateColoCacheResult,
+      ? await runCloudflareTraceSpan(
+          "cache.kv.read",
+          {
+            "cache.layer": "kv",
+            "cache.namespace": analyticsNamespace,
+          },
+          async (span) => {
+            const result = await readKvCache<T>(
+              kvCacheKey,
+              kvTtlMs,
+              analyticsNamespace,
+              initialStoreSize,
+              options.validateColoCacheResult,
+            );
+            span?.setAttribute("cache.outcome", result.outcome);
+            return result;
+          },
         )
       : undefined;
     if (kvRead?.hit) {
@@ -585,14 +606,25 @@ export function cachedPublicRuntimeData<T>(
       return kvRead.value;
     }
 
-    const coloRead = options.coloCacheKey
-      ? await readColoCache<T>(
-          options.coloCacheKey,
-          ttlMs,
-          analyticsNamespace,
-          start,
-          initialStoreSize,
-          options.validateColoCacheResult,
+    const coloCacheKey = options.coloCacheKey;
+    const coloRead = coloCacheKey
+      ? await runCloudflareTraceSpan(
+          "cache.colo.read",
+          {
+            "cache.layer": "colo",
+            "cache.namespace": analyticsNamespace,
+          },
+          async (span) => {
+            const result = await readColoCache<T>(
+              coloCacheKey,
+              ttlMs,
+              analyticsNamespace,
+              initialStoreSize,
+              options.validateColoCacheResult,
+            );
+            span?.setAttribute("cache.outcome", result.outcome);
+            return result;
+          },
         )
       : undefined;
     if (coloRead?.hit) {
@@ -602,7 +634,43 @@ export function cachedPublicRuntimeData<T>(
       return coloRead.value;
     }
 
-    const result = await load();
+    const loadStart = Date.now();
+    let result: T;
+    try {
+      result = await runCloudflareTraceSpan(
+        "cache.origin_load",
+        {
+          "cache.layer": "origin",
+          "cache.namespace": analyticsNamespace,
+        },
+        async (span) => {
+          try {
+            const loaded = await load();
+            span?.setAttribute("cache.outcome", "success");
+            return loaded;
+          } catch (error) {
+            span?.setAttribute("cache.outcome", "error");
+            throw error;
+          }
+        },
+      );
+      writeCacheEventAnalytics({
+        event: "load_success",
+        ioObservedDurationMs: Date.now() - loadStart,
+        namespace: analyticsNamespace,
+        storeSize: store.size,
+        ttlMs,
+      });
+    } catch (error) {
+      writeCacheEventAnalytics({
+        event: "load_error",
+        ioObservedDurationMs: Date.now() - loadStart,
+        namespace: analyticsNamespace,
+        storeSize: store.size,
+        ttlMs,
+      });
+      throw error;
+    }
     const retain = options.shouldCacheResult?.(result) ?? true;
     if (!retain) {
       if (value) deleteCurrentEntry(store, storeKey, value);
@@ -620,7 +688,6 @@ export function cachedPublicRuntimeData<T>(
             Date.now() + kvTtlMs,
             kvTtlMs,
             analyticsNamespace,
-            start,
             initialStoreSize,
             options.validateColoCacheResult,
           );
@@ -633,7 +700,6 @@ export function cachedPublicRuntimeData<T>(
             expiresAt,
             ttlMs,
             analyticsNamespace,
-            start,
             initialStoreSize,
           );
         }
@@ -660,23 +726,9 @@ export function cachedPublicRuntimeData<T>(
         }
       }
     }
-    writeCacheEventAnalytics({
-      event: "load_success",
-      ioObservedDurationMs: Date.now() - start,
-      namespace: analyticsNamespace,
-      storeSize: store.size,
-      ttlMs,
-    });
     return result;
   })().catch((error) => {
     if (value) deleteCurrentEntry(store, storeKey, value);
-    writeCacheEventAnalytics({
-      event: "load_error",
-      ioObservedDurationMs: Date.now() - start,
-      namespace: analyticsNamespace,
-      storeSize: store.size,
-      ttlMs,
-    });
     throw error;
   });
   store.set(storeKey, { expiresAt, value });
