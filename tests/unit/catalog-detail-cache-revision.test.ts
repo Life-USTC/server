@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { runWithCloudflareRuntimeEnv } from "@/lib/adapters/cloudflare-runtime";
 import {
   getCatalogDetailCacheRevision,
   resetCatalogDetailCacheRevisionForTest,
@@ -41,5 +42,35 @@ describe("catalog detail cache revision", () => {
     findUniqueMock.mockResolvedValue(null);
 
     await expect(getCatalogDetailCacheRevision()).resolves.toBe("bootstrap");
+  });
+
+  it("traces only the revision origin read with fixed cache attributes", async () => {
+    findUniqueMock.mockResolvedValue({ snapshotSha256: "abcdef0123456789" });
+    const setAttribute = vi.fn();
+    const enterSpan = vi.fn(
+      <T>(
+        name: string,
+        callback: (span: { setAttribute: typeof setAttribute }) => T,
+      ) => {
+        expect(name).toBe("cache.catalog_revision.read");
+        return callback({ setAttribute });
+      },
+    );
+
+    await runWithCloudflareRuntimeEnv(
+      {},
+      async () => {
+        await getCatalogDetailCacheRevision();
+        await getCatalogDetailCacheRevision();
+      },
+      { tracing: { enterSpan } },
+    );
+
+    expect(enterSpan).toHaveBeenCalledOnce();
+    expect(setAttribute.mock.calls).toEqual([
+      ["cache.layer", "origin"],
+      ["cache.namespace", "catalog:revision"],
+      ["cache.outcome", "success"],
+    ]);
   });
 });

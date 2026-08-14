@@ -81,7 +81,6 @@ export type PublicRuntimeCacheAnalyticsNamespace =
   | "catalog:current-semester"
   | "sitemap"
   | `page:section-detail:overview:${AppLocale}`
-  | `search:catalog:${AppLocale}`
   | `search:catalog:v4:${AppLocale}`
   | `bus:timetable:${AppLocale}`
   | `catalog:${
@@ -386,7 +385,7 @@ export function writeCacheEventAnalytics(input: CacheEventAnalyticsInput) {
   writeAnalyticsDataPoint({
     indexes: [`cache:${boundedValue(input.namespace)}`],
     blobs: [
-      "public_runtime_cache_v2",
+      "public_runtime_cache_v3",
       input.event,
       input.namespace,
       input.reason ?? "none",
