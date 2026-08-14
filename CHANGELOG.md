@@ -1,3 +1,10 @@
+## [1.90.2](https://github.com/Life-USTC/server/compare/v1.90.1...v1.90.2) (2026-08-14)
+
+
+### Performance Improvements
+
+* **catalog:** refine detail core phases ([#842](https://github.com/Life-USTC/server/issues/842)) ([be601a9](https://github.com/Life-USTC/server/commit/be601a9a001b21e1ba471fce1d7a10cdefc43604))
+
 ## [1.90.1](https://github.com/Life-USTC/server/compare/v1.90.0...v1.90.1) (2026-08-14)
 
 
