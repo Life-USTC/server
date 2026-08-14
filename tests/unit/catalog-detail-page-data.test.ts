@@ -18,6 +18,15 @@ vi.mock("@/lib/db/prisma", () => ({
   }),
 }));
 
+function prismaThenable<T>(value: T): PromiseLike<T> {
+  return {
+    // biome-ignore lint/suspicious/noThenProperty: Prisma queries intentionally return thenables.
+    then(onfulfilled, onrejected) {
+      return Promise.resolve(value).then(onfulfilled, onrejected);
+    },
+  };
+}
+
 describe("catalog detail page data", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -123,12 +132,16 @@ describe("catalog detail page data", () => {
   });
 
   it("traces bounded course and teacher query phases", async () => {
-    courseFindUniqueMock.mockResolvedValue({
-      id: 11,
-      jwId: 101,
-      sections: [],
-    });
-    teacherFindUniqueMock.mockResolvedValue({ id: 21, sections: [] });
+    courseFindUniqueMock.mockReturnValue(
+      prismaThenable({
+        id: 11,
+        jwId: 101,
+        sections: [],
+      }),
+    );
+    teacherFindUniqueMock.mockReturnValue(
+      prismaThenable({ id: 21, sections: [] }),
+    );
     const [{ getCoursePage }, { getTeacherPage }] = await Promise.all([
       import("@/features/catalog/server/course-page-data"),
       import("@/features/catalog/server/teacher-page-data"),
@@ -137,6 +150,7 @@ describe("catalog detail page data", () => {
       attributes: Record<string, boolean | number | string | undefined>;
       name: string;
     }> = [];
+    const nativePromiseSpans: string[] = [];
 
     await runWithCloudflareRuntimeEnv(
       {},
@@ -161,12 +175,14 @@ describe("catalog detail page data", () => {
               boolean | number | string | undefined
             > = {};
             spans.push({ attributes, name });
-            return callback({
+            const result = callback({
               isTraced: true,
               setAttribute(key, value) {
                 attributes[key] = value;
               },
             });
+            if (result instanceof Promise) nativePromiseSpans.push(name);
+            return result;
           },
         },
       },
@@ -192,5 +208,9 @@ describe("catalog detail page data", () => {
     ]);
     expect(JSON.stringify(spans)).not.toContain("101");
     expect(JSON.stringify(spans)).not.toContain("21");
+    expect(nativePromiseSpans).toEqual([
+      "catalog.detail.course.query",
+      "catalog.detail.teacher.query",
+    ]);
   });
 });

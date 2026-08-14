@@ -22,8 +22,8 @@ export async function getTeacherPage(id: number, locale = "zh-cn") {
   const teacher = await runCloudflareTraceSpan(
     "catalog.detail.teacher.query",
     { "catalog.detail.kind": "teacher" },
-    () =>
-      prisma.teacher.findUnique({
+    async () =>
+      await prisma.teacher.findUnique({
         where: { id },
         select: {
           id: true,

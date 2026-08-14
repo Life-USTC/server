@@ -11,6 +11,15 @@ vi.mock("@/lib/db/prisma", () => ({
   }),
 }));
 
+function prismaThenable<T>(value: T): PromiseLike<T> {
+  return {
+    // biome-ignore lint/suspicious/noThenProperty: Prisma queries intentionally return thenables.
+    then(onfulfilled, onrejected) {
+      return Promise.resolve(value).then(onfulfilled, onrejected);
+    },
+  };
+}
+
 function sectionRecord() {
   return {
     course: {
@@ -55,6 +64,7 @@ describe("section page data selection", () => {
   });
 
   it("loads the stream page in one Prisma call with bounded related rows and description", async () => {
+    sectionFindUnique.mockReturnValue(prismaThenable(sectionRecord()));
     const { getSectionPage } = await import(
       "@/features/section-detail/server/section-page-data"
     );
@@ -63,6 +73,7 @@ describe("section page data selection", () => {
       attributes: Record<string, boolean | number | string | undefined>;
       name: string;
     }> = [];
+    const nativePromiseSpans: string[] = [];
     const result = await runWithCloudflareRuntimeEnv(
       {},
       () => getSectionPage(30, "zh-cn"),
@@ -83,12 +94,14 @@ describe("section page data selection", () => {
               boolean | number | string | undefined
             > = {};
             spans.push({ attributes, name });
-            return callback({
+            const spanResult = callback({
               isTraced: true,
               setAttribute(key, value) {
                 attributes[key] = value;
               },
             });
+            if (spanResult instanceof Promise) nativePromiseSpans.push(name);
+            return spanResult;
           },
         },
       },
@@ -124,6 +137,7 @@ describe("section page data selection", () => {
       },
     ]);
     expect(JSON.stringify(spans)).not.toContain("30");
+    expect(nativePromiseSpans).toEqual(["catalog.detail.section.query"]);
     expect(result).toMatchObject({
       description: {
         content: "Section description",

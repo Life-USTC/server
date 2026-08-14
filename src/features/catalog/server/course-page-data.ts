@@ -28,8 +28,8 @@ export async function getCoursePage(jwId: number, locale = "zh-cn") {
   const course = await runCloudflareTraceSpan(
     "catalog.detail.course.query",
     { "catalog.detail.kind": "course" },
-    () =>
-      prisma.course.findUnique({
+    async () =>
+      await prisma.course.findUnique({
         where: { jwId },
         select: {
           id: true,
