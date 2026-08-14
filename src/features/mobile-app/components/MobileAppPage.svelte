@@ -199,7 +199,7 @@ onMount(() => {
 
 <section class="grid gap-10 pb-8">
   <div
-    class="relative -mx-4 -mt-4 bg-[radial-gradient(120%_80%_at_10%_0%,color-mix(in_oklab,var(--primary)_14%,transparent),transparent_55%),linear-gradient(180deg,color-mix(in_oklab,var(--muted)_55%,transparent),var(--background))] sm:-mx-5 lg:-mx-6"
+    class="relative -mx-4 -mt-4 overflow-x-clip bg-[radial-gradient(120%_80%_at_10%_0%,color-mix(in_oklab,var(--primary)_14%,transparent),transparent_55%),linear-gradient(180deg,color-mix(in_oklab,var(--muted)_55%,transparent),var(--background))] sm:-mx-5 lg:-mx-6"
   >
     <div
       class="grid items-end gap-8 px-4 pt-8 pb-10 sm:px-5 sm:pt-10 sm:pb-12 lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)] lg:gap-10 lg:px-6 lg:pt-12 lg:pb-14"
