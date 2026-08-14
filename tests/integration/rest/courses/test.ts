@@ -57,7 +57,9 @@ test.describe("GET /api/catalog/courses 接口", () => {
     expect(body.pagination?.totalPages).toBeGreaterThanOrEqual(1);
   });
 
-  test("显式 locale 与默认 zh-cn URL 变体均使用共享缓存", async ({ request }) => {
+  test("显式 locale 与默认 zh-cn URL 变体均使用共享缓存", async ({
+    request,
+  }) => {
     const explicit = await request.get(
       "/api/catalog/courses?locale=en-us&pageSize=1",
       {
