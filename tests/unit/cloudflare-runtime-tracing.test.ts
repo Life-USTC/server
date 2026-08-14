@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   getCloudflareNamedCache,
   getCloudflareRuntimeTaskScheduler,
+  registerCloudflareRuntimeCleanup,
   runCloudflareTraceSpan,
   runWithCloudflareRuntimeEnv,
 } from "@/lib/adapters/cloudflare-runtime";
@@ -147,5 +148,59 @@ describe("Cloudflare runtime tracing", () => {
     await expect(scheduled[0]).resolves.toBe("done");
     expect(getCloudflareNamedCache("outside-request")).toBeUndefined();
     expect(getCloudflareRuntimeTaskScheduler()).toBeUndefined();
+  });
+
+  it("awaits request-scoped cleanup before resolving", async () => {
+    const events: string[] = [];
+
+    await runWithCloudflareRuntimeEnv({}, async () => {
+      registerCloudflareRuntimeCleanup(async () => {
+        await Promise.resolve();
+        events.push("cleanup");
+      });
+      events.push("callback");
+    });
+
+    expect(events).toEqual(["callback", "cleanup"]);
+  });
+
+  it("defers cleanup until a response body finishes streaming", async () => {
+    const cleanup = vi.fn();
+
+    const response = await runWithCloudflareRuntimeEnv({}, () => {
+      registerCloudflareRuntimeCleanup(cleanup);
+      return new Response("streamed");
+    });
+
+    expect(cleanup).not.toHaveBeenCalled();
+    await expect(response.text()).resolves.toBe("streamed");
+    expect(cleanup).toHaveBeenCalledOnce();
+  });
+
+  it("cleans up when a response body is canceled", async () => {
+    const cleanup = vi.fn();
+    const cancel = vi.fn();
+
+    const response = await runWithCloudflareRuntimeEnv({}, () => {
+      registerCloudflareRuntimeCleanup(cleanup);
+      return new Response(new ReadableStream({ cancel }));
+    });
+
+    await response.body?.cancel("client disconnected");
+    expect(cancel).toHaveBeenCalledWith("client disconnected");
+    expect(cleanup).toHaveBeenCalledOnce();
+  });
+
+  it("preserves callback errors when cleanup also fails", async () => {
+    const callbackFailure = new Error("callback failed");
+
+    await expect(
+      runWithCloudflareRuntimeEnv({}, () => {
+        registerCloudflareRuntimeCleanup(() => {
+          throw new Error("cleanup failed");
+        });
+        throw callbackFailure;
+      }),
+    ).rejects.toBe(callbackFailure);
   });
 });

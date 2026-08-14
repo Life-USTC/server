@@ -79,14 +79,13 @@ export function createPrismaAdapter(
     {
       connectionString: resolvedConnectionString,
       // On Workers every request builds a fresh pool (pg sockets cannot be
-      // reused across requests) and each new connection pays full SCRAM
-      // deriveBits CPU. Concurrent queries (Promise.all, RLS tx + session
-      // lookup) otherwise open up to pg's default of 10 connections per
-      // request; cap the pool so a single request can never open more than 3.
+      // reused across requests), which the runtime context disconnects before
+      // the request completes. Concurrent queries (Promise.all, RLS tx +
+      // session lookup) otherwise open up to pg's default of 10 connections;
+      // cap the pool so a single request can never open more than 3.
       max: 3,
-      // Idle connections from a finished request are never reusable, so close
-      // them quickly instead of holding sockets (and server slots) for pg's
-      // 10s default.
+      // Keep a short idle timeout as a safety net for clients created outside
+      // the managed request context.
       idleTimeoutMillis: 5_000,
     },
     {
