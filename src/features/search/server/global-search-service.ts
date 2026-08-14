@@ -165,7 +165,7 @@ async function searchCachedCatalogGroups(input: {
   origin: string;
   query: string;
 }): Promise<GlobalSearchResultGroup[]> {
-  const namespace: PublicRuntimeCacheAnalyticsNamespace = `search:catalog:v3:${input.locale}`;
+  const namespace: PublicRuntimeCacheAnalyticsNamespace = `search:catalog:v4:${input.locale}`;
   return cachedCatalogRuntimeData(
     namespace,
     catalogSearchCacheKey(input.query, input.limit),

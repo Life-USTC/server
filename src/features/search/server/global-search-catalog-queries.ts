@@ -1,23 +1,72 @@
-import { buildCourseListWhere } from "@/features/catalog/server/course-query-filters";
 import { SECTION_SUMMARY_DEFAULT_ORDER_BY } from "@/features/catalog/server/section-summary-read-model";
-import { buildTeacherWhere } from "@/features/catalog/server/teacher-query";
 import type { Prisma } from "@/generated/prisma/client";
 import type { AppLocale } from "@/i18n/config";
 import { getPrisma } from "@/lib/db/prisma";
 import { ilike } from "@/lib/query-filter-helpers";
+
+function searchTerms(query: string) {
+  return [...new Set(query.trim().split(/\s+/u).filter(Boolean))];
+}
+
+function buildGlobalCourseSearchWhere(
+  query: string,
+): Prisma.CourseWhereInput | undefined {
+  const terms = searchTerms(query);
+  return terms.length > 0
+    ? {
+        AND: terms.map((term) => ({
+          OR: [
+            { nameCn: ilike(term) },
+            { nameEn: ilike(term) },
+            { code: ilike(term) },
+          ],
+        })),
+      }
+    : undefined;
+}
 
 function buildGlobalSectionSearchWhere(
   query: string,
 ): Prisma.SectionWhereInput {
   return {
     retiredAt: null,
-    OR: [
-      { course: { nameCn: ilike(query) } },
-      { course: { nameEn: ilike(query) } },
-      { course: { code: ilike(query) } },
-      { code: ilike(query) },
-    ],
+    AND: searchTerms(query).map((term) => ({
+      OR: [
+        { course: { nameCn: ilike(term) } },
+        { course: { nameEn: ilike(term) } },
+        { course: { code: ilike(term) } },
+        { code: ilike(term) },
+        {
+          teachers: {
+            some: {
+              OR: [
+                { nameCn: ilike(term) },
+                { nameEn: ilike(term) },
+                { code: ilike(term) },
+              ],
+            },
+          },
+        },
+      ],
+    })),
   };
+}
+
+function buildGlobalTeacherSearchWhere(
+  query: string,
+): Prisma.TeacherWhereInput | undefined {
+  const terms = searchTerms(query);
+  return terms.length > 0
+    ? {
+        AND: terms.map((term) => ({
+          OR: [
+            { nameCn: ilike(term) },
+            { nameEn: ilike(term) },
+            { code: ilike(term) },
+          ],
+        })),
+      }
+    : undefined;
 }
 
 export async function searchCoursesForGlobal(
@@ -26,7 +75,7 @@ export async function searchCoursesForGlobal(
   limit: number,
 ) {
   return getPrisma(locale).course.findMany({
-    where: buildCourseListWhere({ search: query }),
+    where: buildGlobalCourseSearchWhere(query),
     orderBy: [{ code: "asc" }, { jwId: "asc" }],
     select: {
       code: true,
@@ -86,7 +135,7 @@ export async function searchTeachersForGlobal(
   limit: number,
 ) {
   return getPrisma(locale).teacher.findMany({
-    where: buildTeacherWhere({ search: query }),
+    where: buildGlobalTeacherSearchWhere(query),
     orderBy: { nameCn: "asc" },
     select: {
       code: true,
