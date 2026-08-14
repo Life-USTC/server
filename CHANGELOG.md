@@ -1,3 +1,10 @@
+## [1.90.5](https://github.com/Life-USTC/server/compare/v1.90.4...v1.90.5) (2026-08-14)
+
+
+### Bug Fixes
+
+* **runtime:** close Worker database pools per request ([#846](https://github.com/Life-USTC/server/issues/846)) ([2675d10](https://github.com/Life-USTC/server/commit/2675d1063a3411d4d06df164d9440925b8c41eaf))
+
 ## [1.90.4](https://github.com/Life-USTC/server/compare/v1.90.3...v1.90.4) (2026-08-14)
 
 
