@@ -309,6 +309,25 @@ test.describe("/catalog/courses/[jwId] 课程详情", () => {
           .getByRole("tabpanel", { name: /简介|Description/i })
           .getByText(content),
       ).toBeVisible();
+
+      const historyTab = introduction.getByRole("tab", {
+        name: /编辑记录|Edit History/i,
+      });
+      await expect(historyTab).toBeVisible();
+      await expect(historyTab).toBeEnabled();
+      await historyTab.click();
+      await expect(historyTab).toHaveAttribute("aria-selected", "true");
+      const historyPanel = introduction.getByRole("tabpanel", {
+        name: /编辑记录|Edit History/i,
+      });
+      await expect(historyPanel).toBeVisible();
+      await expect(historyPanel.getByText(content)).toBeVisible();
+      await expect(
+        historyPanel.getByText(/之前|Previous/i).first(),
+      ).toBeVisible();
+      await expect(
+        historyPanel.getByText(/更新后|Updated/i).first(),
+      ).toBeVisible();
       await captureStepScreenshot(page, testInfo, "course/description-updated");
       if (snapshot.original) {
         await waitForDescriptionAuditRows(snapshot.original, 1);

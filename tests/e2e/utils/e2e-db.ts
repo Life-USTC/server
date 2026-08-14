@@ -85,12 +85,14 @@ type UserProfileFixture = {
   name: string;
   username: string | null;
   image: string | null;
+  profilePictures: string[];
 };
 
 type UserProfileUpdateFixture = {
   name?: string | null;
   username?: string | null;
   image?: string | null;
+  profilePictures?: string[];
 };
 
 export const createOAuthClientFixture = (options?: OAuthClientFixtureOptions) =>

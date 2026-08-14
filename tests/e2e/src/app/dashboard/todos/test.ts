@@ -19,12 +19,28 @@
  * - Optimistic updates via useOptimistic for toggle/delete/add
  * - Empty state shown when filter yields no matching todos
  */
-import { expect, test } from "@playwright/test";
+import { expect, type Page, test } from "@playwright/test";
 import { signInAsDebugUser } from "../../../../utils/auth";
 import { DEV_SEED } from "../../../../utils/dev-seed";
 import { visibleText } from "../../../../utils/locators";
 import { gotoAndWaitForReady } from "../../../../utils/page-ready";
 import { captureStepScreenshot } from "../../../../utils/screenshot";
+
+async function cleanupTodosByTitlePrefix(page: Page, prefix: string) {
+  const response = await page.request.get("/api/workspace/todos");
+  expect(response.status()).toBe(200);
+  const body = (await response.json()) as {
+    todos?: Array<{ id?: string; title?: string }>;
+  };
+  for (const todo of body.todos ?? []) {
+    if (todo.id && todo.title?.startsWith(prefix)) {
+      const deleteResponse = await page.request.delete(
+        `/api/workspace/todos/${todo.id}`,
+      );
+      expect(deleteResponse.status()).toBe(200);
+    }
+  }
+}
 
 test.describe("仪表盘待办", () => {
   test("未登录旧 todos tab 重定向到语义路径", async ({ page }) => {
@@ -185,45 +201,98 @@ test.describe("仪表盘待办", () => {
     await captureStepScreenshot(page, testInfo, "dashboard-todos-action-error");
   });
 
-  test("可以创建和删除待办", async ({ page }, testInfo) => {
-    test.setTimeout(60_000);
+  test("可以创建、编辑和删除待办", async ({ page }, testInfo) => {
+    test.setTimeout(90_000);
     await signInAsDebugUser(page, "/workspace/todos");
 
     const title = `e2e-dashboard-todo-${Date.now()}`;
+    const editedTitle = `${title}-edited`;
 
-    // Create a new todo via modal form
-    const addTodoButton = page
-      .getByRole("button", { name: /添加待办|Add Todo/i })
-      .first();
-    await expect(addTodoButton).toBeVisible();
-    await expect(addTodoButton).toBeEnabled();
-    const titleInput = page.getByLabel(/标题|Title/i);
-    await expect(async () => {
-      await addTodoButton.click();
-      await expect(titleInput).toBeVisible({ timeout: 3_000 });
-    }).toPass({
-      timeout: 10_000,
-      intervals: [250, 500, 1_000],
-    });
-    await titleInput.fill(title);
-    await page
-      .getByRole("button", { name: /创建待办|Create Todo/i })
-      .first()
-      .click();
+    try {
+      // Create a new todo via modal form
+      const addTodoButton = page
+        .getByRole("button", { name: /添加待办|Add Todo/i })
+        .first();
+      await expect(addTodoButton).toBeVisible();
+      await expect(addTodoButton).toBeEnabled();
+      const titleInput = page.getByLabel(/标题|Title/i);
+      await expect(async () => {
+        await addTodoButton.click();
+        await expect(titleInput).toBeVisible({ timeout: 3_000 });
+      }).toPass({
+        timeout: 10_000,
+        intervals: [250, 500, 1_000],
+      });
+      await titleInput.fill(title);
+      await page
+        .getByRole("button", { name: /创建待办|Create Todo/i })
+        .first()
+        .click();
 
-    await expect(visibleText(page, title)).toBeVisible({
-      timeout: 15_000,
-    });
-    await captureStepScreenshot(page, testInfo, "dashboard-todos-created");
+      await expect(visibleText(page, title)).toBeVisible({
+        timeout: 15_000,
+      });
+      await captureStepScreenshot(page, testInfo, "dashboard-todos-created");
 
-    // Delete the todo via detail modal
-    await visibleText(page, title).click();
-    await page
-      .getByRole("button", { name: /删除待办|Delete todo/i })
-      .first()
-      .click();
+      // Edit the temporary todo via its detail modal.
+      await visibleText(page, title).click();
+      const detailDialog = page.getByRole("dialog", { name: title });
+      await expect(detailDialog).toBeVisible();
+      const editButton = detailDialog.getByRole("button", {
+        name: /编辑待办|Edit Todo/i,
+      });
+      await expect(editButton).toBeVisible();
+      await expect(editButton).toBeEnabled();
+      await editButton.click();
 
-    await expect(page.getByText(title)).toHaveCount(0, { timeout: 15_000 });
-    await captureStepScreenshot(page, testInfo, "dashboard-todos-deleted");
+      const editDialog = page.getByRole("dialog", {
+        name: /编辑待办|Edit Todo/i,
+      });
+      await expect(editDialog).toBeVisible();
+      const editTitleInput = editDialog.getByLabel(/^(标题|Title)$/i);
+      await expect(editTitleInput).toHaveValue(title);
+      await editTitleInput.fill(editedTitle);
+      const updateResponse = page.waitForResponse(
+        (response) =>
+          response.request().method() === "POST" &&
+          response.url().includes("/workspace/todos?/updateTodo"),
+      );
+      const saveButton = editDialog.getByRole("button", {
+        name: /保存修改|Save Changes/i,
+      });
+      await expect(saveButton).toBeEnabled();
+      await saveButton.click();
+      await expect((await updateResponse).status()).toBe(200);
+      await expect(visibleText(page, editedTitle)).toBeVisible({
+        timeout: 15_000,
+      });
+      await expect(
+        page.getByRole("button", { name: title, exact: true }),
+      ).toHaveCount(0);
+      await captureStepScreenshot(page, testInfo, "dashboard-todos-edited");
+
+      // Reload before cleanup so deletion starts from server-confirmed state.
+      await gotoAndWaitForReady(page, "/workspace/todos");
+      await page
+        .getByRole("button", { name: editedTitle, exact: true })
+        .click();
+      const deleteResponse = page.waitForResponse(
+        (response) =>
+          response.request().method() === "DELETE" &&
+          response.url().includes("/api/workspace/todos/"),
+      );
+      await page
+        .getByRole("button", { name: /删除待办|Delete todo/i })
+        .first()
+        .click();
+      await expect((await deleteResponse).status()).toBe(200);
+
+      await expect(page.getByText(editedTitle)).toHaveCount(0, {
+        timeout: 15_000,
+      });
+      await captureStepScreenshot(page, testInfo, "dashboard-todos-deleted");
+    } finally {
+      await cleanupTodosByTitlePrefix(page, title);
+    }
   });
 });
