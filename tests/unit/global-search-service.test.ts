@@ -7,6 +7,7 @@ const {
   searchLinksForGlobalMock,
   withUserDbContextMock,
   cachedCatalogRuntimeDataMock,
+  runCloudflareTraceSpanMock,
 } = vi.hoisted(() => ({
   searchCoursesForGlobalMock: vi.fn(),
   searchSectionsForGlobalMock: vi.fn(),
@@ -14,7 +15,17 @@ const {
   searchLinksForGlobalMock: vi.fn(),
   withUserDbContextMock: vi.fn(),
   cachedCatalogRuntimeDataMock: vi.fn(),
+  runCloudflareTraceSpanMock: vi.fn(),
 }));
+
+vi.mock("@/lib/adapters/cloudflare-runtime", async (importOriginal) => {
+  const actual =
+    await importOriginal<typeof import("@/lib/adapters/cloudflare-runtime")>();
+  return {
+    ...actual,
+    runCloudflareTraceSpan: runCloudflareTraceSpanMock,
+  };
+});
 
 vi.mock("@/features/search/server/global-search-catalog-queries", () => ({
   searchCoursesForGlobal: searchCoursesForGlobalMock,
@@ -49,6 +60,10 @@ describe("global search service", () => {
     searchSectionsForGlobalMock.mockResolvedValue([]);
     searchTeachersForGlobalMock.mockResolvedValue([]);
     searchLinksForGlobalMock.mockReturnValue([]);
+    runCloudflareTraceSpanMock.mockImplementation(
+      (_name: string, _attributes: object, callback: () => unknown) =>
+        callback(),
+    );
     cachedCatalogRuntimeDataMock.mockImplementation(
       async (
         _namespace: string,
@@ -160,6 +175,17 @@ describe("global search service", () => {
     expect(result.groups[0]?.items[0]?.href).toContain("homeworkId=hw-1");
     expect(result.groups[0]?.items[0]?.href).toContain("#homework");
     expect(result.groups[0]?.items[0]?.href).not.toContain("tab=homework");
+    expect(
+      runCloudflareTraceSpanMock.mock.calls.map(([name, attributes]) => [
+        name,
+        attributes,
+      ]),
+    ).toEqual([
+      ["search.catalog", { "search.scope": "catalog" }],
+      ["search.workspace", { "search.scope": "workspace" }],
+      ["search.workspace.homeworks", { "search.scope": "workspace" }],
+      ["search.workspace.todos", { "search.scope": "workspace" }],
+    ]);
   });
 
   it("returns catalog results when workspace search fails", async () => {
@@ -192,6 +218,65 @@ describe("global search service", () => {
           },
         ],
       },
+    ]);
+  });
+
+  it("preserves the optional workspace fallback when a traced DB leg fails", async () => {
+    const spanOutcomes: Array<[string, "error" | "success"]> = [];
+    runCloudflareTraceSpanMock.mockImplementation(
+      (name: string, _attributes: object, callback: () => unknown) => {
+        try {
+          return Promise.resolve(callback()).then(
+            (value) => {
+              spanOutcomes.push([name, "success"]);
+              return value;
+            },
+            (error) => {
+              spanOutcomes.push([name, "error"]);
+              throw error;
+            },
+          );
+        } catch (error) {
+          spanOutcomes.push([name, "error"]);
+          throw error;
+        }
+      },
+    );
+    const homeworkFindMany = vi
+      .fn()
+      .mockRejectedValue(new Error("homework search failed"));
+    withUserDbContextMock.mockImplementation(
+      async (_userId: string, work: (tx: unknown) => Promise<unknown>) =>
+        work({
+          homework: { findMany: homeworkFindMany },
+          todo: { findMany: vi.fn().mockResolvedValue([]) },
+        }),
+    );
+
+    const result = await searchGlobally({
+      locale: "zh-cn",
+      origin: ORIGIN,
+      query: "数据",
+      userId: "user-1",
+    });
+
+    expect(result).toEqual({ query: "数据", groups: [] });
+    expect(spanOutcomes).toEqual(
+      expect.arrayContaining([
+        ["search.catalog", "success"],
+        ["search.workspace.homeworks", "error"],
+        ["search.workspace", "error"],
+      ]),
+    );
+    expect(
+      runCloudflareTraceSpanMock.mock.calls.map(([name, attributes]) => [
+        name,
+        attributes,
+      ]),
+    ).toEqual([
+      ["search.catalog", { "search.scope": "catalog" }],
+      ["search.workspace", { "search.scope": "workspace" }],
+      ["search.workspace.homeworks", { "search.scope": "workspace" }],
     ]);
   });
 
