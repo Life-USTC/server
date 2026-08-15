@@ -1,4 +1,5 @@
 import type { AdminClassBuild, TeacherBuild } from "./identity-types";
+import { deriveScheduleUnits } from "./schedule-units";
 import {
   asBoolean,
   asDate,
@@ -474,8 +475,6 @@ export function scheduleKey(
     asInt(row.weekday) ?? "",
     asInt(row.startTime) ?? "",
     asInt(row.endTime) ?? "",
-    asInt(row.startUnit) ?? "",
-    asInt(row.endUnit) ?? "",
     asString(row.customPlace) ?? "",
     asInt(row.weekIndex) ?? "",
     roomJwId ?? "",
@@ -543,20 +542,23 @@ export function mapSchedule(
   roomJwId = asInt(row.roomId),
 ): ScheduleBuild {
   const periods = asFloat(row.periods);
+  const startTime = asInt(row.startTime) ?? 0;
+  const endTime = asInt(row.endTime) ?? 0;
+  const { startUnit, endUnit } = deriveScheduleUnits(startTime, endTime);
   return {
     periods: periods == null ? undefined : Math.round(periods),
     date: asDate(row.date),
     dateStr: asString(row.date),
     weekday: asInt(row.weekday) ?? 0,
-    startTime: asInt(row.startTime) ?? 0,
-    endTime: asInt(row.endTime) ?? 0,
+    startTime,
+    endTime,
     experiment: row.experiment != null ? String(row.experiment) : undefined,
     customPlace: asString(row.customPlace),
     lessonType: asString(row.lessonType),
     weekIndex: asInt(row.weekIndex) ?? 0,
     exerciseClass: asBoolean(row.exerciseClass) ?? false,
-    startUnit: asInt(row.startUnit) ?? 0,
-    endUnit: asInt(row.endUnit) ?? 0,
+    startUnit,
+    endUnit,
     roomJwId,
     lessonJwId: asInt(row.lessonId) ?? 0,
     scheduleGroupJwId: asInt(row.scheduleGroupId) ?? 0,

@@ -17,15 +17,15 @@ function scheduleRow(overrides: SnapshotRow = {}): SnapshotRow {
     periods: 2,
     date: "2026-09-01",
     weekday: 2,
-    startTime: 800,
-    endTime: 940,
+    startTime: 750,
+    endTime: 925,
     customPlace: null,
     experiment: false,
     lessonType: "理论",
     weekIndex: 1,
     exerciseClass: false,
-    startUnit: 1,
-    endUnit: 2,
+    startUnit: 0,
+    endUnit: 0,
     ...overrides,
   };
 }
@@ -35,6 +35,52 @@ describe("static schedule meeting mapping", () => {
     const row = scheduleRow();
 
     expect(scheduleKey(row, 5301)).not.toBe(scheduleKey(row, 5302));
+  });
+
+  it("does not use derived units as part of meeting identity", () => {
+    expect(scheduleKey(scheduleRow({ startUnit: 0, endUnit: 0 }), 5301)).toBe(
+      scheduleKey(scheduleRow({ startUnit: 1, endUnit: 2 }), 5301),
+    );
+  });
+
+  it.each([
+    [750, 835, 1, 1],
+    [840, 925, 2, 2],
+    [945, 1030, 3, 3],
+    [1035, 1120, 4, 4],
+    [1125, 1210, 5, 5],
+    [1400, 1445, 6, 6],
+    [1450, 1535, 7, 7],
+    [1555, 1640, 8, 8],
+    [1645, 1730, 9, 9],
+    [1735, 1820, 10, 10],
+    [1930, 2015, 11, 11],
+    [2020, 2105, 12, 12],
+    [2110, 2155, 13, 13],
+    [750, 925, 1, 2],
+    [945, 1120, 3, 4],
+    [1400, 1535, 6, 7],
+    [1555, 1730, 8, 9],
+    [1930, 2155, 11, 13],
+  ])("derives %i-%i as units %i-%i from exact timetable boundaries", (startTime, endTime, startUnit, endUnit) => {
+    expect(mapSchedule(scheduleRow({ startTime, endTime }))).toMatchObject({
+      startUnit,
+      endUnit,
+    });
+  });
+
+  it.each([
+    [830, 925],
+    [750, 1200],
+    [1400, 1745],
+    [1250, 1250],
+    [2110, 835],
+  ])("leaves custom or invalid time %i-%i without units", (startTime, endTime) => {
+    expect(
+      mapSchedule(
+        scheduleRow({ startTime, endTime, startUnit: 7, endUnit: 8 }),
+      ),
+    ).toMatchObject({ startUnit: 0, endUnit: 0 });
   });
 
   it("merges teachers only for the same room meeting", () => {
