@@ -322,6 +322,14 @@ describe("MCP per-tool scope enforcement", () => {
     });
   });
 
+  it("accepts identity-only tokens for public catalog calls", async () => {
+    await expect(
+      authenticate(["openid"], "catalog_course_search"),
+    ).resolves.toMatchObject({
+      authInfo: { clientId: "client-id", scopes: ["openid"] },
+    });
+  });
+
   it("requires every scope in a mixed-tool batch", async () => {
     const result = await authenticate(
       [TODO_WRITE_SCOPE],
@@ -387,9 +395,9 @@ describe("MCP per-tool scope enforcement", () => {
     }
   });
 
-  it("allows an unmapped tool after the generic feature-scope gate", async () => {
+  it("allows an unmapped tool without a feature-scope gate", async () => {
     await expect(
-      authenticate([restReadScope("account.profile")], "not_a_real_tool"),
+      authenticate(["openid"], "not_a_real_tool"),
     ).resolves.toMatchObject({ authInfo: { clientId: "client-id" } });
   });
 });

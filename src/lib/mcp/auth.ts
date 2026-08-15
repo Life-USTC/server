@@ -11,7 +11,10 @@ import {
   accessTokenLooksLikeJwt,
   verifyMcpAccessTokenRequest,
 } from "./auth-token-verification";
-import { getRequiredMcpScopes } from "./tool-scopes";
+import {
+  getRequiredMcpScopes,
+  mcpToolCallsRequireAuthentication,
+} from "./tool-scopes";
 import { getOAuthMcpResourceUrl } from "./urls";
 
 function tokenFormat(
@@ -71,7 +74,16 @@ export async function authenticateMcpRequest(
     };
   }
 
-  if (!hasMcpScope(authInfo.scopes)) {
+  const toolNames =
+    typeof toolName === "string"
+      ? [toolName]
+      : Array.isArray(toolName)
+        ? toolName
+        : [];
+  if (
+    mcpToolCallsRequireAuthentication(toolNames) &&
+    !hasMcpScope(authInfo.scopes)
+  ) {
     const diagnostics: McpAuthFailureDiagnostics = {
       authFailureKind: "missing_feature_scope",
       authHeaderKind: "bearer",

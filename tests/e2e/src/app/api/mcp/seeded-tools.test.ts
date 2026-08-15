@@ -783,17 +783,6 @@ test.describe("/api/mcp - 种子工具覆盖", () => {
             }
           | undefined;
         await expect(async () => {
-          const preferenceResponse = await page.request.post(
-            "/api/workspace/bus-preferences",
-            {
-              data: {
-                preferredOriginCampusId: 1,
-                preferredDestinationCampusId: 4,
-                showDepartedTrips: true,
-              },
-            },
-          );
-          expect(preferenceResponse.status()).toBe(200);
           busResult = await mcpClient.callTool({
             name: "catalog_bus_timetable_get",
             arguments: {
@@ -812,10 +801,7 @@ test.describe("/api/mcp - 种子工具覆盖", () => {
             ),
           ).toBe(true);
           expect(busPayload?.trips).toBeUndefined();
-          expect(busPayload?.preferences?.preferredOriginCampusId).toBe(1);
-          expect(busPayload?.preferences?.preferredDestinationCampusId).toBe(4);
-          expect(busPayload?.preferences?.showDepartedTrips).toBe(true);
-          expect((busPayload?.nextDepartures?.length ?? 0) > 0).toBe(true);
+          expect(busPayload?.preferences).toBeNull();
         }).toPass({
           timeout: 10_000,
           intervals: [250, 500, 1_000],
@@ -883,14 +869,12 @@ test.describe("/api/mcp - 种子工具覆盖", () => {
         expect(typeof busSummaryPayload.counts?.routes).toBe("number");
         expect(typeof busSummaryPayload.counts?.weekdayTrips).toBe("number");
         expect(typeof busSummaryPayload.counts?.weekendTrips).toBe("number");
-        expect((busSummaryPayload.nextDepartures?.length ?? 0) > 0).toBe(true);
+        expect(busSummaryPayload.nextDepartures).toEqual([]);
         expect(Array.isArray(busSummaryPayload.campuses)).toBe(true);
         expect(Array.isArray(busSummaryPayload.routes)).toBe(true);
         expect(busSummaryPayload.trips).toBeUndefined();
         expect(busResult).toBeDefined();
-        if (busSummaryPayload.nextDepartures?.length === 0) {
-          expect(typeof busSummaryPayload.nextDeparturesMessage).toBe("string");
-        }
+        expect(typeof busSummaryPayload.nextDeparturesMessage).toBe("string");
 
         // catalog_bus_route_list — lightweight route catalog
         const listRoutesResult = await mcpClient.callTool({
