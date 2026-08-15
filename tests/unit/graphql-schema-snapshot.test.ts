@@ -18,8 +18,11 @@ function readSnapshotAtRef(ref: string) {
       encoding: "utf8",
       stdio: ["ignore", "pipe", "ignore"],
     });
-  } catch {
-    return null;
+  } catch (error) {
+    throw new Error(
+      `Unable to read GraphQL schema snapshot from configured base ref ${ref}`,
+      { cause: error },
+    );
   }
 }
 
@@ -39,7 +42,6 @@ describe("GraphQL schema snapshot", () => {
     if (!baseRef) return;
 
     const previousSnapshot = readSnapshotAtRef(baseRef);
-    if (!previousSnapshot) return;
 
     const breakingChanges = findGraphqlBreakingChanges(
       previousSnapshot,
@@ -62,5 +64,13 @@ describe("GraphQL schema snapshot", () => {
         .map((change) => `${change.type}: ${change.description}`)
         .join("\n"),
     ).toEqual([]);
+  });
+
+  it("fails closed when a configured base snapshot cannot be read", () => {
+    expect(() =>
+      readSnapshotAtRef("refs/heads/__missing_graphql_contract_base__"),
+    ).toThrow(
+      "Unable to read GraphQL schema snapshot from configured base ref",
+    );
   });
 });
