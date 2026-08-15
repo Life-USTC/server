@@ -1,3 +1,10 @@
+## [1.90.7](https://github.com/Life-USTC/server/compare/v1.90.6...v1.90.7) (2026-08-15)
+
+
+### Bug Fixes
+
+* **oauth:** preserve grants across consent retries ([#848](https://github.com/Life-USTC/server/issues/848)) ([981778b](https://github.com/Life-USTC/server/commit/981778b75f1e5c9004ecf39affcd9be3a9a11a8a))
+
 ## [1.90.6](https://github.com/Life-USTC/server/compare/v1.90.5...v1.90.6) (2026-08-15)
 
 
