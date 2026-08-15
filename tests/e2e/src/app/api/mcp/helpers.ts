@@ -6,10 +6,8 @@ import {
   OAUTH_AUTHORIZATION_CODE_GRANT_TYPE,
   OAUTH_CODE_RESPONSE_TYPE,
   OAUTH_PUBLIC_CLIENT_AUTH_METHOD,
-  PUBLIC_REST_FEATURES,
-  restReadScope,
-  restWriteScope,
 } from "@/lib/oauth/constants";
+import { PUBLIC_REST_SCOPES } from "@/lib/oauth/scope-registry";
 import { sha256Base64Url } from "../../../../../shared/crypto";
 import { signInAsDebugUser } from "../../../../utils/auth";
 import { DEV_SEED } from "../../../../utils/dev-seed";
@@ -25,10 +23,7 @@ async function generateCodeChallenge(codeVerifier: string) {
 const REDIRECT_URI = `${PLAYWRIGHT_BASE_URL}/e2e/oauth/callback`;
 export const MCP_CLIENT_SCOPES = [
   ...DEFAULT_OAUTH_CLIENT_SCOPES,
-  ...PUBLIC_REST_FEATURES.flatMap((feature) => [
-    restReadScope(feature),
-    restWriteScope(feature),
-  ]),
+  ...PUBLIC_REST_SCOPES,
 ];
 export const MCP_CLIENT_SCOPE = MCP_CLIENT_SCOPES.join(" ");
 export const DEFAULT_CLIENT_SCOPE = DEFAULT_OAUTH_CLIENT_SCOPES.join(" ");

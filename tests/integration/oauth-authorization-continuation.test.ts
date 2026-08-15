@@ -4,17 +4,18 @@ import { authPostRoute } from "@/lib/api/routes/auth";
 import { prisma } from "@/lib/db/prisma";
 import { hashOAuthClientSecretForDbStorage } from "@/lib/oauth/utils";
 
-const AUTH_SECRET =
-  "oauth-authorization-continuation-test-secret-at-least-32-bytes";
-
-const { authHandlerMock, getSessionFromHeadersMock } = vi.hoisted(() => ({
-  authHandlerMock: vi.fn(),
-  getSessionFromHeadersMock: vi.fn(),
-}));
+const { authHandlerMock, authSecret, getSessionFromHeadersMock } = vi.hoisted(
+  () => ({
+    authHandlerMock: vi.fn(),
+    authSecret:
+      "oauth-authorization-continuation-test-secret-at-least-32-bytes",
+    getSessionFromHeadersMock: vi.fn(),
+  }),
+);
 
 vi.mock("@/lib/auth/core", () => ({
   betterAuthInstance: {
-    $context: Promise.resolve({ secret: AUTH_SECRET }),
+    $context: Promise.resolve({ secret: authSecret }),
     handler: authHandlerMock,
   },
   getSessionFromHeaders: getSessionFromHeadersMock,
@@ -51,7 +52,7 @@ describe.sequential("OAuth authorization continuation grant binding", () => {
         return 0;
       }),
     );
-    query.set("sig", await makeSignature(canonical.toString(), AUTH_SECRET));
+    query.set("sig", await makeSignature(canonical.toString(), authSecret));
     return query.toString();
   }
 

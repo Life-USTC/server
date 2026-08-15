@@ -21,7 +21,7 @@
     "primary-admin-navigation": "The global shell exposes each admin tool (users, moderation, OAuth, bus, audit, aggregate analytics) under Admin tools. /admin redirects to /admin/users; resource URLs remain stable.",
     "audit-session-only": "The /admin/audit and /admin/analytics pages require an in-site Better Auth admin session. OAuth bearer tokens cannot access governance data.",
     "audit-safe-projection": "The admin audit list uses stable (createdAt,id) cursor pagination and exposes allowlisted structured metadata only; content bodies, IP addresses, full user agents, tokens, secrets, grant IDs, session IDs, and request IDs are not displayed.",
-    "aggregate-only-analytics": "Admin analytics is aggregated by feature, channel, outcome, and first-party/OAuth client. It never exposes per-user browsing trails.",
+    "aggregate-only-analytics": "Admin analytics combines first-party audit events with content-free OAuth daily usage counters, aggregated by feature, channel, outcome, and first-party/OAuth client. External OAuth mutations are excluded from the event source to prevent double counting. It never exposes per-user browsing trails.",
     "responsive-workspace": "Admin management pages share a lightweight workspace order of page identity, optional feedback or filters, then records; desktop tables retain their density while existing compact record views remain the mobile presentation."
   },
   "capabilities": {

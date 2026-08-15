@@ -10,6 +10,12 @@ const expectedFunctions = [
   {
     securityDefiner: true,
     settings: ['search_path=""'],
+    signature: "public.anonymize_deleted_account_audit_targets(p_user_id text)",
+    volatility: "VOLATILE",
+  },
+  {
+    securityDefiner: true,
+    settings: ['search_path=""'],
     signature:
       "public.claim_upload_pending_storage_cleanup(p_now timestamp without time zone, p_batch_size integer, p_lease_seconds integer)",
     volatility: "VOLATILE",
@@ -112,6 +118,7 @@ const expectedTablePrivileges = [
   "public.UploadPending:SELECT",
   "public.UploadPending:UPDATE",
   "public.User:SELECT",
+  "public.UserSectionSubscription:SELECT",
   "public.VerificationToken:DELETE",
   "public.VerificationToken:SELECT",
   "public.VerifiedEmail:DELETE",

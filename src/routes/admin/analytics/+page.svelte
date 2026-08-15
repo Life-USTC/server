@@ -37,7 +37,8 @@ function daysLabel(days: number) {
       {#if data.rows.length === 0}
         <p class="p-6 text-sm text-muted-foreground">{data.copy.analytics.noData}</p>
       {:else}
-        <div class="overflow-x-auto">
+        <!-- svelte-ignore a11y_no_noninteractive_tabindex (keyboard access for the horizontally scrollable table) -->
+        <div class="overflow-x-auto" tabindex="0" role="region" aria-label={data.copy.analytics.title}>
           <table class="w-full min-w-[720px] text-left text-sm">
             <thead class="border-b bg-muted/40"><tr><th class="p-3">{data.copy.analytics.feature}</th><th class="p-3">{data.copy.analytics.channel}</th><th class="p-3">{data.copy.analytics.outcome}</th><th class="p-3">{data.copy.analytics.client}</th><th class="p-3 text-right">{data.copy.analytics.count}</th></tr></thead>
             <tbody>{#each data.rows as row}<tr class="border-b last:border-0"><td class="p-3 font-medium">{row.feature}</td><td class="p-3">{row.channel}</td><td class="p-3">{row.outcome}</td><td class="p-3">{row.client}</td><td class="p-3 text-right tabular-nums">{row.count}</td></tr>{/each}</tbody>

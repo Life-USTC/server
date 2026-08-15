@@ -37,6 +37,12 @@ SET row_security = off;
 -- Data for Name: User; Type: TABLE DATA; Schema: public; Owner: -
 --
 
+-- A destructive E2E scenario can recreate the debug principal with a new id.
+-- Restore the named fixture identity before inserting rows that reference it.
+DELETE FROM public."User"
+WHERE email = 'dev-user@debug.local'
+  AND id <> 'cmqw1sr9g0001bqt44c3s0kqa';
+
 INSERT INTO public."User" (id, name, image, "createdAt", "updatedAt", "profilePictures", username, "isAdmin", "calendarFeedToken", email, "emailVerified") VALUES ('cmqw1sr9e0000bqt4j4a16ffb', '校园管理员', 'https://api.dicebear.com/9.x/shapes/svg?seed=life-ustc-admin', '2026-06-27 07:38:09.794', '2026-06-27 07:38:09.794', '{}', 'dev-admin', true, NULL, 'dev-admin@debug.local', true) ON CONFLICT DO NOTHING;
 INSERT INTO public."User" (id, name, image, "createdAt", "updatedAt", "profilePictures", username, "isAdmin", "calendarFeedToken", email, "emailVerified") VALUES ('cmqw1sr9g0001bqt44c3s0kqa', 'Dev User', 'https://api.dicebear.com/9.x/shapes/svg?seed=life-ustc-dev-user', '2026-06-27 07:38:09.796', '2026-06-27 07:38:09.796', '{}', 'dev-user', false, NULL, 'dev-user@debug.local', true) ON CONFLICT DO NOTHING;
 
@@ -637,6 +643,43 @@ INSERT INTO public."UserSectionSubscription" ("userId", "sectionId") VALUES ('cm
 INSERT INTO public."UserSectionSubscription" ("userId", "sectionId") VALUES ('cmqw1sr9g0001bqt44c3s0kqa', 2) ON CONFLICT DO NOTHING;
 INSERT INTO public."UserSectionSubscription" ("userId", "sectionId") VALUES ('cmqw1sr9g0001bqt44c3s0kqa', 3) ON CONFLICT DO NOTHING;
 INSERT INTO public."UserSectionSubscription" ("userId", "sectionId") VALUES ('cmqw1sr9g0001bqt44c3s0kqa', 4) ON CONFLICT DO NOTHING;
+
+-- Account-deletion tests intentionally exercise ON DELETE SET NULL. Restore
+-- ownership on the named scenario rows so reseeding is a complete reset.
+UPDATE public."Homework"
+SET
+  "createdById" = 'cmqw1sr9g0001bqt44c3s0kqa',
+  "updatedById" = 'cmqw1sr9g0001bqt44c3s0kqa',
+  "deletedById" = CASE
+    WHEN id = 'cmqw1srez000abqt4el2uqvbq'
+      THEN 'cmqw1sr9g0001bqt44c3s0kqa'
+    ELSE NULL
+  END
+WHERE id LIKE 'cmqw1srez%';
+
+UPDATE public."Comment"
+SET
+  "userId" = 'cmqw1sr9g0001bqt44c3s0kqa',
+  "moderatedById" = CASE
+    WHEN id = 'cmqw1srfh000sbqt4rlvla7qd'
+      THEN 'cmqw1sr9e0000bqt4j4a16ffb'
+    ELSE NULL
+  END
+WHERE id LIKE 'cmqw1srf%';
+
+UPDATE public."Description"
+SET "lastEditedById" = 'cmqw1sr9g0001bqt44c3s0kqa'
+WHERE id LIKE 'cmqw1srf%';
+
+UPDATE public."DescriptionEdit"
+SET "editorId" = 'cmqw1sr9g0001bqt44c3s0kqa'
+WHERE id LIKE 'cmqw1srf%';
+
+UPDATE public."AuditLog"
+SET
+  "userId" = 'cmqw1sr9g0001bqt44c3s0kqa',
+  "subjectUserId" = 'cmqw1sr9g0001bqt44c3s0kqa'
+WHERE id LIKE 'cmqw1srf%';
 
 
 --

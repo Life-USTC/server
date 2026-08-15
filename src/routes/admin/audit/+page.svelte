@@ -73,7 +73,8 @@ function pageLabel() {
       {#if data.rows.length === 0}
         <p class="p-6 text-sm text-muted-foreground">{data.copy.audit.noRecords}</p>
       {:else}
-        <div class="overflow-x-auto">
+        <!-- svelte-ignore a11y_no_noninteractive_tabindex (keyboard access for the horizontally scrollable table) -->
+        <div class="overflow-x-auto" tabindex="0" role="region" aria-label={data.copy.audit.records}>
           <table class="w-full min-w-[1050px] text-left text-sm">
             <thead class="border-b bg-muted/40"><tr><th class="p-3">{data.copy.audit.time}</th><th class="p-3">{data.copy.audit.action}</th><th class="p-3">{data.copy.audit.actorColumn}</th><th class="p-3">{data.copy.audit.subjectColumn}</th><th class="p-3">{data.copy.audit.clientColumn}</th><th class="p-3">{data.copy.audit.channel}</th><th class="p-3">{data.copy.audit.outcome}</th><th class="p-3">{data.copy.audit.target}</th><th class="p-3">{data.copy.audit.details}</th></tr></thead>
             <tbody>

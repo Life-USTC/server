@@ -174,6 +174,29 @@ describe("rotateUserCalendarFeedToken", () => {
       "rotated-secret-token",
     );
   });
+
+  it("records a failure without exposing the generated token", async () => {
+    resolveAuthoritativeRecentSessionMock.mockResolvedValue({
+      ok: true,
+      sessionId: "session-1",
+      userId: "user-1",
+    });
+    randomBytesBase64UrlMock.mockReturnValue("failed-secret-token");
+    updateMock.mockRejectedValue(new Error("database unavailable"));
+
+    await expect(
+      rotateUserCalendarFeedToken("user-1", new Headers()),
+    ).rejects.toThrow("database unavailable");
+    expect(fireAuditLogMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: "account_calendar_token_rotate",
+        outcome: "failure",
+      }),
+    );
+    expect(JSON.stringify(fireAuditLogMock.mock.calls)).not.toContain(
+      "failed-secret-token",
+    );
+  });
 });
 
 describe("getCalendarSubscriptionUrl 日历订阅地址", () => {

@@ -26,6 +26,7 @@ const ACCOUNT_SECURITY_ACTIONS = [
   "admin_user_suspend",
   "admin_user_unsuspend",
   "admin_user_role_update",
+  "admin_user_profile_update",
 ] as const satisfies readonly AuditAction[];
 
 export type AccountActivityCursor = {

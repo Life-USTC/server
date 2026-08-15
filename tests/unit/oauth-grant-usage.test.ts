@@ -48,6 +48,9 @@ describe.sequential("OAuth grant usage aggregation", () => {
     expect(statement.sql).toContain(
       '"lastUsedAt" = GREATEST(\n        "OAuthGrantUsageDaily"."lastUsedAt",',
     );
+    expect(statement.sql).toContain(
+      'WHERE EXISTS (\n      SELECT 1 FROM "User"',
+    );
     expect(statement.values).toEqual([
       expect.any(String),
       "user-1",
@@ -61,6 +64,8 @@ describe.sequential("OAuth grant usage aggregation", () => {
       0,
       3,
       usage.usedAt,
+      "user-1",
+      "client-1",
     ]);
   });
 

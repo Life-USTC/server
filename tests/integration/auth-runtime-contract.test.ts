@@ -213,6 +213,10 @@ describe.skipIf(process.env.AUTH_ROLE_TEST_ENABLED !== "true")(
       expect(functionGrants).toEqual([
         {
           signature:
+            "public.anonymize_deleted_account_audit_targets(p_user_id text):EXECUTE",
+        },
+        {
+          signature:
             "public.unlink_settings_account(p_user_id text, p_provider text):EXECUTE",
         },
       ]);

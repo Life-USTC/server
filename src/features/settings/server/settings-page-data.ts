@@ -86,6 +86,7 @@ export async function getSettingsPageData(
     message: [
       "AccountDisconnected",
       "AuthorizationRevoked",
+      "CalendarTokenRotated",
       "Success",
     ].includes(url.searchParams.get("message") ?? "")
       ? url.searchParams.get("message")

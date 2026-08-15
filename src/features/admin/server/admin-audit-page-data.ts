@@ -7,6 +7,7 @@ import type {
 import { authPrisma } from "@/lib/db/auth-prisma";
 import { prisma } from "@/lib/db/prisma";
 import { optionalValue } from "@/lib/load-data-utils";
+import { shanghaiDayjs } from "@/lib/time/shanghai-dayjs";
 import { requireAdminPage } from "./admin-page-auth";
 
 export const ADMIN_AUDIT_PAGE_SIZE = 50;
@@ -35,9 +36,11 @@ export const ADMIN_AUDIT_ACTIONS = [
   "section_retire",
   "section_reactivate",
   "webhook_login",
+  "account_create",
   "account_sign_in",
   "account_sign_out",
   "account_profile_update",
+  "account_credential_update",
   "account_link",
   "account_unlink",
   "account_delete",
@@ -45,6 +48,7 @@ export const ADMIN_AUDIT_ACTIONS = [
   "account_passkey_update",
   "account_passkey_delete",
   "account_session_revoke",
+  "account_calendar_token_create",
   "account_calendar_token_rotate",
   "oauth_authorization_grant",
   "oauth_authorization_update",
@@ -88,10 +92,24 @@ function safeAuditMetadata(value: Prisma.JsonValue | null) {
   const safe: Record<string, Prisma.JsonValue> = {};
   for (const key of [
     "changedFields",
+    "authMethod",
     "campuses",
+    "jwId",
+    "observedAt",
+    "previousRetiredAt",
+    "provider",
+    "reason",
     "reasonProvided",
+    "resourceCount",
+    "revokedAccessTokenCount",
+    "revokedDeviceCodeCount",
+    "revokedRefreshTokenCount",
     "routes",
+    "scopeCount",
     "sectionId",
+    "selfService",
+    "size",
+    "snapshotSha256",
     "source",
     "status",
     "suspensionId",
@@ -100,6 +118,22 @@ function safeAuditMetadata(value: Prisma.JsonValue | null) {
     if (metadata[key] !== undefined) safe[key] = metadata[key];
   }
   return Object.keys(safe).length > 0 ? safe : null;
+}
+
+const HIDDEN_ADMIN_AUDIT_TARGET_ID_TYPES = new Set([
+  "account",
+  "oauth_consent",
+  "passkey",
+  "session",
+]);
+
+export function safeAdminAuditTargetId(
+  targetType: string | null,
+  targetId: string | null,
+) {
+  return targetType && HIDDEN_ADMIN_AUDIT_TARGET_ID_TYPES.has(targetType)
+    ? null
+    : targetId;
 }
 
 type AdminAuditCursor = { createdAt: Date; id: string };
@@ -270,6 +304,7 @@ export async function getAdminAuditPage(request: Request, url: URL) {
         : null,
       createdAt: row.createdAt.toISOString(),
       metadata: safeAuditMetadata(row.metadata),
+      targetId: safeAdminAuditTargetId(row.targetType, row.targetId),
     })),
   };
 }
@@ -288,13 +323,37 @@ export async function getAdminAnalyticsPage(request: Request, url: URL) {
   const requestedDays = Number(url.searchParams.get("days"));
   const days = [7, 30, 90].includes(requestedDays) ? requestedDays : 30;
   const from = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
-  const grouped = await prisma.auditLog.groupBy({
-    by: ["action", "channel", "outcome", "oauthClientId", "targetType"],
-    where: { createdAt: { gte: from } },
-    _count: { _all: true },
-  });
+  const fromDay = new Date(
+    `${shanghaiDayjs()
+      .subtract(days - 1, "day")
+      .format("YYYY-MM-DD")}T00:00:00.000Z`,
+  );
+  const [grouped, oauthUsage] = await Promise.all([
+    prisma.auditLog.groupBy({
+      by: ["action", "channel", "outcome", "oauthClientId", "targetType"],
+      where: {
+        createdAt: { gte: from },
+        // REST/GraphQL/MCP OAuth calls are represented by the content-free
+        // usage aggregate below. Excluding their per-mutation audit rows keeps
+        // external-client writes from being counted twice.
+        OR: [
+          { oauthClientId: null },
+          { channel: { notIn: ["rest", "graphql", "mcp"] } },
+        ],
+      },
+      _count: { _all: true },
+    }),
+    prisma.oAuthGrantUsageDaily.groupBy({
+      by: ["channel", "clientId", "feature"],
+      where: { day: { gte: fromDay } },
+      _sum: { errorCount: true, readCount: true, writeCount: true },
+    }),
+  ]);
   const clientIds = [
-    ...new Set(grouped.flatMap((row) => row.oauthClientId ?? [])),
+    ...new Set([
+      ...grouped.flatMap((row) => row.oauthClientId ?? []),
+      ...oauthUsage.map((row) => row.clientId),
+    ]),
   ];
   const clients = clientIds.length
     ? await authPrisma.oAuthClient.findMany({
@@ -315,23 +374,57 @@ export async function getAdminAnalyticsPage(request: Request, url: URL) {
       outcome: AuditOutcome;
     }
   >();
-  for (const row of grouped) {
-    const feature = analyticsFeature(row.action, row.targetType);
-    const client = row.oauthClientId
-      ? (clientNames.get(row.oauthClientId) ?? row.oauthClientId)
+  function addRow(input: {
+    channel: AuditChannel;
+    clientId: string | null;
+    count: number;
+    feature: string;
+    outcome: AuditOutcome;
+  }) {
+    if (input.count <= 0) return;
+    const client = input.clientId
+      ? clientNames.get(input.clientId)?.trim() || input.clientId
       : "first-party";
-    const key = `${feature}\u0000${row.channel}\u0000${row.outcome}\u0000${client}`;
+    const clientKey = input.clientId ?? "first-party";
+    const key = `${input.feature}\u0000${input.channel}\u0000${input.outcome}\u0000${clientKey}`;
     const existing = aggregated.get(key);
-    if (existing) existing.count += row._count._all;
+    if (existing) existing.count += input.count;
     else {
       aggregated.set(key, {
-        channel: row.channel,
+        channel: input.channel,
         client,
-        count: row._count._all,
-        feature,
-        outcome: row.outcome,
+        count: input.count,
+        feature: input.feature,
+        outcome: input.outcome,
       });
     }
+  }
+  for (const row of grouped) {
+    addRow({
+      channel: row.channel,
+      clientId: row.oauthClientId,
+      count: row._count._all,
+      feature: analyticsFeature(row.action, row.targetType),
+      outcome: row.outcome,
+    });
+  }
+  for (const row of oauthUsage) {
+    const total = (row._sum.readCount ?? 0) + (row._sum.writeCount ?? 0);
+    const failures = Math.min(total, row._sum.errorCount ?? 0);
+    addRow({
+      channel: row.channel,
+      clientId: row.clientId,
+      count: total - failures,
+      feature: row.feature,
+      outcome: "success",
+    });
+    addRow({
+      channel: row.channel,
+      clientId: row.clientId,
+      count: failures,
+      feature: row.feature,
+      outcome: "failure",
+    });
   }
   const rows = [...aggregated.values()].sort(
     (left, right) => right.count - left.count,

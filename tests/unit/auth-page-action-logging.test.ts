@@ -214,6 +214,23 @@ describe("auth page action logging", () => {
     });
     expect(unlinkSettingsAccountMock).not.toHaveBeenCalled();
 
+    const linkRequest = new Request(
+      "https://life.example/account/settings/accounts",
+      {
+        body: new URLSearchParams({ providerId: "github" }),
+        method: "POST",
+      },
+    );
+    const linkResult = await linkSettingsAccountAction({
+      cookies,
+      locale: "en-us",
+      request: linkRequest,
+      requestId: "request-link",
+      url: new URL(linkRequest.url),
+    });
+    expect(linkResult).toMatchObject({ status: 403 });
+    expect(linkAccountFromSvelteActionMock).not.toHaveBeenCalled();
+
     const deleteRequest = new Request(
       "https://life.example/account/settings/accounts",
       {

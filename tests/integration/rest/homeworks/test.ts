@@ -51,7 +51,7 @@ test("/api/community/section-homeworks GET 返回 seed 作业、completion 与�
     viewer?: { userId?: string | null };
     data?: Array<Record<string, unknown>>;
     pagination?: { page?: number; pageSize?: number; total?: number };
-    auditLogs?: Array<{ action?: string; titleSnapshot?: string }>;
+    auditLogs?: Array<{ action?: string; titleSnapshot?: string | null }>;
   };
 
   expect(body.viewer?.userId).toBeTruthy();
@@ -68,14 +68,10 @@ test("/api/community/section-homeworks GET 返回 seed 作业、completion 与�
         Number.isInteger(item.commentCount as number),
     ),
   ).toBe(true);
-  expect(
-    body.auditLogs?.some(
-      (item) =>
-        item.action === "created" &&
-        typeof item.titleSnapshot === "string" &&
-        item.titleSnapshot.length > 0,
-    ),
-  ).toBe(true);
+  expect(body.auditLogs?.some((item) => item.action === "created")).toBe(true);
+  expect(body.auditLogs?.every((item) => item.titleSnapshot === null)).toBe(
+    true,
+  );
 
   // Verify HomeworkItem fields on the seed homework
   expect(body.pagination).toMatchObject({ page: 1, pageSize: 20 });

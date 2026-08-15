@@ -3,10 +3,12 @@ import { bindOAuthAuthorizationCodeRedirectToActiveGrant } from "@/features/oaut
 import { verifyOAuthProviderSignedQueryState } from "@/features/oauth/server/signed-oauth-query.server";
 import {
   type AuditLogParams,
+  fireAuditLog,
   getAuditRequestMetadata,
   writeAuditLog,
 } from "@/lib/audit/write-audit-log";
 import { isTrustedAuthOrigin } from "@/lib/auth/auth-origins";
+import { resolveAuthoritativeRecentSession } from "@/lib/auth/recent-session";
 import { authPrisma as prisma } from "@/lib/db/auth-prisma";
 import { runSerializableTransaction } from "@/lib/db/serializable-transaction";
 import { getCanonicalOAuthIssuer } from "@/lib/mcp/urls";
@@ -34,6 +36,8 @@ const OAUTH_SINGLETON_QUERY_FIELDS = [
 const SUPPORTED_USERINFO_CLAIMS = new Set<string>(
   OAUTH_PROVIDER_CLAIMS_SUPPORTED,
 );
+
+class OAuthRecentAuthRequiredError extends Error {}
 
 type OAuthSession = {
   session: {
@@ -447,14 +451,34 @@ export async function createAcceptedOAuthAuthorization(input: {
   );
 }
 
-async function createDeniedOAuthAuthorization(authorizeQuery: URLSearchParams) {
-  const request = await validateConsentRequest(prisma, authorizeQuery);
+async function createDeniedOAuthAuthorization(input: {
+  audit: Pick<
+    AuditLogParams,
+    "channel" | "ipAddress" | "requestId" | "userAgent"
+  >;
+  authorizeQuery: URLSearchParams;
+  session: OAuthSession;
+}) {
+  const request = await validateConsentRequest(prisma, input.authorizeQuery);
   if (!request) return null;
+
+  await fireAuditLog({
+    action: "oauth_authorization_grant",
+    oauthClientId: request.clientId,
+    outcome: "denied",
+    sessionId: input.session.session.id,
+    subjectUserId: input.session.user.id,
+    targetId: request.clientId,
+    targetType: "oauth_client",
+    userId: input.session.user.id,
+    metadata: { reason: "user_denied" },
+    ...input.audit,
+  });
 
   return buildOAuthCallbackUrl({
     error: "access_denied",
     errorDescription: "User denied access",
-    query: authorizeQuery,
+    query: input.authorizeQuery,
     redirectUri: request.redirectUri,
   });
 }
@@ -470,6 +494,8 @@ export async function submitOAuthConsentAction({
   const { accept, oauthQuery, scope } = parseOAuthConsentForm(form);
 
   let redirectTarget: string | undefined;
+  let failureCode = "consent_failed";
+  let failedMutationAudit: AuditLogParams | undefined;
   try {
     const authCore = await import("@/lib/auth/core");
     const [signedState, session] = await Promise.all([
@@ -488,8 +514,59 @@ export async function submitOAuthConsentAction({
 
     if (!accept) {
       redirectTarget =
-        (await createDeniedOAuthAuthorization(authorizeQuery)) ?? undefined;
+        (await createDeniedOAuthAuthorization({
+          audit: { channel: "web", ...getAuditRequestMetadata(request) },
+          authorizeQuery,
+          session,
+        })) ?? undefined;
     } else {
+      const validated = await validateConsentRequest(prisma, authorizeQuery);
+      if (!validated) throw new Error("Invalid OAuth consent request");
+      const existingConsent = await prisma.oAuthConsent.findUnique({
+        where: {
+          clientId_userId: {
+            clientId: validated.clientId,
+            userId: session.user.id,
+          },
+        },
+        select: { id: true },
+      });
+      failedMutationAudit = {
+        action: existingConsent
+          ? "oauth_authorization_update"
+          : "oauth_authorization_grant",
+        channel: "web",
+        oauthClientId: validated.clientId,
+        outcome: "failure",
+        sessionId: session.session.id,
+        subjectUserId: session.user.id,
+        targetId: existingConsent?.id ?? validated.clientId,
+        targetType: existingConsent ? "oauth_consent" : "oauth_client",
+        userId: session.user.id,
+        metadata: { reason: "operation_failed" },
+        ...getAuditRequestMetadata(request),
+      };
+      const recent = await resolveAuthoritativeRecentSession(request.headers, {
+        expectedUserId: session.user.id,
+      });
+      if (!recent.ok) {
+        await fireAuditLog({
+          action: existingConsent
+            ? "oauth_authorization_update"
+            : "oauth_authorization_grant",
+          channel: "web",
+          oauthClientId: validated.clientId,
+          outcome: "denied",
+          sessionId: recent.sessionId ?? session.session.id,
+          subjectUserId: session.user.id,
+          targetId: existingConsent?.id ?? validated.clientId,
+          targetType: existingConsent ? "oauth_consent" : "oauth_client",
+          userId: session.user.id,
+          metadata: { reason: recent.reason },
+          ...getAuditRequestMetadata(request),
+        });
+        throw new OAuthRecentAuthRequiredError();
+      }
       if (
         (postLoginClearedForSession !== null &&
           postLoginClearedForSession !== session.session.id) ||
@@ -498,6 +575,12 @@ export async function submitOAuthConsentAction({
             sessionCreatedAt === null ||
             sessionCreatedAt < issuedAt.getTime()))
       ) {
+        await fireAuditLog({
+          ...failedMutationAudit,
+          outcome: "denied",
+          metadata: { reason: "prompt_not_satisfied" },
+        });
+        failedMutationAudit = undefined;
         throw new Error("OAuth consent session no longer satisfies the prompt");
       }
       if (prompts.has("login")) removePrompt(authorizeQuery, "login");
@@ -523,12 +606,17 @@ export async function submitOAuthConsentAction({
       }
       redirectTarget = authorization.redirectTarget;
     }
-  } catch {
+  } catch (error) {
+    if (error instanceof OAuthRecentAuthRequiredError) {
+      failureCode = "recent_auth_required";
+    } else if (failedMutationAudit) {
+      await fireAuditLog(failedMutationAudit);
+    }
     redirectTarget = undefined;
   }
 
   if (redirectTarget) {
     throw redirect(303, redirectTarget);
   }
-  throw redirect(303, "/error?error=consent_failed");
+  throw redirect(303, `/error?error=${failureCode}`);
 }

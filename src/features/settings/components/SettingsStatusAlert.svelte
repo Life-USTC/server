@@ -8,20 +8,25 @@ export let statusMessage: string | null | undefined;
 $: isSuccessStatus =
   statusMessage === "Success" ||
   statusMessage === "AccountDisconnected" ||
-  statusMessage === "AuthorizationRevoked";
+  statusMessage === "AuthorizationRevoked" ||
+  statusMessage === "CalendarTokenRotated";
 $: statusTitle = isSuccessStatus
-  ? statusMessage === "AuthorizationRevoked"
-    ? copy.settings.authorizations.revokeSuccess
-    : statusMessage === "AccountDisconnected"
-      ? copy.profile.disconnectSuccess
-      : copy.profile.updateSuccess
+  ? statusMessage === "CalendarTokenRotated"
+    ? copy.settings.security.calendarTokenRotated
+    : statusMessage === "AuthorizationRevoked"
+      ? copy.settings.authorizations.revokeSuccess
+      : statusMessage === "AccountDisconnected"
+        ? copy.profile.disconnectSuccess
+        : copy.profile.updateSuccess
   : copy.profile.updateError;
 $: statusDescription = isSuccessStatus
-  ? statusMessage === "AuthorizationRevoked"
-    ? copy.settings.authorizations.revokeSuccessDescription
-    : statusMessage === "AccountDisconnected"
-      ? copy.profile.disconnectSuccessDescription
-      : copy.profile.updateSuccessDescription
+  ? statusMessage === "CalendarTokenRotated"
+    ? copy.settings.security.calendarTokenRotatedDescription
+    : statusMessage === "AuthorizationRevoked"
+      ? copy.settings.authorizations.revokeSuccessDescription
+      : statusMessage === "AccountDisconnected"
+        ? copy.profile.disconnectSuccessDescription
+        : copy.profile.updateSuccessDescription
   : statusMessage;
 </script>
 

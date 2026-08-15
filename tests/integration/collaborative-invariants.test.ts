@@ -150,10 +150,11 @@ describe("协作数据不变量", () => {
     ]);
     const auditLog = await prisma.auditLog.create({
       data: {
-        action: "comment_create",
+        action: "account_profile_update",
         userId: deletingAdmin.id,
-        targetId: prefix,
-        targetType: "integration-test",
+        subjectUserId: deletingAdmin.id,
+        targetId: deletingAdmin.id,
+        targetType: "user",
       },
       select: { id: true },
     });
@@ -179,9 +180,9 @@ describe("协作数据不变量", () => {
       await expect(
         prisma.auditLog.findUnique({
           where: { id: auditLog.id },
-          select: { userId: true },
+          select: { subjectUserId: true, targetId: true, userId: true },
         }),
-      ).resolves.toEqual({ userId: null });
+      ).resolves.toEqual({ subjectUserId: null, targetId: null, userId: null });
       await expect(
         prisma.userSuspension.findUnique({
           where: { id: suspension.id },

@@ -184,6 +184,7 @@ describe.sequential("OAuth user authorization management", () => {
         disabled: false,
         scopes: ["calendar:read", "profile"],
         updatedAt: "2026-07-20T00:00:00.000Z",
+        usage: null,
       },
     ]);
   });

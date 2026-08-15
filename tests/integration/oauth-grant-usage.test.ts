@@ -131,4 +131,36 @@ describe.sequential("OAuth authorization usage summary", () => {
     expect(row.lastUsedAt).toEqual(newer);
     expect(row.readCount).toBe(2);
   });
+
+  it("客户端已删除时延迟到达的统计写入安全地跳过", async () => {
+    const deletedClientId = `deleted-usage-client-${marker}`;
+    await prisma.oAuthClient.create({
+      data: {
+        clientId: deletedClientId,
+        name: "Deleted usage client",
+        redirectUris: ["https://deleted-usage.example/callback"],
+        skipConsent: false,
+      },
+    });
+    await prisma.oAuthClient.delete({ where: { clientId: deletedClientId } });
+
+    await expect(
+      recordOAuthGrantUsage(
+        {
+          userId,
+          clientId: deletedClientId,
+          channel: "mcp",
+          feature: "account.profile",
+          action: "read",
+          usedAt: anchor,
+        },
+        prisma,
+      ),
+    ).resolves.toBe(true);
+    await expect(
+      prisma.oAuthGrantUsageDaily.count({
+        where: { userId, clientId: deletedClientId },
+      }),
+    ).resolves.toBe(0);
+  });
 });

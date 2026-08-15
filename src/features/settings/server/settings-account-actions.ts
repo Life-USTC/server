@@ -55,12 +55,34 @@ export async function unlinkSettingsAccountAction({
     throw error;
   }
   if (result === "last_account") {
+    await fireAuditLog({
+      action: "account_unlink",
+      channel: "web",
+      outcome: "denied",
+      sessionId: recent.sessionId,
+      subjectUserId: user.id,
+      targetType: "account",
+      userId: user.id,
+      metadata: { provider, reason: "last_account" },
+      ...getAuditRequestMetadata(request),
+    });
     return fail(400, {
       kind: "accounts",
       message: copy.profile.cannotDisconnectLast,
     });
   }
   if (result === "not_linked") {
+    await fireAuditLog({
+      action: "account_unlink",
+      channel: "web",
+      outcome: "failure",
+      sessionId: recent.sessionId,
+      subjectUserId: user.id,
+      targetType: "account",
+      userId: user.id,
+      metadata: { provider, reason: "not_linked" },
+      ...getAuditRequestMetadata(request),
+    });
     return fail(404, {
       kind: "accounts",
       message: copy.profile.accountNotLinked,
@@ -87,7 +109,19 @@ export async function linkSettingsAccountAction({
   url,
 }: SettingsActionInput & { cookies: Cookies; requestId: string }) {
   const copy = getSettingsCopy(locale);
-  await requireSettingsUser(request, url);
+  const user = await requireSettingsUser(request, url);
+  const recent = await authorizeRecentSettingsAction({
+    action: "account_link",
+    request,
+    targetType: "account",
+    userId: user.id,
+  });
+  if (!recent.ok) {
+    return fail(403, {
+      kind: "accounts",
+      message: copy.settings.recentAuthRequired,
+    });
+  }
   const form = await request.formData();
   const providerId = String(form.get("providerId") ?? "");
   try {
@@ -111,6 +145,17 @@ export async function linkSettingsAccountAction({
       action: "link-account",
       requestId,
       route: "/settings/accounts",
+    });
+    await fireAuditLog({
+      action: "account_link",
+      channel: "web",
+      outcome: "failure",
+      sessionId: recent.sessionId,
+      subjectUserId: user.id,
+      targetType: "account",
+      userId: user.id,
+      metadata: { provider: providerId },
+      ...getAuditRequestMetadata(request),
     });
     return fail(400, {
       kind: "accounts",

@@ -91,10 +91,25 @@ export async function rotateUserCalendarFeedToken(
   }
 
   const token = createCalendarFeedToken();
-  await prisma.user.update({
-    where: { id: userId },
-    data: { calendarFeedToken: token },
-  });
+  try {
+    await prisma.user.update({
+      where: { id: userId },
+      data: { calendarFeedToken: token },
+    });
+  } catch (error) {
+    await fireAuditLog({
+      action: "account_calendar_token_rotate",
+      channel: "web",
+      outcome: "failure",
+      sessionId: recent.sessionId,
+      subjectUserId: userId,
+      targetId: userId,
+      targetType: "calendar_feed",
+      userId,
+      ...getAuditRequestMetadata({ headers }),
+    });
+    throw error;
+  }
   await fireAuditLog({
     action: "account_calendar_token_rotate",
     channel: "web",

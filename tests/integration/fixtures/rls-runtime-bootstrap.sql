@@ -364,7 +364,8 @@ GRANT SELECT ON TABLE
   "CommentAttachment",
   "Comment",
   "User",
-  "CommentReaction"
+  "CommentReaction",
+  "UserSectionSubscription"
 TO life_ustc_function_owner;
 GRANT UPDATE, DELETE ON TABLE "UploadPending"
 TO life_ustc_function_owner;
@@ -399,6 +400,8 @@ ALTER FUNCTION public.maintain_audit_log_retention(
   timestamp without time zone,
   integer
 ) OWNER TO life_ustc_function_owner;
+ALTER FUNCTION public.anonymize_deleted_account_audit_targets(text)
+  OWNER TO life_ustc_function_owner;
 ALTER FUNCTION public.unlink_settings_account(text, text)
   OWNER TO life_ustc_function_owner;
 ALTER FUNCTION public.find_downloadable_upload(text)
@@ -463,6 +466,9 @@ CREATE POLICY "UploadPending_cleanup_worker" ON "UploadPending"
 
 GRANT EXECUTE
   ON FUNCTION public.unlink_settings_account(text, text)
+  TO life_ustc_auth_runtime;
+GRANT EXECUTE
+  ON FUNCTION public.anonymize_deleted_account_audit_targets(text)
   TO life_ustc_auth_runtime;
 GRANT EXECUTE ON FUNCTION
   public.find_downloadable_upload(text),

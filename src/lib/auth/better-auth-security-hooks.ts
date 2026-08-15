@@ -144,6 +144,7 @@ export const betterAuthSecurityDatabaseHooks = {
     create: {
       after: async (session, context) => {
         const path = contextPath(context);
+        if (actionForPath(path) !== "account_sign_in") return;
         await safeAudit({
           action: "account_sign_in",
           channel: "auth",
@@ -166,7 +167,9 @@ export const betterAuthSecurityDatabaseHooks = {
             ? "account_sign_out"
             : path === "/revoke-session" ||
                 path === "/revoke-sessions" ||
-                path === "/revoke-other-sessions"
+                path === "/revoke-other-sessions" ||
+                path === "/change-password" ||
+                path === "/set-password"
               ? "account_session_revoke"
               : null;
         if (!action) return;
@@ -189,14 +192,19 @@ export const betterAuthSecurityDatabaseHooks = {
         // Initial provisioning already emits account_create from user.create.
         // account_link is reserved for adding a method to an authenticated user.
         if (context?.context.session?.user?.id !== account.userId) return;
+        const credentialCreated = contextPath(context) === "/set-password";
         await safeAudit({
-          action: "account_link",
+          action: credentialCreated
+            ? "account_credential_update"
+            : "account_link",
           channel: "auth",
           subjectUserId: account.userId,
           targetId: account.id,
           targetType: "account",
           userId: account.userId,
-          metadata: { provider: account.providerId },
+          metadata: credentialCreated
+            ? { changedFields: ["password"] }
+            : { provider: account.providerId },
           ...requestMetadata(context),
         });
       },
@@ -246,6 +254,7 @@ const RECENT_AUTH_PATHS = new Set([
   "/change-email",
   "/change-password",
   "/delete-user",
+  "/link-social",
   "/passkey/delete-passkey",
   "/passkey/update-passkey",
   "/passkey/verify-registration",
@@ -261,6 +270,7 @@ function actionForPath(path: string): AuditAction | null {
   if (path === "/passkey/update-passkey") return "account_passkey_update";
   if (path === "/passkey/delete-passkey") return "account_passkey_delete";
   if (path === "/sign-out") return "account_sign_out";
+  if (path === "/link-social") return "account_link";
   if (path === "/unlink-account") return "account_unlink";
   if (isAccountDeletionPath(path)) return "account_delete";
   if (

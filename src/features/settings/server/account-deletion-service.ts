@@ -80,6 +80,9 @@ export async function deleteOwnAccount(
   try {
     const result = await runSerializableTransaction(
       async (tx) => {
+        await tx.$queryRaw`
+          SELECT public.anonymize_deleted_account_audit_targets(${userId})
+        `;
         await tx.user.delete({ where: { id: userId } });
         return { ok: true as const };
       },

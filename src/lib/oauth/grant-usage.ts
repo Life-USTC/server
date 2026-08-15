@@ -58,7 +58,7 @@ export async function recordOAuthGrantUsage(
       "errorCount",
       "lastUsedAt",
       "updatedAt"
-    ) VALUES (
+    ) SELECT
       ${crypto.randomUUID()},
       ${input.userId},
       ${input.clientId},
@@ -72,6 +72,10 @@ export async function recordOAuthGrantUsage(
       ${errorCount},
       ${usedAt},
       CURRENT_TIMESTAMP
+    WHERE EXISTS (
+      SELECT 1 FROM "User" WHERE "id" = ${input.userId}
+    ) AND EXISTS (
+      SELECT 1 FROM "OAuthClient" WHERE "clientId" = ${input.clientId}
     )
     ON CONFLICT (
       "userId", "clientId", "grantKey", "day", "feature", "channel"

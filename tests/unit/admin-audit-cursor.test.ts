@@ -7,6 +7,7 @@ import {
   adminAuditCursorWhere,
   decodeAdminAuditCursor,
   encodeAdminAuditCursor,
+  safeAdminAuditTargetId,
 } from "@/features/admin/server/admin-audit-page-data";
 
 describe("admin audit keyset cursor", () => {
@@ -31,5 +32,17 @@ describe("admin audit keyset cursor", () => {
         { createdAt, id: { lt: "audit-row-2" } },
       ],
     });
+  });
+
+  it("does not project authentication credential identifiers", () => {
+    expect(safeAdminAuditTargetId("session", "raw-session-id")).toBeNull();
+    expect(safeAdminAuditTargetId("passkey", "raw-passkey-id")).toBeNull();
+    expect(safeAdminAuditTargetId("account", "raw-account-id")).toBeNull();
+    expect(
+      safeAdminAuditTargetId("oauth_consent", "raw-consent-id"),
+    ).toBeNull();
+    expect(safeAdminAuditTargetId("homework", "homework-id")).toBe(
+      "homework-id",
+    );
   });
 });

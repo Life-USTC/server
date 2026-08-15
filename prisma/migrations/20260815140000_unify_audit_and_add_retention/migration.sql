@@ -138,10 +138,53 @@ REVOKE EXECUTE
 DO $$
 BEGIN
   IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'life_ustc_function_owner') THEN
+    -- The public-profile subscription helper is owned by this no-login role
+    -- after the production bootstrap and needs its backing-table read grant.
+    EXECUTE 'GRANT SELECT ON TABLE public."UserSectionSubscription" TO life_ustc_function_owner';
     EXECUTE 'GRANT SELECT, UPDATE, DELETE ON TABLE public."AuditLog" TO life_ustc_function_owner';
     EXECUTE 'ALTER FUNCTION public.maintain_audit_log_retention(timestamp without time zone, integer) OWNER TO life_ustc_function_owner';
   END IF;
   IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'life_ustc_maintenance_runtime') THEN
     EXECUTE 'GRANT EXECUTE ON FUNCTION public.maintain_audit_log_retention(timestamp without time zone, integer) TO life_ustc_maintenance_runtime';
+  END IF;
+END $$;
+
+-- Generic audit target IDs are intentionally not foreign keys. Clear the
+-- account-shaped targets in the same transaction as self-service deletion so
+-- retained history cannot keep a deleted user's raw identifier.
+CREATE FUNCTION public.anonymize_deleted_account_audit_targets(p_user_id text)
+RETURNS bigint
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = ''
+AS $function$
+DECLARE
+  v_rows bigint;
+BEGIN
+  IF p_user_id IS NULL OR pg_catalog.btrim(p_user_id) = '' THEN
+    RAISE EXCEPTION 'user id must not be empty' USING ERRCODE = '22023';
+  END IF;
+
+  UPDATE public."AuditLog"
+  SET "targetId" = NULL
+  WHERE "targetId" = p_user_id
+    AND "targetType" IN ('user', 'calendar_feed');
+  GET DIAGNOSTICS v_rows = ROW_COUNT;
+  RETURN v_rows;
+END;
+$function$;
+
+REVOKE EXECUTE
+  ON FUNCTION public.anonymize_deleted_account_audit_targets(text)
+  FROM PUBLIC;
+
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'life_ustc_function_owner') THEN
+    EXECUTE 'GRANT SELECT, UPDATE ON TABLE public."AuditLog" TO life_ustc_function_owner';
+    EXECUTE 'ALTER FUNCTION public.anonymize_deleted_account_audit_targets(text) OWNER TO life_ustc_function_owner';
+  END IF;
+  IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'life_ustc_auth_runtime') THEN
+    EXECUTE 'GRANT EXECUTE ON FUNCTION public.anonymize_deleted_account_audit_targets(text) TO life_ustc_auth_runtime';
   END IF;
 END $$;

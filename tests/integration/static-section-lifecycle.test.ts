@@ -143,10 +143,15 @@ describe("static Section source lifecycle persistence", () => {
           }),
         ];
         expect(preservedUserData).toEqual([
-          expect.objectContaining({ targetId: homework.id }),
           expect.objectContaining({ sectionId: missingSection.id }),
           expect.objectContaining({ sectionId: missingSection.id }),
           expect.objectContaining({ sectionId: missingSection.id }),
+          expect.objectContaining({
+            targetId: homework.id,
+            metadata: expect.objectContaining({
+              sectionId: missingSection.id,
+            }),
+          }),
         ]);
         await expect(
           tx.auditLog.findMany({

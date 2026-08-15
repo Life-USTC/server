@@ -91,6 +91,12 @@ export type SettingsCopy = {
     security: {
       title: string;
       description: string;
+      calendarTokenDescription: string;
+      calendarTokenError: string;
+      calendarTokenRotate: string;
+      calendarTokenRotated: string;
+      calendarTokenRotatedDescription: string;
+      calendarTokenTitle: string;
       emptyTitle: string;
       emptyDescription: string;
       network: string;

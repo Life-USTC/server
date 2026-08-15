@@ -204,7 +204,6 @@ jobs:
               expected_function_privileges+=',public.get_public_profile_section_subscription_count(p_user_id text):EXECUTE'
               expected_function_privileges+=',public.get_public_profile_upload_stats(p_user_id text, p_since timestamp without time zone):EXECUTE'
               expected_function_privileges+=',public.release_upload_pending_storage_cleanup(p_id text, p_attempt_id text, p_now timestamp without time zone, p_retry_lease_seconds integer):EXECUTE'
-              expected_function_privileges+=',public.maintain_audit_log_retention(p_now timestamp without time zone, p_batch_size integer):EXECUTE'
               psql "$runtime_database_url" -X \
                 --set=expected_role=life_ustc_runtime \
                 --set=expected_schema_privileges=public:USAGE \

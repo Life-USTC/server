@@ -130,10 +130,10 @@ test.describe("/api/mcp - 种子工具覆盖", () => {
           updatedAt?: string;
         };
         expect(profile.id).toBe(currentUser.id);
-        expect(typeof profile.email).toBe("string");
+        expect(profile.email).toBeNull();
         expect(profile.name).toBe(DEV_SEED.debugName);
         expect(profile.username).toBe(currentUser.username ?? null);
-        expect(profile.isAdmin).toBe(false);
+        expect(profile.isAdmin).toBeNull();
         expect(typeof profile.createdAt).toBe("string");
         expect(profile.createdAt).toMatch(/\+08:00$/);
         expect(typeof profile.updatedAt).toBe("string");

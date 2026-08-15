@@ -113,7 +113,7 @@
       "description": "Records successful credential changes with changed-field names only; password and token values are excluded."
     },
     "account_link": {
-      "trigger": "POST /api/auth/link-social or another Better Auth authenticated account-link endpoint",
+      "trigger": "POST /api/auth/link-social or the settings account-link action after recent authentication",
       "description": "Records successful linking for the authenticated user after commit, excluding provider credentials and tokens."
     },
     "account_unlink": {
@@ -161,5 +161,5 @@
       "description": "Records revocation atomically with authorization deletion using safe identifiers and counts only."
     }
   },
-  "writer": "AuditLog is the only audit store. Required app trails are awaited in the write transaction where practical, while Better Auth database after hooks contain fireAuditLog failures so committed auth mutations cannot become false API failures. The static loader writes Section lifecycle rows within its import transaction. The six-hour maintenance job anonymizes IP/user agent after 30 days and grant/session/request attribution after 90 days, then deletes events after 400 days through a maintenance-only SECURITY DEFINER function."
+  "writer": "AuditLog is sole store. Mutations write trails transactionally where practical; Better Auth hooks contain logging failures. Static imports write lifecycle rows transactionally. Six-hour maintenance clears network data at 30 days, attribution at 90, and events at 400 via a maintenance-only SECURITY DEFINER function."
 }

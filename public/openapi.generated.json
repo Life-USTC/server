@@ -14189,10 +14189,12 @@
                   "type": "string",
                   "enum": [
                     "created",
+                    "updated",
                     "deleted"
                   ]
                 },
                 "titleSnapshot": {
+                  "nullable": true,
                   "type": "string"
                 },
                 "createdAt": {

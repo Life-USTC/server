@@ -8,7 +8,11 @@ import * as Card from "$lib/components/ui/card/index.js";
 $: copy = getOAuthCopy(($page.data.locale ?? "zh-cn") as AppLocale);
 $: errorCode = $page.url.searchParams.get("error");
 $: message =
-  errorCode === "consent_failed" ? copy.errorConsentFailed : copy.errorGeneric;
+  errorCode === "consent_failed"
+    ? copy.errorConsentFailed
+    : errorCode === "recent_auth_required"
+      ? copy.errorRecentAuthRequired
+      : copy.errorGeneric;
 </script>
 
 <svelte:head><title>{copy.errorPageTitle} - Life@USTC</title></svelte:head>

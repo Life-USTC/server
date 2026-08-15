@@ -11,6 +11,7 @@ const {
   runSerializableTransactionMock: vi.fn(),
   withUserDbContextMock: vi.fn(),
   tx: {
+    $queryRaw: vi.fn().mockResolvedValue([{ anonymized: 0n }]),
     auditLog: {
       updateMany: vi.fn(() => {
         throw new Error(
@@ -73,7 +74,7 @@ describe("account deletion database privileges", () => {
     fireAuditLogMock.mockResolvedValue(undefined);
   });
 
-  it("deletes owner-scoped rows in app context before auth user deletion", async () => {
+  it("anonymizes generic account targets before auth user deletion", async () => {
     const { deleteOwnAccount } = await import(
       "@/features/settings/server/account-deletion-service"
     );
@@ -102,6 +103,7 @@ describe("account deletion database privileges", () => {
       { boundary: "auth" },
     );
     expect(tx.user.delete).toHaveBeenCalledWith({ where: { id: "user-1" } });
+    expect(tx.$queryRaw).toHaveBeenCalledTimes(1);
     expect(tx.auditLog.updateMany).not.toHaveBeenCalled();
     expect(tx.userSuspension.updateMany).not.toHaveBeenCalled();
     expect(fireAuditLogMock).toHaveBeenCalledWith({

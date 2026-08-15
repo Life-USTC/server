@@ -78,6 +78,56 @@ describe("Better Auth security audit hooks", () => {
     );
   });
 
+  it("ignores session rows created outside a sign-in endpoint", async () => {
+    await betterAuthSecurityDatabaseHooks.session?.create?.after?.(
+      {
+        createdAt: new Date(),
+        expiresAt: new Date(),
+        id: "session-1",
+        ipAddress: null,
+        token: "secret",
+        updatedAt: new Date(),
+        userAgent: null,
+        userId: "user-1",
+      },
+      endpointContext("/change-password"),
+    );
+
+    expect(fireAuditLogMock).not.toHaveBeenCalled();
+  });
+
+  it("classifies set-password account creation as a credential update", async () => {
+    await betterAuthSecurityDatabaseHooks.account?.create?.after?.(
+      {
+        accessToken: null,
+        accessTokenExpiresAt: null,
+        accountId: "user@example.test",
+        createdAt: new Date(),
+        id: "credential-account-1",
+        idToken: null,
+        issuer: "local",
+        password: "must-not-be-audited",
+        providerId: "credential",
+        refreshToken: null,
+        refreshTokenExpiresAt: null,
+        scope: null,
+        updatedAt: new Date(),
+        userId: "user-1",
+      },
+      endpointContext("/set-password"),
+    );
+
+    expect(fireAuditLogMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: "account_credential_update",
+        metadata: { changedFields: ["password"] },
+      }),
+    );
+    const serialized = JSON.stringify(fireAuditLogMock.mock.calls);
+    expect(serialized).not.toContain("must-not-be-audited");
+    expect(serialized).not.toContain("account_link");
+  });
+
   it("never turns a committed database mutation into a false failure", async () => {
     fireAuditLogMock.mockRejectedValueOnce(new Error("audit unavailable"));
 
@@ -125,6 +175,28 @@ describe("Better Auth security audit hooks", () => {
         metadata: {
           reason: session ? "session_not_fresh" : "unauthenticated",
         },
+      }),
+    );
+  });
+
+  it("requires a recent session before linking another sign-in method", async () => {
+    await expect(
+      enforceBetterAuthRecentSession(
+        endpointContext("/link-social"),
+        async () =>
+          ({
+            session: {
+              createdAt: new Date("2026-08-15T11:44:00.000Z"),
+              id: "session-1",
+            },
+            user: { id: "user-1" },
+          }) as never,
+      ),
+    ).rejects.toMatchObject({ body: { code: "SESSION_NOT_FRESH" } });
+    expect(fireAuditLogMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: "account_link",
+        outcome: "denied",
       }),
     );
   });

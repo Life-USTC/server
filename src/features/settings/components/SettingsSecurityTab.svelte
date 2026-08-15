@@ -2,6 +2,7 @@
 import ActivityIcon from "@lucide/svelte/icons/activity";
 import { Badge } from "$lib/components/ui/badge/index.js";
 import { Button } from "$lib/components/ui/button/index.js";
+import * as Card from "$lib/components/ui/card/index.js";
 import * as Empty from "$lib/components/ui/empty/index.js";
 import * as Item from "$lib/components/ui/item/index.js";
 import type {
@@ -27,6 +28,20 @@ function label(
   return labels[value] ?? fallback;
 }
 </script>
+
+<Card.Root>
+  <Card.Header>
+    <Card.Title>{copy.settings.security.calendarTokenTitle}</Card.Title>
+    <Card.Description>{copy.settings.security.calendarTokenDescription}</Card.Description>
+  </Card.Header>
+  <Card.Footer>
+    <form method="POST" action="?/rotateCalendarToken">
+      <Button type="submit" variant="outline">
+        {copy.settings.security.calendarTokenRotate}
+      </Button>
+    </form>
+  </Card.Footer>
+</Card.Root>
 
 <section aria-labelledby="security-activity-title" class="grid gap-4">
   <header class="grid gap-1">

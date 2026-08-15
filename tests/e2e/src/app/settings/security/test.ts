@@ -41,6 +41,21 @@ test.describe("/account/settings/security 安全活动", () => {
       await deleteAccountSecurityActivityFixture(event.id);
     }
   });
+
+  test("最近登录用户可以轮换私人日历链接", async ({ page }) => {
+    await signInAsDebugUser(page, "/account/settings/security");
+    const rotate = page.getByRole("button", {
+      name: /轮换私人日历链接|Rotate private calendar link/i,
+    });
+    await expect(rotate).toBeVisible();
+    await rotate.click();
+    await expect(page).toHaveURL(
+      /\/account\/settings\/security\?message=CalendarTokenRotated$/,
+    );
+    await expect(page.getByRole("alert")).toContainText(
+      /日历链接已轮换|Calendar link rotated/i,
+    );
+  });
 });
 
 test("页面契约", async ({ page }, testInfo) => {
