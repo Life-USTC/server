@@ -869,14 +869,12 @@ test.describe("/api/mcp - 种子工具覆盖", () => {
         expect(typeof busSummaryPayload.counts?.routes).toBe("number");
         expect(typeof busSummaryPayload.counts?.weekdayTrips).toBe("number");
         expect(typeof busSummaryPayload.counts?.weekendTrips).toBe("number");
-        expect((busSummaryPayload.nextDepartures?.length ?? 0) > 0).toBe(true);
+        expect(busSummaryPayload.nextDepartures).toEqual([]);
         expect(Array.isArray(busSummaryPayload.campuses)).toBe(true);
         expect(Array.isArray(busSummaryPayload.routes)).toBe(true);
         expect(busSummaryPayload.trips).toBeUndefined();
         expect(busResult).toBeDefined();
-        if (busSummaryPayload.nextDepartures?.length === 0) {
-          expect(typeof busSummaryPayload.nextDeparturesMessage).toBe("string");
-        }
+        expect(typeof busSummaryPayload.nextDeparturesMessage).toBe("string");
 
         // catalog_bus_route_list — lightweight route catalog
         const listRoutesResult = await mcpClient.callTool({
