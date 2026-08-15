@@ -18,8 +18,8 @@ jobs:
       - name: Setup workspace
         uses: ./.github/actions/setup-bun-env
 
-      - name: Prepare generated application types
-        run: bun run app:prepare
+      - name: Prepare SvelteKit types
+        run: bun run svelte:sync
 
       - name: Fetch base branch
         shell: bash
