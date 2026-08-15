@@ -46,7 +46,7 @@ export const USTC_STUDENT_SERVICE_LINKS: DashboardLinkItem[] = [
   {
     slug: "cmet-room-booking",
     title: "中区研修室预约",
-    url: "http://roombooking.cmet.ustc.edu.cn/",
+    url: "https://roombooking.cmet.ustc.edu.cn/",
     description: "中区研修室预约系统。",
     localizations: {
       "en-us": {
@@ -84,20 +84,6 @@ export const USTC_STUDENT_SERVICE_LINKS: DashboardLinkItem[] = [
     },
     category: "academic",
     icon: "book-open",
-  },
-  {
-    slug: "history-culture",
-    title: "历史文化",
-    url: "http://lswhw.ustc.edu.cn/",
-    description: "校园历史与文化资源。",
-    localizations: {
-      "en-us": {
-        title: "History and Culture",
-        description: "Campus history and culture resources.",
-      },
-    },
-    category: "campus",
-    icon: "school",
   },
   {
     slug: "bbs",
@@ -140,6 +126,62 @@ export const USTC_STUDENT_SERVICE_LINKS: DashboardLinkItem[] = [
     },
     category: "services",
     icon: "building",
+  },
+  {
+    slug: "career-services",
+    title: "就业信息网",
+    url: "https://www.job.ustc.edu.cn/",
+    description: "招聘信息、就业指导与手续服务。",
+    localizations: {
+      "en-us": {
+        title: "Career Services",
+        description: "Job postings, career guidance, and employment services.",
+      },
+    },
+    category: "services",
+    icon: "graduation-cap",
+  },
+  {
+    slug: "network-center",
+    title: "网络信息中心",
+    url: "https://ustcnet.ustc.edu.cn/",
+    description: "校园网络与信息服务说明。",
+    localizations: {
+      "en-us": {
+        title: "Network Information Center",
+        description: "Campus network and information service guidance.",
+      },
+    },
+    category: "services",
+    icon: "network",
+  },
+  {
+    slug: "repair",
+    title: "报修服务",
+    url: "https://baoxiu.ustc.edu.cn/",
+    description: "校内故障与维修服务申请。",
+    localizations: {
+      "en-us": {
+        title: "Repair Services",
+        description: "Submit campus fault and repair requests.",
+      },
+    },
+    category: "services",
+    icon: "clipboard-list",
+  },
+  {
+    slug: "undergraduate-school",
+    title: "本科生院",
+    url: "https://ugs.ustc.edu.cn/",
+    description: "本科教育通知、政策与培养信息。",
+    localizations: {
+      "en-us": {
+        title: "Undergraduate School",
+        description: "Undergraduate education notices, policies, and programs.",
+      },
+    },
+    category: "academic",
+    icon: "graduation-cap",
   },
   {
     slug: "personal-homepage",
@@ -200,7 +242,7 @@ export const USTC_STUDENT_SERVICE_LINKS: DashboardLinkItem[] = [
   {
     slug: "licensed-software",
     title: "正版软件",
-    url: "https://zbh.ustc.edu.cn/",
+    url: "https://software.ustc.edu.cn/",
     description: "校内正版软件服务。",
     localizations: {
       "en-us": {

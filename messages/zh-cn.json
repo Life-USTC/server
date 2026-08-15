@@ -819,7 +819,7 @@
       "title": "常用网站",
       "description": "搜索中国科大常用服务，并置顶你经常访问的入口。",
       "publicDescription": "搜索校园链接，登录后即可置顶常用入口。",
-      "searchPlaceholder": "搜索网站名称或描述…",
+      "searchPlaceholder": "搜索网站名称、描述或域名…",
       "searchShortcutHint": "按 Ctrl+Shift+K 或 ⌘⇧K 聚焦搜索",
       "allSitesTab": "全部网站",
       "overviewHint": "总览仅展示 4 个网站：优先展示你的置顶，其余按推荐补齐。",

@@ -477,7 +477,7 @@ export const PAGE_INVENTORY: readonly PageInventoryEntry[] = [
       {
         id: "search-links",
         role: "searchbox",
-        name: "/搜索网站名称或描述|Search by name or description/i",
+        name: "/搜索网站名称、描述或域名|Search by name, description, or domain/i",
         e2eSpec: E2E.dashboardLinks,
       },
       {

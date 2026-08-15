@@ -819,7 +819,7 @@
       "title": "Websites",
       "description": "Search USTC services and pin frequently used entries.",
       "publicDescription": "Search campus links and sign in to pin your favorites.",
-      "searchPlaceholder": "Search by name or description…",
+      "searchPlaceholder": "Search by name, description, or domain…",
       "searchShortcutHint": "Press ⌘⇧K or Ctrl+Shift+K to focus search",
       "allSitesTab": "All websites",
       "overviewHint": "Overview shows 4 sites only: your pins first, then recommended ones.",
