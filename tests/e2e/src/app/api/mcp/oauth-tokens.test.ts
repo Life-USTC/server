@@ -1,6 +1,10 @@
+import { Client } from "@modelcontextprotocol/sdk/client/index.js";
+import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import { expect, test } from "@playwright/test";
+import { decodeJwt } from "jose";
 import {
   DEFAULT_OAUTH_CLIENT_SCOPES,
+  OAUTH_GRANT_ID_CLAIM,
   OAUTH_OFFLINE_ACCESS_SCOPE,
   OAUTH_REFRESH_TOKEN_GRANT_TYPE,
   restReadScope,
@@ -10,8 +14,10 @@ import { PLAYWRIGHT_BASE_URL } from "../../../../utils/e2e-db";
 import {
   expectAccessTokenCannotInitializeMcp,
   issueAccessToken,
+  issueAccessTokenForClient,
   MCP_CLIENT_SCOPE,
   MCP_CLIENT_SCOPES,
+  registerPublicClient,
 } from "./helpers";
 
 test.describe("/api/mcp - OAuth token 资源绑定", () => {
@@ -55,6 +61,60 @@ test.describe("/api/mcp - OAuth token 资源绑定", () => {
     });
 
     expect(response.status()).toBe(200);
+  });
+
+  test("同一客户端增权后签发精确绑定且包含累计 scope 的 MCP token", async ({
+    page,
+    request,
+  }) => {
+    const resource = `${PLAYWRIGHT_BASE_URL}/api/mcp`;
+    const baselineScopes = [
+      restReadScope("account.profile"),
+      OAUTH_OFFLINE_ACCESS_SCOPE,
+    ];
+    const expandedScopes = [...baselineScopes, restReadScope("workspace.todo")];
+    await signInAsDebugUser(page, "/");
+    const clientId = await registerPublicClient(
+      request,
+      expandedScopes.join(" "),
+    );
+
+    const baseline = await issueAccessTokenForClient(page, request, {
+      clientId,
+      resource,
+      scope: baselineScopes.join(" "),
+    });
+    expect(baseline.response.status()).toBe(200);
+
+    const expanded = await issueAccessTokenForClient(page, request, {
+      clientId,
+      resource,
+      scope: expandedScopes.join(" "),
+    });
+    expect(expanded.response.status()).toBe(200);
+    expect(typeof expanded.tokenBody.access_token).toBe("string");
+    const accessToken = expanded.tokenBody.access_token as string;
+    const claims = decodeJwt(accessToken);
+    expect(claims[OAUTH_GRANT_ID_CLAIM]).toEqual(expect.any(String));
+    expect(new Set(String(claims.scope).split(" "))).toEqual(
+      new Set(expandedScopes),
+    );
+
+    const transport = new StreamableHTTPClientTransport(new URL(resource), {
+      requestInit: { headers: { Authorization: `Bearer ${accessToken}` } },
+    });
+    const client = new Client({
+      name: "incremental-scope-e2e-client",
+      version: "1.0.0",
+    });
+    await client.connect(transport);
+    try {
+      await expect(
+        client.callTool({ name: "workspace_todo_list", arguments: {} }),
+      ).resolves.toMatchObject({ structuredContent: { success: true } });
+    } finally {
+      await transport.close();
+    }
   });
 
   test("MCP resource JWT 被受保护 REST 路由拒绝", async ({ page, request }) => {

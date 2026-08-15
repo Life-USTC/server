@@ -229,6 +229,26 @@ describe("buildOAuthProviderPlugin", () => {
     });
   });
 
+  it("rejects delegated access-token issuance without an immutable grant reference", async () => {
+    const { buildOAuthProviderPlugin } = await import(
+      "@/lib/auth/better-auth-oauth-provider-plugin"
+    );
+    buildOAuthProviderPlugin({
+      authPublicOrigin: "https://life.example",
+    });
+    const options = mcpMock.mock.calls.at(-1)?.[0];
+
+    expect(() =>
+      options.customAccessTokenClaims({
+        scopes: ["profile"],
+        user: { id: "user-1" },
+      }),
+    ).toThrow();
+    expect(options.customAccessTokenClaims({ scopes: ["profile"] })).toEqual(
+      {},
+    );
+  });
+
   it("returns verified GitHub/Google email when available without clearing placeholders", async () => {
     const { buildOAuthProviderPlugin } = await import(
       "@/lib/auth/better-auth-oauth-provider-plugin"
