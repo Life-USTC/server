@@ -1,3 +1,10 @@
+## [1.90.8](https://github.com/Life-USTC/server/compare/v1.90.7...v1.90.8) (2026-08-15)
+
+
+### Bug Fixes
+
+* **mcp:** allow anonymous catalog tools ([#849](https://github.com/Life-USTC/server/issues/849)) ([ca27c76](https://github.com/Life-USTC/server/commit/ca27c763435c34b1555ba651d68ce40528fb6f42))
+
 ## [1.90.7](https://github.com/Life-USTC/server/compare/v1.90.6...v1.90.7) (2026-08-15)
 
 
