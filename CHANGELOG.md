@@ -1,3 +1,10 @@
+## [1.90.6](https://github.com/Life-USTC/server/compare/v1.90.5...v1.90.6) (2026-08-15)
+
+
+### Bug Fixes
+
+* **oauth:** stabilize incremental scope grants ([#847](https://github.com/Life-USTC/server/issues/847)) ([475c438](https://github.com/Life-USTC/server/commit/475c43877eb0d918e89019c3741cf89d68a7b72f))
+
 ## [1.90.5](https://github.com/Life-USTC/server/compare/v1.90.4...v1.90.5) (2026-08-14)
 
 
