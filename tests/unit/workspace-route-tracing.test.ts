@@ -86,7 +86,13 @@ describe("workspace route tracing", () => {
   });
 
   it("separates current-subscription auth from its read", async () => {
-    const subscription = { id: "subscription-1" };
+    const subscription = {
+      userId: "user-1",
+      sections: [],
+      calendarPath: "/api/calendar-feeds/user-1:token.ics",
+      calendarUrl: "https://example.test/api/calendar-feeds/user-1:token.ics",
+      note: "Subscribe to this URL in a calendar client.",
+    };
     getUserCalendarSubscriptionMock.mockResolvedValue(subscription);
     const { getCurrentCalendarSubscriptionRoute } = await import(
       "@/lib/api/routes/calendar-subscriptions"

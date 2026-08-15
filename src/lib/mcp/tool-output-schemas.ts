@@ -19,6 +19,7 @@ import {
   sectionBaseSchema,
   semesterSchema,
 } from "@/lib/api/schemas/academic-section-base-response-schemas";
+import { sectionPublicContextSchema } from "@/lib/api/schemas/academic-section-list-response-schemas";
 import {
   courseDetailSchema,
   courseDetailSectionSchema,
@@ -341,12 +342,9 @@ const subscriptionFullCourseSchema = courseSchema.extend({
   type: persistedLocalizedLabelSchema.nullable(),
 });
 
-const subscriptionFullSectionSchema = sectionBaseSchema.extend({
-  course: subscriptionFullCourseSchema,
+const subscriptionFullSectionSchema = z.strictObject({
+  ...sectionCompactSchema.shape,
   semester: compactSemesterSchema.nullable(),
-  campus: campusSchema.nullable(),
-  openDepartment: departmentSchema.nullable(),
-  teachers: z.array(compactTeacherIdentitySchema),
 });
 
 const compactHomeworkSectionSchema = z.strictObject({
@@ -597,6 +595,40 @@ const homeworkItemFullMcpSchema = homeworkItemSchema
     }),
   })
   .strict();
+
+const compactSectionHomeworkItemSchema = compactHomeworkSchema.omit({
+  section: true,
+  createdBy: true,
+  updatedBy: true,
+  deletedBy: true,
+});
+
+const sectionHomeworkNotFoundSchema = z.strictObject({
+  success: z.literal(false),
+  found: z.literal(false),
+  message: z.string(),
+  hint: z.string(),
+});
+
+const sectionHomeworkListDefaultSchema = z.union([
+  z.strictObject({
+    success: z.literal(true),
+    found: z.literal(true),
+    section: sectionPublicContextSchema,
+    homeworks: z.array(compactSectionHomeworkItemSchema),
+  }),
+  sectionHomeworkNotFoundSchema,
+]);
+
+const sectionHomeworkListFullSchema = z.union([
+  z.strictObject({
+    success: z.literal(true),
+    found: z.literal(true),
+    section: sectionPublicContextSchema,
+    homeworks: z.array(homeworkItemFullMcpSchema),
+  }),
+  sectionHomeworkNotFoundSchema,
+]);
 
 const homeworkMutationFailureSchema = z.union([
   z.strictObject({ success: z.literal(false), message: z.string() }),
@@ -1062,6 +1094,10 @@ const nonAcademicModeOutputSchemas = {
       homeworks: z.array(workspaceHomeworkFullSchema),
     }),
   },
+  community_section_homework_list: {
+    default: sectionHomeworkListDefaultSchema,
+    full: sectionHomeworkListFullSchema,
+  },
   community_section_homework_create: {
     default: homeworkCreateDefaultSchema,
     full: homeworkCreateFullSchema,
@@ -1397,8 +1433,10 @@ const TOOL_OUTPUT_SCHEMAS: Record<string, McpToolOutputSchema> = {
   }),
   workspace_homework_completion_set: topLevelOutputSchema(["completion"]),
   community_section_homework_list: objectOutputSchema({
-    section: compactSectionSchema,
-    homeworks: collectionOutputSchema(compactHomeworkSchema),
+    section: sectionPublicContextSchema,
+    homeworks: z.array(
+      z.union([compactSectionHomeworkItemSchema, homeworkItemFullMcpSchema]),
+    ),
   }),
   community_section_homework_create: objectOutputSchema({
     id: z.string(),

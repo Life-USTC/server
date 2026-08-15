@@ -17,7 +17,7 @@ export const viewerContextSchema = z.object({
   suspensionExpiresAt: dateTimeSchema.nullable(),
 });
 
-export const calendarSubscriptionSchema = z.object({
+export const calendarSubscriptionSchema = z.strictObject({
   userId: z.string(),
   sections: z.array(sectionCompactSchema),
   calendarPath: z.string(),
@@ -25,11 +25,11 @@ export const calendarSubscriptionSchema = z.object({
   note: z.string(),
 });
 
-export const currentCalendarSubscriptionResponseSchema = z.object({
+export const currentCalendarSubscriptionResponseSchema = z.strictObject({
   subscription: calendarSubscriptionSchema.nullable(),
 });
 
-export const calendarSubscriptionCreateResponseSchema = z.object({
+export const calendarSubscriptionCreateResponseSchema = z.strictObject({
   subscription: calendarSubscriptionSchema.nullable(),
 });
 
@@ -42,9 +42,9 @@ export const calendarSubscriptionAppendResponseSchema =
 export const calendarSubscriptionRemoveResponseSchema =
   calendarSubscriptionCreateResponseSchema;
 
-export const calendarSubscriptionImportResponseSchema = z.object({
+export const calendarSubscriptionImportResponseSchema = z.strictObject({
   success: z.boolean(),
-  semester: z.object({
+  semester: z.strictObject({
     id: z.number().int(),
     nameCn: z.string().nullable(),
     code: z.string().nullable(),
@@ -60,9 +60,9 @@ export const calendarSubscriptionImportResponseSchema = z.object({
   subscription: calendarSubscriptionSchema.nullable(),
 });
 
-const calendarSubscriptionResolvedSectionsSchema = z.object({
+const calendarSubscriptionResolvedSectionsSchema = z.strictObject({
   semester: z
-    .object({
+    .strictObject({
       id: z.number().int(),
       nameCn: z.string().nullable(),
       code: z.string().nullable(),

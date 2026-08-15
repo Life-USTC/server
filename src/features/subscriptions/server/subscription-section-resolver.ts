@@ -1,3 +1,5 @@
+import { sectionCompactInclude } from "@/features/catalog/server/academic-query-includes";
+import { toSectionCompactDto } from "@/features/catalog/server/academic-summary-dto-mappers";
 import { resolveSectionCodeMatchSemester } from "@/features/catalog/server/section-code-match-semester";
 import { buildSectionCodeSuggestions } from "@/features/catalog/server/section-code-match-suggestions";
 import type { Prisma } from "@/generated/prisma/client";
@@ -5,8 +7,6 @@ import type { AppLocale } from "@/i18n/config";
 import { DEFAULT_LOCALE } from "@/i18n/config";
 import { getPrisma } from "@/lib/db/prisma";
 import { uniqueSectionIds } from "./subscription-section-id-helpers";
-import { subscriptionSectionCompactInclude } from "./subscription-section-include";
-import { localizeCompactSubscriptionSection } from "./subscription-section-localize";
 
 function uniqueCodes(codes: readonly string[] = []) {
   const seen = new Set<string>();
@@ -75,7 +75,7 @@ export async function resolveCalendarSubscriptionSections({
       ? []
       : await localizedPrisma.section.findMany({
           where: where.length === 1 ? where[0] : { OR: where },
-          include: subscriptionSectionCompactInclude,
+          include: sectionCompactInclude,
           orderBy: [
             { semester: { jwId: "desc" } },
             { code: "asc" },
@@ -83,7 +83,7 @@ export async function resolveCalendarSubscriptionSections({
           ],
         });
   const sections = sectionRows.map((section) =>
-    localizeCompactSubscriptionSection(section, locale),
+    toSectionCompactDto(section, locale),
   );
 
   const foundSectionIds = new Set(sections.map((section) => section.id));

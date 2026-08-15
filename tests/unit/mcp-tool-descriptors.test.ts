@@ -894,6 +894,66 @@ describe("MCP tool descriptors", () => {
         homeworkId: "homework-1",
       },
     };
+    const {
+      section: _section,
+      createdBy: _createdBy,
+      updatedBy: _updatedBy,
+      deletedBy: _deletedBy,
+      ...scopedHomework
+    } = compactHomework;
+    const sectionHomeworkContext = {
+      id: sectionBase.id,
+      jwId: sectionBase.jwId,
+      code: sectionBase.code,
+      course: {
+        jwId: compactCourse.jwId,
+        code: compactCourse.code,
+        nameCn: compactCourse.nameCn,
+        nameEn: compactCourse.nameEn,
+        namePrimary: compactCourse.namePrimary,
+        nameSecondary: compactCourse.nameSecondary,
+      },
+      semester: null,
+    };
+    const compactSectionHomeworkList = {
+      success: true,
+      found: true,
+      section: sectionHomeworkContext,
+      homeworks: [scopedHomework],
+    };
+    const fullSectionHomeworkList = {
+      success: true,
+      found: true,
+      section: sectionHomeworkContext,
+      homeworks: [fullHomework],
+    };
+    const sectionHomeworkDefaultSchema = getMcpToolOutputSchemaForMode(
+      "community_section_homework_list",
+      "default",
+    );
+    const sectionHomeworkFullSchema = getMcpToolOutputSchemaForMode(
+      "community_section_homework_list",
+      "full",
+    );
+    expect(
+      sectionHomeworkDefaultSchema.safeParse(compactSectionHomeworkList)
+        .success,
+    ).toBe(true);
+    expect(
+      sectionHomeworkDefaultSchema.safeParse(fullSectionHomeworkList).success,
+    ).toBe(false);
+    expect(
+      sectionHomeworkFullSchema.safeParse(fullSectionHomeworkList).success,
+    ).toBe(true);
+    expect(
+      sectionHomeworkFullSchema.safeParse(compactSectionHomeworkList).success,
+    ).toBe(false);
+    expect(
+      sectionHomeworkDefaultSchema.safeParse({
+        ...compactSectionHomeworkList,
+        unexpected: true,
+      }).success,
+    ).toBe(false);
     const homeworkNestedPaths = [
       ["homework", "description"],
       ["homework", "createdBy"],

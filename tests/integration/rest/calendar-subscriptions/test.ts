@@ -25,6 +25,7 @@
  * - Invalid body types (e.g. string instead of array) return 400
  */
 import { expect, test } from "@playwright/test";
+import { calendarSubscriptionBatchResponseSchema } from "@/lib/api/schemas/misc-response-schema-core";
 import { DEV_SEED } from "../../../e2e/utils/dev-seed";
 import {
   getCurrentSessionUser,
@@ -276,10 +277,9 @@ test.describe("日历订阅 API", () => {
         },
       });
       expect(response.status()).toBe(200);
-      const body = (await response.json()) as {
-        removedCount?: number;
-        subscription?: { sections?: Array<{ id?: number }> };
-      };
+      const body = calendarSubscriptionBatchResponseSchema.parse(
+        await response.json(),
+      );
       const subscribedIds =
         body.subscription?.sections?.map((section) => section.id) ?? [];
 

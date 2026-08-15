@@ -4,6 +4,7 @@ import {
   sectionCatalogInclude,
   sectionCompactInclude,
   sectionInclude,
+  sectionPublicContextSelect,
   teacherAssignmentPublicSelect,
   teacherPublicReferenceSelect,
 } from "@/features/catalog/server/academic-query-includes";
@@ -24,6 +25,7 @@ import {
   type CourseSummaryRecord,
   toCourseDetailDto,
   toCourseDto,
+  toSectionPublicContextDto,
 } from "./academic-summary-dto-mappers";
 
 const sectionDetailInclude = {
@@ -418,31 +420,13 @@ export async function findSectionCompactByJwId(
   });
 }
 
-export function findSectionSummaryByJwId(
+export async function findSectionPublicContextByJwId(
   jwId: number,
   locale: AppLocale = DEFAULT_LOCALE,
 ) {
-  return getPrisma(locale).section.findUnique({
+  const section = await getPrisma(locale).section.findUnique({
     where: { jwId },
-    select: {
-      id: true,
-      jwId: true,
-      code: true,
-      course: {
-        select: {
-          jwId: true,
-          code: true,
-          nameCn: true,
-          nameEn: true,
-        },
-      },
-      semester: {
-        select: {
-          jwId: true,
-          code: true,
-          nameCn: true,
-        },
-      },
-    },
+    select: sectionPublicContextSelect,
   });
+  return section ? toSectionPublicContextDto(section, locale) : null;
 }
