@@ -14,12 +14,15 @@ import {
   getExplicitMcpToolScopeNames,
   getRequiredMcpScopes,
   hasExplicitMcpToolScopes,
+  isPublicMcpTool,
 } from "./tool-scopes";
 
-type ToolSecurityScheme = {
-  type: "oauth2";
-  scopes: string[];
-};
+type ToolSecurityScheme =
+  | { type: "noauth" }
+  | {
+      type: "oauth2";
+      scopes: string[];
+    };
 
 type ToolDescriptorDefaults = {
   title: string;
@@ -129,12 +132,15 @@ export function installMcpToolListCompatibility(server: McpServer) {
 export function getMcpToolDescriptorDefaults(
   name: string,
 ): ToolDescriptorDefaults {
+  const isPublic = isPublicMcpTool(name);
   const requiredScopes = getRequiredMcpScopes(name);
   const scopes =
     requiredScopes.length > 0 ? requiredScopes : [...PUBLIC_REST_SCOPES];
-  const isWrite = scopes.some(isWriteScope);
+  const isWrite = !isPublic && scopes.some(isWriteScope);
   const title = humanizeToolName(name);
-  const securitySchemes: ToolSecurityScheme[] = [{ type: "oauth2", scopes }];
+  const securitySchemes: ToolSecurityScheme[] = isPublic
+    ? [{ type: "noauth" }]
+    : [{ type: "oauth2", scopes }];
 
   return {
     title,

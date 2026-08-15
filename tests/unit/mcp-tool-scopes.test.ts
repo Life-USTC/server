@@ -2,10 +2,13 @@ import { describe, expect, it } from "vitest";
 import {
   extractMcpToolCallNamesFromRequest,
   extractMcpToolNamesFromRequest,
+  getExplicitMcpToolScopeNames,
   getMcpWriteRateLimitAction,
   getMcpWriteRateLimitTier,
   getRequiredMcpScopes,
   isMcpWriteTool,
+  isPublicMcpTool,
+  mcpToolCallsRequireAuthentication,
 } from "@/lib/mcp/tool-scopes";
 import { restReadScope, restWriteScope } from "@/lib/oauth/constants";
 
@@ -51,27 +54,24 @@ describe("getRequiredMcpScopes", () => {
     expect(getRequiredMcpScopes(undefined)).toEqual([]);
   });
 
-  it("covers every major feature area", () => {
+  it("does not require scopes for public catalog tools", () => {
+    const publicTools = getExplicitMcpToolScopeNames().filter((name) =>
+      name.startsWith("catalog_"),
+    );
+
+    expect(publicTools.length).toBeGreaterThan(0);
+    for (const tool of publicTools) {
+      expect(getRequiredMcpScopes(tool)).toEqual([]);
+      expect(isPublicMcpTool(tool)).toBe(true);
+    }
+  });
+
+  it("covers every protected feature area", () => {
     expect(getRequiredMcpScopes("account_profile_get")).toEqual([
       restReadScope("account.profile"),
     ]);
     expect(getRequiredMcpScopes("workspace_snapshot_get")).toEqual([
       restReadScope("workspace.overview"),
-    ]);
-    expect(getRequiredMcpScopes("catalog_bus_departure_next")).toEqual([
-      restReadScope("catalog.bus"),
-    ]);
-    expect(getRequiredMcpScopes("catalog_course_search")).toEqual([
-      restReadScope("catalog.course"),
-    ]);
-    expect(getRequiredMcpScopes("catalog_section_get")).toEqual([
-      restReadScope("catalog.section"),
-    ]);
-    expect(getRequiredMcpScopes("catalog_teacher_search")).toEqual([
-      restReadScope("catalog.teacher"),
-    ]);
-    expect(getRequiredMcpScopes("catalog_schedule_list")).toEqual([
-      restReadScope("catalog.schedule"),
     ]);
     expect(getRequiredMcpScopes("workspace_exam_list")).toEqual([
       restReadScope("workspace.exam"),
@@ -94,6 +94,24 @@ describe("getRequiredMcpScopes", () => {
     expect(getRequiredMcpScopes("workspace_upload_list")).toEqual([
       restReadScope("workspace.upload"),
     ]);
+  });
+
+  it("requires authentication only for known protected tools", () => {
+    expect(mcpToolCallsRequireAuthentication(["catalog_course_search"])).toBe(
+      false,
+    );
+    expect(
+      mcpToolCallsRequireAuthentication([
+        "catalog_course_search",
+        "workspace_todo_list",
+      ]),
+    ).toBe(true);
+    expect(mcpToolCallsRequireAuthentication(["unknown_tool"])).toBe(false);
+    expect(mcpToolCallsRequireAuthentication(["graphql_operation_run"])).toBe(
+      true,
+    );
+    expect(isPublicMcpTool("workspace_todo_list")).toBe(false);
+    expect(isPublicMcpTool("unknown_tool")).toBe(false);
   });
 
   it("maps mutation tools to shared feature-action budgets", () => {

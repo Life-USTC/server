@@ -141,6 +141,26 @@ describe("MCP tool descriptors", () => {
     });
   });
 
+  it("advertises public catalog tools as noauth", async () => {
+    const result = await listTools();
+    const tool = result.tools.find(
+      (item) => item.name === "catalog_course_search",
+    );
+    const wireResult = await listToolsWireResult();
+    const wireTool = wireResult.tools.find(
+      (item) => item.name === "catalog_course_search",
+    );
+
+    expect(tool).toMatchObject({
+      annotations: { readOnlyHint: true },
+      _meta: { securitySchemes: [{ type: "noauth" }] },
+    });
+    expect(wireTool).toMatchObject({
+      securitySchemes: [{ type: "noauth" }],
+      _meta: { securitySchemes: [{ type: "noauth" }] },
+    });
+  });
+
   it("installs the tools/list compatibility wrapper once after registration", async () => {
     const mcpServer = new McpServer({
       name: "unit-test-list-compatibility",

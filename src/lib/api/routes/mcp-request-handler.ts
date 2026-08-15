@@ -1,3 +1,4 @@
+import type { AuthInfo } from "@modelcontextprotocol/sdk/server/auth/types.js";
 import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js";
 import { runCloudflareTraceSpan } from "@/lib/adapters/cloudflare-runtime";
 import { rateLimitResponse } from "@/lib/api/helpers";
@@ -10,6 +11,7 @@ import {
   getMcpWriteRateLimitAction,
   getMcpWriteRateLimitTier,
   isMcpWriteTool,
+  mcpToolCallsRequireAuthentication,
 } from "@/lib/mcp/tool-scopes";
 import {
   checkUserMutationRateLimit,
@@ -45,31 +47,6 @@ export async function handleMcpRequest(request: Request) {
       return originError;
     }
 
-    const { authenticateMcpRequest, authorizeMcpToolScopes } = await import(
-      "@/lib/mcp/auth"
-    );
-    const authResult = await runCloudflareTraceSpan(
-      "mcp.authenticate",
-      { "http.request.method": request.method },
-      () => authenticateMcpRequest(request),
-    );
-    if ("response" in authResult) {
-      const res = authResult.response;
-      const www = res.headers.get("www-authenticate");
-      const wwwAuthenticatePrefix = www ? www.slice(0, 120) : null;
-      recordAndLogMcpResponse({
-        authFailureDiagnostics: authResult.authFailureDiagnostics,
-        context: logContext,
-        request,
-        phase: "auth-rejected",
-        rpcSummary,
-        status: res.status,
-        start,
-        wwwAuthenticatePrefix,
-      });
-      return withMcpCors(request, res);
-    }
-
     const { readMcpJsonBodyWithinLimit } = await import(
       "@/lib/mcp/request-body"
     );
@@ -90,24 +67,33 @@ export async function handleMcpRequest(request: Request) {
 
     const toolCallNames = extractMcpToolCallNames(bodyResult.body);
     const toolNames = Array.from(new Set(toolCallNames));
-    const toolAuthResult = authorizeMcpToolScopes(
-      authResult.authInfo,
-      toolNames,
-    );
-    if ("response" in toolAuthResult) {
-      const res = toolAuthResult.response;
-      const www = res.headers.get("www-authenticate");
-      recordAndLogMcpResponse({
-        authFailureDiagnostics: toolAuthResult.authFailureDiagnostics,
-        context: logContext,
-        request,
-        phase: "auth-rejected",
-        rpcSummary,
-        status: res.status,
-        start,
-        wwwAuthenticatePrefix: www ? www.slice(0, 120) : null,
-      });
-      return withMcpCors(request, res);
+    let authInfo: AuthInfo | undefined;
+    if (
+      request.headers.has("authorization") ||
+      mcpToolCallsRequireAuthentication(toolNames)
+    ) {
+      const { authenticateMcpRequest } = await import("@/lib/mcp/auth");
+      const authResult = await runCloudflareTraceSpan(
+        "mcp.authenticate",
+        { "http.request.method": request.method },
+        () => authenticateMcpRequest(request, toolNames),
+      );
+      if ("response" in authResult) {
+        const res = authResult.response;
+        const www = res.headers.get("www-authenticate");
+        recordAndLogMcpResponse({
+          authFailureDiagnostics: authResult.authFailureDiagnostics,
+          context: logContext,
+          request,
+          phase: "auth-rejected",
+          rpcSummary,
+          status: res.status,
+          start,
+          wwwAuthenticatePrefix: www ? www.slice(0, 120) : null,
+        });
+        return withMcpCors(request, res);
+      }
+      authInfo = authResult.authInfo;
     }
 
     const { summarizeMcpJsonRpcBody } = await import("@/lib/mcp/observability");
@@ -116,7 +102,7 @@ export async function handleMcpRequest(request: Request) {
         ? null
         : summarizeMcpJsonRpcBody(bodyResult.body);
 
-    const userId = toolAuthResult.authInfo.extra?.userId;
+    const userId = authInfo?.extra?.userId;
     if (typeof userId === "string" && userId.length > 0) {
       for (const toolName of toolCallNames) {
         if (!isMcpWriteTool(toolName)) continue;
@@ -171,7 +157,7 @@ export async function handleMcpRequest(request: Request) {
       },
       () =>
         transport.handleRequest(request, {
-          authInfo: toolAuthResult.authInfo,
+          authInfo,
           parsedBody: bodyResult.body,
         }),
     );
