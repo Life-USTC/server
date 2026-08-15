@@ -8,7 +8,7 @@ import {
   suspensionForbidden,
   unauthorized,
 } from "@/lib/api/helpers";
-import { resolveApiUserId } from "@/lib/auth/api-auth";
+import { resolveSessionUserId } from "@/lib/auth/api-auth";
 import { findActiveSuspension } from "@/lib/auth/viewer-context";
 import {
   checkUserMutationRateLimit,
@@ -42,7 +42,7 @@ export async function requireAdminRequest(
   request: Request,
   options: AdminGuardOptions = {},
 ) {
-  const userId = await resolveApiUserId(request);
+  const userId = await resolveSessionUserId(request);
   if (!userId) return unauthorized();
 
   const admin = await resolveAdminByUserId(userId);

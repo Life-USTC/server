@@ -100,6 +100,32 @@ describe("认证辅助函数", () => {
     );
   });
 
+  it("REST principal 保留已验证 OAuth 归因", async () => {
+    verifyAccessTokenJwtMock.mockResolvedValue({
+      clientId: "client-id",
+      grantId: "grant-id",
+      sessionId: "session-id",
+      scope: new Set(["account.profile:read"]),
+      sub: "user-from-token",
+    });
+    const { resolveApiPrincipal } = await import("@/lib/auth/api-auth");
+
+    await expect(
+      resolveApiPrincipal(
+        new Request("https://life.example/api/account/profile", {
+          headers: { authorization: "Bearer access-token" },
+        }),
+      ),
+    ).resolves.toEqual({
+      kind: "oauth",
+      userId: "user-from-token",
+      clientId: "client-id",
+      grantId: "grant-id",
+      sessionId: "session-id",
+      scopes: new Set(["account.profile:read"]),
+    });
+  });
+
   it.each(["bearer", "bEaReR"])("接受 %s bearer 访问令牌", async (scheme) => {
     verifyAccessTokenJwtMock.mockResolvedValue({
       clientId: "client-id",

@@ -19,13 +19,15 @@ import { resourceIndicatorsMatch } from "@/lib/oauth/utils";
 
 export type GraphqlPrincipal =
   | { kind: "anonymous" }
-  | { kind: "session"; userId: string }
+  | { kind: "session"; userId: string; sessionId?: string }
   | {
       kind: "oauth";
       userId: string;
       scopes: Set<string>;
       resource: string;
       clientId?: string;
+      grantId?: string;
+      sessionId?: string;
     };
 
 export type AuthenticatedGraphqlPrincipal = Exclude<
@@ -112,6 +114,8 @@ async function resolveBearerPrincipal(
       scopes: verified.scope,
       resource: getOAuthGraphqlResourceUrl(),
       ...(verified.clientId ? { clientId: verified.clientId } : {}),
+      ...(verified.grantId ? { grantId: verified.grantId } : {}),
+      ...(verified.sessionId ? { sessionId: verified.sessionId } : {}),
     };
   } catch (error) {
     if (error instanceof GraphqlAuthError) throw error;
@@ -130,7 +134,11 @@ async function resolveSessionPrincipal(
   const { getSessionFromHeaders } = await import("@/lib/auth/core");
   const session = await getSessionFromHeaders(request.headers);
   return session
-    ? { kind: "session", userId: session.user.id }
+    ? {
+        kind: "session",
+        userId: session.user.id,
+        ...(session.session?.id ? { sessionId: session.session.id } : {}),
+      }
     : { kind: "anonymous" };
 }
 

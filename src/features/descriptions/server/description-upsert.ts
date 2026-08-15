@@ -132,7 +132,6 @@ export async function writeDescriptionContentInTransaction(
 
   await writeDescriptionEditAuditLog({
     client,
-    content,
     descriptionId: description.id,
     metadata: auditMetadata,
     targetType,
@@ -144,14 +143,12 @@ export async function writeDescriptionContentInTransaction(
 
 async function writeDescriptionEditAuditLog({
   client,
-  content,
   descriptionId,
   metadata,
   targetType,
   userId,
 }: {
   client: Prisma.TransactionClient;
-  content: string;
   descriptionId: string;
   metadata?: DescriptionEditAuditMetadata;
   targetType: DescriptionTargetType;
@@ -166,7 +163,7 @@ async function writeDescriptionEditAuditLog({
       targetType: "description",
       metadata: {
         targetType,
-        content: content.slice(0, 200),
+        changedFields: ["content"],
         ...(source ? { source } : {}),
       },
       ...requestMetadata,

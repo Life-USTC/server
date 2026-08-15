@@ -209,7 +209,7 @@ export async function createAdminSuspension(
           userId: adminUserId,
           targetId: userId,
           targetType: "user",
-          metadata: { reason: input.reason ?? null },
+          metadata: { reasonProvided: Boolean(input.reason?.trim()) },
         },
         tx,
       );
@@ -358,8 +358,7 @@ export async function moderateDescription(
         targetId: id,
         targetType: "description",
         metadata: {
-          previousContent: existing.content,
-          nextContent: input.content,
+          changedFields: ["content"],
         },
       },
       tx,

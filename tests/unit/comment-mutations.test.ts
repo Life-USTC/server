@@ -192,7 +192,7 @@ describe("评论变更写入保护", () => {
       data: expect.objectContaining({
         action: "comment_create",
         ipAddress: "127.0.0.1",
-        metadata: { body: "reply", source: "mcp" },
+        metadata: { source: "mcp" },
         targetId: "reply-1",
         targetType: "comment",
         userAgent: "test-agent",
@@ -264,7 +264,7 @@ describe("评论变更写入保护", () => {
     expect(auditLogCreateMock).toHaveBeenCalledWith({
       data: expect.objectContaining({
         action: "comment_edit",
-        metadata: { body: "edited", source: "mcp" },
+        metadata: { source: "mcp" },
         targetId: "comment-1",
         targetType: "comment",
         userId: "user-1",

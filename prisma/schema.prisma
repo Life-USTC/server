@@ -57,6 +57,39 @@ enum AuditAction {
   section_retire
   section_reactivate
   webhook_login
+  account_sign_in
+  account_sign_out
+  account_profile_update
+  account_link
+  account_unlink
+  account_delete
+  account_passkey_create
+  account_passkey_update
+  account_passkey_delete
+  account_session_revoke
+  account_calendar_token_rotate
+  oauth_authorization_grant
+  oauth_authorization_update
+  oauth_authorization_revoke
+  admin_user_role_update
+  admin_oauth_client_create
+  admin_oauth_client_delete
+}
+
+enum AuditOutcome {
+  success
+  denied
+  failure
+}
+
+enum AuditChannel {
+  web
+  rest
+  graphql
+  mcp
+  auth
+  webhook
+  system
 }
 
 enum TodoPriority {
@@ -538,9 +571,9 @@ model Teacher {
 
   personId Int?
   code     String?
-  nameCn    String
-  nameEn    String?
-  age       Int?
+  nameCn   String
+  nameEn   String?
+  age      Int?
 
   email     String?
   telephone String?
@@ -683,18 +716,29 @@ model HomeworkAuditLog {
 }
 
 model AuditLog {
-  id         String      @id @default(cuid())
-  action     AuditAction
-  userId     String?
-  user       User?       @relation(fields: [userId], references: [id], onDelete: SetNull)
-  targetId   String?
-  targetType String?
-  metadata   Json?
-  createdAt  DateTime    @default(now())
-  ipAddress  String?
-  userAgent  String?
+  id            String       @id @default(cuid())
+  action        AuditAction
+  outcome       AuditOutcome @default(success)
+  channel       AuditChannel @default(web)
+  userId        String?
+  user          User?        @relation("AuditActor", fields: [userId], references: [id], onDelete: SetNull)
+  subjectUserId String?
+  subjectUser   User?        @relation("AuditSubject", fields: [subjectUserId], references: [id], onDelete: SetNull)
+  targetId      String?
+  targetType    String?
+  oauthClientId String?
+  oauthGrantId  String?
+  sessionId     String?
+  requestId     String?
+  metadata      Json?
+  createdAt     DateTime     @default(now())
+  ipAddress     String?
+  userAgent     String?
 
   @@index([userId])
+  @@index([subjectUserId, createdAt, id])
+  @@index([subjectUserId, oauthClientId, createdAt, id])
+  @@index([oauthClientId, createdAt])
   @@index([action])
   @@index([createdAt])
 }
@@ -848,7 +892,8 @@ model User {
   homeworksUpdated     Homework[]                @relation("HomeworkUpdatedBy")
   homeworksDeleted     Homework[]                @relation("HomeworkDeletedBy")
   homeworkAuditLogs    HomeworkAuditLog[]        @relation("HomeworkAuditActor")
-  auditLogs            AuditLog[]
+  auditLogs            AuditLog[]                @relation("AuditActor")
+  subjectAuditLogs     AuditLog[]                @relation("AuditSubject")
   homeworkCompletions  HomeworkCompletion[]
   dashboardLinkClicks  DashboardLinkClick[]
   dashboardLinkPins    DashboardLinkPin[]

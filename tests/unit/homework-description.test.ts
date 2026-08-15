@@ -90,7 +90,7 @@ describe("updateHomeworkDescription", () => {
       data: expect.objectContaining({
         action: "description_edit",
         metadata: {
-          content: "new content",
+          changedFields: ["content"],
           targetType: "homework",
         },
         targetId: "description-1",

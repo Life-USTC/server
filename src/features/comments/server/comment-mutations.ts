@@ -210,7 +210,6 @@ async function createCommentRecord({
 
     await writeCommentAuditLog(tx, {
       action: "comment_create",
-      body: content,
       commentId: comment.id,
       metadata: auditMetadata,
       userId,
@@ -273,7 +272,6 @@ export async function updateOwnComment({
 
       await writeCommentAuditLog(tx, {
         action: "comment_edit",
-        body,
         commentId: id,
         metadata: auditMetadata,
         userId,
@@ -460,7 +458,6 @@ async function writeCommentAuditLog(
       | "comment_delete"
       | "comment_edit"
       | "comment_react";
-    body?: string;
     commentId: string;
     metadata?: CommentMutationAuditMetadata;
     operation?: "add" | "remove";
@@ -470,7 +467,6 @@ async function writeCommentAuditLog(
 ) {
   const { ipAddress, source, userAgent } = input.metadata ?? {};
   const metadata = {
-    ...(input.body ? { body: input.body.slice(0, 200) } : {}),
     ...(input.operation ? { operation: input.operation } : {}),
     ...(input.reactionType ? { type: input.reactionType } : {}),
     ...(source ? { source } : {}),

@@ -74,7 +74,7 @@ describe("admin 路由认证", () => {
     expect(resolveAdminByUserIdMock).not.toHaveBeenCalled();
   });
 
-  it("为有效的管理员 Bearer REST 请求返回管理员会话", async () => {
+  it("拒绝管理员用户持有的 Bearer 令牌，管理员 REST 仅接受站内会话", async () => {
     verifyAccessTokenJwtMock.mockResolvedValue({
       clientId: "admin-client",
       sub: "admin-from-token",
@@ -94,24 +94,12 @@ describe("admin 路由认证", () => {
       }),
     );
 
-    expect(response).toEqual({ userId: "admin-from-token" });
-    expect(verifyAccessTokenJwtMock).toHaveBeenCalledWith(
-      "access-token",
-      expect.objectContaining({
-        audience: ["https://life.example/api/auth"],
-        issuer: ["https://life.example/api/auth"],
-        jwksUrl: "https://life.example/api/auth/jwks",
-      }),
-    );
+    expect(response).toBeInstanceOf(Response);
+    expect((response as Response).status).toBe(401);
+    expect(verifyAccessTokenJwtMock).not.toHaveBeenCalled();
     expect(getSessionFromHeadersMock).not.toHaveBeenCalled();
-    expect(hasActiveOAuthUserGrantMock).toHaveBeenCalledWith({
-      clientId: "admin-client",
-      grantId: undefined,
-      requireGrantBinding: true,
-      scopes: ["account.profile:read"],
-      userId: "admin-from-token",
-    });
-    expect(resolveAdminByUserIdMock).toHaveBeenCalledWith("admin-from-token");
+    expect(hasActiveOAuthUserGrantMock).not.toHaveBeenCalled();
+    expect(resolveAdminByUserIdMock).not.toHaveBeenCalled();
   });
 
   it("会话用户不是管理员时返回 401", async () => {

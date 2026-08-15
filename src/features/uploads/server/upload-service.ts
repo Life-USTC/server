@@ -662,7 +662,6 @@ async function writeUploadDeleteAuditLog({
       targetId: upload.id,
       targetType: "upload",
       metadata: {
-        key: upload.key,
         size: upload.size,
         ...(audit?.source ? { source: audit.source } : {}),
       },

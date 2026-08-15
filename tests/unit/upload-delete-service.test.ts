@@ -103,7 +103,7 @@ describe("deleteOwnedUpload", () => {
     expect(auditLogCreateMock).toHaveBeenCalledWith({
       data: expect.objectContaining({
         action: "upload_delete",
-        metadata: { key: upload.key, size: upload.size, source: "mcp" },
+        metadata: { size: upload.size, source: "mcp" },
         targetId: upload.id,
         targetType: "upload",
         userId: "user-1",

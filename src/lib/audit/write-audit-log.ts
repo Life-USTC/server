@@ -1,13 +1,25 @@
-import type { AuditAction, Prisma } from "@/generated/prisma/client";
+import type {
+  AuditAction,
+  AuditChannel,
+  AuditOutcome,
+  Prisma,
+} from "@/generated/prisma/client";
 import { prisma } from "@/lib/db/prisma";
 import { logAppEvent } from "@/lib/log/app-logger";
 import { writeAuditWriteAnalytics } from "@/lib/metrics/analytics-engine";
 
 export { getAuditRequestMetadata } from "@/lib/audit/request-metadata";
 
-type AuditLogParams = {
+export type AuditLogParams = {
   action: AuditAction;
-  userId: string;
+  userId?: string;
+  subjectUserId?: string;
+  outcome?: AuditOutcome;
+  channel?: AuditChannel;
+  oauthClientId?: string;
+  oauthGrantId?: string;
+  sessionId?: string;
+  requestId?: string;
   targetId?: string;
   targetType?: string;
   metadata?: Record<string, unknown>;

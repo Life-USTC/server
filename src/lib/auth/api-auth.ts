@@ -26,6 +26,21 @@ import { hasRequestAuthSignal } from "./request-auth-signal";
 
 export type RestBearerScopeRequirement = FeatureScopeRequirement;
 
+export type ApiPrincipal =
+  | {
+      kind: "session";
+      userId: string;
+      sessionId?: string;
+    }
+  | {
+      kind: "oauth";
+      userId: string;
+      clientId: string;
+      grantId?: string;
+      sessionId?: string;
+      scopes: Set<string>;
+    };
+
 export type RestAuthOptions = {
   bearerScope?: RestBearerScopeRequirement;
   rateLimit?: {
@@ -50,10 +65,10 @@ async function getLocalJwks() {
  * 1. Bearer token in the `Authorization` header (OAuth access token)
  * 2. Session cookie via Better Auth
  */
-export async function resolveApiUserId(
+export async function resolveApiPrincipal(
   request: Request,
   options: RestAuthOptions = {},
-): Promise<string | null> {
+): Promise<ApiPrincipal | null> {
   const bearer = parseBearerAuthorizationHeader(request.headers);
   if (bearer) {
     const token = bearer.token ?? "";
@@ -84,7 +99,14 @@ export async function resolveApiUserId(
       } else {
         if (!hasAnyRestScope(verified.scope)) return null;
       }
-      return verified.sub;
+      return {
+        kind: "oauth",
+        userId: verified.sub,
+        clientId: verified.clientId,
+        ...(verified.grantId ? { grantId: verified.grantId } : {}),
+        ...(verified.sessionId ? { sessionId: verified.sessionId } : {}),
+        scopes: verified.scope,
+      };
     } catch {
       return null;
     }
@@ -94,7 +116,19 @@ export async function resolveApiUserId(
 
   const { getSessionFromHeaders } = await import("@/lib/auth/core");
   const session = await getSessionFromHeaders(request.headers);
-  return session?.user?.id ?? null;
+  if (!session?.user?.id) return null;
+  return {
+    kind: "session",
+    userId: session.user.id,
+    ...(session.session?.id ? { sessionId: session.session.id } : {}),
+  };
+}
+
+export async function resolveApiUserId(
+  request: Request,
+  options: RestAuthOptions = {},
+): Promise<string | null> {
+  return (await resolveApiPrincipal(request, options))?.userId ?? null;
 }
 
 export async function resolveSessionUserId(

@@ -51,6 +51,8 @@ describe("GraphQL principal", () => {
     verifyAccessTokenJwtMock.mockResolvedValue({
       aud: "https://life.example/api/graphql",
       clientId: "client-1",
+      grantId: "grant-1",
+      sessionId: "session-1",
       scope: new Set([restReadScope("workspace.todo")]),
       sub: "user-1",
     });
@@ -66,6 +68,8 @@ describe("GraphQL principal", () => {
       scopes: new Set([restReadScope("workspace.todo")]),
       resource: "https://life.example/api/graphql",
       clientId: "client-1",
+      grantId: "grant-1",
+      sessionId: "session-1",
     });
     expect(verifyAccessTokenJwtMock).toHaveBeenCalledWith(
       "access-token",

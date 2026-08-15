@@ -128,7 +128,7 @@ describe("upsertDescriptionContent", () => {
         action: "description_edit",
         metadata: {
           targetType: "section",
-          content: "new content",
+          changedFields: ["content"],
           source: "graphql",
         },
         targetId: "description-1",

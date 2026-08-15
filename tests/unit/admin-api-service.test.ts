@@ -294,7 +294,7 @@ describe("admin API 服务", () => {
         userId: "admin-1",
         targetId: "user-1",
         targetType: "user",
-        metadata: { reason: " fresh reason " },
+        metadata: { reasonProvided: true },
       },
     });
   });
@@ -466,10 +466,7 @@ describe("admin API 服务", () => {
     expect(auditLogCreateMock).toHaveBeenCalledWith({
       data: expect.objectContaining({
         action: "admin_description_moderate",
-        metadata: {
-          previousContent: "old content",
-          nextContent: "new content",
-        },
+        metadata: { changedFields: ["content"] },
         targetId: "description-1",
         targetType: "description",
         userId: "admin-1",
