@@ -1,8 +1,12 @@
 import { z } from "zod";
-import { courseSchema } from "@/lib/api/schemas/academic-course-response-schemas";
+import {
+  courseBaseSchema,
+  courseSchema,
+} from "@/lib/api/schemas/academic-course-response-schemas";
 import {
   examBatchSchema,
   examSchema,
+  subscribedExamSchema,
 } from "@/lib/api/schemas/academic-exam-response-schemas";
 import { campusSchema } from "@/lib/api/schemas/academic-location-response-schemas";
 import {
@@ -11,8 +15,19 @@ import {
   paginatedSemesterResponseSchema,
   paginatedTeacherResponseSchema,
 } from "@/lib/api/schemas/academic-paginated-response-schemas";
-import { semesterSchema } from "@/lib/api/schemas/academic-section-base-response-schemas";
-import { sectionSummarySchema } from "@/lib/api/schemas/academic-section-response-schemas";
+import {
+  sectionBaseSchema,
+  semesterSchema,
+} from "@/lib/api/schemas/academic-section-base-response-schemas";
+import {
+  courseDetailSchema,
+  courseDetailSectionSchema,
+  sectionCompactSchema,
+  sectionDetailSchema,
+  sectionSummarySchema,
+  teacherDetailSchema,
+  teacherDetailSectionSchema,
+} from "@/lib/api/schemas/academic-section-response-schemas";
 import {
   departmentSummarySchema,
   teacherListSchema,
@@ -44,6 +59,8 @@ import {
   scheduleEntrySchema,
   scheduleRoomSchema,
   scheduleTeacherSchema,
+  sectionScheduleWithContextSchema,
+  subscribedScheduleEntrySchema,
 } from "@/lib/api/schemas/schedule-response-schema-core";
 import {
   uploadDeleteResponseSchema,
@@ -195,22 +212,16 @@ const compactCatalogTeacherSchema = teacherListSchema
   })
   .strict();
 
-const compactTeacherSchema = z.union([
-  compactTeacherIdentitySchema,
-  compactScheduleTeacherSchema,
-  compactCatalogTeacherSchema,
-]);
-
-const fullCatalogTeacherMcpSchema = compactCatalogTeacherSchema
+const compactWorkspaceScheduleTeacherSchema = compactScheduleTeacherSchema
   .extend({
-    department: z
-      .union([compactDepartmentSchema, departmentSummarySchema])
-      .nullable(),
-    teacherTitle: z
-      .union([compactTeacherTitleSchema, teacherTitleSchema])
-      .nullable(),
+    teacherTitle: compactTeacherTitleSchema.nullable(),
+    _count: z.strictObject({ sections: z.number().int() }),
   })
-  .passthrough();
+  .strict();
+
+const compactTeacherReferenceSchema = compactScheduleTeacherSchema.extend({
+  teacherTitle: compactTeacherTitleSchema.nullable(),
+});
 
 const compactCampusSchema = campusSchema
   .pick({
@@ -255,22 +266,6 @@ const compactSectionSchema = z.union([
   compactSectionContextSchema,
   compactSectionFullSchema,
 ]);
-
-const fullSectionMcpSchema = compactSectionFullSchema
-  .extend({
-    course: z.union([compactCourseSchema, courseSchema]),
-    campus: z.union([compactCampusSchema, campusSchema]).nullable().optional(),
-    openDepartment: z
-      .union([compactDepartmentSchema, departmentSummarySchema])
-      .nullable()
-      .optional(),
-    teachers: z
-      .array(
-        z.union([compactTeacherIdentitySchema, teacherPublicIdentitySchema]),
-      )
-      .optional(),
-  })
-  .passthrough();
 
 const compactTodoSchema = todoItemSchema
   .pick({
@@ -323,7 +318,7 @@ const compactScheduleSchema = scheduleEntrySchema
   })
   .extend({
     section: compactSectionSchema.optional(),
-    teachers: z.array(compactTeacherSchema),
+    teachers: z.array(compactScheduleTeacherSchema),
     room: scheduleRoomSchema
       .pick({
         id: true,
@@ -346,11 +341,6 @@ const compactScheduleSchema = scheduleEntrySchema
       .strict()
       .optional(),
   })
-  .strict();
-
-const fullScheduleMcpSchema = z
-  .object(scheduleEntrySchema.omit({ section: true }).shape)
-  .extend({ section: fullSectionMcpSchema })
   .strict();
 
 const compactExamBatchSchema = examBatchSchema
@@ -419,35 +409,405 @@ const compactCalendarSubscriptionSchema = compactObjectSchema({
   note: z.string(),
 });
 
-const paginatedCourseMcpSchema = objectOutputSchema({
-  data: collectionOutputSchema(compactCourseSchema.passthrough()),
+function exactSuccessOutput(shape: OutputShape) {
+  return z.strictObject({ success: z.literal(true), ...shape });
+}
+
+const exactFailureOutputSchema = z.strictObject({
+  success: z.literal(false),
+  found: z.literal(false).optional(),
+  message: z.string(),
+  hint: z.string().optional(),
+});
+
+const compactSectionSummarySchema = z.strictObject({
+  id: z.number().int(),
+  jwId: z.number().int(),
+  code: z.string(),
+  campusId: z.number().int().nullable(),
+  openDepartmentId: z.number().int().nullable(),
+  course: compactCourseSchema,
+  semester: z
+    .strictObject({
+      id: z.number().int(),
+      jwId: z.number().int(),
+      code: z.string(),
+      nameCn: z.string(),
+    })
+    .nullable(),
+  campus: compactCampusSchema
+    .omit({ latitude: true, longitude: true })
+    .nullable(),
+  teachers: z.array(compactTeacherIdentitySchema),
+});
+
+const compactSectionDetailSchema = z.strictObject({
+  id: z.number().int(),
+  jwId: z.number().int(),
+  code: z.string(),
+  campusId: z.number().int().nullable(),
+  openDepartmentId: z.number().int().nullable(),
+  course: compactCourseSchema,
+  semester: compactSemesterSchema.nullable(),
+  campus: compactCampusSchema
+    .omit({ latitude: true, longitude: true })
+    .nullable(),
+  openDepartment: compactDepartmentSchema.nullable(),
+  teachers: z.array(compactTeacherReferenceSchema),
+});
+
+const compactMatchSectionSchema = compactSectionFullSchema.extend({
+  campus: compactCampusSchema
+    .omit({ latitude: true, longitude: true })
+    .nullable(),
+  openDepartment: compactDepartmentSchema.nullable(),
+  teachers: z.array(compactTeacherIdentitySchema),
+});
+
+const compactTeacherDetailSectionSchema = z.strictObject({
+  id: z.number().int(),
+  jwId: z.number().int(),
+  code: z.string(),
+  campusId: z.number().int().nullable(),
+  openDepartmentId: z.number().int().nullable(),
+  course: compactCourseSchema,
+  semester: compactSemesterSchema.nullable(),
+});
+
+const compactTeacherDetailSchema = compactCatalogTeacherSchema.extend({
+  sections: z.array(compactTeacherDetailSectionSchema),
+});
+
+const compactScheduleSectionSchema = z.strictObject({
+  id: z.number().int(),
+  jwId: z.number().int(),
+  code: z.string(),
+  campusId: z.number().int().nullable(),
+  openDepartmentId: z.number().int().nullable(),
+  course: compactCourseSchema,
+  semester: compactSemesterSchema.nullable(),
+});
+
+const compactPublicScheduleSchema = compactScheduleSchema.extend({
+  section: compactScheduleSectionSchema,
+});
+
+const compactScopedScheduleSchema = compactScheduleSchema.omit({
+  section: true,
+});
+
+const compactWorkspaceScheduleSchema = compactPublicScheduleSchema.extend({
+  teachers: z.array(compactWorkspaceScheduleTeacherSchema),
+});
+
+const fullCatalogExamSchema = examSchema.extend({
+  section: sectionBaseSchema.extend({ course: courseBaseSchema }),
+});
+
+const paginatedCourseDefaultMcpSchema = exactSuccessOutput({
+  data: z.array(compactCourseSchema),
   pagination: paginatedCourseResponseSchema.shape.pagination,
 });
-
-const paginatedSectionMcpSchema = objectOutputSchema({
-  data: collectionOutputSchema(
-    z.union([compactSectionSchema, sectionSummarySchema, fullSectionMcpSchema]),
-  ),
+const paginatedCourseFullMcpSchema = exactSuccessOutput({
+  data: z.array(courseSchema),
+  pagination: paginatedCourseResponseSchema.shape.pagination,
+});
+const paginatedSectionDefaultMcpSchema = exactSuccessOutput({
+  data: z.array(compactSectionSummarySchema),
   pagination: paginatedSectionResponseSchema.shape.pagination,
 });
-
-const paginatedTeacherMcpSchema = objectOutputSchema({
-  data: collectionOutputSchema(
-    z.union([compactCatalogTeacherSchema, teacherListSchema]),
-  ),
+const paginatedSectionFullMcpSchema = exactSuccessOutput({
+  data: z.array(sectionSummarySchema),
+  pagination: paginatedSectionResponseSchema.shape.pagination,
+});
+const paginatedTeacherDefaultMcpSchema = exactSuccessOutput({
+  data: z.array(compactCatalogTeacherSchema),
   pagination: paginatedTeacherResponseSchema.shape.pagination,
 });
+const paginatedTeacherFullMcpSchema = exactSuccessOutput({
+  data: z.array(teacherListSchema),
+  pagination: paginatedTeacherResponseSchema.shape.pagination,
+});
+const paginatedScheduleDefaultMcpSchema = exactSuccessOutput({
+  data: z.array(compactPublicScheduleSchema),
+  pagination: paginatedScheduleResponseSchema.shape.pagination,
+});
+const paginatedScheduleFullMcpSchema = exactSuccessOutput({
+  data: z.array(scheduleEntrySchema),
+  pagination: paginatedScheduleResponseSchema.shape.pagination,
+});
+
+const compactExamSectionSchema = z.strictObject({
+  id: z.number().int(),
+  jwId: z.number().int(),
+  code: z.string(),
+  campusId: z.number().int().nullable(),
+  openDepartmentId: z.number().int().nullable(),
+  course: compactCourseSchema,
+});
+
+const compactCatalogExamSchema = compactExamSchema.extend({
+  section: compactExamSectionSchema,
+  examBatch: compactExamBatchSchema.nullable(),
+});
+
+const compactWorkspaceExamSchema = compactExamSchema.extend({
+  section: compactScheduleSectionSchema,
+  examBatch: compactExamBatchSchema.nullable(),
+});
+
+const sectionContextFullSchema = z.strictObject({
+  id: z.number().int(),
+  jwId: z.number().int(),
+  code: z.string(),
+  course: compactCourseReferenceSchema,
+  semester: compactSemesterReferenceSchema.nullable(),
+});
+
+const sectionGetDefaultSchema = z.union([
+  exactSuccessOutput({
+    found: z.literal(true),
+    section: compactSectionDetailSchema,
+  }),
+  exactFailureOutputSchema,
+]);
+const sectionGetFullSchema = z.union([
+  exactSuccessOutput({
+    found: z.literal(true),
+    section: sectionDetailSchema,
+  }),
+  exactFailureOutputSchema,
+]);
+
+const academicModeOutputSchemas = {
+  catalog_course_search: {
+    default: paginatedCourseDefaultMcpSchema,
+    full: paginatedCourseFullMcpSchema,
+  },
+  catalog_course_get: {
+    default: exactSuccessOutput({
+      found: z.boolean(),
+      course: compactCourseSchema.nullable(),
+    }),
+    full: exactSuccessOutput({
+      found: z.boolean(),
+      course: courseDetailSchema.nullable(),
+    }),
+  },
+  catalog_section_search: {
+    default: paginatedSectionDefaultMcpSchema,
+    full: paginatedSectionFullMcpSchema,
+  },
+  catalog_section_get: {
+    default: sectionGetDefaultSchema,
+    full: sectionGetFullSchema,
+  },
+  catalog_section_match_preview: {
+    default: z.union([
+      exactSuccessOutput({
+        ...matchSectionCodesResponseSchema.omit({ sections: true }).shape,
+        sections: z.array(compactMatchSectionSchema),
+        note: z.string(),
+      }),
+      exactFailureOutputSchema,
+    ]),
+    full: z.union([
+      exactSuccessOutput({
+        ...matchSectionCodesResponseSchema.shape,
+        note: z.string(),
+      }),
+      exactFailureOutputSchema,
+    ]),
+  },
+  catalog_teacher_search: {
+    default: paginatedTeacherDefaultMcpSchema,
+    full: paginatedTeacherFullMcpSchema,
+  },
+  catalog_teacher_get: {
+    default: exactSuccessOutput({
+      found: z.boolean(),
+      teacher: compactTeacherDetailSchema.nullable(),
+    }),
+    full: exactSuccessOutput({
+      found: z.boolean(),
+      teacher: teacherDetailSchema.nullable(),
+    }),
+  },
+  catalog_schedule_list: {
+    default: z.union([
+      paginatedScheduleDefaultMcpSchema,
+      exactFailureOutputSchema,
+    ]),
+    full: z.union([paginatedScheduleFullMcpSchema, exactFailureOutputSchema]),
+  },
+  catalog_section_schedule_list: {
+    default: z.union([
+      exactSuccessOutput({
+        found: z.literal(true),
+        section: compactSectionContextSchema,
+        schedules: z.array(compactScopedScheduleSchema),
+      }),
+      exactFailureOutputSchema,
+    ]),
+    full: z.union([
+      exactSuccessOutput({
+        found: z.literal(true),
+        section: sectionContextFullSchema,
+        schedules: z.array(sectionScheduleWithContextSchema),
+      }),
+      exactFailureOutputSchema,
+    ]),
+  },
+  workspace_schedule_list: {
+    default: z.union([
+      exactSuccessOutput({
+        schedules: z.array(compactWorkspaceScheduleSchema),
+      }),
+      exactFailureOutputSchema,
+    ]),
+    full: z.union([
+      exactSuccessOutput({ schedules: z.array(subscribedScheduleEntrySchema) }),
+      exactFailureOutputSchema,
+    ]),
+  },
+  catalog_section_exam_list: {
+    default: z.union([
+      exactSuccessOutput({
+        found: z.literal(true),
+        section: compactSectionContextSchema,
+        exams: z.array(compactCatalogExamSchema),
+      }),
+      exactFailureOutputSchema,
+    ]),
+    full: z.union([
+      exactSuccessOutput({
+        found: z.literal(true),
+        section: sectionContextFullSchema,
+        exams: z.array(fullCatalogExamSchema),
+      }),
+      exactFailureOutputSchema,
+    ]),
+  },
+  workspace_exam_list: {
+    default: z.union([
+      exactSuccessOutput({ exams: z.array(compactWorkspaceExamSchema) }),
+      exactFailureOutputSchema,
+    ]),
+    full: z.union([
+      exactSuccessOutput({ exams: z.array(subscribedExamSchema) }),
+      exactFailureOutputSchema,
+    ]),
+  },
+} satisfies Record<string, Record<"default" | "full", McpToolOutputSchema>>;
+
+type AcademicModeToolName = keyof typeof academicModeOutputSchemas;
+
+const courseDetailSectionMcpSchema = courseDetailSectionSchema.extend({
+  semester: compactSemesterSchema.nullable(),
+});
+const courseDetailMcpSchema = courseDetailSchema.extend({
+  sections: z.array(courseDetailSectionMcpSchema),
+});
+const sectionDetailMcpSchema = sectionDetailSchema.extend({
+  semester: compactSemesterSchema.nullable(),
+});
+const teacherDetailSectionMcpSchema = teacherDetailSectionSchema.extend({
+  semester: compactSemesterSchema.nullable(),
+});
+const teacherDetailMcpSchema = teacherDetailSchema.extend({
+  sections: z.array(teacherDetailSectionMcpSchema),
+});
+const scheduleEntryMcpSchema = scheduleEntrySchema.extend({
+  section: scheduleEntrySchema.shape.section.extend({
+    semester: compactSemesterSchema.nullable(),
+  }),
+});
+const subscribedScheduleEntryMcpSchema = subscribedScheduleEntrySchema.extend({
+  section: subscribedScheduleEntrySchema.shape.section.extend({
+    semester: compactSemesterSchema.nullable(),
+  }),
+});
+const subscribedExamMcpSchema = subscribedExamSchema.extend({
+  section: subscribedExamSchema.shape.section.extend({
+    semester: compactSemesterSchema.nullable(),
+  }),
+});
+const sectionCompactMcpSchema = sectionCompactSchema.extend({
+  semester: compactSemesterSchema.nullable(),
+});
+
+const academicAdvertisedOutputSchemas: Record<
+  AcademicModeToolName,
+  McpToolOutputSchema
+> = {
+  catalog_course_search: objectOutputSchema({
+    data: z.array(z.union([compactCourseSchema, courseSchema])),
+    pagination: paginatedCourseResponseSchema.shape.pagination,
+  }),
+  catalog_course_get: objectOutputSchema({
+    course: z.union([compactCourseSchema, courseDetailMcpSchema]).nullable(),
+  }),
+  catalog_section_search: objectOutputSchema({
+    data: z.array(z.union([compactSectionSummarySchema, sectionSummarySchema])),
+    pagination: paginatedSectionResponseSchema.shape.pagination,
+  }),
+  catalog_section_get: objectOutputSchema({
+    section: z.union([compactSectionDetailSchema, sectionDetailMcpSchema]),
+  }),
+  catalog_section_match_preview: objectOutputSchema({
+    ...matchSectionCodesResponseSchema.omit({ sections: true }).shape,
+    sections: z.array(
+      z.union([compactMatchSectionSchema, sectionCompactMcpSchema]),
+    ),
+    note: z.string(),
+  }),
+  catalog_teacher_search: objectOutputSchema({
+    data: z.array(z.union([compactCatalogTeacherSchema, teacherListSchema])),
+    pagination: paginatedTeacherResponseSchema.shape.pagination,
+  }),
+  catalog_teacher_get: objectOutputSchema({
+    teacher: z
+      .union([compactTeacherDetailSchema, teacherDetailMcpSchema])
+      .nullable(),
+  }),
+  catalog_schedule_list: objectOutputSchema({
+    data: z.array(
+      z.union([compactPublicScheduleSchema, scheduleEntryMcpSchema]),
+    ),
+    pagination: paginatedScheduleResponseSchema.shape.pagination,
+  }),
+  catalog_section_schedule_list: objectOutputSchema({
+    section: z.union([compactSectionContextSchema, sectionContextFullSchema]),
+    schedules: z.array(
+      z.union([compactScopedScheduleSchema, sectionScheduleWithContextSchema]),
+    ),
+  }),
+  workspace_schedule_list: objectOutputSchema({
+    schedules: z.array(
+      z.union([
+        compactWorkspaceScheduleSchema,
+        subscribedScheduleEntryMcpSchema,
+      ]),
+    ),
+  }),
+  catalog_section_exam_list: objectOutputSchema({
+    section: z.union([compactSectionContextSchema, sectionContextFullSchema]),
+    exams: z.array(z.union([compactCatalogExamSchema, fullCatalogExamSchema])),
+  }),
+  workspace_exam_list: objectOutputSchema({
+    exams: z.array(
+      z.union([compactWorkspaceExamSchema, subscribedExamMcpSchema]),
+    ),
+  }),
+};
+
+function advertisedAcademicOutputSchema(name: AcademicModeToolName) {
+  return academicAdvertisedOutputSchemas[name];
+}
 
 const paginatedSemesterMcpSchema = objectOutputSchema({
   data: collectionOutputSchema(compactSemesterSchema),
   pagination: paginatedSemesterResponseSchema.shape.pagination,
-});
-
-const paginatedScheduleMcpSchema = objectOutputSchema({
-  data: collectionOutputSchema(
-    z.union([compactScheduleSchema, fullScheduleMcpSchema]),
-  ),
-  pagination: paginatedScheduleResponseSchema.shape.pagination,
 });
 
 const todoListMcpSchema = objectOutputSchema({
@@ -574,16 +934,6 @@ const MARKDOWN_MODE_OUTPUT_SCHEMAS = {
     full: descriptionUpsertOutputSchema(descriptionDetailSchema.strict()),
   },
 } satisfies Record<string, Record<"default" | "full", McpToolOutputSchema>>;
-
-const matchSectionCodesMcpSchema = objectOutputSchema({
-  ...matchSectionCodesResponseSchema.shape,
-  success: z.boolean(),
-  matchedCodes: collectionOutputSchema(z.string()),
-  unmatchedCodes: collectionOutputSchema(z.string()),
-  suggestions: z.record(z.string(), z.array(z.string())),
-  sections: collectionOutputSchema(compactSectionSchema),
-  note: z.string(),
-});
 
 // Production startup asserts that every registered application tool has an
 // explicit entry. The fallback exists only for isolated SDK/test registrations.
@@ -807,54 +1157,56 @@ const TOOL_OUTPUT_SCHEMAS: Record<string, McpToolOutputSchema> = {
     message: z.string().nullable(),
   }),
 
-  catalog_course_search: paginatedCourseMcpSchema,
-  catalog_course_get: objectOutputSchema({
-    course: z
-      .union([compactCourseSchema, compactCourseSchema.passthrough()])
-      .nullable(),
-  }),
+  catalog_course_search: advertisedAcademicOutputSchema(
+    "catalog_course_search",
+  ),
+  catalog_course_get: advertisedAcademicOutputSchema("catalog_course_get"),
   catalog_semester_list: paginatedSemesterMcpSchema,
   catalog_semester_current: objectOutputSchema({
     semester: compactSemesterSchema.nullable(),
   }),
 
-  catalog_section_get: objectOutputSchema({
-    section: z.union([compactSectionSchema, fullSectionMcpSchema]),
-  }),
-  catalog_section_search: paginatedSectionMcpSchema,
-  catalog_section_match_preview: matchSectionCodesMcpSchema,
+  catalog_section_get: advertisedAcademicOutputSchema("catalog_section_get"),
+  catalog_section_search: advertisedAcademicOutputSchema(
+    "catalog_section_search",
+  ),
+  catalog_section_match_preview: advertisedAcademicOutputSchema(
+    "catalog_section_match_preview",
+  ),
 
-  catalog_teacher_search: paginatedTeacherMcpSchema,
-  catalog_teacher_get: objectOutputSchema({
-    teacher: z
-      .union([compactCatalogTeacherSchema, fullCatalogTeacherMcpSchema])
-      .nullable(),
-  }),
+  catalog_teacher_search: advertisedAcademicOutputSchema(
+    "catalog_teacher_search",
+  ),
+  catalog_teacher_get: advertisedAcademicOutputSchema("catalog_teacher_get"),
 
-  catalog_schedule_list: paginatedScheduleMcpSchema,
-  catalog_section_schedule_list: objectOutputSchema({
-    section: compactSectionSchema,
-    schedules: collectionOutputSchema(
-      z.union([compactScheduleSchema, fullScheduleMcpSchema]),
-    ),
-  }),
-  workspace_schedule_list: objectOutputSchema({
-    schedules: collectionOutputSchema(
-      z.union([compactScheduleSchema, fullScheduleMcpSchema]),
-    ),
-  }),
+  catalog_schedule_list: advertisedAcademicOutputSchema(
+    "catalog_schedule_list",
+  ),
+  catalog_section_schedule_list: advertisedAcademicOutputSchema(
+    "catalog_section_schedule_list",
+  ),
+  workspace_schedule_list: advertisedAcademicOutputSchema(
+    "workspace_schedule_list",
+  ),
 
-  catalog_section_exam_list: objectOutputSchema({
-    section: compactSectionSchema,
-    exams: collectionOutputSchema(z.union([compactExamSchema, examSchema])),
-  }),
-  workspace_exam_list: objectOutputSchema({
-    exams: collectionOutputSchema(z.union([compactExamSchema, examSchema])),
-  }),
+  catalog_section_exam_list: advertisedAcademicOutputSchema(
+    "catalog_section_exam_list",
+  ),
+  workspace_exam_list: advertisedAcademicOutputSchema("workspace_exam_list"),
 };
 
 export function getMcpToolOutputSchema(name: string): McpToolOutputSchema {
   return TOOL_OUTPUT_SCHEMAS[name] ?? STRUCTURED_CONTENT_OUTPUT_SCHEMA;
+}
+
+export function getMcpToolOutputSchemaForMode(
+  name: string,
+  mode: "default" | "full",
+): McpToolOutputSchema {
+  if (Object.hasOwn(academicModeOutputSchemas, name)) {
+    return academicModeOutputSchemas[name as AcademicModeToolName][mode];
+  }
+  return getMcpToolOutputSchema(name);
 }
 
 export function getMarkdownMcpToolOutputSchemaForMode(

@@ -10,24 +10,49 @@ import {
   teacherPublicListSelect,
   teacherPublicReferenceSelect,
 } from "@/features/catalog/server/academic-query-includes";
+import { sectionBaseSchema } from "@/lib/api/schemas/academic-section-base-response-schemas";
 import { sectionCompactSchema } from "@/lib/api/schemas/academic-section-list-response-schemas";
+import { teacherListSchema } from "@/lib/api/schemas/academic-teacher-response-schemas";
 
 const sourceOnlyTeacherFields = ["age", "postcode", "qq", "wechat"];
 const teacherContactFields = ["email", "telephone", "mobile", "address"];
 
 describe("public teacher payloads", () => {
+  it("requires persisted section fields instead of treating drift as optional", () => {
+    const section = Object.fromEntries(
+      Object.keys(sectionBaseSchema.shape).map((key) => [key, null]),
+    );
+    expect(
+      sectionBaseSchema.safeParse({
+        ...section,
+        id: 1,
+        jwId: 2,
+        code: "001",
+        courseId: 3,
+      }).success,
+    ).toBe(true);
+    const { retiredAt: _retiredAt, ...missingRetiredAt } = section;
+    expect(
+      sectionBaseSchema.safeParse({
+        ...missingRetiredAt,
+        id: 1,
+        jwId: 2,
+        code: "001",
+        courseId: 3,
+      }).success,
+    ).toBe(false);
+  });
+
+  it("rejects nested count drift on teacher list payloads", () => {
+    expect(
+      teacherListSchema.shape._count.safeParse({ sections: 1, stale: true })
+        .success,
+    ).toBe(false);
+  });
+
   it("uses an explicit identity allowlist for nested teacher references", () => {
     expect(Object.keys(teacherPublicIdentitySelect).sort()).toEqual(
-      [
-        "code",
-        "id",
-        "jwId",
-        "nameCn",
-        "nameEn",
-        "namePrimary",
-        "nameSecondary",
-        "personId",
-      ].sort(),
+      ["code", "id", "jwId", "nameCn", "nameEn", "personId"].sort(),
     );
     for (const field of [...sourceOnlyTeacherFields, ...teacherContactFields]) {
       expect(teacherPublicIdentitySelect).not.toHaveProperty(field);

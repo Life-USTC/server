@@ -5,63 +5,63 @@ export const localizedNameFields = {
   nameSecondary: z.string().nullable(),
 };
 
-export const courseCategorySchema = z.object({
+export const courseCategorySchema = z.strictObject({
   id: z.number().int(),
   nameCn: z.string(),
   nameEn: z.string().nullable(),
   ...localizedNameFields,
 });
 
-export const courseClassifySchema = z.object({
+export const courseClassifySchema = z.strictObject({
   id: z.number().int(),
   nameCn: z.string(),
   nameEn: z.string().nullable(),
   ...localizedNameFields,
 });
 
-export const courseGradationSchema = z.object({
+export const courseGradationSchema = z.strictObject({
   id: z.number().int(),
   nameCn: z.string(),
   nameEn: z.string().nullable(),
   ...localizedNameFields,
 });
 
-export const courseTypeSchema = z.object({
+export const courseTypeSchema = z.strictObject({
   id: z.number().int(),
   nameCn: z.string(),
   nameEn: z.string().nullable(),
   ...localizedNameFields,
 });
 
-export const classTypeSchema = z.object({
+export const classTypeSchema = z.strictObject({
   id: z.number().int(),
   nameCn: z.string(),
   nameEn: z.string().nullable(),
   ...localizedNameFields,
 });
 
-export const educationLevelSchema = z.object({
+export const educationLevelSchema = z.strictObject({
   id: z.number().int(),
   nameCn: z.string(),
   nameEn: z.string().nullable(),
   ...localizedNameFields,
 });
 
-export const examModeSchema = z.object({
+export const examModeSchema = z.strictObject({
   id: z.number().int(),
   nameCn: z.string(),
   nameEn: z.string().nullable(),
   ...localizedNameFields,
 });
 
-export const teachLanguageSchema = z.object({
+export const teachLanguageSchema = z.strictObject({
   id: z.number().int(),
   nameCn: z.string(),
   nameEn: z.string().nullable(),
   ...localizedNameFields,
 });
 
-export const courseBaseSchema = z.object({
+export const courseBaseSchema = z.strictObject({
   id: z.number().int(),
   jwId: z.number().int(),
   code: z.string(),

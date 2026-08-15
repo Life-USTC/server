@@ -1,7 +1,7 @@
 import * as z from "zod";
 import { localizedNameFields } from "./academic-course-response-schemas";
 
-export const departmentSchema = z.object({
+export const departmentSchema = z.strictObject({
   id: z.number().int(),
   jwId: z.number().int().nullable(),
   code: z.string(),
@@ -13,7 +13,7 @@ export const departmentSchema = z.object({
 
 export const departmentSummarySchema = departmentSchema.omit({ jwId: true });
 
-export const teacherTitleSchema = z.object({
+export const teacherTitleSchema = z.strictObject({
   id: z.number().int(),
   jwId: z.number().int(),
   nameCn: z.string(),
@@ -23,7 +23,7 @@ export const teacherTitleSchema = z.object({
   ...localizedNameFields,
 });
 
-export const teacherLessonTypeSchema = z.object({
+export const teacherLessonTypeSchema = z.strictObject({
   id: z.number().int(),
   jwId: z.number().int(),
   nameCn: z.string(),
@@ -33,7 +33,7 @@ export const teacherLessonTypeSchema = z.object({
   enabled: z.boolean().nullable(),
 });
 
-export const teacherSchema = z.object({
+export const teacherSchema = z.strictObject({
   id: z.number().int(),
   jwId: z.number().int(),
   personId: z.number().int().nullable(),
@@ -49,7 +49,7 @@ export const teacherSchema = z.object({
   ...localizedNameFields,
 });
 
-export const teacherPublicIdentitySchema = z.object({
+export const teacherPublicIdentitySchema = z.strictObject({
   id: z.number().int(),
   jwId: z.number().int(),
   personId: z.number().int().nullable(),
@@ -71,7 +71,7 @@ export const teacherWithDepartmentTitleSchema = teacherSchema.extend({
 });
 
 export const teacherListSchema = teacherWithDepartmentTitleSchema.extend({
-  _count: z.object({ sections: z.number().int() }),
+  _count: z.strictObject({ sections: z.number().int() }),
 });
 
-export type TeacherDto = z.output<typeof teacherWithDepartmentTitleSchema>;
+export type TeacherListDto = z.output<typeof teacherListSchema>;

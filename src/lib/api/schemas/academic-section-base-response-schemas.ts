@@ -2,7 +2,7 @@ import * as z from "zod";
 import { dateTimeSchema } from "./response-schema-primitives";
 
 export const semesterSchema = z
-  .object({
+  .strictObject({
     id: z.number().int(),
     jwId: z.number().int(),
     nameCn: z.string(),
@@ -12,7 +12,7 @@ export const semesterSchema = z
   })
   .meta({ id: "semesterSchema", outputId: "semesterSchema" });
 
-export const adminClassSchema = z.object({
+export const adminClassSchema = z.strictObject({
   id: z.number().int(),
   jwId: z.number().int(),
   code: z.string().nullable(),
@@ -26,10 +26,10 @@ export const adminClassSchema = z.object({
   abbrEn: z.string().nullable(),
 });
 
-export const sectionBaseSchema = z.object({
+export const sectionBaseSchema = z.strictObject({
   id: z.number().int(),
   jwId: z.number().int(),
-  retiredAt: dateTimeSchema.nullable().optional(),
+  retiredAt: dateTimeSchema.nullable(),
   code: z.string(),
   bizTypeId: z.number().int().nullable(),
   credits: z.number().nullable(),

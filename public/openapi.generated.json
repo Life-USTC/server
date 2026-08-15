@@ -8495,7 +8495,8 @@
           "code",
           "startDate",
           "endDate"
-        ]
+        ],
+        "additionalProperties": false
       },
       "__schema1": {
         "type": "object",
@@ -11651,68 +11652,6 @@
                           "nameSecondary"
                         ],
                         "additionalProperties": false
-                      },
-                      "teacherTitle": {
-                        "nullable": true,
-                        "type": "object",
-                        "properties": {
-                          "id": {
-                            "type": "integer",
-                            "minimum": -9007199254740991,
-                            "maximum": 9007199254740991
-                          },
-                          "jwId": {
-                            "type": "integer",
-                            "minimum": -9007199254740991,
-                            "maximum": 9007199254740991
-                          },
-                          "nameCn": {
-                            "type": "string"
-                          },
-                          "nameEn": {
-                            "nullable": true,
-                            "type": "string"
-                          },
-                          "code": {
-                            "type": "string"
-                          },
-                          "enabled": {
-                            "nullable": true,
-                            "type": "boolean"
-                          },
-                          "namePrimary": {
-                            "type": "string"
-                          },
-                          "nameSecondary": {
-                            "nullable": true,
-                            "type": "string"
-                          }
-                        },
-                        "required": [
-                          "id",
-                          "jwId",
-                          "nameCn",
-                          "nameEn",
-                          "code",
-                          "enabled",
-                          "namePrimary",
-                          "nameSecondary"
-                        ],
-                        "additionalProperties": false
-                      },
-                      "_count": {
-                        "type": "object",
-                        "properties": {
-                          "sections": {
-                            "type": "integer",
-                            "minimum": -9007199254740991,
-                            "maximum": 9007199254740991
-                          }
-                        },
-                        "required": [
-                          "sections"
-                        ],
-                        "additionalProperties": false
                       }
                     },
                     "required": [
@@ -11993,6 +11932,7 @@
                   "required": [
                     "id",
                     "jwId",
+                    "retiredAt",
                     "code",
                     "bizTypeId",
                     "credits",
@@ -12229,6 +12169,13 @@
                     "nameEn": {
                       "nullable": true,
                       "type": "string"
+                    },
+                    "namePrimary": {
+                      "type": "string"
+                    },
+                    "nameSecondary": {
+                      "nullable": true,
+                      "type": "string"
                     }
                   },
                   "required": [
@@ -12236,7 +12183,9 @@
                     "jwId",
                     "code",
                     "nameCn",
-                    "nameEn"
+                    "nameEn",
+                    "namePrimary",
+                    "nameSecondary"
                   ],
                   "additionalProperties": false
                 },
@@ -12293,6 +12242,13 @@
                     "code": {
                       "nullable": true,
                       "type": "string"
+                    },
+                    "namePrimary": {
+                      "type": "string"
+                    },
+                    "nameSecondary": {
+                      "nullable": true,
+                      "type": "string"
                     }
                   },
                   "required": [
@@ -12300,7 +12256,9 @@
                     "jwId",
                     "nameCn",
                     "nameEn",
-                    "code"
+                    "code",
+                    "namePrimary",
+                    "nameSecondary"
                   ],
                   "additionalProperties": false
                 },
@@ -13760,6 +13718,7 @@
                   "required": [
                     "id",
                     "jwId",
+                    "retiredAt",
                     "code",
                     "bizTypeId",
                     "credits",
@@ -14677,6 +14636,7 @@
                 "required": [
                   "id",
                   "jwId",
+                  "retiredAt",
                   "code",
                   "bizTypeId",
                   "credits",
@@ -15316,6 +15276,7 @@
                   "required": [
                     "id",
                     "jwId",
+                    "retiredAt",
                     "code",
                     "bizTypeId",
                     "credits",
@@ -16162,68 +16123,6 @@
                               "nameSecondary"
                             ],
                             "additionalProperties": false
-                          },
-                          "teacherTitle": {
-                            "nullable": true,
-                            "type": "object",
-                            "properties": {
-                              "id": {
-                                "type": "integer",
-                                "minimum": -9007199254740991,
-                                "maximum": 9007199254740991
-                              },
-                              "jwId": {
-                                "type": "integer",
-                                "minimum": -9007199254740991,
-                                "maximum": 9007199254740991
-                              },
-                              "nameCn": {
-                                "type": "string"
-                              },
-                              "nameEn": {
-                                "nullable": true,
-                                "type": "string"
-                              },
-                              "code": {
-                                "type": "string"
-                              },
-                              "enabled": {
-                                "nullable": true,
-                                "type": "boolean"
-                              },
-                              "namePrimary": {
-                                "type": "string"
-                              },
-                              "nameSecondary": {
-                                "nullable": true,
-                                "type": "string"
-                              }
-                            },
-                            "required": [
-                              "id",
-                              "jwId",
-                              "nameCn",
-                              "nameEn",
-                              "code",
-                              "enabled",
-                              "namePrimary",
-                              "nameSecondary"
-                            ],
-                            "additionalProperties": false
-                          },
-                          "_count": {
-                            "type": "object",
-                            "properties": {
-                              "sections": {
-                                "type": "integer",
-                                "minimum": -9007199254740991,
-                                "maximum": 9007199254740991
-                              }
-                            },
-                            "required": [
-                              "sections"
-                            ],
-                            "additionalProperties": false
                           }
                         },
                         "required": [
@@ -16504,6 +16403,7 @@
                       "required": [
                         "id",
                         "jwId",
+                        "retiredAt",
                         "code",
                         "bizTypeId",
                         "credits",
@@ -17113,6 +17013,7 @@
                       "required": [
                         "id",
                         "jwId",
+                        "retiredAt",
                         "code",
                         "bizTypeId",
                         "credits",
@@ -17759,6 +17660,7 @@
                       "required": [
                         "id",
                         "jwId",
+                        "retiredAt",
                         "code",
                         "bizTypeId",
                         "credits",
@@ -18293,7 +18195,9 @@
                       "nameEn",
                       "namePrimary",
                       "nameSecondary",
-                      "department"
+                      "department",
+                      "teacherTitle",
+                      "_count"
                     ],
                     "additionalProperties": false
                   }
@@ -18562,6 +18466,7 @@
                   "required": [
                     "id",
                     "jwId",
+                    "retiredAt",
                     "code",
                     "bizTypeId",
                     "credits",
@@ -19324,6 +19229,7 @@
                   "required": [
                     "id",
                     "jwId",
+                    "retiredAt",
                     "code",
                     "bizTypeId",
                     "credits",
@@ -20034,6 +19940,7 @@
                   "required": [
                     "id",
                     "jwId",
+                    "retiredAt",
                     "code",
                     "bizTypeId",
                     "credits",
@@ -20756,6 +20663,7 @@
                   "required": [
                     "id",
                     "jwId",
+                    "retiredAt",
                     "code",
                     "bizTypeId",
                     "credits",
@@ -23130,6 +23038,7 @@
               "required": [
                 "id",
                 "jwId",
+                "retiredAt",
                 "code",
                 "bizTypeId",
                 "credits",
@@ -24561,6 +24470,7 @@
         "required": [
           "id",
           "jwId",
+          "retiredAt",
           "code",
           "bizTypeId",
           "credits",
@@ -25303,6 +25213,7 @@
               "required": [
                 "id",
                 "jwId",
+                "retiredAt",
                 "code",
                 "bizTypeId",
                 "credits",
@@ -25985,6 +25896,7 @@
               "required": [
                 "id",
                 "jwId",
+                "retiredAt",
                 "code",
                 "bizTypeId",
                 "credits",
@@ -26806,6 +26718,7 @@
                 "required": [
                   "id",
                   "jwId",
+                  "retiredAt",
                   "code",
                   "bizTypeId",
                   "credits",
@@ -28043,6 +27956,7 @@
               "required": [
                 "id",
                 "jwId",
+                "retiredAt",
                 "code",
                 "bizTypeId",
                 "credits",
@@ -28735,6 +28649,7 @@
                   "required": [
                     "id",
                     "jwId",
+                    "retiredAt",
                     "code",
                     "bizTypeId",
                     "credits",
@@ -29439,6 +29354,7 @@
                   "required": [
                     "id",
                     "jwId",
+                    "retiredAt",
                     "code",
                     "bizTypeId",
                     "credits",
@@ -30169,6 +30085,7 @@
               "required": [
                 "id",
                 "jwId",
+                "retiredAt",
                 "code",
                 "bizTypeId",
                 "credits",
@@ -30831,6 +30748,7 @@
               "required": [
                 "id",
                 "jwId",
+                "retiredAt",
                 "code",
                 "bizTypeId",
                 "credits",
@@ -31493,6 +31411,7 @@
               "required": [
                 "id",
                 "jwId",
+                "retiredAt",
                 "code",
                 "bizTypeId",
                 "credits",
@@ -32157,6 +32076,7 @@
                   "required": [
                     "id",
                     "jwId",
+                    "retiredAt",
                     "code",
                     "bizTypeId",
                     "credits",
@@ -32948,6 +32868,7 @@
               "required": [
                 "id",
                 "jwId",
+                "retiredAt",
                 "code",
                 "bizTypeId",
                 "credits",

@@ -10,6 +10,7 @@ import {
   sectionBaseSchema,
   semesterSchema,
 } from "./academic-response-schema-core";
+import { sectionPublicContextSchema } from "./academic-section-list-response-schemas";
 import {
   departmentSummarySchema,
   teacherTitleSchema,
@@ -38,10 +39,7 @@ export const scheduleRoomSchema = roomSchema.extend({
 
 const localizedDepartmentSchema = departmentSummarySchema;
 
-const localizedTeacherTitleSchema =
-  teacherTitleSchema.extend(localizedNameFields);
-
-export const scheduleTeacherSchema = z.object({
+export const scheduleTeacherSchema = z.strictObject({
   id: z.number().int(),
   jwId: z.number().int(),
   personId: z.number().int().nullable(),
@@ -51,12 +49,11 @@ export const scheduleTeacherSchema = z.object({
   namePrimary: z.string(),
   nameSecondary: z.string().nullable(),
   department: localizedDepartmentSchema.nullable(),
-  teacherTitle: localizedTeacherTitleSchema.nullable().optional(),
-  _count: z
-    .object({
-      sections: z.number().int(),
-    })
-    .optional(),
+});
+
+export const workspaceScheduleTeacherSchema = scheduleTeacherSchema.extend({
+  teacherTitle: teacherTitleSchema.nullable(),
+  _count: z.strictObject({ sections: z.number().int() }),
 });
 
 export const scheduleEntrySchema = scheduleBaseSchema.extend({
@@ -75,6 +72,11 @@ export const sectionScheduleEntrySchema = scheduleBaseSchema.extend({
   scheduleGroup: scheduleGroupSchema,
 });
 
+export const sectionScheduleWithContextSchema =
+  sectionScheduleEntrySchema.extend({
+    section: sectionPublicContextSchema,
+  });
+
 export const sectionSchedulesResponseSchema = z.array(
   sectionScheduleEntrySchema,
 );
@@ -90,8 +92,18 @@ export const scheduleGroupsResponseSchema = z.array(
 export const paginatedScheduleResponseSchema =
   createPaginatedSchema(scheduleEntrySchema);
 
-export const subscribedSchedulesResponseSchema = z.object({
-  schedules: z.array(scheduleEntrySchema),
+export const subscribedScheduleEntrySchema = scheduleEntrySchema.extend({
+  teachers: z.array(workspaceScheduleTeacherSchema),
+});
+
+export const subscribedSchedulesResponseSchema = z.strictObject({
+  schedules: z.array(subscribedScheduleEntrySchema),
 });
 
 export type ScheduleEntryDto = z.output<typeof scheduleEntrySchema>;
+export type SectionScheduleEntryDto = z.output<
+  typeof sectionScheduleEntrySchema
+>;
+export type SectionScheduleWithContextDto = z.output<
+  typeof sectionScheduleWithContextSchema
+>;

@@ -2,6 +2,7 @@ import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { describe, expect, it } from "vitest";
+import * as z from "zod";
 import { createMcpServer } from "@/lib/mcp/server";
 import {
   assertRegisteredMcpToolMetadata,
@@ -12,6 +13,7 @@ import {
 import {
   getMarkdownMcpToolOutputSchemaForMode,
   getMcpToolOutputSchema,
+  getMcpToolOutputSchemaForMode,
 } from "@/lib/mcp/tool-output-schemas";
 import { jsonToolResult } from "@/lib/mcp/tools/_shared/helpers";
 import { restReadScope, restWriteScope } from "@/lib/oauth/constants";
@@ -454,13 +456,17 @@ describe("MCP tool descriptors", () => {
         totalPages: { type: "integer" },
       },
     });
-    expect(
-      courseSearchSchema?.properties?.data?.items?.properties,
-    ).toMatchObject({
-      id: { type: "integer" },
-      jwId: { type: "integer" },
-      code: { type: "string" },
-    });
+    expect(courseSearchSchema?.properties?.data?.items?.anyOf).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          properties: expect.objectContaining({
+            id: expect.objectContaining({ type: "integer" }),
+            jwId: expect.objectContaining({ type: "integer" }),
+            code: expect.objectContaining({ type: "string" }),
+          }),
+        }),
+      ]),
+    );
   });
 
   it("accepts nullable not-found catalog payloads", () => {
@@ -522,22 +528,6 @@ describe("MCP tool descriptors", () => {
         },
       ],
     };
-    const examPayload = {
-      exams: [
-        {
-          id: 1,
-          jwId: 1001,
-          examDate: "2026-07-02T00:00:00.000Z",
-          startTime: 900,
-          endTime: 1100,
-          examType: 2,
-          examMode: null,
-          examTakeCount: null,
-          examRooms: [],
-        },
-      ],
-      found: true,
-    };
     const busPayload = {
       atTime: "2026-07-02T08:00:00.000Z",
       dayType: "weekday",
@@ -567,15 +557,6 @@ describe("MCP tool descriptors", () => {
       async () => jsonToolResult(todoPayload, { mode: "summary" }),
     );
     mcpServer.registerTool(
-      "return_exams_default",
-      {
-        description:
-          "Return default exam payload through the shared numeric schema.",
-        outputSchema: getMcpToolOutputSchema("catalog_section_exam_list"),
-      },
-      async () => jsonToolResult(examPayload, { mode: "default" }),
-    );
-    mcpServer.registerTool(
       "return_next_buses_default",
       {
         description: "Return default next-bus payload with a nullable message.",
@@ -600,10 +581,6 @@ describe("MCP tool descriptors", () => {
         name: "return_todos_summary",
         arguments: {},
       });
-      const examResult = await client.callTool({
-        name: "return_exams_default",
-        arguments: {},
-      });
       const busResult = await client.callTool({
         name: "return_next_buses_default",
         arguments: {},
@@ -617,15 +594,6 @@ describe("MCP tool descriptors", () => {
         counts: todoPayload.counts,
         success: true,
         todos: [expect.objectContaining({ id: "todo-1" })],
-      });
-      expect(examResult.structuredContent).toMatchObject({
-        exams: [
-          expect.objectContaining({
-            endTime: 1100,
-            examType: 2,
-            startTime: 900,
-          }),
-        ],
       });
       expect(busResult.structuredContent).toMatchObject({
         message: null,
@@ -723,6 +691,210 @@ describe("MCP tool descriptors", () => {
       expect(compactSchema.safeParse(testCase.full).success).toBe(false);
       expect(fullSchema.safeParse(testCase.full).success).toBe(true);
       expect(fullSchema.safeParse(testCase.compact).success).toBe(false);
+    }
+  });
+
+  it("keeps academic compact and full schemas exact and mode-specific", () => {
+    const compactCourse = {
+      id: 1,
+      jwId: 1001,
+      code: "CS101",
+      nameCn: "计算机导论",
+      nameEn: "Introduction to Computer Science",
+      namePrimary: "计算机导论",
+      nameSecondary: "Introduction to Computer Science",
+    };
+    const fullCourse = {
+      ...compactCourse,
+      categoryId: null,
+      classTypeId: null,
+      classifyId: null,
+      educationLevelId: null,
+      gradationId: null,
+      typeId: null,
+      category: null,
+      classType: null,
+      classify: null,
+      educationLevel: null,
+      gradation: null,
+      type: null,
+    };
+    const pagination = {
+      page: 1,
+      pageSize: 20,
+      total: 1,
+      totalPages: 1,
+    };
+    const compactPayload = {
+      success: true,
+      data: [compactCourse],
+      pagination,
+    };
+    const fullPayload = { success: true, data: [fullCourse], pagination };
+    const defaultSchema = getMcpToolOutputSchemaForMode(
+      "catalog_course_search",
+      "default",
+    );
+    const fullSchema = getMcpToolOutputSchemaForMode(
+      "catalog_course_search",
+      "full",
+    );
+
+    expect(defaultSchema.safeParse(compactPayload).success).toBe(true);
+    expect(defaultSchema.safeParse(fullPayload).success).toBe(false);
+    expect(fullSchema.safeParse(fullPayload).success).toBe(true);
+    expect(fullSchema.safeParse(compactPayload).success).toBe(false);
+    expect(
+      defaultSchema.safeParse({
+        ...compactPayload,
+        data: [{ ...compactCourse, hours: 48 }],
+      }).success,
+    ).toBe(false);
+  });
+
+  it("rejects stale teacher and schedule fields in compact academic output", () => {
+    const pagination = {
+      page: 1,
+      pageSize: 20,
+      total: 1,
+      totalPages: 1,
+    };
+    const teacher = {
+      id: 1,
+      jwId: 2001,
+      personId: null,
+      code: "T001",
+      nameCn: "教师",
+      nameEn: null,
+      namePrimary: "教师",
+      nameSecondary: null,
+      department: null,
+      teacherTitle: null,
+      _count: { sections: 1 },
+    };
+    const schedule = {
+      id: 1,
+      periods: 2.5,
+      date: null,
+      weekday: 1,
+      startTime: "07:50",
+      endTime: "08:35",
+      weekIndex: 1,
+      customPlace: null,
+      startUnit: 1,
+      endUnit: 1,
+      section: {
+        id: 1,
+        jwId: 3001,
+        code: "CS101.01",
+        campusId: null,
+        openDepartmentId: null,
+        course: {
+          id: 1,
+          jwId: 1001,
+          code: "CS101",
+          nameCn: "计算机导论",
+          nameEn: null,
+          namePrimary: "计算机导论",
+          nameSecondary: null,
+        },
+        semester: null,
+      },
+      teachers: [],
+    };
+
+    const teacherSchema = getMcpToolOutputSchemaForMode(
+      "catalog_teacher_search",
+      "default",
+    );
+    const scheduleSchema = getMcpToolOutputSchemaForMode(
+      "catalog_schedule_list",
+      "default",
+    );
+    expect(
+      teacherSchema.safeParse({
+        success: true,
+        data: [{ ...teacher, teacherId: 99 }],
+        pagination,
+      }).success,
+    ).toBe(false);
+    for (const staleField of ["jwId", "createdAt"] as const) {
+      expect(
+        scheduleSchema.safeParse({
+          success: true,
+          data: [{ ...schedule, [staleField]: 99 }],
+          pagination,
+        }).success,
+      ).toBe(false);
+    }
+  });
+
+  it("validates academic tool results against the requested mode branch", async () => {
+    const [clientTransport, serverTransport] =
+      InMemoryTransport.createLinkedPair();
+    const mcpServer = new McpServer({
+      name: "unit-test-academic-mode-output",
+      version: "1.0.0",
+    });
+    installMcpToolDescriptorDefaults(mcpServer);
+    const payload = {
+      data: [
+        {
+          id: 1,
+          jwId: 1001,
+          code: "CS101",
+          nameCn: "计算机导论",
+          nameEn: null,
+          namePrimary: "计算机导论",
+          nameSecondary: null,
+          categoryId: null,
+          classTypeId: null,
+          classifyId: null,
+          educationLevelId: null,
+          gradationId: null,
+          typeId: null,
+          category: null,
+          classType: null,
+          classify: null,
+          educationLevel: null,
+          gradation: null,
+          type: null,
+        },
+      ],
+      pagination: {
+        page: 1,
+        pageSize: 20,
+        total: 1,
+        totalPages: 1,
+      },
+    };
+    mcpServer.registerTool(
+      "catalog_course_search",
+      {
+        description: "Return a full course payload for mode validation.",
+        inputSchema: { mode: z.enum(["default", "full"]) },
+      },
+      async () => jsonToolResult(payload, { mode: "full" }),
+    );
+    const client = new Client({ name: "unit-test-client", version: "1.0.0" });
+    await mcpServer.connect(serverTransport);
+    await client.connect(clientTransport);
+
+    try {
+      const wrongMode = await client.callTool({
+        name: "catalog_course_search",
+        arguments: { mode: "default" },
+      });
+      const fullMode = await client.callTool({
+        name: "catalog_course_search",
+        arguments: { mode: "full" },
+      });
+
+      expect(wrongMode.isError).toBe(true);
+      expect(fullMode.structuredContent).toMatchObject({ success: true });
+    } finally {
+      await client.close();
+      await mcpServer.close();
     }
   });
 

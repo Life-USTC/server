@@ -89,8 +89,8 @@ export const calendarSubscriptionBatchResponseSchema =
     subscription: calendarSubscriptionSchema.nullable(),
   });
 
-export const matchSectionCodesResponseSchema = z.object({
-  semester: z.object({
+export const matchSectionCodesResponseSchema = z.strictObject({
+  semester: z.strictObject({
     id: z.number().int(),
     nameCn: z.string().nullable(),
     code: z.string().nullable(),

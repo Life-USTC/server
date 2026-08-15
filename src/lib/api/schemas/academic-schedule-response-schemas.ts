@@ -1,7 +1,7 @@
 import * as z from "zod";
 import { dateTimeSchema } from "./response-schema-primitives";
 
-export const scheduleBaseSchema = z.object({
+export const scheduleBaseSchema = z.strictObject({
   id: z.number().int(),
   periods: z.number(),
   date: dateTimeSchema.nullable(),
@@ -20,7 +20,7 @@ export const scheduleBaseSchema = z.object({
   scheduleGroupId: z.number().int(),
 });
 
-export const scheduleGroupSchema = z.object({
+export const scheduleGroupSchema = z.strictObject({
   id: z.number().int(),
   jwId: z.number().int(),
   no: z.number().int(),

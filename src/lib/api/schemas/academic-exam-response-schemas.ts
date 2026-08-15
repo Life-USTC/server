@@ -9,14 +9,14 @@ import {
 } from "./academic-section-base-response-schemas";
 import { dateTimeSchema } from "./response-schema-primitives";
 
-export const examRoomSchema = z.object({
+export const examRoomSchema = z.strictObject({
   id: z.number().int(),
   room: z.string(),
   count: z.number().int(),
   examId: z.number().int(),
 });
 
-export const examBatchSchema = z.object({
+export const examBatchSchema = z.strictObject({
   id: z.number().int(),
   jwId: z.number().int(),
   nameCn: z.string(),
@@ -24,7 +24,7 @@ export const examBatchSchema = z.object({
   ...localizedNameFields,
 });
 
-export const examSchema = z.object({
+export const examSchema = z.strictObject({
   id: z.number().int(),
   jwId: z.number().int(),
   examType: z.number().int().nullable(),

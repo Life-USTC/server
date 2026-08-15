@@ -4,7 +4,7 @@ import {
   teacherTitleSchema,
 } from "./academic-teacher-response-schemas";
 
-export const teacherAssignmentBaseSchema = z.object({
+export const teacherAssignmentBaseSchema = z.strictObject({
   id: z.number().int(),
   teacherId: z.number().int(),
   sectionId: z.number().int(),

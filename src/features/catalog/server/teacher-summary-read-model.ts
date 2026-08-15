@@ -7,6 +7,7 @@ import {
   teacherPublicDetailSelect,
   teacherPublicListSelect,
 } from "./academic-query-includes";
+import { toTeacherDetailDto } from "./academic-summary-dto-mappers";
 import { cachedCatalogListRead } from "./catalog-list-cache";
 import { buildTeacherWhere } from "./teacher-query";
 
@@ -47,11 +48,13 @@ export function findTeacherDetailById(id: number, locale = DEFAULT_LOCALE) {
     kind: "teacher",
     locale,
     shape: "detail-v1",
-    load: () =>
-      getPrisma(locale).teacher.findUnique({
+    load: async () => {
+      const teacher = await getPrisma(locale).teacher.findUnique({
         where: { id },
         select: teacherPublicDetailSelect,
-      }),
+      });
+      return teacher ? toTeacherDetailDto(teacher, locale) : null;
+    },
   });
 }
 
@@ -59,10 +62,6 @@ export async function findTeachersByIds(
   ids: readonly number[],
   locale = DEFAULT_LOCALE,
 ) {
-  if (ids.length === 1) {
-    return [await findTeacherDetailById(ids[0], locale)];
-  }
-
   const teachers = await getPrisma(locale).teacher.findMany({
     where: { id: { in: [...new Set(ids)] } },
     select: teacherPublicListSelect,

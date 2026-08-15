@@ -22,6 +22,7 @@ function compactSection(id: number) {
   return {
     id,
     jwId: 1000 + id,
+    retiredAt: null,
     code: `MATH.${String(id).padStart(2, "0")}`,
     bizTypeId: null,
     credits: null,

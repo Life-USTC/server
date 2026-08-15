@@ -1,7 +1,7 @@
 import * as z from "zod";
 import { localizedNameFields } from "./academic-course-response-schemas";
 
-export const campusSchema = z.object({
+export const campusSchema = z.strictObject({
   id: z.number().int(),
   jwId: z.number().int(),
   nameCn: z.string(),
@@ -10,7 +10,7 @@ export const campusSchema = z.object({
   ...localizedNameFields,
 });
 
-export const busCampusSchema = z.object({
+export const busCampusSchema = z.strictObject({
   id: z.number().int(),
   nameCn: z.string(),
   nameEn: z.string().nullable(),
@@ -18,7 +18,7 @@ export const busCampusSchema = z.object({
   longitude: z.number(),
 });
 
-export const buildingSchema = z.object({
+export const buildingSchema = z.strictObject({
   id: z.number().int(),
   jwId: z.number().int(),
   nameCn: z.string(),
@@ -28,7 +28,7 @@ export const buildingSchema = z.object({
   ...localizedNameFields,
 });
 
-export const roomTypeSchema = z.object({
+export const roomTypeSchema = z.strictObject({
   id: z.number().int(),
   jwId: z.number().int(),
   nameCn: z.string(),
@@ -37,7 +37,7 @@ export const roomTypeSchema = z.object({
   ...localizedNameFields,
 });
 
-export const roomSchema = z.object({
+export const roomSchema = z.strictObject({
   id: z.number().int(),
   jwId: z.number().int(),
   nameCn: z.string(),

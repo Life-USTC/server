@@ -190,6 +190,9 @@ function parseToolResult(
   if (!textItem) {
     throw new Error("MCP tool returned no text content");
   }
+  if (result.isError) {
+    throw new Error(`MCP tool failed: ${textItem.text}`);
+  }
   return JSON.parse(textItem.text);
 }
 

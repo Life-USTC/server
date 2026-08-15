@@ -1,11 +1,15 @@
-import { localizedNameSelect } from "@/features/section-detail/server/section-page-name-selects";
 import type { Prisma } from "@/generated/prisma/client";
+
+const persistedLocalizedNameSelect = {
+  nameCn: true,
+  nameEn: true,
+} as const;
 
 export const departmentSummarySelect = {
   id: true,
   code: true,
   isCollege: true,
-  ...localizedNameSelect,
+  ...persistedLocalizedNameSelect,
 } as const satisfies Prisma.DepartmentSelect;
 
 export const teacherTitleSummarySelect = {
@@ -13,7 +17,7 @@ export const teacherTitleSummarySelect = {
   jwId: true,
   code: true,
   enabled: true,
-  ...localizedNameSelect,
+  ...persistedLocalizedNameSelect,
 } as const satisfies Prisma.TeacherTitleSelect;
 
 const teacherPublicScalarSelect = {
@@ -21,7 +25,7 @@ const teacherPublicScalarSelect = {
   jwId: true,
   personId: true,
   code: true,
-  ...localizedNameSelect,
+  ...persistedLocalizedNameSelect,
   email: true,
   telephone: true,
   mobile: true,
@@ -36,7 +40,7 @@ export const teacherPublicIdentitySelect = {
   jwId: true,
   personId: true,
   code: true,
-  ...localizedNameSelect,
+  ...persistedLocalizedNameSelect,
 } satisfies Prisma.TeacherSelect;
 
 /** Public teacher reference with the catalog context used by section detail. */
@@ -84,7 +88,7 @@ export const scheduleTeacherSelect = {
   jwId: true,
   personId: true,
   code: true,
-  ...localizedNameSelect,
+  ...persistedLocalizedNameSelect,
   department: {
     select: departmentSummarySelect,
   },
@@ -135,7 +139,7 @@ export const sectionSummarySelect = {
       id: true,
       jwId: true,
       code: true,
-      ...localizedNameSelect,
+      ...persistedLocalizedNameSelect,
     },
   },
   semester: {
@@ -150,7 +154,7 @@ export const sectionSummarySelect = {
     select: {
       id: true,
       jwId: true,
-      ...localizedNameSelect,
+      ...persistedLocalizedNameSelect,
       code: true,
     },
   },
@@ -168,7 +172,7 @@ export const sectionPublicContextSelect = {
     select: {
       jwId: true,
       code: true,
-      ...localizedNameSelect,
+      ...persistedLocalizedNameSelect,
     },
   },
   semester: {

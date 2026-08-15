@@ -6,6 +6,7 @@ import {
 import { PUBLIC_REST_SCOPES } from "@/lib/oauth/scope-registry";
 import {
   getMcpToolOutputSchema,
+  getMcpToolOutputSchemaForMode,
   getMcpToolOutputSchemaNames,
   hasMcpToolOutputSchema,
   type McpToolOutputSchema,
@@ -165,6 +166,7 @@ export function installMcpToolDescriptorDefaults(server: McpServer) {
 
   server.registerTool = ((name, config, callback) => {
     const defaults = getMcpToolDescriptorDefaults(name);
+    const hasExplicitOutputSchema = config.outputSchema !== undefined;
     const outputSchema = (config.outputSchema ??
       defaults.outputSchema) as McpToolOutputSchema;
     const mergedConfig = {
@@ -191,7 +193,12 @@ export function installMcpToolDescriptorDefaults(server: McpServer) {
         ) => unknown | Promise<unknown>
       )(args, extra);
       if (isRecord(result) && isRecord(result.structuredContent)) {
-        outputSchema.parse(result.structuredContent);
+        const mode =
+          isRecord(args) && args.mode === "full" ? "full" : "default";
+        const validationSchema = hasExplicitOutputSchema
+          ? outputSchema
+          : getMcpToolOutputSchemaForMode(name, mode);
+        validationSchema.parse(result.structuredContent);
       }
       return result;
     }) as unknown as typeof callback;
