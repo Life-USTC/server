@@ -14,10 +14,10 @@ const OFFICIAL_PERIODS = [
   { unit: 13, startTime: 2110, endTime: 2155 },
 ] as const;
 
-const START_UNIT_BY_TIME = new Map(
+const START_UNIT_BY_TIME = new Map<number, number>(
   OFFICIAL_PERIODS.map(({ startTime, unit }) => [startTime, unit]),
 );
-const END_UNIT_BY_TIME = new Map(
+const END_UNIT_BY_TIME = new Map<number, number>(
   OFFICIAL_PERIODS.map(({ endTime, unit }) => [endTime, unit]),
 );
 
