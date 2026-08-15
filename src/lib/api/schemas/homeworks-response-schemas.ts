@@ -11,14 +11,14 @@ import {
 } from "./response-schema-primitives";
 import { homeworkAuditActionSchema } from "./shared-enum-schemas";
 
-export const homeworkUserSummarySchema = z.object({
+export const homeworkUserSummarySchema = z.strictObject({
   id: z.string(),
   name: z.string().nullable(),
   username: z.string().nullable(),
   image: z.string().nullable(),
 });
 
-const homeworkDescriptionSchema = z.object({
+const homeworkDescriptionSchema = z.strictObject({
   id: z.string(),
   content: z.string(),
   createdAt: dateTimeSchema,
@@ -31,7 +31,7 @@ const homeworkDescriptionSchema = z.object({
   homeworkId: z.string().nullable(),
 });
 
-export const homeworkItemSchema = z.object({
+export const homeworkItemSchema = z.strictObject({
   id: z.string(),
   title: z.string(),
   isMajor: z.boolean(),
@@ -55,14 +55,14 @@ export const homeworkItemSchema = z.object({
   updatedBy: homeworkUserSummarySchema.nullable(),
   deletedBy: homeworkUserSummarySchema.nullable(),
   completion: z
-    .object({
+    .strictObject({
       completedAt: dateTimeSchema,
     })
     .nullable(),
   commentCount: z.number().int().nonnegative(),
 });
 
-const homeworkAuditLogSchema = z.object({
+const homeworkAuditLogSchema = z.strictObject({
   id: z.string(),
   action: homeworkAuditActionSchema,
   titleSnapshot: z.string(),
@@ -80,35 +80,35 @@ export const homeworksListResponseSchema = createPaginatedSchema(
   auditLogs: z.array(homeworkAuditLogSchema),
 });
 
-export const homeworkCreateResponseSchema = z.object({
+export const homeworkCreateResponseSchema = z.strictObject({
   id: z.string(),
   homework: homeworkItemSchema,
 });
 
-export const homeworkUpdateResponseSchema = z.object({
+export const homeworkUpdateResponseSchema = z.strictObject({
   success: z.boolean(),
   homework: homeworkItemSchema,
 });
 
-export const homeworkCompletionResponseSchema = z.object({
+export const homeworkCompletionResponseSchema = z.strictObject({
   completed: z.boolean(),
   completedAt: dateTimeSchema.nullable(),
 });
 
-export const homeworkCompletionBatchResponseSchema = z.object({
+export const homeworkCompletionBatchResponseSchema = z.strictObject({
   results: z.array(
     z.discriminatedUnion("success", [
-      z.object({
+      z.strictObject({
         success: z.literal(true),
         homeworkId: z.string(),
         completed: z.boolean(),
         completedAt: dateTimeSchema.nullable(),
       }),
-      z.object({
+      z.strictObject({
         success: z.literal(false),
         homeworkId: z.string(),
         completed: z.boolean(),
-        error: z.object({
+        error: z.strictObject({
           code: z.enum(["not_found", "deleted"]),
           message: z.string(),
         }),

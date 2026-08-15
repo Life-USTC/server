@@ -78,6 +78,31 @@ type JsonSchemaObject = {
   type?: string;
 };
 
+function expectNestedExtrasRejected(
+  schema: z.ZodType,
+  payload: unknown,
+  paths: ReadonlyArray<ReadonlyArray<string | number>>,
+) {
+  const validResult = schema.safeParse(payload);
+  expect(
+    validResult.success,
+    validResult.success ? undefined : JSON.stringify(validResult.error.issues),
+  ).toBe(true);
+  for (const path of paths) {
+    const candidate = structuredClone(payload) as Record<string, unknown>;
+    let target: unknown = candidate;
+    for (const segment of path) {
+      if (typeof segment === "number") {
+        target = (target as unknown[])[segment];
+      } else {
+        target = (target as Record<string, unknown>)[segment];
+      }
+    }
+    (target as Record<string, unknown>).unexpectedNestedField = true;
+    expect(schema.safeParse(candidate).success, path.join(".")).toBe(false);
+  }
+}
+
 function outputSchema(result: ToolListResult, name: string) {
   const tool = result.tools.find((item) => item.name === name);
   expect(tool).toBeDefined();
@@ -750,6 +775,279 @@ describe("MCP tool descriptors", () => {
         data: [{ ...compactCourse, hours: 48 }],
       }).success,
     ).toBe(false);
+  });
+
+  it("rejects unexpected nested homework and bus fields in every runtime mode", () => {
+    const compactCourse = {
+      id: 1,
+      jwId: 1001,
+      code: "CS101",
+      nameCn: "计算机导论",
+      nameEn: "Introduction to Computer Science",
+      namePrimary: "计算机导论",
+      nameSecondary: "Introduction to Computer Science",
+    };
+    const sectionBase = {
+      id: 1,
+      jwId: 2001,
+      retiredAt: null,
+      code: "CS101.01",
+      bizTypeId: null,
+      credits: 3,
+      period: 48,
+      periodsPerWeek: 3,
+      timesPerWeek: 2,
+      stdCount: 30,
+      limitCount: 40,
+      graduateAndPostgraduate: null,
+      dateTimePlaceText: null,
+      dateTimePlacePersonText: null,
+      actualPeriods: null,
+      theoryPeriods: null,
+      practicePeriods: null,
+      experimentPeriods: null,
+      machinePeriods: null,
+      designPeriods: null,
+      testPeriods: null,
+      scheduleState: null,
+      suggestScheduleWeeks: null,
+      suggestScheduleWeekInfo: null,
+      scheduleJsonParams: null,
+      selectedStdCount: null,
+      remark: null,
+      scheduleRemark: null,
+      courseId: 1,
+      semesterId: null,
+      campusId: null,
+      examModeId: null,
+      openDepartmentId: null,
+      teachLanguageId: null,
+      roomTypeId: null,
+    };
+    const fullCourse = {
+      ...compactCourse,
+      categoryId: null,
+      classTypeId: null,
+      classifyId: null,
+      educationLevelId: null,
+      gradationId: null,
+      typeId: null,
+    };
+    const compactHomework = {
+      id: "homework-1",
+      sectionId: 1,
+      title: "Homework",
+      isMajor: false,
+      requiresTeam: false,
+      publishedAt: null,
+      submissionStartAt: null,
+      submissionDueAt: null,
+      deletedAt: null,
+      createdAt: "2026-08-16T00:00:00.000Z",
+      updatedAt: "2026-08-16T00:00:00.000Z",
+      description: {
+        id: "description-1",
+        content: "Details",
+        lastEditedAt: null,
+        lastEditedById: null,
+      },
+      section: {
+        id: sectionBase.id,
+        jwId: sectionBase.jwId,
+        code: sectionBase.code,
+        campusId: null,
+        openDepartmentId: null,
+        course: compactCourse,
+        semester: null,
+      },
+      createdBy: {
+        id: "user-1",
+        name: "User",
+        username: "user",
+        image: null,
+      },
+      updatedBy: null,
+      deletedBy: null,
+      completion: { completedAt: "2026-08-16T00:00:00.000Z" },
+      commentCount: 0,
+    };
+    const fullHomework = {
+      ...compactHomework,
+      createdById: "user-1",
+      updatedById: null,
+      deletedById: null,
+      section: {
+        ...sectionBase,
+        course: fullCourse,
+        semester: null,
+      },
+      description: {
+        id: "description-1",
+        content: "Details",
+        createdAt: "2026-08-16T00:00:00.000Z",
+        updatedAt: "2026-08-16T00:00:00.000Z",
+        lastEditedAt: null,
+        lastEditedById: null,
+        sectionId: null,
+        courseId: null,
+        teacherId: null,
+        homeworkId: "homework-1",
+      },
+    };
+    const homeworkNestedPaths = [
+      ["homework", "description"],
+      ["homework", "createdBy"],
+      ["homework", "completion"],
+    ] as const;
+    expectNestedExtrasRejected(
+      getMcpToolOutputSchemaForMode(
+        "community_section_homework_create",
+        "default",
+      ),
+      { success: true, id: compactHomework.id, homework: compactHomework },
+      homeworkNestedPaths,
+    );
+    expectNestedExtrasRejected(
+      getMcpToolOutputSchemaForMode(
+        "community_section_homework_create",
+        "full",
+      ),
+      { success: true, id: fullHomework.id, homework: fullHomework },
+      homeworkNestedPaths,
+    );
+
+    const campus = {
+      id: 1,
+      nameCn: "东区",
+      nameEn: "East Campus",
+      latitude: 31.8,
+      longitude: 117.3,
+      namePrimary: "东区",
+      nameSecondary: "East Campus",
+    };
+    const routeCore = {
+      id: 1,
+      nameCn: "东区到西区",
+      nameEn: "East to West",
+      descriptionPrimary: "东区到西区",
+      descriptionSecondary: "East to West",
+    };
+    const departure = {
+      tripId: 1,
+      routeId: 1,
+      route: routeCore,
+      originCampus: campus,
+      destinationCampus: campus,
+      departureTime: "08:00",
+      arrivalTime: "08:30",
+      departureEstimated: false,
+      arrivalEstimated: false,
+      minutesUntilDeparture: 10,
+      dayType: "weekday",
+      status: "upcoming",
+    };
+    const versionSummary = {
+      key: "2026-summer",
+      title: "Summer timetable",
+      effectiveFrom: null,
+      effectiveUntil: null,
+    };
+    const defaultBusPayload = {
+      success: true,
+      locale: "zh-cn",
+      fetchedAt: "2026-08-16T00:00:00.000Z",
+      version: versionSummary,
+      counts: {
+        campuses: 1,
+        routes: 1,
+        weekdayTrips: 1,
+        weekendTrips: 0,
+      },
+      campuses: [
+        {
+          id: campus.id,
+          namePrimary: campus.namePrimary,
+          nameSecondary: campus.nameSecondary,
+        },
+      ],
+      routes: [routeCore],
+      preferences: {
+        preferredOriginCampusId: 1,
+        preferredDestinationCampusId: 1,
+        showDepartedTrips: false,
+      },
+      nextDepartures: [departure],
+      nextDeparturesMessage: null,
+      notice: { message: "Notice" },
+    };
+    expectNestedExtrasRejected(
+      getMcpToolOutputSchemaForMode("catalog_bus_timetable_get", "default"),
+      defaultBusPayload,
+      [
+        ["version"],
+        ["preferences"],
+        ["nextDepartures", 0],
+        ["nextDepartures", 0, "route"],
+        ["notice"],
+      ],
+    );
+
+    const version = {
+      id: 1,
+      ...versionSummary,
+      importedAt: "2026-08-16T00:00:00.000Z",
+      notice: { message: "Version notice", url: null },
+    };
+    const route = {
+      ...routeCore,
+      stops: [{ stopOrder: 1, campus }],
+    };
+    const trip = {
+      id: 1,
+      routeId: 1,
+      dayType: "weekday",
+      position: 1,
+      stopTimes: [
+        {
+          stopOrder: 1,
+          campusId: 1,
+          campusName: "东区",
+          time: "08:00",
+          minutesSinceMidnight: 480,
+          isPassThrough: false,
+        },
+      ],
+      departureTime: "08:00",
+      departureMinutes: 480,
+      arrivalTime: "08:30",
+      arrivalMinutes: 510,
+    };
+    const fullBusPayload = {
+      ...defaultBusPayload,
+      version,
+      availableVersions: [version],
+      campuses: [campus],
+      routes: [route],
+      trips: [trip],
+      notice: { message: "Notice", url: null },
+    };
+    expectNestedExtrasRejected(
+      getMcpToolOutputSchemaForMode("catalog_bus_timetable_get", "full"),
+      fullBusPayload,
+      [
+        ["version"],
+        ["version", "notice"],
+        ["availableVersions", 0],
+        ["routes", 0],
+        ["routes", 0, "stops", 0],
+        ["trips", 0],
+        ["trips", 0, "stopTimes", 0],
+        ["preferences"],
+        ["nextDepartures", 0],
+        ["nextDepartures", 0, "route"],
+        ["notice"],
+      ],
+    );
   });
 
   it("rejects stale teacher and schedule fields in compact academic output", () => {
