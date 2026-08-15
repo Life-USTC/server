@@ -29,11 +29,16 @@ import {
   teacherDetailSectionSchema,
 } from "@/lib/api/schemas/academic-section-response-schemas";
 import {
+  departmentSchema,
   departmentSummarySchema,
   teacherListSchema,
   teacherPublicIdentitySchema,
   teacherTitleSchema,
 } from "@/lib/api/schemas/academic-teacher-response-schemas";
+import {
+  busNextDeparturesResponseSchema,
+  busQueryResponseSchema,
+} from "@/lib/api/schemas/bus-response-schemas";
 import {
   commentAttachmentSummarySchema,
   commentAuthorSummarySchema,
@@ -44,6 +49,7 @@ import {
   descriptionDetailSchema,
   descriptionHistoryEntrySchema,
 } from "@/lib/api/schemas/descriptions-response-schemas";
+import { homeworkItemSchema } from "@/lib/api/schemas/homeworks-response-schemas";
 import {
   matchSectionCodesResponseSchema,
   meResponseSchema,
@@ -122,12 +128,31 @@ function compactObjectSchema(shape: OutputShape) {
   return z.object(optionalizeShape(shape)).catchall(z.unknown());
 }
 
-const compactUserSchema = compactObjectSchema({
+const compactUserSchema = z.strictObject({
   id: z.string(),
   name: z.string().nullable(),
   username: z.string().nullable(),
   image: z.string().nullable(),
 });
+
+const publicProfileFullUserSchema = compactUserSchema.extend({
+  createdAt: dateTimeSchema,
+  _count: z.strictObject({
+    comments: z.number().int().nonnegative(),
+    homeworksCreated: z.number().int().nonnegative(),
+    subscribedSections: z.number().int().nonnegative(),
+    uploads: z.number().int().nonnegative(),
+  }),
+});
+
+const contributionWeeksSchema = z.array(
+  z.array(
+    z.strictObject({
+      date: z.string(),
+      count: z.number().int().nonnegative(),
+    }),
+  ),
+);
 
 const compactDepartmentSchema = departmentSummarySchema
   .pick({
@@ -148,6 +173,18 @@ const compactTeacherTitleSchema = teacherTitleSchema
     nameSecondary: true,
   })
   .strict();
+
+const compactPersistedDepartmentSchema = z.strictObject({
+  id: z.number().int(),
+  nameCn: z.string(),
+  nameEn: z.string().nullable(),
+});
+
+const compactPersistedTeacherTitleSchema = z.strictObject({
+  id: z.number().int(),
+  nameCn: z.string(),
+  nameEn: z.string().nullable(),
+});
 
 const compactCourseSchema = courseSchema
   .pick({
@@ -212,12 +249,21 @@ const compactCatalogTeacherSchema = teacherListSchema
   })
   .strict();
 
-const compactWorkspaceScheduleTeacherSchema = compactScheduleTeacherSchema
-  .extend({
-    teacherTitle: compactTeacherTitleSchema.nullable(),
+const compactPersistedTeacherSchema = z.strictObject({
+  id: z.number().int(),
+  personId: z.number().int().nullable(),
+  code: z.string().nullable(),
+  jwId: z.number().int(),
+  nameCn: z.string(),
+  nameEn: z.string().nullable(),
+});
+
+const compactWorkspaceScheduleTeacherSchema =
+  compactPersistedTeacherSchema.extend({
+    department: compactPersistedDepartmentSchema.nullable(),
+    teacherTitle: compactPersistedTeacherTitleSchema.nullable(),
     _count: z.strictObject({ sections: z.number().int() }),
-  })
-  .strict();
+  });
 
 const compactTeacherReferenceSchema = compactScheduleTeacherSchema.extend({
   teacherTitle: compactTeacherTitleSchema.nullable(),
@@ -236,6 +282,12 @@ const compactCampusSchema = campusSchema
     longitude: z.number().nullable().optional(),
   })
   .strict();
+
+const compactBusCampusSchema = z.strictObject({
+  id: z.number().int(),
+  namePrimary: z.string(),
+  nameSecondary: z.string().nullable(),
+});
 
 const compactSectionContextSchema = z
   .object({
@@ -267,6 +319,74 @@ const compactSectionSchema = z.union([
   compactSectionFullSchema,
 ]);
 
+const compactSubscriptionSectionSchema = z.strictObject({
+  id: z.number().int(),
+  jwId: z.number().int(),
+  code: z.string(),
+  campusId: z.number().int().nullable(),
+  openDepartmentId: z.number().int().nullable(),
+  course: compactCourseSchema,
+  semester: compactSemesterSchema.nullable(),
+  campus: compactCampusSchema
+    .omit({ latitude: true, longitude: true })
+    .nullable(),
+  openDepartment: compactDepartmentSchema.nullable(),
+  teachers: z.array(compactPersistedTeacherSchema),
+});
+
+const compactLocalizedSubscriptionSectionSchema =
+  compactSubscriptionSectionSchema.extend({
+    teachers: z.array(compactTeacherIdentitySchema),
+  });
+
+const persistedLocalizedLabelSchema = z.strictObject({
+  id: z.number().int(),
+  nameCn: z.string(),
+  nameEn: z.string().nullable(),
+});
+
+const subscriptionFullCourseSchema = courseSchema.extend({
+  category: persistedLocalizedLabelSchema.nullable(),
+  classType: persistedLocalizedLabelSchema.nullable(),
+  classify: persistedLocalizedLabelSchema.nullable(),
+  educationLevel: persistedLocalizedLabelSchema.nullable(),
+  gradation: persistedLocalizedLabelSchema.nullable(),
+  type: persistedLocalizedLabelSchema.nullable(),
+});
+
+const subscriptionFullSectionSchema = sectionBaseSchema.extend({
+  course: subscriptionFullCourseSchema,
+  semester: compactSemesterSchema.nullable(),
+  campus: campusSchema.nullable(),
+  openDepartment: departmentSchema.nullable(),
+  teachers: z.array(compactTeacherIdentitySchema),
+});
+
+const compactHomeworkSectionSchema = z.strictObject({
+  id: z.number().int(),
+  jwId: z.number().int(),
+  code: z.string(),
+  campusId: z.number().int().nullable(),
+  openDepartmentId: z.number().int().nullable(),
+  course: compactCourseSchema,
+  semester: compactSemesterSchema.nullable(),
+});
+
+const compactWorkspaceHomeworkSectionSchema =
+  compactHomeworkSectionSchema.extend({
+    campus: compactCampusSchema
+      .omit({ latitude: true, longitude: true })
+      .nullable(),
+    openDepartment: compactDepartmentSchema.nullable(),
+  });
+
+const compactHomeworkDescriptionSchema = z.strictObject({
+  id: z.string(),
+  content: z.string(),
+  lastEditedAt: dateTimeSchema.nullable(),
+  lastEditedById: z.string().nullable(),
+});
+
 const compactTodoSchema = todoItemSchema
   .pick({
     id: true,
@@ -283,25 +403,49 @@ const compactTodoSchema = todoItemSchema
   .partial()
   .catchall(z.unknown());
 
-const compactHomeworkSchema = compactObjectSchema({
+const compactHomeworkSchema = z.strictObject({
   id: z.string(),
   sectionId: z.number().int(),
   title: z.string(),
-  isMajor: z.boolean().nullable(),
-  requiresTeam: z.boolean().nullable(),
+  isMajor: z.boolean(),
+  requiresTeam: z.boolean(),
   publishedAt: dateTimeSchema.nullable(),
   submissionStartAt: dateTimeSchema.nullable(),
   submissionDueAt: dateTimeSchema.nullable(),
   deletedAt: dateTimeSchema.nullable(),
   createdAt: dateTimeSchema,
   updatedAt: dateTimeSchema,
-  section: compactSectionSchema.nullable(),
+  description: compactHomeworkDescriptionSchema.nullable(),
+  section: compactHomeworkSectionSchema,
   createdBy: compactUserSchema.nullable(),
   updatedBy: compactUserSchema.nullable(),
   deletedBy: compactUserSchema.nullable(),
-  completion: z.unknown(),
+  completion: z.strictObject({ completedAt: dateTimeSchema }).nullable(),
   commentCount: z.number().int().nonnegative(),
 });
+
+const compactWorkspaceHomeworkSchema = compactHomeworkSchema
+  .omit({ createdBy: true, updatedBy: true, deletedBy: true })
+  .extend({ section: compactWorkspaceHomeworkSectionSchema });
+
+const workspaceHomeworkFullSectionSchema = sectionBaseSchema.extend({
+  course: subscriptionFullCourseSchema,
+  semester: compactSemesterSchema.nullable(),
+  campus: campusSchema.nullable(),
+  openDepartment: departmentSchema.nullable(),
+  examMode: persistedLocalizedLabelSchema.nullable(),
+  teachLanguage: persistedLocalizedLabelSchema.nullable(),
+});
+
+const workspaceHomeworkFullSchema = homeworkItemSchema
+  .omit({
+    section: true,
+    createdBy: true,
+    updatedBy: true,
+    deletedBy: true,
+  })
+  .extend({ section: workspaceHomeworkFullSectionSchema })
+  .strict();
 
 const compactScheduleSchema = scheduleEntrySchema
   .pick({
@@ -362,6 +506,13 @@ const compactExamSchema = examSchema
   .extend({
     section: compactSectionSchema.optional(),
     examBatch: compactExamBatchSchema.nullable().optional(),
+    examRooms: z.array(
+      z.strictObject({
+        id: z.number().int(),
+        room: z.string(),
+        count: z.number().int(),
+      }),
+    ),
   })
   .strict();
 
@@ -398,16 +549,48 @@ const compactBusTripSchema = compactObjectSchema({
   destinationCampus: compactCampusSchema.nullable(),
 });
 
-const compactCalendarSubscriptionSchema = compactObjectSchema({
+const calendarSubscriptionBriefSchema = z.strictObject({
   userId: z.string(),
   sectionCount: z.number().int().nonnegative(),
   currentSemesterSectionCount: z.number().int().nonnegative(),
-  currentSemesterSections: z.array(compactSectionSchema),
-  sections: z.array(compactSectionSchema),
   calendarPath: z.string().nullable(),
   calendarUrl: z.string().nullable(),
   note: z.string(),
 });
+
+const calendarSectionSummarySchema = z.strictObject({
+  id: z.number().int(),
+  jwId: z.number().int(),
+  code: z.string(),
+  course: z.strictObject({
+    jwId: z.number().int(),
+    code: z.string(),
+    namePrimary: z.string(),
+    nameSecondary: z.string().nullable(),
+  }),
+  semester: z
+    .strictObject({
+      id: z.number().int(),
+      jwId: z.number().int(),
+      code: z.string(),
+      nameCn: z.string(),
+    })
+    .nullable(),
+});
+
+const calendarSubscriptionReadSchema = calendarSubscriptionBriefSchema.extend({
+  currentSemesterSections: z.array(calendarSectionSummarySchema),
+});
+
+const fullCalendarSubscriptionMutationSchema =
+  calendarSubscriptionBriefSchema.extend({
+    sections: z.array(subscriptionFullSectionSchema),
+  });
+
+const fullCalendarSubscriptionReadSchema =
+  calendarSubscriptionReadSchema.extend({
+    sections: z.array(subscriptionFullSectionSchema),
+  });
 
 function exactSuccessOutput(shape: OutputShape) {
   return z.strictObject({ success: z.literal(true), ...shape });
@@ -419,6 +602,90 @@ const exactFailureOutputSchema = z.strictObject({
   message: z.string(),
   hint: z.string().optional(),
 });
+
+const homeworkItemFullMcpSchema = homeworkItemSchema
+  .extend({
+    section: homeworkItemSchema.shape.section.extend({
+      semester: compactSemesterSchema.nullable(),
+    }),
+  })
+  .strict();
+
+const homeworkMutationFailureSchema = z.union([
+  z.strictObject({ success: z.literal(false), message: z.string() }),
+  z.strictObject({
+    success: z.literal(false),
+    message: z.string(),
+    reason: z.string().nullable(),
+  }),
+  exactFailureOutputSchema,
+]);
+
+const importSemesterSummarySchema = z.strictObject({
+  id: z.number().int(),
+  nameCn: z.string().nullable(),
+  code: z.string().nullable(),
+});
+
+const busVersionSummarySchema = z.strictObject({
+  key: z.string(),
+  title: z.string(),
+  effectiveFrom: dateTimeSchema.nullable(),
+  effectiveUntil: dateTimeSchema.nullable(),
+});
+
+const busCountsSchema = z.strictObject({
+  campuses: z.number().int().nonnegative(),
+  routes: z.number().int().nonnegative(),
+  weekdayTrips: z.number().int().nonnegative(),
+  weekendTrips: z.number().int().nonnegative(),
+});
+
+const compactBusRouteCoreSchema = z.strictObject({
+  id: z.number().int(),
+  nameCn: z.string(),
+  nameEn: z.string().nullable(),
+  descriptionPrimary: z.string(),
+  descriptionSecondary: z.string().nullable(),
+});
+
+const busTimetableDefaultSchema = z.union([
+  z.strictObject({
+    success: z.literal(true),
+    locale: z.enum(["zh-cn", "en-us"]),
+    fetchedAt: dateTimeSchema,
+    version: busVersionSummarySchema.nullable(),
+    counts: busCountsSchema,
+    campuses: z.array(compactBusCampusSchema),
+    routes: z.array(compactBusRouteCoreSchema),
+    preferences: busQueryResponseSchema.shape.preferences,
+    nextDepartures: busNextDeparturesResponseSchema.shape.departures,
+    nextDeparturesMessage: z.string().nullable(),
+    notice: z.strictObject({ message: z.string() }).nullable(),
+  }),
+  z.strictObject({
+    success: z.literal(true),
+    locale: z.enum(["zh-cn", "en-us"]),
+    hasData: z.literal(false),
+    message: z.string(),
+  }),
+]);
+
+const busTimetableFullSchema = z.union([
+  z.strictObject({
+    ...busQueryResponseSchema.shape,
+    success: z.literal(true),
+    counts: busCountsSchema,
+    nextDepartures: busNextDeparturesResponseSchema.shape.departures,
+    nextDeparturesMessage: z.string().nullable(),
+  }),
+  z.strictObject({
+    success: z.literal(true),
+    locale: z.enum(["zh-cn", "en-us"]),
+    hasData: z.literal(false),
+    message: z.string(),
+  }),
+]);
 
 const compactSectionSummarySchema = z.strictObject({
   id: z.number().int(),
@@ -488,6 +755,14 @@ const compactScheduleSectionSchema = z.strictObject({
   semester: compactSemesterSchema.nullable(),
 });
 
+const compactWorkspaceScheduleSectionSchema =
+  compactScheduleSectionSchema.extend({
+    campus: compactCampusSchema
+      .omit({ latitude: true, longitude: true })
+      .nullable(),
+    openDepartment: compactDepartmentSchema.nullable(),
+  });
+
 const compactPublicScheduleSchema = compactScheduleSchema.extend({
   section: compactScheduleSectionSchema,
 });
@@ -496,7 +771,8 @@ const compactScopedScheduleSchema = compactScheduleSchema.omit({
   section: true,
 });
 
-const compactWorkspaceScheduleSchema = compactPublicScheduleSchema.extend({
+const compactWorkspaceScheduleSchema = compactScheduleSchema.extend({
+  section: compactWorkspaceScheduleSectionSchema,
   teachers: z.array(compactWorkspaceScheduleTeacherSchema),
 });
 
@@ -552,7 +828,7 @@ const compactCatalogExamSchema = compactExamSchema.extend({
 });
 
 const compactWorkspaceExamSchema = compactExamSchema.extend({
-  section: compactScheduleSectionSchema,
+  section: compactWorkspaceScheduleSectionSchema,
   examBatch: compactExamBatchSchema.nullable(),
 });
 
@@ -701,6 +977,154 @@ const academicModeOutputSchemas = {
 } satisfies Record<string, Record<"default" | "full", McpToolOutputSchema>>;
 
 type AcademicModeToolName = keyof typeof academicModeOutputSchemas;
+
+const homeworkCreateDefaultSchema = z.union([
+  exactSuccessOutput({ id: z.string(), homework: compactHomeworkSchema }),
+  homeworkMutationFailureSchema,
+]);
+const homeworkCreateFullSchema = z.union([
+  exactSuccessOutput({ id: z.string(), homework: homeworkItemFullMcpSchema }),
+  homeworkMutationFailureSchema,
+]);
+const homeworkUpdateDefaultSchema = z.union([
+  exactSuccessOutput({ homework: compactHomeworkSchema }),
+  homeworkMutationFailureSchema,
+]);
+const homeworkUpdateFullSchema = z.union([
+  exactSuccessOutput({ homework: homeworkItemFullMcpSchema }),
+  homeworkMutationFailureSchema,
+]);
+
+function calendarFeedOutputSchema(subscriptionSchema: z.ZodType) {
+  return z.union([
+    exactSuccessOutput({ subscription: subscriptionSchema }),
+    z.strictObject({ success: z.literal(false), message: z.string() }),
+  ]);
+}
+
+function calendarMutationOutputSchema(subscriptionSchema: z.ZodType) {
+  return z.strictObject({
+    success: z.boolean(),
+    action: z.string(),
+    sectionJwId: z.number().int(),
+    subscription: subscriptionSchema.nullable(),
+  });
+}
+
+function subscriptionImportOutputSchema(subscriptionSchema: z.ZodType) {
+  return z.union([
+    exactSuccessOutput({
+      semester: importSemesterSummarySchema,
+      matchedCodes: z.array(z.string()),
+      unmatchedCodes: z.array(z.string()),
+      addedCount: z.number().int().nonnegative(),
+      alreadySubscribedCount: z.number().int().nonnegative(),
+      subscription: subscriptionSchema.nullable(),
+    }),
+    z.strictObject({ success: z.literal(false), message: z.string() }),
+  ]);
+}
+
+function sectionCalendarFeedOutputSchema(sectionSchema: z.ZodType) {
+  const feedLocationShape = {
+    calendarPath: z.string(),
+    calendarUrl: z.string(),
+    success: z.literal(true),
+  };
+  return z.union([
+    z.strictObject({
+      found: z.literal(true),
+      section: sectionSchema,
+      ...feedLocationShape,
+    }),
+    z.strictObject({
+      found: z.literal(false),
+      section: z.null(),
+      ...feedLocationShape,
+    }),
+  ]);
+}
+
+function publicProfileOutputSchema(userSchema: z.ZodType) {
+  return z.union([
+    exactSuccessOutput({
+      found: z.literal(true),
+      user: userSchema,
+      sectionCount: z.number().int().nonnegative(),
+      weeks: contributionWeeksSchema,
+      totalContributions: z.number().int().nonnegative(),
+    }),
+    z.strictObject({
+      success: z.literal(false),
+      found: z.literal(false),
+      error: z.literal("not_found"),
+      message: z.string(),
+    }),
+  ]);
+}
+
+const nonAcademicModeOutputSchemas = {
+  community_user_get: {
+    default: publicProfileOutputSchema(compactUserSchema),
+    full: publicProfileOutputSchema(publicProfileFullUserSchema),
+  },
+  workspace_homework_list: {
+    default: exactSuccessOutput({
+      homeworks: z.array(compactWorkspaceHomeworkSchema),
+    }),
+    full: exactSuccessOutput({
+      homeworks: z.array(workspaceHomeworkFullSchema),
+    }),
+  },
+  community_section_homework_create: {
+    default: homeworkCreateDefaultSchema,
+    full: homeworkCreateFullSchema,
+  },
+  community_section_homework_update: {
+    default: homeworkUpdateDefaultSchema,
+    full: homeworkUpdateFullSchema,
+  },
+  workspace_calendar_feed_get: {
+    default: calendarFeedOutputSchema(calendarSubscriptionReadSchema),
+    full: calendarFeedOutputSchema(fullCalendarSubscriptionReadSchema),
+  },
+  workspace_subscription_list: {
+    default: z.strictObject({
+      success: z.boolean(),
+      sections: z.array(compactLocalizedSubscriptionSectionSchema),
+      note: z.string(),
+    }),
+    full: z.strictObject({
+      success: z.boolean(),
+      sections: z.array(subscriptionFullSectionSchema),
+      note: z.string(),
+    }),
+  },
+  workspace_subscription_add: {
+    default: calendarMutationOutputSchema(calendarSubscriptionBriefSchema),
+    full: calendarMutationOutputSchema(fullCalendarSubscriptionMutationSchema),
+  },
+  workspace_subscription_remove: {
+    default: calendarMutationOutputSchema(calendarSubscriptionBriefSchema),
+    full: calendarMutationOutputSchema(fullCalendarSubscriptionMutationSchema),
+  },
+  workspace_subscription_import: {
+    default: subscriptionImportOutputSchema(calendarSubscriptionBriefSchema),
+    full: subscriptionImportOutputSchema(
+      fullCalendarSubscriptionMutationSchema,
+    ),
+  },
+  catalog_section_calendar_feed_get: {
+    default: sectionCalendarFeedOutputSchema(compactSubscriptionSectionSchema),
+    full: sectionCalendarFeedOutputSchema(subscriptionFullSectionSchema),
+  },
+  catalog_bus_timetable_get: {
+    default: busTimetableDefaultSchema,
+    full: busTimetableFullSchema,
+  },
+} satisfies Record<string, Record<"default" | "full", McpToolOutputSchema>>;
+
+type NonAcademicModeToolName = keyof typeof nonAcademicModeOutputSchemas;
 
 const courseDetailSectionMcpSchema = courseDetailSectionSchema.extend({
   semester: compactSemesterSchema.nullable(),
@@ -964,9 +1388,9 @@ const TOOL_OUTPUT_SCHEMAS: Record<string, McpToolOutputSchema> = {
   }),
   account_profile_get: objectOutputSchemaFromApi(meResponseSchema),
   community_user_get: objectOutputSchema({
-    user: compactUserSchema,
+    user: z.union([compactUserSchema, publicProfileFullUserSchema]),
     sectionCount: z.number().int().nonnegative(),
-    weeks: z.unknown(),
+    weeks: contributionWeeksSchema,
     totalContributions: z.number().int().nonnegative(),
   }),
   workspace_todo_list: todoListMcpSchema,
@@ -981,7 +1405,9 @@ const TOOL_OUTPUT_SCHEMAS: Record<string, McpToolOutputSchema> = {
   workspace_todo_delete: objectOutputSchemaFromApi(successResponseSchema),
 
   workspace_homework_list: objectOutputSchema({
-    homeworks: collectionOutputSchema(compactHomeworkSchema),
+    homeworks: z.array(
+      z.union([compactWorkspaceHomeworkSchema, workspaceHomeworkFullSchema]),
+    ),
   }),
   workspace_homework_completion_set: topLevelOutputSchema(["completion"]),
   community_section_homework_list: objectOutputSchema({
@@ -990,12 +1416,14 @@ const TOOL_OUTPUT_SCHEMAS: Record<string, McpToolOutputSchema> = {
   }),
   community_section_homework_create: objectOutputSchema({
     id: z.string(),
-    homework: compactHomeworkSchema,
+    homework: z.union([compactHomeworkSchema, homeworkItemFullMcpSchema]),
     reason: z.string().nullable(),
+    hint: z.string(),
   }),
   community_section_homework_update: objectOutputSchema({
-    homework: compactHomeworkSchema,
+    homework: z.union([compactHomeworkSchema, homeworkItemFullMcpSchema]),
     reason: z.string().nullable(),
+    hint: z.string(),
   }),
   community_section_homework_delete: topLevelOutputSchema([
     "deletedId",
@@ -1004,32 +1432,59 @@ const TOOL_OUTPUT_SCHEMAS: Record<string, McpToolOutputSchema> = {
   ]),
 
   workspace_calendar_feed_get: objectOutputSchema({
-    subscription: compactCalendarSubscriptionSchema.nullable(),
+    subscription: z
+      .union([
+        calendarSubscriptionReadSchema,
+        fullCalendarSubscriptionReadSchema,
+      ])
+      .nullable(),
   }),
   workspace_subscription_list: objectOutputSchema({
-    sections: collectionOutputSchema(compactSectionSchema),
+    sections: z.array(
+      z.union([
+        compactLocalizedSubscriptionSectionSchema,
+        subscriptionFullSectionSchema,
+      ]),
+    ),
     note: z.string(),
   }),
   workspace_subscription_add: objectOutputSchema({
     action: z.string(),
     sectionJwId: z.number().int(),
-    subscription: compactCalendarSubscriptionSchema.nullable(),
+    subscription: z
+      .union([
+        calendarSubscriptionBriefSchema,
+        fullCalendarSubscriptionMutationSchema,
+      ])
+      .nullable(),
   }),
   workspace_subscription_remove: objectOutputSchema({
     action: z.string(),
     sectionJwId: z.number().int(),
-    subscription: compactCalendarSubscriptionSchema.nullable(),
+    subscription: z
+      .union([
+        calendarSubscriptionBriefSchema,
+        fullCalendarSubscriptionMutationSchema,
+      ])
+      .nullable(),
   }),
   workspace_subscription_import: objectOutputSchema({
-    semester: compactSemesterSchema,
-    matchedCodes: collectionOutputSchema(z.string()),
-    unmatchedCodes: collectionOutputSchema(z.string()),
+    semester: importSemesterSummarySchema,
+    matchedCodes: z.array(z.string()),
+    unmatchedCodes: z.array(z.string()),
     addedCount: z.number().int().nonnegative(),
     alreadySubscribedCount: z.number().int().nonnegative(),
-    subscription: compactCalendarSubscriptionSchema.nullable(),
+    subscription: z
+      .union([
+        calendarSubscriptionBriefSchema,
+        fullCalendarSubscriptionMutationSchema,
+      ])
+      .nullable(),
   }),
   catalog_section_calendar_feed_get: objectOutputSchema({
-    section: compactSectionSchema.nullable(),
+    section: z
+      .union([compactSubscriptionSectionSchema, subscriptionFullSectionSchema])
+      .nullable(),
     calendarPath: z.string(),
     calendarUrl: z.string(),
   }),
@@ -1107,18 +1562,33 @@ const TOOL_OUTPUT_SCHEMAS: Record<string, McpToolOutputSchema> = {
   ]),
 
   catalog_bus_timetable_get: objectOutputSchema({
-    locale: z.string(),
+    locale: z.enum(["zh-cn", "en-us"]),
     fetchedAt: dateTimeSchema,
-    version: z.unknown(),
-    counts: z.unknown(),
-    campuses: collectionOutputSchema(compactCampusSchema),
-    routes: collectionOutputSchema(compactBusRouteSchema),
-    trips: collectionOutputSchema(compactBusTripSchema),
-    availableVersions: collectionOutputSchema(z.unknown()),
-    preferences: z.unknown(),
-    nextDepartures: collectionOutputSchema(compactBusTripSchema),
+    version: z
+      .union([busVersionSummarySchema, busQueryResponseSchema.shape.version])
+      .nullable(),
+    counts: busCountsSchema,
+    campuses: z.array(
+      z.union([
+        compactBusCampusSchema,
+        busQueryResponseSchema.shape.campuses.element,
+      ]),
+    ),
+    routes: z.array(
+      z.union([
+        compactBusRouteCoreSchema,
+        busQueryResponseSchema.shape.routes.element,
+      ]),
+    ),
+    trips: z.array(compactBusTripSchema),
+    availableVersions: busQueryResponseSchema.shape.availableVersions,
+    preferences: busQueryResponseSchema.shape.preferences,
+    nextDepartures: busNextDeparturesResponseSchema.shape.departures,
     nextDeparturesMessage: z.string().nullable(),
-    notice: z.unknown(),
+    notice: z.union([
+      z.strictObject({ message: z.string() }).nullable(),
+      busQueryResponseSchema.shape.notice,
+    ]),
     hasData: z.boolean(),
   }),
   catalog_bus_route_list: objectOutputSchema({
@@ -1205,6 +1675,9 @@ export function getMcpToolOutputSchemaForMode(
 ): McpToolOutputSchema {
   if (Object.hasOwn(academicModeOutputSchemas, name)) {
     return academicModeOutputSchemas[name as AcademicModeToolName][mode];
+  }
+  if (Object.hasOwn(nonAcademicModeOutputSchemas, name)) {
+    return nonAcademicModeOutputSchemas[name as NonAcademicModeToolName][mode];
   }
   return getMcpToolOutputSchema(name);
 }
