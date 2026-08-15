@@ -245,14 +245,14 @@ describe("static import write churn", () => {
         const schedule: ScheduleBuild = {
           periods: 2,
           weekday: 1,
-          startTime: 800,
-          endTime: 940,
+          startTime: 750,
+          endTime: 925,
           customPlace: `${marker}`,
           lessonType: "lecture",
           weekIndex: 1,
           exerciseClass: false,
-          startUnit: 1,
-          endUnit: 2,
+          startUnit: 0,
+          endUnit: 0,
           lessonJwId: section.jwId,
           scheduleGroupJwId: group.jwId,
           teacherJwIds: [marker],
@@ -304,11 +304,43 @@ describe("static import write churn", () => {
           await tupleId(tx, "_ScheduleTeachers", `"A" = ${firstRow.id}`),
         ).toBe(firstJoinTuple);
 
+        const scheduleWithDerivedUnits = {
+          ...schedule,
+          startUnit: 1,
+          endUnit: 2,
+        };
+        await writeSchedules(
+          tx,
+          [scheduleWithDerivedUnits],
+          sectionMap,
+          groupMap,
+          new Map(),
+          teacherMap,
+          [section.id],
+        );
+        const unitsChanged = await tx.schedule.findFirstOrThrow({
+          where: { sectionId: section.id },
+          include: { teachers: true },
+        });
+
+        expect(unitsChanged).toMatchObject({
+          id: firstRow.id,
+          startUnit: 1,
+          endUnit: 2,
+          teachers: [{ id: firstTeacher.id }],
+        });
+        expect(await tupleId(tx, "Schedule", `"id" = ${firstRow.id}`)).not.toBe(
+          firstTuple,
+        );
+        expect(
+          await tupleId(tx, "_ScheduleTeachers", `"A" = ${firstRow.id}`),
+        ).toBe(firstJoinTuple);
+
         await writeSchedules(
           tx,
           [
             {
-              ...schedule,
+              ...scheduleWithDerivedUnits,
               periods: 3,
               lessonType: "seminar",
               teacherJwIds: [marker + 1],
@@ -337,7 +369,12 @@ describe("static import write churn", () => {
 
         await writeSchedules(
           tx,
-          [{ ...schedule, customPlace: `${marker}-replacement` }],
+          [
+            {
+              ...scheduleWithDerivedUnits,
+              customPlace: `${marker}-replacement`,
+            },
+          ],
           sectionMap,
           groupMap,
           new Map(),
