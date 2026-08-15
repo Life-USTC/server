@@ -16,6 +16,7 @@ import {
 } from "@/lib/api/schemas/academic-section-detail-response-schemas";
 import { cachedPublicDetailRuntimeData } from "@/lib/catalog-detail-runtime-cache";
 import { getPrisma } from "@/lib/db/prisma";
+import { toLocalizedNameDto } from "@/lib/localized-name";
 import { toShanghaiIsoString } from "@/lib/time/serialize-date-output";
 import { serializeScheduleTimeFields } from "@/shared/lib/schedule-serialization";
 import { formatTime } from "@/shared/lib/time-utils";
@@ -43,19 +44,6 @@ const sectionDetailInclude = {
 export type SectionDetailRecord = Prisma.SectionGetPayload<{
   include: typeof sectionDetailInclude;
 }>;
-
-function localizedName(
-  input: { nameCn: string; nameEn: string | null },
-  locale: AppLocale,
-) {
-  const nameEn = input.nameEn?.trim() || null;
-  return {
-    nameCn: input.nameCn,
-    nameEn: input.nameEn,
-    namePrimary: locale === "en-us" && nameEn ? nameEn : input.nameCn,
-    nameSecondary: locale === "en-us" ? (nameEn ? input.nameCn : null) : nameEn,
-  };
-}
 
 function sectionBaseDto(input: SectionDetailRecord) {
   return {
@@ -101,7 +89,7 @@ function namedValueDto(
   input: { id: number; nameCn: string; nameEn: string | null } | null,
   locale: AppLocale,
 ) {
-  return input ? { id: input.id, ...localizedName(input, locale) } : null;
+  return input ? { id: input.id, ...toLocalizedNameDto(input, locale) } : null;
 }
 
 export function toSectionDetailDto(
@@ -130,7 +118,7 @@ export function toSectionDetailDto(
           id: input.campus.id,
           jwId: input.campus.jwId,
           code: input.campus.code,
-          ...localizedName(input.campus, locale),
+          ...toLocalizedNameDto(input.campus, locale),
         }
       : null,
     openDepartment: input.openDepartment
@@ -139,7 +127,7 @@ export function toSectionDetailDto(
           jwId: input.openDepartment.jwId,
           code: input.openDepartment.code,
           isCollege: input.openDepartment.isCollege,
-          ...localizedName(input.openDepartment, locale),
+          ...toLocalizedNameDto(input.openDepartment, locale),
         }
       : null,
     examMode: namedValueDto(input.examMode, locale),
@@ -149,7 +137,7 @@ export function toSectionDetailDto(
           id: input.roomType.id,
           jwId: input.roomType.jwId,
           code: input.roomType.code,
-          ...localizedName(input.roomType, locale),
+          ...toLocalizedNameDto(input.roomType, locale),
         }
       : null,
     schedules: input.schedules.map((schedule) => ({
@@ -185,13 +173,13 @@ export function toSectionDetailDto(
       jwId: teacher.jwId,
       personId: teacher.personId,
       code: teacher.code,
-      ...localizedName(teacher, locale),
+      ...toLocalizedNameDto(teacher, locale),
       department: teacher.department
         ? {
             id: teacher.department.id,
             code: teacher.department.code,
             isCollege: teacher.department.isCollege,
-            ...localizedName(teacher.department, locale),
+            ...toLocalizedNameDto(teacher.department, locale),
           }
         : null,
       teacherTitle: teacher.teacherTitle
@@ -200,7 +188,7 @@ export function toSectionDetailDto(
             jwId: teacher.teacherTitle.jwId,
             code: teacher.teacherTitle.code,
             enabled: teacher.teacherTitle.enabled,
-            ...localizedName(teacher.teacherTitle, locale),
+            ...toLocalizedNameDto(teacher.teacherTitle, locale),
           }
         : null,
     })),
@@ -231,7 +219,7 @@ export function toSectionDetailDto(
             jwId: assignment.teacherTitle.jwId,
             code: assignment.teacherTitle.code,
             enabled: assignment.teacherTitle.enabled,
-            ...localizedName(assignment.teacherTitle, locale),
+            ...toLocalizedNameDto(assignment.teacherTitle, locale),
           }
         : null,
     })),
@@ -250,7 +238,7 @@ export function toSectionDetailDto(
         ? {
             id: exam.examBatch.id,
             jwId: exam.examBatch.jwId,
-            ...localizedName(exam.examBatch, locale),
+            ...toLocalizedNameDto(exam.examBatch, locale),
           }
         : null,
       examRooms: exam.examRooms.map((room) => ({

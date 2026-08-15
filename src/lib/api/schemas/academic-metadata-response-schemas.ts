@@ -27,3 +27,5 @@ export const metadataResponseSchema = z.strictObject({
     campusSchema.extend({ buildings: z.array(buildingSchema) }),
   ),
 });
+
+export type MetadataResponseDto = z.output<typeof metadataResponseSchema>;

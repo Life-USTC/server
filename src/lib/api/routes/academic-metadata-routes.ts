@@ -5,6 +5,7 @@ import {
 } from "@/features/catalog/server/academic-metadata-read-model";
 import { handleRouteError, notFound, parseRouteQuery } from "@/lib/api/helpers";
 import { schemaJsonResponse } from "@/lib/api/responses";
+import { resolvePublicCatalogLocale } from "@/lib/api/routes/request-locale";
 import { semestersQuerySchema } from "@/lib/api/schemas/request-schemas";
 import {
   metadataResponseSchema,
@@ -18,17 +19,23 @@ import {
 } from "@/lib/public-cache-control";
 import { getCanonicalOrigin } from "@/lib/site-url";
 
-export async function getMetadataRoute() {
+export async function getMetadataRoute(request: Request) {
+  const localeResolution = resolvePublicCatalogLocale(request);
+  if (localeResolution instanceof Response) {
+    return localeResolution;
+  }
+  const { cacheHeaders, locale } = localeResolution;
+
   try {
     const metadata = await cachedCatalogRuntimeData(
       "api:metadata",
-      "api:metadata",
+      `api:metadata:${locale}`,
       getCanonicalOrigin(),
-      getAcademicMetadata,
+      () => getAcademicMetadata(locale),
     );
 
     return schemaJsonResponse(metadataResponseSchema, metadata, {
-      headers: PUBLIC_CATALOG_HEADERS,
+      headers: cacheHeaders,
     });
   } catch (error) {
     return handleRouteError("Failed to fetch metadata", error);

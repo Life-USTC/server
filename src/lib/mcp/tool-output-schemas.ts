@@ -174,18 +174,6 @@ const compactTeacherTitleSchema = teacherTitleSchema
   })
   .strict();
 
-const compactPersistedDepartmentSchema = z.strictObject({
-  id: z.number().int(),
-  nameCn: z.string(),
-  nameEn: z.string().nullable(),
-});
-
-const compactPersistedTeacherTitleSchema = z.strictObject({
-  id: z.number().int(),
-  nameCn: z.string(),
-  nameEn: z.string().nullable(),
-});
-
 const compactCourseSchema = courseSchema
   .pick({
     id: true,
@@ -259,9 +247,8 @@ const compactPersistedTeacherSchema = z.strictObject({
 });
 
 const compactWorkspaceScheduleTeacherSchema =
-  compactPersistedTeacherSchema.extend({
-    department: compactPersistedDepartmentSchema.nullable(),
-    teacherTitle: compactPersistedTeacherTitleSchema.nullable(),
+  compactScheduleTeacherSchema.extend({
+    teacherTitle: compactTeacherTitleSchema.nullable(),
     _count: z.strictObject({ sections: z.number().int() }),
   });
 
@@ -755,13 +742,12 @@ const compactScheduleSectionSchema = z.strictObject({
   semester: compactSemesterSchema.nullable(),
 });
 
-const compactWorkspaceScheduleSectionSchema =
-  compactScheduleSectionSchema.extend({
-    campus: compactCampusSchema
-      .omit({ latitude: true, longitude: true })
-      .nullable(),
-    openDepartment: compactDepartmentSchema.nullable(),
-  });
+const compactWorkspaceExamSectionSchema = compactScheduleSectionSchema.extend({
+  campus: compactCampusSchema
+    .omit({ latitude: true, longitude: true })
+    .nullable(),
+  openDepartment: compactDepartmentSchema.nullable(),
+});
 
 const compactPublicScheduleSchema = compactScheduleSchema.extend({
   section: compactScheduleSectionSchema,
@@ -772,7 +758,7 @@ const compactScopedScheduleSchema = compactScheduleSchema.omit({
 });
 
 const compactWorkspaceScheduleSchema = compactScheduleSchema.extend({
-  section: compactWorkspaceScheduleSectionSchema,
+  section: compactScheduleSectionSchema,
   teachers: z.array(compactWorkspaceScheduleTeacherSchema),
 });
 
@@ -828,7 +814,7 @@ const compactCatalogExamSchema = compactExamSchema.extend({
 });
 
 const compactWorkspaceExamSchema = compactExamSchema.extend({
-  section: compactWorkspaceScheduleSectionSchema,
+  section: compactWorkspaceExamSectionSchema,
   examBatch: compactExamBatchSchema.nullable(),
 });
 

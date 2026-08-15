@@ -2,9 +2,16 @@ import {
   scheduleTeacherContextSelect,
   sectionCatalogInclude,
 } from "@/features/catalog/server/academic-query-includes";
+import { toScheduleEntryDto } from "@/features/catalog/server/schedule-read-model";
 import type { Prisma } from "@/generated/prisma/client";
+import type { AppLocale } from "@/i18n/config";
 import { DEFAULT_LOCALE } from "@/i18n/config";
+import {
+  type ScheduleEntryDto,
+  subscribedScheduleEntrySchema,
+} from "@/lib/api/schemas/schedule-response-schema-core";
 import { getPrisma, prisma } from "@/lib/db/prisma";
+import { toLocalizedNameDto } from "@/lib/localized-name";
 import { paginatedQuery } from "@/lib/query-pagination";
 import { parseDateInput } from "@/lib/time/parse-date-input";
 import { shanghaiDayjs } from "@/lib/time/shanghai-dayjs";
@@ -30,6 +37,36 @@ const subscribedScheduleInclude = {
   section: { include: sectionCatalogInclude },
   scheduleGroup: true,
 } satisfies Prisma.ScheduleInclude;
+
+export type SubscribedScheduleRecord = Prisma.ScheduleGetPayload<{
+  include: typeof subscribedScheduleInclude;
+}>;
+
+export function toSubscribedScheduleEntryDto(
+  input: SubscribedScheduleRecord,
+  locale: AppLocale,
+) {
+  const schedule = toScheduleEntryDto(input, locale) satisfies ScheduleEntryDto;
+  return subscribedScheduleEntrySchema.parse({
+    ...schedule,
+    teachers: schedule.teachers.map((teacher, index) => {
+      const source = input.teachers[index];
+      return {
+        ...teacher,
+        teacherTitle: source.teacherTitle
+          ? {
+              id: source.teacherTitle.id,
+              jwId: source.teacherTitle.jwId,
+              code: source.teacherTitle.code,
+              enabled: source.teacherTitle.enabled,
+              ...toLocalizedNameDto(source.teacherTitle, locale),
+            }
+          : null,
+        _count: { sections: source._count.sections },
+      };
+    }),
+  });
+}
 
 const subscribedExamInclude = {
   examBatch: true,

@@ -29,6 +29,7 @@ import {
   type TeacherListDto,
   teacherListSchema,
 } from "@/lib/api/schemas/academic-teacher-response-schemas";
+import { toLocalizedNameDto } from "@/lib/localized-name";
 import { toShanghaiIsoString } from "@/lib/time/serialize-date-output";
 
 export type CourseSummaryRecord = Prisma.CourseGetPayload<{
@@ -59,22 +60,6 @@ export type TeacherDetailRecord = Prisma.TeacherGetPayload<{
   select: typeof teacherPublicDetailSelect;
 }>;
 
-function localizedName(
-  input: {
-    nameCn: string;
-    nameEn: string | null;
-  },
-  locale: AppLocale,
-) {
-  const nameEn = input.nameEn?.trim() || null;
-  return {
-    nameCn: input.nameCn,
-    nameEn: input.nameEn,
-    namePrimary: locale === "en-us" && nameEn ? nameEn : input.nameCn,
-    nameSecondary: locale === "en-us" ? (nameEn ? input.nameCn : null) : nameEn,
-  };
-}
-
 function toCourseRelationDto(
   input: CourseSummaryRecord["category"],
   locale: AppLocale,
@@ -82,7 +67,7 @@ function toCourseRelationDto(
   return input
     ? {
         id: input.id,
-        ...localizedName(input, locale),
+        ...toLocalizedNameDto(input, locale),
       }
     : null;
 }
@@ -95,7 +80,7 @@ export function toCourseDto(
     id: input.id,
     jwId: input.jwId,
     code: input.code,
-    ...localizedName(input, locale),
+    ...toLocalizedNameDto(input, locale),
     categoryId: input.categoryId,
     classTypeId: input.classTypeId,
     classifyId: input.classifyId,
@@ -172,7 +157,7 @@ function campusDto(input: SectionCompactRecord["campus"], locale: AppLocale) {
         id: input.id,
         jwId: input.jwId,
         code: input.code,
-        ...localizedName(input, locale),
+        ...toLocalizedNameDto(input, locale),
       }
     : null;
 }
@@ -186,7 +171,7 @@ function teacherIdentityDto(
     jwId: input.jwId,
     personId: input.personId,
     code: input.code,
-    ...localizedName(input, locale),
+    ...toLocalizedNameDto(input, locale),
   };
 }
 
@@ -205,7 +190,7 @@ export function toSectionCompactDto(
           jwId: input.openDepartment.jwId,
           code: input.openDepartment.code,
           isCollege: input.openDepartment.isCollege,
-          ...localizedName(input.openDepartment, locale),
+          ...toLocalizedNameDto(input.openDepartment, locale),
         }
       : null,
     teachers: input.teachers.map((teacher) =>
@@ -251,7 +236,7 @@ export function toSectionSummaryDto(
       id: input.course.id,
       jwId: input.course.jwId,
       code: input.course.code,
-      ...localizedName(input.course, locale),
+      ...toLocalizedNameDto(input.course, locale),
     },
     semester: input.semester
       ? {
@@ -265,7 +250,7 @@ export function toSectionSummaryDto(
       ? {
           id: input.campus.id,
           jwId: input.campus.jwId,
-          ...localizedName(input.campus, locale),
+          ...toLocalizedNameDto(input.campus, locale),
           code: input.campus.code,
         }
       : null,
@@ -274,7 +259,7 @@ export function toSectionSummaryDto(
       jwId: teacher.jwId,
       personId: teacher.personId,
       code: teacher.code,
-      ...localizedName(teacher, locale),
+      ...toLocalizedNameDto(teacher, locale),
     })),
   });
 }
@@ -290,7 +275,7 @@ export function toSectionPublicContextDto(
     course: {
       jwId: input.course.jwId,
       code: input.course.code,
-      ...localizedName(input.course, locale),
+      ...toLocalizedNameDto(input.course, locale),
     },
     semester: input.semester
       ? {
@@ -311,7 +296,7 @@ export function toTeacherListDto(
     jwId: input.jwId,
     personId: input.personId,
     code: input.code,
-    ...localizedName(input, locale),
+    ...toLocalizedNameDto(input, locale),
     email: input.email,
     telephone: input.telephone,
     mobile: input.mobile,
@@ -323,7 +308,7 @@ export function toTeacherListDto(
           id: input.department.id,
           code: input.department.code,
           isCollege: input.department.isCollege,
-          ...localizedName(input.department, locale),
+          ...toLocalizedNameDto(input.department, locale),
         }
       : null,
     teacherTitle: input.teacherTitle
@@ -332,7 +317,7 @@ export function toTeacherListDto(
           jwId: input.teacherTitle.jwId,
           code: input.teacherTitle.code,
           enabled: input.teacherTitle.enabled,
-          ...localizedName(input.teacherTitle, locale),
+          ...toLocalizedNameDto(input.teacherTitle, locale),
         }
       : null,
     _count: { sections: input._count.sections },

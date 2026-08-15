@@ -20,6 +20,7 @@ import {
   sectionScheduleWithContextSchema,
 } from "@/lib/api/schemas/schedule-response-schema-core";
 import { getPrisma } from "@/lib/db/prisma";
+import { toLocalizedNameDto } from "@/lib/localized-name";
 import { paginatedQuery } from "@/lib/query-pagination";
 import { toShanghaiIsoString } from "@/lib/time/serialize-date-output";
 import { serializeScheduleGroupTimeFields } from "@/shared/lib/schedule-serialization";
@@ -74,22 +75,6 @@ export type SectionScheduleRecord = Prisma.ScheduleGetPayload<{
   include: typeof sectionScheduleInclude;
 }>;
 
-function localizedName(
-  input: {
-    nameCn: string;
-    nameEn: string | null;
-  },
-  locale: AppLocale,
-) {
-  const nameEn = input.nameEn?.trim() || null;
-  return {
-    nameCn: input.nameCn,
-    nameEn: input.nameEn,
-    namePrimary: locale === "en-us" && nameEn ? nameEn : input.nameCn,
-    nameSecondary: locale === "en-us" ? (nameEn ? input.nameCn : null) : nameEn,
-  };
-}
-
 function toScheduleBaseDto(
   input: PublicScheduleRecord | SectionScheduleRecord,
 ) {
@@ -124,7 +109,7 @@ function toScheduleRoomDto(
   return {
     id: input.id,
     jwId: input.jwId,
-    ...localizedName(input, locale),
+    ...toLocalizedNameDto(input, locale),
     code: input.code,
     floor: input.floor,
     virtual: input.virtual,
@@ -137,14 +122,14 @@ function toScheduleRoomDto(
       ? {
           id: input.building.id,
           jwId: input.building.jwId,
-          ...localizedName(input.building, locale),
+          ...toLocalizedNameDto(input.building, locale),
           code: input.building.code,
           campusId: input.building.campusId,
           campus: input.building.campus
             ? {
                 id: input.building.campus.id,
                 jwId: input.building.campus.jwId,
-                ...localizedName(input.building.campus, locale),
+                ...toLocalizedNameDto(input.building.campus, locale),
                 code: input.building.campus.code,
               }
             : null,
@@ -154,7 +139,7 @@ function toScheduleRoomDto(
       ? {
           id: input.roomType.id,
           jwId: input.roomType.jwId,
-          ...localizedName(input.roomType, locale),
+          ...toLocalizedNameDto(input.roomType, locale),
           code: input.roomType.code,
         }
       : null,
@@ -170,13 +155,13 @@ function toScheduleTeacherDto(
     jwId: input.jwId,
     personId: input.personId,
     code: input.code,
-    ...localizedName(input, locale),
+    ...toLocalizedNameDto(input, locale),
     department: input.department
       ? {
           id: input.department.id,
           code: input.department.code,
           isCollege: input.department.isCollege,
-          ...localizedName(input.department, locale),
+          ...toLocalizedNameDto(input.department, locale),
         }
       : null,
   };
@@ -247,7 +232,7 @@ export function toScheduleEntryDto(
         id: input.section.course.id,
         jwId: input.section.course.jwId,
         code: input.section.course.code,
-        ...localizedName(input.section.course, locale),
+        ...toLocalizedNameDto(input.section.course, locale),
         categoryId: input.section.course.categoryId,
         classTypeId: input.section.course.classTypeId,
         classifyId: input.section.course.classifyId,
