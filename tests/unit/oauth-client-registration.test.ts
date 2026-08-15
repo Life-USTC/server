@@ -62,6 +62,17 @@ describe("resolveOAuthClientScopes", () => {
     });
   });
 
+  it("当前客户端活动 capability 只接受 read scope", () => {
+    expect(resolveOAuthClientScopes(["account.client-activity:read"])).toEqual({
+      scopes: ["account.client-activity:read"],
+    });
+    expect(resolveOAuthClientScopes(["account.client-activity:write"])).toEqual(
+      {
+        error: "Unsupported scopes requested: account.client-activity:write",
+      },
+    );
+  });
+
   it("拒绝旧版 transport-prefixed scope", () => {
     expect(resolveOAuthClientScopes(["rest:account.profile:read"])).toEqual({
       error: "Unsupported scopes requested: rest:account.profile:read",

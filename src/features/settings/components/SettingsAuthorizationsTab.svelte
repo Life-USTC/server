@@ -118,6 +118,16 @@ function revokeAction(consentId: string): SubmitFunction {
               {formatUpdatedAt(authorization.updatedAt)}
             </span>
           </Item.Footer>
+          <Item.Footer class="flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
+            {#if authorization.usage}
+              <span>{copy.settings.authorizations.lastUsedAt}: {formatUpdatedAt(authorization.usage.lastUsedAt)}</span>
+              <span>{copy.settings.authorizations.lastChannel}: {authorization.usage.lastChannel}</span>
+              <span>{copy.settings.authorizations.lastFeature}: {authorization.usage.lastFeature}</span>
+              <span>{copy.settings.authorizations.recentUsage}: {copy.settings.authorizations.reads} {authorization.usage.readCount} · {copy.settings.authorizations.writes} {authorization.usage.writeCount} · {copy.settings.authorizations.errors} {authorization.usage.errorCount}</span>
+            {:else}
+              <span>{copy.settings.authorizations.neverUsed}</span>
+            {/if}
+          </Item.Footer>
         </Item.Root>
       {/each}
     </Item.Group>

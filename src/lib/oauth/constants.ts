@@ -56,6 +56,7 @@ export function isSupportedOAuthClientAuthMethod(
 }
 
 export const REST_FEATURES = [
+  "account.client-activity",
   "account.profile",
   "catalog.bus",
   "catalog.course",
@@ -83,7 +84,20 @@ export const REST_FEATURES = [
 
 export type RestFeature = (typeof REST_FEATURES)[number];
 
+export const READ_ONLY_REST_FEATURES = [
+  "account.client-activity",
+] as const satisfies readonly RestFeature[];
+
+export type ReadOnlyRestFeature = (typeof READ_ONLY_REST_FEATURES)[number];
+
+export function isReadOnlyRestFeature(
+  feature: RestFeature,
+): feature is ReadOnlyRestFeature {
+  return (READ_ONLY_REST_FEATURES as readonly RestFeature[]).includes(feature);
+}
+
 export const PUBLIC_REST_FEATURES = [
+  "account.client-activity",
   "account.profile",
   "catalog.bus",
   "catalog.course",

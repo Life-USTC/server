@@ -23,6 +23,7 @@ export {
   userCalendarQuerySchema,
 } from "./content-query-schemas";
 export {
+  accountClientActivityQuerySchema,
   busNextDeparturesQuerySchema,
   busPreferenceRequestSchema,
   busQuerySchema,

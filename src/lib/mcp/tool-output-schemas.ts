@@ -52,6 +52,7 @@ import {
 } from "@/lib/api/schemas/descriptions-response-schemas";
 import { homeworkItemSchema } from "@/lib/api/schemas/homeworks-response-schemas";
 import {
+  accountClientActivityResponseSchema,
   matchSectionCodesResponseSchema,
   meResponseSchema,
   successResponseSchema,
@@ -1409,6 +1410,9 @@ const TOOL_OUTPUT_SCHEMAS: Record<string, McpToolOutputSchema> = {
     requiredScopes: z.array(z.string()),
   }),
   account_profile_get: objectOutputSchemaFromApi(meResponseSchema),
+  account_client_activity_list: objectOutputSchemaFromApi(
+    accountClientActivityResponseSchema,
+  ),
   community_user_get: objectOutputSchema({
     user: z.union([compactUserSchema, publicProfileFullUserSchema]),
     sectionCount: z.number().int().nonnegative(),

@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  isReadOnlyRestFeature,
   MCP_FEATURES,
   OAUTH_EMAIL_SCOPE,
   OAUTH_OFFLINE_ACCESS_SCOPE,
@@ -28,7 +29,11 @@ describe("oauth scope registry", () => {
       OAUTH_PROFILE_SCOPE,
       OAUTH_EMAIL_SCOPE,
       OAUTH_OFFLINE_ACCESS_SCOPE,
-      ...REST_FEATURES.flatMap((f) => [restReadScope(f), restWriteScope(f)]),
+      ...REST_FEATURES.flatMap((feature) =>
+        isReadOnlyRestFeature(feature)
+          ? [restReadScope(feature)]
+          : [restReadScope(feature), restWriteScope(feature)],
+      ),
     ]);
     expect(OAUTH_SCOPES).toContain("admin:read");
     expect(OAUTH_SCOPES).toContain("admin:write");
@@ -43,11 +48,14 @@ describe("oauth scope registry", () => {
       ...PUBLIC_REST_SCOPES,
     ]);
     expect(PUBLIC_REST_SCOPES).toEqual(
-      PUBLIC_REST_FEATURES.flatMap((f) => [
-        restReadScope(f),
-        restWriteScope(f),
-      ]),
+      PUBLIC_REST_FEATURES.flatMap((feature) =>
+        isReadOnlyRestFeature(feature)
+          ? [restReadScope(feature)]
+          : [restReadScope(feature), restWriteScope(feature)],
+      ),
     );
+    expect(PUBLIC_REST_SCOPES).toContain("account.client-activity:read");
+    expect(PUBLIC_REST_SCOPES).not.toContain("account.client-activity:write");
     expect(PUBLIC_OAUTH_SCOPES).not.toContain("admin:read");
     expect(PUBLIC_OAUTH_SCOPES).not.toContain("admin:write");
   });

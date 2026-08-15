@@ -1102,6 +1102,10 @@
         "title": "Linked accounts",
         "description": "Connect or disconnect sign-in providers"
       },
+      "security": {
+        "title": "Security activity",
+        "description": "Review sensitive sign-in, credential, and authorization actions"
+      },
       "authorizations": {
         "title": "Authorized apps",
         "description": "Review and revoke third-party access"
@@ -1123,6 +1127,51 @@
         "description": "Choose which language the interface uses."
       }
     },
+    "security": {
+      "title": "Account security activity",
+      "description": "Only sensitive actions involving your account appear here. Network addresses are masked and devices are reduced to browser and operating-system families.",
+      "emptyTitle": "No security activity yet",
+      "emptyDescription": "New sign-in, credential, and authorization actions will appear here.",
+      "network": "Network",
+      "device": "Device",
+      "client": "Application",
+      "newer": "Back to latest",
+      "older": "Older activity",
+      "unknownAction": "Account action",
+      "actions": {
+        "account_sign_in": "Signed in",
+        "account_sign_out": "Signed out",
+        "account_profile_update": "Updated profile",
+        "account_link": "Linked sign-in account",
+        "account_unlink": "Unlinked sign-in account",
+        "account_delete": "Deleted account",
+        "account_passkey_create": "Added passkey",
+        "account_passkey_update": "Renamed passkey",
+        "account_passkey_delete": "Deleted passkey",
+        "account_session_revoke": "Revoked session",
+        "account_calendar_token_rotate": "Rotated calendar token",
+        "oauth_authorization_grant": "Authorized OAuth application",
+        "oauth_authorization_update": "Updated OAuth authorization",
+        "oauth_authorization_revoke": "Revoked OAuth authorization",
+        "admin_user_suspend": "Account suspended",
+        "admin_user_unsuspend": "Account suspension removed",
+        "admin_user_role_update": "Account role changed"
+      },
+      "channels": {
+        "web": "Web",
+        "rest": "REST API",
+        "graphql": "GraphQL",
+        "mcp": "MCP",
+        "auth": "Authentication",
+        "webhook": "Webhook",
+        "system": "System"
+      },
+      "outcomes": {
+        "success": "Successful",
+        "denied": "Denied",
+        "failure": "Failed"
+      }
+    },
     "authorizations": {
       "title": "Authorized OAuth applications",
       "description": "Applications you approved can act with the listed permissions until you revoke access.",
@@ -1132,6 +1181,14 @@
       "disabled": "Disabled",
       "permissions": "Permissions",
       "updatedAt": "Last authorized",
+      "lastUsedAt": "Last used",
+      "neverUsed": "No usage recorded in the last 30 days",
+      "recentUsage": "Last 30 days",
+      "reads": "reads",
+      "writes": "writes",
+      "errors": "errors",
+      "lastChannel": "Last channel",
+      "lastFeature": "Last feature",
       "revoke": "Revoke",
       "revoking": "Revoking…",
       "revokeTitle": "Revoke application access?",
@@ -2293,6 +2350,7 @@
     "scopeGroup_admin": "Admin",
     "scopeGroup_other": "Other",
     "scopeFeature_account.profile": "Profile",
+    "scopeFeature_account.client-activity": "Current application activity",
     "scopeFeature_catalog.bus": "Shuttle",
     "scopeFeature_catalog.course": "Courses",
     "scopeFeature_catalog.exam": "Exams",
@@ -2388,7 +2446,8 @@
     "unsupportedAuthMethod": "Unsupported client authentication method",
     "missingClientId": "Missing client id",
     "errorMissingRedirectUri": "redirect_uri is required when multiple redirect URIs are registered.",
-    "scope_account.profile:read": "Read your account profile",
+    "scope_account.client-activity:read": "Read activity this application performed for you",
+    "scope_account.profile:read": "Read your account profile (email also requires the email scope)",
     "scope_account.profile:write": "Update your account profile",
     "scope_catalog.bus:read": "Read the public shuttle catalog",
     "scope_catalog.bus:write": "Manage the public shuttle catalog",

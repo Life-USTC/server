@@ -70,7 +70,7 @@
       },
       "display": {
         "fields": [
-          "account.profile",
+          "account.profile / account.clientActivity",
           "catalog.courses / catalog.sections / catalog.teachers",
           "catalog.semesters / catalog.currentSemester / catalog.bus",
           "community.user / community.comments / community.description",

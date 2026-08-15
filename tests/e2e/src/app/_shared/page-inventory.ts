@@ -99,6 +99,7 @@ const E2E = {
   settingsProfile: "src/app/settings/profile/test.ts",
   settingsPreferences: "src/app/settings/preferences/test.ts",
   settingsAccounts: "src/app/settings/accounts/test.ts",
+  settingsSecurity: "src/app/settings/security/test.ts",
   settingsAuthorizations: "src/app/settings/authorizations/test.ts",
   settingsDanger: "src/app/settings/danger/test.ts",
   settingsPasskeys: "src/app/settings/passkeys/test.ts",
@@ -194,6 +195,11 @@ export const PAGE_INVENTORY: readonly PageInventoryEntry[] = [
         id: "authorizations-list",
         e2eSpec: E2E.settingsAuthorizations,
         evidence: "仅显示安全的客户端信息，并支持确认后立即撤销",
+      },
+      {
+        id: "security-activity",
+        e2eSpec: E2E.settingsSecurity,
+        evidence: "敏感活动分页展示且网络与设备信息脱敏",
       },
       {
         id: "danger-delete",

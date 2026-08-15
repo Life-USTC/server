@@ -168,9 +168,31 @@ export const meResponseSchema = z.object({
   name: z.string().nullable(),
   image: z.string().nullable(),
   username: z.string().nullable(),
-  isAdmin: z.boolean(),
+  isAdmin: z.boolean().nullable(),
   createdAt: dateTimeSchema,
   updatedAt: dateTimeSchema,
+});
+
+export const accountClientActivityResponseSchema = z.object({
+  items: z.array(
+    z.object({
+      id: z.string(),
+      action: z.string(),
+      outcome: z.enum(["success", "denied", "failure"]),
+      channel: z.enum([
+        "web",
+        "rest",
+        "graphql",
+        "mcp",
+        "auth",
+        "webhook",
+        "system",
+      ]),
+      createdAt: dateTimeSchema,
+      targetType: z.string().nullable(),
+    }),
+  ),
+  nextCursor: z.string().nullable(),
 });
 
 export const publicUserProfileResponseSchema = z.object({

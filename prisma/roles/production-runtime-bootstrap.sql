@@ -189,6 +189,7 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE
   "OAuthRefreshToken",
   "OAuthAccessToken",
   "OAuthConsent",
+  "OAuthGrantUsageDaily",
   "oauthResource",
   "oauthClientResource",
   "oauthClientAssertion"

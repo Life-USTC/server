@@ -70,6 +70,10 @@ describe("getRequiredMcpScopes", () => {
     expect(getRequiredMcpScopes("account_profile_get")).toEqual([
       restReadScope("account.profile"),
     ]);
+    expect(getRequiredMcpScopes("account_client_activity_list")).toEqual([
+      restReadScope("account.client-activity"),
+    ]);
+    expect(isMcpWriteTool("account_client_activity_list")).toBe(false);
     expect(getRequiredMcpScopes("workspace_snapshot_get")).toEqual([
       restReadScope("workspace.overview"),
     ]);

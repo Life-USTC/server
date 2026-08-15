@@ -883,6 +883,7 @@ model User {
   oauthAccessTokens  OAuthAccessToken[]
   oauthRefreshTokens OAuthRefreshToken[]
   oauthConsents      OAuthConsent[]
+  oauthGrantUsage    OAuthGrantUsageDaily[]
   deviceCodes        DeviceCode[]
 }
 
@@ -1396,6 +1397,7 @@ model OAuthClient {
   consents      OAuthConsent[]
   deviceCodes   DeviceCode[]
   resourceLinks OauthClientResource[]
+  grantUsage    OAuthGrantUsageDaily[]
 
   @@index([userId])
 }
@@ -1521,6 +1523,37 @@ model OAuthConsent {
   @@unique([clientId, userId])
   @@index([clientId])
   @@index([userId])
+}
+
+/// Bounded, content-free OAuth usage aggregates for user-facing authorization
+/// summaries. One row is updated per grant and Shanghai calendar day.
+model OAuthGrantUsageDaily {
+  id String @id @default(cuid())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  clientId String
+  client   OAuthClient @relation(fields: [clientId], references: [clientId], onDelete: Cascade)
+
+  grantId  String?
+  grantKey String
+  day      DateTime @db.Date
+  feature  String
+  channel  AuditChannel
+
+  readCount  Int @default(0)
+  writeCount Int @default(0)
+  errorCount Int @default(0)
+
+  lastUsedAt DateTime
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, clientId, grantKey, day, feature, channel])
+  @@index([userId, clientId, lastUsedAt])
+  @@index([userId, clientId, grantKey, day])
 }
 
 model OauthResource {

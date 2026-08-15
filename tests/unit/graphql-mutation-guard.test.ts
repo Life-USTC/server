@@ -51,6 +51,7 @@ describe("GraphQL mutation guard", () => {
         context({
           kind: "oauth",
           userId: "user-1",
+          clientId: "client-1",
           scopes: new Set(["workspace.todo:write"]),
           resource: "https://life.example/api/graphql",
         }),
@@ -76,6 +77,7 @@ describe("GraphQL mutation guard", () => {
         context({
           kind: "oauth",
           userId: "user-1",
+          clientId: "client-1",
           scopes: new Set([`${feature}:read`]),
           resource: "https://life.example/api/graphql",
         }),

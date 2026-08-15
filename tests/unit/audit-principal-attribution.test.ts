@@ -41,6 +41,28 @@ describe("audit principal attribution", () => {
     });
   });
 
+  it("MCP 内执行 GraphQL 时保持 MCP channel，不降级成 graphql", () => {
+    expect(
+      attributionFromGraphqlPrincipal({
+        kind: "oauth",
+        userId: "user-1",
+        clientId: "client-1",
+        grantId: "grant-1",
+        sessionId: "session-1",
+        scopes: new Set(["workspace.todo:write"]),
+        resource: "https://life.example/api/mcp",
+        channel: "mcp",
+      }),
+    ).toEqual({
+      channel: "mcp",
+      userId: "user-1",
+      subjectUserId: "user-1",
+      oauthClientId: "client-1",
+      oauthGrantId: "grant-1",
+      sessionId: "session-1",
+    });
+  });
+
   it("从 MCP AuthInfo 读取服务端验证后的 client、grant 与 session", () => {
     expect(
       attributionFromMcpAuthInfo({

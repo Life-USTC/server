@@ -8,11 +8,13 @@ import { getSafeErrorName } from "@/lib/log/safe-error-name";
 import { getRegisteredMcpToolCount } from "@/lib/mcp/tool-descriptors";
 import {
   extractMcpToolCallNames,
+  getMcpToolUsageCategory,
   getMcpWriteRateLimitAction,
   getMcpWriteRateLimitTier,
   isMcpWriteTool,
   mcpToolCallsRequireAuthentication,
 } from "@/lib/mcp/tool-scopes";
+import { scheduleOAuthGrantUsage } from "@/lib/oauth/grant-usage";
 import {
   checkUserMutationRateLimit,
   USER_MUTATION_RATE_LIMIT_PERIOD_SECONDS,
@@ -24,6 +26,68 @@ import {
 } from "./mcp-request-logging";
 import { recordAndLogMcpResponse } from "./mcp-response-bookkeeping";
 
+type McpOAuthUsage = {
+  userId: string;
+  clientId: string;
+  grantId?: string;
+  feature: string;
+  action: "read" | "write";
+};
+
+function mcpJsonValueHasError(value: unknown): boolean {
+  if (Array.isArray(value)) return value.some(mcpJsonValueHasError);
+  if (!value || typeof value !== "object") return false;
+  const record = value as Record<string, unknown>;
+  if (record.error) return true;
+  const result = record.result;
+  return (
+    !!result &&
+    typeof result === "object" &&
+    (result as Record<string, unknown>).isError === true
+  );
+}
+
+async function mcpResponseHasError(response: Response) {
+  if (response.status >= 400) return true;
+  const contentType = response.headers.get("content-type") ?? "";
+  try {
+    if (contentType.includes("application/json")) {
+      return mcpJsonValueHasError(await response.clone().json());
+    }
+    if (contentType.includes("text/event-stream")) {
+      const text = await response.clone().text();
+      return text
+        .split("\n")
+        .filter((line) => line.startsWith("data:"))
+        .some((line) => {
+          try {
+            return mcpJsonValueHasError(JSON.parse(line.slice(5).trim()));
+          } catch {
+            return false;
+          }
+        });
+    }
+  } catch {
+    // A response that cannot be inspected still retains its HTTP outcome.
+  }
+  return false;
+}
+
+async function finishMcpOAuthUsage(
+  usage: McpOAuthUsage[],
+  outcome: "success" | "error",
+) {
+  await Promise.all(
+    usage.map((input) =>
+      scheduleOAuthGrantUsage({
+        ...input,
+        channel: "mcp",
+        outcome,
+      }),
+    ),
+  );
+}
+
 export async function handleMcpRequest(request: Request) {
   const start = Date.now();
   const requestUrl = new URL(request.url);
@@ -31,6 +95,7 @@ export async function handleMcpRequest(request: Request) {
   const logContext = { correlationId, request, requestUrl };
   let rpcSummary: McpRequestSummary | null = null;
   let toolCount: number | undefined;
+  let oauthUsage: McpOAuthUsage[] = [];
   logMcpTransportRequest(logContext);
 
   try {
@@ -96,6 +161,28 @@ export async function handleMcpRequest(request: Request) {
       authInfo = authResult.authInfo;
     }
 
+    if (authInfo && typeof authInfo.extra?.userId === "string") {
+      oauthUsage = toolCallNames.flatMap((toolName) => {
+        // graphql_operation_run records each selected field through its
+        // GraphQL principal while retaining the MCP channel.
+        if (toolName === "graphql_operation_run") return [];
+        const usage = getMcpToolUsageCategory(toolName);
+        if (!usage) return [];
+        return [
+          {
+            userId: authInfo.extra?.userId as string,
+            clientId: authInfo.clientId,
+            grantId:
+              typeof authInfo.extra?.grantId === "string"
+                ? authInfo.extra.grantId
+                : undefined,
+            feature: usage.feature,
+            action: usage.action,
+          },
+        ];
+      });
+    }
+
     const { summarizeMcpJsonRpcBody } = await import("@/lib/mcp/observability");
     rpcSummary =
       bodyResult.body === undefined
@@ -125,6 +212,7 @@ export async function handleMcpRequest(request: Request) {
             status: response.status,
             start,
           });
+          await finishMcpOAuthUsage(oauthUsage, "error");
           return withMcpCors(request, response);
         }
       }
@@ -161,6 +249,10 @@ export async function handleMcpRequest(request: Request) {
           parsedBody: bodyResult.body,
         }),
     );
+    await finishMcpOAuthUsage(
+      oauthUsage,
+      (await mcpResponseHasError(res)) ? "error" : "success",
+    );
     recordAndLogMcpResponse({
       context: logContext,
       request,
@@ -172,6 +264,7 @@ export async function handleMcpRequest(request: Request) {
     });
     return withMcpCors(request, res);
   } catch (error) {
+    await finishMcpOAuthUsage(oauthUsage, "error");
     recordAndLogMcpResponse({
       context: logContext,
       errorName: getSafeErrorName(error),

@@ -200,6 +200,7 @@ describe("GraphQL semantic observability", () => {
         {
           kind: "oauth",
           userId: "oauth-user",
+          clientId: "oauth-client",
           scopes: new Set(["account.profile:read"]),
           resource: "https://example.test/api/graphql",
         },
@@ -478,6 +479,7 @@ describe("GraphQL semantic observability", () => {
         contextWithPrincipal(request, {
           kind: "oauth",
           userId: "private-user-id",
+          clientId: "private-client-id",
           scopes: new Set(),
           resource: "https://example.test/api/graphql",
         }),

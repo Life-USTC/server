@@ -11,6 +11,12 @@ export const getMyProfileInputSchema = {
   mode: mcpModeInputSchema,
 };
 
+export const getOAuthClientActivityInputSchema = {
+  cursor: z.string().max(256).optional(),
+  limit: z.number().int().min(1).max(50).default(30),
+  mode: mcpModeInputSchema,
+};
+
 export const getPublicUserProfileInputSchema = {
   identifier: z.string().trim().min(1),
   mode: mcpModeInputSchema,

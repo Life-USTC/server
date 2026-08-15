@@ -21,6 +21,10 @@ const operations = {
   createOAuthClientFixture: oauthFixtures.createOAuthClientFixture,
   cleanupAuditLogsForE2e: auditFixtures.cleanupAuditLogsForE2e,
   cleanupAuditTargetsForE2e: auditFixtures.cleanupAuditTargetsForE2e,
+  createAccountSecurityActivityFixture:
+    auditFixtures.createAccountSecurityActivityFixture,
+  deleteAccountSecurityActivityFixture:
+    auditFixtures.deleteAccountSecurityActivityFixture,
   isolateSingleActiveBusTripFixture:
     busFixtures.isolateSingleActiveBusTripFixture,
   restoreBusTripTimesFixture: busFixtures.restoreBusTripTimesFixture,
@@ -127,6 +131,14 @@ export const cleanupAuditLogsForE2e = (input: AuditLogCleanupInput) =>
 export const cleanupAuditTargetsForE2e = (
   targets: readonly AuditLogCleanupTarget[],
 ) => runDbFixture<void>("cleanupAuditTargetsForE2e", [targets]);
+
+export const createAccountSecurityActivityFixture = (userId: string) =>
+  runDbFixture<{ id: string }>("createAccountSecurityActivityFixture", [
+    userId,
+  ]);
+
+export const deleteAccountSecurityActivityFixture = (id: string) =>
+  runDbFixture<void>("deleteAccountSecurityActivityFixture", [id]);
 
 export const isolateSingleActiveBusTripFixture = () =>
   runDbFixture<busFixtures.BusTripTimesSnapshot>(

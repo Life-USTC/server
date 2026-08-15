@@ -16,6 +16,7 @@ BEGIN
     'OAuthAccessToken',
     'OAuthClient',
     'OAuthConsent',
+    'OAuthGrantUsageDaily',
     'OAuthRefreshToken',
     'Passkey',
     'Session',
@@ -47,6 +48,7 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE
   "UploadPending",
   "HomeworkCompletion"
 TO life_ustc_runtime;
+GRANT SELECT ON TABLE "OAuthGrantUsageDaily" TO life_ustc_runtime;
 GRANT SELECT, INSERT, DELETE ON TABLE "CommentReaction"
 TO life_ustc_runtime;
 

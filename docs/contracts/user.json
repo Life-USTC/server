@@ -22,7 +22,10 @@
     "public-profile-canonical-route": "When a profile has a username, /community/users/$identifier permanently redirects to the canonical /community/users/$identifier page. Profiles without a username remain reachable by ID without rendering the raw ID as primary metadata.",
     "account-deletion-retention": "Settings account deletion requires an authoritative session created within the last 15 minutes. Actor and subject relations are anonymized by their database foreign keys; the post-deletion success event does not retain the deleted user ID. Deleting an admin account is allowed only when at least one other admin remains.",
     "sensitive-account-recent-auth": "Passkey registration/rename/deletion, linked-account removal, OAuth authorization revocation or scope reduction, session revocation, password or email changes, account deletion, and calendar feed token rotation require an authoritative server-side session created within the last 15 minutes. Stale settings actions return explicit sign-out/sign-in guidance.",
-    "oauth-authorization-management": "Settings separates linked sign-in accounts from applications authorized to call Life@USTC on the user's behalf. The canonical /account/settings/authorizations page lists safe client metadata and lets only the owning signed-in user revoke a grant."
+    "oauth-authorization-management": "Settings separates linked sign-in accounts from applications authorized to call Life@USTC on the user's behalf. The canonical /account/settings/authorizations page lists safe client metadata, a content-free 30-day usage summary, and lets only the owning signed-in user revoke a grant.",
+    "account-security-activity": "The session-only /account/settings/security page lists the owning user's sensitive account events with cursor pagination, masked network prefixes, coarse device families, and safe OAuth client names. OAuth clients cannot access this all-clients security view.",
+    "oauth-client-activity-isolation": "REST, GraphQL, and MCP expose only events whose subject user and OAuth client both come from the verified principal. Callers cannot provide either identity, and the projection excludes IP, user agent, grant, session, request, and other-client data.",
+    "account-profile-oauth-projection": "Cookie sessions receive their full private account profile. OAuth account.profile:read returns email only when the standard email scope is also granted and never discloses administrative status."
   },
   "capabilities": {
     "sign-in": {
@@ -90,7 +93,9 @@
             "path": "/api/account/profile",
             "returns": "{ id, email, name, image, username, isAdmin, createdAt, updatedAt }",
             "auth": "user",
-            "notes": ["Returns the authenticated user's core profile fields."]
+            "notes": [
+              "Cookie sessions receive email and isAdmin. OAuth callers receive email only with the standard email scope and isAdmin is null."
+            ]
           },
           {
             "path": "/api/community/users/[identifier]",
@@ -172,6 +177,7 @@
           "/account/settings/profile",
           "/account/settings/preferences",
           "/account/settings/accounts",
+          "/account/settings/security",
           "/account/settings/authorizations",
           "/account/settings/danger"
         ]
@@ -191,12 +197,57 @@
           "user passkeys with add, rename, and delete controls",
           "Fresh-session and WebAuthn support states for passkey registration",
           "canDisconnect (Boolean - requires min 2 accounts)",
-          "Authorized OAuth applications: client display name, public URI, disabled state, scopes, last authorization time, and revoke action",
+          "Security activity: sensitive action, outcome, channel, masked network, coarse device, client display name, and cursor pagination",
+          "Authorized OAuth applications: client display name, public URI, disabled state, scopes, last authorization time, last usage channel/feature, 30-day read/write/error counts, and revoke action",
           "Compact responsive section navigation with active-section description",
           "Navigation links to sections and comment guide",
           "Visually separated danger region and account deletion confirmation interface"
         ]
       }
+    },
+    "oauth-client-activity": {
+      "title": "Current OAuth Client Activity",
+      "auth": "user",
+      "web": "unavailable",
+      "rest": {
+        "routes": [
+          {
+            "path": "/api/account/client-activity",
+            "method": "GET",
+            "returns": "{ items: [{ id, action, outcome, channel, createdAt, targetType }], nextCursor }",
+            "notes": [
+              "Requires the read-only account.client-activity:read OAuth scope.",
+              "OAuth Bearer only; userId and clientId are always derived from the verified principal."
+            ]
+          }
+        ]
+      },
+      "graphql": {
+        "fields": [
+          {
+            "parent": "Account",
+            "name": "clientActivity",
+            "arguments": {
+              "cursor": "String",
+              "limit": "Int"
+            },
+            "required_scopes": ["account.client-activity:read"],
+            "returns": "AccountClientActivityPage!"
+          }
+        ]
+      },
+      "mcp": {
+        "tools": [
+          {
+            "name": "account_client_activity_list",
+            "returns": "{ items, nextCursor }",
+            "notes": [
+              "Requires the read-only account.client-activity:read OAuth scope."
+            ]
+          }
+        ]
+      },
+      "links": { "models": ["AuditLog"] }
     }
   }
 }

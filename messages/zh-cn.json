@@ -1068,6 +1068,10 @@
         "title": "关联账户",
         "description": "连接或断开登录提供商"
       },
+      "security": {
+        "title": "安全活动",
+        "description": "查看登录、凭据与授权等敏感操作"
+      },
       "authorizations": {
         "title": "已授权应用",
         "description": "查看并撤销第三方访问"
@@ -1089,6 +1093,51 @@
         "description": "选择界面显示语言。"
       }
     },
+    "security": {
+      "title": "账户安全活动",
+      "description": "这里只显示与你账户有关的敏感操作。网络地址已脱敏，设备信息仅保留浏览器与系统类别。",
+      "emptyTitle": "暂无安全活动",
+      "emptyDescription": "新的登录、凭据和授权操作会显示在这里。",
+      "network": "网络",
+      "device": "设备",
+      "client": "应用",
+      "newer": "返回最新活动",
+      "older": "更早的活动",
+      "unknownAction": "账户操作",
+      "actions": {
+        "account_sign_in": "登录账户",
+        "account_sign_out": "退出账户",
+        "account_profile_update": "更新个人资料",
+        "account_link": "关联登录账户",
+        "account_unlink": "解除登录账户",
+        "account_delete": "删除账户",
+        "account_passkey_create": "添加通行密钥",
+        "account_passkey_update": "重命名通行密钥",
+        "account_passkey_delete": "删除通行密钥",
+        "account_session_revoke": "撤销登录会话",
+        "account_calendar_token_rotate": "轮换日历令牌",
+        "oauth_authorization_grant": "授权 OAuth 应用",
+        "oauth_authorization_update": "更新 OAuth 授权",
+        "oauth_authorization_revoke": "撤销 OAuth 授权",
+        "admin_user_suspend": "账户被暂停",
+        "admin_user_unsuspend": "账户暂停已解除",
+        "admin_user_role_update": "账户角色已变更"
+      },
+      "channels": {
+        "web": "网页",
+        "rest": "REST API",
+        "graphql": "GraphQL",
+        "mcp": "MCP",
+        "auth": "认证服务",
+        "webhook": "Webhook",
+        "system": "系统"
+      },
+      "outcomes": {
+        "success": "成功",
+        "denied": "已拒绝",
+        "failure": "失败"
+      }
+    },
     "authorizations": {
       "title": "已授权的 OAuth 应用",
       "description": "你批准的应用可在撤销前按照下列权限代表你操作。",
@@ -1098,6 +1147,14 @@
       "disabled": "已停用",
       "permissions": "权限范围",
       "updatedAt": "最近授权",
+      "lastUsedAt": "最近使用",
+      "neverUsed": "近 30 天没有使用记录",
+      "recentUsage": "近 30 天",
+      "reads": "读取",
+      "writes": "写入",
+      "errors": "错误",
+      "lastChannel": "最近通道",
+      "lastFeature": "最近功能",
       "revoke": "撤销授权",
       "revoking": "正在撤销…",
       "revokeTitle": "撤销应用访问权限？",
@@ -2259,6 +2316,7 @@
     "scopeGroup_admin": "管理后台",
     "scopeGroup_other": "其他",
     "scopeFeature_account.profile": "个人资料",
+    "scopeFeature_account.client-activity": "当前应用活动",
     "scopeFeature_catalog.bus": "校车",
     "scopeFeature_catalog.course": "课程",
     "scopeFeature_catalog.exam": "考试",
@@ -2354,7 +2412,8 @@
     "unsupportedAuthMethod": "不支持的客户端认证方式",
     "missingClientId": "缺少客户端 ID",
     "errorMissingRedirectUri": "当注册了多个重定向 URI 时，必须指定 redirect_uri 参数。",
-    "scope_account.profile:read": "读取你的账户资料",
+    "scope_account.client-activity:read": "读取当前应用代表你执行的活动",
+    "scope_account.profile:read": "读取你的账户资料（邮箱还需要 email 权限）",
     "scope_account.profile:write": "更新你的账户资料",
     "scope_catalog.bus:read": "读取公共校车目录",
     "scope_catalog.bus:write": "管理公共校车目录",

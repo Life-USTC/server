@@ -1,4 +1,5 @@
 import { afterAll, describe, expect, it } from "vitest";
+import { recordOAuthGrantUsage } from "@/lib/oauth/grant-usage";
 import { createTestPrisma, disconnectTestPrisma } from "../shared/prisma";
 
 const authDatabaseUrl = process.env.AUTH_DATABASE_URL;
@@ -31,6 +32,10 @@ const expectedTablePrivileges = [
   "OAuthConsent:INSERT",
   "OAuthConsent:SELECT",
   "OAuthConsent:UPDATE",
+  "OAuthGrantUsageDaily:DELETE",
+  "OAuthGrantUsageDaily:INSERT",
+  "OAuthGrantUsageDaily:SELECT",
+  "OAuthGrantUsageDaily:UPDATE",
   "OAuthRefreshToken:DELETE",
   "OAuthRefreshToken:INSERT",
   "OAuthRefreshToken:SELECT",
@@ -234,6 +239,50 @@ describe.skipIf(process.env.AUTH_ROLE_TEST_ENABLED !== "true")(
         await expect(authPrisma.auditLog.count()).rejects.toThrow();
       } finally {
         await authPrisma.user.delete({ where: { id: user.id } });
+      }
+    });
+
+    it("can atomically manage OAuth usage while retaining no app-table access", async () => {
+      const marker = `auth-role-usage-${crypto.randomUUID()}`;
+      const clientId = `${marker}-client`;
+      const grantId = `${marker}-grant`;
+      const user = await authPrisma.user.create({
+        data: { email: `${marker}@example.test`, name: marker },
+        select: { id: true },
+      });
+      await authPrisma.oAuthClient.create({
+        data: {
+          clientId,
+          name: marker,
+          redirectUris: ["https://client.example.test/callback"],
+        },
+      });
+      try {
+        await recordOAuthGrantUsage(
+          {
+            userId: user.id,
+            clientId,
+            grantId,
+            channel: "rest",
+            feature: "account.profile",
+            action: "read",
+          },
+          authPrisma,
+        );
+        await expect(
+          authPrisma.oAuthGrantUsageDaily.findFirstOrThrow({
+            where: { userId: user.id, clientId, grantId },
+          }),
+        ).resolves.toMatchObject({ readCount: 1 });
+        await expect(
+          authPrisma.oAuthGrantUsageDaily.deleteMany({
+            where: { userId: user.id, clientId, grantId },
+          }),
+        ).resolves.toMatchObject({ count: 1 });
+        await expect(authPrisma.auditLog.count()).rejects.toThrow();
+      } finally {
+        await authPrisma.oAuthClient.deleteMany({ where: { clientId } });
+        await authPrisma.user.deleteMany({ where: { id: user.id } });
       }
     });
 

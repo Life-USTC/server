@@ -10,6 +10,7 @@ import {
 } from "@/lib/mcp/urls";
 import { hasActiveOAuthUserGrant } from "@/lib/oauth/active-user-grant";
 import type { RestFeature } from "@/lib/oauth/constants";
+import { registerOAuthRequestUsage } from "@/lib/oauth/grant-usage";
 import {
   type FeatureScopeRequirement,
   hasRequiredFeatureScope,
@@ -98,6 +99,16 @@ export async function resolveApiPrincipal(
         if (!hasRequiredFeatureScope(verified.scope, requirement)) return null;
       } else {
         if (!hasAnyRestScope(verified.scope)) return null;
+      }
+      if (requirement) {
+        registerOAuthRequestUsage(request, {
+          userId: verified.sub,
+          clientId: verified.clientId,
+          grantId: verified.grantId,
+          channel: "rest",
+          feature: requirement.feature,
+          action: requirement.action,
+        });
       }
       return {
         kind: "oauth",

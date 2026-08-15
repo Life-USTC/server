@@ -2,6 +2,7 @@ import { redirect } from "@sveltejs/kit";
 import { listUserOAuthAuthorizations } from "@/features/oauth/server/user-authorizations.server";
 import type { SettingsTab } from "@/features/settings/lib/settings-tabs";
 import type { UserUstcIdentitySummary } from "@/features/settings/lib/ustc-identity";
+import { listOwnAccountSecurityActivityPage } from "@/features/settings/server/account-activity";
 import { buildSettingsAccountProviders } from "@/features/settings/server/settings-account-providers";
 import { listUserUstcIdentities } from "@/features/settings/server/user-ustc-identity-read-model";
 import { buildSignInPageUrl } from "@/lib/auth/auth-routing";
@@ -34,35 +35,42 @@ export async function getSettingsPageData(
 ) {
   const sessionUser = await requireSettingsUser(request, url);
   const loadUstcIdentities = tab === "accounts";
-  const [user, accounts, authorizations, ustcIdentities] = await Promise.all([
-    prisma.user.findUnique({
-      where: { id: sessionUser.id },
-      select: {
-        id: true,
-        name: true,
-        username: true,
-        email: true,
-        image: true,
-        profilePictures: true,
-      },
-    }),
-    authPrisma.account.findMany({
-      where: { userId: sessionUser.id },
-      orderBy: { createdAt: "asc" },
-      select: {
-        id: true,
-        provider: true,
-        providerAccountId: true,
-        createdAt: true,
-      },
-    }),
-    tab === "authorizations"
-      ? listUserOAuthAuthorizations(sessionUser.id)
-      : Promise.resolve([]),
-    loadUstcIdentities
-      ? listUserUstcIdentities(sessionUser.id)
-      : Promise.resolve({ upstreamUids: [], records: [] }),
-  ]);
+  const [user, accounts, authorizations, ustcIdentities, securityActivity] =
+    await Promise.all([
+      prisma.user.findUnique({
+        where: { id: sessionUser.id },
+        select: {
+          id: true,
+          name: true,
+          username: true,
+          email: true,
+          image: true,
+          profilePictures: true,
+        },
+      }),
+      authPrisma.account.findMany({
+        where: { userId: sessionUser.id },
+        orderBy: { createdAt: "asc" },
+        select: {
+          id: true,
+          provider: true,
+          providerAccountId: true,
+          createdAt: true,
+        },
+      }),
+      tab === "authorizations"
+        ? listUserOAuthAuthorizations(sessionUser.id)
+        : Promise.resolve([]),
+      loadUstcIdentities
+        ? listUserUstcIdentities(sessionUser.id)
+        : Promise.resolve({ upstreamUids: [], records: [] }),
+      tab === "security"
+        ? listOwnAccountSecurityActivityPage(sessionUser.id, {
+            cursor: url.searchParams.get("cursor"),
+            limit: 20,
+          })
+        : Promise.resolve({ items: [], nextCursor: null }),
+    ]);
 
   if (!user) {
     throw redirect(303, buildSignInPageUrl(`${url.pathname}${url.search}`));
@@ -93,5 +101,6 @@ export async function getSettingsPageData(
     },
     accounts: accountProviders,
     authorizations,
+    securityActivity,
   };
 }

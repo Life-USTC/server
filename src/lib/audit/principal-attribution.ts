@@ -54,7 +54,7 @@ export function attributionFromGraphqlPrincipal(
 ): AuditPrincipalAttribution {
   if (principal.kind === "oauth") {
     return oauthAttribution({
-      channel: "graphql",
+      channel: principal.channel ?? "graphql",
       userId: principal.userId,
       clientId: principal.clientId,
       grantId: principal.grantId,

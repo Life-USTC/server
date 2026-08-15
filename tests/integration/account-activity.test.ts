@@ -124,12 +124,8 @@ describe.sequential("account activity isolation", () => {
 
   it("OAuth 客户端只能看到自身代表当前用户产生的安全投影", async () => {
     const activity = await listOAuthClientActivity({
-      kind: "oauth",
       userId,
       clientId,
-      grantId: "grant-secret",
-      sessionId: "session-secret",
-      scopes: new Set(["account.client-activity:read"]),
     });
 
     expect(activity).toHaveLength(1);

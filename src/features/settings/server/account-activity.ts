@@ -3,7 +3,6 @@ import type {
   AuditChannel,
   AuditOutcome,
 } from "@/generated/prisma/client";
-import type { ApiPrincipal } from "@/lib/auth/api-auth";
 import { prisma } from "@/lib/db/prisma";
 
 const ACCOUNT_SECURITY_ACTIONS = [
@@ -34,6 +33,23 @@ export type AccountActivityCursor = {
   id: string;
 };
 
+export type OAuthClientIdentity = {
+  userId: string;
+  clientId: string;
+};
+
+export type AccountActivityPage<T> = {
+  items: T[];
+  nextCursor: string | null;
+};
+
+export class InvalidAccountActivityCursorError extends Error {
+  constructor() {
+    super("Invalid account activity cursor");
+    this.name = "InvalidAccountActivityCursorError";
+  }
+}
+
 export type OwnAccountSecurityActivity = {
   id: string;
   action: AuditAction;
@@ -56,6 +72,26 @@ export type OAuthClientActivity = {
 
 function clampLimit(limit: number | undefined) {
   return Math.min(Math.max(Math.trunc(limit ?? 30), 1), 100);
+}
+
+export function encodeAccountActivityCursor(cursor: AccountActivityCursor) {
+  return `${cursor.createdAt.toISOString()}|${cursor.id}`;
+}
+
+export function decodeAccountActivityCursor(
+  value: string | null | undefined,
+): AccountActivityCursor | undefined {
+  if (!value) return undefined;
+  const separator = value.indexOf("|");
+  if (separator <= 0 || separator === value.length - 1) {
+    throw new InvalidAccountActivityCursorError();
+  }
+  const createdAt = new Date(value.slice(0, separator));
+  const id = value.slice(separator + 1);
+  if (Number.isNaN(createdAt.getTime()) || !/^[A-Za-z0-9_-]{8,}$/.test(id)) {
+    throw new InvalidAccountActivityCursorError();
+  }
+  return { createdAt, id };
 }
 
 function beforeCursor(cursor: AccountActivityCursor | undefined) {
@@ -162,7 +198,7 @@ export async function listOwnAccountSecurityActivity(
 }
 
 export async function listOAuthClientActivity(
-  principal: Extract<ApiPrincipal, { kind: "oauth" }>,
+  principal: OAuthClientIdentity,
   options: { cursor?: AccountActivityCursor; limit?: number } = {},
 ): Promise<OAuthClientActivity[]> {
   const rows = await prisma.auditLog.findMany({
@@ -191,4 +227,47 @@ export async function listOAuthClientActivity(
     createdAt: row.createdAt.toISOString(),
     targetType: row.targetType,
   }));
+}
+
+function pageFromRows<T extends { createdAt: string; id: string }>(
+  rows: T[],
+  limit: number,
+): AccountActivityPage<T> {
+  const hasMore = rows.length > limit;
+  const items = hasMore ? rows.slice(0, limit) : rows;
+  const last = items.at(-1);
+  return {
+    items,
+    nextCursor:
+      hasMore && last
+        ? encodeAccountActivityCursor({
+            createdAt: new Date(last.createdAt),
+            id: last.id,
+          })
+        : null,
+  };
+}
+
+export async function listOwnAccountSecurityActivityPage(
+  userId: string,
+  options: { cursor?: string | null; limit?: number } = {},
+) {
+  const limit = Math.min(clampLimit(options.limit), 50);
+  const rows = await listOwnAccountSecurityActivity(userId, {
+    cursor: decodeAccountActivityCursor(options.cursor),
+    limit: limit + 1,
+  });
+  return pageFromRows(rows, limit);
+}
+
+export async function listOAuthClientActivityPage(
+  principal: OAuthClientIdentity,
+  options: { cursor?: string | null; limit?: number } = {},
+) {
+  const limit = Math.min(clampLimit(options.limit), 50);
+  const rows = await listOAuthClientActivity(principal, {
+    cursor: decodeAccountActivityCursor(options.cursor),
+    limit: limit + 1,
+  });
+  return pageFromRows(rows, limit);
 }

@@ -1,4 +1,5 @@
 import {
+  isReadOnlyRestFeature,
   OAUTH_EMAIL_SCOPE,
   OAUTH_OFFLINE_ACCESS_SCOPE,
   OAUTH_OPENID_SCOPE,
@@ -32,8 +33,9 @@ export function hasRequiredFeatureScope(
   const readScope = restReadScope(requirement.feature);
   const writeScope = restWriteScope(requirement.feature);
   return requirement.action === "write"
-    ? scopes.has(writeScope)
-    : scopes.has(readScope) || scopes.has(writeScope);
+    ? !isReadOnlyRestFeature(requirement.feature) && scopes.has(writeScope)
+    : scopes.has(readScope) ||
+        (!isReadOnlyRestFeature(requirement.feature) && scopes.has(writeScope));
 }
 
 const BASE_OAUTH_SCOPES = [
@@ -43,10 +45,13 @@ const BASE_OAUTH_SCOPES = [
   OAUTH_OFFLINE_ACCESS_SCOPE,
 ] as const;
 
-export const PUBLIC_REST_SCOPES = PUBLIC_REST_FEATURES.flatMap((feature) => [
-  restReadScope(feature),
-  restWriteScope(feature),
-]);
+function featureScopes(feature: RestFeature) {
+  return isReadOnlyRestFeature(feature)
+    ? [restReadScope(feature)]
+    : [restReadScope(feature), restWriteScope(feature)];
+}
+
+export const PUBLIC_REST_SCOPES = PUBLIC_REST_FEATURES.flatMap(featureScopes);
 
 export const MCP_BOOTSTRAP_SCOPE = restReadScope("account.profile");
 
@@ -57,7 +62,7 @@ export const PUBLIC_OAUTH_SCOPES = [
 
 export const OAUTH_SCOPES = [
   ...BASE_OAUTH_SCOPES,
-  ...REST_FEATURES.flatMap((f) => [restReadScope(f), restWriteScope(f)]),
+  ...REST_FEATURES.flatMap(featureScopes),
 ];
 
 export const CLIENT_REGISTRATION_ALLOWED_SCOPES = PUBLIC_OAUTH_SCOPES;
@@ -69,16 +74,14 @@ export const CLIENT_REGISTRATION_ALLOWED_SCOPES = PUBLIC_OAUTH_SCOPES;
 export const OAUTH_PROVIDER_SCOPES = OAUTH_SCOPES;
 
 export function isFeatureScope(scope: string): boolean {
-  return REST_FEATURES.some(
-    (feature) =>
-      scope === restReadScope(feature) || scope === restWriteScope(feature),
+  return REST_FEATURES.some((feature) =>
+    (featureScopes(feature) as readonly string[]).includes(scope),
   );
 }
 
 function isPublicFeatureScope(scope: string): boolean {
-  return PUBLIC_REST_FEATURES.some(
-    (feature) =>
-      scope === restReadScope(feature) || scope === restWriteScope(feature),
+  return PUBLIC_REST_FEATURES.some((feature) =>
+    (featureScopes(feature) as readonly string[]).includes(scope),
   );
 }
 
