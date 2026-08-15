@@ -94,10 +94,15 @@ jobs:
 
       - name: Configure job environment
         shell: bash
+        env:
+          JOB_PHASE: ${{ inputs.job-phase }}
         run: |
           {
             echo "DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:5432/${{ inputs.database-name }}"
             echo "ALLOW_DATABASE_SEED=true"
+            if [ "$JOB_PHASE" = "ci:verify" ]; then
+              echo "GRAPHQL_SCHEMA_SKIP_BASE_COMPATIBILITY=true"
+            fi
             if [ -n "${{ inputs.webhook-secret }}" ]; then
               echo "WEBHOOK_SECRET=${{ inputs.webhook-secret }}"
               echo "WEBHOOK_LOGIN_ENABLED=true"
@@ -258,21 +263,12 @@ jobs:
         shell: bash
         run: bun run openapi:check
 
-      - name: Verify GraphQL schema compatibility
+      - name: Verify canonical GraphQL schema snapshot
         if: ${{ inputs.job-phase == 'ci:verify' }}
         shell: bash
         env:
-          PR_TITLE: ${{ github.event.pull_request.title }}
-        run: |
-          base_sha="${{ github.event.pull_request.base.sha }}"
-          if grep -Eq '^[a-z]+(\([^)]+\))?!:' <<< "$PR_TITLE"; then
-            bunx vitest run tests/unit/graphql-schema-snapshot.test.ts
-          elif [ -n "$base_sha" ]; then
-            git fetch --no-tags --depth=1 origin "$base_sha"
-            GRAPHQL_SCHEMA_BASE_REF="$base_sha" bunx vitest run tests/unit/graphql-schema-snapshot.test.ts
-          else
-            bunx vitest run tests/unit/graphql-schema-snapshot.test.ts
-          fi
+          GRAPHQL_SCHEMA_SKIP_BASE_COMPATIBILITY: "true"
+        run: bunx vitest run tests/unit/graphql-schema-snapshot.test.ts
 
       - name: Upload artifact
         id: upload-artifact

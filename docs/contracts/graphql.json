@@ -26,7 +26,7 @@
     "scoped-query-auth": "Query.account and Query.workspace return null for an anonymous caller. Their child fields independently enforce account or feature read scopes for OAuth principals; trusted-origin Sessions use their existing user authority.",
     "workspace-ownership": "Workspace collections derive ownership from the authenticated user relation in feature services and never accept sectionIds or internal visibility or shape flags from GraphQL inputs.",
     "zoned-datetime": "DateTime inputs accept only valid ISO 8601 datetimes with an explicit Z or numeric timezone offset, with identical coercion for variables and inline literals; schedule and exam DateTime filters normalize to their Asia/Shanghai calendar day before querying @db.Date columns.",
-    "schema-evolution": "The canonical SDL snapshot is checked for drift and breaking changes in CI."
+    "schema-evolution": "CI always checks the canonical SDL snapshot for drift. Pull requests compare it with the base schema and block breaking or dangerous changes unless the explicit graphql-breaking-approved label is present; approval skips only that base-compatibility comparison."
   },
   "capabilities": {
     "public-query-endpoint": {

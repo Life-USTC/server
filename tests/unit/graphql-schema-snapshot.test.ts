@@ -29,6 +29,8 @@ describe("GraphQL schema snapshot", () => {
   });
 
   it("does not break the configured base schema", () => {
+    if (process.env.GRAPHQL_SCHEMA_SKIP_BASE_COMPATIBILITY === "true") return;
+
     const baseRef =
       process.env.GRAPHQL_SCHEMA_BASE_REF ??
       (process.env.GITHUB_BASE_REF
