@@ -70,7 +70,12 @@ describe("上传 MCP 工具", () => {
       hint: "The upload metadata was kept so the deletion can be retried.",
     });
     expect(deleteOwnedUploadMock).toHaveBeenCalledWith({
-      audit: { source: "mcp" },
+      audit: {
+        channel: "mcp",
+        source: "mcp",
+        subjectUserId: "user-1",
+        userId: "user-1",
+      },
       id: "upload-1",
       userId: "user-1",
     });

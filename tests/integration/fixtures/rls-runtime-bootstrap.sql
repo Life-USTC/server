@@ -320,7 +320,7 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE
   "oauthClientResource",
   "oauthClientAssertion"
 TO life_ustc_auth_runtime;
-GRANT DELETE ON TABLE "User" TO life_ustc_auth_runtime;
+REVOKE DELETE ON TABLE "User" FROM life_ustc_auth_runtime;
 GRANT SELECT (
   "id",
   "email",
@@ -351,7 +351,6 @@ GRANT UPDATE (
   "updatedAt"
 ) ON TABLE "User" TO life_ustc_auth_runtime;
 GRANT SELECT, INSERT ON TABLE "Jwks" TO life_ustc_auth_runtime;
-GRANT INSERT ON TABLE "AuditLog" TO life_ustc_auth_runtime;
 GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE "VerifiedEmail"
 TO life_ustc_auth_runtime;
 GRANT USAGE, SELECT ON SEQUENCE "VerifiedEmail_id_seq"
@@ -369,8 +368,11 @@ GRANT SELECT ON TABLE
 TO life_ustc_function_owner;
 GRANT UPDATE, DELETE ON TABLE "UploadPending"
 TO life_ustc_function_owner;
-GRANT SELECT, UPDATE, DELETE ON TABLE "AuditLog"
+GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE "AuditLog"
 TO life_ustc_function_owner;
+GRANT SELECT, UPDATE, DELETE ON TABLE "OAuthGrantUsageDaily"
+TO life_ustc_function_owner;
+GRANT DELETE ON TABLE "User" TO life_ustc_function_owner;
 GRANT SELECT, DELETE ON TABLE
   "Account",
   "VerifiedEmail",
@@ -400,8 +402,19 @@ ALTER FUNCTION public.maintain_audit_log_retention(
   timestamp without time zone,
   integer
 ) OWNER TO life_ustc_function_owner;
-ALTER FUNCTION public.anonymize_deleted_account_audit_targets(text)
-  OWNER TO life_ustc_function_owner;
+ALTER FUNCTION public.maintain_oauth_grant_usage_retention(
+  timestamp without time zone,
+  integer
+) OWNER TO life_ustc_function_owner;
+ALTER FUNCTION public.delete_own_account(
+  text,
+  text,
+  public."AuditChannel",
+  text,
+  text,
+  text,
+  text
+) OWNER TO life_ustc_function_owner;
 ALTER FUNCTION public.unlink_settings_account(text, text)
   OWNER TO life_ustc_function_owner;
 ALTER FUNCTION public.find_downloadable_upload(text)
@@ -464,12 +477,67 @@ CREATE POLICY "UploadPending_cleanup_worker" ON "UploadPending"
   USING (true)
   WITH CHECK (true);
 
+ALTER TABLE "AuditLog" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "OAuthGrantUsageDaily" ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "AuditLog_append_only" ON "AuditLog";
+CREATE POLICY "AuditLog_append_only" ON "AuditLog"
+  FOR INSERT TO PUBLIC WITH CHECK (true);
+DROP POLICY IF EXISTS "AuditLog_scoped_reader" ON "AuditLog";
+CREATE POLICY "AuditLog_scoped_reader" ON "AuditLog"
+  FOR SELECT TO PUBLIC
+  USING (
+    "subjectUserId" = NULLIF(current_setting('app.user_id', true), '')
+    OR (
+      "targetType" = 'homework'
+      AND "action" IN ('homework_create', 'homework_update', 'homework_delete')
+    )
+    OR EXISTS (
+      SELECT 1 FROM "User" AS app_user
+      WHERE app_user."id" = NULLIF(current_setting('app.user_id', true), '')
+        AND app_user."isAdmin" = true
+    )
+  );
+DROP POLICY IF EXISTS "AuditLog_function_owner" ON "AuditLog";
+CREATE POLICY "AuditLog_function_owner" ON "AuditLog"
+  FOR ALL TO life_ustc_function_owner USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS "OAuthGrantUsageDaily_scoped_reader"
+  ON "OAuthGrantUsageDaily";
+CREATE POLICY "OAuthGrantUsageDaily_scoped_reader"
+  ON "OAuthGrantUsageDaily"
+  FOR SELECT TO PUBLIC
+  USING (
+    "userId" = NULLIF(current_setting('app.user_id', true), '')
+    OR EXISTS (
+      SELECT 1 FROM "User" AS app_user
+      WHERE app_user."id" = NULLIF(current_setting('app.user_id', true), '')
+        AND app_user."isAdmin" = true
+    )
+  );
+DROP POLICY IF EXISTS "OAuthGrantUsageDaily_auth_runtime"
+  ON "OAuthGrantUsageDaily";
+CREATE POLICY "OAuthGrantUsageDaily_auth_runtime"
+  ON "OAuthGrantUsageDaily"
+  FOR ALL TO life_ustc_auth_runtime USING (true) WITH CHECK (true);
+DROP POLICY IF EXISTS "OAuthGrantUsageDaily_function_owner"
+  ON "OAuthGrantUsageDaily";
+CREATE POLICY "OAuthGrantUsageDaily_function_owner"
+  ON "OAuthGrantUsageDaily"
+  FOR ALL TO life_ustc_function_owner USING (true) WITH CHECK (true);
+
 GRANT EXECUTE
   ON FUNCTION public.unlink_settings_account(text, text)
   TO life_ustc_auth_runtime;
-GRANT EXECUTE
-  ON FUNCTION public.anonymize_deleted_account_audit_targets(text)
-  TO life_ustc_auth_runtime;
+GRANT EXECUTE ON FUNCTION public.delete_own_account(
+  text,
+  text,
+  public."AuditChannel",
+  text,
+  text,
+  text,
+  text
+) TO life_ustc_auth_runtime;
 GRANT EXECUTE ON FUNCTION
   public.find_downloadable_upload(text),
   public.comment_attachment_summaries(text[]),
@@ -503,6 +571,12 @@ GRANT EXECUTE
   TO life_ustc_maintenance_runtime;
 GRANT EXECUTE
   ON FUNCTION public.maintain_audit_log_retention(
+    timestamp without time zone,
+    integer
+  )
+  TO life_ustc_maintenance_runtime;
+GRANT EXECUTE
+  ON FUNCTION public.maintain_oauth_grant_usage_retention(
     timestamp without time zone,
     integer
   )

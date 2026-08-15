@@ -4,6 +4,7 @@ import type {
   AuditOutcome,
   Prisma,
 } from "@/generated/prisma/client";
+import { getCloudflareAuditLogWriteQueue } from "@/lib/adapters/cloudflare-runtime";
 import { prisma } from "@/lib/db/prisma";
 import { logAppEvent } from "@/lib/log/app-logger";
 import { writeAuditWriteAnalytics } from "@/lib/metrics/analytics-engine";
@@ -29,7 +30,7 @@ export type AuditLogParams = {
 
 type AuditLogClient = {
   auditLog: {
-    create(args: Prisma.AuditLogCreateArgs): Promise<unknown>;
+    createMany(args: Prisma.AuditLogCreateManyArgs): Promise<unknown>;
   };
 };
 
@@ -106,7 +107,10 @@ export async function writeAuditLog(
   const start = Date.now();
   const { metadata, ...rest } = params;
   try {
-    await client.auditLog.create({
+    // createMany intentionally emits INSERT without RETURNING. Audit rows are
+    // append-only, and returning the inserted row would require widening the
+    // RLS read policy for asynchronous queue consumers with no user context.
+    await client.auditLog.createMany({
       data: {
         ...rest,
         ...(metadata !== undefined && {
@@ -140,7 +144,12 @@ export async function writeAuditLog(
  * Worker request, awaiting it waits for the logged write.
  */
 export async function fireAuditLog(params: AuditLogParams) {
-  const auditWrite = writeAuditLog(params).catch((error: unknown) => {
+  const queue = getCloudflareAuditLogWriteQueue();
+  const auditWrite = (
+    queue
+      ? queue.send({ type: "audit-log.write.v1", params })
+      : writeAuditLog(params)
+  ).catch((error: unknown) => {
     logAuditWriteFailure(params, error);
   });
 

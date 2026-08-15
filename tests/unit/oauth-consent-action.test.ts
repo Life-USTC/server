@@ -66,7 +66,7 @@ vi.mock("@/lib/audit/write-audit-log", async (importOriginal) => ({
 }));
 
 const transactionClient = {
-  auditLog: { create: auditCreateMock },
+  auditLog: { createMany: auditCreateMock },
   deviceCode: { deleteMany: deviceDeleteMock },
   oAuthAccessToken: { deleteMany: tokenDeleteMock },
   oAuthClient: { findUnique: txReadClientMock },

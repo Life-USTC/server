@@ -3,11 +3,13 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const {
   auditGroupByMock,
   clientFindManyMock,
+  dailyQueryMock,
   requireAdminPageMock,
   usageGroupByMock,
 } = vi.hoisted(() => ({
   auditGroupByMock: vi.fn(),
   clientFindManyMock: vi.fn(),
+  dailyQueryMock: vi.fn(),
   requireAdminPageMock: vi.fn(),
   usageGroupByMock: vi.fn(),
 }));
@@ -20,7 +22,15 @@ vi.mock("@/lib/db/prisma", () => ({
   prisma: {
     auditLog: { groupBy: auditGroupByMock },
     oAuthGrantUsageDaily: { groupBy: usageGroupByMock },
+    $queryRaw: dailyQueryMock,
   },
+  withUserDbContext: vi.fn((_userId, action) =>
+    action({
+      auditLog: { groupBy: auditGroupByMock },
+      oAuthGrantUsageDaily: { groupBy: usageGroupByMock },
+      $queryRaw: dailyQueryMock,
+    }),
+  ),
 }));
 
 vi.mock("@/lib/db/auth-prisma", () => ({
@@ -36,6 +46,7 @@ describe("admin analytics aggregation", () => {
     auditGroupByMock.mockResolvedValue([]);
     usageGroupByMock.mockResolvedValue([]);
     clientFindManyMock.mockResolvedValue([]);
+    dailyQueryMock.mockResolvedValue([]);
   });
 
   it("merges bounded OAuth usage and separates success from errors", async () => {
@@ -56,26 +67,19 @@ describe("admin analytics aggregation", () => {
       new URL("https://life.example/admin/analytics?days=7"),
     );
 
-    expect(result).toEqual({
-      days: 7,
-      rows: [
-        {
-          channel: "graphql",
-          client: "Planner",
-          count: 4,
-          feature: "workspace.todo",
-          outcome: "success",
-        },
-        {
-          channel: "graphql",
-          client: "Planner",
-          count: 2,
-          feature: "workspace.todo",
-          outcome: "failure",
-        },
-      ],
+    expect(result.total).toBe(6);
+    expect(result.summary).toEqual({
+      activeClients: 1,
+      denied: 0,
+      external: 6,
+      failure: 2,
+      success: 4,
       total: 6,
     });
+    expect(result.rankings.features).toEqual([
+      { count: 6, failures: 2, label: "workspace.todo" },
+    ]);
+    expect(result.daily).toHaveLength(7);
     expect(auditGroupByMock).toHaveBeenCalledWith(
       expect.objectContaining({
         where: expect.objectContaining({
@@ -113,7 +117,7 @@ describe("admin analytics aggregation", () => {
       new URL("https://life.example/admin/analytics"),
     );
 
-    expect(result.rows).toHaveLength(2);
+    expect(result.rankings.clients).toHaveLength(2);
     expect(result.total).toBe(3);
   });
 });

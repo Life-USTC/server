@@ -22,7 +22,7 @@ const {
   prismaMock: {
     $transaction: vi.fn(),
     auditLog: {
-      create: vi.fn(),
+      createMany: vi.fn(),
     },
     comment: {
       findUnique: vi.fn(),
@@ -82,7 +82,7 @@ describe("admin API 服务", () => {
     getAdminUserListItemMock.mockReset();
     isPrismaUniqueConstraintErrorMock.mockReset();
     isPrismaUniqueConstraintErrorMock.mockReturnValue(false);
-    prismaMock.auditLog.create = auditLogCreateMock;
+    prismaMock.auditLog.createMany = auditLogCreateMock;
     prismaMock.comment.findUnique = commentFindUniqueMock;
     prismaMock.comment.update = commentUpdateMock;
     prismaMock.description.findUnique = descriptionFindUniqueMock;

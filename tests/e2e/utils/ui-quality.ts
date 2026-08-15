@@ -204,7 +204,11 @@ export async function auditRenderedUi(page: Page): Promise<UiQualityReport> {
 export async function auditAccessibility(
   page: Page,
 ): Promise<UiQualityIssue[]> {
-  const results = await new AxeBuilder({ page })
+  // Bun installs Playwright's exact core dependency beside its peer copy used
+  // by axe. They are the same runtime version but TypeScript treats the two
+  // Page declarations as distinct module instances.
+  type AxePage = ConstructorParameters<typeof AxeBuilder>[0]["page"];
+  const results = await new AxeBuilder({ page: page as unknown as AxePage })
     .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"])
     // Contrast, link-color, and target-size fixes intentionally change the
     // visual system. Keep this PR's no-visual-change contract structural and

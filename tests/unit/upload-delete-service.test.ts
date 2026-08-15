@@ -24,7 +24,7 @@ const {
 vi.mock("@/lib/db/prisma", () => ({
   prisma: {
     auditLog: {
-      create: auditLogCreateMock,
+      createMany: auditLogCreateMock,
     },
     upload: {
       deleteMany: uploadDeleteManyMock,
@@ -67,7 +67,7 @@ describe("deleteOwnedUpload", () => {
     withUserDbContextMock.mockImplementation(async (_userId, action) =>
       action({
         auditLog: {
-          create: auditLogCreateMock,
+          createMany: auditLogCreateMock,
         },
         upload: {
           deleteMany: uploadDeleteManyMock,

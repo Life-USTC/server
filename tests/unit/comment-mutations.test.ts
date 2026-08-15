@@ -32,7 +32,7 @@ const {
   transactionMock: {
     $queryRaw: vi.fn(),
     auditLog: {
-      create: vi.fn(),
+      createMany: vi.fn(),
     },
     comment: {
       create: vi.fn(),
@@ -131,7 +131,7 @@ describe("评论变更写入保护", () => {
       callback(transactionMock),
     );
     transactionMock.$queryRaw.mockResolvedValue([]);
-    transactionMock.auditLog.create = auditLogCreateMock;
+    transactionMock.auditLog.createMany = auditLogCreateMock;
     auditLogCreateMock.mockResolvedValue({});
   });
 

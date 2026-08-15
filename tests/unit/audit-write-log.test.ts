@@ -6,7 +6,7 @@ const { getRequestEventMock, logAppEventMock, prismaMock } = vi.hoisted(() => ({
   logAppEventMock: vi.fn(),
   prismaMock: {
     auditLog: {
-      create: vi.fn(),
+      createMany: vi.fn(),
     },
   },
 }));
@@ -35,7 +35,7 @@ describe("fireAuditLog", () => {
   beforeEach(() => {
     getRequestEventMock.mockReset();
     logAppEventMock.mockReset();
-    prismaMock.auditLog.create.mockReset();
+    prismaMock.auditLog.createMany.mockReset();
     vi.resetModules();
   });
 
@@ -49,7 +49,7 @@ describe("fireAuditLog", () => {
       },
     });
     const auditWrite = createDeferred<unknown>();
-    prismaMock.auditLog.create.mockReturnValue(auditWrite.promise);
+    prismaMock.auditLog.createMany.mockReturnValue(auditWrite.promise);
     const { fireAuditLog } = await import("@/lib/audit/write-audit-log");
 
     const result = fireAuditLog(auditParams);
@@ -62,7 +62,7 @@ describe("fireAuditLog", () => {
     await vi.waitFor(() => expect(waitUntilMock).toHaveBeenCalledTimes(1));
     await Promise.resolve();
     expect(schedulingResolved).toBe(true);
-    expect(prismaMock.auditLog.create).toHaveBeenCalledWith({
+    expect(prismaMock.auditLog.createMany).toHaveBeenCalledWith({
       data: auditParams,
     });
 
@@ -82,7 +82,7 @@ describe("fireAuditLog", () => {
         },
       },
     });
-    prismaMock.auditLog.create.mockRejectedValueOnce(writeError);
+    prismaMock.auditLog.createMany.mockRejectedValueOnce(writeError);
     const { fireAuditLog } = await import("@/lib/audit/write-audit-log");
 
     fireAuditLog(auditParams);
@@ -107,7 +107,7 @@ describe("fireAuditLog", () => {
       throw new Error("outside request");
     });
     const auditWrite = createDeferred<unknown>();
-    prismaMock.auditLog.create.mockReturnValue(auditWrite.promise);
+    prismaMock.auditLog.createMany.mockReturnValue(auditWrite.promise);
     const { fireAuditLog } = await import("@/lib/audit/write-audit-log");
 
     const result = fireAuditLog(auditParams);

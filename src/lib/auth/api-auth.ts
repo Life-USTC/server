@@ -202,10 +202,21 @@ export async function requireWriteAuth(
   request: Request,
   feature: RestFeature = "workspace.upload",
 ): Promise<{ userId: string } | Response> {
-  const userId = await resolveApiUserId(request, {
+  const principal = await requireWriteAuthPrincipal(request, feature);
+  return principal instanceof Response
+    ? principal
+    : { userId: principal.userId };
+}
+
+export async function requireWriteAuthPrincipal(
+  request: Request,
+  feature: RestFeature = "workspace.upload",
+): Promise<ApiPrincipal | Response> {
+  const principal = await resolveApiPrincipal(request, {
     bearerScope: { feature, action: "write" },
   });
-  if (!userId) return unauthorized();
+  if (!principal) return unauthorized();
+  const { userId } = principal;
   const { getViewerAuthDataForUserId } = await import("./viewer-context");
   const data = await getViewerAuthDataForUserId(userId);
   if (!data) return unauthorized();
@@ -222,5 +233,5 @@ export async function requireWriteAuth(
       USER_MUTATION_RATE_LIMIT_PERIOD_SECONDS,
     );
   }
-  return { userId };
+  return principal;
 }

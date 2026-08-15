@@ -46,7 +46,7 @@ export function makeTestAuthInfo(
     token: "integration-test-token",
     clientId: "integration-test-client",
     scopes: [...DEFAULT_OAUTH_CLIENT_SCOPES, ...featureScopes],
-    extra: { userId },
+    extra: { userId, grantId: "integration-test-grant" },
   };
 }
 

@@ -29,8 +29,12 @@ export async function getOAuthClientActivityAction(
   if (!authInfo?.clientId || authInfo.clientId === "unknown") {
     throw new Error("Authenticated OAuth client context is missing");
   }
+  const grantId = authInfo.extra?.grantId;
+  if (typeof grantId !== "string" || !grantId) {
+    throw new Error("Authenticated OAuth grant context is missing");
+  }
   const page = await listOAuthClientActivityPage(
-    { userId, clientId: authInfo.clientId },
+    { userId, clientId: authInfo.clientId, grantId },
     { cursor, limit },
   );
   return jsonToolResult(page, { mode: resolveMcpMode(mode) });

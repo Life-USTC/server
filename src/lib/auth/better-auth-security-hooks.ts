@@ -394,6 +394,24 @@ export async function enforceBetterAuthRecentSession(
 ) {
   if (!RECENT_AUTH_PATHS.has(context.path)) return;
   const session = await resolveSession(context);
+  if (isAccountDeletionPath(context.path)) {
+    const userId = session?.user?.id;
+    await safeAudit({
+      action: "account_delete",
+      channel: "auth",
+      ...(userId ? { subjectUserId: userId, userId } : {}),
+      outcome: "denied",
+      targetType: "user",
+      metadata: { reason: "settings_flow_required", selfService: true },
+      ...requestMetadata(context),
+    });
+    throw new APIError(session ? "FORBIDDEN" : "UNAUTHORIZED", {
+      code: session ? "SETTINGS_FLOW_REQUIRED" : "UNAUTHORIZED",
+      message: session
+        ? "Account deletion is only available from account settings"
+        : "Unauthorized",
+    });
+  }
   const createdAt = session?.session?.createdAt;
   const createdAtMs = createdAt ? new Date(createdAt).getTime() : Number.NaN;
   const isFresh =

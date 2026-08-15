@@ -49,6 +49,19 @@ test.describe("/account/settings/security 安全活动", () => {
     });
     await expect(rotate).toBeVisible();
     await rotate.click();
+    const dialog = page.getByRole("alertdialog");
+    await expect(dialog).toContainText(
+      /旧链接会立即失效|previous link stops working immediately/i,
+    );
+    await dialog.getByRole("button", { name: /取消|Cancel/i }).click();
+    await expect(dialog).not.toBeVisible();
+
+    await rotate.click();
+    await dialog
+      .getByRole("button", {
+        name: /确认轮换|Rotate link/i,
+      })
+      .click();
     await expect(page).toHaveURL(
       /\/account\/settings\/security\?message=CalendarTokenRotated$/,
     );

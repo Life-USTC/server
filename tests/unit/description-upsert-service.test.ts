@@ -21,7 +21,7 @@ const {
   prismaMock: {
     $transaction: vi.fn(),
     auditLog: {
-      create: vi.fn(),
+      createMany: vi.fn(),
     },
     description: {
       create: vi.fn(),
@@ -61,7 +61,7 @@ describe("upsertDescriptionContent", () => {
     isPrismaUniqueConstraintErrorMock.mockReset();
     sectionFindUniqueMock.mockReset();
 
-    prismaMock.auditLog.create = auditLogCreateMock;
+    prismaMock.auditLog.createMany = auditLogCreateMock;
     prismaMock.description.create = descriptionCreateMock;
     prismaMock.description.findFirst = descriptionFindFirstMock;
     prismaMock.description.update = descriptionUpdateMock;

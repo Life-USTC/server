@@ -1,13 +1,8 @@
 export function getAuditRequestMetadata(request: Pick<Request, "headers">) {
-  const forwardedFor = request.headers
-    .get("x-forwarded-for")
-    ?.split(",", 1)[0]
-    ?.trim();
+  // Production traffic terminates at Cloudflare. Forwarded headers supplied by
+  // arbitrary clients are not authoritative and must not enter forensic data.
   const ipAddress =
-    request.headers.get("cf-connecting-ip")?.trim() ||
-    forwardedFor ||
-    request.headers.get("x-real-ip")?.trim() ||
-    undefined;
+    request.headers.get("cf-connecting-ip")?.trim() || undefined;
   const userAgent = request.headers.get("user-agent")?.trim() || undefined;
   const requestId =
     request.headers.get("cf-ray")?.trim() ||

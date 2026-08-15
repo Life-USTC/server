@@ -3,7 +3,8 @@ import type {
   AuditChannel,
   AuditOutcome,
 } from "@/generated/prisma/client";
-import { prisma } from "@/lib/db/prisma";
+import { authPrisma } from "@/lib/db/auth-prisma";
+import { withUserDbContext } from "@/lib/db/prisma";
 
 const ACCOUNT_SECURITY_ACTIONS = [
   "account_create",
@@ -37,6 +38,7 @@ export type AccountActivityCursor = {
 export type OAuthClientIdentity = {
   userId: string;
   clientId: string;
+  grantId: string;
 };
 
 export type AccountActivityPage<T> = {
@@ -145,25 +147,27 @@ export async function listOwnAccountSecurityActivity(
   userId: string,
   options: { cursor?: AccountActivityCursor; limit?: number } = {},
 ): Promise<OwnAccountSecurityActivity[]> {
-  const rows = await prisma.auditLog.findMany({
-    where: {
-      subjectUserId: userId,
-      action: { in: [...ACCOUNT_SECURITY_ACTIONS] },
-      ...beforeCursor(options.cursor),
-    },
-    orderBy: [{ createdAt: "desc" }, { id: "desc" }],
-    take: clampLimit(options.limit),
-    select: {
-      id: true,
-      action: true,
-      outcome: true,
-      channel: true,
-      createdAt: true,
-      oauthClientId: true,
-      ipAddress: true,
-      userAgent: true,
-    },
-  });
+  const rows = await withUserDbContext(userId, (tx) =>
+    tx.auditLog.findMany({
+      where: {
+        subjectUserId: userId,
+        action: { in: [...ACCOUNT_SECURITY_ACTIONS] },
+        ...beforeCursor(options.cursor),
+      },
+      orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+      take: clampLimit(options.limit),
+      select: {
+        id: true,
+        action: true,
+        outcome: true,
+        channel: true,
+        createdAt: true,
+        oauthClientId: true,
+        ipAddress: true,
+        userAgent: true,
+      },
+    }),
+  );
   const clientIds = [
     ...new Set(
       rows
@@ -172,7 +176,7 @@ export async function listOwnAccountSecurityActivity(
     ),
   ];
   const clients = clientIds.length
-    ? await prisma.oAuthClient.findMany({
+    ? await authPrisma.oAuthClient.findMany({
         where: { clientId: { in: clientIds } },
         select: { clientId: true, name: true },
       })
@@ -202,23 +206,26 @@ export async function listOAuthClientActivity(
   principal: OAuthClientIdentity,
   options: { cursor?: AccountActivityCursor; limit?: number } = {},
 ): Promise<OAuthClientActivity[]> {
-  const rows = await prisma.auditLog.findMany({
-    where: {
-      subjectUserId: principal.userId,
-      oauthClientId: principal.clientId,
-      ...beforeCursor(options.cursor),
-    },
-    orderBy: [{ createdAt: "desc" }, { id: "desc" }],
-    take: clampLimit(options.limit),
-    select: {
-      id: true,
-      action: true,
-      outcome: true,
-      channel: true,
-      createdAt: true,
-      targetType: true,
-    },
-  });
+  const rows = await withUserDbContext(principal.userId, (tx) =>
+    tx.auditLog.findMany({
+      where: {
+        subjectUserId: principal.userId,
+        oauthClientId: principal.clientId,
+        oauthGrantId: principal.grantId,
+        ...beforeCursor(options.cursor),
+      },
+      orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+      take: clampLimit(options.limit),
+      select: {
+        id: true,
+        action: true,
+        outcome: true,
+        channel: true,
+        createdAt: true,
+        targetType: true,
+      },
+    }),
+  );
 
   return rows.map((row) => ({
     id: row.id,
@@ -258,7 +265,7 @@ export async function listOwnAccountSecurityActivityPage(
     cursor: decodeAccountActivityCursor(options.cursor),
     limit: limit + 1,
   });
-  return pageFromRows(rows, limit);
+  return { ...pageFromRows(rows, limit), hasCursor: Boolean(options.cursor) };
 }
 
 export async function listOAuthClientActivityPage(

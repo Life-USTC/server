@@ -8,6 +8,7 @@ interface __BaseEnv_Env {
 	HYPERDRIVE_AUTH: Hyperdrive;
 	HYPERDRIVE_MAINTENANCE: Hyperdrive;
 	ANALYTICS: AnalyticsEngineDataset;
+	AUDIT_LOG_WRITES: Queue;
 	CALENDAR_EXPORT_REBUILD: Queue;
 	USER_WRITE_RATE_LIMITER: RateLimit;
 	USER_BATCH_WRITE_RATE_LIMITER: RateLimit;

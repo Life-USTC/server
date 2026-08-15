@@ -6,6 +6,7 @@ import {
   parsePositiveCalendarSemester,
   parseSnapshotReferenceTime,
 } from "@/features/dashboard/server/dashboard-page-server";
+import { resolveAuthoritativeRecentSession } from "@/lib/auth/recent-session";
 import { logAppEvent } from "@/lib/log/app-logger";
 
 function recordDashboardLoadFinish(input: {
@@ -29,6 +30,7 @@ function recordDashboardLoadFinish(input: {
 
 export async function loadSignedDashboardPage({
   locals,
+  request,
   tab,
   url,
   userId,
@@ -43,6 +45,9 @@ export async function loadSignedDashboardPage({
   const referenceNow = parseSnapshotReferenceTime(
     url.searchParams.get("snapshotAt"),
   );
+  const recent = await resolveAuthoritativeRecentSession(request.headers, {
+    expectedUserId: userId,
+  });
 
   const signedData = await loadSignedDashboardPageData({
     calendarSemesterId,
@@ -51,6 +56,7 @@ export async function loadSignedDashboardPage({
     pageCopy,
     referenceNow,
     requestId: locals.requestId,
+    revealCalendarFeed: recent.ok,
     tab,
     userId,
   });

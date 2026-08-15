@@ -6,8 +6,12 @@ import {
 import { deleteOwnAccount } from "@/features/settings/server/account-deletion-service";
 import { authPrisma } from "@/lib/db/auth-prisma";
 import { prisma, withUserDbContext } from "@/lib/db/prisma";
+import { createTestPrisma, disconnectTestPrisma } from "../shared/prisma";
 
 const rlsTestUserIds = ["rls-test-user-a", "rls-test-user-b"] as const;
+const adminPrisma = createTestPrisma(
+  process.env.FUNCTION_OWNER_DATABASE_URL ?? process.env.DATABASE_URL,
+);
 
 describe.skipIf(process.env.RLS_TEST_ENABLED !== "true")(
   "personal preference PostgreSQL row security",
@@ -53,7 +57,10 @@ describe.skipIf(process.env.RLS_TEST_ENABLED !== "true")(
         if (!userId) continue;
         await clearPreferences(userId);
       }
-      await prisma.$disconnect();
+      await Promise.all([
+        prisma.$disconnect(),
+        disconnectTestPrisma(adminPrisma),
+      ]);
     });
 
     it("defaults every protected preference table to no rows or writes", async () => {
@@ -321,6 +328,20 @@ describe.skipIf(process.env.RLS_TEST_ENABLED !== "true")(
       await expect(
         prisma.user.findUnique({ where: { id: accountDeletionUserId } }),
       ).resolves.toBeNull();
+      await expect(
+        adminPrisma.auditLog.findFirst({
+          where: {
+            action: "account_delete",
+            outcome: "success",
+            metadata: { path: ["selfService"], equals: true },
+          },
+          orderBy: { createdAt: "desc" },
+        }),
+      ).resolves.toMatchObject({
+        subjectUserId: null,
+        targetId: null,
+        userId: null,
+      });
     });
   },
 );

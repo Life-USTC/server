@@ -1,7 +1,7 @@
 import { sectionCompactInclude } from "@/features/catalog/server/academic-query-includes";
 import { toSectionCompactDto } from "@/features/catalog/server/academic-summary-dto-mappers";
 import { type AppLocale, DEFAULT_LOCALE } from "@/i18n/config";
-import { prisma, withUserDbContext } from "@/lib/db/prisma";
+import { withUserDbContext } from "@/lib/db/prisma";
 import { logAppEvent } from "@/lib/log/app-logger";
 import { getPublicOrigin } from "@/lib/site-url";
 import {
@@ -111,15 +111,10 @@ export async function getCalendarSubscriptionUrl(
   calendarFeedToken?: string | null,
 ) {
   try {
-    if (calendarFeedToken !== undefined) {
-      return await buildCalendarFeedPath(userId, calendarFeedToken);
-    }
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-      select: { id: true, calendarFeedToken: true },
-    });
-    if (!user) return null;
-    return await buildCalendarFeedPath(user.id, user.calendarFeedToken);
+    // Callers must explicitly prove a recent session before passing the token.
+    // Undefined means the secret is intentionally hidden, not "load it here".
+    if (calendarFeedToken === undefined) return null;
+    return await buildCalendarFeedPath(userId, calendarFeedToken);
   } catch (error) {
     // Token minting can fail on missing column grants; empty subscription SSR
     // should still render instead of 500ing the whole workspace tab.

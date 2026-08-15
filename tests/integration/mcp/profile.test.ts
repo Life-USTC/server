@@ -35,7 +35,7 @@ describe("account_client_activity_list", () => {
         subjectUserId: context.devUserId,
         userId: context.devUserId,
         oauthClientId: "integration-test-client",
-        oauthGrantId: "private-grant",
+        oauthGrantId: "integration-test-grant",
         sessionId: "private-session",
         ipAddress: "203.0.113.99",
         userAgent: "private-user-agent",
@@ -54,6 +54,17 @@ describe("account_client_activity_list", () => {
       },
       select: { id: true },
     });
+    const otherGrant = await fixtures.prisma.auditLog.create({
+      data: {
+        action: "comment_create",
+        channel: "mcp",
+        subjectUserId: context.devUserId,
+        userId: context.devUserId,
+        oauthClientId: "integration-test-client",
+        oauthGrantId: "other-grant",
+      },
+      select: { id: true },
+    });
 
     try {
       const page = await context.client.call<{
@@ -66,6 +77,7 @@ describe("account_client_activity_list", () => {
         ]),
       );
       expect(page.items?.some((item) => item.id === other.id)).toBe(false);
+      expect(page.items?.some((item) => item.id === otherGrant.id)).toBe(false);
       const projected = page.items?.find((item) => item.id === own.id);
       for (const key of [
         "oauthGrantId",
@@ -78,7 +90,7 @@ describe("account_client_activity_list", () => {
       }
     } finally {
       await fixtures.prisma.auditLog.deleteMany({
-        where: { id: { in: [own.id, other.id] } },
+        where: { id: { in: [own.id, other.id, otherGrant.id] } },
       });
     }
   });

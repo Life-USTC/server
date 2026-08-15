@@ -29,6 +29,11 @@ test("/admin/audit 支持安全字段筛选且不显示网络或会话字段", a
   await expect(page.locator("tbody")).not.toContainText(
     /session \/ [A-Za-z0-9_-]+/,
   );
+  await page
+    .getByText(/更多筛选|More filters|高级筛选|Advanced filters/i, {
+      exact: true,
+    })
+    .click();
   await page.getByLabel(/操作人 ID|Actor ID/i).fill("e2e-user-admin");
   await page.getByRole("button", { name: /应用筛选|Apply filters/i }).click();
   await expect(page).toHaveURL(/actor=e2e-user-admin/);

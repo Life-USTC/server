@@ -1,5 +1,8 @@
 import type { Prisma } from "@/generated/prisma/client";
-import { writeAuditLog } from "@/lib/audit/write-audit-log";
+import {
+  type AuditLogParams,
+  writeAuditLog,
+} from "@/lib/audit/write-audit-log";
 import { getViewerContext } from "@/lib/auth/viewer-context";
 import { prisma } from "@/lib/db/prisma";
 import { isPrismaUniqueConstraintError } from "@/lib/db/prisma-errors";
@@ -15,10 +18,18 @@ type DescriptionUpsertError =
   | "not_found"
   | "suspended";
 
-type DescriptionEditAuditMetadata = {
-  ipAddress?: string;
+type DescriptionEditAuditMetadata = Pick<
+  AuditLogParams,
+  | "channel"
+  | "ipAddress"
+  | "oauthClientId"
+  | "oauthGrantId"
+  | "requestId"
+  | "sessionId"
+  | "subjectUserId"
+  | "userAgent"
+> & {
   source?: string;
-  userAgent?: string;
 };
 
 export async function upsertDescriptionContent({
@@ -154,11 +165,13 @@ async function writeDescriptionEditAuditLog({
   targetType: DescriptionTargetType;
   userId: string;
 }) {
-  const { source, ...requestMetadata } = metadata ?? {};
+  const { source, ...audit } = metadata ?? {};
   await writeAuditLog(
     {
       action: "description_edit",
+      ...audit,
       userId,
+      subjectUserId: audit.subjectUserId ?? userId,
       targetId: descriptionId,
       targetType: "description",
       metadata: {
@@ -166,7 +179,6 @@ async function writeDescriptionEditAuditLog({
         changedFields: ["content"],
         ...(source ? { source } : {}),
       },
-      ...requestMetadata,
     },
     client,
   );

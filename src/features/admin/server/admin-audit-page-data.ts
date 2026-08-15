@@ -1,11 +1,11 @@
-import type {
-  AuditAction,
-  AuditChannel,
-  AuditOutcome,
+import {
+  type AuditAction,
+  type AuditChannel,
+  type AuditOutcome,
   Prisma,
 } from "@/generated/prisma/client";
 import { authPrisma } from "@/lib/db/auth-prisma";
-import { prisma } from "@/lib/db/prisma";
+import { withUserDbContext } from "@/lib/db/prisma";
 import { optionalValue } from "@/lib/load-data-utils";
 import { shanghaiDayjs } from "@/lib/time/shanghai-dayjs";
 import { requireAdminPage } from "./admin-page-auth";
@@ -198,7 +198,7 @@ export function adminAuditCursorWhere(cursor: AdminAuditCursor) {
 }
 
 export async function getAdminAuditPage(request: Request, url: URL) {
-  await requireAdminPage(request);
+  const admin = await requireAdminPage(request);
   const cursor = decodeAdminAuditCursor(
     optionalValue(url.searchParams.get("cursor")),
   );
@@ -244,27 +244,29 @@ export async function getAdminAuditPage(request: Request, url: URL) {
   const where: Prisma.AuditLogWhereInput = cursor
     ? { AND: [filterWhere, adminAuditCursorWhere(cursor)] }
     : filterWhere;
-  const [rawRows, total] = await Promise.all([
-    prisma.auditLog.findMany({
-      where,
-      select: {
-        action: true,
-        channel: true,
-        createdAt: true,
-        id: true,
-        metadata: true,
-        oauthClientId: true,
-        outcome: true,
-        subjectUser: { select: { id: true, name: true, username: true } },
-        targetId: true,
-        targetType: true,
-        user: { select: { id: true, name: true, username: true } },
-      },
-      orderBy: [{ createdAt: "desc" }, { id: "desc" }],
-      take: ADMIN_AUDIT_PAGE_SIZE + 1,
-    }),
-    prisma.auditLog.count({ where: filterWhere }),
-  ]);
+  const [rawRows, total] = await withUserDbContext(admin.id, (tx) =>
+    Promise.all([
+      tx.auditLog.findMany({
+        where,
+        select: {
+          action: true,
+          channel: true,
+          createdAt: true,
+          id: true,
+          metadata: true,
+          oauthClientId: true,
+          outcome: true,
+          subjectUser: { select: { id: true, name: true, username: true } },
+          targetId: true,
+          targetType: true,
+          user: { select: { id: true, name: true, username: true } },
+        },
+        orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+        take: ADMIN_AUDIT_PAGE_SIZE + 1,
+      }),
+      tx.auditLog.count({ where: filterWhere }),
+    ]),
+  );
   const hasMore = rawRows.length > ADMIN_AUDIT_PAGE_SIZE;
   const rows = rawRows.slice(0, ADMIN_AUDIT_PAGE_SIZE);
   const clientIds = [
@@ -287,6 +289,7 @@ export async function getAdminAuditPage(request: Request, url: URL) {
     filters,
     outcomes: ADMIN_AUDIT_OUTCOMES,
     pagination: {
+      hasCursor: Boolean(cursor),
       nextCursor:
         hasMore && lastRow
           ? encodeAdminAuditCursor({
@@ -319,36 +322,91 @@ function analyticsFeature(action: AuditAction, targetType: string | null) {
 }
 
 export async function getAdminAnalyticsPage(request: Request, url: URL) {
-  await requireAdminPage(request);
+  const admin = await requireAdminPage(request);
   const requestedDays = Number(url.searchParams.get("days"));
   const days = [7, 30, 90].includes(requestedDays) ? requestedDays : 30;
-  const from = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
-  const fromDay = new Date(
-    `${shanghaiDayjs()
-      .subtract(days - 1, "day")
-      .format("YYYY-MM-DD")}T00:00:00.000Z`,
+  const startDay = shanghaiDayjs()
+    .subtract(days - 1, "day")
+    .format("YYYY-MM-DD");
+  const from = new Date(`${startDay}T00:00:00.000+08:00`);
+  const fromDay = new Date(`${startDay}T00:00:00.000Z`);
+  const [grouped, oauthUsage, dailyRows] = await withUserDbContext(
+    admin.id,
+    (tx) =>
+      Promise.all([
+        tx.auditLog.groupBy({
+          by: ["action", "channel", "outcome", "oauthClientId", "targetType"],
+          where: {
+            createdAt: { gte: from },
+            // REST/GraphQL/MCP OAuth calls are represented by the content-free
+            // usage aggregate below. Excluding their per-mutation audit rows keeps
+            // external-client writes from being counted twice.
+            OR: [
+              { oauthClientId: null },
+              { channel: { notIn: ["rest", "graphql", "mcp"] } },
+            ],
+          },
+          _count: { _all: true },
+        }),
+        tx.oAuthGrantUsageDaily.groupBy({
+          by: ["channel", "clientId", "feature"],
+          where: { day: { gte: fromDay } },
+          _sum: { errorCount: true, readCount: true, writeCount: true },
+        }),
+        tx.$queryRaw<
+          Array<{ count: bigint; day: string; outcome: AuditOutcome }>
+        >(Prisma.sql`
+      WITH combined AS (
+        SELECT
+          pg_catalog.to_char(
+            (audit."createdAt" AT TIME ZONE 'UTC') AT TIME ZONE 'Asia/Shanghai',
+            'YYYY-MM-DD'
+          ) AS day,
+          audit."outcome"::text AS outcome,
+          pg_catalog.count(*)::bigint AS count
+        FROM public."AuditLog" AS audit
+        WHERE audit."createdAt" >= ${from}
+          AND (
+            audit."oauthClientId" IS NULL
+            OR audit."channel" NOT IN ('rest', 'graphql', 'mcp')
+          )
+        GROUP BY day, audit."outcome"
+        UNION ALL
+        SELECT
+          pg_catalog.to_char(usage."day", 'YYYY-MM-DD') AS day,
+          outcome,
+          pg_catalog.sum(count)::bigint AS count
+        FROM (
+          SELECT
+            source."day",
+            'success'::text AS outcome,
+            GREATEST(
+              source."readCount" + source."writeCount" - source."errorCount",
+              0
+            )::bigint AS count
+          FROM public."OAuthGrantUsageDaily" AS source
+          WHERE source."day" >= ${fromDay}
+          UNION ALL
+          SELECT
+            source."day",
+            'failure'::text AS outcome,
+            LEAST(
+              source."readCount" + source."writeCount",
+              source."errorCount"
+            )::bigint AS count
+          FROM public."OAuthGrantUsageDaily" AS source
+          WHERE source."day" >= ${fromDay}
+        ) AS usage
+        GROUP BY day, outcome
+      )
+      SELECT day, outcome, pg_catalog.sum(count)::bigint AS count
+      FROM combined
+      WHERE count > 0
+      GROUP BY day, outcome
+      ORDER BY day, outcome
+    `),
+      ]),
   );
-  const [grouped, oauthUsage] = await Promise.all([
-    prisma.auditLog.groupBy({
-      by: ["action", "channel", "outcome", "oauthClientId", "targetType"],
-      where: {
-        createdAt: { gte: from },
-        // REST/GraphQL/MCP OAuth calls are represented by the content-free
-        // usage aggregate below. Excluding their per-mutation audit rows keeps
-        // external-client writes from being counted twice.
-        OR: [
-          { oauthClientId: null },
-          { channel: { notIn: ["rest", "graphql", "mcp"] } },
-        ],
-      },
-      _count: { _all: true },
-    }),
-    prisma.oAuthGrantUsageDaily.groupBy({
-      by: ["channel", "clientId", "feature"],
-      where: { day: { gte: fromDay } },
-      _sum: { errorCount: true, readCount: true, writeCount: true },
-    }),
-  ]);
   const clientIds = [
     ...new Set([
       ...grouped.flatMap((row) => row.oauthClientId ?? []),
@@ -369,6 +427,7 @@ export async function getAdminAnalyticsPage(request: Request, url: URL) {
     {
       channel: AuditChannel;
       client: string;
+      clientKey: string;
       count: number;
       feature: string;
       outcome: AuditOutcome;
@@ -393,6 +452,7 @@ export async function getAdminAnalyticsPage(request: Request, url: URL) {
       aggregated.set(key, {
         channel: input.channel,
         client,
+        clientKey,
         count: input.count,
         feature: input.feature,
         outcome: input.outcome,
@@ -429,9 +489,93 @@ export async function getAdminAnalyticsPage(request: Request, url: URL) {
   const rows = [...aggregated.values()].sort(
     (left, right) => right.count - left.count,
   );
+  const byOutcome = {
+    denied: rows
+      .filter((row) => row.outcome === "denied")
+      .reduce((sum, row) => sum + row.count, 0),
+    failure: rows
+      .filter((row) => row.outcome === "failure")
+      .reduce((sum, row) => sum + row.count, 0),
+    success: rows
+      .filter((row) => row.outcome === "success")
+      .reduce((sum, row) => sum + row.count, 0),
+  };
+  const total = byOutcome.success + byOutcome.denied + byOutcome.failure;
+  const external = rows
+    .filter((row) => row.clientKey !== "first-party")
+    .reduce((sum, row) => sum + row.count, 0);
+  const activeClients = new Set(
+    rows
+      .filter((row) => row.clientKey !== "first-party")
+      .map((row) => row.clientKey),
+  ).size;
+
+  function rankBy(key: "channel" | "client" | "feature") {
+    const ranked = new Map<
+      string,
+      { count: number; failures: number; label: string }
+    >();
+    for (const row of rows) {
+      const label = row[key];
+      const rankingKey = key === "client" ? row.clientKey : label;
+      const current = ranked.get(rankingKey) ?? {
+        count: 0,
+        failures: 0,
+        label,
+      };
+      current.count += row.count;
+      if (row.outcome !== "success") current.failures += row.count;
+      ranked.set(rankingKey, current);
+    }
+    return [...ranked.entries()]
+      .map(([, value]) => value)
+      .sort((left, right) => right.count - left.count)
+      .slice(0, 8);
+  }
+
+  const dailyByDay = new Map<
+    string,
+    { denied: number; failure: number; success: number }
+  >();
+  for (const row of dailyRows) {
+    const current = dailyByDay.get(row.day) ?? {
+      denied: 0,
+      failure: 0,
+      success: 0,
+    };
+    current[row.outcome] += Number(row.count);
+    dailyByDay.set(row.day, current);
+  }
+  const daily = Array.from({ length: days }, (_, index) => {
+    const day = shanghaiDayjs(startDay).add(index, "day").format("YYYY-MM-DD");
+    const values = dailyByDay.get(day) ?? {
+      denied: 0,
+      failure: 0,
+      success: 0,
+    };
+    return {
+      day,
+      ...values,
+      total: values.success + values.denied + values.failure,
+    };
+  });
+
   return {
     days,
-    rows,
-    total: rows.reduce((sum, row) => sum + row.count, 0),
+    daily,
+    rankings: {
+      channels: rankBy("channel"),
+      clients: rankBy("client"),
+      features: rankBy("feature"),
+    },
+    summary: {
+      activeClients,
+      denied: byOutcome.denied,
+      external,
+      failure: byOutcome.failure,
+      success: byOutcome.success,
+      total,
+    },
+    total,
   };
 }

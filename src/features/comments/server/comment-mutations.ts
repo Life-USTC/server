@@ -3,7 +3,10 @@ import type {
   CommentVisibility,
   Prisma,
 } from "@/generated/prisma/client";
-import { writeAuditLog } from "@/lib/audit/write-audit-log";
+import {
+  type AuditLogParams,
+  writeAuditLog,
+} from "@/lib/audit/write-audit-log";
 import { getViewerContext } from "@/lib/auth/viewer-context";
 import { withUserDbContext } from "@/lib/db/prisma";
 import { isPrismaUniqueConstraintError } from "@/lib/db/prisma-errors";
@@ -29,10 +32,18 @@ type CreateCommentTarget = {
   whereTarget: Record<string, unknown>;
 };
 
-type CommentMutationAuditMetadata = {
-  ipAddress?: string;
+type CommentMutationAuditMetadata = Pick<
+  AuditLogParams,
+  | "channel"
+  | "ipAddress"
+  | "oauthClientId"
+  | "oauthGrantId"
+  | "requestId"
+  | "sessionId"
+  | "subjectUserId"
+  | "userAgent"
+> & {
   source?: string;
-  userAgent?: string;
 };
 
 type CreateCommentError =
@@ -465,7 +476,7 @@ async function writeCommentAuditLog(
     userId: string;
   },
 ) {
-  const { ipAddress, source, userAgent } = input.metadata ?? {};
+  const { source, ...audit } = input.metadata ?? {};
   const metadata = {
     ...(input.operation ? { operation: input.operation } : {}),
     ...(input.reactionType ? { type: input.reactionType } : {}),
@@ -474,12 +485,12 @@ async function writeCommentAuditLog(
   await writeAuditLog(
     {
       action: input.action,
+      ...audit,
       userId: input.userId,
+      subjectUserId: audit.subjectUserId ?? input.userId,
       targetId: input.commentId,
       targetType: "comment",
       ...(Object.keys(metadata).length > 0 ? { metadata } : {}),
-      ...(ipAddress ? { ipAddress } : {}),
-      ...(userAgent ? { userAgent } : {}),
     },
     tx,
   );

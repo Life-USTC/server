@@ -28,7 +28,7 @@ vi.mock("@/lib/db/prisma-errors", () => ({
 function transactionClient() {
   return {
     auditLog: {
-      create: auditLogCreateMock,
+      createMany: auditLogCreateMock,
     },
     description: {
       findFirst: descriptionFindFirstMock,

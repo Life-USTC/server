@@ -97,6 +97,9 @@ export type SettingsCopy = {
       calendarTokenRotated: string;
       calendarTokenRotatedDescription: string;
       calendarTokenTitle: string;
+      calendarTokenConfirmTitle: string;
+      calendarTokenConfirmDescription: string;
+      calendarTokenConfirm: string;
       emptyTitle: string;
       emptyDescription: string;
       network: string;
@@ -105,6 +108,11 @@ export type SettingsCopy = {
       newer: string;
       older: string;
       unknownAction: string;
+      repeated: string;
+      responseTitle: string;
+      responseDescription: string;
+      reviewAccounts: string;
+      reviewAuthorizations: string;
       actions: Record<string, string>;
       channels: Record<string, string>;
       outcomes: Record<string, string>;
@@ -165,7 +173,7 @@ export type SettingsCopy = {
 };
 
 export type SettingsSecurityActivity =
-  AccountActivityPage<OwnAccountSecurityActivity>;
+  AccountActivityPage<OwnAccountSecurityActivity> & { hasCursor: boolean };
 
 export type SettingsOAuthAuthorization = {
   clientName?: string | null;

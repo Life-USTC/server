@@ -20,7 +20,7 @@ describe("getAuditRequestMetadata", () => {
     });
   });
 
-  it("回退到 x-real-ip 并省略缺失标头", () => {
+  it("不信任调用方可伪造的代理地址并省略缺失标头", () => {
     const request = new Request("https://example.test", {
       headers: {
         "x-real-ip": "198.51.100.20",
@@ -28,13 +28,13 @@ describe("getAuditRequestMetadata", () => {
     });
 
     expect(getAuditRequestMetadata(request)).toEqual({
-      ipAddress: "198.51.100.20",
+      ipAddress: undefined,
       requestId: undefined,
       userAgent: undefined,
     });
   });
 
-  it("只保留 x-forwarded-for 的首个地址并限制可变请求头长度", () => {
+  it("忽略 forwarded 地址并限制可变请求头长度", () => {
     const request = new Request("https://example.test", {
       headers: {
         "user-agent": "a".repeat(600),
@@ -44,7 +44,7 @@ describe("getAuditRequestMetadata", () => {
     });
 
     expect(getAuditRequestMetadata(request)).toEqual({
-      ipAddress: "203.0.113.10",
+      ipAddress: undefined,
       requestId: "r".repeat(128),
       userAgent: "a".repeat(512),
     });

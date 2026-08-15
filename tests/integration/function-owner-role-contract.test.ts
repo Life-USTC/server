@@ -10,12 +10,6 @@ const expectedFunctions = [
   {
     securityDefiner: true,
     settings: ['search_path=""'],
-    signature: "public.anonymize_deleted_account_audit_targets(p_user_id text)",
-    volatility: "VOLATILE",
-  },
-  {
-    securityDefiner: true,
-    settings: ['search_path=""'],
     signature:
       "public.claim_upload_pending_storage_cleanup(p_now timestamp without time zone, p_batch_size integer, p_lease_seconds integer)",
     volatility: "VOLATILE",
@@ -45,6 +39,13 @@ const expectedFunctions = [
     settings: ['search_path=""', "app.comment_reaction_summary=on"],
     signature: "public.comment_reaction_summaries(comment_ids text[])",
     volatility: "STABLE",
+  },
+  {
+    securityDefiner: true,
+    settings: ['search_path=""'],
+    signature:
+      'public.delete_own_account(p_user_id text, p_audit_id text, p_channel "AuditChannel", p_ip_address text, p_user_agent text, p_session_id text, p_request_id text)',
+    volatility: "VOLATILE",
   },
   {
     securityDefiner: true,
@@ -84,6 +85,13 @@ const expectedFunctions = [
     securityDefiner: true,
     settings: ['search_path=""'],
     signature:
+      "public.maintain_oauth_grant_usage_retention(p_now timestamp without time zone, p_batch_size integer)",
+    volatility: "VOLATILE",
+  },
+  {
+    securityDefiner: true,
+    settings: ['search_path=""'],
+    signature:
       "public.release_upload_pending_storage_cleanup(p_id text, p_attempt_id text, p_now timestamp without time zone, p_retry_lease_seconds integer)",
     volatility: "VOLATILE",
   },
@@ -100,6 +108,7 @@ const expectedTablePrivileges = [
   "public.Account:DELETE",
   "public.Account:SELECT",
   "public.AuditLog:DELETE",
+  "public.AuditLog:INSERT",
   "public.AuditLog:SELECT",
   "public.AuditLog:UPDATE",
   "public.Comment:SELECT",
@@ -109,6 +118,9 @@ const expectedTablePrivileges = [
   "public.DeviceCode:SELECT",
   "public.OAuthAccessToken:DELETE",
   "public.OAuthAccessToken:SELECT",
+  "public.OAuthGrantUsageDaily:DELETE",
+  "public.OAuthGrantUsageDaily:SELECT",
+  "public.OAuthGrantUsageDaily:UPDATE",
   "public.OAuthRefreshToken:DELETE",
   "public.OAuthRefreshToken:SELECT",
   "public.Session:DELETE",
@@ -117,6 +129,7 @@ const expectedTablePrivileges = [
   "public.UploadPending:DELETE",
   "public.UploadPending:SELECT",
   "public.UploadPending:UPDATE",
+  "public.User:DELETE",
   "public.User:SELECT",
   "public.UserSectionSubscription:SELECT",
   "public.VerificationToken:DELETE",
@@ -223,7 +236,7 @@ describe.skipIf(process.env.FUNCTION_OWNER_ROLE_TEST_ENABLED !== "true")(
       expect(ownedSchemas).toEqual([]);
     });
 
-    it("owns exactly the twelve audited SECURITY DEFINER functions", async () => {
+    it("owns exactly the audited SECURITY DEFINER functions", async () => {
       const functions = await adminPrisma.$queryRaw<
         Array<{
           securityDefiner: boolean;
@@ -435,7 +448,7 @@ describe.skipIf(process.env.FUNCTION_OWNER_ROLE_TEST_ENABLED !== "true")(
       expect(sequencePrivileges).toEqual([]);
     });
 
-    it("is the sole role on exactly six audited definer-read policies", async () => {
+    it("is the sole role on the audited definer policies", async () => {
       const policies = await adminPrisma.$queryRaw<
         Array<{
           checkExpression: string | null;
@@ -469,6 +482,16 @@ describe.skipIf(process.env.FUNCTION_OWNER_ROLE_TEST_ENABLED !== "true")(
         })),
       ).toEqual([
         {
+          checkExpression: "true",
+          command: "ALL",
+          permissive: "PERMISSIVE",
+          policyName: "AuditLog_function_owner",
+          roles: [functionOwnerRole],
+          schemaName: "public",
+          tableName: "AuditLog",
+          usingExpression: "true",
+        },
+        {
           checkExpression: null,
           command: "SELECT",
           permissive: "PERMISSIVE",
@@ -488,6 +511,16 @@ describe.skipIf(process.env.FUNCTION_OWNER_ROLE_TEST_ENABLED !== "true")(
           tableName: "CommentReaction",
           usingExpression:
             "(current_setting('app.comment_reaction_summary', true) = 'on')",
+        },
+        {
+          checkExpression: "true",
+          command: "ALL",
+          permissive: "PERMISSIVE",
+          policyName: "OAuthGrantUsageDaily_function_owner",
+          roles: [functionOwnerRole],
+          schemaName: "public",
+          tableName: "OAuthGrantUsageDaily",
+          usingExpression: "true",
         },
         {
           checkExpression: null,

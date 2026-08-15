@@ -69,7 +69,7 @@ export async function getSettingsPageData(
             cursor: url.searchParams.get("cursor"),
             limit: 20,
           })
-        : Promise.resolve({ items: [], nextCursor: null }),
+        : Promise.resolve({ hasCursor: false, items: [], nextCursor: null }),
     ]);
 
   if (!user) {

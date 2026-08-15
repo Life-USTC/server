@@ -4,24 +4,31 @@ import {
   listOwnAccountSecurityActivity,
 } from "@/features/settings/server/account-activity";
 import { prisma } from "@/lib/db/prisma";
+import { createTestPrisma, disconnectTestPrisma } from "../shared/prisma";
+
+const adminPrisma = createTestPrisma(
+  process.env.FUNCTION_OWNER_DATABASE_URL ?? process.env.DATABASE_URL,
+);
 
 describe.sequential("account activity isolation", () => {
   const marker = crypto.randomUUID();
   const clientId = `activity-client-${marker}`;
   const otherClientId = `activity-other-client-${marker}`;
+  const grantId = `activity-grant-${marker}`;
+  const otherGrantId = `activity-other-grant-${marker}`;
   let userId = "";
   let otherUserId = "";
 
   beforeAll(async () => {
     const [user, otherUser] = await Promise.all([
-      prisma.user.create({
+      adminPrisma.user.create({
         data: {
           email: `activity-${marker}@example.test`,
           name: "Activity user",
         },
         select: { id: true },
       }),
-      prisma.user.create({
+      adminPrisma.user.create({
         data: {
           email: `activity-other-${marker}@example.test`,
           name: "Other activity user",
@@ -32,7 +39,7 @@ describe.sequential("account activity isolation", () => {
     userId = user.id;
     otherUserId = otherUser.id;
 
-    await prisma.oAuthClient.createMany({
+    await adminPrisma.oAuthClient.createMany({
       data: [
         {
           clientId,
@@ -47,7 +54,7 @@ describe.sequential("account activity isolation", () => {
       ],
     });
 
-    await prisma.auditLog.createMany({
+    await adminPrisma.auditLog.createMany({
       data: [
         {
           action: "account_sign_in",
@@ -66,13 +73,22 @@ describe.sequential("account activity isolation", () => {
           ipAddress: "198.51.100.10",
           metadata: { content: "private comment text" },
           oauthClientId: clientId,
-          oauthGrantId: "grant-secret",
+          oauthGrantId: grantId,
           outcome: "success",
           sessionId: "session-secret",
           subjectUserId: userId,
           targetId: "comment-1",
           targetType: "comment",
           userAgent: "raw-agent",
+          userId,
+        },
+        {
+          action: "comment_create",
+          channel: "rest",
+          oauthClientId: clientId,
+          oauthGrantId: otherGrantId,
+          outcome: "success",
+          subjectUserId: userId,
           userId,
         },
         {
@@ -96,16 +112,19 @@ describe.sequential("account activity isolation", () => {
   });
 
   afterAll(async () => {
-    await prisma.auditLog.deleteMany({
+    await adminPrisma.auditLog.deleteMany({
       where: { subjectUserId: { in: [userId, otherUserId] } },
     });
-    await prisma.oAuthClient.deleteMany({
+    await adminPrisma.oAuthClient.deleteMany({
       where: { clientId: { in: [clientId, otherClientId] } },
     });
-    await prisma.user.deleteMany({
+    await adminPrisma.user.deleteMany({
       where: { id: { in: [userId, otherUserId] } },
     });
-    await prisma.$disconnect();
+    await Promise.all([
+      prisma.$disconnect(),
+      disconnectTestPrisma(adminPrisma),
+    ]);
   });
 
   it("本人安全活动只返回账户 allowlist，并对网络和设备脱敏", async () => {
@@ -126,6 +145,7 @@ describe.sequential("account activity isolation", () => {
     const activity = await listOAuthClientActivity({
       userId,
       clientId,
+      grantId,
     });
 
     expect(activity).toHaveLength(1);

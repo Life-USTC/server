@@ -1,7 +1,7 @@
 import { handleRouteError, parseRouteInput } from "@/lib/api/helpers";
 import { deleteOwnCommentAction } from "@/lib/api/routes/comment-delete-action";
 import { resourceIdPathParamsSchema } from "@/lib/api/schemas/request-schemas";
-import { requireAuth } from "@/lib/auth/api-auth";
+import { requireAuthPrincipal } from "@/lib/auth/api-auth";
 
 type IdParams = { id: string };
 
@@ -17,15 +17,15 @@ export async function deleteCommentRoute(request: Request, params: IdParams) {
   const id = parsedParams.id;
 
   try {
-    const auth = await requireAuth(request, {
+    const auth = await requireAuthPrincipal(request, {
       bearerScope: { feature: "community.comment", action: "write" },
     });
     if (auth instanceof Response) return auth;
 
     return await deleteOwnCommentAction({
       commentId: id,
+      principal: auth,
       request,
-      userId: auth.userId,
     });
   } catch (error) {
     return handleRouteError("Failed to delete comment", error);

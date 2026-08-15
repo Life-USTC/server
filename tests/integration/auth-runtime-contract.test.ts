@@ -7,13 +7,15 @@ const authPrisma = createTestPrisma(
   authDatabaseUrl ?? process.env.DATABASE_URL,
   { user: { calendarFeedToken: true } },
 );
+const adminPrisma = createTestPrisma(
+  process.env.FUNCTION_OWNER_DATABASE_URL ?? process.env.DATABASE_URL,
+);
 
 const expectedTablePrivileges = [
   "Account:DELETE",
   "Account:INSERT",
   "Account:SELECT",
   "Account:UPDATE",
-  "AuditLog:INSERT",
   "DeviceCode:DELETE",
   "DeviceCode:INSERT",
   "DeviceCode:SELECT",
@@ -48,7 +50,6 @@ const expectedTablePrivileges = [
   "Session:INSERT",
   "Session:SELECT",
   "Session:UPDATE",
-  "User:DELETE",
   "VerificationToken:DELETE",
   "VerificationToken:INSERT",
   "VerificationToken:SELECT",
@@ -101,7 +102,10 @@ describe.skipIf(process.env.AUTH_ROLE_TEST_ENABLED !== "true")(
   "authentication runtime role contract",
   () => {
     afterAll(async () => {
-      await disconnectTestPrisma(authPrisma);
+      await Promise.all([
+        disconnectTestPrisma(authPrisma),
+        disconnectTestPrisma(adminPrisma),
+      ]);
     });
 
     it("is an unprivileged standalone login role", async () => {
@@ -213,7 +217,7 @@ describe.skipIf(process.env.AUTH_ROLE_TEST_ENABLED !== "true")(
       expect(functionGrants).toEqual([
         {
           signature:
-            "public.anonymize_deleted_account_audit_targets(p_user_id text):EXECUTE",
+            'public.delete_own_account(p_user_id text, p_audit_id text, p_channel "AuditChannel", p_ip_address text, p_user_agent text, p_session_id text, p_request_id text):EXECUTE',
         },
         {
           signature:
@@ -242,7 +246,7 @@ describe.skipIf(process.env.AUTH_ROLE_TEST_ENABLED !== "true")(
         await expect(authPrisma.todo.count()).rejects.toThrow();
         await expect(authPrisma.auditLog.count()).rejects.toThrow();
       } finally {
-        await authPrisma.user.delete({ where: { id: user.id } });
+        await adminPrisma.user.delete({ where: { id: user.id } });
       }
     });
 
@@ -286,7 +290,7 @@ describe.skipIf(process.env.AUTH_ROLE_TEST_ENABLED !== "true")(
         await expect(authPrisma.auditLog.count()).rejects.toThrow();
       } finally {
         await authPrisma.oAuthClient.deleteMany({ where: { clientId } });
-        await authPrisma.user.deleteMany({ where: { id: user.id } });
+        await adminPrisma.user.deleteMany({ where: { id: user.id } });
       }
     });
 
@@ -383,7 +387,7 @@ describe.skipIf(process.env.AUTH_ROLE_TEST_ENABLED !== "true")(
           profilePictures: [],
         });
       } finally {
-        await authPrisma.user.deleteMany({ where: { id: user.id } });
+        await adminPrisma.user.deleteMany({ where: { id: user.id } });
       }
     });
   },

@@ -19,6 +19,21 @@ export type AuditRetentionReport = {
   rowsDeleted: number;
 };
 
+export async function maintainOAuthGrantUsageRetention(
+  prisma: AuditRetentionClient,
+  now = new Date(),
+) {
+  const [result] = await prisma.$queryRaw<Array<{ rows_deleted: bigint }>>(
+    Prisma.sql`
+      SELECT public.maintain_oauth_grant_usage_retention(
+        ${now},
+        ${AUDIT_RETENTION_BATCH_SIZE}
+      ) AS rows_deleted
+    `,
+  );
+  return { oauthUsageRowsDeleted: Number(result.rows_deleted) };
+}
+
 export async function maintainAuditLogRetention(
   prisma: AuditRetentionClient,
   now = new Date(),

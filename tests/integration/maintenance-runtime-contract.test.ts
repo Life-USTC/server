@@ -1,5 +1,8 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { maintainAuditLogRetention } from "@/features/admin/server/audit-retention";
+import {
+  maintainAuditLogRetention,
+  maintainOAuthGrantUsageRetention,
+} from "@/features/admin/server/audit-retention";
 import { cleanupExpiredAuthRecords } from "@/features/auth/server/auth-record-cleanup";
 import { createTestPrisma, disconnectTestPrisma } from "../shared/prisma";
 
@@ -157,6 +160,10 @@ describe.skipIf(process.env.MAINTENANCE_ROLE_TEST_ENABLED !== "true")(
         },
         {
           signature:
+            "public.maintain_oauth_grant_usage_retention(p_now timestamp without time zone, p_batch_size integer):EXECUTE",
+        },
+        {
+          signature:
             "public.release_upload_pending_storage_cleanup(p_id text, p_attempt_id text, p_now timestamp without time zone, p_retry_lease_seconds integer):EXECUTE",
         },
       ]);
@@ -286,6 +293,15 @@ describe.skipIf(process.env.MAINTENANCE_ROLE_TEST_ENABLED !== "true")(
           where: { id: { in: Object.values(ids) } },
         });
       }
+    });
+
+    it("expires OAuth usage without granting table access", async () => {
+      await expect(
+        maintainOAuthGrantUsageRetention(maintenancePrisma, new Date()),
+      ).resolves.toEqual({ oauthUsageRowsDeleted: expect.any(Number) });
+      await expect(
+        maintenancePrisma.oAuthGrantUsageDaily.count(),
+      ).rejects.toThrow();
     });
   },
 );

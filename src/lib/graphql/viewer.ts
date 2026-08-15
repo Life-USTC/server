@@ -435,6 +435,13 @@ export const graphqlScopeResolvers = {
           ["account.client-activity:read"],
         );
       }
+      if (!principal.grantId) {
+        throw new GraphqlAuthError(
+          "OAuth grant context is required",
+          "UNAUTHENTICATED",
+          401,
+        );
+      }
       const limit = args.limit ?? 30;
       if (!Number.isInteger(limit) || limit < 1 || limit > 50) {
         throw new GraphQLError("limit must be between 1 and 50", {
@@ -443,7 +450,11 @@ export const graphqlScopeResolvers = {
       }
       try {
         return await listOAuthClientActivityPage(
-          { userId: principal.userId, clientId: principal.clientId },
+          {
+            userId: principal.userId,
+            clientId: principal.clientId,
+            grantId: principal.grantId,
+          },
           { cursor: args.cursor, limit },
         );
       } catch (error) {

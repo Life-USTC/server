@@ -224,17 +224,9 @@ describe("getCalendarSubscriptionUrl 日历订阅地址", () => {
     expect(findUniqueMock).toHaveBeenCalledTimes(1);
   });
 
-  it("省略令牌时保留用户查询回退", async () => {
-    findUniqueMock.mockResolvedValueOnce(userWithToken("stored-token"));
-
-    await expect(getCalendarSubscriptionUrl("user-1")).resolves.toBe(
-      "/api/calendar-feeds/user-1:stored-token.ics",
-    );
-
-    expect(findUniqueMock).toHaveBeenCalledWith({
-      where: { id: "user-1" },
-      select: { id: true, calendarFeedToken: true },
-    });
+  it("省略令牌时隐藏订阅凭据且不查询用户", async () => {
+    await expect(getCalendarSubscriptionUrl("user-1")).resolves.toBeNull();
+    expect(findUniqueMock).not.toHaveBeenCalled();
   });
 
   it("令牌写入失败时返回 null 而不抛出", async () => {

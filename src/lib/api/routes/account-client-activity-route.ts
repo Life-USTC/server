@@ -18,7 +18,9 @@ export async function getAccountClientActivityRoute(request: Request) {
     const principal = await resolveApiPrincipal(request, {
       bearerScope: { feature: "account.client-activity", action: "read" },
     });
-    if (!principal || principal.kind !== "oauth") return unauthorized();
+    if (!principal || principal.kind !== "oauth" || !principal.grantId) {
+      return unauthorized();
+    }
 
     const query = parseRouteSearchParams(
       getRequestSearchParams(request),
@@ -28,7 +30,11 @@ export async function getAccountClientActivityRoute(request: Request) {
     if (query instanceof Response) return query;
 
     const page = await listOAuthClientActivityPage(
-      { userId: principal.userId, clientId: principal.clientId },
+      {
+        userId: principal.userId,
+        clientId: principal.clientId,
+        grantId: principal.grantId,
+      },
       query,
     );
     return jsonResponse(page, {

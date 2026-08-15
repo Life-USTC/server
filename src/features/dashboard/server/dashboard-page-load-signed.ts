@@ -14,6 +14,7 @@ export async function loadSignedDashboardPageData(input: {
   overviewWeek: string | null;
   pageCopy: DashboardPageCopy;
   referenceNow: Date | null | undefined;
+  revealCalendarFeed?: boolean;
   requestId: string | undefined;
   tab: string;
   userId: string;
@@ -65,6 +66,7 @@ export async function loadSignedDashboardPageData(input: {
           overviewWeek: input.overviewWeek,
           referenceNow: input.referenceNow ?? undefined,
           requestId: input.requestId,
+          revealCalendarFeed: input.revealCalendarFeed,
           tab: input.tab,
           userId: input.userId,
         }),

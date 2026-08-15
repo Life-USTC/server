@@ -101,6 +101,7 @@ describe("dashboard subscription calendar token reuse", () => {
         },
       },
       locale: "en-us",
+      revealCalendarFeed: true,
       referenceNow: undefined,
       requestId: "request-1",
       tab,

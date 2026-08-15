@@ -126,6 +126,30 @@ describe.skipIf(process.env.RLS_TEST_ENABLED !== "true")(
       }
     });
 
+    it("enforces scoped reads for audit and OAuth usage tables", async () => {
+      const tables = await adminPrisma.$queryRaw<
+        Array<{ rlsEnabled: boolean; tableName: string }>
+      >(Prisma.sql`
+        SELECT relname AS "tableName", relrowsecurity AS "rlsEnabled"
+        FROM pg_class
+        JOIN pg_namespace ON pg_namespace.oid = pg_class.relnamespace
+        WHERE nspname = 'public'
+          AND relname IN ('AuditLog', 'OAuthGrantUsageDaily')
+        ORDER BY relname
+      `);
+      expect(tables).toEqual([
+        { rlsEnabled: true, tableName: "AuditLog" },
+        { rlsEnabled: true, tableName: "OAuthGrantUsageDaily" },
+      ]);
+
+      await expect(
+        prisma.auditLog.findMany({
+          where: { targetType: { not: "homework" } },
+        }),
+      ).resolves.toEqual([]);
+      await expect(prisma.oAuthGrantUsageDaily.findMany()).resolves.toEqual([]);
+    });
+
     it("keeps exactly one runtime-applicable owner policy per table", async () => {
       const policies = await prisma.$queryRaw<
         {

@@ -5,17 +5,22 @@ import {
   notFound,
   suspensionForbidden,
 } from "@/lib/api/helpers";
+import { attributionFromApiPrincipal } from "@/lib/audit/principal-attribution";
 import { getAuditRequestMetadata } from "@/lib/audit/write-audit-log";
+import type { ApiPrincipal } from "@/lib/auth/api-auth";
 
 export async function deleteOwnCommentAction(input: {
   commentId: string;
+  principal: ApiPrincipal;
   request: Request;
-  userId: string;
 }) {
   const result = await deleteOwnComment({
-    auditMetadata: getAuditRequestMetadata(input.request),
+    auditMetadata: {
+      ...getAuditRequestMetadata(input.request),
+      ...attributionFromApiPrincipal(input.principal),
+    },
     commentId: input.commentId,
-    userId: input.userId,
+    userId: input.principal.userId,
   });
   if (!result.ok) {
     if (result.error === "suspended") {

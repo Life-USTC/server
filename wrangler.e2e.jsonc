@@ -104,6 +104,10 @@
       {
         "binding": "CALENDAR_EXPORT_REBUILD",
         "queue": "life-ustc-calendar-export-rebuild"
+      },
+      {
+        "binding": "AUDIT_LOG_WRITES",
+        "queue": "life-ustc-audit-log-write"
       }
     ],
     "consumers": [
@@ -112,6 +116,12 @@
         "max_batch_size": 5,
         "max_retries": 3,
         "dead_letter_queue": "life-ustc-calendar-export-rebuild-dlq"
+      },
+      {
+        "queue": "life-ustc-audit-log-write",
+        "max_batch_size": 20,
+        "max_retries": 5,
+        "dead_letter_queue": "life-ustc-audit-log-write-dlq"
       }
     ]
   }

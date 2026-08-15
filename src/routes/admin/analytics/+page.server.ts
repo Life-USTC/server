@@ -14,5 +14,7 @@ export const load: PageServerLoad = async ({ locals, request, url }) => ({
   copy: {
     admin: messages[locals.locale].admin,
     analytics: messages[locals.locale].adminAnalytics,
+    audit: messages[locals.locale].adminAudit,
   },
+  locale: locals.locale,
 });

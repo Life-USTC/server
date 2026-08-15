@@ -1,10 +1,16 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { listUserOAuthAuthorizations } from "@/features/oauth/server/user-authorizations.server";
+import { authPrisma } from "@/lib/db/auth-prisma";
 import { prisma } from "@/lib/db/prisma";
 import {
   oauthGrantUsageKey,
   recordOAuthGrantUsage,
 } from "@/lib/oauth/grant-usage";
+import { createTestPrisma, disconnectTestPrisma } from "../shared/prisma";
+
+const adminPrisma = createTestPrisma(
+  process.env.FUNCTION_OWNER_DATABASE_URL ?? process.env.DATABASE_URL,
+);
 
 describe.sequential("OAuth authorization usage summary", () => {
   const marker = crypto.randomUUID();
@@ -14,7 +20,7 @@ describe.sequential("OAuth authorization usage summary", () => {
   let userId = "";
 
   beforeAll(async () => {
-    const user = await prisma.user.create({
+    const user = await adminPrisma.user.create({
       data: {
         email: `usage-${marker}@example.test`,
         name: "Usage summary user",
@@ -22,7 +28,7 @@ describe.sequential("OAuth authorization usage summary", () => {
       select: { id: true },
     });
     userId = user.id;
-    await prisma.oAuthClient.create({
+    await adminPrisma.oAuthClient.create({
       data: {
         clientId,
         name: "Usage client",
@@ -30,7 +36,7 @@ describe.sequential("OAuth authorization usage summary", () => {
         skipConsent: false,
       },
     });
-    await prisma.oAuthConsent.create({
+    await adminPrisma.oAuthConsent.create({
       data: {
         clientId,
         userId,
@@ -41,9 +47,13 @@ describe.sequential("OAuth authorization usage summary", () => {
   });
 
   afterAll(async () => {
-    await prisma.oAuthClient.deleteMany({ where: { clientId } });
-    await prisma.user.deleteMany({ where: { id: userId } });
-    await prisma.$disconnect();
+    await adminPrisma.oAuthClient.deleteMany({ where: { clientId } });
+    await adminPrisma.user.deleteMany({ where: { id: userId } });
+    await Promise.all([
+      prisma.$disconnect(),
+      authPrisma.$disconnect(),
+      disconnectTestPrisma(adminPrisma),
+    ]);
   });
 
   it("汇总当前 grant 最近 30 天的 feature/channel 维度并选择最新使用", async () => {
@@ -58,7 +68,7 @@ describe.sequential("OAuth authorization usage summary", () => {
         count: 2,
         usedAt: new Date(anchor.getTime() - 1_000),
       },
-      prisma,
+      authPrisma,
     );
     await recordOAuthGrantUsage(
       {
@@ -70,7 +80,7 @@ describe.sequential("OAuth authorization usage summary", () => {
         action: "read",
         usedAt: anchor,
       },
-      prisma,
+      authPrisma,
     );
     await recordOAuthGrantUsage(
       {
@@ -83,7 +93,7 @@ describe.sequential("OAuth authorization usage summary", () => {
         outcome: "error",
         usedAt: new Date(anchor.getTime() + 1_000),
       },
-      prisma,
+      authPrisma,
     );
 
     const authorizations = await listUserOAuthAuthorizations(
@@ -113,10 +123,10 @@ describe.sequential("OAuth authorization usage summary", () => {
       action: "read" as const,
     };
 
-    await recordOAuthGrantUsage({ ...input, usedAt: newer }, prisma);
-    await recordOAuthGrantUsage({ ...input, usedAt: older }, prisma);
+    await recordOAuthGrantUsage({ ...input, usedAt: newer }, authPrisma);
+    await recordOAuthGrantUsage({ ...input, usedAt: older }, authPrisma);
 
-    const row = await prisma.oAuthGrantUsageDaily.findUniqueOrThrow({
+    const row = await authPrisma.oAuthGrantUsageDaily.findUniqueOrThrow({
       where: {
         userId_clientId_grantKey_day_feature_channel: {
           userId,
@@ -134,7 +144,7 @@ describe.sequential("OAuth authorization usage summary", () => {
 
   it("客户端已删除时延迟到达的统计写入安全地跳过", async () => {
     const deletedClientId = `deleted-usage-client-${marker}`;
-    await prisma.oAuthClient.create({
+    await adminPrisma.oAuthClient.create({
       data: {
         clientId: deletedClientId,
         name: "Deleted usage client",
@@ -142,7 +152,9 @@ describe.sequential("OAuth authorization usage summary", () => {
         skipConsent: false,
       },
     });
-    await prisma.oAuthClient.delete({ where: { clientId: deletedClientId } });
+    await adminPrisma.oAuthClient.delete({
+      where: { clientId: deletedClientId },
+    });
 
     await expect(
       recordOAuthGrantUsage(
@@ -154,11 +166,11 @@ describe.sequential("OAuth authorization usage summary", () => {
           action: "read",
           usedAt: anchor,
         },
-        prisma,
+        authPrisma,
       ),
     ).resolves.toBe(true);
     await expect(
-      prisma.oAuthGrantUsageDaily.count({
+      authPrisma.oAuthGrantUsageDaily.count({
         where: { userId, clientId: deletedClientId },
       }),
     ).resolves.toBe(0);

@@ -96,6 +96,7 @@ export type CloudflareKVNamespace = {
 
 type CloudflareRuntimeEnv = Record<string, unknown> & {
   ANALYTICS?: CloudflareAnalyticsEngineDataset;
+  AUDIT_LOG_WRITES?: CloudflareQueue;
   ASSETS?: CloudflareAssetsBinding;
   CALENDAR_EXPORT_REBUILD?: CloudflareQueue;
   CALENDAR_EXPORTS?: CloudflareKVNamespace;
@@ -365,6 +366,10 @@ export function getCloudflareR2UploadsBucket() {
 
 export function getCloudflareAnalyticsEngineDataset() {
   return getCurrentCloudflareRuntimeEnv()?.ANALYTICS;
+}
+
+export function getCloudflareAuditLogWriteQueue() {
+  return getCurrentCloudflareRuntimeEnv()?.AUDIT_LOG_WRITES;
 }
 
 export function getCloudflareAssetsBinding() {

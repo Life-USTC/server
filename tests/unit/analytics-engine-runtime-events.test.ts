@@ -268,7 +268,7 @@ describe("Cloudflare Analytics Engine runtime events", () => {
 
   it("writes audit datapoints without audit subject identifiers", async () => {
     const writeDataPoint = installAnalyticsBinding();
-    const create = vi.fn(async () => ({}));
+    const createMany = vi.fn(async () => ({}));
 
     await writeAuditLog(
       {
@@ -278,7 +278,7 @@ describe("Cloudflare Analytics Engine runtime events", () => {
         targetType: "comment",
         userId: "user-secret",
       },
-      { auditLog: { create } },
+      { auditLog: { createMany } },
     );
 
     expect(writeDataPoint).toHaveBeenCalledWith({

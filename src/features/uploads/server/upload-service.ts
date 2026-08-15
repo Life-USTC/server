@@ -5,7 +5,10 @@ import {
   UploadError,
 } from "@/features/uploads/server/upload-quota";
 import { Prisma, UploadPendingPhase } from "@/generated/prisma/client";
-import { writeAuditLog } from "@/lib/audit/write-audit-log";
+import {
+  type AuditLogParams,
+  writeAuditLog,
+} from "@/lib/audit/write-audit-log";
 import { getViewerContext } from "@/lib/auth/viewer-context";
 import { withUserDbContext } from "@/lib/db/prisma";
 import { logAppEvent } from "@/lib/log/app-logger";
@@ -448,11 +451,7 @@ async function findUploadRecordForDeletion(input: {
 }
 
 export async function deleteOwnedUpload(input: {
-  audit?: {
-    ipAddress?: string;
-    source?: "graphql" | "mcp";
-    userAgent?: string;
-  };
+  audit?: UploadAuditContext;
   id: string;
   userId: string;
 }) {
@@ -646,31 +645,40 @@ async function writeUploadDeleteAuditLog({
   upload,
   userId,
 }: {
-  audit?: {
-    ipAddress?: string;
-    source?: "graphql" | "mcp";
-    userAgent?: string;
-  };
+  audit?: UploadAuditContext;
   client: NonNullable<Parameters<typeof writeAuditLog>[1]>;
   upload: { id: string; key: string; size: number };
   userId: string;
 }) {
+  const { source, ...attribution } = audit ?? {};
   await writeAuditLog(
     {
       action: "upload_delete",
+      ...attribution,
       userId,
+      subjectUserId: attribution.subjectUserId ?? userId,
       targetId: upload.id,
       targetType: "upload",
       metadata: {
         size: upload.size,
-        ...(audit?.source ? { source: audit.source } : {}),
+        ...(source ? { source } : {}),
       },
-      ipAddress: audit?.ipAddress,
-      userAgent: audit?.userAgent,
     },
     client,
   );
 }
+
+type UploadAuditContext = Pick<
+  AuditLogParams,
+  | "channel"
+  | "ipAddress"
+  | "oauthClientId"
+  | "oauthGrantId"
+  | "requestId"
+  | "sessionId"
+  | "subjectUserId"
+  | "userAgent"
+> & { source?: "graphql" | "mcp" };
 
 async function deleteExpiredPendingUploads(
   uploadPrisma: ExpiredPendingUploadCleanupPrisma,

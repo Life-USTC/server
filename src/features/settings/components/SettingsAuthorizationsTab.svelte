@@ -2,7 +2,10 @@
 import KeyRoundIcon from "@lucide/svelte/icons/key-round";
 import TrashIcon from "@lucide/svelte/icons/trash-2";
 import type { SubmitFunction } from "@sveltejs/kit";
-import { oauthScopeLabel } from "@/features/oauth/lib/oauth-copy";
+import {
+  oauthFeatureLabel,
+  oauthScopeLabel,
+} from "@/features/oauth/lib/oauth-copy";
 import type { AppLocale } from "@/i18n/config";
 import { enhance } from "$app/forms";
 import * as AlertDialog from "$lib/components/ui/alert-dialog/index.js";
@@ -58,7 +61,6 @@ function revokeAction(consentId: string): SubmitFunction {
 <section
   aria-label={copy.settings.authorizations.title}
   class="grid gap-4"
-  role="region"
 >
   {#if authorizations.length === 0}
     <Empty.Root>
@@ -89,8 +91,9 @@ function revokeAction(consentId: string): SubmitFunction {
               </Item.Description>
             {/if}
           </Item.Content>
-          <Item.Actions>
+          <Item.Actions class="max-sm:w-full">
             <Button
+              class="max-sm:w-full"
               type="button"
               variant="outline"
               onclick={() => {
@@ -118,12 +121,18 @@ function revokeAction(consentId: string): SubmitFunction {
               {formatUpdatedAt(authorization.updatedAt)}
             </span>
           </Item.Footer>
-          <Item.Footer class="flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
+          <Item.Footer class="block">
             {#if authorization.usage}
-              <span>{copy.settings.authorizations.lastUsedAt}: {formatUpdatedAt(authorization.usage.lastUsedAt)}</span>
-              <span>{copy.settings.authorizations.lastChannel}: {authorization.usage.lastChannel}</span>
-              <span>{copy.settings.authorizations.lastFeature}: {authorization.usage.lastFeature}</span>
-              <span>{copy.settings.authorizations.recentUsage}: {copy.settings.authorizations.reads} {authorization.usage.readCount} · {copy.settings.authorizations.writes} {authorization.usage.writeCount} · {copy.settings.authorizations.errors} {authorization.usage.errorCount}</span>
+              <dl class="grid w-full gap-3 text-xs sm:grid-cols-3">
+                <div class="rounded-md bg-muted/50 p-3"><dt class="text-muted-foreground">{copy.settings.authorizations.reads}</dt><dd class="mt-1 text-lg font-semibold tabular-nums">{authorization.usage.readCount}</dd></div>
+                <div class="rounded-md bg-muted/50 p-3"><dt class="text-muted-foreground">{copy.settings.authorizations.writes}</dt><dd class="mt-1 text-lg font-semibold tabular-nums">{authorization.usage.writeCount}</dd></div>
+                <div class="rounded-md bg-muted/50 p-3"><dt class="text-muted-foreground">{copy.settings.authorizations.errors}</dt><dd class="mt-1 text-lg font-semibold tabular-nums">{authorization.usage.errorCount}</dd></div>
+              </dl>
+              <dl class="mt-3 grid gap-1.5 text-xs text-muted-foreground sm:grid-cols-3">
+                <div><dt>{copy.settings.authorizations.lastUsedAt}</dt><dd class="text-foreground">{formatUpdatedAt(authorization.usage.lastUsedAt)}</dd></div>
+                <div><dt>{copy.settings.authorizations.lastChannel}</dt><dd class="text-foreground">{copy.settings.security.channels[authorization.usage.lastChannel] ?? authorization.usage.lastChannel}</dd></div>
+                <div><dt>{copy.settings.authorizations.lastFeature}</dt><dd class="text-foreground">{oauthFeatureLabel(locale, authorization.usage.lastFeature)}</dd></div>
+              </dl>
             {:else}
               <span>{copy.settings.authorizations.neverUsed}</span>
             {/if}
