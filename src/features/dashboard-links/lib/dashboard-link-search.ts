@@ -11,6 +11,7 @@ export type DashboardLinkSearchable = {
   group: DashboardLinkGroup;
   title: string;
   titlePinyin: string;
+  url: string;
 };
 
 export function searchQueryToTokens(query: string) {
@@ -28,10 +29,12 @@ export function linkMatchesTokens(
 ) {
   const title = link.title.toLowerCase();
   const description = link.description.toLowerCase();
+  const url = link.url.toLowerCase();
   return tokens.every(
     (token) =>
       title.includes(token) ||
       description.includes(token) ||
+      url.includes(token) ||
       link.titlePinyin.includes(token) ||
       link.descriptionPinyin.includes(token),
   );
@@ -45,10 +48,12 @@ function toSearchPinyin(text: string) {
 function toSearchableFields(
   title: string,
   description: string,
+  url: string,
 ): DashboardLinkSearchable {
   return {
     title,
     description,
+    url,
     titlePinyin: toSearchPinyin(title),
     descriptionPinyin: toSearchPinyin(description),
     group: "life",
@@ -65,7 +70,7 @@ export function dashboardLinkItemMatchesTokens(
   ];
   return localizedFields.some((fields) =>
     linkMatchesTokens(
-      toSearchableFields(fields.title, fields.description),
+      toSearchableFields(fields.title, fields.description, link.url),
       tokens,
     ),
   );

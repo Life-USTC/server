@@ -55,7 +55,7 @@ test.describe("仪表盘网站链接", () => {
       /\/links$/,
     );
     const searchInput = page.getByRole("searchbox", {
-      name: /搜索网站名称或描述|Search by name or description/i,
+      name: /搜索网站名称、描述或域名|Search by name, description, or domain/i,
     });
     await expect(searchInput).toBeVisible();
     await expect(
@@ -88,7 +88,7 @@ test.describe("仪表盘网站链接", () => {
     await gotoAndWaitForReady(page, "/catalog/links");
 
     const searchInput = page.getByRole("searchbox", {
-      name: /Search by name or description/i,
+      name: /Search by name, description, or domain/i,
     });
     await expect(searchInput).toBeVisible();
     await expect(
@@ -128,7 +128,7 @@ test.describe("仪表盘网站链接", () => {
     await expect(page).toHaveURL(/\/catalog\/links$/);
     await expect(
       page.getByRole("searchbox", {
-        name: /搜索网站名称或描述|Search by name or description/i,
+        name: /搜索网站名称、描述或域名|Search by name, description, or domain/i,
       }),
     ).toBeVisible();
     await expect(
@@ -146,7 +146,7 @@ test.describe("仪表盘网站链接", () => {
     await signInAsDebugUser(page, "/catalog/links");
 
     const searchInput = page.getByRole("searchbox", {
-      name: /搜索网站名称或描述|Search by name or description/i,
+      name: /搜索网站名称、描述或域名|Search by name, description, or domain/i,
     });
     await expect(searchInput).toBeVisible();
     await searchInput.click();
@@ -159,6 +159,20 @@ test.describe("仪表盘网站链接", () => {
       await searchInput.pressSequentially("邮箱");
       await expect(
         page.getByRole("link", { name: /邮箱/i }).first(),
+      ).toBeVisible({ timeout: 3_000 });
+      await expect(
+        page.getByRole("link", { name: /教务系统/i }).first(),
+      ).toHaveCount(0);
+    }).toPass({
+      timeout: 10_000,
+      intervals: [250, 500, 1_000],
+    });
+
+    await expect(async () => {
+      await searchInput.clear();
+      await searchInput.pressSequentially("faculty.ustc.edu.cn");
+      await expect(
+        page.getByRole("link", { name: /教师个人主页/i }).first(),
       ).toBeVisible({ timeout: 3_000 });
       await expect(
         page.getByRole("link", { name: /教务系统/i }).first(),
@@ -283,7 +297,7 @@ test.describe("仪表盘网站链接", () => {
     await gotoAndWaitForReady(page, "/catalog/links");
 
     const searchInput = page.getByRole("searchbox", {
-      name: /搜索网站名称或描述|Search by name or description/i,
+      name: /搜索网站名称、描述或域名|Search by name, description, or domain/i,
     });
 
     const locateJwPinButton = async () => {

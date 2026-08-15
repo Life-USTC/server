@@ -4,6 +4,7 @@ import {
   searchQueryToTokens,
 } from "@/features/dashboard-links/lib/dashboard-link-search";
 import {
+  DASHBOARD_LINK_GROUPS,
   localizeDashboardLink,
   recommendDashboardLinks,
   USTC_DASHBOARD_LINKS,
@@ -54,6 +55,50 @@ describe("仪表盘链接推荐", () => {
     }
   });
 
+  it("保持目录 slug、URL 和分组完整", () => {
+    const catalogSlugs = USTC_DASHBOARD_LINKS.map((link) => link.slug);
+    const catalogUrls = USTC_DASHBOARD_LINKS.map((link) => link.url);
+    const groupedSlugs = Object.values(DASHBOARD_LINK_GROUPS).flat();
+
+    expect(new Set(catalogSlugs).size).toBe(catalogSlugs.length);
+    expect(new Set(catalogUrls).size).toBe(catalogUrls.length);
+    expect(new Set(groupedSlugs).size).toBe(groupedSlugs.length);
+    expect([...groupedSlugs].sort()).toEqual([...catalogSlugs].sort());
+  });
+
+  it("移除失效入口并使用当前正版软件地址", () => {
+    const linksBySlug = new Map(
+      USTC_DASHBOARD_LINKS.map((link) => [link.slug, link]),
+    );
+
+    expect(linksBySlug.has("campus-wiki")).toBe(false);
+    expect(linksBySlug.has("payment-system")).toBe(false);
+    expect(linksBySlug.has("history-culture")).toBe(false);
+    expect(linksBySlug.get("licensed-software")?.url).toBe(
+      "https://software.ustc.edu.cn/",
+    );
+  });
+
+  it("收录首批核验后的校园入口", () => {
+    const expectedUrls = {
+      blackboard: "https://www.bb.ustc.edu.cn/",
+      "career-services": "https://www.job.ustc.edu.cn/",
+      "faculty-homepages": "https://faculty.ustc.edu.cn/",
+      "graduate-admissions": "https://yz.ustc.edu.cn/",
+      "network-center": "https://ustcnet.ustc.edu.cn/",
+      repair: "https://baoxiu.ustc.edu.cn/",
+      "undergraduate-school": "https://ugs.ustc.edu.cn/",
+      "ustc-news": "https://news.ustc.edu.cn/",
+    };
+    const linksBySlug = new Map(
+      USTC_DASHBOARD_LINKS.map((link) => [link.slug, link]),
+    );
+
+    for (const [slug, url] of Object.entries(expectedUrls)) {
+      expect(linksBySlug.get(slug)?.url, slug).toBe(url);
+    }
+  });
+
   it("按地区设置投影仪表盘链接标签", () => {
     const mail = USTC_DASHBOARD_LINKS.find((link) => link.slug === "mail");
     expect(mail).toBeDefined();
@@ -84,6 +129,29 @@ describe("仪表盘链接推荐", () => {
     ).toBe(true);
     expect(
       enMail ? linkMatchesTokens(enMail, searchQueryToTokens("email")) : false,
+    ).toBe(true);
+  });
+
+  it("可以按 URL 和域名搜索链接", () => {
+    const { dashboardLinks } = buildDashboardLinkSummaries(
+      {},
+      new Set(),
+      "zh-cn",
+    );
+    const faculty = dashboardLinks.find(
+      (link) => link.slug === "faculty-homepages",
+    );
+
+    expect(faculty).toBeDefined();
+    expect(
+      faculty
+        ? linkMatchesTokens(faculty, searchQueryToTokens("faculty.ustc.edu.cn"))
+        : false,
+    ).toBe(true);
+    expect(
+      faculty
+        ? linkMatchesTokens(faculty, searchQueryToTokens("faculty ustc"))
+        : false,
     ).toBe(true);
   });
 });
