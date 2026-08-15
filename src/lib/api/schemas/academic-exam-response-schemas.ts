@@ -1,5 +1,8 @@
 import * as z from "zod";
-import { localizedCourseBaseSchema } from "./academic-course-response-schemas";
+import {
+  localizedCourseBaseSchema,
+  localizedNameFields,
+} from "./academic-course-response-schemas";
 import {
   sectionBaseSchema,
   semesterSchema,
@@ -15,8 +18,10 @@ export const examRoomSchema = z.object({
 
 export const examBatchSchema = z.object({
   id: z.number().int(),
+  jwId: z.number().int(),
   nameCn: z.string(),
   nameEn: z.string().nullable(),
+  ...localizedNameFields,
 });
 
 export const examSchema = z.object({

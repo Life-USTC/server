@@ -1,12 +1,17 @@
 import * as z from "zod";
+import { localizedNameFields } from "./academic-course-response-schemas";
 
 export const departmentSchema = z.object({
   id: z.number().int(),
+  jwId: z.number().int().nullable(),
   code: z.string(),
   nameCn: z.string(),
   nameEn: z.string().nullable(),
   isCollege: z.boolean().nullable(),
+  ...localizedNameFields,
 });
+
+export const departmentSummarySchema = departmentSchema.omit({ jwId: true });
 
 export const teacherTitleSchema = z.object({
   id: z.number().int(),
@@ -15,6 +20,7 @@ export const teacherTitleSchema = z.object({
   nameEn: z.string().nullable(),
   code: z.string(),
   enabled: z.boolean().nullable(),
+  ...localizedNameFields,
 });
 
 export const teacherLessonTypeSchema = z.object({
@@ -40,6 +46,7 @@ export const teacherSchema = z.object({
   address: z.string().nullable(),
   departmentId: z.number().int().nullable(),
   teacherTitleId: z.number().int().nullable(),
+  ...localizedNameFields,
 });
 
 export const teacherPublicIdentitySchema = z.object({
@@ -54,25 +61,17 @@ export const teacherPublicIdentitySchema = z.object({
 });
 
 export const teacherPublicReferenceSchema = teacherPublicIdentitySchema.extend({
-  department: departmentSchema
-    .extend({
-      namePrimary: z.string(),
-      nameSecondary: z.string().nullable(),
-    })
-    .nullable(),
-  teacherTitle: teacherTitleSchema
-    .extend({
-      namePrimary: z.string(),
-      nameSecondary: z.string().nullable(),
-    })
-    .nullable(),
+  department: departmentSummarySchema.nullable(),
+  teacherTitle: teacherTitleSchema.nullable(),
 });
 
 export const teacherWithDepartmentTitleSchema = teacherSchema.extend({
-  department: departmentSchema.nullable(),
+  department: departmentSummarySchema.nullable(),
   teacherTitle: teacherTitleSchema.nullable(),
 });
 
 export const teacherListSchema = teacherWithDepartmentTitleSchema.extend({
   _count: z.object({ sections: z.number().int() }),
 });
+
+export type TeacherDto = z.output<typeof teacherWithDepartmentTitleSchema>;

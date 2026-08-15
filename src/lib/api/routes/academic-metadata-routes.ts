@@ -3,13 +3,14 @@ import {
   getCachedCurrentSemester,
   listSemesters,
 } from "@/features/catalog/server/academic-metadata-read-model";
-import {
-  handleRouteError,
-  jsonResponse,
-  notFound,
-  parseRouteQuery,
-} from "@/lib/api/helpers";
+import { handleRouteError, notFound, parseRouteQuery } from "@/lib/api/helpers";
+import { schemaJsonResponse } from "@/lib/api/responses";
 import { semestersQuerySchema } from "@/lib/api/schemas/request-schemas";
+import {
+  metadataResponseSchema,
+  paginatedSemesterResponseSchema,
+  semesterSchema,
+} from "@/lib/api/schemas/response-schemas";
 import { cachedCatalogRuntimeData } from "@/lib/catalog-runtime-cache";
 import {
   currentSemesterCacheHeaders,
@@ -26,7 +27,7 @@ export async function getMetadataRoute() {
       getAcademicMetadata,
     );
 
-    return jsonResponse(metadata, {
+    return schemaJsonResponse(metadataResponseSchema, metadata, {
       headers: PUBLIC_CATALOG_HEADERS,
     });
   } catch (error) {
@@ -56,7 +57,7 @@ export async function getSemestersRoute(request: Request) {
       () => listSemesters({ page, pageSize }),
     );
 
-    return jsonResponse(result, {
+    return schemaJsonResponse(paginatedSemesterResponseSchema, result, {
       headers: PUBLIC_CATALOG_HEADERS,
     });
   } catch (error) {
@@ -72,7 +73,7 @@ export async function getCurrentSemesterRoute(referenceDate = new Date()) {
       return notFound("No current semester found");
     }
 
-    return jsonResponse(currentSemester, {
+    return schemaJsonResponse(semesterSchema, currentSemester, {
       headers: currentSemesterCacheHeaders(referenceDate),
     });
   } catch (error) {

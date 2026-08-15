@@ -3,7 +3,12 @@ import {
   getSectionSchedulesByJwId,
 } from "@/features/catalog/server/schedule-read-model";
 import type { AppLocale } from "@/i18n/config";
-import { jsonResponse, notFound } from "@/lib/api/helpers";
+import { notFound } from "@/lib/api/helpers";
+import { schemaJsonResponse } from "@/lib/api/responses";
+import {
+  scheduleGroupsResponseSchema,
+  sectionSchedulesResponseSchema,
+} from "@/lib/api/schemas/schedule-response-schema-core";
 
 export async function getSectionSchedulesAction(
   parsedJwId: number,
@@ -23,7 +28,7 @@ export async function getSectionSchedulesAction(
     return notFound("Section not found");
   }
 
-  return jsonResponse(result.schedules, {
+  return schemaJsonResponse(sectionSchedulesResponseSchema, result.schedules, {
     headers: cacheHeaders,
   });
 }
@@ -42,7 +47,11 @@ export async function getSectionScheduleGroupsAction(
     return notFound("Section not found");
   }
 
-  return jsonResponse(result.scheduleGroups, {
-    headers: cacheHeaders,
-  });
+  return schemaJsonResponse(
+    scheduleGroupsResponseSchema,
+    result.scheduleGroups,
+    {
+      headers: cacheHeaders,
+    },
+  );
 }

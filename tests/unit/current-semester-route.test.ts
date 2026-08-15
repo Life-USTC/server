@@ -21,7 +21,14 @@ describe("current semester REST route", () => {
   });
 
   it("adds public catalog CDN headers to a successful response", async () => {
-    getCachedCurrentSemesterMock.mockResolvedValue({ id: 1, jwId: 421 });
+    getCachedCurrentSemesterMock.mockResolvedValue({
+      id: 1,
+      jwId: 421,
+      nameCn: "2026 秋季学期",
+      code: "2026FA",
+      startDate: null,
+      endDate: null,
+    });
     const { getCurrentSemesterRoute } = await import(
       "@/lib/api/routes/academic-metadata-routes"
     );

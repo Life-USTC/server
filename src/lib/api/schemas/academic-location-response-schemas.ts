@@ -1,4 +1,5 @@
 import * as z from "zod";
+import { localizedNameFields } from "./academic-course-response-schemas";
 
 export const campusSchema = z.object({
   id: z.number().int(),
@@ -6,6 +7,7 @@ export const campusSchema = z.object({
   nameCn: z.string(),
   nameEn: z.string().nullable(),
   code: z.string().nullable(),
+  ...localizedNameFields,
 });
 
 export const busCampusSchema = z.object({
@@ -23,6 +25,7 @@ export const buildingSchema = z.object({
   nameEn: z.string().nullable(),
   code: z.string(),
   campusId: z.number().int().nullable(),
+  ...localizedNameFields,
 });
 
 export const roomTypeSchema = z.object({
@@ -31,6 +34,7 @@ export const roomTypeSchema = z.object({
   nameCn: z.string(),
   nameEn: z.string().nullable(),
   code: z.string(),
+  ...localizedNameFields,
 });
 
 export const roomSchema = z.object({
@@ -46,4 +50,5 @@ export const roomSchema = z.object({
   seats: z.number().int(),
   buildingId: z.number().int().nullable(),
   roomTypeId: z.number().int().nullable(),
+  ...localizedNameFields,
 });

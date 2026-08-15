@@ -3,7 +3,7 @@ import { dateTimeSchema } from "./response-schema-primitives";
 
 export const scheduleBaseSchema = z.object({
   id: z.number().int(),
-  periods: z.number().int(),
+  periods: z.number(),
   date: dateTimeSchema.nullable(),
   weekday: z.number().int(),
   startTime: z.string(),
@@ -26,7 +26,7 @@ export const scheduleGroupSchema = z.object({
   no: z.number().int(),
   limitCount: z.number().int(),
   stdCount: z.number().int(),
-  actualPeriods: z.number().int(),
+  actualPeriods: z.number(),
   isDefault: z.boolean(),
   sectionId: z.number().int(),
 });

@@ -23,7 +23,7 @@ const localizedNameFields = {
 
 const localizedCourseSchema = courseSchema.extend(localizedNameFields);
 const localizedCampusSchema = campusSchema.extend(localizedNameFields);
-const localizedDepartmentSchema = departmentSchema.extend(localizedNameFields);
+const localizedDepartmentSchema = departmentSchema;
 const localizedTeacherSchema = teacherPublicIdentitySchema;
 
 const courseSummarySchema = z.object({
@@ -72,7 +72,7 @@ export const sectionSummarySchema = z.object({
   course: courseSummarySchema,
   semester: semesterSummarySchema.nullable(),
   campus: campusSummarySchema.nullable(),
-  teachers: z.array(teacherSummarySchema),
+  teachers: z.array(teacherSummarySchema.extend(localizedNameFields)),
 });
 
 export const sectionCompactSchema = sectionBaseSchema.extend({

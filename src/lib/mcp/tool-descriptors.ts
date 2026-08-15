@@ -165,10 +165,12 @@ export function installMcpToolDescriptorDefaults(server: McpServer) {
 
   server.registerTool = ((name, config, callback) => {
     const defaults = getMcpToolDescriptorDefaults(name);
+    const outputSchema = (config.outputSchema ??
+      defaults.outputSchema) as McpToolOutputSchema;
     const mergedConfig = {
       ...config,
       title: config.title ?? defaults.title,
-      outputSchema: config.outputSchema ?? defaults.outputSchema,
+      outputSchema,
       annotations: {
         ...defaults.annotations,
         ...config.annotations,
@@ -179,9 +181,22 @@ export function installMcpToolDescriptorDefaults(server: McpServer) {
         securitySchemes:
           config._meta?.securitySchemes ?? defaults.securitySchemes,
       },
-    } as typeof config;
+    } as unknown as typeof config;
 
-    const registered = registerTool(name, mergedConfig, callback);
+    const validatedCallback = (async (args: unknown, extra: unknown) => {
+      const result = await (
+        callback as unknown as (
+          args: unknown,
+          extra: unknown,
+        ) => unknown | Promise<unknown>
+      )(args, extra);
+      if (isRecord(result) && isRecord(result.structuredContent)) {
+        outputSchema.parse(result.structuredContent);
+      }
+      return result;
+    }) as unknown as typeof callback;
+
+    const registered = registerTool(name, mergedConfig, validatedCallback);
     names.add(name);
     return registered;
   }) as typeof server.registerTool;

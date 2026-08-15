@@ -1,10 +1,24 @@
 import { z } from "zod";
+import { courseSchema } from "@/lib/api/schemas/academic-course-response-schemas";
+import {
+  examBatchSchema,
+  examSchema,
+} from "@/lib/api/schemas/academic-exam-response-schemas";
+import { campusSchema } from "@/lib/api/schemas/academic-location-response-schemas";
 import {
   paginatedCourseResponseSchema,
   paginatedSectionResponseSchema,
   paginatedSemesterResponseSchema,
   paginatedTeacherResponseSchema,
 } from "@/lib/api/schemas/academic-paginated-response-schemas";
+import { semesterSchema } from "@/lib/api/schemas/academic-section-base-response-schemas";
+import { sectionSummarySchema } from "@/lib/api/schemas/academic-section-response-schemas";
+import {
+  departmentSummarySchema,
+  teacherListSchema,
+  teacherPublicIdentitySchema,
+  teacherTitleSchema,
+} from "@/lib/api/schemas/academic-teacher-response-schemas";
 import {
   commentAttachmentSummarySchema,
   commentAuthorSummarySchema,
@@ -24,7 +38,13 @@ import {
   viewerContextSchema,
 } from "@/lib/api/schemas/misc-response-schema-core";
 import { dateTimeSchema } from "@/lib/api/schemas/response-schema-primitives";
-import { paginatedScheduleResponseSchema } from "@/lib/api/schemas/schedule-response-schema-core";
+import {
+  paginatedScheduleResponseSchema,
+  scheduleBuildingSchema,
+  scheduleEntrySchema,
+  scheduleRoomSchema,
+  scheduleTeacherSchema,
+} from "@/lib/api/schemas/schedule-response-schema-core";
 import {
   uploadDeleteResponseSchema,
   uploadRenameResponseSchema,
@@ -92,77 +112,165 @@ const compactUserSchema = compactObjectSchema({
   image: z.string().nullable(),
 });
 
-const compactDepartmentSchema = compactObjectSchema({
-  id: z.number().int(),
-  nameCn: z.string(),
-  nameEn: z.string().nullable(),
-  namePrimary: z.string(),
-  nameSecondary: z.string().nullable(),
+const compactDepartmentSchema = departmentSummarySchema
+  .pick({
+    id: true,
+    nameCn: true,
+    nameEn: true,
+    namePrimary: true,
+    nameSecondary: true,
+  })
+  .strict();
+
+const compactTeacherTitleSchema = teacherTitleSchema
+  .pick({
+    id: true,
+    nameCn: true,
+    nameEn: true,
+    namePrimary: true,
+    nameSecondary: true,
+  })
+  .strict();
+
+const compactCourseSchema = courseSchema
+  .pick({
+    id: true,
+    jwId: true,
+    code: true,
+    nameCn: true,
+    nameEn: true,
+    namePrimary: true,
+    nameSecondary: true,
+  })
+  .strict();
+
+const compactCourseReferenceSchema = compactCourseSchema.omit({ id: true });
+
+const compactSemesterFields = semesterSchema.pick({
+  id: true,
+  jwId: true,
+  code: true,
+  nameCn: true,
+  startDate: true,
+  endDate: true,
+}).shape;
+const compactSemesterSchema = z.object(compactSemesterFields).strict();
+const compactSemesterReferenceSchema = compactSemesterSchema.pick({
+  jwId: true,
+  code: true,
+  nameCn: true,
 });
 
-const compactTeacherTitleSchema = compactDepartmentSchema;
+const compactTeacherIdentitySchema = teacherPublicIdentitySchema.strict();
 
-const compactCourseSchema = compactObjectSchema({
-  id: z.number().int(),
-  jwId: z.number().int(),
-  code: z.string(),
-  nameCn: z.string(),
-  nameEn: z.string().nullable(),
-  namePrimary: z.string(),
-  nameSecondary: z.string().nullable(),
-  credit: z.number().nullable(),
-  hours: z.number().nullable(),
-});
+const compactScheduleTeacherSchema = scheduleTeacherSchema
+  .pick({
+    id: true,
+    jwId: true,
+    personId: true,
+    code: true,
+    nameCn: true,
+    nameEn: true,
+    namePrimary: true,
+    nameSecondary: true,
+  })
+  .extend({ department: compactDepartmentSchema.nullable() })
+  .strict();
 
-const compactSemesterSchema = compactObjectSchema({
-  id: z.number().int(),
-  jwId: z.number().int(),
-  code: z.string().nullable(),
-  nameCn: z.string(),
-  namePrimary: z.string(),
-  startDate: dateTimeSchema.nullable(),
-  endDate: dateTimeSchema.nullable(),
-});
+const compactCatalogTeacherSchema = teacherListSchema
+  .pick({
+    id: true,
+    jwId: true,
+    personId: true,
+    code: true,
+    nameCn: true,
+    nameEn: true,
+    namePrimary: true,
+    nameSecondary: true,
+    _count: true,
+  })
+  .extend({
+    department: compactDepartmentSchema.nullable(),
+    teacherTitle: compactTeacherTitleSchema.nullable(),
+  })
+  .strict();
 
-const compactTeacherSchema = compactObjectSchema({
-  id: z.number().int(),
-  personId: z.number().int().nullable(),
-  teacherId: z.number().int().nullable(),
-  code: z.string().nullable(),
-  jwId: z.number().int(),
-  nameCn: z.string(),
-  nameEn: z.string().nullable(),
-  namePrimary: z.string(),
-  nameSecondary: z.string().nullable(),
-  department: compactDepartmentSchema.nullable(),
-  teacherTitle: compactTeacherTitleSchema.nullable(),
-  _count: z.object({ sections: z.number().int().nonnegative() }).partial(),
-});
+const compactTeacherSchema = z.union([
+  compactTeacherIdentitySchema,
+  compactScheduleTeacherSchema,
+  compactCatalogTeacherSchema,
+]);
 
-const compactCampusSchema = compactObjectSchema({
-  id: z.number().int(),
-  nameCn: z.string(),
-  nameEn: z.string().nullable(),
-  namePrimary: z.string(),
-  nameSecondary: z.string().nullable(),
-  latitude: z.number().nullable(),
-  longitude: z.number().nullable(),
-});
+const fullCatalogTeacherMcpSchema = compactCatalogTeacherSchema
+  .extend({
+    department: z
+      .union([compactDepartmentSchema, departmentSummarySchema])
+      .nullable(),
+    teacherTitle: z
+      .union([compactTeacherTitleSchema, teacherTitleSchema])
+      .nullable(),
+  })
+  .passthrough();
 
-const compactSectionSchema = compactObjectSchema({
-  id: z.number().int(),
-  jwId: z.number().int(),
-  code: z.string(),
-  namePrimary: z.string(),
-  nameSecondary: z.string().nullable(),
-  campusId: z.number().int().nullable(),
-  openDepartmentId: z.number().int().nullable(),
-  course: compactCourseSchema.nullable(),
-  semester: compactSemesterSchema.nullable(),
-  campus: compactCampusSchema.nullable(),
-  openDepartment: compactDepartmentSchema.nullable(),
-  teachers: z.array(compactTeacherSchema),
-});
+const compactCampusSchema = campusSchema
+  .pick({
+    id: true,
+    nameCn: true,
+    nameEn: true,
+    namePrimary: true,
+    nameSecondary: true,
+  })
+  .extend({
+    latitude: z.number().nullable().optional(),
+    longitude: z.number().nullable().optional(),
+  })
+  .strict();
+
+const compactSectionContextSchema = z
+  .object({
+    id: z.number().int(),
+    jwId: z.number().int(),
+    code: z.string(),
+    course: compactCourseReferenceSchema,
+    semester: compactSemesterReferenceSchema.nullable(),
+  })
+  .strict();
+
+const compactSectionFullSchema = z
+  .object({
+    id: z.number().int(),
+    jwId: z.number().int(),
+    code: z.string(),
+    campusId: z.number().int().nullable(),
+    openDepartmentId: z.number().int().nullable(),
+    course: compactCourseSchema,
+    semester: compactSemesterSchema.nullable(),
+    campus: compactCampusSchema.nullable().optional(),
+    openDepartment: compactDepartmentSchema.nullable().optional(),
+    teachers: z.array(compactTeacherIdentitySchema).optional(),
+  })
+  .strict();
+
+const compactSectionSchema = z.union([
+  compactSectionContextSchema,
+  compactSectionFullSchema,
+]);
+
+const fullSectionMcpSchema = compactSectionFullSchema
+  .extend({
+    course: z.union([compactCourseSchema, courseSchema]),
+    campus: z.union([compactCampusSchema, campusSchema]).nullable().optional(),
+    openDepartment: z
+      .union([compactDepartmentSchema, departmentSummarySchema])
+      .nullable()
+      .optional(),
+    teachers: z
+      .array(
+        z.union([compactTeacherIdentitySchema, teacherPublicIdentitySchema]),
+      )
+      .optional(),
+  })
+  .passthrough();
 
 const compactTodoSchema = todoItemSchema
   .pick({
@@ -200,37 +308,72 @@ const compactHomeworkSchema = compactObjectSchema({
   commentCount: z.number().int().nonnegative(),
 });
 
-const compactScheduleSchema = compactObjectSchema({
-  id: z.number().int(),
-  jwId: z.number().int(),
-  date: dateTimeSchema.nullable(),
-  weekday: z.number().int(),
-  startTime: z.string(),
-  endTime: z.string(),
-  weekIndex: z.number().int(),
-  createdAt: dateTimeSchema,
-  updatedAt: dateTimeSchema,
-  customPlace: z.string().nullable(),
-  section: compactSectionSchema.nullable(),
-  teachers: z.array(compactTeacherSchema),
-  room: z.unknown(),
-});
+const compactScheduleSchema = scheduleEntrySchema
+  .pick({
+    id: true,
+    periods: true,
+    date: true,
+    weekday: true,
+    startTime: true,
+    endTime: true,
+    weekIndex: true,
+    customPlace: true,
+    startUnit: true,
+    endUnit: true,
+  })
+  .extend({
+    section: compactSectionSchema.optional(),
+    teachers: z.array(compactTeacherSchema),
+    room: scheduleRoomSchema
+      .pick({
+        id: true,
+        jwId: true,
+        namePrimary: true,
+        nameSecondary: true,
+      })
+      .extend({
+        building: scheduleBuildingSchema
+          .pick({
+            id: true,
+            jwId: true,
+            namePrimary: true,
+            nameSecondary: true,
+          })
+          .extend({ campus: compactCampusSchema.nullable().optional() })
+          .strict()
+          .optional(),
+      })
+      .strict()
+      .optional(),
+  })
+  .strict();
 
-const compactExamSchema = compactObjectSchema({
-  id: z.number().int(),
-  jwId: z.number().int(),
-  examDate: dateTimeSchema.nullable(),
-  startTime: z.number().int().nullable(),
-  endTime: z.number().int().nullable(),
-  createdAt: dateTimeSchema,
-  updatedAt: dateTimeSchema,
-  examType: z.number().int().nullable(),
-  examMode: z.string().nullable(),
-  examTakeCount: z.number().int().nullable(),
-  section: compactSectionSchema.nullable(),
-  examBatch: z.unknown(),
-  examRooms: z.array(z.unknown()),
-});
+const fullScheduleMcpSchema = z
+  .object(scheduleEntrySchema.omit({ section: true }).shape)
+  .extend({ section: fullSectionMcpSchema })
+  .strict();
+
+const compactExamBatchSchema = examBatchSchema
+  .pick({ id: true, namePrimary: true, nameSecondary: true })
+  .strict();
+
+const compactExamSchema = examSchema
+  .pick({
+    id: true,
+    jwId: true,
+    examDate: true,
+    startTime: true,
+    endTime: true,
+    examType: true,
+    examMode: true,
+    examTakeCount: true,
+    examRooms: true,
+  })
+  .extend({
+    section: compactSectionSchema.optional(),
+    examBatch: compactExamBatchSchema.nullable().optional(),
+  })
+  .strict();
 
 const compactBusRouteSchema = compactObjectSchema({
   id: z.number().int(),
@@ -277,17 +420,21 @@ const compactCalendarSubscriptionSchema = compactObjectSchema({
 });
 
 const paginatedCourseMcpSchema = objectOutputSchema({
-  data: collectionOutputSchema(compactCourseSchema),
+  data: collectionOutputSchema(compactCourseSchema.passthrough()),
   pagination: paginatedCourseResponseSchema.shape.pagination,
 });
 
 const paginatedSectionMcpSchema = objectOutputSchema({
-  data: collectionOutputSchema(compactSectionSchema),
+  data: collectionOutputSchema(
+    z.union([compactSectionSchema, sectionSummarySchema, fullSectionMcpSchema]),
+  ),
   pagination: paginatedSectionResponseSchema.shape.pagination,
 });
 
 const paginatedTeacherMcpSchema = objectOutputSchema({
-  data: collectionOutputSchema(compactTeacherSchema),
+  data: collectionOutputSchema(
+    z.union([compactCatalogTeacherSchema, teacherListSchema]),
+  ),
   pagination: paginatedTeacherResponseSchema.shape.pagination,
 });
 
@@ -297,7 +444,9 @@ const paginatedSemesterMcpSchema = objectOutputSchema({
 });
 
 const paginatedScheduleMcpSchema = objectOutputSchema({
-  data: collectionOutputSchema(compactScheduleSchema),
+  data: collectionOutputSchema(
+    z.union([compactScheduleSchema, fullScheduleMcpSchema]),
+  ),
   pagination: paginatedScheduleResponseSchema.shape.pagination,
 });
 
@@ -660,37 +809,47 @@ const TOOL_OUTPUT_SCHEMAS: Record<string, McpToolOutputSchema> = {
 
   catalog_course_search: paginatedCourseMcpSchema,
   catalog_course_get: objectOutputSchema({
-    course: compactCourseSchema.nullable(),
+    course: z
+      .union([compactCourseSchema, compactCourseSchema.passthrough()])
+      .nullable(),
   }),
   catalog_semester_list: paginatedSemesterMcpSchema,
   catalog_semester_current: objectOutputSchema({
     semester: compactSemesterSchema.nullable(),
   }),
 
-  catalog_section_get: objectOutputSchema({ section: compactSectionSchema }),
+  catalog_section_get: objectOutputSchema({
+    section: z.union([compactSectionSchema, fullSectionMcpSchema]),
+  }),
   catalog_section_search: paginatedSectionMcpSchema,
   catalog_section_match_preview: matchSectionCodesMcpSchema,
 
   catalog_teacher_search: paginatedTeacherMcpSchema,
   catalog_teacher_get: objectOutputSchema({
-    teacher: compactTeacherSchema.nullable(),
+    teacher: z
+      .union([compactCatalogTeacherSchema, fullCatalogTeacherMcpSchema])
+      .nullable(),
   }),
 
   catalog_schedule_list: paginatedScheduleMcpSchema,
   catalog_section_schedule_list: objectOutputSchema({
     section: compactSectionSchema,
-    schedules: collectionOutputSchema(compactScheduleSchema),
+    schedules: collectionOutputSchema(
+      z.union([compactScheduleSchema, fullScheduleMcpSchema]),
+    ),
   }),
   workspace_schedule_list: objectOutputSchema({
-    schedules: collectionOutputSchema(compactScheduleSchema),
+    schedules: collectionOutputSchema(
+      z.union([compactScheduleSchema, fullScheduleMcpSchema]),
+    ),
   }),
 
   catalog_section_exam_list: objectOutputSchema({
     section: compactSectionSchema,
-    exams: collectionOutputSchema(compactExamSchema),
+    exams: collectionOutputSchema(z.union([compactExamSchema, examSchema])),
   }),
   workspace_exam_list: objectOutputSchema({
-    exams: collectionOutputSchema(compactExamSchema),
+    exams: collectionOutputSchema(z.union([compactExamSchema, examSchema])),
   }),
 };
 

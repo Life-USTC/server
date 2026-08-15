@@ -1,12 +1,12 @@
-import {
-  handleRouteError,
-  jsonResponse,
-  notFound,
-  parseRouteQuery,
-} from "@/lib/api/helpers";
+import { handleRouteError, notFound, parseRouteQuery } from "@/lib/api/helpers";
+import { schemaJsonResponse } from "@/lib/api/responses";
 import { parseResourceIdRouteParam } from "@/lib/api/routes/academic-route-helpers";
 import { resolvePublicCatalogLocale } from "@/lib/api/routes/request-locale";
 import { teachersQuerySchema } from "@/lib/api/schemas/request-schemas";
+import {
+  paginatedTeacherResponseSchema,
+  teacherDetailSchema,
+} from "@/lib/api/schemas/response-schemas";
 
 export async function getTeachersRoute(request: Request) {
   const localeResolution = resolvePublicCatalogLocale(request);
@@ -38,7 +38,7 @@ export async function getTeachersRoute(request: Request) {
       locale,
       pagination,
     });
-    return jsonResponse(result, {
+    return schemaJsonResponse(paginatedTeacherResponseSchema, result, {
       headers: cacheHeaders,
     });
   } catch (error) {
@@ -71,7 +71,7 @@ export async function getTeacherDetailRoute(
       return notFound("Teacher not found");
     }
 
-    return jsonResponse(teacher, {
+    return schemaJsonResponse(teacherDetailSchema, teacher, {
       headers: localeResolution.cacheHeaders,
     });
   } catch (error) {

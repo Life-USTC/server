@@ -102,7 +102,7 @@ describe("static schedule meeting mapping", () => {
   });
 
   it("uses the maximum teacher periods regardless of input order", () => {
-    const shorter = scheduleRow({ periods: 3 });
+    const shorter = scheduleRow({ periods: 2.5 });
     const longer = scheduleRow({ periods: 4 });
     const forward = mapSchedule(shorter, 11, 5301);
     const reverse = mapSchedule(longer, 12, 5301);
@@ -112,6 +112,12 @@ describe("static schedule meeting mapping", () => {
 
     expect(forward).toEqual(reverse);
     expect(forward.periods).toBe(4);
+  });
+
+  it("preserves fractional periods and nullable exerciseClass", () => {
+    expect(
+      mapSchedule(scheduleRow({ periods: 2.5, exerciseClass: null })),
+    ).toMatchObject({ periods: 2.5, exerciseClass: undefined });
   });
 
   it.each([
@@ -214,5 +220,15 @@ describe("static teacher assignment mapping", () => {
       teacherLessonTypeId: 30,
       teacherTitleJwId: 40,
     });
+  });
+
+  it("preserves fractional teacher periods", () => {
+    expect(
+      mapTeacherAssignment(
+        1001,
+        { teacherId: 20, name: "张三", period: 0.5 },
+        [],
+      ),
+    ).toMatchObject({ period: 0.5 });
   });
 });

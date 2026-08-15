@@ -7,6 +7,7 @@ import {
   teacherAssignmentPublicSelect,
   teacherPublicReferenceSelect,
 } from "@/features/catalog/server/academic-query-includes";
+import type { Prisma } from "@/generated/prisma/client";
 import type { AppLocale } from "@/i18n/config";
 import { DEFAULT_LOCALE } from "@/i18n/config";
 import { cachedPublicDetailRuntimeData } from "@/lib/catalog-detail-runtime-cache";
@@ -26,7 +27,11 @@ const sectionDetailInclude = {
       examRooms: true,
     },
   },
-} as const;
+} as const satisfies Prisma.SectionInclude;
+
+export type SectionDetailRecord = Prisma.SectionGetPayload<{
+  include: typeof sectionDetailInclude;
+}>;
 
 export async function findCourseDetailByJwId(
   jwId: number,

@@ -1,10 +1,8 @@
-import {
-  handleRouteError,
-  jsonResponse,
-  parseRouteSearchParams,
-} from "@/lib/api/helpers";
+import { handleRouteError, parseRouteSearchParams } from "@/lib/api/helpers";
+import { schemaJsonResponse } from "@/lib/api/responses";
 import { getRequestLocale } from "@/lib/api/routes/request-locale";
 import { subscribedSchedulesQuerySchema } from "@/lib/api/schemas/request-schemas";
+import { subscribedSchedulesResponseSchema } from "@/lib/api/schemas/schedule-response-schema-core";
 import { requireAuth } from "@/lib/auth/api-auth";
 import { serializeScheduleTimeFields } from "@/shared/lib/schedule-serialization";
 
@@ -35,7 +33,7 @@ export async function getMySubscribedSchedulesRoute(request: Request) {
       weekday: parsedQuery.weekday,
     });
 
-    return jsonResponse({
+    return schemaJsonResponse(subscribedSchedulesResponseSchema, {
       schedules: schedules.map(serializeScheduleTimeFields),
     });
   } catch (error) {

@@ -459,7 +459,7 @@ export function mapScheduleGroup(
     no: asInt(row.no) ?? 0,
     limitCount: asInt(row.limitCount) ?? 0,
     stdCount: asInt(row.stdCount) ?? 0,
-    actualPeriods: Math.round(asFloat(row.actualPeriods) ?? 0),
+    actualPeriods: asFloat(row.actualPeriods) ?? 0,
     isDefault: asBoolean(row.default) ?? false,
   };
 }
@@ -546,7 +546,7 @@ export function mapSchedule(
   const endTime = asInt(row.endTime) ?? 0;
   const { startUnit, endUnit } = deriveScheduleUnits(startTime, endTime);
   return {
-    periods: periods == null ? undefined : Math.round(periods),
+    periods,
     date: asDate(row.date),
     dateStr: asString(row.date),
     weekday: asInt(row.weekday) ?? 0,
@@ -556,7 +556,7 @@ export function mapSchedule(
     customPlace: asString(row.customPlace),
     lessonType: asString(row.lessonType),
     weekIndex: asInt(row.weekIndex) ?? 0,
-    exerciseClass: asBoolean(row.exerciseClass) ?? false,
+    exerciseClass: asBoolean(row.exerciseClass),
     startUnit,
     endUnit,
     roomJwId,
@@ -744,10 +744,7 @@ export function mapTeacherAssignment(
     nameCn,
     departmentCode: asString(row.departmentCode),
     role: asString(row.role),
-    period:
-      asFloat(row.period) == null
-        ? undefined
-        : Math.round(asFloat(row.period) as number),
+    period: asFloat(row.period),
     weekIndices: weekIndices
       .map((r) => asInt(r.value))
       .filter((v): v is number => v != null),

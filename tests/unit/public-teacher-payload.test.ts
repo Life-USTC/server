@@ -79,9 +79,12 @@ describe("public teacher payloads", () => {
     );
   });
 
-  it("links assignments by teacherId without duplicating teacher rows", () => {
+  it("links assignments by teacherId and exposes the assignment title", () => {
     expect(teacherAssignmentPublicSelect.teacherId).toBe(true);
     expect(teacherAssignmentPublicSelect).not.toHaveProperty("teacher");
-    expect(teacherAssignmentPublicSelect).not.toHaveProperty("teacherTitle");
+    expect(teacherAssignmentPublicSelect.teacherTitleId).toBe(true);
+    expect(teacherAssignmentPublicSelect.teacherTitle).toEqual({
+      select: expect.objectContaining({ id: true, jwId: true, code: true }),
+    });
   });
 });

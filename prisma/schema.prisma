@@ -328,7 +328,7 @@ model RoomType {
 model Schedule {
   id Int @id @default(autoincrement())
 
-  periods       Int
+  periods       Float
   date          DateTime? @db.Date
   weekday       Int
   startTime     Int
@@ -364,7 +364,7 @@ model ScheduleGroup {
   no            Int
   limitCount    Int
   stdCount      Int
-  actualPeriods Int
+  actualPeriods Float
   isDefault     Boolean
 
   sectionId Int
@@ -387,7 +387,7 @@ model Section {
   bizTypeId               Int?
   credits                 Float?
   period                  Int?
-  periodsPerWeek          Int?
+  periodsPerWeek          Float?
   timesPerWeek            Int?
   stdCount                Int?
   limitCount              Int?
@@ -395,7 +395,7 @@ model Section {
   dateTimePlaceText       String?
   dateTimePlacePersonText Json?
 
-  actualPeriods     Int?
+  actualPeriods     Float?
   theoryPeriods     Float?
   practicePeriods   Float?
   experimentPeriods Float?
@@ -790,7 +790,7 @@ model TeacherAssignment {
   sectionId Int
 
   role           String?
-  period         Int?
+  period         Float?
   weekIndices    Json?
   weekIndicesMsg String?
 

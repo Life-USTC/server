@@ -10509,6 +10509,13 @@
                   "minimum": -9007199254740991,
                   "maximum": 9007199254740991
                 },
+                "namePrimary": {
+                  "type": "string"
+                },
+                "nameSecondary": {
+                  "nullable": true,
+                  "type": "string"
+                },
                 "category": {
                   "nullable": true,
                   "type": "object",
@@ -10524,12 +10531,21 @@
                     "nameEn": {
                       "nullable": true,
                       "type": "string"
+                    },
+                    "namePrimary": {
+                      "type": "string"
+                    },
+                    "nameSecondary": {
+                      "nullable": true,
+                      "type": "string"
                     }
                   },
                   "required": [
                     "id",
                     "nameCn",
-                    "nameEn"
+                    "nameEn",
+                    "namePrimary",
+                    "nameSecondary"
                   ],
                   "additionalProperties": false
                 },
@@ -10548,12 +10564,21 @@
                     "nameEn": {
                       "nullable": true,
                       "type": "string"
+                    },
+                    "namePrimary": {
+                      "type": "string"
+                    },
+                    "nameSecondary": {
+                      "nullable": true,
+                      "type": "string"
                     }
                   },
                   "required": [
                     "id",
                     "nameCn",
-                    "nameEn"
+                    "nameEn",
+                    "namePrimary",
+                    "nameSecondary"
                   ],
                   "additionalProperties": false
                 },
@@ -10572,12 +10597,21 @@
                     "nameEn": {
                       "nullable": true,
                       "type": "string"
+                    },
+                    "namePrimary": {
+                      "type": "string"
+                    },
+                    "nameSecondary": {
+                      "nullable": true,
+                      "type": "string"
                     }
                   },
                   "required": [
                     "id",
                     "nameCn",
-                    "nameEn"
+                    "nameEn",
+                    "namePrimary",
+                    "nameSecondary"
                   ],
                   "additionalProperties": false
                 },
@@ -10596,12 +10630,21 @@
                     "nameEn": {
                       "nullable": true,
                       "type": "string"
+                    },
+                    "namePrimary": {
+                      "type": "string"
+                    },
+                    "nameSecondary": {
+                      "nullable": true,
+                      "type": "string"
                     }
                   },
                   "required": [
                     "id",
                     "nameCn",
-                    "nameEn"
+                    "nameEn",
+                    "namePrimary",
+                    "nameSecondary"
                   ],
                   "additionalProperties": false
                 },
@@ -10620,12 +10663,21 @@
                     "nameEn": {
                       "nullable": true,
                       "type": "string"
+                    },
+                    "namePrimary": {
+                      "type": "string"
+                    },
+                    "nameSecondary": {
+                      "nullable": true,
+                      "type": "string"
                     }
                   },
                   "required": [
                     "id",
                     "nameCn",
-                    "nameEn"
+                    "nameEn",
+                    "namePrimary",
+                    "nameSecondary"
                   ],
                   "additionalProperties": false
                 },
@@ -10644,12 +10696,21 @@
                     "nameEn": {
                       "nullable": true,
                       "type": "string"
+                    },
+                    "namePrimary": {
+                      "type": "string"
+                    },
+                    "nameSecondary": {
+                      "nullable": true,
+                      "type": "string"
                     }
                   },
                   "required": [
                     "id",
                     "nameCn",
-                    "nameEn"
+                    "nameEn",
+                    "namePrimary",
+                    "nameSecondary"
                   ],
                   "additionalProperties": false
                 }
@@ -10666,6 +10727,8 @@
                 "educationLevelId",
                 "gradationId",
                 "typeId",
+                "namePrimary",
+                "nameSecondary",
                 "category",
                 "classType",
                 "classify",
@@ -10826,12 +10889,21 @@
                 "nameEn": {
                   "nullable": true,
                   "type": "string"
+                },
+                "namePrimary": {
+                  "type": "string"
+                },
+                "nameSecondary": {
+                  "nullable": true,
+                  "type": "string"
                 }
               },
               "required": [
                 "id",
                 "nameCn",
-                "nameEn"
+                "nameEn",
+                "namePrimary",
+                "nameSecondary"
               ],
               "additionalProperties": false
             }
@@ -10852,12 +10924,21 @@
                 "nameEn": {
                   "nullable": true,
                   "type": "string"
+                },
+                "namePrimary": {
+                  "type": "string"
+                },
+                "nameSecondary": {
+                  "nullable": true,
+                  "type": "string"
                 }
               },
               "required": [
                 "id",
                 "nameCn",
-                "nameEn"
+                "nameEn",
+                "namePrimary",
+                "nameSecondary"
               ],
               "additionalProperties": false
             }
@@ -10878,12 +10959,21 @@
                 "nameEn": {
                   "nullable": true,
                   "type": "string"
+                },
+                "namePrimary": {
+                  "type": "string"
+                },
+                "nameSecondary": {
+                  "nullable": true,
+                  "type": "string"
                 }
               },
               "required": [
                 "id",
                 "nameCn",
-                "nameEn"
+                "nameEn",
+                "namePrimary",
+                "nameSecondary"
               ],
               "additionalProperties": false
             }
@@ -10904,12 +10994,21 @@
                 "nameEn": {
                   "nullable": true,
                   "type": "string"
+                },
+                "namePrimary": {
+                  "type": "string"
+                },
+                "nameSecondary": {
+                  "nullable": true,
+                  "type": "string"
                 }
               },
               "required": [
                 "id",
                 "nameCn",
-                "nameEn"
+                "nameEn",
+                "namePrimary",
+                "nameSecondary"
               ],
               "additionalProperties": false
             }
@@ -10930,12 +11029,21 @@
                 "nameEn": {
                   "nullable": true,
                   "type": "string"
+                },
+                "namePrimary": {
+                  "type": "string"
+                },
+                "nameSecondary": {
+                  "nullable": true,
+                  "type": "string"
                 }
               },
               "required": [
                 "id",
                 "nameCn",
-                "nameEn"
+                "nameEn",
+                "namePrimary",
+                "nameSecondary"
               ],
               "additionalProperties": false
             }
@@ -10956,12 +11064,21 @@
                 "nameEn": {
                   "nullable": true,
                   "type": "string"
+                },
+                "namePrimary": {
+                  "type": "string"
+                },
+                "nameSecondary": {
+                  "nullable": true,
+                  "type": "string"
                 }
               },
               "required": [
                 "id",
                 "nameCn",
-                "nameEn"
+                "nameEn",
+                "namePrimary",
+                "nameSecondary"
               ],
               "additionalProperties": false
             }
@@ -10982,12 +11099,21 @@
                 "nameEn": {
                   "nullable": true,
                   "type": "string"
+                },
+                "namePrimary": {
+                  "type": "string"
+                },
+                "nameSecondary": {
+                  "nullable": true,
+                  "type": "string"
                 }
               },
               "required": [
                 "id",
                 "nameCn",
-                "nameEn"
+                "nameEn",
+                "namePrimary",
+                "nameSecondary"
               ],
               "additionalProperties": false
             }
@@ -11008,12 +11134,21 @@
                 "nameEn": {
                   "nullable": true,
                   "type": "string"
+                },
+                "namePrimary": {
+                  "type": "string"
+                },
+                "nameSecondary": {
+                  "nullable": true,
+                  "type": "string"
                 }
               },
               "required": [
                 "id",
                 "nameCn",
-                "nameEn"
+                "nameEn",
+                "namePrimary",
+                "nameSecondary"
               ],
               "additionalProperties": false
             }
@@ -11041,6 +11176,13 @@
                   "type": "string"
                 },
                 "code": {
+                  "nullable": true,
+                  "type": "string"
+                },
+                "namePrimary": {
+                  "type": "string"
+                },
+                "nameSecondary": {
                   "nullable": true,
                   "type": "string"
                 },
@@ -11074,6 +11216,13 @@
                         "type": "integer",
                         "minimum": -9007199254740991,
                         "maximum": 9007199254740991
+                      },
+                      "namePrimary": {
+                        "type": "string"
+                      },
+                      "nameSecondary": {
+                        "nullable": true,
+                        "type": "string"
                       }
                     },
                     "required": [
@@ -11082,7 +11231,9 @@
                       "nameCn",
                       "nameEn",
                       "code",
-                      "campusId"
+                      "campusId",
+                      "namePrimary",
+                      "nameSecondary"
                     ],
                     "additionalProperties": false
                   }
@@ -11094,6 +11245,8 @@
                 "nameCn",
                 "nameEn",
                 "code",
+                "namePrimary",
+                "nameSecondary",
                 "buildings"
               ],
               "additionalProperties": false
@@ -11127,9 +11280,7 @@
                   "maximum": 9007199254740991
                 },
                 "periods": {
-                  "type": "integer",
-                  "minimum": -9007199254740991,
-                  "maximum": 9007199254740991
+                  "type": "number"
                 },
                 "date": {
                   "nullable": true,
@@ -11430,13 +11581,12 @@
                         "minimum": -9007199254740991,
                         "maximum": 9007199254740991
                       },
-                      "personId": {
-                        "nullable": true,
+                      "jwId": {
                         "type": "integer",
                         "minimum": -9007199254740991,
                         "maximum": 9007199254740991
                       },
-                      "teacherId": {
+                      "personId": {
                         "nullable": true,
                         "type": "integer",
                         "minimum": -9007199254740991,
@@ -11567,8 +11717,8 @@
                     },
                     "required": [
                       "id",
+                      "jwId",
                       "personId",
-                      "teacherId",
                       "code",
                       "nameCn",
                       "nameEn",
@@ -11619,9 +11769,7 @@
                     },
                     "periodsPerWeek": {
                       "nullable": true,
-                      "type": "integer",
-                      "minimum": -9007199254740991,
-                      "maximum": 9007199254740991
+                      "type": "number"
                     },
                     "timesPerWeek": {
                       "nullable": true,
@@ -11654,9 +11802,7 @@
                     },
                     "actualPeriods": {
                       "nullable": true,
-                      "type": "integer",
-                      "minimum": -9007199254740991,
-                      "maximum": 9007199254740991
+                      "type": "number"
                     },
                     "theoryPeriods": {
                       "nullable": true,
@@ -11913,9 +12059,7 @@
                       "maximum": 9007199254740991
                     },
                     "actualPeriods": {
-                      "type": "integer",
-                      "minimum": -9007199254740991,
-                      "maximum": 9007199254740991
+                      "type": "number"
                     },
                     "isDefault": {
                       "type": "boolean"
@@ -12191,6 +12335,13 @@
                       "nameEn": {
                         "nullable": true,
                         "type": "string"
+                      },
+                      "namePrimary": {
+                        "type": "string"
+                      },
+                      "nameSecondary": {
+                        "nullable": true,
+                        "type": "string"
                       }
                     },
                     "required": [
@@ -12199,7 +12350,9 @@
                       "personId",
                       "code",
                       "nameCn",
-                      "nameEn"
+                      "nameEn",
+                      "namePrimary",
+                      "nameSecondary"
                     ],
                     "additionalProperties": false
                   }
@@ -12374,6 +12527,13 @@
                   "minimum": -9007199254740991,
                   "maximum": 9007199254740991
                 },
+                "namePrimary": {
+                  "type": "string"
+                },
+                "nameSecondary": {
+                  "nullable": true,
+                  "type": "string"
+                },
                 "department": {
                   "nullable": true,
                   "type": "object",
@@ -12396,6 +12556,13 @@
                     "isCollege": {
                       "nullable": true,
                       "type": "boolean"
+                    },
+                    "namePrimary": {
+                      "type": "string"
+                    },
+                    "nameSecondary": {
+                      "nullable": true,
+                      "type": "string"
                     }
                   },
                   "required": [
@@ -12403,7 +12570,9 @@
                     "code",
                     "nameCn",
                     "nameEn",
-                    "isCollege"
+                    "isCollege",
+                    "namePrimary",
+                    "nameSecondary"
                   ],
                   "additionalProperties": false
                 },
@@ -12434,6 +12603,13 @@
                     "enabled": {
                       "nullable": true,
                       "type": "boolean"
+                    },
+                    "namePrimary": {
+                      "type": "string"
+                    },
+                    "nameSecondary": {
+                      "nullable": true,
+                      "type": "string"
                     }
                   },
                   "required": [
@@ -12442,7 +12618,9 @@
                     "nameCn",
                     "nameEn",
                     "code",
-                    "enabled"
+                    "enabled",
+                    "namePrimary",
+                    "nameSecondary"
                   ],
                   "additionalProperties": false
                 },
@@ -12474,6 +12652,8 @@
                 "address",
                 "departmentId",
                 "teacherTitleId",
+                "namePrimary",
+                "nameSecondary",
                 "department",
                 "teacherTitle",
                 "_count"
@@ -13356,9 +13536,7 @@
                     },
                     "periodsPerWeek": {
                       "nullable": true,
-                      "type": "integer",
-                      "minimum": -9007199254740991,
-                      "maximum": 9007199254740991
+                      "type": "number"
                     },
                     "timesPerWeek": {
                       "nullable": true,
@@ -13391,9 +13569,7 @@
                     },
                     "actualPeriods": {
                       "nullable": true,
-                      "type": "integer",
-                      "minimum": -9007199254740991,
-                      "maximum": 9007199254740991
+                      "type": "number"
                     },
                     "theoryPeriods": {
                       "nullable": true,
@@ -14277,9 +14453,7 @@
                   },
                   "periodsPerWeek": {
                     "nullable": true,
-                    "type": "integer",
-                    "minimum": -9007199254740991,
-                    "maximum": 9007199254740991
+                    "type": "number"
                   },
                   "timesPerWeek": {
                     "nullable": true,
@@ -14312,9 +14486,7 @@
                   },
                   "actualPeriods": {
                     "nullable": true,
-                    "type": "integer",
-                    "minimum": -9007199254740991,
-                    "maximum": 9007199254740991
+                    "type": "number"
                   },
                   "theoryPeriods": {
                     "nullable": true,
@@ -14920,9 +15092,7 @@
                     },
                     "periodsPerWeek": {
                       "nullable": true,
-                      "type": "integer",
-                      "minimum": -9007199254740991,
-                      "maximum": 9007199254740991
+                      "type": "number"
                     },
                     "timesPerWeek": {
                       "nullable": true,
@@ -14955,9 +15125,7 @@
                     },
                     "actualPeriods": {
                       "nullable": true,
-                      "type": "integer",
-                      "minimum": -9007199254740991,
-                      "maximum": 9007199254740991
+                      "type": "number"
                     },
                     "theoryPeriods": {
                       "nullable": true,
@@ -15623,9 +15791,7 @@
                       "maximum": 9007199254740991
                     },
                     "periods": {
-                      "type": "integer",
-                      "minimum": -9007199254740991,
-                      "maximum": 9007199254740991
+                      "type": "number"
                     },
                     "date": {
                       "nullable": true,
@@ -15926,13 +16092,12 @@
                             "minimum": -9007199254740991,
                             "maximum": 9007199254740991
                           },
-                          "personId": {
-                            "nullable": true,
+                          "jwId": {
                             "type": "integer",
                             "minimum": -9007199254740991,
                             "maximum": 9007199254740991
                           },
-                          "teacherId": {
+                          "personId": {
                             "nullable": true,
                             "type": "integer",
                             "minimum": -9007199254740991,
@@ -16063,8 +16228,8 @@
                         },
                         "required": [
                           "id",
+                          "jwId",
                           "personId",
-                          "teacherId",
                           "code",
                           "nameCn",
                           "nameEn",
@@ -16115,9 +16280,7 @@
                         },
                         "periodsPerWeek": {
                           "nullable": true,
-                          "type": "integer",
-                          "minimum": -9007199254740991,
-                          "maximum": 9007199254740991
+                          "type": "number"
                         },
                         "timesPerWeek": {
                           "nullable": true,
@@ -16150,9 +16313,7 @@
                         },
                         "actualPeriods": {
                           "nullable": true,
-                          "type": "integer",
-                          "minimum": -9007199254740991,
-                          "maximum": 9007199254740991
+                          "type": "number"
                         },
                         "theoryPeriods": {
                           "nullable": true,
@@ -16409,9 +16570,7 @@
                           "maximum": 9007199254740991
                         },
                         "actualPeriods": {
-                          "type": "integer",
-                          "minimum": -9007199254740991,
-                          "maximum": 9007199254740991
+                          "type": "number"
                         },
                         "isDefault": {
                           "type": "boolean"
@@ -16730,9 +16889,7 @@
                         },
                         "periodsPerWeek": {
                           "nullable": true,
-                          "type": "integer",
-                          "minimum": -9007199254740991,
-                          "maximum": 9007199254740991
+                          "type": "number"
                         },
                         "timesPerWeek": {
                           "nullable": true,
@@ -16765,9 +16922,7 @@
                         },
                         "actualPeriods": {
                           "nullable": true,
-                          "type": "integer",
-                          "minimum": -9007199254740991,
-                          "maximum": 9007199254740991
+                          "type": "number"
                         },
                         "theoryPeriods": {
                           "nullable": true,
@@ -17277,18 +17432,33 @@
                           "minimum": -9007199254740991,
                           "maximum": 9007199254740991
                         },
+                        "jwId": {
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        },
                         "nameCn": {
                           "type": "string"
                         },
                         "nameEn": {
                           "nullable": true,
                           "type": "string"
+                        },
+                        "namePrimary": {
+                          "type": "string"
+                        },
+                        "nameSecondary": {
+                          "nullable": true,
+                          "type": "string"
                         }
                       },
                       "required": [
                         "id",
+                        "jwId",
                         "nameCn",
-                        "nameEn"
+                        "nameEn",
+                        "namePrimary",
+                        "nameSecondary"
                       ],
                       "additionalProperties": false
                     },
@@ -17365,9 +17535,7 @@
                         },
                         "periodsPerWeek": {
                           "nullable": true,
-                          "type": "integer",
-                          "minimum": -9007199254740991,
-                          "maximum": 9007199254740991
+                          "type": "number"
                         },
                         "timesPerWeek": {
                           "nullable": true,
@@ -17400,9 +17568,7 @@
                         },
                         "actualPeriods": {
                           "nullable": true,
-                          "type": "integer",
-                          "minimum": -9007199254740991,
-                          "maximum": 9007199254740991
+                          "type": "number"
                         },
                         "theoryPeriods": {
                           "nullable": true,
@@ -17683,9 +17849,7 @@
                   "maximum": 9007199254740991
                 },
                 "periods": {
-                  "type": "integer",
-                  "minimum": -9007199254740991,
-                  "maximum": 9007199254740991
+                  "type": "number"
                 },
                 "date": {
                   "nullable": true,
@@ -17986,13 +18150,12 @@
                         "minimum": -9007199254740991,
                         "maximum": 9007199254740991
                       },
-                      "personId": {
-                        "nullable": true,
+                      "jwId": {
                         "type": "integer",
                         "minimum": -9007199254740991,
                         "maximum": 9007199254740991
                       },
-                      "teacherId": {
+                      "personId": {
                         "nullable": true,
                         "type": "integer",
                         "minimum": -9007199254740991,
@@ -18123,8 +18286,8 @@
                     },
                     "required": [
                       "id",
+                      "jwId",
                       "personId",
-                      "teacherId",
                       "code",
                       "nameCn",
                       "nameEn",
@@ -18175,9 +18338,7 @@
                     },
                     "periodsPerWeek": {
                       "nullable": true,
-                      "type": "integer",
-                      "minimum": -9007199254740991,
-                      "maximum": 9007199254740991
+                      "type": "number"
                     },
                     "timesPerWeek": {
                       "nullable": true,
@@ -18210,9 +18371,7 @@
                     },
                     "actualPeriods": {
                       "nullable": true,
-                      "type": "integer",
-                      "minimum": -9007199254740991,
-                      "maximum": 9007199254740991
+                      "type": "number"
                     },
                     "theoryPeriods": {
                       "nullable": true,
@@ -18469,9 +18628,7 @@
                       "maximum": 9007199254740991
                     },
                     "actualPeriods": {
-                      "type": "integer",
-                      "minimum": -9007199254740991,
-                      "maximum": 9007199254740991
+                      "type": "number"
                     },
                     "isDefault": {
                       "type": "boolean"
@@ -18593,9 +18750,7 @@
                     },
                     "periodsPerWeek": {
                       "nullable": true,
-                      "type": "integer",
-                      "minimum": -9007199254740991,
-                      "maximum": 9007199254740991
+                      "type": "number"
                     },
                     "timesPerWeek": {
                       "nullable": true,
@@ -18628,9 +18783,7 @@
                     },
                     "actualPeriods": {
                       "nullable": true,
-                      "type": "integer",
-                      "minimum": -9007199254740991,
-                      "maximum": 9007199254740991
+                      "type": "number"
                     },
                     "theoryPeriods": {
                       "nullable": true,
@@ -18784,6 +18937,13 @@
                           "minimum": -9007199254740991,
                           "maximum": 9007199254740991
                         },
+                        "namePrimary": {
+                          "type": "string"
+                        },
+                        "nameSecondary": {
+                          "nullable": true,
+                          "type": "string"
+                        },
                         "category": {
                           "nullable": true,
                           "type": "object",
@@ -18799,12 +18959,21 @@
                             "nameEn": {
                               "nullable": true,
                               "type": "string"
+                            },
+                            "namePrimary": {
+                              "type": "string"
+                            },
+                            "nameSecondary": {
+                              "nullable": true,
+                              "type": "string"
                             }
                           },
                           "required": [
                             "id",
                             "nameCn",
-                            "nameEn"
+                            "nameEn",
+                            "namePrimary",
+                            "nameSecondary"
                           ],
                           "additionalProperties": false
                         },
@@ -18823,12 +18992,21 @@
                             "nameEn": {
                               "nullable": true,
                               "type": "string"
+                            },
+                            "namePrimary": {
+                              "type": "string"
+                            },
+                            "nameSecondary": {
+                              "nullable": true,
+                              "type": "string"
                             }
                           },
                           "required": [
                             "id",
                             "nameCn",
-                            "nameEn"
+                            "nameEn",
+                            "namePrimary",
+                            "nameSecondary"
                           ],
                           "additionalProperties": false
                         },
@@ -18847,12 +19025,21 @@
                             "nameEn": {
                               "nullable": true,
                               "type": "string"
+                            },
+                            "namePrimary": {
+                              "type": "string"
+                            },
+                            "nameSecondary": {
+                              "nullable": true,
+                              "type": "string"
                             }
                           },
                           "required": [
                             "id",
                             "nameCn",
-                            "nameEn"
+                            "nameEn",
+                            "namePrimary",
+                            "nameSecondary"
                           ],
                           "additionalProperties": false
                         },
@@ -18871,12 +19058,21 @@
                             "nameEn": {
                               "nullable": true,
                               "type": "string"
+                            },
+                            "namePrimary": {
+                              "type": "string"
+                            },
+                            "nameSecondary": {
+                              "nullable": true,
+                              "type": "string"
                             }
                           },
                           "required": [
                             "id",
                             "nameCn",
-                            "nameEn"
+                            "nameEn",
+                            "namePrimary",
+                            "nameSecondary"
                           ],
                           "additionalProperties": false
                         },
@@ -18895,12 +19091,21 @@
                             "nameEn": {
                               "nullable": true,
                               "type": "string"
+                            },
+                            "namePrimary": {
+                              "type": "string"
+                            },
+                            "nameSecondary": {
+                              "nullable": true,
+                              "type": "string"
                             }
                           },
                           "required": [
                             "id",
                             "nameCn",
-                            "nameEn"
+                            "nameEn",
+                            "namePrimary",
+                            "nameSecondary"
                           ],
                           "additionalProperties": false
                         },
@@ -18919,21 +19124,23 @@
                             "nameEn": {
                               "nullable": true,
                               "type": "string"
+                            },
+                            "namePrimary": {
+                              "type": "string"
+                            },
+                            "nameSecondary": {
+                              "nullable": true,
+                              "type": "string"
                             }
                           },
                           "required": [
                             "id",
                             "nameCn",
-                            "nameEn"
+                            "nameEn",
+                            "namePrimary",
+                            "nameSecondary"
                           ],
                           "additionalProperties": false
-                        },
-                        "namePrimary": {
-                          "type": "string"
-                        },
-                        "nameSecondary": {
-                          "nullable": true,
-                          "type": "string"
                         }
                       },
                       "required": [
@@ -18948,14 +19155,14 @@
                         "educationLevelId",
                         "gradationId",
                         "typeId",
+                        "namePrimary",
+                        "nameSecondary",
                         "category",
                         "classType",
                         "classify",
                         "educationLevel",
                         "gradation",
-                        "type",
-                        "namePrimary",
-                        "nameSecondary"
+                        "type"
                       ],
                       "additionalProperties": false
                     },
@@ -19020,6 +19227,12 @@
                           "minimum": -9007199254740991,
                           "maximum": 9007199254740991
                         },
+                        "jwId": {
+                          "nullable": true,
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        },
                         "code": {
                           "type": "string"
                         },
@@ -19044,6 +19257,7 @@
                       },
                       "required": [
                         "id",
+                        "jwId",
                         "code",
                         "nameCn",
                         "nameEn",
@@ -19246,9 +19460,7 @@
                     },
                     "periodsPerWeek": {
                       "nullable": true,
-                      "type": "integer",
-                      "minimum": -9007199254740991,
-                      "maximum": 9007199254740991
+                      "type": "number"
                     },
                     "timesPerWeek": {
                       "nullable": true,
@@ -19281,9 +19493,7 @@
                     },
                     "actualPeriods": {
                       "nullable": true,
-                      "type": "integer",
-                      "minimum": -9007199254740991,
-                      "maximum": 9007199254740991
+                      "type": "number"
                     },
                     "theoryPeriods": {
                       "nullable": true,
@@ -19437,6 +19647,13 @@
                           "minimum": -9007199254740991,
                           "maximum": 9007199254740991
                         },
+                        "namePrimary": {
+                          "type": "string"
+                        },
+                        "nameSecondary": {
+                          "nullable": true,
+                          "type": "string"
+                        },
                         "category": {
                           "nullable": true,
                           "type": "object",
@@ -19452,12 +19669,21 @@
                             "nameEn": {
                               "nullable": true,
                               "type": "string"
+                            },
+                            "namePrimary": {
+                              "type": "string"
+                            },
+                            "nameSecondary": {
+                              "nullable": true,
+                              "type": "string"
                             }
                           },
                           "required": [
                             "id",
                             "nameCn",
-                            "nameEn"
+                            "nameEn",
+                            "namePrimary",
+                            "nameSecondary"
                           ],
                           "additionalProperties": false
                         },
@@ -19476,12 +19702,21 @@
                             "nameEn": {
                               "nullable": true,
                               "type": "string"
+                            },
+                            "namePrimary": {
+                              "type": "string"
+                            },
+                            "nameSecondary": {
+                              "nullable": true,
+                              "type": "string"
                             }
                           },
                           "required": [
                             "id",
                             "nameCn",
-                            "nameEn"
+                            "nameEn",
+                            "namePrimary",
+                            "nameSecondary"
                           ],
                           "additionalProperties": false
                         },
@@ -19500,12 +19735,21 @@
                             "nameEn": {
                               "nullable": true,
                               "type": "string"
+                            },
+                            "namePrimary": {
+                              "type": "string"
+                            },
+                            "nameSecondary": {
+                              "nullable": true,
+                              "type": "string"
                             }
                           },
                           "required": [
                             "id",
                             "nameCn",
-                            "nameEn"
+                            "nameEn",
+                            "namePrimary",
+                            "nameSecondary"
                           ],
                           "additionalProperties": false
                         },
@@ -19524,12 +19768,21 @@
                             "nameEn": {
                               "nullable": true,
                               "type": "string"
+                            },
+                            "namePrimary": {
+                              "type": "string"
+                            },
+                            "nameSecondary": {
+                              "nullable": true,
+                              "type": "string"
                             }
                           },
                           "required": [
                             "id",
                             "nameCn",
-                            "nameEn"
+                            "nameEn",
+                            "namePrimary",
+                            "nameSecondary"
                           ],
                           "additionalProperties": false
                         },
@@ -19548,12 +19801,21 @@
                             "nameEn": {
                               "nullable": true,
                               "type": "string"
+                            },
+                            "namePrimary": {
+                              "type": "string"
+                            },
+                            "nameSecondary": {
+                              "nullable": true,
+                              "type": "string"
                             }
                           },
                           "required": [
                             "id",
                             "nameCn",
-                            "nameEn"
+                            "nameEn",
+                            "namePrimary",
+                            "nameSecondary"
                           ],
                           "additionalProperties": false
                         },
@@ -19572,21 +19834,23 @@
                             "nameEn": {
                               "nullable": true,
                               "type": "string"
+                            },
+                            "namePrimary": {
+                              "type": "string"
+                            },
+                            "nameSecondary": {
+                              "nullable": true,
+                              "type": "string"
                             }
                           },
                           "required": [
                             "id",
                             "nameCn",
-                            "nameEn"
+                            "nameEn",
+                            "namePrimary",
+                            "nameSecondary"
                           ],
                           "additionalProperties": false
-                        },
-                        "namePrimary": {
-                          "type": "string"
-                        },
-                        "nameSecondary": {
-                          "nullable": true,
-                          "type": "string"
                         }
                       },
                       "required": [
@@ -19601,14 +19865,14 @@
                         "educationLevelId",
                         "gradationId",
                         "typeId",
+                        "namePrimary",
+                        "nameSecondary",
                         "category",
                         "classType",
                         "classify",
                         "educationLevel",
                         "gradation",
-                        "type",
-                        "namePrimary",
-                        "nameSecondary"
+                        "type"
                       ],
                       "additionalProperties": false
                     },
@@ -19673,6 +19937,12 @@
                           "minimum": -9007199254740991,
                           "maximum": 9007199254740991
                         },
+                        "jwId": {
+                          "nullable": true,
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        },
                         "code": {
                           "type": "string"
                         },
@@ -19697,6 +19967,7 @@
                       },
                       "required": [
                         "id",
+                        "jwId",
                         "code",
                         "nameCn",
                         "nameEn",
@@ -19911,9 +20182,7 @@
                     },
                     "periodsPerWeek": {
                       "nullable": true,
-                      "type": "integer",
-                      "minimum": -9007199254740991,
-                      "maximum": 9007199254740991
+                      "type": "number"
                     },
                     "timesPerWeek": {
                       "nullable": true,
@@ -19946,9 +20215,7 @@
                     },
                     "actualPeriods": {
                       "nullable": true,
-                      "type": "integer",
-                      "minimum": -9007199254740991,
-                      "maximum": 9007199254740991
+                      "type": "number"
                     },
                     "theoryPeriods": {
                       "nullable": true,
@@ -20102,6 +20369,13 @@
                           "minimum": -9007199254740991,
                           "maximum": 9007199254740991
                         },
+                        "namePrimary": {
+                          "type": "string"
+                        },
+                        "nameSecondary": {
+                          "nullable": true,
+                          "type": "string"
+                        },
                         "category": {
                           "nullable": true,
                           "type": "object",
@@ -20117,12 +20391,21 @@
                             "nameEn": {
                               "nullable": true,
                               "type": "string"
+                            },
+                            "namePrimary": {
+                              "type": "string"
+                            },
+                            "nameSecondary": {
+                              "nullable": true,
+                              "type": "string"
                             }
                           },
                           "required": [
                             "id",
                             "nameCn",
-                            "nameEn"
+                            "nameEn",
+                            "namePrimary",
+                            "nameSecondary"
                           ],
                           "additionalProperties": false
                         },
@@ -20141,12 +20424,21 @@
                             "nameEn": {
                               "nullable": true,
                               "type": "string"
+                            },
+                            "namePrimary": {
+                              "type": "string"
+                            },
+                            "nameSecondary": {
+                              "nullable": true,
+                              "type": "string"
                             }
                           },
                           "required": [
                             "id",
                             "nameCn",
-                            "nameEn"
+                            "nameEn",
+                            "namePrimary",
+                            "nameSecondary"
                           ],
                           "additionalProperties": false
                         },
@@ -20165,12 +20457,21 @@
                             "nameEn": {
                               "nullable": true,
                               "type": "string"
+                            },
+                            "namePrimary": {
+                              "type": "string"
+                            },
+                            "nameSecondary": {
+                              "nullable": true,
+                              "type": "string"
                             }
                           },
                           "required": [
                             "id",
                             "nameCn",
-                            "nameEn"
+                            "nameEn",
+                            "namePrimary",
+                            "nameSecondary"
                           ],
                           "additionalProperties": false
                         },
@@ -20189,12 +20490,21 @@
                             "nameEn": {
                               "nullable": true,
                               "type": "string"
+                            },
+                            "namePrimary": {
+                              "type": "string"
+                            },
+                            "nameSecondary": {
+                              "nullable": true,
+                              "type": "string"
                             }
                           },
                           "required": [
                             "id",
                             "nameCn",
-                            "nameEn"
+                            "nameEn",
+                            "namePrimary",
+                            "nameSecondary"
                           ],
                           "additionalProperties": false
                         },
@@ -20213,12 +20523,21 @@
                             "nameEn": {
                               "nullable": true,
                               "type": "string"
+                            },
+                            "namePrimary": {
+                              "type": "string"
+                            },
+                            "nameSecondary": {
+                              "nullable": true,
+                              "type": "string"
                             }
                           },
                           "required": [
                             "id",
                             "nameCn",
-                            "nameEn"
+                            "nameEn",
+                            "namePrimary",
+                            "nameSecondary"
                           ],
                           "additionalProperties": false
                         },
@@ -20237,21 +20556,23 @@
                             "nameEn": {
                               "nullable": true,
                               "type": "string"
+                            },
+                            "namePrimary": {
+                              "type": "string"
+                            },
+                            "nameSecondary": {
+                              "nullable": true,
+                              "type": "string"
                             }
                           },
                           "required": [
                             "id",
                             "nameCn",
-                            "nameEn"
+                            "nameEn",
+                            "namePrimary",
+                            "nameSecondary"
                           ],
                           "additionalProperties": false
-                        },
-                        "namePrimary": {
-                          "type": "string"
-                        },
-                        "nameSecondary": {
-                          "nullable": true,
-                          "type": "string"
                         }
                       },
                       "required": [
@@ -20266,14 +20587,14 @@
                         "educationLevelId",
                         "gradationId",
                         "typeId",
+                        "namePrimary",
+                        "nameSecondary",
                         "category",
                         "classType",
                         "classify",
                         "educationLevel",
                         "gradation",
-                        "type",
-                        "namePrimary",
-                        "nameSecondary"
+                        "type"
                       ],
                       "additionalProperties": false
                     },
@@ -20338,6 +20659,12 @@
                           "minimum": -9007199254740991,
                           "maximum": 9007199254740991
                         },
+                        "jwId": {
+                          "nullable": true,
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        },
                         "code": {
                           "type": "string"
                         },
@@ -20362,6 +20689,7 @@
                       },
                       "required": [
                         "id",
+                        "jwId",
                         "code",
                         "nameCn",
                         "nameEn",
@@ -22318,6 +22646,13 @@
             "minimum": -9007199254740991,
             "maximum": 9007199254740991
           },
+          "namePrimary": {
+            "type": "string"
+          },
+          "nameSecondary": {
+            "nullable": true,
+            "type": "string"
+          },
           "category": {
             "nullable": true,
             "type": "object",
@@ -22333,12 +22668,21 @@
               "nameEn": {
                 "nullable": true,
                 "type": "string"
+              },
+              "namePrimary": {
+                "type": "string"
+              },
+              "nameSecondary": {
+                "nullable": true,
+                "type": "string"
               }
             },
             "required": [
               "id",
               "nameCn",
-              "nameEn"
+              "nameEn",
+              "namePrimary",
+              "nameSecondary"
             ],
             "additionalProperties": false
           },
@@ -22357,12 +22701,21 @@
               "nameEn": {
                 "nullable": true,
                 "type": "string"
+              },
+              "namePrimary": {
+                "type": "string"
+              },
+              "nameSecondary": {
+                "nullable": true,
+                "type": "string"
               }
             },
             "required": [
               "id",
               "nameCn",
-              "nameEn"
+              "nameEn",
+              "namePrimary",
+              "nameSecondary"
             ],
             "additionalProperties": false
           },
@@ -22381,12 +22734,21 @@
               "nameEn": {
                 "nullable": true,
                 "type": "string"
+              },
+              "namePrimary": {
+                "type": "string"
+              },
+              "nameSecondary": {
+                "nullable": true,
+                "type": "string"
               }
             },
             "required": [
               "id",
               "nameCn",
-              "nameEn"
+              "nameEn",
+              "namePrimary",
+              "nameSecondary"
             ],
             "additionalProperties": false
           },
@@ -22405,12 +22767,21 @@
               "nameEn": {
                 "nullable": true,
                 "type": "string"
+              },
+              "namePrimary": {
+                "type": "string"
+              },
+              "nameSecondary": {
+                "nullable": true,
+                "type": "string"
               }
             },
             "required": [
               "id",
               "nameCn",
-              "nameEn"
+              "nameEn",
+              "namePrimary",
+              "nameSecondary"
             ],
             "additionalProperties": false
           },
@@ -22429,12 +22800,21 @@
               "nameEn": {
                 "nullable": true,
                 "type": "string"
+              },
+              "namePrimary": {
+                "type": "string"
+              },
+              "nameSecondary": {
+                "nullable": true,
+                "type": "string"
               }
             },
             "required": [
               "id",
               "nameCn",
-              "nameEn"
+              "nameEn",
+              "namePrimary",
+              "nameSecondary"
             ],
             "additionalProperties": false
           },
@@ -22453,12 +22833,21 @@
               "nameEn": {
                 "nullable": true,
                 "type": "string"
+              },
+              "namePrimary": {
+                "type": "string"
+              },
+              "nameSecondary": {
+                "nullable": true,
+                "type": "string"
               }
             },
             "required": [
               "id",
               "nameCn",
-              "nameEn"
+              "nameEn",
+              "namePrimary",
+              "nameSecondary"
             ],
             "additionalProperties": false
           },
@@ -22504,9 +22893,7 @@
                 },
                 "periodsPerWeek": {
                   "nullable": true,
-                  "type": "integer",
-                  "minimum": -9007199254740991,
-                  "maximum": 9007199254740991
+                  "type": "number"
                 },
                 "timesPerWeek": {
                   "nullable": true,
@@ -22539,9 +22926,7 @@
                 },
                 "actualPeriods": {
                   "nullable": true,
-                  "type": "integer",
-                  "minimum": -9007199254740991,
-                  "maximum": 9007199254740991
+                  "type": "number"
                 },
                 "theoryPeriods": {
                   "nullable": true,
@@ -22668,6 +23053,13 @@
                     "code": {
                       "nullable": true,
                       "type": "string"
+                    },
+                    "namePrimary": {
+                      "type": "string"
+                    },
+                    "nameSecondary": {
+                      "nullable": true,
+                      "type": "string"
                     }
                   },
                   "required": [
@@ -22675,7 +23067,9 @@
                     "jwId",
                     "nameCn",
                     "nameEn",
-                    "code"
+                    "code",
+                    "namePrimary",
+                    "nameSecondary"
                   ],
                   "additionalProperties": false
                 },
@@ -22802,6 +23196,8 @@
           "educationLevelId",
           "gradationId",
           "typeId",
+          "namePrimary",
+          "nameSecondary",
           "category",
           "classType",
           "classify",
@@ -22853,9 +23249,7 @@
           },
           "periodsPerWeek": {
             "nullable": true,
-            "type": "integer",
-            "minimum": -9007199254740991,
-            "maximum": 9007199254740991
+            "type": "number"
           },
           "timesPerWeek": {
             "nullable": true,
@@ -22888,9 +23282,7 @@
           },
           "actualPeriods": {
             "nullable": true,
-            "type": "integer",
-            "minimum": -9007199254740991,
-            "maximum": 9007199254740991
+            "type": "number"
           },
           "theoryPeriods": {
             "nullable": true,
@@ -23044,6 +23436,13 @@
                 "minimum": -9007199254740991,
                 "maximum": 9007199254740991
               },
+              "namePrimary": {
+                "type": "string"
+              },
+              "nameSecondary": {
+                "nullable": true,
+                "type": "string"
+              },
               "category": {
                 "nullable": true,
                 "type": "object",
@@ -23059,12 +23458,21 @@
                   "nameEn": {
                     "nullable": true,
                     "type": "string"
+                  },
+                  "namePrimary": {
+                    "type": "string"
+                  },
+                  "nameSecondary": {
+                    "nullable": true,
+                    "type": "string"
                   }
                 },
                 "required": [
                   "id",
                   "nameCn",
-                  "nameEn"
+                  "nameEn",
+                  "namePrimary",
+                  "nameSecondary"
                 ],
                 "additionalProperties": false
               },
@@ -23083,12 +23491,21 @@
                   "nameEn": {
                     "nullable": true,
                     "type": "string"
+                  },
+                  "namePrimary": {
+                    "type": "string"
+                  },
+                  "nameSecondary": {
+                    "nullable": true,
+                    "type": "string"
                   }
                 },
                 "required": [
                   "id",
                   "nameCn",
-                  "nameEn"
+                  "nameEn",
+                  "namePrimary",
+                  "nameSecondary"
                 ],
                 "additionalProperties": false
               },
@@ -23107,12 +23524,21 @@
                   "nameEn": {
                     "nullable": true,
                     "type": "string"
+                  },
+                  "namePrimary": {
+                    "type": "string"
+                  },
+                  "nameSecondary": {
+                    "nullable": true,
+                    "type": "string"
                   }
                 },
                 "required": [
                   "id",
                   "nameCn",
-                  "nameEn"
+                  "nameEn",
+                  "namePrimary",
+                  "nameSecondary"
                 ],
                 "additionalProperties": false
               },
@@ -23131,12 +23557,21 @@
                   "nameEn": {
                     "nullable": true,
                     "type": "string"
+                  },
+                  "namePrimary": {
+                    "type": "string"
+                  },
+                  "nameSecondary": {
+                    "nullable": true,
+                    "type": "string"
                   }
                 },
                 "required": [
                   "id",
                   "nameCn",
-                  "nameEn"
+                  "nameEn",
+                  "namePrimary",
+                  "nameSecondary"
                 ],
                 "additionalProperties": false
               },
@@ -23155,12 +23590,21 @@
                   "nameEn": {
                     "nullable": true,
                     "type": "string"
+                  },
+                  "namePrimary": {
+                    "type": "string"
+                  },
+                  "nameSecondary": {
+                    "nullable": true,
+                    "type": "string"
                   }
                 },
                 "required": [
                   "id",
                   "nameCn",
-                  "nameEn"
+                  "nameEn",
+                  "namePrimary",
+                  "nameSecondary"
                 ],
                 "additionalProperties": false
               },
@@ -23179,12 +23623,21 @@
                   "nameEn": {
                     "nullable": true,
                     "type": "string"
+                  },
+                  "namePrimary": {
+                    "type": "string"
+                  },
+                  "nameSecondary": {
+                    "nullable": true,
+                    "type": "string"
                   }
                 },
                 "required": [
                   "id",
                   "nameCn",
-                  "nameEn"
+                  "nameEn",
+                  "namePrimary",
+                  "nameSecondary"
                 ],
                 "additionalProperties": false
               }
@@ -23201,6 +23654,8 @@
               "educationLevelId",
               "gradationId",
               "typeId",
+              "namePrimary",
+              "nameSecondary",
               "category",
               "classType",
               "classify",
@@ -23242,6 +23697,13 @@
               "code": {
                 "nullable": true,
                 "type": "string"
+              },
+              "namePrimary": {
+                "type": "string"
+              },
+              "nameSecondary": {
+                "nullable": true,
+                "type": "string"
               }
             },
             "required": [
@@ -23249,7 +23711,9 @@
               "jwId",
               "nameCn",
               "nameEn",
-              "code"
+              "code",
+              "namePrimary",
+              "nameSecondary"
             ],
             "additionalProperties": false
           },
@@ -23258,6 +23722,12 @@
             "type": "object",
             "properties": {
               "id": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              },
+              "jwId": {
+                "nullable": true,
                 "type": "integer",
                 "minimum": -9007199254740991,
                 "maximum": 9007199254740991
@@ -23275,14 +23745,24 @@
               "isCollege": {
                 "nullable": true,
                 "type": "boolean"
+              },
+              "namePrimary": {
+                "type": "string"
+              },
+              "nameSecondary": {
+                "nullable": true,
+                "type": "string"
               }
             },
             "required": [
               "id",
+              "jwId",
               "code",
               "nameCn",
               "nameEn",
-              "isCollege"
+              "isCollege",
+              "namePrimary",
+              "nameSecondary"
             ],
             "additionalProperties": false
           },
@@ -23301,12 +23781,21 @@
               "nameEn": {
                 "nullable": true,
                 "type": "string"
+              },
+              "namePrimary": {
+                "type": "string"
+              },
+              "nameSecondary": {
+                "nullable": true,
+                "type": "string"
               }
             },
             "required": [
               "id",
               "nameCn",
-              "nameEn"
+              "nameEn",
+              "namePrimary",
+              "nameSecondary"
             ],
             "additionalProperties": false
           },
@@ -23325,12 +23814,21 @@
               "nameEn": {
                 "nullable": true,
                 "type": "string"
+              },
+              "namePrimary": {
+                "type": "string"
+              },
+              "nameSecondary": {
+                "nullable": true,
+                "type": "string"
               }
             },
             "required": [
               "id",
               "nameCn",
-              "nameEn"
+              "nameEn",
+              "namePrimary",
+              "nameSecondary"
             ],
             "additionalProperties": false
           },
@@ -23357,6 +23855,13 @@
               },
               "code": {
                 "type": "string"
+              },
+              "namePrimary": {
+                "type": "string"
+              },
+              "nameSecondary": {
+                "nullable": true,
+                "type": "string"
               }
             },
             "required": [
@@ -23364,7 +23869,9 @@
               "jwId",
               "nameCn",
               "nameEn",
-              "code"
+              "code",
+              "namePrimary",
+              "nameSecondary"
             ],
             "additionalProperties": false
           },
@@ -23379,9 +23886,7 @@
                   "maximum": 9007199254740991
                 },
                 "periods": {
-                  "type": "integer",
-                  "minimum": -9007199254740991,
-                  "maximum": 9007199254740991
+                  "type": "number"
                 },
                 "date": {
                   "nullable": true,
@@ -23500,9 +24005,7 @@
                   "maximum": 9007199254740991
                 },
                 "actualPeriods": {
-                  "type": "integer",
-                  "minimum": -9007199254740991,
-                  "maximum": 9007199254740991
+                  "type": "number"
                 },
                 "isDefault": {
                   "type": "boolean"
@@ -23697,9 +24200,7 @@
                 },
                 "period": {
                   "nullable": true,
-                  "type": "integer",
-                  "minimum": -9007199254740991,
-                  "maximum": 9007199254740991
+                  "type": "number"
                 },
                 "weekIndices": {
                   "nullable": true,
@@ -23715,6 +24216,12 @@
                   "type": "string"
                 },
                 "teacherLessonTypeId": {
+                  "nullable": true,
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
+                "teacherTitleId": {
                   "nullable": true,
                   "type": "integer",
                   "minimum": -9007199254740991,
@@ -23763,6 +24270,54 @@
                     "enabled"
                   ],
                   "additionalProperties": false
+                },
+                "teacherTitle": {
+                  "nullable": true,
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "jwId": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "nameCn": {
+                      "type": "string"
+                    },
+                    "nameEn": {
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "enabled": {
+                      "nullable": true,
+                      "type": "boolean"
+                    },
+                    "namePrimary": {
+                      "type": "string"
+                    },
+                    "nameSecondary": {
+                      "nullable": true,
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "jwId",
+                    "nameCn",
+                    "nameEn",
+                    "code",
+                    "enabled",
+                    "namePrimary",
+                    "nameSecondary"
+                  ],
+                  "additionalProperties": false
                 }
               },
               "required": [
@@ -23774,7 +24329,9 @@
                 "weekIndices",
                 "weekIndicesMsg",
                 "teacherLessonTypeId",
-                "teacherLessonType"
+                "teacherTitleId",
+                "teacherLessonType",
+                "teacherTitle"
               ],
               "additionalProperties": false
             }
@@ -23848,18 +24405,33 @@
                       "minimum": -9007199254740991,
                       "maximum": 9007199254740991
                     },
+                    "jwId": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
                     "nameCn": {
                       "type": "string"
                     },
                     "nameEn": {
                       "nullable": true,
                       "type": "string"
+                    },
+                    "namePrimary": {
+                      "type": "string"
+                    },
+                    "nameSecondary": {
+                      "nullable": true,
+                      "type": "string"
                     }
                   },
                   "required": [
                     "id",
+                    "jwId",
                     "nameCn",
-                    "nameEn"
+                    "nameEn",
+                    "namePrimary",
+                    "nameSecondary"
                   ],
                   "additionalProperties": false
                 },
@@ -24157,9 +24729,7 @@
                 },
                 "periodsPerWeek": {
                   "nullable": true,
-                  "type": "integer",
-                  "minimum": -9007199254740991,
-                  "maximum": 9007199254740991
+                  "type": "number"
                 },
                 "timesPerWeek": {
                   "nullable": true,
@@ -24192,9 +24762,7 @@
                 },
                 "actualPeriods": {
                   "nullable": true,
-                  "type": "integer",
-                  "minimum": -9007199254740991,
-                  "maximum": 9007199254740991
+                  "type": "number"
                 },
                 "theoryPeriods": {
                   "nullable": true,
@@ -24348,6 +24916,13 @@
                       "minimum": -9007199254740991,
                       "maximum": 9007199254740991
                     },
+                    "namePrimary": {
+                      "type": "string"
+                    },
+                    "nameSecondary": {
+                      "nullable": true,
+                      "type": "string"
+                    },
                     "category": {
                       "nullable": true,
                       "type": "object",
@@ -24363,12 +24938,21 @@
                         "nameEn": {
                           "nullable": true,
                           "type": "string"
+                        },
+                        "namePrimary": {
+                          "type": "string"
+                        },
+                        "nameSecondary": {
+                          "nullable": true,
+                          "type": "string"
                         }
                       },
                       "required": [
                         "id",
                         "nameCn",
-                        "nameEn"
+                        "nameEn",
+                        "namePrimary",
+                        "nameSecondary"
                       ],
                       "additionalProperties": false
                     },
@@ -24387,12 +24971,21 @@
                         "nameEn": {
                           "nullable": true,
                           "type": "string"
+                        },
+                        "namePrimary": {
+                          "type": "string"
+                        },
+                        "nameSecondary": {
+                          "nullable": true,
+                          "type": "string"
                         }
                       },
                       "required": [
                         "id",
                         "nameCn",
-                        "nameEn"
+                        "nameEn",
+                        "namePrimary",
+                        "nameSecondary"
                       ],
                       "additionalProperties": false
                     },
@@ -24411,12 +25004,21 @@
                         "nameEn": {
                           "nullable": true,
                           "type": "string"
+                        },
+                        "namePrimary": {
+                          "type": "string"
+                        },
+                        "nameSecondary": {
+                          "nullable": true,
+                          "type": "string"
                         }
                       },
                       "required": [
                         "id",
                         "nameCn",
-                        "nameEn"
+                        "nameEn",
+                        "namePrimary",
+                        "nameSecondary"
                       ],
                       "additionalProperties": false
                     },
@@ -24435,12 +25037,21 @@
                         "nameEn": {
                           "nullable": true,
                           "type": "string"
+                        },
+                        "namePrimary": {
+                          "type": "string"
+                        },
+                        "nameSecondary": {
+                          "nullable": true,
+                          "type": "string"
                         }
                       },
                       "required": [
                         "id",
                         "nameCn",
-                        "nameEn"
+                        "nameEn",
+                        "namePrimary",
+                        "nameSecondary"
                       ],
                       "additionalProperties": false
                     },
@@ -24459,12 +25070,21 @@
                         "nameEn": {
                           "nullable": true,
                           "type": "string"
+                        },
+                        "namePrimary": {
+                          "type": "string"
+                        },
+                        "nameSecondary": {
+                          "nullable": true,
+                          "type": "string"
                         }
                       },
                       "required": [
                         "id",
                         "nameCn",
-                        "nameEn"
+                        "nameEn",
+                        "namePrimary",
+                        "nameSecondary"
                       ],
                       "additionalProperties": false
                     },
@@ -24483,21 +25103,23 @@
                         "nameEn": {
                           "nullable": true,
                           "type": "string"
+                        },
+                        "namePrimary": {
+                          "type": "string"
+                        },
+                        "nameSecondary": {
+                          "nullable": true,
+                          "type": "string"
                         }
                       },
                       "required": [
                         "id",
                         "nameCn",
-                        "nameEn"
+                        "nameEn",
+                        "namePrimary",
+                        "nameSecondary"
                       ],
                       "additionalProperties": false
-                    },
-                    "namePrimary": {
-                      "type": "string"
-                    },
-                    "nameSecondary": {
-                      "nullable": true,
-                      "type": "string"
                     }
                   },
                   "required": [
@@ -24512,14 +25134,14 @@
                     "educationLevelId",
                     "gradationId",
                     "typeId",
+                    "namePrimary",
+                    "nameSecondary",
                     "category",
                     "classType",
                     "classify",
                     "educationLevel",
                     "gradation",
-                    "type",
-                    "namePrimary",
-                    "nameSecondary"
+                    "type"
                   ],
                   "additionalProperties": false
                 },
@@ -24584,6 +25206,12 @@
                       "minimum": -9007199254740991,
                       "maximum": 9007199254740991
                     },
+                    "jwId": {
+                      "nullable": true,
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
                     "code": {
                       "type": "string"
                     },
@@ -24608,6 +25236,7 @@
                   },
                   "required": [
                     "id",
+                    "jwId",
                     "code",
                     "nameCn",
                     "nameEn",
@@ -24789,6 +25418,13 @@
             "minimum": -9007199254740991,
             "maximum": 9007199254740991
           },
+          "namePrimary": {
+            "type": "string"
+          },
+          "nameSecondary": {
+            "nullable": true,
+            "type": "string"
+          },
           "department": {
             "nullable": true,
             "type": "object",
@@ -24811,6 +25447,13 @@
               "isCollege": {
                 "nullable": true,
                 "type": "boolean"
+              },
+              "namePrimary": {
+                "type": "string"
+              },
+              "nameSecondary": {
+                "nullable": true,
+                "type": "string"
               }
             },
             "required": [
@@ -24818,7 +25461,9 @@
               "code",
               "nameCn",
               "nameEn",
-              "isCollege"
+              "isCollege",
+              "namePrimary",
+              "nameSecondary"
             ],
             "additionalProperties": false
           },
@@ -24849,6 +25494,13 @@
               "enabled": {
                 "nullable": true,
                 "type": "boolean"
+              },
+              "namePrimary": {
+                "type": "string"
+              },
+              "nameSecondary": {
+                "nullable": true,
+                "type": "string"
               }
             },
             "required": [
@@ -24857,7 +25509,9 @@
               "nameCn",
               "nameEn",
               "code",
-              "enabled"
+              "enabled",
+              "namePrimary",
+              "nameSecondary"
             ],
             "additionalProperties": false
           },
@@ -24903,9 +25557,7 @@
                 },
                 "periodsPerWeek": {
                   "nullable": true,
-                  "type": "integer",
-                  "minimum": -9007199254740991,
-                  "maximum": 9007199254740991
+                  "type": "number"
                 },
                 "timesPerWeek": {
                   "nullable": true,
@@ -24938,9 +25590,7 @@
                 },
                 "actualPeriods": {
                   "nullable": true,
-                  "type": "integer",
-                  "minimum": -9007199254740991,
-                  "maximum": 9007199254740991
+                  "type": "number"
                 },
                 "theoryPeriods": {
                   "nullable": true,
@@ -25094,6 +25744,13 @@
                       "minimum": -9007199254740991,
                       "maximum": 9007199254740991
                     },
+                    "namePrimary": {
+                      "type": "string"
+                    },
+                    "nameSecondary": {
+                      "nullable": true,
+                      "type": "string"
+                    },
                     "category": {
                       "nullable": true,
                       "type": "object",
@@ -25109,12 +25766,21 @@
                         "nameEn": {
                           "nullable": true,
                           "type": "string"
+                        },
+                        "namePrimary": {
+                          "type": "string"
+                        },
+                        "nameSecondary": {
+                          "nullable": true,
+                          "type": "string"
                         }
                       },
                       "required": [
                         "id",
                         "nameCn",
-                        "nameEn"
+                        "nameEn",
+                        "namePrimary",
+                        "nameSecondary"
                       ],
                       "additionalProperties": false
                     },
@@ -25133,12 +25799,21 @@
                         "nameEn": {
                           "nullable": true,
                           "type": "string"
+                        },
+                        "namePrimary": {
+                          "type": "string"
+                        },
+                        "nameSecondary": {
+                          "nullable": true,
+                          "type": "string"
                         }
                       },
                       "required": [
                         "id",
                         "nameCn",
-                        "nameEn"
+                        "nameEn",
+                        "namePrimary",
+                        "nameSecondary"
                       ],
                       "additionalProperties": false
                     },
@@ -25157,12 +25832,21 @@
                         "nameEn": {
                           "nullable": true,
                           "type": "string"
+                        },
+                        "namePrimary": {
+                          "type": "string"
+                        },
+                        "nameSecondary": {
+                          "nullable": true,
+                          "type": "string"
                         }
                       },
                       "required": [
                         "id",
                         "nameCn",
-                        "nameEn"
+                        "nameEn",
+                        "namePrimary",
+                        "nameSecondary"
                       ],
                       "additionalProperties": false
                     },
@@ -25181,12 +25865,21 @@
                         "nameEn": {
                           "nullable": true,
                           "type": "string"
+                        },
+                        "namePrimary": {
+                          "type": "string"
+                        },
+                        "nameSecondary": {
+                          "nullable": true,
+                          "type": "string"
                         }
                       },
                       "required": [
                         "id",
                         "nameCn",
-                        "nameEn"
+                        "nameEn",
+                        "namePrimary",
+                        "nameSecondary"
                       ],
                       "additionalProperties": false
                     },
@@ -25205,12 +25898,21 @@
                         "nameEn": {
                           "nullable": true,
                           "type": "string"
+                        },
+                        "namePrimary": {
+                          "type": "string"
+                        },
+                        "nameSecondary": {
+                          "nullable": true,
+                          "type": "string"
                         }
                       },
                       "required": [
                         "id",
                         "nameCn",
-                        "nameEn"
+                        "nameEn",
+                        "namePrimary",
+                        "nameSecondary"
                       ],
                       "additionalProperties": false
                     },
@@ -25229,12 +25931,21 @@
                         "nameEn": {
                           "nullable": true,
                           "type": "string"
+                        },
+                        "namePrimary": {
+                          "type": "string"
+                        },
+                        "nameSecondary": {
+                          "nullable": true,
+                          "type": "string"
                         }
                       },
                       "required": [
                         "id",
                         "nameCn",
-                        "nameEn"
+                        "nameEn",
+                        "namePrimary",
+                        "nameSecondary"
                       ],
                       "additionalProperties": false
                     }
@@ -25251,6 +25962,8 @@
                     "educationLevelId",
                     "gradationId",
                     "typeId",
+                    "namePrimary",
+                    "nameSecondary",
                     "category",
                     "classType",
                     "classify",
@@ -25338,6 +26051,8 @@
           "address",
           "departmentId",
           "teacherTitleId",
+          "namePrimary",
+          "nameSecondary",
           "department",
           "teacherTitle",
           "sections",
@@ -25867,9 +26582,7 @@
                   },
                   "periodsPerWeek": {
                     "nullable": true,
-                    "type": "integer",
-                    "minimum": -9007199254740991,
-                    "maximum": 9007199254740991
+                    "type": "number"
                   },
                   "timesPerWeek": {
                     "nullable": true,
@@ -25902,9 +26615,7 @@
                   },
                   "actualPeriods": {
                     "nullable": true,
-                    "type": "integer",
-                    "minimum": -9007199254740991,
-                    "maximum": 9007199254740991
+                    "type": "number"
                   },
                   "theoryPeriods": {
                     "nullable": true,
@@ -26758,9 +27469,7 @@
                 },
                 "periodsPerWeek": {
                   "nullable": true,
-                  "type": "integer",
-                  "minimum": -9007199254740991,
-                  "maximum": 9007199254740991
+                  "type": "number"
                 },
                 "timesPerWeek": {
                   "nullable": true,
@@ -26793,9 +27502,7 @@
                 },
                 "actualPeriods": {
                   "nullable": true,
-                  "type": "integer",
-                  "minimum": -9007199254740991,
-                  "maximum": 9007199254740991
+                  "type": "number"
                 },
                 "theoryPeriods": {
                   "nullable": true,
@@ -26949,6 +27656,13 @@
                       "minimum": -9007199254740991,
                       "maximum": 9007199254740991
                     },
+                    "namePrimary": {
+                      "type": "string"
+                    },
+                    "nameSecondary": {
+                      "nullable": true,
+                      "type": "string"
+                    },
                     "category": {
                       "nullable": true,
                       "type": "object",
@@ -26964,12 +27678,21 @@
                         "nameEn": {
                           "nullable": true,
                           "type": "string"
+                        },
+                        "namePrimary": {
+                          "type": "string"
+                        },
+                        "nameSecondary": {
+                          "nullable": true,
+                          "type": "string"
                         }
                       },
                       "required": [
                         "id",
                         "nameCn",
-                        "nameEn"
+                        "nameEn",
+                        "namePrimary",
+                        "nameSecondary"
                       ],
                       "additionalProperties": false
                     },
@@ -26988,12 +27711,21 @@
                         "nameEn": {
                           "nullable": true,
                           "type": "string"
+                        },
+                        "namePrimary": {
+                          "type": "string"
+                        },
+                        "nameSecondary": {
+                          "nullable": true,
+                          "type": "string"
                         }
                       },
                       "required": [
                         "id",
                         "nameCn",
-                        "nameEn"
+                        "nameEn",
+                        "namePrimary",
+                        "nameSecondary"
                       ],
                       "additionalProperties": false
                     },
@@ -27012,12 +27744,21 @@
                         "nameEn": {
                           "nullable": true,
                           "type": "string"
+                        },
+                        "namePrimary": {
+                          "type": "string"
+                        },
+                        "nameSecondary": {
+                          "nullable": true,
+                          "type": "string"
                         }
                       },
                       "required": [
                         "id",
                         "nameCn",
-                        "nameEn"
+                        "nameEn",
+                        "namePrimary",
+                        "nameSecondary"
                       ],
                       "additionalProperties": false
                     },
@@ -27036,12 +27777,21 @@
                         "nameEn": {
                           "nullable": true,
                           "type": "string"
+                        },
+                        "namePrimary": {
+                          "type": "string"
+                        },
+                        "nameSecondary": {
+                          "nullable": true,
+                          "type": "string"
                         }
                       },
                       "required": [
                         "id",
                         "nameCn",
-                        "nameEn"
+                        "nameEn",
+                        "namePrimary",
+                        "nameSecondary"
                       ],
                       "additionalProperties": false
                     },
@@ -27060,12 +27810,21 @@
                         "nameEn": {
                           "nullable": true,
                           "type": "string"
+                        },
+                        "namePrimary": {
+                          "type": "string"
+                        },
+                        "nameSecondary": {
+                          "nullable": true,
+                          "type": "string"
                         }
                       },
                       "required": [
                         "id",
                         "nameCn",
-                        "nameEn"
+                        "nameEn",
+                        "namePrimary",
+                        "nameSecondary"
                       ],
                       "additionalProperties": false
                     },
@@ -27084,21 +27843,23 @@
                         "nameEn": {
                           "nullable": true,
                           "type": "string"
+                        },
+                        "namePrimary": {
+                          "type": "string"
+                        },
+                        "nameSecondary": {
+                          "nullable": true,
+                          "type": "string"
                         }
                       },
                       "required": [
                         "id",
                         "nameCn",
-                        "nameEn"
+                        "nameEn",
+                        "namePrimary",
+                        "nameSecondary"
                       ],
                       "additionalProperties": false
-                    },
-                    "namePrimary": {
-                      "type": "string"
-                    },
-                    "nameSecondary": {
-                      "nullable": true,
-                      "type": "string"
                     }
                   },
                   "required": [
@@ -27113,14 +27874,14 @@
                     "educationLevelId",
                     "gradationId",
                     "typeId",
+                    "namePrimary",
+                    "nameSecondary",
                     "category",
                     "classType",
                     "classify",
                     "educationLevel",
                     "gradation",
-                    "type",
-                    "namePrimary",
-                    "nameSecondary"
+                    "type"
                   ],
                   "additionalProperties": false
                 },
@@ -27185,6 +27946,12 @@
                       "minimum": -9007199254740991,
                       "maximum": 9007199254740991
                     },
+                    "jwId": {
+                      "nullable": true,
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
                     "code": {
                       "type": "string"
                     },
@@ -27209,6 +27976,7 @@
                   },
                   "required": [
                     "id",
+                    "jwId",
                     "code",
                     "nameCn",
                     "nameEn",
@@ -27393,9 +28161,7 @@
                     },
                     "periodsPerWeek": {
                       "nullable": true,
-                      "type": "integer",
-                      "minimum": -9007199254740991,
-                      "maximum": 9007199254740991
+                      "type": "number"
                     },
                     "timesPerWeek": {
                       "nullable": true,
@@ -27428,9 +28194,7 @@
                     },
                     "actualPeriods": {
                       "nullable": true,
-                      "type": "integer",
-                      "minimum": -9007199254740991,
-                      "maximum": 9007199254740991
+                      "type": "number"
                     },
                     "theoryPeriods": {
                       "nullable": true,
@@ -27584,6 +28348,13 @@
                           "minimum": -9007199254740991,
                           "maximum": 9007199254740991
                         },
+                        "namePrimary": {
+                          "type": "string"
+                        },
+                        "nameSecondary": {
+                          "nullable": true,
+                          "type": "string"
+                        },
                         "category": {
                           "nullable": true,
                           "type": "object",
@@ -27599,12 +28370,21 @@
                             "nameEn": {
                               "nullable": true,
                               "type": "string"
+                            },
+                            "namePrimary": {
+                              "type": "string"
+                            },
+                            "nameSecondary": {
+                              "nullable": true,
+                              "type": "string"
                             }
                           },
                           "required": [
                             "id",
                             "nameCn",
-                            "nameEn"
+                            "nameEn",
+                            "namePrimary",
+                            "nameSecondary"
                           ],
                           "additionalProperties": false
                         },
@@ -27623,12 +28403,21 @@
                             "nameEn": {
                               "nullable": true,
                               "type": "string"
+                            },
+                            "namePrimary": {
+                              "type": "string"
+                            },
+                            "nameSecondary": {
+                              "nullable": true,
+                              "type": "string"
                             }
                           },
                           "required": [
                             "id",
                             "nameCn",
-                            "nameEn"
+                            "nameEn",
+                            "namePrimary",
+                            "nameSecondary"
                           ],
                           "additionalProperties": false
                         },
@@ -27647,12 +28436,21 @@
                             "nameEn": {
                               "nullable": true,
                               "type": "string"
+                            },
+                            "namePrimary": {
+                              "type": "string"
+                            },
+                            "nameSecondary": {
+                              "nullable": true,
+                              "type": "string"
                             }
                           },
                           "required": [
                             "id",
                             "nameCn",
-                            "nameEn"
+                            "nameEn",
+                            "namePrimary",
+                            "nameSecondary"
                           ],
                           "additionalProperties": false
                         },
@@ -27671,12 +28469,21 @@
                             "nameEn": {
                               "nullable": true,
                               "type": "string"
+                            },
+                            "namePrimary": {
+                              "type": "string"
+                            },
+                            "nameSecondary": {
+                              "nullable": true,
+                              "type": "string"
                             }
                           },
                           "required": [
                             "id",
                             "nameCn",
-                            "nameEn"
+                            "nameEn",
+                            "namePrimary",
+                            "nameSecondary"
                           ],
                           "additionalProperties": false
                         },
@@ -27695,12 +28502,21 @@
                             "nameEn": {
                               "nullable": true,
                               "type": "string"
+                            },
+                            "namePrimary": {
+                              "type": "string"
+                            },
+                            "nameSecondary": {
+                              "nullable": true,
+                              "type": "string"
                             }
                           },
                           "required": [
                             "id",
                             "nameCn",
-                            "nameEn"
+                            "nameEn",
+                            "namePrimary",
+                            "nameSecondary"
                           ],
                           "additionalProperties": false
                         },
@@ -27719,21 +28535,23 @@
                             "nameEn": {
                               "nullable": true,
                               "type": "string"
+                            },
+                            "namePrimary": {
+                              "type": "string"
+                            },
+                            "nameSecondary": {
+                              "nullable": true,
+                              "type": "string"
                             }
                           },
                           "required": [
                             "id",
                             "nameCn",
-                            "nameEn"
+                            "nameEn",
+                            "namePrimary",
+                            "nameSecondary"
                           ],
                           "additionalProperties": false
-                        },
-                        "namePrimary": {
-                          "type": "string"
-                        },
-                        "nameSecondary": {
-                          "nullable": true,
-                          "type": "string"
                         }
                       },
                       "required": [
@@ -27748,14 +28566,14 @@
                         "educationLevelId",
                         "gradationId",
                         "typeId",
+                        "namePrimary",
+                        "nameSecondary",
                         "category",
                         "classType",
                         "classify",
                         "educationLevel",
                         "gradation",
-                        "type",
-                        "namePrimary",
-                        "nameSecondary"
+                        "type"
                       ],
                       "additionalProperties": false
                     },
@@ -27820,6 +28638,12 @@
                           "minimum": -9007199254740991,
                           "maximum": 9007199254740991
                         },
+                        "jwId": {
+                          "nullable": true,
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        },
                         "code": {
                           "type": "string"
                         },
@@ -27844,6 +28668,7 @@
                       },
                       "required": [
                         "id",
+                        "jwId",
                         "code",
                         "nameCn",
                         "nameEn",
@@ -28040,9 +28865,7 @@
                     },
                     "periodsPerWeek": {
                       "nullable": true,
-                      "type": "integer",
-                      "minimum": -9007199254740991,
-                      "maximum": 9007199254740991
+                      "type": "number"
                     },
                     "timesPerWeek": {
                       "nullable": true,
@@ -28075,9 +28898,7 @@
                     },
                     "actualPeriods": {
                       "nullable": true,
-                      "type": "integer",
-                      "minimum": -9007199254740991,
-                      "maximum": 9007199254740991
+                      "type": "number"
                     },
                     "theoryPeriods": {
                       "nullable": true,
@@ -28231,6 +29052,13 @@
                           "minimum": -9007199254740991,
                           "maximum": 9007199254740991
                         },
+                        "namePrimary": {
+                          "type": "string"
+                        },
+                        "nameSecondary": {
+                          "nullable": true,
+                          "type": "string"
+                        },
                         "category": {
                           "nullable": true,
                           "type": "object",
@@ -28246,12 +29074,21 @@
                             "nameEn": {
                               "nullable": true,
                               "type": "string"
+                            },
+                            "namePrimary": {
+                              "type": "string"
+                            },
+                            "nameSecondary": {
+                              "nullable": true,
+                              "type": "string"
                             }
                           },
                           "required": [
                             "id",
                             "nameCn",
-                            "nameEn"
+                            "nameEn",
+                            "namePrimary",
+                            "nameSecondary"
                           ],
                           "additionalProperties": false
                         },
@@ -28270,12 +29107,21 @@
                             "nameEn": {
                               "nullable": true,
                               "type": "string"
+                            },
+                            "namePrimary": {
+                              "type": "string"
+                            },
+                            "nameSecondary": {
+                              "nullable": true,
+                              "type": "string"
                             }
                           },
                           "required": [
                             "id",
                             "nameCn",
-                            "nameEn"
+                            "nameEn",
+                            "namePrimary",
+                            "nameSecondary"
                           ],
                           "additionalProperties": false
                         },
@@ -28294,12 +29140,21 @@
                             "nameEn": {
                               "nullable": true,
                               "type": "string"
+                            },
+                            "namePrimary": {
+                              "type": "string"
+                            },
+                            "nameSecondary": {
+                              "nullable": true,
+                              "type": "string"
                             }
                           },
                           "required": [
                             "id",
                             "nameCn",
-                            "nameEn"
+                            "nameEn",
+                            "namePrimary",
+                            "nameSecondary"
                           ],
                           "additionalProperties": false
                         },
@@ -28318,12 +29173,21 @@
                             "nameEn": {
                               "nullable": true,
                               "type": "string"
+                            },
+                            "namePrimary": {
+                              "type": "string"
+                            },
+                            "nameSecondary": {
+                              "nullable": true,
+                              "type": "string"
                             }
                           },
                           "required": [
                             "id",
                             "nameCn",
-                            "nameEn"
+                            "nameEn",
+                            "namePrimary",
+                            "nameSecondary"
                           ],
                           "additionalProperties": false
                         },
@@ -28342,12 +29206,21 @@
                             "nameEn": {
                               "nullable": true,
                               "type": "string"
+                            },
+                            "namePrimary": {
+                              "type": "string"
+                            },
+                            "nameSecondary": {
+                              "nullable": true,
+                              "type": "string"
                             }
                           },
                           "required": [
                             "id",
                             "nameCn",
-                            "nameEn"
+                            "nameEn",
+                            "namePrimary",
+                            "nameSecondary"
                           ],
                           "additionalProperties": false
                         },
@@ -28366,21 +29239,23 @@
                             "nameEn": {
                               "nullable": true,
                               "type": "string"
+                            },
+                            "namePrimary": {
+                              "type": "string"
+                            },
+                            "nameSecondary": {
+                              "nullable": true,
+                              "type": "string"
                             }
                           },
                           "required": [
                             "id",
                             "nameCn",
-                            "nameEn"
+                            "nameEn",
+                            "namePrimary",
+                            "nameSecondary"
                           ],
                           "additionalProperties": false
-                        },
-                        "namePrimary": {
-                          "type": "string"
-                        },
-                        "nameSecondary": {
-                          "nullable": true,
-                          "type": "string"
                         }
                       },
                       "required": [
@@ -28395,14 +29270,14 @@
                         "educationLevelId",
                         "gradationId",
                         "typeId",
+                        "namePrimary",
+                        "nameSecondary",
                         "category",
                         "classType",
                         "classify",
                         "educationLevel",
                         "gradation",
-                        "type",
-                        "namePrimary",
-                        "nameSecondary"
+                        "type"
                       ],
                       "additionalProperties": false
                     },
@@ -28467,6 +29342,12 @@
                           "minimum": -9007199254740991,
                           "maximum": 9007199254740991
                         },
+                        "jwId": {
+                          "nullable": true,
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        },
                         "code": {
                           "type": "string"
                         },
@@ -28491,6 +29372,7 @@
                       },
                       "required": [
                         "id",
+                        "jwId",
                         "code",
                         "nameCn",
                         "nameEn",
@@ -28713,9 +29595,7 @@
                 },
                 "periodsPerWeek": {
                   "nullable": true,
-                  "type": "integer",
-                  "minimum": -9007199254740991,
-                  "maximum": 9007199254740991
+                  "type": "number"
                 },
                 "timesPerWeek": {
                   "nullable": true,
@@ -28748,9 +29628,7 @@
                 },
                 "actualPeriods": {
                   "nullable": true,
-                  "type": "integer",
-                  "minimum": -9007199254740991,
-                  "maximum": 9007199254740991
+                  "type": "number"
                 },
                 "theoryPeriods": {
                   "nullable": true,
@@ -28904,6 +29782,13 @@
                       "minimum": -9007199254740991,
                       "maximum": 9007199254740991
                     },
+                    "namePrimary": {
+                      "type": "string"
+                    },
+                    "nameSecondary": {
+                      "nullable": true,
+                      "type": "string"
+                    },
                     "category": {
                       "nullable": true,
                       "type": "object",
@@ -28919,12 +29804,21 @@
                         "nameEn": {
                           "nullable": true,
                           "type": "string"
+                        },
+                        "namePrimary": {
+                          "type": "string"
+                        },
+                        "nameSecondary": {
+                          "nullable": true,
+                          "type": "string"
                         }
                       },
                       "required": [
                         "id",
                         "nameCn",
-                        "nameEn"
+                        "nameEn",
+                        "namePrimary",
+                        "nameSecondary"
                       ],
                       "additionalProperties": false
                     },
@@ -28943,12 +29837,21 @@
                         "nameEn": {
                           "nullable": true,
                           "type": "string"
+                        },
+                        "namePrimary": {
+                          "type": "string"
+                        },
+                        "nameSecondary": {
+                          "nullable": true,
+                          "type": "string"
                         }
                       },
                       "required": [
                         "id",
                         "nameCn",
-                        "nameEn"
+                        "nameEn",
+                        "namePrimary",
+                        "nameSecondary"
                       ],
                       "additionalProperties": false
                     },
@@ -28967,12 +29870,21 @@
                         "nameEn": {
                           "nullable": true,
                           "type": "string"
+                        },
+                        "namePrimary": {
+                          "type": "string"
+                        },
+                        "nameSecondary": {
+                          "nullable": true,
+                          "type": "string"
                         }
                       },
                       "required": [
                         "id",
                         "nameCn",
-                        "nameEn"
+                        "nameEn",
+                        "namePrimary",
+                        "nameSecondary"
                       ],
                       "additionalProperties": false
                     },
@@ -28991,12 +29903,21 @@
                         "nameEn": {
                           "nullable": true,
                           "type": "string"
+                        },
+                        "namePrimary": {
+                          "type": "string"
+                        },
+                        "nameSecondary": {
+                          "nullable": true,
+                          "type": "string"
                         }
                       },
                       "required": [
                         "id",
                         "nameCn",
-                        "nameEn"
+                        "nameEn",
+                        "namePrimary",
+                        "nameSecondary"
                       ],
                       "additionalProperties": false
                     },
@@ -29015,12 +29936,21 @@
                         "nameEn": {
                           "nullable": true,
                           "type": "string"
+                        },
+                        "namePrimary": {
+                          "type": "string"
+                        },
+                        "nameSecondary": {
+                          "nullable": true,
+                          "type": "string"
                         }
                       },
                       "required": [
                         "id",
                         "nameCn",
-                        "nameEn"
+                        "nameEn",
+                        "namePrimary",
+                        "nameSecondary"
                       ],
                       "additionalProperties": false
                     },
@@ -29039,21 +29969,23 @@
                         "nameEn": {
                           "nullable": true,
                           "type": "string"
+                        },
+                        "namePrimary": {
+                          "type": "string"
+                        },
+                        "nameSecondary": {
+                          "nullable": true,
+                          "type": "string"
                         }
                       },
                       "required": [
                         "id",
                         "nameCn",
-                        "nameEn"
+                        "nameEn",
+                        "namePrimary",
+                        "nameSecondary"
                       ],
                       "additionalProperties": false
-                    },
-                    "namePrimary": {
-                      "type": "string"
-                    },
-                    "nameSecondary": {
-                      "nullable": true,
-                      "type": "string"
                     }
                   },
                   "required": [
@@ -29068,14 +30000,14 @@
                     "educationLevelId",
                     "gradationId",
                     "typeId",
+                    "namePrimary",
+                    "nameSecondary",
                     "category",
                     "classType",
                     "classify",
                     "educationLevel",
                     "gradation",
-                    "type",
-                    "namePrimary",
-                    "nameSecondary"
+                    "type"
                   ],
                   "additionalProperties": false
                 },
@@ -29140,6 +30072,12 @@
                       "minimum": -9007199254740991,
                       "maximum": 9007199254740991
                     },
+                    "jwId": {
+                      "nullable": true,
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
                     "code": {
                       "type": "string"
                     },
@@ -29164,6 +30102,7 @@
                   },
                   "required": [
                     "id",
+                    "jwId",
                     "code",
                     "nameCn",
                     "nameEn",
@@ -29318,9 +30257,7 @@
                 },
                 "periodsPerWeek": {
                   "nullable": true,
-                  "type": "integer",
-                  "minimum": -9007199254740991,
-                  "maximum": 9007199254740991
+                  "type": "number"
                 },
                 "timesPerWeek": {
                   "nullable": true,
@@ -29353,9 +30290,7 @@
                 },
                 "actualPeriods": {
                   "nullable": true,
-                  "type": "integer",
-                  "minimum": -9007199254740991,
-                  "maximum": 9007199254740991
+                  "type": "number"
                 },
                 "theoryPeriods": {
                   "nullable": true,
@@ -29509,6 +30444,13 @@
                       "minimum": -9007199254740991,
                       "maximum": 9007199254740991
                     },
+                    "namePrimary": {
+                      "type": "string"
+                    },
+                    "nameSecondary": {
+                      "nullable": true,
+                      "type": "string"
+                    },
                     "category": {
                       "nullable": true,
                       "type": "object",
@@ -29524,12 +30466,21 @@
                         "nameEn": {
                           "nullable": true,
                           "type": "string"
+                        },
+                        "namePrimary": {
+                          "type": "string"
+                        },
+                        "nameSecondary": {
+                          "nullable": true,
+                          "type": "string"
                         }
                       },
                       "required": [
                         "id",
                         "nameCn",
-                        "nameEn"
+                        "nameEn",
+                        "namePrimary",
+                        "nameSecondary"
                       ],
                       "additionalProperties": false
                     },
@@ -29548,12 +30499,21 @@
                         "nameEn": {
                           "nullable": true,
                           "type": "string"
+                        },
+                        "namePrimary": {
+                          "type": "string"
+                        },
+                        "nameSecondary": {
+                          "nullable": true,
+                          "type": "string"
                         }
                       },
                       "required": [
                         "id",
                         "nameCn",
-                        "nameEn"
+                        "nameEn",
+                        "namePrimary",
+                        "nameSecondary"
                       ],
                       "additionalProperties": false
                     },
@@ -29572,12 +30532,21 @@
                         "nameEn": {
                           "nullable": true,
                           "type": "string"
+                        },
+                        "namePrimary": {
+                          "type": "string"
+                        },
+                        "nameSecondary": {
+                          "nullable": true,
+                          "type": "string"
                         }
                       },
                       "required": [
                         "id",
                         "nameCn",
-                        "nameEn"
+                        "nameEn",
+                        "namePrimary",
+                        "nameSecondary"
                       ],
                       "additionalProperties": false
                     },
@@ -29596,12 +30565,21 @@
                         "nameEn": {
                           "nullable": true,
                           "type": "string"
+                        },
+                        "namePrimary": {
+                          "type": "string"
+                        },
+                        "nameSecondary": {
+                          "nullable": true,
+                          "type": "string"
                         }
                       },
                       "required": [
                         "id",
                         "nameCn",
-                        "nameEn"
+                        "nameEn",
+                        "namePrimary",
+                        "nameSecondary"
                       ],
                       "additionalProperties": false
                     },
@@ -29620,12 +30598,21 @@
                         "nameEn": {
                           "nullable": true,
                           "type": "string"
+                        },
+                        "namePrimary": {
+                          "type": "string"
+                        },
+                        "nameSecondary": {
+                          "nullable": true,
+                          "type": "string"
                         }
                       },
                       "required": [
                         "id",
                         "nameCn",
-                        "nameEn"
+                        "nameEn",
+                        "namePrimary",
+                        "nameSecondary"
                       ],
                       "additionalProperties": false
                     },
@@ -29644,21 +30631,23 @@
                         "nameEn": {
                           "nullable": true,
                           "type": "string"
+                        },
+                        "namePrimary": {
+                          "type": "string"
+                        },
+                        "nameSecondary": {
+                          "nullable": true,
+                          "type": "string"
                         }
                       },
                       "required": [
                         "id",
                         "nameCn",
-                        "nameEn"
+                        "nameEn",
+                        "namePrimary",
+                        "nameSecondary"
                       ],
                       "additionalProperties": false
-                    },
-                    "namePrimary": {
-                      "type": "string"
-                    },
-                    "nameSecondary": {
-                      "nullable": true,
-                      "type": "string"
                     }
                   },
                   "required": [
@@ -29673,14 +30662,14 @@
                     "educationLevelId",
                     "gradationId",
                     "typeId",
+                    "namePrimary",
+                    "nameSecondary",
                     "category",
                     "classType",
                     "classify",
                     "educationLevel",
                     "gradation",
-                    "type",
-                    "namePrimary",
-                    "nameSecondary"
+                    "type"
                   ],
                   "additionalProperties": false
                 },
@@ -29745,6 +30734,12 @@
                       "minimum": -9007199254740991,
                       "maximum": 9007199254740991
                     },
+                    "jwId": {
+                      "nullable": true,
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
                     "code": {
                       "type": "string"
                     },
@@ -29769,6 +30764,7 @@
                   },
                   "required": [
                     "id",
+                    "jwId",
                     "code",
                     "nameCn",
                     "nameEn",
@@ -29923,9 +30919,7 @@
                 },
                 "periodsPerWeek": {
                   "nullable": true,
-                  "type": "integer",
-                  "minimum": -9007199254740991,
-                  "maximum": 9007199254740991
+                  "type": "number"
                 },
                 "timesPerWeek": {
                   "nullable": true,
@@ -29958,9 +30952,7 @@
                 },
                 "actualPeriods": {
                   "nullable": true,
-                  "type": "integer",
-                  "minimum": -9007199254740991,
-                  "maximum": 9007199254740991
+                  "type": "number"
                 },
                 "theoryPeriods": {
                   "nullable": true,
@@ -30114,6 +31106,13 @@
                       "minimum": -9007199254740991,
                       "maximum": 9007199254740991
                     },
+                    "namePrimary": {
+                      "type": "string"
+                    },
+                    "nameSecondary": {
+                      "nullable": true,
+                      "type": "string"
+                    },
                     "category": {
                       "nullable": true,
                       "type": "object",
@@ -30129,12 +31128,21 @@
                         "nameEn": {
                           "nullable": true,
                           "type": "string"
+                        },
+                        "namePrimary": {
+                          "type": "string"
+                        },
+                        "nameSecondary": {
+                          "nullable": true,
+                          "type": "string"
                         }
                       },
                       "required": [
                         "id",
                         "nameCn",
-                        "nameEn"
+                        "nameEn",
+                        "namePrimary",
+                        "nameSecondary"
                       ],
                       "additionalProperties": false
                     },
@@ -30153,12 +31161,21 @@
                         "nameEn": {
                           "nullable": true,
                           "type": "string"
+                        },
+                        "namePrimary": {
+                          "type": "string"
+                        },
+                        "nameSecondary": {
+                          "nullable": true,
+                          "type": "string"
                         }
                       },
                       "required": [
                         "id",
                         "nameCn",
-                        "nameEn"
+                        "nameEn",
+                        "namePrimary",
+                        "nameSecondary"
                       ],
                       "additionalProperties": false
                     },
@@ -30177,12 +31194,21 @@
                         "nameEn": {
                           "nullable": true,
                           "type": "string"
+                        },
+                        "namePrimary": {
+                          "type": "string"
+                        },
+                        "nameSecondary": {
+                          "nullable": true,
+                          "type": "string"
                         }
                       },
                       "required": [
                         "id",
                         "nameCn",
-                        "nameEn"
+                        "nameEn",
+                        "namePrimary",
+                        "nameSecondary"
                       ],
                       "additionalProperties": false
                     },
@@ -30201,12 +31227,21 @@
                         "nameEn": {
                           "nullable": true,
                           "type": "string"
+                        },
+                        "namePrimary": {
+                          "type": "string"
+                        },
+                        "nameSecondary": {
+                          "nullable": true,
+                          "type": "string"
                         }
                       },
                       "required": [
                         "id",
                         "nameCn",
-                        "nameEn"
+                        "nameEn",
+                        "namePrimary",
+                        "nameSecondary"
                       ],
                       "additionalProperties": false
                     },
@@ -30225,12 +31260,21 @@
                         "nameEn": {
                           "nullable": true,
                           "type": "string"
+                        },
+                        "namePrimary": {
+                          "type": "string"
+                        },
+                        "nameSecondary": {
+                          "nullable": true,
+                          "type": "string"
                         }
                       },
                       "required": [
                         "id",
                         "nameCn",
-                        "nameEn"
+                        "nameEn",
+                        "namePrimary",
+                        "nameSecondary"
                       ],
                       "additionalProperties": false
                     },
@@ -30249,21 +31293,23 @@
                         "nameEn": {
                           "nullable": true,
                           "type": "string"
+                        },
+                        "namePrimary": {
+                          "type": "string"
+                        },
+                        "nameSecondary": {
+                          "nullable": true,
+                          "type": "string"
                         }
                       },
                       "required": [
                         "id",
                         "nameCn",
-                        "nameEn"
+                        "nameEn",
+                        "namePrimary",
+                        "nameSecondary"
                       ],
                       "additionalProperties": false
-                    },
-                    "namePrimary": {
-                      "type": "string"
-                    },
-                    "nameSecondary": {
-                      "nullable": true,
-                      "type": "string"
                     }
                   },
                   "required": [
@@ -30278,14 +31324,14 @@
                     "educationLevelId",
                     "gradationId",
                     "typeId",
+                    "namePrimary",
+                    "nameSecondary",
                     "category",
                     "classType",
                     "classify",
                     "educationLevel",
                     "gradation",
-                    "type",
-                    "namePrimary",
-                    "nameSecondary"
+                    "type"
                   ],
                   "additionalProperties": false
                 },
@@ -30350,6 +31396,12 @@
                       "minimum": -9007199254740991,
                       "maximum": 9007199254740991
                     },
+                    "jwId": {
+                      "nullable": true,
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
                     "code": {
                       "type": "string"
                     },
@@ -30374,6 +31426,7 @@
                   },
                   "required": [
                     "id",
+                    "jwId",
                     "code",
                     "nameCn",
                     "nameEn",
@@ -30530,9 +31583,7 @@
                     },
                     "periodsPerWeek": {
                       "nullable": true,
-                      "type": "integer",
-                      "minimum": -9007199254740991,
-                      "maximum": 9007199254740991
+                      "type": "number"
                     },
                     "timesPerWeek": {
                       "nullable": true,
@@ -30565,9 +31616,7 @@
                     },
                     "actualPeriods": {
                       "nullable": true,
-                      "type": "integer",
-                      "minimum": -9007199254740991,
-                      "maximum": 9007199254740991
+                      "type": "number"
                     },
                     "theoryPeriods": {
                       "nullable": true,
@@ -30721,6 +31770,13 @@
                           "minimum": -9007199254740991,
                           "maximum": 9007199254740991
                         },
+                        "namePrimary": {
+                          "type": "string"
+                        },
+                        "nameSecondary": {
+                          "nullable": true,
+                          "type": "string"
+                        },
                         "category": {
                           "nullable": true,
                           "type": "object",
@@ -30736,12 +31792,21 @@
                             "nameEn": {
                               "nullable": true,
                               "type": "string"
+                            },
+                            "namePrimary": {
+                              "type": "string"
+                            },
+                            "nameSecondary": {
+                              "nullable": true,
+                              "type": "string"
                             }
                           },
                           "required": [
                             "id",
                             "nameCn",
-                            "nameEn"
+                            "nameEn",
+                            "namePrimary",
+                            "nameSecondary"
                           ],
                           "additionalProperties": false
                         },
@@ -30760,12 +31825,21 @@
                             "nameEn": {
                               "nullable": true,
                               "type": "string"
+                            },
+                            "namePrimary": {
+                              "type": "string"
+                            },
+                            "nameSecondary": {
+                              "nullable": true,
+                              "type": "string"
                             }
                           },
                           "required": [
                             "id",
                             "nameCn",
-                            "nameEn"
+                            "nameEn",
+                            "namePrimary",
+                            "nameSecondary"
                           ],
                           "additionalProperties": false
                         },
@@ -30784,12 +31858,21 @@
                             "nameEn": {
                               "nullable": true,
                               "type": "string"
+                            },
+                            "namePrimary": {
+                              "type": "string"
+                            },
+                            "nameSecondary": {
+                              "nullable": true,
+                              "type": "string"
                             }
                           },
                           "required": [
                             "id",
                             "nameCn",
-                            "nameEn"
+                            "nameEn",
+                            "namePrimary",
+                            "nameSecondary"
                           ],
                           "additionalProperties": false
                         },
@@ -30808,12 +31891,21 @@
                             "nameEn": {
                               "nullable": true,
                               "type": "string"
+                            },
+                            "namePrimary": {
+                              "type": "string"
+                            },
+                            "nameSecondary": {
+                              "nullable": true,
+                              "type": "string"
                             }
                           },
                           "required": [
                             "id",
                             "nameCn",
-                            "nameEn"
+                            "nameEn",
+                            "namePrimary",
+                            "nameSecondary"
                           ],
                           "additionalProperties": false
                         },
@@ -30832,12 +31924,21 @@
                             "nameEn": {
                               "nullable": true,
                               "type": "string"
+                            },
+                            "namePrimary": {
+                              "type": "string"
+                            },
+                            "nameSecondary": {
+                              "nullable": true,
+                              "type": "string"
                             }
                           },
                           "required": [
                             "id",
                             "nameCn",
-                            "nameEn"
+                            "nameEn",
+                            "namePrimary",
+                            "nameSecondary"
                           ],
                           "additionalProperties": false
                         },
@@ -30856,21 +31957,23 @@
                             "nameEn": {
                               "nullable": true,
                               "type": "string"
+                            },
+                            "namePrimary": {
+                              "type": "string"
+                            },
+                            "nameSecondary": {
+                              "nullable": true,
+                              "type": "string"
                             }
                           },
                           "required": [
                             "id",
                             "nameCn",
-                            "nameEn"
+                            "nameEn",
+                            "namePrimary",
+                            "nameSecondary"
                           ],
                           "additionalProperties": false
-                        },
-                        "namePrimary": {
-                          "type": "string"
-                        },
-                        "nameSecondary": {
-                          "nullable": true,
-                          "type": "string"
                         }
                       },
                       "required": [
@@ -30885,14 +31988,14 @@
                         "educationLevelId",
                         "gradationId",
                         "typeId",
+                        "namePrimary",
+                        "nameSecondary",
                         "category",
                         "classType",
                         "classify",
                         "educationLevel",
                         "gradation",
-                        "type",
-                        "namePrimary",
-                        "nameSecondary"
+                        "type"
                       ],
                       "additionalProperties": false
                     },
@@ -30957,6 +32060,12 @@
                           "minimum": -9007199254740991,
                           "maximum": 9007199254740991
                         },
+                        "jwId": {
+                          "nullable": true,
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        },
                         "code": {
                           "type": "string"
                         },
@@ -30981,6 +32090,7 @@
                       },
                       "required": [
                         "id",
+                        "jwId",
                         "code",
                         "nameCn",
                         "nameEn",
@@ -31264,9 +32374,7 @@
                 },
                 "periodsPerWeek": {
                   "nullable": true,
-                  "type": "integer",
-                  "minimum": -9007199254740991,
-                  "maximum": 9007199254740991
+                  "type": "number"
                 },
                 "timesPerWeek": {
                   "nullable": true,
@@ -31299,9 +32407,7 @@
                 },
                 "actualPeriods": {
                   "nullable": true,
-                  "type": "integer",
-                  "minimum": -9007199254740991,
-                  "maximum": 9007199254740991
+                  "type": "number"
                 },
                 "theoryPeriods": {
                   "nullable": true,
@@ -31455,6 +32561,13 @@
                       "minimum": -9007199254740991,
                       "maximum": 9007199254740991
                     },
+                    "namePrimary": {
+                      "type": "string"
+                    },
+                    "nameSecondary": {
+                      "nullable": true,
+                      "type": "string"
+                    },
                     "category": {
                       "nullable": true,
                       "type": "object",
@@ -31470,12 +32583,21 @@
                         "nameEn": {
                           "nullable": true,
                           "type": "string"
+                        },
+                        "namePrimary": {
+                          "type": "string"
+                        },
+                        "nameSecondary": {
+                          "nullable": true,
+                          "type": "string"
                         }
                       },
                       "required": [
                         "id",
                         "nameCn",
-                        "nameEn"
+                        "nameEn",
+                        "namePrimary",
+                        "nameSecondary"
                       ],
                       "additionalProperties": false
                     },
@@ -31494,12 +32616,21 @@
                         "nameEn": {
                           "nullable": true,
                           "type": "string"
+                        },
+                        "namePrimary": {
+                          "type": "string"
+                        },
+                        "nameSecondary": {
+                          "nullable": true,
+                          "type": "string"
                         }
                       },
                       "required": [
                         "id",
                         "nameCn",
-                        "nameEn"
+                        "nameEn",
+                        "namePrimary",
+                        "nameSecondary"
                       ],
                       "additionalProperties": false
                     },
@@ -31518,12 +32649,21 @@
                         "nameEn": {
                           "nullable": true,
                           "type": "string"
+                        },
+                        "namePrimary": {
+                          "type": "string"
+                        },
+                        "nameSecondary": {
+                          "nullable": true,
+                          "type": "string"
                         }
                       },
                       "required": [
                         "id",
                         "nameCn",
-                        "nameEn"
+                        "nameEn",
+                        "namePrimary",
+                        "nameSecondary"
                       ],
                       "additionalProperties": false
                     },
@@ -31542,12 +32682,21 @@
                         "nameEn": {
                           "nullable": true,
                           "type": "string"
+                        },
+                        "namePrimary": {
+                          "type": "string"
+                        },
+                        "nameSecondary": {
+                          "nullable": true,
+                          "type": "string"
                         }
                       },
                       "required": [
                         "id",
                         "nameCn",
-                        "nameEn"
+                        "nameEn",
+                        "namePrimary",
+                        "nameSecondary"
                       ],
                       "additionalProperties": false
                     },
@@ -31566,12 +32715,21 @@
                         "nameEn": {
                           "nullable": true,
                           "type": "string"
+                        },
+                        "namePrimary": {
+                          "type": "string"
+                        },
+                        "nameSecondary": {
+                          "nullable": true,
+                          "type": "string"
                         }
                       },
                       "required": [
                         "id",
                         "nameCn",
-                        "nameEn"
+                        "nameEn",
+                        "namePrimary",
+                        "nameSecondary"
                       ],
                       "additionalProperties": false
                     },
@@ -31590,21 +32748,23 @@
                         "nameEn": {
                           "nullable": true,
                           "type": "string"
+                        },
+                        "namePrimary": {
+                          "type": "string"
+                        },
+                        "nameSecondary": {
+                          "nullable": true,
+                          "type": "string"
                         }
                       },
                       "required": [
                         "id",
                         "nameCn",
-                        "nameEn"
+                        "nameEn",
+                        "namePrimary",
+                        "nameSecondary"
                       ],
                       "additionalProperties": false
-                    },
-                    "namePrimary": {
-                      "type": "string"
-                    },
-                    "nameSecondary": {
-                      "nullable": true,
-                      "type": "string"
                     }
                   },
                   "required": [
@@ -31619,14 +32779,14 @@
                     "educationLevelId",
                     "gradationId",
                     "typeId",
+                    "namePrimary",
+                    "nameSecondary",
                     "category",
                     "classType",
                     "classify",
                     "educationLevel",
                     "gradation",
-                    "type",
-                    "namePrimary",
-                    "nameSecondary"
+                    "type"
                   ],
                   "additionalProperties": false
                 },
@@ -31691,6 +32851,12 @@
                       "minimum": -9007199254740991,
                       "maximum": 9007199254740991
                     },
+                    "jwId": {
+                      "nullable": true,
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
                     "code": {
                       "type": "string"
                     },
@@ -31715,6 +32881,7 @@
                   },
                   "required": [
                     "id",
+                    "jwId",
                     "code",
                     "nameCn",
                     "nameEn",

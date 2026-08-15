@@ -39,7 +39,11 @@ export const publicScheduleInclude = {
     },
   },
   scheduleGroup: true,
-} satisfies Prisma.ScheduleInclude;
+} as const satisfies Prisma.ScheduleInclude;
+
+export type PublicScheduleRecord = Prisma.ScheduleGetPayload<{
+  include: typeof publicScheduleInclude;
+}>;
 
 export const sectionScheduleInclude = {
   room: {
@@ -56,7 +60,11 @@ export const sectionScheduleInclude = {
     select: scheduleTeacherSelect,
   },
   scheduleGroup: true,
-} satisfies Prisma.ScheduleInclude;
+} as const satisfies Prisma.ScheduleInclude;
+
+export type SectionScheduleRecord = Prisma.ScheduleGetPayload<{
+  include: typeof sectionScheduleInclude;
+}>;
 
 export const sectionScheduleListInclude = {
   ...sectionScheduleInclude,
@@ -65,7 +73,7 @@ export const sectionScheduleListInclude = {
       course: true,
     },
   },
-} satisfies Prisma.ScheduleInclude;
+} as const satisfies Prisma.ScheduleInclude;
 
 export async function listPublicSchedules(input: {
   filters: ScheduleListFilters;
@@ -150,7 +158,7 @@ export async function getSectionScheduleGroupsByJwId(input: {
     where: { jwId: input.sectionJwId },
     include: {
       scheduleGroups: {
-        select: { schedules: true },
+        include: { schedules: true },
         orderBy: [{ isDefault: "desc" }, { no: "asc" }],
       },
     },

@@ -1,6 +1,6 @@
 import * as z from "zod";
 
-const localizedNameFields = {
+export const localizedNameFields = {
   namePrimary: z.string(),
   nameSecondary: z.string().nullable(),
 };
@@ -9,48 +9,56 @@ export const courseCategorySchema = z.object({
   id: z.number().int(),
   nameCn: z.string(),
   nameEn: z.string().nullable(),
+  ...localizedNameFields,
 });
 
 export const courseClassifySchema = z.object({
   id: z.number().int(),
   nameCn: z.string(),
   nameEn: z.string().nullable(),
+  ...localizedNameFields,
 });
 
 export const courseGradationSchema = z.object({
   id: z.number().int(),
   nameCn: z.string(),
   nameEn: z.string().nullable(),
+  ...localizedNameFields,
 });
 
 export const courseTypeSchema = z.object({
   id: z.number().int(),
   nameCn: z.string(),
   nameEn: z.string().nullable(),
+  ...localizedNameFields,
 });
 
 export const classTypeSchema = z.object({
   id: z.number().int(),
   nameCn: z.string(),
   nameEn: z.string().nullable(),
+  ...localizedNameFields,
 });
 
 export const educationLevelSchema = z.object({
   id: z.number().int(),
   nameCn: z.string(),
   nameEn: z.string().nullable(),
+  ...localizedNameFields,
 });
 
 export const examModeSchema = z.object({
   id: z.number().int(),
   nameCn: z.string(),
   nameEn: z.string().nullable(),
+  ...localizedNameFields,
 });
 
 export const teachLanguageSchema = z.object({
   id: z.number().int(),
   nameCn: z.string(),
   nameEn: z.string().nullable(),
+  ...localizedNameFields,
 });
 
 export const courseBaseSchema = z.object({
@@ -65,6 +73,7 @@ export const courseBaseSchema = z.object({
   educationLevelId: z.number().int().nullable(),
   gradationId: z.number().int().nullable(),
   typeId: z.number().int().nullable(),
+  ...localizedNameFields,
 });
 
 export const courseSchema = courseBaseSchema.extend({
@@ -76,5 +85,6 @@ export const courseSchema = courseBaseSchema.extend({
   type: courseTypeSchema.nullable(),
 });
 
-export const localizedCourseBaseSchema =
-  courseBaseSchema.extend(localizedNameFields);
+export const localizedCourseBaseSchema = courseBaseSchema;
+
+export type CourseDto = z.output<typeof courseSchema>;

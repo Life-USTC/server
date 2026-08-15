@@ -5,22 +5,16 @@ export const departmentSummarySelect = {
   id: true,
   code: true,
   isCollege: true,
-  nameCn: true,
-  nameEn: true,
-  namePrimary: true,
-  nameSecondary: true,
-};
+  ...localizedNameSelect,
+} as const satisfies Prisma.DepartmentSelect;
 
 export const teacherTitleSummarySelect = {
   id: true,
   jwId: true,
   code: true,
   enabled: true,
-  nameCn: true,
-  nameEn: true,
-  namePrimary: true,
-  nameSecondary: true,
-};
+  ...localizedNameSelect,
+} as const satisfies Prisma.TeacherTitleSelect;
 
 const teacherPublicScalarSelect = {
   id: true,
@@ -67,6 +61,7 @@ export const teacherAssignmentPublicSelect = {
   weekIndices: true,
   weekIndicesMsg: true,
   teacherLessonTypeId: true,
+  teacherTitleId: true,
   teacherLessonType: {
     select: {
       id: true,
@@ -78,6 +73,9 @@ export const teacherAssignmentPublicSelect = {
       enabled: true,
     },
   },
+  teacherTitle: {
+    select: teacherTitleSummarySelect,
+  },
 } satisfies Prisma.TeacherAssignmentSelect;
 
 /** Narrow teacher payload for schedule entries: names and department only. */
@@ -86,14 +84,11 @@ export const scheduleTeacherSelect = {
   jwId: true,
   personId: true,
   code: true,
-  nameCn: true,
-  nameEn: true,
-  namePrimary: true,
-  nameSecondary: true,
+  ...localizedNameSelect,
   department: {
     select: departmentSummarySelect,
   },
-};
+} as const satisfies Prisma.TeacherSelect;
 
 /** Schedule teacher payload with title and section count for subscribed/workspace surfaces. */
 export const scheduleTeacherContextSelect = {
@@ -106,7 +101,7 @@ export const scheduleTeacherContextSelect = {
       sections: { where: { retiredAt: null } },
     },
   },
-};
+} as const satisfies Prisma.TeacherSelect;
 
 /** Public catalog teacher list/detail fields (no postcode, qq, wechat, or age). */
 export const teacherPublicListSelect = {
@@ -162,7 +157,7 @@ export const sectionSummarySelect = {
   teachers: {
     select: teacherPublicIdentitySelect,
   },
-};
+} as const satisfies Prisma.SectionSelect;
 
 /** Stable public section identity and course/semester context for child records. */
 export const sectionPublicContextSelect = {
@@ -173,8 +168,7 @@ export const sectionPublicContextSelect = {
     select: {
       jwId: true,
       code: true,
-      nameCn: true,
-      nameEn: true,
+      ...localizedNameSelect,
     },
   },
   semester: {
