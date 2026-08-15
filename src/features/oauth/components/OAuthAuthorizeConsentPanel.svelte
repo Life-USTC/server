@@ -1,9 +1,12 @@
 <script lang="ts">
 import CheckCircle from "@lucide/svelte/icons/check-circle";
+import type { SubmitFunction } from "@sveltejs/kit";
 import { oauthScopeCountLabel } from "@/features/admin/lib/oauth-controller";
 import OAuthScopesPicker from "@/features/oauth/components/OAuthScopesPicker.svelte";
 import { buildOAuthScopesPickerCopy } from "@/features/oauth/lib/oauth-scopes-picker-copy";
+import { enhance } from "$app/forms";
 import { Button } from "$lib/components/ui/button/index.js";
+import { Spinner } from "$lib/components/ui/spinner/index.js";
 
 export let copy: Record<string, string>;
 export let locale: string = "zh-cn";
@@ -13,6 +16,20 @@ export let scopes: Array<{ label: string; value: string }>;
 
 let scopeKey = "";
 let selectedScopes: string[] = [];
+let pendingDecision: "allow" | "deny" | null = null;
+
+function consentAction(decision: "allow" | "deny"): SubmitFunction {
+  return () => {
+    pendingDecision = decision;
+    return async ({ update }) => {
+      try {
+        await update({ reset: false });
+      } finally {
+        pendingDecision = null;
+      }
+    };
+  };
+}
 
 $: {
   const nextScopeKey = scopes.map((scopeItem) => scopeItem.value).join(" ");
@@ -46,15 +63,16 @@ $: canAllow = scopes.length === 0 || selectedScopes.length > 0;
 {/if}
 
 <div class="grid gap-3 sm:grid-cols-2">
-  <form method="POST" action="?/consent">
+  <form method="POST" action="?/consent" use:enhance={consentAction("deny")}>
     <input type="hidden" name="accept" value="false" />
     <input type="hidden" name="scope" value={scope} />
     <input type="hidden" name="oauthQuery" value={oauthQuery} />
-    <Button class="w-full" type="submit" variant="outline">
+    <Button class="w-full" disabled={Boolean(pendingDecision)} type="submit" variant="outline">
+      {#if pendingDecision === "deny"}<Spinner data-icon="inline-start" />{/if}
       {copy.deny}
     </Button>
   </form>
-  <form method="POST" action="?/consent">
+  <form method="POST" action="?/consent" use:enhance={consentAction("allow")}>
     <input type="hidden" name="accept" value="true" />
     <input type="hidden" name="scope" value={selectedScopeValue || scope} />
     <input type="hidden" name="scopeSelectionEnabled" value="true" />
@@ -62,8 +80,12 @@ $: canAllow = scopes.length === 0 || selectedScopes.length > 0;
       <input type="hidden" name="scopes" value={selectedScope} />
     {/each}
     <input type="hidden" name="oauthQuery" value={oauthQuery} />
-    <Button class="w-full" disabled={!canAllow} type="submit">
-      <CheckCircle data-icon="inline-start" />
+    <Button class="w-full" disabled={!canAllow || Boolean(pendingDecision)} type="submit">
+      {#if pendingDecision === "allow"}
+        <Spinner data-icon="inline-start" />
+      {:else}
+        <CheckCircle data-icon="inline-start" />
+      {/if}
       {copy.allow}
     </Button>
   </form>

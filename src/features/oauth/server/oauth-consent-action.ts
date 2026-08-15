@@ -3,6 +3,7 @@ import { bindOAuthAuthorizationCodeRedirectToActiveGrant } from "@/features/oaut
 import { verifyOAuthProviderSignedQueryState } from "@/features/oauth/server/signed-oauth-query.server";
 import { isTrustedAuthOrigin } from "@/lib/auth/auth-origins";
 import { authPrisma as prisma } from "@/lib/db/auth-prisma";
+import { runSerializableTransaction } from "@/lib/db/serializable-transaction";
 import { getCanonicalOAuthIssuer } from "@/lib/mcp/urls";
 import { OAUTH_PROVIDER_CLAIMS_SUPPORTED } from "@/lib/oauth/constants";
 import { hashOAuthClientSecretForDbStorage } from "@/lib/oauth/utils";
@@ -121,6 +122,13 @@ function uniqueScopes(value: string | null) {
   return [...new Set((value ?? "").split(/\s+/).filter(Boolean))];
 }
 
+function mergeUniqueValues(
+  current: readonly string[],
+  additions: readonly string[],
+) {
+  return [...new Set([...current, ...additions])];
+}
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
@@ -167,6 +175,7 @@ async function validateConsentRequest(
 ): Promise<
   | (ValidatedConsentRequest & {
       client: {
+        scopes: string[];
         skipConsent: boolean | null;
       };
     })
@@ -218,7 +227,7 @@ async function validateConsentRequest(
 
   return {
     authorizeQuery,
-    client: { skipConsent: client.skipConsent },
+    client: { scopes: client.scopes, skipConsent: client.skipConsent },
     clientId,
     redirectUri,
     requestedScopes,
@@ -298,85 +307,104 @@ export async function createAcceptedOAuthAuthorization(input: {
   session: OAuthSession;
 }) {
   const normalizedAcceptedScopes = [...new Set(input.acceptedScopes)];
-  return prisma.$transaction(async (tx) => {
-    const request = await validateConsentRequest(tx, input.authorizeQuery);
-    if (
-      !request ||
-      !normalizedAcceptedScopes.every((scope) =>
-        request.requestedScopes.includes(scope),
-      )
-    ) {
-      return null;
-    }
+  return runSerializableTransaction(
+    async (tx) => {
+      const request = await validateConsentRequest(tx, input.authorizeQuery);
+      if (
+        !request ||
+        !normalizedAcceptedScopes.every((scope) =>
+          request.requestedScopes.includes(scope),
+        )
+      ) {
+        return null;
+      }
 
-    const identity = {
-      clientId: request.clientId,
-      userId: input.session.user.id,
-    };
-    const grantId = crypto.randomUUID();
-    const resources = request.authorizeQuery.getAll("resource");
-    const userInfoClaims = requestedUserInfoClaims(
-      request.authorizeQuery.get("claims"),
-    );
-    if (request.client.skipConsent === true) {
-      await tx.oAuthConsent.deleteMany({ where: identity });
-    } else {
-      await tx.oAuthAccessToken.deleteMany({ where: identity });
-      await tx.oAuthRefreshToken.deleteMany({ where: identity });
-      await tx.deviceCode.deleteMany({ where: identity });
-      await tx.oAuthConsent.upsert({
-        where: { clientId_userId: identity },
-        create: {
-          ...identity,
-          grantId,
-          resources,
-          requestedUserInfoClaims: userInfoClaims,
-          scopes: normalizedAcceptedScopes,
-        },
-        update: {
-          grantId,
-          ...(resources.length > 0 ? { resources } : {}),
-          requestedUserInfoClaims: userInfoClaims,
-          scopes: normalizedAcceptedScopes,
+      const identity = {
+        clientId: request.clientId,
+        userId: input.session.user.id,
+      };
+      const resources = request.authorizeQuery.getAll("resource");
+      const userInfoClaims = requestedUserInfoClaims(
+        request.authorizeQuery.get("claims"),
+      );
+      let grantId: string;
+      if (request.client.skipConsent === true) {
+        grantId = crypto.randomUUID();
+        await tx.oAuthConsent.deleteMany({ where: identity });
+      } else {
+        const consent = await tx.oAuthConsent.upsert({
+          where: { clientId_userId: identity },
+          create: {
+            ...identity,
+            resources,
+            requestedUserInfoClaims: userInfoClaims,
+            scopes: normalizedAcceptedScopes,
+          },
+          update: {},
+          select: {
+            grantId: true,
+            requestedUserInfoClaims: true,
+            resources: true,
+            scopes: true,
+          },
+        });
+        grantId = consent.grantId;
+        await tx.oAuthConsent.update({
+          where: { clientId_userId: identity },
+          data: {
+            requestedUserInfoClaims: mergeUniqueValues(
+              consent.requestedUserInfoClaims,
+              userInfoClaims,
+            ),
+            resources: mergeUniqueValues(consent.resources, resources),
+            scopes: mergeUniqueValues(
+              consent.scopes.filter((scope) =>
+                request.client.scopes.includes(scope),
+              ),
+              normalizedAcceptedScopes,
+            ),
+          },
+        });
+      }
+
+      const code = randomOAuthCode();
+      const iat = Math.floor(Date.now() / 1000);
+      const issuedAt = new Date(iat * 1000);
+      const query = new URLSearchParams(request.authorizeQuery);
+      query.set("scope", normalizedAcceptedScopes.join(" "));
+      removePrompt(query, "consent");
+      const queryObject = searchParamsToQuery(query);
+      const authTime = sessionCreatedAtMillis(input.session.session.createdAt);
+      await tx.verificationToken.create({
+        data: {
+          identifier: await hashOAuthClientSecretForDbStorage(code),
+          token: JSON.stringify({
+            type: "authorization_code",
+            query: queryObject,
+            userId: input.session.user.id,
+            sessionId: input.session.session.id,
+            referenceId: grantId,
+            ...(authTime !== null ? { authTime } : {}),
+          }),
+          expires: new Date((iat + OAUTH_CODE_EXPIRES_IN_SECONDS) * 1000),
+          createdAt: issuedAt,
+          updatedAt: issuedAt,
         },
       });
-    }
 
-    const code = randomOAuthCode();
-    const iat = Math.floor(Date.now() / 1000);
-    const issuedAt = new Date(iat * 1000);
-    const query = new URLSearchParams(request.authorizeQuery);
-    query.set("scope", normalizedAcceptedScopes.join(" "));
-    removePrompt(query, "consent");
-    const queryObject = searchParamsToQuery(query);
-    const authTime = sessionCreatedAtMillis(input.session.session.createdAt);
-    await tx.verificationToken.create({
-      data: {
-        identifier: await hashOAuthClientSecretForDbStorage(code),
-        token: JSON.stringify({
-          type: "authorization_code",
-          query: queryObject,
-          userId: input.session.user.id,
-          sessionId: input.session.session.id,
-          referenceId: grantId,
-          ...(authTime !== null ? { authTime } : {}),
+      return {
+        clientId: request.clientId,
+        expectedGrantId: grantId,
+        redirectTarget: buildOAuthCallbackUrl({
+          code,
+          query,
+          redirectUri: request.redirectUri,
         }),
-        expires: new Date((iat + OAUTH_CODE_EXPIRES_IN_SECONDS) * 1000),
-        createdAt: issuedAt,
-        updatedAt: issuedAt,
-      },
-    });
-
-    return {
-      clientId: request.clientId,
-      expectedGrantId: grantId,
-      redirectTarget: buildOAuthCallbackUrl({
-        code,
-        query,
-        redirectUri: request.redirectUri,
-      }),
-    };
-  });
+      };
+    },
+    "Failed to create OAuth authorization",
+    prisma,
+  );
 }
 
 async function createDeniedOAuthAuthorization(authorizeQuery: URLSearchParams) {

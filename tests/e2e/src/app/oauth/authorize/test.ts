@@ -201,7 +201,24 @@ test("/oauth/authorize 允许授权时带 code 回跳", async ({ page }, testInf
   await gotoAndWaitForReady(page, consentLocation, { waitUntil: "load" });
   await resumeConsentIfSignInPage(page);
 
-  await page.getByRole("button", { name: /允许|Allow/i }).click();
+  let releaseConsentRequest = () => {};
+  const consentRequestGate = new Promise<void>((resolve) => {
+    releaseConsentRequest = resolve;
+  });
+  await page.route(
+    (url) => url.pathname === "/oauth/authorize" && url.search === "?/consent",
+    async (route) => {
+      await consentRequestGate;
+      await route.continue();
+    },
+  );
+  const allowButton = page.getByRole("button", { name: /允许|Allow/i });
+  const denyButton = page.getByRole("button", { name: /拒绝|Deny/i });
+  const allowClick = allowButton.click();
+  await expect(allowButton).toBeDisabled();
+  await expect(denyButton).toBeDisabled();
+  releaseConsentRequest();
+  await allowClick;
   await expect(page).toHaveURL(/\/e2e\/oauth\/callback\?/);
 
   const redirected = new URL(page.url());

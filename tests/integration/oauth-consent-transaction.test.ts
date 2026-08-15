@@ -30,7 +30,7 @@ describe.sequential("OAuth consent transaction", () => {
         requirePKCE: true,
         redirectUris: ["https://client.example/callback"],
         responseTypes: ["code"],
-        scopes: ["openid", "profile"],
+        scopes: ["openid", "profile", "workspace.todo:read"],
         skipConsent,
         tokenEndpointAuthMethod: "none",
       },
@@ -187,7 +187,7 @@ describe.sequential("OAuth consent transaction", () => {
     await prisma.$disconnect();
   });
 
-  it("原子轮换 consent、清理旧凭据并创建 exact-bound code", async () => {
+  it("原子扩展 consent、保留旧凭据并创建 exact-bound code", async () => {
     const fixture = await createFixture("success");
     const query = authorizeQuery(fixture.clientId);
     const resource = getOAuthMcpResourceUrl();
@@ -247,11 +247,11 @@ describe.sequential("OAuth consent transaction", () => {
       ]),
     ]);
 
-    expect(consent.grantId).not.toBe(fixture.consent.grantId);
+    expect(consent.grantId).toBe(fixture.consent.grantId);
     expect(consent.requestedUserInfoClaims).toEqual(["preferred_username"]);
     expect(consent.resources).toEqual([resource]);
-    expect(consent.scopes).toEqual(["openid", "profile"]);
-    expect(counts).toEqual([0, 0, 0]);
+    expect(consent.scopes).toEqual(["profile", "openid"]);
+    expect(counts).toEqual([1, 1, 1]);
     expect(JSON.parse(codeRow.token)).toMatchObject({
       query: {
         resource,
@@ -300,6 +300,20 @@ describe.sequential("OAuth consent transaction", () => {
       }),
     ).resolves.toEqual({ resources: [resource] });
 
+    await expect(
+      Promise.all([
+        prisma.oAuthAccessToken.count({
+          where: { clientId: fixture.clientId, userId: fixture.userId },
+        }),
+        prisma.oAuthRefreshToken.count({
+          where: { clientId: fixture.clientId, userId: fixture.userId },
+        }),
+        prisma.deviceCode.count({
+          where: { clientId: fixture.clientId, userId: fixture.userId },
+        }),
+      ]),
+    ).resolves.toEqual([1, 1, 1]);
+
     const reuseQuery = new URLSearchParams(query);
     reuseQuery.set("prompt", "none");
     reuseQuery.set("state", `reuse-${marker}`);
@@ -322,37 +336,65 @@ describe.sequential("OAuth consent transaction", () => {
     }
   });
 
-  it("grantId rotation 冲突时回滚 consent 与旧凭据清理", async () => {
-    const fixture = await createFixture("rotation-rollback");
-    const collision = await createFixture("rotation-collision");
+  it("重复 consent 不生成新 grant 或撤销旧凭据", async () => {
+    const fixture = await createFixture("grant-reuse");
+    await prisma.oAuthConsent.update({
+      where: { id: fixture.consent.id },
+      data: { scopes: ["profile", "workspace.todo:read"] },
+    });
     const randomUuid = vi
       .spyOn(crypto, "randomUUID")
-      .mockReturnValue(
-        collision.consent
-          .grantId as `${string}-${string}-${string}-${string}-${string}`,
-      );
+      .mockReturnValue("11111111-1111-4111-8111-111111111111");
 
     try {
-      await expect(
-        createAcceptedOAuthAuthorization({
-          acceptedScopes: ["openid", "profile"],
-          authorizeQuery: authorizeQuery(fixture.clientId),
-          session: session(fixture.userId),
-        }),
-      ).rejects.toMatchObject({ code: "P2002" });
+      const authorization = await createAcceptedOAuthAuthorization({
+        acceptedScopes: ["openid", "profile"],
+        authorizeQuery: authorizeQuery(fixture.clientId),
+        session: session(fixture.userId),
+      });
+      expect(authorization?.expectedGrantId).toBe(fixture.consent.grantId);
+      const code = authorization
+        ? new URL(authorization.redirectTarget).searchParams.get("code")
+        : null;
+      if (code) {
+        verificationIdentifiers.push(
+          await hashOAuthClientSecretForDbStorage(code),
+        );
+      }
     } finally {
       randomUuid.mockRestore();
     }
-    await expectFixtureUnchanged({
-      clientId: fixture.clientId,
+    const [consent, counts] = await Promise.all([
+      prisma.oAuthConsent.findUniqueOrThrow({
+        where: {
+          clientId_userId: {
+            clientId: fixture.clientId,
+            userId: fixture.userId,
+          },
+        },
+        select: { grantId: true, scopes: true },
+      }),
+      Promise.all([
+        prisma.oAuthAccessToken.count({
+          where: { clientId: fixture.clientId, userId: fixture.userId },
+        }),
+        prisma.oAuthRefreshToken.count({
+          where: { clientId: fixture.clientId, userId: fixture.userId },
+        }),
+        prisma.deviceCode.count({
+          where: { clientId: fixture.clientId, userId: fixture.userId },
+        }),
+      ]),
+    ]);
+    expect(consent).toEqual({
       grantId: fixture.consent.grantId,
-      userId: fixture.userId,
+      scopes: ["profile", "workspace.todo:read", "openid"],
     });
+    expect(counts).toEqual([1, 1, 1]);
   });
 
-  it("authorization code 写入失败时回滚已完成的 rotation 与 cleanup", async () => {
+  it("authorization code 写入失败时回滚 consent 扩展", async () => {
     const fixture = await createFixture("code-rollback");
-    const fixedGrantId = "11111111-1111-4111-8111-111111111111";
     const fixedNow = Date.parse("2026-07-20T01:00:00.000Z");
     const code = "a".repeat(32);
     const identifier = await hashOAuthClientSecretForDbStorage(code);
@@ -365,7 +407,7 @@ describe.sequential("OAuth consent transaction", () => {
       query: Object.fromEntries(query.entries()),
       userId: fixture.userId,
       sessionId: `session-${marker}`,
-      referenceId: fixedGrantId,
+      referenceId: fixture.consent.grantId,
       authTime: Date.parse("2026-07-20T00:00:00.000Z"),
     });
     await prisma.verificationToken.create({
@@ -376,9 +418,6 @@ describe.sequential("OAuth consent transaction", () => {
       },
     });
 
-    const randomUuid = vi
-      .spyOn(crypto, "randomUUID")
-      .mockReturnValue(fixedGrantId);
     const randomValues = vi
       .spyOn(crypto, "getRandomValues")
       .mockImplementation(((array: Uint8Array) => {
@@ -396,7 +435,6 @@ describe.sequential("OAuth consent transaction", () => {
         }),
       ).rejects.toMatchObject({ code: "P2002" });
     } finally {
-      randomUuid.mockRestore();
       randomValues.mockRestore();
       now.mockRestore();
     }

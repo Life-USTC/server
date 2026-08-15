@@ -7,6 +7,7 @@ const AUTH_SECRET = "oauth-consent-test-secret-at-least-32-bytes";
 const {
   bindCodeMock,
   consentDeleteMock,
+  consentUpdateMock,
   consentUpsertMock,
   deviceDeleteMock,
   getSessionMock,
@@ -18,6 +19,7 @@ const {
 } = vi.hoisted(() => ({
   bindCodeMock: vi.fn(),
   consentDeleteMock: vi.fn(),
+  consentUpdateMock: vi.fn(),
   consentUpsertMock: vi.fn(),
   deviceDeleteMock: vi.fn(),
   getSessionMock: vi.fn(),
@@ -50,6 +52,7 @@ const transactionClient = {
   oAuthClient: { findUnique: txReadClientMock },
   oAuthConsent: {
     deleteMany: consentDeleteMock,
+    update: consentUpdateMock,
     upsert: consentUpsertMock,
   },
   oAuthRefreshToken: { deleteMany: tokenDeleteMock },
@@ -102,6 +105,7 @@ describe("OAuth consent 操作", () => {
   beforeEach(() => {
     bindCodeMock.mockReset();
     consentDeleteMock.mockReset();
+    consentUpdateMock.mockReset();
     consentUpsertMock.mockReset();
     deviceDeleteMock.mockReset();
     getSessionMock.mockReset();
@@ -128,6 +132,13 @@ describe("OAuth consent 操作", () => {
     txReadClientMock.mockResolvedValue(client);
     transactionMock.mockImplementation((run) => run(transactionClient));
     bindCodeMock.mockResolvedValue(true);
+    consentUpdateMock.mockResolvedValue({});
+    consentUpsertMock.mockResolvedValue({
+      grantId: "created-grant",
+      requestedUserInfoClaims: [],
+      resources: [],
+      scopes: [],
+    });
     verificationCreateMock.mockResolvedValue({});
     vi.stubEnv("APP_PUBLIC_ORIGIN", "https://life.example");
   });
@@ -136,7 +147,7 @@ describe("OAuth consent 操作", () => {
     vi.unstubAllEnvs();
   });
 
-  it("在同一事务轮换 grant、清理旧行并创建 exact-bound code", async () => {
+  it("在同一事务创建初始 grant 与 exact-bound code", async () => {
     const oauthQuery = await signedOAuthQuery({
       claims: JSON.stringify({
         id_token: { name: null },
@@ -166,28 +177,26 @@ describe("OAuth consent 操作", () => {
     });
 
     expect(transactionMock).toHaveBeenCalledTimes(1);
-    expect(tokenDeleteMock).toHaveBeenCalledTimes(2);
-    expect(deviceDeleteMock).toHaveBeenCalledWith({
-      where: { clientId: "client-1", userId: "user-1" },
-    });
+    expect(tokenDeleteMock).not.toHaveBeenCalled();
+    expect(deviceDeleteMock).not.toHaveBeenCalled();
     expect(consentUpsertMock).toHaveBeenCalledWith({
       where: {
         clientId_userId: { clientId: "client-1", userId: "user-1" },
       },
       create: expect.objectContaining({
         clientId: "client-1",
-        grantId: expect.any(String),
         requestedUserInfoClaims: ["email", "preferred_username"],
         resources: ["https://life.example/api/mcp"],
         scopes: ["openid", "profile"],
         userId: "user-1",
       }),
-      update: expect.objectContaining({
-        grantId: expect.any(String),
-        requestedUserInfoClaims: ["email", "preferred_username"],
-        resources: ["https://life.example/api/mcp"],
-        scopes: ["openid", "profile"],
-      }),
+      update: {},
+      select: {
+        grantId: true,
+        requestedUserInfoClaims: true,
+        resources: true,
+        scopes: true,
+      },
     });
     const stored = JSON.parse(
       verificationCreateMock.mock.calls[0][0].data.token,
@@ -204,6 +213,68 @@ describe("OAuth consent 操作", () => {
       "client-1",
       "https://life.example/oauth/authorize",
       stored.referenceId,
+    );
+  });
+
+  it("重复或较窄的 consent 复用 grant 并只扩展已有授权", async () => {
+    txReadClientMock.mockResolvedValue({
+      disabled: false,
+      redirectUris: ["https://client.example/callback"],
+      scopes: ["openid", "profile", "workspace.todo:read"],
+      skipConsent: false,
+    });
+    consentUpsertMock.mockResolvedValue({
+      grantId: "existing-grant",
+      requestedUserInfoClaims: ["email"],
+      resources: ["https://life.example/api/graphql"],
+      scopes: ["openid", "profile", "workspace.todo:read", "removed:scope"],
+    });
+    const oauthQuery = await signedOAuthQuery({
+      claims: JSON.stringify({
+        userinfo: { preferred_username: null },
+      }),
+      resource: "https://life.example/api/mcp",
+      scope: "openid profile",
+    });
+
+    await expect(
+      submitOAuthConsentAction({
+        request: consentRequest({
+          accept: "true",
+          scope: "openid profile",
+          oauthQuery,
+        }),
+      }),
+    ).rejects.toMatchObject({
+      status: 303,
+      location: expect.stringContaining("https://client.example/callback"),
+    });
+
+    expect(consentUpsertMock).toHaveBeenCalledOnce();
+    expect(consentUpdateMock).toHaveBeenCalledWith({
+      where: {
+        clientId_userId: { clientId: "client-1", userId: "user-1" },
+      },
+      data: {
+        requestedUserInfoClaims: ["email", "preferred_username"],
+        resources: [
+          "https://life.example/api/graphql",
+          "https://life.example/api/mcp",
+        ],
+        scopes: ["openid", "profile", "workspace.todo:read"],
+      },
+    });
+    expect(tokenDeleteMock).not.toHaveBeenCalled();
+    expect(deviceDeleteMock).not.toHaveBeenCalled();
+    const stored = JSON.parse(
+      verificationCreateMock.mock.calls[0][0].data.token,
+    );
+    expect(stored.referenceId).toBe("existing-grant");
+    expect(bindCodeMock).toHaveBeenCalledWith(
+      expect.any(String),
+      "client-1",
+      "https://life.example/oauth/authorize",
+      "existing-grant",
     );
   });
 
@@ -284,6 +355,12 @@ describe("OAuth consent 操作", () => {
     body.append("scopes", "openid");
     body.append("scopes", "workspace.todo:read");
     body.append("scopes", "admin:write");
+    consentUpsertMock.mockResolvedValueOnce({
+      grantId: "selected-grant",
+      requestedUserInfoClaims: [],
+      resources: [],
+      scopes: ["openid", "workspace.todo:read"],
+    });
 
     await expect(
       submitOAuthConsentAction({ request: consentRequest(body) }),
@@ -299,14 +376,7 @@ describe("OAuth consent 操作", () => {
           resources: [],
           scopes: ["openid", "workspace.todo:read"],
         }),
-        update: expect.objectContaining({
-          requestedUserInfoClaims: [],
-          scopes: ["openid", "workspace.todo:read"],
-        }),
       }),
-    );
-    expect(consentUpsertMock.mock.calls[0]?.[0].update).not.toHaveProperty(
-      "resources",
     );
   });
 
