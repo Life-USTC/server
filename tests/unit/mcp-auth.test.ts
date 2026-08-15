@@ -337,8 +337,24 @@ describe("MCP per-tool scope enforcement", () => {
       response: expect.objectContaining({ status: 403 }),
     });
     if ("response" in result) {
-      expect(result.response.headers.get("WWW-Authenticate")).toContain(
-        restWriteScope("workspace.upload"),
+      const challenge = result.response.headers.get("WWW-Authenticate") ?? "";
+      expect(challenge).toContain(TODO_WRITE_SCOPE);
+      expect(challenge).toContain(restWriteScope("workspace.upload"));
+    }
+  });
+
+  it("retains already granted scopes in a step-up challenge", async () => {
+    const profileScope = restReadScope("account.profile");
+    const result = await authenticate(
+      [profileScope, TODO_READ_SCOPE],
+      "workspace_todo_create",
+    );
+
+    expect("response" in result).toBe(true);
+    if ("response" in result) {
+      const challenge = result.response.headers.get("WWW-Authenticate") ?? "";
+      expect(challenge).toContain(
+        `scope="${profileScope} ${TODO_READ_SCOPE} ${TODO_WRITE_SCOPE}"`,
       );
     }
   });

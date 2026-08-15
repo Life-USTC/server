@@ -111,6 +111,9 @@ export function authorizeMcpToolScopes(
       hasRequiredFeatureScope(authInfo.scopes, scope),
     );
   if (!hasRequiredScope) {
+    const challengeScopes = [
+      ...new Set([...authInfo.scopes, ...requiredScopes]),
+    ];
     const diagnostics: McpAuthFailureDiagnostics = {
       authFailureKind: "missing_required_tool_scope",
       authHeaderKind: "bearer",
@@ -130,7 +133,7 @@ export function authorizeMcpToolScopes(
           status: 403,
           description: "Access token does not include the required tool scope",
         },
-        requiredScopes,
+        challengeScopes,
       ),
     };
   }

@@ -71,7 +71,19 @@ export function buildOAuthProviderPlugin(input: { authPublicOrigin: string }) {
       scopes_supported: [...PUBLIC_OAUTH_SCOPES],
       claims_supported: [...OAUTH_PROVIDER_CLAIMS_SUPPORTED],
     },
-    customAccessTokenClaims({ referenceId }: { referenceId?: string }) {
+    customAccessTokenClaims({
+      referenceId,
+      user,
+    }: {
+      referenceId?: string;
+      user?: Record<string, unknown> | null;
+    }) {
+      if (user && !referenceId) {
+        throw new APIError("BAD_REQUEST", {
+          error: "invalid_grant",
+          error_description: "OAuth authorization is no longer active",
+        });
+      }
       return referenceId ? { [OAUTH_GRANT_ID_CLAIM]: referenceId } : {};
     },
     async customUserInfoClaims({
