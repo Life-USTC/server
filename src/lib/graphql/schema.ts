@@ -142,7 +142,7 @@ export const graphqlTypeDefs = /* GraphQL */ `
     code: String!
     credits: Float
     period: Int
-    periodsPerWeek: Int
+    periodsPerWeek: Float
     timesPerWeek: Int
     stdCount: Int
     limitCount: Int

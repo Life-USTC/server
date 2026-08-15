@@ -1,5 +1,6 @@
 import type { AppLocale } from "@/i18n/config";
-import { jsonResponse } from "@/lib/api/helpers";
+import { schemaJsonResponse } from "@/lib/api/responses";
+import { paginatedSectionResponseSchema } from "@/lib/api/schemas/response-schemas";
 
 export async function listSectionsAction(
   parsedQuery: {
@@ -23,7 +24,7 @@ export async function listSectionsAction(
   cacheHeaders: HeadersInit,
 ) {
   const result = await listSectionsActionData(parsedQuery, pagination, locale);
-  return jsonResponse(result, {
+  return schemaJsonResponse(paginatedSectionResponseSchema, result, {
     headers: cacheHeaders,
   });
 }

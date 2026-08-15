@@ -4,6 +4,7 @@
 |----------|---------|------|
 | CI (`ci.yml`) | push main, PRs | Check, integration, RLS tests, E2E artifacts/shards, optional visual regression, report publish |
 | OpenAPI compatibility | PRs | Block breaking changes unless `api-breaking-approved` is present |
+| GraphQL compatibility | PRs | Keep the canonical SDL exact and block base incompatibility unless `graphql-breaking-approved` is present |
 | OpenAPI consumer sync | OpenAPI changes on main, manual | Notify Bot and CLI with the exact server revision |
 | DB-backed Bun job | workflow_call | Reusable Postgres-backed Bun job |
 | DB migrate deploy | `prisma/**` on main, or manual | Production migrate deploy |

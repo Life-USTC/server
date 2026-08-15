@@ -1,3 +1,4 @@
+import type * as z from "zod";
 import { runCloudflareTraceSpan } from "@/lib/adapters/cloudflare-runtime";
 import { logRouteFailure } from "@/lib/log/app-logger";
 import { serializeDatesDeep } from "@/lib/time/serialize-date-output";
@@ -38,6 +39,20 @@ export function jsonResponse(body: unknown, init?: ResponseInit) {
       });
     },
   );
+}
+
+/**
+ * Serializes transport-specific values and validates the exact public wire
+ * payload before it leaves an HTTP adapter. The parsed value is returned so
+ * Zod's object allowlists also prevent accidental database-field exposure.
+ */
+export function schemaJsonResponse<Schema extends z.ZodType>(
+  schema: Schema,
+  body: unknown,
+  init?: ResponseInit,
+) {
+  const payload: z.output<Schema> = schema.parse(serializeDatesDeep(body));
+  return jsonResponse(payload, init);
 }
 
 export function createdJsonResponse(body: unknown, location: string) {

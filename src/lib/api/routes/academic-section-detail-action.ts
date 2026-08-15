@@ -1,5 +1,7 @@
 import type { AppLocale } from "@/i18n/config";
-import { jsonResponse, notFound } from "@/lib/api/helpers";
+import { notFound } from "@/lib/api/helpers";
+import { schemaJsonResponse } from "@/lib/api/responses";
+import { sectionDetailSchema } from "@/lib/api/schemas/response-schemas";
 
 export type SectionDetailActionOptions = {
   includeExams?: boolean;
@@ -22,7 +24,7 @@ export async function getSectionDetailAction(
     return notFound("Section not found");
   }
 
-  return jsonResponse(section, {
+  return schemaJsonResponse(sectionDetailSchema, section, {
     headers: cacheHeaders,
   });
 }

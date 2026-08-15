@@ -432,7 +432,7 @@ type Schedule {
   experiment: String
   id: Int!
   lessonType: String
-  periods: Int!
+  periods: Float!
   room: ScheduleRoom
   scheduleGroup: ScheduleGroup!
   section: Section!
@@ -481,7 +481,7 @@ type Section {
   limitCount: Int
   openDepartment: Department
   period: Int
-  periodsPerWeek: Int
+  periodsPerWeek: Float
   remark: String
   semester: Semester
   stdCount: Int

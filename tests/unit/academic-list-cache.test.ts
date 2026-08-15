@@ -6,12 +6,12 @@ const PUBLIC_CATALOG_CDN_CACHE =
 const { listCourseSummariesMock, listTeacherSummariesMock } = vi.hoisted(
   () => ({
     listCourseSummariesMock: vi.fn(async () => ({
-      data: [{ id: 1 }],
-      meta: { total: 1 },
+      data: [],
+      pagination: { page: 1, pageSize: 20, total: 0, totalPages: 0 },
     })),
     listTeacherSummariesMock: vi.fn(async () => ({
-      data: [{ id: 2 }],
-      meta: { total: 1 },
+      data: [],
+      pagination: { page: 1, pageSize: 20, total: 0, totalPages: 0 },
     })),
   }),
 );

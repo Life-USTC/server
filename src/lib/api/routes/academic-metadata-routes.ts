@@ -3,13 +3,15 @@ import {
   getCachedCurrentSemester,
   listSemesters,
 } from "@/features/catalog/server/academic-metadata-read-model";
-import {
-  handleRouteError,
-  jsonResponse,
-  notFound,
-  parseRouteQuery,
-} from "@/lib/api/helpers";
+import { handleRouteError, notFound, parseRouteQuery } from "@/lib/api/helpers";
+import { schemaJsonResponse } from "@/lib/api/responses";
+import { resolvePublicCatalogLocale } from "@/lib/api/routes/request-locale";
 import { semestersQuerySchema } from "@/lib/api/schemas/request-schemas";
+import {
+  metadataResponseSchema,
+  paginatedSemesterResponseSchema,
+  semesterSchema,
+} from "@/lib/api/schemas/response-schemas";
 import { cachedCatalogRuntimeData } from "@/lib/catalog-runtime-cache";
 import {
   currentSemesterCacheHeaders,
@@ -17,17 +19,23 @@ import {
 } from "@/lib/public-cache-control";
 import { getCanonicalOrigin } from "@/lib/site-url";
 
-export async function getMetadataRoute() {
+export async function getMetadataRoute(request: Request) {
+  const localeResolution = resolvePublicCatalogLocale(request);
+  if (localeResolution instanceof Response) {
+    return localeResolution;
+  }
+  const { cacheHeaders, locale } = localeResolution;
+
   try {
     const metadata = await cachedCatalogRuntimeData(
       "api:metadata",
-      "api:metadata",
+      `api:metadata:${locale}`,
       getCanonicalOrigin(),
-      getAcademicMetadata,
+      () => getAcademicMetadata(locale),
     );
 
-    return jsonResponse(metadata, {
-      headers: PUBLIC_CATALOG_HEADERS,
+    return schemaJsonResponse(metadataResponseSchema, metadata, {
+      headers: cacheHeaders,
     });
   } catch (error) {
     return handleRouteError("Failed to fetch metadata", error);
@@ -56,7 +64,7 @@ export async function getSemestersRoute(request: Request) {
       () => listSemesters({ page, pageSize }),
     );
 
-    return jsonResponse(result, {
+    return schemaJsonResponse(paginatedSemesterResponseSchema, result, {
       headers: PUBLIC_CATALOG_HEADERS,
     });
   } catch (error) {
@@ -72,7 +80,7 @@ export async function getCurrentSemesterRoute(referenceDate = new Date()) {
       return notFound("No current semester found");
     }
 
-    return jsonResponse(currentSemester, {
+    return schemaJsonResponse(semesterSchema, currentSemester, {
       headers: currentSemesterCacheHeaders(referenceDate),
     });
   } catch (error) {

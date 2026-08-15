@@ -44,6 +44,73 @@ const isolated = fixtures.createSubscribedIsolatedMcpToolTestContext({
 });
 
 describe("班级作业写入工具 — community_section_homework_create", () => {
+  it("community_section_homework_list 对 default/full 使用精确且不同的契约", async () => {
+    const title = `[integration-test] mcp-list-homework-${Date.now()}`;
+    let homeworkId: string | undefined;
+
+    try {
+      const created = await isolated.client.call<{
+        id?: string;
+      }>("community_section_homework_create", {
+        sectionJwId: mutationSectionJwId,
+        title,
+        publishedAt: fixtures.SEED_PLUS_THREE_DAYS,
+        submissionStartAt: fixtures.SEED_PLUS_SIX_DAYS,
+        submissionDueAt: fixtures.SEED_PLUS_SEVEN_DAYS,
+        locale: "zh-cn",
+        mode: "full",
+      });
+      homeworkId = created.id;
+
+      const compact = await isolated.client.call<{
+        success?: boolean;
+        found?: boolean;
+        section?: { jwId?: number };
+        homeworks?: Array<Record<string, unknown>>;
+      }>("community_section_homework_list", {
+        sectionJwId: mutationSectionJwId,
+        includeDeleted: false,
+        locale: "zh-cn",
+        mode: "default",
+      });
+      const full = await isolated.client.call<{
+        success?: boolean;
+        found?: boolean;
+        section?: { jwId?: number };
+        homeworks?: Array<Record<string, unknown>>;
+      }>("community_section_homework_list", {
+        sectionJwId: mutationSectionJwId,
+        includeDeleted: false,
+        locale: "zh-cn",
+        mode: "full",
+      });
+
+      expect(compact).toMatchObject({
+        success: true,
+        found: true,
+        section: { jwId: mutationSectionJwId },
+      });
+      expect(full).toMatchObject({
+        success: true,
+        found: true,
+        section: { jwId: mutationSectionJwId },
+      });
+      const compactHomework = compact.homeworks?.find(
+        (homework) => homework.id === homeworkId,
+      );
+      const fullHomework = full.homeworks?.find(
+        (homework) => homework.id === homeworkId,
+      );
+      expect(compactHomework).toBeDefined();
+      expect(compactHomework).not.toHaveProperty("section");
+      expect(compactHomework).not.toHaveProperty("createdBy");
+      expect(fullHomework).toHaveProperty("section.jwId", mutationSectionJwId);
+      expect(fullHomework).toHaveProperty("createdBy");
+    } finally {
+      await fixtures.deleteIntegrationHomework(homeworkId);
+    }
+  });
+
   it("community_section_homework_create 创建作业并返回完整实体", async () => {
     const marker = `[integration-test] mcp-create-homework-${Date.now()}`;
     const title = `${marker} title`;

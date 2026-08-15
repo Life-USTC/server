@@ -47,7 +47,7 @@ const SCHEDULE_COLUMNS = [
 ];
 
 const SCHEDULE_COLUMN_TYPES = [
-  "int",
+  "float8",
   "date",
   "int",
   "int",

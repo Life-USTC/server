@@ -223,8 +223,6 @@ describe("viewer page services", () => {
                   isCollege: true,
                   nameCn: true,
                   nameEn: true,
-                  namePrimary: true,
-                  nameSecondary: true,
                 }),
               },
               teacherTitle: {
@@ -235,8 +233,6 @@ describe("viewer page services", () => {
                   enabled: true,
                   nameCn: true,
                   nameEn: true,
-                  namePrimary: true,
-                  nameSecondary: true,
                 }),
               },
               _count: {

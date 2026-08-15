@@ -1,14 +1,16 @@
 import * as z from "zod";
+import { localizedNameFields } from "./academic-course-response-schemas";
 
-export const campusSchema = z.object({
+export const campusSchema = z.strictObject({
   id: z.number().int(),
   jwId: z.number().int(),
   nameCn: z.string(),
   nameEn: z.string().nullable(),
   code: z.string().nullable(),
+  ...localizedNameFields,
 });
 
-export const busCampusSchema = z.object({
+export const busCampusSchema = z.strictObject({
   id: z.number().int(),
   nameCn: z.string(),
   nameEn: z.string().nullable(),
@@ -16,24 +18,26 @@ export const busCampusSchema = z.object({
   longitude: z.number(),
 });
 
-export const buildingSchema = z.object({
+export const buildingSchema = z.strictObject({
   id: z.number().int(),
   jwId: z.number().int(),
   nameCn: z.string(),
   nameEn: z.string().nullable(),
   code: z.string(),
   campusId: z.number().int().nullable(),
+  ...localizedNameFields,
 });
 
-export const roomTypeSchema = z.object({
+export const roomTypeSchema = z.strictObject({
   id: z.number().int(),
   jwId: z.number().int(),
   nameCn: z.string(),
   nameEn: z.string().nullable(),
   code: z.string(),
+  ...localizedNameFields,
 });
 
-export const roomSchema = z.object({
+export const roomSchema = z.strictObject({
   id: z.number().int(),
   jwId: z.number().int(),
   nameCn: z.string(),
@@ -46,4 +50,5 @@ export const roomSchema = z.object({
   seats: z.number().int(),
   buildingId: z.number().int().nullable(),
   roomTypeId: z.number().int().nullable(),
+  ...localizedNameFields,
 });

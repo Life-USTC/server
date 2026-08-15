@@ -57,3 +57,5 @@ export const sectionDetailSchema = sectionBaseSchema.extend({
   exams: z.array(examSchema),
   adminClasses: z.array(adminClassSchema),
 });
+
+export type SectionDetailDto = z.output<typeof sectionDetailSchema>;

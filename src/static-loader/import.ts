@@ -1078,7 +1078,7 @@ async function upsertSections(
         build.bizTypeId,
         build.credits,
         build.period,
-        build.periodsPerWeek != null ? Math.round(build.periodsPerWeek) : null,
+        build.periodsPerWeek,
         build.timesPerWeek,
         build.stdCount,
         build.limitCount,
@@ -1087,7 +1087,7 @@ async function upsertSections(
         build.dateTimePlacePersonText != null
           ? JSON.stringify(build.dateTimePlacePersonText)
           : null,
-        build.actualPeriods != null ? Math.round(build.actualPeriods) : null,
+        build.actualPeriods,
         build.theoryPeriods,
         build.practicePeriods,
         build.experimentPeriods,
@@ -1149,14 +1149,14 @@ async function upsertSections(
       "int",
       "float8",
       "int",
-      "int",
+      "float8",
       "int",
       "int",
       "int",
       "boolean",
       "text",
       "jsonb",
-      "int",
+      "float8",
       "float8",
       "float8",
       "float8",
@@ -1220,7 +1220,7 @@ async function upsertScheduleGroups(
     "jwId",
     "int",
     columns,
-    ["int", "int", "int", "int", "boolean", "int"],
+    ["int", "int", "int", "float8", "boolean", "int"],
     records,
   );
 }

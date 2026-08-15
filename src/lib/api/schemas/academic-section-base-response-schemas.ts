@@ -2,7 +2,7 @@ import * as z from "zod";
 import { dateTimeSchema } from "./response-schema-primitives";
 
 export const semesterSchema = z
-  .object({
+  .strictObject({
     id: z.number().int(),
     jwId: z.number().int(),
     nameCn: z.string(),
@@ -12,7 +12,7 @@ export const semesterSchema = z
   })
   .meta({ id: "semesterSchema", outputId: "semesterSchema" });
 
-export const adminClassSchema = z.object({
+export const adminClassSchema = z.strictObject({
   id: z.number().int(),
   jwId: z.number().int(),
   code: z.string().nullable(),
@@ -26,22 +26,22 @@ export const adminClassSchema = z.object({
   abbrEn: z.string().nullable(),
 });
 
-export const sectionBaseSchema = z.object({
+export const sectionBaseSchema = z.strictObject({
   id: z.number().int(),
   jwId: z.number().int(),
-  retiredAt: dateTimeSchema.nullable().optional(),
+  retiredAt: dateTimeSchema.nullable(),
   code: z.string(),
   bizTypeId: z.number().int().nullable(),
   credits: z.number().nullable(),
   period: z.number().int().nullable(),
-  periodsPerWeek: z.number().int().nullable(),
+  periodsPerWeek: z.number().nullable(),
   timesPerWeek: z.number().int().nullable(),
   stdCount: z.number().int().nullable(),
   limitCount: z.number().int().nullable(),
   graduateAndPostgraduate: z.boolean().nullable(),
   dateTimePlaceText: z.string().nullable(),
   dateTimePlacePersonText: z.unknown().nullable(),
-  actualPeriods: z.number().int().nullable(),
+  actualPeriods: z.number().nullable(),
   theoryPeriods: z.number().nullable(),
   practicePeriods: z.number().nullable(),
   experimentPeriods: z.number().nullable(),

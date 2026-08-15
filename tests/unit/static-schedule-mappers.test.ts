@@ -3,6 +3,7 @@ import {
   mapCampus,
   mapCampusFromSection,
   mapSchedule,
+  mapScheduleGroup,
   mapSection,
   mapTeacherAssignment,
   mergeSchedule,
@@ -102,7 +103,7 @@ describe("static schedule meeting mapping", () => {
   });
 
   it("uses the maximum teacher periods regardless of input order", () => {
-    const shorter = scheduleRow({ periods: 3 });
+    const shorter = scheduleRow({ periods: 2.5 });
     const longer = scheduleRow({ periods: 4 });
     const forward = mapSchedule(shorter, 11, 5301);
     const reverse = mapSchedule(longer, 12, 5301);
@@ -112,6 +113,29 @@ describe("static schedule meeting mapping", () => {
 
     expect(forward).toEqual(reverse);
     expect(forward.periods).toBe(4);
+  });
+
+  it("preserves fractional periods and nullable exerciseClass", () => {
+    expect(
+      mapSchedule(scheduleRow({ periods: 2.5, exerciseClass: null })),
+    ).toMatchObject({ periods: 2.5, exerciseClass: undefined });
+  });
+
+  it("preserves large fractional schedule and group periods", () => {
+    expect(mapSchedule(scheduleRow({ periods: 39.5 }))).toMatchObject({
+      periods: 39.5,
+    });
+    expect(
+      mapScheduleGroup({
+        id: 2001,
+        lessonId: 1001,
+        no: 1,
+        limitCount: 100,
+        stdCount: 80,
+        actualPeriods: 39.5,
+        default: true,
+      }),
+    ).toMatchObject({ actualPeriods: 39.5 });
   });
 
   it.each([
@@ -162,6 +186,26 @@ describe("static schedule meeting mapping", () => {
 });
 
 describe("static section campus mapping", () => {
+  it("preserves fractional weekly and actual periods", () => {
+    expect(
+      mapSection(
+        {
+          id: 1001,
+          code: "MATH1001.01",
+          semester_id: 401,
+          periodsPerWeek: 2.5,
+          actualPeriods: 39.5,
+        },
+        { actualPeriods: 39.5 },
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        { course: { id: 3001 } },
+      ),
+    ).toMatchObject({ periodsPerWeek: 2.5, actualPeriods: 39.5 });
+  });
+
   it("maps only JW Campus entities that carry an upstream id", () => {
     expect(
       mapCampus({ id: 901, nameZh: "东校区", nameEn: "East Campus" }),
@@ -214,5 +258,15 @@ describe("static teacher assignment mapping", () => {
       teacherLessonTypeId: 30,
       teacherTitleJwId: 40,
     });
+  });
+
+  it("preserves fractional teacher periods", () => {
+    expect(
+      mapTeacherAssignment(
+        1001,
+        { teacherId: 20, name: "张三", period: 0.5 },
+        [],
+      ),
+    ).toMatchObject({ period: 0.5 });
   });
 });

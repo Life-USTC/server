@@ -14,7 +14,7 @@ import {
   campusSchema,
 } from "./academic-location-response-schemas";
 
-export const metadataResponseSchema = z.object({
+export const metadataResponseSchema = z.strictObject({
   educationLevels: z.array(educationLevelSchema),
   courseCategories: z.array(courseCategorySchema),
   courseClassifies: z.array(courseClassifySchema),
@@ -27,3 +27,5 @@ export const metadataResponseSchema = z.object({
     campusSchema.extend({ buildings: z.array(buildingSchema) }),
   ),
 });
+
+export type MetadataResponseDto = z.output<typeof metadataResponseSchema>;

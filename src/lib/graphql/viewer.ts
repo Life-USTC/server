@@ -240,7 +240,7 @@ export const graphqlScopeTypeDefs = /* GraphQL */ `
 
   type Schedule {
     id: Int!
-    periods: Int!
+    periods: Float!
     date: Date
     weekday: Int!
     startTime: Int!

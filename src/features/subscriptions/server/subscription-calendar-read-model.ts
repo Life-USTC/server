@@ -1,3 +1,5 @@
+import { sectionCompactInclude } from "@/features/catalog/server/academic-query-includes";
+import { toSectionCompactDto } from "@/features/catalog/server/academic-summary-dto-mappers";
 import { type AppLocale, DEFAULT_LOCALE } from "@/i18n/config";
 import { prisma, withUserDbContext } from "@/lib/db/prisma";
 import { logAppEvent } from "@/lib/log/app-logger";
@@ -8,8 +10,6 @@ import {
   type UserSectionSubscriptionState,
   userSectionSubscriptionSelect,
 } from "./subscription-read-model-shared";
-import { subscriptionSectionCompactInclude } from "./subscription-section-include";
-import { localizeCompactSubscriptionSection } from "./subscription-section-localize";
 
 export async function getUserSectionSubscriptionState(
   userId: string,
@@ -77,7 +77,7 @@ export async function getUserCalendarSubscription(
         sectionSubscriptions: {
           include: {
             section: {
-              include: subscriptionSectionCompactInclude,
+              include: sectionCompactInclude,
             },
           },
           orderBy: [
@@ -98,7 +98,7 @@ export async function getUserCalendarSubscription(
   return {
     userId: user.id,
     sections: user.sectionSubscriptions.map((row) =>
-      localizeCompactSubscriptionSection(row.section, locale),
+      toSectionCompactDto(row.section, locale),
     ),
     calendarPath,
     calendarUrl: `${getPublicOrigin()}${calendarPath}`,

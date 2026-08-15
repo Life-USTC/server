@@ -20,6 +20,17 @@ describe("GraphQL MCP operations", () => {
   });
   const marker = `[integration-test] graphql-mcp-${Date.now()}`;
 
+  async function callExpectedGraphqlError<T>(
+    args: Record<string, unknown>,
+  ): Promise<T> {
+    const result = await isolated.client.callToolResult(
+      "graphql_operation_run",
+      args,
+    );
+    expect(result.isError).toBe(true);
+    return result.structuredContent as T;
+  }
+
   it("lists the canonical SDL and a document-free operation manifest", async () => {
     const resources = await isolated.client.listResources();
 
@@ -165,7 +176,7 @@ describe("GraphQL MCP operations", () => {
   it("correlates nested GraphQL observations with the HTTP request id", async () => {
     const info = vi.spyOn(console, "info").mockImplementation(() => {});
     try {
-      await runWithCloudflareRuntimeEnv({}, () => {
+      const result = await runWithCloudflareRuntimeEnv(undefined, () => {
         setCloudflareRequestContext({
           method: "POST",
           requestId: "mcp-http-request-id",
@@ -176,6 +187,7 @@ describe("GraphQL MCP operations", () => {
           variables: {},
         });
       });
+      expect(result).toMatchObject({ success: true });
 
       const operationLog = info.mock.calls.find(
         ([prefix, value]) =>
@@ -233,10 +245,10 @@ describe("GraphQL MCP operations", () => {
   });
 
   it("requires confirmation for every arbitrary mutation", async () => {
-    const result = await isolated.client.call<{
+    const result = await callExpectedGraphqlError<{
       success: boolean;
       error: string;
-    }>("graphql_operation_run", {
+    }>({
       document: /* GraphQL */ `
         mutation CreateTodo($input: CreateTodoInput!) {
           todoCreate(input: $input) { id }
@@ -254,10 +266,10 @@ describe("GraphQL MCP operations", () => {
   });
 
   it("rejects ambiguous inputs, introspection, and over-wide documents", async () => {
-    const ambiguous = await isolated.client.call<{
+    const ambiguous = await callExpectedGraphqlError<{
       error: string;
       success: boolean;
-    }>("graphql_operation_run", {
+    }>({
       operationId: "workspace.todo.list.v1",
       document: "query Account { account { profile { id } } }",
       locale: "zh-cn",
@@ -267,10 +279,10 @@ describe("GraphQL MCP operations", () => {
       error: "BAD_USER_INPUT",
     });
 
-    const introspection = await isolated.client.call<{
+    const introspection = await callExpectedGraphqlError<{
       success: boolean;
       errors: Array<{ message: string }>;
-    }>("graphql_operation_run", {
+    }>({
       document: "query Inspect { __schema { queryType { name } } }",
       operationName: "Inspect",
       locale: "zh-cn",
@@ -278,10 +290,10 @@ describe("GraphQL MCP operations", () => {
     expect(introspection.success).toBe(false);
     expect(introspection.errors[0]?.message).toMatch(/introspection/i);
 
-    const overWide = await isolated.client.call<{
+    const overWide = await callExpectedGraphqlError<{
       success: boolean;
       errors: Array<{ message: string }>;
-    }>("graphql_operation_run", {
+    }>({
       document: `query TooWide { ${Array.from(
         { length: 11 },
         (_, index) => `field${index}: catalog { currentSemester { jwId } }`,
@@ -322,10 +334,10 @@ describe("GraphQL MCP operations", () => {
       },
     });
 
-    const missingConfirmation = await isolated.client.call<{
+    const missingConfirmation = await callExpectedGraphqlError<{
       success: boolean;
       error: string;
-    }>("graphql_operation_run", {
+    }>({
       operationId: "workspace.todo.create.v1",
       variables: { input: { title: marker } },
       locale: "zh-cn",
@@ -410,11 +422,11 @@ describe("GraphQL MCP operations", () => {
   });
 
   it("rejects variables outside the selected registered operation", async () => {
-    const result = await isolated.client.call<{
+    const result = await callExpectedGraphqlError<{
       success: boolean;
       error: string;
       message: string;
-    }>("graphql_operation_run", {
+    }>({
       operationId: "workspace.todo.list.v1",
       variables: {
         document: "query Arbitrary { workspace { profile { email } } }",

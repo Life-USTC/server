@@ -6,6 +6,4 @@ import { observedApiRoute } from "@/lib/log/api-observability";
  * Get metadata.
  * @response metadataResponseSchema
  */
-export const GET = svelteRequestHandler(
-  observedApiRoute(() => getMetadataRoute()),
-);
+export const GET = svelteRequestHandler(observedApiRoute(getMetadataRoute));
