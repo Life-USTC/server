@@ -3,8 +3,10 @@ import { revokeUserOAuthAuthorization } from "@/features/oauth/server/user-autho
 import { getSettingsCopy } from "@/features/settings/lib/settings-copy";
 import type { SettingsActionInput } from "@/features/settings/server/settings-page-common";
 import { requireSettingsUser } from "@/features/settings/server/settings-page-data";
+import { getAuditRequestMetadata } from "@/lib/audit/write-audit-log";
 import { isTrustedAuthOrigin } from "@/lib/auth/auth-origins";
 import { logServerActionError } from "@/lib/log/app-logger";
+import { authorizeRecentSettingsAction } from "./settings-recent-auth";
 
 function assertTrustedSettingsActionOrigin(request: Request) {
   const origin =
@@ -23,6 +25,18 @@ export async function revokeSettingsAuthorizationAction({
   assertTrustedSettingsActionOrigin(request);
   const copy = getSettingsCopy(locale);
   const user = await requireSettingsUser(request, url);
+  const recent = await authorizeRecentSettingsAction({
+    action: "oauth_authorization_revoke",
+    request,
+    targetType: "oauth_consent",
+    userId: user.id,
+  });
+  if (!recent.ok) {
+    return fail(403, {
+      kind: "authorizations",
+      message: copy.settings.recentAuthRequired,
+    });
+  }
   const form = await request.formData();
   const consentId = String(form.get("consentId") ?? "").trim();
   if (!consentId) {
@@ -34,7 +48,11 @@ export async function revokeSettingsAuthorizationAction({
 
   let result: Awaited<ReturnType<typeof revokeUserOAuthAuthorization>>;
   try {
-    result = await revokeUserOAuthAuthorization(user.id, consentId);
+    result = await revokeUserOAuthAuthorization(user.id, consentId, {
+      ...getAuditRequestMetadata(request),
+      channel: "web",
+      sessionId: recent.sessionId,
+    });
   } catch (error) {
     logServerActionError("settings.authorization.revoke.failed", error, {
       action: "revoke-authorization",

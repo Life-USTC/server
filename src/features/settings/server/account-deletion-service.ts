@@ -1,4 +1,5 @@
 import type { Prisma } from "@/generated/prisma/client";
+import { type AuditLogParams, fireAuditLog } from "@/lib/audit/write-audit-log";
 import { authPrisma } from "@/lib/db/auth-prisma";
 import { withUserDbContext } from "@/lib/db/prisma";
 import { runSerializableTransaction } from "@/lib/db/serializable-transaction";
@@ -6,6 +7,11 @@ import { runSerializableTransaction } from "@/lib/db/serializable-transaction";
 type DeleteOwnAccountResult =
   | { ok: true }
   | { ok: false; reason: "cannot_remove_last_admin" | "not_found" };
+
+export type AccountDeletionAuditContext = Pick<
+  AuditLogParams,
+  "channel" | "ipAddress" | "requestId" | "sessionId" | "userAgent"
+>;
 
 async function deleteRlsProtectedUserData(
   tx: Prisma.TransactionClient,
@@ -23,6 +29,7 @@ async function deleteRlsProtectedUserData(
 
 export async function deleteOwnAccount(
   userId: string,
+  audit: AccountDeletionAuditContext,
 ): Promise<DeleteOwnAccountResult> {
   userId = userId.trim();
   if (!userId) throw new Error("Account deletion user ID is required");
@@ -51,18 +58,52 @@ export async function deleteOwnAccount(
     authPrisma,
   );
 
-  if (!gate.ok) return gate;
+  if (!gate.ok) {
+    await fireAuditLog({
+      action: "account_delete",
+      outcome: "denied",
+      targetId: userId,
+      targetType: "user",
+      ...(gate.reason === "cannot_remove_last_admin"
+        ? { subjectUserId: userId, userId }
+        : {}),
+      metadata: { reason: gate.reason, selfService: true },
+      ...audit,
+    });
+    return gate;
+  }
 
   await withUserDbContext(userId, (tx) =>
     deleteRlsProtectedUserData(tx, userId),
   );
 
-  return runSerializableTransaction(
-    async (tx) => {
-      await tx.user.delete({ where: { id: userId } });
-      return { ok: true as const };
-    },
-    "Failed to delete account",
-    authPrisma,
-  );
+  try {
+    const result = await runSerializableTransaction(
+      async (tx) => {
+        await tx.user.delete({ where: { id: userId } });
+        return { ok: true as const };
+      },
+      "Failed to delete account",
+      authPrisma,
+    );
+    await fireAuditLog({
+      action: "account_delete",
+      targetType: "user",
+      metadata: { selfService: true },
+      ...audit,
+    });
+    return result;
+  } catch (error) {
+    await fireAuditLog({
+      action: "account_delete",
+      outcome: "failure",
+      subjectUserId: userId,
+      targetId: userId,
+      targetType: "user",
+      userId,
+      metadata: { selfService: true },
+      ...audit,
+    });
+    throw error;
+  }
 }

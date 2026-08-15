@@ -1,44 +1,54 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const { runSerializableTransactionMock, withUserDbContextMock, tx, appTx } =
-  vi.hoisted(() => ({
-    runSerializableTransactionMock: vi.fn(),
-    withUserDbContextMock: vi.fn(),
-    tx: {
-      auditLog: {
-        updateMany: vi.fn(() => {
-          throw new Error(
-            "account deletion must rely on the AuditLog foreign key",
-          );
-        }),
-      },
-      user: {
-        count: vi.fn(),
-        delete: vi.fn(),
-        findUnique: vi.fn(),
-      },
-      userSuspension: {
-        updateMany: vi.fn(() => {
-          throw new Error(
-            "account deletion must rely on the UserSuspension foreign keys",
-          );
-        }),
-      },
+const {
+  fireAuditLogMock,
+  runSerializableTransactionMock,
+  withUserDbContextMock,
+  tx,
+  appTx,
+} = vi.hoisted(() => ({
+  fireAuditLogMock: vi.fn(),
+  runSerializableTransactionMock: vi.fn(),
+  withUserDbContextMock: vi.fn(),
+  tx: {
+    auditLog: {
+      updateMany: vi.fn(() => {
+        throw new Error(
+          "account deletion must rely on the AuditLog foreign key",
+        );
+      }),
     },
-    appTx: {
-      busUserPreference: { deleteMany: vi.fn() },
-      commentReaction: { deleteMany: vi.fn() },
-      dashboardLinkClick: { deleteMany: vi.fn() },
-      dashboardLinkPin: { deleteMany: vi.fn() },
-      homeworkCompletion: { deleteMany: vi.fn() },
-      todo: { deleteMany: vi.fn() },
-      upload: { deleteMany: vi.fn() },
-      uploadPending: { deleteMany: vi.fn() },
+    user: {
+      count: vi.fn(),
+      delete: vi.fn(),
+      findUnique: vi.fn(),
     },
-  }));
+    userSuspension: {
+      updateMany: vi.fn(() => {
+        throw new Error(
+          "account deletion must rely on the UserSuspension foreign keys",
+        );
+      }),
+    },
+  },
+  appTx: {
+    busUserPreference: { deleteMany: vi.fn() },
+    commentReaction: { deleteMany: vi.fn() },
+    dashboardLinkClick: { deleteMany: vi.fn() },
+    dashboardLinkPin: { deleteMany: vi.fn() },
+    homeworkCompletion: { deleteMany: vi.fn() },
+    todo: { deleteMany: vi.fn() },
+    upload: { deleteMany: vi.fn() },
+    uploadPending: { deleteMany: vi.fn() },
+  },
+}));
 
 vi.mock("@/lib/db/serializable-transaction", () => ({
   runSerializableTransaction: runSerializableTransactionMock,
+}));
+
+vi.mock("@/lib/audit/write-audit-log", () => ({
+  fireAuditLog: fireAuditLogMock,
 }));
 
 vi.mock("@/lib/db/auth-prisma", () => ({
@@ -60,6 +70,7 @@ describe("account deletion database privileges", () => {
     );
     tx.user.findUnique.mockResolvedValue({ id: "user-1", isAdmin: false });
     tx.user.delete.mockResolvedValue({ id: "user-1" });
+    fireAuditLogMock.mockResolvedValue(undefined);
   });
 
   it("deletes owner-scoped rows in app context before auth user deletion", async () => {
@@ -67,7 +78,9 @@ describe("account deletion database privileges", () => {
       "@/features/settings/server/account-deletion-service"
     );
 
-    await expect(deleteOwnAccount("user-1")).resolves.toEqual({ ok: true });
+    await expect(
+      deleteOwnAccount("user-1", { channel: "system" }),
+    ).resolves.toEqual({ ok: true });
 
     expect(runSerializableTransactionMock).toHaveBeenNthCalledWith(
       1,
@@ -91,5 +104,11 @@ describe("account deletion database privileges", () => {
     expect(tx.user.delete).toHaveBeenCalledWith({ where: { id: "user-1" } });
     expect(tx.auditLog.updateMany).not.toHaveBeenCalled();
     expect(tx.userSuspension.updateMany).not.toHaveBeenCalled();
+    expect(fireAuditLogMock).toHaveBeenCalledWith({
+      action: "account_delete",
+      channel: "system",
+      metadata: { selfService: true },
+      targetType: "user",
+    });
   });
 });

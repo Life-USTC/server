@@ -1,7 +1,9 @@
 -- Expand the append-only audit trail with account-security attribution.
+ALTER TYPE "AuditAction" ADD VALUE 'account_create';
 ALTER TYPE "AuditAction" ADD VALUE 'account_sign_in';
 ALTER TYPE "AuditAction" ADD VALUE 'account_sign_out';
 ALTER TYPE "AuditAction" ADD VALUE 'account_profile_update';
+ALTER TYPE "AuditAction" ADD VALUE 'account_credential_update';
 ALTER TYPE "AuditAction" ADD VALUE 'account_link';
 ALTER TYPE "AuditAction" ADD VALUE 'account_unlink';
 ALTER TYPE "AuditAction" ADD VALUE 'account_delete';
@@ -9,6 +11,7 @@ ALTER TYPE "AuditAction" ADD VALUE 'account_passkey_create';
 ALTER TYPE "AuditAction" ADD VALUE 'account_passkey_update';
 ALTER TYPE "AuditAction" ADD VALUE 'account_passkey_delete';
 ALTER TYPE "AuditAction" ADD VALUE 'account_session_revoke';
+ALTER TYPE "AuditAction" ADD VALUE 'account_calendar_token_create';
 ALTER TYPE "AuditAction" ADD VALUE 'account_calendar_token_rotate';
 ALTER TYPE "AuditAction" ADD VALUE 'oauth_authorization_grant';
 ALTER TYPE "AuditAction" ADD VALUE 'oauth_authorization_update';
@@ -48,3 +51,13 @@ CREATE INDEX "AuditLog_subjectUserId_oauthClientId_createdAt_id_idx"
   ON "AuditLog"("subjectUserId", "oauthClientId", "createdAt", "id");
 CREATE INDEX "AuditLog_oauthClientId_createdAt_idx"
   ON "AuditLog"("oauthClientId", "createdAt");
+
+DO $grant_auth_audit_insert$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM pg_roles WHERE rolname = 'life_ustc_auth_runtime'
+  ) THEN
+    GRANT INSERT ON TABLE "AuditLog" TO life_ustc_auth_runtime;
+  END IF;
+END
+$grant_auth_audit_insert$;

@@ -163,6 +163,9 @@ describe.sequential("OAuth user authorization management", () => {
   });
 
   afterAll(async () => {
+    await prisma.auditLog.deleteMany({
+      where: { oauthClientId: { in: [clientId, trustedClientId] } },
+    });
     await prisma.oAuthClient.deleteMany({
       where: { clientId: { in: [clientId, trustedClientId] } },
     });
@@ -381,6 +384,16 @@ describe.sequential("OAuth user authorization management", () => {
     await expect(resolveActiveOAuthRefreshGrant(refreshToken)).resolves.toBe(
       null,
     );
+    const revokeAudit = await prisma.auditLog.findFirstOrThrow({
+      where: { action: "oauth_authorization_revoke", oauthClientId: clientId },
+      orderBy: { createdAt: "desc" },
+      select: { metadata: true, oauthGrantId: true, targetId: true },
+    });
+    expect(revokeAudit).toMatchObject({
+      oauthGrantId: latestGrantId,
+      targetId: latestConsentId,
+    });
+    expect(JSON.stringify(revokeAudit)).not.toContain(refreshToken);
 
     const replacement = await prisma.oAuthConsent.create({
       data: {
@@ -458,6 +471,17 @@ describe.sequential("OAuth user authorization management", () => {
     });
     if (!reduced.ok) throw new Error("Expected scope reduction to succeed");
     expect(reduced.grantId).not.toBe(replacement.grantId);
+    await expect(
+      prisma.auditLog.findFirst({
+        where: {
+          action: "oauth_authorization_update",
+          oauthGrantId: reduced.grantId,
+        },
+        select: { metadata: true },
+      }),
+    ).resolves.toEqual({
+      metadata: { changedFields: ["scopes"], scopeCount: 0 },
+    });
     await expect(
       hasActiveOAuthUserGrant({
         clientId,

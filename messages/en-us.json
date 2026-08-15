@@ -1010,6 +1010,7 @@
   "settings": {
     "title": "Settings",
     "description": "Manage account, content, and safety options here.",
+    "recentAuthRequired": "For account security, sign out and sign in again before performing this action.",
     "workspaceBadge": "Account workspace",
     "passkeys": {
       "title": "Passkeys",

@@ -10,8 +10,13 @@ import {
   revokeUserOAuthAuthorization,
   updateUserOAuthAuthorizationScopes,
 } from "@/features/oauth/server/user-authorizations.server";
+import {
+  fireAuditLog,
+  getAuditRequestMetadata,
+} from "@/lib/audit/write-audit-log";
 import { isTrustedAuthOrigin } from "@/lib/auth/auth-origins";
 import { verifyAccessTokenJwt } from "@/lib/auth/jwt-verification";
+import { resolveAuthoritativeRecentSession } from "@/lib/auth/recent-session";
 import { authPrisma as prisma } from "@/lib/db/auth-prisma";
 import { logAppEvent } from "@/lib/log/app-logger";
 import {
@@ -224,6 +229,26 @@ async function handleOAuthConsentMutation(
   if (!session?.user.id) {
     return consentMutationError(401, "Authentication required");
   }
+  const recent = await resolveAuthoritativeRecentSession(request.headers, {
+    expectedUserId: session.user.id,
+  });
+  if (!recent.ok) {
+    await fireAuditLog({
+      action:
+        mutation === "delete"
+          ? "oauth_authorization_revoke"
+          : "oauth_authorization_update",
+      channel: "auth",
+      outcome: "denied",
+      subjectUserId: session.user.id,
+      targetType: "oauth_consent",
+      userId: session.user.id,
+      ...(recent.sessionId ? { sessionId: recent.sessionId } : {}),
+      metadata: { reason: recent.reason },
+      ...getAuditRequestMetadata(request),
+    });
+    return consentMutationError(403, "Recent authentication required");
+  }
 
   let body: unknown;
   try {
@@ -240,6 +265,11 @@ async function handleOAuthConsentMutation(
     const result = await revokeUserOAuthAuthorization(
       session.user.id,
       consentId,
+      {
+        ...getAuditRequestMetadata(request),
+        channel: "auth",
+        sessionId: recent.sessionId,
+      },
     );
     return result.ok
       ? Response.json(null, { headers: { "Cache-Control": "no-store" } })
@@ -260,6 +290,11 @@ async function handleOAuthConsentMutation(
     session.user.id,
     consentId,
     update.scopes,
+    {
+      ...getAuditRequestMetadata(request),
+      channel: "auth",
+      sessionId: recent.sessionId,
+    },
   );
   if (!result.ok) {
     return consentMutationError(

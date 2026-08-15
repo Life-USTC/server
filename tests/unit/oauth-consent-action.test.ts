@@ -6,7 +6,9 @@ const AUTH_SECRET = "oauth-consent-test-secret-at-least-32-bytes";
 
 const {
   bindCodeMock,
+  auditCreateMock,
   consentDeleteMock,
+  consentFindMock,
   consentUpdateMock,
   consentUpsertMock,
   deviceDeleteMock,
@@ -18,7 +20,9 @@ const {
   verificationCreateMock,
 } = vi.hoisted(() => ({
   bindCodeMock: vi.fn(),
+  auditCreateMock: vi.fn(),
   consentDeleteMock: vi.fn(),
+  consentFindMock: vi.fn(),
   consentUpdateMock: vi.fn(),
   consentUpsertMock: vi.fn(),
   deviceDeleteMock: vi.fn(),
@@ -47,11 +51,13 @@ vi.mock("@/lib/auth/core", () => ({
 }));
 
 const transactionClient = {
+  auditLog: { create: auditCreateMock },
   deviceCode: { deleteMany: deviceDeleteMock },
   oAuthAccessToken: { deleteMany: tokenDeleteMock },
   oAuthClient: { findUnique: txReadClientMock },
   oAuthConsent: {
     deleteMany: consentDeleteMock,
+    findUnique: consentFindMock,
     update: consentUpdateMock,
     upsert: consentUpsertMock,
   },
@@ -104,7 +110,9 @@ async function signedOAuthQuery(overrides: Record<string, string> = {}) {
 describe("OAuth consent 操作", () => {
   beforeEach(() => {
     bindCodeMock.mockReset();
+    auditCreateMock.mockReset();
     consentDeleteMock.mockReset();
+    consentFindMock.mockReset();
     consentUpdateMock.mockReset();
     consentUpsertMock.mockReset();
     deviceDeleteMock.mockReset();
@@ -133,6 +141,7 @@ describe("OAuth consent 操作", () => {
     transactionMock.mockImplementation((run) => run(transactionClient));
     bindCodeMock.mockResolvedValue(true);
     consentUpdateMock.mockResolvedValue({});
+    consentFindMock.mockResolvedValue(null);
     consentUpsertMock.mockResolvedValue({
       grantId: "created-grant",
       requestedUserInfoClaims: [],
@@ -140,6 +149,7 @@ describe("OAuth consent 操作", () => {
       scopes: [],
     });
     verificationCreateMock.mockResolvedValue({});
+    auditCreateMock.mockResolvedValue({});
     vi.stubEnv("APP_PUBLIC_ORIGIN", "https://life.example");
   });
 
@@ -214,6 +224,17 @@ describe("OAuth consent 操作", () => {
       "https://life.example/oauth/authorize",
       stored.referenceId,
     );
+    expect(auditCreateMock).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        action: "oauth_authorization_grant",
+        oauthClientId: "client-1",
+        oauthGrantId: stored.referenceId,
+        sessionId: "session-1",
+        userId: "user-1",
+      }),
+    });
+    const serializedAudit = JSON.stringify(auditCreateMock.mock.calls);
+    expect(serializedAudit).not.toContain("test-code-challenge");
   });
 
   it("重复或较窄的 consent 复用 grant 并只扩展已有授权", async () => {

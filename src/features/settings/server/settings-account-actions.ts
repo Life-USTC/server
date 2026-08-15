@@ -2,6 +2,10 @@ import { type Cookies, fail, redirect } from "@sveltejs/kit";
 import { getSettingsCopy } from "@/features/settings/lib/settings-copy";
 import type { SettingsActionInput } from "@/features/settings/server/settings-page-common";
 import { requireSettingsUser } from "@/features/settings/server/settings-page-data";
+import {
+  fireAuditLog,
+  getAuditRequestMetadata,
+} from "@/lib/audit/write-audit-log";
 import { authApi } from "@/lib/auth/core";
 import {
   applyAuthResponseCookies,
@@ -10,6 +14,7 @@ import {
 import { logServerActionError } from "@/lib/log/app-logger";
 import { deleteOwnAccount } from "./account-deletion-service";
 import { unlinkSettingsAccount } from "./settings-account-unlink";
+import { authorizeRecentSettingsAction } from "./settings-recent-auth";
 
 export async function unlinkSettingsAccountAction({
   locale,
@@ -18,9 +23,37 @@ export async function unlinkSettingsAccountAction({
 }: SettingsActionInput) {
   const copy = getSettingsCopy(locale);
   const user = await requireSettingsUser(request, url);
+  const recent = await authorizeRecentSettingsAction({
+    action: "account_unlink",
+    request,
+    targetType: "account",
+    userId: user.id,
+  });
+  if (!recent.ok) {
+    return fail(403, {
+      kind: "accounts",
+      message: copy.settings.recentAuthRequired,
+    });
+  }
   const form = await request.formData();
   const provider = String(form.get("provider") ?? "");
-  const result = await unlinkSettingsAccount(user.id, provider);
+  let result: Awaited<ReturnType<typeof unlinkSettingsAccount>>;
+  try {
+    result = await unlinkSettingsAccount(user.id, provider);
+  } catch (error) {
+    await fireAuditLog({
+      action: "account_unlink",
+      channel: "web",
+      outcome: "failure",
+      sessionId: recent.sessionId,
+      subjectUserId: user.id,
+      targetType: "account",
+      userId: user.id,
+      metadata: { provider },
+      ...getAuditRequestMetadata(request),
+    });
+    throw error;
+  }
   if (result === "last_account") {
     return fail(400, {
       kind: "accounts",
@@ -33,6 +66,16 @@ export async function unlinkSettingsAccountAction({
       message: copy.profile.accountNotLinked,
     });
   }
+  await fireAuditLog({
+    action: "account_unlink",
+    channel: "web",
+    sessionId: recent.sessionId,
+    subjectUserId: user.id,
+    targetType: "account",
+    userId: user.id,
+    metadata: { provider },
+    ...getAuditRequestMetadata(request),
+  });
   throw redirect(303, "/account/settings/accounts?message=AccountDisconnected");
 }
 
@@ -91,7 +134,23 @@ export async function deleteSettingsAccountAction({
       message: copy.profile.deleteConfirmInvalid,
     });
   }
-  const result = await deleteOwnAccount(user.id);
+  const recent = await authorizeRecentSettingsAction({
+    action: "account_delete",
+    request,
+    targetType: "user",
+    userId: user.id,
+  });
+  if (!recent.ok) {
+    return fail(403, {
+      kind: "danger",
+      message: copy.settings.recentAuthRequired,
+    });
+  }
+  const result = await deleteOwnAccount(user.id, {
+    ...getAuditRequestMetadata(request),
+    channel: "web",
+    sessionId: recent.sessionId,
+  });
   if (!result.ok) {
     return fail(400, {
       kind: "danger",

@@ -976,6 +976,7 @@
   "settings": {
     "title": "设置",
     "description": "在这里管理账号、内容和安全选项。",
+    "recentAuthRequired": "为保护账户安全，请先退出并重新登录后再执行此操作。",
     "workspaceBadge": "账户工作区",
     "passkeys": {
       "title": "通行密钥",

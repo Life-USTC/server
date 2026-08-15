@@ -2,12 +2,16 @@ import type { Cookies } from "@sveltejs/kit";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const {
+  authorizeRecentSettingsActionMock,
+  deleteOwnAccountMock,
   linkAccountFromSvelteActionMock,
   logServerActionErrorMock,
   requireSettingsUserMock,
   signInFromSvelteActionMock,
   unlinkSettingsAccountMock,
 } = vi.hoisted(() => ({
+  authorizeRecentSettingsActionMock: vi.fn(),
+  deleteOwnAccountMock: vi.fn(),
   linkAccountFromSvelteActionMock: vi.fn(),
   logServerActionErrorMock: vi.fn(),
   requireSettingsUserMock: vi.fn(),
@@ -34,15 +38,25 @@ vi.mock("@/lib/auth/core", () => ({
 }));
 
 vi.mock("@/features/settings/server/account-deletion-service", () => ({
-  deleteOwnAccount: vi.fn(),
+  deleteOwnAccount: deleteOwnAccountMock,
 }));
 
 vi.mock("@/features/settings/server/settings-account-unlink", () => ({
   unlinkSettingsAccount: unlinkSettingsAccountMock,
 }));
 
+vi.mock("@/features/settings/server/settings-recent-auth", () => ({
+  authorizeRecentSettingsAction: authorizeRecentSettingsActionMock,
+}));
+
+vi.mock("@/lib/audit/write-audit-log", () => ({
+  fireAuditLog: vi.fn(),
+  getAuditRequestMetadata: vi.fn(() => ({})),
+}));
+
 import { signInPageDefaultAction } from "@/features/auth/server/signin-page-server";
 import {
+  deleteSettingsAccountAction,
   linkSettingsAccountAction,
   unlinkSettingsAccountAction,
 } from "@/features/settings/server/settings-account-actions";
@@ -51,12 +65,19 @@ const cookies = {} as Cookies;
 
 describe("auth page action logging", () => {
   beforeEach(() => {
+    authorizeRecentSettingsActionMock.mockReset();
+    deleteOwnAccountMock.mockReset();
     linkAccountFromSvelteActionMock.mockReset();
     logServerActionErrorMock.mockReset();
     requireSettingsUserMock.mockReset();
     signInFromSvelteActionMock.mockReset();
     unlinkSettingsAccountMock.mockReset();
     requireSettingsUserMock.mockResolvedValue({ id: "user-1" });
+    authorizeRecentSettingsActionMock.mockResolvedValue({
+      ok: true,
+      sessionId: "session-1",
+      userId: "user-1",
+    });
   });
 
   it("records unexpected sign-in action failures with the request id", async () => {
@@ -163,5 +184,50 @@ describe("auth page action logging", () => {
       location: "/account/settings/accounts?message=AccountDisconnected",
       status: 303,
     });
+  });
+
+  it("blocks destructive settings work with actionable recent-auth copy", async () => {
+    authorizeRecentSettingsActionMock.mockResolvedValue({
+      ok: false,
+      reason: "session_not_fresh",
+      sessionId: "session-1",
+      userId: "user-1",
+    });
+    const unlinkRequest = new Request(
+      "https://life.example/account/settings/accounts",
+      {
+        body: new URLSearchParams({ provider: "github" }),
+        method: "POST",
+      },
+    );
+
+    const unlinkResult = await unlinkSettingsAccountAction({
+      locale: "en-us",
+      request: unlinkRequest,
+      url: new URL(unlinkRequest.url),
+    });
+    expect(unlinkResult).toMatchObject({
+      status: 403,
+      data: {
+        message: expect.stringMatching(/sign out and sign in again/i),
+      },
+    });
+    expect(unlinkSettingsAccountMock).not.toHaveBeenCalled();
+
+    const deleteRequest = new Request(
+      "https://life.example/account/settings/accounts",
+      {
+        body: new URLSearchParams({ confirm: "DELETE" }),
+        method: "POST",
+      },
+    );
+    const deleteResult = await deleteSettingsAccountAction({
+      cookies,
+      locale: "en-us",
+      request: deleteRequest,
+      url: new URL(deleteRequest.url),
+    });
+    expect(deleteResult).toMatchObject({ status: 403 });
+    expect(deleteOwnAccountMock).not.toHaveBeenCalled();
   });
 });

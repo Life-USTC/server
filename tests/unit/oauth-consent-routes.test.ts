@@ -17,6 +17,14 @@ vi.mock("@/lib/auth/core", () => ({
   getSessionFromHeaders: getSessionFromHeadersMock,
 }));
 
+vi.mock("@/lib/auth/recent-session", () => ({
+  resolveAuthoritativeRecentSession: vi.fn().mockResolvedValue({
+    ok: true,
+    sessionId: "session-1",
+    userId: "user-1",
+  }),
+}));
+
 vi.mock("@/lib/auth/auth-origins", () => ({
   isTrustedAuthOrigin: (origin: string) => origin === "https://life.example",
 }));
@@ -88,7 +96,11 @@ describe("OAuth consent mutation routes", () => {
     );
 
     expect(response.status).toBe(200);
-    expect(revokeAuthorizationMock).toHaveBeenCalledWith("user-1", "consent-1");
+    expect(revokeAuthorizationMock).toHaveBeenCalledWith(
+      "user-1",
+      "consent-1",
+      expect.objectContaining({ channel: "auth", sessionId: "session-1" }),
+    );
     expect(authHandlerMock).not.toHaveBeenCalled();
   });
 
@@ -117,6 +129,7 @@ describe("OAuth consent mutation routes", () => {
       "user-1",
       "consent-1",
       ["profile"],
+      expect.objectContaining({ channel: "auth", sessionId: "session-1" }),
     );
     expect(authHandlerMock).not.toHaveBeenCalled();
   });

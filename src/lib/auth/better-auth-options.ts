@@ -15,6 +15,11 @@ import {
   betterAuthUserOptions,
   betterAuthVerificationOptions,
 } from "@/lib/auth/better-auth-schema-options";
+import {
+  betterAuthSecurityDatabaseHooks,
+  betterAuthSecurityHooks,
+  RECENT_AUTH_MAX_AGE_SECONDS,
+} from "@/lib/auth/better-auth-security-hooks";
 import { buildBetterAuthSocialProviders } from "@/lib/auth/better-auth-social-providers";
 import { webhookLoginRateLimitRules } from "@/lib/auth/webhook-login-plugin";
 import { authPrisma } from "@/lib/db/auth-prisma";
@@ -70,8 +75,13 @@ export function buildBetterAuthOptions() {
     },
     user: betterAuthUserOptions,
     account: betterAuthAccountOptions,
-    session: betterAuthSessionOptions,
+    session: {
+      ...betterAuthSessionOptions,
+      freshAge: RECENT_AUTH_MAX_AGE_SECONDS,
+    },
     verification: betterAuthVerificationOptions,
+    databaseHooks: betterAuthSecurityDatabaseHooks,
+    hooks: betterAuthSecurityHooks,
     plugins: buildBetterAuthPlugins({
       authEnv,
       authPublicOrigin,

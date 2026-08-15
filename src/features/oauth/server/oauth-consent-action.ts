@@ -1,6 +1,11 @@
 import { error, redirect } from "@sveltejs/kit";
 import { bindOAuthAuthorizationCodeRedirectToActiveGrant } from "@/features/oauth/server/oauth-authorization-code-grant.server";
 import { verifyOAuthProviderSignedQueryState } from "@/features/oauth/server/signed-oauth-query.server";
+import {
+  type AuditLogParams,
+  getAuditRequestMetadata,
+  writeAuditLog,
+} from "@/lib/audit/write-audit-log";
 import { isTrustedAuthOrigin } from "@/lib/auth/auth-origins";
 import { authPrisma as prisma } from "@/lib/db/auth-prisma";
 import { runSerializableTransaction } from "@/lib/db/serializable-transaction";
@@ -303,6 +308,10 @@ function buildOAuthCallbackUrl(input: {
 
 export async function createAcceptedOAuthAuthorization(input: {
   acceptedScopes: readonly string[];
+  audit?: Pick<
+    AuditLogParams,
+    "channel" | "ipAddress" | "requestId" | "userAgent"
+  >;
   authorizeQuery: URLSearchParams;
   session: OAuthSession;
 }) {
@@ -328,10 +337,18 @@ export async function createAcceptedOAuthAuthorization(input: {
         request.authorizeQuery.get("claims"),
       );
       let grantId: string;
+      let existingConsentId: string | null = null;
       if (request.client.skipConsent === true) {
         grantId = crypto.randomUUID();
         await tx.oAuthConsent.deleteMany({ where: identity });
       } else {
+        existingConsentId =
+          (
+            await tx.oAuthConsent.findUnique({
+              where: { clientId_userId: identity },
+              select: { id: true },
+            })
+          )?.id ?? null;
         const consent = await tx.oAuthConsent.upsert({
           where: { clientId_userId: identity },
           create: {
@@ -391,6 +408,29 @@ export async function createAcceptedOAuthAuthorization(input: {
           updatedAt: issuedAt,
         },
       });
+
+      await writeAuditLog(
+        {
+          action: existingConsentId
+            ? "oauth_authorization_update"
+            : "oauth_authorization_grant",
+          channel: "auth",
+          oauthClientId: request.clientId,
+          oauthGrantId: grantId,
+          sessionId: input.session.session.id,
+          subjectUserId: input.session.user.id,
+          targetId: existingConsentId ?? request.clientId,
+          targetType: existingConsentId ? "oauth_consent" : "oauth_client",
+          userId: input.session.user.id,
+          metadata: {
+            changedFields: ["resources", "scopes", "userinfoClaims"],
+            resourceCount: resources.length,
+            scopeCount: normalizedAcceptedScopes.length,
+          },
+          ...input.audit,
+        },
+        tx,
+      );
 
       return {
         clientId: request.clientId,
@@ -463,6 +503,10 @@ export async function submitOAuthConsentAction({
       if (prompts.has("login")) removePrompt(authorizeQuery, "login");
       const authorization = await createAcceptedOAuthAuthorization({
         acceptedScopes: uniqueScopes(scope),
+        audit: {
+          channel: "web",
+          ...getAuditRequestMetadata(request),
+        },
         authorizeQuery,
         session,
       });

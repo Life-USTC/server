@@ -12,6 +12,7 @@ const expectedTablePrivileges = [
   "Account:INSERT",
   "Account:SELECT",
   "Account:UPDATE",
+  "AuditLog:INSERT",
   "DeviceCode:DELETE",
   "DeviceCode:INSERT",
   "DeviceCode:SELECT",

@@ -1,11 +1,31 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { ensureUserCalendarFeedToken } from "@/features/subscriptions/server/calendar-feed-token";
+
+const { fireAuditLogMock, resolveAuthoritativeRecentSessionMock } = vi.hoisted(
+  () => ({
+    fireAuditLogMock: vi.fn(),
+    resolveAuthoritativeRecentSessionMock: vi.fn(),
+  }),
+);
+
+import {
+  ensureUserCalendarFeedToken,
+  rotateUserCalendarFeedToken,
+} from "@/features/subscriptions/server/calendar-feed-token";
 import { getCalendarSubscriptionUrl } from "@/features/subscriptions/server/subscription-calendar-read-model";
 import { randomBytesBase64Url } from "@/lib/crypto/web-crypto";
 import { prisma } from "@/lib/db/prisma";
 
 vi.mock("@/lib/crypto/web-crypto", () => ({
   randomBytesBase64Url: vi.fn(),
+}));
+
+vi.mock("@/lib/audit/write-audit-log", () => ({
+  fireAuditLog: fireAuditLogMock,
+  getAuditRequestMetadata: vi.fn(() => ({})),
+}));
+
+vi.mock("@/lib/auth/recent-session", () => ({
+  resolveAuthoritativeRecentSession: resolveAuthoritativeRecentSessionMock,
 }));
 
 vi.mock("@/lib/db/prisma", () => ({
@@ -47,6 +67,7 @@ function userWithToken(calendarFeedToken: string | null) {
 describe("ensureUserCalendarFeedToken 日历订阅令牌", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    fireAuditLogMock.mockResolvedValue(undefined);
   });
 
   it("首次创建成功时返回生成的令牌", async () => {
@@ -64,6 +85,17 @@ describe("ensureUserCalendarFeedToken 日历订阅令牌", () => {
     });
     expect(findUniqueMock).toHaveBeenCalledTimes(1);
     expect(updateMock).not.toHaveBeenCalled();
+    expect(fireAuditLogMock).toHaveBeenCalledWith({
+      action: "account_calendar_token_create",
+      channel: "system",
+      subjectUserId: "user-1",
+      targetId: "user-1",
+      targetType: "calendar_feed",
+      userId: "user-1",
+    });
+    expect(JSON.stringify(fireAuditLogMock.mock.calls)).not.toContain(
+      "generated-token",
+    );
   });
 
   it("并发写入由另一方完成时重读并返回持久化的令牌", async () => {
@@ -82,6 +114,65 @@ describe("ensureUserCalendarFeedToken 日历订阅令牌", () => {
       data: { calendarFeedToken: "discarded-token" },
     });
     expect(updateMock).not.toHaveBeenCalled();
+  });
+});
+
+describe("rotateUserCalendarFeedToken", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    fireAuditLogMock.mockResolvedValue(undefined);
+  });
+
+  it("rejects a stale authoritative session before rotating", async () => {
+    resolveAuthoritativeRecentSessionMock.mockResolvedValue({
+      ok: false,
+      reason: "session_not_fresh",
+      sessionId: "session-1",
+      userId: "user-1",
+    });
+
+    await expect(
+      rotateUserCalendarFeedToken("user-1", new Headers()),
+    ).resolves.toEqual({
+      ok: false,
+      reason: "session_not_fresh",
+      sessionId: "session-1",
+      userId: "user-1",
+    });
+    expect(updateMock).not.toHaveBeenCalled();
+    expect(fireAuditLogMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: "account_calendar_token_rotate",
+        outcome: "denied",
+      }),
+    );
+  });
+
+  it("rotates with a recent session without auditing the token", async () => {
+    resolveAuthoritativeRecentSessionMock.mockResolvedValue({
+      ok: true,
+      sessionId: "session-1",
+      userId: "user-1",
+    });
+    randomBytesBase64UrlMock.mockReturnValue("rotated-secret-token");
+    updateMock.mockResolvedValue(userWithToken("rotated-secret-token"));
+
+    await expect(
+      rotateUserCalendarFeedToken("user-1", new Headers()),
+    ).resolves.toEqual({ ok: true, token: "rotated-secret-token" });
+    expect(updateMock).toHaveBeenCalledWith({
+      where: { id: "user-1" },
+      data: { calendarFeedToken: "rotated-secret-token" },
+    });
+    expect(fireAuditLogMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: "account_calendar_token_rotate",
+        sessionId: "session-1",
+      }),
+    );
+    expect(JSON.stringify(fireAuditLogMock.mock.calls)).not.toContain(
+      "rotated-secret-token",
+    );
   });
 });
 

@@ -315,9 +315,9 @@ describe.skipIf(process.env.RLS_TEST_ENABLED !== "true")(
         }),
       );
 
-      await expect(deleteOwnAccount(accountDeletionUserId)).resolves.toEqual({
-        ok: true,
-      });
+      await expect(
+        deleteOwnAccount(accountDeletionUserId, { channel: "system" }),
+      ).resolves.toEqual({ ok: true });
       await expect(
         prisma.user.findUnique({ where: { id: accountDeletionUserId } }),
       ).resolves.toBeNull();

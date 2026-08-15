@@ -7,9 +7,11 @@ import type { ApiPrincipal } from "@/lib/auth/api-auth";
 import { prisma } from "@/lib/db/prisma";
 
 const ACCOUNT_SECURITY_ACTIONS = [
+  "account_create",
   "account_sign_in",
   "account_sign_out",
   "account_profile_update",
+  "account_credential_update",
   "account_link",
   "account_unlink",
   "account_delete",
@@ -17,6 +19,7 @@ const ACCOUNT_SECURITY_ACTIONS = [
   "account_passkey_update",
   "account_passkey_delete",
   "account_session_revoke",
+  "account_calendar_token_create",
   "account_calendar_token_rotate",
   "oauth_authorization_grant",
   "oauth_authorization_update",

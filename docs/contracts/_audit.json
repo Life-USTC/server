@@ -51,7 +51,75 @@
     "webhook_login": {
       "trigger": "Reserved",
       "description": "Internal debug login aid (not a product surface). When enabled in a private environment, audit metadata records the lookup mode only; secrets and session tokens are never stored."
+    },
+    "account_create": {
+      "trigger": "POST /api/auth/sign-up or another Better Auth user-provisioning endpoint",
+      "description": "Records successful account provisioning after the user transaction commits. Credentials, tokens, and request bodies are excluded."
+    },
+    "account_sign_in": {
+      "trigger": "POST /api/auth/sign-in or /api/auth/passkey/verify-authentication",
+      "description": "Records successful sign-in after the session transaction commits without copying the session token."
+    },
+    "account_sign_out": {
+      "trigger": "POST /api/auth/sign-out",
+      "description": "Records successful sign-out after the session transaction commits."
+    },
+    "account_profile_update": {
+      "trigger": "POST /api/auth/update-user, /api/auth/change-email, or settings profile action",
+      "description": "Records successful profile changes with an allowlisted changed-field list, never field values or request bodies."
+    },
+    "account_credential_update": {
+      "trigger": "POST /api/auth/change-password or /api/auth/set-password",
+      "description": "Records successful credential changes with changed-field names only; password and token values are excluded."
+    },
+    "account_link": {
+      "trigger": "POST /api/auth/link-social or another Better Auth authenticated account-link endpoint",
+      "description": "Records successful linking for the authenticated user after commit, excluding provider credentials and tokens."
+    },
+    "account_unlink": {
+      "trigger": "POST /api/auth/unlink-account or settings linked-account action",
+      "description": "Records successful provider unlinking after commit, excluding provider credentials and tokens."
+    },
+    "account_delete": {
+      "trigger": "POST /api/auth/delete-user or settings account-deletion action",
+      "description": "Records denial or failure while the user exists. The success row deliberately omits the deleted user's raw identifier."
+    },
+    "account_passkey_create": {
+      "trigger": "POST /api/auth/passkey/verify-registration",
+      "description": "Records committed passkey registration from the final endpoint result, excluding attestation, credential material, and request bodies."
+    },
+    "account_passkey_update": {
+      "trigger": "POST /api/auth/passkey/update-passkey",
+      "description": "Records committed passkey updates using only the passkey identifier and safe request context."
+    },
+    "account_passkey_delete": {
+      "trigger": "POST /api/auth/passkey/delete-passkey",
+      "description": "Records committed passkey deletion using only the passkey identifier and safe request context."
+    },
+    "account_session_revoke": {
+      "trigger": "POST /api/auth/revoke-session, /api/auth/revoke-sessions, or /api/auth/revoke-other-sessions",
+      "description": "Records successful current-user session revocation after commit without copying session tokens."
+    },
+    "account_calendar_token_create": {
+      "trigger": "POST /settings subscription calendar initialization",
+      "description": "Records successful token creation without storing the calendar feed token value."
+    },
+    "account_calendar_token_rotate": {
+      "trigger": "POST /settings subscription calendar token rotation",
+      "description": "Records denied, failed, and successful rotation without storing old or new token values."
+    },
+    "oauth_authorization_grant": {
+      "trigger": "POST /oauth/consent grant action",
+      "description": "Records a grant atomically with authorization state and verification-code creation, excluding codes, tokens, state, and request bodies."
+    },
+    "oauth_authorization_update": {
+      "trigger": "POST /oauth/consent or PATCH /api/auth/oauth2/consent",
+      "description": "Records an authorization scope change atomically with authorization state using scope counts and changed-field names only."
+    },
+    "oauth_authorization_revoke": {
+      "trigger": "DELETE /api/auth/oauth2/consent or settings authorization action",
+      "description": "Records revocation atomically with authorization deletion using safe identifiers and counts only."
     }
   },
-  "writer": "writeAuditLog records app audit rows. The Node-only static loader writes Section lifecycle rows directly with its import transaction. Required trails are awaited in the same transaction where practical; fireAuditLog remains non-critical telemetry."
+  "writer": "writeAuditLog records transactional app trails. Better Auth database after hooks run after commit and contain fireAuditLog failures so committed auth mutations cannot become false API failures. The static loader writes Section lifecycle rows within its import transaction."
 }

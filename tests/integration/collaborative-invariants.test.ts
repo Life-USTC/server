@@ -169,9 +169,9 @@ describe("协作数据不变量", () => {
     });
 
     try {
-      await expect(deleteOwnAccount(deletingAdmin.id)).resolves.toEqual({
-        ok: true,
-      });
+      await expect(
+        deleteOwnAccount(deletingAdmin.id, { channel: "system" }),
+      ).resolves.toEqual({ ok: true });
 
       await expect(
         prisma.user.findUnique({ where: { id: deletingAdmin.id } }),
