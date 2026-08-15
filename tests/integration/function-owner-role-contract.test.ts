@@ -55,13 +55,6 @@ const expectedFunctions = [
   },
   {
     securityDefiner: true,
-    settings: ['search_path=""', "app.homework_completion_profile=on"],
-    signature:
-      "public.get_public_profile_homework_completions(p_user_id text, p_since timestamp without time zone)",
-    volatility: "STABLE",
-  },
-  {
-    securityDefiner: true,
     settings: ['search_path=""'],
     signature:
       "public.get_public_profile_section_subscription_count(p_user_id text)",
@@ -73,6 +66,13 @@ const expectedFunctions = [
     signature:
       "public.get_public_profile_upload_stats(p_user_id text, p_since timestamp without time zone)",
     volatility: "STABLE",
+  },
+  {
+    securityDefiner: true,
+    settings: ['search_path=""'],
+    signature:
+      "public.maintain_audit_log_retention(p_now timestamp without time zone, p_batch_size integer)",
+    volatility: "VOLATILE",
   },
   {
     securityDefiner: true,
@@ -93,12 +93,14 @@ const expectedFunctions = [
 const expectedTablePrivileges = [
   "public.Account:DELETE",
   "public.Account:SELECT",
+  "public.AuditLog:DELETE",
+  "public.AuditLog:SELECT",
+  "public.AuditLog:UPDATE",
   "public.Comment:SELECT",
   "public.CommentAttachment:SELECT",
   "public.CommentReaction:SELECT",
   "public.DeviceCode:DELETE",
   "public.DeviceCode:SELECT",
-  "public.HomeworkCompletion:SELECT",
   "public.OAuthAccessToken:DELETE",
   "public.OAuthAccessToken:SELECT",
   "public.OAuthRefreshToken:DELETE",
@@ -479,17 +481,6 @@ describe.skipIf(process.env.FUNCTION_OWNER_ROLE_TEST_ENABLED !== "true")(
           tableName: "CommentReaction",
           usingExpression:
             "(current_setting('app.comment_reaction_summary', true) = 'on')",
-        },
-        {
-          checkExpression: null,
-          command: "SELECT",
-          permissive: "PERMISSIVE",
-          policyName: "HomeworkCompletion_profile_reader",
-          roles: [functionOwnerRole],
-          schemaName: "public",
-          tableName: "HomeworkCompletion",
-          usingExpression:
-            "(current_setting('app.homework_completion_profile', true) = 'on')",
         },
         {
           checkExpression: null,

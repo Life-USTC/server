@@ -85,6 +85,8 @@ export function buildLayoutCopy(locale: LayoutLocale) {
         users: messages.admin.usersTitle,
         oauth: messages.admin.oauthTitle,
         bus: messages.admin.busTitle,
+        audit: messages.admin.auditTitle,
+        analytics: messages.admin.analyticsTitle,
       },
     },
     menu: {

@@ -66,6 +66,7 @@ import type {
   CommentReactionType,
   CommentVisibility,
 } from "@/generated/prisma/client";
+import { attributionFromGraphqlPrincipal } from "@/lib/audit/principal-attribution";
 import { getAuditRequestMetadata } from "@/lib/audit/write-audit-log";
 import { hasAsciiControlCharacters } from "@/lib/text/ascii-control-characters";
 import type { GraphqlContext } from "./context";
@@ -906,16 +907,23 @@ export const graphqlMutationResolvers = {
       });
       if (dateError) badMutationInput(dateError);
 
-      const result = await createHomeworkForSection(principal.userId, {
-        description: normalizeHomeworkDescription(input.description),
-        isMajor: input.isMajor,
-        publishedAt,
-        requiresTeam: input.requiresTeam,
-        sectionJwId: requireGraphqlId(input.sectionJwId, "sectionJwId"),
-        submissionDueAt,
-        submissionStartAt,
-        title: normalizeHomeworkTitle(input.title),
-      });
+      const result = await createHomeworkForSection(
+        principal.userId,
+        {
+          description: normalizeHomeworkDescription(input.description),
+          isMajor: input.isMajor,
+          publishedAt,
+          requiresTeam: input.requiresTeam,
+          sectionJwId: requireGraphqlId(input.sectionJwId, "sectionJwId"),
+          submissionDueAt,
+          submissionStartAt,
+          title: normalizeHomeworkTitle(input.title),
+        },
+        {
+          ...attributionFromGraphqlPrincipal(principal),
+          requestId: getAuditRequestMetadata(context.request).requestId,
+        },
+      );
       if (!result.ok) handleHomeworkFailure(result, "Section");
 
       const id = result.homework.id;
@@ -980,6 +988,10 @@ export const graphqlMutationResolvers = {
       }
 
       const result = await updateHomework({
+        audit: {
+          ...attributionFromGraphqlPrincipal(principal),
+          requestId: getAuditRequestMetadata(context.request).requestId,
+        },
         homeworkId: id,
         update: prepared.update,
         userId: principal.userId,
@@ -1004,6 +1016,10 @@ export const graphqlMutationResolvers = {
       );
       const id = requireMutationId(args.id, "id");
       const result = await deleteHomework({
+        audit: {
+          ...attributionFromGraphqlPrincipal(principal),
+          requestId: getAuditRequestMetadata(context.request).requestId,
+        },
         homeworkId: id,
         userId: principal.userId,
       });

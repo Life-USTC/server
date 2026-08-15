@@ -16,6 +16,7 @@ const {
 
 vi.mock("@/lib/auth/api-auth", () => ({
   requireAuth: requireAuthMock,
+  requireAuthPrincipal: requireAuthMock,
 }));
 
 vi.mock("@/features/homeworks/server/homework-create", () => ({
@@ -70,7 +71,7 @@ describe("homework 变更路由的认证顺序", () => {
   });
 
   it("作业创建传入冲突的 section 标识符时返回 400", async () => {
-    requireAuthMock.mockResolvedValue({ userId: "user-1" });
+    requireAuthMock.mockResolvedValue({ kind: "session", userId: "user-1" });
     createHomeworkForSectionMock.mockResolvedValue({
       ok: false,
       error: "mismatch",
@@ -91,21 +92,29 @@ describe("homework 变更路由的认证顺序", () => {
     );
 
     expect(response.status).toBe(400);
-    expect(createHomeworkForSectionMock).toHaveBeenCalledWith("user-1", {
-      description: "",
-      isMajor: false,
-      publishedAt: null,
-      requiresTeam: false,
-      sectionId: 12,
-      sectionJwId: 5678,
-      submissionDueAt: null,
-      submissionStartAt: null,
-      title: "Conflicting section refs",
-    });
+    expect(createHomeworkForSectionMock).toHaveBeenCalledWith(
+      "user-1",
+      {
+        description: "",
+        isMajor: false,
+        publishedAt: null,
+        requiresTeam: false,
+        sectionId: 12,
+        sectionJwId: 5678,
+        submissionDueAt: null,
+        submissionStartAt: null,
+        title: "Conflicting section refs",
+      },
+      expect.objectContaining({
+        channel: "rest",
+        subjectUserId: "user-1",
+        userId: "user-1",
+      }),
+    );
   });
 
   it("将请求 locale 传递给更新作业的响应读取", async () => {
-    requireAuthMock.mockResolvedValue({ userId: "user-1" });
+    requireAuthMock.mockResolvedValue({ kind: "session", userId: "user-1" });
     updateHomeworkMock.mockResolvedValue({ ok: true });
     requireHomeworkItemByIdMock.mockResolvedValue({ id: "homework-1" });
     const { patchHomeworkRoute } = await import(

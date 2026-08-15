@@ -26,7 +26,7 @@ vi.mock("@/lib/db/prisma", () => ({
     homework: { count: homeworkCountMock, findMany: homeworkFindManyMock },
   })),
   prisma: {
-    homeworkAuditLog: { findMany: auditFindManyMock },
+    auditLog: { findMany: auditFindManyMock },
   },
   withUserDbContext: withUserDbContextMock,
 }));

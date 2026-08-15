@@ -53,8 +53,9 @@ export function yesNoLabel(
 
 export function homeworkAuditActionLabel(
   action: string,
-  labels: { created: string; deleted: string },
+  labels: { created: string; deleted: string; updated: string },
 ) {
   if (action === "deleted") return labels.deleted;
+  if (action === "updated") return labels.updated;
   return labels.created;
 }

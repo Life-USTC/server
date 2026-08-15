@@ -50,11 +50,6 @@ export async function loadUserProfileContributionDays(
 
       UNION ALL
 
-      SELECT completion_stats."completedAt" AS "eventAt"
-      FROM public.get_public_profile_homework_completions(${userId}, ${startAt}) AS completion_stats
-
-      UNION ALL
-
       SELECT "createdAt" AS "eventAt"
       FROM "Homework"
       WHERE "createdById" = ${userId}

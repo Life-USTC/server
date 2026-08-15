@@ -4,6 +4,7 @@ import BotIcon from "@lucide/svelte/icons/bot";
 import BusFrontIcon from "@lucide/svelte/icons/bus-front";
 import CableIcon from "@lucide/svelte/icons/cable";
 import CalendarDaysIcon from "@lucide/svelte/icons/calendar-days";
+import ChartBarIcon from "@lucide/svelte/icons/chart-bar";
 import ClipboardCheckIcon from "@lucide/svelte/icons/clipboard-check";
 import CompassIcon from "@lucide/svelte/icons/compass";
 import GavelIcon from "@lucide/svelte/icons/gavel";
@@ -14,6 +15,7 @@ import LinkIcon from "@lucide/svelte/icons/link";
 import ListTodoIcon from "@lucide/svelte/icons/list-todo";
 import MapIcon from "@lucide/svelte/icons/map";
 import RouteIcon from "@lucide/svelte/icons/route";
+import ScrollTextIcon from "@lucide/svelte/icons/scroll-text";
 import SmartphoneIcon from "@lucide/svelte/icons/smartphone";
 import TerminalIcon from "@lucide/svelte/icons/terminal";
 import UsersIcon from "@lucide/svelte/icons/users";
@@ -321,6 +323,16 @@ function buildAdminShellLinks(copy: LayoutCopy): ShellLink[] {
       href: "/admin/bus",
       icon: BusFrontIcon,
       label: copy.nav.admin.bus,
+    },
+    {
+      href: "/admin/audit",
+      icon: ScrollTextIcon,
+      label: copy.nav.admin.audit,
+    },
+    {
+      href: "/admin/analytics",
+      icon: ChartBarIcon,
+      label: copy.nav.admin.analytics,
     },
   ];
 }

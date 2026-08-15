@@ -1,4 +1,5 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { maintainAuditLogRetention } from "@/features/admin/server/audit-retention";
 import { cleanupExpiredAuthRecords } from "@/features/auth/server/auth-record-cleanup";
 import { createTestPrisma, disconnectTestPrisma } from "../shared/prisma";
 
@@ -152,6 +153,10 @@ describe.skipIf(process.env.MAINTENANCE_ROLE_TEST_ENABLED !== "true")(
         },
         {
           signature:
+            "public.maintain_audit_log_retention(p_now timestamp without time zone, p_batch_size integer):EXECUTE",
+        },
+        {
+          signature:
             "public.release_upload_pending_storage_cleanup(p_id text, p_attempt_id text, p_now timestamp without time zone, p_retry_lease_seconds integer):EXECUTE",
         },
       ]);
@@ -218,6 +223,69 @@ describe.skipIf(process.env.MAINTENANCE_ROLE_TEST_ENABLED !== "true")(
       ).not.toBeNull();
 
       await expect(maintenancePrisma.session.count()).rejects.toThrow();
+    });
+
+    it("anonymizes and expires audit rows without table privileges", async () => {
+      const now = new Date();
+      const ids = {
+        network: `${marker}-audit-network`,
+        attribution: `${marker}-audit-attribution`,
+        expired: `${marker}-audit-expired`,
+      };
+      await adminPrisma.auditLog.createMany({
+        data: [
+          {
+            id: ids.network,
+            action: "account_sign_in",
+            createdAt: new Date(now.getTime() - 31 * 86_400_000),
+            ipAddress: "192.0.2.1",
+            userAgent: "integration-test-agent",
+          },
+          {
+            id: ids.attribution,
+            action: "oauth_authorization_update",
+            createdAt: new Date(now.getTime() - 91 * 86_400_000),
+            oauthGrantId: "grant-secret",
+            requestId: "request-secret",
+            sessionId: "session-secret",
+          },
+          {
+            id: ids.expired,
+            action: "account_sign_out",
+            createdAt: new Date(now.getTime() - 401 * 86_400_000),
+          },
+        ],
+      });
+
+      try {
+        await expect(
+          maintainAuditLogRetention(maintenancePrisma, now),
+        ).resolves.toEqual(
+          expect.objectContaining({
+            attributionAnonymized: expect.any(Number),
+            networkAnonymized: expect.any(Number),
+            rowsDeleted: expect.any(Number),
+          }),
+        );
+        await expect(
+          adminPrisma.auditLog.findUnique({ where: { id: ids.network } }),
+        ).resolves.toMatchObject({ ipAddress: null, userAgent: null });
+        await expect(
+          adminPrisma.auditLog.findUnique({ where: { id: ids.attribution } }),
+        ).resolves.toMatchObject({
+          oauthGrantId: null,
+          requestId: null,
+          sessionId: null,
+        });
+        await expect(
+          adminPrisma.auditLog.findUnique({ where: { id: ids.expired } }),
+        ).resolves.toBeNull();
+        await expect(maintenancePrisma.auditLog.count()).rejects.toThrow();
+      } finally {
+        await adminPrisma.auditLog.deleteMany({
+          where: { id: { in: Object.values(ids) } },
+        });
+      }
     });
   },
 );

@@ -38,11 +38,6 @@ enum CommentReactionType {
   eyes
 }
 
-enum HomeworkAuditAction {
-  created
-  deleted
-}
-
 enum AuditAction {
   comment_create
   comment_edit
@@ -75,8 +70,15 @@ enum AuditAction {
   oauth_authorization_update
   oauth_authorization_revoke
   admin_user_role_update
+  admin_user_profile_update
   admin_oauth_client_create
   admin_oauth_client_delete
+  admin_bus_version_activate
+  admin_bus_version_delete
+  admin_bus_import
+  homework_create
+  homework_update
+  homework_delete
 }
 
 enum AuditOutcome {
@@ -474,7 +476,6 @@ model Section {
   comments             Comment[]
   description          Description?
   homeworks            Homework[]
-  homeworkAuditLogs    HomeworkAuditLog[]
 
   @@index([jwId])
   @@index([code])
@@ -668,7 +669,6 @@ model Homework {
 
   description         Description?
   comments            Comment[]
-  auditLogs           HomeworkAuditLog[]
   homeworkCompletions HomeworkCompletion[]
 
   @@index([sectionId])
@@ -692,30 +692,6 @@ model HomeworkCompletion {
   @@id([userId, homeworkId])
   @@index([homeworkId])
   @@index([userId])
-}
-
-model HomeworkAuditLog {
-  id String @id @default(cuid())
-
-  action        HomeworkAuditAction
-  titleSnapshot String
-
-  createdAt DateTime @default(now())
-
-  sectionId Int
-  section   Section @relation(fields: [sectionId], references: [id], onDelete: Cascade)
-
-  homeworkId String?
-  homework   Homework? @relation(fields: [homeworkId], references: [id], onDelete: SetNull)
-
-  actorId String?
-  actor   User?   @relation("HomeworkAuditActor", fields: [actorId], references: [id], onDelete: SetNull)
-
-  @@index([sectionId])
-  @@index([homeworkId])
-  @@index([actorId])
-  @@index([createdAt])
-  @@index([sectionId, createdAt])
 }
 
 model AuditLog {
@@ -894,7 +870,6 @@ model User {
   homeworksCreated     Homework[]                @relation("HomeworkCreatedBy")
   homeworksUpdated     Homework[]                @relation("HomeworkUpdatedBy")
   homeworksDeleted     Homework[]                @relation("HomeworkDeletedBy")
-  homeworkAuditLogs    HomeworkAuditLog[]        @relation("HomeworkAuditActor")
   auditLogs            AuditLog[]                @relation("AuditActor")
   subjectAuditLogs     AuditLog[]                @relation("AuditSubject")
   homeworkCompletions  HomeworkCompletion[]

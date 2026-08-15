@@ -148,8 +148,18 @@ export async function requireAuth(
   request: Request,
   options: RestAuthOptions = {},
 ): Promise<{ userId: string } | Response> {
-  const userId = await resolveApiUserId(request, options);
-  if (!userId) return unauthorized();
+  const principal = await requireAuthPrincipal(request, options);
+  if (principal instanceof Response) return principal;
+  return { userId: principal.userId };
+}
+
+export async function requireAuthPrincipal(
+  request: Request,
+  options: RestAuthOptions = {},
+): Promise<ApiPrincipal | Response> {
+  const principal = await resolveApiPrincipal(request, options);
+  if (!principal) return unauthorized();
+  const { userId } = principal;
 
   const scope = options.bearerScope;
   if (scope?.action === "write") {
@@ -167,7 +177,7 @@ export async function requireAuth(
     }
   }
 
-  return { userId };
+  return principal;
 }
 
 /**

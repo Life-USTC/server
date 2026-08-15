@@ -65,9 +65,12 @@ describe("admin 用户路由", () => {
     );
 
     expect(response.status).toBe(200);
-    expect(updateAdminUserMock).toHaveBeenCalledWith("admin-1", "user-1", {
-      name: "User",
-    });
+    expect(updateAdminUserMock).toHaveBeenCalledWith(
+      "admin-1",
+      "user-1",
+      { name: "User" },
+      { channel: "rest", requestId: undefined },
+    );
   });
 
   it("将自我降权映射为公开 400 响应", async () => {

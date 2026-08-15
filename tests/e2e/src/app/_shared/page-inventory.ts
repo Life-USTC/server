@@ -64,6 +64,8 @@ export type PageInventoryEntry = {
 const E2E = {
   home: "src/app/test.ts",
   admin: "src/app/admin/test.ts",
+  adminAnalytics: "src/app/admin/audit/test.ts",
+  adminAudit: "src/app/admin/audit/test.ts",
   adminUsers: "src/app/admin/users/test.ts",
   adminModeration: "src/app/admin/moderation/test.ts",
   adminOauth: "src/app/admin/oauth/test.ts",
@@ -282,6 +284,40 @@ export const PAGE_INVENTORY: readonly PageInventoryEntry[] = [
     auth: "admin",
     contractPath: "/admin",
     e2eSpec: E2E.admin,
+  },
+  {
+    routeId: "/admin/analytics",
+    samplePath: "/admin/analytics",
+    kind: "page",
+    auth: "admin",
+    contractPath: "/admin/analytics",
+    e2eSpec: E2E.adminAnalytics,
+    mobileScreenshots: ["admin"],
+    primaryActions: [
+      {
+        id: "analytics-window",
+        role: "link",
+        name: "/最近 30 天|Last 30 days/i",
+        e2eSpec: E2E.adminAnalytics,
+      },
+    ],
+  },
+  {
+    routeId: "/admin/audit",
+    samplePath: "/admin/audit",
+    kind: "page",
+    auth: "admin",
+    contractPath: "/admin/audit",
+    e2eSpec: E2E.adminAudit,
+    mobileScreenshots: ["admin"],
+    primaryActions: [
+      {
+        id: "apply-audit-filters",
+        role: "button",
+        name: "/应用筛选|Apply filters/i",
+        e2eSpec: E2E.adminAudit,
+      },
+    ],
   },
   {
     routeId: "/admin/bus",

@@ -202,6 +202,17 @@ describe("admin API 服务", () => {
       data: { isAdmin: false },
       select: { id: true },
     });
+    expect(auditLogCreateMock).toHaveBeenCalledWith({
+      data: {
+        action: "admin_user_role_update",
+        channel: "rest",
+        metadata: { changedFields: ["isAdmin"] },
+        subjectUserId: "admin-2",
+        targetId: "admin-2",
+        targetType: "user",
+        userId: "admin-1",
+      },
+    });
   });
 
   it("将用户名唯一性竞争映射为 username_taken", async () => {
@@ -291,6 +302,8 @@ describe("admin API 服务", () => {
     expect(auditLogCreateMock).toHaveBeenCalledWith({
       data: {
         action: "admin_user_suspend",
+        channel: "rest",
+        subjectUserId: "user-1",
         userId: "admin-1",
         targetId: "user-1",
         targetType: "user",
@@ -395,6 +408,8 @@ describe("admin API 服务", () => {
     expect(auditLogCreateMock).toHaveBeenCalledWith({
       data: {
         action: "admin_user_unsuspend",
+        channel: "rest",
+        subjectUserId: "user-1",
         userId: "admin-1",
         targetId: "user-1",
         targetType: "user",
@@ -425,7 +440,7 @@ describe("admin API 服务", () => {
     expect(auditLogCreateMock).toHaveBeenCalledWith({
       data: expect.objectContaining({
         action: "admin_comment_moderate",
-        metadata: { moderationNote: "spam", status: "deleted" },
+        metadata: { moderationNoteProvided: true, status: "deleted" },
         targetId: "comment-1",
         targetType: "comment",
         userId: "admin-1",

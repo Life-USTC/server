@@ -15,6 +15,7 @@ import {
   adminUpdateUserRequestSchema,
   adminUsersQuerySchema,
 } from "@/lib/api/schemas/request-schemas";
+import { getAuditRequestMetadata } from "@/lib/audit/write-audit-log";
 import { type IdParams, parseIdParam } from "./admin-shared";
 
 export async function getAdminUsersRoute(request: Request) {
@@ -56,7 +57,10 @@ export async function patchAdminUserRoute(request: Request, params: IdParams) {
     );
     if (parsedBody instanceof Response) return parsedBody;
 
-    const result = await updateAdminUser(admin.userId, parsed.id, parsedBody);
+    const result = await updateAdminUser(admin.userId, parsed.id, parsedBody, {
+      channel: "rest",
+      requestId: getAuditRequestMetadata(request).requestId,
+    });
     if (!result.ok) {
       if (result.reason === "invalid_username")
         return badRequest("Invalid username");

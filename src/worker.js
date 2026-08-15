@@ -1,5 +1,6 @@
 import { WorkerEntrypoint } from "cloudflare:workers";
 import svelteKitWorker from "life-ustc-sveltekit-worker";
+import { maintainAuditLogRetention } from "./features/admin/server/audit-retention";
 import { cleanupExpiredAuthRecords } from "./features/auth/server/auth-record-cleanup";
 import { handleCalendarExportRebuildBatch } from "./features/calendar/server/calendar-export-rebuild";
 import {
@@ -367,8 +368,14 @@ export default {
         }
 
         if (controller.cron === AUTH_RECORD_CLEANUP_CRON) {
-          const report = await cleanupExpiredAuthRecords(maintenancePrisma);
-          logScheduledTaskFinish("auth-record-cleanup", report);
+          const [authRecords, auditLog] = await Promise.all([
+            cleanupExpiredAuthRecords(maintenancePrisma),
+            maintainAuditLogRetention(maintenancePrisma),
+          ]);
+          logScheduledTaskFinish("auth-and-audit-retention", {
+            ...authRecords,
+            ...auditLog,
+          });
           return;
         }
 

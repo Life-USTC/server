@@ -159,7 +159,8 @@
           "weeks[].date (YYYY-MM-DD)",
           "weeks[].count (Contribution count)",
           "totalContributions (Aggregate)",
-          "Keyboard- and touch-accessible horizontally scrollable contribution history"
+          "Keyboard- and touch-accessible horizontally scrollable contribution history",
+          "Public contribution counts include comments, public upload activity, and homework records created; private homework completion state is excluded"
         ]
       }
     },

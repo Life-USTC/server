@@ -16,15 +16,21 @@ export async function moderateDescriptionAction({
   locals,
   request,
 }: AdminModerationActionEvent) {
-  const { admin, copy, form } = await getAdminModerationActionContext({
-    locals,
-    request,
-  });
+  const { admin, copy, form, requestId } =
+    await getAdminModerationActionContext({
+      locals,
+      request,
+    });
   const id = requiredModerationFormId(form, copy.missingDescriptionId);
   if (typeof id !== "string") return id;
   const content = String(form.get("content") ?? "");
 
-  const result = await moderateDescription(admin.id, id, { content });
+  const result = await moderateDescription(
+    admin.id,
+    id,
+    { content },
+    { channel: "web", requestId },
+  );
   if (!result.ok && result.reason === "invalid_content") {
     return fail(400, {
       kind: "error",
@@ -41,10 +47,11 @@ export async function moderateCommentAction({
   locals,
   request,
 }: AdminModerationActionEvent) {
-  const { admin, copy, form } = await getAdminModerationActionContext({
-    locals,
-    request,
-  });
+  const { admin, copy, form, requestId } =
+    await getAdminModerationActionContext({
+      locals,
+      request,
+    });
   const id = requiredModerationFormId(form, copy.missingCommentId);
   if (typeof id !== "string") return id;
   const status = String(form.get("status") ?? "active");
@@ -52,10 +59,15 @@ export async function moderateCommentAction({
   if (!["active", "softbanned", "deleted"].includes(status)) {
     return fail(400, { kind: "error", message: copy.invalidStatus });
   }
-  const result = await moderateComment(admin.id, id, {
-    moderationNote: moderationNote || null,
-    status: status as CommentStatus,
-  });
+  const result = await moderateComment(
+    admin.id,
+    id,
+    {
+      moderationNote: moderationNote || null,
+      status: status as CommentStatus,
+    },
+    { channel: "web", requestId },
+  );
   if (!result.ok) {
     return fail(404, { kind: "error", message: copy.missingCommentId });
   }
@@ -66,13 +78,15 @@ export async function deleteHomeworkAction({
   locals,
   request,
 }: AdminModerationActionEvent) {
-  const { admin, copy, form } = await getAdminModerationActionContext({
-    locals,
-    request,
-  });
+  const { admin, copy, form, requestId } =
+    await getAdminModerationActionContext({
+      locals,
+      request,
+    });
   const id = requiredModerationFormId(form, copy.missingHomeworkId);
   if (typeof id !== "string") return id;
   const result = await deleteHomework({
+    audit: { channel: "web", requestId },
     homeworkId: id,
     userId: admin.id,
   });
@@ -88,13 +102,17 @@ export async function liftSuspensionAction({
   locals,
   request,
 }: AdminModerationActionEvent) {
-  const { admin, copy, form } = await getAdminModerationActionContext({
-    locals,
-    request,
-  });
+  const { admin, copy, form, requestId } =
+    await getAdminModerationActionContext({
+      locals,
+      request,
+    });
   const id = requiredModerationFormId(form, copy.missingSuspensionId);
   if (typeof id !== "string") return id;
-  const result = await liftAdminSuspension(admin.id, id);
+  const result = await liftAdminSuspension(admin.id, id, {
+    channel: "web",
+    requestId,
+  });
   if (!result.ok) {
     return fail(404, { kind: "error", message: copy.missingSuspensionId });
   }

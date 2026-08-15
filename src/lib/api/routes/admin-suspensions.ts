@@ -12,6 +12,7 @@ import {
 } from "@/lib/api/helpers";
 import { withAdminApiRoute } from "@/lib/api/routes/admin-route-auth";
 import { adminCreateSuspensionRequestSchema } from "@/lib/api/schemas/request-schemas";
+import { getAuditRequestMetadata } from "@/lib/audit/write-audit-log";
 import { type IdParams, parseIdParam } from "./admin-shared";
 
 export async function getAdminSuspensionsRoute(request: Request) {
@@ -30,7 +31,10 @@ export async function postAdminSuspensionRoute(request: Request) {
     );
     if (parsedBody instanceof Response) return parsedBody;
 
-    const result = await createAdminSuspension(admin.userId, parsedBody);
+    const result = await createAdminSuspension(admin.userId, parsedBody, {
+      channel: "rest",
+      requestId: getAuditRequestMetadata(request).requestId,
+    });
     if (!result.ok) {
       if (result.reason === "invalid_expires_at") {
         return badRequest("Invalid expiresAt");
@@ -60,7 +64,10 @@ export async function patchAdminSuspensionRoute(
       if (parsed instanceof Response) return parsed;
       const id = parsed.id;
 
-      const result = await liftAdminSuspension(admin.userId, id);
+      const result = await liftAdminSuspension(admin.userId, id, {
+        channel: "rest",
+        requestId: getAuditRequestMetadata(request).requestId,
+      });
       if (!result.ok) return notFound();
 
       return jsonResponse({ suspension: result.suspension });

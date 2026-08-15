@@ -52,6 +52,8 @@ test("/admin 主导航在所有管理页面保持唯一当前位置", async ({
     { path: "/admin/moderation", name: /内容审核|Moderation/i },
     { path: "/admin/oauth", name: /OAuth|OAuth 客户端/i },
     { path: "/admin/bus", name: /校车管理|Bus Management/i },
+    { path: "/admin/audit", name: /审计日志|Audit Log/i },
+    { path: "/admin/analytics", name: /聚合分析|Aggregate Analytics/i },
   ] as const;
 
   for (const { path, name } of paths) {
@@ -59,7 +61,7 @@ test("/admin 主导航在所有管理页面保持唯一当前位置", async ({
 
     const navigation = adminPrimaryNav(page);
     const adminLinks = navigation.locator('a[href^="/admin"]');
-    await expect(adminLinks).toHaveCount(4);
+    await expect(adminLinks).toHaveCount(6);
     await expect(navigation.getByRole("link", { name })).toHaveAttribute(
       "aria-current",
       "page",
@@ -115,6 +117,16 @@ test("/admin 主导航可跳转到各管理工具", async ({ page }, testInfo) =
       name: /校车管理|Bus Management/i,
       url: /\/admin\/bus(?:\?.*)?$/,
       shot: "admin/navigate-bus",
+    },
+    {
+      name: /审计日志|Audit Log/i,
+      url: /\/admin\/audit(?:\?.*)?$/,
+      shot: "admin/navigate-audit",
+    },
+    {
+      name: /聚合分析|Aggregate Analytics/i,
+      url: /\/admin\/analytics(?:\?.*)?$/,
+      shot: "admin/navigate-analytics",
     },
     {
       name: /用户管理|User Management/i,

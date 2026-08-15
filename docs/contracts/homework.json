@@ -142,7 +142,7 @@
             "rest_equivalent": "POST /api/community/section-homeworks",
             "mcp_equivalent": "community_section_homework_create",
             "notes": [
-              "Accepts the public sectionJwId, returns the localized Homework snapshot, and preserves the shared created HomeworkAuditLog transaction."
+              "Accepts the public sectionJwId, returns the localized Homework snapshot, and writes the shared AuditLog event in the same transaction."
             ]
           },
           {

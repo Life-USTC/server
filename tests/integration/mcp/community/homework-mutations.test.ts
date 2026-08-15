@@ -159,11 +159,12 @@ describe("班级作业写入工具 — community_section_homework_create", () =>
       expect(result.homework?.submissionStartAt).toMatch(/\+08:00$/);
       expect(result.homework?.submissionDueAt).toMatch(/\+08:00$/);
 
-      const audit = await fixtures.prisma.homeworkAuditLog.findFirst({
+      const audit = await fixtures.prisma.auditLog.findFirst({
         where: {
-          homeworkId,
-          action: "created",
-          actorId: isolated.userId,
+          targetId: homeworkId,
+          action: "homework_create",
+          userId: isolated.userId,
+          channel: "mcp",
         },
       });
       expect(audit).toBeTruthy();

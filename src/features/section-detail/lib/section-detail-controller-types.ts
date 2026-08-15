@@ -155,6 +155,7 @@ export type SectionDetailCopy = {
   };
   homeworks: SectionDetailHomeworkMessages & {
     auditCreated: string;
+    auditUpdated: string;
     auditDeleted: string;
     auditTitle: string;
     auditEmpty: string;

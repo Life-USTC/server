@@ -236,10 +236,11 @@ GRANT SELECT ON TABLE
   "CommentAttachment",
   "Comment",
   "User",
-  "CommentReaction",
-  "HomeworkCompletion"
+  "CommentReaction"
 TO life_ustc_function_owner;
 GRANT UPDATE, DELETE ON TABLE "UploadPending"
+TO life_ustc_function_owner;
+GRANT SELECT, UPDATE, DELETE ON TABLE "AuditLog"
 TO life_ustc_function_owner;
 GRANT SELECT, DELETE ON TABLE
   "Account",
@@ -261,6 +262,10 @@ ALTER FUNCTION public.cleanup_expired_auth_records(
   timestamp without time zone,
   integer
 ) OWNER TO life_ustc_function_owner;
+ALTER FUNCTION public.maintain_audit_log_retention(
+  timestamp without time zone,
+  integer
+) OWNER TO life_ustc_function_owner;
 ALTER FUNCTION public.unlink_settings_account(text, text)
   OWNER TO life_ustc_function_owner;
 ALTER FUNCTION public.find_downloadable_upload(text)
@@ -279,10 +284,6 @@ ALTER FUNCTION public.comment_hidden_root_count(
   integer,
   text,
   integer
-) OWNER TO life_ustc_function_owner;
-ALTER FUNCTION public.get_public_profile_homework_completions(
-  text,
-  timestamp without time zone
 ) OWNER TO life_ustc_function_owner;
 ALTER FUNCTION public.get_public_profile_section_subscription_count(text)
   OWNER TO life_ustc_function_owner;
@@ -314,9 +315,6 @@ DROP POLICY IF EXISTS "Comment_hidden_count_definer_read" ON "Comment";
 ALTER POLICY "Comment_hidden_count_reader" ON "Comment"
   TO life_ustc_function_owner;
 
-ALTER POLICY "HomeworkCompletion_profile_reader" ON "HomeworkCompletion"
-  TO life_ustc_function_owner;
-
 DROP POLICY IF EXISTS "UserSectionSubscription_profile_reader" ON "UserSectionSubscription";
 CREATE POLICY "UserSectionSubscription_profile_reader" ON "UserSectionSubscription"
   FOR SELECT
@@ -338,7 +336,6 @@ GRANT EXECUTE ON FUNCTION
   public.get_public_profile_upload_stats(text, timestamp without time zone),
   public.comment_reaction_summaries(text[]),
   public.comment_hidden_root_count(integer, integer, integer, text, integer),
-  public.get_public_profile_homework_completions(text, timestamp without time zone),
   public.get_public_profile_section_subscription_count(text),
   public.claim_upload_pending_storage_cleanup(
     timestamp without time zone,
@@ -360,6 +357,10 @@ GRANT EXECUTE ON FUNCTION public.cleanup_expired_auth_records(
   timestamp without time zone,
   integer
 ) TO life_ustc_maintenance_runtime;
+GRANT EXECUTE ON FUNCTION public.maintain_audit_log_retention(
+  timestamp without time zone,
+  integer
+) TO life_ustc_maintenance_runtime;
 GRANT EXECUTE ON FUNCTION public.claim_upload_pending_storage_cleanup(
   timestamp without time zone,
   integer,
@@ -373,3 +374,8 @@ GRANT EXECUTE ON FUNCTION public.claim_upload_pending_storage_cleanup(
     integer
   )
 TO life_ustc_maintenance_runtime;
+
+-- Grants to caller roles materialize the owner's default EXECUTE entry. Keep
+-- the function owner as a pure SECURITY DEFINER identity with no explicit ACL.
+REVOKE EXECUTE ON ALL FUNCTIONS IN SCHEMA public
+FROM life_ustc_function_owner;

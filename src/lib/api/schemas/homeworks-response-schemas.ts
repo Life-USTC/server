@@ -65,7 +65,7 @@ export const homeworkItemSchema = z.strictObject({
 const homeworkAuditLogSchema = z.strictObject({
   id: z.string(),
   action: homeworkAuditActionSchema,
-  titleSnapshot: z.string(),
+  titleSnapshot: z.string().nullable(),
   createdAt: dateTimeSchema,
   sectionId: z.number().int(),
   homeworkId: z.string().nullable(),

@@ -48,6 +48,46 @@
       "trigger": "PATCH /api/admin/descriptions/[id] or /admin/moderation description action",
       "description": "Admin updates description content from the moderation workflow. The description row, edit history, and audit row are committed together."
     },
+    "admin_user_role_update": {
+      "trigger": "PATCH /api/admin/users/[id]",
+      "description": "Admin changes administrator access. The user update and an audit row containing changedFields only are committed together."
+    },
+    "admin_user_profile_update": {
+      "trigger": "PATCH /api/admin/users/[id]",
+      "description": "Admin changes managed profile fields. The audit row records field names, never previous or next values."
+    },
+    "admin_oauth_client_create": {
+      "trigger": "POST /admin/oauth",
+      "description": "Admin creates an OAuth client. Client secrets and redirect URI values are never stored in audit metadata."
+    },
+    "admin_oauth_client_delete": {
+      "trigger": "POST /admin/oauth",
+      "description": "Admin deletes an OAuth client after confirmation."
+    },
+    "admin_bus_version_activate": {
+      "trigger": "POST /admin/bus",
+      "description": "Admin activates a timetable version; the version update and audit row are committed together."
+    },
+    "admin_bus_version_delete": {
+      "trigger": "POST /admin/bus",
+      "description": "Admin deletes an inactive timetable version; the delete and audit row are committed together."
+    },
+    "admin_bus_import": {
+      "trigger": "POST /admin/bus",
+      "description": "Admin imports the static timetable and records only version and aggregate row counts."
+    },
+    "homework_create": {
+      "trigger": "POST /api/community/section-homeworks",
+      "description": "Records actor, verified transport/OAuth attribution, target, sectionId, and changedFields without title or description content."
+    },
+    "homework_update": {
+      "trigger": "PATCH /api/community/section-homeworks/[id]",
+      "description": "Records the collaborative editor and changed field names in the same transaction as the update."
+    },
+    "homework_delete": {
+      "trigger": "DELETE /api/community/section-homeworks/[id]",
+      "description": "Records the creator/admin actor and target without retaining a title snapshot."
+    },
     "webhook_login": {
       "trigger": "Reserved",
       "description": "Internal debug login aid (not a product surface). When enabled in a private environment, audit metadata records the lookup mode only; secrets and session tokens are never stored."
@@ -121,5 +161,5 @@
       "description": "Records revocation atomically with authorization deletion using safe identifiers and counts only."
     }
   },
-  "writer": "writeAuditLog records transactional app trails. Better Auth database after hooks run after commit and contain fireAuditLog failures so committed auth mutations cannot become false API failures. The static loader writes Section lifecycle rows within its import transaction."
+  "writer": "AuditLog is the only audit store. Required app trails are awaited in the write transaction where practical, while Better Auth database after hooks contain fireAuditLog failures so committed auth mutations cannot become false API failures. The static loader writes Section lifecycle rows within its import transaction. The six-hour maintenance job anonymizes IP/user agent after 30 days and grant/session/request attribution after 90 days, then deletes events after 400 days through a maintenance-only SECURITY DEFINER function."
 }

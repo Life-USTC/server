@@ -6,6 +6,7 @@ import { getAdminModerationPageCopy } from "./admin-moderation-page-copy";
 export type AdminModerationActionEvent = {
   locals: {
     locale: string;
+    requestId: string;
   };
   request: Request;
 };
@@ -20,7 +21,7 @@ export async function getAdminModerationActionContext({
   const admin = await requireAdminPage(request, { requireActive: true });
   const form = await request.formData();
 
-  return { admin, copy, form };
+  return { admin, copy, form, requestId: locals.requestId };
 }
 
 export function requiredModerationFormId(form: FormData, message: string) {

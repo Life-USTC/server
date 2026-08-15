@@ -23,7 +23,7 @@ const sectionHomeworkMcpTools = [
 const requireAuthMock = vi.fn();
 
 vi.mock("@/lib/auth/api-auth", () => ({
-  requireAuth: requireAuthMock,
+  requireAuthPrincipal: requireAuthMock,
 }));
 
 describe("section homework write scope parity", () => {
