@@ -18,8 +18,10 @@ jobs:
       - name: Setup workspace
         uses: ./.github/actions/setup-bun-env
 
-      - name: Prepare SvelteKit types
-        run: bun run svelte:sync
+      - name: Prepare generated application types
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/life_ustc_graphql_contract
+        run: bun run app:prepare
 
       - name: Fetch base branch
         shell: bash
