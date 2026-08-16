@@ -124,12 +124,38 @@ SET search_path = ''
 AS $function$
 DECLARE
   v_is_admin boolean;
+  v_session_user_id text;
 BEGIN
   IF p_user_id IS NULL OR pg_catalog.btrim(p_user_id) = '' THEN
     RAISE EXCEPTION 'user id must not be empty' USING ERRCODE = '22023';
   END IF;
   IF p_audit_id IS NULL OR pg_catalog.btrim(p_audit_id) = '' THEN
     RAISE EXCEPTION 'audit id must not be empty' USING ERRCODE = '22023';
+  END IF;
+
+  -- The definer function is callable by the shared auth runtime, so never
+  -- trust p_user_id by itself. Bind deletion to a live, recently-created
+  -- server-side session owned by that same user.
+  SELECT auth_session."userId"
+  INTO v_session_user_id
+  FROM public."Session" AS auth_session
+  WHERE auth_session."id" = p_session_id
+    AND auth_session."expires" > (pg_catalog.statement_timestamp() AT TIME ZONE 'UTC')
+    AND auth_session."createdAt" > (
+      (pg_catalog.statement_timestamp() AT TIME ZONE 'UTC') - interval '15 minutes'
+    );
+  IF v_session_user_id IS NULL OR v_session_user_id <> p_user_id THEN
+    INSERT INTO public."AuditLog" (
+      "id", "action", "outcome", "channel", "userId", "subjectUserId",
+      "targetId", "targetType", "metadata", "ipAddress", "userAgent",
+      "sessionId", "requestId"
+    ) VALUES (
+      p_audit_id, 'account_delete', 'denied', p_channel,
+      v_session_user_id, v_session_user_id, p_user_id, 'user',
+      '{"reason":"session_user_mismatch","selfService":true}'::jsonb,
+      p_ip_address, p_user_agent, p_session_id, p_request_id
+    );
+    RETURN 'unauthorized';
   END IF;
 
   PERFORM pg_catalog.pg_advisory_xact_lock(
@@ -191,6 +217,7 @@ DO $grants$
 BEGIN
   IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'life_ustc_function_owner') THEN
     EXECUTE 'GRANT SELECT, DELETE ON TABLE public."User" TO life_ustc_function_owner';
+    EXECUTE 'GRANT SELECT ON TABLE public."Session" TO life_ustc_function_owner';
     EXECUTE 'GRANT UPDATE ("id") ON TABLE public."User" TO life_ustc_function_owner';
     EXECUTE 'GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE public."AuditLog" TO life_ustc_function_owner';
     EXECUTE 'GRANT SELECT, UPDATE, DELETE ON TABLE public."OAuthGrantUsageDaily" TO life_ustc_function_owner';

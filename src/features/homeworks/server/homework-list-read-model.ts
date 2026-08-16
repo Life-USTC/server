@@ -198,7 +198,10 @@ export async function listSectionHomeworkAuditLogs(
           : row.action === "homework_update"
             ? ("updated" as const)
             : ("deleted" as const),
-      titleSnapshot: null,
+      titleSnapshot:
+        typeof metadata.titleSnapshot === "string"
+          ? metadata.titleSnapshot
+          : null,
       createdAt: row.createdAt,
       sectionId: Number(metadata.sectionId),
       homeworkId: row.targetId,

@@ -91,6 +91,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
 
       - name: Configure job environment
         shell: bash
@@ -177,6 +179,8 @@ jobs:
               bunx playwright test --config playwright.api.config.ts
               ;;
             ci:rls)
+              AUDIT_UPGRADE_BASE_COMMIT="${{ github.event.pull_request.base.sha || github.event.before }}" \
+                bash tests/ci/audit-production-upgrade.test.sh
               bun run app:prepare
               bun run db:migrate:deploy
               bunx prisma db seed

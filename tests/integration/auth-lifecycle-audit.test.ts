@@ -1,4 +1,5 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { writeAuditLog } from "@/lib/audit/write-audit-log";
 import { prisma } from "@/lib/db/prisma";
 
 const authOrigin = "http://localhost:3000";
@@ -7,6 +8,7 @@ const marker = crypto.randomUUID();
 let userId = "";
 let sessionId = "";
 let unlinkAccountId = "";
+const replayAuditId = `audit-replay-${marker}`;
 
 async function authRequest(path: string, cookie: string, body?: unknown) {
   const { betterAuthInstance } = await import("@/lib/auth/core");
@@ -90,10 +92,28 @@ describe.sequential("committed Better Auth lifecycle audit", () => {
 
   afterAll(async () => {
     await prisma.auditLog.deleteMany({
-      where: { OR: [{ userId }, { subjectUserId: userId }] },
+      where: {
+        OR: [{ id: replayAuditId }, { userId }, { subjectUserId: userId }],
+      },
     });
     await prisma.user.deleteMany({ where: { id: userId } });
     await prisma.$disconnect();
+  });
+
+  it("stores a producer-ID replay exactly once", async () => {
+    const event = {
+      action: "account_sign_in" as const,
+      id: replayAuditId,
+      subjectUserId: userId,
+      userId,
+    };
+
+    await writeAuditLog(event);
+    await writeAuditLog(event);
+
+    await expect(
+      prisma.auditLog.count({ where: { id: replayAuditId } }),
+    ).resolves.toBe(1);
   });
 
   it("audits profile update, account unlink, and sign-out only after success", async () => {

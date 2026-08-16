@@ -269,6 +269,8 @@ describe.skipIf(process.env.MAINTENANCE_ROLE_TEST_ENABLED !== "true")(
           maintainAuditLogRetention(maintenancePrisma, now),
         ).resolves.toEqual(
           expect.objectContaining({
+            auditRetentionBatches: expect.any(Number),
+            auditRetentionComplete: true,
             attributionAnonymized: expect.any(Number),
             networkAnonymized: expect.any(Number),
             rowsDeleted: expect.any(Number),
@@ -298,10 +300,48 @@ describe.skipIf(process.env.MAINTENANCE_ROLE_TEST_ENABLED !== "true")(
     it("expires OAuth usage without granting table access", async () => {
       await expect(
         maintainOAuthGrantUsageRetention(maintenancePrisma, new Date()),
-      ).resolves.toEqual({ oauthUsageRowsDeleted: expect.any(Number) });
+      ).resolves.toEqual({
+        oauthRetentionBatches: expect.any(Number),
+        oauthRetentionComplete: true,
+        oauthUsageRowsDeleted: expect.any(Number),
+      });
       await expect(
         maintenancePrisma.oAuthGrantUsageDaily.count(),
       ).rejects.toThrow();
+    });
+
+    it("drains more than one audit batch in a single scheduled run", async () => {
+      const now = new Date();
+      const ids = Array.from(
+        { length: 1001 },
+        (_, index) => `${marker}-multi-batch-${index}`,
+      );
+      await adminPrisma.auditLog.createMany({
+        data: ids.map((id) => ({
+          action: "account_sign_in" as const,
+          createdAt: new Date(now.getTime() - 31 * 86_400_000),
+          id,
+          ipAddress: "192.0.2.1",
+          userAgent: "multi-batch-test",
+        })),
+      });
+
+      try {
+        await expect(
+          maintainAuditLogRetention(maintenancePrisma, now),
+        ).resolves.toMatchObject({
+          auditRetentionBatches: 2,
+          auditRetentionComplete: true,
+          networkAnonymized: 1001,
+        });
+        await expect(
+          adminPrisma.auditLog.count({
+            where: { id: { in: ids }, ipAddress: null, userAgent: null },
+          }),
+        ).resolves.toBe(1001);
+      } finally {
+        await adminPrisma.auditLog.deleteMany({ where: { id: { in: ids } } });
+      }
     });
   },
 );

@@ -58,7 +58,10 @@ describe("account deletion database boundary", () => {
     );
 
     await expect(
-      deleteOwnAccount("admin-1", { channel: "web" }),
+      deleteOwnAccount("admin-1", {
+        channel: "web",
+        sessionId: "session-admin-1",
+      }),
     ).resolves.toEqual({ ok: false, reason: "cannot_remove_last_admin" });
     expect(fireAuditLogMock).not.toHaveBeenCalled();
   });

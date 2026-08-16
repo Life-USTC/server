@@ -1,15 +1,17 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createDeferred } from "../shared/deferred";
 
-const { getRequestEventMock, logAppEventMock, prismaMock } = vi.hoisted(() => ({
-  getRequestEventMock: vi.fn(),
-  logAppEventMock: vi.fn(),
-  prismaMock: {
-    auditLog: {
-      createMany: vi.fn(),
+const { getAuditQueueMock, getRequestEventMock, logAppEventMock, prismaMock } =
+  vi.hoisted(() => ({
+    getAuditQueueMock: vi.fn(),
+    getRequestEventMock: vi.fn(),
+    logAppEventMock: vi.fn(),
+    prismaMock: {
+      auditLog: {
+        createMany: vi.fn(),
+      },
     },
-  },
-}));
+  }));
 
 vi.mock("$app/server", () => ({
   getRequestEvent: getRequestEventMock,
@@ -17,6 +19,13 @@ vi.mock("$app/server", () => ({
 
 vi.mock("@/lib/db/prisma", () => ({
   prisma: prismaMock,
+}));
+
+vi.mock("@/lib/adapters/cloudflare-runtime", async (importOriginal) => ({
+  ...(await importOriginal<
+    typeof import("@/lib/adapters/cloudflare-runtime")
+  >()),
+  getCloudflareAuditLogWriteQueue: getAuditQueueMock,
 }));
 
 vi.mock("@/lib/log/app-logger", () => ({
@@ -34,9 +43,29 @@ const auditParams = {
 describe("fireAuditLog", () => {
   beforeEach(() => {
     getRequestEventMock.mockReset();
+    getAuditQueueMock.mockReset();
     logAppEventMock.mockReset();
     prismaMock.auditLog.createMany.mockReset();
     vi.resetModules();
+  });
+
+  it("generates one stable ID in the producer envelope", async () => {
+    const queueSend = vi.fn().mockResolvedValue(undefined);
+    getAuditQueueMock.mockReturnValue({ send: queueSend });
+    getRequestEventMock.mockImplementation(() => {
+      throw new Error("outside request");
+    });
+    const { fireAuditLog } = await import("@/lib/audit/write-audit-log");
+
+    await fireAuditLog(auditParams);
+
+    expect(queueSend).toHaveBeenCalledOnce();
+    expect(queueSend).toHaveBeenCalledWith({
+      auditId: expect.any(String),
+      params: auditParams,
+      type: "audit-log.write.v1",
+    });
+    expect(prismaMock.auditLog.createMany).not.toHaveBeenCalled();
   });
 
   it("在调度 Worker waitUntil 后完成，无需等待审计写入", async () => {
@@ -64,6 +93,7 @@ describe("fireAuditLog", () => {
     expect(schedulingResolved).toBe(true);
     expect(prismaMock.auditLog.createMany).toHaveBeenCalledWith({
       data: auditParams,
+      skipDuplicates: true,
     });
 
     auditWrite.resolve({});

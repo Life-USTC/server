@@ -24,7 +24,10 @@ SELECT
   legacy."actorId",
   legacy."homeworkId",
   'homework',
-  jsonb_build_object('sectionId', legacy."sectionId"),
+  jsonb_build_object(
+    'sectionId', legacy."sectionId",
+    'titleSnapshot', legacy."titleSnapshot"
+  ),
   legacy."createdAt"
 FROM "HomeworkAuditLog" AS legacy;
 

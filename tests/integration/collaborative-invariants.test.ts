@@ -148,6 +148,23 @@ describe("协作数据不变量", () => {
         select: { id: true },
       }),
     ]);
+    const [deletionSession, otherUser] = await Promise.all([
+      prisma.session.create({
+        data: {
+          expires: new Date(Date.now() + 60 * 60 * 1000),
+          sessionToken: crypto.randomUUID(),
+          userId: deletingAdmin.id,
+        },
+        select: { id: true },
+      }),
+      prisma.user.create({
+        data: {
+          email: `${prefix}-other-user@example.test`,
+          name: "Other User",
+        },
+        select: { id: true },
+      }),
+    ]);
     const auditLog = await prisma.auditLog.create({
       data: {
         action: "account_profile_update",
@@ -171,7 +188,20 @@ describe("协作数据不变量", () => {
 
     try {
       await expect(
-        deleteOwnAccount(deletingAdmin.id, { channel: "system" }),
+        deleteOwnAccount(otherUser.id, {
+          channel: "system",
+          sessionId: deletionSession.id,
+        }),
+      ).resolves.toEqual({ ok: false, reason: "unauthorized" });
+      await expect(
+        prisma.user.findUnique({ where: { id: otherUser.id } }),
+      ).resolves.toMatchObject({ id: otherUser.id });
+
+      await expect(
+        deleteOwnAccount(deletingAdmin.id, {
+          channel: "system",
+          sessionId: deletionSession.id,
+        }),
       ).resolves.toEqual({ ok: true });
 
       await expect(
@@ -195,9 +225,15 @@ describe("协作数据不变量", () => {
       });
     } finally {
       await prisma.userSuspension.deleteMany({ where: { id: suspension.id } });
-      await prisma.auditLog.deleteMany({ where: { id: auditLog.id } });
+      await prisma.auditLog.deleteMany({
+        where: {
+          OR: [{ id: auditLog.id }, { targetId: otherUser.id }],
+        },
+      });
       await prisma.user.deleteMany({
-        where: { id: { in: [remainingAdmin.id, suspendedUser.id] } },
+        where: {
+          id: { in: [remainingAdmin.id, suspendedUser.id, otherUser.id] },
+        },
       });
     }
   });

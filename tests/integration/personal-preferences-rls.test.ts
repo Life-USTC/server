@@ -312,6 +312,14 @@ describe.skipIf(process.env.RLS_TEST_ENABLED !== "true")(
           updatedAt: new Date(),
         },
       });
+      const deletionSession = await authPrisma.session.create({
+        data: {
+          expires: new Date(Date.now() + 60 * 60 * 1000),
+          sessionToken: crypto.randomUUID(),
+          userId: accountDeletionUserId,
+        },
+        select: { id: true },
+      });
 
       await withUserDbContext(accountDeletionUserId, () =>
         prisma.todo.create({
@@ -323,7 +331,10 @@ describe.skipIf(process.env.RLS_TEST_ENABLED !== "true")(
       );
 
       await expect(
-        deleteOwnAccount(accountDeletionUserId, { channel: "system" }),
+        deleteOwnAccount(accountDeletionUserId, {
+          channel: "system",
+          sessionId: deletionSession.id,
+        }),
       ).resolves.toEqual({ ok: true });
       await expect(
         prisma.user.findUnique({ where: { id: accountDeletionUserId } }),

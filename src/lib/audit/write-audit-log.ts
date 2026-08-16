@@ -12,6 +12,7 @@ import { writeAuditWriteAnalytics } from "@/lib/metrics/analytics-engine";
 export { getAuditRequestMetadata } from "@/lib/audit/request-metadata";
 
 export type AuditLogParams = {
+  id?: string;
   action: AuditAction;
   userId?: string;
   subjectUserId?: string;
@@ -117,6 +118,10 @@ export async function writeAuditLog(
           metadata: metadata as Prisma.InputJsonValue,
         }),
       },
+      // A queued audit write carries a producer-generated ID. Cloudflare
+      // Queues is at-least-once, so replaying an uncertain delivery must be a
+      // successful no-op instead of creating a second audit event.
+      skipDuplicates: true,
     });
     writeAuditWriteAnalytics({
       action: params.action,
@@ -145,9 +150,14 @@ export async function writeAuditLog(
  */
 export async function fireAuditLog(params: AuditLogParams) {
   const queue = getCloudflareAuditLogWriteQueue();
+  const { id, ...queueParams } = params;
   const auditWrite = (
     queue
-      ? queue.send({ type: "audit-log.write.v1", params })
+      ? queue.send({
+          auditId: id ?? crypto.randomUUID(),
+          params: queueParams,
+          type: "audit-log.write.v1",
+        })
       : writeAuditLog(params)
   ).catch((error: unknown) => {
     logAuditWriteFailure(params, error);

@@ -5,7 +5,8 @@ import { logAppEvent } from "@/lib/log/app-logger";
 export const AUDIT_LOG_WRITE_QUEUE_NAME = "life-ustc-audit-log-write";
 
 export type AuditLogWriteQueueMessage = {
-  params: AuditLogParams;
+  auditId: string;
+  params: Omit<AuditLogParams, "id">;
   type: "audit-log.write.v1";
 };
 
@@ -23,9 +24,16 @@ export function parseAuditLogWriteQueueMessage(
   value: unknown,
 ): AuditLogWriteQueueMessage | null {
   if (!value || typeof value !== "object") return null;
-  const message = value as { params?: unknown; type?: unknown };
+  const message = value as {
+    auditId?: unknown;
+    params?: unknown;
+    type?: unknown;
+  };
   if (
     message.type !== "audit-log.write.v1" ||
+    typeof message.auditId !== "string" ||
+    message.auditId.length < 1 ||
+    message.auditId.length > 128 ||
     !message.params ||
     typeof message.params !== "object" ||
     typeof (message.params as { action?: unknown }).action !== "string"
@@ -43,7 +51,7 @@ export async function handleAuditLogWriteBatch(batch: AuditLogWriteQueueBatch) {
       continue;
     }
     try {
-      await writeAuditLog(parsed.params);
+      await writeAuditLog({ ...parsed.params, id: parsed.auditId });
       message.ack();
     } catch (error) {
       logAppEvent(

@@ -4,12 +4,15 @@ import { runSerializableTransaction } from "@/lib/db/serializable-transaction";
 
 type DeleteOwnAccountResult =
   | { ok: true }
-  | { ok: false; reason: "cannot_remove_last_admin" | "not_found" };
+  | {
+      ok: false;
+      reason: "cannot_remove_last_admin" | "not_found" | "unauthorized";
+    };
 
 export type AccountDeletionAuditContext = Pick<
   AuditLogParams,
-  "channel" | "ipAddress" | "requestId" | "sessionId" | "userAgent"
->;
+  "channel" | "ipAddress" | "requestId" | "userAgent"
+> & { sessionId: string };
 
 export async function deleteOwnAccount(
   userId: string,
@@ -24,7 +27,11 @@ export async function deleteOwnAccount(
       (tx) =>
         tx.$queryRaw<
           Array<{
-            status: "cannot_remove_last_admin" | "deleted" | "not_found";
+            status:
+              | "cannot_remove_last_admin"
+              | "deleted"
+              | "not_found"
+              | "unauthorized";
           }>
         >`SELECT public.delete_own_account(
           ${userId},
@@ -32,35 +39,27 @@ export async function deleteOwnAccount(
           ${audit.channel ?? "web"},
           ${audit.ipAddress ?? null},
           ${audit.userAgent ?? null},
-          ${audit.sessionId ?? null},
+          ${audit.sessionId},
           ${audit.requestId ?? null}
         ) AS status`,
       "Failed to delete account",
       authPrisma,
     );
-    if (
-      !row ||
-      row.status === "not_found" ||
-      row.status === "cannot_remove_last_admin"
-    ) {
-      const reason: "cannot_remove_last_admin" | "not_found" =
-        row?.status === "cannot_remove_last_admin"
-          ? "cannot_remove_last_admin"
-          : "not_found";
-      const result = {
-        ok: false as const,
-        reason,
-      };
-      if (result.reason === "not_found") {
-        await fireAuditLog({
-          action: "account_delete",
-          outcome: "denied",
-          targetType: "user",
-          metadata: { reason: result.reason, selfService: true },
-          ...audit,
-        });
-      }
-      return result;
+    if (!row || row.status === "not_found") {
+      await fireAuditLog({
+        action: "account_delete",
+        outcome: "denied",
+        targetType: "user",
+        metadata: { reason: "not_found", selfService: true },
+        ...audit,
+      });
+      return { ok: false, reason: "not_found" };
+    }
+    if (row.status === "cannot_remove_last_admin") {
+      return { ok: false, reason: "cannot_remove_last_admin" };
+    }
+    if (row.status === "unauthorized") {
+      return { ok: false, reason: "unauthorized" };
     }
     return { ok: true };
   } catch (error) {

@@ -718,6 +718,9 @@ model AuditLog {
   @@index([subjectUserId, createdAt, id])
   @@index([subjectUserId, oauthClientId, createdAt, id])
   @@index([oauthClientId, createdAt])
+  @@index([targetType, targetId, createdAt(sort: Desc)], map: "AuditLog_targetType_targetId_createdAt_idx")
+  @@index([channel, createdAt(sort: Desc)], map: "AuditLog_channel_createdAt_idx")
+  @@index([outcome, createdAt(sort: Desc)], map: "AuditLog_outcome_createdAt_idx")
   @@index([action])
   @@index([createdAt])
 }
@@ -1552,6 +1555,7 @@ model OAuthGrantUsageDaily {
   updatedAt DateTime @updatedAt
 
   @@unique([userId, clientId, grantKey, day, feature, channel])
+  @@index([day, id], map: "OAuthGrantUsageDaily_day_id_idx")
   @@index([userId, clientId, lastUsedAt])
   @@index([userId, clientId, grantKey, day])
 }
