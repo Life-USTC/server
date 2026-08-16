@@ -6,34 +6,9 @@ import { logAppEvent } from "@/lib/log/app-logger";
 import {
   buildCalendarFeedPath,
   SECTION_SUBSCRIPTION_NOTE,
-  type UserSectionSubscriptionState,
-  userSectionSubscriptionSelect,
 } from "./subscription-read-model-shared";
 
-export async function getUserSectionSubscriptionState(
-  userId: string,
-): Promise<UserSectionSubscriptionState | null> {
-  const user = await withUserDbContext(userId, (tx) =>
-    tx.user.findUnique({
-      where: { id: userId },
-      select: userSectionSubscriptionSelect,
-    }),
-  );
-  if (!user) return null;
-
-  return {
-    userId: user.id,
-    subscriptionIcsUrl: await buildCalendarFeedPath(
-      user.id,
-      user.calendarFeedToken,
-    ),
-    subscribedSections: user.sectionSubscriptions.map(
-      ({ section }) => section.id,
-    ),
-  };
-}
-
-export async function getUserSectionSubscriptionStateForSection(
+export async function getUserSectionSubscriptionStatusForSection(
   userId: string,
   sectionJwId: number,
 ) {
@@ -42,7 +17,6 @@ export async function getUserSectionSubscriptionStateForSection(
       where: { id: userId },
       select: {
         id: true,
-        calendarFeedToken: true,
         sectionSubscriptions: {
           where: { section: { jwId: sectionJwId } },
           select: { sectionId: true },
@@ -55,10 +29,6 @@ export async function getUserSectionSubscriptionStateForSection(
 
   return {
     userId: user.id,
-    subscriptionIcsUrl: await buildCalendarFeedPath(
-      user.id,
-      user.calendarFeedToken,
-    ),
     isSubscribed: user.sectionSubscriptions.length > 0,
   };
 }

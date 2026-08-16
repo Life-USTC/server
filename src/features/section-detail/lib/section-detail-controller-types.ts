@@ -365,7 +365,6 @@ export type SectionDetailPageData = {
   viewer: {
     isSubscribed?: boolean;
     signedIn?: boolean;
-    subscriptionIcsUrl?: string | null;
   };
 };
 

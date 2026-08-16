@@ -1486,7 +1486,7 @@
     "calendarUrlDescription": "Lectures, exams, and homework for this section.",
     "subscriptionUrlLabel": "All your subscriptions",
     "subscriptionUrlDescription": "Every section you subscribe to in Life@USTC, plus todos and other personal schedule items. Updates automatically.",
-    "subscriptionMissing": "Sign in to generate your personal feed",
+    "subscriptionMissing": "Open subscriptions to securely view your personal feed",
     "subscriptionHintLabel": "This URL includes all sections you subscribe to in Life@USTC and auto-syncs. It does not change official USTC course enrollment.",
     "subscriptionPrivacyNote": "Treat this link like a private credential. Do not share it publicly.",
     "subscribeLabel": "Subscribe to section",

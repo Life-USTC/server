@@ -11,7 +11,7 @@ const {
   getSectionHomeworkDataMock,
   getSectionPageMock,
   getTeacherPageMock,
-  getUserSectionSubscriptionStateForSectionMock,
+  getUserSectionSubscriptionStatusForSectionMock,
   getViewerContextMock,
   withSectionPageRelatedDataMock,
 } = vi.hoisted(() => ({
@@ -22,7 +22,7 @@ const {
   getSectionHomeworkDataMock: vi.fn(),
   getSectionPageMock: vi.fn(),
   getTeacherPageMock: vi.fn(),
-  getUserSectionSubscriptionStateForSectionMock: vi.fn(),
+  getUserSectionSubscriptionStatusForSectionMock: vi.fn(),
   getViewerContextMock: vi.fn(),
   withSectionPageRelatedDataMock: vi.fn(),
 }));
@@ -66,8 +66,8 @@ vi.mock(
 );
 
 vi.mock("@/features/subscriptions/server/subscriptions", () => ({
-  getUserSectionSubscriptionStateForSection:
-    getUserSectionSubscriptionStateForSectionMock,
+  getUserSectionSubscriptionStatusForSection:
+    getUserSectionSubscriptionStatusForSectionMock,
 }));
 
 vi.mock("@/lib/auth/viewer-context", () => ({
@@ -193,9 +193,8 @@ beforeEach(() => {
     section,
   });
   getTeacherPageMock.mockResolvedValue(teacher);
-  getUserSectionSubscriptionStateForSectionMock.mockResolvedValue({
+  getUserSectionSubscriptionStatusForSectionMock.mockResolvedValue({
     isSubscribed: false,
-    subscriptionIcsUrl: null,
   });
   getViewerContextMock.mockResolvedValue(anonymousViewer);
   withSectionPageRelatedDataMock.mockImplementation(
@@ -732,13 +731,12 @@ describe("section detail loader critical path", () => {
     expect(result.viewer).toEqual({
       isSubscribed: false,
       signedIn: false,
-      subscriptionIcsUrl: null,
     });
     expect(getDescriptionPayloadMock).not.toHaveBeenCalled();
     expect(getCommentsPayloadMock).not.toHaveBeenCalled();
     expect(getSectionHomeworkDataMock).not.toHaveBeenCalled();
     expect(
-      getUserSectionSubscriptionStateForSectionMock,
+      getUserSectionSubscriptionStatusForSectionMock,
     ).not.toHaveBeenCalled();
   });
 
@@ -785,10 +783,10 @@ describe("section detail loader critical path", () => {
     expect(getCommentsPayloadMock).not.toHaveBeenCalled();
   });
 
-  it("retains subscription state on signed-in sections because the fixed header consumes it", async () => {
-    getUserSectionSubscriptionStateForSectionMock.mockResolvedValue({
+  it("loads subscription status without exposing the calendar feed credential", async () => {
+    getUserSectionSubscriptionStatusForSectionMock.mockResolvedValue({
       isSubscribed: true,
-      subscriptionIcsUrl: "/api/calendar-feeds/user-1.ics",
+      userId: "user-1",
     });
     const { loadSectionDetailPage } = await import(
       "@/features/section-detail/server/section-detail-page-server"
@@ -801,14 +799,13 @@ describe("section detail loader critical path", () => {
       url: new URL(`https://example.test/catalog/sections/${section.jwId}`),
     });
 
-    expect(getUserSectionSubscriptionStateForSectionMock).toHaveBeenCalledWith(
+    expect(getUserSectionSubscriptionStatusForSectionMock).toHaveBeenCalledWith(
       "user-1",
       section.jwId,
     );
-    expect(result.viewer).toMatchObject({
+    expect(result.viewer).toEqual({
       isSubscribed: true,
       signedIn: true,
-      subscriptionIcsUrl: "/api/calendar-feeds/user-1.ics",
     });
     expect(getCommentsPayloadMock).not.toHaveBeenCalled();
     expect(getDescriptionPayloadMock).not.toHaveBeenCalled();

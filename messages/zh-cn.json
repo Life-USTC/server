@@ -1452,7 +1452,7 @@
     "calendarUrlDescription": "只包含本班级的上课、考试与作业。",
     "subscriptionUrlLabel": "我的全部订阅",
     "subscriptionUrlDescription": "包含你在 Life@USTC 中订阅的所有班级，以及待办等个人日程，会自动同步。",
-    "subscriptionMissing": "登录后生成你的个人订阅链接",
+    "subscriptionMissing": "前往订阅页面安全查看你的个人订阅链接",
     "subscriptionHintLabel": "此链接包含您在 Life@USTC 中订阅的所有教学班，会自动同步更新，不代表学校官方选课结果。",
     "subscriptionPrivacyNote": "此链接相当于你的私人凭证，请勿公开分享。",
     "subscribeLabel": "订阅教学班",

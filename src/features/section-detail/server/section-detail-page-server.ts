@@ -59,7 +59,7 @@ async function loadSectionDetailPageData({
         async () =>
           (
             await import("@/features/subscriptions/server/subscriptions")
-          ).getUserSectionSubscriptionStateForSection(userId, jwId),
+          ).getUserSectionSubscriptionStatusForSection(userId, jwId),
       )
     : Promise.resolve(null);
   const [pageData, viewer, subscriptionState] = await Promise.all([
@@ -167,7 +167,6 @@ async function loadSectionDetailPageData({
     viewer: {
       signedIn: Boolean(userId),
       isSubscribed: subscriptionState?.isSubscribed ?? false,
-      subscriptionIcsUrl: subscriptionState?.subscriptionIcsUrl ?? null,
     },
   };
 }

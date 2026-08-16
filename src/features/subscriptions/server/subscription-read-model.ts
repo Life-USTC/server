@@ -1,8 +1,7 @@
 export {
   getCalendarSubscriptionUrl,
   getUserCalendarSubscription,
-  getUserSectionSubscriptionState,
-  getUserSectionSubscriptionStateForSection,
+  getUserSectionSubscriptionStatusForSection,
 } from "./subscription-calendar-read-model";
 export { listSubscribedDashboardSections } from "./subscription-dashboard-section-read-model";
 export { listSubscribedHomeworkPage } from "./subscription-homework-page";
@@ -18,7 +17,6 @@ export {
   getSubscribedSectionIds,
   SECTION_SUBSCRIPTION_NOTE,
   type SectionOption,
-  type UserSectionSubscriptionState,
 } from "./subscription-read-model-shared";
 export {
   countUpcomingSubscribedExams,

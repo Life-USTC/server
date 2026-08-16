@@ -19,18 +19,17 @@ describe("section subscription state", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     userFindUniqueMock.mockResolvedValue({
-      calendarFeedToken: "calendar-token",
       id: "user-1",
       sectionSubscriptions: [{ sectionId: 42 }],
     });
   });
 
-  it("loads only the current section subscription", async () => {
-    const { getUserSectionSubscriptionStateForSection } = await import(
+  it("loads only the current section status without selecting a feed credential", async () => {
+    const { getUserSectionSubscriptionStatusForSection } = await import(
       "@/features/subscriptions/server/subscription-calendar-read-model"
     );
 
-    const result = await getUserSectionSubscriptionStateForSection(
+    const result = await getUserSectionSubscriptionStatusForSection(
       "user-1",
       301,
     );
@@ -43,7 +42,6 @@ describe("section subscription state", () => {
       where: { id: "user-1" },
       select: {
         id: true,
-        calendarFeedToken: true,
         sectionSubscriptions: {
           where: { section: { jwId: 301 } },
           select: { sectionId: true },
@@ -53,34 +51,32 @@ describe("section subscription state", () => {
     });
     expect(result).toEqual({
       isSubscribed: true,
-      subscriptionIcsUrl: "/api/calendar-feeds/user-1:calendar-token.ics",
       userId: "user-1",
     });
   });
 
   it("returns an unsubscribed state when the current section is absent", async () => {
     userFindUniqueMock.mockResolvedValue({
-      calendarFeedToken: "calendar-token",
       id: "user-1",
       sectionSubscriptions: [],
     });
-    const { getUserSectionSubscriptionStateForSection } = await import(
+    const { getUserSectionSubscriptionStatusForSection } = await import(
       "@/features/subscriptions/server/subscription-calendar-read-model"
     );
 
     await expect(
-      getUserSectionSubscriptionStateForSection("user-1", 301),
+      getUserSectionSubscriptionStatusForSection("user-1", 301),
     ).resolves.toMatchObject({ isSubscribed: false });
   });
 
   it("returns null when the user no longer exists", async () => {
     userFindUniqueMock.mockResolvedValue(null);
-    const { getUserSectionSubscriptionStateForSection } = await import(
+    const { getUserSectionSubscriptionStatusForSection } = await import(
       "@/features/subscriptions/server/subscription-calendar-read-model"
     );
 
     await expect(
-      getUserSectionSubscriptionStateForSection("user-1", 301),
+      getUserSectionSubscriptionStatusForSection("user-1", 301),
     ).resolves.toBeNull();
   });
 });

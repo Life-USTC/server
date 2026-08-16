@@ -201,10 +201,9 @@ $: _commentTargets = buildSectionDetailCommentTargets(_copy, data.section);
 $: calendarUrls = sectionDetailCalendarUrls({
   jwId: data.section.jwId,
   origin: _origin,
-  subscriptionPath: data.viewer.subscriptionIcsUrl ?? "",
 });
 $: singleCalendarUrl = calendarUrls.singleCalendarUrl;
-$: subscriptionCalendarUrl = calendarUrls.subscriptionCalendarUrl;
+$: subscriptionCalendarUrl = "";
 $: periodDetailRows = buildSectionPeriodDetailRows(_sectionCopy, data.section);
 $: _canWriteHomework = canWriteSectionHomework(_homeworkViewer);
 $: _canManageSelectedHomework = canManageSectionHomework(
