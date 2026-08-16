@@ -20,7 +20,7 @@ export let version: AdminBusVersion;
 </script>
 
 {#if !version.isEnabled}
-  <DashboardTableRowActions>
+  <DashboardTableRowActions class="justify-end">
     <form
       method="POST"
       action="?/activateVersion"

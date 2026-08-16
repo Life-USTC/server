@@ -126,6 +126,58 @@ test("/admin/users 移动端工作区可搜索并管理首条记录", async ({
   await captureStepScreenshot(page, testInfo, "admin-users-mobile-workspace");
 });
 
+test("/admin/users 状态列对齐且平板使用可读列表", async ({
+  page,
+}, testInfo) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await signInAsDevAdmin(page, "/admin/users");
+
+  const table = page.locator("table:visible");
+  const headers = table.locator("thead th");
+  const firstRowCells = table.locator("tbody tr").first().locator("td");
+  await expect(table).toBeVisible();
+  expect(
+    await headers.nth(3).evaluate((node) => getComputedStyle(node).textAlign),
+  ).toBe("center");
+  expect(
+    await headers.nth(4).evaluate((node) => getComputedStyle(node).textAlign),
+  ).toBe("center");
+  expect(
+    await headers.nth(5).evaluate((node) => getComputedStyle(node).textAlign),
+  ).toBe("right");
+  expect(
+    await firstRowCells
+      .nth(4)
+      .evaluate((node) => getComputedStyle(node).textAlign),
+  ).toBe("center");
+  expect(
+    await firstRowCells
+      .nth(5)
+      .evaluate((node) => getComputedStyle(node).textAlign),
+  ).toBe("right");
+
+  await page.setViewportSize({ width: 1024, height: 768 });
+  await expect(table).toBeHidden();
+  const list = page.getByTestId("admin-users-mobile-list");
+  await expect(list).toBeVisible();
+  const metadataColumns = list.locator("dl").first().locator(":scope > div");
+  expect(["left", "start"]).toContain(
+    await metadataColumns
+      .nth(0)
+      .evaluate((node) => getComputedStyle(node).textAlign),
+  );
+  expect(
+    await metadataColumns
+      .nth(1)
+      .evaluate((node) => getComputedStyle(node).textAlign),
+  ).toBe("right");
+  expect(
+    await page.evaluate(() => document.documentElement.scrollWidth),
+  ).toBeLessThanOrEqual(1024);
+
+  await captureStepScreenshot(page, testInfo, "admin-users-alignment");
+});
+
 test("/admin/users 分页控件可进入下一页", async ({ page }, testInfo) => {
   test.setTimeout(60000);
   const prefix = `e2e-p-${Date.now().toString(36)}`;

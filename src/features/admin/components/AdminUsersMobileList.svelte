@@ -15,7 +15,7 @@ export let suspensionLabel: AdminUserFormatter;
 export let users: AdminUserRow[];
 </script>
 
-<Item.Group class="md:hidden" data-testid="admin-users-mobile-list">
+<Item.Group class="xl:hidden" data-testid="admin-users-mobile-list">
   {#each users as user}
     <Item.Root class="items-start text-left" size="sm" variant="outline">
       {#snippet child({ props })}
@@ -40,11 +40,11 @@ export let users: AdminUserRow[];
                 <dt class="text-muted-foreground">{copy.createdAt}</dt>
                 <dd class="tabular-nums">{formatDate(user.createdAt)}</dd>
               </div>
-              <div>
+              <div class="text-right">
                 <dt class="text-muted-foreground">{copy.suspension}</dt>
                 <dd>
                   {#if user.activeSuspension}
-                    <Badge class="mb-1" variant="destructive">{copy.suspendedStatus}</Badge>
+                    <Badge class="mb-1 ml-auto" variant="destructive">{copy.suspendedStatus}</Badge>
                     <span class="block text-muted-foreground">
                       {suspensionLabel(user)}
                     </span>

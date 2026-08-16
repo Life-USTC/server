@@ -66,7 +66,7 @@ function expiresLabel(suspension: ModerationSuspension) {
   {#if suspensions.length === 0}
     <SoftEmptyMessage message={copy.noSuspensions} />
   {:else}
-    <Item.Group class="md:hidden">
+    <Item.Group class="xl:hidden">
       {#each suspensions as suspension}
         <Item.Root variant="outline" class="items-start">
           <Item.Content class="min-w-0 gap-2">
@@ -111,15 +111,15 @@ function expiresLabel(suspension: ModerationSuspension) {
       {/each}
     </Item.Group>
 
-    <div class="hidden min-w-0 md:block">
+    <div class="hidden min-w-0 xl:block">
       <Table.Root class="w-full">
         <Table.Header>
           <Table.Row>
             <Table.Head>{copy.user}</Table.Head>
             <Table.Head>{copy.reason}</Table.Head>
-            <Table.Head>{copy.expires}</Table.Head>
-            <Table.Head>{copy.status}</Table.Head>
-            <Table.Head>
+            <Table.Head class="text-right">{copy.expires}</Table.Head>
+            <Table.Head class="text-center">{copy.status}</Table.Head>
+            <Table.Head class="w-12 text-right">
               <span class="sr-only">{copy.actions}</span>
             </Table.Head>
           </Table.Row>
@@ -143,19 +143,19 @@ function expiresLabel(suspension: ModerationSuspension) {
                   text={suspension.reason ?? copy.noReason}
                 />
               </Table.Cell>
-              <Table.Cell class="whitespace-nowrap text-muted-foreground">
+              <Table.Cell class="whitespace-nowrap text-right tabular-nums text-muted-foreground">
                 {expiresLabel(suspension)}
               </Table.Cell>
-              <Table.Cell>
+              <Table.Cell class="text-center">
                 {#if suspension.liftedAt}
                   <Badge variant="ghost">{copy.lifted}</Badge>
                 {:else}
                   <Badge variant="destructive">{copy.active}</Badge>
                 {/if}
               </Table.Cell>
-              <Table.Cell>
+              <Table.Cell class="w-12 text-right">
                 {#if !suspension.liftedAt}
-                  <DashboardTableRowActions>
+                  <DashboardTableRowActions class="justify-end">
                     <form
                       method="POST"
                       action="?/liftSuspension"

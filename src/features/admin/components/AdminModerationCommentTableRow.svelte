@@ -50,17 +50,17 @@ export let targetLabel: AdminModerationCommentFormatter;
       <TruncatedText text={targetLabel(comment)} />
     </a>
   </Table.Cell>
-  <Table.Cell class="whitespace-nowrap tabular-nums text-muted-foreground">
+  <Table.Cell class="whitespace-nowrap text-right tabular-nums text-muted-foreground">
     {formatDate(comment.createdAt)}
   </Table.Cell>
-  <Table.Cell>
+  <Table.Cell class="text-center">
     <ModerationStatusBadge
       label={statusLabel(comment.status)}
       status={comment.status}
     />
   </Table.Cell>
-  <Table.Cell>
-    <DashboardTableRowActions>
+  <Table.Cell class="w-12 text-right">
+    <DashboardTableRowActions class="justify-end">
       <DashboardTableIconButton
         label={copy.manageComment}
         onclick={() => {

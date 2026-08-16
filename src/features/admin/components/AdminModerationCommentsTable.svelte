@@ -18,16 +18,16 @@ export let targetHref: AdminModerationCommentFormatter;
 export let targetLabel: AdminModerationCommentFormatter;
 </script>
 
-<div class="hidden min-w-0 md:block">
+<div class="hidden min-w-0 xl:block">
   <Table.Root class="w-full">
     <Table.Header>
       <Table.Row>
         <Table.Head>{copy.content}</Table.Head>
         <Table.Head>{copy.author}</Table.Head>
         <Table.Head>{copy.postedIn}</Table.Head>
-        <Table.Head>{copy.createdAt}</Table.Head>
-        <Table.Head>{copy.status}</Table.Head>
-        <Table.Head>
+        <Table.Head class="text-right">{copy.createdAt}</Table.Head>
+        <Table.Head class="text-center">{copy.status}</Table.Head>
+        <Table.Head class="w-12 text-right">
           <span class="sr-only">{copy.actions}</span>
         </Table.Head>
       </Table.Row>

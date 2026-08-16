@@ -224,8 +224,8 @@ function displayValue(value: unknown) {
                 <Table.Head>{data.copy.audit.actorColumn}</Table.Head>
                 <Table.Head>{data.copy.audit.subjectColumn}</Table.Head>
                 <Table.Head>{data.copy.audit.clientColumn}</Table.Head>
-                <Table.Head>{data.copy.audit.channel}</Table.Head>
-                <Table.Head>{data.copy.audit.outcome}</Table.Head>
+                <Table.Head class="text-center">{data.copy.audit.channel}</Table.Head>
+                <Table.Head class="text-center">{data.copy.audit.outcome}</Table.Head>
                 <Table.Head>{data.copy.audit.target}</Table.Head>
                 <Table.Head>{data.copy.audit.details}</Table.Head>
               </Table.Row>
@@ -240,8 +240,8 @@ function displayValue(value: unknown) {
                   <Table.Cell>{actor?.label ?? "—"}{#if actor}<span class="block max-w-44 truncate font-mono text-xs text-muted-foreground">{actor.id}</span>{/if}</Table.Cell>
                   <Table.Cell>{subject?.label ?? "—"}{#if subject}<span class="block max-w-44 truncate font-mono text-xs text-muted-foreground">{subject.id}</span>{/if}</Table.Cell>
                   <Table.Cell>{row.clientName ?? row.oauthClientId ?? "—"}</Table.Cell>
-                  <Table.Cell>{auditChannelLabel(data.locale, row.channel)}</Table.Cell>
-                  <Table.Cell><Badge variant={row.outcome === "success" ? "secondary" : "destructive"}>{auditOutcomeLabel(data.locale, row.outcome)}</Badge></Table.Cell>
+                  <Table.Cell class="text-center">{auditChannelLabel(data.locale, row.channel)}</Table.Cell>
+                  <Table.Cell class="text-center"><Badge variant={row.outcome === "success" ? "secondary" : "destructive"}>{auditOutcomeLabel(data.locale, row.outcome)}</Badge></Table.Cell>
                   <Table.Cell>{row.targetType ? auditTargetLabel(data.locale, row.targetType) : "—"}{row.targetId ? ` · ${row.targetId}` : ""}</Table.Cell>
                   <Table.Cell class="max-w-72 text-xs">{#if row.metadata}<dl class="grid gap-1">{#each Object.entries(row.metadata) as [key, value]}<div><dt class="inline text-muted-foreground">{auditMetadataLabel(data.locale, key)}: </dt><dd class="inline break-words">{displayValue(value)}</dd></div>{/each}</dl>{:else}—{/if}</Table.Cell>
                 </Table.Row>

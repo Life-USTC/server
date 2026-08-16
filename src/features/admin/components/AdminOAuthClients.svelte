@@ -46,8 +46,8 @@ export let scopeLabel: (scope: string) => string;
             <Table.Head>{copy.tableColumnClient}</Table.Head>
             <Table.Head>{copy.tableColumnType}</Table.Head>
             <Table.Head>{copy.tableColumnScopes}</Table.Head>
-            <Table.Head>{copy.createdAtLabel}</Table.Head>
-            <Table.Head>
+            <Table.Head class="text-right">{copy.createdAtLabel}</Table.Head>
+            <Table.Head class="w-12 text-right">
               <span class="sr-only">{copy.deleteClient}</span>
             </Table.Head>
           </Table.Row>
@@ -90,11 +90,11 @@ export let scopeLabel: (scope: string) => string;
                     : copy.notAvailable}
                 />
               </Table.Cell>
-              <Table.Cell class="whitespace-nowrap tabular-nums text-muted-foreground">
+              <Table.Cell class="whitespace-nowrap text-right tabular-nums text-muted-foreground">
                 {formatCreatedAt(client.createdAt)}
               </Table.Cell>
-              <Table.Cell>
-                <DashboardTableRowActions>
+              <Table.Cell class="w-12 text-right">
+                <DashboardTableRowActions class="justify-end">
                   <DashboardTableIconButton
                     label={`${copy.deleteClient}: ${client.name ?? copy.unnamedClient}`}
                     variant="destructive"
