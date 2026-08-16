@@ -18,7 +18,10 @@
     "single-open-suspension": "Each user can have at most one open suspension. Creating a new suspension closes any previous open suspension for that user while retaining history; lifting an open suspension clears the user's open suspension state.",
     "admin-mutation-not-found": "PATCH /api/admin/comments/[id], POST /api/admin/suspensions, and PATCH /api/admin/users/[id] return 404 when the target record is not found.",
     "suspension-retention": "Suspension history is retained when an admin account is deleted; creator and lifter actor references may be null after account deletion.",
-    "primary-admin-navigation": "The global shell exposes each admin tool (users, moderation, OAuth, bus) under Admin tools. /admin redirects to /admin/users; resource URLs remain stable.",
+    "primary-admin-navigation": "The global shell exposes each admin tool (users, moderation, OAuth, bus, audit, aggregate analytics) under Admin tools. /admin redirects to /admin/users; resource URLs remain stable.",
+    "audit-session-only": "The /admin/audit and /admin/analytics pages require an in-site Better Auth admin session. OAuth bearer tokens cannot access governance data.",
+    "audit-safe-projection": "The admin audit list uses stable (createdAt,id) cursor pagination and exposes allowlisted structured metadata only; content bodies, IP addresses, full user agents, tokens, secrets, grant IDs, session IDs, and request IDs are not displayed.",
+    "aggregate-only-analytics": "Admin analytics combines first-party audit events with content-free OAuth daily usage counters, aggregated by feature, channel, outcome, and first-party/OAuth client. External OAuth mutations are excluded from the event source to prevent double counting. It never exposes per-user browsing trails.",
     "responsive-workspace": "Admin management pages share a lightweight workspace order of page identity, optional feedback or filters, then records; desktop tables retain their density while existing compact record views remain the mobile presentation."
   },
   "capabilities": {
@@ -31,7 +34,7 @@
       "display": {
         "fields": [
           "Redirects to user management",
-          "Primary sidebar links for moderation, users, OAuth, and bus"
+          "Primary sidebar links for moderation, users, OAuth, bus, audit, and analytics"
         ]
       }
     },
@@ -171,6 +174,50 @@
           "effective range",
           "enabled status",
           "Actions: import, activate, delete"
+        ]
+      }
+    },
+    "audit-log": {
+      "title": "Audit Log",
+      "auth": "admin",
+      "web": { "pages": ["/admin/audit"] },
+      "rest": "unavailable",
+      "mcp": "unavailable",
+      "display": {
+        "fields": [
+          "createdAt",
+          "actor and subject summaries",
+          "OAuth client name/id",
+          "action, outcome, channel",
+          "target type/id",
+          "allowlisted structured metadata"
+        ],
+        "filters": [
+          "actor",
+          "subject",
+          "client",
+          "action",
+          "outcome",
+          "channel",
+          "target type/id",
+          "date range"
+        ]
+      }
+    },
+    "aggregate-analytics": {
+      "title": "Aggregate Analytics",
+      "auth": "admin",
+      "web": { "pages": ["/admin/analytics"] },
+      "rest": "unavailable",
+      "mcp": "unavailable",
+      "display": {
+        "fields": [
+          "feature",
+          "channel",
+          "outcome",
+          "client",
+          "count",
+          "time window: 7, 30, or 90 days"
         ]
       }
     }

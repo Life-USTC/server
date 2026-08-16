@@ -5,7 +5,7 @@ import * as Item from "$lib/components/ui/item/index.js";
 
 export let copyLabel = "";
 export let copiedMessage = "";
-export let copyText: (value: string, message: string) => void;
+export let copyText: (value: string, message: string) => unknown;
 export let label: string;
 export let showCopy = true;
 export let value: string;

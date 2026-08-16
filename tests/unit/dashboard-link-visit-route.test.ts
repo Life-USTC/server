@@ -1,10 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { setCloudflareRuntimeEnv } from "@/lib/adapters/cloudflare-runtime";
 
-const { recordDashboardLinkClickMock, resolveApiUserIdMock } = vi.hoisted(
+const { recordDashboardLinkClickMock, resolveSessionUserIdMock } = vi.hoisted(
   () => ({
     recordDashboardLinkClickMock: vi.fn(),
-    resolveApiUserIdMock: vi.fn(),
+    resolveSessionUserIdMock: vi.fn(),
   }),
 );
 
@@ -15,13 +15,13 @@ vi.mock("@/features/dashboard-links/server/dashboard-link-service", () => ({
 }));
 
 vi.mock("@/lib/auth/api-auth", () => ({
-  resolveApiUserId: resolveApiUserIdMock,
+  resolveSessionUserId: resolveSessionUserIdMock,
 }));
 
 describe("GET /api/catalog/links/resolve", () => {
   beforeEach(() => {
     setCloudflareRuntimeEnv(undefined);
-    resolveApiUserIdMock.mockResolvedValue("user-1");
+    resolveSessionUserIdMock.mockResolvedValue("user-1");
     recordDashboardLinkClickMock.mockReset();
   });
 
@@ -65,7 +65,7 @@ describe("GET /api/catalog/links/resolve", () => {
   });
 
   it("未登录时不记录点击但仍重定向", async () => {
-    resolveApiUserIdMock.mockResolvedValue(null);
+    resolveSessionUserIdMock.mockResolvedValue(null);
     const { getDashboardLinkVisitRoute } = await import(
       "@/lib/api/routes/dashboard-link-visit-routes"
     );

@@ -1,8 +1,13 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const { getPrismaMock, loadSignedDashboardPageDataMock } = vi.hoisted(() => ({
+const {
+  getPrismaMock,
+  loadSignedDashboardPageDataMock,
+  resolveAuthoritativeRecentSessionMock,
+} = vi.hoisted(() => ({
   getPrismaMock: vi.fn(),
   loadSignedDashboardPageDataMock: vi.fn(),
+  resolveAuthoritativeRecentSessionMock: vi.fn(),
 }));
 
 vi.mock("@/features/dashboard/server/dashboard-page-copy", () => ({
@@ -25,6 +30,10 @@ vi.mock("@/lib/db/prisma", () => ({
   getPrisma: getPrismaMock,
 }));
 
+vi.mock("@/lib/auth/recent-session", () => ({
+  resolveAuthoritativeRecentSession: resolveAuthoritativeRecentSessionMock,
+}));
+
 vi.mock("@/lib/log/app-logger", () => ({
   logAppEvent: vi.fn(),
 }));
@@ -35,6 +44,12 @@ describe("signed dashboard page load", () => {
   beforeEach(() => {
     getPrismaMock.mockReset();
     loadSignedDashboardPageDataMock.mockReset();
+    resolveAuthoritativeRecentSessionMock.mockReset();
+    resolveAuthoritativeRecentSessionMock.mockResolvedValue({
+      ok: true,
+      sessionId: "session-1",
+      userId: "user-1",
+    });
   });
 
   it("loads only signed tab data and its accessible content label", async () => {
@@ -63,6 +78,7 @@ describe("signed dashboard page load", () => {
       expect.objectContaining({
         pageCopy: expect.any(Object),
         requestId: "request-1",
+        revealCalendarFeed: true,
         tab: "homeworks",
         userId: "user-1",
       }),

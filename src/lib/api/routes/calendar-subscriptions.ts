@@ -24,11 +24,14 @@ import {
   calendarSubscriptionQueryRequestSchema,
   calendarSubscriptionRemoveRequestSchema,
 } from "@/lib/api/schemas/request-schemas";
-import { requireAuth } from "@/lib/auth/api-auth";
+import { requireAuth, requireAuthPrincipal } from "@/lib/auth/api-auth";
 import {
   runWithWorkspaceRouteAttribution,
   runWorkspaceRouteStage,
 } from "@/lib/log/workspace-route-attribution";
+import { registerOAuthRequestUsage } from "@/lib/oauth/grant-usage";
+import { hasRequiredFeatureScope } from "@/lib/oauth/scope-registry";
+import { getPublicOrigin } from "@/lib/site-url";
 
 export async function getCurrentCalendarSubscriptionRoute(request: Request) {
   try {
@@ -37,7 +40,7 @@ export async function getCurrentCalendarSubscriptionRoute(request: Request) {
       "auth",
       { request },
       () =>
-        requireAuth(request, {
+        requireAuthPrincipal(request, {
           bearerScope: { feature: "workspace.subscription", action: "read" },
         }),
     );
@@ -48,14 +51,27 @@ export async function getCurrentCalendarSubscriptionRoute(request: Request) {
       "subscriptions_current",
       request,
       async () => {
-        const { getUserCalendarSubscription } = await import(
-          "@/features/subscriptions/server/subscription-read-model"
-        );
-        const subscription = await runWorkspaceRouteStage(
+        const { getCalendarSubscriptionUrl, getUserCalendarSubscription } =
+          await import(
+            "@/features/subscriptions/server/subscription-read-model"
+          );
+        const revealCalendarFeed =
+          auth.kind === "oauth" &&
+          hasRequiredFeatureScope(auth.scopes, {
+            feature: "workspace.calendar-feed",
+            action: "read",
+          });
+        const [subscription, calendarPath] = await runWorkspaceRouteStage(
           "subscriptions_current",
           "read",
           { request },
-          () => getUserCalendarSubscription(userId, getRequestLocale(request)),
+          () =>
+            Promise.all([
+              getUserCalendarSubscription(userId, getRequestLocale(request)),
+              revealCalendarFeed
+                ? getCalendarSubscriptionUrl(userId, null)
+                : Promise.resolve(null),
+            ]),
         );
 
         if (!subscription) {
@@ -66,8 +82,27 @@ export async function getCurrentCalendarSubscriptionRoute(request: Request) {
           );
         }
 
+        if (auth.kind === "oauth" && calendarPath) {
+          registerOAuthRequestUsage(request, {
+            userId,
+            clientId: auth.clientId,
+            ...(auth.grantId ? { grantId: auth.grantId } : {}),
+            channel: "rest",
+            feature: "workspace.calendar-feed",
+            action: "read",
+          });
+        }
+
         return jsonResponse(
-          currentCalendarSubscriptionResponseSchema.parse({ subscription }),
+          currentCalendarSubscriptionResponseSchema.parse({
+            subscription: {
+              ...subscription,
+              calendarPath,
+              calendarUrl: calendarPath
+                ? new URL(calendarPath, getPublicOrigin()).toString()
+                : null,
+            },
+          }),
         );
       },
     );

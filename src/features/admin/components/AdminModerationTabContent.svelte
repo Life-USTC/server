@@ -8,7 +8,6 @@ import type { AdminModerationComment } from "@/features/admin/components/admin-m
 import type { AdminModerationDescription } from "@/features/admin/components/admin-moderation-description-types";
 import type {
   AdminModerationCopy,
-  AdminModerationDescriptionOptions,
   AdminModerationHomework,
   AdminModerationPageData,
 } from "@/features/admin/components/admin-moderation-page-types";
@@ -24,13 +23,11 @@ import type { PendingModerationServerAction } from "@/features/admin/lib/moderat
 
 export let copy: AdminModerationCopy;
 export let data: AdminModerationPageData;
-export let descriptionContentOptions: AdminModerationDescriptionOptions;
-export let descriptionTargetOptions: AdminModerationDescriptionOptions;
 export let enhanceAdminAction: (
   action: PendingModerationServerAction,
 ) => SubmitFunction;
 export let formatDate: (value: string | Date) => string;
-export let isLiftingSuspension: boolean;
+export let liftingSuspensionId: string | null;
 export let onDeleteHomework: (homework: AdminModerationHomework) => void;
 export let onManageComment: (comment: AdminModerationComment) => void;
 export let onManageDescription: (
@@ -42,13 +39,9 @@ export let visibleComments: AdminModerationComment[];
 {#if data.tab === "descriptions"}
   <AdminModerationDescriptions
     {copy}
-    {descriptionContentOptions}
-    descriptionContentFilter={data.filters.descriptionContent}
     descriptions={data.descriptions}
-    descriptionTargetFilter={data.filters.descriptionTarget}
     descriptionTargetHref={(description: AdminModerationDescription) =>
       moderationDescriptionTargetHref(description)}
-    {descriptionTargetOptions}
     formatDate={formatDate}
     formatMessage={moderationFormatMessage}
     onManage={onManageDescription}
@@ -64,10 +57,11 @@ export let visibleComments: AdminModerationComment[];
 {:else if data.tab === "suspensions"}
   <AdminModerationSuspensions
     {copy}
-    enhanceLiftSuspension={enhanceAdminAction("liftSuspension")}
+    enhanceLiftSuspension={(id) =>
+      enhanceAdminAction(`liftSuspension:${id}`)}
     formatDate={formatDate}
     formatMessage={moderationFormatMessage}
-    {isLiftingSuspension}
+    {liftingSuspensionId}
     suspensions={data.suspensions}
   />
 {:else}

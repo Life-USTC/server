@@ -21,17 +21,17 @@ export let pendingAction: string | null;
 export let versions: AdminBusVersion[];
 </script>
 
-<div class="hidden min-w-0 md:block">
+<div class="hidden min-w-0 xl:block">
   <Table.Root class="w-full">
     <Table.Header>
       <Table.Row>
         <Table.Head>{copy.colTitle}</Table.Head>
         <Table.Head>{copy.colKey}</Table.Head>
-        <Table.Head>{copy.colTrips}</Table.Head>
+        <Table.Head class="text-right">{copy.colTrips}</Table.Head>
         <Table.Head>{copy.colEffective}</Table.Head>
-        <Table.Head>{copy.colImported}</Table.Head>
-        <Table.Head>{copy.colStatus}</Table.Head>
-        <Table.Head>
+        <Table.Head class="text-right">{copy.colImported}</Table.Head>
+        <Table.Head class="text-center">{copy.colStatus}</Table.Head>
+        <Table.Head class="w-20 text-right">
           <span class="sr-only">{copy.colActions}</span>
         </Table.Head>
       </Table.Row>
@@ -49,17 +49,17 @@ export let versions: AdminBusVersion[];
           <Table.Cell>
             <span class="font-mono text-sm">{version.key}</span>
           </Table.Cell>
-          <Table.Cell class="tabular-nums">{version.tripCount}</Table.Cell>
+          <Table.Cell class="text-right tabular-nums">{version.tripCount}</Table.Cell>
           <Table.Cell class="text-muted-foreground">
             {formatEffectiveRange(version)}
           </Table.Cell>
-          <Table.Cell class="whitespace-nowrap tabular-nums text-muted-foreground">
+          <Table.Cell class="whitespace-nowrap text-right tabular-nums text-muted-foreground">
             {formatImportedAt(version.importedAt)}
           </Table.Cell>
-          <Table.Cell>
+          <Table.Cell class="text-center">
             <AdminBusVersionStatusBadge {copy} {version} />
           </Table.Cell>
-          <Table.Cell>
+          <Table.Cell class="w-20 text-right">
             <AdminBusVersionActions
               {copy}
               {enhancedAction}

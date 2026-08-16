@@ -75,12 +75,12 @@ describe("static Section source lifecycle persistence", () => {
             createdById: user.id,
           },
         });
-        const homeworkAudit = await tx.homeworkAuditLog.create({
+        const homeworkAudit = await tx.auditLog.create({
           data: {
-            action: "created",
-            homeworkId: homework.id,
-            sectionId: missingSection.id,
-            titleSnapshot: marker,
+            action: "homework_create",
+            targetId: homework.id,
+            targetType: "homework",
+            metadata: { sectionId: missingSection.id },
           },
         });
 
@@ -138,7 +138,7 @@ describe("static Section source lifecycle persistence", () => {
           await tx.comment.findUnique({ where: { id: comment.id } }),
           await tx.description.findUnique({ where: { id: description.id } }),
           await tx.homework.findUnique({ where: { id: homework.id } }),
-          await tx.homeworkAuditLog.findUnique({
+          await tx.auditLog.findUnique({
             where: { id: homeworkAudit.id },
           }),
         ];
@@ -146,7 +146,12 @@ describe("static Section source lifecycle persistence", () => {
           expect.objectContaining({ sectionId: missingSection.id }),
           expect.objectContaining({ sectionId: missingSection.id }),
           expect.objectContaining({ sectionId: missingSection.id }),
-          expect.objectContaining({ sectionId: missingSection.id }),
+          expect.objectContaining({
+            targetId: homework.id,
+            metadata: expect.objectContaining({
+              sectionId: missingSection.id,
+            }),
+          }),
         ]);
         await expect(
           tx.auditLog.findMany({
@@ -198,7 +203,6 @@ describe("static Section source lifecycle persistence", () => {
                 select: {
                   comments: true,
                   homeworks: true,
-                  homeworkAuditLogs: true,
                   sectionSubscriptions: true,
                 },
               },
@@ -210,7 +214,6 @@ describe("static Section source lifecycle persistence", () => {
           _count: {
             comments: 1,
             homeworks: 1,
-            homeworkAuditLogs: 1,
             sectionSubscriptions: 1,
           },
           description: { id: description.id },

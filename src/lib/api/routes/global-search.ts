@@ -2,7 +2,7 @@ import { CATALOG_SEARCH_MAX_LENGTH } from "@/features/catalog/lib/catalog-list-q
 import { searchGlobally } from "@/features/search/server/global-search-service";
 import { handleRouteError, jsonResponse } from "@/lib/api/helpers";
 import { resolvePublicCatalogLocale } from "@/lib/api/routes/request-locale";
-import { resolveApiUserId } from "@/lib/auth/api-auth";
+import { resolveSessionUserId } from "@/lib/auth/api-auth";
 import {
   PRIVATE_LOCALE_CATALOG_HEADERS,
   PUBLIC_SEARCH_CACHE_HEADERS,
@@ -45,7 +45,7 @@ export async function getGlobalSearchRoute(request: Request) {
   if (localeResolution instanceof Response) return localeResolution;
 
   const includeWorkspace = parsed.scope === "workspace";
-  const userId = includeWorkspace ? await resolveApiUserId(request) : null;
+  const userId = includeWorkspace ? await resolveSessionUserId(request) : null;
   const origin = new URL(request.url).origin;
 
   try {

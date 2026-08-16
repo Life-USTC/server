@@ -351,9 +351,9 @@ describe("评论写入工具 — MCP 镜像普通用户 REST 写入", () => {
         userId: isolated.userId,
       });
       expect(createAudit?.metadata).toMatchObject({
-        body: `${marker} created`,
         source: "mcp",
       });
+      expect(JSON.stringify(createAudit?.metadata)).not.toContain(marker);
 
       const updated = await isolated.client.call<{
         success?: boolean;
@@ -388,9 +388,9 @@ describe("评论写入工具 — MCP 镜像普通用户 REST 写入", () => {
         userId: isolated.userId,
       });
       expect(editAudit?.metadata).toMatchObject({
-        body: `${marker} updated`,
         source: "mcp",
       });
+      expect(JSON.stringify(editAudit?.metadata)).not.toContain(marker);
 
       const addedReaction = await isolated.client.call<{
         success?: boolean;

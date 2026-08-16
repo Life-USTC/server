@@ -1,10 +1,14 @@
 import { afterAll, describe, expect, it } from "vitest";
 import { authPostRoute } from "@/lib/api/routes/auth";
 import { authPrisma } from "@/lib/db/auth-prisma";
+import { createTestPrisma } from "../shared/prisma";
 
 const authOrigin = "http://localhost:3000";
 const encoder = new TextEncoder();
 const createdUserIds: string[] = [];
+const adminPrisma = createTestPrisma(
+  process.env.FUNCTION_OWNER_DATABASE_URL ?? process.env.DATABASE_URL,
+);
 
 function base64(bytes: Uint8Array) {
   return btoa(String.fromCharCode(...bytes));
@@ -56,11 +60,11 @@ function updateUserRequest(cookie: string, body: Record<string, unknown>) {
 describe.sequential("Better Auth update-user field security", () => {
   afterAll(async () => {
     if (createdUserIds.length > 0) {
-      await authPrisma.user.deleteMany({
+      await adminPrisma.user.deleteMany({
         where: { id: { in: createdUserIds } },
       });
     }
-    await authPrisma.$disconnect();
+    await Promise.all([authPrisma.$disconnect(), adminPrisma.$disconnect()]);
   });
 
   it("rejects self-promotion while preserving legitimate profile updates", async () => {

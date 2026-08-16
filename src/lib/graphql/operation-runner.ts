@@ -192,8 +192,8 @@ export function safeGraphqlRequestHeaders(
   const headers = new Headers();
   for (const name of [
     "user-agent",
-    "x-forwarded-for",
-    "x-real-ip",
+    "cf-connecting-ip",
+    "cf-ray",
     "x-request-id",
   ]) {
     const value =

@@ -130,10 +130,10 @@ test.describe("/api/mcp - 种子工具覆盖", () => {
           updatedAt?: string;
         };
         expect(profile.id).toBe(currentUser.id);
-        expect(typeof profile.email).toBe("string");
+        expect(profile.email).toBeNull();
         expect(profile.name).toBe(DEV_SEED.debugName);
         expect(profile.username).toBe(currentUser.username ?? null);
-        expect(profile.isAdmin).toBe(false);
+        expect(profile.isAdmin).toBeNull();
         expect(typeof profile.createdAt).toBe("string");
         expect(profile.createdAt).toMatch(/\+08:00$/);
         expect(typeof profile.updatedAt).toBe("string");
@@ -1213,7 +1213,8 @@ test.describe("/api/mcp - 种子工具覆盖", () => {
             userId?: string;
             currentSemesterSections?: Array<{ id?: number }>;
             sections?: Array<{ id?: number }>;
-            calendarPath?: string;
+            calendarPath?: never;
+            calendarUrl?: never;
           };
         };
         expect(calendarSubscriptionPayload.success).toBe(true);
@@ -1229,7 +1230,10 @@ test.describe("/api/mcp - 种子工具覆盖", () => {
         ).toBeUndefined();
         expect(
           calendarSubscriptionPayload.subscription?.calendarPath,
-        ).toContain("/api/calendar-feeds/");
+        ).toBeUndefined();
+        expect(
+          calendarSubscriptionPayload.subscription?.calendarUrl,
+        ).toBeUndefined();
 
         const calendarSubscriptionSummaryResult = await mcpClient.callTool({
           name: "workspace_calendar_feed_get",
@@ -1245,7 +1249,8 @@ test.describe("/api/mcp - 种子工具覆盖", () => {
             sectionCount?: number;
             currentSemesterSectionCount?: number;
             currentSemesterSections?: unknown[];
-            calendarPath?: string;
+            calendarPath?: never;
+            calendarUrl?: never;
           };
         };
         expect(
@@ -1259,7 +1264,10 @@ test.describe("/api/mcp - 种子工具覆盖", () => {
         ).toBe(true);
         expect(
           calendarSubscriptionSummaryPayload.subscription?.calendarPath,
-        ).toContain("[redacted]");
+        ).toBeUndefined();
+        expect(
+          calendarSubscriptionSummaryPayload.subscription?.calendarUrl,
+        ).toBeUndefined();
 
         const subscribeResult = await mcpClient.callTool({
           name: "workspace_subscription_import",

@@ -2,7 +2,7 @@ import { decodeJwt } from "jose";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { signResourceBoundOAuthAccessToken } from "@/features/oauth/server/device-token-issuer.server";
 import { revokeUserOAuthAuthorization } from "@/features/oauth/server/user-authorizations.server";
-import { resolveApiUserId } from "@/lib/auth/api-auth";
+import { resolveScopedApiUserId } from "@/lib/auth/api-auth";
 import { prisma } from "@/lib/db/prisma";
 import { resolveGraphqlPrincipal } from "@/lib/graphql/auth";
 import { authorizeVerifiedMcpAccessToken } from "@/lib/mcp/auth-token-verification";
@@ -129,11 +129,11 @@ describe.sequential("GraphQL OAuth resource isolation", () => {
       ),
     ).resolves.toMatchObject({ kind: "oauth", userId });
     await expect(
-      resolveApiUserId(
+      resolveScopedApiUserId(
         new Request(getOAuthRestAudienceUrls()[0] as string, {
           headers: { authorization: `Bearer ${restToken}` },
         }),
-        { bearerScope: { action: "read", feature: "account.profile" } },
+        { action: "read", feature: "account.profile" },
       ),
     ).resolves.toBe(userId);
     await expect(authorizeMcpToken(mcpToken)).resolves.toMatchObject({
@@ -163,11 +163,11 @@ describe.sequential("GraphQL OAuth resource isolation", () => {
       ),
     ).rejects.toMatchObject({ code: "UNAUTHENTICATED", status: 401 });
     await expect(
-      resolveApiUserId(
+      resolveScopedApiUserId(
         new Request(getOAuthRestAudienceUrls()[0] as string, {
           headers: { authorization: `Bearer ${restToken}` },
         }),
-        { bearerScope: { action: "read", feature: "account.profile" } },
+        { action: "read", feature: "account.profile" },
       ),
     ).resolves.toBeNull();
     await expect(authorizeMcpToken(mcpToken)).resolves.toMatchObject({

@@ -62,14 +62,16 @@ describe("认证辅助函数", () => {
     getSessionFromHeadersMock.mockResolvedValue({
       user: { id: "user-from-cookie" },
     });
-    const { resolveApiUserId } = await import("@/lib/auth/api-auth");
+    const { resolveSessionUserId } = await import("@/lib/auth/api-auth");
     const request = new Request("https://life.example/api/account/profile", {
       headers: {
         cookie: "better-auth.session_token=session-token",
       },
     });
 
-    await expect(resolveApiUserId(request)).resolves.toBe("user-from-cookie");
+    await expect(resolveSessionUserId(request)).resolves.toBe(
+      "user-from-cookie",
+    );
     expect(getSessionFromHeadersMock).toHaveBeenCalledWith(request.headers);
     expect(verifyAccessTokenJwtMock).not.toHaveBeenCalled();
   });
@@ -80,7 +82,7 @@ describe("认证辅助函数", () => {
       scope: expandScopeClaim(ALL_PUBLIC_READ_SCOPES),
       sub: "user-from-token",
     });
-    const { resolveApiUserId } = await import("@/lib/auth/api-auth");
+    const { resolveApiPrincipal } = await import("@/lib/auth/api-auth");
     const request = new Request("https://life.example/api/account/profile", {
       headers: {
         authorization: "Bearer access-token",
@@ -88,7 +90,11 @@ describe("认证辅助函数", () => {
       },
     });
 
-    await expect(resolveApiUserId(request)).resolves.toBe("user-from-token");
+    await expect(
+      resolveApiPrincipal(request, {
+        bearerScope: { action: "read", feature: "account.profile" },
+      }),
+    ).resolves.toMatchObject({ kind: "oauth", userId: "user-from-token" });
     expect(getSessionFromHeadersMock).not.toHaveBeenCalled();
     expect(verifyAccessTokenJwtMock).toHaveBeenCalledWith(
       "access-token",
@@ -100,13 +106,34 @@ describe("认证辅助函数", () => {
     );
   });
 
+  it("未声明 feature scope 的路由拒绝 account.client-activity bearer", async () => {
+    verifyAccessTokenJwtMock.mockResolvedValue({
+      clientId: "client-id",
+      grantId: "grant-id",
+      sessionId: "session-id",
+      scope: new Set(["account.client-activity:read"]),
+      sub: "user-from-token",
+    });
+    const { resolveSessionUserId } = await import("@/lib/auth/api-auth");
+
+    await expect(
+      resolveSessionUserId(
+        new Request("https://life.example/api/search?q=private", {
+          headers: { authorization: "Bearer access-token" },
+        }),
+      ),
+    ).resolves.toBeNull();
+    expect(verifyAccessTokenJwtMock).not.toHaveBeenCalled();
+    expect(hasActiveOAuthUserGrantMock).not.toHaveBeenCalled();
+  });
+
   it.each(["bearer", "bEaReR"])("接受 %s bearer 访问令牌", async (scheme) => {
     verifyAccessTokenJwtMock.mockResolvedValue({
       clientId: "client-id",
       scope: new Set(["account.profile:read"]),
       sub: "user-from-token",
     });
-    const { resolveApiUserId } = await import("@/lib/auth/api-auth");
+    const { resolveScopedApiUserId } = await import("@/lib/auth/api-auth");
     const request = new Request("https://life.example/api/account/profile", {
       headers: {
         authorization: `${scheme} access-token`,
@@ -114,7 +141,12 @@ describe("认证辅助函数", () => {
       },
     });
 
-    await expect(resolveApiUserId(request)).resolves.toBe("user-from-token");
+    await expect(
+      resolveScopedApiUserId(request, {
+        action: "read",
+        feature: "account.profile",
+      }),
+    ).resolves.toBe("user-from-token");
     expect(getSessionFromHeadersMock).not.toHaveBeenCalled();
     expect(verifyAccessTokenJwtMock).toHaveBeenCalledWith(
       "access-token",
@@ -123,7 +155,7 @@ describe("认证辅助函数", () => {
   });
 
   it("拒绝已撤销、缺少 azp 或无法查询授权状态的 REST JWT", async () => {
-    const { resolveApiUserId } = await import("@/lib/auth/api-auth");
+    const { resolveScopedApiUserId } = await import("@/lib/auth/api-auth");
     const request = new Request("https://life.example/api/account/profile", {
       headers: { authorization: "Bearer access-token" },
     });
@@ -134,13 +166,23 @@ describe("认证辅助函数", () => {
       sub: "user-from-token",
     });
     hasActiveOAuthUserGrantMock.mockResolvedValueOnce(false);
-    await expect(resolveApiUserId(request)).resolves.toBeNull();
+    await expect(
+      resolveScopedApiUserId(request, {
+        action: "read",
+        feature: "account.profile",
+      }),
+    ).resolves.toBeNull();
 
     verifyAccessTokenJwtMock.mockResolvedValue({
       scope: new Set(["account.profile:read"]),
       sub: "user-from-token",
     });
-    await expect(resolveApiUserId(request)).resolves.toBeNull();
+    await expect(
+      resolveScopedApiUserId(request, {
+        action: "read",
+        feature: "account.profile",
+      }),
+    ).resolves.toBeNull();
 
     verifyAccessTokenJwtMock.mockResolvedValue({
       clientId: "client-id",
@@ -150,7 +192,12 @@ describe("认证辅助函数", () => {
     hasActiveOAuthUserGrantMock.mockRejectedValueOnce(
       new Error("database unavailable"),
     );
-    await expect(resolveApiUserId(request)).resolves.toBeNull();
+    await expect(
+      resolveScopedApiUserId(request, {
+        action: "read",
+        feature: "account.profile",
+      }),
+    ).resolves.toBeNull();
   });
 
   it.each([
@@ -415,7 +462,7 @@ describe("认证辅助函数", () => {
     getSessionFromHeadersMock.mockResolvedValue({
       user: { id: "user-from-cookie" },
     });
-    const { resolveApiUserId } = await import("@/lib/auth/api-auth");
+    const { resolveScopedApiUserId } = await import("@/lib/auth/api-auth");
     const request = new Request("https://life.example/api/account/profile", {
       headers: {
         authorization: "Bearer invalid-token",
@@ -423,7 +470,12 @@ describe("认证辅助函数", () => {
       },
     });
 
-    await expect(resolveApiUserId(request)).resolves.toBeNull();
+    await expect(
+      resolveScopedApiUserId(request, {
+        action: "read",
+        feature: "account.profile",
+      }),
+    ).resolves.toBeNull();
     expect(getSessionFromHeadersMock).not.toHaveBeenCalled();
   });
 
@@ -456,7 +508,7 @@ describe("认证辅助函数", () => {
     getSessionFromHeadersMock.mockResolvedValue({
       user: { id: "user-from-cookie" },
     });
-    const { resolveApiUserId } = await import("@/lib/auth/api-auth");
+    const { resolveScopedApiUserId } = await import("@/lib/auth/api-auth");
     const request = new Request("https://life.example/api/account/profile", {
       headers: {
         authorization: "Bearer ",
@@ -464,7 +516,12 @@ describe("认证辅助函数", () => {
       },
     });
 
-    await expect(resolveApiUserId(request)).resolves.toBeNull();
+    await expect(
+      resolveScopedApiUserId(request, {
+        action: "read",
+        feature: "account.profile",
+      }),
+    ).resolves.toBeNull();
     expect(verifyAccessTokenJwtMock).not.toHaveBeenCalled();
     expect(getSessionFromHeadersMock).not.toHaveBeenCalled();
   });

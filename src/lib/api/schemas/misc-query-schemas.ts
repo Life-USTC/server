@@ -77,6 +77,17 @@ const compactOverviewLimitSchema = integerQueryRangeSchema({
   message: "limit must be between 1 and 50",
 });
 
+const accountClientActivityLimitSchema = integerQueryRangeSchema({
+  minimum: 1,
+  maximum: 50,
+  message: "limit must be between 1 and 50",
+});
+
+export const accountClientActivityQuerySchema = z.object({
+  cursor: z.string().max(256).optional(),
+  limit: accountClientActivityLimitSchema.optional(),
+});
+
 export const busQuerySchema = z.object({
   versionKey: busVersionKeySchema.optional(),
 });

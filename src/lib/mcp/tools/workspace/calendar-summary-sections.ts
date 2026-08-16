@@ -1,4 +1,3 @@
-import { redactCalendarFeedLocation } from "@/lib/mcp/compact-helpers";
 import { shanghaiDayjs } from "@/lib/time/shanghai-dayjs";
 
 type CalendarSectionCourse = {
@@ -77,15 +76,5 @@ export function summarizeCalendarSection(section: CalendarSection) {
           nameCn: section.semester.nameCn,
         }
       : null,
-  };
-}
-
-export function redactCalendarLocationPair(input: {
-  calendarPath: string | null;
-  calendarUrl: string | null;
-}) {
-  return {
-    calendarPath: redactCalendarFeedLocation(input.calendarPath),
-    calendarUrl: redactCalendarFeedLocation(input.calendarUrl),
   };
 }

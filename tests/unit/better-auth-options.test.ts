@@ -93,7 +93,13 @@ describe("Better Auth options", () => {
     expect(options.trustedOrigins).toEqual(["https://life.example.com"]);
     expect(options.session).toMatchObject({
       expiresIn: 60 * 60 * 24 * 30,
+      freshAge: 15 * 60,
       updateAge: 60 * 60 * 24,
+    });
+    expect(options.databaseHooks).toEqual(expect.any(Object));
+    expect(options.hooks).toMatchObject({
+      after: expect.any(Function),
+      before: expect.any(Function),
     });
     expect(options.advanced).toMatchObject({
       disableCSRFCheck: false,

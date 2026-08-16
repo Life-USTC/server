@@ -133,13 +133,13 @@ describe.sequential("public profile contribution aggregation", () => {
     await disconnectTestPrisma(prisma);
   });
 
-  it("returns one aggregate row per Shanghai day across all four sources", async () => {
+  it("returns one aggregate row per Shanghai day across public contribution sources", async () => {
     await expect(
       loadUserProfileContributionDays(prisma, userId, startAt),
     ).resolves.toEqual([
       { count: 1, date: "2025-03-03" },
       { count: 1, date: "2026-03-01" },
-      { count: 23, date: "2026-03-02" },
+      { count: 22, date: "2026-03-02" },
       { count: 1, date: "2026-03-10" },
     ]);
   });
@@ -154,12 +154,12 @@ describe.sequential("public profile contribution aggregation", () => {
       result.weeks.flat().map((cell) => [cell.date, cell.count]),
     );
 
-    expect(result.totalContributions).toBe(26);
+    expect(result.totalContributions).toBe(25);
     expect(result.weeks[0]?.[0]?.date).toBe("2025-03-02");
     expect(result.weeks.at(-1)?.at(-1)?.date).toBe("2026-03-07");
     expect(cells.get("2025-03-03")).toBe(1);
     expect(cells.get("2026-03-01")).toBe(1);
-    expect(cells.get("2026-03-02")).toBe(23);
+    expect(cells.get("2026-03-02")).toBe(22);
     expect(cells.has("2026-03-10")).toBe(false);
   });
 });

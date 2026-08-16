@@ -64,6 +64,8 @@ export type PageInventoryEntry = {
 const E2E = {
   home: "src/app/test.ts",
   admin: "src/app/admin/test.ts",
+  adminAnalytics: "src/app/admin/audit/test.ts",
+  adminAudit: "src/app/admin/audit/test.ts",
   adminUsers: "src/app/admin/users/test.ts",
   adminModeration: "src/app/admin/moderation/test.ts",
   adminOauth: "src/app/admin/oauth/test.ts",
@@ -97,6 +99,7 @@ const E2E = {
   settingsProfile: "src/app/settings/profile/test.ts",
   settingsPreferences: "src/app/settings/preferences/test.ts",
   settingsAccounts: "src/app/settings/accounts/test.ts",
+  settingsSecurity: "src/app/settings/security/test.ts",
   settingsAuthorizations: "src/app/settings/authorizations/test.ts",
   settingsDanger: "src/app/settings/danger/test.ts",
   settingsPasskeys: "src/app/settings/passkeys/test.ts",
@@ -194,6 +197,11 @@ export const PAGE_INVENTORY: readonly PageInventoryEntry[] = [
         evidence: "仅显示安全的客户端信息，并支持确认后立即撤销",
       },
       {
+        id: "security-activity",
+        e2eSpec: E2E.settingsSecurity,
+        evidence: "敏感活动分页展示且网络与设备信息脱敏",
+      },
+      {
         id: "danger-delete",
         e2eSpec: E2E.settingsDanger,
         evidence: "删除账号确认流程",
@@ -282,6 +290,40 @@ export const PAGE_INVENTORY: readonly PageInventoryEntry[] = [
     auth: "admin",
     contractPath: "/admin",
     e2eSpec: E2E.admin,
+  },
+  {
+    routeId: "/admin/analytics",
+    samplePath: "/admin/analytics",
+    kind: "page",
+    auth: "admin",
+    contractPath: "/admin/analytics",
+    e2eSpec: E2E.adminAnalytics,
+    mobileScreenshots: ["admin"],
+    primaryActions: [
+      {
+        id: "analytics-window",
+        role: "link",
+        name: "/最近 30 天|Last 30 days/i",
+        e2eSpec: E2E.adminAnalytics,
+      },
+    ],
+  },
+  {
+    routeId: "/admin/audit",
+    samplePath: "/admin/audit",
+    kind: "page",
+    auth: "admin",
+    contractPath: "/admin/audit",
+    e2eSpec: E2E.adminAudit,
+    mobileScreenshots: ["admin"],
+    primaryActions: [
+      {
+        id: "apply-audit-filters",
+        role: "button",
+        name: "/应用筛选|Apply filters/i",
+        e2eSpec: E2E.adminAudit,
+      },
+    ],
   },
   {
     routeId: "/admin/bus",

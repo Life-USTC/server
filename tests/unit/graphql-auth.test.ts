@@ -51,6 +51,8 @@ describe("GraphQL principal", () => {
     verifyAccessTokenJwtMock.mockResolvedValue({
       aud: "https://life.example/api/graphql",
       clientId: "client-1",
+      grantId: "grant-1",
+      sessionId: "session-1",
       scope: new Set([restReadScope("workspace.todo")]),
       sub: "user-1",
     });
@@ -62,10 +64,13 @@ describe("GraphQL principal", () => {
       ),
     ).resolves.toEqual({
       kind: "oauth",
+      channel: "graphql",
       userId: "user-1",
       scopes: new Set([restReadScope("workspace.todo")]),
       resource: "https://life.example/api/graphql",
       clientId: "client-1",
+      grantId: "grant-1",
+      sessionId: "session-1",
     });
     expect(verifyAccessTokenJwtMock).toHaveBeenCalledWith(
       "access-token",
@@ -272,6 +277,7 @@ describe("GraphQL feature scope gates", () => {
           {
             kind: "oauth",
             userId: "user-1",
+            clientId: "client-1",
             scopes: new Set([scope]),
             resource: "https://life.example/api/graphql",
           },
@@ -289,6 +295,7 @@ describe("GraphQL feature scope gates", () => {
         {
           kind: "oauth",
           userId: "user-1",
+          clientId: "client-1",
           scopes: new Set([restReadScope("workspace.todo")]),
           resource: "https://life.example/api/graphql",
         },
@@ -314,6 +321,7 @@ describe("GraphQL feature scope gates", () => {
         {
           kind: "oauth",
           userId: "user-1",
+          clientId: "client-1",
           scopes: new Set(),
           resource: "https://life.example/api/graphql",
         },
@@ -342,6 +350,7 @@ describe("GraphQL feature scope gates", () => {
       {
         kind: "oauth",
         userId: "user-1",
+        clientId: "client-1",
         scopes: new Set<string>(),
         resource: "https://life.example/api/graphql",
       } as const,

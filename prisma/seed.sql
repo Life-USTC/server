@@ -37,6 +37,12 @@ SET row_security = off;
 -- Data for Name: User; Type: TABLE DATA; Schema: public; Owner: -
 --
 
+-- A destructive E2E scenario can recreate the debug principal with a new id.
+-- Restore the named fixture identity before inserting rows that reference it.
+DELETE FROM public."User"
+WHERE email = 'dev-user@debug.local'
+  AND id <> 'cmqw1sr9g0001bqt44c3s0kqa';
+
 INSERT INTO public."User" (id, name, image, "createdAt", "updatedAt", "profilePictures", username, "isAdmin", "calendarFeedToken", email, "emailVerified") VALUES ('cmqw1sr9e0000bqt4j4a16ffb', '校园管理员', 'https://api.dicebear.com/9.x/shapes/svg?seed=life-ustc-admin', '2026-06-27 07:38:09.794', '2026-06-27 07:38:09.794', '{}', 'dev-admin', true, NULL, 'dev-admin@debug.local', true) ON CONFLICT DO NOTHING;
 INSERT INTO public."User" (id, name, image, "createdAt", "updatedAt", "profilePictures", username, "isAdmin", "calendarFeedToken", email, "emailVerified") VALUES ('cmqw1sr9g0001bqt44c3s0kqa', 'Dev User', 'https://api.dicebear.com/9.x/shapes/svg?seed=life-ustc-dev-user', '2026-06-27 07:38:09.796', '2026-06-27 07:38:09.796', '{}', 'dev-user', false, NULL, 'dev-user@debug.local', true) ON CONFLICT DO NOTHING;
 
@@ -442,19 +448,19 @@ INSERT INTO public."ExamRoom" (id, room, count, "examId") VALUES (4, '一教101'
 
 
 --
--- Data for Name: HomeworkAuditLog; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: AuditLog homework events; Type: TABLE DATA; Schema: public; Owner: -
 --
 
-INSERT INTO public."HomeworkAuditLog" (id, action, "titleSnapshot", "createdAt", "sectionId", "homeworkId", "actorId") VALUES ('cmqw1srf6000bbqt45m41c8yz', 'created', '迭代一需求拆解', '2026-04-28 01:30:00', 2, 'cmqw1srez0002bqt4l5neqtsa', 'cmqw1sr9g0001bqt44c3s0kqa') ON CONFLICT DO NOTHING;
-INSERT INTO public."HomeworkAuditLog" (id, action, "titleSnapshot", "createdAt", "sectionId", "homeworkId", "actorId") VALUES ('cmqw1srf6000cbqt4fh6youwv', 'created', '逾期实验数据补交', '2026-04-28 01:30:00', 1, 'cmqw1srez0003bqt45qjilal7', 'cmqw1sr9g0001bqt44c3s0kqa') ON CONFLICT DO NOTHING;
-INSERT INTO public."HomeworkAuditLog" (id, action, "titleSnapshot", "createdAt", "sectionId", "homeworkId", "actorId") VALUES ('cmqw1srf6000dbqt4r8m6dvjn', 'created', '今日课堂反馈整理', '2026-04-28 01:30:00', 4, 'cmqw1srez0004bqt4qy3jviis', 'cmqw1sr9g0001bqt44c3s0kqa') ON CONFLICT DO NOTHING;
-INSERT INTO public."HomeworkAuditLog" (id, action, "titleSnapshot", "createdAt", "sectionId", "homeworkId", "actorId") VALUES ('cmqw1srf6000ebqt4x9esknto', 'created', '迭代二系统设计评审', '2026-04-28 01:30:00', 3, 'cmqw1srez0005bqt41y0wbcrp', 'cmqw1sr9g0001bqt44c3s0kqa') ON CONFLICT DO NOTHING;
-INSERT INTO public."HomeworkAuditLog" (id, action, "titleSnapshot", "createdAt", "sectionId", "homeworkId", "actorId") VALUES ('cmqw1srf6000fbqt4pxda9iz9', 'created', '线性变换证明题', '2026-04-28 01:30:00', 2, 'cmqw1srez0006bqt4j01p7cwx', 'cmqw1sr9g0001bqt44c3s0kqa') ON CONFLICT DO NOTHING;
-INSERT INTO public."HomeworkAuditLog" (id, action, "titleSnapshot", "createdAt", "sectionId", "homeworkId", "actorId") VALUES ('cmqw1srf6000gbqt4lnl6nmjt', 'created', '特征值综合练习', '2026-04-28 01:30:00', 1, 'cmqw1srez0007bqt4p55o2ara', 'cmqw1sr9g0001bqt44c3s0kqa') ON CONFLICT DO NOTHING;
-INSERT INTO public."HomeworkAuditLog" (id, action, "titleSnapshot", "createdAt", "sectionId", "homeworkId", "actorId") VALUES ('cmqw1srf6000hbqt4t2eglceu', 'created', '实验报告与误差分析', '2026-04-28 01:30:00', 4, 'cmqw1srez0008bqt467yuqdec', 'cmqw1sr9g0001bqt44c3s0kqa') ON CONFLICT DO NOTHING;
-INSERT INTO public."HomeworkAuditLog" (id, action, "titleSnapshot", "createdAt", "sectionId", "homeworkId", "actorId") VALUES ('cmqw1srf6000ibqt4vc5ewmkm', 'created', '历史学期复盘作业', '2026-04-28 01:30:00', 3, 'cmqw1srez0009bqt4i5lpmutg', 'cmqw1sr9g0001bqt44c3s0kqa') ON CONFLICT DO NOTHING;
-INSERT INTO public."HomeworkAuditLog" (id, action, "titleSnapshot", "createdAt", "sectionId", "homeworkId", "actorId") VALUES ('cmqw1srf6000jbqt4rx8zra45', 'created', '已删除作业', '2026-04-28 01:30:00', 2, 'cmqw1srez000abqt4el2uqvbq', 'cmqw1sr9g0001bqt44c3s0kqa') ON CONFLICT DO NOTHING;
-INSERT INTO public."HomeworkAuditLog" (id, action, "titleSnapshot", "createdAt", "sectionId", "homeworkId", "actorId") VALUES ('cmqw1srfa000kbqt4qvp0n59l', 'deleted', '已删除作业', '2026-04-29 04:05:00', 2, 'cmqw1srez000abqt4el2uqvbq', 'cmqw1sr9g0001bqt44c3s0kqa') ON CONFLICT DO NOTHING;
+INSERT INTO public."AuditLog" (id, action, outcome, channel, "userId", "subjectUserId", "targetId", "targetType", metadata, "createdAt") VALUES ('cmqw1srf6000bbqt45m41c8yz', 'homework_create', 'success', 'web', 'cmqw1sr9g0001bqt44c3s0kqa', 'cmqw1sr9g0001bqt44c3s0kqa', 'cmqw1srez0002bqt4l5neqtsa', 'homework', '{"sectionId":2}', '2026-04-28 01:30:00') ON CONFLICT DO NOTHING;
+INSERT INTO public."AuditLog" (id, action, outcome, channel, "userId", "subjectUserId", "targetId", "targetType", metadata, "createdAt") VALUES ('cmqw1srf6000cbqt4fh6youwv', 'homework_create', 'success', 'web', 'cmqw1sr9g0001bqt44c3s0kqa', 'cmqw1sr9g0001bqt44c3s0kqa', 'cmqw1srez0003bqt45qjilal7', 'homework', '{"sectionId":1}', '2026-04-28 01:30:00') ON CONFLICT DO NOTHING;
+INSERT INTO public."AuditLog" (id, action, outcome, channel, "userId", "subjectUserId", "targetId", "targetType", metadata, "createdAt") VALUES ('cmqw1srf6000dbqt4r8m6dvjn', 'homework_create', 'success', 'web', 'cmqw1sr9g0001bqt44c3s0kqa', 'cmqw1sr9g0001bqt44c3s0kqa', 'cmqw1srez0004bqt4qy3jviis', 'homework', '{"sectionId":4}', '2026-04-28 01:30:00') ON CONFLICT DO NOTHING;
+INSERT INTO public."AuditLog" (id, action, outcome, channel, "userId", "subjectUserId", "targetId", "targetType", metadata, "createdAt") VALUES ('cmqw1srf6000ebqt4x9esknto', 'homework_create', 'success', 'web', 'cmqw1sr9g0001bqt44c3s0kqa', 'cmqw1sr9g0001bqt44c3s0kqa', 'cmqw1srez0005bqt41y0wbcrp', 'homework', '{"sectionId":3}', '2026-04-28 01:30:00') ON CONFLICT DO NOTHING;
+INSERT INTO public."AuditLog" (id, action, outcome, channel, "userId", "subjectUserId", "targetId", "targetType", metadata, "createdAt") VALUES ('cmqw1srf6000fbqt4pxda9iz9', 'homework_create', 'success', 'web', 'cmqw1sr9g0001bqt44c3s0kqa', 'cmqw1sr9g0001bqt44c3s0kqa', 'cmqw1srez0006bqt4j01p7cwx', 'homework', '{"sectionId":2}', '2026-04-28 01:30:00') ON CONFLICT DO NOTHING;
+INSERT INTO public."AuditLog" (id, action, outcome, channel, "userId", "subjectUserId", "targetId", "targetType", metadata, "createdAt") VALUES ('cmqw1srf6000gbqt4lnl6nmjt', 'homework_create', 'success', 'web', 'cmqw1sr9g0001bqt44c3s0kqa', 'cmqw1sr9g0001bqt44c3s0kqa', 'cmqw1srez0007bqt4p55o2ara', 'homework', '{"sectionId":1}', '2026-04-28 01:30:00') ON CONFLICT DO NOTHING;
+INSERT INTO public."AuditLog" (id, action, outcome, channel, "userId", "subjectUserId", "targetId", "targetType", metadata, "createdAt") VALUES ('cmqw1srf6000hbqt4t2eglceu', 'homework_create', 'success', 'web', 'cmqw1sr9g0001bqt44c3s0kqa', 'cmqw1sr9g0001bqt44c3s0kqa', 'cmqw1srez0008bqt467yuqdec', 'homework', '{"sectionId":4}', '2026-04-28 01:30:00') ON CONFLICT DO NOTHING;
+INSERT INTO public."AuditLog" (id, action, outcome, channel, "userId", "subjectUserId", "targetId", "targetType", metadata, "createdAt") VALUES ('cmqw1srf6000ibqt4vc5ewmkm', 'homework_create', 'success', 'web', 'cmqw1sr9g0001bqt44c3s0kqa', 'cmqw1sr9g0001bqt44c3s0kqa', 'cmqw1srez0009bqt4i5lpmutg', 'homework', '{"sectionId":3}', '2026-04-28 01:30:00') ON CONFLICT DO NOTHING;
+INSERT INTO public."AuditLog" (id, action, outcome, channel, "userId", "subjectUserId", "targetId", "targetType", metadata, "createdAt") VALUES ('cmqw1srf6000jbqt4rx8zra45', 'homework_create', 'success', 'web', 'cmqw1sr9g0001bqt44c3s0kqa', 'cmqw1sr9g0001bqt44c3s0kqa', 'cmqw1srez000abqt4el2uqvbq', 'homework', '{"sectionId":2}', '2026-04-28 01:30:00') ON CONFLICT DO NOTHING;
+INSERT INTO public."AuditLog" (id, action, outcome, channel, "userId", "subjectUserId", "targetId", "targetType", metadata, "createdAt") VALUES ('cmqw1srfa000kbqt4qvp0n59l', 'homework_delete', 'success', 'web', 'cmqw1sr9g0001bqt44c3s0kqa', 'cmqw1sr9g0001bqt44c3s0kqa', 'cmqw1srez000abqt4el2uqvbq', 'homework', '{"sectionId":2}', '2026-04-29 04:05:00') ON CONFLICT DO NOTHING;
 
 
 --
@@ -637,6 +643,43 @@ INSERT INTO public."UserSectionSubscription" ("userId", "sectionId") VALUES ('cm
 INSERT INTO public."UserSectionSubscription" ("userId", "sectionId") VALUES ('cmqw1sr9g0001bqt44c3s0kqa', 2) ON CONFLICT DO NOTHING;
 INSERT INTO public."UserSectionSubscription" ("userId", "sectionId") VALUES ('cmqw1sr9g0001bqt44c3s0kqa', 3) ON CONFLICT DO NOTHING;
 INSERT INTO public."UserSectionSubscription" ("userId", "sectionId") VALUES ('cmqw1sr9g0001bqt44c3s0kqa', 4) ON CONFLICT DO NOTHING;
+
+-- Account-deletion tests intentionally exercise ON DELETE SET NULL. Restore
+-- ownership on the named scenario rows so reseeding is a complete reset.
+UPDATE public."Homework"
+SET
+  "createdById" = 'cmqw1sr9g0001bqt44c3s0kqa',
+  "updatedById" = 'cmqw1sr9g0001bqt44c3s0kqa',
+  "deletedById" = CASE
+    WHEN id = 'cmqw1srez000abqt4el2uqvbq'
+      THEN 'cmqw1sr9g0001bqt44c3s0kqa'
+    ELSE NULL
+  END
+WHERE id LIKE 'cmqw1srez%';
+
+UPDATE public."Comment"
+SET
+  "userId" = 'cmqw1sr9g0001bqt44c3s0kqa',
+  "moderatedById" = CASE
+    WHEN id = 'cmqw1srfh000sbqt4rlvla7qd'
+      THEN 'cmqw1sr9e0000bqt4j4a16ffb'
+    ELSE NULL
+  END
+WHERE id LIKE 'cmqw1srf%';
+
+UPDATE public."Description"
+SET "lastEditedById" = 'cmqw1sr9g0001bqt44c3s0kqa'
+WHERE id LIKE 'cmqw1srf%';
+
+UPDATE public."DescriptionEdit"
+SET "editorId" = 'cmqw1sr9g0001bqt44c3s0kqa'
+WHERE id LIKE 'cmqw1srf%';
+
+UPDATE public."AuditLog"
+SET
+  "userId" = 'cmqw1sr9g0001bqt44c3s0kqa',
+  "subjectUserId" = 'cmqw1sr9g0001bqt44c3s0kqa'
+WHERE id LIKE 'cmqw1srf%';
 
 
 --

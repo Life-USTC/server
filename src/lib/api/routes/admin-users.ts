@@ -15,6 +15,7 @@ import {
   adminUpdateUserRequestSchema,
   adminUsersQuerySchema,
 } from "@/lib/api/schemas/request-schemas";
+import { getAuditRequestMetadata } from "@/lib/audit/write-audit-log";
 import { type IdParams, parseIdParam } from "./admin-shared";
 
 export async function getAdminUsersRoute(request: Request) {
@@ -46,32 +47,45 @@ export async function getAdminUsersRoute(request: Request) {
 }
 
 export async function patchAdminUserRoute(request: Request, params: IdParams) {
-  return withAdminApiRoute(request, "Failed to update user", async (admin) => {
-    const parsed = parseIdParam(params, "user");
-    if (parsed instanceof Response) return parsed;
-    const parsedBody = await parseRouteJsonBody(
-      request,
-      adminUpdateUserRequestSchema,
-      "Invalid update request",
-    );
-    if (parsedBody instanceof Response) return parsedBody;
+  return withAdminApiRoute(
+    request,
+    "Failed to update user",
+    async (admin) => {
+      const parsed = parseIdParam(params, "user");
+      if (parsed instanceof Response) return parsed;
+      const parsedBody = await parseRouteJsonBody(
+        request,
+        adminUpdateUserRequestSchema,
+        "Invalid update request",
+      );
+      if (parsedBody instanceof Response) return parsedBody;
 
-    const result = await updateAdminUser(admin.userId, parsed.id, parsedBody);
-    if (!result.ok) {
-      if (result.reason === "invalid_username")
-        return badRequest("Invalid username");
-      if (result.reason === "username_taken") {
-        return badRequest("Username already taken");
+      const result = await updateAdminUser(
+        admin.userId,
+        parsed.id,
+        parsedBody,
+        {
+          channel: "rest",
+          requestId: getAuditRequestMetadata(request).requestId,
+        },
+      );
+      if (!result.ok) {
+        if (result.reason === "invalid_username")
+          return badRequest("Invalid username");
+        if (result.reason === "username_taken") {
+          return badRequest("Username already taken");
+        }
+        if (result.reason === "cannot_demote_self") {
+          return badRequest("Admins cannot remove their own admin role");
+        }
+        if (result.reason === "cannot_remove_last_admin") {
+          return badRequest("At least one admin must remain");
+        }
+        return notFound("User not found");
       }
-      if (result.reason === "cannot_demote_self") {
-        return badRequest("Admins cannot remove their own admin role");
-      }
-      if (result.reason === "cannot_remove_last_admin") {
-        return badRequest("At least one admin must remain");
-      }
-      return notFound("User not found");
-    }
 
-    return jsonResponse({ user: result.user });
-  });
+      return jsonResponse({ user: result.user });
+    },
+    { requireRecent: true },
+  );
 }

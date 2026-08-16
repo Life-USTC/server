@@ -3,6 +3,7 @@ import {
   recordApiRequestError,
   recordApiRequestFinish,
 } from "@/lib/log/api-observability-recording";
+import { finishOAuthRequestUsage } from "@/lib/oauth/grant-usage";
 
 type ApiRouteHandler<TRequest extends Request, TArgs extends unknown[]> = (
   request: TRequest,
@@ -40,9 +41,11 @@ export function observedApiRoute<
   return async (request, ...args) => {
     try {
       const response = await handler(request, ...args);
+      await finishOAuthRequestUsage(request, response.status);
       recordObservedApiResponse(request, response.status);
       return response;
     } catch (error) {
+      await finishOAuthRequestUsage(request, 500);
       recordObservedApiError(request, error);
       throw error;
     }

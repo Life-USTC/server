@@ -1,5 +1,9 @@
 import { error, redirect } from "@sveltejs/kit";
-import { buildSignInPageUrl } from "@/lib/auth/auth-routing";
+import {
+  buildReauthenticationPageUrl,
+  buildSignInPageUrl,
+} from "@/lib/auth/auth-routing";
+import { resolveAuthoritativeRecentSession } from "@/lib/auth/recent-session";
 import { findActiveSuspension } from "@/lib/auth/viewer-context";
 import { prisma } from "@/lib/db/prisma";
 
@@ -9,6 +13,7 @@ export async function getPrismaClient() {
 
 type AdminPageGuardOptions = {
   requireActive?: boolean;
+  requireRecent?: boolean;
 };
 
 export async function requireAdminPage(
@@ -32,6 +37,18 @@ export async function requireAdminPage(
   if (options.requireActive) {
     const suspension = await findActiveSuspension(user.id);
     if (suspension) error(403, "Suspended");
+  }
+  if (options.requireRecent) {
+    const recent = await resolveAuthoritativeRecentSession(request.headers, {
+      expectedUserId: user.id,
+    });
+    if (!recent.ok) {
+      const url = new URL(request.url);
+      throw redirect(
+        303,
+        buildReauthenticationPageUrl(`${url.pathname}${url.search}`),
+      );
+    }
   }
   return user;
 }

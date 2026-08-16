@@ -5,7 +5,6 @@ import DashboardTableRowActions from "@/features/dashboard/components/DashboardT
 import TruncatedBadge from "$lib/components/TruncatedBadge.svelte";
 import TruncatedText from "$lib/components/TruncatedText.svelte";
 import { Badge } from "$lib/components/ui/badge/index.js";
-import { Button } from "$lib/components/ui/button/index.js";
 import * as Empty from "$lib/components/ui/empty/index.js";
 import * as Item from "$lib/components/ui/item/index.js";
 import * as Table from "$lib/components/ui/table/index.js";
@@ -17,16 +16,14 @@ import type {
 export let clientTypeLabel: (method: string) => string;
 export let clients: AdminOAuthClient[];
 export let copy: AdminOAuthCopy;
-export let createDisabled: boolean;
 export let formatCreatedAt: (value: string | Date) => string;
 export let onDelete: (client: AdminOAuthClient) => void;
-export let onCreate: () => void;
 export let scopeLabel: (scope: string) => string;
 </script>
 
 <section class="flex min-w-0 flex-col gap-3">
   <div class="flex justify-end">
-    <Badge variant="secondary">
+    <Badge variant="ghost">
       {copy.clientCount.replace("{count}", String(clients.length))}
     </Badge>
   </div>
@@ -37,11 +34,6 @@ export let scopeLabel: (scope: string) => string;
         <Empty.Title>{copy.noClients}</Empty.Title>
         <Empty.Description>{copy.noClientsDescription}</Empty.Description>
       </Empty.Header>
-      <Empty.Content class="items-start">
-        <Button disabled={createDisabled} onclick={onCreate}>
-          {copy.createClient}
-        </Button>
-      </Empty.Content>
     </Empty.Root>
   {:else}
     <div class="hidden min-w-0 max-w-full xl:block">
@@ -54,8 +46,8 @@ export let scopeLabel: (scope: string) => string;
             <Table.Head>{copy.tableColumnClient}</Table.Head>
             <Table.Head>{copy.tableColumnType}</Table.Head>
             <Table.Head>{copy.tableColumnScopes}</Table.Head>
-            <Table.Head>{copy.createdAtLabel}</Table.Head>
-            <Table.Head>
+            <Table.Head class="text-right">{copy.createdAtLabel}</Table.Head>
+            <Table.Head class="w-12 text-right">
               <span class="sr-only">{copy.deleteClient}</span>
             </Table.Head>
           </Table.Row>
@@ -98,11 +90,11 @@ export let scopeLabel: (scope: string) => string;
                     : copy.notAvailable}
                 />
               </Table.Cell>
-              <Table.Cell class="whitespace-nowrap tabular-nums text-muted-foreground">
+              <Table.Cell class="whitespace-nowrap text-right tabular-nums text-muted-foreground">
                 {formatCreatedAt(client.createdAt)}
               </Table.Cell>
-              <Table.Cell>
-                <DashboardTableRowActions>
+              <Table.Cell class="w-12 text-right">
+                <DashboardTableRowActions class="justify-end">
                   <DashboardTableIconButton
                     label={`${copy.deleteClient}: ${client.name ?? copy.unnamedClient}`}
                     variant="destructive"

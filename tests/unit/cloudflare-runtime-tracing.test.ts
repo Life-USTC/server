@@ -150,6 +150,30 @@ describe("Cloudflare runtime tracing", () => {
     expect(getCloudflareRuntimeTaskScheduler()).toBeUndefined();
   });
 
+  it("inherits waitUntil and tracing through nested runtime scopes", async () => {
+    const waitUntil = vi.fn();
+    const span = { isTraced: true, setAttribute: vi.fn() };
+    const enterSpan = vi.fn(
+      (_name: string, callback: (value: typeof span) => unknown) =>
+        callback(span),
+    );
+
+    await runWithCloudflareRuntimeEnv(
+      { OUTER: "present" },
+      async () => {
+        await runWithCloudflareRuntimeEnv(undefined, async () => {
+          expect(getCloudflareRuntimeTaskScheduler()).toBeTypeOf("function");
+          getCloudflareRuntimeTaskScheduler()?.(Promise.resolve());
+          runCloudflareTraceSpan("nested", {}, () => undefined);
+        });
+      },
+      { tracing: { enterSpan }, waitUntil },
+    );
+
+    expect(waitUntil).toHaveBeenCalledOnce();
+    expect(enterSpan).toHaveBeenCalledWith("nested", expect.any(Function));
+  });
+
   it("awaits request-scoped cleanup before resolving", async () => {
     const events: string[] = [];
 

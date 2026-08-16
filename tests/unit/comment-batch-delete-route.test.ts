@@ -4,7 +4,7 @@ const requireAuthMock = vi.fn();
 const deleteOwnCommentMock = vi.fn();
 
 vi.mock("@/lib/auth/api-auth", () => ({
-  requireAuth: requireAuthMock,
+  requireAuthPrincipal: requireAuthMock,
 }));
 
 vi.mock("@/features/comments/server/comment-mutations", () => ({
@@ -66,12 +66,24 @@ describe("deleteCommentBatchRoute", () => {
       { success: true, id: "comment-2" },
     ]);
     expect(deleteOwnCommentMock).toHaveBeenCalledWith({
-      auditMetadata: { ipAddress: undefined, userAgent: undefined },
+      auditMetadata: {
+        channel: "rest",
+        ipAddress: undefined,
+        subjectUserId: "user-1",
+        userAgent: undefined,
+        userId: "user-1",
+      },
       commentId: "comment-1",
       userId: "user-1",
     });
     expect(deleteOwnCommentMock).toHaveBeenCalledWith({
-      auditMetadata: { ipAddress: undefined, userAgent: undefined },
+      auditMetadata: {
+        channel: "rest",
+        ipAddress: undefined,
+        subjectUserId: "user-1",
+        userAgent: undefined,
+        userId: "user-1",
+      },
       commentId: "comment-2",
       userId: "user-1",
     });

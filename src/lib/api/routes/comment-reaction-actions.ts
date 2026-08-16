@@ -5,19 +5,24 @@ import {
   notFound,
   suspensionForbidden,
 } from "@/lib/api/helpers";
+import { attributionFromApiPrincipal } from "@/lib/audit/principal-attribution";
 import { getAuditRequestMetadata } from "@/lib/audit/write-audit-log";
+import type { ApiPrincipal } from "@/lib/auth/api-auth";
 
 export async function createCommentReactionAction(input: {
   commentId: string;
+  principal: ApiPrincipal;
   request: Request;
   type: string;
-  userId: string;
 }) {
   const result = await createCommentReaction({
-    auditMetadata: getAuditRequestMetadata(input.request),
+    auditMetadata: {
+      ...getAuditRequestMetadata(input.request),
+      ...attributionFromApiPrincipal(input.principal),
+    },
     commentId: input.commentId,
     type: input.type,
-    userId: input.userId,
+    userId: input.principal.userId,
   });
   if (!result.ok) {
     if (result.error === "suspended") {

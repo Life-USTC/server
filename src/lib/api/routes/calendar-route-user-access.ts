@@ -1,6 +1,6 @@
 import { getUserCalendarAccessRecord } from "@/features/calendar/server/calendar-export-data";
 import { forbidden, gone, notFound, unauthorized } from "@/lib/api/helpers";
-import { resolveApiUserId } from "@/lib/auth/api-auth";
+import { resolveSessionUserId } from "@/lib/auth/api-auth";
 import { parseUserCalendarIdentifier } from "./calendar-route-utils";
 
 export async function resolveUserCalendarAccess({
@@ -28,7 +28,7 @@ export async function resolveUserCalendarAccess({
       };
     }
   } else {
-    const viewerUserId = await resolveApiUserId(request);
+    const viewerUserId = await resolveSessionUserId(request);
     if (!viewerUserId) {
       return { ok: false as const, response: unauthorized() };
     }

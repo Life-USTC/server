@@ -40,9 +40,11 @@ export function createOAuthPageActions<
       await writeClipboardText(value);
       input.setCopyMessage(successMessage);
       input.setCopyMessageVariant("default");
+      return true;
     } catch {
       input.setCopyMessage(copy.copyErrorDescription);
       input.setCopyMessageVariant("destructive");
+      return false;
     }
   }
 

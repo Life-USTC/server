@@ -16,24 +16,6 @@ export const subscribedSectionDetailSelect = {
   retiredAt: true,
 } satisfies Prisma.SectionSelect;
 
-export const userSectionSubscriptionSelect = {
-  id: true,
-  calendarFeedToken: true,
-  sectionSubscriptions: {
-    select: {
-      section: {
-        select: subscribedSectionDetailSelect,
-      },
-    },
-  },
-} satisfies Prisma.UserSelect;
-
-export interface UserSectionSubscriptionState {
-  userId: string;
-  subscriptionIcsUrl: string;
-  subscribedSections: number[];
-}
-
 export type SubscribedSectionDetail = Prisma.SectionGetPayload<{
   select: typeof subscribedSectionDetailSelect;
 }>;

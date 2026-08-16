@@ -6,6 +6,7 @@ import {
 import { getAdminOAuthCopy } from "@/features/admin/lib/admin-oauth-page-copy";
 import { requireAdminPage } from "@/features/admin/server/admin-page-data";
 import type { AppLocale } from "@/i18n/config";
+import { writeAuditLog } from "@/lib/audit/write-audit-log";
 import { authApi } from "@/lib/auth/core";
 import { logServerActionError } from "@/lib/log/app-logger";
 import { resolveOAuthClientGrantTypes } from "@/lib/oauth/client-registration";
@@ -22,7 +23,10 @@ export async function createAdminOAuthClientAction(
   requestId: string,
 ) {
   const copy = getAdminOAuthCopy(locale).oauth;
-  await requireAdminPage(request, { requireActive: true });
+  const admin = await requireAdminPage(request, {
+    requireActive: true,
+    requireRecent: true,
+  });
   const parsed = await parseAdminOAuthCreateRequest(request, copy);
   if ("error" in parsed) return parsed.error;
   const { name, redirectUris, scopes, tokenEndpointAuthMethod } = parsed.value;
@@ -50,6 +54,22 @@ export async function createAdminOAuthClientAction(
           source: "admin_panel_svelte",
           client_pattern: clientPattern.pattern,
         },
+      },
+    });
+    await writeAuditLog({
+      action: "admin_oauth_client_create",
+      channel: "web",
+      userId: admin.id,
+      requestId,
+      targetId: result.client_id,
+      targetType: "oauth_client",
+      metadata: {
+        changedFields: [
+          "redirectUris",
+          "scopes",
+          "tokenEndpointAuthMethod",
+          "trusted",
+        ],
       },
     });
 

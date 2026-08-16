@@ -3,7 +3,7 @@ import type { SubmitFunction } from "@sveltejs/kit";
 export type PendingModerationServerAction =
   | "description"
   | "deleteHomework"
-  | "liftSuspension";
+  | `liftSuspension:${string}`;
 
 export function createAdminActionEnhancer(input: {
   setPendingServerAction: (value: PendingModerationServerAction | null) => void;

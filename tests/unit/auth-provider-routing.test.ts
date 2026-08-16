@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   buildCurrentPathCallbackUrl,
+  buildReauthenticationPageUrl,
   buildSignInPageUrl,
   buildSignInRedirectUrl,
   resolveAuthRedirectTarget,
@@ -35,6 +36,12 @@ describe("认证提供方路由", () => {
   it("构建登录页 callback URL", () => {
     expect(buildSignInPageUrl("/oauth/authorize?client_id=test")).toBe(
       "/account/sign-in?callbackUrl=%2Foauth%2Fauthorize%3Fclient_id%3Dtest",
+    );
+  });
+
+  it("构建保留目标的重新认证 URL", () => {
+    expect(buildReauthenticationPageUrl("/admin/users?page=2")).toBe(
+      "/account/sign-in?reauth=1&callbackUrl=%2Fadmin%2Fusers%3Fpage%3D2",
     );
   });
 

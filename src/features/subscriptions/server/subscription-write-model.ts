@@ -4,10 +4,7 @@ import type { AppLocale } from "@/i18n/config";
 import { DEFAULT_LOCALE } from "@/i18n/config";
 import { prisma, withUserDbContext } from "@/lib/db/prisma";
 import { acquireSectionLifecycleAdvisoryLocks } from "@/lib/db/section-lifecycle-lock";
-import {
-  getUserCalendarSubscription,
-  getUserSectionSubscriptionState,
-} from "./subscription-calendar-read-model";
+import { getUserCalendarSubscription } from "./subscription-calendar-read-model";
 import {
   subscribedSectionDetailSelect,
   subscribedSectionsFromUser,
@@ -397,22 +394,6 @@ export async function appendUserSectionSubscriptions({
   };
 }
 
-export async function addUserSectionSubscriptions(
-  userId: string,
-  sectionIds: readonly number[],
-) {
-  const mutation = await mutateUserSectionSubscriptions({
-    candidateSectionIds: sectionIds,
-    mode: "connect",
-    userId,
-  });
-  if (!mutation) {
-    return null;
-  }
-
-  return getUserSectionSubscriptionState(userId);
-}
-
 export async function importUserSectionSubscriptionsByCodes({
   codes,
   locale = DEFAULT_LOCALE,
@@ -594,7 +575,7 @@ export async function removeUserSectionSubscriptions(
 
   await disconnectUserSectionIds(userId, sectionIds);
 
-  return getUserSectionSubscriptionState(userId);
+  return true;
 }
 
 export async function subscribeUserToSectionByJwId(

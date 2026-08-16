@@ -1,13 +1,30 @@
-import type { AuditAction, Prisma } from "@/generated/prisma/client";
+import type {
+  AuditAction,
+  AuditChannel,
+  AuditOutcome,
+  Prisma,
+} from "@/generated/prisma/client";
+import {
+  getCloudflareAuditLogWriteQueue,
+  getCloudflareRuntimeTaskScheduler,
+} from "@/lib/adapters/cloudflare-runtime";
 import { prisma } from "@/lib/db/prisma";
 import { logAppEvent } from "@/lib/log/app-logger";
 import { writeAuditWriteAnalytics } from "@/lib/metrics/analytics-engine";
 
 export { getAuditRequestMetadata } from "@/lib/audit/request-metadata";
 
-type AuditLogParams = {
+export type AuditLogParams = {
+  id?: string;
   action: AuditAction;
-  userId: string;
+  userId?: string;
+  subjectUserId?: string;
+  outcome?: AuditOutcome;
+  channel?: AuditChannel;
+  oauthClientId?: string;
+  oauthGrantId?: string;
+  sessionId?: string;
+  requestId?: string;
   targetId?: string;
   targetType?: string;
   metadata?: Record<string, unknown>;
@@ -17,62 +34,9 @@ type AuditLogParams = {
 
 type AuditLogClient = {
   auditLog: {
-    create(args: Prisma.AuditLogCreateArgs): Promise<unknown>;
+    createMany(args: Prisma.AuditLogCreateManyArgs): Promise<unknown>;
   };
 };
-
-type WorkerWaitUntilContext = {
-  waitUntil(promise: Promise<unknown>): void;
-};
-
-type AuditPlatform = {
-  context?: unknown;
-  ctx?: unknown;
-};
-
-type AuditRequestEvent = {
-  platform?: AuditPlatform;
-};
-
-type AuditServerModule = {
-  getRequestEvent?: () => AuditRequestEvent;
-};
-
-function isWorkerWaitUntilContext(
-  value: unknown,
-): value is WorkerWaitUntilContext {
-  return (
-    typeof value === "object" &&
-    value !== null &&
-    "waitUntil" in value &&
-    typeof value.waitUntil === "function"
-  );
-}
-
-async function loadAuditServerModule() {
-  try {
-    return (await import("$app/server")) as AuditServerModule;
-  } catch {
-    return undefined;
-  }
-}
-
-async function getAuditWaitUntil() {
-  try {
-    const getRequestEvent = (await loadAuditServerModule())?.getRequestEvent;
-    if (typeof getRequestEvent !== "function") return undefined;
-
-    const platform = getRequestEvent().platform;
-    const context = platform?.ctx ?? platform?.context;
-    if (!isWorkerWaitUntilContext(context)) return undefined;
-
-    return (promise: Promise<unknown>) => {
-      context.waitUntil(promise);
-    };
-  } catch {
-    return undefined;
-  }
-}
 
 function logAuditWriteFailure(params: AuditLogParams, error: unknown) {
   logAppEvent(
@@ -94,13 +58,22 @@ export async function writeAuditLog(
   const start = Date.now();
   const { metadata, ...rest } = params;
   try {
-    await client.auditLog.create({
+    // createMany intentionally emits INSERT without RETURNING. Audit rows are
+    // append-only, and returning the inserted row would require widening the
+    // RLS read policy for asynchronous queue consumers with no user context.
+    await client.auditLog.createMany({
       data: {
         ...rest,
         ...(metadata !== undefined && {
           metadata: metadata as Prisma.InputJsonValue,
         }),
       },
+      // A queued audit write carries a producer-generated ID. Cloudflare
+      // Queues is at-least-once, so replaying an uncertain delivery must be a
+      // successful no-op instead of creating a second audit event. Direct
+      // transactional writes have no supplied ID and must still surface an
+      // unexpected conflict instead of hiding it.
+      ...(params.id ? { skipDuplicates: true } : {}),
     });
     writeAuditWriteAnalytics({
       action: params.action,
@@ -122,19 +95,29 @@ export async function writeAuditLog(
 /**
  * Fire-and-forget audit log that logs failures instead of swallowing them silently.
  * Use for non-critical audit trails where the route should not fail if logging errors.
- * In Worker requests, the write is also scheduled with waitUntil when the
- * SvelteKit request context is available. Awaiting this function guarantees
- * Worker waitUntil registration without waiting for the DB write. Outside a
- * Worker request, awaiting it waits for the logged write.
+ * In Worker requests, the write is scheduled with the request execution
+ * context. Awaiting this function guarantees waitUntil registration without
+ * waiting for the DB write. Outside a Worker request, awaiting it waits for
+ * the logged write.
  */
 export async function fireAuditLog(params: AuditLogParams) {
-  const auditWrite = writeAuditLog(params).catch((error: unknown) => {
+  const queue = getCloudflareAuditLogWriteQueue();
+  const { id, ...queueParams } = params;
+  const auditWrite = (
+    queue
+      ? queue.send({
+          auditId: id ?? crypto.randomUUID(),
+          params: queueParams,
+          type: "audit-log.write.v1",
+        })
+      : writeAuditLog(params)
+  ).catch((error: unknown) => {
     logAuditWriteFailure(params, error);
   });
 
-  const waitUntil = await getAuditWaitUntil();
-  if (waitUntil) {
-    waitUntil(auditWrite);
+  const scheduleTask = getCloudflareRuntimeTaskScheduler();
+  if (scheduleTask) {
+    scheduleTask(auditWrite);
     return;
   }
 

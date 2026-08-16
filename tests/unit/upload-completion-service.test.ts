@@ -58,7 +58,7 @@ const {
 vi.mock("@/lib/db/prisma", () => ({
   prisma: {
     auditLog: {
-      create: auditLogCreateMock,
+      createMany: auditLogCreateMock,
     },
     upload: {
       aggregate: uploadAggregateMock,
@@ -131,7 +131,7 @@ const txPrisma = {
 };
 
 const ownerPrisma = {
-  auditLog: { create: auditLogCreateMock },
+  auditLog: { createMany: auditLogCreateMock },
   upload: {
     aggregate: uploadAggregateMock,
     deleteMany: uploadDeleteManyMock,

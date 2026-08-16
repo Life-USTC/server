@@ -66,8 +66,10 @@ import type {
   CommentReactionType,
   CommentVisibility,
 } from "@/generated/prisma/client";
+import { attributionFromGraphqlPrincipal } from "@/lib/audit/principal-attribution";
 import { getAuditRequestMetadata } from "@/lib/audit/write-audit-log";
 import { hasAsciiControlCharacters } from "@/lib/text/ascii-control-characters";
+import type { GraphqlPrincipal } from "./auth";
 import type { GraphqlContext } from "./context";
 import {
   requireGraphqlId,
@@ -599,9 +601,13 @@ const sectionSubscriptionBatchActionResolver = {
   SET: "set",
 } as const satisfies Record<string, SectionSubscriptionBatchAction>;
 
-function graphqlCommentAuditMetadata(request: Request) {
+function graphqlCommentAuditMetadata(
+  request: Request,
+  principal: Exclude<GraphqlPrincipal, { kind: "anonymous" }>,
+) {
   return {
     ...getAuditRequestMetadata(request),
+    ...attributionFromGraphqlPrincipal(principal),
     source: "graphql",
   };
 }
@@ -906,16 +912,23 @@ export const graphqlMutationResolvers = {
       });
       if (dateError) badMutationInput(dateError);
 
-      const result = await createHomeworkForSection(principal.userId, {
-        description: normalizeHomeworkDescription(input.description),
-        isMajor: input.isMajor,
-        publishedAt,
-        requiresTeam: input.requiresTeam,
-        sectionJwId: requireGraphqlId(input.sectionJwId, "sectionJwId"),
-        submissionDueAt,
-        submissionStartAt,
-        title: normalizeHomeworkTitle(input.title),
-      });
+      const result = await createHomeworkForSection(
+        principal.userId,
+        {
+          description: normalizeHomeworkDescription(input.description),
+          isMajor: input.isMajor,
+          publishedAt,
+          requiresTeam: input.requiresTeam,
+          sectionJwId: requireGraphqlId(input.sectionJwId, "sectionJwId"),
+          submissionDueAt,
+          submissionStartAt,
+          title: normalizeHomeworkTitle(input.title),
+        },
+        {
+          ...attributionFromGraphqlPrincipal(principal),
+          requestId: getAuditRequestMetadata(context.request).requestId,
+        },
+      );
       if (!result.ok) handleHomeworkFailure(result, "Section");
 
       const id = result.homework.id;
@@ -980,6 +993,10 @@ export const graphqlMutationResolvers = {
       }
 
       const result = await updateHomework({
+        audit: {
+          ...attributionFromGraphqlPrincipal(principal),
+          requestId: getAuditRequestMetadata(context.request).requestId,
+        },
         homeworkId: id,
         update: prepared.update,
         userId: principal.userId,
@@ -1004,6 +1021,10 @@ export const graphqlMutationResolvers = {
       );
       const id = requireMutationId(args.id, "id");
       const result = await deleteHomework({
+        audit: {
+          ...attributionFromGraphqlPrincipal(principal),
+          requestId: getAuditRequestMetadata(context.request).requestId,
+        },
         homeworkId: id,
         userId: principal.userId,
       });
@@ -1250,6 +1271,7 @@ export const graphqlMutationResolvers = {
       const result = await upsertDescriptionContent({
         auditMetadata: {
           ...getAuditRequestMetadata(context.request),
+          ...attributionFromGraphqlPrincipal(principal),
           source: "graphql",
         },
         content,
@@ -1285,7 +1307,7 @@ export const graphqlMutationResolvers = {
       const result = await createComment({
         attachmentIds:
           normalizeIdList(input.attachmentIds, "attachmentIds") ?? undefined,
-        auditMetadata: graphqlCommentAuditMetadata(context.request),
+        auditMetadata: graphqlCommentAuditMetadata(context.request, principal),
         content: normalizeCommentBody(input.body),
         courseJwId:
           input.courseJwId == null
@@ -1337,7 +1359,7 @@ export const graphqlMutationResolvers = {
         normalizeIdList(args.input.attachmentIds, "attachmentIds") ?? [];
       const result = await updateOwnComment({
         attachmentIds,
-        auditMetadata: graphqlCommentAuditMetadata(context.request),
+        auditMetadata: graphqlCommentAuditMetadata(context.request, principal),
         body: normalizeCommentBody(args.input.body),
         hasAttachmentUpdate,
         id: requireMutationId(args.id, "id"),
@@ -1359,7 +1381,7 @@ export const graphqlMutationResolvers = {
       );
       const id = requireMutationId(args.id, "id");
       const result = await deleteOwnComment({
-        auditMetadata: graphqlCommentAuditMetadata(context.request),
+        auditMetadata: graphqlCommentAuditMetadata(context.request, principal),
         commentId: id,
         userId: principal.userId,
       });
@@ -1380,7 +1402,7 @@ export const graphqlMutationResolvers = {
       );
       const ids = normalizeBatchIds(args.ids, "comment IDs", 50);
       return deleteOwnCommentsBatch({
-        auditMetadata: graphqlCommentAuditMetadata(context.request),
+        auditMetadata: graphqlCommentAuditMetadata(context.request, principal),
         ids,
         userId: principal.userId,
       });
@@ -1396,7 +1418,7 @@ export const graphqlMutationResolvers = {
       );
       const commentId = requireMutationId(args.commentId, "commentId");
       const result = await createCommentReaction({
-        auditMetadata: graphqlCommentAuditMetadata(context.request),
+        auditMetadata: graphqlCommentAuditMetadata(context.request, principal),
         commentId,
         type: args.type,
         userId: principal.userId,
@@ -1420,7 +1442,7 @@ export const graphqlMutationResolvers = {
       );
       const commentId = requireMutationId(args.commentId, "commentId");
       const result = await deleteCommentReaction({
-        auditMetadata: graphqlCommentAuditMetadata(context.request),
+        auditMetadata: graphqlCommentAuditMetadata(context.request, principal),
         commentId,
         type: args.type,
         userId: principal.userId,
@@ -1514,6 +1536,7 @@ export const graphqlMutationResolvers = {
       const result = await deleteOwnedUpload({
         audit: {
           ...getAuditRequestMetadata(context.request),
+          ...attributionFromGraphqlPrincipal(principal),
           source: "graphql",
         },
         id,

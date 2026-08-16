@@ -825,7 +825,9 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
 
   // ── Calendar export ─────────────────────────────────────────────────────────
 
-  test("日历导出弹窗显示 iCal URL 与订阅 URL", async ({ page }, testInfo) => {
+  test("日历导出弹窗显示公开 iCal URL 且不暴露私人订阅凭据", async ({
+    page,
+  }, testInfo) => {
     test.setTimeout(60_000);
     await page
       .context()
@@ -853,9 +855,14 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
       `/api/catalog/sections/${DEV_SEED.section.jwId}/calendar.ics`,
     );
 
-    // Subscription URL includes a user-specific tokenized feed path
+    // Long-lived private feed credentials are only revealed from the
+    // recent-authenticated subscriptions workspace, never a public section.
     const subscriptionValue = await subscriptionUrl.inputValue();
-    expect(subscriptionValue).toMatch(/\/api\/calendar-feeds\/[^/]+\.ics$/);
+    expect(subscriptionValue).toMatch(
+      /前往订阅页|Open subscriptions to securely view your personal feed/i,
+    );
+    await expect(subscriptionUrl).toBeDisabled();
+    expect(subscriptionValue).not.toContain("/api/calendar-feeds/");
 
     // Copy single URL
     await calDialog
@@ -867,15 +874,9 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
     );
     expect(singleClipboard).toBe(singleValue);
 
-    // Copy subscription URL
-    await calDialog
-      .getByRole("button", { name: /复制|Copy/i })
-      .nth(1)
-      .click();
-    const subscriptionClipboard = await page.evaluate(async () =>
-      navigator.clipboard.readText(),
-    );
-    expect(subscriptionClipboard).toBe(subscriptionValue);
+    await expect(
+      calDialog.getByRole("button", { name: /复制|Copy/i }).nth(1),
+    ).toBeDisabled();
 
     await expect(
       calDialog.getByRole("link", {

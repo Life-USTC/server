@@ -23,15 +23,15 @@ export let onManage: (description: AdminModerationDescription) => void;
 export let targetLabel: (description: AdminModerationDescription) => string;
 </script>
 
-<div class="hidden min-w-0 md:block">
+<div class="hidden min-w-0 xl:block">
   <Table.Root class="w-full">
     <Table.Header>
       <Table.Row>
         <Table.Head>{copy.descriptionPreview}</Table.Head>
         <Table.Head>{copy.author}</Table.Head>
         <Table.Head>{copy.postedIn}</Table.Head>
-        <Table.Head>{copy.editedAtLabel}</Table.Head>
-        <Table.Head>
+        <Table.Head class="text-right">{copy.editedAtLabel}</Table.Head>
+        <Table.Head class="w-12 text-right">
           <span class="sr-only">{copy.actions}</span>
         </Table.Head>
       </Table.Row>
@@ -60,11 +60,11 @@ export let targetLabel: (description: AdminModerationDescription) => string;
               <TruncatedText text={targetLabel(description)} />
             </a>
           </Table.Cell>
-          <Table.Cell class="whitespace-nowrap tabular-nums text-muted-foreground">
+          <Table.Cell class="whitespace-nowrap text-right tabular-nums text-muted-foreground">
             {formatDate(adminModerationDescriptionEditedAt(description))}
           </Table.Cell>
-          <Table.Cell>
-            <DashboardTableRowActions>
+          <Table.Cell class="w-12 text-right">
+            <DashboardTableRowActions class="justify-end">
               <DashboardTableIconButton
                 label={copy.manageDescription}
                 onclick={() => {

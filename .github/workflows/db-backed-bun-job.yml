@@ -91,6 +91,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
 
       - name: Configure job environment
         shell: bash
@@ -177,6 +179,8 @@ jobs:
               bunx playwright test --config playwright.api.config.ts
               ;;
             ci:rls)
+              AUDIT_UPGRADE_BASE_COMMIT="${{ github.event.pull_request.base.sha || github.event.before }}" \
+                bash tests/ci/audit-production-upgrade.test.sh
               bun run app:prepare
               bun run db:migrate:deploy
               bunx prisma db seed
@@ -201,7 +205,6 @@ jobs:
               expected_function_privileges+=',public.comment_reaction_summaries(comment_ids text[]):EXECUTE'
               expected_function_privileges+=',public.finalize_upload_pending_storage_cleanup(p_id text, p_attempt_id text):EXECUTE'
               expected_function_privileges+=',public.find_downloadable_upload(p_upload_id text):EXECUTE'
-              expected_function_privileges+=',public.get_public_profile_homework_completions(p_user_id text, p_since timestamp without time zone):EXECUTE'
               expected_function_privileges+=',public.get_public_profile_section_subscription_count(p_user_id text):EXECUTE'
               expected_function_privileges+=',public.get_public_profile_upload_stats(p_user_id text, p_since timestamp without time zone):EXECUTE'
               expected_function_privileges+=',public.release_upload_pending_storage_cleanup(p_id text, p_attempt_id text, p_now timestamp without time zone, p_retry_lease_seconds integer):EXECUTE'

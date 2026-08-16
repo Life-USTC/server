@@ -90,6 +90,7 @@
             "name": "Profile & Todo",
             "tools": [
               "account_profile_get",
+              "account_client_activity_list",
               "community_user_get",
               "workspace_todo_list",
               "workspace_todo_create",

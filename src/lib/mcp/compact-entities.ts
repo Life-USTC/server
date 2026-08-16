@@ -4,7 +4,6 @@ import {
   compactArrayRelations,
   compactRelations,
   pick,
-  redactCalendarFeedLocation,
   transferScalarKeys,
 } from "./compact-helpers";
 
@@ -339,14 +338,6 @@ export function compactCalendarSubscription(value: unknown) {
     userId: value.userId,
     sectionCount: sections.length,
     sections,
-    calendarPath:
-      typeof value.calendarPath === "string"
-        ? redactCalendarFeedLocation(value.calendarPath)
-        : null,
-    calendarUrl:
-      typeof value.calendarUrl === "string"
-        ? redactCalendarFeedLocation(value.calendarUrl)
-        : null,
     note: value.note,
   };
 }

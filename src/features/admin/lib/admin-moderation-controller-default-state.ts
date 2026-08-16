@@ -1,8 +1,7 @@
+import type { PendingModerationServerAction } from "./moderation-page-client-actions";
+
 export type AdminModerationPendingServerAction =
-  | "description"
-  | "deleteHomework"
-  | "liftSuspension"
-  | null;
+  PendingModerationServerAction | null;
 
 export function createAdminModerationControllerDefaultState<
   Comment,

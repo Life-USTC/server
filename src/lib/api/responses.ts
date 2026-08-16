@@ -78,6 +78,17 @@ export function forbidden(message = "Forbidden") {
   return errorResponse(message, 403);
 }
 
+export function recentAuthenticationRequired() {
+  return jsonResponse(
+    {
+      code: "RECENT_AUTH_REQUIRED",
+      error:
+        "Recent authentication required. Sign out and sign in again before retrying.",
+    },
+    { status: 403 },
+  );
+}
+
 export function suspensionForbidden(reason?: string | null) {
   return jsonResponse(
     { error: "Suspended", reason: reason ?? null },

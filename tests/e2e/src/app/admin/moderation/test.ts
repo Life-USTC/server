@@ -326,15 +326,47 @@ test("/admin/moderation 封禁列表可解除封禁", async ({ page }, testInfo)
   };
   const suspensionId = createdBody.suspension?.id;
   expect(suspensionId).toBeTruthy();
+  let lifted = false;
 
   try {
-    await gotoAndWaitForReady(page, "/admin/moderation");
+    await gotoAndWaitForReady(page, "/admin/moderation?tab=suspensions");
+    const row = page.locator("tbody tr:visible").filter({ hasText: reason });
+    await expect(row).toBeVisible();
+    const liftButton = row.getByRole("button", {
+      name: /解除封禁|Lift suspension/i,
+    });
+    await liftButton.click();
+    const confirmDialog = page.getByRole("alertdialog", {
+      name: /解除这条封禁|Lift this suspension/i,
+    });
+    await expect(confirmDialog).toBeVisible();
+    await expect(confirmDialog).toContainText(usernames[0] ?? prefix);
+    await confirmDialog.getByRole("button", { name: /取消|Cancel/i }).click();
+    await expect(confirmDialog).toBeHidden();
+
+    await liftButton.click();
+    const liftResponse = page.waitForResponse(
+      (response) =>
+        response.request().method() === "POST" &&
+        response.url().includes("/admin/moderation") &&
+        response.url().includes("liftSuspension"),
+    );
+    await confirmDialog
+      .getByRole("button", {
+        name: /确认解除封禁|Lift suspension/i,
+      })
+      .click();
+    expect((await liftResponse).status()).toBe(200);
+    lifted = true;
+    await expect(row.getByText(/已解除|Lifted/i)).toBeVisible();
     await captureStepScreenshot(page, testInfo, "admin-moderation-suspended");
   } finally {
-    const lift = await page.request.patch(
-      `/api/admin/suspensions/${suspensionId}`,
-    );
-    expect(lift.status()).toBe(200);
+    if (!lifted) {
+      const lift = await page.request.patch(
+        `/api/admin/suspensions/${suspensionId}`,
+      );
+      expect(lift.status()).toBe(200);
+    }
     await deleteUsersByPrefix(prefix);
   }
 });

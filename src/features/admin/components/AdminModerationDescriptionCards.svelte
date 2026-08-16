@@ -20,7 +20,7 @@ export let onManage: (description: AdminModerationDescription) => void;
 export let targetLabel: (description: AdminModerationDescription) => string;
 </script>
 
-<Item.Group class="md:hidden">
+<Item.Group class="xl:hidden">
   {#each descriptions as description}
     <Item.Root variant="outline" class="items-start">
       {#snippet child({ props })}

@@ -29,6 +29,7 @@ function recordDashboardLoadFinish(input: {
 
 export async function loadSignedDashboardPage({
   locals,
+  request,
   tab,
   url,
   userId,
@@ -43,6 +44,15 @@ export async function loadSignedDashboardPage({
   const referenceNow = parseSnapshotReferenceTime(
     url.searchParams.get("snapshotAt"),
   );
+  // Keep the auth module out of anonymous workspace requests. Cloudflare can
+  // otherwise evaluate Better Auth in the redirecting request's I/O context
+  // before the first authenticated request initializes it.
+  const { resolveAuthoritativeRecentSession } = await import(
+    "@/lib/auth/recent-session"
+  );
+  const recent = await resolveAuthoritativeRecentSession(request.headers, {
+    expectedUserId: userId,
+  });
 
   const signedData = await loadSignedDashboardPageData({
     calendarSemesterId,
@@ -51,6 +61,7 @@ export async function loadSignedDashboardPage({
     pageCopy,
     referenceNow,
     requestId: locals.requestId,
+    revealCalendarFeed: recent.ok,
     tab,
     userId,
   });

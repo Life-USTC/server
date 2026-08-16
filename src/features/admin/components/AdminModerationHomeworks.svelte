@@ -44,7 +44,7 @@ export let onDelete: (homework: ModerationHomework) => void;
   {#if homeworks.length === 0}
     <SoftEmptyMessage message={copy.noHomeworks} />
   {:else}
-    <Item.Group class="md:hidden">
+    <Item.Group class="xl:hidden">
       {#each homeworks as homework}
         <Item.Root variant="outline" class="items-start">
           <Item.Content class="min-w-0 gap-2">
@@ -79,16 +79,16 @@ export let onDelete: (homework: ModerationHomework) => void;
       {/each}
     </Item.Group>
 
-    <div class="hidden min-w-0 md:block">
+    <div class="hidden min-w-0 xl:block">
       <Table.Root class="w-full">
         <Table.Header>
           <Table.Row>
             <Table.Head>{copy.homeworkTitle}</Table.Head>
             <Table.Head>{copy.homeworkSection}</Table.Head>
-            <Table.Head>{copy.createdAt}</Table.Head>
-            <Table.Head>{copy.homeworkDue}</Table.Head>
-            <Table.Head>{copy.status}</Table.Head>
-            <Table.Head>
+            <Table.Head class="text-right">{copy.createdAt}</Table.Head>
+            <Table.Head class="text-right">{copy.homeworkDue}</Table.Head>
+            <Table.Head class="text-center">{copy.status}</Table.Head>
+            <Table.Head class="w-12 text-right">
               <span class="sr-only">{copy.actions}</span>
             </Table.Head>
           </Table.Row>
@@ -107,24 +107,24 @@ export let onDelete: (homework: ModerationHomework) => void;
                   </span>
                 </div>
               </Table.Cell>
-              <Table.Cell class="whitespace-nowrap tabular-nums text-muted-foreground">
+              <Table.Cell class="whitespace-nowrap text-right tabular-nums text-muted-foreground">
                 {formatDate(homework.createdAt)}
               </Table.Cell>
-              <Table.Cell class="whitespace-nowrap tabular-nums text-muted-foreground">
+              <Table.Cell class="whitespace-nowrap text-right tabular-nums text-muted-foreground">
                 {homework.submissionDueAt
                   ? formatDate(homework.submissionDueAt)
                   : copy.notAvailable}
               </Table.Cell>
-              <Table.Cell>
+              <Table.Cell class="text-center">
                 {#if homework.deletedAt}
                   <Badge variant="destructive">{copy.homeworkStatusDeleted}</Badge>
                 {:else}
                   <Badge>{copy.homeworkStatusActive}</Badge>
                 {/if}
               </Table.Cell>
-              <Table.Cell>
+              <Table.Cell class="w-12 text-right">
                 {#if !homework.deletedAt}
-                  <DashboardTableRowActions>
+                  <DashboardTableRowActions class="justify-end">
                     <DashboardTableIconButton
                       label={copy.deleteHomeworkAction}
                       variant="destructive"

@@ -65,9 +65,18 @@ describe("admin 用户路由", () => {
     );
 
     expect(response.status).toBe(200);
-    expect(updateAdminUserMock).toHaveBeenCalledWith("admin-1", "user-1", {
-      name: "User",
-    });
+    expect(updateAdminUserMock).toHaveBeenCalledWith(
+      "admin-1",
+      "user-1",
+      { name: "User" },
+      { channel: "rest", requestId: undefined },
+    );
+    expect(withAdminApiRouteMock).toHaveBeenCalledWith(
+      expect.any(Request),
+      "Failed to update user",
+      expect.any(Function),
+      { requireRecent: true },
+    );
   });
 
   it("将自我降权映射为公开 400 响应", async () => {
@@ -151,6 +160,12 @@ describe("admin 用户路由", () => {
     );
 
     expect(response.status).toBe(201);
+    expect(withAdminApiRouteMock).toHaveBeenCalledWith(
+      expect.any(Request),
+      "Failed to suspend user",
+      expect.any(Function),
+      { requireRecent: true },
+    );
     expect(response.headers.get("Location")).toBe(
       "/api/admin/suspensions/suspension-1",
     );

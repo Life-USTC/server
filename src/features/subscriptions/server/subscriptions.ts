@@ -1,11 +1,9 @@
 export {
   getUserCalendarSubscription,
-  getUserSectionSubscriptionState,
-  getUserSectionSubscriptionStateForSection,
+  getUserSectionSubscriptionStatusForSection,
 } from "./subscription-read-model";
 export { resolveCalendarSubscriptionSections } from "./subscription-section-resolver";
 export {
-  addUserSectionSubscriptions,
   appendUserSectionSubscriptions,
   batchUpdateUserSectionSubscriptions,
   hasUserSubscribedSectionByJwId,

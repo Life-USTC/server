@@ -45,6 +45,9 @@ export type AdminModerationCopy = AdminModerationCommentsCopy &
     homeworkTitle: string;
     lifted: string;
     liftSuspensionAction: string;
+    liftSuspensionConfirmAction: string;
+    liftSuspensionConfirmDescription: string;
+    liftSuspensionConfirmTitle: string;
     manageUser: string;
     noHomeworks: string;
     noReason: string;

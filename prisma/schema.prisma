@@ -38,11 +38,6 @@ enum CommentReactionType {
   eyes
 }
 
-enum HomeworkAuditAction {
-  created
-  deleted
-}
-
 enum AuditAction {
   comment_create
   comment_edit
@@ -57,6 +52,49 @@ enum AuditAction {
   section_retire
   section_reactivate
   webhook_login
+  account_create
+  account_sign_in
+  account_sign_out
+  account_profile_update
+  account_credential_update
+  account_link
+  account_unlink
+  account_delete
+  account_passkey_create
+  account_passkey_update
+  account_passkey_delete
+  account_session_revoke
+  account_calendar_token_create
+  account_calendar_token_rotate
+  oauth_authorization_grant
+  oauth_authorization_update
+  oauth_authorization_revoke
+  admin_user_role_update
+  admin_user_profile_update
+  admin_oauth_client_create
+  admin_oauth_client_delete
+  admin_bus_version_activate
+  admin_bus_version_delete
+  admin_bus_import
+  homework_create
+  homework_update
+  homework_delete
+}
+
+enum AuditOutcome {
+  success
+  denied
+  failure
+}
+
+enum AuditChannel {
+  web
+  rest
+  graphql
+  mcp
+  auth
+  webhook
+  system
 }
 
 enum TodoPriority {
@@ -438,7 +476,6 @@ model Section {
   comments             Comment[]
   description          Description?
   homeworks            Homework[]
-  homeworkAuditLogs    HomeworkAuditLog[]
 
   @@index([jwId])
   @@index([code])
@@ -538,9 +575,9 @@ model Teacher {
 
   personId Int?
   code     String?
-  nameCn    String
-  nameEn    String?
-  age       Int?
+  nameCn   String
+  nameEn   String?
+  age      Int?
 
   email     String?
   telephone String?
@@ -632,7 +669,6 @@ model Homework {
 
   description         Description?
   comments            Comment[]
-  auditLogs           HomeworkAuditLog[]
   homeworkCompletions HomeworkCompletion[]
 
   @@index([sectionId])
@@ -658,43 +694,33 @@ model HomeworkCompletion {
   @@index([userId])
 }
 
-model HomeworkAuditLog {
-  id String @id @default(cuid())
-
-  action        HomeworkAuditAction
-  titleSnapshot String
-
-  createdAt DateTime @default(now())
-
-  sectionId Int
-  section   Section @relation(fields: [sectionId], references: [id], onDelete: Cascade)
-
-  homeworkId String?
-  homework   Homework? @relation(fields: [homeworkId], references: [id], onDelete: SetNull)
-
-  actorId String?
-  actor   User?   @relation("HomeworkAuditActor", fields: [actorId], references: [id], onDelete: SetNull)
-
-  @@index([sectionId])
-  @@index([homeworkId])
-  @@index([actorId])
-  @@index([createdAt])
-  @@index([sectionId, createdAt])
-}
-
 model AuditLog {
-  id         String      @id @default(cuid())
-  action     AuditAction
-  userId     String?
-  user       User?       @relation(fields: [userId], references: [id], onDelete: SetNull)
-  targetId   String?
-  targetType String?
-  metadata   Json?
-  createdAt  DateTime    @default(now())
-  ipAddress  String?
-  userAgent  String?
+  id            String       @id @default(cuid())
+  action        AuditAction
+  outcome       AuditOutcome @default(success)
+  channel       AuditChannel @default(web)
+  userId        String?
+  user          User?        @relation("AuditActor", fields: [userId], references: [id], onDelete: SetNull)
+  subjectUserId String?
+  subjectUser   User?        @relation("AuditSubject", fields: [subjectUserId], references: [id], onDelete: SetNull)
+  targetId      String?
+  targetType    String?
+  oauthClientId String?
+  oauthGrantId  String?
+  sessionId     String?
+  requestId     String?
+  metadata      Json?
+  createdAt     DateTime     @default(now())
+  ipAddress     String?
+  userAgent     String?
 
   @@index([userId])
+  @@index([subjectUserId, createdAt, id])
+  @@index([subjectUserId, oauthClientId, createdAt, id])
+  @@index([oauthClientId, createdAt])
+  @@index([targetType, targetId, createdAt(sort: Desc)], map: "AuditLog_targetType_targetId_createdAt_idx")
+  @@index([channel, createdAt(sort: Desc)], map: "AuditLog_channel_createdAt_idx")
+  @@index([outcome, createdAt(sort: Desc)], map: "AuditLog_outcome_createdAt_idx")
   @@index([action])
   @@index([createdAt])
 }
@@ -847,8 +873,8 @@ model User {
   homeworksCreated     Homework[]                @relation("HomeworkCreatedBy")
   homeworksUpdated     Homework[]                @relation("HomeworkUpdatedBy")
   homeworksDeleted     Homework[]                @relation("HomeworkDeletedBy")
-  homeworkAuditLogs    HomeworkAuditLog[]        @relation("HomeworkAuditActor")
-  auditLogs            AuditLog[]
+  auditLogs            AuditLog[]                @relation("AuditActor")
+  subjectAuditLogs     AuditLog[]                @relation("AuditSubject")
   homeworkCompletions  HomeworkCompletion[]
   dashboardLinkClicks  DashboardLinkClick[]
   dashboardLinkPins    DashboardLinkPin[]
@@ -860,6 +886,7 @@ model User {
   oauthAccessTokens  OAuthAccessToken[]
   oauthRefreshTokens OAuthRefreshToken[]
   oauthConsents      OAuthConsent[]
+  oauthGrantUsage    OAuthGrantUsageDaily[]
   deviceCodes        DeviceCode[]
 }
 
@@ -1373,6 +1400,7 @@ model OAuthClient {
   consents      OAuthConsent[]
   deviceCodes   DeviceCode[]
   resourceLinks OauthClientResource[]
+  grantUsage    OAuthGrantUsageDaily[]
 
   @@index([userId])
 }
@@ -1498,6 +1526,38 @@ model OAuthConsent {
   @@unique([clientId, userId])
   @@index([clientId])
   @@index([userId])
+}
+
+/// Bounded, content-free OAuth usage aggregates for user-facing authorization
+/// summaries. One row is updated per grant and Shanghai calendar day.
+model OAuthGrantUsageDaily {
+  id String @id @default(cuid())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  clientId String
+  client   OAuthClient @relation(fields: [clientId], references: [clientId], onDelete: Cascade)
+
+  grantId  String?
+  grantKey String
+  day      DateTime @db.Date
+  feature  String
+  channel  AuditChannel
+
+  readCount  Int @default(0)
+  writeCount Int @default(0)
+  errorCount Int @default(0)
+
+  lastUsedAt DateTime
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, clientId, grantKey, day, feature, channel])
+  @@index([day, id], map: "OAuthGrantUsageDaily_day_id_idx")
+  @@index([userId, clientId, lastUsedAt])
+  @@index([userId, clientId, grantKey, day])
 }
 
 model OauthResource {

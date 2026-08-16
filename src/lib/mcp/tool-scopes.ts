@@ -25,6 +25,9 @@ const TOOL_SCOPE_MAP: Record<string, ToolScopeRequirement[]> = {
 
   // Profile
   account_profile_get: [{ feature: "account.profile", action: "read" }],
+  account_client_activity_list: [
+    { feature: "account.client-activity", action: "read" },
+  ],
   community_user_get: [{ feature: "community.user", action: "read" }],
 
   // Todos
@@ -208,6 +211,17 @@ export function getRequiredMcpScopes(
   }
 
   return Array.from(scopes);
+}
+
+export function getMcpToolUsageCategory(
+  name: string,
+): { feature: RestFeature; action: "read" | "write" } | undefined {
+  const requirements = TOOL_SCOPE_MAP[name];
+  if (!requirements || requirements.length === 0) return undefined;
+  return (
+    requirements.find((requirement) => requirement.action === "write") ??
+    requirements[0]
+  );
 }
 
 export function isMcpWriteTool(name: string): boolean {

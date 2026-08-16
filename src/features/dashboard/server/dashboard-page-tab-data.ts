@@ -51,6 +51,7 @@ export async function loadSignedDashboardTabData(input: {
   locale: AppLocale;
   overviewWeek?: string | null;
   referenceNow: Date | undefined;
+  revealCalendarFeed?: boolean;
   requestId: string | undefined;
   tab: string;
   userId: string;
@@ -145,7 +146,9 @@ export async function loadSignedDashboardTabData(input: {
       input.tab === "subscriptions" || input.tab === "exams"
         ? timeDashboardStage("subscriptions", stageContext, () =>
             dashboardTabs.getSubscriptionsTabData(input.userId, input.locale, {
-              calendarFeedToken: input.context.user.calendarFeedToken,
+              calendarFeedToken: input.revealCalendarFeed
+                ? input.context.user.calendarFeedToken
+                : undefined,
               includeExams: input.tab === "exams",
               sectionIds: input.context.sectionIds,
             }),
@@ -156,7 +159,9 @@ export async function loadSignedDashboardTabData(input: {
         ? timeDashboardStage("calendar-subscription", stageContext, () =>
             dashboardTabs.getCalendarSubscriptionUrl(
               input.userId,
-              input.context.user.calendarFeedToken,
+              input.revealCalendarFeed
+                ? input.context.user.calendarFeedToken
+                : undefined,
             ),
           )
         : inactiveStage(null);

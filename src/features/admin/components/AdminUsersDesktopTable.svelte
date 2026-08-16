@@ -19,17 +19,17 @@ export let suspensionLabel: AdminUserFormatter;
 export let users: AdminUserRow[];
 </script>
 
-<div class="hidden min-w-0 md:block">
+<div class="hidden min-w-0 xl:block">
   <Table.Root class="w-full">
     <Table.Header>
       <Table.Row>
         <Table.Head>{copy.name}</Table.Head>
         <Table.Head>{copy.username}</Table.Head>
         <Table.Head>{copy.email}</Table.Head>
-        <Table.Head>{copy.role}</Table.Head>
-        <Table.Head>{copy.suspension}</Table.Head>
-        <Table.Head>{copy.createdAt}</Table.Head>
-        <Table.Head>
+        <Table.Head class="text-center">{copy.role}</Table.Head>
+        <Table.Head class="text-center">{copy.suspension}</Table.Head>
+        <Table.Head class="text-right">{copy.createdAt}</Table.Head>
+        <Table.Head class="w-12 text-right">
           <span class="sr-only">{copy.editTitle}</span>
         </Table.Head>
       </Table.Row>
@@ -52,29 +52,31 @@ export let users: AdminUserRow[];
           <Table.Cell>
             <TruncatedText text={user.email ?? copy.noVerifiedEmail} />
           </Table.Cell>
-          <Table.Cell>
+          <Table.Cell class="text-center">
             <Badge variant={user.isAdmin ? "secondary" : "ghost"}>
               {user.isAdmin ? copy.adminRole : copy.userRole}
             </Badge>
           </Table.Cell>
-          <Table.Cell>
-            <div class="grid min-w-0 gap-1">
+          <Table.Cell class="text-center">
+            <div class="grid min-w-0 justify-items-center gap-1">
               {#if user.activeSuspension}
                 <Badge class="w-fit" variant="destructive">{copy.suspendedStatus}</Badge>
               {:else}
                 <Badge class="w-fit" variant="ghost">{copy.clearStatus}</Badge>
               {/if}
-              <TruncatedText
-                class="text-muted-foreground text-xs"
-                text={user.activeSuspension ? suspensionLabel(user) : null}
-              />
+              {#if user.activeSuspension}
+                <TruncatedText
+                  class="text-muted-foreground text-xs"
+                  text={suspensionLabel(user)}
+                />
+              {/if}
             </div>
           </Table.Cell>
-          <Table.Cell class="whitespace-nowrap tabular-nums text-muted-foreground">
+          <Table.Cell class="whitespace-nowrap text-right tabular-nums text-muted-foreground">
             {formatDate(user.createdAt)}
           </Table.Cell>
-          <Table.Cell>
-            <DashboardTableRowActions>
+          <Table.Cell class="w-12 text-right">
+            <DashboardTableRowActions class="justify-end">
               <DashboardTableIconButton
                 label={copy.editTitle}
                 onclick={() => onSelect(user)}

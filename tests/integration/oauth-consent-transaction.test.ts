@@ -180,6 +180,9 @@ describe.sequential("OAuth consent transaction", () => {
     await prisma.verificationToken.deleteMany({
       where: { identifier: { in: verificationIdentifiers } },
     });
+    await prisma.auditLog.deleteMany({
+      where: { oauthClientId: { in: clientIds } },
+    });
     await prisma.oAuthClient.deleteMany({
       where: { clientId: { in: clientIds } },
     });

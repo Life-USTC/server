@@ -6,15 +6,10 @@ import AdminModerationDescriptionTable from "./AdminModerationDescriptionTable.s
 import type {
   AdminModerationDescription,
   AdminModerationDescriptionCopy,
-  AdminModerationDescriptionOption,
 } from "./admin-moderation-description-types";
 
 export let copy: AdminModerationDescriptionCopy;
-export let descriptionContentOptions: AdminModerationDescriptionOption[];
-export let descriptionTargetOptions: AdminModerationDescriptionOption[];
 export let descriptions: AdminModerationDescription[];
-export let descriptionContentFilter: string | null | undefined;
-export let descriptionTargetFilter: string | null | undefined;
 export let descriptionTargetHref: (
   description: AdminModerationDescription,
 ) => string;

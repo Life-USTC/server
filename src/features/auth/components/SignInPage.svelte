@@ -28,6 +28,7 @@ type PageData = {
     passkeyPending: string;
     passkeySignIn: string;
     passkeyUnsupported: string;
+    reauthenticationRequired: string;
     termsNotice: {
       afterPrivacy: string;
       beforeTerms: string;
@@ -38,6 +39,7 @@ type PageData = {
     title: string;
   };
   error?: string | null;
+  reauthentication: boolean;
   providers: Array<{
     debug?: boolean;
     id: string;
@@ -121,6 +123,11 @@ function providerInitial(name: string) {
 
     <Card.Root>
       <Card.Content class="grid gap-4">
+        {#if data.reauthentication}
+          <Alert.Root>
+            <Alert.Description>{data.copy.reauthenticationRequired}</Alert.Description>
+          </Alert.Root>
+        {/if}
         {#if data.error}
           <Alert.Root variant="destructive">
             <Alert.Description>

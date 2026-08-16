@@ -161,6 +161,7 @@ describe("arbitrary GraphQL document runner", () => {
         principal: {
           kind: "oauth",
           userId: "document-runner-user",
+          clientId: "document-runner-client",
           resource: "https://example.test/api/mcp",
           scopes: new Set(),
         },

@@ -1,5 +1,9 @@
 import { WorkerEntrypoint } from "cloudflare:workers";
 import svelteKitWorker from "life-ustc-sveltekit-worker";
+import {
+  maintainAuditLogRetention,
+  maintainOAuthGrantUsageRetention,
+} from "./features/admin/server/audit-retention";
 import { cleanupExpiredAuthRecords } from "./features/auth/server/auth-record-cleanup";
 import { handleCalendarExportRebuildBatch } from "./features/calendar/server/calendar-export-rebuild";
 import {
@@ -9,6 +13,10 @@ import {
 } from "./features/catalog/lib/catalog-list-query";
 import { cleanupStaleUploadPendingStorage } from "./features/uploads/server/upload-pending-cleanup";
 import { runWithCloudflareRuntimeEnv } from "./lib/adapters/cloudflare-runtime";
+import {
+  AUDIT_LOG_WRITE_QUEUE_NAME,
+  handleAuditLogWriteBatch,
+} from "./lib/audit/audit-log-queue";
 import { CATALOG_EDGE_CACHE_TAG } from "./lib/catalog-edge-cache-tag";
 import {
   buildPublicNotFoundHtml,
@@ -352,7 +360,10 @@ export default {
   async queue(batch, env, context) {
     await runWithCloudflareRuntimeEnv(
       env,
-      () => handleCalendarExportRebuildBatch(batch),
+      () =>
+        batch.queue === AUDIT_LOG_WRITE_QUEUE_NAME
+          ? handleAuditLogWriteBatch(batch)
+          : handleCalendarExportRebuildBatch(batch),
       context,
     );
   },
@@ -367,8 +378,16 @@ export default {
         }
 
         if (controller.cron === AUTH_RECORD_CLEANUP_CRON) {
-          const report = await cleanupExpiredAuthRecords(maintenancePrisma);
-          logScheduledTaskFinish("auth-record-cleanup", report);
+          const [authRecords, auditLog, oauthUsage] = await Promise.all([
+            cleanupExpiredAuthRecords(maintenancePrisma),
+            maintainAuditLogRetention(maintenancePrisma),
+            maintainOAuthGrantUsageRetention(maintenancePrisma),
+          ]);
+          logScheduledTaskFinish("auth-and-audit-retention", {
+            ...authRecords,
+            ...auditLog,
+            ...oauthUsage,
+          });
           return;
         }
 

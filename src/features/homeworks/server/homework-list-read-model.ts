@@ -40,10 +40,11 @@ type HomeworkSectionReferencesInput = {
 
 type HomeworkSectionReferencesError = "invalid" | "not_found";
 
-const homeworkAuditActorInclude = {
-  actor: {
-    select: { id: true, name: true, username: true, image: true },
-  },
+const homeworkAuditActorSelect = {
+  id: true,
+  image: true,
+  name: true,
+  username: true,
 } as const;
 
 export function homeworkSectionWhere(sectionIds: readonly number[]) {
@@ -157,12 +158,56 @@ export async function listSectionHomeworkPage({
   return { ...page, data: homeworks.map(homeworkItemResponse) };
 }
 
-export function listSectionHomeworkAuditLogs(sectionIds: readonly number[]) {
-  return prisma.homeworkAuditLog.findMany({
-    where: homeworkSectionWhere(sectionIds),
-    include: homeworkAuditActorInclude,
+export async function listSectionHomeworkAuditLogs(
+  sectionIds: readonly number[],
+) {
+  if (sectionIds.length === 0) return [];
+  const rows = await prisma.auditLog.findMany({
+    where: {
+      action: {
+        in: ["homework_create", "homework_update", "homework_delete"],
+      },
+      targetType: "homework",
+      OR: sectionIds.map((sectionId) => ({
+        metadata: { path: ["sectionId"], equals: sectionId },
+      })),
+    },
+    select: {
+      action: true,
+      createdAt: true,
+      id: true,
+      metadata: true,
+      targetId: true,
+      user: { select: homeworkAuditActorSelect },
+      userId: true,
+    },
     orderBy: { createdAt: "desc" },
     take: 50,
+  });
+
+  return rows.map((row) => {
+    const metadata =
+      typeof row.metadata === "object" && row.metadata !== null
+        ? (row.metadata as Record<string, unknown>)
+        : {};
+    return {
+      id: row.id,
+      action:
+        row.action === "homework_create"
+          ? ("created" as const)
+          : row.action === "homework_update"
+            ? ("updated" as const)
+            : ("deleted" as const),
+      titleSnapshot:
+        typeof metadata.titleSnapshot === "string"
+          ? metadata.titleSnapshot
+          : null,
+      createdAt: row.createdAt,
+      sectionId: Number(metadata.sectionId),
+      homeworkId: row.targetId,
+      actorId: row.userId,
+      actor: row.user,
+    };
   });
 }
 

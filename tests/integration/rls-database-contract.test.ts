@@ -43,7 +43,6 @@ const expectedRuntimeFunctionPrivileges = [
   "public.comment_reaction_summaries(comment_ids text[]):EXECUTE",
   "public.finalize_upload_pending_storage_cleanup(p_id text, p_attempt_id text):EXECUTE",
   "public.find_downloadable_upload(p_upload_id text):EXECUTE",
-  "public.get_public_profile_homework_completions(p_user_id text, p_since timestamp without time zone):EXECUTE",
   "public.get_public_profile_section_subscription_count(p_user_id text):EXECUTE",
   "public.get_public_profile_upload_stats(p_user_id text, p_since timestamp without time zone):EXECUTE",
   "public.release_upload_pending_storage_cleanup(p_id text, p_attempt_id text, p_now timestamp without time zone, p_retry_lease_seconds integer):EXECUTE",
@@ -125,6 +124,30 @@ describe.skipIf(process.env.RLS_TEST_ENABLED !== "true")(
         expect(table).toMatchObject({ rlsEnabled: true, rlsForced: true });
         expect(table.owner).not.toBe(role.currentUser);
       }
+    });
+
+    it("enforces scoped reads for audit and OAuth usage tables", async () => {
+      const tables = await adminPrisma.$queryRaw<
+        Array<{ rlsEnabled: boolean; tableName: string }>
+      >(Prisma.sql`
+        SELECT relname AS "tableName", relrowsecurity AS "rlsEnabled"
+        FROM pg_class
+        JOIN pg_namespace ON pg_namespace.oid = pg_class.relnamespace
+        WHERE nspname = 'public'
+          AND relname IN ('AuditLog', 'OAuthGrantUsageDaily')
+        ORDER BY relname
+      `);
+      expect(tables).toEqual([
+        { rlsEnabled: true, tableName: "AuditLog" },
+        { rlsEnabled: true, tableName: "OAuthGrantUsageDaily" },
+      ]);
+
+      await expect(
+        prisma.auditLog.findMany({
+          where: { targetType: { not: "homework" } },
+        }),
+      ).resolves.toEqual([]);
+      await expect(prisma.oAuthGrantUsageDaily.findMany()).resolves.toEqual([]);
     });
 
     it("keeps exactly one runtime-applicable owner policy per table", async () => {

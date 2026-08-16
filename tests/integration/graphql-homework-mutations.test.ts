@@ -128,14 +128,6 @@ afterAll(async () => {
   await prisma.auditLog.deleteMany({
     where: { userId: { in: [creatorId, collaboratorId] } },
   });
-  await prisma.homeworkAuditLog.deleteMany({
-    where: {
-      OR: [
-        { actorId: { in: [creatorId, collaboratorId] } },
-        { homeworkId: { in: createdHomeworkIds } },
-      ],
-    },
-  });
   await prisma.homework.deleteMany({
     where: { id: { in: createdHomeworkIds } },
   });
@@ -322,15 +314,15 @@ describe("GraphQL homework CRUD mutations", () => {
       title: `${marker} initial`,
     });
     await expect(
-      prisma.homeworkAuditLog.findMany({
-        where: { homeworkId },
-        select: { action: true, actorId: true, titleSnapshot: true },
+      prisma.auditLog.findMany({
+        where: { action: "homework_create", targetId: homeworkId },
+        select: { action: true, userId: true, metadata: true },
       }),
     ).resolves.toEqual([
       {
-        action: "created",
-        actorId: creatorId,
-        titleSnapshot: `${marker} initial`,
+        action: "homework_create",
+        userId: creatorId,
+        metadata: expect.objectContaining({ sectionId: expect.any(Number) }),
       },
     ]);
 
@@ -470,21 +462,33 @@ describe("GraphQL homework CRUD mutations", () => {
       },
     });
     await expect(
-      prisma.homeworkAuditLog.findMany({
-        where: { homeworkId },
+      prisma.auditLog.findMany({
+        where: {
+          action: {
+            in: ["homework_create", "homework_update", "homework_delete"],
+          },
+          targetId: homeworkId,
+        },
         orderBy: [{ createdAt: "asc" }, { action: "asc" }],
-        select: { action: true, actorId: true, titleSnapshot: true },
+        select: { action: true, userId: true, metadata: true },
       }),
     ).resolves.toEqual([
       {
-        action: "created",
-        actorId: creatorId,
-        titleSnapshot: `${marker} initial`,
+        action: "homework_create",
+        userId: creatorId,
+        metadata: expect.objectContaining({ sectionId: expect.any(Number) }),
       },
       {
-        action: "deleted",
-        actorId: creatorId,
-        titleSnapshot: `${marker} updated`,
+        action: "homework_update",
+        userId: collaboratorId,
+        metadata: expect.objectContaining({
+          changedFields: expect.arrayContaining(["title", "description"]),
+        }),
+      },
+      {
+        action: "homework_delete",
+        userId: creatorId,
+        metadata: expect.objectContaining({ sectionId: expect.any(Number) }),
       },
     ]);
   });

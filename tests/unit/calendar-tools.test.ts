@@ -59,10 +59,11 @@ describe("summarizeCalendarSubscription 日历订阅摘要", () => {
     expect(summary.sectionCount).toBe(2);
     expect(summary.currentSemesterSectionCount).toBe(2);
     expect(summary.currentSemesterSections).toHaveLength(2);
-    expect(summary.calendarPath).toContain("/api/calendar-feeds/user-1.ics");
-    expect(summary.calendarUrl).toContain("/api/calendar-feeds/user-1.ics");
+    expect(summary).not.toHaveProperty("calendarPath");
+    expect(summary).not.toHaveProperty("calendarUrl");
     expect(brief).not.toHaveProperty("currentSemesterSections");
     expect(brief.sectionCount).toBe(2);
-    expect(brief.calendarPath).toContain("/api/calendar-feeds/user-1.ics");
+    expect(brief).not.toHaveProperty("calendarPath");
+    expect(brief).not.toHaveProperty("calendarUrl");
   });
 });

@@ -83,7 +83,11 @@ onMount(() => {
 });
 </script>
 
-<div class="min-w-0" style="--sidebar-width: 14rem;">
+<nav
+  aria-label={ariaLabel || label}
+  class="min-w-0"
+  style="--sidebar-width: 14rem;"
+>
   <Sidebar.Root
     collapsible="none"
     class={cn(
@@ -118,6 +122,10 @@ onMount(() => {
                   {#snippet child({ props })}
                     <a
                       {...props}
+                      class={cn(
+                        typeof props.class === "string" ? props.class : undefined,
+                        "min-h-11 lg:min-h-8",
+                      )}
                       data-sveltekit-preload-data="off"
                       use:revealActive={active}
                       href={item.href}
@@ -147,4 +155,4 @@ onMount(() => {
       </Sidebar.Group>
     </Sidebar.Content>
   </Sidebar.Root>
-</div>
+</nav>

@@ -20,13 +20,27 @@ export const viewerContextSchema = z.object({
 export const calendarSubscriptionSchema = z.strictObject({
   userId: z.string(),
   sections: z.array(sectionCompactSchema),
-  calendarPath: z.string(),
-  calendarUrl: z.string(),
   note: z.string(),
 });
 
+export const calendarSubscriptionWithFeedSchema =
+  calendarSubscriptionSchema.extend({
+    calendarPath: z
+      .string()
+      .nullable()
+      .describe(
+        "Private calendar feed path. Populated only for OAuth tokens with workspace.calendar-feed:read.",
+      ),
+    calendarUrl: z
+      .url()
+      .nullable()
+      .describe(
+        "Private calendar feed URL. Populated only for OAuth tokens with workspace.calendar-feed:read.",
+      ),
+  });
+
 export const currentCalendarSubscriptionResponseSchema = z.strictObject({
-  subscription: calendarSubscriptionSchema.nullable(),
+  subscription: calendarSubscriptionWithFeedSchema.nullable(),
 });
 
 export const calendarSubscriptionCreateResponseSchema = z.strictObject({
@@ -168,9 +182,31 @@ export const meResponseSchema = z.object({
   name: z.string().nullable(),
   image: z.string().nullable(),
   username: z.string().nullable(),
-  isAdmin: z.boolean(),
+  isAdmin: z.boolean().nullable(),
   createdAt: dateTimeSchema,
   updatedAt: dateTimeSchema,
+});
+
+export const accountClientActivityResponseSchema = z.object({
+  items: z.array(
+    z.object({
+      id: z.string(),
+      action: z.string(),
+      outcome: z.enum(["success", "denied", "failure"]),
+      channel: z.enum([
+        "web",
+        "rest",
+        "graphql",
+        "mcp",
+        "auth",
+        "webhook",
+        "system",
+      ]),
+      createdAt: dateTimeSchema,
+      targetType: z.string().nullable(),
+    }),
+  ),
+  nextCursor: z.string().nullable(),
 });
 
 export const publicUserProfileResponseSchema = z.object({

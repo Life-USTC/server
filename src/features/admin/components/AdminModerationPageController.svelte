@@ -212,11 +212,11 @@ const {
   <AdminModerationTabContent
     copy={_copy}
     {data}
-    {descriptionContentOptions}
-    {descriptionTargetOptions}
     {enhanceAdminAction}
     formatDate={_formatDate}
-    isLiftingSuspension={_pendingServerAction === "liftSuspension"}
+    liftingSuspensionId={_pendingServerAction?.startsWith("liftSuspension:")
+      ? _pendingServerAction.slice("liftSuspension:".length)
+      : null}
     onDeleteHomework={(homework) => {
       _pendingDeleteHomework = homework;
     }}

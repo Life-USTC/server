@@ -11,8 +11,9 @@ import {
   commentReactionRequestSchema,
   resourceIdPathParamsSchema,
 } from "@/lib/api/schemas/request-schemas";
+import { attributionFromApiPrincipal } from "@/lib/audit/principal-attribution";
 import { getAuditRequestMetadata } from "@/lib/audit/write-audit-log";
-import { requireAuth } from "@/lib/auth/api-auth";
+import { requireAuthPrincipal } from "@/lib/auth/api-auth";
 
 type IdParams = { id: string };
 
@@ -20,7 +21,7 @@ export async function deleteCommentReactionRoute(
   request: Request,
   params: IdParams,
 ) {
-  const auth = await requireAuth(request, {
+  const auth = await requireAuthPrincipal(request, {
     bearerScope: { feature: "community.comment", action: "write" },
   });
   if (auth instanceof Response) return auth;
@@ -49,7 +50,10 @@ export async function deleteCommentReactionRoute(
 
   try {
     const result = await deleteCommentReaction({
-      auditMetadata: getAuditRequestMetadata(request),
+      auditMetadata: {
+        ...getAuditRequestMetadata(request),
+        ...attributionFromApiPrincipal(auth),
+      },
       commentId: id,
       type,
       userId,

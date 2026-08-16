@@ -49,6 +49,7 @@ function validClaims(
     aud: "https://life.example/api/mcp",
     exp: 1_900_000_000,
     scope: scopes.join(" "),
+    sid: "session-id",
     sub: "user-id",
     [GRANT_ID_CLAIM]: "grant-id",
     ...overrides,
@@ -129,7 +130,11 @@ describe("MCP upstream authentication", () => {
     expect(first).toMatchObject({
       authInfo: {
         clientId: "client-id",
-        extra: { userId: "user-id" },
+        extra: {
+          userId: "user-id",
+          grantId: "grant-id",
+          sessionId: "session-id",
+        },
         scopes: [TODO_READ_SCOPE],
       },
     });

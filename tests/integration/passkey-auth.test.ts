@@ -3,6 +3,7 @@ import { prisma } from "@/lib/db/prisma";
 
 const authOrigin = "http://localhost:3000";
 const createdUserIds: string[] = [];
+const createdAuditTargetIds: string[] = [];
 const verificationCleanupStartedAt = new Date(Date.now() - 1_000);
 const encoder = new TextEncoder();
 
@@ -57,6 +58,11 @@ async function repeatRequest(count: number, request: () => Promise<Response>) {
 
 describe.sequential("Better Auth passkey integration", () => {
   afterAll(async () => {
+    if (createdAuditTargetIds.length > 0) {
+      await prisma.auditLog.deleteMany({
+        where: { targetId: { in: createdAuditTargetIds } },
+      });
+    }
     await prisma.verificationToken.deleteMany({
       where: { createdAt: { gte: verificationCleanupStartedAt } },
     });
@@ -265,7 +271,7 @@ describe.sequential("Better Auth passkey integration", () => {
 
     const staleCookie = await createSessionCookie(
       user.id,
-      new Date(Date.now() - 25 * 60 * 60 * 1000),
+      new Date(Date.now() - 16 * 60 * 1000),
     );
     const staleResponse = await authRequest(
       "/passkey/generate-register-options?name=Stale",
@@ -277,6 +283,106 @@ describe.sequential("Better Auth passkey integration", () => {
       },
     );
     expect(staleResponse.status).toBe(403);
+  });
+
+  it("requires an authoritative recent session for passkey rename and delete", async () => {
+    const marker = crypto.randomUUID();
+    const user = await prisma.user.create({
+      data: {
+        email: `passkey-sensitive-${marker}@example.test`,
+        name: "Passkey Sensitive",
+      },
+      select: { id: true },
+    });
+    createdUserIds.push(user.id);
+    const passkeyId = `passkey-sensitive-${marker}`;
+    createdAuditTargetIds.push(passkeyId);
+    await prisma.passkey.create({
+      data: {
+        id: passkeyId,
+        name: "Original",
+        publicKey: "base64-public-key",
+        userId: user.id,
+        credentialID: `credential-sensitive-${marker}`,
+        counter: 1,
+        deviceType: "singleDevice",
+        backedUp: false,
+        transports: "internal",
+        createdAt: new Date(),
+      },
+    });
+
+    const staleCookie = await createSessionCookie(
+      user.id,
+      new Date(Date.now() - 16 * 60 * 1000),
+    );
+    const staleRename = await authRequest("/passkey/update-passkey", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        cookie: staleCookie,
+        origin: authOrigin,
+      },
+      body: JSON.stringify({ id: passkeyId, name: "Stale rename" }),
+    });
+    expect(staleRename.status).toBe(403);
+    await expect(
+      prisma.passkey.findUniqueOrThrow({ where: { id: passkeyId } }),
+    ).resolves.toMatchObject({ name: "Original" });
+
+    const freshCookie = await createSessionCookie(user.id);
+    const rename = await authRequest("/passkey/update-passkey", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        cookie: freshCookie,
+        origin: authOrigin,
+      },
+      body: JSON.stringify({ id: passkeyId, name: "Renamed" }),
+    });
+    expect(rename.status).toBe(200);
+
+    const staleDelete = await authRequest("/passkey/delete-passkey", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        cookie: staleCookie,
+        origin: authOrigin,
+      },
+      body: JSON.stringify({ id: passkeyId }),
+    });
+    expect(staleDelete.status).toBe(403);
+    expect(await prisma.passkey.count({ where: { id: passkeyId } })).toBe(1);
+
+    const deletion = await authRequest("/passkey/delete-passkey", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        cookie: freshCookie,
+        origin: authOrigin,
+      },
+      body: JSON.stringify({ id: passkeyId }),
+    });
+    expect(deletion.status).toBe(200);
+    expect(await prisma.passkey.count({ where: { id: passkeyId } })).toBe(0);
+
+    const audit = await prisma.auditLog.findMany({
+      where: { targetId: passkeyId },
+      orderBy: { createdAt: "asc" },
+      select: { action: true, outcome: true, targetId: true },
+    });
+    expect(audit).toEqual([
+      {
+        action: "account_passkey_update",
+        outcome: "success",
+        targetId: passkeyId,
+      },
+      {
+        action: "account_passkey_delete",
+        outcome: "success",
+        targetId: passkeyId,
+      },
+    ]);
   });
 
   it("rejects cookie-backed verification from missing or untrusted origins", async () => {

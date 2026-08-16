@@ -3,6 +3,7 @@ import CircleUserRound from "@lucide/svelte/icons/circle-user-round";
 import KeyRound from "@lucide/svelte/icons/key-round";
 import Link2 from "@lucide/svelte/icons/link-2";
 import ShieldAlert from "@lucide/svelte/icons/shield-alert";
+import ShieldCheck from "@lucide/svelte/icons/shield-check";
 import SlidersHorizontal from "@lucide/svelte/icons/sliders-horizontal";
 import { onMount } from "svelte";
 import SettingsAccountsTab from "@/features/settings/components/SettingsAccountsTab.svelte";
@@ -11,6 +12,7 @@ import SettingsDangerTab from "@/features/settings/components/SettingsDangerTab.
 import SettingsHeader from "@/features/settings/components/SettingsHeader.svelte";
 import SettingsPreferencesTab from "@/features/settings/components/SettingsPreferencesTab.svelte";
 import SettingsProfileTab from "@/features/settings/components/SettingsProfileTab.svelte";
+import SettingsSecurityTab from "@/features/settings/components/SettingsSecurityTab.svelte";
 import SettingsStatusAlert from "@/features/settings/components/SettingsStatusAlert.svelte";
 import { createSettingsControllerDefaultState } from "@/features/settings/lib/settings-controller-default-state";
 import {
@@ -23,6 +25,7 @@ import type {
   SettingsAccount,
   SettingsCopy,
   SettingsOAuthAuthorization,
+  SettingsSecurityActivity,
   SettingsUser,
 } from "./settings-component-types";
 
@@ -30,6 +33,7 @@ type PageData = {
   activeTab: SettingsTab;
   accounts: SettingsAccount[];
   authorizations: SettingsOAuthAuthorization[];
+  securityActivity: SettingsSecurityActivity;
   copy: SettingsCopy;
   locale: "en-us" | "zh-cn";
   message?: string | null;
@@ -111,6 +115,7 @@ function tabIcon(icon: string) {
   if (icon === "preferences") return SlidersHorizontal;
   if (icon === "accounts") return Link2;
   if (icon === "authorizations") return KeyRound;
+  if (icon === "security") return ShieldCheck;
   if (icon === "danger") return ShieldAlert;
   return CircleUserRound;
 }
@@ -162,6 +167,12 @@ onMount(() => {
       {:else if data.tab === "authorizations"}
         <SettingsAuthorizationsTab
           authorizations={data.authorizations}
+          {copy}
+          locale={data.locale}
+        />
+      {:else if data.tab === "security"}
+        <SettingsSecurityTab
+          activity={data.securityActivity}
           {copy}
           locale={data.locale}
         />

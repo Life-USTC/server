@@ -67,6 +67,7 @@ let {
 } = createAdminOAuthControllerDefaultState<OAuthClient>({
   authMethods: data.authMethods,
 });
+let openedCredentialsClientId: string | null = null;
 
 $: _copy = data.copy.oauth;
 $: _adminCopy = data.copy.admin;
@@ -148,7 +149,13 @@ const {
   },
 });
 
-$: if (form?.createdClientId && _isMounted) {
+$: if (
+  form?.createdClientId &&
+  form.createdClientId !== openedCredentialsClientId &&
+  _isMounted
+) {
+  openedCredentialsClientId = form.createdClientId;
+  copyMessage = "";
   isCreateDialogOpen = false;
   isCredentialsDialogOpen = true;
 }
@@ -170,15 +177,17 @@ onMount(() => {
     />
   {/snippet}
   {#snippet feedback()}
-    <AdminOAuthStatusAlerts {copyMessage} {copyMessageVariant} {form} />
+    <AdminOAuthStatusAlerts
+      copyMessage={isCredentialsDialogOpen ? "" : copyMessage}
+      {copyMessageVariant}
+      {form}
+    />
   {/snippet}
   <AdminOAuthClients
     clientTypeLabel={_clientTypeLabel}
     clients={data.clients}
     copy={_copy}
-    createDisabled={!_isMounted}
     formatCreatedAt={_formatCreatedAt}
-    onCreate={_openCreateDialog}
     onDelete={(client) => {
       pendingDeleteClient = client;
     }}
@@ -191,9 +200,9 @@ onMount(() => {
   closeCreateDialog={_closeCreateDialog}
   closeCredentialsDialog={_closeCredentialsDialog}
   copy={_copy}
-  copyText={(value, message) => {
-    void _copyText(value, message);
-  }}
+  {copyMessage}
+  {copyMessageVariant}
+  copyText={_copyText}
   {createClientAction}
   credentialsJson={_createdCredentialsJson()}
   {deleteClientAction}

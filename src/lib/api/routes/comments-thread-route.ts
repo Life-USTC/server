@@ -8,7 +8,7 @@ import {
   parseRouteInput,
 } from "@/lib/api/helpers";
 import { resourceIdPathParamsSchema } from "@/lib/api/schemas/request-schemas";
-import { resolveApiUserId } from "@/lib/auth/api-auth";
+import { resolveSessionUserId } from "@/lib/auth/api-auth";
 
 type IdParams = { id: string };
 
@@ -24,7 +24,7 @@ export async function getCommentRoute(request: Request, params: IdParams) {
   const id = parsedParams.id;
 
   try {
-    const viewerUserId = await resolveApiUserId(request);
+    const viewerUserId = await resolveSessionUserId(request);
     const result = await loadFocusedCommentThread({
       commentId: id,
       viewerUserId,

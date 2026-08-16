@@ -21,6 +21,10 @@
       "description": "OpenAPI operations"
     },
     {
+      "name": "account.client-activity",
+      "description": "account.client-activity operations"
+    },
+    {
       "name": "account.preferences",
       "description": "account.preferences operations"
     },
@@ -173,6 +177,7 @@
     {
       "name": "Account",
       "tags": [
+        "account.client-activity",
         "account.preferences",
         "account.profile"
       ]
@@ -556,6 +561,75 @@
         }
       }
     },
+    "/api/account/client-activity": {
+      "get": {
+        "operationId": "account_client_activity_list",
+        "summary": "List activity performed by the current OAuth client for the current user",
+        "tags": [
+          "account.client-activity"
+        ],
+        "x-oauth-scopes": [
+          "account.client-activity:read"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "cursor",
+            "schema": {
+              "type": "string",
+              "maxLength": 256
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "minimum": 1,
+              "maximum": 50
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/accountClientActivityResponseSchema"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/openApiErrorSchema"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/openApiErrorSchema"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/account/preferences": {
       "post": {
         "operationId": "setLocale",
@@ -603,6 +677,9 @@
         "summary": "Get the current account profile",
         "tags": [
           "account.profile"
+        ],
+        "x-oauth-scopes": [
+          "account.profile:read"
         ],
         "security": [
           {
@@ -6530,6 +6607,10 @@
         "tags": [
           "workspace.subscription"
         ],
+        "x-oauth-scopes": [
+          "workspace.subscription:read",
+          "workspace.calendar-feed:read"
+        ],
         "security": [
           {
             "bearerAuth": []
@@ -8753,6 +8834,72 @@
         ],
         "additionalProperties": false
       },
+      "accountClientActivityResponseSchema": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "action": {
+                  "type": "string"
+                },
+                "outcome": {
+                  "type": "string",
+                  "enum": [
+                    "success",
+                    "denied",
+                    "failure"
+                  ]
+                },
+                "channel": {
+                  "type": "string",
+                  "enum": [
+                    "web",
+                    "rest",
+                    "graphql",
+                    "mcp",
+                    "auth",
+                    "webhook",
+                    "system"
+                  ]
+                },
+                "createdAt": {
+                  "type": "string",
+                  "format": "date-time",
+                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                },
+                "targetType": {
+                  "nullable": true,
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id",
+                "action",
+                "outcome",
+                "channel",
+                "createdAt",
+                "targetType"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "nextCursor": {
+            "nullable": true,
+            "type": "string"
+          }
+        },
+        "required": [
+          "items",
+          "nextCursor"
+        ],
+        "additionalProperties": false
+      },
       "localeUpdateRequestSchema": {
         "type": "object",
         "properties": {
@@ -8804,6 +8951,7 @@
             "type": "string"
           },
           "isAdmin": {
+            "nullable": true,
             "type": "boolean"
           },
           "createdAt": {
@@ -14045,10 +14193,12 @@
                   "type": "string",
                   "enum": [
                     "created",
+                    "updated",
                     "deleted"
                   ]
                 },
                 "titleSnapshot": {
+                  "nullable": true,
                   "type": "string"
                 },
                 "createdAt": {
@@ -19271,12 +19421,6 @@
                   "additionalProperties": false
                 }
               },
-              "calendarPath": {
-                "type": "string"
-              },
-              "calendarUrl": {
-                "type": "string"
-              },
               "note": {
                 "type": "string"
               }
@@ -19284,8 +19428,6 @@
             "required": [
               "userId",
               "sections",
-              "calendarPath",
-              "calendarUrl",
               "note"
             ],
             "additionalProperties": false
@@ -19982,12 +20124,6 @@
                   "additionalProperties": false
                 }
               },
-              "calendarPath": {
-                "type": "string"
-              },
-              "calendarUrl": {
-                "type": "string"
-              },
               "note": {
                 "type": "string"
               }
@@ -19995,8 +20131,6 @@
             "required": [
               "userId",
               "sections",
-              "calendarPath",
-              "calendarUrl",
               "note"
             ],
             "additionalProperties": false
@@ -20705,12 +20839,6 @@
                   "additionalProperties": false
                 }
               },
-              "calendarPath": {
-                "type": "string"
-              },
-              "calendarUrl": {
-                "type": "string"
-              },
               "note": {
                 "type": "string"
               }
@@ -20718,8 +20846,6 @@
             "required": [
               "userId",
               "sections",
-              "calendarPath",
-              "calendarUrl",
               "note"
             ],
             "additionalProperties": false
@@ -28691,12 +28817,6 @@
                   "additionalProperties": false
                 }
               },
-              "calendarPath": {
-                "type": "string"
-              },
-              "calendarUrl": {
-                "type": "string"
-              },
               "note": {
                 "type": "string"
               }
@@ -28704,8 +28824,6 @@
             "required": [
               "userId",
               "sections",
-              "calendarPath",
-              "calendarUrl",
               "note"
             ],
             "additionalProperties": false
@@ -29396,22 +29514,27 @@
                   "additionalProperties": false
                 }
               },
+              "note": {
+                "type": "string"
+              },
               "calendarPath": {
+                "nullable": true,
+                "description": "Private calendar feed path. Populated only for OAuth tokens with workspace.calendar-feed:read.",
                 "type": "string"
               },
               "calendarUrl": {
-                "type": "string"
-              },
-              "note": {
-                "type": "string"
+                "nullable": true,
+                "description": "Private calendar feed URL. Populated only for OAuth tokens with workspace.calendar-feed:read.",
+                "type": "string",
+                "format": "uri"
               }
             },
             "required": [
               "userId",
               "sections",
+              "note",
               "calendarPath",
-              "calendarUrl",
-              "note"
+              "calendarUrl"
             ],
             "additionalProperties": false
           }
@@ -32118,12 +32241,6 @@
                   "additionalProperties": false
                 }
               },
-              "calendarPath": {
-                "type": "string"
-              },
-              "calendarUrl": {
-                "type": "string"
-              },
               "note": {
                 "type": "string"
               }
@@ -32131,8 +32248,6 @@
             "required": [
               "userId",
               "sections",
-              "calendarPath",
-              "calendarUrl",
               "note"
             ],
             "additionalProperties": false

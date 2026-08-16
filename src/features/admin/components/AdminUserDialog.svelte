@@ -4,6 +4,7 @@ import AdminUserDialogHeader from "@/features/admin/components/AdminUserDialogHe
 import AdminUserProfileSection from "@/features/admin/components/AdminUserProfileSection.svelte";
 import AdminUserSuspensionSection from "@/features/admin/components/AdminUserSuspensionSection.svelte";
 import * as Alert from "$lib/components/ui/alert/index.js";
+import * as AlertDialog from "$lib/components/ui/alert-dialog/index.js";
 import { Button } from "$lib/components/ui/button/index.js";
 import * as Dialog from "$lib/components/ui/dialog/index.js";
 import { ScrollArea } from "$lib/components/ui/scroll-area/index.js";
@@ -35,6 +36,21 @@ export let suspendExpiresAt: string;
 export let suspendReason: string;
 export let suspendSelectedUser: () => void | Promise<void>;
 export let suspensionLabel: AdminUserFormatter;
+
+let roleChangeDialogOpen = false;
+
+function requestSave() {
+  if (selectedUser && editIsAdmin !== selectedUser.isAdmin) {
+    roleChangeDialogOpen = true;
+    return;
+  }
+  void saveSelectedUser();
+}
+
+async function confirmRoleChange() {
+  roleChangeDialogOpen = false;
+  await saveSelectedUser();
+}
 </script>
 
 {#if selectedUser}
@@ -84,7 +100,7 @@ export let suspensionLabel: AdminUserFormatter;
         <Button type="button" variant="outline" onclick={close}>
           {moderationCopy.cancelButton}
         </Button>
-        <Button type="button" disabled={isSaving} onclick={saveSelectedUser}>
+        <Button type="button" disabled={isSaving} onclick={requestSave}>
           {#if isSaving}
             <Spinner data-icon="inline-start" />
           {:else}
@@ -95,4 +111,31 @@ export let suspensionLabel: AdminUserFormatter;
       </Dialog.Footer>
     </Dialog.Content>
   </Dialog.Root>
+
+  <AlertDialog.Root
+    open={roleChangeDialogOpen}
+    onOpenChange={(open) => {
+      if (!isSaving) roleChangeDialogOpen = open;
+    }}
+  >
+    <AlertDialog.Content class="max-w-md sm:max-w-md">
+      <AlertDialog.Header>
+        <AlertDialog.Title>{copy.roleChangeConfirmTitle}</AlertDialog.Title>
+        <AlertDialog.Description>
+          {editIsAdmin
+            ? copy.grantAdminConfirmDescription
+            : copy.revokeAdminConfirmDescription}
+        </AlertDialog.Description>
+      </AlertDialog.Header>
+      <AlertDialog.Footer>
+        <AlertDialog.Cancel type="button" disabled={isSaving} variant="outline">
+          {moderationCopy.cancelButton}
+        </AlertDialog.Cancel>
+        <Button type="button" disabled={isSaving} onclick={confirmRoleChange}>
+          {#if isSaving}<Spinner data-icon="inline-start" />{/if}
+          {copy.confirmRoleChange}
+        </Button>
+      </AlertDialog.Footer>
+    </AlertDialog.Content>
+  </AlertDialog.Root>
 {/if}

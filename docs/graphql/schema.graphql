@@ -1,5 +1,20 @@
 type Account {
+  clientActivity(cursor: String, limit: Int = 30): AccountClientActivityPage!
   profile: UserProfile!
+}
+
+type AccountClientActivity {
+  action: String!
+  channel: String!
+  createdAt: DateTime!
+  id: ID!
+  outcome: String!
+  targetType: String
+}
+
+type AccountClientActivityPage {
+  items: [AccountClientActivity!]!
+  nextCursor: String
 }
 
 type BatchMutationError {
@@ -705,10 +720,10 @@ input UpsertDescriptionInput {
 
 type UserProfile {
   createdAt: DateTime!
-  email: String!
+  email: String
   id: ID!
   image: String
-  isAdmin: Boolean!
+  isAdmin: Boolean
   name: String!
   updatedAt: DateTime!
   username: String

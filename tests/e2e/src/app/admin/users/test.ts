@@ -75,6 +75,28 @@ test("/admin/users 桌面行操作可用键盘打开管理弹窗", async ({
   await captureStepScreenshot(page, testInfo, "admin-users-keyboard-manage");
 });
 
+test("/admin/users 变更管理员权限需要二次确认", async ({ page }) => {
+  await signInAsDevAdmin(page, "/admin/users");
+
+  const dialog = await openAdminUserDialog(page, DEV_SEED.debugUsername);
+  const adminCheckbox = dialog.getByRole("checkbox", {
+    name: /设为管理员|Grant admin access/i,
+  });
+  await adminCheckbox.check();
+  await dialog.getByRole("button", { name: /保存更改|Save/i }).click();
+
+  const confirmDialog = page.getByRole("alertdialog", {
+    name: /变更管理员权限|Change administrator access/i,
+  });
+  await expect(confirmDialog).toBeVisible();
+  await expect(confirmDialog).toContainText(
+    /访问全部管理与审核工具|access to all administration and moderation tools/i,
+  );
+  await confirmDialog.getByRole("button", { name: /取消|Cancel/i }).click();
+  await expect(confirmDialog).toBeHidden();
+  await expect(dialog).toBeVisible();
+});
+
 test("/admin/users 搜索表单可过滤用户", async ({ page }, testInfo) => {
   await signInAsDevAdmin(page, "/admin/users");
 
@@ -124,6 +146,77 @@ test("/admin/users 移动端工作区可搜索并管理首条记录", async ({
   ).toBeLessThanOrEqual(390);
 
   await captureStepScreenshot(page, testInfo, "admin-users-mobile-workspace");
+});
+
+test("/admin/users 状态列对齐且平板使用可读列表", async ({
+  page,
+}, testInfo) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await signInAsDevAdmin(page, "/admin/users");
+
+  const table = page.locator("table:visible");
+  const headers = table.locator("thead th");
+  const firstRowCells = table.locator("tbody tr").first().locator("td");
+  await expect(table).toBeVisible();
+  expect(
+    await headers.nth(3).evaluate((node) => getComputedStyle(node).textAlign),
+  ).toBe("center");
+  expect(
+    await headers.nth(4).evaluate((node) => getComputedStyle(node).textAlign),
+  ).toBe("center");
+  expect(
+    await headers.nth(5).evaluate((node) => getComputedStyle(node).textAlign),
+  ).toBe("right");
+  expect(
+    await firstRowCells
+      .nth(4)
+      .evaluate((node) => getComputedStyle(node).textAlign),
+  ).toBe("center");
+  expect(
+    await firstRowCells
+      .nth(5)
+      .evaluate((node) => getComputedStyle(node).textAlign),
+  ).toBe("right");
+  const suspensionCell = firstRowCells.nth(4);
+  const suspensionBadge = suspensionCell.locator('[data-slot="badge"]');
+  await expect(
+    suspensionCell.locator('[data-slot="truncated-text-placeholder"]'),
+  ).toHaveCount(0);
+  const verticalCenterOffset = await suspensionCell.evaluate((cell) => {
+    const badge = cell.querySelector<HTMLElement>('[data-slot="badge"]');
+    if (!badge) return Number.POSITIVE_INFINITY;
+    const cellRect = cell.getBoundingClientRect();
+    const badgeRect = badge.getBoundingClientRect();
+    return Math.abs(
+      badgeRect.top +
+        badgeRect.height / 2 -
+        (cellRect.top + cellRect.height / 2),
+    );
+  });
+  await expect(suspensionBadge).toBeVisible();
+  expect(verticalCenterOffset).toBeLessThanOrEqual(1);
+  await captureStepScreenshot(page, testInfo, "admin-users-alignment-desktop");
+
+  await page.setViewportSize({ width: 1024, height: 768 });
+  await expect(table).toBeHidden();
+  const list = page.getByTestId("admin-users-mobile-list");
+  await expect(list).toBeVisible();
+  const metadataColumns = list.locator("dl").first().locator(":scope > div");
+  expect(["left", "start"]).toContain(
+    await metadataColumns
+      .nth(0)
+      .evaluate((node) => getComputedStyle(node).textAlign),
+  );
+  expect(
+    await metadataColumns
+      .nth(1)
+      .evaluate((node) => getComputedStyle(node).textAlign),
+  ).toBe("right");
+  expect(
+    await page.evaluate(() => document.documentElement.scrollWidth),
+  ).toBeLessThanOrEqual(1024);
+
+  await captureStepScreenshot(page, testInfo, "admin-users-alignment-tablet");
 });
 
 test("/admin/users 分页控件可进入下一页", async ({ page }, testInfo) => {
@@ -300,6 +393,26 @@ test("/admin/users 可创建默认时长封禁并通过 API 解除", async ({
     expect(typeof body.suspension?.id).toBe("string");
     suspensionId = body.suspension?.id;
     await captureStepScreenshot(page, testInfo, "admin-users-suspend-created");
+
+    await gotoAndWaitForReady(
+      page,
+      `/admin/users?search=${encodeURIComponent(usernames[0] ?? prefix)}`,
+    );
+    const suspendedDialog = await openAdminUserDialog(
+      page,
+      usernames[0] ?? prefix,
+    );
+    await suspendedDialog
+      .getByRole("button", { name: /更新封禁|Update suspension/i })
+      .click();
+    const updateDialog = page.getByRole("alertdialog", {
+      name: /替换当前封禁|Replace the active suspension/i,
+    });
+    await expect(updateDialog).toContainText(
+      /使用新的原因与到期时间创建替代记录|replaced with the new reason and expiration/i,
+    );
+    await updateDialog.getByRole("button", { name: /取消|Cancel/i }).click();
+    await expect(updateDialog).toBeHidden();
 
     const lift = await page.request.patch(
       `/api/admin/suspensions/${suspensionId}`,

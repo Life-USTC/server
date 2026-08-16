@@ -1,8 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const { getAccessRecordMock, resolveApiUserIdMock } = vi.hoisted(() => ({
+const { getAccessRecordMock, resolveSessionUserIdMock } = vi.hoisted(() => ({
   getAccessRecordMock: vi.fn(),
-  resolveApiUserIdMock: vi.fn(),
+  resolveSessionUserIdMock: vi.fn(),
 }));
 
 vi.mock("@/features/calendar/server/calendar-export-data", () => ({
@@ -10,7 +10,7 @@ vi.mock("@/features/calendar/server/calendar-export-data", () => ({
 }));
 
 vi.mock("@/lib/auth/api-auth", () => ({
-  resolveApiUserId: resolveApiUserIdMock,
+  resolveSessionUserId: resolveSessionUserIdMock,
 }));
 
 describe("personal calendar access", () => {
@@ -35,7 +35,7 @@ describe("personal calendar access", () => {
     });
 
     expect(access).toEqual({ ok: true, userId: "user-1" });
-    expect(resolveApiUserIdMock).not.toHaveBeenCalled();
+    expect(resolveSessionUserIdMock).not.toHaveBeenCalled();
   });
 
   it("rejects a revoked token before any rendered cache can be read", async () => {
@@ -61,7 +61,7 @@ describe("personal calendar access", () => {
         "private, max-age=60",
       );
     }
-    expect(resolveApiUserIdMock).not.toHaveBeenCalled();
+    expect(resolveSessionUserIdMock).not.toHaveBeenCalled();
   });
 
   it("returns 404 for an unknown user even when a feed token is present", async () => {
@@ -79,5 +79,29 @@ describe("personal calendar access", () => {
 
     expect(access.ok).toBe(false);
     if (!access.ok) expect(access.response.status).toBe(404);
+  });
+
+  it("account.client-activity bearer cannot read a user's private calendar", async () => {
+    getAccessRecordMock.mockResolvedValue({
+      id: "user-1",
+      calendarFeedToken: "private-feed-token",
+    });
+    resolveSessionUserIdMock.mockResolvedValue(null);
+    const { resolveUserCalendarAccess } = await import(
+      "@/lib/api/routes/calendar-route-user-access"
+    );
+    const request = new Request(
+      "https://example.test/api/calendar-feeds/user-1.ics",
+      { headers: { authorization: "Bearer account-activity-token" } },
+    );
+
+    const access = await resolveUserCalendarAccess({
+      rawUserId: "user-1",
+      request,
+    });
+
+    expect(access.ok).toBe(false);
+    if (!access.ok) expect(access.response.status).toBe(401);
+    expect(resolveSessionUserIdMock).toHaveBeenCalledWith(request);
   });
 });
