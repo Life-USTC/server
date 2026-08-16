@@ -6,7 +6,8 @@ import {
 } from "@/features/admin/lib/admin-audit-display";
 import PageHeader from "$lib/components/PageHeader.svelte";
 import { Button } from "$lib/components/ui/button/index.js";
-import * as Card from "$lib/components/ui/card/index.js";
+import * as Empty from "$lib/components/ui/empty/index.js";
+import * as Table from "$lib/components/ui/table/index.js";
 import type { PageData } from "./$types";
 
 export let data: PageData;
@@ -73,9 +74,11 @@ function failureLabel(count: number) {
   {/snippet}
 
   {#snippet controls()}
-    <Card.Root>
-      <Card.Header><Card.Title>{data.copy.analytics.window}</Card.Title></Card.Header>
-      <Card.Content class="flex flex-wrap gap-2">
+    <section aria-labelledby="analytics-window-title" class="grid gap-3 border-y py-4 sm:grid-cols-[1fr_auto] sm:items-center">
+      <h2 id="analytics-window-title" class="text-base font-semibold">
+        {data.copy.analytics.window}
+      </h2>
+      <nav class="flex flex-wrap gap-2" aria-label={data.copy.analytics.window}>
         {#each [7, 30, 90] as days}
           <Button
             href={`/admin/analytics?days=${days}`}
@@ -83,49 +86,45 @@ function failureLabel(count: number) {
             variant={data.days === days ? "default" : "outline"}
           >{daysLabel(days)}</Button>
         {/each}
-      </Card.Content>
-    </Card.Root>
+      </nav>
+    </section>
   {/snippet}
 
   {#snippet summary()}
-    <div class="grid grid-cols-2 gap-3 xl:grid-cols-4">
-      <Card.Root>
-        <Card.Header class="gap-1">
-          <Card.Description>{data.copy.analytics.total}</Card.Description>
-          <Card.Title class="text-2xl tabular-nums">{numberFormatter.format(data.summary.total)}</Card.Title>
-        </Card.Header>
-      </Card.Root>
-      <Card.Root>
-        <Card.Header class="gap-1">
-          <Card.Description>{data.copy.analytics.attention}</Card.Description>
-          <Card.Title class="text-2xl tabular-nums">{numberFormatter.format(attention)}</Card.Title>
-          <p class="text-xs text-muted-foreground">{data.copy.analytics.failureRate} {percentFormatter.format(failureRate)}</p>
-        </Card.Header>
-      </Card.Root>
-      <Card.Root>
-        <Card.Header class="gap-1">
-          <Card.Description>{data.copy.analytics.externalShare}</Card.Description>
-          <Card.Title class="text-2xl tabular-nums">{percentFormatter.format(externalShare)}</Card.Title>
-        </Card.Header>
-      </Card.Root>
-      <Card.Root>
-        <Card.Header class="gap-1">
-          <Card.Description>{data.copy.analytics.activeClients}</Card.Description>
-          <Card.Title class="text-2xl tabular-nums">{numberFormatter.format(data.summary.activeClients)}</Card.Title>
-        </Card.Header>
-      </Card.Root>
-    </div>
+    <dl class="grid grid-cols-2 gap-x-6 gap-y-5 border-y py-4 xl:grid-cols-4">
+      <div class="grid content-start gap-1">
+        <dt class="text-sm text-muted-foreground">{data.copy.analytics.total}</dt>
+        <dd class="text-2xl font-semibold tabular-nums">{numberFormatter.format(data.summary.total)}</dd>
+      </div>
+      <div class="grid content-start gap-1">
+        <dt class="text-sm text-muted-foreground">{data.copy.analytics.attention}</dt>
+        <dd class="text-2xl font-semibold tabular-nums">{numberFormatter.format(attention)}</dd>
+        <dd class="text-xs text-muted-foreground">{data.copy.analytics.failureRate} {percentFormatter.format(failureRate)}</dd>
+      </div>
+      <div class="grid content-start gap-1">
+        <dt class="text-sm text-muted-foreground">{data.copy.analytics.externalShare}</dt>
+        <dd class="text-2xl font-semibold tabular-nums">{percentFormatter.format(externalShare)}</dd>
+      </div>
+      <div class="grid content-start gap-1">
+        <dt class="text-sm text-muted-foreground">{data.copy.analytics.activeClients}</dt>
+        <dd class="text-2xl font-semibold tabular-nums">{numberFormatter.format(data.summary.activeClients)}</dd>
+      </div>
+    </dl>
   {/snippet}
 
   {#if data.summary.total === 0}
-    <Card.Root><Card.Content class="p-6 text-sm text-muted-foreground">{data.copy.analytics.noData}</Card.Content></Card.Root>
+    <Empty.Root class="items-start border-y px-0 text-left">
+      <Empty.Header class="items-start text-left">
+        <Empty.Title>{data.copy.analytics.noData}</Empty.Title>
+      </Empty.Header>
+    </Empty.Root>
   {:else}
-    <Card.Root>
-      <Card.Header>
-        <Card.Title>{data.copy.analytics.trend}</Card.Title>
-        <Card.Description>{data.copy.analytics.trendDescription}</Card.Description>
-      </Card.Header>
-      <Card.Content class="grid gap-4">
+    <section aria-labelledby="analytics-trend-heading" class="grid gap-4 border-y py-5">
+      <header class="grid gap-1">
+        <h2 id="analytics-trend-heading" class="text-lg font-semibold">{data.copy.analytics.trend}</h2>
+        <p class="text-sm text-muted-foreground">{data.copy.analytics.trendDescription}</p>
+      </header>
+      <div class="grid gap-4">
         <figure class="grid gap-3">
           <div class="flex flex-wrap gap-4 text-xs text-muted-foreground" aria-hidden="true">
             <span class="flex items-center gap-2"><span class="h-0.5 w-6 bg-primary"></span>{data.copy.analytics.totalSeries}</span>
@@ -152,46 +151,55 @@ function failureLabel(count: number) {
         <details class="rounded-md border px-3 py-2 text-sm">
           <summary class="cursor-pointer font-medium">{data.copy.analytics.dailyDetails}</summary>
           <div class="mt-3 max-h-72 overflow-auto">
-            <table class="w-full text-left text-sm">
-              <thead><tr class="border-b"><th class="py-2">{data.copy.audit.time}</th><th class="py-2 text-right">{data.copy.analytics.total}</th><th class="py-2 text-right">{data.copy.analytics.attention}</th></tr></thead>
-              <tbody>
+            <Table.Root>
+              <Table.Caption class="sr-only">{data.copy.analytics.dailyDetails}</Table.Caption>
+              <Table.Header>
+                <Table.Row>
+                  <Table.Head>{data.copy.audit.time}</Table.Head>
+                  <Table.Head class="text-right">{data.copy.analytics.total}</Table.Head>
+                  <Table.Head class="text-right">{data.copy.analytics.attention}</Table.Head>
+                </Table.Row>
+              </Table.Header>
+              <Table.Body>
                 {#each data.daily as entry}
-                  <tr class="border-b last:border-0"><td class="py-2">{entry.day}</td><td class="py-2 text-right tabular-nums">{numberFormatter.format(entry.total)}</td><td class="py-2 text-right tabular-nums">{numberFormatter.format(entry.denied + entry.failure)}</td></tr>
+                  <Table.Row>
+                    <Table.Cell>{entry.day}</Table.Cell>
+                    <Table.Cell class="text-right tabular-nums">{numberFormatter.format(entry.total)}</Table.Cell>
+                    <Table.Cell class="text-right tabular-nums">{numberFormatter.format(entry.denied + entry.failure)}</Table.Cell>
+                  </Table.Row>
                 {/each}
-              </tbody>
-            </table>
+              </Table.Body>
+            </Table.Root>
           </div>
         </details>
-      </Card.Content>
-    </Card.Root>
+      </div>
+    </section>
 
     <section aria-labelledby="analytics-rankings-title" class="grid gap-3">
       <h2 id="analytics-rankings-title" class="text-lg font-semibold">{data.copy.analytics.rankings}</h2>
-      <div class="grid gap-4 xl:grid-cols-3">
+      <div class="grid divide-y border-y xl:grid-cols-3 xl:divide-x xl:divide-y-0">
         {#each [
           { title: data.copy.analytics.topFeatures, kind: "feature", rows: data.rankings.features },
           { title: data.copy.analytics.topChannels, kind: "channel", rows: data.rankings.channels },
           { title: data.copy.analytics.topClients, kind: "client", rows: data.rankings.clients },
         ] as ranking}
-          <Card.Root>
-            <Card.Header><Card.Title class="text-base">{ranking.title}</Card.Title></Card.Header>
-            <Card.Content>
-              <ol class="grid gap-3">
-                {#each ranking.rows as row}
-                  <li class="grid gap-1.5">
-                    <div class="flex items-baseline justify-between gap-3 text-sm">
-                      <span class="truncate font-medium">{rankingLabel(ranking.kind as "channel" | "client" | "feature", row.label)}</span>
-                      <span class="shrink-0 tabular-nums">{numberFormatter.format(row.count)}</span>
-                    </div>
-                    <div class="h-1.5 overflow-hidden rounded-full bg-muted" aria-hidden="true">
-                      <div class="h-full rounded-full bg-primary" style={`width: ${Math.max(2, (row.count / ranking.rows[0].count) * 100)}%`}></div>
-                    </div>
-                    {#if row.failures > 0}<span class="text-xs text-destructive">{failureLabel(row.failures)}</span>{/if}
-                  </li>
-                {/each}
-              </ol>
-            </Card.Content>
-          </Card.Root>
+          <section class="grid content-start gap-4 py-5 xl:px-5 xl:first:pl-0 xl:last:pr-0">
+            <h3 class="text-base font-semibold">{ranking.title}</h3>
+            <ol class="grid gap-3">
+              {#each ranking.rows as row}
+                <li class="grid gap-1.5">
+                  <div class="flex items-baseline justify-between gap-3 text-sm">
+                    <span class="truncate font-medium">{rankingLabel(ranking.kind as "channel" | "client" | "feature", row.label)}</span>
+                    <span class="shrink-0 tabular-nums">{numberFormatter.format(row.count)}</span>
+                  </div>
+                  <div class="h-1.5 overflow-hidden rounded-full bg-muted" aria-hidden="true">
+                    <div class="h-full rounded-full bg-primary" style={`width: ${Math.max(2, (row.count / ranking.rows[0].count) * 100)}%`}></div>
+                  </div>
+                  {#if row.failures > 0}<span class="text-xs text-destructive">{failureLabel(row.failures)}</span>{/if}
+                </li>
+              {/each}
+            </ol>
+          </section>
         {/each}
       </div>
     </section>

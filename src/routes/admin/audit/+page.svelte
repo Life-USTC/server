@@ -10,8 +10,12 @@ import {
 import PageHeader from "$lib/components/PageHeader.svelte";
 import { Badge } from "$lib/components/ui/badge/index.js";
 import { Button } from "$lib/components/ui/button/index.js";
-import * as Card from "$lib/components/ui/card/index.js";
+import * as Empty from "$lib/components/ui/empty/index.js";
+import * as Field from "$lib/components/ui/field/index.js";
+import { Input } from "$lib/components/ui/input/index.js";
 import * as Item from "$lib/components/ui/item/index.js";
+import * as NativeSelect from "$lib/components/ui/native-select/index.js";
+import * as Table from "$lib/components/ui/table/index.js";
 import type { PageData } from "./$types";
 
 export let data: PageData;
@@ -66,46 +70,110 @@ function displayValue(value: unknown) {
   {/snippet}
 
   {#snippet controls()}
-    <Card.Root>
-      <Card.Header><Card.Title>{data.copy.audit.filters}</Card.Title></Card.Header>
-      <Card.Content>
-        <form method="GET" class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          <label class="grid gap-1 text-sm">{data.copy.audit.action}<select class="h-10 rounded-md border bg-background px-3" name="action"><option value="">{data.copy.audit.all}</option>{#each data.actions as action}<option value={action} selected={data.filters.action === action}>{auditActionLabel(data.locale, action)}</option>{/each}</select></label>
-          <label class="grid gap-1 text-sm">{data.copy.audit.outcome}<select class="h-10 rounded-md border bg-background px-3" name="outcome"><option value="">{data.copy.audit.all}</option>{#each data.outcomes as outcome}<option value={outcome} selected={data.filters.outcome === outcome}>{auditOutcomeLabel(data.locale, outcome)}</option>{/each}</select></label>
-          <label class="grid gap-1 text-sm">{data.copy.audit.channel}<select class="h-10 rounded-md border bg-background px-3" name="channel"><option value="">{data.copy.audit.all}</option>{#each data.channels as channel}<option value={channel} selected={data.filters.channel === channel}>{auditChannelLabel(data.locale, channel)}</option>{/each}</select></label>
-          <div class="grid grid-cols-2 gap-3">
-            <label class="grid gap-1 text-sm">{data.copy.audit.from}<input class="h-10 min-w-0 rounded-md border bg-transparent px-2" type="date" name="from" value={data.filters.from ?? ""} /></label>
-            <label class="grid gap-1 text-sm">{data.copy.audit.to}<input class="h-10 min-w-0 rounded-md border bg-transparent px-2" type="date" name="to" value={data.filters.to ?? ""} /></label>
+    <section aria-labelledby="audit-filters-title" class="grid gap-4 border-y py-4">
+      <h2 id="audit-filters-title" class="text-base font-semibold">
+        {data.copy.audit.filters}
+      </h2>
+      <form method="GET">
+        <Field.Group class="gap-4">
+          <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
+            <Field.Field>
+              <Field.Label for="audit-action">{data.copy.audit.action}</Field.Label>
+              <NativeSelect.Root class="w-full" id="audit-action" name="action">
+                <NativeSelect.Option value="">{data.copy.audit.all}</NativeSelect.Option>
+                {#each data.actions as action}
+                  <NativeSelect.Option value={action} selected={data.filters.action === action}>
+                    {auditActionLabel(data.locale, action)}
+                  </NativeSelect.Option>
+                {/each}
+              </NativeSelect.Root>
+            </Field.Field>
+            <Field.Field>
+              <Field.Label for="audit-outcome">{data.copy.audit.outcome}</Field.Label>
+              <NativeSelect.Root class="w-full" id="audit-outcome" name="outcome">
+                <NativeSelect.Option value="">{data.copy.audit.all}</NativeSelect.Option>
+                {#each data.outcomes as outcome}
+                  <NativeSelect.Option value={outcome} selected={data.filters.outcome === outcome}>
+                    {auditOutcomeLabel(data.locale, outcome)}
+                  </NativeSelect.Option>
+                {/each}
+              </NativeSelect.Root>
+            </Field.Field>
+            <Field.Field>
+              <Field.Label for="audit-channel">{data.copy.audit.channel}</Field.Label>
+              <NativeSelect.Root class="w-full" id="audit-channel" name="channel">
+                <NativeSelect.Option value="">{data.copy.audit.all}</NativeSelect.Option>
+                {#each data.channels as channel}
+                  <NativeSelect.Option value={channel} selected={data.filters.channel === channel}>
+                    {auditChannelLabel(data.locale, channel)}
+                  </NativeSelect.Option>
+                {/each}
+              </NativeSelect.Root>
+            </Field.Field>
+            <Field.Field>
+              <Field.Label for="audit-from">{data.copy.audit.from}</Field.Label>
+              <Input id="audit-from" type="date" name="from" value={data.filters.from ?? ""} />
+            </Field.Field>
+            <Field.Field>
+              <Field.Label for="audit-to">{data.copy.audit.to}</Field.Label>
+              <Input id="audit-to" type="date" name="to" value={data.filters.to ?? ""} />
+            </Field.Field>
           </div>
-          <details class="sm:col-span-2 lg:col-span-4">
-            <summary class="cursor-pointer py-2 text-sm font-medium">{data.copy.audit.advancedFilters}</summary>
-            <div class="grid gap-3 pt-2 sm:grid-cols-2 lg:grid-cols-4">
-              <label class="grid gap-1 text-sm">{data.copy.audit.actor}<input class="h-10 rounded-md border bg-transparent px-3" name="actor" value={data.filters.actor ?? ""} /></label>
-              <label class="grid gap-1 text-sm">{data.copy.audit.subject}<input class="h-10 rounded-md border bg-transparent px-3" name="subject" value={data.filters.subject ?? ""} /></label>
-              <label class="grid gap-1 text-sm">{data.copy.audit.client}<input class="h-10 rounded-md border bg-transparent px-3" name="client" value={data.filters.client ?? ""} /></label>
-              <label class="grid gap-1 text-sm">{data.copy.audit.targetType}<input class="h-10 rounded-md border bg-transparent px-3" name="targetType" value={data.filters.targetType ?? ""} /></label>
-              <label class="grid gap-1 text-sm sm:col-span-2">{data.copy.audit.targetId}<input class="h-10 rounded-md border bg-transparent px-3" name="targetId" value={data.filters.targetId ?? ""} /></label>
+
+          <details>
+            <summary class="cursor-pointer py-1 text-sm font-medium">
+              {data.copy.audit.advancedFilters}
+            </summary>
+            <div class="grid gap-4 pt-4 sm:grid-cols-2 xl:grid-cols-5">
+              <Field.Field>
+                <Field.Label for="audit-actor">{data.copy.audit.actor}</Field.Label>
+                <Input id="audit-actor" name="actor" value={data.filters.actor ?? ""} />
+              </Field.Field>
+              <Field.Field>
+                <Field.Label for="audit-subject">{data.copy.audit.subject}</Field.Label>
+                <Input id="audit-subject" name="subject" value={data.filters.subject ?? ""} />
+              </Field.Field>
+              <Field.Field>
+                <Field.Label for="audit-client">{data.copy.audit.client}</Field.Label>
+                <Input id="audit-client" name="client" value={data.filters.client ?? ""} />
+              </Field.Field>
+              <Field.Field>
+                <Field.Label for="audit-target-type">{data.copy.audit.targetType}</Field.Label>
+                <Input id="audit-target-type" name="targetType" value={data.filters.targetType ?? ""} />
+              </Field.Field>
+              <Field.Field>
+                <Field.Label for="audit-target-id">{data.copy.audit.targetId}</Field.Label>
+                <Input id="audit-target-id" name="targetId" value={data.filters.targetId ?? ""} />
+              </Field.Field>
             </div>
           </details>
-          <div class="flex gap-2 sm:col-span-2 lg:col-span-4">
+
+          <Field.Field orientation="horizontal" class="gap-2">
             <Button class="flex-1 sm:flex-none" type="submit">{data.copy.audit.apply}</Button>
             <Button class="flex-1 sm:flex-none" href="/admin/audit" variant="outline">{data.copy.audit.clear}</Button>
-          </div>
-        </form>
-      </Card.Content>
-    </Card.Root>
+          </Field.Field>
+        </Field.Group>
+      </form>
+    </section>
   {/snippet}
 
-  <Card.Root>
-    <Card.Header>
-      <Card.Title>{data.copy.audit.records}</Card.Title>
-      <Card.Description>{pageLabel()}</Card.Description>
-    </Card.Header>
-    <Card.Content class="p-0">
+  <section aria-labelledby="audit-records-title" class="grid gap-3">
+    <div class="flex flex-wrap items-end justify-between gap-2">
+      <div class="grid gap-1">
+        <h2 id="audit-records-title" class="text-lg font-semibold">{data.copy.audit.records}</h2>
+        <p class="text-sm text-muted-foreground">{pageLabel()}</p>
+      </div>
+    </div>
+
+    <div class="min-w-0 border-y">
       {#if data.rows.length === 0}
-        <p class="p-6 text-sm text-muted-foreground">{data.copy.audit.noRecords}</p>
+        <Empty.Root class="items-start px-0 text-left">
+          <Empty.Header class="items-start text-left">
+            <Empty.Title>{data.copy.audit.noRecords}</Empty.Title>
+          </Empty.Header>
+        </Empty.Root>
       {:else}
-        <Item.Group class="grid gap-3 p-4 md:hidden" role="list">
+        <Item.Group class="grid gap-3 py-4 xl:hidden" role="list">
           {#each data.rows as row (row.id)}
             {@const actor = identity(row.user)}
             {@const subject = identity(row.subjectUser)}
@@ -125,9 +193,14 @@ function displayValue(value: unknown) {
                   {#if row.oauthClientId}<div><dt class="text-muted-foreground">{data.copy.audit.clientColumn}</dt><dd>{row.clientName ?? row.oauthClientId}</dd></div>{/if}
                   {#if row.targetType}<div><dt class="text-muted-foreground">{data.copy.audit.target}</dt><dd>{auditTargetLabel(data.locale, row.targetType)}{row.targetId ? ` · ${row.targetId}` : ""}</dd></div>{/if}
                   {#if row.metadata}
-                    {#each Object.entries(row.metadata) as [key, value]}
-                      <div><dt class="text-muted-foreground">{auditMetadataLabel(data.locale, key)}</dt><dd class="break-words">{displayValue(value)}</dd></div>
-                    {/each}
+                    <details class="pt-1">
+                      <summary class="cursor-pointer font-medium">{data.copy.audit.details}</summary>
+                      <div class="grid gap-2 pt-2">
+                        {#each Object.entries(row.metadata) as [key, value]}
+                          <div><dt class="text-muted-foreground">{auditMetadataLabel(data.locale, key)}</dt><dd class="break-words">{displayValue(value)}</dd></div>
+                        {/each}
+                      </div>
+                    </details>
                   {/if}
                 </dl>
               </Item.Footer>
@@ -136,36 +209,55 @@ function displayValue(value: unknown) {
         </Item.Group>
 
         <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
-        <div class="hidden overflow-x-auto md:block" tabindex="0" role="region" aria-label={data.copy.audit.records}>
-          <table class="w-full min-w-[980px] text-left text-sm">
-            <thead class="border-b bg-muted/40"><tr><th class="p-3">{data.copy.audit.time}</th><th class="p-3">{data.copy.audit.action}</th><th class="p-3">{data.copy.audit.actorColumn}</th><th class="p-3">{data.copy.audit.subjectColumn}</th><th class="p-3">{data.copy.audit.clientColumn}</th><th class="p-3">{data.copy.audit.channel}</th><th class="p-3">{data.copy.audit.outcome}</th><th class="p-3">{data.copy.audit.target}</th><th class="p-3">{data.copy.audit.details}</th></tr></thead>
-            <tbody>
+        <div
+          class="hidden min-w-0 max-w-full overflow-x-auto [&>[data-slot=table-container]]:overflow-visible xl:block"
+          tabindex="0"
+          role="region"
+          aria-label={data.copy.audit.records}
+        >
+          <Table.Root class="min-w-[1100px]">
+            <Table.Caption class="sr-only">{data.copy.audit.records}</Table.Caption>
+            <Table.Header>
+              <Table.Row>
+                <Table.Head>{data.copy.audit.time}</Table.Head>
+                <Table.Head>{data.copy.audit.action}</Table.Head>
+                <Table.Head>{data.copy.audit.actorColumn}</Table.Head>
+                <Table.Head>{data.copy.audit.subjectColumn}</Table.Head>
+                <Table.Head>{data.copy.audit.clientColumn}</Table.Head>
+                <Table.Head>{data.copy.audit.channel}</Table.Head>
+                <Table.Head>{data.copy.audit.outcome}</Table.Head>
+                <Table.Head>{data.copy.audit.target}</Table.Head>
+                <Table.Head>{data.copy.audit.details}</Table.Head>
+              </Table.Row>
+            </Table.Header>
+            <Table.Body>
               {#each data.rows as row (row.id)}
                 {@const actor = identity(row.user)}
                 {@const subject = identity(row.subjectUser)}
-                <tr class="border-b align-top last:border-0">
-                  <td class="whitespace-nowrap p-3">{formatDate.format(new Date(row.createdAt))}</td>
-                  <td class="p-3">{auditActionLabel(data.locale, row.action)}</td>
-                  <td class="p-3">{actor?.label ?? "—"}{#if actor}<span class="block max-w-44 truncate font-mono text-xs text-muted-foreground">{actor.id}</span>{/if}</td>
-                  <td class="p-3">{subject?.label ?? "—"}{#if subject}<span class="block max-w-44 truncate font-mono text-xs text-muted-foreground">{subject.id}</span>{/if}</td>
-                  <td class="p-3">{row.clientName ?? row.oauthClientId ?? "—"}</td>
-                  <td class="p-3">{auditChannelLabel(data.locale, row.channel)}</td>
-                  <td class="p-3"><Badge variant={row.outcome === "success" ? "secondary" : "destructive"}>{auditOutcomeLabel(data.locale, row.outcome)}</Badge></td>
-                  <td class="p-3">{row.targetType ? auditTargetLabel(data.locale, row.targetType) : "—"}{row.targetId ? ` · ${row.targetId}` : ""}</td>
-                  <td class="max-w-72 p-3 text-xs">{#if row.metadata}<dl class="grid gap-1">{#each Object.entries(row.metadata) as [key, value]}<div><dt class="inline text-muted-foreground">{auditMetadataLabel(data.locale, key)}: </dt><dd class="inline break-words">{displayValue(value)}</dd></div>{/each}</dl>{:else}—{/if}</td>
-                </tr>
+                <Table.Row class="align-top">
+                  <Table.Cell class="whitespace-nowrap">{formatDate.format(new Date(row.createdAt))}</Table.Cell>
+                  <Table.Cell>{auditActionLabel(data.locale, row.action)}</Table.Cell>
+                  <Table.Cell>{actor?.label ?? "—"}{#if actor}<span class="block max-w-44 truncate font-mono text-xs text-muted-foreground">{actor.id}</span>{/if}</Table.Cell>
+                  <Table.Cell>{subject?.label ?? "—"}{#if subject}<span class="block max-w-44 truncate font-mono text-xs text-muted-foreground">{subject.id}</span>{/if}</Table.Cell>
+                  <Table.Cell>{row.clientName ?? row.oauthClientId ?? "—"}</Table.Cell>
+                  <Table.Cell>{auditChannelLabel(data.locale, row.channel)}</Table.Cell>
+                  <Table.Cell><Badge variant={row.outcome === "success" ? "secondary" : "destructive"}>{auditOutcomeLabel(data.locale, row.outcome)}</Badge></Table.Cell>
+                  <Table.Cell>{row.targetType ? auditTargetLabel(data.locale, row.targetType) : "—"}{row.targetId ? ` · ${row.targetId}` : ""}</Table.Cell>
+                  <Table.Cell class="max-w-72 text-xs">{#if row.metadata}<dl class="grid gap-1">{#each Object.entries(row.metadata) as [key, value]}<div><dt class="inline text-muted-foreground">{auditMetadataLabel(data.locale, key)}: </dt><dd class="inline break-words">{displayValue(value)}</dd></div>{/each}</dl>{:else}—{/if}</Table.Cell>
+                </Table.Row>
               {/each}
-            </tbody>
-          </table>
+            </Table.Body>
+          </Table.Root>
         </div>
       {/if}
-    </Card.Content>
-    <Card.Footer class="flex-col items-stretch gap-3 sm:flex-row sm:items-center sm:justify-end">
+    </div>
+
+    <footer class="flex flex-col items-stretch gap-3 sm:flex-row sm:items-center sm:justify-end">
       <span class="text-sm text-muted-foreground">{pageLabel()}</span>
       <div class="flex gap-2">
         {#if data.pagination.hasCursor}<Button class="flex-1" href="/admin/audit" variant="ghost">{data.copy.audit.newest}</Button>{/if}
         {#if data.pagination.nextCursor}<Button class="flex-1" href={nextHref(data.pagination.nextCursor)} variant="outline">{data.copy.audit.next}</Button>{/if}
       </div>
-    </Card.Footer>
-  </Card.Root>
+    </footer>
+  </section>
 </AdminWorkspace>

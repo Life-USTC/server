@@ -176,9 +176,7 @@ onMount(() => {
     clientTypeLabel={_clientTypeLabel}
     clients={data.clients}
     copy={_copy}
-    createDisabled={!_isMounted}
     formatCreatedAt={_formatCreatedAt}
-    onCreate={_openCreateDialog}
     onDelete={(client) => {
       pendingDeleteClient = client;
     }}
