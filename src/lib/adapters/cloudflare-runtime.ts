@@ -239,6 +239,7 @@ export function runWithCloudflareRuntimeEnv<T>(
   callback: () => T | Promise<T>,
   executionContext?: unknown,
 ): Promise<T> {
+  const parentContext = cloudflareRuntimeStorage.getStore();
   const tracing =
     executionContext &&
     typeof executionContext === "object" &&
@@ -248,13 +249,15 @@ export function runWithCloudflareRuntimeEnv<T>(
     "enterSpan" in executionContext.tracing &&
     typeof executionContext.tracing.enterSpan === "function"
       ? (executionContext.tracing as CloudflareTracing)
-      : undefined;
+      : parentContext?.tracing;
   const context: CloudflareRuntimeContext = {
     cache: new Map(),
     cacheStorage: normalizeCloudflareCacheStorage(),
     cleanups: new Set(),
-    env: normalizeCloudflareRuntimeEnv(env),
-    scheduleTask: normalizeCloudflareTaskScheduler(executionContext),
+    env: normalizeCloudflareRuntimeEnv(env) ?? parentContext?.env,
+    scheduleTask:
+      normalizeCloudflareTaskScheduler(executionContext) ??
+      parentContext?.scheduleTask,
     tracing,
   };
 

@@ -1,10 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createDeferred } from "../shared/deferred";
 
-const { getAuditQueueMock, getRequestEventMock, logAppEventMock, prismaMock } =
+const { getAuditQueueMock, getTaskSchedulerMock, logAppEventMock, prismaMock } =
   vi.hoisted(() => ({
     getAuditQueueMock: vi.fn(),
-    getRequestEventMock: vi.fn(),
+    getTaskSchedulerMock: vi.fn(),
     logAppEventMock: vi.fn(),
     prismaMock: {
       auditLog: {
@@ -12,10 +12,6 @@ const { getAuditQueueMock, getRequestEventMock, logAppEventMock, prismaMock } =
       },
     },
   }));
-
-vi.mock("$app/server", () => ({
-  getRequestEvent: getRequestEventMock,
-}));
 
 vi.mock("@/lib/db/prisma", () => ({
   prisma: prismaMock,
@@ -26,6 +22,7 @@ vi.mock("@/lib/adapters/cloudflare-runtime", async (importOriginal) => ({
     typeof import("@/lib/adapters/cloudflare-runtime")
   >()),
   getCloudflareAuditLogWriteQueue: getAuditQueueMock,
+  getCloudflareRuntimeTaskScheduler: getTaskSchedulerMock,
 }));
 
 vi.mock("@/lib/log/app-logger", () => ({
@@ -42,8 +39,8 @@ const auditParams = {
 
 describe("fireAuditLog", () => {
   beforeEach(() => {
-    getRequestEventMock.mockReset();
     getAuditQueueMock.mockReset();
+    getTaskSchedulerMock.mockReset();
     logAppEventMock.mockReset();
     prismaMock.auditLog.createMany.mockReset();
     vi.resetModules();
@@ -52,9 +49,6 @@ describe("fireAuditLog", () => {
   it("generates one stable ID in the producer envelope", async () => {
     const queueSend = vi.fn().mockResolvedValue(undefined);
     getAuditQueueMock.mockReturnValue({ send: queueSend });
-    getRequestEventMock.mockImplementation(() => {
-      throw new Error("outside request");
-    });
     const { fireAuditLog } = await import("@/lib/audit/write-audit-log");
 
     await fireAuditLog(auditParams);
@@ -82,13 +76,7 @@ describe("fireAuditLog", () => {
 
   it("在调度 Worker waitUntil 后完成，无需等待审计写入", async () => {
     const waitUntilMock = vi.fn();
-    getRequestEventMock.mockReturnValue({
-      platform: {
-        ctx: {
-          waitUntil: waitUntilMock,
-        },
-      },
-    });
+    getTaskSchedulerMock.mockReturnValue(waitUntilMock);
     const auditWrite = createDeferred<unknown>();
     prismaMock.auditLog.createMany.mockReturnValue(auditWrite.promise);
     const { fireAuditLog } = await import("@/lib/audit/write-audit-log");
@@ -116,13 +104,7 @@ describe("fireAuditLog", () => {
   it("记录已调度审计写入失败", async () => {
     const writeError = new Error("database unavailable");
     const waitUntilMock = vi.fn();
-    getRequestEventMock.mockReturnValue({
-      platform: {
-        ctx: {
-          waitUntil: waitUntilMock,
-        },
-      },
-    });
+    getTaskSchedulerMock.mockReturnValue(waitUntilMock);
     prismaMock.auditLog.createMany.mockRejectedValueOnce(writeError);
     const { fireAuditLog } = await import("@/lib/audit/write-audit-log");
 
@@ -144,9 +126,6 @@ describe("fireAuditLog", () => {
   });
 
   it("当 waitUntil 不可用时等待审计写入", async () => {
-    getRequestEventMock.mockImplementation(() => {
-      throw new Error("outside request");
-    });
     const auditWrite = createDeferred<unknown>();
     prismaMock.auditLog.createMany.mockReturnValue(auditWrite.promise);
     const { fireAuditLog } = await import("@/lib/audit/write-audit-log");

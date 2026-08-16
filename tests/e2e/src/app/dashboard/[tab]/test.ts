@@ -72,7 +72,10 @@ test("/workspace 别名需要登录", async ({ page }, testInfo) => {
   await captureStepScreenshot(page, testInfo, "dashboard-homeworks-unauth");
 });
 
-test("/workspace/homeworks 加载登录标签", async ({ page }, testInfo) => {
+test("匿名工作区重定向后仍可登录并加载标签", async ({ page }, testInfo) => {
+  // Regression: the anonymous workspace module must not initialize Better
+  // Auth in a request context that ends with the sign-in redirect.
+  await expectRequiresSignIn(page, "/workspace/homeworks");
   await signInAsDebugUser(page, "/workspace/homeworks");
   await gotoAndWaitForReady(page, "/workspace/homeworks", {
     testInfo,

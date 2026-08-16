@@ -6,7 +6,6 @@ import {
   parsePositiveCalendarSemester,
   parseSnapshotReferenceTime,
 } from "@/features/dashboard/server/dashboard-page-server";
-import { resolveAuthoritativeRecentSession } from "@/lib/auth/recent-session";
 import { logAppEvent } from "@/lib/log/app-logger";
 
 function recordDashboardLoadFinish(input: {
@@ -44,6 +43,12 @@ export async function loadSignedDashboardPage({
       : undefined;
   const referenceNow = parseSnapshotReferenceTime(
     url.searchParams.get("snapshotAt"),
+  );
+  // Keep the auth module out of anonymous workspace requests. Cloudflare can
+  // otherwise evaluate Better Auth in the redirecting request's I/O context
+  // before the first authenticated request initializes it.
+  const { resolveAuthoritativeRecentSession } = await import(
+    "@/lib/auth/recent-session"
   );
   const recent = await resolveAuthoritativeRecentSession(request.headers, {
     expectedUserId: userId,
