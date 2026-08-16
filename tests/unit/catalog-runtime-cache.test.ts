@@ -21,11 +21,12 @@ describe("catalog runtime cache keys", () => {
     expect(
       publicCatalogColoCacheKey(
         "https://life.example",
+        "rev123",
         "search:catalog:v4:zh-cn",
         "5:数学分析",
       ),
     ).toBe(
-      "https://life.example/_life-ustc-internal-cache/catalog-runtime/v1/search%3Acatalog%3Av4%3Azh-cn/5%3A%E6%95%B0%E5%AD%A6%E5%88%86%E6%9E%90",
+      "https://life.example/_life-ustc-internal-cache/catalog-runtime/v1/rev123/search%3Acatalog%3Av4%3Azh-cn/5%3A%E6%95%B0%E5%AD%A6%E5%88%86%E6%9E%90",
     );
   });
 

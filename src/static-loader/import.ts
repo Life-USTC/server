@@ -16,6 +16,7 @@ import { acquireStaticImportLock } from "./import-lock";
 import {
   assertStaticImportStateAllowsSnapshot,
   recordStaticImportState,
+  STATIC_IMPORT_TRANSFORM_REVISION,
 } from "./import-state";
 import { loadScheduleInfrastructure } from "./infrastructure-plan";
 import type {
@@ -135,6 +136,7 @@ export async function runImport(
         return assertStaticImportStateAllowsSnapshot(tx, {
           observedAt: snapshotGeneratedAt,
           snapshotSha256: config.snapshotSha256,
+          transformRevision: STATIC_IMPORT_TRANSFORM_REVISION,
         });
       },
       { maxWait: 60_000, timeout: 60_000 },
@@ -260,6 +262,7 @@ export async function runImport(
       assertStaticImportStateAllowsSnapshot(tx, {
         observedAt,
         snapshotSha256: config.snapshotSha256,
+        transformRevision: STATIC_IMPORT_TRANSFORM_REVISION,
       }),
     );
     if (alreadyImported && !config.dryRun) {
@@ -438,6 +441,7 @@ export async function runImport(
       recordStaticImportState(tx, {
         observedAt,
         snapshotSha256: config.snapshotSha256,
+        transformRevision: STATIC_IMPORT_TRANSFORM_REVISION,
       }),
     );
 

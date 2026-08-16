@@ -19,7 +19,6 @@ import { cachedPublicDetailRuntimeData } from "@/lib/catalog-detail-runtime-cach
 import { getPrisma } from "@/lib/db/prisma";
 import { toLocalizedNameDto } from "@/lib/localized-name";
 import { toShanghaiIsoString } from "@/lib/time/serialize-date-output";
-import { serializeScheduleTimeFields } from "@/shared/lib/schedule-serialization";
 import { formatTime } from "@/shared/lib/time-utils";
 import {
   type CourseSummaryRecord,
@@ -347,25 +346,7 @@ export async function findSectionDetailByJwId(
         include: buildPartialSectionDetailInclude(options),
       });
 
-      if (!section) return null;
-
-      return {
-        ...section,
-        exams: "exams" in section && section.exams ? section.exams : [],
-        scheduleGroups:
-          "scheduleGroups" in section && section.scheduleGroups
-            ? section.scheduleGroups
-            : [],
-        schedules:
-          "schedules" in section && section.schedules
-            ? section.schedules.map(serializeScheduleTimeFields)
-            : [],
-        teacherAssignments:
-          "teacherAssignments" in section && section.teacherAssignments
-            ? section.teacherAssignments
-            : [],
-        teachers: section.teachers ?? [],
-      };
+      return section ? toSectionDetailDto(section, locale) : null;
     },
   });
 }
@@ -380,21 +361,20 @@ function buildPartialSectionDetailInclude(options: {
   return {
     ...sectionInclude,
     roomType: true,
-    schedules: includeSchedules,
-    scheduleGroups: includeSchedules,
+    schedules: { take: includeSchedules ? undefined : 0 },
+    scheduleGroups: { take: includeSchedules ? undefined : 0 },
     teachers: { select: teacherPublicReferenceSelect },
-    teacherAssignments:
-      options.includeTeacherDepartments === true
-        ? { select: teacherAssignmentPublicSelect }
-        : false,
-    exams: includeExams
-      ? {
-          include: {
-            examBatch: true,
-            examRooms: true,
-          },
-        }
-      : false,
+    teacherAssignments: {
+      take: options.includeTeacherDepartments === true ? undefined : 0,
+      select: teacherAssignmentPublicSelect,
+    },
+    exams: {
+      take: includeExams ? undefined : 0,
+      include: {
+        examBatch: true,
+        examRooms: true,
+      },
+    },
   } as const;
 }
 

@@ -1,6 +1,7 @@
 /// <reference path="../../src/static-loader/bun-sqlite.d.ts" />
 
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { STATIC_IMPORT_TRANSFORM_REVISION } from "@/static-loader/import-state";
 
 const GENERATED_AT = "2026-07-18T03:00:00.000Z";
 const SNAPSHOT_SHA = "a".repeat(64);
@@ -44,6 +45,7 @@ function completedSnapshotTransaction() {
       findUnique: vi.fn().mockResolvedValue({
         snapshotGeneratedAt: new Date(GENERATED_AT),
         snapshotSha256: SNAPSHOT_SHA,
+        transformRevision: STATIC_IMPORT_TRANSFORM_REVISION,
       }),
     },
     semester: { count },

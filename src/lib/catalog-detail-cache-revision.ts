@@ -26,7 +26,7 @@ export async function getCatalogDetailCacheRevision() {
       try {
         const state = await prisma.staticImportState.findUnique({
           where: { id: "global" },
-          select: { snapshotSha256: true },
+          select: { snapshotSha256: true, updatedAt: true },
         });
         span?.setAttribute("cache.outcome", "success");
         return state;
@@ -36,7 +36,9 @@ export async function getCatalogDetailCacheRevision() {
       }
     },
   );
-  const value = state?.snapshotSha256?.slice(0, 16) ?? BOOTSTRAP_REVISION;
+  const value = state
+    ? `${state.snapshotSha256.slice(0, 16)}-${state.updatedAt.getTime().toString(36)}`
+    : BOOTSTRAP_REVISION;
   cachedRevision = { expiresAt: now + REVISION_CACHE_TTL_MS, value };
   return value;
 }
