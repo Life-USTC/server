@@ -52,7 +52,9 @@ export async function getCurrentCalendarSubscriptionRoute(request: Request) {
       request,
       async () => {
         const { getCalendarSubscriptionUrl, getUserCalendarSubscription } =
-          await import("@/features/subscriptions/server/subscription-read-model");
+          await import(
+            "@/features/subscriptions/server/subscription-read-model"
+          );
         const revealCalendarFeed =
           auth.kind === "oauth" &&
           hasRequiredFeatureScope(auth.scopes, {
@@ -140,8 +142,9 @@ export async function postCalendarSubscriptionsRoute(request: Request) {
     }
 
     const sectionIds = parsedBody.sectionIds ?? [];
-    const { replaceUserSectionSubscriptions } =
-      await import("@/features/subscriptions/server/subscriptions");
+    const { replaceUserSectionSubscriptions } = await import(
+      "@/features/subscriptions/server/subscriptions"
+    );
     const subscription = await replaceUserSectionSubscriptions(
       userId,
       sectionIds,
@@ -179,8 +182,9 @@ export async function postCalendarSubscriptionQueryRoute(request: Request) {
       return badRequest("semesterId must be a valid number");
     }
 
-    const { resolveCalendarSubscriptionSections } =
-      await import("@/features/subscriptions/server/subscriptions");
+    const { resolveCalendarSubscriptionSections } = await import(
+      "@/features/subscriptions/server/subscriptions"
+    );
     const result = await resolveCalendarSubscriptionSections({
       codes: parsedBody.codes,
       locale: getRequestLocale(request),
@@ -222,8 +226,9 @@ export async function postCalendarSubscriptionBatchRoute(request: Request) {
       return badRequest("semesterId must be a valid number");
     }
 
-    const { batchUpdateUserSectionSubscriptions } =
-      await import("@/features/subscriptions/server/subscriptions");
+    const { batchUpdateUserSectionSubscriptions } = await import(
+      "@/features/subscriptions/server/subscriptions"
+    );
     const result = await batchUpdateUserSectionSubscriptions({
       action: parsedBody.action,
       codes: parsedBody.codes,
@@ -259,8 +264,9 @@ export async function postCalendarSubscriptionImportCodesRoute(
     }
 
     const locale = getRequestLocale(request);
-    const { importUserSectionSubscriptionsByCodes } =
-      await import("@/features/subscriptions/server/subscriptions");
+    const { importUserSectionSubscriptionsByCodes } = await import(
+      "@/features/subscriptions/server/subscriptions"
+    );
     const result = await importUserSectionSubscriptionsByCodes({
       codes: parsedBody.codes,
       locale,
@@ -311,8 +317,9 @@ export async function patchCalendarSubscriptionsRoute(request: Request) {
       return parsedBody;
     }
 
-    const { appendUserSectionSubscriptions } =
-      await import("@/features/subscriptions/server/subscriptions");
+    const { appendUserSectionSubscriptions } = await import(
+      "@/features/subscriptions/server/subscriptions"
+    );
     const result = await appendUserSectionSubscriptions({
       locale: getRequestLocale(request),
       sectionIds: parsedBody.sectionIds,

@@ -70,8 +70,9 @@ describe("workspace route tracing", () => {
       data: [{ id: "homework-1" }],
       pagination: { page: 1, pageSize: 20, total: 1, totalPages: 1 },
     });
-    const { getSubscribedHomeworksRoute } =
-      await import("@/lib/api/routes/homework-subscribed-read-route");
+    const { getSubscribedHomeworksRoute } = await import(
+      "@/lib/api/routes/homework-subscribed-read-route"
+    );
 
     const response = await getSubscribedHomeworksRoute(
       new Request("https://example.test/api/workspace/homeworks"),
@@ -107,8 +108,9 @@ describe("workspace route tracing", () => {
       scopes: new Set(["workspace.subscription:read"]),
     });
     getUserCalendarSubscriptionMock.mockResolvedValue(subscription);
-    const { getCurrentCalendarSubscriptionRoute } =
-      await import("@/lib/api/routes/calendar-subscriptions");
+    const { getCurrentCalendarSubscriptionRoute } = await import(
+      "@/lib/api/routes/calendar-subscriptions"
+    );
 
     const response = await getCurrentCalendarSubscriptionRoute(
       new Request("https://example.test/api/workspace/subscriptions/current"),
@@ -154,8 +156,9 @@ describe("workspace route tracing", () => {
     getCalendarSubscriptionUrlMock.mockResolvedValue(
       "/api/calendar-feeds/user-1:secret.ics",
     );
-    const { getCurrentCalendarSubscriptionRoute } =
-      await import("@/lib/api/routes/calendar-subscriptions");
+    const { getCurrentCalendarSubscriptionRoute } = await import(
+      "@/lib/api/routes/calendar-subscriptions"
+    );
 
     const response = await getCurrentCalendarSubscriptionRoute(
       new Request("https://example.test/api/workspace/subscriptions/current"),
@@ -177,8 +180,9 @@ describe("workspace route tracing", () => {
   it("separates overview auth from its read without trace attributes", async () => {
     const overview = { user: { userId: "user-1" } };
     getCompactOverviewMock.mockResolvedValue(overview);
-    const { getMyCompactOverviewRoute } =
-      await import("@/lib/api/routes/me-overview-route");
+    const { getMyCompactOverviewRoute } = await import(
+      "@/lib/api/routes/me-overview-route"
+    );
 
     const response = await getMyCompactOverviewRoute(
       new Request("https://example.test/api/workspace/overview"),
