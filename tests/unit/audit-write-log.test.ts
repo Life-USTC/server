@@ -68,6 +68,18 @@ describe("fireAuditLog", () => {
     expect(prismaMock.auditLog.createMany).not.toHaveBeenCalled();
   });
 
+  it("treats a replayed producer ID as an idempotent audit write", async () => {
+    prismaMock.auditLog.createMany.mockResolvedValue(undefined);
+    const { writeAuditLog } = await import("@/lib/audit/write-audit-log");
+
+    await writeAuditLog({ ...auditParams, id: "audit-stable" });
+
+    expect(prismaMock.auditLog.createMany).toHaveBeenCalledWith({
+      data: { ...auditParams, id: "audit-stable" },
+      skipDuplicates: true,
+    });
+  });
+
   it("在调度 Worker waitUntil 后完成，无需等待审计写入", async () => {
     const waitUntilMock = vi.fn();
     getRequestEventMock.mockReturnValue({
@@ -93,7 +105,6 @@ describe("fireAuditLog", () => {
     expect(schedulingResolved).toBe(true);
     expect(prismaMock.auditLog.createMany).toHaveBeenCalledWith({
       data: auditParams,
-      skipDuplicates: true,
     });
 
     auditWrite.resolve({});

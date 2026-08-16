@@ -120,8 +120,10 @@ export async function writeAuditLog(
       },
       // A queued audit write carries a producer-generated ID. Cloudflare
       // Queues is at-least-once, so replaying an uncertain delivery must be a
-      // successful no-op instead of creating a second audit event.
-      skipDuplicates: true,
+      // successful no-op instead of creating a second audit event. Direct
+      // transactional writes have no supplied ID and must still surface an
+      // unexpected conflict instead of hiding it.
+      ...(params.id ? { skipDuplicates: true } : {}),
     });
     writeAuditWriteAnalytics({
       action: params.action,
