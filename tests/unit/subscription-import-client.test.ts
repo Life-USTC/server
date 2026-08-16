@@ -131,8 +131,6 @@ function subscriptionPayload(sectionIds: number[]) {
     subscription: {
       userId: "user-1",
       sections: sectionIds.map(compactSection),
-      calendarPath: null,
-      calendarUrl: null,
       note: "private",
     },
   };

@@ -174,10 +174,10 @@ describe("retired Section query contracts", () => {
     const query = transactionUserFindUniqueMock.mock.calls[0]?.[0];
     expect(query.select).not.toHaveProperty("calendarFeedToken");
     expect(result).toMatchObject({
-      calendarPath: null,
-      calendarUrl: null,
       userId: "user-1",
     });
+    expect(result).not.toHaveProperty("calendarPath");
+    expect(result).not.toHaveProperty("calendarUrl");
     const teacherSelect =
       query.select.sectionSubscriptions.include.section.include.teachers.select;
     expect(teacherSelect).toMatchObject({

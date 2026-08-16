@@ -19417,20 +19417,6 @@
                   "additionalProperties": false
                 }
               },
-              "calendarPath": {
-                "type": "string",
-                "nullable": true,
-                "enum": [
-                  null
-                ]
-              },
-              "calendarUrl": {
-                "type": "string",
-                "nullable": true,
-                "enum": [
-                  null
-                ]
-              },
               "note": {
                 "type": "string"
               }
@@ -19438,8 +19424,6 @@
             "required": [
               "userId",
               "sections",
-              "calendarPath",
-              "calendarUrl",
               "note"
             ],
             "additionalProperties": false
@@ -20136,20 +20120,6 @@
                   "additionalProperties": false
                 }
               },
-              "calendarPath": {
-                "type": "string",
-                "nullable": true,
-                "enum": [
-                  null
-                ]
-              },
-              "calendarUrl": {
-                "type": "string",
-                "nullable": true,
-                "enum": [
-                  null
-                ]
-              },
               "note": {
                 "type": "string"
               }
@@ -20157,8 +20127,6 @@
             "required": [
               "userId",
               "sections",
-              "calendarPath",
-              "calendarUrl",
               "note"
             ],
             "additionalProperties": false
@@ -20867,20 +20835,6 @@
                   "additionalProperties": false
                 }
               },
-              "calendarPath": {
-                "type": "string",
-                "nullable": true,
-                "enum": [
-                  null
-                ]
-              },
-              "calendarUrl": {
-                "type": "string",
-                "nullable": true,
-                "enum": [
-                  null
-                ]
-              },
               "note": {
                 "type": "string"
               }
@@ -20888,8 +20842,6 @@
             "required": [
               "userId",
               "sections",
-              "calendarPath",
-              "calendarUrl",
               "note"
             ],
             "additionalProperties": false
@@ -28861,20 +28813,6 @@
                   "additionalProperties": false
                 }
               },
-              "calendarPath": {
-                "type": "string",
-                "nullable": true,
-                "enum": [
-                  null
-                ]
-              },
-              "calendarUrl": {
-                "type": "string",
-                "nullable": true,
-                "enum": [
-                  null
-                ]
-              },
               "note": {
                 "type": "string"
               }
@@ -28882,8 +28820,6 @@
             "required": [
               "userId",
               "sections",
-              "calendarPath",
-              "calendarUrl",
               "note"
             ],
             "additionalProperties": false
@@ -29574,20 +29510,6 @@
                   "additionalProperties": false
                 }
               },
-              "calendarPath": {
-                "type": "string",
-                "nullable": true,
-                "enum": [
-                  null
-                ]
-              },
-              "calendarUrl": {
-                "type": "string",
-                "nullable": true,
-                "enum": [
-                  null
-                ]
-              },
               "note": {
                 "type": "string"
               }
@@ -29595,8 +29517,6 @@
             "required": [
               "userId",
               "sections",
-              "calendarPath",
-              "calendarUrl",
               "note"
             ],
             "additionalProperties": false
@@ -32304,20 +32224,6 @@
                   "additionalProperties": false
                 }
               },
-              "calendarPath": {
-                "type": "string",
-                "nullable": true,
-                "enum": [
-                  null
-                ]
-              },
-              "calendarUrl": {
-                "type": "string",
-                "nullable": true,
-                "enum": [
-                  null
-                ]
-              },
               "note": {
                 "type": "string"
               }
@@ -32325,8 +32231,6 @@
             "required": [
               "userId",
               "sections",
-              "calendarPath",
-              "calendarUrl",
               "note"
             ],
             "additionalProperties": false

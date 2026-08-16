@@ -64,7 +64,7 @@ function activityTimeLabel(group: (typeof groupedActivity)[number]) {
   </div>
 </section>
 
-<Alert.Root>
+<Alert.Root role="note">
   <ShieldAlertIcon />
   <Alert.Title>{copy.settings.security.responseTitle}</Alert.Title>
   <Alert.Description>

@@ -195,6 +195,7 @@ test("/admin/users 状态列对齐且平板使用可读列表", async ({
   });
   await expect(suspensionBadge).toBeVisible();
   expect(verticalCenterOffset).toBeLessThanOrEqual(1);
+  await captureStepScreenshot(page, testInfo, "admin-users-alignment-desktop");
 
   await page.setViewportSize({ width: 1024, height: 768 });
   await expect(table).toBeHidden();
@@ -215,7 +216,7 @@ test("/admin/users 状态列对齐且平板使用可读列表", async ({
     await page.evaluate(() => document.documentElement.scrollWidth),
   ).toBeLessThanOrEqual(1024);
 
-  await captureStepScreenshot(page, testInfo, "admin-users-alignment");
+  await captureStepScreenshot(page, testInfo, "admin-users-alignment-tablet");
 });
 
 test("/admin/users 分页控件可进入下一页", async ({ page }, testInfo) => {

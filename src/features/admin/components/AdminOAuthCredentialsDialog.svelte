@@ -29,14 +29,11 @@ let credentialsClientId = clientId;
 let preventedDismissalCount = 0;
 
 $: requiresSecretCopy = Boolean(clientSecret);
+$: canDismissCredentials = !clientSecret || hasAcknowledgedSavedSecret;
 $: if (clientId !== credentialsClientId) {
   credentialsClientId = clientId;
   hasAcknowledgedSavedSecret = false;
   preventedDismissalCount = 0;
-}
-
-function canDismissCredentials() {
-  return !clientSecret || hasAcknowledgedSavedSecret;
 }
 
 async function copyCredential(
@@ -55,16 +52,16 @@ async function copyCredential(
       open={true}
       onOpenChange={(nextOpen) => {
         if (nextOpen) return;
-        if (canDismissCredentials()) close();
+        if (canDismissCredentials) close();
         else preventedDismissalCount += 1;
       }}
     >
     <Dialog.Content
       class="max-w-2xl sm:max-w-2xl"
       aria-labelledby="oauth-credentials-title"
-      escapeKeydownBehavior={canDismissCredentials() ? "close" : "ignore"}
-      interactOutsideBehavior={canDismissCredentials() ? "close" : "ignore"}
-      showCloseButton={canDismissCredentials()}
+      escapeKeydownBehavior={canDismissCredentials ? "close" : "ignore"}
+      interactOutsideBehavior={canDismissCredentials ? "close" : "ignore"}
+      showCloseButton={canDismissCredentials}
     >
       <Dialog.Header>
         <Dialog.Title id="oauth-credentials-title">{copy.credentialsTitle}</Dialog.Title>
@@ -135,7 +132,7 @@ async function copyCredential(
       <Dialog.Footer>
         <Button
           type="button"
-          disabled={!canDismissCredentials()}
+          disabled={!canDismissCredentials}
           onclick={close}
         >
           {copy.dismissCredentials}

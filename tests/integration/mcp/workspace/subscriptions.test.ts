@@ -93,8 +93,8 @@ describe("个人日历订阅 — 读取与批量订阅", () => {
           jwId?: number | null;
           code?: string | null;
         }>;
-        calendarPath?: string | null;
-        calendarUrl?: string | null;
+        calendarPath?: never;
+        calendarUrl?: never;
         note?: string;
       };
     }>("workspace_calendar_feed_get", {
@@ -116,8 +116,8 @@ describe("个人日历订阅 — 读取与批量订阅", () => {
         (section) => section.jwId === fixtures.DEV_SEED.section.jwId,
       ),
     ).toBe(true);
-    expect(result.subscription?.calendarPath).toBeNull();
-    expect(result.subscription?.calendarUrl).toBeNull();
+    expect(result.subscription?.calendarPath).toBeUndefined();
+    expect(result.subscription?.calendarUrl).toBeUndefined();
     expect(result.subscription?.note).toContain("not official");
   });
 
@@ -130,8 +130,8 @@ describe("个人日历订阅 — 读取与批量订阅", () => {
         userId?: string;
         sectionCount?: number;
         currentSemesterSectionCount?: number;
-        calendarPath?: string | null;
-        calendarUrl?: string | null;
+        calendarPath?: never;
+        calendarUrl?: never;
         currentSemesterSections?: unknown[];
       };
     }>("workspace_calendar_feed_get", {
@@ -144,8 +144,8 @@ describe("个人日历订阅 — 读取与批量订阅", () => {
     expect(typeof result.subscription?.currentSemesterSectionCount).toBe(
       "number",
     );
-    expect(result.subscription?.calendarPath).toBeNull();
-    expect(result.subscription?.calendarUrl).toBeNull();
+    expect(result.subscription?.calendarPath).toBeUndefined();
+    expect(result.subscription?.calendarUrl).toBeUndefined();
     expect(Array.isArray(result.subscription?.currentSemesterSections)).toBe(
       true,
     );

@@ -23,7 +23,6 @@ export let isMounted: boolean;
   aria-labelledby="settings-danger-title"
   class="grid gap-4"
   data-settings-danger-region
-  role="region"
 >
   <div class="grid gap-1">
     <h2 class="text-destructive text-base font-normal tracking-tight" id="settings-danger-title">

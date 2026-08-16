@@ -407,7 +407,7 @@ describe("Cloudflare Analytics Engine runtime events", () => {
         new Response(
           JSON.stringify({
             expiresAt: 60_000,
-            schema: "catalog-detail-core-v1",
+            schema: "catalog-detail-core-v2",
             value: cachedValue,
           }),
         ),

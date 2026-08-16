@@ -59,10 +59,10 @@ type RuntimeCacheEvent =
   | "kv_write_skip";
 
 const MAX_ENTRIES = 100;
-const PUBLIC_DETAIL_COLO_CACHE_NAME = "life-ustc-public-detail-core-v1";
-const PUBLIC_DETAIL_COLO_CACHE_SCHEMA = "catalog-detail-core-v1";
+const PUBLIC_DETAIL_COLO_CACHE_NAME = "life-ustc-public-detail-core-v2";
+const PUBLIC_DETAIL_COLO_CACHE_SCHEMA = "catalog-detail-core-v2";
 const PUBLIC_DETAIL_COLO_CACHE_PATH =
-  "/_life-ustc-internal-cache/catalog-detail-core/v1";
+  "/_life-ustc-internal-cache/catalog-detail-core/v2";
 const publicDetailColoCacheShapes = {
   course: "core-without-sections",
   section: "core-without-exams-schedules-related",
@@ -499,7 +499,7 @@ export function publicDetailKvCacheKey(
   id: number,
   shape: string,
 ) {
-  return `v1:${revision}:${kind}:${locale}:${id}:${shape}`;
+  return `v2:${revision}:${kind}:${locale}:${id}:${shape}`;
 }
 
 function resolvePublicDetailKvCacheKey(options: {
@@ -512,7 +512,7 @@ function resolvePublicDetailKvCacheKey(options: {
   try {
     const url = new URL(options.coloCacheKey);
     const parts = url.pathname.split("/").filter(Boolean);
-    const versionIndex = parts.indexOf("v1");
+    const versionIndex = parts.indexOf("v2");
     if (versionIndex === -1 || parts.length < versionIndex + 5) {
       return undefined;
     }
@@ -521,7 +521,7 @@ function resolvePublicDetailKvCacheKey(options: {
     const locale = parts[versionIndex + 3];
     const id = decodeURIComponent(parts[versionIndex + 4] ?? "");
     if (!kind || !shape || !locale || !id) return undefined;
-    return `v1:${kind}:${locale}:${id}:${shape}`;
+    return `v2:${kind}:${locale}:${id}:${shape}`;
   } catch {
     return undefined;
   }

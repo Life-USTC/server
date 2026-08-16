@@ -59,8 +59,8 @@ test.describe("GET /api/workspace/subscriptions/current 接口", () => {
         userId?: string;
         note?: string | null;
         sections?: Array<{ id?: number }>;
-        calendarPath?: null;
-        calendarUrl?: null;
+        calendarPath?: never;
+        calendarUrl?: never;
       } | null;
     };
     expect(body.subscription).not.toBeNull();
@@ -70,11 +70,12 @@ test.describe("GET /api/workspace/subscriptions/current 接口", () => {
       body.subscription?.sections?.some((s) => s.id === seedSection?.id),
     ).toBe(true);
 
-    // Verify CalendarSubscription fields
+    // The generic subscription endpoint must not serialize the long-lived
+    // private calendar bearer credential, even as a nullable placeholder.
     const sub = body.subscription as Record<string, unknown>;
     expect(Object.hasOwn(sub, "note")).toBe(true);
-    expect(sub.calendarPath).toBeNull();
-    expect(sub.calendarUrl).toBeNull();
+    expect(Object.hasOwn(sub, "calendarPath")).toBe(false);
+    expect(Object.hasOwn(sub, "calendarUrl")).toBe(false);
   });
 
   test("反映 POST 修改后的状态", async ({ request }) => {

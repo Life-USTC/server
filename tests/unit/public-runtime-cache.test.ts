@@ -19,7 +19,7 @@ function coloResponse(value: unknown, expiresAt: number, schema?: string) {
   return new Response(
     JSON.stringify({
       expiresAt,
-      schema: schema ?? "catalog-detail-core-v1",
+      schema: schema ?? "catalog-detail-core-v2",
       value,
     }),
     { headers: { "Content-Type": "application/json" } },
@@ -205,13 +205,13 @@ describe("public runtime cache", () => {
 
     expect(new URL(course).origin).toBe("https://example.test");
     expect(new URL(course).pathname).toBe(
-      "/_life-ustc-internal-cache/catalog-detail-core/v1/course/core-without-sections/en-us/683001",
+      "/_life-ustc-internal-cache/catalog-detail-core/v2/course/core-without-sections/en-us/683001",
     );
     expect(new URL(teacher).pathname).toContain(
-      "/v1/teacher/core-without-sections/en-us/683001",
+      "/v2/teacher/core-without-sections/en-us/683001",
     );
     expect(new URL(section).pathname).toContain(
-      "/v1/section/core-without-exams-schedules-related/zh-cn/683002",
+      "/v2/section/core-without-exams-schedules-related/zh-cn/683002",
     );
     expect(new Set([course, teacher, section]).size).toBe(3);
   });
@@ -226,7 +226,7 @@ describe("public runtime cache", () => {
         "core-without-exams-schedules-related",
       ),
     ).toBe(
-      "v1:abc123def4567890:section:zh-cn:12345:core-without-exams-schedules-related",
+      "v2:abc123def4567890:section:zh-cn:12345:core-without-exams-schedules-related",
     );
     expect(
       publicDetailKvCacheKey(
@@ -236,7 +236,7 @@ describe("public runtime cache", () => {
         683001,
         "core-without-sections",
       ),
-    ).toBe("v1:abc123def4567890:course:en-us:683001:core-without-sections");
+    ).toBe("v2:abc123def4567890:course:en-us:683001:core-without-sections");
   });
 
   it("uses a KV hit without loading or colo reads and then serves it from L1", async () => {
@@ -253,7 +253,7 @@ describe("public runtime cache", () => {
     );
     namespace.seed(kvCacheKey, {
       expiresAt: 20_000,
-      schema: "catalog-detail-core-v1",
+      schema: "catalog-detail-core-v2",
       value: cached,
     });
     const { match, open, put } = installNamedCache();
@@ -367,7 +367,7 @@ describe("public runtime cache", () => {
     expect(kvOptions).toEqual({ expirationTtl: 60 });
     await expect(JSON.parse(kvValue as string)).toMatchObject({
       expiresAt: expect.any(Number),
-      schema: "catalog-detail-core-v1",
+      schema: "catalog-detail-core-v2",
       value: { source: "database" },
     });
   });
@@ -794,7 +794,7 @@ describe("public runtime cache", () => {
     );
 
     expect(open).toHaveBeenCalledOnce();
-    expect(open).toHaveBeenCalledWith("life-ustc-public-detail-core-v1");
+    expect(open).toHaveBeenCalledWith("life-ustc-public-detail-core-v2");
     expect(match).toHaveBeenCalledOnce();
     expect(load).not.toHaveBeenCalled();
     expect(put).not.toHaveBeenCalled();
@@ -857,7 +857,7 @@ describe("public runtime cache", () => {
     );
     await expect(writtenResponse?.clone().json()).resolves.toMatchObject({
       expiresAt: expect.any(Number),
-      schema: "catalog-detail-core-v1",
+      schema: "catalog-detail-core-v2",
       value: { source: "database" },
     });
   });

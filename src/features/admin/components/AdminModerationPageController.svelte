@@ -212,8 +212,6 @@ const {
   <AdminModerationTabContent
     copy={_copy}
     {data}
-    {descriptionContentOptions}
-    {descriptionTargetOptions}
     {enhanceAdminAction}
     formatDate={_formatDate}
     liftingSuspensionId={_pendingServerAction?.startsWith("liftSuspension:")

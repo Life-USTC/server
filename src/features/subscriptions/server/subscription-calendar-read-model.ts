@@ -64,11 +64,6 @@ export async function getUserCalendarSubscription(
     sections: user.sectionSubscriptions.map((row) =>
       toSectionCompactDto(row.section, locale),
     ),
-    // A calendar feed URL is itself a long-lived bearer credential. Generic
-    // REST and MCP subscription responses must never expose it; the
-    // recent-session first-party dashboard owns credential reveal.
-    calendarPath: null,
-    calendarUrl: null,
     note: SECTION_SUBSCRIPTION_NOTE,
   };
 }

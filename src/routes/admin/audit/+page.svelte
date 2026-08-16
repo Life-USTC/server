@@ -187,22 +187,24 @@ function displayValue(value: unknown) {
                 <Badge variant="outline">{auditChannelLabel(data.locale, row.channel)}</Badge>
               </Item.Actions>
               <Item.Footer>
-                <dl class="grid w-full gap-2 text-xs">
-                  {#if actor}<div><dt class="text-muted-foreground">{data.copy.audit.actorColumn}</dt><dd>{actor.label} <span class="break-all font-mono text-muted-foreground">{actor.id}</span></dd></div>{/if}
-                  {#if subject}<div><dt class="text-muted-foreground">{data.copy.audit.subjectColumn}</dt><dd>{subject.label} <span class="break-all font-mono text-muted-foreground">{subject.id}</span></dd></div>{/if}
-                  {#if row.oauthClientId}<div><dt class="text-muted-foreground">{data.copy.audit.clientColumn}</dt><dd>{row.clientName ?? row.oauthClientId}</dd></div>{/if}
-                  {#if row.targetType}<div><dt class="text-muted-foreground">{data.copy.audit.target}</dt><dd>{auditTargetLabel(data.locale, row.targetType)}{row.targetId ? ` · ${row.targetId}` : ""}</dd></div>{/if}
+                <div class="grid w-full gap-2 text-xs">
+                  <dl class="grid gap-2">
+                    {#if actor}<div><dt class="text-muted-foreground">{data.copy.audit.actorColumn}</dt><dd>{actor.label} <span class="break-all font-mono text-muted-foreground">{actor.id}</span></dd></div>{/if}
+                    {#if subject}<div><dt class="text-muted-foreground">{data.copy.audit.subjectColumn}</dt><dd>{subject.label} <span class="break-all font-mono text-muted-foreground">{subject.id}</span></dd></div>{/if}
+                    {#if row.oauthClientId}<div><dt class="text-muted-foreground">{data.copy.audit.clientColumn}</dt><dd>{row.clientName ?? row.oauthClientId}</dd></div>{/if}
+                    {#if row.targetType}<div><dt class="text-muted-foreground">{data.copy.audit.target}</dt><dd>{auditTargetLabel(data.locale, row.targetType)}{row.targetId ? ` · ${row.targetId}` : ""}</dd></div>{/if}
+                  </dl>
                   {#if row.metadata}
                     <details class="pt-1">
                       <summary class="cursor-pointer font-medium">{data.copy.audit.details}</summary>
-                      <div class="grid gap-2 pt-2">
+                      <dl class="grid gap-2 pt-2">
                         {#each Object.entries(row.metadata) as [key, value]}
                           <div><dt class="text-muted-foreground">{auditMetadataLabel(data.locale, key)}</dt><dd class="break-words">{displayValue(value)}</dd></div>
                         {/each}
-                      </div>
+                      </dl>
                     </details>
                   {/if}
-                </dl>
+                </div>
               </Item.Footer>
             </Item.Root>
           {/each}

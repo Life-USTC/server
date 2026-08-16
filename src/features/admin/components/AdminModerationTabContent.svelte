@@ -8,7 +8,6 @@ import type { AdminModerationComment } from "@/features/admin/components/admin-m
 import type { AdminModerationDescription } from "@/features/admin/components/admin-moderation-description-types";
 import type {
   AdminModerationCopy,
-  AdminModerationDescriptionOptions,
   AdminModerationHomework,
   AdminModerationPageData,
 } from "@/features/admin/components/admin-moderation-page-types";
@@ -24,8 +23,6 @@ import type { PendingModerationServerAction } from "@/features/admin/lib/moderat
 
 export let copy: AdminModerationCopy;
 export let data: AdminModerationPageData;
-export let descriptionContentOptions: AdminModerationDescriptionOptions;
-export let descriptionTargetOptions: AdminModerationDescriptionOptions;
 export let enhanceAdminAction: (
   action: PendingModerationServerAction,
 ) => SubmitFunction;
@@ -42,13 +39,9 @@ export let visibleComments: AdminModerationComment[];
 {#if data.tab === "descriptions"}
   <AdminModerationDescriptions
     {copy}
-    {descriptionContentOptions}
-    descriptionContentFilter={data.filters.descriptionContent}
     descriptions={data.descriptions}
-    descriptionTargetFilter={data.filters.descriptionTarget}
     descriptionTargetHref={(description: AdminModerationDescription) =>
       moderationDescriptionTargetHref(description)}
-    {descriptionTargetOptions}
     formatDate={formatDate}
     formatMessage={moderationFormatMessage}
     onManage={onManageDescription}

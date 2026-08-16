@@ -89,8 +89,6 @@ describe("workspace route tracing", () => {
     const subscription = {
       userId: "user-1",
       sections: [],
-      calendarPath: null,
-      calendarUrl: null,
       note: "Subscribe to this URL in a calendar client.",
     };
     getUserCalendarSubscriptionMock.mockResolvedValue(subscription);

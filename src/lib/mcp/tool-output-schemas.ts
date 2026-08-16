@@ -539,8 +539,6 @@ const calendarSubscriptionBriefSchema = z.strictObject({
   userId: z.string(),
   sectionCount: z.number().int().nonnegative(),
   currentSemesterSectionCount: z.number().int().nonnegative(),
-  calendarPath: z.string().nullable(),
-  calendarUrl: z.string().nullable(),
   note: z.string(),
 });
 
