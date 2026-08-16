@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import {
   assertStaticImportStateAllowsSnapshot,
   recordStaticImportState,
+  STATIC_IMPORT_TRANSFORM_REVISION,
 } from "@/static-loader/import-state";
 
 const OBSERVED_AT = new Date("2026-07-18T03:00:00.000Z");
@@ -18,11 +19,16 @@ function stateClient() {
 }
 
 function input(
-  overrides: Partial<{ observedAt: Date; snapshotSha256: string }> = {},
+  overrides: Partial<{
+    observedAt: Date;
+    snapshotSha256: string;
+    transformRevision: number;
+  }> = {},
 ) {
   return {
     observedAt: OBSERVED_AT,
     snapshotSha256: SNAPSHOT_SHA,
+    transformRevision: STATIC_IMPORT_TRANSFORM_REVISION,
     ...overrides,
   };
 }
@@ -42,6 +48,7 @@ describe("global static import state", () => {
     tx.staticImportState.findUnique.mockResolvedValue({
       snapshotGeneratedAt: OBSERVED_AT,
       snapshotSha256: SNAPSHOT_SHA,
+      transformRevision: STATIC_IMPORT_TRANSFORM_REVISION,
     });
 
     await expect(
@@ -49,11 +56,38 @@ describe("global static import state", () => {
     ).resolves.toBe(true);
   });
 
+  it("reimports an unchanged snapshot after mapper semantics change", async () => {
+    const tx = stateClient();
+    tx.staticImportState.findUnique.mockResolvedValue({
+      snapshotGeneratedAt: OBSERVED_AT,
+      snapshotSha256: SNAPSHOT_SHA,
+      transformRevision: STATIC_IMPORT_TRANSFORM_REVISION - 1,
+    });
+
+    await expect(
+      assertStaticImportStateAllowsSnapshot(tx, input()),
+    ).resolves.toBe(false);
+  });
+
+  it("rejects an importer older than the committed transform revision", async () => {
+    const tx = stateClient();
+    tx.staticImportState.findUnique.mockResolvedValue({
+      snapshotGeneratedAt: OBSERVED_AT,
+      snapshotSha256: SNAPSHOT_SHA,
+      transformRevision: STATIC_IMPORT_TRANSFORM_REVISION + 1,
+    });
+
+    await expect(
+      assertStaticImportStateAllowsSnapshot(tx, input()),
+    ).rejects.toThrow("revision 2 was already committed");
+  });
+
   it("rejects older snapshots and changed content at the same time", async () => {
     const tx = stateClient();
     tx.staticImportState.findUnique.mockResolvedValue({
       snapshotGeneratedAt: OBSERVED_AT,
       snapshotSha256: SNAPSHOT_SHA,
+      transformRevision: STATIC_IMPORT_TRANSFORM_REVISION,
     });
 
     await expect(
@@ -81,11 +115,25 @@ describe("global static import state", () => {
         id: "global",
         snapshotGeneratedAt: OBSERVED_AT,
         snapshotSha256: SNAPSHOT_SHA,
+        transformRevision: STATIC_IMPORT_TRANSFORM_REVISION,
       },
       update: {
         snapshotGeneratedAt: OBSERVED_AT,
         snapshotSha256: SNAPSHOT_SHA,
+        transformRevision: STATIC_IMPORT_TRANSFORM_REVISION,
       },
     });
+  });
+
+  it("requires a positive integer transform revision", async () => {
+    const tx = stateClient();
+
+    await expect(
+      assertStaticImportStateAllowsSnapshot(
+        tx,
+        input({ transformRevision: 0 }),
+      ),
+    ).rejects.toThrow("must be a positive integer");
+    expect(tx.staticImportState.findUnique).not.toHaveBeenCalled();
   });
 });

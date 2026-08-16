@@ -461,6 +461,7 @@ model StaticImportState {
 
   snapshotGeneratedAt DateTime
   snapshotSha256      String
+  transformRevision   Int
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
