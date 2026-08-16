@@ -155,6 +155,24 @@ test("/admin/users 状态列对齐且平板使用可读列表", async ({
       .nth(5)
       .evaluate((node) => getComputedStyle(node).textAlign),
   ).toBe("right");
+  const suspensionCell = firstRowCells.nth(4);
+  const suspensionBadge = suspensionCell.locator('[data-slot="badge"]');
+  await expect(
+    suspensionCell.locator('[data-slot="truncated-text-placeholder"]'),
+  ).toHaveCount(0);
+  const verticalCenterOffset = await suspensionCell.evaluate((cell) => {
+    const badge = cell.querySelector<HTMLElement>('[data-slot="badge"]');
+    if (!badge) return Number.POSITIVE_INFINITY;
+    const cellRect = cell.getBoundingClientRect();
+    const badgeRect = badge.getBoundingClientRect();
+    return Math.abs(
+      badgeRect.top +
+        badgeRect.height / 2 -
+        (cellRect.top + cellRect.height / 2),
+    );
+  });
+  await expect(suspensionBadge).toBeVisible();
+  expect(verticalCenterOffset).toBeLessThanOrEqual(1);
 
   await page.setViewportSize({ width: 1024, height: 768 });
   await expect(table).toBeHidden();
