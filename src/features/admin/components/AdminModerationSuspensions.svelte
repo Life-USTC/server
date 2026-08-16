@@ -6,7 +6,9 @@ import DashboardTableRowActions from "@/features/dashboard/components/DashboardT
 import { enhance } from "$app/forms";
 import SoftEmptyMessage from "$lib/components/SoftEmptyMessage.svelte";
 import TruncatedText from "$lib/components/TruncatedText.svelte";
+import * as AlertDialog from "$lib/components/ui/alert-dialog/index.js";
 import { Badge } from "$lib/components/ui/badge/index.js";
+import { Button } from "$lib/components/ui/button/index.js";
 import * as Item from "$lib/components/ui/item/index.js";
 import { Spinner } from "$lib/components/ui/spinner/index.js";
 import * as Table from "$lib/components/ui/table/index.js";
@@ -26,9 +28,13 @@ type ModerationSuspension = {
 type SuspensionsCopy = {
   actions: string;
   active: string;
+  cancelButton: string;
   expires: string;
   expiresAt: string;
   liftSuspensionAction: string;
+  liftSuspensionConfirmAction: string;
+  liftSuspensionConfirmDescription: string;
+  liftSuspensionConfirmTitle: string;
   lifted: string;
   noReason: string;
   noSuspensions: string;
@@ -40,14 +46,16 @@ type SuspensionsCopy = {
 };
 
 export let copy: SuspensionsCopy;
-export let enhanceLiftSuspension: SubmitFunction;
+export let enhanceLiftSuspension: (id: string) => SubmitFunction;
 export let formatDate: (value: string | Date) => string;
 export let formatMessage: (
   template: string,
   values: Record<string, string>,
 ) => string;
-export let isLiftingSuspension: boolean;
+export let liftingSuspensionId: string | null;
 export let suspensions: ModerationSuspension[];
+
+let pendingLiftSuspension: ModerationSuspension | null = null;
 
 function userLabel(suspension: ModerationSuspension) {
   return suspension.user.name ?? suspension.user.username ?? suspension.user.id;
@@ -59,6 +67,16 @@ function expiresLabel(suspension: ModerationSuspension) {
         date: formatDate(suspension.expiresAt),
       })
     : copy.permanent;
+}
+
+function confirmedLiftAction(suspension: ModerationSuspension): SubmitFunction {
+  return async (input) => {
+    const callback = await enhanceLiftSuspension(suspension.id)(input);
+    return async (result) => {
+      await callback?.(result);
+      if (result.result.type === "success") pendingLiftSuspension = null;
+    };
+  };
 }
 </script>
 
@@ -85,26 +103,15 @@ function expiresLabel(suspension: ModerationSuspension) {
               <Badge variant="ghost">{copy.lifted}</Badge>
             {:else}
               <Badge variant="destructive">{copy.active}</Badge>
-              <form
-                method="POST"
-                action="?/liftSuspension"
-                use:enhance={enhanceLiftSuspension}
+              <DashboardTableIconButton
+                disabled={Boolean(liftingSuspensionId)}
+                label={liftingSuspensionId === suspension.id
+                  ? copy.saving
+                  : copy.liftSuspensionAction}
+                onclick={() => (pendingLiftSuspension = suspension)}
               >
-                <input type="hidden" name="id" value={suspension.id} />
-                <DashboardTableIconButton
-                  disabled={isLiftingSuspension}
-                  label={isLiftingSuspension
-                    ? copy.saving
-                    : copy.liftSuspensionAction}
-                  type="submit"
-                >
-                  {#if isLiftingSuspension}
-                    <Spinner />
-                  {:else}
-                    <Unlock />
-                  {/if}
-                </DashboardTableIconButton>
-              </form>
+                {#if liftingSuspensionId === suspension.id}<Spinner />{:else}<Unlock />{/if}
+              </DashboardTableIconButton>
             {/if}
           </Item.Actions>
         </Item.Root>
@@ -156,26 +163,15 @@ function expiresLabel(suspension: ModerationSuspension) {
               <Table.Cell class="w-12 text-right">
                 {#if !suspension.liftedAt}
                   <DashboardTableRowActions class="justify-end">
-                    <form
-                      method="POST"
-                      action="?/liftSuspension"
-                      use:enhance={enhanceLiftSuspension}
+                    <DashboardTableIconButton
+                      disabled={Boolean(liftingSuspensionId)}
+                      label={liftingSuspensionId === suspension.id
+                        ? copy.saving
+                        : copy.liftSuspensionAction}
+                      onclick={() => (pendingLiftSuspension = suspension)}
                     >
-                      <input type="hidden" name="id" value={suspension.id} />
-                      <DashboardTableIconButton
-                        disabled={isLiftingSuspension}
-                        label={isLiftingSuspension
-                          ? copy.saving
-                          : copy.liftSuspensionAction}
-                        type="submit"
-                      >
-                        {#if isLiftingSuspension}
-                          <Spinner />
-                        {:else}
-                          <Unlock />
-                        {/if}
-                      </DashboardTableIconButton>
-                    </form>
+                      {#if liftingSuspensionId === suspension.id}<Spinner />{:else}<Unlock />{/if}
+                    </DashboardTableIconButton>
                   </DashboardTableRowActions>
                 {/if}
               </Table.Cell>
@@ -186,3 +182,51 @@ function expiresLabel(suspension: ModerationSuspension) {
     </div>
   {/if}
 </section>
+
+{#if pendingLiftSuspension}
+  <AlertDialog.Root
+    open={true}
+    onOpenChange={(open) => {
+      if (!open && !liftingSuspensionId) pendingLiftSuspension = null;
+    }}
+  >
+    <AlertDialog.Content class="max-w-md sm:max-w-md">
+      <AlertDialog.Header>
+        <AlertDialog.Title>{copy.liftSuspensionConfirmTitle}</AlertDialog.Title>
+        <AlertDialog.Description>
+          {formatMessage(copy.liftSuspensionConfirmDescription, {
+            user: userLabel(pendingLiftSuspension),
+          })}
+        </AlertDialog.Description>
+      </AlertDialog.Header>
+      <form
+        method="POST"
+        action="?/liftSuspension"
+        use:enhance={confirmedLiftAction(pendingLiftSuspension)}
+      >
+        <input type="hidden" name="id" value={pendingLiftSuspension.id} />
+        <AlertDialog.Footer>
+          <AlertDialog.Cancel
+            type="button"
+            disabled={Boolean(liftingSuspensionId)}
+            variant="outline"
+          >
+            {copy.cancelButton}
+          </AlertDialog.Cancel>
+          <Button
+            type="submit"
+            disabled={Boolean(liftingSuspensionId)}
+            variant="destructive"
+          >
+            {#if liftingSuspensionId === pendingLiftSuspension.id}
+              <Spinner data-icon="inline-start" />
+            {:else}
+              <Unlock data-icon="inline-start" />
+            {/if}
+            {copy.liftSuspensionConfirmAction}
+          </Button>
+        </AlertDialog.Footer>
+      </form>
+    </AlertDialog.Content>
+  </AlertDialog.Root>
+{/if}

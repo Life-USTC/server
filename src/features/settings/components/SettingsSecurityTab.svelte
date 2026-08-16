@@ -1,12 +1,14 @@
 <script lang="ts">
 import ActivityIcon from "@lucide/svelte/icons/activity";
 import ShieldAlertIcon from "@lucide/svelte/icons/shield-alert";
+import { groupSecurityActivity } from "@/features/settings/lib/security-activity-groups";
+import * as Alert from "$lib/components/ui/alert/index.js";
 import * as AlertDialog from "$lib/components/ui/alert-dialog/index.js";
 import { Badge } from "$lib/components/ui/badge/index.js";
 import { Button } from "$lib/components/ui/button/index.js";
-import * as Card from "$lib/components/ui/card/index.js";
 import * as Empty from "$lib/components/ui/empty/index.js";
 import * as Item from "$lib/components/ui/item/index.js";
+import { Separator } from "$lib/components/ui/separator/index.js";
 import type {
   SettingsCopy,
   SettingsSecurityActivity,
@@ -24,31 +26,7 @@ const dateFormatter = new Intl.DateTimeFormat(locale, {
   timeZone: "Asia/Shanghai",
 });
 
-$: groupedActivity = activity.items.reduce<
-  Array<{ count: number; event: SettingsSecurityActivity["items"][number] }>
->((groups, event) => {
-  const previous = groups.at(-1);
-  if (
-    previous &&
-    activitySignature(previous.event) === activitySignature(event)
-  ) {
-    previous.count += 1;
-  } else {
-    groups.push({ count: 1, event });
-  }
-  return groups;
-}, []);
-
-function activitySignature(event: SettingsSecurityActivity["items"][number]) {
-  return [
-    event.action,
-    event.outcome,
-    event.channel,
-    event.client?.id ?? "",
-    event.network ?? "",
-    event.device ?? "",
-  ].join("\u0000");
-}
+$: groupedActivity = groupSecurityActivity(activity.items);
 
 function label(
   labels: Record<string, string>,
@@ -61,33 +39,46 @@ function label(
 function repeatedLabel(count: number) {
   return copy.settings.security.repeated.replace("{count}", String(count));
 }
+
+function activityTimeLabel(group: (typeof groupedActivity)[number]) {
+  const newest = dateFormatter.format(new Date(group.event.createdAt));
+  if (group.count === 1) return newest;
+  const oldest = dateFormatter.format(new Date(group.oldestCreatedAt));
+  return `${oldest} – ${newest}`;
+}
 </script>
 
-<Card.Root>
-  <Card.Header>
-    <Card.Title>{copy.settings.security.calendarTokenTitle}</Card.Title>
-    <Card.Description>{copy.settings.security.calendarTokenDescription}</Card.Description>
-  </Card.Header>
-  <Card.Footer>
+<section aria-labelledby="calendar-token-title" class="grid gap-3 border-y py-4">
+  <div class="grid gap-1">
+    <h2 id="calendar-token-title" class="text-base font-semibold">
+      {copy.settings.security.calendarTokenTitle}
+    </h2>
+    <p class="text-sm text-muted-foreground">
+      {copy.settings.security.calendarTokenDescription}
+    </p>
+  </div>
+  <div>
     <Button class="max-sm:w-full" type="button" variant="outline" onclick={() => (rotateDialogOpen = true)}>
       {copy.settings.security.calendarTokenRotate}
     </Button>
-  </Card.Footer>
-</Card.Root>
+  </div>
+</section>
 
-<Card.Root class="border-amber-500/40 bg-amber-500/5">
-  <Card.Header class="grid grid-cols-[auto_1fr] gap-x-3">
-    <ShieldAlertIcon class="mt-0.5 size-5 text-amber-700 dark:text-amber-400" />
-    <div class="grid gap-1">
-      <Card.Title class="text-base">{copy.settings.security.responseTitle}</Card.Title>
-      <Card.Description>{copy.settings.security.responseDescription}</Card.Description>
+<Alert.Root>
+  <ShieldAlertIcon />
+  <Alert.Title>{copy.settings.security.responseTitle}</Alert.Title>
+  <Alert.Description>
+    <div class="grid gap-3">
+      <p>{copy.settings.security.responseDescription}</p>
+      <div class="flex flex-col gap-2 sm:flex-row">
+        <Button href="/account/settings/authorizations" variant="outline">{copy.settings.security.reviewAuthorizations}</Button>
+        <Button href="/account/settings/accounts" variant="ghost">{copy.settings.security.reviewAccounts}</Button>
+      </div>
     </div>
-  </Card.Header>
-  <Card.Footer class="flex-col items-stretch gap-2 sm:flex-row">
-    <Button href="/account/settings/authorizations" variant="outline">{copy.settings.security.reviewAuthorizations}</Button>
-    <Button href="/account/settings/accounts" variant="ghost">{copy.settings.security.reviewAccounts}</Button>
-  </Card.Footer>
-</Card.Root>
+  </Alert.Description>
+</Alert.Root>
+
+<Separator />
 
 <section aria-labelledby="security-activity-title" class="grid gap-4">
   <header class="grid gap-1">
@@ -113,7 +104,7 @@ function repeatedLabel(count: number) {
               {label(copy.settings.security.actions, event.action, copy.settings.security.unknownAction)}
               {#if group.count > 1}<Badge variant="outline">{repeatedLabel(group.count)}</Badge>{/if}
             </Item.Title>
-            <Item.Description>{dateFormatter.format(new Date(event.createdAt))}</Item.Description>
+            <Item.Description>{activityTimeLabel(group)}</Item.Description>
           </Item.Content>
           <Item.Actions class="flex-wrap">
             <Badge variant={event.outcome === "success" ? "secondary" : "destructive"}>{label(copy.settings.security.outcomes, event.outcome, event.outcome)}</Badge>

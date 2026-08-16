@@ -30,7 +30,7 @@ export let enhanceAdminAction: (
   action: PendingModerationServerAction,
 ) => SubmitFunction;
 export let formatDate: (value: string | Date) => string;
-export let isLiftingSuspension: boolean;
+export let liftingSuspensionId: string | null;
 export let onDeleteHomework: (homework: AdminModerationHomework) => void;
 export let onManageComment: (comment: AdminModerationComment) => void;
 export let onManageDescription: (
@@ -64,10 +64,11 @@ export let visibleComments: AdminModerationComment[];
 {:else if data.tab === "suspensions"}
   <AdminModerationSuspensions
     {copy}
-    enhanceLiftSuspension={enhanceAdminAction("liftSuspension")}
+    enhanceLiftSuspension={(id) =>
+      enhanceAdminAction(`liftSuspension:${id}`)}
     formatDate={formatDate}
     formatMessage={moderationFormatMessage}
-    {isLiftingSuspension}
+    {liftingSuspensionId}
     suspensions={data.suspensions}
   />
 {:else}

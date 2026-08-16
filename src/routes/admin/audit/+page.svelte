@@ -7,6 +7,7 @@ import {
   auditOutcomeLabel,
   auditTargetLabel,
 } from "@/features/admin/lib/admin-audit-display";
+import { buildAdminAuditHref } from "@/features/admin/lib/audit-page-hrefs";
 import PageHeader from "$lib/components/PageHeader.svelte";
 import { Badge } from "$lib/components/ui/badge/index.js";
 import { Button } from "$lib/components/ui/button/index.js";
@@ -37,12 +38,11 @@ function identity(
 }
 
 function nextHref(cursor: string) {
-  const query = new URLSearchParams();
-  for (const [key, value] of Object.entries(data.filters)) {
-    if (value) query.set(key, String(value));
-  }
-  query.set("cursor", cursor);
-  return `/admin/audit?${query.toString()}`;
+  return buildAdminAuditHref(data.filters, cursor);
+}
+
+function newestHref() {
+  return buildAdminAuditHref(data.filters);
 }
 
 function pageLabel() {
@@ -255,7 +255,7 @@ function displayValue(value: unknown) {
     <footer class="flex flex-col items-stretch gap-3 sm:flex-row sm:items-center sm:justify-end">
       <span class="text-sm text-muted-foreground">{pageLabel()}</span>
       <div class="flex gap-2">
-        {#if data.pagination.hasCursor}<Button class="flex-1" href="/admin/audit" variant="ghost">{data.copy.audit.newest}</Button>{/if}
+        {#if data.pagination.hasCursor}<Button class="flex-1" href={newestHref()} variant="ghost">{data.copy.audit.newest}</Button>{/if}
         {#if data.pagination.nextCursor}<Button class="flex-1" href={nextHref(data.pagination.nextCursor)} variant="outline">{data.copy.audit.next}</Button>{/if}
       </div>
     </footer>

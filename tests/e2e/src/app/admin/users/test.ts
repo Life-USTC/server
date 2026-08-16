@@ -75,6 +75,28 @@ test("/admin/users 桌面行操作可用键盘打开管理弹窗", async ({
   await captureStepScreenshot(page, testInfo, "admin-users-keyboard-manage");
 });
 
+test("/admin/users 变更管理员权限需要二次确认", async ({ page }) => {
+  await signInAsDevAdmin(page, "/admin/users");
+
+  const dialog = await openAdminUserDialog(page, DEV_SEED.debugUsername);
+  const adminCheckbox = dialog.getByRole("checkbox", {
+    name: /设为管理员|Grant admin access/i,
+  });
+  await adminCheckbox.check();
+  await dialog.getByRole("button", { name: /保存更改|Save/i }).click();
+
+  const confirmDialog = page.getByRole("alertdialog", {
+    name: /变更管理员权限|Change administrator access/i,
+  });
+  await expect(confirmDialog).toBeVisible();
+  await expect(confirmDialog).toContainText(
+    /访问全部管理与审核工具|access to all administration and moderation tools/i,
+  );
+  await confirmDialog.getByRole("button", { name: /取消|Cancel/i }).click();
+  await expect(confirmDialog).toBeHidden();
+  await expect(dialog).toBeVisible();
+});
+
 test("/admin/users 搜索表单可过滤用户", async ({ page }, testInfo) => {
   await signInAsDevAdmin(page, "/admin/users");
 
@@ -370,6 +392,26 @@ test("/admin/users 可创建默认时长封禁并通过 API 解除", async ({
     expect(typeof body.suspension?.id).toBe("string");
     suspensionId = body.suspension?.id;
     await captureStepScreenshot(page, testInfo, "admin-users-suspend-created");
+
+    await gotoAndWaitForReady(
+      page,
+      `/admin/users?search=${encodeURIComponent(usernames[0] ?? prefix)}`,
+    );
+    const suspendedDialog = await openAdminUserDialog(
+      page,
+      usernames[0] ?? prefix,
+    );
+    await suspendedDialog
+      .getByRole("button", { name: /更新封禁|Update suspension/i })
+      .click();
+    const updateDialog = page.getByRole("alertdialog", {
+      name: /替换当前封禁|Replace the active suspension/i,
+    });
+    await expect(updateDialog).toContainText(
+      /使用新的原因与到期时间创建替代记录|replaced with the new reason and expiration/i,
+    );
+    await updateDialog.getByRole("button", { name: /取消|Cancel/i }).click();
+    await expect(updateDialog).toBeHidden();
 
     const lift = await page.request.patch(
       `/api/admin/suspensions/${suspensionId}`,

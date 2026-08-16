@@ -123,11 +123,16 @@ function revokeAction(consentId: string): SubmitFunction {
           </Item.Footer>
           <Item.Footer class="block">
             {#if authorization.usage}
-              <dl class="grid w-full gap-3 text-xs sm:grid-cols-3">
-                <div class="rounded-md bg-muted/50 p-3"><dt class="text-muted-foreground">{copy.settings.authorizations.reads}</dt><dd class="mt-1 text-lg font-semibold tabular-nums">{authorization.usage.readCount}</dd></div>
-                <div class="rounded-md bg-muted/50 p-3"><dt class="text-muted-foreground">{copy.settings.authorizations.writes}</dt><dd class="mt-1 text-lg font-semibold tabular-nums">{authorization.usage.writeCount}</dd></div>
-                <div class="rounded-md bg-muted/50 p-3"><dt class="text-muted-foreground">{copy.settings.authorizations.errors}</dt><dd class="mt-1 text-lg font-semibold tabular-nums">{authorization.usage.errorCount}</dd></div>
-              </dl>
+              <div class="grid gap-2">
+                <h3 class="text-xs font-medium">
+                  {copy.settings.authorizations.recentUsage}
+                </h3>
+                <dl class="grid w-full gap-3 text-xs sm:grid-cols-3">
+                  <div><dt class="text-muted-foreground">{copy.settings.authorizations.reads}</dt><dd class="mt-1 text-lg font-semibold tabular-nums">{authorization.usage.readCount}</dd></div>
+                  <div><dt class="text-muted-foreground">{copy.settings.authorizations.writes}</dt><dd class="mt-1 text-lg font-semibold tabular-nums">{authorization.usage.writeCount}</dd></div>
+                  <div><dt class="text-muted-foreground">{copy.settings.authorizations.errors}</dt><dd class="mt-1 text-lg font-semibold tabular-nums">{authorization.usage.errorCount}</dd></div>
+                </dl>
+              </div>
               <dl class="mt-3 grid gap-1.5 text-xs text-muted-foreground sm:grid-cols-3">
                 <div><dt>{copy.settings.authorizations.lastUsedAt}</dt><dd class="text-foreground">{formatUpdatedAt(authorization.usage.lastUsedAt)}</dd></div>
                 <div><dt>{copy.settings.authorizations.lastChannel}</dt><dd class="text-foreground">{copy.settings.security.channels[authorization.usage.lastChannel] ?? authorization.usage.lastChannel}</dd></div>

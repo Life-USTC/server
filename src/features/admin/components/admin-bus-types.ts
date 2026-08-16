@@ -19,6 +19,8 @@ export type AdminBusVersionFormatter = (version: AdminBusVersion) => string;
 
 export type AdminBusCopy = {
   activateAction: string;
+  activateDescription: string;
+  activateTitle: string;
   cancelAction: string;
   colActions: string;
   colEffective: string;
@@ -28,6 +30,7 @@ export type AdminBusCopy = {
   colTitle: string;
   colTrips: string;
   confirmDeleteAction: string;
+  confirmActivateAction: string;
   deleteAction: string;
   deleteDescription: string;
   deleteTitle: string;

@@ -27,6 +27,7 @@ import {
   signInAsDevAdmin,
 } from "../../../../utils/auth";
 import { DEV_SEED } from "../../../../utils/dev-seed";
+import { withE2ePrisma } from "../../../../utils/e2e-db/prisma";
 import { visibleText } from "../../../../utils/locators";
 import { captureStepScreenshot } from "../../../../utils/screenshot";
 import { assertPageContract } from "../../_shared/page-contract";
@@ -124,6 +125,72 @@ test("/admin/bus 激活版本受保护且导入弹窗可打开", async ({
   await expect(importDialog).toBeVisible({ timeout: 5_000 });
   await captureStepScreenshot(page, testInfo, "admin-bus/import-dialog");
   await importDialog.getByRole("button", { name: /取消|Cancel/i }).click();
+});
+
+test("/admin/bus 激活非当前版本需要二次确认", async ({ page }) => {
+  const suffix = Date.now().toString(36);
+  const version = await withE2ePrisma(async (prisma) => {
+    const activeIds = (
+      await prisma.busScheduleVersion.findMany({
+        where: { isEnabled: true },
+        select: { id: true },
+      })
+    ).map(({ id }) => id);
+    const created = await prisma.busScheduleVersion.create({
+      data: {
+        checksum: `e2e-bus-checksum-${suffix}`,
+        isEnabled: false,
+        key: `e2e-bus-${suffix}`,
+        rawJson: {},
+        title: `E2E Bus ${suffix}`,
+      },
+    });
+    return { activeIds, created };
+  });
+
+  try {
+    await signInAsDevAdmin(page, "/admin/bus");
+    const row = page
+      .locator("tbody tr:visible")
+      .filter({ hasText: version.created.key });
+    const activateButton = row.getByRole("button", {
+      name: /激活版本|Activate version/i,
+    });
+    await activateButton.click();
+    const confirmDialog = page.getByRole("alertdialog", {
+      name: /激活该时刻表版本|Activate timetable version/i,
+    });
+    await expect(confirmDialog).toBeVisible();
+    await expect(confirmDialog).toContainText(version.created.key);
+    await confirmDialog.getByRole("button", { name: /取消|Cancel/i }).click();
+    await expect(confirmDialog).toBeHidden();
+
+    await activateButton.click();
+    const activateResponse = page.waitForResponse(
+      (response) =>
+        response.request().method() === "POST" &&
+        response.url().includes("/admin/bus") &&
+        response.url().includes("activateVersion"),
+    );
+    await confirmDialog
+      .getByRole("button", {
+        name: /确认激活版本|Activate version/i,
+      })
+      .click();
+    expect((await activateResponse).status()).toBe(200);
+    await expect(row.getByText(/激活|Active/i)).toBeVisible();
+  } finally {
+    await withE2ePrisma(async (prisma) => {
+      await prisma.$transaction([
+        prisma.busScheduleVersion.updateMany({ data: { isEnabled: false } }),
+        prisma.busScheduleVersion.updateMany({
+          where: { id: { in: version.activeIds } },
+          data: { isEnabled: true },
+        }),
+        prisma.busScheduleVersion.delete({ where: { id: version.created.id } }),
+      ]);
+    });
+  }
 });
 
 test("/admin/bus 移动端首条版本操作可达", async ({ page }, testInfo) => {
