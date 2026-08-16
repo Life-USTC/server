@@ -71,6 +71,7 @@ export const REST_FEATURES = [
   "community.user",
   "workspace.bus-preferences",
   "workspace.calendar",
+  "workspace.calendar-feed",
   "workspace.exam",
   "workspace.homework",
   "workspace.link-pin",
@@ -86,6 +87,7 @@ export type RestFeature = (typeof REST_FEATURES)[number];
 
 export const READ_ONLY_REST_FEATURES = [
   "account.client-activity",
+  "workspace.calendar-feed",
 ] as const satisfies readonly RestFeature[];
 
 export type ReadOnlyRestFeature = (typeof READ_ONLY_REST_FEATURES)[number];
@@ -112,6 +114,7 @@ export const PUBLIC_REST_FEATURES = [
   "community.user",
   "workspace.bus-preferences",
   "workspace.calendar",
+  "workspace.calendar-feed",
   "workspace.exam",
   "workspace.homework",
   "workspace.link-pin",

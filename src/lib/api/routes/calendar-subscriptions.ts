@@ -24,11 +24,14 @@ import {
   calendarSubscriptionQueryRequestSchema,
   calendarSubscriptionRemoveRequestSchema,
 } from "@/lib/api/schemas/request-schemas";
-import { requireAuth } from "@/lib/auth/api-auth";
+import { requireAuth, requireAuthPrincipal } from "@/lib/auth/api-auth";
 import {
   runWithWorkspaceRouteAttribution,
   runWorkspaceRouteStage,
 } from "@/lib/log/workspace-route-attribution";
+import { registerOAuthRequestUsage } from "@/lib/oauth/grant-usage";
+import { hasRequiredFeatureScope } from "@/lib/oauth/scope-registry";
+import { getPublicOrigin } from "@/lib/site-url";
 
 export async function getCurrentCalendarSubscriptionRoute(request: Request) {
   try {
@@ -37,7 +40,7 @@ export async function getCurrentCalendarSubscriptionRoute(request: Request) {
       "auth",
       { request },
       () =>
-        requireAuth(request, {
+        requireAuthPrincipal(request, {
           bearerScope: { feature: "workspace.subscription", action: "read" },
         }),
     );
@@ -48,14 +51,25 @@ export async function getCurrentCalendarSubscriptionRoute(request: Request) {
       "subscriptions_current",
       request,
       async () => {
-        const { getUserCalendarSubscription } = await import(
-          "@/features/subscriptions/server/subscription-read-model"
-        );
-        const subscription = await runWorkspaceRouteStage(
+        const { getCalendarSubscriptionUrl, getUserCalendarSubscription } =
+          await import("@/features/subscriptions/server/subscription-read-model");
+        const revealCalendarFeed =
+          auth.kind === "oauth" &&
+          hasRequiredFeatureScope(auth.scopes, {
+            feature: "workspace.calendar-feed",
+            action: "read",
+          });
+        const [subscription, calendarPath] = await runWorkspaceRouteStage(
           "subscriptions_current",
           "read",
           { request },
-          () => getUserCalendarSubscription(userId, getRequestLocale(request)),
+          () =>
+            Promise.all([
+              getUserCalendarSubscription(userId, getRequestLocale(request)),
+              revealCalendarFeed
+                ? getCalendarSubscriptionUrl(userId, null)
+                : Promise.resolve(null),
+            ]),
         );
 
         if (!subscription) {
@@ -66,8 +80,27 @@ export async function getCurrentCalendarSubscriptionRoute(request: Request) {
           );
         }
 
+        if (auth.kind === "oauth" && calendarPath) {
+          registerOAuthRequestUsage(request, {
+            userId,
+            clientId: auth.clientId,
+            ...(auth.grantId ? { grantId: auth.grantId } : {}),
+            channel: "rest",
+            feature: "workspace.calendar-feed",
+            action: "read",
+          });
+        }
+
         return jsonResponse(
-          currentCalendarSubscriptionResponseSchema.parse({ subscription }),
+          currentCalendarSubscriptionResponseSchema.parse({
+            subscription: {
+              ...subscription,
+              calendarPath,
+              calendarUrl: calendarPath
+                ? new URL(calendarPath, getPublicOrigin()).toString()
+                : null,
+            },
+          }),
         );
       },
     );
@@ -107,9 +140,8 @@ export async function postCalendarSubscriptionsRoute(request: Request) {
     }
 
     const sectionIds = parsedBody.sectionIds ?? [];
-    const { replaceUserSectionSubscriptions } = await import(
-      "@/features/subscriptions/server/subscriptions"
-    );
+    const { replaceUserSectionSubscriptions } =
+      await import("@/features/subscriptions/server/subscriptions");
     const subscription = await replaceUserSectionSubscriptions(
       userId,
       sectionIds,
@@ -147,9 +179,8 @@ export async function postCalendarSubscriptionQueryRoute(request: Request) {
       return badRequest("semesterId must be a valid number");
     }
 
-    const { resolveCalendarSubscriptionSections } = await import(
-      "@/features/subscriptions/server/subscriptions"
-    );
+    const { resolveCalendarSubscriptionSections } =
+      await import("@/features/subscriptions/server/subscriptions");
     const result = await resolveCalendarSubscriptionSections({
       codes: parsedBody.codes,
       locale: getRequestLocale(request),
@@ -191,9 +222,8 @@ export async function postCalendarSubscriptionBatchRoute(request: Request) {
       return badRequest("semesterId must be a valid number");
     }
 
-    const { batchUpdateUserSectionSubscriptions } = await import(
-      "@/features/subscriptions/server/subscriptions"
-    );
+    const { batchUpdateUserSectionSubscriptions } =
+      await import("@/features/subscriptions/server/subscriptions");
     const result = await batchUpdateUserSectionSubscriptions({
       action: parsedBody.action,
       codes: parsedBody.codes,
@@ -229,9 +259,8 @@ export async function postCalendarSubscriptionImportCodesRoute(
     }
 
     const locale = getRequestLocale(request);
-    const { importUserSectionSubscriptionsByCodes } = await import(
-      "@/features/subscriptions/server/subscriptions"
-    );
+    const { importUserSectionSubscriptionsByCodes } =
+      await import("@/features/subscriptions/server/subscriptions");
     const result = await importUserSectionSubscriptionsByCodes({
       codes: parsedBody.codes,
       locale,
@@ -282,9 +311,8 @@ export async function patchCalendarSubscriptionsRoute(request: Request) {
       return parsedBody;
     }
 
-    const { appendUserSectionSubscriptions } = await import(
-      "@/features/subscriptions/server/subscriptions"
-    );
+    const { appendUserSectionSubscriptions } =
+      await import("@/features/subscriptions/server/subscriptions");
     const result = await appendUserSectionSubscriptions({
       locale: getRequestLocale(request),
       sectionIds: parsedBody.sectionIds,

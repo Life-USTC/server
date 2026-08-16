@@ -11,6 +11,9 @@ describe("OAuth display copy", () => {
     );
     expect(oauthFeatureLabel("en-us", "account.profile")).toBe("Profile");
     expect(oauthFeatureLabel("zh-cn", "workspace.calendar")).toBe("日历");
+    expect(oauthScopeLabel("zh-cn", "workspace.calendar-feed:read")).toBe(
+      "读取你的私有日历订阅链接",
+    );
   });
 
   it("keeps unknown values visible for forward-compatible audit data", () => {

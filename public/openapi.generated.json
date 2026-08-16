@@ -6607,6 +6607,10 @@
         "tags": [
           "workspace.subscription"
         ],
+        "x-oauth-scopes": [
+          "workspace.subscription:read",
+          "workspace.calendar-feed:read"
+        ],
         "security": [
           {
             "bearerAuth": []
@@ -29512,12 +29516,25 @@
               },
               "note": {
                 "type": "string"
+              },
+              "calendarPath": {
+                "nullable": true,
+                "description": "Private calendar feed path. Populated only for OAuth tokens with workspace.calendar-feed:read.",
+                "type": "string"
+              },
+              "calendarUrl": {
+                "nullable": true,
+                "description": "Private calendar feed URL. Populated only for OAuth tokens with workspace.calendar-feed:read.",
+                "type": "string",
+                "format": "uri"
               }
             },
             "required": [
               "userId",
               "sections",
-              "note"
+              "note",
+              "calendarPath",
+              "calendarUrl"
             ],
             "additionalProperties": false
           }

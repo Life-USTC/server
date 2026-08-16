@@ -23,8 +23,24 @@ export const calendarSubscriptionSchema = z.strictObject({
   note: z.string(),
 });
 
+export const calendarSubscriptionWithFeedSchema =
+  calendarSubscriptionSchema.extend({
+    calendarPath: z
+      .string()
+      .nullable()
+      .describe(
+        "Private calendar feed path. Populated only for OAuth tokens with workspace.calendar-feed:read.",
+      ),
+    calendarUrl: z
+      .url()
+      .nullable()
+      .describe(
+        "Private calendar feed URL. Populated only for OAuth tokens with workspace.calendar-feed:read.",
+      ),
+  });
+
 export const currentCalendarSubscriptionResponseSchema = z.strictObject({
-  subscription: calendarSubscriptionSchema.nullable(),
+  subscription: calendarSubscriptionWithFeedSchema.nullable(),
 });
 
 export const calendarSubscriptionCreateResponseSchema = z.strictObject({

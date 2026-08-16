@@ -56,6 +56,8 @@ describe("oauth scope registry", () => {
     );
     expect(PUBLIC_REST_SCOPES).toContain("account.client-activity:read");
     expect(PUBLIC_REST_SCOPES).not.toContain("account.client-activity:write");
+    expect(PUBLIC_REST_SCOPES).toContain("workspace.calendar-feed:read");
+    expect(PUBLIC_REST_SCOPES).not.toContain("workspace.calendar-feed:write");
     expect(PUBLIC_OAUTH_SCOPES).not.toContain("admin:read");
     expect(PUBLIC_OAUTH_SCOPES).not.toContain("admin:write");
   });
