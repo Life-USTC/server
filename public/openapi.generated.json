@@ -19418,10 +19418,18 @@
                 }
               },
               "calendarPath": {
-                "type": "string"
+                "type": "string",
+                "nullable": true,
+                "enum": [
+                  null
+                ]
               },
               "calendarUrl": {
-                "type": "string"
+                "type": "string",
+                "nullable": true,
+                "enum": [
+                  null
+                ]
               },
               "note": {
                 "type": "string"
@@ -20129,10 +20137,18 @@
                 }
               },
               "calendarPath": {
-                "type": "string"
+                "type": "string",
+                "nullable": true,
+                "enum": [
+                  null
+                ]
               },
               "calendarUrl": {
-                "type": "string"
+                "type": "string",
+                "nullable": true,
+                "enum": [
+                  null
+                ]
               },
               "note": {
                 "type": "string"
@@ -20852,10 +20868,18 @@
                 }
               },
               "calendarPath": {
-                "type": "string"
+                "type": "string",
+                "nullable": true,
+                "enum": [
+                  null
+                ]
               },
               "calendarUrl": {
-                "type": "string"
+                "type": "string",
+                "nullable": true,
+                "enum": [
+                  null
+                ]
               },
               "note": {
                 "type": "string"
@@ -28838,10 +28862,18 @@
                 }
               },
               "calendarPath": {
-                "type": "string"
+                "type": "string",
+                "nullable": true,
+                "enum": [
+                  null
+                ]
               },
               "calendarUrl": {
-                "type": "string"
+                "type": "string",
+                "nullable": true,
+                "enum": [
+                  null
+                ]
               },
               "note": {
                 "type": "string"
@@ -29543,10 +29575,18 @@
                 }
               },
               "calendarPath": {
-                "type": "string"
+                "type": "string",
+                "nullable": true,
+                "enum": [
+                  null
+                ]
               },
               "calendarUrl": {
-                "type": "string"
+                "type": "string",
+                "nullable": true,
+                "enum": [
+                  null
+                ]
               },
               "note": {
                 "type": "string"
@@ -32265,10 +32305,18 @@
                 }
               },
               "calendarPath": {
-                "type": "string"
+                "type": "string",
+                "nullable": true,
+                "enum": [
+                  null
+                ]
               },
               "calendarUrl": {
-                "type": "string"
+                "type": "string",
+                "nullable": true,
+                "enum": [
+                  null
+                ]
               },
               "note": {
                 "type": "string"

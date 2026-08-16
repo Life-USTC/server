@@ -12,7 +12,10 @@ export async function deleteAdminOAuthClientAction(
   requestId: string,
 ) {
   const copy = getAdminOAuthCopy(locale).oauth;
-  const admin = await requireAdminPage(request, { requireActive: true });
+  const admin = await requireAdminPage(request, {
+    requireActive: true,
+    requireRecent: true,
+  });
   const form = await request.formData();
   const clientId = String(form.get("clientId") ?? "");
   if (!clientId) return fail(400, { message: copy.missingClientId });

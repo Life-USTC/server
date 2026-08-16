@@ -20,8 +20,8 @@ export const viewerContextSchema = z.object({
 export const calendarSubscriptionSchema = z.strictObject({
   userId: z.string(),
   sections: z.array(sectionCompactSchema),
-  calendarPath: z.string(),
-  calendarUrl: z.string(),
+  calendarPath: z.null(),
+  calendarUrl: z.null(),
   note: z.string(),
 });
 

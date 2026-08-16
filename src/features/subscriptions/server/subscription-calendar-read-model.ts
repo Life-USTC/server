@@ -3,7 +3,6 @@ import { toSectionCompactDto } from "@/features/catalog/server/academic-summary-
 import { type AppLocale, DEFAULT_LOCALE } from "@/i18n/config";
 import { withUserDbContext } from "@/lib/db/prisma";
 import { logAppEvent } from "@/lib/log/app-logger";
-import { getPublicOrigin } from "@/lib/site-url";
 import {
   buildCalendarFeedPath,
   SECTION_SUBSCRIPTION_NOTE,
@@ -73,7 +72,6 @@ export async function getUserCalendarSubscription(
       where: { id: userId },
       select: {
         id: true,
-        calendarFeedToken: true,
         sectionSubscriptions: {
           include: {
             section: {
@@ -91,17 +89,16 @@ export async function getUserCalendarSubscription(
 
   if (!user) return null;
 
-  const calendarPath = await buildCalendarFeedPath(
-    user.id,
-    user.calendarFeedToken,
-  );
   return {
     userId: user.id,
     sections: user.sectionSubscriptions.map((row) =>
       toSectionCompactDto(row.section, locale),
     ),
-    calendarPath,
-    calendarUrl: `${getPublicOrigin()}${calendarPath}`,
+    // A calendar feed URL is itself a long-lived bearer credential. Generic
+    // REST and MCP subscription responses must never expose it; the
+    // recent-session first-party dashboard owns credential reveal.
+    calendarPath: null,
+    calendarUrl: null,
     note: SECTION_SUBSCRIPTION_NOTE,
   };
 }

@@ -1,3 +1,4 @@
+import { Address4, Address6 } from "ip-address";
 import type {
   AuditAction,
   AuditChannel,
@@ -109,11 +110,13 @@ function beforeCursor(cursor: AccountActivityCursor | undefined) {
 
 export function maskAuditIpAddress(value: string | null): string | null {
   if (!value) return null;
-  const ipv4 = value.match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/);
-  if (ipv4) return `${ipv4[1]}.${ipv4[2]}.${ipv4[3]}.*`;
-  if (value.includes(":")) {
-    const prefix = value.split(":").filter(Boolean).slice(0, 3).join(":");
-    return prefix ? `${prefix}::/48` : "IPv6 /48";
+  if (Address4.isValid(value)) {
+    const [first, second, third] = new Address4(value).toArray();
+    return `${first}.${second}.${third}.*`;
+  }
+  if (Address6.isValid(value)) {
+    const network = new Address6(`${value}/48`).startAddress().correctForm();
+    return `${network}/48`;
   }
   return null;
 }

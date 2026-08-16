@@ -1700,6 +1700,7 @@
     "devDebugHint": "开发模式下可一键进入调试用户，用于验证登录后功能。",
     "errorAccountNotLinked": "此账户已关联到其他用户。请使用其他账户登录。",
     "errorGeneric": "登录过程中发生错误。请重试。",
+    "reauthenticationRequired": "此敏感操作需要近期登录验证。请重新登录后继续，完成后会返回当前管理页面。",
     "termsNotice": "登录即表示您同意我们的<terms>服务条款</terms>和<privacy>隐私政策</privacy>。"
   },
   "teachers": {

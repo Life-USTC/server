@@ -9,7 +9,7 @@ vi.mock("@/features/search/server/global-search-service", () => ({
 }));
 
 vi.mock("@/lib/auth/api-auth", () => ({
-  resolveApiUserId: vi.fn(),
+  resolveSessionUserId: vi.fn(),
 }));
 
 function clearPublicRuntimeCache() {
@@ -28,8 +28,8 @@ describe("global search route", () => {
   });
 
   it("returns public cache headers for anonymous search", async () => {
-    const { resolveApiUserId } = await import("@/lib/auth/api-auth");
-    vi.mocked(resolveApiUserId).mockResolvedValue(null);
+    const { resolveSessionUserId } = await import("@/lib/auth/api-auth");
+    vi.mocked(resolveSessionUserId).mockResolvedValue(null);
     searchGloballyMock.mockResolvedValue({ query: "math", groups: [] });
 
     const { getGlobalSearchRoute } = await import(
@@ -48,7 +48,7 @@ describe("global search route", () => {
     );
     expect(response.headers.get("Cache-Tag")).toBe("catalog");
     expect(response.headers.get("Vary")).toBeNull();
-    expect(resolveApiUserId).not.toHaveBeenCalled();
+    expect(resolveSessionUserId).not.toHaveBeenCalled();
     expect(searchGloballyMock).toHaveBeenCalledWith(
       expect.objectContaining({
         locale: "en-us",
@@ -60,8 +60,8 @@ describe("global search route", () => {
   });
 
   it("returns private cache headers for signed-in search", async () => {
-    const { resolveApiUserId } = await import("@/lib/auth/api-auth");
-    vi.mocked(resolveApiUserId).mockResolvedValue("user-1");
+    const { resolveSessionUserId } = await import("@/lib/auth/api-auth");
+    vi.mocked(resolveSessionUserId).mockResolvedValue("user-1");
     searchGloballyMock.mockResolvedValue({ query: "math", groups: [] });
 
     const { getGlobalSearchRoute } = await import(
@@ -83,8 +83,8 @@ describe("global search route", () => {
   });
 
   it("keeps workspace scope private when authentication is stale", async () => {
-    const { resolveApiUserId } = await import("@/lib/auth/api-auth");
-    vi.mocked(resolveApiUserId).mockResolvedValue(null);
+    const { resolveSessionUserId } = await import("@/lib/auth/api-auth");
+    vi.mocked(resolveSessionUserId).mockResolvedValue(null);
     searchGloballyMock.mockResolvedValue({ query: "math", groups: [] });
 
     const { getGlobalSearchRoute } = await import(
@@ -102,9 +102,33 @@ describe("global search route", () => {
     );
   });
 
+  it("account.client-activity bearer cannot personalize workspace search or read Todos", async () => {
+    const { resolveSessionUserId } = await import("@/lib/auth/api-auth");
+    vi.mocked(resolveSessionUserId).mockResolvedValue(null);
+    searchGloballyMock.mockResolvedValue({ query: "private", groups: [] });
+
+    const { getGlobalSearchRoute } = await import(
+      "@/lib/api/routes/global-search"
+    );
+    const request = new Request(
+      "https://life.example/api/search?q=private&locale=en-us&scope=workspace",
+      {
+        headers: { authorization: "Bearer account-activity-token" },
+      },
+    );
+    const response = await getGlobalSearchRoute(request);
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("Cache-Control")).toBe("private, no-store");
+    expect(resolveSessionUserId).toHaveBeenCalledWith(request);
+    expect(searchGloballyMock).toHaveBeenCalledWith(
+      expect.objectContaining({ userId: null }),
+    );
+  });
+
   it("never authenticates or personalizes the public catalog scope", async () => {
-    const { resolveApiUserId } = await import("@/lib/auth/api-auth");
-    vi.mocked(resolveApiUserId).mockResolvedValue("user-1");
+    const { resolveSessionUserId } = await import("@/lib/auth/api-auth");
+    vi.mocked(resolveSessionUserId).mockResolvedValue("user-1");
     searchGloballyMock.mockResolvedValue({ query: "math", groups: [] });
 
     const { getGlobalSearchRoute } = await import(
@@ -115,14 +139,14 @@ describe("global search route", () => {
     );
 
     expect(response.headers.get("Cache-Control")).toContain("public");
-    expect(resolveApiUserId).not.toHaveBeenCalled();
+    expect(resolveSessionUserId).not.toHaveBeenCalled();
     expect(searchGloballyMock).toHaveBeenCalledWith(
       expect.objectContaining({ locale: "zh-cn", userId: null }),
     );
   });
 
   it("keeps omitted-locale responses private with the canonical locale", async () => {
-    const { resolveApiUserId } = await import("@/lib/auth/api-auth");
+    const { resolveSessionUserId } = await import("@/lib/auth/api-auth");
     searchGloballyMock.mockResolvedValue({ query: "math", groups: [] });
 
     const { getGlobalSearchRoute } = await import(
@@ -135,14 +159,14 @@ describe("global search route", () => {
     );
 
     expect(response.headers.get("Cache-Control")).toBe("private, no-store");
-    expect(resolveApiUserId).not.toHaveBeenCalled();
+    expect(resolveSessionUserId).not.toHaveBeenCalled();
     expect(searchGloballyMock).toHaveBeenCalledWith(
       expect.objectContaining({ locale: "zh-cn", userId: null }),
     );
   });
 
   it("rejects invalid locale and scope before searching", async () => {
-    const { resolveApiUserId } = await import("@/lib/auth/api-auth");
+    const { resolveSessionUserId } = await import("@/lib/auth/api-auth");
     const { getGlobalSearchRoute } = await import(
       "@/lib/api/routes/global-search"
     );
@@ -158,12 +182,12 @@ describe("global search route", () => {
 
     expect(invalidScope.status).toBe(400);
     expect(invalidLocale.status).toBe(400);
-    expect(resolveApiUserId).not.toHaveBeenCalled();
+    expect(resolveSessionUserId).not.toHaveBeenCalled();
     expect(searchGloballyMock).not.toHaveBeenCalled();
   });
 
   it("rejects search queries longer than the catalog search bound", async () => {
-    const { resolveApiUserId } = await import("@/lib/auth/api-auth");
+    const { resolveSessionUserId } = await import("@/lib/auth/api-auth");
     const { getGlobalSearchRoute } = await import(
       "@/lib/api/routes/global-search"
     );
@@ -178,7 +202,7 @@ describe("global search route", () => {
     expect(await response.json()).toEqual({
       error: "Search query must not exceed 200 characters",
     });
-    expect(resolveApiUserId).not.toHaveBeenCalled();
+    expect(resolveSessionUserId).not.toHaveBeenCalled();
     expect(searchGloballyMock).not.toHaveBeenCalled();
   });
 });

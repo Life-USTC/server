@@ -145,12 +145,16 @@ Don't add a second `workspace` feature folder or a root GraphQL `viewer`.
 | Entry | Auth |
 |-------|------|
 | Pages | `event.locals.authUser`, else `buildSignInPageUrl` → `/account/sign-in?callbackUrl=…` |
-| REST | `resolveApiUserId()` (Bearer or cookie) |
+| REST | Protected routes declare `bearerScope`; optional personalization uses `resolveSessionUserId()` (cookie only) |
 | GraphQL | Bearer-first; audience `/api/graphql`; cookies need trusted Origin |
 | MCP | Bearer only; audience `/api/mcp`; `getUserId(authInfo)` |
 
 Suspended users can't collaborative-write. Upload downloads use the shared
 permission gate.
+
+Never use an ambient OAuth identity for optional personalization. Use
+`requireAuth` / `resolveApiPrincipal` with an explicit feature/action scope for
+Bearer-capable routes, and `resolveSessionUserId` for session-only reads.
 
 ## Conventions
 

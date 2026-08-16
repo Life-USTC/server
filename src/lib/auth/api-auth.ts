@@ -14,7 +14,6 @@ import { registerOAuthRequestUsage } from "@/lib/oauth/grant-usage";
 import {
   type FeatureScopeRequirement,
   hasRequiredFeatureScope,
-  isFeatureScope,
 } from "@/lib/oauth/scope-registry";
 import {
   checkUserMutationRateLimit,
@@ -43,35 +42,30 @@ export type ApiPrincipal =
     };
 
 export type RestAuthOptions = {
-  bearerScope?: RestBearerScopeRequirement;
+  bearerScope: RestBearerScopeRequirement;
   rateLimit?: {
     action?: string;
     tier?: UserMutationRateLimitTier;
   };
 };
 
-function hasAnyRestScope(scopes: Set<string>): boolean {
-  return [...scopes].some(isFeatureScope);
-}
-
 async function getLocalJwks() {
   const { authApi } = await import("@/lib/auth/core");
   return authApi.getJwks({});
 }
 
-/**
- * Resolve the authenticated user ID from a request.
- *
- * Checks in order:
- * 1. Bearer token in the `Authorization` header (OAuth access token)
- * 2. Session cookie via Better Auth
- */
+/** Resolve either a scoped OAuth principal or a Better Auth session. */
 export async function resolveApiPrincipal(
   request: Request,
-  options: RestAuthOptions = {},
+  options: RestAuthOptions,
 ): Promise<ApiPrincipal | null> {
   const bearer = parseBearerAuthorizationHeader(request.headers);
   if (bearer) {
+    // A bearer token is only meaningful when the route declares the exact
+    // feature/action it accepts. Optional session-only routes must not turn an
+    // unrelated OAuth scope into ambient access to private workspace data.
+    const requirement = options.bearerScope;
+
     const token = bearer.token ?? "";
     if (!token) return null;
     try {
@@ -94,22 +88,15 @@ export async function resolveApiPrincipal(
         return null;
       }
 
-      const requirement = options.bearerScope;
-      if (requirement) {
-        if (!hasRequiredFeatureScope(verified.scope, requirement)) return null;
-      } else {
-        if (!hasAnyRestScope(verified.scope)) return null;
-      }
-      if (requirement) {
-        registerOAuthRequestUsage(request, {
-          userId: verified.sub,
-          clientId: verified.clientId,
-          grantId: verified.grantId,
-          channel: "rest",
-          feature: requirement.feature,
-          action: requirement.action,
-        });
-      }
+      if (!hasRequiredFeatureScope(verified.scope, requirement)) return null;
+      registerOAuthRequestUsage(request, {
+        userId: verified.sub,
+        clientId: verified.clientId,
+        grantId: verified.grantId,
+        channel: "rest",
+        feature: requirement.feature,
+        action: requirement.action,
+      });
       return {
         kind: "oauth",
         userId: verified.sub,
@@ -135,11 +122,11 @@ export async function resolveApiPrincipal(
   };
 }
 
-export async function resolveApiUserId(
+export async function resolveScopedApiUserId(
   request: Request,
-  options: RestAuthOptions = {},
+  bearerScope: RestBearerScopeRequirement,
 ): Promise<string | null> {
-  return (await resolveApiPrincipal(request, options))?.userId ?? null;
+  return (await resolveApiPrincipal(request, { bearerScope }))?.userId ?? null;
 }
 
 export async function resolveSessionUserId(
@@ -157,7 +144,7 @@ export async function resolveSessionUserId(
 
 export async function requireAuth(
   request: Request,
-  options: RestAuthOptions = {},
+  options: RestAuthOptions,
 ): Promise<{ userId: string } | Response> {
   const principal = await requireAuthPrincipal(request, options);
   if (principal instanceof Response) return principal;
@@ -166,7 +153,7 @@ export async function requireAuth(
 
 export async function requireAuthPrincipal(
   request: Request,
-  options: RestAuthOptions = {},
+  options: RestAuthOptions,
 ): Promise<ApiPrincipal | Response> {
   const principal = await resolveApiPrincipal(request, options);
   if (!principal) return unauthorized();

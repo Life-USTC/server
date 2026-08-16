@@ -17,7 +17,7 @@ vi.mock("@/features/bus/server/bus-service", () => ({
 }));
 
 vi.mock("@/lib/auth/api-auth", () => ({
-  resolveApiUserId: vi.fn(),
+  resolveSessionUserId: vi.fn(),
 }));
 
 const campus = {
@@ -48,8 +48,8 @@ describe("bus REST cache boundaries", () => {
   });
 
   it("keeps anonymous raw timetable responses private", async () => {
-    const { resolveApiUserId } = await import("@/lib/auth/api-auth");
-    vi.mocked(resolveApiUserId).mockResolvedValue(null);
+    const { resolveSessionUserId } = await import("@/lib/auth/api-auth");
+    vi.mocked(resolveSessionUserId).mockResolvedValue(null);
     getBusTimetableDataMock.mockResolvedValue(timetable);
     const { getBusRoute } = await import("@/lib/api/routes/bus");
 
@@ -64,8 +64,8 @@ describe("bus REST cache boundaries", () => {
   });
 
   it("keeps an auth-signaled timetable response private", async () => {
-    const { resolveApiUserId } = await import("@/lib/auth/api-auth");
-    vi.mocked(resolveApiUserId).mockResolvedValue(null);
+    const { resolveSessionUserId } = await import("@/lib/auth/api-auth");
+    vi.mocked(resolveSessionUserId).mockResolvedValue(null);
     getBusTimetableDataMock.mockResolvedValue(timetable);
     const { getBusRoute } = await import("@/lib/api/routes/bus");
 
@@ -101,8 +101,8 @@ describe("bus REST cache boundaries", () => {
   });
 
   it("never edge-caches time-sensitive next departures", async () => {
-    const { resolveApiUserId } = await import("@/lib/auth/api-auth");
-    vi.mocked(resolveApiUserId).mockResolvedValue(null);
+    const { resolveSessionUserId } = await import("@/lib/auth/api-auth");
+    vi.mocked(resolveSessionUserId).mockResolvedValue(null);
     getNextBusDeparturesMock.mockResolvedValue({
       originCampus: campus,
       destinationCampus: null,

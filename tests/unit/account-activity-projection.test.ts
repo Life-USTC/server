@@ -13,6 +13,8 @@ describe("account activity privacy projection", () => {
     expect(maskAuditIpAddress("2001:db8:abcd:12::1")).toBe(
       "2001:db8:abcd::/48",
     );
+    expect(maskAuditIpAddress("2001:db8::dead:beef")).toBe("2001:db8::/48");
+    expect(maskAuditIpAddress("999.168.1.42")).toBeNull();
     expect(maskAuditIpAddress("forwarded-by-user")).toBeNull();
   });
 

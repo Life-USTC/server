@@ -10,7 +10,7 @@ import {
   parseRouteSearchParams,
 } from "@/lib/api/helpers";
 import { descriptionsQuerySchema } from "@/lib/api/schemas/request-schemas";
-import { resolveApiUserId } from "@/lib/auth/api-auth";
+import { resolveSessionUserId } from "@/lib/auth/api-auth";
 import { getViewerContext } from "@/lib/auth/viewer-context";
 
 export async function getDescriptionRoute(request: Request) {
@@ -41,7 +41,7 @@ export async function getDescriptionRoute(request: Request) {
   }
 
   try {
-    const viewerUserId = await resolveApiUserId(request);
+    const viewerUserId = await resolveSessionUserId(request);
     const viewer = await getViewerContext({ userId: viewerUserId });
     const { getResolvedDescriptionPayload } = await import(
       "@/features/descriptions/server/descriptions-server"

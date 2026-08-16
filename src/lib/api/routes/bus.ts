@@ -19,7 +19,7 @@ import {
   busQueryResponseSchema,
   busRouteSearchResponseSchema,
 } from "@/lib/api/schemas/response-schemas";
-import { requireAuth, resolveApiUserId } from "@/lib/auth/api-auth";
+import { requireAuth, resolveSessionUserId } from "@/lib/auth/api-auth";
 import {
   PRIVATE_LOCALE_CATALOG_HEADERS,
   PUBLIC_BUS_CACHE_HEADERS,
@@ -33,7 +33,7 @@ export async function getBusRoute(request: Request) {
   }
 
   const locale = getRequestLocale(request);
-  const userId = await resolveApiUserId(request);
+  const userId = await resolveSessionUserId(request);
 
   try {
     const { getBusTimetableData } = await import(
@@ -111,7 +111,7 @@ export async function getBusNextDeparturesRoute(request: Request) {
       limit: parsedQuery.limit ?? 5,
       locale: parsedQuery.locale ?? getRequestLocale(request),
       originCampusId: parsedQuery.originCampusId,
-      userId: await resolveApiUserId(request),
+      userId: await resolveSessionUserId(request),
       versionKey: parsedQuery.versionKey ?? null,
     });
 

@@ -1734,6 +1734,7 @@
     "devDebugHint": "In development mode, use one click to sign in as a debug user for authenticated feature testing.",
     "errorAccountNotLinked": "This account is already linked to another user. Please sign in with a different account.",
     "errorGeneric": "An error occurred during sign in. Please try again.",
+    "reauthenticationRequired": "This sensitive action requires a recent sign-in. Sign in again to continue; your current destination will be preserved.",
     "termsNotice": "By signing in, you agree to our <terms>Terms of Service</terms> and <privacy>Privacy Policy</privacy>."
   },
   "teachers": {

@@ -5,12 +5,14 @@ const {
   findActiveSuspensionMock,
   getSessionFromHeadersMock,
   hasActiveOAuthUserGrantMock,
+  resolveAuthoritativeRecentSessionMock,
   resolveAdminByUserIdMock,
   verifyAccessTokenJwtMock,
 } = vi.hoisted(() => ({
   findActiveSuspensionMock: vi.fn(),
   getSessionFromHeadersMock: vi.fn(),
   hasActiveOAuthUserGrantMock: vi.fn(),
+  resolveAuthoritativeRecentSessionMock: vi.fn(),
   resolveAdminByUserIdMock: vi.fn(),
   verifyAccessTokenJwtMock: vi.fn(),
 }));
@@ -35,6 +37,10 @@ vi.mock("@/lib/oauth/active-user-grant", () => ({
   hasActiveOAuthUserGrant: hasActiveOAuthUserGrantMock,
 }));
 
+vi.mock("@/lib/auth/recent-session", () => ({
+  resolveAuthoritativeRecentSession: resolveAuthoritativeRecentSessionMock,
+}));
+
 vi.mock("@/lib/mcp/urls", () => ({
   getJwksUrlForOAuthVerification: () => "https://life.example/api/auth/jwks",
   getOAuthRestAudienceUrls: () => ["https://life.example/api/auth"],
@@ -45,6 +51,11 @@ describe("admin 路由认证", () => {
   beforeEach(() => {
     setCloudflareRuntimeEnv(undefined);
     hasActiveOAuthUserGrantMock.mockResolvedValue(true);
+    resolveAuthoritativeRecentSessionMock.mockResolvedValue({
+      ok: true,
+      sessionId: "session-1",
+      userId: "admin-1",
+    });
   });
 
   afterEach(() => {
@@ -53,6 +64,7 @@ describe("admin 路由认证", () => {
     getSessionFromHeadersMock.mockReset();
     hasActiveOAuthUserGrantMock.mockReset();
     resolveAdminByUserIdMock.mockReset();
+    resolveAuthoritativeRecentSessionMock.mockReset();
     verifyAccessTokenJwtMock.mockReset();
     vi.resetModules();
   });
@@ -227,6 +239,65 @@ describe("admin 路由认证", () => {
       ),
     ).resolves.toEqual({ userId: "admin-1" });
     expect(limit).not.toHaveBeenCalled();
+  });
+
+  it("敏感管理员变更要求服务端确认 recent-auth", async () => {
+    getSessionFromHeadersMock.mockResolvedValue({
+      user: { id: "admin-1" },
+    });
+    resolveAdminByUserIdMock.mockResolvedValue({ userId: "admin-1" });
+    findActiveSuspensionMock.mockResolvedValue(null);
+    resolveAuthoritativeRecentSessionMock.mockResolvedValue({
+      ok: false,
+      reason: "session_not_fresh",
+      sessionId: "session-1",
+      userId: "admin-1",
+    });
+    const { requireAdminRequest } = await import(
+      "@/lib/api/routes/admin-route-auth"
+    );
+    const request = new Request("https://example.test/api/admin/users/user-1", {
+      method: "PATCH",
+      headers: { cookie: "better-auth.session_token=session-token" },
+    });
+
+    const response = await requireAdminRequest(request, {
+      requireRecent: true,
+    });
+
+    expect(response).toBeInstanceOf(Response);
+    expect((response as Response).status).toBe(403);
+    await expect((response as Response).json()).resolves.toEqual({
+      code: "RECENT_AUTH_REQUIRED",
+      error:
+        "Recent authentication required. Sign out and sign in again before retrying.",
+    });
+    expect(resolveAuthoritativeRecentSessionMock).toHaveBeenCalledWith(
+      request.headers,
+      { expectedUserId: "admin-1" },
+    );
+  });
+
+  it("recent-auth 有效时允许敏感管理员变更继续", async () => {
+    getSessionFromHeadersMock.mockResolvedValue({
+      user: { id: "admin-1" },
+    });
+    resolveAdminByUserIdMock.mockResolvedValue({ userId: "admin-1" });
+    findActiveSuspensionMock.mockResolvedValue(null);
+    const { requireAdminRequest } = await import(
+      "@/lib/api/routes/admin-route-auth"
+    );
+
+    await expect(
+      requireAdminRequest(
+        new Request("https://example.test/api/admin/suspensions", {
+          method: "POST",
+          headers: { cookie: "better-auth.session_token=session-token" },
+        }),
+        { requireRecent: true },
+      ),
+    ).resolves.toEqual({ userId: "admin-1" });
+    expect(resolveAuthoritativeRecentSessionMock).toHaveBeenCalledTimes(1);
   });
 
   it("管理员写入超过预算时在业务处理前返回 429", async () => {

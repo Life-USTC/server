@@ -79,7 +79,7 @@ const context = fixtures.createSubscribedIsolatedMcpToolTestContext({
 });
 
 describe("个人日历订阅 — 读取与批量订阅", () => {
-  it("workspace_calendar_feed_get 返回订阅班级与个人 iCal 地址", async () => {
+  it("workspace_calendar_feed_get 返回订阅班级但不泄露个人 iCal 凭据", async () => {
     await fixtures.ensureDevUserSubscribedToSeedSection(context.userId);
 
     const result = await context.client.call<{
@@ -116,12 +116,8 @@ describe("个人日历订阅 — 读取与批量订阅", () => {
         (section) => section.jwId === fixtures.DEV_SEED.section.jwId,
       ),
     ).toBe(true);
-    expect(result.subscription?.calendarPath).toMatch(
-      /\/api\/calendar-feeds\/[^/]+\.ics$/,
-    );
-    expect(result.subscription?.calendarUrl).toContain(
-      result.subscription?.calendarPath ?? "",
-    );
+    expect(result.subscription?.calendarPath).toBeNull();
+    expect(result.subscription?.calendarUrl).toBeNull();
     expect(result.subscription?.note).toContain("not official");
   });
 
@@ -148,7 +144,8 @@ describe("个人日历订阅 — 读取与批量订阅", () => {
     expect(typeof result.subscription?.currentSemesterSectionCount).toBe(
       "number",
     );
-    expect(result.subscription?.calendarPath).toBeTruthy();
+    expect(result.subscription?.calendarPath).toBeNull();
+    expect(result.subscription?.calendarUrl).toBeNull();
     expect(Array.isArray(result.subscription?.currentSemesterSections)).toBe(
       true,
     );

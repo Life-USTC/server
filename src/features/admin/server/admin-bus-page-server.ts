@@ -44,7 +44,10 @@ export const loadAdminBusPage = async ({ locals, request }: AdminBusEvent) => {
 export const adminBusActions = {
   activateVersion: async ({ locals, request }: AdminBusEvent) => {
     const copy = getCopy(locals.locale).adminBus;
-    const admin = await requireAdminPage(request, { requireActive: true });
+    const admin = await requireAdminPage(request, {
+      requireActive: true,
+      requireRecent: true,
+    });
     const form = await request.formData();
     const id = parseAdminBusVersionId(form);
     if (id === null) return failure(copy.invalidVersionId);
@@ -78,7 +81,10 @@ export const adminBusActions = {
   },
   deleteVersion: async ({ locals, request }: AdminBusEvent) => {
     const copy = getCopy(locals.locale).adminBus;
-    const admin = await requireAdminPage(request, { requireActive: true });
+    const admin = await requireAdminPage(request, {
+      requireActive: true,
+      requireRecent: true,
+    });
     const form = await request.formData();
     const id = parseAdminBusVersionId(form);
     if (id === null) return failure(copy.invalidVersionId);
@@ -106,7 +112,10 @@ export const adminBusActions = {
   },
   importStatic: async ({ locals, request }: AdminBusEvent) => {
     const copy = getCopy(locals.locale).adminBus;
-    const admin = await requireAdminPage(request, { requireActive: true });
+    const admin = await requireAdminPage(request, {
+      requireActive: true,
+      requireRecent: true,
+    });
     let result: Awaited<ReturnType<typeof importBusStaticPayload>>;
     try {
       const payload = await loadBusStaticPayload();

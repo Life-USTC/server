@@ -103,10 +103,13 @@ export async function liftSuspensionAction({
   request,
 }: AdminModerationActionEvent) {
   const { admin, copy, form, requestId } =
-    await getAdminModerationActionContext({
-      locals,
-      request,
-    });
+    await getAdminModerationActionContext(
+      {
+        locals,
+        request,
+      },
+      { requireRecent: true },
+    );
   const id = requiredModerationFormId(form, copy.missingSuspensionId);
   if (typeof id !== "string") return id;
   const result = await liftAdminSuspension(admin.id, id, {
