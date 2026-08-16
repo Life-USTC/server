@@ -32,6 +32,75 @@ vi.mock("@/lib/db/prisma", () => ({
   })),
 }));
 
+const sectionDetailRecord = {
+  id: 3,
+  jwId: 303,
+  retiredAt: null,
+  code: "SECTION-3",
+  bizTypeId: null,
+  credits: null,
+  period: null,
+  periodsPerWeek: null,
+  timesPerWeek: null,
+  stdCount: null,
+  limitCount: null,
+  graduateAndPostgraduate: null,
+  dateTimePlaceText: null,
+  dateTimePlacePersonText: null,
+  actualPeriods: null,
+  theoryPeriods: null,
+  practicePeriods: null,
+  experimentPeriods: null,
+  machinePeriods: null,
+  designPeriods: null,
+  testPeriods: null,
+  scheduleState: null,
+  suggestScheduleWeeks: null,
+  suggestScheduleWeekInfo: null,
+  scheduleJsonParams: null,
+  selectedStdCount: null,
+  remark: null,
+  scheduleRemark: null,
+  courseId: 1,
+  semesterId: null,
+  campusId: null,
+  examModeId: null,
+  openDepartmentId: null,
+  teachLanguageId: null,
+  roomTypeId: null,
+  course: {
+    id: 1,
+    jwId: 101,
+    code: "COURSE-1",
+    nameCn: "课程 1",
+    nameEn: null,
+    categoryId: null,
+    classTypeId: null,
+    classifyId: null,
+    educationLevelId: null,
+    gradationId: null,
+    typeId: null,
+    category: null,
+    classType: null,
+    classify: null,
+    educationLevel: null,
+    gradation: null,
+    type: null,
+  },
+  semester: null,
+  campus: null,
+  openDepartment: null,
+  examMode: null,
+  teachLanguage: null,
+  roomType: null,
+  exams: [],
+  scheduleGroups: [],
+  schedules: [],
+  teacherAssignments: [],
+  teachers: [],
+  adminClasses: [],
+};
+
 describe("shared public catalog detail cache", () => {
   beforeEach(() => {
     resetPublicRuntimeCacheForTest();
@@ -114,14 +183,7 @@ describe("shared public catalog detail cache", () => {
   });
 
   it("isolates section details by locale and requested child shape", async () => {
-    sectionFindUniqueMock.mockResolvedValue({
-      exams: [],
-      id: 3,
-      scheduleGroups: [],
-      schedules: [],
-      teacherAssignments: [],
-      teachers: [],
-    });
+    sectionFindUniqueMock.mockResolvedValue(sectionDetailRecord);
     const { findSectionDetailByJwId } = await import(
       "@/features/catalog/server/course-section-read-queries"
     );
