@@ -1,25 +1,49 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { resetPublicRuntimeCacheForTest } from "@/lib/public-runtime-cache";
 
-const { paginatedCourseQueryMock } = vi.hoisted(() => ({
-  paginatedCourseQueryMock: vi.fn(async () => ({
-    data: [],
-    pagination: { page: 1, pageSize: 20, total: 0, totalPages: 1 },
-  })),
-}));
+const { getCatalogDetailCacheRevisionMock, paginatedCourseQueryMock } =
+  vi.hoisted(() => ({
+    getCatalogDetailCacheRevisionMock: vi.fn(async () => "revision-1"),
+    paginatedCourseQueryMock: vi.fn(async () => ({
+      data: [],
+      pagination: { page: 1, pageSize: 20, total: 0, totalPages: 1 },
+    })),
+  }));
 
 vi.mock("@/features/catalog/server/academic-paginated-queries", () => ({
   paginatedCourseQuery: paginatedCourseQueryMock,
 }));
 
 vi.mock("@/lib/catalog-detail-cache-revision", () => ({
-  getCatalogDetailCacheRevision: vi.fn(async () => "revision-1"),
+  getCatalogDetailCacheRevision: getCatalogDetailCacheRevisionMock,
 }));
 
 describe("shared catalog list read cache", () => {
   beforeEach(() => {
     paginatedCourseQueryMock.mockClear();
+    getCatalogDetailCacheRevisionMock.mockReset();
+    getCatalogDetailCacheRevisionMock.mockResolvedValue("revision-1");
     resetPublicRuntimeCacheForTest();
+  });
+
+  it("isolates in-isolate entries by materialization revision", async () => {
+    const { listCourseSummaries } = await import(
+      "@/features/catalog/server/course-summary-read-model"
+    );
+
+    await listCourseSummaries({
+      filters: {},
+      locale: "zh-cn",
+      pagination: { page: 1, pageSize: 20 },
+    });
+    getCatalogDetailCacheRevisionMock.mockResolvedValue("revision-2");
+    await listCourseSummaries({
+      filters: {},
+      locale: "zh-cn",
+      pagination: { page: 1, pageSize: 20 },
+    });
+
+    expect(paginatedCourseQueryMock).toHaveBeenCalledTimes(2);
   });
 
   it("shares one canonical entry across callers", async () => {

@@ -30,11 +30,12 @@ export function publicCatalogKvCacheKey(
 
 export function publicCatalogColoCacheKey(
   origin: string,
+  revision: string,
   namespace: string,
   cacheKey: string,
 ) {
   return new URL(
-    `${PUBLIC_CATALOG_COLO_CACHE_PATH}/${encodeURIComponent(namespace)}/${encodeURIComponent(cacheKey)}`,
+    `${PUBLIC_CATALOG_COLO_CACHE_PATH}/${encodeURIComponent(revision)}/${encodeURIComponent(namespace)}/${encodeURIComponent(cacheKey)}`,
     origin,
   ).toString();
 }
@@ -48,6 +49,7 @@ export async function buildPublicCatalogRuntimeCacheOptions(input: {
   return {
     coloCacheKey: publicCatalogColoCacheKey(
       input.origin,
+      revision,
       input.namespace,
       input.cacheKey,
     ),
@@ -71,14 +73,21 @@ export async function cachedCatalogRuntimeData<T>(
   } = {},
 ) {
   const ttlMs = options.ttlMs ?? PUBLIC_CATALOG_RUNTIME_CACHE_TTL_MS;
-  return cachedPublicRuntimeData(namespace, cacheKey, ttlMs, load, {
-    ...(await buildPublicCatalogRuntimeCacheOptions({
-      cacheKey,
-      namespace,
-      origin,
-    })),
-    shouldCacheResult: options.shouldCacheResult,
+  const cacheOptions = await buildPublicCatalogRuntimeCacheOptions({
+    cacheKey,
+    namespace,
+    origin,
   });
+  return cachedPublicRuntimeData(
+    namespace,
+    cacheOptions.kvCacheKey,
+    ttlMs,
+    load,
+    {
+      ...cacheOptions,
+      shouldCacheResult: options.shouldCacheResult,
+    },
+  );
 }
 
 export async function cachedCatalogListRuntimeData<T>(
