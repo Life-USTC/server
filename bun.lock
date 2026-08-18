@@ -9,7 +9,7 @@
         "@better-auth/core": "1.7.0-rc.4",
         "@better-auth/mcp": "1.7.0-rc.4",
         "@better-auth/oauth-provider": "1.7.0-rc.4",
-        "@better-auth/passkey": "1.7.0-rc.4",
+        "@better-auth/passkey": "1.7.0-rc.6",
         "@escape.tech/graphql-armor": "3.2.0",
         "@ethercorps/sveltekit-og": "4.3.0",
         "@graphql-tools/executor": "1.5.7",
@@ -142,7 +142,7 @@
 
     "@better-auth/oauth-provider": ["@better-auth/oauth-provider@1.7.0-rc.4", "", { "dependencies": { "jose": "^6.2.3", "zod": "^4.3.6" }, "peerDependencies": { "@better-auth/core": "^1.7.0-rc.4", "@better-auth/utils": "0.4.2", "@better-fetch/fetch": "1.3.1", "better-auth": "^1.7.0-rc.4", "better-call": "1.3.7" } }, "sha512-7br1e+gJsFAC0EB4IDuEefF005CeaB8hbY59c8FMpcqiR5Vp+8mT2e8dmYSSjfH13Y34ObGR+ORI7mGQhzxlHQ=="],
 
-    "@better-auth/passkey": ["@better-auth/passkey@1.7.0-rc.4", "", { "dependencies": { "@simplewebauthn/browser": "^13.3.0", "@simplewebauthn/server": "^13.3.1", "zod": "^4.3.6" }, "peerDependencies": { "@better-auth/core": "^1.7.0-rc.4", "@better-auth/utils": "0.4.2", "@better-fetch/fetch": "1.3.1", "better-auth": "^1.7.0-rc.4", "better-call": "1.3.7", "nanostores": "^1.0.1" } }, "sha512-1v9BKan8OcjfvgEt1bQz3H0gZTlkuSvgcw6Pej4ps9eM8nEGo4EOYG1Jg3d4SmTyjyI6IvS9AF26mHQONnZiLQ=="],
+    "@better-auth/passkey": ["@better-auth/passkey@1.7.0-rc.6", "", { "dependencies": { "@simplewebauthn/browser": "^13.3.0", "@simplewebauthn/server": "^13.3.1", "zod": "^4.3.6" }, "peerDependencies": { "@better-auth/core": "^1.7.0-rc.6", "@better-auth/utils": "0.4.2", "@better-fetch/fetch": "1.3.1", "better-auth": "^1.7.0-rc.6", "better-call": "1.4.0", "nanostores": "^1.0.1" } }, "sha512-a6m08OCO+1iG3BxBAk0/LAKeIN2Adev5bFoUCaSSbRH//ad11xkD1Kxsm3rhhuJeqbfe0M4GyMHLfHE56FPE1w=="],
 
     "@better-auth/prisma-adapter": ["@better-auth/prisma-adapter@1.7.0-rc.4", "", { "peerDependencies": { "@better-auth/core": "^1.7.0-rc.4", "@better-auth/utils": "0.4.2", "@prisma/client": "^5.0.0 || ^6.0.0 || ^7.0.0", "prisma": "^5.0.0 || ^6.0.0 || ^7.0.0" }, "optionalPeers": ["@prisma/client", "prisma"] }, "sha512-SOmE17lirhGIXAJdvlThgNjt57Z98N5CewVFNRiPGHOv2w7llR3Fc6ASvoUTClB4pP0YyBjNZZwLVCwEoAKxwQ=="],
 
