@@ -45,6 +45,14 @@ import {
   snapshotDescriptionTargetForE2e,
   waitForDescriptionAuditRows,
 } from "../../../../utils/description-state";
+import {
+  closeDetailDialog,
+  detailDialog,
+  detailDialogAside,
+  expectDetailDialogFitsViewport,
+  expectDialogActionsInBody,
+  expectHomeworkDetailOrder,
+} from "../../../../utils/detail-dialog";
 import { DEV_SEED } from "../../../../utils/dev-seed";
 import { getCurrentSessionUser } from "../../../../utils/e2e-db";
 import { withE2ePrisma } from "../../../../utils/e2e-db/prisma";
@@ -1157,6 +1165,93 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
     }
   });
 
+  test("作业详情弹窗展示状态徽标、时间线、讨论与图标关闭按钮", async ({
+    page,
+  }, testInfo) => {
+    await signInAsDebugUser(page, SECTION_URL);
+    await gotoAndWaitForReady(page, SECTION_URL);
+    await jumpToSection(page, /作业|Homework/i, "#homework");
+
+    await page
+      .getByRole("button", {
+        name: new RegExp(escapeForRegExp(DEV_SEED.homeworks.title)),
+      })
+      .first()
+      .click();
+
+    const dialog = detailDialog(page);
+    await expect(dialog).toBeVisible();
+    await expect(
+      dialog.getByRole("heading", {
+        name: new RegExp(escapeForRegExp(DEV_SEED.homeworks.title)),
+      }),
+    ).toBeVisible();
+    await expect(
+      dialog.getByText(/未完成|已完成|Incomplete|Completed/i).first(),
+    ).toBeVisible();
+
+    await expectHomeworkDetailOrder(dialog);
+
+    await expect(
+      detailDialogAside(dialog).getByRole("heading", {
+        name: /作业讨论|Homework discussion/i,
+      }),
+    ).toBeVisible();
+
+    await expectDialogActionsInBody(dialog, /编辑信息|Edit details/i);
+    await expectDialogActionsInBody(
+      dialog,
+      /标记为完成|取消完成|Mark as complete|Mark as incomplete/i,
+    );
+
+    await captureStepScreenshot(
+      page,
+      testInfo,
+      "section/homework-detail-dialog",
+    );
+
+    await closeDetailDialog(page, dialog);
+  });
+
+  test("移动端作业详情弹窗纵向排布且不产生横向溢出", async ({
+    page,
+  }, testInfo) => {
+    await page.setViewportSize({ height: 844, width: 390 });
+    await signInAsDebugUser(page, SECTION_URL);
+    await gotoAndWaitForReady(page, SECTION_URL);
+    await jumpToSection(page, /作业|Homework/i, "#homework");
+
+    await page
+      .getByRole("button", {
+        name: new RegExp(escapeForRegExp(DEV_SEED.homeworks.title)),
+      })
+      .first()
+      .click();
+
+    const dialog = detailDialog(page);
+    await expect(dialog).toBeVisible();
+    await expectDetailDialogFitsViewport(page, dialog);
+    await expectHomeworkDetailOrder(dialog);
+    await expectDialogActionsInBody(
+      dialog,
+      /标记为完成|取消完成|Mark as complete|Mark as incomplete/i,
+    );
+
+    await expect(
+      detailDialogAside(dialog).getByRole("heading", {
+        name: /作业讨论|Homework discussion/i,
+      }),
+    ).toBeVisible();
+
+    await captureStepScreenshot(
+      page,
+      testInfo,
+      "section/homework-detail-dialog-mobile",
+    );
+
+    await closeDetailDialog(page, dialog);
+  });
+
   test("可编辑班级作业的截止日期、说明、重要和组队标记", async ({
     page,
   }, testInfo) => {
@@ -1231,7 +1326,7 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
       ).toBeVisible();
 
       const dueValue = detailDialog
-        .locator("dl")
+        .locator('[data-slot="item"]')
         .filter({ hasText: /Submission due|提交截止/ })
         .first();
       await expect(dueValue).toContainText(

@@ -132,7 +132,6 @@ export type SectionDetailHomeworkDialogsProps = {
   homeworkAuditLogs: SectionHomeworkAuditLog[];
   homeworkCopy: SectionDetailHomeworkCopy;
   homeworkMessage: string;
-  homeworkStatus: (homework: SectionHomework) => string;
   isHomeworkAuditDialogOpen: boolean;
   sectionCopy: SectionDetailSectionCopy;
   selectedHomework: SectionHomework | null;

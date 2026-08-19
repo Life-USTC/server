@@ -23,6 +23,14 @@
  */
 import { expect, test } from "@playwright/test";
 import { signInAsDebugUser } from "../../../../utils/auth";
+import {
+  closeDetailDialog,
+  detailDialog,
+  detailDialogAside,
+  detailDialogBody,
+  expectDialogActionsInBody,
+  expectHomeworkDetailOrder,
+} from "../../../../utils/detail-dialog";
 import { DEV_SEED } from "../../../../utils/dev-seed";
 import { cleanupHomeworksForE2e } from "../../../../utils/homeworks";
 import { visibleText } from "../../../../utils/locators";
@@ -336,6 +344,61 @@ test.describe("仪表盘作业", () => {
       page.getByText(/更新完成状态失败|Couldn't update completion/i),
     ).toBeVisible();
     await captureStepScreenshot(page, testInfo, "homeworks/completion-error");
+  });
+
+  test("作业详情弹窗展示状态徽标、时间线、讨论与底部操作", async ({
+    page,
+  }, testInfo) => {
+    await signInAsDebugUser(page, "/workspace/homeworks");
+    await ensureSeedSectionSubscription(page);
+    await gotoAndWaitForReady(page, "/workspace/homeworks");
+
+    await page
+      .getByRole("radio", { name: /全部|All/i })
+      .first()
+      .click();
+
+    const row = page
+      .getByRole("row")
+      .filter({ hasText: DEV_SEED.homeworks.title })
+      .first();
+    await row
+      .getByRole("button", { name: new RegExp(DEV_SEED.homeworks.title) })
+      .first()
+      .click();
+
+    const dialog = detailDialog(page);
+    await expect(dialog).toBeVisible();
+    await expect(
+      dialog.getByRole("heading", {
+        name: new RegExp(DEV_SEED.homeworks.title),
+      }),
+    ).toBeVisible();
+    await expect(
+      dialog.getByText(/待处理|已完成|Pending|Completed/i).first(),
+    ).toBeVisible();
+
+    await expectHomeworkDetailOrder(dialog);
+
+    await expect(
+      detailDialogAside(dialog).getByRole("heading", {
+        name: /作业讨论|Homework discussion/i,
+      }),
+    ).toBeVisible();
+
+    await expect(
+      detailDialogBody(dialog).getByRole("link", {
+        name: /查看详情|View details/i,
+      }),
+    ).toBeVisible();
+    await expectDialogActionsInBody(
+      dialog,
+      /标记为完成|取消完成|Mark as complete|Mark as incomplete/i,
+    );
+
+    await captureStepScreenshot(page, testInfo, "homeworks/detail-dialog");
+
+    await closeDetailDialog(page, dialog);
   });
 
   test("查看详情链接到带作业锚点的班级页面", async ({ page }, testInfo) => {

@@ -1,9 +1,5 @@
 <script lang="ts">
-import CheckCircleIcon from "@lucide/svelte/icons/check-circle";
-import RefreshCw from "@lucide/svelte/icons/refresh-cw";
-import type { DashboardMyHomeworksCopy } from "@/features/dashboard/lib/dashboard-controller-types";
-import * as Dialog from "$lib/components/ui/dialog/index.js";
-import { ScrollArea } from "$lib/components/ui/scroll-area/index.js";
+import DetailDialog from "$lib/components/DetailDialog.svelte";
 import type {
   DashboardHomeworkCommentsPanel,
   DashboardHomeworkCompletionToggle,
@@ -26,68 +22,49 @@ export let homeworkDetailHref: DashboardHomeworkDetailAction;
 export let homeworkEtaLabel: DashboardHomeworkDetailFormatter;
 export let homeworkCourseLabel: DashboardHomeworkDetailAction;
 export let homeworkSavingById: Record<string, boolean>;
-export let homeworkSectionHref: DashboardHomeworkDetailAction;
 export let homeworksCopy: DashboardHomeworkDetailCopy;
-export let homeworkCopy: DashboardMyHomeworksCopy;
 export let homeworkStatus: DashboardHomeworkDetailAction;
 export let onClose: () => void;
 export let toggleHomeworkCompletion: DashboardHomeworkCompletionToggle;
 </script>
 
 {#if homework}
-  <Dialog.Root
-    open={true}
-    onOpenChange={(open) => {
-      if (!open) onClose();
-    }}
+  {@const selected = homework}
+  <!-- Cross-section list: the course is the disambiguating context, so it stays
+       in the subtitle. Documented popup order: description, due summary,
+       vertical metadata, action controls, discussion. -->
+  <DetailDialog
+    onClose={onClose}
+    subtitle={homeworkCourseLabel(selected)}
+    title={selected.title}
   >
-    <Dialog.Content
-      class="max-w-5xl sm:max-w-5xl"
-    >
-      {@const selectedCourseLabel = homeworkCourseLabel(homework)}
-      {@const SelectedCompletionIcon = homework.completion ? RefreshCw : CheckCircleIcon}
-      <Dialog.Header>
-        <Dialog.Title>{homework.title}</Dialog.Title>
-        <Dialog.Description>
-          {selectedCourseLabel} · {homeworkCopy.due}:
-          {fmtDate(homework.submissionDueAt)}
-        </Dialog.Description>
-      </Dialog.Header>
-      <ScrollArea class="h-[min(70vh,44rem)]">
-        <div class="grid gap-5 px-5 py-4 lg:grid-cols-[minmax(0,1fr)_minmax(20rem,24rem)]">
-          <div class="grid min-w-0 gap-4">
-            <HomeworkDetailDescription
-              {homework}
-              {homeworksCopy}
-            />
+    {#snippet body()}
+      <HomeworkDetailDescription homework={selected} {homeworksCopy} />
 
-            <HomeworkDetailMetadata
-              {fmtDate}
-              {homework}
-              {homeworkEtaLabel}
-              {homeworksCopy}
-              {homeworkStatus}
-            />
+      <HomeworkDetailMetadata
+        {fmtDate}
+        homework={selected}
+        {homeworkEtaLabel}
+        {homeworkStatus}
+        {homeworksCopy}
+      />
 
-            <HomeworkDetailActions
-              {SelectedCompletionIcon}
-              {homework}
-              {homeworkCompletionActionLabel}
-              {homeworkDetailHref}
-              {homeworkSavingById}
-              {homeworkSectionHref}
-              {homeworksCopy}
-              {selectedCourseLabel}
-              {toggleHomeworkCompletion}
-            />
-          </div>
-          <HomeworkDetailCommentsAside
-            {CommentsPanel}
-            {homework}
-            {homeworksCopy}
-          />
-        </div>
-      </ScrollArea>
-    </Dialog.Content>
-  </Dialog.Root>
+      <HomeworkDetailActions
+        homework={selected}
+        {homeworkCompletionActionLabel}
+        {homeworkDetailHref}
+        {homeworkSavingById}
+        {homeworksCopy}
+        {toggleHomeworkCompletion}
+      />
+    {/snippet}
+
+    {#snippet aside()}
+      <HomeworkDetailCommentsAside
+        {CommentsPanel}
+        homework={selected}
+        {homeworksCopy}
+      />
+    {/snippet}
+  </DetailDialog>
 {/if}
