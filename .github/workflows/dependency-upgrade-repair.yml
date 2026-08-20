@@ -16,6 +16,8 @@ jobs:
   generate-biome-repair:
     runs-on: ubuntu-24.04
     timeout-minutes: 20
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/life_ustc_ci
     steps:
       - name: Checkout dependency branch
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
@@ -37,22 +39,29 @@ jobs:
         run: |
           python3 - <<'PY'
           from pathlib import Path
+          import re
 
           path = Path("tests/unit/workspace-navigation-summary.test.ts")
           source = path.read_text(encoding="utf-8")
-          old = '''    const sql = (queryRawMock.mock.calls[0]?.[0] as TemplateStringsArray).join(
-              "?",
-            );'''
-          new = '''    const [query] = queryRawMock.mock.calls[0] ?? [];
-            expect(query).toBeDefined();
-            const sql = (query as TemplateStringsArray).join("?");'''
-          if old not in source:
+          pattern = re.compile(
+              r'^[ \t]+const sql = \(queryRawMock\.mock\.calls\[0\]\?\.\[0\] as TemplateStringsArray\)\.join\(\n[ \t]+"\?",\n[ \t]+\);',
+              re.MULTILINE,
+          )
+          replacement = "\n".join(
+              [
+                  "    const [query] = queryRawMock.mock.calls[0] ?? [];",
+                  "    expect(query).toBeDefined();",
+                  '    const sql = (query as TemplateStringsArray).join("?");',
+              ]
+          )
+          source, count = pattern.subn(replacement, source, count=1)
+          if count != 1:
               raise SystemExit("expected unsafe optional-chain assertion was not found")
-          path.write_text(source.replace(old, new), encoding="utf-8")
+          path.write_text(source, encoding="utf-8")
           PY
 
       - name: Apply Biome formatter and safe fixes
-        run: bunx biome check --write
+        run: bunx biome check --write || true
 
       - name: Verify Biome checks
         run: bunx biome check
