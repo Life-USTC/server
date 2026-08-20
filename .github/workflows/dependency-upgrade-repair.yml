@@ -1,0 +1,57 @@
+name: Dependency upgrade repair
+
+on:
+  push:
+    branches:
+      - "dependabot/bun/better-auth/cimd-1.7.0-rc.6"
+
+permissions:
+  contents: read
+
+jobs:
+  generate-cimd-repair:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6
+        with:
+          bun-version-file: .bun-version
+
+      - name: Generate rc.6 patch and lockfile
+        run: |
+          set -euo pipefail
+          cp \
+            'patches/@better-auth%2Fcimd@1.7.0-rc.4.patch' \
+            'patches/@better-auth%2Fcimd@1.7.0-rc.6.patch'
+          python3 - <<'PY'
+          from pathlib import Path
+
+          path = Path("package.json")
+          source = path.read_text(encoding="utf-8")
+          old = '"@better-auth/cimd@1.7.0-rc.4": "patches/@better-auth%2Fcimd@1.7.0-rc.4.patch"'
+          new = '"@better-auth/cimd@1.7.0-rc.6": "patches/@better-auth%2Fcimd@1.7.0-rc.6.patch"'
+          if old not in source:
+              raise SystemExit("expected rc.4 patchedDependencies entry was not found")
+          path.write_text(source.replace(old, new), encoding="utf-8")
+          PY
+          bun install
+          git diff --check
+
+      - name: Verify CIMD policy regression tests
+        run: bunx vitest run tests/unit/oauth-cimd-plugin.test.ts
+
+      - name: Upload generated repair files
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: dependency-repair-cimd-858
+          path: |
+            package.json
+            bun.lock
+            patches/@better-auth%2Fcimd@1.7.0-rc.6.patch
+          if-no-files-found: error
+          retention-days: 1
