@@ -35,7 +35,15 @@ jobs:
           git config user.email dependency-validation@users.noreply.github.com
           git checkout -B "$RELEASE_BRANCH"
           git commit --allow-empty -m 'feat: validate semantic-release changelog upgrade'
-          bun run release --dry-run --no-ci --branches "$RELEASE_BRANCH"
+          env \
+            -u CI \
+            -u GITHUB_ACTIONS \
+            -u GITHUB_REF \
+            -u GITHUB_HEAD_REF \
+            -u GITHUB_BASE_REF \
+            -u GITHUB_EVENT_NAME \
+            -u GITHUB_EVENT_PATH \
+            bun run release --dry-run --no-ci --branches "$RELEASE_BRANCH"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           RELEASE_BRANCH: ${{ github.event.pull_request.head.ref }}
