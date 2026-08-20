@@ -8,12 +8,9 @@ on:
       - opened
       - synchronize
       - reopened
-  push:
-    branches:
-      - "dependabot/bun/better-auth/cimd-1.7.0-rc.6"
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   generate-cimd-repair:
@@ -22,10 +19,10 @@ jobs:
     env:
       DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/life_ustc_ci
     steps:
-      - name: Checkout branch
+      - name: Checkout dependency branch
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
-          ref: ${{ github.event.pull_request.head.sha }}
+          ref: ${{ github.event.pull_request.head.ref }}
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6
@@ -63,6 +60,20 @@ jobs:
 
       - name: Verify CIMD policy regression tests
         run: bunx vitest run tests/unit/oauth-cimd-plugin.test.ts
+
+      - name: Commit generated repair
+        run: |
+          set -euo pipefail
+          git rm 'patches/@better-auth%2Fcimd@1.7.0-rc.4.patch'
+          git add \
+            package.json \
+            bun.lock \
+            'patches/@better-auth%2Fcimd@1.7.0-rc.6.patch'
+          git diff --cached --check
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git commit -m 'fix(deps): preserve CIMD policy patch on rc.6'
+          git push origin "HEAD:${GITHUB_HEAD_REF}"
 
       - name: Upload generated repair files
         if: always()
