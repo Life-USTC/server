@@ -10,7 +10,7 @@ on:
       - reopened
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   generate-biome-repair:
@@ -22,7 +22,7 @@ jobs:
       - name: Checkout dependency branch
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
-          ref: ${{ github.event.pull_request.head.sha }}
+          ref: ${{ github.event.pull_request.head.ref }}
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6
@@ -71,38 +71,12 @@ jobs:
           bun run app:prepare
           bunx vitest run tests/unit/workspace-navigation-summary.test.ts
 
-      - name: Package generated repair files
-        if: always()
+      - name: Commit generated repair
         run: |
-          python3 - <<'PY'
-          from pathlib import Path
-          import shutil
-          import subprocess
-
-          root = Path("repair-files")
-          root.mkdir(exist_ok=True)
-          output = subprocess.check_output(
-              ["git", "diff", "--name-only", "--diff-filter=ACM", "-z"]
-          )
-          for raw_path in output.split(b"\0"):
-              if not raw_path:
-                  continue
-              source = Path(raw_path.decode("utf-8"))
-              target = root / source
-              target.parent.mkdir(parents=True, exist_ok=True)
-              shutil.copy2(source, target)
-          PY
-          git diff --binary > repair.patch
-          git diff --name-status > repair-files.txt
-
-      - name: Upload generated repair files
-        if: always()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
-        with:
-          name: dependency-repair-biome-860
-          path: |
-            repair-files
-            repair.patch
-            repair-files.txt
-          if-no-files-found: error
-          retention-days: 1
+          set -euo pipefail
+          git add biome.json tests
+          git diff --cached --check
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git commit -m 'fix(deps): migrate repository to Biome 2.5'
+          git push origin "HEAD:${GITHUB_HEAD_REF}"
