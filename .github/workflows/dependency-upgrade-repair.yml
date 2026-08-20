@@ -48,6 +48,15 @@ jobs:
           bun install
           git diff --check
 
+      - name: Verify generated patch content
+        run: |
+          grep -F 'client_name must be a non-empty string' node_modules/@better-auth/cimd/dist/index.mjs
+          grep -F 'DPoP-bound access tokens are not supported by this Bearer-only resource server' node_modules/@better-auth/cimd/dist/index.mjs
+          grep -F 'grant_types must include \"authorization_code\"' node_modules/@better-auth/cimd/dist/index.mjs
+
+      - name: Prepare generated application types
+        run: bun run app:prepare
+
       - name: Verify CIMD policy regression tests
         run: bunx vitest run tests/unit/oauth-cimd-plugin.test.ts
 
