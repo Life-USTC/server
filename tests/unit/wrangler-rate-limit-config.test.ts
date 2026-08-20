@@ -17,26 +17,26 @@ async function readRateLimits(fileName: string): Promise<RateLimitBinding[]> {
 }
 
 describe("Wrangler mutation rate-limit bindings", () => {
-  it.each([
-    "wrangler.jsonc",
-    "wrangler.e2e.jsonc",
-  ])("routes application requests through the gateway while keeping static assets direct in %s", async (fileName) => {
-    const source = await readFile(
-      new URL(`../../${fileName}`, import.meta.url),
-      "utf8",
-    );
-    const config = JSON.parse(source) as {
-      assets?: { run_worker_first?: string[] };
-    };
+  it.each(["wrangler.jsonc", "wrangler.e2e.jsonc"])(
+    "routes application requests through the gateway while keeping static assets direct in %s",
+    async (fileName) => {
+      const source = await readFile(
+        new URL(`../../${fileName}`, import.meta.url),
+        "utf8",
+      );
+      const config = JSON.parse(source) as {
+        assets?: { run_worker_first?: string[] };
+      };
 
-    expect(config.assets?.run_worker_first).toEqual([
-      "/*",
-      "!/_app/*",
-      "!/images/*",
-      "!/static/*",
-      "!/openapi.generated.json",
-    ]);
-  });
+      expect(config.assets?.run_worker_first).toEqual([
+        "/*",
+        "!/_app/*",
+        "!/images/*",
+        "!/static/*",
+        "!/openapi.generated.json",
+      ]);
+    },
+  );
 
   it("disables platform URL-bearing traces while retaining custom logs", async () => {
     const source = await readFile(

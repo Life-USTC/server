@@ -59,22 +59,18 @@ describe("multi-section calendar request", () => {
     expect((response as Response).status).toBe(400);
   });
 
-  it.each([
-    "1,foo,2",
-    "1,,2",
-    "0",
-    "-1",
-    "1.5",
-    "9007199254740992",
-  ])("rejects malformed input %s", async (input) => {
-    const response = parseSectionsCalendarIds(calendarRequest(input));
+  it.each(["1,foo,2", "1,,2", "0", "-1", "1.5", "9007199254740992"])(
+    "rejects malformed input %s",
+    async (input) => {
+      const response = parseSectionsCalendarIds(calendarRequest(input));
 
-    expect(response).toBeInstanceOf(Response);
-    expect((response as Response).status).toBe(400);
-    await expect((response as Response).json()).resolves.toEqual({
-      error: "Invalid sectionIds parameter",
-    });
-  });
+      expect(response).toBeInstanceOf(Response);
+      expect((response as Response).status).toBe(400);
+      await expect((response as Response).json()).resolves.toEqual({
+        error: "Invalid sectionIds parameter",
+      });
+    },
+  );
 
   it("canonicalizes equivalent ID sets to one URL", () => {
     const request = new Request(

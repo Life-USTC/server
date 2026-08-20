@@ -82,27 +82,30 @@ describe("user mutation rate limits", () => {
         limit: vi.fn().mockRejectedValue(new Error("binding unavailable")),
       },
     },
-  ])("fails closed when the Cloudflare binding is missing or errors", async (env) => {
-    const error = vi.spyOn(console, "error").mockImplementation(() => {});
-    setCloudflareRuntimeEnv(env);
+  ])(
+    "fails closed when the Cloudflare binding is missing or errors",
+    async (env) => {
+      const error = vi.spyOn(console, "error").mockImplementation(() => {});
+      setCloudflareRuntimeEnv(env);
 
-    await expect(
-      checkUserMutationRateLimit({
-        action: "community.comment:write",
-        host: "life.example",
-        userId: "user-1",
-      }),
-    ).resolves.toEqual({ allowed: false, reason: "unavailable" });
+      await expect(
+        checkUserMutationRateLimit({
+          action: "community.comment:write",
+          host: "life.example",
+          userId: "user-1",
+        }),
+      ).resolves.toEqual({ allowed: false, reason: "unavailable" });
 
-    expect(error).toHaveBeenCalledOnce();
-    expect(error.mock.calls[0]?.[1]).toEqual(
-      expect.objectContaining({
-        action: "community.comment:write",
-        event: "user-mutation-rate-limit.unavailable",
-        source: "rate-limit",
-        tier: "write",
-      }),
-    );
-    expect(JSON.stringify(error.mock.calls)).not.toContain("user-1");
-  });
+      expect(error).toHaveBeenCalledOnce();
+      expect(error.mock.calls[0]?.[1]).toEqual(
+        expect.objectContaining({
+          action: "community.comment:write",
+          event: "user-mutation-rate-limit.unavailable",
+          source: "rate-limit",
+          tier: "write",
+        }),
+      );
+      expect(JSON.stringify(error.mock.calls)).not.toContain("user-1");
+    },
+  );
 });

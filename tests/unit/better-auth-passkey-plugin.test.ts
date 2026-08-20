@@ -85,36 +85,39 @@ describe("Better Auth passkey plugin", () => {
   it.each([
     ["ftp://life.example.com", "https://life.example.com"],
     ["http://life.example.com", "http://life.example.com"],
-  ])("rejects an unsafe canonical origin %s", async (canonicalOrigin, publicOrigin) => {
-    vi.stubEnv("NODE_ENV", "production");
-    vi.stubEnv("APP_CANONICAL_ORIGIN", canonicalOrigin);
-    vi.stubEnv("APP_PUBLIC_ORIGIN", publicOrigin);
+  ])(
+    "rejects an unsafe canonical origin %s",
+    async (canonicalOrigin, publicOrigin) => {
+      vi.stubEnv("NODE_ENV", "production");
+      vi.stubEnv("APP_CANONICAL_ORIGIN", canonicalOrigin);
+      vi.stubEnv("APP_PUBLIC_ORIGIN", publicOrigin);
 
-    const { buildBetterAuthPasskeyPlugin } = await import(
-      "@/lib/auth/better-auth-passkey-plugin"
-    );
+      const { buildBetterAuthPasskeyPlugin } = await import(
+        "@/lib/auth/better-auth-passkey-plugin"
+      );
 
-    expect(() => buildBetterAuthPasskeyPlugin()).toThrow();
-    expect(passkeyMock).not.toHaveBeenCalled();
-  });
+      expect(() => buildBetterAuthPasskeyPlugin()).toThrow();
+      expect(passkeyMock).not.toHaveBeenCalled();
+    },
+  );
 
-  it.each([
-    "https://branch.workers.dev",
-    "https://evil-life.example.com",
-  ])("rejects origin %s when it cannot use the canonical RP ID", async (publicOrigin) => {
-    vi.stubEnv("NODE_ENV", "production");
-    vi.stubEnv("APP_CANONICAL_ORIGIN", "https://life.example.com");
-    vi.stubEnv("APP_PUBLIC_ORIGIN", publicOrigin);
+  it.each(["https://branch.workers.dev", "https://evil-life.example.com"])(
+    "rejects origin %s when it cannot use the canonical RP ID",
+    async (publicOrigin) => {
+      vi.stubEnv("NODE_ENV", "production");
+      vi.stubEnv("APP_CANONICAL_ORIGIN", "https://life.example.com");
+      vi.stubEnv("APP_PUBLIC_ORIGIN", publicOrigin);
 
-    const { buildBetterAuthPasskeyPlugin } = await import(
-      "@/lib/auth/better-auth-passkey-plugin"
-    );
+      const { buildBetterAuthPasskeyPlugin } = await import(
+        "@/lib/auth/better-auth-passkey-plugin"
+      );
 
-    expect(() => buildBetterAuthPasskeyPlugin()).toThrow(
-      /is not compatible with RP ID life\.example\.com/,
-    );
-    expect(passkeyMock).not.toHaveBeenCalled();
-  });
+      expect(() => buildBetterAuthPasskeyPlugin()).toThrow(
+        /is not compatible with RP ID life\.example\.com/,
+      );
+      expect(passkeyMock).not.toHaveBeenCalled();
+    },
+  );
 
   it("maps loopback IP origins to localhost for WebAuthn RP ID", async () => {
     vi.stubEnv("NODE_ENV", "development");

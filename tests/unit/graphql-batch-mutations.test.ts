@@ -149,13 +149,16 @@ describe("GraphQL batch mutation resolvers", () => {
       service: setHomeworkCompletionsMock,
       message: "homework IDs must not contain duplicate targets.",
     },
-  ])("rejects duplicate targets before calling the service", async (testCase) => {
-    await expect(testCase.call()).rejects.toMatchObject({
-      extensions: { code: "BAD_USER_INPUT" },
-      message: testCase.message,
-    });
-    expect(testCase.service).not.toHaveBeenCalled();
-  });
+  ])(
+    "rejects duplicate targets before calling the service",
+    async (testCase) => {
+      await expect(testCase.call()).rejects.toMatchObject({
+        extensions: { code: "BAD_USER_INPUT" },
+        message: testCase.message,
+      });
+      expect(testCase.service).not.toHaveBeenCalled();
+    },
+  );
 
   it.each([
     {

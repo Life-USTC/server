@@ -77,36 +77,36 @@ describe("仪表盘控制器派生状态", () => {
   it.each([
     { currentPinned: true, loadedPinned: false, name: "pin" },
     { currentPinned: false, loadedPinned: true, name: "unpin" },
-  ])("keeps local link $name state when search recomputes derived groups", ({
-    currentPinned,
-    loadedPinned,
-  }) => {
-    const loadedLinks = [link("jw", loadedPinned), link("mail", false)];
-    const currentLinks = [link("jw", currentPinned), link("mail", false)];
+  ])(
+    "keeps local link $name state when search recomputes derived groups",
+    ({ currentPinned, loadedPinned }) => {
+      const loadedLinks = [link("jw", loadedPinned), link("mail", false)];
+      const currentLinks = [link("jw", currentPinned), link("mail", false)];
 
-    const result = buildDashboardControllerDerivedState({
-      currentDashboardLinkItems: currentLinks,
-      currentOverviewLinkItems: currentLinks.slice(0, 1),
-      currentTodoItems: [],
-      dashboardLinkGroupLabels,
-      data: signedDashboardData(loadedLinks),
-      dateFallback: "TBD",
-      examFilter: "incomplete",
-      linkSearchQuery: "jw",
-      notAvailable: "N/A",
-      todoFilter: "incomplete",
-    });
+      const result = buildDashboardControllerDerivedState({
+        currentDashboardLinkItems: currentLinks,
+        currentOverviewLinkItems: currentLinks.slice(0, 1),
+        currentTodoItems: [],
+        dashboardLinkGroupLabels,
+        data: signedDashboardData(loadedLinks),
+        dateFallback: "TBD",
+        examFilter: "incomplete",
+        linkSearchQuery: "jw",
+        notAvailable: "N/A",
+        todoFilter: "incomplete",
+      });
 
-    expect(
-      result.dashboardLinkItems.find((item) => item.slug === "jw")?.isPinned,
-    ).toBe(currentPinned);
-    expect(result.signedLinkGroups.flatMap((group) => group.links)).toEqual([
-      expect.objectContaining({
-        isPinned: currentPinned,
-        slug: "jw",
-      }),
-    ]);
-  });
+      expect(
+        result.dashboardLinkItems.find((item) => item.slug === "jw")?.isPinned,
+      ).toBe(currentPinned);
+      expect(result.signedLinkGroups.flatMap((group) => group.links)).toEqual([
+        expect.objectContaining({
+          isPinned: currentPinned,
+          slug: "jw",
+        }),
+      ]);
+    },
+  );
 
   it("根据本地作业项推导已登录仪表盘作业徽章数量", () => {
     const data = {

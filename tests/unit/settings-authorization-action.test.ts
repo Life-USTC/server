@@ -69,24 +69,24 @@ describe("settings OAuth authorization action", () => {
     vi.unstubAllEnvs();
   });
 
-  it.each([
-    undefined,
-    "https://evil.example",
-  ])("rejects missing or untrusted CSRF origin: %s", async (origin) => {
-    const { revokeSettingsAuthorizationAction } = await import(
-      "@/features/settings/server/settings-authorization-actions"
-    );
+  it.each([undefined, "https://evil.example"])(
+    "rejects missing or untrusted CSRF origin: %s",
+    async (origin) => {
+      const { revokeSettingsAuthorizationAction } = await import(
+        "@/features/settings/server/settings-authorization-actions"
+      );
 
-    await expect(
-      revokeSettingsAuthorizationAction({
-        locale: "en-us",
-        request: request(origin),
-        url: new URL("https://life.example/account/settings/authorizations"),
-      }),
-    ).rejects.toMatchObject({ status: 403 });
-    expect(requireSettingsUserMock).not.toHaveBeenCalled();
-    expect(revokeUserOAuthAuthorizationMock).not.toHaveBeenCalled();
-  });
+      await expect(
+        revokeSettingsAuthorizationAction({
+          locale: "en-us",
+          request: request(origin),
+          url: new URL("https://life.example/account/settings/authorizations"),
+        }),
+      ).rejects.toMatchObject({ status: 403 });
+      expect(requireSettingsUserMock).not.toHaveBeenCalled();
+      expect(revokeUserOAuthAuthorizationMock).not.toHaveBeenCalled();
+    },
+  );
 
   it("requires the active session user and hides cross-user consent ids", async () => {
     revokeUserOAuthAuthorizationMock.mockResolvedValue({

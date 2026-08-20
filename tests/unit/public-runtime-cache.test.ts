@@ -1121,20 +1121,18 @@ describe("public runtime cache", () => {
       },
       reason: "cache_put_rejected",
     },
-  ])("reports $name without failing the loaded result", async ({
-    expectedPutCalls,
-    expectedScheduled,
-    options,
-    reason,
-  }) => {
-    const { put, result, scheduled, writeDataPoint } =
-      await observeColoMiss(options);
+  ])(
+    "reports $name without failing the loaded result",
+    async ({ expectedPutCalls, expectedScheduled, options, reason }) => {
+      const { put, result, scheduled, writeDataPoint } =
+        await observeColoMiss(options);
 
-    expect(result).toEqual({ source: "database" });
-    expect(put).toHaveBeenCalledTimes(expectedPutCalls);
-    expect(scheduled).toHaveLength(expectedScheduled);
-    expectColoCacheEvent(writeDataPoint, "colo_write_error", reason);
-  });
+      expect(result).toEqual({ source: "database" });
+      expect(put).toHaveBeenCalledTimes(expectedPutCalls);
+      expect(scheduled).toHaveLength(expectedScheduled);
+      expectColoCacheEvent(writeDataPoint, "colo_write_error", reason);
+    },
+  );
 
   it("keeps a validator-rejected result available when Analytics Engine fails", async () => {
     const writeDataPoint = vi.fn(() => {

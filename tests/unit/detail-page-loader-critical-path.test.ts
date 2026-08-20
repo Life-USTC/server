@@ -552,28 +552,31 @@ describe("detail request session resolution", () => {
   it.each([
     ["cookie", { cookie: "better-auth.session_token=session-token" }],
     ["bearer", { authorization: "Bearer access-token" }],
-  ])("parses a signed-in %s session once in the hook and reuses locals in the detail loader", async (_authKind, headers) => {
-    vi.spyOn(console, "info").mockImplementation(() => {});
-    getSessionFromHeadersMock.mockResolvedValue({
-      headers: new Headers({
-        "set-cookie":
-          "better-auth.session_token=refreshed-token; Path=/; HttpOnly",
-      }),
-      session: {
-        session: { id: "session-1" },
-        user: signedInUser,
-      },
-    });
+  ])(
+    "parses a signed-in %s session once in the hook and reuses locals in the detail loader",
+    async (_authKind, headers) => {
+      vi.spyOn(console, "info").mockImplementation(() => {});
+      getSessionFromHeadersMock.mockResolvedValue({
+        headers: new Headers({
+          "set-cookie":
+            "better-auth.session_token=refreshed-token; Path=/; HttpOnly",
+        }),
+        session: {
+          session: { id: "session-1" },
+          user: signedInUser,
+        },
+      });
 
-    const response = await resolveCourseThroughHook(headers);
+      const response = await resolveCourseThroughHook(headers);
 
-    expect(response.status).toBe(200);
-    expect(getSessionFromHeadersMock).toHaveBeenCalledOnce();
-    expect(response.headers.get("set-cookie")).toContain("refreshed-token");
-    expect(getViewerContextMock).toHaveBeenCalledWith({
-      userId: signedInUser.id,
-    });
-  });
+      expect(response.status).toBe(200);
+      expect(getSessionFromHeadersMock).toHaveBeenCalledOnce();
+      expect(response.headers.get("set-cookie")).toContain("refreshed-token");
+      expect(getViewerContextMock).toHaveBeenCalledWith({
+        userId: signedInUser.id,
+      });
+    },
+  );
 
   it("does not initialize Better Auth for an anonymous detail request", async () => {
     vi.spyOn(console, "info").mockImplementation(() => {});

@@ -91,52 +91,56 @@ describe("dashboard todo count reuse", () => {
     getLinksTabDataMock.mockResolvedValue({});
   });
 
-  it.each([
-    "overview",
-    "todos",
-  ])("uses one todo read for the %s tab and derives the nav count", async (tab) => {
-    let resolveTodos: (value: Array<{ completed: boolean }>) => void = () =>
-      undefined;
-    const todosPromise = new Promise<Array<{ completed: boolean }>>(
-      (resolve) => {
-        resolveTodos = resolve;
-      },
-    );
-    getTodosTabDataMock.mockReturnValue(todosPromise);
-    getDashboardNavStatsMock.mockImplementation(
-      (
-        _user,
-        _sections,
-        _referenceNow,
-        pendingTodosCount: Promise<number> | undefined,
-      ) =>
-        pendingTodosCount?.then((count) => ({ pendingTodosCount: count })) ??
-        Promise.resolve({ pendingTodosCount: 99 }),
-    );
+  it.each(["overview", "todos"])(
+    "uses one todo read for the %s tab and derives the nav count",
+    async (tab) => {
+      let resolveTodos: (value: Array<{ completed: boolean }>) => void = () =>
+        undefined;
+      const todosPromise = new Promise<Array<{ completed: boolean }>>(
+        (resolve) => {
+          resolveTodos = resolve;
+        },
+      );
+      getTodosTabDataMock.mockReturnValue(todosPromise);
+      getDashboardNavStatsMock.mockImplementation(
+        (
+          _user,
+          _sections,
+          _referenceNow,
+          pendingTodosCount: Promise<number> | undefined,
+        ) =>
+          pendingTodosCount?.then((count) => ({ pendingTodosCount: count })) ??
+          Promise.resolve({ pendingTodosCount: 99 }),
+      );
 
-    const resultPromise = loadTab(tab);
+      const resultPromise = loadTab(tab);
 
-    await vi.waitFor(() => {
-      expect(getTodosTabDataMock).toHaveBeenCalledOnce();
-      expect(getDashboardNavStatsMock).toHaveBeenCalledOnce();
-    });
-    expect(getDashboardOverviewDataMock).not.toHaveBeenCalled();
-    expect(withUserDbContextMock).toHaveBeenCalledOnce();
+      await vi.waitFor(() => {
+        expect(getTodosTabDataMock).toHaveBeenCalledOnce();
+        expect(getDashboardNavStatsMock).toHaveBeenCalledOnce();
+      });
+      expect(getDashboardOverviewDataMock).not.toHaveBeenCalled();
+      expect(withUserDbContextMock).toHaveBeenCalledOnce();
 
-    resolveTodos([
-      { completed: false },
-      { completed: true },
-      { completed: false },
-    ]);
+      resolveTodos([
+        { completed: false },
+        { completed: true },
+        { completed: false },
+      ]);
 
-    await expect(resultPromise).resolves.toMatchObject({
-      navStats: { pendingTodosCount: 2 },
-      todos: [{ completed: false }, { completed: true }, { completed: false }],
-    });
-    expect(getDashboardOverviewDataMock).toHaveBeenCalledTimes(
-      tab === "overview" ? 1 : 0,
-    );
-  });
+      await expect(resultPromise).resolves.toMatchObject({
+        navStats: { pendingTodosCount: 2 },
+        todos: [
+          { completed: false },
+          { completed: true },
+          { completed: false },
+        ],
+      });
+      expect(getDashboardOverviewDataMock).toHaveBeenCalledTimes(
+        tab === "overview" ? 1 : 0,
+      );
+    },
+  );
 
   it("leaves non-todo tabs on the nav count fallback", async () => {
     getDashboardNavStatsMock.mockResolvedValue({ pendingTodosCount: 4 });

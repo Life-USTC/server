@@ -200,20 +200,20 @@ describe("认证辅助函数", () => {
     ).resolves.toBeNull();
   });
 
-  it.each([
-    "bearer",
-    "bEaReR",
-  ])("将 %s authorization 标头视为认证信号", async (scheme) => {
-    const { hasRequestAuthSignal } = await import(
-      "@/lib/auth/request-auth-signal"
-    );
+  it.each(["bearer", "bEaReR"])(
+    "将 %s authorization 标头视为认证信号",
+    async (scheme) => {
+      const { hasRequestAuthSignal } = await import(
+        "@/lib/auth/request-auth-signal"
+      );
 
-    expect(
-      hasRequestAuthSignal(
-        new Headers({ authorization: `${scheme} access-token` }),
-      ),
-    ).toBe(true);
-  });
+      expect(
+        hasRequestAuthSignal(
+          new Headers({ authorization: `${scheme} access-token` }),
+        ),
+      ).toBe(true);
+    },
+  );
 
   it("拒绝仅 profile 的 bearer 访问受保护 REST 读取", async () => {
     verifyAccessTokenJwtMock.mockResolvedValue({
