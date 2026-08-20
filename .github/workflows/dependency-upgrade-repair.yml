@@ -1,0 +1,99 @@
+name: Dependency upgrade repair
+
+on:
+  pull_request:
+    branches:
+      - main
+    types:
+      - opened
+      - synchronize
+      - reopened
+
+permissions:
+  contents: read
+
+jobs:
+  generate-biome-repair:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Checkout dependency branch
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6
+        with:
+          bun-version-file: .bun-version
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Migrate Biome configuration
+        run: bunx biome migrate --write
+
+      - name: Replace unsafe optional-chain assertion
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          path = Path("tests/unit/workspace-navigation-summary.test.ts")
+          source = path.read_text(encoding="utf-8")
+          old = '''    const sql = (queryRawMock.mock.calls[0]?.[0] as TemplateStringsArray).join(
+              "?",
+            );'''
+          new = '''    const [query] = queryRawMock.mock.calls[0] ?? [];
+            expect(query).toBeDefined();
+            const sql = (query as TemplateStringsArray).join("?");'''
+          if old not in source:
+              raise SystemExit("expected unsafe optional-chain assertion was not found")
+          path.write_text(source.replace(old, new), encoding="utf-8")
+          PY
+
+      - name: Apply Biome formatter and safe fixes
+        run: bunx biome check --write
+
+      - name: Verify Biome checks
+        run: bunx biome check
+
+      - name: Verify focused unit test
+        run: |
+          bun run app:prepare
+          bunx vitest run tests/unit/workspace-navigation-summary.test.ts
+
+      - name: Package generated repair files
+        if: always()
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import shutil
+          import subprocess
+
+          root = Path("repair-files")
+          root.mkdir(exist_ok=True)
+          output = subprocess.check_output(
+              ["git", "diff", "--name-only", "--diff-filter=ACM", "-z"]
+          )
+          for raw_path in output.split(b"\0"):
+              if not raw_path:
+                  continue
+              source = Path(raw_path.decode("utf-8"))
+              target = root / source
+              target.parent.mkdir(parents=True, exist_ok=True)
+              shutil.copy2(source, target)
+          PY
+          git diff --binary > repair.patch
+          git diff --name-status > repair-files.txt
+
+      - name: Upload generated repair files
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: dependency-repair-biome-860
+          path: |
+            repair-files
+            repair.patch
+            repair-files.txt
+          if-no-files-found: error
+          retention-days: 1
