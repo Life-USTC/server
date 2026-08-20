@@ -1,6 +1,13 @@
 name: Dependency upgrade repair
 
 on:
+  pull_request:
+    branches:
+      - main
+    types:
+      - opened
+      - synchronize
+      - reopened
   push:
     branches:
       - "dependabot/bun/better-auth/cimd-1.7.0-rc.6"
