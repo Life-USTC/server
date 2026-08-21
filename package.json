@@ -122,7 +122,7 @@
     "typescript": "^6.0.3",
     "vite": "8.2.1",
     "vitest": "^4.1.10",
-    "wrangler": "4.113.0",
+    "wrangler": "4.123.0",
     "zod-openapi": "^6.0.1"
   },
   "patchedDependencies": {
