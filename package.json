@@ -48,7 +48,7 @@
     "release": "semantic-release"
   },
   "dependencies": {
-    "@better-auth/cimd": "1.7.0-rc.4",
+    "@better-auth/cimd": "1.7.0-rc.6",
     "@better-auth/core": "1.7.0-rc.4",
     "@better-auth/mcp": "1.7.0-rc.6",
     "@better-auth/oauth-provider": "1.7.0-rc.4",
@@ -126,6 +126,6 @@
     "zod-openapi": "^6.0.1"
   },
   "patchedDependencies": {
-    "@better-auth/cimd@1.7.0-rc.4": "patches/@better-auth%2Fcimd@1.7.0-rc.4.patch"
+    "@better-auth/cimd@1.7.0-rc.6": "patches/@better-auth%2Fcimd@1.7.0-rc.6.patch"
   }
 }
