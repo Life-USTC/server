@@ -201,46 +201,44 @@ describe("GraphQL homework mutation resolvers", () => {
       expectedMessage: "Homework writes are suspended.",
       mutation: "delete",
     },
-  ])("maps $mutation service error $error to $expectedCode", async ({
-    error,
-    expectedCode,
-    expectedMessage,
-    mutation,
-  }) => {
-    let promise: Promise<unknown>;
-    if (mutation === "create") {
-      createHomeworkForSectionMock.mockResolvedValue({ ok: false, error });
-      promise = graphqlMutationResolvers.Mutation.homeworkCreate(
-        null,
-        {
-          input: {
-            isMajor: false,
-            requiresTeam: false,
-            sectionJwId: 1234,
-            title: "Homework",
+  ])(
+    "maps $mutation service error $error to $expectedCode",
+    async ({ error, expectedCode, expectedMessage, mutation }) => {
+      let promise: Promise<unknown>;
+      if (mutation === "create") {
+        createHomeworkForSectionMock.mockResolvedValue({ ok: false, error });
+        promise = graphqlMutationResolvers.Mutation.homeworkCreate(
+          null,
+          {
+            input: {
+              isMajor: false,
+              requiresTeam: false,
+              sectionJwId: 1234,
+              title: "Homework",
+            },
           },
-        },
-        context,
-      );
-    } else if (mutation === "update") {
-      updateHomeworkMock.mockResolvedValue({ ok: false, error });
-      promise = graphqlMutationResolvers.Mutation.homeworkUpdate(
-        null,
-        { id: "homework-1", input: { title: "Updated" } },
-        context,
-      );
-    } else {
-      deleteHomeworkMock.mockResolvedValue({ ok: false, error });
-      promise = graphqlMutationResolvers.Mutation.homeworkDelete(
-        null,
-        { id: "homework-1" },
-        context,
-      );
-    }
+          context,
+        );
+      } else if (mutation === "update") {
+        updateHomeworkMock.mockResolvedValue({ ok: false, error });
+        promise = graphqlMutationResolvers.Mutation.homeworkUpdate(
+          null,
+          { id: "homework-1", input: { title: "Updated" } },
+          context,
+        );
+      } else {
+        deleteHomeworkMock.mockResolvedValue({ ok: false, error });
+        promise = graphqlMutationResolvers.Mutation.homeworkDelete(
+          null,
+          { id: "homework-1" },
+          context,
+        );
+      }
 
-    await expect(promise).rejects.toMatchObject({
-      extensions: { code: expectedCode },
-      message: expectedMessage,
-    });
-  });
+      await expect(promise).rejects.toMatchObject({
+        extensions: { code: expectedCode },
+        message: expectedMessage,
+      });
+    },
+  );
 });

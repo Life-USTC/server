@@ -138,24 +138,23 @@ describe("signed OAuth query", () => {
     vi.restoreAllMocks();
   });
 
-  it.each([
-    "expired",
-    "tampered",
-    "duplicate-signature",
-  ])("拒绝 %s state", async (kind) => {
-    vi.spyOn(Date, "now").mockReturnValue(1_800_000_000_000);
-    const query = new URLSearchParams({
-      response_type: "code",
-      client_id: "client-1",
-      exp: kind === "expired" ? "1799999999" : "1800000600",
-    });
-    const signed = new URLSearchParams(await sign(query));
-    if (kind === "tampered") signed.set("client_id", "client-2");
-    if (kind === "duplicate-signature") signed.append("sig", "duplicate");
+  it.each(["expired", "tampered", "duplicate-signature"])(
+    "拒绝 %s state",
+    async (kind) => {
+      vi.spyOn(Date, "now").mockReturnValue(1_800_000_000_000);
+      const query = new URLSearchParams({
+        response_type: "code",
+        client_id: "client-1",
+        exp: kind === "expired" ? "1799999999" : "1800000600",
+      });
+      const signed = new URLSearchParams(await sign(query));
+      if (kind === "tampered") signed.set("client_id", "client-2");
+      if (kind === "duplicate-signature") signed.append("sig", "duplicate");
 
-    await expect(
-      verifySignedOAuthQuery(signed.toString(), SECRET),
-    ).resolves.toBeNull();
-    vi.restoreAllMocks();
-  });
+      await expect(
+        verifySignedOAuthQuery(signed.toString(), SECRET),
+      ).resolves.toBeNull();
+      vi.restoreAllMocks();
+    },
+  );
 });

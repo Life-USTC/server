@@ -27,9 +27,12 @@ describe("application shell footer policy", () => {
     ["/catalog/courses", true, true],
     ["/guides/markdown-support", true, true],
     ["/catalog/courses/123", false, false],
-  ])("pathname %s with signedIn=%s shows footer=%s", (pathname, signedIn, expected) => {
-    expect(shouldShowAppFooter(pathname, signedIn)).toBe(expected);
-  });
+  ])(
+    "pathname %s with signedIn=%s shows footer=%s",
+    (pathname, signedIn, expected) => {
+      expect(shouldShowAppFooter(pathname, signedIn)).toBe(expected);
+    },
+  );
 });
 
 describe("application shell theme", () => {
@@ -40,7 +43,10 @@ describe("application shell theme", () => {
     ["dark", true, "dark"],
     ["system", false, "light"],
     ["system", true, "dark"],
-  ] as const)("resolves %s with prefersDark=%s to %s", (mode, prefersDark, expected) => {
-    expect(resolveShellTheme(mode, prefersDark)).toBe(expected);
-  });
+  ] as const)(
+    "resolves %s with prefersDark=%s to %s",
+    (mode, prefersDark, expected) => {
+      expect(resolveShellTheme(mode, prefersDark)).toBe(expected);
+    },
+  );
 });

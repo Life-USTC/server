@@ -149,34 +149,37 @@ describe.sequential("OAuth authorization continuation grant binding", () => {
       path: "/api/auth/oauth2/continue",
       prompt: "consent",
     },
-  ])("真实 binder 为 $name continuation 绑定委托前 generation", async (entry) => {
-    const state = `${entry.name}-${marker}`;
-    const oauthQuery = await signedOAuthQuery(entry.prompt, state);
-    const request = new Request(`https://life.example${entry.path}`, {
-      body: JSON.stringify({ ...entry.body, oauth_query: oauthQuery }),
-      headers: { "content-type": "application/json" },
-      method: "POST",
-    });
+  ])(
+    "真实 binder 为 $name continuation 绑定委托前 generation",
+    async (entry) => {
+      const state = `${entry.name}-${marker}`;
+      const oauthQuery = await signedOAuthQuery(entry.prompt, state);
+      const request = new Request(`https://life.example${entry.path}`, {
+        body: JSON.stringify({ ...entry.body, oauth_query: oauthQuery }),
+        headers: { "content-type": "application/json" },
+        method: "POST",
+      });
 
-    const response = await authPostRoute(request);
-    expect(response.status).toBe(200);
-    await expect(response.json()).resolves.toMatchObject({
-      url: expect.stringContaining("code="),
-    });
+      const response = await authPostRoute(request);
+      expect(response.status).toBe(200);
+      await expect(response.json()).resolves.toMatchObject({
+        url: expect.stringContaining("code="),
+      });
 
-    const code = `continuation-${state}-${marker}`;
-    const row = await prisma.verificationToken.findFirstOrThrow({
-      where: {
-        identifier: await hashOAuthClientSecretForDbStorage(code),
-      },
-      select: { token: true },
-    });
-    expect(JSON.parse(row.token)).toMatchObject({
-      referenceId: grantId,
-      type: "authorization_code",
-      userId,
-    });
-  });
+      const code = `continuation-${state}-${marker}`;
+      const row = await prisma.verificationToken.findFirstOrThrow({
+        where: {
+          identifier: await hashOAuthClientSecretForDbStorage(code),
+        },
+        select: { token: true },
+      });
+      expect(JSON.parse(row.token)).toMatchObject({
+        referenceId: grantId,
+        type: "authorization_code",
+        userId,
+      });
+    },
+  );
 
   it("login 前无 session 时绑定登录后 code user 的当前 generation", async () => {
     getSessionFromHeadersMock.mockResolvedValueOnce(null);

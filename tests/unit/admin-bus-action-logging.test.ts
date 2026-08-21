@@ -71,28 +71,30 @@ describe("admin bus action error logging", () => {
     });
   });
 
-  it.each([
-    "activateVersion",
-    "deleteVersion",
-    "importStatic",
-  ] as const)("%s requires authoritative recent authentication before mutation work", async (action) => {
-    const recentAuthError = new Error("recent auth required");
-    requireAdminPageMock.mockRejectedValue(recentAuthError);
-    const { adminBusActions } = await import(
-      "@/features/admin/server/admin-bus-page-server"
-    );
+  it.each(["activateVersion", "deleteVersion", "importStatic"] as const)(
+    "%s requires authoritative recent authentication before mutation work",
+    async (action) => {
+      const recentAuthError = new Error("recent auth required");
+      requireAdminPageMock.mockRejectedValue(recentAuthError);
+      const { adminBusActions } = await import(
+        "@/features/admin/server/admin-bus-page-server"
+      );
 
-    await expect(
-      adminBusActions[action]({
-        locals: { locale: "en-us", requestId: "request-sensitive-bus" },
-        request: new Request("https://life.example/admin/bus", {
-          method: "POST",
-        }),
-      } as never),
-    ).rejects.toBe(recentAuthError);
-    expect(requireAdminPageMock).toHaveBeenLastCalledWith(expect.any(Request), {
-      requireActive: true,
-      requireRecent: true,
-    });
-  });
+      await expect(
+        adminBusActions[action]({
+          locals: { locale: "en-us", requestId: "request-sensitive-bus" },
+          request: new Request("https://life.example/admin/bus", {
+            method: "POST",
+          }),
+        } as never),
+      ).rejects.toBe(recentAuthError);
+      expect(requireAdminPageMock).toHaveBeenLastCalledWith(
+        expect.any(Request),
+        {
+          requireActive: true,
+          requireRecent: true,
+        },
+      );
+    },
+  );
 });

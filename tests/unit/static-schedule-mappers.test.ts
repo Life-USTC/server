@@ -63,12 +63,15 @@ describe("static schedule meeting mapping", () => {
     [1400, 1535, 6, 7],
     [1555, 1730, 8, 9],
     [1930, 2155, 11, 13],
-  ])("derives %i-%i as units %i-%i from exact timetable boundaries", (startTime, endTime, startUnit, endUnit) => {
-    expect(mapSchedule(scheduleRow({ startTime, endTime }))).toMatchObject({
-      startUnit,
-      endUnit,
-    });
-  });
+  ])(
+    "derives %i-%i as units %i-%i from exact timetable boundaries",
+    (startTime, endTime, startUnit, endUnit) => {
+      expect(mapSchedule(scheduleRow({ startTime, endTime }))).toMatchObject({
+        startUnit,
+        endUnit,
+      });
+    },
+  );
 
   it.each([
     [830, 925],
@@ -76,13 +79,16 @@ describe("static schedule meeting mapping", () => {
     [1400, 1745],
     [1250, 1250],
     [2110, 835],
-  ])("leaves custom or invalid time %i-%i without units", (startTime, endTime) => {
-    expect(
-      mapSchedule(
-        scheduleRow({ startTime, endTime, startUnit: 7, endUnit: 8 }),
-      ),
-    ).toMatchObject({ startUnit: 0, endUnit: 0 });
-  });
+  ])(
+    "leaves custom or invalid time %i-%i without units",
+    (startTime, endTime) => {
+      expect(
+        mapSchedule(
+          scheduleRow({ startTime, endTime, startUnit: 7, endUnit: 8 }),
+        ),
+      ).toMatchObject({ startUnit: 0, endUnit: 0 });
+    },
+  );
 
   it("merges teachers only for the same room meeting", () => {
     const row = scheduleRow();

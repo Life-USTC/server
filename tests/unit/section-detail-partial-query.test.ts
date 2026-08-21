@@ -201,44 +201,44 @@ describe("partial section detail query", () => {
         assignments: [teacherAssignment.id],
       },
     },
-  ])("maps $name through the strict section detail DTO", async ({
-    options,
-    expected,
-  }) => {
-    const { findSectionDetailByJwId } = await import(
-      "@/features/catalog/server/course-section-read-queries"
-    );
+  ])(
+    "maps $name through the strict section detail DTO",
+    async ({ options, expected }) => {
+      const { findSectionDetailByJwId } = await import(
+        "@/features/catalog/server/course-section-read-queries"
+      );
 
-    const result = await findSectionDetailByJwId(
-      sectionBase.jwId,
-      "zh-cn",
-      options,
-    );
+      const result = await findSectionDetailByJwId(
+        sectionBase.jwId,
+        "zh-cn",
+        options,
+      );
 
-    expect(() => sectionDetailSchema.parse(result)).not.toThrow();
-    expect(result).toMatchObject({
-      exams: expected.exams.map((id) => ({ id })),
-      schedules: expected.schedules.map((id) => ({ id })),
-      scheduleGroups: expected.groups.map((id) => ({ id })),
-      teacherAssignments: expected.assignments.map((id) => ({ id })),
-    });
-    if (expected.schedules.length > 0) {
-      expect(result?.schedules[0]).toMatchObject({
-        startTime: "07:50",
-        endTime: "09:25",
+      expect(() => sectionDetailSchema.parse(result)).not.toThrow();
+      expect(result).toMatchObject({
+        exams: expected.exams.map((id) => ({ id })),
+        schedules: expected.schedules.map((id) => ({ id })),
+        scheduleGroups: expected.groups.map((id) => ({ id })),
+        teacherAssignments: expected.assignments.map((id) => ({ id })),
       });
-    }
+      if (expected.schedules.length > 0) {
+        expect(result?.schedules[0]).toMatchObject({
+          startTime: "07:50",
+          endTime: "09:25",
+        });
+      }
 
-    const include = sectionFindUniqueMock.mock.calls[0]?.[0].include;
-    expect(include.exams.take !== 0).toBe(options.includeExams === true);
-    expect(include.schedules.take !== 0).toBe(
-      options.includeSchedules === true,
-    );
-    expect(include.scheduleGroups.take !== 0).toBe(
-      options.includeSchedules === true,
-    );
-    expect(include.teacherAssignments.take !== 0).toBe(
-      options.includeTeacherDepartments === true,
-    );
-  });
+      const include = sectionFindUniqueMock.mock.calls[0]?.[0].include;
+      expect(include.exams.take !== 0).toBe(options.includeExams === true);
+      expect(include.schedules.take !== 0).toBe(
+        options.includeSchedules === true,
+      );
+      expect(include.scheduleGroups.take !== 0).toBe(
+        options.includeSchedules === true,
+      );
+      expect(include.teacherAssignments.take !== 0).toBe(
+        options.includeTeacherDepartments === true,
+      );
+    },
+  );
 });

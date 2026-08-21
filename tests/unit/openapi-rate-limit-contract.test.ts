@@ -69,16 +69,17 @@ describe("OpenAPI mutation rate-limit contract", () => {
     expect(documented).toEqual(expected);
   });
 
-  it.each(
-    PROTECTED_MUTATIONS,
-  )("%s %s exposes Retry-After for both rejection modes", (method, path) => {
-    const responses = paths[path]?.[method]?.responses;
+  it.each(PROTECTED_MUTATIONS)(
+    "%s %s exposes Retry-After for both rejection modes",
+    (method, path) => {
+      const responses = paths[path]?.[method]?.responses;
 
-    for (const status of ["429", "503"]) {
-      expect(
-        responses?.[status]?.headers?.["Retry-After"],
-        `${method} ${path} ${status}`,
-      ).toMatchObject({ schema: { type: "integer" } });
-    }
-  });
+      for (const status of ["429", "503"]) {
+        expect(
+          responses?.[status]?.headers?.["Retry-After"],
+          `${method} ${path} ${status}`,
+        ).toMatchObject({ schema: { type: "integer" } });
+      }
+    },
+  );
 });

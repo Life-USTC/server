@@ -161,23 +161,26 @@ describe("Better Auth security audit hooks", () => {
       },
       "SESSION_NOT_FRESH",
     ],
-  ])("audits and rejects a %s authoritative session", async (_case, session, code) => {
-    await expect(
-      enforceBetterAuthRecentSession(
-        endpointContext("/passkey/delete-passkey"),
-        async () => session as never,
-      ),
-    ).rejects.toMatchObject({ body: { code } });
-    expect(fireAuditLogMock).toHaveBeenCalledWith(
-      expect.objectContaining({
-        action: "account_passkey_delete",
-        outcome: "denied",
-        metadata: {
-          reason: session ? "session_not_fresh" : "unauthenticated",
-        },
-      }),
-    );
-  });
+  ])(
+    "audits and rejects a %s authoritative session",
+    async (_case, session, code) => {
+      await expect(
+        enforceBetterAuthRecentSession(
+          endpointContext("/passkey/delete-passkey"),
+          async () => session as never,
+        ),
+      ).rejects.toMatchObject({ body: { code } });
+      expect(fireAuditLogMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          action: "account_passkey_delete",
+          outcome: "denied",
+          metadata: {
+            reason: session ? "session_not_fresh" : "unauthenticated",
+          },
+        }),
+      );
+    },
+  );
 
   it("requires a recent session before linking another sign-in method", async () => {
     await expect(

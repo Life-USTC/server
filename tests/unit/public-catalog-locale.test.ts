@@ -15,28 +15,28 @@ function expectHeaders(
 }
 
 describe("public catalog locale cache policy", () => {
-  it.each([
-    "en-us",
-    "zh-cn",
-  ] as const)("publicly caches explicit %s URL variants", (locale) => {
-    const result = resolvePublicCatalogLocale(
-      new Request(
-        `https://example.test/api/catalog/courses?locale=${locale}&page=1`,
-        {
-          headers: {
-            "accept-language": locale === "en-us" ? "zh-CN" : "en-US",
-            cookie: `NEXT_LOCALE=${locale === "en-us" ? "zh-cn" : "en-us"}`,
+  it.each(["en-us", "zh-cn"] as const)(
+    "publicly caches explicit %s URL variants",
+    (locale) => {
+      const result = resolvePublicCatalogLocale(
+        new Request(
+          `https://example.test/api/catalog/courses?locale=${locale}&page=1`,
+          {
+            headers: {
+              "accept-language": locale === "en-us" ? "zh-CN" : "en-US",
+              cookie: `NEXT_LOCALE=${locale === "en-us" ? "zh-cn" : "en-us"}`,
+            },
           },
-        },
-      ),
-    );
+        ),
+      );
 
-    expect(result).not.toBeInstanceOf(Response);
-    if (result instanceof Response) return;
+      expect(result).not.toBeInstanceOf(Response);
+      if (result instanceof Response) return;
 
-    expect(result.locale).toBe(locale);
-    expect(result.cacheHeaders).toBe(PUBLIC_CATALOG_HEADERS);
-  });
+      expect(result.locale).toBe(locale);
+      expect(result.cacheHeaders).toBe(PUBLIC_CATALOG_HEADERS);
+    },
+  );
 
   it("defaults omitted locale to canonical zh-cn and ignores cookies", () => {
     const result = resolvePublicCatalogLocale(

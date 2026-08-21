@@ -370,31 +370,31 @@ describe("Cloudflare Analytics Engine runtime events", () => {
       namespace: "page:course-detail:en-us" as const,
       surface: "catalog detail core",
     },
-  ])("writes explicit $surface cache namespaces without raw query cache keys", async ({
-    key,
-    namespace,
-  }) => {
-    const writeDataPoint = installAnalyticsBinding();
-    const load = vi.fn(async () => ({ ok: true }));
+  ])(
+    "writes explicit $surface cache namespaces without raw query cache keys",
+    async ({ key, namespace }) => {
+      const writeDataPoint = installAnalyticsBinding();
+      const load = vi.fn(async () => ({ ok: true }));
 
-    await cachedPublicRuntimeData(namespace, key, 60_000, load);
-    await cachedPublicRuntimeData(namespace, key, 60_000, load);
+      await cachedPublicRuntimeData(namespace, key, 60_000, load);
+      await cachedPublicRuntimeData(namespace, key, 60_000, load);
 
-    expect(load).toHaveBeenCalledTimes(1);
-    expect(writeDataPoint).toHaveBeenCalledWith({
-      indexes: [`cache:${namespace}`],
-      blobs: ["public_runtime_cache_v3", "miss", namespace, "none"],
-      doubles: [expect.any(Number), 60_000, 0],
-    });
-    expect(writeDataPoint).toHaveBeenCalledWith({
-      indexes: [`cache:${namespace}`],
-      blobs: ["public_runtime_cache_v3", "hit", namespace, "none"],
-      doubles: [expect.any(Number), 60_000, 1],
-    });
-    expect(JSON.stringify(writeDataPoint.mock.calls)).not.toContain(
-      "sensitive-marker-679",
-    );
-  });
+      expect(load).toHaveBeenCalledTimes(1);
+      expect(writeDataPoint).toHaveBeenCalledWith({
+        indexes: [`cache:${namespace}`],
+        blobs: ["public_runtime_cache_v3", "miss", namespace, "none"],
+        doubles: [expect.any(Number), 60_000, 0],
+      });
+      expect(writeDataPoint).toHaveBeenCalledWith({
+        indexes: [`cache:${namespace}`],
+        blobs: ["public_runtime_cache_v3", "hit", namespace, "none"],
+        doubles: [expect.any(Number), 60_000, 1],
+      });
+      expect(JSON.stringify(writeDataPoint.mock.calls)).not.toContain(
+        "sensitive-marker-679",
+      );
+    },
+  );
 
   it("writes fixed colo-cache outcomes without entity IDs or synthetic keys", async () => {
     vi.useFakeTimers();

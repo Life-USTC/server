@@ -62,18 +62,18 @@ describe("homeTabCompatibilityRedirectHref", () => {
 });
 
 describe("dashboardTabCompatibilityRedirectHref", () => {
-  it.each([
-    "GET",
-    "HEAD",
-  ])("maps dashboard query tabs to semantic child routes for %s", (method) => {
-    const url = new URL(
-      "https://example.test/workspace?tab=calendar&calendarView=week&utm_source=bookmark",
-    );
+  it.each(["GET", "HEAD"])(
+    "maps dashboard query tabs to semantic child routes for %s",
+    (method) => {
+      const url = new URL(
+        "https://example.test/workspace?tab=calendar&calendarView=week&utm_source=bookmark",
+      );
 
-    expect(dashboardTabCompatibilityRedirectHref(url, method)).toBe(
-      "/workspace/calendar?calendarView=week&utm_source=bookmark",
-    );
-  });
+      expect(dashboardTabCompatibilityRedirectHref(url, method)).toBe(
+        "/workspace/calendar?calendarView=week&utm_source=bookmark",
+      );
+    },
+  );
 
   it("maps the dashboard root and unknown tabs to overview", () => {
     expect(

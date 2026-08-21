@@ -72,9 +72,9 @@ describe("workspace navigation summary", () => {
       queryRawMock.mock.invocationCallOrder[0],
     );
 
-    const sql = (queryRawMock.mock.calls[0]?.[0] as TemplateStringsArray).join(
-      "?",
-    );
+    const [query] = queryRawMock.mock.calls[0] ?? [];
+    expect(query).toBeDefined();
+    const sql = (query as TemplateStringsArray).join("?");
     expect(sql).toContain('FROM "UserSectionSubscription"');
     expect(sql).toContain('FROM "HomeworkCompletion"');
     expect(sql).toContain('FROM "Todo"');

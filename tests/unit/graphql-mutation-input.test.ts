@@ -14,17 +14,18 @@ describe("dateTimeInput", () => {
     );
   });
 
-  it.each(
-    MALFORMED_HOMEWORK_UPDATE_DATE_STRINGS,
-  )("rejects malformed date string %s", (value) => {
-    expect(() => dateTimeInput(value)).toThrow(/Invalid date\/time input\./);
-    try {
-      dateTimeInput(value);
-    } catch (error) {
-      expect(error).toMatchObject({
-        extensions: { code: "BAD_USER_INPUT" },
-        message: "Invalid date/time input.",
-      });
-    }
-  });
+  it.each(MALFORMED_HOMEWORK_UPDATE_DATE_STRINGS)(
+    "rejects malformed date string %s",
+    (value) => {
+      expect(() => dateTimeInput(value)).toThrow(/Invalid date\/time input\./);
+      try {
+        dateTimeInput(value);
+      } catch (error) {
+        expect(error).toMatchObject({
+          extensions: { code: "BAD_USER_INPUT" },
+          message: "Invalid date/time input.",
+        });
+      }
+    },
+  );
 });
