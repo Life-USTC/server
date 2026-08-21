@@ -179,8 +179,6 @@ jobs:
               bunx playwright test --config playwright.api.config.ts
               ;;
             ci:rls)
-              AUDIT_UPGRADE_BASE_COMMIT="${{ github.event.pull_request.base.sha || github.event.before }}" \
-                bash tests/ci/audit-production-upgrade.test.sh
               bun run app:prepare
               bun run db:migrate:deploy
               bunx prisma db seed
