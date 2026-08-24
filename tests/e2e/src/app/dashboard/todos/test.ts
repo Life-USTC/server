@@ -287,14 +287,35 @@ test.describe("仪表盘待办", () => {
       await page
         .getByRole("button", { name: editedTitle, exact: true })
         .click();
+      const deleteButton = page
+        .getByRole("button", { name: /删除待办|Delete todo/i })
+        .first();
+      await deleteButton.click();
+      const confirmDialog = page.getByRole("alertdialog");
+      await expect(confirmDialog).toBeVisible();
+      await page.keyboard.press("Escape");
+      await expect(confirmDialog).toBeHidden();
+      await expect(page.getByText(editedTitle)).toBeVisible();
+
+      await deleteButton.click();
+      await expect(confirmDialog).toBeVisible();
+      await expect(
+        confirmDialog.getByRole("button", { name: /取消|Cancel/i }),
+      ).toBeEnabled();
+      await confirmDialog.getByRole("button", { name: /取消|Cancel/i }).click();
+      await expect(confirmDialog).toBeHidden();
+      await expect(page.getByText(editedTitle)).toBeVisible();
+
+      await deleteButton.click();
+      const reopenedConfirmDialog = page.getByRole("alertdialog");
+      await expect(reopenedConfirmDialog).toBeVisible();
       const deleteResponse = page.waitForResponse(
         (response) =>
           response.request().method() === "DELETE" &&
           response.url().includes("/api/workspace/todos/"),
       );
-      await page
-        .getByRole("button", { name: /删除待办|Delete todo/i })
-        .first()
+      await reopenedConfirmDialog
+        .getByRole("button", { name: /删除|Delete/i })
         .click();
       await expect((await deleteResponse).status()).toBe(200);
 

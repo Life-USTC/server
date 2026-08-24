@@ -2269,6 +2269,8 @@
     "editAriaLabel": "Edit todo",
     "delete": "Delete",
     "deleteAriaLabel": "Delete todo",
+    "deleteConfirmTitle": "Delete this todo?",
+    "deleteConfirmDescription": "This action cannot be undone.",
     "cancel": "Cancel",
     "saving": "Saving...",
     "createAction": "Create Todo",

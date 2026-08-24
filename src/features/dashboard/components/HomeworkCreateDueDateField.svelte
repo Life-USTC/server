@@ -19,7 +19,7 @@ export let isCreatingHomework: boolean;
 export let selectedCreateHomeworkSection: DashboardHomeworkCreateSectionGetter;
 </script>
 
-<Field.Field>
+<Field.Field data-disabled={isCreatingHomework ? "true" : undefined}>
   <Field.Title id="dashboard-homework-submission-due-label">
     {homeworksCopy.submissionDue}
   </Field.Title>

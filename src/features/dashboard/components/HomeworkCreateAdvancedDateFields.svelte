@@ -17,7 +17,7 @@ export let toShanghaiDateTimeLocalValue: (value: Date) => string;
 </script>
 
 <Field.Group class="grid gap-3 sm:grid-cols-2">
-  <Field.Field>
+  <Field.Field data-disabled={isCreatingHomework ? "true" : undefined}>
     <Field.Title id="dashboard-homework-published-at-label">
       {homeworksCopy.publishedAt}
     </Field.Title>
@@ -53,7 +53,7 @@ export let toShanghaiDateTimeLocalValue: (value: Date) => string;
       </Button>
     </ButtonGroup.Root>
   </Field.Field>
-  <Field.Field>
+  <Field.Field data-disabled={isCreatingHomework ? "true" : undefined}>
     <Field.Title id="dashboard-homework-submission-start-label">
       {homeworksCopy.submissionStart}
     </Field.Title>

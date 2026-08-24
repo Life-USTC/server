@@ -2235,6 +2235,8 @@
     "editAriaLabel": "编辑待办",
     "delete": "删除",
     "deleteAriaLabel": "删除待办",
+    "deleteConfirmTitle": "删除此待办？",
+    "deleteConfirmDescription": "此操作无法撤销。",
     "cancel": "取消",
     "saving": "保存中...",
     "createAction": "创建待办",

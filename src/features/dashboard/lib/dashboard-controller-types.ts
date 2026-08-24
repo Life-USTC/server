@@ -359,6 +359,8 @@ export type DashboardTodosCopy = DashboardRecord & {
   createTitle: string;
   delete: string;
   deleteAriaLabel: string;
+  deleteConfirmDescription: string;
+  deleteConfirmTitle: string;
   dueAtLabel: string;
   editTitle: string;
   errorContentTooLong: string;

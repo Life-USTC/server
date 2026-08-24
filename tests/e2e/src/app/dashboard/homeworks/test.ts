@@ -491,7 +491,32 @@ test.describe("仪表盘作业", () => {
       }),
     ).toBeVisible();
     await titleInput.fill(title);
-    await page.getByTestId("dashboard-homework-create").click();
+
+    let releaseCreateRequest: (() => void) | undefined;
+    const createRequestHeld = new Promise<void>((resolve) => {
+      releaseCreateRequest = resolve;
+    });
+    const createRoutePattern = "**/workspace/homeworks**";
+    await page.route(createRoutePattern, async (route) => {
+      if (
+        route.request().method() !== "POST" ||
+        !route.request().url().includes("createHomework")
+      ) {
+        await route.continue();
+        return;
+      }
+      await createRequestHeld;
+      await route.continue();
+    });
+    try {
+      await page.getByTestId("dashboard-homework-create").click();
+      await expect(
+        createDialog.locator('[data-slot="field"][data-disabled="true"]'),
+      ).toHaveCount(6);
+    } finally {
+      releaseCreateRequest?.();
+      await page.unroute(createRoutePattern);
+    }
 
     await expect(visibleText(page, title)).toBeVisible({
       timeout: 15_000,
