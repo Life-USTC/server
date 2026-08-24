@@ -251,6 +251,8 @@ test.describe("仪表盘作业", () => {
         .fill(description);
       await createDialog.getByTestId("dashboard-homework-create").click();
       await expect(visibleText(page, title)).toBeVisible({ timeout: 15_000 });
+      await page.keyboard.press("Escape");
+      await expect(createDialog).toHaveCount(0);
 
       await page
         .getByRole("button", { name: new RegExp(title) })
