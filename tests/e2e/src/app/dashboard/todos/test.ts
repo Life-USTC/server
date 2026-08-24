@@ -287,6 +287,13 @@ test.describe("仪表盘待办", () => {
       await page
         .getByRole("button", { name: editedTitle, exact: true })
         .click();
+      const editedDetailDialog = page.getByRole("dialog", {
+        name: editedTitle,
+      });
+      const detailTitle = editedDetailDialog.locator(
+        '[data-slot="dialog-title"]',
+      );
+      await expect(detailTitle).toHaveText(editedTitle);
       const deleteButton = page
         .getByRole("button", { name: /删除待办|Delete todo/i })
         .first();
@@ -295,7 +302,7 @@ test.describe("仪表盘待办", () => {
       await expect(confirmDialog).toBeVisible();
       await page.keyboard.press("Escape");
       await expect(confirmDialog).toBeHidden();
-      await expect(page.getByText(editedTitle)).toBeVisible();
+      await expect(detailTitle).toBeVisible();
 
       await deleteButton.click();
       await expect(confirmDialog).toBeVisible();
@@ -304,7 +311,7 @@ test.describe("仪表盘待办", () => {
       ).toBeEnabled();
       await confirmDialog.getByRole("button", { name: /取消|Cancel/i }).click();
       await expect(confirmDialog).toBeHidden();
-      await expect(page.getByText(editedTitle)).toBeVisible();
+      await expect(detailTitle).toBeVisible();
 
       await deleteButton.click();
       const reopenedConfirmDialog = page.getByRole("alertdialog");

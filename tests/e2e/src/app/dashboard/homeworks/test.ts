@@ -496,6 +496,11 @@ test.describe("仪表盘作业", () => {
     const createRequestHeld = new Promise<void>((resolve) => {
       releaseCreateRequest = resolve;
     });
+    let createRequestIntercepted = false;
+    let resolveCreateRouteHandled: (() => void) | undefined;
+    const createRouteHandled = new Promise<void>((resolve) => {
+      resolveCreateRouteHandled = resolve;
+    });
     const createRoutePattern = "**/workspace/homeworks**";
     await page.route(createRoutePattern, async (route) => {
       if (
@@ -505,8 +510,13 @@ test.describe("仪表盘作业", () => {
         await route.continue();
         return;
       }
+      createRequestIntercepted = true;
       await createRequestHeld;
-      await route.continue();
+      try {
+        await route.continue();
+      } finally {
+        resolveCreateRouteHandled?.();
+      }
     });
     try {
       await page.getByTestId("dashboard-homework-create").click();
@@ -515,6 +525,7 @@ test.describe("仪表盘作业", () => {
       ).toHaveCount(6);
     } finally {
       releaseCreateRequest?.();
+      if (createRequestIntercepted) await createRouteHandled;
       await page.unroute(createRoutePattern);
     }
 
