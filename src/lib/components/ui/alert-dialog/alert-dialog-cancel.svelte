@@ -12,6 +12,7 @@
 		class: className,
 		variant = "outline",
 		size = "default",
+		disabled,
 		...restProps
 	}: AlertDialogPrimitive.CancelProps & {
 		variant?: ButtonVariant;
@@ -23,5 +24,6 @@
 	bind:ref
 	data-slot="alert-dialog-cancel"
 	class={cn(buttonVariants({ variant, size }), "cn-alert-dialog-cancel", className)}
+	{disabled}
 	{...restProps}
 />

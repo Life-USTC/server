@@ -12,6 +12,7 @@
 		class: className,
 		variant = "default",
 		size = "default",
+		disabled,
 		...restProps
 	}: AlertDialogPrimitive.ActionProps & {
 		variant?: ButtonVariant;
@@ -23,5 +24,6 @@
 	bind:ref
 	data-slot="alert-dialog-action"
 	class={cn(buttonVariants({ variant, size }), "cn-alert-dialog-action", className)}
+	{disabled}
 	{...restProps}
 />
