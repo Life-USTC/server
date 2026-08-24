@@ -354,6 +354,7 @@ export type DashboardTodosCopy = DashboardRecord & {
   calendarButtonLabel: string;
   cancel: string;
   contentLabel: string;
+  contentEmpty: string;
   contentPlaceholder: string;
   createAction: string;
   createTitle: string;
@@ -362,6 +363,8 @@ export type DashboardTodosCopy = DashboardRecord & {
   deleteConfirmDescription: string;
   deleteConfirmTitle: string;
   dueAtLabel: string;
+  dueAtPlaceholder: string;
+  editDescription: string;
   editTitle: string;
   errorContentTooLong: string;
   errorInvalidDueAt: string;
@@ -375,6 +378,7 @@ export type DashboardTodosCopy = DashboardRecord & {
   saving: string;
   subtitle: string;
   titleLabel: string;
+  titlePlaceholder: string;
 };
 
 export type DashboardHomeworkItem = DashboardRecord & {

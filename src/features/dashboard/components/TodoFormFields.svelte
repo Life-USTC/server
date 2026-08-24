@@ -37,6 +37,7 @@ $: contentLabelId = `${idPrefix}-content-label`;
     {disabled}
     maxlength={TODO_TITLE_MAX_LENGTH}
     name="title"
+    placeholder={todosCopy.titlePlaceholder}
     required
     value={titleValue}
   />
@@ -64,7 +65,7 @@ $: contentLabelId = `${idPrefix}-content-label`;
     {disabled}
     calendarButtonLabel={todosCopy.calendarButtonLabel}
     name="dueAt"
-    placeholder={todosCopy.dueAtLabel}
+    placeholder={todosCopy.dueAtPlaceholder}
     value={dueAtValue}
   />
 </Field.Field>

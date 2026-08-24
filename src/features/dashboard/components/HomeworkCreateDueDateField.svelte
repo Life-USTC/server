@@ -29,7 +29,6 @@ export let selectedCreateHomeworkSection: DashboardHomeworkCreateSectionGetter;
     calendarButtonLabel={homeworksCopy.calendarButtonLabel}
     disabled={isCreatingHomework}
     name="submissionDueAt"
-    placeholder={homeworksCopy.submissionDue}
   />
   <DropdownMenu.Root>
     <DropdownMenu.Trigger>

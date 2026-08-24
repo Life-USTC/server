@@ -51,9 +51,7 @@ export let updateTodoAction: SubmitFunction;
 />
 
 <TodoDetailDialog
-  deleteTodo={(todo) => {
-    void deleteTodo(todo);
-  }}
+  deleteTodo={(todo) => deleteTodo(todo)}
   {fmtDate}
   onClose={() => {
     selectedTodo = null;

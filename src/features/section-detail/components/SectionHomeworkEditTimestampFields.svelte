@@ -33,7 +33,6 @@ export let semesterDate: SectionHomeworkSemesterDate;
       calendarButtonLabel={homeworkCopy.calendarButtonLabel}
       defaultTime="00:00"
       name="publishedAt"
-      placeholder={homeworkCopy.publishedAt}
     />
     <ButtonGroup.Root class="ml-auto max-w-full flex-wrap justify-end">
       <Button type="button" variant="outline" onclick={applyPublishNow}>
@@ -60,7 +59,6 @@ export let semesterDate: SectionHomeworkSemesterDate;
       calendarButtonLabel={homeworkCopy.calendarButtonLabel}
       defaultTime="00:00"
       name="submissionStartAt"
-      placeholder={homeworkCopy.submissionStart}
     />
     <ButtonGroup.Root class="ml-auto max-w-full flex-wrap justify-end">
       <Button type="button" variant="outline" onclick={applyStartNow}>
@@ -94,7 +92,6 @@ export let semesterDate: SectionHomeworkSemesterDate;
       bind:value={editHomeworkSubmissionDueAt}
       calendarButtonLabel={homeworkCopy.calendarButtonLabel}
       name="submissionDueAt"
-      placeholder={homeworkCopy.submissionDue}
     />
     <ButtonGroup.Root class="ml-auto max-w-full flex-wrap justify-end">
       <Button type="button" variant="outline" onclick={applyDueInWeek}>

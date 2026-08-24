@@ -12,7 +12,7 @@ export let homeworksCopy: DashboardHomeworkDetailCopy;
 </script>
 
 <Item.Root variant="outline" class="items-start">
-  <Item.Content>
+  <Item.Content class="min-w-0">
     {#if homework.description}
       <MarkdownPreview
         content={homework.description}

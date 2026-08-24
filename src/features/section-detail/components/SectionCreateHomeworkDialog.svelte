@@ -38,16 +38,16 @@ export let submissionStartAt: string;
     }}
   >
     <Dialog.Content
-      class="max-w-2xl sm:max-w-2xl"
+      class="flex h-[calc(100dvh-2rem)] max-h-[calc(100dvh-2rem)] min-h-0 max-w-2xl flex-col gap-0 overflow-clip p-0 sm:h-[min(76vh,48rem)] sm:max-h-[min(76vh,48rem)] sm:max-w-2xl"
     >
       <form
-        class="grid gap-4"
+        class="flex min-h-0 flex-1 flex-col overflow-hidden"
         onsubmit={createHomework}
       >
-        <Dialog.Header>
+        <Dialog.Header class="shrink-0 px-5 pb-2 pt-4">
           <div class="flex flex-wrap items-start justify-between gap-3">
             <div class="min-w-0 grid gap-1.5">
-              <Dialog.Title>{homeworkCopy.createTitle}</Dialog.Title>
+              <Dialog.Title class="break-words">{homeworkCopy.createTitle}</Dialog.Title>
               <Dialog.Description>{homeworkCopy.subtitle}</Dialog.Description>
             </div>
             {#if openAuditDialog}
@@ -57,7 +57,7 @@ export let submissionStartAt: string;
             {/if}
           </div>
         </Dialog.Header>
-        <ScrollArea class="h-[min(64vh,36rem)]">
+        <ScrollArea class="h-0 min-h-0 flex-1">
           <SectionCreateHomeworkFields
             {applyDueAtSemesterEnd}
             {applyDueInMonth}
@@ -75,7 +75,7 @@ export let submissionStartAt: string;
             bind:submissionStartAt
           />
         </ScrollArea>
-        <Dialog.Footer>
+        <Dialog.Footer class="mx-0 mb-0 shrink-0">
           <Button type="button" variant="outline" onclick={close}>
             {sectionCopy.close ?? ""}
           </Button>

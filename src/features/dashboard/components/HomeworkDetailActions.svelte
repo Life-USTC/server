@@ -1,7 +1,6 @@
 <script lang="ts">
 import type { Component } from "svelte";
 import { Button } from "$lib/components/ui/button/index.js";
-import { Separator } from "$lib/components/ui/separator/index.js";
 import type {
   DashboardHomeworkCompletionToggle,
   DashboardHomeworkDetailAction,
@@ -20,29 +19,26 @@ export let selectedCourseLabel: string;
 export let toggleHomeworkCompletion: DashboardHomeworkCompletionToggle;
 </script>
 
-<div class="grid gap-4">
-  <Separator />
-  <div class="flex flex-wrap items-center justify-between gap-2">
-    <Button href={homeworkSectionHref(homework)} variant="outline">
-      {selectedCourseLabel}
+<div class="flex w-full flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+  <Button class="w-full sm:w-auto" href={homeworkSectionHref(homework)} variant="outline">
+    {selectedCourseLabel}
+  </Button>
+  <div class="flex flex-col gap-2 sm:flex-row sm:justify-end">
+    <Button
+      class="w-full sm:w-auto"
+      disabled={homeworkSavingById[homework.id]}
+      type="button"
+      onclick={() => {
+        if (homework) toggleHomeworkCompletion(homework);
+      }}
+    >
+      <SelectedCompletionIcon data-icon="inline-start" />
+      {homeworkSavingById[homework.id]
+        ? homeworksCopy.saving
+        : homeworkCompletionActionLabel(homework)}
     </Button>
-    <div class="flex flex-wrap justify-end gap-2">
-      <Button
-        disabled={homeworkSavingById[homework.id]}
-        type="button"
-        variant="outline"
-        onclick={() => {
-          if (homework) toggleHomeworkCompletion(homework);
-        }}
-      >
-        <SelectedCompletionIcon data-icon="inline-start" />
-        {homeworkSavingById[homework.id]
-          ? homeworksCopy.saving
-          : homeworkCompletionActionLabel(homework)}
-      </Button>
-      <Button href={homeworkDetailHref(homework)}>
-        {homeworksCopy.viewDetails}
-      </Button>
-    </div>
+    <Button class="w-full sm:w-auto" href={homeworkDetailHref(homework)} variant="outline">
+      {homeworksCopy.viewDetails}
+    </Button>
   </div>
 </div>

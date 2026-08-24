@@ -225,6 +225,99 @@ test.describe("仪表盘作业", () => {
     await expect(submit).toBeInViewport();
   });
 
+  test("移动端作业详情长内容保持底部操作可达", async ({ page }) => {
+    test.setTimeout(90_000);
+    await page.addInitScript(() => {
+      localStorage.removeItem("life-ustc-dashboard-view-mode");
+    });
+    await page.setViewportSize({ height: 568, width: 320 });
+    await signInAsDebugUser(page, "/workspace/homeworks");
+    await ensureSeedSectionSubscription(page);
+    await gotoAndWaitForReady(page, "/workspace/homeworks");
+
+    const title = `e2e-dashboard-homework-mobile-${Date.now()}-${"长标题".repeat(30)}`;
+    const description = `${"这是用于验证仪表盘作业详情滚动区域的长说明。 ".repeat(24)}\n\ndashboard-homework-mobile-content-marker`;
+    let homeworkId: string | undefined;
+
+    try {
+      await page.getByTestId("dashboard-homeworks-add").first().click();
+      const createDialog = page.getByRole("dialog", {
+        name: /新建作业|New Homework/i,
+      });
+      await expect(createDialog).toBeVisible();
+      await createDialog.getByTestId("dashboard-homework-title").fill(title);
+      await createDialog
+        .getByRole("textbox", { name: /说明|Details/i })
+        .fill(description);
+      await createDialog.getByTestId("dashboard-homework-create").click();
+      await expect(visibleText(page, title)).toBeVisible({ timeout: 15_000 });
+
+      await page
+        .getByRole("button", { name: new RegExp(title) })
+        .first()
+        .click();
+      const detailDialog = page.locator('[data-slot="dialog-content"]').first();
+      await expect(detailDialog).toBeVisible();
+      await expect(
+        detailDialog.getByText("dashboard-homework-mobile-content-marker"),
+      ).toBeVisible();
+
+      const viewportHeight = page.viewportSize()?.height ?? 568;
+      const dialogBox = await detailDialog.boundingBox();
+      const footer = detailDialog.locator('[data-slot="dialog-footer"]');
+      const footerBox = await footer.boundingBox();
+      expect(dialogBox).not.toBeNull();
+      expect(footerBox).not.toBeNull();
+      if (!dialogBox || !footerBox) {
+        throw new Error("Expected the mobile homework detail bounds");
+      }
+      expect(dialogBox.y).toBeGreaterThanOrEqual(16);
+      expect(dialogBox.y + dialogBox.height).toBeLessThanOrEqual(
+        viewportHeight - 16,
+      );
+      expect(footerBox.y + footerBox.height).toBeLessThanOrEqual(
+        viewportHeight,
+      );
+      await expect(footer).toBeInViewport();
+
+      const completion = footer.getByRole("button", {
+        name: /标记为完成|Mark as complete/i,
+      });
+      const details = footer.getByRole("link", {
+        name: /查看详情|View details/i,
+      });
+      for (const control of [completion, details]) {
+        await expect(control).toBeVisible();
+        const box = await control.boundingBox();
+        expect(box).not.toBeNull();
+        expect(box?.width ?? 0).toBeGreaterThanOrEqual(240);
+      }
+      const [completionBox, detailsBox] = await Promise.all([
+        completion.boundingBox(),
+        details.boundingBox(),
+      ]);
+      expect(completionBox?.y).toBeLessThan(
+        detailsBox?.y ?? Number.POSITIVE_INFINITY,
+      );
+      expect(
+        await page.evaluate(
+          () => document.documentElement.scrollWidth <= window.innerWidth,
+        ),
+      ).toBe(true);
+
+      const sectionLink = detailDialog
+        .locator('a[href*="homeworkId="]')
+        .first();
+      const href = await sectionLink.getAttribute("href");
+      homeworkId = href
+        ? (new URL(href, "http://localhost").searchParams.get("homeworkId") ??
+          undefined)
+        : undefined;
+    } finally {
+      await cleanupHomeworksForE2e([homeworkId]);
+    }
+  });
+
   test("种子协作作业显示重要和团队徽章", async ({ page }, testInfo) => {
     await signInAsDebugUser(page, "/workspace/homeworks");
     await ensureSeedSectionSubscription(page);

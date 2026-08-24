@@ -334,4 +334,114 @@ test.describe("仪表盘待办", () => {
       await cleanupTodosByTitlePrefix(page, title);
     }
   });
+
+  test("移动端长标题和内容保持操作可达并按层级排列", async ({ page }) => {
+    test.setTimeout(90_000);
+    await page.setViewportSize({ width: 320, height: 568 });
+    await signInAsDebugUser(page, "/workspace/todos");
+
+    const titlePrefix = `e2e-dashboard-todo-mobile-${Date.now()}`;
+    const title = `${titlePrefix}-${"长标题".repeat(35)}`;
+    const content = `${"这是用于验证待办详情滚动区域的长内容。 ".repeat(24)}\n\nmobile-content-marker`;
+
+    try {
+      const addTodoButton = page.getByTestId("dashboard-todos-add");
+      await addTodoButton.click();
+      const createDialog = page.getByRole("dialog", {
+        name: /新建待办|New Todo/i,
+      });
+      await expect(createDialog).toBeVisible();
+      const viewportHeight = page.viewportSize()?.height ?? 568;
+      const createBox = await createDialog.boundingBox();
+      const createFooter = createDialog.locator('[data-slot="dialog-footer"]');
+      expect(createBox).not.toBeNull();
+      if (!createBox) throw new Error("Expected the mobile todo dialog bounds");
+      expect(createBox.y).toBeGreaterThanOrEqual(16);
+      expect(createBox.y + createBox.height).toBeLessThanOrEqual(
+        viewportHeight - 16,
+      );
+      await expect(createFooter).toBeInViewport();
+
+      await createDialog.getByLabel(/^(标题|Title)$/i).fill(title);
+      await createDialog
+        .getByRole("textbox", { name: /内容描述|Description/i })
+        .fill(content);
+      await createDialog
+        .getByRole("button", { name: /创建待办|Create Todo/i })
+        .click();
+      await expect(visibleText(page, title)).toBeVisible({ timeout: 15_000 });
+
+      await page.getByRole("button", { name: title, exact: true }).click();
+      const detailDialog = page.getByRole("dialog", { name: title });
+      await expect(detailDialog).toBeVisible();
+      await expect(
+        detailDialog.getByText("mobile-content-marker"),
+      ).toBeVisible();
+
+      const detailFooter = detailDialog.locator('[data-slot="dialog-footer"]');
+      await expect(detailFooter).toBeInViewport();
+      const completion = detailFooter.getByRole("button", {
+        name: /标记为完成|Mark as complete/i,
+      });
+      const edit = detailFooter.getByRole("button", {
+        name: /编辑待办|Edit Todo/i,
+      });
+      const deleteButton = detailFooter.getByRole("button", {
+        name: /删除待办|Delete todo/i,
+      });
+      for (const control of [completion, edit, deleteButton]) {
+        await expect(control).toBeVisible();
+        const box = await control.boundingBox();
+        expect(box).not.toBeNull();
+        expect(box?.width ?? 0).toBeGreaterThanOrEqual(240);
+      }
+      const [completionBox, editBox, deleteBox] = await Promise.all([
+        completion.boundingBox(),
+        edit.boundingBox(),
+        deleteButton.boundingBox(),
+      ]);
+      expect(completionBox?.y).toBeLessThan(
+        editBox?.y ?? Number.POSITIVE_INFINITY,
+      );
+      expect(editBox?.y).toBeLessThan(deleteBox?.y ?? Number.POSITIVE_INFINITY);
+      expect(
+        await page.evaluate(
+          () => document.documentElement.scrollWidth <= window.innerWidth,
+        ),
+      ).toBe(true);
+
+      await deleteButton.click();
+      const confirmDialog = page.getByRole("alertdialog");
+      await expect(confirmDialog).toBeVisible();
+      await expect(confirmDialog).toContainText(title);
+      await page.keyboard.press("Escape");
+      await expect(confirmDialog).toBeHidden();
+      await expect(detailDialog).toBeVisible();
+
+      await deleteButton.click();
+      await page
+        .getByRole("alertdialog")
+        .getByRole("button", { name: /取消|Cancel/i })
+        .click();
+      await expect(page.getByRole("alertdialog")).toBeHidden();
+      await expect(detailDialog).toBeVisible();
+
+      await deleteButton.click();
+      const deleteResponse = page.waitForResponse(
+        (response) =>
+          response.request().method() === "DELETE" &&
+          response.url().includes("/api/workspace/todos/"),
+      );
+      await page
+        .getByRole("alertdialog")
+        .getByRole("button", { name: /删除|Delete/i })
+        .click();
+      await expect((await deleteResponse).status()).toBe(200);
+      await expect(page.getByText(title, { exact: true })).toHaveCount(0, {
+        timeout: 15_000,
+      });
+    } finally {
+      await cleanupTodosByTitlePrefix(page, titlePrefix);
+    }
+  });
 });

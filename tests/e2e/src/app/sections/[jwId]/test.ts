@@ -1043,6 +1043,117 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
     ).toBe(true);
   });
 
+  test("移动端班级作业长标题和说明保持对话框可用", async ({ page }) => {
+    test.setTimeout(90_000);
+    await page.setViewportSize({ width: 320, height: 568 });
+    await signInAsDebugUser(page, SECTION_URL);
+
+    const titlePrefix = `e2e-section-hw-mobile-${Date.now()}`;
+    const title = `${titlePrefix}-${"长标题".repeat(32)}`;
+    const description = `${"这是用于验证班级作业详情滚动区域的长说明。 ".repeat(24)}\n\nsection-mobile-content-marker`;
+    let homeworkId: string | undefined;
+
+    try {
+      const createResponse = await page.request.post(
+        "/api/community/section-homeworks",
+        {
+          data: {
+            sectionJwId: DEV_SEED.section.jwId,
+            submissionDueAt: null,
+            title,
+            description,
+          },
+        },
+      );
+      expect(createResponse.status()).toBe(201);
+      const body = (await createResponse.json()) as {
+        homework?: { id?: string };
+        id?: string;
+      };
+      homeworkId = body.homework?.id ?? body.id;
+      expect(homeworkId).toBeTruthy();
+
+      await gotoAndWaitForReady(page, SECTION_URL);
+      await jumpToSection(page, /作业|Homework/i, "#homework");
+      const homeworkCard = page
+        .getByRole("button", { name: new RegExp(escapeForRegExp(title)) })
+        .first();
+      await expect(homeworkCard).toBeVisible();
+      await homeworkCard.click();
+
+      const detailDialog = page.locator('[data-slot="dialog-content"]').first();
+      await expect(detailDialog).toBeVisible();
+      await expect(
+        detailDialog.locator('[data-slot="dialog-title"]'),
+      ).toHaveText(title);
+      await expect(
+        detailDialog.getByText("section-mobile-content-marker"),
+      ).toBeVisible();
+
+      const viewportHeight = page.viewportSize()?.height ?? 568;
+      const dialogBox = await detailDialog.boundingBox();
+      const footer = detailDialog.locator('[data-slot="dialog-footer"]');
+      const footerBox = await footer.boundingBox();
+      expect(dialogBox).not.toBeNull();
+      expect(footerBox).not.toBeNull();
+      if (!dialogBox || !footerBox)
+        throw new Error("Expected the mobile section homework dialog bounds");
+      expect(dialogBox.y).toBeGreaterThanOrEqual(16);
+      expect(dialogBox.y + dialogBox.height).toBeLessThanOrEqual(
+        viewportHeight - 16,
+      );
+      expect(footerBox.y + footerBox.height).toBeLessThanOrEqual(
+        viewportHeight,
+      );
+      await expect(footer).toBeInViewport();
+
+      const completion = footer.getByRole("button", {
+        name: /标记为完成|Mark as complete/i,
+      });
+      const edit = footer.getByRole("button", {
+        name: /编辑信息|Edit details/i,
+      });
+      const deleteButton = footer.getByRole("button", {
+        name: /删除|Delete/i,
+      });
+      for (const control of [completion, edit, deleteButton]) {
+        await expect(control).toBeVisible();
+        const box = await control.boundingBox();
+        expect(box).not.toBeNull();
+        expect(box?.width ?? 0).toBeGreaterThanOrEqual(240);
+      }
+      const [completionBox, editBox, deleteBox] = await Promise.all([
+        completion.boundingBox(),
+        edit.boundingBox(),
+        deleteButton.boundingBox(),
+      ]);
+      expect(completionBox?.y).toBeLessThan(
+        editBox?.y ?? Number.POSITIVE_INFINITY,
+      );
+      expect(editBox?.y).toBeLessThan(deleteBox?.y ?? Number.POSITIVE_INFINITY);
+      expect(
+        await page.evaluate(
+          () => document.documentElement.scrollWidth <= window.innerWidth,
+        ),
+      ).toBe(true);
+
+      const editButton = detailDialog.getByRole("button", {
+        name: /编辑信息|Edit details/i,
+      });
+      await editButton.scrollIntoViewIfNeeded();
+      await editButton.click();
+      const editForm = detailDialog.locator("form").first();
+      await expect(editForm).toBeVisible();
+      await editForm.getByRole("button", { name: /取消|Cancel/i }).click();
+      await expect(editForm).toHaveCount(0);
+
+      await page.keyboard.press("Escape");
+      await expect(detailDialog).toHaveCount(0);
+    } finally {
+      await cleanupHomeworksForE2e([homeworkId]);
+    }
+  });
+
   test("班级作业区块默认以列表展示", async ({ page }, testInfo) => {
     await gotoAndWaitForReady(page, SECTION_URL);
 

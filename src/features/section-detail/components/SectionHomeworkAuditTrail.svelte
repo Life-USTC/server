@@ -30,7 +30,7 @@ export let logs: SectionHomeworkAuditLog[];
               size="sm"
               variant="muted"
             >
-              <Item.Content>
+              <Item.Content class="min-w-0">
                 <Item.Title>{homeworkAuditActionLabel(log.action)}</Item.Title>
                 <Item.Description class="line-clamp-none">
                   {log.titleSnapshot}

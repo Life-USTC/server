@@ -14,7 +14,7 @@ export let homeworkCopy: SectionHomeworkCopy;
 </script>
 
 <Item.Root variant="muted" class="items-start">
-  <Item.Content>
+  <Item.Content class="min-w-0">
     {#if homework.description?.content}
       {#if homework.description.renderedHtml}
         <RenderedMarkdown html={homework.description.renderedHtml} />
