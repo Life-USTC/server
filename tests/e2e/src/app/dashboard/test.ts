@@ -193,7 +193,10 @@ test.describe("仪表盘", () => {
         payload.navigation.subscribedSectionCount,
       ],
     ] as const) {
-      const badge = sidebarNavigationLink(page, label).locator(":scope > div");
+      const menuItem = sidebarNavigationLink(page, label).locator(
+        "xpath=ancestor::*[@data-slot='sidebar-menu-item'][1]",
+      );
+      const badge = menuItem.locator("[data-slot='sidebar-menu-badge']");
       if (count > 0) {
         await expect(badge).toHaveText(String(count));
       } else {
