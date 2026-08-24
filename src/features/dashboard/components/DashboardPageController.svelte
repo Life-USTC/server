@@ -56,6 +56,7 @@ import {
 import { todoPriorityOptions as buildTodoPriorityOptions } from "@/features/dashboard/lib/todos";
 import { goto, invalidateAll, replaceState } from "$app/navigation";
 import { page } from "$app/stores";
+import PageHeader from "$lib/components/PageHeader.svelte";
 import * as Alert from "$lib/components/ui/alert/index.js";
 import type { DashboardCalendarTabProps } from "./dashboard-calendar-component-types";
 import SignedDashboardOverviewBranch from "./SignedDashboardOverviewBranch.svelte";
@@ -495,7 +496,11 @@ onMount(() => {
 
 <div class="grid w-full gap-6">
   {#if data.signedIn && data.mainContentLabel}
-    <h1 class="sr-only">{data.mainContentLabel}</h1>
+    <PageHeader
+      class="py-0 md:py-1"
+      title={data.mainContentLabel}
+      titleClass="text-xl sm:text-2xl"
+    />
   {/if}
 
   {#if actionError}

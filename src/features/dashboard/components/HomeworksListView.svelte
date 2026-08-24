@@ -42,7 +42,7 @@ export let toggleHomeworkCompletion: (
       <Table.Head>{homeworksCopy.sectionLabel}</Table.Head>
       <Table.Head>{homeworksCopy.titleLabel}</Table.Head>
       <Table.Head>{homeworksCopy.submissionDue}</Table.Head>
-      <Table.Head>{homeworksCopy.selected}</Table.Head>
+      <Table.Head>{homeworksCopy.statusLabel}</Table.Head>
       <Table.Head>
         <span class="sr-only">{homeworksCopy.markComplete}</span>
       </Table.Head>

@@ -7,9 +7,8 @@ import type {
   DashboardTodoItem,
   DashboardTodosCopy,
 } from "@/features/dashboard/lib/dashboard-controller-types";
-import MarkdownPreview from "$lib/components/MarkdownPreview.svelte";
 import { Badge } from "$lib/components/ui/badge/index.js";
-import * as Card from "$lib/components/ui/card/index.js";
+import * as Item from "$lib/components/ui/item/index.js";
 import DashboardTableIconButton from "./DashboardTableIconButton.svelte";
 import TodoEmptyState from "./TodoEmptyState.svelte";
 
@@ -28,73 +27,69 @@ export let todoStatus: TodoAction;
 export let toggleTodoCompletion: TodoCompletionToggle;
 </script>
 
-<div class="grid gap-3 md:grid-cols-2" data-testid="dashboard-todos-cards">
-  {#each filteredTodos as todo}
-    <Card.Root
-      class="group"
-      data-slot="card"
-    >
-      <Card.Header>
-        <Card.Title>
-          <button
-            class:line-through={todo.completed}
-            class="text-left underline-offset-4 hover:underline"
-            type="button"
-            onclick={() => {
-              selectedTodo = todo;
-            }}
-          >
-            {todo.title}
-          </button>
-        </Card.Title>
-        <Card.Action>
-          <Badge variant="outline">
-            {todoStatus(todo)}
-          </Badge>
-        </Card.Action>
-      </Card.Header>
-      <Card.Content class="grid gap-3">
-        <div class="flex flex-wrap gap-2">
-          <Badge
-            variant={todo.priority === "high"
-              ? "destructive"
-              : todo.priority === "medium"
-                ? "secondary"
-                : "outline"}
-          >
-            {todosCopy.priority[todo.priority]}
-          </Badge>
-          <Badge variant="ghost">{fmtDate(todo.dueAt)}</Badge>
-        </div>
-        {#if todo.content}
-          <MarkdownPreview class="line-clamp-3 text-sm" content={todo.content} />
+<div class="min-w-0" data-testid="dashboard-todos-cards">
+  {#if filteredTodos.length > 0}
+    <Item.Group class="gap-0">
+      {#each filteredTodos as todo, index (todo.id)}
+        <Item.Root class="items-start px-2 py-2" size="sm">
+          <Item.Content class="min-w-0 gap-0.5">
+            <Item.Title class="block min-w-0 max-w-full">
+              <button
+                class:line-through={todo.completed}
+                class="block min-w-0 max-w-full truncate text-left underline-offset-4 hover:underline"
+                type="button"
+                onclick={() => {
+                  selectedTodo = todo;
+                }}
+              >
+                {todo.title}
+              </button>
+            </Item.Title>
+            <Item.Description class="flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-0.5">
+              <span class="truncate">{fmtDate(todo.dueAt)}</span>
+              <span aria-hidden="true">·</span>
+              <Badge
+                variant={todo.priority === "high"
+                  ? "destructive"
+                  : todo.priority === "medium"
+                    ? "secondary"
+                    : "outline"}
+              >
+                {todosCopy.priority[todo.priority]}
+              </Badge>
+              <Badge variant="ghost">{todoStatus(todo)}</Badge>
+            </Item.Description>
+          </Item.Content>
+          <Item.Actions class="shrink-0 self-start">
+            <DashboardTableIconButton
+              label={todosCopy.editTitle}
+              onclick={() => openTodoEditor(todo)}
+            >
+              <Pencil />
+            </DashboardTableIconButton>
+            <DashboardTableIconButton
+              disabled={todoSavingById[todo.id]}
+              label={todoSavingById[todo.id]
+                ? todosCopy.saving
+                : todoActionLabel(todo)}
+              onclick={() => void toggleTodoCompletion(todo)}
+            >
+              {#if todoSavingById[todo.id]}
+                <LoaderCircle class="animate-spin" />
+              {:else if todo.completed}
+                <RefreshCw />
+              {:else}
+                <CheckCircleIcon />
+              {/if}
+            </DashboardTableIconButton>
+          </Item.Actions>
+        </Item.Root>
+        {#if index < filteredTodos.length - 1}
+          <Item.Separator class="my-0" />
         {/if}
-      </Card.Content>
-      <Card.Footer class="justify-end gap-1">
-        <DashboardTableIconButton
-          label={todosCopy.editTitle}
-          onclick={() => openTodoEditor(todo)}
-        >
-          <Pencil />
-        </DashboardTableIconButton>
-        <DashboardTableIconButton
-          disabled={todoSavingById[todo.id]}
-          label={todoSavingById[todo.id]
-            ? todosCopy.saving
-            : todoActionLabel(todo)}
-          onclick={() => void toggleTodoCompletion(todo)}
-        >
-          {#if todoSavingById[todo.id]}
-            <LoaderCircle class="animate-spin" />
-          {:else if todo.completed}
-            <RefreshCw />
-          {:else}
-            <CheckCircleIcon />
-          {/if}
-        </DashboardTableIconButton>
-      </Card.Footer>
-    </Card.Root>
+      {/each}
+    </Item.Group>
   {:else}
     <TodoEmptyState {todosCopy} />
-  {/each}
+  {/if}
 </div>

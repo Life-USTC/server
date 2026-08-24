@@ -477,7 +477,7 @@ test.describe("仪表盘教学班订阅", () => {
     page,
   }, testInfo) => {
     test.setTimeout(60_000);
-    await page.setViewportSize({ height: 844, width: 390 });
+    await page.setViewportSize({ height: 600, width: 390 });
     await signInAsDebugUser(page, "/workspace/subscriptions");
     const seedSectionIds = (await resolveSeedSectionMatches(page)).map(
       (section) => section.id,
@@ -518,6 +518,25 @@ test.describe("仪表盘教学班订阅", () => {
     await expect(
       quickAddDialog.getByText(DEV_SEED.section.code).first(),
     ).toBeVisible();
+    const subscribeButton = quickAddDialog.getByRole("button", {
+      name: /订阅所选|Subscribe selected/i,
+    });
+    await expect(subscribeButton).toBeInViewport();
+    const resultViewport = quickAddDialog
+      .locator('[data-slot="scroll-area-viewport"]')
+      .first();
+    const resultMetrics = await resultViewport.evaluate((element) => ({
+      clientHeight: element.clientHeight,
+      scrollHeight: element.scrollHeight,
+    }));
+    expect(resultMetrics.clientHeight).toBeGreaterThan(0);
+    expect(resultMetrics.scrollHeight).toBeGreaterThan(
+      resultMetrics.clientHeight,
+    );
+    await resultViewport.evaluate((element) => {
+      element.scrollTop = element.scrollHeight;
+    });
+    await expect(subscribeButton).toBeInViewport();
     const separator = quickAddDialog.locator(
       '[data-slot="separator"][data-orientation="horizontal"]',
     );

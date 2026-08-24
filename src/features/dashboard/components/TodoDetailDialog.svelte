@@ -36,7 +36,7 @@ export let toggleTodoCompletion: (todo: DashboardTodoItem) => void;
       <Dialog.Header>
         <Dialog.Title>{todo.title}</Dialog.Title>
         <Dialog.Description>
-          {todo.priority} · {fmtDate(todo.dueAt)}
+          {todosCopy.priority[todo.priority]} · {fmtDate(todo.dueAt)}
         </Dialog.Description>
       </Dialog.Header>
       <div class="grid gap-4 px-5 py-4">
@@ -46,15 +46,6 @@ export let toggleTodoCompletion: (todo: DashboardTodoItem) => void;
           <p class="text-muted-foreground text-sm">{todosCopy.contentPlaceholder}</p>
         {/if}
         <div class="flex flex-wrap gap-2">
-          <Badge
-            variant={todo.priority === "high"
-              ? "destructive"
-              : todo.priority === "medium"
-                ? "secondary"
-                : "outline"}
-          >
-            {todosCopy.priority[todo.priority]}
-          </Badge>
           <Badge>{todoStatus(todo)}</Badge>
         </div>
         <div class="flex justify-between gap-2">

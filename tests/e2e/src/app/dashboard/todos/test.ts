@@ -102,6 +102,13 @@ test.describe("仪表盘待办", () => {
     await gotoAndWaitForReady(page, "/workspace/todos?todoView=list");
     await expect(page.getByTestId("dashboard-todos-cards")).toBeVisible();
     await expect(page.getByRole("table")).toBeHidden();
+    const todoItem = page
+      .getByTestId("dashboard-todos-cards")
+      .locator('[data-slot="item"]')
+      .first();
+    await expect(todoItem).toBeVisible();
+    await expect(todoItem.locator('[data-slot="item-content"]')).toBeVisible();
+    await expect(todoItem.locator('[data-slot="item-actions"]')).toBeVisible();
     expect(
       await page.evaluate(
         () => document.documentElement.scrollWidth <= window.innerWidth,

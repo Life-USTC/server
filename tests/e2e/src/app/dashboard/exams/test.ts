@@ -109,6 +109,13 @@ test.describe("仪表盘考试", () => {
     await expect(all).toHaveAttribute("aria-checked", "true");
     await expect(page.getByTestId("dashboard-exams-cards")).toBeVisible();
     await expect(page.getByRole("table")).toBeHidden();
+    const examItem = page
+      .getByTestId("dashboard-exams-cards")
+      .locator('[data-slot="item"]')
+      .first();
+    await expect(examItem).toBeVisible();
+    await expect(examItem.locator('[data-slot="item-content"]')).toBeVisible();
+    await expect(examItem.locator('[data-slot="item-actions"]')).toBeVisible();
     expect(
       await page.evaluate(
         () => document.documentElement.scrollWidth <= window.innerWidth,
