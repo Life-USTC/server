@@ -282,7 +282,7 @@ test("/admin/moderation 可更新评论状态与备注", async ({ page }, testIn
   await privateButton.click();
   await expect(privateButton).toHaveAttribute("aria-checked", "true");
   await dialog
-    .getByPlaceholder(/备注|note/i)
+    .getByLabel(/备注|Moderation note|Note/i)
     .first()
     .fill(`e2e-note-${Date.now()}`);
 

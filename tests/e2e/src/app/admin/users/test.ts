@@ -266,7 +266,7 @@ test("/admin/users 用户名非法保存返回 400", async ({ page }, testInfo) 
 
   const dialog = await openAdminUserDialog(page, DEV_SEED.debugUsername);
 
-  const usernameInput = dialog.getByPlaceholder(/用户名|Username/i).first();
+  const usernameInput = dialog.getByLabel(/用户名|Username/i).first();
   await expect(usernameInput).toBeVisible();
   await usernameInput.fill("INVALID");
 

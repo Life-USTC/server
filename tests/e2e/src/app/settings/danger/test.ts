@@ -87,12 +87,23 @@ test.describe("/account/settings/danger 危险区设置", () => {
     await expect(dialog).toBeHidden();
 
     await page.setViewportSize({ width: 320, height: 844 });
-    await openDialogButton.click({ force: true });
+    const narrowOpenDialogButton = page
+      .getByRole("button", { name: /删除|Delete/i })
+      .first();
     const narrowDialog = page.getByRole("alertdialog").last();
-    await expect(narrowDialog).toBeVisible();
     const narrowInput = narrowDialog
       .locator('input[placeholder="DELETE"]')
       .first();
+    await expect(narrowOpenDialogButton).toBeVisible();
+    await expect(narrowOpenDialogButton).toBeEnabled();
+    await expect(async () => {
+      await narrowOpenDialogButton.click({ force: true });
+      await expect(narrowDialog).toBeVisible();
+      await expect(narrowInput).toBeVisible();
+    }).toPass({
+      timeout: 10_000,
+      intervals: [250, 500, 1_000],
+    });
     const narrowFooterButtons = narrowDialog.locator(
       '[data-slot="alert-dialog-footer"] button',
     );
