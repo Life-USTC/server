@@ -62,7 +62,7 @@ test("/account/sign-in 页面契约", async ({ page }, testInfo) => {
 test("/account/sign-in narrow mobile shell uses an accessible compact brand", async ({
   page,
 }, testInfo) => {
-  for (const width of [375, 390]) {
+  for (const width of [280, 375, 390]) {
     await page.setViewportSize({ width, height: 800 });
     await gotoAndWaitForReady(page, "/account/sign-in", {
       testInfo,
@@ -70,6 +70,16 @@ test("/account/sign-in narrow mobile shell uses an accessible compact brand", as
     });
 
     const brand = page.locator("[data-shell-topbar] [data-shell-brand]");
+    if (width < 320) {
+      await expect(brand).toBeHidden();
+      expect(
+        await page.evaluate(
+          () => document.documentElement.scrollWidth <= window.innerWidth,
+        ),
+      ).toBe(true);
+      continue;
+    }
+
     await expect(brand).toBeVisible();
     await expect(brand).toHaveAttribute("aria-label", "Life@USTC");
     await expect(brand).toHaveAttribute("title", "Life@USTC");

@@ -40,7 +40,7 @@ export let signedIn = false;
 
     <a
       aria-label="Life@USTC"
-      class="inline-flex size-11 shrink-0 items-center justify-center gap-2 rounded-md font-semibold leading-none transition-opacity hover:opacity-75 md:hidden sm:w-auto sm:px-2"
+      class="hidden size-11 shrink-0 items-center justify-center gap-2 rounded-md font-semibold leading-none transition-opacity hover:opacity-75 min-[320px]:inline-flex md:hidden sm:w-auto sm:px-2"
       data-shell-brand
       href="/"
       title="Life@USTC"
