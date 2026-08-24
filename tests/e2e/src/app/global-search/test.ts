@@ -17,7 +17,8 @@ test("global search shortcut returns catalog results", async ({ page }) => {
       response.ok(),
   );
 
-  const input = dialog.locator("input").first();
+  const input = dialog.getByRole("combobox", { name: /搜索|Search/i });
+  await expect(input).toBeVisible();
   await input.pressSequentially("math", { delay: 40 });
   await searchResponse;
 
@@ -43,7 +44,8 @@ test("global search returns Chinese catalog matches", async ({ page }) => {
       response.ok(),
   );
 
-  const input = dialog.locator("input").first();
+  const input = dialog.getByRole("combobox", { name: /搜索|Search/i });
+  await expect(input).toBeVisible();
   await input.fill("线性代数");
   await searchResponse;
 
@@ -62,6 +64,9 @@ test("global search still works after interrupted IME composition", async ({
   await page.keyboard.press("Control+k");
   const dialog = page.locator('[data-slot="dialog-content"]');
   const input = dialog.locator("input").first();
+  await expect(
+    dialog.getByRole("combobox", { name: /搜索|Search/i }),
+  ).toBeVisible();
 
   await input.evaluate((element) => {
     element.dispatchEvent(
@@ -103,7 +108,8 @@ test("global search trigger opens dialog and navigates to a result", async ({
   const dialog = page.locator('[data-slot="dialog-content"]');
   await expect(dialog).toBeVisible();
 
-  const input = dialog.locator("input").first();
+  const input = dialog.getByRole("combobox", { name: /搜索|Search/i });
+  await expect(input).toBeVisible();
   await input.fill("MATH2001");
 
   await expect(
@@ -135,7 +141,9 @@ test("signed-in global search returns catalog results", async ({ page }) => {
   await page.keyboard.press("Control+k");
   const dialog = page.locator('[data-slot="dialog-content"]');
   await expect(dialog).toBeVisible();
-  await dialog.locator("input").first().fill("线性代数");
+  const input = dialog.getByRole("combobox", { name: /搜索|Search/i });
+  await expect(input).toBeVisible();
+  await input.fill("线性代数");
   const response = await searchResponse;
   expect(response.headers()["cache-control"]).toBe("private, no-store");
 

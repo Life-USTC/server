@@ -1,7 +1,10 @@
 <script lang="ts">
 import ArrowRightIcon from "@lucide/svelte/icons/arrow-right";
 import BotIcon from "@lucide/svelte/icons/bot";
+import QrCodeIcon from "@lucide/svelte/icons/qr-code";
 import TerminalIcon from "@lucide/svelte/icons/terminal";
+import { Button } from "$lib/components/ui/button/index.js";
+import * as Popover from "$lib/components/ui/popover/index.js";
 
 type GuideKind = "bot" | "cli";
 
@@ -149,32 +152,47 @@ $: iconTone =
         </div>
 
         <div class="flex flex-wrap items-center gap-3">
-          <div class="group relative inline-flex">
-            <a
-              class="inline-flex h-10 items-center gap-2 rounded-md bg-primary px-4 font-medium text-primary-foreground text-sm no-underline shadow-sm transition hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              href={primaryHref}
-              rel="noreferrer"
-              target="_blank"
-            >
-              {data.copy.primaryAction}
-              <ArrowRightIcon class="size-4" />
-            </a>
-            {#if primaryQrSrc}
-              <div
-                class="pointer-events-none absolute top-full left-0 z-20 hidden pt-3 [@media(hover:hover)]:group-hover:block"
-                role="tooltip"
+          <a
+            class="inline-flex h-10 items-center gap-2 rounded-md bg-primary px-4 font-medium text-primary-foreground text-sm no-underline shadow-sm transition hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            href={primaryHref}
+            rel="noreferrer"
+            target="_blank"
+          >
+            {data.copy.primaryAction}
+            <ArrowRightIcon class="size-4" />
+          </a>
+          {#if primaryQrSrc}
+            <Popover.Root>
+              <Popover.Trigger>
+                {#snippet child({ props })}
+                  <Button
+                    {...props}
+                    aria-label={data.copy.primaryQrAlt}
+                    size="icon-sm"
+                    type="button"
+                    variant="outline"
+                  >
+                    <QrCodeIcon aria-hidden="true" class="size-4" />
+                  </Button>
+                {/snippet}
+              </Popover.Trigger>
+              <Popover.Content
+                align="start"
+                class="w-auto max-w-[calc(100vw-2rem)] overflow-hidden p-2"
+                sideOffset={8}
               >
-                <div class="rounded-xl border border-border bg-white p-2 shadow-xl">
-                  <img
-                    alt={data.copy.primaryQrAlt}
-                    class="size-40 max-w-none"
-                    decoding="async"
-                    src={primaryQrSrc}
-                  />
-                </div>
-              </div>
-            {/if}
-          </div>
+                <Popover.Title class="sr-only">
+                  {data.copy.primaryQrAlt}
+                </Popover.Title>
+                <img
+                  alt={data.copy.primaryQrAlt}
+                  class="size-40 max-w-full"
+                  decoding="async"
+                  src={primaryQrSrc}
+                />
+              </Popover.Content>
+            </Popover.Root>
+          {/if}
         </div>
       </div>
 

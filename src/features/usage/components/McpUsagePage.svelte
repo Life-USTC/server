@@ -5,6 +5,8 @@ import CopyIcon from "@lucide/svelte/icons/copy";
 import DownloadIcon from "@lucide/svelte/icons/download";
 import ExternalLinkIcon from "@lucide/svelte/icons/external-link";
 import { writeClipboardText } from "$lib/browser/clipboard";
+import { Badge } from "$lib/components/ui/badge/index.js";
+import * as Tabs from "$lib/components/ui/tabs/index.js";
 
 type ClientCopy = {
   emptyAlt: string;
@@ -78,6 +80,12 @@ async function copyValue(key: string, value: string) {
 
 function copyEndpoint() {
   return copyValue("endpoint", MCP_ENDPOINT);
+}
+
+function selectClient(value: string) {
+  if (value === "chatgpt" || value === "claude" || value === "other") {
+    activeClient = value;
+  }
 }
 </script>
 
@@ -222,53 +230,46 @@ function copyEndpoint() {
       {data.copy.configurationTitle}
     </h2>
 
-    <div
-      aria-label={data.copy.configurationTitle}
-      class="grid grid-cols-3 gap-1 rounded-xl bg-muted p-1"
+    <Tabs.Root
+      value={activeClient}
+      onValueChange={selectClient}
+      class="gap-0"
     >
-      <button
-        aria-pressed={activeClient === "chatgpt"}
-        class:bg-background={activeClient === "chatgpt"}
-        class:shadow-sm={activeClient === "chatgpt"}
-        class="flex min-w-0 items-center justify-center gap-2 rounded-lg px-2 py-2.5 font-medium text-sm transition hover:bg-background/70 sm:px-4"
-        type="button"
-        onclick={() => (activeClient = "chatgpt")}
+      <Tabs.List
+        aria-label={data.copy.configurationTitle}
+        class="grid w-full grid-cols-3 gap-1 rounded-xl bg-muted p-1"
       >
-        <span class="truncate">{data.copy.clientTabs.chatgpt}</span>
-        <span class="hidden rounded-full bg-muted px-2 py-0.5 text-muted-foreground text-xs sm:inline">
-          {data.copy.clientTabs.webLabel}
-        </span>
-      </button>
-      <button
-        aria-pressed={activeClient === "claude"}
-        class:bg-background={activeClient === "claude"}
-        class:shadow-sm={activeClient === "claude"}
-        class="flex min-w-0 items-center justify-center gap-2 rounded-lg px-2 py-2.5 font-medium text-sm transition hover:bg-background/70 sm:px-4"
-        type="button"
-        onclick={() => (activeClient = "claude")}
-      >
-        <span class="truncate">{data.copy.clientTabs.claude}</span>
-        <span class="hidden rounded-full bg-muted px-2 py-0.5 text-muted-foreground text-xs sm:inline">
-          {data.copy.clientTabs.webLabel}
-        </span>
-      </button>
-      <button
-        aria-pressed={activeClient === "other"}
-        class:bg-background={activeClient === "other"}
-        class:shadow-sm={activeClient === "other"}
-        class="flex min-w-0 items-center justify-center gap-2 rounded-lg px-2 py-2.5 font-medium text-sm transition hover:bg-background/70 sm:px-4"
-        type="button"
-        onclick={() => (activeClient = "other")}
-      >
-        <span class="truncate">{data.copy.clientTabs.other}</span>
-        <span class="hidden rounded-full bg-muted px-2 py-0.5 text-muted-foreground text-xs sm:inline">
-          {data.copy.clientTabs.localLabel}
-        </span>
-      </button>
-    </div>
+        <Tabs.Trigger
+          class="flex min-w-0 items-center justify-center gap-2 rounded-lg px-2 py-2.5 font-medium text-sm transition hover:bg-background/70 sm:px-4"
+          value="chatgpt"
+        >
+          <span class="truncate">{data.copy.clientTabs.chatgpt}</span>
+          <Badge class="hidden sm:inline-flex" variant="secondary">
+            {data.copy.clientTabs.webLabel}
+          </Badge>
+        </Tabs.Trigger>
+        <Tabs.Trigger
+          class="flex min-w-0 items-center justify-center gap-2 rounded-lg px-2 py-2.5 font-medium text-sm transition hover:bg-background/70 sm:px-4"
+          value="claude"
+        >
+          <span class="truncate">{data.copy.clientTabs.claude}</span>
+          <Badge class="hidden sm:inline-flex" variant="secondary">
+            {data.copy.clientTabs.webLabel}
+          </Badge>
+        </Tabs.Trigger>
+        <Tabs.Trigger
+          class="flex min-w-0 items-center justify-center gap-2 rounded-lg px-2 py-2.5 font-medium text-sm transition hover:bg-background/70 sm:px-4"
+          value="other"
+        >
+          <span class="truncate">{data.copy.clientTabs.other}</span>
+          <Badge class="hidden sm:inline-flex" variant="secondary">
+            {data.copy.clientTabs.localLabel}
+          </Badge>
+        </Tabs.Trigger>
+      </Tabs.List>
 
-    {#if activeClient === "chatgpt"}
-      <article class="grid gap-0">
+      <Tabs.Content value="chatgpt" class="m-0">
+        <article class="grid gap-0">
         <div class="grid gap-10 py-10 lg:grid-cols-3 lg:items-start lg:gap-8 lg:py-14">
           <section class="grid min-w-0 gap-6 lg:content-start">
             <div class="grid gap-3">
@@ -313,9 +314,11 @@ function copyEndpoint() {
             </a>
           </section>
         </div>
-      </article>
-    {:else if activeClient === "claude"}
-      <article class="grid gap-0">
+        </article>
+      </Tabs.Content>
+
+      <Tabs.Content value="claude" class="m-0">
+        <article class="grid gap-0">
         <div class="grid gap-10 py-10 lg:grid-cols-3 lg:items-start lg:gap-8 lg:py-14">
           <section class="grid min-w-0 gap-6 lg:content-start">
             <div class="grid gap-3">
@@ -354,9 +357,11 @@ function copyEndpoint() {
             </a>
           </section>
         </div>
-      </article>
-    {:else}
-      <article class="grid gap-7 py-10 lg:grid-cols-[minmax(18rem,0.65fr)_minmax(0,1.35fr)] lg:items-start lg:gap-12 lg:py-14">
+        </article>
+      </Tabs.Content>
+
+      <Tabs.Content value="other" class="m-0">
+        <article class="grid gap-7 py-10 lg:grid-cols-[minmax(18rem,0.65fr)_minmax(0,1.35fr)] lg:items-start lg:gap-12 lg:py-14">
         <div class="grid gap-3">
           <h3 class="font-semibold text-xl">{data.copy.otherClients.title}</h3>
           <p class="text-muted-foreground text-sm leading-6">
@@ -370,7 +375,8 @@ function copyEndpoint() {
             {@render copyField("other-endpoint", data.copy.endpointLabel, MCP_ENDPOINT)}
           </div>
         </div>
-      </article>
-    {/if}
+        </article>
+      </Tabs.Content>
+    </Tabs.Root>
   </div>
 </section>

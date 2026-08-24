@@ -34,8 +34,19 @@ test("usage pages expose their primary handoff", async ({ page }, testInfo) => {
     name: /Presto QQ (?:二维码|QR code)/i,
   });
   await expect(prestoQrCode).toBeHidden();
-  await page.getByRole("link", { name: /联系 Presto|Message Presto/i }).hover();
+  const qrTrigger = page.getByRole("button", {
+    name: /Presto QQ (?:二维码|QR code)/i,
+  });
+  await expect(qrTrigger).toBeVisible();
+  await qrTrigger.focus();
+  await qrTrigger.press("Enter");
   await expect(prestoQrCode).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(prestoQrCode).toBeHidden();
+  await qrTrigger.press("Space");
+  await expect(prestoQrCode).toBeVisible();
+  await page.getByRole("heading", { name: /Presto/i, level: 1 }).click();
+  await expect(prestoQrCode).toBeHidden();
   await expect(
     page.getByRole("link", { name: /Bot 源码|Bot source/i }),
   ).toHaveCount(0);
@@ -119,7 +130,19 @@ test("usage pages expose their primary handoff", async ({ page }, testInfo) => {
     page.getByText(/完成 Life@USTC 授权|Authorize with Life@USTC/i),
   ).toBeVisible();
 
-  await page.getByRole("button", { name: /Claude\.ai/i }).click();
+  const clientTabs = page.getByRole("tab");
+  await expect(clientTabs).toHaveCount(3);
+  await expect(clientTabs.nth(0)).toHaveAttribute("aria-selected", "true");
+  await clientTabs.nth(0).focus();
+  await clientTabs.nth(0).press("ArrowRight");
+  await expect(clientTabs.nth(1)).toHaveAttribute("aria-selected", "true");
+  await expect(
+    page.getByRole("tabpanel").filter({
+      has: page.locator('img[src="/images/usage/mcp-claude-filled.png"]'),
+    }),
+  ).toBeVisible();
+
+  await page.getByRole("tab", { name: /Claude\.ai/i }).click();
   await expect(
     page.locator('img[src="/images/usage/mcp-claude-filled.png"]').last(),
   ).toBeVisible();
@@ -129,25 +152,25 @@ test("usage pages expose their primary handoff", async ({ page }, testInfo) => {
   await claudeUrlValue.click();
   await expect(claudeUrlValue).toContainText(/已复制|Copied/i);
 
-  await page.getByRole("button", { name: /其他客户端|Other agents/i }).click();
+  await page.getByRole("tab", { name: /其他客户端|Other agents/i }).click();
+  const otherClientsPanel = page.getByRole("tabpanel");
+  await expect(otherClientsPanel).toHaveCount(1);
   await expect(
-    page
-      .getByText("https://life-ustc.tiankaima.dev/api/mcp", {
-        exact: false,
-      })
-      .first(),
+    otherClientsPanel.getByRole("button", {
+      name: /(?:远程 MCP URL|Remote MCP URL).*https:\/\/life-ustc\.tiankaima\.dev\/api\/mcp/i,
+    }),
   ).toBeVisible();
   await expect(
-    page.getByRole("heading", { name: /Codex.*Claude Code/i }),
+    otherClientsPanel.getByRole("heading", { name: /Codex.*Claude Code/i }),
   ).toBeVisible();
   await expect(
-    page.getByText(
+    otherClientsPanel.getByText(
       "codex mcp add life-ustc --url https://life-ustc.tiankaima.dev/api/mcp",
       { exact: false },
     ),
   ).toBeVisible();
   await expect(
-    page.getByText(
+    otherClientsPanel.getByText(
       "claude mcp add --scope user --transport http life-ustc https://life-ustc.tiankaima.dev/api/mcp",
       { exact: true },
     ),
