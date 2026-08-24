@@ -28,7 +28,6 @@ export let toShanghaiDateTimeLocalValue: (value: Date) => string;
       disabled={isCreatingHomework}
       defaultTime="00:00"
       name="publishedAt"
-      placeholder={homeworksCopy.publishedAt}
     />
     <ButtonGroup.Root class="ml-auto max-w-full flex-wrap justify-end">
       <Button
@@ -64,7 +63,6 @@ export let toShanghaiDateTimeLocalValue: (value: Date) => string;
       disabled={isCreatingHomework}
       defaultTime="00:00"
       name="submissionStartAt"
-      placeholder={homeworksCopy.submissionStart}
     />
     <ButtonGroup.Root class="ml-auto max-w-full flex-wrap justify-end">
       <Button disabled={isCreatingHomework} type="button" variant="outline" onclick={applyHomeworkStartNow}>

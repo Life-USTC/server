@@ -46,7 +46,7 @@ export let toShanghaiDateTimeLocalValue: (value: Date) => string;
     }}
   >
     <Dialog.Content
-      class="flex h-[calc(100dvh-1rem)] max-h-[calc(100dvh-1rem)] min-h-0 max-w-lg flex-col gap-0 overflow-clip p-0 sm:h-[min(64vh,36rem)] sm:max-h-[min(64vh,36rem)] sm:max-w-lg"
+      class="flex h-[calc(100dvh-2rem)] max-h-[calc(100dvh-2rem)] min-h-0 max-w-lg flex-col gap-0 overflow-clip p-0 sm:h-[min(64vh,36rem)] sm:max-h-[min(64vh,36rem)] sm:max-w-lg"
     >
       <form
         class="flex min-h-0 flex-1 flex-col overflow-hidden"
@@ -55,7 +55,7 @@ export let toShanghaiDateTimeLocalValue: (value: Date) => string;
         use:enhance={createHomeworkAction}
       >
         <Dialog.Header class="shrink-0 px-5 pb-2 pt-4">
-          <Dialog.Title>{homeworksCopy.createTitle}</Dialog.Title>
+          <Dialog.Title class="break-words">{homeworksCopy.createTitle}</Dialog.Title>
           <Dialog.Description>{homeworksCopy.subtitle}</Dialog.Description>
         </Dialog.Header>
         <ScrollArea class="h-0 min-h-0 flex-1">

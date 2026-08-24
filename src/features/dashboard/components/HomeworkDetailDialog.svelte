@@ -42,18 +42,18 @@ export let toggleHomeworkCompletion: DashboardHomeworkCompletionToggle;
     }}
   >
     <Dialog.Content
-      class="max-w-5xl sm:max-w-5xl"
+      class="flex h-[calc(100dvh-2rem)] max-h-[calc(100dvh-2rem)] min-h-0 max-w-5xl flex-col gap-0 overflow-clip p-0 sm:h-[min(76vh,52rem)] sm:max-h-[min(76vh,52rem)] sm:max-w-5xl"
     >
       {@const selectedCourseLabel = homeworkCourseLabel(homework)}
       {@const SelectedCompletionIcon = homework.completion ? RefreshCw : CheckCircleIcon}
-      <Dialog.Header>
-        <Dialog.Title>{homework.title}</Dialog.Title>
+      <Dialog.Header class="shrink-0 px-5 pb-2 pt-4">
+        <Dialog.Title class="break-words">{homework.title}</Dialog.Title>
         <Dialog.Description>
           {selectedCourseLabel} · {homeworkCopy.due}:
           {fmtDate(homework.submissionDueAt)}
         </Dialog.Description>
       </Dialog.Header>
-      <ScrollArea class="h-[min(70vh,44rem)]">
+      <ScrollArea class="h-0 min-h-0 flex-1">
         <div class="grid gap-5 px-5 py-4 lg:grid-cols-[minmax(0,1fr)_minmax(20rem,24rem)]">
           <div class="grid min-w-0 gap-4">
             <HomeworkDetailDescription
@@ -68,18 +68,6 @@ export let toggleHomeworkCompletion: DashboardHomeworkCompletionToggle;
               {homeworksCopy}
               {homeworkStatus}
             />
-
-            <HomeworkDetailActions
-              {SelectedCompletionIcon}
-              {homework}
-              {homeworkCompletionActionLabel}
-              {homeworkDetailHref}
-              {homeworkSavingById}
-              {homeworkSectionHref}
-              {homeworksCopy}
-              {selectedCourseLabel}
-              {toggleHomeworkCompletion}
-            />
           </div>
           <HomeworkDetailCommentsAside
             {CommentsPanel}
@@ -88,6 +76,19 @@ export let toggleHomeworkCompletion: DashboardHomeworkCompletionToggle;
           />
         </div>
       </ScrollArea>
+      <Dialog.Footer class="mx-0 mb-0 shrink-0 p-4">
+        <HomeworkDetailActions
+          {SelectedCompletionIcon}
+          {homework}
+          {homeworkCompletionActionLabel}
+          {homeworkDetailHref}
+          {homeworkSavingById}
+          {homeworkSectionHref}
+          {homeworksCopy}
+          {selectedCourseLabel}
+          {toggleHomeworkCompletion}
+        />
+      </Dialog.Footer>
     </Dialog.Content>
   </Dialog.Root>
 {/if}

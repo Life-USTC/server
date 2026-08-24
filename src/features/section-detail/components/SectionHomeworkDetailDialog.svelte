@@ -1,7 +1,6 @@
 <script lang="ts">
 import type { Component } from "svelte";
 import { commentTargetPermalinkBaseHref } from "@/features/comments/lib/comment-panel-controller";
-import { Button } from "$lib/components/ui/button/index.js";
 import * as Dialog from "$lib/components/ui/dialog/index.js";
 import { ScrollArea } from "$lib/components/ui/scroll-area/index.js";
 import { Separator } from "$lib/components/ui/separator/index.js";
@@ -70,24 +69,17 @@ export let sectionJwId: number | string;
     }}
   >
     <Dialog.Content
-      class="max-w-5xl sm:max-w-5xl"
+      class="flex h-[calc(100dvh-2rem)] max-h-[calc(100dvh-2rem)] min-h-0 max-w-5xl flex-col gap-0 overflow-clip p-0 sm:h-[min(76vh,52rem)] sm:max-h-[min(76vh,52rem)] sm:max-w-5xl"
     >
-      <Dialog.Header>
-        <div class="flex items-start justify-between gap-3">
-          <div class="min-w-0">
-            <Dialog.Title>{_selectedHomework.title}</Dialog.Title>
-            <Dialog.Description>
-              {_sectionCopy.due} {_fmtDateTime(_selectedHomework.submissionDueAt)} · {_homeworkStatus(_selectedHomework)}
-            </Dialog.Description>
-          </div>
-          <Button type="button" variant="ghost" onclick={close}>
-            {_sectionCopy.close}
-          </Button>
-        </div>
+      <Dialog.Header class="shrink-0 px-5 pb-2 pt-4">
+        <Dialog.Title class="break-words">{_selectedHomework.title}</Dialog.Title>
+        <Dialog.Description>
+          {_sectionCopy.due} {_fmtDateTime(_selectedHomework.submissionDueAt)} · {_homeworkStatus(_selectedHomework)}
+        </Dialog.Description>
       </Dialog.Header>
 
-      <ScrollArea class="h-[min(70vh,44rem)]">
-        <div class="grid gap-5 px-5 py-4 lg:grid-cols-[minmax(0,1fr)_auto_minmax(22rem,26rem)]">
+      <ScrollArea class="h-0 min-h-0 flex-1">
+        <div class="grid min-w-0 gap-5 px-5 py-4 lg:grid-cols-[minmax(0,1fr)_auto_minmax(22rem,26rem)]">
           <section class="grid gap-4">
             {#if _editingHomework}
               <SectionHomeworkEditForm
@@ -115,19 +107,6 @@ export let sectionJwId: number | string;
                 homeworkCopy={_homeworkCopy}
               />
             {/if}
-
-            <SectionHomeworkActionBar
-              canManage={_canManageSelectedHomework}
-              canWrite={_canWriteHomework}
-              cancelEdit={_cancelEditHomework}
-              editing={_editingHomework}
-              homework={_selectedHomework}
-              homeworkCopy={_homeworkCopy}
-              sectionCopy={_sectionCopy}
-              setDeleteHomeworkTarget={_setDeleteHomeworkTarget}
-              startEdit={_startEditHomework}
-              toggleHomeworkCompletion={_toggleHomeworkCompletion}
-            />
 
             <SectionHomeworkAuditTrail
               commonCopy={_commonCopy}
@@ -157,6 +136,22 @@ export let sectionJwId: number | string;
           </section>
         </div>
       </ScrollArea>
+      {#if _canWriteHomework || _canManageSelectedHomework}
+        <Dialog.Footer class="mx-0 mb-0 shrink-0 p-4">
+          <SectionHomeworkActionBar
+            canManage={_canManageSelectedHomework}
+            canWrite={_canWriteHomework}
+            cancelEdit={_cancelEditHomework}
+            editing={_editingHomework}
+            homework={_selectedHomework}
+            homeworkCopy={_homeworkCopy}
+            sectionCopy={_sectionCopy}
+            setDeleteHomeworkTarget={_setDeleteHomeworkTarget}
+            startEdit={_startEditHomework}
+            toggleHomeworkCompletion={_toggleHomeworkCompletion}
+          />
+        </Dialog.Footer>
+      {/if}
     </Dialog.Content>
   </Dialog.Root>
 {/if}
