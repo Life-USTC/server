@@ -161,6 +161,26 @@ test.describe("仪表盘作业", () => {
       .getByRole("dialog", { name: /新建作业|New Homework/i })
       .first();
     await expect(createDialog).toBeVisible();
+    const viewportHeight = page.viewportSize()?.height ?? 568;
+    const dialogBox = await createDialog.boundingBox();
+    const footer = createDialog.locator('[data-slot="dialog-footer"]');
+    const closeButton = createDialog.getByRole("button", { name: "Close" });
+    const [footerBox, closeBox] = await Promise.all([
+      footer.boundingBox(),
+      closeButton.boundingBox(),
+    ]);
+    expect(dialogBox).not.toBeNull();
+    expect(footerBox).not.toBeNull();
+    expect(closeBox).not.toBeNull();
+    if (!dialogBox || !footerBox || !closeBox) {
+      throw new Error("Expected the mobile homework dialog bounds");
+    }
+    expect(dialogBox.y).toBeGreaterThanOrEqual(0);
+    expect(dialogBox.y + dialogBox.height).toBeLessThanOrEqual(viewportHeight);
+    expect(footerBox.y + footerBox.height).toBeLessThanOrEqual(viewportHeight);
+    expect(await createDialog.evaluate((element) => element.scrollTop)).toBe(0);
+    await expect(footer).toBeInViewport();
+    await expect(closeButton).toBeInViewport();
     const submit = createDialog.getByTestId("dashboard-homework-create");
     await expect(submit).toBeInViewport();
     const dueDateShortcuts = createDialog.getByRole("button", {
@@ -180,10 +200,28 @@ test.describe("仪表盘作业", () => {
       scrollHeight: element.scrollHeight,
     }));
     expect(metrics.clientHeight).toBeGreaterThan(0);
-    expect(metrics.scrollHeight).toBeGreaterThan(metrics.clientHeight);
-    await scrollViewport.evaluate((element) => {
-      element.scrollTop = element.scrollHeight;
-    });
+    const scrollBox = await scrollViewport.boundingBox();
+    expect(scrollBox).not.toBeNull();
+    if (!scrollBox) {
+      throw new Error("Expected the homework form scroll area bounds");
+    }
+    expect(scrollBox.y + scrollBox.height).toBeLessThanOrEqual(footerBox.y + 1);
+    if (metrics.scrollHeight > metrics.clientHeight) {
+      const scrollTopBefore = await scrollViewport.evaluate(
+        (element) => element.scrollTop,
+      );
+      await scrollViewport.evaluate((element) => {
+        element.scrollTop = element.scrollHeight;
+      });
+      const scrollTopAfter = await scrollViewport.evaluate(
+        (element) => element.scrollTop,
+      );
+      const maxScrollTop = metrics.scrollHeight - metrics.clientHeight;
+      if (scrollTopBefore < maxScrollTop - 1) {
+        expect(scrollTopAfter).toBeGreaterThan(scrollTopBefore);
+      }
+      expect(scrollTopAfter).toBeGreaterThanOrEqual(maxScrollTop - 1);
+    }
     await expect(submit).toBeInViewport();
   });
 

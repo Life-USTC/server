@@ -46,10 +46,10 @@ export let toShanghaiDateTimeLocalValue: (value: Date) => string;
     }}
   >
     <Dialog.Content
-      class="flex max-h-[calc(100dvh-1rem)] min-h-0 max-w-lg flex-col gap-0 overflow-hidden p-0 sm:max-w-lg"
+      class="flex h-[calc(100dvh-1rem)] max-h-[calc(100dvh-1rem)] min-h-0 max-w-lg flex-col gap-0 overflow-clip p-0 sm:h-[min(64vh,36rem)] sm:max-h-[min(64vh,36rem)] sm:max-w-lg"
     >
       <form
-        class="flex min-h-0 flex-1 flex-col"
+        class="flex min-h-0 flex-1 flex-col overflow-hidden"
         method="POST"
         action="?/createHomework"
         use:enhance={createHomeworkAction}

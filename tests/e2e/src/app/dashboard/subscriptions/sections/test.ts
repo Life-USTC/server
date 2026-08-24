@@ -518,6 +518,30 @@ test.describe("仪表盘教学班订阅", () => {
     await expect(
       quickAddDialog.getByText(DEV_SEED.section.code).first(),
     ).toBeVisible();
+    const viewportHeight = page.viewportSize()?.height ?? 600;
+    const dialogBox = await quickAddDialog.boundingBox();
+    const footer = quickAddDialog.locator('[data-slot="dialog-footer"]');
+    const closeButton = quickAddDialog.getByRole("button", {
+      name: "Close",
+    });
+    const [footerBox, closeBox] = await Promise.all([
+      footer.boundingBox(),
+      closeButton.boundingBox(),
+    ]);
+    expect(dialogBox).not.toBeNull();
+    expect(footerBox).not.toBeNull();
+    expect(closeBox).not.toBeNull();
+    if (!dialogBox || !footerBox || !closeBox) {
+      throw new Error("Expected the mobile quick-add dialog bounds");
+    }
+    expect(dialogBox.y).toBeGreaterThanOrEqual(0);
+    expect(dialogBox.y + dialogBox.height).toBeLessThanOrEqual(viewportHeight);
+    expect(footerBox.y + footerBox.height).toBeLessThanOrEqual(viewportHeight);
+    expect(await quickAddDialog.evaluate((element) => element.scrollTop)).toBe(
+      0,
+    );
+    await expect(footer).toBeInViewport();
+    await expect(closeButton).toBeInViewport();
     const subscribeButton = quickAddDialog.getByRole("button", {
       name: /订阅所选|Subscribe selected/i,
     });
@@ -530,12 +554,29 @@ test.describe("仪表盘教学班订阅", () => {
       scrollHeight: element.scrollHeight,
     }));
     expect(resultMetrics.clientHeight).toBeGreaterThan(0);
-    expect(resultMetrics.scrollHeight).toBeGreaterThan(
-      resultMetrics.clientHeight,
-    );
-    await resultViewport.evaluate((element) => {
-      element.scrollTop = element.scrollHeight;
-    });
+    const resultBox = await resultViewport.boundingBox();
+    expect(resultBox).not.toBeNull();
+    if (!resultBox) {
+      throw new Error("Expected the quick-add results scroll area bounds");
+    }
+    expect(resultBox.y + resultBox.height).toBeLessThanOrEqual(footerBox.y + 1);
+    if (resultMetrics.scrollHeight > resultMetrics.clientHeight) {
+      const scrollTopBefore = await resultViewport.evaluate(
+        (element) => element.scrollTop,
+      );
+      await resultViewport.evaluate((element) => {
+        element.scrollTop = element.scrollHeight;
+      });
+      const scrollTopAfter = await resultViewport.evaluate(
+        (element) => element.scrollTop,
+      );
+      const maxScrollTop =
+        resultMetrics.scrollHeight - resultMetrics.clientHeight;
+      if (scrollTopBefore < maxScrollTop - 1) {
+        expect(scrollTopAfter).toBeGreaterThan(scrollTopBefore);
+      }
+      expect(scrollTopAfter).toBeGreaterThanOrEqual(maxScrollTop - 1);
+    }
     await expect(subscribeButton).toBeInViewport();
     const separator = quickAddDialog.locator(
       '[data-slot="separator"][data-orientation="horizontal"]',
