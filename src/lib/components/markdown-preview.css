@@ -21,6 +21,11 @@
   padding-left: 1.25rem;
 }
 
+.markdown-preview :where(li, li > p) {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
 .markdown-preview ul {
   list-style: disc;
 }

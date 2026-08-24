@@ -11,8 +11,8 @@ export let content: {
 
 <svelte:head><title>{content.title} - Life@USTC</title></svelte:head>
 
-<Card.Root class="mx-auto w-full max-w-3xl">
-  <Card.Content class="px-6 md:px-8">
+<Card.Root class="mx-auto min-w-0 w-full max-w-3xl">
+  <Card.Content class="min-w-0 px-4 sm:px-6 md:px-8">
     <RenderedMarkdown class="legal-document" html={content.renderedHtml} />
   </Card.Content>
 </Card.Root>
