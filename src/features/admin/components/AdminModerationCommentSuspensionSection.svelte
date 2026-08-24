@@ -41,7 +41,7 @@ export let suspensionReason: string;
     </Field.Field>
     {#if suspensionDuration === "custom"}
       <Field.Field>
-        <Field.Label id="moderation-suspension-custom-expires-label" class="sr-only">
+        <Field.Label id="moderation-suspension-custom-expires-label">
           {copy.suspendExpires}
         </Field.Label>
         <DateTimePicker
@@ -52,7 +52,7 @@ export let suspensionReason: string;
       </Field.Field>
     {/if}
     <Field.Field class="md:col-span-2">
-      <Field.Label class="sr-only" for="moderation-suspension-reason">{copy.suspendReason}</Field.Label>
+      <Field.Label for="moderation-suspension-reason">{copy.suspendReason}</Field.Label>
       <Input
         id="moderation-suspension-reason"
         value={suspensionReason}
