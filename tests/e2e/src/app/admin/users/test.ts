@@ -132,7 +132,7 @@ test("/admin/users 移动端工作区可搜索并管理首条记录", async ({
 
   const record = page
     .getByTestId("admin-users-mobile-list")
-    .getByRole("listitem")
+    .locator('[data-slot="item"]')
     .filter({ hasText: DEV_SEED.debugUsername })
     .first();
   await expect(record).toBeVisible();

@@ -174,11 +174,11 @@ function displayValue(value: unknown) {
           </Empty.Header>
         </Empty.Root>
       {:else}
-        <Item.Group class="gap-0 border-y py-1 xl:hidden" role="list">
+        <Item.Group class="gap-0 border-y py-1 xl:hidden">
           {#each data.rows as row, index (row.id)}
             {@const actor = identity(row.user)}
             {@const subject = identity(row.subjectUser)}
-            <Item.Root role="listitem" variant="default" class="grid gap-3 px-1 py-3">
+            <Item.Root variant="default" class="grid gap-3 px-1 py-3">
               <Item.Content class="min-w-0">
                 <Item.Title>{auditActionLabel(data.locale, row.action)}</Item.Title>
                 <Item.Description>{formatDate.format(new Date(row.createdAt))}</Item.Description>

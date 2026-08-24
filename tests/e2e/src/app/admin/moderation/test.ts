@@ -151,7 +151,7 @@ test("/admin/moderation 移动端工作区可管理首条筛选结果", async ({
     .fill(keyword);
   const record = page
     .getByTestId("admin-moderation-mobile-list")
-    .getByRole("listitem")
+    .locator('[data-slot="item"]')
     .filter({ hasText: keyword })
     .first();
   await expect(record).toBeVisible();
@@ -208,7 +208,7 @@ test("/admin/moderation 移动端弹窗滚动体不遮挡封禁控件", async ({
 
     const record = page
       .getByTestId("admin-moderation-mobile-list")
-      .getByRole("listitem")
+      .locator('[data-slot="item"]')
       .filter({ hasText: keyword })
       .first();
     await expect(record).toBeVisible();
