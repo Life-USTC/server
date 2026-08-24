@@ -153,24 +153,24 @@ test("usage pages expose their primary handoff", async ({ page }, testInfo) => {
   await expect(claudeUrlValue).toContainText(/已复制|Copied/i);
 
   await page.getByRole("tab", { name: /其他客户端|Other agents/i }).click();
+  const otherClientsPanel = page.getByRole("tabpanel");
+  await expect(otherClientsPanel).toHaveCount(1);
   await expect(
-    page
-      .getByText("https://life-ustc.tiankaima.dev/api/mcp", {
-        exact: false,
-      })
-      .first(),
+    otherClientsPanel.getByText("https://life-ustc.tiankaima.dev/api/mcp", {
+      exact: false,
+    }),
   ).toBeVisible();
   await expect(
-    page.getByRole("heading", { name: /Codex.*Claude Code/i }),
+    otherClientsPanel.getByRole("heading", { name: /Codex.*Claude Code/i }),
   ).toBeVisible();
   await expect(
-    page.getByText(
+    otherClientsPanel.getByText(
       "codex mcp add life-ustc --url https://life-ustc.tiankaima.dev/api/mcp",
       { exact: false },
     ),
   ).toBeVisible();
   await expect(
-    page.getByText(
+    otherClientsPanel.getByText(
       "claude mcp add --scope user --transport http life-ustc https://life-ustc.tiankaima.dev/api/mcp",
       { exact: true },
     ),
