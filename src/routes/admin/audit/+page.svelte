@@ -1,4 +1,5 @@
 <script lang="ts">
+import ChevronRightIcon from "@lucide/svelte/icons/chevron-right";
 import AdminWorkspace from "@/features/admin/components/AdminWorkspace.svelte";
 import {
   auditActionLabel,
@@ -165,7 +166,7 @@ function displayValue(value: unknown) {
       </div>
     </div>
 
-    <div class="min-w-0 border-y">
+    <div class="min-w-0">
       {#if data.rows.length === 0}
         <Empty.Root class="items-start px-0 text-left">
           <Empty.Header class="items-start text-left">
@@ -173,11 +174,11 @@ function displayValue(value: unknown) {
           </Empty.Header>
         </Empty.Root>
       {:else}
-        <Item.Group class="grid gap-3 py-4 xl:hidden" role="list">
-          {#each data.rows as row (row.id)}
+        <Item.Group class="gap-0 border-y py-1 xl:hidden" role="list">
+          {#each data.rows as row, index (row.id)}
             {@const actor = identity(row.user)}
             {@const subject = identity(row.subjectUser)}
-            <Item.Root role="listitem" variant="outline" class="grid gap-3">
+            <Item.Root role="listitem" variant="default" class="grid gap-3 px-1 py-3">
               <Item.Content class="min-w-0">
                 <Item.Title>{auditActionLabel(data.locale, row.action)}</Item.Title>
                 <Item.Description>{formatDate.format(new Date(row.createdAt))}</Item.Description>
@@ -185,6 +186,7 @@ function displayValue(value: unknown) {
               <Item.Actions class="flex-wrap">
                 <Badge variant={row.outcome === "success" ? "secondary" : "destructive"}>{auditOutcomeLabel(data.locale, row.outcome)}</Badge>
                 <Badge variant="outline">{auditChannelLabel(data.locale, row.channel)}</Badge>
+                <ChevronRightIcon aria-hidden="true" data-icon="inline-end" />
               </Item.Actions>
               <Item.Footer>
                 <div class="grid w-full gap-2 text-xs">
@@ -207,6 +209,7 @@ function displayValue(value: unknown) {
                 </div>
               </Item.Footer>
             </Item.Root>
+            {#if index < data.rows.length - 1}<Item.Separator class="my-0" />{/if}
           {/each}
         </Item.Group>
 

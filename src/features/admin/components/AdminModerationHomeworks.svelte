@@ -5,6 +5,7 @@ import DashboardTableRowActions from "@/features/dashboard/components/DashboardT
 import SoftEmptyMessage from "$lib/components/SoftEmptyMessage.svelte";
 import TruncatedText from "$lib/components/TruncatedText.svelte";
 import { Badge } from "$lib/components/ui/badge/index.js";
+import { Button } from "$lib/components/ui/button/index.js";
 import * as Item from "$lib/components/ui/item/index.js";
 import * as Table from "$lib/components/ui/table/index.js";
 
@@ -44,9 +45,9 @@ export let onDelete: (homework: ModerationHomework) => void;
   {#if homeworks.length === 0}
     <SoftEmptyMessage message={copy.noHomeworks} />
   {:else}
-    <Item.Group class="xl:hidden">
-      {#each homeworks as homework}
-        <Item.Root variant="outline" class="items-start">
+    <Item.Group class="xl:hidden gap-0 border-y" role="list">
+      {#each homeworks as homework, index (homework.id)}
+        <Item.Root class="items-start px-1 py-3" role="listitem">
           <Item.Content class="min-w-0 gap-2">
             <Item.Title class="line-clamp-none">{homework.title}</Item.Title>
             <Item.Description>
@@ -66,16 +67,20 @@ export let onDelete: (homework: ModerationHomework) => void;
               <Badge variant="destructive">{copy.homeworkStatusDeleted}</Badge>
             {:else}
               <Badge>{copy.homeworkStatusActive}</Badge>
-              <DashboardTableIconButton
-                label={copy.deleteHomeworkAction}
-                variant="destructive"
+              <Button
+                aria-label={copy.deleteHomeworkAction}
                 onclick={() => onDelete(homework)}
+                size="sm"
+                type="button"
+                variant="destructive"
               >
-                <Trash2 />
-              </DashboardTableIconButton>
+                <Trash2 data-icon="inline-start" />
+                {copy.deleteHomeworkAction}
+              </Button>
             {/if}
           </Item.Actions>
         </Item.Root>
+        {#if index < homeworks.length - 1}<Item.Separator class="my-0" />{/if}
       {/each}
     </Item.Group>
 

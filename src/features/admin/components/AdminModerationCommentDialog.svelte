@@ -3,6 +3,7 @@ import * as Alert from "$lib/components/ui/alert/index.js";
 import { Button } from "$lib/components/ui/button/index.js";
 import * as Dialog from "$lib/components/ui/dialog/index.js";
 import { ScrollArea } from "$lib/components/ui/scroll-area/index.js";
+import { Separator } from "$lib/components/ui/separator/index.js";
 import { Spinner } from "$lib/components/ui/spinner/index.js";
 import AdminModerationCommentPreview from "./AdminModerationCommentPreview.svelte";
 import AdminModerationCommentStatusSection from "./AdminModerationCommentStatusSection.svelte";
@@ -43,8 +44,9 @@ export let targetLabel: (comment: AdminModerationComment) => string;
     }}
   >
     <Dialog.Content
-      class="max-w-2xl sm:max-w-2xl"
+      class="grid max-h-[calc(100dvh-1rem)] min-h-0 max-w-2xl grid-rows-[auto_minmax(0,1fr)_auto] overflow-hidden sm:max-w-2xl"
       aria-labelledby="manage-comment-title"
+      showCloseButton={false}
     >
       <Dialog.Header>
         <div class="flex items-start justify-between gap-3">
@@ -58,7 +60,7 @@ export let targetLabel: (comment: AdminModerationComment) => string;
         </div>
       </Dialog.Header>
 
-      <ScrollArea class="h-[min(62vh,34rem)]">
+      <ScrollArea class="min-h-0 h-[min(56vh,34rem)] max-h-[calc(100dvh-12rem)]">
         <div class="grid gap-5 px-5 py-4">
           {#if dialogMessage}<Alert.Root class="py-2"><Alert.Description>{dialogMessage}</Alert.Description></Alert.Root>{/if}
 
@@ -67,6 +69,7 @@ export let targetLabel: (comment: AdminModerationComment) => string;
             {copy}
             {targetHref}
           />
+          <Separator />
 
           <AdminModerationCommentStatusSection
             bind:commentStatus

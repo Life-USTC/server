@@ -35,6 +35,7 @@ export let targetLabel: (description: AdminModerationDescription) => string;
       {descriptions}
       {formatDate}
       {formatMessage}
+      manageLabel={copy.manageDescription}
       {onManage}
       {targetLabel}
     />

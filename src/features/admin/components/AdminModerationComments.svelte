@@ -25,6 +25,7 @@ export let targetLabel: AdminModerationCommentFormatter;
       {commentAuthorLabel}
       {comments}
       {formatDate}
+      manageLabel={copy.manageComment}
       {onManage}
       {statusLabel}
       {targetLabel}

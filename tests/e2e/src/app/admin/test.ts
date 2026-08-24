@@ -143,6 +143,41 @@ test("/admin 主导航可跳转到各管理工具", async ({ page }, testInfo) =
   }
 });
 
+test("/admin 移动端导航覆盖全部管理工具且显示当前位置", async ({ page }) => {
+  await page.setViewportSize({ width: 320, height: 568 });
+  await signInAsDevAdmin(page, "/admin/users");
+
+  const paths = [
+    { path: "/admin/users", name: /用户管理|User Management/i },
+    { path: "/admin/moderation", name: /内容审核|Moderation/i },
+    { path: "/admin/oauth", name: /OAuth|OAuth 客户端/i },
+    { path: "/admin/bus", name: /校车管理|Bus Management/i },
+    { path: "/admin/audit", name: /审计日志|Audit Log/i },
+    { path: "/admin/analytics", name: /聚合分析|Aggregate Analytics/i },
+  ] as const;
+
+  const mobileNavigation = page.getByTestId("admin-mobile-navigation");
+  await expect(mobileNavigation).toBeVisible();
+  await expect(page.getByTestId("mobile-primary-navigation")).toHaveCount(0);
+
+  for (const { path, name } of paths) {
+    await gotoAndWaitForReady(page, path);
+    await expect(
+      mobileNavigation.getByTestId("admin-mobile-navigation-current"),
+    ).toContainText(name);
+
+    await mobileNavigation
+      .getByTestId("admin-mobile-navigation-trigger")
+      .click();
+    const panel = page.getByTestId("admin-mobile-navigation-panel");
+    await expect(panel).toBeVisible();
+    await expect(panel.getByRole("link", { name })).toBeVisible();
+    await expect(panel.getByRole("link", { name: /./ })).toHaveCount(6);
+    await panel.getByRole("link", { name }).click();
+    await expect(page).toHaveURL(new RegExp(`${path}(?:\\?.*)?$`));
+  }
+});
+
 test("页面契约", async ({ page }, testInfo) => {
   await assertPageContract(page, { routePath: "/admin", testInfo });
 });

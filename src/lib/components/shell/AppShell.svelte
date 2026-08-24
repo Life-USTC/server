@@ -20,6 +20,7 @@ import SmartphoneIcon from "@lucide/svelte/icons/smartphone";
 import TerminalIcon from "@lucide/svelte/icons/terminal";
 import UsersIcon from "@lucide/svelte/icons/users";
 import { onMount } from "svelte";
+import AdminMobileNav from "@/features/admin/components/AdminMobileNav.svelte";
 import { afterNavigate, goto } from "$app/navigation";
 import { navigating, page } from "$app/stores";
 import { shouldRedirectIncompleteProfileToWelcome } from "$lib/auth/auth-routing";
@@ -121,6 +122,9 @@ $: mobileNavGroups = viewerUser
     )
   : navGroups;
 $: mobilePrimaryLinks = buildMobilePrimaryLinks(data.copy);
+$: adminRoute =
+  $page.url.pathname === "/admin" || $page.url.pathname.startsWith("/admin/");
+$: adminMobileLinks = buildAdminShellLinks(data.copy);
 $: mobileSecondaryHasActive =
   Boolean($page.url.pathname) &&
   mobileNavGroups.some((group) =>
@@ -798,12 +802,20 @@ afterNavigate(({ from, to }) => {
   {/if}
 
   {#if viewerUser}
-    <MobilePrimaryNav
-      copy={data.copy}
-      hasSecondaryCurrent={mobileSecondaryHasActive}
-      isActiveLink={isMobilePrimaryActive}
-      links={mobilePrimaryLinks}
-    />
+    {#if viewerUser.isAdmin && adminRoute}
+      <AdminMobileNav
+        copy={data.copy}
+        isActiveLink={isActiveLink}
+        links={adminMobileLinks}
+      />
+    {:else}
+      <MobilePrimaryNav
+        copy={data.copy}
+        hasSecondaryCurrent={mobileSecondaryHasActive}
+        isActiveLink={isMobilePrimaryActive}
+        links={mobilePrimaryLinks}
+      />
+    {/if}
   {/if}
 </Sidebar.Provider>
 

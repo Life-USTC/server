@@ -84,9 +84,9 @@ function confirmedLiftAction(suspension: ModerationSuspension): SubmitFunction {
   {#if suspensions.length === 0}
     <SoftEmptyMessage message={copy.noSuspensions} />
   {:else}
-    <Item.Group class="xl:hidden">
-      {#each suspensions as suspension}
-        <Item.Root variant="outline" class="items-start">
+    <Item.Group class="xl:hidden gap-0 border-y" role="list">
+      {#each suspensions as suspension, index (suspension.id)}
+        <Item.Root class="items-start px-1 py-3" role="listitem">
           <Item.Content class="min-w-0 gap-2">
             <Item.Title>{userLabel(suspension)}</Item.Title>
             {#if suspension.user.username}
@@ -103,18 +103,23 @@ function confirmedLiftAction(suspension: ModerationSuspension): SubmitFunction {
               <Badge variant="ghost">{copy.lifted}</Badge>
             {:else}
               <Badge variant="destructive">{copy.active}</Badge>
-              <DashboardTableIconButton
+              <Button
                 disabled={Boolean(liftingSuspensionId)}
-                label={liftingSuspensionId === suspension.id
+                aria-label={liftingSuspensionId === suspension.id
                   ? copy.saving
                   : copy.liftSuspensionAction}
                 onclick={() => (pendingLiftSuspension = suspension)}
+                size="sm"
+                type="button"
+                variant="ghost"
               >
-                {#if liftingSuspensionId === suspension.id}<Spinner />{:else}<Unlock />{/if}
-              </DashboardTableIconButton>
+                {#if liftingSuspensionId === suspension.id}<Spinner data-icon="inline-start" />{:else}<Unlock data-icon="inline-start" />{/if}
+                {liftingSuspensionId === suspension.id ? copy.saving : copy.liftSuspensionAction}
+              </Button>
             {/if}
           </Item.Actions>
         </Item.Root>
+        {#if index < suspensions.length - 1}<Item.Separator class="my-0" />{/if}
       {/each}
     </Item.Group>
 
