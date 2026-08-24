@@ -1,3 +1,10 @@
+## [1.91.2](https://github.com/Life-USTC/server/compare/v1.91.1...v1.91.2) (2026-08-24)
+
+
+### Bug Fixes
+
+* **admin:** improve mobile navigation and records ([#887](https://github.com/Life-USTC/server/issues/887)) ([7bd298e](https://github.com/Life-USTC/server/commit/7bd298e077065cdb1158771c0548ed589787d615))
+
 ## [1.91.1](https://github.com/Life-USTC/server/compare/v1.91.0...v1.91.1) (2026-08-24)
 
 
