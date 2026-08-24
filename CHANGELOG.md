@@ -1,3 +1,11 @@
+## [1.91.1](https://github.com/Life-USTC/server/compare/v1.91.0...v1.91.1) (2026-08-24)
+
+
+### Bug Fixes
+
+* **dashboard:** compact workspace mobile surfaces ([#886](https://github.com/Life-USTC/server/issues/886)) ([a96fa31](https://github.com/Life-USTC/server/commit/a96fa31b7627f86e1e7d76e03be216a4fae18afb))
+* **ui:** harden public and auth mobile layouts ([#885](https://github.com/Life-USTC/server/issues/885)) ([b283274](https://github.com/Life-USTC/server/commit/b2832748fb9f151afaaf6e1387e1a3be586b6b43))
+
 # [1.91.0](https://github.com/Life-USTC/server/compare/v1.90.8...v1.91.0) (2026-08-15)
 
 
