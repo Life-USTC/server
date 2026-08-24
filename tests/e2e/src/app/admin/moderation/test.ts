@@ -151,14 +151,16 @@ test("/admin/moderation 移动端工作区可管理首条筛选结果", async ({
     .fill(keyword);
   const record = page
     .getByTestId("admin-moderation-mobile-list")
-    .getByRole("button")
+    .locator('[data-slot="item"]')
     .filter({ hasText: keyword })
     .first();
   await expect(record).toBeVisible();
   await expect(
     page.getByTestId("admin-workspace").locator("table"),
   ).toBeHidden();
-  await record.click();
+  await record
+    .getByRole("button", { name: /管理评论|Manage Comment/i })
+    .click();
   await expect(
     page.getByRole("dialog").filter({
       has: page.getByRole("heading", { name: /管理评论|Manage Comment/i }),
@@ -173,6 +175,79 @@ test("/admin/moderation 移动端工作区可管理首条筛选结果", async ({
     testInfo,
     "admin-moderation-mobile-workspace",
   );
+});
+
+test("/admin/moderation 移动端弹窗滚动体不遮挡封禁控件", async ({ page }) => {
+  const viewports = [
+    { width: 320, height: 568 },
+    { width: 320, height: 800 },
+  ] as const;
+  await page.setViewportSize(viewports[0]);
+  await signInAsDevAdmin(page, "/admin/moderation");
+
+  const activeResponse = await page.request.get(
+    "/api/admin/comments?status=active",
+  );
+  const activeBody = (await activeResponse.json()) as {
+    data?: Array<{ body?: string }>;
+  };
+  const keyword =
+    activeBody.data?.find((item) => item.body?.trim())?.body?.slice(0, 16) ??
+    "";
+  expect(keyword.length).toBeGreaterThan(0);
+
+  for (const viewport of viewports) {
+    await page.setViewportSize(viewport);
+    await gotoAndWaitForReady(
+      page,
+      `/admin/moderation?search=${encodeURIComponent(keyword)}`,
+    );
+    await page
+      .getByPlaceholder(/搜索评论内容或用户名|Search comments/i)
+      .fill(keyword);
+
+    const record = page
+      .getByTestId("admin-moderation-mobile-list")
+      .locator('[data-slot="item"]')
+      .filter({ hasText: keyword })
+      .first();
+    await expect(record).toBeVisible();
+    await record
+      .getByRole("button", { name: /管理评论|Manage Comment/i })
+      .click();
+
+    const dialog = page.getByRole("dialog").filter({
+      has: page.getByRole("heading", { name: /管理评论|Manage Comment/i }),
+    });
+    await expect(dialog).toBeVisible();
+    await expect(
+      dialog.getByRole("button", { name: /关闭|Close/i }),
+    ).toHaveCount(1);
+
+    const suspendButton = dialog.getByRole("button", {
+      name: /^(封禁|Suspend)$/i,
+    });
+    await suspendButton.scrollIntoViewIfNeeded();
+    const reasonInput = dialog.locator("#moderation-suspension-reason");
+    await reasonInput.scrollIntoViewIfNeeded();
+    const [footerBox, reasonBox, suspendBox] = await Promise.all([
+      dialog.locator('[data-slot="dialog-footer"]').boundingBox(),
+      reasonInput.boundingBox(),
+      suspendButton.boundingBox(),
+    ]);
+    expect(footerBox).not.toBeNull();
+    expect(reasonBox).not.toBeNull();
+    expect(suspendBox).not.toBeNull();
+    expect(footerBox?.y).toBeGreaterThanOrEqual(
+      Math.max(
+        (reasonBox?.y ?? 0) + (reasonBox?.height ?? 0),
+        (suspendBox?.y ?? 0) + (suspendBox?.height ?? 0),
+      ),
+    );
+
+    await dialog.getByRole("button", { name: /关闭|Close/i }).click();
+    await expect(dialog).toBeHidden();
+  }
 });
 
 test("/admin/moderation 可更新评论状态与备注", async ({ page }, testInfo) => {

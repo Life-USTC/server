@@ -14,6 +14,7 @@ import type {
 } from "./admin-bus-types";
 
 export let copy: AdminBusCopy;
+export let compact = false;
 export let enhancedAction: AdminBusEnhancedAction;
 export let isPending: (actionKey: string) => boolean;
 export let onDelete: (version: AdminBusVersion) => void;
@@ -24,23 +25,48 @@ let activateDialogOpen = false;
 </script>
 
 {#if !version.isEnabled}
-  <DashboardTableRowActions class="justify-end">
-    <DashboardTableIconButton
-      disabled={Boolean(pendingAction)}
-      label={copy.activateAction}
-      onclick={() => (activateDialogOpen = true)}
-    >
-      {#if isPending(`activate-${version.id}`)}<Spinner />{:else}<CheckCircle />{/if}
-    </DashboardTableIconButton>
-    <DashboardTableIconButton
-      disabled={Boolean(pendingAction)}
-      label={copy.deleteAction}
-      variant="destructive"
-      onclick={() => onDelete(version)}
-    >
-      <Trash2 />
-    </DashboardTableIconButton>
-  </DashboardTableRowActions>
+  {#if compact}
+    <div class="flex flex-wrap justify-end gap-2">
+      <Button
+        disabled={Boolean(pendingAction)}
+        onclick={() => (activateDialogOpen = true)}
+        size="sm"
+        type="button"
+        variant="outline"
+      >
+        {#if isPending(`activate-${version.id}`)}<Spinner data-icon="inline-start" />{:else}<CheckCircle data-icon="inline-start" />{/if}
+        {copy.activateAction}
+      </Button>
+      <Button
+        disabled={Boolean(pendingAction)}
+        onclick={() => onDelete(version)}
+        size="sm"
+        type="button"
+        variant="destructive"
+      >
+        <Trash2 data-icon="inline-start" />
+        {copy.deleteAction}
+      </Button>
+    </div>
+  {:else}
+    <DashboardTableRowActions class="justify-end">
+      <DashboardTableIconButton
+        disabled={Boolean(pendingAction)}
+        label={copy.activateAction}
+        onclick={() => (activateDialogOpen = true)}
+      >
+        {#if isPending(`activate-${version.id}`)}<Spinner />{:else}<CheckCircle />{/if}
+      </DashboardTableIconButton>
+      <DashboardTableIconButton
+        disabled={Boolean(pendingAction)}
+        label={copy.deleteAction}
+        variant="destructive"
+        onclick={() => onDelete(version)}
+      >
+        <Trash2 />
+      </DashboardTableIconButton>
+    </DashboardTableRowActions>
+  {/if}
 
   <AlertDialog.Root
     open={activateDialogOpen}

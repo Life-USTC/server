@@ -1,4 +1,5 @@
 <script lang="ts">
+import ChevronRightIcon from "@lucide/svelte/icons/chevron-right";
 import AdminWorkspace from "@/features/admin/components/AdminWorkspace.svelte";
 import {
   auditActionLabel,
@@ -165,7 +166,7 @@ function displayValue(value: unknown) {
       </div>
     </div>
 
-    <div class="min-w-0 border-y">
+    <div class="min-w-0">
       {#if data.rows.length === 0}
         <Empty.Root class="items-start px-0 text-left">
           <Empty.Header class="items-start text-left">
@@ -173,11 +174,11 @@ function displayValue(value: unknown) {
           </Empty.Header>
         </Empty.Root>
       {:else}
-        <Item.Group class="grid gap-3 py-4 xl:hidden" role="list">
-          {#each data.rows as row (row.id)}
+        <Item.Group class="gap-0 border-y py-1 xl:hidden">
+          {#each data.rows as row, index (row.id)}
             {@const actor = identity(row.user)}
             {@const subject = identity(row.subjectUser)}
-            <Item.Root role="listitem" variant="outline" class="grid gap-3">
+            <Item.Root variant="default" class="grid gap-3 px-1 py-3">
               <Item.Content class="min-w-0">
                 <Item.Title>{auditActionLabel(data.locale, row.action)}</Item.Title>
                 <Item.Description>{formatDate.format(new Date(row.createdAt))}</Item.Description>
@@ -196,7 +197,10 @@ function displayValue(value: unknown) {
                   </dl>
                   {#if row.metadata}
                     <details class="pt-1">
-                      <summary class="cursor-pointer font-medium">{data.copy.audit.details}</summary>
+                      <summary class="flex cursor-pointer items-center gap-1 font-medium">
+                        {data.copy.audit.details}
+                        <ChevronRightIcon aria-hidden="true" data-icon="inline-end" />
+                      </summary>
                       <dl class="grid gap-2 pt-2">
                         {#each Object.entries(row.metadata) as [key, value]}
                           <div><dt class="text-muted-foreground">{auditMetadataLabel(data.locale, key)}</dt><dd class="break-words">{displayValue(value)}</dd></div>
@@ -207,6 +211,7 @@ function displayValue(value: unknown) {
                 </div>
               </Item.Footer>
             </Item.Root>
+            {#if index < data.rows.length - 1}<Item.Separator class="my-0" />{/if}
           {/each}
         </Item.Group>
 
