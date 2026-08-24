@@ -7,6 +7,7 @@ import {
 import PageHeader from "$lib/components/PageHeader.svelte";
 import { Button } from "$lib/components/ui/button/index.js";
 import * as Empty from "$lib/components/ui/empty/index.js";
+import { Progress } from "$lib/components/ui/progress/index.js";
 import * as Table from "$lib/components/ui/table/index.js";
 import type { PageData } from "./$types";
 
@@ -192,9 +193,12 @@ function failureLabel(count: number) {
                     <span class="truncate font-medium">{rankingLabel(ranking.kind as "channel" | "client" | "feature", row.label)}</span>
                     <span class="shrink-0 tabular-nums">{numberFormatter.format(row.count)}</span>
                   </div>
-                  <div class="h-1.5 overflow-hidden rounded-full bg-muted" aria-hidden="true">
-                    <div class="h-full rounded-full bg-primary" style={`width: ${Math.max(2, (row.count / ranking.rows[0].count) * 100)}%`}></div>
-                  </div>
+                  <Progress
+                    aria-label={`${rankingLabel(ranking.kind as "channel" | "client" | "feature", row.label)}: ${numberFormatter.format(row.count)}`}
+                    class="h-1.5"
+                    max={ranking.rows[0]?.count ?? 1}
+                    value={row.count}
+                  />
                   {#if row.failures > 0}<span class="text-xs text-destructive">{failureLabel(row.failures)}</span>{/if}
                 </li>
               {/each}

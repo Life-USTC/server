@@ -1,6 +1,5 @@
 <script lang="ts">
 import CheckCircleIcon from "@lucide/svelte/icons/check-circle";
-import LoaderCircle from "@lucide/svelte/icons/loader-circle";
 import Pencil from "@lucide/svelte/icons/pencil";
 import RefreshCw from "@lucide/svelte/icons/refresh-cw";
 import type {
@@ -10,6 +9,7 @@ import type {
 import TruncatedText from "$lib/components/TruncatedText.svelte";
 import { Badge } from "$lib/components/ui/badge/index.js";
 import * as Empty from "$lib/components/ui/empty/index.js";
+import { Spinner } from "$lib/components/ui/spinner/index.js";
 import * as Table from "$lib/components/ui/table/index.js";
 import DashboardTableIconButton from "./DashboardTableIconButton.svelte";
 import DashboardTableRowActions from "./DashboardTableRowActions.svelte";
@@ -92,7 +92,7 @@ export let toggleTodoCompletion: TodoCompletionToggle;
               onclick={() => void toggleTodoCompletion(todo)}
             >
               {#if todoSavingById[todo.id]}
-                <LoaderCircle class="animate-spin" />
+                <Spinner />
               {:else if todo.completed}
                 <RefreshCw />
               {:else}

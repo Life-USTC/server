@@ -52,7 +52,7 @@ $: sectionOptions = sections.map((section) => ({
       <Alert.Description>{createHomeworkError}</Alert.Description>
     </Alert.Root>
   {/if}
-  <Field.Field>
+  <Field.Field data-disabled={isCreatingHomework ? "true" : undefined}>
     <Field.Label for="dashboard-homework-section">
       {homeworksCopy.sectionLabel}
     </Field.Label>
@@ -71,7 +71,7 @@ $: sectionOptions = sections.map((section) => ({
       {/each}
     </NativeSelect.Root>
   </Field.Field>
-  <Field.Field>
+  <Field.Field data-disabled={isCreatingHomework ? "true" : undefined}>
     <Field.Label for="dashboard-homework-title">
       {homeworksCopy.titleLabel}
     </Field.Label>
@@ -89,7 +89,7 @@ $: sectionOptions = sections.map((section) => ({
     copy={homeworksCopy}
     testIdPrefix="dashboard-homework"
   />
-  <Field.Field>
+  <Field.Field data-disabled={isCreatingHomework ? "true" : undefined}>
     <Field.Title id="dashboard-homework-description-label">
       {homeworksCopy.descriptionLabel}
     </Field.Title>
@@ -121,12 +121,16 @@ $: sectionOptions = sections.map((section) => ({
     {selectedCreateHomeworkSection}
     {toShanghaiDateTimeLocalValue}
   />
-  <Field.Set>
+  <Field.Set data-disabled={isCreatingHomework ? "true" : undefined}>
     <Field.Legend variant="label" class="sr-only">
       {homeworksCopy.tagMajor} / {homeworksCopy.tagTeam}
     </Field.Legend>
     <Field.Group class="flex-row flex-wrap gap-4" data-slot="checkbox-group">
-      <Field.Field class="w-fit" orientation="horizontal">
+      <Field.Field
+        data-disabled={isCreatingHomework ? "true" : undefined}
+        class="w-fit"
+        orientation="horizontal"
+      >
         <Checkbox
           disabled={isCreatingHomework}
           id="dashboard-homework-is-major"
@@ -136,7 +140,11 @@ $: sectionOptions = sections.map((section) => ({
           {homeworksCopy.tagMajor}
         </Field.Label>
       </Field.Field>
-      <Field.Field class="w-fit" orientation="horizontal">
+      <Field.Field
+        data-disabled={isCreatingHomework ? "true" : undefined}
+        class="w-fit"
+        orientation="horizontal"
+      >
         <Checkbox
           disabled={isCreatingHomework}
           id="dashboard-homework-requires-team"

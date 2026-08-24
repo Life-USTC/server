@@ -158,7 +158,7 @@ function providerInitial(name: string) {
               >
                 <span class="flex size-8 shrink-0 items-center justify-center rounded-md bg-muted font-semibold text-primary text-xs">
                   {#if pendingProviderId === provider.id}
-                    <Spinner data-icon="inline-start" />
+                    <Spinner />
                   {:else if provider.debug}
                     <CircleUserRound />
                   {:else}
@@ -182,7 +182,7 @@ function providerInitial(name: string) {
           >
             <span class="flex size-8 shrink-0 items-center justify-center rounded-md bg-muted text-primary">
               {#if passkeyPending}
-                <Spinner data-icon="inline-start" />
+                <Spinner />
               {:else}
                 <Fingerprint />
               {/if}

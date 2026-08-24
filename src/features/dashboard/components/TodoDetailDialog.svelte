@@ -7,9 +7,11 @@ import type {
   DashboardTodosCopy,
 } from "@/features/dashboard/lib/dashboard-controller-helpers";
 import MarkdownPreview from "$lib/components/MarkdownPreview.svelte";
+import * as AlertDialog from "$lib/components/ui/alert-dialog/index.js";
 import { Badge } from "$lib/components/ui/badge/index.js";
-import { Button } from "$lib/components/ui/button/index.js";
+import { Button, buttonVariants } from "$lib/components/ui/button/index.js";
 import * as Dialog from "$lib/components/ui/dialog/index.js";
+import { Spinner } from "$lib/components/ui/spinner/index.js";
 
 export let deleteTodo: (todo: DashboardTodoItem) => void;
 export let fmtDate: (value: string | Date | null | undefined) => string;
@@ -21,6 +23,8 @@ export let todoSavingById: Record<string, boolean>;
 export let todosCopy: DashboardTodosCopy;
 export let todoStatus: (todo: DashboardTodoItem) => string;
 export let toggleTodoCompletion: (todo: DashboardTodoItem) => void;
+
+let deleteConfirmOpen = false;
 </script>
 
 {#if todo}
@@ -49,20 +53,43 @@ export let toggleTodoCompletion: (todo: DashboardTodoItem) => void;
           <Badge>{todoStatus(todo)}</Badge>
         </div>
         <div class="flex justify-between gap-2">
-          <Button
-            aria-label={todosCopy.deleteAriaLabel}
-            disabled={todoSavingById[todo.id]}
-            type="button"
-            variant="destructive"
-            onclick={() => {
-              deleteTodo(todo);
-            }}
-          >
-            <Trash2 data-icon="inline-start" />
-            {todoSavingById[todo.id] ? todosCopy.saving : todosCopy.delete}
-          </Button>
+          <AlertDialog.Root bind:open={deleteConfirmOpen}>
+            <AlertDialog.Trigger
+              aria-label={todosCopy.deleteAriaLabel}
+              class={buttonVariants({ variant: "destructive" })}
+              disabled={todoSavingById[todo.id]}
+              type="button"
+            >
+              <Trash2 data-icon="inline-start" />
+              {todosCopy.delete}
+            </AlertDialog.Trigger>
+            <AlertDialog.Content class="max-w-md sm:max-w-md">
+              <AlertDialog.Header>
+                <AlertDialog.Title>{todosCopy.deleteConfirmTitle}</AlertDialog.Title>
+                <AlertDialog.Description>
+                  {todosCopy.deleteConfirmDescription}
+                </AlertDialog.Description>
+              </AlertDialog.Header>
+              <AlertDialog.Footer>
+                <AlertDialog.Cancel disabled={todoSavingById[todo.id]}>
+                  {todosCopy.cancel}
+                </AlertDialog.Cancel>
+                <AlertDialog.Action
+                  disabled={todoSavingById[todo.id]}
+                  variant="destructive"
+                  onclick={() => deleteTodo(todo)}
+                >
+                  {#if todoSavingById[todo.id]}
+                    <Spinner data-icon="inline-start" />
+                  {/if}
+                  {todoSavingById[todo.id] ? todosCopy.saving : todosCopy.delete}
+                </AlertDialog.Action>
+              </AlertDialog.Footer>
+            </AlertDialog.Content>
+          </AlertDialog.Root>
           <div class="flex flex-wrap justify-end gap-2">
             <Button
+              disabled={todoSavingById[todo.id]}
               type="button"
               variant="outline"
               onclick={() => {

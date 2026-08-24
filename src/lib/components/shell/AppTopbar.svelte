@@ -3,6 +3,7 @@ import appIconUrl from "$lib/assets/life-ustc-icon-192.png";
 import type { ThemeMode } from "$lib/components/shell/layout-shell";
 import { Button } from "$lib/components/ui/button/index.js";
 import * as Sidebar from "$lib/components/ui/sidebar/index.js";
+import { Skeleton } from "$lib/components/ui/skeleton/index.js";
 import type {
   LayoutCopy,
   LayoutUserSummary,
@@ -88,11 +89,11 @@ export let signedIn = false;
       />
 
       {#if viewerLoading}
-        <div
+        <Skeleton
           aria-hidden="true"
-          class="h-8 w-20 animate-pulse rounded-md bg-muted"
+          class="h-8 w-20 rounded-md"
           data-testid="viewer-loading"
-        ></div>
+        />
       {:else if !user}
         <Button href="/account/sign-in">
           {copy.menu.signIn}

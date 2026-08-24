@@ -1,13 +1,13 @@
 <script lang="ts">
 import ArrowUpRight from "@lucide/svelte/icons/arrow-up-right";
 import CheckCircleIcon from "@lucide/svelte/icons/check-circle";
-import LoaderCircle from "@lucide/svelte/icons/loader-circle";
 import RefreshCw from "@lucide/svelte/icons/refresh-cw";
 import type { DashboardHomeworkItem } from "@/features/dashboard/lib/dashboard-controller-types";
 import { Badge } from "$lib/components/ui/badge/index.js";
 import { Button } from "$lib/components/ui/button/index.js";
 import * as Empty from "$lib/components/ui/empty/index.js";
 import * as Item from "$lib/components/ui/item/index.js";
+import { Spinner } from "$lib/components/ui/spinner/index.js";
 import DashboardTableIconButton from "./DashboardTableIconButton.svelte";
 
 type HomeworkDateFormatter = (
@@ -93,7 +93,7 @@ export let toggleHomeworkCompletion: (
               onclick={() => toggleHomeworkCompletion(homework)}
             >
               {#if homeworkSavingById[homework.id]}
-                <LoaderCircle class="animate-spin" />
+                <Spinner />
               {:else if homework.completion}
                 <RefreshCw />
               {:else}
