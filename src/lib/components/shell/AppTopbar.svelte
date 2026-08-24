@@ -39,8 +39,11 @@ export let signedIn = false;
     />
 
     <a
-      class="inline-flex min-h-11 min-w-0 items-center gap-2 rounded-md font-semibold leading-none transition-opacity hover:opacity-75 md:hidden"
+      aria-label="Life@USTC"
+      class="inline-flex size-11 shrink-0 items-center justify-center gap-2 rounded-md font-semibold leading-none transition-opacity hover:opacity-75 md:hidden sm:w-auto sm:px-2"
+      data-shell-brand
       href="/"
+      title="Life@USTC"
     >
       <img
         class="size-7 rounded-md"
@@ -48,7 +51,7 @@ export let signedIn = false;
         alt=""
         aria-hidden="true"
       />
-      <span class="truncate">Life@USTC</span>
+      <span class="sr-only sm:not-sr-only">Life@USTC</span>
     </a>
 
     <div class="hidden min-w-0 flex-1 justify-center px-4 md:flex">

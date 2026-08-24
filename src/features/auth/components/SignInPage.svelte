@@ -118,11 +118,11 @@ function providerInitial(name: string) {
     />
   </div>
 
-  <div class="grid w-full max-w-md gap-6 px-4">
+  <div class="grid min-w-0 w-full max-w-md gap-6 px-4">
     <PageHeader title={data.copy.title} />
 
-    <Card.Root>
-      <Card.Content class="grid gap-4">
+    <Card.Root class="min-w-0">
+      <Card.Content class="grid min-w-0 gap-4">
         {#if data.reauthentication}
           <Alert.Root>
             <Alert.Description>{data.copy.reauthenticationRequired}</Alert.Description>
@@ -141,13 +141,17 @@ function providerInitial(name: string) {
           </Alert.Root>
         {/if}
 
-        <div class="grid gap-2">
+        <div class="grid min-w-0 gap-2">
           {#each data.providers as provider}
-            <form method="POST" use:enhance={signInAction(provider.id)}>
+            <form
+              class="min-w-0 max-w-full"
+              method="POST"
+              use:enhance={signInAction(provider.id)}
+            >
               <input type="hidden" name="providerId" value={provider.id} />
               <input type="hidden" name="callbackUrl" value={data.callbackUrl} />
               <Button
-                class="h-auto w-full justify-start p-3 text-left"
+                class="h-auto min-w-0 w-full max-w-full justify-start p-3 text-left"
                 disabled={Boolean(pendingProviderId) || passkeyPending}
                 type="submit"
                 variant="outline"
@@ -168,7 +172,7 @@ function providerInitial(name: string) {
           {/each}
         </div>
 
-        <div class="grid gap-2">
+        <div class="grid min-w-0 gap-2">
           <Button
             class="h-auto w-full justify-start p-3 text-left"
             disabled={passkeySupport !== "supported" || passkeyPending || Boolean(pendingProviderId)}
@@ -203,7 +207,7 @@ function providerInitial(name: string) {
           {/if}
         </div>
 
-        <p class="text-muted-foreground text-center text-xs leading-5">
+        <p class="min-w-0 break-words text-center text-muted-foreground text-xs leading-5">
           {data.copy.termsNotice.beforeTerms}<a class="text-primary hover:underline" href="/terms">{data.copy.termsNotice.terms}</a>{data.copy.termsNotice.between}<a class="text-primary hover:underline" href="/privacy">{data.copy.termsNotice.privacy}</a>{data.copy.termsNotice.afterPrivacy}
         </p>
       </Card.Content>
