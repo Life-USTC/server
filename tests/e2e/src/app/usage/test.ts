@@ -156,8 +156,8 @@ test("usage pages expose their primary handoff", async ({ page }, testInfo) => {
   const otherClientsPanel = page.getByRole("tabpanel");
   await expect(otherClientsPanel).toHaveCount(1);
   await expect(
-    otherClientsPanel.getByText("https://life-ustc.tiankaima.dev/api/mcp", {
-      exact: false,
+    otherClientsPanel.getByRole("button", {
+      name: /(?:远程 MCP URL|Remote MCP URL).*https:\/\/life-ustc\.tiankaima\.dev\/api\/mcp/i,
     }),
   ).toBeVisible();
   await expect(
