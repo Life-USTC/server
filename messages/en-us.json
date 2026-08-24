@@ -2251,7 +2251,7 @@
     "contentEmpty": "No description added.",
     "priorityLabel": "Priority",
     "dueAtLabel": "Due date",
-    "dueAtPlaceholder": "Choose a due date (optional)",
+    "dueAtPlaceholder": "Optional date and time",
     "dueLabel": "Due",
     "calendarButtonLabel": "Open calendar picker",
     "priority": {

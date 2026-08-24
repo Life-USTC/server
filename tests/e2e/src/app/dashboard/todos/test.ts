@@ -377,6 +377,12 @@ test.describe("仪表盘待办", () => {
       await expect(
         detailDialog.getByText("mobile-content-marker"),
       ).toBeVisible();
+      const closeButton = detailDialog.locator('[data-slot="dialog-close"]');
+      await expect(closeButton).toBeVisible();
+      await expect(closeButton).toBeInViewport();
+      const closeBox = await closeButton.boundingBox();
+      expect(closeBox).not.toBeNull();
+      expect(closeBox?.width ?? 0).toBeGreaterThanOrEqual(24);
 
       const detailFooter = detailDialog.locator('[data-slot="dialog-footer"]');
       await expect(detailFooter).toBeInViewport();
@@ -409,6 +415,11 @@ test.describe("仪表盘待办", () => {
           () => document.documentElement.scrollWidth <= window.innerWidth,
         ),
       ).toBe(true);
+
+      await closeButton.click();
+      await expect(detailDialog).toHaveCount(0);
+      await page.getByRole("button", { name: title, exact: true }).click();
+      await expect(detailDialog).toBeVisible();
 
       await deleteButton.click();
       const confirmDialog = page.getByRole("alertdialog");
