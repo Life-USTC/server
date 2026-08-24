@@ -1,3 +1,10 @@
+## [1.91.6](https://github.com/Life-USTC/server/compare/v1.91.5...v1.91.6) (2026-08-24)
+
+
+### Bug Fixes
+
+* **ui:** unify destructive and secondary actions ([#907](https://github.com/Life-USTC/server/issues/907)) ([572c5a8](https://github.com/Life-USTC/server/commit/572c5a807a0aa5d255ceb1e5c5d3246c9c8892f9))
+
 ## [1.91.5](https://github.com/Life-USTC/server/compare/v1.91.4...v1.91.5) (2026-08-24)
 
 
