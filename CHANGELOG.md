@@ -1,3 +1,10 @@
+## [1.91.5](https://github.com/Life-USTC/server/compare/v1.91.4...v1.91.5) (2026-08-24)
+
+
+### Bug Fixes
+
+* **ui:** redesign TODO and homework dialog action hierarchy and copy ([#906](https://github.com/Life-USTC/server/issues/906)) ([046e646](https://github.com/Life-USTC/server/commit/046e646e474c3ba36dcdb5bf06775a11d0fd125c))
+
 ## [1.91.4](https://github.com/Life-USTC/server/compare/v1.91.3...v1.91.4) (2026-08-24)
 
 
