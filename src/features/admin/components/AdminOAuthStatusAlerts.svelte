@@ -4,7 +4,11 @@ import * as Alert from "$lib/components/ui/alert/index.js";
 export let copyMessage = "";
 export let copyMessageVariant: "destructive" | "default" = "default";
 export let form:
-  | { createdClientId?: string | null; message?: string }
+  | {
+      createdClientId?: string | null;
+      message?: string;
+      variant?: "destructive" | "default";
+    }
   | null
   | undefined;
 </script>
@@ -16,7 +20,7 @@ export let form:
 {/if}
 
 {#if form?.message && !form?.createdClientId}
-  <Alert.Root>
+  <Alert.Root variant={form.variant ?? "default"}>
     <Alert.Description>{form.message}</Alert.Description>
   </Alert.Root>
 {/if}

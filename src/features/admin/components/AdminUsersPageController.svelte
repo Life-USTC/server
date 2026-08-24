@@ -46,6 +46,7 @@ let {
   isSaving: _isSaving,
   isSuspending: _isSuspending,
   message: _message,
+  messageVariant: _messageVariant,
   selectedUser,
   suspendDuration,
   suspendExpiresAt,
@@ -94,6 +95,7 @@ function _openDialog(user: AdminUser) {
   suspendExpiresAt = "";
   suspendReason = "";
   _message = null;
+  _messageVariant = "default";
 }
 
 function closeDialog() {
@@ -133,6 +135,9 @@ const {
   setMessage: (value) => {
     _message = value;
   },
+  setMessageVariant: (value) => {
+    _messageVariant = value;
+  },
   setSaving: (value) => {
     _isSaving = value;
   },
@@ -153,6 +158,7 @@ const {
   formatDate={_formatDate}
   formatMessage={formatAdminUserMessage}
   message={_message}
+  messageVariant={_messageVariant}
   onSelect={_openDialog}
   pageHref={_pageHref}
   pagination={data.pagination}
@@ -172,6 +178,7 @@ const {
   isSuspending={_isSuspending}
   liftSelectedSuspension={_liftSelectedSuspension}
   message={_message}
+  messageVariant={_messageVariant}
   moderationCopy={_moderationCopy}
   saveSelectedUser={_saveSelectedUser}
   {selectedUser}

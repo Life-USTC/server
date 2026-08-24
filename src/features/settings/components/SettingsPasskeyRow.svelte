@@ -137,7 +137,12 @@ async function deletePasskey() {
   </Item.Actions>
 </Item.Root>
 
-<AlertDialog.Root bind:open={deleteOpen}>
+<AlertDialog.Root
+  bind:open={deleteOpen}
+  onOpenChange={(open) => {
+    if (open || !deleting) deleteOpen = open;
+  }}
+>
   <AlertDialog.Content class="max-w-md sm:max-w-md">
     <AlertDialog.Header>
       <AlertDialog.Title>
@@ -154,7 +159,7 @@ async function deletePasskey() {
       <AlertDialog.Cancel disabled={deleting} type="button">
         {copy.settings.passkeys.cancel}
       </AlertDialog.Cancel>
-      <Button
+      <AlertDialog.Action
         disabled={deleting}
         onclick={deletePasskey}
         type="button"
@@ -166,7 +171,7 @@ async function deletePasskey() {
         {:else}
           {copy.settings.passkeys.delete}
         {/if}
-      </Button>
+      </AlertDialog.Action>
     </AlertDialog.Footer>
   </AlertDialog.Content>
 </AlertDialog.Root>

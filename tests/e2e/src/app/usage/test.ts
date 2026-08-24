@@ -27,9 +27,14 @@ test("usage pages expose their primary handoff", async ({ page }, testInfo) => {
   ).toBeVisible();
 
   await gotoAndWaitForReady(page, "/usage/bot", { testInfo });
-  await expect(
-    page.getByRole("link", { name: /联系 Presto|Message Presto/i }),
-  ).toHaveAttribute("href", "https://qm.qq.com/q/eOL0WhizeM");
+  const prestoPrimaryAction = page.getByRole("link", {
+    name: /联系 Presto|Message Presto/i,
+  });
+  await expect(prestoPrimaryAction).toHaveAttribute(
+    "href",
+    "https://qm.qq.com/q/eOL0WhizeM",
+  );
+  await expect(prestoPrimaryAction).toHaveAttribute("data-slot", "button");
   const prestoQrCode = page.getByRole("img", {
     name: /Presto QQ (?:二维码|QR code)/i,
   });
@@ -74,11 +79,11 @@ test("usage pages expose their primary handoff", async ({ page }, testInfo) => {
 
   await page.context().grantPermissions(["clipboard-read", "clipboard-write"]);
   await gotoAndWaitForReady(page, "/usage/mcp", { testInfo });
-  await expect(
-    page
-      .getByRole("button", { name: /复制 MCP 端点|Copy MCP endpoint/i })
-      .first(),
-  ).toBeVisible();
+  const mcpEndpointButton = page
+    .getByRole("button", { name: /复制 MCP 端点|Copy MCP endpoint/i })
+    .first();
+  await expect(mcpEndpointButton).toBeVisible();
+  await expect(mcpEndpointButton).toHaveAttribute("data-slot", "button");
   await expect(
     page.getByRole("link", {
       name: /启用开发者模式|Enable Developer Mode/i,

@@ -36,6 +36,7 @@ export function createCommentPanelUploadActions(input: {
   setEditAttachmentIds: (value: string[]) => void;
   setEditUploadedFiles: (value: CommentUploadOption[]) => void;
   setMessage: (value: string) => void;
+  setMessageVariant: (value: "destructive" | "default") => void;
   setReplyAttachmentIds: (value: string[]) => void;
   setReplyUploadedFiles: (value: CommentUploadOption[]) => void;
   setSelectedAttachments: (value: string[]) => void;
@@ -55,6 +56,7 @@ export function createCommentPanelUploadActions(input: {
   async function uploadFile(file: File, mode: CommentEditorMode = "new") {
     input.updatePendingUploads(mode, 1);
     input.setMessage("");
+    input.setMessageVariant("default");
     const uploadCopy = input.getUploadCopy();
     const token = `![${uploadCopy.uploading} ${file.name}](upload-${Date.now()}-${Math.random().toString(36).slice(2, 8)})`;
     input.insertMarkdown(token, mode);
@@ -86,6 +88,7 @@ export function createCommentPanelUploadActions(input: {
           upload.filename,
         ),
       );
+      input.setMessageVariant("default");
     } catch (error) {
       input.replaceMarkdownToken(token, "", mode);
       input.setMessage(
@@ -93,6 +96,7 @@ export function createCommentPanelUploadActions(input: {
           ? error.message
           : uploadCopy.toastUploadErrorDescription,
       );
+      input.setMessageVariant("destructive");
     } finally {
       input.updatePendingUploads(mode, -1);
     }

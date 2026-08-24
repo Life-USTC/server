@@ -75,6 +75,7 @@ export async function createAdminOAuthClientAction(
 
     return {
       message: copy.createSuccess,
+      variant: "default" as const,
       createdClientId: result.client_id,
       createdClientSecret: result.client_secret ?? null,
       createdClientName: name,
@@ -91,6 +92,7 @@ export async function createAdminOAuthClientAction(
     });
     return fail(500, {
       message: getOAuthActionErrorMessage(error, copy.createError),
+      variant: "destructive" as const,
     });
   }
 }

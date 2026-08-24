@@ -65,6 +65,7 @@ let {
   _body,
   _comments,
   _deleteTarget,
+  _deleting,
   _editAttachmentIds,
   _editDraft,
   _editIsAnonymous,
@@ -77,6 +78,7 @@ let {
   _isDragActive,
   _loading,
   _message,
+  _messageVariant,
   _pendingReactionKey,
   _postTargetKey,
   _reactionMenuId,
@@ -275,6 +277,9 @@ const { loadComments: _loadComments, submitComment: _submitComment } =
     setMessage: (value) => {
       _message = value;
     },
+    setMessageVariant: (value) => {
+      _messageVariant = value;
+    },
     setSelectedAttachments: (value) => {
       _selectedAttachments = value;
     },
@@ -307,6 +312,9 @@ const { uploadFile: _uploadFile } = createCommentPanelUploadActions({
   },
   setMessage: (value) => {
     _message = value;
+  },
+  setMessageVariant: (value) => {
+    _messageVariant = value;
   },
   setReplyAttachmentIds: (value) => {
     _replyAttachmentIds = value;
@@ -378,6 +386,9 @@ const {
   setMessage: (value) => {
     _message = value;
   },
+  setMessageVariant: (value) => {
+    _messageVariant = value;
+  },
 });
 
 const {
@@ -400,8 +411,14 @@ const {
   setDeleteTarget: (value) => {
     _deleteTarget = value;
   },
+  setDeleting: (value) => {
+    _deleting = value;
+  },
   setMessage: (value) => {
     _message = value;
+  },
+  setMessageVariant: (value) => {
+    _messageVariant = value;
   },
   setPendingReactionKey: (value) => {
     _pendingReactionKey = value;
@@ -417,7 +434,7 @@ $: _editUploading = commentUploadPendingForMode(_uploadPending, "edit");
 </script>
 
 <section class="grid gap-4">
-  {#if _message}<Alert.Root><Alert.Description>{_message}</Alert.Description></Alert.Root>{/if}
+  {#if _message}<Alert.Root variant={_messageVariant}><Alert.Description>{_message}</Alert.Description></Alert.Root>{/if}
   {#if _viewer.isSuspended}
     <CommentsPanelSuspensionAlert
       commentCopy={_commentCopy}
@@ -512,6 +529,7 @@ $: _editUploading = commentUploadPendingForMode(_uploadPending, "edit");
 <CommentDeleteDialog
   close={_closeDeleteDialog}
   commentCopy={_commentCopy}
+  deleting={_deleting}
   deleteComment={() => {
     void _deleteComment();
   }}

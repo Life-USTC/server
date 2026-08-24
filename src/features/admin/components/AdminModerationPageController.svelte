@@ -64,6 +64,7 @@ let {
   _customExpiresAt,
   _descriptionDraft,
   _dialogMessage,
+  _dialogMessageVariant,
   _isRefreshingQueue,
   _isSavingComment,
   _isSuspendingUser,
@@ -151,6 +152,9 @@ const {
   setDialogMessage: (value) => {
     _dialogMessage = value;
   },
+  setDialogMessageVariant: (value) => {
+    _dialogMessageVariant = value;
+  },
   setIsRefreshingQueue: (value) => {
     _isRefreshingQueue = value;
   },
@@ -236,6 +240,7 @@ const {
   bind:customExpiresAt={_customExpiresAt}
   bind:descriptionDraft={_descriptionDraft}
   dialogMessage={_dialogMessage}
+  dialogMessageVariant={_dialogMessageVariant}
   deleteHomeworkAction={enhanceAdminAction("deleteHomework", () => {
     _pendingDeleteHomework = null;
   })}

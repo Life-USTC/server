@@ -37,6 +37,7 @@ export function createCommentPanelLoadSubmitActions(input: {
   setHiddenCount: (value: number) => void;
   setLoading: (value: boolean) => void;
   setMessage: (value: string) => void;
+  setMessageVariant: (value: "destructive" | "default") => void;
   setSelectedAttachments: (value: string[]) => void;
   setSubmitting: (value: boolean) => void;
   setUploadedFiles: (value: CommentUploadOption[]) => void;
@@ -45,6 +46,7 @@ export function createCommentPanelLoadSubmitActions(input: {
   async function loadComments() {
     input.setLoading(true);
     input.setMessage("");
+    input.setMessageVariant("default");
     const copy = input.getCommentCopy();
     try {
       const result = await loadCommentsForTargets({
@@ -57,6 +59,7 @@ export function createCommentPanelLoadSubmitActions(input: {
       if (result.viewer) input.setViewer(result.viewer);
       await input.scrollToHashComment();
     } catch (error) {
+      input.setMessageVariant("destructive");
       input.setMessage(
         error instanceof Error ? error.message : copy.loadFailed,
       );
@@ -75,6 +78,7 @@ export function createCommentPanelLoadSubmitActions(input: {
     if (!body || input.getSubmitting() || input.hasPendingUploads(mode)) return;
     input.setSubmitting(true);
     input.setMessage("");
+    input.setMessageVariant("default");
     const copy = input.getCommentCopy();
     try {
       await submitCommentRequest(
@@ -98,6 +102,7 @@ export function createCommentPanelLoadSubmitActions(input: {
       input.setUploadedFiles([]);
       await loadComments();
     } catch (error) {
+      input.setMessageVariant("destructive");
       input.setMessage(
         error instanceof Error ? error.message : copy.submitFailed,
       );

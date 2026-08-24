@@ -30,7 +30,7 @@ export let targetLabel: AdminModerationCommentFormatter;
           {comment.body}
         </Item.Description>
       </Item.Content>
-      <Item.Actions class="shrink-0 self-start">
+          <Item.Actions class="shrink-0 flex-wrap self-start">
         <ModerationStatusBadge
           label={statusLabel(comment.status)}
           status={comment.status}

@@ -4,6 +4,7 @@ import * as Alert from "$lib/components/ui/alert/index.js";
 import { Button } from "$lib/components/ui/button/index.js";
 import { Checkbox } from "$lib/components/ui/checkbox/index.js";
 import * as Dialog from "$lib/components/ui/dialog/index.js";
+import { ScrollArea } from "$lib/components/ui/scroll-area/index.js";
 import AdminOAuthCredentialField from "./AdminOAuthCredentialField.svelte";
 import AdminOAuthCredentialMetadata from "./AdminOAuthCredentialMetadata.svelte";
 import type { AdminOAuthCopy } from "./admin-oauth-client-types";
@@ -57,18 +58,19 @@ async function copyCredential(
       }}
     >
     <Dialog.Content
-      class="max-w-2xl sm:max-w-2xl"
+      class="grid max-h-[calc(100dvh-2rem)] min-h-0 max-w-2xl grid-rows-[auto_minmax(0,1fr)_auto] overflow-hidden sm:max-w-2xl"
       aria-labelledby="oauth-credentials-title"
       escapeKeydownBehavior={canDismissCredentials ? "close" : "ignore"}
       interactOutsideBehavior={canDismissCredentials ? "close" : "ignore"}
       showCloseButton={canDismissCredentials}
     >
-      <Dialog.Header>
+      <Dialog.Header class="pr-10">
         <Dialog.Title id="oauth-credentials-title">{copy.credentialsTitle}</Dialog.Title>
         <Dialog.Description>{copy.credentialsWarning}</Dialog.Description>
       </Dialog.Header>
       {#if clientId}
-        <div class="grid gap-3 px-5 py-4">
+        <ScrollArea class="min-h-0">
+          <div class="grid gap-3 px-5 py-4">
           <AdminOAuthCredentialField
             copiedMessage={copy.clientIdCopied}
             copyLabel={copy.copyClientId}
@@ -127,7 +129,8 @@ async function copyCredential(
               {copy.credentialsCopyRequired}
             </p>
           {/if}
-        </div>
+          </div>
+        </ScrollArea>
       {/if}
       <Dialog.Footer>
         <Button

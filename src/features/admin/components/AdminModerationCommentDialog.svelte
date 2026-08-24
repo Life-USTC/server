@@ -23,6 +23,7 @@ export let commentStatusOptions: AdminModerationStatusOptions;
 export let copy: AdminModerationCopy;
 export let customExpiresAt: string;
 export let dialogMessage: string;
+export let dialogMessageVariant: "destructive" | "default";
 export let inputValue: (event: Event) => string;
 export let isSavingComment: boolean;
 export let isSuspendingUser: boolean;
@@ -49,20 +50,20 @@ export let targetLabel: (comment: AdminModerationComment) => string;
       showCloseButton={false}
     >
       <Dialog.Header>
-        <div class="flex items-start justify-between gap-3">
-          <div>
+          <div class="flex min-w-0 items-start justify-between gap-3">
+          <div class="min-w-0 flex-1">
             <Dialog.Title id="manage-comment-title">{copy.manageComment}</Dialog.Title>
             <Dialog.Description>
               {commentAuthorLabel(comment)} · {targetLabel(comment)}
             </Dialog.Description>
           </div>
-          <Button type="button" variant="ghost" onclick={close}>{copy.close}</Button>
+          <Button class="shrink-0" type="button" variant="ghost" onclick={close}>{copy.close}</Button>
         </div>
       </Dialog.Header>
 
-      <ScrollArea class="min-h-0 h-[min(56vh,34rem)] max-h-[calc(100dvh-12rem)]">
+      <ScrollArea class="min-h-0 h-[min(56dvh,34rem)] max-h-[calc(100dvh-12rem)]">
         <div class="grid gap-5 px-5 py-4">
-          {#if dialogMessage}<Alert.Root class="py-2"><Alert.Description>{dialogMessage}</Alert.Description></Alert.Root>{/if}
+          {#if dialogMessage}<Alert.Root class="py-2" variant={dialogMessageVariant}><Alert.Description>{dialogMessage}</Alert.Description></Alert.Root>{/if}
 
           <AdminModerationCommentPreview
             {comment}

@@ -18,7 +18,12 @@ export async function deleteAdminOAuthClientAction(
   });
   const form = await request.formData();
   const clientId = String(form.get("clientId") ?? "");
-  if (!clientId) return fail(400, { message: copy.missingClientId });
+  if (!clientId) {
+    return fail(400, {
+      message: copy.missingClientId,
+      variant: "destructive" as const,
+    });
+  }
   try {
     await prisma.oAuthClient.delete({ where: { clientId } });
     await writeAuditLog({
@@ -31,14 +36,20 @@ export async function deleteAdminOAuthClientAction(
     });
   } catch (error) {
     if ((error as { code?: unknown }).code === "P2025") {
-      return fail(404, { message: copy.deleteClientNotFound });
+      return fail(404, {
+        message: copy.deleteClientNotFound,
+        variant: "destructive" as const,
+      });
     }
     logServerActionError("admin.oauth-client.delete.failed", error, {
       action: "delete-client",
       requestId,
       route: "/admin/oauth",
     });
-    return fail(500, { message: copy.deleteClientFailed });
+    return fail(500, {
+      message: copy.deleteClientFailed,
+      variant: "destructive" as const,
+    });
   }
-  return { message: copy.deleteSuccess };
+  return { message: copy.deleteSuccess, variant: "default" as const };
 }

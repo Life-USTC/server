@@ -55,6 +55,7 @@ export let toggleReply: (comment: CommentNode) => void;
             {commentCopy.copyLinkAction}
           </DropdownMenu.Item>
           {#if comment.canDelete}
+            <DropdownMenu.Separator />
             <DropdownMenu.Item
               onSelect={() => openDeleteDialog(comment)}
               variant="destructive"

@@ -2,7 +2,6 @@
 import Trash2 from "@lucide/svelte/icons/trash-2";
 import { enhance } from "$app/forms";
 import * as AlertDialog from "$lib/components/ui/alert-dialog/index.js";
-import { Button } from "$lib/components/ui/button/index.js";
 import { Spinner } from "$lib/components/ui/spinner/index.js";
 import type {
   AdminBusCopy,
@@ -21,7 +20,7 @@ export let version: AdminBusVersion;
 <AlertDialog.Root
   open={true}
   onOpenChange={(open) => {
-    if (!open) close();
+    if (!open && !pendingAction) close();
   }}
 >
   <AlertDialog.Content
@@ -54,7 +53,7 @@ export let version: AdminBusVersion;
         >
           {copy.cancelAction}
         </AlertDialog.Cancel>
-        <Button
+        <AlertDialog.Action
           disabled={Boolean(pendingAction)}
           type="submit"
           variant="destructive"
@@ -65,7 +64,7 @@ export let version: AdminBusVersion;
             <Trash2 data-icon="inline-start" />
           {/if}
           {copy.confirmDeleteAction}
-        </Button>
+        </AlertDialog.Action>
       </AlertDialog.Footer>
     </form>
   </AlertDialog.Content>

@@ -1563,14 +1563,59 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
         page,
         editedCommentCard,
       );
+      const deleteFooterButtons = deleteDialog.locator(
+        '[data-slot="alert-dialog-footer"] button',
+      );
+      await expect(deleteFooterButtons).toHaveCount(2);
+      await expect(deleteFooterButtons.nth(0)).toHaveAttribute(
+        "data-slot",
+        "alert-dialog-cancel",
+      );
+      await expect(deleteFooterButtons.nth(1)).toHaveAttribute(
+        "data-slot",
+        "alert-dialog-action",
+      );
+      await page.keyboard.press("Escape");
+      await expect(deleteDialog).toBeHidden();
+
+      const reopenedDeleteDialog = await openCommentDeleteDialog(
+        page,
+        editedCommentCard,
+      );
+      let releaseDeleteRequest!: () => void;
+      const deleteRequestGate = new Promise<void>((resolve) => {
+        releaseDeleteRequest = resolve;
+      });
+      await page.route("**/api/community/comments/**", async (route) => {
+        if (route.request().method() !== "DELETE") {
+          await route.continue();
+          return;
+        }
+        await deleteRequestGate;
+        await route.continue();
+      });
       const deleteResponse = page.waitForResponse(
         (r) =>
           r.url().includes("/api/community/comments/") &&
           r.request().method() === "DELETE" &&
           r.status() === 200,
       );
-      await deleteDialog.getByRole("button", { name: /删除|Delete/i }).click();
+      await reopenedDeleteDialog
+        .getByRole("button", { name: /删除|Delete/i })
+        .click();
+      await expect(reopenedDeleteDialog).toBeVisible();
+      await expect(
+        reopenedDeleteDialog.getByRole("button", { name: /删除|Delete/i }),
+      ).toBeDisabled();
+      await expect(
+        reopenedDeleteDialog.getByRole("button", { name: /取消|Cancel/i }),
+      ).toBeDisabled();
+      await expect(
+        reopenedDeleteDialog.locator('[data-icon="inline-start"]'),
+      ).toBeVisible();
+      releaseDeleteRequest();
       await deleteResponse;
+      await page.unroute("**/api/community/comments/**");
       await expect(editedCommentCard).toHaveCount(0);
       await captureStepScreenshot(page, testInfo, "section/comment-deleted");
     } finally {

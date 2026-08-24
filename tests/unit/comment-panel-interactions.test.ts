@@ -73,9 +73,11 @@ describe("评论面板交互", () => {
       loadComments: vi.fn(),
       setActionMenuId: vi.fn(),
       setDeleteTarget: vi.fn(),
+      setDeleting: vi.fn(),
       setMessage: (value) => {
         message = value;
       },
+      setMessageVariant: vi.fn(),
       setPendingReactionKey,
       setReactionMenuId: vi.fn(),
     });

@@ -66,7 +66,7 @@ export let onDelete: (homework: ModerationHomework) => void;
                 : copy.notAvailable}
             </Item.Description>
           </Item.Content>
-          <Item.Actions class="items-center gap-2">
+          <Item.Actions class="flex-wrap items-center gap-2">
             {#if homework.deletedAt}
               <Badge variant="destructive">{copy.homeworkStatusDeleted}</Badge>
             {:else}

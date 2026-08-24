@@ -152,15 +152,15 @@ $: iconTone =
         </div>
 
         <div class="flex flex-wrap items-center gap-3">
-          <a
-            class="inline-flex h-10 items-center gap-2 rounded-md bg-primary px-4 font-medium text-primary-foreground text-sm no-underline shadow-sm transition hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          <Button
+            class="h-10 no-underline"
             href={primaryHref}
             rel="noreferrer"
             target="_blank"
           >
             {data.copy.primaryAction}
-            <ArrowRightIcon class="size-4" />
-          </a>
+            <ArrowRightIcon data-icon="inline-end" />
+          </Button>
           {#if primaryQrSrc}
             <Popover.Root>
               <Popover.Trigger>

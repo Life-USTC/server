@@ -35,7 +35,9 @@ export function createCommentPanelInteractions(input: {
   loadComments: () => Promise<void>;
   setActionMenuId: (value: string | null) => void;
   setDeleteTarget: (value: CommentNode | null) => void;
+  setDeleting: (value: boolean) => void;
   setMessage: (value: string) => void;
+  setMessageVariant: (value: "destructive" | "default") => void;
   setPendingReactionKey: (value: string | null) => void;
   setReactionMenuId: (value: string | null) => void;
 }) {
@@ -44,16 +46,19 @@ export function createCommentPanelInteractions(input: {
     const copy = input.getCommentCopy();
     if (!input.getViewer().isAuthenticated) {
       input.setMessage(copy.loginRequiredDescription);
+      input.setMessageVariant("destructive");
       return;
     }
     if (input.getViewer().isSuspended) {
       input.setMessage(copy.suspendedMessage);
+      input.setMessageVariant("destructive");
       return;
     }
     const pendingKey = commentReactionKey(comment.id, type);
     if (input.getPendingReactionKey()) return;
     input.setPendingReactionKey(pendingKey);
     input.setMessage("");
+    input.setMessageVariant("default");
     const existingReaction = comment.reactions.find(
       (reaction) => reaction.type === type,
     );
@@ -67,6 +72,7 @@ export function createCommentPanelInteractions(input: {
       });
       input.applyReactionUpdate(comment.id, type, shouldRemove);
     } catch (error) {
+      input.setMessageVariant("destructive");
       input.setMessage(
         error instanceof Error ? error.message : copy.reactionFailed,
       );
@@ -89,8 +95,10 @@ export function createCommentPanelInteractions(input: {
           permalinkBaseHref,
         }),
       );
+      input.setMessageVariant("default");
       input.setMessage(copy.linkCopied);
     } catch {
+      input.setMessageVariant("destructive");
       input.setMessage(copy.pleaseRetry);
     }
   }
@@ -108,16 +116,20 @@ export function createCommentPanelInteractions(input: {
     const deleteTarget = input.getDeleteTarget();
     if (!deleteTarget) return;
     const copy = input.getCommentCopy();
+    input.setDeleting(true);
     try {
       await deleteCommentRequest({
         commentId: deleteTarget.id,
         submitFailed: copy.submitFailed,
       });
     } catch (error) {
+      input.setMessageVariant("destructive");
       input.setMessage(
         error instanceof Error ? error.message : copy.submitFailed,
       );
       return;
+    } finally {
+      input.setDeleting(false);
     }
     closeDeleteDialog();
     await input.loadComments();

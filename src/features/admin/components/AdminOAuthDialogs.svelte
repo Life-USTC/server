@@ -13,6 +13,8 @@ import type {
 } from "./admin-oauth-create-types";
 
 type CreatedClientForm = {
+  message?: string;
+  variant?: "destructive" | "default";
   createdClientId?: string | null;
   createdClientRedirectUris?: string[];
   createdClientScopes?: string[];
