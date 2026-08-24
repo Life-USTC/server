@@ -1,3 +1,12 @@
+## [1.91.3](https://github.com/Life-USTC/server/compare/v1.91.2...v1.91.3) (2026-08-24)
+
+
+### Bug Fixes
+
+* **ui:** compose search and usage interactions with shadcn ([#901](https://github.com/Life-USTC/server/issues/901)) ([846b13d](https://github.com/Life-USTC/server/commit/846b13dfd6daf5dcd6026d036e40f045223e74af))
+* **ui:** standardize feedback and destructive states ([#899](https://github.com/Life-USTC/server/issues/899)) ([a722d10](https://github.com/Life-USTC/server/commit/a722d10599bf71bd32c9d883ded5805943e69206))
+* **ui:** standardize pagination empty and linked layouts ([#900](https://github.com/Life-USTC/server/issues/900)) ([88002c5](https://github.com/Life-USTC/server/commit/88002c586dacf1ec4647622cb1177d817123d726))
+
 ## [1.91.2](https://github.com/Life-USTC/server/compare/v1.91.1...v1.91.2) (2026-08-24)
 
 
