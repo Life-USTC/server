@@ -19,9 +19,10 @@ import { goto } from "$app/navigation";
 import GlobalSearchResults from "$lib/components/shell/GlobalSearchResults.svelte";
 import { Button } from "$lib/components/ui/button/index.js";
 import * as Dialog from "$lib/components/ui/dialog/index.js";
+import * as Field from "$lib/components/ui/field/index.js";
+import * as InputGroup from "$lib/components/ui/input-group/index.js";
 import { ScrollArea } from "$lib/components/ui/scroll-area/index.js";
 import type { LayoutCopy } from "$lib/shell/layout-server-data";
-import { cn } from "$lib/utils.js";
 
 export let copy: LayoutCopy["globalSearch"];
 export let locale: AppLocale;
@@ -102,27 +103,35 @@ $: if (open) {
     <Dialog.Header class="space-y-0 border-b px-4 py-3">
       <Dialog.Title class="sr-only">{copy.title}</Dialog.Title>
       <div class="flex items-center gap-3">
-        <SearchIcon class="size-4 shrink-0 text-muted-foreground" />
-        <input
-          bind:this={inputElement}
-          bind:value={$query}
-          aria-activedescendant={$activeItemId
-            ? globalSearchItemDomId($activeItemId)
-            : undefined}
-          aria-busy={$isSearching}
-          aria-controls={GLOBAL_SEARCH_LISTBOX_ID}
-          aria-expanded={$canNavigateResults}
-          class={cn(
-            "placeholder:text-muted-foreground h-9 min-w-0 flex-1 border-0 bg-transparent px-0 text-base outline-none md:text-sm",
-          )}
-          oncompositionend={handleCompositionEnd}
-          oninput={handleQueryInput}
-          onkeydown={(event) => handleInputKeydown(event, inputElement)}
-          placeholder={placeholder}
-          maxlength={GLOBAL_SEARCH_MAX_QUERY_LENGTH}
-          role="combobox"
-          type="text"
-        />
+        <Field.Field class="min-w-0 flex-1 gap-1">
+          <Field.Label class="sr-only" for="global-search-dialog-input">
+            {copy.title}
+          </Field.Label>
+          <InputGroup.Root class="h-9 min-w-0 rounded-none border-0">
+            <InputGroup.Addon class="px-0">
+              <SearchIcon aria-hidden="true" class="size-4 shrink-0 text-muted-foreground" />
+            </InputGroup.Addon>
+            <InputGroup.Input
+              bind:ref={inputElement}
+              bind:value={$query}
+              aria-activedescendant={$activeItemId
+                ? globalSearchItemDomId($activeItemId)
+                : undefined}
+              aria-busy={$isSearching}
+              aria-controls={GLOBAL_SEARCH_LISTBOX_ID}
+              aria-expanded={$canNavigateResults}
+              class="h-9 min-w-0 rounded-none border-0 bg-transparent px-0 text-base outline-none md:text-sm"
+              id="global-search-dialog-input"
+              oncompositionend={handleCompositionEnd}
+              oninput={handleQueryInput}
+              onkeydown={(event) => handleInputKeydown(event, inputElement)}
+              placeholder={placeholder}
+              maxlength={GLOBAL_SEARCH_MAX_QUERY_LENGTH}
+              role="combobox"
+              type="text"
+            />
+          </InputGroup.Root>
+        </Field.Field>
         <Button
           aria-label={copy.close}
           class="shrink-0"

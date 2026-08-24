@@ -33,7 +33,7 @@ test("search page supports keyboard navigation into results", async ({
 }) => {
   await gotoAndWaitForReady(page, "/search?q=线性代数");
 
-  const input = page.getByRole("combobox");
+  const input = page.getByRole("combobox", { name: /搜索|Search/i });
   await expect(input).toBeVisible();
   await expect(page.getByRole("option").first()).toBeVisible();
   await input.press("ArrowDown");
