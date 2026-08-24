@@ -1,7 +1,7 @@
 <script lang="ts">
 import type { DashboardFocusItem } from "@/features/dashboard/lib/dashboard-agenda";
-import SoftEmptyMessage from "$lib/components/SoftEmptyMessage.svelte";
 import { Badge } from "$lib/components/ui/badge/index.js";
+import * as Empty from "$lib/components/ui/empty/index.js";
 import OverviewSection from "./OverviewSection.svelte";
 
 export let copy: {
@@ -40,6 +40,10 @@ function statusLabel(status: DashboardFocusItem["status"]) {
       </p>
     </a>
   {:else}
-    <SoftEmptyMessage message={copy.noUpcoming} />
+    <Empty.Root class="min-h-20 border-0 px-2 py-6">
+      <Empty.Header>
+        <Empty.Description>{copy.noUpcoming}</Empty.Description>
+      </Empty.Header>
+    </Empty.Root>
   {/if}
 </OverviewSection>

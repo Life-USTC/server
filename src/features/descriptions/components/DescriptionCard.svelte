@@ -9,9 +9,9 @@ import {
 } from "@/features/descriptions/lib/description-card-actions";
 import type { AppLocale } from "@/i18n/config";
 import { createShanghaiDateTimeFormatter } from "@/lib/time/shanghai-format";
-import SoftEmptyMessage from "$lib/components/SoftEmptyMessage.svelte";
 import * as Alert from "$lib/components/ui/alert/index.js";
 import { Button } from "$lib/components/ui/button/index.js";
+import * as Empty from "$lib/components/ui/empty/index.js";
 import DescriptionCardHeader from "./DescriptionCardHeader.svelte";
 import DescriptionEditPanel from "./DescriptionEditPanel.svelte";
 import DescriptionReadPanel from "./DescriptionReadPanel.svelte";
@@ -171,7 +171,11 @@ const { cancelEdit, editorName, saveDescription, startEdit } =
         {saveDescription}
       />
     {:else if softEmpty}
-      <SoftEmptyMessage message={copy.empty} />
+      <Empty.Root class="min-h-20 border-0 px-2 py-6">
+        <Empty.Header>
+          <Empty.Description>{copy.empty}</Empty.Description>
+        </Empty.Header>
+      </Empty.Root>
     {:else}
       <DescriptionReadPanel
         bind:activePanelTab

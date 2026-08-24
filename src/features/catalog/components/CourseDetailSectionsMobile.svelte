@@ -3,8 +3,8 @@ import {
   type CatalogNamed,
   catalogLocalizedNames,
 } from "@/features/catalog/lib/catalog-list-display";
-import SoftEmptyMessage from "$lib/components/SoftEmptyMessage.svelte";
 import TruncatedCode from "$lib/components/TruncatedCode.svelte";
+import * as Empty from "$lib/components/ui/empty/index.js";
 import * as Item from "$lib/components/ui/item/index.js";
 import type {
   CourseDetailCopy,
@@ -20,7 +20,11 @@ export let primaryName: (item: CatalogNamed | null | undefined) => string;
 
 {#if course.sections.length === 0}
   <div class="md:hidden">
-    <SoftEmptyMessage message={copy.courseDetail.noSections} />
+    <Empty.Root class="min-h-20 border-0 px-2 py-6">
+      <Empty.Header>
+        <Empty.Description>{copy.courseDetail.noSections}</Empty.Description>
+      </Empty.Header>
+    </Empty.Root>
   </div>
 {:else}
   <Item.Group class="md:hidden">

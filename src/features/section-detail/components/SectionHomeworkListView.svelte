@@ -1,6 +1,6 @@
 <script lang="ts">
-import SoftEmptyMessage from "$lib/components/SoftEmptyMessage.svelte";
 import { Badge } from "$lib/components/ui/badge/index.js";
+import * as Empty from "$lib/components/ui/empty/index.js";
 import * as Table from "$lib/components/ui/table/index.js";
 import type {
   SectionCopy,
@@ -17,7 +17,11 @@ export let selectHomework: (homework: SectionHomework) => void;
 
 <div data-testid="section-homeworks-list">
   {#if homeworks.length === 0}
-    <SoftEmptyMessage message={sectionCopy.noHomework} />
+    <Empty.Root class="min-h-20 border-0 px-2 py-6">
+      <Empty.Header>
+        <Empty.Description>{sectionCopy.noHomework}</Empty.Description>
+      </Empty.Header>
+    </Empty.Root>
   {:else}
     <div class="min-w-0 overflow-x-auto">
       <Table.Root>

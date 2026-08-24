@@ -2,10 +2,10 @@
 import Trash2 from "@lucide/svelte/icons/trash-2";
 import DashboardTableIconButton from "@/features/dashboard/components/DashboardTableIconButton.svelte";
 import DashboardTableRowActions from "@/features/dashboard/components/DashboardTableRowActions.svelte";
-import SoftEmptyMessage from "$lib/components/SoftEmptyMessage.svelte";
 import TruncatedText from "$lib/components/TruncatedText.svelte";
 import { Badge } from "$lib/components/ui/badge/index.js";
 import { Button } from "$lib/components/ui/button/index.js";
+import * as Empty from "$lib/components/ui/empty/index.js";
 import * as Item from "$lib/components/ui/item/index.js";
 import * as Table from "$lib/components/ui/table/index.js";
 
@@ -43,7 +43,11 @@ export let onDelete: (homework: ModerationHomework) => void;
 
 <section class="grid gap-3">
   {#if homeworks.length === 0}
-    <SoftEmptyMessage message={copy.noHomeworks} />
+    <Empty.Root class="min-h-20 border-0 px-2 py-6">
+      <Empty.Header>
+        <Empty.Description>{copy.noHomeworks}</Empty.Description>
+      </Empty.Header>
+    </Empty.Root>
   {:else}
     <Item.Group class="xl:hidden gap-0 border-y">
       {#each homeworks as homework, index (homework.id)}
