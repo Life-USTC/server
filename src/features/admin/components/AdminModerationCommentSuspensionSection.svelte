@@ -48,7 +48,6 @@ export let suspensionReason: string;
           bind:value={customExpiresAt}
           aria-labelledby="moderation-suspension-custom-expires-label"
           calendarButtonLabel={copy.calendarButtonLabel}
-          placeholder={copy.suspendExpires}
         />
       </Field.Field>
     {/if}
@@ -56,7 +55,6 @@ export let suspensionReason: string;
       <Field.Label class="sr-only" for="moderation-suspension-reason">{copy.suspendReason}</Field.Label>
       <Input
         id="moderation-suspension-reason"
-        placeholder={copy.suspendReason}
         value={suspensionReason}
         oninput={(event: Event) => {
           suspensionReason = inputValue(event);

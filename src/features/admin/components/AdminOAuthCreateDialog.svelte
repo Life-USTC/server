@@ -52,10 +52,10 @@ $: scopesPickerCopy = buildOAuthScopesPickerCopy(copy, {
     }}
   >
     <Dialog.Content
-      class="grid-rows-[auto_minmax(0,1fr)] max-h-[calc(100vh-2rem)] max-w-2xl overflow-hidden sm:max-w-2xl"
+      class="grid max-h-[calc(100dvh-2rem)] min-h-0 max-w-2xl grid-rows-[auto_minmax(0,1fr)] overflow-hidden sm:max-w-2xl"
       aria-labelledby="oauth-create-title"
     >
-      <Dialog.Header>
+      <Dialog.Header class="pr-10">
         <Dialog.Title id="oauth-create-title">{copy.createClient}</Dialog.Title>
         <Dialog.Description>{copy.createClientDescription}</Dialog.Description>
       </Dialog.Header>

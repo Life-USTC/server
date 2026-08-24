@@ -19,7 +19,6 @@ export let inputValue: (event: Event) => string;
       <Field.Label for="admin-user-name">{copy.nameLabel}</Field.Label>
       <Input
         id="admin-user-name"
-        placeholder={copy.name}
         value={editName}
         oninput={(event: Event) => (editName = inputValue(event))}
       />
@@ -30,7 +29,6 @@ export let inputValue: (event: Event) => string;
       </Field.Label>
       <Input
         id="admin-user-username"
-        placeholder={copy.username}
         value={editUsername}
         oninput={(event: Event) => (editUsername = inputValue(event))}
       />

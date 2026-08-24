@@ -28,6 +28,7 @@ export let copy: AdminModerationCopy;
 export let customExpiresAt: string;
 export let descriptionDraft: string;
 export let dialogMessage: string;
+export let dialogMessageVariant: "destructive" | "default";
 export let editDescriptionAction: SubmitFunction;
 export let formatDate: (value: string | Date) => string;
 export let inputValue: (event: Event) => string;
@@ -62,6 +63,7 @@ export let deleteHomeworkAction: SubmitFunction;
   {commentStatusOptions}
   {copy}
   {dialogMessage}
+  {dialogMessageVariant}
   {inputValue}
   {isSavingComment}
   {isSuspendingUser}

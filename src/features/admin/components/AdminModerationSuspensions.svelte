@@ -102,7 +102,7 @@ function confirmedLiftAction(suspension: ModerationSuspension): SubmitFunction {
               {suspension.reason ?? copy.noReason} · {expiresLabel(suspension)}
             </Item.Description>
           </Item.Content>
-          <Item.Actions class="items-center gap-2">
+          <Item.Actions class="flex-wrap items-center gap-2">
             {#if suspension.liftedAt}
               <Badge variant="ghost">{copy.lifted}</Badge>
             {:else}
@@ -222,7 +222,7 @@ function confirmedLiftAction(suspension: ModerationSuspension): SubmitFunction {
           >
             {copy.cancelButton}
           </AlertDialog.Cancel>
-          <Button
+          <AlertDialog.Action
             type="submit"
             disabled={Boolean(liftingSuspensionId)}
             variant="destructive"
@@ -233,7 +233,7 @@ function confirmedLiftAction(suspension: ModerationSuspension): SubmitFunction {
               <Unlock data-icon="inline-start" />
             {/if}
             {copy.liftSuspensionConfirmAction}
-          </Button>
+          </AlertDialog.Action>
         </AlertDialog.Footer>
       </form>
     </AlertDialog.Content>

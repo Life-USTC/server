@@ -104,14 +104,14 @@ let activateDialogOpen = false;
           >
             {copy.cancelAction}
           </AlertDialog.Cancel>
-          <Button type="submit" disabled={Boolean(pendingAction)}>
+          <AlertDialog.Action type="submit" disabled={Boolean(pendingAction)}>
             {#if isPending(`activate-${version.id}`)}
               <Spinner data-icon="inline-start" />
             {:else}
               <CheckCircle data-icon="inline-start" />
             {/if}
             {copy.confirmActivateAction}
-          </Button>
+          </AlertDialog.Action>
         </AlertDialog.Footer>
       </form>
     </AlertDialog.Content>

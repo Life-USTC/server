@@ -41,6 +41,8 @@ type PageData = {
 };
 
 type ActionData = {
+  message?: string;
+  variant?: "destructive" | "default";
   createdClientId?: string | null;
   createdClientRedirectUris?: string[];
   createdClientScopes?: string[];

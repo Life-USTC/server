@@ -31,6 +31,7 @@ export function createModerationPageActions<
   setCommentStatus: (value: "active" | "softbanned" | "deleted") => void;
   setCustomExpiresAt: (value: string) => void;
   setDialogMessage: (value: string) => void;
+  setDialogMessageVariant: (value: "destructive" | "default") => void;
   setIsRefreshingQueue: (value: boolean) => void;
   setIsSavingComment: (value: boolean) => void;
   setIsSuspendingUser: (value: boolean) => void;
@@ -65,6 +66,7 @@ export function createModerationPageActions<
     input.setSuspensionDuration(next.suspensionDuration);
     input.setCustomExpiresAt(next.customExpiresAt);
     input.setDialogMessage(next.dialogMessage);
+    input.setDialogMessageVariant(next.dialogMessageVariant);
   }
 
   async function saveCommentModeration() {
@@ -73,6 +75,7 @@ export function createModerationPageActions<
     const copy = input.getCopy();
     input.setIsSavingComment(true);
     input.setDialogMessage("");
+    input.setDialogMessageVariant("default");
     try {
       await saveModerationCommentRequest({
         commentId: String(selectedComment.id),
@@ -83,6 +86,7 @@ export function createModerationPageActions<
       input.closeCommentDialog();
       await input.invalidateAll();
     } catch (error) {
+      input.setDialogMessageVariant("destructive");
       input.setDialogMessage(
         error instanceof Error ? error.message : copy.updateFailed,
       );
@@ -97,6 +101,7 @@ export function createModerationPageActions<
     const copy = input.getCopy();
     input.setIsSuspendingUser(true);
     input.setDialogMessage("");
+    input.setDialogMessageVariant("default");
     try {
       await suspendModerationCommentAuthorRequest({
         customExpiresAt: input.getCustomExpiresAt(),
@@ -108,6 +113,7 @@ export function createModerationPageActions<
       input.setDialogMessage(copy.suspendSuccess);
       await input.invalidateAll();
     } catch (error) {
+      input.setDialogMessageVariant("destructive");
       input.setDialogMessage(
         error instanceof Error ? error.message : copy.suspendFailed,
       );

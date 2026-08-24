@@ -28,6 +28,7 @@ export let formatMessage: (
   values: Record<string, string>,
 ) => string;
 export let message: string | null;
+export let messageVariant: "destructive" | "default";
 export let onSelect: (user: AdminUserRow) => void;
 export let pageHref: AdminUsersPageHref;
 export let pagination: AdminUsersPagination;
@@ -49,7 +50,7 @@ function handlePageChange(page: number) {
     />
   {/snippet}
   {#snippet feedback()}
-    {#if message}<Alert.Root><Alert.Description>{message}</Alert.Description></Alert.Root>{/if}
+    {#if message}<Alert.Root variant={messageVariant}><Alert.Description>{message}</Alert.Description></Alert.Root>{/if}
   {/snippet}
   {#snippet controls()}
     <AdminUsersSearchCard

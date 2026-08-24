@@ -185,7 +185,7 @@ function revokeAction(consentId: string): SubmitFunction {
           >
             {copy.profile.cancel}
           </AlertDialog.Cancel>
-          <Button
+          <AlertDialog.Action
             disabled={Boolean(revokingConsentId)}
             type="submit"
             variant="destructive"
@@ -200,7 +200,7 @@ function revokeAction(consentId: string): SubmitFunction {
               <TrashIcon data-icon="inline-start" />
               {copy.settings.authorizations.revoke}
             {/if}
-          </Button>
+          </AlertDialog.Action>
         </AlertDialog.Footer>
       </form>
     </AlertDialog.Content>

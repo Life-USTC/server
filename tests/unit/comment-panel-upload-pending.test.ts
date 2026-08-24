@@ -142,6 +142,7 @@ function createSubmitActions({
     setHiddenCount: vi.fn(),
     setLoading: vi.fn(),
     setMessage: vi.fn(),
+    setMessageVariant: vi.fn(),
     setSelectedAttachments: vi.fn(),
     setSubmitting: (value) => {
       submitting = value;
@@ -230,6 +231,7 @@ describe("评论面板上传挂起状态", () => {
       loadComments,
       setActionMenuId: vi.fn(),
       setMessage: vi.fn(),
+      setMessageVariant: vi.fn(),
     });
 
     await actions.saveEdit(comment());

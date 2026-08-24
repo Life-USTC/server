@@ -92,9 +92,9 @@ function toggleGroup(group: OAuthScopePickerGroup) {
   <div class="grid gap-4">
     {#each groups as group}
       {@const groupValues = scopesInPickerGroup(group)}
-      <section class="grid gap-2 rounded-lg border p-3">
+      <Field.Set class="grid gap-2 rounded-lg border p-3">
         <div class="flex flex-wrap items-center justify-between gap-2">
-          <h3 class="font-medium text-sm">{group.title}</h3>
+          <Field.Legend class="font-medium text-sm">{group.title}</Field.Legend>
           <Button
             type="button"
             size="sm"
@@ -106,7 +106,7 @@ function toggleGroup(group: OAuthScopePickerGroup) {
           </Button>
         </div>
 
-        <div class="grid gap-2">
+        <Field.Group class="gap-2">
           {#each group.rows as row}
             {#if row.kind === "base"}
               {@const scopeId = checkboxId(row.value)}
@@ -164,8 +164,8 @@ function toggleGroup(group: OAuthScopePickerGroup) {
               </div>
             {/if}
           {/each}
-        </div>
-      </section>
+        </Field.Group>
+      </Field.Set>
     {/each}
   </div>
 </Field.Set>

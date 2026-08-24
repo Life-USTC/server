@@ -27,6 +27,7 @@ export let isSaving: boolean;
 export let isSuspending: boolean;
 export let liftSelectedSuspension: () => void | Promise<void>;
 export let message: string | null;
+export let messageVariant: "destructive" | "default";
 export let moderationCopy: AdminUsersModerationCopy;
 export let saveSelectedUser: () => void | Promise<void>;
 export let selectedUser: AdminUserRow | null;
@@ -34,10 +35,12 @@ export let suspendDuration: string;
 export let suspendDurationOptions: Array<{ label: string; value: string }>;
 export let suspendExpiresAt: string;
 export let suspendReason: string;
-export let suspendSelectedUser: () => void | Promise<void>;
+export let suspendSelectedUser: () => boolean | Promise<boolean>;
 export let suspensionLabel: AdminUserFormatter;
 
 let roleChangeDialogOpen = false;
+
+$: if (!selectedUser) roleChangeDialogOpen = false;
 
 function requestSave() {
   if (selectedUser && editIsAdmin !== selectedUser.isAdmin) {
@@ -48,7 +51,6 @@ function requestSave() {
 }
 
 async function confirmRoleChange() {
-  roleChangeDialogOpen = false;
   await saveSelectedUser();
 }
 </script>
@@ -61,14 +63,14 @@ async function confirmRoleChange() {
     }}
   >
     <Dialog.Content
-      class="max-w-2xl sm:max-w-2xl"
+      class="grid max-h-[calc(100dvh-1rem)] min-h-0 max-w-2xl grid-rows-[auto_minmax(0,1fr)_auto] overflow-hidden sm:max-w-2xl"
       aria-labelledby="admin-user-dialog-title"
     >
       <AdminUserDialogHeader {copy} user={selectedUser} />
 
-      <ScrollArea class="h-[min(62vh,34rem)]">
+      <ScrollArea class="min-h-0 h-[min(62dvh,34rem)] max-h-[calc(100dvh-10rem)]">
         <div class="grid gap-5 px-5 py-4">
-          {#if message}<Alert.Root><Alert.Description>{message}</Alert.Description></Alert.Root>{/if}
+          {#if message}<Alert.Root variant={messageVariant}><Alert.Description>{message}</Alert.Description></Alert.Root>{/if}
 
           <AdminUserProfileSection
             {copy}
@@ -131,10 +133,10 @@ async function confirmRoleChange() {
         <AlertDialog.Cancel type="button" disabled={isSaving} variant="outline">
           {moderationCopy.cancelButton}
         </AlertDialog.Cancel>
-        <Button type="button" disabled={isSaving} onclick={confirmRoleChange}>
+        <AlertDialog.Action type="button" disabled={isSaving} onclick={confirmRoleChange}>
           {#if isSaving}<Spinner data-icon="inline-start" />{/if}
           {copy.confirmRoleChange}
-        </Button>
+        </AlertDialog.Action>
       </AlertDialog.Footer>
     </AlertDialog.Content>
   </AlertDialog.Root>

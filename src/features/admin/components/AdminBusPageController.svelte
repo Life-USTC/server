@@ -1,6 +1,7 @@
 <script lang="ts">
 import AdminBusDialogs from "@/features/admin/components/AdminBusDialogs.svelte";
 import AdminBusHeader from "@/features/admin/components/AdminBusHeader.svelte";
+import AdminBusStatusAlerts from "@/features/admin/components/AdminBusStatusAlerts.svelte";
 import AdminBusVersions from "@/features/admin/components/AdminBusVersions.svelte";
 import AdminWorkspace from "@/features/admin/components/AdminWorkspace.svelte";
 import { createAdminBusControllerDefaultState } from "@/features/admin/lib/admin-bus-controller-default-state";
@@ -22,7 +23,16 @@ type PageData = {
   versions: AdminBusVersion[];
 };
 
+type ActionData =
+  | {
+      message?: string;
+      variant?: "destructive" | "default";
+    }
+  | null
+  | undefined;
+
 export let data: PageData;
+export let form: ActionData;
 
 let { isImportDialogOpen, pendingAction, pendingDeleteVersion } =
   createAdminBusControllerDefaultState();
@@ -78,6 +88,9 @@ const enhancedAction = createPendingEnhancedAction({
       disabled={Boolean(pendingAction)}
       onImport={openImportDialog}
     />
+  {/snippet}
+  {#snippet feedback()}
+    <AdminBusStatusAlerts {form} />
   {/snippet}
   <AdminBusVersions
     {copy}

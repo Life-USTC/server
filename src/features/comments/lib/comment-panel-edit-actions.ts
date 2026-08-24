@@ -22,6 +22,7 @@ export function createCommentPanelEditActions(input: {
   loadComments: () => Promise<void>;
   setActionMenuId: (value: string | null) => void;
   setMessage: (value: string) => void;
+  setMessageVariant: (value: "destructive" | "default") => void;
 }) {
   function startEdit(comment: CommentNode) {
     input.applyEditDraftState(commentEditDraftFromComment(comment));
@@ -46,6 +47,7 @@ export function createCommentPanelEditActions(input: {
         visibility: input.getEditVisibility(),
       });
     } catch (error) {
+      input.setMessageVariant("destructive");
       input.setMessage(
         error instanceof Error ? error.message : copy.submitFailed,
       );

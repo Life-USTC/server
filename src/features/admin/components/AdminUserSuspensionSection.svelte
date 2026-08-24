@@ -27,7 +27,7 @@ export let suspendDuration: string;
 export let suspendDurationOptions: Array<{ label: string; value: string }>;
 export let suspendExpiresAt: string;
 export let suspendReason: string;
-export let suspendSelectedUser: () => void | Promise<void>;
+export let suspendSelectedUser: () => boolean | Promise<boolean>;
 export let suspensionLabel: AdminUserFormatter;
 
 let updateSuspensionDialogOpen = false;
@@ -41,8 +41,7 @@ function requestSuspension() {
 }
 
 async function confirmSuspensionUpdate() {
-  updateSuspensionDialogOpen = false;
-  await suspendSelectedUser();
+  if (await suspendSelectedUser()) updateSuspensionDialogOpen = false;
 }
 </script>
 
@@ -77,11 +76,13 @@ async function confirmSuspensionUpdate() {
       </Field.Field>
       {#if suspendDuration === "custom"}
         <Field.Field>
-          <Field.Title>{moderationCopy.suspendExpires}</Field.Title>
+          <Field.Label id="admin-user-suspend-expires-label">
+            {moderationCopy.suspendExpires}
+          </Field.Label>
           <DateTimePicker
             bind:value={suspendExpiresAt}
+            aria-labelledby="admin-user-suspend-expires-label"
             calendarButtonLabel={moderationCopy.calendarButtonLabel}
-            placeholder={moderationCopy.suspendExpires}
           />
         </Field.Field>
       {/if}
@@ -92,7 +93,6 @@ async function confirmSuspensionUpdate() {
       </Field.Label>
       <Input
         id="admin-user-suspend-reason"
-        placeholder={moderationCopy.suspendReason}
         value={suspendReason}
         oninput={(event: Event) => (suspendReason = inputValue(event))}
       />
@@ -155,7 +155,7 @@ async function confirmSuspensionUpdate() {
       <AlertDialog.Cancel type="button" disabled={isSuspending} variant="outline">
         {moderationCopy.cancelButton}
       </AlertDialog.Cancel>
-      <Button
+      <AlertDialog.Action
         type="button"
         disabled={isSuspending}
         variant="destructive"
@@ -163,7 +163,7 @@ async function confirmSuspensionUpdate() {
       >
         {#if isSuspending}<Spinner data-icon="inline-start" />{/if}
         {copy.updateSuspensionAction}
-      </Button>
+      </AlertDialog.Action>
     </AlertDialog.Footer>
   </AlertDialog.Content>
 </AlertDialog.Root>

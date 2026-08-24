@@ -53,18 +53,18 @@ export let targetLabel: (description: AdminModerationDescription) => string;
       >
         <Field.Group class="grid min-h-0 grid-rows-[auto_minmax(0,1fr)_auto] gap-4 overflow-hidden">
           <Dialog.Header>
-            <div class="flex items-start justify-between gap-3">
-              <div>
+            <div class="flex min-w-0 items-start justify-between gap-3">
+              <div class="min-w-0 flex-1">
                 <Dialog.Title id="manage-description-title">{copy.manageDescription}</Dialog.Title>
                 <Dialog.Description>
                   {targetLabel(description)} · {formatMessage(copy.editedAt, { date: formatDate(descriptionEditedAt(description)) })}
                 </Dialog.Description>
               </div>
-              <Button type="button" variant="ghost" onclick={close}>{copy.close}</Button>
+              <Button class="shrink-0" type="button" variant="ghost" onclick={close}>{copy.close}</Button>
             </div>
           </Dialog.Header>
 
-          <ScrollArea class="min-h-0 h-[min(56vh,34rem)] max-h-[calc(100dvh-12rem)]">
+          <ScrollArea class="min-h-0 h-[min(56dvh,34rem)] max-h-[calc(100dvh-12rem)]">
             <Field.Group class="gap-4 px-5 py-4">
               <input type="hidden" name="id" value={description.id} />
               <AdminModerationDescriptionMeta

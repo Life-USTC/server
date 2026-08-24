@@ -19,6 +19,7 @@ export function moderationCommentDialogState(input: {
     commentStatus: input.comment.status,
     customExpiresAt: "",
     dialogMessage: "",
+    dialogMessageVariant: "default" as const,
     moderationNote: input.comment.moderationNote ?? "",
     suspensionDuration: "7d",
     suspensionReason: moderationFormatMessage(input.copy.defaultBanReason, {

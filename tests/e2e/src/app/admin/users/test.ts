@@ -138,14 +138,29 @@ test("/admin/users 移动端工作区可搜索并管理首条记录", async ({
   await expect(record).toBeVisible();
   await expect(record).toBeInViewport();
   await record.getByRole("button", { name: /管理用户|Manage User/i }).click();
-  await expect(
-    page.getByRole("dialog", { name: /管理用户|Manage User/i }),
-  ).toBeVisible();
+  const dialog = page.getByRole("dialog", { name: /管理用户|Manage User/i });
+  await expect(dialog).toBeVisible();
+  await expect(dialog.locator('[data-slot="dialog-close"]')).toBeVisible();
+  const footerButtons = dialog.locator('[data-slot="dialog-footer"] button');
+  await expect(footerButtons).toHaveCount(2);
+  await expect(footerButtons.nth(0)).toContainText(/取消|Cancel/i);
+  await expect(footerButtons.nth(1)).toContainText(/保存更改|Save/i);
   expect(
     await page.evaluate(() => document.documentElement.scrollWidth),
   ).toBeLessThanOrEqual(390);
 
-  await captureStepScreenshot(page, testInfo, "admin-users-mobile-workspace");
+  // Reflow the same dialog at the narrowest supported mobile width.
+  await page.setViewportSize({ width: 320, height: 844 });
+  await expect(dialog).toBeVisible();
+  await expect(dialog.locator('[data-slot="dialog-close"]')).toBeVisible();
+  await expect(footerButtons.nth(0)).toBeVisible();
+  await expect(footerButtons.nth(1)).toBeVisible();
+  expect(
+    await page.evaluate(() => document.documentElement.scrollWidth),
+  ).toBeLessThanOrEqual(320);
+  await captureStepScreenshot(page, testInfo, "admin-users-mobile-dialog");
+  await page.keyboard.press("Escape");
+  await expect(dialog).toBeHidden();
 });
 
 test("/admin/users 状态列对齐且平板使用可读列表", async ({

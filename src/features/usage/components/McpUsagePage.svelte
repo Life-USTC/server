@@ -6,6 +6,7 @@ import DownloadIcon from "@lucide/svelte/icons/download";
 import ExternalLinkIcon from "@lucide/svelte/icons/external-link";
 import { writeClipboardText } from "$lib/browser/clipboard";
 import { Badge } from "$lib/components/ui/badge/index.js";
+import { Button } from "$lib/components/ui/button/index.js";
 import * as Tabs from "$lib/components/ui/tabs/index.js";
 
 type ClientCopy = {
@@ -92,9 +93,10 @@ function selectClient(value: string) {
 <svelte:head><title>{data.metadataTitle} - Life@USTC</title></svelte:head>
 
 {#snippet copyField(key: string, label: string, value: string)}
-  <button
-    class="group flex min-w-0 items-center gap-3 rounded-xl border border-border bg-background p-3 text-left transition hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+  <Button
+    class="group h-auto min-w-0 justify-between rounded-xl p-3 text-left whitespace-normal"
     type="button"
+    variant="outline"
     onclick={() => copyValue(key, value)}
   >
     <span class="grid min-w-0 flex-1 gap-0.5">
@@ -105,31 +107,32 @@ function selectClient(value: string) {
       class="flex shrink-0 items-center gap-1.5 text-muted-foreground text-xs group-hover:text-foreground"
     >
       {#if copiedKey === key}
-        <CheckIcon class="size-4" />
+        <CheckIcon data-icon="inline-end" />
         <span class="hidden sm:inline">{data.copy.copiedValueAction}</span>
       {:else}
-        <CopyIcon class="size-4" />
+        <CopyIcon data-icon="inline-end" />
         <span class="hidden sm:inline">{data.copy.copyValueAction}</span>
       {/if}
     </span>
-  </button>
+  </Button>
 {/snippet}
 
 {#snippet commandField(key: string, title: string, value: string)}
   <div class="grid gap-2">
     <h4 class="font-medium text-sm">{title}</h4>
-    <button
-      class="group flex min-w-0 items-start gap-3 rounded-xl border border-border bg-background p-3 text-left hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+    <Button
+      class="group h-auto min-w-0 w-full justify-between rounded-xl p-3 text-left whitespace-normal"
       type="button"
+      variant="outline"
       onclick={() => copyValue(key, value)}
     >
       <code class="min-w-0 flex-1 whitespace-pre-wrap break-all font-mono text-sm leading-6">{value}</code>
       {#if copiedKey === key}
-        <CheckIcon class="mt-1 size-4 shrink-0" />
+        <CheckIcon class="mt-1 shrink-0" data-icon="inline-end" />
       {:else}
-        <CopyIcon class="mt-1 size-4 shrink-0 text-muted-foreground group-hover:text-foreground" />
+        <CopyIcon class="mt-1 shrink-0 text-muted-foreground group-hover:text-foreground" data-icon="inline-end" />
       {/if}
-    </button>
+    </Button>
   </div>
 {/snippet}
 
@@ -184,19 +187,15 @@ function selectClient(value: string) {
             {data.copy.subtitle}
           </p>
         </div>
-        <button
-          class="flex h-10 w-fit items-center gap-2 rounded-md bg-primary px-4 font-medium text-primary-foreground text-sm shadow-sm transition hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-          type="button"
-          onclick={copyEndpoint}
-        >
+        <Button class="h-10 w-fit" type="button" onclick={copyEndpoint}>
           {#if copiedKey === "endpoint"}
-            <CheckIcon class="size-4" />
+            <CheckIcon data-icon="inline-start" />
             {data.copy.copiedAction}
           {:else}
-            <CopyIcon class="size-4" />
+            <CopyIcon data-icon="inline-start" />
             {data.copy.primaryAction}
           {/if}
-        </button>
+        </Button>
       </div>
 
       <figure
