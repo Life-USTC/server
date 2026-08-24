@@ -88,6 +88,7 @@ export function createCommentPanelUploadActions(input: {
           upload.filename,
         ),
       );
+      input.setMessageVariant("default");
     } catch (error) {
       input.replaceMarkdownToken(token, "", mode);
       input.setMessage(

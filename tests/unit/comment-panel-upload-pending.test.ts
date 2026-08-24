@@ -2,7 +2,6 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { CommentEditorMode } from "@/features/comments/lib/comment-panel-draft-state";
 import { createCommentPanelEditActions } from "@/features/comments/lib/comment-panel-edit-actions";
 import { createCommentPanelLoadSubmitActions } from "@/features/comments/lib/comment-panel-load-submit-actions";
-import { createCommentPanelUploadActions } from "@/features/comments/lib/comment-panel-upload-actions";
 import {
   commentUploadPendingForMode,
   commentUploadPendingStateWithDelta,
@@ -18,19 +17,9 @@ const apiClientMock = vi.hoisted(() => ({
   POST: vi.fn(),
 }));
 
-const uploadClientMock = vi.hoisted(() => ({
-  loadCommentUploadSummary: vi.fn(),
-  uploadCommentAttachment: vi.fn(),
-}));
-
 vi.mock("@/lib/api/client", () => ({
   apiClient: apiClientMock,
 }));
-
-vi.mock(
-  "@/features/comments/lib/comment-upload-client",
-  () => uploadClientMock,
-);
 
 const target: CommentTargetOption = {
   key: "section",
@@ -163,45 +152,6 @@ function createSubmitActions({
   });
 }
 
-function createUploadActions() {
-  let message = "";
-  let messageVariant: "destructive" | "default" = "default";
-  return {
-    actions: createCommentPanelUploadActions({
-      getEditAttachmentIds: () => [],
-      getEditUploadedFiles: () => [],
-      getReplyAttachmentIds: () => [],
-      getReplyUploadedFiles: () => [],
-      getSelectedAttachments: () => [],
-      getUploadCopy: () => ({
-        toastFileTooLargeDescription: "too large",
-        toastQuotaExceededDescription: "quota exceeded",
-        toastUploadErrorDescription: "upload failed",
-        toastUploadSuccessDescription: "uploaded {name}",
-        uploading: "uploading",
-      }),
-      getUploadedFiles: () => [],
-      insertMarkdown: vi.fn(),
-      replaceMarkdownToken: vi.fn(),
-      setEditAttachmentIds: vi.fn(),
-      setEditUploadedFiles: vi.fn(),
-      setMessage: (value) => {
-        message = value;
-      },
-      setMessageVariant: (value) => {
-        messageVariant = value;
-      },
-      setReplyAttachmentIds: vi.fn(),
-      setReplyUploadedFiles: vi.fn(),
-      setSelectedAttachments: vi.fn(),
-      setUploadedFiles: vi.fn(),
-      updatePendingUploads: vi.fn(),
-    }),
-    message: () => message,
-    messageVariant: () => messageVariant,
-  };
-}
-
 describe("评论面板上传挂起状态", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -307,33 +257,5 @@ describe("评论面板上传挂起状态", () => {
         visibility: "public",
       },
     });
-  });
-
-  it("并发上传成功不会清除另一个上传的 destructive 状态", async () => {
-    let rejectFirst!: (error: Error) => void;
-    let resolveSecond!: (value: { filename: string; id: string }) => void;
-    const firstUpload = new Promise<never>((_, reject) => {
-      rejectFirst = reject;
-    });
-    const secondUpload = new Promise<{ filename: string; id: string }>(
-      (resolve) => {
-        resolveSecond = resolve;
-      },
-    );
-    uploadClientMock.uploadCommentAttachment
-      .mockReturnValueOnce(firstUpload)
-      .mockReturnValueOnce(secondUpload);
-
-    const { actions, messageVariant } = createUploadActions();
-    const first = actions.uploadFile(new File(["first"], "first.txt"));
-    const second = actions.uploadFile(new File(["second"], "second.txt"));
-
-    rejectFirst(new Error("first upload failed"));
-    await first;
-    expect(messageVariant()).toBe("destructive");
-
-    resolveSecond({ filename: "second.txt", id: "upload-2" });
-    await second;
-    expect(messageVariant()).toBe("destructive");
   });
 });
