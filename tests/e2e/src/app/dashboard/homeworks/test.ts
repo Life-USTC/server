@@ -130,6 +130,17 @@ test.describe("仪表盘作业", () => {
     await gotoAndWaitForReady(page, "/workspace/homeworks?homeworkView=list");
     await expect(page.getByTestId("dashboard-homeworks-cards")).toBeVisible();
     await expect(page.getByTestId("dashboard-homeworks-list")).toBeHidden();
+    const homeworkItem = page
+      .getByTestId("dashboard-homeworks-cards")
+      .locator('[data-slot="item"]')
+      .first();
+    await expect(homeworkItem).toBeVisible();
+    await expect(
+      homeworkItem.locator('[data-slot="item-content"]'),
+    ).toBeVisible();
+    await expect(
+      homeworkItem.locator('[data-slot="item-actions"]'),
+    ).toBeVisible();
     expect(
       await page.evaluate(
         () => document.documentElement.scrollWidth <= window.innerWidth,
@@ -137,6 +148,81 @@ test.describe("仪表盘作业", () => {
     ).toBe(true);
 
     await captureStepScreenshot(page, testInfo, "homeworks/mobile-toolbar");
+  });
+
+  test("移动端新建作业保留内部滚动和可见底部操作", async ({ page }) => {
+    await page.setViewportSize({ height: 568, width: 320 });
+    await signInAsDebugUser(page, "/workspace/homeworks");
+    await ensureSeedSectionSubscription(page);
+    await gotoAndWaitForReady(page, "/workspace/homeworks");
+
+    await page.getByTestId("dashboard-homeworks-add").first().click();
+    const createDialog = page
+      .getByRole("dialog", { name: /新建作业|New Homework/i })
+      .first();
+    await expect(createDialog).toBeVisible();
+    const viewportHeight = page.viewportSize()?.height ?? 568;
+    const dialogBox = await createDialog.boundingBox();
+    const footer = createDialog.locator('[data-slot="dialog-footer"]');
+    const closeButton = createDialog.getByRole("button", { name: "Close" });
+    const [footerBox, closeBox] = await Promise.all([
+      footer.boundingBox(),
+      closeButton.boundingBox(),
+    ]);
+    expect(dialogBox).not.toBeNull();
+    expect(footerBox).not.toBeNull();
+    expect(closeBox).not.toBeNull();
+    if (!dialogBox || !footerBox || !closeBox) {
+      throw new Error("Expected the mobile homework dialog bounds");
+    }
+    expect(dialogBox.y).toBeGreaterThanOrEqual(0);
+    expect(dialogBox.y + dialogBox.height).toBeLessThanOrEqual(viewportHeight);
+    expect(footerBox.y + footerBox.height).toBeLessThanOrEqual(viewportHeight);
+    expect(await createDialog.evaluate((element) => element.scrollTop)).toBe(0);
+    await expect(footer).toBeInViewport();
+    await expect(closeButton).toBeInViewport();
+    const submit = createDialog.getByTestId("dashboard-homework-create");
+    await expect(submit).toBeInViewport();
+    const dueDateShortcuts = createDialog.getByRole("button", {
+      name: /截止时间快捷设置|Due date shortcuts/i,
+    });
+    await dueDateShortcuts.click();
+    await expect(
+      page.getByRole("menuitem", { name: /一周内提交|Due within a week/i }),
+    ).toBeVisible();
+    await page.keyboard.press("Escape");
+
+    const scrollViewport = createDialog
+      .locator('[data-slot="scroll-area-viewport"]')
+      .first();
+    const metrics = await scrollViewport.evaluate((element) => ({
+      clientHeight: element.clientHeight,
+      scrollHeight: element.scrollHeight,
+    }));
+    expect(metrics.clientHeight).toBeGreaterThan(0);
+    const scrollBox = await scrollViewport.boundingBox();
+    expect(scrollBox).not.toBeNull();
+    if (!scrollBox) {
+      throw new Error("Expected the homework form scroll area bounds");
+    }
+    expect(scrollBox.y + scrollBox.height).toBeLessThanOrEqual(footerBox.y + 1);
+    if (metrics.scrollHeight > metrics.clientHeight) {
+      const scrollTopBefore = await scrollViewport.evaluate(
+        (element) => element.scrollTop,
+      );
+      await scrollViewport.evaluate((element) => {
+        element.scrollTop = element.scrollHeight;
+      });
+      const scrollTopAfter = await scrollViewport.evaluate(
+        (element) => element.scrollTop,
+      );
+      const maxScrollTop = metrics.scrollHeight - metrics.clientHeight;
+      if (scrollTopBefore < maxScrollTop - 1) {
+        expect(scrollTopAfter).toBeGreaterThan(scrollTopBefore);
+      }
+      expect(scrollTopAfter).toBeGreaterThanOrEqual(maxScrollTop - 1);
+    }
+    await expect(submit).toBeInViewport();
   });
 
   test("种子协作作业显示重要和团队徽章", async ({ page }, testInfo) => {

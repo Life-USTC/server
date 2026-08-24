@@ -314,6 +314,7 @@ export interface DashboardHomeworksCopy extends HomeworkStyleGuideCopy {
   descriptionEmpty: string;
   descriptionLabel: string;
   descriptionPlaceholder: string;
+  dueDateShortcuts: string;
   errorDescriptionTooLong: string;
   errorInvalidSubmissionDue: string;
   errorSectionNotFound: string;
@@ -331,6 +332,7 @@ export interface DashboardHomeworksCopy extends HomeworkStyleGuideCopy {
   publishedAt: string;
   saving: string;
   sectionLabel: string;
+  statusLabel: string;
   submissionDue: string;
   submissionStart: string;
   subtitle: string;

@@ -10,6 +10,7 @@ export interface DashboardHomeworkCreateCopy extends HomeworkStyleGuideCopy {
   createTitle: string;
   descriptionLabel: string;
   descriptionPlaceholder: string;
+  dueDateShortcuts: string;
   helperClear: string;
   helperMonth: string;
   helperPublishNow: string;

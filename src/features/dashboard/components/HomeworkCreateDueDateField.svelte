@@ -1,7 +1,8 @@
 <script lang="ts">
+import CalendarClock from "@lucide/svelte/icons/calendar-clock";
 import DateTimePicker from "$lib/components/DateTimePicker.svelte";
 import { Button } from "$lib/components/ui/button/index.js";
-import * as ButtonGroup from "$lib/components/ui/button-group/index.js";
+import * as DropdownMenu from "$lib/components/ui/dropdown-menu/index.js";
 import * as Field from "$lib/components/ui/field/index.js";
 import type {
   DashboardHomeworkCreateCopy,
@@ -30,20 +31,37 @@ export let selectedCreateHomeworkSection: DashboardHomeworkCreateSectionGetter;
     name="submissionDueAt"
     placeholder={homeworksCopy.submissionDue}
   />
-  <ButtonGroup.Root class="ml-auto max-w-full flex-wrap justify-end">
-    <Button disabled={isCreatingHomework} type="button" variant="outline" onclick={applyHomeworkDueInWeek}>
-      {homeworksCopy.helperWeek}
-    </Button>
-    <Button disabled={isCreatingHomework} type="button" variant="outline" onclick={applyHomeworkDueInMonth}>
-      {homeworksCopy.helperMonth}
-    </Button>
-    <Button
-      disabled={isCreatingHomework || !selectedCreateHomeworkSection()?.semesterEnd}
-      type="button"
-      variant="outline"
-      onclick={applyHomeworkDueAtSemesterEnd}
-    >
-      {homeworksCopy.helperSemesterEnd}
-    </Button>
-  </ButtonGroup.Root>
+  <DropdownMenu.Root>
+    <DropdownMenu.Trigger>
+      {#snippet child({ props })}
+        <Button
+          {...props}
+          class="ml-auto"
+          disabled={isCreatingHomework}
+          size="sm"
+          type="button"
+          variant="outline"
+        >
+          <CalendarClock data-icon="inline-start" />
+          {homeworksCopy.dueDateShortcuts}
+        </Button>
+      {/snippet}
+    </DropdownMenu.Trigger>
+    <DropdownMenu.Content align="end">
+      <DropdownMenu.Group>
+        <DropdownMenu.Item disabled={isCreatingHomework} onSelect={applyHomeworkDueInWeek}>
+          {homeworksCopy.helperWeek}
+        </DropdownMenu.Item>
+        <DropdownMenu.Item disabled={isCreatingHomework} onSelect={applyHomeworkDueInMonth}>
+          {homeworksCopy.helperMonth}
+        </DropdownMenu.Item>
+        <DropdownMenu.Item
+          disabled={isCreatingHomework || !selectedCreateHomeworkSection()?.semesterEnd}
+          onSelect={applyHomeworkDueAtSemesterEnd}
+        >
+          {homeworksCopy.helperSemesterEnd}
+        </DropdownMenu.Item>
+      </DropdownMenu.Group>
+    </DropdownMenu.Content>
+  </DropdownMenu.Root>
 </Field.Field>

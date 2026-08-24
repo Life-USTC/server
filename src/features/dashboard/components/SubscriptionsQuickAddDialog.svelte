@@ -155,154 +155,158 @@ async function subscribeSelectedSections() {
       if (!nextOpen) closeDialog();
     }}
   >
-    <Dialog.Content class="max-w-lg gap-0 sm:max-w-lg">
-      <Dialog.Header class="pb-2">
+    <Dialog.Content
+      class="flex h-[calc(100dvh-1rem)] max-h-[calc(100dvh-1rem)] min-h-0 max-w-lg flex-col gap-0 overflow-clip p-0 sm:h-[min(64vh,36rem)] sm:max-h-[min(64vh,36rem)] sm:max-w-lg"
+    >
+      <Dialog.Header class="shrink-0 px-5 pb-2 pt-4">
         <Dialog.Title>{subscriptionsCopy.quickAdd.title}</Dialog.Title>
         <Dialog.Description>
           {subscriptionsCopy.quickAdd.description}
         </Dialog.Description>
       </Dialog.Header>
 
-      <Field.Group class="gap-4 px-5 pb-2 pt-2">
-        {#if error}
-          <Alert.Root variant="destructive">
-            <Alert.Description>{error}</Alert.Description>
-          </Alert.Root>
-        {/if}
-
-        <Field.Field>
-          <Field.Label for="subscriptions-quick-add-semester">
-            {subscriptionsCopy.bulkImport.semesterLabel}
-          </Field.Label>
-          <NativeSelect.Root
-            bind:value={semesterId}
-            class="w-full"
-            id="subscriptions-quick-add-semester"
-          >
-            {#each semesterOptions as option}
-              <NativeSelect.Option value={option.value}>
-                {option.label}
-              </NativeSelect.Option>
-            {/each}
-          </NativeSelect.Root>
-        </Field.Field>
-
-        <Field.Field>
-          <Field.Label for="subscriptions-quick-add-code">
-            {subscriptionsCopy.quickAdd.codeLabel}
-          </Field.Label>
-          <InputGroup.Root>
-            <InputGroup.Input
-              id="subscriptions-quick-add-code"
-              bind:value={query}
-              placeholder={subscriptionsCopy.quickAdd.placeholder}
-              onkeydown={(event) => {
-                if (event.key === "Enter" && canSearch) {
-                  event.preventDefault();
-                  void searchSections();
-                }
-              }}
-            />
-            <InputGroup.Addon align="inline-end">
-              <Button
-                disabled={!canSearch}
-                size="xs"
-                type="button"
-                variant="ghost"
-                onclick={searchSections}
-              >
-                {#if isSearching}
-                  <Spinner data-icon="inline-start" />
-                {:else}
-                  <Search data-icon="inline-start" />
-                {/if}
-                {isSearching
-                  ? subscriptionsCopy.quickAdd.searching
-                  : subscriptionsCopy.quickAdd.searchButton}
-              </Button>
-            </InputGroup.Addon>
-          </InputGroup.Root>
-          <Field.Description>
-            {subscriptionsCopy.quickAdd.hint}
-          </Field.Description>
-        </Field.Field>
-      </Field.Group>
-
-      {#if hasSearched}
-        <Separator />
-        <ScrollArea class="h-[min(42vh,20rem)]">
-          <div class="px-5 py-2">
-            {#if results.length > 0}
-              <Field.Set>
-                <Field.Legend variant="label">
-                  {formatMessage(subscriptionsCopy.quickAdd.resultsLabel, {
-                    count: results.length,
-                  })}
-                </Field.Legend>
-                <Field.Description>
-                  {subscriptionsCopy.quickAdd.resultsDescription}
-                </Field.Description>
-                <Item.Group class="mt-3">
-                  {#each results as section}
-                    <Item.Root variant="outline">
-                      <Item.Media>
-                        <Checkbox
-                          checked={subscribedSectionIdSet.has(section.id) ||
-                            selectedSectionIdSet.has(section.id)}
-                          disabled={subscribedSectionIdSet.has(section.id)}
-                          aria-label={formatMessage(
-                            subscriptionsCopy.quickAdd.selectSection,
-                            { code: section.code },
-                          )}
-                          onCheckedChange={() => toggleSection(section.id)}
-                        />
-                      </Item.Media>
-                      <Item.Content>
-                        <Item.Title>
-                          {namePrimary(section.course)}
-                        </Item.Title>
-                        <Item.Description>
-                          {section.code}
-                          {#if section.campus}
-                            · {namePrimary(section.campus)}
-                          {/if}
-                          {#if section.teachers.length > 0}
-                            · {section.teachers
-                              .map(namePrimary)
-                              .filter(Boolean)
-                              .join(", ")}
-                          {/if}
-                        </Item.Description>
-                      </Item.Content>
-                      {#if subscribedSectionIdSet.has(section.id)}
-                        <Item.Actions>
-                          <Badge variant="secondary">
-                            {subscriptionsCopy.quickAdd.alreadySubscribed}
-                          </Badge>
-                        </Item.Actions>
-                      {/if}
-                    </Item.Root>
-                  {/each}
-                </Item.Group>
-              </Field.Set>
-            {:else}
-              <Empty.Root class="min-h-32 p-4">
-                <Empty.Header>
-                  <Empty.Media variant="icon">
-                    <SearchX />
-                  </Empty.Media>
-                  <Empty.Title>{subscriptionsCopy.quickAdd.emptyTitle}</Empty.Title>
-                  <Empty.Description>
-                    {subscriptionsCopy.quickAdd.emptyDescription}
-                  </Empty.Description>
-                </Empty.Header>
-              </Empty.Root>
+      <ScrollArea class="h-0 min-h-0 flex-1">
+        <div class="min-w-0">
+          <Field.Group class="gap-4 px-5 pb-2 pt-2">
+            {#if error}
+              <Alert.Root variant="destructive">
+                <Alert.Description>{error}</Alert.Description>
+              </Alert.Root>
             {/if}
-          </div>
-        </ScrollArea>
-      {/if}
 
-      <Dialog.Footer>
+            <Field.Field>
+              <Field.Label for="subscriptions-quick-add-semester">
+                {subscriptionsCopy.bulkImport.semesterLabel}
+              </Field.Label>
+              <NativeSelect.Root
+                bind:value={semesterId}
+                class="w-full"
+                id="subscriptions-quick-add-semester"
+              >
+                {#each semesterOptions as option}
+                  <NativeSelect.Option value={option.value}>
+                    {option.label}
+                  </NativeSelect.Option>
+                {/each}
+              </NativeSelect.Root>
+            </Field.Field>
+
+            <Field.Field>
+              <Field.Label for="subscriptions-quick-add-code">
+                {subscriptionsCopy.quickAdd.codeLabel}
+              </Field.Label>
+              <InputGroup.Root>
+                <InputGroup.Input
+                  id="subscriptions-quick-add-code"
+                  bind:value={query}
+                  placeholder={subscriptionsCopy.quickAdd.placeholder}
+                  onkeydown={(event) => {
+                    if (event.key === "Enter" && canSearch) {
+                      event.preventDefault();
+                      void searchSections();
+                    }
+                  }}
+                />
+                <InputGroup.Addon align="inline-end">
+                  <Button
+                    disabled={!canSearch}
+                    size="xs"
+                    type="button"
+                    variant="ghost"
+                    onclick={searchSections}
+                  >
+                    {#if isSearching}
+                      <Spinner data-icon="inline-start" />
+                    {:else}
+                      <Search data-icon="inline-start" />
+                    {/if}
+                    {isSearching
+                      ? subscriptionsCopy.quickAdd.searching
+                      : subscriptionsCopy.quickAdd.searchButton}
+                  </Button>
+                </InputGroup.Addon>
+              </InputGroup.Root>
+              <Field.Description>
+                {subscriptionsCopy.quickAdd.hint}
+              </Field.Description>
+            </Field.Field>
+          </Field.Group>
+
+          {#if hasSearched}
+            <Separator />
+            <div class="px-5 py-2">
+              {#if results.length > 0}
+                <Field.Set>
+                  <Field.Legend variant="label">
+                    {formatMessage(subscriptionsCopy.quickAdd.resultsLabel, {
+                      count: results.length,
+                    })}
+                  </Field.Legend>
+                  <Field.Description>
+                    {subscriptionsCopy.quickAdd.resultsDescription}
+                  </Field.Description>
+                  <Item.Group class="mt-3">
+                    {#each results as section}
+                      <Item.Root variant="outline">
+                        <Item.Media>
+                          <Checkbox
+                            checked={subscribedSectionIdSet.has(section.id) ||
+                              selectedSectionIdSet.has(section.id)}
+                            disabled={subscribedSectionIdSet.has(section.id)}
+                            aria-label={formatMessage(
+                              subscriptionsCopy.quickAdd.selectSection,
+                              { code: section.code },
+                            )}
+                            onCheckedChange={() => toggleSection(section.id)}
+                          />
+                        </Item.Media>
+                        <Item.Content>
+                          <Item.Title>
+                            {namePrimary(section.course)}
+                          </Item.Title>
+                          <Item.Description>
+                            {section.code}
+                            {#if section.campus}
+                              · {namePrimary(section.campus)}
+                            {/if}
+                            {#if section.teachers.length > 0}
+                              · {section.teachers
+                                .map(namePrimary)
+                                .filter(Boolean)
+                                .join(", ")}
+                            {/if}
+                          </Item.Description>
+                        </Item.Content>
+                        {#if subscribedSectionIdSet.has(section.id)}
+                          <Item.Actions>
+                            <Badge variant="secondary">
+                              {subscriptionsCopy.quickAdd.alreadySubscribed}
+                            </Badge>
+                          </Item.Actions>
+                        {/if}
+                      </Item.Root>
+                    {/each}
+                  </Item.Group>
+                </Field.Set>
+              {:else}
+                <Empty.Root class="min-h-32 p-4">
+                  <Empty.Header>
+                    <Empty.Media variant="icon">
+                      <SearchX />
+                    </Empty.Media>
+                    <Empty.Title>{subscriptionsCopy.quickAdd.emptyTitle}</Empty.Title>
+                    <Empty.Description>
+                      {subscriptionsCopy.quickAdd.emptyDescription}
+                    </Empty.Description>
+                  </Empty.Header>
+                </Empty.Root>
+              {/if}
+            </div>
+          {/if}
+        </div>
+      </ScrollArea>
+
+      <Dialog.Footer class="mx-0 mb-0 shrink-0">
         <Button type="button" variant="outline" onclick={closeDialog}>
           {subscriptionsCopy.quickAdd.cancel}
         </Button>
