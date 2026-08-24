@@ -1,3 +1,10 @@
+## [1.91.4](https://github.com/Life-USTC/server/compare/v1.91.3...v1.91.4) (2026-08-24)
+
+
+### Bug Fixes
+
+* **ui:** make shared dialogs viewport safe ([#905](https://github.com/Life-USTC/server/issues/905)) ([6a80ccd](https://github.com/Life-USTC/server/commit/6a80ccd01fffd8534b927b7a9e87bb262fa34212))
+
 ## [1.91.3](https://github.com/Life-USTC/server/compare/v1.91.2...v1.91.3) (2026-08-24)
 
 
