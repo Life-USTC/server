@@ -295,7 +295,7 @@ test("/admin/users 可打开管理弹窗并保存姓名", async ({ page }, testI
 
     const dialog = await openAdminUserDialog(page, usernames[0] ?? prefix);
 
-    const nameInput = dialog.getByPlaceholder(/姓名|Name/i).first();
+    const nameInput = dialog.getByLabel(/姓名|Name/i).first();
     const newName = `e2e-${Date.now()}`;
     await nameInput.fill(newName);
 
