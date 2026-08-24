@@ -186,7 +186,6 @@ function displayValue(value: unknown) {
               <Item.Actions class="flex-wrap">
                 <Badge variant={row.outcome === "success" ? "secondary" : "destructive"}>{auditOutcomeLabel(data.locale, row.outcome)}</Badge>
                 <Badge variant="outline">{auditChannelLabel(data.locale, row.channel)}</Badge>
-                <ChevronRightIcon aria-hidden="true" data-icon="inline-end" />
               </Item.Actions>
               <Item.Footer>
                 <div class="grid w-full gap-2 text-xs">
@@ -198,7 +197,10 @@ function displayValue(value: unknown) {
                   </dl>
                   {#if row.metadata}
                     <details class="pt-1">
-                      <summary class="cursor-pointer font-medium">{data.copy.audit.details}</summary>
+                      <summary class="flex cursor-pointer items-center gap-1 font-medium">
+                        {data.copy.audit.details}
+                        <ChevronRightIcon aria-hidden="true" data-icon="inline-end" />
+                      </summary>
                       <dl class="grid gap-2 pt-2">
                         {#each Object.entries(row.metadata) as [key, value]}
                           <div><dt class="text-muted-foreground">{auditMetadataLabel(data.locale, key)}</dt><dd class="break-words">{displayValue(value)}</dd></div>
