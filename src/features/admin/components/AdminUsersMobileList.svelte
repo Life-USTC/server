@@ -17,9 +17,9 @@ export let suspensionLabel: AdminUserFormatter;
 export let users: AdminUserRow[];
 </script>
 
-<Item.Group class="xl:hidden gap-0 border-y" data-testid="admin-users-mobile-list" role="list">
+<Item.Group class="xl:hidden gap-0 border-y" data-testid="admin-users-mobile-list">
   {#each users as user, index (user.id)}
-    <Item.Root class="items-start px-1 py-3" role="listitem" size="sm">
+    <Item.Root class="items-start px-1 py-3" size="sm">
       <Item.Content class="min-w-0">
         <Item.Title>{displayName(user)}</Item.Title>
         <Item.Description class="font-mono">

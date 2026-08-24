@@ -18,9 +18,9 @@ export let statusLabel: AdminModerationCommentStatusFormatter;
 export let targetLabel: AdminModerationCommentFormatter;
 </script>
 
-<Item.Group class="xl:hidden gap-0 border-y" data-testid="admin-moderation-mobile-list" role="list">
+<Item.Group class="xl:hidden gap-0 border-y" data-testid="admin-moderation-mobile-list">
   {#each comments as comment, index (comment.id)}
-    <Item.Root class="items-start px-1 py-3" role="listitem">
+    <Item.Root class="items-start px-1 py-3">
       <Item.Content class="min-w-0">
         <Item.Title>{targetLabel(comment)}</Item.Title>
         <Item.Description>

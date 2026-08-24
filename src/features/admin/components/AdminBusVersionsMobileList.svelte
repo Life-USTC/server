@@ -23,9 +23,9 @@ export let versions: AdminBusVersion[];
 {#if versions.length === 0}
   <SoftEmptyMessage class="xl:hidden" message={copy.noVersions} />
 {:else}
-  <Item.Group class="xl:hidden gap-0 border-y" data-testid="admin-bus-mobile-list" role="list">
+  <Item.Group class="xl:hidden gap-0 border-y" data-testid="admin-bus-mobile-list">
     {#each versions as version, index (version.id)}
-      <Item.Root class="items-start px-1 py-3" role="listitem" size="sm">
+      <Item.Root class="items-start px-1 py-3" size="sm">
         <Item.Content class="min-w-0">
           <Item.Title>{version.title}</Item.Title>
           <Item.Description class="break-all font-mono">{version.key}</Item.Description>

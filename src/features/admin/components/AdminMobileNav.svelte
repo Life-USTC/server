@@ -69,14 +69,13 @@ $: currentLink = links.find((link) => isActiveLink(link)) ?? links[0];
       <Sheet.Description>{copy.nav.admin.title}</Sheet.Description>
     </Sheet.Header>
 
-    <Item.Group class="gap-0 px-4 pb-4" role="list">
+    <Item.Group class="gap-0 px-4 pb-4">
       {#each links as link, index (link.href)}
         {@const active = isActiveLink(link)}
         {@const Icon = link.icon}
         <Item.Root
           class="px-0 py-1.5"
           data-active={active}
-          role="listitem"
           variant={active ? "muted" : "default"}
         >
           <a

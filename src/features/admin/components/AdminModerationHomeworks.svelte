@@ -45,9 +45,9 @@ export let onDelete: (homework: ModerationHomework) => void;
   {#if homeworks.length === 0}
     <SoftEmptyMessage message={copy.noHomeworks} />
   {:else}
-    <Item.Group class="xl:hidden gap-0 border-y" role="list">
+    <Item.Group class="xl:hidden gap-0 border-y">
       {#each homeworks as homework, index (homework.id)}
-        <Item.Root class="items-start px-1 py-3" role="listitem">
+        <Item.Root class="items-start px-1 py-3">
           <Item.Content class="min-w-0 gap-2">
             <Item.Title class="line-clamp-none">{homework.title}</Item.Title>
             <Item.Description>
