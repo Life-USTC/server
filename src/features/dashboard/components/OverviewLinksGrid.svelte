@@ -6,7 +6,7 @@ import type {
 } from "@/features/dashboard/lib/dashboard-controller-helpers";
 import { DASHBOARD_OVERVIEW_PREVIEW_LIMIT } from "@/features/dashboard/lib/overview-preview";
 import { dashboardLinkVisitHref } from "@/features/dashboard-links/lib/dashboard-links";
-import SoftEmptyMessage from "$lib/components/SoftEmptyMessage.svelte";
+import * as Empty from "$lib/components/ui/empty/index.js";
 import type { DashboardCalendarTabHref } from "./dashboard-calendar-component-types";
 import LinksTabPinButton from "./LinksTabPinButton.svelte";
 import OverviewSection from "./OverviewSection.svelte";
@@ -83,6 +83,10 @@ function pinAction(link: DashboardOverviewLinkItem): DashboardLinkPinAction {
       {/each}
     </div>
   {:else}
-    <SoftEmptyMessage message={dashboardCopy.linkHub.empty} />
+    <Empty.Root class="min-h-20 border-0 px-2 py-6">
+      <Empty.Header>
+        <Empty.Description>{dashboardCopy.linkHub.empty}</Empty.Description>
+      </Empty.Header>
+    </Empty.Root>
   {/if}
 </OverviewSection>

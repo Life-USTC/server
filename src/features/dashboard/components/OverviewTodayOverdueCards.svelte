@@ -10,8 +10,9 @@ import type {
 } from "@/features/dashboard/lib/dashboard-controller-helpers";
 import { DASHBOARD_OVERVIEW_PREVIEW_LIMIT } from "@/features/dashboard/lib/overview-preview";
 import { sectionDetailHomeworkPath } from "@/features/section-detail/lib/section-detail-tab";
-import SoftEmptyMessage from "$lib/components/SoftEmptyMessage.svelte";
 import { Badge } from "$lib/components/ui/badge/index.js";
+import * as Empty from "$lib/components/ui/empty/index.js";
+import * as Item from "$lib/components/ui/item/index.js";
 import type { DashboardCalendarTabHref } from "./dashboard-calendar-component-types";
 import OverviewSection from "./OverviewSection.svelte";
 import OverviewTodayCard from "./OverviewTodayCard.svelte";
@@ -65,61 +66,72 @@ $: overdueEmpty = overdueHomeworks.length === 0 && overdueTodos.length === 0;
     viewAllVisible={showOverdueViewAll}
   >
     {#if overdueEmpty}
-      <SoftEmptyMessage message={dashboardCopy.overdue.empty} />
+      <Empty.Root class="min-h-20 border-0 px-2 py-6">
+        <Empty.Header>
+          <Empty.Description>{dashboardCopy.overdue.empty}</Empty.Description>
+        </Empty.Header>
+      </Empty.Root>
     {:else}
-      <ul class="divide-y divide-border/60">
-        {#each overdueHomeworkPreview as homework}
-          <li>
-            <a
-              class="flex items-start justify-between gap-3 py-2.5 transition-colors hover:bg-muted/40 -mx-2 px-2 rounded-md"
-              href={homework.section?.jwId
-                ? sectionDetailHomeworkPath(homework.section.jwId, {
-                    homeworkId: homework.id,
-                  })
-                : dashboardTabHref("homeworks")}
-            >
-              <span class="grid min-w-0 gap-1">
-                <span class="line-clamp-2 font-medium text-sm">{homework.title}</span>
-                <span class="flex flex-wrap items-center gap-1.5 text-muted-foreground text-xs">
-                  <Badge variant="secondary">{copy.CalendarEventCard.homework}</Badge>
-                  <span>{homework.section?.course?.namePrimary ?? commonCopy.sections}</span>
-                </span>
-              </span>
-              <span class="shrink-0 text-muted-foreground text-xs tabular-nums">
-                {homeworkEtaLabel(homework.submissionDueAt)}
-              </span>
-            </a>
-          </li>
+      <Item.Group class="gap-0">
+        {#each overdueHomeworkPreview as homework, index (homework.id)}
+          <Item.Root class="rounded-md border-0 px-2 py-2.5" size="sm">
+            {#snippet child({ props })}
+              <a
+                href={homework.section?.jwId
+                  ? sectionDetailHomeworkPath(homework.section.jwId, {
+                      homeworkId: homework.id,
+                    })
+                  : dashboardTabHref("homeworks")}
+                {...props}
+              >
+                <Item.Content class="min-w-0 gap-1">
+                  <Item.Title class="line-clamp-2">{homework.title}</Item.Title>
+                  <Item.Description class="flex flex-wrap items-center gap-1.5">
+                    <Badge variant="secondary">{copy.CalendarEventCard.homework}</Badge>
+                    <span>{homework.section?.course?.namePrimary ?? commonCopy.sections}</span>
+                  </Item.Description>
+                </Item.Content>
+                <Item.Actions class="shrink-0">
+                  <span class="text-muted-foreground text-xs tabular-nums">
+                    {homeworkEtaLabel(homework.submissionDueAt)}
+                  </span>
+                </Item.Actions>
+              </a>
+            {/snippet}
+          </Item.Root>
+          {#if index < overdueHomeworkPreview.length - 1 || overdueTodoPreview.length > 0}<Item.Separator class="my-0" />{/if}
         {/each}
-        {#each overdueTodoPreview as todo}
-          <li>
-            <a
-              class="flex items-start justify-between gap-3 py-2.5 transition-colors hover:bg-muted/40 -mx-2 px-2 rounded-md"
-              href={dashboardTabHref("todos")}
-            >
-              <span class="grid min-w-0 gap-1">
-                <span class="line-clamp-2 font-medium text-sm">{todo.title}</span>
-                <span class="flex flex-wrap gap-1.5">
-                  <Badge variant="secondary">{copy.CalendarEventCard.todo}</Badge>
-                  <Badge
-                    variant={todo.priority === "high"
-                      ? "destructive"
-                      : todo.priority === "medium"
-                        ? "secondary"
-                        : "outline"}
-                  >
-                    {todosCopy.priority[todo.priority]}
-                  </Badge>
-                  <Badge variant="ghost">{todoStatus(todo)}</Badge>
-                </span>
-              </span>
-              <span class="shrink-0 text-muted-foreground text-xs tabular-nums">
-                {fmtDate(todo.dueAt)}
-              </span>
-            </a>
-          </li>
+        {#each overdueTodoPreview as todo, index (todo.id)}
+          <Item.Root class="rounded-md border-0 px-2 py-2.5" size="sm">
+            {#snippet child({ props })}
+              <a href={dashboardTabHref("todos")} {...props}>
+                <Item.Content class="min-w-0 gap-1">
+                  <Item.Title class="line-clamp-2">{todo.title}</Item.Title>
+                  <Item.Description class="flex flex-wrap gap-1.5">
+                    <Badge variant="secondary">{copy.CalendarEventCard.todo}</Badge>
+                    <Badge
+                      variant={todo.priority === "high"
+                        ? "destructive"
+                        : todo.priority === "medium"
+                          ? "secondary"
+                          : "outline"}
+                    >
+                      {todosCopy.priority[todo.priority]}
+                    </Badge>
+                    <Badge variant="ghost">{todoStatus(todo)}</Badge>
+                  </Item.Description>
+                </Item.Content>
+                <Item.Actions class="shrink-0">
+                  <span class="text-muted-foreground text-xs tabular-nums">
+                    {fmtDate(todo.dueAt)}
+                  </span>
+                </Item.Actions>
+              </a>
+            {/snippet}
+          </Item.Root>
+          {#if index < overdueTodoPreview.length - 1}<Item.Separator class="my-0" />{/if}
         {/each}
-      </ul>
+      </Item.Group>
     {/if}
   </OverviewSection>
 </div>

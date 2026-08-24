@@ -1,8 +1,8 @@
 <script lang="ts">
 import { catalogLocalizedDisplayName } from "@/features/catalog/lib/catalog-list-display";
-import SoftEmptyMessage from "$lib/components/SoftEmptyMessage.svelte";
 import TruncatedCode from "$lib/components/TruncatedCode.svelte";
 import TruncatedText from "$lib/components/TruncatedText.svelte";
+import * as Empty from "$lib/components/ui/empty/index.js";
 import * as Table from "$lib/components/ui/table/index.js";
 import CatalogTableLink from "./CatalogTableLink.svelte";
 import type {
@@ -18,7 +18,11 @@ export let teacher: TeacherDetailTeacher;
 
 <div class="hidden md:block">
   {#if teacher.sections.length === 0}
-    <SoftEmptyMessage message={copy.teacherDetail.noSections} />
+    <Empty.Root class="min-h-20 border-0 px-2 py-6">
+      <Empty.Header>
+        <Empty.Description>{copy.teacherDetail.noSections}</Empty.Description>
+      </Empty.Header>
+    </Empty.Root>
   {:else}
     <Table.Root class="">
       <Table.Header>

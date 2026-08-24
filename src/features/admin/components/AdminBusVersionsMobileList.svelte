@@ -1,5 +1,5 @@
 <script lang="ts">
-import SoftEmptyMessage from "$lib/components/SoftEmptyMessage.svelte";
+import * as Empty from "$lib/components/ui/empty/index.js";
 import * as Item from "$lib/components/ui/item/index.js";
 import AdminBusVersionActions from "./AdminBusVersionActions.svelte";
 import AdminBusVersionStatusBadge from "./AdminBusVersionStatusBadge.svelte";
@@ -21,7 +21,11 @@ export let versions: AdminBusVersion[];
 </script>
 
 {#if versions.length === 0}
-  <SoftEmptyMessage class="xl:hidden" message={copy.noVersions} />
+  <Empty.Root class="min-h-20 border-0 px-2 py-6 xl:hidden">
+    <Empty.Header>
+      <Empty.Description>{copy.noVersions}</Empty.Description>
+    </Empty.Header>
+  </Empty.Root>
 {:else}
   <Item.Group class="xl:hidden gap-0 border-y" data-testid="admin-bus-mobile-list">
     {#each versions as version, index (version.id)}

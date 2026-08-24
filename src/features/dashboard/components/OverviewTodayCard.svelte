@@ -7,7 +7,8 @@ import type {
   DashboardTodoItem,
 } from "@/features/dashboard/lib/dashboard-controller-helpers";
 import { sectionDetailHomeworkPath } from "@/features/section-detail/lib/section-detail-tab";
-import SoftEmptyMessage from "$lib/components/SoftEmptyMessage.svelte";
+import * as Empty from "$lib/components/ui/empty/index.js";
+import * as Item from "$lib/components/ui/item/index.js";
 import type { DashboardCalendarTabHref } from "./dashboard-calendar-component-types";
 import OverviewSection from "./OverviewSection.svelte";
 
@@ -32,52 +33,80 @@ $: isEmpty =
   title={dashboardCopy.today.title}
 >
   {#if isEmpty}
-    <SoftEmptyMessage message={dashboardCopy.today.empty} />
+    <Empty.Root class="min-h-20 border-0 px-2 py-6">
+      <Empty.Header>
+        <Empty.Description>{dashboardCopy.today.empty}</Empty.Description>
+      </Empty.Header>
+    </Empty.Root>
   {:else}
-    <ul class="divide-y divide-border/60">
-      {#each todaySessions as session}
-        <li>
-          <a
-            class="grid gap-0.5 py-2.5 transition-colors hover:bg-muted/40 -mx-2 px-2 rounded-md"
-            href={sessionHref(session)}
-          >
-            <span class="font-medium text-sm">{session.courseName}</span>
-            <span class="text-muted-foreground text-xs">
-              {fmtTime(session.startTime)}-{fmtTime(session.endTime)} · {session.location}
-            </span>
-          </a>
-        </li>
+    <Item.Group class="gap-0">
+      {#each todaySessions as session, index (session.id)}
+        <Item.Root class="rounded-md border-0 px-2 py-2.5" size="sm">
+          {#snippet child({ props })}
+            <a href={sessionHref(session)} {...props}>
+              <Item.Content class="min-w-0">
+                <Item.Title>{session.courseName}</Item.Title>
+                <Item.Description>
+                  {session.location}
+                </Item.Description>
+              </Item.Content>
+              <Item.Actions class="shrink-0">
+                <span class="text-muted-foreground text-xs tabular-nums">
+                  {fmtTime(session.startTime)}-{fmtTime(session.endTime)}
+                </span>
+              </Item.Actions>
+            </a>
+          {/snippet}
+        </Item.Root>
+        {#if index < todaySessions.length - 1 || dueTodayHomeworks.length > 0 || dueTodayTodos.length > 0}<Item.Separator class="my-0" />{/if}
       {/each}
-      {#each dueTodayHomeworks as homework}
-        <li>
-          <a
-            class="grid gap-0.5 py-2.5 transition-colors hover:bg-muted/40 -mx-2 px-2 rounded-md"
-            href={homework.section?.jwId
-              ? sectionDetailHomeworkPath(homework.section.jwId, {
-                  homeworkId: homework.id,
-                })
-              : dashboardTabHref("homeworks")}
-          >
-            <span class="font-medium text-sm">{homework.title}</span>
-            <span class="text-muted-foreground text-xs">
-              {copy.CalendarEventCard.homework} · {fmtDate(homework.submissionDueAt)}
-            </span>
-          </a>
-        </li>
+      {#each dueTodayHomeworks as homework, index (homework.id)}
+        <Item.Root class="rounded-md border-0 px-2 py-2.5" size="sm">
+          {#snippet child({ props })}
+            <a
+              href={homework.section?.jwId
+                ? sectionDetailHomeworkPath(homework.section.jwId, {
+                    homeworkId: homework.id,
+                  })
+                : dashboardTabHref("homeworks")}
+              {...props}
+            >
+              <Item.Content class="min-w-0">
+                <Item.Title>{homework.title}</Item.Title>
+                <Item.Description>
+                  {copy.CalendarEventCard.homework}
+                </Item.Description>
+              </Item.Content>
+              <Item.Actions class="shrink-0">
+                <span class="text-muted-foreground text-xs tabular-nums">
+                  {fmtDate(homework.submissionDueAt)}
+                </span>
+              </Item.Actions>
+            </a>
+          {/snippet}
+        </Item.Root>
+        {#if index < dueTodayHomeworks.length - 1 || dueTodayTodos.length > 0}<Item.Separator class="my-0" />{/if}
       {/each}
-      {#each dueTodayTodos as todo}
-        <li>
-          <a
-            class="grid gap-0.5 py-2.5 transition-colors hover:bg-muted/40 -mx-2 px-2 rounded-md"
-            href={dashboardTabHref("todos")}
-          >
-            <span class="font-medium text-sm">{todo.title}</span>
-            <span class="text-muted-foreground text-xs">
-              {copy.CalendarEventCard.todo} · {fmtDate(todo.dueAt)}
-            </span>
-          </a>
-        </li>
+      {#each dueTodayTodos as todo, index (todo.id)}
+        <Item.Root class="rounded-md border-0 px-2 py-2.5" size="sm">
+          {#snippet child({ props })}
+            <a href={dashboardTabHref("todos")} {...props}>
+              <Item.Content class="min-w-0">
+                <Item.Title>{todo.title}</Item.Title>
+                <Item.Description>
+                  {copy.CalendarEventCard.todo}
+                </Item.Description>
+              </Item.Content>
+              <Item.Actions class="shrink-0">
+                <span class="text-muted-foreground text-xs tabular-nums">
+                  {fmtDate(todo.dueAt)}
+                </span>
+              </Item.Actions>
+            </a>
+          {/snippet}
+        </Item.Root>
+        {#if index < dueTodayTodos.length - 1}<Item.Separator class="my-0" />{/if}
       {/each}
-    </ul>
+    </Item.Group>
   {/if}
 </OverviewSection>

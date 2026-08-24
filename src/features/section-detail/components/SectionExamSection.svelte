@@ -1,5 +1,5 @@
 <script lang="ts">
-import SoftEmptyMessage from "$lib/components/SoftEmptyMessage.svelte";
+import * as Empty from "$lib/components/ui/empty/index.js";
 import * as Table from "$lib/components/ui/table/index.js";
 import type { SectionCalendarEvent } from "./section-calendar-tab-types";
 
@@ -63,5 +63,9 @@ function examTime(event: SectionCalendarEvent) {
     </Table.Root>
   </div>
 {:else}
-  <SoftEmptyMessage message={sectionCopy.calendarEmpty} />
+  <Empty.Root class="min-h-20 border-0 px-2 py-6">
+    <Empty.Header>
+      <Empty.Description>{sectionCopy.calendarEmpty}</Empty.Description>
+    </Empty.Header>
+  </Empty.Root>
 {/if}

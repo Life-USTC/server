@@ -165,10 +165,12 @@ function closeMobileSidebar(): void {
                                 <Icon />
                               {/if}
                               <span>{link.label}</span>
-                              {@render badge(link.badge)}
                             </a>
                           {/snippet}
                         </Sidebar.MenuButton>
+                        {#if link.badge != null && link.badge > 0}
+                          <Sidebar.MenuBadge>{link.badge}</Sidebar.MenuBadge>
+                        {/if}
 
                         {#if ownActive || childActive}
                           <Sidebar.MenuSub>
@@ -250,10 +252,12 @@ function closeMobileSidebar(): void {
                                 <Icon />
                               {/if}
                               <span>{link.label}</span>
-                              {@render badge(link.badge)}
                             </a>
                           {/snippet}
                         </Sidebar.MenuButton>
+                        {#if link.badge != null && link.badge > 0}
+                          <Sidebar.MenuBadge>{link.badge}</Sidebar.MenuBadge>
+                        {/if}
                       </Sidebar.MenuItem>
                     {/if}
                   {/each}

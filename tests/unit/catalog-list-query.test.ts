@@ -107,6 +107,33 @@ describe("catalog list shared-cache admission", () => {
 });
 
 describe("catalogListPageHref", () => {
+  test.each([
+    [
+      1,
+      "/catalog/sections?order=desc&search=math&semesterId=3&sort=code&teacher=%E5%BC%A0",
+    ],
+    [
+      2,
+      "/catalog/sections?order=desc&page=2&search=math&semesterId=3&sort=code&teacher=%E5%BC%A0",
+    ],
+    [
+      9,
+      "/catalog/sections?order=desc&page=9&search=math&semesterId=3&sort=code&teacher=%E5%BC%A0",
+    ],
+  ])(
+    "preserves filters for first, middle, and last page (%s)",
+    (page, expected) => {
+      expect(
+        catalogListPageHref(
+          new URL(
+            "https://example.test/catalog/sections?page=4&semesterId=3&teacher=%E5%BC%A0&sort=code&order=desc&search=math",
+          ),
+          page,
+        ),
+      ).toBe(expected);
+    },
+  );
+
   test("preserves section filters when changing page", () => {
     const href = catalogListPageHref(
       new URL(
