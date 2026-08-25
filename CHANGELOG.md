@@ -1,3 +1,10 @@
+## [1.91.7](https://github.com/Life-USTC/server/compare/v1.91.6...v1.91.7) (2026-08-25)
+
+
+### Bug Fixes
+
+* **ui:** redesign task and record item views ([#921](https://github.com/Life-USTC/server/issues/921)) ([07b222f](https://github.com/Life-USTC/server/commit/07b222fe6c052be9ddcad699bb439ea1b8b43ab1))
+
 ## [1.91.6](https://github.com/Life-USTC/server/compare/v1.91.5...v1.91.6) (2026-08-24)
 
 
