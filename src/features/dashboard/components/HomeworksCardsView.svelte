@@ -40,11 +40,10 @@ export let toggleHomeworkCompletion: (
     <Item.Group class="gap-0">
       {#each filteredHomeworkItems as homework, index (homework.id)}
         <Item.Root
-          class="items-start gap-3 p-3"
+          class="items-start gap-3 px-2 py-3"
           id={`homework-${homework.id}`}
-          variant="muted"
         >
-          <Item.Content class="basis-full gap-1 min-w-0">
+          <Item.Content class="min-w-0 gap-1">
             <Item.Title class="line-clamp-none w-full min-w-0">
               <button
                 class="flex min-h-11 w-full min-w-0 max-w-full items-center text-left underline-offset-4 hover:underline"
@@ -85,7 +84,7 @@ export let toggleHomeworkCompletion: (
               {/if}
             </Item.Description>
           </Item.Content>
-          <Item.Actions class="w-full justify-end">
+          <Item.Actions class="shrink-0 self-start">
             <DashboardTableIconButton
               className="size-11"
               disabled={homeworkSavingById[homework.id]}

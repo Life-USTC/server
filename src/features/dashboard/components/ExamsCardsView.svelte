@@ -29,8 +29,8 @@ export let subscriptionsCopy: ExamsCopyProps["subscriptionsCopy"];
     {@const detailHref = exam.section.jwId
       ? `/catalog/sections/${exam.section.jwId}`
       : dashboardTabHref("subscriptions")}
-    <Item.Root class="items-start gap-3 p-3" variant="muted">
-      <Item.Content class="basis-full gap-1 min-w-0">
+    <Item.Root class="items-start gap-3 px-2 py-3">
+      <Item.Content class="min-w-0 gap-1">
         <Item.Title class="line-clamp-none w-full min-w-0">
           <a
             class="flex min-h-11 w-full min-w-0 max-w-full items-center underline-offset-4 hover:underline"
@@ -63,7 +63,7 @@ export let subscriptionsCopy: ExamsCopyProps["subscriptionsCopy"];
           {#each examMetadataLabels(exam) as label}<Badge variant="secondary">{label}</Badge>{/each}
         </Item.Description>
       </Item.Content>
-      <Item.Actions class="w-full justify-end">
+      <Item.Actions class="shrink-0 self-start">
         <DashboardTableIconButton
           className="size-11"
           href={detailHref}

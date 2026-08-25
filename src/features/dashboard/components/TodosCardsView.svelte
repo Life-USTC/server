@@ -34,8 +34,8 @@ export let toggleTodoCompletion: TodoCompletionToggle;
   {#if filteredTodos.length > 0}
     <Item.Group class="gap-0">
       {#each filteredTodos as todo, index (todo.id)}
-        <Item.Root class="items-start gap-3 p-3" variant="muted">
-          <Item.Content class="basis-full gap-1 min-w-0">
+        <Item.Root class="items-start gap-3 px-2 py-3">
+          <Item.Content class="min-w-0 gap-1">
             <Item.Title class="line-clamp-none w-full min-w-0">
               <button
                 class="flex min-h-11 w-full min-w-0 max-w-full items-center text-left underline-offset-4 hover:underline"
@@ -67,7 +67,7 @@ export let toggleTodoCompletion: TodoCompletionToggle;
               <Badge variant="ghost">{todoStatus(todo)}</Badge>
             </Item.Description>
           </Item.Content>
-          <Item.Actions class="w-full justify-end">
+          <Item.Actions class="shrink-0 self-start">
             <DashboardTableIconButton
               className="size-11"
               disabled={todoSavingById[todo.id]}
