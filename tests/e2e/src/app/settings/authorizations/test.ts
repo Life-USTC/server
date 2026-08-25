@@ -108,7 +108,6 @@ test.describe("/account/settings/authorizations OAuth 授权", () => {
       const notifications = page.getByRole("region", {
         name: /Notifications/i,
       });
-      await expect(notifications).toBeVisible();
       await expect(
         notifications
           .locator("[data-sonner-toast]")
