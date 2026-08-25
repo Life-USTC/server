@@ -134,7 +134,6 @@
     "linkCopiedDescription": "Calendar link has been copied to clipboard",
     "optOut": "Opt out",
     "optOutConfirm": "Confirm",
-    "optOutSuccess": "Section removed",
     "optOutSuccessDescription": "This section has been removed from your Life@USTC subscriptions",
     "optOutError": "Failed to remove section",
     "optOutRetry": "Please try again",
@@ -194,7 +193,6 @@
       "unmatchedCodes": "Unmatched codes ({count})",
       "cancel": "Cancel",
       "subscribeSelected": "Subscribe to {count} sections",
-      "success": "Added successfully",
       "successDescription": "Added {count} new section{plural} to Life@USTC",
       "importFailed": "Add failed"
     }

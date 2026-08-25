@@ -12,7 +12,7 @@ import { Spinner } from "$lib/components/ui/spinner/index.js";
 import type { SettingsCopy } from "./settings-component-types";
 
 type Status = {
-  kind: "error" | "success";
+  kind: "error";
   message: string;
 };
 
@@ -52,9 +52,7 @@ async function renamePasskey() {
       reportStatus({ kind: "error", message: errorMessage(result.error) });
       return;
     }
-    const message = copy.settings.passkeys.renamed;
-    reportStatus({ kind: "success", message });
-    onSuccess(message);
+    onSuccess(copy.settings.passkeys.renamed);
   } catch {
     reportStatus({
       kind: "error",
@@ -78,9 +76,7 @@ async function deletePasskey() {
       return;
     }
     deleteOpen = false;
-    const message = copy.settings.passkeys.deleted;
-    reportStatus({ kind: "success", message });
-    onSuccess(message);
+    onSuccess(copy.settings.passkeys.deleted);
   } catch {
     deleteOpen = false;
     reportStatus({

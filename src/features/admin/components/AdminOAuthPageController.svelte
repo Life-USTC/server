@@ -123,6 +123,9 @@ const {
   getPendingDeleteClient: () => pendingDeleteClient,
   getSelectedAuthMethod: () => selectedAuthMethod,
   getSelectedScopes: () => selectedScopes,
+  onCopySuccess: (message) => {
+    toast.success(message);
+  },
   onSuccess: (action) => {
     toast.success(
       action === "create" ? _copy.createSuccess : _copy.deleteSuccess,

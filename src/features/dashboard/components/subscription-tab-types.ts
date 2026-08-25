@@ -124,7 +124,6 @@ export type DashboardSubscriptionsTabProps = {
   selectedImportSectionIdSet: Set<number>;
   signedData: DashboardSubscriptionsSignedData;
   subscriptionActionError: string;
-  subscriptionActionMessage: string;
   subscribeQuickAddSections: (
     selectedSectionIds: number[],
   ) => void | Promise<void>;

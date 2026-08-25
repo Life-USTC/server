@@ -62,12 +62,12 @@ test.describe("/account/settings/security 安全活动", () => {
         name: /确认轮换|Rotate link/i,
       })
       .click();
-    await expect(page).toHaveURL(
-      /\/account\/settings\/security\?message=CalendarTokenRotated$/,
-    );
-    await expect(page.getByRole("alert")).toContainText(
-      /日历链接已轮换|Calendar link rotated/i,
-    );
+    await expect(page).toHaveURL(/\/account\/settings\/security$/);
+    await expect(
+      page
+        .locator("[data-sonner-toast]")
+        .filter({ hasText: /日历链接已轮换|Calendar link rotated/i }),
+    ).toBeVisible();
   });
 });
 

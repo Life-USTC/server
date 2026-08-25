@@ -40,7 +40,6 @@ export let bulkImportError: string;
 export let isMatchingSections: boolean;
 export let isImportingSections: boolean;
 export let removingSectionId: DashboardSubscriptionsTabProps["removingSectionId"];
-export let subscriptionActionMessage: string;
 export let subscribeQuickAddSections: DashboardSubscriptionsTabProps["subscribeQuickAddSections"];
 export let subscriptionActionError: string;
 export let matchedSections: MatchedImportSection[];
@@ -68,7 +67,6 @@ function openQuickAddDialog() {
     {bulkImportError}
     {bulkImportMessage}
     {subscriptionActionError}
-    {subscriptionActionMessage}
   />
 
   <SubscriptionsList

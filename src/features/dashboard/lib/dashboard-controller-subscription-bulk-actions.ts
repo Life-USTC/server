@@ -80,8 +80,7 @@ export function createDashboardBulkImportActions(
       input.setBulkImportOpen(false);
       resetBulkImport();
       void input.invalidateAll().then(() => {
-        input.setBulkImportMessage(message);
-        input.onSuccess?.("import");
+        input.onSuccess?.(message);
       });
     } catch (error) {
       input.setBulkImportError(error instanceof Error ? error.message : "");
@@ -114,8 +113,7 @@ export function createDashboardBulkImportActions(
       selectedSectionIds,
     });
     void input.invalidateAll().then(() => {
-      input.setBulkImportMessage(message);
-      input.onSuccess?.("subscribe");
+      input.onSuccess?.(message);
     });
   }
 

@@ -373,6 +373,11 @@ test.describe("/catalog/courses/[jwId] 课程详情", () => {
         .filter({ hasText: body })
         .first();
       await expect(commentCard).toBeVisible();
+      await expect(
+        page
+          .locator("[data-sonner-toast]")
+          .filter({ hasText: /评论已发布|Comment posted/i }),
+      ).toBeVisible();
       // comment.author.name visible
       await expect(
         commentCard.getByText(DEV_SEED.debugName).first(),
@@ -403,6 +408,11 @@ test.describe("/catalog/courses/[jwId] 课程详情", () => {
         .filter({ hasText: editedBody })
         .first();
       await expect(editedCommentCard).toBeVisible();
+      await expect(
+        page
+          .locator("[data-sonner-toast]")
+          .filter({ hasText: /评论已更新|Comment updated/i }),
+      ).toBeVisible();
 
       // Delete
       await editedCommentCard.hover();
@@ -423,6 +433,11 @@ test.describe("/catalog/courses/[jwId] 课程详情", () => {
       await expect(dialog).toBeVisible();
       await dialog.getByRole("button", { name: /删除|Delete/i }).click();
       await deleteResponse;
+      await expect(
+        page
+          .locator("[data-sonner-toast]")
+          .filter({ hasText: /评论已删除|Comment deleted/i }),
+      ).toBeVisible();
       await captureStepScreenshot(page, testInfo, "course/comment-deleted");
     } finally {
       await cleanupCommentsForE2e([commentId]);

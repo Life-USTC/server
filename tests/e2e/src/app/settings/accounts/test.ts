@@ -209,6 +209,12 @@ test.describe("/account/settings/accounts 关联账号设置", () => {
           name: /断开连接|Disconnect/i,
         }),
       ).toHaveCount(0);
+      await expect(page).toHaveURL(/\/account\/settings\/accounts$/);
+      await expect(
+        page
+          .locator("[data-sonner-toast]")
+          .filter({ hasText: /已断开连接|Disconnected/i }),
+      ).toBeVisible();
       await captureStepScreenshot(page, testInfo, "settings-accounts-unlinked");
     } finally {
       await deleteLinkedAccountFixture({ userId: user.id, provider });

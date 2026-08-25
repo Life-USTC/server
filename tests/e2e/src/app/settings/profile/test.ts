@@ -16,7 +16,7 @@
  * - Unauthenticated → redirects to /signin
  * - Invalid username pattern → browser validation prevents submission
  * - Empty username → browser validation prevents submission
- * - Save success → toast with "Success" heading
+ * - Save success → one visible Sonner toast
  * - Name change persists across page reload
  */
 import { expect, test } from "@playwright/test";
@@ -71,9 +71,9 @@ test.describe("/account/settings/profile 个人资料设置", () => {
 
     const nameInput = page.locator("input#name");
     const saveButton = page.getByRole("button", { name: /保存|Save/i });
-    const successToast = page.getByRole("heading", {
-      name: /成功|Success/i,
-    });
+    const successToast = page
+      .locator("[data-sonner-toast]")
+      .filter({ hasText: /成功|Success|updated successfully/i });
     const originalName = await nameInput.inputValue();
     const newName = `e2e-${Date.now()}`;
 
@@ -86,6 +86,7 @@ test.describe("/account/settings/profile 个人资料设置", () => {
     await saveButton.click();
     await saveResponsePromise;
     await expect(successToast).toBeVisible();
+    await expect(page).toHaveURL(/\/account\/settings\/profile$/);
     await page.reload({ waitUntil: "domcontentloaded" });
     await expect(page.locator("input#name")).toHaveValue(newName, {
       timeout: 10_000,
@@ -101,6 +102,7 @@ test.describe("/account/settings/profile 个人资料设置", () => {
     await saveButton.click();
     await rollbackResponsePromise;
     await expect(successToast).toBeVisible();
+    await expect(page).toHaveURL(/\/account\/settings\/profile$/);
     await page.reload({ waitUntil: "domcontentloaded" });
     await expect(page.locator("input#name")).toHaveValue(originalName, {
       timeout: 10_000,

@@ -132,6 +132,7 @@ const {
           ? _copy.suspendSuccess
           : _copy.liftSuccess,
     );
+    _message = null;
   },
   getSuspendState: () => ({
     duration: suspendDuration,

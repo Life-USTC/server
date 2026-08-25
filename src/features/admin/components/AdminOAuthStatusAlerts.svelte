@@ -13,13 +13,13 @@ export let form:
   | undefined;
 </script>
 
-{#if copyMessage}
-  <Alert.Root variant={copyMessageVariant}>
+{#if copyMessage && copyMessageVariant === "destructive"}
+  <Alert.Root variant="destructive">
     <Alert.Description>{copyMessage}</Alert.Description>
   </Alert.Root>
 {/if}
 
-{#if form?.message && !form?.createdClientId}
+{#if form?.message && !form?.createdClientId && form.variant === "destructive"}
   <Alert.Root variant={form.variant ?? "default"}>
     <Alert.Description>{form.message}</Alert.Description>
   </Alert.Root>

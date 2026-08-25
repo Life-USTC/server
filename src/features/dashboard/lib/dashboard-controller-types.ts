@@ -240,7 +240,6 @@ export type DashboardSubscriptionsCopy = DashboardRecord & {
     matching: string;
     noMatches: string;
     noValidCodes: string;
-    success: string;
     placeholder: string;
     sectionCodesLabel: string;
     selectSection: string;

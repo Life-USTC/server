@@ -126,7 +126,6 @@ let {
   signedData,
   signedLinkGroups,
   subscriptionActionError,
-  subscriptionActionMessage,
   todoActionError,
   todoFilter,
   todoItems,
@@ -303,14 +302,8 @@ const {
   getSelectedImportSectionIds: () => selectedImportSectionIds,
   getSubscriptionsCopy: () => subscriptionsCopy,
   invalidateAll,
-  onSuccess: (action) => {
-    toast.success(
-      String(
-        action === "remove"
-          ? subscriptionsCopy.optOutSuccess
-          : subscriptionsCopy.bulkImport.success,
-      ),
-    );
+  onSuccess: (message) => {
+    toast.success(message);
   },
   setBulkImportError: (value) => {
     bulkImportError = value;
@@ -347,9 +340,6 @@ const {
   },
   setSubscriptionActionError: (value) => {
     subscriptionActionError = value;
-  },
-  setSubscriptionActionMessage: (value) => {
-    subscriptionActionMessage = value;
   },
   setUnmatchedSectionCodes: (value) => {
     unmatchedSectionCodes = value;
@@ -512,23 +502,16 @@ onMount(() => {
     clearPendingRemoveSection,
     copy: {
       dashboard: dashboardCopy,
-      subscriptions: subscriptionsCopy,
     },
     getLinkSearchInput: () => linkSearchInput,
     replaceState: (href) => {
       replaceState(href, {});
-    },
-    setBulkImportMessage: (value) => {
-      bulkImportMessage = value;
     },
     setLinkActionError: (value) => {
       linkActionError = value;
     },
     setLinkReturnTo: (value) => {
       linkReturnTo = value;
-    },
-    setSubscriptionActionMessage: (value) => {
-      subscriptionActionMessage = value;
     },
   });
 });
@@ -658,7 +641,6 @@ onMount(() => {
         {isMatchingSections}
         {isImportingSections}
         {removingSectionId}
-        {subscriptionActionMessage}
         {subscriptionActionError}
         {matchedSections}
         {unmatchedSectionCodes}

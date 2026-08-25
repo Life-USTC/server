@@ -2,7 +2,6 @@ import { getLocalStorageItem } from "@/lib/browser/local-storage";
 import { mountPageSearchShortcut } from "@/lib/browser/page-search-shortcut";
 import type { DashboardViewState } from "./dashboard-controller-helpers";
 import { currentDashboardLinkReturnTo } from "./dashboard-link-ui";
-import { formatMessage } from "./overview";
 import {
   DASHBOARD_VIEW_STORAGE_KEY,
   dashboardViewsFromPreference,
@@ -14,12 +13,6 @@ type DashboardMountCopy = {
       pinFailedDescription: string;
     };
   };
-  subscriptions: {
-    bulkImport: {
-      successDescription: string;
-    };
-    optOutSuccessDescription: string;
-  };
 };
 
 export function mountDashboardController(input: {
@@ -28,29 +21,11 @@ export function mountDashboardController(input: {
   copy: DashboardMountCopy;
   getLinkSearchInput: () => HTMLInputElement | null;
   replaceState: (href: string) => void;
-  setBulkImportMessage: (value: string) => void;
   setLinkActionError: (value: string) => void;
   setLinkReturnTo: (value: string) => void;
-  setSubscriptionActionMessage: (value: string) => void;
 }) {
   const url = new URL(window.location.href);
   input.setLinkReturnTo(currentDashboardLinkReturnTo());
-
-  const importedCount = url.searchParams.get("imported");
-  if (importedCount) {
-    input.setBulkImportMessage(
-      formatMessage(input.copy.subscriptions.bulkImport.successDescription, {
-        count: importedCount,
-        plural: importedCount === "1" ? "" : "s",
-      }),
-    );
-  }
-
-  if (url.searchParams.get("removed")) {
-    input.setSubscriptionActionMessage(
-      input.copy.subscriptions.optOutSuccessDescription,
-    );
-  }
 
   if (url.searchParams.get("dashboardLinkPinError") === "1") {
     input.setLinkActionError(input.copy.dashboard.linkHub.pinFailedDescription);
