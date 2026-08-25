@@ -6,6 +6,7 @@ import ShieldAlert from "@lucide/svelte/icons/shield-alert";
 import ShieldCheck from "@lucide/svelte/icons/shield-check";
 import SlidersHorizontal from "@lucide/svelte/icons/sliders-horizontal";
 import { onMount } from "svelte";
+import { toast } from "svelte-sonner";
 import SettingsAccountsTab from "@/features/settings/components/SettingsAccountsTab.svelte";
 import SettingsAuthorizationsTab from "@/features/settings/components/SettingsAuthorizationsTab.svelte";
 import SettingsDangerTab from "@/features/settings/components/SettingsDangerTab.svelte";
@@ -72,11 +73,36 @@ let {
 } = createSettingsControllerDefaultState({
   userImage: data.user.image,
 });
+let consumedStatusKey = "";
 $: avatarOptions =
   data.user.profilePictures.length > 0 ? data.user.profilePictures : [];
 $: currentImage = data.user.image ?? "";
 $: previewImage = selectedImage || currentImage || "/images/icon.png";
 $: statusMessage = form?.message ?? data.message;
+$: if (
+  typeof window !== "undefined" &&
+  !window.location.search.includes("message=")
+) {
+  consumedStatusKey = "";
+}
+$: if (data.message && typeof window !== "undefined") {
+  const statusKey = `${window.location.pathname}?${window.location.search}`;
+  if (statusKey !== consumedStatusKey) {
+    consumedStatusKey = statusKey;
+    const message =
+      data.message === "CalendarTokenRotated"
+        ? copy.settings.security.calendarTokenRotated
+        : data.message === "AuthorizationRevoked"
+          ? copy.settings.authorizations.revokeSuccess
+          : data.message === "AccountDisconnected"
+            ? copy.profile.disconnectSuccess
+            : copy.profile.updateSuccess;
+    toast.success(message);
+    const nextUrl = new URL(window.location.href);
+    nextUrl.searchParams.delete("message");
+    window.history.replaceState({}, "", nextUrl);
+  }
+}
 $: if (
   _unlinkAccountId &&
   !data.accounts.some(

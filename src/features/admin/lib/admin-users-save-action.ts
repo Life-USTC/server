@@ -32,6 +32,7 @@ export async function saveSelectedUser(config: AdminUsersActionConfig) {
     config.replaceUser(result.data.user);
     config.setMessageVariant("default");
     config.setMessage(copy.updateSuccess);
+    config.onSuccess?.("update");
     config.closeDialog();
   } finally {
     config.setSaving(false);

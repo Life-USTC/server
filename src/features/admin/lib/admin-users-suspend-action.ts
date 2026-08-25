@@ -41,6 +41,7 @@ export async function suspendSelectedUser(config: AdminUsersActionConfig) {
     });
     config.setMessageVariant("default");
     config.setMessage(copy.suspendSuccess);
+    config.onSuccess?.("suspend");
     return true;
   } finally {
     config.setSuspending(false);

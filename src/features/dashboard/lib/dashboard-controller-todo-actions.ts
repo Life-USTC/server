@@ -7,6 +7,9 @@ import { deleteTodoById, updateTodoCompletion } from "./todos";
 
 type TodoActionsCopy = {
   saveFailed: string;
+  delete: string;
+  markComplete: string;
+  markIncomplete: string;
 };
 
 export function createDashboardTodoActions(input: {
@@ -15,6 +18,7 @@ export function createDashboardTodoActions(input: {
   getTodoItems: () => TodoItem[];
   getTodoSavingById: () => Record<string, boolean>;
   getTodosCopy: () => TodoActionsCopy;
+  onSuccess?: (action: "complete" | "uncomplete" | "delete") => void;
   setEditingTodo: (value: TodoItem | null) => void;
   setSelectedTodo: (value: TodoItem | null) => void;
   setTodoActionError: (value: string) => void;
@@ -52,6 +56,7 @@ export function createDashboardTodoActions(input: {
         fallbackMessage: input.getTodosCopy().saveFailed,
         todoId: todo.id,
       });
+      input.onSuccess?.(nextTodo.completed ? "complete" : "uncomplete");
     } catch (error) {
       updateLocalTodo(todo);
       input.setTodoActionError(
@@ -80,6 +85,7 @@ export function createDashboardTodoActions(input: {
         fallbackMessage: input.getTodosCopy().saveFailed,
         todoId: todo.id,
       });
+      input.onSuccess?.("delete");
     } catch (error) {
       input.setTodoItems(previousItems);
       input.setSelectedTodo(todo);

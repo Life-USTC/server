@@ -1,5 +1,6 @@
 <script lang="ts">
 import { onMount } from "svelte";
+import { toast } from "svelte-sonner";
 import {
   addDays,
   addMonths,
@@ -210,6 +211,15 @@ const { deleteTodo, toggleTodoCompletion } = createDashboardTodoActions({
   getTodoItems: () => todoSourceItems,
   getTodoSavingById: () => todoSavingById,
   getTodosCopy: () => todosCopy,
+  onSuccess: (action) => {
+    toast.success(
+      action === "delete"
+        ? todosCopy.deleteSuccess
+        : action === "complete"
+          ? todosCopy.completeSuccess
+          : todosCopy.uncompleteSuccess,
+    );
+  },
   setEditingTodo: (value) => {
     editingTodo = value;
   },
@@ -238,6 +248,17 @@ const { createHomeworkAction, createTodoAction, updateTodoAction } =
   createDashboardFormSubmitActions({
     getHomeworksCopy: () => homeworksCopy,
     getTodosCopy: () => todosCopy,
+    onSuccess: (action) => {
+      toast.success(
+        String(
+          action === "createHomework"
+            ? homeworksCopy.createSuccess
+            : action === "createTodo"
+              ? todosCopy.createSuccess
+              : todosCopy.updateSuccess,
+        ),
+      );
+    },
     setCreateHomeworkError: (value) => {
       createHomeworkError = value;
     },
@@ -282,6 +303,15 @@ const {
   getSelectedImportSectionIds: () => selectedImportSectionIds,
   getSubscriptionsCopy: () => subscriptionsCopy,
   invalidateAll,
+  onSuccess: (action) => {
+    toast.success(
+      String(
+        action === "remove"
+          ? subscriptionsCopy.optOutSuccess
+          : subscriptionsCopy.bulkImport.success,
+      ),
+    );
+  },
   setBulkImportError: (value) => {
     bulkImportError = value;
   },
@@ -337,6 +367,13 @@ const { toggleHomeworkCompletion } = createDashboardHomeworkStateActions({
   getHomeworkSavingById: () => homeworkSavingById,
   getHomeworksCopy: () => homeworksCopy,
   getSelectedHomework: () => selectedHomework,
+  onSuccess: (action) => {
+    toast.success(
+      action === "complete"
+        ? homeworksCopy.markComplete
+        : homeworksCopy.markIncomplete,
+    );
+  },
   setHomeworkActionError: (value) => {
     homeworkActionError = value;
   },
@@ -358,6 +395,13 @@ const { submitDashboardLinkPin } = createDashboardLinkStateActions({
   getLinkReturnTo: () => linkReturnTo,
   getOverviewLinkItems: () => overviewLinkSourceItems,
   getUpdatingDashboardLinkSlug: () => updatingDashboardLinkSlug,
+  onSuccess: (action) => {
+    toast.success(
+      action === "pin"
+        ? dashboardCopy.linkHub.pin
+        : dashboardCopy.linkHub.unpin,
+    );
+  },
   replaceState: (href) => {
     replaceState(href, {});
   },

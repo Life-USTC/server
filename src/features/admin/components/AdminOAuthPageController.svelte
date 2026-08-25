@@ -1,5 +1,6 @@
 <script lang="ts">
 import { onMount } from "svelte";
+import { toast } from "svelte-sonner";
 import AdminOAuthClients from "@/features/admin/components/AdminOAuthClients.svelte";
 import AdminOAuthDialogs from "@/features/admin/components/AdminOAuthDialogs.svelte";
 import AdminOAuthHeader from "@/features/admin/components/AdminOAuthHeader.svelte";
@@ -122,6 +123,11 @@ const {
   getPendingDeleteClient: () => pendingDeleteClient,
   getSelectedAuthMethod: () => selectedAuthMethod,
   getSelectedScopes: () => selectedScopes,
+  onSuccess: (action) => {
+    toast.success(
+      action === "create" ? _copy.createSuccess : _copy.deleteSuccess,
+    );
+  },
   setCopyMessage: (value) => {
     copyMessage = value;
   },

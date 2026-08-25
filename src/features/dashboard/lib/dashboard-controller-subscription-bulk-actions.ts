@@ -81,6 +81,7 @@ export function createDashboardBulkImportActions(
       resetBulkImport();
       void input.invalidateAll().then(() => {
         input.setBulkImportMessage(message);
+        input.onSuccess?.("import");
       });
     } catch (error) {
       input.setBulkImportError(error instanceof Error ? error.message : "");
@@ -114,6 +115,7 @@ export function createDashboardBulkImportActions(
     });
     void input.invalidateAll().then(() => {
       input.setBulkImportMessage(message);
+      input.onSuccess?.("subscribe");
     });
   }
 

@@ -1,4 +1,5 @@
 <script lang="ts">
+import { toast } from "svelte-sonner";
 import AdminBusDialogs from "@/features/admin/components/AdminBusDialogs.svelte";
 import AdminBusHeader from "@/features/admin/components/AdminBusHeader.svelte";
 import AdminBusStatusAlerts from "@/features/admin/components/AdminBusStatusAlerts.svelte";
@@ -71,11 +72,24 @@ function isPending(actionKey: string) {
   return pendingAction === actionKey;
 }
 
-const enhancedAction = createPendingEnhancedAction({
+const baseEnhancedAction = createPendingEnhancedAction({
   setPendingAction: (value) => {
     pendingAction = value;
   },
 });
+
+function enhancedAction(actionKey: string, onSuccess?: () => void) {
+  return baseEnhancedAction(actionKey, () => {
+    onSuccess?.();
+    toast.success(
+      actionKey === "import"
+        ? copy.importSuccess
+        : actionKey.startsWith("activate-")
+          ? copy.activated
+          : copy.deleted,
+    );
+  });
+}
 </script>
 
 <svelte:head><title>{copy.title} - Life@USTC</title></svelte:head>

@@ -16,10 +16,12 @@ export function validateDashboardCreateHomeworkForm(
 
 export function createDashboardHomeworkAction({
   getHomeworksCopy,
+  onSuccess,
   setCreating,
   setError,
 }: {
   getHomeworksCopy: () => HomeworksCopy;
+  onSuccess?: () => void;
   setCreating: Setter<boolean>;
   setError: Setter<string>;
 }): SubmitFunction {
@@ -43,6 +45,7 @@ export function createDashboardHomeworkAction({
           return;
         }
         await update();
+        onSuccess?.();
       } finally {
         setCreating(false);
       }

@@ -2,6 +2,7 @@
 import { page } from "$app/stores";
 import appIconUrl from "$lib/assets/life-ustc-icon-192.png";
 import AppShell from "$lib/components/shell/AppShell.svelte";
+import { Toaster } from "$lib/components/ui/sonner";
 import "./svelte.css";
 import type { LayoutData } from "./$types";
 
@@ -46,3 +47,5 @@ $: documentTitle = socialMetadata?.title ?? "Life@USTC";
 <AppShell {data}>
   <slot />
 </AppShell>
+
+<Toaster position="bottom-right" />

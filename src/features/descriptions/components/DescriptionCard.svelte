@@ -1,4 +1,5 @@
 <script lang="ts">
+import { toast } from "svelte-sonner";
 import {
   createDescriptionCardActions,
   type DescriptionData,
@@ -54,6 +55,7 @@ export let copy: {
   title: string;
   updateError: string;
   updatedLabel: string;
+  updateSuccess?: string;
 };
 
 let description = initialData.description;
@@ -110,6 +112,7 @@ const { cancelEdit, editorName, saveDescription, startEdit } =
     setViewer: (value: DescriptionViewer) => {
       viewer = value;
     },
+    onSuccess: () => toast.success(copy.updateSuccess ?? copy.updatedLabel),
   });
 </script>
 

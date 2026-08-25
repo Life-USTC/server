@@ -29,4 +29,5 @@ export type SubscriptionActionGetters = {
 export type DashboardSubscriptionActionInput = SubscriptionActionGetters &
   SubscriptionActionSetters & {
     invalidateAll: () => Promise<void>;
+    onSuccess?: (action: "remove" | "import" | "subscribe") => void;
   };
