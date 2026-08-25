@@ -40,28 +40,37 @@ export let toggleHomeworkCompletion: (
     <Item.Group class="gap-0">
       {#each filteredHomeworkItems as homework, index (homework.id)}
         <Item.Root
-          class="items-start px-2 py-2"
+          class="items-start gap-3 p-3"
           id={`homework-${homework.id}`}
-          size="sm"
+          variant="muted"
         >
-          <Item.Content class="min-w-0 gap-0.5">
-            <Item.Title class="block min-w-0 max-w-full">
+          <Item.Content class="basis-full gap-1 min-w-0">
+            <Item.Title class="line-clamp-none w-full min-w-0">
               <button
-                class="block min-w-0 max-w-full truncate text-left underline-offset-4 hover:underline"
+                class="flex min-h-11 w-full min-w-0 max-w-full items-center text-left underline-offset-4 hover:underline"
                 type="button"
                 onclick={() => {
                   selectedHomework = homework;
                 }}
               >
-                {homework.title}
+                <span class="line-clamp-2 min-w-0 max-w-full break-words">
+                  {homework.title}
+                </span>
               </button>
             </Item.Title>
-            <Item.Description class="flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-0.5">
-              <a class="max-w-full truncate hover:underline" href={homeworkSectionHref(homework)}>
+            <Item.Description
+              class="line-clamp-none flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-1 break-words"
+            >
+              <a
+                class="max-w-full break-words hover:underline"
+                href={homeworkSectionHref(homework)}
+              >
                 {homework.section?.courseName ?? homeworkCopy.section}
               </a>
               <span aria-hidden="true">·</span>
-              <span class="truncate">{homeworkCopy.due}: {fmtDate(homework.submissionDueAt)}</span>
+              <span class="max-w-full break-words"
+                >{homeworkCopy.due}: {fmtDate(homework.submissionDueAt)}</span
+              >
               <Badge variant={homeworkIsOverdue(homework.submissionDueAt) ? "destructive" : "ghost"}>
                 {homeworkEtaLabel(homework.submissionDueAt)}
               </Badge>
@@ -76,20 +85,14 @@ export let toggleHomeworkCompletion: (
               {/if}
             </Item.Description>
           </Item.Content>
-          <Item.Actions class="shrink-0 self-start">
+          <Item.Actions class="w-full justify-end">
             <DashboardTableIconButton
-              label={homeworksCopy.viewDetails}
-              onclick={() => {
-                selectedHomework = homework;
-              }}
-            >
-              <ArrowUpRight />
-            </DashboardTableIconButton>
-            <DashboardTableIconButton
+              className="size-11"
               disabled={homeworkSavingById[homework.id]}
               label={homeworkSavingById[homework.id]
                 ? homeworksCopy.saving
                 : homeworkCompletionActionLabel(homework)}
+              variant={homework.completion ? "secondary" : "default"}
               onclick={() => toggleHomeworkCompletion(homework)}
             >
               {#if homeworkSavingById[homework.id]}
@@ -99,6 +102,16 @@ export let toggleHomeworkCompletion: (
               {:else}
                 <CheckCircleIcon />
               {/if}
+            </DashboardTableIconButton>
+            <DashboardTableIconButton
+              className="size-11"
+              label={homeworksCopy.viewDetails}
+              variant="outline"
+              onclick={() => {
+                selectedHomework = homework;
+              }}
+            >
+              <ArrowUpRight />
             </DashboardTableIconButton>
           </Item.Actions>
         </Item.Root>

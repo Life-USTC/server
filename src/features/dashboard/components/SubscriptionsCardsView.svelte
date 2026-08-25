@@ -8,6 +8,7 @@ import type {
   SubscriptionsData,
 } from "@/features/dashboard/lib/dashboard-controller-types";
 import { Badge } from "$lib/components/ui/badge/index.js";
+import * as Item from "$lib/components/ui/item/index.js";
 import { Spinner } from "$lib/components/ui/spinner/index.js";
 import DashboardTableIconButton from "./DashboardTableIconButton.svelte";
 
@@ -35,26 +36,42 @@ function courseName(section: SubscriptionSection) {
 }
 </script>
 
-<div class="grid gap-3" data-testid="subscription-semester-cards">
-  {#each sections as section}
-    <div class="group grid gap-2 border-b border-border/60 py-3 last:border-b-0">
-      <div class="flex items-start justify-between gap-3">
-        <div class="grid min-w-0 gap-1">
-          <a
-            class="font-medium hover:underline"
-            href={`/catalog/sections/${section.jwId}`}
-            data-testid="subscription-course-link"
+<div class="min-w-0" data-testid="subscription-semester-cards">
+  <Item.Group class="gap-0">
+    {#each sections as section, index}
+      <Item.Root class="items-start gap-3 p-3" variant="muted">
+        <Item.Content class="basis-full gap-1 min-w-0">
+          <Item.Title class="line-clamp-none w-full min-w-0">
+            <a
+              class="flex min-h-11 w-full min-w-0 max-w-full items-center font-medium hover:underline"
+              href={`/catalog/sections/${section.jwId}`}
+              data-testid="subscription-course-link"
+            >
+              <span class="line-clamp-2 min-w-0 max-w-full break-words">
+                {courseName(section)}
+              </span>
+            </a>
+          </Item.Title>
+          <Item.Description
+            class="line-clamp-none flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-1 break-words"
           >
-            {courseName(section)}
-          </a>
-          <p class="text-muted-foreground text-sm">{teacherNames(section)}</p>
-        </div>
-        <div class="flex shrink-0 items-center gap-1">
-          <Badge variant="outline">
-            {section.credits ?? dashboardCopy.notAvailable}
-            {subscriptionsCopy.credits}
-          </Badge>
+            <span class="max-w-full break-words">{teacherNames(section)}</span>
+            <Badge variant="outline">
+              {section.credits ?? dashboardCopy.notAvailable}
+              {subscriptionsCopy.credits}
+            </Badge>
+          </Item.Description>
+        </Item.Content>
+        <Item.Actions class="w-full justify-end">
           <DashboardTableIconButton
+            className="size-11"
+            href={`/catalog/sections/${section.jwId}`}
+            label={sectionCopy.moreDetails}
+          >
+            <ArrowUpRight />
+          </DashboardTableIconButton>
+          <DashboardTableIconButton
+            className="size-11"
             disabled={removingSectionId === section.id}
             label={subscriptionsCopy.unsubscribe}
             variant="destructive"
@@ -66,14 +83,11 @@ function courseName(section: SubscriptionSection) {
               <UserMinus />
             {/if}
           </DashboardTableIconButton>
-          <DashboardTableIconButton
-            href={`/catalog/sections/${section.jwId}`}
-            label={sectionCopy.moreDetails}
-          >
-            <ArrowUpRight />
-          </DashboardTableIconButton>
-        </div>
-      </div>
-    </div>
-  {/each}
+        </Item.Actions>
+      </Item.Root>
+      {#if index < sections.length - 1}
+        <Item.Separator class="my-0" />
+      {/if}
+    {/each}
+  </Item.Group>
 </div>

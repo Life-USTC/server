@@ -41,25 +41,17 @@ export let toggleTodoCompletion: TodoCompletionToggle;
   </Table.Header>
   <Table.Body>
     {#each filteredTodos as todo}
-      <Table.Row
-        class="group cursor-pointer"
-        onclick={(event) => {
-          const target = event.target;
-          if (!(target instanceof Element)) return;
-          if (target.closest("button, a")) return;
-          selectedTodo = todo;
-        }}
-      >
+      <Table.Row class="group">
         <Table.Cell>
           <button
-            class="block min-w-0 max-w-full overflow-hidden text-left hover:underline"
+            class="block min-h-11 min-w-0 max-w-full text-left hover:underline"
             class:line-through={todo.completed}
             type="button"
             onclick={() => {
               selectedTodo = todo;
             }}
           >
-            <TruncatedText text={todo.title} />
+            <TruncatedText text={todo.title} lines={2} />
           </button>
         </Table.Cell>
         <Table.Cell>
@@ -79,16 +71,11 @@ export let toggleTodoCompletion: TodoCompletionToggle;
         <Table.Cell>
           <DashboardTableRowActions>
             <DashboardTableIconButton
-              label={todosCopy.editTitle}
-              onclick={() => openTodoEditor(todo)}
-            >
-              <Pencil />
-            </DashboardTableIconButton>
-            <DashboardTableIconButton
               disabled={todoSavingById[todo.id]}
               label={todoSavingById[todo.id]
                 ? todosCopy.saving
                 : todoActionLabel(todo)}
+              variant={todo.completed ? "secondary" : "default"}
               onclick={() => void toggleTodoCompletion(todo)}
             >
               {#if todoSavingById[todo.id]}
@@ -98,6 +85,13 @@ export let toggleTodoCompletion: TodoCompletionToggle;
               {:else}
                 <CheckCircleIcon />
               {/if}
+            </DashboardTableIconButton>
+            <DashboardTableIconButton
+              label={todosCopy.editTitle}
+              variant="outline"
+              onclick={() => openTodoEditor(todo)}
+            >
+              <Pencil />
             </DashboardTableIconButton>
           </DashboardTableRowActions>
         </Table.Cell>
