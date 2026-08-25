@@ -1,3 +1,16 @@
+# [1.92.0](https://github.com/Life-USTC/server/compare/v1.91.7...v1.92.0) (2026-08-25)
+
+
+### Bug Fixes
+
+* escape username pattern hyphen ([#925](https://github.com/Life-USTC/server/issues/925)) ([9045cf9](https://github.com/Life-USTC/server/commit/9045cf9405c17cac47a67c55cd0b11d968b25b47))
+* use toast-only success feedback ([#923](https://github.com/Life-USTC/server/issues/923)) ([9619f31](https://github.com/Life-USTC/server/commit/9619f314347b798501966b67bdfe62f6ab79a587)), closes [#920](https://github.com/Life-USTC/server/issues/920)
+
+
+### Features
+
+* add success toasts for persisted mutations ([#922](https://github.com/Life-USTC/server/issues/922)) ([35ac8ee](https://github.com/Life-USTC/server/commit/35ac8eea78dff601ede94a6d31aaabad9115f782))
+
 ## [1.91.7](https://github.com/Life-USTC/server/compare/v1.91.6...v1.91.7) (2026-08-25)
 
 
