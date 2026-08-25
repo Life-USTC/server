@@ -86,7 +86,7 @@ $: if (!redirectStatus) {
   consumedStatusKey = "";
 }
 $: if (
-  typeof window !== "undefined" &&
+  _isMounted &&
   redirectStatus &&
   [
     "CalendarTokenRotated",
