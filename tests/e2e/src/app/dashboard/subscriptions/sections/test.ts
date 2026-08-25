@@ -710,6 +710,7 @@ test.describe("仪表盘教学班订阅", () => {
             `${escapeForRegExp(DEV_SEED.course.nameCn)}|${escapeForRegExp(DEV_SEED.course.nameEn)}`,
           ),
         })
+        .filter({ visible: true })
         .first(),
     ).toBeVisible();
   });
@@ -843,6 +844,7 @@ test.describe("仪表盘教学班订阅", () => {
             `${escapeForRegExp(DEV_SEED.course.nameCn)}|${escapeForRegExp(DEV_SEED.course.nameEn)}`,
           ),
         })
+        .filter({ visible: true })
         .first(),
     ).toBeVisible();
 
