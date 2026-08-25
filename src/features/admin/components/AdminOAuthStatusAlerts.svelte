@@ -19,7 +19,7 @@ export let form:
   </Alert.Root>
 {/if}
 
-{#if form?.message && !form?.createdClientId && form.variant === "destructive"}
+{#if form?.message && !form?.createdClientId}
   <Alert.Root variant={form.variant ?? "default"}>
     <Alert.Description>{form.message}</Alert.Description>
   </Alert.Root>

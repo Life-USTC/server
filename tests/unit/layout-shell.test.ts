@@ -55,7 +55,7 @@ describe("application shell theme", () => {
 
 describe("mobile toast placement", () => {
   it("keeps bottom toasts above the fixed mobile navigation", async () => {
-    const [layout, primaryNav, adminNav] = await Promise.all([
+    const [layout, primaryNav, adminNav, sonner] = await Promise.all([
       readFile(resolve(process.cwd(), "src/routes/+layout.svelte"), "utf8"),
       readFile(
         resolve(
@@ -71,6 +71,10 @@ describe("mobile toast placement", () => {
         ),
         "utf8",
       ),
+      readFile(
+        resolve(process.cwd(), "src/lib/components/ui/sonner/sonner.svelte"),
+        "utf8",
+      ),
     ]);
 
     expect(layout).toContain(
@@ -82,5 +86,8 @@ describe("mobile toast placement", () => {
     expect(primaryNav).toContain("pb-[env(safe-area-inset-bottom)]");
     expect(adminNav).toContain("min-h-14");
     expect(adminNav).toContain("pb-[env(safe-area-inset-bottom)]");
+    expect(sonner).toContain("max-width: calc(100vw");
+    expect(sonner).toContain("pointer-events: none;");
+    expect(sonner).toContain("pointer-events: auto;");
   });
 });

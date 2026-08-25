@@ -79,12 +79,6 @@ $: avatarOptions =
 $: currentImage = data.user.image ?? "";
 $: previewImage = selectedImage || currentImage || "/images/icon.png";
 $: statusMessage = form?.message ?? data.message;
-$: if (
-  typeof window !== "undefined" &&
-  !window.location.search.includes("message=")
-) {
-  consumedStatusKey = "";
-}
 $: if (data.message && typeof window !== "undefined") {
   const statusKey = `${window.location.pathname}?${window.location.search}`;
   if (statusKey !== consumedStatusKey) {
@@ -98,9 +92,6 @@ $: if (data.message && typeof window !== "undefined") {
             ? copy.profile.disconnectSuccess
             : copy.profile.updateSuccess;
     toast.success(message);
-    const nextUrl = new URL(window.location.href);
-    nextUrl.searchParams.delete("message");
-    window.history.replaceState({}, "", nextUrl);
   }
 }
 $: if (

@@ -83,6 +83,13 @@ export function createCommentPanelUploadActions(input: {
       });
       applyCommentUploadState(next, input);
       input.replaceMarkdownToken(token, attachmentMarkdown(file, upload), mode);
+      input.setMessage(
+        uploadCopy.toastUploadSuccessDescription.replace(
+          "{name}",
+          upload.filename,
+        ),
+      );
+      input.setMessageVariant("default");
       input.onSuccess?.(upload.filename);
     } catch (error) {
       input.replaceMarkdownToken(token, "", mode);

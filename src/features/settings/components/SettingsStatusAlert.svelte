@@ -30,7 +30,7 @@ $: statusDescription = isSuccessStatus
   : statusMessage;
 </script>
 
-{#if statusMessage && !isSuccessStatus}
+{#if statusMessage}
   <Alert.Root
     variant={isSuccessStatus ? "default" : "destructive"}
   >

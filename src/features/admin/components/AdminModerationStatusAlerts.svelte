@@ -12,7 +12,7 @@ export let refreshError = "";
   </Alert.Root>
 {/if}
 
-{#if form?.message && form.kind !== "success"}
+{#if form?.message}
   <Alert.Root variant={formAlertVariant(form.kind)}>
     <Alert.Description>{form.message}</Alert.Description>
   </Alert.Root>

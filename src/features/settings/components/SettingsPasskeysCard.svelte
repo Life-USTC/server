@@ -95,7 +95,7 @@ async function addPasskey() {
       </Alert.Root>
     {/if}
 
-    {#if status && status.kind === "error"}
+    {#if status}
       <Alert.Root variant={status.kind === "error" ? "destructive" : "default"}>
         <Alert.Description>{status.message}</Alert.Description>
       </Alert.Root>

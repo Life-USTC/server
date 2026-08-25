@@ -1,6 +1,6 @@
 <script lang="ts">
+	import { onMount } from "svelte";
 	import { Toaster as Sonner, type ToasterProps as SonnerProps } from "svelte-sonner";
-	import { mode } from "mode-watcher";
 	import Loader2Icon from '@lucide/svelte/icons/loader-2';
 	import CircleCheckIcon from '@lucide/svelte/icons/circle-check';
 	import OctagonXIcon from '@lucide/svelte/icons/octagon-x';
@@ -8,10 +8,21 @@
 	import TriangleAlertIcon from '@lucide/svelte/icons/triangle-alert';
 
 	let { ...restProps }: SonnerProps = $props();
+	let theme = $state<NonNullable<SonnerProps["theme"]>>("light");
+
+	onMount(() => {
+		const syncTheme = () => {
+			theme = document.documentElement.dataset.theme === 'dark' ? 'dark' : 'light';
+		};
+
+		syncTheme();
+		window.addEventListener('life-ustc-theme-change', syncTheme);
+		return () => window.removeEventListener('life-ustc-theme-change', syncTheme);
+	});
 </script>
 
 <Sonner
-	theme={mode.current}
+	{theme}
 	class="toaster group"
 	style="--normal-bg: var(--color-popover); --normal-text: var(--color-popover-foreground); --normal-border: var(--color-border);"
 	{...restProps}
@@ -32,3 +43,28 @@
 		<TriangleAlertIcon class="size-4" />
 	{/snippet}
 </Sonner>
+
+<style>
+	:global([data-sonner-toaster]) {
+		max-width: calc(100vw - var(--offset-left) - var(--offset-right));
+		pointer-events: none;
+	}
+
+	:global([data-sonner-toast]) {
+		pointer-events: none;
+	}
+
+	:global([data-sonner-toast] button),
+	:global([data-sonner-toast] a),
+	:global([data-sonner-toast] [role="button"]) {
+		pointer-events: auto;
+	}
+
+	@media (max-width: 600px) {
+		:global([data-sonner-toaster]) {
+			max-width: calc(
+				100vw - var(--mobile-offset-left) - var(--mobile-offset-right)
+			);
+		}
+	}
+</style>

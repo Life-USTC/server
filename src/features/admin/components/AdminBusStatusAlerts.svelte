@@ -7,7 +7,7 @@ export let form:
   | undefined;
 </script>
 
-{#if form?.message && form.variant === "destructive"}
+{#if form?.message}
   <Alert.Root variant={form.variant ?? "default"}>
     <Alert.Description>{form.message}</Alert.Description>
   </Alert.Root>

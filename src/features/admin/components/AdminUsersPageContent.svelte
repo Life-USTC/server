@@ -50,7 +50,7 @@ function handlePageChange(page: number) {
     />
   {/snippet}
   {#snippet feedback()}
-    {#if message && messageVariant === "destructive"}<Alert.Root variant={messageVariant}><Alert.Description>{message}</Alert.Description></Alert.Root>{/if}
+    {#if message}<Alert.Root variant={messageVariant}><Alert.Description>{message}</Alert.Description></Alert.Root>{/if}
   {/snippet}
   {#snippet controls()}
     <AdminUsersSearchCard

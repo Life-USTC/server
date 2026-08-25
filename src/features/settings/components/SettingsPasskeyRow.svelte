@@ -52,7 +52,9 @@ async function renamePasskey() {
       reportStatus({ kind: "error", message: errorMessage(result.error) });
       return;
     }
-    onSuccess(copy.settings.passkeys.renamed);
+    const message = copy.settings.passkeys.renamed;
+    reportStatus({ kind: "success", message });
+    onSuccess(message);
   } catch {
     reportStatus({
       kind: "error",
@@ -76,7 +78,9 @@ async function deletePasskey() {
       return;
     }
     deleteOpen = false;
-    onSuccess(copy.settings.passkeys.deleted);
+    const message = copy.settings.passkeys.deleted;
+    reportStatus({ kind: "success", message });
+    onSuccess(message);
   } catch {
     deleteOpen = false;
     reportStatus({
