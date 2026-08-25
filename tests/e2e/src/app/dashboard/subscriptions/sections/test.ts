@@ -413,9 +413,10 @@ test.describe("仪表盘教学班订阅", () => {
     await expect(confirmDialog).not.toBeVisible();
     await expect(courseLink).toHaveCount(0);
     await expect(
-      page
-        .locator("[data-sonner-toast]")
-        .filter({ hasText: /已移除班级|Section removed/i }),
+      page.locator("[data-sonner-toast]").filter({
+        hasText:
+          /该教学班已从订阅列表中移除|This section has been removed from your Life@USTC subscriptions/i,
+      }),
     ).toBeVisible();
     await expect(
       page.locator('[data-slot="alert"][role="alert"]').filter({

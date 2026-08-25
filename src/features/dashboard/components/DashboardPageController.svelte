@@ -126,7 +126,6 @@ let {
   signedData,
   signedLinkGroups,
   subscriptionActionError,
-  subscriptionActionMessage,
   todoActionError,
   todoFilter,
   todoItems,
@@ -303,19 +302,8 @@ const {
   getSelectedImportSectionIds: () => selectedImportSectionIds,
   getSubscriptionsCopy: () => subscriptionsCopy,
   invalidateAll,
-  onSuccess: (action) => {
-    toast.success(
-      String(
-        action === "remove"
-          ? subscriptionsCopy.optOutSuccess
-          : subscriptionsCopy.bulkImport.success,
-      ),
-    );
-    if (action === "remove") {
-      subscriptionActionMessage = "";
-    } else {
-      bulkImportMessage = "";
-    }
+  onSuccess: (message) => {
+    toast.success(message);
   },
   setBulkImportError: (value) => {
     bulkImportError = value;
@@ -352,9 +340,6 @@ const {
   },
   setSubscriptionActionError: (value) => {
     subscriptionActionError = value;
-  },
-  setSubscriptionActionMessage: (value) => {
-    subscriptionActionMessage = value;
   },
   setUnmatchedSectionCodes: (value) => {
     unmatchedSectionCodes = value;
@@ -656,7 +641,6 @@ onMount(() => {
         {isMatchingSections}
         {isImportingSections}
         {removingSectionId}
-        {subscriptionActionMessage}
         {subscriptionActionError}
         {matchedSections}
         {unmatchedSectionCodes}

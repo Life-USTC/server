@@ -13,7 +13,6 @@ export type SubscriptionsCopy = {
     importFailed: string;
     noMatches: string;
     noValidCodes: string;
-    success: string;
     successDescription: string;
   };
   optOutError: string;

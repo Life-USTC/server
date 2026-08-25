@@ -14,7 +14,6 @@ export type SubscriptionActionSetters = {
   setRemovingSectionId: (value: number | null) => void;
   setSelectedImportSectionIds: (value: number[]) => void;
   setSubscriptionActionError: (value: string) => void;
-  setSubscriptionActionMessage: (value: string) => void;
   setUnmatchedSectionCodes: (value: string[]) => void;
 };
 
@@ -29,5 +28,5 @@ export type SubscriptionActionGetters = {
 export type DashboardSubscriptionActionInput = SubscriptionActionGetters &
   SubscriptionActionSetters & {
     invalidateAll: () => Promise<void>;
-    onSuccess?: (action: "remove" | "import" | "subscribe") => void;
+    onSuccess?: (message: string) => void;
   };

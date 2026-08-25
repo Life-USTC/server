@@ -72,7 +72,6 @@ export function createDashboardControllerDefaultState() {
     signedData: null as SignedDashboardData | null,
     signedLinkGroups: [] as SignedLinkGroup[],
     subscriptionActionError: "",
-    subscriptionActionMessage: "",
     todoActionError: "",
     todoFilter: "incomplete" as TodoFilter,
     todoItems: [] as TodoItem[],
