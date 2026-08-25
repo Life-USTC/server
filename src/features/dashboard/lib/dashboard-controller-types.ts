@@ -240,6 +240,7 @@ export type DashboardSubscriptionsCopy = DashboardRecord & {
     matching: string;
     noMatches: string;
     noValidCodes: string;
+    success: string;
     placeholder: string;
     sectionCodesLabel: string;
     selectSection: string;
@@ -358,7 +359,9 @@ export type DashboardTodosCopy = DashboardRecord & {
   contentPlaceholder: string;
   createAction: string;
   createTitle: string;
+  completeSuccess: string;
   delete: string;
+  deleteSuccess: string;
   deleteAriaLabel: string;
   deleteConfirmDescription: string;
   deleteConfirmTitle: string;
@@ -372,10 +375,13 @@ export type DashboardTodosCopy = DashboardRecord & {
   errorTitleRequired: string;
   errorTitleTooLong: string;
   filterEmptyTitle: string;
+  markComplete: string;
+  markIncomplete: string;
   priority: Record<string, string>;
   priorityLabel: string;
   saveChanges: string;
   saveFailed: string;
+  uncompleteSuccess: string;
   saving: string;
   subtitle: string;
   titleLabel: string;

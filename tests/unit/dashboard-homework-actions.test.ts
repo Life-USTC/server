@@ -73,7 +73,11 @@ describe("仪表盘作业操作", () => {
     const { toggleHomeworkCompletion } = createDashboardHomeworkStateActions({
       getHomeworkItems: () => [homework],
       getHomeworkSavingById: () => homeworkSavingById,
-      getHomeworksCopy: () => ({ completionFailed: "completion failed" }),
+      getHomeworksCopy: () => ({
+        completionFailed: "更新完成状态失败",
+        markComplete: "标记为完成",
+        markIncomplete: "取消完成",
+      }),
       getSelectedHomework: () => homework,
       setHomeworkActionError,
       setHomeworkItems,
@@ -87,13 +91,11 @@ describe("仪表盘作业操作", () => {
 
     expect(updateHomeworkCompletionMock).toHaveBeenCalledWith({
       completed: true,
-      fallbackMessage: "completion failed",
+      fallbackMessage: "更新完成状态失败",
       homeworkId: "homework-1",
     });
     expect(setHomeworkActionError).toHaveBeenNthCalledWith(1, "");
-    expect(setHomeworkActionError).toHaveBeenLastCalledWith(
-      "completion failed",
-    );
+    expect(setHomeworkActionError).toHaveBeenLastCalledWith("更新完成状态失败");
     expect(homeworkSavingById).toEqual({ "homework-1": false });
     expect(setHomeworkItems).not.toHaveBeenCalled();
     expect(setSelectedHomework).not.toHaveBeenCalled();

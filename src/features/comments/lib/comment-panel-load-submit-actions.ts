@@ -32,6 +32,7 @@ export function createCommentPanelLoadSubmitActions(input: {
   hasPendingUploads: (mode: CommentEditorMode) => boolean;
   scrollToHashComment: () => Promise<void>;
   selectedPostTarget: () => CommentTargetOption | null;
+  onSuccess?: (mode: "comment" | "reply") => void;
   setBody: (value: string) => void;
   setComments: (value: CommentNodeWithContext[]) => void;
   setHiddenCount: (value: number) => void;
@@ -101,6 +102,7 @@ export function createCommentPanelLoadSubmitActions(input: {
       input.setSelectedAttachments([]);
       input.setUploadedFiles([]);
       await loadComments();
+      input.onSuccess?.(mode === "new" ? "comment" : "reply");
     } catch (error) {
       input.setMessageVariant("destructive");
       input.setMessage(

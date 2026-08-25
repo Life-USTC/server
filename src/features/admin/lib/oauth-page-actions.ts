@@ -12,6 +12,7 @@ export function createOAuthPageActions<
   getPendingDeleteClient: () => ClientShape | null;
   getSelectedAuthMethod: () => string;
   getSelectedScopes: () => string[];
+  onSuccess?: (action: "create" | "delete") => void;
   setCopyMessage: (value: string) => void;
   setCopyMessageVariant: (value: "destructive" | "default") => void;
   setDeletingClientId: (value: string | null) => void;
@@ -56,9 +57,10 @@ export function createOAuthPageActions<
 
   const createClientAction: SubmitFunction = () => {
     input.setIsCreatingClient(true);
-    return async ({ update }) => {
+    return async ({ result, update }) => {
       try {
         await update();
+        if (result.type === "success") input.onSuccess?.("create");
       } finally {
         input.setIsCreatingClient(false);
       }
@@ -67,9 +69,10 @@ export function createOAuthPageActions<
 
   const deleteClientAction: SubmitFunction = () => {
     input.setDeletingClientId(input.getPendingDeleteClient()?.clientId ?? null);
-    return async ({ update }) => {
+    return async ({ result, update }) => {
       try {
         await update();
+        if (result.type === "success") input.onSuccess?.("delete");
         input.setPendingDeleteClient(null);
       } finally {
         input.setDeletingClientId(null);

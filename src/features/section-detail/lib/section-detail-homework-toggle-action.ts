@@ -23,6 +23,7 @@ export function createSectionHomeworkToggleAction(
       });
       input.setHomeworks(next.homeworks);
       input.setSelectedHomework(next.selectedHomework);
+      input.onSuccess?.(result.completed ? "complete" : "uncomplete");
     } catch {
       input.setHomeworkMessage(copy.completionFailed);
     }

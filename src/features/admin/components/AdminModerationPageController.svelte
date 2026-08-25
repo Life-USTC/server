@@ -1,4 +1,5 @@
 <script lang="ts">
+import { toast } from "svelte-sonner";
 import AdminModerationDialogs from "@/features/admin/components/AdminModerationDialogs.svelte";
 import AdminModerationFilters from "@/features/admin/components/AdminModerationFilters.svelte";
 import AdminModerationHeader from "@/features/admin/components/AdminModerationHeader.svelte";
@@ -143,6 +144,11 @@ const {
   getSuspensionDuration: () => _suspensionDuration,
   getSuspensionReason: () => _suspensionReason,
   invalidateAll,
+  onSuccess: (action) => {
+    toast.success(
+      action === "comment" ? _copy.commentUpdateSuccess : _copy.suspendSuccess,
+    );
+  },
   setCommentStatus: (value) => {
     _commentStatus = value;
   },
@@ -183,6 +189,14 @@ const {
     _suspensionReason = value;
   },
 });
+
+function _enhanceAdminAction(action: Parameters<typeof enhanceAdminAction>[0]) {
+  return enhanceAdminAction(action, () => {
+    if (action.startsWith("liftSuspension:")) {
+      toast.success(_copy.liftSuspensionSuccess);
+    }
+  });
+}
 </script>
 
 <svelte:head><title>{_copy.title} - Life@USTC</title></svelte:head>
@@ -216,7 +230,7 @@ const {
   <AdminModerationTabContent
     copy={_copy}
     {data}
-    {enhanceAdminAction}
+    enhanceAdminAction={_enhanceAdminAction}
     formatDate={_formatDate}
     liftingSuspensionId={_pendingServerAction?.startsWith("liftSuspension:")
       ? _pendingServerAction.slice("liftSuspension:".length)
@@ -243,8 +257,12 @@ const {
   dialogMessageVariant={_dialogMessageVariant}
   deleteHomeworkAction={enhanceAdminAction("deleteHomework", () => {
     _pendingDeleteHomework = null;
+    toast.success(_copy.deleteHomeworkSuccess);
   })}
-  editDescriptionAction={enhanceAdminAction("description", _closeDescriptionDialog)}
+  editDescriptionAction={enhanceAdminAction("description", () => {
+    _closeDescriptionDialog();
+    toast.success(_copy.descriptionUpdateSuccess);
+  })}
   formatDate={_formatDate}
   {inputValue}
   isDeletingHomework={_pendingServerAction === "deleteHomework"}

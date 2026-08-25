@@ -27,6 +27,7 @@ export function createModerationPageActions<
   getSelectedComment: () => CommentShape | null;
   getSuspensionDuration: () => string;
   getSuspensionReason: () => string;
+  onSuccess?: (action: "comment" | "suspend") => void;
   invalidateAll: () => Promise<void>;
   setCommentStatus: (value: "active" | "softbanned" | "deleted") => void;
   setCustomExpiresAt: (value: string) => void;
@@ -85,6 +86,7 @@ export function createModerationPageActions<
       });
       input.closeCommentDialog();
       await input.invalidateAll();
+      input.onSuccess?.("comment");
     } catch (error) {
       input.setDialogMessageVariant("destructive");
       input.setDialogMessage(
@@ -112,6 +114,7 @@ export function createModerationPageActions<
       });
       input.setDialogMessage(copy.suspendSuccess);
       await input.invalidateAll();
+      input.onSuccess?.("suspend");
     } catch (error) {
       input.setDialogMessageVariant("destructive");
       input.setDialogMessage(

@@ -19,6 +19,7 @@ export async function liftSelectedSuspension(config: AdminUsersActionConfig) {
     config.replaceUser({ ...selectedUser, activeSuspension: null });
     config.setMessageVariant("default");
     config.setMessage(copy.liftSuccess);
+    config.onSuccess?.("lift");
   } finally {
     config.setLiftingSuspension(false);
   }

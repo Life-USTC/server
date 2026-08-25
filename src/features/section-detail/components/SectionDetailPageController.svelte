@@ -37,6 +37,7 @@ import {
 import SectionDetailDialogs from "@/features/section-detail/components/SectionDetailDialogs.svelte";
 import SectionDetailMainContent from "@/features/section-detail/components/SectionDetailMainContent.svelte";
 import SectionDetailPageHead from "@/features/section-detail/components/SectionDetailPageHead.svelte";
+import { toast } from "svelte-sonner";
 type PageData = SectionDetailPageData;
 type ActionData = SectionDetailActionData;
 
@@ -290,6 +291,13 @@ const {
   setShowSubscribeDialog: (value) => {
     _showSubscribeDialog = value;
   },
+  onSuccess: (action) => {
+    toast.success(
+      action === "subscribe"
+        ? _sectionCopy.subscribeSuccess
+        : _sectionCopy.unsubscribeSuccess,
+    );
+  },
   setSubscriptionPendingAction: (value) => {
     _subscriptionPendingAction = value;
   },
@@ -375,6 +383,19 @@ const {
   getHomeworkViewer: () => _homeworkViewer,
   getHomeworks: () => _homeworks,
   getSectionId: () => data.section.id,
+  onSuccess: (action) => {
+    const message =
+      action === "create"
+        ? _homeworkCopy.createSuccess
+        : action === "update"
+          ? _homeworkCopy.updateSuccess
+          : action === "delete"
+            ? _homeworkCopy.deleteSuccess
+            : action === "complete"
+              ? _homeworkCopy.markComplete
+              : _homeworkCopy.markIncomplete;
+    toast.success(message);
+  },
   getSelectedHomework: () => _selectedHomework,
   setDeleteHomeworkTarget: (value) => {
     _deleteHomeworkTarget = value;

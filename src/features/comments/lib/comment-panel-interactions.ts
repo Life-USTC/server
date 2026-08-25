@@ -33,6 +33,7 @@ export function createCommentPanelInteractions(input: {
   getPendingReactionKey: () => string | null;
   getViewer: () => ViewerContext;
   loadComments: () => Promise<void>;
+  onSuccess?: (action: "reaction" | "delete") => void;
   setActionMenuId: (value: string | null) => void;
   setDeleteTarget: (value: CommentNode | null) => void;
   setDeleting: (value: boolean) => void;
@@ -71,6 +72,7 @@ export function createCommentPanelInteractions(input: {
         type,
       });
       input.applyReactionUpdate(comment.id, type, shouldRemove);
+      input.onSuccess?.("reaction");
     } catch (error) {
       input.setMessageVariant("destructive");
       input.setMessage(
@@ -133,6 +135,7 @@ export function createCommentPanelInteractions(input: {
     }
     closeDeleteDialog();
     await input.loadComments();
+    input.onSuccess?.("delete");
   }
 
   return {

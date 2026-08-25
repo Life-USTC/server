@@ -19,6 +19,7 @@ type Status = {
 export let copy: SettingsCopy;
 export let passkey: Passkey;
 export let reportStatus: (status: Status) => void;
+export let onSuccess: (message: string) => void = () => {};
 
 let deleteOpen = false;
 let deleting = false;
@@ -51,10 +52,9 @@ async function renamePasskey() {
       reportStatus({ kind: "error", message: errorMessage(result.error) });
       return;
     }
-    reportStatus({
-      kind: "success",
-      message: copy.settings.passkeys.renamed,
-    });
+    const message = copy.settings.passkeys.renamed;
+    reportStatus({ kind: "success", message });
+    onSuccess(message);
   } catch {
     reportStatus({
       kind: "error",
@@ -78,10 +78,9 @@ async function deletePasskey() {
       return;
     }
     deleteOpen = false;
-    reportStatus({
-      kind: "success",
-      message: copy.settings.passkeys.deleted,
-    });
+    const message = copy.settings.passkeys.deleted;
+    reportStatus({ kind: "success", message });
+    onSuccess(message);
   } catch {
     deleteOpen = false;
     reportStatus({

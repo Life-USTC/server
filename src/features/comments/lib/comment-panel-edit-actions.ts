@@ -20,6 +20,7 @@ export function createCommentPanelEditActions(input: {
   getEditVisibility: () => string;
   hasPendingUploads: (mode: CommentEditorMode) => boolean;
   loadComments: () => Promise<void>;
+  onSuccess?: () => void;
   setActionMenuId: (value: string | null) => void;
   setMessage: (value: string) => void;
   setMessageVariant: (value: "destructive" | "default") => void;
@@ -55,6 +56,7 @@ export function createCommentPanelEditActions(input: {
     }
     cancelEdit();
     await input.loadComments();
+    input.onSuccess?.();
   }
 
   return {

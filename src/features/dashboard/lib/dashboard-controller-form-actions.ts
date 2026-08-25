@@ -23,6 +23,7 @@ export {
 export function createDashboardFormSubmitActions({
   getHomeworksCopy,
   getTodosCopy,
+  onSuccess,
   setCreateHomeworkError,
   setCreateTodoError,
   setCreatingHomework,
@@ -34,6 +35,7 @@ export function createDashboardFormSubmitActions({
 }: {
   getHomeworksCopy: () => HomeworksCopy;
   getTodosCopy: () => TodoCopy;
+  onSuccess?: (action: "createHomework" | "createTodo" | "updateTodo") => void;
   setCreateHomeworkError: Setter<string>;
   setCreateTodoError: Setter<string>;
   setCreatingHomework: Setter<boolean>;
@@ -46,6 +48,7 @@ export function createDashboardFormSubmitActions({
   return {
     createHomeworkAction: createDashboardHomeworkAction({
       getHomeworksCopy,
+      onSuccess: () => onSuccess?.("createHomework"),
       setCreating: setCreatingHomework,
       setError: setCreateHomeworkError,
     }),
@@ -54,6 +57,7 @@ export function createDashboardFormSubmitActions({
       onClose: () => {
         setShowCreateTodo(false);
       },
+      onSuccess: () => onSuccess?.("createTodo"),
       setCreating: setCreatingTodo,
       setError: setCreateTodoError,
     }),
@@ -62,6 +66,7 @@ export function createDashboardFormSubmitActions({
       onClose: () => {
         setEditingTodo(null);
       },
+      onSuccess: () => onSuccess?.("updateTodo"),
       setError: setEditTodoError,
       setUpdating: setUpdatingTodo,
     }),

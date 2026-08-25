@@ -1,5 +1,6 @@
 <script lang="ts">
 import { onMount, tick } from "svelte";
+import { toast } from "svelte-sonner";
 import {
   commentEditAttachmentOptions,
   commentPanelSignInHref,
@@ -262,6 +263,13 @@ const { loadComments: _loadComments, submitComment: _submitComment } =
       commentUploadPendingForMode(_uploadPending, mode),
     scrollToHashComment: _scrollToHashComment,
     selectedPostTarget: _selectedPostTarget,
+    onSuccess: (mode) => {
+      toast.success(
+        mode === "comment"
+          ? _commentCopy.postSuccess
+          : _commentCopy.replySuccess,
+      );
+    },
     setBody: (value) => {
       _body = value;
     },
@@ -303,6 +311,11 @@ const { uploadFile: _uploadFile } = createCommentPanelUploadActions({
   getUploadCopy: () => _uploadCopy,
   getUploadedFiles: () => _uploadedFiles,
   insertMarkdown: _insertMarkdown,
+  onSuccess: (filename) => {
+    toast.success(
+      _uploadCopy.toastUploadSuccessDescription.replace("{name}", filename),
+    );
+  },
   replaceMarkdownToken: _replaceMarkdownToken,
   setEditAttachmentIds: (value) => {
     _editAttachmentIds = value;
@@ -380,6 +393,9 @@ const {
   hasPendingUploads: (mode) =>
     commentUploadPendingForMode(_uploadPending, mode),
   loadComments: _loadComments,
+  onSuccess: () => {
+    toast.success(_commentCopy.editSuccess);
+  },
   setActionMenuId: (value) => {
     _actionMenuId = value;
   },
@@ -405,6 +421,13 @@ const {
   getPendingReactionKey: () => _pendingReactionKey,
   getViewer: () => _viewer,
   loadComments: _loadComments,
+  onSuccess: (action) => {
+    toast.success(
+      action === "reaction"
+        ? _commentCopy.reactionSuccess
+        : _commentCopy.deleteSuccess,
+    );
+  },
   setActionMenuId: (value) => {
     _actionMenuId = value;
   },

@@ -1,4 +1,5 @@
 <script lang="ts">
+import { toast } from "svelte-sonner";
 import { SUSPENSION_DURATION_OPTIONS } from "@/features/admin/constants";
 import { createAdminUsersControllerDefaultState } from "@/features/admin/lib/admin-users-controller-default-state";
 import {
@@ -123,6 +124,15 @@ const {
     username: editUsername,
   }),
   getSelectedUser: () => selectedUser,
+  onSuccess: (action) => {
+    toast.success(
+      action === "update"
+        ? _copy.updateSuccess
+        : action === "suspend"
+          ? _copy.suspendSuccess
+          : _copy.liftSuccess,
+    );
+  },
   getSuspendState: () => ({
     duration: suspendDuration,
     expiresAt: suspendExpiresAt,

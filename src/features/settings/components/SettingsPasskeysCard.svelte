@@ -1,6 +1,7 @@
 <script lang="ts">
 import Fingerprint from "@lucide/svelte/icons/fingerprint";
 import { onMount } from "svelte";
+import { toast } from "svelte-sonner";
 import {
   isPasskeySupported,
   passkeyAuthClient,
@@ -64,6 +65,7 @@ async function addPasskey() {
       kind: "success",
       message: copy.settings.passkeys.added,
     };
+    toast.success(copy.settings.passkeys.added);
     await $passkeyQuery.refetch();
   } catch {
     status = {
@@ -179,6 +181,7 @@ async function addPasskey() {
             reportStatus={(nextStatus) => {
               status = nextStatus;
             }}
+            onSuccess={(message) => toast.success(message)}
           />
         {/each}
       </Item.Group>

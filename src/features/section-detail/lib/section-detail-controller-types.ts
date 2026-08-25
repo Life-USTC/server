@@ -256,6 +256,7 @@ export type SectionDetailCopy = {
     sectionCode: string;
     semester: string;
     subscribeLabel: string;
+    subscribeSuccess: string;
     subscribing: string;
     subscriptionDisclaimer: string;
     subscriptionMissing: string;
@@ -281,6 +282,7 @@ export type SectionDetailCopy = {
     title: string;
     units: string;
     unsubscribeLabel: string;
+    unsubscribeSuccess: string;
     unsubscribing: string;
     due: string;
     flags: string;

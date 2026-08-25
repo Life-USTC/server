@@ -19,6 +19,7 @@ export function createDashboardSubscriptionRemovalActions(
 
       await input.invalidateAll();
       input.setSubscriptionActionMessage(message);
+      input.onSuccess?.("remove");
       return true;
     } catch (error) {
       input.setSubscriptionActionError(
