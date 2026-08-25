@@ -1,3 +1,5 @@
+import { readFile } from "node:fs/promises";
+import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
   isDetailWorkspacePath,
@@ -49,4 +51,36 @@ describe("application shell theme", () => {
       expect(resolveShellTheme(mode, prefersDark)).toBe(expected);
     },
   );
+});
+
+describe("mobile toast placement", () => {
+  it("keeps bottom toasts above the fixed mobile navigation", async () => {
+    const [layout, primaryNav, adminNav] = await Promise.all([
+      readFile(resolve(process.cwd(), "src/routes/+layout.svelte"), "utf8"),
+      readFile(
+        resolve(
+          process.cwd(),
+          "src/lib/components/shell/MobilePrimaryNav.svelte",
+        ),
+        "utf8",
+      ),
+      readFile(
+        resolve(
+          process.cwd(),
+          "src/features/admin/components/AdminMobileNav.svelte",
+        ),
+        "utf8",
+      ),
+    ]);
+
+    expect(layout).toContain(
+      'bottom: "calc(3.5rem + env(safe-area-inset-bottom) + 1rem)"',
+    );
+    expect(layout).toContain('left: "1rem"');
+    expect(layout).toContain('right: "1rem"');
+    expect(primaryNav).toContain("min-h-14");
+    expect(primaryNav).toContain("pb-[env(safe-area-inset-bottom)]");
+    expect(adminNav).toContain("min-h-14");
+    expect(adminNav).toContain("pb-[env(safe-area-inset-bottom)]");
+  });
 });

@@ -48,4 +48,11 @@ $: documentTitle = socialMetadata?.title ?? "Life@USTC";
   <slot />
 </AppShell>
 
-<Toaster position="bottom-right" />
+<Toaster
+  mobileOffset={{
+    bottom: "calc(3.5rem + env(safe-area-inset-bottom) + 1rem)",
+    left: "1rem",
+    right: "1rem",
+  }}
+  position="bottom-right"
+/>
