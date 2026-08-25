@@ -94,8 +94,25 @@ test.describe("/account/settings/authorizations OAuth 授权", () => {
       await expect(page).toHaveURL(
         /\/account\/settings\/authorizations\?message=AuthorizationRevoked$/,
       );
+      const revokeSuccessText = /已撤销应用授权|Application access revoked/i;
+      const inlineSuccessAlert = page
+        .locator('[data-slot="alert"][role="alert"]')
+        .filter({ hasText: revokeSuccessText });
+      await expect(inlineSuccessAlert).toHaveCount(1);
       await expect(
-        page.getByText(/已撤销应用授权|Application access revoked/i),
+        inlineSuccessAlert.getByRole("heading", {
+          name: revokeSuccessText,
+        }),
+      ).toBeVisible();
+
+      const notifications = page.getByRole("region", {
+        name: /Notifications/i,
+      });
+      await expect(notifications).toBeVisible();
+      await expect(
+        notifications
+          .locator("[data-sonner-toast]")
+          .filter({ hasText: revokeSuccessText }),
       ).toBeVisible();
       await expect(region.getByText(name, { exact: true })).toHaveCount(0);
       await captureStepScreenshot(
