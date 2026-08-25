@@ -1160,6 +1160,26 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
     await jumpToSection(page, /作业|Homework/i, "#homework");
 
     await expect(page.getByTestId("section-homeworks-list")).toBeVisible();
+    await page.setViewportSize({ width: 320, height: 568 });
+    await gotoAndWaitForReady(page, `${SECTION_URL}#homework`);
+    await expect(page.getByTestId("section-homeworks-items")).toBeVisible();
+    await expect(
+      page.getByTestId("section-homeworks-list").locator("table"),
+    ).toBeHidden();
+    const homeworkItem = page
+      .getByTestId("section-homeworks-items")
+      .locator('[data-slot="item"]')
+      .first();
+    await expect(homeworkItem).toBeVisible();
+    const detailButton = homeworkItem.getByRole("button").first();
+    const detailBox = await detailButton.boundingBox();
+    expect(detailBox?.width ?? 0).toBeGreaterThanOrEqual(44);
+    expect(detailBox?.height ?? 0).toBeGreaterThanOrEqual(44);
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= window.innerWidth,
+      ),
+    ).toBe(true);
     await captureStepScreenshot(page, testInfo, "section/homework-list-view");
   });
 

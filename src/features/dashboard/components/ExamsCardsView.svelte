@@ -29,18 +29,33 @@ export let subscriptionsCopy: ExamsCopyProps["subscriptionsCopy"];
     {@const detailHref = exam.section.jwId
       ? `/catalog/sections/${exam.section.jwId}`
       : dashboardTabHref("subscriptions")}
-    <Item.Root class="items-start px-2 py-2" size="sm">
-      <Item.Content class="min-w-0 gap-0.5">
-        <Item.Title class="block min-w-0 max-w-full">
-          <a class="block min-w-0 max-w-full truncate underline-offset-4 hover:underline" href={detailHref}>
+    <Item.Root class="items-start gap-3 px-2 py-3">
+      <Item.Content class="min-w-0 gap-1">
+        <Item.Title class="line-clamp-none w-full min-w-0">
+          <a
+            class="flex min-h-11 w-full min-w-0 max-w-full items-center underline-offset-4 hover:underline"
+            href={detailHref}
+          >
+            <span class="line-clamp-2 min-w-0 max-w-full break-words">
             {exam.courseName}
+            </span>
           </a>
         </Item.Title>
-        <Item.Description class="flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-0.5">
-          {exam.section.code ?? subscriptionsCopy.section}{#if exam.section.semester} · {namePrimary(exam.section.semester)}{/if}
-          <span>{sectionCopy.examDate}: {#if exam.examDate}{fmtExamDate(exam.examDate)}{:else}{sectionCopy.examDateTBD}{/if}</span>
-          <span>{sectionCopy.examTime}: {examTimeLabel(exam.startTime, exam.endTime) || "—"}</span>
-          <span>{sectionCopy.room}: {exam.rooms || sectionCopy.roomTbd}</span>
+        <Item.Description
+          class="line-clamp-none flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-1 break-words"
+        >
+          <span class="max-w-full break-words">
+            {exam.section.code ?? subscriptionsCopy.section}{#if exam.section.semester} · {namePrimary(exam.section.semester)}{/if}
+          </span>
+          <span class="max-w-full break-words">
+            {sectionCopy.examDate}: {#if exam.examDate}{fmtExamDate(exam.examDate)}{:else}{sectionCopy.examDateTBD}{/if}
+          </span>
+          <span class="max-w-full break-words">
+            {sectionCopy.examTime}: {examTimeLabel(exam.startTime, exam.endTime) || "—"}
+          </span>
+          <span class="max-w-full break-words">
+            {sectionCopy.room}: {exam.rooms || sectionCopy.roomTbd}
+          </span>
           <Badge variant="outline">
             {exam.completed ? dashboardCopy.nav.exams.filterCompleted : dashboardCopy.nav.exams.filterIncomplete}
           </Badge>
@@ -49,7 +64,11 @@ export let subscriptionsCopy: ExamsCopyProps["subscriptionsCopy"];
         </Item.Description>
       </Item.Content>
       <Item.Actions class="shrink-0 self-start">
-        <DashboardTableIconButton href={detailHref} label={sectionCopy.moreDetails}>
+        <DashboardTableIconButton
+          className="size-11"
+          href={detailHref}
+          label={sectionCopy.moreDetails}
+        >
           <ArrowUpRight />
         </DashboardTableIconButton>
       </Item.Actions>

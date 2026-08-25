@@ -71,6 +71,17 @@ test.describe("仪表盘待办", () => {
     await expect(completionButton).toBeVisible();
     await expect(completionButton).toBeEnabled();
 
+    const detailButton = row.getByRole("button", {
+      name: DEV_SEED.todos.dueTodayTitle,
+      exact: true,
+    });
+    await detailButton.focus();
+    await page.keyboard.press("Enter");
+    await expect(
+      page.getByRole("dialog", { name: DEV_SEED.todos.dueTodayTitle }),
+    ).toBeVisible();
+    await page.keyboard.press("Escape");
+
     await captureStepScreenshot(page, testInfo, "dashboard-todos-seed");
   });
 
@@ -109,6 +120,14 @@ test.describe("仪表盘待办", () => {
     await expect(todoItem).toBeVisible();
     await expect(todoItem.locator('[data-slot="item-content"]')).toBeVisible();
     await expect(todoItem.locator('[data-slot="item-actions"]')).toBeVisible();
+    for (const control of await todoItem
+      .locator('[data-slot="item-actions"]')
+      .getByRole("button")
+      .all()) {
+      const box = await control.boundingBox();
+      expect(box?.width ?? 0).toBeGreaterThanOrEqual(44);
+      expect(box?.height ?? 0).toBeGreaterThanOrEqual(44);
+    }
     expect(
       await page.evaluate(
         () => document.documentElement.scrollWidth <= window.innerWidth,

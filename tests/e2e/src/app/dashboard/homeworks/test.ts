@@ -90,6 +90,16 @@ test.describe("仪表盘作业", () => {
         .first(),
     ).toBeVisible();
 
+    const detailButton = hwRow.getByRole("button", {
+      name: new RegExp(DEV_SEED.homeworks.title),
+    });
+    await detailButton.focus();
+    await page.keyboard.press("Enter");
+    await expect(
+      page.locator('[data-slot="dialog-content"]').first(),
+    ).toBeVisible();
+    await page.keyboard.press("Escape");
+
     await captureStepScreenshot(page, testInfo, "homeworks/seed-list-fields");
   });
 
@@ -141,6 +151,14 @@ test.describe("仪表盘作业", () => {
     await expect(
       homeworkItem.locator('[data-slot="item-actions"]'),
     ).toBeVisible();
+    for (const control of await homeworkItem
+      .locator('[data-slot="item-actions"]')
+      .getByRole("button")
+      .all()) {
+      const box = await control.boundingBox();
+      expect(box?.width ?? 0).toBeGreaterThanOrEqual(44);
+      expect(box?.height ?? 0).toBeGreaterThanOrEqual(44);
+    }
     expect(
       await page.evaluate(
         () => document.documentElement.scrollWidth <= window.innerWidth,

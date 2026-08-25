@@ -1,4 +1,5 @@
 <script lang="ts">
+import ArrowUpRight from "@lucide/svelte/icons/arrow-up-right";
 import CheckCircleIcon from "@lucide/svelte/icons/check-circle";
 import RefreshCw from "@lucide/svelte/icons/refresh-cw";
 import type { DashboardHomeworkItem } from "@/features/dashboard/lib/dashboard-controller-types";
@@ -61,13 +62,13 @@ export let toggleHomeworkCompletion: (
         </Table.Cell>
         <Table.Cell>
           <button
-            class="block min-w-0 max-w-full overflow-hidden text-left hover:underline"
+            class="block min-h-11 min-w-0 max-w-full text-left hover:underline"
             type="button"
             onclick={() => {
               selectedHomework = homework;
             }}
           >
-            <TruncatedText text={homework.title} />
+            <TruncatedText text={homework.title} lines={2} />
           </button>
         </Table.Cell>
         <Table.Cell>
@@ -102,11 +103,12 @@ export let toggleHomeworkCompletion: (
         <Table.Cell>
           <DashboardTableRowActions>
             <DashboardTableIconButton
-              disabled={homeworkSavingById[homework.id]}
-              label={homeworkSavingById[homework.id]
-                ? homeworksCopy.saving
-                : homeworkCompletionActionLabel(homework)}
-              onclick={() => toggleHomeworkCompletion(homework)}
+            disabled={homeworkSavingById[homework.id]}
+            label={homeworkSavingById[homework.id]
+              ? homeworksCopy.saving
+              : homeworkCompletionActionLabel(homework)}
+            variant={homework.completion ? "secondary" : "default"}
+            onclick={() => toggleHomeworkCompletion(homework)}
             >
               {#if homeworkSavingById[homework.id]}
                 <Spinner />
@@ -115,6 +117,15 @@ export let toggleHomeworkCompletion: (
               {:else}
                 <CheckCircleIcon />
               {/if}
+            </DashboardTableIconButton>
+            <DashboardTableIconButton
+              label={homeworksCopy.viewDetails}
+              variant="outline"
+              onclick={() => {
+                selectedHomework = homework;
+              }}
+            >
+              <ArrowUpRight />
             </DashboardTableIconButton>
           </DashboardTableRowActions>
         </Table.Cell>
