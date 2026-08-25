@@ -295,6 +295,11 @@ test("/admin/moderation 可更新评论状态与备注", async ({ page }, testIn
   await dialog.getByRole("button", { name: /确认|Confirm/i }).click();
   await patchResponse;
   await expect(dialog).not.toBeVisible({ timeout: 15_000 });
+  await expect(
+    page
+      .locator("[data-sonner-toast]")
+      .filter({ hasText: /评论已更新|Comment updated/i }),
+  ).toBeVisible();
   await captureStepScreenshot(page, testInfo, "admin-moderation-updated");
 });
 
@@ -434,6 +439,11 @@ test("/admin/moderation 封禁列表可解除封禁", async ({ page }, testInfo)
     expect((await liftResponse).status()).toBe(200);
     lifted = true;
     await expect(row.getByText(/已解除|Lifted/i)).toBeVisible();
+    await expect(
+      page
+        .locator("[data-sonner-toast]")
+        .filter({ hasText: /封禁已解除|Suspension lifted/i }),
+    ).toBeVisible();
     await captureStepScreenshot(page, testInfo, "admin-moderation-suspended");
   } finally {
     if (!lifted) {
@@ -508,7 +518,9 @@ test("/admin/moderation 可从评论弹窗封禁并解除用户", async ({
     suspensionId = createdBody.suspension?.id;
     expect(typeof suspensionId).toBe("string");
     await expect(
-      dialog.getByText(/封禁成功|Suspended successfully/i),
+      page
+        .locator("[data-sonner-toast]")
+        .filter({ hasText: /封禁成功|Suspended successfully/i }),
     ).toBeVisible();
     await expect(
       dialog.getByRole("button", { name: /^(封禁|Suspend)$/i }),
@@ -621,6 +633,12 @@ test("/admin/moderation 可更新课程简介内容", async ({ page }, testInfo)
       (entry) => entry.id === description.id && entry.content === nextContent,
     ),
   ).toBe(true);
+
+  await expect(
+    page
+      .locator("[data-sonner-toast]")
+      .filter({ hasText: /课程简介已更新|Description updated/i }),
+  ).toBeVisible();
 
   await page.request.patch(`/api/admin/descriptions/${description.id}`, {
     data: { content: description.content ?? "" },

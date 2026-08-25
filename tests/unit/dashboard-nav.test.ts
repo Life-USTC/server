@@ -22,7 +22,7 @@ describe("dashboardRedirectHrefFromHome", () => {
     );
 
     expect(dashboardRedirectHrefFromHome(url)).toBe(
-      "/workspace/overview?homeworkView=completed&removed=3",
+      "/workspace/overview?homeworkView=completed",
     );
   });
 });

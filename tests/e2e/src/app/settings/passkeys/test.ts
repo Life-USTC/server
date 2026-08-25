@@ -49,7 +49,9 @@ test.describe("/account/settings/accounts 通行密钥", () => {
         .click();
 
       await expect(
-        passkeyCard.getByText(/通行密钥已添加|Passkey added/i),
+        page
+          .locator("[data-sonner-toast]")
+          .filter({ hasText: /通行密钥已添加|Passkey added/i }),
       ).toBeVisible();
       await expect(
         passkeyCard.getByLabel(/重命名 E2E laptop|Rename E2E laptop/i),
@@ -73,7 +75,9 @@ test.describe("/account/settings/accounts 通行密钥", () => {
         .getByRole("button", { name: /保存名称|Save name/i })
         .click();
       await expect(
-        passkeyCard.getByText(/通行密钥名称已更新|Passkey name updated/i),
+        page
+          .locator("[data-sonner-toast]")
+          .filter({ hasText: /通行密钥名称已更新|Passkey name updated/i }),
       ).toBeVisible();
       await expect(
         passkeyCard.getByLabel(
@@ -121,6 +125,11 @@ test.describe("/account/settings/accounts 通行密钥", () => {
       await dialog.getByRole("button", { name: /删除|Delete/i }).click();
       await expect(
         page.getByText(/尚未添加通行密钥|No passkeys yet/i),
+      ).toBeVisible();
+      await expect(
+        page
+          .locator("[data-sonner-toast]")
+          .filter({ hasText: /通行密钥已删除|Passkey deleted/i }),
       ).toBeVisible();
     } finally {
       await deletePasskeysForUserFixture(user.id);

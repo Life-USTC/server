@@ -70,7 +70,7 @@ async function confirmRoleChange() {
 
       <ScrollArea class="min-h-0 h-[min(62dvh,34rem)] max-h-[calc(100dvh-10rem)]">
         <div class="grid gap-5 px-5 py-4">
-          {#if message}<Alert.Root variant={messageVariant}><Alert.Description>{message}</Alert.Description></Alert.Root>{/if}
+          {#if message && messageVariant === "destructive"}<Alert.Root variant={messageVariant}><Alert.Description>{message}</Alert.Description></Alert.Root>{/if}
 
           <AdminUserProfileSection
             {copy}

@@ -1482,6 +1482,11 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
       expect(createResponseBody.id).toBeTruthy();
       commentId = createResponseBody.id;
       await expect(page.getByText(body).first()).toBeVisible();
+      await expect(
+        page
+          .locator("[data-sonner-toast]")
+          .filter({ hasText: /评论已发布|Comment posted/i }),
+      ).toBeVisible();
       await captureStepScreenshot(page, testInfo, "section/comment-posted");
 
       const commentCard = page
@@ -1518,6 +1523,11 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
       await expect(
         commentCard.getByRole("button", { name: /👍/ }),
       ).toBeVisible();
+      await expect(
+        page
+          .locator("[data-sonner-toast]")
+          .filter({ hasText: /表情已更新|Reaction updated/i }),
+      ).toBeVisible();
       await captureStepScreenshot(page, testInfo, "section/comment-upvoted");
 
       // Edit comment (canEdit action)
@@ -1548,6 +1558,11 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
         .filter({ hasText: editedBody })
         .first();
       await expect(editedCommentCard).toBeVisible();
+      await expect(
+        page
+          .locator("[data-sonner-toast]")
+          .filter({ hasText: /评论已更新|Comment updated/i }),
+      ).toBeVisible();
 
       // Reply (canReply action, comment.replies[])
       await editedCommentCard
@@ -1576,6 +1591,11 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
       expect(replyResponseBody.id).toBeTruthy();
       replyId = replyResponseBody.id;
       await expect(page.getByText(replyBody).first()).toBeVisible();
+      await expect(
+        page
+          .locator("[data-sonner-toast]")
+          .filter({ hasText: /回复已发布|Reply posted/i }),
+      ).toBeVisible();
       await captureStepScreenshot(page, testInfo, "section/comment-replied");
 
       // Delete comment
@@ -1637,6 +1657,11 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
       await deleteResponse;
       await page.unroute("**/api/community/comments/**");
       await expect(editedCommentCard).toHaveCount(0);
+      await expect(
+        page
+          .locator("[data-sonner-toast]")
+          .filter({ hasText: /评论已删除|Comment deleted/i }),
+      ).toBeVisible();
       await captureStepScreenshot(page, testInfo, "section/comment-deleted");
     } finally {
       await cleanupCommentsForE2e([replyId, commentId]);
@@ -1830,6 +1855,11 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
         .filter({ hasText: body })
         .first();
       await expect(commentCard).toBeVisible();
+      await expect(
+        page
+          .locator("[data-sonner-toast]")
+          .filter({ hasText: /已可分享|is ready to share/i }),
+      ).toBeVisible();
       // comment.attachments[] filename/open action (comment.yml display.fields)
       await expect(
         commentCard

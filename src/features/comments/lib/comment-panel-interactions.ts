@@ -33,6 +33,7 @@ export function createCommentPanelInteractions(input: {
   getPendingReactionKey: () => string | null;
   getViewer: () => ViewerContext;
   loadComments: () => Promise<void>;
+  onCopySuccess?: (message: string) => void;
   onSuccess?: (action: "reaction" | "delete") => void;
   setActionMenuId: (value: string | null) => void;
   setDeleteTarget: (value: CommentNode | null) => void;
@@ -97,8 +98,9 @@ export function createCommentPanelInteractions(input: {
           permalinkBaseHref,
         }),
       );
+      input.setMessage("");
       input.setMessageVariant("default");
-      input.setMessage(copy.linkCopied);
+      input.onCopySuccess?.(copy.linkCopied);
     } catch {
       input.setMessageVariant("destructive");
       input.setMessage(copy.pleaseRetry);

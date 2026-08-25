@@ -311,6 +311,11 @@ const {
           : subscriptionsCopy.bulkImport.success,
       ),
     );
+    if (action === "remove") {
+      subscriptionActionMessage = "";
+    } else {
+      bulkImportMessage = "";
+    }
   },
   setBulkImportError: (value) => {
     bulkImportError = value;
@@ -512,23 +517,16 @@ onMount(() => {
     clearPendingRemoveSection,
     copy: {
       dashboard: dashboardCopy,
-      subscriptions: subscriptionsCopy,
     },
     getLinkSearchInput: () => linkSearchInput,
     replaceState: (href) => {
       replaceState(href, {});
-    },
-    setBulkImportMessage: (value) => {
-      bulkImportMessage = value;
     },
     setLinkActionError: (value) => {
       linkActionError = value;
     },
     setLinkReturnTo: (value) => {
       linkReturnTo = value;
-    },
-    setSubscriptionActionMessage: (value) => {
-      subscriptionActionMessage = value;
     },
   });
 });

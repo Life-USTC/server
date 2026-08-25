@@ -148,6 +148,7 @@ const {
     toast.success(
       action === "comment" ? _copy.commentUpdateSuccess : _copy.suspendSuccess,
     );
+    _dialogMessage = "";
   },
   setCommentStatus: (value) => {
     _commentStatus = value;

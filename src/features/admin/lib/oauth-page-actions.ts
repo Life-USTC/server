@@ -12,6 +12,7 @@ export function createOAuthPageActions<
   getPendingDeleteClient: () => ClientShape | null;
   getSelectedAuthMethod: () => string;
   getSelectedScopes: () => string[];
+  onCopySuccess?: (message: string) => void;
   onSuccess?: (action: "create" | "delete") => void;
   setCopyMessage: (value: string) => void;
   setCopyMessageVariant: (value: "destructive" | "default") => void;
@@ -39,8 +40,9 @@ export function createOAuthPageActions<
     try {
       if (!value) throw new Error(copy.copyError);
       await writeClipboardText(value);
-      input.setCopyMessage(successMessage);
+      input.setCopyMessage("");
       input.setCopyMessageVariant("default");
+      input.onCopySuccess?.(successMessage);
       return true;
     } catch {
       input.setCopyMessage(copy.copyErrorDescription);

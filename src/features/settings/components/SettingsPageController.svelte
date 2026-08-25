@@ -21,6 +21,8 @@ import {
   createSettingsAccountAction,
 } from "@/features/settings/lib/settings-page-actions";
 import type { SettingsTab } from "@/features/settings/lib/settings-tabs";
+import { replaceState } from "$app/navigation";
+import { page } from "$app/stores";
 import DetailSectionNav from "$lib/components/DetailSectionNav.svelte";
 import type {
   SettingsAccount,
@@ -79,19 +81,35 @@ $: avatarOptions =
 $: currentImage = data.user.image ?? "";
 $: previewImage = selectedImage || currentImage || "/images/icon.png";
 $: statusMessage = form?.message ?? data.message;
-$: if (data.message && typeof window !== "undefined") {
-  const statusKey = `${window.location.pathname}?${window.location.search}`;
+$: redirectStatus = $page.url.searchParams.get("message");
+$: if (!redirectStatus) {
+  consumedStatusKey = "";
+}
+$: if (
+  typeof window !== "undefined" &&
+  redirectStatus &&
+  [
+    "CalendarTokenRotated",
+    "AuthorizationRevoked",
+    "AccountDisconnected",
+    "Success",
+  ].includes(redirectStatus)
+) {
+  const statusKey = `${$page.url.pathname}:${redirectStatus}`;
   if (statusKey !== consumedStatusKey) {
     consumedStatusKey = statusKey;
     const message =
-      data.message === "CalendarTokenRotated"
+      redirectStatus === "CalendarTokenRotated"
         ? copy.settings.security.calendarTokenRotated
-        : data.message === "AuthorizationRevoked"
+        : redirectStatus === "AuthorizationRevoked"
           ? copy.settings.authorizations.revokeSuccess
-          : data.message === "AccountDisconnected"
+          : redirectStatus === "AccountDisconnected"
             ? copy.profile.disconnectSuccess
             : copy.profile.updateSuccess;
     toast.success(message);
+    const nextUrl = new URL($page.url);
+    nextUrl.searchParams.delete("message");
+    replaceState(nextUrl, {});
   }
 }
 $: if (

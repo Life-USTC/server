@@ -308,6 +308,11 @@ test("/admin/users 可打开管理弹窗并保存姓名", async ({ page }, testI
     const save = await saveResponse;
     expect(save.status()).toBe(200);
     await expect(dialog).toBeHidden();
+    await expect(
+      page
+        .locator("[data-sonner-toast]")
+        .filter({ hasText: /更新成功|Updated successfully/i }),
+    ).toBeVisible();
     await captureStepScreenshot(page, testInfo, "admin-users-updated");
 
     await gotoAndWaitForReady(
@@ -407,6 +412,11 @@ test("/admin/users 可创建默认时长封禁并通过 API 解除", async ({
     expect(body.suspension?.reason).toBe(reason);
     expect(typeof body.suspension?.id).toBe("string");
     suspensionId = body.suspension?.id;
+    await expect(
+      page
+        .locator("[data-sonner-toast]")
+        .filter({ hasText: /封禁成功|Suspended successfully/i }),
+    ).toBeVisible();
     await captureStepScreenshot(page, testInfo, "admin-users-suspend-created");
 
     await gotoAndWaitForReady(

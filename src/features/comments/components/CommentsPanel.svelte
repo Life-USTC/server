@@ -421,6 +421,9 @@ const {
   getPendingReactionKey: () => _pendingReactionKey,
   getViewer: () => _viewer,
   loadComments: _loadComments,
+  onCopySuccess: (message) => {
+    toast.success(message);
+  },
   onSuccess: (action) => {
     toast.success(
       action === "reaction"

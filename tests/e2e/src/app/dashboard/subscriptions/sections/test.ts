@@ -412,6 +412,17 @@ test.describe("仪表盘教学班订阅", () => {
     await unsubscribeResponse;
     await expect(confirmDialog).not.toBeVisible();
     await expect(courseLink).toHaveCount(0);
+    await expect(
+      page
+        .locator("[data-sonner-toast]")
+        .filter({ hasText: /已移除班级|Section removed/i }),
+    ).toBeVisible();
+    await expect(
+      page.locator('[data-slot="alert"][role="alert"]').filter({
+        hasText:
+          /该教学班已从订阅列表中移除|This section has been removed from your Life@USTC subscriptions/i,
+      }),
+    ).toHaveCount(0);
 
     await captureStepScreenshot(
       page,
@@ -677,6 +688,29 @@ test.describe("仪表盘教学班订阅", () => {
       .click();
     await subscribeResponse;
     await expect(quickAddDialog).not.toBeVisible();
+    await expect(
+      page.locator("[data-sonner-toast]").filter({
+        hasText:
+          /已新增 \d+ 个教学班订阅|Added \d+ new sections? to Life@USTC/i,
+      }),
+    ).toBeVisible();
+    await expect(
+      page.locator('[data-slot="alert"][role="alert"]').filter({
+        hasText:
+          /已新增 \d+ 个教学班订阅|Added \d+ new sections? to Life@USTC/i,
+      }),
+    ).toHaveCount(0);
+    await waitForUiSettled(page);
+    await expect(
+      page
+        .getByTestId("subscription-course-link")
+        .filter({
+          hasText: new RegExp(
+            `${escapeForRegExp(DEV_SEED.course.nameCn)}|${escapeForRegExp(DEV_SEED.course.nameEn)}`,
+          ),
+        })
+        .first(),
+    ).toBeVisible();
   });
 
   test("单个添加弹窗在 320×568 视口保持关闭控件和操作区可达", async ({
@@ -788,13 +822,28 @@ test.describe("仪表盘教学班订阅", () => {
       .click();
 
     await expect(
-      page
-        .getByText(
+      page.locator("[data-sonner-toast]").filter({
+        hasText:
           /已新增 \d+ 个教学班订阅|Added \d+ new sections? to Life@USTC/i,
-        )
-        .first(),
+      }),
     ).toBeVisible({ timeout: 15_000 });
+    await expect(
+      page.locator('[data-slot="alert"][role="alert"]').filter({
+        hasText:
+          /已新增 \d+ 个教学班订阅|Added \d+ new sections? to Life@USTC/i,
+      }),
+    ).toHaveCount(0);
     await waitForUiSettled(page);
+    await expect(
+      page
+        .getByTestId("subscription-course-link")
+        .filter({
+          hasText: new RegExp(
+            `${escapeForRegExp(DEV_SEED.course.nameCn)}|${escapeForRegExp(DEV_SEED.course.nameEn)}`,
+          ),
+        })
+        .first(),
+    ).toBeVisible();
 
     await captureStepScreenshot(
       page,
