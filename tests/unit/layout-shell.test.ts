@@ -108,6 +108,8 @@ describe("settings redirect success feedback", () => {
     expect(controller).toContain('import { page } from "$app/stores";');
     expect(controller).toContain('$page.url.searchParams.get("message")');
     expect(controller).toContain("_isMounted &&");
+    expect(controller).toContain("const mountTimer = setTimeout(() => {");
+    expect(controller).toContain("return () => clearTimeout(mountTimer);");
     expect(controller).toContain("replaceState(nextUrl, {})");
     expect(controller).not.toContain("window.history.replaceState");
   });

@@ -156,7 +156,10 @@ function tabIcon(icon: string) {
 }
 
 onMount(() => {
-  _isMounted = true;
+  const mountTimer = setTimeout(() => {
+    _isMounted = true;
+  }, 0);
+  return () => clearTimeout(mountTimer);
 });
 </script>
 
