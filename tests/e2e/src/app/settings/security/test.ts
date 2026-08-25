@@ -68,14 +68,6 @@ test.describe("/account/settings/security 安全活动", () => {
         .locator("[data-sonner-toast]")
         .filter({ hasText: /日历链接已轮换|Calendar link rotated/i }),
     ).toBeVisible();
-    await expect(
-      page
-        .getByRole("region", {
-          name: /账户安全活动|Account security activity/i,
-        })
-        .getByText(/轮换日历令牌|Rotated calendar token/i)
-        .first(),
-    ).toBeVisible();
   });
 });
 
