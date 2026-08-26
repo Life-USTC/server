@@ -1,6 +1,5 @@
 <script lang="ts">
 import { Button } from "$lib/components/ui/button/index.js";
-import { Separator } from "$lib/components/ui/separator/index.js";
 import type {
   SectionHomeworkAction,
   SectionHomeworkCopy,
@@ -48,9 +47,7 @@ export let toggleHomeworkCompletion: SectionHomeworkAction;
       </div>
     {/if}
     {#if canManage}
-      <Separator class="sm:hidden" />
-      <Separator class="hidden sm:block" orientation="vertical" />
-      <div class="sm:ml-auto">
+      <div class="sm:ml-auto sm:pl-2">
         <Button
           class="w-full sm:w-auto"
           variant="destructive"

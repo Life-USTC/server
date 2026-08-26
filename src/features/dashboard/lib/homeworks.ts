@@ -1,5 +1,3 @@
-import { sectionDetailHomeworkPath } from "@/features/section-detail/lib/section-detail-tab";
-
 type HomeworkCompletionState = {
   completion?: unknown | null;
 };
@@ -39,17 +37,6 @@ export function homeworkSectionOptionLabel(
       .filter(Boolean)
       .join(" · ") || fallback
   );
-}
-
-export function homeworkDetailHref(
-  homework: HomeworkWithSection,
-  fallbackHref: string,
-) {
-  return homework.section?.jwId
-    ? sectionDetailHomeworkPath(homework.section.jwId, {
-        homeworkId: homework.id,
-      })
-    : fallbackHref;
 }
 
 export function homeworkSectionHref(
