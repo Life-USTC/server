@@ -124,7 +124,7 @@ describe("remaining ordinary GraphQL mutations", () => {
       auditMetadata: {
         channel: "graphql",
         ipAddress: undefined,
-        requestId: undefined,
+        requestId: expect.any(String),
         source: "graphql",
         subjectUserId: "user-1",
         userAgent: "graphql-test",
@@ -231,7 +231,7 @@ describe("remaining ordinary GraphQL mutations", () => {
       audit: {
         channel: "graphql",
         ipAddress: undefined,
-        requestId: undefined,
+        requestId: expect.any(String),
         source: "graphql",
         subjectUserId: "user-1",
         userAgent: "graphql-test",

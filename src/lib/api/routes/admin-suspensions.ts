@@ -12,6 +12,7 @@ import {
 } from "@/lib/api/helpers";
 import { withAdminApiRoute } from "@/lib/api/routes/admin-route-auth";
 import { adminCreateSuspensionRequestSchema } from "@/lib/api/schemas/request-schemas";
+import { logAdminSecurityEvent } from "@/lib/audit/security-events";
 import { getAuditRequestMetadata } from "@/lib/audit/write-audit-log";
 import { type IdParams, parseIdParam } from "./admin-shared";
 
@@ -43,6 +44,7 @@ export async function postAdminSuspensionRoute(request: Request) {
           return badRequest("Invalid expiresAt");
         }
         if (result.reason === "cannot_suspend_self") {
+          logAdminSecurityEvent(request, "self_protection");
           return badRequest("Admins cannot suspend themselves");
         }
         return notFound("User not found");

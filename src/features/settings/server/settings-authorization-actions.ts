@@ -32,6 +32,7 @@ export async function revokeSettingsAuthorizationAction({
     action: "oauth_authorization_revoke",
     request,
     targetType: "oauth_consent",
+    requestId,
     userId: user.id,
   });
   if (!recent.ok) {
@@ -52,7 +53,7 @@ export async function revokeSettingsAuthorizationAction({
   let result: Awaited<ReturnType<typeof revokeUserOAuthAuthorization>>;
   try {
     result = await revokeUserOAuthAuthorization(user.id, consentId, {
-      ...getAuditRequestMetadata(request),
+      ...getAuditRequestMetadata(request, requestId),
       channel: "web",
       sessionId: recent.sessionId,
     });
@@ -71,7 +72,7 @@ export async function revokeSettingsAuthorizationAction({
       targetId: consentId,
       targetType: "oauth_consent",
       userId: user.id,
-      ...getAuditRequestMetadata(request),
+      ...getAuditRequestMetadata(request, requestId),
     });
     return fail(500, {
       kind: "authorizations",
@@ -89,7 +90,7 @@ export async function revokeSettingsAuthorizationAction({
       targetType: "oauth_consent",
       userId: user.id,
       metadata: { reason: "not_found" },
-      ...getAuditRequestMetadata(request),
+      ...getAuditRequestMetadata(request, requestId),
     });
     return fail(404, {
       kind: "authorizations",

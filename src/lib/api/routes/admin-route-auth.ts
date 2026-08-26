@@ -9,6 +9,7 @@ import {
   suspensionForbidden,
   unauthorized,
 } from "@/lib/api/helpers";
+import { logAdminSecurityEvent } from "@/lib/audit/security-events";
 import { resolveSessionUserId } from "@/lib/auth/api-auth";
 import { resolveAuthoritativeRecentSession } from "@/lib/auth/recent-session";
 import { findActiveSuspension } from "@/lib/auth/viewer-context";
@@ -47,21 +48,33 @@ export async function requireAdminRequest(
   options: AdminGuardOptions = {},
 ) {
   const userId = await resolveSessionUserId(request);
-  if (!userId) return unauthorized();
+  if (!userId) {
+    logAdminSecurityEvent(request, "unauthenticated");
+    return unauthorized();
+  }
 
   const admin = await resolveAdminByUserId(userId);
-  if (!admin) return unauthorized();
+  if (!admin) {
+    logAdminSecurityEvent(request, "not_admin");
+    return unauthorized();
+  }
 
   if (!options.allowSuspended) {
     const suspension = await findActiveSuspension(admin.userId);
-    if (suspension) return suspensionForbidden(suspension.reason);
+    if (suspension) {
+      logAdminSecurityEvent(request, "suspended");
+      return suspensionForbidden(suspension.reason);
+    }
   }
 
   if (options.requireRecent) {
     const recent = await resolveAuthoritativeRecentSession(request.headers, {
       expectedUserId: admin.userId,
     });
-    if (!recent.ok) return recentAuthenticationRequired();
+    if (!recent.ok) {
+      logAdminSecurityEvent(request, "recent_auth_required");
+      return recentAuthenticationRequired();
+    }
   }
 
   if (!["GET", "HEAD", "OPTIONS"].includes(request.method.toUpperCase())) {
@@ -72,6 +85,12 @@ export async function requireAdminRequest(
       userId: admin.userId,
     });
     if (!outcome.allowed) {
+      logAdminSecurityEvent(
+        request,
+        outcome.reason === "limited"
+          ? "rate_limited"
+          : "rate_limit_unavailable",
+      );
       return rateLimitResponse(
         outcome.reason,
         USER_MUTATION_RATE_LIMIT_PERIOD_SECONDS,

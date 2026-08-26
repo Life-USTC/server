@@ -5,6 +5,7 @@ const {
   findActiveSuspensionMock,
   getSessionFromHeadersMock,
   hasActiveOAuthUserGrantMock,
+  logAppEventMock,
   resolveAuthoritativeRecentSessionMock,
   resolveAdminByUserIdMock,
   verifyAccessTokenJwtMock,
@@ -12,6 +13,7 @@ const {
   findActiveSuspensionMock: vi.fn(),
   getSessionFromHeadersMock: vi.fn(),
   hasActiveOAuthUserGrantMock: vi.fn(),
+  logAppEventMock: vi.fn(),
   resolveAuthoritativeRecentSessionMock: vi.fn(),
   resolveAdminByUserIdMock: vi.fn(),
   verifyAccessTokenJwtMock: vi.fn(),
@@ -47,10 +49,15 @@ vi.mock("@/lib/mcp/urls", () => ({
   getOAuthTokenVerificationIssuers: () => ["https://life.example/api/auth"],
 }));
 
+vi.mock("@/lib/log/app-logger", () => ({
+  logAppEvent: logAppEventMock,
+}));
+
 describe("admin 路由认证", () => {
   beforeEach(() => {
     setCloudflareRuntimeEnv(undefined);
     hasActiveOAuthUserGrantMock.mockResolvedValue(true);
+    logAppEventMock.mockReset();
     resolveAuthoritativeRecentSessionMock.mockResolvedValue({
       ok: true,
       sessionId: "session-1",
@@ -66,6 +73,7 @@ describe("admin 路由认证", () => {
     resolveAdminByUserIdMock.mockReset();
     resolveAuthoritativeRecentSessionMock.mockReset();
     verifyAccessTokenJwtMock.mockReset();
+    logAppEventMock.mockReset();
     vi.resetModules();
   });
 
@@ -84,6 +92,15 @@ describe("admin 路由认证", () => {
     expect((response as Response).status).toBe(401);
     expect(getSessionFromHeadersMock).not.toHaveBeenCalled();
     expect(resolveAdminByUserIdMock).not.toHaveBeenCalled();
+    expect(logAppEventMock).toHaveBeenCalledWith(
+      "warn",
+      "admin.authorization.denied",
+      expect.objectContaining({
+        event: "admin.authorization.denied",
+        reason: "unauthenticated",
+        source: "security",
+      }),
+    );
   });
 
   it("拒绝管理员用户持有的 Bearer 令牌，管理员 REST 仅接受站内会话", async () => {
@@ -134,6 +151,11 @@ describe("admin 路由认证", () => {
     expect(response).toBeInstanceOf(Response);
     expect((response as Response).status).toBe(401);
     expect(resolveAdminByUserIdMock).toHaveBeenCalledWith("user-1");
+    expect(logAppEventMock).toHaveBeenCalledWith(
+      "warn",
+      "admin.authorization.denied",
+      expect.objectContaining({ reason: "not_admin" }),
+    );
   });
 
   it("为有效的管理员会话 cookie 返回管理员会话", async () => {
@@ -191,6 +213,11 @@ describe("admin 路由认证", () => {
       reason: "policy hold",
     });
     expect(findActiveSuspensionMock).toHaveBeenCalledWith("admin-1");
+    expect(logAppEventMock).toHaveBeenCalledWith(
+      "warn",
+      "admin.authorization.denied",
+      expect.objectContaining({ reason: "suspended" }),
+    );
   });
 
   it("暂停的管理员无法读取 moderation 队列", async () => {
@@ -276,6 +303,11 @@ describe("admin 路由认证", () => {
       request.headers,
       { expectedUserId: "admin-1" },
     );
+    expect(logAppEventMock).toHaveBeenCalledWith(
+      "warn",
+      "admin.authorization.denied",
+      expect.objectContaining({ reason: "recent_auth_required" }),
+    );
   });
 
   it("recent-auth 有效时允许敏感管理员变更继续", async () => {
@@ -330,6 +362,11 @@ describe("admin 路由认证", () => {
         "admin-1",
       ]),
     });
+    expect(logAppEventMock).toHaveBeenCalledWith(
+      "warn",
+      "admin.authorization.denied",
+      expect.objectContaining({ reason: "rate_limited" }),
+    );
   });
 
   it("百分号编码的管理员路径仍使用规范资源预算", async () => {
