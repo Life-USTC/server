@@ -10,9 +10,23 @@ import { logAppEvent } from "@/lib/log/app-logger";
 import { writeCalendarExportRebuildAnalytics } from "@/lib/metrics/analytics-engine";
 
 export async function rebuildUserCalendarExport(userId: string) {
-  const user = await getUserCalendarRecord(userId);
+  let user: Awaited<ReturnType<typeof getUserCalendarRecord>>;
+  try {
+    user = await getUserCalendarRecord(userId);
+  } catch (error) {
+    writeCalendarExportRebuildAnalytics({ status: "refresh_error" });
+    throw error;
+  }
   if (!user) return null;
-  const calendar = await buildUserCalendarExport(user, userId);
+
+  let calendar: Awaited<ReturnType<typeof buildUserCalendarExport>>;
+  try {
+    calendar = await buildUserCalendarExport(user, userId);
+  } catch (error) {
+    writeCalendarExportRebuildAnalytics({ status: "refresh_error" });
+    throw error;
+  }
+
   return storeBuiltUserCalendarExport(userId, calendar);
 }
 

@@ -137,14 +137,16 @@ async function persistStoredCalendar(
   entry: StoredUserCalendarExport,
 ) {
   const namespace = getCloudflareCalendarExportsNamespace();
-  if (!namespace) return;
+  if (!namespace) return true;
 
   try {
     await namespace.put(cacheKey(userId), JSON.stringify(entry), {
       expirationTtl: USER_CALENDAR_EXPORT_KV_EXPIRATION_TTL_SECONDS,
     });
+    return true;
   } catch {
     recordCalendarFeedCacheStatus("store_error");
+    return false;
   }
 }
 
@@ -166,11 +168,19 @@ export async function storeBuiltUserCalendarExport(
   pruneOldestEntries();
   const persistence = persistStoredCalendar(userId, stored);
   if (options.defer) {
-    options.defer(persistence);
+    const deferredPersistence = persistence.then((persisted) => {
+      if (!persisted) {
+        throw new Error("Calendar export cache persistence failed");
+      }
+      recordCalendarFeedCacheStatus("refresh_success");
+    });
+    options.defer(deferredPersistence);
   } else {
-    await persistence;
+    if (!(await persistence)) {
+      throw new Error("Calendar export cache persistence failed");
+    }
+    recordCalendarFeedCacheStatus("refresh_success");
   }
-  recordCalendarFeedCacheStatus("refresh_success");
   return stored;
 }
 
@@ -183,7 +193,13 @@ function refreshUserCalendarExport(
   if (pending) return pending;
 
   const refresh = (async () => {
-    const calendar = await buildExport();
+    let calendar: UserCalendarExport | null;
+    try {
+      calendar = await buildExport();
+    } catch (error) {
+      recordCalendarFeedCacheStatus("refresh_error");
+      throw error;
+    }
     if (!calendar) return null;
     return storeBuiltUserCalendarExport(userId, calendar, { defer });
   })();
@@ -196,9 +212,23 @@ function refreshUserCalendarExport(
   return refresh;
 }
 
-function scheduleStaleCalendarExportRebuild(userId: string) {
-  void enqueueUserCalendarExportRebuild(userId).catch(() => {
-    // Stale-serve path must never fail because enqueue failed.
+function scheduleStaleCalendarExportRebuild(
+  userId: string,
+  defer?: (promise: Promise<unknown>) => void,
+) {
+  const enqueue = enqueueUserCalendarExportRebuild(userId);
+  if (defer) {
+    try {
+      defer(enqueue);
+      return;
+    } catch {
+      // A failed scheduler must not turn a stale response into an error.
+    }
+  }
+
+  enqueue.catch(() => {
+    // The enqueue helper records a low-cardinality failure metric. Keep this
+    // no-defer path non-blocking without leaving an unhandled rejection.
   });
 }
 
@@ -224,7 +254,7 @@ export async function getCachedUserCalendarExport(
     if (ageMs <= USER_CALENDAR_EXPORT_STALE_TTL_MS) {
       // Serve stale immediately and enqueue a Queue rebuild. Do not rebuild ICS
       // on the request path (or inside waitUntil) — that path hit cpu_ms / cancel.
-      scheduleStaleCalendarExportRebuild(userId);
+      scheduleStaleCalendarExportRebuild(userId, options.defer);
       recordCalendarFeedCacheStatus("stale");
       return {
         calendar: cached,

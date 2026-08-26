@@ -1,5 +1,7 @@
 import type { AppLocale } from "@/i18n/config";
 import { getCloudflareAnalyticsEngineDataset } from "@/lib/adapters/cloudflare-runtime";
+import { emitLog } from "@/lib/log/app-log-emitter";
+import { getSafeErrorName } from "@/lib/log/safe-error-name";
 import type {
   McpRequestSummary,
   McpResponsePhase,
@@ -153,7 +155,13 @@ type CalendarFeedCacheAnalyticsInput = {
 };
 
 type CalendarExportRebuildAnalyticsInput = {
-  status: "enqueued" | "ok" | "error";
+  status:
+    | "enqueue_error"
+    | "enqueued"
+    | "error"
+    | "ok"
+    | "refresh_error"
+    | "store_error";
 };
 
 type GraphqlOperationAnalyticsInput = {
@@ -239,13 +247,61 @@ function finiteNumber(value: number | undefined | null) {
   return Math.max(0, value);
 }
 
+let analyticsBindingMissingLogged = false;
+let analyticsWriteFailureLogged = new WeakSet<object>();
+
+function logAnalyticsDiagnostic(
+  message: string,
+  context: Record<string, unknown>,
+) {
+  try {
+    // This emitter intentionally does not call any Analytics Engine writer, so
+    // an unavailable binding cannot recurse back into this module.
+    emitLog("[analytics]", "error", { ...context, message });
+  } catch {
+    // Diagnostics must not become a user-facing failure.
+  }
+}
+
+function logMissingAnalyticsBinding() {
+  if (analyticsBindingMissingLogged) return;
+  analyticsBindingMissingLogged = true;
+  logAnalyticsDiagnostic("analytics-engine.binding-missing", {
+    event: "analytics-engine.binding-missing",
+    source: "analytics-engine",
+  });
+}
+
+function logAnalyticsWriteFailure(dataset: object, error: unknown) {
+  if (analyticsWriteFailureLogged.has(dataset)) return;
+  analyticsWriteFailureLogged.add(dataset);
+  logAnalyticsDiagnostic("analytics-engine.write-failed", {
+    errorName: getSafeErrorName(error),
+    event: "analytics-engine.write-failed",
+    source: "analytics-engine",
+  });
+}
+
+/** Reset diagnostics state between isolated unit-test runtimes. */
+export function resetAnalyticsEngineDiagnosticsForTest() {
+  analyticsBindingMissingLogged = false;
+  analyticsWriteFailureLogged = new WeakSet<object>();
+}
+
 function writeAnalyticsDataPoint(input: {
   blobs: string[];
   doubles: number[];
   indexes: string[];
 }) {
   const dataset = getCloudflareAnalyticsEngineDataset();
-  if (!dataset) return;
+  if (
+    !dataset ||
+    typeof dataset !== "object" ||
+    typeof dataset.writeDataPoint !== "function"
+  ) {
+    logMissingAnalyticsBinding();
+    return;
+  }
 
   try {
     dataset.writeDataPoint({
@@ -253,8 +309,8 @@ function writeAnalyticsDataPoint(input: {
       blobs: input.blobs.map(boundedValue),
       doubles: input.doubles.map(finiteNumber),
     });
-  } catch {
-    // Analytics Engine must never affect the user-facing request path.
+  } catch (error) {
+    logAnalyticsWriteFailure(dataset, error);
   }
 }
 
