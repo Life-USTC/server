@@ -1,3 +1,10 @@
+# [1.93.0](https://github.com/Life-USTC/server/compare/v1.92.0...v1.93.0) (2026-08-26)
+
+
+### Features
+
+* **ui:** compose catalog courses from shared surfaces ([#926](https://github.com/Life-USTC/server/issues/926)) ([7ecd1e0](https://github.com/Life-USTC/server/commit/7ecd1e0d04ab9074eed995bb0d5949d58dad290b))
+
 # [1.92.0](https://github.com/Life-USTC/server/compare/v1.91.7...v1.92.0) (2026-08-25)
 
 
