@@ -104,7 +104,15 @@ export async function handleCalendarExportRebuildBatch(
   for (const message of batch.messages) {
     const body = parseCalendarExportRebuildMessage(message.body);
     if (!body) {
-      message.ack();
+      logAppEvent("error", "calendar-export-rebuild.invalid-message", {
+        event: "calendar-export-rebuild.invalid-message",
+        phase: "consumer",
+        reason: "invalid_envelope",
+        source: "calendar-export-rebuild",
+      });
+      // Keep the body out of logs. Retrying lets the configured DLQ retain the
+      // invalid envelope for bounded operational inspection.
+      message.retry();
       continue;
     }
     parsed.push(body);
