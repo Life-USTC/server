@@ -759,14 +759,8 @@ test.describe("仪表盘作业", () => {
         "homeworks/created-full-fields",
       );
 
-      const sectionLink = detailDialog
-        .locator('a[href*="homeworkId="]')
-        .first();
-      const href = await sectionLink.getAttribute("href");
-      homeworkId = href
-        ? (new URL(href, "http://localhost").searchParams.get("homeworkId") ??
-          undefined)
-        : undefined;
+      homeworkId =
+        (await detailDialog.getAttribute("data-homework-id")) ?? undefined;
     } finally {
       await cleanupHomeworksForE2e([homeworkId]);
     }
