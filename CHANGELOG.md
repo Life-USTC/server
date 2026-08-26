@@ -1,3 +1,10 @@
+## [1.93.2](https://github.com/Life-USTC/server/compare/v1.93.1...v1.93.2) (2026-08-26)
+
+
+### Bug Fixes
+
+* **observability:** harden audit and worker telemetry ([#928](https://github.com/Life-USTC/server/issues/928)) ([a247ae7](https://github.com/Life-USTC/server/commit/a247ae78c8b3a694652cb5b6d08ec66e6a8f0761))
+
 ## [1.93.1](https://github.com/Life-USTC/server/compare/v1.93.0...v1.93.1) (2026-08-26)
 
 
