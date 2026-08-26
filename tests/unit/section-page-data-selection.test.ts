@@ -75,7 +75,7 @@ describe("section page data selection", () => {
       Promise.resolve(
         query.select.course
           ? sectionCoreRecord()
-          : { description: sectionRecord().description },
+          : { description: sectionRecord().description, retiredAt: null },
       ),
     );
   });
@@ -85,7 +85,7 @@ describe("section page data selection", () => {
       prismaThenable(
         query.select.course
           ? sectionCoreRecord()
-          : { description: sectionRecord().description },
+          : { description: sectionRecord().description, retiredAt: null },
       ),
     );
     const { getSectionPage } = await import(
@@ -142,6 +142,7 @@ describe("section page data selection", () => {
       description: {
         select: expect.objectContaining({ content: true, id: true }),
       },
+      retiredAt: true,
     });
     expect(coreSelect.course.select.sections).toMatchObject({
       take: 20,
@@ -161,7 +162,7 @@ describe("section page data selection", () => {
       expect.arrayContaining([
         {
           attributes: { "catalog.detail.kind": "section" },
-          name: "catalog.detail.section.description.query",
+          name: "catalog.detail.section.mutable.query",
         },
         {
           attributes: { "catalog.detail.kind": "section" },
@@ -233,6 +234,7 @@ describe("section page data selection", () => {
               "teachers": [],
             },
           ],
+          "retiredAt": null,
           "scheduleCount": 0,
           "schedules": [],
           "teachers": [],
@@ -269,6 +271,7 @@ describe("section page data selection", () => {
           ...sectionRecord().description,
           content: descriptionContent,
         },
+        retiredAt: null,
       });
     });
     const { getSectionPage } = await import(
@@ -289,5 +292,29 @@ describe("section page data selection", () => {
         ([query]) => query.select.description && !query.select.course,
       ),
     ).toHaveLength(2);
+  });
+
+  it("keeps section lifecycle state fresh when the static page core is cached", async () => {
+    let retiredAt: Date | null = null;
+    sectionFindUnique.mockImplementation((query) =>
+      Promise.resolve(
+        query.select.course
+          ? sectionCoreRecord()
+          : { description: sectionRecord().description, retiredAt },
+      ),
+    );
+    const { getSectionPage } = await import(
+      "@/features/section-detail/server/section-page-data"
+    );
+
+    const active = await getSectionPage(30, "zh-cn");
+    retiredAt = new Date("2026-08-26T00:00:00.000Z");
+    const retired = await getSectionPage(30, "zh-cn");
+
+    expect(
+      sectionFindUnique.mock.calls.filter(([query]) => query.select.course),
+    ).toHaveLength(1);
+    expect(active?.section.retiredAt).toBeNull();
+    expect(retired?.section.retiredAt).toBe("2026-08-26T00:00:00.000Z");
   });
 });

@@ -95,28 +95,38 @@ async function getSectionPageCore(jwId: number, locale: AppLocale) {
   );
 }
 
-async function getSectionPageDescription(jwId: number, locale: AppLocale) {
+async function getSectionPageMutableData(jwId: number, locale: AppLocale) {
   const record = await runCloudflareTraceSpan(
-    "catalog.detail.section.description.query",
+    "catalog.detail.section.mutable.query",
     { "catalog.detail.kind": "section" },
     () =>
       getPrisma(locale).section.findUnique({
         where: { jwId },
         select: {
           description: { select: sectionPageDescriptionSelect },
+          retiredAt: true,
         },
       }),
   );
-  return serializeDescriptionRecord(record?.description);
+  return {
+    description: serializeDescriptionRecord(record?.description),
+    retiredAt: record?.retiredAt?.toISOString() ?? null,
+  };
 }
 
 export async function getSectionPage(
   jwId: number,
   locale: AppLocale = "zh-cn",
 ) {
-  const [core, description] = await Promise.all([
+  const [core, mutable] = await Promise.all([
     getSectionPageCore(jwId, locale),
-    getSectionPageDescription(jwId, locale),
+    getSectionPageMutableData(jwId, locale),
   ]);
-  return core ? { ...core, description } : null;
+  return core
+    ? {
+        ...core,
+        description: mutable.description,
+        section: { ...core.section, retiredAt: mutable.retiredAt },
+      }
+    : null;
 }
