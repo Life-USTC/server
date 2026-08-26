@@ -13,7 +13,7 @@
  *
  * ## Features
  * - Desktop list rows expose a completion button; mobile uses cards
- * - "View details" link → /catalog/sections/{jwId}?homeworkId={id}#homework
+ * - Homework detail keeps completion and section navigation distinct
  * - Create homework button → modal form
  *
  * ## Edge Cases
@@ -291,9 +291,9 @@ test.describe("仪表盘作业", () => {
       if (!dialogBox || !footerBox) {
         throw new Error("Expected the mobile homework detail bounds");
       }
-      expect(dialogBox.y).toBeGreaterThanOrEqual(16);
+      expect(dialogBox.y).toBeGreaterThanOrEqual(0);
       expect(dialogBox.y + dialogBox.height).toBeLessThanOrEqual(
-        viewportHeight - 16,
+        viewportHeight,
       );
       expect(footerBox.y + footerBox.height).toBeLessThanOrEqual(
         viewportHeight,
@@ -303,21 +303,19 @@ test.describe("仪表盘作业", () => {
       const completion = footer.getByRole("button", {
         name: /标记为完成|Mark as complete/i,
       });
-      const details = footer.getByRole("link", {
-        name: /查看详情|View details/i,
-      });
-      for (const control of [completion, details]) {
+      const section = footer.locator('a[href*="/catalog/sections/"]').first();
+      for (const control of [completion, section]) {
         await expect(control).toBeVisible();
         const box = await control.boundingBox();
         expect(box).not.toBeNull();
         expect(box?.width ?? 0).toBeGreaterThanOrEqual(240);
       }
-      const [completionBox, detailsBox] = await Promise.all([
+      const [completionBox, sectionBox] = await Promise.all([
         completion.boundingBox(),
-        details.boundingBox(),
+        section.boundingBox(),
       ]);
       expect(completionBox?.y).toBeLessThan(
-        detailsBox?.y ?? Number.POSITIVE_INFINITY,
+        sectionBox?.y ?? Number.POSITIVE_INFINITY,
       );
       expect(
         await page.evaluate(
@@ -325,14 +323,8 @@ test.describe("仪表盘作业", () => {
         ),
       ).toBe(true);
 
-      const sectionLink = detailDialog
-        .locator('a[href*="homeworkId="]')
-        .first();
-      const href = await sectionLink.getAttribute("href");
-      homeworkId = href
-        ? (new URL(href, "http://localhost").searchParams.get("homeworkId") ??
-          undefined)
-        : undefined;
+      homeworkId =
+        (await detailDialog.getAttribute("data-homework-id")) ?? undefined;
     } finally {
       await cleanupHomeworksForE2e([homeworkId]);
     }
@@ -537,7 +529,9 @@ test.describe("仪表盘作业", () => {
     await captureStepScreenshot(page, testInfo, "homeworks/completion-error");
   });
 
-  test("查看详情链接到带作业锚点的班级页面", async ({ page }, testInfo) => {
+  test("作业详情链接到班级页面且不打开第二层详情", async ({
+    page,
+  }, testInfo) => {
     await signInAsDebugUser(page, "/workspace/homeworks");
     await ensureSeedSectionSubscription(page);
     await gotoAndWaitForReady(page, "/workspace/homeworks", {
@@ -561,16 +555,12 @@ test.describe("仪表盘作业", () => {
     const popout = page.locator('[data-slot="dialog-content"]').first();
     await expect(popout).toBeVisible();
     const sectionLink = popout
-      .locator(
-        `a[href*="/catalog/sections/${DEV_SEED.section.jwId}?homeworkId="][href$="#homework"]`,
-      )
+      .locator(`a[href="/catalog/sections/${DEV_SEED.section.jwId}"]`)
       .first();
     await expect(sectionLink).toBeVisible();
     await sectionLink.click();
 
-    await expect(page).toHaveURL(
-      /\/catalog\/sections\/\d+\?homeworkId=[^&#]+#homework$/,
-    );
+    await expect(page).toHaveURL(/\/catalog\/sections\/\d+$/);
     await captureStepScreenshot(page, testInfo, "homeworks/view-details");
   });
 

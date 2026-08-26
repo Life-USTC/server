@@ -3,7 +3,6 @@ import type { SubmitFunction } from "@sveltejs/kit";
 import type {
   DashboardHomeworkItem,
   DashboardHomeworksCopy,
-  DashboardMyHomeworksCopy,
 } from "@/features/dashboard/lib/dashboard-controller-types";
 import { toShanghaiDateTimeLocalValue } from "@/lib/time/shanghai-format";
 import type {
@@ -36,9 +35,7 @@ export let createHomeworkSubmissionDueAt: string;
 export let createHomeworkSubmissionStartAt: string;
 export let fmtDate: DashboardHomeworkDetailFormatter;
 export let homeworkCompletionActionLabel: HomeworkAction;
-export let homeworkCopy: DashboardMyHomeworksCopy;
 export let homeworkCourseLabel: HomeworkAction;
-export let homeworkDetailHref: HomeworkAction;
 export let homeworkEtaLabel: DashboardHomeworkDetailFormatter;
 export let homeworksCopy: DashboardHomeworksCopy;
 export let homeworkSavingById: Record<string, boolean>;
@@ -88,13 +85,11 @@ export let toggleHomeworkCompletion: (
   {fmtDate}
   homework={selectedHomework}
   {homeworkCompletionActionLabel}
-  {homeworkDetailHref}
   {homeworkEtaLabel}
   {homeworkCourseLabel}
   {homeworkSavingById}
   {homeworkSectionHref}
   {homeworksCopy}
-  {homeworkCopy}
   {homeworkStatus}
   onClose={() => {
     selectedHomework = null;

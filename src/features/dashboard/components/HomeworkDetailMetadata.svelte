@@ -1,7 +1,5 @@
 <script lang="ts">
 import { Badge } from "$lib/components/ui/badge/index.js";
-import * as Item from "$lib/components/ui/item/index.js";
-import { Separator } from "$lib/components/ui/separator/index.js";
 import type {
   DashboardHomeworkDetailAction,
   DashboardHomeworkDetailCopy,
@@ -16,47 +14,37 @@ export let homeworksCopy: DashboardHomeworkDetailCopy;
 export let homeworkStatus: DashboardHomeworkDetailAction;
 </script>
 
-<Item.Root variant="muted" class="items-start">
-  <Item.Header>
-    <Item.Content>
-      <Item.Description>
-        {homeworksCopy.submissionDue}
-      </Item.Description>
-      <Item.Title>{fmtDate(homework.submissionDueAt)}</Item.Title>
-    </Item.Content>
-    <Item.Actions>
-      <Badge variant={homework.completion ? "default" : "secondary"}>
-        {homeworkStatus(homework)}
-      </Badge>
-    </Item.Actions>
-  </Item.Header>
-  <Item.Description>{homeworkEtaLabel(homework.submissionDueAt)}</Item.Description>
-  <Separator />
-  <Item.Group class="grid gap-3 sm:grid-cols-2">
-    <Item.Root variant="outline" size="sm">
-      <Item.Content>
-        <Item.Description>{homeworksCopy.submissionStart}</Item.Description>
-        <Item.Title>{fmtDate(homework.submissionStartAt)}</Item.Title>
-      </Item.Content>
-    </Item.Root>
-    <Item.Root variant="outline" size="sm">
-      <Item.Content>
-        <Item.Description>{homeworksCopy.homeworkPublishedAt}</Item.Description>
-        <Item.Title>{fmtDate(homework.publishedAt)}</Item.Title>
-      </Item.Content>
-    </Item.Root>
-  </Item.Group>
-</Item.Root>
+<section class="grid gap-4 rounded-lg bg-muted/50 px-4 py-4">
+  <div class="flex items-start justify-between gap-4">
+    <div class="min-w-0">
+      <p class="text-muted-foreground text-xs">{homeworksCopy.submissionDue}</p>
+      <p class="mt-1 font-semibold text-base">{fmtDate(homework.submissionDueAt)}</p>
+      <p class="mt-1 text-muted-foreground text-sm">
+        {homeworkEtaLabel(homework.submissionDueAt)}
+      </p>
+    </div>
+    <Badge variant={homework.completion ? "default" : "secondary"}>
+      {homeworkStatus(homework)}
+    </Badge>
+  </div>
 
-<div class="flex flex-wrap gap-2">
-  {#if homework.isMajor}
-    <Badge variant="secondary">
-      {homeworksCopy.tagMajor}
-    </Badge>
-  {/if}
-  {#if homework.requiresTeam}
-    <Badge variant="outline">
-      {homeworksCopy.tagTeam}
-    </Badge>
-  {/if}
-</div>
+  <dl class="grid gap-3 border-t pt-4 sm:grid-cols-2">
+    <div>
+      <dt class="text-muted-foreground text-xs">{homeworksCopy.submissionStart}</dt>
+      <dd class="mt-1 font-medium text-sm">{fmtDate(homework.submissionStartAt)}</dd>
+    </div>
+    <div>
+      <dt class="text-muted-foreground text-xs">{homeworksCopy.homeworkPublishedAt}</dt>
+      <dd class="mt-1 font-medium text-sm">{fmtDate(homework.publishedAt)}</dd>
+    </div>
+  </dl>
+
+  <div class="flex flex-wrap gap-2">
+    {#if homework.isMajor}
+      <Badge variant="secondary">{homeworksCopy.tagMajor}</Badge>
+    {/if}
+    {#if homework.requiresTeam}
+      <Badge variant="outline">{homeworksCopy.tagTeam}</Badge>
+    {/if}
+  </div>
+</section>

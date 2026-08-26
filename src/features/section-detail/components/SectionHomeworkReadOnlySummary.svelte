@@ -1,7 +1,6 @@
 <script lang="ts">
 import RenderedMarkdown from "$lib/components/RenderedMarkdown.svelte";
 import { Badge } from "$lib/components/ui/badge/index.js";
-import * as Item from "$lib/components/ui/item/index.js";
 import type {
   SectionHomeworkCopy,
   SectionHomeworkDisplay,
@@ -13,8 +12,8 @@ export let homework: SectionHomeworkDisplay;
 export let homeworkCopy: SectionHomeworkCopy;
 </script>
 
-<Item.Root variant="muted" class="items-start">
-  <Item.Content class="min-w-0">
+<section class="grid gap-6">
+  <div class="min-w-0 text-sm leading-6">
     {#if homework.description?.content}
       {#if homework.description.renderedHtml}
         <RenderedMarkdown html={homework.description.renderedHtml} />
@@ -31,27 +30,28 @@ export let homeworkCopy: SectionHomeworkCopy;
         {/await}
       {/if}
     {:else}
-      <Item.Description>{homeworkCopy.descriptionEmpty}</Item.Description>
+      <p class="text-muted-foreground">{homeworkCopy.descriptionEmpty}</p>
     {/if}
-  </Item.Content>
-</Item.Root>
+  </div>
 
-<dl class="grid gap-3 sm:grid-cols-3">
-  <Item.Root variant="outline" size="sm" class="block">
-    <dt class="text-muted-foreground text-xs">{homeworkCopy.publishedAt}</dt>
-    <dd class="mt-1 font-medium text-sm">{fmtDateTime(homework.publishedAt)}</dd>
-  </Item.Root>
-  <Item.Root variant="outline" size="sm" class="block">
-    <dt class="text-muted-foreground text-xs">{homeworkCopy.submissionStart}</dt>
-    <dd class="mt-1 font-medium text-sm">{fmtDateTime(homework.submissionStartAt)}</dd>
-  </Item.Root>
-  <Item.Root variant="outline" size="sm" class="block">
-    <dt class="text-muted-foreground text-xs">{homeworkCopy.submissionDue}</dt>
-    <dd class="mt-1 font-medium text-sm">{fmtDateTime(homework.submissionDueAt)}</dd>
-  </Item.Root>
-</dl>
-
-<div class="flex flex-wrap gap-2">
-  {#if homework.isMajor}<Badge variant="secondary">{homeworkCopy.tagMajor}</Badge>{/if}
-  {#if homework.requiresTeam}<Badge variant="outline">{homeworkCopy.tagTeam}</Badge>{/if}
-</div>
+  <div class="grid gap-4 rounded-lg bg-muted/50 px-4 py-4">
+    <div>
+      <p class="text-muted-foreground text-xs">{homeworkCopy.submissionDue}</p>
+      <p class="mt-1 font-semibold text-base">{fmtDateTime(homework.submissionDueAt)}</p>
+    </div>
+    <dl class="grid gap-3 border-t pt-4 sm:grid-cols-2">
+      <div>
+        <dt class="text-muted-foreground text-xs">{homeworkCopy.submissionStart}</dt>
+        <dd class="mt-1 font-medium text-sm">{fmtDateTime(homework.submissionStartAt)}</dd>
+      </div>
+      <div>
+        <dt class="text-muted-foreground text-xs">{homeworkCopy.publishedAt}</dt>
+        <dd class="mt-1 font-medium text-sm">{fmtDateTime(homework.publishedAt)}</dd>
+      </div>
+    </dl>
+    <div class="flex flex-wrap gap-2">
+      {#if homework.isMajor}<Badge variant="secondary">{homeworkCopy.tagMajor}</Badge>{/if}
+      {#if homework.requiresTeam}<Badge variant="outline">{homeworkCopy.tagTeam}</Badge>{/if}
+    </div>
+  </div>
+</section>

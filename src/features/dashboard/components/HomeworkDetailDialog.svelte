@@ -1,7 +1,6 @@
 <script lang="ts">
 import CheckCircleIcon from "@lucide/svelte/icons/check-circle";
 import RefreshCw from "@lucide/svelte/icons/refresh-cw";
-import type { DashboardMyHomeworksCopy } from "@/features/dashboard/lib/dashboard-controller-types";
 import * as Dialog from "$lib/components/ui/dialog/index.js";
 import { ScrollArea } from "$lib/components/ui/scroll-area/index.js";
 import type {
@@ -13,8 +12,8 @@ import type {
   DashboardHomeworkDetailItem,
 } from "./dashboard-homework-detail-types";
 import HomeworkDetailActions from "./HomeworkDetailActions.svelte";
-import HomeworkDetailCommentsAside from "./HomeworkDetailCommentsAside.svelte";
 import HomeworkDetailDescription from "./HomeworkDetailDescription.svelte";
+import HomeworkDetailDiscussion from "./HomeworkDetailDiscussion.svelte";
 import HomeworkDetailMetadata from "./HomeworkDetailMetadata.svelte";
 
 export let CommentsPanel: DashboardHomeworkCommentsPanel;
@@ -22,13 +21,11 @@ export let CommentsPanel: DashboardHomeworkCommentsPanel;
 export let fmtDate: DashboardHomeworkDetailFormatter;
 export let homework: DashboardHomeworkDetailItem | null;
 export let homeworkCompletionActionLabel: DashboardHomeworkDetailAction;
-export let homeworkDetailHref: DashboardHomeworkDetailAction;
 export let homeworkEtaLabel: DashboardHomeworkDetailFormatter;
 export let homeworkCourseLabel: DashboardHomeworkDetailAction;
 export let homeworkSavingById: Record<string, boolean>;
 export let homeworkSectionHref: DashboardHomeworkDetailAction;
 export let homeworksCopy: DashboardHomeworkDetailCopy;
-export let homeworkCopy: DashboardMyHomeworksCopy;
 export let homeworkStatus: DashboardHomeworkDetailAction;
 export let onClose: () => void;
 export let toggleHomeworkCompletion: DashboardHomeworkCompletionToggle;
@@ -42,46 +39,37 @@ export let toggleHomeworkCompletion: DashboardHomeworkCompletionToggle;
     }}
   >
     <Dialog.Content
-      class="flex h-[calc(100dvh-2rem)] max-h-[calc(100dvh-2rem)] min-h-0 max-w-5xl flex-col gap-0 overflow-clip p-0 sm:h-[min(76vh,52rem)] sm:max-h-[min(76vh,52rem)] sm:max-w-5xl"
+      class="inset-0 flex h-dvh max-h-dvh w-screen max-w-none translate-x-0 translate-y-0 flex-col gap-0 overflow-clip rounded-none p-0 sm:top-1/2 sm:left-1/2 sm:h-[min(68vh,40rem)] sm:max-h-[min(68vh,40rem)] sm:w-[calc(100%-2rem)] sm:max-w-3xl sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded-xl"
+      data-homework-id={homework.id}
     >
       {@const selectedCourseLabel = homeworkCourseLabel(homework)}
       {@const SelectedCompletionIcon = homework.completion ? RefreshCw : CheckCircleIcon}
-      <Dialog.Header class="shrink-0 px-5 pb-2 pt-4">
+      <Dialog.Header class="shrink-0 border-b px-6 py-5 pr-14">
         <Dialog.Title class="break-words">{homework.title}</Dialog.Title>
-        <Dialog.Description>
-          {selectedCourseLabel} · {homeworkCopy.due}:
-          {fmtDate(homework.submissionDueAt)}
-        </Dialog.Description>
+        <Dialog.Description>{selectedCourseLabel}</Dialog.Description>
       </Dialog.Header>
       <ScrollArea class="h-0 min-h-0 flex-1">
-        <div class="grid gap-5 px-5 py-4 lg:grid-cols-[minmax(0,1fr)_minmax(20rem,24rem)]">
-          <div class="grid min-w-0 gap-4">
-            <HomeworkDetailDescription
-              {homework}
-              {homeworksCopy}
-            />
-
-            <HomeworkDetailMetadata
-              {fmtDate}
-              {homework}
-              {homeworkEtaLabel}
-              {homeworksCopy}
-              {homeworkStatus}
-            />
-          </div>
-          <HomeworkDetailCommentsAside
+        <div class="grid min-w-0 gap-6 px-6 py-6">
+          <HomeworkDetailMetadata
+            {fmtDate}
+            {homework}
+            {homeworkEtaLabel}
+            {homeworksCopy}
+            {homeworkStatus}
+          />
+          <HomeworkDetailDescription {homework} {homeworksCopy} />
+          <HomeworkDetailDiscussion
             {CommentsPanel}
             {homework}
             {homeworksCopy}
           />
         </div>
       </ScrollArea>
-      <Dialog.Footer class="mx-0 mb-0 shrink-0 p-4">
+      <Dialog.Footer class="mx-0 mb-0 shrink-0 rounded-none p-4 sm:rounded-b-xl sm:px-6">
         <HomeworkDetailActions
           {SelectedCompletionIcon}
           {homework}
           {homeworkCompletionActionLabel}
-          {homeworkDetailHref}
           {homeworkSavingById}
           {homeworkSectionHref}
           {homeworksCopy}
