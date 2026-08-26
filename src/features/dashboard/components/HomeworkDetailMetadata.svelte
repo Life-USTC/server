@@ -15,27 +15,29 @@ export let homeworkStatus: DashboardHomeworkDetailAction;
 </script>
 
 <section class="grid gap-4 rounded-lg bg-muted/50 px-4 py-4">
-  <div class="flex items-start justify-between gap-4">
-    <div class="min-w-0">
-      <p class="text-muted-foreground text-xs">{homeworksCopy.submissionDue}</p>
-      <p class="mt-1 font-semibold text-base">{fmtDate(homework.submissionDueAt)}</p>
-      <p class="mt-1 text-muted-foreground text-sm">
-        {homeworkEtaLabel(homework.submissionDueAt)}
-      </p>
+  <dl class="grid gap-4">
+    <div class="flex items-start justify-between gap-4">
+      <div class="min-w-0">
+        <dt class="text-muted-foreground text-xs">{homeworksCopy.submissionDue}</dt>
+        <dd class="mt-1 font-semibold text-base">{fmtDate(homework.submissionDueAt)}</dd>
+        <dd class="mt-1 text-muted-foreground text-sm">
+          {homeworkEtaLabel(homework.submissionDueAt)}
+        </dd>
+      </div>
+      <Badge variant={homework.completion ? "default" : "secondary"}>
+        {homeworkStatus(homework)}
+      </Badge>
     </div>
-    <Badge variant={homework.completion ? "default" : "secondary"}>
-      {homeworkStatus(homework)}
-    </Badge>
-  </div>
 
-  <dl class="grid gap-3 border-t pt-4 sm:grid-cols-2">
-    <div>
-      <dt class="text-muted-foreground text-xs">{homeworksCopy.submissionStart}</dt>
-      <dd class="mt-1 font-medium text-sm">{fmtDate(homework.submissionStartAt)}</dd>
-    </div>
-    <div>
-      <dt class="text-muted-foreground text-xs">{homeworksCopy.homeworkPublishedAt}</dt>
-      <dd class="mt-1 font-medium text-sm">{fmtDate(homework.publishedAt)}</dd>
+    <div class="grid gap-3 border-t pt-4 sm:grid-cols-2">
+      <div>
+        <dt class="text-muted-foreground text-xs">{homeworksCopy.submissionStart}</dt>
+        <dd class="mt-1 font-medium text-sm">{fmtDate(homework.submissionStartAt)}</dd>
+      </div>
+      <div>
+        <dt class="text-muted-foreground text-xs">{homeworksCopy.homeworkPublishedAt}</dt>
+        <dd class="mt-1 font-medium text-sm">{fmtDate(homework.publishedAt)}</dd>
+      </div>
     </div>
   </dl>
 

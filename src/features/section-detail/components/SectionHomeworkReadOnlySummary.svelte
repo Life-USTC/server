@@ -35,18 +35,20 @@ export let homeworkCopy: SectionHomeworkCopy;
   </div>
 
   <div class="grid gap-4 rounded-lg bg-muted/50 px-4 py-4">
-    <div>
-      <p class="text-muted-foreground text-xs">{homeworkCopy.submissionDue}</p>
-      <p class="mt-1 font-semibold text-base">{fmtDateTime(homework.submissionDueAt)}</p>
-    </div>
-    <dl class="grid gap-3 border-t pt-4 sm:grid-cols-2">
+    <dl class="grid gap-4">
       <div>
-        <dt class="text-muted-foreground text-xs">{homeworkCopy.submissionStart}</dt>
-        <dd class="mt-1 font-medium text-sm">{fmtDateTime(homework.submissionStartAt)}</dd>
+        <dt class="text-muted-foreground text-xs">{homeworkCopy.submissionDue}</dt>
+        <dd class="mt-1 font-semibold text-base">{fmtDateTime(homework.submissionDueAt)}</dd>
       </div>
-      <div>
-        <dt class="text-muted-foreground text-xs">{homeworkCopy.publishedAt}</dt>
-        <dd class="mt-1 font-medium text-sm">{fmtDateTime(homework.publishedAt)}</dd>
+      <div class="grid gap-3 border-t pt-4 sm:grid-cols-2">
+        <div>
+          <dt class="text-muted-foreground text-xs">{homeworkCopy.submissionStart}</dt>
+          <dd class="mt-1 font-medium text-sm">{fmtDateTime(homework.submissionStartAt)}</dd>
+        </div>
+        <div>
+          <dt class="text-muted-foreground text-xs">{homeworkCopy.publishedAt}</dt>
+          <dd class="mt-1 font-medium text-sm">{fmtDateTime(homework.publishedAt)}</dd>
+        </div>
       </div>
     </dl>
     <div class="flex flex-wrap gap-2">

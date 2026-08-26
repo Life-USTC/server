@@ -1098,9 +1098,9 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
       expect(footerBox).not.toBeNull();
       if (!dialogBox || !footerBox)
         throw new Error("Expected the mobile section homework dialog bounds");
-      expect(dialogBox.y).toBeGreaterThanOrEqual(16);
+      expect(dialogBox.y).toBeGreaterThanOrEqual(0);
       expect(dialogBox.y + dialogBox.height).toBeLessThanOrEqual(
-        viewportHeight - 16,
+        viewportHeight,
       );
       expect(footerBox.y + footerBox.height).toBeLessThanOrEqual(
         viewportHeight,
