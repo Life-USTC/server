@@ -9,11 +9,20 @@ vi.mock("@/lib/log/app-logger", () => ({
 }));
 
 import {
+  getTrustedRequestId,
+  INTERNAL_REQUEST_ID_HEADER,
+  logScheduledTaskError,
   logScheduledTaskFinish,
   logUnknownScheduledTask,
+  logWorkerFetchError,
+  logWorkerFetchFinish,
+  logWorkerQueueError,
+  logWorkerQueueFinish,
   normalizePublicSsrObservedRoute,
   observedEdgeResponse,
+  requestWithTrustedRequestId,
   resolveEdgeCacheOutcome,
+  resolveWorkerQueue,
 } from "@/lib/log/worker-entrypoint-observability";
 
 describe("worker entrypoint observability", () => {
@@ -90,6 +99,131 @@ describe("worker entrypoint observability", () => {
     expect(JSON.stringify(logAppEventMock.mock.calls)).not.toContain("token");
   });
 
+  it("only accepts the internal UUID header and strips external request ids", () => {
+    const request = new Request("https://example.test/api/health", {
+      headers: {
+        [INTERNAL_REQUEST_ID_HEADER]: "external-value",
+        "x-request-id": "client-value",
+      },
+    });
+    expect(getTrustedRequestId(request)).toBeUndefined();
+
+    const trusted = requestWithTrustedRequestId(
+      request,
+      "11111111-1111-4111-8111-111111111111",
+    );
+    expect(getTrustedRequestId(trusted)).toBe(
+      "11111111-1111-4111-8111-111111111111",
+    );
+    expect(trusted.headers.get("x-request-id")).toBeNull();
+  });
+
+  it("classifies only the two configured queues", () => {
+    expect(resolveWorkerQueue("life-ustc-audit-log-write")).toBe("audit");
+    expect(resolveWorkerQueue("life-ustc-calendar-export-rebuild")).toBe(
+      "calendar",
+    );
+    expect(resolveWorkerQueue("unexpected-queue")).toBe("unknown");
+  });
+
+  it("records top-level fetch, queue, and scheduled outcomes", () => {
+    logWorkerFetchFinish({
+      ioObservedDurationMs: 12,
+      requestId: "request-1",
+      status: 200,
+    });
+    logWorkerQueueFinish({
+      ioObservedDurationMs: 34,
+      messageCount: 2,
+      queue: "audit",
+    });
+    logScheduledTaskFinish("upload-pending-cleanup", { completed: 2 }, 56);
+
+    expect(logAppEventMock).toHaveBeenNthCalledWith(
+      1,
+      "info",
+      "worker.fetch.finish",
+      expect.objectContaining({
+        event: "worker.fetch.finish",
+        ioObservedDurationMs: 12,
+        outcome: "success",
+        requestId: "request-1",
+        status: 200,
+      }),
+    );
+    expect(logAppEventMock).toHaveBeenNthCalledWith(
+      2,
+      "info",
+      "worker.queue.finish",
+      expect.objectContaining({
+        event: "worker.queue.finish",
+        messageCount: 2,
+        outcome: "success",
+        queue: "audit",
+      }),
+    );
+    expect(logAppEventMock).toHaveBeenNthCalledWith(
+      3,
+      "info",
+      "scheduled.task.finish",
+      expect.objectContaining({
+        completed: 2,
+        event: "scheduled.task.finish",
+        ioObservedDurationMs: 56,
+        outcome: "success",
+      }),
+    );
+  });
+
+  it("records failures without changing the original error", () => {
+    const error = new Error("private detail");
+    logWorkerFetchError({
+      error,
+      ioObservedDurationMs: 12,
+      requestId: "request-1",
+    });
+    logWorkerQueueError({
+      error,
+      ioObservedDurationMs: 34,
+      messageCount: 1,
+      queue: "unknown",
+    });
+    logScheduledTaskError("unknown", 56, error);
+
+    expect(logAppEventMock).toHaveBeenNthCalledWith(
+      1,
+      "error",
+      "worker.fetch.error",
+      expect.objectContaining({
+        event: "worker.fetch.error",
+        outcome: "error",
+      }),
+      error,
+    );
+    expect(logAppEventMock).toHaveBeenNthCalledWith(
+      2,
+      "error",
+      "worker.queue.error",
+      expect.objectContaining({
+        event: "worker.queue.error",
+        outcome: "error",
+        queue: "unknown",
+      }),
+      error,
+    );
+    expect(logAppEventMock).toHaveBeenNthCalledWith(
+      3,
+      "error",
+      "scheduled.task.error",
+      expect.objectContaining({
+        event: "scheduled.task.error",
+        outcome: "error",
+        task: "unknown",
+      }),
+      error,
+    );
+  });
+
   it("logs scheduled outcomes without exposing cron expressions", () => {
     logScheduledTaskFinish("upload-pending-cleanup", {
       completed: 2,
@@ -105,6 +239,7 @@ describe("worker entrypoint observability", () => {
         completed: 2,
         event: "scheduled.task.finish",
         failed: 0,
+        outcome: "success",
         source: "worker-entrypoint",
         task: "upload-pending-cleanup",
       },
@@ -115,6 +250,7 @@ describe("worker entrypoint observability", () => {
       "scheduled.task.unknown",
       {
         event: "scheduled.task.unknown",
+        outcome: "unknown",
         source: "worker-entrypoint",
       },
     );

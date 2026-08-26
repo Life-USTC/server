@@ -2,6 +2,7 @@ import {
   type AppLogLevel,
   getLogMethod,
   isProductionEnvironment,
+  safeJsonStringify,
   serializeError,
 } from "@/lib/log/app-logger-core";
 
@@ -20,7 +21,17 @@ export function emitLog(
       ...payload,
       ...(serializedError ? { error: serializedError } : {}),
     };
-    method(JSON.stringify(logObj));
+    method(
+      safeJsonStringify(
+        logObj,
+        JSON.stringify({
+          environment: "production",
+          event: "log.serialization-failed",
+          message: "Log serialization failed",
+          prefix: "[app]",
+        }),
+      ),
+    );
     return;
   }
 

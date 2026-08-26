@@ -5,7 +5,7 @@
   "workers_dev": false,
   "main": "src/worker.js",
   "upload_source_maps": true,
-  "compatibility_date": "2026-07-23",
+  "compatibility_date": "2026-08-26",
   "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
   "exports": {
     "PublicSsr": {
@@ -42,7 +42,9 @@
       "persist": true
     },
     "traces": {
-      "enabled": false
+      "enabled": true,
+      "head_sampling_rate": 0.01,
+      "persist": true
     }
   },
   "routes": [

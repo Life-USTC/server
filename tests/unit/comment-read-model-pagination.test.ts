@@ -483,7 +483,7 @@ describe("loadCommentThread pagination", () => {
       "warn",
       "comment.reaction-summaries.failed",
       {
-        code: "P2010",
+        code: "42501",
         event: "comment.reaction-summaries.failed",
         source: "comments",
       },

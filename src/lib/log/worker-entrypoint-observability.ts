@@ -1,5 +1,9 @@
 import { logAppEvent } from "@/lib/log/app-logger";
 
+export const INTERNAL_REQUEST_ID_HEADER = "x-life-ustc-request-id";
+const REQUEST_ID_PATTERN =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 export type EdgeRequestClass =
   | "catalog-redirect"
   | "public-not-found"
@@ -37,6 +41,32 @@ const SAFE_CACHE_OUTCOMES = new Set<EdgeCacheOutcome>([
   "stale",
   "updating",
 ]);
+
+export type WorkerQueue = "audit" | "calendar" | "unknown";
+
+export function resolveWorkerQueue(queue: string): WorkerQueue {
+  if (queue === "life-ustc-audit-log-write") return "audit";
+  if (queue === "life-ustc-calendar-export-rebuild") return "calendar";
+  return "unknown";
+}
+
+export function getTrustedRequestId(request: Request) {
+  const requestId = request.headers.get(INTERNAL_REQUEST_ID_HEADER);
+  return requestId && REQUEST_ID_PATTERN.test(requestId)
+    ? requestId
+    : undefined;
+}
+
+export function requestWithTrustedRequestId(
+  request: Request,
+  requestId: string,
+) {
+  const headers = new Headers(request.headers);
+  headers.delete("x-request-id");
+  headers.delete(INTERNAL_REQUEST_ID_HEADER);
+  headers.set(INTERNAL_REQUEST_ID_HEADER, requestId);
+  return new Request(request, { headers });
+}
 
 export function normalizePublicSsrObservedRoute(pathname: string) {
   const detail = CATALOG_DETAIL_ROUTE.exec(pathname);
@@ -85,21 +115,120 @@ export function observedEdgeResponse(input: {
   return response;
 }
 
+export function logWorkerFetchFinish(input: {
+  ioObservedDurationMs: number;
+  requestId: string;
+  status: number;
+}) {
+  logAppEvent(input.status >= 500 ? "error" : "info", "worker.fetch.finish", {
+    event: "worker.fetch.finish",
+    ioObservedDurationMs: input.ioObservedDurationMs,
+    outcome: input.status >= 500 ? "error" : "success",
+    requestId: input.requestId,
+    source: "worker-entrypoint",
+    status: input.status,
+  });
+}
+
+export function logWorkerFetchError(input: {
+  error: unknown;
+  ioObservedDurationMs: number;
+  requestId: string;
+}) {
+  logAppEvent(
+    "error",
+    "worker.fetch.error",
+    {
+      event: "worker.fetch.error",
+      ioObservedDurationMs: input.ioObservedDurationMs,
+      outcome: "error",
+      requestId: input.requestId,
+      source: "worker-entrypoint",
+    },
+    input.error,
+  );
+}
+
+export function logWorkerQueueFinish(input: {
+  ioObservedDurationMs: number;
+  messageCount: number;
+  queue: Exclude<WorkerQueue, "unknown">;
+}) {
+  logAppEvent("info", "worker.queue.finish", {
+    event: "worker.queue.finish",
+    ioObservedDurationMs: input.ioObservedDurationMs,
+    messageCount: input.messageCount,
+    outcome: "success",
+    queue: input.queue,
+    source: "worker-entrypoint",
+  });
+}
+
+export function logWorkerQueueError(input: {
+  error: unknown;
+  ioObservedDurationMs: number;
+  messageCount: number;
+  queue: WorkerQueue;
+}) {
+  logAppEvent(
+    "error",
+    "worker.queue.error",
+    {
+      event: "worker.queue.error",
+      ioObservedDurationMs: input.ioObservedDurationMs,
+      messageCount: input.messageCount,
+      outcome: "error",
+      queue: input.queue,
+      source: "worker-entrypoint",
+    },
+    input.error,
+  );
+}
+
+type ScheduledTask =
+  | "auth-and-audit-retention"
+  | "auth-record-cleanup"
+  | "upload-pending-cleanup";
+
 export function logScheduledTaskFinish(
-  task: "auth-record-cleanup" | "upload-pending-cleanup",
+  task: ScheduledTask,
   counts: Record<string, number>,
+  ioObservedDurationMs?: number,
 ) {
   logAppEvent("info", "scheduled.task.finish", {
     ...counts,
     event: "scheduled.task.finish",
+    ...(ioObservedDurationMs === undefined ? {} : { ioObservedDurationMs }),
+    outcome: "success",
     source: "worker-entrypoint",
     task,
   });
 }
 
-export function logUnknownScheduledTask() {
+export function logScheduledTaskError(
+  task: ScheduledTask | "unknown",
+  ioObservedDurationMs: number,
+  error: unknown,
+) {
+  logAppEvent(
+    "error",
+    "scheduled.task.error",
+    {
+      event: "scheduled.task.error",
+      ioObservedDurationMs,
+      outcome: "error",
+      source: "worker-entrypoint",
+      task,
+    },
+    error,
+  );
+}
+
+export function logUnknownScheduledTask(ioObservedDurationMs?: number) {
   logAppEvent("warn", "scheduled.task.unknown", {
     event: "scheduled.task.unknown",
+    ...(ioObservedDurationMs === undefined ? {} : { ioObservedDurationMs }),
+    outcome: "unknown",
     source: "worker-entrypoint",
   });
 }

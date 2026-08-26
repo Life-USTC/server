@@ -28,6 +28,7 @@ import {
 import { normalizeApiRoutePath } from "@/lib/log/api-observability-path";
 import { logAppEvent } from "@/lib/log/app-logger";
 import { getSafeErrorName } from "@/lib/log/safe-error-name";
+import { getTrustedRequestId } from "@/lib/log/worker-entrypoint-observability";
 import {
   type PageAuthMode,
   recordPageRequestError,
@@ -186,7 +187,7 @@ const handleWithRuntimeEnv: Handle = async ({ event, resolve }) => {
           event.request.headers.get("accept-language"),
         );
   event.locals.locale = locale;
-  const requestId = crypto.randomUUID();
+  const requestId = getTrustedRequestId(event.request) ?? crypto.randomUUID();
   event.locals.requestId = requestId;
   setCloudflareRequestContext({
     method: event.request.method,
