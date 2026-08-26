@@ -1,6 +1,6 @@
 <script lang="ts">
-import CatalogPageHeader from "@/features/catalog/components/CatalogPageHeader.svelte";
 import BusTab from "@/features/dashboard/components/BusTab.svelte";
+import PageHeader from "$lib/components/PageHeader.svelte";
 import type { PageData } from "./$types";
 
 export let data: PageData;
@@ -11,7 +11,7 @@ export let data: PageData;
 </svelte:head>
 
 <section class="grid gap-5">
-  <CatalogPageHeader
+  <PageHeader
     description={data.copy.dashboard.nav.bus.description}
     title={data.copy.dashboard.nav.bus.title}
   />

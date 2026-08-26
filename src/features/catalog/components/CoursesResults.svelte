@@ -8,6 +8,7 @@ import {
   optionalCatalogFilterSummary,
 } from "@/features/catalog/lib/catalog-results-summary";
 import { page as appPage } from "$app/stores";
+import ResponsiveCollection from "$lib/components/ResponsiveCollection.svelte";
 import TruncatedCode from "$lib/components/TruncatedCode.svelte";
 import TruncatedText from "$lib/components/TruncatedText.svelte";
 import * as Item from "$lib/components/ui/item/index.js";
@@ -48,32 +49,38 @@ $: courseSearchSummary = optionalCatalogFilterSummary(
     {totalPages}
   />
   {#if data.data.length > 0}
-    <div class="xl:hidden">
-      <Item.Group>
-        {#each data.data as course}
+    <ResponsiveCollection>
+      {#snippet mobile()}
+      <Item.Group class="gap-0" role="list">
+        {#each data.data as course, index}
           {@const courseHref = `/catalog/courses/${course.jwId}`}
-          <Item.Root variant="outline" size="sm">
-            {#snippet child({ props })}
-              <a href={courseHref} {...props}>
-                <Item.Content>
-                  <Item.Title>{catalogLocalizedDisplayName(course, locale)}</Item.Title>
-                </Item.Content>
-                <Item.Actions>
-                  <TruncatedCode text={course.code} />
-                </Item.Actions>
-                <Item.Footer class="flex-wrap justify-start">
-                  <span>{course.educationLevel ? primaryName(course.educationLevel) : "-"}</span>
-                  <span>{course.category ? primaryName(course.category) : "-"}</span>
-                  <span>{course.classType ? primaryName(course.classType) : "-"}</span>
-                </Item.Footer>
-              </a>
-            {/snippet}
-          </Item.Root>
+          <div role="listitem">
+            <Item.Root size="sm">
+              {#snippet child({ props })}
+                <a href={courseHref} {...props}>
+                  <Item.Content>
+                    <Item.Title>{catalogLocalizedDisplayName(course, locale)}</Item.Title>
+                  </Item.Content>
+                  <Item.Actions>
+                    <TruncatedCode text={course.code} />
+                  </Item.Actions>
+                  <Item.Footer class="flex-wrap justify-start">
+                    <span>{course.educationLevel ? primaryName(course.educationLevel) : "-"}</span>
+                    <span>{course.category ? primaryName(course.category) : "-"}</span>
+                    <span>{course.classType ? primaryName(course.classType) : "-"}</span>
+                  </Item.Footer>
+                </a>
+              {/snippet}
+            </Item.Root>
+            {#if index < data.data.length - 1}
+              <Item.Separator />
+            {/if}
+          </div>
         {/each}
       </Item.Group>
-    </div>
-    <div class="hidden xl:block">
-      <Table.Root class="">
+      {/snippet}
+      {#snippet desktop()}
+      <Table.Root>
         <Table.Header>
           <Table.Row>
             <Table.Head>{courseLabels.courseName}</Table.Head>
@@ -120,7 +127,8 @@ $: courseSearchSummary = optionalCatalogFilterSummary(
           {/each}
         </Table.Body>
       </Table.Root>
-    </div>
+      {/snippet}
+    </ResponsiveCollection>
   {:else}
     <div class="py-10">
       <CatalogResultsEmpty
