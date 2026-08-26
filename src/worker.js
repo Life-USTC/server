@@ -45,7 +45,6 @@ import {
   logScheduledTaskFinish,
   logUnknownScheduledTask,
   logWorkerFetchError,
-  logWorkerFetchFinish,
   logWorkerQueueError,
   logWorkerQueueFinish,
   normalizePublicSsrObservedRoute,
@@ -364,11 +363,6 @@ export default {
         () => handleFetch(request, env, context, requestId),
         context,
       );
-      logWorkerFetchFinish({
-        ioObservedDurationMs: Date.now() - startMs,
-        requestId,
-        status: response.status,
-      });
       return response;
     } catch (error) {
       logWorkerFetchError({

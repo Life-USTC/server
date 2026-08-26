@@ -115,21 +115,6 @@ export function observedEdgeResponse(input: {
   return response;
 }
 
-export function logWorkerFetchFinish(input: {
-  ioObservedDurationMs: number;
-  requestId: string;
-  status: number;
-}) {
-  logAppEvent(input.status >= 500 ? "error" : "info", "worker.fetch.finish", {
-    event: "worker.fetch.finish",
-    ioObservedDurationMs: input.ioObservedDurationMs,
-    outcome: input.status >= 500 ? "error" : "success",
-    requestId: input.requestId,
-    source: "worker-entrypoint",
-    status: input.status,
-  });
-}
-
 export function logWorkerFetchError(input: {
   error: unknown;
   ioObservedDurationMs: number;

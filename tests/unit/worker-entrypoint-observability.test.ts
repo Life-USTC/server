@@ -15,7 +15,6 @@ import {
   logScheduledTaskFinish,
   logUnknownScheduledTask,
   logWorkerFetchError,
-  logWorkerFetchFinish,
   logWorkerQueueError,
   logWorkerQueueFinish,
   normalizePublicSsrObservedRoute,
@@ -126,12 +125,7 @@ describe("worker entrypoint observability", () => {
     expect(resolveWorkerQueue("unexpected-queue")).toBe("unknown");
   });
 
-  it("records top-level fetch, queue, and scheduled outcomes", () => {
-    logWorkerFetchFinish({
-      ioObservedDurationMs: 12,
-      requestId: "request-1",
-      status: 200,
-    });
+  it("records queue and scheduled outcomes", () => {
     logWorkerQueueFinish({
       ioObservedDurationMs: 34,
       messageCount: 2,
@@ -142,18 +136,6 @@ describe("worker entrypoint observability", () => {
     expect(logAppEventMock).toHaveBeenNthCalledWith(
       1,
       "info",
-      "worker.fetch.finish",
-      expect.objectContaining({
-        event: "worker.fetch.finish",
-        ioObservedDurationMs: 12,
-        outcome: "success",
-        requestId: "request-1",
-        status: 200,
-      }),
-    );
-    expect(logAppEventMock).toHaveBeenNthCalledWith(
-      2,
-      "info",
       "worker.queue.finish",
       expect.objectContaining({
         event: "worker.queue.finish",
@@ -163,7 +145,7 @@ describe("worker entrypoint observability", () => {
       }),
     );
     expect(logAppEventMock).toHaveBeenNthCalledWith(
-      3,
+      2,
       "info",
       "scheduled.task.finish",
       expect.objectContaining({

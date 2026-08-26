@@ -1,5 +1,8 @@
 import type { AppLocale } from "@/i18n/config";
-import { getCloudflareAnalyticsEngineDataset } from "@/lib/adapters/cloudflare-runtime";
+import {
+  getCloudflareAnalyticsEngineDataset,
+  getCloudflareRuntimeEnvInput,
+} from "@/lib/adapters/cloudflare-runtime";
 import { emitLog } from "@/lib/log/app-log-emitter";
 import { getSafeErrorName } from "@/lib/log/safe-error-name";
 import type {
@@ -264,7 +267,12 @@ function logAnalyticsDiagnostic(
 }
 
 function logMissingAnalyticsBinding() {
-  if (analyticsBindingMissingLogged) return;
+  if (
+    getCloudflareRuntimeEnvInput().NODE_ENV !== "production" ||
+    analyticsBindingMissingLogged
+  ) {
+    return;
+  }
   analyticsBindingMissingLogged = true;
   logAnalyticsDiagnostic("analytics-engine.binding-missing", {
     event: "analytics-engine.binding-missing",

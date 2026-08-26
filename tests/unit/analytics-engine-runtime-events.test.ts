@@ -65,9 +65,11 @@ describe("Cloudflare Analytics Engine runtime events", () => {
   });
 
   it("reports a missing Analytics Engine binding through the existing logger", () => {
-    writeOAuthEventAnalytics({
-      event: "binding-check",
-      ioObservedDurationMs: 0,
+    runWithCloudflareRuntimeEnv({ NODE_ENV: "production" }, () => {
+      writeOAuthEventAnalytics({
+        event: "binding-check",
+        ioObservedDurationMs: 0,
+      });
     });
 
     expect(emitLogMock).toHaveBeenCalledWith("[analytics]", "error", {
