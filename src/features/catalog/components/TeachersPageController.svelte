@@ -6,8 +6,8 @@ import {
 } from "@/features/catalog/lib/catalog-list-display";
 import { catalogListPageHref } from "@/features/catalog/lib/catalog-list-query";
 import { page } from "$app/stores";
+import PageHeader from "$lib/components/PageHeader.svelte";
 import CatalogMobileFilters from "./CatalogMobileFilters.svelte";
-import CatalogPageHeader from "./CatalogPageHeader.svelte";
 import CatalogPagination from "./CatalogPagination.svelte";
 import type {
   TeacherListCommonLabels,
@@ -102,7 +102,7 @@ function teacherFilterHref(overrides: Partial<TeacherListFilters>) {
 </script>
 
 <section class="grid gap-5">
-  <CatalogPageHeader
+  <PageHeader
     description={teacherLabels.subtitle}
     title={teacherLabels.title}
   />

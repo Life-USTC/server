@@ -1,6 +1,5 @@
 <script lang="ts">
 import { onMount } from "svelte";
-import CatalogPageHeader from "@/features/catalog/components/CatalogPageHeader.svelte";
 import AnonymousLinksTab from "@/features/dashboard/components/AnonymousLinksTab.svelte";
 import LinksTab from "@/features/dashboard/components/LinksTab.svelte";
 import { linkIconLabel } from "@/features/dashboard/lib/dashboard-link-icon";
@@ -11,6 +10,7 @@ import {
 } from "@/features/dashboard/lib/dashboard-link-pin-client";
 import { groupDashboardLinks } from "@/features/dashboard-links/lib/dashboard-link-search";
 import { mountPageSearchShortcut } from "@/lib/browser/page-search-shortcut";
+import PageHeader from "$lib/components/PageHeader.svelte";
 import type { PageData } from "./$types";
 
 export let data: PageData;
@@ -59,7 +59,7 @@ onMount(() => {
 </svelte:head>
 
 <section class="grid gap-5">
-  <CatalogPageHeader
+  <PageHeader
     description={data.copy.dashboard.nav.links.description}
     title={data.copy.dashboard.nav.links.title}
   />

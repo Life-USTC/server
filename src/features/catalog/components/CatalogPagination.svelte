@@ -2,6 +2,7 @@
 import ChevronLeftIcon from "@lucide/svelte/icons/chevron-left";
 import ChevronRightIcon from "@lucide/svelte/icons/chevron-right";
 import * as Pagination from "$lib/components/ui/pagination/index.js";
+import { cn } from "$lib/utils.js";
 
 export let ariaLabel: string;
 export let nextLabel: string;
@@ -11,12 +12,16 @@ export let pageHref: (targetPage: number) => string;
 export let previousLabel: string;
 export let previousPageLabel: string;
 export let totalPages: number;
+
+let className = "";
+
+export { className as class };
 </script>
 
 {#if totalPages > 1}
   <Pagination.Root
     aria-label={ariaLabel}
-    class="py-5"
+    class={cn("py-5", className)}
     count={totalPages}
     data-testid="catalog-pagination"
     page={page}
