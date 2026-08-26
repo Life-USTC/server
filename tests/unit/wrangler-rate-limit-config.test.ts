@@ -38,7 +38,7 @@ describe("Wrangler mutation rate-limit bindings", () => {
     },
   );
 
-  it("enables low-sample persistent traces while retaining custom logs", async () => {
+  it("disables platform URL-bearing traces while retaining custom logs", async () => {
     const source = await readFile(
       new URL("../../wrangler.jsonc", import.meta.url),
       "utf8",
@@ -51,11 +51,7 @@ describe("Wrangler mutation rate-limit bindings", () => {
           invocation_logs?: boolean;
           persist?: boolean;
         };
-        traces?: {
-          enabled?: boolean;
-          head_sampling_rate?: number;
-          persist?: boolean;
-        };
+        traces?: { enabled?: boolean };
       };
       preview_urls?: boolean;
       workers_dev?: boolean;
@@ -64,14 +60,11 @@ describe("Wrangler mutation rate-limit bindings", () => {
 
     expect(config.preview_urls).toBe(false);
     expect(config.workers_dev).toBe(false);
-    expect(config.compatibility_date).toBe("2026-08-26");
     expect(config.observability?.logs?.enabled).toBe(true);
     expect(config.observability?.logs?.invocation_logs).toBe(false);
     expect(config.observability?.logs?.head_sampling_rate).toBe(1);
     expect(config.observability?.logs?.persist).toBe(true);
-    expect(config.observability?.traces?.enabled).toBe(true);
-    expect(config.observability?.traces?.head_sampling_rate).toBe(0.01);
-    expect(config.observability?.traces?.persist).toBe(true);
+    expect(config.observability?.traces?.enabled).toBe(false);
   });
 
   it("uploads production source maps for exception symbolication", async () => {
