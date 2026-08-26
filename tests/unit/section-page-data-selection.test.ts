@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { runWithCloudflareRuntimeEnv } from "@/lib/adapters/cloudflare-runtime";
+import { resetPublicRuntimeCacheForTest } from "@/lib/public-runtime-cache";
 
 const { sectionFindUnique } = vi.hoisted(() => ({
   sectionFindUnique: vi.fn(),
@@ -9,6 +10,10 @@ vi.mock("@/lib/db/prisma", () => ({
   getPrisma: () => ({
     section: { findUnique: sectionFindUnique },
   }),
+}));
+
+vi.mock("@/lib/catalog-detail-cache-revision", () => ({
+  getCatalogDetailCacheRevision: vi.fn(async () => "test-revision"),
 }));
 
 function prismaThenable<T>(value: T): PromiseLike<T> {
@@ -57,14 +62,32 @@ function sectionRecord() {
   };
 }
 
+function sectionCoreRecord() {
+  const { description: _description, ...core } = sectionRecord();
+  return core;
+}
+
 describe("section page data selection", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    sectionFindUnique.mockResolvedValue(sectionRecord());
+    resetPublicRuntimeCacheForTest();
+    sectionFindUnique.mockImplementation((query) =>
+      Promise.resolve(
+        query.select.course
+          ? sectionCoreRecord()
+          : { description: sectionRecord().description },
+      ),
+    );
   });
 
-  it("loads the stream page in one Prisma call with bounded related rows and description", async () => {
-    sectionFindUnique.mockReturnValue(prismaThenable(sectionRecord()));
+  it("caches static page core while loading the editable description separately", async () => {
+    sectionFindUnique.mockImplementation((query) =>
+      prismaThenable(
+        query.select.course
+          ? sectionCoreRecord()
+          : { description: sectionRecord().description },
+      ),
+    );
     const { getSectionPage } = await import(
       "@/features/section-detail/server/section-page-data"
     );
@@ -107,37 +130,53 @@ describe("section page data selection", () => {
       },
     );
 
-    expect(sectionFindUnique).toHaveBeenCalledOnce();
-    const select = sectionFindUnique.mock.calls[0]?.[0]?.select;
-    expect(select.description).toEqual({
-      select: expect.objectContaining({ content: true, id: true }),
+    expect(sectionFindUnique).toHaveBeenCalledTimes(2);
+    const coreSelect = sectionFindUnique.mock.calls.find(
+      ([query]) => query?.select?.course,
+    )?.[0]?.select;
+    const descriptionSelect = sectionFindUnique.mock.calls.find(
+      ([query]) => query?.select?.description && !query?.select?.course,
+    )?.[0]?.select;
+    expect(coreSelect.description).toBe(false);
+    expect(descriptionSelect).toEqual({
+      description: {
+        select: expect.objectContaining({ content: true, id: true }),
+      },
     });
-    expect(select.course.select.sections).toMatchObject({
+    expect(coreSelect.course.select.sections).toMatchObject({
       take: 20,
       where: { jwId: { not: 30 }, retiredAt: null },
     });
-    expect(select.course.select._count).toEqual({
+    expect(coreSelect.course.select._count).toEqual({
       select: {
         sections: {
           where: { jwId: { not: 30 }, retiredAt: null },
         },
       },
     });
-    expect(select).not.toHaveProperty("_count");
-    expect(select).not.toHaveProperty("dateTimePlaceText");
-    expect(select.teachers.select.department).toBeDefined();
-    expect(spans).toEqual([
-      {
-        attributes: { "catalog.detail.kind": "section" },
-        name: "catalog.detail.section.query",
-      },
-      {
-        attributes: { "catalog.detail.kind": "section" },
-        name: "catalog.detail.section.transform",
-      },
-    ]);
+    expect(coreSelect).not.toHaveProperty("_count");
+    expect(coreSelect).not.toHaveProperty("dateTimePlaceText");
+    expect(coreSelect.teachers.select.department).toBeDefined();
+    expect(spans).toEqual(
+      expect.arrayContaining([
+        {
+          attributes: { "catalog.detail.kind": "section" },
+          name: "catalog.detail.section.description.query",
+        },
+        {
+          attributes: { "catalog.detail.kind": "section" },
+          name: "catalog.detail.section.query",
+        },
+        {
+          attributes: { "catalog.detail.kind": "section" },
+          name: "catalog.detail.section.transform",
+        },
+      ]),
+    );
     expect(JSON.stringify(spans)).not.toContain("30");
-    expect(nativePromiseSpans).toEqual(["catalog.detail.section.query"]);
+    expect(nativePromiseSpans).toEqual(
+      expect.arrayContaining(["catalog.detail.section.query"]),
+    );
     expect(result).toMatchObject({
       description: {
         content: "Section description",
@@ -217,5 +256,38 @@ describe("section page data selection", () => {
     expect(Reflect.ownKeys(result?.section ?? {})).not.toContain(
       localizedNameSymbol,
     );
+  });
+
+  it("keeps edited descriptions fresh when the static page core is cached", async () => {
+    let descriptionContent = "First description";
+    sectionFindUnique.mockImplementation((query) => {
+      if (query.select.course) {
+        return Promise.resolve(sectionCoreRecord());
+      }
+      return Promise.resolve({
+        description: {
+          ...sectionRecord().description,
+          content: descriptionContent,
+        },
+      });
+    });
+    const { getSectionPage } = await import(
+      "@/features/section-detail/server/section-page-data"
+    );
+
+    const first = await getSectionPage(30, "zh-cn");
+    descriptionContent = "Edited description";
+    const second = await getSectionPage(30, "zh-cn");
+
+    expect(first?.description.content).toBe("First description");
+    expect(second?.description.content).toBe("Edited description");
+    expect(
+      sectionFindUnique.mock.calls.filter(([query]) => query.select.course),
+    ).toHaveLength(1);
+    expect(
+      sectionFindUnique.mock.calls.filter(
+        ([query]) => query.select.description && !query.select.course,
+      ),
+    ).toHaveLength(2);
   });
 });
