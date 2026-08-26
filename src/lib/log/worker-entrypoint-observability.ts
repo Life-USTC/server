@@ -57,15 +57,10 @@ export function getTrustedRequestId(request: Request) {
     : undefined;
 }
 
-export function requestWithTrustedRequestId(
-  request: Request,
-  requestId: string,
-) {
-  const headers = new Headers(request.headers);
+export function setTrustedRequestIdHeader(headers: Headers, requestId: string) {
   headers.delete("x-request-id");
   headers.delete(INTERNAL_REQUEST_ID_HEADER);
   headers.set(INTERNAL_REQUEST_ID_HEADER, requestId);
-  return new Request(request, { headers });
 }
 
 export function normalizePublicSsrObservedRoute(pathname: string) {

@@ -19,9 +19,9 @@ import {
   logWorkerQueueFinish,
   normalizePublicSsrObservedRoute,
   observedEdgeResponse,
-  requestWithTrustedRequestId,
   resolveEdgeCacheOutcome,
   resolveWorkerQueue,
+  setTrustedRequestIdHeader,
 } from "@/lib/log/worker-entrypoint-observability";
 
 describe("worker entrypoint observability", () => {
@@ -107,10 +107,9 @@ describe("worker entrypoint observability", () => {
     });
     expect(getTrustedRequestId(request)).toBeUndefined();
 
-    const trusted = requestWithTrustedRequestId(
-      request,
-      "11111111-1111-4111-8111-111111111111",
-    );
+    const headers = new Headers(request.headers);
+    setTrustedRequestIdHeader(headers, "11111111-1111-4111-8111-111111111111");
+    const trusted = new Request(request, { headers });
     expect(getTrustedRequestId(trusted)).toBe(
       "11111111-1111-4111-8111-111111111111",
     );

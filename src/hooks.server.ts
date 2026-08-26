@@ -8,6 +8,7 @@ import {
 import { getOptionalTrimmedEnv, loadEnv } from "@/app-env";
 import { LOCALE_COOKIE, negotiateLocale } from "@/i18n/config";
 import {
+  getCloudflareRequestContext,
   runCloudflareTraceSpan,
   runWithCloudflareRuntimeEnv,
   setCloudflareRequestContext,
@@ -187,7 +188,10 @@ const handleWithRuntimeEnv: Handle = async ({ event, resolve }) => {
           event.request.headers.get("accept-language"),
         );
   event.locals.locale = locale;
-  const requestId = getTrustedRequestId(event.request) ?? crypto.randomUUID();
+  const requestId =
+    getCloudflareRequestContext()?.requestId ??
+    getTrustedRequestId(event.request) ??
+    crypto.randomUUID();
   event.locals.requestId = requestId;
   setCloudflareRequestContext({
     method: event.request.method,

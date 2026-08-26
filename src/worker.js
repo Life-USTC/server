@@ -12,7 +12,10 @@ import {
   resolveCatalogListPublicSsrMode,
 } from "./features/catalog/lib/catalog-list-query";
 import { cleanupStaleUploadPendingStorage } from "./features/uploads/server/upload-pending-cleanup";
-import { runWithCloudflareRuntimeEnv } from "./lib/adapters/cloudflare-runtime";
+import {
+  runWithCloudflareRuntimeEnv,
+  setCloudflareRequestContext,
+} from "./lib/adapters/cloudflare-runtime";
 import { handleAuditLogWriteBatch } from "./lib/audit/audit-log-queue";
 import { CATALOG_EDGE_CACHE_TAG } from "./lib/catalog-edge-cache-tag";
 import {
@@ -40,7 +43,7 @@ import {
 import { maintenancePrisma } from "./lib/db/maintenance-prisma";
 import { prisma } from "./lib/db/prisma";
 import {
-  getTrustedRequestId,
+  INTERNAL_REQUEST_ID_HEADER,
   logScheduledTaskError,
   logScheduledTaskFinish,
   logUnknownScheduledTask,
@@ -49,9 +52,9 @@ import {
   logWorkerQueueFinish,
   normalizePublicSsrObservedRoute,
   observedEdgeResponse,
-  requestWithTrustedRequestId,
   resolveEdgeCacheOutcome,
   resolveWorkerQueue,
+  setTrustedRequestIdHeader,
 } from "./lib/log/worker-entrypoint-observability";
 import { buildContentSecurityPolicy } from "./lib/security/csp";
 import { CONTENT_SIGNAL } from "./lib/seo/content-signal";
@@ -153,13 +156,21 @@ function personalizeCachedResponse(response) {
     .transform(rewritten);
 }
 
-function directRequest(request, requestId) {
+function directRequest(request) {
+  if (
+    !request.headers.has(PUBLIC_SSR_HEADER) &&
+    !request.headers.has(PUBLIC_SSR_LOCALE_HEADER) &&
+    !request.headers.has(PUBLIC_SSR_MODE_HEADER) &&
+    !request.headers.has(INTERNAL_REQUEST_ID_HEADER) &&
+    !request.headers.has("x-request-id")
+  ) {
+    return request;
+  }
   const headers = new Headers(request.headers);
   removePublicSsrHeaders(headers);
-  return requestWithTrustedRequestId(
-    new Request(request, { headers }),
-    requestId,
-  );
+  headers.delete(INTERNAL_REQUEST_ID_HEADER);
+  headers.delete("x-request-id");
+  return new Request(request, { headers });
 }
 
 function publicSsrRequest(request, mode, locale, requestId) {
@@ -185,28 +196,25 @@ function publicSsrRequest(request, mode, locale, requestId) {
   headers.set(PUBLIC_SSR_HEADER, "1");
   headers.set(PUBLIC_SSR_LOCALE_HEADER, locale);
   headers.set(PUBLIC_SSR_MODE_HEADER, mode);
-  return requestWithTrustedRequestId(
-    new Request(url, {
-      headers,
-      method: request.method,
-      redirect: "manual",
-    }),
-    requestId,
-  );
+  setTrustedRequestIdHeader(headers, requestId);
+  return new Request(url, {
+    headers,
+    method: request.method,
+    redirect: "manual",
+  });
 }
 
-function svelteKitPublicSsrRequest(request, requestId) {
+function svelteKitPublicSsrRequest(request) {
   const url = new URL(request.url);
   url.searchParams.delete(PUBLIC_SSR_LOCALE_CACHE_PARAM);
   url.searchParams.delete(PUBLIC_SSR_MODE_CACHE_PARAM);
-  return requestWithTrustedRequestId(new Request(url, request), requestId);
+  return new Request(url, request);
 }
 
 export class PublicSsr extends WorkerEntrypoint {
   async fetch(request) {
-    const requestId = getTrustedRequestId(request) ?? crypto.randomUUID();
     const response = await app.fetch(
-      svelteKitPublicSsrRequest(request, requestId),
+      svelteKitPublicSsrRequest(request),
       this.env,
       this.ctx,
     );
@@ -327,7 +335,7 @@ async function handleFetch(request, env, context, requestId) {
   }
   const mode = resolvePublicSsrMode(request, resolveCatalogListPublicSsrMode);
   if (!shouldRoutePublicSsrCache(request, mode)) {
-    return app.fetch(directRequest(request, requestId), env, context);
+    return app.fetch(directRequest(request), env, context);
   }
 
   const locale = resolvePublicSsrLocale(request);
@@ -360,7 +368,16 @@ export default {
     try {
       const response = await runWithCloudflareRuntimeEnv(
         env,
-        () => handleFetch(request, env, context, requestId),
+        () => {
+          setCloudflareRequestContext({
+            method: request.method,
+            requestId,
+            route: normalizePublicSsrObservedRoute(
+              new URL(request.url).pathname,
+            ),
+          });
+          return handleFetch(request, env, context, requestId);
+        },
         context,
       );
       return response;
