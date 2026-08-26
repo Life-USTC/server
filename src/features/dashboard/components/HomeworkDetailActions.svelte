@@ -20,14 +20,14 @@ export let toggleHomeworkCompletion: DashboardHomeworkCompletionToggle;
 
 <div class="flex w-full flex-col gap-2 sm:flex-row sm:items-center">
   <Button
-    class="w-full justify-start overflow-hidden sm:mr-auto sm:w-auto sm:max-w-[24rem]"
+    class="order-2 w-full justify-start overflow-hidden sm:order-1 sm:mr-auto sm:w-auto sm:max-w-[24rem]"
     href={homeworkSectionHref(homework)}
     variant="ghost"
   >
     <span class="truncate">{selectedCourseLabel}</span>
   </Button>
   <Button
-    class="w-full sm:w-auto"
+    class="order-1 w-full sm:order-2 sm:w-auto"
     disabled={homeworkSavingById[homework.id]}
     type="button"
     onclick={() => {
