@@ -484,10 +484,13 @@ async function createDeniedOAuthAuthorization(input: {
 }
 
 export async function submitOAuthConsentAction({
+  locals,
   request,
 }: {
+  locals?: { requestId?: string };
   request: Request;
 }) {
+  const requestId = locals?.requestId;
   assertTrustedCookieRequestOrigin(request);
 
   const form = await request.formData();
@@ -515,7 +518,10 @@ export async function submitOAuthConsentAction({
     if (!accept) {
       redirectTarget =
         (await createDeniedOAuthAuthorization({
-          audit: { channel: "web", ...getAuditRequestMetadata(request) },
+          audit: {
+            channel: "web",
+            ...getAuditRequestMetadata(request, requestId),
+          },
           authorizeQuery,
           session,
         })) ?? undefined;
@@ -544,7 +550,7 @@ export async function submitOAuthConsentAction({
         targetType: existingConsent ? "oauth_consent" : "oauth_client",
         userId: session.user.id,
         metadata: { reason: "operation_failed" },
-        ...getAuditRequestMetadata(request),
+        ...getAuditRequestMetadata(request, requestId),
       };
       const recent = await resolveAuthoritativeRecentSession(request.headers, {
         expectedUserId: session.user.id,
@@ -563,7 +569,7 @@ export async function submitOAuthConsentAction({
           targetType: existingConsent ? "oauth_consent" : "oauth_client",
           userId: session.user.id,
           metadata: { reason: recent.reason },
-          ...getAuditRequestMetadata(request),
+          ...getAuditRequestMetadata(request, requestId),
         });
         throw new OAuthRecentAuthRequiredError();
       }
@@ -588,7 +594,7 @@ export async function submitOAuthConsentAction({
         acceptedScopes: uniqueScopes(scope),
         audit: {
           channel: "web",
-          ...getAuditRequestMetadata(request),
+          ...getAuditRequestMetadata(request, requestId),
         },
         authorizeQuery,
         session,

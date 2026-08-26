@@ -69,6 +69,7 @@ describe("deleteCommentBatchRoute", () => {
       auditMetadata: {
         channel: "rest",
         ipAddress: undefined,
+        requestId: expect.any(String),
         subjectUserId: "user-1",
         userAgent: undefined,
         userId: "user-1",
@@ -80,6 +81,7 @@ describe("deleteCommentBatchRoute", () => {
       auditMetadata: {
         channel: "rest",
         ipAddress: undefined,
+        requestId: expect.any(String),
         subjectUserId: "user-1",
         userAgent: undefined,
         userId: "user-1",

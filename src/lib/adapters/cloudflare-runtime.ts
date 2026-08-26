@@ -255,6 +255,7 @@ export function runWithCloudflareRuntimeEnv<T>(
     cacheStorage: normalizeCloudflareCacheStorage(),
     cleanups: new Set(),
     env: normalizeCloudflareRuntimeEnv(env) ?? parentContext?.env,
+    request: parentContext?.request,
     scheduleTask:
       normalizeCloudflareTaskScheduler(executionContext) ??
       parentContext?.scheduleTask,

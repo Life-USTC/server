@@ -92,7 +92,7 @@ describe("GraphQL homework mutation resolvers", () => {
       },
       {
         channel: "graphql",
-        requestId: undefined,
+        requestId: expect.any(String),
         subjectUserId: "user-1",
         userId: "user-1",
       },
@@ -128,7 +128,7 @@ describe("GraphQL homework mutation resolvers", () => {
     expect(updateHomeworkMock).toHaveBeenCalledWith({
       audit: {
         channel: "graphql",
-        requestId: undefined,
+        requestId: expect.any(String),
         subjectUserId: "user-1",
         userId: "user-1",
       },
@@ -173,7 +173,7 @@ describe("GraphQL homework mutation resolvers", () => {
     expect(deleteHomeworkMock).toHaveBeenCalledWith({
       audit: {
         channel: "graphql",
-        requestId: undefined,
+        requestId: expect.any(String),
         subjectUserId: "user-1",
         userId: "user-1",
       },

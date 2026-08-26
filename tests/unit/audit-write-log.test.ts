@@ -60,6 +60,43 @@ describe("fireAuditLog", () => {
       type: "audit-log.write.v1",
     });
     expect(prismaMock.auditLog.createMany).not.toHaveBeenCalled();
+    expect(logAppEventMock).toHaveBeenCalledWith(
+      "info",
+      "audit-log.enqueue.success",
+      {
+        action: "comment_create",
+        event: "audit-log.enqueue.success",
+        outcome: "success",
+        phase: "enqueue",
+        source: "audit",
+        targetType: "comment",
+      },
+    );
+  });
+
+  it("records queue enqueue failures separately without changing route semantics", async () => {
+    const enqueueError = new Error("queue unavailable");
+    getAuditQueueMock.mockReturnValue({
+      send: vi.fn().mockRejectedValue(enqueueError),
+    });
+    const { fireAuditLog } = await import("@/lib/audit/write-audit-log");
+
+    await expect(fireAuditLog(auditParams)).resolves.toBeUndefined();
+
+    expect(logAppEventMock).toHaveBeenCalledWith(
+      "error",
+      "audit-log.enqueue.failure",
+      {
+        action: "comment_create",
+        event: "audit-log.enqueue.failure",
+        outcome: "failure",
+        phase: "enqueue",
+        source: "audit",
+        targetType: "comment",
+      },
+      enqueueError,
+    );
+    expect(prismaMock.auditLog.createMany).not.toHaveBeenCalled();
   });
 
   it("treats a replayed producer ID as an idempotent audit write", async () => {
@@ -115,12 +152,15 @@ describe("fireAuditLog", () => {
 
     expect(logAppEventMock).toHaveBeenCalledWith(
       "error",
-      "Audit log write failed",
-      {
+      "audit-log.write.failure",
+      expect.objectContaining({
+        event: "audit-log.write.failure",
+        outcome: "failure",
+        phase: "database",
         action: "comment_create",
         source: "audit",
         targetType: "comment",
-      },
+      }),
       writeError,
     );
   });

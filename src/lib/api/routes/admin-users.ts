@@ -15,6 +15,7 @@ import {
   adminUpdateUserRequestSchema,
   adminUsersQuerySchema,
 } from "@/lib/api/schemas/request-schemas";
+import { logAdminSecurityEvent } from "@/lib/audit/security-events";
 import { getAuditRequestMetadata } from "@/lib/audit/write-audit-log";
 import { type IdParams, parseIdParam } from "./admin-shared";
 
@@ -76,9 +77,11 @@ export async function patchAdminUserRoute(request: Request, params: IdParams) {
           return badRequest("Username already taken");
         }
         if (result.reason === "cannot_demote_self") {
+          logAdminSecurityEvent(request, "self_protection");
           return badRequest("Admins cannot remove their own admin role");
         }
         if (result.reason === "cannot_remove_last_admin") {
+          logAdminSecurityEvent(request, "self_protection");
           return badRequest("At least one admin must remain");
         }
         return notFound("User not found");

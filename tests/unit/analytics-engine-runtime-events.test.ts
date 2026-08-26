@@ -7,6 +7,7 @@ import { recordAndLogMcpResponse } from "@/lib/api/routes/mcp-response-bookkeepi
 import { writeAuditLog } from "@/lib/audit/write-audit-log";
 import { withBetterAuthOAuthDebug } from "@/lib/log/oauth-debug";
 import {
+  resetAnalyticsEngineDiagnosticsForTest,
   writeOAuthEventAnalytics,
   writeWorkspaceOverviewStageAnalytics,
   writeWorkspaceRouteStageAnalytics,
@@ -20,6 +21,14 @@ import {
   headStorageObject,
   putStorageObject,
 } from "@/lib/storage/r2-object";
+
+const { emitLogMock } = vi.hoisted(() => ({
+  emitLogMock: vi.fn(),
+}));
+
+vi.mock("@/lib/log/app-log-emitter", () => ({
+  emitLog: emitLogMock,
+}));
 
 function installAnalyticsBinding() {
   const writeDataPoint = vi.fn();
@@ -47,10 +56,49 @@ function validatesSource(value: unknown) {
 describe("Cloudflare Analytics Engine runtime events", () => {
   afterEach(() => {
     setCloudflareRuntimeEnv(undefined);
+    resetAnalyticsEngineDiagnosticsForTest();
+    emitLogMock.mockReset();
     clearPublicRuntimeCache();
     vi.useRealTimers();
     vi.restoreAllMocks();
     vi.unstubAllGlobals();
+  });
+
+  it("reports a missing Analytics Engine binding through the existing logger", () => {
+    runWithCloudflareRuntimeEnv({ NODE_ENV: "production" }, () => {
+      writeOAuthEventAnalytics({
+        event: "binding-check",
+        ioObservedDurationMs: 0,
+      });
+    });
+
+    expect(emitLogMock).toHaveBeenCalledWith("[analytics]", "error", {
+      event: "analytics-engine.binding-missing",
+      message: "analytics-engine.binding-missing",
+      source: "analytics-engine",
+    });
+  });
+
+  it("reports Analytics Engine write failures without raw error details", () => {
+    const writeDataPoint = vi.fn(() => {
+      throw new Error("private analytics detail");
+    });
+    setCloudflareRuntimeEnv({ ANALYTICS: { writeDataPoint } });
+
+    writeOAuthEventAnalytics({
+      event: "write-check",
+      ioObservedDurationMs: 0,
+    });
+
+    expect(emitLogMock).toHaveBeenCalledWith("[analytics]", "error", {
+      errorName: "Error",
+      event: "analytics-engine.write-failed",
+      message: "analytics-engine.write-failed",
+      source: "analytics-engine",
+    });
+    expect(JSON.stringify(emitLogMock.mock.calls)).not.toContain(
+      "private analytics detail",
+    );
   });
 
   it("writes fixed low-cardinality workspace overview stage datapoints", () => {

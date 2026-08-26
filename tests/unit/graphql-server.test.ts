@@ -368,7 +368,7 @@ describe("GraphQL HTTP boundary", () => {
       auditMetadata: {
         channel: "graphql",
         ipAddress: "192.0.2.40",
-        requestId: "request-1",
+        requestId: expect.any(String),
         source: "graphql",
         subjectUserId: "session-user",
         userAgent: "graphql-unit-agent",

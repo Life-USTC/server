@@ -55,6 +55,7 @@ describe("Wrangler mutation rate-limit bindings", () => {
       };
       preview_urls?: boolean;
       workers_dev?: boolean;
+      compatibility_date?: string;
     };
 
     expect(config.preview_urls).toBe(false);

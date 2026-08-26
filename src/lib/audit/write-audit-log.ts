@@ -12,7 +12,10 @@ import { prisma } from "@/lib/db/prisma";
 import { logAppEvent } from "@/lib/log/app-logger";
 import { writeAuditWriteAnalytics } from "@/lib/metrics/analytics-engine";
 
-export { getAuditRequestMetadata } from "@/lib/audit/request-metadata";
+export {
+  getAuditRequestId,
+  getAuditRequestMetadata,
+} from "@/lib/audit/request-metadata";
 
 export type AuditLogParams = {
   id?: string;
@@ -38,17 +41,40 @@ type AuditLogClient = {
   };
 };
 
-function logAuditWriteFailure(params: AuditLogParams, error: unknown) {
+function logAuditWriteFailure(
+  params: AuditLogParams,
+  error: unknown,
+  phase: "database" | "enqueue",
+) {
   logAppEvent(
     "error",
-    "Audit log write failed",
+    phase === "enqueue"
+      ? "audit-log.enqueue.failure"
+      : "audit-log.write.failure",
     {
+      event:
+        phase === "enqueue"
+          ? "audit-log.enqueue.failure"
+          : "audit-log.write.failure",
+      phase,
+      outcome: "failure",
       source: "audit",
       action: params.action,
       targetType: params.targetType,
     },
     error,
   );
+}
+
+function logAuditEnqueueSuccess(params: AuditLogParams) {
+  logAppEvent("info", "audit-log.enqueue.success", {
+    action: params.action,
+    event: "audit-log.enqueue.success",
+    outcome: "success",
+    phase: "enqueue",
+    source: "audit",
+    targetType: params.targetType,
+  });
 }
 
 export async function writeAuditLog(
@@ -103,17 +129,24 @@ export async function writeAuditLog(
 export async function fireAuditLog(params: AuditLogParams) {
   const queue = getCloudflareAuditLogWriteQueue();
   const { id, ...queueParams } = params;
-  const auditWrite = (
-    queue
-      ? queue.send({
-          auditId: id ?? crypto.randomUUID(),
-          params: queueParams,
-          type: "audit-log.write.v1",
-        })
-      : writeAuditLog(params)
-  ).catch((error: unknown) => {
-    logAuditWriteFailure(params, error);
-  });
+  const auditWrite = queue
+    ? Promise.resolve()
+        .then(() =>
+          queue.send({
+            auditId: id ?? crypto.randomUUID(),
+            params: queueParams,
+            type: "audit-log.write.v1",
+          }),
+        )
+        .then(
+          () => logAuditEnqueueSuccess(params),
+          (error: unknown) => {
+            logAuditWriteFailure(params, error, "enqueue");
+          },
+        )
+    : writeAuditLog(params).catch((error: unknown) => {
+        logAuditWriteFailure(params, error, "database");
+      });
 
   const scheduleTask = getCloudflareRuntimeTaskScheduler();
   if (scheduleTask) {

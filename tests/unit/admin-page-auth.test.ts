@@ -3,11 +3,13 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 const {
   findActiveSuspensionMock,
   getSessionFromHeadersMock,
+  logAppEventMock,
   resolveAuthoritativeRecentSessionMock,
   userFindUniqueMock,
 } = vi.hoisted(() => ({
   findActiveSuspensionMock: vi.fn(),
   getSessionFromHeadersMock: vi.fn(),
+  logAppEventMock: vi.fn(),
   resolveAuthoritativeRecentSessionMock: vi.fn(),
   userFindUniqueMock: vi.fn(),
 }));
@@ -32,10 +34,15 @@ vi.mock("@/lib/db/prisma", () => ({
   },
 }));
 
+vi.mock("@/lib/log/app-logger", () => ({
+  logAppEvent: logAppEventMock,
+}));
+
 describe("admin 页面认证", () => {
   afterEach(() => {
     findActiveSuspensionMock.mockReset();
     getSessionFromHeadersMock.mockReset();
+    logAppEventMock.mockReset();
     resolveAuthoritativeRecentSessionMock.mockReset();
     userFindUniqueMock.mockReset();
     vi.resetModules();
@@ -74,6 +81,51 @@ describe("admin 页面认证", () => {
     expect(resolveAuthoritativeRecentSessionMock).toHaveBeenCalledWith(
       request.headers,
       { expectedUserId: "admin-1" },
+    );
+    expect(logAppEventMock).toHaveBeenCalledWith(
+      "warn",
+      "admin.authorization.denied",
+      expect.objectContaining({ reason: "recent_auth_required" }),
+    );
+  });
+
+  it("记录未认证的管理页面访问拒绝", async () => {
+    getSessionFromHeadersMock.mockResolvedValue(null);
+    const { requireAdminPage } = await import(
+      "@/features/admin/server/admin-page-auth"
+    );
+    const request = new Request("https://example.test/admin/users");
+
+    await expect(requireAdminPage(request)).rejects.toMatchObject({
+      location: "/account/sign-in?callbackUrl=%2Fadmin%2Fusers",
+      status: 303,
+    });
+    expect(logAppEventMock).toHaveBeenCalledWith(
+      "warn",
+      "admin.authorization.denied",
+      expect.objectContaining({ reason: "unauthenticated" }),
+    );
+  });
+
+  it("记录非管理员的管理页面访问拒绝", async () => {
+    getSessionFromHeadersMock.mockResolvedValue({ user: { id: "user-1" } });
+    userFindUniqueMock.mockResolvedValue({
+      id: "user-1",
+      isAdmin: false,
+      name: "User",
+      username: "user",
+    });
+    const { requireAdminPage } = await import(
+      "@/features/admin/server/admin-page-auth"
+    );
+
+    await expect(
+      requireAdminPage(new Request("https://example.test/admin/users")),
+    ).rejects.toMatchObject({ status: 404 });
+    expect(logAppEventMock).toHaveBeenCalledWith(
+      "warn",
+      "admin.authorization.denied",
+      expect.objectContaining({ reason: "not_admin" }),
     );
   });
 
@@ -130,5 +182,10 @@ describe("admin 页面认证", () => {
         { requireActive: true },
       ),
     ).rejects.toMatchObject({ status: 403 });
+    expect(logAppEventMock).toHaveBeenCalledWith(
+      "warn",
+      "admin.authorization.denied",
+      expect.objectContaining({ reason: "suspended" }),
+    );
   });
 });

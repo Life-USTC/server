@@ -1,10 +1,12 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   getCloudflareNamedCache,
+  getCloudflareRequestContext,
   getCloudflareRuntimeTaskScheduler,
   registerCloudflareRuntimeCleanup,
   runCloudflareTraceSpan,
   runWithCloudflareRuntimeEnv,
+  setCloudflareRequestContext,
 } from "@/lib/adapters/cloudflare-runtime";
 
 describe("Cloudflare runtime tracing", () => {
@@ -161,8 +163,18 @@ describe("Cloudflare runtime tracing", () => {
     await runWithCloudflareRuntimeEnv(
       { OUTER: "present" },
       async () => {
+        setCloudflareRequestContext({
+          method: "PATCH",
+          requestId: "11111111-1111-4111-8111-111111111111",
+          route: "/api/workspace/subscriptions",
+        });
         await runWithCloudflareRuntimeEnv(undefined, async () => {
           expect(getCloudflareRuntimeTaskScheduler()).toBeTypeOf("function");
+          expect(getCloudflareRequestContext()).toEqual({
+            method: "PATCH",
+            requestId: "11111111-1111-4111-8111-111111111111",
+            route: "/api/workspace/subscriptions",
+          });
           getCloudflareRuntimeTaskScheduler()?.(Promise.resolve());
           runCloudflareTraceSpan("nested", {}, () => undefined);
         });

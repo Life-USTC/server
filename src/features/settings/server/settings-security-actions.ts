@@ -10,7 +10,7 @@ export async function rotateSettingsCalendarTokenAction({
   request,
   requestId,
   url,
-}: SettingsActionInput & { requestId?: string }) {
+}: SettingsActionInput & { requestId: string }) {
   const copy = getSettingsCopy(locale);
   const user = await requireSettingsUser(request, url);
   try {

@@ -32,6 +32,81 @@ export function shouldLog(level: AppLogLevel): boolean {
 
 const PRISMA_ERROR_CODE_PATTERN = /^P\d{4}$/;
 const SQLSTATE_CODE_PATTERN = /^[0-9A-Z]{5}$/;
+const SAFE_DATABASE_CODE_KEYS = [
+  "code",
+  "driverCode",
+  "originalCode",
+  "sqlState",
+  "sqlstate",
+] as const;
+
+type SafeDatabaseErrorDetails = {
+  code?: string;
+  prismaCode?: string;
+};
+
+function readProperty(value: object, key: string): unknown {
+  try {
+    return Reflect.get(value, key);
+  } catch {
+    return undefined;
+  }
+}
+
+function readSafeDatabaseCode(value: unknown) {
+  if (typeof value !== "string") return undefined;
+  if (SQLSTATE_CODE_PATTERN.test(value)) return value;
+  if (PRISMA_ERROR_CODE_PATTERN.test(value)) return value;
+  return undefined;
+}
+
+function collectSafeDatabaseErrorDetails(
+  error: unknown,
+  details: SafeDatabaseErrorDetails,
+  ancestors: WeakSet<object>,
+  depth: number,
+) {
+  if (
+    depth > 8 ||
+    typeof error !== "object" ||
+    error === null ||
+    ancestors.has(error)
+  ) {
+    return;
+  }
+
+  ancestors.add(error);
+  try {
+    for (const key of SAFE_DATABASE_CODE_KEYS) {
+      const code = readSafeDatabaseCode(readProperty(error, key));
+      if (!code) continue;
+      if (PRISMA_ERROR_CODE_PATTERN.test(code)) {
+        details.prismaCode ??= code;
+      } else {
+        details.code ??= code;
+      }
+    }
+
+    for (const key of ["meta", "cause"] as const) {
+      collectSafeDatabaseErrorDetails(
+        readProperty(error, key),
+        details,
+        ancestors,
+        depth + 1,
+      );
+    }
+  } finally {
+    ancestors.delete(error);
+  }
+}
+
+export function getSafeDatabaseErrorDetails(
+  error: unknown,
+): SafeDatabaseErrorDetails {
+  const details: SafeDatabaseErrorDetails = {};
+  collectSafeDatabaseErrorDetails(error, details, new WeakSet(), 0);
+  return details;
+}
 
 /**
  * Prisma `P####` codes and PostgreSQL SQLSTATE codes are stable, documented
@@ -42,46 +117,92 @@ const SQLSTATE_CODE_PATTERN = /^[0-9A-Z]{5}$/;
  * Walk `cause` / Prisma `meta` because driver-adapter failures often nest the
  * real SQLSTATE under the top-level Prisma wrapper.
  */
-export function getSafeDatabaseErrorCode(
-  error: unknown,
-  depth = 0,
-): string | undefined {
-  if (depth > 5 || typeof error !== "object" || error === null) {
-    return undefined;
-  }
+export function getSafeDatabaseErrorCode(error: unknown): string | undefined {
+  const details = getSafeDatabaseErrorDetails(error);
+  return details.code ?? details.prismaCode;
+}
 
-  if ("code" in error) {
-    const { code } = error as { code: unknown };
-    if (typeof code === "string") {
-      if (PRISMA_ERROR_CODE_PATTERN.test(code)) return code;
-      if (SQLSTATE_CODE_PATTERN.test(code)) return code;
+const SAFE_LOG_MAX_DEPTH = 12;
+const SAFE_LOG_MAX_KEYS = 256;
+
+function safeLogValue(
+  value: unknown,
+  ancestors: WeakSet<object>,
+  depth: number,
+): unknown {
+  if (value === null) return null;
+  if (typeof value === "string" || typeof value === "boolean") return value;
+  if (typeof value === "number") return Number.isFinite(value) ? value : null;
+  if (typeof value === "bigint") return "[BigInt]";
+  if (typeof value === "undefined") return undefined;
+  if (typeof value === "function") return "[Function]";
+  if (typeof value === "symbol") return "[Symbol]";
+  if (depth >= SAFE_LOG_MAX_DEPTH) return "[MaxDepth]";
+  if (typeof value !== "object") return "[Unserializable]";
+  if (ancestors.has(value)) return "[Circular]";
+
+  ancestors.add(value);
+  try {
+    if (Array.isArray(value)) {
+      const output = [] as unknown[];
+      for (let index = 0; index < value.length; index += 1) {
+        const descriptor = Object.getOwnPropertyDescriptor(
+          value,
+          String(index),
+        );
+        output.push(
+          descriptor && "value" in descriptor
+            ? safeLogValue(descriptor.value, ancestors, depth + 1)
+            : "[Unserializable]",
+        );
+      }
+      return output;
     }
-  }
 
-  if ("meta" in error) {
-    const fromMeta = getSafeDatabaseErrorCode(
-      (error as { meta: unknown }).meta,
-      depth + 1,
-    );
-    if (fromMeta) return fromMeta;
+    const output = Object.create(null) as Record<string, unknown>;
+    for (const key of Object.keys(value).slice(0, SAFE_LOG_MAX_KEYS)) {
+      const descriptor = Object.getOwnPropertyDescriptor(value, key);
+      if (!descriptor || !("value" in descriptor)) {
+        output[key] = "[Unserializable]";
+        continue;
+      }
+      output[key] = safeLogValue(descriptor.value, ancestors, depth + 1);
+    }
+    return output;
+  } catch {
+    return "[Unserializable]";
+  } finally {
+    ancestors.delete(value);
   }
+}
 
-  if ("cause" in error) {
-    return getSafeDatabaseErrorCode(
-      (error as { cause: unknown }).cause,
-      depth + 1,
-    );
+export function safeJsonStringify(value: unknown, fallback: string) {
+  try {
+    const sanitized = safeLogValue(value, new WeakSet(), 0);
+    const serialized = JSON.stringify(sanitized);
+    return serialized === undefined ? fallback : serialized;
+  } catch {
+    return fallback;
   }
-
-  return undefined;
 }
 
 export function serializeError(error: unknown) {
-  if (!error) return undefined;
+  if (error === undefined || error === null) return undefined;
 
   if (isProductionEnvironment()) {
-    const code = getSafeDatabaseErrorCode(error);
-    return { name: getSafeErrorName(error), ...(code ? { code } : {}) };
+    const details = getSafeDatabaseErrorDetails(error);
+    const name = (() => {
+      try {
+        return getSafeErrorName(error);
+      } catch {
+        return "UnknownError";
+      }
+    })();
+    return {
+      name,
+      ...(details.code ? { code: details.code } : {}),
+      ...(details.prismaCode ? { prismaCode: details.prismaCode } : {}),
+    };
   }
 
   if (error instanceof Error) {

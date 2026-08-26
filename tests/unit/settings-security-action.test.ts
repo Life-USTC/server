@@ -57,6 +57,7 @@ describe("settings calendar token rotation action", () => {
       rotateSettingsCalendarTokenAction({
         locale: "en-us",
         request: inputRequest,
+        requestId: "request-1",
         url: new URL(inputRequest.url),
       }),
     ).rejects.toMatchObject({
@@ -82,6 +83,7 @@ describe("settings calendar token rotation action", () => {
     const result = await rotateSettingsCalendarTokenAction({
       locale: "en-us",
       request: inputRequest,
+      requestId: "request-1",
       url: new URL(inputRequest.url),
     });
     expect(result).toMatchObject({

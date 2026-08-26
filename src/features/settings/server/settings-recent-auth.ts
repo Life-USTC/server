@@ -8,6 +8,7 @@ import { resolveAuthoritativeRecentSession } from "@/lib/auth/recent-session";
 export async function authorizeRecentSettingsAction(input: {
   action: AuditAction;
   request: Request;
+  requestId?: string;
   targetType: string;
   userId: string;
 }) {
@@ -28,7 +29,7 @@ export async function authorizeRecentSettingsAction(input: {
     userId: input.userId,
     ...(recent.sessionId ? { sessionId: recent.sessionId } : {}),
     metadata: { reason: recent.reason },
-    ...getAuditRequestMetadata(input.request),
+    ...getAuditRequestMetadata(input.request, input.requestId),
   });
   return recent;
 }

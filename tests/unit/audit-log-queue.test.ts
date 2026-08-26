@@ -41,14 +41,17 @@ describe("audit log write queue", () => {
     ).toBeNull();
   });
 
-  it("acks valid writes and permanently discards malformed messages", async () => {
+  it("acks valid writes and retries malformed messages for the DLQ", async () => {
     writeAuditLogMock.mockResolvedValue(undefined);
     const valid = queueMessage({
       auditId: "audit-1",
       type: "audit-log.write.v1",
       params: { action: "account_sign_in", subjectUserId: "user-1" },
     });
-    const invalid = queueMessage({ type: "unknown" });
+    const invalid = queueMessage({
+      type: "unknown",
+      secret: "must-not-be-logged",
+    });
 
     await handleAuditLogWriteBatch({ messages: [valid, invalid] });
 
@@ -59,7 +62,21 @@ describe("audit log write queue", () => {
     });
     expect(valid.ack).toHaveBeenCalledOnce();
     expect(valid.retry).not.toHaveBeenCalled();
-    expect(invalid.ack).toHaveBeenCalledOnce();
+    expect(invalid.ack).not.toHaveBeenCalled();
+    expect(invalid.retry).toHaveBeenCalledOnce();
+    expect(logAppEventMock).toHaveBeenCalledWith(
+      "error",
+      "audit-log-write.invalid-message",
+      {
+        event: "audit-log-write.invalid-message",
+        phase: "consumer",
+        reason: "invalid_envelope",
+        source: "audit",
+      },
+    );
+    expect(JSON.stringify(logAppEventMock.mock.calls)).not.toContain(
+      "must-not-be-logged",
+    );
   });
 
   it("retries transient database failures without acknowledging them", async () => {
@@ -81,6 +98,8 @@ describe("audit log write queue", () => {
       expect.objectContaining({
         action: "comment_create",
         event: "audit-log-write.retry",
+        phase: "consumer",
+        reason: "database_write_failed",
       }),
       error,
     );

@@ -106,7 +106,7 @@ describe("calendar export rebuild fan-out", () => {
     expect(storeBuiltUserCalendarExportMock).toHaveBeenCalledTimes(2);
   });
 
-  it("acks valid messages after a successful batch and drops invalid ones", async () => {
+  it("acks valid messages and sends invalid envelopes toward the DLQ", async () => {
     findManyMock.mockResolvedValue([]);
     getUserCalendarRecordMock.mockResolvedValue(null);
 
@@ -123,10 +123,21 @@ describe("calendar export rebuild fan-out", () => {
 
     await handleCalendarExportRebuildBatch({ messages: [valid, invalid] });
 
-    expect(invalid.ack).toHaveBeenCalledOnce();
-    expect(invalid.retry).not.toHaveBeenCalled();
+    expect(invalid.ack).not.toHaveBeenCalled();
+    expect(invalid.retry).toHaveBeenCalledOnce();
     expect(valid.ack).toHaveBeenCalledOnce();
     expect(valid.retry).not.toHaveBeenCalled();
+    expect(logAppEventMock).toHaveBeenCalledWith(
+      "error",
+      "calendar-export-rebuild.invalid-message",
+      {
+        event: "calendar-export-rebuild.invalid-message",
+        phase: "consumer",
+        reason: "invalid_envelope",
+        source: "calendar-export-rebuild",
+      },
+    );
+    expect(JSON.stringify(logAppEventMock.mock.calls)).not.toContain("nope");
   });
 
   it("logs safe batch context before retrying a failed batch", async () => {

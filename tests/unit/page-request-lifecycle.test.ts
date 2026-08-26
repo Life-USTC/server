@@ -8,6 +8,7 @@ vi.mock("@/app-env", () => ({
 }));
 
 import { handle, handleError } from "@/hooks.server";
+import { INTERNAL_REQUEST_ID_HEADER } from "@/lib/log/worker-entrypoint-observability";
 
 function handleInput(
   resolve: Parameters<Handle>[0]["resolve"],
@@ -139,6 +140,24 @@ describe("SvelteKit page request lifecycle", () => {
         status: 200,
       }),
     );
+  });
+
+  it("uses only the internal worker correlation header", async () => {
+    const info = vi.spyOn(console, "info").mockImplementation(() => {});
+    const requestId = "11111111-1111-4111-8111-111111111111";
+
+    const response = await handle(
+      handleInput(async () => Response.json({ ok: true }), {
+        headers: {
+          [INTERNAL_REQUEST_ID_HEADER]: requestId,
+          "x-request-id": "client-request-id",
+        },
+      }),
+    );
+
+    expect(response.headers.get("x-request-id")).toBe(requestId);
+    expect(JSON.stringify(info.mock.calls)).toContain(requestId);
+    expect(JSON.stringify(info.mock.calls)).not.toContain("client-request-id");
   });
 
   it("records thrown redirects exactly once before preserving them", async () => {

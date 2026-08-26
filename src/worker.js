@@ -12,11 +12,11 @@ import {
   resolveCatalogListPublicSsrMode,
 } from "./features/catalog/lib/catalog-list-query";
 import { cleanupStaleUploadPendingStorage } from "./features/uploads/server/upload-pending-cleanup";
-import { runWithCloudflareRuntimeEnv } from "./lib/adapters/cloudflare-runtime";
 import {
-  AUDIT_LOG_WRITE_QUEUE_NAME,
-  handleAuditLogWriteBatch,
-} from "./lib/audit/audit-log-queue";
+  runWithCloudflareRuntimeEnv,
+  setCloudflareRequestContext,
+} from "./lib/adapters/cloudflare-runtime";
+import { handleAuditLogWriteBatch } from "./lib/audit/audit-log-queue";
 import { CATALOG_EDGE_CACHE_TAG } from "./lib/catalog-edge-cache-tag";
 import {
   buildPublicNotFoundHtml,
@@ -43,11 +43,18 @@ import {
 import { maintenancePrisma } from "./lib/db/maintenance-prisma";
 import { prisma } from "./lib/db/prisma";
 import {
+  INTERNAL_REQUEST_ID_HEADER,
+  logScheduledTaskError,
   logScheduledTaskFinish,
   logUnknownScheduledTask,
+  logWorkerFetchError,
+  logWorkerQueueError,
+  logWorkerQueueFinish,
   normalizePublicSsrObservedRoute,
   observedEdgeResponse,
   resolveEdgeCacheOutcome,
+  resolveWorkerQueue,
+  setTrustedRequestIdHeader,
 } from "./lib/log/worker-entrypoint-observability";
 import { buildContentSecurityPolicy } from "./lib/security/csp";
 import { CONTENT_SIGNAL } from "./lib/seo/content-signal";
@@ -77,6 +84,7 @@ function prepareCachedRepresentation(response) {
   headers.set("Cache-Tag", CATALOG_EDGE_CACHE_TAG);
   headers.delete("Vary");
   headers.delete("Content-Length");
+  headers.delete("x-request-id");
   return new Response(response.body, {
     headers,
     status: response.status,
@@ -152,17 +160,20 @@ function directRequest(request) {
   if (
     !request.headers.has(PUBLIC_SSR_HEADER) &&
     !request.headers.has(PUBLIC_SSR_LOCALE_HEADER) &&
-    !request.headers.has(PUBLIC_SSR_MODE_HEADER)
+    !request.headers.has(PUBLIC_SSR_MODE_HEADER) &&
+    !request.headers.has(INTERNAL_REQUEST_ID_HEADER) &&
+    !request.headers.has("x-request-id")
   ) {
     return request;
   }
-
   const headers = new Headers(request.headers);
   removePublicSsrHeaders(headers);
+  headers.delete(INTERNAL_REQUEST_ID_HEADER);
+  headers.delete("x-request-id");
   return new Request(request, { headers });
 }
 
-function publicSsrRequest(request, mode, locale) {
+function publicSsrRequest(request, mode, locale, requestId) {
   const url = new URL(request.url);
   const catalogListPath = isCatalogListPath(url.pathname);
   const canonicalQuery = catalogListPath
@@ -185,6 +196,7 @@ function publicSsrRequest(request, mode, locale) {
   headers.set(PUBLIC_SSR_HEADER, "1");
   headers.set(PUBLIC_SSR_LOCALE_HEADER, locale);
   headers.set(PUBLIC_SSR_MODE_HEADER, mode);
+  setTrustedRequestIdHeader(headers, requestId);
   return new Request(url, {
     headers,
     method: request.method,
@@ -210,14 +222,14 @@ export class PublicSsr extends WorkerEntrypoint {
   }
 }
 
-async function handleFetch(request, env, context) {
+async function handleFetch(request, env, context, requestId) {
   const startMs = Date.now();
   const finish = (response, requestClass, route, cacheOutcome = "bypass") =>
     observedEdgeResponse({
       cacheOutcome,
       request,
       requestClass,
-      requestId: crypto.randomUUID(),
+      requestId,
       response,
       route,
       startMs,
@@ -334,7 +346,7 @@ async function handleFetch(request, env, context) {
       "public-not-found",
     );
   }
-  const cachedRequest = publicSsrRequest(request, mode, locale);
+  const cachedRequest = publicSsrRequest(request, mode, locale, requestId);
   const cacheUrl = new URL(cachedRequest.url);
   const response = await context.exports
     .PublicSsr({ props: { locale, mode } })
@@ -351,49 +363,105 @@ async function handleFetch(request, env, context) {
 
 export default {
   async fetch(request, env, context) {
-    return runWithCloudflareRuntimeEnv(
-      env,
-      () => handleFetch(request, env, context),
-      context,
-    );
+    const requestId = crypto.randomUUID();
+    const startMs = Date.now();
+    try {
+      const response = await runWithCloudflareRuntimeEnv(
+        env,
+        () => {
+          setCloudflareRequestContext({
+            method: request.method,
+            requestId,
+            route: normalizePublicSsrObservedRoute(
+              new URL(request.url).pathname,
+            ),
+          });
+          return handleFetch(request, env, context, requestId);
+        },
+        context,
+      );
+      return response;
+    } catch (error) {
+      logWorkerFetchError({
+        error,
+        ioObservedDurationMs: Date.now() - startMs,
+        requestId,
+      });
+      throw error;
+    }
   },
   async queue(batch, env, context) {
-    await runWithCloudflareRuntimeEnv(
-      env,
-      () =>
-        batch.queue === AUDIT_LOG_WRITE_QUEUE_NAME
-          ? handleAuditLogWriteBatch(batch)
-          : handleCalendarExportRebuildBatch(batch),
-      context,
-    );
+    const startMs = Date.now();
+    const queue = resolveWorkerQueue(batch.queue);
+    try {
+      await runWithCloudflareRuntimeEnv(
+        env,
+        () => {
+          if (queue === "audit") {
+            return handleAuditLogWriteBatch(batch);
+          }
+          if (queue === "calendar") {
+            return handleCalendarExportRebuildBatch(batch);
+          }
+          throw new Error("Unsupported queue");
+        },
+        context,
+      );
+      logWorkerQueueFinish({
+        ioObservedDurationMs: Date.now() - startMs,
+        messageCount: batch.messages.length,
+        queue,
+      });
+    } catch (error) {
+      logWorkerQueueError({
+        error,
+        ioObservedDurationMs: Date.now() - startMs,
+        messageCount: batch.messages.length,
+        queue,
+      });
+      throw error;
+    }
   },
   async scheduled(controller, env, context) {
-    await runWithCloudflareRuntimeEnv(
-      env,
-      async () => {
-        if (controller.cron === UPLOAD_PENDING_CLEANUP_CRON) {
-          const report = await cleanupStaleUploadPendingStorage(prisma);
-          logScheduledTaskFinish("upload-pending-cleanup", report);
-          return;
-        }
+    const startMs = Date.now();
+    let task = "unknown";
+    try {
+      await runWithCloudflareRuntimeEnv(
+        env,
+        async () => {
+          if (controller.cron === UPLOAD_PENDING_CLEANUP_CRON) {
+            task = "upload-pending-cleanup";
+            const report = await cleanupStaleUploadPendingStorage(prisma);
+            logScheduledTaskFinish(task, report, Date.now() - startMs);
+            return;
+          }
 
-        if (controller.cron === AUTH_RECORD_CLEANUP_CRON) {
-          const [authRecords, auditLog, oauthUsage] = await Promise.all([
-            cleanupExpiredAuthRecords(maintenancePrisma),
-            maintainAuditLogRetention(maintenancePrisma),
-            maintainOAuthGrantUsageRetention(maintenancePrisma),
-          ]);
-          logScheduledTaskFinish("auth-and-audit-retention", {
-            ...authRecords,
-            ...auditLog,
-            ...oauthUsage,
-          });
-          return;
-        }
+          if (controller.cron === AUTH_RECORD_CLEANUP_CRON) {
+            task = "auth-and-audit-retention";
+            const [authRecords, auditLog, oauthUsage] = await Promise.all([
+              cleanupExpiredAuthRecords(maintenancePrisma),
+              maintainAuditLogRetention(maintenancePrisma),
+              maintainOAuthGrantUsageRetention(maintenancePrisma),
+            ]);
+            logScheduledTaskFinish(
+              task,
+              {
+                ...authRecords,
+                ...auditLog,
+                ...oauthUsage,
+              },
+              Date.now() - startMs,
+            );
+            return;
+          }
 
-        logUnknownScheduledTask();
-      },
-      context,
-    );
+          logUnknownScheduledTask(Date.now() - startMs);
+        },
+        context,
+      );
+    } catch (error) {
+      logScheduledTaskError(task, Date.now() - startMs, error);
+      throw error;
+    }
   },
 };

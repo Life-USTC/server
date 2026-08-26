@@ -19,13 +19,15 @@ import { authorizeRecentSettingsAction } from "./settings-recent-auth";
 export async function unlinkSettingsAccountAction({
   locale,
   request,
+  requestId,
   url,
-}: SettingsActionInput) {
+}: SettingsActionInput & { requestId?: string }) {
   const copy = getSettingsCopy(locale);
   const user = await requireSettingsUser(request, url);
   const recent = await authorizeRecentSettingsAction({
     action: "account_unlink",
     request,
+    requestId,
     targetType: "account",
     userId: user.id,
   });
@@ -50,7 +52,7 @@ export async function unlinkSettingsAccountAction({
       targetType: "account",
       userId: user.id,
       metadata: { provider },
-      ...getAuditRequestMetadata(request),
+      ...getAuditRequestMetadata(request, requestId),
     });
     throw error;
   }
@@ -64,7 +66,7 @@ export async function unlinkSettingsAccountAction({
       targetType: "account",
       userId: user.id,
       metadata: { provider, reason: "last_account" },
-      ...getAuditRequestMetadata(request),
+      ...getAuditRequestMetadata(request, requestId),
     });
     return fail(400, {
       kind: "accounts",
@@ -81,7 +83,7 @@ export async function unlinkSettingsAccountAction({
       targetType: "account",
       userId: user.id,
       metadata: { provider, reason: "not_linked" },
-      ...getAuditRequestMetadata(request),
+      ...getAuditRequestMetadata(request, requestId),
     });
     return fail(404, {
       kind: "accounts",
@@ -96,7 +98,7 @@ export async function unlinkSettingsAccountAction({
     targetType: "account",
     userId: user.id,
     metadata: { provider },
-    ...getAuditRequestMetadata(request),
+    ...getAuditRequestMetadata(request, requestId),
   });
   throw redirect(303, "/account/settings/accounts?message=AccountDisconnected");
 }
@@ -113,6 +115,7 @@ export async function linkSettingsAccountAction({
   const recent = await authorizeRecentSettingsAction({
     action: "account_link",
     request,
+    requestId,
     targetType: "account",
     userId: user.id,
   });
@@ -155,7 +158,7 @@ export async function linkSettingsAccountAction({
       targetType: "account",
       userId: user.id,
       metadata: { provider: providerId },
-      ...getAuditRequestMetadata(request),
+      ...getAuditRequestMetadata(request, requestId),
     });
     return fail(400, {
       kind: "accounts",
@@ -168,8 +171,9 @@ export async function deleteSettingsAccountAction({
   cookies,
   locale,
   request,
+  requestId,
   url,
-}: SettingsActionInput & { cookies: Cookies }) {
+}: SettingsActionInput & { cookies: Cookies; requestId?: string }) {
   const copy = getSettingsCopy(locale);
   const user = await requireSettingsUser(request, url);
   const form = await request.formData();
@@ -182,6 +186,7 @@ export async function deleteSettingsAccountAction({
   const recent = await authorizeRecentSettingsAction({
     action: "account_delete",
     request,
+    requestId,
     targetType: "user",
     userId: user.id,
   });
@@ -192,7 +197,7 @@ export async function deleteSettingsAccountAction({
     });
   }
   const result = await deleteOwnAccount(user.id, {
-    ...getAuditRequestMetadata(request),
+    ...getAuditRequestMetadata(request, requestId),
     channel: "web",
     sessionId: recent.sessionId,
   });
