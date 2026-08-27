@@ -1,11 +1,15 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-const { logAppEventMock } = vi.hoisted(() => ({
+const { logAppEventMock, writeWorkerRequestAnalyticsMock } = vi.hoisted(() => ({
   logAppEventMock: vi.fn(),
+  writeWorkerRequestAnalyticsMock: vi.fn(),
 }));
 
 vi.mock("@/lib/log/app-logger", () => ({
   logAppEvent: logAppEventMock,
+}));
+vi.mock("@/lib/metrics/analytics-engine", () => ({
+  writeWorkerRequestAnalytics: writeWorkerRequestAnalyticsMock,
 }));
 
 import {
@@ -27,6 +31,8 @@ import {
 describe("worker entrypoint observability", () => {
   afterEach(() => {
     vi.clearAllMocks();
+    writeWorkerRequestAnalyticsMock.mockReset();
+    vi.unstubAllEnvs();
     vi.useRealTimers();
   });
 
@@ -41,6 +47,9 @@ describe("worker entrypoint observability", () => {
       "/api/docs/:page",
     );
     expect(normalizePublicSsrObservedRoute("/privacy")).toBe("/privacy");
+    expect(normalizePublicSsrObservedRoute("/account/sign-in")).toBe(
+      "/account/sign-in",
+    );
     expect(normalizePublicSsrObservedRoute("/users/user-secret")).toBe(
       "public-page",
     );
@@ -63,7 +72,8 @@ describe("worker entrypoint observability", () => {
 
   it("adds the request id and logs a safe finish record", () => {
     vi.useFakeTimers();
-    vi.setSystemTime(new Date("2026-08-14T10:00:00.250Z"));
+    const startMs = performance.now();
+    vi.advanceTimersByTime(250);
     const response = observedEdgeResponse({
       cacheOutcome: "hit",
       request: new Request(
@@ -73,7 +83,7 @@ describe("worker entrypoint observability", () => {
       requestId: "request-1",
       response: new Response("ok", { status: 200 }),
       route: "/catalog/courses/:id",
-      startMs: new Date("2026-08-14T10:00:00.000Z").getTime(),
+      startMs,
     });
 
     expect(response.headers.get("x-request-id")).toBe("request-1");
@@ -96,6 +106,69 @@ describe("worker entrypoint observability", () => {
       "course-secret",
     );
     expect(JSON.stringify(logAppEventMock.mock.calls)).not.toContain("token");
+  });
+
+  it("keeps the original body response when edge telemetry fails", async () => {
+    const cancelMock = vi.fn();
+    const response = new Response(
+      new ReadableStream<Uint8Array>({
+        start(controller) {
+          controller.enqueue(new TextEncoder().encode("unauthorized"));
+          controller.close();
+        },
+        cancel: cancelMock,
+      }),
+      { status: 401 },
+    );
+    writeWorkerRequestAnalyticsMock.mockImplementation(() => {
+      throw new Error("analytics sink unavailable");
+    });
+    logAppEventMock.mockImplementation((_: unknown, message: string) => {
+      if (message === "edge.request.finish") {
+        throw new Error("log sink unavailable");
+      }
+    });
+
+    const observed = observedEdgeResponse({
+      cacheOutcome: "dynamic",
+      request: new Request("https://example.test/api/workspace/subscriptions", {
+        method: "PATCH",
+      }),
+      requestClass: "dynamic",
+      requestId: "request-1",
+      response,
+      route: "public-page",
+      startMs: performance.now(),
+    });
+
+    expect(observed).toBe(response);
+    await expect(observed.text()).resolves.toBe("unauthorized");
+    expect(cancelMock).not.toHaveBeenCalled();
+    expect(logAppEventMock).toHaveBeenCalledWith(
+      "error",
+      "edge.request.observation.error",
+      expect.objectContaining({
+        errorName: "Error",
+        failurePhase: "analytics",
+      }),
+    );
+  });
+
+  it("does not wrap an immutable response while recording telemetry failure", () => {
+    const response = Response.redirect("https://example.test/login", 302);
+
+    const observed = observedEdgeResponse({
+      cacheOutcome: "bypass",
+      request: new Request("https://example.test/account/sign-in"),
+      requestClass: "catalog-redirect",
+      requestId: "request-1",
+      response,
+      route: "/account/sign-in",
+      startMs: performance.now(),
+    });
+
+    expect(observed).toBe(response);
+    expect(observed.headers.get("x-request-id")).toBeNull();
   });
 
   it("only accepts the internal UUID header and strips external request ids", () => {
@@ -153,6 +226,67 @@ describe("worker entrypoint observability", () => {
         ioObservedDurationMs: 56,
         outcome: "success",
       }),
+    );
+  });
+
+  it("samples queue successes deterministically but retains slow completions", () => {
+    vi.stubEnv("NODE_ENV", "production");
+
+    logWorkerQueueFinish({
+      ioObservedDurationMs: 34,
+      messageCount: 2,
+      queue: "audit",
+      sampleKey: "queue-0",
+    });
+    expect(logAppEventMock).not.toHaveBeenCalled();
+
+    logWorkerQueueFinish({
+      ioObservedDurationMs: 34,
+      messageCount: 2,
+      queue: "audit",
+      sampleKey: "queue-70",
+    });
+    expect(logAppEventMock).toHaveBeenCalledTimes(1);
+
+    logWorkerQueueFinish({
+      ioObservedDurationMs: 1_000,
+      messageCount: 2,
+      queue: "audit",
+      sampleKey: "queue-0",
+    });
+    expect(logAppEventMock).toHaveBeenCalledTimes(2);
+  });
+
+  it("always retains retry and partial queue completions", () => {
+    vi.stubEnv("NODE_ENV", "production");
+
+    logWorkerQueueFinish({
+      ioObservedDurationMs: 34,
+      messageCount: 2,
+      outcome: "retry",
+      queue: "audit",
+      sampleKey: "queue-0",
+    });
+    logWorkerQueueFinish({
+      ioObservedDurationMs: 34,
+      messageCount: 2,
+      outcome: "partial",
+      queue: "audit",
+      sampleKey: "queue-0",
+    });
+
+    expect(logAppEventMock).toHaveBeenCalledTimes(2);
+    expect(logAppEventMock).toHaveBeenNthCalledWith(
+      1,
+      "warn",
+      "worker.queue.finish",
+      expect.objectContaining({ outcome: "retry" }),
+    );
+    expect(logAppEventMock).toHaveBeenNthCalledWith(
+      2,
+      "warn",
+      "worker.queue.finish",
+      expect.objectContaining({ outcome: "partial" }),
     );
   });
 

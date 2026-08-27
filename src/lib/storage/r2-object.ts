@@ -1,4 +1,5 @@
 import { getCloudflareR2UploadsBucket } from "@/lib/adapters/cloudflare-runtime";
+import { elapsedMs, monotonicNowMs } from "@/lib/log/observability-clock";
 import { writeStorageOperationAnalytics } from "@/lib/metrics/analytics-engine";
 
 export type StorageObjectHead = {
@@ -18,12 +19,12 @@ export async function headStorageObject(
   key: string,
 ): Promise<StorageObjectHead> {
   const r2Bucket = requireR2UploadsBucket();
-  const start = Date.now();
+  const start = monotonicNowMs();
   try {
     const object = await r2Bucket.head(key);
     writeStorageOperationAnalytics({
       event: object ? "success" : "miss",
-      ioObservedDurationMs: Date.now() - start,
+      ioObservedDurationMs: elapsedMs(start),
       operation: "head",
       size: object?.size,
     });
@@ -35,7 +36,7 @@ export async function headStorageObject(
   } catch (error) {
     writeStorageOperationAnalytics({
       event: "error",
-      ioObservedDurationMs: Date.now() - start,
+      ioObservedDurationMs: elapsedMs(start),
       operation: "head",
     });
     throw error;
@@ -44,18 +45,18 @@ export async function headStorageObject(
 
 export async function deleteStorageObject(key: string) {
   const r2Bucket = requireR2UploadsBucket();
-  const start = Date.now();
+  const start = monotonicNowMs();
   try {
     await r2Bucket.delete(key);
     writeStorageOperationAnalytics({
       event: "success",
-      ioObservedDurationMs: Date.now() - start,
+      ioObservedDurationMs: elapsedMs(start),
       operation: "delete",
     });
   } catch (error) {
     writeStorageOperationAnalytics({
       event: "error",
-      ioObservedDurationMs: Date.now() - start,
+      ioObservedDurationMs: elapsedMs(start),
       operation: "delete",
     });
     throw error;
@@ -68,20 +69,20 @@ export async function getStorageObjectResponse(input: {
   key: string;
 }) {
   const r2Bucket = requireR2UploadsBucket();
-  const start = Date.now();
+  const start = monotonicNowMs();
   let object: Awaited<ReturnType<typeof r2Bucket.get>>;
   try {
     object = await r2Bucket.get(input.key);
     writeStorageOperationAnalytics({
       event: object ? "success" : "miss",
-      ioObservedDurationMs: Date.now() - start,
+      ioObservedDurationMs: elapsedMs(start),
       operation: "get",
       size: object?.size,
     });
   } catch (error) {
     writeStorageOperationAnalytics({
       event: "error",
-      ioObservedDurationMs: Date.now() - start,
+      ioObservedDurationMs: elapsedMs(start),
       operation: "get",
     });
     throw error;
@@ -106,7 +107,7 @@ export async function putStorageObject(input: {
   key: string;
 }) {
   const r2Bucket = requireR2UploadsBucket();
-  const start = Date.now();
+  const start = monotonicNowMs();
   try {
     await r2Bucket.put(input.key, input.body, {
       httpMetadata: {
@@ -115,13 +116,13 @@ export async function putStorageObject(input: {
     });
     writeStorageOperationAnalytics({
       event: "success",
-      ioObservedDurationMs: Date.now() - start,
+      ioObservedDurationMs: elapsedMs(start),
       operation: "put",
     });
   } catch (error) {
     writeStorageOperationAnalytics({
       event: "error",
-      ioObservedDurationMs: Date.now() - start,
+      ioObservedDurationMs: elapsedMs(start),
       operation: "put",
     });
     throw error;

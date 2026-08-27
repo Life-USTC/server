@@ -1,4 +1,8 @@
 import { logAppEvent } from "@/lib/log/app-logger";
+import { elapsedMs } from "@/lib/log/observability-clock";
+import { shouldLogSuccessfulRequest } from "@/lib/log/request-log-sampling";
+import { getSafeErrorName } from "@/lib/log/safe-error-name";
+import { writeWorkerRequestAnalytics } from "@/lib/metrics/analytics-engine";
 
 export const INTERNAL_REQUEST_ID_HEADER = "x-life-ustc-request-id";
 const REQUEST_ID_PATTERN =
@@ -6,6 +10,7 @@ const REQUEST_ID_PATTERN =
 
 export type EdgeRequestClass =
   | "catalog-redirect"
+  | "dynamic"
   | "public-not-found"
   | "public-ssr-cache";
 
@@ -43,6 +48,11 @@ const SAFE_CACHE_OUTCOMES = new Set<EdgeCacheOutcome>([
 ]);
 
 export type WorkerQueue = "audit" | "calendar" | "unknown";
+export type WorkerQueueCompletionOutcome =
+  | "error"
+  | "partial"
+  | "retry"
+  | "success";
 
 export function resolveWorkerQueue(queue: string): WorkerQueue {
   if (queue === "life-ustc-audit-log-write") return "audit";
@@ -64,6 +74,7 @@ export function setTrustedRequestIdHeader(headers: Headers, requestId: string) {
 }
 
 export function normalizePublicSsrObservedRoute(pathname: string) {
+  if (pathname === "/account/sign-in") return "/account/sign-in";
   const detail = CATALOG_DETAIL_ROUTE.exec(pathname);
   if (detail) return `/catalog/${detail[1]}/:id`;
   if (CATALOG_LIST_ROUTE.test(pathname)) return pathname;
@@ -74,11 +85,52 @@ export function normalizePublicSsrObservedRoute(pathname: string) {
   return "public-page";
 }
 
+/**
+ * The dynamic Worker branch uses the same bounded route vocabulary as the
+ * public branch. Keep this helper separate so that its caller makes the
+ * dynamic-vs-cache attribution explicit without ever retaining path IDs.
+ */
+export function normalizeWorkerObservedRoute(pathname: string) {
+  return normalizePublicSsrObservedRoute(pathname);
+}
+
 export function resolveEdgeCacheOutcome(response: Response): EdgeCacheOutcome {
   const outcome = response.headers.get("cf-cache-status")?.toLowerCase();
   return outcome && SAFE_CACHE_OUTCOMES.has(outcome as EdgeCacheOutcome)
     ? (outcome as EdgeCacheOutcome)
     : "unknown";
+}
+
+type EdgeObservationFailurePhase =
+  | "analytics"
+  | "request-id"
+  | "sampling"
+  | "finish-log";
+
+function logEdgeObservationFailure(
+  input: {
+    request: Request;
+    requestClass: EdgeRequestClass;
+    requestId: string;
+    route: string;
+  },
+  phase: EdgeObservationFailurePhase,
+  error: unknown,
+) {
+  try {
+    logAppEvent("error", "edge.request.observation.error", {
+      errorName: getSafeErrorName(error),
+      event: "edge.request.observation.error",
+      failurePhase: phase,
+      method: input.request.method,
+      requestClass: input.requestClass,
+      requestId: input.requestId,
+      route: input.route,
+      source: "worker-entrypoint",
+    });
+  } catch {
+    // Observability must never change the response or throw on its own.
+  }
 }
 
 export function observedEdgeResponse(input: {
@@ -90,23 +142,70 @@ export function observedEdgeResponse(input: {
   route: string;
   startMs: number;
 }) {
-  const response = new Response(input.response.body, input.response);
-  response.headers.set("x-request-id", input.requestId);
-  logAppEvent(
-    response.status >= 500 ? "error" : "info",
-    "edge.request.finish",
-    {
+  // Keep ownership of the body with the response returned by the application.
+  // Constructing another Response around an already wrapped SvelteKit body can
+  // make the runtime cancel/restart a valid response while edge telemetry is
+  // being recorded. Headers are mutable on the responses produced by this
+  // Worker; if a platform response is immutable, retain it unchanged.
+  const response = input.response;
+  try {
+    response.headers.set("x-request-id", input.requestId);
+  } catch (error) {
+    logEdgeObservationFailure(input, "request-id", error);
+  }
+
+  let ioObservedDurationMs = 0;
+  try {
+    ioObservedDurationMs = elapsedMs(input.startMs);
+  } catch (error) {
+    logEdgeObservationFailure(input, "sampling", error);
+  }
+
+  try {
+    writeWorkerRequestAnalytics({
       cacheOutcome: input.cacheOutcome,
-      event: "edge.request.finish",
-      ioObservedDurationMs: Date.now() - input.startMs,
+      durationMs: ioObservedDurationMs,
       method: input.request.method,
       requestClass: input.requestClass,
-      requestId: input.requestId,
       route: input.route,
-      source: "worker-entrypoint",
       status: response.status,
-    },
-  );
+    });
+  } catch (error) {
+    logEdgeObservationFailure(input, "analytics", error);
+  }
+
+  let shouldLog = false;
+  try {
+    shouldLog = shouldLogSuccessfulRequest({
+      durationMs: ioObservedDurationMs,
+      requestId: input.requestId,
+      samplePercent: 10,
+      status: response.status,
+    });
+  } catch (error) {
+    logEdgeObservationFailure(input, "sampling", error);
+  }
+  if (!shouldLog) return response;
+
+  try {
+    logAppEvent(
+      response.status >= 500 ? "error" : "info",
+      "edge.request.finish",
+      {
+        cacheOutcome: input.cacheOutcome,
+        event: "edge.request.finish",
+        ioObservedDurationMs,
+        method: input.request.method,
+        requestClass: input.requestClass,
+        requestId: input.requestId,
+        route: input.route,
+        source: "worker-entrypoint",
+        status: response.status,
+      },
+    );
+  } catch (error) {
+    logEdgeObservationFailure(input, "finish-log", error);
+  }
   return response;
 }
 
@@ -132,16 +231,38 @@ export function logWorkerFetchError(input: {
 export function logWorkerQueueFinish(input: {
   ioObservedDurationMs: number;
   messageCount: number;
+  outcome?: WorkerQueueCompletionOutcome;
   queue: Exclude<WorkerQueue, "unknown">;
+  /** Queue consumers may pass a stable batch/message ID when available. */
+  sampleKey?: string;
 }) {
-  logAppEvent("info", "worker.queue.finish", {
-    event: "worker.queue.finish",
-    ioObservedDurationMs: input.ioObservedDurationMs,
-    messageCount: input.messageCount,
-    outcome: "success",
-    queue: input.queue,
-    source: "worker-entrypoint",
-  });
+  const outcome = input.outcome ?? "success";
+  const sampleKey =
+    input.sampleKey ??
+    `${input.queue}:${input.messageCount}:${Math.round(input.ioObservedDurationMs)}`;
+  if (
+    outcome === "success" &&
+    !shouldLogSuccessfulRequest({
+      durationMs: input.ioObservedDurationMs,
+      requestId: sampleKey,
+      samplePercent: 10,
+      status: 200,
+    })
+  ) {
+    return;
+  }
+  logAppEvent(
+    outcome === "error" ? "error" : outcome === "success" ? "info" : "warn",
+    "worker.queue.finish",
+    {
+      event: "worker.queue.finish",
+      ioObservedDurationMs: input.ioObservedDurationMs,
+      messageCount: input.messageCount,
+      outcome,
+      queue: input.queue,
+      source: "worker-entrypoint",
+    },
+  );
 }
 
 export function logWorkerQueueError(input: {

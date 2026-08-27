@@ -6,6 +6,7 @@ import {
   getCloudflareRuntimeTaskScheduler,
   runCloudflareTraceSpan,
 } from "@/lib/adapters/cloudflare-runtime";
+import { elapsedMs, monotonicNowMs } from "@/lib/log/observability-clock";
 import {
   type PublicRuntimeCacheAnalyticsNamespace,
   type PublicRuntimeCacheAnalyticsReason,
@@ -133,7 +134,7 @@ function writeRuntimeCacheEvent(
 ) {
   writeCacheEventAnalytics({
     event,
-    ioObservedDurationMs: Date.now() - start,
+    ioObservedDurationMs: elapsedMs(start),
     namespace,
     reason,
     storeSize,
@@ -179,7 +180,7 @@ async function readKvCache<T>(
   const kv = getCloudflareCatalogDetailCoreNamespace();
   if (!kv) return { hit: false, outcome: "unavailable" };
 
-  const start = Date.now();
+  const start = monotonicNowMs();
   let failureOutcome: "error" | "invalid" = "error";
   const cacheTtlSeconds = Math.ceil(ttlMs / 1_000);
   try {
@@ -214,7 +215,7 @@ function scheduleKvCacheWrite<T>(
   storeSize: number,
   validateColoCacheResult?: (result: unknown) => boolean,
 ) {
-  const start = Date.now();
+  const start = monotonicNowMs();
   const kv = getCloudflareCatalogDetailCoreNamespace();
   const scheduleTask = getCloudflareRuntimeTaskScheduler();
   const remainingTtlMs = expiresAt - Date.now();
@@ -330,7 +331,7 @@ async function readColoCache<T>(
   storeSize: number,
   validateColoCacheResult?: (result: unknown) => boolean,
 ): Promise<ColoCacheRead<T>> {
-  const start = Date.now();
+  const start = monotonicNowMs();
   let failureOutcome: "error" | "invalid" = "error";
   let cache: CloudflareCache | undefined;
   let request: Request | undefined;
@@ -382,7 +383,7 @@ function scheduleColoCacheWrite<T>(
   namespace: PublicRuntimeCacheAnalyticsNamespace,
   storeSize: number,
 ) {
-  const start = Date.now();
+  const start = monotonicNowMs();
   const scheduleTask = getCloudflareRuntimeTaskScheduler();
   const remainingTtlMs = expiresAt - Date.now();
   if (!scheduleTask || remainingTtlMs <= 0) {
@@ -548,7 +549,7 @@ export function cachedPublicRuntimeData<T>(
   options: PublicRuntimeCacheOptions<T> = {},
 ): Promise<T> {
   const now = Date.now();
-  const start = Date.now();
+  const start = monotonicNowMs();
   const store = cacheStore();
   const storeKey = JSON.stringify([analyticsNamespace, key]);
   pruneExpired(store, now);
@@ -557,7 +558,7 @@ export function cachedPublicRuntimeData<T>(
   if (existing && existing.expiresAt > now) {
     writeCacheEventAnalytics({
       event: "hit",
-      ioObservedDurationMs: Date.now() - start,
+      ioObservedDurationMs: elapsedMs(start),
       namespace: analyticsNamespace,
       storeSize: store.size,
       ttlMs,
@@ -567,7 +568,7 @@ export function cachedPublicRuntimeData<T>(
 
   writeCacheEventAnalytics({
     event: "miss",
-    ioObservedDurationMs: Date.now() - start,
+    ioObservedDurationMs: elapsedMs(start),
     namespace: analyticsNamespace,
     storeSize: store.size,
     ttlMs,
@@ -634,7 +635,7 @@ export function cachedPublicRuntimeData<T>(
       return coloRead.value;
     }
 
-    const loadStart = Date.now();
+    const loadStart = monotonicNowMs();
     let result: T;
     try {
       result = await runCloudflareTraceSpan(
@@ -656,7 +657,7 @@ export function cachedPublicRuntimeData<T>(
       );
       writeCacheEventAnalytics({
         event: "load_success",
-        ioObservedDurationMs: Date.now() - loadStart,
+        ioObservedDurationMs: elapsedMs(loadStart),
         namespace: analyticsNamespace,
         storeSize: store.size,
         ttlMs,
@@ -664,7 +665,7 @@ export function cachedPublicRuntimeData<T>(
     } catch (error) {
       writeCacheEventAnalytics({
         event: "load_error",
-        ioObservedDurationMs: Date.now() - loadStart,
+        ioObservedDurationMs: elapsedMs(loadStart),
         namespace: analyticsNamespace,
         storeSize: store.size,
         ttlMs,

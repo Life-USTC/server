@@ -3,67 +3,54 @@ import { createDeferred } from "../shared/deferred";
 
 const {
   countIncompleteTodosMock,
-  countUpcomingSubscribedExamsMock,
-  getDashboardCalendarItemsCountMock,
-  homeworkCountMock,
-  homeworkFindFirstMock,
+  getWorkspaceNavigationAggregateMock,
+  withUserDbContextMock,
+  writeDashboardStageAnalyticsMock,
 } = vi.hoisted(() => ({
   countIncompleteTodosMock: vi.fn(),
-  countUpcomingSubscribedExamsMock: vi.fn(),
-  getDashboardCalendarItemsCountMock: vi.fn(),
-  homeworkCountMock: vi.fn(),
-  homeworkFindFirstMock: vi.fn(),
-}));
-
-vi.mock("@/features/subscriptions/server/subscription-read-model", () => ({
-  countUpcomingSubscribedExams: countUpcomingSubscribedExamsMock,
+  getWorkspaceNavigationAggregateMock: vi.fn(),
+  withUserDbContextMock: vi.fn(),
+  writeDashboardStageAnalyticsMock: vi.fn(),
 }));
 
 vi.mock("@/features/todos/server/todo-service", () => ({
   countIncompleteTodos: countIncompleteTodosMock,
 }));
 
-vi.mock("@/features/dashboard/server/dashboard-calendar-count", () => ({
-  getDashboardCalendarItemsCount: getDashboardCalendarItemsCountMock,
+vi.mock("@/features/dashboard/server/workspace-navigation-summary", () => ({
+  getWorkspaceNavigationAggregate: getWorkspaceNavigationAggregateMock,
 }));
 
 vi.mock("@/lib/db/prisma", () => ({
-  withUserDbContext: vi.fn(
-    async (
-      _userId: string,
-      action: (tx: {
-        homework: {
-          count: typeof homeworkCountMock;
-          findFirst: typeof homeworkFindFirstMock;
-        };
-      }) => Promise<unknown>,
-    ) =>
-      action({
-        homework: {
-          count: homeworkCountMock,
-          findFirst: homeworkFindFirstMock,
-        },
-      }),
-  ),
+  withUserDbContext: withUserDbContextMock,
+}));
+
+vi.mock("@/lib/metrics/analytics-engine", () => ({
+  writeDashboardStageAnalytics: writeDashboardStageAnalyticsMock,
 }));
 
 describe("仪表盘导航统计", () => {
   afterEach(() => {
     countIncompleteTodosMock.mockReset();
-    countUpcomingSubscribedExamsMock.mockReset();
-    getDashboardCalendarItemsCountMock.mockReset();
-    homeworkCountMock.mockReset();
-    homeworkFindFirstMock.mockReset();
+    getWorkspaceNavigationAggregateMock.mockReset();
+    withUserDbContextMock.mockReset();
+    writeDashboardStageAnalyticsMock.mockReset();
     vi.resetModules();
   });
 
-  it("对考试徽章使用共享的即将到来考试计数语义", async () => {
+  it("uses the shared aggregate read model for all navigation counts", async () => {
     const referenceNow = new Date("2026-05-22T10:30:00.000Z");
-    countIncompleteTodosMock.mockResolvedValue(4);
-    homeworkCountMock.mockResolvedValue(2);
-    homeworkFindFirstMock.mockResolvedValue({ id: "homework-due-today" });
-    countUpcomingSubscribedExamsMock.mockResolvedValue(3);
-    getDashboardCalendarItemsCountMock.mockResolvedValue(9);
+    getWorkspaceNavigationAggregateMock.mockResolvedValue({
+      calendarItemsCount: 9,
+      examsCount: 3,
+      highlightPendingHomeworks: true,
+      pendingHomeworksCount: 2,
+      pendingTodosCount: 4,
+      subscribedSectionCount: 2,
+    });
+    withUserDbContextMock.mockImplementation(
+      async (_userId: string, action: (tx: object) => unknown) => action({}),
+    );
 
     const { getDashboardNavStats } = await import(
       "@/features/dashboard/server/dashboard-nav-stats"
@@ -78,21 +65,42 @@ describe("仪表盘导航统计", () => {
       referenceNow,
     );
 
-    expect(countUpcomingSubscribedExamsMock).toHaveBeenCalledWith({
-      atTime: referenceNow,
-      sectionIds: [12, 34],
+    expect(getWorkspaceNavigationAggregateMock).toHaveBeenCalledWith(
+      expect.any(Object),
+      "user-1",
+      referenceNow,
+      {
+        activeSections: [
+          { id: 12, semesterId: 1 },
+          { id: 34, semesterId: 1 },
+        ],
+        skipPendingTodosCount: false,
+        semesters: undefined,
+      },
+    );
+    expect(countIncompleteTodosMock).not.toHaveBeenCalled();
+    expect(result).toMatchObject({
+      calendarItemsCount: 9,
+      examsCount: 3,
+      highlightPendingHomeworks: true,
+      pendingHomeworksCount: 2,
+      pendingTodosCount: 4,
     });
-    expect(countIncompleteTodosMock).toHaveBeenCalledWith("user-1");
-    expect(result.examsCount).toBe(3);
-    expect(result.highlightPendingHomeworks).toBe(true);
   });
 
-  it("复用待办列表计数时并行启动其他导航查询", async () => {
+  it("reuses the already loaded todo count while aggregate work runs", async () => {
     const pendingTodos = createDeferred<number>();
-    homeworkCountMock.mockResolvedValue(2);
-    homeworkFindFirstMock.mockResolvedValue(null);
-    countUpcomingSubscribedExamsMock.mockResolvedValue(3);
-    getDashboardCalendarItemsCountMock.mockResolvedValue(9);
+    getWorkspaceNavigationAggregateMock.mockResolvedValue({
+      calendarItemsCount: 9,
+      examsCount: 3,
+      highlightPendingHomeworks: false,
+      pendingHomeworksCount: 2,
+      pendingTodosCount: 4,
+      subscribedSectionCount: 1,
+    });
+    withUserDbContextMock.mockImplementation(
+      async (_userId: string, action: (tx: object) => unknown) => action({}),
+    );
 
     const { getDashboardNavStats } = await import(
       "@/features/dashboard/server/dashboard-nav-stats"
@@ -105,11 +113,79 @@ describe("仪表盘导航统计", () => {
       pendingTodos.promise,
     );
 
+    expect(getWorkspaceNavigationAggregateMock).toHaveBeenCalledOnce();
+    expect(getWorkspaceNavigationAggregateMock).toHaveBeenCalledWith(
+      expect.any(Object),
+      "user-1",
+      expect.any(Date),
+      expect.objectContaining({ skipPendingTodosCount: true }),
+    );
     expect(countIncompleteTodosMock).not.toHaveBeenCalled();
-    expect(homeworkCountMock).toHaveBeenCalledOnce();
-    expect(homeworkFindFirstMock).toHaveBeenCalledOnce();
-    expect(countUpcomingSubscribedExamsMock).toHaveBeenCalledOnce();
-    expect(getDashboardCalendarItemsCountMock).toHaveBeenCalledOnce();
+
+    pendingTodos.resolve(5);
+    await expect(resultPromise).resolves.toMatchObject({
+      pendingTodosCount: 5,
+    });
+  });
+
+  it("records nav telemetry when the aggregate finishes without waiting for todos", async () => {
+    const pendingTodos = createDeferred<number>();
+    const aggregate = {
+      calendarItemsCount: 9,
+      examsCount: 3,
+      highlightPendingHomeworks: false,
+      pendingHomeworksCount: 2,
+      pendingTodosCount: 4,
+      subscribedSectionCount: 1,
+    };
+    withUserDbContextMock.mockImplementation(
+      async (_userId: string, action: (tx: object) => unknown) => action({}),
+    );
+
+    const { getDashboardNavStats } = await import(
+      "@/features/dashboard/server/dashboard-nav-stats"
+    );
+    const { countDashboardStageQuery, createDashboardStageCounter } =
+      await import("@/features/dashboard/server/dashboard-stage-analytics");
+    getWorkspaceNavigationAggregateMock.mockImplementation(
+      async (
+        _tx: object,
+        _userId: string,
+        _referenceDate: Date,
+        options: {
+          stageCounter?: Parameters<typeof countDashboardStageQuery>[0];
+        },
+      ) => {
+        countDashboardStageQuery(options.stageCounter);
+        return aggregate;
+      },
+    );
+
+    const counter = createDashboardStageCounter({
+      dbContext: "rls",
+      dbLabel: "app",
+    });
+    const resultPromise = getDashboardNavStats(
+      { id: "user-1", name: "User", username: "user" },
+      [{ id: 12, semesterId: 1 }],
+      new Date("2026-05-22T10:30:00.000Z"),
+      pendingTodos.promise,
+      undefined,
+      counter,
+    );
+
+    await vi.waitFor(() => {
+      expect(writeDashboardStageAnalyticsMock).toHaveBeenCalledOnce();
+    });
+    expect(writeDashboardStageAnalyticsMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        dbContext: "rls",
+        dbQueryCount: 1,
+        dbTransactionCount: 1,
+        stage: "nav_stats",
+        subscribedSectionCount: 1,
+      }),
+    );
 
     pendingTodos.resolve(5);
     await expect(resultPromise).resolves.toMatchObject({

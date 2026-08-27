@@ -1,6 +1,7 @@
 import { loadCommentThread } from "@/features/comments/server/comment-read-model";
 import { commentListTargetPayload } from "@/features/comments/server/comment-target-payload";
 import { resolveCommentTargetReference } from "@/features/comments/server/comment-target-resolution";
+import { runCloudflareTraceSpan } from "@/lib/adapters/cloudflare-runtime";
 import {
   badRequest,
   buildPaginatedResponse,
@@ -29,18 +30,24 @@ export async function getCommentsRoute(request: Request) {
   const targetIdParam = parsedQuery.targetId ?? null;
 
   try {
-    const resolved = await resolveCommentTargetReference({
-      allowDirectSectionTeacherId: true,
-      courseJwId: parsedQuery.courseJwId,
-      homeworkId: parsedQuery.homeworkId,
-      rawTargetId: targetIdParam,
-      sectionId: parsedQuery.sectionId,
-      sectionJwId: parsedQuery.sectionJwId,
-      sectionTeacherId: parsedQuery.sectionTeacherId,
-      targetType,
-      teacherId: parsedQuery.teacherId,
-      verifyExistence: true,
-    });
+    const resolved = await runCloudflareTraceSpan(
+      "target.resolve",
+      { targetType },
+      () =>
+        resolveCommentTargetReference({
+          allowDirectSectionTeacherId: true,
+          courseJwId: parsedQuery.courseJwId,
+          homeworkId: parsedQuery.homeworkId,
+          rawTargetId: targetIdParam,
+          sectionId: parsedQuery.sectionId,
+          sectionJwId: parsedQuery.sectionJwId,
+          sectionTeacherId: parsedQuery.sectionTeacherId,
+          targetType,
+          teacherId: parsedQuery.teacherId,
+          verifyExistence: true,
+          includeTargetMetadata: true,
+        }),
+    );
     if (!resolved.ok && resolved.error === "invalid_target") {
       return badRequest("Invalid target");
     }
@@ -66,7 +73,11 @@ export async function getCommentsRoute(request: Request) {
       meta: {
         hiddenCount,
         viewer,
-        target: await commentListTargetPayload(targetType, resolved.target),
+        target: await runCloudflareTraceSpan(
+          "target.payload",
+          { targetType },
+          () => commentListTargetPayload(targetType, resolved.target),
+        ),
       },
     });
   } catch (error) {

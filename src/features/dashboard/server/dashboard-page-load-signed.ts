@@ -4,6 +4,7 @@ import {
   loadSignedDashboardTabData,
   timeDashboardStage,
 } from "@/features/dashboard/server/dashboard-page-tab-data";
+import { createDashboardStageCounter } from "@/features/dashboard/server/dashboard-stage-analytics";
 import type { AppLocale } from "@/i18n/config";
 import { withLocalizedUserDbContext } from "@/lib/db/prisma";
 import { toShanghaiIsoString } from "@/lib/time/serialize-date-output";
@@ -23,13 +24,18 @@ export async function loadSignedDashboardPageData(input: {
     const dashboard = await import(
       "@/features/dashboard/server/dashboard-overview-data"
     );
+    const userContextCounter = createDashboardStageCounter({
+      dbContext: "rls",
+      dbLabel: "app",
+    });
     const context = await timeDashboardStage(
-      "user-context",
+      "user_context",
       {
         requestId: input.requestId,
         tab: input.tab,
       },
-      () => dashboard.getDashboardUserContext(input.userId),
+      () => dashboard.getDashboardUserContext(input.userId, userContextCounter),
+      userContextCounter,
     );
 
     if (!context) {
@@ -52,7 +58,7 @@ export async function loadSignedDashboardPageData(input: {
       subscriptions,
       todos,
     } = await timeDashboardStage(
-      "tab-data",
+      "tab",
       {
         requestId: input.requestId,
         subscribedSectionCount: context.sectionIds.length,

@@ -1,5 +1,5 @@
 import { logAppEvent } from "@/lib/log/app-logger";
-import { isProductionEnvironment } from "@/lib/log/app-logger-core";
+import { shouldLogSuccessfulRequest } from "@/lib/log/request-log-sampling";
 import { writePageRequestAnalytics } from "@/lib/metrics/analytics-engine";
 import type {
   PageAuthSignalPresence,
@@ -21,15 +21,6 @@ export type PageObservedTimings = {
   totalIoObservedDurationMs: number;
 };
 
-function shouldLogSuccessfulPage(requestId: string) {
-  if (!isProductionEnvironment()) return true;
-  let hash = 0;
-  for (let index = 0; index < requestId.length; index += 1) {
-    hash = (hash * 31 + requestId.charCodeAt(index)) >>> 0;
-  }
-  return hash % 10 === 0;
-}
-
 export function recordPageRequestFinish(input: {
   attribution: PageRequestAttribution;
   authMode: PageAuthMode;
@@ -44,9 +35,12 @@ export function recordPageRequestFinish(input: {
   const route = input.routeId ?? "unmatched";
 
   if (
-    input.status >= 400 ||
-    input.timings.totalIoObservedDurationMs >= 1_000 ||
-    shouldLogSuccessfulPage(input.requestId)
+    shouldLogSuccessfulRequest({
+      durationMs: input.timings.totalIoObservedDurationMs,
+      requestId: input.requestId,
+      samplePercent: 10,
+      status: input.status,
+    })
   ) {
     logAppEvent(input.status >= 500 ? "error" : "info", "page.request.finish", {
       authMode: input.authMode,

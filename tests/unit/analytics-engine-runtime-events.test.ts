@@ -8,7 +8,18 @@ import { writeAuditLog } from "@/lib/audit/write-audit-log";
 import { withBetterAuthOAuthDebug } from "@/lib/log/oauth-debug";
 import {
   resetAnalyticsEngineDiagnosticsForTest,
+  writeApiRequestAnalytics,
+  writeAuditWriteAnalytics,
+  writeCacheEventAnalytics,
+  writeCalendarExportRebuildAnalytics,
+  writeCalendarFeedCacheAnalytics,
+  writeCommentsStageAnalytics,
+  writeDashboardStageAnalytics,
+  writeMcpTransportAnalytics,
   writeOAuthEventAnalytics,
+  writePageRequestAnalytics,
+  writeQueueBatchAnalytics,
+  writeWorkerRequestAnalytics,
   writeWorkspaceOverviewStageAnalytics,
   writeWorkspaceRouteStageAnalytics,
 } from "@/lib/metrics/analytics-engine";
@@ -231,23 +242,416 @@ describe("Cloudflare Analytics Engine runtime events", () => {
     expect(writeDataPoint).toHaveBeenCalledWith({
       indexes: ["mcp:handled"],
       blobs: [
-        "mcp_transport_v2",
+        "mcp_transport_v3",
         "handled",
-        "POST",
+        "tools",
         "/api/mcp",
-        "200",
         "2xx",
         "jsonrpc-single",
-        "tools/call",
-        "workspace_todo_create",
-        "title",
+        "workspace",
         "none",
+        "success",
       ],
-      doubles: [125, 200, 1, 14],
+      doubles: [expect.any(Number), 1, 14, 0, 0, 0],
     });
     expect(JSON.stringify(writeDataPoint.mock.calls)).not.toContain(
       "private title",
     );
+    expect(JSON.stringify(writeDataPoint.mock.calls)).not.toContain(
+      "tools/call",
+    );
+  });
+
+  it("retains MCP application errors and unknown inspection outcomes", () => {
+    const writeDataPoint = installAnalyticsBinding();
+    const summary = {
+      argumentKeys: [],
+      bodyKind: "jsonrpc-single" as const,
+      methods: ["tools/call"],
+      rpcCount: 1,
+      toolCalls: [],
+      toolNames: ["workspace_todo_list"],
+    };
+
+    writeMcpTransportAnalytics({
+      hasError: true,
+      ioObservedDurationMs: 2,
+      method: "POST",
+      path: "/api/mcp",
+      phase: "handled",
+      rpcSummary: summary,
+      status: 200,
+    });
+    writeMcpTransportAnalytics({
+      hasError: false,
+      inspectionTruncated: true,
+      ioObservedDurationMs: 2,
+      method: "POST",
+      path: "/api/mcp",
+      phase: "handled",
+      rpcSummary: summary,
+      status: 200,
+    });
+
+    expect(writeDataPoint).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({
+        blobs: expect.arrayContaining(["error"]),
+      }),
+    );
+    expect(writeDataPoint).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({
+        blobs: expect.arrayContaining(["unknown"]),
+      }),
+    );
+  });
+
+  it("normalizes API, OAuth, and audit dimensions to finite values", () => {
+    const writeDataPoint = installAnalyticsBinding();
+    const secret = "secret-route-or-action-123";
+
+    writeApiRequestAnalytics({
+      authMode: secret,
+      event: "finish",
+      ioObservedDurationMs: 1,
+      method: secret,
+      route: `/api/auth/${secret}/${secret}`,
+      status: 200,
+    });
+    writeOAuthEventAnalytics({
+      errorName: secret,
+      event: secret,
+      grantType: secret,
+      ioObservedDurationMs: 1,
+      method: secret,
+      path: `/api/auth/${secret}/${secret}`,
+      phase: secret,
+      status: 500,
+      statusReason: secret,
+    });
+    writeAuditWriteAnalytics({
+      action: secret,
+      event: "success",
+      ioObservedDurationMs: 1,
+      targetType: secret,
+    });
+
+    expect(writeDataPoint).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({
+        indexes: ["api:auth"],
+        blobs: [
+          "api_request_v3",
+          "finish",
+          "unknown",
+          "auth",
+          "2xx",
+          "unknown",
+        ],
+      }),
+    );
+    expect(writeDataPoint).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({
+        indexes: ["oauth:auth"],
+        blobs: expect.arrayContaining([
+          "oauth_event_v3",
+          "unknown",
+          "unknown",
+          "auth",
+          "unknown",
+        ]),
+      }),
+    );
+    expect(writeDataPoint).toHaveBeenNthCalledWith(
+      3,
+      expect.objectContaining({
+        indexes: ["audit:unknown"],
+        blobs: ["audit_write_v2", "success", "unknown", "unknown"],
+      }),
+    );
+    expect(JSON.stringify(writeDataPoint.mock.calls)).not.toContain(secret);
+  });
+
+  it("uses only current schemas and finite boundary dimensions", () => {
+    const writeDataPoint = installAnalyticsBinding();
+    const secret = "secret-route-or-locale-123";
+
+    writeApiRequestAnalytics({
+      authMode: "anonymous",
+      event: "finish",
+      ioObservedDurationMs: 1,
+      method: "GET",
+      route: "/api/catalog",
+      status: 200,
+    });
+    writeOAuthEventAnalytics({
+      event: "better-auth.response",
+      ioObservedDurationMs: 1,
+      path: "/api/auth/oauth2/token",
+      status: 200,
+    });
+    writePageRequestAnalytics({
+      appIoObservedDurationMs: 1,
+      authIoObservedDurationMs: 1,
+      authMode: "anonymous",
+      authSignalPresence: "absent",
+      catalogDetailTab: "not_applicable",
+      event: "finish",
+      ioObservedDurationMs: 1,
+      locale: secret,
+      method: secret,
+      route: secret,
+      ssrClass: "dynamic-ssr",
+      status: 200,
+    });
+    writeCacheEventAnalytics({
+      event: secret as never,
+      ioObservedDurationMs: 1,
+      namespace: secret as never,
+      reason: secret as never,
+      storeSize: 1,
+      ttlMs: 1_000,
+    });
+    writeWorkspaceRouteStageAnalytics({
+      ioObservedDurationMs: 1,
+      route: "homeworks",
+      stage: "read",
+      status: "success",
+    });
+    writeWorkspaceRouteStageAnalytics({
+      ioObservedDurationMs: 1,
+      route: secret as never,
+      stage: secret as never,
+      status: secret as never,
+    });
+    writeCalendarFeedCacheAnalytics({
+      feed: "user",
+      status: "fresh",
+      storeSize: 1,
+      ttlMs: 1_000,
+    });
+    writeCalendarFeedCacheAnalytics({
+      feed: secret as never,
+      status: secret as never,
+      storeSize: 1,
+      ttlMs: 1_000,
+    });
+    writeCalendarExportRebuildAnalytics({ status: "ok" });
+
+    const dataPoints = writeDataPoint.mock.calls.map(
+      ([dataPoint]) => dataPoint,
+    );
+    expect(dataPoints.map((dataPoint) => dataPoint.blobs?.[0])).toEqual([
+      "api_request_v3",
+      "oauth_event_v3",
+      "page_request_v2",
+      "public_runtime_cache_v3",
+      "workspace_route_stage_v1",
+      "workspace_route_stage_v1",
+      "calendar_feed_cache",
+      "calendar_feed_cache",
+      "calendar_export_rebuild",
+    ]);
+    expect(JSON.stringify(dataPoints)).not.toContain("api_request_v2");
+    expect(JSON.stringify(dataPoints)).not.toContain("oauth_event_v2");
+    expect(JSON.stringify(dataPoints)).not.toContain(secret);
+    expect(dataPoints[5]).toMatchObject({
+      indexes: ["workspace:unknown:unknown"],
+      blobs: ["workspace_route_stage_v1", "unknown", "unknown", "unknown"],
+    });
+    expect(dataPoints[7]).toMatchObject({
+      indexes: ["cache:calendar:unknown"],
+      blobs: ["calendar_feed_cache", "unknown", "unknown"],
+    });
+    for (const dataPoint of dataPoints) {
+      expect(dataPoint.indexes).toHaveLength(1);
+      expect(dataPoint.blobs.length).toBeLessThanOrEqual(20);
+      expect(dataPoint.doubles.length).toBeLessThanOrEqual(20);
+    }
+  });
+
+  it("writes bounded worker and queue schemas", () => {
+    const writeDataPoint = installAnalyticsBinding();
+
+    writeWorkerRequestAnalytics({
+      cacheOutcome: "hit",
+      durationMs: 12,
+      method: "GET",
+      requestClass: "dynamic",
+      route: "/account/sign-in?token=private",
+      status: 200,
+    });
+    writeQueueBatchAnalytics({
+      acked: 20,
+      batchSize: 20,
+      durationMs: 30,
+      invalid: 0,
+      maxAgeMs: 100,
+      maxAttempts: 1,
+      messageType: "audit-log.write.v1",
+      outcome: "success",
+      processed: 20,
+      queue: "audit",
+      retried: 0,
+    });
+    writeCommentsStageAnalytics({
+      dbContext: "rls",
+      dbLabel: "app",
+      dbQueryCount: 5,
+      dbTransactionCount: 1,
+      durationMs: 80,
+      loadedCount: 10,
+      outcome: "success",
+      rootCount: 2,
+      stage: "comments.descendants",
+    });
+    writeDashboardStageAnalytics({
+      dbContext: "rls",
+      dbLabel: "app",
+      dbQueryCount: 3,
+      dbTransactionCount: 1,
+      durationMs: 50,
+      loadedCount: 4,
+      outcome: "success",
+      rootCount: 0,
+      stage: "nav_stats",
+      subscribedSectionCount: 4,
+    });
+
+    expect(writeDataPoint).toHaveBeenNthCalledWith(1, {
+      indexes: ["worker:account-sign-in"],
+      blobs: [
+        "worker_request_v1",
+        "finish",
+        "account-sign-in",
+        "dynamic",
+        "GET",
+        "2xx",
+        "hit",
+      ],
+      doubles: [12, 200],
+    });
+    expect(writeDataPoint).toHaveBeenNthCalledWith(2, {
+      indexes: ["queue:audit"],
+      blobs: [
+        "queue_batch_v1",
+        "finish",
+        "audit",
+        "success",
+        "audit-log.write.v1",
+      ],
+      doubles: [30, 20, 20, 20, 0, 0, 100, 1],
+    });
+    expect(writeDataPoint).toHaveBeenNthCalledWith(3, {
+      indexes: ["comments:comments.descendants"],
+      blobs: [
+        "comments_stage_v1",
+        "comments.descendants",
+        "rls",
+        "app",
+        "success",
+      ],
+      doubles: [80, 5, 1, 10, 2],
+    });
+    expect(writeDataPoint).toHaveBeenNthCalledWith(4, {
+      indexes: ["dashboard:nav_stats"],
+      blobs: ["dashboard_stage_v1", "nav_stats", "rls", "app", "success"],
+      doubles: [50, 3, 1, 4, 0, 4],
+    });
+    expect(JSON.stringify(writeDataPoint.mock.calls)).not.toContain("private");
+  });
+
+  it("normalizes stage dimensions and status classes at the analytics boundary", () => {
+    const writeDataPoint = installAnalyticsBinding();
+    const secret = "untrusted-stage-or-status";
+
+    writeApiRequestAnalytics({
+      authMode: "anonymous",
+      event: "finish",
+      ioObservedDurationMs: 1,
+      method: "GET",
+      route: "/api/catalog",
+      status: 9999,
+    });
+    writeOAuthEventAnalytics({
+      event: "oauth.callback.error",
+      ioObservedDurationMs: 1,
+      path: "/api/auth/oauth2/callback/provider",
+      phase: "prepare-provider-request",
+      status: 500,
+    });
+    writeCommentsStageAnalytics({
+      dbContext: secret as never,
+      dbLabel: secret as never,
+      dbQueryCount: 1,
+      dbTransactionCount: 1,
+      durationMs: 1,
+      outcome: secret as never,
+      stage: secret as never,
+    });
+    writeDashboardStageAnalytics({
+      dbContext: secret as never,
+      dbLabel: secret as never,
+      dbQueryCount: 1,
+      dbTransactionCount: 1,
+      durationMs: 1,
+      outcome: secret as never,
+      stage: secret as never,
+    });
+
+    expect(writeDataPoint).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({
+        blobs: [
+          "api_request_v3",
+          "finish",
+          "GET",
+          "catalog",
+          "unknown",
+          "anonymous",
+        ],
+      }),
+    );
+    expect(writeDataPoint).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({
+        blobs: expect.arrayContaining([
+          "oauth_event_v3",
+          "oauth.callback.error",
+          "prepare-provider-request",
+        ]),
+      }),
+    );
+    expect(writeDataPoint).toHaveBeenNthCalledWith(
+      3,
+      expect.objectContaining({
+        indexes: ["comments:unknown"],
+        blobs: [
+          "comments_stage_v1",
+          "unknown",
+          "unknown",
+          "unknown",
+          "unknown",
+        ],
+      }),
+    );
+    expect(writeDataPoint).toHaveBeenNthCalledWith(
+      4,
+      expect.objectContaining({
+        indexes: ["dashboard:unknown"],
+        blobs: [
+          "dashboard_stage_v1",
+          "unknown",
+          "unknown",
+          "unknown",
+          "unknown",
+        ],
+      }),
+    );
+    expect(JSON.stringify(writeDataPoint.mock.calls)).not.toContain(secret);
+    expect(writeDataPoint.mock.calls[0]?.[0]?.blobs).not.toContain("9999");
   });
 
   it("writes OAuth wrapper datapoints when debug logging is off", async () => {
@@ -265,13 +669,12 @@ describe("Cloudflare Analytics Engine runtime events", () => {
 
     expect(response.status).toBe(201);
     expect(writeDataPoint).toHaveBeenCalledWith({
-      indexes: ["oauth:/api/auth/oauth2/token"],
+      indexes: ["oauth:token"],
       blobs: [
-        "oauth_event_v2",
+        "oauth_event_v3",
         "better-auth.response",
         "POST",
-        "/api/auth/oauth2/token",
-        "201",
+        "token",
         "2xx",
         "none",
         "resource_unknown",
@@ -296,13 +699,12 @@ describe("Cloudflare Analytics Engine runtime events", () => {
     });
 
     expect(writeDataPoint).toHaveBeenCalledWith({
-      indexes: ["oauth:/api/auth/oauth2/token"],
+      indexes: ["oauth:token"],
       blobs: [
-        "oauth_event_v2",
+        "oauth_event_v3",
         "grant-validation-failed",
         "unknown",
-        "/api/auth/oauth2/token",
-        "503",
+        "token",
         "5xx",
         "none",
         "resource_unknown",

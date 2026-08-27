@@ -154,6 +154,11 @@ describe("dashboard todo count reuse", () => {
       undefined,
       undefined,
       expect.any(Array),
+      expect.objectContaining({
+        complete: true,
+        dbContext: "rls",
+        dbLabel: "app",
+      }),
     );
   });
 
@@ -172,6 +177,11 @@ describe("dashboard todo count reuse", () => {
       undefined,
       expect.any(Promise),
       semesters,
+      expect.objectContaining({
+        complete: true,
+        dbContext: "rls",
+        dbLabel: "app",
+      }),
     );
     expect(getDashboardOverviewDataMock).toHaveBeenCalledWith(
       "user-1",

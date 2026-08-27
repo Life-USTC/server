@@ -1,6 +1,7 @@
 import { jsonResponse } from "@/lib/api/helpers";
 import { observedApiRoute } from "@/lib/log/api-observability";
 import { withBetterAuthOAuthDebug } from "@/lib/log/oauth-debug";
+import { elapsedMs, monotonicNowMs } from "@/lib/log/observability-clock";
 import { getSafeErrorName } from "@/lib/log/safe-error-name";
 import { writeOAuthEventAnalytics } from "@/lib/metrics/analytics-engine";
 import {
@@ -113,14 +114,14 @@ async function runObservedTokenStage<Result>(
   phase: string,
   run: () => Promise<Result>,
 ) {
-  const start = Date.now();
+  const start = monotonicNowMs();
   try {
     const result = await run();
     writeOAuthEventAnalytics({
       event: "token.stage.success",
       grantType: params.get("grant_type"),
       hasResource: params.has("resource"),
-      ioObservedDurationMs: Date.now() - start,
+      ioObservedDurationMs: elapsedMs(start),
       path: "/api/auth/oauth2/token",
       phase,
       resourceCount: params.getAll("resource").length,
@@ -133,7 +134,7 @@ async function runObservedTokenStage<Result>(
       event: "token.stage.error",
       grantType: params.get("grant_type"),
       hasResource: params.has("resource"),
-      ioObservedDurationMs: Date.now() - start,
+      ioObservedDurationMs: elapsedMs(start),
       path: "/api/auth/oauth2/token",
       phase,
       resourceCount: params.getAll("resource").length,
@@ -148,7 +149,7 @@ async function runObservedTokenHandler(
   params: URLSearchParams,
   run: () => Promise<Response | undefined>,
 ) {
-  const start = Date.now();
+  const start = monotonicNowMs();
   const url = new URL(request.url);
   const grantType = params.get("grant_type");
   try {
@@ -183,7 +184,7 @@ async function runObservedTokenHandler(
           : errorCode === "invalid_request"
             ? "oauth.token.invalid_request"
             : "oauth.token.error_response",
-      ioObservedDurationMs: Date.now() - start,
+      ioObservedDurationMs: elapsedMs(start),
       grantType,
       hasResource: params.has("resource"),
       method: request.method,
@@ -196,7 +197,7 @@ async function runObservedTokenHandler(
   } catch (err) {
     writeOAuthEventAnalytics({
       event: "token.error",
-      ioObservedDurationMs: Date.now() - start,
+      ioObservedDurationMs: elapsedMs(start),
       grantType,
       hasResource: params.has("resource"),
       method: request.method,

@@ -142,6 +142,40 @@ describe("SvelteKit page request lifecycle", () => {
     );
   });
 
+  it("marks the exact sign-in HTML route as non-indexable", async () => {
+    vi.spyOn(console, "info").mockImplementation(() => {});
+
+    const response = await handle(
+      handleInput(
+        async () =>
+          new Response("<html><body>sign in</body></html>", {
+            headers: { "content-type": "text/html; charset=utf-8" },
+          }),
+        { pathname: "/account/sign-in", routeId: "/account/sign-in" },
+      ),
+    );
+
+    expect(response.headers.get("X-Robots-Tag")).toBe(
+      "noindex, nofollow, noarchive",
+    );
+  });
+
+  it("does not add the sign-in robots directive to other HTML routes", async () => {
+    vi.spyOn(console, "info").mockImplementation(() => {});
+
+    const response = await handle(
+      handleInput(
+        async () =>
+          new Response("<html><body>privacy</body></html>", {
+            headers: { "content-type": "text/html; charset=utf-8" },
+          }),
+        { pathname: "/privacy", routeId: "/privacy" },
+      ),
+    );
+
+    expect(response.headers.has("X-Robots-Tag")).toBe(false);
+  });
+
   it("uses only the internal worker correlation header", async () => {
     const info = vi.spyOn(console, "info").mockImplementation(() => {});
     const requestId = "11111111-1111-4111-8111-111111111111";

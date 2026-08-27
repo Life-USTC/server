@@ -10,6 +10,7 @@ import {
 } from "@/lib/adapters/cloudflare-runtime";
 import { prisma } from "@/lib/db/prisma";
 import { logAppEvent } from "@/lib/log/app-logger";
+import { elapsedMs, monotonicNowMs } from "@/lib/log/observability-clock";
 import { writeAuditWriteAnalytics } from "@/lib/metrics/analytics-engine";
 
 export {
@@ -81,39 +82,84 @@ export async function writeAuditLog(
   params: AuditLogParams,
   client: AuditLogClient = prisma,
 ) {
-  const start = Date.now();
-  const { metadata, ...rest } = params;
+  const start = monotonicNowMs();
   try {
-    // createMany intentionally emits INSERT without RETURNING. Audit rows are
-    // append-only, and returning the inserted row would require widening the
-    // RLS read policy for asynchronous queue consumers with no user context.
     await client.auditLog.createMany({
-      data: {
-        ...rest,
-        ...(metadata !== undefined && {
-          metadata: metadata as Prisma.InputJsonValue,
-        }),
-      },
-      // A queued audit write carries a producer-generated ID. Cloudflare
-      // Queues is at-least-once, so replaying an uncertain delivery must be a
-      // successful no-op instead of creating a second audit event. Direct
-      // transactional writes have no supplied ID and must still surface an
-      // unexpected conflict instead of hiding it.
+      data: auditLogCreateData(params),
       ...(params.id ? { skipDuplicates: true } : {}),
     });
     writeAuditWriteAnalytics({
       action: params.action,
       event: "success",
-      ioObservedDurationMs: Date.now() - start,
+      ioObservedDurationMs: elapsedMs(start),
       targetType: params.targetType,
     });
   } catch (error) {
     writeAuditWriteAnalytics({
       action: params.action,
       event: "error",
-      ioObservedDurationMs: Date.now() - start,
+      ioObservedDurationMs: elapsedMs(start),
       targetType: params.targetType,
     });
+    throw error;
+  }
+}
+
+function auditLogCreateData(params: AuditLogParams) {
+  const { metadata, ...rest } = params;
+  return {
+    ...rest,
+    ...(metadata !== undefined && {
+      metadata: metadata as Prisma.InputJsonValue,
+    }),
+  };
+}
+
+/**
+ * Writes one queue batch in one statement. Queued IDs are the AuditLog primary
+ * key, so `skipDuplicates` is sufficient idempotency for at-least-once queue
+ * delivery; no migration or second deduplication table is required.
+ */
+export async function writeAuditLogs(
+  params: readonly AuditLogParams[],
+  client: AuditLogClient = prisma,
+) {
+  if (params.length === 0) return;
+
+  const start = monotonicNowMs();
+  const queued = params.every((param) => Boolean(param.id));
+  try {
+    // createMany intentionally emits INSERT without RETURNING. Audit rows are
+    // append-only, and returning the inserted row would require widening the
+    // RLS read policy for asynchronous queue consumers with no user context.
+    await client.auditLog.createMany({
+      data: params.map(auditLogCreateData),
+      // A queued audit write carries a producer-generated ID. Cloudflare
+      // Queues is at-least-once, so replaying an uncertain delivery must be a
+      // successful no-op instead of creating a second audit event. Direct
+      // transactional writes have no supplied ID and must still surface an
+      // unexpected conflict instead of hiding it.
+      ...(queued ? { skipDuplicates: true } : {}),
+    });
+    const ioObservedDurationMs = elapsedMs(start);
+    for (const param of params) {
+      writeAuditWriteAnalytics({
+        action: param.action,
+        event: "success",
+        ioObservedDurationMs,
+        targetType: param.targetType,
+      });
+    }
+  } catch (error) {
+    const ioObservedDurationMs = elapsedMs(start);
+    for (const param of params) {
+      writeAuditWriteAnalytics({
+        action: param.action,
+        event: "error",
+        ioObservedDurationMs,
+        targetType: param.targetType,
+      });
+    }
     throw error;
   }
 }

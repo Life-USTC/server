@@ -1,3 +1,4 @@
+import { elapsedMs, monotonicNowMs } from "@/lib/log/observability-clock";
 import { getSafeErrorName } from "@/lib/log/safe-error-name";
 import { writeOAuthEventAnalytics } from "@/lib/metrics/analytics-engine";
 import { OAUTH_TOKEN_ENDPOINT_PATH } from "@/lib/oauth/constants";
@@ -41,7 +42,7 @@ function recordBetterAuthResponseAnalytics(input: {
 }) {
   writeOAuthEventAnalytics({
     event: stableBetterAuthResponseEvent(input.path, input.status),
-    ioObservedDurationMs: Date.now() - input.start,
+    ioObservedDurationMs: elapsedMs(input.start),
     method: input.method,
     path: input.path,
     status: input.status,
@@ -57,7 +58,7 @@ function recordBetterAuthErrorAnalytics(input: {
 }) {
   writeOAuthEventAnalytics({
     event: "better-auth.error",
-    ioObservedDurationMs: Date.now() - input.start,
+    ioObservedDurationMs: elapsedMs(input.start),
     method: input.method,
     path: input.path,
     status: 500,
@@ -74,7 +75,7 @@ export async function withBetterAuthOAuthDebug(
   run: (req: Request) => Promise<Response>,
 ): Promise<Response> {
   const debugMode = getOAuthDebugMode();
-  const start = Date.now();
+  const start = monotonicNowMs();
   const url = new URL(request.url);
   const path = url.pathname;
 
@@ -144,7 +145,7 @@ export async function withBetterAuthOAuthDebug(
       method,
       path,
       status: res.status,
-      ioObservedDurationMs: Date.now() - start,
+      ioObservedDurationMs: elapsedMs(start),
       ...(redirectSummary ? { redirectSummary } : {}),
       ...(location && !redirectSummary ? { locationPresent: true } : {}),
       ...(errorBody ? { errorBody } : {}),
@@ -163,7 +164,7 @@ export async function withBetterAuthOAuthDebug(
       correlationId,
       method,
       path,
-      ioObservedDurationMs: Date.now() - start,
+      ioObservedDurationMs: elapsedMs(start),
       errorName: getSafeErrorName(err),
     });
     recordBetterAuthErrorAnalytics({ error: err, method, path, start });

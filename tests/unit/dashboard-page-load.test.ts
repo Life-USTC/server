@@ -4,18 +4,29 @@ const {
   getPrismaMock,
   loadSignedDashboardPageDataMock,
   resolveAuthoritativeRecentSessionMock,
+  writeDashboardStageAnalyticsMock,
 } = vi.hoisted(() => ({
   getPrismaMock: vi.fn(),
   loadSignedDashboardPageDataMock: vi.fn(),
   resolveAuthoritativeRecentSessionMock: vi.fn(),
+  writeDashboardStageAnalyticsMock: vi.fn(),
 }));
 
 vi.mock("@/features/dashboard/server/dashboard-page-copy", () => ({
   getDashboardPageCopy: () => ({
     dashboard: {
       nav: {
+        calendar: {
+          title: "Calendar",
+        },
+        exams: {
+          title: "Exams",
+        },
         homeworks: {
           title: "Homework",
+        },
+        subscriptions: {
+          title: "Subscriptions",
         },
       },
     },
@@ -38,6 +49,10 @@ vi.mock("@/lib/log/app-logger", () => ({
   logAppEvent: vi.fn(),
 }));
 
+vi.mock("@/lib/metrics/analytics-engine", () => ({
+  writeDashboardStageAnalytics: writeDashboardStageAnalyticsMock,
+}));
+
 import { loadSignedDashboardPage } from "@/features/dashboard/server/dashboard-page-load";
 
 describe("signed dashboard page load", () => {
@@ -45,6 +60,7 @@ describe("signed dashboard page load", () => {
     getPrismaMock.mockReset();
     loadSignedDashboardPageDataMock.mockReset();
     resolveAuthoritativeRecentSessionMock.mockReset();
+    writeDashboardStageAnalyticsMock.mockReset();
     resolveAuthoritativeRecentSessionMock.mockResolvedValue({
       ok: true,
       sessionId: "session-1",
@@ -78,7 +94,7 @@ describe("signed dashboard page load", () => {
       expect.objectContaining({
         pageCopy: expect.any(Object),
         requestId: "request-1",
-        revealCalendarFeed: true,
+        revealCalendarFeed: false,
         tab: "homeworks",
         userId: "user-1",
       }),
@@ -92,5 +108,43 @@ describe("signed dashboard page load", () => {
       signedIn: true,
       tab: "homeworks",
     });
+  });
+
+  it("verifies the recent session only for feed-token tabs", async () => {
+    loadSignedDashboardPageDataMock.mockResolvedValue({
+      marker: "signed-calendar",
+      signedIn: true,
+      tab: "calendar",
+    });
+    const url = new URL("https://example.test/workspace/calendar");
+
+    await loadSignedDashboardPage({
+      locals: {
+        locale: "en-us",
+        requestId: "request-2",
+      },
+      request: new Request(url),
+      tab: "calendar",
+      url,
+      userId: "user-1",
+    });
+
+    expect(resolveAuthoritativeRecentSessionMock).toHaveBeenCalledWith(
+      expect.any(Headers),
+      { expectedUserId: "user-1" },
+    );
+    expect(loadSignedDashboardPageDataMock).toHaveBeenCalledWith(
+      expect.objectContaining({ revealCalendarFeed: true, tab: "calendar" }),
+    );
+    expect(writeDashboardStageAnalyticsMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        dbContext: "none",
+        dbLabel: "auth",
+        dbQueryCount: 1,
+        dbTransactionCount: 0,
+        outcome: "success",
+        stage: "recent_session",
+      }),
+    );
   });
 });

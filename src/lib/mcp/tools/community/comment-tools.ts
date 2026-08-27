@@ -10,6 +10,7 @@ import {
   commentThreadTargetPayload,
 } from "@/features/comments/server/comment-target-payload";
 import { resolveCommentTargetReference } from "@/features/comments/server/comment-target-resolution";
+import { runCloudflareTraceSpan } from "@/lib/adapters/cloudflare-runtime";
 import { buildPaginatedResponse } from "@/lib/api/helpers";
 import {
   getUserId,
@@ -53,17 +54,23 @@ export function registerCommentTools(server: McpServer) {
     },
     async (args, extra) => {
       const mode = resolveMcpMode(args.mode);
-      const resolved = await resolveCommentTargetReference({
-        allowDirectSectionTeacherId: true,
-        courseJwId: args.courseJwId,
-        homeworkId: args.homeworkId,
-        rawTargetId: args.targetId,
-        sectionJwId: args.sectionJwId,
-        sectionTeacherId: args.sectionTeacherId,
-        targetType: args.targetType,
-        teacherId: args.teacherId,
-        verifyExistence: true,
-      });
+      const resolved = await runCloudflareTraceSpan(
+        "target.resolve",
+        { targetType: args.targetType },
+        () =>
+          resolveCommentTargetReference({
+            allowDirectSectionTeacherId: true,
+            courseJwId: args.courseJwId,
+            homeworkId: args.homeworkId,
+            rawTargetId: args.targetId,
+            sectionJwId: args.sectionJwId,
+            sectionTeacherId: args.sectionTeacherId,
+            targetType: args.targetType,
+            teacherId: args.teacherId,
+            verifyExistence: true,
+            includeTargetMetadata: true,
+          }),
+      );
       if (!resolved.ok) {
         const errorPayload = unresolvedCommentTargetPayload(resolved);
         return jsonToolResult(
@@ -101,9 +108,11 @@ export function registerCommentTools(server: McpServer) {
           meta: {
             hiddenCount,
             viewer,
-            target: await commentListTargetPayload(
-              resolved.targetType,
-              resolved.target,
+            target: await runCloudflareTraceSpan(
+              "target.payload",
+              { targetType: resolved.targetType },
+              () =>
+                commentListTargetPayload(resolved.targetType, resolved.target),
             ),
           },
         },

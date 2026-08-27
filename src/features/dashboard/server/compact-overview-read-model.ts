@@ -2,6 +2,7 @@ import { loadOverviewTodoBundle } from "@/features/todos/server/todo-service";
 import { type AppLocale, DEFAULT_LOCALE } from "@/i18n/config";
 import { runCloudflareTraceSpan } from "@/lib/adapters/cloudflare-runtime";
 import { withLocalizedUserDbContext, withUserDbContext } from "@/lib/db/prisma";
+import { elapsedMs, monotonicNowMs } from "@/lib/log/observability-clock";
 import {
   type WorkspaceOverviewStage,
   writeWorkspaceOverviewStageAnalytics,
@@ -19,7 +20,7 @@ async function runOverviewStage<T>(
   stage: WorkspaceOverviewStage,
   work: () => Promise<T>,
 ) {
-  const startMs = Date.now();
+  const startMs = monotonicNowMs();
   let status: "error" | "success" = "error";
   try {
     const result = await runCloudflareTraceSpan(
@@ -31,7 +32,7 @@ async function runOverviewStage<T>(
     return result;
   } finally {
     writeWorkspaceOverviewStageAnalytics({
-      ioObservedDurationMs: Date.now() - startMs,
+      ioObservedDurationMs: elapsedMs(startMs),
       stage,
       status,
     });
