@@ -320,6 +320,7 @@ export type CommentTargetLookupRecord = Prisma.CommentGetPayload<{
 
 async function countAnonymousHiddenRoots(
   whereTarget: Record<string, number | string>,
+  counter?: CommentStageCounter,
 ): Promise<number> {
   const sectionId =
     typeof whereTarget.sectionId === "number" ? whereTarget.sectionId : null;
@@ -334,6 +335,7 @@ async function countAnonymousHiddenRoots(
       ? whereTarget.sectionTeacherId
       : null;
 
+  countCommentStageQuery(counter);
   const [row] = await prisma.$queryRaw<{ count: bigint }[]>`
     SELECT public.comment_hidden_root_count(
       ${sectionId},
@@ -517,7 +519,7 @@ export async function loadCommentThread(input: {
           rootPagePromise,
           viewer.isAuthenticated
             ? Promise.resolve(0)
-            : countAnonymousHiddenRoots(input.target.whereTarget),
+            : countAnonymousHiddenRoots(input.target.whereTarget, rootCounter),
         ]);
         const descendantsCounter = createCommentStageCounter({
           dbContext: input.viewerUserId ? "rls" : "none",

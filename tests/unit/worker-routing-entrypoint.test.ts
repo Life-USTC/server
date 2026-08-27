@@ -2,11 +2,13 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const {
   appFetchMock,
+  handleAuditLogWriteBatchMock,
   logAppEventMock,
   runWithCloudflareRuntimeEnvMock,
   setCloudflareRequestContextMock,
 } = vi.hoisted(() => ({
   appFetchMock: vi.fn(),
+  handleAuditLogWriteBatchMock: vi.fn(),
   logAppEventMock: vi.fn(),
   runWithCloudflareRuntimeEnvMock: vi.fn(
     (_env: unknown, callback: () => unknown) => callback(),
@@ -19,6 +21,9 @@ vi.mock("cloudflare:workers", () => ({
 }));
 vi.mock("life-ustc-sveltekit-worker", () => ({
   default: { fetch: appFetchMock },
+}));
+vi.mock("@/lib/audit/audit-log-queue", () => ({
+  handleAuditLogWriteBatch: handleAuditLogWriteBatchMock,
 }));
 vi.mock("@/lib/adapters/cloudflare-runtime", () => ({
   getCloudflareAnalyticsEngineDataset: () => undefined,
@@ -64,6 +69,7 @@ async function withHtmlRewriter<T>(callback: () => Promise<T>) {
 describe("Worker routing entrypoint", () => {
   beforeEach(() => {
     appFetchMock.mockReset();
+    handleAuditLogWriteBatchMock.mockReset();
     logAppEventMock.mockReset();
     runWithCloudflareRuntimeEnvMock.mockClear();
     setCloudflareRequestContextMock.mockClear();
@@ -270,5 +276,33 @@ describe("Worker routing entrypoint", () => {
         status: 301,
       }),
     );
+  });
+
+  it("records one queue completion with the audit handler outcome", async () => {
+    handleAuditLogWriteBatchMock.mockResolvedValue({ outcome: "retry" });
+
+    await worker.queue(
+      {
+        messages: [{}],
+        queue: "life-ustc-audit-log-write",
+      },
+      {},
+      { waitUntil: vi.fn() },
+    );
+
+    const queueFinishes = logAppEventMock.mock.calls.filter(
+      ([, event]) => event === "worker.queue.finish",
+    );
+    expect(handleAuditLogWriteBatchMock).toHaveBeenCalledOnce();
+    expect(queueFinishes).toHaveLength(1);
+    expect(queueFinishes[0]).toEqual([
+      "warn",
+      "worker.queue.finish",
+      expect.objectContaining({
+        messageCount: 1,
+        outcome: "retry",
+        queue: "audit",
+      }),
+    ]);
   });
 });

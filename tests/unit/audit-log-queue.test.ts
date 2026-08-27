@@ -95,7 +95,9 @@ describe("audit log write queue", () => {
       secret: "must-not-be-logged",
     });
 
-    await handleAuditLogWriteBatch({ messages: [valid, invalid] });
+    const report = await handleAuditLogWriteBatch({
+      messages: [valid, invalid],
+    });
 
     expect(writeAuditLogsMock).toHaveBeenCalledWith([
       {
@@ -108,6 +110,7 @@ describe("audit log write queue", () => {
     expect(valid.retry).not.toHaveBeenCalled();
     expect(invalid.ack).not.toHaveBeenCalled();
     expect(invalid.retry).toHaveBeenCalledOnce();
+    expect(report.outcome).toBe("partial");
     expect(logAppEventMock).toHaveBeenCalledWith(
       "error",
       "audit-log-write.invalid-message",
@@ -142,10 +145,11 @@ describe("audit log write queue", () => {
       params: { action: "comment_create", targetType: "comment" },
     });
 
-    await handleAuditLogWriteBatch({ messages: [message] });
+    const report = await handleAuditLogWriteBatch({ messages: [message] });
 
     expect(message.ack).not.toHaveBeenCalled();
     expect(message.retry).toHaveBeenCalledOnce();
+    expect(report.outcome).toBe("retry");
     expect(logAppEventMock).toHaveBeenCalledWith(
       "error",
       "audit-log-write.retry",
@@ -172,11 +176,12 @@ describe("audit log write queue", () => {
   it("classifies an all-invalid batch as retry because nothing was acknowledged", async () => {
     const invalid = queueMessage({ type: "unknown" });
 
-    await handleAuditLogWriteBatch({ messages: [invalid] });
+    const report = await handleAuditLogWriteBatch({ messages: [invalid] });
 
     expect(writeAuditLogsMock).not.toHaveBeenCalled();
     expect(invalid.ack).not.toHaveBeenCalled();
     expect(invalid.retry).toHaveBeenCalledOnce();
+    expect(report.outcome).toBe("retry");
     expect(writeQueueBatchAnalyticsMock).toHaveBeenCalledWith(
       expect.objectContaining({
         acked: 0,
@@ -239,10 +244,11 @@ describe("audit log write queue", () => {
     ).toBe(true);
 
     resolveWrite();
-    await handling;
+    const report = await handling;
     expect(
       messages.every((message) => message.ack.mock.calls.length === 1),
     ).toBe(true);
+    expect(report.outcome).toBe("success");
     expect(writeQueueBatchAnalyticsMock).toHaveBeenCalledWith(
       expect.objectContaining({
         acked: 20,

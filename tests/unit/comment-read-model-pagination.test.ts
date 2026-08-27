@@ -572,5 +572,17 @@ describe("loadCommentThread pagination", () => {
 
     expect(result).toMatchObject({ comments: [], hiddenCount: 2, total: 1 });
     expect(publicQueryMock).toHaveBeenCalledTimes(2);
+    expect(
+      writeCommentsStageAnalyticsMock.mock.calls.find(
+        ([input]) => (input as { stage: string }).stage === "comments.root",
+      )?.[0],
+    ).toEqual(
+      expect.objectContaining({
+        dbContext: "none",
+        dbQueryCount: 2,
+        dbTransactionCount: 0,
+        stage: "comments.root",
+      }),
+    );
   });
 });

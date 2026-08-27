@@ -194,6 +194,7 @@ export type AuditLogWriteQueueBatchReport = {
   invalid: number;
   maxAgeMs: number;
   maxAttempts: number;
+  outcome: "partial" | "retry" | "success";
   processed: number;
   retried: number;
 };
@@ -305,11 +306,14 @@ export async function handleAuditLogWriteBatch(batch: AuditLogWriteQueueBatch) {
     }
   }
 
+  const outcome: AuditLogWriteQueueBatchReport["outcome"] =
+    acked > 0 && retried > 0 ? "partial" : retried > 0 ? "retry" : "success";
   const report = {
     acked,
     invalid,
     maxAgeMs,
     maxAttempts,
+    outcome,
     processed: batch.messages.length,
     retried,
   } satisfies AuditLogWriteQueueBatchReport;
@@ -324,12 +328,7 @@ export async function handleAuditLogWriteBatch(batch: AuditLogWriteQueueBatch) {
     // A mixed batch is partial only when at least one record was committed
     // and another was sent to retry/DLQ. Any batch with no successful ack is a
     // retry, including an all-invalid batch or a failed atomic DB write.
-    outcome:
-      report.acked > 0 && report.retried > 0
-        ? "partial"
-        : report.retried > 0
-          ? "retry"
-          : "success",
+    outcome: report.outcome,
     processed: report.processed,
     queue: "audit",
     retried: report.retried,

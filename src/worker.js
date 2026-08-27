@@ -423,7 +423,7 @@ export default {
     const startMs = monotonicNowMs();
     const queue = resolveWorkerQueue(batch.queue);
     try {
-      await runWithCloudflareRuntimeEnv(
+      const queueResult = await runWithCloudflareRuntimeEnv(
         env,
         () => {
           if (queue === "audit") {
@@ -439,6 +439,7 @@ export default {
       logWorkerQueueFinish({
         ioObservedDurationMs: elapsedMs(startMs),
         messageCount: batch.messages.length,
+        outcome: queueResult?.outcome,
         queue,
       });
     } catch (error) {

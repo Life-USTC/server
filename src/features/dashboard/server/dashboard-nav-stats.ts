@@ -11,6 +11,7 @@ import {
   countDashboardStageTransaction,
   type DashboardStageCounter,
   markDashboardStageCountsUnknown,
+  observeDashboardStage,
 } from "./dashboard-stage-analytics";
 import type {
   DashboardSubscribedSection,
@@ -56,17 +57,26 @@ export async function getDashboardNavStats(
     return emptyDashboardNavStats({ pendingTodosCount, user });
   }
 
-  if (stageCounter && !getUserRlsTransactionClient()) {
-    countDashboardStageTransaction(stageCounter);
-  }
-  const navigationAggregatePromise = withUserDbContext(user.id, (tx) =>
-    getWorkspaceNavigationAggregate(tx, user.id, referenceNow.toDate(), {
-      activeSections: activeSubscribedSections,
-      semesters: providedSemesters,
-      skipPendingTodosCount: providedPendingTodosCount !== undefined,
-      ...(stageCounter ? { stageCounter } : {}),
+  const navigationAggregatePromise = observeDashboardStage({
+    counter: stageCounter,
+    details: () => ({
+      subscribedSectionCount: activeSubscribedSections.length,
     }),
-  );
+    stage: "nav_stats",
+    work: () => {
+      if (stageCounter && !getUserRlsTransactionClient()) {
+        countDashboardStageTransaction(stageCounter);
+      }
+      return withUserDbContext(user.id, (tx) =>
+        getWorkspaceNavigationAggregate(tx, user.id, referenceNow.toDate(), {
+          activeSections: activeSubscribedSections,
+          semesters: providedSemesters,
+          skipPendingTodosCount: providedPendingTodosCount !== undefined,
+          ...(stageCounter ? { stageCounter } : {}),
+        }),
+      );
+    },
+  });
   const pendingTodosCountPromise =
     providedPendingTodosCount ??
     navigationAggregatePromise.then((aggregate) => aggregate.pendingTodosCount);

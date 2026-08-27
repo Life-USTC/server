@@ -47,6 +47,11 @@ const SAFE_CACHE_OUTCOMES = new Set<EdgeCacheOutcome>([
 ]);
 
 export type WorkerQueue = "audit" | "calendar" | "unknown";
+export type WorkerQueueCompletionOutcome =
+  | "error"
+  | "partial"
+  | "retry"
+  | "success";
 
 export function resolveWorkerQueue(queue: string): WorkerQueue {
   if (queue === "life-ustc-audit-log-write") return "audit";
@@ -165,14 +170,17 @@ export function logWorkerFetchError(input: {
 export function logWorkerQueueFinish(input: {
   ioObservedDurationMs: number;
   messageCount: number;
+  outcome?: WorkerQueueCompletionOutcome;
   queue: Exclude<WorkerQueue, "unknown">;
   /** Queue consumers may pass a stable batch/message ID when available. */
   sampleKey?: string;
 }) {
+  const outcome = input.outcome ?? "success";
   const sampleKey =
     input.sampleKey ??
     `${input.queue}:${input.messageCount}:${Math.round(input.ioObservedDurationMs)}`;
   if (
+    outcome === "success" &&
     !shouldLogSuccessfulRequest({
       durationMs: input.ioObservedDurationMs,
       requestId: sampleKey,
@@ -182,14 +190,18 @@ export function logWorkerQueueFinish(input: {
   ) {
     return;
   }
-  logAppEvent("info", "worker.queue.finish", {
-    event: "worker.queue.finish",
-    ioObservedDurationMs: input.ioObservedDurationMs,
-    messageCount: input.messageCount,
-    outcome: "success",
-    queue: input.queue,
-    source: "worker-entrypoint",
-  });
+  logAppEvent(
+    outcome === "error" ? "error" : outcome === "success" ? "info" : "warn",
+    "worker.queue.finish",
+    {
+      event: "worker.queue.finish",
+      ioObservedDurationMs: input.ioObservedDurationMs,
+      messageCount: input.messageCount,
+      outcome,
+      queue: input.queue,
+      source: "worker-entrypoint",
+    },
+  );
 }
 
 export function logWorkerQueueError(input: {

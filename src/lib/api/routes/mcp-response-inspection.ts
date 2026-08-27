@@ -66,7 +66,10 @@ export async function inspectMcpResponse(
     return {
       hasError: false,
       responseBytes: declaredContentLength(response),
-      truncated: false,
+      // The body is intentionally untouched, but an unsupported media type
+      // cannot be confirmed as a successful MCP response. Reuse the existing
+      // unknown/truncated signal so callers retain and account for it.
+      truncated: true,
     };
   }
 

@@ -189,6 +189,39 @@ describe("worker entrypoint observability", () => {
     expect(logAppEventMock).toHaveBeenCalledTimes(2);
   });
 
+  it("always retains retry and partial queue completions", () => {
+    vi.stubEnv("NODE_ENV", "production");
+
+    logWorkerQueueFinish({
+      ioObservedDurationMs: 34,
+      messageCount: 2,
+      outcome: "retry",
+      queue: "audit",
+      sampleKey: "queue-0",
+    });
+    logWorkerQueueFinish({
+      ioObservedDurationMs: 34,
+      messageCount: 2,
+      outcome: "partial",
+      queue: "audit",
+      sampleKey: "queue-0",
+    });
+
+    expect(logAppEventMock).toHaveBeenCalledTimes(2);
+    expect(logAppEventMock).toHaveBeenNthCalledWith(
+      1,
+      "warn",
+      "worker.queue.finish",
+      expect.objectContaining({ outcome: "retry" }),
+    );
+    expect(logAppEventMock).toHaveBeenNthCalledWith(
+      2,
+      "warn",
+      "worker.queue.finish",
+      expect.objectContaining({ outcome: "partial" }),
+    );
+  });
+
   it("records failures without changing the original error", () => {
     const error = new Error("private detail");
     logWorkerFetchError({

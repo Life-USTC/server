@@ -137,14 +137,20 @@ describe("MCP bounded response inspection", () => {
 
     await Promise.resolve();
     const pullsBeforeInspection = pulls;
-    await expect(inspectMcpResponse(response)).resolves.toEqual({
-      hasError: false,
-      responseBytes: undefined,
-      truncated: false,
-    });
-    expect(pulls).toBe(pullsBeforeInspection);
-    await expect(response.text()).resolves.toBe(body);
-    expect(pulls).toBe(1);
+    const cloneSpy = vi.spyOn(response, "clone");
+    try {
+      await expect(inspectMcpResponse(response)).resolves.toEqual({
+        hasError: false,
+        responseBytes: undefined,
+        truncated: true,
+      });
+      expect(cloneSpy).not.toHaveBeenCalled();
+      expect(pulls).toBe(pullsBeforeInspection);
+      await expect(response.text()).resolves.toBe(body);
+      expect(pulls).toBe(1);
+    } finally {
+      cloneSpy.mockRestore();
+    }
   });
 
   it("marks a supported response as unknown when cloning fails", async () => {

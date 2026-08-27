@@ -123,7 +123,6 @@ export async function loadSignedDashboardTabData(input: {
           await semestersPromise,
           navStatsCounter,
         ),
-      navStatsCounter,
     );
     const overviewPromise =
       input.tab === "overview" || input.tab === "calendar"
