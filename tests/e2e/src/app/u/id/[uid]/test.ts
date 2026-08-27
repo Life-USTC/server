@@ -110,6 +110,27 @@ test.describe("/community/users/[identifier] by ID", () => {
     const firstLabel = await firstCell.getAttribute("aria-label");
     const mobileCellBox = await firstCell.boundingBox();
     expect(mobileCellBox?.width).toBeGreaterThanOrEqual(20);
+    expect(
+      await cells.evaluateAll(
+        (elements) =>
+          elements.filter((element) => element.getAttribute("tabindex") === "0")
+            .length,
+      ),
+    ).toBe(1);
+    await firstCell.focus();
+    await firstCell.press("ArrowRight");
+    await expect(cells.nth(1)).toBeFocused();
+    const columnCount = Number(
+      await page
+        .locator("[data-profile-contribution-grid]")
+        .getAttribute("aria-colcount"),
+    );
+    await cells.nth(1).press("ArrowDown");
+    await expect(cells.nth(columnCount + 1)).toBeFocused();
+    await cells.nth(columnCount + 1).press("Home");
+    await expect(cells.nth(columnCount)).toBeFocused();
+    await cells.nth(columnCount).press("End");
+    await expect(cells.nth(columnCount * 2 - 1)).toBeFocused();
     await firstCell.click();
     await expect(page.locator("[data-profile-contribution-detail]")).toHaveText(
       firstLabel ?? "",
