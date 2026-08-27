@@ -1,3 +1,10 @@
+# [1.96.0](https://github.com/Life-USTC/server/compare/v1.95.0...v1.96.0) (2026-08-27)
+
+
+### Features
+
+* **observability:** integrate runtime telemetry and catalog/calendar optimizations ([264654e](https://github.com/Life-USTC/server/commit/264654e23ff53796256252d311c1ab878df46e72))
+
 # [1.95.0](https://github.com/Life-USTC/server/compare/v1.94.1...v1.95.0) (2026-08-27)
 
 
