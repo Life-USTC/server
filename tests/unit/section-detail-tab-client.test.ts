@@ -124,4 +124,30 @@ describe("createSectionDetailTabPanelStore", () => {
       },
     });
   });
+
+  it("keeps a failed panel retryable", async () => {
+    getMock
+      .mockRejectedValueOnce(new Error("network error"))
+      .mockResolvedValueOnce({
+        data: { teachers: [] },
+        response: { ok: true },
+      });
+
+    const store = createSectionDetailTabPanelStore(null);
+    const input = {
+      errorMessage: "failed",
+      jwId: 301,
+      locale: "zh-cn" as const,
+      sectionId: 31,
+    };
+
+    await expect(store.ensureLoaded("teachers", input)).rejects.toThrow(
+      "network error",
+    );
+    expect(store.isLoaded("teachers")).toBe(false);
+
+    await store.ensureLoaded("teachers", input);
+    expect(store.isLoaded("teachers")).toBe(true);
+    expect(getMock).toHaveBeenCalledTimes(2);
+  });
 });

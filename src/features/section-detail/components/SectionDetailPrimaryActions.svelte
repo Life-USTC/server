@@ -67,8 +67,14 @@ export let viewer: { isSubscribed?: boolean };
       <input name="subscribe" type="hidden" value="1" />
       <Button
         class={stretched ? "w-full" : undefined}
+        aria-haspopup="dialog"
         type="submit"
-        onclick={onOpenSubscribe}
+        onclick={(event) => {
+          // Keep the GET form as a no-JavaScript deep-link fallback, but avoid
+          // reloading the page when the local subscribe dialog is available.
+          event.preventDefault();
+          onOpenSubscribe();
+        }}
       >
         <LinkIcon data-icon="inline-start" />
         {sectionCopy.subscribeLabel}

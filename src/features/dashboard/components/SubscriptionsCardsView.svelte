@@ -7,10 +7,10 @@ import type {
   DashboardSubscriptionsCopy,
   SubscriptionsData,
 } from "@/features/dashboard/lib/dashboard-controller-types";
+import TableIconButton from "$lib/components/TableIconButton.svelte";
 import { Badge } from "$lib/components/ui/badge/index.js";
 import * as Item from "$lib/components/ui/item/index.js";
 import { Spinner } from "$lib/components/ui/spinner/index.js";
-import DashboardTableIconButton from "./DashboardTableIconButton.svelte";
 
 type SubscriptionListData = SubscriptionsData["subscriptions"];
 type SubscriptionSection = SubscriptionListData[number]["sections"][number];
@@ -63,14 +63,14 @@ function courseName(section: SubscriptionSection) {
           </Item.Description>
         </Item.Content>
         <Item.Actions class="shrink-0 self-start">
-          <DashboardTableIconButton
+          <TableIconButton
             className="size-11"
             href={`/catalog/sections/${section.jwId}`}
             label={sectionCopy.moreDetails}
           >
             <ArrowUpRight />
-          </DashboardTableIconButton>
-          <DashboardTableIconButton
+          </TableIconButton>
+          <TableIconButton
             className="size-11"
             disabled={removingSectionId === section.id}
             label={subscriptionsCopy.unsubscribe}
@@ -82,7 +82,7 @@ function courseName(section: SubscriptionSection) {
             {:else}
               <UserMinus />
             {/if}
-          </DashboardTableIconButton>
+          </TableIconButton>
         </Item.Actions>
       </Item.Root>
       {#if index < sections.length - 1}

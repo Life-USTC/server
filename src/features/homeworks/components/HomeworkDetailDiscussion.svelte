@@ -11,9 +11,9 @@ export let homework: HomeworkDetailModel;
 export let permalinkBaseHref: string | null = null;
 </script>
 
-<section class="min-w-0 border-t pt-6" data-testid="homework-discussion">
+<section class="min-w-0 pt-1" data-testid="homework-discussion">
   <h2 class="text-base font-semibold">{copy.commentsTitle}</h2>
-  <div class="mt-4">
+  <div class="mt-3">
     {#key `comments:homework:${homework.id}`}
       <CommentsPanel
         {permalinkBaseHref}

@@ -116,13 +116,13 @@ test("usage pages expose their primary handoff", async ({ page }, testInfo) => {
   ).toBeVisible();
   await expect(page.getByText(/截图语言|Screenshot language/i)).toHaveCount(0);
   const chatgptNameValue = page.getByRole("button", {
-    name: /(?:名称|Name).*Life @ USTC/i,
+    name: /^(?:复制|Copy): (?:名称|Name)$/i,
   });
   await chatgptNameValue.click();
   await expect(chatgptNameValue).toContainText(/已复制|Copied/i);
   await expect(
     page.getByRole("button", {
-      name: /(?:描述|Description).*Modern, unified MCP entrypoint of USTC/i,
+      name: /^(?:复制|Copy): (?:描述|Description)$/i,
     }),
   ).toBeVisible();
   await expect(
@@ -152,7 +152,7 @@ test("usage pages expose their primary handoff", async ({ page }, testInfo) => {
     page.locator('img[src="/images/usage/mcp-claude-filled.png"]').last(),
   ).toBeVisible();
   const claudeUrlValue = page.getByRole("button", {
-    name: /(?:服务器 URL|Server URL).*https:\/\/life-ustc\.tiankaima\.dev\/api\/mcp/i,
+    name: /^(?:复制|Copy): (?:服务器 URL|Server URL)$/i,
   });
   await claudeUrlValue.click();
   await expect(claudeUrlValue).toContainText(/已复制|Copied/i);
@@ -162,7 +162,7 @@ test("usage pages expose their primary handoff", async ({ page }, testInfo) => {
   await expect(otherClientsPanel).toHaveCount(1);
   await expect(
     otherClientsPanel.getByRole("button", {
-      name: /(?:远程 MCP URL|Remote MCP URL).*https:\/\/life-ustc\.tiankaima\.dev\/api\/mcp/i,
+      name: /^(?:复制|Copy): (?:远程 MCP URL|Remote MCP URL)$/i,
     }),
   ).toBeVisible();
   await expect(

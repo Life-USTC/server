@@ -7,6 +7,7 @@ import { OPENAPI_SPEC_API_PATH } from "$lib/openapi/spec";
 import "@scalar/api-reference/style.css";
 import "./api-docs-scalar.css";
 import PageHeader from "$lib/components/PageHeader.svelte";
+import * as Alert from "$lib/components/ui/alert/index.js";
 import { Button } from "$lib/components/ui/button/index.js";
 import * as Sheet from "$lib/components/ui/sheet/index.js";
 import {
@@ -24,7 +25,12 @@ type PageData = {
       rawSpecLink: string;
       title: string;
     };
-    common: { loading: string };
+    common: {
+      error: string;
+      loading: string;
+      somethingWentWrong: string;
+      tryAgain: string;
+    };
     metadata: { apiDocs: string };
   };
 };
@@ -44,6 +50,8 @@ let mounted = false;
 let reference: { destroy: () => void } | undefined;
 let sidebarScrollY: number | undefined;
 let mobileNavigationOpen = false;
+let loadError = false;
+let loading = true;
 
 const referenceConfig = (content: OpenApiDocument) =>
   ({
@@ -76,13 +84,6 @@ afterNavigate(({ to }) => {
 
 onMount(() => {
   mounted = true;
-
-  async function loadSpec() {
-    const response = await fetch(specPath);
-    apiDocument = await response.json();
-    await renderReference();
-  }
-
   void loadSpec();
 
   return () => {
@@ -90,6 +91,25 @@ onMount(() => {
     reference?.destroy();
   };
 });
+
+async function loadSpec() {
+  loading = true;
+  loadError = false;
+  try {
+    const response = await fetch(specPath);
+    if (!response.ok)
+      throw new Error(`OpenAPI request failed: ${response.status}`);
+    apiDocument = await response.json();
+    await renderReference();
+  } catch (error) {
+    console.error("Failed to load API documentation", error);
+    apiDocument = undefined;
+    selectedDocs = undefined;
+    loadError = true;
+  } finally {
+    loading = false;
+  }
+}
 
 async function renderReference() {
   if (!apiDocument) return;
@@ -188,6 +208,8 @@ function scheduleReferenceRouteRestore() {
         </ul>
       </section>
     {/each}
+  {:else if loadError}
+    <p class="text-destructive text-sm">{data.copy.common.error}</p>
   {:else}
     <p>{data.copy.common.loading}</p>
   {/if}
@@ -246,9 +268,23 @@ function scheduleReferenceRouteRestore() {
     </aside>
 
     <div id="api-reference" class="api-reference min-h-[42rem] overflow-hidden rounded-lg border border-border bg-background">
-      <div class="p-6">
-        <p class="text-muted-foreground text-sm">{data.copy.common.loading}</p>
-      </div>
+      {#if loadError}
+        <div class="p-6">
+          <Alert.Root variant="destructive">
+            <Alert.Title>{data.copy.common.somethingWentWrong}</Alert.Title>
+            <Alert.Description class="flex flex-col items-start gap-3">
+              <span>{data.copy.common.error}</span>
+              <Button type="button" variant="outline" onclick={() => void loadSpec()}>
+                {data.copy.common.tryAgain}
+              </Button>
+            </Alert.Description>
+          </Alert.Root>
+        </div>
+      {:else if loading}
+        <div class="p-6">
+          <p class="text-muted-foreground text-sm">{data.copy.common.loading}</p>
+        </div>
+      {/if}
     </div>
   </div>
 </section>

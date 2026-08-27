@@ -252,6 +252,7 @@ export type SectionDetailCopy = {
     noTeachersListed: string;
     notAvailable: string;
     operationFailed: string;
+    pleaseRetry: string;
     otherSections: string;
     period: string;
     periodsPerWeek: string;

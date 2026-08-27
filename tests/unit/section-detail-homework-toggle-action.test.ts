@@ -50,6 +50,7 @@ function actionInput(
     getHomeworks: () => [],
     getSectionId: () => 1,
     getSelectedHomework: () => null,
+    setCompletionSaving: vi.fn(),
     setDeleteHomeworkTarget: vi.fn(),
     setEditHomeworkMessage: vi.fn(),
     setHomeworkAuditLogs: vi.fn(),
@@ -76,6 +77,7 @@ describe("课程详情作业切换动作", () => {
     const setHomeworks = vi.fn();
     const setSelectedHomework = vi.fn();
     const setHomeworkMessage = vi.fn();
+    const setCompletionSaving = vi.fn();
     updateHomeworkCompletionMock.mockResolvedValue({
       completed: true,
       completedAt: "2026-06-22T10:00:00.000Z",
@@ -92,6 +94,7 @@ describe("课程详情作业切换动作", () => {
         setHomeworkMessage,
         setHomeworks,
         setSelectedHomework,
+        setCompletionSaving,
       }),
     );
 
@@ -103,6 +106,8 @@ describe("课程详情作业切换动作", () => {
       homeworkId: "homework-1",
     });
     expect(setHomeworkMessage).toHaveBeenCalledWith("");
+    expect(setCompletionSaving).toHaveBeenNthCalledWith(1, true);
+    expect(setCompletionSaving).toHaveBeenLastCalledWith(false);
     expect(setHomeworks).toHaveBeenCalledWith([
       expect.objectContaining({
         completion: { completedAt: "2026-06-22T10:00:00.000Z" },
@@ -124,6 +129,7 @@ describe("课程详情作业切换动作", () => {
     const setHomeworks = vi.fn();
     const setSelectedHomework = vi.fn();
     const setHomeworkMessage = vi.fn();
+    const setCompletionSaving = vi.fn();
     updateHomeworkCompletionMock.mockRejectedValue(
       new Error("homework not found"),
     );
@@ -139,6 +145,7 @@ describe("课程详情作业切换动作", () => {
         setHomeworkMessage,
         setHomeworks,
         setSelectedHomework,
+        setCompletionSaving,
       }),
     });
 
@@ -150,6 +157,8 @@ describe("课程详情作业切换动作", () => {
       homeworkId: "homework-1",
     });
     expect(setHomeworkMessage).toHaveBeenLastCalledWith("completion failed");
+    expect(setCompletionSaving).toHaveBeenNthCalledWith(1, true);
+    expect(setCompletionSaving).toHaveBeenLastCalledWith(false);
     expect(setHomeworks).not.toHaveBeenCalled();
     expect(setSelectedHomework).not.toHaveBeenCalled();
   });

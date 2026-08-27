@@ -144,6 +144,7 @@ function courseEmptyDescription() {
         activeFilters={courseActiveFilters}
         clearHref="/catalog/courses"
         clearLabel={commonLabels.clear}
+        filterDescription={courseLabels.filterDescription}
         filterTitle={courseLabels.summary.filters}
         hiddenFilters={courseHiddenFilters}
         searchId="mobile-course-search"

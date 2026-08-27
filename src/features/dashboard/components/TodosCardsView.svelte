@@ -7,12 +7,12 @@ import type {
   DashboardTodoItem,
   DashboardTodosCopy,
 } from "@/features/dashboard/lib/dashboard-controller-types";
+import TableIconButton from "$lib/components/TableIconButton.svelte";
 import { Badge } from "$lib/components/ui/badge/index.js";
 import { Button } from "$lib/components/ui/button/index.js";
 import * as DropdownMenu from "$lib/components/ui/dropdown-menu/index.js";
 import * as Item from "$lib/components/ui/item/index.js";
 import { Spinner } from "$lib/components/ui/spinner/index.js";
-import DashboardTableIconButton from "./DashboardTableIconButton.svelte";
 import TodoEmptyState from "./TodoEmptyState.svelte";
 
 type TodoDateFormatter = (value: Date | string | null | undefined) => string;
@@ -68,7 +68,7 @@ export let toggleTodoCompletion: TodoCompletionToggle;
             </Item.Description>
           </Item.Content>
           <Item.Actions class="shrink-0 self-start">
-            <DashboardTableIconButton
+            <TableIconButton
               className="size-11"
               disabled={todoSavingById[todo.id]}
               label={todoSavingById[todo.id]
@@ -84,7 +84,7 @@ export let toggleTodoCompletion: TodoCompletionToggle;
               {:else}
                 <CheckCircleIcon />
               {/if}
-            </DashboardTableIconButton>
+            </TableIconButton>
             <DropdownMenu.Root>
               <DropdownMenu.Trigger>
                 {#snippet child({ props })}

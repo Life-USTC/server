@@ -520,24 +520,25 @@ onMount(() => {
   <title>{pageTitle} - Life@USTC</title>
 </svelte:head>
 
-<div class="grid w-full gap-6">
-  {#if data.signedIn && data.mainContentLabel}
-    <PageHeader
-      class="py-0 md:py-1"
-      title={data.mainContentLabel}
-      titleClass="text-xl sm:text-2xl"
-    />
-  {/if}
+<div class="page-frame">
+  <div class="grid w-full gap-6">
+    {#if data.signedIn && data.mainContentLabel}
+      <PageHeader
+        class="py-0 md:py-1"
+        title={data.mainContentLabel}
+        titleClass="text-xl sm:text-2xl"
+      />
+    {/if}
 
-  {#if actionError}
-    <Alert.Root variant="destructive">
-      <Alert.Description>{actionError}</Alert.Description>
-    </Alert.Root>
-  {/if}
+    {#if actionError}
+      <Alert.Root variant="destructive">
+        <Alert.Description>{actionError}</Alert.Description>
+      </Alert.Root>
+    {/if}
 
-  {#if signedData}
-    {#if signedData.tab === "overview"}
-      <SignedDashboardOverviewBranch
+    {#if signedData}
+      {#if signedData.tab === "overview"}
+        <SignedDashboardOverviewBranch
         {calendarTimelineItemsForDay}
         {commonCopy}
         {copy}
@@ -552,9 +553,9 @@ onMount(() => {
         {submitDashboardLinkPin}
         {todosCopy}
         {updatingDashboardLinkSlug}
-      />
-    {:else if signedData.tab === "todos" || signedData.tab === "homeworks" || signedData.tab === "exams"}
-      <SignedDashboardTaskTabs
+        />
+      {:else if signedData.tab === "todos" || signedData.tab === "homeworks" || signedData.tab === "exams"}
+        <SignedDashboardTaskTabs
         activeTab={signedData.tab}
         {applyHomeworkDueAtSemesterEnd}
         {applyHomeworkDueInMonth}
@@ -613,10 +614,10 @@ onMount(() => {
         bind:showCreateHomework
         bind:showCreateTodo
         bind:todoFilter
-      />
-    {:else if signedData.tab === "subscriptions" && signedData.subscriptions}
-      {@const subscriptionsSignedData = signedData as DashboardSubscriptionsTabProps["signedData"]}
-      <SignedDashboardSubscriptionsBranch
+        />
+      {:else if signedData.tab === "subscriptions" && signedData.subscriptions}
+        {@const subscriptionsSignedData = signedData as DashboardSubscriptionsTabProps["signedData"]}
+        <SignedDashboardSubscriptionsBranch
         {dashboardCopy}
         {sectionCopy}
         {subscriptionsCopy}
@@ -646,10 +647,10 @@ onMount(() => {
         bind:isConfirmImportOpen
         bind:bulkImportSemesterId
         bind:bulkImportText
-      />
-    {:else}
-      {@const calendarSignedData = signedData as DashboardCalendarTabProps["signedData"]}
-      <SignedDashboardPublicTabs
+        />
+      {:else}
+        {@const calendarSignedData = signedData as DashboardCalendarTabProps["signedData"]}
+        <SignedDashboardPublicTabs
         {copy}
         {commonCopy}
         {busCopy}
@@ -691,11 +692,12 @@ onMount(() => {
         {signedLinkGroups}
         {submitDashboardLinkPin}
         {updatingDashboardLinkSlug}
-      />
+        />
+      {/if}
+    {:else if data.signedIn && data.userMissing}
+      <Alert.Root>
+        <Alert.Description>{commonCopy.userNotFound}</Alert.Description>
+      </Alert.Root>
     {/if}
-  {:else if data.signedIn && data.userMissing}
-    <Alert.Root>
-      <Alert.Description>{commonCopy.userNotFound}</Alert.Description>
-    </Alert.Root>
-  {/if}
+  </div>
 </div>

@@ -190,20 +190,24 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
   test("显示学期、校区与教师信息", async ({ page }, testInfo) => {
     await gotoAndWaitForReady(page, SECTION_URL);
 
+    const overview = page.locator("#overview");
+
     // section.semester.nameCn (locale-dependent: English short name on en-us)
     await expect(
-      page
+      overview
         .getByText(DEV_SEED.semesterNameCn)
         .or(
-          page.getByText(formatSemesterName("en-us", DEV_SEED.semesterNameCn)),
+          overview.getByText(
+            formatSemesterName("en-us", DEV_SEED.semesterNameCn),
+          ),
         )
         .first(),
     ).toBeVisible();
     // section.campus.namePrimary (locale-dependent)
     await expect(
-      page
+      overview
         .getByText(DEV_SEED.campus.nameCn)
-        .or(page.getByText(DEV_SEED.campus.nameEn))
+        .or(overview.getByText(DEV_SEED.campus.nameEn))
         .first(),
     ).toBeVisible();
     await jumpToSection(page, /教师|Teachers/i, "#teachers");
