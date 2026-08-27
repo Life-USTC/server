@@ -15,7 +15,7 @@ describe("E2E full-suite parity orchestration", () => {
       "bash tests/ci/e2e-full-suite-parity.sh",
     );
     expect(packageJson.scripts["e2e:test:shard4"]).toBe(
-      "playwright test --shard=4/4",
+      "bash tests/ci/e2e-run-shard.sh 4/4",
     );
   });
 
@@ -28,7 +28,7 @@ describe("E2E full-suite parity orchestration", () => {
     expect(script).toContain("readonly E2E_SHARD_TOTAL=4");
     expect(script).toContain("bun run db:migrate:deploy");
     expect(script).toContain("bunx prisma db seed");
-    expect(script).toContain("bunx playwright test --shard=");
+    expect(script).toContain("bash tests/ci/e2e-run-shard.sh");
     expect(script).toContain("E2E_SHARD_TOTAL");
   });
 });

@@ -35,7 +35,7 @@ for shard in $(seq 1 "$E2E_SHARD_TOTAL"); do
   bun run app:prepare
   bun run db:migrate:deploy
   bunx prisma db seed
-  if ! bunx playwright test --shard="${shard}/${E2E_SHARD_TOTAL}"; then
+  if ! bash tests/ci/e2e-run-shard.sh "${shard}/${E2E_SHARD_TOTAL}"; then
     failed_shards+=("${shard}/${E2E_SHARD_TOTAL}")
   fi
 done
