@@ -1,3 +1,4 @@
+import { elapsedMs } from "@/lib/log/observability-clock";
 import type { McpAuthFailureDiagnostics } from "@/lib/mcp/auth-errors";
 import type { McpResponsePhase } from "@/lib/mcp/observability-types";
 import { writeMcpTransportAnalytics } from "@/lib/metrics/analytics-engine";
@@ -14,15 +15,17 @@ export function recordAndLogMcpResponse(input: {
     requestUrl: URL;
   };
   errorName?: string;
+  inspectionTruncated?: boolean;
   phase: McpResponsePhase;
   request: Request;
   rpcSummary: McpRequestSummary | null;
   start: number;
+  responseBytes?: number;
   status: number;
   toolCount?: number;
   wwwAuthenticatePrefix?: string | null;
 }) {
-  const ioObservedDurationMs = Date.now() - input.start;
+  const ioObservedDurationMs = elapsedMs(input.start);
   logMcpTransportResponse({
     authFailureDiagnostics: input.authFailureDiagnostics,
     context: input.context,
@@ -41,8 +44,18 @@ export function recordAndLogMcpResponse(input: {
     path: input.context.requestUrl.pathname,
     phase: input.phase,
     rpcSummary: input.rpcSummary,
+    inspectionTruncated: input.inspectionTruncated,
     status: input.status,
+    requestBytes: requestContentLength(input.request),
+    responseBytes: input.responseBytes,
     toolCount: input.toolCount,
   });
   return ioObservedDurationMs;
+}
+
+function requestContentLength(request: Request) {
+  const value = request.headers.get("content-length");
+  if (!value || !/^\d+$/.test(value)) return undefined;
+  const length = Number(value);
+  return Number.isSafeInteger(length) ? length : undefined;
 }

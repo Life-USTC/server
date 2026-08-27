@@ -4,8 +4,10 @@ import {
   AuditOutcome,
 } from "@/generated/prisma/client";
 import type { AuditLogParams } from "@/lib/audit/write-audit-log";
-import { writeAuditLog } from "@/lib/audit/write-audit-log";
+import { writeAuditLogs } from "@/lib/audit/write-audit-log";
 import { logAppEvent } from "@/lib/log/app-logger";
+import { elapsedMs, monotonicNowMs } from "@/lib/log/observability-clock";
+import { writeQueueBatchAnalytics } from "@/lib/metrics/analytics-engine";
 
 export const AUDIT_LOG_WRITE_QUEUE_NAME = "life-ustc-audit-log-write";
 
@@ -18,7 +20,10 @@ export type AuditLogWriteQueueMessage = {
 type QueueMessage = {
   ack(): void;
   body: unknown;
+  attempts?: number;
+  id?: string;
   retry(): void;
+  timestamp?: Date;
 };
 
 const AUDIT_ACTIONS = new Set(Object.values(AuditAction));
@@ -85,6 +90,15 @@ export type AuditLogWriteQueueBatch = {
   messages: readonly QueueMessage[];
 };
 
+export type AuditLogWriteQueueBatchReport = {
+  acked: number;
+  invalid: number;
+  maxAgeMs: number;
+  maxAttempts: number;
+  processed: number;
+  retried: number;
+};
+
 export function parseAuditLogWriteQueueMessage(
   value: unknown,
 ): AuditLogWriteQueueMessage | null {
@@ -120,9 +134,33 @@ function logInvalidAuditMessage() {
 }
 
 export async function handleAuditLogWriteBatch(batch: AuditLogWriteQueueBatch) {
+  const start = monotonicNowMs();
+  const now = Date.now();
+  const valid: Array<{
+    message: QueueMessage;
+    parsed: AuditLogWriteQueueMessage;
+  }> = [];
+  let invalid = 0;
+  let maxAgeMs = 0;
+  let maxAttempts = 0;
+
   for (const message of batch.messages) {
+    if (message.timestamp instanceof Date) {
+      maxAgeMs = Math.max(
+        maxAgeMs,
+        Math.max(0, now - message.timestamp.getTime()),
+      );
+    }
+    if (
+      typeof message.attempts === "number" &&
+      Number.isFinite(message.attempts)
+    ) {
+      maxAttempts = Math.max(maxAttempts, Math.max(0, message.attempts));
+    }
+
     const parsed = parseAuditLogWriteQueueMessage(message.body);
     if (!parsed) {
+      invalid += 1;
       logInvalidAuditMessage();
       // Invalid messages are permanent failures, but retrying is required so
       // Cloudflare Queues can move them to the configured DLQ for inspection.
@@ -130,25 +168,64 @@ export async function handleAuditLogWriteBatch(batch: AuditLogWriteQueueBatch) {
       message.retry();
       continue;
     }
+    valid.push({ message, parsed });
+  }
+
+  let acked = 0;
+  let retried = invalid;
+  if (valid.length > 0) {
     try {
-      await writeAuditLog({ ...parsed.params, id: parsed.auditId });
-      message.ack();
+      await writeAuditLogs(
+        valid.map(({ parsed }) => ({
+          ...parsed.params,
+          id: parsed.auditId,
+        })),
+      );
+      for (const { message } of valid) {
+        message.ack();
+        acked += 1;
+      }
     } catch (error) {
+      retried += valid.length;
       logAppEvent(
         "error",
         "audit-log-write.retry",
         {
-          action: parsed.params.action,
           event: "audit-log-write.retry",
+          invalidMessageCount: invalid,
+          messageType: "audit-log.write.v1",
           phase: "consumer",
           reason: "database_write_failed",
-          messageType: parsed.type,
           source: "audit",
-          targetType: parsed.params.targetType,
+          validMessageCount: valid.length,
         },
         error,
       );
-      message.retry();
+      for (const { message } of valid) message.retry();
     }
   }
+
+  const report = {
+    acked,
+    invalid,
+    maxAgeMs,
+    maxAttempts,
+    processed: batch.messages.length,
+    retried,
+  } satisfies AuditLogWriteQueueBatchReport;
+  writeQueueBatchAnalytics({
+    acked: report.acked,
+    batchSize: batch.messages.length,
+    durationMs: elapsedMs(start),
+    invalid: report.invalid,
+    maxAgeMs: report.maxAgeMs,
+    maxAttempts: report.maxAttempts,
+    messageType: "audit-log.write.v1",
+    outcome:
+      report.retried > 0 ? "retry" : report.invalid > 0 ? "partial" : "success",
+    processed: report.processed,
+    queue: "audit",
+    retried: report.retried,
+  });
+  return report;
 }

@@ -8,7 +8,11 @@ import { writeAuditLog } from "@/lib/audit/write-audit-log";
 import { withBetterAuthOAuthDebug } from "@/lib/log/oauth-debug";
 import {
   resetAnalyticsEngineDiagnosticsForTest,
+  writeCommentsStageAnalytics,
+  writeDashboardStageAnalytics,
   writeOAuthEventAnalytics,
+  writeQueueBatchAnalytics,
+  writeWorkerRequestAnalytics,
   writeWorkspaceOverviewStageAnalytics,
   writeWorkspaceRouteStageAnalytics,
 } from "@/lib/metrics/analytics-engine";
@@ -231,23 +235,114 @@ describe("Cloudflare Analytics Engine runtime events", () => {
     expect(writeDataPoint).toHaveBeenCalledWith({
       indexes: ["mcp:handled"],
       blobs: [
-        "mcp_transport_v2",
+        "mcp_transport_v3",
         "handled",
-        "POST",
+        "tools",
         "/api/mcp",
-        "200",
         "2xx",
         "jsonrpc-single",
-        "tools/call",
-        "workspace_todo_create",
-        "title",
+        "workspace",
         "none",
       ],
-      doubles: [125, 200, 1, 14],
+      doubles: [expect.any(Number), 1, 14, 0, 0, 0],
     });
     expect(JSON.stringify(writeDataPoint.mock.calls)).not.toContain(
       "private title",
     );
+    expect(JSON.stringify(writeDataPoint.mock.calls)).not.toContain(
+      "tools/call",
+    );
+  });
+
+  it("writes bounded worker and queue schemas", () => {
+    const writeDataPoint = installAnalyticsBinding();
+
+    writeWorkerRequestAnalytics({
+      cacheOutcome: "hit",
+      durationMs: 12,
+      method: "GET",
+      requestClass: "dynamic",
+      route: "/account/sign-in?token=private",
+      status: 200,
+    });
+    writeQueueBatchAnalytics({
+      acked: 20,
+      batchSize: 20,
+      durationMs: 30,
+      invalid: 0,
+      maxAgeMs: 100,
+      maxAttempts: 1,
+      messageType: "audit-log.write.v1",
+      outcome: "success",
+      processed: 20,
+      queue: "audit",
+      retried: 0,
+    });
+    writeCommentsStageAnalytics({
+      dbContext: "rls",
+      dbLabel: "app",
+      dbQueryCount: 5,
+      dbTransactionCount: 1,
+      durationMs: 80,
+      loadedCount: 10,
+      outcome: "success",
+      rootCount: 2,
+      stage: "comments.descendants",
+    });
+    writeDashboardStageAnalytics({
+      dbContext: "rls",
+      dbLabel: "app",
+      dbQueryCount: 3,
+      dbTransactionCount: 1,
+      durationMs: 50,
+      loadedCount: 4,
+      outcome: "success",
+      rootCount: 0,
+      stage: "nav_stats",
+      subscribedSectionCount: 4,
+    });
+
+    expect(writeDataPoint).toHaveBeenNthCalledWith(1, {
+      indexes: ["worker:account-sign-in"],
+      blobs: [
+        "worker_request_v1",
+        "finish",
+        "account-sign-in",
+        "dynamic",
+        "GET",
+        "2xx",
+        "hit",
+      ],
+      doubles: [12, 200],
+    });
+    expect(writeDataPoint).toHaveBeenNthCalledWith(2, {
+      indexes: ["queue:audit"],
+      blobs: [
+        "queue_batch_v1",
+        "finish",
+        "audit",
+        "success",
+        "audit-log.write.v1",
+      ],
+      doubles: [30, 20, 20, 20, 0, 0, 100, 1],
+    });
+    expect(writeDataPoint).toHaveBeenNthCalledWith(3, {
+      indexes: ["comments:comments.descendants"],
+      blobs: [
+        "comments_stage_v1",
+        "comments.descendants",
+        "rls",
+        "app",
+        "success",
+      ],
+      doubles: [80, 5, 1, 10, 2],
+    });
+    expect(writeDataPoint).toHaveBeenNthCalledWith(4, {
+      indexes: ["dashboard:nav_stats"],
+      blobs: ["dashboard_stage_v1", "nav_stats", "rls", "app", "success"],
+      doubles: [50, 3, 1, 4, 0, 4],
+    });
+    expect(JSON.stringify(writeDataPoint.mock.calls)).not.toContain("private");
   });
 
   it("writes OAuth wrapper datapoints when debug logging is off", async () => {

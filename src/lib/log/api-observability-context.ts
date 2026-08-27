@@ -1,8 +1,10 @@
 import { normalizeApiRoutePath } from "@/lib/log/api-observability-path";
+import { monotonicNowMs } from "@/lib/log/observability-clock";
 
 type ApiRequestObservabilityContext = {
   completed: boolean;
   requestId: string;
+  /** Monotonic timestamp supplied by the request lifecycle. */
   startMs: number;
 };
 
@@ -30,8 +32,8 @@ function getRequestId(request: Request) {
 
 function getRequestStartMs(request: Request) {
   const contextStartMs = apiRequestObservabilityContexts.get(request)?.startMs;
-  if (contextStartMs) return contextStartMs;
-  return Date.now();
+  if (contextStartMs !== undefined) return contextStartMs;
+  return monotonicNowMs();
 }
 
 function inferAuthMode(request: Request) {

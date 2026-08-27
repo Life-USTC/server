@@ -1,12 +1,18 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const { logAppEventMock, writeAuditLogMock } = vi.hoisted(() => ({
-  logAppEventMock: vi.fn(),
-  writeAuditLogMock: vi.fn(),
-}));
+const { logAppEventMock, writeAuditLogsMock, writeQueueBatchAnalyticsMock } =
+  vi.hoisted(() => ({
+    logAppEventMock: vi.fn(),
+    writeAuditLogsMock: vi.fn(),
+    writeQueueBatchAnalyticsMock: vi.fn(),
+  }));
 
 vi.mock("@/lib/audit/write-audit-log", () => ({
-  writeAuditLog: writeAuditLogMock,
+  writeAuditLogs: writeAuditLogsMock,
+}));
+
+vi.mock("@/lib/metrics/analytics-engine", () => ({
+  writeQueueBatchAnalytics: writeQueueBatchAnalyticsMock,
 }));
 
 vi.mock("@/lib/log/app-logger", () => ({
@@ -42,7 +48,7 @@ describe("audit log write queue", () => {
   });
 
   it("acks valid writes and retries malformed messages for the DLQ", async () => {
-    writeAuditLogMock.mockResolvedValue(undefined);
+    writeAuditLogsMock.mockResolvedValue(undefined);
     const valid = queueMessage({
       auditId: "audit-1",
       type: "audit-log.write.v1",
@@ -55,11 +61,13 @@ describe("audit log write queue", () => {
 
     await handleAuditLogWriteBatch({ messages: [valid, invalid] });
 
-    expect(writeAuditLogMock).toHaveBeenCalledWith({
-      action: "account_sign_in",
-      id: "audit-1",
-      subjectUserId: "user-1",
-    });
+    expect(writeAuditLogsMock).toHaveBeenCalledWith([
+      {
+        action: "account_sign_in",
+        id: "audit-1",
+        subjectUserId: "user-1",
+      },
+    ]);
     expect(valid.ack).toHaveBeenCalledOnce();
     expect(valid.retry).not.toHaveBeenCalled();
     expect(invalid.ack).not.toHaveBeenCalled();
@@ -77,11 +85,21 @@ describe("audit log write queue", () => {
     expect(JSON.stringify(logAppEventMock.mock.calls)).not.toContain(
       "must-not-be-logged",
     );
+    expect(writeQueueBatchAnalyticsMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        acked: 1,
+        batchSize: 2,
+        invalid: 1,
+        outcome: "retry",
+        processed: 2,
+        retried: 1,
+      }),
+    );
   });
 
   it("retries transient database failures without acknowledging them", async () => {
     const error = new Error("database unavailable");
-    writeAuditLogMock.mockRejectedValue(error);
+    writeAuditLogsMock.mockRejectedValue(error);
     const message = queueMessage({
       auditId: "audit-2",
       type: "audit-log.write.v1",
@@ -96,17 +114,19 @@ describe("audit log write queue", () => {
       "error",
       "audit-log-write.retry",
       expect.objectContaining({
-        action: "comment_create",
         event: "audit-log-write.retry",
+        invalidMessageCount: 0,
+        messageType: "audit-log.write.v1",
         phase: "consumer",
         reason: "database_write_failed",
+        validMessageCount: 1,
       }),
       error,
     );
   });
 
   it("reuses the producer ID when an uncertain delivery is replayed", async () => {
-    writeAuditLogMock.mockResolvedValue(undefined);
+    writeAuditLogsMock.mockResolvedValue(undefined);
     const envelope = {
       auditId: "audit-stable",
       type: "audit-log.write.v1",
@@ -116,15 +136,57 @@ describe("audit log write queue", () => {
     await handleAuditLogWriteBatch({ messages: [queueMessage(envelope)] });
     await handleAuditLogWriteBatch({ messages: [queueMessage(envelope)] });
 
-    expect(writeAuditLogMock).toHaveBeenNthCalledWith(1, {
-      action: "account_sign_in",
-      id: "audit-stable",
-      subjectUserId: "user-1",
-    });
-    expect(writeAuditLogMock).toHaveBeenNthCalledWith(2, {
-      action: "account_sign_in",
-      id: "audit-stable",
-      subjectUserId: "user-1",
-    });
+    expect(writeAuditLogsMock).toHaveBeenNthCalledWith(1, [
+      {
+        action: "account_sign_in",
+        id: "audit-stable",
+        subjectUserId: "user-1",
+      },
+    ]);
+    expect(writeAuditLogsMock).toHaveBeenNthCalledWith(2, [
+      {
+        action: "account_sign_in",
+        id: "audit-stable",
+        subjectUserId: "user-1",
+      },
+    ]);
+  });
+
+  it("writes a batch of 20 records once and acknowledges only after commit", async () => {
+    let resolveWrite!: () => void;
+    writeAuditLogsMock.mockReturnValue(
+      new Promise<void>((resolve) => {
+        resolveWrite = resolve;
+      }),
+    );
+    const messages = Array.from({ length: 20 }, (_, index) =>
+      queueMessage({
+        auditId: `audit-${index}`,
+        type: "audit-log.write.v1",
+        params: { action: "comment_create", targetType: "comment" },
+      }),
+    );
+
+    const handling = handleAuditLogWriteBatch({ messages });
+    await Promise.resolve();
+    expect(writeAuditLogsMock).toHaveBeenCalledOnce();
+    expect(writeAuditLogsMock.mock.calls[0]?.[0]).toHaveLength(20);
+    expect(
+      messages.every((message) => message.ack.mock.calls.length === 0),
+    ).toBe(true);
+
+    resolveWrite();
+    await handling;
+    expect(
+      messages.every((message) => message.ack.mock.calls.length === 1),
+    ).toBe(true);
+    expect(writeQueueBatchAnalyticsMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        acked: 20,
+        batchSize: 20,
+        outcome: "success",
+        retried: 0,
+      }),
+    );
   });
 });

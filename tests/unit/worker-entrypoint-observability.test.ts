@@ -41,6 +41,9 @@ describe("worker entrypoint observability", () => {
       "/api/docs/:page",
     );
     expect(normalizePublicSsrObservedRoute("/privacy")).toBe("/privacy");
+    expect(normalizePublicSsrObservedRoute("/account/sign-in")).toBe(
+      "/account/sign-in",
+    );
     expect(normalizePublicSsrObservedRoute("/users/user-secret")).toBe(
       "public-page",
     );
@@ -63,7 +66,8 @@ describe("worker entrypoint observability", () => {
 
   it("adds the request id and logs a safe finish record", () => {
     vi.useFakeTimers();
-    vi.setSystemTime(new Date("2026-08-14T10:00:00.250Z"));
+    const startMs = performance.now();
+    vi.advanceTimersByTime(250);
     const response = observedEdgeResponse({
       cacheOutcome: "hit",
       request: new Request(
@@ -73,7 +77,7 @@ describe("worker entrypoint observability", () => {
       requestId: "request-1",
       response: new Response("ok", { status: 200 }),
       route: "/catalog/courses/:id",
-      startMs: new Date("2026-08-14T10:00:00.000Z").getTime(),
+      startMs,
     });
 
     expect(response.headers.get("x-request-id")).toBe("request-1");

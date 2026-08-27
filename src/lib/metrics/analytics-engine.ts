@@ -47,8 +47,20 @@ type McpTransportAnalyticsInput = {
   path: string;
   phase: McpResponsePhase;
   rpcSummary: McpRequestSummary | null;
+  inspectionTruncated?: boolean;
+  requestBytes?: number;
+  responseBytes?: number;
   status: number;
   toolCount?: number;
+};
+
+export type WorkerRequestAnalyticsInput = {
+  cacheOutcome: string;
+  durationMs: number;
+  method: string;
+  requestClass: string;
+  route: string;
+  status: number;
 };
 
 type OAuthEventAnalyticsInput = {
@@ -179,6 +191,20 @@ type GraphqlOperationAnalyticsInput = {
   topLevelFieldCount: number;
 };
 
+export type QueueBatchAnalyticsInput = {
+  acked: number;
+  batchSize: number;
+  durationMs: number;
+  invalid: number;
+  maxAgeMs: number;
+  maxAttempts: number;
+  outcome: "error" | "partial" | "retry" | "success";
+  processed: number;
+  queue: "audit" | "calendar" | "unknown";
+  retried: number;
+  messageType: string;
+};
+
 type DatabaseEventAnalyticsInput = {
   errorName: string;
   event: "connection_error" | "pool_error";
@@ -210,6 +236,48 @@ export type WorkspaceRouteStage =
   | WorkspaceHomeworksRouteStage
   | WorkspaceSubscriptionsCurrentRouteStage;
 
+export type CommentsStage =
+  | "target.resolve"
+  | "viewer.context"
+  | "comments.root"
+  | "comments.descendants"
+  | "comments.summaries"
+  | "target.payload";
+
+export type DashboardStage =
+  | "recent_session"
+  | "user_context"
+  | "nav_stats"
+  | "tab";
+
+export type DbStageContext = "none" | "rls";
+export type DbStageLabel = "app" | "auth" | "maintenance";
+
+export type CommentsStageAnalyticsInput = {
+  dbContext: DbStageContext;
+  dbQueryCount: number;
+  dbTransactionCount: number;
+  durationMs: number;
+  loadedCount?: number;
+  outcome: "error" | "success";
+  rootCount?: number;
+  stage: CommentsStage;
+  dbLabel: DbStageLabel;
+};
+
+export type DashboardStageAnalyticsInput = {
+  dbContext: DbStageContext;
+  dbQueryCount: number;
+  dbTransactionCount: number;
+  durationMs: number;
+  loadedCount?: number;
+  outcome: "error" | "success";
+  rootCount?: number;
+  stage: DashboardStage;
+  subscribedSectionCount?: number;
+  dbLabel: DbStageLabel;
+};
+
 type WorkspaceOverviewStageAnalyticsInput = {
   ioObservedDurationMs: number;
   stage: WorkspaceOverviewStage;
@@ -231,18 +299,155 @@ type WorkspaceRouteStageAnalyticsInput =
     };
 
 function statusClass(status: number) {
-  if (!Number.isFinite(status)) return "unknown";
+  if (!Number.isInteger(status) || status < 100 || status > 599) {
+    return "unknown";
+  }
   return `${Math.floor(status / 100)}xx`;
+}
+
+const HTTP_METHODS = new Set([
+  "CONNECT",
+  "DELETE",
+  "GET",
+  "HEAD",
+  "OPTIONS",
+  "PATCH",
+  "POST",
+  "PUT",
+  "TRACE",
+]);
+const WORKER_REQUEST_CLASSES = new Set([
+  "catalog-redirect",
+  "dynamic",
+  "public-not-found",
+  "public-ssr-cache",
+]);
+const EDGE_CACHE_OUTCOMES = new Set([
+  "bypass",
+  "dynamic",
+  "hit",
+  "miss",
+  "revalidated",
+  "stale",
+  "unknown",
+  "updating",
+]);
+const MCP_METHOD_FAMILIES = new Set([
+  "initialize",
+  "notifications",
+  "prompts",
+  "resources",
+  "tools",
+]);
+const MCP_BODY_KINDS = new Set([
+  "body-too-large",
+  "empty",
+  "invalid-json",
+  "json-non-rpc",
+  "jsonrpc-batch",
+  "jsonrpc-single",
+  "not-post",
+]);
+const MCP_TOOL_FAMILIES = new Set([
+  "account",
+  "catalog",
+  "community",
+  "graphql",
+  "workspace",
+]);
+const GRAPHQL_OPERATION_TYPES = new Set([
+  "mutation",
+  "query",
+  "subscription",
+  "unknown",
+]);
+const GRAPHQL_AUTH_MODES = new Set([
+  "anonymous",
+  "oauth",
+  "session",
+  "unknown",
+]);
+const MCP_RESPONSE_PHASES = new Set([
+  "auth-rejected",
+  "body-rejected",
+  "error",
+  "handled",
+  "origin-rejected",
+  "rate-limit-rejected",
+]);
+const MCP_ERROR_NAMES = new Set([
+  "AbortError",
+  "Error",
+  "SyntaxError",
+  "TimeoutError",
+  "TypeError",
+]);
+
+function finiteEnum(value: unknown, values: ReadonlySet<string>) {
+  const candidate = typeof value === "string" ? value : "";
+  return values.has(candidate) ? candidate : "unknown";
+}
+
+function safeHttpMethod(value: string) {
+  const candidate = value.toUpperCase();
+  return HTTP_METHODS.has(candidate) ? candidate : "unknown";
+}
+
+function boundedCount(value: number | undefined | null, max = 1_000_000) {
+  return Math.min(finiteNumber(value), max);
+}
+
+function workerRouteFamily(route: string) {
+  const pathname = route.split(/[?#]/, 1)[0] ?? route;
+  if (pathname === "/account/sign-in") return "account-sign-in";
+  if (pathname.startsWith("/api/")) return "api";
+  if (pathname.startsWith("/catalog/")) return "catalog";
+  if (pathname === "public-page" || pathname === "public-not-found") {
+    return "public";
+  }
+  if (pathname.startsWith("/")) return "static";
+  return "unknown";
+}
+
+function mcpMethodFamily(summary: McpRequestSummary | null) {
+  const families = new Set(
+    (summary?.methods ?? []).map((method) => {
+      const family = method.split("/", 1)[0];
+      return MCP_METHOD_FAMILIES.has(family) ? family : "unknown";
+    }),
+  );
+  if (families.size === 0) return "none";
+  if (families.size > 1) return "mixed";
+  return [...families][0] ?? "unknown";
+}
+
+function mcpPathFamily(path: string) {
+  if (path === "/api/mcp" || path.startsWith("/api/mcp/")) {
+    return "/api/mcp";
+  }
+  return "other";
+}
+
+function mcpToolFamily(summary: McpRequestSummary | null) {
+  const families = new Set(
+    (summary?.toolNames ?? []).map((name) => {
+      const family = name.split("_", 1)[0];
+      return MCP_TOOL_FAMILIES.has(family) ? family : "unknown";
+    }),
+  );
+  if (families.size === 0) return "none";
+  if (families.size > 1) return "mixed";
+  return [...families][0] ?? "unknown";
+}
+
+function mcpErrorClass(errorName: string | undefined) {
+  if (!errorName) return "none";
+  return MCP_ERROR_NAMES.has(errorName) ? errorName : "other";
 }
 
 function boundedValue(value: unknown) {
   if (value === undefined || value === null) return "unknown";
   return String(value).replaceAll("\n", " ").slice(0, 120) || "unknown";
-}
-
-function boundedList(values: string[] | undefined) {
-  if (!values || values.length === 0) return "none";
-  return values.slice(0, 8).map(boundedValue).join(",");
 }
 
 function finiteNumber(value: number | undefined | null) {
@@ -313,13 +518,37 @@ function writeAnalyticsDataPoint(input: {
 
   try {
     dataset.writeDataPoint({
-      indexes: input.indexes.map(boundedValue),
-      blobs: input.blobs.map(boundedValue),
-      doubles: input.doubles.map(finiteNumber),
+      // Analytics Engine accepts one index and at most 20 values of either
+      // type. Keep the sink bounded even if a future caller accidentally
+      // widens an event payload.
+      indexes: input.indexes.slice(0, 1).map(boundedValue),
+      blobs: input.blobs.slice(0, 20).map(boundedValue),
+      doubles: input.doubles.slice(0, 20).map(finiteNumber),
     });
   } catch (error) {
     logAnalyticsWriteFailure(dataset, error);
   }
+}
+
+export function writeWorkerRequestAnalytics(
+  input: WorkerRequestAnalyticsInput,
+) {
+  const routeFamily = workerRouteFamily(input.route);
+  const requestClass = finiteEnum(input.requestClass, WORKER_REQUEST_CLASSES);
+  const cacheOutcome = finiteEnum(input.cacheOutcome, EDGE_CACHE_OUTCOMES);
+  writeAnalyticsDataPoint({
+    indexes: [`worker:${routeFamily}`],
+    blobs: [
+      "worker_request_v1",
+      "finish",
+      routeFamily,
+      requestClass,
+      safeHttpMethod(input.method),
+      statusClass(input.status),
+      cacheOutcome,
+    ],
+    doubles: [finiteNumber(input.durationMs), input.status],
+  });
 }
 
 export function writeApiRequestAnalytics(input: ApiRequestAnalyticsInput) {
@@ -368,26 +597,28 @@ export function writePageRequestAnalytics(input: PageRequestAnalyticsInput) {
 
 export function writeMcpTransportAnalytics(input: McpTransportAnalyticsInput) {
   const rpcSummary = input.rpcSummary;
+  const bodyKind = rpcSummary
+    ? finiteEnum(rpcSummary.bodyKind, MCP_BODY_KINDS)
+    : "none";
   writeAnalyticsDataPoint({
-    indexes: [`mcp:${boundedValue(input.phase)}`],
+    indexes: [`mcp:${finiteEnum(input.phase, MCP_RESPONSE_PHASES)}`],
     blobs: [
-      "mcp_transport_v2",
-      input.phase,
-      input.method,
-      input.path,
-      String(input.status),
+      "mcp_transport_v3",
+      finiteEnum(input.phase, MCP_RESPONSE_PHASES),
+      mcpMethodFamily(rpcSummary),
+      mcpPathFamily(input.path),
       statusClass(input.status),
-      rpcSummary?.bodyKind ?? "none",
-      boundedList(rpcSummary?.methods),
-      boundedList(rpcSummary?.toolNames),
-      boundedList(rpcSummary?.argumentKeys),
-      input.errorName ?? "none",
+      bodyKind,
+      mcpToolFamily(rpcSummary),
+      mcpErrorClass(input.errorName),
     ],
     doubles: [
       input.ioObservedDurationMs,
-      input.status,
       rpcSummary?.rpcCount ?? 0,
       input.toolCount ?? 0,
+      input.requestBytes ?? 0,
+      input.responseBytes ?? 0,
+      input.inspectionTruncated ? 1 : 0,
     ],
   });
 }
@@ -432,6 +663,29 @@ export function writeAuditWriteAnalytics(input: AuditWriteAnalyticsInput) {
       input.targetType ?? "unknown",
     ],
     doubles: [input.ioObservedDurationMs],
+  });
+}
+
+export function writeQueueBatchAnalytics(input: QueueBatchAnalyticsInput) {
+  writeAnalyticsDataPoint({
+    indexes: [`queue:${input.queue}`],
+    blobs: [
+      "queue_batch_v1",
+      "finish",
+      input.queue,
+      input.outcome,
+      boundedValue(input.messageType),
+    ],
+    doubles: [
+      finiteNumber(input.durationMs),
+      boundedCount(input.batchSize),
+      boundedCount(input.processed),
+      boundedCount(input.acked),
+      boundedCount(input.retried),
+      boundedCount(input.invalid),
+      boundedCount(input.maxAgeMs),
+      boundedCount(input.maxAttempts),
+    ],
   });
 }
 
@@ -498,24 +752,82 @@ export function writeWorkspaceRouteStageAnalytics(
   });
 }
 
+export function writeCommentsStageAnalytics(
+  input: CommentsStageAnalyticsInput,
+) {
+  writeAnalyticsDataPoint({
+    indexes: [`comments:${input.stage}`],
+    blobs: [
+      "comments_stage_v1",
+      input.stage,
+      input.dbContext,
+      input.dbLabel,
+      input.outcome,
+    ],
+    doubles: [
+      finiteNumber(input.durationMs),
+      boundedCount(input.dbQueryCount),
+      boundedCount(input.dbTransactionCount),
+      boundedCount(input.loadedCount),
+      boundedCount(input.rootCount),
+    ],
+  });
+}
+
+export function writeDashboardStageAnalytics(
+  input: DashboardStageAnalyticsInput,
+) {
+  writeAnalyticsDataPoint({
+    indexes: [`dashboard:${input.stage}`],
+    blobs: [
+      "dashboard_stage_v1",
+      input.stage,
+      input.dbContext,
+      input.dbLabel,
+      input.outcome,
+    ],
+    doubles: [
+      finiteNumber(input.durationMs),
+      boundedCount(input.dbQueryCount),
+      boundedCount(input.dbTransactionCount),
+      boundedCount(input.loadedCount),
+      boundedCount(input.rootCount),
+      boundedCount(input.subscribedSectionCount),
+    ],
+  });
+}
+
 export function writeGraphqlOperationAnalytics(
   input: GraphqlOperationAnalyticsInput,
 ) {
+  const operationType = finiteEnum(
+    input.operationType,
+    GRAPHQL_OPERATION_TYPES,
+  );
+  const authMode = finiteEnum(input.authMode, GRAPHQL_AUTH_MODES);
+  const operationFamily =
+    input.operationName === "anonymous"
+      ? "anonymous"
+      : input.operationName === "unknown"
+        ? "unknown"
+        : "named";
   writeAnalyticsDataPoint({
-    indexes: [`graphql:${boundedValue(input.operationType)}`],
+    indexes: [`graphql:${operationType}`],
     blobs: [
-      "graphql_operation_v2",
-      boundedValue(input.operationName),
-      boundedValue(input.operationType),
-      boundedValue(input.authMode),
-      boundedValue(input.requestId),
+      "graphql_operation_v3",
+      operationFamily,
+      operationType,
+      authMode,
+      input.errorCount > 0 || input.internalErrorCount > 0
+        ? "error"
+        : "success",
     ],
     doubles: [
-      input.ioObservedDurationMs,
-      input.topLevelFieldCount,
-      input.estimatedCost,
-      input.errorCount,
-      input.internalErrorCount,
+      finiteNumber(input.ioObservedDurationMs),
+      boundedCount(input.topLevelFieldCount),
+      boundedCount(input.estimatedCost),
+      boundedCount(input.errorCount),
+      boundedCount(input.internalErrorCount),
     ],
   });
 }

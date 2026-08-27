@@ -4,6 +4,8 @@ import { runCloudflareTraceSpan } from "@/lib/adapters/cloudflare-runtime";
 import { rateLimitResponse } from "@/lib/api/helpers";
 import { logAppEvent } from "@/lib/log/app-logger";
 import { logOAuthDebug, oauthDebugCorrelationId } from "@/lib/log/oauth-debug";
+import { monotonicNowMs } from "@/lib/log/observability-clock";
+import { shouldLogSampledSuccess } from "@/lib/log/request-log-sampling";
 import { getSafeErrorName } from "@/lib/log/safe-error-name";
 import { getRegisteredMcpToolCount } from "@/lib/mcp/tool-descriptors";
 import {
@@ -25,6 +27,7 @@ import {
   type McpRequestSummary,
 } from "./mcp-request-logging";
 import { recordAndLogMcpResponse } from "./mcp-response-bookkeeping";
+import { inspectMcpResponse } from "./mcp-response-inspection";
 
 type McpOAuthUsage = {
   userId: string;
@@ -33,45 +36,6 @@ type McpOAuthUsage = {
   feature: string;
   action: "read" | "write";
 };
-
-function mcpJsonValueHasError(value: unknown): boolean {
-  if (Array.isArray(value)) return value.some(mcpJsonValueHasError);
-  if (!value || typeof value !== "object") return false;
-  const record = value as Record<string, unknown>;
-  if (record.error) return true;
-  const result = record.result;
-  return (
-    !!result &&
-    typeof result === "object" &&
-    (result as Record<string, unknown>).isError === true
-  );
-}
-
-async function mcpResponseHasError(response: Response) {
-  if (response.status >= 400) return true;
-  const contentType = response.headers.get("content-type") ?? "";
-  try {
-    if (contentType.includes("application/json")) {
-      return mcpJsonValueHasError(await response.clone().json());
-    }
-    if (contentType.includes("text/event-stream")) {
-      const text = await response.clone().text();
-      return text
-        .split("\n")
-        .filter((line) => line.startsWith("data:"))
-        .some((line) => {
-          try {
-            return mcpJsonValueHasError(JSON.parse(line.slice(5).trim()));
-          } catch {
-            return false;
-          }
-        });
-    }
-  } catch {
-    // A response that cannot be inspected still retains its HTTP outcome.
-  }
-  return false;
-}
 
 async function finishMcpOAuthUsage(
   usage: McpOAuthUsage[],
@@ -89,7 +53,7 @@ async function finishMcpOAuthUsage(
 }
 
 export async function handleMcpRequest(request: Request) {
-  const start = Date.now();
+  const start = monotonicNowMs();
   const requestUrl = new URL(request.url);
   const correlationId = oauthDebugCorrelationId(request);
   const logContext = { correlationId, request, requestUrl };
@@ -224,17 +188,23 @@ export async function handleMcpRequest(request: Request) {
     const { createMcpServer } = await import("@/lib/mcp/server");
     const server = createMcpServer();
     toolCount = getRegisteredMcpToolCount(server);
-    logAppEvent("info", "mcp.transport.rpc", {
-      correlationId,
-      method: request.method,
-      path: requestUrl.pathname,
-      rpcSummary,
-      toolCount,
-    });
-    logOAuthDebug("mcp.rpc", request, {
-      rpcSummary,
-      toolCount,
-    });
+    if (shouldLogSampledSuccess(correlationId, 10)) {
+      logAppEvent("info", "mcp.transport.rpc", {
+        correlationId,
+        method: request.method,
+        path: requestUrl.pathname,
+        rpcBodyKind: rpcSummary?.bodyKind ?? "none",
+        rpcCount: rpcSummary?.rpcCount ?? 0,
+        rpcToolCount: rpcSummary?.toolNames.length ?? 0,
+        toolCount,
+      });
+      logOAuthDebug("mcp.rpc", request, {
+        rpcBodyKind: rpcSummary?.bodyKind ?? "none",
+        rpcCount: rpcSummary?.rpcCount ?? 0,
+        rpcToolCount: rpcSummary?.toolNames.length ?? 0,
+        toolCount,
+      });
+    }
 
     await server.connect(transport);
     const res = await runCloudflareTraceSpan(
@@ -249,15 +219,18 @@ export async function handleMcpRequest(request: Request) {
           parsedBody: bodyResult.body,
         }),
     );
+    const responseInspection = await inspectMcpResponse(res);
     await finishMcpOAuthUsage(
       oauthUsage,
-      (await mcpResponseHasError(res)) ? "error" : "success",
+      responseInspection.hasError ? "error" : "success",
     );
     recordAndLogMcpResponse({
       context: logContext,
+      inspectionTruncated: responseInspection.truncated,
       request,
       phase: "handled",
       rpcSummary,
+      responseBytes: responseInspection.responseBytes,
       status: res.status,
       start,
       toolCount,

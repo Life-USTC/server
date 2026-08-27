@@ -1,4 +1,7 @@
 import { logAppEvent } from "@/lib/log/app-logger";
+import { elapsedMs } from "@/lib/log/observability-clock";
+import { shouldLogSuccessfulRequest } from "@/lib/log/request-log-sampling";
+import { writeWorkerRequestAnalytics } from "@/lib/metrics/analytics-engine";
 
 export const INTERNAL_REQUEST_ID_HEADER = "x-life-ustc-request-id";
 const REQUEST_ID_PATTERN =
@@ -6,6 +9,7 @@ const REQUEST_ID_PATTERN =
 
 export type EdgeRequestClass =
   | "catalog-redirect"
+  | "dynamic"
   | "public-not-found"
   | "public-ssr-cache";
 
@@ -64,6 +68,7 @@ export function setTrustedRequestIdHeader(headers: Headers, requestId: string) {
 }
 
 export function normalizePublicSsrObservedRoute(pathname: string) {
+  if (pathname === "/account/sign-in") return "/account/sign-in";
   const detail = CATALOG_DETAIL_ROUTE.exec(pathname);
   if (detail) return `/catalog/${detail[1]}/:id`;
   if (CATALOG_LIST_ROUTE.test(pathname)) return pathname;
@@ -72,6 +77,15 @@ export function normalizePublicSsrObservedRoute(pathname: string) {
   }
   if (SAFE_STATIC_PUBLIC_ROUTES.has(pathname)) return pathname;
   return "public-page";
+}
+
+/**
+ * The dynamic Worker branch uses the same bounded route vocabulary as the
+ * public branch. Keep this helper separate so that its caller makes the
+ * dynamic-vs-cache attribution explicit without ever retaining path IDs.
+ */
+export function normalizeWorkerObservedRoute(pathname: string) {
+  return normalizePublicSsrObservedRoute(pathname);
 }
 
 export function resolveEdgeCacheOutcome(response: Response): EdgeCacheOutcome {
@@ -92,13 +106,32 @@ export function observedEdgeResponse(input: {
 }) {
   const response = new Response(input.response.body, input.response);
   response.headers.set("x-request-id", input.requestId);
+  const ioObservedDurationMs = elapsedMs(input.startMs);
+  writeWorkerRequestAnalytics({
+    cacheOutcome: input.cacheOutcome,
+    durationMs: ioObservedDurationMs,
+    method: input.request.method,
+    requestClass: input.requestClass,
+    route: input.route,
+    status: response.status,
+  });
+  if (
+    !shouldLogSuccessfulRequest({
+      durationMs: ioObservedDurationMs,
+      requestId: input.requestId,
+      samplePercent: 10,
+      status: response.status,
+    })
+  ) {
+    return response;
+  }
   logAppEvent(
     response.status >= 500 ? "error" : "info",
     "edge.request.finish",
     {
       cacheOutcome: input.cacheOutcome,
       event: "edge.request.finish",
-      ioObservedDurationMs: Date.now() - input.startMs,
+      ioObservedDurationMs,
       method: input.request.method,
       requestClass: input.requestClass,
       requestId: input.requestId,
