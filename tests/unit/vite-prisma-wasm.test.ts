@@ -11,7 +11,6 @@ describe("Vite Prisma WASM module handling", () => {
       {} as never,
       source,
       importer,
-      {} as never,
     );
 
     expect(resolved).toBe("\0life-ustc:prisma-wasm-module");
@@ -31,7 +30,6 @@ describe("Vite Prisma WASM module handling", () => {
         {} as never,
         "./query_compiler_fast_bg.wasm?module",
         "/workspace/src/generated/prisma/internal/class.ts",
-        {} as never,
       ),
     ).toEqual({
       id: "/workspace/src/generated/prisma/internal/query_compiler_fast_bg.wasm?module",

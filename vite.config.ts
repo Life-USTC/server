@@ -5,7 +5,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 import { rollupWasm } from "@ethercorps/sveltekit-og/plugin";
 import { sveltekit } from "@sveltejs/kit/vite";
 import tailwindcss from "@tailwindcss/vite";
-import { defineConfig, type Plugin } from "vite";
+import { defineConfig } from "vite";
 
 const PRISMA_WASM_VIRTUAL_ID = "\0life-ustc:prisma-wasm-module";
 
@@ -22,7 +22,7 @@ function resolvePrismaWasmPath(source: string, importer?: string) {
   return fileURLToPath(new URL(withoutQuery, pathToFileURL(importer)));
 }
 
-export function prismaWasmModulePlugin(command: "build" | "serve"): Plugin {
+export function prismaWasmModulePlugin(command: "build" | "serve") {
   const wasmFile = "query_compiler_fast_bg.wasm";
   const wasmModuleSuffix = `${wasmFile}?module`;
   let resolvedWasmPath: string | null = null;
