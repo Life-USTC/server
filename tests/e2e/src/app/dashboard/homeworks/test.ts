@@ -615,10 +615,13 @@ test.describe("仪表盘作业", () => {
       }
     });
     try {
-      await page.getByTestId("dashboard-homework-create").click();
+      const createButton = page.getByTestId("dashboard-homework-create");
+      await createButton.click();
+      await expect(titleInput).toBeDisabled();
       await expect(
-        createDialog.locator('[data-slot="field"][data-disabled="true"]'),
-      ).toHaveCount(6);
+        createDialog.locator('select[name="sectionId"]'),
+      ).toBeDisabled();
+      await expect(createButton).toBeDisabled();
     } finally {
       releaseCreateRequest?.();
       if (createRequestIntercepted) await createRouteHandled;
