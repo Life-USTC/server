@@ -113,7 +113,6 @@ export async function inspectMcpResponse(
   let sseEvents = 0;
   let hasError = false;
   let truncated = false;
-  let readerDone = false;
   const deadlineToken = Symbol("mcp-inspection-deadline");
   let deadlineTimer: ReturnType<typeof setTimeout> | undefined;
 
@@ -137,7 +136,7 @@ export async function inspectMcpResponse(
         MAX_INSPECTION_DURATION_MS,
       );
     });
-    while (!readerDone && !truncated) {
+    while (true) {
       // Keep the read promise observed when the deadline wins. Cancellation
       // below will settle the tee branch, but it must never delay the caller.
       const readPromise = reader.read();
@@ -148,7 +147,6 @@ export async function inspectMcpResponse(
         break;
       }
       if (result.done || !result.value) {
-        readerDone = true;
         break;
       }
 
