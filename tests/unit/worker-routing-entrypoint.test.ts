@@ -21,6 +21,8 @@ vi.mock("life-ustc-sveltekit-worker", () => ({
   default: { fetch: appFetchMock },
 }));
 vi.mock("@/lib/adapters/cloudflare-runtime", () => ({
+  getCloudflareAnalyticsEngineDataset: () => undefined,
+  getCloudflareRuntimeEnvInput: () => ({}),
   runWithCloudflareRuntimeEnv: runWithCloudflareRuntimeEnvMock,
   setCloudflareRequestContext: setCloudflareRequestContextMock,
 }));

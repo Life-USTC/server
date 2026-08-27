@@ -99,6 +99,11 @@ type SectionTeacherTargetMetadataRow = {
   jwId: number;
 };
 
+type SectionTeacherListSection = SectionTeacherTargetMetadataRow & {
+  sectionTeachers: { id: number }[];
+  teachers: { id: number; nameCn: string }[];
+};
+
 function sectionMetadata(
   section: SectionTargetMetadataRow | SectionTeacherTargetMetadataRow,
 ): CommentTargetMetadataSource {
@@ -128,6 +133,68 @@ function sectionTeacherMetadata(input: {
       teacher: input.teacher,
       teacherId: input.teacherId,
     },
+  };
+}
+
+async function resolveSectionTeacherListTarget(
+  section: SectionTeacherListSection | null,
+  notFoundTargetId: number,
+  teacherId: number,
+): Promise<ResolvedCommentTargetReference> {
+  if (!section) return targetNotFound("section", notFoundTargetId);
+
+  const teacher = section.teachers[0];
+  if (!teacher) return targetNotFound("section-teacher", notFoundTargetId);
+
+  const sectionTeacher = section.sectionTeachers[0];
+  if (sectionTeacher) {
+    const target = await resolveCommentTarget({
+      allowDirectSectionTeacherId: true,
+      rawTargetId: sectionTeacher.id,
+      sectionId: section.id,
+      teacherId,
+      targetType: "section-teacher",
+      verifyExistence: false,
+    });
+    if (!target) return invalidTarget("section-teacher");
+    return {
+      ok: true,
+      target: {
+        ...target,
+        sectionId: section.id,
+        sectionTeacherId: sectionTeacher.id,
+        teacherId,
+        targetId: null,
+        targetMetadata: sectionTeacherMetadata({
+          section,
+          sectionId: section.id,
+          teacher,
+          teacherId,
+        }),
+      },
+      targetType: "section-teacher",
+    };
+  }
+
+  return {
+    ok: true,
+    target: {
+      empty: true,
+      homeworkId: null,
+      sectionId: section.id,
+      sectionTeacherId: null,
+      targetId: null,
+      teacherId,
+      verified: true,
+      whereTarget: { sectionTeacherId: -1 },
+      targetMetadata: sectionTeacherMetadata({
+        section,
+        sectionId: section.id,
+        teacher,
+        teacherId,
+      }),
+    },
+    targetType: "section-teacher",
   };
 }
 
@@ -378,62 +445,30 @@ async function resolveCommentListTargetReference(
           },
         },
       });
-      const teacher = section?.teachers[0];
-      if (!section) return targetNotFound("section", sectionJwId);
-      if (!teacher) return targetNotFound("section-teacher", sectionJwId);
-      const sectionTeacher = section.sectionTeachers[0];
-      if (sectionTeacher) {
-        const target = await resolveCommentTarget({
-          allowDirectSectionTeacherId: true,
-          rawTargetId: sectionTeacher.id,
-          sectionId: section.id,
-          teacherId,
-          targetType: "section-teacher",
-          verifyExistence: false,
-        });
-        if (!target) return invalidTarget("section-teacher");
-        return {
-          ok: true,
-          target: {
-            ...target,
-            // `rawTargetId` is the internal relationship id used for the
-            // lookup; the composite public target must retain its parent
-            // section id for REST/MCP consumers.
-            sectionId: section.id,
-            sectionTeacherId: sectionTeacher.id,
-            teacherId,
-            targetId: null,
-            targetMetadata: sectionTeacherMetadata({
-              section,
-              sectionId: section.id,
-              teacher,
-              teacherId,
-            }),
-          },
-          targetType: "section-teacher",
-        };
-      }
+      return resolveSectionTeacherListTarget(section, sectionJwId, teacherId);
+    }
 
-      return {
-        ok: true,
-        target: {
-          empty: true,
-          homeworkId: null,
-          sectionId: section.id,
-          sectionTeacherId: null,
-          targetId: null,
-          teacherId,
-          verified: true,
-          whereTarget: { sectionTeacherId: -1 },
-          targetMetadata: sectionTeacherMetadata({
-            section,
-            sectionId: section.id,
-            teacher,
-            teacherId,
-          }),
+    const sectionId = parseInteger(input.sectionId);
+    if (sectionId && parseInteger(input.teacherId)) {
+      const teacherId = parseInteger(input.teacherId) as number;
+      const section = await prisma.section.findUnique({
+        where: { id: sectionId },
+        select: {
+          code: true,
+          course: { select: { jwId: true, nameCn: true } },
+          id: true,
+          jwId: true,
+          sectionTeachers: {
+            where: { retiredAt: null, teacherId },
+            select: { id: true },
+          },
+          teachers: {
+            where: { id: teacherId },
+            select: { id: true, nameCn: true },
+          },
         },
-        targetType: "section-teacher",
-      };
+      });
+      return resolveSectionTeacherListTarget(section, sectionId, teacherId);
     }
 
     return invalidTarget("section-teacher");

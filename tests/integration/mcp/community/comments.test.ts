@@ -313,6 +313,141 @@ describe("评论读取工具 — 隔离目录夹具", () => {
       }
     }
   });
+
+  it("community_comment_list 保留 active/retired 班级-教师目标合同", async () => {
+    const marker = `[integration-test] mcp-section-teacher-lifecycle-${Date.now()}`;
+    const sectionJwId = 2_110_000_000 + (Date.now() % 10_000_000);
+    let sectionId: number | null = null;
+    let teacherId: number | null = null;
+    let sectionTeacherId: number | null = null;
+
+    try {
+      const course = await fixtures.prisma.course.findUnique({
+        where: { jwId: fixtures.DEV_SEED.course.jwId },
+        select: { id: true },
+      });
+      if (!course) {
+        throw new Error(
+          `Seed course ${fixtures.DEV_SEED.course.jwId} not found`,
+        );
+      }
+
+      const semester = await fixtures.prisma.semester.findUnique({
+        where: { jwId: fixtures.DEV_SEED.semesterJwId },
+        select: { id: true },
+      });
+      if (!semester) {
+        throw new Error(
+          `Seed semester ${fixtures.DEV_SEED.semesterJwId} not found`,
+        );
+      }
+
+      const teacher = await fixtures.prisma.teacher.create({
+        data: {
+          code: marker,
+          jwId: sectionJwId,
+          nameCn: marker,
+        },
+        select: { id: true },
+      });
+      teacherId = teacher.id;
+
+      const section = await fixtures.prisma.section.create({
+        data: {
+          jwId: sectionJwId,
+          code: `${marker}.01`,
+          courseId: course.id,
+          semesterId: semester.id,
+          teachers: { connect: { id: teacherId } },
+        },
+        select: { id: true },
+      });
+      sectionId = section.id;
+
+      const active = await fixtures.prisma.sectionTeacher.create({
+        data: { sectionId, teacherId },
+        select: { id: true },
+      });
+      sectionTeacherId = active.id;
+
+      type Result = {
+        data?: unknown[];
+        error?: string;
+        found?: boolean;
+        meta?: {
+          target?: {
+            sectionId?: number | null;
+            sectionTeacherId?: number | null;
+            targetId?: number | null;
+            teacherId?: number | null;
+          };
+        };
+        success?: boolean;
+      };
+
+      const activeResult = await isolated.client.call<Result>(
+        "community_comment_list",
+        {
+          targetType: "section-teacher",
+          sectionJwId,
+          teacherId,
+        },
+      );
+      expect(activeResult.found).toBe(true);
+      expect(activeResult.data).toEqual([]);
+      expect(activeResult.meta?.target).toMatchObject({
+        sectionId,
+        sectionTeacherId,
+        targetId: null,
+        teacherId,
+      });
+
+      await fixtures.prisma.sectionTeacher.update({
+        where: { id: active.id },
+        data: { retiredAt: new Date("2026-01-01T00:00:00.000Z") },
+      });
+
+      const retiredResult = await isolated.client.call<Result>(
+        "community_comment_list",
+        {
+          targetType: "section-teacher",
+          sectionJwId,
+          teacherId,
+        },
+      );
+      expect(retiredResult.found).toBe(true);
+      expect(retiredResult.data).toEqual([]);
+      expect(retiredResult.meta?.target).toMatchObject({
+        sectionId,
+        sectionTeacherId: null,
+        targetId: null,
+        teacherId,
+      });
+
+      const directRetiredResult = await isolated.client.call<Result>(
+        "community_comment_list",
+        {
+          targetType: "section-teacher",
+          sectionTeacherId,
+        },
+      );
+      expect(directRetiredResult.success).toBe(false);
+      expect(directRetiredResult.found).toBe(false);
+      expect(directRetiredResult.error).toBe("target_not_found");
+    } finally {
+      if (sectionTeacherId) {
+        await fixtures.prisma.sectionTeacher.deleteMany({
+          where: { id: sectionTeacherId },
+        });
+      }
+      if (sectionId) {
+        await fixtures.prisma.section.deleteMany({ where: { id: sectionId } });
+      }
+      if (teacherId) {
+        await fixtures.prisma.teacher.deleteMany({ where: { id: teacherId } });
+      }
+    }
+  });
 });
 
 describe("评论写入工具 — MCP 镜像普通用户 REST 写入", () => {
