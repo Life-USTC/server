@@ -62,6 +62,14 @@ export const homeworkItemSchema = z.strictObject({
   commentCount: z.number().int().nonnegative(),
 });
 
+export const homeworkSummarySchema = homeworkItemSchema.omit({
+  section: true,
+  description: true,
+  createdBy: true,
+  updatedBy: true,
+  deletedBy: true,
+});
+
 const homeworkAuditLogSchema = z.strictObject({
   id: z.string(),
   action: homeworkAuditActionSchema,
@@ -73,10 +81,16 @@ const homeworkAuditLogSchema = z.strictObject({
   actor: homeworkUserSummarySchema.nullable(),
 });
 
+export const homeworkAuditListResponseSchema = z.strictObject({
+  auditLogs: z.array(homeworkAuditLogSchema),
+});
+
 export const homeworksListResponseSchema = createPaginatedSchema(
-  homeworkItemSchema,
-).extend({
-  viewer: viewerContextSchema,
+  homeworkSummarySchema,
+).extend({ viewer: viewerContextSchema });
+
+export const homeworkDetailResponseSchema = z.strictObject({
+  homework: homeworkItemSchema,
   auditLogs: z.array(homeworkAuditLogSchema),
 });
 

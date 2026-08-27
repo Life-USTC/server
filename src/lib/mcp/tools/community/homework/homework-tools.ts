@@ -53,10 +53,9 @@ export function registerSectionHomeworkTools(server: McpServer) {
       });
       const scopedHomeworkItems = homeworkItems.map(
         ({
-          section: _section,
-          createdBy: _createdBy,
-          updatedBy: _updatedBy,
-          deletedBy: _deletedBy,
+          createdById: _createdById,
+          updatedById: _updatedById,
+          deletedById: _deletedById,
           ...homework
         }) => homework,
       );
@@ -65,8 +64,7 @@ export function registerSectionHomeworkTools(server: McpServer) {
         {
           found: true,
           section,
-          homeworks:
-            resolvedMode === "full" ? homeworkItems : scopedHomeworkItems,
+          homeworks: scopedHomeworkItems,
         },
         {
           mode: resolvedMode,

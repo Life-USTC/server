@@ -5,6 +5,35 @@ const homeworkItemUserSelect = {
   select: { id: true, name: true, username: true, image: true },
 } as const;
 
+/**
+ * The section homework list projection deliberately contains only scalar
+ * state and the comment aggregate needed by list surfaces. Descriptions,
+ * section/course context, and editor relations belong to the detail read.
+ */
+export function homeworkItemSummarySelect() {
+  return {
+    id: true,
+    title: true,
+    isMajor: true,
+    requiresTeam: true,
+    publishedAt: true,
+    submissionStartAt: true,
+    submissionDueAt: true,
+    createdAt: true,
+    updatedAt: true,
+    deletedAt: true,
+    sectionId: true,
+    createdById: true,
+    updatedById: true,
+    deletedById: true,
+    _count: {
+      select: {
+        comments: { where: { status: { not: "deleted" } } },
+      },
+    },
+  } satisfies Prisma.HomeworkSelect;
+}
+
 export function homeworkItemInclude() {
   return {
     section: {

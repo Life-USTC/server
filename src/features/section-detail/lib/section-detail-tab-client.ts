@@ -187,13 +187,12 @@ async function loadHomeworkPanel(
   errorMessage: string,
   state: SectionDetailTabPanelState,
 ): Promise<SectionDetailTabPanelPatch> {
-  const payload = await loadSectionHomeworks<
-    HomeworkViewer,
-    SectionHomework,
-    HomeworkAuditLog
-  >(sectionId, errorMessage);
+  const payload = await loadSectionHomeworks<HomeworkViewer, SectionHomework>(
+    sectionId,
+    errorMessage,
+  );
   return {
-    homeworkAuditLogs: payload.auditLogs ?? [],
+    homeworkAuditLogs: [],
     homeworkViewer: payload.viewer ?? state.homeworkViewer,
     homeworks: payload.homeworks ?? [],
   };

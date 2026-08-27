@@ -13,7 +13,7 @@ export let fmtDateTime: (value: string | Date | null | undefined) => string;
 export let homeworkCopy: SectionHomeworkCopy;
 export let homeworks: SectionHomework[];
 export let sectionCopy: SectionCopy;
-export let selectHomework: (homework: SectionHomework) => void;
+export let selectHomework: (homework: SectionHomework) => void | Promise<void>;
 </script>
 
 <div data-testid="section-homeworks-list">

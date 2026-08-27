@@ -3,10 +3,13 @@
  *
  * ## GET /api/community/section-homeworks
  * - Query: sectionId (required)
- * - Response: { viewer, data[], pagination, auditLogs[] }
+ * - Response: { viewer, data[], pagination }
  * - Public endpoint: viewer.userId is null when unauthenticated
  * - Returns homeworks with completion status for the current user
- * - Includes audit logs for the section's homeworks
+ * - Does not load descriptions, detail relations, or audit logs
+ *
+ * ## GET /api/community/section-homeworks/audit
+ * - Loads section-wide audit history only after an explicit request
  *
  * ## POST /api/community/section-homeworks
  * - Body: { title, sectionId, publishedAt, submissionStartAt, submissionDueAt }
@@ -37,7 +40,13 @@ test("/api/community/section-homeworks 接口契约", async ({ request }) => {
   });
 });
 
-test("/api/community/section-homeworks GET 返回 seed 作业、completion 与审计日志", async ({
+test("/api/community/section-homeworks/audit 接口契约", async ({ request }) => {
+  await assertApiContract(request, {
+    routePath: "/api/community/section-homeworks/audit",
+  });
+});
+
+test("/api/community/section-homeworks GET 返回 summary，详情按需加载", async ({
   request,
 }) => {
   await signInAsDebugUserApi(request, "/");
@@ -51,7 +60,6 @@ test("/api/community/section-homeworks GET 返回 seed 作业、completion 与�
     viewer?: { userId?: string | null };
     data?: Array<Record<string, unknown>>;
     pagination?: { page?: number; pageSize?: number; total?: number };
-    auditLogs?: Array<{ action?: string; titleSnapshot?: string | null }>;
   };
 
   expect(body.viewer?.userId).toBeTruthy();
@@ -68,10 +76,6 @@ test("/api/community/section-homeworks GET 返回 seed 作业、completion 与�
         Number.isInteger(item.commentCount as number),
     ),
   ).toBe(true);
-  expect(body.auditLogs?.some((item) => item.action === "created")).toBe(true);
-  expect(body.auditLogs?.every((item) => item.titleSnapshot === null)).toBe(
-    true,
-  );
 
   // Verify HomeworkItem fields on the seed homework
   expect(body.pagination).toMatchObject({ page: 1, pageSize: 20 });
@@ -90,6 +94,35 @@ test("/api/community/section-homeworks GET 返回 seed 作业、completion 与�
   expect(typeof seedHomework.createdAt).toBe("string");
   expect(Object.hasOwn(seedHomework, "updatedAt")).toBe(true);
   expect(typeof seedHomework.sectionId).toBe("number");
+  expect(Object.hasOwn(seedHomework, "description")).toBe(false);
+  expect(Object.hasOwn(seedHomework, "section")).toBe(false);
+  expect(Object.hasOwn(seedHomework, "createdBy")).toBe(false);
+  expect(Object.hasOwn(seedHomework, "updatedBy")).toBe(false);
+
+  const detailResponse = await request.get(
+    `/api/community/section-homeworks/${encodeURIComponent(seedHomework.id as string)}`,
+  );
+  expect(detailResponse.status()).toBe(200);
+  const detailBody = (await detailResponse.json()) as {
+    auditLogs?: Array<{ action?: string; titleSnapshot?: string | null }>;
+    homework?: Record<string, unknown>;
+  };
+  expect(detailBody.homework?.description).toBeDefined();
+  expect(detailBody.homework?.section).toBeDefined();
+  expect(detailBody.auditLogs?.some((item) => item.action === "created")).toBe(
+    true,
+  );
+
+  const auditResponse = await request.get(
+    `/api/community/section-homeworks/audit?sectionId=${sectionId}`,
+  );
+  expect(auditResponse.status()).toBe(200);
+  const auditBody = (await auditResponse.json()) as {
+    auditLogs?: Array<{ homeworkId?: string | null }>;
+  };
+  expect(
+    auditBody.auditLogs?.some((item) => item.homeworkId === seedHomework.id),
+  ).toBe(true);
 
   const jwResponse = await request.get(
     `/api/community/section-homeworks?sectionJwId=${DEV_SEED.section.jwId}`,
@@ -101,15 +134,6 @@ test("/api/community/section-homeworks GET 返回 seed 作业、completion 与�
   expect(
     jwBody.data?.some((item) => item.title === DEV_SEED.homeworks.title),
   ).toBe(true);
-
-  const section = seedHomework.section as
-    | { code?: unknown; course?: { nameCn?: unknown } }
-    | undefined;
-  expect(typeof section?.code).toBe("string");
-  expect(typeof section?.course?.nameCn).toBe("string");
-
-  expect(Object.hasOwn(seedHomework, "createdBy")).toBe(true);
-  expect(Object.hasOwn(seedHomework, "updatedBy")).toBe(true);
 });
 
 test("/api/community/section-homeworks GET 未找到 sectionJwId 返回 404", async ({

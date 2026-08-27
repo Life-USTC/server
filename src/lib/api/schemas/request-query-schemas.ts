@@ -16,6 +16,7 @@ export {
 export {
   commentsQuerySchema,
   descriptionsQuerySchema,
+  homeworkAuditQuerySchema,
   homeworksQuerySchema,
   sectionsCalendarQuerySchema,
   subscribedHomeworksQuerySchema,

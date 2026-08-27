@@ -44,7 +44,7 @@ const isolated = fixtures.createSubscribedIsolatedMcpToolTestContext({
 });
 
 describe("班级作业写入工具 — community_section_homework_create", () => {
-  it("community_section_homework_list 对 default/full 使用精确且不同的契约", async () => {
+  it("community_section_homework_list 对 default/full 都使用 summary 契约", async () => {
     const title = `[integration-test] mcp-list-homework-${Date.now()}`;
     let homeworkId: string | undefined;
 
@@ -102,10 +102,12 @@ describe("班级作业写入工具 — community_section_homework_create", () =>
         (homework) => homework.id === homeworkId,
       );
       expect(compactHomework).toBeDefined();
+      expect(compactHomework).not.toHaveProperty("description");
       expect(compactHomework).not.toHaveProperty("section");
       expect(compactHomework).not.toHaveProperty("createdBy");
-      expect(fullHomework).toHaveProperty("section.jwId", mutationSectionJwId);
-      expect(fullHomework).toHaveProperty("createdBy");
+      expect(fullHomework).not.toHaveProperty("description");
+      expect(fullHomework).not.toHaveProperty("section");
+      expect(fullHomework).not.toHaveProperty("createdBy");
     } finally {
       await fixtures.deleteIntegrationHomework(homeworkId);
     }
