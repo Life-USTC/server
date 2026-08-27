@@ -492,7 +492,6 @@ $: signedLinkGroups = derivedState.signedLinkGroups;
 $: calendarData = derivedState.calendarData;
 $: syncCalendarStateFromUrl($page.url, calendarData);
 $: selectedImportSectionIdSet = new Set(selectedImportSectionIds);
-$: selectedImportCount = selectedImportSectionIds.length;
 $: canMatchImportSections =
   bulkImportText.trim().length > 0 && !isMatchingSections;
 
@@ -623,7 +622,6 @@ onMount(() => {
         {subscriptionsCopy}
         signedData={subscriptionsSignedData}
         {selectedImportSectionIdSet}
-        {selectedImportCount}
         {canMatchImportSections}
         {formatMessage}
         {namePrimary}

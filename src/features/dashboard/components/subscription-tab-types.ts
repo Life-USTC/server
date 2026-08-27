@@ -120,7 +120,6 @@ export type DashboardSubscriptionsTabProps = {
     unmatchedCodes: string[];
   }>;
   sectionCopy: DashboardSectionCopy;
-  selectedImportCount: number;
   selectedImportSectionIdSet: Set<number>;
   signedData: DashboardSubscriptionsSignedData;
   subscriptionActionError: string;

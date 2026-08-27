@@ -76,8 +76,8 @@ export let applyEditStartNow: SectionDetailDialogsProps["applyEditStartNow"];
 let SectionHomeworkDialogs:
   | typeof import("./SectionHomeworkDialogs.svelte").default
   | null = null;
-let SectionCalendarDialog:
-  | typeof import("./SectionCalendarDialog.svelte").default
+let CalendarSubscriptionDialog:
+  | typeof import("@/features/calendar/components/CalendarSubscriptionDialog.svelte").default
   | null = null;
 
 async function ensureSectionHomeworkDialogs() {
@@ -86,8 +86,11 @@ async function ensureSectionHomeworkDialogs() {
 }
 
 async function ensureSectionCalendarDialog() {
-  SectionCalendarDialog ??= (await import("./SectionCalendarDialog.svelte"))
-    .default;
+  CalendarSubscriptionDialog ??= (
+    await import(
+      "@/features/calendar/components/CalendarSubscriptionDialog.svelte"
+    )
+  ).default;
 }
 
 $: if (
@@ -161,19 +164,32 @@ $: if (isCalendarDialogOpen) {
   />
 {/if}
 
-{#if SectionCalendarDialog}
+{#if CalendarSubscriptionDialog}
   <svelte:component
-    this={SectionCalendarDialog}
+    this={CalendarSubscriptionDialog}
   {clipboardError}
   {clipboardMessage}
   close={closeCalendarDialog}
-  {copiedCalendarTarget}
-  {copyText}
+  copy={sectionCopy}
   isOpen={isCalendarDialogOpen}
-  {sectionCopy}
-  setOpen={setCalendarDialogOpen}
-  {singleCalendarUrl}
-  {subscriptionCalendarUrl}
+  onOpenChange={setCalendarDialogOpen}
+  urls={[{
+    copied: copiedCalendarTarget === "single",
+    description: sectionCopy.calendarUrlDescription,
+    id: "calendar-url",
+    label: sectionCopy.calendarUrlLabel,
+    onCopy: () => copyText(singleCalendarUrl, "single"),
+    value: singleCalendarUrl,
+  }, {
+    copied: copiedCalendarTarget === "subscription",
+    description: sectionCopy.subscriptionUrlDescription,
+    id: "subscription-url",
+    label: sectionCopy.subscriptionUrlLabel,
+    missingLabel: sectionCopy.subscriptionMissing,
+    onCopy: () => copyText(subscriptionCalendarUrl, "subscription"),
+    value: subscriptionCalendarUrl,
+    warning: sectionCopy.subscriptionPrivacyNote,
+  }]}
   />
 {/if}
 

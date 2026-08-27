@@ -10,6 +10,7 @@ import {
 } from "@/features/catalog/lib/catalog-results-summary";
 import { formatSemesterName } from "@/lib/text/format-semester-name";
 import { page as appPage } from "$app/stores";
+import ResponsiveCollection from "$lib/components/ResponsiveCollection.svelte";
 import TruncatedCode from "$lib/components/TruncatedCode.svelte";
 import TruncatedText from "$lib/components/TruncatedText.svelte";
 import * as Item from "$lib/components/ui/item/index.js";
@@ -63,8 +64,10 @@ $: sectionSemesterSummary = selectedSemester
     {totalPages}
   />
   {#if data.data.length > 0}
-    <div class="xl:hidden" data-testid="catalog-results-cards">
-      <Item.Group>
+    <ResponsiveCollection>
+      {#snippet mobile()}
+      <div data-testid="catalog-results-cards">
+      <Item.Group class="gap-0" role="list">
         {#each data.data as section}
           {@const sectionHref = `/catalog/sections/${section.jwId}`}
           <Item.Root variant="outline" size="sm">
@@ -90,8 +93,10 @@ $: sectionSemesterSummary = selectedSemester
           </Item.Root>
         {/each}
       </Item.Group>
-    </div>
-    <div class="hidden min-w-0 max-w-full xl:block">
+      </div>
+      {/snippet}
+      {#snippet desktop()}
+      <div class="min-w-0 max-w-full">
       <Table.Root class="table-fixed">
         <Table.Header class="bg-muted/30">
           <Table.Row>
@@ -153,7 +158,9 @@ $: sectionSemesterSummary = selectedSemester
           {/each}
         </Table.Body>
       </Table.Root>
-    </div>
+      </div>
+      {/snippet}
+    </ResponsiveCollection>
   {:else}
     <div class="py-10">
       <CatalogResultsEmpty
