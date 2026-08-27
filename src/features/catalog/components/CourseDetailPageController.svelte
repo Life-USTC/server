@@ -1,7 +1,6 @@
 <script lang="ts">
 import { onMount } from "svelte";
 import { commentTargetPermalinkBaseHref } from "@/features/comments/lib/comment-panel-controller";
-import PageFrame from "$lib/components/PageFrame.svelte";
 import PageHeader from "$lib/components/PageHeader.svelte";
 import * as Alert from "$lib/components/ui/alert/index.js";
 import { Button } from "$lib/components/ui/button/index.js";
@@ -121,19 +120,16 @@ $: displayName =
 
 <section class="grid min-h-full grid-rows-[auto_minmax(0,1fr)] bg-card lg:h-full lg:min-h-0">
   <div class="bg-card">
-    <PageFrame width="content" class="px-4 sm:px-5 lg:px-6">
+    <div class="page-frame page-frame-content px-4 sm:px-5 lg:px-6">
     <PageHeader
       title={displayName}
       titleClass="text-2xl leading-tight sm:text-3xl"
     />
-    </PageFrame>
+    </div>
   </div>
 
   <div class="min-w-0 min-h-0 overflow-y-auto" data-detail-scroll-container>
-    <PageFrame
-      width="content"
-      class="grid min-h-full gap-8 px-4 py-4 lg:grid-cols-[minmax(0,1fr)_minmax(16rem,20rem)] lg:items-start lg:gap-10 sm:px-5 lg:px-6"
-    >
+    <div class="page-frame page-frame-content grid min-h-full gap-8 px-4 py-4 lg:grid-cols-[minmax(0,1fr)_minmax(16rem,20rem)] lg:items-start lg:gap-10 sm:px-5 lg:px-6">
       <div class="grid min-w-0 gap-10">
         <section id="introduction" class="scroll-mt-4">
           {#key `description:course:${data.course.id}`}
@@ -233,6 +229,6 @@ $: displayName =
           />
         </section>
       </aside>
-    </PageFrame>
+    </div>
   </div>
 </section>

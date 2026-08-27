@@ -24,7 +24,6 @@ import type { SettingsTab } from "@/features/settings/lib/settings-tabs";
 import { replaceState } from "$app/navigation";
 import { page } from "$app/stores";
 import DetailSectionNav from "$lib/components/DetailSectionNav.svelte";
-import PageFrame from "$lib/components/PageFrame.svelte";
 import type {
   SettingsAccount,
   SettingsCopy,
@@ -166,7 +165,7 @@ onMount(() => {
 
 <svelte:head><title>{copy.settings.title} - Life@USTC</title></svelte:head>
 
-<PageFrame width="content">
+<div class="page-frame page-frame-content">
   <section class="grid gap-6">
     <SettingsHeader {copy} />
 
@@ -229,4 +228,4 @@ onMount(() => {
       </div>
     </div>
   </section>
-</PageFrame>
+</div>

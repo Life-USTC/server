@@ -1,5 +1,5 @@
 <script lang="ts">
-import CalendarDaysIcon from "@lucide/svelte/icons/calendar-days";
+import CalendarIcon from "@lucide/svelte/icons/calendar";
 import Clock3Icon from "@lucide/svelte/icons/clock-3";
 import MapPinIcon from "@lucide/svelte/icons/map-pin";
 import ResponsiveCollection from "$lib/components/ResponsiveCollection.svelte";
@@ -71,7 +71,7 @@ function examLocation(event: SectionCalendarEvent) {
                   class="flex min-w-0 items-start gap-2"
                   role="group"
                 >
-                  <CalendarDaysIcon
+                  <CalendarIcon
                     aria-hidden="true"
                     class="text-muted-foreground mt-0.5 size-4 shrink-0"
                   />

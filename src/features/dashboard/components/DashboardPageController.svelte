@@ -57,7 +57,6 @@ import {
 import { todoPriorityOptions as buildTodoPriorityOptions } from "@/features/dashboard/lib/todos";
 import { goto, invalidateAll, replaceState } from "$app/navigation";
 import { page } from "$app/stores";
-import PageFrame from "$lib/components/PageFrame.svelte";
 import PageHeader from "$lib/components/PageHeader.svelte";
 import * as Alert from "$lib/components/ui/alert/index.js";
 import type { DashboardCalendarTabProps } from "./dashboard-calendar-component-types";
@@ -521,7 +520,7 @@ onMount(() => {
   <title>{pageTitle} - Life@USTC</title>
 </svelte:head>
 
-<PageFrame>
+<div class="page-frame">
   <div class="grid w-full gap-6">
     {#if data.signedIn && data.mainContentLabel}
       <PageHeader
@@ -701,4 +700,4 @@ onMount(() => {
       </Alert.Root>
     {/if}
   </div>
-</PageFrame>
+</div>

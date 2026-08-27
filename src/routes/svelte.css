@@ -189,3 +189,21 @@ html {
     color: var(--foreground);
   }
 }
+
+@layer components {
+  .page-frame {
+    @apply mx-auto w-full min-w-0 max-w-7xl;
+  }
+
+  .page-frame-reading {
+    @apply max-w-4xl;
+  }
+
+  .page-frame-content {
+    @apply max-w-6xl;
+  }
+
+  .page-frame-full {
+    @apply max-w-none;
+  }
+}

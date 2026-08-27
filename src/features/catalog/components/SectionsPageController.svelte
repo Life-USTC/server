@@ -6,7 +6,6 @@ import {
 import { catalogListPageHref } from "@/features/catalog/lib/catalog-list-query";
 import { formatSemesterName } from "@/lib/text/format-semester-name";
 import { page } from "$app/stores";
-import PageFrame from "$lib/components/PageFrame.svelte";
 import PageHeader from "$lib/components/PageHeader.svelte";
 import Panel from "$lib/components/Panel.svelte";
 import CatalogMobileFilters from "./CatalogMobileFilters.svelte";
@@ -266,7 +265,7 @@ function sectionEmptyDescription() {
   />
 {/snippet}
 
-<PageFrame>
+<div class="page-frame">
   <section class="grid gap-5">
     <PageHeader
       description={sectionLabels.subtitle}
@@ -318,4 +317,4 @@ function sectionEmptyDescription() {
       />
     </Panel>
   </section>
-</PageFrame>
+</div>

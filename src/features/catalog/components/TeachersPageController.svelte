@@ -6,7 +6,6 @@ import {
 } from "@/features/catalog/lib/catalog-list-display";
 import { catalogListPageHref } from "@/features/catalog/lib/catalog-list-query";
 import { page } from "$app/stores";
-import PageFrame from "$lib/components/PageFrame.svelte";
 import PageHeader from "$lib/components/PageHeader.svelte";
 import Panel from "$lib/components/Panel.svelte";
 import CatalogMobileFilters from "./CatalogMobileFilters.svelte";
@@ -117,7 +116,7 @@ function teacherFilterHref(overrides: Partial<TeacherListFilters>) {
   />
 {/snippet}
 
-<PageFrame>
+<div class="page-frame">
   <section class="grid gap-5">
     <PageHeader
       description={teacherLabels.subtitle}
@@ -165,4 +164,4 @@ function teacherFilterHref(overrides: Partial<TeacherListFilters>) {
       />
     </Panel>
   </section>
-</PageFrame>
+</div>
