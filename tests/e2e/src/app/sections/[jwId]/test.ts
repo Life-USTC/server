@@ -989,7 +989,7 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
       .click();
     const createDialog = page.locator('[data-slot="dialog-content"]').first();
     const advancedSettings = createDialog.getByRole("button", {
-      name: /更多设置|More settings|收起更多设置|Hide more settings/i,
+      name: /其他可选设置|Other optional settings|收起其他可选设置|Hide optional settings/i,
     });
     await expect(advancedSettings).toHaveAttribute("aria-expanded", "false");
     await expect(
@@ -1355,7 +1355,7 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
         .getByRole("textbox", { name: /Submission due|提交截止/i })
         .fill(dueAt);
       const advancedSettings = editForm.getByRole("button", {
-        name: /更多设置|More settings|收起更多设置|Hide more settings/i,
+        name: /其他可选设置|Other optional settings|收起其他可选设置|Hide optional settings/i,
       });
       await expect(advancedSettings).toHaveAttribute("aria-expanded", "false");
       await advancedSettings.click();

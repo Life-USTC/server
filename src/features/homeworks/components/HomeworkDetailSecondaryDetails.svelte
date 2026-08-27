@@ -33,7 +33,7 @@ function displayDate(value: HomeworkDateValue) {
       {#snippet child({ props })}
         <Button
           {...props}
-          class="h-10 w-full justify-between px-1 text-left hover:bg-transparent"
+          class="h-10 w-full justify-between px-1 text-left"
           variant="ghost"
         >
           <span class="flex min-w-0 items-center gap-2">
@@ -46,7 +46,7 @@ function displayDate(value: HomeworkDateValue) {
           </span>
           <ChevronDownIcon
             aria-hidden="true"
-            class="text-muted-foreground size-4 shrink-0 transition-transform group-data-[state=open]/homework-details:rotate-180"
+            class="shrink-0 transition-transform group-data-[state=open]/homework-details:rotate-180"
           />
         </Button>
       {/snippet}

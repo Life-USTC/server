@@ -25,6 +25,7 @@ export let homeworkMessage: string;
 export let openAuditDialog: (() => void) | null = null;
 export let publishedAt: string;
 export let sectionCopy: SectionCreateHomeworkSectionCopy;
+export let sectionLabel: string;
 export let show: boolean;
 export let submissionDueAt: string;
 export let submissionStartAt: string;
@@ -70,6 +71,7 @@ export let submissionStartAt: string;
             {hasSemesterStart}
             {homeworkCopy}
             {homeworkMessage}
+            {sectionLabel}
             bind:publishedAt
             bind:submissionDueAt
             bind:submissionStartAt

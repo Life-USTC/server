@@ -23,7 +23,7 @@ let guideValue = "homework-style-guide";
       {copy.styleGuideTitle}
     </Accordion.Trigger>
     <Accordion.Content
-      class="space-y-3 pb-4 text-muted-foreground"
+      class="text-muted-foreground flex flex-col gap-3 pb-4"
       data-testid={`${testIdPrefix}-style-guide-content`}
     >
       <p>{copy.styleGuideTitleGuidance}</p>
