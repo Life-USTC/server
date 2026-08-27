@@ -6,6 +6,7 @@ const {
   completionFindManyMock,
   getViewerContextMock,
   homeworkCountMock,
+  homeworkFindFirstMock,
   homeworkFindManyMock,
   withUserDbContextMock,
 } = vi.hoisted(() => ({
@@ -13,6 +14,7 @@ const {
   completionFindManyMock: vi.fn(),
   getViewerContextMock: vi.fn(),
   homeworkCountMock: vi.fn(),
+  homeworkFindFirstMock: vi.fn(),
   homeworkFindManyMock: vi.fn(),
   withUserDbContextMock: vi.fn(),
 }));
@@ -23,7 +25,11 @@ vi.mock("@/lib/auth/viewer-context", () => ({
 
 vi.mock("@/lib/db/prisma", () => ({
   getPrisma: vi.fn(() => ({
-    homework: { count: homeworkCountMock, findMany: homeworkFindManyMock },
+    homework: {
+      count: homeworkCountMock,
+      findFirst: homeworkFindFirstMock,
+      findMany: homeworkFindManyMock,
+    },
   })),
   prisma: {
     auditLog: { findMany: auditFindManyMock },
@@ -32,9 +38,10 @@ vi.mock("@/lib/db/prisma", () => ({
 }));
 
 import {
+  getSectionHomeworkDetail,
   listSectionHomeworkItems,
   listSectionHomeworkPage,
-  listSectionHomeworksWithAudit,
+  listSectionHomeworks,
 } from "@/features/homeworks/server/homework-list-read-model";
 
 const viewer = {
@@ -102,11 +109,11 @@ describe("section homework list read phases", () => {
     ]);
   });
 
-  it("starts viewer, homework, and audit reads in the same response phase", async () => {
+  it("loads the viewer and summary rows without an initial audit read", async () => {
     const viewerDeferred = createDeferred<typeof viewer>();
     getViewerContextMock.mockReturnValueOnce(viewerDeferred.promise);
 
-    const resultPromise = listSectionHomeworksWithAudit({
+    const resultPromise = listSectionHomeworks({
       locale: "zh-cn",
       sectionIds: [7],
       userId: viewer.userId,
@@ -116,12 +123,11 @@ describe("section homework list read phases", () => {
     expect(getViewerContextMock).toHaveBeenCalledOnce();
     expect(homeworkFindManyMock).toHaveBeenCalledOnce();
     expect(completionFindManyMock).toHaveBeenCalledOnce();
-    expect(auditFindManyMock).toHaveBeenCalledOnce();
+    expect(auditFindManyMock).not.toHaveBeenCalled();
 
     viewerDeferred.resolve(viewer);
     await expect(resultPromise).resolves.toMatchObject({
       viewer,
-      auditLogs: [],
       homeworks: [expect.objectContaining({ id: "homework-1" })],
     });
   });
@@ -148,6 +154,11 @@ describe("section homework list read phases", () => {
     expect(homeworkFindManyMock).toHaveBeenCalledWith(
       expect.objectContaining({ skip: 20, take: 10 }),
     );
+    const pageQuery = homeworkFindManyMock.mock.calls[0]?.[0] as {
+      select?: Record<string, unknown>;
+    };
+    expect(pageQuery.select).not.toHaveProperty("description");
+    expect(pageQuery.select).not.toHaveProperty("section");
     expect(homeworkCountMock).toHaveBeenCalledWith({
       where: { sectionId: 7, deletedAt: null },
     });
@@ -161,6 +172,45 @@ describe("section homework list read phases", () => {
     expect(result).toMatchObject({
       data: [expect.objectContaining({ id: "homework-1", commentCount: 2 })],
       pagination: { page: 3, pageSize: 10, total: 1, totalPages: 1 },
+    });
+  });
+
+  it("loads full detail and audit rows only for an explicit homework request", async () => {
+    homeworkFindFirstMock.mockResolvedValue({
+      _count: { comments: 2 },
+      description: { content: "# Details" },
+      id: "homework-1",
+      sectionId: 7,
+      title: "Homework",
+    });
+
+    const result = await getSectionHomeworkDetail({
+      homeworkId: "homework-1",
+      locale: "en-us",
+      userId: null,
+    });
+
+    expect(homeworkFindFirstMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { deletedAt: null, id: "homework-1" },
+        include: expect.objectContaining({ description: true }),
+      }),
+    );
+    expect(auditFindManyMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          targetId: "homework-1",
+          targetType: "homework",
+        }),
+      }),
+    );
+    expect(result).toMatchObject({
+      auditLogs: [],
+      homework: {
+        commentCount: 2,
+        description: { content: "# Details" },
+        id: "homework-1",
+      },
     });
   });
 });

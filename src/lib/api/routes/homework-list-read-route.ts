@@ -2,7 +2,7 @@ import {
   HOMEWORK_LIST_DEFAULT_PAGE_SIZE,
   HOMEWORK_LIST_MAX_PAGE_SIZE,
 } from "@/features/homeworks/lib/homework-list-bounds";
-import { listSectionHomeworkPageWithAudit } from "@/features/homeworks/server/homework-list-read-model";
+import { listSectionHomeworkPageWithViewer } from "@/features/homeworks/server/homework-list-read-model";
 import {
   getRequestSearchParams,
   handleRouteError,
@@ -42,7 +42,7 @@ export async function getHomeworksRoute(request: Request) {
     if (sectionIdList instanceof Response) return sectionIdList;
 
     const viewerUserId = await resolveSessionUserId(request);
-    const result = await listSectionHomeworkPageWithAudit({
+    const result = await listSectionHomeworkPageWithViewer({
       includeDeleted: includeDeleted ?? false,
       locale: getRequestLocale(request),
       pagination: parsed.pagination,

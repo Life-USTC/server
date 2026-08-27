@@ -1,13 +1,15 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 const {
-  listSectionHomeworkPageWithAuditMock,
+  listSectionHomeworkAuditLogsMock,
+  listSectionHomeworkPageWithViewerMock,
   listSubscribedHomeworkPageMock,
   requireAuthMock,
   resolveHomeworkSectionIdsMock,
   resolveSessionUserIdMock,
 } = vi.hoisted(() => ({
-  listSectionHomeworkPageWithAuditMock: vi.fn(),
+  listSectionHomeworkAuditLogsMock: vi.fn(),
+  listSectionHomeworkPageWithViewerMock: vi.fn(),
   listSubscribedHomeworkPageMock: vi.fn(),
   requireAuthMock: vi.fn(),
   resolveHomeworkSectionIdsMock: vi.fn(),
@@ -24,7 +26,8 @@ vi.mock("@/features/subscriptions/server/subscription-read-model", () => ({
 }));
 
 vi.mock("@/features/homeworks/server/homework-list-read-model", () => ({
-  listSectionHomeworkPageWithAudit: listSectionHomeworkPageWithAuditMock,
+  listSectionHomeworkAuditLogs: listSectionHomeworkAuditLogsMock,
+  listSectionHomeworkPageWithViewer: listSectionHomeworkPageWithViewerMock,
   resolveHomeworkSectionIds: resolveHomeworkSectionIdsMock,
 }));
 
@@ -48,8 +51,7 @@ describe("homework REST locale 适配", () => {
       ok: true,
       sectionIds: [12],
     });
-    listSectionHomeworkPageWithAuditMock.mockResolvedValue({
-      auditLogs: [],
+    listSectionHomeworkPageWithViewerMock.mockResolvedValue({
       data: [],
       pagination: { page: 1, pageSize: 20, total: 0, totalPages: 1 },
       viewer: { userId: "viewer-1" },
@@ -64,12 +66,11 @@ describe("homework REST locale 适配", () => {
 
     expect(response.status).toBe(200);
     await expect(response.json()).resolves.toEqual({
-      auditLogs: [],
       data: [],
       pagination: { page: 1, pageSize: 20, total: 0, totalPages: 1 },
       viewer: { userId: "viewer-1" },
     });
-    expect(listSectionHomeworkPageWithAuditMock).toHaveBeenCalledWith({
+    expect(listSectionHomeworkPageWithViewerMock).toHaveBeenCalledWith({
       includeDeleted: false,
       locale: "en-us",
       pagination: expect.objectContaining({ page: 1, pageSize: 20 }),
@@ -83,13 +84,36 @@ describe("homework REST locale 适配", () => {
       ),
     );
     expect(includeDeletedResponse.status).toBe(200);
-    expect(listSectionHomeworkPageWithAuditMock).toHaveBeenLastCalledWith({
+    expect(listSectionHomeworkPageWithViewerMock).toHaveBeenLastCalledWith({
       includeDeleted: true,
       locale: "en-us",
       pagination: expect.objectContaining({ page: 1, pageSize: 20 }),
       sectionIds: [12],
       userId: "viewer-1",
     });
+  });
+
+  it("只在显式审计请求时读取 section 作业审计记录", async () => {
+    resolveHomeworkSectionIdsMock.mockResolvedValue({
+      ok: true,
+      sectionIds: [12],
+    });
+    listSectionHomeworkAuditLogsMock.mockResolvedValue([
+      { action: "created", homeworkId: "homework-1" },
+    ]);
+    const { getHomeworkAuditRoute } = await import(
+      "@/lib/api/routes/homework-audit-read-route"
+    );
+
+    const response = await getHomeworkAuditRoute(
+      request("/api/community/section-homeworks/audit?sectionId=12"),
+    );
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toEqual({
+      auditLogs: [{ action: "created", homeworkId: "homework-1" }],
+    });
+    expect(listSectionHomeworkAuditLogsMock).toHaveBeenCalledWith([12]);
   });
 
   it("将请求 locale 传递给已订阅作业列表读取", async () => {
@@ -124,8 +148,7 @@ describe("homework REST locale 适配", () => {
       ok: true,
       sectionIds: input.sectionIds,
     }));
-    listSectionHomeworkPageWithAuditMock.mockResolvedValue({
-      auditLogs: [],
+    listSectionHomeworkPageWithViewerMock.mockResolvedValue({
       data: [],
       pagination: { page: 2, pageSize: 10, total: 0, totalPages: 1 },
       viewer: { userId: null },
@@ -140,7 +163,7 @@ describe("homework REST locale 适配", () => {
       ),
     );
     expect(accepted.status).toBe(200);
-    expect(listSectionHomeworkPageWithAuditMock).toHaveBeenCalledWith(
+    expect(listSectionHomeworkPageWithViewerMock).toHaveBeenCalledWith(
       expect.objectContaining({
         pagination: expect.objectContaining({ page: 2, pageSize: 10 }),
         sectionIds: [12, 13],

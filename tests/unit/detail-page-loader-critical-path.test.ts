@@ -782,7 +782,11 @@ describe("section detail loader critical path", () => {
     expect(result.commentsData).toBeNull();
     expect(result.homeworkData.homeworks).toEqual([]);
     expect(getSectionHomeworkDataMock).toHaveBeenCalledOnce();
-    expect(getSectionHomeworkDataMock).toHaveBeenCalledWith(section.id, null);
+    expect(getSectionHomeworkDataMock).toHaveBeenCalledWith(
+      section.id,
+      null,
+      "hw-1",
+    );
     expect(getCommentsPayloadMock).not.toHaveBeenCalled();
   });
 
@@ -815,6 +819,7 @@ describe("section detail loader critical path", () => {
     expect(getSectionHomeworkDataMock).toHaveBeenCalledWith(
       section.id,
       signedInUser.id,
+      null,
     );
     expect(getViewerContextMock).toHaveBeenCalledWith({
       includeAdmin: true,
