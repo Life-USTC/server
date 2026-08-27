@@ -246,7 +246,7 @@ test("/admin/moderation 移动端弹窗滚动体不遮挡封禁控件", async ({
       ),
     );
 
-    await dialog.getByRole("button", { name: /关闭|Close/i }).click();
+    await dialog.getByRole("button", { name: /取消|Cancel/i }).click();
     await expect(dialog).toBeHidden();
   }
 });
