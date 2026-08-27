@@ -38,7 +38,7 @@ export let users: AdminUserRow[];
                 </Badge>
               </dd>
             </div>
-            <div>
+            <div class="text-right">
               <dt class="text-muted-foreground">{copy.createdAt}</dt>
               <dd class="tabular-nums">{formatDate(user.createdAt)}</dd>
             </div>
