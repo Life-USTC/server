@@ -76,11 +76,11 @@ export let viewer: ViewerContext;
 </script>
 
 <article
-  class={`grid gap-3 border-b border-border/70 py-4 last:border-b-0 ${
+  class={`grid min-w-0 gap-3 border-b border-border/70 py-4 last:border-b-0 ${
     highlightedId === comment.id ? "rounded-lg ring-2 ring-primary/40" : ""
   }`}
   id={`comment-${comment.id}`}
-  style={`margin-left: ${Math.min(depth, 3) * 1.25}rem`}
+  style={`padding-left: ${Math.min(depth, 3) * 1.25}rem`}
 >
   <CommentThreadHeader
     bind:actionMenuId

@@ -109,7 +109,7 @@ export let visibilityOptions: CommentThreadProps["visibilityOptions"];
   {/each}
 {/snippet}
 
-<div class="grid gap-4">
+<div class="grid min-w-0 gap-4">
   {#each comments as comment}
     {@render commentItem(comment)}
   {/each}

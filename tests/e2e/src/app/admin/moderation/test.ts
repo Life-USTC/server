@@ -221,8 +221,9 @@ test("/admin/moderation 移动端弹窗滚动体不遮挡封禁控件", async ({
     });
     await expect(dialog).toBeVisible();
     await expect(
-      dialog.getByRole("button", { name: /关闭|Close/i }),
+      dialog.getByRole("button", { name: /取消|Cancel/i }),
     ).toHaveCount(1);
+    await expect(dialog.locator('[data-slot="dialog-close"]')).toHaveCount(0);
 
     const suspendButton = dialog.getByRole("button", {
       name: /^(封禁|Suspend)$/i,
@@ -245,7 +246,7 @@ test("/admin/moderation 移动端弹窗滚动体不遮挡封禁控件", async ({
       ),
     );
 
-    await dialog.getByRole("button", { name: /关闭|Close/i }).click();
+    await dialog.getByRole("button", { name: /取消|Cancel/i }).click();
     await expect(dialog).toBeHidden();
   }
 });

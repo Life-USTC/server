@@ -136,8 +136,8 @@ export function createCommentPanelInteractions(input: {
       input.setDeleting(false);
     }
     closeDeleteDialog();
-    await input.loadComments();
     input.onSuccess?.("delete");
+    await input.loadComments();
   }
 
   return {

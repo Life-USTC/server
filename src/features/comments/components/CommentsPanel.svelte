@@ -459,7 +459,7 @@ $: _replyUploading = commentUploadPendingForMode(_uploadPending, "reply");
 $: _editUploading = commentUploadPendingForMode(_uploadPending, "edit");
 </script>
 
-<section class="grid gap-4">
+<section class="grid min-w-0 gap-4">
   {#if _message}<Alert.Root variant={_messageVariant}><Alert.Description>{_message}</Alert.Description></Alert.Root>{/if}
   {#if _viewer.isSuspended}
     <CommentsPanelSuspensionAlert

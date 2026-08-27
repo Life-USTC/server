@@ -47,6 +47,7 @@ export let targetLabel: (comment: AdminModerationComment) => string;
     <Dialog.Content
       class="grid max-h-[calc(100dvh-1rem)] min-h-0 max-w-2xl grid-rows-[auto_minmax(0,1fr)_auto] overflow-hidden sm:max-w-2xl"
       aria-labelledby="manage-comment-title"
+      showCloseButton={false}
     >
       <Dialog.Header>
         <Dialog.Title id="manage-comment-title">{copy.manageComment}</Dialog.Title>
@@ -56,7 +57,7 @@ export let targetLabel: (comment: AdminModerationComment) => string;
       </Dialog.Header>
 
       <ScrollArea class="min-h-0 h-[min(56dvh,34rem)] max-h-[calc(100dvh-12rem)]">
-        <div class="grid gap-5 px-5 py-4">
+        <div class="grid gap-5 px-5 pt-4 pb-6">
           {#if dialogMessage}<Alert.Root class="py-2" variant={dialogMessageVariant}><Alert.Description>{dialogMessage}</Alert.Description></Alert.Root>{/if}
 
           <AdminModerationCommentPreview

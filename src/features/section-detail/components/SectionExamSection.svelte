@@ -21,6 +21,7 @@ type SectionExamCopy = {
 
 export let events: SectionCalendarEvent[];
 export let fmtDate: (value: string | Date | null | undefined) => string;
+export let heading: string;
 export let sectionCopy: SectionExamCopy;
 </script>
 
@@ -30,43 +31,43 @@ export let sectionCopy: SectionExamCopy;
       class="min-w-[52rem] md:min-w-0"
       data-testid="section-exams-list"
     >
-    <Table.Caption class="sr-only">{sectionCopy.examBatch}</Table.Caption>
-    <Table.Header>
-      <Table.Row>
-        <Table.Head scope="col">{sectionCopy.examBatch}</Table.Head>
-        <Table.Head scope="col">{sectionCopy.examDate}</Table.Head>
-        <Table.Head scope="col">{sectionCopy.examTime}</Table.Head>
-        <Table.Head scope="col">{sectionCopy.location}</Table.Head>
-        <Table.Head scope="col">{sectionCopy.examMode}</Table.Head>
-        <Table.Head scope="col">{sectionCopy.examCount}</Table.Head>
-      </Table.Row>
-    </Table.Header>
-    <Table.Body>
-      {#each events as event (event.id)}
-        <Table.Row id={event.id}>
-          <Table.Cell class="whitespace-nowrap">
-            {calendarEventDetail(event, sectionCopy.examBatch, "—")}
-          </Table.Cell>
-          <Table.Cell class="whitespace-nowrap">
-            {#if event.date}{fmtDate(event.date)}{:else}{sectionCopy.dateTBD}{/if}
-          </Table.Cell>
-          <Table.Cell class="whitespace-nowrap">
-            {calendarEventTime(event, "—")}
-          </Table.Cell>
-          <Table.Cell class="whitespace-nowrap">
-            {calendarEventDetail(
-              event,
-              sectionCopy.location,
-              calendarEventLocation(event, "—"),
-            )}
-          </Table.Cell>
-          <Table.Cell class="whitespace-nowrap">{event.title || "—"}</Table.Cell>
-          <Table.Cell class="whitespace-nowrap">
-            {calendarEventDetail(event, sectionCopy.examCount, "—")}
-          </Table.Cell>
+      <Table.Caption class="sr-only">{heading}</Table.Caption>
+      <Table.Header>
+        <Table.Row>
+          <Table.Head scope="col">{sectionCopy.examBatch}</Table.Head>
+          <Table.Head scope="col">{sectionCopy.examDate}</Table.Head>
+          <Table.Head scope="col">{sectionCopy.examTime}</Table.Head>
+          <Table.Head scope="col">{sectionCopy.location}</Table.Head>
+          <Table.Head scope="col">{sectionCopy.examMode}</Table.Head>
+          <Table.Head scope="col">{sectionCopy.examCount}</Table.Head>
         </Table.Row>
-      {/each}
-    </Table.Body>
+      </Table.Header>
+      <Table.Body>
+        {#each events as event (event.id)}
+          <Table.Row id={event.id}>
+            <Table.Cell class="whitespace-nowrap">
+              {calendarEventDetail(event, sectionCopy.examBatch, "—")}
+            </Table.Cell>
+            <Table.Cell class="whitespace-nowrap">
+              {#if event.date}{fmtDate(event.date)}{:else}{sectionCopy.dateTBD}{/if}
+            </Table.Cell>
+            <Table.Cell class="whitespace-nowrap">
+              {calendarEventTime(event, "—")}
+            </Table.Cell>
+            <Table.Cell class="whitespace-nowrap">
+              {calendarEventDetail(
+                event,
+                sectionCopy.location,
+                calendarEventLocation(event, "—"),
+              )}
+            </Table.Cell>
+            <Table.Cell class="whitespace-nowrap">{event.title || "—"}</Table.Cell>
+            <Table.Cell class="whitespace-nowrap">
+              {calendarEventDetail(event, sectionCopy.examCount, "—")}
+            </Table.Cell>
+          </Table.Row>
+        {/each}
+      </Table.Body>
     </Table.Root>
   </div>
 {:else}
