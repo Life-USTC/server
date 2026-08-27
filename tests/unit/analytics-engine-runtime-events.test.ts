@@ -24,8 +24,8 @@ import {
   writeWorkspaceRouteStageAnalytics,
 } from "@/lib/metrics/analytics-engine";
 import {
+  publicDetailColoCacheKey as buildPublicDetailColoCacheKey,
   cachedPublicRuntimeData,
-  publicDetailColoCacheKey,
 } from "@/lib/public-runtime-cache";
 import {
   getStorageObjectResponse,
@@ -61,6 +61,26 @@ function validatesSource(value: unknown) {
     typeof value === "object" &&
     "source" in value &&
     typeof value.source === "string"
+  );
+}
+
+function publicDetailColoCacheKey(
+  origin: string,
+  kind: "course" | "section" | "teacher",
+  locale: "en-us" | "zh-cn",
+  id: number,
+) {
+  const shape =
+    kind === "section"
+      ? "core-without-exams-schedules-related"
+      : "core-without-sections";
+  return buildPublicDetailColoCacheKey(
+    origin,
+    "revision-a",
+    kind,
+    locale,
+    id,
+    shape,
   );
 }
 
