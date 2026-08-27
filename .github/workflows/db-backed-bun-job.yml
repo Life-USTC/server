@@ -177,7 +177,7 @@ jobs:
               bunx prisma db seed
               bunx vitest run --config vitest.integration.config.ts
               bun run build
-              bunx playwright test --config playwright.api.config.ts
+              bash tests/ci/e2e-run-shard.sh 1/1 --config playwright.api.config.ts
               ;;
             ci:rls)
               bun run app:prepare

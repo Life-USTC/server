@@ -45,6 +45,12 @@ grep -q '"e2e:test": "bash tests/ci/e2e-full-suite-parity.sh"' \
 grep -q '"e2e:test:parallel": "bash tests/ci/e2e-parallel-local.sh"' \
   "${repo_root}/package.json" ||
   fail 'package.json must expose the isolated local parallel runner'
+grep -q '"rest:test": "playwright test --config playwright.api.config.ts"' \
+  "${repo_root}/package.json" ||
+  fail 'package.json rest:test must remain a direct local Playwright command'
+grep -q '"e2e:visual": "VISUAL_REGRESSION=1 playwright test visual-matrix"' \
+  "${repo_root}/package.json" ||
+  fail 'package.json e2e:visual must remain a direct local Playwright command'
 
 grep -q 'bun run db:migrate:deploy' "$orchestration_script" ||
   fail "orchestration script must migrate before each shard"
@@ -86,12 +92,31 @@ if grep -q 'PLAYWRIGHT_BASE_URL = "http://localhost:3000"' \
 fi
 
 job_phase_script="${repo_root}/.github/workflows/db-backed-bun-job.yml"
+visual_script="${repo_root}/tests/ci/visual-regression.test.sh"
 grep -q 'bun run db:migrate:deploy' "$job_phase_script" ||
   fail "db-backed-bun-job.yml must migrate before E2E shards"
 grep -q 'bunx prisma db seed' "$job_phase_script" ||
   fail "db-backed-bun-job.yml must seed before E2E shards"
 grep -q 'bash tests/ci/e2e-run-shard.sh "\$E2E_SHARD"' "$job_phase_script" ||
   fail "db-backed-bun-job.yml must use the infrastructure-aware shard runner"
+grep -q 'bash tests/ci/e2e-run-shard.sh 1/1 --config playwright.api.config.ts' \
+  "$job_phase_script" ||
+  fail "ci:integration must use the infrastructure-aware API shard runner"
+if grep -q 'bunx playwright test --config playwright.api.config.ts' "$job_phase_script"; then
+  fail "ci:integration must not invoke Playwright directly"
+fi
+grep -q 'VISUAL_REGRESSION=1 bash tests/ci/e2e-run-shard.sh 1/1 visual-matrix' \
+  "$visual_script" ||
+  fail "visual regression must use the infrastructure-aware shard runner"
+if grep -q 'VISUAL_REGRESSION=1 bunx playwright test visual-matrix' "$visual_script"; then
+  fail "visual regression must not invoke Playwright directly"
+fi
+grep -q 'upload-artifact-name: playwright-report-integration' \
+  "${repo_root}/.github/workflows/ci.yml" ||
+  fail "integration Worker diagnostics must be uploaded as a CI artifact"
+grep -q 'upload-artifact-name: playwright-report-visual' \
+  "${repo_root}/.github/workflows/ci.yml" ||
+  fail "visual Worker diagnostics must be uploaded as a CI artifact"
 
 grep -q 'retries: 0' "$playwright_config" ||
   fail "Playwright must not retry deterministic tests"

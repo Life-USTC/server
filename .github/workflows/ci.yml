@@ -32,6 +32,12 @@ jobs:
       install-playwright: true
       job-phase: ci:integration
       timeout-minutes: 60
+      upload-artifact-name: playwright-report-integration
+      # Keep API Playwright and Worker-supervisor diagnostics when integration
+      # infrastructure fails before a report can be rendered.
+      upload-artifact-path: playwright-report/
+      upload-artifact-no-files-found: ignore
+      upload-artifact-always: true
   test-rls:
     name: PostgreSQL RLS Isolation Test
     needs: check
@@ -205,6 +211,11 @@ jobs:
       download-artifact-path: .svelte-kit
       job-phase: ci:visual-regression
       timeout-minutes: 45
+      upload-artifact-name: playwright-report-visual
+      # Includes visual Playwright output and attempt-specific Worker logs.
+      upload-artifact-path: playwright-report/
+      upload-artifact-no-files-found: ignore
+      upload-artifact-always: true
 
   publish-e2e-html-report:
     name: Publish E2E HTML report
