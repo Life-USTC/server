@@ -1,3 +1,4 @@
+import { runInNewContext } from "node:vm";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 const { logAppEventMock, writeWorkerRequestAnalyticsMock } = vi.hoisted(() => ({
@@ -26,6 +27,7 @@ import {
   observedEdgeResponse,
   resolveEdgeCacheOutcome,
   resolveWorkerQueue,
+  responseWithRequestId,
   setTrustedRequestIdHeader,
 } from "@/lib/log/worker-entrypoint-observability";
 
@@ -295,7 +297,7 @@ describe("worker entrypoint observability", () => {
   it("does not hide non-immutability request-id injection failures", () => {
     const response = new Response("unavailable");
     vi.spyOn(response.headers, "set").mockImplementation(() => {
-      throw new Error("header sink unavailable");
+      throw new TypeError("header sink unavailable");
     });
 
     const observed = observedEdgeResponse({
@@ -313,10 +315,25 @@ describe("worker entrypoint observability", () => {
       "error",
       "edge.request.observation.error",
       expect.objectContaining({
-        errorName: "Error",
+        errorName: "TypeError",
         failurePhase: "request-id",
       }),
     );
+  });
+
+  it("recognizes an immutable TypeError across realms", () => {
+    const response = new Response("cross-realm");
+    const foreignTypeError = runInNewContext(
+      'new TypeError("Can\'t modify immutable headers.")',
+    );
+    vi.spyOn(response.headers, "set").mockImplementation(() => {
+      throw foreignTypeError;
+    });
+
+    const observed = responseWithRequestId(response, "request-1");
+
+    expect(observed).not.toBe(response);
+    expect(observed.headers.get("x-request-id")).toBe("request-1");
   });
 
   it("only accepts the internal UUID header and strips external request ids", () => {

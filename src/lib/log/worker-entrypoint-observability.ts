@@ -138,62 +138,38 @@ function logEdgeObservationFailure(
   }
 }
 
-type ResponseHeadersWithCookieAccess = Headers & {
-  getAll?: (name: string) => string[];
-  getSetCookie?: () => string[];
-};
-type ResponseWithOptionalWebSocket = Response & {
-  readonly webSocket?: unknown;
-};
-type ResponseInitWithOptionalWebSocket = ResponseInit & {
-  webSocket?: unknown;
-};
-
-function copyResponseHeaders(response: Response) {
-  const headers = new Headers(response.headers);
-  const sourceHeaders = response.headers as ResponseHeadersWithCookieAccess;
-  const setCookieValues =
-    typeof sourceHeaders.getSetCookie === "function"
-      ? sourceHeaders.getSetCookie()
-      : typeof sourceHeaders.getAll === "function"
-        ? sourceHeaders.getAll("set-cookie")
-        : undefined;
-
-  if (setCookieValues) {
-    headers.delete("set-cookie");
-    for (const value of setCookieValues) {
-      headers.append("set-cookie", value);
-    }
-  }
-
-  return headers;
-}
-
 function isImmutableResponseHeadersError(error: unknown) {
+  // Workers does not expose a structured error code for immutable Headers.
+  // Match the runtime's TypeError name and stable message fragment, including
+  // errors crossing an isolate/realm boundary where instanceof is false.
+  const message =
+    typeof error === "object" &&
+    error !== null &&
+    "message" in error &&
+    typeof (error as { message?: unknown }).message === "string"
+      ? (error as { message: string }).message
+      : undefined;
   return (
-    error instanceof TypeError &&
-    error.message.toLowerCase().includes("immutable")
+    getSafeErrorName(error) === "TypeError" &&
+    message?.toLowerCase().includes("immutable") === true
   );
 }
 
-function responseWithRequestId(response: Response, requestId: string) {
+export function responseWithRequestId(response: Response, requestId: string) {
   try {
     response.headers.set("x-request-id", requestId);
     return response;
   } catch (error) {
     if (!isImmutableResponseHeadersError(error)) throw error;
-    const headers = copyResponseHeaders(response);
-    headers.set("x-request-id", requestId);
-    const init: ResponseInitWithOptionalWebSocket = {
-      headers,
-      status: response.status,
-      statusText: response.statusText,
-    };
-    const webSocket = (response as ResponseWithOptionalWebSocket).webSocket;
-    if (webSocket) {
-      init.webSocket = webSocket;
+    if (response.body?.locked || response.bodyUsed) {
+      throw new TypeError("Response body is locked or disturbed.");
     }
-    return new Response(response.body, init);
+    // Passing the original Response as init is the Workers-supported way to
+    // retain platform fields (cf, encodeBody, webSocket) and multi-value
+    // Set-Cookie headers while transferring ownership of the same body stream.
+    const wrapped = new Response(response.body, response);
+    wrapped.headers.set("x-request-id", requestId);
+    return wrapped;
   }
 }
 
