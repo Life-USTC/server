@@ -1,3 +1,10 @@
+## [1.93.3](https://github.com/Life-USTC/server/compare/v1.93.2...v1.93.3) (2026-08-27)
+
+
+### Performance Improvements
+
+* **observability:** reduce DB work and harden telemetry ([5dfdc78](https://github.com/Life-USTC/server/commit/5dfdc7858486e3a97be21cbf465a96e8c77df652))
+
 ## [1.93.2](https://github.com/Life-USTC/server/compare/v1.93.1...v1.93.2) (2026-08-26)
 
 
