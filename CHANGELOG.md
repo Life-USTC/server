@@ -1,3 +1,10 @@
+# [1.95.0](https://github.com/Life-USTC/server/compare/v1.94.1...v1.95.0) (2026-08-27)
+
+
+### Features
+
+* **comments:** bound comment threads and panel loading ([679d3be](https://github.com/Life-USTC/server/commit/679d3be6012b3cc486e789874a6f32100adc5812)), closes [#933](https://github.com/Life-USTC/server/issues/933)
+
 ## [1.94.1](https://github.com/Life-USTC/server/compare/v1.94.0...v1.94.1) (2026-08-27)
 
 
