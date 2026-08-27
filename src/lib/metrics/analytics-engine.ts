@@ -42,6 +42,7 @@ type PageRequestAnalyticsInput = {
 
 type McpTransportAnalyticsInput = {
   errorName?: string;
+  hasError?: boolean;
   ioObservedDurationMs: number;
   method: string;
   path: string;
@@ -382,6 +383,141 @@ const MCP_ERROR_NAMES = new Set([
   "TimeoutError",
   "TypeError",
 ]);
+const API_ROUTE_FAMILIES = new Set([
+  "account",
+  "admin",
+  "auth",
+  "calendar-feeds",
+  "catalog",
+  "community",
+  "graphql",
+  "health",
+  "mcp",
+  "openapi",
+  "search",
+  "users",
+  "workspace",
+]);
+const API_AUTH_MODES = new Set([
+  "anonymous",
+  "bearer",
+  "cookie",
+  "oauth",
+  "session",
+  "unknown",
+]);
+const API_EVENTS = new Set(["error", "finish"]);
+const AUDIT_EVENTS = new Set(["error", "success"]);
+const QUEUE_NAMES = new Set(["audit", "calendar", "unknown"]);
+const QUEUE_MESSAGE_TYPES = new Set(["audit-log.write.v1", "unknown"]);
+const QUEUE_OUTCOMES = new Set(["error", "partial", "retry", "success"]);
+const OAUTH_EVENTS = new Set([
+  "better-auth.error",
+  "better-auth.response",
+  "device-authorization.error",
+  "device-authorization.response",
+  "grant-validation-failed",
+  "oauth.authorization.code-binding-failed",
+  "oauth.authorization.code-binding-rejected",
+  "oauth.authorization.grant-expectation-failed",
+  "oauth.introspection.grant-verification-failed",
+  "oauth.token.error_response",
+  "oauth.token.invalid_grant",
+  "oauth.token.invalid_request",
+  "token.error",
+  "token.response",
+  "token.stage.error",
+  "token.stage.success",
+]);
+const OAUTH_GRANT_TYPES = new Set([
+  "authorization_code",
+  "client_credentials",
+  "device_code",
+  "none",
+  "refresh_token",
+  "urn:ietf:params:oauth:grant-type:device_code",
+]);
+const OAUTH_PHASES = new Set([
+  "bind-access-token-consent",
+  "code-binding",
+  "cleanup-rejected-refresh-grant",
+  "create-grant",
+  "grant-expectation",
+  "grant-verification",
+  "persist-refresh-resources",
+  "recheck-active-refresh-grant",
+  "resolve-active-refresh-grant",
+  "resolve-grant",
+  "validate-active-grant",
+  "validate-refresh-resources",
+]);
+const OAUTH_STATUS_REASONS = new Set([
+  "invalid_client",
+  "invalid_grant",
+  "invalid_request",
+  "invalid_scope",
+  "invalid_token",
+  "server_error",
+  "unsupported_grant_type",
+  ...MCP_ERROR_NAMES,
+]);
+const AUDIT_ACTIONS = new Set([
+  "account_calendar_token_create",
+  "account_calendar_token_rotate",
+  "account_credential_update",
+  "account_create",
+  "account_delete",
+  "account_link",
+  "account_passkey_create",
+  "account_passkey_delete",
+  "account_passkey_update",
+  "account_profile_update",
+  "account_session_revoke",
+  "account_sign_in",
+  "account_sign_out",
+  "account_unlink",
+  "admin_bus_import",
+  "admin_bus_version_activate",
+  "admin_bus_version_delete",
+  "admin_comment_moderate",
+  "admin_description_moderate",
+  "admin_oauth_client_create",
+  "admin_oauth_client_delete",
+  "admin_user_profile_update",
+  "admin_user_role_update",
+  "admin_user_suspend",
+  "admin_user_unsuspend",
+  "comment_create",
+  "comment_delete",
+  "comment_edit",
+  "comment_react",
+  "description_edit",
+  "homework_create",
+  "homework_delete",
+  "homework_update",
+  "oauth_authorization_grant",
+  "oauth_authorization_revoke",
+  "oauth_authorization_update",
+  "section_reactivate",
+  "section_retire",
+  "upload_delete",
+  "webhook_login",
+]);
+const AUDIT_TARGET_TYPES = new Set([
+  "account",
+  "bus_schedule_version",
+  "calendar_feed",
+  "comment",
+  "description",
+  "homework",
+  "oauth_client",
+  "oauth_consent",
+  "section",
+  "section-teacher",
+  "session",
+  "upload",
+  "user",
+]);
 
 function finiteEnum(value: unknown, values: ReadonlySet<string>) {
   const candidate = typeof value === "string" ? value : "";
@@ -406,6 +542,29 @@ function workerRouteFamily(route: string) {
     return "public";
   }
   if (pathname.startsWith("/")) return "static";
+  return "unknown";
+}
+
+function apiRouteFamily(route: string) {
+  const pathname = route.split(/[?#]/, 1)[0] ?? route;
+  const segment = pathname.startsWith("/api/")
+    ? pathname.split("/", 3)[2]
+    : undefined;
+  return segment && API_ROUTE_FAMILIES.has(segment) ? segment : "other";
+}
+
+function oauthPathFamily(path: string) {
+  const pathname = path.split(/[?#]/, 1)[0] ?? path;
+  if (pathname.includes("/.well-known/")) return "well-known";
+  const segment = pathname.split("/").filter(Boolean).at(-1);
+  if (segment === "token") return "token";
+  if (segment === "device-authorization") return "device-authorization";
+  if (segment === "authorize") return "authorize";
+  if (segment === "callback") return "callback";
+  if (segment === "introspect") return "introspect";
+  if (segment === "register") return "register";
+  if (segment === "revoke") return "revoke";
+  if (pathname.startsWith("/api/auth/")) return "auth";
   return "unknown";
 }
 
@@ -552,16 +711,17 @@ export function writeWorkerRequestAnalytics(
 }
 
 export function writeApiRequestAnalytics(input: ApiRequestAnalyticsInput) {
+  const routeFamily = apiRouteFamily(input.route);
   writeAnalyticsDataPoint({
-    indexes: [boundedValue(input.route)],
+    indexes: [`api:${routeFamily}`],
     blobs: [
       "api_request_v2",
-      input.event,
-      boundedValue(input.method),
-      boundedValue(input.route),
+      finiteEnum(input.event, API_EVENTS),
+      safeHttpMethod(input.method),
+      routeFamily,
       String(input.status),
       statusClass(input.status),
-      boundedValue(input.authMode),
+      finiteEnum(input.authMode, API_AUTH_MODES),
     ],
     doubles: [input.ioObservedDurationMs, input.status],
   });
@@ -597,6 +757,8 @@ export function writePageRequestAnalytics(input: PageRequestAnalyticsInput) {
 
 export function writeMcpTransportAnalytics(input: McpTransportAnalyticsInput) {
   const rpcSummary = input.rpcSummary;
+  const responseHasError =
+    input.hasError === true || input.status >= 400 || input.phase === "error";
   const bodyKind = rpcSummary
     ? finiteEnum(rpcSummary.bodyKind, MCP_BODY_KINDS)
     : "none";
@@ -611,6 +773,11 @@ export function writeMcpTransportAnalytics(input: McpTransportAnalyticsInput) {
       bodyKind,
       mcpToolFamily(rpcSummary),
       mcpErrorClass(input.errorName),
+      responseHasError
+        ? "error"
+        : input.inspectionTruncated
+          ? "unknown"
+          : "success",
     ],
     doubles: [
       input.ioObservedDurationMs,
@@ -625,24 +792,31 @@ export function writeMcpTransportAnalytics(input: McpTransportAnalyticsInput) {
 
 export function writeOAuthEventAnalytics(input: OAuthEventAnalyticsInput) {
   const status = input.status ?? 0;
+  const pathFamily = oauthPathFamily(input.path ?? "");
   writeAnalyticsDataPoint({
-    indexes: [`oauth:${boundedValue(input.path ?? input.event)}`],
+    indexes: [`oauth:${pathFamily}`],
     blobs: [
       "oauth_event_v2",
-      input.event,
-      input.method ?? "unknown",
-      input.path ?? "unknown",
+      finiteEnum(input.event, OAUTH_EVENTS),
+      safeHttpMethod(input.method ?? ""),
+      pathFamily,
       String(status),
       statusClass(status),
-      input.grantType ?? "none",
+      input.grantType === undefined || input.grantType === null
+        ? "none"
+        : finiteEnum(input.grantType, OAUTH_GRANT_TYPES),
       input.hasResource === undefined
         ? "resource_unknown"
         : input.hasResource
           ? "has_resource"
           : "no_resource",
-      input.statusReason ?? "none",
-      input.phase ?? "none",
-      input.errorName ?? "none",
+      input.statusReason === undefined
+        ? "none"
+        : finiteEnum(input.statusReason, OAUTH_STATUS_REASONS),
+      input.phase === undefined
+        ? "none"
+        : finiteEnum(input.phase, OAUTH_PHASES),
+      input.errorName === undefined ? "none" : mcpErrorClass(input.errorName),
     ],
     doubles: [
       input.ioObservedDurationMs,
@@ -654,27 +828,30 @@ export function writeOAuthEventAnalytics(input: OAuthEventAnalyticsInput) {
 }
 
 export function writeAuditWriteAnalytics(input: AuditWriteAnalyticsInput) {
+  const action = finiteEnum(input.action, AUDIT_ACTIONS);
+  const targetType = finiteEnum(input.targetType, AUDIT_TARGET_TYPES);
   writeAnalyticsDataPoint({
-    indexes: [`audit:${boundedValue(input.action)}`],
+    indexes: [`audit:${action}`],
     blobs: [
       "audit_write_v2",
-      input.event,
-      input.action,
-      input.targetType ?? "unknown",
+      finiteEnum(input.event, AUDIT_EVENTS),
+      action,
+      targetType,
     ],
     doubles: [input.ioObservedDurationMs],
   });
 }
 
 export function writeQueueBatchAnalytics(input: QueueBatchAnalyticsInput) {
+  const queue = finiteEnum(input.queue, QUEUE_NAMES);
   writeAnalyticsDataPoint({
-    indexes: [`queue:${input.queue}`],
+    indexes: [`queue:${queue}`],
     blobs: [
       "queue_batch_v1",
       "finish",
-      input.queue,
-      input.outcome,
-      boundedValue(input.messageType),
+      queue,
+      finiteEnum(input.outcome, QUEUE_OUTCOMES),
+      finiteEnum(input.messageType, QUEUE_MESSAGE_TYPES),
     ],
     doubles: [
       finiteNumber(input.durationMs),

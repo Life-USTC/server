@@ -61,6 +61,8 @@ export function logMcpTransportRequest({
 
 export function logMcpTransportResponse({
   context,
+  hasError,
+  inspectionTruncated,
   ioObservedDurationMs,
   errorName,
   phase,
@@ -73,6 +75,8 @@ export function logMcpTransportResponse({
   authFailureDiagnostics?: McpAuthFailureDiagnostics | null;
   context: McpLogContext;
   errorName?: string;
+  hasError?: boolean;
+  inspectionTruncated?: boolean;
   ioObservedDurationMs: number;
   phase: McpResponsePhase;
   rpcSummary: McpRequestSummary | null;
@@ -81,7 +85,12 @@ export function logMcpTransportResponse({
   wwwAuthenticatePrefix?: string | null;
 }) {
   const { correlationId, request, requestUrl } = context;
+  const responseHasError =
+    hasError === true || status >= 400 || phase === "error";
+  const inspectionWasTruncated = inspectionTruncated === true;
   if (
+    !responseHasError &&
+    !inspectionWasTruncated &&
     !shouldLogSuccessfulRequest({
       durationMs: ioObservedDurationMs,
       requestId: correlationId,
@@ -91,23 +100,33 @@ export function logMcpTransportResponse({
   ) {
     return;
   }
-  logAppEvent(phase === "error" ? "error" : "info", "mcp.transport.response", {
-    correlationId,
-    method: request.method,
-    path: requestUrl.pathname,
-    status,
-    ioObservedDurationMs,
-    phase,
-    ...safeRpcSummary(rpcSummary),
-    ...(errorName === undefined ? {} : { errorName }),
-    ...(authFailureDiagnostics ?? {}),
-    ...(toolCount === undefined ? {} : { toolCount }),
-    ...(wwwAuthenticatePrefix === undefined ? {} : { wwwAuthenticatePrefix }),
-  });
+  logAppEvent(
+    phase === "error" || (responseHasError && phase === "handled")
+      ? "error"
+      : "info",
+    "mcp.transport.response",
+    {
+      correlationId,
+      method: request.method,
+      path: requestUrl.pathname,
+      status,
+      ioObservedDurationMs,
+      phase,
+      hasError: responseHasError,
+      inspectionTruncated: inspectionWasTruncated,
+      ...safeRpcSummary(rpcSummary),
+      ...(errorName === undefined ? {} : { errorName }),
+      ...(authFailureDiagnostics ?? {}),
+      ...(toolCount === undefined ? {} : { toolCount }),
+      ...(wwwAuthenticatePrefix === undefined ? {} : { wwwAuthenticatePrefix }),
+    },
+  );
   logOAuthDebug("mcp.response", request, {
     status,
     ioObservedDurationMs,
     phase,
+    hasError: responseHasError,
+    inspectionTruncated: inspectionWasTruncated,
     ...(authFailureDiagnostics ?? {}),
     ...(toolCount === undefined ? {} : { toolCount }),
     ...(wwwAuthenticatePrefix === undefined ? {} : { wwwAuthenticatePrefix }),

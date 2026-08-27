@@ -102,4 +102,71 @@ describe("MCP request logging", () => {
       "database unavailable",
     );
   });
+
+  it("retains HTTP 200 JSON-RPC application errors regardless of sampling", async () => {
+    const { logMcpTransportResponse } = await import(
+      "@/lib/api/routes/mcp-request-logging"
+    );
+    const request = new Request("https://life.example/api/mcp", {
+      method: "POST",
+    });
+
+    logMcpTransportResponse({
+      context: {
+        correlationId: "sampled-out-request",
+        request,
+        requestUrl: new URL(request.url),
+      },
+      hasError: true,
+      ioObservedDurationMs: 1,
+      phase: "handled",
+      rpcSummary: null,
+      status: 200,
+    });
+
+    expect(logAppEventMock).toHaveBeenCalledWith(
+      "error",
+      "mcp.transport.response",
+      expect.objectContaining({
+        hasError: true,
+        inspectionTruncated: false,
+        phase: "handled",
+        status: 200,
+      }),
+    );
+  });
+
+  it("retains truncated inspections without classifying them as successful", async () => {
+    const { logMcpTransportResponse } = await import(
+      "@/lib/api/routes/mcp-request-logging"
+    );
+    const request = new Request("https://life.example/api/mcp", {
+      method: "POST",
+    });
+
+    logMcpTransportResponse({
+      context: {
+        correlationId: "sampled-out-request",
+        request,
+        requestUrl: new URL(request.url),
+      },
+      hasError: false,
+      inspectionTruncated: true,
+      ioObservedDurationMs: 1,
+      phase: "handled",
+      rpcSummary: null,
+      status: 200,
+    });
+
+    expect(logAppEventMock).toHaveBeenCalledWith(
+      "info",
+      "mcp.transport.response",
+      expect.objectContaining({
+        hasError: false,
+        inspectionTruncated: true,
+        phase: "handled",
+        status: 200,
+      }),
+    );
+  });
 });

@@ -222,10 +222,13 @@ export async function handleMcpRequest(request: Request) {
     const responseInspection = await inspectMcpResponse(res);
     await finishMcpOAuthUsage(
       oauthUsage,
-      responseInspection.hasError ? "error" : "success",
+      responseInspection.hasError || responseInspection.truncated
+        ? "error"
+        : "success",
     );
     recordAndLogMcpResponse({
       context: logContext,
+      hasError: responseInspection.hasError,
       inspectionTruncated: responseInspection.truncated,
       request,
       phase: "handled",

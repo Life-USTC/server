@@ -8,8 +8,11 @@ import { writeAuditLog } from "@/lib/audit/write-audit-log";
 import { withBetterAuthOAuthDebug } from "@/lib/log/oauth-debug";
 import {
   resetAnalyticsEngineDiagnosticsForTest,
+  writeApiRequestAnalytics,
+  writeAuditWriteAnalytics,
   writeCommentsStageAnalytics,
   writeDashboardStageAnalytics,
+  writeMcpTransportAnalytics,
   writeOAuthEventAnalytics,
   writeQueueBatchAnalytics,
   writeWorkerRequestAnalytics,
@@ -243,6 +246,7 @@ describe("Cloudflare Analytics Engine runtime events", () => {
         "jsonrpc-single",
         "workspace",
         "none",
+        "success",
       ],
       doubles: [expect.any(Number), 1, 14, 0, 0, 0],
     });
@@ -252,6 +256,119 @@ describe("Cloudflare Analytics Engine runtime events", () => {
     expect(JSON.stringify(writeDataPoint.mock.calls)).not.toContain(
       "tools/call",
     );
+  });
+
+  it("retains MCP application errors and unknown inspection outcomes", () => {
+    const writeDataPoint = installAnalyticsBinding();
+    const summary = {
+      argumentKeys: [],
+      bodyKind: "jsonrpc-single" as const,
+      methods: ["tools/call"],
+      rpcCount: 1,
+      toolCalls: [],
+      toolNames: ["workspace_todo_list"],
+    };
+
+    writeMcpTransportAnalytics({
+      hasError: true,
+      ioObservedDurationMs: 2,
+      method: "POST",
+      path: "/api/mcp",
+      phase: "handled",
+      rpcSummary: summary,
+      status: 200,
+    });
+    writeMcpTransportAnalytics({
+      hasError: false,
+      inspectionTruncated: true,
+      ioObservedDurationMs: 2,
+      method: "POST",
+      path: "/api/mcp",
+      phase: "handled",
+      rpcSummary: summary,
+      status: 200,
+    });
+
+    expect(writeDataPoint).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({
+        blobs: expect.arrayContaining(["error"]),
+      }),
+    );
+    expect(writeDataPoint).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({
+        blobs: expect.arrayContaining(["unknown"]),
+      }),
+    );
+  });
+
+  it("normalizes API, OAuth, and audit dimensions to finite values", () => {
+    const writeDataPoint = installAnalyticsBinding();
+    const secret = "secret-route-or-action-123";
+
+    writeApiRequestAnalytics({
+      authMode: secret,
+      event: "finish",
+      ioObservedDurationMs: 1,
+      method: secret,
+      route: `/api/auth/${secret}/${secret}`,
+      status: 200,
+    });
+    writeOAuthEventAnalytics({
+      errorName: secret,
+      event: secret,
+      grantType: secret,
+      ioObservedDurationMs: 1,
+      method: secret,
+      path: `/api/auth/${secret}/${secret}`,
+      phase: secret,
+      status: 500,
+      statusReason: secret,
+    });
+    writeAuditWriteAnalytics({
+      action: secret,
+      event: "success",
+      ioObservedDurationMs: 1,
+      targetType: secret,
+    });
+
+    expect(writeDataPoint).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({
+        indexes: ["api:auth"],
+        blobs: [
+          "api_request_v2",
+          "finish",
+          "unknown",
+          "auth",
+          "200",
+          "2xx",
+          "unknown",
+        ],
+      }),
+    );
+    expect(writeDataPoint).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({
+        indexes: ["oauth:auth"],
+        blobs: expect.arrayContaining([
+          "oauth_event_v2",
+          "unknown",
+          "unknown",
+          "auth",
+          "unknown",
+        ]),
+      }),
+    );
+    expect(writeDataPoint).toHaveBeenNthCalledWith(
+      3,
+      expect.objectContaining({
+        indexes: ["audit:unknown"],
+        blobs: ["audit_write_v2", "success", "unknown", "unknown"],
+      }),
+    );
+    expect(JSON.stringify(writeDataPoint.mock.calls)).not.toContain(secret);
   });
 
   it("writes bounded worker and queue schemas", () => {
@@ -360,12 +477,12 @@ describe("Cloudflare Analytics Engine runtime events", () => {
 
     expect(response.status).toBe(201);
     expect(writeDataPoint).toHaveBeenCalledWith({
-      indexes: ["oauth:/api/auth/oauth2/token"],
+      indexes: ["oauth:token"],
       blobs: [
         "oauth_event_v2",
         "better-auth.response",
         "POST",
-        "/api/auth/oauth2/token",
+        "token",
         "201",
         "2xx",
         "none",
@@ -391,12 +508,12 @@ describe("Cloudflare Analytics Engine runtime events", () => {
     });
 
     expect(writeDataPoint).toHaveBeenCalledWith({
-      indexes: ["oauth:/api/auth/oauth2/token"],
+      indexes: ["oauth:token"],
       blobs: [
         "oauth_event_v2",
         "grant-validation-failed",
         "unknown",
-        "/api/auth/oauth2/token",
+        "token",
         "503",
         "5xx",
         "none",

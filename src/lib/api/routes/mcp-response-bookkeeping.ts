@@ -15,6 +15,7 @@ export function recordAndLogMcpResponse(input: {
     requestUrl: URL;
   };
   errorName?: string;
+  hasError?: boolean;
   inspectionTruncated?: boolean;
   phase: McpResponsePhase;
   request: Request;
@@ -26,11 +27,15 @@ export function recordAndLogMcpResponse(input: {
   wwwAuthenticatePrefix?: string | null;
 }) {
   const ioObservedDurationMs = elapsedMs(input.start);
+  const hasError =
+    input.hasError === true || input.status >= 400 || input.phase === "error";
   logMcpTransportResponse({
     authFailureDiagnostics: input.authFailureDiagnostics,
     context: input.context,
     ioObservedDurationMs,
     errorName: input.errorName,
+    hasError,
+    inspectionTruncated: input.inspectionTruncated,
     phase: input.phase,
     rpcSummary: input.rpcSummary,
     status: input.status,
@@ -39,6 +44,7 @@ export function recordAndLogMcpResponse(input: {
   });
   writeMcpTransportAnalytics({
     errorName: input.errorName,
+    hasError,
     ioObservedDurationMs,
     method: input.context.request.method,
     path: input.context.requestUrl.pathname,

@@ -1,5 +1,6 @@
 const MAX_RESPONSE_BYTES = 64 * 1024;
 const MAX_SSE_EVENTS = 8;
+const MAX_INSPECTION_DURATION_MS = 100;
 
 export type McpResponseInspection = {
   hasError: boolean;
@@ -46,6 +47,24 @@ export async function inspectMcpResponse(
     };
   }
 
+  const contentType = (
+    response.headers.get("content-type") ?? ""
+  ).toLowerCase();
+  const isSse = contentType.includes("text/event-stream");
+  const isJson =
+    contentType.includes("application/json") || contentType.includes("+json");
+
+  // Do not clone unsupported content. Response.clone() tees the body and can
+  // force the runtime to buffer an unbounded stream even though no
+  // classification is possible from it.
+  if (!isSse && !isJson) {
+    return {
+      hasError: false,
+      responseBytes: declaredContentLength(response),
+      truncated: false,
+    };
+  }
+
   const contentLength = declaredContentLength(response);
   if (contentLength !== undefined && contentLength > MAX_RESPONSE_BYTES) {
     return { hasError: false, responseBytes: contentLength, truncated: true };
@@ -62,15 +81,6 @@ export async function inspectMcpResponse(
   }
 
   const reader = clone.body.getReader();
-  const isSse = (response.headers.get("content-type") ?? "").includes(
-    "text/event-stream",
-  );
-  const isJson = (response.headers.get("content-type") ?? "").includes(
-    "application/json",
-  );
-  if (!isSse && !isJson) {
-    return { hasError: false, responseBytes: contentLength, truncated: false };
-  }
   const decoder = new TextDecoder();
   let bytesRead = 0;
   let text = "";
@@ -79,6 +89,8 @@ export async function inspectMcpResponse(
   let hasError = false;
   let truncated = false;
   let readerDone = false;
+  const deadlineToken = Symbol("mcp-inspection-deadline");
+  let deadlineTimer: ReturnType<typeof setTimeout> | undefined;
 
   const inspectSseLine = (line: string) => {
     if (!line.startsWith("data:")) return;
@@ -94,8 +106,22 @@ export async function inspectMcpResponse(
   };
 
   try {
+    const deadline = new Promise<typeof deadlineToken>((resolve) => {
+      deadlineTimer = setTimeout(
+        () => resolve(deadlineToken),
+        MAX_INSPECTION_DURATION_MS,
+      );
+    });
     while (!readerDone && !truncated) {
-      const result = await reader.read();
+      // Keep the read promise observed when the deadline wins. Cancellation
+      // below will settle the tee branch, but it must never delay the caller.
+      const readPromise = reader.read();
+      void readPromise.catch(() => undefined);
+      const result = await Promise.race([readPromise, deadline]);
+      if (result === deadlineToken) {
+        truncated = true;
+        break;
+      }
       if (result.done || !result.value) {
         readerDone = true;
         break;
@@ -143,16 +169,16 @@ export async function inspectMcpResponse(
   } catch {
     // Preserve the HTTP outcome when the clone cannot be inspected.
   } finally {
-    if (!readerDone) {
-      try {
-        // A Response clone is backed by a tee. Waiting for cancellation can
-        // block while the untouched original branch is still being consumed;
-        // invoke cancellation and observe its rejection without delaying the
-        // response path.
-        void reader.cancel().catch(() => undefined);
-      } catch {
-        // Inspection cleanup must not affect the response path.
-      }
+    if (deadlineTimer !== undefined) clearTimeout(deadlineTimer);
+    try {
+      // A Response clone is backed by a tee. Waiting for cancellation can
+      // block while the untouched original branch is still being consumed;
+      // invoke cancellation and observe its rejection without delaying the
+      // response path. Calling it even after EOF keeps the cleanup contract
+      // uniform for custom streams and tests.
+      void reader.cancel().catch(() => undefined);
+    } catch {
+      // Inspection cleanup must not affect the response path.
     }
     reader.releaseLock();
   }
@@ -165,6 +191,7 @@ export async function inspectMcpResponse(
 }
 
 export const MCP_RESPONSE_INSPECTION_LIMITS = {
+  inspectionDeadlineMs: MAX_INSPECTION_DURATION_MS,
   maxBytes: MAX_RESPONSE_BYTES,
   maxSseEvents: MAX_SSE_EVENTS,
 } as const;

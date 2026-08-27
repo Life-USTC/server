@@ -78,4 +78,56 @@ describe("MCP bounded response inspection", () => {
     expect(pulls).toBe(1);
     await expect(response.text()).resolves.toBe(body);
   });
+
+  it("bounds a non-closing one-event SSE and keeps the original stream readable", async () => {
+    const firstEvent = `data: ${JSON.stringify({ result: {} })}\n\n`;
+    const response = new Response(
+      new ReadableStream<Uint8Array>({
+        start(nextController) {
+          nextController.enqueue(encoder.encode(firstEvent));
+        },
+      }),
+      { headers: { "content-type": "text/event-stream" } },
+    );
+
+    const inspection = inspectMcpResponse(response);
+    const originalReader = response.body?.getReader();
+    await expect(originalReader?.read()).resolves.toMatchObject({
+      done: false,
+      value: expect.any(Uint8Array),
+    });
+    await expect(inspection).resolves.toEqual({
+      hasError: false,
+      responseBytes: expect.any(Number),
+      truncated: true,
+    });
+
+    await originalReader?.cancel();
+  });
+
+  it("does not clone or pull large bodies with an unsupported content type", async () => {
+    const body = "x".repeat(128 * 1024);
+    let pulls = 0;
+    const response = new Response(
+      new ReadableStream<Uint8Array>({
+        pull(nextController) {
+          pulls += 1;
+          nextController.enqueue(encoder.encode(body));
+          nextController.close();
+        },
+      }),
+      { headers: { "content-type": "application/octet-stream" } },
+    );
+
+    await Promise.resolve();
+    const pullsBeforeInspection = pulls;
+    await expect(inspectMcpResponse(response)).resolves.toEqual({
+      hasError: false,
+      responseBytes: undefined,
+      truncated: false,
+    });
+    expect(pulls).toBe(pullsBeforeInspection);
+    await expect(response.text()).resolves.toBe(body);
+    expect(pulls).toBe(1);
+  });
 });
