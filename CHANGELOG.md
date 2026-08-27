@@ -1,3 +1,10 @@
+# [1.94.0](https://github.com/Life-USTC/server/compare/v1.93.5...v1.94.0) (2026-08-27)
+
+
+### Features
+
+* **ui:** unify responsive page and homework design ([#947](https://github.com/Life-USTC/server/issues/947)) ([8a4ef0a](https://github.com/Life-USTC/server/commit/8a4ef0a36401736d5bba5d1fe111c12b4be29970))
+
 ## [1.93.5](https://github.com/Life-USTC/server/compare/v1.93.4...v1.93.5) (2026-08-27)
 
 
