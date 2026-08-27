@@ -1,12 +1,18 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { runWithCloudflareRuntimeEnv } from "@/lib/adapters/cloudflare-runtime";
+import { resetPublicRuntimeCacheForTest } from "@/lib/public-runtime-cache";
 
-const { courseFindManyMock, courseFindUniqueMock, teacherFindUniqueMock } =
-  vi.hoisted(() => ({
-    courseFindManyMock: vi.fn(),
-    courseFindUniqueMock: vi.fn(),
-    teacherFindUniqueMock: vi.fn(),
-  }));
+const {
+  courseFindManyMock,
+  courseFindUniqueMock,
+  getCatalogDetailCacheRevisionMock,
+  teacherFindUniqueMock,
+} = vi.hoisted(() => ({
+  courseFindManyMock: vi.fn(),
+  courseFindUniqueMock: vi.fn(),
+  getCatalogDetailCacheRevisionMock: vi.fn(),
+  teacherFindUniqueMock: vi.fn(),
+}));
 
 vi.mock("@/lib/db/prisma", () => ({
   getPrisma: () => ({
@@ -16,6 +22,10 @@ vi.mock("@/lib/db/prisma", () => ({
     },
     teacher: { findUnique: teacherFindUniqueMock },
   }),
+}));
+
+vi.mock("@/lib/catalog-detail-cache-revision", () => ({
+  getCatalogDetailCacheRevision: getCatalogDetailCacheRevisionMock,
 }));
 
 function prismaThenable<T>(value: T): PromiseLike<T> {
@@ -29,7 +39,13 @@ function prismaThenable<T>(value: T): PromiseLike<T> {
 
 describe("catalog detail page data", () => {
   beforeEach(() => {
+    resetPublicRuntimeCacheForTest();
     vi.clearAllMocks();
+    getCatalogDetailCacheRevisionMock.mockResolvedValue("test-revision");
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
   });
 
   it("loads a course without unused comment queries", async () => {
@@ -88,6 +104,107 @@ describe("catalog detail page data", () => {
     expect(teacherSelect?.sections?.take).toBe(20);
     expect(result).not.toHaveProperty("commentCount");
     expect(result).not.toHaveProperty("latestComments");
+  });
+
+  it("coalesces concurrent course core misses within the isolate", async () => {
+    let resolveCourse: ((value: unknown) => void) | undefined;
+    const course = { code: "MATH1001", id: 11, jwId: 101, sections: [] };
+    courseFindUniqueMock.mockReturnValue(
+      new Promise((resolve) => {
+        resolveCourse = resolve;
+      }),
+    );
+
+    const { getCoursePage } = await import(
+      "@/features/catalog/server/course-page-data"
+    );
+    const first = getCoursePage(course.jwId, "zh-cn");
+    const second = getCoursePage(course.jwId, "zh-cn");
+
+    await vi.waitFor(() => {
+      expect(courseFindUniqueMock).toHaveBeenCalledOnce();
+    });
+    resolveCourse?.(course);
+
+    await expect(Promise.all([first, second])).resolves.toEqual([
+      course,
+      course,
+    ]);
+    expect(courseFindUniqueMock).toHaveBeenCalledOnce();
+  });
+
+  it("reuses the immutable teacher core without caching request data", async () => {
+    const teacher = {
+      address: "Campus",
+      email: "teacher@example.test",
+      id: 21,
+      namePrimary: "Ada",
+      sections: [],
+    };
+    teacherFindUniqueMock.mockResolvedValue(teacher);
+
+    const { getTeacherPage } = await import(
+      "@/features/catalog/server/teacher-page-data"
+    );
+    const first = await getTeacherPage(teacher.id, "zh-cn");
+    const second = await getTeacherPage(teacher.id, "zh-cn");
+
+    expect(second).toEqual(first);
+    expect(teacherFindUniqueMock).toHaveBeenCalledOnce();
+    expect(first).not.toHaveProperty("viewer");
+    expect(first).not.toHaveProperty("description");
+    expect(first).not.toHaveProperty("comments");
+  });
+
+  it("isolates course core entries by locale and static revision", async () => {
+    courseFindUniqueMock.mockResolvedValue({
+      code: "MATH1001",
+      id: 11,
+      jwId: 101,
+      sections: [],
+    });
+    const { getCoursePage } = await import(
+      "@/features/catalog/server/course-page-data"
+    );
+
+    await getCoursePage(101, "zh-cn");
+    await getCoursePage(101, "en-us");
+    await getCoursePage(101, "zh-cn");
+    expect(courseFindUniqueMock).toHaveBeenCalledTimes(2);
+
+    getCatalogDetailCacheRevisionMock.mockResolvedValue("next-revision");
+    await getCoursePage(101, "zh-cn");
+    expect(courseFindUniqueMock).toHaveBeenCalledTimes(3);
+  });
+
+  it("uses a distinct bounded page-core cache shape", async () => {
+    vi.stubEnv("APP_CANONICAL_ORIGIN", "https://example.test");
+    const requests: Request[] = [];
+    vi.stubGlobal("caches", {
+      open: vi.fn(async () => ({
+        match: vi.fn(async (request: Request) => {
+          requests.push(request);
+          return undefined;
+        }),
+        put: vi.fn(async () => undefined),
+      })),
+    });
+    courseFindUniqueMock.mockResolvedValue({
+      code: "MATH1001",
+      id: 11,
+      jwId: 101,
+      sections: [],
+    });
+
+    const { getCoursePage } = await import(
+      "@/features/catalog/server/course-page-data"
+    );
+    await runWithCloudflareRuntimeEnv({}, () => getCoursePage(101, "en-us"));
+
+    expect(requests).toHaveLength(1);
+    expect(requests[0]?.url).toBe(
+      "https://example.test/_life-ustc-internal-cache/catalog-detail-core/v2/test-revision/course/page-core-v1/en-us/101",
+    );
   });
 
   it("strips Prisma extension symbols before returning load data", async () => {
@@ -188,29 +305,47 @@ describe("catalog detail page data", () => {
       },
     );
 
-    expect(spans).toEqual([
-      {
-        attributes: { "catalog.detail.kind": "course" },
-        name: "catalog.detail.course.query",
-      },
-      {
-        attributes: { "catalog.detail.kind": "course" },
-        name: "catalog.detail.course.transform",
-      },
-      {
-        attributes: { "catalog.detail.kind": "teacher" },
-        name: "catalog.detail.teacher.query",
-      },
-      {
-        attributes: { "catalog.detail.kind": "teacher" },
-        name: "catalog.detail.teacher.transform",
-      },
-    ]);
+    expect(spans).toEqual(
+      expect.arrayContaining([
+        {
+          attributes: expect.objectContaining({
+            "cache.layer": "colo",
+            "cache.namespace": "catalog:course-detail:zh-cn",
+          }),
+          name: "cache.colo.read",
+        },
+        {
+          attributes: { "catalog.detail.kind": "course" },
+          name: "catalog.detail.course.query",
+        },
+        {
+          attributes: { "catalog.detail.kind": "course" },
+          name: "catalog.detail.course.transform",
+        },
+        {
+          attributes: expect.objectContaining({
+            "cache.layer": "colo",
+            "cache.namespace": "catalog:teacher-detail:zh-cn",
+          }),
+          name: "cache.colo.read",
+        },
+        {
+          attributes: { "catalog.detail.kind": "teacher" },
+          name: "catalog.detail.teacher.query",
+        },
+        {
+          attributes: { "catalog.detail.kind": "teacher" },
+          name: "catalog.detail.teacher.transform",
+        },
+      ]),
+    );
     expect(JSON.stringify(spans)).not.toContain("101");
     expect(JSON.stringify(spans)).not.toContain("21");
-    expect(nativePromiseSpans).toEqual([
-      "catalog.detail.course.query",
-      "catalog.detail.teacher.query",
-    ]);
+    expect(nativePromiseSpans).toEqual(
+      expect.arrayContaining([
+        "catalog.detail.course.query",
+        "catalog.detail.teacher.query",
+      ]),
+    );
   });
 });
