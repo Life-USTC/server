@@ -7,10 +7,11 @@ afterEach(() => {
 
 describe("comment hash hydration", () => {
   it("hydrates one missing permalink thread and scrolls after it renders", async () => {
+    const scrollIntoView = vi.fn();
     let element: { scrollIntoView: () => void } | null = null;
     const loadMissingComment = vi.fn(async (commentId: string) => {
       expect(commentId).toBe("reply-21");
-      element = { scrollIntoView: vi.fn() };
+      element = { scrollIntoView };
     });
     const setHighlightedId = vi.fn();
     const waitForDom = vi.fn(async () => {});
@@ -31,7 +32,7 @@ describe("comment hash hydration", () => {
     ]);
 
     expect(loadMissingComment).toHaveBeenCalledOnce();
-    expect(element?.scrollIntoView).toHaveBeenCalledWith({
+    expect(scrollIntoView).toHaveBeenCalledWith({
       behavior: "smooth",
       block: "center",
     });

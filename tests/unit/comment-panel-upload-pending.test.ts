@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import type * as z from "zod";
 import type { CommentTargetLoadState } from "@/features/comments/lib/comment-panel-data";
 import type { CommentEditorMode } from "@/features/comments/lib/comment-panel-draft-state";
 import { createCommentPanelEditActions } from "@/features/comments/lib/comment-panel-edit-actions";
@@ -13,6 +14,7 @@ import type {
   CommentTargetOption,
 } from "@/features/comments/lib/comment-ui";
 import type { CommentNode } from "@/features/comments/server/comment-types";
+import type { commentThreadTargetSchema } from "@/lib/api/schemas/comment-target-response-schema";
 import type { ViewerContext } from "@/lib/auth/viewer-context";
 
 const apiClientMock = vi.hoisted(() => ({
@@ -128,7 +130,7 @@ function comment(overrides: Partial<CommentNode> = {}): CommentNode {
 
 function commentsThreadResponse(
   id = "comment-created",
-  overrides: Partial<typeof targetMetadata> = {},
+  overrides: Partial<z.infer<typeof commentThreadTargetSchema>> = {},
 ) {
   const { type: _type, targetId: _targetId, ...target } = targetMetadata;
   return {
