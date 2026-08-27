@@ -86,6 +86,7 @@ function prepareCachedRepresentation(response) {
   headers.delete("Vary");
   headers.delete("Content-Length");
   headers.delete("x-request-id");
+  headers.delete(INTERNAL_REQUEST_ID_HEADER);
   return new Response(response.body, {
     headers,
     status: response.status,
@@ -128,7 +129,7 @@ class ScriptNonceRewriter {
   }
 }
 
-function personalizeCachedResponse(response) {
+function personalizeCachedResponse(response, requestId) {
   const nonce = createNonce();
   const headers = new Headers(response.headers);
   const csp = headers.get("Content-Security-Policy");
@@ -141,6 +142,8 @@ function personalizeCachedResponse(response) {
   headers.delete("Content-Length");
   headers.delete("ETag");
   headers.delete("Server-Timing");
+  headers.delete(INTERNAL_REQUEST_ID_HEADER);
+  headers.set("x-request-id", requestId);
   headers.set("Cache-Control", "private, no-store");
   headers.set("Cloudflare-CDN-Cache-Control", "no-store");
   headers.set("Vary", "Accept-Language, Cookie");
@@ -439,7 +442,7 @@ async function handleFetch(request, env, context, requestId, edgeObservation) {
       cf: { cacheKey: cacheUrl.pathname + cacheUrl.search },
     });
   return finish(
-    personalizeCachedResponse(response),
+    personalizeCachedResponse(response, requestId),
     "public-ssr-cache",
     normalizePublicSsrObservedRoute(new URL(request.url).pathname),
     resolveEdgeCacheOutcome(response),

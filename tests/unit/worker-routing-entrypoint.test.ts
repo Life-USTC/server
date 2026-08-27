@@ -44,7 +44,7 @@ import {
   INTERNAL_REQUEST_ID_HEADER,
   normalizePublicSsrObservedRoute,
 } from "@/lib/log/worker-entrypoint-observability";
-import worker from "@/worker";
+import worker, { PublicSsr } from "@/worker";
 
 async function withHtmlRewriter<T>(callback: () => Promise<T>) {
   const globalScope = globalThis as typeof globalThis & {
@@ -250,6 +250,88 @@ describe("Worker routing entrypoint", () => {
         status: 200,
       }),
     );
+  });
+
+  it("does not store per-request ids in the shared cache representation", async () => {
+    appFetchMock.mockResolvedValue(
+      new Response(null, {
+        headers: {
+          "content-type": "text/html; charset=utf-8",
+          [INTERNAL_REQUEST_ID_HEADER]: "stale-internal-id",
+          "x-request-id": "stale-public-id",
+        },
+      }),
+    );
+
+    const cached = await new PublicSsr().fetch(
+      new Request("https://life-ustc.test/account/sign-in"),
+    );
+
+    expect(cached.headers.get("x-request-id")).toBeNull();
+    expect(cached.headers.get(INTERNAL_REQUEST_ID_HEADER)).toBeNull();
+  });
+
+  it("stamps each shared cache response with the current id and correlates one completion", async () => {
+    const cachedResponse = new Response(null, {
+      headers: {
+        "cf-cache-status": "HIT",
+        "content-type": "text/html; charset=utf-8",
+        [INTERNAL_REQUEST_ID_HEADER]: "stale-internal-id",
+        "x-request-id": "stale-public-id",
+      },
+    });
+    const publicSsrFetchMock = vi.fn().mockResolvedValue(cachedResponse);
+    const exports = {
+      PublicSsr: vi.fn(() => ({ fetch: publicSsrFetchMock })),
+    };
+    const context = { exports, waitUntil: vi.fn() };
+
+    const first = await withHtmlRewriter(() =>
+      worker.fetch(
+        new Request("https://life-ustc.test/account/sign-in", {
+          headers: {
+            accept: "text/html",
+            [INTERNAL_REQUEST_ID_HEADER]: "spoofed-internal-id",
+            "x-request-id": "spoofed-public-id",
+          },
+        }),
+        {},
+        context,
+      ),
+    );
+    const second = await withHtmlRewriter(() =>
+      worker.fetch(
+        new Request("https://life-ustc.test/account/sign-in", {
+          headers: {
+            accept: "text/html",
+            [INTERNAL_REQUEST_ID_HEADER]: "spoofed-internal-id-2",
+            "x-request-id": "spoofed-public-id-2",
+          },
+        }),
+        {},
+        context,
+      ),
+    );
+
+    const firstId = first.headers.get("x-request-id");
+    const secondId = second.headers.get("x-request-id");
+    expect(firstId).toMatch(/^[0-9a-f-]{36}$/i);
+    expect(secondId).toMatch(/^[0-9a-f-]{36}$/i);
+    expect(secondId).not.toBe(firstId);
+    expect(first.headers.get(INTERNAL_REQUEST_ID_HEADER)).toBeNull();
+    expect(second.headers.get(INTERNAL_REQUEST_ID_HEADER)).toBeNull();
+    expect(firstId).not.toMatch(/stale|spoofed/);
+    expect(secondId).not.toMatch(/stale|spoofed/);
+
+    const completions = logAppEventMock.mock.calls.filter(
+      ([, event]) => event === "edge.request.finish",
+    );
+    expect(completions).toHaveLength(2);
+    expect(completions.map(([, , fields]) => fields.requestId)).toEqual([
+      firstId,
+      secondId,
+    ]);
+    expect(publicSsrFetchMock).toHaveBeenCalledTimes(2);
   });
 
   it("records one error completion before retaining the detailed worker error", async () => {
