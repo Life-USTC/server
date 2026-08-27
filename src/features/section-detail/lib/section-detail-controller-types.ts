@@ -165,6 +165,7 @@ export type SectionDetailCopy = {
     advancedShow: string;
     cancel: string;
     completedLabel: string;
+    commentsTitle: string;
     contentHistoryAction: string;
     contentHistoryActor: string;
     createAction: string;
@@ -187,11 +188,16 @@ export type SectionDetailCopy = {
     loginToCreate: string;
     markComplete: string;
     markIncomplete: string;
+    moreDetails: string;
+    pendingLabel: string;
     publishedAt: string;
+    relativeTime: string;
     saveChanges: string;
+    saving: string;
     showCreate: string;
     submissionDue: string;
     submissionStart: string;
+    statusLabel: string;
     subtitle: string;
     tagDefault: string;
     tagMajor: string;

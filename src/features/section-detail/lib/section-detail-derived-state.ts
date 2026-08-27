@@ -95,7 +95,7 @@ export function sectionHomeworkStatus(
 ) {
   return homework.completion
     ? homeworkCopy.completedLabel
-    : homeworkCopy.tagDefault;
+    : homeworkCopy.pendingLabel;
 }
 
 export function sectionHomeworkAuditLogs(

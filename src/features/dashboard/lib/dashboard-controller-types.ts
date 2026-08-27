@@ -305,6 +305,7 @@ export interface DashboardHomeworksCopy extends HomeworkStyleGuideCopy {
   advancedShow: string;
   calendarButtonLabel: string;
   cancel: string;
+  completedLabel: string;
   commentsLabel: string;
   commentsTitle: string;
   completionFailed: string;
@@ -329,7 +330,10 @@ export interface DashboardHomeworksCopy extends HomeworkStyleGuideCopy {
   homeworkPublishedAt: string;
   markComplete: string;
   markIncomplete: string;
+  moreDetails: string;
+  pendingLabel: string;
   publishedAt: string;
+  relativeTime: string;
   saving: string;
   sectionLabel: string;
   statusLabel: string;

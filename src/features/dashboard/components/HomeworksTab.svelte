@@ -203,6 +203,7 @@ $: ({
       {homeworkSectionLabel}
       {homeworkStatus}
       {isCreatingHomework}
+      {referenceDate}
       sections={signedData.homeworks.sections}
       bind:selectedHomework
       {selectedCreateHomeworkSection}

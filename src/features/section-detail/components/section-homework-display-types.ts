@@ -14,6 +14,8 @@ export type SectionHomeworkCopy = HomeworkFormCopy &
     auditMeta: string;
     auditTitle: string;
     cancel: string;
+    completedLabel: string;
+    commentsTitle: string;
     contentHistoryAction: string;
     contentHistoryActor: string;
     deleteAction: string;
@@ -24,7 +26,12 @@ export type SectionHomeworkCopy = HomeworkFormCopy &
     helperSemesterStart: string;
     markComplete: string;
     markIncomplete: string;
+    moreDetails: string;
+    pendingLabel: string;
+    relativeTime: string;
     saveChanges: string;
+    saving: string;
+    statusLabel: string;
   };
 
 export type SectionHomeworkSectionCopy = {

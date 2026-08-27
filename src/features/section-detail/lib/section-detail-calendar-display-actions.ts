@@ -13,17 +13,18 @@ import {
 export function createSectionDetailCalendarDisplayActions(input: {
   getNotAvailable: () => string;
   getSectionCalendarEvents: () => SectionCalendarEvent[];
+  locale: string;
 }) {
   function fmtDate(value: string | Date | null | undefined) {
-    return formatDate(value, input.getNotAvailable());
+    return formatDate(value, input.getNotAvailable(), input.locale);
   }
 
   function fmtDateTime(value: string | Date | null | undefined) {
-    return formatDateTime(value, input.getNotAvailable());
+    return formatDateTime(value, input.getNotAvailable(), input.locale);
   }
 
   function fmtMonth(value: string | Date | null | undefined) {
-    return formatMonth(value, input.getNotAvailable());
+    return formatMonth(value, input.getNotAvailable(), input.locale);
   }
 
   function dateKeyValue(value: string | Date | null | undefined) {

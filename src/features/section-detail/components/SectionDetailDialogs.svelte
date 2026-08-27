@@ -40,10 +40,11 @@ export let homeworkAuditActorName: SectionDetailDialogsProps["homeworkAuditActor
 export let homeworkAuditLogs: SectionDetailDialogsProps["homeworkAuditLogs"];
 export let homeworkCopy: SectionDetailDialogsProps["homeworkCopy"];
 export let homeworkMessage: string;
-export let homeworkStatus: SectionDetailDialogsProps["homeworkStatus"];
 export let isCalendarDialogOpen: boolean;
 export let isHomeworkAuditDialogOpen: boolean;
+export let locale: string;
 export let sectionCopy: SectionDetailDialogsProps["sectionCopy"];
+export let sectionLabel: string;
 export let selectedHomework: SectionDetailDialogsProps["selectedHomework"];
 export let semesterDate: SectionDetailDialogsProps["semesterDate"];
 export let setCalendarDialogOpen: BooleanSetter;
@@ -148,9 +149,10 @@ $: if (isCalendarDialogOpen) {
   {homeworkAuditLogs}
   {homeworkCopy}
   {homeworkMessage}
-  {homeworkStatus}
   {isHomeworkAuditDialogOpen}
+  {locale}
   {sectionCopy}
+  {sectionLabel}
   sectionJwId={data.section.jwId}
   {selectedHomework}
   {semesterDate}
