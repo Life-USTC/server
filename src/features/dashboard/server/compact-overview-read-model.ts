@@ -1,7 +1,7 @@
 import { loadOverviewTodoBundle } from "@/features/todos/server/todo-service";
 import { type AppLocale, DEFAULT_LOCALE } from "@/i18n/config";
 import { runCloudflareTraceSpan } from "@/lib/adapters/cloudflare-runtime";
-import { withLocalizedUserDbContext, withUserDbContext } from "@/lib/db/prisma";
+import { withUserDbContext } from "@/lib/db/prisma";
 import { elapsedMs, monotonicNowMs } from "@/lib/log/observability-clock";
 import {
   type WorkspaceOverviewStage,
@@ -56,33 +56,9 @@ export async function getCompactOverview(
     locale?: AppLocale;
   } = {},
 ) {
-  return withLocalizedUserDbContext(locale, userId, () =>
-    loadCompactOverview(userId, {
-      atTime,
-      homeworkWindowDays,
-      includeSamples,
-      limit,
-      locale,
-    }),
-  );
-}
-
-async function loadCompactOverview(
-  userId: string,
-  {
-    atTime,
-    homeworkWindowDays,
-    includeSamples,
-    limit,
-    locale,
-  }: {
-    atTime: Date;
-    homeworkWindowDays: number;
-    includeSamples: boolean;
-    limit: number;
-    locale: AppLocale;
-  },
-) {
+  // Keep the aggregate orchestration outside a shared interactive
+  // transaction. Owner-scoped reads establish their own RLS contexts while
+  // public catalog reads can use the bounded Prisma pool concurrently.
   const todayStart = parseRequiredDateInput(formatShanghaiDate(atTime));
   const tomorrowStart = new Date(todayStart.getTime() + 24 * 60 * 60 * 1000);
   const homeworkWindowEnd = shanghaiDayjs(atTime)

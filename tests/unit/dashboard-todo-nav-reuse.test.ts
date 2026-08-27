@@ -76,7 +76,7 @@ function loadTab(tab: string) {
   });
 }
 
-describe("dashboard todo count reuse", () => {
+describe("dashboard todo count reuse and RLS fan-out", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     getDashboardOverviewDataMock.mockResolvedValue({});
@@ -120,7 +120,7 @@ describe("dashboard todo count reuse", () => {
         expect(getDashboardNavStatsMock).toHaveBeenCalledOnce();
       });
       expect(getDashboardOverviewDataMock).not.toHaveBeenCalled();
-      expect(withUserDbContextMock).toHaveBeenCalledOnce();
+      expect(withUserDbContextMock).not.toHaveBeenCalled();
 
       resolveTodos([
         { completed: false },
@@ -162,13 +162,13 @@ describe("dashboard todo count reuse", () => {
     );
   });
 
-  it("shares one RLS transaction and semester snapshot across todo and nav reads", async () => {
+  it("shares one semester snapshot while todo and nav reads stay independent", async () => {
     getTodosTabDataMock.mockResolvedValue([{ completed: false }]);
     getDashboardNavStatsMock.mockResolvedValue({ pendingTodosCount: 1 });
 
     await loadTab("overview");
 
-    expect(withUserDbContextMock).toHaveBeenCalledOnce();
+    expect(withUserDbContextMock).not.toHaveBeenCalled();
     expect(getDashboardSemestersMock).toHaveBeenCalledOnce();
     const semesters = await getDashboardSemestersMock.mock.results[0]?.value;
     expect(getDashboardNavStatsMock).toHaveBeenCalledWith(
