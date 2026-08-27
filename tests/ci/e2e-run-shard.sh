@@ -35,6 +35,23 @@ worker_failure_is_confirmed() {
   grep -Eq '^outcome=(startup_failure|worker_crash|health_failure)$' "$status_file"
 }
 
+reset_database_for_retry() {
+  # seed.sql intentionally preserves unrelated local rows and uses
+  # conflict-tolerant inserts. That makes it safe to run repeatedly, but not
+  # a complete reset after a shard has mutated its fixtures. CI owns a fresh
+  # database service, so recreate that database before the whole-shard replay;
+  # explicitly run the configured seed after the reset. Never drop a
+  # developer's local database just because a local shard failed.
+  if [[ "${CI:-}" == "true" || "${CI:-}" == "1" ]]; then
+    echo "Resetting the CI E2E database before replaying shard ${shard}." >&2
+    ALLOW_DATABASE_SEED=true "$bunx_bin" prisma migrate reset --force
+    ALLOW_DATABASE_SEED=true "$bunx_bin" prisma db seed
+  else
+    bun run db:migrate:deploy
+    "$bunx_bin" prisma db seed
+  fi
+}
+
 for attempt in $(seq 1 "$e2e_infra_retry_attempts"); do
   attempt_artifact_dir="${worker_artifact_root}/shard-${shard_number}/attempt-${attempt}"
   export E2E_WORKER_ARTIFACT_DIR="$attempt_artifact_dir"
@@ -71,6 +88,5 @@ for attempt in $(seq 1 "$e2e_infra_retry_attempts"); do
   fi
 
   echo "E2E shard ${shard} hit a confirmed Worker failure; reseeding before retry ${attempt}/${e2e_infra_retry_attempts}." >&2
-  bun run db:migrate:deploy
-  "$bunx_bin" prisma db seed
+  reset_database_for_retry
 done

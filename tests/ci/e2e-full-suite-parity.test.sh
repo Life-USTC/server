@@ -103,6 +103,10 @@ grep -Fq 'outcome=(startup_failure|worker_crash|health_failure)' "$shard_runner_
   fail "shard runner must classify only confirmed Worker failures"
 grep -q 'playwright test --shard=' "$shard_runner_script" ||
   fail "shard runner must execute the requested Playwright shard"
+grep -q 'prisma migrate reset --force' "$shard_runner_script" ||
+  fail "CI shard retries must reset the disposable database before replay"
+grep -q 'prisma db seed' "$shard_runner_script" ||
+  fail "CI shard retries must seed the reset database before replay"
 grep -q 'wrangler.log' "$worker_server_script" ||
   fail "Worker wrapper must capture Wrangler logs"
 grep -q 'bash tests/ci/e2e-worker-server.test.sh' "$job_phase_script" ||
