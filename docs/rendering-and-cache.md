@@ -37,6 +37,11 @@ cache.
 ## Contributor notes
 
 - Don't put user-specific data into a payload you intend to cache anonymously.
+- Catalog detail core reads use isolate L1 → per-colo Cache API → revision-scoped
+  KV → origin. Cache API keys include the static-import revision, locale, entity
+  kind, ID, and payload shape; the revision changes the key space when static
+  data is rematerialized. Cache failures remain fail-open, and only validated
+  non-null public objects are retained.
 - Keep `/_internal` in the dynamic/private gateway roots even though the shell
   fetches JSON rather than HTML.
 - Client navigation may warm route code on hover; data preload waits for

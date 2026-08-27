@@ -86,6 +86,12 @@ export const homeworksQuerySchema = z.object({
   pageSize: paginationPageSizeParam(homeworkPageSizeSchema),
 });
 
+export const homeworkAuditQuerySchema = z.object({
+  sectionId: integerStringSchema.optional(),
+  sectionIds: homeworkSectionIdsSchema.optional(),
+  sectionJwId: integerStringSchema.optional(),
+});
+
 export const subscribedHomeworksQuerySchema = z.object({
   page: homeworkPageSchema.optional(),
   pageSize: paginationPageSizeParam(homeworkPageSizeSchema),

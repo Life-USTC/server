@@ -221,7 +221,7 @@ export type SectionDetailMainContentProps = {
   sectionCalendarEvents: SectionCalendarEvent[];
   sectionCopy: SectionDetailMainSectionCopy;
   sectionTeachersLabel: SectionTeachersLabel;
-  setSelectedHomework: (homework: SectionHomework) => void;
+  setSelectedHomework: (homework: SectionHomework) => void | Promise<void>;
   retryStreamPanels: () => void;
   streamError: string | null;
   streamLoading: boolean;

@@ -1,12 +1,28 @@
 import "dotenv/config";
 import { copyFileSync, mkdirSync } from "node:fs";
 import { basename, dirname } from "node:path";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import { rollupWasm } from "@ethercorps/sveltekit-og/plugin";
 import { sveltekit } from "@sveltejs/kit/vite";
 import tailwindcss from "@tailwindcss/vite";
 import { defineConfig } from "vite";
 
-function prismaWasmModulePlugin() {
+const PRISMA_WASM_VIRTUAL_ID = "\0life-ustc:prisma-wasm-module";
+
+function prismaDevWasmModuleSource(wasmPath: string) {
+  return [
+    'import { readFileSync } from "node:fs";',
+    `export default new WebAssembly.Module(readFileSync(${JSON.stringify(wasmPath)}));`,
+  ].join("\n");
+}
+
+function resolvePrismaWasmPath(source: string, importer?: string) {
+  const withoutQuery = source.slice(0, -"?module".length);
+  if (!importer) return withoutQuery;
+  return fileURLToPath(new URL(withoutQuery, pathToFileURL(importer)));
+}
+
+export function prismaWasmModulePlugin(command: "build" | "serve") {
   const wasmFile = "query_compiler_fast_bg.wasm";
   const wasmModuleSuffix = `${wasmFile}?module`;
   let resolvedWasmPath: string | null = null;
@@ -16,11 +32,16 @@ function prismaWasmModulePlugin() {
     enforce: "pre" as const,
     resolveId(source: string, importer?: string) {
       if (!source.endsWith(wasmModuleSuffix)) return null;
-      resolvedWasmPath = importer
-        ? new URL(source.slice(0, -"?module".length), `file://${importer}`)
-            .pathname
-        : source.slice(0, -"?module".length);
+      resolvedWasmPath = resolvePrismaWasmPath(source, importer);
+      if (command === "serve") {
+        return PRISMA_WASM_VIRTUAL_ID;
+      }
       return { id: `${resolvedWasmPath}?module`, external: true };
+    },
+    load(id: string) {
+      return id === PRISMA_WASM_VIRTUAL_ID && resolvedWasmPath
+        ? prismaDevWasmModuleSource(resolvedWasmPath)
+        : null;
     },
     generateBundle() {
       if (!resolvedWasmPath) return;
@@ -63,7 +84,7 @@ export default defineConfig(({ command }) => ({
     assetsInlineLimit: assetInlineDecision,
   },
   plugins: [
-    prismaWasmModulePlugin(),
+    prismaWasmModulePlugin(command),
     katexModernFontsPlugin(),
     rollupWasm(),
     tailwindcss(),

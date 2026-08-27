@@ -92,7 +92,7 @@ async function loadSectionDetailPageData({
         async () =>
           (
             await import("./section-detail-homework-data")
-          ).getSectionHomeworkData(section.id, userId),
+          ).getSectionHomeworkData(section.id, userId, focusedHomeworkId),
       )
     : {
         auditLogs: [],

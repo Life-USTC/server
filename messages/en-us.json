@@ -1075,7 +1075,7 @@
       "title": "Last year contributions ({count})",
       "description": "Counts comments, uploads, homework creation, and homework completion activity.",
       "cell": "{count} activities on {date}",
-      "scrollLabel": "Contribution history. Scroll horizontally to review the full year.",
+      "scrollLabel": "Contribution history. Use arrow keys to move by day or week, and Home or End to move across a row. Scroll horizontally to review the full year.",
       "less": "Less",
       "more": "More",
       "empty": "No contribution activity available in the last year."

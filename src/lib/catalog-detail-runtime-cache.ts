@@ -7,8 +7,10 @@ import {
 import {
   cachedPublicRuntimeData,
   type PublicDetailColoCacheKind,
+  publicDetailColoCacheKey,
   publicDetailKvCacheKey,
 } from "@/lib/public-runtime-cache";
+import { getCanonicalOrigin } from "@/lib/site-url";
 
 /** L1 isolate + colo Cache API TTL for anonymous catalog entity core. */
 export const PUBLIC_DETAIL_RUNTIME_CACHE_TTL_MS =
@@ -18,17 +20,24 @@ export const PUBLIC_DETAIL_RUNTIME_CACHE_TTL_MS =
 export const PUBLIC_DETAIL_KV_CACHE_TTL_MS = PUBLIC_CATALOG_KV_CACHE_TTL_MS;
 
 export async function buildPublicDetailRuntimeCacheOptions<T>(input: {
-  coloCacheKey?: string;
   id: number;
   kind: PublicDetailColoCacheKind;
   kvShape: string;
   locale: AppLocale;
+  origin?: string;
   shouldCacheResult?: (result: T) => boolean;
   validateColoCacheResult?: (result: unknown) => boolean;
 }) {
   const revision = await getCatalogDetailCacheRevision();
   return {
-    coloCacheKey: input.coloCacheKey,
+    coloCacheKey: publicDetailColoCacheKey(
+      input.origin ?? getCanonicalOrigin(),
+      revision,
+      input.kind,
+      input.locale,
+      input.id,
+      input.kvShape,
+    ),
     kvCacheKey: publicDetailKvCacheKey(
       revision,
       input.kind,

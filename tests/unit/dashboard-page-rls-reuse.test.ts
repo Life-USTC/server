@@ -1,17 +1,10 @@
 import { describe, expect, it, vi } from "vitest";
 
-const {
-  getDashboardUserContextMock,
-  loadSignedDashboardTabDataMock,
-  withLocalizedUserDbContextMock,
-} = vi.hoisted(() => ({
-  getDashboardUserContextMock: vi.fn(),
-  loadSignedDashboardTabDataMock: vi.fn(),
-  withLocalizedUserDbContextMock: vi.fn(
-    async (_locale: string, _userId: string, action: () => Promise<unknown>) =>
-      action(),
-  ),
-}));
+const { getDashboardUserContextMock, loadSignedDashboardTabDataMock } =
+  vi.hoisted(() => ({
+    getDashboardUserContextMock: vi.fn(),
+    loadSignedDashboardTabDataMock: vi.fn(),
+  }));
 
 vi.mock("@/features/dashboard/server/dashboard-overview-data", () => ({
   getDashboardUserContext: getDashboardUserContextMock,
@@ -25,14 +18,10 @@ vi.mock("@/features/dashboard/server/dashboard-page-tab-data", () => ({
   ),
 }));
 
-vi.mock("@/lib/db/prisma", () => ({
-  withLocalizedUserDbContext: withLocalizedUserDbContextMock,
-}));
-
 import { loadSignedDashboardPageData } from "@/features/dashboard/server/dashboard-page-load-signed";
 
-describe("signed dashboard RLS reuse", () => {
-  it("loads user context, nav, and overview inside one localized transaction", async () => {
+describe("signed dashboard RLS boundaries", () => {
+  it("loads the shell context before independent tab read models", async () => {
     const context = {
       sectionIds: [12],
       subscribedSections: [{ id: 12, retiredAt: null, semesterId: 1 }],
@@ -66,12 +55,6 @@ describe("signed dashboard RLS reuse", () => {
       userId: "user-1",
     });
 
-    expect(withLocalizedUserDbContextMock).toHaveBeenCalledOnce();
-    expect(withLocalizedUserDbContextMock).toHaveBeenCalledWith(
-      "en-us",
-      "user-1",
-      expect.any(Function),
-    );
     expect(getDashboardUserContextMock).toHaveBeenCalledOnce();
     expect(loadSignedDashboardTabDataMock).toHaveBeenCalledOnce();
   });

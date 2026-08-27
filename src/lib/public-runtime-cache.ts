@@ -64,14 +64,10 @@ const PUBLIC_DETAIL_COLO_CACHE_NAME = "life-ustc-public-detail-core-v2";
 const PUBLIC_DETAIL_COLO_CACHE_SCHEMA = "catalog-detail-core-v2";
 const PUBLIC_DETAIL_COLO_CACHE_PATH =
   "/_life-ustc-internal-cache/catalog-detail-core/v2";
-const publicDetailColoCacheShapes = {
-  course: "core-without-sections",
-  section: "core-without-exams-schedules-related",
-  teacher: "core-without-sections",
-} as const;
+const publicDetailColoCacheKinds = ["course", "section", "teacher"] as const;
 
 export type PublicDetailColoCacheKind =
-  keyof typeof publicDetailColoCacheShapes;
+  (typeof publicDetailColoCacheKinds)[number];
 
 const globalForPublicRuntimeCache = globalThis as typeof globalThis & {
   __lifeUstcPublicRuntimeCache?: Map<string, CacheEntry<unknown>>;
@@ -514,15 +510,16 @@ function resolvePublicDetailKvCacheKey(options: {
     const url = new URL(options.coloCacheKey);
     const parts = url.pathname.split("/").filter(Boolean);
     const versionIndex = parts.indexOf("v2");
-    if (versionIndex === -1 || parts.length < versionIndex + 5) {
+    if (versionIndex === -1 || parts.length < versionIndex + 6) {
       return undefined;
     }
-    const kind = parts[versionIndex + 1];
-    const shape = parts[versionIndex + 2];
-    const locale = parts[versionIndex + 3];
-    const id = decodeURIComponent(parts[versionIndex + 4] ?? "");
-    if (!kind || !shape || !locale || !id) return undefined;
-    return `v2:${kind}:${locale}:${id}:${shape}`;
+    const revision = decodeURIComponent(parts[versionIndex + 1] ?? "");
+    const kind = parts[versionIndex + 2];
+    const shape = decodeURIComponent(parts[versionIndex + 3] ?? "");
+    const locale = parts[versionIndex + 4];
+    const id = decodeURIComponent(parts[versionIndex + 5] ?? "");
+    if (!revision || !kind || !shape || !locale || !id) return undefined;
+    return `v2:${revision}:${kind}:${locale}:${id}:${shape}`;
   } catch {
     return undefined;
   }
@@ -530,13 +527,14 @@ function resolvePublicDetailKvCacheKey(options: {
 
 export function publicDetailColoCacheKey(
   origin: string,
+  revision: string,
   kind: PublicDetailColoCacheKind,
   locale: AppLocale,
   id: number,
+  shape: string,
 ) {
-  const shape = publicDetailColoCacheShapes[kind];
   return new URL(
-    `${PUBLIC_DETAIL_COLO_CACHE_PATH}/${kind}/${shape}/${locale}/${encodeURIComponent(String(id))}`,
+    `${PUBLIC_DETAIL_COLO_CACHE_PATH}/${encodeURIComponent(revision)}/${kind}/${encodeURIComponent(shape)}/${locale}/${encodeURIComponent(String(id))}`,
     origin,
   ).toString();
 }
@@ -580,33 +578,6 @@ export function cachedPublicRuntimeData<T>(
     const kvCacheKey =
       options.kvCacheKey ?? resolvePublicDetailKvCacheKey(options);
     const kvTtlMs = options.kvTtlMs ?? ttlMs;
-    const kvRead = kvCacheKey
-      ? await runCloudflareTraceSpan(
-          "cache.kv.read",
-          {
-            "cache.layer": "kv",
-            "cache.namespace": analyticsNamespace,
-          },
-          async (span) => {
-            const result = await readKvCache<T>(
-              kvCacheKey,
-              kvTtlMs,
-              analyticsNamespace,
-              initialStoreSize,
-              options.validateColoCacheResult,
-            );
-            span?.setAttribute("cache.outcome", result.outcome);
-            return result;
-          },
-        )
-      : undefined;
-    if (kvRead?.hit) {
-      if (value) {
-        shortenCurrentEntryExpiry(store, storeKey, value, kvRead.expiresAt);
-      }
-      return kvRead.value;
-    }
-
     const coloCacheKey = options.coloCacheKey;
     const coloRead = coloCacheKey
       ? await runCloudflareTraceSpan(
@@ -633,6 +604,44 @@ export function cachedPublicRuntimeData<T>(
         shortenCurrentEntryExpiry(store, storeKey, value, coloRead.expiresAt);
       }
       return coloRead.value;
+    }
+
+    const kvRead = kvCacheKey
+      ? await runCloudflareTraceSpan(
+          "cache.kv.read",
+          {
+            "cache.layer": "kv",
+            "cache.namespace": analyticsNamespace,
+          },
+          async (span) => {
+            const result = await readKvCache<T>(
+              kvCacheKey,
+              kvTtlMs,
+              analyticsNamespace,
+              initialStoreSize,
+              options.validateColoCacheResult,
+            );
+            span?.setAttribute("cache.outcome", result.outcome);
+            return result;
+          },
+        )
+      : undefined;
+    if (kvRead?.hit) {
+      if (value) {
+        shortenCurrentEntryExpiry(store, storeKey, value, kvRead.expiresAt);
+      }
+      if (coloRead?.cache && coloRead.request) {
+        scheduleColoCacheWrite(
+          coloRead.cache,
+          coloRead.request,
+          kvRead.value,
+          Math.min(expiresAt, kvRead.expiresAt),
+          ttlMs,
+          analyticsNamespace,
+          initialStoreSize,
+        );
+      }
+      return kvRead.value;
     }
 
     const loadStart = monotonicNowMs();

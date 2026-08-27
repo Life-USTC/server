@@ -1,3 +1,20 @@
+## [1.93.4](https://github.com/Life-USTC/server/compare/v1.93.3...v1.93.4) (2026-08-27)
+
+
+### Bug Fixes
+
+* **a11y:** add roving focus to contribution heatmap ([#944](https://github.com/Life-USTC/server/issues/944)) ([296929f](https://github.com/Life-USTC/server/commit/296929ffbf0e056844b0fa16dfbd8ca6b2f7e1dd))
+* **a11y:** nest embedded Markdown headings ([#940](https://github.com/Life-USTC/server/issues/940)) ([c58ba7d](https://github.com/Life-USTC/server/commit/c58ba7d24db902f27eeb358d4bb00a41b1067295))
+* **a11y:** raise Bot bubble contrast ([#942](https://github.com/Life-USTC/server/issues/942)) ([47d6660](https://github.com/Life-USTC/server/commit/47d666004de3b32094d722c44868472bc4c3d414))
+* **dev:** load Prisma WASM through Vite ([#938](https://github.com/Life-USTC/server/issues/938)) ([f48924e](https://github.com/Life-USTC/server/commit/f48924e563cf0571cea5fe9a290fb2ce892327ea))
+* **worker:** refresh request IDs on cached SSR responses ([f114d06](https://github.com/Life-USTC/server/commit/f114d0648aa9aab591ea7169ea945259b43877ec))
+
+
+### Performance Improvements
+
+* **cache:** activate catalog detail colo cache ([#946](https://github.com/Life-USTC/server/issues/946)) ([5f57ed6](https://github.com/Life-USTC/server/commit/5f57ed6bc0f7623ea50b389b9053a425abcf2356))
+* **workspace:** split dashboard RLS read contexts ([#948](https://github.com/Life-USTC/server/issues/948)) ([8501545](https://github.com/Life-USTC/server/commit/8501545d57584f2779bd50a56b4d47ac9b8f091c))
+
 ## [1.93.3](https://github.com/Life-USTC/server/compare/v1.93.2...v1.93.3) (2026-08-27)
 
 

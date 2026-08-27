@@ -24,8 +24,13 @@ import { createSectionHomeworkTimestampActions } from "@/features/section-detail
 import { createSectionDetailUiActions } from "@/features/section-detail/lib/section-detail-ui-actions";
 import { createSectionDetailControllerDefaultState } from "@/features/section-detail/lib/section-detail-controller-default-state";
 import {
+  loadSectionHomeworkAuditLogs,
+  loadSectionHomeworkDetail,
+} from "@/features/section-detail/lib/homeworks";
+import {
   type SectionDetailActionData,
   type SectionDetailPageData,
+  type HomeworkAuditLog,
   type SectionHomework,
 } from "@/features/section-detail/lib/section-detail-controller-helpers";
 import SectionDetailDialogs from "@/features/section-detail/components/SectionDetailDialogs.svelte";
@@ -115,6 +120,46 @@ function syncFocusedHomework(homeworks: SectionHomework[]) {
   );
   if (focused) {
     _selectedHomework = focused;
+  }
+}
+
+let homeworkDetailRequest = 0;
+let homeworkAuditRequest = 0;
+
+async function selectHomework(homework: SectionHomework) {
+  const requestId = ++homeworkDetailRequest;
+  try {
+    const detail = await loadSectionHomeworkDetail<
+      SectionHomework,
+      HomeworkAuditLog
+    >(homework.id, _sectionCopy.operationFailed);
+    if (requestId !== homeworkDetailRequest) return;
+
+    const { section: _section, ...scopedHomework } = detail.homework;
+    _homeworkAuditLogs = detail.auditLogs;
+    _selectedHomework = scopedHomework;
+  } catch (error) {
+    if (requestId !== homeworkDetailRequest) return;
+    _homeworkMessage =
+      error instanceof Error ? error.message : _sectionCopy.operationFailed;
+  }
+}
+
+async function loadHomeworkAuditLogs() {
+  const requestId = ++homeworkAuditRequest;
+  try {
+    const auditLogs = await loadSectionHomeworkAuditLogs<HomeworkAuditLog>(
+      data.section.id,
+      _sectionCopy.operationFailed,
+    );
+    if (requestId !== homeworkAuditRequest || !_isHomeworkAuditDialogOpen)
+      return;
+    _homeworkAuditLogs = auditLogs;
+  } catch (error) {
+    if (requestId !== homeworkAuditRequest || !_isHomeworkAuditDialogOpen)
+      return;
+    _homeworkMessage =
+      error instanceof Error ? error.message : _sectionCopy.operationFailed;
   }
 }
 
@@ -459,9 +504,7 @@ onMount(() => {
     {sectionCalendarEvents}
     sectionCopy={_sectionCopy}
     sectionTeachersLabel={_sectionTeachersLabel}
-    setSelectedHomework={(homework) => {
-      _selectedHomework = homework;
-    }}
+    setSelectedHomework={selectHomework}
     {retryStreamPanels}
     {streamError}
     {streamLoading}
@@ -537,6 +580,7 @@ onMount(() => {
   }}
   setHomeworkAuditDialogOpen={(open) => {
     _isHomeworkAuditDialogOpen = open;
+    if (open) void loadHomeworkAuditLogs();
   }}
   setSelectedHomework={(homework) => {
     _selectedHomework = homework;

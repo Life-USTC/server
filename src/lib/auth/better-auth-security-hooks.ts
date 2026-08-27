@@ -346,7 +346,7 @@ async function auditEndpointResult(context: GenericEndpointContext) {
   const path = context.path;
   const action = actionForPath(path);
   if (!action) return;
-  const returned = context.context.returned;
+  const returned = (context.context as { returned?: unknown }).returned;
   const failed = isAPIError(returned);
 
   // Successful core mutations are emitted by committed database after hooks.

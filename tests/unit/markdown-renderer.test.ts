@@ -5,9 +5,24 @@ import {
   campusReferenceMarkdownPlugins,
   remarkCampusReferences,
 } from "@/features/markdown/lib/campus-reference-markdown";
-import { renderMarkdown } from "@/lib/components/markdown-preview-renderer";
+import {
+  renderEmbeddedMarkdown,
+  renderMarkdown,
+} from "@/lib/components/markdown-preview-renderer";
 
 describe("markdown 渲染器", () => {
+  it("preserves standalone headings and nests embedded headings below the host section", () => {
+    expect(renderMarkdown("# Page title")).toContain("<h1>Page title</h1>");
+
+    const embedded = renderEmbeddedMarkdown(
+      "# Embedded title\n\n## Subsection\n\n###### Deep heading",
+    );
+    expect(embedded).toContain("<h3>Embedded title</h3>");
+    expect(embedded).toContain("<h4>Subsection</h4>");
+    expect(embedded).toContain("<h6>Deep heading</h6>");
+    expect(embedded).not.toMatch(/<h1|<h2/);
+  });
+
   it("未注入特性插件时 campus 引用保持原样", () => {
     const html = renderMarkdown("See section#123 and teacher#456.");
 
@@ -50,5 +65,15 @@ describe("markdown 渲染器", () => {
     expect(description.content).toContain("<script>");
     expect(description.renderedHtml).toContain('href="/catalog/teachers/456"');
     expect(description.renderedHtml).not.toContain("<script>");
+  });
+
+  it("uses the embedded heading policy in serialized descriptions", () => {
+    const description = serializeDescriptionRecord({
+      id: "description-1",
+      content: "# Embedded title",
+    });
+
+    expect(description.renderedHtml).toContain("<h3>Embedded title</h3>");
+    expect(description.renderedHtml).not.toContain("<h1>");
   });
 });
