@@ -1,5 +1,7 @@
 <script lang="ts">
 import ChevronRightIcon from "@lucide/svelte/icons/chevron-right";
+import AdminListShell from "@/features/admin/components/AdminListShell.svelte";
+import AdminTableShell from "@/features/admin/components/AdminTableShell.svelte";
 import AdminWorkspace from "@/features/admin/components/AdminWorkspace.svelte";
 import {
   auditActionLabel,
@@ -174,7 +176,8 @@ function displayValue(value: unknown) {
           </Empty.Header>
         </Empty.Root>
       {:else}
-        <Item.Group class="gap-0 border-y py-1 xl:hidden">
+        <AdminListShell class="py-1 xl:hidden">
+          <Item.Group class="gap-0">
           {#each data.rows as row, index (row.id)}
             {@const actor = identity(row.user)}
             {@const subject = identity(row.subjectUser)}
@@ -190,10 +193,10 @@ function displayValue(value: unknown) {
               <Item.Footer>
                 <div class="grid w-full gap-2 text-xs">
                   <dl class="grid gap-2">
-                    {#if actor}<div><dt class="text-muted-foreground">{data.copy.audit.actorColumn}</dt><dd>{actor.label} <span class="break-all font-mono text-muted-foreground">{actor.id}</span></dd></div>{/if}
-                    {#if subject}<div><dt class="text-muted-foreground">{data.copy.audit.subjectColumn}</dt><dd>{subject.label} <span class="break-all font-mono text-muted-foreground">{subject.id}</span></dd></div>{/if}
-                    {#if row.oauthClientId}<div><dt class="text-muted-foreground">{data.copy.audit.clientColumn}</dt><dd>{row.clientName ?? row.oauthClientId}</dd></div>{/if}
-                    {#if row.targetType}<div><dt class="text-muted-foreground">{data.copy.audit.target}</dt><dd>{auditTargetLabel(data.locale, row.targetType)}{row.targetId ? ` · ${row.targetId}` : ""}</dd></div>{/if}
+                    {#if actor}<div><dt class="text-muted-foreground">{data.copy.audit.actorColumn}</dt><dd>{actor.label} <span class="block truncate font-mono text-muted-foreground" title={actor.id}>{actor.id}</span></dd></div>{/if}
+                    {#if subject}<div><dt class="text-muted-foreground">{data.copy.audit.subjectColumn}</dt><dd>{subject.label} <span class="block truncate font-mono text-muted-foreground" title={subject.id}>{subject.id}</span></dd></div>{/if}
+                    {#if row.oauthClientId}<div><dt class="text-muted-foreground">{data.copy.audit.clientColumn}</dt><dd class="truncate" title={row.clientName ?? row.oauthClientId}>{row.clientName ?? row.oauthClientId}</dd></div>{/if}
+                    {#if row.targetType}<div><dt class="text-muted-foreground">{data.copy.audit.target}</dt><dd class="truncate" title={row.targetId ? `${auditTargetLabel(data.locale, row.targetType)} · ${row.targetId}` : auditTargetLabel(data.locale, row.targetType)}>{auditTargetLabel(data.locale, row.targetType)}{row.targetId ? ` · ${row.targetId}` : ""}</dd></div>{/if}
                   </dl>
                   {#if row.metadata}
                     <details class="pt-1">
@@ -213,16 +216,11 @@ function displayValue(value: unknown) {
             </Item.Root>
             {#if index < data.rows.length - 1}<Item.Separator class="my-0" />{/if}
           {/each}
-        </Item.Group>
+          </Item.Group>
+        </AdminListShell>
 
-        <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
-        <div
-          class="hidden min-w-0 max-w-full overflow-x-auto [&>[data-slot=table-container]]:overflow-visible xl:block"
-          tabindex="0"
-          role="region"
-          aria-label={data.copy.audit.records}
-        >
-          <Table.Root class="min-w-[1100px]">
+        <AdminTableShell class="hidden xl:block" label={data.copy.audit.records}>
+          <Table.Root class="min-w-[72rem]">
             <Table.Caption class="sr-only">{data.copy.audit.records}</Table.Caption>
             <Table.Header>
               <Table.Row>
@@ -244,18 +242,18 @@ function displayValue(value: unknown) {
                 <Table.Row class="align-top">
                   <Table.Cell class="whitespace-nowrap">{formatDate.format(new Date(row.createdAt))}</Table.Cell>
                   <Table.Cell>{auditActionLabel(data.locale, row.action)}</Table.Cell>
-                  <Table.Cell>{actor?.label ?? "—"}{#if actor}<span class="block max-w-44 truncate font-mono text-xs text-muted-foreground">{actor.id}</span>{/if}</Table.Cell>
-                  <Table.Cell>{subject?.label ?? "—"}{#if subject}<span class="block max-w-44 truncate font-mono text-xs text-muted-foreground">{subject.id}</span>{/if}</Table.Cell>
-                  <Table.Cell>{row.clientName ?? row.oauthClientId ?? "—"}</Table.Cell>
+                  <Table.Cell class="max-w-0">{actor?.label ?? "—"}{#if actor}<span class="block max-w-full truncate font-mono text-xs text-muted-foreground" title={actor.id}>{actor.id}</span>{/if}</Table.Cell>
+                  <Table.Cell class="max-w-0">{subject?.label ?? "—"}{#if subject}<span class="block max-w-full truncate font-mono text-xs text-muted-foreground" title={subject.id}>{subject.id}</span>{/if}</Table.Cell>
+                  <Table.Cell class="max-w-0"><span class="block max-w-full truncate" title={row.clientName ?? row.oauthClientId ?? "—"}>{row.clientName ?? row.oauthClientId ?? "—"}</span></Table.Cell>
                   <Table.Cell class="text-center">{auditChannelLabel(data.locale, row.channel)}</Table.Cell>
                   <Table.Cell class="text-center"><Badge variant={row.outcome === "success" ? "secondary" : "destructive"}>{auditOutcomeLabel(data.locale, row.outcome)}</Badge></Table.Cell>
-                  <Table.Cell>{row.targetType ? auditTargetLabel(data.locale, row.targetType) : "—"}{row.targetId ? ` · ${row.targetId}` : ""}</Table.Cell>
+                  <Table.Cell class="max-w-0"><span class="block max-w-full truncate" title={row.targetType ? `${auditTargetLabel(data.locale, row.targetType)}${row.targetId ? ` · ${row.targetId}` : ""}` : "—"}>{row.targetType ? auditTargetLabel(data.locale, row.targetType) : "—"}{row.targetId ? ` · ${row.targetId}` : ""}</span></Table.Cell>
                   <Table.Cell class="max-w-72 text-xs">{#if row.metadata}<dl class="grid gap-1">{#each Object.entries(row.metadata) as [key, value]}<div><dt class="inline text-muted-foreground">{auditMetadataLabel(data.locale, key)}: </dt><dd class="inline break-words">{displayValue(value)}</dd></div>{/each}</dl>{:else}—{/if}</Table.Cell>
                 </Table.Row>
               {/each}
             </Table.Body>
           </Table.Root>
-        </div>
+        </AdminTableShell>
       {/if}
     </div>
 

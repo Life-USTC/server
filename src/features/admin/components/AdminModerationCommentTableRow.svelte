@@ -39,13 +39,15 @@ export let targetLabel: AdminModerationCommentFormatter;
       {/if}
     </div>
   </Table.Cell>
-  <Table.Cell>
-    {commentAuthorLabel(comment)}
+  <Table.Cell class="max-w-0">
+    {@const author = commentAuthorLabel(comment)}
+    <span class="block max-w-full truncate" title={author}>{author}</span>
   </Table.Cell>
   <Table.Cell>
     <a
-      class="block min-w-0 overflow-hidden hover:underline"
+      class="block min-w-0 max-w-full overflow-hidden hover:underline"
       href={targetHref(comment)}
+      title={targetLabel(comment)}
     >
       <TruncatedText text={targetLabel(comment)} />
     </a>
@@ -59,7 +61,7 @@ export let targetLabel: AdminModerationCommentFormatter;
       status={comment.status}
     />
   </Table.Cell>
-  <Table.Cell class="w-12 text-right">
+  <Table.Cell class="w-14 min-w-14 text-right">
     <TableRowActions class="justify-end">
       <TableIconButton
         label={copy.manageComment}
