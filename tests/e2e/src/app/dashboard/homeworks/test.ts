@@ -717,6 +717,21 @@ test.describe("仪表盘作业", () => {
 
     let homeworkId: string | undefined;
     const createDialog = page.locator('[data-slot="dialog-content"]').first();
+    const advancedSettings = createDialog.getByRole("button", {
+      name: /更多设置|More settings|收起更多设置|Hide more settings/i,
+    });
+    await expect(advancedSettings).toHaveAttribute("aria-expanded", "false");
+    await expect(
+      createDialog.getByRole("textbox", { name: /发布日期|Published/i }),
+    ).toHaveCount(0);
+    await advancedSettings.click();
+    await expect(
+      createDialog.getByRole("textbox", { name: /发布日期|Published/i }),
+    ).toBeVisible();
+    await advancedSettings.click();
+    await expect(
+      createDialog.getByRole("textbox", { name: /发布日期|Published/i }),
+    ).toHaveCount(0);
     await titleInput.fill(title);
     await createDialog
       .getByRole("textbox", { name: /Details|说明/i })

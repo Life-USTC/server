@@ -161,6 +161,8 @@ export type SectionDetailCopy = {
     auditEmpty: string;
     auditMeta: string;
     calendarButtonLabel: string;
+    advancedHide: string;
+    advancedShow: string;
     cancel: string;
     completedLabel: string;
     contentHistoryAction: string;
@@ -173,6 +175,7 @@ export type SectionDetailCopy = {
     descriptionEmpty: string;
     descriptionLabel: string;
     descriptionPlaceholder: string;
+    dueDateShortcuts: string;
     editAction: string;
     helperClear: string;
     helperMonth: string;

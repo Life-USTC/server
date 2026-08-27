@@ -1,15 +1,9 @@
 <script lang="ts">
-import HomeworkStyleGuide from "@/features/homeworks/components/HomeworkStyleGuide.svelte";
-import {
-  HOMEWORK_DESCRIPTION_MAX_LENGTH,
-  HOMEWORK_TITLE_MAX_LENGTH,
-} from "@/features/homeworks/lib/homework-limits";
-import { campusReferenceMarkdownPlugins } from "@/features/markdown/lib/campus-reference-markdown";
-import MarkdownEditor from "$lib/components/MarkdownEditor.svelte";
+import HomeworkFormFields from "@/features/homeworks/components/HomeworkFormFields.svelte";
+import HomeworkTagFields from "@/features/homeworks/components/HomeworkTagFields.svelte";
+import HomeworkTimestampFields from "@/features/homeworks/components/HomeworkTimestampFields.svelte";
 import * as Alert from "$lib/components/ui/alert/index.js";
-import { Checkbox } from "$lib/components/ui/checkbox/index.js";
 import * as Field from "$lib/components/ui/field/index.js";
-import { Input } from "$lib/components/ui/input/index.js";
 import * as NativeSelect from "$lib/components/ui/native-select/index.js";
 import type {
   DashboardHomeworkCommentsCopy,
@@ -18,7 +12,6 @@ import type {
   DashboardHomeworkCreateSectionGetter,
   DashboardHomeworkDateShortcut,
 } from "./dashboard-homework-create-types";
-import HomeworkCreateScheduleFields from "./HomeworkCreateScheduleFields.svelte";
 
 export let applyHomeworkDueAtSemesterEnd: DashboardHomeworkDateShortcut;
 export let applyHomeworkDueInMonth: DashboardHomeworkDateShortcut;
@@ -44,6 +37,18 @@ $: sectionOptions = sections.map((section) => ({
   value: String(section.id),
   label: homeworkSectionLabel(section),
 }));
+$: homeworkTimestampActions = {
+  dueAtSemesterEnd: applyHomeworkDueAtSemesterEnd,
+  dueInMonth: applyHomeworkDueInMonth,
+  dueInWeek: applyHomeworkDueInWeek,
+  publishNow: () => {
+    createHomeworkPublishedAt = toShanghaiDateTimeLocalValue(new Date());
+  },
+  startNow: applyHomeworkStartNow,
+};
+$: homeworkTimestampCapabilities = {
+  hasSemesterEnd: Boolean(selectedCreateHomeworkSection()?.semesterEnd),
+};
 </script>
 
 <Field.Group class="gap-4 px-5 py-4">
@@ -71,89 +76,28 @@ $: sectionOptions = sections.map((section) => ({
       {/each}
     </NativeSelect.Root>
   </Field.Field>
-  <Field.Field data-disabled={isCreatingHomework ? "true" : undefined}>
-    <Field.Label for="dashboard-homework-title">
-      {homeworksCopy.titleLabel}
-    </Field.Label>
-    <Input
-      data-testid="dashboard-homework-title"
-      id="dashboard-homework-title"
-      disabled={isCreatingHomework}
-      maxlength={HOMEWORK_TITLE_MAX_LENGTH}
-      name="title"
-      placeholder={homeworksCopy.titlePlaceholder}
-      required
-    />
-  </Field.Field>
-  <HomeworkStyleGuide
+  <HomeworkFormFields
+    commentsCopy={commentsCopy}
     copy={homeworksCopy}
-    testIdPrefix="dashboard-homework"
+    disabled={isCreatingHomework}
+    idPrefix="dashboard-homework"
+    markdownModeLabel={commentsCopy.markdownModeLabel}
+    styleGuidePrefix="dashboard-homework"
   />
-  <Field.Field data-disabled={isCreatingHomework ? "true" : undefined}>
-    <Field.Title id="dashboard-homework-description-label">
-      {homeworksCopy.descriptionLabel}
-    </Field.Title>
-    <MarkdownEditor
-      aria-labelledby="dashboard-homework-description-label"
-      disabled={isCreatingHomework}
-      guideLabel={commentsCopy.markdownGuide}
-      maxlength={HOMEWORK_DESCRIPTION_MAX_LENGTH}
-      modeLabel={commentsCopy.markdownModeLabel}
-      name="description"
-      placeholder={homeworksCopy.descriptionPlaceholder}
-      previewEmptyLabel={commentsCopy.previewEmpty}
-      remarkPlugins={campusReferenceMarkdownPlugins}
-      tabPreviewLabel={commentsCopy.tabPreview}
-      tabWriteLabel={commentsCopy.tabWrite}
-    />
-  </Field.Field>
-  <HomeworkCreateScheduleFields
-    {applyHomeworkDueAtSemesterEnd}
-    {applyHomeworkDueInMonth}
-    {applyHomeworkDueInWeek}
-    {applyHomeworkStartNow}
-    bind:createHomeworkAdvancedOpen
-    bind:createHomeworkPublishedAt
-    bind:createHomeworkSubmissionDueAt
-    bind:createHomeworkSubmissionStartAt
-    {homeworksCopy}
-    {isCreatingHomework}
-    {selectedCreateHomeworkSection}
-    {toShanghaiDateTimeLocalValue}
+  <HomeworkTimestampFields
+    actions={homeworkTimestampActions}
+    bind:advancedOpen={createHomeworkAdvancedOpen}
+    capabilities={homeworkTimestampCapabilities}
+    copy={homeworksCopy}
+    disabled={isCreatingHomework}
+    idPrefix="dashboard-homework"
+    bind:publishedAt={createHomeworkPublishedAt}
+    bind:submissionDueAt={createHomeworkSubmissionDueAt}
+    bind:submissionStartAt={createHomeworkSubmissionStartAt}
   />
-  <Field.Set data-disabled={isCreatingHomework ? "true" : undefined}>
-    <Field.Legend variant="label" class="sr-only">
-      {homeworksCopy.tagMajor} / {homeworksCopy.tagTeam}
-    </Field.Legend>
-    <Field.Group class="flex-row flex-wrap gap-4" data-slot="checkbox-group">
-      <Field.Field
-        data-disabled={isCreatingHomework ? "true" : undefined}
-        class="w-fit"
-        orientation="horizontal"
-      >
-        <Checkbox
-          disabled={isCreatingHomework}
-          id="dashboard-homework-is-major"
-          name="isMajor"
-        />
-        <Field.Label for="dashboard-homework-is-major">
-          {homeworksCopy.tagMajor}
-        </Field.Label>
-      </Field.Field>
-      <Field.Field
-        data-disabled={isCreatingHomework ? "true" : undefined}
-        class="w-fit"
-        orientation="horizontal"
-      >
-        <Checkbox
-          disabled={isCreatingHomework}
-          id="dashboard-homework-requires-team"
-          name="requiresTeam"
-        />
-        <Field.Label for="dashboard-homework-requires-team">
-          {homeworksCopy.tagTeam}
-        </Field.Label>
-      </Field.Field>
-    </Field.Group>
-  </Field.Set>
+  <HomeworkTagFields
+    copy={homeworksCopy}
+    disabled={isCreatingHomework}
+    idPrefix="dashboard-homework"
+  />
 </Field.Group>
