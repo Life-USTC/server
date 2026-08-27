@@ -23,6 +23,9 @@ export type {
 export function buildCommentNodes(
   rawComments: RawComment[],
   viewer: ViewerInfo,
+  options: {
+    repliesNextCursorByRootId?: ReadonlyMap<string, string | null>;
+  } = {},
 ) {
   const childrenMap = buildCommentChildrenMap(rawComments);
   const nonDeletedIds = buildNonDeletedCommentIds(rawComments);
@@ -53,6 +56,12 @@ export function buildCommentNodes(
     }
 
     visibleNodes.set(comment.id, node);
+    const repliesNextCursor = options.repliesNextCursorByRootId?.get(
+      comment.id,
+    );
+    if (repliesNextCursor !== undefined) {
+      node.repliesNextCursor = repliesNextCursor;
+    }
   }
 
   const roots: CommentNode[] = [];

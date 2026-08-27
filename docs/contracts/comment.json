@@ -14,7 +14,7 @@
     "markdown-font-csp": "Production builds emit Markdown and KaTeX font files as same-origin assets instead of data URIs so every required math glyph can load under the configured font-src Content Security Policy.",
     "visibility-modes": "Supports public and signed-in-only audience visibility; anonymous posting is represented by comment.isAnonymous and hides identity from regular users while remaining traceable by admins in governance scenarios.",
     "shared-read-policy": "Web, REST, and MCP comment reads share the same target resolution, thread serialization, visibility filtering, author masking, reaction, attachment, and viewer action-flag logic; read-only paths must not create durable comment targets and valid empty section-teacher targets load as empty threads.",
-    "thread-pagination": "Comment list pagination counts viewer-visible root threads and selects roots by createdAt then id in ascending order before returning each selected root with its complete reply tree. The existing verified-author-first display ordering is applied within each returned page. REST uses page/pageSize with deprecated limit compatibility; MCP uses page/limit. Pagination never severs replies from their root thread, and meta.hiddenCount remains a target-wide count for anonymous viewers.",
+    "thread-pagination": "Root lists use viewer-visible roots ordered by createdAt/id and include at most 10 visible descendants. repliesNextCursor is opaque; REST continuation is GET /api/community/comments/[id]/replies with pageSize up to 20, and MCP uses community_comment_replies. Continuation preserves bounded ancestry, ordering, permission/moderation flags, and target-wide anonymous hiddenCount.",
     "interaction-gate": "Edits, deletes, replies, and reaction changes require an authenticated, unsuspended viewer and an active visible comment target; deleted or softbanned comments must not expose canEdit/canDelete/canReply/canReact or accept those write actions. Admin moderation affordances require an unsuspended admin."
   },
   "capabilities": {
@@ -156,7 +156,16 @@
             "path": "/api/community/comments/[id]",
             "returns": "{ thread: Comment[], focusId: String, hiddenCount: Int, viewer, target }",
             "notes": [
-              "Returns 403 when the focused comment exists but is not visible to the viewer."
+              "Returns 403 when the focused comment exists but is not visible to the viewer.",
+              "The focused root is bounded to the same reply preview contract and exposes repliesNextCursor when more descendants are available."
+            ]
+          },
+          {
+            "path": "/api/community/comments/[id]/replies",
+            "returns": "{ rootId: String, thread: Comment[], nextCursor: String | null, viewer }",
+            "notes": [
+              "Pass repliesNextCursor from a root node to continue its reply preview; each response includes the root and at most 20 additional descendants.",
+              "The cursor is scoped to the root comment and invalid or cross-thread cursors return 400; hidden or inaccessible roots return 403."
             ]
           },
           {
@@ -175,14 +184,26 @@
             "auth": "user",
             "rest_equivalent": "GET /api/community/comments",
             "notes": [
-              "Accepts page and limit and preserves complete reply trees for each paged root comment."
+              "Accepts page and limit; each paged root contains a bounded reply preview and repliesNextCursor when continuation is available."
+            ]
+          },
+          {
+            "name": "community_comment_replies",
+            "returns": "{ found: Boolean, rootId: String, thread: Comment[], nextCursor: String | null, viewer }",
+            "auth": "user",
+            "rest_equivalent": "GET /api/community/comments/[id]/replies",
+            "notes": [
+              "Passes repliesNextCursor from community_comment_list or an earlier continuation response and caps each reply page at 20 descendants."
             ]
           },
           {
             "name": "community_comment_get",
             "returns": "{ found: Boolean, thread: Comment[], focusId: String, hiddenCount: Int, viewer, target }",
             "auth": "user",
-            "rest_equivalent": "GET /api/community/comments/[id]"
+            "rest_equivalent": "GET /api/community/comments/[id]",
+            "notes": [
+              "Returns a bounded focused thread; the root exposes repliesNextCursor when more descendants are available."
+            ]
           },
           {
             "name": "community_comment_create",
@@ -235,6 +256,7 @@
           "comment.status (non-active states)",
           "comment.reactions[] (counts per reaction type)",
           "comment.replies[] (threaded)",
+          "comment.repliesNextCursor (bounded reply continuation)",
           "comment.attachments[] filename/open action for signed-in viewers with attachment access",
           "canReply/canReact/canEdit/canDelete/canModerate actions",
           "Copy link action"

@@ -46,7 +46,8 @@ export function sortCommentReplies(nodes: CommentNode[], depth = 0) {
     const aVerified = a.author?.isUstcVerified ? 1 : 0;
     const bVerified = b.author?.isUstcVerified ? 1 : 0;
     if (aVerified !== bVerified) return bVerified - aVerified;
-    return a.createdAt.localeCompare(b.createdAt);
+    const createdAtOrder = a.createdAt.localeCompare(b.createdAt);
+    return createdAtOrder !== 0 ? createdAtOrder : a.id.localeCompare(b.id);
   });
 
   if (maxDepth) return;

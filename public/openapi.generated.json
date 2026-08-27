@@ -8288,6 +8288,87 @@
         }
       }
     },
+    "/api/community/comments/{id}/replies": {
+      "get": {
+        "operationId": "get-api-community-comments-id-replies",
+        "summary": "Continue a bounded reply preview for one comment root",
+        "tags": [
+          "community.comments"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            },
+            "required": true
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          {
+            "in": "query",
+            "name": "pageSize",
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "minimum": 1,
+              "maximum": 20
+            },
+            "description": "Number of items per page."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/commentRepliesResponseSchema"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/openApiErrorSchema"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/openApiErrorSchema"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/openApiErrorSchema"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/workspace/homeworks/{id}/completion": {
       "put": {
         "operationId": "setHomeworkCompletion",
@@ -8553,6 +8634,10 @@
               "$ref": "#/components/schemas/__schema0"
             }
           },
+          "repliesNextCursor": {
+            "nullable": true,
+            "type": "string"
+          },
           "attachments": {
             "type": "array",
             "items": {
@@ -8645,6 +8730,7 @@
           "parentId",
           "rootId",
           "replies",
+          "repliesNextCursor",
           "attachments",
           "reactions",
           "canReact",
@@ -8780,6 +8866,10 @@
               "$ref": "#/components/schemas/__schema1"
             }
           },
+          "repliesNextCursor": {
+            "nullable": true,
+            "type": "string"
+          },
           "attachments": {
             "type": "array",
             "items": {
@@ -8874,6 +8964,7 @@
           "parentId",
           "rootId",
           "replies",
+          "repliesNextCursor",
           "attachments",
           "reactions",
           "canReact",
@@ -33901,6 +33992,78 @@
         },
         "required": [
           "type"
+        ],
+        "additionalProperties": false
+      },
+      "commentRepliesResponseSchema": {
+        "type": "object",
+        "properties": {
+          "rootId": {
+            "type": "string"
+          },
+          "thread": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/__schema1"
+            }
+          },
+          "nextCursor": {
+            "nullable": true,
+            "type": "string"
+          },
+          "viewer": {
+            "type": "object",
+            "properties": {
+              "userId": {
+                "nullable": true,
+                "type": "string"
+              },
+              "name": {
+                "nullable": true,
+                "type": "string"
+              },
+              "image": {
+                "nullable": true,
+                "type": "string"
+              },
+              "isAdmin": {
+                "type": "boolean"
+              },
+              "isAuthenticated": {
+                "type": "boolean"
+              },
+              "isSuspended": {
+                "type": "boolean"
+              },
+              "suspensionReason": {
+                "nullable": true,
+                "type": "string"
+              },
+              "suspensionExpiresAt": {
+                "nullable": true,
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+              }
+            },
+            "required": [
+              "userId",
+              "name",
+              "image",
+              "isAdmin",
+              "isAuthenticated",
+              "isSuspended",
+              "suspensionReason",
+              "suspensionExpiresAt"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "rootId",
+          "thread",
+          "nextCursor",
+          "viewer"
         ],
         "additionalProperties": false
       },

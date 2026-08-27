@@ -62,6 +62,17 @@ export const commentsQuerySchema = commentTargetQueryInputSchema.extend({
   limit: deprecatedPaginationLimitParam(publicPageSizeSchema),
 });
 
+export const commentRepliesQuerySchema = z.object({
+  cursor: z.string().trim().min(1).optional(),
+  pageSize: paginationPageSizeParam(
+    integerStringRangeSchema({
+      minimum: 1,
+      maximum: 20,
+      message: "pageSize must be between 1 and 20",
+    }),
+  ),
+});
+
 export const uploadsQuerySchema = z.object({
   page: integerStringSchema.optional(),
   pageSize: paginationPageSizeParam(publicPageSizeSchema),

@@ -14,6 +14,7 @@ export {
   teachersQuerySchema,
 } from "./catalog-query-schemas";
 export {
+  commentRepliesQuerySchema,
   commentsQuerySchema,
   descriptionsQuerySchema,
   homeworkAuditQuerySchema,

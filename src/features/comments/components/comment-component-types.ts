@@ -34,6 +34,9 @@ export type CommentsCopy = {
   loginToComment: string;
   loginToView: string;
   loadFailed: string;
+  loadMoreComments: string;
+  loadMoreReplies: string;
+  loadTarget: string;
   markdownCommentLabel: string;
   markdownEditLabel: string;
   markdownGuide: string;

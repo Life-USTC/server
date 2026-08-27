@@ -1,5 +1,9 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { loadCommentThread } from "@/features/comments/server/comment-read-model";
+import {
+  loadCommentReplies,
+  loadCommentThread,
+  loadFocusedCommentThread,
+} from "@/features/comments/server/comment-read-model";
 import {
   createTestPrisma,
   disconnectTestPrisma,
@@ -230,4 +234,155 @@ describe("comment root pagination read model", () => {
       ]),
     );
   });
+
+  it("bounds reply payloads and continues from the preview cursor", async () => {
+    const previewMarker = `${marker}-reply-window`;
+    const root = await testPrisma.comment.create({
+      data: {
+        body: `${previewMarker}-root`,
+        sectionId,
+        status: "active",
+        visibility: "public",
+      },
+      select: { id: true },
+    });
+    await testPrisma.comment.createMany({
+      data: Array.from({ length: 21 }, (_, index) => ({
+        body: `${previewMarker}-reply-${index + 1}`,
+        parentId: root.id,
+        rootId: root.id,
+        sectionId,
+        status: "active" as const,
+        visibility: "public" as const,
+      })),
+    });
+
+    try {
+      const firstPage = await loadCommentThread({
+        pagination: { pageSize: 100, skip: 0 },
+        target: {
+          empty: false,
+          homeworkId: null,
+          sectionId: null,
+          sectionTeacherId: null,
+          targetId: sectionId,
+          teacherId: null,
+          verified: true,
+          whereTarget: { sectionId },
+        },
+        viewer: {
+          image: null,
+          isAdmin: false,
+          isAuthenticated: false,
+          isSuspended: false,
+          name: null,
+          suspensionExpiresAt: null,
+          suspensionReason: null,
+          userId: null,
+        },
+        viewerUserId: null,
+      });
+      const rootPreview = firstPage.comments.find(
+        (comment) => comment.id === root.id,
+      );
+
+      expect(rootPreview?.replies).toHaveLength(10);
+      expect(rootPreview?.repliesNextCursor).toEqual(expect.any(String));
+      expect(JSON.stringify(rootPreview)).not.toContain(
+        `${previewMarker}-reply-11`,
+      );
+      expect(JSON.stringify(rootPreview).length).toBeLessThan(20_000);
+
+      const continuation = await loadCommentReplies({
+        commentId: root.id,
+        cursor: rootPreview?.repliesNextCursor,
+        pageSize: 20,
+        viewerUserId: null,
+      });
+      expect(continuation.ok).toBe(true);
+      if (!continuation.ok) return;
+      expect(continuation.nextCursor).toBeNull();
+      expect(continuation.thread[0]?.replies).toHaveLength(11);
+      expect(
+        continuation.thread[0]?.replies.map((reply) => reply.id),
+      ).not.toEqual(
+        expect.arrayContaining(
+          rootPreview?.replies.map((reply) => reply.id) ?? [],
+        ),
+      );
+    } finally {
+      await testPrisma.comment.deleteMany({
+        where: { body: { startsWith: previewMarker } },
+      });
+    }
+  });
+
+  it("keeps the focused reply's bounded ancestry outside the preview", async () => {
+    const focusMarker = `${marker}-focused-ancestry`;
+    const root = await testPrisma.comment.create({
+      data: {
+        body: `${focusMarker}-root`,
+        sectionId,
+        status: "active",
+        visibility: "public",
+      },
+      select: { id: true },
+    });
+    let parentId = root.id;
+    let focusId = root.id;
+    for (let index = 1; index <= 18; index += 1) {
+      const reply = await testPrisma.comment.create({
+        data: {
+          body: `${focusMarker}-reply-${index}`,
+          parentId,
+          rootId: root.id,
+          sectionId,
+          status: "active",
+          visibility: "public",
+        },
+        select: { id: true },
+      });
+      parentId = reply.id;
+      focusId = reply.id;
+    }
+
+    try {
+      const result = await loadFocusedCommentThread({
+        commentId: focusId,
+        viewerUserId: null,
+      });
+
+      expect(result.ok).toBe(true);
+      if (!result.ok) return;
+      const focused = findCommentNode(result.thread, focusId);
+      expect(focused).toBeDefined();
+      expect(findCommentNode(result.thread, root.id)).toBeDefined();
+      expect(countCommentNodes(result.thread)).toBe(19);
+    } finally {
+      await testPrisma.comment.deleteMany({
+        where: { body: { startsWith: focusMarker } },
+      });
+    }
+  });
 });
+
+type CommentTreeNode = { id: string; replies: CommentTreeNode[] };
+
+function findCommentNode(
+  nodes: CommentTreeNode[],
+  id: string,
+): CommentTreeNode | undefined {
+  for (const node of nodes) {
+    if (node.id === id) return node;
+    const nested = findCommentNode(node.replies, id);
+    if (nested) return nested;
+  }
+  return undefined;
+}
+
+function countCommentNodes(nodes: CommentTreeNode[]): number {
+  return nodes.reduce(
+    (count, node) => count + 1 + countCommentNodes(node.replies),
+    0,
+  );
+}

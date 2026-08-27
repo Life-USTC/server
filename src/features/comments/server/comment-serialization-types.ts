@@ -43,6 +43,8 @@ export type CommentNode = {
   parentId: string | null;
   rootId: string | null;
   replies: CommentNode[];
+  /** Opaque cursor for the next bounded reply page; null when complete. */
+  repliesNextCursor: string | null;
   attachments: CommentAttachmentSummary[];
   reactions: CommentReactionSummary[];
   canReact: boolean;

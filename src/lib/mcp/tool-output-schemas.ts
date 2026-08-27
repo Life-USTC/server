@@ -1286,6 +1286,7 @@ function createMcpCommentNodeSchema(includeRenderedBody: boolean): z.ZodType {
         parentId: z.string().nullable(),
         rootId: z.string().nullable(),
         replies: z.array(schema),
+        repliesNextCursor: z.string().nullable(),
         attachments: z.array(commentAttachmentSummarySchema),
         reactions: z.array(commentReactionSummarySchema),
         canReact: z.boolean(),
@@ -1333,6 +1334,16 @@ function commentThreadOutputSchema(commentSchema: z.ZodType) {
   });
 }
 
+function commentRepliesOutputSchema(commentSchema: z.ZodType) {
+  return objectOutputSchema({
+    found: z.boolean(),
+    rootId: z.string(),
+    thread: collectionOutputSchema(commentSchema),
+    nextCursor: z.string().nullable(),
+    viewer: z.unknown(),
+  });
+}
+
 function descriptionOutputSchema(descriptionSchema: z.ZodType) {
   return objectOutputSchema({
     target: z.unknown(),
@@ -1370,6 +1381,10 @@ const MARKDOWN_MODE_OUTPUT_SCHEMAS = {
   community_comment_get: {
     default: commentThreadOutputSchema(compactCommentNodeSchema),
     full: commentThreadOutputSchema(fullCommentNodeSchema),
+  },
+  community_comment_replies: {
+    default: commentRepliesOutputSchema(compactCommentNodeSchema),
+    full: commentRepliesOutputSchema(fullCommentNodeSchema),
   },
   community_description_get: {
     default: descriptionOutputSchema(compactDescriptionDetailSchema),
@@ -1523,6 +1538,7 @@ const TOOL_OUTPUT_SCHEMAS: Record<string, McpToolOutputSchema> = {
 
   community_comment_list: commentListMcpSchema,
   community_comment_get: commentThreadMcpSchema,
+  community_comment_replies: commentRepliesOutputSchema(commentNodeMcpSchema),
   community_comment_create: objectOutputSchema({
     success: z.boolean(),
     id: z.string(),

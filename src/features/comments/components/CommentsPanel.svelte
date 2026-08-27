@@ -7,6 +7,7 @@ import {
 } from "@/features/comments/lib/comment-panel-controller";
 import {
   type CommentsInitialData,
+  type CommentTargetLoadState,
   commentPostTargetOptions,
   resolveCommentTargets,
 } from "@/features/comments/lib/comment-panel-data";
@@ -78,6 +79,8 @@ let {
   _isAnonymous,
   _isDragActive,
   _loading,
+  _loadingReplyRootId,
+  _loadingTargetKey,
   _message,
   _messageVariant,
   _pendingReactionKey,
@@ -91,6 +94,7 @@ let {
   _replyVisibility,
   _selectedAttachments,
   _submitting,
+  _targetLoadStates,
   _uploadedFiles,
   _uploadPending,
   _viewer,
@@ -244,63 +248,77 @@ const {
   },
 });
 
-const { loadComments: _loadComments, submitComment: _submitComment } =
-  createCommentPanelLoadSubmitActions({
-    cancelReply: _cancelReply,
-    getBody: () => _body,
-    getCommentCopy: () => _commentCopy,
-    getIsAnonymous: () => _isAnonymous,
-    getReplyAttachmentIds: () => _replyAttachmentIds,
-    getReplyIsAnonymous: () => _replyIsAnonymous,
-    getReplyVisibility: () => _replyVisibility,
-    getSelectedAttachments: () => _selectedAttachments,
-    getShowAllTargets: () => showAllTargets,
-    getSubmitting: () => _submitting,
-    getTargetType: () => targetType,
-    getTargets: () => _resolvedTargets,
-    getVisibility: () => _visibility,
-    hasPendingUploads: (mode) =>
-      commentUploadPendingForMode(_uploadPending, mode),
-    scrollToHashComment: _scrollToHashComment,
-    selectedPostTarget: _selectedPostTarget,
-    onSuccess: (mode) => {
-      toast.success(
-        mode === "comment"
-          ? _commentCopy.postSuccess
-          : _commentCopy.replySuccess,
-      );
-    },
-    setBody: (value) => {
-      _body = value;
-    },
-    setComments: (value) => {
-      _comments = value;
-    },
-    setHiddenCount: (value) => {
-      _hiddenCount = value;
-    },
-    setLoading: (value) => {
-      _loading = value;
-    },
-    setMessage: (value) => {
-      _message = value;
-    },
-    setMessageVariant: (value) => {
-      _messageVariant = value;
-    },
-    setSelectedAttachments: (value) => {
-      _selectedAttachments = value;
-    },
-    setSubmitting: (value) => {
-      _submitting = value;
-    },
-    setUploadedFiles: (value) => {
-      _uploadedFiles = value;
-    },
-    setViewer: (value) => {
-      _viewer = value;
-    },
-  });
+const {
+  loadComments: _loadComments,
+  loadMoreComments: _loadMoreComments,
+  loadMoreReplies: _loadMoreReplies,
+  loadTarget: _loadTarget,
+  submitComment: _submitComment,
+} = createCommentPanelLoadSubmitActions({
+  cancelReply: _cancelReply,
+  getBody: () => _body,
+  getCommentCopy: () => _commentCopy,
+  getComments: () => _comments,
+  getIsAnonymous: () => _isAnonymous,
+  getReplyAttachmentIds: () => _replyAttachmentIds,
+  getReplyIsAnonymous: () => _replyIsAnonymous,
+  getReplyVisibility: () => _replyVisibility,
+  getSelectedAttachments: () => _selectedAttachments,
+  getShowAllTargets: () => showAllTargets,
+  getSubmitting: () => _submitting,
+  getTargetLoadStates: () => _targetLoadStates,
+  getTargetType: () => targetType,
+  getTargets: () => _resolvedTargets,
+  getVisibility: () => _visibility,
+  hasPendingUploads: (mode) =>
+    commentUploadPendingForMode(_uploadPending, mode),
+  scrollToHashComment: _scrollToHashComment,
+  selectedPostTarget: _selectedPostTarget,
+  onSuccess: (mode) => {
+    toast.success(
+      mode === "comment" ? _commentCopy.postSuccess : _commentCopy.replySuccess,
+    );
+  },
+  setBody: (value) => {
+    _body = value;
+  },
+  setComments: (value) => {
+    _comments = value;
+  },
+  setHiddenCount: (value) => {
+    _hiddenCount = value;
+  },
+  setLoading: (value) => {
+    _loading = value;
+  },
+  setLoadingReplyRootId: (value) => {
+    _loadingReplyRootId = value;
+  },
+  setLoadingTargetKey: (value) => {
+    _loadingTargetKey = value;
+  },
+  setMessage: (value) => {
+    _message = value;
+  },
+  setMessageVariant: (value) => {
+    _messageVariant = value;
+  },
+  setSelectedAttachments: (value) => {
+    _selectedAttachments = value;
+  },
+  setSubmitting: (value) => {
+    _submitting = value;
+  },
+  setTargetLoadStates: (value: CommentTargetLoadState[]) => {
+    _targetLoadStates = value;
+  },
+  setUploadedFiles: (value) => {
+    _uploadedFiles = value;
+  },
+  setViewer: (value) => {
+    _viewer = value;
+  },
+});
 
 const { uploadFile: _uploadFile } = createCommentPanelUploadActions({
   getEditAttachmentIds: () => _editAttachmentIds,
@@ -514,6 +532,11 @@ $: _editUploading = commentUploadPendingForMode(_uploadPending, "edit");
     formatTime={_formatTime}
     highlightedId={_highlightedId}
     loading={_loading}
+    loadingReplyRootId={_loadingReplyRootId}
+    loadingTargetKey={_loadingTargetKey}
+    loadMoreComments={_loadMoreComments}
+    loadMoreReplies={_loadMoreReplies}
+    loadTarget={_loadTarget}
     openDeleteDialog={_openDeleteDialog}
     pendingReactionKey={_pendingReactionKey}
     react={_react}
@@ -534,6 +557,7 @@ $: _editUploading = commentUploadPendingForMode(_uploadPending, "edit");
     statusLabel={_statusLabel}
     submitting={_submitting}
     submitComment={_submitComment}
+    targetLoadStates={_targetLoadStates}
     toggleReply={_toggleReply}
     uploadCopy={_uploadCopy}
     uploadFile={_uploadFile}

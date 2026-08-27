@@ -62,6 +62,7 @@ export function buildVisibleCommentNode({
     parentId: comment.parentId ?? null,
     rootId: comment.rootId ?? null,
     replies: [],
+    repliesNextCursor: null,
     attachments: canViewerAccessCommentAttachment(
       {
         status: rawStatus,

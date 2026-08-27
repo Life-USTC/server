@@ -40,6 +40,7 @@ export type CommentNode = {
   parentId: string | null;
   rootId: string | null;
   replies: CommentNode[];
+  repliesNextCursor: string | null;
   attachments: z.infer<typeof commentAttachmentSummarySchema>[];
   reactions: z.infer<typeof commentReactionSummarySchema>[];
   canReact: boolean;
@@ -65,6 +66,7 @@ export const commentNodeSchema: z.ZodType<CommentNode> = z.lazy(() =>
     parentId: z.string().nullable(),
     rootId: z.string().nullable(),
     replies: z.array(commentNodeSchema),
+    repliesNextCursor: z.string().nullable(),
     attachments: z.array(commentAttachmentSummarySchema),
     reactions: z.array(commentReactionSummarySchema),
     canReact: z.boolean(),

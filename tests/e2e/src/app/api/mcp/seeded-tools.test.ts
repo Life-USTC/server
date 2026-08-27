@@ -90,6 +90,7 @@ test.describe("/api/mcp - 种子工具覆盖", () => {
             "catalog_bus_departure_next",
             "community_comment_list",
             "community_comment_get",
+            "community_comment_replies",
             "community_comment_create",
             "community_comment_update",
             "community_comment_delete",
