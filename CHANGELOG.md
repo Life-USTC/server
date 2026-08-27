@@ -1,3 +1,10 @@
+## [1.94.1](https://github.com/Life-USTC/server/compare/v1.94.0...v1.94.1) (2026-08-27)
+
+
+### Bug Fixes
+
+* **ui:** harden mobile layout and accessibility targets ([#945](https://github.com/Life-USTC/server/issues/945)) ([a17f5c4](https://github.com/Life-USTC/server/commit/a17f5c448293744703282f92f133b0ca2e8b4a4b))
+
 # [1.94.0](https://github.com/Life-USTC/server/compare/v1.93.5...v1.94.0) (2026-08-27)
 
 
