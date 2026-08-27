@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  formatHomeworkDetailDateTime,
   formatHomeworkDueRelativeTime,
   homeworkDeadlineState,
   homeworkSummaryBadges,
@@ -65,6 +66,17 @@ describe("homework detail presentation", () => {
     expect(
       formatHomeworkDueRelativeTime(null, referenceDate, "zh-cn", "待定"),
     ).toBe("待定");
+  });
+
+  it("formats detail deadlines consistently in the campus timezone", () => {
+    expect(
+      formatHomeworkDetailDateTime(
+        "2026-05-03T23:00:00+08:00",
+        "zh-cn",
+        "待定",
+      ),
+    ).toBe("2026/5/3 23:00");
+    expect(formatHomeworkDetailDateTime(null, "zh-cn", "待定")).toBe("待定");
   });
 
   it("derives deadline state and shared badge semantics", () => {

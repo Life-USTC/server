@@ -3,6 +3,7 @@ import { commentTargetPermalinkBaseHref } from "@/features/comments/lib/comment-
 import HomeworkDetailDialog from "@/features/homeworks/components/HomeworkDetailDialog.svelte";
 import type { HomeworkDetailCommentsPanel } from "@/features/homeworks/components/homework-detail-types";
 import {
+  formatHomeworkDetailDateTime,
   formatHomeworkDueRelativeTime,
   normalizeHomeworkDetail,
 } from "@/features/homeworks/lib/homework-presentation";
@@ -81,17 +82,18 @@ $: permalinkBaseHref = _selectedHomework
   copy={_homeworkCopy}
   dateFallback={_sectionCopy.notAvailable}
   editing={_editingHomework}
-  fmtDate={_fmtDateTime}
+  fmtDate={(value) =>
+    formatHomeworkDetailDateTime(value, locale, _sectionCopy.notAvailable)}
   homework={detailHomework}
   onClose={close}
   onToggleCompletion={() => {
     if (_selectedHomework) return _toggleHomeworkCompletion(_selectedHomework);
   }}
   {permalinkBaseHref}
-  relativeEtaLabel={(value) =>
+  relativeEtaLabel={(value, liveReferenceDate) =>
     formatHomeworkDueRelativeTime(
       value,
-      new Date(),
+      liveReferenceDate,
       locale,
       _sectionCopy.notAvailable,
     )}

@@ -7,7 +7,11 @@ import type {
 } from "@/features/dashboard/lib/dashboard-controller-types";
 import HomeworkDetailDialog from "@/features/homeworks/components/HomeworkDetailDialog.svelte";
 import type { HomeworkDetailCommentsPanel } from "@/features/homeworks/components/homework-detail-types";
-import { normalizeHomeworkDetail } from "@/features/homeworks/lib/homework-presentation";
+import {
+  formatHomeworkDetailDateTime,
+  formatHomeworkDueRelativeTime,
+  normalizeHomeworkDetail,
+} from "@/features/homeworks/lib/homework-presentation";
 import { toShanghaiDateTimeLocalValue } from "@/lib/time/shanghai-format";
 import type {
   DashboardHomeworkCommentsCopy,
@@ -32,20 +36,15 @@ export let createHomeworkPublishedAt: string;
 export let createHomeworkSectionId: string;
 export let createHomeworkSubmissionDueAt: string;
 export let createHomeworkSubmissionStartAt: string;
-export let fmtDate: (value: Date | string | null | undefined) => string;
-export let homeworkCompletionActionLabel: HomeworkAction;
 export let homeworkCourseLabel: HomeworkAction;
-export let homeworkEtaLabel: (
-  value: Date | string | null | undefined,
-) => string;
 export let homeworksCopy: DashboardHomeworksCopy;
 export let homeworkSavingById: Record<string, boolean>;
 export let homeworkSectionHref: HomeworkAction;
 export let homeworkSectionLabel: (
   section: DashboardHomeworkCreateSection,
 ) => string;
-export let homeworkStatus: HomeworkAction;
 export let isCreatingHomework: boolean;
+export let locale: string;
 export let referenceDate: Date | string;
 export let sections: DashboardHomeworkCreateSection[];
 export let selectedCreateHomeworkSection: DashboardHomeworkCreateSectionGetter;
@@ -103,7 +102,8 @@ $: selectedHomeworkPermalinkBaseHref = selectedHomework?.section?.jwId
   contextLabel={selectedHomeworkDetail?.contextLabel}
   copy={homeworksCopy}
   dateFallback={homeworksCopy.dateTBD}
-  {fmtDate}
+  fmtDate={(value) =>
+    formatHomeworkDetailDateTime(value, locale, homeworksCopy.dateTBD)}
   homework={selectedHomeworkDetail}
   onClose={() => {
     selectedHomework = null;
@@ -112,7 +112,13 @@ $: selectedHomeworkPermalinkBaseHref = selectedHomework?.section?.jwId
     if (selectedHomework) return toggleHomeworkCompletion(selectedHomework);
   }}
   permalinkBaseHref={selectedHomeworkPermalinkBaseHref}
-  relativeEtaLabel={homeworkEtaLabel}
+  relativeEtaLabel={(value, liveReferenceDate) =>
+    formatHomeworkDueRelativeTime(
+      value,
+      liveReferenceDate,
+      locale,
+      homeworksCopy.dateTBD,
+    )}
   referenceDate={referenceDate}
   showCompletion={selectedHomework !== null}
 />

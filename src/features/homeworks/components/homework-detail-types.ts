@@ -33,6 +33,7 @@ export type HomeworkDetailDateFormatter = (value: HomeworkDateValue) => string;
 
 export type HomeworkDetailRelativeFormatter = (
   value: HomeworkDateValue,
+  referenceDate: HomeworkDateValue,
 ) => string;
 
 export type HomeworkDetailToggle = () => void | Promise<void>;

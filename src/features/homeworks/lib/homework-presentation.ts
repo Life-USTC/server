@@ -1,3 +1,4 @@
+import { formatCampusDateTime } from "@/lib/time/campus-date";
 import { parseDateInput } from "@/lib/time/parse-date-input";
 import { shanghaiDayjs } from "@/lib/time/shanghai-dayjs";
 import { intlLocale, isZhLocale } from "@/shared/lib/time-locale";
@@ -196,6 +197,14 @@ export function formatHomeworkDueRelativeTime(
     return overdue ? `已逾期 ${duration}` : `还剩 ${duration}`;
   }
   return overdue ? `Overdue by ${duration}` : `${duration} left`;
+}
+
+export function formatHomeworkDetailDateTime(
+  value: HomeworkDateValue,
+  locale: string,
+  fallback: string,
+) {
+  return formatCampusDateTime(value, fallback, locale);
 }
 
 function normalizeDescription(value: HomeworkDescriptionValue) {
