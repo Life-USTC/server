@@ -36,29 +36,29 @@ function displayDate(value: HomeworkDateValue) {
         {/if}
       </Accordion.Trigger>
       <Accordion.Content class="pb-4">
-        <div class="grid gap-4 pt-2 sm:grid-cols-2">
+        <dl class="grid gap-4 pt-2 sm:grid-cols-2">
           <div>
-            <p class="text-muted-foreground text-xs">{copy.submissionStart}</p>
-            <p class="mt-1 text-sm font-medium">{displayDate(homework.submissionStartAt)}</p>
+            <dt class="text-muted-foreground text-xs">{copy.submissionStart}</dt>
+            <dd class="mt-1 text-sm font-medium">{displayDate(homework.submissionStartAt)}</dd>
           </div>
           <div>
-            <p class="text-muted-foreground text-xs">{copy.publishedAt}</p>
-            <p class="mt-1 text-sm font-medium">{displayDate(homework.publishedAt)}</p>
+            <dt class="text-muted-foreground text-xs">{copy.publishedAt}</dt>
+            <dd class="mt-1 text-sm font-medium">{displayDate(homework.publishedAt)}</dd>
           </div>
           {#if detailTags.length > 0}
             <div class="sm:col-span-2">
-              <p class="text-muted-foreground text-xs">{copy.moreDetails}</p>
-              <div class="mt-2 flex flex-wrap gap-2">
+              <dt class="text-muted-foreground text-xs">{copy.moreDetails}</dt>
+              <dd class="mt-2 flex flex-wrap gap-2">
                 {#if homework.isMajor}
                   <Badge variant="outline">{copy.tagMajor}</Badge>
                 {/if}
                 {#if homework.requiresTeam}
                   <Badge variant="outline">{copy.tagTeam}</Badge>
                 {/if}
-              </div>
+              </dd>
             </div>
           {/if}
-        </div>
+        </dl>
       </Accordion.Content>
     </Accordion.Item>
   </Accordion.Root>

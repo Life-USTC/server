@@ -21,6 +21,7 @@ export let users: AdminUserRow[];
 
 <div class="hidden min-w-0 xl:block">
   <Table.Root class="w-full">
+    <Table.Caption class="sr-only">{copy.title}</Table.Caption>
     <Table.Header>
       <Table.Row>
         <Table.Head>{copy.name}</Table.Head>
@@ -39,13 +40,9 @@ export let users: AdminUserRow[];
         <Table.Row class="group">
           <Table.Cell>
             <TruncatedText class="font-medium" text={displayName(user)} />
-            <TruncatedText
-              class="font-mono text-muted-foreground text-xs"
-              text={user.id}
-            />
           </Table.Cell>
           <Table.Cell>
-            <span class="font-mono text-sm">
+            <span class="text-sm">
               {user.username ?? copy.noUsername}
             </span>
           </Table.Cell>

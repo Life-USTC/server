@@ -22,14 +22,22 @@ export let users: AdminUserRow[];
     <Item.Root class="items-start px-1 py-3" size="sm">
       <Item.Content class="min-w-0">
         <Item.Title>{displayName(user)}</Item.Title>
-        <Item.Description class="font-mono">
+        <Item.Description>
           @{user.username ?? copy.noUsername}
         </Item.Description>
-        <Item.Description class="line-clamp-none break-words">
+        <Item.Description class="truncate">
           {user.email ?? copy.noVerifiedEmail}
         </Item.Description>
         <Item.Footer class="block pt-1">
-          <dl class="grid grid-cols-2 gap-2 text-xs">
+          <dl class="grid grid-cols-3 gap-2 text-xs">
+            <div>
+              <dt class="text-muted-foreground">{copy.role}</dt>
+              <dd>
+                <Badge variant={user.isAdmin ? "secondary" : "ghost"}>
+                  {user.isAdmin ? copy.adminRole : copy.userRole}
+                </Badge>
+              </dd>
+            </div>
             <div>
               <dt class="text-muted-foreground">{copy.createdAt}</dt>
               <dd class="tabular-nums">{formatDate(user.createdAt)}</dd>

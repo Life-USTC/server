@@ -1012,6 +1012,8 @@
     "hidePreferences": "Hide preferences",
     "editPreferences": "Edit preferences",
     "empty": "No shuttle data is available right now.",
+    "loadFailed": "Shuttle data could not be loaded. Please try again.",
+    "retry": "Reload",
     "weekday": "Weekday",
     "weekend": "Weekend",
     "bestMatch": "Best match",

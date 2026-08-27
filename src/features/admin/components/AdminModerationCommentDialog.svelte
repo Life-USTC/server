@@ -47,18 +47,12 @@ export let targetLabel: (comment: AdminModerationComment) => string;
     <Dialog.Content
       class="grid max-h-[calc(100dvh-1rem)] min-h-0 max-w-2xl grid-rows-[auto_minmax(0,1fr)_auto] overflow-hidden sm:max-w-2xl"
       aria-labelledby="manage-comment-title"
-      showCloseButton={false}
     >
       <Dialog.Header>
-          <div class="flex min-w-0 items-start justify-between gap-3">
-          <div class="min-w-0 flex-1">
-            <Dialog.Title id="manage-comment-title">{copy.manageComment}</Dialog.Title>
-            <Dialog.Description>
-              {commentAuthorLabel(comment)} · {targetLabel(comment)}
-            </Dialog.Description>
-          </div>
-          <Button class="shrink-0" type="button" variant="ghost" onclick={close}>{copy.close}</Button>
-        </div>
+        <Dialog.Title id="manage-comment-title">{copy.manageComment}</Dialog.Title>
+        <Dialog.Description>
+          {commentAuthorLabel(comment)} · {targetLabel(comment)}
+        </Dialog.Description>
       </Dialog.Header>
 
       <ScrollArea class="min-h-0 h-[min(56dvh,34rem)] max-h-[calc(100dvh-12rem)]">

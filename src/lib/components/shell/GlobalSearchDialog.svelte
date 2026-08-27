@@ -100,7 +100,7 @@ $: if (open) {
 
 <Dialog.Root {open} onOpenChange={handleOpenChange}>
   <Dialog.Content class="gap-0 overflow-hidden p-0 sm:max-w-xl" showCloseButton={false}>
-    <Dialog.Header class="space-y-0 border-b px-4 py-3">
+    <Dialog.Header class="gap-0 border-b px-4 py-3">
       <Dialog.Title class="sr-only">{copy.title}</Dialog.Title>
       <div class="flex items-center gap-3">
         <Field.Field class="min-w-0 flex-1 gap-1">
@@ -140,13 +140,13 @@ $: if (open) {
           type="button"
           variant="ghost"
         >
-          <XIcon class="size-4" />
+          <XIcon />
         </Button>
       </div>
     </Dialog.Header>
 
     <ScrollArea class="max-h-[min(60vh,28rem)]">
-      <div class="min-h-48 p-2">
+      <div class="min-h-32 p-2">
         <GlobalSearchResults
           activeItemId={$activeItemId}
           {copy}

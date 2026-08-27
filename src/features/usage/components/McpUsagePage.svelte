@@ -94,6 +94,7 @@ function selectClient(value: string) {
 
 {#snippet copyField(key: string, label: string, value: string)}
   <Button
+    aria-label={`${data.copy.copyValueAction}: ${label}`}
     class="group h-auto min-w-0 justify-between rounded-xl p-3 text-left whitespace-normal"
     type="button"
     variant="outline"
@@ -121,6 +122,7 @@ function selectClient(value: string) {
   <div class="grid gap-2">
     <h4 class="font-medium text-sm">{title}</h4>
     <Button
+      aria-label={`${data.copy.copyValueAction}: ${title}`}
       class="group h-auto min-w-0 w-full justify-between rounded-xl p-3 text-left whitespace-normal"
       type="button"
       variant="outline"
@@ -135,6 +137,10 @@ function selectClient(value: string) {
     </Button>
   </div>
 {/snippet}
+
+<span class="sr-only" aria-live="polite">
+  {copiedKey ? data.copy.copiedValueAction : ""}
+</span>
 
 {#snippet chatgptFormValues()}
   <div class="grid gap-2">

@@ -1012,6 +1012,8 @@
     "hidePreferences": "收起偏好",
     "editPreferences": "编辑偏好",
     "empty": "当前暂无可用的校车数据。",
+    "loadFailed": "校车数据加载失败，请稍后重试。",
+    "retry": "重新加载",
     "weekday": "工作日",
     "weekend": "周末",
     "bestMatch": "最佳匹配",

@@ -131,19 +131,28 @@ function failureLabel(count: number) {
             <span class="flex items-center gap-2"><span class="h-0.5 w-6 bg-primary"></span>{data.copy.analytics.totalSeries}</span>
             <span class="flex items-center gap-2"><span class="h-0.5 w-6 border-destructive border-t-2 border-dashed"></span>{data.copy.analytics.riskSeries}</span>
           </div>
-          <svg
-            class="h-44 w-full overflow-visible"
-            viewBox="0 0 720 170"
-            role="img"
-            aria-labelledby="analytics-trend-title analytics-trend-description"
-            preserveAspectRatio="none"
-          >
-            <title id="analytics-trend-title">{data.copy.analytics.trend}</title>
-            <desc id="analytics-trend-description">{data.copy.analytics.trendDescription}</desc>
-            <line x1="0" x2="720" y1="160" y2="160" class="stroke-border" />
-            <polyline points={totalPoints} fill="none" class="stroke-primary" stroke-width="3" vector-effect="non-scaling-stroke" />
-            <polyline points={riskPoints} fill="none" class="stroke-destructive" stroke-width="2" stroke-dasharray="6 5" vector-effect="non-scaling-stroke" />
-          </svg>
+          <div class="grid grid-cols-[auto_minmax(0,1fr)] gap-2">
+            <div class="flex h-44 flex-col justify-between text-right text-xs tabular-nums text-muted-foreground" aria-hidden="true">
+              <span>{numberFormatter.format(chartMax)}</span>
+              <span>{numberFormatter.format(Math.round(chartMax / 2))}</span>
+              <span>0</span>
+            </div>
+            <svg
+              class="h-44 w-full overflow-visible"
+              viewBox="0 0 720 170"
+              role="img"
+              aria-labelledby="analytics-trend-title analytics-trend-description"
+              preserveAspectRatio="none"
+            >
+              <title id="analytics-trend-title">{data.copy.analytics.trend}</title>
+              <desc id="analytics-trend-description">{data.copy.analytics.trendDescription}</desc>
+              <line x1="0" x2="720" y1="12" y2="12" class="stroke-border" />
+              <line x1="0" x2="720" y1="86" y2="86" class="stroke-border" />
+              <line x1="0" x2="720" y1="160" y2="160" class="stroke-border" />
+              <polyline points={totalPoints} fill="none" class="stroke-primary" stroke-width="3" vector-effect="non-scaling-stroke" />
+              <polyline points={riskPoints} fill="none" class="stroke-destructive" stroke-width="2" stroke-dasharray="6 5" vector-effect="non-scaling-stroke" />
+            </svg>
+          </div>
           <figcaption class="flex justify-between text-xs text-muted-foreground">
             <span>{dayFormatter.format(new Date(`${data.daily[0].day}T00:00:00+08:00`))}</span>
             <span>{dayFormatter.format(new Date(`${data.daily.at(-1)?.day}T00:00:00+08:00`))}</span>

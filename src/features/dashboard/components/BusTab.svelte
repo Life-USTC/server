@@ -19,6 +19,7 @@ import {
 import { Button } from "$lib/components/ui/button/index.js";
 import * as Collapsible from "$lib/components/ui/collapsible/index.js";
 import * as Empty from "$lib/components/ui/empty/index.js";
+import { Skeleton } from "$lib/components/ui/skeleton/index.js";
 import BusTabCompactSummary from "./BusTabCompactSummary.svelte";
 import BusTabSettings from "./BusTabSettings.svelte";
 import BusTabTimetable from "./BusTabTimetable.svelte";
@@ -40,6 +41,8 @@ let busShowDepartedTrips = false;
 let busStartCampusId: number | null = null;
 let routeControlsOpen = false;
 let timetableOpen = true;
+let busLoading = !bus;
+let busLoadFailed = false;
 const state = createBusTabState({
   getBus: () => loadedBus,
   getBusCopy: () => busCopy,
@@ -52,11 +55,22 @@ let busApplicableRoutes: ReturnType<typeof state.applicableRoutes> = [];
 
 async function loadPublicBusData() {
   if (loadedBus) return;
-  const result = await apiClient.GET<DashboardBusData>("/api/catalog/bus");
-  if (!result.response.ok || !result.data) return;
-  loadedBus = result.data;
-  state.initializeWhenNeeded();
-  restoreRecentRoute();
+  busLoading = true;
+  busLoadFailed = false;
+  try {
+    const result = await apiClient.GET<DashboardBusData>("/api/catalog/bus");
+    if (!result.response.ok || !result.data) {
+      busLoadFailed = true;
+      return;
+    }
+    loadedBus = result.data;
+    state.initializeWhenNeeded();
+    restoreRecentRoute();
+  } catch {
+    busLoadFailed = true;
+  } finally {
+    busLoading = false;
+  }
 }
 
 function restoreRecentRoute() {
@@ -282,6 +296,22 @@ $: busShowsEstimatedHint = hasEstimatedBusTimes(
         />
       </div>
     {/if}
+  {:else if busLoadFailed}
+    <Empty.Root>
+      <Empty.Header>
+        <Empty.Title>{busCopy.loadFailed}</Empty.Title>
+      </Empty.Header>
+      <Empty.Content>
+        <Button type="button" variant="outline" onclick={() => void loadPublicBusData()}>
+          {busCopy.retry}
+        </Button>
+      </Empty.Content>
+    </Empty.Root>
+  {:else if busLoading}
+    <div class="grid gap-3" aria-label={busCopy.dashboardTitle} aria-busy="true">
+      <Skeleton class="h-12 w-full" />
+      <Skeleton class="h-48 w-full" />
+    </div>
   {:else}
     <Empty.Root>
       <Empty.Header>

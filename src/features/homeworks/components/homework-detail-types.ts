@@ -8,6 +8,7 @@ import type {
 export type HomeworkDetailCopy = {
   completedLabel: string;
   commentsTitle: string;
+  descriptionLabel: string;
   descriptionEmpty: string;
   markComplete: string;
   markIncomplete: string;

@@ -3,6 +3,7 @@ import ArrowUpRight from "@lucide/svelte/icons/arrow-up-right";
 import CheckCircleIcon from "@lucide/svelte/icons/check-circle";
 import RefreshCw from "@lucide/svelte/icons/refresh-cw";
 import type { DashboardHomeworkItem } from "@/features/dashboard/lib/dashboard-controller-types";
+import { homeworkSummaryBadges } from "@/features/homeworks/lib/homework-presentation";
 import TruncatedText from "$lib/components/TruncatedText.svelte";
 import { Badge } from "$lib/components/ui/badge/index.js";
 import { Button } from "$lib/components/ui/button/index.js";
@@ -35,6 +36,21 @@ export let selectedHomework: DashboardHomeworkItem | null;
 export let toggleHomeworkCompletion: (
   homework: DashboardHomeworkItem,
 ) => void | Promise<void>;
+
+function summaryBadges(homework: DashboardHomeworkItem) {
+  return homeworkSummaryBadges(
+    {
+      completed: Boolean(homework.completion),
+      isMajor: homework.isMajor === true,
+      requiresTeam: homework.requiresTeam === true,
+    },
+    {
+      completed: homeworksCopy.completedLabel,
+      major: homeworksCopy.tagMajor,
+      team: homeworksCopy.tagTeam,
+    },
+  );
+}
 </script>
 
 <Table.Root class="min-w-0 w-full" data-testid="dashboard-homeworks-list">
@@ -83,21 +99,9 @@ export let toggleHomeworkCompletion: (
             >
               {homeworkEtaLabel(homework.submissionDueAt)}
             </Badge>
-            {#if homework.completion}
-              <Badge variant="secondary">
-                {homeworksCopy.completedLabel}
-              </Badge>
-            {/if}
-            {#if homework.isMajor}
-              <Badge>
-                {homeworksCopy.tagMajor}
-              </Badge>
-            {/if}
-            {#if homework.requiresTeam}
-              <Badge variant="outline">
-                {homeworksCopy.tagTeam}
-              </Badge>
-            {/if}
+            {#each summaryBadges(homework) as badge (badge.key)}
+              <Badge variant={badge.variant}>{badge.label}</Badge>
+            {/each}
           </div>
         </Table.Cell>
         <Table.Cell>
