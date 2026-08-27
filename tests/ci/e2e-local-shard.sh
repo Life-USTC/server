@@ -22,6 +22,6 @@ export CLOUDFLARE_HYPERDRIVE_LOCAL_CONNECTION_STRING_HYPERDRIVE_MAINTENANCE="$da
 
 bun run db:migrate:deploy
 bunx prisma db seed
-bunx playwright test "$@" \
-  --shard="${shard}/${shard_total}" \
-  --pass-with-no-tests
+bash tests/ci/e2e-run-shard.sh "${shard}/${shard_total}" \
+  --pass-with-no-tests \
+  "$@"
