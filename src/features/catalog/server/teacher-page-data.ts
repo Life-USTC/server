@@ -6,6 +6,7 @@ import { runCloudflareTraceSpan } from "@/lib/adapters/cloudflare-runtime";
 import { cachedPublicDetailRuntimeData } from "@/lib/catalog-detail-runtime-cache";
 import { getPrisma } from "@/lib/db/prisma";
 import { toLoadData } from "@/lib/load-data-utils";
+import { isTeacherPageCore } from "./catalog-detail-cache-validation";
 
 const teacherPageSectionsSelect = {
   jwId: true,
@@ -31,6 +32,7 @@ export async function getTeacherPage(id: number, locale: AppLocale = "zh-cn") {
     kind: "teacher",
     locale,
     shape: TEACHER_PAGE_CORE_CACHE_SHAPE,
+    validateResult: isTeacherPageCore,
     load: async () => {
       const prisma = getPrisma(locale);
       const teacher = await runCloudflareTraceSpan(

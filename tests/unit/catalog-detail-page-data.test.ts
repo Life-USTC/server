@@ -37,6 +37,78 @@ function prismaThenable<T>(value: T): PromiseLike<T> {
   };
 }
 
+function localizedName(nameCn: string) {
+  const nameEn = `${nameCn} EN`;
+  return {
+    nameCn,
+    nameEn,
+    namePrimary: nameCn,
+    nameSecondary: nameEn,
+  };
+}
+
+function coursePageSection(overrides: object = {}) {
+  return {
+    jwId: 301,
+    code: "001",
+    stdCount: null,
+    limitCount: null,
+    semester: null,
+    campus: null,
+    teachers: [],
+    ...overrides,
+  };
+}
+
+function teacherPageSection(overrides: object = {}) {
+  return {
+    jwId: 302,
+    code: "002",
+    credits: null,
+    course: localizedName("Course"),
+    semester: null,
+    ...overrides,
+  };
+}
+
+function coursePage(overrides: object = {}) {
+  return {
+    id: 11,
+    jwId: 101,
+    code: "MATH1001",
+    ...localizedName("Calculus"),
+    educationLevel: null,
+    category: null,
+    classType: null,
+    type: null,
+    sections: [],
+    ...overrides,
+  };
+}
+
+function teacherPage(overrides: object = {}) {
+  return {
+    id: 21,
+    ...localizedName("Ada"),
+    email: null,
+    telephone: null,
+    mobile: null,
+    address: null,
+    department: null,
+    teacherTitle: null,
+    sections: [],
+    ...overrides,
+  };
+}
+
+function detailCacheEnvelope(value: unknown) {
+  return {
+    expiresAt: Date.now() + 60_000,
+    schema: "catalog-detail-core-v2",
+    value,
+  };
+}
+
 describe("catalog detail page data", () => {
   beforeEach(() => {
     resetPublicRuntimeCacheForTest();
@@ -49,12 +121,7 @@ describe("catalog detail page data", () => {
   });
 
   it("loads a course without unused comment queries", async () => {
-    const course = {
-      code: "MATH1001",
-      id: 11,
-      jwId: 101,
-      sections: [],
-    };
+    const course = coursePage();
     courseFindUniqueMock.mockResolvedValue(course);
 
     const { getCoursePage } = await import(
@@ -62,12 +129,7 @@ describe("catalog detail page data", () => {
     );
     const result = await getCoursePage(course.jwId, "zh-cn");
 
-    expect(result).toEqual({
-      code: course.code,
-      id: course.id,
-      jwId: course.jwId,
-      sections: [],
-    });
+    expect(result).toEqual(course);
     expect(courseFindUniqueMock).toHaveBeenCalledTimes(1);
     expect(courseFindUniqueMock).toHaveBeenCalledWith(
       expect.objectContaining({ where: { jwId: course.jwId } }),
@@ -81,11 +143,7 @@ describe("catalog detail page data", () => {
   });
 
   it("loads a teacher without unused comment queries", async () => {
-    const teacher = {
-      id: 21,
-      namePrimary: "Ada",
-      sections: [],
-    };
+    const teacher = teacherPage();
     teacherFindUniqueMock.mockResolvedValue(teacher);
 
     const { getTeacherPage } = await import(
@@ -93,11 +151,7 @@ describe("catalog detail page data", () => {
     );
     const result = await getTeacherPage(teacher.id, "zh-cn");
 
-    expect(result).toEqual({
-      id: teacher.id,
-      namePrimary: teacher.namePrimary,
-      sections: [],
-    });
+    expect(result).toEqual(teacher);
     const teacherSelect = teacherFindUniqueMock.mock.calls[0]?.[0]?.select;
     expect(teacherSelect).not.toHaveProperty("description");
     expect(teacherSelect).not.toHaveProperty("_count");
@@ -108,7 +162,7 @@ describe("catalog detail page data", () => {
 
   it("coalesces concurrent course core misses within the isolate", async () => {
     let resolveCourse: ((value: unknown) => void) | undefined;
-    const course = { code: "MATH1001", id: 11, jwId: 101, sections: [] };
+    const course = coursePage();
     courseFindUniqueMock.mockReturnValue(
       new Promise((resolve) => {
         resolveCourse = resolve;
@@ -134,13 +188,10 @@ describe("catalog detail page data", () => {
   });
 
   it("reuses the immutable teacher core without caching request data", async () => {
-    const teacher = {
+    const teacher = teacherPage({
       address: "Campus",
       email: "teacher@example.test",
-      id: 21,
-      namePrimary: "Ada",
-      sections: [],
-    };
+    });
     teacherFindUniqueMock.mockResolvedValue(teacher);
 
     const { getTeacherPage } = await import(
@@ -157,12 +208,7 @@ describe("catalog detail page data", () => {
   });
 
   it("isolates course core entries by locale and static revision", async () => {
-    courseFindUniqueMock.mockResolvedValue({
-      code: "MATH1001",
-      id: 11,
-      jwId: 101,
-      sections: [],
-    });
+    courseFindUniqueMock.mockResolvedValue(coursePage());
     const { getCoursePage } = await import(
       "@/features/catalog/server/course-page-data"
     );
@@ -189,12 +235,7 @@ describe("catalog detail page data", () => {
         put: vi.fn(async () => undefined),
       })),
     });
-    courseFindUniqueMock.mockResolvedValue({
-      code: "MATH1001",
-      id: 11,
-      jwId: 101,
-      sections: [],
-    });
+    courseFindUniqueMock.mockResolvedValue(coursePage());
 
     const { getCoursePage } = await import(
       "@/features/catalog/server/course-page-data"
@@ -207,20 +248,197 @@ describe("catalog detail page data", () => {
     );
   });
 
+  it("reloads a course when KV contains a corrupt page core", async () => {
+    const course = coursePage();
+    const namespace = {
+      get: vi.fn(async () =>
+        detailCacheEnvelope(
+          coursePage({
+            viewer: { userId: "must-not-be-cached" },
+          }),
+        ),
+      ),
+      put: vi.fn(async () => undefined),
+    };
+    const match = vi.fn(async () => undefined);
+    vi.stubGlobal("caches", {
+      open: vi.fn(async () => ({
+        match,
+        put: vi.fn(async () => undefined),
+      })),
+    });
+    courseFindUniqueMock.mockResolvedValue(course);
+
+    const { getCoursePage } = await import(
+      "@/features/catalog/server/course-page-data"
+    );
+    const result = await runWithCloudflareRuntimeEnv(
+      { CATALOG_DETAIL_CORE: namespace },
+      () => getCoursePage(course.jwId, "zh-cn"),
+    );
+
+    expect(result).toEqual(course);
+    expect(courseFindUniqueMock).toHaveBeenCalledOnce();
+    expect(namespace.get).toHaveBeenCalledOnce();
+    expect(match).toHaveBeenCalledOnce();
+  });
+
+  it("reloads a course when Cache API contains a corrupt nested core", async () => {
+    const course = coursePage();
+    const match = vi.fn(
+      async () =>
+        new Response(
+          JSON.stringify(
+            detailCacheEnvelope(
+              coursePage({
+                sections: [
+                  coursePageSection({
+                    teachers: [
+                      { ...localizedName("Teacher"), email: "private" },
+                    ],
+                  }),
+                ],
+              }),
+            ),
+          ),
+        ),
+    );
+    vi.stubGlobal("caches", {
+      open: vi.fn(async () => ({
+        match,
+        put: vi.fn(async () => undefined),
+      })),
+    });
+    courseFindUniqueMock.mockResolvedValue(course);
+
+    const { getCoursePage } = await import(
+      "@/features/catalog/server/course-page-data"
+    );
+    const result = await runWithCloudflareRuntimeEnv({}, () =>
+      getCoursePage(course.jwId, "zh-cn"),
+    );
+
+    expect(result).toEqual(course);
+    expect(courseFindUniqueMock).toHaveBeenCalledOnce();
+    expect(match).toHaveBeenCalledOnce();
+  });
+
+  it("reloads a teacher when Cache API contains a corrupt nested core", async () => {
+    const teacher = teacherPage();
+    const match = vi.fn(
+      async () =>
+        new Response(
+          JSON.stringify(
+            detailCacheEnvelope(
+              teacherPage({
+                sections: [
+                  teacherPageSection({
+                    course: {
+                      ...localizedName("Course"),
+                      viewer: { userId: "must-not-be-cached" },
+                    },
+                  }),
+                ],
+              }),
+            ),
+          ),
+        ),
+    );
+    vi.stubGlobal("caches", {
+      open: vi.fn(async () => ({
+        match,
+        put: vi.fn(async () => undefined),
+      })),
+    });
+    teacherFindUniqueMock.mockResolvedValue(teacher);
+
+    const { getTeacherPage } = await import(
+      "@/features/catalog/server/teacher-page-data"
+    );
+    const result = await runWithCloudflareRuntimeEnv({}, () =>
+      getTeacherPage(teacher.id, "zh-cn"),
+    );
+
+    expect(result).toEqual(teacher);
+    expect(teacherFindUniqueMock).toHaveBeenCalledOnce();
+    expect(match).toHaveBeenCalledOnce();
+  });
+
+  it("reloads a teacher when KV contains a corrupt page core", async () => {
+    const teacher = teacherPage();
+    const namespace = {
+      get: vi.fn(async () =>
+        detailCacheEnvelope(
+          teacherPage({
+            email: { leaked: true },
+          }),
+        ),
+      ),
+      put: vi.fn(async () => undefined),
+    };
+    const match = vi.fn(async () => undefined);
+    vi.stubGlobal("caches", {
+      open: vi.fn(async () => ({
+        match,
+        put: vi.fn(async () => undefined),
+      })),
+    });
+    teacherFindUniqueMock.mockResolvedValue(teacher);
+
+    const { getTeacherPage } = await import(
+      "@/features/catalog/server/teacher-page-data"
+    );
+    const result = await runWithCloudflareRuntimeEnv(
+      { CATALOG_DETAIL_CORE: namespace },
+      () => getTeacherPage(teacher.id, "zh-cn"),
+    );
+
+    expect(result).toEqual(teacher);
+    expect(teacherFindUniqueMock).toHaveBeenCalledOnce();
+    expect(namespace.get).toHaveBeenCalledOnce();
+    expect(match).toHaveBeenCalledOnce();
+  });
+
+  it("keeps representative page-core cache envelopes below the payload guard", () => {
+    const course = coursePage({
+      sections: Array.from({ length: 20 }, (_, index) =>
+        coursePageSection({
+          code: `COURSE-${index + 1}`,
+          jwId: 301 + index,
+          teachers: [localizedName(`Teacher ${index + 1}`)],
+        }),
+      ),
+    });
+    const teacher = teacherPage({
+      sections: Array.from({ length: 20 }, (_, index) =>
+        teacherPageSection({
+          code: `SECTION-${index + 1}`,
+          jwId: 401 + index,
+          course: localizedName(`Course ${index + 1}`),
+        }),
+      ),
+    });
+    const maxPayloadBytes = 256 * 1024;
+
+    for (const value of [course, teacher]) {
+      const serialized = JSON.stringify(detailCacheEnvelope(value));
+      expect(new TextEncoder().encode(serialized).byteLength).toBeLessThan(
+        maxPayloadBytes,
+      );
+    }
+  });
+
   it("strips Prisma extension symbols before returning load data", async () => {
     const localizedNameSymbol = Symbol("localizedName");
-    const courseSections = [{ code: "001", jwId: 301 }];
+    const courseSections = [coursePageSection()];
     courseFindUniqueMock.mockResolvedValue({
-      id: 11,
-      jwId: 101,
+      ...coursePage({ sections: courseSections }),
       [localizedNameSymbol]: "course",
-      sections: courseSections,
     });
-    const teacherSections = [{ code: "002", jwId: 302 }];
+    const teacherSections = [teacherPageSection()];
     teacherFindUniqueMock.mockResolvedValue({
-      id: 21,
+      ...teacherPage({ sections: teacherSections }),
       [localizedNameSymbol]: "teacher",
-      sections: teacherSections,
     });
 
     const [{ getCoursePage }, { getTeacherPage }] = await Promise.all([
@@ -249,16 +467,8 @@ describe("catalog detail page data", () => {
   });
 
   it("traces bounded course and teacher query phases", async () => {
-    courseFindUniqueMock.mockReturnValue(
-      prismaThenable({
-        id: 11,
-        jwId: 101,
-        sections: [],
-      }),
-    );
-    teacherFindUniqueMock.mockReturnValue(
-      prismaThenable({ id: 21, sections: [] }),
-    );
+    courseFindUniqueMock.mockReturnValue(prismaThenable(coursePage()));
+    teacherFindUniqueMock.mockReturnValue(prismaThenable(teacherPage()));
     const [{ getCoursePage }, { getTeacherPage }] = await Promise.all([
       import("@/features/catalog/server/course-page-data"),
       import("@/features/catalog/server/teacher-page-data"),
