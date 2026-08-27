@@ -221,7 +221,7 @@ test("/admin/moderation 移动端弹窗滚动体不遮挡封禁控件", async ({
     });
     await expect(dialog).toBeVisible();
     await expect(
-      dialog.getByRole("button", { name: /关闭|Close/i }),
+      dialog.getByRole("button", { name: /取消|Cancel/i }),
     ).toHaveCount(1);
     await expect(dialog.locator('[data-slot="dialog-close"]')).toHaveCount(0);
 
