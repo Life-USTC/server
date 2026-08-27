@@ -83,6 +83,7 @@ export let updateHomework: SectionDetailHomeworkDialogsProps["updateHomework"];
   openAuditDialog={() => setHomeworkAuditDialogOpen(true)}
   bind:publishedAt={createHomeworkPublishedAt}
   {sectionCopy}
+  {sectionLabel}
   show={showCreateHomework}
   bind:submissionDueAt={createHomeworkSubmissionDueAt}
   bind:submissionStartAt={createHomeworkSubmissionStartAt}

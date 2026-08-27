@@ -168,7 +168,7 @@ $: sectionExamEvents = sectionCalendarEvents.filter(
           {/key}
         </section>
 
-        <section id="calendar" class="scroll-mt-4">
+        <section id="calendar" class="min-w-0 scroll-mt-4">
           <div class="mb-3 flex flex-wrap items-center justify-between gap-3">
             <h2 class="text-lg font-semibold tracking-tight">
               {sectionCopy.tabs.calendar}
@@ -188,7 +188,7 @@ $: sectionExamEvents = sectionCalendarEvents.filter(
           {/if}
         </section>
 
-        <section id="exams" class="scroll-mt-4">
+        <section id="exams" class="min-w-0 scroll-mt-4">
           <h2 class="mb-3 text-lg font-semibold tracking-tight">
             {sectionCopy.tabs.exams}
           </h2>

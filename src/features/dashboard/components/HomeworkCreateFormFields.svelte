@@ -49,13 +49,16 @@ $: homeworkTimestampCapabilities = {
 };
 </script>
 
-<Field.Group class="gap-4 px-5 py-4">
+<Field.Group class="gap-5 px-5 py-4 sm:px-6 sm:py-5">
   {#if createHomeworkError}
     <Alert.Root variant="destructive">
       <Alert.Description>{createHomeworkError}</Alert.Description>
     </Alert.Root>
   {/if}
-  <Field.Field data-disabled={isCreatingHomework ? "true" : undefined}>
+  <Field.Field
+    class="rounded-lg bg-muted/40 p-3"
+    data-disabled={isCreatingHomework ? "true" : undefined}
+  >
     <Field.Label for="dashboard-homework-section">
       {homeworksCopy.sectionLabel}
     </Field.Label>

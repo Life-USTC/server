@@ -18,6 +18,7 @@ export let hasSemesterEnd: boolean;
 export let hasSemesterStart: boolean;
 export let homeworkCopy: SectionCreateHomeworkFieldsCopy;
 export let homeworkMessage: string;
+export let sectionLabel: string;
 export let publishedAt: string;
 export let submissionDueAt: string;
 export let submissionStartAt: string;
@@ -38,7 +39,11 @@ $: homeworkTimestampCapabilities = {
 };
 </script>
 
-<Field.Group class="gap-4 px-5 py-4">
+<Field.Group class="gap-5 px-5 py-4 sm:px-6 sm:py-5">
+  <Field.Field class="rounded-lg bg-muted/40 p-3">
+    <Field.Title>{homeworkCopy.sectionLabel}</Field.Title>
+    <p class="text-sm font-medium">{sectionLabel}</p>
+  </Field.Field>
   <HomeworkEditorFields
     actions={homeworkTimestampActions}
     bind:advancedOpen={advancedOpen}

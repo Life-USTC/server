@@ -8,6 +8,8 @@ import { Button } from "$lib/components/ui/button/index.js";
 import * as Empty from "$lib/components/ui/empty/index.js";
 import * as Item from "$lib/components/ui/item/index.js";
 import * as Table from "$lib/components/ui/table/index.js";
+import AdminListShell from "./AdminListShell.svelte";
+import AdminTableShell from "./AdminTableShell.svelte";
 
 type ModerationHomework = {
   createdAt: string | Date;
@@ -49,11 +51,12 @@ export let onDelete: (homework: ModerationHomework) => void;
       </Empty.Header>
     </Empty.Root>
   {:else}
-    <Item.Group class="xl:hidden gap-0 border-y">
+    <AdminListShell class="xl:hidden">
+      <Item.Group class="gap-0">
       {#each homeworks as homework, index (homework.id)}
         <Item.Root class="items-start px-1 py-3">
           <Item.Content class="min-w-0 gap-2">
-            <Item.Title class="line-clamp-none">{homework.title}</Item.Title>
+            <Item.Title class="line-clamp-none" title={homework.title}>{homework.title}</Item.Title>
             <Item.Description>
               {homework.section.course.nameCn} ·
               <span class="font-mono">{homework.section.code}</span>
@@ -86,18 +89,20 @@ export let onDelete: (homework: ModerationHomework) => void;
         </Item.Root>
         {#if index < homeworks.length - 1}<Item.Separator class="my-0" />{/if}
       {/each}
-    </Item.Group>
+      </Item.Group>
+    </AdminListShell>
 
     <div class="hidden min-w-0 xl:block">
-      <Table.Root class="w-full">
+      <AdminTableShell label={copy.homeworkTitle}>
+        <Table.Root class="w-full min-w-[62rem]">
         <Table.Header>
           <Table.Row>
-            <Table.Head>{copy.homeworkTitle}</Table.Head>
-            <Table.Head>{copy.homeworkSection}</Table.Head>
-            <Table.Head class="text-right">{copy.createdAt}</Table.Head>
-            <Table.Head class="text-right">{copy.homeworkDue}</Table.Head>
-            <Table.Head class="text-center">{copy.status}</Table.Head>
-            <Table.Head class="w-12 text-right">
+            <Table.Head class="w-[28%]">{copy.homeworkTitle}</Table.Head>
+            <Table.Head class="w-[22%]">{copy.homeworkSection}</Table.Head>
+            <Table.Head class="w-[16%] text-right">{copy.createdAt}</Table.Head>
+            <Table.Head class="w-[16%] text-right">{copy.homeworkDue}</Table.Head>
+            <Table.Head class="w-[12%] text-center">{copy.status}</Table.Head>
+            <Table.Head class="w-14 min-w-14 text-right">
               <span class="sr-only">{copy.actions}</span>
             </Table.Head>
           </Table.Row>
@@ -105,10 +110,10 @@ export let onDelete: (homework: ModerationHomework) => void;
         <Table.Body>
           {#each homeworks as homework}
             <Table.Row class="group">
-              <Table.Cell>
+              <Table.Cell class="max-w-0">
                 <TruncatedText class="font-medium" text={homework.title} />
               </Table.Cell>
-              <Table.Cell>
+              <Table.Cell class="max-w-0">
                 <div class="grid min-w-0 gap-0.5">
                   <TruncatedText text={homework.section.course.nameCn} />
                   <span class="font-mono text-muted-foreground text-xs">
@@ -131,7 +136,7 @@ export let onDelete: (homework: ModerationHomework) => void;
                   <Badge>{copy.homeworkStatusActive}</Badge>
                 {/if}
               </Table.Cell>
-              <Table.Cell class="w-12 text-right">
+              <Table.Cell class="w-14 min-w-14 text-right">
                 {#if !homework.deletedAt}
                   <TableRowActions class="justify-end">
                     <TableIconButton
@@ -147,7 +152,8 @@ export let onDelete: (homework: ModerationHomework) => void;
             </Table.Row>
           {/each}
         </Table.Body>
-      </Table.Root>
+        </Table.Root>
+      </AdminTableShell>
     </div>
   {/if}
 </section>

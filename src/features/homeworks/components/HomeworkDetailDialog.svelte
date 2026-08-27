@@ -78,7 +78,7 @@ onMount(() => {
       class="inset-0 flex h-dvh max-h-dvh w-screen max-w-none translate-x-0 translate-y-0 flex-col gap-0 overflow-clip rounded-none p-0 sm:top-1/2 sm:left-1/2 sm:h-[min(72vh,42rem)] sm:max-h-[min(72vh,42rem)] sm:w-[calc(100%-2rem)] sm:max-w-3xl sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded-xl"
       data-homework-id={homework.id}
     >
-      <Dialog.Header class="shrink-0 border-b px-6 py-5 pr-14 sm:px-10 sm:py-6">
+      <Dialog.Header class="shrink-0 px-6 pb-2 pt-5 pr-14 sm:px-10 sm:pb-3 sm:pt-7">
         <Dialog.Title class="break-words text-xl font-semibold tracking-tight sm:text-2xl">
           {homework.title}
         </Dialog.Title>
@@ -96,7 +96,7 @@ onMount(() => {
       </Dialog.Header>
 
       <ScrollArea class="h-0 min-h-0 flex-1">
-        <div class="grid min-w-0 gap-6 px-6 py-6 sm:gap-7 sm:px-10 sm:py-8">
+        <div class="grid min-w-0 gap-6 px-6 py-4 sm:gap-7 sm:px-10 sm:py-5">
           {#if editing && editingContent}
             {@render editingContent()}
           {:else}
@@ -113,21 +113,21 @@ onMount(() => {
             <HomeworkDetailSecondaryDetails {copy} {fmtDate} {homework} />
           {/if}
 
-          {#if additionalContent}
-            {@render additionalContent()}
-          {/if}
-
           <HomeworkDetailDiscussion
             {CommentsPanel}
             {copy}
             {homework}
             {permalinkBaseHref}
           />
+
+          {#if additionalContent}
+            {@render additionalContent()}
+          {/if}
         </div>
       </ScrollArea>
 
       {#if showCompletion || (showContextActions && contextActions)}
-        <Dialog.Footer class="mx-0 mb-0 shrink-0 rounded-none p-4 sm:rounded-b-xl sm:px-10 sm:py-5">
+        <Dialog.Footer class="mx-0 mb-0 shrink-0 rounded-none border-t-0 p-4 sm:rounded-b-xl sm:px-10 sm:py-5">
           <div class="flex w-full items-center justify-end gap-3">
             {#if showCompletion && onToggleCompletion}
               <Button

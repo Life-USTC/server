@@ -57,12 +57,14 @@ export let title = "";
         {styleGuidePrefix}
       />
     {/snippet}
+    {#snippet optionalSettings()}
+      <HomeworkTagFields
+        {copy}
+        {disabled}
+        {idPrefix}
+        {isMajor}
+        {requiresTeam}
+      />
+    {/snippet}
   </HomeworkTimestampFields>
-  <HomeworkTagFields
-    {copy}
-    {disabled}
-    {idPrefix}
-    {isMajor}
-    {requiresTeam}
-  />
 </Field.Group>

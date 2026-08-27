@@ -3,6 +3,7 @@ import * as Empty from "$lib/components/ui/empty/index.js";
 import * as Item from "$lib/components/ui/item/index.js";
 import AdminBusVersionActions from "./AdminBusVersionActions.svelte";
 import AdminBusVersionStatusBadge from "./AdminBusVersionStatusBadge.svelte";
+import AdminListShell from "./AdminListShell.svelte";
 import type {
   AdminBusCopy,
   AdminBusEnhancedAction,
@@ -27,14 +28,15 @@ export let versions: AdminBusVersion[];
     </Empty.Header>
   </Empty.Root>
 {:else}
-  <Item.Group class="xl:hidden gap-0 border-y" data-testid="admin-bus-mobile-list">
-    {#each versions as version, index (version.id)}
-      <Item.Root class="items-start px-1 py-3" size="sm">
+  <AdminListShell class="xl:hidden">
+    <Item.Group class="gap-0" data-testid="admin-bus-mobile-list">
+      {#each versions as version, index (version.id)}
+        <Item.Root class="items-start px-1 py-3" size="sm">
         <Item.Content class="min-w-0">
-          <Item.Title>{version.title}</Item.Title>
-          <Item.Description class="break-all font-mono">{version.key}</Item.Description>
+          <Item.Title title={version.title}>{version.title}</Item.Title>
+          <Item.Description class="truncate font-mono" title={version.key}>{version.key}</Item.Description>
           {#if version.sourceMessage}
-            <Item.Description class="line-clamp-none">{version.sourceMessage}</Item.Description>
+            <Item.Description class="truncate" title={version.sourceMessage}>{version.sourceMessage}</Item.Description>
           {/if}
         </Item.Content>
         <Item.Actions>
@@ -71,8 +73,9 @@ export let versions: AdminBusVersion[];
             </div>
           {/if}
         </Item.Footer>
-      </Item.Root>
-      {#if index < versions.length - 1}<Item.Separator class="my-0" />{/if}
-    {/each}
-  </Item.Group>
+        </Item.Root>
+        {#if index < versions.length - 1}<Item.Separator class="my-0" />{/if}
+      {/each}
+    </Item.Group>
+  </AdminListShell>
 {/if}
