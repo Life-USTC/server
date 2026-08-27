@@ -28,7 +28,10 @@ vi.mock("@/lib/log/app-logger", () => ({
   logAppEvent: logAppEventMock,
 }));
 
-import { INTERNAL_REQUEST_ID_HEADER } from "@/lib/log/worker-entrypoint-observability";
+import {
+  INTERNAL_REQUEST_ID_HEADER,
+  normalizePublicSsrObservedRoute,
+} from "@/lib/log/worker-entrypoint-observability";
 import worker from "@/worker";
 
 async function withHtmlRewriter<T>(callback: () => Promise<T>) {
@@ -189,6 +192,55 @@ describe("Worker routing entrypoint", () => {
         requestId: response.headers.get("x-request-id"),
         status: 200,
       }),
+    );
+  });
+
+  it("records one error completion before retaining the detailed worker error", async () => {
+    const error = new Error("upstream app failure");
+    appFetchMock.mockRejectedValueOnce(error);
+
+    await expect(
+      worker.fetch(
+        new Request(
+          "https://life-ustc.test/account/sign-in?state=oauth-state-secret",
+          {
+            body: "provider=google",
+            headers: { "content-type": "application/x-www-form-urlencoded" },
+            method: "POST",
+          },
+        ),
+        {},
+        { waitUntil: vi.fn() },
+      ),
+    ).rejects.toBe(error);
+
+    const edgeEvents = logAppEventMock.mock.calls.filter(
+      ([, event]) => event === "edge.request.finish",
+    );
+    const workerErrorEvents = logAppEventMock.mock.calls.filter(
+      ([, event]) => event === "worker.fetch.error",
+    );
+    expect(edgeEvents).toHaveLength(1);
+    expect(workerErrorEvents).toHaveLength(1);
+    const requestId = edgeEvents[0]?.[2]?.requestId;
+    expect(requestId).toMatch(/^[0-9a-f-]{36}$/i);
+    expect(edgeEvents[0]?.[2]).toEqual(
+      expect.objectContaining({
+        cacheOutcome: "dynamic",
+        method: "POST",
+        requestClass: "dynamic",
+        requestId,
+        route: normalizePublicSsrObservedRoute("/account/sign-in"),
+        status: 500,
+      }),
+    );
+    expect(workerErrorEvents[0]?.[2]).toEqual(
+      expect.objectContaining({ requestId }),
+    );
+    expect(workerErrorEvents[0]?.[3]).toBe(error);
+    expect(JSON.stringify(edgeEvents)).not.toContain("oauth-state-secret");
+    expect(JSON.stringify(workerErrorEvents)).not.toContain(
+      "oauth-state-secret",
     );
   });
 
