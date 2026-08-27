@@ -528,6 +528,7 @@ describe("Cloudflare Analytics Engine runtime events", () => {
       stage: "comments.descendants",
     });
     writeDashboardStageAnalytics({
+      countState: "known",
       dbContext: "rls",
       dbLabel: "app",
       dbQueryCount: 3,
@@ -543,7 +544,7 @@ describe("Cloudflare Analytics Engine runtime events", () => {
     expect(writeDataPoint).toHaveBeenNthCalledWith(1, {
       indexes: ["worker:account-sign-in"],
       blobs: [
-        "worker_request_v1",
+        "worker_request_v2",
         "finish",
         "account-sign-in",
         "dynamic",
@@ -577,8 +578,64 @@ describe("Cloudflare Analytics Engine runtime events", () => {
     });
     expect(writeDataPoint).toHaveBeenNthCalledWith(4, {
       indexes: ["dashboard:nav_stats"],
-      blobs: ["dashboard_stage_v1", "nav_stats", "rls", "app", "success"],
+      blobs: [
+        "dashboard_stage_v2",
+        "nav_stats",
+        "rls",
+        "app",
+        "success",
+        "known",
+      ],
       doubles: [50, 3, 1, 4, 0, 4],
+    });
+    expect(JSON.stringify(writeDataPoint.mock.calls)).not.toContain("private");
+  });
+
+  it("maps worker API telemetry to finite route families", () => {
+    const writeDataPoint = installAnalyticsBinding();
+
+    writeWorkerRequestAnalytics({
+      cacheOutcome: "dynamic",
+      durationMs: 3,
+      method: "GET",
+      requestClass: "dynamic",
+      route: "/api/catalog/courses/123?token=private",
+      status: 200,
+    });
+    writeWorkerRequestAnalytics({
+      cacheOutcome: "dynamic",
+      durationMs: 4,
+      method: "GET",
+      requestClass: "dynamic",
+      route: "/api/secret-endpoint/user-123?token=private",
+      status: 404,
+    });
+
+    expect(writeDataPoint).toHaveBeenNthCalledWith(1, {
+      indexes: ["worker:api:catalog"],
+      blobs: [
+        "worker_request_v2",
+        "finish",
+        "api:catalog",
+        "dynamic",
+        "GET",
+        "2xx",
+        "dynamic",
+      ],
+      doubles: [3, 200],
+    });
+    expect(writeDataPoint).toHaveBeenNthCalledWith(2, {
+      indexes: ["worker:api:other"],
+      blobs: [
+        "worker_request_v2",
+        "finish",
+        "api:other",
+        "dynamic",
+        "GET",
+        "4xx",
+        "dynamic",
+      ],
+      doubles: [4, 404],
     });
     expect(JSON.stringify(writeDataPoint.mock.calls)).not.toContain("private");
   });
@@ -612,6 +669,7 @@ describe("Cloudflare Analytics Engine runtime events", () => {
       stage: secret as never,
     });
     writeDashboardStageAnalytics({
+      countState: "unknown",
       dbContext: secret as never,
       dbLabel: secret as never,
       dbQueryCount: 1,
@@ -662,12 +720,14 @@ describe("Cloudflare Analytics Engine runtime events", () => {
       expect.objectContaining({
         indexes: ["dashboard:unknown"],
         blobs: [
-          "dashboard_stage_v1",
+          "dashboard_stage_v2",
+          "unknown",
           "unknown",
           "unknown",
           "unknown",
           "unknown",
         ],
+        doubles: [1, 0, 0, 0, 0, 0],
       }),
     );
     expect(JSON.stringify(writeDataPoint.mock.calls)).not.toContain(secret);

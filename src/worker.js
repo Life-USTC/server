@@ -52,6 +52,7 @@ import {
   logWorkerQueueError,
   logWorkerQueueFinish,
   normalizePublicSsrObservedRoute,
+  normalizeWorkerObservedRoute,
   observedEdgeResponse,
   resolveEdgeCacheOutcome,
   resolveWorkerQueue,
@@ -402,9 +403,7 @@ async function handleFetch(request, env, context, requestId, edgeObservation) {
   }
   const mode = resolvePublicSsrMode(request, resolveCatalogListPublicSsrMode);
   if (!shouldRoutePublicSsrCache(request, mode)) {
-    const route = normalizePublicSsrObservedRoute(
-      new URL(request.url).pathname,
-    );
+    const route = normalizeWorkerObservedRoute(new URL(request.url).pathname);
     edgeObservation.cacheOutcome = "dynamic";
     edgeObservation.requestClass = "dynamic";
     edgeObservation.route = route;

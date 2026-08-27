@@ -155,7 +155,7 @@ describe("dashboard todo count reuse and RLS fan-out", () => {
       undefined,
       expect.any(Array),
       expect.objectContaining({
-        complete: true,
+        countState: "known",
         dbContext: "rls",
         dbLabel: "app",
       }),
@@ -178,7 +178,7 @@ describe("dashboard todo count reuse and RLS fan-out", () => {
       expect.any(Promise),
       semesters,
       expect.objectContaining({
-        complete: true,
+        countState: "known",
         dbContext: "rls",
         dbLabel: "app",
       }),

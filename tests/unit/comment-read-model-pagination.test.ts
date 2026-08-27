@@ -13,6 +13,8 @@ const {
   publicReactionSummaryQueryMock,
   reactionSummaryQueryMock,
   rootPageQueryMock,
+  suspensionFindFirstMock,
+  userFindUniqueMock,
   withUserDbContextMock,
   writeCommentsStageAnalyticsMock,
 } = vi.hoisted(() => ({
@@ -28,6 +30,8 @@ const {
   publicReactionSummaryQueryMock: vi.fn(),
   reactionSummaryQueryMock: vi.fn(),
   rootPageQueryMock: vi.fn(),
+  suspensionFindFirstMock: vi.fn(),
+  userFindUniqueMock: vi.fn(),
   withUserDbContextMock: vi.fn(),
   writeCommentsStageAnalyticsMock: vi.fn(),
 }));
@@ -47,6 +51,8 @@ vi.mock("@/lib/db/prisma", () => ({
       count: commentCountMock,
       findMany: commentFindManyMock,
     },
+    user: { findUnique: userFindUniqueMock },
+    userSuspension: { findFirst: suspensionFindFirstMock },
   },
   withUserDbContext: withUserDbContextMock,
 }));
@@ -143,11 +149,20 @@ describe("loadCommentThread pagination", () => {
     descendantQueryMock.mockResolvedValue([]);
     rootPageQueryMock.mockReset();
     commentFindManyMock.mockReset();
+    suspensionFindFirstMock.mockReset();
+    userFindUniqueMock.mockReset();
     accountFindManyMock.mockResolvedValue([]);
     logAppEventMock.mockReset();
     publicReactionSummaryQueryMock.mockResolvedValue([]);
     publicAttachmentSummaryQueryMock.mockResolvedValue([]);
     rootPageQueryMock.mockResolvedValue([{ id: "root-2", total: 3n }]);
+    suspensionFindFirstMock.mockResolvedValue(null);
+    userFindUniqueMock.mockResolvedValue({
+      id: viewer.userId,
+      image: viewer.image,
+      isAdmin: viewer.isAdmin,
+      name: viewer.name,
+    });
     reactionSummaryQueryMock.mockResolvedValue([]);
     attachmentSummaryQueryMock.mockResolvedValue([]);
     writeCommentsStageAnalyticsMock.mockReset();
@@ -340,6 +355,51 @@ describe("loadCommentThread pagination", () => {
             },
           ],
         },
+      }),
+    );
+  });
+
+  it("records two uncached viewer reads once without counting a transaction", async () => {
+    commentFindManyMock.mockResolvedValueOnce([]);
+
+    await loadCommentThread({
+      target: target({ sectionId: 7 }),
+      viewerUserId: viewer.userId,
+    });
+
+    expect(userFindUniqueMock).toHaveBeenCalledOnce();
+    expect(suspensionFindFirstMock).toHaveBeenCalledOnce();
+    expect(
+      writeCommentsStageAnalyticsMock.mock.calls.filter(
+        ([input]) => (input as { stage: string }).stage === "viewer.context",
+      ),
+    ).toEqual([
+      [
+        expect.objectContaining({
+          dbContext: "none",
+          dbQueryCount: 2,
+          dbTransactionCount: 0,
+          stage: "viewer.context",
+        }),
+      ],
+    ]);
+  });
+
+  it("records anonymous viewer context without a database read", async () => {
+    commentFindManyMock.mockResolvedValueOnce([]);
+
+    await loadCommentThread({
+      target: target({ sectionId: 7 }),
+      viewerUserId: null,
+    });
+
+    expect(userFindUniqueMock).not.toHaveBeenCalled();
+    expect(suspensionFindFirstMock).not.toHaveBeenCalled();
+    expect(writeCommentsStageAnalyticsMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        dbQueryCount: 0,
+        dbTransactionCount: 0,
+        stage: "viewer.context",
       }),
     );
   });

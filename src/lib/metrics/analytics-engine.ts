@@ -3,6 +3,7 @@ import {
   getCloudflareAnalyticsEngineDataset,
   getCloudflareRuntimeEnvInput,
 } from "@/lib/adapters/cloudflare-runtime";
+import { resolveApiRouteFamily } from "@/lib/log/api-observability-path";
 import { emitLog } from "@/lib/log/app-log-emitter";
 import { getSafeErrorName } from "@/lib/log/safe-error-name";
 import type {
@@ -252,7 +253,9 @@ export type DashboardStage =
   | "tab";
 
 export type DbStageContext = "none" | "rls";
+export type DashboardDbStageContext = DbStageContext | "mixed";
 export type DbStageLabel = "app" | "auth" | "maintenance";
+export type DashboardStageCountState = "known" | "unknown";
 
 export type CommentsStageAnalyticsInput = {
   dbContext: DbStageContext;
@@ -267,7 +270,8 @@ export type CommentsStageAnalyticsInput = {
 };
 
 export type DashboardStageAnalyticsInput = {
-  dbContext: DbStageContext;
+  countState: DashboardStageCountState;
+  dbContext: DashboardDbStageContext;
   dbQueryCount: number;
   dbTransactionCount: number;
   durationMs: number;
@@ -382,21 +386,6 @@ const MCP_ERROR_NAMES = new Set([
   "SyntaxError",
   "TimeoutError",
   "TypeError",
-]);
-const API_ROUTE_FAMILIES = new Set([
-  "account",
-  "admin",
-  "auth",
-  "calendar-feeds",
-  "catalog",
-  "community",
-  "graphql",
-  "health",
-  "mcp",
-  "openapi",
-  "search",
-  "users",
-  "workspace",
 ]);
 const API_AUTH_MODES = new Set([
   "anonymous",
@@ -593,6 +582,8 @@ const DASHBOARD_STAGES = new Set([
   "tab",
 ]);
 const DB_STAGE_CONTEXTS = new Set(["none", "rls"]);
+const DASHBOARD_DB_STAGE_CONTEXTS = new Set(["none", "rls", "mixed"]);
+const DASHBOARD_STAGE_COUNT_STATES = new Set(["known", "unknown"]);
 const DB_STAGE_LABELS = new Set(["app", "auth", "maintenance"]);
 const DB_STAGE_OUTCOMES = new Set(["error", "success"]);
 const OAUTH_EVENTS = new Set([
@@ -728,7 +719,9 @@ function boundedCount(value: number | undefined | null, max = 1_000_000) {
 function workerRouteFamily(route: string) {
   const pathname = route.split(/[?#]/, 1)[0] ?? route;
   if (pathname === "/account/sign-in") return "account-sign-in";
-  if (pathname.startsWith("/api/")) return "api";
+  if (pathname === "/api" || pathname.startsWith("/api/")) {
+    return `api:${resolveApiRouteFamily(pathname)}`;
+  }
   if (pathname.startsWith("/catalog/")) return "catalog";
   if (pathname === "public-page" || pathname === "public-not-found") {
     return "public";
@@ -738,11 +731,7 @@ function workerRouteFamily(route: string) {
 }
 
 function apiRouteFamily(route: string) {
-  const pathname = route.split(/[?#]/, 1)[0] ?? route;
-  const segment = pathname.startsWith("/api/")
-    ? pathname.split("/", 3)[2]
-    : undefined;
-  return segment && API_ROUTE_FAMILIES.has(segment) ? segment : "other";
+  return resolveApiRouteFamily(route);
 }
 
 function pageRouteId(route: string) {
@@ -907,7 +896,7 @@ export function writeWorkerRequestAnalytics(
   writeAnalyticsDataPoint({
     indexes: [`worker:${routeFamily}`],
     blobs: [
-      "worker_request_v1",
+      "worker_request_v2",
       "finish",
       routeFamily,
       requestClass,
@@ -1166,20 +1155,31 @@ export function writeDashboardStageAnalytics(
   input: DashboardStageAnalyticsInput,
 ) {
   const stage = finiteEnum(input.stage, DASHBOARD_STAGES);
-  const dbContext = finiteEnum(input.dbContext, DB_STAGE_CONTEXTS);
+  const countState = finiteEnum(input.countState, DASHBOARD_STAGE_COUNT_STATES);
+  const dbContext = finiteEnum(input.dbContext, DASHBOARD_DB_STAGE_CONTEXTS);
   const dbLabel = finiteEnum(input.dbLabel, DB_STAGE_LABELS);
   const outcome = finiteEnum(input.outcome, DB_STAGE_OUTCOMES);
+  const counts =
+    countState === "unknown"
+      ? [0, 0, 0, 0, 0]
+      : [
+          boundedCount(input.dbQueryCount),
+          boundedCount(input.dbTransactionCount),
+          boundedCount(input.loadedCount),
+          boundedCount(input.rootCount),
+          boundedCount(input.subscribedSectionCount),
+        ];
   writeAnalyticsDataPoint({
     indexes: [`dashboard:${stage}`],
-    blobs: ["dashboard_stage_v1", stage, dbContext, dbLabel, outcome],
-    doubles: [
-      finiteNumber(input.durationMs),
-      boundedCount(input.dbQueryCount),
-      boundedCount(input.dbTransactionCount),
-      boundedCount(input.loadedCount),
-      boundedCount(input.rootCount),
-      boundedCount(input.subscribedSectionCount),
+    blobs: [
+      "dashboard_stage_v2",
+      stage,
+      dbContext,
+      dbLabel,
+      outcome,
+      countState,
     ],
+    doubles: [finiteNumber(input.durationMs), ...counts],
   });
 }
 

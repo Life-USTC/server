@@ -22,6 +22,7 @@ import {
   logWorkerQueueError,
   logWorkerQueueFinish,
   normalizePublicSsrObservedRoute,
+  normalizeWorkerObservedRoute,
   observedEdgeResponse,
   resolveEdgeCacheOutcome,
   resolveWorkerQueue,
@@ -52,6 +53,24 @@ describe("worker entrypoint observability", () => {
     );
     expect(normalizePublicSsrObservedRoute("/users/user-secret")).toBe(
       "public-page",
+    );
+  });
+
+  it("normalizes dynamic API routes to finite families without queries or IDs", () => {
+    expect(
+      normalizeWorkerObservedRoute(
+        "/api/catalog/courses/123?token=private-value",
+      ),
+    ).toBe("/api/catalog");
+    expect(normalizeWorkerObservedRoute("/api/mcp/tools/call")).toBe(
+      "/api/mcp",
+    );
+    expect(
+      normalizeWorkerObservedRoute("/api/not-allowlisted/user-secret"),
+    ).toBe("/api/other");
+    expect(normalizeWorkerObservedRoute("/api")).toBe("/api/other");
+    expect(normalizeWorkerObservedRoute("/catalog/courses/course-secret")).toBe(
+      "/catalog/courses/:id",
     );
   });
 

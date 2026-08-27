@@ -1,3 +1,4 @@
+import { normalizeApiRouteFamilyPath } from "@/lib/log/api-observability-path";
 import { logAppEvent } from "@/lib/log/app-logger";
 import { elapsedMs } from "@/lib/log/observability-clock";
 import { shouldLogSuccessfulRequest } from "@/lib/log/request-log-sampling";
@@ -91,7 +92,11 @@ export function normalizePublicSsrObservedRoute(pathname: string) {
  * dynamic-vs-cache attribution explicit without ever retaining path IDs.
  */
 export function normalizeWorkerObservedRoute(pathname: string) {
-  return normalizePublicSsrObservedRoute(pathname);
+  const path = pathname.split(/[?#]/, 1)[0] ?? pathname;
+  if (path === "/api" || path.startsWith("/api/")) {
+    return normalizeApiRouteFamilyPath(path);
+  }
+  return normalizePublicSsrObservedRoute(path);
 }
 
 export function resolveEdgeCacheOutcome(response: Response): EdgeCacheOutcome {

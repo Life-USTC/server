@@ -3,6 +3,7 @@ import { runCloudflareTraceSpan } from "@/lib/adapters/cloudflare-runtime";
 import {
   getViewerContext,
   type ViewerContext,
+  type ViewerContextInstrumentation,
 } from "@/lib/auth/viewer-context";
 import { authPrisma } from "@/lib/db/auth-prisma";
 import { prisma, withUserDbContext } from "@/lib/db/prisma";
@@ -75,6 +76,32 @@ type CommentDescendantWindowRow = {
   createdAt: Date;
   rowNumber: bigint | null;
 };
+
+function observeCommentViewerContext(input: {
+  viewer?: ViewerContext;
+  viewerUserId: string | null;
+}) {
+  const counter = createCommentStageCounter({
+    dbContext: "none",
+    dbLabel: "app",
+  });
+  const instrumentation: ViewerContextInstrumentation = {
+    onQuery: () => countCommentStageQuery(counter),
+  };
+
+  return observeCommentStage({
+    counter,
+    stage: "viewer.context",
+    work: () =>
+      input.viewer
+        ? Promise.resolve(input.viewer)
+        : getViewerContext({
+            includeAdmin: false,
+            userId: input.viewerUserId,
+            instrumentation,
+          }),
+  });
+}
 
 export async function withCommentAuthorProviders(
   comments: RawComment[],
@@ -746,39 +773,14 @@ export async function loadCommentThread(input: {
   viewerUserId: string | null;
 }) {
   if (input.target.empty) {
-    const viewer = await observeCommentStage({
-      counter: input.viewer
-        ? createCommentStageCounter({ dbContext: "none", dbLabel: "app" })
-        : undefined,
-      stage: "viewer.context",
-      work: () =>
-        input.viewer
-          ? Promise.resolve(input.viewer)
-          : getViewerContext({
-              includeAdmin: false,
-              userId: input.viewerUserId,
-            }),
-    });
+    const viewer = await observeCommentViewerContext(input);
     return { comments: [], hiddenCount: 0, total: 0, viewer };
   }
 
   const viewer = await runCloudflareTraceSpan(
     "viewer.context",
     { source: "comments" },
-    () =>
-      observeCommentStage({
-        counter: input.viewer
-          ? createCommentStageCounter({ dbContext: "none", dbLabel: "app" })
-          : undefined,
-        stage: "viewer.context",
-        work: () =>
-          input.viewer
-            ? Promise.resolve(input.viewer)
-            : getViewerContext({
-                includeAdmin: false,
-                userId: input.viewerUserId,
-              }),
-      }),
+    () => observeCommentViewerContext(input),
   );
   const pagination = input.pagination ?? { pageSize: 20, skip: 0 };
   const rootCounter = createCommentStageCounter({
@@ -890,9 +892,8 @@ export async function loadCommentReplies(input: {
   pageSize?: number;
   viewerUserId: string | null;
 }) {
-  const viewer = await getViewerContext({
-    includeAdmin: false,
-    userId: input.viewerUserId,
+  const viewer = await observeCommentViewerContext({
+    viewerUserId: input.viewerUserId,
   });
   const pageSize = Math.min(
     Math.max(input.pageSize ?? COMMENT_REPLY_PAGE_SIZE, 1),
@@ -978,10 +979,7 @@ export async function loadFocusedCommentThread(input: {
         select: commentTargetLookupSelect,
       }),
     ),
-    getViewerContext({
-      includeAdmin: false,
-      userId: input.viewerUserId,
-    }),
+    observeCommentViewerContext({ viewerUserId: input.viewerUserId }),
   ]);
 
   if (!comment) {

@@ -13,6 +13,10 @@ export type ViewerContext = {
   suspensionExpiresAt: string | null;
 };
 
+export interface ViewerContextInstrumentation {
+  onQuery?: () => void;
+}
+
 type ViewerAuthData = {
   user: {
     id: string;
@@ -38,7 +42,21 @@ function getRequestViewerCache() {
   return cache;
 }
 
-export async function findActiveSuspension(userId: string) {
+function notifyViewerContextQuery(
+  instrumentation?: ViewerContextInstrumentation,
+): void {
+  try {
+    instrumentation?.onQuery?.();
+  } catch {
+    // Instrumentation must never change authentication behavior.
+  }
+}
+
+export async function findActiveSuspension(
+  userId: string,
+  instrumentation?: ViewerContextInstrumentation,
+) {
+  notifyViewerContextQuery(instrumentation);
   const now = new Date();
   return prisma.userSuspension.findFirst({
     where: {
@@ -50,7 +68,11 @@ export async function findActiveSuspension(userId: string) {
   });
 }
 
-async function findViewerUser(userId: string) {
+async function findViewerUser(
+  userId: string,
+  instrumentation?: ViewerContextInstrumentation,
+) {
+  notifyViewerContextQuery(instrumentation);
   return prisma.user.findUnique({
     where: { id: userId },
     select: { id: true, name: true, image: true, isAdmin: true },
@@ -59,10 +81,11 @@ async function findViewerUser(userId: string) {
 
 export async function getViewerAuthDataForUserId(
   userId: string,
+  instrumentation?: ViewerContextInstrumentation,
 ): Promise<ViewerAuthData | null> {
   const [user, suspension] = await Promise.all([
-    findViewerUser(userId),
-    findActiveSuspension(userId),
+    findViewerUser(userId, instrumentation),
+    findActiveSuspension(userId, instrumentation),
   ]);
 
   if (!user) {
@@ -73,11 +96,18 @@ export async function getViewerAuthDataForUserId(
 }
 
 async function loadViewerContext(
-  options: { includeAdmin?: boolean; userId?: string | null } = {},
+  options: {
+    includeAdmin?: boolean;
+    userId?: string | null;
+    instrumentation?: ViewerContextInstrumentation;
+  } = {},
 ): Promise<ViewerContext> {
   const data =
     typeof options.userId === "string"
-      ? await getViewerAuthDataForUserId(options.userId)
+      ? await getViewerAuthDataForUserId(
+          options.userId,
+          options.instrumentation,
+        )
       : null;
 
   if (!data) {
@@ -111,7 +141,11 @@ async function loadViewerContext(
 }
 
 export function getViewerContext(
-  options: { includeAdmin?: boolean; userId?: string | null } = {},
+  options: {
+    includeAdmin?: boolean;
+    userId?: string | null;
+    instrumentation?: ViewerContextInstrumentation;
+  } = {},
 ): Promise<ViewerContext> {
   const cache = getRequestViewerCache();
   if (!cache) return loadViewerContext(options);
