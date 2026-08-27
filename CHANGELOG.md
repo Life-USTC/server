@@ -1,3 +1,10 @@
+## [1.96.1](https://github.com/Life-USTC/server/compare/v1.96.0...v1.96.1) (2026-08-27)
+
+
+### Bug Fixes
+
+* **observability:** preserve Worker response metadata ([bd0715d](https://github.com/Life-USTC/server/commit/bd0715d77b6a3d85a0f583ce93522e71679b64d3))
+
 # [1.96.0](https://github.com/Life-USTC/server/compare/v1.95.0...v1.96.0) (2026-08-27)
 
 
