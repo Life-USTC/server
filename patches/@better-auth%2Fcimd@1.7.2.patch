@@ -1,13 +1,8 @@
 diff --git a/dist/index.mjs b/dist/index.mjs
-index 2b6db54..e9751ae 100644
+index ac68cec8c447860f5b9d6151152dd98351d10475..b85f9783e78aa5dac8fb891ad754cae7fa3862c7 100644
 --- a/dist/index.mjs
 +++ b/dist/index.mjs
-@@ -102,10 +102,18 @@ function validateCimdMetadata(clientIdUrl, raw, options = {}) {
- 		valid: false,
- 		error: `client_id "${String(doc.client_id)}" does not match the metadata document URL`
- 	};
--	if (options.metadataProfile === "mcp-2026-07-28" && !doc.client_name?.trim()) return {
-+	if (!doc.client_name?.trim()) return {
+@@ -106,6 +106,14 @@ function validateCimdMetadata(clientIdUrl, raw, options = {}) {
  		valid: false,
  		error: "client_name must be a non-empty string"
  	};
@@ -22,8 +17,7 @@ index 2b6db54..e9751ae 100644
  	for (const field of ["backchannel_logout_uri", "backchannel_logout_session_required"]) if (doc[field] !== void 0) return {
  		valid: false,
  		error: `metadata document MUST NOT contain "${field}"`
-@@ -402,7 +410,9 @@ async function persistMetadataDocumentClient(ctx, clientIdUrl, metadata, cimdOpt
- 		clientId: clientIdUrl,
+@@ -403,6 +411,8 @@ async function persistMetadataDocumentClient(ctx, clientIdUrl, metadata, cimdOpt
  		clientDiscoveryId: CIMD_CLIENT_DISCOVERY_ID,
  		metadata: {
  			...metadata,
