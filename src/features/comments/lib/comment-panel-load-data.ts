@@ -74,6 +74,7 @@ export function commentsFromInitialData({
       targets,
     }),
     hiddenCount: data.hiddenCount,
+    targetComments: nextMap,
     viewer: data.viewer,
   };
 }

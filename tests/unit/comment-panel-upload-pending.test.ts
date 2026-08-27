@@ -40,6 +40,14 @@ const secondaryTarget: CommentTargetOption = {
   type: "course",
 };
 
+const sectionTeacherTarget: CommentTargetOption = {
+  key: "section-teacher",
+  label: "Teacher",
+  sectionId: 1,
+  teacherId: 3,
+  type: "section-teacher",
+};
+
 function viewer(): ViewerContext {
   return {
     image: null,
@@ -118,15 +126,28 @@ function comment(overrides: Partial<CommentNode> = {}): CommentNode {
   };
 }
 
-function commentsThreadResponse(id = "comment-created") {
+function commentsThreadResponse(
+  id = "comment-created",
+  overrides: Partial<typeof targetMetadata> = {},
+) {
   const { type: _type, targetId: _targetId, ...target } = targetMetadata;
   return {
     focusId: id,
     hiddenCount: 0,
-    target,
+    target: { ...target, ...overrides },
     thread: [comment({ id })],
     viewer: viewer(),
   };
+}
+
+function sectionTeacherThreadResponse(id: string) {
+  return commentsThreadResponse(id, {
+    sectionId: 1,
+    sectionTeacherId: 31,
+    sectionTeacherSectionId: 1,
+    sectionTeacherTeacherId: 3,
+    teacherId: 3,
+  });
 }
 
 function createSubmitActions({
@@ -148,7 +169,9 @@ function createSubmitActions({
 } = {}) {
   let currentBody = body;
   let submitting = false;
-  let currentComments: CommentNodeWithContext[] = [];
+  let currentComments: CommentNodeWithContext[] = showAllTargets
+    ? targetLoadStates.flatMap((state) => state.comments)
+    : (targetLoadStates[0]?.comments ?? []);
   let currentTargetLoadStates = targetLoadStates;
   const pending = new Set(pendingModes);
   const setComments = vi.fn((value: CommentNodeWithContext[]) => {
@@ -446,6 +469,154 @@ describe("评论面板上传挂起状态", () => {
     expect(currentComments().map((entry) => entry.id)).toContain(
       "comment-created",
     );
+  });
+
+  it("根评论固定链接超出第一页时通过一次聚焦读取可见", async () => {
+    apiClientMock.GET.mockResolvedValueOnce({
+      data: commentsThreadResponse("root-21"),
+      response: new Response(null, { status: 200 }),
+    });
+    const existingComments = Array.from({ length: 20 }, (_, index) => {
+      const id = `root-${index + 1}`;
+      return {
+        ...comment({ id, rootId: id }),
+        contextKey: target.key,
+      };
+    });
+    const { actions, currentComments } = createSubmitActions({
+      targetLoadStates: [
+        {
+          comments: existingComments,
+          hiddenCount: 0,
+          loaded: true,
+          page: 1,
+          target,
+          total: 21,
+          totalPages: 2,
+        },
+      ],
+    });
+
+    await actions.loadCommentForHash("root-21");
+
+    expect(apiClientMock.GET).toHaveBeenCalledOnce();
+    expect(apiClientMock.GET).toHaveBeenCalledWith(
+      "/api/community/comments/root-21",
+    );
+    expect(currentComments().map((entry) => entry.id)).toContain("root-21");
+  });
+
+  it("回复固定链接超出预览时合并聚焦线程而不加载其他页面", async () => {
+    const existingReplies = Array.from({ length: 10 }, (_, index) =>
+      comment({
+        createdAt: `2026-01-01T00:00:${String(index + 1).padStart(2, "0")}+08:00`,
+        id: `reply-${index + 1}`,
+        parentId: "root-1",
+        rootId: "root-1",
+      }),
+    );
+    apiClientMock.GET.mockResolvedValueOnce({
+      data: {
+        ...commentsThreadResponse("reply-11"),
+        thread: [
+          comment({
+            id: "root-1",
+            replies: [
+              comment({
+                createdAt: "2026-01-01T00:00:11+08:00",
+                id: "reply-11",
+                parentId: "root-1",
+                rootId: "root-1",
+              }),
+            ],
+            rootId: "root-1",
+          }),
+        ],
+      },
+      response: new Response(null, { status: 200 }),
+    });
+    const { actions, currentComments } = createSubmitActions({
+      targetLoadStates: [
+        {
+          comments: [
+            {
+              ...comment({
+                id: "root-1",
+                replies: existingReplies,
+                repliesNextCursor: "cursor-1",
+              }),
+              contextKey: target.key,
+            },
+          ],
+          hiddenCount: 0,
+          loaded: true,
+          page: 1,
+          target,
+          total: 1,
+          totalPages: 1,
+        },
+      ],
+    });
+
+    await actions.loadCommentForHash("reply-11");
+
+    expect(apiClientMock.GET).toHaveBeenCalledOnce();
+    expect(currentComments()[0]?.replies.map((entry) => entry.id)).toContain(
+      "reply-11",
+    );
+  });
+
+  it("完整主目标 SSR 数据下将 section-teacher 固定链接合并到二级目标", async () => {
+    apiClientMock.GET.mockResolvedValueOnce({
+      data: sectionTeacherThreadResponse("teacher-comment"),
+      response: new Response(null, { status: 200 }),
+    });
+    const primaryComment = {
+      ...comment({ id: "primary-comment" }),
+      contextKey: target.key,
+    };
+    const { actions, currentComments, currentTargetLoadStates } =
+      createSubmitActions({
+        showAllTargets: true,
+        targets: [target, sectionTeacherTarget],
+        targetLoadStates: [
+          {
+            comments: [primaryComment],
+            hiddenCount: 0,
+            loaded: true,
+            page: 1,
+            target,
+            total: 1,
+            totalPages: 1,
+          },
+          {
+            comments: [],
+            hiddenCount: 0,
+            loaded: false,
+            page: 0,
+            target: sectionTeacherTarget,
+            total: 0,
+            totalPages: 0,
+          },
+        ],
+      });
+
+    await actions.loadCommentForHash("teacher-comment");
+
+    expect(apiClientMock.GET).toHaveBeenCalledOnce();
+    expect(
+      currentTargetLoadStates().find(
+        (state) => state.target.key === sectionTeacherTarget.key,
+      ),
+    ).toMatchObject({
+      comments: [expect.objectContaining({ id: "teacher-comment" })],
+      loaded: false,
+      page: 0,
+    });
+    expect(currentComments().map((entry) => entry.id)).toEqual([
+      "primary-comment",
+      "teacher-comment",
+    ]);
   });
 
   it("刷新失败只报告读取失败且不撤销提交成功反馈", async () => {

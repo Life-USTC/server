@@ -103,12 +103,11 @@ export function createCommentPanelLoadSubmitActions(input: {
     );
     input.setTargetLoadStates(nextStates);
     input.setComments(
-      visibleCommentsForTargets({
+      mergeCommentThread({
+        comments: input.getComments(),
         showAllTargets: input.getShowAllTargets(),
-        targetComments: Object.fromEntries(
-          nextStates.map((state) => [state.target.key, state.comments]),
-        ),
-        targets: input.getTargets(),
+        target,
+        thread: result.thread,
       }),
     );
     input.setHiddenCount(
@@ -277,6 +276,42 @@ export function createCommentPanelLoadSubmitActions(input: {
     }
   }
 
+  async function loadCommentForHash(commentId: string) {
+    const result = await loadCommentThreadPage({
+      commentId,
+      loadFailed: input.getCommentCopy().loadFailed,
+    });
+    const target = input
+      .getTargets()
+      .find((candidate) => focusedTargetMatches(candidate, result.target));
+    if (!target) return;
+
+    const states = currentTargetStates();
+    const nextStates = states.map((state) =>
+      state.target.key === target.key
+        ? {
+            ...state,
+            comments: mergeCommentThread({
+              comments: state.comments,
+              showAllTargets: input.getShowAllTargets(),
+              target,
+              thread: result.thread,
+            }),
+          }
+        : state,
+    );
+    input.setTargetLoadStates(nextStates);
+    input.setComments(
+      mergeCommentThread({
+        comments: input.getComments(),
+        showAllTargets: input.getShowAllTargets(),
+        target,
+        thread: result.thread,
+      }),
+    );
+    input.setViewer(result.viewer);
+  }
+
   async function refreshAfterSubmit(
     commentId: string,
     target: CommentTargetOption,
@@ -379,12 +414,74 @@ export function createCommentPanelLoadSubmitActions(input: {
   }
 
   return {
+    loadCommentForHash,
     loadComments,
     loadMoreComments,
     loadMoreReplies,
     loadTarget,
     submitComment,
   };
+}
+
+type FocusedCommentTarget = Awaited<
+  ReturnType<typeof loadCommentThreadPage>
+>["target"];
+
+function focusedTargetMatches(
+  target: CommentTargetOption,
+  focused: FocusedCommentTarget,
+) {
+  const focusedType = focusedCommentTargetType(focused);
+  if (focusedType && target.type !== focusedType) return false;
+  switch (target.type) {
+    case "section":
+      return sameTargetId(
+        target.targetId ?? target.sectionId,
+        focused.sectionId,
+      );
+    case "course":
+      return sameTargetId(target.targetId, focused.courseId);
+    case "teacher":
+      return sameTargetId(target.targetId, focused.teacherId);
+    case "homework":
+      return sameTargetId(target.targetId, focused.homeworkId);
+    case "section-teacher":
+      return (
+        sameTargetId(target.targetId, focused.sectionTeacherId) ||
+        (sameTargetId(target.sectionId, focused.sectionTeacherSectionId) &&
+          sameTargetId(target.teacherId, focused.sectionTeacherTeacherId))
+      );
+  }
+}
+
+function focusedCommentTargetType(
+  focused: FocusedCommentTarget,
+): CommentTargetType | null {
+  if (
+    focused.sectionTeacherId !== null ||
+    focused.sectionTeacherSectionId !== null ||
+    focused.sectionTeacherTeacherId !== null
+  ) {
+    return "section-teacher";
+  }
+  if (focused.homeworkId !== null) return "homework";
+  if (focused.sectionId !== null) return "section";
+  if (focused.courseId !== null) return "course";
+  if (focused.teacherId !== null) return "teacher";
+  return null;
+}
+
+function sameTargetId(
+  targetId: number | string | null | undefined,
+  focusedId: number | string | null | undefined,
+) {
+  return (
+    targetId !== null &&
+    targetId !== undefined &&
+    focusedId !== null &&
+    focusedId !== undefined &&
+    String(targetId) === String(focusedId)
+  );
 }
 
 function mergeCommentPages(

@@ -100,7 +100,9 @@ let {
   _viewer,
   _visibility,
 } = createCommentPanelDefaultState();
+let _loadCommentForHash: (commentId: string) => Promise<void> = async () => {};
 const _commentHashScroller = createCommentHashScroller({
+  loadMissingComment: (commentId) => _loadCommentForHash(commentId),
   setHighlightedId: (value) => {
     _highlightedId = value;
   },
@@ -150,6 +152,9 @@ const { applyInitialData: _applyInitialData } =
     },
     setLoading: (value) => {
       _loading = value;
+    },
+    setTargetLoadStates: (value) => {
+      _targetLoadStates = value;
     },
     setViewer: (value) => {
       _viewer = value;
@@ -250,6 +255,7 @@ const {
 
 const {
   loadComments: _loadComments,
+  loadCommentForHash: _loadCommentForHashImpl,
   loadMoreComments: _loadMoreComments,
   loadMoreReplies: _loadMoreReplies,
   loadTarget: _loadTarget,
@@ -319,6 +325,7 @@ const {
     _viewer = value;
   },
 });
+_loadCommentForHash = _loadCommentForHashImpl;
 
 const { uploadFile: _uploadFile } = createCommentPanelUploadActions({
   getEditAttachmentIds: () => _editAttachmentIds,
