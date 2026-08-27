@@ -59,10 +59,11 @@ $: classLectureNumberById = new Map(
 </script>
 
 {#if datedEvents.length > 0 || unscheduledCalendarEvents.length > 0}
-  <Table.Root
-    class="min-w-[42rem] md:min-w-0"
-    data-testid="section-calendar-table"
-  >
+  <div class="min-w-0 max-w-full">
+    <Table.Root
+      class="min-w-[42rem] md:min-w-0"
+      data-testid="section-calendar-table"
+    >
     <Table.Caption class="sr-only">{sectionCopy.lecture}</Table.Caption>
     <Table.Header>
       <Table.Row>
@@ -107,7 +108,8 @@ $: classLectureNumberById = new Map(
         </Table.Row>
       {/each}
     </Table.Body>
-  </Table.Root>
+    </Table.Root>
+  </div>
 {:else}
   <Empty.Root class="min-h-20 border-0 px-2 py-6">
     <Empty.Header>

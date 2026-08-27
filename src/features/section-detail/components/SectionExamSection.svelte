@@ -25,10 +25,11 @@ export let sectionCopy: SectionExamCopy;
 </script>
 
 {#if events.length > 0}
-  <Table.Root
-    class="min-w-[52rem] md:min-w-0"
-    data-testid="section-exams-list"
-  >
+  <div class="min-w-0 max-w-full">
+    <Table.Root
+      class="min-w-[52rem] md:min-w-0"
+      data-testid="section-exams-list"
+    >
     <Table.Caption class="sr-only">{sectionCopy.examBatch}</Table.Caption>
     <Table.Header>
       <Table.Row>
@@ -66,7 +67,8 @@ export let sectionCopy: SectionExamCopy;
         </Table.Row>
       {/each}
     </Table.Body>
-  </Table.Root>
+    </Table.Root>
+  </div>
 {:else}
   <Empty.Root class="min-h-20 border-0 px-2 py-6">
     <Empty.Header>
