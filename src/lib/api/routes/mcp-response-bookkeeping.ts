@@ -6,6 +6,7 @@ import {
   logMcpTransportResponse,
   type McpRequestSummary,
 } from "./mcp-request-logging";
+import { boundedMcpContentLength } from "./mcp-response-inspection";
 
 export function recordAndLogMcpResponse(input: {
   authFailureDiagnostics?: McpAuthFailureDiagnostics | null;
@@ -60,8 +61,5 @@ export function recordAndLogMcpResponse(input: {
 }
 
 function requestContentLength(request: Request) {
-  const value = request.headers.get("content-length");
-  if (!value || !/^\d+$/.test(value)) return undefined;
-  const length = Number(value);
-  return Number.isSafeInteger(length) ? length : undefined;
+  return boundedMcpContentLength(request.headers.get("content-length"));
 }

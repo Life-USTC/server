@@ -121,7 +121,6 @@ describe("API 可观测性", () => {
         "finish",
         "GET",
         "calendar-feeds",
-        "204",
         "2xx",
         "bearer",
       ],

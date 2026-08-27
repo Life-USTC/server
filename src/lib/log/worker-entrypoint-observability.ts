@@ -166,7 +166,22 @@ export function logWorkerQueueFinish(input: {
   ioObservedDurationMs: number;
   messageCount: number;
   queue: Exclude<WorkerQueue, "unknown">;
+  /** Queue consumers may pass a stable batch/message ID when available. */
+  sampleKey?: string;
 }) {
+  const sampleKey =
+    input.sampleKey ??
+    `${input.queue}:${input.messageCount}:${Math.round(input.ioObservedDurationMs)}`;
+  if (
+    !shouldLogSuccessfulRequest({
+      durationMs: input.ioObservedDurationMs,
+      requestId: sampleKey,
+      samplePercent: 10,
+      status: 200,
+    })
+  ) {
+    return;
+  }
   logAppEvent("info", "worker.queue.finish", {
     event: "worker.queue.finish",
     ioObservedDurationMs: input.ioObservedDurationMs,

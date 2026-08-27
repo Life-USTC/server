@@ -47,6 +47,42 @@ describe("audit log write queue", () => {
     ).toBeNull();
   });
 
+  it("accepts bounded nested metadata and rejects oversized metadata", () => {
+    const bounded = parseAuditLogWriteQueueMessage({
+      auditId: "audit-metadata",
+      type: "audit-log.write.v1",
+      params: {
+        action: "account_sign_in",
+        metadata: {
+          changedFields: ["name", "image"],
+          source: "settings",
+          nested: { enabled: true },
+        },
+      },
+    });
+    expect(bounded?.params.metadata).toEqual({
+      changedFields: ["name", "image"],
+      nested: { enabled: true },
+      source: "settings",
+    });
+
+    const tooDeep = { a: { b: { c: { d: { e: "too-deep" } } } } };
+    const tooManyEntries = Object.fromEntries(
+      Array.from({ length: 65 }, (_, index) => [`key-${index}`, true]),
+    );
+    const tooLarge = { payload: "x".repeat(8 * 1024) };
+
+    for (const metadata of [tooDeep, tooManyEntries, tooLarge]) {
+      expect(
+        parseAuditLogWriteQueueMessage({
+          auditId: "audit-invalid-metadata",
+          type: "audit-log.write.v1",
+          params: { action: "account_sign_in", metadata },
+        }),
+      ).toBeNull();
+    }
+  });
+
   it("acks valid writes and retries malformed messages for the DLQ", async () => {
     writeAuditLogsMock.mockResolvedValue(undefined);
     const valid = queueMessage({
@@ -90,7 +126,7 @@ describe("audit log write queue", () => {
         acked: 1,
         batchSize: 2,
         invalid: 1,
-        outcome: "retry",
+        outcome: "partial",
         processed: 2,
         retried: 1,
       }),
@@ -122,6 +158,33 @@ describe("audit log write queue", () => {
         validMessageCount: 1,
       }),
       error,
+    );
+    expect(writeQueueBatchAnalyticsMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        acked: 0,
+        outcome: "retry",
+        processed: 1,
+        retried: 1,
+      }),
+    );
+  });
+
+  it("classifies an all-invalid batch as retry because nothing was acknowledged", async () => {
+    const invalid = queueMessage({ type: "unknown" });
+
+    await handleAuditLogWriteBatch({ messages: [invalid] });
+
+    expect(writeAuditLogsMock).not.toHaveBeenCalled();
+    expect(invalid.ack).not.toHaveBeenCalled();
+    expect(invalid.retry).toHaveBeenCalledOnce();
+    expect(writeQueueBatchAnalyticsMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        acked: 0,
+        invalid: 1,
+        outcome: "retry",
+        processed: 1,
+        retried: 1,
+      }),
     );
   });
 

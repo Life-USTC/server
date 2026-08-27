@@ -21,11 +21,16 @@ function mcpJsonValueHasError(value: unknown): boolean {
   );
 }
 
-function declaredContentLength(response: Response) {
-  const value = response.headers.get("content-length");
+export function boundedMcpContentLength(value: string | null) {
   if (!value || !/^\d+$/.test(value)) return undefined;
   const length = Number(value);
-  return Number.isSafeInteger(length) ? length : undefined;
+  return Number.isSafeInteger(length)
+    ? Math.min(length, MAX_RESPONSE_BYTES + 1)
+    : undefined;
+}
+
+function declaredContentLength(response: Response) {
+  return boundedMcpContentLength(response.headers.get("content-length"));
 }
 
 function chunkBytes(value: Uint8Array) {
@@ -74,13 +79,30 @@ export async function inspectMcpResponse(
   try {
     clone = response.clone();
   } catch {
-    return { hasError: false, responseBytes: contentLength, truncated: false };
+    // A supported body that cannot be cloned has no reliable application
+    // outcome. Mark it unknown so callers retain the response and avoid
+    // treating an uninspected 2xx body as a successful tool call.
+    return { hasError: false, responseBytes: contentLength, truncated: true };
   }
-  if (!clone.body) {
-    return { hasError: false, responseBytes: contentLength, truncated: false };
+  const cloneBody = clone.body;
+  if (!cloneBody) {
+    return { hasError: false, responseBytes: contentLength, truncated: true };
   }
 
-  const reader = clone.body.getReader();
+  let reader: ReadableStreamDefaultReader<Uint8Array>;
+  try {
+    reader = cloneBody.getReader();
+  } catch {
+    // A supported clone whose stream cannot expose a reader is also
+    // uninspectable. Best-effort cancellation prevents a custom stream from
+    // continuing work while the untouched original remains readable.
+    try {
+      void cloneBody.cancel().catch(() => undefined);
+    } catch {
+      // Cleanup must not affect the original response path.
+    }
+    return { hasError: false, responseBytes: contentLength, truncated: true };
+  }
   const decoder = new TextDecoder();
   let bytesRead = 0;
   let text = "";
@@ -167,7 +189,9 @@ export async function inspectMcpResponse(
       }
     }
   } catch {
-    // Preserve the HTTP outcome when the clone cannot be inspected.
+    // Preserve the HTTP outcome, but do not claim a successful application
+    // outcome when the supported clone failed during inspection.
+    truncated = true;
   } finally {
     if (deadlineTimer !== undefined) clearTimeout(deadlineTimer);
     try {
@@ -180,7 +204,11 @@ export async function inspectMcpResponse(
     } catch {
       // Inspection cleanup must not affect the response path.
     }
-    reader.releaseLock();
+    try {
+      reader.releaseLock();
+    } catch {
+      // Cleanup must not affect the original response path.
+    }
   }
 
   return {

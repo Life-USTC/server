@@ -27,6 +27,7 @@ import {
 describe("worker entrypoint observability", () => {
   afterEach(() => {
     vi.clearAllMocks();
+    vi.unstubAllEnvs();
     vi.useRealTimers();
   });
 
@@ -158,6 +159,34 @@ describe("worker entrypoint observability", () => {
         outcome: "success",
       }),
     );
+  });
+
+  it("samples queue successes deterministically but retains slow completions", () => {
+    vi.stubEnv("NODE_ENV", "production");
+
+    logWorkerQueueFinish({
+      ioObservedDurationMs: 34,
+      messageCount: 2,
+      queue: "audit",
+      sampleKey: "queue-0",
+    });
+    expect(logAppEventMock).not.toHaveBeenCalled();
+
+    logWorkerQueueFinish({
+      ioObservedDurationMs: 34,
+      messageCount: 2,
+      queue: "audit",
+      sampleKey: "queue-70",
+    });
+    expect(logAppEventMock).toHaveBeenCalledTimes(1);
+
+    logWorkerQueueFinish({
+      ioObservedDurationMs: 1_000,
+      messageCount: 2,
+      queue: "audit",
+      sampleKey: "queue-0",
+    });
+    expect(logAppEventMock).toHaveBeenCalledTimes(2);
   });
 
   it("records failures without changing the original error", () => {

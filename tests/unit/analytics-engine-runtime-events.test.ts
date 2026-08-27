@@ -346,7 +346,6 @@ describe("Cloudflare Analytics Engine runtime events", () => {
           "finish",
           "unknown",
           "auth",
-          "200",
           "2xx",
           "unknown",
         ],
@@ -564,6 +563,97 @@ describe("Cloudflare Analytics Engine runtime events", () => {
     expect(JSON.stringify(writeDataPoint.mock.calls)).not.toContain("private");
   });
 
+  it("normalizes stage dimensions and status classes at the analytics boundary", () => {
+    const writeDataPoint = installAnalyticsBinding();
+    const secret = "untrusted-stage-or-status";
+
+    writeApiRequestAnalytics({
+      authMode: "anonymous",
+      event: "finish",
+      ioObservedDurationMs: 1,
+      method: "GET",
+      route: "/api/catalog",
+      status: 9999,
+    });
+    writeOAuthEventAnalytics({
+      event: "oauth.callback.error",
+      ioObservedDurationMs: 1,
+      path: "/api/auth/oauth2/callback/provider",
+      phase: "prepare-provider-request",
+      status: 500,
+    });
+    writeCommentsStageAnalytics({
+      dbContext: secret as never,
+      dbLabel: secret as never,
+      dbQueryCount: 1,
+      dbTransactionCount: 1,
+      durationMs: 1,
+      outcome: secret as never,
+      stage: secret as never,
+    });
+    writeDashboardStageAnalytics({
+      dbContext: secret as never,
+      dbLabel: secret as never,
+      dbQueryCount: 1,
+      dbTransactionCount: 1,
+      durationMs: 1,
+      outcome: secret as never,
+      stage: secret as never,
+    });
+
+    expect(writeDataPoint).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({
+        blobs: [
+          "api_request_v3",
+          "finish",
+          "GET",
+          "catalog",
+          "unknown",
+          "anonymous",
+        ],
+      }),
+    );
+    expect(writeDataPoint).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({
+        blobs: expect.arrayContaining([
+          "oauth_event_v3",
+          "oauth.callback.error",
+          "prepare-provider-request",
+        ]),
+      }),
+    );
+    expect(writeDataPoint).toHaveBeenNthCalledWith(
+      3,
+      expect.objectContaining({
+        indexes: ["comments:unknown"],
+        blobs: [
+          "comments_stage_v1",
+          "unknown",
+          "unknown",
+          "unknown",
+          "unknown",
+        ],
+      }),
+    );
+    expect(writeDataPoint).toHaveBeenNthCalledWith(
+      4,
+      expect.objectContaining({
+        indexes: ["dashboard:unknown"],
+        blobs: [
+          "dashboard_stage_v1",
+          "unknown",
+          "unknown",
+          "unknown",
+          "unknown",
+        ],
+      }),
+    );
+    expect(JSON.stringify(writeDataPoint.mock.calls)).not.toContain(secret);
+    expect(writeDataPoint.mock.calls[0]?.[0]?.blobs).not.toContain("9999");
+  });
+
   it("writes OAuth wrapper datapoints when debug logging is off", async () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-06-07T00:00:01.000Z"));
@@ -585,7 +675,6 @@ describe("Cloudflare Analytics Engine runtime events", () => {
         "better-auth.response",
         "POST",
         "token",
-        "201",
         "2xx",
         "none",
         "resource_unknown",
@@ -616,7 +705,6 @@ describe("Cloudflare Analytics Engine runtime events", () => {
         "grant-validation-failed",
         "unknown",
         "token",
-        "503",
         "5xx",
         "none",
         "resource_unknown",

@@ -30,6 +30,12 @@ const AUDIT_ACTIONS = new Set(Object.values(AuditAction));
 const AUDIT_CHANNELS = new Set(Object.values(AuditChannel));
 const AUDIT_OUTCOMES = new Set(Object.values(AuditOutcome));
 
+export const AUDIT_LOG_METADATA_LIMITS = {
+  maxDepth: 4,
+  maxEntries: 64,
+  maxSerializedBytes: 8 * 1024,
+} as const;
+
 const AUDIT_PARAM_KEYS = new Set([
   "action",
   "channel",
@@ -59,8 +65,97 @@ function validOptionalString(value: unknown, maxLength: number) {
   return value === undefined || boundedString(value, maxLength);
 }
 
+const INVALID_METADATA = Symbol("invalid-audit-metadata");
+
+function boundedAuditMetadata(value: unknown): Record<string, unknown> | null {
+  let entries = 0;
+  const ancestors = new WeakSet<object>();
+
+  const visit = (
+    candidate: unknown,
+    depth: number,
+  ): unknown | typeof INVALID_METADATA => {
+    if (
+      candidate === null ||
+      typeof candidate === "string" ||
+      typeof candidate === "boolean"
+    ) {
+      return candidate;
+    }
+    if (typeof candidate === "number") {
+      return Number.isFinite(candidate) ? candidate : INVALID_METADATA;
+    }
+    if (typeof candidate !== "object") return INVALID_METADATA;
+    if (depth >= AUDIT_LOG_METADATA_LIMITS.maxDepth) {
+      return INVALID_METADATA;
+    }
+    if (ancestors.has(candidate)) return INVALID_METADATA;
+    ancestors.add(candidate);
+
+    try {
+      if (Array.isArray(candidate)) {
+        const output: unknown[] = [];
+        for (const item of candidate) {
+          entries += 1;
+          if (entries > AUDIT_LOG_METADATA_LIMITS.maxEntries) {
+            return INVALID_METADATA;
+          }
+          const normalized = visit(item, depth + 1);
+          if (normalized === INVALID_METADATA) return INVALID_METADATA;
+          output.push(normalized);
+        }
+        return output;
+      }
+
+      const record = candidate as Record<string, unknown>;
+      const output = Object.create(null) as Record<string, unknown>;
+      for (const key of Object.keys(record)) {
+        entries += 1;
+        if (entries > AUDIT_LOG_METADATA_LIMITS.maxEntries) {
+          return INVALID_METADATA;
+        }
+        const normalized = visit(record[key], depth + 1);
+        if (normalized === INVALID_METADATA) return INVALID_METADATA;
+        output[key] = normalized;
+      }
+      return output;
+    } finally {
+      ancestors.delete(candidate);
+    }
+  };
+
+  const normalized = visit(value, 0);
+  if (
+    normalized === INVALID_METADATA ||
+    normalized === null ||
+    Array.isArray(normalized) ||
+    typeof normalized !== "object"
+  ) {
+    return null;
+  }
+
+  try {
+    const serialized = JSON.stringify(normalized);
+    if (serialized === undefined) return null;
+    if (
+      new TextEncoder().encode(serialized).byteLength >
+      AUDIT_LOG_METADATA_LIMITS.maxSerializedBytes
+    ) {
+      return null;
+    }
+  } catch {
+    return null;
+  }
+
+  return normalized as Record<string, unknown>;
+}
+
 function parseAuditParams(value: unknown): Omit<AuditLogParams, "id"> | null {
   if (!isRecord(value)) return null;
+  const metadata =
+    value.metadata === undefined
+      ? undefined
+      : boundedAuditMetadata(value.metadata);
   if (
     [...Object.keys(value)].some((key) => !AUDIT_PARAM_KEYS.has(key)) ||
     !AUDIT_ACTIONS.has(value.action as AuditAction) ||
@@ -78,12 +173,16 @@ function parseAuditParams(value: unknown): Omit<AuditLogParams, "id"> | null {
       !AUDIT_CHANNELS.has(value.channel as AuditChannel)) ||
     (value.outcome !== undefined &&
       !AUDIT_OUTCOMES.has(value.outcome as AuditOutcome)) ||
-    (value.metadata !== undefined && !isRecord(value.metadata))
+    (value.metadata !== undefined && metadata === null)
   ) {
     return null;
   }
+  if (metadata === null) return null;
 
-  return value as Omit<AuditLogParams, "id">;
+  return {
+    ...(value as Omit<AuditLogParams, "id">),
+    ...(metadata === undefined ? {} : { metadata }),
+  };
 }
 
 export type AuditLogWriteQueueBatch = {
@@ -108,18 +207,19 @@ export function parseAuditLogWriteQueueMessage(
     params?: unknown;
     type?: unknown;
   };
+  const params = parseAuditParams(message.params);
   if (
     message.type !== "audit-log.write.v1" ||
     typeof message.auditId !== "string" ||
     message.auditId.length < 1 ||
     message.auditId.length > 128 ||
-    !parseAuditParams(message.params)
+    !params
   ) {
     return null;
   }
   return {
     auditId: message.auditId,
-    params: parseAuditParams(message.params) as Omit<AuditLogParams, "id">,
+    params,
     type: "audit-log.write.v1",
   };
 }
@@ -221,8 +321,15 @@ export async function handleAuditLogWriteBatch(batch: AuditLogWriteQueueBatch) {
     maxAgeMs: report.maxAgeMs,
     maxAttempts: report.maxAttempts,
     messageType: "audit-log.write.v1",
+    // A mixed batch is partial only when at least one record was committed
+    // and another was sent to retry/DLQ. Any batch with no successful ack is a
+    // retry, including an all-invalid batch or a failed atomic DB write.
     outcome:
-      report.retried > 0 ? "retry" : report.invalid > 0 ? "partial" : "success",
+      report.acked > 0 && report.retried > 0
+        ? "partial"
+        : report.retried > 0
+          ? "retry"
+          : "success",
     processed: report.processed,
     queue: "audit",
     retried: report.retried,

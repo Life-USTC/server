@@ -578,9 +578,30 @@ const WORKSPACE_HOMEWORK_STAGES = new Set([
 ]);
 const WORKSPACE_SUBSCRIPTIONS_STAGES = new Set(["auth", "db_context", "read"]);
 const WORKSPACE_STAGE_STATUSES = new Set(["error", "success"]);
+const COMMENTS_STAGES = new Set([
+  "target.resolve",
+  "viewer.context",
+  "comments.root",
+  "comments.descendants",
+  "comments.summaries",
+  "target.payload",
+]);
+const DASHBOARD_STAGES = new Set([
+  "recent_session",
+  "user_context",
+  "nav_stats",
+  "tab",
+]);
+const DB_STAGE_CONTEXTS = new Set(["none", "rls"]);
+const DB_STAGE_LABELS = new Set(["app", "auth", "maintenance"]);
+const DB_STAGE_OUTCOMES = new Set(["error", "success"]);
 const OAUTH_EVENTS = new Set([
   "better-auth.error",
   "better-auth.response",
+  "oauth.callback.error",
+  "oauth.device-authorization.failed",
+  "oauth.device-token.grant-resolution-failed",
+  "oauth.token.grant-binding-rejected",
   "device-authorization.error",
   "device-authorization.response",
   "grant-validation-failed",
@@ -611,10 +632,14 @@ const OAUTH_PHASES = new Set([
   "create-grant",
   "grant-expectation",
   "grant-verification",
+  "prepare-provider-request",
   "persist-refresh-resources",
   "recheck-active-refresh-grant",
   "resolve-active-refresh-grant",
   "resolve-grant",
+  "recheck-active-grant",
+  "secure-provider-response",
+  "cleanup-rejected-grant",
   "validate-active-grant",
   "validate-refresh-resources",
 ]);
@@ -903,7 +928,6 @@ export function writeApiRequestAnalytics(input: ApiRequestAnalyticsInput) {
       finiteEnum(input.event, API_EVENTS),
       safeHttpMethod(input.method),
       routeFamily,
-      String(input.status),
       statusClass(input.status),
       finiteEnum(input.authMode, API_AUTH_MODES),
     ],
@@ -921,7 +945,6 @@ export function writePageRequestAnalytics(input: PageRequestAnalyticsInput) {
       finiteEnum(input.event, PAGE_EVENTS),
       route,
       safeHttpMethod(input.method),
-      String(input.status),
       statusClass(input.status),
       finiteEnum(input.locale, PAGE_LOCALES),
       finiteEnum(input.authMode, PAGE_AUTH_MODES),
@@ -985,7 +1008,6 @@ export function writeOAuthEventAnalytics(input: OAuthEventAnalyticsInput) {
       finiteEnum(input.event, OAUTH_EVENTS),
       safeHttpMethod(input.method ?? ""),
       pathFamily,
-      String(status),
       statusClass(status),
       input.grantType === undefined || input.grantType === null
         ? "none"
@@ -1123,15 +1145,13 @@ export function writeWorkspaceRouteStageAnalytics(
 export function writeCommentsStageAnalytics(
   input: CommentsStageAnalyticsInput,
 ) {
+  const stage = finiteEnum(input.stage, COMMENTS_STAGES);
+  const dbContext = finiteEnum(input.dbContext, DB_STAGE_CONTEXTS);
+  const dbLabel = finiteEnum(input.dbLabel, DB_STAGE_LABELS);
+  const outcome = finiteEnum(input.outcome, DB_STAGE_OUTCOMES);
   writeAnalyticsDataPoint({
-    indexes: [`comments:${input.stage}`],
-    blobs: [
-      "comments_stage_v1",
-      input.stage,
-      input.dbContext,
-      input.dbLabel,
-      input.outcome,
-    ],
+    indexes: [`comments:${stage}`],
+    blobs: ["comments_stage_v1", stage, dbContext, dbLabel, outcome],
     doubles: [
       finiteNumber(input.durationMs),
       boundedCount(input.dbQueryCount),
@@ -1145,15 +1165,13 @@ export function writeCommentsStageAnalytics(
 export function writeDashboardStageAnalytics(
   input: DashboardStageAnalyticsInput,
 ) {
+  const stage = finiteEnum(input.stage, DASHBOARD_STAGES);
+  const dbContext = finiteEnum(input.dbContext, DB_STAGE_CONTEXTS);
+  const dbLabel = finiteEnum(input.dbLabel, DB_STAGE_LABELS);
+  const outcome = finiteEnum(input.outcome, DB_STAGE_OUTCOMES);
   writeAnalyticsDataPoint({
-    indexes: [`dashboard:${input.stage}`],
-    blobs: [
-      "dashboard_stage_v1",
-      input.stage,
-      input.dbContext,
-      input.dbLabel,
-      input.outcome,
-    ],
+    indexes: [`dashboard:${stage}`],
+    blobs: ["dashboard_stage_v1", stage, dbContext, dbLabel, outcome],
     doubles: [
       finiteNumber(input.durationMs),
       boundedCount(input.dbQueryCount),

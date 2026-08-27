@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import {
   inspectMcpResponse,
   MCP_RESPONSE_INSPECTION_LIMITS,
@@ -40,6 +40,22 @@ describe("MCP bounded response inspection", () => {
       truncated: true,
     });
     await expect(response.text()).resolves.toBe(body);
+  });
+
+  it("caps an untrusted Content-Length value used for telemetry", async () => {
+    const response = new Response(JSON.stringify({ result: {} }), {
+      headers: {
+        "content-length": "999999999999",
+        "content-type": "application/json",
+      },
+    });
+
+    await expect(inspectMcpResponse(response)).resolves.toEqual({
+      hasError: false,
+      responseBytes: MCP_RESPONSE_INSPECTION_LIMITS.maxBytes + 1,
+      truncated: true,
+    });
+    await expect(response.json()).resolves.toEqual({ result: {} });
   });
 
   it("bounds SSE inspection to eight events and preserves the response", async () => {
@@ -129,5 +145,75 @@ describe("MCP bounded response inspection", () => {
     expect(pulls).toBe(pullsBeforeInspection);
     await expect(response.text()).resolves.toBe(body);
     expect(pulls).toBe(1);
+  });
+
+  it("marks a supported response as unknown when cloning fails", async () => {
+    const body = JSON.stringify({ result: {} });
+    const response = responseFromText(body, "application/json");
+    const cloneSpy = vi.spyOn(response, "clone").mockImplementation(() => {
+      throw new Error("clone failed");
+    });
+
+    try {
+      await expect(inspectMcpResponse(response)).resolves.toEqual({
+        hasError: false,
+        responseBytes: undefined,
+        truncated: true,
+      });
+      await expect(response.text()).resolves.toBe(body);
+    } finally {
+      cloneSpy.mockRestore();
+    }
+  });
+
+  it("marks a supported response as unknown when clone reading fails", async () => {
+    const body = JSON.stringify({ result: {} });
+    const response = responseFromText(body, "application/json");
+    const failedClone = new Response(
+      new ReadableStream<Uint8Array>({
+        start(controller) {
+          controller.error(new Error("read failed"));
+        },
+      }),
+      { headers: { "content-type": "application/json" } },
+    );
+    const cloneSpy = vi.spyOn(response, "clone").mockReturnValue(failedClone);
+
+    try {
+      await expect(inspectMcpResponse(response)).resolves.toEqual({
+        hasError: false,
+        responseBytes: 0,
+        truncated: true,
+      });
+      await expect(response.text()).resolves.toBe(body);
+    } finally {
+      cloneSpy.mockRestore();
+    }
+  });
+
+  it("marks a supported response as unknown when the clone has no reader", async () => {
+    const body = JSON.stringify({ result: {} });
+    const response = responseFromText(body, "application/json");
+    const cancel = vi.fn().mockResolvedValue(undefined);
+    const cloneSpy = vi.spyOn(response, "clone").mockReturnValue({
+      body: {
+        cancel,
+        getReader: () => {
+          throw new Error("reader failed");
+        },
+      },
+    } as unknown as Response);
+
+    try {
+      await expect(inspectMcpResponse(response)).resolves.toEqual({
+        hasError: false,
+        responseBytes: undefined,
+        truncated: true,
+      });
+      expect(cancel).toHaveBeenCalledOnce();
+      await expect(response.text()).resolves.toBe(body);
+    } finally {
+      cloneSpy.mockRestore();
+    }
   });
 });
