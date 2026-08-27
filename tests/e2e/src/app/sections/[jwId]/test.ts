@@ -374,6 +374,9 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
       'xpath=ancestor::*[@data-slot="table-container"][1]',
     );
     await expect(table).toBeVisible();
+    await expect(container).toHaveAttribute("role", "region");
+    await expect(container).toHaveAttribute("tabindex", "0");
+    await expect(container).toHaveAttribute("aria-label", /.+/);
     await expect(calendar.getByTestId("section-calendar-items")).toHaveCount(0);
     const dimensions = await container.evaluate((element) => ({
       clientWidth: element.clientWidth,

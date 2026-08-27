@@ -29,6 +29,7 @@ export let sectionCopy: SectionExamCopy;
   <div class="min-w-0 max-w-full">
     <Table.Root
       class="min-w-[52rem] md:min-w-0"
+      containerLabel={heading}
       data-testid="section-exams-list"
     >
       <Table.Caption class="sr-only">{heading}</Table.Caption>

@@ -62,6 +62,7 @@ $: classLectureNumberById = new Map(
   <div class="min-w-0 max-w-full">
     <Table.Root
       class="min-w-[42rem] md:min-w-0"
+      containerLabel={sectionCopy.lecture}
       data-testid="section-calendar-table"
     >
     <Table.Caption class="sr-only">{sectionCopy.lecture}</Table.Caption>
