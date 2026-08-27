@@ -113,6 +113,8 @@ export function buildLayoutCopy(locale: LayoutLocale) {
       profileMenu: messages.common.profileMenu,
       secondaryNavigation:
         locale === "zh-cn" ? "次级导航" : "Secondary navigation",
+      scrollRegion:
+        locale === "zh-cn" ? "主要内容滚动区域" : "Main content scroll region",
       skipToMainContent: messages.accessibility.skipToMainContent,
       theme: locale === "zh-cn" ? "主题" : "Theme",
     },

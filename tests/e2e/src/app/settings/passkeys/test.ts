@@ -201,11 +201,13 @@ test.describe("/account/settings/accounts 通行密钥", () => {
     await expect(
       passkeyCard.getByLabel(/通行密钥名称|Passkey name/i),
     ).toBeVisible();
-    await expect(
-      passkeyCard.getByRole("button", {
-        name: /添加通行密钥|Add passkey/i,
-      }),
-    ).toBeVisible();
+    const addPasskeyButton = passkeyCard.getByRole("button", {
+      name: /添加通行密钥|Add passkey/i,
+    });
+    await expect(addPasskeyButton).toBeVisible();
+    const addPasskeyBox = await addPasskeyButton.boundingBox();
+    expect(addPasskeyBox?.width ?? 0).toBeGreaterThanOrEqual(44);
+    expect(addPasskeyBox?.height ?? 0).toBeGreaterThanOrEqual(44);
     await expect
       .poll(() =>
         page.evaluate(

@@ -556,6 +556,41 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
     await captureStepScreenshot(page, testInfo, "section/detail-mobile");
   });
 
+  test("移动端评论编辑器不会让详情内容列横向滚动", async ({ page }) => {
+    await signInAsDebugUser(page, SECTION_URL);
+
+    for (const width of [360, 390]) {
+      await page.setViewportSize({ width, height: 844 });
+      await gotoAndWaitForReady(page, `${SECTION_URL}#comments`);
+
+      const detailViewport = getDetailViewport(page);
+      await expect(detailViewport).toBeVisible();
+      await expect(page.locator("#comments")).toBeVisible();
+
+      const assertDetailViewportContained = async () => {
+        const metrics = await detailViewport.evaluate((element) => ({
+          clientWidth: element.clientWidth,
+          overflowX: getComputedStyle(element).overflowX,
+          scrollLeft: element.scrollLeft,
+          scrollWidth: element.scrollWidth,
+        }));
+        expect(metrics.overflowX).toBe("hidden");
+        expect(metrics.scrollLeft).toBe(0);
+        expect(metrics.scrollWidth).toBeGreaterThanOrEqual(metrics.clientWidth);
+        expect(metrics.scrollWidth - metrics.clientWidth).toBeLessThanOrEqual(
+          1,
+        );
+        expect(
+          await page.evaluate(() => document.documentElement.scrollWidth),
+        ).toBeLessThanOrEqual(width);
+      };
+
+      await assertDetailViewportContained();
+      await openCommentComposer(page);
+      await assertDetailViewportContained();
+    }
+  });
+
   test("桌面端保留页首主操作并隐藏移动端操作栏", async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
     await gotoAndWaitForReady(page, `${SECTION_URL}#comments`);
@@ -1678,12 +1713,12 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
       releaseDeleteRequest();
       await deleteResponse;
       await page.unroute("**/api/community/comments/**");
-      await expect(editedCommentCard).toHaveCount(0);
       await expect(
         page
           .locator("[data-sonner-toast]")
           .filter({ hasText: /评论已删除|Comment deleted/i }),
       ).toBeVisible();
+      await expect(editedCommentCard).toHaveCount(0);
       await captureStepScreenshot(page, testInfo, "section/comment-deleted");
     } finally {
       await cleanupCommentsForE2e([replyId, commentId]);

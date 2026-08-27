@@ -474,4 +474,105 @@ test.describe("仪表盘待办", () => {
       await cleanupTodosByTitlePrefix(page, titlePrefix);
     }
   });
+
+  test("短视口待办新建和编辑弹窗保持标题、滚动体与操作可达", async ({
+    page,
+  }) => {
+    test.setTimeout(90_000);
+    const viewport = { width: 390, height: 600 } as const;
+    await page.setViewportSize(viewport);
+    await signInAsDebugUser(page, "/workspace/todos");
+
+    const titlePrefix = `e2e-dashboard-todo-short-${Date.now()}`;
+    const title = `${titlePrefix}-todo`;
+
+    async function assertDialogBounds(
+      dialog: import("@playwright/test").Locator,
+    ) {
+      const dialogBox = await dialog.boundingBox();
+      const footer = dialog.locator('[data-slot="dialog-footer"]');
+      const closeButton = dialog.getByRole("button", { name: "Close" });
+      const [footerBox, closeBox] = await Promise.all([
+        footer.boundingBox(),
+        closeButton.boundingBox(),
+      ]);
+      expect(dialogBox).not.toBeNull();
+      expect(footerBox).not.toBeNull();
+      expect(closeBox).not.toBeNull();
+      if (!dialogBox || !footerBox || !closeBox) {
+        throw new Error("Expected the short-viewport todo dialog bounds");
+      }
+      expect(dialogBox.y).toBeGreaterThanOrEqual(16);
+      expect(dialogBox.y + dialogBox.height).toBeLessThanOrEqual(
+        viewport.height - 16,
+      );
+      expect(footerBox.y + footerBox.height).toBeLessThanOrEqual(
+        viewport.height - 16,
+      );
+      expect(closeBox.width).toBeGreaterThanOrEqual(44);
+      expect(closeBox.height).toBeGreaterThanOrEqual(44);
+      await expect(footer).toBeInViewport();
+      await expect(closeButton).toBeInViewport();
+
+      const calendarButton = dialog.getByRole("button", {
+        name: /打开日历选择器|Open calendar picker/i,
+      });
+      const calendarBox = await calendarButton.boundingBox();
+      expect(calendarBox).not.toBeNull();
+      expect(calendarBox?.width ?? 0).toBeGreaterThanOrEqual(44);
+      expect(calendarBox?.height ?? 0).toBeGreaterThanOrEqual(44);
+      await expect(calendarButton).toBeInViewport();
+
+      const scrollViewport = dialog
+        .locator('[data-slot="scroll-area-viewport"]')
+        .first();
+      const scrollMetrics = await scrollViewport.evaluate((element) => ({
+        clientHeight: element.clientHeight,
+        scrollHeight: element.scrollHeight,
+      }));
+      expect(scrollMetrics.clientHeight).toBeGreaterThan(0);
+      expect(scrollMetrics.scrollHeight).toBeGreaterThanOrEqual(
+        scrollMetrics.clientHeight,
+      );
+      const scrollBox = await scrollViewport.boundingBox();
+      expect(scrollBox).not.toBeNull();
+      expect(scrollBox?.y ?? 0).toBeGreaterThanOrEqual(dialogBox.y);
+      expect(scrollBox?.y ?? 0).toBeLessThan(footerBox.y);
+    }
+
+    try {
+      await page.getByTestId("dashboard-todos-add").click();
+      const createDialog = page.getByRole("dialog", {
+        name: /新建待办|New Todo/i,
+      });
+      await expect(createDialog).toBeVisible();
+      await assertDialogBounds(createDialog);
+
+      await createDialog.getByLabel(/^(标题|Title)$/i).fill(title);
+      await createDialog
+        .getByRole("textbox", { name: /内容描述|Description/i })
+        .fill("short viewport regression content");
+      await createDialog
+        .getByRole("button", { name: /创建待办|Create Todo/i })
+        .click();
+      await expect(visibleText(page, title)).toBeVisible({ timeout: 15_000 });
+
+      await page.getByRole("button", { name: title, exact: true }).click();
+      const detailDialog = page.getByRole("dialog", { name: title });
+      await expect(detailDialog).toBeVisible();
+      await detailDialog
+        .getByRole("button", { name: /编辑待办|Edit Todo/i })
+        .click();
+
+      const editDialog = page.getByRole("dialog", {
+        name: /编辑待办|Edit Todo/i,
+      });
+      await expect(editDialog).toBeVisible();
+      await assertDialogBounds(editDialog);
+      await editDialog.getByRole("button", { name: /取消|Cancel/i }).click();
+      await expect(editDialog).toBeHidden();
+    } finally {
+      await cleanupTodosByTitlePrefix(page, titlePrefix);
+    }
+  });
 });

@@ -21,6 +21,7 @@ type SectionExamCopy = {
 
 export let events: SectionCalendarEvent[];
 export let fmtDate: (value: string | Date | null | undefined) => string;
+export let heading: string;
 export let sectionCopy: SectionExamCopy;
 
 function detailValue(event: SectionCalendarEvent, label: string) {
@@ -40,7 +41,7 @@ function examLocation(event: SectionCalendarEvent) {
   <ResponsiveCollection>
     {#snippet mobile()}
       <Item.Group
-        aria-label={sectionCopy.examBatch}
+        aria-label={heading}
         class="gap-3"
         data-testid="section-exams-items"
         role="list"
@@ -125,7 +126,7 @@ function examLocation(event: SectionCalendarEvent) {
     {#snippet desktop()}
       <div data-testid="section-exams-list">
         <Table.Root>
-          <Table.Caption class="sr-only">{sectionCopy.examBatch}</Table.Caption>
+          <Table.Caption class="sr-only">{heading}</Table.Caption>
           <Table.Header>
             <Table.Row>
               <Table.Head scope="col">{sectionCopy.examBatch}</Table.Head>
