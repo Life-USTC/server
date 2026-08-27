@@ -363,6 +363,30 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
     await captureStepScreenshot(page, testInfo, "section/calendar-today");
   });
 
+  test("移动端日历使用可横向滚动的紧凑表格", async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await gotoAndWaitForReady(page, SECTION_URL);
+    await jumpToSection(page, /日历|Calendar/i, "#calendar");
+
+    const calendar = page.locator("#calendar");
+    const table = calendar.getByTestId("section-calendar-table");
+    const container = table.locator(
+      'xpath=ancestor::*[@data-slot="table-container"][1]',
+    );
+    await expect(table).toBeVisible();
+    await expect(calendar.getByTestId("section-calendar-items")).toHaveCount(0);
+    const dimensions = await container.evaluate((element) => ({
+      clientWidth: element.clientWidth,
+      scrollWidth: element.scrollWidth,
+    }));
+    expect(dimensions.scrollWidth).toBeGreaterThan(dimensions.clientWidth);
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= window.innerWidth,
+      ),
+    ).toBe(true);
+  });
+
   test("日历区块显示考试信息（examBatch、examRooms）", async ({
     page,
   }, testInfo) => {
