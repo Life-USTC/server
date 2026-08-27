@@ -25,9 +25,9 @@ function displayDate(value: HomeworkDateValue) {
 </script>
 
 <section class="min-w-0" data-testid="homework-secondary-details">
-  <Accordion.Root type="single" class="border-y">
+  <Accordion.Root type="single" class="rounded-lg bg-muted/40 px-3">
     <Accordion.Item value="details" class="border-0">
-      <Accordion.Trigger class="min-h-11 rounded-none px-0 py-4 hover:no-underline">
+      <Accordion.Trigger class="min-h-11 rounded-md px-0 py-3 hover:no-underline">
         <span class="font-semibold">{copy.moreDetails}</span>
         {#if detailTags.length > 0}
           <span class="text-muted-foreground min-w-0 truncate text-sm font-normal">

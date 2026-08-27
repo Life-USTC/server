@@ -1,7 +1,5 @@
 <script lang="ts">
-import HomeworkFormFields from "@/features/homeworks/components/HomeworkFormFields.svelte";
-import HomeworkTagFields from "@/features/homeworks/components/HomeworkTagFields.svelte";
-import HomeworkTimestampFields from "@/features/homeworks/components/HomeworkTimestampFields.svelte";
+import HomeworkEditorFields from "@/features/homeworks/components/HomeworkEditorFields.svelte";
 import * as Alert from "$lib/components/ui/alert/index.js";
 import * as Field from "$lib/components/ui/field/index.js";
 import type {
@@ -41,23 +39,18 @@ $: homeworkTimestampCapabilities = {
 </script>
 
 <Field.Group class="gap-4 px-5 py-4">
-  <HomeworkFormFields
-    commentsCopy={commentsCopy}
-    copy={homeworkCopy}
-    idPrefix="section-homework"
-    styleGuidePrefix="section-create-homework"
-  />
-  <HomeworkTimestampFields
+  <HomeworkEditorFields
     actions={homeworkTimestampActions}
     bind:advancedOpen={advancedOpen}
     capabilities={homeworkTimestampCapabilities}
+    commentsCopy={commentsCopy}
     copy={homeworkCopy}
     idPrefix="section-homework"
     bind:publishedAt={publishedAt}
+    styleGuidePrefix="section-create-homework"
     bind:submissionDueAt={submissionDueAt}
     bind:submissionStartAt={submissionStartAt}
   />
-  <HomeworkTagFields copy={homeworkCopy} idPrefix="section-create-homework" />
   {#if homeworkMessage}
     <Alert.Root variant="destructive">
       <Alert.Description>{homeworkMessage}</Alert.Description>

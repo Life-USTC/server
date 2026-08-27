@@ -1,8 +1,5 @@
 <script lang="ts">
-import HomeworkDescriptionFields from "@/features/homeworks/components/HomeworkDescriptionFields.svelte";
-import HomeworkTagFields from "@/features/homeworks/components/HomeworkTagFields.svelte";
-import HomeworkTimestampFields from "@/features/homeworks/components/HomeworkTimestampFields.svelte";
-import HomeworkTitleField from "@/features/homeworks/components/HomeworkTitleField.svelte";
+import HomeworkEditorFields from "@/features/homeworks/components/HomeworkEditorFields.svelte";
 import * as Alert from "$lib/components/ui/alert/index.js";
 import * as Field from "$lib/components/ui/field/index.js";
 import * as NativeSelect from "$lib/components/ui/native-select/index.js";
@@ -77,33 +74,18 @@ $: homeworkTimestampCapabilities = {
       {/each}
     </NativeSelect.Root>
   </Field.Field>
-  <HomeworkTitleField
-    copy={homeworksCopy}
-    disabled={isCreatingHomework}
-    idPrefix="dashboard-homework"
-  />
-  <HomeworkTimestampFields
+  <HomeworkEditorFields
     actions={homeworkTimestampActions}
     bind:advancedOpen={createHomeworkAdvancedOpen}
     capabilities={homeworkTimestampCapabilities}
-    copy={homeworksCopy}
-    disabled={isCreatingHomework}
-    idPrefix="dashboard-homework"
-    bind:publishedAt={createHomeworkPublishedAt}
-    bind:submissionDueAt={createHomeworkSubmissionDueAt}
-    bind:submissionStartAt={createHomeworkSubmissionStartAt}
-  />
-  <HomeworkDescriptionFields
-    {commentsCopy}
+    commentsCopy={commentsCopy}
     copy={homeworksCopy}
     disabled={isCreatingHomework}
     idPrefix="dashboard-homework"
     markdownModeLabel={commentsCopy.markdownModeLabel}
+    bind:publishedAt={createHomeworkPublishedAt}
     styleGuidePrefix="dashboard-homework"
-  />
-  <HomeworkTagFields
-    copy={homeworksCopy}
-    disabled={isCreatingHomework}
-    idPrefix="dashboard-homework"
+    bind:submissionDueAt={createHomeworkSubmissionDueAt}
+    bind:submissionStartAt={createHomeworkSubmissionStartAt}
   />
 </Field.Group>

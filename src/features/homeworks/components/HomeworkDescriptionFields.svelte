@@ -18,7 +18,6 @@ export let markdownModeLabel = "";
 export let styleGuidePrefix = idPrefix;
 </script>
 
-<HomeworkStyleGuide {copy} testIdPrefix={styleGuidePrefix} />
 <Field.Field data-disabled={disabled ? "true" : undefined}>
   <Field.Title id={`${idPrefix}-description-label`}>
     {copy.descriptionLabel}
@@ -38,3 +37,4 @@ export let styleGuidePrefix = idPrefix;
     value={description}
   />
 </Field.Field>
+<HomeworkStyleGuide {copy} testIdPrefix={styleGuidePrefix} />
