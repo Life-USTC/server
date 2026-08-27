@@ -203,6 +203,117 @@ describe("calendar export rebuild fan-out", () => {
     );
   });
 
+  it("counts a user deleted after section fan-out as a no-op for every contribution", async () => {
+    findManyMock.mockResolvedValue([{ userId: "user-1" }]);
+    getUserCalendarRecordMock.mockResolvedValue(null);
+    const direct = {
+      ack: vi.fn(),
+      body: { type: "user", userId: "user-1" },
+      retry: vi.fn(),
+    };
+    const section = {
+      ack: vi.fn(),
+      body: { type: "section", sectionId: 10 },
+      retry: vi.fn(),
+    };
+
+    await expect(
+      handleCalendarExportRebuildBatch({ messages: [direct, section] }),
+    ).resolves.toEqual({ outcome: "success" });
+
+    expect(getUserCalendarRecordMock).toHaveBeenCalledOnce();
+    expect(writeCalendarQueueBatchAnalyticsMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        inputMessageCount: 2,
+        noOpMessageCount: 2,
+        noSubscriberMessageCount: 0,
+        // One coalesced user was attempted; the no-op count remains at the
+        // original direct-message plus section-fan-out contribution level.
+        processedUserCount: 1,
+        sectionMessageCount: 1,
+        uniqueUserRebuildCount: 1,
+        userMessageCount: 1,
+      }),
+    );
+  });
+
+  it("preserves duplicate section-message contributions for a deleted user", async () => {
+    findManyMock.mockResolvedValue([{ userId: "user-1" }]);
+    getUserCalendarRecordMock.mockResolvedValue(null);
+    const first = {
+      ack: vi.fn(),
+      body: { type: "section", sectionId: 10 },
+      retry: vi.fn(),
+    };
+    const second = {
+      ack: vi.fn(),
+      body: { type: "section", sectionId: 10 },
+      retry: vi.fn(),
+    };
+
+    await expect(
+      handleCalendarExportRebuildBatch({ messages: [first, second] }),
+    ).resolves.toEqual({ outcome: "success" });
+
+    expect(findManyMock).toHaveBeenCalledOnce();
+    expect(getUserCalendarRecordMock).toHaveBeenCalledOnce();
+    expect(first.ack).toHaveBeenCalledOnce();
+    expect(second.ack).toHaveBeenCalledOnce();
+    expect(writeCalendarQueueBatchAnalyticsMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        inputMessageCount: 2,
+        noOpMessageCount: 2,
+        noSubscriberMessageCount: 0,
+        // The two source messages still result in one coalesced user attempt.
+        processedUserCount: 1,
+        sectionMessageCount: 2,
+        uniqueUserRebuildCount: 1,
+        userMessageCount: 0,
+      }),
+    );
+  });
+
+  it("sums overlapping section contributions for one deleted user", async () => {
+    findManyMock.mockResolvedValue([{ userId: "user-1" }]);
+    getUserCalendarRecordMock.mockResolvedValue(null);
+    const first = {
+      ack: vi.fn(),
+      body: { type: "section", sectionId: 10 },
+      retry: vi.fn(),
+    };
+    const second = {
+      ack: vi.fn(),
+      body: { type: "section", sectionId: 11 },
+      retry: vi.fn(),
+    };
+
+    await expect(
+      handleCalendarExportRebuildBatch({ messages: [first, second] }),
+    ).resolves.toEqual({ outcome: "success" });
+
+    expect(findManyMock).toHaveBeenCalledTimes(2);
+    expect(findManyMock).toHaveBeenNthCalledWith(1, {
+      where: { sectionId: 10 },
+      select: { userId: true },
+    });
+    expect(findManyMock).toHaveBeenNthCalledWith(2, {
+      where: { sectionId: 11 },
+      select: { userId: true },
+    });
+    expect(getUserCalendarRecordMock).toHaveBeenCalledOnce();
+    expect(writeCalendarQueueBatchAnalyticsMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        inputMessageCount: 2,
+        noOpMessageCount: 2,
+        noSubscriberMessageCount: 0,
+        processedUserCount: 1,
+        sectionMessageCount: 2,
+        uniqueUserRebuildCount: 1,
+        userMessageCount: 0,
+      }),
+    );
+  });
+
   it("acks valid messages and sends invalid envelopes toward the DLQ", async () => {
     findManyMock.mockResolvedValue([]);
     getUserCalendarRecordMock.mockResolvedValue(null);

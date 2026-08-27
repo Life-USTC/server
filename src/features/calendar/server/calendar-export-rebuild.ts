@@ -45,26 +45,26 @@ async function listSectionSubscriberUserIds(sectionId: number) {
 
 type CalendarExportRebuildTargets = {
   noSubscriberMessageCount: number;
+  userContributionCounts: ReadonlyMap<string, number>;
   userIds: string[];
-  userMessageCounts: ReadonlyMap<string, number>;
 };
 
-function incrementCount<TKey>(map: Map<TKey, number>, key: TKey) {
-  map.set(key, (map.get(key) ?? 0) + 1);
+function incrementCount<TKey>(map: Map<TKey, number>, key: TKey, amount = 1) {
+  map.set(key, (map.get(key) ?? 0) + amount);
 }
 
 async function collectCalendarExportRebuildTargets(
   messages: CalendarExportRebuildMessage[],
 ): Promise<CalendarExportRebuildTargets> {
   const userIds = new Set<string>();
-  const userMessageCounts = new Map<string, number>();
+  const userContributionCounts = new Map<string, number>();
   const sectionIds = new Set<number>();
   const sectionMessageCounts = new Map<number, number>();
 
   for (const message of messages) {
     if (message.type === "user") {
       userIds.add(message.userId);
-      incrementCount(userMessageCounts, message.userId);
+      incrementCount(userContributionCounts, message.userId);
       continue;
     }
     sectionIds.add(message.sectionId);
@@ -77,15 +77,22 @@ async function collectCalendarExportRebuildTargets(
     if (subscribers.length === 0) {
       noSubscriberMessageCount += sectionMessageCounts.get(sectionId) ?? 0;
     }
-    for (const userId of subscribers) {
+    // A section message contributes once for each distinct current subscriber.
+    // Keep duplicate subscription rows from inflating original-message counts.
+    for (const userId of new Set(subscribers)) {
       userIds.add(userId);
+      incrementCount(
+        userContributionCounts,
+        userId,
+        sectionMessageCounts.get(sectionId) ?? 0,
+      );
     }
   }
 
   return {
     noSubscriberMessageCount,
+    userContributionCounts,
     userIds: [...userIds],
-    userMessageCounts,
   };
 }
 
@@ -98,7 +105,9 @@ export async function collectCalendarExportRebuildUserIds(
 export type CalendarExportRebuildProcessingReport = {
   noOpMessageCount: number;
   noSubscriberMessageCount: number;
+  /** Completed rebuild attempts for distinct users, including deleted users. */
   processedUserCount: number;
+  /** Distinct users coalesced from direct messages and section fan-out. */
   uniqueUserRebuildCount: number;
 };
 
@@ -124,9 +133,13 @@ export async function processCalendarExportRebuildMessages(
   for (const userId of targets.userIds) {
     try {
       const calendar = await rebuildUserCalendarExport(userId);
+      // Coalescing intentionally runs one rebuild per distinct user. Keep
+      // this count user-based; no-op messages are expanded separately from
+      // the original direct/section contributions below.
       report.processedUserCount += 1;
       if (calendar === null) {
-        report.noOpMessageCount += targets.userMessageCounts.get(userId) ?? 0;
+        report.noOpMessageCount +=
+          targets.userContributionCounts.get(userId) ?? 0;
       }
       if (progress) Object.assign(progress, report);
       writeCalendarExportRebuildAnalytics({ status: "ok" });

@@ -38,9 +38,11 @@ export type CalendarQueueBatchAnalyticsInput = {
   noOpMessageCount: number;
   noSubscriberMessageCount: number;
   outcome: CalendarQueueBatchOutcome;
+  /** Completed rebuild attempts for distinct users, including deleted users. */
   processedUserCount: number;
   retriedMessageCount: number;
   sectionMessageCount: number;
+  /** Distinct users coalesced from direct messages and section fan-out. */
   uniqueUserRebuildCount: number;
   userMessageCount: number;
 };
