@@ -47,6 +47,7 @@ export let targetLabel: (comment: AdminModerationComment) => string;
     <Dialog.Content
       class="grid max-h-[calc(100dvh-1rem)] min-h-0 max-w-2xl grid-rows-[auto_minmax(0,1fr)_auto] overflow-hidden sm:max-w-2xl"
       aria-labelledby="manage-comment-title"
+      showCloseButton={false}
     >
       <Dialog.Header>
         <Dialog.Title id="manage-comment-title">{copy.manageComment}</Dialog.Title>
