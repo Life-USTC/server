@@ -1367,21 +1367,26 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
       ).toHaveCount(0, { timeout: 15_000 });
 
       await expect(detailDialog.getByText(description)).toBeVisible();
-      await expect(
-        detailDialog.getByText(/Major assignment|大作业/i),
-      ).toBeVisible();
-      await expect(
-        detailDialog.getByText(/Team required|需要组队/i),
-      ).toBeVisible();
+      const secondaryDetails = detailDialog.getByTestId(
+        "homework-secondary-details",
+      );
+      const secondaryDetailsTrigger = secondaryDetails.getByRole("button", {
+        name: /More details|更多信息/i,
+      });
+      await expect(secondaryDetailsTrigger).toContainText(
+        /Major assignment|大作业/i,
+      );
+      await expect(secondaryDetailsTrigger).toContainText(
+        /Team required|需要组队/i,
+      );
 
-      const dueValue = detailDialog
-        .locator("dl")
-        .filter({ hasText: /Submission due|提交截止/ })
-        .first();
-      await expect(dueValue).toContainText(
+      const deadlineSummary = detailDialog.getByTestId(
+        "homework-deadline-summary",
+      );
+      await expect(deadlineSummary).toContainText(
         /2026-12-31|2026\/12\/31|12\/31\/26|12月31日|Dec 31/,
       );
-      await expect(dueValue).toContainText(/23:59|11:59 PM/);
+      await expect(deadlineSummary).toContainText(/23:59|11:59 PM/);
       await captureStepScreenshot(
         page,
         testInfo,
