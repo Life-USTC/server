@@ -7,7 +7,7 @@ set -euo pipefail
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 cd "$repo_root"
 
-for command in bun curl node rg; do
+for command in bun curl node grep; do
   command -v "$command" >/dev/null 2>&1 || {
     echo "$command is required" >&2
     exit 1
@@ -136,7 +136,7 @@ grep -qi '^x-request-id: 44444444-4444-4444-8444-444444444444' \
   exit 1
 }
 
-if rg -n 'edge\.request\.observation\.error|Uncaught Error' "$temp_dir/wrangler.log"; then
+if grep -En 'edge\.request\.observation\.error|Uncaught Error' "$temp_dir/wrangler.log"; then
   echo "unexpected platform response observation failure" >&2
   exit 1
 fi
