@@ -396,6 +396,12 @@ async function resolveCommentListTargetReference(
           ok: true,
           target: {
             ...target,
+            // `rawTargetId` is the internal relationship id used for the
+            // lookup; the composite public target must retain its parent
+            // section id for REST/MCP consumers.
+            sectionId: section.id,
+            sectionTeacherId: sectionTeacher.id,
+            teacherId,
             targetId: null,
             targetMetadata: sectionTeacherMetadata({
               section,

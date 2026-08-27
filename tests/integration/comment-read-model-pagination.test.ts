@@ -9,6 +9,9 @@ import {
 describe("comment root pagination read model", () => {
   let testPrisma: TestPrismaClient;
   let sectionId: number;
+  let ownerId: string;
+  let otherUserId: string;
+  let adminId: string;
   const marker = `[integration-test] comment-root-pagination-${Date.now()}`;
 
   beforeAll(async () => {
@@ -27,12 +30,59 @@ describe("comment root pagination read model", () => {
       select: { id: true },
     });
     sectionId = section.id;
+    const [owner, otherUser, admin] = await Promise.all([
+      testPrisma.user.create({
+        data: { email: `${marker}-owner@example.test`, name: "Owner" },
+        select: { id: true },
+      }),
+      testPrisma.user.create({
+        data: { email: `${marker}-other@example.test`, name: "Other" },
+        select: { id: true },
+      }),
+      testPrisma.user.create({
+        data: {
+          email: `${marker}-admin@example.test`,
+          isAdmin: true,
+          name: "Admin",
+        },
+        select: { id: true },
+      }),
+    ]);
+    ownerId = owner.id;
+    otherUserId = otherUser.id;
+    adminId = admin.id;
     await testPrisma.comment.create({
       data: {
         body: `${marker}-active-root`,
         sectionId,
         status: "active",
         visibility: "public",
+      },
+    });
+    await testPrisma.comment.create({
+      data: {
+        body: `${marker}-owner-softbanned-root`,
+        sectionId,
+        status: "softbanned",
+        userId: ownerId,
+        visibility: "public",
+      },
+    });
+    await testPrisma.comment.create({
+      data: {
+        body: `${marker}-other-softbanned-root`,
+        sectionId,
+        status: "softbanned",
+        userId: otherUserId,
+        visibility: "public",
+      },
+    });
+    await testPrisma.comment.create({
+      data: {
+        body: `${marker}-logged-in-root`,
+        sectionId,
+        status: "active",
+        visibility: "logged_in_only",
       },
     });
     const hiddenRoot = await testPrisma.comment.create({
@@ -60,6 +110,9 @@ describe("comment root pagination read model", () => {
       where: { body: { startsWith: marker } },
     });
     await testPrisma.section.delete({ where: { id: sectionId } });
+    await testPrisma.user.deleteMany({
+      where: { id: { in: [ownerId, otherUserId, adminId] } },
+    });
     await disconnectTestPrisma(testPrisma);
   });
 
@@ -92,5 +145,89 @@ describe("comment root pagination read model", () => {
     expect(result.total).toBe(2);
     expect(result.comments).toHaveLength(1);
     expect(result.comments[0]?.replies).toHaveLength(0);
+  });
+
+  it("preserves anonymous, owner, and admin visibility boundaries", async () => {
+    const baseTarget = {
+      empty: false,
+      homeworkId: null,
+      sectionId: null,
+      sectionTeacherId: null,
+      targetId: sectionId,
+      teacherId: null,
+      verified: true,
+      whereTarget: { sectionId },
+    } as const;
+    const baseViewer = {
+      image: null,
+      isSuspended: false,
+      name: null,
+      suspensionExpiresAt: null,
+      suspensionReason: null,
+    } as const;
+    const loadFor = (input: {
+      isAdmin: boolean;
+      isAuthenticated: boolean;
+      userId: string | null;
+    }) =>
+      loadCommentThread({
+        pagination: { pageSize: 20, skip: 0 },
+        target: baseTarget,
+        viewer: { ...baseViewer, ...input },
+        viewerUserId: input.userId,
+      });
+    const bodies = (result: Awaited<ReturnType<typeof loadFor>>) =>
+      result.comments.map((comment) => comment.body);
+
+    const [anonymous, owner, otherUser, admin] = await Promise.all([
+      loadFor({ isAdmin: false, isAuthenticated: false, userId: null }),
+      loadFor({ isAdmin: false, isAuthenticated: true, userId: ownerId }),
+      loadFor({ isAdmin: false, isAuthenticated: true, userId: otherUserId }),
+      loadFor({ isAdmin: true, isAuthenticated: true, userId: adminId }),
+    ]);
+
+    expect(anonymous.total).toBe(2);
+    expect(anonymous.hiddenCount).toBe(1);
+    expect(bodies(anonymous)).toEqual(
+      expect.arrayContaining([
+        `${marker}-active-root`,
+        `${marker}-visible-reply`,
+      ]),
+    );
+    expect(bodies(anonymous)).not.toContain(`${marker}-owner-softbanned-root`);
+    expect(bodies(anonymous)).not.toContain(`${marker}-other-softbanned-root`);
+
+    expect(owner.total).toBe(4);
+    expect(bodies(owner)).toEqual(
+      expect.arrayContaining([
+        `${marker}-active-root`,
+        `${marker}-owner-softbanned-root`,
+        `${marker}-logged-in-root`,
+        `${marker}-visible-reply`,
+      ]),
+    );
+    expect(bodies(owner)).not.toContain(`${marker}-other-softbanned-root`);
+
+    expect(otherUser.total).toBe(4);
+    expect(bodies(otherUser)).toEqual(
+      expect.arrayContaining([
+        `${marker}-active-root`,
+        `${marker}-other-softbanned-root`,
+        `${marker}-logged-in-root`,
+        `${marker}-visible-reply`,
+      ]),
+    );
+    expect(bodies(otherUser)).not.toContain(`${marker}-owner-softbanned-root`);
+
+    expect(admin.total).toBe(5);
+    expect(bodies(admin)).toEqual(
+      expect.arrayContaining([
+        `${marker}-active-root`,
+        `${marker}-owner-softbanned-root`,
+        `${marker}-other-softbanned-root`,
+        `${marker}-logged-in-root`,
+        `${marker}-softbanned-root`,
+      ]),
+    );
   });
 });

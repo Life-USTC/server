@@ -32,6 +32,7 @@ import { assertApiContract } from "../_shared/api-contract";
 type DisposableSectionTeacherFixture = {
   courseId: number;
   sectionId: number;
+  sectionJwId: number;
   teacherId: number;
 };
 
@@ -112,6 +113,7 @@ async function createDisposableSectionTeacherFixture(
       return {
         courseId: course.id,
         sectionId: section.id,
+        sectionJwId,
         teacherId: teacher.id,
       };
     }),
@@ -304,6 +306,64 @@ test("/api/community/comments GET section-teacher 空目标不会创建关系行
       }),
     );
     expect(created).toBeNull();
+  } finally {
+    await deleteDisposableSectionTeacherFixture(fixture);
+  }
+});
+
+test("/api/community/comments GET section-teacher 保留 section id 并隔离 retired 关系", async ({
+  request,
+}, testInfo) => {
+  const fixture = await createDisposableSectionTeacherFixture(testInfo, {
+    connectTeacher: true,
+  });
+  let sectionTeacherId: number | null = null;
+
+  try {
+    const active = await withE2ePrisma((prisma) =>
+      prisma.sectionTeacher.create({
+        data: {
+          sectionId: fixture.sectionId,
+          teacherId: fixture.teacherId,
+        },
+        select: { id: true },
+      }),
+    );
+    sectionTeacherId = active.id;
+
+    const activeResponse = await request.get(
+      `/api/community/comments?targetType=section-teacher&sectionJwId=${fixture.sectionJwId}&teacherId=${fixture.teacherId}`,
+    );
+    expect(activeResponse.status()).toBe(200);
+    const activeBody = (await activeResponse.json()) as CommentListResponse;
+    expect(activeBody.meta?.target).toMatchObject({
+      sectionId: fixture.sectionId,
+      sectionTeacherId,
+      teacherId: fixture.teacherId,
+    });
+
+    await withE2ePrisma((prisma) =>
+      prisma.sectionTeacher.update({
+        where: { id: active.id },
+        data: { retiredAt: new Date("2026-01-01T00:00:00.000Z") },
+      }),
+    );
+
+    const retiredResponse = await request.get(
+      `/api/community/comments?targetType=section-teacher&sectionJwId=${fixture.sectionJwId}&teacherId=${fixture.teacherId}`,
+    );
+    expect(retiredResponse.status()).toBe(200);
+    const retiredBody = (await retiredResponse.json()) as CommentListResponse;
+    expect(retiredBody.meta?.target).toMatchObject({
+      sectionId: fixture.sectionId,
+      sectionTeacherId: null,
+      teacherId: fixture.teacherId,
+    });
+
+    const directRetiredResponse = await request.get(
+      `/api/community/comments?targetType=section-teacher&sectionTeacherId=${active.id}`,
+    );
+    expect(directRetiredResponse.status()).toBe(404);
   } finally {
     await deleteDisposableSectionTeacherFixture(fixture);
   }

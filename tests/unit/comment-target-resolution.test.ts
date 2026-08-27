@@ -97,7 +97,9 @@ describe("comment list target resolution", () => {
     expect(resolved).toMatchObject({
       ok: true,
       target: {
+        sectionId: 7,
         sectionTeacherId: 31,
+        teacherId: 11,
         targetId: null,
         targetMetadata: {
           sectionTeacher: {
