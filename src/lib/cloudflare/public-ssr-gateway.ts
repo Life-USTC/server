@@ -31,6 +31,7 @@ export type PublicSsrRouteResolver = (
 ) => PublicSsrMode | null | undefined;
 
 const STATIC_PUBLIC_PATHS = new Set([
+  "/account/sign-in",
   "/guides/markdown-support",
   "/api-docs",
   "/usage/mobile",

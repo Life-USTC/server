@@ -43,7 +43,6 @@ import {
 import { maintenancePrisma } from "./lib/db/maintenance-prisma";
 import { prisma } from "./lib/db/prisma";
 import {
-  INTERNAL_REQUEST_ID_HEADER,
   logScheduledTaskError,
   logScheduledTaskFinish,
   logUnknownScheduledTask,
@@ -156,20 +155,10 @@ function personalizeCachedResponse(response) {
     .transform(rewritten);
 }
 
-function directRequest(request) {
-  if (
-    !request.headers.has(PUBLIC_SSR_HEADER) &&
-    !request.headers.has(PUBLIC_SSR_LOCALE_HEADER) &&
-    !request.headers.has(PUBLIC_SSR_MODE_HEADER) &&
-    !request.headers.has(INTERNAL_REQUEST_ID_HEADER) &&
-    !request.headers.has("x-request-id")
-  ) {
-    return request;
-  }
+function directRequest(request, requestId) {
   const headers = new Headers(request.headers);
   removePublicSsrHeaders(headers);
-  headers.delete(INTERNAL_REQUEST_ID_HEADER);
-  headers.delete("x-request-id");
+  setTrustedRequestIdHeader(headers, requestId);
   return new Request(request, { headers });
 }
 
@@ -335,7 +324,17 @@ async function handleFetch(request, env, context, requestId) {
   }
   const mode = resolvePublicSsrMode(request, resolveCatalogListPublicSsrMode);
   if (!shouldRoutePublicSsrCache(request, mode)) {
-    return app.fetch(directRequest(request), env, context);
+    const response = await app.fetch(
+      directRequest(request, requestId),
+      env,
+      context,
+    );
+    return finish(
+      response,
+      "dynamic",
+      normalizePublicSsrObservedRoute(new URL(request.url).pathname),
+      "dynamic",
+    );
   }
 
   const locale = resolvePublicSsrLocale(request);

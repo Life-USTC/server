@@ -348,6 +348,12 @@ const handleWithRuntimeEnv: Handle = async ({ event, resolve }) => {
       mutableResponse.headers.set("Cache-Control", "no-store");
     }
     setContentSignal(mutableResponse.headers);
+    if (event.url.pathname === "/account/sign-in") {
+      mutableResponse.headers.set(
+        "X-Robots-Tag",
+        "noindex, nofollow, noarchive",
+      );
+    }
     mutableResponse.headers.set(
       "Content-Security-Policy",
       buildContentSecurityPolicy(nonce, {
