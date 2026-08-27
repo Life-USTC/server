@@ -73,8 +73,10 @@ $: iconTone =
   }
 
   .imessage-outgoing {
+    --imessage-outgoing-background: #0071e3;
+
     border-radius: 1.15rem 1.15rem 0.35rem 1.15rem;
-    background: #0a84ff;
+    background: var(--imessage-outgoing-background);
     color: white;
   }
 
@@ -84,7 +86,7 @@ $: iconTone =
     bottom: 0;
     width: 0.75rem;
     height: 0.85rem;
-    background: #0a84ff;
+    background: var(--imessage-outgoing-background);
     clip-path: polygon(0 0, 100% 100%, 0 100%);
     content: "";
   }
