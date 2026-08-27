@@ -12,13 +12,10 @@ import { cn } from "$lib/utils.js";
 import SectionBasicInfoCard from "./SectionBasicInfoCard.svelte";
 import SectionDetailHeader from "./SectionDetailHeader.svelte";
 import SectionDetailPrimaryActions from "./SectionDetailPrimaryActions.svelte";
-import type { FormatMessage } from "./section-detail-component-types";
 import type { SectionDetailMainContentProps } from "./section-detail-dialog-types";
 
 type SubscriptionActionKey = "subscribe" | "unsubscribe";
 
-export let calendarMonthLabel: string;
-export let calendarMonthOffset: number;
 export let canWriteHomework: boolean;
 export let commentTargets: SectionDetailMainContentProps["commentTargets"];
 export let commonCopy: SectionDetailMainContentProps["commonCopy"];
@@ -30,7 +27,6 @@ export let descriptionData: SectionDetailPageData["descriptionData"];
 export let formError: string | null | undefined;
 export let fmtDate: SectionDetailMainContentProps["fmtDate"];
 export let fmtDateTime: SectionDetailMainContentProps["fmtDateTime"];
-export let formatMessage: FormatMessage;
 export let homeworkCopy: SectionDetailMainContentProps["homeworkCopy"];
 export let homeworks: SectionDetailMainContentProps["homeworks"];
 export let notAvailable: string;
@@ -40,7 +36,6 @@ export let openSubscribeDialog: () => void;
 export let periodDetailRows: SectionDetailMainContentProps["periodDetailRows"];
 export let primaryName: SectionDetailMainContentProps["primaryName"];
 export let sectionCalendarEvents: SectionDetailMainContentProps["sectionCalendarEvents"];
-export let sectionCalendarGridWeeks: SectionDetailMainContentProps["sectionCalendarGridWeeks"];
 export let sectionCopy: SectionDetailMainContentProps["sectionCopy"];
 export let sectionTeachersLabel: SectionDetailMainContentProps["sectionTeachersLabel"];
 export let setSelectedHomework: SectionDetailMainContentProps["setSelectedHomework"];
@@ -52,7 +47,6 @@ export let subscriptionAction: (
 ) => SubmitFunction;
 export let subscriptionPendingAction: SubscriptionActionKey | null;
 export let teacherName: SectionDetailMainContentProps["teacherName"];
-export let todayCalendarMonthOffset: number;
 export let unscheduledCalendarEvents: SectionDetailMainContentProps["unscheduledCalendarEvents"];
 export let viewer: SectionDetailMainContentProps["viewer"];
 export let yesNo: SectionDetailMainContentProps["yesNo"];

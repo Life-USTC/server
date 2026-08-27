@@ -16,7 +16,6 @@ export function createSectionDetailControllerDefaultState(
           (homework) => homework.id === data.focusedHomeworkId,
         ) ?? null);
   return {
-    _calendarMonthOffset: 0,
     _clipboardError: "",
     _clipboardMessage: "",
     _copiedCalendarTarget: null as "single" | "subscription" | null,
