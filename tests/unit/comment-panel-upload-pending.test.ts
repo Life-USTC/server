@@ -471,6 +471,45 @@ describe("评论面板上传挂起状态", () => {
     );
   });
 
+  it("普通目标分页读取后从目标状态重建可见评论列表", async () => {
+    const pageComment = comment({ id: "page-root", rootId: "page-root" });
+    apiClientMock.GET.mockResolvedValueOnce({
+      data: {
+        data: [pageComment],
+        meta: {
+          hiddenCount: 2,
+          target: targetMetadata,
+          viewer: viewer(),
+        },
+        pagination: { page: 1, pageSize: 20, total: 1, totalPages: 1 },
+      },
+      response: new Response(null, { status: 200 }),
+    });
+    const { actions, currentComments, currentTargetLoadStates } =
+      createSubmitActions({
+        showAllTargets: true,
+        targets: [target, secondaryTarget],
+      });
+
+    await actions.loadTarget(target.key);
+
+    expect(apiClientMock.GET).toHaveBeenCalledOnce();
+    expect(apiClientMock.GET).toHaveBeenCalledWith(
+      "/api/community/comments?targetType=section&targetId=1&sectionId=1&pageSize=20&page=1",
+    );
+    expect(currentComments().map((entry) => entry.id)).toEqual(["page-root"]);
+    expect(currentTargetLoadStates()).toEqual([
+      expect.objectContaining({
+        comments: [expect.objectContaining({ id: "page-root" })],
+        hiddenCount: 2,
+        loaded: true,
+        page: 1,
+        target,
+      }),
+      expect.objectContaining({ loaded: false, target: secondaryTarget }),
+    ]);
+  });
+
   it("根评论固定链接超出第一页时通过一次聚焦读取可见", async () => {
     apiClientMock.GET.mockResolvedValueOnce({
       data: commentsThreadResponse("root-21"),

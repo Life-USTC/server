@@ -103,11 +103,12 @@ export function createCommentPanelLoadSubmitActions(input: {
     );
     input.setTargetLoadStates(nextStates);
     input.setComments(
-      mergeCommentThread({
-        comments: input.getComments(),
+      visibleCommentsForTargets({
         showAllTargets: input.getShowAllTargets(),
-        target,
-        thread: result.thread,
+        targetComments: Object.fromEntries(
+          nextStates.map((state) => [state.target.key, state.comments]),
+        ),
+        targets: input.getTargets(),
       }),
     );
     input.setHiddenCount(
