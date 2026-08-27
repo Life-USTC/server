@@ -12,13 +12,6 @@ if (inspectorPort && !/^\d+$/.test(inspectorPort)) {
 
 const baseURL = `http://localhost:${e2ePort}`;
 const reportRoot = process.env.E2E_REPORT_ROOT ?? "playwright-report";
-const persistTo = process.env.E2E_PERSIST_TO;
-const persistArgument = persistTo
-  ? ` --persist-to=${JSON.stringify(persistTo)}`
-  : "";
-const inspectorArgument = inspectorPort
-  ? ` --inspector-port ${inspectorPort}`
-  : "";
 
 export default defineConfig({
   testDir: "./tests/e2e",
@@ -31,7 +24,9 @@ export default defineConfig({
   fullyParallel: false,
   forbidOnly: !!process.env.CI,
   failOnFlakyTests: !!process.env.CI,
-  retries: process.env.CI ? 2 : 0,
+  // Infrastructure retries are owned by tests/ci/e2e-run-shard.sh. Playwright
+  // retries individual tests too broadly for a deterministic assertion.
+  retries: 0,
   // Shared seeded users are mutated by several E2E files. Keep the suite
   // single-worker so those stateful cases run sequentially.
   workers: 1,
@@ -57,12 +52,11 @@ export default defineConfig({
   },
   webServer: {
     command:
-      `bunx wrangler dev --config wrangler.e2e.jsonc --ip 127.0.0.1` +
-      ` --port ${e2ePort} --local --var APP_PUBLIC_ORIGIN:${baseURL}` +
-      persistArgument +
-      inspectorArgument,
+      `E2E_PORT=${e2ePort} E2E_APP_PUBLIC_ORIGIN=${JSON.stringify(baseURL)} ` +
+      `bun run e2e:server`,
     url: baseURL,
     reuseExistingServer: false,
+    gracefulShutdown: { signal: "SIGTERM", timeout: 10_000 },
     stdout: "ignore",
     stderr: "pipe",
     timeout: 300_000,

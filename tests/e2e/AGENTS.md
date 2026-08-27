@@ -12,6 +12,12 @@ CAPTURE_STEP_SCREENSHOTS=1 bunx playwright test path/to/test
 Playwright starts the Worker via `bun run e2e:server` (`wrangler.e2e.jsonc`).
 R2 uses local `R2_UPLOADS`.
 
+CI and shard scripts run `tests/ci/e2e-run-shard.sh`, which allows one bounded
+retry only after `tests/ci/e2e-worker-server.sh` records a startup failure,
+health failure, or child-process exit. Individual Playwright assertions are
+not retried. Wrangler output, child status, and health probes are retained
+under `playwright-report/worker/` for CI artifact inspection.
+
 ## Seed
 
 `tests/e2e/fixtures/scenario.json` and `tests/fixtures/dev-seed.ts` share fixture
