@@ -2,6 +2,13 @@ import { resolveCourseIdByJwId } from "@/features/catalog/server/course-jw-id";
 import { prisma } from "@/lib/db/prisma";
 import { parseInteger } from "@/lib/integers";
 import {
+  type CommentStageCounter,
+  countCommentStageQuery,
+  createCommentStageCounter,
+  markCommentStageCountsUnknown,
+  observeCommentStage,
+} from "./comment-stage-analytics";
+import {
   type CommentTargetMetadataSource,
   type CommentTargetType,
   type ResolvedCommentTarget,
@@ -202,8 +209,10 @@ async function resolveCommentListTargetReference(
   input: CommentTargetReferenceInput,
   sectionJwId: number | null,
   courseJwId: number | null,
+  counter: CommentStageCounter,
 ): Promise<ResolvedCommentTargetReference | null> {
   if (input.targetType === "section" && sectionJwId) {
+    countCommentStageQuery(counter);
     const section = await prisma.section.findUnique({
       where: { jwId: sectionJwId },
       select: {
@@ -231,6 +240,7 @@ async function resolveCommentListTargetReference(
 
   if (input.targetType === "section" && parseInteger(input.rawTargetId)) {
     const targetId = parseInteger(input.rawTargetId);
+    countCommentStageQuery(counter);
     const section = await prisma.section.findUnique({
       where: { id: targetId as number },
       select: {
@@ -257,6 +267,7 @@ async function resolveCommentListTargetReference(
   }
 
   if (input.targetType === "course" && courseJwId) {
+    countCommentStageQuery(counter);
     const course = await prisma.course.findUnique({
       where: { jwId: courseJwId },
       select: { id: true, jwId: true, nameCn: true },
@@ -284,6 +295,7 @@ async function resolveCommentListTargetReference(
 
   if (input.targetType === "course" && parseInteger(input.rawTargetId)) {
     const targetId = parseInteger(input.rawTargetId);
+    countCommentStageQuery(counter);
     const course = await prisma.course.findUnique({
       where: { id: targetId as number },
       select: { id: true, jwId: true, nameCn: true },
@@ -312,6 +324,7 @@ async function resolveCommentListTargetReference(
   if (input.targetType === "teacher") {
     const targetId = parseInteger(input.teacherId ?? input.rawTargetId);
     if (!targetId) return invalidTarget("teacher");
+    countCommentStageQuery(counter);
     const teacher = await prisma.teacher.findUnique({
       where: { id: targetId },
       select: { id: true, nameCn: true },
@@ -342,6 +355,7 @@ async function resolveCommentListTargetReference(
     if (typeof homeworkId !== "string" || homeworkId.trim().length === 0) {
       return invalidTarget("homework");
     }
+    countCommentStageQuery(counter);
     const homework = await prisma.homework.findUnique({
       where: { id: homeworkId.trim() },
       select: {
@@ -379,6 +393,7 @@ async function resolveCommentListTargetReference(
     const directId = parseInteger(directReference);
     if (directReference) {
       if (!directId) return invalidTarget("section-teacher");
+      countCommentStageQuery(counter);
       const sectionTeacher = await prisma.sectionTeacher.findFirst({
         where: { id: directId, retiredAt: null },
         select: {
@@ -428,6 +443,7 @@ async function resolveCommentListTargetReference(
 
     if (sectionJwId && parseInteger(input.teacherId)) {
       const teacherId = parseInteger(input.teacherId) as number;
+      countCommentStageQuery(counter);
       const section = await prisma.section.findUnique({
         where: { jwId: sectionJwId },
         select: {
@@ -451,6 +467,7 @@ async function resolveCommentListTargetReference(
     const sectionId = parseInteger(input.sectionId);
     if (sectionId && parseInteger(input.teacherId)) {
       const teacherId = parseInteger(input.teacherId) as number;
+      countCommentStageQuery(counter);
       const section = await prisma.section.findUnique({
         where: { id: sectionId },
         select: {
@@ -510,14 +527,46 @@ export async function resolveCommentTargetReference(
   const courseJwId = parseInteger(input.courseJwId);
 
   if (input.includeTargetMetadata) {
-    const resolved = await resolveCommentListTargetReference(
-      input,
-      sectionJwId,
-      courseJwId,
-    );
-    if (resolved) return resolved;
+    const counter = createCommentStageCounter({
+      dbContext: "none",
+      dbLabel: "app",
+    });
+    return observeCommentStage({
+      counter,
+      stage: "target.resolve",
+      work: async () => {
+        const resolved = await resolveCommentListTargetReference(
+          input,
+          sectionJwId,
+          courseJwId,
+          counter,
+        );
+        if (resolved) return resolved;
+
+        // The legacy verification path has database work outside the local
+        // operation counter. Do not publish a partial count for it.
+        markCommentStageCountsUnknown(counter);
+        return resolveCommentTargetReferenceWithoutListMetadata(
+          input,
+          sectionJwId,
+          courseJwId,
+        );
+      },
+    });
   }
 
+  return resolveCommentTargetReferenceWithoutListMetadata(
+    input,
+    sectionJwId,
+    courseJwId,
+  );
+}
+
+async function resolveCommentTargetReferenceWithoutListMetadata(
+  input: CommentTargetReferenceInput,
+  sectionJwId: number | null,
+  courseJwId: number | null,
+): Promise<ResolvedCommentTargetReference> {
   if (input.targetType === "section" && sectionJwId) {
     const sectionId = await findSectionIdByJwId(sectionJwId);
     if (!sectionId) return targetNotFound("section", sectionJwId);

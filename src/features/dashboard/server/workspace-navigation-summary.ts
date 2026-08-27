@@ -3,6 +3,10 @@ import { Prisma } from "@/generated/prisma/client";
 import { withUserDbContext } from "@/lib/db/prisma";
 import type { WorkspaceNavigationSummary } from "@/lib/shell/shell-bootstrap";
 import { shanghaiDayjs } from "@/lib/time/shanghai-dayjs";
+import {
+  countDashboardStageQuery,
+  type DashboardStageCounter,
+} from "./dashboard-stage-analytics";
 
 type NavigationSemester = {
   endDate: Date | null;
@@ -41,6 +45,7 @@ type AggregateOptions = {
   semesters?: readonly NavigationSemester[];
   /** The dashboard todo tab already derives this count from its loaded rows. */
   skipPendingTodosCount?: boolean;
+  stageCounter?: DashboardStageCounter;
 };
 
 function sectionIdsSql(ids: readonly number[]) {
@@ -64,10 +69,13 @@ async function loadNavigationAggregate(
   const tomorrowStart = referenceNow.add(1, "day").startOf("day").toDate();
   const semesters =
     options.semesters ??
-    (await tx.semester.findMany({
-      select: { id: true, startDate: true, endDate: true },
-      orderBy: { startDate: "asc" },
-    }));
+    (await (async () => {
+      countDashboardStageQuery(options.stageCounter);
+      return tx.semester.findMany({
+        select: { id: true, startDate: true, endDate: true },
+        orderBy: { startDate: "asc" },
+      });
+    })());
   const currentSemester = selectCurrentSemesterFromList(
     Array.from(semesters),
     referenceDate,
@@ -136,6 +144,7 @@ async function loadNavigationAggregate(
           AND NOT todo.completed
       )`;
 
+  countDashboardStageQuery(options.stageCounter);
   const [row] = await tx.$queryRaw<WorkspaceNavigationCountRow[]>`
     WITH ${sectionScope},
     pending_homeworks AS MATERIALIZED (

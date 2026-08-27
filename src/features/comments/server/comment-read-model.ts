@@ -6,6 +6,7 @@ import {
 } from "@/lib/auth/viewer-context";
 import { authPrisma } from "@/lib/db/auth-prisma";
 import { prisma, withUserDbContext } from "@/lib/db/prisma";
+import { getUserRlsTransactionClient } from "@/lib/db/rls-context";
 import { logAppEvent } from "@/lib/log/app-logger";
 import { getSafeDatabaseErrorCode } from "@/lib/log/app-logger-core";
 import { withCommentDbContext } from "./comment-db-context";
@@ -14,6 +15,13 @@ import {
   type CommentNode,
   type RawComment,
 } from "./comment-serialization";
+import {
+  type CommentStageCounter,
+  countCommentStageQuery,
+  countCommentStageTransaction,
+  createCommentStageCounter,
+  observeCommentStage,
+} from "./comment-stage-analytics";
 import type { ResolvedCommentTarget } from "./comment-utils";
 
 export const commentThreadInclude = {
@@ -52,6 +60,7 @@ type ReactionSummaryQueryClient = Pick<Prisma.TransactionClient, "$queryRaw">;
 
 export async function withCommentAuthorProviders(
   comments: RawComment[],
+  counter?: CommentStageCounter,
 ): Promise<RawComment[]> {
   const userIds = Array.from(
     new Set(
@@ -60,19 +69,20 @@ export async function withCommentAuthorProviders(
         .filter((userId): userId is string => Boolean(userId)),
     ),
   );
-  const accounts =
-    userIds.length === 0
-      ? []
-      : await authPrisma.account.findMany({
-          where: {
-            provider: "oidc",
-            userId: { in: userIds },
-          },
-          select: {
-            provider: true,
-            userId: true,
-          },
-        });
+  const accounts = await (async () => {
+    if (userIds.length === 0) return [];
+    countCommentStageQuery(counter);
+    return authPrisma.account.findMany({
+      where: {
+        provider: "oidc",
+        userId: { in: userIds },
+      },
+      select: {
+        provider: true,
+        userId: true,
+      },
+    });
+  })();
   const accountsByUserId = new Map<string, { provider: string }[]>();
 
   for (const account of accounts) {
@@ -95,6 +105,7 @@ export async function withCommentAuthorProviders(
 async function loadCommentReactionSummaries(
   commentIds: string[],
   viewerUserId: string | null,
+  counter?: CommentStageCounter,
 ) {
   if (commentIds.length === 0) return [];
 
@@ -110,12 +121,17 @@ async function loadCommentReactionSummaries(
       )
     `);
 
+  countCommentStageQuery(counter);
+  if (viewerUserId && !getUserRlsTransactionClient()) {
+    countCommentStageTransaction(counter);
+  }
   return viewerUserId ? withUserDbContext(viewerUserId, query) : query(prisma);
 }
 
 async function loadCommentAttachmentSummaries(
   commentIds: string[],
   viewerUserId: string | null,
+  counter?: CommentStageCounter,
 ) {
   if (commentIds.length === 0) return [];
 
@@ -133,6 +149,10 @@ async function loadCommentAttachmentSummaries(
       )
     `);
 
+  countCommentStageQuery(counter);
+  if (viewerUserId && !getUserRlsTransactionClient()) {
+    countCommentStageTransaction(counter);
+  }
   return viewerUserId ? withUserDbContext(viewerUserId, query) : query(prisma);
 }
 
@@ -160,9 +180,14 @@ function logCommentSummaryFailure(
 async function loadCommentReactionSummariesOrEmpty(
   commentIds: string[],
   viewerUserId: string | null,
+  counter?: CommentStageCounter,
 ): Promise<CommentReactionSummaryRow[]> {
   try {
-    return await loadCommentReactionSummaries(commentIds, viewerUserId);
+    return await loadCommentReactionSummaries(
+      commentIds,
+      viewerUserId,
+      counter,
+    );
   } catch (error) {
     logCommentSummaryFailure("comment.reaction-summaries.failed", error);
     return [];
@@ -172,9 +197,14 @@ async function loadCommentReactionSummariesOrEmpty(
 async function loadCommentAttachmentSummariesOrEmpty(
   commentIds: string[],
   viewerUserId: string | null,
+  counter?: CommentStageCounter,
 ): Promise<CommentAttachmentSummaryRow[]> {
   try {
-    return await loadCommentAttachmentSummaries(commentIds, viewerUserId);
+    return await loadCommentAttachmentSummaries(
+      commentIds,
+      viewerUserId,
+      counter,
+    );
   } catch (error) {
     logCommentSummaryFailure("comment.attachment-summaries.failed", error);
     return [];
@@ -184,13 +214,14 @@ async function loadCommentAttachmentSummariesOrEmpty(
 export async function withCommentReadMetadata(
   comments: RawComment[],
   viewerUserId: string | null,
+  counter?: CommentStageCounter,
 ): Promise<RawComment[]> {
   const commentIds = comments.map((comment) => comment.id);
   const [commentsWithProviders, reactionRows, attachmentRows] =
     await Promise.all([
-      withCommentAuthorProviders(comments),
-      loadCommentReactionSummariesOrEmpty(commentIds, viewerUserId),
-      loadCommentAttachmentSummariesOrEmpty(commentIds, viewerUserId),
+      withCommentAuthorProviders(comments, counter),
+      loadCommentReactionSummariesOrEmpty(commentIds, viewerUserId, counter),
+      loadCommentAttachmentSummariesOrEmpty(commentIds, viewerUserId, counter),
     ]);
   const reactionsByCommentId = new Map<
     string,
@@ -362,6 +393,7 @@ async function loadPaginatedCommentRoots(
   target: ResolvedCommentTarget,
   viewer: ViewerContext,
   pagination: { pageSize: number; skip: number },
+  counter?: CommentStageCounter,
 ) {
   const rootVisible = directlyVisibleCommentSql("root", viewer);
   const childVisible = directlyVisibleCommentSql("child", viewer);
@@ -396,6 +428,7 @@ async function loadPaginatedCommentRoots(
     FROM root_total AS total
     LEFT JOIN paged_roots AS page ON TRUE
   `;
+  countCommentStageQuery(counter);
   const rows = await client.$queryRaw<CommentRootPageRow[]>(query);
   return {
     rootIds: rows.flatMap((row) => (row.id ? [row.id] : [])),
@@ -410,12 +443,19 @@ export async function loadCommentThread(input: {
   viewerUserId: string | null;
 }) {
   if (input.target.empty) {
-    const viewer =
-      input.viewer ??
-      (await getViewerContext({
-        includeAdmin: false,
-        userId: input.viewerUserId,
-      }));
+    const viewer = await observeCommentStage({
+      counter: input.viewer
+        ? createCommentStageCounter({ dbContext: "none", dbLabel: "app" })
+        : undefined,
+      stage: "viewer.context",
+      work: () =>
+        input.viewer
+          ? Promise.resolve(input.viewer)
+          : getViewerContext({
+              includeAdmin: false,
+              userId: input.viewerUserId,
+            }),
+    });
     return { comments: [], hiddenCount: 0, total: 0, viewer };
   }
 
@@ -424,36 +464,65 @@ export async function loadCommentThread(input: {
       "viewer.context",
       { source: "comments" },
       () =>
-        input.viewer ??
-        getViewerContext({
-          includeAdmin: false,
-          userId: input.viewerUserId,
+        observeCommentStage({
+          counter: input.viewer
+            ? createCommentStageCounter({ dbContext: "none", dbLabel: "app" })
+            : undefined,
+          stage: "viewer.context",
+          work: () =>
+            input.viewer
+              ? Promise.resolve(input.viewer)
+              : getViewerContext({
+                  includeAdmin: false,
+                  userId: input.viewerUserId,
+                }),
         }),
     );
     const pagination = input.pagination;
+    const rootCounter = createCommentStageCounter({
+      dbContext: input.viewerUserId ? "rls" : "none",
+      dbLabel: "app",
+    });
+    if (input.viewerUserId && !getUserRlsTransactionClient()) {
+      countCommentStageTransaction(rootCounter);
+    }
     const { comments, hiddenCount, total } = await withCommentDbContext(
       input.viewerUserId,
       async (client) => {
+        const rootPagePromise = runCloudflareTraceSpan(
+          "comments.root",
+          {
+            pageSize: pagination.pageSize,
+            skip: pagination.skip,
+            targetType: Object.keys(input.target.whereTarget)[0],
+          },
+          () =>
+            observeCommentStage({
+              counter: rootCounter,
+              details: (result) => ({
+                rootCount: result?.rootIds.length,
+              }),
+              stage: "comments.root",
+              work: () =>
+                loadPaginatedCommentRoots(
+                  client,
+                  input.target,
+                  viewer,
+                  pagination,
+                  rootCounter,
+                ),
+            }),
+        );
         const [rootPage, hiddenCount] = await Promise.all([
-          runCloudflareTraceSpan(
-            "comments.root",
-            {
-              pageSize: pagination.pageSize,
-              skip: pagination.skip,
-              targetType: Object.keys(input.target.whereTarget)[0],
-            },
-            () =>
-              loadPaginatedCommentRoots(
-                client,
-                input.target,
-                viewer,
-                pagination,
-              ),
-          ),
+          rootPagePromise,
           viewer.isAuthenticated
             ? Promise.resolve(0)
             : countAnonymousHiddenRoots(input.target.whereTarget),
         ]);
+        const descendantsCounter = createCommentStageCounter({
+          dbContext: input.viewerUserId ? "rls" : "none",
+          dbLabel: "app",
+        });
         const comments =
           rootPage.rootIds.length === 0
             ? []
@@ -464,20 +533,30 @@ export async function loadCommentThread(input: {
                   targetType: Object.keys(input.target.whereTarget)[0],
                 },
                 () =>
-                  client.comment.findMany({
-                    where: {
-                      AND: [
-                        input.target.whereTarget,
-                        {
-                          OR: [
-                            { id: { in: rootPage.rootIds } },
-                            { rootId: { in: rootPage.rootIds } },
+                  observeCommentStage({
+                    counter: descendantsCounter,
+                    details: (result) => ({
+                      loadedCount: result?.length,
+                    }),
+                    stage: "comments.descendants",
+                    work: async () => {
+                      countCommentStageQuery(descendantsCounter);
+                      return client.comment.findMany({
+                        where: {
+                          AND: [
+                            input.target.whereTarget,
+                            {
+                              OR: [
+                                { id: { in: rootPage.rootIds } },
+                                { rootId: { in: rootPage.rootIds } },
+                              ],
+                            },
                           ],
                         },
-                      ],
+                        include: commentThreadInclude,
+                        orderBy: [{ createdAt: "asc" }, { id: "asc" }],
+                      });
                     },
-                    include: commentThreadInclude,
-                    orderBy: [{ createdAt: "asc" }, { id: "asc" }],
                   }),
               );
 
@@ -485,10 +564,21 @@ export async function loadCommentThread(input: {
       },
     );
 
+    const summariesCounter = createCommentStageCounter({
+      dbContext: viewer.userId ? "rls" : "none",
+      dbLabel: "app",
+    });
     const commentsWithMetadata = await runCloudflareTraceSpan(
       "comments.summaries",
       { commentCount: comments.length },
-      () => withCommentReadMetadata(comments, viewer.userId),
+      () =>
+        observeCommentStage({
+          counter: summariesCounter,
+          details: () => ({ loadedCount: comments.length }),
+          stage: "comments.summaries",
+          work: () =>
+            withCommentReadMetadata(comments, viewer.userId, summariesCounter),
+        }),
     );
     const { roots } = buildCommentNodes(commentsWithMetadata, viewer);
     return { comments: roots, hiddenCount, total, viewer };

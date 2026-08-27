@@ -6,12 +6,14 @@ const {
   sectionFindUniqueMock,
   sectionTeacherFindFirstMock,
   teacherFindUniqueMock,
+  writeCommentsStageAnalyticsMock,
 } = vi.hoisted(() => ({
   courseFindUniqueMock: vi.fn(),
   homeworkFindUniqueMock: vi.fn(),
   sectionFindUniqueMock: vi.fn(),
   sectionTeacherFindFirstMock: vi.fn(),
   teacherFindUniqueMock: vi.fn(),
+  writeCommentsStageAnalyticsMock: vi.fn(),
 }));
 
 vi.mock("@/lib/db/prisma", () => ({
@@ -24,9 +26,14 @@ vi.mock("@/lib/db/prisma", () => ({
   },
 }));
 
+vi.mock("@/lib/metrics/analytics-engine", () => ({
+  writeCommentsStageAnalytics: writeCommentsStageAnalyticsMock,
+}));
+
 describe("comment list target resolution", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    writeCommentsStageAnalyticsMock.mockReset();
   });
 
   it("selects direct section metadata as part of the existence read", async () => {
@@ -66,10 +73,30 @@ describe("comment list target resolution", () => {
       },
     });
     expect(sectionFindUniqueMock).toHaveBeenCalledOnce();
+    expect(writeCommentsStageAnalyticsMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        dbContext: "none",
+        dbLabel: "app",
+        dbQueryCount: 1,
+        dbTransactionCount: 0,
+        outcome: "success",
+        stage: "target.resolve",
+      }),
+    );
 
     if (!resolved.ok) throw new Error("target should resolve");
     await commentListTargetPayload("section", resolved.target);
     expect(sectionFindUniqueMock).toHaveBeenCalledOnce();
+    expect(writeCommentsStageAnalyticsMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        dbContext: "none",
+        dbLabel: "app",
+        dbQueryCount: 0,
+        dbTransactionCount: 0,
+        outcome: "success",
+        stage: "target.payload",
+      }),
+    );
   });
 
   it("resolves a section-teacher JW reference with one section read", async () => {

@@ -13,6 +13,7 @@ const {
   reactionSummaryQueryMock,
   rootPageQueryMock,
   withUserDbContextMock,
+  writeCommentsStageAnalyticsMock,
 } = vi.hoisted(() => ({
   accountFindManyMock: vi.fn(),
   attachmentSummaryQueryMock: vi.fn(),
@@ -26,6 +27,7 @@ const {
   reactionSummaryQueryMock: vi.fn(),
   rootPageQueryMock: vi.fn(),
   withUserDbContextMock: vi.fn(),
+  writeCommentsStageAnalyticsMock: vi.fn(),
 }));
 
 vi.mock("@/lib/db/auth-prisma", () => ({
@@ -49,6 +51,10 @@ vi.mock("@/lib/db/prisma", () => ({
 
 vi.mock("@/lib/log/app-logger", () => ({
   logAppEvent: logAppEventMock,
+}));
+
+vi.mock("@/lib/metrics/analytics-engine", () => ({
+  writeCommentsStageAnalytics: writeCommentsStageAnalyticsMock,
 }));
 
 import { loadCommentThread } from "@/features/comments/server/comment-read-model";
@@ -136,6 +142,7 @@ describe("loadCommentThread pagination", () => {
     rootPageQueryMock.mockResolvedValue([{ id: "root-2", total: 3n }]);
     reactionSummaryQueryMock.mockResolvedValue([]);
     attachmentSummaryQueryMock.mockResolvedValue([]);
+    writeCommentsStageAnalyticsMock.mockReset();
     contextQueryMock.mockImplementation((query) =>
       rawQuerySql(query).includes("eligible_roots")
         ? rootPageQueryMock(query)
@@ -205,6 +212,60 @@ describe("loadCommentThread pagination", () => {
       }),
     );
     expect(withUserDbContextMock).toHaveBeenCalledTimes(3);
+    expect(
+      writeCommentsStageAnalyticsMock.mock.calls.map(
+        ([input]) => (input as { stage: string }).stage,
+      ),
+    ).toEqual([
+      "viewer.context",
+      "comments.root",
+      "comments.descendants",
+      "comments.summaries",
+    ]);
+    expect(writeCommentsStageAnalyticsMock).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({
+        dbContext: "none",
+        dbLabel: "app",
+        dbQueryCount: 0,
+        dbTransactionCount: 0,
+        outcome: "success",
+        stage: "viewer.context",
+      }),
+    );
+    expect(writeCommentsStageAnalyticsMock).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({
+        dbContext: "rls",
+        dbLabel: "app",
+        dbQueryCount: 1,
+        dbTransactionCount: 1,
+        rootCount: 1,
+        stage: "comments.root",
+      }),
+    );
+    expect(writeCommentsStageAnalyticsMock).toHaveBeenNthCalledWith(
+      3,
+      expect.objectContaining({
+        dbContext: "rls",
+        dbLabel: "app",
+        dbQueryCount: 1,
+        dbTransactionCount: 0,
+        loadedCount: 2,
+        stage: "comments.descendants",
+      }),
+    );
+    expect(writeCommentsStageAnalyticsMock).toHaveBeenNthCalledWith(
+      4,
+      expect.objectContaining({
+        dbContext: "rls",
+        dbLabel: "app",
+        dbQueryCount: 2,
+        dbTransactionCount: 2,
+        loadedCount: 2,
+        stage: "comments.summaries",
+      }),
+    );
   });
 
   it("loads OIDC provider badges once for all comment authors", async () => {

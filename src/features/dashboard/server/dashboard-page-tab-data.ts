@@ -2,6 +2,20 @@ import type { DashboardUserContext } from "@/features/dashboard/server/dashboard
 import type { AppLocale } from "@/i18n/config";
 import { withUserDbContext } from "@/lib/db/prisma";
 import { logAppEvent } from "@/lib/log/app-logger";
+import { elapsedMs, monotonicNowMs } from "@/lib/log/observability-clock";
+import {
+  createDashboardStageCounter,
+  type DashboardStage,
+  type DashboardStageCounter,
+  recordDashboardStageAnalytics,
+} from "./dashboard-stage-analytics";
+
+const DASHBOARD_STAGES = new Set<DashboardStage>([
+  "recent_session",
+  "user_context",
+  "nav_stats",
+  "tab",
+]);
 
 function inactiveStage<T>(value: T) {
   return Promise.resolve(value);
@@ -15,8 +29,9 @@ export async function timeDashboardStage<T>(
     tab: string;
   },
   work: () => Promise<T>,
+  counter?: DashboardStageCounter,
 ) {
-  const startMs = Date.now();
+  const startMs = monotonicNowMs();
   let status: "error" | "ok" = "error";
   let stageError: unknown;
   try {
@@ -32,7 +47,7 @@ export async function timeDashboardStage<T>(
       "dashboard.load.stage",
       {
         event: "dashboard.load.stage",
-        ioObservedDurationMs: Date.now() - startMs,
+        ioObservedDurationMs: elapsedMs(startMs),
         requestId: input.requestId,
         source: "dashboard",
         stage,
@@ -42,6 +57,17 @@ export async function timeDashboardStage<T>(
       },
       stageError,
     );
+    if (DASHBOARD_STAGES.has(stage as DashboardStage)) {
+      recordDashboardStageAnalytics({
+        counter,
+        details: {
+          subscribedSectionCount: input.subscribedSectionCount,
+        },
+        durationMs: elapsedMs(startMs),
+        outcome: status === "ok" ? "success" : "error",
+        stage: stage as DashboardStage,
+      });
+    }
   }
 }
 
@@ -81,6 +107,10 @@ export async function loadSignedDashboardTabData(input: {
           (items) => items?.filter((todo) => !todo.completed).length ?? 0,
         )
       : undefined;
+    const navStatsCounter = createDashboardStageCounter({
+      dbContext: "rls",
+      dbLabel: "app",
+    });
     const navStatsPromise = timeDashboardStage(
       "nav_stats",
       stageContext,
@@ -91,7 +121,9 @@ export async function loadSignedDashboardTabData(input: {
           input.referenceNow,
           pendingTodosCountPromise,
           await semestersPromise,
+          navStatsCounter,
         ),
+      navStatsCounter,
     );
     const overviewPromise =
       input.tab === "overview" || input.tab === "calendar"

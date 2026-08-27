@@ -1,5 +1,10 @@
 import { prisma } from "@/lib/db/prisma";
 import type { CommentTargetLookupRecord } from "./comment-read-model";
+import {
+  countCommentStageQuery,
+  createCommentStageCounter,
+  observeCommentStage,
+} from "./comment-stage-analytics";
 import type {
   CommentTargetMetadataSource,
   CommentTargetType,
@@ -69,6 +74,22 @@ export async function commentListTargetPayload(
   targetType: CommentTargetType,
   target: ResolvedCommentTarget,
 ) {
+  const counter = createCommentStageCounter({
+    dbContext: "none",
+    dbLabel: "app",
+  });
+  return observeCommentStage({
+    counter,
+    stage: "target.payload",
+    work: () => loadCommentListTargetPayload(targetType, target, counter),
+  });
+}
+
+async function loadCommentListTargetPayload(
+  targetType: CommentTargetType,
+  target: ResolvedCommentTarget,
+  counter: ReturnType<typeof createCommentStageCounter>,
+) {
   const base = {
     ...baseCommentListTargetPayload(targetType, target),
     courseId:
@@ -88,6 +109,7 @@ export async function commentListTargetPayload(
     targetType === "section" &&
     typeof target.whereTarget.sectionId === "number"
   ) {
+    countCommentStageQuery(counter);
     const section = await prisma.section.findUnique({
       where: { id: target.whereTarget.sectionId },
       select: {
@@ -106,6 +128,7 @@ export async function commentListTargetPayload(
     targetType === "course" &&
     typeof target.whereTarget.courseId === "number"
   ) {
+    countCommentStageQuery(counter);
     const course = await prisma.course.findUnique({
       where: { id: target.whereTarget.courseId },
       select: { jwId: true, nameCn: true },
@@ -120,6 +143,7 @@ export async function commentListTargetPayload(
     targetType === "teacher" &&
     typeof target.whereTarget.teacherId === "number"
   ) {
+    countCommentStageQuery(counter);
     const teacher = await prisma.teacher.findUnique({
       where: { id: target.whereTarget.teacherId },
       select: { nameCn: true },
@@ -131,6 +155,7 @@ export async function commentListTargetPayload(
   }
 
   if (targetType === "homework" && target.homeworkId) {
+    countCommentStageQuery(counter);
     const homework = await prisma.homework.findUnique({
       where: { id: target.homeworkId },
       select: {
@@ -146,6 +171,7 @@ export async function commentListTargetPayload(
 
   if (targetType === "section-teacher") {
     if (target.sectionTeacherId) {
+      countCommentStageQuery(counter);
       const sectionTeacher = await prisma.sectionTeacher.findUnique({
         where: { id: target.sectionTeacherId },
         select: {
@@ -168,6 +194,8 @@ export async function commentListTargetPayload(
     }
 
     if (target.sectionId && target.teacherId) {
+      countCommentStageQuery(counter);
+      countCommentStageQuery(counter);
       const [section, teacher] = await Promise.all([
         prisma.section.findUnique({
           where: { id: target.sectionId },
