@@ -38,13 +38,13 @@ export let submissionStartAt: string;
     }}
   >
     <Dialog.Content
-      class="flex h-[calc(100dvh-2rem)] max-h-[calc(100dvh-2rem)] min-h-0 max-w-2xl flex-col gap-0 overflow-clip p-0 sm:h-[min(76vh,48rem)] sm:max-h-[min(76vh,48rem)] sm:max-w-2xl"
+      class="flex h-[calc(100dvh-2rem)] max-h-[calc(100dvh-2rem)] min-h-0 max-w-2xl flex-col gap-0 overflow-clip p-0 sm:h-[min(78vh,48rem)] sm:max-h-[min(78vh,48rem)] sm:max-w-2xl"
     >
       <form
         class="flex min-h-0 flex-1 flex-col overflow-hidden"
         onsubmit={createHomework}
       >
-        <Dialog.Header class="shrink-0 px-5 pb-2 pt-4">
+        <Dialog.Header class="shrink-0 px-5 pb-2 pt-5 sm:px-6 sm:pt-6">
           <div class="flex flex-wrap items-start justify-between gap-3">
             <div class="min-w-0 grid gap-1.5">
               <Dialog.Title class="break-words">{homeworkCopy.createTitle}</Dialog.Title>
@@ -75,7 +75,7 @@ export let submissionStartAt: string;
             bind:submissionStartAt
           />
         </ScrollArea>
-        <Dialog.Footer class="mx-0 mb-0 shrink-0">
+        <Dialog.Footer class="mx-0 mb-0 shrink-0 border-t-0 sm:px-6">
           <Button type="button" variant="outline" onclick={close}>
             {sectionCopy.close ?? ""}
           </Button>

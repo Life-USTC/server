@@ -634,7 +634,7 @@ test.describe("仪表盘作业", () => {
     await captureStepScreenshot(page, testInfo, "homeworks/created");
   });
 
-  test("新建作业展示可折叠的英文填写规范", async ({ page }, testInfo) => {
+  test("新建作业默认展开英文填写规范", async ({ page }, testInfo) => {
     await signInAsDebugUser(page, "/workspace/homeworks");
     await ensureSeedSectionSubscription(page);
     const localeResponse = await page.request.post("/api/account/preferences", {
@@ -660,8 +660,7 @@ test.describe("仪表盘作业", () => {
     const trigger = createDialog.getByTestId(
       "dashboard-homework-style-guide-trigger",
     );
-    await expect(trigger).toHaveAttribute("aria-expanded", "false");
-    await trigger.click();
+    await expect(trigger).toHaveAttribute("aria-expanded", "true");
     const guide = createDialog.getByTestId(
       "dashboard-homework-style-guide-content",
     );
@@ -724,10 +723,6 @@ test.describe("仪表盘作业", () => {
     await expect(
       createDialog.getByRole("textbox", { name: /发布日期|Published/i }),
     ).toBeVisible();
-    await advancedSettings.click();
-    await expect(
-      createDialog.getByRole("textbox", { name: /发布日期|Published/i }),
-    ).toHaveCount(0);
     await titleInput.fill(title);
     await createDialog
       .getByRole("textbox", { name: /Details|说明/i })

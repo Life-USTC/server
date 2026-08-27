@@ -1006,8 +1006,7 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
     const createTrigger = createDialog.getByTestId(
       "section-create-homework-style-guide-trigger",
     );
-    await expect(createTrigger).toHaveAttribute("aria-expanded", "false");
-    await createTrigger.click();
+    await expect(createTrigger).toHaveAttribute("aria-expanded", "true");
     const createGuide = createDialog.getByTestId(
       "section-create-homework-style-guide-content",
     );
@@ -1052,8 +1051,7 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
     const editTrigger = detailDialog.getByTestId(
       "section-edit-homework-style-guide-trigger",
     );
-    await expect(editTrigger).toHaveAttribute("aria-expanded", "false");
-    await editTrigger.click();
+    await expect(editTrigger).toHaveAttribute("aria-expanded", "true");
     const editGuide = detailDialog.getByTestId(
       "section-edit-homework-style-guide-content",
     );
@@ -1356,6 +1354,11 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
       await editForm
         .getByRole("textbox", { name: /Submission due|提交截止/i })
         .fill(dueAt);
+      const advancedSettings = editForm.getByRole("button", {
+        name: /更多设置|More settings|收起更多设置|Hide more settings/i,
+      });
+      await expect(advancedSettings).toHaveAttribute("aria-expanded", "false");
+      await advancedSettings.click();
       await editForm
         .getByRole("checkbox", { name: /Major assignment|大作业/i })
         .click();

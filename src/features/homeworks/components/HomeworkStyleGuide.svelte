@@ -4,18 +4,26 @@ import * as Accordion from "$lib/components/ui/accordion/index.js";
 
 export let copy: HomeworkStyleGuideCopy;
 export let testIdPrefix: string;
+
+let guideValue = "homework-style-guide";
 </script>
 
-<Accordion.Root type="single">
-  <Accordion.Item class="rounded-md border px-3" value="homework-style-guide">
+<Accordion.Root
+  type="single"
+  value={guideValue}
+  onValueChange={(value) => {
+    guideValue = value;
+  }}
+>
+  <Accordion.Item class="rounded-lg bg-muted/40 px-3" value="homework-style-guide">
     <Accordion.Trigger
-      class="py-3 hover:no-underline"
+      class="min-h-10 py-3 hover:no-underline"
       data-testid={`${testIdPrefix}-style-guide-trigger`}
     >
       {copy.styleGuideTitle}
     </Accordion.Trigger>
     <Accordion.Content
-      class="space-y-3 pb-3 text-muted-foreground"
+      class="space-y-3 pb-4 text-muted-foreground"
       data-testid={`${testIdPrefix}-style-guide-content`}
     >
       <p>{copy.styleGuideTitleGuidance}</p>

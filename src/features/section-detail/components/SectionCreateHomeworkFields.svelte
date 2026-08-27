@@ -38,7 +38,7 @@ $: homeworkTimestampCapabilities = {
 };
 </script>
 
-<Field.Group class="gap-4 px-5 py-4">
+<Field.Group class="gap-5 px-5 py-4 sm:px-6 sm:py-5">
   <HomeworkEditorFields
     actions={homeworkTimestampActions}
     bind:advancedOpen={advancedOpen}
