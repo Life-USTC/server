@@ -4,6 +4,7 @@ import type { SubmitFunction } from "@sveltejs/kit";
 import { onMount } from "svelte";
 import type { SectionDetailPageData } from "@/features/section-detail/lib/section-detail-controller-helpers";
 import type { SectionDetailSection } from "@/features/section-detail/lib/section-detail-controller-types";
+import * as Alert from "$lib/components/ui/alert/index.js";
 import { Button } from "$lib/components/ui/button/index.js";
 import { Separator } from "$lib/components/ui/separator/index.js";
 import { Spinner } from "$lib/components/ui/spinner/index.js";
@@ -43,6 +44,8 @@ export let sectionCalendarGridWeeks: SectionDetailMainContentProps["sectionCalen
 export let sectionCopy: SectionDetailMainContentProps["sectionCopy"];
 export let sectionTeachersLabel: SectionDetailMainContentProps["sectionTeachersLabel"];
 export let setSelectedHomework: SectionDetailMainContentProps["setSelectedHomework"];
+export let retryStreamPanels: () => void;
+export let streamError: string | null;
 export let streamLoading: boolean;
 export let subscriptionAction: (
   action: SubscriptionActionKey,
@@ -109,7 +112,12 @@ $: sectionExamEvents = sectionCalendarEvents.filter(
   </div>
 
   <div
-    class="min-w-0 min-h-0 overflow-y-auto px-4 py-4 sm:px-5 lg:px-6"
+    class={cn(
+      "min-w-0 min-h-0 overflow-y-auto px-4 pt-4 sm:px-5 lg:px-6 md:pb-4",
+      viewer.signedIn
+        ? "pb-[calc(9rem+max(0.75rem,env(safe-area-inset-bottom)))]"
+        : "pb-[calc(5rem+max(0.75rem,env(safe-area-inset-bottom)))]",
+    )}
     aria-busy={streamLoading}
     data-detail-scroll-container
   >
@@ -121,6 +129,23 @@ $: sectionExamEvents = sectionCalendarEvents.filter(
         <Spinner class="size-4 shrink-0" />
         <span>{data.locale === "zh-cn" ? "加载中..." : "Loading..."}</span>
       </div>
+    {/if}
+
+    {#if streamError}
+      <Alert.Root class="mb-6" role="alert" variant="destructive">
+        <Alert.Title>{streamError}</Alert.Title>
+        <Alert.Description class="flex flex-wrap items-center gap-3">
+          <span>{sectionCopy.pleaseRetry}</span>
+          <Button
+            size="sm"
+            type="button"
+            variant="outline"
+            onclick={retryStreamPanels}
+          >
+            {sectionCopy.pleaseRetry}
+          </Button>
+        </Alert.Description>
+      </Alert.Root>
     {/if}
 
     <div class="grid gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(16rem,20rem)] lg:items-start lg:gap-10">
@@ -256,7 +281,7 @@ $: sectionExamEvents = sectionCalendarEvents.filter(
     data-testid="section-mobile-primary-actions"
   >
     <Separator />
-    <div class="p-3">
+    <div class="px-3 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
       <SectionDetailPrimaryActions
         onOpenCalendar={openCalendarDialog}
         onOpenSubscribe={openSubscribeDialog}

@@ -56,6 +56,7 @@ let {
   _clipboardError,
   _clipboardMessage,
   _copiedCalendarTarget,
+  _completionSaving,
   _createHomeworkPublishedAt,
   _createHomeworkSubmissionDueAt,
   _createHomeworkSubmissionStartAt,
@@ -80,6 +81,7 @@ let {
 } = createSectionDetailControllerDefaultState(data);
 
 let streamLoading = false;
+let streamError: string | null = null;
 const tabPanelStore = createSectionDetailTabPanelStore(
   data.homeworkData.viewer.userId ?? null,
   createSectionDetailTabPanelSsrSeedFromPageData(
@@ -137,6 +139,7 @@ async function ensureStreamPanelsLoaded() {
     sectionId: Number(data.section.id),
   };
   streamLoading = true;
+  streamError = null;
   try {
     for (const tab of STREAM_PANEL_TABS) {
       if (tabPanelStore.isLoaded(tab)) continue;
@@ -146,9 +149,15 @@ async function ensureStreamPanelsLoaded() {
       }
     }
     syncFocusedHomework(_homeworks);
+  } catch {
+    streamError = _sectionCopy.operationFailed;
   } finally {
     streamLoading = false;
   }
+}
+
+function retryStreamPanels() {
+  void ensureStreamPanelsLoaded();
 }
 
 function scrollToFocusedHomework() {
@@ -404,6 +413,9 @@ const {
     toast.success(message);
   },
   getSelectedHomework: () => _selectedHomework,
+  setCompletionSaving: (value) => {
+    _completionSaving = value;
+  },
   setDeleteHomeworkTarget: (value) => {
     _deleteHomeworkTarget = value;
   },
@@ -491,6 +503,8 @@ onMount(() => {
     setSelectedHomework={(homework) => {
       _selectedHomework = homework;
     }}
+    {retryStreamPanels}
+    {streamError}
     {streamLoading}
     subscriptionAction={_subscriptionAction}
     subscriptionPendingAction={_subscriptionPendingAction}
@@ -518,6 +532,7 @@ onMount(() => {
   auditLogsForHomework={_auditLogsForHomework}
   canManageSelectedHomework={_canManageSelectedHomework}
   canWriteHomework={_canWriteHomework}
+  completionSaving={_completionSaving}
   cancelEditHomework={_cancelEditHomework}
   clipboardError={_clipboardError}
   clipboardMessage={_clipboardMessage}

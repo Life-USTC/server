@@ -20,6 +20,7 @@ export function createSectionDetailControllerDefaultState(
     _clipboardError: "",
     _clipboardMessage: "",
     _copiedCalendarTarget: null as "single" | "subscription" | null,
+    _completionSaving: false,
     _createHomeworkPublishedAt: "",
     _createHomeworkSubmissionDueAt: "",
     _createHomeworkSubmissionStartAt: "",

@@ -9,6 +9,7 @@ export function createSectionHomeworkToggleAction(
   async function toggleHomeworkCompletion(homework: SectionHomework) {
     const copy = input.getHomeworkCopy();
     input.setHomeworkMessage("");
+    input.setCompletionSaving(true);
     try {
       const result = await updateHomeworkCompletion({
         completed: !homework.completion,
@@ -26,6 +27,8 @@ export function createSectionHomeworkToggleAction(
       input.onSuccess?.(result.completed ? "complete" : "uncomplete");
     } catch {
       input.setHomeworkMessage(copy.completionFailed);
+    } finally {
+      input.setCompletionSaving(false);
     }
   }
 

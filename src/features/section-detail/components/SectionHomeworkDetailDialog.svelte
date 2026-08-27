@@ -36,6 +36,7 @@ export let _auditLogsForHomework: SectionHomeworkAuditLookup;
 export let _canManageSelectedHomework: boolean;
 export let _canWriteHomework: boolean;
 export let _cancelEditHomework: () => void;
+export let _completionSaving: boolean;
 export let _commentsCopy: SectionHomeworkMarkdownCopy;
 export let _commonCopy: SectionHomeworkCommonCopy;
 export let _editHomeworkMessage: string;
@@ -78,7 +79,7 @@ $: permalinkBaseHref = _selectedHomework
 
 <HomeworkDetailDialog
   {CommentsPanel}
-  completionSaving={false}
+  completionSaving={_completionSaving}
   copy={_homeworkCopy}
   dateFallback={_sectionCopy.notAvailable}
   editing={_editingHomework}

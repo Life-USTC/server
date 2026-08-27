@@ -109,6 +109,7 @@ export type SectionDetailHomeworkDialogsProps = {
   auditLogsForHomework: SectionHomeworkAuditLookup;
   canManageSelectedHomework: boolean;
   canWriteHomework: boolean;
+  completionSaving: boolean;
   cancelEditHomework: () => void;
   closeCreateHomeworkDialog: () => void;
   commentsCopy: SectionDetailCommentsCopy;
@@ -201,6 +202,8 @@ export type SectionDetailMainSectionCopy = SectionCalendarCopy &
     unsubscribeLabel: string;
     unsubscribing: string;
     week: string;
+    operationFailed: string;
+    pleaseRetry: string;
   };
 
 export type SectionDetailMainContentProps = {
@@ -223,6 +226,9 @@ export type SectionDetailMainContentProps = {
   sectionCopy: SectionDetailMainSectionCopy;
   sectionTeachersLabel: SectionTeachersLabel;
   setSelectedHomework: (homework: SectionHomework) => void;
+  retryStreamPanels: () => void;
+  streamError: string | null;
+  streamLoading: boolean;
   teacherName: SectionTeacherName;
   todayCalendarMonthOffset: number;
   unscheduledCalendarEvents: SectionCalendarEvent[];
