@@ -10,6 +10,7 @@ import {
 export type { DashboardStage };
 
 export type DashboardStageCounter = {
+  analyticsRecorded: boolean;
   countState: DashboardStageCountState;
   dbContext: DashboardDbStageContext;
   dbLabel: DbStageLabel;
@@ -22,6 +23,7 @@ export function createDashboardStageCounter(input: {
   dbLabel: DbStageLabel;
 }): DashboardStageCounter {
   return {
+    analyticsRecorded: false,
     countState: "known",
     dbContext: input.dbContext,
     dbLabel: input.dbLabel,
@@ -66,7 +68,13 @@ export function recordDashboardStageAnalytics(input: {
   stage: DashboardStage;
 }) {
   const counter = input.counter;
-  if (!counter) return;
+  if (!counter || counter.analyticsRecorded) return;
+
+  // A read model may publish the precise stage result while a page
+  // orchestrator also wraps the same operation for request-level timing.
+  // The counter is the ownership token: only the first completion may emit
+  // the datapoint, preventing duplicate nav_stats records.
+  counter.analyticsRecorded = true;
 
   try {
     writeDashboardStageAnalytics({

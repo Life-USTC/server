@@ -240,6 +240,7 @@ describe("仪表盘导航统计", () => {
           undefined,
           counter,
         ),
+      counter,
     );
 
     expect(writeDashboardStageAnalyticsMock).toHaveBeenCalledOnce();
