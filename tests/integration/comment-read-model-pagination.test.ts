@@ -478,6 +478,10 @@ describe("comment root pagination read model", () => {
       },
       select: { id: true },
     });
+    await testPrisma.comment.update({
+      where: { id: root.id },
+      data: { rootId: root.id },
+    });
     await testPrisma.comment.createMany({
       data: Array.from({ length: 21 }, (_, index) => ({
         body: `${previewMarker}-reply-${index + 1}`,
@@ -520,6 +524,15 @@ describe("comment root pagination read model", () => {
       );
 
       expect(rootPreview?.replies).toHaveLength(10);
+      expect(rootPreview?.replies.map((reply) => reply.body)).toEqual(
+        Array.from(
+          { length: 10 },
+          (_, index) => `${previewMarker}-reply-${index + 1}`,
+        ),
+      );
+      expect(rootPreview?.replies.some((reply) => reply.id === root.id)).toBe(
+        false,
+      );
       expect(rootPreview?.repliesNextCursor).toEqual(expect.any(String));
       expect(JSON.stringify(rootPreview)).not.toContain(
         `${previewMarker}-reply-11`,
@@ -536,6 +549,14 @@ describe("comment root pagination read model", () => {
       if (!continuation.ok) return;
       expect(continuation.nextCursor).toBeNull();
       expect(continuation.thread[0]?.replies).toHaveLength(11);
+      expect(
+        continuation.thread[0]?.replies.map((reply) => reply.body),
+      ).toEqual(
+        Array.from(
+          { length: 11 },
+          (_, index) => `${previewMarker}-reply-${index + 11}`,
+        ),
+      );
       expect(
         continuation.thread[0]?.replies.map((reply) => reply.id),
       ).not.toEqual(

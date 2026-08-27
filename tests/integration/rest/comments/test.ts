@@ -334,12 +334,22 @@ test("/api/community/comments GET 限制回复负载并可继续分页", async (
     const first = (await firstResponse.json()) as {
       data?: Array<{
         id?: string;
-        replies?: Array<{ id?: string; rootId?: string | null }>;
+        replies?: Array<{
+          body?: string;
+          id?: string;
+          rootId?: string | null;
+        }>;
         repliesNextCursor?: string | null;
       }>;
     };
     const firstRoot = first.data?.find((comment) => comment.id === rootId);
     expect(firstRoot?.replies).toHaveLength(10);
+    expect(firstRoot?.replies?.map((reply) => reply.body)).toEqual(
+      Array.from({ length: 10 }, (_, index) => `${marker}-reply-${index + 1}`),
+    );
+    expect(firstRoot?.replies?.some((reply) => reply.id === rootId)).toBe(
+      false,
+    );
     expect(firstRoot?.replies?.every((reply) => reply.rootId === rootId)).toBe(
       true,
     );
@@ -356,7 +366,11 @@ test("/api/community/comments GET 限制回复负载并可继续分页", async (
       rootId?: string;
       thread?: Array<{
         id?: string;
-        replies?: Array<{ id?: string; rootId?: string | null }>;
+        replies?: Array<{
+          body?: string;
+          id?: string;
+          rootId?: string | null;
+        }>;
       }>;
     };
     const continuationRoot = continuation.thread?.find(
@@ -371,6 +385,9 @@ test("/api/community/comments GET 限制回复负载并可继续分页", async (
     expect(continuation.rootId).toBe(rootId);
     expect(continuation.nextCursor).toBeNull();
     expect(continuationReplyIds).toHaveLength(11);
+    expect(continuationRoot?.replies?.map((reply) => reply.body)).toEqual(
+      Array.from({ length: 11 }, (_, index) => `${marker}-reply-${index + 11}`),
+    );
     expect(continuationReplyIds?.some((id) => firstReplyIds.has(id))).toBe(
       false,
     );

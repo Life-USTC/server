@@ -509,6 +509,7 @@ async function loadBoundedCommentDescendants(
         WHERE ${commentTargetPredicate("child", target.whereTarget)}
           AND ${directlyVisibleCommentSql("child", viewer)}
           AND child."rootId" = requested."rootId"
+          AND child."id" <> requested."rootId"
         ORDER BY child."createdAt" ASC, child."id" ASC
         LIMIT ${COMMENT_REPLY_PREVIEW_SIZE + 1}
       ) AS candidates
@@ -638,6 +639,7 @@ async function loadCommentReplyWindow(
           child."createdAt"
         FROM "Comment" AS child
         WHERE child."rootId" = ${rootId}
+          AND child."id" <> ${rootId}
           AND ${directlyVisibleCommentSql("child", viewer)}
           ${cursorFilter}
         ORDER BY child."createdAt" ASC, child."id" ASC
