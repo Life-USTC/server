@@ -473,21 +473,32 @@ async function loadBoundedCommentDescendants(
   const query = Prisma.sql`
     WITH RECURSIVE ranked_descendants AS (
       SELECT
-        child."id",
-        child."parentId",
-        child."rootId",
-        child."createdAt",
+        candidates."id",
+        candidates."parentId",
+        candidates."rootId",
+        candidates."createdAt",
         ROW_NUMBER() OVER (
-          PARTITION BY child."rootId"
-          ORDER BY child."createdAt" ASC, child."id" ASC
+          PARTITION BY candidates."rootId"
+          ORDER BY candidates."createdAt" ASC, candidates."id" ASC
         ) AS "rowNumber"
-      FROM "Comment" AS child
-      WHERE ${commentTargetPredicate("child", target.whereTarget)}
-        AND (
-          ${directlyVisibleCommentSql("child", viewer)}
-          OR child."status" = 'deleted'
-        )
-        AND child."rootId" IN (${Prisma.join(rootIds)})
+      FROM (VALUES ${Prisma.join(rootIds.map((rootId) => Prisma.sql`(${rootId})`))})
+        AS requested("rootId")
+      CROSS JOIN LATERAL (
+        SELECT
+          child."id",
+          child."parentId",
+          child."rootId",
+          child."createdAt"
+        FROM "Comment" AS child
+        WHERE ${commentTargetPredicate("child", target.whereTarget)}
+          AND (
+            ${directlyVisibleCommentSql("child", viewer)}
+            OR child."status" = 'deleted'
+          )
+          AND child."rootId" = requested."rootId"
+        ORDER BY child."createdAt" ASC, child."id" ASC
+        LIMIT ${COMMENT_REPLY_PREVIEW_SIZE + 1}
+      ) AS candidates
     )
     , preview_descendants AS (
       SELECT "id", "parentId", "rootId", "createdAt", "rowNumber"
@@ -599,20 +610,29 @@ async function loadCommentReplyWindow(
   const rows = await client.$queryRaw<CommentReplyWindowRow[]>(Prisma.sql`
     WITH RECURSIVE reply_window AS (
       SELECT
-        child."id",
-        child."parentId",
-        child."rootId",
-        child."createdAt",
+        candidates."id",
+        candidates."parentId",
+        candidates."rootId",
+        candidates."createdAt",
         ROW_NUMBER() OVER (
-          ORDER BY child."createdAt" ASC, child."id" ASC
+          ORDER BY candidates."createdAt" ASC, candidates."id" ASC
         ) AS "rowNumber"
-      FROM "Comment" AS child
-      WHERE child."rootId" = ${rootId}
-        AND (
-          ${directlyVisibleCommentSql("child", viewer)}
-          OR child."status" = 'deleted'
-        )
-        ${cursorFilter}
+      FROM (
+        SELECT
+          child."id",
+          child."parentId",
+          child."rootId",
+          child."createdAt"
+        FROM "Comment" AS child
+        WHERE child."rootId" = ${rootId}
+          AND (
+            ${directlyVisibleCommentSql("child", viewer)}
+            OR child."status" = 'deleted'
+          )
+          ${cursorFilter}
+        ORDER BY child."createdAt" ASC, child."id" ASC
+        LIMIT ${pageSize + 1}
+      ) AS candidates
     )
     , selected_replies AS (
       SELECT "id", "parentId", "rootId", "createdAt", "rowNumber"
