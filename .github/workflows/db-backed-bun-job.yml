@@ -157,6 +157,7 @@ jobs:
               bash tests/ci/seed-guard.test.sh
               bash tests/ci/e2e-full-suite-parity.test.sh
               bash tests/ci/e2e-worker-server.test.sh
+              bash tests/ci/worker-request-id-platform.test.sh
               bun run app:prepare
               bunx wrangler types --include-runtime=false --check
               bunx biome check

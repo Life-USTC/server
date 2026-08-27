@@ -138,6 +138,41 @@ function logEdgeObservationFailure(
   }
 }
 
+function isImmutableResponseHeadersError(error: unknown) {
+  // Workers does not expose a structured error code for immutable Headers.
+  // Match the runtime's TypeError name and stable message fragment, including
+  // errors crossing an isolate/realm boundary where instanceof is false.
+  const message =
+    typeof error === "object" &&
+    error !== null &&
+    "message" in error &&
+    typeof (error as { message?: unknown }).message === "string"
+      ? (error as { message: string }).message
+      : undefined;
+  return (
+    getSafeErrorName(error) === "TypeError" &&
+    message?.toLowerCase().includes("immutable") === true
+  );
+}
+
+export function responseWithRequestId(response: Response, requestId: string) {
+  try {
+    response.headers.set("x-request-id", requestId);
+    return response;
+  } catch (error) {
+    if (!isImmutableResponseHeadersError(error)) throw error;
+    if (response.body?.locked || response.bodyUsed) {
+      throw new TypeError("Response body is locked or disturbed.");
+    }
+    // Passing the original Response as init is the Workers-supported way to
+    // retain platform fields (cf, encodeBody, webSocket) and multi-value
+    // Set-Cookie headers while transferring ownership of the same body stream.
+    const wrapped = new Response(response.body, response);
+    wrapped.headers.set("x-request-id", requestId);
+    return wrapped;
+  }
+}
+
 export function observedEdgeResponse(input: {
   cacheOutcome: EdgeCacheOutcome;
   request: Request;
@@ -150,11 +185,12 @@ export function observedEdgeResponse(input: {
   // Keep ownership of the body with the response returned by the application.
   // Constructing another Response around an already wrapped SvelteKit body can
   // make the runtime cancel/restart a valid response while edge telemetry is
-  // being recorded. Headers are mutable on the responses produced by this
-  // Worker; if a platform response is immutable, retain it unchanged.
-  const response = input.response;
+  // being recorded. Keep the mutable-response fast path; if a platform
+  // response is immutable, the fallback transfers the original body stream
+  // without cloning or teeing it.
+  let response = input.response;
   try {
-    response.headers.set("x-request-id", input.requestId);
+    response = responseWithRequestId(response, input.requestId);
   } catch (error) {
     logEdgeObservationFailure(input, "request-id", error);
   }
