@@ -11,15 +11,13 @@ export let homework: HomeworkDetailModel;
 export let permalinkBaseHref: string | null = null;
 </script>
 
-<section class="min-w-0 pt-1" data-testid="homework-discussion">
-  <h2 class="text-base font-semibold">{copy.commentsTitle}</h2>
-  <div class="mt-3">
-    {#key `comments:homework:${homework.id}`}
-      <CommentsPanel
-        {permalinkBaseHref}
-        targetId={homework.id}
-        targetType="homework"
-      />
-    {/key}
-  </div>
+<section class="min-w-0" data-testid="homework-discussion">
+  {#key `comments:homework:${homework.id}`}
+    <CommentsPanel
+      heading={copy.commentsTitle}
+      {permalinkBaseHref}
+      targetId={homework.id}
+      targetType="homework"
+    />
+  {/key}
 </section>

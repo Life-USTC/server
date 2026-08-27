@@ -45,7 +45,7 @@ $: homeworkTimestampCapabilities = {
 </script>
 
 <form
-  class="flex flex-col gap-4 rounded-md border bg-background p-4"
+  class="flex flex-col gap-5"
   onsubmit={updateHomework}
 >
   <HomeworkEditorFields
@@ -69,7 +69,7 @@ $: homeworkTimestampCapabilities = {
       <Alert.Description>{editHomeworkMessage}</Alert.Description>
     </Alert.Root>
   {/if}
-  <div class="flex justify-end gap-2">
+  <div class="flex justify-end gap-2 pt-1">
     <Button type="button" variant="outline" onclick={cancelEdit}>{homeworkCopy.cancel}</Button>
     <Button type="submit">{homeworkCopy.saveChanges}</Button>
   </div>

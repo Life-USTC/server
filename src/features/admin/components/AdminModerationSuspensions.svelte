@@ -12,6 +12,8 @@ import * as Empty from "$lib/components/ui/empty/index.js";
 import * as Item from "$lib/components/ui/item/index.js";
 import { Spinner } from "$lib/components/ui/spinner/index.js";
 import * as Table from "$lib/components/ui/table/index.js";
+import AdminListShell from "./AdminListShell.svelte";
+import AdminTableShell from "./AdminTableShell.svelte";
 
 type ModerationSuspension = {
   expiresAt?: string | Date | null;
@@ -88,17 +90,19 @@ function confirmedLiftAction(suspension: ModerationSuspension): SubmitFunction {
       </Empty.Header>
     </Empty.Root>
   {:else}
-    <Item.Group class="xl:hidden gap-0 border-y">
+    <AdminListShell class="xl:hidden">
+      <Item.Group class="gap-0">
       {#each suspensions as suspension, index (suspension.id)}
         <Item.Root class="items-start px-1 py-3">
           <Item.Content class="min-w-0 gap-2">
-            <Item.Title>{userLabel(suspension)}</Item.Title>
+            {@const currentUserLabel = userLabel(suspension)}
+            <Item.Title title={currentUserLabel}>{currentUserLabel}</Item.Title>
             {#if suspension.user.username}
               <Item.Description class="font-mono">
                 @{suspension.user.username}
               </Item.Description>
             {/if}
-            <Item.Description>
+            <Item.Description class="truncate" title={`${suspension.reason ?? copy.noReason} · ${expiresLabel(suspension)}`}>
               {suspension.reason ?? copy.noReason} · {expiresLabel(suspension)}
             </Item.Description>
           </Item.Content>
@@ -125,17 +129,19 @@ function confirmedLiftAction(suspension: ModerationSuspension): SubmitFunction {
         </Item.Root>
         {#if index < suspensions.length - 1}<Item.Separator class="my-0" />{/if}
       {/each}
-    </Item.Group>
+      </Item.Group>
+    </AdminListShell>
 
     <div class="hidden min-w-0 xl:block">
-      <Table.Root class="w-full">
+      <AdminTableShell label={copy.user}>
+        <Table.Root class="w-full min-w-[54rem]">
         <Table.Header>
           <Table.Row>
-            <Table.Head>{copy.user}</Table.Head>
-            <Table.Head>{copy.reason}</Table.Head>
-            <Table.Head class="text-right">{copy.expires}</Table.Head>
-            <Table.Head class="text-center">{copy.status}</Table.Head>
-            <Table.Head class="w-12 text-right">
+            <Table.Head class="w-[23%]">{copy.user}</Table.Head>
+            <Table.Head class="w-[34%]">{copy.reason}</Table.Head>
+            <Table.Head class="w-[20%] text-right">{copy.expires}</Table.Head>
+            <Table.Head class="w-[13%] text-center">{copy.status}</Table.Head>
+            <Table.Head class="w-14 min-w-14 text-right">
               <span class="sr-only">{copy.actions}</span>
             </Table.Head>
           </Table.Row>
@@ -143,9 +149,12 @@ function confirmedLiftAction(suspension: ModerationSuspension): SubmitFunction {
         <Table.Body>
           {#each suspensions as suspension}
             <Table.Row class="group">
-              <Table.Cell>
+              <Table.Cell class="max-w-0">
+                {@const currentUserLabel = userLabel(suspension)}
                 <div class="grid min-w-0 gap-0.5">
-                  <TruncatedText class="font-medium" text={userLabel(suspension)} />
+                  <span class="block max-w-full" title={currentUserLabel}>
+                    <TruncatedText class="font-medium" text={currentUserLabel} />
+                  </span>
                   {#if suspension.user.username}
                     <span class="font-mono text-muted-foreground text-xs">
                       @{suspension.user.username}
@@ -153,7 +162,7 @@ function confirmedLiftAction(suspension: ModerationSuspension): SubmitFunction {
                   {/if}
                 </div>
               </Table.Cell>
-              <Table.Cell>
+              <Table.Cell class="max-w-0">
                 <TruncatedText
                   lines={2}
                   text={suspension.reason ?? copy.noReason}
@@ -169,7 +178,7 @@ function confirmedLiftAction(suspension: ModerationSuspension): SubmitFunction {
                   <Badge variant="destructive">{copy.active}</Badge>
                 {/if}
               </Table.Cell>
-              <Table.Cell class="w-12 text-right">
+              <Table.Cell class="w-14 min-w-14 text-right">
                 {#if !suspension.liftedAt}
                   <TableRowActions class="justify-end">
                   <TableIconButton
@@ -187,7 +196,8 @@ function confirmedLiftAction(suspension: ModerationSuspension): SubmitFunction {
             </Table.Row>
           {/each}
         </Table.Body>
-      </Table.Root>
+        </Table.Root>
+      </AdminTableShell>
     </div>
   {/if}
 </section>

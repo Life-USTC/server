@@ -363,6 +363,33 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
     await captureStepScreenshot(page, testInfo, "section/calendar-today");
   });
 
+  test("移动端日历使用可横向滚动的紧凑表格", async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await gotoAndWaitForReady(page, SECTION_URL);
+    await jumpToSection(page, /日历|Calendar/i, "#calendar");
+
+    const calendar = page.locator("#calendar");
+    const table = calendar.getByTestId("section-calendar-table");
+    const container = table.locator(
+      'xpath=ancestor::*[@data-slot="table-container"][1]',
+    );
+    await expect(table).toBeVisible();
+    await expect(container).toHaveAttribute("role", "region");
+    await expect(container).toHaveAttribute("tabindex", "0");
+    await expect(container).toHaveAttribute("aria-label", /.+/);
+    await expect(calendar.getByTestId("section-calendar-items")).toHaveCount(0);
+    const dimensions = await container.evaluate((element) => ({
+      clientWidth: element.clientWidth,
+      scrollWidth: element.scrollWidth,
+    }));
+    expect(dimensions.scrollWidth).toBeGreaterThan(dimensions.clientWidth);
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= window.innerWidth,
+      ),
+    ).toBe(true);
+  });
+
   test("日历区块显示考试信息（examBatch、examRooms）", async ({
     page,
   }, testInfo) => {
@@ -1024,7 +1051,7 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
       .click();
     const createDialog = page.locator('[data-slot="dialog-content"]').first();
     const advancedSettings = createDialog.getByRole("button", {
-      name: /更多设置|More settings|收起更多设置|Hide more settings/i,
+      name: /其他可选设置|Other optional settings|收起其他可选设置|Hide optional settings/i,
     });
     await expect(advancedSettings).toHaveAttribute("aria-expanded", "false");
     await expect(
@@ -1041,8 +1068,7 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
     const createTrigger = createDialog.getByTestId(
       "section-create-homework-style-guide-trigger",
     );
-    await expect(createTrigger).toHaveAttribute("aria-expanded", "false");
-    await createTrigger.click();
+    await expect(createTrigger).toHaveAttribute("aria-expanded", "true");
     const createGuide = createDialog.getByTestId(
       "section-create-homework-style-guide-content",
     );
@@ -1087,8 +1113,7 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
     const editTrigger = detailDialog.getByTestId(
       "section-edit-homework-style-guide-trigger",
     );
-    await expect(editTrigger).toHaveAttribute("aria-expanded", "false");
-    await editTrigger.click();
+    await expect(editTrigger).toHaveAttribute("aria-expanded", "true");
     const editGuide = detailDialog.getByTestId(
       "section-edit-homework-style-guide-content",
     );
@@ -1391,6 +1416,11 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
       await editForm
         .getByRole("textbox", { name: /Submission due|提交截止/i })
         .fill(dueAt);
+      const advancedSettings = editForm.getByRole("button", {
+        name: /其他可选设置|Other optional settings|收起其他可选设置|Hide optional settings/i,
+      });
+      await expect(advancedSettings).toHaveAttribute("aria-expanded", "false");
+      await advancedSettings.click();
       await editForm
         .getByRole("checkbox", { name: /Major assignment|大作业/i })
         .click();

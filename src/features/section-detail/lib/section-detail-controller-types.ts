@@ -194,6 +194,7 @@ export type SectionDetailCopy = {
     relativeTime: string;
     saveChanges: string;
     saving: string;
+    sectionLabel: string;
     showCreate: string;
     submissionDue: string;
     submissionStart: string;

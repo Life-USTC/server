@@ -8,6 +8,7 @@ export type SectionCreateHomeworkFieldsCopy = HomeworkFormCopy &
   HomeworkTagCopy &
   HomeworkTimestampCopy & {
     helperSemesterStart: string;
+    sectionLabel: string;
   };
 
 export type SectionCreateHomeworkCopy = SectionCreateHomeworkFieldsCopy & {
