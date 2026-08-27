@@ -1,4 +1,5 @@
 import { type CommentReactionType, Prisma } from "@/generated/prisma/client";
+import { runCloudflareTraceSpan } from "@/lib/adapters/cloudflare-runtime";
 import {
   getViewerContext,
   type ViewerContext,
@@ -14,7 +15,6 @@ import {
   type RawComment,
 } from "./comment-serialization";
 import type { ResolvedCommentTarget } from "./comment-utils";
-import { directlyVisibleCommentWhere } from "./comment-visibility-policy";
 
 export const commentThreadInclude = {
   user: {
@@ -41,6 +41,11 @@ type CommentAttachmentSummaryRow = {
   id: string;
   size: number;
   uploadId: string;
+};
+
+type CommentRootPageRow = {
+  id: string | null;
+  total: bigint;
 };
 
 type ReactionSummaryQueryClient = Pick<Prisma.TransactionClient, "$queryRaw">;
@@ -310,6 +315,94 @@ async function countAnonymousHiddenRoots(
   return Number(row?.count ?? 0);
 }
 
+function commentTargetPredicate(
+  alias: "child" | "root",
+  whereTarget: Record<string, number | string>,
+) {
+  const column = (name: string) => Prisma.raw(`${alias}."${name}"`);
+  if (typeof whereTarget.sectionId === "number") {
+    return Prisma.sql`${column("sectionId")} = ${whereTarget.sectionId}`;
+  }
+  if (typeof whereTarget.courseId === "number") {
+    return Prisma.sql`${column("courseId")} = ${whereTarget.courseId}`;
+  }
+  if (typeof whereTarget.teacherId === "number") {
+    return Prisma.sql`${column("teacherId")} = ${whereTarget.teacherId}`;
+  }
+  if (typeof whereTarget.homeworkId === "string") {
+    return Prisma.sql`${column("homeworkId")} = ${whereTarget.homeworkId}`;
+  }
+  if (typeof whereTarget.sectionTeacherId === "number") {
+    return Prisma.sql`${column("sectionTeacherId")} = ${whereTarget.sectionTeacherId}`;
+  }
+  return Prisma.sql`FALSE`;
+}
+
+function directlyVisibleCommentSql(
+  alias: "child" | "root",
+  viewer: ViewerContext,
+) {
+  const status = Prisma.raw(`${alias}."status"`);
+  const visibility = Prisma.raw(`${alias}."visibility"`);
+  const userId = Prisma.raw(`${alias}."userId"`);
+  const visibleStatus = viewer.isAdmin
+    ? Prisma.sql`${status} IN ('active', 'softbanned')`
+    : viewer.userId
+      ? Prisma.sql`(
+          ${status} = 'active'
+          OR (${status} = 'softbanned' AND ${userId} = ${viewer.userId})
+        )`
+      : Prisma.sql`${status} = 'active'`;
+  if (viewer.isAuthenticated) return visibleStatus;
+  return Prisma.sql`(${visibleStatus} AND ${visibility} = 'public')`;
+}
+
+async function loadPaginatedCommentRoots(
+  client: Pick<Prisma.TransactionClient, "$queryRaw">,
+  target: ResolvedCommentTarget,
+  viewer: ViewerContext,
+  pagination: { pageSize: number; skip: number },
+) {
+  const rootVisible = directlyVisibleCommentSql("root", viewer);
+  const childVisible = directlyVisibleCommentSql("child", viewer);
+  const query = Prisma.sql`
+    WITH eligible_roots AS MATERIALIZED (
+      SELECT root.id, root."createdAt"
+      FROM "Comment" AS root
+      WHERE ${commentTargetPredicate("root", target.whereTarget)}
+        AND root."parentId" IS NULL
+        AND (
+          ${rootVisible}
+          OR EXISTS (
+            SELECT 1
+            FROM "Comment" AS child
+            WHERE child."rootId" = root.id
+              AND ${childVisible}
+          )
+        )
+    ),
+    paged_roots AS (
+      SELECT id, "createdAt"
+      FROM eligible_roots
+      ORDER BY "createdAt" ASC, id ASC
+      OFFSET ${pagination.skip}
+      LIMIT ${pagination.pageSize}
+    ),
+    root_total AS (
+      SELECT count(*)::bigint AS total
+      FROM eligible_roots
+    )
+    SELECT page.id, total.total
+    FROM root_total AS total
+    LEFT JOIN paged_roots AS page ON TRUE
+  `;
+  const rows = await client.$queryRaw<CommentRootPageRow[]>(query);
+  return {
+    rootIds: rows.flatMap((row) => (row.id ? [row.id] : [])),
+    total: Number(rows[0]?.total ?? 0),
+  };
+}
+
 export async function loadCommentThread(input: {
   pagination?: { pageSize: number; skip: number };
   target: ResolvedCommentTarget;
@@ -327,66 +420,75 @@ export async function loadCommentThread(input: {
   }
 
   if (input.pagination) {
-    const viewer =
-      input.viewer ??
-      (await getViewerContext({
-        includeAdmin: false,
-        userId: input.viewerUserId,
-      }));
-    const directlyVisible = directlyVisibleCommentWhere(viewer);
-    const rootWhere = {
-      AND: [
-        input.target.whereTarget,
-        { parentId: null },
-        {
-          OR: [directlyVisible, { thread: { some: directlyVisible } }],
-        },
-      ],
-    } satisfies Prisma.CommentWhereInput;
+    const viewer = await runCloudflareTraceSpan(
+      "viewer.context",
+      { source: "comments" },
+      () =>
+        input.viewer ??
+        getViewerContext({
+          includeAdmin: false,
+          userId: input.viewerUserId,
+        }),
+    );
     const pagination = input.pagination;
     const { comments, hiddenCount, total } = await withCommentDbContext(
       input.viewerUserId,
       async (client) => {
-        const [total, rootComments, hiddenCount] = await Promise.all([
-          client.comment.count({ where: rootWhere }),
-          client.comment.findMany({
-            where: rootWhere,
-            orderBy: [{ createdAt: "asc" }, { id: "asc" }],
-            skip: pagination.skip,
-            take: pagination.pageSize,
-            select: { id: true },
-          }),
+        const [rootPage, hiddenCount] = await Promise.all([
+          runCloudflareTraceSpan(
+            "comments.root",
+            {
+              pageSize: pagination.pageSize,
+              skip: pagination.skip,
+              targetType: Object.keys(input.target.whereTarget)[0],
+            },
+            () =>
+              loadPaginatedCommentRoots(
+                client,
+                input.target,
+                viewer,
+                pagination,
+              ),
+          ),
           viewer.isAuthenticated
             ? Promise.resolve(0)
             : countAnonymousHiddenRoots(input.target.whereTarget),
         ]);
-        const rootIds = rootComments.map((comment) => comment.id);
         const comments =
-          rootIds.length === 0
+          rootPage.rootIds.length === 0
             ? []
-            : await client.comment.findMany({
-                where: {
-                  AND: [
-                    input.target.whereTarget,
-                    {
-                      OR: [
-                        { id: { in: rootIds } },
-                        { rootId: { in: rootIds } },
+            : await runCloudflareTraceSpan(
+                "comments.descendants",
+                {
+                  rootCount: rootPage.rootIds.length,
+                  targetType: Object.keys(input.target.whereTarget)[0],
+                },
+                () =>
+                  client.comment.findMany({
+                    where: {
+                      AND: [
+                        input.target.whereTarget,
+                        {
+                          OR: [
+                            { id: { in: rootPage.rootIds } },
+                            { rootId: { in: rootPage.rootIds } },
+                          ],
+                        },
                       ],
                     },
-                  ],
-                },
-                include: commentThreadInclude,
-                orderBy: [{ createdAt: "asc" }, { id: "asc" }],
-              });
+                    include: commentThreadInclude,
+                    orderBy: [{ createdAt: "asc" }, { id: "asc" }],
+                  }),
+              );
 
-        return { comments, hiddenCount, total };
+        return { comments, hiddenCount, total: rootPage.total };
       },
     );
 
-    const commentsWithMetadata = await withCommentReadMetadata(
-      comments,
-      viewer.userId,
+    const commentsWithMetadata = await runCloudflareTraceSpan(
+      "comments.summaries",
+      { commentCount: comments.length },
+      () => withCommentReadMetadata(comments, viewer.userId),
     );
     const { roots } = buildCommentNodes(commentsWithMetadata, viewer);
     return { comments: roots, hiddenCount, total, viewer };

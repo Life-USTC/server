@@ -6,6 +6,7 @@ import {
   parsePositiveCalendarSemester,
   parseSnapshotReferenceTime,
 } from "@/features/dashboard/server/dashboard-page-server";
+import { runCloudflareTraceSpan } from "@/lib/adapters/cloudflare-runtime";
 import { logAppEvent } from "@/lib/log/app-logger";
 
 function recordDashboardLoadFinish(input: {
@@ -44,15 +45,22 @@ export async function loadSignedDashboardPage({
   const referenceNow = parseSnapshotReferenceTime(
     url.searchParams.get("snapshotAt"),
   );
-  // Keep the auth module out of anonymous workspace requests. Cloudflare can
-  // otherwise evaluate Better Auth in the redirecting request's I/O context
-  // before the first authenticated request initializes it.
-  const { resolveAuthoritativeRecentSession } = await import(
-    "@/lib/auth/recent-session"
-  );
-  const recent = await resolveAuthoritativeRecentSession(request.headers, {
-    expectedUserId: userId,
-  });
+  const shouldRevealCalendarFeed =
+    tab === "calendar" || tab === "subscriptions" || tab === "exams";
+  const recent = shouldRevealCalendarFeed
+    ? await runCloudflareTraceSpan("recent_session", { tab }, async () => {
+        // Keep the auth module out of tabs that do not consume feed-token
+        // data. Cloudflare can otherwise evaluate Better Auth in the
+        // redirecting request's I/O context before the first authenticated
+        // request initializes it.
+        const { resolveAuthoritativeRecentSession } = await import(
+          "@/lib/auth/recent-session"
+        );
+        return resolveAuthoritativeRecentSession(request.headers, {
+          expectedUserId: userId,
+        });
+      })
+    : { ok: false as const };
 
   const signedData = await loadSignedDashboardPageData({
     calendarSemesterId,

@@ -11,6 +11,7 @@ const {
   publicQueryMock,
   publicReactionSummaryQueryMock,
   reactionSummaryQueryMock,
+  rootPageQueryMock,
   withUserDbContextMock,
 } = vi.hoisted(() => ({
   accountFindManyMock: vi.fn(),
@@ -23,6 +24,7 @@ const {
   publicQueryMock: vi.fn(),
   publicReactionSummaryQueryMock: vi.fn(),
   reactionSummaryQueryMock: vi.fn(),
+  rootPageQueryMock: vi.fn(),
   withUserDbContextMock: vi.fn(),
 }));
 
@@ -125,19 +127,27 @@ describe("loadCommentThread pagination", () => {
     vi.clearAllMocks();
     commentCountMock.mockReset();
     commentCountMock.mockResolvedValue(3);
+    rootPageQueryMock.mockReset();
+    commentFindManyMock.mockReset();
     accountFindManyMock.mockResolvedValue([]);
     logAppEventMock.mockReset();
     publicReactionSummaryQueryMock.mockResolvedValue([]);
     publicAttachmentSummaryQueryMock.mockResolvedValue([]);
+    rootPageQueryMock.mockResolvedValue([{ id: "root-2", total: 3n }]);
     reactionSummaryQueryMock.mockResolvedValue([]);
     attachmentSummaryQueryMock.mockResolvedValue([]);
     contextQueryMock.mockImplementation((query) =>
-      rawQuerySql(query).includes("comment_attachment_summaries")
-        ? attachmentSummaryQueryMock(query)
-        : reactionSummaryQueryMock(query),
+      rawQuerySql(query).includes("eligible_roots")
+        ? rootPageQueryMock(query)
+        : rawQuerySql(query).includes("comment_attachment_summaries")
+          ? attachmentSummaryQueryMock(query)
+          : reactionSummaryQueryMock(query),
     );
     publicQueryMock.mockImplementation((query) => {
       const sql = rawQuerySql(query);
+      if (sql.includes("eligible_roots")) {
+        return rootPageQueryMock(query);
+      }
       if (sql.includes("comment_hidden_root_count")) {
         return Promise.resolve([{ count: 0n }]);
       }
@@ -158,12 +168,10 @@ describe("loadCommentThread pagination", () => {
   });
 
   it("paginates roots, then loads the selected root's complete reply tree", async () => {
-    commentFindManyMock
-      .mockResolvedValueOnce([{ id: "root-2" }])
-      .mockResolvedValueOnce([
-        comment("root-2"),
-        comment("reply-2", { parentId: "root-2", rootId: "root-2" }),
-      ]);
+    commentFindManyMock.mockResolvedValueOnce([
+      comment("root-2"),
+      comment("reply-2", { parentId: "root-2", rootId: "root-2" }),
+    ]);
 
     const result = await loadCommentThread({
       pagination: { pageSize: 1, skip: 1 },
@@ -178,57 +186,13 @@ describe("loadCommentThread pagination", () => {
       id: "root-2",
       replies: [expect.objectContaining({ id: "reply-2" })],
     });
-    expect(commentCountMock).toHaveBeenCalledWith({
-      where: {
-        AND: [
-          { sectionId: 7 },
-          { parentId: null },
-          {
-            OR: [
-              {
-                AND: [
-                  {
-                    OR: [
-                      { status: "active" },
-                      { status: "softbanned", userId: "viewer-1" },
-                    ],
-                  },
-                ],
-              },
-              {
-                thread: {
-                  some: {
-                    AND: [
-                      {
-                        OR: [
-                          { status: "active" },
-                          { status: "softbanned", userId: "viewer-1" },
-                        ],
-                      },
-                    ],
-                  },
-                },
-              },
-            ],
-          },
-        ],
-      },
-    });
-    expect(commentFindManyMock).toHaveBeenNthCalledWith(1, {
-      where: expect.objectContaining({
-        AND: expect.arrayContaining([
-          { sectionId: 7 },
-          { parentId: null },
-          expect.objectContaining({ OR: expect.any(Array) }),
-        ]),
-      }),
-      orderBy: [{ createdAt: "asc" }, { id: "asc" }],
-      select: { id: true },
-      skip: 1,
-      take: 1,
-    });
+    expect(commentCountMock).not.toHaveBeenCalled();
+    expect(rootPageQueryMock).toHaveBeenCalledOnce();
+    const [rootQuery] = rootPageQueryMock.mock.calls[0] ?? [];
+    expect(rawQuerySql(rootQuery)).toContain("eligible_roots");
+    expect(rawQuerySql(rootQuery)).toContain('root."parentId" IS NULL');
     expect(commentFindManyMock).toHaveBeenNthCalledWith(
-      2,
+      1,
       expect.objectContaining({
         where: {
           AND: [
@@ -256,16 +220,14 @@ describe("loadCommentThread pagination", () => {
       isAdmin: false,
       name: "Other User",
     };
-    commentFindManyMock
-      .mockResolvedValueOnce([{ id: "root-2" }])
-      .mockResolvedValueOnce([
-        comment("root-2", { user: ustcUser }),
-        comment("reply-2", {
-          parentId: "root-2",
-          rootId: "root-2",
-          user: otherUser,
-        }),
-      ]);
+    commentFindManyMock.mockResolvedValueOnce([
+      comment("root-2", { user: ustcUser }),
+      comment("reply-2", {
+        parentId: "root-2",
+        rootId: "root-2",
+        user: otherUser,
+      }),
+    ]);
     accountFindManyMock.mockResolvedValue([
       { provider: "oidc", userId: "user-ustc" },
     ]);
@@ -291,7 +253,7 @@ describe("loadCommentThread pagination", () => {
     expect(result.comments[0]?.author?.isUstcVerified).toBe(true);
     expect(result.comments[0]?.replies[0]?.author?.isUstcVerified).toBe(false);
     expect(commentFindManyMock).toHaveBeenNthCalledWith(
-      2,
+      1,
       expect.objectContaining({
         include: expect.objectContaining({
           user: {
@@ -305,15 +267,13 @@ describe("loadCommentThread pagination", () => {
         }),
       }),
     );
-    expect(commentFindManyMock.mock.calls[1]?.[0].include).not.toHaveProperty(
+    expect(commentFindManyMock.mock.calls[0]?.[0].include).not.toHaveProperty(
       "reactions",
     );
   });
 
   it("loads aggregate reactions inside the authenticated viewer context", async () => {
-    commentFindManyMock
-      .mockResolvedValueOnce([{ id: "root-2" }])
-      .mockResolvedValueOnce([comment("root-2")]);
+    commentFindManyMock.mockResolvedValueOnce([comment("root-2")]);
     reactionSummaryQueryMock.mockResolvedValue([
       {
         commentId: "root-2",
@@ -347,9 +307,7 @@ describe("loadCommentThread pagination", () => {
   });
 
   it("loads visible attachment metadata through the narrow database function", async () => {
-    commentFindManyMock
-      .mockResolvedValueOnce([{ id: "root-2" }])
-      .mockResolvedValueOnce([comment("root-2")]);
+    commentFindManyMock.mockResolvedValueOnce([comment("root-2")]);
     attachmentSummaryQueryMock.mockResolvedValue([
       {
         commentId: "root-2",
@@ -383,17 +341,14 @@ describe("loadCommentThread pagination", () => {
     expect(query.strings.join(" ")).toContain(
       "public.comment_attachment_summaries",
     );
-    expect(commentFindManyMock.mock.calls[1]?.[0].include).not.toHaveProperty(
+    expect(commentFindManyMock.mock.calls[0]?.[0].include).not.toHaveProperty(
       "attachments",
     );
   });
 
   it("keeps public reaction counts for an anonymous viewer", async () => {
-    commentCountMock.mockReset();
-    commentCountMock.mockResolvedValueOnce(1).mockResolvedValueOnce(0);
-    commentFindManyMock
-      .mockResolvedValueOnce([{ id: "root-public" }])
-      .mockResolvedValueOnce([comment("root-public")]);
+    rootPageQueryMock.mockResolvedValueOnce([{ id: "root-public", total: 1n }]);
+    commentFindManyMock.mockResolvedValueOnce([comment("root-public")]);
     publicReactionSummaryQueryMock.mockResolvedValue([
       {
         commentId: "root-public",
@@ -424,6 +379,7 @@ describe("loadCommentThread pagination", () => {
   });
 
   it("does not issue a descendant query for an empty page", async () => {
+    rootPageQueryMock.mockResolvedValueOnce([{ id: null, total: 3n }]);
     commentFindManyMock.mockResolvedValueOnce([]);
 
     const result = await loadCommentThread({
@@ -434,13 +390,12 @@ describe("loadCommentThread pagination", () => {
     });
 
     expect(result).toMatchObject({ comments: [], hiddenCount: 0, total: 3 });
-    expect(commentFindManyMock).toHaveBeenCalledTimes(1);
+    expect(commentFindManyMock).not.toHaveBeenCalled();
   });
 
   it("degrades to empty reactions when comment_reaction_summaries throws P2010", async () => {
-    commentFindManyMock
-      .mockResolvedValueOnce([{ id: "root-2" }])
-      .mockResolvedValueOnce([comment("root-2")]);
+    rootPageQueryMock.mockResolvedValueOnce([{ id: "root-2", total: 3n }]);
+    commentFindManyMock.mockResolvedValueOnce([comment("root-2")]);
     attachmentSummaryQueryMock.mockResolvedValue([
       {
         commentId: "root-2",
@@ -492,9 +447,7 @@ describe("loadCommentThread pagination", () => {
   });
 
   it("degrades to empty attachments when comment_attachment_summaries throws SQLSTATE 42501", async () => {
-    commentFindManyMock
-      .mockResolvedValueOnce([{ id: "root-2" }])
-      .mockResolvedValueOnce([comment("root-2")]);
+    commentFindManyMock.mockResolvedValueOnce([comment("root-2")]);
     reactionSummaryQueryMock.mockResolvedValue([
       {
         commentId: "root-2",
@@ -539,11 +492,10 @@ describe("loadCommentThread pagination", () => {
   });
 
   it("counts anonymous hidden comments across the target without paging them", async () => {
-    commentCountMock.mockReset();
     publicQueryMock.mockReset();
-    commentCountMock.mockResolvedValueOnce(1);
-    publicQueryMock.mockResolvedValueOnce([{ count: 2n }]);
-    commentFindManyMock.mockResolvedValueOnce([]);
+    publicQueryMock
+      .mockResolvedValueOnce([{ id: null, total: 1n }])
+      .mockResolvedValueOnce([{ count: 2n }]);
 
     const result = await loadCommentThread({
       pagination: { pageSize: 20, skip: 0 },
@@ -558,7 +510,6 @@ describe("loadCommentThread pagination", () => {
     });
 
     expect(result).toMatchObject({ comments: [], hiddenCount: 2, total: 1 });
-    expect(commentCountMock).toHaveBeenCalledTimes(1);
-    expect(publicQueryMock).toHaveBeenCalledTimes(1);
+    expect(publicQueryMock).toHaveBeenCalledTimes(2);
   });
 });

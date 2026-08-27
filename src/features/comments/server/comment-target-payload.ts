@@ -1,33 +1,10 @@
 import { prisma } from "@/lib/db/prisma";
 import type { CommentTargetLookupRecord } from "./comment-read-model";
-import type { CommentTargetType, ResolvedCommentTarget } from "./comment-utils";
-
-type CommentTargetCourseMetadata = {
-  jwId: number | null;
-  nameCn: string | null;
-};
-
-type CommentTargetSectionMetadata = {
-  code: string | null;
-  course?: CommentTargetCourseMetadata | null;
-  jwId: number | null;
-};
-
-type CommentTargetMetadataSource = {
-  course?: CommentTargetCourseMetadata | null;
-  homework?: {
-    section?: Pick<CommentTargetSectionMetadata, "code" | "jwId"> | null;
-    title: string | null;
-  } | null;
-  section?: CommentTargetSectionMetadata | null;
-  sectionTeacher?: {
-    section?: CommentTargetSectionMetadata | null;
-    sectionId: number | null;
-    teacher?: { nameCn: string | null } | null;
-    teacherId: number | null;
-  } | null;
-  teacher?: { nameCn: string | null } | null;
-};
+import type {
+  CommentTargetMetadataSource,
+  CommentTargetType,
+  ResolvedCommentTarget,
+} from "./comment-utils";
 
 const emptyPublicCommentTargetMetadataFields = {
   courseJwId: null,
@@ -99,6 +76,13 @@ export async function commentListTargetPayload(
         ? target.whereTarget.courseId
         : null,
   };
+
+  if (target.targetMetadata !== undefined) {
+    return {
+      ...base,
+      ...publicCommentTargetMetadataPayload(target.targetMetadata),
+    };
+  }
 
   if (
     targetType === "section" &&

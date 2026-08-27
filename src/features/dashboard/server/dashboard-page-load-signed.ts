@@ -24,7 +24,7 @@ export async function loadSignedDashboardPageData(input: {
       "@/features/dashboard/server/dashboard-overview-data"
     );
     const context = await timeDashboardStage(
-      "user-context",
+      "user_context",
       {
         requestId: input.requestId,
         tab: input.tab,
@@ -52,7 +52,7 @@ export async function loadSignedDashboardPageData(input: {
       subscriptions,
       todos,
     } = await timeDashboardStage(
-      "tab-data",
+      "tab",
       {
         requestId: input.requestId,
         subscribedSectionCount: context.sectionIds.length,

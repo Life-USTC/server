@@ -75,7 +75,8 @@ describe("workspace navigation summary", () => {
     const [query] = queryRawMock.mock.calls[0] ?? [];
     expect(query).toBeDefined();
     const sql = (query as TemplateStringsArray).join("?");
-    expect(sql).toContain('FROM "UserSectionSubscription"');
+    expect(sql).toContain("pending_homeworks");
+    expect(sql).toContain("highlight_pending_homeworks");
     expect(sql).toContain('FROM "HomeworkCompletion"');
     expect(sql).toContain('FROM "Todo"');
     expect(sql).toContain('FROM "Exam"');

@@ -82,7 +82,7 @@ export async function loadSignedDashboardTabData(input: {
         )
       : undefined;
     const navStatsPromise = timeDashboardStage(
-      "nav-stats",
+      "nav_stats",
       stageContext,
       async () =>
         dashboard.getDashboardNavStats(

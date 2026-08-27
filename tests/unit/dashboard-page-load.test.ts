@@ -14,8 +14,17 @@ vi.mock("@/features/dashboard/server/dashboard-page-copy", () => ({
   getDashboardPageCopy: () => ({
     dashboard: {
       nav: {
+        calendar: {
+          title: "Calendar",
+        },
+        exams: {
+          title: "Exams",
+        },
         homeworks: {
           title: "Homework",
+        },
+        subscriptions: {
+          title: "Subscriptions",
         },
       },
     },
@@ -78,7 +87,7 @@ describe("signed dashboard page load", () => {
       expect.objectContaining({
         pageCopy: expect.any(Object),
         requestId: "request-1",
-        revealCalendarFeed: true,
+        revealCalendarFeed: false,
         tab: "homeworks",
         userId: "user-1",
       }),
@@ -92,5 +101,33 @@ describe("signed dashboard page load", () => {
       signedIn: true,
       tab: "homeworks",
     });
+  });
+
+  it("verifies the recent session only for feed-token tabs", async () => {
+    loadSignedDashboardPageDataMock.mockResolvedValue({
+      marker: "signed-calendar",
+      signedIn: true,
+      tab: "calendar",
+    });
+    const url = new URL("https://example.test/workspace/calendar");
+
+    await loadSignedDashboardPage({
+      locals: {
+        locale: "en-us",
+        requestId: "request-2",
+      },
+      request: new Request(url),
+      tab: "calendar",
+      url,
+      userId: "user-1",
+    });
+
+    expect(resolveAuthoritativeRecentSessionMock).toHaveBeenCalledWith(
+      expect.any(Headers),
+      { expectedUserId: "user-1" },
+    );
+    expect(loadSignedDashboardPageDataMock).toHaveBeenCalledWith(
+      expect.objectContaining({ revealCalendarFeed: true, tab: "calendar" }),
+    );
   });
 });
