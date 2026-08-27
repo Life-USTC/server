@@ -220,7 +220,7 @@ jobs:
   publish-e2e-html-report:
     name: Publish E2E HTML report
     needs: test-e2e
-    if: always()
+    if: ${{ always() && needs.test-e2e.result != 'skipped' }}
     continue-on-error: true
     runs-on: ubuntu-latest
     concurrency:
@@ -277,6 +277,7 @@ jobs:
           pattern: playwright-report-*
 
       - name: Merge blob reports into HTML
+        id: merge-report
         if: ${{ steps.report-auth.outputs.available == 'true' }}
         run: |
           mkdir -p all-blobs
@@ -287,10 +288,16 @@ jobs:
               cp "$blob" "all-blobs/${scope}-$(basename "$blob")"
             done
           done
+          if ! find all-blobs -maxdepth 1 -type f -name '*.zip' -print -quit | grep -q .; then
+            echo "available=false" >> "${GITHUB_OUTPUT}"
+            echo "E2E HTML report publication skipped: no Playwright blob reports were uploaded."
+            exit 0
+          fi
+          echo "available=true" >> "${GITHUB_OUTPUT}"
           bunx playwright merge-reports all-blobs --config playwright.report.config.ts
 
       - name: Publish report to e2e-snapshot-artifacts branch
-        if: ${{ steps.report-auth.outputs.available == 'true' }}
+        if: ${{ steps.report-auth.outputs.available == 'true' && steps.merge-report.outputs.available == 'true' }}
         env:
           REPORTS_TO_KEEP: 20
           RUN_ID: ${{ github.run_id }}
@@ -347,7 +354,7 @@ jobs:
           git push --force origin HEAD:main
 
       - name: Comment report link on commit and PR
-        if: ${{ steps.report-auth.outputs.available == 'true' }}
+        if: ${{ steps.report-auth.outputs.available == 'true' && steps.merge-report.outputs.available == 'true' }}
         env:
           RUN_ID: ${{ github.run_id }}
           COMMIT_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
