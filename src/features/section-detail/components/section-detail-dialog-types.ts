@@ -59,6 +59,7 @@ export type SectionDetailSectionCopy = SectionCreateHomeworkSectionCopy & {
   copied: string;
   copyToClipboard: string;
   due: string;
+  notAvailable: string;
   historicalSectionDescription: string;
   historicalSectionLabel: string;
   homeworkDescription: string;
@@ -132,9 +133,10 @@ export type SectionDetailHomeworkDialogsProps = {
   homeworkAuditLogs: SectionHomeworkAuditLog[];
   homeworkCopy: SectionDetailHomeworkCopy;
   homeworkMessage: string;
-  homeworkStatus: (homework: SectionHomework) => string;
   isHomeworkAuditDialogOpen: boolean;
+  locale: string;
   sectionCopy: SectionDetailSectionCopy;
+  sectionLabel: string;
   selectedHomework: SectionHomework | null;
   semesterDate: SectionHomeworkSemesterDate;
   setDeleteHomeworkTarget: (homework: SectionHomework | null) => void;

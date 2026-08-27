@@ -1,41 +1,38 @@
-import type { HomeworkStyleGuideCopy } from "@/features/homeworks/lib/homework-style-guide";
+import type {
+  HomeworkFormCopy,
+  HomeworkTagCopy,
+  HomeworkTimestampCopy,
+} from "@/features/homeworks/components/homework-form-types";
 
 export type SectionHomeworkDateValue = Date | string | null | undefined;
 
-export interface SectionHomeworkCopy extends HomeworkStyleGuideCopy {
-  [key: string]: string;
-  auditEmpty: string;
-  auditMeta: string;
-  auditTitle: string;
-  calendarButtonLabel: string;
-  cancel: string;
-  contentHistoryAction: string;
-  contentHistoryActor: string;
-  deleteAction: string;
-  deleteDescription: string;
-  deleteTitle: string;
-  descriptionEmpty: string;
-  descriptionLabel: string;
-  descriptionPlaceholder: string;
-  editAction: string;
-  helperClear: string;
-  helperMonth: string;
-  helperPublishNow: string;
-  helperSemesterEnd: string;
-  helperSemesterStart: string;
-  helperStartNow: string;
-  helperWeek: string;
-  markComplete: string;
-  markIncomplete: string;
-  publishedAt: string;
-  saveChanges: string;
-  submissionDue: string;
-  submissionStart: string;
-  tagMajor: string;
-  tagTeam: string;
-  titleLabel: string;
-  titlePlaceholder: string;
-}
+export type SectionHomeworkCopy = HomeworkFormCopy &
+  HomeworkTagCopy &
+  HomeworkTimestampCopy & {
+    [key: string]: string;
+    auditEmpty: string;
+    auditMeta: string;
+    auditTitle: string;
+    cancel: string;
+    completedLabel: string;
+    commentsTitle: string;
+    contentHistoryAction: string;
+    contentHistoryActor: string;
+    deleteAction: string;
+    deleteDescription: string;
+    deleteTitle: string;
+    descriptionEmpty: string;
+    editAction: string;
+    helperSemesterStart: string;
+    markComplete: string;
+    markIncomplete: string;
+    moreDetails: string;
+    pendingLabel: string;
+    relativeTime: string;
+    saveChanges: string;
+    saving: string;
+    statusLabel: string;
+  };
 
 export type SectionHomeworkSectionCopy = {
   close?: string;

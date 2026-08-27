@@ -281,6 +281,9 @@ test.describe("仪表盘作业", () => {
       await expect(
         detailDialog.getByText("dashboard-homework-mobile-content-marker"),
       ).toBeVisible();
+      await expect(
+        detailDialog.locator('a[href*="/catalog/sections/"]').first(),
+      ).toBeVisible();
 
       const viewportHeight = page.viewportSize()?.height ?? 568;
       const dialogBox = await detailDialog.boundingBox();
@@ -303,20 +306,10 @@ test.describe("仪表盘作业", () => {
       const completion = footer.getByRole("button", {
         name: /标记为完成|Mark as complete/i,
       });
-      const section = footer.locator('a[href*="/catalog/sections/"]').first();
-      for (const control of [completion, section]) {
-        await expect(control).toBeVisible();
-        const box = await control.boundingBox();
-        expect(box).not.toBeNull();
-        expect(box?.width ?? 0).toBeGreaterThanOrEqual(240);
-      }
-      const [completionBox, sectionBox] = await Promise.all([
-        completion.boundingBox(),
-        section.boundingBox(),
-      ]);
-      expect(completionBox?.y).toBeLessThan(
-        sectionBox?.y ?? Number.POSITIVE_INFINITY,
-      );
+      await expect(completion).toBeVisible();
+      const completionBox = await completion.boundingBox();
+      expect(completionBox).not.toBeNull();
+      expect(completionBox?.width ?? 0).toBeGreaterThanOrEqual(240);
       expect(
         await page.evaluate(
           () => document.documentElement.scrollWidth <= window.innerWidth,
@@ -622,10 +615,13 @@ test.describe("仪表盘作业", () => {
       }
     });
     try {
-      await page.getByTestId("dashboard-homework-create").click();
+      const createButton = page.getByTestId("dashboard-homework-create");
+      await createButton.click();
+      await expect(titleInput).toBeDisabled();
       await expect(
-        createDialog.locator('[data-slot="field"][data-disabled="true"]'),
-      ).toHaveCount(6);
+        createDialog.locator('select[name="sectionId"]'),
+      ).toBeDisabled();
+      await expect(createButton).toBeDisabled();
     } finally {
       releaseCreateRequest?.();
       if (createRequestIntercepted) await createRouteHandled;
@@ -717,6 +713,21 @@ test.describe("仪表盘作业", () => {
 
     let homeworkId: string | undefined;
     const createDialog = page.locator('[data-slot="dialog-content"]').first();
+    const advancedSettings = createDialog.getByRole("button", {
+      name: /更多设置|More settings|收起更多设置|Hide more settings/i,
+    });
+    await expect(advancedSettings).toHaveAttribute("aria-expanded", "false");
+    await expect(
+      createDialog.getByRole("textbox", { name: /发布日期|Published/i }),
+    ).toHaveCount(0);
+    await advancedSettings.click();
+    await expect(
+      createDialog.getByRole("textbox", { name: /发布日期|Published/i }),
+    ).toBeVisible();
+    await advancedSettings.click();
+    await expect(
+      createDialog.getByRole("textbox", { name: /发布日期|Published/i }),
+    ).toHaveCount(0);
     await titleInput.fill(title);
     await createDialog
       .getByRole("textbox", { name: /Details|说明/i })

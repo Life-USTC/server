@@ -8,6 +8,7 @@ import {
   optionalCatalogFilterSummary,
 } from "@/features/catalog/lib/catalog-results-summary";
 import { page as appPage } from "$app/stores";
+import ResponsiveCollection from "$lib/components/ResponsiveCollection.svelte";
 import TruncatedText from "$lib/components/TruncatedText.svelte";
 import * as Item from "$lib/components/ui/item/index.js";
 import * as Table from "$lib/components/ui/table/index.js";
@@ -63,11 +64,12 @@ $: pageLabel = teacherLabels.pageOf
     {totalPages}
   />
   {#if teachers.length > 0}
-    <div class="xl:hidden">
-      <Item.Group>
+    <ResponsiveCollection>
+      {#snippet mobile()}
+      <Item.Group class="gap-0" role="list">
         {#each teachers as teacher}
           {@const teacherHref = `/catalog/teachers/${teacher.id}`}
-          <Item.Root variant="outline" size="sm">
+          <Item.Root role="listitem" variant="outline" size="sm">
             {#snippet child({ props })}
               <a href={teacherHref} {...props}>
                 <Item.Content>
@@ -91,8 +93,8 @@ $: pageLabel = teacherLabels.pageOf
           </Item.Root>
         {/each}
       </Item.Group>
-    </div>
-    <div class="hidden xl:block">
+      {/snippet}
+      {#snippet desktop()}
       <Table.Root class="">
         <Table.Header>
           <Table.Row>
@@ -150,7 +152,8 @@ $: pageLabel = teacherLabels.pageOf
           {/each}
         </Table.Body>
       </Table.Root>
-    </div>
+      {/snippet}
+    </ResponsiveCollection>
   {:else}
     <div class="py-10">
       <CatalogResultsEmpty

@@ -193,16 +193,14 @@ $: ({
       bind:createHomeworkSectionId
       bind:createHomeworkSubmissionDueAt
       bind:createHomeworkSubmissionStartAt
-      {fmtDate}
-      {homeworkCompletionActionLabel}
       {homeworkCourseLabel}
-      {homeworkEtaLabel}
       {homeworksCopy}
       {homeworkSavingById}
       {homeworkSectionHref}
       {homeworkSectionLabel}
-      {homeworkStatus}
       {isCreatingHomework}
+      {locale}
+      {referenceDate}
       sections={signedData.homeworks.sections}
       bind:selectedHomework
       {selectedCreateHomeworkSection}

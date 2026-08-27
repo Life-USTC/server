@@ -1,5 +1,7 @@
 <script lang="ts">
+import MoreHorizontalIcon from "@lucide/svelte/icons/more-horizontal";
 import { Button } from "$lib/components/ui/button/index.js";
+import * as DropdownMenu from "$lib/components/ui/dropdown-menu/index.js";
 import type {
   SectionHomeworkAction,
   SectionHomeworkCopy,
@@ -16,48 +18,59 @@ export let homeworkCopy: SectionHomeworkCopy;
 export let sectionCopy: SectionHomeworkSectionCopy;
 export let setDeleteHomeworkTarget: SectionHomeworkAction;
 export let startEdit: () => void;
-export let toggleHomeworkCompletion: SectionHomeworkAction;
 </script>
 
-<div class="flex w-full flex-col gap-3 sm:flex-row sm:items-center sm:justify-end">
+<div class="flex items-center gap-2">
   <!-- Editing section homework is collaborative: any active signed-in user may
        edit, matching `updateHomework`. Only the creator or an admin may delete. -->
-    {#if canWrite}
-      <div class="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-center">
-      <Button
-        class="w-full sm:w-auto"
-        type="button"
-        onclick={() => {
-          if (homework) toggleHomeworkCompletion(homework);
-        }}
-      >
-        {homework.completion ? homeworkCopy.markIncomplete : homeworkCopy.markComplete}
-      </Button>
-      <Button
-        class="w-full sm:w-auto"
-        variant="outline"
-        type="button"
-        onclick={() => {
-          if (editing) cancelEdit();
-          else startEdit();
-        }}
-      >
-        {editing ? sectionCopy.close : homeworkCopy.editAction}
-      </Button>
-      </div>
-    {/if}
-    {#if canManage}
-      <div class="sm:ml-auto sm:pl-2">
-        <Button
-          class="w-full sm:w-auto"
-          variant="destructive"
-          type="button"
-          onclick={() => {
-            setDeleteHomeworkTarget(homework);
-          }}
-        >
-          {homeworkCopy.deleteAction}
-        </Button>
-      </div>
-    {/if}
+  {#if canWrite && editing}
+    <Button
+      class="min-h-11 sm:min-h-9"
+      variant="outline"
+      type="button"
+      onclick={() => {
+        cancelEdit();
+      }}
+    >
+      {sectionCopy.close}
+    </Button>
+  {/if}
+  {#if !editing && (canWrite || canManage)}
+    <DropdownMenu.Root>
+      <DropdownMenu.Trigger>
+        {#snippet child({ props })}
+          <Button
+            {...props}
+            aria-label={homeworkCopy.moreDetails}
+            class="min-h-11 min-w-11 sm:min-h-9 sm:min-w-9"
+            size="icon"
+            type="button"
+            variant="outline"
+          >
+            <MoreHorizontalIcon />
+          </Button>
+        {/snippet}
+      </DropdownMenu.Trigger>
+      <DropdownMenu.Content align="end">
+        <DropdownMenu.Group>
+          {#if canWrite}
+            <DropdownMenu.Item onSelect={startEdit}>
+              {homeworkCopy.editAction}
+            </DropdownMenu.Item>
+          {/if}
+          {#if canWrite && canManage}
+            <DropdownMenu.Separator />
+          {/if}
+          {#if canManage}
+            <DropdownMenu.Item
+              onSelect={() => setDeleteHomeworkTarget(homework)}
+              variant="destructive"
+            >
+              {homeworkCopy.deleteAction}
+            </DropdownMenu.Item>
+          {/if}
+        </DropdownMenu.Group>
+      </DropdownMenu.Content>
+    </DropdownMenu.Root>
+  {/if}
 </div>

@@ -40,10 +40,11 @@ export let homeworkAuditActorName: SectionDetailDialogsProps["homeworkAuditActor
 export let homeworkAuditLogs: SectionDetailDialogsProps["homeworkAuditLogs"];
 export let homeworkCopy: SectionDetailDialogsProps["homeworkCopy"];
 export let homeworkMessage: string;
-export let homeworkStatus: SectionDetailDialogsProps["homeworkStatus"];
 export let isCalendarDialogOpen: boolean;
 export let isHomeworkAuditDialogOpen: boolean;
+export let locale: string;
 export let sectionCopy: SectionDetailDialogsProps["sectionCopy"];
+export let sectionLabel: string;
 export let selectedHomework: SectionDetailDialogsProps["selectedHomework"];
 export let semesterDate: SectionDetailDialogsProps["semesterDate"];
 export let setCalendarDialogOpen: BooleanSetter;
@@ -76,8 +77,8 @@ export let applyEditStartNow: SectionDetailDialogsProps["applyEditStartNow"];
 let SectionHomeworkDialogs:
   | typeof import("./SectionHomeworkDialogs.svelte").default
   | null = null;
-let SectionCalendarDialog:
-  | typeof import("./SectionCalendarDialog.svelte").default
+let CalendarSubscriptionDialog:
+  | typeof import("@/features/calendar/components/CalendarSubscriptionDialog.svelte").default
   | null = null;
 
 async function ensureSectionHomeworkDialogs() {
@@ -86,8 +87,11 @@ async function ensureSectionHomeworkDialogs() {
 }
 
 async function ensureSectionCalendarDialog() {
-  SectionCalendarDialog ??= (await import("./SectionCalendarDialog.svelte"))
-    .default;
+  CalendarSubscriptionDialog ??= (
+    await import(
+      "@/features/calendar/components/CalendarSubscriptionDialog.svelte"
+    )
+  ).default;
 }
 
 $: if (
@@ -145,9 +149,10 @@ $: if (isCalendarDialogOpen) {
   {homeworkAuditLogs}
   {homeworkCopy}
   {homeworkMessage}
-  {homeworkStatus}
   {isHomeworkAuditDialogOpen}
+  {locale}
   {sectionCopy}
+  {sectionLabel}
   sectionJwId={data.section.jwId}
   {selectedHomework}
   {semesterDate}
@@ -161,19 +166,32 @@ $: if (isCalendarDialogOpen) {
   />
 {/if}
 
-{#if SectionCalendarDialog}
+{#if CalendarSubscriptionDialog}
   <svelte:component
-    this={SectionCalendarDialog}
+    this={CalendarSubscriptionDialog}
   {clipboardError}
   {clipboardMessage}
   close={closeCalendarDialog}
-  {copiedCalendarTarget}
-  {copyText}
+  copy={sectionCopy}
   isOpen={isCalendarDialogOpen}
-  {sectionCopy}
-  setOpen={setCalendarDialogOpen}
-  {singleCalendarUrl}
-  {subscriptionCalendarUrl}
+  onOpenChange={setCalendarDialogOpen}
+  urls={[{
+    copied: copiedCalendarTarget === "single",
+    description: sectionCopy.calendarUrlDescription,
+    id: "calendar-url",
+    label: sectionCopy.calendarUrlLabel,
+    onCopy: () => copyText(singleCalendarUrl, "single"),
+    value: singleCalendarUrl,
+  }, {
+    copied: copiedCalendarTarget === "subscription",
+    description: sectionCopy.subscriptionUrlDescription,
+    id: "subscription-url",
+    label: sectionCopy.subscriptionUrlLabel,
+    missingLabel: sectionCopy.subscriptionMissing,
+    onCopy: () => copyText(subscriptionCalendarUrl, "subscription"),
+    value: subscriptionCalendarUrl,
+    warning: sectionCopy.subscriptionPrivacyNote,
+  }]}
   />
 {/if}
 

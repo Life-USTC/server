@@ -1,16 +1,9 @@
 <script lang="ts">
-import HomeworkStyleGuide from "@/features/homeworks/components/HomeworkStyleGuide.svelte";
-import {
-  HOMEWORK_DESCRIPTION_MAX_LENGTH,
-  HOMEWORK_TITLE_MAX_LENGTH,
-} from "@/features/homeworks/lib/homework-limits";
-import { campusReferenceMarkdownPlugins } from "@/features/markdown/lib/campus-reference-markdown";
-import SectionHomeworkTagFields from "@/features/section-detail/components/SectionHomeworkTagFields.svelte";
-import SectionHomeworkTimestampFields from "@/features/section-detail/components/SectionHomeworkTimestampFields.svelte";
-import MarkdownEditor from "$lib/components/MarkdownEditor.svelte";
+import HomeworkFormFields from "@/features/homeworks/components/HomeworkFormFields.svelte";
+import HomeworkTagFields from "@/features/homeworks/components/HomeworkTagFields.svelte";
+import HomeworkTimestampFields from "@/features/homeworks/components/HomeworkTimestampFields.svelte";
 import * as Alert from "$lib/components/ui/alert/index.js";
 import * as Field from "$lib/components/ui/field/index.js";
-import { Input } from "$lib/components/ui/input/index.js";
 import type {
   SectionCreateHomeworkCommentsCopy,
   SectionCreateHomeworkFieldsCopy,
@@ -30,55 +23,41 @@ export let homeworkMessage: string;
 export let publishedAt: string;
 export let submissionDueAt: string;
 export let submissionStartAt: string;
+
+let advancedOpen = false;
+
+$: homeworkTimestampActions = {
+  dueAtSemesterEnd: applyDueAtSemesterEnd,
+  dueInMonth: applyDueInMonth,
+  dueInWeek: applyDueInWeek,
+  publishNow: applyPublishNow,
+  startAtSemesterStart: applyStartAtSemesterStart,
+  startNow: applyStartNow,
+};
+$: homeworkTimestampCapabilities = {
+  hasSemesterEnd,
+  hasSemesterStart,
+};
 </script>
 
 <Field.Group class="gap-4 px-5 py-4">
-  <Field.Field>
-    <Field.Label for="section-homework-title">
-      {homeworkCopy.titleLabel}
-    </Field.Label>
-    <Input
-      data-testid="section-homework-title"
-      id="section-homework-title"
-      maxlength={HOMEWORK_TITLE_MAX_LENGTH}
-      name="title"
-      placeholder={homeworkCopy.titlePlaceholder}
-      required
-    />
-  </Field.Field>
-  <HomeworkStyleGuide copy={homeworkCopy} testIdPrefix="section-create-homework" />
-  <Field.Field>
-    <Field.Title id="section-homework-description-label">
-      {homeworkCopy.descriptionLabel}
-    </Field.Title>
-    <MarkdownEditor
-      aria-labelledby="section-homework-description-label"
-      guideLabel={commentsCopy.markdownGuide}
-      maxlength={HOMEWORK_DESCRIPTION_MAX_LENGTH}
-      modeLabel={homeworkCopy.descriptionLabel}
-      name="description"
-      placeholder={homeworkCopy.descriptionPlaceholder}
-      previewEmptyLabel={commentsCopy.previewEmpty}
-      remarkPlugins={campusReferenceMarkdownPlugins}
-      tabPreviewLabel={commentsCopy.tabPreview}
-      tabWriteLabel={commentsCopy.tabWrite}
-    />
-  </Field.Field>
-  <SectionHomeworkTimestampFields
-    {applyDueAtSemesterEnd}
-    {applyDueInMonth}
-    {applyDueInWeek}
-    {applyPublishNow}
-    {applyStartAtSemesterStart}
-    {applyStartNow}
-    {hasSemesterEnd}
-    {hasSemesterStart}
-    {homeworkCopy}
-    bind:publishedAt
-    bind:submissionDueAt
-    bind:submissionStartAt
+  <HomeworkFormFields
+    commentsCopy={commentsCopy}
+    copy={homeworkCopy}
+    idPrefix="section-homework"
+    styleGuidePrefix="section-create-homework"
   />
-  <SectionHomeworkTagFields {homeworkCopy} idPrefix="section-create-homework" />
+  <HomeworkTimestampFields
+    actions={homeworkTimestampActions}
+    bind:advancedOpen={advancedOpen}
+    capabilities={homeworkTimestampCapabilities}
+    copy={homeworkCopy}
+    idPrefix="section-homework"
+    bind:publishedAt={publishedAt}
+    bind:submissionDueAt={submissionDueAt}
+    bind:submissionStartAt={submissionStartAt}
+  />
+  <HomeworkTagFields copy={homeworkCopy} idPrefix="section-create-homework" />
   {#if homeworkMessage}
     <Alert.Root variant="destructive">
       <Alert.Description>{homeworkMessage}</Alert.Description>
