@@ -92,7 +92,7 @@ $: sectionSemesterSummary = selectedSemester
             {/snippet}
           </Item.Root>
           {#if index < data.data.length - 1}
-            <Item.Separator />
+            <Item.Separator aria-hidden="true" />
           {/if}
         {/each}
       </Item.Group>

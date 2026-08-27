@@ -69,37 +69,40 @@ function examLocation(event: SectionCalendarEvent) {
                 <div
                   aria-label={`${sectionCopy.examDate}: ${dateLabel}`}
                   class="flex min-w-0 items-start gap-2"
-                  role="group"
                 >
-                  <CalendarIcon
-                    aria-hidden="true"
-                    class="text-muted-foreground mt-0.5 size-4 shrink-0"
-                  />
-                  <dt class="sr-only">{sectionCopy.examDate}</dt>
+                  <dt class="flex shrink-0 items-start">
+                    <CalendarIcon
+                      aria-hidden="true"
+                      class="text-muted-foreground mt-0.5 size-4"
+                    />
+                    <span class="sr-only">{sectionCopy.examDate}</span>
+                  </dt>
                   <dd class="min-w-0 break-words">{dateLabel}</dd>
                 </div>
                 <div
                   aria-label={`${sectionCopy.examTime}: ${timeLabel}`}
                   class="flex min-w-0 items-start gap-2"
-                  role="group"
                 >
-                  <Clock3Icon
-                    aria-hidden="true"
-                    class="text-muted-foreground mt-0.5 size-4 shrink-0"
-                  />
-                  <dt class="sr-only">{sectionCopy.examTime}</dt>
+                  <dt class="flex shrink-0 items-start">
+                    <Clock3Icon
+                      aria-hidden="true"
+                      class="text-muted-foreground mt-0.5 size-4"
+                    />
+                    <span class="sr-only">{sectionCopy.examTime}</span>
+                  </dt>
                   <dd class="min-w-0 break-words">{timeLabel}</dd>
                 </div>
                 <div
                   aria-label={`${sectionCopy.location}: ${locationLabel}`}
                   class="flex min-w-0 items-start gap-2"
-                  role="group"
                 >
-                  <MapPinIcon
-                    aria-hidden="true"
-                    class="text-muted-foreground mt-0.5 size-4 shrink-0"
-                  />
-                  <dt class="sr-only">{sectionCopy.location}</dt>
+                  <dt class="flex shrink-0 items-start">
+                    <MapPinIcon
+                      aria-hidden="true"
+                      class="text-muted-foreground mt-0.5 size-4"
+                    />
+                    <span class="sr-only">{sectionCopy.location}</span>
+                  </dt>
                   <dd class="min-w-0 break-words">{locationLabel}</dd>
                 </div>
               </dl>

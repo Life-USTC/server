@@ -106,51 +106,55 @@ $: mobileEvents = [...datedEvents, ...unscheduledCalendarEvents];
                 <div
                   aria-label={`${sectionCopy.date}: ${dateLabel}`}
                   class="flex min-w-0 items-start gap-2"
-                  role="group"
                 >
-                  <CalendarIcon
-                    aria-hidden="true"
-                    class="text-muted-foreground mt-0.5 size-4 shrink-0"
-                  />
-                  <dt class="sr-only">{sectionCopy.date}</dt>
+                  <dt class="flex shrink-0 items-start">
+                    <CalendarIcon
+                      aria-hidden="true"
+                      class="text-muted-foreground mt-0.5 size-4"
+                    />
+                    <span class="sr-only">{sectionCopy.date}</span>
+                  </dt>
                   <dd class="min-w-0 break-words">{dateLabel}</dd>
                 </div>
                 <div
                   aria-label={`${sectionCopy.week}: ${weekLabel}`}
                   class="flex min-w-0 items-start gap-2"
-                  role="group"
                 >
-                  <span
-                    aria-hidden="true"
-                    class="text-muted-foreground mt-0.5 size-4 shrink-0 text-center text-xs font-medium leading-4"
-                  >
-                    W
-                  </span>
-                  <dt class="sr-only">{sectionCopy.week}</dt>
+                  <dt class="flex shrink-0 items-start">
+                    <span
+                      aria-hidden="true"
+                      class="text-muted-foreground mt-0.5 size-4 text-center text-xs font-medium leading-4"
+                    >
+                      W
+                    </span>
+                    <span class="sr-only">{sectionCopy.week}</span>
+                  </dt>
                   <dd class="min-w-0 break-words">{weekLabel}</dd>
                 </div>
                 <div
                   aria-label={`${sectionCopy.time}: ${timeLabel}`}
                   class="flex min-w-0 items-start gap-2"
-                  role="group"
                 >
-                  <Clock3Icon
-                    aria-hidden="true"
-                    class="text-muted-foreground mt-0.5 size-4 shrink-0"
-                  />
-                  <dt class="sr-only">{sectionCopy.time}</dt>
+                  <dt class="flex shrink-0 items-start">
+                    <Clock3Icon
+                      aria-hidden="true"
+                      class="text-muted-foreground mt-0.5 size-4"
+                    />
+                    <span class="sr-only">{sectionCopy.time}</span>
+                  </dt>
                   <dd class="min-w-0 break-words">{timeLabel}</dd>
                 </div>
                 <div
                   aria-label={`${sectionCopy.location}: ${locationLabel}`}
                   class="flex min-w-0 items-start gap-2"
-                  role="group"
                 >
-                  <MapPinIcon
-                    aria-hidden="true"
-                    class="text-muted-foreground mt-0.5 size-4 shrink-0"
-                  />
-                  <dt class="sr-only">{sectionCopy.location}</dt>
+                  <dt class="flex shrink-0 items-start">
+                    <MapPinIcon
+                      aria-hidden="true"
+                      class="text-muted-foreground mt-0.5 size-4"
+                    />
+                    <span class="sr-only">{sectionCopy.location}</span>
+                  </dt>
                   <dd class="min-w-0 break-words">{locationLabel}</dd>
                 </div>
               </dl>

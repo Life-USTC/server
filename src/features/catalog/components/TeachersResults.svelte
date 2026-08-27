@@ -92,7 +92,7 @@ $: pageLabel = teacherLabels.pageOf
             {/snippet}
           </Item.Root>
           {#if index < teachers.length - 1}
-            <Item.Separator />
+            <Item.Separator aria-hidden="true" />
           {/if}
         {/each}
       </Item.Group>
