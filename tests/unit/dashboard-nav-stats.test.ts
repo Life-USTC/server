@@ -29,6 +29,10 @@ vi.mock("@/lib/metrics/analytics-engine", () => ({
   writeDashboardStageAnalytics: writeDashboardStageAnalyticsMock,
 }));
 
+vi.mock("@/lib/log/app-logger", () => ({
+  logAppEvent: vi.fn(),
+}));
+
 describe("仪表盘导航统计", () => {
   afterEach(() => {
     countIncompleteTodosMock.mockReset();
@@ -191,5 +195,56 @@ describe("仪表盘导航统计", () => {
     await expect(resultPromise).resolves.toMatchObject({
       pendingTodosCount: 5,
     });
+  });
+
+  it("emits one nav datapoint when the page stage wraps the aggregate", async () => {
+    getWorkspaceNavigationAggregateMock.mockResolvedValue({
+      calendarItemsCount: 9,
+      examsCount: 3,
+      highlightPendingHomeworks: false,
+      pendingHomeworksCount: 2,
+      pendingTodosCount: 4,
+      subscribedSectionCount: 1,
+    });
+    withUserDbContextMock.mockImplementation(
+      async (_userId: string, action: (tx: object) => unknown) => action({}),
+    );
+
+    const { getDashboardNavStats } = await import(
+      "@/features/dashboard/server/dashboard-nav-stats"
+    );
+    const { timeDashboardStage } = await import(
+      "@/features/dashboard/server/dashboard-page-tab-data"
+    );
+    const { createDashboardStageCounter } = await import(
+      "@/features/dashboard/server/dashboard-stage-analytics"
+    );
+    const counter = createDashboardStageCounter({
+      dbContext: "rls",
+      dbLabel: "app",
+    });
+
+    await timeDashboardStage(
+      "nav_stats",
+      {
+        requestId: "dashboard-nav-stage-test",
+        subscribedSectionCount: 1,
+        tab: "overview",
+      },
+      () =>
+        getDashboardNavStats(
+          { id: "user-1", name: "User", username: "user" },
+          [{ id: 12, semesterId: 1 }],
+          new Date("2026-05-22T10:30:00.000Z"),
+          undefined,
+          undefined,
+          counter,
+        ),
+    );
+
+    expect(writeDashboardStageAnalyticsMock).toHaveBeenCalledOnce();
+    expect(writeDashboardStageAnalyticsMock).toHaveBeenCalledWith(
+      expect.objectContaining({ stage: "nav_stats" }),
+    );
   });
 });

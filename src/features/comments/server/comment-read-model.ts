@@ -78,13 +78,16 @@ type CommentDescendantWindowRow = {
 };
 
 function observeCommentViewerContext(input: {
+  counter?: CommentStageCounter;
   viewer?: ViewerContext;
   viewerUserId: string | null;
 }) {
-  const counter = createCommentStageCounter({
-    dbContext: "none",
-    dbLabel: "app",
-  });
+  const counter =
+    input.counter ??
+    createCommentStageCounter({
+      dbContext: "none",
+      dbLabel: "app",
+    });
   const instrumentation: ViewerContextInstrumentation = {
     onQuery: () => countCommentStageQuery(counter),
   };
@@ -770,18 +773,25 @@ export async function loadCommentThread(input: {
   pagination?: { pageSize: number; skip: number };
   target: ResolvedCommentTarget;
   viewer?: ViewerContext;
+  viewerContextStageRecorded?: boolean;
   viewerUserId: string | null;
 }) {
   if (input.target.empty) {
-    const viewer = await observeCommentViewerContext(input);
+    const viewer =
+      input.viewerContextStageRecorded && input.viewer
+        ? input.viewer
+        : await observeCommentViewerContext(input);
     return { comments: [], hiddenCount: 0, total: 0, viewer };
   }
 
-  const viewer = await runCloudflareTraceSpan(
-    "viewer.context",
-    { source: "comments" },
-    () => observeCommentViewerContext(input),
-  );
+  const viewer =
+    input.viewerContextStageRecorded && input.viewer
+      ? input.viewer
+      : await runCloudflareTraceSpan(
+          "viewer.context",
+          { source: "comments" },
+          () => observeCommentViewerContext(input),
+        );
   const pagination = input.pagination ?? { pageSize: 20, skip: 0 };
   const rootCounter = createCommentStageCounter({
     dbContext: input.viewerUserId ? "rls" : "none",
