@@ -3,12 +3,14 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 const {
   appFetchMock,
   handleAuditLogWriteBatchMock,
+  handleCalendarExportRebuildBatchMock,
   logAppEventMock,
   runWithCloudflareRuntimeEnvMock,
   setCloudflareRequestContextMock,
 } = vi.hoisted(() => ({
   appFetchMock: vi.fn(),
   handleAuditLogWriteBatchMock: vi.fn(),
+  handleCalendarExportRebuildBatchMock: vi.fn(),
   logAppEventMock: vi.fn(),
   runWithCloudflareRuntimeEnvMock: vi.fn(
     (_env: unknown, callback: () => unknown) => callback(),
@@ -24,6 +26,9 @@ vi.mock("life-ustc-sveltekit-worker", () => ({
 }));
 vi.mock("@/lib/audit/audit-log-queue", () => ({
   handleAuditLogWriteBatch: handleAuditLogWriteBatchMock,
+}));
+vi.mock("@/features/calendar/server/calendar-export-rebuild", () => ({
+  handleCalendarExportRebuildBatch: handleCalendarExportRebuildBatchMock,
 }));
 vi.mock("@/lib/adapters/cloudflare-runtime", () => ({
   getCloudflareAnalyticsEngineDataset: () => undefined,
@@ -70,6 +75,7 @@ describe("Worker routing entrypoint", () => {
   beforeEach(() => {
     appFetchMock.mockReset();
     handleAuditLogWriteBatchMock.mockReset();
+    handleCalendarExportRebuildBatchMock.mockReset();
     logAppEventMock.mockReset();
     runWithCloudflareRuntimeEnvMock.mockClear();
     setCloudflareRequestContextMock.mockClear();
@@ -302,6 +308,36 @@ describe("Worker routing entrypoint", () => {
         messageCount: 1,
         outcome: "retry",
         queue: "audit",
+      }),
+    ]);
+  });
+
+  it("records one calendar queue completion with a retry outcome", async () => {
+    handleCalendarExportRebuildBatchMock.mockResolvedValue({
+      outcome: "retry",
+    });
+
+    await worker.queue(
+      {
+        messages: [{}],
+        queue: "life-ustc-calendar-export-rebuild",
+      },
+      {},
+      { waitUntil: vi.fn() },
+    );
+
+    const queueFinishes = logAppEventMock.mock.calls.filter(
+      ([, event]) => event === "worker.queue.finish",
+    );
+    expect(handleCalendarExportRebuildBatchMock).toHaveBeenCalledOnce();
+    expect(queueFinishes).toHaveLength(1);
+    expect(queueFinishes[0]).toEqual([
+      "warn",
+      "worker.queue.finish",
+      expect.objectContaining({
+        messageCount: 1,
+        outcome: "retry",
+        queue: "calendar",
       }),
     ]);
   });

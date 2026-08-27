@@ -92,12 +92,16 @@ export type CalendarExportRebuildQueueBatch = {
   messages: readonly CalendarExportRebuildQueueMessage[];
 };
 
+export type CalendarExportRebuildQueueBatchReport = {
+  outcome: "partial" | "retry" | "success";
+};
+
 /**
  * Worker queue entrypoint: parse, coalesce, rebuild, ack/retry per message.
  */
 export async function handleCalendarExportRebuildBatch(
   batch: CalendarExportRebuildQueueBatch,
-) {
+): Promise<CalendarExportRebuildQueueBatchReport> {
   const parsed: CalendarExportRebuildMessage[] = [];
   const validMessages: CalendarExportRebuildQueueMessage[] = [];
 
@@ -119,13 +123,18 @@ export async function handleCalendarExportRebuildBatch(
     validMessages.push(message);
   }
 
-  if (parsed.length === 0) return;
+  if (batch.messages.length === 0) return { outcome: "success" };
+  if (parsed.length === 0) return { outcome: "retry" };
 
   try {
     await processCalendarExportRebuildMessages(parsed);
     for (const message of validMessages) {
       message.ack();
     }
+    return {
+      outcome:
+        validMessages.length < batch.messages.length ? "partial" : "success",
+    };
   } catch (error) {
     logAppEvent(
       "error",
@@ -143,5 +152,6 @@ export async function handleCalendarExportRebuildBatch(
     for (const message of validMessages) {
       message.retry();
     }
+    return { outcome: "retry" };
   }
 }

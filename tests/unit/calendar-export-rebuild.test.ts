@@ -121,12 +121,15 @@ describe("calendar export rebuild fan-out", () => {
       retry: vi.fn(),
     };
 
-    await handleCalendarExportRebuildBatch({ messages: [valid, invalid] });
+    const report = await handleCalendarExportRebuildBatch({
+      messages: [valid, invalid],
+    });
 
     expect(invalid.ack).not.toHaveBeenCalled();
     expect(invalid.retry).toHaveBeenCalledOnce();
     expect(valid.ack).toHaveBeenCalledOnce();
     expect(valid.retry).not.toHaveBeenCalled();
+    expect(report).toEqual({ outcome: "partial" });
     expect(logAppEventMock).toHaveBeenCalledWith(
       "error",
       "calendar-export-rebuild.invalid-message",
@@ -156,7 +159,7 @@ describe("calendar export rebuild fan-out", () => {
       retry: vi.fn(),
     };
 
-    await handleCalendarExportRebuildBatch({
+    const report = await handleCalendarExportRebuildBatch({
       messages: [userMessage, sectionMessage],
     });
 
@@ -164,6 +167,7 @@ describe("calendar export rebuild fan-out", () => {
     expect(sectionMessage.ack).not.toHaveBeenCalled();
     expect(userMessage.retry).toHaveBeenCalledOnce();
     expect(sectionMessage.retry).toHaveBeenCalledOnce();
+    expect(report).toEqual({ outcome: "retry" });
     expect(logAppEventMock).toHaveBeenCalledOnce();
     expect(logAppEventMock).toHaveBeenCalledWith(
       "error",
@@ -180,5 +184,41 @@ describe("calendar export rebuild fan-out", () => {
     );
     expect(logAppEventMock.mock.calls[0]?.[2]).not.toHaveProperty("userId");
     expect(logAppEventMock.mock.calls[0]?.[2]).not.toHaveProperty("sectionId");
+  });
+
+  it("classifies an all-invalid batch as retry without sampling it as success", async () => {
+    const invalid = {
+      ack: vi.fn(),
+      body: { type: "nope" },
+      retry: vi.fn(),
+    };
+
+    await expect(
+      handleCalendarExportRebuildBatch({ messages: [invalid] }),
+    ).resolves.toEqual({ outcome: "retry" });
+    expect(invalid.ack).not.toHaveBeenCalled();
+    expect(invalid.retry).toHaveBeenCalledOnce();
+  });
+
+  it("classifies an all-valid batch as success after acknowledging once", async () => {
+    findManyMock.mockResolvedValue([]);
+    getUserCalendarRecordMock.mockResolvedValue(null);
+    const valid = {
+      ack: vi.fn(),
+      body: { type: "user", userId: "user-1" },
+      retry: vi.fn(),
+    };
+
+    await expect(
+      handleCalendarExportRebuildBatch({ messages: [valid] }),
+    ).resolves.toEqual({ outcome: "success" });
+    expect(valid.ack).toHaveBeenCalledOnce();
+    expect(valid.retry).not.toHaveBeenCalled();
+  });
+
+  it("classifies an empty batch as a successful no-op", async () => {
+    await expect(
+      handleCalendarExportRebuildBatch({ messages: [] }),
+    ).resolves.toEqual({ outcome: "success" });
   });
 });
