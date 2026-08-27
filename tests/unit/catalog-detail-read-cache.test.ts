@@ -1,4 +1,6 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { runWithCloudflareRuntimeEnv } from "@/lib/adapters/cloudflare-runtime";
+import { cachedPublicDetailRuntimeData } from "@/lib/catalog-detail-runtime-cache";
 import { resetPublicRuntimeCacheForTest } from "@/lib/public-runtime-cache";
 
 const {
@@ -101,6 +103,23 @@ const sectionDetailRecord = {
   adminClasses: [],
 };
 
+function detailCacheResponse(value: unknown, expiresAt = Date.now() + 60_000) {
+  return new Response(
+    JSON.stringify({
+      expiresAt,
+      schema: "catalog-detail-core-v2",
+      value,
+    }),
+  );
+}
+
+function detailCacheNamespace() {
+  return {
+    get: vi.fn(async () => null),
+    put: vi.fn(async () => undefined),
+  };
+}
+
 describe("shared public catalog detail cache", () => {
   beforeEach(() => {
     resetPublicRuntimeCacheForTest();
@@ -111,6 +130,11 @@ describe("shared public catalog detail cache", () => {
     teacherFindUniqueMock.mockReset();
     getCatalogDetailCacheRevisionMock.mockReset();
     getCatalogDetailCacheRevisionMock.mockResolvedValue("revision-a");
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.unstubAllEnvs();
   });
 
   it("shares course and teacher detail hits with single-id GraphQL batches", async () => {
@@ -255,5 +279,217 @@ describe("shared public catalog detail cache", () => {
     await expect(findTeacherDetailById(404, "zh-cn")).resolves.toBeNull();
 
     expect(teacherFindUniqueMock).toHaveBeenCalledTimes(2);
+  });
+
+  it("serves a revision- and shape-scoped colo hit without waiting for KV", async () => {
+    vi.stubEnv("APP_CANONICAL_ORIGIN", "https://example.test");
+    const cached = { id: 1, source: "colo" };
+    const match = vi.fn(async (request: Request) => {
+      expect(request.url).toBe(
+        "https://example.test/_life-ustc-internal-cache/catalog-detail-core/v2/revision-a/course/detail-v1/en-us/101",
+      );
+      return detailCacheResponse(cached);
+    });
+    const put = vi.fn(
+      async (_request: Request, _response: Response) => undefined,
+    );
+    vi.stubGlobal("caches", {
+      open: vi.fn(async () => ({ match, put })),
+    });
+    const namespace = detailCacheNamespace();
+    const load = vi.fn(async () => ({ id: 1, source: "origin" }));
+
+    await expect(
+      runWithCloudflareRuntimeEnv({ CATALOG_DETAIL_CORE: namespace }, () =>
+        cachedPublicDetailRuntimeData({
+          id: 101,
+          kind: "course",
+          load,
+          locale: "en-us",
+          shape: "detail-v1",
+        }),
+      ),
+    ).resolves.toEqual(cached);
+
+    expect(match).toHaveBeenCalledOnce();
+    expect(namespace.get).not.toHaveBeenCalled();
+    expect(load).not.toHaveBeenCalled();
+    expect(put).not.toHaveBeenCalled();
+  });
+
+  it("writes a canonical origin result to colo and revision-scoped KV after misses", async () => {
+    vi.stubEnv("APP_CANONICAL_ORIGIN", "https://example.test");
+    const match = vi.fn(async () => undefined);
+    const put = vi.fn(
+      async (_request: Request, _response: Response) => undefined,
+    );
+    vi.stubGlobal("caches", {
+      open: vi.fn(async () => ({ match, put })),
+    });
+    const namespace = detailCacheNamespace();
+    const scheduled: Promise<unknown>[] = [];
+    const load = vi.fn(async () => ({ id: 101, source: "origin" }));
+    const context = {
+      waitUntil(promise: Promise<unknown>) {
+        scheduled.push(promise);
+      },
+    };
+
+    await runWithCloudflareRuntimeEnv(
+      { CATALOG_DETAIL_CORE: namespace },
+      async () => {
+        await expect(
+          cachedPublicDetailRuntimeData({
+            id: 101,
+            kind: "course",
+            load,
+            locale: "en-us",
+            shape: "detail-v1",
+          }),
+        ).resolves.toEqual({ id: 101, source: "origin" });
+        await Promise.all(scheduled);
+      },
+      context,
+    );
+
+    expect(match).toHaveBeenCalledOnce();
+    expect(namespace.get).toHaveBeenCalledWith(
+      "v2:revision-a:course:en-us:101:detail-v1",
+      { cacheTtl: 86_400, type: "json" },
+    );
+    expect(namespace.put).toHaveBeenCalledOnce();
+    expect(put).toHaveBeenCalledOnce();
+    const [writtenRequest] = put.mock.calls[0] ?? [];
+    expect((writtenRequest as Request).url).toBe(
+      "https://example.test/_life-ustc-internal-cache/catalog-detail-core/v2/revision-a/course/detail-v1/en-us/101",
+    );
+  });
+
+  it("keeps Cache API keys isolated by requested shape", async () => {
+    vi.stubEnv("APP_CANONICAL_ORIGIN", "https://example.test");
+    const requests: Request[] = [];
+    vi.stubGlobal("caches", {
+      open: vi.fn(async () => ({
+        match: vi.fn(async (request: Request) => {
+          requests.push(request);
+          return undefined;
+        }),
+        put: vi.fn(async () => undefined),
+      })),
+    });
+    const load = vi.fn(async () => ({ source: "origin" }));
+
+    await runWithCloudflareRuntimeEnv(
+      { CATALOG_DETAIL_CORE: detailCacheNamespace() },
+      async () => {
+        await cachedPublicDetailRuntimeData({
+          id: 101,
+          kind: "section",
+          load,
+          locale: "en-us",
+          shape: "detail-v1:exams=false",
+        });
+        await cachedPublicDetailRuntimeData({
+          id: 101,
+          kind: "section",
+          load,
+          locale: "en-us",
+          shape: "detail-v1:exams=true",
+        });
+      },
+    );
+
+    expect(requests).toHaveLength(2);
+    expect(requests[0]?.url).toContain(
+      "/v2/revision-a/section/detail-v1%3Aexams%3Dfalse/en-us/101",
+    );
+    expect(requests[1]?.url).toContain(
+      "/v2/revision-a/section/detail-v1%3Aexams%3Dtrue/en-us/101",
+    );
+    expect(load).toHaveBeenCalledTimes(2);
+  });
+
+  it("keeps Cache API keys isolated by static import revision", async () => {
+    vi.stubEnv("APP_CANONICAL_ORIGIN", "https://example.test");
+    getCatalogDetailCacheRevisionMock
+      .mockResolvedValueOnce("revision-a")
+      .mockResolvedValueOnce("revision-b");
+    const requests: Request[] = [];
+    vi.stubGlobal("caches", {
+      open: vi.fn(async () => ({
+        match: vi.fn(async (request: Request) => {
+          requests.push(request);
+          return undefined;
+        }),
+        put: vi.fn(async () => undefined),
+      })),
+    });
+    const load = vi.fn(async () => ({ source: "origin" }));
+
+    await runWithCloudflareRuntimeEnv(
+      { CATALOG_DETAIL_CORE: detailCacheNamespace() },
+      async () => {
+        await cachedPublicDetailRuntimeData({
+          id: 101,
+          kind: "teacher",
+          load,
+          locale: "en-us",
+          shape: "detail-v1",
+        });
+        await cachedPublicDetailRuntimeData({
+          id: 101,
+          kind: "teacher",
+          load,
+          locale: "en-us",
+          shape: "detail-v1",
+        });
+      },
+    );
+
+    expect(requests.map((request) => request.url)).toEqual([
+      "https://example.test/_life-ustc-internal-cache/catalog-detail-core/v2/revision-a/teacher/detail-v1/en-us/101",
+      "https://example.test/_life-ustc-internal-cache/catalog-detail-core/v2/revision-b/teacher/detail-v1/en-us/101",
+    ]);
+    expect(load).toHaveBeenCalledTimes(2);
+  });
+
+  it.each([
+    ["null", null],
+    ["primitive", "invalid"],
+  ])("does not cache %s detail results", async (_name, loadResult) => {
+    vi.stubEnv("APP_CANONICAL_ORIGIN", "https://example.test");
+    const match = vi.fn(async () => undefined);
+    const put = vi.fn(async () => undefined);
+    vi.stubGlobal("caches", {
+      open: vi.fn(async () => ({ match, put })),
+    });
+    const namespace = detailCacheNamespace();
+    const scheduled: Promise<unknown>[] = [];
+    const context = {
+      waitUntil(promise: Promise<unknown>) {
+        scheduled.push(promise);
+      },
+    };
+
+    await runWithCloudflareRuntimeEnv(
+      { CATALOG_DETAIL_CORE: namespace },
+      async () => {
+        await expect(
+          cachedPublicDetailRuntimeData<unknown>({
+            id: 101,
+            kind: "course",
+            load: async () => loadResult,
+            locale: "en-us",
+            shape: `invalid-${_name}`,
+          }),
+        ).resolves.toBe(loadResult);
+        await Promise.all(scheduled);
+      },
+      context,
+    );
+
+    expect(namespace.put).not.toHaveBeenCalled();
+    expect(put).not.toHaveBeenCalled();
+    expect(scheduled).toHaveLength(0);
   });
 });

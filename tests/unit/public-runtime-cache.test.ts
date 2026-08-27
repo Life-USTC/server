@@ -1,8 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { runWithCloudflareRuntimeEnv } from "@/lib/adapters/cloudflare-runtime";
 import {
+  publicDetailColoCacheKey as buildPublicDetailColoCacheKey,
   cachedPublicRuntimeData,
-  publicDetailColoCacheKey,
   publicDetailKvCacheKey,
 } from "@/lib/public-runtime-cache";
 import { createDeferred } from "../shared/deferred";
@@ -32,6 +32,26 @@ function validatesSource(value: unknown) {
     typeof value === "object" &&
     "source" in value &&
     typeof value.source === "string"
+  );
+}
+
+function publicDetailColoCacheKey(
+  origin: string,
+  kind: "course" | "section" | "teacher",
+  locale: "en-us" | "zh-cn",
+  id: number,
+) {
+  const shape =
+    kind === "section"
+      ? "core-without-exams-schedules-related"
+      : "core-without-sections";
+  return buildPublicDetailColoCacheKey(
+    origin,
+    "revision-a",
+    kind,
+    locale,
+    id,
+    shape,
   );
 }
 
@@ -206,13 +226,13 @@ describe("public runtime cache", () => {
 
     expect(new URL(course).origin).toBe("https://example.test");
     expect(new URL(course).pathname).toBe(
-      "/_life-ustc-internal-cache/catalog-detail-core/v2/course/core-without-sections/en-us/683001",
+      "/_life-ustc-internal-cache/catalog-detail-core/v2/revision-a/course/core-without-sections/en-us/683001",
     );
     expect(new URL(teacher).pathname).toContain(
-      "/v2/teacher/core-without-sections/en-us/683001",
+      "/v2/revision-a/teacher/core-without-sections/en-us/683001",
     );
     expect(new URL(section).pathname).toContain(
-      "/v2/section/core-without-exams-schedules-related/zh-cn/683002",
+      "/v2/revision-a/section/core-without-exams-schedules-related/zh-cn/683002",
     );
     expect(new Set([course, teacher, section]).size).toBe(3);
   });
@@ -240,7 +260,7 @@ describe("public runtime cache", () => {
     ).toBe("v2:abc123def4567890:course:en-us:683001:core-without-sections");
   });
 
-  it("uses a KV hit without loading or colo reads and then serves it from L1", async () => {
+  it("falls through a colo miss to a KV hit and then serves it from L1", async () => {
     vi.useFakeTimers();
     vi.setSystemTime(10_000);
     const cached = { source: "kv" };
@@ -259,7 +279,7 @@ describe("public runtime cache", () => {
     });
     const { match, open, put } = installNamedCache();
     const load = vi.fn(async () => ({ source: "database" }));
-    const { context } = runtimeExecutionContext();
+    const { context, scheduled } = runtimeExecutionContext();
 
     await runWithCloudflareRuntimeEnv(
       { CATALOG_DETAIL_CORE: namespace },
@@ -299,6 +319,7 @@ describe("public runtime cache", () => {
 
         expect(first).toEqual(cached);
         expect(second).toBe(first);
+        await Promise.all(scheduled);
       },
       context,
     );
@@ -308,13 +329,13 @@ describe("public runtime cache", () => {
       cacheTtl: 60,
       type: "json",
     });
-    expect(open).not.toHaveBeenCalled();
-    expect(match).not.toHaveBeenCalled();
+    expect(open).toHaveBeenCalledOnce();
+    expect(match).toHaveBeenCalledOnce();
     expect(load).not.toHaveBeenCalled();
-    expect(put).not.toHaveBeenCalled();
+    expect(put).toHaveBeenCalledOnce();
   });
 
-  it("falls through KV miss to colo and schedules KV and colo writes", async () => {
+  it("falls through colo and KV misses and schedules KV and colo writes", async () => {
     const pending = createDeferred<{ source: string }>();
     const namespace = kvNamespace();
     const { match, put } = installNamedCache();
@@ -494,20 +515,20 @@ describe("public runtime cache", () => {
       writeDataPoint.mock.calls.find(
         ([dataPoint]) => dataPoint.blobs?.[1] === event,
       )?.[0].doubles?.[0];
-    expect(durationFor("kv_miss")).toBe(11);
     expect(durationFor("colo_miss")).toBe(23);
+    expect(durationFor("kv_miss")).toBe(11);
     expect(durationFor("load_success")).toBe(37);
     expect(match).toHaveBeenCalledOnce();
     expect(enterSpan.mock.calls.map(([name]) => name)).toEqual([
-      "cache.kv.read",
       "cache.colo.read",
+      "cache.kv.read",
       "cache.origin_load",
     ]);
     expect(setAttribute.mock.calls).toEqual([
-      ["cache.layer", "kv"],
+      ["cache.layer", "colo"],
       ["cache.namespace", "page:course-detail:en-us"],
       ["cache.outcome", "miss"],
-      ["cache.layer", "colo"],
+      ["cache.layer", "kv"],
       ["cache.namespace", "page:course-detail:en-us"],
       ["cache.outcome", "miss"],
       ["cache.layer", "origin"],

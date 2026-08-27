@@ -1,6 +1,8 @@
 import { validateCimdMetadata } from "@better-auth/cimd";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+const mcpMetadataOptions = { metadataProfile: "mcp-2026-07-28" } as const;
+
 describe("Better Auth CIMD plugin", () => {
   afterEach(() => {
     vi.resetModules();
@@ -11,21 +13,29 @@ describe("Better Auth CIMD plugin", () => {
     const clientId = "https://client.example/oauth.json";
 
     expect(
-      validateCimdMetadata(clientId, {
-        client_id: clientId,
-        redirect_uris: ["https://client.example/callback"],
-      }),
+      validateCimdMetadata(
+        clientId,
+        {
+          client_id: clientId,
+          redirect_uris: ["https://client.example/callback"],
+        },
+        mcpMetadataOptions,
+      ),
     ).toEqual({
       error: "client_name must be a non-empty string",
       valid: false,
     });
 
     expect(
-      validateCimdMetadata(clientId, {
-        client_id: clientId,
-        client_name: "Example MCP Client",
-        redirect_uris: ["https://client.example/callback"],
-      }),
+      validateCimdMetadata(
+        clientId,
+        {
+          client_id: clientId,
+          client_name: "Example MCP Client",
+          redirect_uris: ["https://client.example/callback"],
+        },
+        mcpMetadataOptions,
+      ),
     ).toMatchObject({ valid: true });
   });
 
@@ -33,12 +43,16 @@ describe("Better Auth CIMD plugin", () => {
     const clientId = "https://client.example/dpop-oauth.json";
 
     expect(
-      validateCimdMetadata(clientId, {
-        client_id: clientId,
-        client_name: "DPoP-only Client",
-        dpop_bound_access_tokens: true,
-        redirect_uris: ["https://client.example/callback"],
-      }),
+      validateCimdMetadata(
+        clientId,
+        {
+          client_id: clientId,
+          client_name: "DPoP-only Client",
+          dpop_bound_access_tokens: true,
+          redirect_uris: ["https://client.example/callback"],
+        },
+        mcpMetadataOptions,
+      ),
     ).toEqual({
       error:
         "DPoP-bound access tokens are not supported by this Bearer-only resource server",
@@ -50,26 +64,34 @@ describe("Better Auth CIMD plugin", () => {
     const clientId = "https://vscode.dev/oauth/client-metadata.json";
 
     expect(
-      validateCimdMetadata(clientId, {
-        client_id: clientId,
-        client_name: "Visual Studio Code",
-        redirect_uris: ["http://127.0.0.1:33418"],
-        grant_types: [
-          "authorization_code",
-          "refresh_token",
-          "urn:ietf:params:oauth:grant-type:device_code",
-        ],
-        response_types: ["code"],
-      }),
+      validateCimdMetadata(
+        clientId,
+        {
+          client_id: clientId,
+          client_name: "Visual Studio Code",
+          redirect_uris: ["http://127.0.0.1:33418"],
+          grant_types: [
+            "authorization_code",
+            "refresh_token",
+            "urn:ietf:params:oauth:grant-type:device_code",
+          ],
+          response_types: ["code"],
+        },
+        mcpMetadataOptions,
+      ),
     ).toMatchObject({ valid: true });
 
     expect(
-      validateCimdMetadata(clientId, {
-        client_id: clientId,
-        client_name: "Device-only client",
-        redirect_uris: ["http://127.0.0.1:33418"],
-        grant_types: ["urn:ietf:params:oauth:grant-type:device_code"],
-      }),
+      validateCimdMetadata(
+        clientId,
+        {
+          client_id: clientId,
+          client_name: "Device-only client",
+          redirect_uris: ["http://127.0.0.1:33418"],
+          grant_types: ["urn:ietf:params:oauth:grant-type:device_code"],
+        },
+        mcpMetadataOptions,
+      ),
     ).toMatchObject({
       error: 'grant_types must include "authorization_code"',
       valid: false,

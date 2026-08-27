@@ -1,7 +1,7 @@
 import { listSectionHomeworksWithAudit } from "@/features/homeworks/server/homework-list-read-model";
 import { campusReferenceMarkdownPlugins } from "@/features/markdown/lib/campus-reference-markdown";
 import type { SectionDetailPageData } from "@/features/section-detail/lib/section-detail-controller-types";
-import { renderMarkdown } from "@/lib/components/markdown-preview-renderer";
+import { renderEmbeddedMarkdown } from "@/lib/components/markdown-preview-renderer";
 import {
   serializeDatesDeep,
   toShanghaiIsoString,
@@ -27,7 +27,7 @@ export async function getSectionHomeworkData(
         description: scopedHomework.description
           ? {
               ...scopedHomework.description,
-              renderedHtml: renderMarkdown(
+              renderedHtml: renderEmbeddedMarkdown(
                 scopedHomework.description.content ?? "",
                 { remarkPlugins: campusReferenceMarkdownPlugins },
               ),
