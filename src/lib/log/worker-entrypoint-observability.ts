@@ -1,6 +1,7 @@
 import { logAppEvent } from "@/lib/log/app-logger";
 import { elapsedMs } from "@/lib/log/observability-clock";
 import { shouldLogSuccessfulRequest } from "@/lib/log/request-log-sampling";
+import { getSafeErrorName } from "@/lib/log/safe-error-name";
 import { writeWorkerRequestAnalytics } from "@/lib/metrics/analytics-engine";
 
 export const INTERNAL_REQUEST_ID_HEADER = "x-life-ustc-request-id";
@@ -100,6 +101,38 @@ export function resolveEdgeCacheOutcome(response: Response): EdgeCacheOutcome {
     : "unknown";
 }
 
+type EdgeObservationFailurePhase =
+  | "analytics"
+  | "request-id"
+  | "sampling"
+  | "finish-log";
+
+function logEdgeObservationFailure(
+  input: {
+    request: Request;
+    requestClass: EdgeRequestClass;
+    requestId: string;
+    route: string;
+  },
+  phase: EdgeObservationFailurePhase,
+  error: unknown,
+) {
+  try {
+    logAppEvent("error", "edge.request.observation.error", {
+      errorName: getSafeErrorName(error),
+      event: "edge.request.observation.error",
+      failurePhase: phase,
+      method: input.request.method,
+      requestClass: input.requestClass,
+      requestId: input.requestId,
+      route: input.route,
+      source: "worker-entrypoint",
+    });
+  } catch {
+    // Observability must never change the response or throw on its own.
+  }
+}
+
 export function observedEdgeResponse(input: {
   cacheOutcome: EdgeCacheOutcome;
   request: Request;
@@ -109,42 +142,70 @@ export function observedEdgeResponse(input: {
   route: string;
   startMs: number;
 }) {
-  const response = new Response(input.response.body, input.response);
-  response.headers.set("x-request-id", input.requestId);
-  const ioObservedDurationMs = elapsedMs(input.startMs);
-  writeWorkerRequestAnalytics({
-    cacheOutcome: input.cacheOutcome,
-    durationMs: ioObservedDurationMs,
-    method: input.request.method,
-    requestClass: input.requestClass,
-    route: input.route,
-    status: response.status,
-  });
-  if (
-    !shouldLogSuccessfulRequest({
+  // Keep ownership of the body with the response returned by the application.
+  // Constructing another Response around an already wrapped SvelteKit body can
+  // make the runtime cancel/restart a valid response while edge telemetry is
+  // being recorded. Headers are mutable on the responses produced by this
+  // Worker; if a platform response is immutable, retain it unchanged.
+  const response = input.response;
+  try {
+    response.headers.set("x-request-id", input.requestId);
+  } catch (error) {
+    logEdgeObservationFailure(input, "request-id", error);
+  }
+
+  let ioObservedDurationMs = 0;
+  try {
+    ioObservedDurationMs = elapsedMs(input.startMs);
+  } catch (error) {
+    logEdgeObservationFailure(input, "sampling", error);
+  }
+
+  try {
+    writeWorkerRequestAnalytics({
+      cacheOutcome: input.cacheOutcome,
+      durationMs: ioObservedDurationMs,
+      method: input.request.method,
+      requestClass: input.requestClass,
+      route: input.route,
+      status: response.status,
+    });
+  } catch (error) {
+    logEdgeObservationFailure(input, "analytics", error);
+  }
+
+  let shouldLog = false;
+  try {
+    shouldLog = shouldLogSuccessfulRequest({
       durationMs: ioObservedDurationMs,
       requestId: input.requestId,
       samplePercent: 10,
       status: response.status,
-    })
-  ) {
-    return response;
+    });
+  } catch (error) {
+    logEdgeObservationFailure(input, "sampling", error);
   }
-  logAppEvent(
-    response.status >= 500 ? "error" : "info",
-    "edge.request.finish",
-    {
-      cacheOutcome: input.cacheOutcome,
-      event: "edge.request.finish",
-      ioObservedDurationMs,
-      method: input.request.method,
-      requestClass: input.requestClass,
-      requestId: input.requestId,
-      route: input.route,
-      source: "worker-entrypoint",
-      status: response.status,
-    },
-  );
+  if (!shouldLog) return response;
+
+  try {
+    logAppEvent(
+      response.status >= 500 ? "error" : "info",
+      "edge.request.finish",
+      {
+        cacheOutcome: input.cacheOutcome,
+        event: "edge.request.finish",
+        ioObservedDurationMs,
+        method: input.request.method,
+        requestClass: input.requestClass,
+        requestId: input.requestId,
+        route: input.route,
+        source: "worker-entrypoint",
+        status: response.status,
+      },
+    );
+  } catch (error) {
+    logEdgeObservationFailure(input, "finish-log", error);
+  }
   return response;
 }
 

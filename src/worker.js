@@ -44,6 +44,7 @@ import { maintenancePrisma } from "./lib/db/maintenance-prisma";
 import { prisma } from "./lib/db/prisma";
 import { elapsedMs, monotonicNowMs } from "./lib/log/observability-clock";
 import {
+  INTERNAL_REQUEST_ID_HEADER,
   logScheduledTaskError,
   logScheduledTaskFinish,
   logUnknownScheduledTask,
@@ -157,10 +158,78 @@ function personalizeCachedResponse(response) {
 }
 
 function directRequest(request, requestId) {
+  if (
+    !request.headers.has(PUBLIC_SSR_HEADER) &&
+    !request.headers.has(PUBLIC_SSR_LOCALE_HEADER) &&
+    !request.headers.has(PUBLIC_SSR_MODE_HEADER) &&
+    !request.headers.has(INTERNAL_REQUEST_ID_HEADER) &&
+    !request.headers.has("x-request-id")
+  ) {
+    return {
+      cancel: async () => {},
+      request,
+    };
+  }
+
   const headers = new Headers(request.headers);
   removePublicSsrHeaders(headers);
   setTrustedRequestIdHeader(headers, requestId);
-  return new Request(request, { headers });
+  if (!request.body) {
+    return {
+      cancel: async () => {},
+      request: new Request(request, { headers }),
+    };
+  }
+
+  // Request cloning tees the incoming body. If the app returns early (for
+  // example on an unauthenticated mutation), the unconsumed tee branch can
+  // restart the Worker while the response is being returned. Transfer the
+  // stream through one reader instead, and release it after app.fetch settles.
+  const reader = request.body.getReader();
+  let released = false;
+  const transferredBody = new ReadableStream({
+    async pull(controller) {
+      try {
+        const chunk = await reader.read();
+        if (released) return;
+        if (chunk.done) {
+          released = true;
+          controller.close();
+          return;
+        }
+        controller.enqueue(chunk.value);
+      } catch (error) {
+        released = true;
+        controller.error(error);
+      }
+    },
+    async cancel(reason) {
+      if (released) return;
+      released = true;
+      await reader.cancel(reason);
+    },
+  });
+  const requestInit = {
+    body: transferredBody,
+    duplex: "half",
+    headers,
+  };
+  let reconstructedRequest;
+  try {
+    reconstructedRequest = new Request(request, requestInit);
+  } catch (error) {
+    released = true;
+    void reader.cancel("request reconstruction failed").catch(() => undefined);
+    throw error;
+  }
+  return {
+    cancel: async () => {
+      if (released) return;
+      released = true;
+      await reader.cancel("request body released");
+    },
+    request: reconstructedRequest,
+  };
 }
 
 function publicSsrRequest(request, mode, locale, requestId) {
@@ -336,11 +405,16 @@ async function handleFetch(request, env, context, requestId, edgeObservation) {
     edgeObservation.cacheOutcome = "dynamic";
     edgeObservation.requestClass = "dynamic";
     edgeObservation.route = route;
-    const response = await app.fetch(
-      directRequest(request, requestId),
-      env,
-      context,
-    );
+    let forwardedRequest;
+    let response;
+    try {
+      forwardedRequest = directRequest(request, requestId);
+      response = await app.fetch(forwardedRequest.request, env, context);
+    } finally {
+      if (forwardedRequest) {
+        await forwardedRequest.cancel().catch(() => undefined);
+      }
+    }
     return finish(response, "dynamic", route, "dynamic");
   }
 

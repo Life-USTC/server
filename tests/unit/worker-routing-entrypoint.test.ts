@@ -87,6 +87,12 @@ describe("Worker routing entrypoint", () => {
   });
 
   it("correlates and sanitizes dynamic sign-in requests without changing method or body", async () => {
+    let forwardedBody: string | undefined;
+    appFetchMock.mockImplementationOnce(async (forwardedRequest: Request) => {
+      forwardedBody = await forwardedRequest.text();
+      return new Response("dynamic", { status: 200 });
+    });
+
     const response = await worker.fetch(
       new Request(
         "https://life-ustc.test/account/sign-in?callbackUrl=%2Foauth%2Fauthorize%3Fstate%3Dsecret",
@@ -112,7 +118,7 @@ describe("Worker routing entrypoint", () => {
     const [forwardedRequest] = appFetchMock.mock.calls[0] ?? [];
     expect(forwardedRequest).toBeInstanceOf(Request);
     expect(forwardedRequest.method).toBe("POST");
-    await expect(forwardedRequest.text()).resolves.toBe("provider=google");
+    expect(forwardedBody).toBe("provider=google");
     expect(forwardedRequest.headers.get(INTERNAL_REQUEST_ID_HEADER)).toBe(
       response.headers.get("x-request-id"),
     );
@@ -143,6 +149,43 @@ describe("Worker routing entrypoint", () => {
     );
     expect(JSON.stringify(logAppEventMock.mock.calls)).not.toContain(
       "client-controlled-internal-id",
+    );
+  });
+
+  it("keeps the original body request when no spoofable headers need cleanup", async () => {
+    const request = new Request(
+      "https://life-ustc.test/api/workspace/subscriptions",
+      {
+        body: JSON.stringify({ sectionIds: [1] }),
+        headers: { "content-type": "application/json" },
+        method: "PATCH",
+      },
+    );
+    let trustedContextRequestId: string | undefined;
+    setCloudflareRequestContextMock.mockImplementationOnce(
+      ({ requestId }: { requestId: string }) => {
+        trustedContextRequestId = requestId;
+      },
+    );
+    appFetchMock.mockImplementationOnce(async (forwardedRequest: Request) => {
+      expect(forwardedRequest).toBe(request);
+      expect(trustedContextRequestId).toMatch(/^[0-9a-f-]{36}$/i);
+      return new Response("unauthorized", { status: 401 });
+    });
+
+    const response = await worker.fetch(request, {}, { waitUntil: vi.fn() });
+
+    expect(response.status).toBe(401);
+    expect(appFetchMock.mock.calls[0]?.[0]).toBe(request);
+    expect(trustedContextRequestId).toBe(response.headers.get("x-request-id"));
+    expect(logAppEventMock).toHaveBeenCalledWith(
+      "info",
+      "edge.request.finish",
+      expect.objectContaining({
+        method: "PATCH",
+        requestId: response.headers.get("x-request-id"),
+        status: 401,
+      }),
     );
   });
 
