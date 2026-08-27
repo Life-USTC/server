@@ -185,21 +185,21 @@ function failureLabel(count: number) {
       </div>
     </section>
 
-    <section aria-labelledby="analytics-rankings-title" class="grid gap-3">
+    <section aria-labelledby="analytics-rankings-title" class="grid min-w-0 gap-3">
       <h2 id="analytics-rankings-title" class="text-lg font-semibold">{data.copy.analytics.rankings}</h2>
-      <div class="grid divide-y border-y xl:grid-cols-3 xl:divide-x xl:divide-y-0">
+      <div class="grid min-w-0 divide-y border-y xl:grid-cols-3 xl:divide-x xl:divide-y-0">
         {#each [
           { title: data.copy.analytics.topFeatures, kind: "feature", rows: data.rankings.features },
           { title: data.copy.analytics.topChannels, kind: "channel", rows: data.rankings.channels },
           { title: data.copy.analytics.topClients, kind: "client", rows: data.rankings.clients },
         ] as ranking}
-          <section class="grid content-start gap-4 py-5 xl:px-5 xl:first:pl-0 xl:last:pr-0">
+          <section class="grid min-w-0 content-start gap-4 py-5 xl:px-5 xl:first:pl-0 xl:last:pr-0">
             <h3 class="text-base font-semibold">{ranking.title}</h3>
-            <ol class="grid gap-3">
+            <ol class="grid min-w-0 gap-3">
               {#each ranking.rows as row}
-                <li class="grid gap-1.5">
-                  <div class="flex items-baseline justify-between gap-3 text-sm">
-                    <span class="truncate font-medium">{rankingLabel(ranking.kind as "channel" | "client" | "feature", row.label)}</span>
+                <li class="grid min-w-0 gap-1.5">
+                  <div class="flex min-w-0 items-baseline justify-between gap-3 text-sm">
+                    <span class="min-w-0 truncate font-medium" title={rankingLabel(ranking.kind as "channel" | "client" | "feature", row.label)}>{rankingLabel(ranking.kind as "channel" | "client" | "feature", row.label)}</span>
                     <span class="shrink-0 tabular-nums">{numberFormatter.format(row.count)}</span>
                   </div>
                   <Progress

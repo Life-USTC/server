@@ -20,6 +20,7 @@ export let copy: HomeworkTimestampCopy;
 export let disabled = false;
 export let details: Snippet | undefined = undefined;
 export let idPrefix = "homework";
+export let optionalSettings: Snippet | undefined = undefined;
 export let publishedAt = "";
 export let submissionDueAt = "";
 export let submissionStartAt = "";
@@ -98,11 +99,11 @@ $: hasAdvancedShortcuts = Boolean(
       advancedOpen = value === "advanced";
     }}
   >
-    <Accordion.Item class="rounded-md border px-3" value="advanced">
+    <Accordion.Item class="rounded-lg bg-muted/40 px-3" value="advanced">
       <Accordion.Trigger class="py-3 hover:no-underline">
         {advancedOpen ? copy.advancedHide : copy.advancedShow}
       </Accordion.Trigger>
-      <Accordion.Content class="grid gap-4 pb-3">
+      <Accordion.Content class="grid gap-4 pb-4">
         <Field.Group class="grid gap-3 sm:grid-cols-2">
           <Field.Field data-disabled={disabled ? "true" : undefined}>
             <Field.Title id={`${idPrefix}-published-at-label`}>
@@ -187,6 +188,9 @@ $: hasAdvancedShortcuts = Boolean(
             </ButtonGroup.Root>
           </Field.Field>
         </Field.Group>
+        {#if optionalSettings}
+          {@render optionalSettings()}
+        {/if}
       </Accordion.Content>
     </Accordion.Item>
   </Accordion.Root>

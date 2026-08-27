@@ -2,6 +2,7 @@
 import ChevronRightIcon from "@lucide/svelte/icons/chevron-right";
 import { Button } from "$lib/components/ui/button/index.js";
 import * as Item from "$lib/components/ui/item/index.js";
+import AdminListShell from "./AdminListShell.svelte";
 import {
   adminModerationDescriptionEditedAt,
   adminModerationDescriptionLastEditor,
@@ -23,11 +24,12 @@ export let onManage: (description: AdminModerationDescription) => void;
 export let targetLabel: (description: AdminModerationDescription) => string;
 </script>
 
-<Item.Group class="xl:hidden gap-0 border-y">
-  {#each descriptions as description, index (description.id)}
-    <Item.Root class="items-start px-1 py-3">
+<AdminListShell class="xl:hidden">
+  <Item.Group class="gap-0">
+    {#each descriptions as description, index (description.id)}
+      <Item.Root class="items-start px-1 py-3">
       <Item.Content class="min-w-0 gap-2">
-        <Item.Title class="line-clamp-none">{targetLabel(description)}</Item.Title>
+        <Item.Title class="line-clamp-none" title={targetLabel(description)}>{targetLabel(description)}</Item.Title>
         <Item.Description>
           {formatDate(adminModerationDescriptionEditedAt(description))}
         </Item.Description>
@@ -52,7 +54,8 @@ export let targetLabel: (description: AdminModerationDescription) => string;
           <ChevronRightIcon aria-hidden="true" data-icon="inline-end" />
         </Button>
       </Item.Actions>
-    </Item.Root>
-    {#if index < descriptions.length - 1}<Item.Separator class="my-0" />{/if}
-  {/each}
-</Item.Group>
+      </Item.Root>
+      {#if index < descriptions.length - 1}<Item.Separator class="my-0" />{/if}
+    {/each}
+  </Item.Group>
+</AdminListShell>

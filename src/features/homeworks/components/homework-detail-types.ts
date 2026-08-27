@@ -25,6 +25,7 @@ export type HomeworkDetailCopy = {
 };
 
 export type HomeworkDetailCommentsPanel = Component<{
+  heading?: string | null;
   permalinkBaseHref?: string | null;
   targetId: string;
   targetType: "homework";
