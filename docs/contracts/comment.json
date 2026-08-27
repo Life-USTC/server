@@ -14,7 +14,7 @@
     "markdown-font-csp": "Production builds emit Markdown and KaTeX font files as same-origin assets instead of data URIs so every required math glyph can load under the configured font-src Content Security Policy.",
     "visibility-modes": "Supports public and signed-in-only audience visibility; anonymous posting is represented by comment.isAnonymous and hides identity from regular users while remaining traceable by admins in governance scenarios.",
     "shared-read-policy": "Web, REST, and MCP comment reads share the same target resolution, thread serialization, visibility filtering, author masking, reaction, attachment, and viewer action-flag logic; read-only paths must not create durable comment targets and valid empty section-teacher targets load as empty threads.",
-    "thread-pagination": "Root lists use viewer-visible roots ordered by createdAt/id and include at most 10 visible descendants. repliesNextCursor is opaque; REST continuation is GET /api/community/comments/[id]/replies with pageSize up to 20, and MCP uses community_comment_replies. Continuation preserves bounded ancestry, ordering, permission/moderation flags, and target-wide anonymous hiddenCount.",
+    "thread-pagination": "Root pages select visible roots by createdAt/id; display keeps verified-author-first ordering. Each root includes at most 10 ranked visible preview descendants plus bounded ancestry (up to 20 parent levels). repliesNextCursor is opaque; REST GET /api/community/comments/[id]/replies and MCP community_comment_replies continue at most 20 ranked descendants plus bounded ancestry, preserving permission/moderation flags and the initial target-wide hiddenCount.",
     "interaction-gate": "Edits, deletes, replies, and reaction changes require an authenticated, unsuspended viewer and an active visible comment target; deleted or softbanned comments must not expose canEdit/canDelete/canReply/canReact or accept those write actions. Admin moderation affordances require an unsuspended admin."
   },
   "capabilities": {
@@ -164,7 +164,7 @@
             "path": "/api/community/comments/[id]/replies",
             "returns": "{ rootId: String, thread: Comment[], nextCursor: String | null, viewer }",
             "notes": [
-              "Pass repliesNextCursor from a root node to continue its reply preview; each response includes the root and at most 20 additional descendants.",
+              "Pass repliesNextCursor from a root node to continue its reply preview; each response includes the root, at most 20 ranked descendants, and bounded ancestry rows needed to connect them.",
               "The cursor is scoped to the root comment and invalid or cross-thread cursors return 400; hidden or inaccessible roots return 403."
             ]
           },
@@ -193,7 +193,7 @@
             "auth": "user",
             "rest_equivalent": "GET /api/community/comments/[id]/replies",
             "notes": [
-              "Passes repliesNextCursor from community_comment_list or an earlier continuation response and caps each reply page at 20 descendants."
+              "Passes repliesNextCursor from community_comment_list or an earlier continuation response and caps each ranked reply page at 20 descendants plus bounded ancestry rows."
             ]
           },
           {
