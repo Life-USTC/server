@@ -14,6 +14,7 @@ export type CommentUploadOption = {
 export type CommentsCopy = {
   anonymousLabel: string;
   anonymousBadge: string;
+  ancestryPlaceholder: string;
   cancelAction: string;
   commentTargetCurrent: string;
   commentTargetPlaceholder: string;

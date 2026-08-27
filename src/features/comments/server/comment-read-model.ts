@@ -235,6 +235,9 @@ export async function withCommentReadMetadata(
   counter?: CommentStageCounter,
 ): Promise<RawComment[]> {
   const commentIds = comments.map((comment) => comment.id);
+  // Keep the optional RPCs in independent RLS transactions. A PostgreSQL
+  // statement error aborts its transaction, so sharing one context would let
+  // a reaction/attachment grant failure take down the whole read model.
   const [commentsWithProviders, reactionRows, attachmentRows] =
     await Promise.all([
       withCommentAuthorProviders(comments, counter),
@@ -419,24 +422,37 @@ async function loadPaginatedCommentRoots(
   const childVisible = directlyVisibleCommentSql("child", viewer);
   const query = Prisma.sql`
     WITH eligible_roots AS MATERIALIZED (
-      SELECT root.id, root."createdAt"
+      -- A root hidden from this viewer cannot expose its own timestamp. Use
+      -- the earliest directly visible descendant as its viewer-safe ordering
+      -- key so SQL paging and the redacted root placeholder sort identically.
+      SELECT
+        root.id,
+        CASE
+          WHEN ${rootVisible} THEN root."createdAt"
+          ELSE visible_child."createdAt"
+        END AS "orderCreatedAt"
       FROM "Comment" AS root
+      LEFT JOIN LATERAL (
+        SELECT child.id, child."createdAt"
+        FROM "Comment" AS child
+        WHERE ${commentTargetPredicate("child", target.whereTarget)}
+          AND ${childVisible}
+          AND NOT COALESCE((${rootVisible}), FALSE)
+          AND child."rootId" = root.id
+        ORDER BY child."createdAt" ASC, child.id ASC
+        LIMIT 1
+      ) AS visible_child ON TRUE
       WHERE ${commentTargetPredicate("root", target.whereTarget)}
         AND root."parentId" IS NULL
         AND (
           ${rootVisible}
-          OR EXISTS (
-            SELECT 1
-            FROM "Comment" AS child
-            WHERE child."rootId" = root.id
-              AND ${childVisible}
-          )
+          OR visible_child.id IS NOT NULL
         )
     ),
     paged_roots AS (
-      SELECT id, "createdAt"
+      SELECT id, "orderCreatedAt"
       FROM eligible_roots
-      ORDER BY "createdAt" ASC, id ASC
+      ORDER BY "orderCreatedAt" ASC, id ASC
       OFFSET ${pagination.skip}
       LIMIT ${pagination.pageSize}
     ),
@@ -491,10 +507,7 @@ async function loadBoundedCommentDescendants(
           child."createdAt"
         FROM "Comment" AS child
         WHERE ${commentTargetPredicate("child", target.whereTarget)}
-          AND (
-            ${directlyVisibleCommentSql("child", viewer)}
-            OR child."status" = 'deleted'
-          )
+          AND ${directlyVisibleCommentSql("child", viewer)}
           AND child."rootId" = requested."rootId"
         ORDER BY child."createdAt" ASC, child."id" ASC
         LIMIT ${COMMENT_REPLY_PREVIEW_SIZE + 1}
@@ -625,10 +638,7 @@ async function loadCommentReplyWindow(
           child."createdAt"
         FROM "Comment" AS child
         WHERE child."rootId" = ${rootId}
-          AND (
-            ${directlyVisibleCommentSql("child", viewer)}
-            OR child."status" = 'deleted'
-          )
+          AND ${directlyVisibleCommentSql("child", viewer)}
           ${cursorFilter}
         ORDER BY child."createdAt" ASC, child."id" ASC
         LIMIT ${pageSize + 1}

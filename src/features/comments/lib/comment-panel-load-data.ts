@@ -8,6 +8,7 @@ import { apiClient } from "@/lib/api/client";
 import {
   commentRepliesResponseSchema,
   commentsListResponseSchema,
+  commentThreadResponseSchema,
 } from "@/lib/api/schemas/comments-response-schemas";
 import type { ViewerContext } from "@/lib/auth/viewer-context";
 import {
@@ -156,6 +157,47 @@ export async function loadCommentRepliesPage({
   return parsed.data;
 }
 
+export async function loadCommentThreadPage({
+  commentId,
+  loadFailed,
+}: {
+  commentId: string;
+  loadFailed: string;
+}) {
+  const result = await apiClient.GET(
+    `/api/community/comments/${encodeURIComponent(commentId)}`,
+  );
+  if (!result.response.ok) throw new Error(loadFailed);
+  const parsed = commentThreadResponseSchema.safeParse(result.data);
+  if (!parsed.success) throw new Error(loadFailed);
+  return parsed.data;
+}
+
+export function mergeCommentThread({
+  comments,
+  showAllTargets,
+  target,
+  thread,
+}: {
+  comments: CommentNodeWithContext[];
+  showAllTargets: boolean;
+  target: CommentTargetOption;
+  thread: CommentNode[];
+}) {
+  const incoming = thread.map((comment) =>
+    withCommentContext(comment, target, showAllTargets),
+  );
+  const byId = new Map(comments.map((comment) => [comment.id, comment]));
+  for (const comment of incoming) {
+    const previous = byId.get(comment.id);
+    byId.set(
+      comment.id,
+      previous ? mergeCommentNode(previous, comment) : comment,
+    );
+  }
+  return sortCommentNodes(Array.from(byId.values()));
+}
+
 export function mergeCommentReplyThread({
   comments,
   rootId,
@@ -169,72 +211,63 @@ export function mergeCommentReplyThread({
   target: CommentTargetOption;
   thread: CommentNode[];
 }) {
-  const incomingRoot = findCommentNode(thread, rootId);
-  if (!incomingRoot) return comments;
-  const incoming = withCommentContext(incomingRoot, target, showAllTargets);
-
-  function mergeNodes(
-    nodes: CommentNodeWithContext[],
-  ): CommentNodeWithContext[] {
-    return nodes.map((node) => {
-      if (node.id === rootId) {
-        return {
-          ...node,
-          replies: mergeReplyNodes(node.replies, incoming.replies),
-          repliesNextCursor: incoming.repliesNextCursor,
-        };
-      }
-      return { ...node, replies: mergeNodes(node.replies) };
-    });
-  }
-
-  return mergeNodes(comments);
+  const scopedThread = thread.filter(
+    (comment) => comment.id === rootId || comment.rootId === rootId,
+  );
+  return mergeCommentThread({
+    comments,
+    showAllTargets,
+    target,
+    thread: scopedThread,
+  });
 }
 
-function mergeReplyNodes(
+function mergeCommentNode(
+  existing: CommentNodeWithContext,
+  incoming: CommentNodeWithContext,
+): CommentNodeWithContext {
+  // A continuation may only contain later visible descendants, so its
+  // privacy-inert root placeholder can have a later source timestamp. Keep
+  // the ordering key established by the first page until the root is visible.
+  const preservePlaceholderOrdering =
+    existing.isAncestryPlaceholder && incoming.isAncestryPlaceholder
+      ? {
+          createdAt: existing.createdAt,
+          updatedAt: existing.updatedAt,
+        }
+      : {};
+  return {
+    ...existing,
+    ...incoming,
+    ...preservePlaceholderOrdering,
+    isAncestryPlaceholder: incoming.isAncestryPlaceholder,
+    replies: mergeCommentNodes(existing.replies, incoming.replies),
+  };
+}
+
+function mergeCommentNodes(
   existing: CommentNodeWithContext[],
   incoming: CommentNodeWithContext[],
 ) {
-  const byId = new Map(existing.map((node) => [node.id, node]));
-  for (const node of incoming) {
-    const previous = byId.get(node.id);
+  const byId = new Map(existing.map((comment) => [comment.id, comment]));
+  for (const comment of incoming) {
+    const previous = byId.get(comment.id);
     byId.set(
-      node.id,
-      previous
-        ? {
-            ...previous,
-            replies: mergeReplyNodes(previous.replies, node.replies),
-            repliesNextCursor: node.repliesNextCursor,
-          }
-        : node,
+      comment.id,
+      previous ? mergeCommentNode(previous, comment) : comment,
     );
   }
-  return sortReplyNodes(Array.from(byId.values()));
+  return sortCommentNodes(Array.from(byId.values()));
 }
 
-function sortReplyNodes(
+function sortCommentNodes(
   nodes: CommentNodeWithContext[],
 ): CommentNodeWithContext[] {
   return nodes
-    .map((node) => ({ ...node, replies: sortReplyNodes(node.replies) }))
+    .map((node) => ({ ...node, replies: sortCommentNodes(node.replies) }))
     .sort((a, b) => {
-      const aVerified = a.author?.isUstcVerified ? 1 : 0;
-      const bVerified = b.author?.isUstcVerified ? 1 : 0;
-      if (aVerified !== bVerified) return bVerified - aVerified;
       return a.createdAt.localeCompare(b.createdAt) || a.id.localeCompare(b.id);
     });
-}
-
-function findCommentNode(
-  comments: CommentNode[],
-  id: string,
-): CommentNode | null {
-  for (const comment of comments) {
-    if (comment.id === id) return comment;
-    const nested = findCommentNode(comment.replies, id);
-    if (nested) return nested;
-  }
-  return null;
 }
 
 async function loadCommentPage(params: URLSearchParams, loadFailed: string) {

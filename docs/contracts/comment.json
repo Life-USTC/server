@@ -14,7 +14,7 @@
     "markdown-font-csp": "Production builds emit Markdown and KaTeX font files as same-origin assets instead of data URIs so every required math glyph can load under the configured font-src Content Security Policy.",
     "visibility-modes": "Supports public and signed-in-only audience visibility; anonymous posting is represented by comment.isAnonymous and hides identity from regular users while remaining traceable by admins in governance scenarios.",
     "shared-read-policy": "Web, REST, and MCP comment reads share the same target resolution, thread serialization, visibility filtering, author masking, reaction, attachment, and viewer action-flag logic; read-only paths must not create durable comment targets and valid empty section-teacher targets load as empty threads.",
-    "thread-pagination": "Root pages select visible roots by createdAt/id; display keeps verified-author-first ordering. Each root includes at most 10 ranked visible preview descendants plus bounded ancestry (up to 20 parent levels). repliesNextCursor is opaque; REST GET /api/community/comments/[id]/replies and MCP community_comment_replies continue at most 20 ranked descendants plus bounded ancestry, preserving permission/moderation flags and the initial target-wide hiddenCount.",
+    "thread-pagination": "Root/reply pages use viewer-safe createdAt/id order (hidden roots use earliest visible descendant timestamp and root id). Each root has at most 10 preview descendants plus 20 ancestry levels. Missing ancestors use privacy-inert isAncestryPlaceholder structural ids, preserving branches and one top-level entry per root. repliesNextCursor is opaque; REST GET /api/community/comments/[id]/replies and MCP community_comment_replies continue at most 20 descendants plus ancestry, preserving permissions/moderation.",
     "interaction-gate": "Edits, deletes, replies, and reaction changes require an authenticated, unsuspended viewer and an active visible comment target; deleted or softbanned comments must not expose canEdit/canDelete/canReply/canReact or accept those write actions. Admin moderation affordances require an unsuspended admin."
   },
   "capabilities": {
@@ -257,6 +257,7 @@
           "comment.reactions[] (counts per reaction type)",
           "comment.replies[] (threaded)",
           "comment.repliesNextCursor (bounded reply continuation)",
+          "comment.isAncestryPlaceholder (redacted structural context)",
           "comment.attachments[] filename/open action for signed-in viewers with attachment access",
           "canReply/canReact/canEdit/canDelete/canModerate actions",
           "Copy link action"

@@ -1973,6 +1973,7 @@
     "sectionRequired": "Please select a section."
   },
   "comments": {
+    "ancestryPlaceholder": "Some earlier comments in this thread are unavailable.",
     "title": "Comments",
     "commentNotFound": "Comment not found.",
     "commentTargetNotFound": "Comment target not found.",

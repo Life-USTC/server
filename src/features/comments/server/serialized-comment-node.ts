@@ -81,3 +81,37 @@ export function buildVisibleCommentNode({
     canModerate: viewer.isAdmin && !viewer.isSuspended,
   };
 }
+
+export function buildAncestryPlaceholderNode(input: {
+  createdAt: Date;
+  id: string;
+  parentId: string | null;
+  rootId: string | null;
+  updatedAt: Date;
+}): CommentNode {
+  return {
+    id: input.id,
+    body: "",
+    renderedBody: "",
+    visibility: "public",
+    status: "active",
+    author: null,
+    authorHidden: true,
+    isAnonymous: false,
+    isAuthor: false,
+    createdAt: toShanghaiIsoString(input.createdAt),
+    updatedAt: toShanghaiIsoString(input.updatedAt),
+    parentId: input.parentId,
+    rootId: input.rootId,
+    replies: [],
+    repliesNextCursor: null,
+    isAncestryPlaceholder: true,
+    attachments: [],
+    reactions: [],
+    canReact: false,
+    canReply: false,
+    canEdit: false,
+    canDelete: false,
+    canModerate: false,
+  };
+}

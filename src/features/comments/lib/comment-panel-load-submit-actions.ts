@@ -4,7 +4,9 @@ import {
   type CommentTargetLoadState,
   loadCommentRepliesPage,
   loadCommentsForTargets,
+  loadCommentThreadPage,
   mergeCommentReplyThread,
+  mergeCommentThread,
 } from "./comment-panel-data";
 import type { CommentEditorMode } from "./comment-panel-draft-state";
 import { buildCommentSubmitPayload } from "./comment-panel-submit-payload";
@@ -275,6 +277,54 @@ export function createCommentPanelLoadSubmitActions(input: {
     }
   }
 
+  async function refreshAfterSubmit(
+    commentId: string,
+    target: CommentTargetOption,
+  ) {
+    let initialLoadError: unknown;
+    const state = input
+      .getTargetLoadStates()
+      .find((entry) => entry.target.key === target.key);
+    if (!state?.loaded) {
+      try {
+        await loadTargetPages([target.key], { [target.key]: 1 }, true);
+      } catch (error) {
+        initialLoadError = error;
+      }
+    }
+
+    const result = await loadCommentThreadPage({
+      commentId,
+      loadFailed: input.getCommentCopy().loadFailed,
+    });
+    const states = currentTargetStates();
+    const nextStates = states.map((state) =>
+      state.target.key === target.key
+        ? {
+            ...state,
+            comments: mergeCommentThread({
+              comments: state.comments,
+              showAllTargets: input.getShowAllTargets(),
+              target,
+              thread: result.thread,
+            }),
+          }
+        : state,
+    );
+    input.setTargetLoadStates(nextStates);
+    input.setComments(
+      visibleCommentsForTargets({
+        showAllTargets: input.getShowAllTargets(),
+        targetComments: Object.fromEntries(
+          nextStates.map((state) => [state.target.key, state.comments]),
+        ),
+        targets: input.getTargets(),
+      }),
+    );
+    input.setViewer(result.viewer);
+    if (initialLoadError) throw initialLoadError;
+  }
+
   async function submitComment(
     parentId?: string | null,
     replyBody?: string,
@@ -288,7 +338,7 @@ export function createCommentPanelLoadSubmitActions(input: {
     input.setMessageVariant("default");
     const copy = input.getCommentCopy();
     try {
-      await submitCommentRequest(
+      const createdCommentId = await submitCommentRequest(
         buildCommentSubmitPayload({
           body,
           getIsAnonymous: input.getIsAnonymous,
@@ -307,8 +357,17 @@ export function createCommentPanelLoadSubmitActions(input: {
       input.cancelReply();
       input.setSelectedAttachments([]);
       input.setUploadedFiles([]);
-      await loadComments();
       input.onSuccess?.(mode === "new" ? "comment" : "reply");
+      if (target) {
+        try {
+          await refreshAfterSubmit(createdCommentId, target);
+        } catch (error) {
+          input.setMessageVariant("destructive");
+          input.setMessage(
+            error instanceof Error ? error.message : copy.loadFailed,
+          );
+        }
+      }
     } catch (error) {
       input.setMessageVariant("destructive");
       input.setMessage(
@@ -341,6 +400,12 @@ function mergeCommentPages(
         ? {
             ...previous,
             ...comment,
+            ...(previous.isAncestryPlaceholder && comment.isAncestryPlaceholder
+              ? {
+                  createdAt: previous.createdAt,
+                  updatedAt: previous.updatedAt,
+                }
+              : {}),
             replies: mergeReplyNodes(previous.replies, comment.replies),
           }
         : comment,
@@ -362,6 +427,12 @@ function mergeReplyNodes(
         ? {
             ...previous,
             ...comment,
+            ...(previous.isAncestryPlaceholder && comment.isAncestryPlaceholder
+              ? {
+                  createdAt: previous.createdAt,
+                  updatedAt: previous.updatedAt,
+                }
+              : {}),
             replies: mergeReplyNodes(previous.replies, comment.replies),
           }
         : comment,
@@ -376,9 +447,6 @@ function sortCommentNodes(
   return nodes
     .map((node) => ({ ...node, replies: sortCommentNodes(node.replies) }))
     .sort((a, b) => {
-      const aVerified = a.author?.isUstcVerified ? 1 : 0;
-      const bVerified = b.author?.isUstcVerified ? 1 : 0;
-      if (aVerified !== bVerified) return bVerified - aVerified;
       return a.createdAt.localeCompare(b.createdAt) || a.id.localeCompare(b.id);
     });
 }

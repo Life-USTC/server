@@ -6,7 +6,9 @@ export {
   commentsFromInitialData,
   loadCommentRepliesPage,
   loadCommentsForTargets,
+  loadCommentThreadPage,
   mergeCommentReplyThread,
+  mergeCommentThread,
 } from "./comment-panel-load-data";
 export {
   commentPostTargetOptions,

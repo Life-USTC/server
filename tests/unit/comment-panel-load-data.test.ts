@@ -228,4 +228,148 @@ describe("comment panel bounded loading", () => {
     ]);
     expect(result[0]?.repliesNextCursor).toBeNull();
   });
+
+  it("keeps a chronological page boundary when a later reply is verified", () => {
+    const target = targets[0];
+    if (!target) throw new Error("missing target");
+    const existingReply = node("reply-1", {
+      createdAt: "2026-01-01T00:00:01+08:00",
+      parentId: "root-1",
+      rootId: "root-1",
+    });
+    const laterVerifiedReply = node("reply-2", {
+      author: {
+        id: "verified-user",
+        image: null,
+        isAdmin: false,
+        isGuest: false,
+        isUstcVerified: true,
+        name: "Verified User",
+      },
+      createdAt: "2026-01-01T00:00:02+08:00",
+      parentId: "root-1",
+      rootId: "root-1",
+    });
+    const result = mergeCommentReplyThread({
+      comments: [
+        {
+          ...node("root-1", {
+            replies: [existingReply],
+            repliesNextCursor: "cursor-1",
+          }),
+          contextKey: target.key,
+        },
+      ],
+      rootId: "root-1",
+      showAllTargets: true,
+      target,
+      thread: [
+        node("root-1", {
+          replies: [laterVerifiedReply],
+          repliesNextCursor: null,
+        }),
+      ],
+    });
+
+    expect(result[0]?.replies.map((reply) => reply.id)).toEqual([
+      "reply-1",
+      "reply-2",
+    ]);
+  });
+
+  it("merges promoted continuation branches into one bounded root entry", () => {
+    const target = targets[0];
+    if (!target) throw new Error("missing target");
+    const result = mergeCommentReplyThread({
+      comments: [
+        {
+          ...node("root-1", { isAncestryPlaceholder: true, rootId: "root-1" }),
+          replies: [
+            node("reply-1", {
+              parentId: "root-1",
+              rootId: "root-1",
+            }),
+          ],
+          contextKey: target.key,
+        },
+      ],
+      rootId: "root-1",
+      showAllTargets: true,
+      target,
+      thread: [
+        node("root-1", {
+          isAncestryPlaceholder: true,
+          replies: [
+            node("reply-2", {
+              parentId: "root-1",
+              rootId: "root-1",
+            }),
+          ],
+          rootId: "root-1",
+        }),
+      ],
+    });
+
+    expect(result).toHaveLength(1);
+    expect(result[0]?.isAncestryPlaceholder).toBe(true);
+    expect(result[0]?.replies.map((reply) => reply.id)).toEqual([
+      "reply-1",
+      "reply-2",
+    ]);
+    expect(
+      result[0]?.replies.every((reply) => reply.parentId === "root-1"),
+    ).toBe(true);
+  });
+
+  it("preserves a hidden root's ordering key across continuation merges", () => {
+    const target = targets[0];
+    if (!target) throw new Error("missing target");
+    const hiddenRoot = {
+      ...node("hidden-root", {
+        createdAt: "2026-01-01T00:00:01+08:00",
+        isAncestryPlaceholder: true,
+        updatedAt: "2026-01-01T00:00:01+08:00",
+      }),
+      contextKey: target.key,
+    };
+    const visibleRoot = {
+      ...node("visible-root", {
+        createdAt: "2026-01-01T00:00:02+08:00",
+        updatedAt: "2026-01-01T00:00:02+08:00",
+      }),
+      contextKey: target.key,
+    };
+    const result = mergeCommentReplyThread({
+      comments: [hiddenRoot, visibleRoot],
+      rootId: "hidden-root",
+      showAllTargets: true,
+      target,
+      thread: [
+        node("hidden-root", {
+          createdAt: "2026-01-01T00:00:03+08:00",
+          isAncestryPlaceholder: true,
+          replies: [
+            node("reply-21", {
+              createdAt: "2026-01-01T00:00:04+08:00",
+              parentId: "hidden-root",
+              rootId: "hidden-root",
+            }),
+          ],
+          rootId: "hidden-root",
+          updatedAt: "2026-01-01T00:00:03+08:00",
+        }),
+      ],
+    });
+
+    expect(result.map((comment) => comment.id)).toEqual([
+      "hidden-root",
+      "visible-root",
+    ]);
+    expect(result[0]).toMatchObject({
+      createdAt: "2026-01-01T00:00:01+08:00",
+      isAncestryPlaceholder: true,
+      updatedAt: "2026-01-01T00:00:01+08:00",
+    });
+    expect(result[0]?.replies.map((reply) => reply.id)).toEqual(["reply-21"]);
+  });
 });

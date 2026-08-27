@@ -219,6 +219,8 @@ describe("loadCommentThread pagination", () => {
     const [rootQuery] = rootPageQueryMock.mock.calls[0] ?? [];
     expect(rawQuerySql(rootQuery)).toContain("eligible_roots");
     expect(rawQuerySql(rootQuery)).toContain('root."parentId" IS NULL');
+    expect(rawQuerySql(rootQuery)).toContain('"orderCreatedAt"');
+    expect(rawQuerySql(rootQuery)).toContain("visible_child");
     expect(commentFindManyMock).toHaveBeenNthCalledWith(
       1,
       expect.objectContaining({

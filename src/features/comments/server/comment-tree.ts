@@ -43,9 +43,6 @@ export function commentHasVisibleDescendant(
 export function sortCommentReplies(nodes: CommentNode[], depth = 0) {
   const maxDepth = depth >= MAX_SORT_DEPTH;
   nodes.sort((a, b) => {
-    const aVerified = a.author?.isUstcVerified ? 1 : 0;
-    const bVerified = b.author?.isUstcVerified ? 1 : 0;
-    if (aVerified !== bVerified) return bVerified - aVerified;
     const createdAtOrder = a.createdAt.localeCompare(b.createdAt);
     return createdAtOrder !== 0 ? createdAtOrder : a.id.localeCompare(b.id);
   });

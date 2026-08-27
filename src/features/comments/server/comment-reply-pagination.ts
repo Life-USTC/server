@@ -12,7 +12,7 @@ export const COMMENT_REPLY_PREVIEW_SIZE = 10;
 /** Maximum number of replies returned by one continuation request. */
 export const COMMENT_REPLY_PAGE_SIZE = 20;
 
-/** Keep enough parents to render a bounded reply page without losing ancestry. */
+/** Bound parent hydration; omitted parents are represented structurally. */
 export const COMMENT_REPLY_MAX_ANCESTRY_DEPTH = 20;
 
 export function encodeCommentReplyCursor(cursor: CommentReplyCursor) {

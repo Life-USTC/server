@@ -8638,6 +8638,9 @@
             "nullable": true,
             "type": "string"
           },
+          "isAncestryPlaceholder": {
+            "type": "boolean"
+          },
           "attachments": {
             "type": "array",
             "items": {
@@ -8869,6 +8872,9 @@
           "repliesNextCursor": {
             "nullable": true,
             "type": "string"
+          },
+          "isAncestryPlaceholder": {
+            "type": "boolean"
           },
           "attachments": {
             "type": "array",

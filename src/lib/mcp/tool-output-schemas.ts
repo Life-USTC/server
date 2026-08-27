@@ -1287,6 +1287,7 @@ function createMcpCommentNodeSchema(includeRenderedBody: boolean): z.ZodType {
         rootId: z.string().nullable(),
         replies: z.array(schema),
         repliesNextCursor: z.string().nullable(),
+        isAncestryPlaceholder: z.boolean().optional(),
         attachments: z.array(commentAttachmentSummarySchema),
         reactions: z.array(commentReactionSummarySchema),
         canReact: z.boolean(),

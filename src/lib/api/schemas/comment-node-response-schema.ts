@@ -41,6 +41,7 @@ export type CommentNode = {
   rootId: string | null;
   replies: CommentNode[];
   repliesNextCursor: string | null;
+  isAncestryPlaceholder?: boolean;
   attachments: z.infer<typeof commentAttachmentSummarySchema>[];
   reactions: z.infer<typeof commentReactionSummarySchema>[];
   canReact: boolean;
@@ -67,6 +68,7 @@ export const commentNodeSchema: z.ZodType<CommentNode> = z.lazy(() =>
     rootId: z.string().nullable(),
     replies: z.array(commentNodeSchema),
     repliesNextCursor: z.string().nullable(),
+    isAncestryPlaceholder: z.boolean().optional(),
     attachments: z.array(commentAttachmentSummarySchema),
     reactions: z.array(commentReactionSummarySchema),
     canReact: z.boolean(),
