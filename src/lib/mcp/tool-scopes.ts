@@ -84,6 +84,7 @@ const TOOL_SCOPE_MAP: Record<string, ToolScopeRequirement[]> = {
   // Comments
   community_comment_list: [{ feature: "community.comment", action: "read" }],
   community_comment_get: [{ feature: "community.comment", action: "read" }],
+  community_comment_replies: [{ feature: "community.comment", action: "read" }],
   community_comment_create: [{ feature: "community.comment", action: "write" }],
   community_comment_update: [{ feature: "community.comment", action: "write" }],
   community_comment_delete: [{ feature: "community.comment", action: "write" }],

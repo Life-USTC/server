@@ -1,6 +1,7 @@
 <script lang="ts">
 import type { CommentNodeWithContext } from "@/features/comments/lib/comment-ui";
 import type { ViewerContext } from "@/lib/auth/viewer-context";
+import { Button } from "$lib/components/ui/button/index.js";
 import CommentThreadItem from "./CommentThreadItem.svelte";
 import type {
   CommentThreadProps,
@@ -26,6 +27,8 @@ export let editVisibility: string;
 export let formatSize: CommentThreadProps["formatSize"];
 export let formatTime: CommentThreadProps["formatTime"];
 export let highlightedId: string | null;
+export let loadingReplyRootId: string | null;
+export let loadMoreReplies: (rootId: string) => void;
 export let openDeleteDialog: CommentThreadProps["openDeleteDialog"];
 export let pendingReactionKey: string | null;
 export let react: CommentThreadProps["react"];
@@ -107,6 +110,19 @@ export let visibilityOptions: CommentThreadProps["visibilityOptions"];
   {#each comment.replies as reply}
     {@render commentItem(reply, depth + 1)}
   {/each}
+
+  {#if comment.repliesNextCursor && comment.parentId === null}
+    <Button
+      class="ml-2"
+      disabled={loadingReplyRootId === comment.id}
+      size="sm"
+      type="button"
+      variant="ghost"
+      onclick={() => loadMoreReplies(comment.id)}
+    >
+      {commentCopy.loadMoreReplies}
+    </Button>
+  {/if}
 {/snippet}
 
 <div class="grid min-w-0 gap-4">

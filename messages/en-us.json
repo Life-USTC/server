@@ -1973,6 +1973,7 @@
     "sectionRequired": "Please select a section."
   },
   "comments": {
+    "ancestryPlaceholder": "Some earlier comments in this thread are unavailable.",
     "title": "Comments",
     "commentNotFound": "Comment not found.",
     "commentTargetNotFound": "Comment target not found.",
@@ -2028,6 +2029,9 @@
     "reactionSuccess": "Reaction updated",
     "pleaseRetry": "Please try again.",
     "loadFailed": "Unable to load comments.",
+    "loadMoreComments": "Load more comments",
+    "loadMoreReplies": "Load more replies",
+    "loadTarget": "Load comments",
     "loading": "Loading comments...",
     "retry": "Retry",
     "emptyTitle": "No comments yet",

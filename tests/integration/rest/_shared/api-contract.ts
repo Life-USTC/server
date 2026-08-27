@@ -468,6 +468,7 @@ export async function assertApiContract(
     }
 
     case "/api/community/comments/[id]":
+    case "/api/community/comments/[id]/replies":
     case "/api/community/comments/[id]/reactions": {
       const response = await request.get(
         routePath.replace("[id]", "invalid-e2e"),

@@ -7,6 +7,8 @@
  * - Public endpoint (no auth required)
  * - Returns 400 for missing/invalid target
  * - Returns 404 for missing target entity
+ * - Each root includes at most 10 replies; `repliesNextCursor` continues a
+ *   bounded reply page through GET /api/community/comments/{id}/replies.
  *
  * ## POST /api/community/comments
  * - Body: { targetType, targetId, body, visibility?, isAnonymous?, parentId?, attachmentIds?, sectionId?, sectionJwId?, courseJwId?, teacherId?, homeworkId?, sectionTeacherId? }
@@ -204,7 +206,7 @@ test("/api/community/comments GET 不存在的目标返回 404", async ({
   expect(response.status()).toBe(404);
 });
 
-test("/api/community/comments GET 按根评论分页并保留完整回复树", async ({
+test("/api/community/comments GET 按根评论分页并保留有界回复树", async ({
   request,
 }, testInfo) => {
   await signInAsDebugUserApi(request, "/");
@@ -267,6 +269,131 @@ test("/api/community/comments GET 按根评论分页并保留完整回复树", a
     const second = (await secondResponse.json()) as CommentListResponse;
     expect(second.pagination).toMatchObject({ page: 2, pageSize: 1, total: 3 });
     expect(second.data?.map((comment) => comment.id)).toEqual([rootIds[1]]);
+  } finally {
+    await withE2ePrisma((prisma) =>
+      prisma.comment.deleteMany({ where: { sectionId: fixture.sectionId } }),
+    );
+    await deleteDisposableSectionTeacherFixture(fixture);
+  }
+});
+
+test("/api/community/comments GET 限制回复负载并可继续分页", async ({
+  request,
+}, testInfo) => {
+  await signInAsDebugUserApi(request, "/");
+  const fixture = await createDisposableSectionTeacherFixture(testInfo, {
+    connectTeacher: false,
+  });
+  const marker = `e2e-comment-reply-window-${Date.now()}`;
+  let rootId: string | undefined;
+  const replyIds: string[] = [];
+
+  try {
+    const rootResponse = await request.post("/api/community/comments", {
+      data: {
+        targetType: "section",
+        targetId: String(fixture.sectionId),
+        body: `${marker}-root`,
+      },
+    });
+    expect(rootResponse.status()).toBe(201);
+    rootId = ((await rootResponse.json()) as { id?: string }).id;
+    expect(rootId).toBeTruthy();
+    if (!rootId) throw new Error("Expected root comment id");
+    const replyBaseTime = Date.now();
+
+    for (let index = 1; index <= 21; index += 1) {
+      const response = await request.post("/api/community/comments", {
+        data: {
+          targetType: "section",
+          targetId: String(fixture.sectionId),
+          body: `${marker}-reply-${index}`,
+          parentId: rootId,
+        },
+      });
+      expect(response.status()).toBe(201);
+      const id = ((await response.json()) as { id?: string }).id;
+      expect(id).toBeTruthy();
+      if (id) replyIds.push(id);
+    }
+    await withE2ePrisma((prisma) =>
+      prisma.$transaction(
+        replyIds.map((id, index) =>
+          prisma.comment.update({
+            where: { id },
+            data: { createdAt: new Date(replyBaseTime + index * 1_000) },
+          }),
+        ),
+      ),
+    );
+
+    const firstResponse = await request.get(
+      `/api/community/comments?targetType=section&targetId=${fixture.sectionId}&pageSize=1`,
+    );
+    expect(firstResponse.status()).toBe(200);
+    const first = (await firstResponse.json()) as {
+      data?: Array<{
+        id?: string;
+        replies?: Array<{
+          body?: string;
+          id?: string;
+          rootId?: string | null;
+        }>;
+        repliesNextCursor?: string | null;
+      }>;
+    };
+    const firstRoot = first.data?.find((comment) => comment.id === rootId);
+    expect(firstRoot?.replies).toHaveLength(10);
+    expect(firstRoot?.replies?.map((reply) => reply.body)).toEqual(
+      Array.from({ length: 10 }, (_, index) => `${marker}-reply-${index + 1}`),
+    );
+    expect(firstRoot?.replies?.some((reply) => reply.id === rootId)).toBe(
+      false,
+    );
+    expect(firstRoot?.replies?.every((reply) => reply.rootId === rootId)).toBe(
+      true,
+    );
+    expect(firstRoot?.repliesNextCursor).toEqual(expect.any(String));
+    expect(JSON.stringify(first)).not.toContain(`${marker}-reply-11`);
+    expect(JSON.stringify(first).length).toBeLessThan(20_000);
+
+    const continuationResponse = await request.get(
+      `/api/community/comments/${rootId}/replies?cursor=${encodeURIComponent(firstRoot?.repliesNextCursor ?? "")}&pageSize=20`,
+    );
+    expect(continuationResponse.status()).toBe(200);
+    const continuation = (await continuationResponse.json()) as {
+      nextCursor?: string | null;
+      rootId?: string;
+      thread?: Array<{
+        id?: string;
+        replies?: Array<{
+          body?: string;
+          id?: string;
+          rootId?: string | null;
+        }>;
+      }>;
+    };
+    const continuationRoot = continuation.thread?.find(
+      (comment) => comment.id === rootId,
+    );
+    const firstReplyIds = new Set(
+      firstRoot?.replies?.flatMap((reply) => (reply.id ? [reply.id] : [])),
+    );
+    const continuationReplyIds = continuationRoot?.replies?.flatMap((reply) =>
+      reply.id ? [reply.id] : [],
+    );
+    expect(continuation.rootId).toBe(rootId);
+    expect(continuation.nextCursor).toBeNull();
+    expect(continuationReplyIds).toHaveLength(11);
+    expect(continuationRoot?.replies?.map((reply) => reply.body)).toEqual(
+      Array.from({ length: 11 }, (_, index) => `${marker}-reply-${index + 11}`),
+    );
+    expect(continuationReplyIds?.some((id) => firstReplyIds.has(id))).toBe(
+      false,
+    );
+    expect(
+      new Set([...(firstReplyIds ?? []), ...(continuationReplyIds ?? [])]).size,
+    ).toBe(replyIds.length);
   } finally {
     await withE2ePrisma((prisma) =>
       prisma.comment.deleteMany({ where: { sectionId: fixture.sectionId } }),

@@ -1,6 +1,8 @@
 <script lang="ts">
+import type { CommentTargetLoadState } from "@/features/comments/lib/comment-panel-data";
 import type { CommentNodeWithContext } from "@/features/comments/lib/comment-ui";
 import type { ViewerContext } from "@/lib/auth/viewer-context";
+import { Button } from "$lib/components/ui/button/index.js";
 import * as Empty from "$lib/components/ui/empty/index.js";
 import { Skeleton } from "$lib/components/ui/skeleton/index.js";
 import CommentsThreadList from "./CommentsThreadList.svelte";
@@ -29,6 +31,11 @@ export let formatSize: CommentThreadProps["formatSize"];
 export let formatTime: CommentThreadProps["formatTime"];
 export let highlightedId: string | null;
 export let loading: boolean;
+export let loadingReplyRootId: string | null;
+export let loadingTargetKey: string | null;
+export let loadMoreComments: (targetKey: string) => void;
+export let loadMoreReplies: (rootId: string) => void;
+export let loadTarget: (targetKey: string) => void;
 export let openDeleteDialog: CommentThreadProps["openDeleteDialog"];
 export let pendingReactionKey: string | null;
 export let react: CommentThreadProps["react"];
@@ -50,11 +57,26 @@ export let startEdit: CommentThreadProps["startEdit"];
 export let statusLabel: CommentThreadProps["statusLabel"];
 export let submitting: boolean;
 export let submitComment: CommentThreadProps["submitComment"];
+export let targetLoadStates: CommentTargetLoadState[];
 export let toggleReply: CommentThreadProps["toggleReply"];
 export let uploadCopy: CommentThreadProps["uploadCopy"];
 export let uploadFile: CommentThreadProps["uploadFile"];
 export let viewer: ViewerContext;
 export let visibilityOptions: CommentThreadProps["visibilityOptions"];
+
+function canLoadTarget(state: CommentTargetLoadState) {
+  return Boolean(
+    state.target.type !== "section-teacher" || state.target.teacherId,
+  );
+}
+
+function hasTargetContinuation(state: CommentTargetLoadState) {
+  return (
+    canLoadTarget(state) &&
+    ((!state.loaded && state.page === 0) ||
+      (state.loaded && state.page < state.totalPages))
+  );
+}
 </script>
 
 {#if loading}
@@ -62,58 +84,95 @@ export let visibilityOptions: CommentThreadProps["visibilityOptions"];
     <Skeleton class="h-24 w-full" />
     <Skeleton class="h-24 w-full" />
   </div>
-{:else if comments.length === 0}
-  <Empty.Root class="min-h-20 border-0 px-2 py-6">
-    <Empty.Header>
-      <Empty.Description>{commentCopy.emptyTitle}</Empty.Description>
-    </Empty.Header>
-  </Empty.Root>
 {:else}
-  <CommentsThreadList
-    bind:actionMenuId
-    {authorInitials}
-    {authorName}
-    {cancelEdit}
-    {cancelReply}
-    {commentCopy}
-    {commentTarget}
-    {comments}
-    {copyCommentLink}
-    bind:editAttachmentIds
-    {editAttachmentOptions}
-    bind:editDraft
-    {editUploading}
-    bind:editingId
-    bind:editIsAnonymous
-    bind:editVisibility
-    {formatSize}
-    {formatTime}
-    {highlightedId}
-    {openDeleteDialog}
-    {pendingReactionKey}
-    {react}
-    {reactionEntry}
-    {reactionKey}
-    {reactionLabel}
-    bind:reactionMenuId
-    {reactionName}
-    {reactionOptions}
-    {removeReplyAttachment}
-    bind:replyDraft
-    {replyUploading}
-    {replyingId}
-    bind:replyIsAnonymous
-    {replyUploadedFiles}
-    bind:replyVisibility
-    {saveEdit}
-    {startEdit}
-    {statusLabel}
-    {submitting}
-    {submitComment}
-    {toggleReply}
-    {uploadCopy}
-    {uploadFile}
-    {viewer}
-    {visibilityOptions}
-  />
+  {#if targetLoadStates.some(hasTargetContinuation)}
+    <div
+      class="mb-4 flex min-w-0 flex-wrap gap-2"
+      data-testid="comment-target-load-controls"
+    >
+      {#each targetLoadStates as state}
+        {#if !state.loaded && canLoadTarget(state)}
+          <Button
+            class="min-w-0 max-w-full whitespace-normal break-words"
+            disabled={loadingTargetKey !== null}
+            size="sm"
+            type="button"
+            variant="outline"
+            onclick={() => loadTarget(state.target.key)}
+          >
+            {state.target.label}: {commentCopy.loadTarget}
+          </Button>
+        {:else if state.loaded && state.page < state.totalPages}
+          <Button
+            class="min-w-0 max-w-full whitespace-normal break-words"
+            disabled={loadingTargetKey !== null}
+            size="sm"
+            type="button"
+            variant="outline"
+            onclick={() => loadMoreComments(state.target.key)}
+          >
+            {state.target.label}: {commentCopy.loadMoreComments}
+          </Button>
+        {/if}
+      {/each}
+    </div>
+  {/if}
+
+  {#if comments.length === 0}
+    <Empty.Root class="min-h-20 border-0 px-2 py-6">
+      <Empty.Header>
+        <Empty.Description>{commentCopy.emptyTitle}</Empty.Description>
+      </Empty.Header>
+    </Empty.Root>
+  {:else}
+    <CommentsThreadList
+      bind:actionMenuId
+      {authorInitials}
+      {authorName}
+      {cancelEdit}
+      {cancelReply}
+      {commentCopy}
+      {commentTarget}
+      {comments}
+      {copyCommentLink}
+      bind:editAttachmentIds
+      {editAttachmentOptions}
+      bind:editDraft
+      {editUploading}
+      bind:editingId
+      bind:editIsAnonymous
+      bind:editVisibility
+      {formatSize}
+      {formatTime}
+      {highlightedId}
+      {loadingReplyRootId}
+      {loadMoreReplies}
+      {openDeleteDialog}
+      {pendingReactionKey}
+      {react}
+      {reactionEntry}
+      {reactionKey}
+      {reactionLabel}
+      bind:reactionMenuId
+      {reactionName}
+      {reactionOptions}
+      {removeReplyAttachment}
+      bind:replyDraft
+      {replyUploading}
+      {replyingId}
+      bind:replyIsAnonymous
+      {replyUploadedFiles}
+      bind:replyVisibility
+      {saveEdit}
+      {startEdit}
+      {statusLabel}
+      {submitting}
+      {submitComment}
+      {toggleReply}
+      {uploadCopy}
+      {uploadFile}
+      {viewer}
+      {visibilityOptions}
+    />
+  {/if}
 {/if}

@@ -330,6 +330,9 @@ describe("MCP tool descriptors", () => {
     expect(outputSchemaKeys(result, "community_comment_list")).toEqual(
       expect.arrayContaining(["found", "data", "pagination", "meta"]),
     );
+    expect(outputSchemaKeys(result, "community_comment_replies")).toEqual(
+      expect.arrayContaining(["found", "rootId", "thread", "nextCursor"]),
+    );
     expect(outputSchemaKeys(result, "workspace_upload_list")).toEqual(
       expect.arrayContaining(["data", "pagination", "meta"]),
     );
@@ -646,6 +649,7 @@ describe("MCP tool descriptors", () => {
       parentId: null,
       rootId: null,
       replies: [],
+      repliesNextCursor: null,
       attachments: [],
       reactions: [],
       canReact: true,
@@ -675,6 +679,25 @@ describe("MCP tool descriptors", () => {
         name: "community_comment_get",
         compact: { success: true, found: true, thread: [compactComment] },
         full: { success: true, found: true, thread: [fullComment] },
+      },
+      {
+        name: "community_comment_replies",
+        compact: {
+          success: true,
+          found: true,
+          rootId: "comment-1",
+          thread: [compactComment],
+          nextCursor: null,
+          viewer: {},
+        },
+        full: {
+          success: true,
+          found: true,
+          rootId: "comment-1",
+          thread: [fullComment],
+          nextCursor: null,
+          viewer: {},
+        },
       },
       {
         name: "community_description_get",

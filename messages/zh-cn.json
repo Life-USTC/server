@@ -1939,6 +1939,7 @@
     "sectionRequired": "请选择班级。"
   },
   "comments": {
+    "ancestryPlaceholder": "该讨论串中的部分上级评论当前不可见。",
     "title": "评论",
     "commentNotFound": "未找到评论。",
     "commentTargetNotFound": "未找到评论目标。",
@@ -1994,6 +1995,9 @@
     "reactionSuccess": "表情已更新",
     "pleaseRetry": "请稍后再试。",
     "loadFailed": "评论加载失败。",
+    "loadMoreComments": "加载更多评论",
+    "loadMoreReplies": "加载更多回复",
+    "loadTarget": "加载评论",
     "loading": "正在加载评论...",
     "retry": "重试",
     "emptyTitle": "暂无评论",

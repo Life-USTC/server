@@ -36,17 +36,26 @@ export async function getCommentsPayload(
     return { comments: [], complete: true, hiddenCount: 0, viewer };
   }
 
-  const pageSize = options.pageSize;
+  const pageSize = options.pageSize ?? 20;
   const result = await loadCommentThread({
-    pagination: pageSize ? { pageSize, skip: 0 } : undefined,
+    pagination: { pageSize, skip: 0 },
     target: resolvedTarget,
     viewer,
     viewerUserId: viewer.userId,
   });
   return {
     comments: result.comments,
-    complete: pageSize === undefined || result.total <= pageSize,
+    complete:
+      result.total <= pageSize && !hasReplyContinuation(result.comments),
     hiddenCount: result.hiddenCount,
     viewer: result.viewer,
   };
+}
+
+function hasReplyContinuation(comments: CommentNode[]): boolean {
+  return comments.some(
+    (comment) =>
+      comment.repliesNextCursor !== null ||
+      hasReplyContinuation(comment.replies),
+  );
 }

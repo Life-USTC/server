@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   buildCommentNodes,
+  type CommentNode,
   type RawComment,
   type ViewerInfo,
 } from "@/features/comments/server/comment-serialization";
@@ -192,4 +193,130 @@ describe("评论序列化权限", () => {
     expect(anonymous.roots[0]?.attachments).toEqual([]);
     expect(authenticated.roots[0]?.attachments).toHaveLength(1);
   });
+
+  it("将可见回复挂回可见根而不暴露缺失的祖先", () => {
+    const { roots } = buildCommentNodes(
+      [
+        comment({ id: "root", rootId: "root" }),
+        comment({
+          body: "private ancestor body",
+          createdAt: new Date("2035-01-01T00:00:00.000Z"),
+          id: "hidden-parent",
+          parentId: "root",
+          rootId: "root",
+          status: "softbanned",
+          updatedAt: new Date("2035-01-02T00:00:00.000Z"),
+          visibility: "logged_in_only",
+        }),
+        comment({
+          id: "visible-child",
+          parentId: "hidden-parent",
+          rootId: "root",
+        }),
+      ],
+      viewer({ isAuthenticated: false, userId: null }),
+    );
+
+    expect(roots).toHaveLength(1);
+    expect(roots[0]?.id).toBe("root");
+    expect(roots[0]?.replies.map((reply) => reply.id)).toEqual([
+      "hidden-parent",
+    ]);
+    expect(roots[0]?.replies[0]).toMatchObject({
+      body: "",
+      createdAt: "2026-01-01T08:00:00+08:00",
+      isAncestryPlaceholder: true,
+      status: "active",
+      updatedAt: "2026-01-01T08:00:00+08:00",
+      visibility: "public",
+    });
+    expect(roots[0]?.replies[0]?.replies.map((reply) => reply.id)).toEqual([
+      "visible-child",
+    ]);
+    expectNestedParentIds(roots);
+  });
+
+  it("为隐藏根保留可见分支且每个根只产生一个列表条目", () => {
+    const { roots } = buildCommentNodes(
+      [
+        comment({
+          id: "hidden-root",
+          rootId: "hidden-root",
+          visibility: "logged_in_only",
+        }),
+        comment({
+          id: "visible-child-1",
+          parentId: "hidden-root",
+          rootId: "hidden-root",
+        }),
+        comment({
+          id: "visible-child-2",
+          parentId: "hidden-root",
+          rootId: "hidden-root",
+        }),
+      ],
+      viewer({ isAuthenticated: false, userId: null }),
+    );
+
+    expect(roots).toHaveLength(1);
+    expect(countNodes(roots)).toBe(3);
+    expect(roots[0]).toMatchObject({
+      body: "",
+      id: "hidden-root",
+      isAncestryPlaceholder: true,
+      rootId: "hidden-root",
+      status: "active",
+      visibility: "public",
+    });
+    expect(roots[0]?.replies.map((reply) => reply.parentId)).toEqual([
+      "hidden-root",
+      "hidden-root",
+    ]);
+    expectNestedParentIds(roots);
+  });
+
+  it("使用最早可见后代作为隐藏根的 viewer-safe 排序键", () => {
+    const { roots } = buildCommentNodes(
+      [
+        comment({
+          createdAt: new Date("2020-01-01T00:00:00.000Z"),
+          id: "hidden-root",
+          rootId: "hidden-root",
+          visibility: "logged_in_only",
+        }),
+        comment({
+          createdAt: new Date("2020-03-01T00:00:00.000Z"),
+          id: "later-visible-child",
+          parentId: "hidden-root",
+          rootId: "hidden-root",
+        }),
+        comment({
+          createdAt: new Date("2020-02-01T00:00:00.000Z"),
+          id: "earlier-visible-child",
+          parentId: "hidden-root",
+          rootId: "hidden-root",
+        }),
+      ],
+      viewer({ isAuthenticated: false, userId: null }),
+    );
+
+    expect(roots[0]).toMatchObject({
+      createdAt: "2020-02-01T08:00:00+08:00",
+      id: "hidden-root",
+      isAncestryPlaceholder: true,
+    });
+  });
 });
+
+function countNodes(nodes: CommentNode[]): number {
+  return nodes.reduce((count, node) => count + 1 + countNodes(node.replies), 0);
+}
+
+function expectNestedParentIds(nodes: CommentNode[]) {
+  for (const node of nodes) {
+    for (const reply of node.replies) {
+      expect(reply.parentId).toBe(node.id);
+      expectNestedParentIds([reply]);
+    }
+  }
+}

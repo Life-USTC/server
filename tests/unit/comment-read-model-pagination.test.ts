@@ -4,6 +4,7 @@ const {
   accountFindManyMock,
   attachmentSummaryQueryMock,
   commentCountMock,
+  descendantQueryMock,
   commentFindManyMock,
   contextQueryMock,
   logAppEventMock,
@@ -18,6 +19,7 @@ const {
   accountFindManyMock: vi.fn(),
   attachmentSummaryQueryMock: vi.fn(),
   commentCountMock: vi.fn(),
+  descendantQueryMock: vi.fn(),
   commentFindManyMock: vi.fn(),
   contextQueryMock: vi.fn(),
   logAppEventMock: vi.fn(),
@@ -58,6 +60,10 @@ vi.mock("@/lib/metrics/analytics-engine", () => ({
 }));
 
 import { loadCommentThread } from "@/features/comments/server/comment-read-model";
+import {
+  COMMENT_REPLY_PREVIEW_SIZE,
+  decodeCommentReplyCursor,
+} from "@/features/comments/server/comment-reply-pagination";
 
 const now = new Date("2026-01-01T00:00:00.000Z");
 const viewer = {
@@ -133,6 +139,8 @@ describe("loadCommentThread pagination", () => {
     vi.clearAllMocks();
     commentCountMock.mockReset();
     commentCountMock.mockResolvedValue(3);
+    descendantQueryMock.mockReset();
+    descendantQueryMock.mockResolvedValue([]);
     rootPageQueryMock.mockReset();
     commentFindManyMock.mockReset();
     accountFindManyMock.mockResolvedValue([]);
@@ -146,14 +154,19 @@ describe("loadCommentThread pagination", () => {
     contextQueryMock.mockImplementation((query) =>
       rawQuerySql(query).includes("eligible_roots")
         ? rootPageQueryMock(query)
-        : rawQuerySql(query).includes("comment_attachment_summaries")
-          ? attachmentSummaryQueryMock(query)
-          : reactionSummaryQueryMock(query),
+        : rawQuerySql(query).includes("ranked_descendants")
+          ? descendantQueryMock(query)
+          : rawQuerySql(query).includes("comment_attachment_summaries")
+            ? attachmentSummaryQueryMock(query)
+            : reactionSummaryQueryMock(query),
     );
     publicQueryMock.mockImplementation((query) => {
       const sql = rawQuerySql(query);
       if (sql.includes("eligible_roots")) {
         return rootPageQueryMock(query);
+      }
+      if (sql.includes("ranked_descendants")) {
+        return descendantQueryMock(query);
       }
       if (sql.includes("comment_hidden_root_count")) {
         return Promise.resolve([{ count: 0n }]);
@@ -174,7 +187,15 @@ describe("loadCommentThread pagination", () => {
     );
   });
 
-  it("paginates roots, then loads the selected root's complete reply tree", async () => {
+  it("paginates roots, then loads a bounded reply preview", async () => {
+    descendantQueryMock.mockResolvedValueOnce([
+      {
+        createdAt: now,
+        id: "reply-2",
+        rootId: "root-2",
+        rowNumber: 1n,
+      },
+    ]);
     commentFindManyMock.mockResolvedValueOnce([
       comment("root-2"),
       comment("reply-2", { parentId: "root-2", rootId: "root-2" }),
@@ -198,16 +219,13 @@ describe("loadCommentThread pagination", () => {
     const [rootQuery] = rootPageQueryMock.mock.calls[0] ?? [];
     expect(rawQuerySql(rootQuery)).toContain("eligible_roots");
     expect(rawQuerySql(rootQuery)).toContain('root."parentId" IS NULL');
+    expect(rawQuerySql(rootQuery)).toContain('"orderCreatedAt"');
+    expect(rawQuerySql(rootQuery)).toContain("visible_child");
     expect(commentFindManyMock).toHaveBeenNthCalledWith(
       1,
       expect.objectContaining({
         where: {
-          AND: [
-            { sectionId: 7 },
-            {
-              OR: [{ id: { in: ["root-2"] } }, { rootId: { in: ["root-2"] } }],
-            },
-          ],
+          AND: [{ sectionId: 7 }, { id: { in: ["root-2", "reply-2"] } }],
         },
       }),
     );
@@ -249,7 +267,7 @@ describe("loadCommentThread pagination", () => {
       expect.objectContaining({
         dbContext: "rls",
         dbLabel: "app",
-        dbQueryCount: 1,
+        dbQueryCount: 2,
         dbTransactionCount: 0,
         loadedCount: 2,
         stage: "comments.descendants",
@@ -264,6 +282,64 @@ describe("loadCommentThread pagination", () => {
         dbTransactionCount: 2,
         loadedCount: 2,
         stage: "comments.summaries",
+      }),
+    );
+  });
+
+  it("caps serialized descendants and returns a continuation cursor", async () => {
+    const descendantRows = Array.from(
+      { length: COMMENT_REPLY_PREVIEW_SIZE + 1 },
+      (_, index) => ({
+        createdAt: new Date(now.getTime() + index),
+        id: `reply-${index + 1}`,
+        rootId: "root-2",
+        rowNumber: BigInt(index + 1),
+      }),
+    );
+    descendantQueryMock.mockResolvedValueOnce(descendantRows);
+    commentFindManyMock.mockResolvedValueOnce([
+      comment("root-2"),
+      ...descendantRows
+        .slice(0, COMMENT_REPLY_PREVIEW_SIZE)
+        .map((row) =>
+          comment(row.id, { parentId: "root-2", rootId: "root-2" }),
+        ),
+    ]);
+
+    const result = await loadCommentThread({
+      pagination: { pageSize: 1, skip: 0 },
+      target: target({ sectionId: 7 }),
+      viewer,
+      viewerUserId: viewer.userId,
+    });
+    const root = result.comments[0];
+
+    expect(root?.replies).toHaveLength(COMMENT_REPLY_PREVIEW_SIZE);
+    expect(root?.replies.some((reply) => reply.id === "reply-11")).toBe(false);
+    expect(decodeCommentReplyCursor(root?.repliesNextCursor ?? "")).toEqual({
+      createdAt:
+        descendantRows[COMMENT_REPLY_PREVIEW_SIZE - 1]?.createdAt.toISOString(),
+      id: `reply-${COMMENT_REPLY_PREVIEW_SIZE}`,
+      rootId: "root-2",
+    });
+    expect(JSON.stringify(result.comments)).not.toContain("reply-11");
+    expect(commentFindManyMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          AND: [
+            { sectionId: 7 },
+            {
+              id: {
+                in: [
+                  "root-2",
+                  ...descendantRows
+                    .slice(0, COMMENT_REPLY_PREVIEW_SIZE)
+                    .map((row) => row.id),
+                ],
+              },
+            },
+          ],
+        },
       }),
     );
   });
