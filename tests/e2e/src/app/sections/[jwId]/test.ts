@@ -1709,12 +1709,12 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
       releaseDeleteRequest();
       await deleteResponse;
       await page.unroute("**/api/community/comments/**");
-      await expect(editedCommentCard).toHaveCount(0);
       await expect(
         page
           .locator("[data-sonner-toast]")
           .filter({ hasText: /评论已删除|Comment deleted/i }),
       ).toBeVisible();
+      await expect(editedCommentCard).toHaveCount(0);
       await captureStepScreenshot(page, testInfo, "section/comment-deleted");
     } finally {
       await cleanupCommentsForE2e([replyId, commentId]);
