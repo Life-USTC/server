@@ -118,6 +118,24 @@ async function openCommentDeleteDialog(page: Page, commentCard: Locator) {
   return deleteDialog;
 }
 
+async function selectHomeworkAction(
+  page: Page,
+  detailDialog: Locator,
+  actionName: RegExp,
+) {
+  const moreActions = detailDialog
+    .locator('[data-slot="dialog-footer"]')
+    .getByRole("button", { name: /更多信息|More details/i });
+  await expect(moreActions).toBeVisible();
+  await moreActions.click();
+
+  const action = page.getByRole("menu").last().getByRole("menuitem", {
+    name: actionName,
+  });
+  await expect(action).toBeVisible();
+  await action.click();
+}
+
 test.describe("/catalog/sections/[jwId] 班级详情页", () => {
   test("页面契约", async ({ page }, testInfo) => {
     await assertPageContract(page, {
@@ -1026,9 +1044,7 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
       .first();
     await homeworkCard.click();
     const detailDialog = page.locator('[data-slot="dialog-content"]').first();
-    await detailDialog
-      .getByRole("button", { name: /编辑信息|Edit details/i })
-      .click();
+    await selectHomeworkAction(page, detailDialog, /编辑信息|Edit details/i);
     const editTrigger = detailDialog.getByTestId(
       "section-edit-homework-style-guide-trigger",
     );
@@ -1125,38 +1141,26 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
       const completion = footer.getByRole("button", {
         name: /标记为完成|Mark as complete/i,
       });
-      const edit = footer.getByRole("button", {
-        name: /编辑信息|Edit details/i,
+      const moreActions = footer.getByRole("button", {
+        name: /更多信息|More details/i,
       });
-      const deleteButton = footer.getByRole("button", {
-        name: /删除|Delete/i,
-      });
-      for (const control of [completion, edit, deleteButton]) {
-        await expect(control).toBeVisible();
-        const box = await control.boundingBox();
-        expect(box).not.toBeNull();
-        expect(box?.width ?? 0).toBeGreaterThanOrEqual(240);
-      }
-      const [completionBox, editBox, deleteBox] = await Promise.all([
+      await expect(completion).toBeVisible();
+      await expect(moreActions).toBeVisible();
+      const [completionBox, moreActionsBox] = await Promise.all([
         completion.boundingBox(),
-        edit.boundingBox(),
-        deleteButton.boundingBox(),
+        moreActions.boundingBox(),
       ]);
-      expect(completionBox?.y).toBeLessThan(
-        editBox?.y ?? Number.POSITIVE_INFINITY,
-      );
-      expect(editBox?.y).toBeLessThan(deleteBox?.y ?? Number.POSITIVE_INFINITY);
+      expect(completionBox).not.toBeNull();
+      expect(moreActionsBox).not.toBeNull();
+      expect(completionBox?.width ?? 0).toBeGreaterThanOrEqual(200);
+      expect(moreActionsBox?.width ?? 0).toBeGreaterThanOrEqual(44);
       expect(
         await page.evaluate(
           () => document.documentElement.scrollWidth <= window.innerWidth,
         ),
       ).toBe(true);
 
-      const editButton = detailDialog.getByRole("button", {
-        name: /编辑信息|Edit details/i,
-      });
-      await editButton.scrollIntoViewIfNeeded();
-      await editButton.click();
+      await selectHomeworkAction(page, detailDialog, /编辑信息|Edit details/i);
       const editForm = detailDialog.locator("form").first();
       await expect(editForm).toBeVisible();
       await editForm.getByRole("button", { name: /取消|Cancel/i }).click();
@@ -1280,11 +1284,7 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
       );
 
       // Delete
-      const deleteButton = homeworkPopout
-        .getByRole("button", { name: /删除|Delete/i })
-        .first();
-      await expect(deleteButton).toBeVisible();
-      await deleteButton.click();
+      await selectHomeworkAction(page, homeworkPopout, /删除|Delete/i);
       const deleteDialog = page
         .locator('[data-slot="alert-dialog-content"]')
         .last();
@@ -1341,9 +1341,7 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
 
       const detailDialog = page.locator('[data-slot="dialog-content"]').first();
       await expect(detailDialog).toBeVisible();
-      await detailDialog
-        .getByRole("button", { name: /Edit details|编辑信息/i })
-        .click();
+      await selectHomeworkAction(page, detailDialog, /Edit details|编辑信息/i);
 
       const description = `e2e-section-hw-edited-description-${Date.now()}`;
       const dueAt = "2026-12-31T23:59";
