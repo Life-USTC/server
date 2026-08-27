@@ -276,6 +276,34 @@ test("/ shell 提供键盘跳转到主要内容", async ({ page }) => {
   await expect(page.locator("#main-content")).toBeFocused();
 });
 
+test("/ shell 只保留滚动区域的顺序焦点", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await signInAsDebugUser(page, "/workspace/todos");
+
+  const main = page.locator("#main-content");
+  const scrollRegion = page.locator("[data-shell-scroll-container]");
+  await expect(main).toHaveAttribute("tabindex", "-1");
+  await expect(scrollRegion).toHaveAttribute("tabindex", "0");
+  await expect(scrollRegion).toHaveRole("region");
+
+  const labels = await Promise.all([
+    main.getAttribute("aria-label"),
+    scrollRegion.getAttribute("aria-label"),
+  ]);
+  expect(labels[1]).toBeTruthy();
+  expect(labels[0]).not.toBe(labels[1]);
+
+  const skipLink = page.getByRole("link", {
+    name: /跳转到主要内容|Skip to main content/i,
+  });
+  await page.keyboard.press("Tab");
+  await expect(skipLink).toBeFocused();
+  await page.keyboard.press("Enter");
+  await expect(main).toBeFocused();
+  await page.keyboard.press("Tab");
+  await expect(main).not.toBeFocused();
+});
+
 test("/ shell 菜单可一键切换", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 800 });
   await signInAsDebugUser(page, "/");

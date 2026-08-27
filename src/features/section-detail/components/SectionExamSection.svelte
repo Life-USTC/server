@@ -16,6 +16,7 @@ type SectionExamCopy = {
 
 export let events: SectionCalendarEvent[];
 export let fmtDate: (value: string | Date | null | undefined) => string;
+export let heading: string;
 export let sectionCopy: SectionExamCopy;
 
 function detailValue(event: SectionCalendarEvent, label: string) {
@@ -28,8 +29,8 @@ function examTime(event: SectionCalendarEvent) {
 </script>
 
 {#if events.length > 0}
-  <div class="min-w-0 overflow-x-auto">
-    <Table.Root data-testid="section-exams-list">
+  <div class="min-w-0">
+    <Table.Root data-testid="section-exams-list" containerLabel={heading}>
       <Table.Header>
         <Table.Row>
           <Table.Head>{sectionCopy.examBatch}</Table.Head>

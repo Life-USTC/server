@@ -62,7 +62,7 @@ export let targetLabel: (comment: AdminModerationComment) => string;
       </Dialog.Header>
 
       <ScrollArea class="min-h-0 h-[min(56dvh,34rem)] max-h-[calc(100dvh-12rem)]">
-        <div class="grid gap-5 px-5 py-4">
+        <div class="grid gap-5 px-5 pt-4 pb-6">
           {#if dialogMessage}<Alert.Root class="py-2" variant={dialogMessageVariant}><Alert.Description>{dialogMessage}</Alert.Description></Alert.Root>{/if}
 
           <AdminModerationCommentPreview

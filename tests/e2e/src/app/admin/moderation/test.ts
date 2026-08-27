@@ -223,6 +223,7 @@ test("/admin/moderation 移动端弹窗滚动体不遮挡封禁控件", async ({
     await expect(
       dialog.getByRole("button", { name: /关闭|Close/i }),
     ).toHaveCount(1);
+    await expect(dialog.locator('[data-slot="dialog-close"]')).toHaveCount(0);
 
     const suspendButton = dialog.getByRole("button", {
       name: /^(封禁|Suspend)$/i,

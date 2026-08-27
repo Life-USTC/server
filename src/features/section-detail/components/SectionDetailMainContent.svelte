@@ -109,7 +109,7 @@ $: sectionExamEvents = sectionCalendarEvents.filter(
   </div>
 
   <div
-    class="min-w-0 min-h-0 overflow-y-auto px-4 py-4 sm:px-5 lg:px-6"
+    class="min-w-0 min-h-0 overflow-x-hidden overflow-y-auto px-4 py-4 sm:px-5 lg:px-6"
     aria-busy={streamLoading}
     data-detail-scroll-container
   >
@@ -124,7 +124,7 @@ $: sectionExamEvents = sectionCalendarEvents.filter(
     {/if}
 
     <div class="grid gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(16rem,20rem)] lg:items-start lg:gap-10">
-      <div class="grid min-w-0 gap-10">
+      <div class="grid min-w-0 grid-cols-1 gap-10">
         <section id="introduction" class="scroll-mt-4">
           {#key `description:section:${data.section.id}`}
             {#if DescriptionCard}
@@ -178,6 +178,7 @@ $: sectionExamEvents = sectionCalendarEvents.filter(
               this={SectionExamSection}
               events={sectionExamEvents}
               {fmtDate}
+              heading={sectionCopy.tabs.exams}
               {sectionCopy}
             />
           {/if}
@@ -213,7 +214,7 @@ $: sectionExamEvents = sectionCalendarEvents.filter(
           {/if}
         </section>
 
-        <section id="comments" class="scroll-mt-4">
+        <section id="comments" class="scroll-mt-4 min-w-0">
           {#key `comments:section:${data.section.id}`}
             {#if CommentsPanel}
               <svelte:component

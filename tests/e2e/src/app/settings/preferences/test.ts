@@ -44,6 +44,12 @@ test.describe("/account/settings/preferences 外观与语言偏好", () => {
       name: /^(深色|Dark)$/i,
     });
 
+    for (const control of await preferences.getByRole("radio").all()) {
+      const box = await control.boundingBox();
+      expect(box?.width ?? 0).toBeGreaterThanOrEqual(44);
+      expect(box?.height ?? 0).toBeGreaterThanOrEqual(44);
+    }
+
     await dark.click();
 
     await expect(dark).toBeChecked();
