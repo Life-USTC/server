@@ -1,7 +1,7 @@
 <script lang="ts">
 import CalendarClockIcon from "@lucide/svelte/icons/calendar-clock";
+import CheckCircleIcon from "@lucide/svelte/icons/check-circle";
 import CircleAlertIcon from "@lucide/svelte/icons/circle-alert";
-import CircleCheckIcon from "@lucide/svelte/icons/circle-check";
 import type {
   HomeworkDateValue,
   HomeworkDeadlineState,
@@ -54,7 +54,7 @@ $: DeadlineIcon = isOverdue ? CircleAlertIcon : CalendarClockIcon;
   </div>
 
   <div class="col-start-2 row-start-1 flex min-w-0 items-start justify-end gap-2 sm:col-start-3 sm:justify-start">
-    <CircleCheckIcon aria-hidden="true" class="text-muted-foreground sm:mt-0.5" />
+    <CheckCircleIcon aria-hidden="true" class="text-muted-foreground sm:mt-0.5" />
     <div class="min-w-0">
       <p class="text-muted-foreground text-sm">{copy.statusLabel}</p>
       <Badge class="mt-2" variant={homework.completed ? "secondary" : "ghost"}>
