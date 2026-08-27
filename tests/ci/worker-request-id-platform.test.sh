@@ -14,6 +14,11 @@ for command in bun curl node grep; do
   }
 done
 
+# The production helper uses the project's `@` alias, which SvelteKit writes
+# to `.svelte-kit/tsconfig.json`. Keep this fixture runnable from a fresh
+# checkout instead of relying on an earlier CI phase having generated it.
+bun run svelte:sync >/dev/null
+
 temp_dir="$(mktemp -d)"
 worker_pid=""
 cleanup() {
