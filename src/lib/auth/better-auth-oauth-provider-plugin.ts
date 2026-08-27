@@ -49,10 +49,6 @@ export function buildOAuthProviderPlugin(input: { authPublicOrigin: string }) {
     resources,
     cachedResources: new Set(resources.map(({ identifier }) => identifier)),
     enforcePerClientResources: false,
-    silenceWarnings: {
-      oauthAuthServerConfig: true,
-      openidConfig: true,
-    },
     schema: {
       oauthClient: {
         modelName: "OAuthClient",
