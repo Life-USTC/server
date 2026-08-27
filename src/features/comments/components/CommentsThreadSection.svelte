@@ -86,10 +86,14 @@ function hasTargetContinuation(state: CommentTargetLoadState) {
   </div>
 {:else}
   {#if targetLoadStates.some(hasTargetContinuation)}
-    <div class="mb-4 flex flex-wrap gap-2" data-testid="comment-target-load-controls">
+    <div
+      class="mb-4 flex min-w-0 flex-wrap gap-2"
+      data-testid="comment-target-load-controls"
+    >
       {#each targetLoadStates as state}
         {#if !state.loaded && canLoadTarget(state)}
           <Button
+            class="min-w-0 max-w-full whitespace-normal break-words"
             disabled={loadingTargetKey !== null}
             size="sm"
             type="button"
@@ -100,6 +104,7 @@ function hasTargetContinuation(state: CommentTargetLoadState) {
           </Button>
         {:else if state.loaded && state.page < state.totalPages}
           <Button
+            class="min-w-0 max-w-full whitespace-normal break-words"
             disabled={loadingTargetKey !== null}
             size="sm"
             type="button"
