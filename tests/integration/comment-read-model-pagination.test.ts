@@ -249,6 +249,7 @@ describe("comment root pagination read model", () => {
     await testPrisma.comment.createMany({
       data: Array.from({ length: 21 }, (_, index) => ({
         body: `${previewMarker}-reply-${index + 1}`,
+        createdAt: new Date(Date.now() + (index + 1) * 1_000),
         parentId: root.id,
         rootId: root.id,
         sectionId,

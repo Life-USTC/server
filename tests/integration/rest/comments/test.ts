@@ -206,7 +206,7 @@ test("/api/community/comments GET 不存在的目标返回 404", async ({
   expect(response.status()).toBe(404);
 });
 
-test("/api/community/comments GET 按根评论分页并保留完整回复树", async ({
+test("/api/community/comments GET 按根评论分页并保留有界回复树", async ({
   request,
 }, testInfo) => {
   await signInAsDebugUserApi(request, "/");
@@ -300,6 +300,7 @@ test("/api/community/comments GET 限制回复负载并可继续分页", async (
     rootId = ((await rootResponse.json()) as { id?: string }).id;
     expect(rootId).toBeTruthy();
     if (!rootId) throw new Error("Expected root comment id");
+    const replyBaseTime = Date.now();
 
     for (let index = 1; index <= 21; index += 1) {
       const response = await request.post("/api/community/comments", {
@@ -315,6 +316,16 @@ test("/api/community/comments GET 限制回复负载并可继续分页", async (
       expect(id).toBeTruthy();
       if (id) replyIds.push(id);
     }
+    await withE2ePrisma((prisma) =>
+      prisma.$transaction(
+        replyIds.map((id, index) =>
+          prisma.comment.update({
+            where: { id },
+            data: { createdAt: new Date(replyBaseTime + index * 1_000) },
+          }),
+        ),
+      ),
+    );
 
     const firstResponse = await request.get(
       `/api/community/comments?targetType=section&targetId=${fixture.sectionId}&pageSize=1`,
