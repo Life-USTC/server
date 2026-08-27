@@ -70,7 +70,7 @@ $: sectionSemesterSummary = selectedSemester
       <Item.Group class="gap-0" role="list">
         {#each data.data as section}
           {@const sectionHref = `/catalog/sections/${section.jwId}`}
-          <Item.Root variant="outline" size="sm">
+          <Item.Root role="listitem" variant="outline" size="sm">
             {#snippet child({ props })}
               <a href={sectionHref} {...props}>
                 <Item.Content>

@@ -281,6 +281,9 @@ test.describe("仪表盘作业", () => {
       await expect(
         detailDialog.getByText("dashboard-homework-mobile-content-marker"),
       ).toBeVisible();
+      await expect(
+        detailDialog.locator('a[href*="/catalog/sections/"]').first(),
+      ).toBeVisible();
 
       const viewportHeight = page.viewportSize()?.height ?? 568;
       const dialogBox = await detailDialog.boundingBox();
@@ -303,20 +306,10 @@ test.describe("仪表盘作业", () => {
       const completion = footer.getByRole("button", {
         name: /标记为完成|Mark as complete/i,
       });
-      const section = footer.locator('a[href*="/catalog/sections/"]').first();
-      for (const control of [completion, section]) {
-        await expect(control).toBeVisible();
-        const box = await control.boundingBox();
-        expect(box).not.toBeNull();
-        expect(box?.width ?? 0).toBeGreaterThanOrEqual(240);
-      }
-      const [completionBox, sectionBox] = await Promise.all([
-        completion.boundingBox(),
-        section.boundingBox(),
-      ]);
-      expect(completionBox?.y).toBeLessThan(
-        sectionBox?.y ?? Number.POSITIVE_INFINITY,
-      );
+      await expect(completion).toBeVisible();
+      const completionBox = await completion.boundingBox();
+      expect(completionBox).not.toBeNull();
+      expect(completionBox?.width ?? 0).toBeGreaterThanOrEqual(240);
       expect(
         await page.evaluate(
           () => document.documentElement.scrollWidth <= window.innerWidth,

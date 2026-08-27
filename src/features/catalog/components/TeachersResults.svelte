@@ -69,7 +69,7 @@ $: pageLabel = teacherLabels.pageOf
       <Item.Group class="gap-0" role="list">
         {#each teachers as teacher}
           {@const teacherHref = `/catalog/teachers/${teacher.id}`}
-          <Item.Root variant="outline" size="sm">
+          <Item.Root role="listitem" variant="outline" size="sm">
             {#snippet child({ props })}
               <a href={teacherHref} {...props}>
                 <Item.Content>
