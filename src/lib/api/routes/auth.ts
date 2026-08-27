@@ -25,6 +25,7 @@ import {
   summarizeOAuthRedirectUri,
   withBetterAuthOAuthDebug,
 } from "@/lib/log/oauth-debug";
+import { elapsedMs, monotonicNowMs } from "@/lib/log/observability-clock";
 import { getSafeErrorName } from "@/lib/log/safe-error-name";
 import {
   getJwksUrlForOAuthVerification,
@@ -63,7 +64,7 @@ function recordOAuthRouteFailure(input: {
   writeOAuthEventAnalytics({
     errorName: getSafeErrorName(input.error),
     event: input.event,
-    ioObservedDurationMs: Date.now() - input.startMs,
+    ioObservedDurationMs: elapsedMs(input.startMs),
     method: input.request.method,
     path: url.pathname,
     phase: input.phase,
@@ -434,7 +435,7 @@ async function enforceIntrospectionGrant(
 
   const token = params.get("token");
   if (!token) return inactiveIntrospectionResponse(response);
-  const startMs = Date.now();
+  const startMs = monotonicNowMs();
 
   try {
     if (token.split(".").length === 3) {
@@ -630,6 +631,7 @@ function getSingleAuthorizationClientId(request: Request) {
 }
 
 async function resolveAuthorizationCodeGrantExpectation(request: Request) {
+  const startMs = monotonicNowMs();
   const consentUpdatedBefore = new Date();
   const url = new URL(request.url);
   const isAuthorize = url.pathname.endsWith("/oauth2/authorize");
@@ -677,7 +679,7 @@ async function resolveAuthorizationCodeGrantExpectation(request: Request) {
       event: "oauth.authorization.grant-expectation-failed",
       phase: "grant-expectation",
       request,
-      startMs: consentUpdatedBefore.getTime(),
+      startMs,
     });
     return { clientId, consentUpdatedBefore };
   }
@@ -723,7 +725,7 @@ async function enforceAuthorizationCodeRedirectBinding(input: {
 
   let bound = false;
   let bindingError: unknown;
-  const startMs = Date.now();
+  const startMs = monotonicNowMs();
   try {
     bound =
       input.expectedClientId !== null &&

@@ -117,7 +117,7 @@ describe("API 可观测性", () => {
     expect(writeDataPoint).toHaveBeenCalledWith({
       indexes: ["api:calendar-feeds"],
       blobs: [
-        "api_request_v2",
+        "api_request_v3",
         "finish",
         "GET",
         "calendar-feeds",

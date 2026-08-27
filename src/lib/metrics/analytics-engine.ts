@@ -1,4 +1,4 @@
-import type { AppLocale } from "@/i18n/config";
+import { APP_LOCALES, type AppLocale } from "@/i18n/config";
 import {
   getCloudflareAnalyticsEngineDataset,
   getCloudflareRuntimeEnvInput,
@@ -411,6 +411,173 @@ const AUDIT_EVENTS = new Set(["error", "success"]);
 const QUEUE_NAMES = new Set(["audit", "calendar", "unknown"]);
 const QUEUE_MESSAGE_TYPES = new Set(["audit-log.write.v1", "unknown"]);
 const QUEUE_OUTCOMES = new Set(["error", "partial", "retry", "success"]);
+const PAGE_EVENTS = new Set(["error", "finish"]);
+const PAGE_LOCALES = new Set(APP_LOCALES);
+const PAGE_AUTH_MODES = new Set(["anonymous", "authenticated"]);
+const PAGE_SSR_CLASSES = new Set(["dynamic-ssr", "public-ssr"]);
+const PAGE_AUTH_SIGNAL_PRESENCE = new Set(["absent", "present"]);
+const PAGE_CATALOG_DETAIL_TABS = new Set([
+  "calendar",
+  "comments",
+  "exams",
+  "homework",
+  "introduction",
+  "not_applicable",
+  "overview",
+  "sections",
+  "teachers",
+]);
+const PAGE_ROUTE_IDS = new Set([
+  "/",
+  "/account/settings",
+  "/account/settings/[tab]",
+  "/account/sign-in",
+  "/account/welcome",
+  "/admin",
+  "/admin/analytics",
+  "/admin/audit",
+  "/admin/bus",
+  "/admin/moderation",
+  "/admin/oauth",
+  "/admin/users",
+  "/api/docs",
+  "/api/docs/[...path]",
+  "/catalog/bus",
+  "/catalog/bus/map",
+  "/catalog/courses",
+  "/catalog/courses/[jwId]",
+  "/catalog/courses/[jwId]/[section]",
+  "/catalog/links",
+  "/catalog/sections",
+  "/catalog/sections/[jwId]",
+  "/catalog/sections/[jwId]/[section]",
+  "/catalog/teachers",
+  "/catalog/teachers/[id]",
+  "/catalog/teachers/[id]/[section]",
+  "/community/comments/[id]",
+  "/community/comments/guide",
+  "/community/users/[identifier]",
+  "/e2e/oauth/callback",
+  "/error",
+  "/guides/markdown-support",
+  "/oauth/authorize",
+  "/oauth/device",
+  "/privacy",
+  "/search",
+  "/terms",
+  "/usage/bot",
+  "/usage/cli",
+  "/usage/mcp",
+  "/usage/mobile",
+  "/workspace",
+  "/workspace/[tab]",
+  "/workspace/subscriptions",
+  "/workspace/subscriptions/sections",
+  "unmatched",
+]);
+const CACHE_EVENTS = new Set([
+  "colo_hit",
+  "colo_miss",
+  "colo_read_error",
+  "colo_write_complete",
+  "colo_write_error",
+  "colo_write_skip",
+  "hit",
+  "kv_hit",
+  "kv_miss",
+  "kv_read_error",
+  "kv_write_complete",
+  "kv_write_error",
+  "kv_write_skip",
+  "load_error",
+  "load_success",
+  "miss",
+]);
+const CACHE_REASONS = new Set([
+  "cache_put_rejected",
+  "none",
+  "response_build_failed",
+  "result_invalid",
+  "scheduler_unavailable",
+  "task_scheduling_failed",
+]);
+const CACHE_FIXED_NAMESPACES = new Set([
+  "api:metadata",
+  "api:semesters",
+  "catalog:current-semester",
+  "sitemap",
+]);
+const CACHE_LOCALE_NAMESPACE_PREFIXES = [
+  "api:courses",
+  "api:courses-list",
+  "api:sections",
+  "api:sections-list",
+  "api:teachers",
+  "api:teachers-list",
+  "bus:timetable",
+  "catalog:course-detail",
+  "catalog:section-detail",
+  "catalog:teacher-detail",
+  "catalog:courses-list",
+  "catalog:schedules-list",
+  "catalog:sections-list",
+  "catalog:teachers-list",
+  "page:course-detail",
+  "page:course-list",
+  "page:courses-list",
+  "page:section-detail",
+  "page:section-list",
+  "page:sections-list",
+  "page:section-detail:overview",
+  "page:teacher-detail",
+  "page:teacher-list",
+  "page:teachers-list",
+  "search:catalog:v4",
+];
+const CACHE_NAMESPACES = new Set<string>([
+  ...CACHE_FIXED_NAMESPACES,
+  ...CACHE_LOCALE_NAMESPACE_PREFIXES.flatMap((prefix) =>
+    APP_LOCALES.map((locale) => `${prefix}:${locale}`),
+  ),
+]);
+const CALENDAR_FEEDS = new Set(["user"]);
+const CALENDAR_CACHE_STATUSES = new Set([
+  "fresh",
+  "miss",
+  "refresh_error",
+  "refresh_success",
+  "stale",
+  "store_error",
+]);
+const CALENDAR_REBUILD_STATUSES = new Set([
+  "enqueue_error",
+  "enqueued",
+  "error",
+  "ok",
+  "refresh_error",
+  "store_error",
+]);
+const WORKSPACE_OVERVIEW_STAGES = new Set([
+  "counts",
+  "due_todo_count",
+  "due_todo_sample",
+  "item_state",
+  "lists",
+  "todo_summary",
+  "user_sections",
+]);
+const WORKSPACE_ROUTES = new Set(["homeworks", "subscriptions_current"]);
+const WORKSPACE_HOMEWORK_STAGES = new Set([
+  "audit",
+  "auth",
+  "db_context",
+  "item_state",
+  "read",
+  "section_ids",
+  "viewer",
+]);
+const WORKSPACE_SUBSCRIPTIONS_STAGES = new Set(["auth", "db_context", "read"]);
+const WORKSPACE_STAGE_STATUSES = new Set(["error", "success"]);
 const OAUTH_EVENTS = new Set([
   "better-auth.error",
   "better-auth.response",
@@ -551,6 +718,23 @@ function apiRouteFamily(route: string) {
     ? pathname.split("/", 3)[2]
     : undefined;
   return segment && API_ROUTE_FAMILIES.has(segment) ? segment : "other";
+}
+
+function pageRouteId(route: string) {
+  return finiteEnum(route, PAGE_ROUTE_IDS);
+}
+
+function cacheNamespace(namespace: string) {
+  return finiteEnum(namespace, CACHE_NAMESPACES);
+}
+
+function workspaceRouteStage(route: string, stage: string) {
+  if (!WORKSPACE_ROUTES.has(route)) return "unknown";
+  const stages =
+    route === "homeworks"
+      ? WORKSPACE_HOMEWORK_STAGES
+      : WORKSPACE_SUBSCRIPTIONS_STAGES;
+  return finiteEnum(stage, stages);
 }
 
 function oauthPathFamily(path: string) {
@@ -715,7 +899,7 @@ export function writeApiRequestAnalytics(input: ApiRequestAnalyticsInput) {
   writeAnalyticsDataPoint({
     indexes: [`api:${routeFamily}`],
     blobs: [
-      "api_request_v2",
+      "api_request_v3",
       finiteEnum(input.event, API_EVENTS),
       safeHttpMethod(input.method),
       routeFamily,
@@ -728,22 +912,23 @@ export function writeApiRequestAnalytics(input: ApiRequestAnalyticsInput) {
 }
 
 export function writePageRequestAnalytics(input: PageRequestAnalyticsInput) {
+  const route = pageRouteId(input.route);
   const hasResponseBytes = input.responseBytes !== undefined;
   writeAnalyticsDataPoint({
-    indexes: [`page:${boundedValue(input.route)}`],
+    indexes: [`page:${route}`],
     blobs: [
       "page_request_v2",
-      input.event,
-      boundedValue(input.route),
-      boundedValue(input.method),
+      finiteEnum(input.event, PAGE_EVENTS),
+      route,
+      safeHttpMethod(input.method),
       String(input.status),
       statusClass(input.status),
-      boundedValue(input.locale),
-      input.authMode,
+      finiteEnum(input.locale, PAGE_LOCALES),
+      finiteEnum(input.authMode, PAGE_AUTH_MODES),
       hasResponseBytes ? "response_bytes_known" : "response_bytes_unknown",
-      input.ssrClass,
-      input.authSignalPresence,
-      boundedValue(input.catalogDetailTab),
+      finiteEnum(input.ssrClass, PAGE_SSR_CLASSES),
+      finiteEnum(input.authSignalPresence, PAGE_AUTH_SIGNAL_PRESENCE),
+      finiteEnum(input.catalogDetailTab, PAGE_CATALOG_DETAIL_TABS),
     ],
     doubles: [
       input.ioObservedDurationMs,
@@ -796,7 +981,7 @@ export function writeOAuthEventAnalytics(input: OAuthEventAnalyticsInput) {
   writeAnalyticsDataPoint({
     indexes: [`oauth:${pathFamily}`],
     blobs: [
-      "oauth_event_v2",
+      "oauth_event_v3",
       finiteEnum(input.event, OAUTH_EVENTS),
       safeHttpMethod(input.method ?? ""),
       pathFamily,
@@ -877,14 +1062,12 @@ export function writeStorageOperationAnalytics(
 }
 
 export function writeCacheEventAnalytics(input: CacheEventAnalyticsInput) {
+  const event = finiteEnum(input.event, CACHE_EVENTS);
+  const namespace = cacheNamespace(input.namespace);
+  const reason = finiteEnum(input.reason ?? "none", CACHE_REASONS);
   writeAnalyticsDataPoint({
-    indexes: [`cache:${boundedValue(input.namespace)}`],
-    blobs: [
-      "public_runtime_cache_v3",
-      input.event,
-      input.namespace,
-      input.reason ?? "none",
-    ],
+    indexes: [`cache:${namespace}`],
+    blobs: ["public_runtime_cache_v3", event, namespace, reason],
     doubles: [input.ioObservedDurationMs, input.ttlMs, input.storeSize],
   });
 }
@@ -892,9 +1075,11 @@ export function writeCacheEventAnalytics(input: CacheEventAnalyticsInput) {
 export function writeCalendarFeedCacheAnalytics(
   input: CalendarFeedCacheAnalyticsInput,
 ) {
+  const feed = finiteEnum(input.feed, CALENDAR_FEEDS);
+  const status = finiteEnum(input.status, CALENDAR_CACHE_STATUSES);
   writeAnalyticsDataPoint({
-    indexes: [`cache:calendar:${boundedValue(input.feed)}`],
-    blobs: ["calendar_feed_cache", input.feed, input.status],
+    indexes: [`cache:calendar:${feed}`],
+    blobs: ["calendar_feed_cache", feed, status],
     doubles: [input.ttlMs, input.storeSize],
   });
 }
@@ -902,9 +1087,10 @@ export function writeCalendarFeedCacheAnalytics(
 export function writeCalendarExportRebuildAnalytics(
   input: CalendarExportRebuildAnalyticsInput,
 ) {
+  const status = finiteEnum(input.status, CALENDAR_REBUILD_STATUSES);
   writeAnalyticsDataPoint({
-    indexes: [`calendar_export_rebuild_${input.status}`],
-    blobs: ["calendar_export_rebuild", input.status],
+    indexes: [`calendar_export_rebuild_${status}`],
+    blobs: ["calendar_export_rebuild", status],
     doubles: [1],
   });
 }
@@ -912,9 +1098,11 @@ export function writeCalendarExportRebuildAnalytics(
 export function writeWorkspaceOverviewStageAnalytics(
   input: WorkspaceOverviewStageAnalyticsInput,
 ) {
+  const stage = finiteEnum(input.stage, WORKSPACE_OVERVIEW_STAGES);
+  const status = finiteEnum(input.status, WORKSPACE_STAGE_STATUSES);
   writeAnalyticsDataPoint({
-    indexes: [`workspace:overview:${input.stage}`],
-    blobs: ["workspace_overview_stage_v1", input.stage, input.status],
+    indexes: [`workspace:overview:${stage}`],
+    blobs: ["workspace_overview_stage_v1", stage, status],
     doubles: [input.ioObservedDurationMs],
   });
 }
@@ -922,9 +1110,12 @@ export function writeWorkspaceOverviewStageAnalytics(
 export function writeWorkspaceRouteStageAnalytics(
   input: WorkspaceRouteStageAnalyticsInput,
 ) {
+  const route = finiteEnum(input.route, WORKSPACE_ROUTES);
+  const stage = workspaceRouteStage(input.route, input.stage);
+  const status = finiteEnum(input.status, WORKSPACE_STAGE_STATUSES);
   writeAnalyticsDataPoint({
-    indexes: [`workspace:${input.route}:${input.stage}`],
-    blobs: ["workspace_route_stage_v1", input.route, input.stage, input.status],
+    indexes: [`workspace:${route}:${stage}`],
+    blobs: ["workspace_route_stage_v1", route, stage, status],
     doubles: [input.ioObservedDurationMs],
   });
 }

@@ -1,5 +1,6 @@
 import { AsyncLocalStorage } from "node:async_hooks";
 import type { Prisma } from "@/generated/prisma/client";
+import { elapsedMs, monotonicNowMs } from "@/lib/log/observability-clock";
 import { recordWorkspaceRouteDbContext } from "@/lib/log/workspace-route-attribution";
 
 type UserRlsContext = {
@@ -44,10 +45,10 @@ export async function runWithUserRlsContext<T>(
     return action(active.tx);
   }
 
-  const transactionStartMs = Date.now();
+  const transactionStartMs = monotonicNowMs();
   return client.$transaction(async (tx) => {
     await tx.$queryRaw`SELECT set_config('app.user_id', ${normalizedUserId}, true)`;
-    recordWorkspaceRouteDbContext(Date.now() - transactionStartMs);
+    recordWorkspaceRouteDbContext(elapsedMs(transactionStartMs));
     return userRlsStorage.run({ locale, tx, userId: normalizedUserId }, () =>
       action(tx),
     );

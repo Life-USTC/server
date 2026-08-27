@@ -10,10 +10,14 @@ import {
   resetAnalyticsEngineDiagnosticsForTest,
   writeApiRequestAnalytics,
   writeAuditWriteAnalytics,
+  writeCacheEventAnalytics,
+  writeCalendarExportRebuildAnalytics,
+  writeCalendarFeedCacheAnalytics,
   writeCommentsStageAnalytics,
   writeDashboardStageAnalytics,
   writeMcpTransportAnalytics,
   writeOAuthEventAnalytics,
+  writePageRequestAnalytics,
   writeQueueBatchAnalytics,
   writeWorkerRequestAnalytics,
   writeWorkspaceOverviewStageAnalytics,
@@ -338,7 +342,7 @@ describe("Cloudflare Analytics Engine runtime events", () => {
       expect.objectContaining({
         indexes: ["api:auth"],
         blobs: [
-          "api_request_v2",
+          "api_request_v3",
           "finish",
           "unknown",
           "auth",
@@ -353,7 +357,7 @@ describe("Cloudflare Analytics Engine runtime events", () => {
       expect.objectContaining({
         indexes: ["oauth:auth"],
         blobs: expect.arrayContaining([
-          "oauth_event_v2",
+          "oauth_event_v3",
           "unknown",
           "unknown",
           "auth",
@@ -369,6 +373,104 @@ describe("Cloudflare Analytics Engine runtime events", () => {
       }),
     );
     expect(JSON.stringify(writeDataPoint.mock.calls)).not.toContain(secret);
+  });
+
+  it("uses only current schemas and finite boundary dimensions", () => {
+    const writeDataPoint = installAnalyticsBinding();
+    const secret = "secret-route-or-locale-123";
+
+    writeApiRequestAnalytics({
+      authMode: "anonymous",
+      event: "finish",
+      ioObservedDurationMs: 1,
+      method: "GET",
+      route: "/api/catalog",
+      status: 200,
+    });
+    writeOAuthEventAnalytics({
+      event: "better-auth.response",
+      ioObservedDurationMs: 1,
+      path: "/api/auth/oauth2/token",
+      status: 200,
+    });
+    writePageRequestAnalytics({
+      appIoObservedDurationMs: 1,
+      authIoObservedDurationMs: 1,
+      authMode: "anonymous",
+      authSignalPresence: "absent",
+      catalogDetailTab: "not_applicable",
+      event: "finish",
+      ioObservedDurationMs: 1,
+      locale: secret,
+      method: secret,
+      route: secret,
+      ssrClass: "dynamic-ssr",
+      status: 200,
+    });
+    writeCacheEventAnalytics({
+      event: secret as never,
+      ioObservedDurationMs: 1,
+      namespace: secret as never,
+      reason: secret as never,
+      storeSize: 1,
+      ttlMs: 1_000,
+    });
+    writeWorkspaceRouteStageAnalytics({
+      ioObservedDurationMs: 1,
+      route: "homeworks",
+      stage: "read",
+      status: "success",
+    });
+    writeWorkspaceRouteStageAnalytics({
+      ioObservedDurationMs: 1,
+      route: secret as never,
+      stage: secret as never,
+      status: secret as never,
+    });
+    writeCalendarFeedCacheAnalytics({
+      feed: "user",
+      status: "fresh",
+      storeSize: 1,
+      ttlMs: 1_000,
+    });
+    writeCalendarFeedCacheAnalytics({
+      feed: secret as never,
+      status: secret as never,
+      storeSize: 1,
+      ttlMs: 1_000,
+    });
+    writeCalendarExportRebuildAnalytics({ status: "ok" });
+
+    const dataPoints = writeDataPoint.mock.calls.map(
+      ([dataPoint]) => dataPoint,
+    );
+    expect(dataPoints.map((dataPoint) => dataPoint.blobs?.[0])).toEqual([
+      "api_request_v3",
+      "oauth_event_v3",
+      "page_request_v2",
+      "public_runtime_cache_v3",
+      "workspace_route_stage_v1",
+      "workspace_route_stage_v1",
+      "calendar_feed_cache",
+      "calendar_feed_cache",
+      "calendar_export_rebuild",
+    ]);
+    expect(JSON.stringify(dataPoints)).not.toContain("api_request_v2");
+    expect(JSON.stringify(dataPoints)).not.toContain("oauth_event_v2");
+    expect(JSON.stringify(dataPoints)).not.toContain(secret);
+    expect(dataPoints[5]).toMatchObject({
+      indexes: ["workspace:unknown:unknown"],
+      blobs: ["workspace_route_stage_v1", "unknown", "unknown", "unknown"],
+    });
+    expect(dataPoints[7]).toMatchObject({
+      indexes: ["cache:calendar:unknown"],
+      blobs: ["calendar_feed_cache", "unknown", "unknown"],
+    });
+    for (const dataPoint of dataPoints) {
+      expect(dataPoint.indexes).toHaveLength(1);
+      expect(dataPoint.blobs.length).toBeLessThanOrEqual(20);
+      expect(dataPoint.doubles.length).toBeLessThanOrEqual(20);
+    }
   });
 
   it("writes bounded worker and queue schemas", () => {
@@ -479,7 +581,7 @@ describe("Cloudflare Analytics Engine runtime events", () => {
     expect(writeDataPoint).toHaveBeenCalledWith({
       indexes: ["oauth:token"],
       blobs: [
-        "oauth_event_v2",
+        "oauth_event_v3",
         "better-auth.response",
         "POST",
         "token",
@@ -510,7 +612,7 @@ describe("Cloudflare Analytics Engine runtime events", () => {
     expect(writeDataPoint).toHaveBeenCalledWith({
       indexes: ["oauth:token"],
       blobs: [
-        "oauth_event_v2",
+        "oauth_event_v3",
         "grant-validation-failed",
         "unknown",
         "token",

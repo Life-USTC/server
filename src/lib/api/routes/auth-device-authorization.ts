@@ -9,6 +9,7 @@ import { parseDeviceAuthorizationForm } from "@/lib/api/routes/auth-device-form-
 import { observedApiRoute } from "@/lib/log/api-observability";
 import { logAppEvent } from "@/lib/log/app-logger";
 import { logOAuthDebug } from "@/lib/log/oauth-debug";
+import { elapsedMs, monotonicNowMs } from "@/lib/log/observability-clock";
 import { getSafeErrorName } from "@/lib/log/safe-error-name";
 import { writeOAuthEventAnalytics } from "@/lib/metrics/analytics-engine";
 import {
@@ -105,13 +106,13 @@ async function runDeviceAuthorizationPostRoute(
 }
 
 async function postRoute(request: Request): Promise<Response> {
-  const start = Date.now();
+  const start = monotonicNowMs();
   const path = new URL(request.url).pathname;
   try {
     const response = await runDeviceAuthorizationPostRoute(request);
     writeOAuthEventAnalytics({
       event: "device-authorization.response",
-      ioObservedDurationMs: Date.now() - start,
+      ioObservedDurationMs: elapsedMs(start),
       method: request.method,
       path,
       status: response.status,
@@ -120,7 +121,7 @@ async function postRoute(request: Request): Promise<Response> {
   } catch (err) {
     writeOAuthEventAnalytics({
       event: "device-authorization.error",
-      ioObservedDurationMs: Date.now() - start,
+      ioObservedDurationMs: elapsedMs(start),
       method: request.method,
       path,
       status: 500,

@@ -180,6 +180,7 @@ describe("public runtime cache", () => {
   afterEach(() => {
     clearPublicRuntimeCache();
     vi.useRealTimers();
+    vi.restoreAllMocks();
     vi.unstubAllGlobals();
   });
 
@@ -418,6 +419,8 @@ describe("public runtime cache", () => {
   it("records phase-local cache durations and fixed low-cardinality spans", async () => {
     vi.useFakeTimers();
     vi.setSystemTime(10_000);
+    let monotonic = 1_000;
+    vi.spyOn(performance, "now").mockImplementation(() => monotonic);
     const writeDataPoint = vi.fn();
     const setAttribute = vi.fn();
     const enterSpan = vi.fn(
@@ -431,14 +434,16 @@ describe("public runtime cache", () => {
     );
     const namespace = {
       get: vi.fn(async () => {
-        vi.setSystemTime(Date.now() + 11);
+        vi.setSystemTime(Date.now() + 111);
+        monotonic += 11;
         return null;
       }),
       put: vi.fn(async () => undefined),
     };
     const { match } = installNamedCache({
       match: async () => {
-        vi.setSystemTime(Date.now() + 23);
+        vi.setSystemTime(Date.now() + 223);
+        monotonic += 23;
         return undefined;
       },
     });
@@ -459,7 +464,8 @@ describe("public runtime cache", () => {
           sensitiveKey,
           60_000,
           async () => {
-            vi.setSystemTime(Date.now() + 37);
+            vi.setSystemTime(Date.now() + 337);
+            monotonic += 37;
             return { source: "database" };
           },
           {
@@ -514,6 +520,8 @@ describe("public runtime cache", () => {
   it("records one phase-local origin error without retaining the failed load", async () => {
     vi.useFakeTimers();
     vi.setSystemTime(20_000);
+    let monotonic = 2_000;
+    vi.spyOn(performance, "now").mockImplementation(() => monotonic);
     const writeDataPoint = vi.fn();
     const setAttribute = vi.fn();
     const enterSpan = vi.fn(
@@ -523,7 +531,8 @@ describe("public runtime cache", () => {
       ) => callback({ setAttribute }),
     );
     const load = vi.fn(async () => {
-      vi.setSystemTime(Date.now() + 41);
+      vi.setSystemTime(Date.now() + 410);
+      monotonic += 41;
       throw new Error("origin failed");
     });
 
@@ -557,6 +566,68 @@ describe("public runtime cache", () => {
       ),
     ).resolves.toEqual({ source: "retry" });
     expect(load).toHaveBeenCalledOnce();
+  });
+
+  it("uses wall-clock time for TTL while measuring cache work monotonically", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(10_000);
+    const monotonic = 3_000;
+    vi.spyOn(performance, "now").mockImplementation(() => monotonic);
+    const writeDataPoint = vi.fn();
+    const load = vi.fn(async () => {
+      vi.setSystemTime(Date.now() + 250);
+      return { source: "database" };
+    });
+
+    await runWithCloudflareRuntimeEnv(
+      { ANALYTICS: { writeDataPoint } },
+      async () => {
+        await expect(
+          cachedPublicRuntimeData(
+            "api:metadata",
+            "wall-clock-ttl",
+            1_000,
+            load,
+          ),
+        ).resolves.toEqual({ source: "database" });
+
+        await expect(
+          cachedPublicRuntimeData(
+            "api:metadata",
+            "wall-clock-ttl",
+            1_000,
+            load,
+          ),
+        ).resolves.toEqual({ source: "database" });
+
+        vi.setSystemTime(11_001);
+        await expect(
+          cachedPublicRuntimeData(
+            "api:metadata",
+            "wall-clock-ttl",
+            1_000,
+            load,
+          ),
+        ).resolves.toEqual({ source: "database" });
+      },
+    );
+
+    expect(load).toHaveBeenCalledTimes(2);
+    const events = writeDataPoint.mock.calls.map(
+      ([dataPoint]) => dataPoint.blobs?.[1],
+    );
+    expect(events).toEqual([
+      "miss",
+      "load_success",
+      "hit",
+      "miss",
+      "load_success",
+    ]);
+    expect(
+      writeDataPoint.mock.calls
+        .filter(([dataPoint]) => dataPoint.blobs?.[1] === "load_success")
+        .map(([dataPoint]) => dataPoint.doubles?.[0]),
+    ).toEqual([0, 0]);
   });
 
   it("returns one in-flight promise for concurrent callers of the same key", async () => {
