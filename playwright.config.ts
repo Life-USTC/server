@@ -47,7 +47,7 @@ export default defineConfig({
   },
   use: {
     baseURL,
-    trace: "on-first-retry",
+    trace: "retain-on-failure",
     screenshot: { mode: "only-on-failure", fullPage: true },
   },
   webServer: {

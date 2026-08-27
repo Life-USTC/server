@@ -19,7 +19,7 @@ export default defineConfig({
   reporter: process.env.CI ? [["list"]] : [["list"]],
   use: {
     baseURL,
-    trace: "on-first-retry",
+    trace: "retain-on-failure",
   },
   webServer: {
     command: "bun run e2e:server",

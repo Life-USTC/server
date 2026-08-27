@@ -18,7 +18,10 @@ describe("Playwright configuration", () => {
     expect(config).toMatchObject({
       forbidOnly: true,
       retries: 0,
-      use: { baseURL: "http://localhost:3000" },
+      use: {
+        baseURL: "http://localhost:3000",
+        trace: "retain-on-failure",
+      },
       webServer: {
         gracefulShutdown: { signal: "SIGTERM", timeout: 10_000 },
         reuseExistingServer: false,
