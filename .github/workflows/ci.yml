@@ -223,7 +223,21 @@ jobs:
         with:
           fetch-depth: 1
 
+      - name: Check report publication credentials
+        id: report-auth
+        shell: bash
+        env:
+          E2E_ARTIFACTS_TOKEN: ${{ secrets.E2E_ARTIFACTS_TOKEN }}
+        run: |
+          if [[ -n "${E2E_ARTIFACTS_TOKEN}" ]]; then
+            echo "available=true" >> "${GITHUB_OUTPUT}"
+          else
+            echo "available=false" >> "${GITHUB_OUTPUT}"
+            echo "E2E report publication skipped: E2E_ARTIFACTS_TOKEN is unavailable."
+          fi
+
       - name: Checkout e2e-snapshot-artifacts repo
+        if: ${{ steps.report-auth.outputs.available == 'true' }}
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: Life-USTC/e2e-snapshot-artifacts
@@ -233,20 +247,24 @@ jobs:
           fetch-depth: 1
 
       - name: Setup Bun
+        if: ${{ steps.report-auth.outputs.available == 'true' }}
         uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
         with:
           bun-version-file: .bun-version
 
       - name: Install dependencies
+        if: ${{ steps.report-auth.outputs.available == 'true' }}
         run: bun install --frozen-lockfile
 
       - name: Download all Playwright report artifacts
+        if: ${{ steps.report-auth.outputs.available == 'true' }}
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           path: downloaded-reports
           pattern: playwright-report-*
 
       - name: Merge blob reports into HTML
+        if: ${{ steps.report-auth.outputs.available == 'true' }}
         run: |
           mkdir -p all-blobs
           for dir in downloaded-reports/playwright-report-*; do
@@ -259,6 +277,7 @@ jobs:
           bunx playwright merge-reports all-blobs --config playwright.report.config.ts
 
       - name: Publish report to e2e-snapshot-artifacts branch
+        if: ${{ steps.report-auth.outputs.available == 'true' }}
         env:
           REPORTS_TO_KEEP: 20
           RUN_ID: ${{ github.run_id }}
@@ -315,6 +334,7 @@ jobs:
           git push --force origin HEAD:main
 
       - name: Comment report link on commit and PR
+        if: ${{ steps.report-auth.outputs.available == 'true' }}
         env:
           RUN_ID: ${{ github.run_id }}
           COMMIT_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
