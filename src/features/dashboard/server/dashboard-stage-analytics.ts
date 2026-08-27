@@ -1,7 +1,8 @@
 import { elapsedMs, monotonicNowMs } from "@/lib/log/observability-clock";
 import {
+  type DashboardDbStageContext,
   type DashboardStage,
-  type DbStageContext,
+  type DashboardStageCountState,
   type DbStageLabel,
   writeDashboardStageAnalytics,
 } from "@/lib/metrics/analytics-engine";
@@ -9,19 +10,21 @@ import {
 export type { DashboardStage };
 
 export type DashboardStageCounter = {
-  complete: boolean;
-  dbContext: DbStageContext;
+  analyticsRecorded: boolean;
+  countState: DashboardStageCountState;
+  dbContext: DashboardDbStageContext;
   dbLabel: DbStageLabel;
   dbQueryCount: number;
   dbTransactionCount: number;
 };
 
 export function createDashboardStageCounter(input: {
-  dbContext: DbStageContext;
+  dbContext: DashboardDbStageContext;
   dbLabel: DbStageLabel;
 }): DashboardStageCounter {
   return {
-    complete: true,
+    analyticsRecorded: false,
+    countState: "known",
     dbContext: input.dbContext,
     dbLabel: input.dbLabel,
     dbQueryCount: 0,
@@ -50,7 +53,7 @@ export function markDashboardStageCountsUnknown(
   counter?: DashboardStageCounter,
 ) {
   if (!counter) return;
-  counter.complete = false;
+  counter.countState = "unknown";
 }
 
 export function recordDashboardStageAnalytics(input: {
@@ -65,10 +68,17 @@ export function recordDashboardStageAnalytics(input: {
   stage: DashboardStage;
 }) {
   const counter = input.counter;
-  if (!counter?.complete) return;
+  if (!counter || counter.analyticsRecorded) return;
+
+  // A read model may publish the precise stage result while a page
+  // orchestrator also wraps the same operation for request-level timing.
+  // The counter is the ownership token: only the first completion may emit
+  // the datapoint, preventing duplicate nav_stats records.
+  counter.analyticsRecorded = true;
 
   try {
     writeDashboardStageAnalytics({
+      countState: counter.countState,
       dbContext: counter.dbContext,
       dbLabel: counter.dbLabel,
       dbQueryCount: counter.dbQueryCount,

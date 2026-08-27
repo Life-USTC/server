@@ -12,6 +12,8 @@ import {
 } from "@/lib/public-runtime-cache";
 import { getCanonicalOrigin } from "@/lib/site-url";
 
+export type PublicDetailCacheResultValidator = (result: unknown) => boolean;
+
 /** L1 isolate + colo Cache API TTL for anonymous catalog entity core. */
 export const PUBLIC_DETAIL_RUNTIME_CACHE_TTL_MS =
   PUBLIC_CATALOG_RUNTIME_CACHE_TTL_MS;
@@ -61,14 +63,19 @@ export async function cachedPublicDetailRuntimeData<T>(input: {
   load: () => Promise<T | null>;
   locale: AppLocale;
   shape: string;
+  validateResult?: PublicDetailCacheResultValidator;
 }) {
+  const validateResult = input.validateResult ?? isPublicDetailResult;
+  const isValidResult = (result: unknown) =>
+    isPublicDetailResult(result) && validateResult(result);
+
   const options = await buildPublicDetailRuntimeCacheOptions<T | null>({
     id: input.id,
     kind: input.kind,
     kvShape: input.shape,
     locale: input.locale,
-    shouldCacheResult: isPublicDetailResult,
-    validateColoCacheResult: isPublicDetailResult,
+    shouldCacheResult: isValidResult,
+    validateColoCacheResult: validateResult,
   });
 
   return cachedPublicRuntimeData(

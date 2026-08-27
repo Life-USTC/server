@@ -4,7 +4,10 @@ import {
   loadSignedDashboardTabData,
   timeDashboardStage,
 } from "@/features/dashboard/server/dashboard-page-tab-data";
-import { createDashboardStageCounter } from "@/features/dashboard/server/dashboard-stage-analytics";
+import {
+  createDashboardStageCounter,
+  markDashboardStageCountsUnknown,
+} from "@/features/dashboard/server/dashboard-stage-analytics";
 import type { AppLocale } from "@/i18n/config";
 import { toShanghaiIsoString } from "@/lib/time/serialize-date-output";
 
@@ -49,6 +52,11 @@ export async function loadSignedDashboardPageData(input: {
     };
   }
 
+  const tabCounter = createDashboardStageCounter({
+    dbContext: "mixed",
+    dbLabel: "app",
+  });
+  markDashboardStageCountsUnknown(tabCounter);
   const {
     bus,
     calendarSubscriptionUrl,
@@ -77,6 +85,7 @@ export async function loadSignedDashboardPageData(input: {
         tab: input.tab,
         userId: input.userId,
       }),
+    tabCounter,
   );
 
   return {

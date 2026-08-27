@@ -40,6 +40,7 @@ describe("dashboard stage analytics", () => {
     ).resolves.toBe("ok");
 
     expect(writeDashboardStageAnalyticsMock).toHaveBeenCalledWith({
+      countState: "known",
       dbContext: "rls",
       dbLabel: "app",
       dbQueryCount: 1,
@@ -51,7 +52,7 @@ describe("dashboard stage analytics", () => {
     });
   });
 
-  it("does not publish a partial counter", async () => {
+  it("publishes an explicitly unknown partial counter without numeric counts", async () => {
     writeDashboardStageAnalyticsMock.mockReset();
     const counter = createDashboardStageCounter({
       dbContext: "none",
@@ -66,7 +67,16 @@ describe("dashboard stage analytics", () => {
         work: async () => ({ ok: true }),
       }),
     ).resolves.toEqual({ ok: true });
-    expect(writeDashboardStageAnalyticsMock).not.toHaveBeenCalled();
+    expect(writeDashboardStageAnalyticsMock).toHaveBeenCalledWith({
+      countState: "unknown",
+      dbContext: "none",
+      dbLabel: "auth",
+      dbQueryCount: 0,
+      dbTransactionCount: 0,
+      durationMs: 9,
+      outcome: "success",
+      stage: "tab",
+    });
   });
 
   it("keeps the dashboard result when the writer throws", async () => {

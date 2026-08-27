@@ -252,6 +252,30 @@ describe("Worker routing entrypoint", () => {
     );
   });
 
+  it("attributes dynamic API requests to a finite route family", async () => {
+    const response = await worker.fetch(
+      new Request(
+        "https://life-ustc.test/api/catalog/courses/123?token=private-value",
+      ),
+      {},
+      { waitUntil: vi.fn() },
+    );
+
+    expect(response.status).toBe(200);
+    const completion = logAppEventMock.mock.calls.find(
+      ([, event]) => event === "edge.request.finish",
+    );
+    expect(completion?.[2]).toEqual(
+      expect.objectContaining({
+        cacheOutcome: "dynamic",
+        requestClass: "dynamic",
+        route: "/api/catalog",
+        status: 200,
+      }),
+    );
+    expect(JSON.stringify(completion)).not.toContain("private-value");
+  });
+
   it("does not store per-request ids in the shared cache representation", async () => {
     appFetchMock.mockResolvedValue(
       new Response(null, {
