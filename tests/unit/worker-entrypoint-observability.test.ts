@@ -173,8 +173,11 @@ describe("worker entrypoint observability", () => {
     );
   });
 
-  it("does not wrap an immutable response while recording telemetry failure", () => {
+  it("wraps immutable redirects without changing response semantics", () => {
     const response = Response.redirect("https://example.test/login", 302);
+    vi.spyOn(response.headers, "set").mockImplementation(() => {
+      throw new TypeError("Can't modify immutable headers.");
+    });
 
     const observed = observedEdgeResponse({
       cacheOutcome: "bypass",
@@ -186,8 +189,134 @@ describe("worker entrypoint observability", () => {
       startMs: performance.now(),
     });
 
+    expect(observed).not.toBe(response);
+    expect(observed.status).toBe(302);
+    expect(observed.statusText).toBe(response.statusText);
+    expect(observed.headers.get("location")).toBe("https://example.test/login");
+    expect(observed.headers.get("x-request-id")).toBe("request-1");
+    expect(
+      logAppEventMock.mock.calls.some(
+        ([, event, fields]) =>
+          event === "edge.request.observation.error" &&
+          (fields as { failurePhase?: string })?.failurePhase === "request-id",
+      ),
+    ).toBe(false);
+  });
+
+  it("transfers streaming bodies and preserves multiple Set-Cookie headers", async () => {
+    const cancelMock = vi.fn();
+    const stream = new ReadableStream<Uint8Array>({
+      start(controller) {
+        controller.enqueue(new TextEncoder().encode("streamed"));
+        controller.close();
+      },
+      cancel: cancelMock,
+    });
+    const headers = new Headers();
+    headers.append("Set-Cookie", "session=one");
+    headers.append("Set-Cookie", "theme=dark");
+    headers.set("x-request-id", "stale-response-id");
+    const response = new Response(stream, {
+      headers,
+      status: 206,
+      statusText: "Partial Content",
+    });
+    vi.spyOn(response.headers, "set").mockImplementation(() => {
+      throw new TypeError("Can't modify immutable headers.");
+    });
+
+    const observed = observedEdgeResponse({
+      cacheOutcome: "dynamic",
+      request: new Request("https://example.test/stream", {
+        headers: {
+          [INTERNAL_REQUEST_ID_HEADER]: "spoofed-inbound-id",
+          "x-request-id": "spoofed-public-id",
+        },
+      }),
+      requestClass: "dynamic",
+      requestId: "request-1",
+      response,
+      route: "public-page",
+      startMs: performance.now(),
+    });
+
+    expect(observed).not.toBe(response);
+    expect(observed.body).toBe(response.body);
+    expect(observed.status).toBe(206);
+    expect(observed.statusText).toBe("Partial Content");
+    expect(observed.headers.get("x-request-id")).toBe("request-1");
+    expect(JSON.stringify(logAppEventMock.mock.calls)).not.toContain(
+      "spoofed-inbound-id",
+    );
+    expect(JSON.stringify(logAppEventMock.mock.calls)).not.toContain(
+      "spoofed-public-id",
+    );
+    const observedHeaders = observed.headers as Headers & {
+      getAll?: (name: string) => string[];
+      getSetCookie?: () => string[];
+    };
+    expect(
+      observedHeaders.getSetCookie?.() ??
+        observedHeaders.getAll?.("set-cookie"),
+    ).toEqual(["session=one", "theme=dark"]);
+    await expect(observed.text()).resolves.toBe("streamed");
+    expect(cancelMock).not.toHaveBeenCalled();
+  });
+
+  it("reports a real request-id fallback failure and returns the original response", () => {
+    const response = new Response("locked");
+    vi.spyOn(response.headers, "set").mockImplementation(() => {
+      throw new TypeError("Can't modify immutable headers.");
+    });
+    const reader = response.body?.getReader();
+
+    const observed = observedEdgeResponse({
+      cacheOutcome: "dynamic",
+      request: new Request("https://example.test/locked"),
+      requestClass: "dynamic",
+      requestId: "request-1",
+      response,
+      route: "public-page",
+      startMs: performance.now(),
+    });
+    reader?.releaseLock();
+
     expect(observed).toBe(response);
-    expect(observed.headers.get("x-request-id")).toBeNull();
+    expect(logAppEventMock).toHaveBeenCalledWith(
+      "error",
+      "edge.request.observation.error",
+      expect.objectContaining({
+        errorName: "TypeError",
+        failurePhase: "request-id",
+      }),
+    );
+  });
+
+  it("does not hide non-immutability request-id injection failures", () => {
+    const response = new Response("unavailable");
+    vi.spyOn(response.headers, "set").mockImplementation(() => {
+      throw new Error("header sink unavailable");
+    });
+
+    const observed = observedEdgeResponse({
+      cacheOutcome: "dynamic",
+      request: new Request("https://example.test/header-failure"),
+      requestClass: "dynamic",
+      requestId: "request-1",
+      response,
+      route: "public-page",
+      startMs: performance.now(),
+    });
+
+    expect(observed).toBe(response);
+    expect(logAppEventMock).toHaveBeenCalledWith(
+      "error",
+      "edge.request.observation.error",
+      expect.objectContaining({
+        errorName: "Error",
+        failurePhase: "request-id",
+      }),
+    );
   });
 
   it("only accepts the internal UUID header and strips external request ids", () => {

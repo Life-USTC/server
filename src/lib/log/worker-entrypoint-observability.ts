@@ -138,6 +138,65 @@ function logEdgeObservationFailure(
   }
 }
 
+type ResponseHeadersWithCookieAccess = Headers & {
+  getAll?: (name: string) => string[];
+  getSetCookie?: () => string[];
+};
+type ResponseWithOptionalWebSocket = Response & {
+  readonly webSocket?: unknown;
+};
+type ResponseInitWithOptionalWebSocket = ResponseInit & {
+  webSocket?: unknown;
+};
+
+function copyResponseHeaders(response: Response) {
+  const headers = new Headers(response.headers);
+  const sourceHeaders = response.headers as ResponseHeadersWithCookieAccess;
+  const setCookieValues =
+    typeof sourceHeaders.getSetCookie === "function"
+      ? sourceHeaders.getSetCookie()
+      : typeof sourceHeaders.getAll === "function"
+        ? sourceHeaders.getAll("set-cookie")
+        : undefined;
+
+  if (setCookieValues) {
+    headers.delete("set-cookie");
+    for (const value of setCookieValues) {
+      headers.append("set-cookie", value);
+    }
+  }
+
+  return headers;
+}
+
+function isImmutableResponseHeadersError(error: unknown) {
+  return (
+    error instanceof TypeError &&
+    error.message.toLowerCase().includes("immutable")
+  );
+}
+
+function responseWithRequestId(response: Response, requestId: string) {
+  try {
+    response.headers.set("x-request-id", requestId);
+    return response;
+  } catch (error) {
+    if (!isImmutableResponseHeadersError(error)) throw error;
+    const headers = copyResponseHeaders(response);
+    headers.set("x-request-id", requestId);
+    const init: ResponseInitWithOptionalWebSocket = {
+      headers,
+      status: response.status,
+      statusText: response.statusText,
+    };
+    const webSocket = (response as ResponseWithOptionalWebSocket).webSocket;
+    if (webSocket) {
+      init.webSocket = webSocket;
+    }
+    return new Response(response.body, init);
+  }
+}
+
 export function observedEdgeResponse(input: {
   cacheOutcome: EdgeCacheOutcome;
   request: Request;
@@ -150,11 +209,12 @@ export function observedEdgeResponse(input: {
   // Keep ownership of the body with the response returned by the application.
   // Constructing another Response around an already wrapped SvelteKit body can
   // make the runtime cancel/restart a valid response while edge telemetry is
-  // being recorded. Headers are mutable on the responses produced by this
-  // Worker; if a platform response is immutable, retain it unchanged.
-  const response = input.response;
+  // being recorded. Keep the mutable-response fast path; if a platform
+  // response is immutable, the fallback transfers the original body stream
+  // without cloning or teeing it.
+  let response = input.response;
   try {
-    response.headers.set("x-request-id", input.requestId);
+    response = responseWithRequestId(response, input.requestId);
   } catch (error) {
     logEdgeObservationFailure(input, "request-id", error);
   }
