@@ -6,7 +6,9 @@ import {
 } from "@/features/catalog/lib/catalog-list-display";
 import { catalogListPageHref } from "@/features/catalog/lib/catalog-list-query";
 import { page } from "$app/stores";
+import PageFrame from "$lib/components/PageFrame.svelte";
 import PageHeader from "$lib/components/PageHeader.svelte";
+import Panel from "$lib/components/Panel.svelte";
 import CatalogMobileFilters from "./CatalogMobileFilters.svelte";
 import CatalogPagination from "./CatalogPagination.svelte";
 import type {
@@ -101,39 +103,55 @@ function teacherFilterHref(overrides: Partial<TeacherListFilters>) {
 }
 </script>
 
-<section class="grid gap-5">
-  <PageHeader
-    description={teacherLabels.subtitle}
-    title={teacherLabels.title}
+{#snippet paginationFooter()}
+  <CatalogPagination
+    ariaLabel={commonLabels.pagination}
+    class="py-0"
+    nextLabel={commonLabels.next}
+    nextPageLabel={commonLabels.nextPage}
+    page={data.pagination.page}
+    {pageHref}
+    previousLabel={commonLabels.previous}
+    previousPageLabel={commonLabels.previousPage}
+    {totalPages}
   />
+{/snippet}
 
-  <div class="grid min-w-0 gap-4">
-    <CatalogMobileFilters
-      activeFilters={teacherActiveFilters}
-      clearHref="/catalog/teachers"
-      clearLabel={commonLabels.clear}
-      filterDescription={teacherLabels.filterDescription}
-      filterTitle={teacherLabels.filterTitle}
-      hiddenFilters={teacherHiddenFilters}
-      searchId="mobile-teacher-search"
-      searchLabel={teacherLabels.searchLabel}
-      searchPlaceholder={teacherLabels.searchNameOrCode}
-      bind:searchValue={teacherSearch}
-    >
-      <TeachersFilters
-        {activeFilterCount}
-        {commonLabels}
-        {departmentOptions}
-        filters={data.filters}
-        idPrefix="mobile-teacher"
-        showClear={false}
-        showSearch={false}
-        {teacherLabels}
-        teacherSearch={data.filters.search ?? ""}
-      />
-    </CatalogMobileFilters>
+<PageFrame>
+  <section class="grid gap-5">
+    <PageHeader
+      description={teacherLabels.subtitle}
+      title={teacherLabels.title}
+    />
 
-    <div class="grid min-w-0 gap-4">
+    <Panel footer={totalPages > 1 ? paginationFooter : undefined}>
+      {#snippet header()}
+        <CatalogMobileFilters
+          activeFilters={teacherActiveFilters}
+          clearHref="/catalog/teachers"
+          clearLabel={commonLabels.clear}
+          filterDescription={teacherLabels.filterDescription}
+          filterTitle={teacherLabels.filterTitle}
+          hiddenFilters={teacherHiddenFilters}
+          searchId="mobile-teacher-search"
+          searchLabel={teacherLabels.searchLabel}
+          searchPlaceholder={teacherLabels.searchNameOrCode}
+          bind:searchValue={teacherSearch}
+        >
+          <TeachersFilters
+            {activeFilterCount}
+            {commonLabels}
+            {departmentOptions}
+            filters={data.filters}
+            idPrefix="mobile-teacher"
+            showClear={false}
+            showSearch={false}
+            {teacherLabels}
+            teacherSearch={data.filters.search ?? ""}
+          />
+        </CatalogMobileFilters>
+      {/snippet}
+
       <TeachersResults
         {commonLabels}
         filters={data.filters}
@@ -145,17 +163,6 @@ function teacherFilterHref(overrides: Partial<TeacherListFilters>) {
         total={data.pagination.total}
         {totalPages}
       />
-
-      <CatalogPagination
-        ariaLabel={commonLabels.pagination}
-        nextLabel={commonLabels.next}
-        nextPageLabel={commonLabels.nextPage}
-        page={data.pagination.page}
-        {pageHref}
-        previousLabel={commonLabels.previous}
-        previousPageLabel={commonLabels.previousPage}
-        {totalPages}
-      />
-    </div>
-  </div>
-</section>
+    </Panel>
+  </section>
+</PageFrame>

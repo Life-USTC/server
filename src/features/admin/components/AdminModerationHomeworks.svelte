@@ -1,7 +1,7 @@
 <script lang="ts">
 import Trash2 from "@lucide/svelte/icons/trash-2";
-import DashboardTableIconButton from "@/features/dashboard/components/DashboardTableIconButton.svelte";
-import DashboardTableRowActions from "@/features/dashboard/components/DashboardTableRowActions.svelte";
+import TableIconButton from "$lib/components/TableIconButton.svelte";
+import TableRowActions from "$lib/components/TableRowActions.svelte";
 import TruncatedText from "$lib/components/TruncatedText.svelte";
 import { Badge } from "$lib/components/ui/badge/index.js";
 import { Button } from "$lib/components/ui/button/index.js";
@@ -133,15 +133,15 @@ export let onDelete: (homework: ModerationHomework) => void;
               </Table.Cell>
               <Table.Cell class="w-12 text-right">
                 {#if !homework.deletedAt}
-                  <DashboardTableRowActions class="justify-end">
-                    <DashboardTableIconButton
+                  <TableRowActions class="justify-end">
+                    <TableIconButton
                       label={copy.deleteHomeworkAction}
                       variant="destructive"
                       onclick={() => onDelete(homework)}
                     >
                       <Trash2 />
-                    </DashboardTableIconButton>
-                  </DashboardTableRowActions>
+                    </TableIconButton>
+                  </TableRowActions>
                 {/if}
               </Table.Cell>
             </Table.Row>

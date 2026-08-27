@@ -4,14 +4,14 @@ import CheckCircleIcon from "@lucide/svelte/icons/check-circle";
 import RefreshCw from "@lucide/svelte/icons/refresh-cw";
 import type { DashboardHomeworkItem } from "@/features/dashboard/lib/dashboard-controller-types";
 import { homeworkSummaryBadges } from "@/features/homeworks/lib/homework-presentation";
+import TableIconButton from "$lib/components/TableIconButton.svelte";
+import TableRowActions from "$lib/components/TableRowActions.svelte";
 import TruncatedText from "$lib/components/TruncatedText.svelte";
 import { Badge } from "$lib/components/ui/badge/index.js";
 import { Button } from "$lib/components/ui/button/index.js";
 import * as Empty from "$lib/components/ui/empty/index.js";
 import { Spinner } from "$lib/components/ui/spinner/index.js";
 import * as Table from "$lib/components/ui/table/index.js";
-import DashboardTableIconButton from "./DashboardTableIconButton.svelte";
-import DashboardTableRowActions from "./DashboardTableRowActions.svelte";
 
 type HomeworkDateFormatter = (
   value: Date | string | null | undefined,
@@ -105,8 +105,8 @@ function summaryBadges(homework: DashboardHomeworkItem) {
           </div>
         </Table.Cell>
         <Table.Cell>
-          <DashboardTableRowActions>
-            <DashboardTableIconButton
+          <TableRowActions>
+            <TableIconButton
             disabled={homeworkSavingById[homework.id]}
             label={homeworkSavingById[homework.id]
               ? homeworksCopy.saving
@@ -121,8 +121,8 @@ function summaryBadges(homework: DashboardHomeworkItem) {
               {:else}
                 <CheckCircleIcon />
               {/if}
-            </DashboardTableIconButton>
-            <DashboardTableIconButton
+            </TableIconButton>
+            <TableIconButton
               label={homeworksCopy.viewDetails}
               variant="outline"
               onclick={() => {
@@ -130,8 +130,8 @@ function summaryBadges(homework: DashboardHomeworkItem) {
               }}
             >
               <ArrowUpRight />
-            </DashboardTableIconButton>
-          </DashboardTableRowActions>
+            </TableIconButton>
+          </TableRowActions>
         </Table.Cell>
       </Table.Row>
     {:else}

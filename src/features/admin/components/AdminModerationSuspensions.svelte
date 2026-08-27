@@ -1,9 +1,9 @@
 <script lang="ts">
 import Unlock from "@lucide/svelte/icons/unlock";
 import type { SubmitFunction } from "@sveltejs/kit";
-import DashboardTableIconButton from "@/features/dashboard/components/DashboardTableIconButton.svelte";
-import DashboardTableRowActions from "@/features/dashboard/components/DashboardTableRowActions.svelte";
 import { enhance } from "$app/forms";
+import TableIconButton from "$lib/components/TableIconButton.svelte";
+import TableRowActions from "$lib/components/TableRowActions.svelte";
 import TruncatedText from "$lib/components/TruncatedText.svelte";
 import * as AlertDialog from "$lib/components/ui/alert-dialog/index.js";
 import { Badge } from "$lib/components/ui/badge/index.js";
@@ -171,8 +171,8 @@ function confirmedLiftAction(suspension: ModerationSuspension): SubmitFunction {
               </Table.Cell>
               <Table.Cell class="w-12 text-right">
                 {#if !suspension.liftedAt}
-                  <DashboardTableRowActions class="justify-end">
-                    <DashboardTableIconButton
+                  <TableRowActions class="justify-end">
+                  <TableIconButton
                       disabled={Boolean(liftingSuspensionId)}
                       label={liftingSuspensionId === suspension.id
                         ? copy.saving
@@ -180,8 +180,8 @@ function confirmedLiftAction(suspension: ModerationSuspension): SubmitFunction {
                       onclick={() => (pendingLiftSuspension = suspension)}
                     >
                       {#if liftingSuspensionId === suspension.id}<Spinner />{:else}<Unlock />{/if}
-                    </DashboardTableIconButton>
-                  </DashboardTableRowActions>
+                  </TableIconButton>
+                  </TableRowActions>
                 {/if}
               </Table.Cell>
             </Table.Row>

@@ -1,9 +1,9 @@
 <script lang="ts">
 import CheckCircle from "@lucide/svelte/icons/check-circle";
 import Trash2 from "@lucide/svelte/icons/trash-2";
-import DashboardTableIconButton from "@/features/dashboard/components/DashboardTableIconButton.svelte";
-import DashboardTableRowActions from "@/features/dashboard/components/DashboardTableRowActions.svelte";
 import { enhance } from "$app/forms";
+import TableIconButton from "$lib/components/TableIconButton.svelte";
+import TableRowActions from "$lib/components/TableRowActions.svelte";
 import * as AlertDialog from "$lib/components/ui/alert-dialog/index.js";
 import { Button } from "$lib/components/ui/button/index.js";
 import { Spinner } from "$lib/components/ui/spinner/index.js";
@@ -49,23 +49,23 @@ let activateDialogOpen = false;
       </Button>
     </div>
   {:else}
-    <DashboardTableRowActions class="justify-end">
-      <DashboardTableIconButton
+    <TableRowActions class="justify-end">
+      <TableIconButton
         disabled={Boolean(pendingAction)}
         label={copy.activateAction}
         onclick={() => (activateDialogOpen = true)}
       >
         {#if isPending(`activate-${version.id}`)}<Spinner />{:else}<CheckCircle />{/if}
-      </DashboardTableIconButton>
-      <DashboardTableIconButton
+      </TableIconButton>
+      <TableIconButton
         disabled={Boolean(pendingAction)}
         label={copy.deleteAction}
         variant="destructive"
         onclick={() => onDelete(version)}
       >
         <Trash2 />
-      </DashboardTableIconButton>
-    </DashboardTableRowActions>
+      </TableIconButton>
+    </TableRowActions>
   {/if}
 
   <AlertDialog.Root

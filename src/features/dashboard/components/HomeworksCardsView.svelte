@@ -4,12 +4,12 @@ import CheckCircleIcon from "@lucide/svelte/icons/check-circle";
 import RefreshCw from "@lucide/svelte/icons/refresh-cw";
 import type { DashboardHomeworkItem } from "@/features/dashboard/lib/dashboard-controller-types";
 import { homeworkSummaryBadges } from "@/features/homeworks/lib/homework-presentation";
+import TableIconButton from "$lib/components/TableIconButton.svelte";
 import { Badge } from "$lib/components/ui/badge/index.js";
 import { Button } from "$lib/components/ui/button/index.js";
 import * as Empty from "$lib/components/ui/empty/index.js";
 import * as Item from "$lib/components/ui/item/index.js";
 import { Spinner } from "$lib/components/ui/spinner/index.js";
-import DashboardTableIconButton from "./DashboardTableIconButton.svelte";
 
 type HomeworkDateFormatter = (
   value: Date | string | null | undefined,
@@ -95,7 +95,7 @@ function summaryBadges(homework: DashboardHomeworkItem) {
             </Item.Description>
           </Item.Content>
           <Item.Actions class="shrink-0 self-start">
-            <DashboardTableIconButton
+            <TableIconButton
               className="size-11"
               disabled={homeworkSavingById[homework.id]}
               label={homeworkSavingById[homework.id]
@@ -111,8 +111,8 @@ function summaryBadges(homework: DashboardHomeworkItem) {
               {:else}
                 <CheckCircleIcon />
               {/if}
-            </DashboardTableIconButton>
-            <DashboardTableIconButton
+            </TableIconButton>
+            <TableIconButton
               className="size-11"
               label={homeworksCopy.viewDetails}
               variant="outline"
@@ -121,7 +121,7 @@ function summaryBadges(homework: DashboardHomeworkItem) {
               }}
             >
               <ArrowUpRight />
-            </DashboardTableIconButton>
+            </TableIconButton>
           </Item.Actions>
         </Item.Root>
         {#if index < filteredHomeworkItems.length - 1}

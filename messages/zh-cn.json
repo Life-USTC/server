@@ -1223,6 +1223,7 @@
     "educationLevel": "教育层次",
     "category": "类别",
     "classType": "课程类型",
+    "filterDescription": "选择教育层次、类别或课程类型后会立即应用筛选。",
     "summary": {
       "matches": "匹配",
       "matchesMeta": "当前查询中的课程",
@@ -1358,7 +1359,7 @@
     "capacity": "容量",
     "noSemester": "无学期",
     "creditValue": "{count} 学分",
-    "filterDescription": "组合班级、课程属性和排序条件；留空表示不限。",
+    "filterDescription": "组合班级、课程属性和排序条件；留空表示不限，点击“应用筛选”后生效。",
     "filters": {
       "any": "不限",
       "apply": "应用筛选",
@@ -1728,7 +1729,7 @@
     "sectionCount": "授课班级数",
     "sections": "授课班级",
     "filterTitle": "筛选教师",
-    "filterDescription": "搜索教师姓名或工号，并按院系缩小范围。",
+    "filterDescription": "搜索教师姓名或工号，并按院系缩小范围；选择院系后会立即应用。",
     "currentDepartment": "当前院系",
     "searchLabel": "搜索",
     "searchNameOrCode": "搜索姓名或工号",

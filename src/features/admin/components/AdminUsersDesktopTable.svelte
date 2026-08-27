@@ -1,7 +1,7 @@
 <script lang="ts">
 import SquarePen from "@lucide/svelte/icons/square-pen";
-import DashboardTableIconButton from "@/features/dashboard/components/DashboardTableIconButton.svelte";
-import DashboardTableRowActions from "@/features/dashboard/components/DashboardTableRowActions.svelte";
+import TableIconButton from "$lib/components/TableIconButton.svelte";
+import TableRowActions from "$lib/components/TableRowActions.svelte";
 import TruncatedText from "$lib/components/TruncatedText.svelte";
 import { Badge } from "$lib/components/ui/badge/index.js";
 import * as Table from "$lib/components/ui/table/index.js";
@@ -73,14 +73,14 @@ export let users: AdminUserRow[];
             {formatDate(user.createdAt)}
           </Table.Cell>
           <Table.Cell class="w-12 text-right">
-            <DashboardTableRowActions class="justify-end">
-              <DashboardTableIconButton
+            <TableRowActions class="justify-end">
+              <TableIconButton
                 label={copy.editTitle}
                 onclick={() => onSelect(user)}
               >
                 <SquarePen />
-              </DashboardTableIconButton>
-            </DashboardTableRowActions>
+              </TableIconButton>
+            </TableRowActions>
           </Table.Cell>
         </Table.Row>
       {/each}

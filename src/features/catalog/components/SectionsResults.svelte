@@ -68,9 +68,9 @@ $: sectionSemesterSummary = selectedSemester
       {#snippet mobile()}
       <div data-testid="catalog-results-cards">
       <Item.Group class="gap-0" role="list">
-        {#each data.data as section}
+        {#each data.data as section, index}
           {@const sectionHref = `/catalog/sections/${section.jwId}`}
-          <Item.Root role="listitem" variant="outline" size="sm">
+          <Item.Root role="listitem" size="sm">
             {#snippet child({ props })}
               <a href={sectionHref} {...props}>
                 <Item.Content>
@@ -91,6 +91,9 @@ $: sectionSemesterSummary = selectedSemester
               </a>
             {/snippet}
           </Item.Root>
+          {#if index < data.data.length - 1}
+            <Item.Separator />
+          {/if}
         {/each}
       </Item.Group>
       </div>

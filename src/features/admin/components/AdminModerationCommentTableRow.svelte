@@ -1,7 +1,7 @@
 <script lang="ts">
 import SquarePen from "@lucide/svelte/icons/square-pen";
-import DashboardTableIconButton from "@/features/dashboard/components/DashboardTableIconButton.svelte";
-import DashboardTableRowActions from "@/features/dashboard/components/DashboardTableRowActions.svelte";
+import TableIconButton from "$lib/components/TableIconButton.svelte";
+import TableRowActions from "$lib/components/TableRowActions.svelte";
 import TruncatedText from "$lib/components/TruncatedText.svelte";
 import * as Table from "$lib/components/ui/table/index.js";
 import type {
@@ -60,15 +60,15 @@ export let targetLabel: AdminModerationCommentFormatter;
     />
   </Table.Cell>
   <Table.Cell class="w-12 text-right">
-    <DashboardTableRowActions class="justify-end">
-      <DashboardTableIconButton
+    <TableRowActions class="justify-end">
+      <TableIconButton
         label={copy.manageComment}
         onclick={() => {
           onManage(comment);
         }}
       >
         <SquarePen />
-      </DashboardTableIconButton>
-    </DashboardTableRowActions>
+      </TableIconButton>
+    </TableRowActions>
   </Table.Cell>
 </Table.Row>

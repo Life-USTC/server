@@ -6,7 +6,9 @@ import {
 import { catalogListPageHref } from "@/features/catalog/lib/catalog-list-query";
 import { formatSemesterName } from "@/lib/text/format-semester-name";
 import { page } from "$app/stores";
+import PageFrame from "$lib/components/PageFrame.svelte";
 import PageHeader from "$lib/components/PageHeader.svelte";
+import Panel from "$lib/components/Panel.svelte";
 import CatalogMobileFilters from "./CatalogMobileFilters.svelte";
 import CatalogPagination from "./CatalogPagination.svelte";
 import type {
@@ -250,45 +252,61 @@ function sectionEmptyDescription() {
 }
 </script>
 
-<section class="grid gap-5">
-  <PageHeader
-    description={sectionLabels.subtitle}
-    title={sectionLabels.title}
+{#snippet paginationFooter()}
+  <CatalogPagination
+    ariaLabel={commonLabels.pagination}
+    class="py-0"
+    nextLabel={commonLabels.next}
+    nextPageLabel={commonLabels.nextPage}
+    page={data.pagination.page}
+    {pageHref}
+    previousLabel={commonLabels.previous}
+    previousPageLabel={commonLabels.previousPage}
+    {totalPages}
   />
+{/snippet}
 
-  <div class="grid min-w-0 gap-4">
-    <CatalogMobileFilters
-      activeFilters={sectionActiveFilters}
-      clearHref="/catalog/sections"
-      clearLabel={commonLabels.clear}
-      filterDescription={sectionLabels.filterDescription}
-      filterTitle={sectionLabels.summary.filters}
-      hiddenFilters={sectionHiddenFilters}
-      bind:open={isSectionFilterOpen}
-      searchId="mobile-section-search"
-      searchLabel={commonLabels.search}
-      searchPlaceholder={sectionLabels.searchPlaceholder}
-      bind:searchValue={sectionSearch}
-    >
-      <SectionsFilters
-        {campusOptions}
-        {categoryOptions}
-        {classTypeOptions}
-        clearHref="/catalog/sections"
-        {commonLabels}
-        {departmentOptions}
-        {educationLevelOptions}
-        filters={data.filters}
-        idPrefix="mobile-section"
-        onSubmit={() => {
-          isSectionFilterOpen = false;
-        }}
-        {sectionLabels}
-        {semesterOptions}
-      />
-    </CatalogMobileFilters>
+<PageFrame>
+  <section class="grid gap-5">
+    <PageHeader
+      description={sectionLabels.subtitle}
+      title={sectionLabels.title}
+    />
 
-    <div class="grid min-w-0 gap-4">
+    <Panel footer={totalPages > 1 ? paginationFooter : undefined}>
+      {#snippet header()}
+        <CatalogMobileFilters
+          activeFilters={sectionActiveFilters}
+          clearHref="/catalog/sections"
+          clearLabel={commonLabels.clear}
+          filterDescription={sectionLabels.filterDescription}
+          filterTitle={sectionLabels.summary.filters}
+          hiddenFilters={sectionHiddenFilters}
+          bind:open={isSectionFilterOpen}
+          searchId="mobile-section-search"
+          searchLabel={commonLabels.search}
+          searchPlaceholder={sectionLabels.searchPlaceholder}
+          bind:searchValue={sectionSearch}
+        >
+          <SectionsFilters
+            {campusOptions}
+            {categoryOptions}
+            {classTypeOptions}
+            clearHref="/catalog/sections"
+            {commonLabels}
+            {departmentOptions}
+            {educationLevelOptions}
+            filters={data.filters}
+            idPrefix="mobile-section"
+            onSubmit={() => {
+              isSectionFilterOpen = false;
+            }}
+            {sectionLabels}
+            {semesterOptions}
+          />
+        </CatalogMobileFilters>
+      {/snippet}
+
       <SectionsResults
         data={sectionResultsData}
         page={data.pagination.page}
@@ -298,17 +316,6 @@ function sectionEmptyDescription() {
         {selectedSemester}
         {totalPages}
       />
-
-      <CatalogPagination
-        ariaLabel={commonLabels.pagination}
-        nextLabel={commonLabels.next}
-        nextPageLabel={commonLabels.nextPage}
-        page={data.pagination.page}
-        {pageHref}
-        previousLabel={commonLabels.previous}
-        previousPageLabel={commonLabels.previousPage}
-        {totalPages}
-      />
-    </div>
-  </div>
-</section>
+    </Panel>
+  </section>
+</PageFrame>

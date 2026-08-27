@@ -1257,6 +1257,7 @@
     "educationLevel": "Education Level",
     "category": "Category",
     "classType": "Class Type",
+    "filterDescription": "Education level, category, and class type filters apply immediately.",
     "summary": {
       "matches": "Matches",
       "matchesMeta": "Courses in current query",
@@ -1392,7 +1393,7 @@
     "capacity": "Capacity",
     "noSemester": "No semester",
     "creditValue": "{count} credits",
-    "filterDescription": "Combine section, course attribute, and sorting conditions. Blank fields are unrestricted.",
+    "filterDescription": "Combine section, course attribute, and sorting conditions; blank fields are unrestricted. Submit with Apply filters.",
     "filters": {
       "any": "Any",
       "apply": "Apply filters",
@@ -1762,7 +1763,7 @@
     "sectionCount": "Sections Taught",
     "sections": "Sections",
     "filterTitle": "Filter teachers",
-    "filterDescription": "Search teacher names or codes, then narrow by department.",
+    "filterDescription": "Search teacher names or codes, then narrow by department; department changes apply immediately.",
     "currentDepartment": "Current department",
     "searchLabel": "Search",
     "searchNameOrCode": "Search name or code",
