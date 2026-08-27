@@ -1,7 +1,7 @@
 <script lang="ts">
 import SquarePen from "@lucide/svelte/icons/square-pen";
-import DashboardTableIconButton from "@/features/dashboard/components/DashboardTableIconButton.svelte";
-import DashboardTableRowActions from "@/features/dashboard/components/DashboardTableRowActions.svelte";
+import TableIconButton from "$lib/components/TableIconButton.svelte";
+import TableRowActions from "$lib/components/TableRowActions.svelte";
 import TruncatedText from "$lib/components/TruncatedText.svelte";
 import { Badge } from "$lib/components/ui/badge/index.js";
 import * as Table from "$lib/components/ui/table/index.js";
@@ -21,6 +21,7 @@ export let users: AdminUserRow[];
 
 <div class="hidden min-w-0 xl:block">
   <Table.Root class="w-full">
+    <Table.Caption class="sr-only">{copy.title}</Table.Caption>
     <Table.Header>
       <Table.Row>
         <Table.Head>{copy.name}</Table.Head>
@@ -39,13 +40,9 @@ export let users: AdminUserRow[];
         <Table.Row class="group">
           <Table.Cell>
             <TruncatedText class="font-medium" text={displayName(user)} />
-            <TruncatedText
-              class="font-mono text-muted-foreground text-xs"
-              text={user.id}
-            />
           </Table.Cell>
           <Table.Cell>
-            <span class="font-mono text-sm">
+            <span class="text-sm">
               {user.username ?? copy.noUsername}
             </span>
           </Table.Cell>
@@ -76,14 +73,14 @@ export let users: AdminUserRow[];
             {formatDate(user.createdAt)}
           </Table.Cell>
           <Table.Cell class="w-12 text-right">
-            <DashboardTableRowActions class="justify-end">
-              <DashboardTableIconButton
+            <TableRowActions class="justify-end">
+              <TableIconButton
                 label={copy.editTitle}
                 onclick={() => onSelect(user)}
               >
                 <SquarePen />
-              </DashboardTableIconButton>
-            </DashboardTableRowActions>
+              </TableIconButton>
+            </TableRowActions>
           </Table.Cell>
         </Table.Row>
       {/each}

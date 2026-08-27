@@ -6,13 +6,13 @@ import type {
   DashboardTodoItem,
   DashboardTodosCopy,
 } from "@/features/dashboard/lib/dashboard-controller-types";
+import TableIconButton from "$lib/components/TableIconButton.svelte";
+import TableRowActions from "$lib/components/TableRowActions.svelte";
 import TruncatedText from "$lib/components/TruncatedText.svelte";
 import { Badge } from "$lib/components/ui/badge/index.js";
 import * as Empty from "$lib/components/ui/empty/index.js";
 import { Spinner } from "$lib/components/ui/spinner/index.js";
 import * as Table from "$lib/components/ui/table/index.js";
-import DashboardTableIconButton from "./DashboardTableIconButton.svelte";
-import DashboardTableRowActions from "./DashboardTableRowActions.svelte";
 
 type TodoDateFormatter = (value: Date | string | null | undefined) => string;
 type TodoAction = (todo: DashboardTodoItem) => string;
@@ -69,8 +69,8 @@ export let toggleTodoCompletion: TodoCompletionToggle;
           {fmtDate(todo.dueAt)}
         </Table.Cell>
         <Table.Cell>
-          <DashboardTableRowActions>
-            <DashboardTableIconButton
+          <TableRowActions>
+            <TableIconButton
               disabled={todoSavingById[todo.id]}
               label={todoSavingById[todo.id]
                 ? todosCopy.saving
@@ -85,15 +85,15 @@ export let toggleTodoCompletion: TodoCompletionToggle;
               {:else}
                 <CheckCircleIcon />
               {/if}
-            </DashboardTableIconButton>
-            <DashboardTableIconButton
+            </TableIconButton>
+            <TableIconButton
               label={todosCopy.editTitle}
               variant="outline"
               onclick={() => openTodoEditor(todo)}
             >
               <Pencil />
-            </DashboardTableIconButton>
-          </DashboardTableRowActions>
+            </TableIconButton>
+          </TableRowActions>
         </Table.Cell>
       </Table.Row>
     {:else}

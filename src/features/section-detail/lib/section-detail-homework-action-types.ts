@@ -25,6 +25,7 @@ export type SectionDetailHomeworkActionInput = {
   onSuccess?: (
     action: "create" | "update" | "delete" | "complete" | "uncomplete",
   ) => void;
+  setCompletionSaving: (value: boolean) => void;
   setDeleteHomeworkTarget: (value: SectionHomework | null) => void;
   setEditHomeworkMessage: (value: string) => void;
   setHomeworkAuditLogs: (value: HomeworkAuditLog[]) => void;

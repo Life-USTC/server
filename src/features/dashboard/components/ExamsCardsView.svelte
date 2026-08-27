@@ -1,8 +1,8 @@
 <script lang="ts">
 import ArrowUpRight from "@lucide/svelte/icons/arrow-up-right";
+import TableIconButton from "$lib/components/TableIconButton.svelte";
 import { Badge } from "$lib/components/ui/badge/index.js";
 import * as Item from "$lib/components/ui/item/index.js";
-import DashboardTableIconButton from "./DashboardTableIconButton.svelte";
 import type {
   DashboardExamRow,
   DashboardTabHref,
@@ -64,13 +64,13 @@ export let subscriptionsCopy: ExamsCopyProps["subscriptionsCopy"];
         </Item.Description>
       </Item.Content>
       <Item.Actions class="shrink-0 self-start">
-        <DashboardTableIconButton
+        <TableIconButton
           className="size-11"
           href={detailHref}
           label={sectionCopy.moreDetails}
         >
           <ArrowUpRight />
-        </DashboardTableIconButton>
+        </TableIconButton>
       </Item.Actions>
     </Item.Root>
     {#if index < exams.length - 1}

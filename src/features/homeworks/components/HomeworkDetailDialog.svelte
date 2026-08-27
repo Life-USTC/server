@@ -75,7 +75,7 @@ onMount(() => {
     }}
   >
     <Dialog.Content
-      class="inset-0 flex h-dvh max-h-dvh w-screen max-w-none translate-x-0 translate-y-0 flex-col gap-0 overflow-clip rounded-none p-0 sm:top-1/2 sm:left-1/2 sm:h-[min(84vh,48rem)] sm:max-h-[min(84vh,48rem)] sm:w-[calc(100%-2rem)] sm:max-w-3xl sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded-xl"
+      class="inset-0 flex h-dvh max-h-dvh w-screen max-w-none translate-x-0 translate-y-0 flex-col gap-0 overflow-clip rounded-none p-0 sm:top-1/2 sm:left-1/2 sm:h-[min(72vh,42rem)] sm:max-h-[min(72vh,42rem)] sm:w-[calc(100%-2rem)] sm:max-w-3xl sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded-xl"
       data-homework-id={homework.id}
     >
       <Dialog.Header class="shrink-0 border-b px-6 py-5 pr-14 sm:px-10 sm:py-6">
@@ -96,7 +96,7 @@ onMount(() => {
       </Dialog.Header>
 
       <ScrollArea class="h-0 min-h-0 flex-1">
-        <div class="grid min-w-0 gap-6 px-6 py-6 sm:gap-8 sm:px-10 sm:py-8">
+        <div class="grid min-w-0 gap-6 px-6 py-6 sm:gap-7 sm:px-10 sm:py-8">
           {#if editing && editingContent}
             {@render editingContent()}
           {:else}

@@ -2,11 +2,6 @@
 // biome-ignore assist/source/organizeImports: keep Svelte template/action imports grouped with local suppressions.
 import { onMount } from "svelte";
 import { createSectionDetailDisplayActions } from "@/features/section-detail/lib/section-detail-display-actions";
-import {
-  buildSectionCalendarGridWeeks,
-  calendarMonthOffsetForDateKey,
-  findCalendarBaseMonth,
-} from "@/features/section-detail/lib/calendar";
 import { buildSectionDetailCalendarEvents } from "@/features/section-detail/lib/section-detail-calendar-events";
 import { createSectionDetailCalendarDisplayActions } from "@/features/section-detail/lib/section-detail-calendar-display-actions";
 import { createSectionCalendarClipboardActions } from "@/features/section-detail/lib/section-detail-calendar-clipboard-actions";
@@ -57,10 +52,10 @@ export let data: PageData;
 export let form: ActionData;
 
 let {
-  _calendarMonthOffset,
   _clipboardError,
   _clipboardMessage,
   _copiedCalendarTarget,
+  _completionSaving,
   _createHomeworkPublishedAt,
   _createHomeworkSubmissionDueAt,
   _createHomeworkSubmissionStartAt,
@@ -85,6 +80,7 @@ let {
 } = createSectionDetailControllerDefaultState(data);
 
 let streamLoading = false;
+let streamError: string | null = null;
 const tabPanelStore = createSectionDetailTabPanelStore(
   data.homeworkData.viewer.userId ?? null,
   createSectionDetailTabPanelSsrSeedFromPageData(
@@ -182,6 +178,7 @@ async function ensureStreamPanelsLoaded() {
     sectionId: Number(data.section.id),
   };
   streamLoading = true;
+  streamError = null;
   try {
     for (const tab of STREAM_PANEL_TABS) {
       if (tabPanelStore.isLoaded(tab)) continue;
@@ -191,9 +188,15 @@ async function ensureStreamPanelsLoaded() {
       }
     }
     syncFocusedHomework(_homeworks);
+  } catch {
+    streamError = _sectionCopy.operationFailed;
   } finally {
     streamLoading = false;
   }
+}
+
+function retryStreamPanels() {
+  void ensureStreamPanelsLoaded();
 }
 
 function scrollToFocusedHomework() {
@@ -209,7 +212,6 @@ const {
   primaryName: _primaryName,
   secondaryName: _secondaryName,
   sectionTeachersLabel: _sectionTeachersLabel,
-  semesterWeekLabel: _semesterWeekLabel,
   teacherName: _teacherName,
   yesNo: _yesNo,
 } = createSectionDetailDisplayActions({
@@ -220,20 +222,12 @@ const {
   getSectionCopy: () => _sectionCopy,
 });
 
-const {
-  addMonths: _addMonths,
-  calendarEventsForDay: _calendarEventsForDay,
-  calendarMonthDays: _calendarMonthDays,
-  calendarWeeks: _calendarWeeks,
-  dateKey: _dateKey,
-  fmtDate: _fmtDate,
-  fmtDateTime: _fmtDateTime,
-  fmtMonth: _fmtMonth,
-} = createSectionDetailCalendarDisplayActions({
-  getNotAvailable: () => _notAvailable,
-  getSectionCalendarEvents: () => sectionCalendarEvents,
-  locale: data.locale,
-});
+const { fmtDate: _fmtDate, fmtDateTime: _fmtDateTime } =
+  createSectionDetailCalendarDisplayActions({
+    getNotAvailable: () => _notAvailable,
+    getSectionCalendarEvents: () => sectionCalendarEvents,
+    locale: data.locale,
+  });
 
 $: _copy = data.copy;
 $: _sectionCopy = _copy.sectionDetail;
@@ -267,28 +261,6 @@ $: sectionCalendarEvents = buildSectionDetailCalendarEvents({
   notAvailable: _notAvailable,
   section: displaySection,
   sectionCopy: _sectionCopy,
-});
-$: todayCalendarKey = data.todayCalendarKey;
-$: calendarBaseMonth = findCalendarBaseMonth(
-  sectionCalendarEvents,
-  todayCalendarKey,
-);
-$: visibleCalendarMonth = _addMonths(calendarBaseMonth, _calendarMonthOffset);
-$: todayCalendarMonthOffset = calendarMonthOffsetForDateKey(
-  calendarBaseMonth,
-  todayCalendarKey,
-);
-$: calendarMonthDays = _calendarMonthDays(visibleCalendarMonth);
-$: calendarMonthWeeks = _calendarWeeks(calendarMonthDays);
-$: calendarMonthLabel = _fmtMonth(visibleCalendarMonth);
-$: sectionCalendarGridWeeks = buildSectionCalendarGridWeeks({
-  dateKey: _dateKey,
-  events: sectionCalendarEvents,
-  formatDate: _fmtDate,
-  monthWeeks: calendarMonthWeeks,
-  semesterWeekLabel: _semesterWeekLabel,
-  todayKey: todayCalendarKey,
-  visibleMonth: visibleCalendarMonth,
 });
 $: unscheduledCalendarEvents = sectionCalendarEvents.filter(
   (event) => !event.dateKey,
@@ -449,6 +421,9 @@ const {
     toast.success(message);
   },
   getSelectedHomework: () => _selectedHomework,
+  setCompletionSaving: (value) => {
+    _completionSaving = value;
+  },
   setDeleteHomeworkTarget: (value) => {
     _deleteHomeworkTarget = value;
   },
@@ -507,8 +482,6 @@ onMount(() => {
 
 <section class="min-h-full lg:h-full lg:min-h-0">
   <SectionDetailMainContent
-    {calendarMonthLabel}
-    bind:calendarMonthOffset={_calendarMonthOffset}
     canWriteHomework={_canWriteHomework}
     commentTargets={_commentTargets}
     commonCopy={_commonCopy}
@@ -520,7 +493,6 @@ onMount(() => {
     formError={form?.error}
     fmtDate={_fmtDate}
     fmtDateTime={_fmtDateTime}
-    formatMessage={_formatMessage}
     homeworkCopy={_homeworkCopy}
     homeworks={_homeworks}
     notAvailable={_notAvailable}
@@ -530,15 +502,15 @@ onMount(() => {
     {periodDetailRows}
     primaryName={_primaryName}
     {sectionCalendarEvents}
-    {sectionCalendarGridWeeks}
     sectionCopy={_sectionCopy}
     sectionTeachersLabel={_sectionTeachersLabel}
     setSelectedHomework={selectHomework}
+    {retryStreamPanels}
+    {streamError}
     {streamLoading}
     subscriptionAction={_subscriptionAction}
     subscriptionPendingAction={_subscriptionPendingAction}
     teacherName={_teacherName}
-    {todayCalendarMonthOffset}
     {unscheduledCalendarEvents}
     viewer={data.viewer}
     yesNo={_yesNo}
@@ -561,6 +533,7 @@ onMount(() => {
   auditLogsForHomework={_auditLogsForHomework}
   canManageSelectedHomework={_canManageSelectedHomework}
   canWriteHomework={_canWriteHomework}
+  completionSaving={_completionSaving}
   cancelEditHomework={_cancelEditHomework}
   clipboardError={_clipboardError}
   clipboardMessage={_clipboardMessage}

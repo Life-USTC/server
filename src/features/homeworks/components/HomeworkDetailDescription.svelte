@@ -9,7 +9,9 @@ export let copy: HomeworkDetailCopy;
 export let homework: HomeworkDetailModel;
 </script>
 
-<section class="min-w-0 text-sm leading-6" data-testid="homework-description">
+<section class="grid min-w-0 gap-3" data-testid="homework-description">
+  <h2 class="text-base font-semibold">{copy.descriptionLabel}</h2>
+  <div class="text-sm leading-6">
   {#if homework.description?.trim()}
     {#if homework.renderedDescriptionHtml}
       <RenderedMarkdown html={homework.renderedDescriptionHtml} />
@@ -22,4 +24,5 @@ export let homework: HomeworkDetailModel;
   {:else}
     <p class="text-muted-foreground">{copy.descriptionEmpty}</p>
   {/if}
+  </div>
 </section>

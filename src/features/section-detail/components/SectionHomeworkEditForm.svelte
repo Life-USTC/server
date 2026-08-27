@@ -1,7 +1,5 @@
 <script lang="ts">
-import HomeworkFormFields from "@/features/homeworks/components/HomeworkFormFields.svelte";
-import HomeworkTagFields from "@/features/homeworks/components/HomeworkTagFields.svelte";
-import HomeworkTimestampFields from "@/features/homeworks/components/HomeworkTimestampFields.svelte";
+import HomeworkEditorFields from "@/features/homeworks/components/HomeworkEditorFields.svelte";
 import * as Alert from "$lib/components/ui/alert/index.js";
 import { Button } from "$lib/components/ui/button/index.js";
 import type {
@@ -50,29 +48,21 @@ $: homeworkTimestampCapabilities = {
   class="flex flex-col gap-4 rounded-md border bg-background p-4"
   onsubmit={updateHomework}
 >
-  <HomeworkFormFields
+  <HomeworkEditorFields
+    actions={homeworkTimestampActions}
+    bind:advancedOpen={advancedOpen}
+    capabilities={homeworkTimestampCapabilities}
     commentsCopy={commentsCopy}
     copy={homeworkCopy}
     description={homework.description?.content ?? ""}
     idPrefix="section-homework-edit"
-    styleGuidePrefix="section-edit-homework"
-    title={homework.title}
-  />
-  <HomeworkTimestampFields
-    actions={homeworkTimestampActions}
-    bind:advancedOpen={advancedOpen}
-    capabilities={homeworkTimestampCapabilities}
-    copy={homeworkCopy}
-    idPrefix="section-homework-edit"
+    isMajor={homework.isMajor}
     bind:publishedAt={editHomeworkPublishedAt}
+    requiresTeam={homework.requiresTeam}
+    styleGuidePrefix="section-edit-homework"
     bind:submissionDueAt={editHomeworkSubmissionDueAt}
     bind:submissionStartAt={editHomeworkSubmissionStartAt}
-  />
-  <HomeworkTagFields
-    copy={homeworkCopy}
-    idPrefix="section-edit-homework"
-    isMajor={homework.isMajor}
-    requiresTeam={homework.requiresTeam}
+    title={homework.title}
   />
   {#if editHomeworkMessage}
     <Alert.Root variant="destructive">

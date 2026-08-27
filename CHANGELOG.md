@@ -1,3 +1,10 @@
+## [1.93.5](https://github.com/Life-USTC/server/compare/v1.93.4...v1.93.5) (2026-08-27)
+
+
+### Performance Improvements
+
+* make section homework lists summary-only ([#949](https://github.com/Life-USTC/server/issues/949)) ([54850ee](https://github.com/Life-USTC/server/commit/54850eeaa8e0e37d31fa8ba3511dc34f2dc71c35))
+
 ## [1.93.4](https://github.com/Life-USTC/server/compare/v1.93.3...v1.93.4) (2026-08-27)
 
 

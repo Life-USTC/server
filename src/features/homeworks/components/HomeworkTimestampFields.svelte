@@ -1,5 +1,6 @@
 <script lang="ts">
 import CalendarClock from "@lucide/svelte/icons/calendar-clock";
+import type { Snippet } from "svelte";
 import DateTimePicker from "$lib/components/DateTimePicker.svelte";
 import * as Accordion from "$lib/components/ui/accordion/index.js";
 import { Button } from "$lib/components/ui/button/index.js";
@@ -17,6 +18,7 @@ export let advancedOpen = false;
 export let capabilities: HomeworkTimestampCapabilities = {};
 export let copy: HomeworkTimestampCopy;
 export let disabled = false;
+export let details: Snippet | undefined = undefined;
 export let idPrefix = "homework";
 export let publishedAt = "";
 export let submissionDueAt = "";
@@ -84,6 +86,10 @@ $: hasAdvancedShortcuts = Boolean(
       </DropdownMenu.Root>
     {/if}
   </Field.Field>
+
+  {#if details}
+    {@render details()}
+  {/if}
 
   <Accordion.Root
     type="single"

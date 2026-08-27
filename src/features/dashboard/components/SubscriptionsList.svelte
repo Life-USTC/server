@@ -9,13 +9,13 @@ import type {
 } from "@/features/dashboard/lib/dashboard-controller-types";
 import { groupSubscribedSectionsBySemester } from "@/features/dashboard/lib/subscriptions";
 import { page } from "$app/stores";
+import TableIconButton from "$lib/components/TableIconButton.svelte";
+import TableRowActions from "$lib/components/TableRowActions.svelte";
 import TruncatedText from "$lib/components/TruncatedText.svelte";
 import * as AlertDialog from "$lib/components/ui/alert-dialog/index.js";
 import { Spinner } from "$lib/components/ui/spinner/index.js";
 import * as Table from "$lib/components/ui/table/index.js";
 import DashboardNoSubscriptionsState from "./DashboardNoSubscriptionsState.svelte";
-import DashboardTableIconButton from "./DashboardTableIconButton.svelte";
-import DashboardTableRowActions from "./DashboardTableRowActions.svelte";
 import SubscriptionsCardsView from "./SubscriptionsCardsView.svelte";
 import type { FormatMessage } from "./subscription-tab-types";
 
@@ -153,8 +153,8 @@ function handleRemoveDialogOpenChange(open: boolean) {
                     {section.credits ?? dashboardCopy.notAvailable}
                   </Table.Cell>
                   <Table.Cell>
-                    <DashboardTableRowActions>
-                      <DashboardTableIconButton
+                    <TableRowActions>
+                      <TableIconButton
                         disabled={removingSectionId === section.id}
                         label={subscriptionsCopy.unsubscribe}
                         variant="destructive"
@@ -165,14 +165,14 @@ function handleRemoveDialogOpenChange(open: boolean) {
                         {:else}
                           <UserMinus />
                         {/if}
-                      </DashboardTableIconButton>
-                      <DashboardTableIconButton
+                      </TableIconButton>
+                      <TableIconButton
                         href={`/catalog/sections/${section.jwId}`}
                         label={sectionCopy.moreDetails}
                       >
                         <ArrowUpRight />
-                      </DashboardTableIconButton>
-                    </DashboardTableRowActions>
+                      </TableIconButton>
+                    </TableRowActions>
                   </Table.Cell>
                 </Table.Row>
               {/each}

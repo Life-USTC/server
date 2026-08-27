@@ -67,9 +67,9 @@ $: pageLabel = teacherLabels.pageOf
     <ResponsiveCollection>
       {#snippet mobile()}
       <Item.Group class="gap-0" role="list">
-        {#each teachers as teacher}
+        {#each teachers as teacher, index}
           {@const teacherHref = `/catalog/teachers/${teacher.id}`}
-          <Item.Root role="listitem" variant="outline" size="sm">
+          <Item.Root role="listitem" size="sm">
             {#snippet child({ props })}
               <a href={teacherHref} {...props}>
                 <Item.Content>
@@ -91,6 +91,9 @@ $: pageLabel = teacherLabels.pageOf
               </a>
             {/snippet}
           </Item.Root>
+          {#if index < teachers.length - 1}
+            <Item.Separator aria-hidden="true" />
+          {/if}
         {/each}
       </Item.Group>
       {/snippet}

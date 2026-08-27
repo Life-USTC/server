@@ -10,6 +10,7 @@ import type { SectionDetailDialogsProps } from "./section-detail-dialog-types";
 export let auditLogsForHomework: SectionDetailDialogsProps["auditLogsForHomework"];
 export let canManageSelectedHomework: boolean;
 export let canWriteHomework: boolean;
+export let completionSaving: boolean;
 export let cancelEditHomework: SectionDetailDialogsProps["cancelEditHomework"];
 export let clipboardError: string;
 export let clipboardMessage: string;
@@ -125,6 +126,7 @@ $: if (isCalendarDialogOpen) {
   {auditLogsForHomework}
   {canManageSelectedHomework}
   {canWriteHomework}
+  {completionSaving}
   {cancelEditHomework}
   {closeCreateHomeworkDialog}
   {commentsCopy}

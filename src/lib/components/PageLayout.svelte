@@ -3,11 +3,14 @@ import type { Snippet } from "svelte";
 import PageHeader from "$lib/components/PageHeader.svelte";
 import { cn } from "$lib/utils.js";
 
+type PageFrameWidth = "reading" | "content" | "wide" | "full";
+
 type Props = {
   children: Snippet;
   class?: string;
   description?: string;
   title: string;
+  width?: PageFrameWidth;
 };
 
 let {
@@ -15,11 +18,23 @@ let {
   class: className = "",
   description = "",
   title,
+  width = "wide",
 }: Props = $props();
+
+const widthClasses: Record<PageFrameWidth, string> = {
+  reading: "page-frame-reading",
+  content: "page-frame-content",
+  wide: "",
+  full: "page-frame-full",
+};
 </script>
 
 <section
-  class={cn("flex min-w-0 flex-col gap-5", className)}
+  class={cn(
+    "page-frame grid gap-5",
+    widthClasses[width],
+    className,
+  )}
   data-slot="page-layout"
 >
   <PageHeader {description} {title} />

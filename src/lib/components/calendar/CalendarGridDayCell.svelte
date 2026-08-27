@@ -14,6 +14,7 @@ export let variant: "week" | "month" = "week";
 </script>
 
 <div
+  role="gridcell"
   aria-current={day.isToday ? "date" : undefined}
   class={cn(
     "border-border p-2",

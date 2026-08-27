@@ -1,7 +1,7 @@
 <script lang="ts">
 import TrashIcon from "@lucide/svelte/icons/trash-2";
-import DashboardTableIconButton from "@/features/dashboard/components/DashboardTableIconButton.svelte";
-import DashboardTableRowActions from "@/features/dashboard/components/DashboardTableRowActions.svelte";
+import TableIconButton from "$lib/components/TableIconButton.svelte";
+import TableRowActions from "$lib/components/TableRowActions.svelte";
 import TruncatedBadge from "$lib/components/TruncatedBadge.svelte";
 import TruncatedText from "$lib/components/TruncatedText.svelte";
 import { Badge } from "$lib/components/ui/badge/index.js";
@@ -94,15 +94,15 @@ export let scopeLabel: (scope: string) => string;
                 {formatCreatedAt(client.createdAt)}
               </Table.Cell>
               <Table.Cell class="w-12 text-right">
-                <DashboardTableRowActions class="justify-end">
-                  <DashboardTableIconButton
+                <TableRowActions class="justify-end">
+                  <TableIconButton
                     label={`${copy.deleteClient}: ${client.name ?? copy.unnamedClient}`}
                     variant="destructive"
                     onclick={() => onDelete(client)}
                   >
                     <TrashIcon />
-                  </DashboardTableIconButton>
-                </DashboardTableRowActions>
+                  </TableIconButton>
+                </TableRowActions>
               </Table.Cell>
             </Table.Row>
           {/each}
@@ -154,13 +154,13 @@ export let scopeLabel: (scope: string) => string;
               </Item.Description>
             </Item.Content>
             <Item.Actions class="w-full justify-end">
-              <DashboardTableIconButton
+              <TableIconButton
                 label={`${copy.deleteClient}: ${client.name ?? copy.unnamedClient}`}
                 variant="destructive"
                 onclick={() => onDelete(client)}
               >
                 <TrashIcon />
-              </DashboardTableIconButton>
+              </TableIconButton>
             </Item.Actions>
           </Item.Root>
         {/each}

@@ -25,6 +25,7 @@ export let applyEditStartNow: SectionDetailHomeworkDialogsProps["applyEditStartN
 export let auditLogsForHomework: SectionDetailHomeworkDialogsProps["auditLogsForHomework"];
 export let canManageSelectedHomework: boolean;
 export let canWriteHomework: boolean;
+export let completionSaving: boolean;
 export let cancelEditHomework: SectionDetailHomeworkDialogsProps["cancelEditHomework"];
 export let closeCreateHomeworkDialog: SectionDetailHomeworkDialogsProps["closeCreateHomeworkDialog"];
 export let commentsCopy: SectionDetailHomeworkDialogsProps["commentsCopy"];
@@ -98,6 +99,7 @@ export let updateHomework: SectionDetailHomeworkDialogsProps["updateHomework"];
   _auditLogsForHomework={auditLogsForHomework}
   _canManageSelectedHomework={canManageSelectedHomework}
   _canWriteHomework={canWriteHomework}
+  _completionSaving={completionSaving}
   _cancelEditHomework={cancelEditHomework}
   _commentsCopy={commentsCopy}
   _commonCopy={commonCopy}
