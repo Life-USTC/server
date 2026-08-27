@@ -6,7 +6,7 @@ import {
   type TestPrismaClient,
 } from "../shared/prisma";
 
-describe("signed dashboard localized RLS context", () => {
+describe("signed dashboard independent RLS contexts", () => {
   let testPrisma: TestPrismaClient;
 
   beforeAll(() => {
@@ -17,7 +17,7 @@ describe("signed dashboard localized RLS context", () => {
     await disconnectTestPrisma(testPrisma);
   });
 
-  it("loads the complete overview through one reusable localized transaction", async () => {
+  it("keeps overview and calendar data semantics across short RLS reads", async () => {
     const subscription =
       await testPrisma.userSectionSubscription.findFirstOrThrow({
         orderBy: { userId: "asc" },

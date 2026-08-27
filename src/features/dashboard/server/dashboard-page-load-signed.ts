@@ -6,7 +6,6 @@ import {
 } from "@/features/dashboard/server/dashboard-page-tab-data";
 import { createDashboardStageCounter } from "@/features/dashboard/server/dashboard-stage-analytics";
 import type { AppLocale } from "@/i18n/config";
-import { withLocalizedUserDbContext } from "@/lib/db/prisma";
 import { toShanghaiIsoString } from "@/lib/time/serialize-date-output";
 
 export async function loadSignedDashboardPageData(input: {
@@ -20,83 +19,82 @@ export async function loadSignedDashboardPageData(input: {
   tab: string;
   userId: string;
 }) {
-  return withLocalizedUserDbContext(input.locale, input.userId, async () => {
-    const dashboard = await import(
-      "@/features/dashboard/server/dashboard-overview-data"
-    );
-    const userContextCounter = createDashboardStageCounter({
-      dbContext: "rls",
-      dbLabel: "app",
-    });
-    const context = await timeDashboardStage(
-      "user_context",
-      {
-        requestId: input.requestId,
-        tab: input.tab,
-      },
-      () => dashboard.getDashboardUserContext(input.userId, userContextCounter),
-      userContextCounter,
-    );
+  // Read the shell identity and subscription scope in its own short RLS
+  // transaction. The tab read models below deliberately own their RLS
+  // contexts so their fixed fan-out can use separate pool connections.
+  const dashboard = await import(
+    "@/features/dashboard/server/dashboard-overview-data"
+  );
+  const userContextCounter = createDashboardStageCounter({
+    dbContext: "rls",
+    dbLabel: "app",
+  });
+  const context = await timeDashboardStage(
+    "user_context",
+    {
+      requestId: input.requestId,
+      tab: input.tab,
+    },
+    () => dashboard.getDashboardUserContext(input.userId, userContextCounter),
+    userContextCounter,
+  );
 
-    if (!context) {
-      return {
-        copy: input.pageCopy,
-        locale: input.locale,
-        signedIn: true,
-        tab: input.tab,
-        userMissing: true,
-      };
-    }
-
-    const {
-      bus,
-      calendarSubscriptionUrl,
-      homeworks,
-      links,
-      navStats,
-      overview,
-      subscriptions,
-      todos,
-    } = await timeDashboardStage(
-      "tab",
-      {
-        requestId: input.requestId,
-        subscribedSectionCount: context.sectionIds.length,
-        tab: input.tab,
-      },
-      () =>
-        loadSignedDashboardTabData({
-          calendarSemesterId: input.calendarSemesterId,
-          context,
-          locale: input.locale,
-          overviewWeek: input.overviewWeek,
-          referenceNow: input.referenceNow ?? undefined,
-          requestId: input.requestId,
-          revealCalendarFeed: input.revealCalendarFeed,
-          tab: input.tab,
-          userId: input.userId,
-        }),
-    );
-
+  if (!context) {
     return {
       copy: input.pageCopy,
       locale: input.locale,
-      referenceNow: toShanghaiIsoString(input.referenceNow ?? new Date()),
       signedIn: true,
       tab: input.tab,
-      overviewWeek: input.overviewWeek,
-      navStats,
-      subscribedSectionCount: context.sectionIds.length,
-      overview: overview ? serializeDashboardOverview(overview) : null,
-      links,
-      homeworks,
-      subscriptions,
-      calendarSubscriptionUrl:
-        subscriptions?.calendarSubscriptionUrl ??
-        calendarSubscriptionUrl ??
-        null,
-      todos,
-      bus: bus?.data ?? null,
+      userMissing: true,
     };
-  });
+  }
+
+  const {
+    bus,
+    calendarSubscriptionUrl,
+    homeworks,
+    links,
+    navStats,
+    overview,
+    subscriptions,
+    todos,
+  } = await timeDashboardStage(
+    "tab",
+    {
+      requestId: input.requestId,
+      subscribedSectionCount: context.sectionIds.length,
+      tab: input.tab,
+    },
+    () =>
+      loadSignedDashboardTabData({
+        calendarSemesterId: input.calendarSemesterId,
+        context,
+        locale: input.locale,
+        overviewWeek: input.overviewWeek,
+        referenceNow: input.referenceNow ?? undefined,
+        requestId: input.requestId,
+        revealCalendarFeed: input.revealCalendarFeed,
+        tab: input.tab,
+        userId: input.userId,
+      }),
+  );
+
+  return {
+    copy: input.pageCopy,
+    locale: input.locale,
+    referenceNow: toShanghaiIsoString(input.referenceNow ?? new Date()),
+    signedIn: true,
+    tab: input.tab,
+    overviewWeek: input.overviewWeek,
+    navStats,
+    subscribedSectionCount: context.sectionIds.length,
+    overview: overview ? serializeDashboardOverview(overview) : null,
+    links,
+    homeworks,
+    subscriptions,
+    calendarSubscriptionUrl:
+      subscriptions?.calendarSubscriptionUrl ?? calendarSubscriptionUrl ?? null,
+    todos,
+    bus: bus?.data ?? null,
+  };
 }

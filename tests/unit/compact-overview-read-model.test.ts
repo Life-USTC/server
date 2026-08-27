@@ -8,7 +8,6 @@ const {
   loadOverviewTodoBundleMock,
   runCloudflareTraceSpanMock,
   userFindUniqueMock,
-  withLocalizedUserDbContextMock,
   withUserDbContextMock,
 } = vi.hoisted(() => {
   const userFindUnique = vi.fn();
@@ -22,13 +21,6 @@ const {
         callback(),
     ),
     userFindUniqueMock: userFindUnique,
-    withLocalizedUserDbContextMock: vi.fn(
-      async (
-        _locale: string,
-        _userId: string,
-        action: () => Promise<unknown>,
-      ) => action(),
-    ),
     withUserDbContextMock: vi.fn(
       async (
         _userId: string,
@@ -43,7 +35,6 @@ vi.mock("@/lib/adapters/cloudflare-runtime", () => ({
 }));
 
 vi.mock("@/lib/db/prisma", () => ({
-  withLocalizedUserDbContext: withLocalizedUserDbContextMock,
   withUserDbContext: withUserDbContextMock,
 }));
 
@@ -120,12 +111,6 @@ describe("compact workspace overview read model", () => {
     const overview = await getCompactOverview("user-1", { atTime: AT_TIME });
 
     expect(userFindUniqueMock).toHaveBeenCalledOnce();
-    expect(withLocalizedUserDbContextMock).toHaveBeenCalledOnce();
-    expect(withLocalizedUserDbContextMock).toHaveBeenCalledWith(
-      "zh-cn",
-      "user-1",
-      expect.any(Function),
-    );
     expect(userFindUniqueMock).toHaveBeenCalledWith({
       where: { id: "user-1" },
       select: {
