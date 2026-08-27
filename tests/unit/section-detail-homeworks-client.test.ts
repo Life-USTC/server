@@ -1,5 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
+  loadSectionHomeworkAuditLogs,
+  loadSectionHomeworkDetail,
   loadSectionHomeworks,
   type SectionHomeworkRequest,
   updateSectionHomework,
@@ -53,7 +55,6 @@ describe("课程详情作业客户端", () => {
       async (..._args: Parameters<typeof fetch>) =>
         new Response(
           JSON.stringify({
-            auditLogs: [{ id: "audit-1" }],
             data: [{ id: "homework-1" }],
             pagination: { page: 1, pageSize: 50, total: 1, totalPages: 1 },
             viewer: { userId: "user-1" },
@@ -64,12 +65,59 @@ describe("课程详情作业客户端", () => {
     vi.stubGlobal("fetch", fetchMock);
 
     await expect(loadSectionHomeworks(12, "failed")).resolves.toEqual({
-      auditLogs: [{ id: "audit-1" }],
       homeworks: [{ id: "homework-1" }],
       viewer: { userId: "user-1" },
     });
     expect(fetchMock.mock.calls[0]?.[0]).toBe(
       "/api/community/section-homeworks?pageSize=50&sectionId=12",
+    );
+  });
+
+  it("按需请求单个作业详情和审计记录", async () => {
+    const fetchMock = vi.fn(
+      async (..._args: Parameters<typeof fetch>) =>
+        new Response(
+          JSON.stringify({
+            auditLogs: [{ id: "audit-1" }],
+            homework: {
+              description: { content: "Details" },
+              id: "homework-1",
+            },
+          }),
+          { status: 200, headers: { "content-type": "application/json" } },
+        ),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(
+      loadSectionHomeworkDetail("homework-1", "failed"),
+    ).resolves.toEqual({
+      auditLogs: [{ id: "audit-1" }],
+      homework: {
+        description: { content: "Details" },
+        id: "homework-1",
+      },
+    });
+    expect(fetchMock.mock.calls[0]?.[0]).toBe(
+      "/api/community/section-homeworks/homework-1",
+    );
+  });
+
+  it("按需请求 section 作业审计记录", async () => {
+    const fetchMock = vi.fn(
+      async (..._args: Parameters<typeof fetch>) =>
+        new Response(JSON.stringify({ auditLogs: [{ id: "audit-1" }] }), {
+          status: 200,
+          headers: { "content-type": "application/json" },
+        }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(loadSectionHomeworkAuditLogs(12, "failed")).resolves.toEqual([
+      { id: "audit-1" },
+    ]);
+    expect(fetchMock.mock.calls[0]?.[0]).toBe(
+      "/api/community/section-homeworks/audit?sectionId=12",
     );
   });
 

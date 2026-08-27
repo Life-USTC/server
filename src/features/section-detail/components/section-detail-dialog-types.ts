@@ -222,7 +222,7 @@ export type SectionDetailMainContentProps = {
   sectionCalendarGridWeeks: CalendarGridWeek[];
   sectionCopy: SectionDetailMainSectionCopy;
   sectionTeachersLabel: SectionTeachersLabel;
-  setSelectedHomework: (homework: SectionHomework) => void;
+  setSelectedHomework: (homework: SectionHomework) => void | Promise<void>;
   teacherName: SectionTeacherName;
   todayCalendarMonthOffset: number;
   unscheduledCalendarEvents: SectionCalendarEvent[];

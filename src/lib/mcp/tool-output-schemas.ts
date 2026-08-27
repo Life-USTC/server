@@ -597,6 +597,7 @@ const homeworkItemFullMcpSchema = homeworkItemSchema
 
 const compactSectionHomeworkItemSchema = compactHomeworkSchema.omit({
   section: true,
+  description: true,
   createdBy: true,
   updatedBy: true,
   deletedBy: true,
@@ -624,7 +625,7 @@ const sectionHomeworkListFullSchema = z.union([
     success: z.literal(true),
     found: z.literal(true),
     section: sectionPublicContextSchema,
-    homeworks: z.array(homeworkItemFullMcpSchema),
+    homeworks: z.array(compactSectionHomeworkItemSchema),
   }),
   sectionHomeworkNotFoundSchema,
 ]);
@@ -1436,9 +1437,7 @@ const TOOL_OUTPUT_SCHEMAS: Record<string, McpToolOutputSchema> = {
   workspace_homework_completion_set: topLevelOutputSchema(["completion"]),
   community_section_homework_list: objectOutputSchema({
     section: sectionPublicContextSchema,
-    homeworks: z.array(
-      z.union([compactSectionHomeworkItemSchema, homeworkItemFullMcpSchema]),
-    ),
+    homeworks: z.array(compactSectionHomeworkItemSchema),
   }),
   community_section_homework_create: objectOutputSchema({
     id: z.string(),

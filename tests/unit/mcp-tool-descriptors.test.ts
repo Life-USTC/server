@@ -896,6 +896,7 @@ describe("MCP tool descriptors", () => {
     };
     const {
       section: _section,
+      description: _description,
       createdBy: _createdBy,
       updatedBy: _updatedBy,
       deletedBy: _deletedBy,
@@ -944,10 +945,10 @@ describe("MCP tool descriptors", () => {
     ).toBe(false);
     expect(
       sectionHomeworkFullSchema.safeParse(fullSectionHomeworkList).success,
-    ).toBe(true);
+    ).toBe(false);
     expect(
       sectionHomeworkFullSchema.safeParse(compactSectionHomeworkList).success,
-    ).toBe(false);
+    ).toBe(true);
     expect(
       sectionHomeworkDefaultSchema.safeParse({
         ...compactSectionHomeworkList,

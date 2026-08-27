@@ -1,3 +1,4 @@
+import type { Prisma } from "@/generated/prisma/client";
 import type { AppLocale } from "@/i18n/config";
 import { DEFAULT_LOCALE } from "@/i18n/config";
 import { getViewerContext } from "@/lib/auth/viewer-context";
@@ -7,6 +8,7 @@ import {
   attachHomeworkCompletionsForViewer,
   homeworkItemInclude,
   homeworkItemResponse,
+  homeworkItemSummarySelect,
   withHomeworkCompletionsForViewer,
 } from "./homework-read-model";
 
@@ -20,7 +22,7 @@ type SectionHomeworkItemInput = SectionHomeworkListInput & {
   viewerUserId?: string | null;
 };
 
-type SectionHomeworkListWithAuditInput = SectionHomeworkListInput & {
+type SectionHomeworkListWithViewerInput = SectionHomeworkListInput & {
   userId?: string | null;
 };
 
@@ -28,7 +30,7 @@ type SectionHomeworkPageInput = SectionHomeworkItemInput & {
   pagination: { page: number; pageSize: number };
 };
 
-type SectionHomeworkPageWithAuditInput = SectionHomeworkListWithAuditInput & {
+type SectionHomeworkPageWithViewerInput = SectionHomeworkListWithViewerInput & {
   pagination: { page: number; pageSize: number };
 };
 
@@ -46,6 +48,20 @@ const homeworkAuditActorSelect = {
   name: true,
   username: true,
 } as const;
+
+const homeworkAuditLogSelect = {
+  action: true,
+  createdAt: true,
+  id: true,
+  metadata: true,
+  targetId: true,
+  user: { select: homeworkAuditActorSelect },
+  userId: true,
+} as const satisfies Prisma.AuditLogSelect;
+
+type HomeworkAuditRow = Prisma.AuditLogGetPayload<{
+  select: typeof homeworkAuditLogSelect;
+}>;
 
 export function homeworkSectionWhere(sectionIds: readonly number[]) {
   return sectionIds.length === 1
@@ -94,7 +110,7 @@ export async function listSectionHomeworkItems({
         ...homeworkSectionWhere(sectionIds),
         ...(includeDeleted ? {} : { deletedAt: null }),
       },
-      include: homeworkItemInclude(),
+      select: homeworkItemSummarySelect(),
       orderBy: [{ submissionDueAt: "asc" }, { createdAt: "desc" }],
     });
 
@@ -142,7 +158,7 @@ export async function listSectionHomeworkPage({
     (skip, take) =>
       client.homework.findMany({
         where,
-        include: homeworkItemInclude(),
+        select: homeworkItemSummarySelect(),
         orderBy: [{ submissionDueAt: "asc" }, { createdAt: "desc" }],
         skip,
         take,
@@ -172,52 +188,99 @@ export async function listSectionHomeworkAuditLogs(
         metadata: { path: ["sectionId"], equals: sectionId },
       })),
     },
-    select: {
-      action: true,
-      createdAt: true,
-      id: true,
-      metadata: true,
-      targetId: true,
-      user: { select: homeworkAuditActorSelect },
-      userId: true,
-    },
+    select: homeworkAuditLogSelect,
     orderBy: { createdAt: "desc" },
     take: 50,
   });
+  return rows.map((row) => homeworkAuditLogResponse(row));
+}
 
-  return rows.map((row) => {
-    const metadata =
-      typeof row.metadata === "object" && row.metadata !== null
-        ? (row.metadata as Record<string, unknown>)
-        : {};
-    return {
-      id: row.id,
-      action:
-        row.action === "homework_create"
-          ? ("created" as const)
-          : row.action === "homework_update"
-            ? ("updated" as const)
-            : ("deleted" as const),
-      titleSnapshot:
-        typeof metadata.titleSnapshot === "string"
-          ? metadata.titleSnapshot
-          : null,
-      createdAt: row.createdAt,
-      sectionId: Number(metadata.sectionId),
-      homeworkId: row.targetId,
-      actorId: row.userId,
-      actor: row.user,
-    };
+function homeworkAuditLogResponse(
+  row: HomeworkAuditRow,
+  fallbackSectionId?: number,
+) {
+  const metadata =
+    typeof row.metadata === "object" && row.metadata !== null
+      ? (row.metadata as Record<string, unknown>)
+      : {};
+  return {
+    id: row.id,
+    action:
+      row.action === "homework_create"
+        ? ("created" as const)
+        : row.action === "homework_update"
+          ? ("updated" as const)
+          : ("deleted" as const),
+    titleSnapshot:
+      typeof metadata.titleSnapshot === "string"
+        ? metadata.titleSnapshot
+        : null,
+    createdAt: row.createdAt,
+    sectionId:
+      typeof metadata.sectionId === "number"
+        ? metadata.sectionId
+        : (fallbackSectionId ?? Number(metadata.sectionId)),
+    homeworkId: row.targetId,
+    actorId: row.userId,
+    actor: row.user,
+  };
+}
+
+async function loadHomeworkAuditRowsForHomework(homeworkId: string) {
+  return prisma.auditLog.findMany({
+    where: {
+      action: {
+        in: ["homework_create", "homework_update", "homework_delete"],
+      },
+      targetType: "homework",
+      targetId: homeworkId,
+    },
+    select: homeworkAuditLogSelect,
+    orderBy: { createdAt: "desc" },
+    take: 50,
   });
 }
 
-export async function listSectionHomeworksWithAudit({
+export async function getSectionHomeworkAuditLogs(
+  homeworkId: string,
+  sectionId: number,
+) {
+  const rows = await loadHomeworkAuditRowsForHomework(homeworkId);
+  return rows.map((row) => homeworkAuditLogResponse(row, sectionId));
+}
+
+export async function getSectionHomeworkDetail(input: {
+  homeworkId: string;
+  locale?: AppLocale;
+  userId?: string | null;
+}) {
+  const homework = await getPrisma(
+    input.locale ?? DEFAULT_LOCALE,
+  ).homework.findFirst({
+    where: { id: input.homeworkId, deletedAt: null },
+    include: homeworkItemInclude(),
+  });
+  if (!homework) return null;
+
+  const [homeworkWithCompletion, auditLogs] = await Promise.all([
+    withHomeworkCompletionsForViewer([homework], input.userId),
+    getSectionHomeworkAuditLogs(homework.id, homework.sectionId),
+  ]);
+  const [item] = homeworkWithCompletion;
+  if (!item) return null;
+  return {
+    auditLogs,
+    homework: homeworkItemResponse(item),
+  };
+}
+
+export async function listSectionHomeworks({
   includeDeleted = false,
   locale = DEFAULT_LOCALE,
   sectionIds,
   userId,
-}: SectionHomeworkListWithAuditInput) {
-  const [viewer, homeworks, auditLogs] = await Promise.all([
+}: SectionHomeworkListWithViewerInput) {
+  const [viewer, homeworks] = await Promise.all([
     getViewerContext({
       includeAdmin: true,
       userId: userId ?? null,
@@ -228,20 +291,19 @@ export async function listSectionHomeworksWithAudit({
       sectionIds,
       viewerUserId: userId,
     }),
-    listSectionHomeworkAuditLogs(sectionIds),
   ]);
 
-  return { viewer, homeworks, auditLogs };
+  return { viewer, homeworks };
 }
 
-export async function listSectionHomeworkPageWithAudit({
+export async function listSectionHomeworkPageWithViewer({
   includeDeleted = false,
   locale = DEFAULT_LOCALE,
   pagination,
   sectionIds,
   userId,
-}: SectionHomeworkPageWithAuditInput) {
-  const [viewer, page, auditLogs] = await Promise.all([
+}: SectionHomeworkPageWithViewerInput) {
+  const [viewer, page] = await Promise.all([
     getViewerContext({
       includeAdmin: true,
       userId: userId ?? null,
@@ -253,8 +315,7 @@ export async function listSectionHomeworkPageWithAudit({
       sectionIds,
       viewerUserId: userId,
     }),
-    listSectionHomeworkAuditLogs(sectionIds),
   ]);
 
-  return { ...page, viewer, auditLogs };
+  return { ...page, viewer };
 }
