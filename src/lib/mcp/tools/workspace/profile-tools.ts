@@ -3,6 +3,7 @@ import {
   createMyTodoInputSchema,
   deleteMyTodoInputSchema,
   getMyProfileInputSchema,
+  getOAuthClientActivityInputSchema,
   getPublicUserProfileInputSchema,
   listMyTodosInputSchema,
   updateMyTodoInputSchema,
@@ -13,6 +14,7 @@ import { listMyTodosAction } from "./profile-tool-todo-list-action";
 import { updateMyTodoAction } from "./profile-tool-todo-update-action";
 import {
   getMyProfileAction,
+  getOAuthClientActivityAction,
   getPublicUserProfileAction,
 } from "./profile-tool-user-actions";
 
@@ -21,10 +23,20 @@ export function registerProfileTools(server: McpServer) {
     "account_profile_get",
     {
       description:
-        "Return the authenticated user's Life@USTC profile: id, email, username, name, image, isAdmin, and timestamps.",
+        "Return the authenticated user's Life@USTC profile. Email is included only with the standard email scope; administrative status is never disclosed to OAuth clients.",
       inputSchema: getMyProfileInputSchema,
     },
     getMyProfileAction,
+  );
+
+  server.registerTool(
+    "account_client_activity_list",
+    {
+      description:
+        "List security-relevant activity performed by this OAuth client for the authenticated user. Other clients, network addresses, devices, grants, and sessions are never returned.",
+      inputSchema: getOAuthClientActivityInputSchema,
+    },
+    getOAuthClientActivityAction,
   );
 
   server.registerTool(

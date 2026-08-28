@@ -17,19 +17,33 @@ export const viewerContextSchema = z.object({
   suspensionExpiresAt: dateTimeSchema.nullable(),
 });
 
-export const calendarSubscriptionSchema = z.object({
+export const calendarSubscriptionSchema = z.strictObject({
   userId: z.string(),
   sections: z.array(sectionCompactSchema),
-  calendarPath: z.string(),
-  calendarUrl: z.string(),
   note: z.string(),
 });
 
-export const currentCalendarSubscriptionResponseSchema = z.object({
-  subscription: calendarSubscriptionSchema.nullable(),
+export const calendarSubscriptionWithFeedSchema =
+  calendarSubscriptionSchema.extend({
+    calendarPath: z
+      .string()
+      .nullable()
+      .describe(
+        "Private calendar feed path. Populated only for OAuth tokens with workspace.calendar-feed:read.",
+      ),
+    calendarUrl: z
+      .url()
+      .nullable()
+      .describe(
+        "Private calendar feed URL. Populated only for OAuth tokens with workspace.calendar-feed:read.",
+      ),
+  });
+
+export const currentCalendarSubscriptionResponseSchema = z.strictObject({
+  subscription: calendarSubscriptionWithFeedSchema.nullable(),
 });
 
-export const calendarSubscriptionCreateResponseSchema = z.object({
+export const calendarSubscriptionCreateResponseSchema = z.strictObject({
   subscription: calendarSubscriptionSchema.nullable(),
 });
 
@@ -42,9 +56,9 @@ export const calendarSubscriptionAppendResponseSchema =
 export const calendarSubscriptionRemoveResponseSchema =
   calendarSubscriptionCreateResponseSchema;
 
-export const calendarSubscriptionImportResponseSchema = z.object({
+export const calendarSubscriptionImportResponseSchema = z.strictObject({
   success: z.boolean(),
-  semester: z.object({
+  semester: z.strictObject({
     id: z.number().int(),
     nameCn: z.string().nullable(),
     code: z.string().nullable(),
@@ -60,9 +74,9 @@ export const calendarSubscriptionImportResponseSchema = z.object({
   subscription: calendarSubscriptionSchema.nullable(),
 });
 
-const calendarSubscriptionResolvedSectionsSchema = z.object({
+const calendarSubscriptionResolvedSectionsSchema = z.strictObject({
   semester: z
-    .object({
+    .strictObject({
       id: z.number().int(),
       nameCn: z.string().nullable(),
       code: z.string().nullable(),
@@ -89,8 +103,8 @@ export const calendarSubscriptionBatchResponseSchema =
     subscription: calendarSubscriptionSchema.nullable(),
   });
 
-export const matchSectionCodesResponseSchema = z.object({
-  semester: z.object({
+export const matchSectionCodesResponseSchema = z.strictObject({
+  semester: z.strictObject({
     id: z.number().int(),
     nameCn: z.string().nullable(),
     code: z.string().nullable(),
@@ -168,9 +182,31 @@ export const meResponseSchema = z.object({
   name: z.string().nullable(),
   image: z.string().nullable(),
   username: z.string().nullable(),
-  isAdmin: z.boolean(),
+  isAdmin: z.boolean().nullable(),
   createdAt: dateTimeSchema,
   updatedAt: dateTimeSchema,
+});
+
+export const accountClientActivityResponseSchema = z.object({
+  items: z.array(
+    z.object({
+      id: z.string(),
+      action: z.string(),
+      outcome: z.enum(["success", "denied", "failure"]),
+      channel: z.enum([
+        "web",
+        "rest",
+        "graphql",
+        "mcp",
+        "auth",
+        "webhook",
+        "system",
+      ]),
+      createdAt: dateTimeSchema,
+      targetType: z.string().nullable(),
+    }),
+  ),
+  nextCursor: z.string().nullable(),
 });
 
 export const publicUserProfileResponseSchema = z.object({

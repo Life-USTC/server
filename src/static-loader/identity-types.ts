@@ -1,6 +1,6 @@
 export type TeacherBuild = {
+  jwId: number;
   personId?: number;
-  teacherId?: number;
   code?: string;
   nameCn: string;
   nameEn?: string;
@@ -13,7 +13,6 @@ export type TeacherBuild = {
   qq?: string;
   wechat?: string;
   departmentCode?: string;
-  teacherTitleId?: number;
 };
 
 export type AdminClassBuild = {

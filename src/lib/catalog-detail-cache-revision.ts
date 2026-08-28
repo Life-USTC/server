@@ -1,3 +1,4 @@
+import { runCloudflareTraceSpan } from "@/lib/adapters/cloudflare-runtime";
 import { prisma } from "@/lib/db/prisma";
 
 const REVISION_CACHE_TTL_MS = 60_000;
@@ -15,11 +16,29 @@ export async function getCatalogDetailCacheRevision() {
     return cachedRevision.value;
   }
 
-  const state = await prisma.staticImportState.findUnique({
-    where: { id: "global" },
-    select: { snapshotSha256: true },
-  });
-  const value = state?.snapshotSha256?.slice(0, 16) ?? BOOTSTRAP_REVISION;
+  const state = await runCloudflareTraceSpan(
+    "cache.catalog_revision.read",
+    {
+      "cache.layer": "origin",
+      "cache.namespace": "catalog:revision",
+    },
+    async (span) => {
+      try {
+        const state = await prisma.staticImportState.findUnique({
+          where: { id: "global" },
+          select: { snapshotSha256: true, updatedAt: true },
+        });
+        span?.setAttribute("cache.outcome", "success");
+        return state;
+      } catch (error) {
+        span?.setAttribute("cache.outcome", "error");
+        throw error;
+      }
+    },
+  );
+  const value = state
+    ? `${state.snapshotSha256.slice(0, 16)}-${state.updatedAt.getTime().toString(36)}`
+    : BOOTSTRAP_REVISION;
   cachedRevision = { expiresAt: now + REVISION_CACHE_TTL_MS, value };
   return value;
 }

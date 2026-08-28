@@ -1,0 +1,99 @@
+<script lang="ts" module>
+export type CalendarSubscriptionCopy = {
+  calendarSheetDescription: string;
+  calendarSheetTitle: string;
+  close?: string;
+  copied: string;
+  copyToClipboard: string;
+  learnMoreAboutICalendar: string;
+  viewAllSubscriptions: string;
+};
+
+export type CalendarSubscriptionUrl = {
+  copied: boolean;
+  description?: string;
+  id: string;
+  label: string;
+  missingLabel?: string;
+  onCopy: () => void | Promise<void>;
+  value: string;
+  warning?: string;
+};
+</script>
+
+<script lang="ts">
+import CheckCircleIcon from "@lucide/svelte/icons/check-circle";
+import * as Alert from "$lib/components/ui/alert/index.js";
+import { Button } from "$lib/components/ui/button/index.js";
+import * as Dialog from "$lib/components/ui/dialog/index.js";
+import CalendarSubscriptionUrlRow from "./CalendarSubscriptionUrlRow.svelte";
+
+/** Apple Calendar: subscribe by URL guide (locale-neutral). */
+const ICAL_SUBSCRIBE_GUIDE_HREF =
+  "https://support.apple.com/guide/calendar/subscribe-to-calendars-icl1022/mac";
+
+export let clipboardError: string;
+export let clipboardMessage: string;
+export let close: () => void;
+export let copy: CalendarSubscriptionCopy;
+export let isOpen: boolean;
+export let onOpenChange: (open: boolean) => void;
+export let showSubscriptionsLink = true;
+export let urls: CalendarSubscriptionUrl[];
+
+const titleId = "calendar-subscription-title";
+</script>
+
+<Dialog.Root open={isOpen} onOpenChange={onOpenChange}>
+  <Dialog.Content class="max-w-3xl sm:max-w-3xl" aria-labelledby={titleId}>
+    <Dialog.Header>
+      <Dialog.Title id={titleId}>{copy.calendarSheetTitle}</Dialog.Title>
+      <Dialog.Description>
+        {copy.calendarSheetDescription}
+        {" "}
+        <a
+          class="text-primary underline-offset-4 hover:underline"
+          href={ICAL_SUBSCRIBE_GUIDE_HREF}
+          rel="noopener noreferrer"
+          target="_blank"
+        >
+          {copy.learnMoreAboutICalendar}
+        </a>
+      </Dialog.Description>
+    </Dialog.Header>
+    <section class="grid min-w-0 gap-4 px-5 py-4">
+      {#if clipboardMessage}
+        <Alert.Root>
+          <CheckCircleIcon />
+          <Alert.Description>{clipboardMessage}</Alert.Description>
+        </Alert.Root>
+      {:else if clipboardError}
+        <Alert.Root variant="destructive">
+          <Alert.Description>{clipboardError}</Alert.Description>
+        </Alert.Root>
+      {/if}
+      {#each urls as url}
+        <CalendarSubscriptionUrlRow
+          buttonLabel={copy.copyToClipboard}
+          copied={url.copied}
+          copiedLabel={copy.copied}
+          description={url.description}
+          id={url.id}
+          label={url.label}
+          missingLabel={url.missingLabel}
+          onCopy={url.onCopy}
+          value={url.value}
+          warning={url.warning}
+        />
+      {/each}
+      {#if showSubscriptionsLink}
+        <Button class="w-fit" href="/workspace/subscriptions" variant="link">
+          {copy.viewAllSubscriptions}
+        </Button>
+      {/if}
+    </section>
+    <Dialog.Footer>
+      <Button type="button" onclick={close}>{copy.close ?? ""}</Button>
+    </Dialog.Footer>
+  </Dialog.Content>
+</Dialog.Root>

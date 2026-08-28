@@ -4,6 +4,7 @@ import type { SubmitFunction } from "@sveltejs/kit";
 import { onMount } from "svelte";
 import type { SectionDetailPageData } from "@/features/section-detail/lib/section-detail-controller-helpers";
 import type { SectionDetailSection } from "@/features/section-detail/lib/section-detail-controller-types";
+import * as Alert from "$lib/components/ui/alert/index.js";
 import { Button } from "$lib/components/ui/button/index.js";
 import { Separator } from "$lib/components/ui/separator/index.js";
 import { Spinner } from "$lib/components/ui/spinner/index.js";
@@ -11,13 +12,10 @@ import { cn } from "$lib/utils.js";
 import SectionBasicInfoCard from "./SectionBasicInfoCard.svelte";
 import SectionDetailHeader from "./SectionDetailHeader.svelte";
 import SectionDetailPrimaryActions from "./SectionDetailPrimaryActions.svelte";
-import type { FormatMessage } from "./section-detail-component-types";
 import type { SectionDetailMainContentProps } from "./section-detail-dialog-types";
 
 type SubscriptionActionKey = "subscribe" | "unsubscribe";
 
-export let calendarMonthLabel: string;
-export let calendarMonthOffset: number;
 export let canWriteHomework: boolean;
 export let commentTargets: SectionDetailMainContentProps["commentTargets"];
 export let commonCopy: SectionDetailMainContentProps["commonCopy"];
@@ -29,7 +27,6 @@ export let descriptionData: SectionDetailPageData["descriptionData"];
 export let formError: string | null | undefined;
 export let fmtDate: SectionDetailMainContentProps["fmtDate"];
 export let fmtDateTime: SectionDetailMainContentProps["fmtDateTime"];
-export let formatMessage: FormatMessage;
 export let homeworkCopy: SectionDetailMainContentProps["homeworkCopy"];
 export let homeworks: SectionDetailMainContentProps["homeworks"];
 export let notAvailable: string;
@@ -39,17 +36,17 @@ export let openSubscribeDialog: () => void;
 export let periodDetailRows: SectionDetailMainContentProps["periodDetailRows"];
 export let primaryName: SectionDetailMainContentProps["primaryName"];
 export let sectionCalendarEvents: SectionDetailMainContentProps["sectionCalendarEvents"];
-export let sectionCalendarGridWeeks: SectionDetailMainContentProps["sectionCalendarGridWeeks"];
 export let sectionCopy: SectionDetailMainContentProps["sectionCopy"];
 export let sectionTeachersLabel: SectionDetailMainContentProps["sectionTeachersLabel"];
 export let setSelectedHomework: SectionDetailMainContentProps["setSelectedHomework"];
+export let retryStreamPanels: () => void;
+export let streamError: string | null;
 export let streamLoading: boolean;
 export let subscriptionAction: (
   action: SubscriptionActionKey,
 ) => SubmitFunction;
 export let subscriptionPendingAction: SubscriptionActionKey | null;
 export let teacherName: SectionDetailMainContentProps["teacherName"];
-export let todayCalendarMonthOffset: number;
 export let unscheduledCalendarEvents: SectionDetailMainContentProps["unscheduledCalendarEvents"];
 export let viewer: SectionDetailMainContentProps["viewer"];
 export let yesNo: SectionDetailMainContentProps["yesNo"];
@@ -109,7 +106,12 @@ $: sectionExamEvents = sectionCalendarEvents.filter(
   </div>
 
   <div
-    class="min-w-0 min-h-0 overflow-y-auto px-4 py-4 sm:px-5 lg:px-6"
+    class={cn(
+      "min-w-0 min-h-0 overflow-x-hidden overflow-y-auto px-4 pt-4 sm:px-5 lg:px-6 md:pb-4",
+      viewer.signedIn
+        ? "pb-[calc(9rem+max(0.75rem,env(safe-area-inset-bottom)))]"
+        : "pb-[calc(5rem+max(0.75rem,env(safe-area-inset-bottom)))]",
+    )}
     aria-busy={streamLoading}
     data-detail-scroll-container
   >
@@ -123,8 +125,25 @@ $: sectionExamEvents = sectionCalendarEvents.filter(
       </div>
     {/if}
 
+    {#if streamError}
+      <Alert.Root class="mb-6" role="alert" variant="destructive">
+        <Alert.Title>{streamError}</Alert.Title>
+        <Alert.Description class="flex flex-wrap items-center gap-3">
+          <span>{sectionCopy.pleaseRetry}</span>
+          <Button
+            size="sm"
+            type="button"
+            variant="outline"
+            onclick={retryStreamPanels}
+          >
+            {sectionCopy.pleaseRetry}
+          </Button>
+        </Alert.Description>
+      </Alert.Root>
+    {/if}
+
     <div class="grid gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(16rem,20rem)] lg:items-start lg:gap-10">
-      <div class="grid min-w-0 gap-10">
+      <div class="grid min-w-0 grid-cols-1 gap-10">
         <section id="introduction" class="scroll-mt-4">
           {#key `description:section:${data.section.id}`}
             {#if DescriptionCard}
@@ -149,7 +168,7 @@ $: sectionExamEvents = sectionCalendarEvents.filter(
           {/key}
         </section>
 
-        <section id="calendar" class="scroll-mt-4">
+        <section id="calendar" class="min-w-0 scroll-mt-4">
           <div class="mb-3 flex flex-wrap items-center justify-between gap-3">
             <h2 class="text-lg font-semibold tracking-tight">
               {sectionCopy.tabs.calendar}
@@ -169,7 +188,7 @@ $: sectionExamEvents = sectionCalendarEvents.filter(
           {/if}
         </section>
 
-        <section id="exams" class="scroll-mt-4">
+        <section id="exams" class="min-w-0 scroll-mt-4">
           <h2 class="mb-3 text-lg font-semibold tracking-tight">
             {sectionCopy.tabs.exams}
           </h2>
@@ -178,6 +197,7 @@ $: sectionExamEvents = sectionCalendarEvents.filter(
               this={SectionExamSection}
               events={sectionExamEvents}
               {fmtDate}
+              heading={sectionCopy.tabs.exams}
               {sectionCopy}
             />
           {/if}
@@ -213,7 +233,7 @@ $: sectionExamEvents = sectionCalendarEvents.filter(
           {/if}
         </section>
 
-        <section id="comments" class="scroll-mt-4">
+        <section id="comments" class="scroll-mt-4 min-w-0">
           {#key `comments:section:${data.section.id}`}
             {#if CommentsPanel}
               <svelte:component
@@ -256,7 +276,7 @@ $: sectionExamEvents = sectionCalendarEvents.filter(
     data-testid="section-mobile-primary-actions"
   >
     <Separator />
-    <div class="p-3">
+    <div class="px-3 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
       <SectionDetailPrimaryActions
         onOpenCalendar={openCalendarDialog}
         onOpenSubscribe={openSubscribeDialog}

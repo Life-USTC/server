@@ -5,6 +5,7 @@
  * sections. This replaces client-side fan-out over /api/catalog/schedules.
  */
 import { expect, test } from "@playwright/test";
+import { subscribedSchedulesResponseSchema } from "@/lib/api/schemas/schedule-response-schema-core";
 import { DEV_SEED } from "../../../../../e2e/utils/dev-seed";
 import { signInAsDebugUserApi } from "../../../_harness/auth";
 import { assertApiContract } from "../../../_shared/api-contract";
@@ -28,26 +29,32 @@ test.describe("GET /api/workspace/schedules - 订阅课表", () => {
       `${BASE}?dateFrom=${DEV_SEED.seedAnchorAtTime.slice(0, 10)}&dateTo=${DEV_SEED.seedAnchorAtTime.slice(0, 10)}&limit=5`,
     );
     expect(response.status()).toBe(200);
-    const body = (await response.json()) as {
-      schedules?: Array<{
-        date?: string | null;
-        section?: { code?: string; course?: { nameCn?: string } };
-        startTime?: string;
-        endTime?: string;
-      }>;
-    };
+    const body = subscribedSchedulesResponseSchema.parse(await response.json());
 
-    expect((body.schedules?.length ?? 0) > 0).toBe(true);
-    const seedSchedule = body.schedules?.find(
-      (schedule) => schedule.section?.code === DEV_SEED.section.code,
+    expect(body.schedules.length).toBeGreaterThan(0);
+    const seedSchedule = body.schedules.find(
+      (schedule) => schedule.section.code === DEV_SEED.section.code,
     );
     expect(seedSchedule).toBeDefined();
     expect(
       seedSchedule?.date?.startsWith(DEV_SEED.seedAnchorAtTime.slice(0, 10)),
     ).toBe(true);
-    expect(seedSchedule?.section?.course?.nameCn).toBe(DEV_SEED.course.nameCn);
+    expect(seedSchedule?.section.course.nameCn).toBe(DEV_SEED.course.nameCn);
     expect(seedSchedule?.startTime).toMatch(/^\d{2}:\d{2}$/);
     expect(seedSchedule?.endTime).toMatch(/^\d{2}:\d{2}$/);
+
+    const seedTeacher = seedSchedule?.teachers.find(
+      (teacher) => teacher.jwId === DEV_SEED.teacher.jwId,
+    );
+    expect(seedTeacher?.namePrimary).toBe(DEV_SEED.teacher.nameCn);
+    expect(seedTeacher?.nameSecondary).toBe(DEV_SEED.teacher.nameEn);
+    expect(seedTeacher?.department?.namePrimary).toBe(
+      DEV_SEED.teacher.departmentNameCn,
+    );
+    expect(seedTeacher?.teacherTitle?.namePrimary).toBe(
+      DEV_SEED.teacher.titleNameCn,
+    );
+    expect(seedTeacher?._count.sections).toBeGreaterThan(0);
   });
 
   test("无效日期查询返回 400", async ({ request }) => {

@@ -1,7 +1,8 @@
 import { jsonResponse } from "@/lib/api/helpers";
-import { ensureOAuthProviderResourcesSeeded } from "@/lib/db/ensure-oauth-provider-resources";
 import { observedApiRoute } from "@/lib/log/api-observability";
 import { withBetterAuthOAuthDebug } from "@/lib/log/oauth-debug";
+import { elapsedMs, monotonicNowMs } from "@/lib/log/observability-clock";
+import { getSafeErrorName } from "@/lib/log/safe-error-name";
 import { writeOAuthEventAnalytics } from "@/lib/metrics/analytics-engine";
 import {
   OAUTH_DEVICE_CODE_GRANT_TYPE,
@@ -108,20 +109,64 @@ async function runTokenHandler(run: () => Promise<Response | undefined>) {
   return response;
 }
 
+async function runObservedTokenStage<Result>(
+  params: URLSearchParams,
+  phase: string,
+  run: () => Promise<Result>,
+) {
+  const start = monotonicNowMs();
+  try {
+    const result = await run();
+    writeOAuthEventAnalytics({
+      event: "token.stage.success",
+      grantType: params.get("grant_type"),
+      hasResource: params.has("resource"),
+      ioObservedDurationMs: elapsedMs(start),
+      path: "/api/auth/oauth2/token",
+      phase,
+      resourceCount: params.getAll("resource").length,
+      status: result instanceof Response ? result.status : 200,
+    });
+    return result;
+  } catch (error) {
+    writeOAuthEventAnalytics({
+      errorName: getSafeErrorName(error),
+      event: "token.stage.error",
+      grantType: params.get("grant_type"),
+      hasResource: params.has("resource"),
+      ioObservedDurationMs: elapsedMs(start),
+      path: "/api/auth/oauth2/token",
+      phase,
+      resourceCount: params.getAll("resource").length,
+      status: 500,
+    });
+    throw error;
+  }
+}
+
 async function runObservedTokenHandler(
   request: Request,
   params: URLSearchParams,
   run: () => Promise<Response | undefined>,
 ) {
-  const start = Date.now();
+  const start = monotonicNowMs();
   const url = new URL(request.url);
   const grantType = params.get("grant_type");
   try {
-    const response = await bindOAuthAccessTokenToConsent(
-      await runTokenHandler(run),
-      grantType === OAUTH_REFRESH_TOKEN_GRANT_TYPE && params.has("scope")
-        ? [...new Set((params.get("scope") ?? "").split(/\s+/).filter(Boolean))]
-        : undefined,
+    const response = await runObservedTokenStage(
+      params,
+      "bind-access-token-consent",
+      async () =>
+        bindOAuthAccessTokenToConsent(
+          await runTokenHandler(run),
+          grantType === OAUTH_REFRESH_TOKEN_GRANT_TYPE && params.has("scope")
+            ? [
+                ...new Set(
+                  (params.get("scope") ?? "").split(/\s+/).filter(Boolean),
+                ),
+              ]
+            : undefined,
+        ),
     );
     const errorBody = response.ok ? undefined : await parseJsonBody(response);
     const errorCode =
@@ -139,7 +184,7 @@ async function runObservedTokenHandler(
           : errorCode === "invalid_request"
             ? "oauth.token.invalid_request"
             : "oauth.token.error_response",
-      ioObservedDurationMs: Date.now() - start,
+      ioObservedDurationMs: elapsedMs(start),
       grantType,
       hasResource: params.has("resource"),
       method: request.method,
@@ -152,7 +197,7 @@ async function runObservedTokenHandler(
   } catch (err) {
     writeOAuthEventAnalytics({
       event: "token.error",
-      ioObservedDurationMs: Date.now() - start,
+      ioObservedDurationMs: elapsedMs(start),
       grantType,
       hasResource: params.has("resource"),
       method: request.method,
@@ -212,43 +257,60 @@ async function postRoute(request: Request) {
   logObservedTokenRedirectRequest(normalizedRequest, params);
 
   return runObservedTokenHandler(request, params, async () => {
-    const grantValidation = await validateActiveOAuthRefreshGrant(params);
+    const [grantValidation, resourceError] = await Promise.all([
+      runObservedTokenStage(params, "validate-active-grant", () =>
+        validateActiveOAuthRefreshGrant(params),
+      ),
+      runObservedTokenStage(params, "validate-refresh-resources", () =>
+        validateOAuthRefreshTokenResources(normalizedRequest, params),
+      ),
+    ]);
     if ("response" in grantValidation) return grantValidation.response;
-
-    const resourceError = await validateOAuthRefreshTokenResources(
-      normalizedRequest,
-      params,
-    );
     if (resourceError) return resourceError;
 
-    const delegatedRequest = await maybeBindOAuthRefreshResourceRequest(
-      await maybeNormalizeTokenLoopbackRedirectRequest(
-        normalizedRequest,
-        params,
-      ),
+    const delegatedRequest = await runObservedTokenStage(
       params,
+      "prepare-provider-request",
+      async () =>
+        maybeBindOAuthRefreshResourceRequest(
+          await maybeNormalizeTokenLoopbackRedirectRequest(
+            normalizedRequest,
+            params,
+          ),
+          params,
+        ),
     );
-    if (params.has("resource")) {
-      await ensureOAuthProviderResourcesSeeded();
-    }
     const delegatedResponse = await withBetterAuthOAuthDebug(
       "POST",
       delegatedRequest,
       authHandler,
     );
-    const response = await replaceOAuthRefreshAccessToken(
-      delegatedRequest,
+    const response = await runObservedTokenStage(
       params,
-      await normalizeOAuthTokenErrorResponse(delegatedResponse),
+      "secure-provider-response",
+      async () =>
+        replaceOAuthRefreshAccessToken(
+          delegatedRequest,
+          params,
+          await normalizeOAuthTokenErrorResponse(delegatedResponse),
+        ),
     );
     if (!response.ok) {
-      const cleanupError = await cleanupRejectedOAuthRefreshGrant(params);
+      const cleanupError = await runObservedTokenStage(
+        params,
+        "cleanup-rejected-grant",
+        () => cleanupRejectedOAuthRefreshGrant(params),
+      );
       if (cleanupError) return cleanupError;
     }
-    await persistOAuthRefreshTokenResources(delegatedRequest, params, response);
+    await runObservedTokenStage(params, "persist-refresh-resources", () =>
+      persistOAuthRefreshTokenResources(delegatedRequest, params, response),
+    );
     if (response.ok) {
-      const revokedResponse = await rejectRefreshIssuedAfterRevocation(
-        grantValidation.grant,
+      const revokedResponse = await runObservedTokenStage(
+        params,
+        "recheck-active-grant",
+        () => rejectRefreshIssuedAfterRevocation(grantValidation.grant),
       );
       if (revokedResponse) return revokedResponse;
     }

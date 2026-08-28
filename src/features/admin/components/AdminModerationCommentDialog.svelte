@@ -3,6 +3,7 @@ import * as Alert from "$lib/components/ui/alert/index.js";
 import { Button } from "$lib/components/ui/button/index.js";
 import * as Dialog from "$lib/components/ui/dialog/index.js";
 import { ScrollArea } from "$lib/components/ui/scroll-area/index.js";
+import { Separator } from "$lib/components/ui/separator/index.js";
 import { Spinner } from "$lib/components/ui/spinner/index.js";
 import AdminModerationCommentPreview from "./AdminModerationCommentPreview.svelte";
 import AdminModerationCommentStatusSection from "./AdminModerationCommentStatusSection.svelte";
@@ -22,6 +23,7 @@ export let commentStatusOptions: AdminModerationStatusOptions;
 export let copy: AdminModerationCopy;
 export let customExpiresAt: string;
 export let dialogMessage: string;
+export let dialogMessageVariant: "destructive" | "default";
 export let inputValue: (event: Event) => string;
 export let isSavingComment: boolean;
 export let isSuspendingUser: boolean;
@@ -43,30 +45,27 @@ export let targetLabel: (comment: AdminModerationComment) => string;
     }}
   >
     <Dialog.Content
-      class="max-w-2xl sm:max-w-2xl"
+      class="grid max-h-[calc(100dvh-1rem)] min-h-0 max-w-2xl grid-rows-[auto_minmax(0,1fr)_auto] overflow-hidden sm:max-w-2xl"
       aria-labelledby="manage-comment-title"
+      showCloseButton={false}
     >
       <Dialog.Header>
-        <div class="flex items-start justify-between gap-3">
-          <div>
-            <Dialog.Title id="manage-comment-title">{copy.manageComment}</Dialog.Title>
-            <Dialog.Description>
-              {commentAuthorLabel(comment)} · {targetLabel(comment)}
-            </Dialog.Description>
-          </div>
-          <Button type="button" variant="ghost" onclick={close}>{copy.close}</Button>
-        </div>
+        <Dialog.Title id="manage-comment-title">{copy.manageComment}</Dialog.Title>
+        <Dialog.Description>
+          {commentAuthorLabel(comment)} · {targetLabel(comment)}
+        </Dialog.Description>
       </Dialog.Header>
 
-      <ScrollArea class="h-[min(62vh,34rem)]">
-        <div class="grid gap-5 px-5 py-4">
-          {#if dialogMessage}<Alert.Root class="py-2"><Alert.Description>{dialogMessage}</Alert.Description></Alert.Root>{/if}
+      <ScrollArea class="min-h-0 h-[min(56dvh,34rem)] max-h-[calc(100dvh-12rem)]">
+        <div class="grid gap-5 px-5 pt-4 pb-6">
+          {#if dialogMessage}<Alert.Root class="py-2" variant={dialogMessageVariant}><Alert.Description>{dialogMessage}</Alert.Description></Alert.Root>{/if}
 
           <AdminModerationCommentPreview
             {comment}
             {copy}
             {targetHref}
           />
+          <Separator />
 
           <AdminModerationCommentStatusSection
             bind:commentStatus

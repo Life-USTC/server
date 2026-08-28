@@ -9,6 +9,7 @@ import {
 } from "@/features/descriptions/server/description-targets";
 import { upsertDescriptionContent } from "@/features/descriptions/server/description-upsert";
 import { getResolvedDescriptionPayload } from "@/features/descriptions/server/descriptions-server";
+import { attributionFromMcpAuthInfo } from "@/lib/audit/principal-attribution";
 import { getViewerContext } from "@/lib/auth/viewer-context";
 import {
   getUserId,
@@ -119,7 +120,12 @@ export function registerDescriptionTools(server: McpServer) {
       const targetType = resolved.targetType;
       const content = args.content.trim();
       const result = await upsertDescriptionContent({
-        auditMetadata: { source: "mcp" },
+        auditMetadata: {
+          ...(extra.authInfo
+            ? attributionFromMcpAuthInfo(extra.authInfo)
+            : null),
+          source: "mcp",
+        },
         content,
         targetId: resolved.targetId,
         targetType,

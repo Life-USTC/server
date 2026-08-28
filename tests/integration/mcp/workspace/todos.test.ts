@@ -182,11 +182,12 @@ describe("作业写入工具 — MCP 镜像普通用户 REST 写入", () => {
       expect(record?.deletedAt).toBeInstanceOf(Date);
       expect(record?.deletedById).toBe(isolated.userId);
 
-      const audit = await fixtures.prisma.homeworkAuditLog.findFirst({
+      const audit = await fixtures.prisma.auditLog.findFirst({
         where: {
-          homeworkId: homework.id,
-          action: "deleted",
-          actorId: isolated.userId,
+          targetId: homework.id,
+          action: "homework_delete",
+          userId: isolated.userId,
+          channel: "mcp",
         },
       });
       expect(audit?.id).toBeTypeOf("string");

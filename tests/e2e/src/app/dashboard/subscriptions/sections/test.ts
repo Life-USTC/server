@@ -55,6 +55,40 @@ async function openBulkImportDialog(page: import("@playwright/test").Page) {
   return textarea.first();
 }
 
+async function assertDialogViewportSafe(
+  page: import("@playwright/test").Page,
+  dialog: import("@playwright/test").Locator,
+) {
+  const viewport = page.viewportSize();
+  const viewportWidth = viewport?.width ?? 390;
+  const viewportHeight = viewport?.height ?? 844;
+  const dialogBox = await dialog.boundingBox();
+  const footerBox = await dialog
+    .locator('[data-slot="dialog-footer"]')
+    .boundingBox();
+  const closeBox = await dialog
+    .getByRole("button", { name: "Close" })
+    .boundingBox();
+
+  expect(dialogBox).not.toBeNull();
+  expect(footerBox).not.toBeNull();
+  expect(closeBox).not.toBeNull();
+  if (!dialogBox || !footerBox || !closeBox) {
+    throw new Error("Expected the mobile dialog bounds");
+  }
+
+  expect(dialogBox.x).toBeGreaterThanOrEqual(16);
+  expect(dialogBox.x + dialogBox.width).toBeLessThanOrEqual(viewportWidth - 16);
+  expect(dialogBox.y).toBeGreaterThanOrEqual(0);
+  expect(dialogBox.y + dialogBox.height).toBeLessThanOrEqual(viewportHeight);
+  expect(footerBox.y).toBeGreaterThanOrEqual(0);
+  expect(footerBox.y + footerBox.height).toBeLessThanOrEqual(viewportHeight);
+  expect(closeBox.y).toBeGreaterThanOrEqual(0);
+  expect(closeBox.y + closeBox.height).toBeLessThanOrEqual(viewportHeight);
+  await expect(dialog.locator('[data-slot="dialog-footer"]')).toBeInViewport();
+  await expect(dialog.getByRole("button", { name: "Close" })).toBeInViewport();
+}
+
 test.describe("仪表盘教学班订阅", () => {
   test.describe.configure({ mode: "serial" });
   test.beforeEach(async ({ context, baseURL }) => {
@@ -378,6 +412,18 @@ test.describe("仪表盘教学班订阅", () => {
     await unsubscribeResponse;
     await expect(confirmDialog).not.toBeVisible();
     await expect(courseLink).toHaveCount(0);
+    await expect(
+      page.locator("[data-sonner-toast]").filter({
+        hasText:
+          /该教学班已从订阅列表中移除|This section has been removed from your Life@USTC subscriptions/i,
+      }),
+    ).toBeVisible();
+    await expect(
+      page.locator('[data-slot="alert"][role="alert"]').filter({
+        hasText:
+          /该教学班已从订阅列表中移除|This section has been removed from your Life@USTC subscriptions/i,
+      }),
+    ).toHaveCount(0);
 
     await captureStepScreenshot(
       page,
@@ -518,6 +564,57 @@ test.describe("仪表盘教学班订阅", () => {
     await expect(
       quickAddDialog.getByText(DEV_SEED.section.code).first(),
     ).toBeVisible();
+    await assertDialogViewportSafe(page, quickAddDialog);
+    const footer = quickAddDialog.locator('[data-slot="dialog-footer"]');
+    const closeButton = quickAddDialog.getByRole("button", {
+      name: "Close",
+    });
+    const footerBox = await footer.boundingBox();
+    expect(footerBox).not.toBeNull();
+    if (!footerBox) {
+      throw new Error("Expected the mobile quick-add footer bounds");
+    }
+    expect(await quickAddDialog.evaluate((element) => element.scrollTop)).toBe(
+      0,
+    );
+    await expect(footer).toBeInViewport();
+    await expect(closeButton).toBeInViewport();
+    const subscribeButton = quickAddDialog.getByRole("button", {
+      name: /订阅所选|Subscribe selected/i,
+    });
+    await expect(subscribeButton).toBeInViewport();
+    const resultViewport = quickAddDialog
+      .locator('[data-slot="scroll-area-viewport"]')
+      .first();
+    const resultMetrics = await resultViewport.evaluate((element) => ({
+      clientHeight: element.clientHeight,
+      scrollHeight: element.scrollHeight,
+    }));
+    expect(resultMetrics.clientHeight).toBeGreaterThan(0);
+    const resultBox = await resultViewport.boundingBox();
+    expect(resultBox).not.toBeNull();
+    if (!resultBox) {
+      throw new Error("Expected the quick-add results scroll area bounds");
+    }
+    expect(resultBox.y + resultBox.height).toBeLessThanOrEqual(footerBox.y + 1);
+    if (resultMetrics.scrollHeight > resultMetrics.clientHeight) {
+      const scrollTopBefore = await resultViewport.evaluate(
+        (element) => element.scrollTop,
+      );
+      await resultViewport.evaluate((element) => {
+        element.scrollTop = element.scrollHeight;
+      });
+      const scrollTopAfter = await resultViewport.evaluate(
+        (element) => element.scrollTop,
+      );
+      const maxScrollTop =
+        resultMetrics.scrollHeight - resultMetrics.clientHeight;
+      if (scrollTopBefore < maxScrollTop - 1) {
+        expect(scrollTopAfter).toBeGreaterThan(scrollTopBefore);
+      }
+      expect(scrollTopAfter).toBeGreaterThanOrEqual(maxScrollTop - 1);
+    }
+    await expect(subscribeButton).toBeInViewport();
     const separator = quickAddDialog.locator(
       '[data-slot="separator"][data-orientation="horizontal"]',
     );
@@ -591,6 +688,51 @@ test.describe("仪表盘教学班订阅", () => {
       })
       .click();
     await subscribeResponse;
+    await expect(quickAddDialog).not.toBeVisible();
+    await expect(
+      page.locator("[data-sonner-toast]").filter({
+        hasText:
+          /已新增 \d+ 个教学班订阅|Added \d+ new sections? to Life@USTC/i,
+      }),
+    ).toBeVisible();
+    await expect(
+      page.locator('[data-slot="alert"][role="alert"]').filter({
+        hasText:
+          /已新增 \d+ 个教学班订阅|Added \d+ new sections? to Life@USTC/i,
+      }),
+    ).toHaveCount(0);
+    await waitForUiSettled(page);
+    await expect(
+      page
+        .getByTestId("subscription-course-link")
+        .filter({
+          hasText: new RegExp(
+            `${escapeForRegExp(DEV_SEED.course.nameCn)}|${escapeForRegExp(DEV_SEED.course.nameEn)}`,
+          ),
+        })
+        .filter({ visible: true })
+        .first(),
+    ).toBeVisible();
+  });
+
+  test("单个添加弹窗在 320×568 视口保持关闭控件和操作区可达", async ({
+    page,
+  }) => {
+    await page.setViewportSize({ height: 568, width: 320 });
+    await signInAsDebugUser(page, "/workspace/subscriptions");
+    await gotoAndWaitForReady(page, "/workspace/subscriptions");
+
+    await page
+      .getByRole("button", { name: /添加订阅|Add Subscription/i })
+      .first()
+      .click();
+    const quickAddDialog = page
+      .getByRole("dialog", { name: /添加订阅|Add Subscription/i })
+      .first();
+    await expect(quickAddDialog).toBeVisible();
+    await assertDialogViewportSafe(page, quickAddDialog);
+
+    await quickAddDialog.getByRole("button", { name: "Close" }).click();
     await expect(quickAddDialog).not.toBeVisible();
   });
 
@@ -682,13 +824,29 @@ test.describe("仪表盘教学班订阅", () => {
       .click();
 
     await expect(
-      page
-        .getByText(
+      page.locator("[data-sonner-toast]").filter({
+        hasText:
           /已新增 \d+ 个教学班订阅|Added \d+ new sections? to Life@USTC/i,
-        )
-        .first(),
+      }),
     ).toBeVisible({ timeout: 15_000 });
+    await expect(
+      page.locator('[data-slot="alert"][role="alert"]').filter({
+        hasText:
+          /已新增 \d+ 个教学班订阅|Added \d+ new sections? to Life@USTC/i,
+      }),
+    ).toHaveCount(0);
     await waitForUiSettled(page);
+    await expect(
+      page
+        .getByTestId("subscription-course-link")
+        .filter({
+          hasText: new RegExp(
+            `${escapeForRegExp(DEV_SEED.course.nameCn)}|${escapeForRegExp(DEV_SEED.course.nameEn)}`,
+          ),
+        })
+        .filter({ visible: true })
+        .first(),
+    ).toBeVisible();
 
     await captureStepScreenshot(
       page,

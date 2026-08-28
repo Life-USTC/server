@@ -1,7 +1,11 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { prisma, withUserDbContext } from "@/lib/db/prisma";
+import { createTestPrisma } from "../shared/prisma";
 
 const rlsTestUserIds = ["rls-test-user-a", "rls-test-user-b"] as const;
+const adminPrisma = createTestPrisma(
+  process.env.FUNCTION_OWNER_DATABASE_URL ?? process.env.DATABASE_URL,
+);
 
 describe.skipIf(process.env.RLS_TEST_ENABLED !== "true")(
   "UserSectionSubscription PostgreSQL row security",
@@ -29,16 +33,16 @@ describe.skipIf(process.env.RLS_TEST_ENABLED !== "true")(
     });
 
     beforeEach(async () => {
-      await prisma.userSectionSubscription.deleteMany({
+      await adminPrisma.userSectionSubscription.deleteMany({
         where: { userId: { in: [firstUserId, secondUserId] } },
       });
     });
 
     afterAll(async () => {
-      await prisma.userSectionSubscription.deleteMany({
+      await adminPrisma.userSectionSubscription.deleteMany({
         where: { userId: { in: [firstUserId, secondUserId] } },
       });
-      await prisma.$disconnect();
+      await Promise.all([prisma.$disconnect(), adminPrisma.$disconnect()]);
     });
 
     it("defaults to no rows or writes without an owner context", async () => {

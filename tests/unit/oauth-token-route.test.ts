@@ -7,10 +7,10 @@ import {
   OAUTH_PROFILE_SCOPE,
   OAUTH_REFRESH_TOKEN_GRANT_TYPE,
 } from "@/lib/oauth/constants";
+import { createDeferred } from "../shared/deferred";
 
 const {
   betterAuthHandlerMock,
-  ensureOAuthProviderResourcesSeededMock,
   findRefreshTokenMock,
   isOAuthRefreshGrantActiveMock,
   logAppEventMock,
@@ -21,9 +21,9 @@ const {
   signJwtMock,
   updateRefreshTokenMock,
   verifyAccessTokenJwtPayloadMock,
+  writeOAuthEventAnalyticsMock,
 } = vi.hoisted(() => ({
   betterAuthHandlerMock: vi.fn(),
-  ensureOAuthProviderResourcesSeededMock: vi.fn().mockResolvedValue(undefined),
   findRefreshTokenMock: vi.fn(),
   isOAuthRefreshGrantActiveMock: vi.fn(),
   logAppEventMock: vi.fn(),
@@ -34,15 +34,17 @@ const {
   signJwtMock: vi.fn(),
   updateRefreshTokenMock: vi.fn(),
   verifyAccessTokenJwtPayloadMock: vi.fn(),
-}));
-
-vi.mock("@/lib/db/ensure-oauth-provider-resources", () => ({
-  ensureOAuthProviderResourcesSeeded: ensureOAuthProviderResourcesSeededMock,
+  writeOAuthEventAnalyticsMock: vi.fn(),
 }));
 
 vi.mock("@/lib/log/app-logger", async (importOriginal) => ({
   ...(await importOriginal()),
   logAppEvent: logAppEventMock,
+}));
+
+vi.mock("@/lib/metrics/analytics-engine", async (importOriginal) => ({
+  ...(await importOriginal()),
+  writeOAuthEventAnalytics: writeOAuthEventAnalyticsMock,
 }));
 
 vi.mock("@/lib/auth/core", () => ({
@@ -123,6 +125,7 @@ describe("OAuth 令牌路由", () => {
     signJwtMock.mockReset();
     updateRefreshTokenMock.mockReset();
     verifyAccessTokenJwtPayloadMock.mockReset().mockResolvedValue({});
+    writeOAuthEventAnalyticsMock.mockReset();
     updateRefreshTokenMock.mockResolvedValue({ count: 1 });
     isOAuthRefreshGrantActiveMock.mockResolvedValue(true);
     purgeOAuthGrantTokenRowsMock.mockResolvedValue(undefined);
@@ -220,6 +223,38 @@ describe("OAuth 令牌路由", () => {
     });
   });
 
+  it("按固定安全阶段记录耗时而不导出请求凭据", async () => {
+    betterAuthHandlerMock.mockResolvedValueOnce(
+      Response.json({ error: "invalid_grant" }, { status: 400 }),
+    );
+
+    const response = await tokenPostRoute(
+      new Request("http://localhost/api/auth/oauth2/token", {
+        method: "POST",
+        headers: { "content-type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({
+          code: "authorization-code-secret",
+          grant_type: "authorization_code",
+        }).toString(),
+      }),
+    );
+
+    expect(response.status).toBe(400);
+    const stages = writeOAuthEventAnalyticsMock.mock.calls
+      .map(([input]) => input)
+      .filter((input) => input.event.startsWith("token.stage"));
+    expect(stages.map((input) => input.phase)).toEqual([
+      "validate-active-grant",
+      "validate-refresh-resources",
+      "prepare-provider-request",
+      "secure-provider-response",
+      "cleanup-rejected-grant",
+      "persist-refresh-resources",
+      "bind-access-token-consent",
+    ]);
+    expect(JSON.stringify(stages)).not.toContain("authorization-code-secret");
+  });
+
   it.each([
     [
       "authorization code",
@@ -285,6 +320,46 @@ describe("OAuth 令牌路由", () => {
         "Requested resource is not approved for this refresh token",
     });
     expect(betterAuthHandlerMock).not.toHaveBeenCalled();
+  });
+
+  it("并行执行互相独立的 refresh grant 与 resource 预检", async () => {
+    const grantValidation = createDeferred<{
+      clientId: string;
+      grantId: string;
+      scopes: string[];
+      userId: string;
+    } | null>();
+    resolveActiveOAuthRefreshGrantMock.mockReturnValueOnce(
+      grantValidation.promise,
+    );
+    findRefreshTokenMock.mockResolvedValueOnce({
+      resources: ["https://life.example/api/mcp"],
+    });
+    betterAuthHandlerMock.mockResolvedValueOnce(
+      Response.json({ error: "invalid_grant" }, { status: 400 }),
+    );
+
+    const responsePromise = tokenPostRoute(
+      new Request("http://localhost/api/auth/oauth2/token", {
+        method: "POST",
+        headers: { "content-type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({
+          grant_type: OAUTH_REFRESH_TOKEN_GRANT_TYPE,
+          refresh_token: "refresh-token",
+          resource: "https://life.example/api/mcp",
+        }).toString(),
+      }),
+    );
+
+    await vi.waitFor(() => expect(findRefreshTokenMock).toHaveBeenCalledOnce());
+    expect(betterAuthHandlerMock).not.toHaveBeenCalled();
+    grantValidation.resolve({
+      clientId: "client-1",
+      grantId: "grant-1",
+      scopes: [OAUTH_PROFILE_SCOPE],
+      userId: "user-1",
+    });
+    await expect(responsePromise).resolves.toMatchObject({ status: 400 });
   });
 
   it("刷新已绑定资源的令牌时返回覆盖批准资源的 JWT access token", async () => {

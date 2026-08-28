@@ -54,6 +54,9 @@ describe("GraphQL protocol input boundaries", () => {
 
   it("bounds free text and validates bus selectors", () => {
     expect(validateGraphqlSearch("linear algebra")).toBe("linear algebra");
+    expect(() => validateGraphqlSearch("x")).toThrow(
+      "search must contain at least",
+    );
     expect(() =>
       validateGraphqlSearch("x".repeat(GRAPHQL_LIMITS.searchChars + 1)),
     ).toThrow("search must not exceed");

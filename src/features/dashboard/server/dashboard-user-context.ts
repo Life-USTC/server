@@ -1,4 +1,10 @@
 import { withUserDbContext } from "@/lib/db/prisma";
+import { getUserRlsTransactionClient } from "@/lib/db/rls-context";
+import {
+  countDashboardStageQuery,
+  countDashboardStageTransaction,
+  type DashboardStageCounter,
+} from "./dashboard-stage-analytics";
 
 export type DashboardUserSummary = {
   id: string;
@@ -20,7 +26,12 @@ export type DashboardUserContext = {
 
 export async function getDashboardUserContext(
   userId: string,
+  stageCounter?: DashboardStageCounter,
 ): Promise<DashboardUserContext | null> {
+  countDashboardStageQuery(stageCounter);
+  if (stageCounter && !getUserRlsTransactionClient()) {
+    countDashboardStageTransaction(stageCounter);
+  }
   const user = await withUserDbContext(userId, (tx) =>
     tx.user.findUnique({
       where: { id: userId },

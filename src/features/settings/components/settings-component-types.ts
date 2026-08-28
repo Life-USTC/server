@@ -1,5 +1,9 @@
 import type { SubmitFunction } from "@sveltejs/kit";
 import type { UserUstcIdentitySummary } from "@/features/settings/lib/ustc-identity";
+import type {
+  AccountActivityPage,
+  OwnAccountSecurityActivity,
+} from "@/features/settings/server/account-activity";
 
 export type SettingsProfileCopy = {
   cancel: string;
@@ -75,6 +79,43 @@ export type SettingsCopy = {
       title: string;
       unnamedClient: string;
       updatedAt: string;
+      lastUsedAt: string;
+      neverUsed: string;
+      recentUsage: string;
+      reads: string;
+      writes: string;
+      errors: string;
+      lastChannel: string;
+      lastFeature: string;
+    };
+    security: {
+      title: string;
+      description: string;
+      calendarTokenDescription: string;
+      calendarTokenError: string;
+      calendarTokenRotate: string;
+      calendarTokenRotated: string;
+      calendarTokenRotatedDescription: string;
+      calendarTokenTitle: string;
+      calendarTokenConfirmTitle: string;
+      calendarTokenConfirmDescription: string;
+      calendarTokenConfirm: string;
+      emptyTitle: string;
+      emptyDescription: string;
+      network: string;
+      device: string;
+      client: string;
+      newer: string;
+      older: string;
+      unknownAction: string;
+      repeated: string;
+      responseTitle: string;
+      responseDescription: string;
+      reviewAccounts: string;
+      reviewAuthorizations: string;
+      actions: Record<string, string>;
+      channels: Record<string, string>;
+      outcomes: Record<string, string>;
     };
     description: string;
     preferences: {
@@ -131,6 +172,9 @@ export type SettingsCopy = {
   };
 };
 
+export type SettingsSecurityActivity =
+  AccountActivityPage<OwnAccountSecurityActivity> & { hasCursor: boolean };
+
 export type SettingsOAuthAuthorization = {
   clientName?: string | null;
   clientUri?: string | null;
@@ -138,6 +182,14 @@ export type SettingsOAuthAuthorization = {
   disabled: boolean;
   scopes: string[];
   updatedAt: string;
+  usage: {
+    lastUsedAt: string;
+    lastChannel: string;
+    lastFeature: string;
+    readCount: number;
+    writeCount: number;
+    errorCount: number;
+  } | null;
 };
 
 export type SettingsUser = {

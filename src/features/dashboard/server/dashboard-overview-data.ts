@@ -1,6 +1,8 @@
 import { listSubscribedHomeworks } from "@/features/subscriptions/server/subscription-read-model";
 import { formatSemesterName } from "@/lib/text/format-semester-name";
+import { shanghaiDayjs } from "@/lib/time/shanghai-dayjs";
 import {
+  buildPreviewCalendarPayload,
   buildSemesterCalendarPayload,
   resolveGridSemesterBounds,
 } from "./dashboard-overview-calendar";
@@ -21,11 +23,26 @@ export {
   getDashboardNavStats,
   getDashboardUserContext,
 } from "./dashboard-nav-stats";
+export { getDashboardSemesters } from "./dashboard-overview-context";
 export type {
   CalendarTodoItem,
   OverviewData,
   OverviewDataOptions,
 } from "./dashboard-overview-types";
+
+function dayjsMin<T extends ReturnType<typeof shanghaiDayjs>>(
+  left: T,
+  right: T,
+) {
+  return left.isBefore(right) ? left : right;
+}
+
+function dayjsMax<T extends ReturnType<typeof shanghaiDayjs>>(
+  left: T,
+  right: T,
+) {
+  return left.isAfter(right) ? left : right;
+}
 
 export async function getDashboardOverviewData(
   userId: string,
@@ -44,6 +61,16 @@ export async function getDashboardOverviewData(
     scheduleDateStart,
   } = semesterContext;
 
+  const calendarMode = options.calendarMode ?? "semester";
+  const previewWeekStart = options.overviewWeek
+    ? shanghaiDayjs(options.overviewWeek).startOf("week")
+    : referenceNow.startOf("week");
+  const previewStart = dayjsMin(referenceNow.startOf("day"), previewWeekStart);
+  const previewEnd = dayjsMax(
+    referenceNow.startOf("day").add(6, "day"),
+    previewWeekStart.add(6, "day"),
+  ).endOf("day");
+
   const { semesterEnd, semesterStart } =
     resolveGridSemesterBounds(gridSemesterRow);
   const sectionScopePromise = resolveDashboardOverviewSectionScope({
@@ -53,8 +80,10 @@ export async function getDashboardOverviewData(
     isCalendarSemesterFromUrlValid: calendarSemesterFromUrlValid,
     locale,
     sectionIds: options.sectionIds,
-    scheduleDateEnd,
-    scheduleDateStart,
+    scheduleDateEnd:
+      calendarMode === "preview" ? previewEnd.toDate() : scheduleDateEnd,
+    scheduleDateStart:
+      calendarMode === "preview" ? previewStart.toDate() : scheduleDateStart,
     semesters,
     userId,
   });
@@ -62,11 +91,14 @@ export async function getDashboardOverviewData(
     locale,
     skipLinks: options.skipLinks,
   });
-  const semesterTodosPromise = listSemesterCalendarTodos({
-    semesterEnd,
-    semesterStart,
-    userId,
-  });
+  const calendarTodosPromise = options.calendarTodos
+    ? Promise.resolve(Array.from(options.calendarTodos))
+    : listSemesterCalendarTodos({
+        semesterEnd: calendarMode === "preview" ? previewEnd : semesterEnd,
+        semesterStart:
+          calendarMode === "preview" ? previewStart : semesterStart,
+        userId,
+      });
 
   const {
     calendarSemesterNavList,
@@ -83,7 +115,7 @@ export async function getDashboardOverviewData(
   const [
     overviewHomeworks,
     { dashboardLinks, recommendedLinks, pinnedLinks, overviewLinks },
-    semesterTodos,
+    calendarTodos,
   ] = await Promise.all([
     listSubscribedHomeworks(userId, {
       incompleteOrHasDueDate: true,
@@ -92,7 +124,7 @@ export async function getDashboardOverviewData(
       shape: "dashboard",
     }),
     linksPromise,
-    semesterTodosPromise,
+    calendarTodosPromise,
   ]);
   const homeworks = overviewHomeworks.filter(
     (homework) => homework.homeworkCompletions.length === 0,
@@ -108,19 +140,31 @@ export async function getDashboardOverviewData(
     locale,
     referenceNow: now,
   });
+  const calendarPayload =
+    calendarMode === "preview"
+      ? buildPreviewCalendarPayload({
+          calendarHomeworks,
+          referenceNow: now,
+          sections: sectionsForCalendarGrid,
+          todos: calendarTodos,
+          windowEnd: previewEnd,
+          windowStart: previewStart,
+        })
+      : buildSemesterCalendarPayload({
+          calendarHomeworks,
+          gridSemesterRow,
+          sectionsForCalendarGrid,
+          semesterTodos: calendarTodos,
+        });
   const {
     allExams,
     allSessions,
     semesterEnd: calendarSemesterEnd,
     semesterHomeworks,
     semesterStart: calendarSemesterStart,
-    semesterWeeks,
-  } = buildSemesterCalendarPayload({
-    calendarHomeworks,
-    gridSemesterRow,
-    sectionsForCalendarGrid,
     semesterTodos,
-  });
+    semesterWeeks,
+  } = calendarPayload;
 
   const defaultCalendarSemesterId = currentSemester?.id ?? null;
   const activeCalendarSemesterId = gridSemesterRow?.id ?? null;
@@ -129,6 +173,7 @@ export async function getDashboardOverviewData(
     : null;
 
   return {
+    calendarMode,
     user: {
       id: user.id,
       name: user.name,

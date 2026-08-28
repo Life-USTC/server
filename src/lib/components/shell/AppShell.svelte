@@ -1,7 +1,10 @@
 <script lang="ts">
 import BookOpenIcon from "@lucide/svelte/icons/book-open";
+import BotIcon from "@lucide/svelte/icons/bot";
 import BusFrontIcon from "@lucide/svelte/icons/bus-front";
+import CableIcon from "@lucide/svelte/icons/cable";
 import CalendarDaysIcon from "@lucide/svelte/icons/calendar-days";
+import ChartBarIcon from "@lucide/svelte/icons/chart-bar";
 import ClipboardCheckIcon from "@lucide/svelte/icons/clipboard-check";
 import CompassIcon from "@lucide/svelte/icons/compass";
 import GavelIcon from "@lucide/svelte/icons/gavel";
@@ -12,13 +15,15 @@ import LinkIcon from "@lucide/svelte/icons/link";
 import ListTodoIcon from "@lucide/svelte/icons/list-todo";
 import MapIcon from "@lucide/svelte/icons/map";
 import RouteIcon from "@lucide/svelte/icons/route";
+import ScrollTextIcon from "@lucide/svelte/icons/scroll-text";
 import SmartphoneIcon from "@lucide/svelte/icons/smartphone";
+import TerminalIcon from "@lucide/svelte/icons/terminal";
 import UsersIcon from "@lucide/svelte/icons/users";
 import { onMount } from "svelte";
+import AdminMobileNav from "@/features/admin/components/AdminMobileNav.svelte";
 import { afterNavigate, goto } from "$app/navigation";
 import { navigating, page } from "$app/stores";
 import { shouldRedirectIncompleteProfileToWelcome } from "$lib/auth/auth-routing";
-import { getClientViewer } from "$lib/auth/client-viewer";
 import {
   isApplePlatform,
   isGlobalSearchShortcut,
@@ -49,6 +54,11 @@ import type {
   LayoutCopy,
   LayoutUserSummary,
 } from "$lib/shell/layout-server-data";
+import {
+  getClientShellBootstrap,
+  type WorkspaceNavigationSummary,
+  workspaceNavigationFromPageData,
+} from "$lib/shell/shell-bootstrap";
 import { cn } from "$lib/utils.js";
 import { buildDetailSecondaryLinks } from "./shell-nav-helpers";
 import type { ShellLink, ShellNavGroup } from "./types";
@@ -71,13 +81,27 @@ let GlobalSearchDialog:
 let userMenuOpen = false;
 let localeMenuOpen = false;
 let themeMenuOpen = false;
-let contentScrollContainer: HTMLDivElement | undefined;
+let contentScrollContainer: HTMLElement | undefined;
 let viewerLoading = data.resolveViewerOnClient && !data.user;
 let viewerUser = data.user;
+let workspaceNavigation: WorkspaceNavigationSummary | null = null;
+let shellBootstrapAbortController: AbortController | null = null;
+let shellBootstrapGeneration = 0;
 
 $: if (!data.resolveViewerOnClient || data.user) {
+  if (viewerUser?.id !== data.user?.id) {
+    cancelShellBootstrap();
+    workspaceNavigation = null;
+  }
   viewerUser = data.user;
   viewerLoading = false;
+}
+$: pageWorkspaceNavigation = workspaceNavigationFromPageData(
+  $page.data,
+  viewerUser?.id,
+);
+$: if (pageWorkspaceNavigation) {
+  workspaceNavigation = pageWorkspaceNavigation;
 }
 $: profileHref = resolveProfileHref(viewerUser);
 $: avatarFallback = resolveAvatarFallback(viewerUser);
@@ -87,6 +111,7 @@ $: navGroups = buildShellNavGroups(
   viewerUser?.isAdmin ?? false,
   $page.url.pathname,
   $page.data,
+  workspaceNavigation,
 );
 $: mobileNavGroups = viewerUser
   ? buildMobileSecondaryNavGroups(
@@ -94,9 +119,13 @@ $: mobileNavGroups = viewerUser
       viewerUser.isAdmin,
       $page.url.pathname,
       $page.data,
+      workspaceNavigation,
     )
   : navGroups;
 $: mobilePrimaryLinks = buildMobilePrimaryLinks(data.copy);
+$: adminRoute =
+  $page.url.pathname === "/admin" || $page.url.pathname.startsWith("/admin/");
+$: adminMobileLinks = buildAdminShellLinks(data.copy);
 $: mobileSecondaryHasActive =
   Boolean($page.url.pathname) &&
   mobileNavGroups.some((group) =>
@@ -141,6 +170,7 @@ function buildShellNavGroups(
   isAdmin: boolean,
   pathname: string,
   pageData: Record<string, unknown>,
+  workspaceNavigation: WorkspaceNavigationSummary | null,
 ): ShellNavGroup[] {
   const detailSecondaryLinks = isDetailWorkspacePath(pathname)
     ? undefined
@@ -184,23 +214,16 @@ function buildShellNavGroups(
     },
     { href: "/catalog/links", icon: LinkIcon, label: copy.nav.links },
   ];
-  const campusLinks: ShellLink[] = [
-    { href: "/mobile-app", icon: SmartphoneIcon, label: copy.nav.mobileApp },
+  const usageLinks: ShellLink[] = [
+    {
+      href: "/usage/mobile",
+      icon: SmartphoneIcon,
+      label: copy.nav.mobileApp,
+    },
+    { href: "/usage/bot", icon: BotIcon, label: copy.nav.prestoBot },
+    { href: "/usage/mcp", icon: CableIcon, label: copy.nav.mcp },
+    { href: "/usage/cli", icon: TerminalIcon, label: copy.nav.cli },
   ];
-  const dashboardNavStats = pageData.navStats as
-    | {
-        calendarItemsCount?: number;
-        examsCount?: number;
-        pendingHomeworksCount?: number;
-        pendingTodosCount?: number;
-      }
-    | null
-    | undefined;
-  const dashboardSubscribedSectionCount = pageData.subscribedSectionCount as
-    | number
-    | null
-    | undefined;
-
   if (!signedIn) {
     return [
       {
@@ -210,8 +233,8 @@ function buildShellNavGroups(
       },
       {
         defaultOpen: true,
-        label: copy.nav.groups.campus,
-        links: campusLinks,
+        label: copy.nav.groups.usage,
+        links: usageLinks,
       },
     ];
   }
@@ -229,35 +252,35 @@ function buildShellNavGroups(
         },
         {
           ariaLabel: copy.nav.calendar,
-          badge: dashboardNavStats?.calendarItemsCount,
+          badge: workspaceNavigation?.calendarItemsCount,
           href: "/workspace/calendar",
           icon: CalendarDaysIcon,
           label: copy.nav.calendar,
         },
         {
           ariaLabel: copy.nav.homeworks,
-          badge: dashboardNavStats?.pendingHomeworksCount,
+          badge: workspaceNavigation?.pendingHomeworksCount,
           href: "/workspace/homeworks",
           icon: BookOpenIcon,
           label: copy.nav.homeworks,
         },
         {
           ariaLabel: copy.nav.todos,
-          badge: dashboardNavStats?.pendingTodosCount,
+          badge: workspaceNavigation?.pendingTodosCount,
           href: "/workspace/todos",
           icon: ListTodoIcon,
           label: copy.nav.todos,
         },
         {
           ariaLabel: copy.nav.exams,
-          badge: dashboardNavStats?.examsCount,
+          badge: workspaceNavigation?.examsCount,
           href: "/workspace/exams",
           icon: GraduationCapIcon,
           label: copy.nav.exams,
         },
         {
           ariaLabel: copy.nav.subscriptions,
-          badge: dashboardSubscribedSectionCount,
+          badge: workspaceNavigation?.subscribedSectionCount,
           href: "/workspace/subscriptions",
           icon: RouteIcon,
           label: copy.nav.subscriptions,
@@ -271,8 +294,8 @@ function buildShellNavGroups(
     },
     {
       defaultOpen: true,
-      label: copy.nav.groups.campus,
-      links: campusLinks,
+      label: copy.nav.groups.usage,
+      links: usageLinks,
     },
     ...(isAdmin
       ? [
@@ -308,6 +331,16 @@ function buildAdminShellLinks(copy: LayoutCopy): ShellLink[] {
       icon: BusFrontIcon,
       label: copy.nav.admin.bus,
     },
+    {
+      href: "/admin/audit",
+      icon: ScrollTextIcon,
+      label: copy.nav.admin.audit,
+    },
+    {
+      href: "/admin/analytics",
+      icon: ChartBarIcon,
+      label: copy.nav.admin.analytics,
+    },
   ];
 }
 
@@ -316,39 +349,29 @@ function buildMobileSecondaryNavGroups(
   isAdmin: boolean,
   pathname: string,
   pageData: Record<string, unknown>,
+  workspaceNavigation: WorkspaceNavigationSummary | null,
 ): ShellNavGroup[] {
   const detailSecondaryLinks = isDetailWorkspacePath(pathname)
     ? undefined
     : buildDetailSecondaryLinks(pathname, pageData);
-  const dashboardNavStats = pageData.navStats as
-    | {
-        examsCount?: number;
-        pendingTodosCount?: number;
-      }
-    | null
-    | undefined;
-  const dashboardSubscribedSectionCount = pageData.subscribedSectionCount as
-    | number
-    | null
-    | undefined;
   const secondaryLinks: ShellLink[] = [
     {
       ariaLabel: copy.nav.todos,
-      badge: dashboardNavStats?.pendingTodosCount,
+      badge: workspaceNavigation?.pendingTodosCount,
       href: "/workspace/todos",
       icon: ListTodoIcon,
       label: copy.nav.todos,
     },
     {
       ariaLabel: copy.nav.exams,
-      badge: dashboardNavStats?.examsCount,
+      badge: workspaceNavigation?.examsCount,
       href: "/workspace/exams",
       icon: GraduationCapIcon,
       label: copy.nav.exams,
     },
     {
       ariaLabel: copy.nav.subscriptions,
-      badge: dashboardSubscribedSectionCount,
+      badge: workspaceNavigation?.subscribedSectionCount,
       href: "/workspace/subscriptions",
       icon: RouteIcon,
       label: copy.nav.subscriptions,
@@ -386,13 +409,26 @@ function buildMobileSecondaryNavGroups(
         : undefined,
       label: copy.nav.teachers,
     },
-    { href: "/mobile-app", icon: SmartphoneIcon, label: copy.nav.mobileApp },
   ];
   return [
     {
       defaultOpen: true,
       label: copy.nav.groups.secondary,
       links: secondaryLinks,
+    },
+    {
+      defaultOpen: pathname.startsWith("/usage/"),
+      label: copy.nav.groups.usage,
+      links: [
+        {
+          href: "/usage/mobile",
+          icon: SmartphoneIcon,
+          label: copy.nav.mobileApp,
+        },
+        { href: "/usage/bot", icon: BotIcon, label: copy.nav.prestoBot },
+        { href: "/usage/mcp", icon: CableIcon, label: copy.nav.mcp },
+        { href: "/usage/cli", icon: TerminalIcon, label: copy.nav.cli },
+      ],
     },
     ...(isAdmin
       ? [
@@ -485,12 +521,10 @@ function isMobilePrimaryActive(link: ShellLink): boolean {
   }
   if (link.href === "/catalog/courses") {
     return (
-      [
-        "/catalog/bus",
-        "/catalog/links",
-        "/catalog/bus/map",
-        "/mobile-app",
-      ].includes(pathname) ||
+      ["/catalog/bus", "/catalog/links", "/catalog/bus/map"].includes(
+        pathname,
+      ) ||
+      pathname.startsWith("/usage/") ||
       ["/catalog/courses", "/catalog/sections", "/catalog/teachers"].some(
         (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`),
       )
@@ -541,11 +575,37 @@ function resetContentScroll() {
     ?.scrollTo({ left: 0, top: 0 });
 }
 
-async function resolveClientViewer() {
-  if (!data.resolveViewerOnClient || data.user) return;
+function cancelShellBootstrap() {
+  shellBootstrapGeneration += 1;
+  shellBootstrapAbortController?.abort();
+  shellBootstrapAbortController = null;
+}
+
+async function resolveClientShell() {
+  const serverNavigation = workspaceNavigationFromPageData(
+    $page.data,
+    viewerUser?.id,
+  );
+  if (serverNavigation) workspaceNavigation = serverNavigation;
+  if (viewerUser && workspaceNavigation?.userId === viewerUser.id) return;
+  if (!data.resolveViewerOnClient && !viewerUser) return;
+
+  cancelShellBootstrap();
+  const controller = new AbortController();
+  shellBootstrapAbortController = controller;
+  const generation = shellBootstrapGeneration;
 
   try {
-    viewerUser = await getClientViewer();
+    const bootstrap = await getClientShellBootstrap(
+      globalThis.fetch,
+      controller.signal,
+    );
+    if (controller.signal.aborted || generation !== shellBootstrapGeneration) {
+      return;
+    }
+    viewerUser = bootstrap.viewer;
+    workspaceNavigation = bootstrap.navigation;
+    viewerLoading = false;
     if (
       shouldRedirectIncompleteProfileToWelcome({
         pathname: $page.url.pathname,
@@ -560,9 +620,14 @@ async function resolveClientViewer() {
       );
     }
   } catch {
-    viewerUser = null;
+    if (controller.signal.aborted || generation !== shellBootstrapGeneration) {
+      return;
+    }
+    if (!viewerUser) workspaceNavigation = null;
   } finally {
-    viewerLoading = false;
+    if (shellBootstrapAbortController === controller) {
+      shellBootstrapAbortController = null;
+    }
   }
 }
 
@@ -578,7 +643,7 @@ onMount(() => {
   if (window.matchMedia("(max-width: 1023px)").matches) {
     sidebarOpen = false;
   }
-  void resolveClientViewer();
+  void resolveClientShell();
   themeMode = loadStoredThemeMode(themeMode);
   applyShellTheme(themeMode);
   document.documentElement.dataset.lifeUstcHydrated = "true";
@@ -602,6 +667,7 @@ onMount(() => {
   systemTheme.addEventListener("change", applySystemTheme);
 
   return () => {
+    cancelShellBootstrap();
     window.removeEventListener("keydown", handleGlobalSearchKeydown);
     window.removeEventListener(SHELL_THEME_CHANGE_EVENT, syncThemeMode);
     systemTheme.removeEventListener("change", applySystemTheme);
@@ -666,6 +732,7 @@ afterNavigate(({ from, to }) => {
       {viewerLoading}
     />
 
+    <!-- svelte-ignore a11y_no_noninteractive_tabindex -- skip-link target -->
     <main
       aria-label={mainContentLabel}
       bind:this={contentScrollContainer}
@@ -727,9 +794,13 @@ afterNavigate(({ from, to }) => {
           {viewerLoading}
         />
 
+        <!-- svelte-ignore a11y_no_noninteractive_tabindex -- the desktop content region is the keyboard-scrollable viewport -->
         <div
           bind:this={contentScrollContainer}
+          aria-label={data.copy.shell.scrollRegion}
           data-shell-scroll-container
+          role="region"
+          tabindex="0"
           class={cn(
             "flex min-w-0 flex-1 flex-col",
             detailWorkspace
@@ -767,12 +838,20 @@ afterNavigate(({ from, to }) => {
     {/if}
 
     {#if viewerUser}
-      <MobilePrimaryNav
-        copy={data.copy}
-        hasSecondaryCurrent={mobileSecondaryHasActive}
-        isActiveLink={isMobilePrimaryActive}
-        links={mobilePrimaryLinks}
-      />
+      {#if viewerUser.isAdmin && adminRoute}
+        <AdminMobileNav
+          copy={data.copy}
+          isActiveLink={isActiveLink}
+          links={adminMobileLinks}
+        />
+      {:else}
+        <MobilePrimaryNav
+          copy={data.copy}
+          hasSecondaryCurrent={mobileSecondaryHasActive}
+          isActiveLink={isMobilePrimaryActive}
+          links={mobilePrimaryLinks}
+        />
+      {/if}
     {/if}
   </Sidebar.Provider>
 {/if}
@@ -781,6 +860,7 @@ afterNavigate(({ from, to }) => {
   <svelte:component
     this={GlobalSearchDialog}
     copy={data.copy.globalSearch}
+    locale={data.locale}
     bind:open={globalSearchOpen}
     signedIn={Boolean(viewerUser)}
     on:openChange={(event) => {

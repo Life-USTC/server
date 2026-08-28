@@ -1,4 +1,5 @@
 import { apiClient } from "@/lib/api/client";
+import { idResponseSchema } from "@/lib/api/schemas/misc-response-schema-core";
 
 export async function submitCommentRequest(input: {
   attachmentIds: string[];
@@ -20,6 +21,9 @@ export async function submitCommentRequest(input: {
     },
   });
   if (!result.response.ok) throw new Error(input.submitFailed);
+  const parsed = idResponseSchema.safeParse(result.data);
+  if (!parsed.success) throw new Error(input.submitFailed);
+  return parsed.data.id;
 }
 
 export async function saveCommentEditRequest(input: {

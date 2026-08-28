@@ -27,10 +27,104 @@ const {
   parseResourceIdRouteParamMock,
 } = vi.hoisted(() => {
   const teacherFindUniqueMock = vi.fn(async () => ({ id: 456 }));
+  const pagination = { page: 1, pageSize: 20, total: 0, totalPages: 0 };
+  const course = {
+    id: 1,
+    jwId: 123,
+    code: "TEST1001",
+    nameCn: "测试课程",
+    nameEn: null,
+    namePrimary: "测试课程",
+    nameSecondary: null,
+    categoryId: null,
+    classTypeId: null,
+    classifyId: null,
+    educationLevelId: null,
+    gradationId: null,
+    typeId: null,
+    category: null,
+    classType: null,
+    classify: null,
+    educationLevel: null,
+    gradation: null,
+    type: null,
+  };
+  const teacher = {
+    id: 456,
+    jwId: 456,
+    personId: null,
+    code: null,
+    nameCn: "测试教师",
+    nameEn: null,
+    namePrimary: "测试教师",
+    nameSecondary: null,
+    email: null,
+    telephone: null,
+    mobile: null,
+    address: null,
+    departmentId: null,
+    teacherTitleId: null,
+    department: null,
+    teacherTitle: null,
+  };
+  const section = {
+    id: 2,
+    jwId: 123,
+    retiredAt: null,
+    code: "TEST1001.01",
+    bizTypeId: null,
+    credits: null,
+    period: null,
+    periodsPerWeek: null,
+    timesPerWeek: null,
+    stdCount: null,
+    limitCount: null,
+    graduateAndPostgraduate: null,
+    dateTimePlaceText: null,
+    dateTimePlacePersonText: null,
+    actualPeriods: null,
+    theoryPeriods: null,
+    practicePeriods: null,
+    experimentPeriods: null,
+    machinePeriods: null,
+    designPeriods: null,
+    testPeriods: null,
+    scheduleState: null,
+    suggestScheduleWeeks: null,
+    suggestScheduleWeekInfo: null,
+    scheduleJsonParams: null,
+    selectedStdCount: null,
+    remark: null,
+    scheduleRemark: null,
+    courseId: 1,
+    semesterId: null,
+    campusId: null,
+    examModeId: null,
+    openDepartmentId: null,
+    teachLanguageId: null,
+    roomTypeId: null,
+    course,
+    semester: null,
+    campus: null,
+    openDepartment: null,
+    examMode: null,
+    teachLanguage: null,
+    roomType: null,
+    schedules: [],
+    scheduleGroups: [],
+    teachers: [],
+    teacherAssignments: [],
+    exams: [],
+    adminClasses: [],
+  };
   return {
     buildCourseListWhereMock: vi.fn(() => ({ courseWhere: true })),
     buildTeacherWhereMock: vi.fn(() => ({ teacherWhere: true })),
-    findCourseDetailByJwIdMock: vi.fn(async () => ({ id: 1 })),
+    findCourseDetailByJwIdMock: vi.fn(async () => ({
+      ...course,
+      sections: [],
+      _count: { sections: 0 },
+    })),
     findSectionCodeMatchesMock: vi.fn(async () => ({
       matchedCodes: ["MATH101"],
       sections: [],
@@ -39,8 +133,12 @@ const {
       total: 0,
       unmatchedCodes: [],
     })),
-    findSectionDetailByJwIdMock: vi.fn(async () => ({ id: 2 })),
-    findTeacherDetailByIdMock: vi.fn(async () => ({ id: 456 })),
+    findSectionDetailByJwIdMock: vi.fn(async () => section),
+    findTeacherDetailByIdMock: vi.fn(async () => ({
+      ...teacher,
+      sections: [],
+      _count: { sections: 0 },
+    })),
     getSectionScheduleGroupsByJwIdMock: vi.fn(async () => ({
       found: true,
       scheduleGroups: [],
@@ -60,15 +158,15 @@ const {
     })),
     listSectionSummariesMock: vi.fn(async () => ({
       data: [],
-      meta: { page: 1, pageSize: 20, total: 0, totalPages: 0 },
+      pagination,
     })),
     listCourseSummariesMock: vi.fn(async () => ({
       data: [],
-      meta: { page: 1, pageSize: 20, total: 0, totalPages: 0 },
+      pagination,
     })),
     listTeacherSummariesMock: vi.fn(async () => ({
       data: [],
-      meta: { page: 1, pageSize: 20, total: 0, totalPages: 0 },
+      pagination,
     })),
     paginatedCourseQueryMock: vi.fn(async () => ({
       data: [],
@@ -147,29 +245,29 @@ describe("academic REST 语言适配器", () => {
     clearPublicRuntimeCache();
   });
 
-  it("将请求语言传递给课程详情读取", async () => {
+  it("将显式语言传递给课程详情读取", async () => {
     const { getCourseDetailRoute } = await import(
       "@/lib/api/routes/academic-course-routes"
     );
 
     const response = await getCourseDetailRoute(
-      request("/api/catalog/courses/123"),
+      request("/api/catalog/courses/123?locale=en-us"),
       {
         jwId: "123",
       },
     );
 
     expect(findCourseDetailByJwIdMock).toHaveBeenCalledWith(123, "en-us");
-    expect(response.headers.get("Vary")).toBe("Accept-Language, Cookie");
+    expect(response.headers.get("Vary")).toBeNull();
   });
 
-  it("将请求语言传递给班级详情读取", async () => {
+  it("将显式语言传递给班级详情读取", async () => {
     const { getSectionDetailRoute } = await import(
       "@/lib/api/routes/academic-section-routes"
     );
 
     const response = await getSectionDetailRoute(
-      request("/api/catalog/sections/123"),
+      request("/api/catalog/sections/123?locale=en-us"),
       {
         jwId: "123",
       },
@@ -180,7 +278,7 @@ describe("academic REST 语言适配器", () => {
       includeSchedules: undefined,
       includeTeacherDepartments: undefined,
     });
-    expect(response.headers.get("Vary")).toBe("Accept-Language, Cookie");
+    expect(response.headers.get("Vary")).toBeNull();
   });
 
   it("将部分查询标志传递给班级详情读取", async () => {
@@ -190,7 +288,7 @@ describe("academic REST 语言适配器", () => {
 
     await getSectionDetailRoute(
       request(
-        "/api/catalog/sections/123?includeExams=true&includeSchedules=true",
+        "/api/catalog/sections/123?includeExams=true&includeSchedules=true&locale=en-us",
       ),
       {
         jwId: "123",
@@ -204,20 +302,20 @@ describe("academic REST 语言适配器", () => {
     });
   });
 
-  it("将请求语言传递给教师详情读取", async () => {
+  it("将显式语言传递给教师详情读取", async () => {
     const { getTeacherDetailRoute } = await import(
       "@/lib/api/routes/academic-teacher-routes"
     );
 
     const response = await getTeacherDetailRoute(
-      request("/api/catalog/teachers/456"),
+      request("/api/catalog/teachers/456?locale=en-us"),
       {
         id: "456",
       },
     );
 
     expect(findTeacherDetailByIdMock).toHaveBeenCalledWith(456, "en-us");
-    expect(response.headers.get("Vary")).toBe("Accept-Language, Cookie");
+    expect(response.headers.get("Vary")).toBeNull();
   });
 
   it("将请求语言传递给班级代码匹配", async () => {
@@ -239,29 +337,33 @@ describe("academic REST 语言适配器", () => {
     );
   });
 
-  it("班级列表使用支持语言的共享班级摘要", async () => {
+  it("班级列表使用显式语言的共享班级摘要", async () => {
     const { getSectionsRoute } = await import(
       "@/lib/api/routes/academic-section-routes"
     );
 
     const response = await getSectionsRoute(
-      request("/api/catalog/sections?search=math&page=1"),
+      request("/api/catalog/sections?search=math&page=1&locale=en-us"),
     );
 
     expect(listSectionSummariesMock).toHaveBeenCalledWith(
       expect.objectContaining({ locale: "en-us" }),
     );
-    expect(response.headers.get("Vary")).toBe("Accept-Language, Cookie");
+    expect(response.headers.get("Vary")).toBeNull();
   });
 
-  it("将请求语言传递给课程与教师列表读取", async () => {
+  it("将显式语言传递给课程与教师列表读取", async () => {
     const [{ getCoursesRoute }, { getTeachersRoute }] = await Promise.all([
       import("@/lib/api/routes/academic-course-routes"),
       import("@/lib/api/routes/academic-teacher-routes"),
     ]);
 
-    await getCoursesRoute(request("/api/catalog/courses?search=math&page=1"));
-    await getTeachersRoute(request("/api/catalog/teachers?search=li&page=1"));
+    await getCoursesRoute(
+      request("/api/catalog/courses?search=math&page=1&locale=en-us"),
+    );
+    await getTeachersRoute(
+      request("/api/catalog/teachers?search=li&page=1&locale=en-us"),
+    );
 
     expect(listCourseSummariesMock).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -279,14 +381,14 @@ describe("academic REST 语言适配器", () => {
     );
   });
 
-  it("将请求语言传递给公共课表读取", async () => {
+  it("将显式语言传递给公共课表读取", async () => {
     const { getSchedulesRoute } = await import(
       "@/lib/api/routes/academic-schedule-routes"
     );
 
     const response = await getSchedulesRoute(
       request(
-        "/api/catalog/schedules?sectionJwId=123&weekday=2&dateFrom=2026-03-01&page=1",
+        "/api/catalog/schedules?sectionJwId=123&weekday=2&dateFrom=2026-03-01&page=1&locale=en-us",
       ),
     );
 
@@ -295,7 +397,7 @@ describe("academic REST 语言适配器", () => {
       data: [],
       pagination: { page: 1, pageSize: 20, total: 0, totalPages: 1 },
     });
-    expect(response.headers.get("Vary")).toBe("Accept-Language, Cookie");
+    expect(response.headers.get("Vary")).toBeNull();
     expect(listPublicSchedulesMock).toHaveBeenCalledWith(
       expect.objectContaining({
         filters: expect.objectContaining({
@@ -310,31 +412,27 @@ describe("academic REST 语言适配器", () => {
     );
   });
 
-  it("将请求语言传递给班级课表读取", async () => {
+  it("将显式语言传递给班级课表读取", async () => {
     const { getSectionSchedulesRoute, getSectionScheduleGroupsRoute } =
       await import("@/lib/api/routes/academic-section-routes");
 
     const schedulesResponse = await getSectionSchedulesRoute(
       request(
-        "/api/catalog/sections/123/schedules?dateFrom=2026-03-01&limit=25",
+        "/api/catalog/sections/123/schedules?dateFrom=2026-03-01&limit=25&locale=en-us",
       ),
       { jwId: "123" },
     );
     const scheduleGroupsResponse = await getSectionScheduleGroupsRoute(
-      request("/api/catalog/sections/123/schedule-groups"),
+      request("/api/catalog/sections/123/schedule-groups?locale=en-us"),
       { jwId: "123" },
     );
 
     expect(schedulesResponse.status).toBe(200);
     await expect(schedulesResponse.json()).resolves.toEqual([]);
-    expect(schedulesResponse.headers.get("Vary")).toBe(
-      "Accept-Language, Cookie",
-    );
+    expect(schedulesResponse.headers.get("Vary")).toBeNull();
     expect(scheduleGroupsResponse.status).toBe(200);
     await expect(scheduleGroupsResponse.json()).resolves.toEqual([]);
-    expect(scheduleGroupsResponse.headers.get("Vary")).toBe(
-      "Accept-Language, Cookie",
-    );
+    expect(scheduleGroupsResponse.headers.get("Vary")).toBeNull();
     expect(getSectionSchedulesByJwIdMock).toHaveBeenCalledWith({
       dateFrom: new Date("2026-03-01T00:00:00.000Z"),
       dateTo: undefined,
@@ -348,7 +446,7 @@ describe("academic REST 语言适配器", () => {
     });
   });
 
-  it("仅对 URL 中显式支持的语言返回公共缓存策略", async () => {
+  it("对默认和显式语言都返回公共缓存策略", async () => {
     const [
       { getCourseDetailRoute, getCoursesRoute },
       { getSchedulesRoute },
@@ -367,6 +465,7 @@ describe("academic REST 语言适配器", () => {
     ]);
 
     const responses = [
+      await getCoursesRoute(request("/api/catalog/courses")),
       await getCoursesRoute(request("/api/catalog/courses?locale=zh-cn")),
       await getCourseDetailRoute(
         request("/api/catalog/courses/123?locale=zh-cn"),

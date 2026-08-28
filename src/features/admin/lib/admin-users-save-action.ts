@@ -25,11 +25,14 @@ export async function saveSelectedUser(config: AdminUsersActionConfig) {
       },
     );
     if (!result.response.ok || !result.data) {
+      config.setMessageVariant("destructive");
       config.setMessage(apiErrorMessage(result.error, copy.updateFailed));
       return;
     }
     config.replaceUser(result.data.user);
+    config.setMessageVariant("default");
     config.setMessage(copy.updateSuccess);
+    config.onSuccess?.("update");
     config.closeDialog();
   } finally {
     config.setSaving(false);

@@ -5,10 +5,13 @@ import {
 import {
   handleRouteError,
   rateLimitResponse,
+  recentAuthenticationRequired,
   suspensionForbidden,
   unauthorized,
 } from "@/lib/api/helpers";
-import { resolveApiUserId } from "@/lib/auth/api-auth";
+import { logAdminSecurityEvent } from "@/lib/audit/security-events";
+import { resolveSessionUserId } from "@/lib/auth/api-auth";
+import { resolveAuthoritativeRecentSession } from "@/lib/auth/recent-session";
 import { findActiveSuspension } from "@/lib/auth/viewer-context";
 import {
   checkUserMutationRateLimit,
@@ -18,6 +21,8 @@ import {
 type AdminGuardOptions = {
   /** When true, suspended admins may access the route. Defaults to false. */
   allowSuspended?: boolean;
+  /** Require a server-authoritative session created within the recent-auth window. */
+  requireRecent?: boolean;
 };
 
 const ADMIN_MUTATION_RESOURCES = new Set([
@@ -42,15 +47,34 @@ export async function requireAdminRequest(
   request: Request,
   options: AdminGuardOptions = {},
 ) {
-  const userId = await resolveApiUserId(request);
-  if (!userId) return unauthorized();
+  const userId = await resolveSessionUserId(request);
+  if (!userId) {
+    logAdminSecurityEvent(request, "unauthenticated");
+    return unauthorized();
+  }
 
   const admin = await resolveAdminByUserId(userId);
-  if (!admin) return unauthorized();
+  if (!admin) {
+    logAdminSecurityEvent(request, "not_admin");
+    return unauthorized();
+  }
 
   if (!options.allowSuspended) {
     const suspension = await findActiveSuspension(admin.userId);
-    if (suspension) return suspensionForbidden(suspension.reason);
+    if (suspension) {
+      logAdminSecurityEvent(request, "suspended");
+      return suspensionForbidden(suspension.reason);
+    }
+  }
+
+  if (options.requireRecent) {
+    const recent = await resolveAuthoritativeRecentSession(request.headers, {
+      expectedUserId: admin.userId,
+    });
+    if (!recent.ok) {
+      logAdminSecurityEvent(request, "recent_auth_required");
+      return recentAuthenticationRequired();
+    }
   }
 
   if (!["GET", "HEAD", "OPTIONS"].includes(request.method.toUpperCase())) {
@@ -61,6 +85,12 @@ export async function requireAdminRequest(
       userId: admin.userId,
     });
     if (!outcome.allowed) {
+      logAdminSecurityEvent(
+        request,
+        outcome.reason === "limited"
+          ? "rate_limited"
+          : "rate_limit_unavailable",
+      );
       return rateLimitResponse(
         outcome.reason,
         USER_MUTATION_RATE_LIMIT_PERIOD_SECONDS,

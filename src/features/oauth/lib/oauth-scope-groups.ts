@@ -61,10 +61,12 @@ function parseFeatureScope(scope: string): {
   feature: string;
 } | null {
   const match = /^(.*):(read|write)$/.exec(scope);
-  if (!match) return null;
+  const feature = match?.[1];
+  const action = match?.[2];
+  if (!feature || (action !== "read" && action !== "write")) return null;
   return {
-    feature: match[1]!,
-    action: match[2] as "read" | "write",
+    feature,
+    action,
   };
 }
 
@@ -117,7 +119,8 @@ export function buildOAuthScopePickerGroups(
       byGroup.set(groupId, rows);
     }
 
-    if (BASE_SCOPE_SET.has(item.value) || !parseFeatureScope(item.value)) {
+    const parsed = parseFeatureScope(item.value);
+    if (BASE_SCOPE_SET.has(item.value) || !parsed) {
       rows.set(`base:${item.value}`, {
         kind: "base",
         label: item.label,
@@ -126,7 +129,6 @@ export function buildOAuthScopePickerGroups(
       continue;
     }
 
-    const parsed = parseFeatureScope(item.value)!;
     const key = `feature:${parsed.feature}`;
     const existing = rows.get(key);
     const featureRow: OAuthScopeFeatureRow =

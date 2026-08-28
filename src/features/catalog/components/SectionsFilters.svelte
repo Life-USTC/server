@@ -259,9 +259,6 @@ $: selectedSort = filters.sort ?? "";
     </Accordion.Root>
 
     <ButtonGroup.Root class="w-full" orientation="vertical">
-      <Button class="w-full" type="submit">
-        {sectionLabels.filters.apply}
-      </Button>
       <Button
         class="w-full"
         href={clearHref}
@@ -269,6 +266,9 @@ $: selectedSort = filters.sort ?? "";
         variant="outline"
       >
         {commonLabels.clear}
+      </Button>
+      <Button class="w-full" type="submit">
+        {sectionLabels.filters.apply}
       </Button>
     </ButtonGroup.Root>
   </Field.Group>

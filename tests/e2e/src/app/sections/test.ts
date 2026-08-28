@@ -48,6 +48,19 @@ test.describe("/catalog/sections 班级搜索页", () => {
     });
   });
 
+  test("无匹配班级时显示明确空状态且不渲染结果链接", async ({ page }) => {
+    await gotoAndWaitForReady(
+      page,
+      "/catalog/sections?search=e2e-no-matching-section-7f3c9a",
+    );
+
+    await expect(page.getByText(/未找到班级|No sections found/i)).toBeVisible();
+    await expect(
+      page.locator("#main-content a[href^='/catalog/sections/']"),
+    ).toHaveCount(0);
+    await expect(page.getByRole("link", { name: /清除|Clear/i })).toBeVisible();
+  });
+
   test("SSR 输出包含搜索查询", async ({ baseURL }) => {
     const response = await fetch(
       absoluteTestUrl(
@@ -404,20 +417,20 @@ test.describe("/catalog/sections 班级搜索页", () => {
         const resultsStyle = getComputedStyle(results);
         const columnAlignment = headerCells.map((header, index) => {
           const cell = firstRowCells[index];
-          const link = cell?.querySelector<HTMLElement>("a");
-          if (!cell || !link)
+          const target = cell?.querySelector<HTMLElement>("a") ?? cell;
+          if (!cell || !target)
             throw new Error("Sections table column content missing");
           const headerStyle = getComputedStyle(header);
-          const linkStyle = getComputedStyle(link);
+          const targetStyle = getComputedStyle(target);
           const headerBox = header.getBoundingClientRect();
-          const linkBox = link.getBoundingClientRect();
+          const targetBox = target.getBoundingClientRect();
           const rightAligned = headerStyle.textAlign === "right";
           const headerEdge = rightAligned
             ? headerBox.right - Number.parseFloat(headerStyle.paddingRight)
             : headerBox.left + Number.parseFloat(headerStyle.paddingLeft);
           const cellEdge = rightAligned
-            ? linkBox.right - Number.parseFloat(linkStyle.paddingRight)
-            : linkBox.left + Number.parseFloat(linkStyle.paddingLeft);
+            ? targetBox.right - Number.parseFloat(targetStyle.paddingRight)
+            : targetBox.left + Number.parseFloat(targetStyle.paddingLeft);
           return {
             alignment: headerStyle.textAlign,
             offset: Math.abs(headerEdge - cellEdge),
@@ -559,12 +572,7 @@ test.describe("/catalog/sections 班级搜索页", () => {
   test("学期筛选保留种子数据结果", async ({ page }, testInfo) => {
     const filter = await getSeedSectionSemesterFixture(DEV_SEED.section.jwId);
     if (!filter.semesterName) {
-      await gotoAndWaitForReady(page, "/catalog/sections", {
-        testInfo,
-        screenshotLabel: "sections",
-      });
-      await expect(page.locator("#main-content")).toBeVisible();
-      return;
+      throw new Error("Expected the seeded section to have a semester fixture");
     }
 
     await gotoAndWaitForReady(

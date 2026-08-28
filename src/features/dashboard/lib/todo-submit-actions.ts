@@ -6,6 +6,7 @@ type ActionResult = {
 export function createTodoSubmitAction({
   fallbackMessage,
   onClose,
+  onSuccess,
   setCreating,
   setError,
   validate,
@@ -13,6 +14,7 @@ export function createTodoSubmitAction({
 }: {
   fallbackMessage: string;
   onClose: () => void;
+  onSuccess?: () => void;
   setCreating: (value: boolean) => void;
   setError: (value: string) => void;
   validate: (formData: FormData) => string;
@@ -41,6 +43,7 @@ export function createTodoSubmitAction({
         await update();
         setError("");
         onClose();
+        onSuccess?.();
       } finally {
         setCreating(false);
       }
@@ -50,12 +53,16 @@ export function createTodoSubmitAction({
 
 export function updateTodoSubmitAction({
   fallbackMessage,
+  onClose,
+  onSuccess,
   setError,
   setUpdating,
   validate,
   actionResultError,
 }: {
   fallbackMessage: string;
+  onClose: () => void;
+  onSuccess?: () => void;
   setError: (value: string) => void;
   setUpdating: (value: boolean) => void;
   validate: (formData: FormData) => string;
@@ -82,6 +89,9 @@ export function updateTodoSubmitAction({
           return;
         }
         await update();
+        setError("");
+        onClose();
+        onSuccess?.();
       } finally {
         setUpdating(false);
       }

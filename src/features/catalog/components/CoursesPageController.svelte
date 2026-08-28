@@ -7,8 +7,9 @@ import {
   coursePageHref,
 } from "@/features/catalog/lib/courses-page-view-model";
 import { page } from "$app/stores";
+import PageLayout from "$lib/components/PageLayout.svelte";
+import Panel from "$lib/components/Panel.svelte";
 import CatalogMobileFilters from "./CatalogMobileFilters.svelte";
-import CatalogPageHeader from "./CatalogPageHeader.svelte";
 import CatalogPagination from "./CatalogPagination.svelte";
 import CoursesFilters from "./CoursesFilters.svelte";
 import CoursesResults from "./CoursesResults.svelte";
@@ -122,59 +123,57 @@ function courseEmptyDescription() {
 }
 </script>
 
-<section class="grid gap-5">
-  <CatalogPageHeader
-    description={courseLabels.subtitle}
-    title={courseLabels.title}
+{#snippet paginationFooter()}
+  <CatalogPagination
+    ariaLabel={commonLabels.pagination}
+    class="py-0"
+    nextLabel={commonLabels.next}
+    nextPageLabel={commonLabels.nextPage}
+    page={data.pagination.page}
+    {pageHref}
+    previousLabel={commonLabels.previous}
+    previousPageLabel={commonLabels.previousPage}
+    {totalPages}
   />
+{/snippet}
 
-  <div class="grid min-w-0 gap-4">
-    <CatalogMobileFilters
-      activeFilters={courseActiveFilters}
-      clearHref="/catalog/courses"
-      clearLabel={commonLabels.clear}
-      filterTitle={courseLabels.summary.filters}
-      hiddenFilters={courseHiddenFilters}
-      searchId="mobile-course-search"
-      searchLabel={commonLabels.search}
-      searchPlaceholder={courseLabels.searchPlaceholder}
-      bind:searchValue={courseSearch}
-    >
-      <CoursesFilters
-        {activeFilterCount}
-        {categoryOptions}
-        {classTypeOptions}
-        {commonLabels}
-        {courseLabels}
-        courseSearch={data.filters.search ?? ""}
-        {educationLevelOptions}
-        filters={data.filters}
-        idPrefix="mobile-course"
-        showClear={false}
-        showSearch={false}
-      />
-    </CatalogMobileFilters>
-
-    <div class="grid min-w-0 gap-4">
-      <CoursesResults
-        {courseEmptyDescription}
-        {courseLabels}
-        data={courseResultsData}
-        page={data.pagination.page}
-        {primaryName}
-        {totalPages}
-      />
-
-      <CatalogPagination
-        ariaLabel={commonLabels.pagination}
-        nextLabel={commonLabels.next}
-        nextPageLabel={commonLabels.nextPage}
-        page={data.pagination.page}
-        {pageHref}
-        previousLabel={commonLabels.previous}
-        previousPageLabel={commonLabels.previousPage}
-        {totalPages}
-      />
-    </div>
-  </div>
-</section>
+<PageLayout description={courseLabels.subtitle} title={courseLabels.title}>
+  <Panel footer={totalPages > 1 ? paginationFooter : undefined}>
+    {#snippet header()}
+      <CatalogMobileFilters
+        activeFilters={courseActiveFilters}
+        clearHref="/catalog/courses"
+        clearLabel={commonLabels.clear}
+        filterDescription={courseLabels.filterDescription}
+        filterTitle={courseLabels.summary.filters}
+        hiddenFilters={courseHiddenFilters}
+        searchId="mobile-course-search"
+        searchLabel={commonLabels.search}
+        searchPlaceholder={courseLabels.searchPlaceholder}
+        bind:searchValue={courseSearch}
+      >
+        <CoursesFilters
+          {activeFilterCount}
+          {categoryOptions}
+          {classTypeOptions}
+          {commonLabels}
+          {courseLabels}
+          courseSearch={data.filters.search ?? ""}
+          {educationLevelOptions}
+          filters={data.filters}
+          idPrefix="mobile-course"
+          showClear={false}
+          showSearch={false}
+        />
+      </CatalogMobileFilters>
+    {/snippet}
+    <CoursesResults
+      {courseEmptyDescription}
+      {courseLabels}
+      data={courseResultsData}
+      page={data.pagination.page}
+      {primaryName}
+      {totalPages}
+    />
+  </Panel>
+</PageLayout>

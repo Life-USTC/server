@@ -148,12 +148,30 @@ describe("协作数据不变量", () => {
         select: { id: true },
       }),
     ]);
+    const [deletionSession, otherUser] = await Promise.all([
+      prisma.session.create({
+        data: {
+          expires: new Date(Date.now() + 60 * 60 * 1000),
+          sessionToken: crypto.randomUUID(),
+          userId: deletingAdmin.id,
+        },
+        select: { id: true },
+      }),
+      prisma.user.create({
+        data: {
+          email: `${prefix}-other-user@example.test`,
+          name: "Other User",
+        },
+        select: { id: true },
+      }),
+    ]);
     const auditLog = await prisma.auditLog.create({
       data: {
-        action: "comment_create",
+        action: "account_profile_update",
         userId: deletingAdmin.id,
-        targetId: prefix,
-        targetType: "integration-test",
+        subjectUserId: deletingAdmin.id,
+        targetId: deletingAdmin.id,
+        targetType: "user",
       },
       select: { id: true },
     });
@@ -169,9 +187,22 @@ describe("协作数据不变量", () => {
     });
 
     try {
-      await expect(deleteOwnAccount(deletingAdmin.id)).resolves.toEqual({
-        ok: true,
-      });
+      await expect(
+        deleteOwnAccount(otherUser.id, {
+          channel: "system",
+          sessionId: deletionSession.id,
+        }),
+      ).resolves.toEqual({ ok: false, reason: "unauthorized" });
+      await expect(
+        prisma.user.findUnique({ where: { id: otherUser.id } }),
+      ).resolves.toMatchObject({ id: otherUser.id });
+
+      await expect(
+        deleteOwnAccount(deletingAdmin.id, {
+          channel: "system",
+          sessionId: deletionSession.id,
+        }),
+      ).resolves.toEqual({ ok: true });
 
       await expect(
         prisma.user.findUnique({ where: { id: deletingAdmin.id } }),
@@ -179,9 +210,9 @@ describe("协作数据不变量", () => {
       await expect(
         prisma.auditLog.findUnique({
           where: { id: auditLog.id },
-          select: { userId: true },
+          select: { subjectUserId: true, targetId: true, userId: true },
         }),
-      ).resolves.toEqual({ userId: null });
+      ).resolves.toEqual({ subjectUserId: null, targetId: null, userId: null });
       await expect(
         prisma.userSuspension.findUnique({
           where: { id: suspension.id },
@@ -194,9 +225,15 @@ describe("协作数据不变量", () => {
       });
     } finally {
       await prisma.userSuspension.deleteMany({ where: { id: suspension.id } });
-      await prisma.auditLog.deleteMany({ where: { id: auditLog.id } });
+      await prisma.auditLog.deleteMany({
+        where: {
+          OR: [{ id: auditLog.id }, { targetId: otherUser.id }],
+        },
+      });
       await prisma.user.deleteMany({
-        where: { id: { in: [remainingAdmin.id, suspendedUser.id] } },
+        where: {
+          id: { in: [remainingAdmin.id, suspendedUser.id, otherUser.id] },
+        },
       });
     }
   });
@@ -213,6 +250,7 @@ describe("协作数据不变量", () => {
     const teacher = await prisma.teacher.create({
       data: {
         code: prefix,
+        jwId: 2_110_000_000 + (Date.now() % 10_000_000),
         nameCn: prefix,
       },
       select: { id: true },

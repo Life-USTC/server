@@ -12,6 +12,8 @@ export {
 
 export class Snapshot {
   private readonly db: Database;
+  private readonly rowsByTable = new Map<string, SnapshotRow[]>();
+  private readonly rowsByParent = new Map<string, Map<number, SnapshotRow[]>>();
 
   constructor(path: string) {
     this.db = new Database(path, { readonly: true });
@@ -33,13 +35,21 @@ export class Snapshot {
   }
 
   queryAll(tableName: string): SnapshotRow[] {
-    return this.db.query(`SELECT * FROM "${tableName}"`).all() as SnapshotRow[];
+    assertIdentifier(tableName, "table");
+    const cached = this.rowsByTable.get(tableName);
+    if (cached != null) return cached;
+    const rows = this.db
+      .query(`SELECT * FROM "${tableName}"`)
+      .all() as SnapshotRow[];
+    this.rowsByTable.set(tableName, rows);
+    return rows;
   }
 
   groupByParent(
     rows: SnapshotRow[],
     parentColumn = "parent_store_id",
   ): Map<number, SnapshotRow[]> {
+    assertIdentifier(parentColumn, "parent column");
     const map = new Map<number, SnapshotRow[]>();
     for (const row of rows) {
       const parentId = asInt(row[parentColumn]);
@@ -55,6 +65,17 @@ export class Snapshot {
     tableName: string,
     parentColumn = "parent_store_id",
   ): Map<number, SnapshotRow[]> {
-    return this.groupByParent(this.queryAll(tableName), parentColumn);
+    const key = `${tableName}:${parentColumn}`;
+    const cached = this.rowsByParent.get(key);
+    if (cached != null) return cached;
+    const rows = this.groupByParent(this.queryAll(tableName), parentColumn);
+    this.rowsByParent.set(key, rows);
+    return rows;
+  }
+}
+
+function assertIdentifier(value: string, description: string): void {
+  if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(value)) {
+    throw new Error(`Invalid snapshot ${description}: ${value}`);
   }
 }

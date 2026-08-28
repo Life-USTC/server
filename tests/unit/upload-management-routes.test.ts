@@ -23,8 +23,9 @@ vi.mock("@/features/uploads/server/upload-service", () => ({
 }));
 
 vi.mock("@/lib/auth/api-auth", () => ({
-  requireAuth: requireAuthMock,
+  requireAuthPrincipal: requireAuthMock,
   requireWriteAuth: requireWriteAuthMock,
+  requireWriteAuthPrincipal: requireWriteAuthMock,
 }));
 
 vi.mock("@/lib/audit/write-audit-log", () => ({
@@ -65,7 +66,13 @@ describe("上传管理路由", () => {
       error: "Failed to delete upload object",
     });
     expect(deleteOwnedUploadMock).toHaveBeenCalledWith({
-      audit: { ipAddress: "127.0.0.1", userAgent: "unit-test" },
+      audit: {
+        channel: "rest",
+        ipAddress: "127.0.0.1",
+        subjectUserId: "user-1",
+        userAgent: "unit-test",
+        userId: "user-1",
+      },
       id: "upload-1",
       userId: "user-1",
     });

@@ -2,7 +2,7 @@
  * E2E tests for /admin — Admin entry + primary navigation
  *
  * ## Features
- * - Admin-only: unauthenticated → /signin, non-admin → 404
+ * - Admin-only: unauthenticated → /signin, non-admin → 403
  * - /admin redirects to /admin/users
  * - Admin tools live in the primary sidebar (no secondary admin nav)
  */
@@ -29,10 +29,10 @@ test("/admin 未登录重定向到登录页", async ({ page }, testInfo) => {
   await captureStepScreenshot(page, testInfo, "admin/unauthorized");
 });
 
-test("/admin 普通用户访问返回 404", async ({ page }, testInfo) => {
+test("/admin 普通用户访问返回 403", async ({ page }, testInfo) => {
   await signInAsDebugUser(page, "/admin", "/admin");
-  await expect(page.locator("h1")).toHaveText("404");
-  await captureStepScreenshot(page, testInfo, "admin/404");
+  await expect(page.locator("h1")).toHaveText("403");
+  await captureStepScreenshot(page, testInfo, "admin/403");
 });
 
 test("/admin 重定向到用户管理", async ({ page }, testInfo) => {
@@ -52,6 +52,8 @@ test("/admin 主导航在所有管理页面保持唯一当前位置", async ({
     { path: "/admin/moderation", name: /内容审核|Moderation/i },
     { path: "/admin/oauth", name: /OAuth|OAuth 客户端/i },
     { path: "/admin/bus", name: /校车管理|Bus Management/i },
+    { path: "/admin/audit", name: /审计日志|Audit Log/i },
+    { path: "/admin/analytics", name: /聚合分析|Aggregate Analytics/i },
   ] as const;
 
   for (const { path, name } of paths) {
@@ -59,7 +61,7 @@ test("/admin 主导航在所有管理页面保持唯一当前位置", async ({
 
     const navigation = adminPrimaryNav(page);
     const adminLinks = navigation.locator('a[href^="/admin"]');
-    await expect(adminLinks).toHaveCount(4);
+    await expect(adminLinks).toHaveCount(6);
     await expect(navigation.getByRole("link", { name })).toHaveAttribute(
       "aria-current",
       "page",
@@ -117,6 +119,16 @@ test("/admin 主导航可跳转到各管理工具", async ({ page }, testInfo) =
       shot: "admin/navigate-bus",
     },
     {
+      name: /审计日志|Audit Log/i,
+      url: /\/admin\/audit(?:\?.*)?$/,
+      shot: "admin/navigate-audit",
+    },
+    {
+      name: /聚合分析|Aggregate Analytics/i,
+      url: /\/admin\/analytics(?:\?.*)?$/,
+      shot: "admin/navigate-analytics",
+    },
+    {
       name: /用户管理|User Management/i,
       url: /\/admin\/users(?:\?.*)?$/,
       shot: "admin/navigate-users",
@@ -128,6 +140,41 @@ test("/admin 主导航可跳转到各管理工具", async ({ page }, testInfo) =
     await expect(link).toBeVisible();
     await Promise.all([page.waitForURL(url), link.click()]);
     await captureStepScreenshot(page, testInfo, shot);
+  }
+});
+
+test("/admin 移动端导航覆盖全部管理工具且显示当前位置", async ({ page }) => {
+  await page.setViewportSize({ width: 320, height: 568 });
+  await signInAsDevAdmin(page, "/admin/users");
+
+  const paths = [
+    { path: "/admin/users", name: /用户管理|User Management/i },
+    { path: "/admin/moderation", name: /内容审核|Moderation/i },
+    { path: "/admin/oauth", name: /OAuth|OAuth 客户端/i },
+    { path: "/admin/bus", name: /校车管理|Bus Management/i },
+    { path: "/admin/audit", name: /审计日志|Audit Log/i },
+    { path: "/admin/analytics", name: /聚合分析|Aggregate Analytics/i },
+  ] as const;
+
+  const mobileNavigation = page.getByTestId("admin-mobile-navigation");
+  await expect(mobileNavigation).toBeVisible();
+  await expect(page.getByTestId("mobile-primary-navigation")).toHaveCount(0);
+
+  for (const { path, name } of paths) {
+    await gotoAndWaitForReady(page, path);
+    await expect(
+      mobileNavigation.getByTestId("admin-mobile-navigation-current"),
+    ).toContainText(name);
+
+    await mobileNavigation
+      .getByTestId("admin-mobile-navigation-trigger")
+      .click();
+    const panel = page.getByTestId("admin-mobile-navigation-panel");
+    await expect(panel).toBeVisible();
+    await expect(panel.getByRole("link", { name })).toBeVisible();
+    await expect(panel.getByRole("link", { name: /./ })).toHaveCount(6);
+    await panel.getByRole("link", { name }).click();
+    await expect(page).toHaveURL(new RegExp(`${path}(?:\\?.*)?$`));
   }
 });
 

@@ -1,7 +1,8 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import * as z from "zod";
+import { CATALOG_MAX_PAGE } from "@/features/catalog/lib/catalog-list-query";
 import {
-  getCurrentSemester,
+  getCachedCurrentSemester,
   listSemesters,
 } from "@/features/catalog/server/academic-metadata-read-model";
 import {
@@ -17,7 +18,7 @@ export function registerCourseSemesterTools(server: McpServer) {
       description:
         "List semesters with pagination. Use catalog_semester_current when you only need the active term.",
       inputSchema: {
-        page: z.number().int().min(1).default(1),
+        page: z.number().int().min(1).max(CATALOG_MAX_PAGE).default(1),
         limit: z.number().int().min(1).max(100).default(20),
         mode: mcpModeInputSchema,
       },
@@ -41,7 +42,7 @@ export function registerCourseSemesterTools(server: McpServer) {
       },
     },
     async ({ mode }) => {
-      const semester = await getCurrentSemester(new Date());
+      const semester = await getCachedCurrentSemester(new Date());
 
       return jsonToolResult(
         {

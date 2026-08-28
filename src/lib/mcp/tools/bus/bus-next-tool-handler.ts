@@ -1,6 +1,5 @@
 import { getNextBusDepartures } from "@/features/bus/server/bus-service";
 import {
-  getUserId,
   jsonToolResult,
   parseOptionalMcpDate,
   resolveMcpMode,
@@ -11,33 +10,29 @@ import type {
   BusDayType,
   BusLocale,
   McpModeInput,
-  ToolExtra,
 } from "./bus-tool-types";
 
-export async function getNextBusesTool(
-  {
-    originCampusId,
-    destinationCampusId,
-    atTime,
-    dayType,
-    includeDeparted,
-    limit,
-    versionKey,
-    locale,
-    mode,
-  }: {
-    originCampusId: number;
-    destinationCampusId: number;
-    atTime?: AtTimeInput;
-    dayType: BusDayType;
-    includeDeparted: boolean;
-    limit: number;
-    versionKey?: string;
-    locale: BusLocale;
-    mode?: McpModeInput;
-  },
-  extra: ToolExtra,
-) {
+export async function getNextBusesTool({
+  originCampusId,
+  destinationCampusId,
+  atTime,
+  dayType,
+  includeDeparted,
+  limit,
+  versionKey,
+  locale,
+  mode,
+}: {
+  originCampusId: number;
+  destinationCampusId: number;
+  atTime?: AtTimeInput;
+  dayType: BusDayType;
+  includeDeparted: boolean;
+  limit: number;
+  versionKey?: string;
+  locale: BusLocale;
+  mode?: McpModeInput;
+}) {
   const resolvedMode = resolveMcpMode(mode);
   const parsedAtTime = parseOptionalMcpDate("atTime", atTime);
   if (!parsedAtTime.ok) {
@@ -53,7 +48,6 @@ export async function getNextBusesTool(
     includeDeparted,
     limit,
     versionKey,
-    userId: getUserId(extra.authInfo),
   });
 
   if (result && resolvedMode !== "full") {

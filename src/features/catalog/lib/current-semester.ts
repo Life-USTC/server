@@ -1,4 +1,6 @@
 import type { Prisma } from "@/generated/prisma/client";
+import { parseDateInput } from "@/lib/time/parse-date-input";
+import { formatShanghaiDate } from "@/lib/time/shanghai-format";
 
 type SemesterWithDateRange = {
   startDate: Date | null;
@@ -18,10 +20,19 @@ const byMostSpecific = <TSemester extends SemesterWithDateRange>(
 
 export const buildCurrentSemesterWhere = (
   referenceDate: Date,
-): Prisma.SemesterWhereInput => ({
-  startDate: { lte: referenceDate },
-  endDate: { gte: referenceDate },
-});
+): Prisma.SemesterWhereInput => {
+  const dateOnlyReference = parseDateInput(formatShanghaiDate(referenceDate));
+  if (!(dateOnlyReference instanceof Date)) {
+    throw new TypeError("Invalid current-semester reference date");
+  }
+  return {
+    startDate: { lte: dateOnlyReference },
+    endDate: { gte: dateOnlyReference },
+  };
+};
+
+export const currentSemesterDateKey = (referenceDate: Date) =>
+  formatShanghaiDate(referenceDate);
 
 export const selectCurrentSemesterFromList = <
   TSemester extends SemesterWithDateRange,

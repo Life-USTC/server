@@ -4,17 +4,18 @@ import { authPostRoute } from "@/lib/api/routes/auth";
 import { prisma } from "@/lib/db/prisma";
 import { hashOAuthClientSecretForDbStorage } from "@/lib/oauth/utils";
 
-const AUTH_SECRET =
-  "oauth-authorization-continuation-test-secret-at-least-32-bytes";
-
-const { authHandlerMock, getSessionFromHeadersMock } = vi.hoisted(() => ({
-  authHandlerMock: vi.fn(),
-  getSessionFromHeadersMock: vi.fn(),
-}));
+const { authHandlerMock, authSecret, getSessionFromHeadersMock } = vi.hoisted(
+  () => ({
+    authHandlerMock: vi.fn(),
+    authSecret:
+      "oauth-authorization-continuation-test-secret-at-least-32-bytes",
+    getSessionFromHeadersMock: vi.fn(),
+  }),
+);
 
 vi.mock("@/lib/auth/core", () => ({
   betterAuthInstance: {
-    $context: Promise.resolve({ secret: AUTH_SECRET }),
+    $context: Promise.resolve({ secret: authSecret }),
     handler: authHandlerMock,
   },
   getSessionFromHeaders: getSessionFromHeadersMock,
@@ -51,7 +52,7 @@ describe.sequential("OAuth authorization continuation grant binding", () => {
         return 0;
       }),
     );
-    query.set("sig", await makeSignature(canonical.toString(), AUTH_SECRET));
+    query.set("sig", await makeSignature(canonical.toString(), authSecret));
     return query.toString();
   }
 
@@ -148,34 +149,37 @@ describe.sequential("OAuth authorization continuation grant binding", () => {
       path: "/api/auth/oauth2/continue",
       prompt: "consent",
     },
-  ])("真实 binder 为 $name continuation 绑定委托前 generation", async (entry) => {
-    const state = `${entry.name}-${marker}`;
-    const oauthQuery = await signedOAuthQuery(entry.prompt, state);
-    const request = new Request(`https://life.example${entry.path}`, {
-      body: JSON.stringify({ ...entry.body, oauth_query: oauthQuery }),
-      headers: { "content-type": "application/json" },
-      method: "POST",
-    });
+  ])(
+    "真实 binder 为 $name continuation 绑定委托前 generation",
+    async (entry) => {
+      const state = `${entry.name}-${marker}`;
+      const oauthQuery = await signedOAuthQuery(entry.prompt, state);
+      const request = new Request(`https://life.example${entry.path}`, {
+        body: JSON.stringify({ ...entry.body, oauth_query: oauthQuery }),
+        headers: { "content-type": "application/json" },
+        method: "POST",
+      });
 
-    const response = await authPostRoute(request);
-    expect(response.status).toBe(200);
-    await expect(response.json()).resolves.toMatchObject({
-      url: expect.stringContaining("code="),
-    });
+      const response = await authPostRoute(request);
+      expect(response.status).toBe(200);
+      await expect(response.json()).resolves.toMatchObject({
+        url: expect.stringContaining("code="),
+      });
 
-    const code = `continuation-${state}-${marker}`;
-    const row = await prisma.verificationToken.findFirstOrThrow({
-      where: {
-        identifier: await hashOAuthClientSecretForDbStorage(code),
-      },
-      select: { token: true },
-    });
-    expect(JSON.parse(row.token)).toMatchObject({
-      referenceId: grantId,
-      type: "authorization_code",
-      userId,
-    });
-  });
+      const code = `continuation-${state}-${marker}`;
+      const row = await prisma.verificationToken.findFirstOrThrow({
+        where: {
+          identifier: await hashOAuthClientSecretForDbStorage(code),
+        },
+        select: { token: true },
+      });
+      expect(JSON.parse(row.token)).toMatchObject({
+        referenceId: grantId,
+        type: "authorization_code",
+        userId,
+      });
+    },
+  );
 
   it("login 前无 session 时绑定登录后 code user 的当前 generation", async () => {
     getSessionFromHeadersMock.mockResolvedValueOnce(null);

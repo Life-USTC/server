@@ -1,9 +1,9 @@
 <script lang="ts">
 import ArrowUpRight from "@lucide/svelte/icons/arrow-up-right";
+import TableIconButton from "$lib/components/TableIconButton.svelte";
+import TableRowActions from "$lib/components/TableRowActions.svelte";
 import TruncatedText from "$lib/components/TruncatedText.svelte";
 import * as Table from "$lib/components/ui/table/index.js";
-import DashboardTableIconButton from "./DashboardTableIconButton.svelte";
-import DashboardTableRowActions from "./DashboardTableRowActions.svelte";
 import type {
   DashboardExamRow,
   DashboardTabHref,
@@ -59,11 +59,11 @@ export let subscriptionsCopy: ExamsCopyProps["subscriptionsCopy"];
           {exam.rooms || sectionCopy.roomTbd}
         </Table.Cell>
         <Table.Cell>
-          <DashboardTableRowActions>
-            <DashboardTableIconButton href={detailHref} label={sectionCopy.moreDetails}>
-              <ArrowUpRight />
-            </DashboardTableIconButton>
-          </DashboardTableRowActions>
+          <TableRowActions>
+            <TableIconButton href={detailHref} label={sectionCopy.moreDetails}>
+              <ArrowUpRight data-icon="inline-start" />
+            </TableIconButton>
+          </TableRowActions>
         </Table.Cell>
       </Table.Row>
     {/each}

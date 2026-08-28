@@ -213,40 +213,40 @@ describe("compact workspace overview read model", () => {
         userId: "user-1",
       },
     },
-  ])("passes derived sectionIds to the subscription bundle when $label", async ({
-    user,
-    expectedUser,
-  }) => {
-    userFindUniqueMock.mockResolvedValue(user);
-    loadOverviewSubscriptionReadsMock.mockResolvedValue({
-      counts: {
-        pendingHomeworksCount: 0,
-        todaySchedulesCount: 0,
-        upcomingExamsCount: 0,
-        dueSoonHomeworksCount: 0,
-      },
-      dueSoonHomeworks: [],
-      schedules: [],
-      upcomingExams: [],
-    });
-    const { getCompactOverview } = await import(
-      "@/features/dashboard/server/compact-overview-read-model"
-    );
+  ])(
+    "passes derived sectionIds to the subscription bundle when $label",
+    async ({ user, expectedUser }) => {
+      userFindUniqueMock.mockResolvedValue(user);
+      loadOverviewSubscriptionReadsMock.mockResolvedValue({
+        counts: {
+          pendingHomeworksCount: 0,
+          todaySchedulesCount: 0,
+          upcomingExamsCount: 0,
+          dueSoonHomeworksCount: 0,
+        },
+        dueSoonHomeworks: [],
+        schedules: [],
+        upcomingExams: [],
+      });
+      const { getCompactOverview } = await import(
+        "@/features/dashboard/server/compact-overview-read-model"
+      );
 
-    const overview = await getCompactOverview("user-1", { atTime: AT_TIME });
+      const overview = await getCompactOverview("user-1", { atTime: AT_TIME });
 
-    expect(loadOverviewSubscriptionReadsMock).toHaveBeenCalledWith(
-      expect.objectContaining({ sectionIds: [] }),
-    );
-    expect(overview.user).toEqual(expectedUser);
-    expect(overview.counts).toEqual({
-      dueSoonHomeworks: 0,
-      pendingHomeworks: 0,
-      todaySchedules: 0,
-      todos: TODO_COUNTS,
-      upcomingExams: 0,
-    });
-  });
+      expect(loadOverviewSubscriptionReadsMock).toHaveBeenCalledWith(
+        expect.objectContaining({ sectionIds: [] }),
+      );
+      expect(overview.user).toEqual(expectedUser);
+      expect(overview.counts).toEqual({
+        dueSoonHomeworks: 0,
+        pendingHomeworks: 0,
+        todaySchedules: 0,
+        todos: TODO_COUNTS,
+        upcomingExams: 0,
+      });
+    },
+  );
 
   it("overlaps todo loading with subscription bundle reads", async () => {
     const { promise: todoSummaryPromise, resolve: resolveTodoSummary } =

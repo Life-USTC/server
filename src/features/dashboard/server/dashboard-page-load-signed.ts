@@ -4,6 +4,10 @@ import {
   loadSignedDashboardTabData,
   timeDashboardStage,
 } from "@/features/dashboard/server/dashboard-page-tab-data";
+import {
+  createDashboardStageCounter,
+  markDashboardStageCountsUnknown,
+} from "@/features/dashboard/server/dashboard-stage-analytics";
 import type { AppLocale } from "@/i18n/config";
 import { toShanghaiIsoString } from "@/lib/time/serialize-date-output";
 
@@ -13,20 +17,29 @@ export async function loadSignedDashboardPageData(input: {
   overviewWeek: string | null;
   pageCopy: DashboardPageCopy;
   referenceNow: Date | null | undefined;
+  revealCalendarFeed?: boolean;
   requestId: string | undefined;
   tab: string;
   userId: string;
 }) {
+  // Read the shell identity and subscription scope in its own short RLS
+  // transaction. The tab read models below deliberately own their RLS
+  // contexts so their fixed fan-out can use separate pool connections.
   const dashboard = await import(
     "@/features/dashboard/server/dashboard-overview-data"
   );
+  const userContextCounter = createDashboardStageCounter({
+    dbContext: "rls",
+    dbLabel: "app",
+  });
   const context = await timeDashboardStage(
-    "user-context",
+    "user_context",
     {
       requestId: input.requestId,
       tab: input.tab,
     },
-    () => dashboard.getDashboardUserContext(input.userId),
+    () => dashboard.getDashboardUserContext(input.userId, userContextCounter),
+    userContextCounter,
   );
 
   if (!context) {
@@ -39,6 +52,11 @@ export async function loadSignedDashboardPageData(input: {
     };
   }
 
+  const tabCounter = createDashboardStageCounter({
+    dbContext: "mixed",
+    dbLabel: "app",
+  });
+  markDashboardStageCountsUnknown(tabCounter);
   const {
     bus,
     calendarSubscriptionUrl,
@@ -49,7 +67,7 @@ export async function loadSignedDashboardPageData(input: {
     subscriptions,
     todos,
   } = await timeDashboardStage(
-    "tab-data",
+    "tab",
     {
       requestId: input.requestId,
       subscribedSectionCount: context.sectionIds.length,
@@ -60,11 +78,14 @@ export async function loadSignedDashboardPageData(input: {
         calendarSemesterId: input.calendarSemesterId,
         context,
         locale: input.locale,
+        overviewWeek: input.overviewWeek,
         referenceNow: input.referenceNow ?? undefined,
         requestId: input.requestId,
+        revealCalendarFeed: input.revealCalendarFeed,
         tab: input.tab,
         userId: input.userId,
       }),
+    tabCounter,
   );
 
   return {

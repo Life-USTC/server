@@ -1,5 +1,10 @@
 import * as z from "zod";
 import { busVersionKeySchema } from "@/features/bus/lib/bus-version-key";
+import { CATALOG_MAX_PAGE } from "@/features/catalog/lib/catalog-list-query";
+import {
+  TODO_LIST_DEFAULT_LIMIT,
+  TODO_LIST_MAX_LIMIT,
+} from "@/features/todos/lib/todo-list-limits";
 import { APP_LOCALES } from "@/i18n/config";
 import {
   booleanQuerySchema,
@@ -7,7 +12,6 @@ import {
   deprecatedPaginationLimitParam,
   integerQueryRangeSchema,
   integerStringRangeSchema,
-  integerStringSchema,
   paginationPageSizeParam,
   todoPrioritySchema,
 } from "./request-schema-primitives";
@@ -29,6 +33,12 @@ const publicPaginationPageSizeSchema = integerStringRangeSchema({
   message: "pageSize must be between 1 and 100",
 });
 
+const publicCatalogPageSchema = integerStringRangeSchema({
+  minimum: 1,
+  maximum: CATALOG_MAX_PAGE,
+  message: `page must be between 1 and ${CATALOG_MAX_PAGE}`,
+});
+
 const subscribedSchedulesWeekdaySchema = integerQueryRangeSchema({
   minimum: 1,
   maximum: 7,
@@ -43,8 +53,16 @@ const subscribedSchedulesLimitSchema = integerQueryRangeSchema({
 
 const todoLimitSchema = integerQueryRangeSchema({
   minimum: 1,
-  maximum: 200,
-  message: "limit must be between 1 and 200",
+  maximum: TODO_LIST_MAX_LIMIT,
+  message: `limit must be between 1 and ${TODO_LIST_MAX_LIMIT}`,
+}).meta({
+  override: {
+    type: "integer",
+    format: "int64",
+    minimum: 1,
+    maximum: TODO_LIST_MAX_LIMIT,
+    default: TODO_LIST_DEFAULT_LIMIT,
+  },
 });
 
 const overviewHomeworkWindowDaysSchema = integerQueryRangeSchema({
@@ -57,6 +75,17 @@ const compactOverviewLimitSchema = integerQueryRangeSchema({
   minimum: 1,
   maximum: 50,
   message: "limit must be between 1 and 50",
+});
+
+const accountClientActivityLimitSchema = integerQueryRangeSchema({
+  minimum: 1,
+  maximum: 50,
+  message: "limit must be between 1 and 50",
+});
+
+export const accountClientActivityQuerySchema = z.object({
+  cursor: z.string().max(256).optional(),
+  limit: accountClientActivityLimitSchema.optional(),
 });
 
 export const busQuerySchema = z.object({
@@ -97,7 +126,7 @@ export const dashboardLinkVisitQuerySchema = z.object({
 });
 
 export const semestersQuerySchema = z.object({
-  page: integerStringSchema.optional(),
+  page: publicCatalogPageSchema.optional(),
   pageSize: paginationPageSizeParam(publicPaginationPageSizeSchema),
   limit: deprecatedPaginationLimitParam(publicPaginationPageSizeSchema),
 });
@@ -146,7 +175,7 @@ export const todosQuerySchema = z.object({
   priority: todoPrioritySchema.optional(),
   dueBefore: dateQuerySchema().optional(),
   dueAfter: dateQuerySchema().optional(),
-  limit: todoLimitSchema.optional(),
+  limit: todoLimitSchema.default(TODO_LIST_DEFAULT_LIMIT),
 });
 
 export const uploadObjectQuerySchema = z.object({

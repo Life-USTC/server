@@ -4,7 +4,6 @@ import * as Alert from "$lib/components/ui/alert/index.js";
 export let bulkImportError: string;
 export let bulkImportMessage: string;
 export let subscriptionActionError: string;
-export let subscriptionActionMessage: string;
 </script>
 
 {#if bulkImportMessage}
@@ -15,11 +14,6 @@ export let subscriptionActionMessage: string;
 {#if bulkImportError}
   <Alert.Root variant="destructive">
     <Alert.Description>{bulkImportError}</Alert.Description>
-  </Alert.Root>
-{/if}
-{#if subscriptionActionMessage}
-  <Alert.Root>
-    <Alert.Description>{subscriptionActionMessage}</Alert.Description>
   </Alert.Root>
 {/if}
 {#if subscriptionActionError}

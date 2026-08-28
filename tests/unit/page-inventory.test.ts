@@ -6,8 +6,10 @@ import { describe, expect, it } from "vitest";
 import { workspaceTabIds } from "@/features/dashboard/lib/dashboard-nav";
 import { SETTINGS_TABS } from "@/features/settings/lib/settings-tabs";
 import {
+  BROWSER_ALIAS_INVENTORY,
   INVENTORY_SETTINGS_TABS,
   INVENTORY_WORKSPACE_TABS,
+  mobileScreenshotPaths,
   PAGE_INVENTORY,
   type PageInventoryEntry,
   routeIdFromPageFile,
@@ -118,6 +120,84 @@ describe("page inventory gate", () => {
     expect(duplicates).toEqual([]);
   });
 
+  it("keeps non-page browser aliases attached to executable redirect tests", async () => {
+    for (const alias of BROWSER_ALIAS_INVENTORY) {
+      const absolute = resolveSpecPath(alias.e2eSpec);
+      expect(existsSync(absolute), `missing alias spec: ${alias.e2eSpec}`).toBe(
+        true,
+      );
+      const source = await readFile(absolute, "utf8");
+      expect(source).toContain(alias.path);
+      expect(source).toContain(alias.target.split("/tag/")[0]);
+      expect(source).toContain(alias.testName);
+    }
+  });
+
+  it("requires one explicit mobile contract for every rendered page", async () => {
+    const pageEntries = PAGE_INVENTORY.filter((entry) => entry.kind === "page");
+
+    for (const entry of pageEntries) {
+      const inventoryGroups = entry.mobileScreenshots ?? [];
+      const hasInventoryCoverage = inventoryGroups.length > 0;
+      const hasDedicatedCoverage = entry.mobileCoveredBy !== undefined;
+
+      expect(
+        Number(hasInventoryCoverage) + Number(hasDedicatedCoverage),
+        `${entry.routeId} needs exactly one inventory-driven or dedicated mobile contract`,
+      ).toBe(1);
+      expect(
+        new Set(inventoryGroups).size,
+        `${entry.routeId} repeats a mobile screenshot group`,
+      ).toBe(inventoryGroups.length);
+
+      const dedicated = entry.mobileCoveredBy;
+      if (!dedicated) continue;
+
+      expect(
+        dedicated.reason.trim(),
+        `${entry.routeId} mobile coverage needs a reason`,
+      ).not.toBe("");
+      expect(
+        dedicated.testName.trim(),
+        `${entry.routeId} mobile coverage needs a test name`,
+      ).not.toBe("");
+      const absolute = resolveSpecPath(dedicated.e2eSpec);
+      expect(
+        existsSync(absolute),
+        `${entry.routeId} missing mobile spec: ${dedicated.e2eSpec}`,
+      ).toBe(true);
+      const source = await readFile(absolute, "utf8");
+      expect(
+        source.includes(dedicated.testName),
+        `${entry.routeId} mobile test ${dedicated.testName} is absent from ${dedicated.e2eSpec}`,
+      ).toBe(true);
+      expect(
+        dedicated.e2eSpec.startsWith("mobile-screenshots/") ||
+          source.includes("setViewportSize"),
+        `${entry.routeId} dedicated mobile test does not configure a mobile viewport`,
+      ).toBe(true);
+    }
+
+    for (const group of ["public", "authed", "admin"] as const) {
+      const inventoryPaths = PAGE_INVENTORY.filter((entry) =>
+        entry.mobileScreenshots?.includes(group),
+      ).map((entry) => entry.samplePath);
+      const paths = mobileScreenshotPaths(group);
+      expect(new Set(paths).size).toBe(paths.length);
+      for (const inventoryPath of inventoryPaths) {
+        expect(paths).toContain(inventoryPath);
+      }
+    }
+
+    const authedPaths = mobileScreenshotPaths("authed");
+    for (const tab of workspaceTabIds) {
+      expect(authedPaths).toContain(`/workspace/${tab}`);
+    }
+    for (const tab of SETTINGS_TABS) {
+      expect(authedPaths).toContain(`/account/settings/${tab}`);
+    }
+  });
+
   it("requires L1 contract wiring and L2 primary-action coverage", async () => {
     const contractSource = await readFile(pageContractPath, "utf8");
     const cases = new Set(
@@ -182,7 +262,21 @@ describe("page inventory gate", () => {
         if (!action.e2eSpec) {
           continue;
         }
-        await loadSpec(action.e2eSpec);
+        const actionSource = await loadSpec(action.e2eSpec);
+        const roleIsExercised = action.role
+          ? actionSource.includes(`getByRole("${action.role}"`) ||
+            actionSource.includes(`getByRole('${action.role}'`)
+          : false;
+        const testIdIsExercised = action.testId
+          ? actionSource.includes(action.testId)
+          : false;
+        const evidenceIsPresent = action.evidence
+          ? actionSource.includes(action.evidence)
+          : false;
+        expect(
+          roleIsExercised || testIdIsExercised || evidenceIsPresent,
+          `${entry.routeId} primaryAction ${action.id} is not tied to a locator or evidence in ${action.e2eSpec}`,
+        ).toBe(true);
       }
     }
   });

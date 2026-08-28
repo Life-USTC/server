@@ -1,5 +1,6 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import * as z from "zod";
+import { CATALOG_MAX_PAGE } from "@/features/catalog/lib/catalog-list-query";
 import {
   flexDateInputSchema,
   mcpLocaleInputSchema,
@@ -31,7 +32,7 @@ export function registerSectionRecordTools(server: McpServer) {
         dateTo: flexDateInputSchema
           .optional()
           .describe("Latest schedule date/time (inclusive)."),
-        page: z.number().int().min(1).default(1),
+        page: z.number().int().min(1).max(CATALOG_MAX_PAGE).default(1),
         limit: z.number().int().min(1).max(100).default(20),
         locale: mcpLocaleInputSchema,
         mode: mcpModeInputSchema,

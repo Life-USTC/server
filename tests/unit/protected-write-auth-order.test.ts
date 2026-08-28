@@ -14,7 +14,9 @@ const {
 
 vi.mock("@/lib/auth/api-auth", () => ({
   requireAuth: requireAuthMock,
+  requireAuthPrincipal: requireAuthMock,
   requireWriteAuth: requireWriteAuthMock,
+  requireWriteAuthPrincipal: requireWriteAuthMock,
 }));
 
 vi.mock("@/features/comments/server/comment-mutations", () => ({

@@ -1,95 +1,68 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const { runSerializableTransactionMock, withUserDbContextMock, tx, appTx } =
-  vi.hoisted(() => ({
+const { fireAuditLogMock, runSerializableTransactionMock, tx } = vi.hoisted(
+  () => ({
+    fireAuditLogMock: vi.fn(),
     runSerializableTransactionMock: vi.fn(),
-    withUserDbContextMock: vi.fn(),
-    tx: {
-      auditLog: {
-        updateMany: vi.fn(() => {
-          throw new Error(
-            "account deletion must rely on the AuditLog foreign key",
-          );
-        }),
-      },
-      user: {
-        count: vi.fn(),
-        delete: vi.fn(),
-        findUnique: vi.fn(),
-      },
-      userSuspension: {
-        updateMany: vi.fn(() => {
-          throw new Error(
-            "account deletion must rely on the UserSuspension foreign keys",
-          );
-        }),
-      },
-    },
-    appTx: {
-      busUserPreference: { deleteMany: vi.fn() },
-      commentReaction: { deleteMany: vi.fn() },
-      dashboardLinkClick: { deleteMany: vi.fn() },
-      dashboardLinkPin: { deleteMany: vi.fn() },
-      homeworkCompletion: { deleteMany: vi.fn() },
-      todo: { deleteMany: vi.fn() },
-      upload: { deleteMany: vi.fn() },
-      uploadPending: { deleteMany: vi.fn() },
-    },
-  }));
+    tx: { $queryRaw: vi.fn() },
+  }),
+);
 
 vi.mock("@/lib/db/serializable-transaction", () => ({
   runSerializableTransaction: runSerializableTransactionMock,
+}));
+
+vi.mock("@/lib/audit/write-audit-log", () => ({
+  fireAuditLog: fireAuditLogMock,
 }));
 
 vi.mock("@/lib/db/auth-prisma", () => ({
   authPrisma: { boundary: "auth" },
 }));
 
-vi.mock("@/lib/db/prisma", () => ({
-  withUserDbContext: withUserDbContextMock,
-}));
-
-describe("account deletion database privileges", () => {
+describe("account deletion database boundary", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    runSerializableTransactionMock
-      .mockImplementationOnce((action) => action(tx))
-      .mockImplementationOnce((action) => action(tx));
-    withUserDbContextMock.mockImplementation((_userId, action) =>
-      action(appTx),
-    );
-    tx.user.findUnique.mockResolvedValue({ id: "user-1", isAdmin: false });
-    tx.user.delete.mockResolvedValue({ id: "user-1" });
+    runSerializableTransactionMock.mockImplementation((action) => action(tx));
+    tx.$queryRaw.mockResolvedValue([{ status: "deleted" }]);
+    fireAuditLogMock.mockResolvedValue(undefined);
   });
 
-  it("deletes owner-scoped rows in app context before auth user deletion", async () => {
+  it("delegates gate, audit, anonymization, and deletion to one serializable function", async () => {
     const { deleteOwnAccount } = await import(
       "@/features/settings/server/account-deletion-service"
     );
 
-    await expect(deleteOwnAccount("user-1")).resolves.toEqual({ ok: true });
+    await expect(
+      deleteOwnAccount("user-1", {
+        channel: "system",
+        requestId: "request-1",
+        sessionId: "session-1",
+      }),
+    ).resolves.toEqual({ ok: true });
 
-    expect(runSerializableTransactionMock).toHaveBeenNthCalledWith(
-      1,
+    expect(runSerializableTransactionMock).toHaveBeenCalledOnce();
+    expect(runSerializableTransactionMock).toHaveBeenCalledWith(
       expect.any(Function),
       "Failed to delete account",
       { boundary: "auth" },
     );
-    expect(withUserDbContextMock).toHaveBeenCalledWith(
-      "user-1",
-      expect.any(Function),
+    expect(tx.$queryRaw).toHaveBeenCalledOnce();
+    expect(fireAuditLogMock).not.toHaveBeenCalled();
+  });
+
+  it("does not duplicate the denied audit written by the database function", async () => {
+    tx.$queryRaw.mockResolvedValue([{ status: "cannot_remove_last_admin" }]);
+    const { deleteOwnAccount } = await import(
+      "@/features/settings/server/account-deletion-service"
     );
-    expect(appTx.todo.deleteMany).toHaveBeenCalledWith({
-      where: { userId: "user-1" },
-    });
-    expect(runSerializableTransactionMock).toHaveBeenNthCalledWith(
-      2,
-      expect.any(Function),
-      "Failed to delete account",
-      { boundary: "auth" },
-    );
-    expect(tx.user.delete).toHaveBeenCalledWith({ where: { id: "user-1" } });
-    expect(tx.auditLog.updateMany).not.toHaveBeenCalled();
-    expect(tx.userSuspension.updateMany).not.toHaveBeenCalled();
+
+    await expect(
+      deleteOwnAccount("admin-1", {
+        channel: "web",
+        sessionId: "session-admin-1",
+      }),
+    ).resolves.toEqual({ ok: false, reason: "cannot_remove_last_admin" });
+    expect(fireAuditLogMock).not.toHaveBeenCalled();
   });
 });

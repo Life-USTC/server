@@ -20,36 +20,38 @@ export let logs: SectionHomeworkAuditLog[];
 </script>
 
 {#if logs.length > 0}
-  <Accordion.Root type="single">
-    <Accordion.Item value="history">
-      <Accordion.Trigger>{homeworkCopy.contentHistoryAction}</Accordion.Trigger>
-      <Accordion.Content>
-        <Item.Group>
-          {#each logs.slice(0, 5) as log}
-            <Item.Root
-              size="sm"
-              variant="muted"
-            >
-              <Item.Content>
-                <Item.Title>{homeworkAuditActionLabel(log.action)}</Item.Title>
-                <Item.Description class="line-clamp-none">
-                  {log.titleSnapshot}
-                </Item.Description>
-              </Item.Content>
-              <Item.Actions>
-                {fmtDateTime(log.createdAt)}
-              </Item.Actions>
-              {#if log.actor}
-                <Item.Footer>
-                  {formatMessage(homeworkCopy.contentHistoryActor, {
-                    name: log.actor.name ?? log.actor.username ?? commonCopy.unknown,
-                  })}
-                </Item.Footer>
-              {/if}
-            </Item.Root>
-          {/each}
-        </Item.Group>
-      </Accordion.Content>
-    </Accordion.Item>
-  </Accordion.Root>
+  <section class="border-t pt-6">
+    <Accordion.Root type="single">
+      <Accordion.Item value="history">
+        <Accordion.Trigger>{homeworkCopy.contentHistoryAction}</Accordion.Trigger>
+        <Accordion.Content>
+          <Item.Group>
+            {#each logs.slice(0, 5) as log}
+              <Item.Root
+                size="sm"
+                variant="muted"
+              >
+                <Item.Content class="min-w-0">
+                  <Item.Title>{homeworkAuditActionLabel(log.action)}</Item.Title>
+                  <Item.Description class="line-clamp-none">
+                    {log.titleSnapshot}
+                  </Item.Description>
+                </Item.Content>
+                <Item.Actions>
+                  {fmtDateTime(log.createdAt)}
+                </Item.Actions>
+                {#if log.actor}
+                  <Item.Footer>
+                    {formatMessage(homeworkCopy.contentHistoryActor, {
+                      name: log.actor.name ?? log.actor.username ?? commonCopy.unknown,
+                    })}
+                  </Item.Footer>
+                {/if}
+              </Item.Root>
+            {/each}
+          </Item.Group>
+        </Accordion.Content>
+      </Accordion.Item>
+    </Accordion.Root>
+  </section>
 {/if}

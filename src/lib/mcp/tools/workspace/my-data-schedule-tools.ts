@@ -3,6 +3,7 @@ import * as z from "zod";
 import {
   listSubscribedExams,
   listSubscribedSchedules,
+  toSubscribedScheduleEntryDto,
 } from "@/features/subscriptions/server/subscription-read-model";
 import {
   flexDateInputSchema,
@@ -13,7 +14,6 @@ import {
   parseMcpDateRange,
   resolveMcpMode,
 } from "@/lib/mcp/tools/_shared/helpers";
-import { serializeScheduleTimeFields } from "@/shared/lib/schedule-serialization";
 
 export function registerMyScheduleTools(server: McpServer) {
   server.registerTool(
@@ -52,7 +52,11 @@ export function registerMyScheduleTools(server: McpServer) {
       });
 
       return jsonToolResult(
-        { schedules: schedules.map(serializeScheduleTimeFields) },
+        {
+          schedules: schedules.map((schedule) =>
+            toSubscribedScheduleEntryDto(schedule, locale),
+          ),
+        },
         { mode: resolvedMode },
       );
     },

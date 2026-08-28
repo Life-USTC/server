@@ -23,6 +23,7 @@ describe("provider-api 守卫", () => {
       api.adminCreateOAuthClient({
         headers: new Headers(),
         body: {
+          application_type: "native",
           client_name: "Client",
           redirect_uris: ["https://example.com/callback"],
           token_endpoint_auth_method: OAUTH_PUBLIC_CLIENT_AUTH_METHOD,

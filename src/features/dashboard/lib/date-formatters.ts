@@ -1,8 +1,6 @@
+import { formatHomeworkDueRelativeTime } from "@/features/homeworks/lib/homework-presentation";
 import { toShanghaiDateTimeLocalValue } from "@/lib/time/shanghai-format";
-import {
-  formatDueRelativeTime,
-  formatSmartDateTime,
-} from "@/shared/lib/time-utils";
+import { formatSmartDateTime } from "@/shared/lib/time-utils";
 
 export function formatDashboardDateTime(
   value: Date | string | null | undefined,
@@ -21,7 +19,12 @@ export function formatDashboardDueRelativeTime(
   locale: string,
 ) {
   if (!value) return fallback;
-  return formatDueRelativeTime(value, new Date(referenceDate), locale);
+  return formatHomeworkDueRelativeTime(
+    value,
+    new Date(referenceDate),
+    locale,
+    fallback,
+  );
 }
 
 export function isDashboardDueOverdue(

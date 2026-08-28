@@ -1,10 +1,14 @@
+import type { Prisma } from "@/generated/prisma/client";
 import type { AppLocale } from "@/i18n/config";
 import { DEFAULT_LOCALE } from "@/i18n/config";
 import { getViewerContext } from "@/lib/auth/viewer-context";
-import { getPrisma, prisma } from "@/lib/db/prisma";
+import { getPrisma, prisma, withUserDbContext } from "@/lib/db/prisma";
+import { paginatedQuery } from "@/lib/query-pagination";
 import {
+  attachHomeworkCompletionsForViewer,
   homeworkItemInclude,
   homeworkItemResponse,
+  homeworkItemSummarySelect,
   withHomeworkCompletionsForViewer,
 } from "./homework-read-model";
 
@@ -18,8 +22,16 @@ type SectionHomeworkItemInput = SectionHomeworkListInput & {
   viewerUserId?: string | null;
 };
 
-type SectionHomeworkListWithAuditInput = SectionHomeworkListInput & {
+type SectionHomeworkListWithViewerInput = SectionHomeworkListInput & {
   userId?: string | null;
+};
+
+type SectionHomeworkPageInput = SectionHomeworkItemInput & {
+  pagination: { page: number; pageSize: number };
+};
+
+type SectionHomeworkPageWithViewerInput = SectionHomeworkListWithViewerInput & {
+  pagination: { page: number; pageSize: number };
 };
 
 type HomeworkSectionReferencesInput = {
@@ -30,11 +42,26 @@ type HomeworkSectionReferencesInput = {
 
 type HomeworkSectionReferencesError = "invalid" | "not_found";
 
-const homeworkAuditActorInclude = {
-  actor: {
-    select: { id: true, name: true, username: true, image: true },
-  },
+const homeworkAuditActorSelect = {
+  id: true,
+  image: true,
+  name: true,
+  username: true,
 } as const;
+
+const homeworkAuditLogSelect = {
+  action: true,
+  createdAt: true,
+  id: true,
+  metadata: true,
+  targetId: true,
+  user: { select: homeworkAuditActorSelect },
+  userId: true,
+} as const satisfies Prisma.AuditLogSelect;
+
+type HomeworkAuditRow = Prisma.AuditLogGetPayload<{
+  select: typeof homeworkAuditLogSelect;
+}>;
 
 export function homeworkSectionWhere(sectionIds: readonly number[]) {
   return sectionIds.length === 1
@@ -77,51 +104,218 @@ export async function listSectionHomeworkItems({
   sectionIds,
   viewerUserId,
 }: SectionHomeworkItemInput) {
-  const homeworks = await getPrisma(locale).homework.findMany({
-    where: {
-      ...homeworkSectionWhere(sectionIds),
-      ...(includeDeleted ? {} : { deletedAt: null }),
-    },
-    include: homeworkItemInclude(),
-    orderBy: [{ submissionDueAt: "asc" }, { createdAt: "desc" }],
-  });
+  const loadHomeworks = () =>
+    getPrisma(locale).homework.findMany({
+      where: {
+        ...homeworkSectionWhere(sectionIds),
+        ...(includeDeleted ? {} : { deletedAt: null }),
+      },
+      select: homeworkItemSummarySelect(),
+      orderBy: [{ submissionDueAt: "asc" }, { createdAt: "desc" }],
+    });
 
-  const homeworksWithCompletions = await withHomeworkCompletionsForViewer(
-    homeworks,
-    viewerUserId,
+  if (!viewerUserId) {
+    const homeworks = await loadHomeworks();
+    return attachHomeworkCompletionsForViewer(homeworks, []).map(
+      homeworkItemResponse,
+    );
+  }
+
+  const [homeworks, completions] = await Promise.all([
+    loadHomeworks(),
+    withUserDbContext(viewerUserId, (tx) =>
+      tx.homeworkCompletion.findMany({
+        where: {
+          userId: viewerUserId,
+          homework: {
+            ...homeworkSectionWhere(sectionIds),
+            ...(includeDeleted ? {} : { deletedAt: null }),
+          },
+        },
+        select: { homeworkId: true, completedAt: true },
+      }),
+    ),
+  ]);
+
+  return attachHomeworkCompletionsForViewer(homeworks, completions).map(
+    homeworkItemResponse,
   );
-  return homeworksWithCompletions.map(homeworkItemResponse);
 }
 
-export function listSectionHomeworkAuditLogs(sectionIds: readonly number[]) {
-  return prisma.homeworkAuditLog.findMany({
-    where: homeworkSectionWhere(sectionIds),
-    include: homeworkAuditActorInclude,
+export async function listSectionHomeworkPage({
+  includeDeleted = false,
+  locale = DEFAULT_LOCALE,
+  pagination,
+  sectionIds,
+  viewerUserId,
+}: SectionHomeworkPageInput) {
+  const client = getPrisma(locale);
+  const where = {
+    ...homeworkSectionWhere(sectionIds),
+    ...(includeDeleted ? {} : { deletedAt: null }),
+  };
+  const page = await paginatedQuery(
+    (skip, take) =>
+      client.homework.findMany({
+        where,
+        select: homeworkItemSummarySelect(),
+        orderBy: [{ submissionDueAt: "asc" }, { createdAt: "desc" }],
+        skip,
+        take,
+      }),
+    () => client.homework.count({ where }),
+    pagination.page,
+    pagination.pageSize,
+  );
+  const homeworks = await withHomeworkCompletionsForViewer(
+    page.data,
+    viewerUserId,
+  );
+  return { ...page, data: homeworks.map(homeworkItemResponse) };
+}
+
+export async function listSectionHomeworkAuditLogs(
+  sectionIds: readonly number[],
+) {
+  if (sectionIds.length === 0) return [];
+  const rows = await prisma.auditLog.findMany({
+    where: {
+      action: {
+        in: ["homework_create", "homework_update", "homework_delete"],
+      },
+      targetType: "homework",
+      OR: sectionIds.map((sectionId) => ({
+        metadata: { path: ["sectionId"], equals: sectionId },
+      })),
+    },
+    select: homeworkAuditLogSelect,
+    orderBy: { createdAt: "desc" },
+    take: 50,
+  });
+  return rows.map((row) => homeworkAuditLogResponse(row));
+}
+
+function homeworkAuditLogResponse(
+  row: HomeworkAuditRow,
+  fallbackSectionId?: number,
+) {
+  const metadata =
+    typeof row.metadata === "object" && row.metadata !== null
+      ? (row.metadata as Record<string, unknown>)
+      : {};
+  return {
+    id: row.id,
+    action:
+      row.action === "homework_create"
+        ? ("created" as const)
+        : row.action === "homework_update"
+          ? ("updated" as const)
+          : ("deleted" as const),
+    titleSnapshot:
+      typeof metadata.titleSnapshot === "string"
+        ? metadata.titleSnapshot
+        : null,
+    createdAt: row.createdAt,
+    sectionId:
+      typeof metadata.sectionId === "number"
+        ? metadata.sectionId
+        : (fallbackSectionId ?? Number(metadata.sectionId)),
+    homeworkId: row.targetId,
+    actorId: row.userId,
+    actor: row.user,
+  };
+}
+
+async function loadHomeworkAuditRowsForHomework(homeworkId: string) {
+  return prisma.auditLog.findMany({
+    where: {
+      action: {
+        in: ["homework_create", "homework_update", "homework_delete"],
+      },
+      targetType: "homework",
+      targetId: homeworkId,
+    },
+    select: homeworkAuditLogSelect,
     orderBy: { createdAt: "desc" },
     take: 50,
   });
 }
 
-export async function listSectionHomeworksWithAudit({
+export async function getSectionHomeworkAuditLogs(
+  homeworkId: string,
+  sectionId: number,
+) {
+  const rows = await loadHomeworkAuditRowsForHomework(homeworkId);
+  return rows.map((row) => homeworkAuditLogResponse(row, sectionId));
+}
+
+export async function getSectionHomeworkDetail(input: {
+  homeworkId: string;
+  locale?: AppLocale;
+  userId?: string | null;
+}) {
+  const homework = await getPrisma(
+    input.locale ?? DEFAULT_LOCALE,
+  ).homework.findFirst({
+    where: { id: input.homeworkId, deletedAt: null },
+    include: homeworkItemInclude(),
+  });
+  if (!homework) return null;
+
+  const [homeworkWithCompletion, auditLogs] = await Promise.all([
+    withHomeworkCompletionsForViewer([homework], input.userId),
+    getSectionHomeworkAuditLogs(homework.id, homework.sectionId),
+  ]);
+  const [item] = homeworkWithCompletion;
+  if (!item) return null;
+  return {
+    auditLogs,
+    homework: homeworkItemResponse(item),
+  };
+}
+
+export async function listSectionHomeworks({
   includeDeleted = false,
   locale = DEFAULT_LOCALE,
   sectionIds,
   userId,
-}: SectionHomeworkListWithAuditInput) {
-  const viewer = await getViewerContext({
-    includeAdmin: true,
-    userId: userId ?? null,
-  });
-
-  const [homeworks, auditLogs] = await Promise.all([
+}: SectionHomeworkListWithViewerInput) {
+  const [viewer, homeworks] = await Promise.all([
+    getViewerContext({
+      includeAdmin: true,
+      userId: userId ?? null,
+    }),
     listSectionHomeworkItems({
       includeDeleted,
       locale,
       sectionIds,
-      viewerUserId: viewer.userId,
+      viewerUserId: userId,
     }),
-    listSectionHomeworkAuditLogs(sectionIds),
   ]);
 
-  return { viewer, homeworks, auditLogs };
+  return { viewer, homeworks };
+}
+
+export async function listSectionHomeworkPageWithViewer({
+  includeDeleted = false,
+  locale = DEFAULT_LOCALE,
+  pagination,
+  sectionIds,
+  userId,
+}: SectionHomeworkPageWithViewerInput) {
+  const [viewer, page] = await Promise.all([
+    getViewerContext({
+      includeAdmin: true,
+      userId: userId ?? null,
+    }),
+    listSectionHomeworkPage({
+      includeDeleted,
+      locale,
+      pagination,
+      sectionIds,
+      viewerUserId: userId,
+    }),
+  ]);
+
+  return { ...page, viewer };
 }

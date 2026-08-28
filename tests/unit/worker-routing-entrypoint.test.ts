@@ -1,0 +1,493 @@
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+
+const {
+  appFetchMock,
+  handleAuditLogWriteBatchMock,
+  handleCalendarExportRebuildBatchMock,
+  logAppEventMock,
+  runWithCloudflareRuntimeEnvMock,
+  setCloudflareRequestContextMock,
+} = vi.hoisted(() => ({
+  appFetchMock: vi.fn(),
+  handleAuditLogWriteBatchMock: vi.fn(),
+  handleCalendarExportRebuildBatchMock: vi.fn(),
+  logAppEventMock: vi.fn(),
+  runWithCloudflareRuntimeEnvMock: vi.fn(
+    (_env: unknown, callback: () => unknown) => callback(),
+  ),
+  setCloudflareRequestContextMock: vi.fn(),
+}));
+
+vi.mock("cloudflare:workers", () => ({
+  WorkerEntrypoint: class {},
+}));
+vi.mock("life-ustc-sveltekit-worker", () => ({
+  default: { fetch: appFetchMock },
+}));
+vi.mock("@/lib/audit/audit-log-queue", () => ({
+  handleAuditLogWriteBatch: handleAuditLogWriteBatchMock,
+}));
+vi.mock("@/features/calendar/server/calendar-export-rebuild", () => ({
+  handleCalendarExportRebuildBatch: handleCalendarExportRebuildBatchMock,
+}));
+vi.mock("@/lib/adapters/cloudflare-runtime", () => ({
+  getCloudflareAnalyticsEngineDataset: () => undefined,
+  getCloudflareRuntimeEnvInput: () => ({}),
+  runWithCloudflareRuntimeEnv: runWithCloudflareRuntimeEnvMock,
+  setCloudflareRequestContext: setCloudflareRequestContextMock,
+}));
+vi.mock("@/lib/log/app-logger", () => ({
+  logAppEvent: logAppEventMock,
+}));
+
+import {
+  INTERNAL_REQUEST_ID_HEADER,
+  normalizePublicSsrObservedRoute,
+} from "@/lib/log/worker-entrypoint-observability";
+import worker, { PublicSsr } from "@/worker";
+
+async function withHtmlRewriter<T>(callback: () => Promise<T>) {
+  const globalScope = globalThis as typeof globalThis & {
+    HTMLRewriter?: unknown;
+  };
+  const previousHtmlRewriter = globalScope.HTMLRewriter;
+  globalScope.HTMLRewriter = class {
+    on() {
+      return this;
+    }
+
+    transform(response: Response) {
+      return response;
+    }
+  };
+  try {
+    return await callback();
+  } finally {
+    if (previousHtmlRewriter === undefined) {
+      delete globalScope.HTMLRewriter;
+    } else {
+      globalScope.HTMLRewriter = previousHtmlRewriter;
+    }
+  }
+}
+
+describe("Worker routing entrypoint", () => {
+  beforeEach(() => {
+    appFetchMock.mockReset();
+    handleAuditLogWriteBatchMock.mockReset();
+    handleCalendarExportRebuildBatchMock.mockReset();
+    logAppEventMock.mockReset();
+    runWithCloudflareRuntimeEnvMock.mockClear();
+    setCloudflareRequestContextMock.mockClear();
+    appFetchMock.mockResolvedValue(new Response("dynamic", { status: 200 }));
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("correlates and sanitizes dynamic sign-in requests without changing method or body", async () => {
+    let forwardedBody: string | undefined;
+    appFetchMock.mockImplementationOnce(async (forwardedRequest: Request) => {
+      forwardedBody = await forwardedRequest.text();
+      return new Response("dynamic", { status: 200 });
+    });
+
+    const response = await worker.fetch(
+      new Request(
+        "https://life-ustc.test/account/sign-in?callbackUrl=%2Foauth%2Fauthorize%3Fstate%3Dsecret",
+        {
+          body: "provider=google",
+          headers: {
+            "content-type": "application/x-www-form-urlencoded",
+            "x-life-public-ssr": "1",
+            "x-life-public-ssr-locale": "en-us",
+            "x-life-public-ssr-mode": "page",
+            [INTERNAL_REQUEST_ID_HEADER]: "client-controlled-internal-id",
+            "x-request-id": "client-controlled-id",
+          },
+          method: "POST",
+        },
+      ),
+      {},
+      { waitUntil: vi.fn() },
+    );
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("x-request-id")).toMatch(/^[0-9a-f-]{36}$/i);
+    const [forwardedRequest] = appFetchMock.mock.calls[0] ?? [];
+    expect(forwardedRequest).toBeInstanceOf(Request);
+    expect(forwardedRequest.method).toBe("POST");
+    expect(forwardedBody).toBe("provider=google");
+    expect(forwardedRequest.headers.get(INTERNAL_REQUEST_ID_HEADER)).toBe(
+      response.headers.get("x-request-id"),
+    );
+    expect(forwardedRequest.headers.get("x-request-id")).toBeNull();
+    expect(forwardedRequest.headers.get("x-life-public-ssr")).toBeNull();
+    expect(forwardedRequest.headers.get("x-life-public-ssr-locale")).toBeNull();
+    expect(forwardedRequest.headers.get("x-life-public-ssr-mode")).toBeNull();
+    expect(setCloudflareRequestContextMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        requestId: response.headers.get("x-request-id"),
+      }),
+    );
+    expect(JSON.stringify(logAppEventMock.mock.calls)).not.toContain("secret");
+    expect(logAppEventMock).toHaveBeenCalledWith(
+      "info",
+      "edge.request.finish",
+      expect.objectContaining({
+        cacheOutcome: "dynamic",
+        method: "POST",
+        requestClass: "dynamic",
+        requestId: response.headers.get("x-request-id"),
+        status: 200,
+      }),
+    );
+    expect(logAppEventMock).toHaveBeenCalledTimes(1);
+    expect(JSON.stringify(logAppEventMock.mock.calls)).not.toContain(
+      "client-controlled-id",
+    );
+    expect(JSON.stringify(logAppEventMock.mock.calls)).not.toContain(
+      "client-controlled-internal-id",
+    );
+  });
+
+  it("keeps the original body request when no spoofable headers need cleanup", async () => {
+    const request = new Request(
+      "https://life-ustc.test/api/workspace/subscriptions",
+      {
+        body: JSON.stringify({ sectionIds: [1] }),
+        headers: { "content-type": "application/json" },
+        method: "PATCH",
+      },
+    );
+    let trustedContextRequestId: string | undefined;
+    setCloudflareRequestContextMock.mockImplementationOnce(
+      ({ requestId }: { requestId: string }) => {
+        trustedContextRequestId = requestId;
+      },
+    );
+    appFetchMock.mockImplementationOnce(async (forwardedRequest: Request) => {
+      expect(forwardedRequest).toBe(request);
+      expect(trustedContextRequestId).toMatch(/^[0-9a-f-]{36}$/i);
+      return new Response("unauthorized", { status: 401 });
+    });
+
+    const response = await worker.fetch(request, {}, { waitUntil: vi.fn() });
+
+    expect(response.status).toBe(401);
+    expect(appFetchMock.mock.calls[0]?.[0]).toBe(request);
+    expect(trustedContextRequestId).toBe(response.headers.get("x-request-id"));
+    expect(logAppEventMock).toHaveBeenCalledWith(
+      "info",
+      "edge.request.finish",
+      expect.objectContaining({
+        method: "PATCH",
+        requestId: response.headers.get("x-request-id"),
+        status: 401,
+      }),
+    );
+  });
+
+  it("records exactly one completion for a public SSR response", async () => {
+    const publicSsrFetchMock = vi.fn().mockResolvedValue(
+      new Response("public", {
+        headers: {
+          "cf-cache-status": "HIT",
+          "content-type": "text/html; charset=utf-8",
+          "X-Robots-Tag": "noindex, nofollow, noarchive",
+        },
+      }),
+    );
+
+    const response = await withHtmlRewriter(() =>
+      worker.fetch(
+        new Request("https://life-ustc.test/account/sign-in", {
+          headers: { accept: "text/html" },
+        }),
+        {},
+        {
+          exports: {
+            PublicSsr: vi.fn(() => ({ fetch: publicSsrFetchMock })),
+          },
+          waitUntil: vi.fn(),
+        },
+      ),
+    );
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("X-Robots-Tag")).toBe(
+      "noindex, nofollow, noarchive",
+    );
+    expect(response.headers.get("x-request-id")).toMatch(/^[0-9a-f-]{36}$/i);
+    expect(publicSsrFetchMock).toHaveBeenCalledTimes(1);
+    const [cachedRequest, cacheOptions] =
+      publicSsrFetchMock.mock.calls[0] ?? [];
+    expect(cachedRequest).toBeInstanceOf(Request);
+    expect(cachedRequest.url).toBe(
+      "https://life-ustc.test/account/sign-in?__life_locale=zh-cn&__life_mode=page",
+    );
+    expect(cachedRequest.headers.get("cookie")).toBeNull();
+    expect(cachedRequest.headers.get("authorization")).toBeNull();
+    expect(cachedRequest.headers.get(INTERNAL_REQUEST_ID_HEADER)).toBe(
+      response.headers.get("x-request-id"),
+    );
+    expect(cacheOptions).toEqual({
+      cf: {
+        cacheKey: "/account/sign-in?__life_locale=zh-cn&__life_mode=page",
+      },
+    });
+    expect(appFetchMock).not.toHaveBeenCalled();
+    expect(logAppEventMock).toHaveBeenCalledTimes(1);
+    expect(logAppEventMock).toHaveBeenCalledWith(
+      "info",
+      "edge.request.finish",
+      expect.objectContaining({
+        cacheOutcome: "hit",
+        method: "GET",
+        requestClass: "public-ssr-cache",
+        requestId: response.headers.get("x-request-id"),
+        status: 200,
+      }),
+    );
+  });
+
+  it("attributes dynamic API requests to a finite route family", async () => {
+    const response = await worker.fetch(
+      new Request(
+        "https://life-ustc.test/api/catalog/courses/123?token=private-value",
+      ),
+      {},
+      { waitUntil: vi.fn() },
+    );
+
+    expect(response.status).toBe(200);
+    const completion = logAppEventMock.mock.calls.find(
+      ([, event]) => event === "edge.request.finish",
+    );
+    expect(completion?.[2]).toEqual(
+      expect.objectContaining({
+        cacheOutcome: "dynamic",
+        requestClass: "dynamic",
+        route: "/api/catalog",
+        status: 200,
+      }),
+    );
+    expect(JSON.stringify(completion)).not.toContain("private-value");
+  });
+
+  it("does not store per-request ids in the shared cache representation", async () => {
+    appFetchMock.mockResolvedValue(
+      new Response(null, {
+        headers: {
+          "content-type": "text/html; charset=utf-8",
+          [INTERNAL_REQUEST_ID_HEADER]: "stale-internal-id",
+          "x-request-id": "stale-public-id",
+        },
+      }),
+    );
+
+    const cached = await new PublicSsr().fetch(
+      new Request("https://life-ustc.test/account/sign-in"),
+    );
+
+    expect(cached.headers.get("x-request-id")).toBeNull();
+    expect(cached.headers.get(INTERNAL_REQUEST_ID_HEADER)).toBeNull();
+  });
+
+  it("stamps each shared cache response with the current id and correlates one completion", async () => {
+    const cachedResponse = new Response(null, {
+      headers: {
+        "cf-cache-status": "HIT",
+        "content-type": "text/html; charset=utf-8",
+        [INTERNAL_REQUEST_ID_HEADER]: "stale-internal-id",
+        "x-request-id": "stale-public-id",
+      },
+    });
+    const publicSsrFetchMock = vi.fn().mockResolvedValue(cachedResponse);
+    const exports = {
+      PublicSsr: vi.fn(() => ({ fetch: publicSsrFetchMock })),
+    };
+    const context = { exports, waitUntil: vi.fn() };
+
+    const first = await withHtmlRewriter(() =>
+      worker.fetch(
+        new Request("https://life-ustc.test/account/sign-in", {
+          headers: {
+            accept: "text/html",
+            [INTERNAL_REQUEST_ID_HEADER]: "spoofed-internal-id",
+            "x-request-id": "spoofed-public-id",
+          },
+        }),
+        {},
+        context,
+      ),
+    );
+    const second = await withHtmlRewriter(() =>
+      worker.fetch(
+        new Request("https://life-ustc.test/account/sign-in", {
+          headers: {
+            accept: "text/html",
+            [INTERNAL_REQUEST_ID_HEADER]: "spoofed-internal-id-2",
+            "x-request-id": "spoofed-public-id-2",
+          },
+        }),
+        {},
+        context,
+      ),
+    );
+
+    const firstId = first.headers.get("x-request-id");
+    const secondId = second.headers.get("x-request-id");
+    expect(firstId).toMatch(/^[0-9a-f-]{36}$/i);
+    expect(secondId).toMatch(/^[0-9a-f-]{36}$/i);
+    expect(secondId).not.toBe(firstId);
+    expect(first.headers.get(INTERNAL_REQUEST_ID_HEADER)).toBeNull();
+    expect(second.headers.get(INTERNAL_REQUEST_ID_HEADER)).toBeNull();
+    expect(firstId).not.toMatch(/stale|spoofed/);
+    expect(secondId).not.toMatch(/stale|spoofed/);
+
+    const completions = logAppEventMock.mock.calls.filter(
+      ([, event]) => event === "edge.request.finish",
+    );
+    expect(completions).toHaveLength(2);
+    expect(completions.map(([, , fields]) => fields.requestId)).toEqual([
+      firstId,
+      secondId,
+    ]);
+    expect(publicSsrFetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it("records one error completion before retaining the detailed worker error", async () => {
+    const error = new Error("upstream app failure");
+    appFetchMock.mockRejectedValueOnce(error);
+
+    await expect(
+      worker.fetch(
+        new Request(
+          "https://life-ustc.test/account/sign-in?state=oauth-state-secret",
+          {
+            body: "provider=google",
+            headers: { "content-type": "application/x-www-form-urlencoded" },
+            method: "POST",
+          },
+        ),
+        {},
+        { waitUntil: vi.fn() },
+      ),
+    ).rejects.toBe(error);
+
+    const edgeEvents = logAppEventMock.mock.calls.filter(
+      ([, event]) => event === "edge.request.finish",
+    );
+    const workerErrorEvents = logAppEventMock.mock.calls.filter(
+      ([, event]) => event === "worker.fetch.error",
+    );
+    expect(edgeEvents).toHaveLength(1);
+    expect(workerErrorEvents).toHaveLength(1);
+    const requestId = edgeEvents[0]?.[2]?.requestId;
+    expect(requestId).toMatch(/^[0-9a-f-]{36}$/i);
+    expect(edgeEvents[0]?.[2]).toEqual(
+      expect.objectContaining({
+        cacheOutcome: "dynamic",
+        method: "POST",
+        requestClass: "dynamic",
+        requestId,
+        route: normalizePublicSsrObservedRoute("/account/sign-in"),
+        status: 500,
+      }),
+    );
+    expect(workerErrorEvents[0]?.[2]).toEqual(
+      expect.objectContaining({ requestId }),
+    );
+    expect(workerErrorEvents[0]?.[3]).toBe(error);
+    expect(JSON.stringify(edgeEvents)).not.toContain("oauth-state-secret");
+    expect(JSON.stringify(workerErrorEvents)).not.toContain(
+      "oauth-state-secret",
+    );
+  });
+
+  it("records exactly one completion for a catalog redirect", async () => {
+    const response = await worker.fetch(
+      new Request("https://life-ustc.test/sections/159446"),
+      {},
+      { waitUntil: vi.fn() },
+    );
+
+    expect(response.status).toBe(301);
+    expect(response.headers.get("location")).toBe("/catalog/sections/159446");
+    expect(response.headers.get("x-request-id")).toMatch(/^[0-9a-f-]{36}$/i);
+    expect(appFetchMock).not.toHaveBeenCalled();
+    expect(logAppEventMock).toHaveBeenCalledTimes(1);
+    expect(logAppEventMock).toHaveBeenCalledWith(
+      "info",
+      "edge.request.finish",
+      expect.objectContaining({
+        cacheOutcome: "bypass",
+        method: "GET",
+        requestClass: "catalog-redirect",
+        requestId: response.headers.get("x-request-id"),
+        route: "/:legacy-catalog-route",
+        status: 301,
+      }),
+    );
+  });
+
+  it("records one queue completion with the audit handler outcome", async () => {
+    handleAuditLogWriteBatchMock.mockResolvedValue({ outcome: "retry" });
+
+    await worker.queue(
+      {
+        messages: [{}],
+        queue: "life-ustc-audit-log-write",
+      },
+      {},
+      { waitUntil: vi.fn() },
+    );
+
+    const queueFinishes = logAppEventMock.mock.calls.filter(
+      ([, event]) => event === "worker.queue.finish",
+    );
+    expect(handleAuditLogWriteBatchMock).toHaveBeenCalledOnce();
+    expect(queueFinishes).toHaveLength(1);
+    expect(queueFinishes[0]).toEqual([
+      "warn",
+      "worker.queue.finish",
+      expect.objectContaining({
+        messageCount: 1,
+        outcome: "retry",
+        queue: "audit",
+      }),
+    ]);
+  });
+
+  it("records one calendar queue completion with a retry outcome", async () => {
+    handleCalendarExportRebuildBatchMock.mockResolvedValue({
+      outcome: "retry",
+    });
+
+    await worker.queue(
+      {
+        messages: [{}],
+        queue: "life-ustc-calendar-export-rebuild",
+      },
+      {},
+      { waitUntil: vi.fn() },
+    );
+
+    const queueFinishes = logAppEventMock.mock.calls.filter(
+      ([, event]) => event === "worker.queue.finish",
+    );
+    expect(handleCalendarExportRebuildBatchMock).toHaveBeenCalledOnce();
+    expect(queueFinishes).toHaveLength(1);
+    expect(queueFinishes[0]).toEqual([
+      "warn",
+      "worker.queue.finish",
+      expect.objectContaining({
+        messageCount: 1,
+        outcome: "retry",
+        queue: "calendar",
+      }),
+    ]);
+  });
+});

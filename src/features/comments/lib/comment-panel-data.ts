@@ -1,7 +1,14 @@
-export type { CommentsInitialData } from "./comment-panel-load-data";
+export type {
+  CommentsInitialData,
+  CommentTargetLoadState,
+} from "./comment-panel-load-data";
 export {
   commentsFromInitialData,
+  loadCommentRepliesPage,
   loadCommentsForTargets,
+  loadCommentThreadPage,
+  mergeCommentReplyThread,
+  mergeCommentThread,
 } from "./comment-panel-load-data";
 export {
   commentPostTargetOptions,

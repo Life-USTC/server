@@ -1,5 +1,10 @@
 import { scheduleInvalidateCalendarExportsForSection } from "@/features/calendar/server/calendar-export-invalidation";
+import { writeAuditLog } from "@/lib/audit/write-audit-log";
 import { prisma } from "@/lib/db/prisma";
+import {
+  type HomeworkAuditContext,
+  homeworkAuditAttribution,
+} from "./homework-audit";
 import {
   type HomeworkWriteAuthError,
   requireActiveHomeworkWriter,
@@ -52,6 +57,7 @@ export async function resolveSectionIdForHomeworkCreate(input: {
 export async function createHomeworkForSection(
   userId: string,
   homeworkInput: CreateHomeworkInput,
+  audit?: HomeworkAuditContext,
 ) {
   const writer = await requireActiveHomeworkWriter(userId);
   if (!writer.ok) return writer;
@@ -99,15 +105,27 @@ export async function createHomeworkForSection(
       });
     }
 
-    await tx.homeworkAuditLog.create({
-      data: {
-        action: "created",
-        sectionId,
-        homeworkId: homework.id,
-        actorId: userId,
-        titleSnapshot: homeworkInput.title,
+    await writeAuditLog(
+      {
+        action: "homework_create",
+        ...homeworkAuditAttribution(userId, audit),
+        targetId: homework.id,
+        targetType: "homework",
+        metadata: {
+          sectionId,
+          changedFields: [
+            "title",
+            "isMajor",
+            "requiresTeam",
+            "publishedAt",
+            "submissionStartAt",
+            "submissionDueAt",
+            ...(homeworkInput.description ? ["description"] : []),
+          ],
+        },
       },
-    });
+      tx,
+    );
 
     return homework;
   });

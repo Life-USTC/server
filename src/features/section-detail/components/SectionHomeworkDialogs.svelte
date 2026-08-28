@@ -25,6 +25,7 @@ export let applyEditStartNow: SectionDetailHomeworkDialogsProps["applyEditStartN
 export let auditLogsForHomework: SectionDetailHomeworkDialogsProps["auditLogsForHomework"];
 export let canManageSelectedHomework: boolean;
 export let canWriteHomework: boolean;
+export let completionSaving: boolean;
 export let cancelEditHomework: SectionDetailHomeworkDialogsProps["cancelEditHomework"];
 export let closeCreateHomeworkDialog: SectionDetailHomeworkDialogsProps["closeCreateHomeworkDialog"];
 export let commentsCopy: SectionDetailHomeworkDialogsProps["commentsCopy"];
@@ -49,9 +50,10 @@ export let homeworkAuditActorName: SectionDetailHomeworkDialogsProps["homeworkAu
 export let homeworkAuditLogs: SectionDetailHomeworkDialogsProps["homeworkAuditLogs"];
 export let homeworkCopy: SectionDetailHomeworkDialogsProps["homeworkCopy"];
 export let homeworkMessage: string;
-export let homeworkStatus: SectionDetailHomeworkDialogsProps["homeworkStatus"];
 export let isHomeworkAuditDialogOpen: boolean;
+export let locale: string;
 export let sectionCopy: SectionDetailHomeworkDialogsProps["sectionCopy"];
+export let sectionLabel: string;
 export let sectionJwId: number | string;
 export let selectedHomework: SectionDetailHomeworkDialogsProps["selectedHomework"];
 export let semesterDate: SectionDetailHomeworkDialogsProps["semesterDate"];
@@ -81,6 +83,7 @@ export let updateHomework: SectionDetailHomeworkDialogsProps["updateHomework"];
   openAuditDialog={() => setHomeworkAuditDialogOpen(true)}
   bind:publishedAt={createHomeworkPublishedAt}
   {sectionCopy}
+  {sectionLabel}
   show={showCreateHomework}
   bind:submissionDueAt={createHomeworkSubmissionDueAt}
   bind:submissionStartAt={createHomeworkSubmissionStartAt}
@@ -97,6 +100,7 @@ export let updateHomework: SectionDetailHomeworkDialogsProps["updateHomework"];
   _auditLogsForHomework={auditLogsForHomework}
   _canManageSelectedHomework={canManageSelectedHomework}
   _canWriteHomework={canWriteHomework}
+  _completionSaving={completionSaving}
   _cancelEditHomework={cancelEditHomework}
   _commentsCopy={commentsCopy}
   _commonCopy={commonCopy}
@@ -109,7 +113,6 @@ export let updateHomework: SectionDetailHomeworkDialogsProps["updateHomework"];
   _formatMessage={formatMessage}
   _homeworkAuditActionLabel={homeworkAuditActionLabel}
   _homeworkCopy={homeworkCopy}
-  _homeworkStatus={homeworkStatus}
   _sectionCopy={sectionCopy}
   _selectedHomework={selectedHomework}
   _semesterDate={semesterDate}
@@ -117,6 +120,8 @@ export let updateHomework: SectionDetailHomeworkDialogsProps["updateHomework"];
   _startEditHomework={startEditHomework}
   _toggleHomeworkCompletion={toggleHomeworkCompletion}
   _updateHomework={updateHomework}
+  {locale}
+  {sectionLabel}
   {sectionJwId}
   close={() => {
     setSelectedHomework(null);

@@ -10,6 +10,7 @@ import {
 } from "@/features/catalog/lib/catalog-results-summary";
 import { formatSemesterName } from "@/lib/text/format-semester-name";
 import { page as appPage } from "$app/stores";
+import ResponsiveCollection from "$lib/components/ResponsiveCollection.svelte";
 import TruncatedCode from "$lib/components/TruncatedCode.svelte";
 import TruncatedText from "$lib/components/TruncatedText.svelte";
 import * as Item from "$lib/components/ui/item/index.js";
@@ -63,11 +64,13 @@ $: sectionSemesterSummary = selectedSemester
     {totalPages}
   />
   {#if data.data.length > 0}
-    <div class="xl:hidden" data-testid="catalog-results-cards">
-      <Item.Group>
-        {#each data.data as section}
+    <ResponsiveCollection>
+      {#snippet mobile()}
+      <div data-testid="catalog-results-cards">
+      <Item.Group class="gap-0" role="list">
+        {#each data.data as section, index}
           {@const sectionHref = `/catalog/sections/${section.jwId}`}
-          <Item.Root variant="outline" size="sm">
+          <Item.Root role="listitem" size="sm">
             {#snippet child({ props })}
               <a href={sectionHref} {...props}>
                 <Item.Content>
@@ -88,10 +91,15 @@ $: sectionSemesterSummary = selectedSemester
               </a>
             {/snippet}
           </Item.Root>
+          {#if index < data.data.length - 1}
+            <Item.Separator aria-hidden="true" />
+          {/if}
         {/each}
       </Item.Group>
-    </div>
-    <div class="hidden min-w-0 max-w-full xl:block">
+      </div>
+      {/snippet}
+      {#snippet desktop()}
+      <div class="min-w-0 max-w-full">
       <Table.Root class="table-fixed">
         <Table.Header class="bg-muted/30">
           <Table.Row>
@@ -107,13 +115,11 @@ $: sectionSemesterSummary = selectedSemester
         <Table.Body>
           {#each data.data as section}
             {@const sectionHref = `/catalog/sections/${section.jwId}`}
-            <Table.Row>
-              <Table.Cell class="p-0 align-top">
-                <CatalogTableLink href={sectionHref} nowrap>
-                  {section.semester?.nameCn
-                    ? formatSemesterName(locale, section.semester.nameCn)
-                    : sectionLabels.noSemester}
-                </CatalogTableLink>
+            <Table.Row class="has-[a:hover]:bg-muted/50">
+              <Table.Cell class="align-top whitespace-nowrap">
+                {section.semester?.nameCn
+                  ? formatSemesterName(locale, section.semester.nameCn)
+                  : sectionLabels.noSemester}
               </Table.Cell>
               <Table.Cell class="p-0 align-top whitespace-normal">
                 <CatalogTableLink href={sectionHref}>
@@ -122,38 +128,30 @@ $: sectionSemesterSummary = selectedSemester
                   />
                 </CatalogTableLink>
               </Table.Cell>
-              <Table.Cell class="p-0 align-top">
-                <CatalogTableLink href={sectionHref}>
-                  <TruncatedCode text={section.code} />
-                </CatalogTableLink>
+              <Table.Cell class="align-top">
+                <TruncatedCode text={section.code} />
               </Table.Cell>
-              <Table.Cell class="p-0 align-top whitespace-normal">
-                <CatalogTableLink href={sectionHref}>
-                  <TruncatedText
-                    text={catalogLocalizedNames(section.teachers, locale) || "-"}
-                  />
-                </CatalogTableLink>
+              <Table.Cell class="align-top whitespace-normal">
+                <TruncatedText
+                  text={catalogLocalizedNames(section.teachers, locale) || "-"}
+                />
               </Table.Cell>
-              <Table.Cell class="p-0 text-right align-top">
-                <CatalogTableLink href={sectionHref} numeric>
-                  {section.credits ?? "-"}
-                </CatalogTableLink>
+              <Table.Cell class="text-right align-top tabular-nums">
+                {section.credits ?? "-"}
               </Table.Cell>
-              <Table.Cell class="p-0 text-right align-top">
-                <CatalogTableLink href={sectionHref} numeric>
-                  {section.stdCount ?? 0} / {section.limitCount ?? "-"}
-                </CatalogTableLink>
+              <Table.Cell class="text-right align-top tabular-nums">
+                {section.stdCount ?? 0} / {section.limitCount ?? "-"}
               </Table.Cell>
-              <Table.Cell class="p-0 align-top">
-                <CatalogTableLink href={sectionHref}>
-                  {section.campus ? primaryName(section.campus) : "-"}
-                </CatalogTableLink>
+              <Table.Cell class="align-top">
+                {section.campus ? primaryName(section.campus) : "-"}
               </Table.Cell>
             </Table.Row>
           {/each}
         </Table.Body>
       </Table.Root>
-    </div>
+      </div>
+      {/snippet}
+    </ResponsiveCollection>
   {:else}
     <div class="py-10">
       <CatalogResultsEmpty

@@ -11,7 +11,7 @@ type AdminSuspensionResponse = {
 
 export async function suspendSelectedUser(config: AdminUsersActionConfig) {
   const selectedUser = config.getSelectedUser();
-  if (!selectedUser) return;
+  if (!selectedUser) return false;
   const copy = config.getCopy();
   const suspendState = config.getSuspendState();
   config.setSuspending(true);
@@ -31,14 +31,18 @@ export async function suspendSelectedUser(config: AdminUsersActionConfig) {
       },
     );
     if (!result.response.ok || !result.data) {
+      config.setMessageVariant("destructive");
       config.setMessage(apiErrorMessage(result.error, copy.suspendFailed));
-      return;
+      return false;
     }
     config.replaceUser({
       ...selectedUser,
       activeSuspension: result.data.suspension,
     });
+    config.setMessageVariant("default");
     config.setMessage(copy.suspendSuccess);
+    config.onSuccess?.("suspend");
+    return true;
   } finally {
     config.setSuspending(false);
   }

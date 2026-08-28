@@ -9,11 +9,12 @@ import {
   suspensionForbidden,
 } from "@/lib/api/helpers";
 import { commentCreateRequestSchema } from "@/lib/api/schemas/request-schemas";
+import { attributionFromApiPrincipal } from "@/lib/audit/principal-attribution";
 import { getAuditRequestMetadata } from "@/lib/audit/write-audit-log";
-import { requireAuth } from "@/lib/auth/api-auth";
+import { requireAuthPrincipal } from "@/lib/auth/api-auth";
 
 export async function postCommentRoute(request: Request) {
-  const auth = await requireAuth(request, {
+  const auth = await requireAuthPrincipal(request, {
     bearerScope: { feature: "community.comment", action: "write" },
   });
   if (auth instanceof Response) {
@@ -38,7 +39,10 @@ export async function postCommentRoute(request: Request) {
   try {
     const result = await createComment({
       attachmentIds: parsedBody.attachmentIds,
-      auditMetadata: getAuditRequestMetadata(request),
+      auditMetadata: {
+        ...getAuditRequestMetadata(request),
+        ...attributionFromApiPrincipal(auth),
+      },
       content,
       courseJwId: parsedBody.courseJwId,
       homeworkId: parsedBody.homeworkId,

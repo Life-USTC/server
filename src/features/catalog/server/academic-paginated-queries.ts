@@ -7,8 +7,15 @@ import {
   teacherPublicListSelect,
 } from "@/features/catalog/server/academic-query-includes";
 import type { Prisma } from "@/generated/prisma/client";
+import type { AppLocale } from "@/i18n/config";
+import { DEFAULT_LOCALE } from "@/i18n/config";
 import { getPrisma } from "@/lib/db/prisma";
 import { paginatedQuery } from "@/lib/query-pagination";
+import {
+  toCourseDto,
+  toSectionSummaryDto,
+  toTeacherListDto,
+} from "./academic-summary-dto-mappers";
 
 export function paginatedSectionQuery(
   page: number,
@@ -17,7 +24,7 @@ export function paginatedSectionQuery(
   orderBy?:
     | Prisma.SectionOrderByWithRelationInput
     | Prisma.SectionOrderByWithRelationInput[],
-  locale = "zh-cn",
+  locale: AppLocale = DEFAULT_LOCALE,
 ) {
   const prisma = getPrisma(locale);
   return paginatedQuery(
@@ -42,7 +49,7 @@ export function paginatedSectionCompactQuery(
   orderBy?:
     | Prisma.SectionOrderByWithRelationInput
     | Prisma.SectionOrderByWithRelationInput[],
-  locale = "zh-cn",
+  locale: AppLocale = DEFAULT_LOCALE,
 ) {
   const prisma = getPrisma(locale);
   return paginatedQuery(
@@ -67,7 +74,7 @@ export function paginatedSectionSummaryQuery(
   orderBy?:
     | Prisma.SectionOrderByWithRelationInput
     | Prisma.SectionOrderByWithRelationInput[],
-  locale = "zh-cn",
+  locale: AppLocale = DEFAULT_LOCALE,
 ) {
   const prisma = getPrisma(locale);
   return paginatedQuery(
@@ -82,7 +89,10 @@ export function paginatedSectionSummaryQuery(
     () => prisma.section.count({ where }),
     page,
     pageSize,
-  );
+  ).then((result) => ({
+    ...result,
+    data: result.data.map((item) => toSectionSummaryDto(item, locale)),
+  }));
 }
 
 export function paginatedSectionCatalogQuery(
@@ -92,7 +102,7 @@ export function paginatedSectionCatalogQuery(
   orderBy?:
     | Prisma.SectionOrderByWithRelationInput
     | Prisma.SectionOrderByWithRelationInput[],
-  locale = "zh-cn",
+  locale: AppLocale = DEFAULT_LOCALE,
 ) {
   const prisma = getPrisma(locale);
   return paginatedQuery(
@@ -117,7 +127,7 @@ export function paginatedCourseQuery(
   orderBy?:
     | Prisma.CourseOrderByWithRelationInput
     | Prisma.CourseOrderByWithRelationInput[],
-  locale = "zh-cn",
+  locale: AppLocale = DEFAULT_LOCALE,
 ) {
   const prisma = getPrisma(locale);
   return paginatedQuery(
@@ -132,7 +142,10 @@ export function paginatedCourseQuery(
     () => prisma.course.count({ where }),
     page,
     pageSize,
-  );
+  ).then((result) => ({
+    ...result,
+    data: result.data.map((item) => toCourseDto(item, locale)),
+  }));
 }
 
 export function paginatedTeacherQuery(
@@ -142,7 +155,7 @@ export function paginatedTeacherQuery(
   orderBy?:
     | Prisma.TeacherOrderByWithRelationInput
     | Prisma.TeacherOrderByWithRelationInput[],
-  locale = "zh-cn",
+  locale: AppLocale = DEFAULT_LOCALE,
 ) {
   const prisma = getPrisma(locale);
   return paginatedQuery(
@@ -157,5 +170,8 @@ export function paginatedTeacherQuery(
     () => prisma.teacher.count({ where }),
     page,
     pageSize,
-  );
+  ).then((result) => ({
+    ...result,
+    data: result.data.map((item) => toTeacherListDto(item, locale)),
+  }));
 }

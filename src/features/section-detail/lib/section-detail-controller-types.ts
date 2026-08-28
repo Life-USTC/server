@@ -87,6 +87,7 @@ export type SectionDetailSection = {
   roomType?: SectionDetailNamed | null;
   schedules: SectionDetailSchedule[];
   scheduleCount: number;
+  otherCourseSectionCount: number;
   otherCourseSections: SectionDetailRelatedSection[];
   semester?: SectionDetailSemester | null;
   semesterId?: number | null;
@@ -154,13 +155,17 @@ export type SectionDetailCopy = {
   };
   homeworks: SectionDetailHomeworkMessages & {
     auditCreated: string;
+    auditUpdated: string;
     auditDeleted: string;
     auditTitle: string;
     auditEmpty: string;
     auditMeta: string;
     calendarButtonLabel: string;
+    advancedHide: string;
+    advancedShow: string;
     cancel: string;
     completedLabel: string;
+    commentsTitle: string;
     contentHistoryAction: string;
     contentHistoryActor: string;
     createAction: string;
@@ -171,6 +176,7 @@ export type SectionDetailCopy = {
     descriptionEmpty: string;
     descriptionLabel: string;
     descriptionPlaceholder: string;
+    dueDateShortcuts: string;
     editAction: string;
     helperClear: string;
     helperMonth: string;
@@ -182,11 +188,17 @@ export type SectionDetailCopy = {
     loginToCreate: string;
     markComplete: string;
     markIncomplete: string;
+    moreDetails: string;
+    pendingLabel: string;
     publishedAt: string;
+    relativeTime: string;
     saveChanges: string;
+    saving: string;
+    sectionLabel: string;
     showCreate: string;
     submissionDue: string;
     submissionStart: string;
+    statusLabel: string;
     subtitle: string;
     tagDefault: string;
     tagMajor: string;
@@ -241,6 +253,7 @@ export type SectionDetailCopy = {
     noTeachersListed: string;
     notAvailable: string;
     operationFailed: string;
+    pleaseRetry: string;
     otherSections: string;
     period: string;
     periodsPerWeek: string;
@@ -254,6 +267,7 @@ export type SectionDetailCopy = {
     sectionCode: string;
     semester: string;
     subscribeLabel: string;
+    subscribeSuccess: string;
     subscribing: string;
     subscriptionDisclaimer: string;
     subscriptionMissing: string;
@@ -279,6 +293,7 @@ export type SectionDetailCopy = {
     title: string;
     units: string;
     unsubscribeLabel: string;
+    unsubscribeSuccess: string;
     unsubscribing: string;
     due: string;
     flags: string;
@@ -363,7 +378,6 @@ export type SectionDetailPageData = {
   viewer: {
     isSubscribed?: boolean;
     signedIn?: boolean;
-    subscriptionIcsUrl?: string | null;
   };
 };
 

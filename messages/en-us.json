@@ -30,7 +30,10 @@
       "welcome": "Complete Your Profile",
       "privacy": "Privacy Policy",
       "terms": "Terms of Service",
-      "mobileApp": "Mobile App"
+      "mobileApp": "Mobile App",
+      "prestoBot": "Presto Bot",
+      "mcp": "MCP",
+      "cli": "CLI"
     }
   },
   "common": {
@@ -131,7 +134,6 @@
     "linkCopiedDescription": "Calendar link has been copied to clipboard",
     "optOut": "Opt out",
     "optOutConfirm": "Confirm",
-    "optOutSuccess": "Section removed",
     "optOutSuccessDescription": "This section has been removed from your Life@USTC subscriptions",
     "optOutError": "Failed to remove section",
     "optOutRetry": "Please try again",
@@ -191,7 +193,6 @@
       "unmatchedCodes": "Unmatched codes ({count})",
       "cancel": "Cancel",
       "subscribeSelected": "Subscribe to {count} sections",
-      "success": "Added successfully",
       "successDescription": "Added {count} new section{plural} to Life@USTC",
       "importFailed": "Add failed"
     }
@@ -384,6 +385,135 @@
       }
     }
   },
+  "usagePages": {
+    "bot": {
+      "title": "Meet Presto",
+      "subtitle": "Check campus information and your schedule in QQ.",
+      "primaryAction": "Message Presto",
+      "primaryQrAlt": "Presto QQ QR code",
+      "previewTitle": "Presto · QQ",
+      "previewAriaLabel": "Example conversation with Presto on QQ",
+      "previewLines": [
+        { "kind": "command", "text": "下一节课" },
+        {
+          "kind": "image",
+          "text": "Upcoming class image returned by Presto",
+          "src": "/images/usage/presto-next-class.png"
+        }
+      ],
+      "startTitle": "More examples",
+      "steps": [
+        {
+          "title": "课表",
+          "description": "Weekly schedule image returned by Presto",
+          "imageSrc": "/images/usage/presto-schedule.png"
+        },
+        {
+          "title": "校车 东区 西区",
+          "description": "Shuttle bus image returned by Presto",
+          "imageSrc": "/images/usage/presto-bus.png"
+        },
+        {
+          "title": "作业",
+          "description": "Homework image returned by Presto",
+          "imageSrc": "/images/usage/presto-homework.png"
+        }
+      ]
+    },
+    "mcp": {
+      "title": "Connect with MCP",
+      "subtitle": "Connect Life@USTC to ChatGPT, Claude, or any other MCP-compatible client.",
+      "primaryAction": "Copy MCP endpoint",
+      "copiedAction": "Endpoint copied",
+      "copyValueAction": "Copy",
+      "copiedValueAction": "Copied",
+      "fieldLabels": {
+        "name": "Name",
+        "description": "Description",
+        "serverUrl": "Server URL"
+      },
+      "useCaseTitle": "Life@USTC in ChatGPT",
+      "useCaseAlt": "ChatGPT using Life@USTC to show todos and next semester's schedule",
+      "configurationTitle": "Configuration methods",
+      "endpointLabel": "Remote MCP URL",
+      "clientTabs": {
+        "chatgpt": "ChatGPT",
+        "claude": "Claude.ai",
+        "other": "Other agents",
+        "webLabel": "Web",
+        "localLabel": "Local"
+      },
+      "chatgpt": {
+        "overviewAlt": "ChatGPT plugins page with the add button highlighted",
+        "overviewSrc": "/images/usage/mcp-chatgpt-overview-en.png",
+        "filledSrc": "/images/usage/mcp-chatgpt-filled-en.png",
+        "steps": [
+          "Enable Developer Mode in Settings → Apps → Advanced settings, then create an app.",
+          "Fill in the details below, scan the tools, and create the app.",
+          "Authorize with Life@USTC, then select the app from the tools menu in a new chat."
+        ],
+        "emptyAlt": "Blank ChatGPT new plugin form",
+        "filledAlt": "Completed Life@USTC ChatGPT plugin configuration",
+        "iconAlt": "Life@USTC plugin icon",
+        "iconAction": "Download the ChatGPT plugin icon",
+        "iconHint": "This icon is only used for ChatGPT plugin customization."
+      },
+      "claude": {
+        "steps": [
+          "Open Claude connector settings, click Add, then choose Add custom connector.",
+          "Fill the form with the information below, then click Add.",
+          "Follow the prompt to sign in through Life@USTC."
+        ],
+        "emptyAlt": "Blank Claude custom connector form",
+        "filledAlt": "Completed Life@USTC Claude connector configuration",
+        "note": "Leave OAuth Client ID and Client Secret blank."
+      },
+      "otherClients": {
+        "title": "Codex, Claude Code, and other clients",
+        "description": "Copy the command for Codex or Claude Code. For any other remote-MCP client, use the URL below. Life@USTC signs in with OAuth, so no API key or Authorization header is required."
+      }
+    },
+    "cli": {
+      "title": "Life@USTC in your terminal",
+      "subtitle": "Access campus information and your workspace from the terminal.",
+      "primaryAction": "View on GitHub",
+      "installTitle": "Install with Go",
+      "installCommand": "go install github.com/Life-USTC/CLI/cmd/life-ustc@latest",
+      "startTitle": "Real command results",
+      "steps": [
+        {
+          "title": "life-ustc catalog course -s \"线性代数\" --no-interactive --limit 3",
+          "resultLines": [
+            "Showing 3 of 6 · page 1 of 2",
+            "CODE      NAME          LEVEL  JW ID",
+            "MATH1004  线性代数(A1)  本科   9499",
+            "MATH1005  线性代数(A2)  本科   9202",
+            "MATH1009  线性代数(B1)  本科   9498"
+          ]
+        },
+        {
+          "title": "life-ustc catalog bus --all --limit 4",
+          "resultLines": [
+            "东区 -> 北区 -> 西区",
+            "07:30 → 07:40  (东区 → 西区)",
+            "09:20 → 09:30  (东区 → 西区)",
+            "09:35 → 09:45  (东区 → 西区)",
+            "11:35 → 11:45  (东区 → 西区)"
+          ]
+        },
+        {
+          "title": "life-ustc catalog teacher -s \"zhang\" --no-interactive --limit 3",
+          "resultLines": [
+            "Showing 3 of 236 · page 1 of 79",
+            "NAME    DEPARTMENT    CODE       ID",
+            "吴章友  临床医学院    FY1020026  6458195",
+            "张一飞  研究生院      06896      6455773",
+            "张一鸣  附属第一医院  FY1060422  6457224"
+          ]
+        }
+      ]
+    }
+  },
   "admin": {
     "title": "Admin",
     "subtitle": "Entry point for moderation and admin tools.",
@@ -395,6 +525,10 @@
     "oauthDescription": "OAuth apps",
     "busTitle": "Bus Management",
     "busDescription": "Bus timetables",
+    "auditTitle": "Audit Log",
+    "auditDescription": "Sensitive operation records",
+    "analyticsTitle": "Aggregate Analytics",
+    "analyticsDescription": "Feature usage trends",
     "dashboard": {
       "active": "active",
       "deleted": "deleted",
@@ -433,6 +567,9 @@
     "statusActive": "Active",
     "statusInactive": "Inactive",
     "activateAction": "Activate version",
+    "activateTitle": "Activate timetable version?",
+    "activateDescription": "Activating {title} immediately replaces the public shuttle timetable.",
+    "confirmActivateAction": "Activate version",
     "deleteAction": "Delete version",
     "activated": "Version activated",
     "deleted": "Version deleted",
@@ -447,6 +584,66 @@
     "invalidVersionId": "Invalid version id",
     "versionNotFound": "Version not found",
     "cannotDeleteActiveVersion": "Cannot delete active version"
+  },
+  "adminAudit": {
+    "title": "Audit Log",
+    "subtitle": "Filter sensitive operations by actor, subject, client, action, outcome, channel, target, and time. Content bodies, IP addresses, and full device details are not shown here.",
+    "filters": "Filters",
+    "advancedFilters": "More filters",
+    "actor": "Actor ID",
+    "subject": "Subject account ID",
+    "client": "OAuth client ID",
+    "action": "Action",
+    "outcome": "Outcome",
+    "channel": "Channel",
+    "targetType": "Target type",
+    "targetId": "Target ID",
+    "from": "From date",
+    "to": "To date",
+    "all": "All",
+    "apply": "Apply filters",
+    "clear": "Clear",
+    "records": "Records",
+    "noRecords": "No audit records match these filters.",
+    "time": "Time",
+    "actorColumn": "Actor",
+    "subjectColumn": "Subject account",
+    "clientColumn": "Client",
+    "target": "Target",
+    "details": "Safe details",
+    "previous": "Previous",
+    "next": "Next",
+    "newest": "Back to newest",
+    "page": "Showing {shown} · {total} records total"
+  },
+  "adminAnalytics": {
+    "title": "Aggregate Analytics",
+    "subtitle": "Operation counts by feature, channel, outcome, and OAuth client, without per-user browsing trails.",
+    "window": "Reporting window",
+    "days": "Last {days} days",
+    "total": "Total operations",
+    "success": "Successful operations",
+    "attention": "Needs attention",
+    "failureRate": "Exception rate",
+    "externalShare": "OAuth client share",
+    "activeClients": "Active clients",
+    "trend": "Activity trend",
+    "trendDescription": "Total operations and denied/failed operations, grouped by Shanghai calendar day.",
+    "totalSeries": "All operations",
+    "riskSeries": "Denied or failed",
+    "dailyDetails": "View daily data",
+    "rankings": "Primary sources",
+    "topFeatures": "Features",
+    "topChannels": "Channels",
+    "topClients": "Clients",
+    "firstParty": "Life@USTC web",
+    "failures": "{count} exceptions",
+    "feature": "Feature",
+    "channel": "Channel",
+    "outcome": "Outcome",
+    "client": "Client",
+    "count": "Count",
+    "noData": "No aggregate data is available for this period."
   },
   "adminUsers": {
     "title": "User Management",
@@ -485,6 +682,10 @@
     "editDescription": "Edit user details and apply suspensions.",
     "profileRoleTitle": "Profile and role",
     "profileRoleDescription": "Update identity fields and administrator access.",
+    "roleChangeConfirmTitle": "Change administrator access?",
+    "grantAdminConfirmDescription": "This grants the account access to all administration and moderation tools.",
+    "revokeAdminConfirmDescription": "This removes the account's access to administration and moderation tools.",
+    "confirmRoleChange": "Confirm role change",
     "nameLabel": "Name",
     "usernameLabel": "Username",
     "adminToggleLabel": "Grant admin access",
@@ -492,6 +693,9 @@
     "saving": "Saving...",
     "suspendTitle": "Suspend user",
     "suspendDescription": "Temporarily restrict collaborative writes for this user.",
+    "updateSuspensionAction": "Update suspension",
+    "updateSuspensionConfirmTitle": "Replace the active suspension?",
+    "updateSuspensionConfirmDescription": "The current suspension will be ended and replaced with the new reason and expiration.",
     "suspending": "Suspending...",
     "liftSuspensionAction": "Lift suspension",
     "lifting": "Lifting...",
@@ -687,7 +891,7 @@
       "title": "Websites",
       "description": "Search USTC services and pin frequently used entries.",
       "publicDescription": "Search campus links and sign in to pin your favorites.",
-      "searchPlaceholder": "Search by name or description…",
+      "searchPlaceholder": "Search by name, description, or domain…",
       "searchShortcutHint": "Press ⌘⇧K or Ctrl+Shift+K to focus search",
       "allSitesTab": "All websites",
       "overviewHint": "Overview shows 4 sites only: your pins first, then recommended ones.",
@@ -808,6 +1012,8 @@
     "hidePreferences": "Hide preferences",
     "editPreferences": "Edit preferences",
     "empty": "No shuttle data is available right now.",
+    "loadFailed": "Shuttle data could not be loaded. Please try again.",
+    "retry": "Reload",
     "weekday": "Weekday",
     "weekend": "Weekend",
     "bestMatch": "Best match",
@@ -869,7 +1075,7 @@
       "title": "Last year contributions ({count})",
       "description": "Counts comments, uploads, homework creation, and homework completion activity.",
       "cell": "{count} activities on {date}",
-      "scrollLabel": "Contribution history. Scroll horizontally to review the full year.",
+      "scrollLabel": "Contribution history. Use arrow keys to move by day or week, and Home or End to move across a row. Scroll horizontally to review the full year.",
       "less": "Less",
       "more": "More",
       "empty": "No contribution activity available in the last year."
@@ -878,6 +1084,7 @@
   "settings": {
     "title": "Settings",
     "description": "Manage account, content, and safety options here.",
+    "recentAuthRequired": "For account security, sign out and sign in again before performing this action.",
     "workspaceBadge": "Account workspace",
     "passkeys": {
       "title": "Passkeys",
@@ -923,6 +1130,10 @@
         "title": "Linked accounts",
         "description": "Connect or disconnect sign-in providers"
       },
+      "security": {
+        "title": "Security activity",
+        "description": "Review sensitive sign-in, credential, and authorization actions"
+      },
       "authorizations": {
         "title": "Authorized apps",
         "description": "Review and revoke third-party access"
@@ -944,6 +1155,69 @@
         "description": "Choose which language the interface uses."
       }
     },
+    "security": {
+      "title": "Account security activity",
+      "description": "Only sensitive actions involving your account appear here. Network addresses are masked and devices are reduced to browser and operating-system families.",
+      "calendarTokenTitle": "Personal calendar link",
+      "calendarTokenConfirmTitle": "Rotate the private calendar link?",
+      "calendarTokenConfirmDescription": "The previous link stops working immediately. Every calendar client using it will need to subscribe again.",
+      "calendarTokenConfirm": "Rotate link",
+      "calendarTokenDescription": "Rotate the private calendar link if it may have been shared. Existing calendar subscriptions will stop updating.",
+      "calendarTokenRotate": "Rotate private calendar link",
+      "calendarTokenRotated": "Calendar link rotated",
+      "calendarTokenRotatedDescription": "The previous private calendar link no longer works. Copy the new link from your subscriptions page.",
+      "calendarTokenError": "The private calendar link could not be rotated.",
+      "emptyTitle": "No security activity yet",
+      "emptyDescription": "New sign-in, credential, and authorization actions will appear here.",
+      "network": "Network",
+      "device": "Device",
+      "client": "Application",
+      "newer": "Back to latest",
+      "older": "Older activity",
+      "unknownAction": "Account action",
+      "repeated": "{count} consecutive events",
+      "responseTitle": "See something you did not do?",
+      "responseDescription": "Review authorized applications and linked sign-in methods now, then revoke anything you do not recognize.",
+      "reviewAccounts": "Review sign-in methods",
+      "reviewAuthorizations": "Review authorized apps",
+      "actions": {
+        "account_create": "Created account",
+        "account_sign_in": "Signed in",
+        "account_sign_out": "Signed out",
+        "account_profile_update": "Updated profile",
+        "account_credential_update": "Updated account credentials",
+        "account_link": "Linked sign-in account",
+        "account_unlink": "Unlinked sign-in account",
+        "account_delete": "Deleted account",
+        "account_passkey_create": "Added passkey",
+        "account_passkey_update": "Renamed passkey",
+        "account_passkey_delete": "Deleted passkey",
+        "account_session_revoke": "Revoked session",
+        "account_calendar_token_create": "Created private calendar link",
+        "account_calendar_token_rotate": "Rotated calendar token",
+        "oauth_authorization_grant": "Authorized OAuth application",
+        "oauth_authorization_update": "Updated OAuth authorization",
+        "oauth_authorization_revoke": "Revoked OAuth authorization",
+        "admin_user_suspend": "Account suspended",
+        "admin_user_unsuspend": "Account suspension removed",
+        "admin_user_role_update": "Account role changed",
+        "admin_user_profile_update": "Account profile changed by an administrator"
+      },
+      "channels": {
+        "web": "Web",
+        "rest": "REST API",
+        "graphql": "GraphQL",
+        "mcp": "MCP",
+        "auth": "Authentication",
+        "webhook": "Webhook",
+        "system": "System"
+      },
+      "outcomes": {
+        "success": "Successful",
+        "denied": "Denied",
+        "failure": "Failed"
+      }
+    },
     "authorizations": {
       "title": "Authorized OAuth applications",
       "description": "Applications you approved can act with the listed permissions until you revoke access.",
@@ -953,6 +1227,14 @@
       "disabled": "Disabled",
       "permissions": "Permissions",
       "updatedAt": "Last authorized",
+      "lastUsedAt": "Last used",
+      "neverUsed": "No usage recorded in the last 30 days",
+      "recentUsage": "Last 30 days",
+      "reads": "reads",
+      "writes": "writes",
+      "errors": "errors",
+      "lastChannel": "Last channel",
+      "lastFeature": "Last feature",
       "revoke": "Revoke",
       "revoking": "Revoking…",
       "revokeTitle": "Revoke application access?",
@@ -975,6 +1257,7 @@
     "educationLevel": "Education Level",
     "category": "Category",
     "classType": "Class Type",
+    "filterDescription": "Education level, category, and class type filters apply immediately.",
     "summary": {
       "matches": "Matches",
       "matchesMeta": "Courses in current query",
@@ -1110,7 +1393,7 @@
     "capacity": "Capacity",
     "noSemester": "No semester",
     "creditValue": "{count} credits",
-    "filterDescription": "Combine section, course attribute, and sorting conditions. Blank fields are unrestricted.",
+    "filterDescription": "Combine section, course attribute, and sorting conditions; blank fields are unrestricted. Submit with Apply filters.",
     "filters": {
       "any": "Any",
       "apply": "Apply filters",
@@ -1204,7 +1487,7 @@
     "calendarUrlDescription": "Lectures, exams, and homework for this section.",
     "subscriptionUrlLabel": "All your subscriptions",
     "subscriptionUrlDescription": "Every section you subscribe to in Life@USTC, plus todos and other personal schedule items. Updates automatically.",
-    "subscriptionMissing": "Sign in to generate your personal feed",
+    "subscriptionMissing": "Open subscriptions to securely view your personal feed",
     "subscriptionHintLabel": "This URL includes all sections you subscribe to in Life@USTC and auto-syncs. It does not change official USTC course enrollment.",
     "subscriptionPrivacyNote": "Treat this link like a private credential. Do not share it publicly.",
     "subscribeLabel": "Subscribe to section",
@@ -1464,6 +1747,7 @@
     "devDebugHint": "In development mode, use one click to sign in as a debug user for authenticated feature testing.",
     "errorAccountNotLinked": "This account is already linked to another user. Please sign in with a different account.",
     "errorGeneric": "An error occurred during sign in. Please try again.",
+    "reauthenticationRequired": "This sensitive action requires a recent sign-in. Sign in again to continue; your current destination will be preserved.",
     "termsNotice": "By signing in, you agree to our <terms>Terms of Service</terms> and <privacy>Privacy Policy</privacy>."
   },
   "teachers": {
@@ -1481,7 +1765,7 @@
     "sectionCount": "Sections Taught",
     "sections": "Sections",
     "filterTitle": "Filter teachers",
-    "filterDescription": "Search teacher names or codes, then narrow by department.",
+    "filterDescription": "Search teacher names or codes, then narrow by department; department changes apply immediately.",
     "currentDepartment": "Current department",
     "searchLabel": "Search",
     "searchNameOrCode": "Search name or code",
@@ -1604,6 +1888,7 @@
     "submissionStart": "Submission opens",
     "submissionDue": "Submission due",
     "calendarButtonLabel": "Open calendar picker",
+    "dueDateShortcuts": "Due date shortcuts",
     "helperPublishNow": "Publish now",
     "helperStartNow": "Start now",
     "helperClear": "Clear",
@@ -1612,12 +1897,15 @@
     "helperMonth": "Due within a month",
     "helperSemesterEnd": "Due before semester end",
     "helperSemesterStart": "Semester start",
-    "advancedShow": "More settings",
-    "advancedHide": "Hide more settings",
+    "advancedShow": "Other optional settings",
+    "advancedHide": "Hide optional settings",
     "tagMajor": "Major assignment",
     "tagTeam": "Team required",
     "tagDefault": "Standard",
     "completedLabel": "Completed",
+    "pendingLabel": "Pending",
+    "relativeTime": "Deadline status",
+    "moreDetails": "More details",
     "markComplete": "Mark as complete",
     "markIncomplete": "Mark as incomplete",
     "cancel": "Cancel",
@@ -1630,13 +1918,13 @@
     "loadFailed": "Unable to load homework.",
     "emptyTitle": "No homework yet",
     "createdAt": "Created {date}",
-    "selected": "Selected",
+    "statusLabel": "Status",
     "viewDetails": "View details",
     "dateTBD": "TBD",
     "editAction": "Edit details",
     "deleteAction": "Delete",
     "deleteTitle": "Delete homework",
-    "deleteDescription": "Delete {title}? This action is publicly logged.",
+    "deleteDescription": "Delete “{title}”? This action is publicly logged.",
     "confirmDelete": "Confirm delete",
     "titleRequired": "Homework title is required",
     "updateSuccess": "Homework updated",
@@ -1666,6 +1954,7 @@
     "auditTitle": "Edit records",
     "auditEmpty": "No edit records yet",
     "auditCreated": "Created",
+    "auditUpdated": "Updated",
     "auditDeleted": "Deleted",
     "auditMeta": "{name} · {date}",
     "unknownActor": "Unknown user",
@@ -1686,6 +1975,7 @@
     "sectionRequired": "Please select a section."
   },
   "comments": {
+    "ancestryPlaceholder": "Some earlier comments in this thread are unavailable.",
     "title": "Comments",
     "commentNotFound": "Comment not found.",
     "commentTargetNotFound": "Comment target not found.",
@@ -1734,8 +2024,16 @@
     "nameRequired": "Name required",
     "nameRequiredDescription": "Please enter a display name.",
     "submitFailed": "Couldn't post comment",
+    "postSuccess": "Comment posted",
+    "replySuccess": "Reply posted",
+    "editSuccess": "Comment updated",
+    "deleteSuccess": "Comment deleted",
+    "reactionSuccess": "Reaction updated",
     "pleaseRetry": "Please try again.",
     "loadFailed": "Unable to load comments.",
+    "loadMoreComments": "Load more comments",
+    "loadMoreReplies": "Load more replies",
+    "loadTarget": "Load comments",
     "loading": "Loading comments...",
     "retry": "Retry",
     "emptyTitle": "No comments yet",
@@ -1850,6 +2148,9 @@
     "lifted": "Lifted",
     "active": "Active",
     "liftSuspensionAction": "Lift suspension",
+    "liftSuspensionConfirmTitle": "Lift this suspension?",
+    "liftSuspensionConfirmDescription": "This immediately restores collaborative access for {user}.",
+    "liftSuspensionConfirmAction": "Lift suspension",
     "suspendedAt": "Suspended on {date}",
     "filterAll": "All",
     "filterActive": "Active",
@@ -1957,12 +2258,15 @@
     "addButton": "Add Todo",
     "createTitle": "New Todo",
     "editTitle": "Edit Todo",
+    "editDescription": "Update the details for this todo.",
     "titleLabel": "Title",
     "titlePlaceholder": "e.g., Review Chapter 1",
     "contentLabel": "Description",
     "contentPlaceholder": "Supports Markdown formatting",
+    "contentEmpty": "No description added.",
     "priorityLabel": "Priority",
     "dueAtLabel": "Due date",
+    "dueAtPlaceholder": "Optional date and time",
     "dueLabel": "Due",
     "calendarButtonLabel": "Open calendar picker",
     "priority": {
@@ -1983,12 +2287,17 @@
     "editAriaLabel": "Edit todo",
     "delete": "Delete",
     "deleteAriaLabel": "Delete todo",
+    "deleteConfirmTitle": "Delete this todo?",
+    "deleteConfirmDescription": "Delete “{title}”? This action cannot be undone.",
     "cancel": "Cancel",
     "saving": "Saving...",
     "createAction": "Create Todo",
     "saveChanges": "Save Changes",
     "createSuccess": "Todo created",
     "updateSuccess": "Todo updated",
+    "deleteSuccess": "Todo deleted",
+    "completeSuccess": "Todo completed",
+    "uncompleteSuccess": "Todo marked incomplete",
     "saveFailed": "Failed to save",
     "errorTitleRequired": "Please enter a title",
     "errorTitleTooLong": "Title is too long (max 200 characters)",
@@ -2064,6 +2373,7 @@
     "errorInvalidClient": "Invalid client application.",
     "errorInvalidRedirectUri": "Invalid redirect URI.",
     "errorConsentFailed": "The authorization request could not be completed. Please try again from the client application.",
+    "errorRecentAuthRequired": "This authorization changes access to your account. Sign out, sign in again, and restart the authorization from the requesting application.",
     "errorGeneric": "Something went wrong while processing the authorization request.",
     "errorPageTitle": "Authorization Error",
     "errorPageHint": "If this keeps happening, restart the sign-in flow from the requesting app so a fresh authorization request can be created.",
@@ -2142,6 +2452,7 @@
     "scopeGroup_admin": "Admin",
     "scopeGroup_other": "Other",
     "scopeFeature_account.profile": "Profile",
+    "scopeFeature_account.client-activity": "Current application activity",
     "scopeFeature_catalog.bus": "Shuttle",
     "scopeFeature_catalog.course": "Courses",
     "scopeFeature_catalog.exam": "Exams",
@@ -2155,6 +2466,7 @@
     "scopeFeature_community.user": "User profiles",
     "scopeFeature_workspace.bus-preferences": "Shuttle preferences",
     "scopeFeature_workspace.calendar": "Calendar",
+    "scopeFeature_workspace.calendar-feed": "Private calendar feed",
     "scopeFeature_workspace.exam": "Exams",
     "scopeFeature_workspace.homework": "Homework",
     "scopeFeature_workspace.link-pin": "Pinned websites",
@@ -2176,6 +2488,8 @@
     "copyErrorDescription": "We couldn't copy this value to the clipboard.",
     "credentialsTitle": "Client Credentials",
     "credentialsWarning": "Copy these now. The client secret will not be shown again.",
+    "credentialsCopyRequired": "Confirm that you saved the secret before closing this window.",
+    "credentialsSavedAcknowledgement": "I have saved the client secret securely",
     "clientIdLabel": "Client ID",
     "clientSecretLabel": "Client Secret",
     "copyClientId": "Copy ID",
@@ -2237,7 +2551,8 @@
     "unsupportedAuthMethod": "Unsupported client authentication method",
     "missingClientId": "Missing client id",
     "errorMissingRedirectUri": "redirect_uri is required when multiple redirect URIs are registered.",
-    "scope_account.profile:read": "Read your account profile",
+    "scope_account.client-activity:read": "Read activity this application performed for you",
+    "scope_account.profile:read": "Read your account profile (email also requires the email scope)",
     "scope_account.profile:write": "Update your account profile",
     "scope_catalog.bus:read": "Read the public shuttle catalog",
     "scope_catalog.bus:write": "Manage the public shuttle catalog",
@@ -2265,6 +2580,7 @@
     "scope_workspace.bus-preferences:write": "Manage your shuttle preferences",
     "scope_workspace.calendar:read": "Read your calendar",
     "scope_workspace.calendar:write": "Manage your calendar",
+    "scope_workspace.calendar-feed:read": "Read your private calendar feed URL",
     "scope_workspace.exam:read": "Read your exams",
     "scope_workspace.exam:write": "Manage your exams",
     "scope_workspace.homework:read": "Read your homework",
@@ -2295,7 +2611,7 @@
             "Account information, such as name, username, avatar, and linked sign-in providers.",
             "Usage data, such as page visits, feature interactions, and error logs to improve service quality.",
             "Content you submit, such as comments, homework records, and uploaded files.",
-            "Analytics data collected via Google Analytics (Google Tag Manager), including anonymized page views, session duration, and general device/browser information. No personally identifiable information is sent to Google Analytics."
+            "Analytics data collected via the Google Analytics Google tag (gtag.js), including page views, session duration, client identifiers, and general device/browser information. We do not intentionally send names, email addresses, or similar personally identifiable information to Google Analytics."
           ]
         },
         {
@@ -2313,7 +2629,7 @@
             "We do not sell your personal information.",
             "Data is shared only when necessary to provide the service or required by law.",
             "If third-party services are used (for example, identity providers), required data is processed under their terms.",
-            "Google Analytics (provided by Google LLC) processes anonymized usage data on our behalf. You can opt out using the Google Analytics Opt-out Browser Add-on (https://tools.google.com/dlpage/gaoptout)."
+            "Google Analytics (provided by Google LLC) processes usage data on our behalf. You can opt out using the Google Analytics Opt-out Browser Add-on (https://tools.google.com/dlpage/gaoptout), browser tracking protection, or content blocking."
           ]
         },
         {
@@ -2321,6 +2637,8 @@
           "items": [
             "We apply reasonable technical and organizational safeguards to protect data.",
             "Data is retained only as long as needed for service purposes or legal obligations.",
+            "Sensitive-operation audits record the action type, outcome, channel, and necessary account or OAuth client attribution, but not content bodies, tokens, secrets, or search text. IP and device details are anonymized after 30 days, request/session/grant correlation identifiers after 90 days, and audit events are deleted after 400 days.",
+            "Public profile contributions exclude your homework completion state. Admin product analytics shows only aggregates by feature, channel, outcome, and client, without per-user browsing trails.",
             "You can update or remove parts of your profile through account settings."
           ]
         },
@@ -2337,7 +2655,7 @@
           "items": [
             "We may update this Privacy Policy from time to time.",
             "Material changes will be announced through in-app notice or other reasonable channels.",
-            "This version was last updated on 2026-04-10."
+            "This version was last updated on 2026-08-09."
           ]
         }
       ]
@@ -2352,7 +2670,7 @@
             "Life@USTC provides course, section, comments, and related learning information services.",
             "We may improve, change, suspend, or discontinue parts of the service over time.",
             "Some features may require sign-in.",
-            "We use Google Analytics to collect anonymized usage statistics. By using the service, you consent to this data collection as described in our Privacy Policy."
+            "We use Google Analytics to collect usage statistics. By using the service, you consent to this data collection as described in our Privacy Policy."
           ]
         },
         {
@@ -2392,7 +2710,7 @@
           "items": [
             "We may revise these Terms from time to time.",
             "Continued use of the service means you accept the updated Terms.",
-            "This version was last updated on 2026-04-10."
+            "This version was last updated on 2026-08-09."
           ]
         }
       ]

@@ -51,6 +51,7 @@ describe("GraphQL mutation guard", () => {
         context({
           kind: "oauth",
           userId: "user-1",
+          clientId: "client-1",
           scopes: new Set(["workspace.todo:write"]),
           resource: "https://life.example/api/graphql",
         }),
@@ -67,27 +68,28 @@ describe("GraphQL mutation guard", () => {
     ]);
   });
 
-  it.each([
-    "workspace.todo",
-    "community.description",
-  ] as const)("requires the exact OAuth %s write scope", async (feature) => {
-    await expect(
-      requireGraphqlMutation(
-        context({
-          kind: "oauth",
-          userId: "user-1",
-          scopes: new Set([`${feature}:read`]),
-          resource: "https://life.example/api/graphql",
-        }),
-        feature,
-      ),
-    ).rejects.toMatchObject({
-      extensions: {
-        code: "FORBIDDEN",
-        requiredScopes: [`${feature}:write`],
-      },
-    });
-  });
+  it.each(["workspace.todo", "community.description"] as const)(
+    "requires the exact OAuth %s write scope",
+    async (feature) => {
+      await expect(
+        requireGraphqlMutation(
+          context({
+            kind: "oauth",
+            userId: "user-1",
+            clientId: "client-1",
+            scopes: new Set([`${feature}:read`]),
+            resource: "https://life.example/api/graphql",
+          }),
+          feature,
+        ),
+      ).rejects.toMatchObject({
+        extensions: {
+          code: "FORBIDDEN",
+          requiredScopes: [`${feature}:write`],
+        },
+      });
+    },
+  );
 
   it("returns a safe rate-limit error without calling the resolver service", async () => {
     setCloudflareRuntimeEnv({

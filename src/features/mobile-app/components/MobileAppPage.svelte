@@ -1,5 +1,5 @@
 <script lang="ts">
-import { onMount } from "svelte";
+import { Button } from "$lib/components/ui/button/index.js";
 
 type ScreenshotCopy = {
   alt: string;
@@ -29,7 +29,6 @@ type PageData = {
 export let data: PageData;
 
 const HERO_COUNT = 3;
-const HERO_INTERVAL_MS = 2800;
 
 /** Official Apple Design Resources — iPhone 16 Pro Max Black Titanium Portrait */
 const IPHONE_BEZEL_SRC = "/images/mobile-app/iphone-16-pro-max-bezel.png";
@@ -59,16 +58,6 @@ $: screenshots = [
 ];
 
 let frontIndex = 0;
-
-onMount(() => {
-  const media = window.matchMedia("(prefers-reduced-motion: reduce)");
-  const tick = () => {
-    if (media.matches) return;
-    frontIndex = (frontIndex + 1) % HERO_COUNT;
-  };
-  const id = window.setInterval(tick, HERO_INTERVAL_MS);
-  return () => window.clearInterval(id);
-});
 </script>
 
 <style>
@@ -199,7 +188,7 @@ onMount(() => {
 
 <section class="grid gap-10 pb-8">
   <div
-    class="relative -mx-4 -mt-4 bg-[radial-gradient(120%_80%_at_10%_0%,color-mix(in_oklab,var(--primary)_14%,transparent),transparent_55%),linear-gradient(180deg,color-mix(in_oklab,var(--muted)_55%,transparent),var(--background))] sm:-mx-5 lg:-mx-6"
+    class="relative -mx-4 -mt-4 overflow-x-clip bg-[radial-gradient(120%_80%_at_10%_0%,color-mix(in_oklab,var(--primary)_14%,transparent),transparent_55%),linear-gradient(180deg,color-mix(in_oklab,var(--muted)_55%,transparent),var(--background))] sm:-mx-5 lg:-mx-6"
   >
     <div
       class="grid items-end gap-8 px-4 pt-8 pb-10 sm:px-5 sm:pt-10 sm:pb-12 lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)] lg:gap-10 lg:px-6 lg:pt-12 lg:pb-14"
@@ -246,7 +235,7 @@ onMount(() => {
           class="pointer-events-none absolute inset-x-8 bottom-8 h-24 rounded-full bg-foreground/10 blur-3xl"
           aria-hidden="true"
         ></div>
-        <div class="relative mx-auto w-[78%] sm:w-[68%]" aria-live="polite">
+        <div class="relative mx-auto w-[78%] sm:w-[68%]">
           <img
             alt=""
             aria-hidden="true"
@@ -281,6 +270,22 @@ onMount(() => {
                 />
               </div>
             </figure>
+          {/each}
+        </div>
+        <div class="mt-4 flex justify-center gap-1" aria-label={pageCopy.galleryTitle}>
+          {#each heroShots as shot, index (shot.src)}
+            <Button
+              aria-label={shot.copy.title}
+              aria-pressed={frontIndex === index}
+              size="icon-sm"
+              type="button"
+              variant={frontIndex === index ? "secondary" : "ghost"}
+              onclick={() => {
+                frontIndex = index;
+              }}
+            >
+              {index + 1}
+            </Button>
           {/each}
         </div>
       </div>

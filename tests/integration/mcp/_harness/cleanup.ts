@@ -16,7 +16,11 @@ async function pollForAuditLog(
       { timeout: 500, interval: 25 },
     )
     .not.toBeNull();
-  return log!;
+  const result = await lookup();
+  if (!result) {
+    throw new Error("Expected an audit log before the poll deadline");
+  }
+  return result;
 }
 
 export async function findDescriptionEditAuditLog(
@@ -137,7 +141,9 @@ export async function deleteIntegrationHomework(
   if (!homeworkId) return;
 
   await prisma.homeworkCompletion.deleteMany({ where: { homeworkId } });
-  await prisma.homeworkAuditLog.deleteMany({ where: { homeworkId } });
+  await prisma.auditLog.deleteMany({
+    where: { targetId: homeworkId, targetType: "homework" },
+  });
   await prisma.descriptionEdit.deleteMany({
     where: { description: { homeworkId } },
   });

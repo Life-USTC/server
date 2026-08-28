@@ -919,7 +919,7 @@
         "actions": {
           "type": "object",
           "minProperties": 1,
-          "maxProperties": 32,
+          "maxProperties": 64,
           "propertyNames": {
             "pattern": "^[a-z][a-z0-9_]*$"
           },

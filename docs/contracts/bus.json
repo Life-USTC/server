@@ -24,7 +24,8 @@
     "public-version-metadata-omitted": "Public bus dashboard pages omit timetable version metadata rather than showing an unlabeled or unlocalized imported value; the raw title remains available to admin, REST, and MCP consumers.",
     "responsive-route-surfaces": "Bus planner and transit-map pages keep document content within narrow viewports, provide at least 44 CSS pixels of height for primary route actions, wrap stop sequences only between complete arrow-and-stop tokens, and keep campus labels legible over route strokes.",
     "task-oriented-tool-hierarchy": "Use catalog_bus_timetable_get for raw/full datasets, catalog_bus_route_list for unfiltered discovery, catalog_bus_route_search for filtered discovery, catalog_bus_route_get for one route, catalog_bus_departure_next for immediate departure answers, and workspace_bus_preferences_get/workspace_bus_preferences_set for personal defaults.",
-    "canonical-compact-mode": "catalog_bus_timetable_get default mode returns compact counts, route/campus summaries, and relevant departures rather than the full trip dataset; the deprecated summary input is an alias for this same shape."
+    "canonical-compact-mode": "catalog_bus_timetable_get default mode returns compact counts, route/campus summaries, and relevant departures rather than the full trip dataset; the deprecated summary input is an alias for this same shape.",
+    "cache-boundaries": "Raw timetable REST responses remain private because they may contain viewer preferences; route-search REST responses may use revision-purged public edge caching, while all next-departure responses remain private and uncached. The bus map dynamically renders request-time active trips while reusing revision-scoped static schedule and topology data."
   },
   "capabilities": {
     "bus-dashboard": {

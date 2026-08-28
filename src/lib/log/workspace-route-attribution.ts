@@ -3,6 +3,7 @@ import { runCloudflareTraceSpan } from "@/lib/adapters/cloudflare-runtime";
 import { getApiRequestObservabilityRequestId } from "@/lib/log/api-observability-context";
 import { logAppEvent } from "@/lib/log/app-logger";
 import { isProductionEnvironment } from "@/lib/log/app-logger-core";
+import { elapsedMs, monotonicNowMs } from "@/lib/log/observability-clock";
 import {
   type WorkspaceHomeworksRouteStage,
   type WorkspaceRouteName,
@@ -185,7 +186,7 @@ export async function runWorkspaceRouteStage<T>(
     (input.request
       ? getApiRequestObservabilityRequestId(input.request)
       : undefined);
-  const startMs = Date.now();
+  const startMs = monotonicNowMs();
 
   try {
     const result = await runCloudflareTraceSpan(
@@ -193,7 +194,7 @@ export async function runWorkspaceRouteStage<T>(
       {},
       work,
     );
-    const ioObservedDurationMs = Date.now() - startMs;
+    const ioObservedDurationMs = elapsedMs(startMs);
     if (route === "homeworks") {
       writeWorkspaceRouteStageAnalyticsForRoute({
         ioObservedDurationMs,
@@ -218,7 +219,7 @@ export async function runWorkspaceRouteStage<T>(
     });
     return result;
   } catch (error) {
-    const ioObservedDurationMs = Date.now() - startMs;
+    const ioObservedDurationMs = elapsedMs(startMs);
     if (route === "homeworks") {
       writeWorkspaceRouteStageAnalyticsForRoute({
         ioObservedDurationMs,

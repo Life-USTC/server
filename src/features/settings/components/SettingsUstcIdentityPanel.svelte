@@ -10,7 +10,7 @@ $: identities = account.ustcIdentities?.records ?? [];
 </script>
 
 {#if account.id === "oidc" && account.linked}
-  <Item.Root class="col-span-full" variant="muted">
+  <Item.Root class="col-span-full" role="listitem" variant="muted">
     <Item.Content class="gap-3">
       <div>
         <Item.Title>{identityCopy.ustcIdentityTitle}</Item.Title>

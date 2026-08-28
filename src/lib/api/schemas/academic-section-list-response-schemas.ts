@@ -12,7 +12,7 @@ import {
 } from "./academic-section-base-response-schemas";
 import {
   departmentSchema,
-  teacherSchema,
+  teacherPublicIdentitySchema,
   teacherWithDepartmentTitleSchema,
 } from "./academic-teacher-response-schemas";
 
@@ -23,42 +23,44 @@ const localizedNameFields = {
 
 const localizedCourseSchema = courseSchema.extend(localizedNameFields);
 const localizedCampusSchema = campusSchema.extend(localizedNameFields);
-const localizedDepartmentSchema = departmentSchema.extend(localizedNameFields);
-const localizedTeacherSchema = teacherSchema.extend(localizedNameFields);
+const localizedDepartmentSchema = departmentSchema;
+const localizedTeacherSchema = teacherPublicIdentitySchema;
 
-const courseSummarySchema = z.object({
+const courseSummarySchema = z.strictObject({
   id: z.number().int(),
   jwId: z.number().int(),
   code: z.string(),
   nameCn: z.string(),
   nameEn: z.string().nullable(),
+  ...localizedNameFields,
 });
 
-const campusSummarySchema = z.object({
+const campusSummarySchema = z.strictObject({
   id: z.number().int(),
-  jwId: z.number().int().nullable(),
+  jwId: z.number().int(),
   nameCn: z.string(),
   nameEn: z.string().nullable(),
   code: z.string().nullable(),
+  ...localizedNameFields,
 });
 
-const semesterSummarySchema = z.object({
+const semesterSummarySchema = z.strictObject({
   id: z.number().int(),
   jwId: z.number().int(),
   nameCn: z.string(),
   code: z.string(),
 });
 
-const teacherSummarySchema = z.object({
+const teacherSummarySchema = z.strictObject({
   id: z.number().int(),
+  jwId: z.number().int(),
   personId: z.number().int().nullable(),
-  teacherId: z.number().int().nullable(),
   code: z.string().nullable(),
   nameCn: z.string(),
   nameEn: z.string().nullable(),
 });
 
-export const sectionSummarySchema = z.object({
+export const sectionSummarySchema = z.strictObject({
   id: z.number().int(),
   jwId: z.number().int(),
   code: z.string(),
@@ -72,7 +74,27 @@ export const sectionSummarySchema = z.object({
   course: courseSummarySchema,
   semester: semesterSummarySchema.nullable(),
   campus: campusSummarySchema.nullable(),
-  teachers: z.array(teacherSummarySchema),
+  teachers: z.array(teacherSummarySchema.extend(localizedNameFields)),
+});
+
+export const sectionPublicContextSchema = z.strictObject({
+  id: z.number().int(),
+  jwId: z.number().int(),
+  code: z.string(),
+  course: z.strictObject({
+    jwId: z.number().int(),
+    code: z.string(),
+    nameCn: z.string(),
+    nameEn: z.string().nullable(),
+    ...localizedNameFields,
+  }),
+  semester: z
+    .strictObject({
+      jwId: z.number().int(),
+      code: z.string(),
+      nameCn: z.string(),
+    })
+    .nullable(),
 });
 
 export const sectionCompactSchema = sectionBaseSchema.extend({
@@ -90,18 +112,19 @@ export const sectionListSchema = sectionBaseSchema.extend({
   openDepartment: departmentSchema.nullable(),
   examMode: examModeSchema.nullable(),
   teachLanguage: teachLanguageSchema.nullable(),
-  teachers: z.array(teacherSchema),
+  teachers: z.array(teacherPublicIdentitySchema),
   adminClasses: z.array(adminClassSchema),
 });
 
 export const courseDetailSectionSchema = sectionBaseSchema.extend({
   semester: semesterSchema.nullable(),
   campus: campusSchema.nullable(),
-  teachers: z.array(teacherSchema),
+  teachers: z.array(teacherPublicIdentitySchema),
 });
 
 export const courseDetailSchema = courseSchema.extend({
   sections: z.array(courseDetailSectionSchema),
+  _count: z.strictObject({ sections: z.number().int() }),
 });
 
 export const teacherDetailSectionSchema = sectionBaseSchema.extend({
@@ -111,5 +134,13 @@ export const teacherDetailSectionSchema = sectionBaseSchema.extend({
 
 export const teacherDetailSchema = teacherWithDepartmentTitleSchema.extend({
   sections: z.array(teacherDetailSectionSchema),
-  _count: z.object({ sections: z.number().int() }),
+  _count: z.strictObject({ sections: z.number().int() }),
 });
+
+export type SectionSummaryDto = z.output<typeof sectionSummarySchema>;
+export type SectionPublicContextDto = z.output<
+  typeof sectionPublicContextSchema
+>;
+export type SectionCompactDto = z.output<typeof sectionCompactSchema>;
+export type CourseDetailDto = z.output<typeof courseDetailSchema>;
+export type TeacherDetailDto = z.output<typeof teacherDetailSchema>;

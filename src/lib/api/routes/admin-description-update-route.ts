@@ -7,6 +7,7 @@ import {
 } from "@/lib/api/helpers";
 import { withAdminApiRoute } from "@/lib/api/routes/admin-route-auth";
 import { adminModerateDescriptionRequestSchema } from "@/lib/api/schemas/request-schemas";
+import { getAuditRequestMetadata } from "@/lib/audit/write-audit-log";
 import { type IdParams, parseIdParam } from "./admin-shared";
 
 export async function patchAdminDescriptionRoute(
@@ -27,9 +28,15 @@ export async function patchAdminDescriptionRoute(
       );
       if (parsedBody instanceof Response) return parsedBody;
 
-      const result = await moderateDescription(admin.userId, id, {
-        content: parsedBody.content,
-      });
+      const result = await moderateDescription(
+        admin.userId,
+        id,
+        { content: parsedBody.content },
+        {
+          channel: "rest",
+          requestId: getAuditRequestMetadata(request).requestId,
+        },
+      );
       if (!result.ok && result.reason === "invalid_content") {
         return badRequest("Invalid description moderation request");
       }

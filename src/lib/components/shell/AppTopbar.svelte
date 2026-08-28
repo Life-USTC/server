@@ -3,6 +3,7 @@ import appIconUrl from "$lib/assets/life-ustc-icon-192.png";
 import type { ThemeMode } from "$lib/components/shell/layout-shell";
 import { Button } from "$lib/components/ui/button/index.js";
 import * as Sidebar from "$lib/components/ui/sidebar/index.js";
+import { Skeleton } from "$lib/components/ui/skeleton/index.js";
 import type {
   LayoutCopy,
   LayoutUserSummary,
@@ -42,10 +43,13 @@ export let signedIn = false;
     {/if}
 
     <a
-      class="inline-flex min-h-11 min-w-0 items-center gap-2 rounded-md font-semibold leading-none transition-opacity hover:opacity-75 {focused
+      aria-label="Life@USTC"
+      class="inline-flex size-11 min-h-11 min-w-0 shrink-0 items-center justify-center gap-2 rounded-md font-semibold leading-none transition-opacity hover:opacity-75 min-[320px]:inline-flex sm:w-auto sm:px-2 {focused
         ? ''
         : 'md:hidden'}"
+      data-shell-brand
       href="/"
+      title="Life@USTC"
     >
       <img
         class="size-7 rounded-md"
@@ -53,7 +57,7 @@ export let signedIn = false;
         alt=""
         aria-hidden="true"
       />
-      <span class="truncate">Life@USTC</span>
+      <span class="sr-only sm:not-sr-only">Life@USTC</span>
     </a>
 
     {#if !focused}
@@ -94,11 +98,11 @@ export let signedIn = false;
       />
 
       {#if viewerLoading}
-        <div
+        <Skeleton
           aria-hidden="true"
-          class="h-8 w-20 animate-pulse rounded-md bg-muted"
+          class="h-8 w-20 rounded-md"
           data-testid="viewer-loading"
-        ></div>
+        />
       {:else if !user}
         <Button href="/account/sign-in">
           {copy.menu.signIn}

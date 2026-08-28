@@ -2,7 +2,10 @@
 import KeyRoundIcon from "@lucide/svelte/icons/key-round";
 import TrashIcon from "@lucide/svelte/icons/trash-2";
 import type { SubmitFunction } from "@sveltejs/kit";
-import { oauthScopeLabel } from "@/features/oauth/lib/oauth-copy";
+import {
+  oauthFeatureLabel,
+  oauthScopeLabel,
+} from "@/features/oauth/lib/oauth-copy";
 import type { AppLocale } from "@/i18n/config";
 import { enhance } from "$app/forms";
 import * as AlertDialog from "$lib/components/ui/alert-dialog/index.js";
@@ -58,7 +61,6 @@ function revokeAction(consentId: string): SubmitFunction {
 <section
   aria-label={copy.settings.authorizations.title}
   class="grid gap-4"
-  role="region"
 >
   {#if authorizations.length === 0}
     <Empty.Root>
@@ -71,7 +73,7 @@ function revokeAction(consentId: string): SubmitFunction {
       </Empty.Header>
     </Empty.Root>
   {:else}
-    <Item.Group>
+    <Item.Group role="list">
       {#each authorizations as authorization}
         <Item.Root role="listitem" variant="outline">
           <Item.Content class="min-w-0">
@@ -89,8 +91,9 @@ function revokeAction(consentId: string): SubmitFunction {
               </Item.Description>
             {/if}
           </Item.Content>
-          <Item.Actions>
+          <Item.Actions class="max-sm:w-full">
             <Button
+              class="max-sm:w-full"
               type="button"
               variant="outline"
               onclick={() => {
@@ -117,6 +120,27 @@ function revokeAction(consentId: string): SubmitFunction {
               {copy.settings.authorizations.updatedAt}:
               {formatUpdatedAt(authorization.updatedAt)}
             </span>
+          </Item.Footer>
+          <Item.Footer class="block">
+            {#if authorization.usage}
+              <div class="grid gap-2">
+                <h3 class="text-xs font-medium">
+                  {copy.settings.authorizations.recentUsage}
+                </h3>
+                <dl class="grid w-full gap-3 text-xs sm:grid-cols-3">
+                  <div><dt class="text-muted-foreground">{copy.settings.authorizations.reads}</dt><dd class="mt-1 text-lg font-semibold tabular-nums">{authorization.usage.readCount}</dd></div>
+                  <div><dt class="text-muted-foreground">{copy.settings.authorizations.writes}</dt><dd class="mt-1 text-lg font-semibold tabular-nums">{authorization.usage.writeCount}</dd></div>
+                  <div><dt class="text-muted-foreground">{copy.settings.authorizations.errors}</dt><dd class="mt-1 text-lg font-semibold tabular-nums">{authorization.usage.errorCount}</dd></div>
+                </dl>
+              </div>
+              <dl class="mt-3 grid gap-1.5 text-xs text-muted-foreground sm:grid-cols-3">
+                <div><dt>{copy.settings.authorizations.lastUsedAt}</dt><dd class="text-foreground">{formatUpdatedAt(authorization.usage.lastUsedAt)}</dd></div>
+                <div><dt>{copy.settings.authorizations.lastChannel}</dt><dd class="text-foreground">{copy.settings.security.channels[authorization.usage.lastChannel] ?? authorization.usage.lastChannel}</dd></div>
+                <div><dt>{copy.settings.authorizations.lastFeature}</dt><dd class="text-foreground">{oauthFeatureLabel(locale, authorization.usage.lastFeature)}</dd></div>
+              </dl>
+            {:else}
+              <span>{copy.settings.authorizations.neverUsed}</span>
+            {/if}
           </Item.Footer>
         </Item.Root>
       {/each}
@@ -161,7 +185,7 @@ function revokeAction(consentId: string): SubmitFunction {
           >
             {copy.profile.cancel}
           </AlertDialog.Cancel>
-          <Button
+          <AlertDialog.Action
             disabled={Boolean(revokingConsentId)}
             type="submit"
             variant="destructive"
@@ -176,7 +200,7 @@ function revokeAction(consentId: string): SubmitFunction {
               <TrashIcon data-icon="inline-start" />
               {copy.settings.authorizations.revoke}
             {/if}
-          </Button>
+          </AlertDialog.Action>
         </AlertDialog.Footer>
       </form>
     </AlertDialog.Content>

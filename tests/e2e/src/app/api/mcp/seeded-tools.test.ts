@@ -90,6 +90,7 @@ test.describe("/api/mcp - 种子工具覆盖", () => {
             "catalog_bus_departure_next",
             "community_comment_list",
             "community_comment_get",
+            "community_comment_replies",
             "community_comment_create",
             "community_comment_update",
             "community_comment_delete",
@@ -130,10 +131,10 @@ test.describe("/api/mcp - 种子工具覆盖", () => {
           updatedAt?: string;
         };
         expect(profile.id).toBe(currentUser.id);
-        expect(typeof profile.email).toBe("string");
+        expect(profile.email).toBeNull();
         expect(profile.name).toBe(DEV_SEED.debugName);
         expect(profile.username).toBe(currentUser.username ?? null);
-        expect(profile.isAdmin).toBe(false);
+        expect(profile.isAdmin).toBeNull();
         expect(typeof profile.createdAt).toBe("string");
         expect(profile.createdAt).toMatch(/\+08:00$/);
         expect(typeof profile.updatedAt).toBe("string");
@@ -783,17 +784,6 @@ test.describe("/api/mcp - 种子工具覆盖", () => {
             }
           | undefined;
         await expect(async () => {
-          const preferenceResponse = await page.request.post(
-            "/api/workspace/bus-preferences",
-            {
-              data: {
-                preferredOriginCampusId: 1,
-                preferredDestinationCampusId: 4,
-                showDepartedTrips: true,
-              },
-            },
-          );
-          expect(preferenceResponse.status()).toBe(200);
           busResult = await mcpClient.callTool({
             name: "catalog_bus_timetable_get",
             arguments: {
@@ -812,10 +802,7 @@ test.describe("/api/mcp - 种子工具覆盖", () => {
             ),
           ).toBe(true);
           expect(busPayload?.trips).toBeUndefined();
-          expect(busPayload?.preferences?.preferredOriginCampusId).toBe(1);
-          expect(busPayload?.preferences?.preferredDestinationCampusId).toBe(4);
-          expect(busPayload?.preferences?.showDepartedTrips).toBe(true);
-          expect((busPayload?.nextDepartures?.length ?? 0) > 0).toBe(true);
+          expect(busPayload?.preferences).toBeNull();
         }).toPass({
           timeout: 10_000,
           intervals: [250, 500, 1_000],
@@ -883,14 +870,12 @@ test.describe("/api/mcp - 种子工具覆盖", () => {
         expect(typeof busSummaryPayload.counts?.routes).toBe("number");
         expect(typeof busSummaryPayload.counts?.weekdayTrips).toBe("number");
         expect(typeof busSummaryPayload.counts?.weekendTrips).toBe("number");
-        expect((busSummaryPayload.nextDepartures?.length ?? 0) > 0).toBe(true);
+        expect(busSummaryPayload.nextDepartures).toEqual([]);
         expect(Array.isArray(busSummaryPayload.campuses)).toBe(true);
         expect(Array.isArray(busSummaryPayload.routes)).toBe(true);
         expect(busSummaryPayload.trips).toBeUndefined();
         expect(busResult).toBeDefined();
-        if (busSummaryPayload.nextDepartures?.length === 0) {
-          expect(typeof busSummaryPayload.nextDeparturesMessage).toBe("string");
-        }
+        expect(typeof busSummaryPayload.nextDeparturesMessage).toBe("string");
 
         // catalog_bus_route_list — lightweight route catalog
         const listRoutesResult = await mcpClient.callTool({
@@ -1229,7 +1214,8 @@ test.describe("/api/mcp - 种子工具覆盖", () => {
             userId?: string;
             currentSemesterSections?: Array<{ id?: number }>;
             sections?: Array<{ id?: number }>;
-            calendarPath?: string;
+            calendarPath?: never;
+            calendarUrl?: never;
           };
         };
         expect(calendarSubscriptionPayload.success).toBe(true);
@@ -1245,7 +1231,10 @@ test.describe("/api/mcp - 种子工具覆盖", () => {
         ).toBeUndefined();
         expect(
           calendarSubscriptionPayload.subscription?.calendarPath,
-        ).toContain("/api/calendar-feeds/");
+        ).toBeUndefined();
+        expect(
+          calendarSubscriptionPayload.subscription?.calendarUrl,
+        ).toBeUndefined();
 
         const calendarSubscriptionSummaryResult = await mcpClient.callTool({
           name: "workspace_calendar_feed_get",
@@ -1261,7 +1250,8 @@ test.describe("/api/mcp - 种子工具覆盖", () => {
             sectionCount?: number;
             currentSemesterSectionCount?: number;
             currentSemesterSections?: unknown[];
-            calendarPath?: string;
+            calendarPath?: never;
+            calendarUrl?: never;
           };
         };
         expect(
@@ -1275,7 +1265,10 @@ test.describe("/api/mcp - 种子工具覆盖", () => {
         ).toBe(true);
         expect(
           calendarSubscriptionSummaryPayload.subscription?.calendarPath,
-        ).toContain("[redacted]");
+        ).toBeUndefined();
+        expect(
+          calendarSubscriptionSummaryPayload.subscription?.calendarUrl,
+        ).toBeUndefined();
 
         const subscribeResult = await mcpClient.callTool({
           name: "workspace_subscription_import",

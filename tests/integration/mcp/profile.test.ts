@@ -16,13 +16,83 @@ describe("account_profile_get", () => {
     }>("account_profile_get");
 
     expect(profile.id).toBe(context.devUserId);
-    expect(typeof profile.email).toBe("string");
+    expect(profile.email).toBeNull();
     expect(profile.name).toBe(fixtures.DEV_SEED.debugName);
     expect(profile.username).toBe(fixtures.DEV_SEED.debugUsername);
-    expect(profile.isAdmin).toBe(false);
+    expect(profile.isAdmin).toBeNull();
     // Dates are serialized in Asia/Shanghai (+08:00)
     expect(profile.createdAt).toMatch(/\+08:00$/);
     expect(profile.updatedAt).toMatch(/\+08:00$/);
+  });
+});
+
+describe("account_client_activity_list", () => {
+  it("只返回 verified MCP client 与当前用户交集，且不暴露敏感归因字段", async () => {
+    const own = await fixtures.prisma.auditLog.create({
+      data: {
+        action: "comment_create",
+        channel: "mcp",
+        subjectUserId: context.devUserId,
+        userId: context.devUserId,
+        oauthClientId: "integration-test-client",
+        oauthGrantId: "integration-test-grant",
+        sessionId: "private-session",
+        ipAddress: "203.0.113.99",
+        userAgent: "private-user-agent",
+        targetId: "private-target",
+        targetType: "comment",
+      },
+      select: { id: true },
+    });
+    const other = await fixtures.prisma.auditLog.create({
+      data: {
+        action: "comment_create",
+        channel: "mcp",
+        subjectUserId: context.devUserId,
+        userId: context.devUserId,
+        oauthClientId: "other-client",
+      },
+      select: { id: true },
+    });
+    const otherGrant = await fixtures.prisma.auditLog.create({
+      data: {
+        action: "comment_create",
+        channel: "mcp",
+        subjectUserId: context.devUserId,
+        userId: context.devUserId,
+        oauthClientId: "integration-test-client",
+        oauthGrantId: "other-grant",
+      },
+      select: { id: true },
+    });
+
+    try {
+      const page = await context.client.call<{
+        items?: Array<Record<string, unknown>>;
+        nextCursor?: string | null;
+      }>("account_client_activity_list", { limit: 10 });
+      expect(page.items).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ id: own.id, channel: "mcp" }),
+        ]),
+      );
+      expect(page.items?.some((item) => item.id === other.id)).toBe(false);
+      expect(page.items?.some((item) => item.id === otherGrant.id)).toBe(false);
+      const projected = page.items?.find((item) => item.id === own.id);
+      for (const key of [
+        "oauthGrantId",
+        "sessionId",
+        "ipAddress",
+        "userAgent",
+        "targetId",
+      ]) {
+        expect(projected).not.toHaveProperty(key);
+      }
+    } finally {
+      await fixtures.prisma.auditLog.deleteMany({
+        where: { id: { in: [own.id, other.id, otherGrant.id] } },
+      });
+    }
   });
 });
 

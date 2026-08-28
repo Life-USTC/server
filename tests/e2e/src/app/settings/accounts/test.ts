@@ -33,7 +33,11 @@ import {
   ensureLinkedAccountFixture,
   getCurrentSessionUser,
 } from "../../../../utils/e2e-db";
-import { waitForUiSettled } from "../../../../utils/page-ready";
+import { withE2ePrisma } from "../../../../utils/e2e-db/prisma";
+import {
+  gotoAndWaitForReady,
+  waitForUiSettled,
+} from "../../../../utils/page-ready";
 import { captureStepScreenshot } from "../../../../utils/screenshot";
 import { assertPageContract } from "../../_shared/page-contract";
 
@@ -101,24 +105,54 @@ test.describe("/account/settings/accounts 关联账号设置", () => {
 
   test("仅关联一个账号时断开连接被禁用", async ({ page }, testInfo) => {
     await signInAsDebugUser(page, "/account/settings/accounts");
+    const user = await getCurrentSessionUser(page);
+    const original = await withE2ePrisma(async (prisma) => ({
+      accounts: await prisma.account.findMany({ where: { userId: user.id } }),
+      verifiedEmails: await prisma.verifiedEmail.findMany({
+        where: { userId: user.id },
+      }),
+    }));
 
-    const disconnectButton = page
-      .getByRole("button", { name: /断开连接|Disconnect/i })
-      .first();
-    if ((await disconnectButton.count()) === 0) {
-      await expect(page.locator("#main-content")).toBeVisible();
-      return;
+    await withE2ePrisma(async (prisma) => {
+      await prisma.account.deleteMany({ where: { userId: user.id } });
+      await prisma.verifiedEmail.deleteMany({ where: { userId: user.id } });
+    });
+    await ensureLinkedAccountFixture({ userId: user.id, provider: "oidc" });
+
+    try {
+      await gotoAndWaitForReady(page, "/account/settings/accounts");
+      const providerCard = page
+        .locator("#main-content .rounded-lg.border")
+        .filter({ has: page.getByText("USTC", { exact: true }) })
+        .first();
+      const disconnectButton = providerCard.getByRole("button", {
+        name: /断开连接|Disconnect/i,
+      });
+
+      await expect(disconnectButton).toBeVisible();
+      await expect(disconnectButton).toBeDisabled();
+      await expect(
+        providerCard.getByText(/不能断开唯一关联的账户|cannot disconnect/i),
+      ).toBeVisible();
+      await captureStepScreenshot(
+        page,
+        testInfo,
+        "settings-accounts-disconnect-disabled",
+      );
+    } finally {
+      await withE2ePrisma(async (prisma) => {
+        await prisma.account.deleteMany({ where: { userId: user.id } });
+        await prisma.verifiedEmail.deleteMany({ where: { userId: user.id } });
+        if (original.accounts.length > 0) {
+          await prisma.account.createMany({ data: original.accounts });
+        }
+        if (original.verifiedEmails.length > 0) {
+          await prisma.verifiedEmail.createMany({
+            data: original.verifiedEmails,
+          });
+        }
+      });
     }
-
-    await expect(disconnectButton).toBeDisabled();
-    await expect(
-      page.getByText(/不能断开唯一关联的账户|cannot disconnect/i).first(),
-    ).toBeVisible();
-    await captureStepScreenshot(
-      page,
-      testInfo,
-      "settings-accounts-disconnect-disabled",
-    );
   });
 
   test("多账号：取消与确认解绑流程", async ({ page }, testInfo) => {
@@ -175,6 +209,12 @@ test.describe("/account/settings/accounts 关联账号设置", () => {
           name: /断开连接|Disconnect/i,
         }),
       ).toHaveCount(0);
+      await expect(page).toHaveURL(/\/account\/settings\/accounts$/);
+      await expect(
+        page
+          .locator("[data-sonner-toast]")
+          .filter({ hasText: /已断开连接|Disconnected/i }),
+      ).toBeVisible();
       await captureStepScreenshot(page, testInfo, "settings-accounts-unlinked");
     } finally {
       await deleteLinkedAccountFixture({ userId: user.id, provider });

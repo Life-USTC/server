@@ -1,3 +1,5 @@
+import { overviewUpcomingExams } from "@/features/dashboard/lib/calendar-display";
+import { DASHBOARD_OVERVIEW_PREVIEW_LIMIT } from "@/features/dashboard/lib/overview-preview";
 import { shanghaiDayjs } from "@/lib/time/shanghai-dayjs";
 import {
   buildExams,
@@ -69,5 +71,45 @@ export function buildSemesterCalendarPayload({
     semesterStart,
     semesterTodos,
     semesterWeeks,
+  };
+}
+
+export function buildPreviewCalendarPayload({
+  calendarHomeworks,
+  referenceNow,
+  sections,
+  todos,
+  windowEnd,
+  windowStart,
+}: {
+  calendarHomeworks: HomeworkWithSection[];
+  referenceNow: ReturnType<typeof shanghaiDayjs>;
+  sections: Parameters<typeof buildSessions>[0];
+  todos: CalendarTodoItem[];
+  windowEnd: ReturnType<typeof shanghaiDayjs>;
+  windowStart: ReturnType<typeof shanghaiDayjs>;
+}) {
+  const inWindow = (value: Date | string) => {
+    const date = shanghaiDayjs(value);
+    return (
+      !date.isBefore(windowStart, "day") && !date.isAfter(windowEnd, "day")
+    );
+  };
+  const allExams = overviewUpcomingExams(
+    { allExams: buildExams(sections) },
+    referenceNow.toDate(),
+  ).slice(0, DASHBOARD_OVERVIEW_PREVIEW_LIMIT + 1);
+
+  return {
+    allExams,
+    allSessions: sortSessionsByStart(buildSessions(sections)),
+    semesterEnd: null,
+    semesterHomeworks: calendarHomeworks.filter(
+      (homework) =>
+        homework.submissionDueAt && inWindow(homework.submissionDueAt),
+    ),
+    semesterStart: null,
+    semesterTodos: todos.filter((todo) => inWindow(todo.dueAt)),
+    semesterWeeks: [],
   };
 }

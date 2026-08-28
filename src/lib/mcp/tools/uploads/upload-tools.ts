@@ -7,6 +7,7 @@ import {
   renameOwnedUpload,
 } from "@/features/uploads/server/upload-service";
 import { buildPaginatedResponse } from "@/lib/api/helpers";
+import { attributionFromMcpAuthInfo } from "@/lib/audit/principal-attribution";
 import {
   getUserId,
   jsonToolResult,
@@ -164,7 +165,12 @@ export function registerUploadTools(server: McpServer) {
       const resolvedMode = resolveMcpMode(mode);
       const userId = getUserId(extra.authInfo);
       const result = await deleteOwnedUpload({
-        audit: { source: "mcp" },
+        audit: {
+          ...(extra.authInfo
+            ? attributionFromMcpAuthInfo(extra.authInfo)
+            : null),
+          source: "mcp",
+        },
         id,
         userId,
       });

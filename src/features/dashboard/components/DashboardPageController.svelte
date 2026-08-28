@@ -1,5 +1,6 @@
 <script lang="ts">
 import { onMount } from "svelte";
+import { toast } from "svelte-sonner";
 import {
   addDays,
   addMonths,
@@ -56,6 +57,7 @@ import {
 import { todoPriorityOptions as buildTodoPriorityOptions } from "@/features/dashboard/lib/todos";
 import { goto, invalidateAll, replaceState } from "$app/navigation";
 import { page } from "$app/stores";
+import PageHeader from "$lib/components/PageHeader.svelte";
 import * as Alert from "$lib/components/ui/alert/index.js";
 import type { DashboardCalendarTabProps } from "./dashboard-calendar-component-types";
 import SignedDashboardOverviewBranch from "./SignedDashboardOverviewBranch.svelte";
@@ -124,7 +126,6 @@ let {
   signedData,
   signedLinkGroups,
   subscriptionActionError,
-  subscriptionActionMessage,
   todoActionError,
   todoFilter,
   todoItems,
@@ -209,6 +210,15 @@ const { deleteTodo, toggleTodoCompletion } = createDashboardTodoActions({
   getTodoItems: () => todoSourceItems,
   getTodoSavingById: () => todoSavingById,
   getTodosCopy: () => todosCopy,
+  onSuccess: (action) => {
+    toast.success(
+      action === "delete"
+        ? todosCopy.deleteSuccess
+        : action === "complete"
+          ? todosCopy.completeSuccess
+          : todosCopy.uncompleteSuccess,
+    );
+  },
   setEditingTodo: (value) => {
     editingTodo = value;
   },
@@ -237,6 +247,17 @@ const { createHomeworkAction, createTodoAction, updateTodoAction } =
   createDashboardFormSubmitActions({
     getHomeworksCopy: () => homeworksCopy,
     getTodosCopy: () => todosCopy,
+    onSuccess: (action) => {
+      toast.success(
+        String(
+          action === "createHomework"
+            ? homeworksCopy.createSuccess
+            : action === "createTodo"
+              ? todosCopy.createSuccess
+              : todosCopy.updateSuccess,
+        ),
+      );
+    },
     setCreateHomeworkError: (value) => {
       createHomeworkError = value;
     },
@@ -251,6 +272,9 @@ const { createHomeworkAction, createTodoAction, updateTodoAction } =
     },
     setEditTodoError: (value) => {
       editTodoError = value;
+    },
+    setEditingTodo: (value) => {
+      editingTodo = value;
     },
     setShowCreateTodo: (value) => {
       showCreateTodo = value;
@@ -278,6 +302,9 @@ const {
   getSelectedImportSectionIds: () => selectedImportSectionIds,
   getSubscriptionsCopy: () => subscriptionsCopy,
   invalidateAll,
+  onSuccess: (message) => {
+    toast.success(message);
+  },
   setBulkImportError: (value) => {
     bulkImportError = value;
   },
@@ -314,9 +341,6 @@ const {
   setSubscriptionActionError: (value) => {
     subscriptionActionError = value;
   },
-  setSubscriptionActionMessage: (value) => {
-    subscriptionActionMessage = value;
-  },
   setUnmatchedSectionCodes: (value) => {
     unmatchedSectionCodes = value;
   },
@@ -333,6 +357,13 @@ const { toggleHomeworkCompletion } = createDashboardHomeworkStateActions({
   getHomeworkSavingById: () => homeworkSavingById,
   getHomeworksCopy: () => homeworksCopy,
   getSelectedHomework: () => selectedHomework,
+  onSuccess: (action) => {
+    toast.success(
+      action === "complete"
+        ? homeworksCopy.markComplete
+        : homeworksCopy.markIncomplete,
+    );
+  },
   setHomeworkActionError: (value) => {
     homeworkActionError = value;
   },
@@ -354,6 +385,13 @@ const { submitDashboardLinkPin } = createDashboardLinkStateActions({
   getLinkReturnTo: () => linkReturnTo,
   getOverviewLinkItems: () => overviewLinkSourceItems,
   getUpdatingDashboardLinkSlug: () => updatingDashboardLinkSlug,
+  onSuccess: (action) => {
+    toast.success(
+      action === "pin"
+        ? dashboardCopy.linkHub.pin
+        : dashboardCopy.linkHub.unpin,
+    );
+  },
   replaceState: (href) => {
     replaceState(href, {});
   },
@@ -454,7 +492,6 @@ $: signedLinkGroups = derivedState.signedLinkGroups;
 $: calendarData = derivedState.calendarData;
 $: syncCalendarStateFromUrl($page.url, calendarData);
 $: selectedImportSectionIdSet = new Set(selectedImportSectionIds);
-$: selectedImportCount = selectedImportSectionIds.length;
 $: canMatchImportSections =
   bulkImportText.trim().length > 0 && !isMatchingSections;
 
@@ -464,23 +501,16 @@ onMount(() => {
     clearPendingRemoveSection,
     copy: {
       dashboard: dashboardCopy,
-      subscriptions: subscriptionsCopy,
     },
     getLinkSearchInput: () => linkSearchInput,
     replaceState: (href) => {
       replaceState(href, {});
-    },
-    setBulkImportMessage: (value) => {
-      bulkImportMessage = value;
     },
     setLinkActionError: (value) => {
       linkActionError = value;
     },
     setLinkReturnTo: (value) => {
       linkReturnTo = value;
-    },
-    setSubscriptionActionMessage: (value) => {
-      subscriptionActionMessage = value;
     },
   });
 });
@@ -490,20 +520,25 @@ onMount(() => {
   <title>{pageTitle} - Life@USTC</title>
 </svelte:head>
 
-<div class="grid w-full gap-6">
-  {#if data.signedIn && data.mainContentLabel}
-    <h1 class="sr-only">{data.mainContentLabel}</h1>
-  {/if}
+<div class="page-frame">
+  <div class="grid w-full gap-6">
+    {#if data.signedIn && data.mainContentLabel}
+      <PageHeader
+        class="py-0 md:py-1"
+        title={data.mainContentLabel}
+        titleClass="text-xl sm:text-2xl"
+      />
+    {/if}
 
-  {#if actionError}
-    <Alert.Root variant="destructive">
-      <Alert.Description>{actionError}</Alert.Description>
-    </Alert.Root>
-  {/if}
+    {#if actionError}
+      <Alert.Root variant="destructive">
+        <Alert.Description>{actionError}</Alert.Description>
+      </Alert.Root>
+    {/if}
 
-  {#if signedData}
-    {#if signedData.tab === "overview"}
-      <SignedDashboardOverviewBranch
+    {#if signedData}
+      {#if signedData.tab === "overview"}
+        <SignedDashboardOverviewBranch
         {calendarTimelineItemsForDay}
         {commonCopy}
         {copy}
@@ -518,9 +553,9 @@ onMount(() => {
         {submitDashboardLinkPin}
         {todosCopy}
         {updatingDashboardLinkSlug}
-      />
-    {:else if signedData.tab === "todos" || signedData.tab === "homeworks" || signedData.tab === "exams"}
-      <SignedDashboardTaskTabs
+        />
+      {:else if signedData.tab === "todos" || signedData.tab === "homeworks" || signedData.tab === "exams"}
+        <SignedDashboardTaskTabs
         activeTab={signedData.tab}
         {applyHomeworkDueAtSemesterEnd}
         {applyHomeworkDueInMonth}
@@ -579,16 +614,15 @@ onMount(() => {
         bind:showCreateHomework
         bind:showCreateTodo
         bind:todoFilter
-      />
-    {:else if signedData.tab === "subscriptions" && signedData.subscriptions}
-      {@const subscriptionsSignedData = signedData as DashboardSubscriptionsTabProps["signedData"]}
-      <SignedDashboardSubscriptionsBranch
+        />
+      {:else if signedData.tab === "subscriptions" && signedData.subscriptions}
+        {@const subscriptionsSignedData = signedData as DashboardSubscriptionsTabProps["signedData"]}
+        <SignedDashboardSubscriptionsBranch
         {dashboardCopy}
         {sectionCopy}
         {subscriptionsCopy}
         signedData={subscriptionsSignedData}
         {selectedImportSectionIdSet}
-        {selectedImportCount}
         {canMatchImportSections}
         {formatMessage}
         {namePrimary}
@@ -606,7 +640,6 @@ onMount(() => {
         {isMatchingSections}
         {isImportingSections}
         {removingSectionId}
-        {subscriptionActionMessage}
         {subscriptionActionError}
         {matchedSections}
         {unmatchedSectionCodes}
@@ -614,10 +647,10 @@ onMount(() => {
         bind:isConfirmImportOpen
         bind:bulkImportSemesterId
         bind:bulkImportText
-      />
-    {:else}
-      {@const calendarSignedData = signedData as DashboardCalendarTabProps["signedData"]}
-      <SignedDashboardPublicTabs
+        />
+      {:else}
+        {@const calendarSignedData = signedData as DashboardCalendarTabProps["signedData"]}
+        <SignedDashboardPublicTabs
         {copy}
         {commonCopy}
         {busCopy}
@@ -659,11 +692,12 @@ onMount(() => {
         {signedLinkGroups}
         {submitDashboardLinkPin}
         {updatingDashboardLinkSlug}
-      />
+        />
+      {/if}
+    {:else if data.signedIn && data.userMissing}
+      <Alert.Root>
+        <Alert.Description>{commonCopy.userNotFound}</Alert.Description>
+      </Alert.Root>
     {/if}
-  {:else if data.signedIn && data.userMissing}
-    <Alert.Root>
-      <Alert.Description>{commonCopy.userNotFound}</Alert.Description>
-    </Alert.Root>
-  {/if}
+  </div>
 </div>

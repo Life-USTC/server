@@ -2,6 +2,9 @@
 import { onMount } from "svelte";
 import { commentTargetPermalinkBaseHref } from "@/features/comments/lib/comment-panel-controller";
 import PageHeader from "$lib/components/PageHeader.svelte";
+import * as Alert from "$lib/components/ui/alert/index.js";
+import { Button } from "$lib/components/ui/button/index.js";
+import { Skeleton } from "$lib/components/ui/skeleton/index.js";
 import {
   type CatalogNamed,
   catalogLocalizedDisplayName,
@@ -26,7 +29,6 @@ type TeacherDetailData = CatalogNamed & {
   email?: string | null;
   id: number | string;
   mobile?: string | null;
-  sectionCount: number;
   sections: TeacherDetailSection[];
   teacherTitle?: CatalogNamed | null;
   telephone?: string | null;
@@ -35,7 +37,7 @@ type TeacherDetailData = CatalogNamed & {
 type PageData = {
   commentsData: CatalogDetailCommentsData;
   copy: {
-    comments: { title: string };
+    comments: { loadFailed: string; retry: string; title: string };
     common: { home: string; teachers: string };
     descriptions: CatalogDetailDescriptionCopy;
     metadata: { pages: { teacherDetail: string } };
@@ -60,16 +62,37 @@ let DescriptionCard:
 let CommentsPanel:
   | typeof import("@/features/comments/components/CommentsPanel.svelte").default
   | null = null;
+let descriptionLoadError = false;
+let commentsLoadError = false;
+let detailModulesLoading = true;
+
+async function loadDetailModules() {
+  detailModulesLoading = true;
+  descriptionLoadError = false;
+  commentsLoadError = false;
+
+  const [descriptionModule, commentsModule] = await Promise.allSettled([
+    import("@/features/descriptions/components/DescriptionCard.svelte"),
+    import("@/features/comments/components/CommentsPanel.svelte"),
+  ]);
+
+  if (descriptionModule.status === "fulfilled") {
+    DescriptionCard = descriptionModule.value.default;
+  } else {
+    descriptionLoadError = true;
+  }
+
+  if (commentsModule.status === "fulfilled") {
+    CommentsPanel = commentsModule.value.default;
+  } else {
+    commentsLoadError = true;
+  }
+
+  detailModulesLoading = false;
+}
 
 onMount(() => {
-  void (async () => {
-    DescriptionCard ??= (
-      await import("@/features/descriptions/components/DescriptionCard.svelte")
-    ).default;
-    CommentsPanel ??= (
-      await import("@/features/comments/components/CommentsPanel.svelte")
-    ).default;
-  })();
+  void loadDetailModules();
 });
 
 $: copy = data.copy;
@@ -84,18 +107,17 @@ $: displayName = catalogLocalizedDisplayName(data.teacher, data.locale);
 </svelte:head>
 
 <section class="grid min-h-full grid-rows-[auto_minmax(0,1fr)] bg-card lg:h-full lg:min-h-0">
-  <div class="bg-card px-4 sm:px-5 lg:px-6">
+  <div class="bg-card">
+    <div class="page-frame page-frame-content px-4 sm:px-5 lg:px-6">
     <PageHeader
       title={displayName}
       titleClass="text-2xl leading-tight sm:text-3xl"
     />
+    </div>
   </div>
 
-  <div
-    class="min-w-0 min-h-0 overflow-y-auto px-4 py-4 sm:px-5 lg:px-6"
-    data-detail-scroll-container
-  >
-    <div class="grid gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(16rem,20rem)] lg:items-start lg:gap-10">
+  <div class="min-w-0 min-h-0 overflow-y-auto" data-detail-scroll-container>
+    <div class="page-frame page-frame-content grid min-h-full gap-8 px-4 py-4 lg:grid-cols-[minmax(0,1fr)_minmax(16rem,20rem)] lg:items-start lg:gap-10 sm:px-5 lg:px-6">
       <div class="grid min-w-0 gap-10">
         <section id="introduction" class="scroll-mt-4">
           {#key `description:teacher:${data.teacher.id}`}
@@ -117,6 +139,22 @@ $: displayName = catalogLocalizedDisplayName(data.teacher, data.locale);
               <div class="markdown-preview" data-slot="markdown-preview">
                 {@html data.descriptionData.description.renderedHtml}
               </div>
+            {:else if descriptionLoadError}
+              <Alert.Root variant="destructive">
+                <Alert.Description>{copy.descriptions.loadFailed}</Alert.Description>
+                <Alert.Action>
+                  <Button size="sm" variant="ghost" onclick={() => void loadDetailModules()}>
+                    {copy.descriptions.retry}
+                  </Button>
+                </Alert.Action>
+              </Alert.Root>
+            {:else if detailModulesLoading}
+              <div class="grid gap-3" aria-busy="true" aria-label={copy.descriptions.title}>
+                <Skeleton class="h-5 w-28" />
+                <Skeleton class="h-4 w-full" />
+                <Skeleton class="h-4 w-11/12" />
+                <Skeleton class="h-4 w-4/5" />
+              </div>
             {/if}
           {/key}
         </section>
@@ -125,6 +163,9 @@ $: displayName = catalogLocalizedDisplayName(data.teacher, data.locale);
           <h2 class="mb-3 text-lg font-semibold tracking-tight">
             {copy.teacherDetail.teachingSectionsTitle}
           </h2>
+          <p class="mb-4 text-sm text-muted-foreground">
+            {copy.teacherDetail.teachingSectionsDescription}
+          </p>
           <TeacherDetailSections
             copy={detailCopy}
             locale={data.locale}
@@ -147,6 +188,20 @@ $: displayName = catalogLocalizedDisplayName(data.teacher, data.locale);
                 targetId={data.teacher.id}
                 heading={copy.comments.title}
               />
+            {:else if commentsLoadError}
+              <Alert.Root variant="destructive">
+                <Alert.Description>{copy.comments.loadFailed}</Alert.Description>
+                <Alert.Action>
+                  <Button size="sm" variant="ghost" onclick={() => void loadDetailModules()}>
+                    {copy.comments.retry}
+                  </Button>
+                </Alert.Action>
+              </Alert.Root>
+            {:else if detailModulesLoading}
+              <div class="grid gap-3" aria-busy="true" aria-label={copy.comments.title}>
+                <Skeleton class="h-5 w-24" />
+                <Skeleton class="h-16 w-full" />
+              </div>
             {/if}
           {/key}
         </section>

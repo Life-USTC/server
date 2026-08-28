@@ -59,6 +59,12 @@ test("/api/community/comments/[id] 接口契约", async ({ request }) => {
   });
 });
 
+test("/api/community/comments/[id]/replies 接口契约", async ({ request }) => {
+  await assertApiContract(request, {
+    routePath: "/api/community/comments/[id]/replies",
+  });
+});
+
 test("/api/community/comments/[id] GET 返回线程 focus 与 target 元数据", async ({
   request,
 }) => {

@@ -47,5 +47,12 @@ Start with root [`AGENTS.md`](../AGENTS.md). For an end-to-end change, use
 - [graphql/mutation-capabilities.json](graphql/mutation-capabilities.json)
 - Generated OpenAPI: [`public/openapi.generated.json`](../public/openapi.generated.json)
 
+`bun run build` regenerates the deployed OpenAPI document. Commit that generated
+snapshot and use `bun run openapi:check` as the clean-tree drift gate. Pull
+requests with an intentional breaking change require the
+`api-breaking-approved` label. Intentional GraphQL breaking changes require the
+separate `graphql-breaking-approved` label. Both canonical generated contracts
+remain checked even when their base-compatibility gate is approved.
+
 Production monitoring, role grants, and deploy runbooks are **not** published in
 this repository.

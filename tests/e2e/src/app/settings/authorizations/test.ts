@@ -91,18 +91,32 @@ test.describe("/account/settings/authorizations OAuth 授权", () => {
       await dialog.getByRole("button", { name: /撤销|Revoke/i }).click();
 
       await expect(dialog).not.toBeVisible();
-      await expect(page).toHaveURL(
-        /\/account\/settings\/authorizations\?message=AuthorizationRevoked$/,
-      );
+      const revokeSuccessText = /已撤销应用授权|Application access revoked/i;
+      await expect(page).toHaveURL(/\/account\/settings\/authorizations$/);
       await expect(
-        page.getByText(/已撤销应用授权|Application access revoked/i),
+        page
+          .locator("[data-sonner-toast]")
+          .filter({ hasText: revokeSuccessText }),
       ).toBeVisible();
+      await expect(
+        page
+          .locator('[data-slot="alert"][role="alert"]')
+          .filter({ hasText: revokeSuccessText }),
+      ).toHaveCount(0);
       await expect(region.getByText(name, { exact: true })).toHaveCount(0);
       await captureStepScreenshot(
         page,
         testInfo,
         "settings-authorizations-revoked",
       );
+      await page.reload({ waitUntil: "domcontentloaded" });
+      await expect(page).toHaveURL(/\/account\/settings\/authorizations$/);
+      await expect(
+        page
+          .locator("[data-sonner-toast]")
+          .filter({ hasText: revokeSuccessText }),
+      ).toHaveCount(0);
+      await expect(region.getByText(name, { exact: true })).toHaveCount(0);
     } finally {
       await deleteOAuthClientsByName(name);
     }

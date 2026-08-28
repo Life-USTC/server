@@ -32,7 +32,7 @@ describe("persisted GraphQL operation registry", () => {
 
     expect(registeredQueryFields).toEqual(queryFields);
     expect(registeredMutationFields).toEqual(mutationFields);
-    expect(graphqlPersistedOperationRegistry).toHaveLength(45);
+    expect(graphqlPersistedOperationRegistry).toHaveLength(46);
     expect(
       graphqlPersistedOperationRegistry.map((operation) => operation.id),
     ).toEqual(
@@ -47,6 +47,7 @@ describe("persisted GraphQL operation registry", () => {
         "workspace.upload.complete.v1",
         "workspace.upload.rename.v1",
         "workspace.upload.delete.v1",
+        "account.client_activity.get.v1",
       ]),
     );
     const registeredAuthenticatedScopeFields = graphqlPersistedOperationRegistry
@@ -70,6 +71,7 @@ describe("persisted GraphQL operation registry", () => {
       })
       .sort();
     expect(registeredAuthenticatedScopeFields).toEqual([
+      "account.clientActivity",
       "account.profile",
       "workspace.exams",
       "workspace.homeworks",
@@ -82,7 +84,7 @@ describe("persisted GraphQL operation registry", () => {
 
   it("publishes frozen safety metadata without operation documents", () => {
     expect(publicGraphqlOperationsManifest.schemaVersion).toBe(1);
-    expect(publicGraphqlOperationsManifest.operations).toHaveLength(45);
+    expect(publicGraphqlOperationsManifest.operations).toHaveLength(46);
     expect(Object.isFrozen(publicGraphqlOperationsManifest)).toBe(true);
     expect(Object.isFrozen(publicGraphqlOperationsManifest.operations)).toBe(
       true,

@@ -20,6 +20,7 @@
  * - campuses includes buildings relation
  */
 import { expect, test } from "@playwright/test";
+import { metadataResponseSchema } from "@/lib/api/schemas/academic-metadata-response-schemas";
 import { DEV_SEED } from "../../../e2e/utils/dev-seed";
 import { assertApiContract } from "../_shared/api-contract";
 
@@ -47,6 +48,24 @@ test.describe("GET /api/catalog/metadata - 元数据字典", () => {
     for (const key of EXPECTED_KEYS) {
       expect(Array.isArray(body[key]), `${key} should be an array`).toBe(true);
     }
+  });
+
+  test("seed 数据严格匹配 schema 并按 locale 推导名称", async ({ request }) => {
+    const response = await request.get("/api/catalog/metadata?locale=en-us");
+    expect(response.status()).toBe(200);
+    const body = metadataResponseSchema.parse(await response.json());
+
+    const campus = body.campuses.find(
+      (item) => item.nameCn === DEV_SEED.campus.nameCn,
+    );
+    expect(campus?.namePrimary).toBe(DEV_SEED.campus.nameEn);
+    expect(campus?.nameSecondary).toBe(DEV_SEED.campus.nameCn);
+
+    const building = campus?.buildings.find(
+      (item) => item.nameCn === DEV_SEED.building.nameCn,
+    );
+    expect(building?.namePrimary).toBe(DEV_SEED.building.nameEn);
+    expect(building?.nameSecondary).toBe(DEV_SEED.building.nameCn);
   });
 
   test("seed 授课语言存在", async ({ request }) => {

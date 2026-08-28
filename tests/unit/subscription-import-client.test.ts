@@ -22,6 +22,7 @@ function compactSection(id: number) {
   return {
     id,
     jwId: 1000 + id,
+    retiredAt: null,
     code: `MATH.${String(id).padStart(2, "0")}`,
     bizTypeId: null,
     credits: null,
@@ -85,7 +86,7 @@ function compactSection(id: number) {
     },
     campus: {
       id: 1,
-      jwId: null,
+      jwId: 4001,
       nameCn: "东校区",
       nameEn: null,
       namePrimary: "东校区",
@@ -93,7 +94,18 @@ function compactSection(id: number) {
       code: "east",
     },
     openDepartment: null,
-    teachers: [],
+    teachers: [
+      {
+        id,
+        jwId: 5000 + id,
+        personId: null,
+        code: `TEACHER-${id}`,
+        nameCn: `教师 ${id}`,
+        nameEn: null,
+        namePrimary: `Teacher ${id}`,
+        nameSecondary: null,
+      },
+    ],
   };
 }
 
@@ -119,8 +131,6 @@ function subscriptionPayload(sectionIds: number[]) {
     subscription: {
       userId: "user-1",
       sections: sectionIds.map(compactSection),
-      calendarPath: "/calendar/user-1.ics",
-      calendarUrl: "https://example.test/calendar/user-1.ics",
       note: "private",
     },
   };

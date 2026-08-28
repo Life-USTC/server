@@ -1,5 +1,20 @@
 type Account {
+  clientActivity(cursor: String, limit: Int = 30): AccountClientActivityPage!
   profile: UserProfile!
+}
+
+type AccountClientActivity {
+  action: String!
+  channel: String!
+  createdAt: DateTime!
+  id: ID!
+  outcome: String!
+  targetType: String
+}
+
+type AccountClientActivityPage {
+  items: [AccountClientActivity!]!
+  nextCursor: String
 }
 
 type BatchMutationError {
@@ -79,7 +94,7 @@ type BusTripSlot {
 type Campus {
   code: String
   id: Int!
-  jwId: Int
+  jwId: Int!
   nameCn: String!
   nameEn: String
 }
@@ -432,7 +447,7 @@ type Schedule {
   experiment: String
   id: Int!
   lessonType: String
-  periods: Int!
+  periods: Float!
   room: ScheduleRoom
   scheduleGroup: ScheduleGroup!
   section: Section!
@@ -481,7 +496,7 @@ type Section {
   limitCount: Int
   openDepartment: Department
   period: Int
-  periodsPerWeek: Int
+  periodsPerWeek: Float
   remark: String
   semester: Semester
   stdCount: Int
@@ -550,12 +565,12 @@ type Teacher {
   department: Department
   email: String
   id: Int!
+  jwId: Int!
   mobile: String
   nameCn: String!
   nameEn: String
   personId: Int
   sectionCount: Int!
-  teacherId: Int
   teacherTitle: NamedCatalogValue
   telephone: String
 }
@@ -705,10 +720,10 @@ input UpsertDescriptionInput {
 
 type UserProfile {
   createdAt: DateTime!
-  email: String!
+  email: String
   id: ID!
   image: String
-  isAdmin: Boolean!
+  isAdmin: Boolean
   name: String!
   updatedAt: DateTime!
   username: String

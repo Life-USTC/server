@@ -3,22 +3,30 @@ import { getOptionalTrimmedEnv } from "@/app-env";
 import {
   getCloudflareAuthHyperdriveConnectionString,
   getCloudflareHyperdriveConnectionString,
+  getCloudflareMaintenanceHyperdriveConnectionString,
   hasCloudflareRuntimeEnv,
 } from "@/lib/adapters/cloudflare-runtime";
 import { logAppEvent } from "@/lib/log/app-logger";
 import { getSafeErrorName } from "@/lib/log/safe-error-name";
 import { writeDatabaseEventAnalytics } from "@/lib/metrics/analytics-engine";
 
-export type RuntimeDatabase = "app" | "auth";
+export type RuntimeDatabase = "app" | "auth" | "maintenance";
 
 function getRuntimeDatabaseUrl(database: RuntimeDatabase) {
   const hyperdriveConnectionString =
     database === "auth"
       ? getCloudflareAuthHyperdriveConnectionString()
-      : getCloudflareHyperdriveConnectionString();
+      : database === "maintenance"
+        ? getCloudflareMaintenanceHyperdriveConnectionString()
+        : getCloudflareHyperdriveConnectionString();
   if (hasCloudflareRuntimeEnv()) {
     if (!hyperdriveConnectionString) {
-      const binding = database === "auth" ? "HYPERDRIVE_AUTH" : "HYPERDRIVE";
+      const binding =
+        database === "auth"
+          ? "HYPERDRIVE_AUTH"
+          : database === "maintenance"
+            ? "HYPERDRIVE_MAINTENANCE"
+            : "HYPERDRIVE";
       throw new Error(
         `${binding} is required to initialize ${database} Prisma in Cloudflare runtime`,
       );
@@ -32,6 +40,14 @@ function getRuntimeDatabaseUrl(database: RuntimeDatabase) {
     if (getOptionalTrimmedEnv("NODE_ENV") === "production") return undefined;
     return getOptionalTrimmedEnv("DATABASE_URL");
   }
+  if (database === "maintenance") {
+    const maintenanceDatabaseUrl = getOptionalTrimmedEnv(
+      "MAINTENANCE_DATABASE_URL",
+    );
+    if (maintenanceDatabaseUrl) return maintenanceDatabaseUrl;
+    if (getOptionalTrimmedEnv("NODE_ENV") === "production") return undefined;
+    return getOptionalTrimmedEnv("DATABASE_URL");
+  }
   return getOptionalTrimmedEnv("DATABASE_URL");
 }
 
@@ -42,27 +58,34 @@ export function createPrismaAdapter(
   const resolvedConnectionString =
     connectionString ?? getRuntimeDatabaseUrl(database);
   if (!resolvedConnectionString) {
-    throw new Error(
-      database === "auth"
-        ? getOptionalTrimmedEnv("NODE_ENV") === "production"
+    if (database === "auth") {
+      throw new Error(
+        getOptionalTrimmedEnv("NODE_ENV") === "production"
           ? "AUTH_DATABASE_URL is required to initialize auth Prisma in production"
-          : "AUTH_DATABASE_URL or DATABASE_URL is required to initialize auth Prisma"
-        : "DATABASE_URL is required to initialize app Prisma",
-    );
+          : "AUTH_DATABASE_URL or DATABASE_URL is required to initialize auth Prisma",
+      );
+    }
+    if (database === "maintenance") {
+      throw new Error(
+        getOptionalTrimmedEnv("NODE_ENV") === "production"
+          ? "MAINTENANCE_DATABASE_URL is required to initialize maintenance Prisma in production"
+          : "MAINTENANCE_DATABASE_URL or DATABASE_URL is required to initialize maintenance Prisma",
+      );
+    }
+    throw new Error("DATABASE_URL is required to initialize app Prisma");
   }
 
   return new PrismaPg(
     {
       connectionString: resolvedConnectionString,
       // On Workers every request builds a fresh pool (pg sockets cannot be
-      // reused across requests) and each new connection pays full SCRAM
-      // deriveBits CPU. Concurrent queries (Promise.all, RLS tx + session
-      // lookup) otherwise open up to pg's default of 10 connections per
-      // request; cap the pool so a single request can never open more than 3.
+      // reused across requests), which the runtime context disconnects before
+      // the request completes. Concurrent queries (Promise.all, RLS tx +
+      // session lookup) otherwise open up to pg's default of 10 connections;
+      // cap the pool so a single request can never open more than 3.
       max: 3,
-      // Idle connections from a finished request are never reusable, so close
-      // them quickly instead of holding sockets (and server slots) for pg's
-      // 10s default.
+      // Keep a short idle timeout as a safety net for clients created outside
+      // the managed request context.
       idleTimeoutMillis: 5_000,
     },
     {

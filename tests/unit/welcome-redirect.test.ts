@@ -27,6 +27,7 @@ describe("欢迎页重定向策略", () => {
     expect(shouldRedirect("/media/avatars/user-1/avatar.webp")).toBe(false);
     expect(shouldRedirect("/.well-known/openid-configuration")).toBe(false);
     expect(shouldRedirect("/_app/immutable/start.js")).toBe(false);
+    expect(shouldRedirect("/_internal/shell-bootstrap")).toBe(false);
     expect(shouldRedirect("/llms.txt")).toBe(false);
     expect(shouldRedirect("/robots.txt")).toBe(false);
     expect(shouldRedirect("/sitemap.xml")).toBe(false);

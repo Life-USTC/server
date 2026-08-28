@@ -1,5 +1,6 @@
 <script lang="ts">
 import { onMount } from "svelte";
+import { toast } from "svelte-sonner";
 import AdminOAuthClients from "@/features/admin/components/AdminOAuthClients.svelte";
 import AdminOAuthDialogs from "@/features/admin/components/AdminOAuthDialogs.svelte";
 import AdminOAuthHeader from "@/features/admin/components/AdminOAuthHeader.svelte";
@@ -41,6 +42,8 @@ type PageData = {
 };
 
 type ActionData = {
+  message?: string;
+  variant?: "destructive" | "default";
   createdClientId?: string | null;
   createdClientRedirectUris?: string[];
   createdClientScopes?: string[];
@@ -67,6 +70,7 @@ let {
 } = createAdminOAuthControllerDefaultState<OAuthClient>({
   authMethods: data.authMethods,
 });
+let openedCredentialsClientId: string | null = null;
 
 $: _copy = data.copy.oauth;
 $: _adminCopy = data.copy.admin;
@@ -119,6 +123,14 @@ const {
   getPendingDeleteClient: () => pendingDeleteClient,
   getSelectedAuthMethod: () => selectedAuthMethod,
   getSelectedScopes: () => selectedScopes,
+  onCopySuccess: (message) => {
+    toast.success(message);
+  },
+  onSuccess: (action) => {
+    toast.success(
+      action === "create" ? _copy.createSuccess : _copy.deleteSuccess,
+    );
+  },
   setCopyMessage: (value) => {
     copyMessage = value;
   },
@@ -148,7 +160,13 @@ const {
   },
 });
 
-$: if (form?.createdClientId && _isMounted) {
+$: if (
+  form?.createdClientId &&
+  form.createdClientId !== openedCredentialsClientId &&
+  _isMounted
+) {
+  openedCredentialsClientId = form.createdClientId;
+  copyMessage = "";
   isCreateDialogOpen = false;
   isCredentialsDialogOpen = true;
 }
@@ -170,15 +188,17 @@ onMount(() => {
     />
   {/snippet}
   {#snippet feedback()}
-    <AdminOAuthStatusAlerts {copyMessage} {copyMessageVariant} {form} />
+    <AdminOAuthStatusAlerts
+      copyMessage={isCredentialsDialogOpen ? "" : copyMessage}
+      {copyMessageVariant}
+      {form}
+    />
   {/snippet}
   <AdminOAuthClients
     clientTypeLabel={_clientTypeLabel}
     clients={data.clients}
     copy={_copy}
-    createDisabled={!_isMounted}
     formatCreatedAt={_formatCreatedAt}
-    onCreate={_openCreateDialog}
     onDelete={(client) => {
       pendingDeleteClient = client;
     }}
@@ -191,9 +211,9 @@ onMount(() => {
   closeCreateDialog={_closeCreateDialog}
   closeCredentialsDialog={_closeCredentialsDialog}
   copy={_copy}
-  copyText={(value, message) => {
-    void _copyText(value, message);
-  }}
+  {copyMessage}
+  {copyMessageVariant}
+  copyText={_copyText}
   {createClientAction}
   credentialsJson={_createdCredentialsJson()}
   {deleteClientAction}

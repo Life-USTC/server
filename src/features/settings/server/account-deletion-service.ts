@@ -1,68 +1,78 @@
-import type { Prisma } from "@/generated/prisma/client";
+import { type AuditLogParams, fireAuditLog } from "@/lib/audit/write-audit-log";
 import { authPrisma } from "@/lib/db/auth-prisma";
-import { withUserDbContext } from "@/lib/db/prisma";
 import { runSerializableTransaction } from "@/lib/db/serializable-transaction";
 
 type DeleteOwnAccountResult =
   | { ok: true }
-  | { ok: false; reason: "cannot_remove_last_admin" | "not_found" };
+  | {
+      ok: false;
+      reason: "cannot_remove_last_admin" | "not_found" | "unauthorized";
+    };
 
-async function deleteRlsProtectedUserData(
-  tx: Prisma.TransactionClient,
-  userId: string,
-) {
-  await tx.commentReaction.deleteMany({ where: { userId } });
-  await tx.homeworkCompletion.deleteMany({ where: { userId } });
-  await tx.uploadPending.deleteMany({ where: { userId } });
-  await tx.upload.deleteMany({ where: { userId } });
-  await tx.dashboardLinkClick.deleteMany({ where: { userId } });
-  await tx.dashboardLinkPin.deleteMany({ where: { userId } });
-  await tx.busUserPreference.deleteMany({ where: { userId } });
-  await tx.todo.deleteMany({ where: { userId } });
-}
+export type AccountDeletionAuditContext = Pick<
+  AuditLogParams,
+  "channel" | "ipAddress" | "requestId" | "userAgent"
+> & { sessionId: string };
 
 export async function deleteOwnAccount(
   userId: string,
+  audit: AccountDeletionAuditContext,
 ): Promise<DeleteOwnAccountResult> {
   userId = userId.trim();
   if (!userId) throw new Error("Account deletion user ID is required");
 
-  const gate = await runSerializableTransaction(
-    async (tx) => {
-      const user = await tx.user.findUnique({
-        where: { id: userId },
-        select: { id: true, isAdmin: true },
+  try {
+    const auditId = crypto.randomUUID();
+    const [row] = await runSerializableTransaction(
+      (tx) =>
+        tx.$queryRaw<
+          Array<{
+            status:
+              | "cannot_remove_last_admin"
+              | "deleted"
+              | "not_found"
+              | "unauthorized";
+          }>
+        >`SELECT public.delete_own_account(
+          ${userId},
+          ${auditId},
+          ${audit.channel ?? "web"},
+          ${audit.ipAddress ?? null},
+          ${audit.userAgent ?? null},
+          ${audit.sessionId},
+          ${audit.requestId ?? null}
+        ) AS status`,
+      "Failed to delete account",
+      authPrisma,
+    );
+    if (!row || row.status === "not_found") {
+      await fireAuditLog({
+        action: "account_delete",
+        outcome: "denied",
+        targetType: "user",
+        metadata: { reason: "not_found", selfService: true },
+        ...audit,
       });
-      if (!user) return { ok: false as const, reason: "not_found" as const };
-
-      if (user.isAdmin) {
-        const adminCount = await tx.user.count({ where: { isAdmin: true } });
-        if (adminCount <= 1) {
-          return {
-            ok: false as const,
-            reason: "cannot_remove_last_admin" as const,
-          };
-        }
-      }
-
-      return { ok: true as const };
-    },
-    "Failed to delete account",
-    authPrisma,
-  );
-
-  if (!gate.ok) return gate;
-
-  await withUserDbContext(userId, (tx) =>
-    deleteRlsProtectedUserData(tx, userId),
-  );
-
-  return runSerializableTransaction(
-    async (tx) => {
-      await tx.user.delete({ where: { id: userId } });
-      return { ok: true as const };
-    },
-    "Failed to delete account",
-    authPrisma,
-  );
+      return { ok: false, reason: "not_found" };
+    }
+    if (row.status === "cannot_remove_last_admin") {
+      return { ok: false, reason: "cannot_remove_last_admin" };
+    }
+    if (row.status === "unauthorized") {
+      return { ok: false, reason: "unauthorized" };
+    }
+    return { ok: true };
+  } catch (error) {
+    await fireAuditLog({
+      action: "account_delete",
+      outcome: "failure",
+      subjectUserId: userId,
+      targetId: userId,
+      targetType: "user",
+      userId,
+      metadata: { selfService: true },
+      ...audit,
+    });
+    throw error;
+  }
 }

@@ -1,4 +1,5 @@
 import { logApiRequest } from "@/lib/log/app-logger";
+import { shouldLogSuccessfulRequest } from "@/lib/log/request-log-sampling";
 import { getSafeErrorName } from "@/lib/log/safe-error-name";
 import { writeApiRequestAnalytics } from "@/lib/metrics/analytics-engine";
 
@@ -10,18 +11,27 @@ export function recordApiRequestFinish(input: {
   route: string;
   status: number;
 }) {
-  logApiRequest(
-    input.method,
-    input.route,
-    input.status,
-    input.ioObservedDurationMs,
-    {
-      authMode: input.authMode,
-      event: "request.finish",
+  if (
+    shouldLogSuccessfulRequest({
+      durationMs: input.ioObservedDurationMs,
       requestId: input.requestId,
-    },
-    input.status >= 500 ? "error" : "info",
-  );
+      samplePercent: 1,
+      status: input.status,
+    })
+  ) {
+    logApiRequest(
+      input.method,
+      input.route,
+      input.status,
+      input.ioObservedDurationMs,
+      {
+        authMode: input.authMode,
+        event: "request.finish",
+        requestId: input.requestId,
+      },
+      input.status >= 500 ? "error" : "info",
+    );
+  }
   writeApiRequestAnalytics({
     authMode: input.authMode,
     event: "finish",

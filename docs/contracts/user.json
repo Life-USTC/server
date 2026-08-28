@@ -8,7 +8,7 @@
   },
   "rules": {
     "sign-in-providers": "Sign-in supports USTC, GitHub, and Google OAuth; custom username/password login is not considered due to security and maintenance cost.",
-    "passkey-server-boundary": "Better Auth passkey registration requires an existing fresh session. Its RP ID comes from the configured canonical origin; verification accepts only explicitly configured canonical/public origins whose host is the RP ID or its subdomain. Localhost and 127.0.0.1 are separate RPs and are not mixed. The legacy Authenticator table is not reused.",
+    "passkey-server-boundary": "Better Auth passkey registration, rename, and deletion require an authoritative server-side session created within the last 15 minutes. Its RP ID comes from the configured canonical origin; verification accepts only explicitly configured canonical/public origins whose host is the RP ID or its subdomain. Localhost and 127.0.0.1 are separate RPs and are not mixed. The legacy Authenticator table is not reused.",
     "passkey-user-flow": "The sign-in page offers a WebAuthn passkey ceremony when supported. Signed-in users list, add, rename, and delete their own passkeys in linked-account settings through the Better Auth client plugin. Unsupported browsers, cancelled ceremonies, stale registration sessions, empty lists, and request failures have explicit user-visible states.",
     "debug-password-boundary": "Email/password authentication is enabled only for local development or the explicit non-production E2E debug mode; production does not expose debug password authentication.",
     "oauth-callback-integrity": "On a canonical same-origin deployment, OAuth login callbacks must complete state validation and session creation directly, without losing state due to proxy wrapping or container-internal host differences.",
@@ -23,8 +23,12 @@
     "oauth-consent-loopback-continuation": "The OAuth consent step must continue working for loopback public clients even when the client uses 127.0.0.1 and the app itself is being browsed via localhost; consent submission should preserve the original authorization query and complete the redirect back to the registered loopback callback.",
     "public-identity-display": "Public identity defaults to displaying name or username, not internal identifiers.",
     "public-profile-canonical-route": "When a profile has a username, /community/users/$identifier permanently redirects to the canonical /community/users/$identifier page. Profiles without a username remain reachable by ID without rendering the raw ID as primary metadata.",
-    "account-deletion-retention": "Settings account deletion runs through a transaction that anonymizes retained audit rows and issued suspension moderation records. Deleting an admin account is allowed only when at least one other admin remains.",
-    "oauth-authorization-management": "Settings separates linked sign-in accounts from applications authorized to call Life@USTC on the user's behalf. The canonical /account/settings/authorizations page lists safe client metadata and lets only the owning signed-in user revoke a grant."
+    "account-deletion-retention": "Settings account deletion requires an authoritative session created within the last 15 minutes. Actor and subject relations are anonymized by their database foreign keys; the post-deletion success event does not retain the deleted user ID. Deleting an admin account is allowed only when at least one other admin remains.",
+    "sensitive-account-recent-auth": "Passkey registration/rename/deletion, linked-account addition/removal, OAuth authorization grant/expansion/revocation or scope reduction, session revocation, password or email changes, account deletion, and calendar feed token rotation require an authoritative server-side session created within the last 15 minutes. Stale settings actions return explicit sign-out/sign-in guidance.",
+    "oauth-authorization-management": "Settings separates linked sign-in accounts from applications authorized to call Life@USTC on the user's behalf. The canonical /account/settings/authorizations page lists safe client metadata, a content-free 30-day usage summary, and lets only the owning signed-in user revoke a grant.",
+    "account-security-activity": "The session-only /account/settings/security page lists the owning user's sensitive account events with cursor pagination, masked network prefixes, coarse device families, and safe OAuth client names. OAuth clients cannot access this all-clients security view.",
+    "oauth-client-activity-isolation": "REST, GraphQL, and MCP expose only events whose subject user and OAuth client both come from the verified principal. Callers cannot provide either identity, and the projection excludes IP, user agent, grant, session, request, and other-client data.",
+    "account-profile-oauth-projection": "Cookie sessions receive their full private account profile. OAuth account.profile:read returns email only when the standard email scope is also granted and never discloses administrative status."
   },
   "capabilities": {
     "sign-in": {
@@ -96,7 +100,9 @@
             "path": "/api/account/profile",
             "returns": "{ id, email, name, image, username, isAdmin, createdAt, updatedAt }",
             "auth": "user",
-            "notes": ["Returns the authenticated user's core profile fields."]
+            "notes": [
+              "Cookie sessions receive email and isAdmin. OAuth callers receive email only with the standard email scope and isAdmin is null."
+            ]
           },
           {
             "path": "/api/community/users/[identifier]",
@@ -165,7 +171,8 @@
           "weeks[].date (YYYY-MM-DD)",
           "weeks[].count (Contribution count)",
           "totalContributions (Aggregate)",
-          "Keyboard- and touch-accessible horizontally scrollable contribution history"
+          "Keyboard- and touch-accessible horizontally scrollable contribution history",
+          "Public contribution counts include comments, public upload activity, and homework records created; private homework completion state is excluded"
         ]
       }
     },
@@ -177,6 +184,7 @@
           "/account/settings/profile",
           "/account/settings/preferences",
           "/account/settings/accounts",
+          "/account/settings/security",
           "/account/settings/authorizations",
           "/account/settings/danger"
         ]
@@ -196,12 +204,57 @@
           "user passkeys with add, rename, and delete controls",
           "Fresh-session and WebAuthn support states for passkey registration",
           "canDisconnect (Boolean - requires min 2 accounts)",
-          "Authorized OAuth applications: client display name, public URI, disabled state, scopes, last authorization time, and revoke action",
+          "Security activity: sensitive action, outcome, channel, masked network, coarse device, client display name, and cursor pagination",
+          "Authorized OAuth applications: client display name, public URI, disabled state, scopes, last authorization time, last usage channel/feature, 30-day read/write/error counts, and revoke action",
           "Compact responsive section navigation with active-section description",
           "Navigation links to sections and comment guide",
           "Visually separated danger region and account deletion confirmation interface"
         ]
       }
+    },
+    "oauth-client-activity": {
+      "title": "Current OAuth Client Activity",
+      "auth": "user",
+      "web": "unavailable",
+      "rest": {
+        "routes": [
+          {
+            "path": "/api/account/client-activity",
+            "method": "GET",
+            "returns": "{ items: [{ id, action, outcome, channel, createdAt, targetType }], nextCursor }",
+            "notes": [
+              "Requires the read-only account.client-activity:read OAuth scope.",
+              "OAuth Bearer only; userId and clientId are always derived from the verified principal."
+            ]
+          }
+        ]
+      },
+      "graphql": {
+        "fields": [
+          {
+            "parent": "Account",
+            "name": "clientActivity",
+            "arguments": {
+              "cursor": "String",
+              "limit": "Int"
+            },
+            "required_scopes": ["account.client-activity:read"],
+            "returns": "AccountClientActivityPage!"
+          }
+        ]
+      },
+      "mcp": {
+        "tools": [
+          {
+            "name": "account_client_activity_list",
+            "returns": "{ items, nextCursor }",
+            "notes": [
+              "Requires the read-only account.client-activity:read OAuth scope."
+            ]
+          }
+        ]
+      },
+      "links": { "models": ["AuditLog"] }
     }
   }
 }

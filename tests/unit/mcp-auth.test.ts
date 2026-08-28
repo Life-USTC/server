@@ -2,13 +2,14 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { buildBearerChallenge } from "@/lib/mcp/auth-errors";
 import { restReadScope, restWriteScope } from "@/lib/oauth/constants";
 
-const { hasActiveOAuthUserGrantMock, mcpHandlerMock } = vi.hoisted(() => ({
-  hasActiveOAuthUserGrantMock: vi.fn(),
-  mcpHandlerMock: vi.fn(),
-}));
+const { createMcpProtectedRequestHandlerMock, hasActiveOAuthUserGrantMock } =
+  vi.hoisted(() => ({
+    hasActiveOAuthUserGrantMock: vi.fn(),
+    createMcpProtectedRequestHandlerMock: vi.fn(),
+  }));
 
 vi.mock("@better-auth/mcp", () => ({
-  mcpHandler: mcpHandlerMock,
+  createMcpProtectedRequestHandler: createMcpProtectedRequestHandlerMock,
 }));
 
 vi.mock("@/lib/oauth/active-user-grant", () => ({
@@ -48,6 +49,7 @@ function validClaims(
     aud: "https://life.example/api/mcp",
     exp: 1_900_000_000,
     scope: scopes.join(" "),
+    sid: "session-id",
     sub: "user-id",
     [GRANT_ID_CLAIM]: "grant-id",
     ...overrides,
@@ -108,16 +110,18 @@ describe("MCP upstream authentication", () => {
   beforeEach(() => {
     vi.resetModules();
     hasActiveOAuthUserGrantMock.mockReset().mockResolvedValue(true);
-    mcpHandlerMock.mockReset().mockImplementation((_options, handler) => {
-      return async (request: Request) => {
-        if (upstreamMode.kind === "reject") return upstreamMode.response;
-        return handler(request, upstreamMode.claims);
-      };
-    });
+    createMcpProtectedRequestHandlerMock
+      .mockReset()
+      .mockImplementation((_options, handler) => {
+        return async (request: Request) => {
+          if (upstreamMode.kind === "reject") return upstreamMode.response;
+          return handler(request, upstreamMode.claims);
+        };
+      });
     upstreamMode = { kind: "accept", claims: validClaims() };
   });
 
-  it("uses mcpHandler with explicit dynamic-baseURL verification options", async () => {
+  it("uses the protected-request handler with explicit verification options", async () => {
     const { authenticateMcpRequest } = await import("@/lib/mcp/auth");
 
     const first = await authenticateMcpRequest(authenticatedRequest());
@@ -126,20 +130,19 @@ describe("MCP upstream authentication", () => {
     expect(first).toMatchObject({
       authInfo: {
         clientId: "client-id",
-        extra: { userId: "user-id" },
+        extra: {
+          userId: "user-id",
+          grantId: "grant-id",
+          sessionId: "session-id",
+        },
         scopes: [TODO_READ_SCOPE],
       },
     });
     expect(second).toMatchObject({ authInfo: { clientId: "client-id" } });
-    expect(mcpHandlerMock).toHaveBeenCalledWith(
+    expect(createMcpProtectedRequestHandlerMock).toHaveBeenCalledWith(
       {
-        verifyOptions: {
-          issuer: "https://life.example/api/auth",
-          audience: [
-            "https://life.example/api/mcp",
-            "https://loopback.example/api/mcp",
-          ],
-        },
+        issuer: "https://life.example/api/auth",
+        audience: "https://life.example/api/mcp",
         jwksUrl: "https://life.example/api/auth/jwks",
       },
       expect.any(Function),
@@ -195,7 +198,7 @@ describe("MCP upstream authentication", () => {
     expect(result.response.headers.get("WWW-Authenticate")).toContain(
       "Bearer error=",
     );
-    expect(mcpHandlerMock).not.toHaveBeenCalled();
+    expect(createMcpProtectedRequestHandlerMock).not.toHaveBeenCalled();
   });
 
   it("classifies opaque tokens rejected by the upstream JWT verifier", async () => {
@@ -281,12 +284,14 @@ describe("MCP per-tool scope enforcement", () => {
   beforeEach(() => {
     vi.resetModules();
     hasActiveOAuthUserGrantMock.mockReset().mockResolvedValue(true);
-    mcpHandlerMock.mockReset().mockImplementation((_options, handler) => {
-      return async (request: Request) => {
-        if (upstreamMode.kind !== "accept") return upstreamMode.response;
-        return handler(request, upstreamMode.claims);
-      };
-    });
+    createMcpProtectedRequestHandlerMock
+      .mockReset()
+      .mockImplementation((_options, handler) => {
+        return async (request: Request) => {
+          if (upstreamMode.kind !== "accept") return upstreamMode.response;
+          return handler(request, upstreamMode.claims);
+        };
+      });
     upstreamMode = { kind: "accept", claims: validClaims() };
   });
 
@@ -322,6 +327,14 @@ describe("MCP per-tool scope enforcement", () => {
     });
   });
 
+  it("accepts identity-only tokens for public catalog calls", async () => {
+    await expect(
+      authenticate(["openid"], "catalog_course_search"),
+    ).resolves.toMatchObject({
+      authInfo: { clientId: "client-id", scopes: ["openid"] },
+    });
+  });
+
   it("requires every scope in a mixed-tool batch", async () => {
     const result = await authenticate(
       [TODO_WRITE_SCOPE],
@@ -337,8 +350,24 @@ describe("MCP per-tool scope enforcement", () => {
       response: expect.objectContaining({ status: 403 }),
     });
     if ("response" in result) {
-      expect(result.response.headers.get("WWW-Authenticate")).toContain(
-        restWriteScope("workspace.upload"),
+      const challenge = result.response.headers.get("WWW-Authenticate") ?? "";
+      expect(challenge).toContain(TODO_WRITE_SCOPE);
+      expect(challenge).toContain(restWriteScope("workspace.upload"));
+    }
+  });
+
+  it("retains already granted scopes in a step-up challenge", async () => {
+    const profileScope = restReadScope("account.profile");
+    const result = await authenticate(
+      [profileScope, TODO_READ_SCOPE],
+      "workspace_todo_create",
+    );
+
+    expect("response" in result).toBe(true);
+    if ("response" in result) {
+      const challenge = result.response.headers.get("WWW-Authenticate") ?? "";
+      expect(challenge).toContain(
+        `scope="${profileScope} ${TODO_READ_SCOPE} ${TODO_WRITE_SCOPE}"`,
       );
     }
   });
@@ -371,9 +400,9 @@ describe("MCP per-tool scope enforcement", () => {
     }
   });
 
-  it("allows an unmapped tool after the generic feature-scope gate", async () => {
+  it("allows an unmapped tool without a feature-scope gate", async () => {
     await expect(
-      authenticate([restReadScope("account.profile")], "not_a_real_tool"),
+      authenticate(["openid"], "not_a_real_tool"),
     ).resolves.toMatchObject({ authInfo: { clientId: "client-id" } });
   });
 });

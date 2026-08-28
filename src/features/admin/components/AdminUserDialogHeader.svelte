@@ -7,9 +7,9 @@ export let copy: AdminUsersCopy;
 export let user: AdminUserRow;
 </script>
 
-<Dialog.Header>
-  <div class="flex flex-wrap items-start justify-between gap-3">
-    <div class="min-w-0">
+<Dialog.Header class="pr-10">
+  <div class="flex min-w-0 flex-wrap items-start justify-between gap-3">
+    <div class="min-w-0 flex-1">
       <Dialog.Title id="admin-user-dialog-title">
         {copy.editTitle}
       </Dialog.Title>
@@ -17,7 +17,7 @@ export let user: AdminUserRow;
         {user.id}
       </Dialog.Description>
     </div>
-    <div class="flex flex-wrap gap-2">
+    <div class="flex shrink-0 flex-wrap gap-2">
       <Badge
         variant={user.isAdmin ? "secondary" : "ghost"}
       >

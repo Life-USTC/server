@@ -1,7 +1,6 @@
 export function sectionDetailCalendarUrls(input: {
   jwId: string | number;
   origin: string;
-  subscriptionPath: string;
 }) {
   const singlePath = `/api/catalog/sections/${input.jwId}/calendar.ics`;
   return {
@@ -9,10 +8,5 @@ export function sectionDetailCalendarUrls(input: {
     singleCalendarUrl: input.origin
       ? `${input.origin}${singlePath}`
       : singlePath,
-    subscriptionCalendarPath: input.subscriptionPath,
-    subscriptionCalendarUrl:
-      input.origin && input.subscriptionPath
-        ? `${input.origin}${input.subscriptionPath}`
-        : input.subscriptionPath,
   };
 }

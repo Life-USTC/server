@@ -18,18 +18,24 @@ import {
   homeworkCreateRequestSchema,
   homeworkUpdateRequestSchema,
 } from "@/lib/api/schemas/request-schemas";
-import { requireAuth } from "@/lib/auth/api-auth";
+import { attributionFromApiPrincipal } from "@/lib/audit/principal-attribution";
+import { getAuditRequestMetadata } from "@/lib/audit/write-audit-log";
+import { requireAuthPrincipal } from "@/lib/auth/api-auth";
 
 type IdParams = { id: string };
 
 export async function postHomeworkRoute(request: Request) {
-  const auth = await requireAuth(request, {
+  const auth = await requireAuthPrincipal(request, {
     bearerScope: { feature: "community.section-homework", action: "write" },
   });
   if (auth instanceof Response) {
     return auth;
   }
   const { userId } = auth;
+  const audit = {
+    ...attributionFromApiPrincipal(auth),
+    requestId: getAuditRequestMetadata(request).requestId,
+  };
 
   const parsedBody = await parseRouteJsonBody(
     request,
@@ -44,7 +50,7 @@ export async function postHomeworkRoute(request: Request) {
   if (homeworkInput instanceof Response) return homeworkInput;
 
   try {
-    const result = await createHomeworkForSection(userId, homeworkInput);
+    const result = await createHomeworkForSection(userId, homeworkInput, audit);
     if (!result.ok) {
       if (result.error === "mismatch") return badRequest("Invalid section");
       if (result.error === "not_found") return notFound("Section not found");
@@ -73,13 +79,17 @@ export async function patchHomeworkRoute(request: Request, params: IdParams) {
   const id = parseHomeworkId(params);
   if (id instanceof Response) return id;
 
-  const auth = await requireAuth(request, {
+  const auth = await requireAuthPrincipal(request, {
     bearerScope: { feature: "community.section-homework", action: "write" },
   });
   if (auth instanceof Response) {
     return auth;
   }
   const { userId } = auth;
+  const audit = {
+    ...attributionFromApiPrincipal(auth),
+    requestId: getAuditRequestMetadata(request).requestId,
+  };
 
   const parsedBody = await parseRouteJsonBody(
     request,
@@ -96,6 +106,7 @@ export async function patchHomeworkRoute(request: Request, params: IdParams) {
       userId,
       getRequestLocale(request),
       parsedBody,
+      audit,
     );
   } catch (error) {
     return handleRouteError("Failed to update homework", error);
@@ -105,7 +116,7 @@ export async function patchHomeworkRoute(request: Request, params: IdParams) {
 export async function deleteHomeworkRoute(request: Request, params: IdParams) {
   const id = parseHomeworkId(params);
   if (id instanceof Response) return id;
-  const auth = await requireAuth(request, {
+  const auth = await requireAuthPrincipal(request, {
     bearerScope: { feature: "community.section-homework", action: "write" },
   });
   if (auth instanceof Response) {
@@ -114,7 +125,10 @@ export async function deleteHomeworkRoute(request: Request, params: IdParams) {
   const { userId } = auth;
 
   try {
-    return await deleteHomeworkAction(id, userId);
+    return await deleteHomeworkAction(id, userId, {
+      ...attributionFromApiPrincipal(auth),
+      requestId: getAuditRequestMetadata(request).requestId,
+    });
   } catch (error) {
     return handleRouteError("Failed to delete homework", error);
   }

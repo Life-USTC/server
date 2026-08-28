@@ -38,12 +38,12 @@ describe("用户主页贡献", () => {
     const queryValues = queryRaw.mock.calls[0]?.slice(1) ?? [];
 
     expect(queryRaw).toHaveBeenCalledOnce();
-    expect(queryValues.filter((value) => value === "user-1")).toHaveLength(4);
+    expect(queryValues.filter((value) => value === "user-1")).toHaveLength(3);
     expect(
       queryValues
         .filter((value): value is Date => value instanceof Date)
         .map((value) => value.toISOString()),
-    ).toEqual(Array.from({ length: 4 }, () => "2025-03-02T16:00:00.000Z"));
+    ).toEqual(Array.from({ length: 3 }, () => "2025-03-02T16:00:00.000Z"));
     expect(result.totalContributions).toBe(4);
     expect(result.weeks[0]?.[0]?.date).toBe("2025-03-02");
     expect(result.weeks.at(-1)?.at(-1)?.date).toBe("2026-03-07");
@@ -51,7 +51,7 @@ describe("用户主页贡献", () => {
     expect(cells.get("2026-03-02")).toBe(3);
   });
 
-  it("在单条参数化 SQL 中聚合四类贡献并保留原过滤条件", async () => {
+  it("在单条参数化 SQL 中聚合公开贡献并排除私人作业完成状态", async () => {
     const queryRaw = vi.fn(
       async (_query: TemplateStringsArray, ..._values: unknown[]) => [],
     );
@@ -70,7 +70,7 @@ describe("用户主页贡献", () => {
     expect(queryRaw).toHaveBeenCalledOnce();
     expect(sql).toContain('FROM "Comment"');
     expect(sql).toContain("get_public_profile_upload_stats");
-    expect(sql).toContain("get_public_profile_homework_completions");
+    expect(sql).not.toContain("get_public_profile_homework_completions");
     expect(sql).toContain('FROM "Homework"');
     expect(sql).toContain("AT TIME ZONE 'UTC'");
     expect(sql).toContain("AT TIME ZONE 'Asia/Shanghai'");

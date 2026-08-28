@@ -99,10 +99,28 @@
         "routes": [
           {
             "path": "/api/community/section-homeworks",
-            "returns": "{ viewer: ViewerContext, homeworks: HomeworkItem[], auditLogs: AuditLog[] }",
+            "returns": "{ viewer: ViewerContext, data: HomeworkSummary[], pagination: PageInfo }",
             "notes": [
               "Accepts sectionJwId to match the MCP tool's public section identifier, while preserving sectionId and sectionIds for existing REST clients.",
-              "REST localizes returned homework relation fields from the request locale; MCP accepts an explicit locale input."
+              "The paginated list is summary-only: it keeps title, scheduling, completion, permission, and comment-count fields without descriptions, section/course relations, editor relations, or audit history."
+            ]
+          },
+          {
+            "path": "/api/community/section-homeworks/[id]",
+            "method": "GET",
+            "returns": "{ homework: HomeworkItem, auditLogs: AuditLog[] }",
+            "auth": "anon",
+            "notes": [
+              "Loads one active homework's description, detail relations, completion state, and audit history after an explicit detail request."
+            ]
+          },
+          {
+            "path": "/api/community/section-homeworks/audit",
+            "method": "GET",
+            "returns": "{ auditLogs: AuditLog[] }",
+            "auth": "anon",
+            "notes": [
+              "Loads section-wide audit history only after the explicit audit dialog request; the homework list never includes audit history."
             ]
           },
           {
@@ -142,7 +160,7 @@
             "rest_equivalent": "POST /api/community/section-homeworks",
             "mcp_equivalent": "community_section_homework_create",
             "notes": [
-              "Accepts the public sectionJwId, returns the localized Homework snapshot, and preserves the shared created HomeworkAuditLog transaction."
+              "Accepts the public sectionJwId, returns the localized Homework snapshot, and writes the shared AuditLog event in the same transaction."
             ]
           },
           {
@@ -177,11 +195,11 @@
         "tools": [
           {
             "name": "community_section_homework_list",
-            "returns": "{ found: Boolean, section: Section?, homeworks: HomeworkItem[] }",
+            "returns": "{ found: Boolean, section: Section?, homeworks: HomeworkSummary[] }",
             "rest_equivalent": "GET /api/community/section-homeworks",
             "notes": [
-              "Default and the deprecated summary alias omit the repeated per-item section payload because the top-level section already scopes the list.",
-              "Editor identity fields stay in full mode; default focuses on homework state and due context."
+              "The top-level section scopes the list, so each item omits repeated section context.",
+              "Every mode is summary-only and omits descriptions, detail relations, and audit history; use community_description_get with targetType=homework for an explicit description request."
             ]
           },
           {

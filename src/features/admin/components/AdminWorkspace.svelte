@@ -12,10 +12,15 @@ type Props = {
 let { children, controls, feedback, header, summary }: Props = $props();
 </script>
 
-<section class="grid grid-cols-[minmax(0,1fr)] gap-5" data-testid="admin-workspace">
-  {@render header()}
-  {#if feedback}{@render feedback()}{/if}
-  {#if summary}{@render summary()}{/if}
-  {#if controls}{@render controls()}{/if}
-  {@render children()}
-</section>
+<div class="page-frame page-frame-full w-full min-w-0">
+  <section
+    class="grid min-w-0 gap-8 [&>header]:min-w-0 [&>section]:min-w-0 [&>div]:min-w-0"
+    data-testid="admin-workspace"
+  >
+    {@render header()}
+    {#if feedback}{@render feedback()}{/if}
+    {#if summary}{@render summary()}{/if}
+    {#if controls}{@render controls()}{/if}
+    {@render children()}
+  </section>
+</div>

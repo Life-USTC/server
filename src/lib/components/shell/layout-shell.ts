@@ -76,7 +76,7 @@ export function buildFooterLinks(copy: FooterCopy): ShellLink[] {
       rel: "noreferrer",
       target: "_blank",
     },
-    { href: "/mobile-app", label: copy.mobileApp },
+    { href: "/usage/mobile", label: copy.mobileApp },
   ];
 }
 

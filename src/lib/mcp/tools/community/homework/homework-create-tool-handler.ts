@@ -1,5 +1,6 @@
 import { requireHomeworkItemById } from "@/features/homeworks/server/homework-read-model";
 import type { AppLocale } from "@/i18n/config";
+import { attributionFromMcpAuthInfo } from "@/lib/audit/principal-attribution";
 import {
   getUserId,
   jsonToolResult,
@@ -41,6 +42,9 @@ export async function createHomeworkOnSectionTool(
 ) {
   const resolvedMode = resolveMcpMode(mode);
   const userId = getUserId(extra.authInfo);
+  const audit = extra.authInfo
+    ? (attributionFromMcpAuthInfo(extra.authInfo) ?? undefined)
+    : undefined;
 
   const parsedTimestamps = parseCreateHomeworkTimestamps(
     {
@@ -62,6 +66,7 @@ export async function createHomeworkOnSectionTool(
     submissionStartAt: parsedTimestamps.submissionStartAt ?? null,
     title,
     userId,
+    audit,
   });
   if (!createResult.ok) {
     if (createResult.error === "not_found") {

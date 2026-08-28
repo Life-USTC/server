@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   buildCurrentSemesterWhere,
+  currentSemesterDateKey,
   selectCurrentSemesterFromList,
 } from "@/features/catalog/lib/current-semester";
 
@@ -17,6 +18,28 @@ describe("当前学期辅助函数", () => {
       startDate: { lte: now },
       endDate: { gte: now },
     });
+  });
+
+  it("按上海自然日归一化查询日期并生成缓存键", () => {
+    const lateOnEndDate = new Date("2026-08-14T15:59:59.000Z");
+    const dateOnly = new Date("2026-08-14T00:00:00.000Z");
+
+    expect(buildCurrentSemesterWhere(lateOnEndDate)).toEqual({
+      startDate: { lte: dateOnly },
+      endDate: { gte: dateOnly },
+    });
+    expect(currentSemesterDateKey(lateOnEndDate)).toBe("2026-08-14");
+  });
+
+  it("上海午夜后切换到新的查询日期和缓存键", () => {
+    const afterMidnight = new Date("2026-08-14T16:00:00.000Z");
+    const dateOnly = new Date("2026-08-15T00:00:00.000Z");
+
+    expect(buildCurrentSemesterWhere(afterMidnight)).toEqual({
+      startDate: { lte: dateOnly },
+      endDate: { gte: dateOnly },
+    });
+    expect(currentSemesterDateKey(afterMidnight)).toBe("2026-08-15");
   });
 
   it("优先选择第一个未结束学期", () => {

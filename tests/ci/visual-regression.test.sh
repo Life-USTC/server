@@ -17,4 +17,4 @@ test -f .svelte-kit/output/server/manifest.js || {
 bun run app:prepare
 bun run db:migrate:deploy
 bunx prisma db seed
-VISUAL_REGRESSION=1 bunx playwright test visual-matrix
+VISUAL_REGRESSION=1 bash tests/ci/e2e-run-shard.sh 1/1 visual-matrix

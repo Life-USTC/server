@@ -4,6 +4,7 @@ export const SETTINGS_TABS = [
   "profile",
   "preferences",
   "accounts",
+  "security",
   "authorizations",
   "danger",
 ] as const;

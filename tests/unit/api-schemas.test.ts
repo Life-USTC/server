@@ -34,6 +34,7 @@ import {
   sectionSchedulesQuerySchema,
   sectionsQuerySchema,
   semestersQuerySchema,
+  subscribedHomeworksQuerySchema,
   subscribedSchedulesQuerySchema,
   teachersQuerySchema,
   todoCompletionBatchRequestSchema,
@@ -73,6 +74,41 @@ describe("matchSectionCodesRequestSchema", () => {
     });
 
     expect(result.success).toBe(true);
+  });
+
+  it("限制公开和订阅作业列表的查询规模", () => {
+    expect(
+      homeworksQuerySchema.safeParse({
+        sectionIds: Array.from({ length: 50 }, (_, index) => index + 1).join(
+          ",",
+        ),
+        page: "100",
+        pageSize: "50",
+      }).success,
+    ).toBe(true);
+    expect(
+      homeworksQuerySchema.safeParse({
+        sectionIds: Array.from({ length: 51 }, (_, index) => index + 1).join(
+          ",",
+        ),
+      }).success,
+    ).toBe(false);
+    expect(
+      homeworksQuerySchema.safeParse({ sectionIds: "1,invalid" }).success,
+    ).toBe(false);
+    expect(homeworksQuerySchema.safeParse({ page: "101" }).success).toBe(false);
+    expect(homeworksQuerySchema.safeParse({ pageSize: "51" }).success).toBe(
+      false,
+    );
+    expect(
+      subscribedHomeworksQuerySchema.safeParse({
+        page: "100",
+        pageSize: "50",
+      }).success,
+    ).toBe(true);
+    expect(
+      subscribedHomeworksQuerySchema.safeParse({ pageSize: "51" }).success,
+    ).toBe(false);
   });
 
   it("拒绝空 code 和无效 code 格式", () => {
@@ -622,6 +658,7 @@ describe("其他请求 schema", () => {
     });
     expect(todos).toMatchObject({ completed: true, limit: 20 });
     expect(todos.dueBefore).toEqual(new Date("2026-03-01T00:00:00.000Z"));
+    expect(todosQuerySchema.parse({}).limit).toBe(100);
 
     expect(homeworksQuerySchema.parse({ includeDeleted: "true" })).toEqual({
       includeDeleted: true,
@@ -673,12 +710,24 @@ describe("其他请求 schema", () => {
       semestersQuerySchema,
     ];
     for (const schema of paginatedSchemas) {
+      expect(schema.safeParse({ page: "100" }).success).toBe(true);
+      expect(schema.safeParse({ page: "101" }).success).toBe(false);
       expect(schema.safeParse({ pageSize: "100" }).success).toBe(true);
       expect(schema.safeParse({ pageSize: "101" }).success).toBe(false);
       expect(schema.safeParse({ pageSize: "0" }).success).toBe(false);
       expect(schema.safeParse({ limit: "100" }).success).toBe(true);
       expect(schema.safeParse({ limit: "101" }).success).toBe(false);
       expect(schema.safeParse({ limit: "0" }).success).toBe(false);
+    }
+
+    for (const schema of [
+      coursesQuerySchema,
+      sectionsQuerySchema,
+      teachersQuerySchema,
+    ]) {
+      expect(schema.safeParse({ search: "x".repeat(200) }).success).toBe(true);
+      expect(schema.safeParse({ search: "x".repeat(201) }).success).toBe(false);
+      expect(schema.safeParse({ search: "x" }).success).toBe(false);
     }
 
     for (const input of [

@@ -43,11 +43,7 @@ describe("catalog_bus_timetable_get", () => {
     expect(
       result.routes?.some((r) => r.id === fixtures.DEV_SEED.bus.routeId),
     ).toBe(true);
-    expect(result.preferences).toEqual({
-      preferredOriginCampusId: null,
-      preferredDestinationCampusId: null,
-      showDepartedTrips: false,
-    });
+    expect(result.preferences).toBeNull();
     expect(Array.isArray(result.nextDepartures)).toBe(true);
   });
 
@@ -78,7 +74,7 @@ describe("catalog_bus_timetable_get", () => {
     expect(typeof result.counts?.routes).toBe("number");
     expect(Array.isArray(result.campuses)).toBe(true);
     expect(Array.isArray(result.routes)).toBe(true);
-    expect(result.preferences).toBeDefined();
+    expect(result.preferences).toBeNull();
     expect(Array.isArray(result.nextDepartures)).toBe(true);
     expect(typeof result.nextDeparturesMessage).toBe("string");
   });
@@ -147,12 +143,14 @@ describe("catalog_bus_timetable_get", () => {
     expect(result.version?.key).toBe(fixtures.DEV_SEED.bus.versionKey);
   });
 
-  it("未认证调用因缺少用户上下文而被拒绝", async () => {
+  it("未认证调用返回公开时刻表且不包含个人偏好", async () => {
     const anonymous = await createAnonymousMcpHarness();
     try {
-      await expect(
-        anonymous.call("catalog_bus_timetable_get", { locale: "zh-cn" }),
-      ).rejects.toThrow();
+      const result = await anonymous.call<{ preferences?: unknown }>(
+        "catalog_bus_timetable_get",
+        { locale: "zh-cn" },
+      );
+      expect(result.preferences).toBeNull();
     } finally {
       await anonymous.close();
     }

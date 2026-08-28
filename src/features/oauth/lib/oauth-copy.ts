@@ -26,28 +26,20 @@ function scopeLabelFromMessages(
   return typeof value === "string" ? value : undefined;
 }
 
-function oauthAdminMessages(
-  locale: AppLocale,
-): Record<string, unknown> | undefined {
-  const messages = localeMessages[locale] as Record<string, unknown>;
-  const oauthAdmin = messages.oauthAdmin;
-  return oauthAdmin && typeof oauthAdmin === "object"
-    ? (oauthAdmin as Record<string, unknown>)
-    : undefined;
-}
-
 export function oauthScopeLabel(locale: AppLocale, scope: string) {
   const oauth = localeMessages[locale].oauth as Record<string, unknown>;
-  const oauthAdmin = oauthAdminMessages(locale);
-  const copies = oauthAdmin ? [oauth, oauthAdmin] : [oauth];
   const scopeKeys = [scope, `workspace.${scope}`];
 
   for (const scopeKey of scopeKeys) {
-    for (const copy of copies) {
-      const label = scopeLabelFromMessages(copy, scopeKey);
-      if (label) return label;
-    }
+    const label = scopeLabelFromMessages(oauth, scopeKey);
+    if (label) return label;
   }
 
   return scope;
+}
+
+export function oauthFeatureLabel(locale: AppLocale, feature: string) {
+  const oauth = localeMessages[locale].oauth as Record<string, unknown>;
+  const value = oauth[`scopeFeature_${feature}`];
+  return typeof value === "string" ? value : feature;
 }

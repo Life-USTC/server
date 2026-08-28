@@ -51,6 +51,8 @@ describe("GraphQL principal", () => {
     verifyAccessTokenJwtMock.mockResolvedValue({
       aud: "https://life.example/api/graphql",
       clientId: "client-1",
+      grantId: "grant-1",
+      sessionId: "session-1",
       scope: new Set([restReadScope("workspace.todo")]),
       sub: "user-1",
     });
@@ -62,10 +64,13 @@ describe("GraphQL principal", () => {
       ),
     ).resolves.toEqual({
       kind: "oauth",
+      channel: "graphql",
       userId: "user-1",
       scopes: new Set([restReadScope("workspace.todo")]),
       resource: "https://life.example/api/graphql",
       clientId: "client-1",
+      grantId: "grant-1",
+      sessionId: "session-1",
     });
     expect(verifyAccessTokenJwtMock).toHaveBeenCalledWith(
       "access-token",
@@ -119,34 +124,34 @@ describe("GraphQL principal", () => {
     });
   });
 
-  it.each([
-    "https://life.example/api/mcp",
-    "https://life.example/api/auth",
-  ])("拒绝 %s audience 且不回退 Session", async (aud) => {
-    verifyAccessTokenJwtMock.mockResolvedValue({
-      aud,
-      scope: new Set([restReadScope("workspace.todo")]),
-      sub: "user-1",
-    });
-    getSessionFromHeadersMock.mockResolvedValue({
-      user: { id: "session-user" },
-    });
-    const { resolveGraphqlPrincipal } = await import("@/lib/graphql/auth");
+  it.each(["https://life.example/api/mcp", "https://life.example/api/auth"])(
+    "拒绝 %s audience 且不回退 Session",
+    async (aud) => {
+      verifyAccessTokenJwtMock.mockResolvedValue({
+        aud,
+        scope: new Set([restReadScope("workspace.todo")]),
+        sub: "user-1",
+      });
+      getSessionFromHeadersMock.mockResolvedValue({
+        user: { id: "session-user" },
+      });
+      const { resolveGraphqlPrincipal } = await import("@/lib/graphql/auth");
 
-    await expect(
-      resolveGraphqlPrincipal(
-        request({
-          authorization: "Bearer access-token",
-          cookie: "better-auth.session_token=session-token",
-          origin: "https://life.example",
-        }),
-      ),
-    ).rejects.toMatchObject({
-      code: "UNAUTHENTICATED",
-      status: 401,
-    });
-    expect(getSessionFromHeadersMock).not.toHaveBeenCalled();
-  });
+      await expect(
+        resolveGraphqlPrincipal(
+          request({
+            authorization: "Bearer access-token",
+            cookie: "better-auth.session_token=session-token",
+            origin: "https://life.example",
+          }),
+        ),
+      ).rejects.toMatchObject({
+        code: "UNAUTHENTICATED",
+        status: 401,
+      });
+      expect(getSessionFromHeadersMock).not.toHaveBeenCalled();
+    },
+  );
 
   it("无效 Bearer 不回退 Session", async () => {
     verifyAccessTokenJwtMock.mockRejectedValue(new Error("invalid token"));
@@ -210,28 +215,28 @@ describe("GraphQL principal", () => {
     expect(getSessionFromHeadersMock).toHaveBeenCalledWith(incoming.headers);
   });
 
-  it.each([
-    undefined,
-    "https://evil.example",
-  ])("Session cookie 拒绝缺失或不可信 Origin：%s", async (origin) => {
-    getSessionFromHeadersMock.mockResolvedValue({
-      user: { id: "session-user" },
-    });
-    const { resolveGraphqlPrincipal } = await import("@/lib/graphql/auth");
+  it.each([undefined, "https://evil.example"])(
+    "Session cookie 拒绝缺失或不可信 Origin：%s",
+    async (origin) => {
+      getSessionFromHeadersMock.mockResolvedValue({
+        user: { id: "session-user" },
+      });
+      const { resolveGraphqlPrincipal } = await import("@/lib/graphql/auth");
 
-    await expect(
-      resolveGraphqlPrincipal(
-        request({
-          cookie: "better-auth.session_token=session-token",
-          ...(origin ? { origin } : {}),
-        }),
-      ),
-    ).rejects.toMatchObject({
-      code: "FORBIDDEN",
-      status: 403,
-    });
-    expect(getSessionFromHeadersMock).not.toHaveBeenCalled();
-  });
+      await expect(
+        resolveGraphqlPrincipal(
+          request({
+            cookie: "better-auth.session_token=session-token",
+            ...(origin ? { origin } : {}),
+          }),
+        ),
+      ).rejects.toMatchObject({
+        code: "FORBIDDEN",
+        status: 403,
+      });
+      expect(getSessionFromHeadersMock).not.toHaveBeenCalled();
+    },
+  );
 
   it("已过期 Session cookie 在可信 Origin 下回退 anonymous", async () => {
     getSessionFromHeadersMock.mockResolvedValue(null);
@@ -272,6 +277,7 @@ describe("GraphQL feature scope gates", () => {
           {
             kind: "oauth",
             userId: "user-1",
+            clientId: "client-1",
             scopes: new Set([scope]),
             resource: "https://life.example/api/graphql",
           },
@@ -289,6 +295,7 @@ describe("GraphQL feature scope gates", () => {
         {
           kind: "oauth",
           userId: "user-1",
+          clientId: "client-1",
           scopes: new Set([restReadScope("workspace.todo")]),
           resource: "https://life.example/api/graphql",
         },
@@ -314,6 +321,7 @@ describe("GraphQL feature scope gates", () => {
         {
           kind: "oauth",
           userId: "user-1",
+          clientId: "client-1",
           scopes: new Set(),
           resource: "https://life.example/api/graphql",
         },
@@ -342,6 +350,7 @@ describe("GraphQL feature scope gates", () => {
       {
         kind: "oauth",
         userId: "user-1",
+        clientId: "client-1",
         scopes: new Set<string>(),
         resource: "https://life.example/api/graphql",
       } as const,
@@ -350,28 +359,31 @@ describe("GraphQL feature scope gates", () => {
       403,
       [restReadScope("workspace.todo")],
     ],
-  ])("%s 错误是不会被 masking 吞掉的安全 GraphQLError", async (_case, principal, requirement, code, status, requiredScopes) => {
-    const { requireGraphqlScope } = await import("@/lib/graphql/auth");
+  ])(
+    "%s 错误是不会被 masking 吞掉的安全 GraphQLError",
+    async (_case, principal, requirement, code, status, requiredScopes) => {
+      const { requireGraphqlScope } = await import("@/lib/graphql/auth");
 
-    let thrown: unknown;
-    try {
-      requireGraphqlScope(principal, requirement);
-    } catch (error) {
-      thrown = error;
-    }
+      let thrown: unknown;
+      try {
+        requireGraphqlScope(principal, requirement);
+      } catch (error) {
+        thrown = error;
+      }
 
-    expect(thrown).toBeInstanceOf(GraphQLError);
-    expect(thrown).toMatchObject({
-      code,
-      status,
-      requiredScopes,
-      extensions: {
+      expect(thrown).toBeInstanceOf(GraphQLError);
+      expect(thrown).toMatchObject({
         code,
+        status,
         requiredScopes,
-        http: { status },
-      },
-    });
-  });
+        extensions: {
+          code,
+          requiredScopes,
+          http: { status },
+        },
+      });
+    },
+  );
 
   it("anonymous 访问私有字段返回 UNAUTHENTICATED", async () => {
     const { requireGraphqlScope } = await import("@/lib/graphql/auth");

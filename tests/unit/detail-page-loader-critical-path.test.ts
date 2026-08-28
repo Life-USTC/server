@@ -11,7 +11,7 @@ const {
   getSectionHomeworkDataMock,
   getSectionPageMock,
   getTeacherPageMock,
-  getUserSectionSubscriptionStateMock,
+  getUserSectionSubscriptionStatusForSectionMock,
   getViewerContextMock,
   withSectionPageRelatedDataMock,
 } = vi.hoisted(() => ({
@@ -22,7 +22,7 @@ const {
   getSectionHomeworkDataMock: vi.fn(),
   getSectionPageMock: vi.fn(),
   getTeacherPageMock: vi.fn(),
-  getUserSectionSubscriptionStateMock: vi.fn(),
+  getUserSectionSubscriptionStatusForSectionMock: vi.fn(),
   getViewerContextMock: vi.fn(),
   withSectionPageRelatedDataMock: vi.fn(),
 }));
@@ -66,7 +66,8 @@ vi.mock(
 );
 
 vi.mock("@/features/subscriptions/server/subscriptions", () => ({
-  getUserSectionSubscriptionState: getUserSectionSubscriptionStateMock,
+  getUserSectionSubscriptionStatusForSection:
+    getUserSectionSubscriptionStatusForSectionMock,
 }));
 
 vi.mock("@/lib/auth/viewer-context", () => ({
@@ -132,6 +133,7 @@ const section = {
   jwId: 301,
   retiredAt: null,
   otherCourseSections: [],
+  otherCourseSectionCount: 0,
   scheduleCount: 0,
   schedules: [],
   semesterId: 1,
@@ -186,11 +188,13 @@ beforeEach(() => {
     homeworks: [],
     viewer: anonymousViewer,
   });
-  getSectionPageMock.mockResolvedValue(section);
+  getSectionPageMock.mockResolvedValue({
+    description: descriptionData.description,
+    section,
+  });
   getTeacherPageMock.mockResolvedValue(teacher);
-  getUserSectionSubscriptionStateMock.mockResolvedValue({
-    subscribedSections: [],
-    subscriptionIcsUrl: null,
+  getUserSectionSubscriptionStatusForSectionMock.mockResolvedValue({
+    isSubscribed: false,
   });
   getViewerContextMock.mockResolvedValue(anonymousViewer);
   withSectionPageRelatedDataMock.mockImplementation(
@@ -203,6 +207,67 @@ afterEach(() => {
 });
 
 describe("catalog detail loader critical path", () => {
+  it("traces bounded course data-load phases without entity identifiers", async () => {
+    const spans: Array<{
+      attributes: Record<string, boolean | number | string | undefined>;
+      name: string;
+    }> = [];
+    const enterSpan = <T>(
+      name: string,
+      callback: (span: {
+        setAttribute(key: string, value?: boolean | number | string): void;
+      }) => T,
+    ) => {
+      const attributes: Record<string, boolean | number | string | undefined> =
+        {};
+      spans.push({ attributes, name });
+      return callback({
+        setAttribute(key, value) {
+          attributes[key] = value;
+        },
+      });
+    };
+    const { loadCourseDetailPage } = await import(
+      "@/features/catalog/server/catalog-detail-page-server"
+    );
+
+    await runWithCloudflareRuntimeEnv(
+      {},
+      () =>
+        loadCourseDetailPage({
+          locals: locals(),
+          params: { jwId: String(course.jwId) },
+          request: request(`/catalog/courses/${course.jwId}`),
+          url: new URL(`https://example.test/catalog/courses/${course.jwId}`),
+        }),
+      { tracing: { enterSpan } },
+    );
+
+    expect(spans).toEqual([
+      {
+        attributes: { "catalog.detail.kind": "course" },
+        name: "catalog.detail.data_load",
+      },
+      {
+        attributes: { "catalog.detail.kind": "course" },
+        name: "catalog.detail.core",
+      },
+      {
+        attributes: {
+          "catalog.detail.kind": "course",
+          "user.authenticated": false,
+        },
+        name: "catalog.detail.viewer",
+      },
+      {
+        attributes: { "catalog.detail.kind": "course" },
+        name: "catalog.detail.comments",
+      },
+    ]);
+    expect(JSON.stringify(spans)).not.toContain(String(course.jwId));
+    expect(JSON.stringify(spans)).not.toContain(String(course.id));
+  });
+
   it("starts course and viewer work together and skips comments outside the comments section", async () => {
     let resolveCourse: ((value: typeof course) => void) | undefined;
     getCoursePageMock.mockReturnValue(
@@ -229,7 +294,7 @@ describe("catalog detail loader critical path", () => {
     resolveCourse?.(course);
     const result = await resultPromise;
 
-    expect(result.descriptionData).toBe(descriptionData);
+    expect(result.descriptionData).toEqual(descriptionData);
     expect(result.structuredDataJson).toContain("Primary SSR description");
     expect(result.commentsData).toBeNull();
     expect(getDescriptionPayloadMock).toHaveBeenCalledWith(
@@ -297,9 +362,7 @@ describe("catalog detail loader critical path", () => {
     });
 
     expect(getCoursePageMock).toHaveBeenCalledTimes(2);
-    expect(getCoursePageMock).toHaveBeenCalledWith(course.jwId, "en-us", {
-      includeSections: true,
-    });
+    expect(getCoursePageMock).toHaveBeenCalledWith(course.jwId, "en-us");
   });
 
   it("separates public detail core entries by locale and entity", async () => {
@@ -354,9 +417,7 @@ describe("catalog detail loader critical path", () => {
     await loadSignedInWithSections();
 
     expect(getTeacherPageMock).toHaveBeenCalledTimes(4);
-    expect(getTeacherPageMock).toHaveBeenCalledWith(teacher.id, "en-us", {
-      includeSections: true,
-    });
+    expect(getTeacherPageMock).toHaveBeenCalledWith(teacher.id, "en-us");
   });
 
   it("bypasses public detail core caching for default dynamic and authenticated SSR", async () => {
@@ -491,28 +552,31 @@ describe("detail request session resolution", () => {
   it.each([
     ["cookie", { cookie: "better-auth.session_token=session-token" }],
     ["bearer", { authorization: "Bearer access-token" }],
-  ])("parses a signed-in %s session once in the hook and reuses locals in the detail loader", async (_authKind, headers) => {
-    vi.spyOn(console, "info").mockImplementation(() => {});
-    getSessionFromHeadersMock.mockResolvedValue({
-      headers: new Headers({
-        "set-cookie":
-          "better-auth.session_token=refreshed-token; Path=/; HttpOnly",
-      }),
-      session: {
-        session: { id: "session-1" },
-        user: signedInUser,
-      },
-    });
+  ])(
+    "parses a signed-in %s session once in the hook and reuses locals in the detail loader",
+    async (_authKind, headers) => {
+      vi.spyOn(console, "info").mockImplementation(() => {});
+      getSessionFromHeadersMock.mockResolvedValue({
+        headers: new Headers({
+          "set-cookie":
+            "better-auth.session_token=refreshed-token; Path=/; HttpOnly",
+        }),
+        session: {
+          session: { id: "session-1" },
+          user: signedInUser,
+        },
+      });
 
-    const response = await resolveCourseThroughHook(headers);
+      const response = await resolveCourseThroughHook(headers);
 
-    expect(response.status).toBe(200);
-    expect(getSessionFromHeadersMock).toHaveBeenCalledOnce();
-    expect(response.headers.get("set-cookie")).toContain("refreshed-token");
-    expect(getViewerContextMock).toHaveBeenCalledWith({
-      userId: signedInUser.id,
-    });
-  });
+      expect(response.status).toBe(200);
+      expect(getSessionFromHeadersMock).toHaveBeenCalledOnce();
+      expect(response.headers.get("set-cookie")).toContain("refreshed-token");
+      expect(getViewerContextMock).toHaveBeenCalledWith({
+        userId: signedInUser.id,
+      });
+    },
+  );
 
   it("does not initialize Better Auth for an anonymous detail request", async () => {
     vi.spyOn(console, "info").mockImplementation(() => {});
@@ -537,13 +601,71 @@ describe("detail request session resolution", () => {
 
     expect(getSessionFromHeadersMock).not.toHaveBeenCalled();
     expect(getCoursePageMock).toHaveBeenCalledTimes(2);
-    expect(getCoursePageMock).toHaveBeenCalledWith(course.jwId, "en-us", {
-      includeSections: true,
-    });
+    expect(getCoursePageMock).toHaveBeenCalledWith(course.jwId, "en-us");
   });
 });
 
 describe("section detail loader critical path", () => {
+  it("traces bounded section subscription and homework phases", async () => {
+    const spans: Array<{
+      attributes: Record<string, boolean | number | string | undefined>;
+      name: string;
+    }> = [];
+    const enterSpan = <T>(
+      name: string,
+      callback: (span: {
+        isTraced: boolean;
+        setAttribute(key: string, value?: boolean | number | string): void;
+      }) => T,
+    ) => {
+      const attributes: Record<string, boolean | number | string | undefined> =
+        {};
+      spans.push({ attributes, name });
+      return callback({
+        isTraced: true,
+        setAttribute(key, value) {
+          attributes[key] = value;
+        },
+      });
+    };
+    const { loadSectionDetailPage } = await import(
+      "@/features/section-detail/server/section-detail-page-server"
+    );
+
+    await runWithCloudflareRuntimeEnv(
+      {},
+      () =>
+        loadSectionDetailPage({
+          locals: locals(signedInUser),
+          params: { jwId: String(section.jwId) },
+          request: request(`/catalog/sections/${section.jwId}`),
+          url: new URL(`https://example.test/catalog/sections/${section.jwId}`),
+        }),
+      { tracing: { enterSpan } },
+    );
+
+    expect(spans).toEqual(
+      expect.arrayContaining([
+        {
+          attributes: {
+            "catalog.detail.kind": "section",
+            "user.authenticated": true,
+          },
+          name: "catalog.detail.section.subscription",
+        },
+        {
+          attributes: {
+            "catalog.detail.kind": "section",
+            "user.authenticated": true,
+          },
+          name: "catalog.detail.section.homework",
+        },
+      ]),
+    );
+    expect(JSON.stringify(spans)).not.toContain(String(section.jwId));
+    expect(JSON.stringify(spans)).not.toContain(String(section.id));
+  });
+
   it("loads section detail without public overview colo cache on stream pages", async () => {
     const match = vi.fn(async () => undefined);
     const put = vi.fn(async () => undefined);
@@ -567,10 +689,18 @@ describe("section detail loader critical path", () => {
     expect(result.section).toBe(section);
   });
 
-  it("loads the section while reusing hook auth and skips comments and homework on overview", async () => {
-    let resolveSection: ((value: typeof section) => void) | undefined;
+  it("starts section and viewer work together and skips extra description, comments, and homework queries", async () => {
+    let resolveSection:
+      | ((value: {
+          description: typeof descriptionData.description;
+          section: typeof section;
+        }) => void)
+      | undefined;
     getSectionPageMock.mockReturnValue(
-      new Promise<typeof section>((resolve) => {
+      new Promise<{
+        description: typeof descriptionData.description;
+        section: typeof section;
+      }>((resolve) => {
         resolveSection = resolve;
       }),
     );
@@ -587,30 +717,30 @@ describe("section detail loader critical path", () => {
 
     await vi.waitFor(() => {
       expect(getSectionPageMock).toHaveBeenCalledOnce();
+      expect(getViewerContextMock).toHaveBeenCalledOnce();
     });
     expect(getDescriptionPayloadMock).not.toHaveBeenCalled();
 
-    resolveSection?.(section);
+    resolveSection?.({
+      description: descriptionData.description,
+      section,
+    });
     const result = await resultPromise;
 
-    expect(result.descriptionData).toBe(descriptionData);
+    expect(result.descriptionData).toEqual(descriptionData);
     expect(result.structuredDataJson).toContain("Primary SSR description");
     expect(result.commentsData).toBeNull();
     expect(result.homeworkData.homeworks).toEqual([]);
     expect(result.viewer).toEqual({
       isSubscribed: false,
       signedIn: false,
-      subscriptionIcsUrl: null,
     });
-    expect(getDescriptionPayloadMock).toHaveBeenCalledWith(
-      "section",
-      section.id,
-      anonymousViewer,
-      { includeHistory: false },
-    );
+    expect(getDescriptionPayloadMock).not.toHaveBeenCalled();
     expect(getCommentsPayloadMock).not.toHaveBeenCalled();
     expect(getSectionHomeworkDataMock).not.toHaveBeenCalled();
-    expect(getUserSectionSubscriptionStateMock).not.toHaveBeenCalled();
+    expect(
+      getUserSectionSubscriptionStatusForSectionMock,
+    ).not.toHaveBeenCalled();
   });
 
   it("redirects legacy tab query params to canonical hash URLs", async () => {
@@ -652,14 +782,18 @@ describe("section detail loader critical path", () => {
     expect(result.commentsData).toBeNull();
     expect(result.homeworkData.homeworks).toEqual([]);
     expect(getSectionHomeworkDataMock).toHaveBeenCalledOnce();
-    expect(getSectionHomeworkDataMock).toHaveBeenCalledWith(section.id, null);
+    expect(getSectionHomeworkDataMock).toHaveBeenCalledWith(
+      section.id,
+      null,
+      "hw-1",
+    );
     expect(getCommentsPayloadMock).not.toHaveBeenCalled();
   });
 
-  it("retains subscription state on signed-in sections because the fixed header consumes it", async () => {
-    getUserSectionSubscriptionStateMock.mockResolvedValue({
-      subscribedSections: [section.id],
-      subscriptionIcsUrl: "/api/calendar-feeds/user-1.ics",
+  it("loads subscription status without exposing the calendar feed credential", async () => {
+    getUserSectionSubscriptionStatusForSectionMock.mockResolvedValue({
+      isSubscribed: true,
+      userId: "user-1",
     });
     const { loadSectionDetailPage } = await import(
       "@/features/section-detail/server/section-detail-page-server"
@@ -672,18 +806,25 @@ describe("section detail loader critical path", () => {
       url: new URL(`https://example.test/catalog/sections/${section.jwId}`),
     });
 
-    expect(getUserSectionSubscriptionStateMock).toHaveBeenCalledWith("user-1");
-    expect(result.viewer).toMatchObject({
+    expect(getUserSectionSubscriptionStatusForSectionMock).toHaveBeenCalledWith(
+      "user-1",
+      section.jwId,
+    );
+    expect(result.viewer).toEqual({
       isSubscribed: true,
       signedIn: true,
-      subscriptionIcsUrl: "/api/calendar-feeds/user-1.ics",
     });
     expect(getCommentsPayloadMock).not.toHaveBeenCalled();
-    expect(getDescriptionPayloadMock).toHaveBeenCalled();
+    expect(getDescriptionPayloadMock).not.toHaveBeenCalled();
     expect(getSectionHomeworkDataMock).toHaveBeenCalledWith(
       section.id,
       signedInUser.id,
+      null,
     );
+    expect(getViewerContextMock).toHaveBeenCalledWith({
+      includeAdmin: true,
+      userId: signedInUser.id,
+    });
   });
 
   it("loads full stream section data for anonymous PublicSsr requests", async () => {
@@ -691,7 +832,10 @@ describe("section detail loader critical path", () => {
       ...section,
       otherCourseSections: [{ id: 32 }],
     };
-    getSectionPageMock.mockResolvedValue(relatedSection);
+    getSectionPageMock.mockResolvedValue({
+      description: descriptionData.description,
+      section: relatedSection,
+    });
     const { loadSectionDetailPage } = await import(
       "@/features/section-detail/server/section-detail-page-server"
     );
@@ -706,12 +850,7 @@ describe("section detail loader critical path", () => {
     const [first, second] = await Promise.all([load(), load()]);
 
     expect(getSectionPageMock).toHaveBeenCalledTimes(2);
-    expect(getSectionPageMock).toHaveBeenCalledWith(section.jwId, "en-us", {
-      includeExams: true,
-      includeRelated: true,
-      includeSchedules: true,
-      includeTeacherDepartments: true,
-    });
+    expect(getSectionPageMock).toHaveBeenCalledWith(section.jwId, "en-us");
     expect(withSectionPageRelatedDataMock).not.toHaveBeenCalled();
     expect(first.section).toBe(relatedSection);
     expect(second.section).toBe(relatedSection);
@@ -736,11 +875,6 @@ describe("section detail loader critical path", () => {
     });
 
     expect(getSectionPageMock).toHaveBeenCalledTimes(2);
-    expect(getSectionPageMock).toHaveBeenCalledWith(section.jwId, "en-us", {
-      includeExams: true,
-      includeRelated: true,
-      includeSchedules: true,
-      includeTeacherDepartments: true,
-    });
+    expect(getSectionPageMock).toHaveBeenCalledWith(section.jwId, "en-us");
   });
 });

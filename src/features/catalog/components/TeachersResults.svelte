@@ -8,6 +8,7 @@ import {
   optionalCatalogFilterSummary,
 } from "@/features/catalog/lib/catalog-results-summary";
 import { page as appPage } from "$app/stores";
+import ResponsiveCollection from "$lib/components/ResponsiveCollection.svelte";
 import TruncatedText from "$lib/components/TruncatedText.svelte";
 import * as Item from "$lib/components/ui/item/index.js";
 import * as Table from "$lib/components/ui/table/index.js";
@@ -63,11 +64,12 @@ $: pageLabel = teacherLabels.pageOf
     {totalPages}
   />
   {#if teachers.length > 0}
-    <div class="xl:hidden">
-      <Item.Group>
-        {#each teachers as teacher}
+    <ResponsiveCollection>
+      {#snippet mobile()}
+      <Item.Group class="gap-0" role="list">
+        {#each teachers as teacher, index}
           {@const teacherHref = `/catalog/teachers/${teacher.id}`}
-          <Item.Root variant="outline" size="sm">
+          <Item.Root role="listitem" size="sm">
             {#snippet child({ props })}
               <a href={teacherHref} {...props}>
                 <Item.Content>
@@ -89,10 +91,13 @@ $: pageLabel = teacherLabels.pageOf
               </a>
             {/snippet}
           </Item.Root>
+          {#if index < teachers.length - 1}
+            <Item.Separator aria-hidden="true" />
+          {/if}
         {/each}
       </Item.Group>
-    </div>
-    <div class="hidden xl:block">
+      {/snippet}
+      {#snippet desktop()}
       <Table.Root class="">
         <Table.Header>
           <Table.Row>
@@ -107,7 +112,7 @@ $: pageLabel = teacherLabels.pageOf
         <Table.Body>
           {#each teachers as teacher}
             {@const teacherHref = `/catalog/teachers/${teacher.id}`}
-            <Table.Row>
+            <Table.Row class="has-[a:hover]:bg-muted/50">
               <Table.Cell class="p-0">
                 <CatalogTableLink href={teacherHref}>
                   <TruncatedText
@@ -115,42 +120,33 @@ $: pageLabel = teacherLabels.pageOf
                   />
                 </CatalogTableLink>
               </Table.Cell>
-              <Table.Cell class="p-0">
-                <CatalogTableLink href={teacherHref} mono nowrap>
-                  {teacher.code || "-"}
-                </CatalogTableLink>
+              <Table.Cell class="whitespace-nowrap font-mono">
+                {teacher.code || "-"}
               </Table.Cell>
-              <Table.Cell class="p-0">
-                <CatalogTableLink href={teacherHref}>
-                  <TruncatedText
-                    text={teacher.department
-                      ? primaryName(teacher.department)
-                      : teacherLabels.noDepartment}
-                  />
-                </CatalogTableLink>
+              <Table.Cell>
+                <TruncatedText
+                  text={teacher.department
+                    ? primaryName(teacher.department)
+                    : teacherLabels.noDepartment}
+                />
               </Table.Cell>
-              <Table.Cell class="p-0">
-                <CatalogTableLink href={teacherHref}>
-                  {teacher.teacherTitle
-                    ? primaryName(teacher.teacherTitle)
-                    : commonLabels.unknown}
-                </CatalogTableLink>
+              <Table.Cell>
+                {teacher.teacherTitle
+                  ? primaryName(teacher.teacherTitle)
+                  : commonLabels.unknown}
               </Table.Cell>
-              <Table.Cell class="p-0">
-                <CatalogTableLink href={teacherHref}>
-                  <TruncatedText text={teacher.email ?? "-"} />
-                </CatalogTableLink>
+              <Table.Cell>
+                <TruncatedText text={teacher.email ?? "-"} />
               </Table.Cell>
-              <Table.Cell class="p-0">
-                <CatalogTableLink href={teacherHref} nowrap numeric>
-                  {teacher._count.sections}
-                </CatalogTableLink>
+              <Table.Cell class="whitespace-nowrap text-right tabular-nums">
+                {teacher._count.sections}
               </Table.Cell>
             </Table.Row>
           {/each}
         </Table.Body>
       </Table.Root>
-    </div>
+      {/snippet}
+    </ResponsiveCollection>
   {:else}
     <div class="py-10">
       <CatalogResultsEmpty

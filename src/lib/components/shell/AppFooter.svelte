@@ -1,5 +1,6 @@
 <script lang="ts">
 import * as Sidebar from "$lib/components/ui/sidebar/index.js";
+import { Skeleton } from "$lib/components/ui/skeleton/index.js";
 import type {
   LayoutCopy,
   LayoutUserSummary,
@@ -57,10 +58,10 @@ const accountCollapsed = $derived(sidebar.state === "collapsed");
           class="flex h-12 w-full items-center gap-2 px-2"
           data-testid="sidebar-viewer-loading"
         >
-          <div class="size-8 animate-pulse rounded-lg bg-sidebar-accent"></div>
+          <Skeleton class="size-8 rounded-lg bg-sidebar-accent" />
           <div class="grid flex-1 gap-1 group-data-[collapsible=icon]:hidden">
-            <div class="h-3 w-24 animate-pulse rounded bg-sidebar-accent"></div>
-            <div class="h-2.5 w-16 animate-pulse rounded bg-sidebar-accent"></div>
+            <Skeleton class="h-3 w-24 rounded bg-sidebar-accent" />
+            <Skeleton class="h-2.5 w-16 rounded bg-sidebar-accent" />
           </div>
         </div>
       {:else if user}

@@ -3,6 +3,8 @@ import type { Plugin } from "graphql-yoga";
 import { parseBearerAuthorizationHeader } from "@/lib/auth/authorization-header";
 import { hasRequestAuthSignal } from "@/lib/auth/request-auth-signal";
 import { logAppEvent } from "@/lib/log/app-logger";
+import { elapsedMs, monotonicNowMs } from "@/lib/log/observability-clock";
+import { shouldLogSuccessfulRequest } from "@/lib/log/request-log-sampling";
 import { writeGraphqlOperationAnalytics } from "@/lib/metrics/analytics-engine";
 import type { GraphqlPrincipal } from "./auth";
 import type { GraphqlContext, GraphqlServerContext } from "./context";
@@ -19,7 +21,7 @@ type GraphqlObservationState = GraphqlOperationAnalysis & {
   operationAttempted: boolean;
   recorded: boolean;
   requestId: string;
-  startMs: number;
+  startAt: number;
 };
 
 const EMPTY_ANALYSIS: GraphqlOperationAnalysis = {
@@ -124,17 +126,26 @@ export function recordGraphqlOperationObservation(
     topLevelFieldCount: sanitizedObservation.topLevelFieldCount,
   };
 
-  try {
-    logAppEvent(
-      observation.internalErrorCount > 0 ? "error" : "info",
-      "GraphQL operation completed",
-      {
-        event: "graphql.operation",
-        ...observation,
-      },
-    );
-  } catch {
-    // Observability sinks must never affect the GraphQL response.
+  if (
+    shouldLogSuccessfulRequest({
+      durationMs: observation.ioObservedDurationMs,
+      requestId: observation.requestId,
+      samplePercent: 1,
+      status: observation.errorCount > 0 ? 500 : 200,
+    })
+  ) {
+    try {
+      logAppEvent(
+        observation.internalErrorCount > 0 ? "error" : "info",
+        "GraphQL operation completed",
+        {
+          event: "graphql.operation",
+          ...observation,
+        },
+      );
+    } catch {
+      // Observability sinks must never affect the GraphQL response.
+    }
   }
   try {
     writeGraphqlOperationAnalytics(observation);
@@ -149,7 +160,7 @@ function recordObservation(state: GraphqlObservationState) {
     errorCount: state.errorCount,
     estimatedCost: state.estimatedCost,
     internalErrorCount: state.internalErrorCount,
-    ioObservedDurationMs: Date.now() - state.startMs,
+    ioObservedDurationMs: elapsedMs(state.startAt),
     operationName: state.operationName,
     operationType: state.operationType,
     requestId: state.requestId,
@@ -175,7 +186,7 @@ export function createGraphqlObservabilityPlugin(): Plugin<
         operationAttempted: false,
         recorded: false,
         requestId: safeRequestId(serverContext.locals?.requestId),
-        startMs: Date.now(),
+        startAt: monotonicNowMs(),
       });
     },
     onParams({ request }) {

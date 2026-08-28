@@ -8,7 +8,7 @@ import {
   commentReactionRequestSchema,
   resourceIdPathParamsSchema,
 } from "@/lib/api/schemas/request-schemas";
-import { requireAuth } from "@/lib/auth/api-auth";
+import { requireAuthPrincipal } from "@/lib/auth/api-auth";
 
 type IdParams = { id: string };
 
@@ -16,13 +16,12 @@ export async function postCommentReactionRoute(
   request: Request,
   params: IdParams,
 ) {
-  const auth = await requireAuth(request, {
+  const auth = await requireAuthPrincipal(request, {
     bearerScope: { feature: "community.comment", action: "write" },
   });
   if (auth instanceof Response) {
     return auth;
   }
-  const { userId } = auth;
 
   const parsedParams = parseRouteInput(
     params,
@@ -46,9 +45,9 @@ export async function postCommentReactionRoute(
   try {
     return await createCommentReactionAction({
       commentId: id,
+      principal: auth,
       request,
       type,
-      userId,
     });
   } catch (error) {
     return handleRouteError("Failed to add reaction", error);

@@ -15,6 +15,7 @@ export async function listSubscribedHomeworkPage(
     completed,
     dueAtFrom,
     dueAtTo,
+    includeEditors = false,
     locale = DEFAULT_LOCALE,
     pagination,
     semesterId,
@@ -22,6 +23,7 @@ export async function listSubscribedHomeworkPage(
     completed?: boolean;
     dueAtFrom?: Date;
     dueAtTo?: Date;
+    includeEditors?: boolean;
     locale?: AppLocale;
     pagination: {
       page: number;
@@ -68,7 +70,7 @@ export async function listSubscribedHomeworkPage(
 
   const homeworks = await getPrisma(locale).homework.findMany({
     where: { id: { in: homeworkIds } },
-    include: buildSubscribedHomeworkInclude(false),
+    include: buildSubscribedHomeworkInclude(includeEditors),
   });
   const orderedHomeworks = orderHomeworksById(
     attachHomeworkCompletionsForViewer(homeworks, completions),

@@ -37,19 +37,19 @@ onMount(() => mountPageSearchShortcut(() => searchInput));
               type="search"
               value={search}
             />
-            <InputGroup.Addon align="inline-end">
+            <InputGroup.Addon class="hidden sm:flex" align="inline-end">
               <PageSearchShortcutHint />
             </InputGroup.Addon>
           </InputGroup.Root>
-          <Button type="submit">
-            {commonCopy.search}
-          </Button>
           {#if search}
             <Button href="/admin/users" variant="outline">
               <XIcon data-icon="inline-start" />
               <span>{commonCopy.clear}</span>
             </Button>
           {/if}
+          <Button type="submit">
+            {commonCopy.search}
+          </Button>
         </ButtonGroup.Root>
       </Field.Field>
     </Field.Group>

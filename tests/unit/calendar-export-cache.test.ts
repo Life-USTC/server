@@ -82,14 +82,18 @@ describe("用户 iCal 导出缓存", () => {
     expect(JSON.stringify(writeDataPoint.mock.calls)).not.toContain("user-1");
   });
 
-  it("stale 导出立即返回且不通过 defer 后台重建", async () => {
+  it("stale 导出立即返回且通过 defer 跟踪 enqueue Promise", async () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-06-07T00:00:00.000Z"));
     const namespace = kvNamespace();
     setCloudflareRuntimeEnv({ CALENDAR_EXPORTS: namespace });
     const enqueued: unknown[] = [];
-    setCalendarExportRebuildSenderForTest(async (message) => {
+    let finishEnqueue: (() => void) | undefined;
+    setCalendarExportRebuildSenderForTest((message) => {
       enqueued.push(message);
+      return new Promise<void>((resolve) => {
+        finishEnqueue = resolve;
+      });
     });
     const buildExport = vi.fn().mockResolvedValue(calendarExport);
 
@@ -102,10 +106,12 @@ describe("用户 iCal 导出缓存", () => {
 
     expect(stale.status).toBe("stale");
     expect(stale.calendar?.text).toBe(calendarExport.text);
-    expect(tasks).toHaveLength(0);
+    expect(tasks).toHaveLength(1);
     expect(buildExport).toHaveBeenCalledTimes(1);
-    await vi.waitFor(() => expect(enqueued).toHaveLength(1));
+    expect(enqueued).toHaveLength(1);
     expect(enqueued[0]).toEqual({ type: "user", userId: "user-1" });
+    finishEnqueue?.();
+    await expect(tasks[0]).resolves.toBeUndefined();
 
     // Without defer, stale still serves immediately and enqueues rebuild —
     // never rebuilds ICS on the request path.
@@ -142,6 +148,28 @@ describe("用户 iCal 导出缓存", () => {
 
     finishPut?.();
     await expect(tasks[0]).resolves.toBeUndefined();
+  });
+
+  it("refresh 失败时记录 refresh_error 且保留失败结果", async () => {
+    const writeDataPoint = vi.fn();
+    setCloudflareRuntimeEnv({ ANALYTICS: { writeDataPoint } });
+    const refreshFailure = new Error("private refresh detail");
+
+    await expect(
+      getCachedUserCalendarExport(
+        "user-1",
+        vi.fn().mockRejectedValue(refreshFailure),
+      ),
+    ).rejects.toBe(refreshFailure);
+
+    expect(writeDataPoint).toHaveBeenCalledWith({
+      indexes: ["cache:calendar:user"],
+      blobs: ["calendar_feed_cache", "user", "refresh_error"],
+      doubles: [USER_CALENDAR_EXPORT_FRESH_TTL_MS, 0],
+    });
+    expect(JSON.stringify(writeDataPoint.mock.calls)).not.toContain(
+      "private refresh detail",
+    );
   });
 
   it("合并同一 isolate 内的并发 miss", async () => {
@@ -184,6 +212,74 @@ describe("用户 iCal 导出缓存", () => {
     expect(buildExport).toHaveBeenCalledTimes(1);
     await vi.waitFor(() => expect(enqueued).toHaveLength(1));
     expect(enqueued[0]).toEqual({ type: "user", userId: "user-1" });
+  });
+
+  it("stale enqueue 失败时仍立即返回并暴露失败指标", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-06-07T00:00:00.000Z"));
+    const namespace = kvNamespace();
+    const writeDataPoint = vi.fn();
+    setCloudflareRuntimeEnv({
+      ANALYTICS: { writeDataPoint },
+      CALENDAR_EXPORTS: namespace,
+    });
+    setCalendarExportRebuildSenderForTest(() =>
+      Promise.reject(new Error("private user id")),
+    );
+    const buildExport = vi.fn().mockResolvedValue(calendarExport);
+
+    await getCachedUserCalendarExport("user-1", buildExport);
+    vi.advanceTimersByTime(USER_CALENDAR_EXPORT_FRESH_TTL_MS + 1);
+    const tasks: Promise<unknown>[] = [];
+    const stale = await getCachedUserCalendarExport("user-1", buildExport, {
+      defer: (promise) => tasks.push(promise),
+    });
+
+    expect(stale.status).toBe("stale");
+    expect(stale.calendar?.text).toBe(calendarExport.text);
+    expect(tasks).toHaveLength(1);
+    await expect(tasks[0]).rejects.toThrow("private user id");
+    expect(writeDataPoint).toHaveBeenCalledWith({
+      indexes: ["calendar_export_rebuild_enqueue_error"],
+      blobs: ["calendar_export_rebuild", "enqueue_error"],
+      doubles: [1],
+    });
+    expect(JSON.stringify(writeDataPoint.mock.calls)).not.toContain(
+      "private user id",
+    );
+  });
+
+  it("KV store 失败时不记录 refresh_success", async () => {
+    const writeDataPoint = vi.fn();
+    const namespace = {
+      get: vi.fn().mockResolvedValue(null),
+      put: vi.fn().mockRejectedValue(new Error("private storage detail")),
+    };
+    setCloudflareRuntimeEnv({
+      ANALYTICS: { writeDataPoint },
+      CALENDAR_EXPORTS: namespace,
+    });
+
+    await expect(
+      getCachedUserCalendarExport(
+        "user-1",
+        vi.fn().mockResolvedValue(calendarExport),
+      ),
+    ).rejects.toThrow("Calendar export cache persistence failed");
+
+    expect(writeDataPoint).toHaveBeenCalledWith({
+      indexes: ["cache:calendar:user"],
+      blobs: ["calendar_feed_cache", "user", "store_error"],
+      doubles: [USER_CALENDAR_EXPORT_FRESH_TTL_MS, 1],
+    });
+    expect(writeDataPoint).not.toHaveBeenCalledWith({
+      indexes: ["cache:calendar:user"],
+      blobs: ["calendar_feed_cache", "user", "refresh_success"],
+      doubles: [USER_CALENDAR_EXPORT_FRESH_TTL_MS, 1],
+    });
+    expect(JSON.stringify(writeDataPoint.mock.calls)).not.toContain(
+      "private storage detail",
+    );
   });
 
   it("KV 不可用时仍使用 isolate 内存缓存", async () => {

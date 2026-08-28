@@ -24,7 +24,7 @@ describe("仪表盘作业逾期展示", () => {
 
     expect(homeworkIsOverdue("2026-05-22T10:30:00+08:00")).toBe(true);
     expect(homeworkIsOverdue("2026-05-21T23:59:00+08:00")).toBe(true);
-    expect(homeworkEtaLabel("2026-05-21T23:59:00+08:00")).toBe("已逾期");
+    expect(homeworkEtaLabel("2026-05-21T23:59:00+08:00")).toBe("已逾期 11小时");
   });
 
   it("未逾期的截止时间保持普通样式", () => {
@@ -45,6 +45,8 @@ describe("仪表盘作业逾期展示", () => {
     const { homeworkIsOverdue, homeworkEtaLabel } = buildActions("en-us");
 
     expect(homeworkIsOverdue("2026-05-21T23:59:00+08:00")).toBe(true);
-    expect(homeworkEtaLabel("2026-05-21T23:59:00+08:00")).toBe("Overdue");
+    expect(homeworkEtaLabel("2026-05-21T23:59:00+08:00")).toBe(
+      "Overdue by 11 hours",
+    );
   });
 });

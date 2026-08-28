@@ -22,7 +22,7 @@ export let unlinkAccountId: string | null;
 export let user: SettingsUser;
 </script>
 
-<Item.Root variant="outline">
+<Item.Root role="listitem" variant="outline">
   <Item.Content class="min-w-0">
     <Item.Title>{account.name}</Item.Title>
     <Item.Description class="truncate">

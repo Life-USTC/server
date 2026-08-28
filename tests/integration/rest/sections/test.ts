@@ -89,26 +89,6 @@ test("/api/catalog/sections 可按 teacherId 过滤到 seed 班级", async ({
   );
 });
 
-test("/api/catalog/sections 可按课程 legacy jwId 过滤到 canonical 班级", async ({
-  request,
-}) => {
-  const response = await request.get(
-    `/api/catalog/sections?courseJwId=${DEV_SEED.course.legacyJwId}&limit=20`,
-  );
-  expect(response.status()).toBe(200);
-  const body = (await response.json()) as {
-    data?: Array<{
-      jwId?: number;
-      course?: { jwId?: number };
-    }>;
-  };
-  const section = body.data?.find(
-    (item) => item.jwId === DEV_SEED.section.jwId,
-  );
-  expect(section).toBeDefined();
-  expect(section?.course?.jwId).toBe(DEV_SEED.course.jwId);
-});
-
 test("/api/catalog/sections 可按高级 search 语法检索 seed 班级", async ({
   request,
 }) => {

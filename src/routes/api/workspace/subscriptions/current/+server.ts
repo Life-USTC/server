@@ -4,6 +4,8 @@ import { observedApiRoute } from "@/lib/log/api-observability";
 
 /**
  * Get section subscriptions.
+ * @oauthScope workspace.subscription:read
+ * @oauthScope workspace.calendar-feed:read
  * @response currentCalendarSubscriptionResponseSchema
  * @response 401:openApiErrorSchema
  */

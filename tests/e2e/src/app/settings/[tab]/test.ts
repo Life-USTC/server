@@ -34,6 +34,7 @@ test("legacy query settings tabs 的 GET/HEAD 永久跳转到语义分区", asyn
   for (const [tab, path] of [
     ["profile", "/account/settings/profile"],
     ["accounts", "/account/settings/accounts"],
+    ["security", "/account/settings/security"],
     ["content", "/account/settings/profile"],
     ["danger", "/account/settings/danger"],
     ["preferences", "/account/settings/preferences"],

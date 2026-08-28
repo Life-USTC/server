@@ -28,7 +28,7 @@ vi.mock("@/lib/db/prisma-errors", () => ({
 function transactionClient() {
   return {
     auditLog: {
-      create: auditLogCreateMock,
+      createMany: auditLogCreateMock,
     },
     description: {
       findFirst: descriptionFindFirstMock,
@@ -90,7 +90,7 @@ describe("updateHomeworkDescription", () => {
       data: expect.objectContaining({
         action: "description_edit",
         metadata: {
-          content: "new content",
+          changedFields: ["content"],
           targetType: "homework",
         },
         targetId: "description-1",

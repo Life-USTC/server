@@ -1,4 +1,5 @@
 import { sectionCompactInclude } from "@/features/catalog/server/academic-query-includes";
+import { toSectionCompactDto } from "@/features/catalog/server/academic-summary-dto-mappers";
 import { resolveSectionCodeMatchSemester } from "@/features/catalog/server/section-code-match-semester";
 import { buildSectionCodeSuggestions } from "@/features/catalog/server/section-code-match-suggestions";
 import type { Prisma } from "@/generated/prisma/client";
@@ -69,7 +70,7 @@ export async function resolveCalendarSubscriptionSections({
   }
 
   const localizedPrisma = getPrisma(locale);
-  const sections =
+  const sectionRows =
     where.length === 0
       ? []
       : await localizedPrisma.section.findMany({
@@ -81,6 +82,9 @@ export async function resolveCalendarSubscriptionSections({
             { jwId: "asc" },
           ],
         });
+  const sections = sectionRows.map((section) =>
+    toSectionCompactDto(section, locale),
+  );
 
   const foundSectionIds = new Set(sections.map((section) => section.id));
   const requestedCodeByNormalized = new Map(

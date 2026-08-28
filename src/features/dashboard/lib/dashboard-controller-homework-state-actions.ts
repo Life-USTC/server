@@ -3,6 +3,8 @@ import { toggleDashboardHomeworkCompletion } from "./dashboard-controller-homewo
 
 type HomeworkActionsCopy = {
   completionFailed: string;
+  markComplete: string;
+  markIncomplete: string;
 };
 
 export function createDashboardHomeworkStateActions(input: {
@@ -10,6 +12,7 @@ export function createDashboardHomeworkStateActions(input: {
   getHomeworkSavingById: () => Record<string, boolean>;
   getHomeworksCopy: () => HomeworkActionsCopy;
   getSelectedHomework: () => HomeworkItem | null;
+  onSuccess?: (action: "complete" | "uncomplete") => void;
   setHomeworkActionError: (value: string) => void;
   setHomeworkItems: (value: HomeworkItem[]) => void;
   setHomeworkSavingById: (value: Record<string, boolean>) => void;
@@ -39,6 +42,7 @@ export function createDashboardHomeworkStateActions(input: {
       if (input.getSelectedHomework()?.id === homework.id) {
         input.setSelectedHomework(nextHomework);
       }
+      input.onSuccess?.(nextHomework.completion ? "complete" : "uncomplete");
     } catch {
       input.setHomeworkActionError(input.getHomeworksCopy().completionFailed);
     } finally {

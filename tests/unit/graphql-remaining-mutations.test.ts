@@ -122,9 +122,13 @@ describe("remaining ordinary GraphQL mutations", () => {
     );
     expect(deleteOwnCommentsBatchMock).toHaveBeenCalledWith({
       auditMetadata: {
+        channel: "graphql",
         ipAddress: undefined,
+        requestId: expect.any(String),
         source: "graphql",
+        subjectUserId: "user-1",
         userAgent: "graphql-test",
+        userId: "user-1",
       },
       ids: ["comment-1", "comment-2"],
       userId: "user-1",
@@ -225,9 +229,13 @@ describe("remaining ordinary GraphQL mutations", () => {
     });
     expect(deleteOwnedUploadMock).toHaveBeenCalledWith({
       audit: {
+        channel: "graphql",
         ipAddress: undefined,
+        requestId: expect.any(String),
         source: "graphql",
+        subjectUserId: "user-1",
         userAgent: "graphql-test",
+        userId: "user-1",
       },
       id: "upload-1",
       userId: "user-1",

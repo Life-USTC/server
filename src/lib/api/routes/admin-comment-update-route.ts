@@ -2,6 +2,7 @@ import { moderateComment } from "@/features/admin/server/admin-api-service";
 import { jsonResponse, notFound, parseRouteJsonBody } from "@/lib/api/helpers";
 import { withAdminApiRoute } from "@/lib/api/routes/admin-route-auth";
 import { adminModerateCommentRequestSchema } from "@/lib/api/schemas/request-schemas";
+import { getAuditRequestMetadata } from "@/lib/audit/write-audit-log";
 import { type IdParams, parseIdParam } from "./admin-shared";
 
 export async function patchAdminCommentRoute(
@@ -22,10 +23,18 @@ export async function patchAdminCommentRoute(
       );
       if (parsedBody instanceof Response) return parsedBody;
 
-      const result = await moderateComment(admin.userId, id, {
-        moderationNote: parsedBody.moderationNote,
-        status: parsedBody.status,
-      });
+      const result = await moderateComment(
+        admin.userId,
+        id,
+        {
+          moderationNote: parsedBody.moderationNote,
+          status: parsedBody.status,
+        },
+        {
+          channel: "rest",
+          requestId: getAuditRequestMetadata(request).requestId,
+        },
+      );
       if (!result.ok) return notFound();
 
       return jsonResponse({ comment: result.comment });

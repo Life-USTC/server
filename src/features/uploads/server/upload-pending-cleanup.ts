@@ -1,4 +1,4 @@
-import { Prisma } from "@/generated/prisma-node/client";
+import { Prisma } from "@/generated/prisma/client";
 import { logAppEvent } from "@/lib/log/app-logger";
 import { deleteStorageObject } from "@/lib/storage/r2-object";
 
@@ -12,7 +12,6 @@ type ClaimedUploadPendingCleanupRow = {
   attemptId: string;
   id: string;
   key: string;
-  userId: string;
 };
 
 export type UploadPendingCleanupReport = {
@@ -60,16 +59,16 @@ export async function cleanupStaleUploadPendingStorage(
 
       if (await finalizeUploadPendingCleanupClaim(prisma, row)) {
         report.completed += 1;
-        logAppEvent("info", "Upload pending storage cleanup completed", {
-          source: "upload-pending-cleanup",
-          key: row.key,
-          userId: row.userId,
-        });
       } else {
         report.skipped += 1;
       }
     } catch (error) {
-      if (await releaseUploadPendingCleanupClaim(prisma, row, now)) {
+      const retryScheduled = await releaseUploadPendingCleanupClaim(
+        prisma,
+        row,
+        now,
+      );
+      if (retryScheduled) {
         report.retried += 1;
       } else {
         report.failed += 1;
@@ -78,9 +77,9 @@ export async function cleanupStaleUploadPendingStorage(
         "error",
         "Upload pending storage cleanup failed",
         {
+          event: "upload-pending-cleanup.failed",
+          outcome: retryScheduled ? "retry" : "failed",
           source: "upload-pending-cleanup",
-          key: row.key,
-          userId: row.userId,
         },
         error,
       );
@@ -132,8 +131,9 @@ async function deleteUploadPendingStorageObject(key: string) {
       "warn",
       "Upload pending storage cleanup could not delete object",
       {
+        event: "upload-pending-cleanup.storage-delete-failed",
+        outcome: "retry",
         source: "upload-pending-cleanup",
-        key,
       },
       error,
     );

@@ -25,9 +25,8 @@ export let user: SettingsUser;
 <section
   aria-label={copy.profile.linkedAccounts}
   class="grid gap-4"
-  role="region"
 >
-  <Item.Group>
+  <Item.Group role="list">
     {#each accounts as account}
       <SettingsAccountRow
         {account}

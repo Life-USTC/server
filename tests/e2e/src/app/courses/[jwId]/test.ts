@@ -89,19 +89,6 @@ test.describe("/catalog/courses/[jwId] 课程详情", () => {
     await captureStepScreenshot(page, testInfo, "course/404");
   });
 
-  test("旧 jwId 永久重定向到 canonical 课程 URL", async ({ page }) => {
-    await gotoAndWaitForReady(
-      page,
-      `/catalog/courses/${DEV_SEED.course.legacyJwId}/sections?from=legacy`,
-    );
-    await expect(page).toHaveURL(
-      `/catalog/courses/${DEV_SEED.course.jwId}?from=legacy#sections`,
-    );
-    await expect(page.getByRole("heading", { level: 1 }).first()).toContainText(
-      new RegExp(`${DEV_SEED.course.nameCn}|${DEV_SEED.course.nameEn}`),
-    );
-  });
-
   // ── Display fields ──────────────────────────────────────────────────────────
 
   test("显示课程名称、代码和基本信息", async ({ page }, testInfo) => {
@@ -322,6 +309,25 @@ test.describe("/catalog/courses/[jwId] 课程详情", () => {
           .getByRole("tabpanel", { name: /简介|Description/i })
           .getByText(content),
       ).toBeVisible();
+
+      const historyTab = introduction.getByRole("tab", {
+        name: /编辑记录|Edit History/i,
+      });
+      await expect(historyTab).toBeVisible();
+      await expect(historyTab).toBeEnabled();
+      await historyTab.click();
+      await expect(historyTab).toHaveAttribute("aria-selected", "true");
+      const historyPanel = introduction.getByRole("tabpanel", {
+        name: /编辑记录|Edit History/i,
+      });
+      await expect(historyPanel).toBeVisible();
+      await expect(historyPanel.getByText(content)).toBeVisible();
+      await expect(
+        historyPanel.getByText(/之前|Previous/i).first(),
+      ).toBeVisible();
+      await expect(
+        historyPanel.getByText(/更新后|Updated/i).first(),
+      ).toBeVisible();
       await captureStepScreenshot(page, testInfo, "course/description-updated");
       if (snapshot.original) {
         await waitForDescriptionAuditRows(snapshot.original, 1);
@@ -367,6 +373,11 @@ test.describe("/catalog/courses/[jwId] 课程详情", () => {
         .filter({ hasText: body })
         .first();
       await expect(commentCard).toBeVisible();
+      await expect(
+        page
+          .locator("[data-sonner-toast]")
+          .filter({ hasText: /评论已发布|Comment posted/i }),
+      ).toBeVisible();
       // comment.author.name visible
       await expect(
         commentCard.getByText(DEV_SEED.debugName).first(),
@@ -397,6 +408,11 @@ test.describe("/catalog/courses/[jwId] 课程详情", () => {
         .filter({ hasText: editedBody })
         .first();
       await expect(editedCommentCard).toBeVisible();
+      await expect(
+        page
+          .locator("[data-sonner-toast]")
+          .filter({ hasText: /评论已更新|Comment updated/i }),
+      ).toBeVisible();
 
       // Delete
       await editedCommentCard.hover();
@@ -417,6 +433,11 @@ test.describe("/catalog/courses/[jwId] 课程详情", () => {
       await expect(dialog).toBeVisible();
       await dialog.getByRole("button", { name: /删除|Delete/i }).click();
       await deleteResponse;
+      await expect(
+        page
+          .locator("[data-sonner-toast]")
+          .filter({ hasText: /评论已删除|Comment deleted/i }),
+      ).toBeVisible();
       await captureStepScreenshot(page, testInfo, "course/comment-deleted");
     } finally {
       await cleanupCommentsForE2e([commentId]);

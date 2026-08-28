@@ -66,11 +66,14 @@ export function buildLayoutCopy(locale: LayoutLocale) {
       todos: messages.meDashboard.nav.todos.title,
       transitMap: messages.metadata.pages.busMap,
       mobileApp: messages.metadata.pages.mobileApp,
+      prestoBot: messages.metadata.pages.prestoBot,
+      mcp: messages.metadata.pages.mcp,
+      cli: messages.metadata.pages.cli,
       groups: {
         workspace: locale === "zh-cn" ? "工作台" : "Workspace",
         publicTools: locale === "zh-cn" ? "公开工具" : "Public tools",
         catalog: locale === "zh-cn" ? "课程目录" : "Catalog",
-        campus: locale === "zh-cn" ? "校园" : "Campus",
+        usage: locale === "zh-cn" ? "使用方式" : "Usage",
         adminTools: locale === "zh-cn" ? "管理工具" : "Admin tools",
         explore: locale === "zh-cn" ? "发现" : "Explore",
         secondary: locale === "zh-cn" ? "次级导航" : "Secondary",
@@ -82,6 +85,8 @@ export function buildLayoutCopy(locale: LayoutLocale) {
         users: messages.admin.usersTitle,
         oauth: messages.admin.oauthTitle,
         bus: messages.admin.busTitle,
+        audit: messages.admin.auditTitle,
+        analytics: messages.admin.analyticsTitle,
       },
     },
     menu: {
@@ -108,6 +113,8 @@ export function buildLayoutCopy(locale: LayoutLocale) {
       profileMenu: messages.common.profileMenu,
       secondaryNavigation:
         locale === "zh-cn" ? "次级导航" : "Secondary navigation",
+      scrollRegion:
+        locale === "zh-cn" ? "主要内容滚动区域" : "Main content scroll region",
       skipToMainContent: messages.accessibility.skipToMainContent,
       theme: locale === "zh-cn" ? "主题" : "Theme",
     },

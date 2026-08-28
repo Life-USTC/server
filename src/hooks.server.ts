@@ -8,6 +8,7 @@ import {
 import { getOptionalTrimmedEnv, loadEnv } from "@/app-env";
 import { LOCALE_COOKIE, negotiateLocale } from "@/i18n/config";
 import {
+  getCloudflareRequestContext,
   runCloudflareTraceSpan,
   runWithCloudflareRuntimeEnv,
   setCloudflareRequestContext,
@@ -27,7 +28,9 @@ import {
 } from "@/lib/log/api-observability";
 import { normalizeApiRoutePath } from "@/lib/log/api-observability-path";
 import { logAppEvent } from "@/lib/log/app-logger";
+import { elapsedMs, monotonicNowMs } from "@/lib/log/observability-clock";
 import { getSafeErrorName } from "@/lib/log/safe-error-name";
+import { getTrustedRequestId } from "@/lib/log/worker-entrypoint-observability";
 import {
   type PageAuthMode,
   recordPageRequestError,
@@ -186,14 +189,17 @@ const handleWithRuntimeEnv: Handle = async ({ event, resolve }) => {
           event.request.headers.get("accept-language"),
         );
   event.locals.locale = locale;
-  const requestId = crypto.randomUUID();
+  const requestId =
+    getCloudflareRequestContext()?.requestId ??
+    getTrustedRequestId(event.request) ??
+    crypto.randomUUID();
   event.locals.requestId = requestId;
   setCloudflareRequestContext({
     method: event.request.method,
     requestId,
     route: observedRoute(event.url.pathname, event.route.id),
   });
-  const startMs = Date.now();
+  const startMs = monotonicNowMs();
   const hasAuthSignal = hasRequestAuthSignal(event.request.headers);
   event.locals.publicSsr = publicSsr && !hasAuthSignal;
   const apiObservability = prepareApiObservability(
@@ -212,9 +218,9 @@ const handleWithRuntimeEnv: Handle = async ({ event, resolve }) => {
     appIoObservedDurationMs:
       appStartMs === undefined
         ? appIoObservedDurationMs
-        : Date.now() - appStartMs,
+        : elapsedMs(appStartMs),
     authIoObservedDurationMs,
-    totalIoObservedDurationMs: Date.now() - startMs,
+    totalIoObservedDurationMs: elapsedMs(startMs),
   });
   const pageAttribution = () => ({
     authSignalPresence: classifyPageAuthSignalPresence(hasAuthSignal),
@@ -272,7 +278,7 @@ const handleWithRuntimeEnv: Handle = async ({ event, resolve }) => {
       return response;
     }
 
-    const authStartMs = Date.now();
+    const authStartMs = monotonicNowMs();
     const sessionResult = hasAuthSignal
       ? await runCloudflareTraceSpan(
           "app.auth.session",
@@ -285,7 +291,7 @@ const handleWithRuntimeEnv: Handle = async ({ event, resolve }) => {
         )
       : null;
     const session = sessionResult?.session ?? null;
-    authIoObservedDurationMs = Date.now() - authStartMs;
+    authIoObservedDurationMs = elapsedMs(authStartMs);
     event.locals.authUser = session?.user ?? null;
     pageAuthMode = session?.user.id ? "authenticated" : "anonymous";
     if (
@@ -305,7 +311,7 @@ const handleWithRuntimeEnv: Handle = async ({ event, resolve }) => {
       );
     }
 
-    appStartMs = Date.now();
+    appStartMs = monotonicNowMs();
     const response = await runCloudflareTraceSpan(
       "app.sveltekit.resolve",
       {
@@ -321,7 +327,7 @@ const handleWithRuntimeEnv: Handle = async ({ event, resolve }) => {
             ),
         }),
     );
-    appIoObservedDurationMs = Date.now() - appStartMs;
+    appIoObservedDurationMs = elapsedMs(appStartMs);
     appStartMs = undefined;
     const shouldSetCsp = isHtmlResponse(response);
 
@@ -343,6 +349,12 @@ const handleWithRuntimeEnv: Handle = async ({ event, resolve }) => {
       mutableResponse.headers.set("Cache-Control", "no-store");
     }
     setContentSignal(mutableResponse.headers);
+    if (event.url.pathname === "/account/sign-in") {
+      mutableResponse.headers.set(
+        "X-Robots-Tag",
+        "noindex, nofollow, noarchive",
+      );
+    }
     mutableResponse.headers.set(
       "Content-Security-Policy",
       buildContentSecurityPolicy(nonce, {

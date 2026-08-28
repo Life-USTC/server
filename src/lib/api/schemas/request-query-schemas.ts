@@ -14,14 +14,18 @@ export {
   teachersQuerySchema,
 } from "./catalog-query-schemas";
 export {
+  commentRepliesQuerySchema,
   commentsQuerySchema,
   descriptionsQuerySchema,
+  homeworkAuditQuerySchema,
   homeworksQuerySchema,
   sectionsCalendarQuerySchema,
+  subscribedHomeworksQuerySchema,
   uploadsQuerySchema,
   userCalendarQuerySchema,
 } from "./content-query-schemas";
 export {
+  accountClientActivityQuerySchema,
   busNextDeparturesQuerySchema,
   busPreferenceRequestSchema,
   busQuerySchema,

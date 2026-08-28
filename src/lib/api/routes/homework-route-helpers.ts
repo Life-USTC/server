@@ -1,3 +1,4 @@
+import { HOMEWORK_LIST_MAX_SECTION_IDS } from "@/features/homeworks/lib/homework-list-bounds";
 import { resolveHomeworkSectionIds } from "@/features/homeworks/server/homework-list-read-model";
 import {
   badRequest,
@@ -27,7 +28,10 @@ export async function resolveHomeworkRouteSectionIds(input: {
   if (input.sectionIds) {
     for (const value of input.sectionIds.split(",")) {
       const id = parseInteger(value.trim());
-      if (id) sectionIds.push(id);
+      if (id === null || id < 1) {
+        return badRequest("Invalid sectionIds");
+      }
+      sectionIds.push(id);
     }
   }
 
@@ -43,7 +47,12 @@ export async function resolveHomeworkRouteSectionIds(input: {
     sectionJwId,
   });
   if (result.ok) {
-    return result.sectionIds;
+    const uniqueSectionIds = [...new Set(result.sectionIds)];
+    return uniqueSectionIds.length <= HOMEWORK_LIST_MAX_SECTION_IDS
+      ? uniqueSectionIds
+      : badRequest(
+          `sectionIds must contain at most ${HOMEWORK_LIST_MAX_SECTION_IDS} IDs`,
+        );
   }
 
   return result.error === "not_found"

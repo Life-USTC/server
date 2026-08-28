@@ -287,6 +287,64 @@ test("/account/welcome 未完善资料的用户可完成资料并返回首页", 
   }
 });
 
+test("/account/welcome 可选择已上传头像并保存", async ({ page }) => {
+  test.setTimeout(300_000);
+  await signInAsDebugUser(page, "/");
+  const sessionUser = await getCurrentSessionUser(page);
+  const originalUser = await getUserProfileById(sessionUser.id);
+  const avatarOptions = [
+    "https://api.dicebear.com/9.x/shapes/svg?seed=e2e-avatar-one",
+    "https://api.dicebear.com/9.x/shapes/svg?seed=e2e-avatar-two",
+  ];
+
+  await updateUserProfileById(sessionUser.id, {
+    name: null,
+    username: null,
+    image: avatarOptions[0],
+    profilePictures: avatarOptions,
+  });
+
+  try {
+    await gotoAndWaitForReady(page, "/account/welcome");
+    const secondAvatar = page.getByRole("radio", {
+      name: /头像选项 2|Avatar option 2/i,
+    });
+    await expect(secondAvatar).toBeVisible();
+    await expect(secondAvatar).toBeEnabled();
+    await secondAvatar.click();
+    await expect(secondAvatar).toHaveAttribute("data-state", "on");
+    await expect(
+      page.getByRole("img", { name: /个人头像|Profile picture/i }),
+    ).toHaveAttribute("src", avatarOptions[1]);
+
+    await page
+      .getByRole("textbox", { name: /^(姓名|Name)\b/i })
+      .fill(DEV_SEED.debugName);
+    await page
+      .getByRole("textbox", { name: /^(用户名|Username)\b/i })
+      .fill(DEV_SEED.debugUsername);
+    await page.getByRole("button", { name: /继续|Continue/i }).click();
+    await expect(page).toHaveURL(/step=subscriptions/, { timeout: 15_000 });
+    await page.getByRole("link", { name: /暂时跳过|Skip for now/i }).click();
+    await page
+      .getByRole("link", { name: /进入工作区|Go to workspace/i })
+      .click();
+    await expect(page).toHaveURL(/\/workspace\/overview(?:\?.*)?$/, {
+      timeout: 15_000,
+    });
+    await expect
+      .poll(async () => (await getUserProfileById(sessionUser.id)).image)
+      .toBe(avatarOptions[1]);
+  } finally {
+    await updateUserProfileById(sessionUser.id, {
+      name: originalUser.name ?? DEV_SEED.debugName,
+      username: originalUser.username ?? DEV_SEED.debugUsername,
+      image: originalUser.image ?? null,
+      profilePictures: originalUser.profilePictures,
+    });
+  }
+});
+
 test("/account/welcome 订阅步骤说明教务导入并提供粘贴入口", async ({
   page,
 }, testInfo) => {
@@ -354,7 +412,9 @@ test("/account/welcome 最后一步展示平台引导并可返回上一步", asy
   ).toBeVisible();
   await expect(page.getByText(/最后一公里|last-mile work/i)).toBeVisible();
   await expect(
-    page.getByText(/课表、作业、考试、待办|Timetable, homework, exams, and todos/i),
+    page.getByText(
+      /课表、作业、考试、待办|Timetable, homework, exams, and todos/i,
+    ),
   ).toBeVisible();
   await expect(page.getByText(/个人主页|personal homepage/i)).toBeVisible();
   await expect(page.getByText(/助教|course homepage/i)).toBeVisible();

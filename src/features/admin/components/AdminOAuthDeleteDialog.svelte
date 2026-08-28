@@ -3,7 +3,7 @@ import TrashIcon from "@lucide/svelte/icons/trash-2";
 import type { SubmitFunction } from "@sveltejs/kit";
 import { enhance } from "$app/forms";
 import * as AlertDialog from "$lib/components/ui/alert-dialog/index.js";
-import { Button } from "$lib/components/ui/button/index.js";
+import { Spinner } from "$lib/components/ui/spinner/index.js";
 import type {
   AdminOAuthClient,
   AdminOAuthCopy,
@@ -20,7 +20,7 @@ export let deletingClientId: string | null;
   <AlertDialog.Root
     open={true}
     onOpenChange={(open) => {
-      if (!open) close();
+      if (!open && !deletingClientId) close();
     }}
   >
     <AlertDialog.Content
@@ -50,14 +50,18 @@ export let deletingClientId: string | null;
           >
             {copy.cancel}
           </AlertDialog.Cancel>
-          <Button
+          <AlertDialog.Action
             disabled={Boolean(deletingClientId)}
             type="submit"
             variant="destructive"
           >
-            <TrashIcon data-icon="inline-start" />
+            {#if deletingClientId}
+              <Spinner data-icon="inline-start" />
+            {:else}
+              <TrashIcon data-icon="inline-start" />
+            {/if}
             <span>{copy.deleteClient}</span>
-          </Button>
+          </AlertDialog.Action>
         </AlertDialog.Footer>
       </form>
     </AlertDialog.Content>

@@ -18,11 +18,13 @@ export function validateDashboardTodoForm(
 export function createDashboardTodoAction({
   getTodosCopy,
   onClose,
+  onSuccess,
   setCreating,
   setError,
 }: {
   getTodosCopy: () => TodoCopy;
   onClose: () => void;
+  onSuccess?: () => void;
   setCreating: Setter<boolean>;
   setError: Setter<string>;
 }): SubmitFunction {
@@ -32,6 +34,7 @@ export function createDashboardTodoAction({
       actionResultError,
       fallbackMessage: todosCopy.saveFailed,
       onClose,
+      onSuccess,
       setCreating,
       setError,
       validate: (data) => validateDashboardTodoForm(data, todosCopy),
@@ -41,10 +44,14 @@ export function createDashboardTodoAction({
 
 export function updateDashboardTodoAction({
   getTodosCopy,
+  onClose,
+  onSuccess,
   setError,
   setUpdating,
 }: {
   getTodosCopy: () => TodoCopy;
+  onClose: () => void;
+  onSuccess?: () => void;
   setError: Setter<string>;
   setUpdating: Setter<boolean>;
 }): SubmitFunction {
@@ -53,6 +60,8 @@ export function updateDashboardTodoAction({
     return updateTodoSubmitAction({
       actionResultError,
       fallbackMessage: todosCopy.saveFailed,
+      onClose,
+      onSuccess,
       setError,
       setUpdating,
       validate: (data) => validateDashboardTodoForm(data, todosCopy),

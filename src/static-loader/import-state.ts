@@ -3,6 +3,10 @@ import type { Prisma } from "../generated/prisma-node/client";
 const GLOBAL_IMPORT_STATE_ID = "global";
 const SHA256_PATTERN = /^[a-f0-9]{64}$/;
 
+// Increment whenever mapper semantics change and existing imported rows must be
+// rebuilt even when the source snapshot itself is unchanged.
+export const STATIC_IMPORT_TRANSFORM_REVISION = 1;
+
 type StaticImportStateTransaction = {
   staticImportState: Pick<
     Prisma.TransactionClient["staticImportState"],
@@ -11,12 +15,9 @@ type StaticImportStateTransaction = {
 };
 
 type StaticImportStateInput = {
-  bootstrapEnabled: boolean;
-  dryRun: boolean;
-  expectedSnapshotSha256: string | null;
   observedAt: Date;
-  retirementEnabled: boolean;
   snapshotSha256: string;
+  transformRevision: number;
 };
 
 function validateSnapshotSha256(snapshotSha256: string) {
@@ -25,41 +26,35 @@ function validateSnapshotSha256(snapshotSha256: string) {
   }
 }
 
+function validateTransformRevision(transformRevision: number) {
+  if (!Number.isSafeInteger(transformRevision) || transformRevision < 1) {
+    throw new Error(
+      "Static import transform revision must be a positive integer",
+    );
+  }
+}
+
 export async function assertStaticImportStateAllowsSnapshot(
   tx: StaticImportStateTransaction,
   input: StaticImportStateInput,
-) {
+): Promise<boolean> {
   validateSnapshotSha256(input.snapshotSha256);
+  validateTransformRevision(input.transformRevision);
   const current = await tx.staticImportState.findUnique({
     where: { id: GLOBAL_IMPORT_STATE_ID },
-    select: { snapshotGeneratedAt: true, snapshotSha256: true },
+    select: {
+      snapshotGeneratedAt: true,
+      snapshotSha256: true,
+      transformRevision: true,
+    },
   });
 
-  if (current == null) {
-    if (!input.bootstrapEnabled) {
-      throw new Error(
-        "Static import state is not initialized; run an approved manual bootstrap before importing",
-      );
-    }
-    if (input.retirementEnabled) {
-      throw new Error(
-        "Missing-Section retirement cannot run while bootstrapping static import state",
-      );
-    }
-    if (!input.dryRun && input.expectedSnapshotSha256 == null) {
-      throw new Error(
-        "STATIC_LOADER_EXPECTED_SNAPSHOT_SHA256 is required for a committed static import state bootstrap",
-      );
-    }
-    if (
-      input.expectedSnapshotSha256 != null &&
-      input.expectedSnapshotSha256 !== input.snapshotSha256
-    ) {
-      throw new Error(
-        `Approved static snapshot SHA-256 ${input.expectedSnapshotSha256} does not match downloaded snapshot ${input.snapshotSha256}`,
-      );
-    }
-    return;
+  if (current == null) return false;
+
+  if (input.transformRevision < current.transformRevision) {
+    throw new Error(
+      `Refusing static import transform revision ${input.transformRevision} because revision ${current.transformRevision} was already committed`,
+    );
   }
 
   const incomingTime = input.observedAt.getTime();
@@ -77,23 +72,30 @@ export async function assertStaticImportStateAllowsSnapshot(
       `Refusing snapshot SHA-256 ${input.snapshotSha256} because generated_at ${input.observedAt.toISOString()} was already committed with SHA-256 ${current.snapshotSha256}`,
     );
   }
+  return (
+    input.snapshotSha256 === current.snapshotSha256 &&
+    input.transformRevision === current.transformRevision
+  );
 }
 
 export async function recordStaticImportState(
   tx: StaticImportStateTransaction,
-  input: Pick<StaticImportStateInput, "observedAt" | "snapshotSha256">,
+  input: StaticImportStateInput,
 ) {
   validateSnapshotSha256(input.snapshotSha256);
+  validateTransformRevision(input.transformRevision);
   await tx.staticImportState.upsert({
     where: { id: GLOBAL_IMPORT_STATE_ID },
     create: {
       id: GLOBAL_IMPORT_STATE_ID,
       snapshotGeneratedAt: input.observedAt,
       snapshotSha256: input.snapshotSha256,
+      transformRevision: input.transformRevision,
     },
     update: {
       snapshotGeneratedAt: input.observedAt,
       snapshotSha256: input.snapshotSha256,
+      transformRevision: input.transformRevision,
     },
   });
 }

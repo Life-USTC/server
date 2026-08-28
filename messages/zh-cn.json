@@ -30,7 +30,10 @@
       "privacy": "隐私政策",
       "terms": "服务条款",
       "mobileApp": "移动应用",
-      "busMap": "线路图"
+      "busMap": "线路图",
+      "prestoBot": "Presto 机器人",
+      "mcp": "MCP",
+      "cli": "命令行"
     }
   },
   "common": {
@@ -131,7 +134,6 @@
     "linkCopiedDescription": "日历链接已复制到剪贴板",
     "optOut": "移除",
     "optOutConfirm": "确认",
-    "optOutSuccess": "已移除班级",
     "optOutSuccessDescription": "该教学班已从订阅列表中移除",
     "optOutError": "移除失败",
     "optOutRetry": "请稍后重试",
@@ -191,7 +193,6 @@
       "unmatchedCodes": "未匹配到的代码 ({count})",
       "cancel": "取消",
       "subscribeSelected": "订阅已选的 {count} 个教学班",
-      "success": "已加入",
       "successDescription": "已新增 {count} 个教学班订阅",
       "importFailed": "订阅失败"
     }
@@ -384,6 +385,135 @@
       }
     }
   },
+  "usagePages": {
+    "bot": {
+      "title": "认识 Presto",
+      "subtitle": "在 QQ 中查询校园信息和个人日程。",
+      "primaryAction": "联系 Presto",
+      "primaryQrAlt": "Presto QQ 二维码",
+      "previewTitle": "Presto · QQ",
+      "previewAriaLabel": "在 QQ 中与 Presto 对话的示例",
+      "previewLines": [
+        { "kind": "command", "text": "下一节课" },
+        {
+          "kind": "image",
+          "text": "Presto 返回的下一节课图片",
+          "src": "/images/usage/presto-next-class.png"
+        }
+      ],
+      "startTitle": "更多示例",
+      "steps": [
+        {
+          "title": "课表",
+          "description": "Presto 返回的本周课表图片",
+          "imageSrc": "/images/usage/presto-schedule.png"
+        },
+        {
+          "title": "校车 东区 西区",
+          "description": "Presto 返回的校车班次图片",
+          "imageSrc": "/images/usage/presto-bus.png"
+        },
+        {
+          "title": "作业",
+          "description": "Presto 返回的作业图片",
+          "imageSrc": "/images/usage/presto-homework.png"
+        }
+      ]
+    },
+    "mcp": {
+      "title": "通过 MCP 连接",
+      "subtitle": "把 Life@USTC 连接到 ChatGPT、Claude 或其他支持 MCP 的客户端。",
+      "primaryAction": "复制 MCP 端点",
+      "copiedAction": "端点已复制",
+      "copyValueAction": "复制",
+      "copiedValueAction": "已复制",
+      "fieldLabels": {
+        "name": "名称",
+        "description": "描述",
+        "serverUrl": "服务器 URL"
+      },
+      "useCaseTitle": "在 ChatGPT 中使用 Life@USTC",
+      "useCaseAlt": "ChatGPT 使用 Life@USTC 查询待办与下学期课程的示例",
+      "configurationTitle": "配置方法",
+      "endpointLabel": "远程 MCP URL",
+      "clientTabs": {
+        "chatgpt": "ChatGPT",
+        "claude": "Claude.ai",
+        "other": "其他客户端",
+        "webLabel": "网页",
+        "localLabel": "本地"
+      },
+      "chatgpt": {
+        "overviewAlt": "突出显示添加按钮的 ChatGPT 插件页面",
+        "overviewSrc": "/images/usage/mcp-chatgpt-overview-zh.png",
+        "filledSrc": "/images/usage/mcp-chatgpt-filled-zh.png",
+        "steps": [
+          "在设置 → Apps → 高级设置中启用开发者模式，然后创建 App。",
+          "使用下方信息填写表单、扫描工具并创建 App。",
+          "完成 Life@USTC 授权；在新对话的工具菜单中选择该 App 即可使用。"
+        ],
+        "emptyAlt": "ChatGPT 新插件空白配置表单",
+        "filledAlt": "填写完成的 Life@USTC ChatGPT 插件配置",
+        "iconAlt": "Life@USTC 插件图标",
+        "iconAction": "下载 ChatGPT 插件图标",
+        "iconHint": "此图标仅用于 ChatGPT 的自定义插件设置。"
+      },
+      "claude": {
+        "steps": [
+          "打开 Claude 连接器设置，点击“Add”，再选择“Add custom connector”。",
+          "使用下方信息填写表单，然后点击 Add。",
+          "按提示通过 Life@USTC 登录即可。"
+        ],
+        "emptyAlt": "Claude 自定义连接器空白配置表单",
+        "filledAlt": "填写完成的 Life@USTC Claude 连接器配置",
+        "note": "OAuth Client ID 和 Client Secret 留空即可。"
+      },
+      "otherClients": {
+        "title": "Codex、Claude Code 与其他客户端",
+        "description": "Codex 和 Claude Code 可直接复制对应命令。其他支持远程 MCP 的客户端使用下方 URL；Life@USTC 通过 OAuth 登录，不需要 API Key 或 Authorization header。"
+      }
+    },
+    "cli": {
+      "title": "终端里的 Life@USTC",
+      "subtitle": "在终端中查询校园信息和个人工作台。",
+      "primaryAction": "在 GitHub 查看",
+      "installTitle": "使用 Go 安装",
+      "installCommand": "go install github.com/Life-USTC/CLI/cmd/life-ustc@latest",
+      "startTitle": "真实运行示例",
+      "steps": [
+        {
+          "title": "life-ustc catalog course -s \"线性代数\" --no-interactive --limit 3",
+          "resultLines": [
+            "Showing 3 of 6 · page 1 of 2",
+            "CODE      NAME          LEVEL  JW ID",
+            "MATH1004  线性代数(A1)  本科   9499",
+            "MATH1005  线性代数(A2)  本科   9202",
+            "MATH1009  线性代数(B1)  本科   9498"
+          ]
+        },
+        {
+          "title": "life-ustc catalog bus --all --limit 4",
+          "resultLines": [
+            "东区 -> 北区 -> 西区",
+            "07:30 → 07:40  (东区 → 西区)",
+            "09:20 → 09:30  (东区 → 西区)",
+            "09:35 → 09:45  (东区 → 西区)",
+            "11:35 → 11:45  (东区 → 西区)"
+          ]
+        },
+        {
+          "title": "life-ustc catalog teacher -s \"zhang\" --no-interactive --limit 3",
+          "resultLines": [
+            "Showing 3 of 236 · page 1 of 79",
+            "NAME    DEPARTMENT    CODE       ID",
+            "吴章友  临床医学院    FY1020026  6458195",
+            "张一飞  研究生院      06896      6455773",
+            "张一鸣  附属第一医院  FY1060422  6457224"
+          ]
+        }
+      ]
+    }
+  },
   "admin": {
     "title": "管理后台",
     "subtitle": "入口页面，访问审核与用户管理。",
@@ -395,6 +525,10 @@
     "oauthDescription": "OAuth 应用",
     "busTitle": "校车管理",
     "busDescription": "校车时刻表",
+    "auditTitle": "审计日志",
+    "auditDescription": "敏感操作记录",
+    "analyticsTitle": "聚合分析",
+    "analyticsDescription": "功能使用趋势",
     "dashboard": {
       "active": "活跃",
       "deleted": "已删除",
@@ -433,6 +567,9 @@
     "statusActive": "激活",
     "statusInactive": "未激活",
     "activateAction": "激活版本",
+    "activateTitle": "激活该时刻表版本？",
+    "activateDescription": "激活“{title}”会立即替换当前公开的校车时刻表。",
+    "confirmActivateAction": "确认激活版本",
     "deleteAction": "删除版本",
     "activated": "已激活该版本",
     "deleted": "已删除该版本",
@@ -447,6 +584,66 @@
     "invalidVersionId": "版本 ID 无效",
     "versionNotFound": "未找到版本",
     "cannotDeleteActiveVersion": "不能删除当前激活版本"
+  },
+  "adminAudit": {
+    "title": "审计日志",
+    "subtitle": "按行为主体、对象、客户端、操作、结果、通道和时间筛选敏感操作。正文、IP 地址和完整设备信息不会在此页面展示。",
+    "filters": "筛选条件",
+    "advancedFilters": "更多筛选条件",
+    "actor": "操作人 ID",
+    "subject": "账户对象 ID",
+    "client": "OAuth 客户端 ID",
+    "action": "操作",
+    "outcome": "结果",
+    "channel": "通道",
+    "targetType": "目标类型",
+    "targetId": "目标 ID",
+    "from": "开始日期",
+    "to": "结束日期",
+    "all": "全部",
+    "apply": "应用筛选",
+    "clear": "清除",
+    "records": "记录",
+    "noRecords": "没有匹配的审计记录。",
+    "time": "时间",
+    "actorColumn": "操作人",
+    "subjectColumn": "账户对象",
+    "clientColumn": "客户端",
+    "target": "目标",
+    "details": "安全详情",
+    "previous": "上一页",
+    "next": "下一页",
+    "newest": "返回最新记录",
+    "page": "本批 {shown} 条，共 {total} 条"
+  },
+  "adminAnalytics": {
+    "title": "聚合分析",
+    "subtitle": "按功能、通道、结果和 OAuth 客户端汇总操作量，不提供逐用户浏览轨迹。",
+    "window": "统计周期",
+    "days": "最近 {days} 天",
+    "total": "操作总数",
+    "success": "成功操作",
+    "attention": "需关注",
+    "failureRate": "异常率",
+    "externalShare": "OAuth 客户端占比",
+    "activeClients": "活跃客户端",
+    "trend": "活动趋势",
+    "trendDescription": "总操作量与被拒绝/失败操作，按上海自然日聚合。",
+    "totalSeries": "全部操作",
+    "riskSeries": "被拒绝或失败",
+    "dailyDetails": "查看每日数据",
+    "rankings": "主要来源",
+    "topFeatures": "功能",
+    "topChannels": "通道",
+    "topClients": "客户端",
+    "firstParty": "Life@USTC 网页",
+    "failures": "异常 {count}",
+    "feature": "功能",
+    "channel": "通道",
+    "outcome": "结果",
+    "client": "客户端",
+    "count": "次数",
+    "noData": "所选周期内暂无聚合数据。"
   },
   "adminUsers": {
     "title": "用户管理",
@@ -485,6 +682,10 @@
     "editDescription": "编辑用户信息并进行封禁操作。",
     "profileRoleTitle": "资料与角色",
     "profileRoleDescription": "更新身份字段和管理员权限。",
+    "roleChangeConfirmTitle": "变更管理员权限？",
+    "grantAdminConfirmDescription": "这会授予该账号访问全部管理与审核工具的权限。",
+    "revokeAdminConfirmDescription": "这会移除该账号对管理与审核工具的访问权限。",
+    "confirmRoleChange": "确认角色变更",
     "nameLabel": "姓名",
     "usernameLabel": "用户名",
     "adminToggleLabel": "设为管理员",
@@ -492,6 +693,9 @@
     "saving": "保存中...",
     "suspendTitle": "封禁用户",
     "suspendDescription": "临时限制该用户的协作写入权限。",
+    "updateSuspensionAction": "更新封禁",
+    "updateSuspensionConfirmTitle": "替换当前封禁？",
+    "updateSuspensionConfirmDescription": "当前封禁会结束，并使用新的原因与到期时间创建替代记录。",
     "suspending": "封禁中...",
     "liftSuspensionAction": "解除封禁",
     "lifting": "解除中...",
@@ -687,7 +891,7 @@
       "title": "常用网站",
       "description": "搜索中国科大常用服务，并置顶你经常访问的入口。",
       "publicDescription": "搜索校园链接，登录后即可置顶常用入口。",
-      "searchPlaceholder": "搜索网站名称或描述…",
+      "searchPlaceholder": "搜索网站名称、描述或域名…",
       "searchShortcutHint": "按 Ctrl+Shift+K 或 ⌘⇧K 聚焦搜索",
       "allSitesTab": "全部网站",
       "overviewHint": "总览仅展示 4 个网站：优先展示你的置顶，其余按推荐补齐。",
@@ -808,6 +1012,8 @@
     "hidePreferences": "收起偏好",
     "editPreferences": "编辑偏好",
     "empty": "当前暂无可用的校车数据。",
+    "loadFailed": "校车数据加载失败，请稍后重试。",
+    "retry": "重新加载",
     "weekday": "工作日",
     "weekend": "周末",
     "bestMatch": "最佳匹配",
@@ -835,7 +1041,7 @@
       "title": "最近一年贡献（{count}）",
       "description": "统计评论、上传、作业创建与作业完成行为。",
       "cell": "{date}：{count} 条记录",
-      "scrollLabel": "贡献记录，可横向滚动查看完整一年。",
+      "scrollLabel": "贡献记录。使用方向键按天或按周移动，使用 Home 或 End 键在行内移动。可横向滚动查看完整一年。",
       "less": "少",
       "more": "多",
       "empty": "最近一年暂无可展示的贡献记录。"
@@ -844,6 +1050,7 @@
   "settings": {
     "title": "设置",
     "description": "在这里管理账号、内容和安全选项。",
+    "recentAuthRequired": "为保护账户安全，请先退出并重新登录后再执行此操作。",
     "workspaceBadge": "账户工作区",
     "passkeys": {
       "title": "通行密钥",
@@ -889,6 +1096,10 @@
         "title": "关联账户",
         "description": "连接或断开登录提供商"
       },
+      "security": {
+        "title": "安全活动",
+        "description": "查看登录、凭据与授权等敏感操作"
+      },
       "authorizations": {
         "title": "已授权应用",
         "description": "查看并撤销第三方访问"
@@ -910,6 +1121,69 @@
         "description": "选择界面显示语言。"
       }
     },
+    "security": {
+      "title": "账户安全活动",
+      "description": "这里只显示与你账户有关的敏感操作。网络地址已脱敏，设备信息仅保留浏览器与系统类别。",
+      "calendarTokenTitle": "个人日历链接",
+      "calendarTokenConfirmTitle": "轮换私人日历链接？",
+      "calendarTokenConfirmDescription": "旧链接会立即失效，所有使用旧地址的日历客户端都需要重新订阅。",
+      "calendarTokenConfirm": "确认轮换",
+      "calendarTokenDescription": "如果私人日历链接可能已被分享，请轮换它。现有日历订阅将停止更新。",
+      "calendarTokenRotate": "轮换私人日历链接",
+      "calendarTokenRotated": "日历链接已轮换",
+      "calendarTokenRotatedDescription": "旧的私人日历链接已失效，请前往订阅页面复制新链接。",
+      "calendarTokenError": "无法轮换私人日历链接。",
+      "emptyTitle": "暂无安全活动",
+      "emptyDescription": "新的登录、凭据和授权操作会显示在这里。",
+      "network": "网络",
+      "device": "设备",
+      "client": "应用",
+      "newer": "返回最新活动",
+      "older": "更早的活动",
+      "unknownAction": "账户操作",
+      "repeated": "连续 {count} 次",
+      "responseTitle": "发现不是你进行的操作？",
+      "responseDescription": "立即检查已授权应用和关联登录方式，并撤销任何不认识的访问权限。",
+      "reviewAccounts": "检查登录方式",
+      "reviewAuthorizations": "检查已授权应用",
+      "actions": {
+        "account_create": "创建账户",
+        "account_sign_in": "登录账户",
+        "account_sign_out": "退出账户",
+        "account_profile_update": "更新个人资料",
+        "account_credential_update": "更新账户凭据",
+        "account_link": "关联登录账户",
+        "account_unlink": "解除登录账户",
+        "account_delete": "删除账户",
+        "account_passkey_create": "添加通行密钥",
+        "account_passkey_update": "重命名通行密钥",
+        "account_passkey_delete": "删除通行密钥",
+        "account_session_revoke": "撤销登录会话",
+        "account_calendar_token_create": "创建私人日历链接",
+        "account_calendar_token_rotate": "轮换日历令牌",
+        "oauth_authorization_grant": "授权 OAuth 应用",
+        "oauth_authorization_update": "更新 OAuth 授权",
+        "oauth_authorization_revoke": "撤销 OAuth 授权",
+        "admin_user_suspend": "账户被暂停",
+        "admin_user_unsuspend": "账户暂停已解除",
+        "admin_user_role_update": "账户角色已变更",
+        "admin_user_profile_update": "管理员已变更账户资料"
+      },
+      "channels": {
+        "web": "网页",
+        "rest": "REST API",
+        "graphql": "GraphQL",
+        "mcp": "MCP",
+        "auth": "认证服务",
+        "webhook": "Webhook",
+        "system": "系统"
+      },
+      "outcomes": {
+        "success": "成功",
+        "denied": "已拒绝",
+        "failure": "失败"
+      }
+    },
     "authorizations": {
       "title": "已授权的 OAuth 应用",
       "description": "你批准的应用可在撤销前按照下列权限代表你操作。",
@@ -919,6 +1193,14 @@
       "disabled": "已停用",
       "permissions": "权限范围",
       "updatedAt": "最近授权",
+      "lastUsedAt": "最近使用",
+      "neverUsed": "近 30 天没有使用记录",
+      "recentUsage": "近 30 天",
+      "reads": "读取",
+      "writes": "写入",
+      "errors": "错误",
+      "lastChannel": "最近通道",
+      "lastFeature": "最近功能",
       "revoke": "撤销授权",
       "revoking": "正在撤销…",
       "revokeTitle": "撤销应用访问权限？",
@@ -941,6 +1223,7 @@
     "educationLevel": "教育层次",
     "category": "类别",
     "classType": "课程类型",
+    "filterDescription": "选择教育层次、类别或课程类型后会立即应用筛选。",
     "summary": {
       "matches": "匹配",
       "matchesMeta": "当前查询中的课程",
@@ -1076,7 +1359,7 @@
     "capacity": "容量",
     "noSemester": "无学期",
     "creditValue": "{count} 学分",
-    "filterDescription": "组合班级、课程属性和排序条件；留空表示不限。",
+    "filterDescription": "组合班级、课程属性和排序条件；留空表示不限，点击“应用筛选”后生效。",
     "filters": {
       "any": "不限",
       "apply": "应用筛选",
@@ -1170,7 +1453,7 @@
     "calendarUrlDescription": "只包含本班级的上课、考试与作业。",
     "subscriptionUrlLabel": "我的全部订阅",
     "subscriptionUrlDescription": "包含你在 Life@USTC 中订阅的所有班级，以及待办等个人日程，会自动同步。",
-    "subscriptionMissing": "登录后生成你的个人订阅链接",
+    "subscriptionMissing": "前往订阅页面安全查看你的个人订阅链接",
     "subscriptionHintLabel": "此链接包含您在 Life@USTC 中订阅的所有教学班，会自动同步更新，不代表学校官方选课结果。",
     "subscriptionPrivacyNote": "此链接相当于你的私人凭证，请勿公开分享。",
     "subscribeLabel": "订阅教学班",
@@ -1430,6 +1713,7 @@
     "devDebugHint": "开发模式下可一键进入调试用户，用于验证登录后功能。",
     "errorAccountNotLinked": "此账户已关联到其他用户。请使用其他账户登录。",
     "errorGeneric": "登录过程中发生错误。请重试。",
+    "reauthenticationRequired": "此敏感操作需要近期登录验证。请重新登录后继续，完成后会返回当前管理页面。",
     "termsNotice": "登录即表示您同意我们的<terms>服务条款</terms>和<privacy>隐私政策</privacy>。"
   },
   "teachers": {
@@ -1447,7 +1731,7 @@
     "sectionCount": "授课班级数",
     "sections": "授课班级",
     "filterTitle": "筛选教师",
-    "filterDescription": "搜索教师姓名或工号，并按院系缩小范围。",
+    "filterDescription": "搜索教师姓名或工号，并按院系缩小范围；选择院系后会立即应用。",
     "currentDepartment": "当前院系",
     "searchLabel": "搜索",
     "searchNameOrCode": "搜索姓名或工号",
@@ -1570,6 +1854,7 @@
     "submissionStart": "提交开始",
     "submissionDue": "提交截止",
     "calendarButtonLabel": "打开日历选择器",
+    "dueDateShortcuts": "截止时间快捷设置",
     "helperPublishNow": "立即发布",
     "helperStartNow": "立即开始",
     "helperClear": "清空",
@@ -1578,12 +1863,15 @@
     "helperMonth": "一月内提交",
     "helperSemesterEnd": "学期末前提交",
     "helperSemesterStart": "学期开始",
-    "advancedShow": "更多设置",
-    "advancedHide": "收起更多设置",
+    "advancedShow": "其他可选设置",
+    "advancedHide": "收起其他可选设置",
     "tagMajor": "大作业",
     "tagTeam": "需要组队",
     "tagDefault": "常规作业",
     "completedLabel": "已完成",
+    "pendingLabel": "待处理",
+    "relativeTime": "距截止",
+    "moreDetails": "更多信息",
     "markComplete": "标记为完成",
     "markIncomplete": "取消完成",
     "cancel": "取消",
@@ -1596,13 +1884,13 @@
     "loadFailed": "作业加载失败。",
     "emptyTitle": "暂无作业",
     "createdAt": "创建于 {date}",
-    "selected": "已选中",
+    "statusLabel": "状态",
     "viewDetails": "查看详情",
     "dateTBD": "待定",
     "editAction": "编辑信息",
     "deleteAction": "删除",
     "deleteTitle": "删除作业",
-    "deleteDescription": "确定删除 {title} 吗？此操作会被公开记录。",
+    "deleteDescription": "确定删除“{title}”吗？此操作会被公开记录。",
     "confirmDelete": "确认删除",
     "titleRequired": "请输入作业标题",
     "updateSuccess": "作业已更新",
@@ -1632,6 +1920,7 @@
     "auditTitle": "编辑记录",
     "auditEmpty": "暂无编辑记录",
     "auditCreated": "创建",
+    "auditUpdated": "更新",
     "auditDeleted": "删除",
     "auditMeta": "{name} · {date}",
     "unknownActor": "未知用户",
@@ -1652,6 +1941,7 @@
     "sectionRequired": "请选择班级。"
   },
   "comments": {
+    "ancestryPlaceholder": "该讨论串中的部分上级评论当前不可见。",
     "title": "评论",
     "commentNotFound": "未找到评论。",
     "commentTargetNotFound": "未找到评论目标。",
@@ -1700,8 +1990,16 @@
     "nameRequired": "需要名称",
     "nameRequiredDescription": "请输入显示名称。",
     "submitFailed": "评论发布失败",
+    "postSuccess": "评论已发布",
+    "replySuccess": "回复已发布",
+    "editSuccess": "评论已更新",
+    "deleteSuccess": "评论已删除",
+    "reactionSuccess": "表情已更新",
     "pleaseRetry": "请稍后再试。",
     "loadFailed": "评论加载失败。",
+    "loadMoreComments": "加载更多评论",
+    "loadMoreReplies": "加载更多回复",
+    "loadTarget": "加载评论",
     "loading": "正在加载评论...",
     "retry": "重试",
     "emptyTitle": "暂无评论",
@@ -1816,6 +2114,9 @@
     "lifted": "已解除",
     "active": "生效中",
     "liftSuspensionAction": "解除封禁",
+    "liftSuspensionConfirmTitle": "解除这条封禁？",
+    "liftSuspensionConfirmDescription": "这会立即恢复 {user} 的协作访问权限。",
+    "liftSuspensionConfirmAction": "确认解除封禁",
     "suspendedAt": "封禁时间 {date}",
     "filterAll": "全部",
     "filterActive": "正常",
@@ -1923,12 +2224,15 @@
     "addButton": "添加待办",
     "createTitle": "新建待办",
     "editTitle": "编辑待办",
+    "editDescription": "更新待办事项的详细信息。",
     "titleLabel": "标题",
     "titlePlaceholder": "例如：复习第一章",
     "contentLabel": "内容描述",
     "contentPlaceholder": "支持 Markdown 格式",
+    "contentEmpty": "暂无内容",
     "priorityLabel": "优先级",
     "dueAtLabel": "截止时间",
+    "dueAtPlaceholder": "选择截止时间（可选）",
     "dueLabel": "截止",
     "calendarButtonLabel": "打开日历选择器",
     "priority": {
@@ -1949,12 +2253,17 @@
     "editAriaLabel": "编辑待办",
     "delete": "删除",
     "deleteAriaLabel": "删除待办",
+    "deleteConfirmTitle": "删除此待办？",
+    "deleteConfirmDescription": "确定删除“{title}”吗？此操作无法撤销。",
     "cancel": "取消",
     "saving": "保存中...",
     "createAction": "创建待办",
     "saveChanges": "保存修改",
     "createSuccess": "待办已创建",
     "updateSuccess": "待办已更新",
+    "deleteSuccess": "待办已删除",
+    "completeSuccess": "待办已完成",
+    "uncompleteSuccess": "待办已标记为未完成",
     "saveFailed": "保存失败",
     "errorTitleRequired": "请输入标题",
     "errorTitleTooLong": "标题过长（最多 200 字）",
@@ -2030,6 +2339,7 @@
     "errorInvalidClient": "无效的客户端应用。",
     "errorInvalidRedirectUri": "无效的重定向 URI。",
     "errorConsentFailed": "授权请求未能完成。请返回发起请求的应用后重试。",
+    "errorRecentAuthRequired": "此授权会变更账户访问权限。请退出后重新登录，再从发起请求的应用重新开始授权。",
     "errorGeneric": "处理授权请求时发生错误。",
     "errorPageTitle": "授权错误",
     "errorPageHint": "如果问题持续出现，请从请求该授权的应用重新发起登录或授权流程，以生成新的授权请求。",
@@ -2108,6 +2418,7 @@
     "scopeGroup_admin": "管理后台",
     "scopeGroup_other": "其他",
     "scopeFeature_account.profile": "个人资料",
+    "scopeFeature_account.client-activity": "当前应用活动",
     "scopeFeature_catalog.bus": "校车",
     "scopeFeature_catalog.course": "课程",
     "scopeFeature_catalog.exam": "考试",
@@ -2121,6 +2432,7 @@
     "scopeFeature_community.user": "用户主页",
     "scopeFeature_workspace.bus-preferences": "校车偏好",
     "scopeFeature_workspace.calendar": "日历",
+    "scopeFeature_workspace.calendar-feed": "私有日历订阅链接",
     "scopeFeature_workspace.exam": "考试",
     "scopeFeature_workspace.homework": "作业",
     "scopeFeature_workspace.link-pin": "置顶网站",
@@ -2142,6 +2454,8 @@
     "copyErrorDescription": "无法将该值复制到剪贴板。",
     "credentialsTitle": "客户端凭据",
     "credentialsWarning": "请立即复制。客户端密钥不会再次显示。",
+    "credentialsCopyRequired": "关闭窗口前，请确认你已安全保存客户端密钥。",
+    "credentialsSavedAcknowledgement": "我已安全保存客户端密钥",
     "clientIdLabel": "客户端 ID",
     "clientSecretLabel": "客户端密钥",
     "copyClientId": "复制 ID",
@@ -2203,7 +2517,8 @@
     "unsupportedAuthMethod": "不支持的客户端认证方式",
     "missingClientId": "缺少客户端 ID",
     "errorMissingRedirectUri": "当注册了多个重定向 URI 时，必须指定 redirect_uri 参数。",
-    "scope_account.profile:read": "读取你的账户资料",
+    "scope_account.client-activity:read": "读取当前应用代表你执行的活动",
+    "scope_account.profile:read": "读取你的账户资料（邮箱还需要 email 权限）",
     "scope_account.profile:write": "更新你的账户资料",
     "scope_catalog.bus:read": "读取公共校车目录",
     "scope_catalog.bus:write": "管理公共校车目录",
@@ -2231,6 +2546,7 @@
     "scope_workspace.bus-preferences:write": "管理你的校车偏好",
     "scope_workspace.calendar:read": "读取你的日历",
     "scope_workspace.calendar:write": "管理你的日历",
+    "scope_workspace.calendar-feed:read": "读取你的私有日历订阅链接",
     "scope_workspace.exam:read": "读取你的考试",
     "scope_workspace.exam:write": "管理你的考试",
     "scope_workspace.homework:read": "读取你的作业",
@@ -2261,7 +2577,7 @@
             "账户信息：如姓名、用户名、头像和你绑定的登录方式。",
             "使用数据：如页面访问、功能操作和错误日志，用于改进服务质量。",
             "你主动提交的内容：如评论、作业信息和上传文件。",
-            "通过 Google Analytics（Google 跟踪代码管理器）收集的分析数据，包括匿名页面浏览量、会话时长和基本设备/浏览器信息。不会向 Google Analytics 发送任何个人身份信息。"
+            "通过 Google Analytics 的 Google 代码（gtag.js）收集的分析数据，包括页面浏览量、会话时长、客户端标识符和基本设备/浏览器信息。我们不会有意向 Google Analytics 发送姓名、邮箱等个人身份信息。"
           ]
         },
         {
@@ -2279,7 +2595,7 @@
             "我们不会出售你的个人信息。",
             "仅在提供服务所必需或法律要求时共享数据。",
             "如使用第三方服务（如登录提供商），将按其协议处理必要数据。",
-            "Google Analytics（由 Google LLC 提供）代表我们处理匿名使用数据。你可以通过 Google Analytics 停用浏览器插件（https://tools.google.com/dlpage/gaoptout）选择退出。"
+            "Google Analytics（由 Google LLC 提供）代表我们处理使用数据。你可以通过 Google Analytics 停用浏览器插件（https://tools.google.com/dlpage/gaoptout）选择退出，也可以使用浏览器的跟踪保护或内容拦截功能。"
           ]
         },
         {
@@ -2287,6 +2603,8 @@
           "items": [
             "我们采取合理的技术与管理措施保护数据安全。",
             "数据仅在实现服务目的所需的期限内保存，或按法律要求保存。",
+            "敏感操作审计会记录操作类型、结果、通道和必要的账户或 OAuth 客户端归因，但不保存正文、令牌、密钥或搜索内容。IP 与设备信息在 30 天后匿名化，请求、会话和授权关联标识在 90 天后匿名化，审计事件在 400 天后删除。",
+            "公开个人主页的贡献统计不包含你的作业完成状态；管理员产品分析只展示按功能、通道、结果和客户端汇总的数据，不提供逐用户浏览轨迹。",
             "你可以通过账户设置修改或删除部分个人信息。"
           ]
         },
@@ -2303,7 +2621,7 @@
           "items": [
             "我们可能会不定期更新本隐私政策。",
             "重大变更会通过站内公告或其他合理方式通知。",
-            "本版本最后更新于 2026-04-10。"
+            "本版本最后更新于 2026-08-09。"
           ]
         }
       ]
@@ -2318,7 +2636,7 @@
             "Life@USTC 提供课程、班级、评论与相关学习信息服务。",
             "我们会持续改进功能，可能会调整、暂停或终止部分服务。",
             "部分功能可能需要登录后使用。",
-            "我们使用 Google Analytics 收集匿名使用统计数据。使用本服务即表示你同意我们在隐私政策中所述的数据收集方式。"
+            "我们使用 Google Analytics 收集使用统计数据。使用本服务即表示你同意我们在隐私政策中所述的数据收集方式。"
           ]
         },
         {
@@ -2358,7 +2676,7 @@
           "items": [
             "我们可能会不定期更新本服务条款。",
             "继续使用服务即视为接受更新后的条款。",
-            "本版本最后更新于 2026-04-10。"
+            "本版本最后更新于 2026-08-09。"
           ]
         }
       ]

@@ -42,6 +42,7 @@ const probeOnlyRoutes = new Set([
   "/api/catalog/links/resolve",
   "/api/health",
   "/api/community/section-homeworks",
+  "/api/community/section-homeworks/audit",
   "/api/workspace/homeworks/completions",
   "/api/community/section-homeworks/[id]",
   "/api/workspace/homeworks/[id]/completion",
@@ -467,6 +468,7 @@ export async function assertApiContract(
     }
 
     case "/api/community/comments/[id]":
+    case "/api/community/comments/[id]/replies":
     case "/api/community/comments/[id]/reactions": {
       const response = await request.get(
         routePath.replace("[id]", "invalid-e2e"),

@@ -19,12 +19,28 @@
  * - Optimistic updates via useOptimistic for toggle/delete/add
  * - Empty state shown when filter yields no matching todos
  */
-import { expect, test } from "@playwright/test";
+import { expect, type Page, test } from "@playwright/test";
 import { signInAsDebugUser } from "../../../../utils/auth";
 import { DEV_SEED } from "../../../../utils/dev-seed";
 import { visibleText } from "../../../../utils/locators";
 import { gotoAndWaitForReady } from "../../../../utils/page-ready";
 import { captureStepScreenshot } from "../../../../utils/screenshot";
+
+async function cleanupTodosByTitlePrefix(page: Page, prefix: string) {
+  const response = await page.request.get("/api/workspace/todos");
+  expect(response.status()).toBe(200);
+  const body = (await response.json()) as {
+    todos?: Array<{ id?: string; title?: string }>;
+  };
+  for (const todo of body.todos ?? []) {
+    if (todo.id && todo.title?.startsWith(prefix)) {
+      const deleteResponse = await page.request.delete(
+        `/api/workspace/todos/${todo.id}`,
+      );
+      expect(deleteResponse.status()).toBe(200);
+    }
+  }
+}
 
 test.describe("仪表盘待办", () => {
   test("未登录旧 todos tab 重定向到语义路径", async ({ page }) => {
@@ -54,6 +70,17 @@ test.describe("仪表盘待办", () => {
       .first();
     await expect(completionButton).toBeVisible();
     await expect(completionButton).toBeEnabled();
+
+    const detailButton = row.getByRole("button", {
+      name: DEV_SEED.todos.dueTodayTitle,
+      exact: true,
+    });
+    await detailButton.focus();
+    await page.keyboard.press("Enter");
+    await expect(
+      page.getByRole("dialog", { name: DEV_SEED.todos.dueTodayTitle }),
+    ).toBeVisible();
+    await page.keyboard.press("Escape");
 
     await captureStepScreenshot(page, testInfo, "dashboard-todos-seed");
   });
@@ -86,6 +113,21 @@ test.describe("仪表盘待办", () => {
     await gotoAndWaitForReady(page, "/workspace/todos?todoView=list");
     await expect(page.getByTestId("dashboard-todos-cards")).toBeVisible();
     await expect(page.getByRole("table")).toBeHidden();
+    const todoItem = page
+      .getByTestId("dashboard-todos-cards")
+      .locator('[data-slot="item"]')
+      .first();
+    await expect(todoItem).toBeVisible();
+    await expect(todoItem.locator('[data-slot="item-content"]')).toBeVisible();
+    await expect(todoItem.locator('[data-slot="item-actions"]')).toBeVisible();
+    for (const control of await todoItem
+      .locator('[data-slot="item-actions"]')
+      .getByRole("button")
+      .all()) {
+      const box = await control.boundingBox();
+      expect(box?.width ?? 0).toBeGreaterThanOrEqual(44);
+      expect(box?.height ?? 0).toBeGreaterThanOrEqual(44);
+    }
     expect(
       await page.evaluate(
         () => document.documentElement.scrollWidth <= window.innerWidth,
@@ -185,45 +227,352 @@ test.describe("仪表盘待办", () => {
     await captureStepScreenshot(page, testInfo, "dashboard-todos-action-error");
   });
 
-  test("可以创建和删除待办", async ({ page }, testInfo) => {
-    test.setTimeout(60_000);
+  test("可以创建、编辑和删除待办", async ({ page }, testInfo) => {
+    test.setTimeout(90_000);
     await signInAsDebugUser(page, "/workspace/todos");
 
     const title = `e2e-dashboard-todo-${Date.now()}`;
+    const editedTitle = `${title}-edited`;
 
-    // Create a new todo via modal form
-    const addTodoButton = page
-      .getByRole("button", { name: /添加待办|Add Todo/i })
-      .first();
-    await expect(addTodoButton).toBeVisible();
-    await expect(addTodoButton).toBeEnabled();
-    const titleInput = page.getByLabel(/标题|Title/i);
-    await expect(async () => {
+    try {
+      // Create a new todo via modal form
+      const addTodoButton = page
+        .getByRole("button", { name: /添加待办|Add Todo/i })
+        .first();
+      await expect(addTodoButton).toBeVisible();
+      await expect(addTodoButton).toBeEnabled();
+      const titleInput = page.getByLabel(/标题|Title/i);
+      await expect(async () => {
+        await addTodoButton.click();
+        await expect(titleInput).toBeVisible({ timeout: 3_000 });
+      }).toPass({
+        timeout: 10_000,
+        intervals: [250, 500, 1_000],
+      });
+      await titleInput.fill(title);
+      await page
+        .getByRole("button", { name: /创建待办|Create Todo/i })
+        .first()
+        .click();
+
+      await expect(visibleText(page, title)).toBeVisible({
+        timeout: 15_000,
+      });
+      await captureStepScreenshot(page, testInfo, "dashboard-todos-created");
+
+      // Edit the temporary todo via its detail modal.
+      await visibleText(page, title).click();
+      const detailDialog = page.getByRole("dialog", { name: title });
+      await expect(detailDialog).toBeVisible();
+      const detailText = await detailDialog.innerText();
+      const localizedPriorityMatches =
+        detailText.match(/\b(?:Low|Medium|High)\b|[低中高]/g) ?? [];
+      expect(localizedPriorityMatches).toHaveLength(1);
+      expect(detailText).not.toMatch(/\b(?:low|medium|high)\b/);
+      const editButton = detailDialog.getByRole("button", {
+        name: /编辑待办|Edit Todo/i,
+      });
+      await expect(editButton).toBeVisible();
+      await expect(editButton).toBeEnabled();
+      await editButton.click();
+
+      const editDialog = page.getByRole("dialog", {
+        name: /编辑待办|Edit Todo/i,
+      });
+      await expect(editDialog).toBeVisible();
+      const editTitleInput = editDialog.getByLabel(/^(标题|Title)$/i);
+      await expect(editTitleInput).toHaveValue(title);
+      await editTitleInput.fill(editedTitle);
+      const updateResponse = page.waitForResponse(
+        (response) =>
+          response.request().method() === "POST" &&
+          response.url().includes("/workspace/todos?/updateTodo"),
+      );
+      const saveButton = editDialog.getByRole("button", {
+        name: /保存修改|Save Changes/i,
+      });
+      await expect(saveButton).toBeEnabled();
+      await saveButton.click();
+      await expect((await updateResponse).status()).toBe(200);
+      await expect(editDialog).toBeHidden();
+      await expect(visibleText(page, editedTitle)).toBeVisible({
+        timeout: 15_000,
+      });
+      await expect(
+        page.getByRole("button", { name: title, exact: true }),
+      ).toHaveCount(0);
+      await captureStepScreenshot(page, testInfo, "dashboard-todos-edited");
+
+      await page
+        .getByRole("button", { name: editedTitle, exact: true })
+        .click();
+      const editedDetailDialog = page.getByRole("dialog", {
+        name: editedTitle,
+      });
+      const detailTitle = editedDetailDialog.locator(
+        '[data-slot="dialog-title"]',
+      );
+      await expect(detailTitle).toHaveText(editedTitle);
+      const deleteButton = page
+        .getByRole("button", { name: /删除待办|Delete todo/i })
+        .first();
+      await deleteButton.click();
+      const confirmDialog = page.getByRole("alertdialog");
+      await expect(confirmDialog).toBeVisible();
+      await page.keyboard.press("Escape");
+      await expect(confirmDialog).toBeHidden();
+      await expect(detailTitle).toBeVisible();
+
+      await deleteButton.click();
+      await expect(confirmDialog).toBeVisible();
+      await expect(
+        confirmDialog.getByRole("button", { name: /取消|Cancel/i }),
+      ).toBeEnabled();
+      await confirmDialog.getByRole("button", { name: /取消|Cancel/i }).click();
+      await expect(confirmDialog).toBeHidden();
+      await expect(detailTitle).toBeVisible();
+
+      await deleteButton.click();
+      const reopenedConfirmDialog = page.getByRole("alertdialog");
+      await expect(reopenedConfirmDialog).toBeVisible();
+      const deleteResponse = page.waitForResponse(
+        (response) =>
+          response.request().method() === "DELETE" &&
+          response.url().includes("/api/workspace/todos/"),
+      );
+      await reopenedConfirmDialog
+        .getByRole("button", { name: /删除|Delete/i })
+        .click();
+      await expect((await deleteResponse).status()).toBe(200);
+
+      await expect(page.getByText(editedTitle)).toHaveCount(0, {
+        timeout: 15_000,
+      });
+      await captureStepScreenshot(page, testInfo, "dashboard-todos-deleted");
+    } finally {
+      await cleanupTodosByTitlePrefix(page, title);
+    }
+  });
+
+  test("移动端长标题和内容保持操作可达并按层级排列", async ({ page }) => {
+    test.setTimeout(90_000);
+    await page.setViewportSize({ width: 320, height: 568 });
+    await signInAsDebugUser(page, "/workspace/todos");
+
+    const titlePrefix = `e2e-dashboard-todo-mobile-${Date.now()}`;
+    const title = `${titlePrefix}-${"长标题".repeat(35)}`;
+    const content = `${"这是用于验证待办详情滚动区域的长内容。 ".repeat(24)}\n\nmobile-content-marker`;
+
+    try {
+      const addTodoButton = page.getByTestId("dashboard-todos-add");
       await addTodoButton.click();
-      await expect(titleInput).toBeVisible({ timeout: 3_000 });
-    }).toPass({
-      timeout: 10_000,
-      intervals: [250, 500, 1_000],
-    });
-    await titleInput.fill(title);
-    await page
-      .getByRole("button", { name: /创建待办|Create Todo/i })
-      .first()
-      .click();
+      const createDialog = page.getByRole("dialog", {
+        name: /新建待办|New Todo/i,
+      });
+      await expect(createDialog).toBeVisible();
+      const viewportHeight = page.viewportSize()?.height ?? 568;
+      const createBox = await createDialog.boundingBox();
+      const createFooter = createDialog.locator('[data-slot="dialog-footer"]');
+      expect(createBox).not.toBeNull();
+      if (!createBox) throw new Error("Expected the mobile todo dialog bounds");
+      expect(createBox.y).toBeGreaterThanOrEqual(16);
+      expect(createBox.y + createBox.height).toBeLessThanOrEqual(
+        viewportHeight - 16,
+      );
+      await expect(createFooter).toBeInViewport();
 
-    await expect(visibleText(page, title)).toBeVisible({
-      timeout: 15_000,
-    });
-    await captureStepScreenshot(page, testInfo, "dashboard-todos-created");
+      await createDialog.getByLabel(/^(标题|Title)$/i).fill(title);
+      await createDialog
+        .getByRole("textbox", { name: /内容描述|Description/i })
+        .fill(content);
+      await createDialog
+        .getByRole("button", { name: /创建待办|Create Todo/i })
+        .click();
+      await expect(visibleText(page, title)).toBeVisible({ timeout: 15_000 });
 
-    // Delete the todo via detail modal
-    await visibleText(page, title).click();
-    await page
-      .getByRole("button", { name: /删除待办|Delete todo/i })
-      .first()
-      .click();
+      await page.getByRole("button", { name: title, exact: true }).click();
+      const detailDialog = page.getByRole("dialog", { name: title });
+      await expect(detailDialog).toBeVisible();
+      await expect(
+        detailDialog.getByText("mobile-content-marker"),
+      ).toBeVisible();
+      const closeButton = detailDialog.locator('[data-slot="dialog-close"]');
+      await expect(closeButton).toBeVisible();
+      await expect(closeButton).toBeInViewport();
+      const closeBox = await closeButton.boundingBox();
+      expect(closeBox).not.toBeNull();
+      expect(closeBox?.width ?? 0).toBeGreaterThanOrEqual(24);
 
-    await expect(page.getByText(title)).toHaveCount(0, { timeout: 15_000 });
-    await captureStepScreenshot(page, testInfo, "dashboard-todos-deleted");
+      const detailFooter = detailDialog.locator('[data-slot="dialog-footer"]');
+      await expect(detailFooter).toBeInViewport();
+      const completion = detailFooter.getByRole("button", {
+        name: /标记为完成|Mark as complete/i,
+      });
+      const edit = detailFooter.getByRole("button", {
+        name: /编辑待办|Edit Todo/i,
+      });
+      const deleteButton = detailFooter.getByRole("button", {
+        name: /删除待办|Delete todo/i,
+      });
+      for (const control of [completion, edit, deleteButton]) {
+        await expect(control).toBeVisible();
+        const box = await control.boundingBox();
+        expect(box).not.toBeNull();
+        expect(box?.width ?? 0).toBeGreaterThanOrEqual(240);
+      }
+      const [completionBox, editBox, deleteBox] = await Promise.all([
+        completion.boundingBox(),
+        edit.boundingBox(),
+        deleteButton.boundingBox(),
+      ]);
+      expect(completionBox?.y).toBeLessThan(
+        editBox?.y ?? Number.POSITIVE_INFINITY,
+      );
+      expect(editBox?.y).toBeLessThan(deleteBox?.y ?? Number.POSITIVE_INFINITY);
+      expect(
+        await page.evaluate(
+          () => document.documentElement.scrollWidth <= window.innerWidth,
+        ),
+      ).toBe(true);
+
+      await closeButton.click();
+      await expect(detailDialog).toHaveCount(0);
+      await page.getByRole("button", { name: title, exact: true }).click();
+      await expect(detailDialog).toBeVisible();
+
+      await deleteButton.click();
+      const confirmDialog = page.getByRole("alertdialog");
+      await expect(confirmDialog).toBeVisible();
+      await expect(confirmDialog).toContainText(title);
+      await page.keyboard.press("Escape");
+      await expect(confirmDialog).toBeHidden();
+      await expect(detailDialog).toBeVisible();
+
+      await deleteButton.click();
+      await page
+        .getByRole("alertdialog")
+        .getByRole("button", { name: /取消|Cancel/i })
+        .click();
+      await expect(page.getByRole("alertdialog")).toBeHidden();
+      await expect(detailDialog).toBeVisible();
+
+      await deleteButton.click();
+      const deleteResponse = page.waitForResponse(
+        (response) =>
+          response.request().method() === "DELETE" &&
+          response.url().includes("/api/workspace/todos/"),
+      );
+      await page
+        .getByRole("alertdialog")
+        .getByRole("button", { name: /删除|Delete/i })
+        .click();
+      await expect((await deleteResponse).status()).toBe(200);
+      await expect(page.getByText(title, { exact: true })).toHaveCount(0, {
+        timeout: 15_000,
+      });
+    } finally {
+      await cleanupTodosByTitlePrefix(page, titlePrefix);
+    }
+  });
+
+  test("短视口待办新建和编辑弹窗保持标题、滚动体与操作可达", async ({
+    page,
+  }) => {
+    test.setTimeout(90_000);
+    const viewport = { width: 390, height: 600 } as const;
+    await page.setViewportSize(viewport);
+    await signInAsDebugUser(page, "/workspace/todos");
+
+    const titlePrefix = `e2e-dashboard-todo-short-${Date.now()}`;
+    const title = `${titlePrefix}-todo`;
+
+    async function assertDialogBounds(
+      dialog: import("@playwright/test").Locator,
+    ) {
+      const dialogBox = await dialog.boundingBox();
+      const footer = dialog.locator('[data-slot="dialog-footer"]');
+      const closeButton = dialog.getByRole("button", { name: "Close" });
+      const [footerBox, closeBox] = await Promise.all([
+        footer.boundingBox(),
+        closeButton.boundingBox(),
+      ]);
+      expect(dialogBox).not.toBeNull();
+      expect(footerBox).not.toBeNull();
+      expect(closeBox).not.toBeNull();
+      if (!dialogBox || !footerBox || !closeBox) {
+        throw new Error("Expected the short-viewport todo dialog bounds");
+      }
+      expect(dialogBox.y).toBeGreaterThanOrEqual(16);
+      expect(dialogBox.y + dialogBox.height).toBeLessThanOrEqual(
+        viewport.height - 16,
+      );
+      expect(footerBox.y + footerBox.height).toBeLessThanOrEqual(
+        viewport.height - 16,
+      );
+      expect(closeBox.width).toBeGreaterThanOrEqual(44);
+      expect(closeBox.height).toBeGreaterThanOrEqual(44);
+      await expect(footer).toBeInViewport();
+      await expect(closeButton).toBeInViewport();
+
+      const calendarButton = dialog.getByRole("button", {
+        name: /打开日历选择器|Open calendar picker/i,
+      });
+      const calendarBox = await calendarButton.boundingBox();
+      expect(calendarBox).not.toBeNull();
+      expect(calendarBox?.width ?? 0).toBeGreaterThanOrEqual(44);
+      expect(calendarBox?.height ?? 0).toBeGreaterThanOrEqual(44);
+      await expect(calendarButton).toBeInViewport();
+
+      const scrollViewport = dialog
+        .locator('[data-slot="scroll-area-viewport"]')
+        .first();
+      const scrollMetrics = await scrollViewport.evaluate((element) => ({
+        clientHeight: element.clientHeight,
+        scrollHeight: element.scrollHeight,
+      }));
+      expect(scrollMetrics.clientHeight).toBeGreaterThan(0);
+      expect(scrollMetrics.scrollHeight).toBeGreaterThanOrEqual(
+        scrollMetrics.clientHeight,
+      );
+      const scrollBox = await scrollViewport.boundingBox();
+      expect(scrollBox).not.toBeNull();
+      expect(scrollBox?.y ?? 0).toBeGreaterThanOrEqual(dialogBox.y);
+      expect(scrollBox?.y ?? 0).toBeLessThan(footerBox.y);
+    }
+
+    try {
+      await page.getByTestId("dashboard-todos-add").click();
+      const createDialog = page.getByRole("dialog", {
+        name: /新建待办|New Todo/i,
+      });
+      await expect(createDialog).toBeVisible();
+      await assertDialogBounds(createDialog);
+
+      await createDialog.getByLabel(/^(标题|Title)$/i).fill(title);
+      await createDialog
+        .getByRole("textbox", { name: /内容描述|Description/i })
+        .fill("short viewport regression content");
+      await createDialog
+        .getByRole("button", { name: /创建待办|Create Todo/i })
+        .click();
+      await expect(visibleText(page, title)).toBeVisible({ timeout: 15_000 });
+
+      await page.getByRole("button", { name: title, exact: true }).click();
+      const detailDialog = page.getByRole("dialog", { name: title });
+      await expect(detailDialog).toBeVisible();
+      await detailDialog
+        .getByRole("button", { name: /编辑待办|Edit Todo/i })
+        .click();
+
+      const editDialog = page.getByRole("dialog", {
+        name: /编辑待办|Edit Todo/i,
+      });
+      await expect(editDialog).toBeVisible();
+      await assertDialogBounds(editDialog);
+      await editDialog.getByRole("button", { name: /取消|Cancel/i }).click();
+      await expect(editDialog).toBeHidden();
+    } finally {
+      await cleanupTodosByTitlePrefix(page, titlePrefix);
+    }
   });
 });

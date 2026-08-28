@@ -3,17 +3,13 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const {
   buildCourseListWhereMock,
   buildSectionListQueryMock,
-  getPrismaMock,
   paginatedCourseQueryMock,
   paginatedSectionSummaryQueryMock,
-  resolveCourseIdByJwIdMock,
 } = vi.hoisted(() => ({
   buildCourseListWhereMock: vi.fn(),
   buildSectionListQueryMock: vi.fn(),
-  getPrismaMock: vi.fn(),
   paginatedCourseQueryMock: vi.fn(),
   paginatedSectionSummaryQueryMock: vi.fn(),
-  resolveCourseIdByJwIdMock: vi.fn(),
 }));
 
 vi.mock("@/features/catalog/server/academic-paginated-queries", () => ({
@@ -26,22 +22,20 @@ vi.mock("@/features/catalog/server/course-section-query-filters", () => ({
   buildSectionListQuery: buildSectionListQueryMock,
 }));
 
-vi.mock("@/features/catalog/server/course-jw-id", () => ({
-  resolveCourseIdByJwId: resolveCourseIdByJwIdMock,
+vi.mock("@/features/catalog/server/catalog-list-cache", () => ({
+  cachedCatalogListRead: ({ load }: { load: () => Promise<unknown> }) => load(),
 }));
 
-vi.mock("@/lib/db/prisma", () => ({
-  getPrisma: getPrismaMock,
+vi.mock("@/features/catalog/server/catalog-list-cache", () => ({
+  cachedCatalogListRead: ({ load }: { load: () => Promise<unknown> }) => load(),
 }));
 
 describe("课程目录摘要读取模型", () => {
   beforeEach(() => {
     buildCourseListWhereMock.mockReset();
     buildSectionListQueryMock.mockReset();
-    getPrismaMock.mockReset();
     paginatedCourseQueryMock.mockReset();
     paginatedSectionSummaryQueryMock.mockReset();
-    resolveCourseIdByJwIdMock.mockReset();
   });
 
   it("应用共享的课程摘要默认排序", async () => {
@@ -49,7 +43,7 @@ describe("课程目录摘要读取模型", () => {
     const { COURSE_SUMMARY_DEFAULT_ORDER_BY, listCourseSummaries } =
       await import("@/features/catalog/server/course-summary-read-model");
 
-    listCourseSummaries({
+    await listCourseSummaries({
       filters: { search: "math" },
       locale: "en-us",
       pagination: { page: 2, pageSize: 10 },
@@ -112,12 +106,9 @@ describe("课程目录摘要读取模型", () => {
     );
   });
 
-  it("将课程 legacy jwId 解析为唯一 canonical courseId", async () => {
-    const prisma = {};
-    getPrismaMock.mockReturnValueOnce(prisma);
-    resolveCourseIdByJwIdMock.mockResolvedValueOnce(4);
+  it("将课程 jwId 关系筛选直接交给单次课段查询", async () => {
     buildSectionListQueryMock.mockReturnValueOnce({
-      where: {},
+      where: { course: { jwId: 19_901_001 } },
       orderBy: undefined,
     });
     const { listSectionSummaries } = await import(
@@ -130,11 +121,13 @@ describe("课程目录摘要读取模型", () => {
       pagination: { page: 1, pageSize: 20 },
     });
 
-    expect(resolveCourseIdByJwIdMock).toHaveBeenCalledWith(prisma, 19_901_001);
+    expect(buildSectionListQueryMock).toHaveBeenCalledWith({
+      courseJwId: 19_901_001,
+    });
     expect(paginatedSectionSummaryQueryMock).toHaveBeenCalledWith(
       1,
       20,
-      { courseId: 4 },
+      { course: { jwId: 19_901_001 } },
       expect.anything(),
       "zh-cn",
     );

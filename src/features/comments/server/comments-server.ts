@@ -1,5 +1,10 @@
 import { getViewerContext } from "@/lib/auth/viewer-context";
 import { loadCommentThread } from "./comment-read-model";
+import {
+  countCommentStageQuery,
+  createCommentStageCounter,
+  observeCommentStage,
+} from "./comment-stage-analytics";
 import type {
   CommentNode,
   CommentTarget,
@@ -19,8 +24,23 @@ export async function getCommentsPayload(
   viewerOverride?: CommentViewer,
   options: { pageSize?: number } = {},
 ): Promise<CommentsPayload> {
-  const viewer =
-    viewerOverride ?? (await getViewerContext({ includeAdmin: false }));
+  const viewerStageCounter = createCommentStageCounter({
+    dbContext: "none",
+    dbLabel: "app",
+  });
+  const viewer = await observeCommentStage({
+    counter: viewerStageCounter,
+    stage: "viewer.context",
+    work: () =>
+      viewerOverride
+        ? Promise.resolve(viewerOverride)
+        : getViewerContext({
+            includeAdmin: false,
+            instrumentation: {
+              onQuery: () => countCommentStageQuery(viewerStageCounter),
+            },
+          }),
+  });
   const resolvedTarget = await resolveCommentTarget({
     allowDirectSectionTeacherId: true,
     rawTargetId:
@@ -36,17 +56,27 @@ export async function getCommentsPayload(
     return { comments: [], complete: true, hiddenCount: 0, viewer };
   }
 
-  const pageSize = options.pageSize;
+  const pageSize = options.pageSize ?? 20;
   const result = await loadCommentThread({
-    pagination: pageSize ? { pageSize, skip: 0 } : undefined,
+    pagination: { pageSize, skip: 0 },
     target: resolvedTarget,
     viewer,
+    viewerContextStageRecorded: true,
     viewerUserId: viewer.userId,
   });
   return {
     comments: result.comments,
-    complete: pageSize === undefined || result.total <= pageSize,
+    complete:
+      result.total <= pageSize && !hasReplyContinuation(result.comments),
     hiddenCount: result.hiddenCount,
     viewer: result.viewer,
   };
+}
+
+function hasReplyContinuation(comments: CommentNode[]): boolean {
+  return comments.some(
+    (comment) =>
+      comment.repliesNextCursor !== null ||
+      hasReplyContinuation(comment.replies),
+  );
 }

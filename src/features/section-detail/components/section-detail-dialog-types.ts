@@ -1,5 +1,4 @@
 import type { CommentTargetOption } from "@/features/comments/lib/comment-ui";
-import type { CalendarGridWeek } from "$lib/components/calendar/types";
 import type {
   SectionBasicInfoCopy,
   SectionCommonInfoCopy,
@@ -59,6 +58,7 @@ export type SectionDetailSectionCopy = SectionCreateHomeworkSectionCopy & {
   copied: string;
   copyToClipboard: string;
   due: string;
+  notAvailable: string;
   historicalSectionDescription: string;
   historicalSectionLabel: string;
   homeworkDescription: string;
@@ -108,6 +108,7 @@ export type SectionDetailHomeworkDialogsProps = {
   auditLogsForHomework: SectionHomeworkAuditLookup;
   canManageSelectedHomework: boolean;
   canWriteHomework: boolean;
+  completionSaving: boolean;
   cancelEditHomework: () => void;
   closeCreateHomeworkDialog: () => void;
   commentsCopy: SectionDetailCommentsCopy;
@@ -132,9 +133,10 @@ export type SectionDetailHomeworkDialogsProps = {
   homeworkAuditLogs: SectionHomeworkAuditLog[];
   homeworkCopy: SectionDetailHomeworkCopy;
   homeworkMessage: string;
-  homeworkStatus: (homework: SectionHomework) => string;
   isHomeworkAuditDialogOpen: boolean;
+  locale: string;
   sectionCopy: SectionDetailSectionCopy;
+  sectionLabel: string;
   selectedHomework: SectionHomework | null;
   semesterDate: SectionHomeworkSemesterDate;
   setDeleteHomeworkTarget: (homework: SectionHomework | null) => void;
@@ -199,11 +201,11 @@ export type SectionDetailMainSectionCopy = SectionCalendarCopy &
     unsubscribeLabel: string;
     unsubscribing: string;
     week: string;
+    operationFailed: string;
+    pleaseRetry: string;
   };
 
 export type SectionDetailMainContentProps = {
-  calendarMonthLabel: string;
-  calendarMonthOffset: number;
   canWriteHomework: boolean;
   commentTargets: CommentTargetOption[];
   commonCopy: SectionDetailCommonCopy;
@@ -217,12 +219,13 @@ export type SectionDetailMainContentProps = {
   periodDetailRows: Array<[string, number]>;
   primaryName: SectionPrimaryName;
   sectionCalendarEvents: SectionCalendarEvent[];
-  sectionCalendarGridWeeks: CalendarGridWeek[];
   sectionCopy: SectionDetailMainSectionCopy;
   sectionTeachersLabel: SectionTeachersLabel;
-  setSelectedHomework: (homework: SectionHomework) => void;
+  setSelectedHomework: (homework: SectionHomework) => void | Promise<void>;
+  retryStreamPanels: () => void;
+  streamError: string | null;
+  streamLoading: boolean;
   teacherName: SectionTeacherName;
-  todayCalendarMonthOffset: number;
   unscheduledCalendarEvents: SectionCalendarEvent[];
   viewer: { isAuthenticated?: boolean; signedIn?: boolean };
   yesNo: (value: boolean | null | undefined) => string;

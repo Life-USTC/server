@@ -10,6 +10,7 @@ import * as Alert from "$lib/components/ui/alert/index.js";
 import { Button } from "$lib/components/ui/button/index.js";
 import * as Dialog from "$lib/components/ui/dialog/index.js";
 import * as Field from "$lib/components/ui/field/index.js";
+import { ScrollArea } from "$lib/components/ui/scroll-area/index.js";
 import { Spinner } from "$lib/components/ui/spinner/index.js";
 import TodoFormFields from "./TodoFormFields.svelte";
 
@@ -31,28 +32,35 @@ export let todosCopy: DashboardTodosCopy;
     }}
   >
     <Dialog.Content
-      class="max-w-lg sm:max-w-lg"
+      class="flex h-[calc(100dvh-2rem)] max-h-[calc(100dvh-2rem)] min-h-0 max-w-lg flex-col gap-0 overflow-clip p-0 sm:h-[min(64vh,36rem)] sm:max-h-[min(64vh,36rem)] sm:max-w-lg"
     >
-      <form method="POST" action="?/createTodo" use:enhance={createTodoAction}>
-        <Dialog.Header>
+      <form
+        class="flex min-h-0 flex-1 flex-col overflow-hidden"
+        method="POST"
+        action="?/createTodo"
+        use:enhance={createTodoAction}
+      >
+        <Dialog.Header class="shrink-0 px-5 pb-2 pt-4">
           <Dialog.Title>{todosCopy.createTitle}</Dialog.Title>
           <Dialog.Description>{todosCopy.subtitle}</Dialog.Description>
         </Dialog.Header>
-        <Field.Group class="gap-4 px-5 py-4">
-          {#if createTodoError}
-            <Alert.Root variant="destructive">
-              <Alert.Description>{createTodoError}</Alert.Description>
-            </Alert.Root>
-          {/if}
-          <TodoFormFields
-            {commentsCopy}
-            disabled={isCreatingTodo}
-            idPrefix="create-todo"
-            {todoPriorityOptions}
-            {todosCopy}
-          />
-        </Field.Group>
-        <Dialog.Footer>
+        <ScrollArea class="h-0 min-h-0 flex-1">
+          <Field.Group class="gap-4 px-5 py-4">
+            {#if createTodoError}
+              <Alert.Root variant="destructive">
+                <Alert.Description>{createTodoError}</Alert.Description>
+              </Alert.Root>
+            {/if}
+            <TodoFormFields
+              {commentsCopy}
+              disabled={isCreatingTodo}
+              idPrefix="create-todo"
+              {todoPriorityOptions}
+              {todosCopy}
+            />
+          </Field.Group>
+        </ScrollArea>
+        <Dialog.Footer class="mx-0 mb-0 shrink-0">
           <Button
             disabled={isCreatingTodo}
             type="button"

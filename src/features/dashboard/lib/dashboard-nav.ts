@@ -25,10 +25,8 @@ const homeDashboardQueryKeys = new Set([
   "dashboardLinkPinError",
   "examView",
   "homeworkView",
-  "imported",
   "linkView",
   "overviewWeek",
-  "removed",
   "snapshotAt",
   "todoView",
 ]);

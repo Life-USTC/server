@@ -104,24 +104,21 @@ test("/api/community/section-homeworks/[id] PATCH 登录后可更新作业标题
     expect(patchBody.homework?.description?.content).toBe(newDescription);
 
     // Verify the title was updated
-    const listResponse = await request.get(
-      `/api/community/section-homeworks?sectionId=${sectionId}`,
+    const detailResponse = await request.get(
+      `/api/community/section-homeworks/${homework.id}`,
     );
-    const listBody = (await listResponse.json()) as {
-      homeworks?: Array<{
+    const detailBody = (await detailResponse.json()) as {
+      homework?: {
         description?: { content?: string | null } | null;
         id?: string;
         title?: string;
-      }>;
+      };
     };
-    expect(
-      listBody.homeworks?.some(
-        (h) =>
-          h.id === homework.id &&
-          h.title === newTitle &&
-          h.description?.content === newDescription,
-      ),
-    ).toBe(true);
+    expect(detailBody.homework).toMatchObject({
+      description: { content: newDescription },
+      id: homework.id,
+      title: newTitle,
+    });
   } finally {
     await request.delete(`/api/community/section-homeworks/${homework.id}`);
   }
@@ -154,24 +151,21 @@ test("/api/community/section-homeworks/[id] PATCH 登录后可只更新作业描
     expect(patchBody.homework?.title).toBe(homework.title);
     expect(patchBody.homework?.description?.content).toBe(newDescription);
 
-    const listResponse = await request.get(
-      `/api/community/section-homeworks?sectionId=${sectionId}`,
+    const detailResponse = await request.get(
+      `/api/community/section-homeworks/${homework.id}`,
     );
-    const listBody = (await listResponse.json()) as {
-      homeworks?: Array<{
+    const detailBody = (await detailResponse.json()) as {
+      homework?: {
         description?: { content?: string | null } | null;
         id?: string;
         title?: string;
-      }>;
+      };
     };
-    expect(
-      listBody.homeworks?.some(
-        (h) =>
-          h.id === homework.id &&
-          h.title === homework.title &&
-          h.description?.content === newDescription,
-      ),
-    ).toBe(true);
+    expect(detailBody.homework).toMatchObject({
+      description: { content: newDescription },
+      id: homework.id,
+      title: homework.title,
+    });
   } finally {
     await request.delete(`/api/community/section-homeworks/${homework.id}`);
   }
@@ -227,7 +221,7 @@ test("/api/community/section-homeworks/[id] DELETE 登录后可删除作业", as
     `/api/community/section-homeworks?sectionId=${sectionId}`,
   );
   const listBody = (await listResponse.json()) as {
-    homeworks?: Array<{ id?: string }>;
+    data?: Array<{ id?: string }>;
   };
-  expect(listBody.homeworks?.some((h) => h.id === homework.id)).toBe(false);
+  expect(listBody.data?.some((h) => h.id === homework.id)).toBe(false);
 });

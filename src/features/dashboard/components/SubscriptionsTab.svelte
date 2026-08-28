@@ -1,6 +1,7 @@
 <script lang="ts">
-import SubscriptionsBulkImportConfirmDialog from "./SubscriptionsBulkImportConfirmDialog.svelte";
-import SubscriptionsBulkImportDialog from "./SubscriptionsBulkImportDialog.svelte";
+import BulkImportConfirmDialog from "@/features/subscriptions/components/BulkImportConfirmDialog.svelte";
+import BulkImportDialog from "@/features/subscriptions/components/BulkImportDialog.svelte";
+import type { BulkImportSectionView } from "@/features/subscriptions/components/bulk-import-types";
 import SubscriptionsList from "./SubscriptionsList.svelte";
 import SubscriptionsQuickAddDialog from "./SubscriptionsQuickAddDialog.svelte";
 import SubscriptionsStatusAlerts from "./SubscriptionsStatusAlerts.svelte";
@@ -18,7 +19,6 @@ export let subscriptionsCopy: DashboardSubscriptionsTabProps["subscriptionsCopy"
 export let signedData: DashboardSubscriptionsTabProps["signedData"];
 
 export let selectedImportSectionIdSet: Set<number>;
-export let selectedImportCount: number;
 export let canMatchImportSections: boolean;
 export let formatMessage: FormatMessage;
 export let namePrimary: NameFormatter;
@@ -40,7 +40,6 @@ export let bulkImportError: string;
 export let isMatchingSections: boolean;
 export let isImportingSections: boolean;
 export let removingSectionId: DashboardSubscriptionsTabProps["removingSectionId"];
-export let subscriptionActionMessage: string;
 export let subscribeQuickAddSections: DashboardSubscriptionsTabProps["subscribeQuickAddSections"];
 export let subscriptionActionError: string;
 export let matchedSections: MatchedImportSection[];
@@ -51,6 +50,43 @@ let isQuickAddOpen = false;
 function openQuickAddDialog() {
   isQuickAddOpen = true;
 }
+
+function setBulkImportOpen(open: boolean) {
+  if (!open) resetBulkImport();
+  isBulkImportOpen = open;
+}
+
+function cancelBulkImport() {
+  resetBulkImport();
+  isBulkImportOpen = false;
+}
+
+function setConfirmImportOpen(open: boolean) {
+  isConfirmImportOpen = open;
+}
+
+function cancelConfirmImport() {
+  isConfirmImportOpen = false;
+}
+
+function setImportSectionSelection(sectionId: number, checked: boolean) {
+  if (selectedImportSectionIdSet.has(sectionId) !== checked) {
+    toggleImportSectionSelection(sectionId);
+  }
+}
+
+$: bulkImportSections = matchedSections.map<BulkImportSectionView>(
+  (section) => ({
+    campusName: section.campus ? namePrimary(section.campus) : undefined,
+    code: section.code,
+    courseName: namePrimary(section.course),
+    courseSecondaryName: nameSecondary(section.course) || undefined,
+    id: section.id,
+    semesterName: section.semester ? namePrimary(section.semester) : undefined,
+    teacherNames:
+      section.teachers.map(namePrimary).filter(Boolean).join(", ") || undefined,
+  }),
+);
 </script>
 
 <section class="grid gap-4">
@@ -68,7 +104,6 @@ function openQuickAddDialog() {
     {bulkImportError}
     {bulkImportMessage}
     {subscriptionActionError}
-    {subscriptionActionMessage}
   />
 
   <SubscriptionsList
@@ -93,31 +128,36 @@ function openQuickAddDialog() {
     {subscriptionsCopy}
   />
 
-  <SubscriptionsBulkImportDialog
-    bind:bulkImportSemesterId
-    bind:bulkImportText
-    bind:isBulkImportOpen
-    {bulkImportError}
-    {canMatchImportSections}
-    {isMatchingSections}
-    {matchImportSections}
-    {resetBulkImport}
-    {signedData}
-    {subscriptionsCopy}
+  <BulkImportDialog
+    canMatch={canMatchImportSections}
+    copy={subscriptionsCopy.bulkImport}
+    error={bulkImportError}
+    bind:importText={bulkImportText}
+    importMessage={bulkImportMessage}
+    isMatching={isMatchingSections}
+    bind:isOpen={isBulkImportOpen}
+    match={matchImportSections}
+    onCancel={cancelBulkImport}
+    onOpenChange={setBulkImportOpen}
+    bind:semesterId={bulkImportSemesterId}
+    semesterOptions={signedData.subscriptions.semesters.map((semester) => ({
+      label: semester.nameCn,
+      value: String(semester.id),
+    }))}
   />
 
-  <SubscriptionsBulkImportConfirmDialog
-    bind:isConfirmImportOpen
-    {confirmImportSections}
+  <BulkImportConfirmDialog
+    copy={subscriptionsCopy.bulkImport}
     {formatMessage}
-    {isImportingSections}
-    {matchedSections}
-    {namePrimary}
-    {nameSecondary}
-    {selectedImportCount}
-    {selectedImportSectionIdSet}
-    {subscriptionsCopy}
-    {toggleImportSectionSelection}
-    {unmatchedSectionCodes}
+    importError={bulkImportError}
+    isImporting={isImportingSections}
+    bind:isOpen={isConfirmImportOpen}
+    matchedSections={bulkImportSections}
+    onCancel={cancelConfirmImport}
+    onConfirm={confirmImportSections}
+    onOpenChange={setConfirmImportOpen}
+    selectedSectionIdSet={selectedImportSectionIdSet}
+    setSectionSelection={setImportSectionSelection}
+    unmatchedCodes={unmatchedSectionCodes}
   />
 </section>

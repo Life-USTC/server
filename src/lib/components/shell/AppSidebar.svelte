@@ -3,6 +3,7 @@ import ChevronDownIcon from "@lucide/svelte/icons/chevron-down";
 import appIconUrl from "$lib/assets/life-ustc-icon-192.png";
 import * as Collapsible from "$lib/components/ui/collapsible/index.js";
 import * as Sidebar from "$lib/components/ui/sidebar/index.js";
+import { Skeleton } from "$lib/components/ui/skeleton/index.js";
 import type {
   LayoutCopy,
   LayoutUserSummary,
@@ -165,10 +166,12 @@ function closeMobileSidebar(): void {
                                 <Icon />
                               {/if}
                               <span>{link.label}</span>
-                              {@render badge(link.badge)}
                             </a>
                           {/snippet}
                         </Sidebar.MenuButton>
+                        {#if link.badge != null && link.badge > 0}
+                          <Sidebar.MenuBadge>{link.badge}</Sidebar.MenuBadge>
+                        {/if}
 
                         {#if ownActive || childActive}
                           <Sidebar.MenuSub>
@@ -250,10 +253,12 @@ function closeMobileSidebar(): void {
                                 <Icon />
                               {/if}
                               <span>{link.label}</span>
-                              {@render badge(link.badge)}
                             </a>
                           {/snippet}
                         </Sidebar.MenuButton>
+                        {#if link.badge != null && link.badge > 0}
+                          <Sidebar.MenuBadge>{link.badge}</Sidebar.MenuBadge>
+                        {/if}
                       </Sidebar.MenuItem>
                     {/if}
                   {/each}
@@ -289,10 +294,10 @@ function closeMobileSidebar(): void {
           class="flex h-12 items-center gap-2 px-2"
           data-testid="sidebar-viewer-loading"
         >
-          <div class="size-8 animate-pulse rounded-lg bg-sidebar-accent"></div>
+          <Skeleton class="size-8 rounded-lg bg-sidebar-accent" />
           <div class="grid flex-1 gap-1 group-data-[collapsible=icon]:hidden">
-            <div class="h-3 w-24 animate-pulse rounded bg-sidebar-accent"></div>
-            <div class="h-2.5 w-16 animate-pulse rounded bg-sidebar-accent"></div>
+            <Skeleton class="h-3 w-24 rounded bg-sidebar-accent" />
+            <Skeleton class="h-2.5 w-16 rounded bg-sidebar-accent" />
           </div>
         </div>
       {:else}

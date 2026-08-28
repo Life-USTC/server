@@ -11,10 +11,7 @@ import { logAppEvent } from "@/lib/log/app-logger";
 
 const SOCIAL_PROFILE_PROVIDERS = new Set(["github", "google", "oidc"]);
 
-type AccountHookPayload = Pick<
-  Account,
-  "providerId" | "providerAccountId" | "userId"
->;
+type AccountHookPayload = Pick<Account, "accountId" | "providerId" | "userId">;
 
 async function applySocialVerifiedEmailToUser(input: {
   userId: string;
@@ -84,7 +81,7 @@ export async function syncSocialVerifiedEmailFromAccountHook(
 ) {
   if (!SOCIAL_PROFILE_PROVIDERS.has(account.providerId)) return;
 
-  const accountId = account.providerAccountId.trim();
+  const accountId = account.accountId.trim();
   if (!accountId) return;
 
   const staged = consumeStagedSocialVerifiedEmail(

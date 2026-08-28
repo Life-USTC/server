@@ -1,6 +1,7 @@
 import { resolve4, resolve6 } from "node:dns/promises";
 import { isIP } from "node:net";
 import { isPublicRoutableHost } from "@better-auth/core/utils/host";
+import type { ClientMetadataResourceFetch } from "@better-auth/oauth-provider";
 
 function isNoAddressError(error: unknown) {
   if (!error || typeof error !== "object" || !("code" in error)) return false;
@@ -46,3 +47,20 @@ export async function allowCimdMetadataFetch(url: string) {
     return false;
   }
 }
+
+/**
+ * Cloudflare's `global_fetch_strictly_public` compatibility flag enforces the
+ * resolve-once, public-address-only network boundary required by CIMD. Keeping
+ * the transport in application code also prevents the auth package from
+ * selecting a non-Worker fetch implementation. Workers do not implement
+ * `redirect: "error"`, so use `manual`; CIMD still rejects every non-200
+ * response before reading metadata.
+ */
+export const fetchCimdMetadataResource: ClientMetadataResourceFetch = (
+  url,
+  init,
+) =>
+  fetch(
+    url,
+    init?.redirect === "error" ? { ...init, redirect: "manual" } : init,
+  );

@@ -7,6 +7,7 @@ const {
   searchLinksForGlobalMock,
   withUserDbContextMock,
   cachedCatalogRuntimeDataMock,
+  runCloudflareTraceSpanMock,
 } = vi.hoisted(() => ({
   searchCoursesForGlobalMock: vi.fn(),
   searchSectionsForGlobalMock: vi.fn(),
@@ -14,7 +15,17 @@ const {
   searchLinksForGlobalMock: vi.fn(),
   withUserDbContextMock: vi.fn(),
   cachedCatalogRuntimeDataMock: vi.fn(),
+  runCloudflareTraceSpanMock: vi.fn(),
 }));
+
+vi.mock("@/lib/adapters/cloudflare-runtime", async (importOriginal) => {
+  const actual =
+    await importOriginal<typeof import("@/lib/adapters/cloudflare-runtime")>();
+  return {
+    ...actual,
+    runCloudflareTraceSpan: runCloudflareTraceSpanMock,
+  };
+});
 
 vi.mock("@/features/search/server/global-search-catalog-queries", () => ({
   searchCoursesForGlobal: searchCoursesForGlobalMock,
@@ -38,6 +49,7 @@ import {
   hasGlobalSearchQuery,
   searchGlobally,
 } from "@/features/search/server/global-search-service";
+import type { GlobalSearchResultGroup } from "@/features/search/server/global-search-types";
 
 const ORIGIN = "https://life.example";
 
@@ -47,7 +59,11 @@ describe("global search service", () => {
     searchCoursesForGlobalMock.mockResolvedValue([]);
     searchSectionsForGlobalMock.mockResolvedValue([]);
     searchTeachersForGlobalMock.mockResolvedValue([]);
-    searchLinksForGlobalMock.mockResolvedValue([]);
+    searchLinksForGlobalMock.mockReturnValue([]);
+    runCloudflareTraceSpanMock.mockImplementation(
+      (_name: string, _attributes: object, callback: () => unknown) =>
+        callback(),
+    );
     cachedCatalogRuntimeDataMock.mockImplementation(
       async (
         _namespace: string,
@@ -93,7 +109,7 @@ describe("global search service", () => {
     });
 
     expect(cachedCatalogRuntimeDataMock).toHaveBeenCalledWith(
-      "search:catalog:v3:zh-cn",
+      "search:catalog:v4:zh-cn",
       "5:数据",
       ORIGIN,
       expect.any(Function),
@@ -159,6 +175,17 @@ describe("global search service", () => {
     expect(result.groups[0]?.items[0]?.href).toContain("homeworkId=hw-1");
     expect(result.groups[0]?.items[0]?.href).toContain("#homework");
     expect(result.groups[0]?.items[0]?.href).not.toContain("tab=homework");
+    expect(
+      runCloudflareTraceSpanMock.mock.calls.map(([name, attributes]) => [
+        name,
+        attributes,
+      ]),
+    ).toEqual([
+      ["search.catalog", { "search.scope": "catalog" }],
+      ["search.workspace", { "search.scope": "workspace" }],
+      ["search.workspace.homeworks", { "search.scope": "workspace" }],
+      ["search.workspace.todos", { "search.scope": "workspace" }],
+    ]);
   });
 
   it("returns catalog results when workspace search fails", async () => {
@@ -194,6 +221,92 @@ describe("global search service", () => {
     ]);
   });
 
+  it("preserves the optional workspace fallback when a traced DB leg fails", async () => {
+    const spanOutcomes: Array<[string, "error" | "success"]> = [];
+    runCloudflareTraceSpanMock.mockImplementation(
+      (name: string, _attributes: object, callback: () => unknown) => {
+        try {
+          return Promise.resolve(callback()).then(
+            (value) => {
+              spanOutcomes.push([name, "success"]);
+              return value;
+            },
+            (error) => {
+              spanOutcomes.push([name, "error"]);
+              throw error;
+            },
+          );
+        } catch (error) {
+          spanOutcomes.push([name, "error"]);
+          throw error;
+        }
+      },
+    );
+    const homeworkFindMany = vi
+      .fn()
+      .mockRejectedValue(new Error("homework search failed"));
+    withUserDbContextMock.mockImplementation(
+      async (_userId: string, work: (tx: unknown) => Promise<unknown>) =>
+        work({
+          homework: { findMany: homeworkFindMany },
+          todo: { findMany: vi.fn().mockResolvedValue([]) },
+        }),
+    );
+
+    const result = await searchGlobally({
+      locale: "zh-cn",
+      origin: ORIGIN,
+      query: "数据",
+      userId: "user-1",
+    });
+
+    expect(result).toEqual({ query: "数据", groups: [] });
+    expect(spanOutcomes).toEqual(
+      expect.arrayContaining([
+        ["search.catalog", "success"],
+        ["search.workspace.homeworks", "error"],
+        ["search.workspace", "error"],
+      ]),
+    );
+    expect(
+      runCloudflareTraceSpanMock.mock.calls.map(([name, attributes]) => [
+        name,
+        attributes,
+      ]),
+    ).toEqual([
+      ["search.catalog", { "search.scope": "catalog" }],
+      ["search.workspace", { "search.scope": "workspace" }],
+      ["search.workspace.homeworks", { "search.scope": "workspace" }],
+    ]);
+  });
+
+  it("starts workspace search without waiting for the catalog cache", async () => {
+    let resolveCatalog:
+      | ((groups: GlobalSearchResultGroup[]) => void)
+      | undefined;
+    cachedCatalogRuntimeDataMock.mockReturnValue(
+      new Promise((resolve) => {
+        resolveCatalog = resolve;
+      }),
+    );
+
+    const resultPromise = searchGlobally({
+      locale: "zh-cn",
+      origin: ORIGIN,
+      query: "数据",
+      userId: "user-1",
+    });
+    await Promise.resolve();
+
+    expect(withUserDbContextMock).toHaveBeenCalledWith(
+      "user-1",
+      expect.any(Function),
+    );
+
+    resolveCatalog?.([]);
+    await expect(resultPromise).resolves.toEqual({ query: "数据", groups: [] });
+  });
+
   it("reuses cached catalog results without hitting catalog queries again", async () => {
     cachedCatalogRuntimeDataMock.mockResolvedValue([
       {
@@ -218,6 +331,53 @@ describe("global search service", () => {
 
     expect(result.groups).toHaveLength(1);
     expect(searchCoursesForGlobalMock).not.toHaveBeenCalled();
+  });
+
+  it("refreshes source-backed links when database catalog results are cached", async () => {
+    let cachedGroups: GlobalSearchResultGroup[] | undefined;
+    cachedCatalogRuntimeDataMock.mockImplementation(
+      async (
+        _namespace: string,
+        _cacheKey: string,
+        _origin: string,
+        load: () => Promise<GlobalSearchResultGroup[]>,
+      ) => {
+        cachedGroups ??= await load();
+        return cachedGroups;
+      },
+    );
+    searchLinksForGlobalMock.mockReturnValue([
+      {
+        slug: "mail",
+        title: "Old mail title",
+        description: "Old mail description",
+        url: "https://old.example/",
+      },
+    ]);
+
+    const first = await searchGlobally({
+      locale: "en-us",
+      origin: ORIGIN,
+      query: "mail",
+    });
+    searchLinksForGlobalMock.mockReturnValue([
+      {
+        slug: "mail",
+        title: "New mail title",
+        description: "New mail description",
+        url: "https://new.example/",
+      },
+    ]);
+    const second = await searchGlobally({
+      locale: "en-us",
+      origin: ORIGIN,
+      query: "mail",
+    });
+
+    expect(searchCoursesForGlobalMock).toHaveBeenCalledTimes(1);
+    expect(searchLinksForGlobalMock).toHaveBeenCalledTimes(2);
+    expect(first.groups[0]?.items[0]?.href).toBe("https://old.example/");
+    expect(second.groups[0]?.items[0]?.href).toBe("https://new.example/");
   });
 
   it("includes link matches in catalog results", async () => {

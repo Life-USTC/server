@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { setCloudflareRuntimeEnv } from "@/lib/adapters/cloudflare-runtime";
 
 const catalogService = vi.hoisted(() => ({
-  getCurrentSemester: vi.fn(),
+  getCachedCurrentSemester: vi.fn(),
 }));
 
 vi.mock(
@@ -14,7 +14,7 @@ vi.mock(
       >();
     return {
       ...original,
-      getCurrentSemester: catalogService.getCurrentSemester,
+      getCachedCurrentSemester: catalogService.getCachedCurrentSemester,
     };
   },
 );
@@ -61,7 +61,7 @@ function installAnalytics() {
 describe("arbitrary GraphQL document runner", () => {
   beforeEach(() => {
     vi.spyOn(console, "info").mockImplementation(() => {});
-    catalogService.getCurrentSemester.mockResolvedValue({
+    catalogService.getCachedCurrentSemester.mockResolvedValue({
       id: 1,
       jwId: 202601,
       code: "2026SP",
@@ -73,7 +73,7 @@ describe("arbitrary GraphQL document runner", () => {
 
   afterEach(() => {
     setCloudflareRuntimeEnv(undefined);
-    catalogService.getCurrentSemester.mockReset();
+    catalogService.getCachedCurrentSemester.mockReset();
     vi.restoreAllMocks();
   });
 
@@ -161,6 +161,7 @@ describe("arbitrary GraphQL document runner", () => {
         principal: {
           kind: "oauth",
           userId: "document-runner-user",
+          clientId: "document-runner-client",
           resource: "https://example.test/api/mcp",
           scopes: new Set(),
         },
@@ -179,12 +180,21 @@ describe("arbitrary GraphQL document runner", () => {
         doubles: [expect.any(Number), 0, 0, 1, 0],
       }),
     );
-    for (const call of [2, 3]) {
+    for (const [call, authMode] of [
+      [2, "session"],
+      [3, "oauth"],
+    ] as const) {
       expect(writeDataPoint).toHaveBeenNthCalledWith(
         call,
         expect.objectContaining({
           indexes: ["graphql:mutation"],
-          blobs: expect.arrayContaining(["CreateTodo", "mutation"]),
+          blobs: [
+            "graphql_operation_v3",
+            "named",
+            "mutation",
+            authMode,
+            "error",
+          ],
           doubles: [expect.any(Number), 1, 3, 1, 0],
         }),
       );
@@ -206,13 +216,7 @@ describe("arbitrary GraphQL document runner", () => {
     expect(writeDataPoint).toHaveBeenCalledTimes(1);
     expect(writeDataPoint).toHaveBeenCalledWith({
       indexes: ["graphql:query"],
-      blobs: [
-        "graphql_operation_v2",
-        "CurrentSemester",
-        "query",
-        "session",
-        "graphql-document-runner-test",
-      ],
+      blobs: ["graphql_operation_v3", "named", "query", "session", "success"],
       doubles: [expect.any(Number), 1, 5, 0, 0],
     });
   });

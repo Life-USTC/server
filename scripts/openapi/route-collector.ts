@@ -174,6 +174,7 @@ const OPERATION_ID_OVERRIDES: Record<string, string> = {
   "OPTIONS /api/mcp/.well-known/openid-configuration":
     "options-api-mcp-.well-known-openid-configuration",
   "GET /api/account/profile": "account_profile_get",
+  "GET /api/account/client-activity": "account_client_activity_list",
   "GET /api/community/users/{identifier}": "community_user_get",
   "GET /api/workspace/homeworks": "getSubscribedHomeworks",
   "PUT /api/workspace/homeworks/completions": "put-api-homeworks-completions",
@@ -348,6 +349,12 @@ function buildOperation(
           target,
           schemas,
         );
+        break;
+      }
+      case "oauthScope": {
+        const scopes =
+          (operation["x-oauth-scopes"] as string[] | undefined) ?? [];
+        operation["x-oauth-scopes"] = [...scopes, docTag.text];
         break;
       }
     }
@@ -574,6 +581,10 @@ function buildSecurity(
 
   if (routePath === "/api/mcp" && method !== "options") {
     return [{ mcpBearerAuth: [] }];
+  }
+
+  if (routePath === "/api/account/client-activity") {
+    return [{ bearerAuth: [] }];
   }
 
   if (routePath.startsWith("/api/calendar-feeds/")) {

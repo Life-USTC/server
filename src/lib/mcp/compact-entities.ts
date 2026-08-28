@@ -4,7 +4,6 @@ import {
   compactArrayRelations,
   compactRelations,
   pick,
-  redactCalendarFeedLocation,
   transferScalarKeys,
 } from "./compact-helpers";
 
@@ -45,22 +44,12 @@ export function compactCourse(value: unknown) {
     "nameEn",
     "namePrimary",
     "nameSecondary",
-    "credit",
-    "hours",
   ]);
 }
 
 export function compactSemester(value: unknown) {
   if (!isRecord(value)) return value;
-  return pick(value, [
-    "id",
-    "jwId",
-    "code",
-    "nameCn",
-    "namePrimary",
-    "startDate",
-    "endDate",
-  ]);
+  return pick(value, ["id", "jwId", "code", "nameCn", "startDate", "endDate"]);
 }
 
 export function compactCampus(
@@ -87,7 +76,6 @@ export function compactTeacher(value: unknown) {
     ...pick(value, [
       "id",
       "personId",
-      "teacherId",
       "code",
       "jwId",
       "nameCn",
@@ -107,15 +95,7 @@ export function compactTeacher(value: unknown) {
 export function compactSection(value: unknown) {
   if (!isRecord(value)) return value;
   return {
-    ...pick(value, [
-      "id",
-      "jwId",
-      "code",
-      "namePrimary",
-      "nameSecondary",
-      "campusId",
-      "openDepartmentId",
-    ]),
+    ...pick(value, ["id", "jwId", "code", "campusId", "openDepartmentId"]),
     ...compactRelations(value, {
       course: compactCourse,
       semester: compactSemester,
@@ -130,15 +110,15 @@ export function compactSchedule(value: unknown) {
   if (!isRecord(value)) return value;
   const base = pick(value, [
     "id",
-    "jwId",
+    "periods",
     "date",
     "weekday",
     "startTime",
     "endTime",
     "weekIndex",
-    "createdAt",
-    "updatedAt",
     "customPlace",
+    "startUnit",
+    "endUnit",
   ]);
 
   if (Object.hasOwn(value, "room") && isRecord(value.room)) {
@@ -188,8 +168,6 @@ export function compactExam(value: unknown) {
       "examDate",
       "startTime",
       "endTime",
-      "createdAt",
-      "updatedAt",
       "examType",
       "examMode",
       "examTakeCount",
@@ -360,14 +338,6 @@ export function compactCalendarSubscription(value: unknown) {
     userId: value.userId,
     sectionCount: sections.length,
     sections,
-    calendarPath:
-      typeof value.calendarPath === "string"
-        ? redactCalendarFeedLocation(value.calendarPath)
-        : null,
-    calendarUrl:
-      typeof value.calendarUrl === "string"
-        ? redactCalendarFeedLocation(value.calendarUrl)
-        : null,
     note: value.note,
   };
 }

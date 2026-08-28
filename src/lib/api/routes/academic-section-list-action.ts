@@ -1,9 +1,6 @@
 import type { AppLocale } from "@/i18n/config";
-import { jsonResponse } from "@/lib/api/helpers";
-import {
-  cachedCatalogRuntimeData,
-  catalogListCacheNamespace,
-} from "@/lib/catalog-runtime-cache";
+import { schemaJsonResponse } from "@/lib/api/responses";
+import { paginatedSectionResponseSchema } from "@/lib/api/schemas/response-schemas";
 
 export async function listSectionsAction(
   parsedQuery: {
@@ -24,23 +21,15 @@ export async function listSectionsAction(
     pageSize: number;
   },
   locale: AppLocale,
-  origin: string,
   cacheHeaders: HeadersInit,
 ) {
-  const namespace = catalogListCacheNamespace("sections", locale, "api");
-  const cacheKey = `api:sections:${JSON.stringify({ locale, parsedQuery, pagination })}`;
-  const result = await cachedCatalogRuntimeData(
-    namespace,
-    cacheKey,
-    origin,
-    () => listUncachedSectionsAction(parsedQuery, pagination, locale),
-  );
-  return jsonResponse(result, {
+  const result = await listSectionsActionData(parsedQuery, pagination, locale);
+  return schemaJsonResponse(paginatedSectionResponseSchema, result, {
     headers: cacheHeaders,
   });
 }
 
-async function listUncachedSectionsAction(
+async function listSectionsActionData(
   parsedQuery: {
     campusId?: number | string;
     courseId?: number | string;

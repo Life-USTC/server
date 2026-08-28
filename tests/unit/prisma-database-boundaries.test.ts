@@ -53,7 +53,7 @@ describe("Prisma database boundaries", () => {
     });
   });
 
-  it("uses independent app and auth Hyperdrive bindings", async () => {
+  it("uses independent app, auth, and maintenance Hyperdrive bindings", async () => {
     const { createPrismaAdapter } = await import("@/lib/db/prisma-adapter");
 
     await runWithCloudflareRuntimeEnv(
@@ -62,10 +62,14 @@ describe("Prisma database boundaries", () => {
         HYPERDRIVE_AUTH: {
           connectionString: "postgresql://auth.example/database",
         },
+        HYPERDRIVE_MAINTENANCE: {
+          connectionString: "postgresql://maintenance.example/database",
+        },
       },
       () => {
         createPrismaAdapter();
         createPrismaAdapter(undefined, "auth");
+        createPrismaAdapter(undefined, "maintenance");
       },
     );
 
@@ -76,6 +80,10 @@ describe("Prisma database boundaries", () => {
       },
       {
         connectionString: "postgresql://auth.example/database",
+        ...poolConfig,
+      },
+      {
+        connectionString: "postgresql://maintenance.example/database",
         ...poolConfig,
       },
     ]);
@@ -93,6 +101,24 @@ describe("Prisma database boundaries", () => {
       ),
     ).rejects.toThrow(
       "HYPERDRIVE_AUTH is required to initialize auth Prisma in Cloudflare runtime",
+    );
+  });
+
+  it("fails closed when the maintenance binding is missing in Cloudflare", async () => {
+    const { createPrismaAdapter } = await import("@/lib/db/prisma-adapter");
+
+    await expect(
+      runWithCloudflareRuntimeEnv(
+        {
+          HYPERDRIVE: { connectionString: "postgresql://app.example/database" },
+          HYPERDRIVE_AUTH: {
+            connectionString: "postgresql://auth.example/database",
+          },
+        },
+        () => createPrismaAdapter(undefined, "maintenance"),
+      ),
+    ).rejects.toThrow(
+      "HYPERDRIVE_MAINTENANCE is required to initialize maintenance Prisma in Cloudflare runtime",
     );
   });
 

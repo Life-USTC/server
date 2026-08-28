@@ -8,6 +8,33 @@ import { verifyCommentTargetEntity } from "./comment-target-verification";
 
 export type { CommentTargetType };
 
+export type CommentTargetCourseMetadata = {
+  jwId: number | null;
+  nameCn: string | null;
+};
+
+export type CommentTargetSectionMetadata = {
+  code: string | null;
+  course?: CommentTargetCourseMetadata | null;
+  jwId: number | null;
+};
+
+export type CommentTargetMetadataSource = {
+  course?: CommentTargetCourseMetadata | null;
+  homework?: {
+    section?: Pick<CommentTargetSectionMetadata, "code" | "jwId"> | null;
+    title: string | null;
+  } | null;
+  section?: CommentTargetSectionMetadata | null;
+  sectionTeacher?: {
+    section?: CommentTargetSectionMetadata | null;
+    sectionId: number | null;
+    teacher?: { nameCn: string | null } | null;
+    teacherId: number | null;
+  } | null;
+  teacher?: { nameCn: string | null } | null;
+};
+
 export type ResolvedCommentTarget = {
   homeworkId: string | null;
   sectionId: number | null;
@@ -19,6 +46,8 @@ export type ResolvedCommentTarget = {
   empty: boolean;
   /** True when the underlying target entity was verified to exist in the DB. */
   verified: boolean;
+  /** Metadata selected while resolving a list target, when available. */
+  targetMetadata?: CommentTargetMetadataSource | null;
 };
 
 export { resolveSectionTeacherId };

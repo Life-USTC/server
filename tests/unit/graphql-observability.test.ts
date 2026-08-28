@@ -157,23 +157,17 @@ describe("GraphQL semantic observability", () => {
     expect(writeDataPoint).toHaveBeenCalledTimes(2);
     expect(writeDataPoint).toHaveBeenNthCalledWith(1, {
       indexes: ["graphql:query"],
-      blobs: [
-        "graphql_operation_v2",
-        "Catalog",
-        "query",
-        "anonymous",
-        "graphql-observation-test",
-      ],
+      blobs: ["graphql_operation_v3", "named", "query", "anonymous", "success"],
       doubles: [expect.any(Number), 1, 37, 0, 0],
     });
     expect(writeDataPoint).toHaveBeenNthCalledWith(2, {
       indexes: ["graphql:query"],
       blobs: [
-        "graphql_operation_v2",
+        "graphql_operation_v3",
         "anonymous",
         "query",
         "anonymous",
-        "graphql-observation-test",
+        "success",
       ],
       doubles: [expect.any(Number), 1, 102, 0, 0],
     });
@@ -200,6 +194,7 @@ describe("GraphQL semantic observability", () => {
         {
           kind: "oauth",
           userId: "oauth-user",
+          clientId: "oauth-client",
           scopes: new Set(["account.profile:read"]),
           resource: "https://example.test/api/graphql",
         },
@@ -223,13 +218,7 @@ describe("GraphQL semantic observability", () => {
     principals.forEach(([authMode], index) => {
       expect(writeDataPoint).toHaveBeenNthCalledWith(index + 1, {
         indexes: ["graphql:query"],
-        blobs: [
-          "graphql_operation_v2",
-          `${authMode}Mode`,
-          "query",
-          authMode,
-          `${authMode}-locals-request-id`,
-        ],
+        blobs: ["graphql_operation_v3", "named", "query", authMode, "success"],
         doubles: [expect.any(Number), 1, 102, 0, 0],
       });
     });
@@ -255,13 +244,7 @@ describe("GraphQL semantic observability", () => {
 
     expect(writeDataPoint).toHaveBeenCalledWith({
       indexes: ["graphql:query"],
-      blobs: [
-        "graphql_operation_v2",
-        "HeaderOnly",
-        "query",
-        "anonymous",
-        "unknown",
-      ],
+      blobs: ["graphql_operation_v3", "named", "query", "anonymous", "success"],
       doubles: [expect.any(Number), 1, 102, 0, 0],
     });
     expect(JSON.stringify(writeDataPoint.mock.calls)).not.toContain(
@@ -379,16 +362,10 @@ describe("GraphQL semantic observability", () => {
       ["BearerFailure", "oauth", "graphql-observation-test"],
       ["SessionFailure", "session", "graphql-observation-test"],
       ["UnknownFailure", "unknown", "graphql-context-unknown-test"],
-    ].forEach(([operationName, authMode, requestId], index) => {
+    ].forEach(([operationName, authMode], index) => {
       expect(writeDataPoint).toHaveBeenNthCalledWith(index + 1, {
         indexes: ["graphql:query"],
-        blobs: [
-          "graphql_operation_v2",
-          operationName,
-          "query",
-          authMode,
-          requestId,
-        ],
+        blobs: ["graphql_operation_v3", "named", "query", authMode, "error"],
         doubles: [
           expect.any(Number),
           1,
@@ -478,6 +455,7 @@ describe("GraphQL semantic observability", () => {
         contextWithPrincipal(request, {
           kind: "oauth",
           userId: "private-user-id",
+          clientId: "private-client-id",
           scopes: new Set(),
           resource: "https://example.test/api/graphql",
         }),
@@ -502,7 +480,7 @@ describe("GraphQL semantic observability", () => {
     expect(recorded).not.toContain("filter:");
     expect(writeDataPoint).toHaveBeenCalledWith(
       expect.objectContaining({
-        blobs: expect.arrayContaining(["Safe", "oauth"]),
+        blobs: ["graphql_operation_v3", "named", "query", "oauth", "error"],
       }),
     );
     expect(JSON.stringify(payload)).not.toContain("private-resolver-detail");
@@ -542,13 +520,7 @@ describe("GraphQL semantic observability", () => {
     expect(writeDataPoint).toHaveBeenCalledTimes(1);
     expect(writeDataPoint).toHaveBeenCalledWith({
       indexes: ["graphql:mutation"],
-      blobs: [
-        "graphql_operation_v2",
-        "PrivateTodoMutation",
-        "mutation",
-        "session",
-        "graphql-mutation-observation-test",
-      ],
+      blobs: ["graphql_operation_v3", "named", "mutation", "session", "error"],
       doubles: [expect.any(Number), 1, 3, 1, 1],
     });
     expect(

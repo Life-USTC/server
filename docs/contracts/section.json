@@ -8,17 +8,19 @@
   },
   "rules": {
     "semester-offering": "A section is a specific teaching class for a course in a given semester.",
-    "source-lifecycle": "Before any model write, static sync rejects generated_at values more than 15 minutes in the future and compares each import with one transactionally persisted global generated_at/SHA-256 watermark. Older snapshots and same-time/different-SHA snapshots fail. It records sourceLastSeenAt from the validated time. A missing in-scope Section may set retiredAt only after completeness and mapped-jwId validation; reappearing rows clear retiredAt only when seen after retirement.",
-    "import-state-bootstrap": "When no global import watermark exists, scheduled and ordinary manual writes fail closed. A manual bootstrap must keep Section retirement disabled; a committed bootstrap also requires the exact snapshot SHA-256 observed in a preceding dry run. The watermark update commits in the same advisory-locked transaction as all imported models.",
-    "retirement-approval": "Scheduled production sync can never enable retirement. A manual run must explicitly set STATIC_LOADER_RETIRE_MISSING_SECTIONS=true and provide the exact snapshot SHA-256 plus exact candidate count observed in a preceding dry run; any mismatch aborts before lifecycle writes. Semesters with zero source lessons are excluded from destructive scope.",
-    "retirement-preserves-data": "Retirement never deletes the Section or its comments, description, homeworks, subscription relationships, schedules, exams, or audit history. Each retirement/reactivation writes a Section-targeted audit row and the import report includes candidate, before/after, retired, and reactivated counts.",
+    "source-lifecycle": "Before any database write, static sync rejects incomplete snapshots and generated_at values more than 15 minutes in the future. It also rejects snapshots older than the last completed import and two different files claiming the same generated_at. Once validation passes, Sections absent from the current snapshot are marked inactive automatically and Sections that reappear are made active again. The import and its generated_at/SHA-256 are committed together.",
+    "retirement-preserves-data": "Marking a Section inactive never deletes the Section or its comments, description, homeworks, subscriptions, schedules, exams, or audit history. Each change writes a Section-targeted audit row, and the import report includes missing, before/after, deactivated, and reactivated counts. Semesters with no source lessons are excluded from this step.",
     "retired-read-semantics": "Public Section/search/match and public/current calendar collection queries exclude retired rows. Direct Section detail and single-Section calendar access remain available for historical references; the detail page labels the record historical and does not offer a new subscription. Course/Teacher detail histories and the owner's subscribed Sections list also retain retired rows. New subscription discovery/add operations reject retired rows, while an existing owner can still remove one.",
     "subscription-not-enrollment": "Pages involving subscription actions must clearly state this is not official academic course enrollment.",
     "jwid-url-only": "jwId is used only for routing and API endpoints; it should not be directly displayed in ordinary section UI.",
     "student-identity-teachers": "Student-facing section identity is the course display name plus teachers. Section code is secondary (monospace in lists, search descriptions, and the Basic Info Card) and must not dominate search titles or the detail hero.",
-    "public-list-cache": "Section REST responses may use short shared CDN caching only when a supported locale is explicit in the locale URL query; responses localized from Cookie/Accept-Language fallback are private/no-store. Server-side list data may still use short locale-keyed runtime caching. Localized HTML pages must not use shared edge caching unless the cache key varies by locale.",
+    "public-list-cache": "Public Section REST responses are deterministic by URL: omitted locale uses canonical zh-cn and locale=en-us selects English. They do not derive output from Cookie or Accept-Language and may use shared CDN caching. REST, GraphQL, and MCP lists share revision-scoped locale/filter/pagination/shape runtime caching. Localized HTML pages use their locale-partitioned SSR cache.",
     "mobile-detail-actions": "Section detail pages present concise metadata and teachers with a responsive course title, use the Detail Two-Column Stream (no context-tab rail), and keep the primary calendar and subscription actions available in a bottom sticky action bar that stays above the signed-in shell navigation.",
-    "detail-canonical-url": "The canonical section detail URL is `/catalog/sections/[jwId]`. Legacy path segments and `?tab=` deep links permanently redirect to the root; optional hash anchors scroll within the page."
+    "detail-canonical-url": "The canonical section detail URL is `/catalog/sections/[jwId]`. Legacy path segments and `?tab=` deep links permanently redirect to the root; optional hash anchors scroll within the page.",
+    "public-teacher-reference": "Teachers embedded in Section list/detail payloads contain only public identity and localized names, with department/title added only where the detail UI requests that context. TeacherAssignment links by teacherId and does not duplicate the nested Teacher object. Contact and private source columns are available only on the teacher's own public detail where explicitly permitted.",
+    "public-detail-cache": "Anonymous REST, MCP, and single-entity GraphQL Section reads share revision-, locale-, ID-, and include-shape-scoped runtime caching. Missing entities are not cached.",
+    "relational-course-filter": "Section courseJwId filtering is applied through the Course relation in the same paginated query. When courseId and courseJwId are both present they are ANDed, so mismatches return no rows without a separate Course lookup.",
+    "bounded-related-sections": "The Section detail page returns the 20 newest active offerings of the same Course and the complete active related-Section count. The current Section is excluded."
   },
   "capabilities": {
     "section-list": {
@@ -37,7 +39,7 @@
             "path": "/api/catalog/sections",
             "returns": "PaginatedResponse<SectionSummary>",
             "notes": [
-              "REST pageSize accepts 1-100; the deprecated limit alias remains accepted and pageSize wins when both are supplied. Out-of-range values are rejected instead of clamped.",
+              "REST page accepts 1-100, pageSize accepts 1-100, and search accepts 2-200 characters; the deprecated limit alias remains accepted and pageSize wins when both are supplied. Out-of-range values are rejected instead of clamped.",
               "Retired Sections are excluded."
             ]
           }
@@ -56,7 +58,7 @@
             "rest_equivalent": "GET /api/catalog/sections",
             "mcp_equivalent": "catalog_section_search",
             "notes": [
-              "PageInput defaults to page=1 and pageSize=20; pageSize must remain within 1-100.",
+              "PageInput defaults to page=1 and pageSize=20; page and pageSize must remain within 1-100, and search within 2-200 characters.",
               "Retired Sections are excluded."
             ]
           }
@@ -108,7 +110,7 @@
             "path": "/api/catalog/sections/[jwId]",
             "returns": "SectionDetail (schedules without room/teacher expansion)",
             "notes": [
-              "Direct historical lookup remains available for retired Sections; retiredAt identifies retirement and sourceLastSeenAt records the last successful source observation.",
+              "Direct historical lookup remains available for inactive Sections; retiredAt records when the Section was marked inactive.",
               "Optional includeExams, includeSchedules, and includeTeacherDepartments query flags return narrow stream-block payloads without loading unrelated child collections."
             ]
           }

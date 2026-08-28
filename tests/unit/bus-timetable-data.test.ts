@@ -127,9 +127,11 @@ type TimetableModule =
   typeof import("@/features/bus/server/bus-timetable-data");
 type QueryServiceModule =
   typeof import("@/features/bus/server/bus-query-service");
+type TransitMapModule = typeof import("@/features/bus/server/bus-transit-map");
 
 let timetable: TimetableModule;
 let queryService: QueryServiceModule;
+let transitMap: TransitMapModule;
 
 function versionLookupCount(key: string) {
   return db.busScheduleVersionFindUnique.mock.calls.filter(([args]) => {
@@ -184,6 +186,7 @@ beforeEach(async () => {
   resetDbMocks();
   timetable = await import("@/features/bus/server/bus-timetable-data");
   queryService = await import("@/features/bus/server/bus-query-service");
+  transitMap = await import("@/features/bus/server/bus-transit-map");
 });
 
 afterEach(() => {
@@ -234,6 +237,29 @@ describe("getBusTimetableData 班车时刻表数据", () => {
     expect(db.busScheduleVersionFindUnique).not.toHaveBeenCalled();
     expect(db.busCampusFindMany).not.toHaveBeenCalled();
     expect(db.busRouteFindMany).not.toHaveBeenCalled();
+  });
+
+  it("bus map 复用静态时刻表缓存并按请求时间重算 active trips", async () => {
+    await timetable.getStaticBusTimetableData({
+      locale: "zh-cn",
+      now: "2026-02-02T00:00:00.000Z",
+      versionKey: "old-bus",
+    });
+    vi.clearAllMocks();
+
+    const data = await transitMap.getBusMapData({
+      locale: "zh-cn",
+      now: "2026-02-02T00:05:00.000Z",
+      versionKey: "old-bus",
+    });
+
+    expect(data?.now).toBe("2026-02-02T00:05:00.000Z");
+    expect(data?.activeTrips).toEqual([
+      expect.objectContaining({ routeId: 8, status: "en-route" }),
+    ]);
+    expect(db.busTripFindMany).not.toHaveBeenCalled();
+    expect(db.busScheduleVersionFindMany).not.toHaveBeenCalled();
+    expect(db.busScheduleVersionFindUnique).not.toHaveBeenCalled();
   });
 
   it("为每次调用刷新 fetchedAt 而不重新加载静态数据", async () => {

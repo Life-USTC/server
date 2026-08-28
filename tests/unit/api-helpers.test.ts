@@ -1,5 +1,6 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import * as z from "zod";
+import { runWithCloudflareRuntimeEnv } from "@/lib/adapters/cloudflare-runtime";
 import {
   getRequestSearchParams,
   jsonResponse,
@@ -12,10 +13,95 @@ import {
 } from "@/lib/api/helpers";
 
 describe("API 辅助函数", () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
   it("不覆盖代理提供的请求 ID 标头", () => {
     const response = jsonResponse({ ok: true });
 
     expect(response.headers.has("x-request-id")).toBe(false);
+  });
+
+  it("records the UTF-8 response size on JSON serialization spans", async () => {
+    const attributes = new Map<string, boolean | number | string | undefined>();
+    const enterSpan = <T>(
+      _name: string,
+      callback: (span: {
+        readonly isTraced: boolean;
+        setAttribute(key: string, value?: boolean | number | string): void;
+      }) => T,
+    ) =>
+      callback({
+        isTraced: true,
+        setAttribute(key, value) {
+          attributes.set(key, value);
+        },
+      });
+
+    const response = await runWithCloudflareRuntimeEnv(
+      {},
+      () => jsonResponse({ label: "科" }),
+      { tracing: { enterSpan } },
+    );
+    const body = await response.text();
+
+    expect(body).toBe('{"label":"科"}');
+    expect(attributes.get("response.format")).toBe("json");
+    expect(attributes.get("http.response.body.size")).toBe(
+      new TextEncoder().encode(body).byteLength,
+    );
+  });
+
+  it("skips the UTF-8 size traversal when no trace span is sampled", () => {
+    const encode = vi.spyOn(TextEncoder.prototype, "encode");
+
+    const response = jsonResponse({ label: "科" });
+
+    expect(response).toBeInstanceOf(Response);
+    expect(encode).not.toHaveBeenCalled();
+  });
+
+  it("skips the UTF-8 size traversal for an unsampled trace span", async () => {
+    const encode = vi.spyOn(TextEncoder.prototype, "encode");
+    const setAttribute = vi.fn();
+    const enterSpan = <T>(
+      _name: string,
+      callback: (span: {
+        readonly isTraced: boolean;
+        setAttribute(key: string, value?: boolean | number | string): void;
+      }) => T,
+    ) => callback({ isTraced: false, setAttribute });
+
+    const response = await runWithCloudflareRuntimeEnv(
+      {},
+      () => jsonResponse({ label: "科" }),
+      { tracing: { enterSpan } },
+    );
+
+    expect(response).toBeInstanceOf(Response);
+    expect(encode).not.toHaveBeenCalled();
+    expect(setAttribute).toHaveBeenCalledWith("response.format", "json");
+    expect(setAttribute).not.toHaveBeenCalledWith(
+      "http.response.body.size",
+      expect.anything(),
+    );
+  });
+
+  it("propagates JSON serialization failures from the traced callback", async () => {
+    const enterSpan = <T>(
+      _name: string,
+      callback: (span: {
+        readonly isTraced: boolean;
+        setAttribute(): void;
+      }) => T,
+    ) => callback({ isTraced: true, setAttribute() {} });
+
+    await expect(
+      runWithCloudflareRuntimeEnv({}, () => jsonResponse({ unsupported: 1n }), {
+        tracing: { enterSpan },
+      }),
+    ).rejects.toThrow(TypeError);
   });
 
   it.each([

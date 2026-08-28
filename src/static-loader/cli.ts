@@ -9,12 +9,7 @@ import {
 import { runImport } from "./import";
 import { createPrismaClient } from "./prisma";
 import { Snapshot } from "./snapshot";
-import {
-  parseBooleanSetting,
-  parseOptionalNonNegativeIntegerSetting,
-  parseOptionalSha256Setting,
-  parsePositiveIntegerSetting,
-} from "./validation";
+import { parseBooleanSetting, parsePositiveIntegerSetting } from "./validation";
 
 function getEnv(name: string, defaultValue?: string): string {
   const value = process.env[name] ?? defaultValue;
@@ -49,26 +44,6 @@ async function main() {
     process.env.STATIC_LOADER_DRY_RUN,
     false,
   );
-  const bootstrapImportState = parseBooleanSetting(
-    "STATIC_LOADER_BOOTSTRAP_IMPORT_STATE",
-    process.env.STATIC_LOADER_BOOTSTRAP_IMPORT_STATE,
-    false,
-  );
-  const retireMissingSections = parseBooleanSetting(
-    "STATIC_LOADER_RETIRE_MISSING_SECTIONS",
-    process.env.STATIC_LOADER_RETIRE_MISSING_SECTIONS,
-    false,
-  );
-  const expectedSnapshotSha256 = parseOptionalSha256Setting(
-    "STATIC_LOADER_EXPECTED_SNAPSHOT_SHA256",
-    process.env.STATIC_LOADER_EXPECTED_SNAPSHOT_SHA256,
-  );
-  const expectedSectionRetirementCandidates =
-    parseOptionalNonNegativeIntegerSetting(
-      "STATIC_LOADER_EXPECTED_SECTION_RETIREMENT_CANDIDATES",
-      process.env.STATIC_LOADER_EXPECTED_SECTION_RETIREMENT_CANDIDATES,
-    );
-
   if (!existsSync(snapshotPath)) {
     throw new Error(`Snapshot not found: ${snapshotPath}`);
   }
@@ -77,11 +52,6 @@ async function main() {
   console.log(`snapshotPath: ${snapshotPath}`);
   console.log(`minSemester: ${minSemester}`);
   console.log(`dryRun: ${dryRun}`);
-  console.log(`bootstrapImportState: ${bootstrapImportState}`);
-  console.log(`retireMissingSections: ${retireMissingSections}`);
-  console.log(
-    `expectedSectionRetirementCandidates: ${expectedSectionRetirementCandidates ?? "not set"}`,
-  );
 
   const snapshot = new Snapshot(snapshotPath);
   const metadata = snapshot.metadata();
@@ -98,14 +68,10 @@ async function main() {
       snapshotSha256,
       minSemester,
       dryRun,
-      bootstrapImportState,
-      retireMissingSections,
-      expectedSnapshotSha256,
-      expectedSectionRetirementCandidates,
     });
     console.log("Import report:", report);
 
-    if (!dryRun) {
+    if (report.outcome === "committed") {
       const purgeResult = await purgeCloudflareCacheByTags([
         CATALOG_EDGE_CACHE_TAG,
       ]);

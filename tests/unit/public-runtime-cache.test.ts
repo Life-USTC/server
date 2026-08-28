@@ -1,8 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { runWithCloudflareRuntimeEnv } from "@/lib/adapters/cloudflare-runtime";
 import {
+  publicDetailColoCacheKey as buildPublicDetailColoCacheKey,
   cachedPublicRuntimeData,
-  publicDetailColoCacheKey,
   publicDetailKvCacheKey,
 } from "@/lib/public-runtime-cache";
 import { createDeferred } from "../shared/deferred";
@@ -19,7 +19,7 @@ function coloResponse(value: unknown, expiresAt: number, schema?: string) {
   return new Response(
     JSON.stringify({
       expiresAt,
-      schema: schema ?? "catalog-detail-core-v1",
+      schema: schema ?? "catalog-detail-core-v2",
       value,
     }),
     { headers: { "Content-Type": "application/json" } },
@@ -32,6 +32,26 @@ function validatesSource(value: unknown) {
     typeof value === "object" &&
     "source" in value &&
     typeof value.source === "string"
+  );
+}
+
+function publicDetailColoCacheKey(
+  origin: string,
+  kind: "course" | "section" | "teacher",
+  locale: "en-us" | "zh-cn",
+  id: number,
+) {
+  const shape =
+    kind === "section"
+      ? "core-without-exams-schedules-related"
+      : "core-without-sections";
+  return buildPublicDetailColoCacheKey(
+    origin,
+    "revision-a",
+    kind,
+    locale,
+    id,
+    shape,
   );
 }
 
@@ -98,7 +118,7 @@ function expectCacheEvent(
   expect(writeDataPoint).toHaveBeenCalledWith({
     indexes: ["cache:page:course-detail:en-us"],
     blobs: [
-      "public_runtime_cache_v2",
+      "public_runtime_cache_v3",
       event,
       "page:course-detail:en-us",
       reason,
@@ -180,6 +200,7 @@ describe("public runtime cache", () => {
   afterEach(() => {
     clearPublicRuntimeCache();
     vi.useRealTimers();
+    vi.restoreAllMocks();
     vi.unstubAllGlobals();
   });
 
@@ -205,13 +226,13 @@ describe("public runtime cache", () => {
 
     expect(new URL(course).origin).toBe("https://example.test");
     expect(new URL(course).pathname).toBe(
-      "/_life-ustc-internal-cache/catalog-detail-core/v1/course/core-without-sections/en-us/683001",
+      "/_life-ustc-internal-cache/catalog-detail-core/v2/revision-a/course/core-without-sections/en-us/683001",
     );
     expect(new URL(teacher).pathname).toContain(
-      "/v1/teacher/core-without-sections/en-us/683001",
+      "/v2/revision-a/teacher/core-without-sections/en-us/683001",
     );
     expect(new URL(section).pathname).toContain(
-      "/v1/section/core-without-exams-schedules-related/zh-cn/683002",
+      "/v2/revision-a/section/core-without-exams-schedules-related/zh-cn/683002",
     );
     expect(new Set([course, teacher, section]).size).toBe(3);
   });
@@ -226,7 +247,7 @@ describe("public runtime cache", () => {
         "core-without-exams-schedules-related",
       ),
     ).toBe(
-      "v1:abc123def4567890:section:zh-cn:12345:core-without-exams-schedules-related",
+      "v2:abc123def4567890:section:zh-cn:12345:core-without-exams-schedules-related",
     );
     expect(
       publicDetailKvCacheKey(
@@ -236,10 +257,10 @@ describe("public runtime cache", () => {
         683001,
         "core-without-sections",
       ),
-    ).toBe("v1:abc123def4567890:course:en-us:683001:core-without-sections");
+    ).toBe("v2:abc123def4567890:course:en-us:683001:core-without-sections");
   });
 
-  it("uses a KV hit without loading or colo reads and then serves it from L1", async () => {
+  it("falls through a colo miss to a KV hit and then serves it from L1", async () => {
     vi.useFakeTimers();
     vi.setSystemTime(10_000);
     const cached = { source: "kv" };
@@ -253,12 +274,12 @@ describe("public runtime cache", () => {
     );
     namespace.seed(kvCacheKey, {
       expiresAt: 20_000,
-      schema: "catalog-detail-core-v1",
+      schema: "catalog-detail-core-v2",
       value: cached,
     });
     const { match, open, put } = installNamedCache();
     const load = vi.fn(async () => ({ source: "database" }));
-    const { context } = runtimeExecutionContext();
+    const { context, scheduled } = runtimeExecutionContext();
 
     await runWithCloudflareRuntimeEnv(
       { CATALOG_DETAIL_CORE: namespace },
@@ -298,6 +319,7 @@ describe("public runtime cache", () => {
 
         expect(first).toEqual(cached);
         expect(second).toBe(first);
+        await Promise.all(scheduled);
       },
       context,
     );
@@ -307,13 +329,13 @@ describe("public runtime cache", () => {
       cacheTtl: 60,
       type: "json",
     });
-    expect(open).not.toHaveBeenCalled();
-    expect(match).not.toHaveBeenCalled();
+    expect(open).toHaveBeenCalledOnce();
+    expect(match).toHaveBeenCalledOnce();
     expect(load).not.toHaveBeenCalled();
-    expect(put).not.toHaveBeenCalled();
+    expect(put).toHaveBeenCalledOnce();
   });
 
-  it("falls through KV miss to colo and schedules KV and colo writes", async () => {
+  it("falls through colo and KV misses and schedules KV and colo writes", async () => {
     const pending = createDeferred<{ source: string }>();
     const namespace = kvNamespace();
     const { match, put } = installNamedCache();
@@ -367,7 +389,7 @@ describe("public runtime cache", () => {
     expect(kvOptions).toEqual({ expirationTtl: 60 });
     await expect(JSON.parse(kvValue as string)).toMatchObject({
       expiresAt: expect.any(Number),
-      schema: "catalog-detail-core-v1",
+      schema: "catalog-detail-core-v2",
       value: { source: "database" },
     });
   });
@@ -415,6 +437,220 @@ describe("public runtime cache", () => {
     expect(namespace.put).toHaveBeenCalledOnce();
   });
 
+  it("records phase-local cache durations and fixed low-cardinality spans", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(10_000);
+    let monotonic = 1_000;
+    vi.spyOn(performance, "now").mockImplementation(() => monotonic);
+    const writeDataPoint = vi.fn();
+    const setAttribute = vi.fn();
+    const enterSpan = vi.fn(
+      <T>(
+        name: string,
+        callback: (span: { setAttribute: typeof setAttribute }) => T,
+      ) => {
+        void name;
+        return callback({ setAttribute });
+      },
+    );
+    const namespace = {
+      get: vi.fn(async () => {
+        vi.setSystemTime(Date.now() + 111);
+        monotonic += 11;
+        return null;
+      }),
+      put: vi.fn(async () => undefined),
+    };
+    const { match } = installNamedCache({
+      match: async () => {
+        vi.setSystemTime(Date.now() + 223);
+        monotonic += 23;
+        return undefined;
+      },
+    });
+    const scheduled: Promise<unknown>[] = [];
+    const context = {
+      tracing: { enterSpan },
+      waitUntil(promise: Promise<unknown>) {
+        scheduled.push(promise);
+      },
+    };
+    const sensitiveKey = "search=sensitive-marker-683011";
+
+    await runWithCloudflareRuntimeEnv(
+      { ANALYTICS: { writeDataPoint }, CATALOG_DETAIL_CORE: namespace },
+      async () => {
+        await cachedPublicRuntimeData(
+          "page:course-detail:en-us",
+          sensitiveKey,
+          60_000,
+          async () => {
+            vi.setSystemTime(Date.now() + 337);
+            monotonic += 37;
+            return { source: "database" };
+          },
+          {
+            coloCacheKey: publicDetailColoCacheKey(
+              "https://example.test",
+              "course",
+              "en-us",
+              683011,
+            ),
+            kvCacheKey: publicDetailKvCacheKey(
+              "rev",
+              "course",
+              "en-us",
+              683011,
+              "core-without-sections",
+            ),
+            validateColoCacheResult: validatesSource,
+          },
+        );
+        await Promise.all(scheduled);
+      },
+      context,
+    );
+
+    const durationFor = (event: string) =>
+      writeDataPoint.mock.calls.find(
+        ([dataPoint]) => dataPoint.blobs?.[1] === event,
+      )?.[0].doubles?.[0];
+    expect(durationFor("colo_miss")).toBe(23);
+    expect(durationFor("kv_miss")).toBe(11);
+    expect(durationFor("load_success")).toBe(37);
+    expect(match).toHaveBeenCalledOnce();
+    expect(enterSpan.mock.calls.map(([name]) => name)).toEqual([
+      "cache.colo.read",
+      "cache.kv.read",
+      "cache.origin_load",
+    ]);
+    expect(setAttribute.mock.calls).toEqual([
+      ["cache.layer", "colo"],
+      ["cache.namespace", "page:course-detail:en-us"],
+      ["cache.outcome", "miss"],
+      ["cache.layer", "kv"],
+      ["cache.namespace", "page:course-detail:en-us"],
+      ["cache.outcome", "miss"],
+      ["cache.layer", "origin"],
+      ["cache.namespace", "page:course-detail:en-us"],
+      ["cache.outcome", "success"],
+    ]);
+    expect(JSON.stringify(setAttribute.mock.calls)).not.toContain(sensitiveKey);
+  });
+
+  it("records one phase-local origin error without retaining the failed load", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(20_000);
+    let monotonic = 2_000;
+    vi.spyOn(performance, "now").mockImplementation(() => monotonic);
+    const writeDataPoint = vi.fn();
+    const setAttribute = vi.fn();
+    const enterSpan = vi.fn(
+      <T>(
+        _name: string,
+        callback: (span: { setAttribute: typeof setAttribute }) => T,
+      ) => callback({ setAttribute }),
+    );
+    const load = vi.fn(async () => {
+      vi.setSystemTime(Date.now() + 410);
+      monotonic += 41;
+      throw new Error("origin failed");
+    });
+
+    await runWithCloudflareRuntimeEnv(
+      { ANALYTICS: { writeDataPoint } },
+      async () => {
+        await expect(
+          cachedPublicRuntimeData(
+            "api:metadata",
+            "private-cache-key",
+            60_000,
+            load,
+          ),
+        ).rejects.toThrow("origin failed");
+      },
+      { tracing: { enterSpan } },
+    );
+
+    const loadErrors = writeDataPoint.mock.calls.filter(
+      ([dataPoint]) => dataPoint.blobs?.[1] === "load_error",
+    );
+    expect(loadErrors).toHaveLength(1);
+    expect(loadErrors[0]?.[0].doubles?.[0]).toBe(41);
+    expect(setAttribute).toHaveBeenCalledWith("cache.outcome", "error");
+    await expect(
+      cachedPublicRuntimeData(
+        "api:metadata",
+        "private-cache-key",
+        60_000,
+        async () => ({ source: "retry" }),
+      ),
+    ).resolves.toEqual({ source: "retry" });
+    expect(load).toHaveBeenCalledOnce();
+  });
+
+  it("uses wall-clock time for TTL while measuring cache work monotonically", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(10_000);
+    const monotonic = 3_000;
+    vi.spyOn(performance, "now").mockImplementation(() => monotonic);
+    const writeDataPoint = vi.fn();
+    const load = vi.fn(async () => {
+      vi.setSystemTime(Date.now() + 250);
+      return { source: "database" };
+    });
+
+    await runWithCloudflareRuntimeEnv(
+      { ANALYTICS: { writeDataPoint } },
+      async () => {
+        await expect(
+          cachedPublicRuntimeData(
+            "api:metadata",
+            "wall-clock-ttl",
+            1_000,
+            load,
+          ),
+        ).resolves.toEqual({ source: "database" });
+
+        await expect(
+          cachedPublicRuntimeData(
+            "api:metadata",
+            "wall-clock-ttl",
+            1_000,
+            load,
+          ),
+        ).resolves.toEqual({ source: "database" });
+
+        vi.setSystemTime(11_001);
+        await expect(
+          cachedPublicRuntimeData(
+            "api:metadata",
+            "wall-clock-ttl",
+            1_000,
+            load,
+          ),
+        ).resolves.toEqual({ source: "database" });
+      },
+    );
+
+    expect(load).toHaveBeenCalledTimes(2);
+    const events = writeDataPoint.mock.calls.map(
+      ([dataPoint]) => dataPoint.blobs?.[1],
+    );
+    expect(events).toEqual([
+      "miss",
+      "load_success",
+      "hit",
+      "miss",
+      "load_success",
+    ]);
+    expect(
+      writeDataPoint.mock.calls
+        .filter(([dataPoint]) => dataPoint.blobs?.[1] === "load_success")
+        .map(([dataPoint]) => dataPoint.doubles?.[0]),
+    ).toEqual([0, 0]);
+  });
+
   it("returns one in-flight promise for concurrent callers of the same key", async () => {
     const pending = createDeferred<{ source: string }>();
     const load = vi.fn(() => pending.promise);
@@ -440,6 +676,31 @@ describe("public runtime cache", () => {
       { source: "shared" },
       { source: "shared" },
     ]);
+  });
+
+  it("isolates identical L1 keys across namespaces", async () => {
+    const chineseLoad = vi.fn(async () => ({ locale: "zh-cn" }));
+    const englishLoad = vi.fn(async () => ({ locale: "en-us" }));
+
+    await expect(
+      cachedPublicRuntimeData(
+        "search:catalog:v4:zh-cn",
+        "5:calculus",
+        60_000,
+        chineseLoad,
+      ),
+    ).resolves.toEqual({ locale: "zh-cn" });
+    await expect(
+      cachedPublicRuntimeData(
+        "search:catalog:v4:en-us",
+        "5:calculus",
+        60_000,
+        englishLoad,
+      ),
+    ).resolves.toEqual({ locale: "en-us" });
+
+    expect(chineseLoad).toHaveBeenCalledOnce();
+    expect(englishLoad).toHaveBeenCalledOnce();
   });
 
   it("does not retain null results", async () => {
@@ -625,7 +886,7 @@ describe("public runtime cache", () => {
     );
 
     expect(open).toHaveBeenCalledOnce();
-    expect(open).toHaveBeenCalledWith("life-ustc-public-detail-core-v1");
+    expect(open).toHaveBeenCalledWith("life-ustc-public-detail-core-v2");
     expect(match).toHaveBeenCalledOnce();
     expect(load).not.toHaveBeenCalled();
     expect(put).not.toHaveBeenCalled();
@@ -688,7 +949,7 @@ describe("public runtime cache", () => {
     );
     await expect(writtenResponse?.clone().json()).resolves.toMatchObject({
       expiresAt: expect.any(Number),
-      schema: "catalog-detail-core-v1",
+      schema: "catalog-detail-core-v2",
       value: { source: "database" },
     });
   });
@@ -952,20 +1213,18 @@ describe("public runtime cache", () => {
       },
       reason: "cache_put_rejected",
     },
-  ])("reports $name without failing the loaded result", async ({
-    expectedPutCalls,
-    expectedScheduled,
-    options,
-    reason,
-  }) => {
-    const { put, result, scheduled, writeDataPoint } =
-      await observeColoMiss(options);
+  ])(
+    "reports $name without failing the loaded result",
+    async ({ expectedPutCalls, expectedScheduled, options, reason }) => {
+      const { put, result, scheduled, writeDataPoint } =
+        await observeColoMiss(options);
 
-    expect(result).toEqual({ source: "database" });
-    expect(put).toHaveBeenCalledTimes(expectedPutCalls);
-    expect(scheduled).toHaveLength(expectedScheduled);
-    expectColoCacheEvent(writeDataPoint, "colo_write_error", reason);
-  });
+      expect(result).toEqual({ source: "database" });
+      expect(put).toHaveBeenCalledTimes(expectedPutCalls);
+      expect(scheduled).toHaveLength(expectedScheduled);
+      expectColoCacheEvent(writeDataPoint, "colo_write_error", reason);
+    },
+  );
 
   it("keeps a validator-rejected result available when Analytics Engine fails", async () => {
     const writeDataPoint = vi.fn(() => {
