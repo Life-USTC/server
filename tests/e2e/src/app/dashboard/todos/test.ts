@@ -297,11 +297,13 @@ test.describe("仪表盘待办", () => {
       await visibleText(page, title).click();
       const detailDialog = page.getByRole("dialog", { name: title });
       await expect(detailDialog).toBeVisible();
-      const detailText = await detailDialog.innerText();
+      const summary = detailDialog.getByTestId("todo-detail-summary");
+      await expect(summary).toBeVisible();
+      const summaryText = await summary.innerText();
       const localizedPriorityMatches =
-        detailText.match(/\b(?:Low|Medium|High)\b|[低中高]/g) ?? [];
+        summaryText.match(/\b(?:Low|Medium|High)\b|[低中高]/g) ?? [];
       expect(localizedPriorityMatches).toHaveLength(1);
-      expect(detailText).not.toMatch(/\b(?:low|medium|high)\b/);
+      expect(summaryText).not.toMatch(/\b(?:low|medium|high)\b/);
       const editButton = detailDialog.getByRole("button", {
         name: /编辑待办|Edit Todo/i,
       });
