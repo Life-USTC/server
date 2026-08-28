@@ -106,10 +106,7 @@ export async function expectSingleColumnDiscussion(dialog: Locator) {
 }
 
 /** Overlays stay at a reading width; they must not become a two-column page. */
-export async function expectComfortablePopupWidth(
-  page: Page,
-  dialog: Locator,
-) {
+export async function expectComfortablePopupWidth(page: Page, dialog: Locator) {
   const viewport = page.viewportSize();
   const box = await dialog.boundingBox();
   expect(box).not.toBeNull();
