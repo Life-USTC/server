@@ -307,7 +307,7 @@ test("/account/welcome 订阅步骤说明教务导入并提供粘贴入口", asy
 
   await expect(
     page.getByRole("heading", {
-      name: /导入教务系统的选课|Import your courses from the academic system/i,
+      name: /从教务系统导入选课|Import your course selection from the academic system/i,
     }),
   ).toBeVisible();
   await expect(
@@ -354,9 +354,10 @@ test("/account/welcome 最后一步展示平台引导并可返回上一步", asy
   ).toBeVisible();
   await expect(page.getByText(/最后一公里|last-mile work/i)).toBeVisible();
   await expect(
-    page.getByText(/课表、作业、考试|timetable, homework, and exams/i),
+    page.getByText(/课表、作业、考试、待办|Timetable, homework, exams, and todos/i),
   ).toBeVisible();
   await expect(page.getByText(/个人主页|personal homepage/i)).toBeVisible();
+  await expect(page.getByText(/助教|course homepage/i)).toBeVisible();
   await expect(page.getByText(/CalDAV/i)).toBeVisible();
   await expect(page.getByText(/MCP/)).toBeVisible();
   await expect(page.getByTestId("app-sidebar")).toHaveCount(0);
