@@ -417,20 +417,20 @@ test.describe("/catalog/sections 班级搜索页", () => {
         const resultsStyle = getComputedStyle(results);
         const columnAlignment = headerCells.map((header, index) => {
           const cell = firstRowCells[index];
-          const link = cell?.querySelector<HTMLElement>("a");
-          if (!cell || !link)
+          const target = cell?.querySelector<HTMLElement>("a") ?? cell;
+          if (!cell || !target)
             throw new Error("Sections table column content missing");
           const headerStyle = getComputedStyle(header);
-          const linkStyle = getComputedStyle(link);
+          const targetStyle = getComputedStyle(target);
           const headerBox = header.getBoundingClientRect();
-          const linkBox = link.getBoundingClientRect();
+          const targetBox = target.getBoundingClientRect();
           const rightAligned = headerStyle.textAlign === "right";
           const headerEdge = rightAligned
             ? headerBox.right - Number.parseFloat(headerStyle.paddingRight)
             : headerBox.left + Number.parseFloat(headerStyle.paddingLeft);
           const cellEdge = rightAligned
-            ? linkBox.right - Number.parseFloat(linkStyle.paddingRight)
-            : linkBox.left + Number.parseFloat(linkStyle.paddingLeft);
+            ? targetBox.right - Number.parseFloat(targetStyle.paddingRight)
+            : targetBox.left + Number.parseFloat(targetStyle.paddingLeft);
           return {
             alignment: headerStyle.textAlign,
             offset: Math.abs(headerEdge - cellEdge),
