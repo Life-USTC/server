@@ -674,8 +674,8 @@ test("/ shell 折叠桌面侧边栏后图标链接仍可跳转", async ({ page }
   await expect
     .poll(async () =>
       Math.round(
-        await coursesLink.evaluate((element) =>
-          element.getBoundingClientRect().width,
+        await coursesLink.evaluate(
+          (element) => element.getBoundingClientRect().width,
         ),
       ),
     )
