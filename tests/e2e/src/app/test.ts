@@ -666,11 +666,25 @@ test("/ shell 折叠桌面侧边栏后图标链接仍可跳转", async ({ page }
   await expect(
     page.locator('[data-slot="sidebar"][data-state="collapsed"]'),
   ).toBeVisible();
-
+  await expect(catalogGroup).toBeDisabled();
   await expect(coursesLink).toBeVisible();
-  await coursesLink.click();
+  await expect(coursesLink).toHaveAttribute("href", "/catalog/courses");
+  // Icon-mode labels animate margin/opacity for 200ms; clicking before that
+  // can land on the neighboring Sections icon instead of Courses.
+  await expect
+    .poll(async () =>
+      Math.round(
+        await coursesLink.evaluate((element) =>
+          element.getBoundingClientRect().width,
+        ),
+      ),
+    )
+    .toBeLessThanOrEqual(40);
 
-  await page.waitForURL("**/catalog/courses");
+  await Promise.all([
+    page.waitForURL("**/catalog/courses"),
+    coursesLink.click(),
+  ]);
   await waitForUiSettled(page);
   await expect(page).toHaveURL(/\/catalog\/courses(?:\?.*)?$/);
 });
