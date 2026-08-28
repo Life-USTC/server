@@ -1,3 +1,11 @@
+## [1.96.2](https://github.com/Life-USTC/server/compare/v1.96.1...v1.96.2) (2026-08-28)
+
+
+### Bug Fixes
+
+* **admin:** return 403 for non-admin access to /admin ([#964](https://github.com/Life-USTC/server/issues/964)) ([f1d36f6](https://github.com/Life-USTC/server/commit/f1d36f6097ab69e7b7d317edbd4e4b9377cc3f61))
+* **ui:** shadcn-svelte compliance and visual audit follow-up ([#965](https://github.com/Life-USTC/server/issues/965)) ([faab9f3](https://github.com/Life-USTC/server/commit/faab9f3a9e8968bfbfe5116f3e492a6816b85ffd)), closes [#958](https://github.com/Life-USTC/server/issues/958) [#959](https://github.com/Life-USTC/server/issues/959) [#960](https://github.com/Life-USTC/server/issues/960) [#961](https://github.com/Life-USTC/server/issues/961) [#962](https://github.com/Life-USTC/server/issues/962)
+
 ## [1.96.1](https://github.com/Life-USTC/server/compare/v1.96.0...v1.96.1) (2026-08-27)
 
 
