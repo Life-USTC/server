@@ -252,6 +252,18 @@ export const PAGE_INVENTORY: readonly PageInventoryEntry[] = [
         e2eSpec: E2E.welcome,
       },
       {
+        id: "welcome-undergraduate-academic",
+        role: "link",
+        name: "/^(本科生教务|Undergraduate academic system)$/i",
+        e2eSpec: E2E.welcome,
+      },
+      {
+        id: "welcome-graduate-academic",
+        role: "link",
+        name: "/^(研究生教务|Graduate academic system)$/i",
+        e2eSpec: E2E.welcome,
+      },
+      {
         id: "welcome-skip-step",
         role: "link",
         name: "/暂时跳过|Skip for now/i",

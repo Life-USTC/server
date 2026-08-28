@@ -306,8 +306,18 @@ test("/account/welcome 订阅步骤提供浏览班级与批量匹配入口", asy
   await expect(page.getByRole("dialog")).toHaveCount(0);
 
   await expect(
-    page.getByText(/不是官方教务|not the official academic system/i),
+    page.getByText(/教务系统|official enrollment list/i),
   ).toBeVisible();
+  await expect(
+    page.getByRole("link", {
+      name: /^(本科生教务|Undergraduate academic system)$/i,
+    }),
+  ).toHaveAttribute("href", "https://jw.ustc.edu.cn/");
+  await expect(
+    page.getByRole("link", {
+      name: /^(研究生教务|Graduate academic system)$/i,
+    }),
+  ).toHaveAttribute("href", "https://yjs1.ustc.edu.cn/");
   await expect(page.locator("code", { hasText: "001013.01" })).toBeVisible();
   await expect(page.locator("code", { hasText: "COMP3001.01" })).toBeVisible();
   await expect(page.locator("code", { hasText: /^COMP3001$/ })).toBeVisible();
@@ -343,12 +353,12 @@ test("/account/welcome 最后一步展示平台引导并可返回上一步", asy
     { testInfo, screenshotLabel: "welcome-finish" },
   );
 
+  await expect(page.getByText(/^工作区$|^Workspace$/)).toBeVisible();
   await expect(
-    page.getByText(/订阅与工作区|Subscriptions and workspace/i),
+    page.getByText(/^日历和待办$|^Calendar and todos$/),
   ).toBeVisible();
-  await expect(page.getByText(/日历与待办|Calendar and todos/i)).toBeVisible();
   await expect(
-    page.getByText(/账户与安全|Account and security/i),
+    page.getByText(/^登录和安全$|^Sign-in and security$/),
   ).toBeVisible();
   await expect(page.getByTestId("app-sidebar")).toHaveCount(0);
   await expect(

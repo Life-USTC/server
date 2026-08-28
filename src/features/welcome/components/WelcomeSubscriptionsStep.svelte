@@ -1,10 +1,15 @@
 <script lang="ts">
 import ArrowLeft from "@lucide/svelte/icons/arrow-left";
 import ArrowRight from "@lucide/svelte/icons/arrow-right";
+import ExternalLink from "@lucide/svelte/icons/external-link";
+import GraduationCap from "@lucide/svelte/icons/graduation-cap";
 import Hash from "@lucide/svelte/icons/hash";
-import Info from "@lucide/svelte/icons/info";
 import Search from "@lucide/svelte/icons/search";
 import WelcomeGuideRow from "@/features/welcome/components/WelcomeGuideRow.svelte";
+import {
+  GRADUATE_ACADEMIC_PORTAL_URL,
+  UNDERGRADUATE_ACADEMIC_PORTAL_URL,
+} from "@/features/welcome/lib/welcome-academic-portals";
 import * as Alert from "$lib/components/ui/alert/index.js";
 import { Button } from "$lib/components/ui/button/index.js";
 import { Checkbox } from "$lib/components/ui/checkbox/index.js";
@@ -72,9 +77,32 @@ $: codeExamples = [
   <div class="grid gap-5">
     <WelcomeGuideRow
       description={welcomeCopy.subscriptionsWhyDescription}
-      icon={Info}
+      icon={GraduationCap}
       title={welcomeCopy.subscriptionsWhyTitle}
-    />
+    >
+      <div class="flex flex-wrap gap-2">
+        <Button
+          href={UNDERGRADUATE_ACADEMIC_PORTAL_URL}
+          rel="noreferrer"
+          size="sm"
+          target="_blank"
+          variant="outline"
+        >
+          {welcomeCopy.subscriptionsUndergraduatePortal}
+          <ExternalLink data-icon="inline-end" />
+        </Button>
+        <Button
+          href={GRADUATE_ACADEMIC_PORTAL_URL}
+          rel="noreferrer"
+          size="sm"
+          target="_blank"
+          variant="outline"
+        >
+          {welcomeCopy.subscriptionsGraduatePortal}
+          <ExternalLink data-icon="inline-end" />
+        </Button>
+      </div>
+    </WelcomeGuideRow>
 
     <WelcomeGuideRow
       description={welcomeCopy.subscriptionsCodesDescription}

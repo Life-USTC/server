@@ -53,6 +53,8 @@ export type WelcomeCopy = Record<string, string> & {
   subscriptionsCodeExampleSectionHint: string;
   subscriptionsCodesDescription: string;
   subscriptionsCodesTitle: string;
+  subscriptionsGraduatePortal: string;
+  subscriptionsUndergraduatePortal: string;
   subscriptionsWhyDescription: string;
   subscriptionsWhyTitle: string;
   noMatchingSections: string;
