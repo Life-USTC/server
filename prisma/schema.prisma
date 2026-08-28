@@ -1621,3 +1621,15 @@ model Jwks {
   alg       String?
   crv       String?
 }
+
+model WeatherObservation {
+  id             String   @id @default(cuid())
+  locationKey    String
+  observedAt     DateTime @db.Timestamp(0)
+  providerBlobs  Json
+  mergedSnapshot Json
+  createdAt      DateTime @default(now())
+
+  @@unique([locationKey, observedAt])
+  @@index([locationKey, observedAt])
+}

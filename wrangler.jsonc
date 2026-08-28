@@ -96,6 +96,10 @@
     {
       "binding": "CATALOG_DETAIL_CORE",
       "id": "cd40f139a6c14613adba65dc294dc168"
+    },
+    {
+      "binding": "WEATHER",
+      "id": "REPLACE_WITH_REAL_KV_NAMESPACE_ID"
     }
   ],
   "ratelimits": [

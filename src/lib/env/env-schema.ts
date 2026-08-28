@@ -23,6 +23,7 @@ export const commonEnvSchema = z.object({
     .default("development"),
   UPLOAD_TOTAL_QUOTA_MB: optionalPositiveInt,
   E2E_DEBUG_AUTH: optionalString,
+  AMAP_API_KEY: optionalString,
 });
 
 export const runtimeRequiredEnvSchema = z.object({
