@@ -2263,6 +2263,7 @@
     "contentPlaceholder": "Supports Markdown formatting",
     "contentEmpty": "No description added.",
     "priorityLabel": "Priority",
+    "statusLabel": "Status",
     "dueAtLabel": "Due date",
     "dueAtPlaceholder": "Optional date and time",
     "dueLabel": "Due",

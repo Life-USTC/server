@@ -45,9 +45,9 @@ export async function expectDetailDialogFitsViewport(
 }
 
 /**
- * Homework popup (`docs/contracts/homework.json`): due summary is primary and
- * sits above secondary metadata. The collapsible metadata must not repeat the
- * due date or expose a creation timestamp.
+ * Homework popup (`docs/contracts/homework.json`): due datetime is primary,
+ * relative urgency is secondary, and remaining facts are a table. The table
+ * must not repeat the due date or expose a creation timestamp.
  */
 export async function expectHomeworkDetailOrder(dialog: Locator) {
   const dueSummary = dialog
@@ -55,16 +55,9 @@ export async function expectHomeworkDetailOrder(dialog: Locator) {
     .first();
   await expect(dueSummary).toBeVisible();
 
-  const moreDetails = dialog.getByRole("button", {
-    name: /更多信息|More details/i,
-  });
-  if ((await moreDetails.count()) > 0) {
-    await moreDetails.first().click();
-  }
-
   const metadata = dialog
     .locator('[data-testid="homework-secondary-details"]')
-    .locator("dl")
+    .locator("table")
     .first();
   await expect(metadata).toBeVisible();
   await expect(metadata.getByText(/发布日期|Published/i)).toBeVisible();

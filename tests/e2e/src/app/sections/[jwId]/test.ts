@@ -1487,19 +1487,6 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
       ).toHaveCount(0, { timeout: 15_000 });
 
       await expect(detailDialog.getByText(description)).toBeVisible();
-      const secondaryDetails = detailDialog.getByTestId(
-        "homework-secondary-details",
-      );
-      const secondaryDetailsTrigger = secondaryDetails.getByRole("button", {
-        name: /More details|更多信息/i,
-      });
-      await expect(secondaryDetailsTrigger).not.toContainText(
-        /Major assignment|大作业/i,
-      );
-      await expect(secondaryDetailsTrigger).not.toContainText(
-        /Team required|需要组队/i,
-      );
-
       const deadlineSummary = detailDialog.getByTestId(
         "homework-deadline-summary",
       );
@@ -1507,8 +1494,16 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
         /2026-12-31|2026\/12\/31|12\/31\/26|12月31日|Dec 31/,
       );
       await expect(deadlineSummary).toContainText(/23:59|11:59 PM/);
-      await expect(deadlineSummary).toContainText(/Major assignment|大作业/i);
-      await expect(deadlineSummary).toContainText(/Team required|需要组队/i);
+
+      const factsTable = detailDialog.getByTestId("homework-secondary-details");
+      await expect(factsTable).toContainText(/Major assignment|大作业/i);
+      await expect(factsTable).toContainText(/Team required|需要组队/i);
+      await expect(deadlineSummary).not.toContainText(
+        /Major assignment|大作业/i,
+      );
+      await expect(deadlineSummary).not.toContainText(
+        /Team required|需要组队/i,
+      );
       await captureStepScreenshot(
         page,
         testInfo,

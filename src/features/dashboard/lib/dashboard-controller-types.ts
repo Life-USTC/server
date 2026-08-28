@@ -386,6 +386,7 @@ export type DashboardTodosCopy = DashboardRecord & {
   saveFailed: string;
   uncompleteSuccess: string;
   saving: string;
+  statusLabel: string;
   subtitle: string;
   titleLabel: string;
   titlePlaceholder: string;
