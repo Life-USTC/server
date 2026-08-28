@@ -50,10 +50,10 @@ test("/admin/users 未登录重定向到登录页", async ({ page }, testInfo) =
   await captureStepScreenshot(page, testInfo, "admin-users-unauthorized");
 });
 
-test("/admin/users 普通用户访问返回 404", async ({ page }, testInfo) => {
+test("/admin/users 普通用户访问返回 403", async ({ page }, testInfo) => {
   await signInAsDebugUser(page, "/admin/users", "/admin/users");
-  await expect(page.locator("h1")).toHaveText("404");
-  await captureStepScreenshot(page, testInfo, "admin-users-404");
+  await expect(page.locator("h1")).toHaveText("403");
+  await captureStepScreenshot(page, testInfo, "admin-users-403");
 });
 
 test("/admin/users 管理员可看到 seed 用户", async ({ page }, testInfo) => {

@@ -121,7 +121,7 @@ describe("admin 页面认证", () => {
 
     await expect(
       requireAdminPage(new Request("https://example.test/admin/users")),
-    ).rejects.toMatchObject({ status: 404 });
+    ).rejects.toMatchObject({ status: 403 });
     expect(logAppEventMock).toHaveBeenCalledWith(
       "warn",
       "admin.authorization.denied",
