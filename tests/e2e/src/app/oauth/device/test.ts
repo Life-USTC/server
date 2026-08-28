@@ -231,6 +231,15 @@ test("/oauth/device 移动端只呈现一个标题和一个代码输入", async 
     page.getByText(/^(设备验证码|Device Code)$/, { exact: true }),
   ).toHaveCount(1);
   await expect(page.locator('[data-slot="input-otp-slot"]')).toHaveCount(8);
+  const otpMetrics = await page
+    .locator('[data-slot="input-otp"]')
+    .evaluate((element) => ({
+      clientWidth: element.clientWidth,
+      scrollWidth: element.scrollWidth,
+    }));
+  expect(otpMetrics.scrollWidth).toBeLessThanOrEqual(
+    otpMetrics.clientWidth + 1,
+  );
   const verifyButton = page.getByRole("button", {
     name: /^(验证|Verify)$/i,
     exact: true,
@@ -248,6 +257,39 @@ test("/oauth/device 移动端只呈现一个标题和一个代码输入", async 
   ).toBe(true);
 
   await captureStepScreenshot(page, testInfo, "oauth/device/form-mobile");
+});
+
+test("/oauth/device 320px 和 375px 输入槽完整显示", async ({
+  page,
+}, testInfo) => {
+  for (const width of [320, 375]) {
+    await page.setViewportSize({ width, height: 800 });
+    await gotoAndWaitForReady(page, "/oauth/device", { testInfo });
+
+    const otp = page.locator('[data-slot="input-otp"]');
+    await expect(otp).toBeVisible();
+    await expect(page.locator('[data-slot="input-otp-slot"]')).toHaveCount(8);
+
+    const metrics = await otp.evaluate((element) => ({
+      clientWidth: element.clientWidth,
+      scrollWidth: element.scrollWidth,
+    }));
+    expect(metrics.scrollWidth).toBeLessThanOrEqual(metrics.clientWidth + 1);
+
+    const card = page.locator('[data-slot="card"]');
+    const cardBox = await card.boundingBox();
+    if (!cardBox) throw new Error("Device code Card is not visible");
+    for (const slot of await page
+      .locator('[data-slot="input-otp-slot"]')
+      .all()) {
+      const slotBox = await slot.boundingBox();
+      if (!slotBox) throw new Error("Device code slot is not visible");
+      expect(slotBox.x).toBeGreaterThanOrEqual(cardBox.x - 1);
+      expect(slotBox.x + slotBox.width).toBeLessThanOrEqual(
+        cardBox.x + cardBox.width + 1,
+      );
+    }
+  }
 });
 
 test("/oauth/device 无效用户代码显示公开错误", async ({ page }, testInfo) => {

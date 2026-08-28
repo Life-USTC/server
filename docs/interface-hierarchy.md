@@ -204,6 +204,7 @@ and retry guidance must make the distinction explicit.
 | `community_comment_create` | target comment panel | `POST /api/community/comments` | `commentCreate` | `评论 添加` | `community comment create` |
 | `community_description_set` | target editor | `POST /api/community/descriptions` | `descriptionSet` | `描述 更新` | `community description set` |
 | `account_profile_get` | `/account/settings/profile` | `GET /api/account/profile` | `account.profile` | `账户 信息` | `account profile` |
+| `account_client_activity_list` | `/account/settings/security` | `GET /api/account/client-activity` | `account.clientActivity` | `账户 当前应用活动` | `account client activity` |
 
 Feature-specific contract modules in `docs/contracts/` contain the exhaustive
 routes, fields, tools, permissions, and return shapes.

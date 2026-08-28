@@ -151,8 +151,9 @@ describe("应用日志记录器", () => {
     const [payload] = errorSpy.mock.calls[0] ?? [];
     expect(JSON.parse(String(payload))).toMatchObject({
       error: {
-        code: "P2010",
+        code: "42501",
         name: "PrismaClientKnownRequestError",
+        prismaCode: "P2010",
       },
     });
     expect(String(payload)).not.toContain("permission denied");
@@ -180,5 +181,74 @@ describe("应用日志记录器", () => {
         name: "DriverAdapterError",
       },
     });
+  });
+
+  it("生产环境保留 P2039 wrapper 并优先记录嵌套 driver code", () => {
+    vi.stubEnv("NODE_ENV", "production");
+    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+
+    const driverError = Object.assign(new Error("private database detail"), {
+      originalCode: "42P01",
+      name: "error",
+    });
+    const prismaError = Object.assign(new Error("private wrapper detail"), {
+      cause: driverError,
+      code: "P2039",
+      name: "PrismaClientKnownRequestError",
+    });
+
+    logRouteFailure("Failed to load section", 500, prismaError);
+
+    const [payload] = errorSpy.mock.calls[0] ?? [];
+    expect(JSON.parse(String(payload))).toMatchObject({
+      error: {
+        code: "42P01",
+        name: "PrismaClientKnownRequestError",
+        prismaCode: "P2039",
+      },
+    });
+    expect(String(payload)).not.toContain("private database detail");
+    expect(String(payload)).not.toContain("private wrapper detail");
+  });
+
+  it("生产环境日志序列化不因 BigInt 或循环引用失败", () => {
+    vi.stubEnv("NODE_ENV", "production");
+    const infoSpy = vi.spyOn(console, "info").mockImplementation(() => {});
+    const context: Record<string, unknown> = { count: 1n };
+    context.self = context;
+
+    expect(() =>
+      logAppEvent("info", "safe.serialization", context),
+    ).not.toThrow();
+
+    const [payload] = infoSpy.mock.calls[0] ?? [];
+    expect(JSON.parse(String(payload))).toMatchObject({
+      self: {
+        count: "[BigInt]",
+        self: "[Circular]",
+      },
+    });
+  });
+
+  it("生产环境不执行异常 toJSON 且不会泄露其内容", () => {
+    vi.stubEnv("NODE_ENV", "production");
+    const infoSpy = vi.spyOn(console, "info").mockImplementation(() => {});
+    const secret = "private-to-json-value";
+    const payload = {
+      toJSON() {
+        throw new Error(secret);
+      },
+    };
+
+    expect(() =>
+      logAppEvent("info", "safe.serialization", { payload }),
+    ).not.toThrow();
+
+    const [serialized] = infoSpy.mock.calls[0] ?? [];
+    expect(JSON.parse(String(serialized))).toMatchObject({
+      message: "safe.serialization",
+      payload: { toJSON: "[Function]" },
+    });
+    expect(String(serialized)).not.toContain(secret);
   });
 });

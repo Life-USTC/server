@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   cleanupStaleUploadPendingStorage,
   UPLOAD_PENDING_CLEANUP_BATCH_SIZE,
@@ -19,6 +19,10 @@ vi.mock("@/lib/log/app-logger", () => ({
 }));
 
 describe("upload pending storage cleanup", () => {
+  afterEach(() => {
+    vi.clearAllMocks();
+  });
+
   it("claims rows through the security-definer function and finalizes after R2 delete", async () => {
     const now = new Date("2026-07-30T12:00:00.000Z");
     const queryRaw = vi
@@ -59,6 +63,7 @@ describe("upload pending storage cleanup", () => {
       UPLOAD_PENDING_CLEANUP_BATCH_SIZE,
       UPLOAD_PENDING_CLEANUP_LEASE_SECONDS,
     ]);
+    expect(logAppEventMock).not.toHaveBeenCalled();
   });
 
   it("extends the cleanup lease when R2 deletion fails", async () => {
@@ -85,5 +90,59 @@ describe("upload pending storage cleanup", () => {
       retried: 1,
       skipped: 0,
     });
+
+    expect(logAppEventMock).toHaveBeenCalledOnce();
+    expect(logAppEventMock).toHaveBeenCalledWith(
+      "warn",
+      "Upload pending storage cleanup could not delete object",
+      {
+        event: "upload-pending-cleanup.storage-delete-failed",
+        outcome: "retry",
+        source: "upload-pending-cleanup",
+      },
+      expect.any(Error),
+    );
+    expect(logAppEventMock.mock.calls[0]?.[2]).not.toHaveProperty("key");
+    expect(logAppEventMock.mock.calls[0]?.[2]).not.toHaveProperty("userId");
+  });
+
+  it("logs safe context when cleanup finalization fails", async () => {
+    const now = new Date("2026-07-30T12:00:00.000Z");
+    const queryRaw = vi
+      .fn()
+      .mockResolvedValueOnce([
+        {
+          attemptId: "attempt-1",
+          id: "pending-1",
+          key: "uploads/user-secret/file.txt",
+          userId: "user-secret",
+        },
+      ])
+      .mockRejectedValueOnce(new Error("database unavailable"))
+      .mockResolvedValueOnce([{ released: true }]);
+    deleteStorageObjectMock.mockResolvedValue(undefined);
+
+    await expect(
+      cleanupStaleUploadPendingStorage({ $queryRaw: queryRaw } as never, now),
+    ).resolves.toEqual({
+      claimed: 1,
+      completed: 0,
+      failed: 0,
+      retried: 1,
+      skipped: 0,
+    });
+
+    expect(logAppEventMock).toHaveBeenCalledWith(
+      "error",
+      "Upload pending storage cleanup failed",
+      {
+        event: "upload-pending-cleanup.failed",
+        outcome: "retry",
+        source: "upload-pending-cleanup",
+      },
+      expect.any(Error),
+    );
+    expect(logAppEventMock.mock.calls[0]?.[2]).not.toHaveProperty("key");
+    expect(logAppEventMock.mock.calls[0]?.[2]).not.toHaveProperty("userId");
   });
 });

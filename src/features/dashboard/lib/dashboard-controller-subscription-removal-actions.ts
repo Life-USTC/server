@@ -7,7 +7,6 @@ export function createDashboardSubscriptionRemovalActions(
   function clearPendingRemoveSection() {}
 
   async function removeSubscribedSection(sectionId: number) {
-    input.setSubscriptionActionMessage("");
     input.setSubscriptionActionError("");
 
     input.setRemovingSectionId(sectionId);
@@ -18,7 +17,7 @@ export function createDashboardSubscriptionRemovalActions(
       });
 
       await input.invalidateAll();
-      input.setSubscriptionActionMessage(message);
+      input.onSuccess?.(message);
       return true;
     } catch (error) {
       input.setSubscriptionActionError(

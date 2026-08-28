@@ -20,15 +20,15 @@ function sanitizeDeviceCode(value: string) {
 }
 </script>
 
-<form method="GET" action="/oauth/device">
+<form class="min-w-0" method="GET" action="/oauth/device">
   <input type="hidden" name="step" value="approve" />
-  <Field.Group>
-    <Field.Field>
+  <Field.Group class="min-w-0">
+    <Field.Field class="min-w-0">
       <Field.Label for="code">{copy.deviceCodeLabel}</Field.Label>
       <InputOTP.Root
         autocomplete="off"
         bind:value={inputCode}
-        class="justify-center"
+        class="min-w-0 justify-center gap-1 sm:gap-2"
         id="device-code"
         inputId="code"
         inputmode="text"
@@ -45,14 +45,14 @@ function sanitizeDeviceCode(value: string) {
           <InputOTP.Group
           >
             {#each cells.slice(0, 4) as cell}
-              <InputOTP.Slot {cell} />
+              <InputOTP.Slot class="size-7 sm:size-8" {cell} />
             {/each}
           </InputOTP.Group>
           <InputOTP.Separator />
           <InputOTP.Group
           >
             {#each cells.slice(4, 8) as cell}
-              <InputOTP.Slot {cell} />
+              <InputOTP.Slot class="size-7 sm:size-8" {cell} />
             {/each}
           </InputOTP.Group>
         {/snippet}

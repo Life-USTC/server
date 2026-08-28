@@ -128,11 +128,14 @@ describe("GraphQL dangerous-change policy", () => {
       ),
       /Result|Node/,
     ],
-  ])("blocks %s with a coordinate in the diagnostic", (_name, previousSdl, nextSdl, coordinate) => {
-    const { blocked } = classifyGraphqlDangerousChanges(previousSdl, nextSdl);
-    expect(blocked).not.toHaveLength(0);
-    expect(blocked[0].description).toMatch(coordinate);
-  });
+  ])(
+    "blocks %s with a coordinate in the diagnostic",
+    (_name, previousSdl, nextSdl, coordinate) => {
+      const { blocked } = classifyGraphqlDangerousChanges(previousSdl, nextSdl);
+      expect(blocked).not.toHaveLength(0);
+      expect(blocked[0].description).toMatch(coordinate);
+    },
+  );
 
   it.each([
     [

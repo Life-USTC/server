@@ -2,24 +2,20 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const {
   getCompactOverviewMock,
-  getSubscribedSectionIdsMock,
+  getCalendarSubscriptionUrlMock,
   getUserCalendarSubscriptionMock,
-  getViewerContextMock,
-  listSubscribedHomeworkAuditLogsMock,
-  listSubscribedHomeworksMock,
+  listSubscribedHomeworkPageMock,
   requireAuthMock,
+  requireAuthPrincipalMock,
   runCloudflareTraceSpanMock,
-  withHomeworkItemStateMock,
 } = vi.hoisted(() => ({
   getCompactOverviewMock: vi.fn(),
-  getSubscribedSectionIdsMock: vi.fn(),
+  getCalendarSubscriptionUrlMock: vi.fn(),
   getUserCalendarSubscriptionMock: vi.fn(),
-  getViewerContextMock: vi.fn(),
-  listSubscribedHomeworkAuditLogsMock: vi.fn(),
-  listSubscribedHomeworksMock: vi.fn(),
+  listSubscribedHomeworkPageMock: vi.fn(),
   requireAuthMock: vi.fn(),
+  requireAuthPrincipalMock: vi.fn(),
   runCloudflareTraceSpanMock: vi.fn(),
-  withHomeworkItemStateMock: vi.fn(),
 }));
 
 vi.mock("@/lib/adapters/cloudflare-runtime", async (importOriginal) => {
@@ -42,21 +38,13 @@ vi.mock("@/lib/metrics/analytics-engine", async (importOriginal) => {
 
 vi.mock("@/lib/auth/api-auth", () => ({
   requireAuth: requireAuthMock,
-}));
-
-vi.mock("@/lib/auth/viewer-context", () => ({
-  getViewerContext: getViewerContextMock,
+  requireAuthPrincipal: requireAuthPrincipalMock,
 }));
 
 vi.mock("@/features/subscriptions/server/subscription-read-model", () => ({
-  getSubscribedSectionIds: getSubscribedSectionIdsMock,
+  getCalendarSubscriptionUrl: getCalendarSubscriptionUrlMock,
   getUserCalendarSubscription: getUserCalendarSubscriptionMock,
-  listSubscribedHomeworkAuditLogs: listSubscribedHomeworkAuditLogsMock,
-  listSubscribedHomeworks: listSubscribedHomeworksMock,
-}));
-
-vi.mock("@/features/homeworks/server/homework-item-state", () => ({
-  withHomeworkItemState: withHomeworkItemStateMock,
+  listSubscribedHomeworkPage: listSubscribedHomeworkPageMock,
 }));
 
 vi.mock("@/features/dashboard/server/compact-overview-read-model", () => ({
@@ -71,14 +59,17 @@ describe("workspace route tracing", () => {
         callback(),
     );
     requireAuthMock.mockResolvedValue({ userId: "user-1" });
+    requireAuthPrincipalMock.mockResolvedValue({
+      kind: "session",
+      userId: "user-1",
+    });
   });
 
   it("separates subscribed-homework reads without trace attributes", async () => {
-    getViewerContextMock.mockResolvedValue({ userId: "user-1" });
-    getSubscribedSectionIdsMock.mockResolvedValue([12]);
-    listSubscribedHomeworksMock.mockResolvedValue([{ id: "homework-1" }]);
-    listSubscribedHomeworkAuditLogsMock.mockResolvedValue([]);
-    withHomeworkItemStateMock.mockResolvedValue([{ id: "homework-1" }]);
+    listSubscribedHomeworkPageMock.mockResolvedValue({
+      data: [{ id: "homework-1" }],
+      pagination: { page: 1, pageSize: 20, total: 1, totalPages: 1 },
+    });
     const { getSubscribedHomeworksRoute } = await import(
       "@/lib/api/routes/homework-subscribed-read-route"
     );
@@ -89,10 +80,8 @@ describe("workspace route tracing", () => {
 
     expect(response.status).toBe(200);
     await expect(response.json()).resolves.toEqual({
-      auditLogs: [],
-      homeworks: [{ id: "homework-1" }],
-      sectionIds: [12],
-      viewer: { userId: "user-1" },
+      data: [{ id: "homework-1" }],
+      pagination: { page: 1, pageSize: 20, total: 1, totalPages: 1 },
     });
     expect(
       runCloudflareTraceSpanMock.mock.calls.map(([name, attributes]) => [
@@ -101,16 +90,23 @@ describe("workspace route tracing", () => {
       ]),
     ).toEqual([
       ["workspace.homeworks.auth", {}],
-      ["workspace.homeworks.viewer", {}],
-      ["workspace.homeworks.section_ids", {}],
       ["workspace.homeworks.read", {}],
-      ["workspace.homeworks.audit", {}],
-      ["workspace.homeworks.item_state", {}],
+      ["response.serialize", { "response.format": "json" }],
     ]);
   });
 
   it("separates current-subscription auth from its read", async () => {
-    const subscription = { id: "subscription-1" };
+    const subscription = {
+      userId: "user-1",
+      sections: [],
+      note: "Subscribe to this URL in a calendar client.",
+    };
+    requireAuthPrincipalMock.mockResolvedValue({
+      kind: "oauth",
+      userId: "user-1",
+      clientId: "client-1",
+      scopes: new Set(["workspace.subscription:read"]),
+    });
     getUserCalendarSubscriptionMock.mockResolvedValue(subscription);
     const { getCurrentCalendarSubscriptionRoute } = await import(
       "@/lib/api/routes/calendar-subscriptions"
@@ -121,7 +117,14 @@ describe("workspace route tracing", () => {
     );
 
     expect(response.status).toBe(200);
-    await expect(response.json()).resolves.toEqual({ subscription });
+    await expect(response.json()).resolves.toEqual({
+      subscription: {
+        ...subscription,
+        calendarPath: null,
+        calendarUrl: null,
+      },
+    });
+    expect(getCalendarSubscriptionUrlMock).not.toHaveBeenCalled();
     expect(
       runCloudflareTraceSpanMock.mock.calls.map(([name, attributes]) => [
         name,
@@ -130,7 +133,48 @@ describe("workspace route tracing", () => {
     ).toEqual([
       ["workspace.subscriptions.current.auth", {}],
       ["workspace.subscriptions.current.read", {}],
+      ["response.serialize", { "response.format": "json" }],
     ]);
+  });
+
+  it("reveals the private calendar feed only with its dedicated OAuth scope", async () => {
+    const subscription = {
+      userId: "user-1",
+      sections: [],
+      note: "Subscribe to this URL in a calendar client.",
+    };
+    requireAuthPrincipalMock.mockResolvedValue({
+      kind: "oauth",
+      userId: "user-1",
+      clientId: "client-1",
+      scopes: new Set([
+        "workspace.subscription:read",
+        "workspace.calendar-feed:read",
+      ]),
+    });
+    getUserCalendarSubscriptionMock.mockResolvedValue(subscription);
+    getCalendarSubscriptionUrlMock.mockResolvedValue(
+      "/api/calendar-feeds/user-1:secret.ics",
+    );
+    const { getCurrentCalendarSubscriptionRoute } = await import(
+      "@/lib/api/routes/calendar-subscriptions"
+    );
+
+    const response = await getCurrentCalendarSubscriptionRoute(
+      new Request("https://example.test/api/workspace/subscriptions/current"),
+    );
+
+    expect(response.status).toBe(200);
+    const body = (await response.json()) as {
+      subscription: { calendarPath: string; calendarUrl: string };
+    };
+    expect(body.subscription.calendarPath).toBe(
+      "/api/calendar-feeds/user-1:secret.ics",
+    );
+    expect(body.subscription.calendarUrl).toMatch(
+      /^https?:\/\/[^/]+\/api\/calendar-feeds\/user-1:secret\.ics$/,
+    );
+    expect(getCalendarSubscriptionUrlMock).toHaveBeenCalledWith("user-1", null);
   });
 
   it("separates overview auth from its read without trace attributes", async () => {
@@ -154,6 +198,7 @@ describe("workspace route tracing", () => {
     ).toEqual([
       ["workspace.overview.auth", {}],
       ["workspace.overview.read", {}],
+      ["response.serialize", { "response.format": "json" }],
     ]);
   });
 });

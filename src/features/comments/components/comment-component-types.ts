@@ -14,6 +14,7 @@ export type CommentUploadOption = {
 export type CommentsCopy = {
   anonymousLabel: string;
   anonymousBadge: string;
+  ancestryPlaceholder: string;
   cancelAction: string;
   commentTargetCurrent: string;
   commentTargetPlaceholder: string;
@@ -34,6 +35,9 @@ export type CommentsCopy = {
   loginToComment: string;
   loginToView: string;
   loadFailed: string;
+  loadMoreComments: string;
+  loadMoreReplies: string;
+  loadTarget: string;
   markdownCommentLabel: string;
   markdownEditLabel: string;
   markdownGuide: string;

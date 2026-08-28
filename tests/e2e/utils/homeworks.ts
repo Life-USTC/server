@@ -22,6 +22,7 @@ export async function cleanupHomeworksForE2e(
     });
 
     return homeworks.flatMap((homework) => [
+      { targetId: homework.id, targetType: "homework" },
       ...homework.comments.map((comment) => ({
         targetId: comment.id,
         targetType: "comment",
@@ -41,12 +42,7 @@ export async function cleanupHomeworksForE2e(
     await cleanupAuditTargetsForE2e(auditTargets);
   }
   await withE2ePrisma((prisma) =>
-    prisma.$transaction([
-      prisma.homeworkAuditLog.deleteMany({
-        where: { homeworkId: { in: homeworkIds } },
-      }),
-      prisma.homework.deleteMany({ where: { id: { in: homeworkIds } } }),
-    ]),
+    prisma.homework.deleteMany({ where: { id: { in: homeworkIds } } }),
   );
   if (auditTargets.length > 0) {
     await cleanupAuditTargetsForE2e(auditTargets);

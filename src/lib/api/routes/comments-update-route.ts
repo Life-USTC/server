@@ -8,7 +8,7 @@ import {
   commentUpdateRequestSchema,
   resourceIdPathParamsSchema,
 } from "@/lib/api/schemas/request-schemas";
-import { requireAuth } from "@/lib/auth/api-auth";
+import { requireAuthPrincipal } from "@/lib/auth/api-auth";
 
 type IdParams = { id: string };
 
@@ -25,11 +25,10 @@ export async function patchCommentRoute(
     return parsedParams;
   }
 
-  const auth = await requireAuth(request, {
+  const auth = await requireAuthPrincipal(request, {
     bearerScope: { feature: "community.comment", action: "write" },
   });
   if (auth instanceof Response) return auth;
-  const { userId } = auth;
 
   const parsedBody = await parseRouteJsonBody(
     request,
@@ -45,7 +44,7 @@ export async function patchCommentRoute(
       request,
       parsedParams.id,
       parsedBody,
-      userId,
+      auth,
     );
     return (
       response ??

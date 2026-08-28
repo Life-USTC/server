@@ -33,12 +33,13 @@ export async function loadSignInPage({
   url: URL;
 }) {
   const callbackUrl = resolveSignInCallbackUrl(searchParamsObject(url));
+  const reauthentication = url.searchParams.get("reauth") === "1";
   const session = hasRequestAuthSignal(request.headers)
     ? await import("@/lib/auth/core").then(({ getSessionFromHeaders }) =>
         getSessionFromHeaders(request.headers),
       )
     : null;
-  if (session?.user) {
+  if (session?.user && !reauthentication) {
     throw redirect(303, callbackUrl);
   }
 
@@ -47,6 +48,7 @@ export async function loadSignInPage({
   const debugAuthAllowed = allowDebugAuth();
   return {
     callbackUrl,
+    reauthentication,
     error: url.searchParams.get("error"),
     providers: getSignInProviderIds(debugAuthAllowed).map((id) => ({
       id,
@@ -66,6 +68,7 @@ export async function loadSignInPage({
       passkeyPending: copy.passkeyPending,
       passkeySignIn: copy.passkeySignIn,
       passkeyUnsupported: copy.passkeyUnsupported,
+      reauthenticationRequired: copy.reauthenticationRequired,
       termsNotice: parseTermsNotice(copy.termsNotice),
     },
     showDebugProviders: debugAuthAllowed,

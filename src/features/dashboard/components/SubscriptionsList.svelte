@@ -9,13 +9,13 @@ import type {
 } from "@/features/dashboard/lib/dashboard-controller-types";
 import { groupSubscribedSectionsBySemester } from "@/features/dashboard/lib/subscriptions";
 import { page } from "$app/stores";
+import TableIconButton from "$lib/components/TableIconButton.svelte";
+import TableRowActions from "$lib/components/TableRowActions.svelte";
 import TruncatedText from "$lib/components/TruncatedText.svelte";
 import * as AlertDialog from "$lib/components/ui/alert-dialog/index.js";
 import { Spinner } from "$lib/components/ui/spinner/index.js";
 import * as Table from "$lib/components/ui/table/index.js";
 import DashboardNoSubscriptionsState from "./DashboardNoSubscriptionsState.svelte";
-import DashboardTableIconButton from "./DashboardTableIconButton.svelte";
-import DashboardTableRowActions from "./DashboardTableRowActions.svelte";
 import SubscriptionsCardsView from "./SubscriptionsCardsView.svelte";
 import type { FormatMessage } from "./subscription-tab-types";
 
@@ -35,6 +35,7 @@ export let openBulkImportDialog: () => void;
 export let openQuickAddDialog: () => void;
 
 let pendingRemoveSection: SubscriptionSection | null = null;
+let removeDialogOpen = false;
 
 $: locale = $page.data.locale ?? "zh-cn";
 $: sectionGroups = subscriptions.flatMap((subscription) =>
@@ -60,14 +61,25 @@ function courseName(section: SubscriptionSection) {
 
 function requestRemoveSection(section: SubscriptionSection) {
   pendingRemoveSection = section;
+  removeDialogOpen = true;
 }
 
 async function confirmRemoveSection() {
   if (!pendingRemoveSection) return;
-  const removed = await removeSubscribedSection(pendingRemoveSection.id);
-  if (removed) {
-    pendingRemoveSection = null;
+  const section = pendingRemoveSection;
+  removeDialogOpen = false;
+  pendingRemoveSection = null;
+
+  const removed = await removeSubscribedSection(section.id);
+  if (!removed) {
+    pendingRemoveSection = section;
+    removeDialogOpen = true;
   }
+}
+
+function handleRemoveDialogOpenChange(open: boolean) {
+  removeDialogOpen = open;
+  if (!open && removingSectionId === null) pendingRemoveSection = null;
 }
 </script>
 
@@ -141,26 +153,26 @@ async function confirmRemoveSection() {
                     {section.credits ?? dashboardCopy.notAvailable}
                   </Table.Cell>
                   <Table.Cell>
-                    <DashboardTableRowActions>
-                      <DashboardTableIconButton
+                    <TableRowActions>
+                      <TableIconButton
                         disabled={removingSectionId === section.id}
                         label={subscriptionsCopy.unsubscribe}
                         variant="destructive"
                         onclick={() => requestRemoveSection(section)}
                       >
                         {#if removingSectionId === section.id}
-                          <Spinner />
+                          <Spinner data-icon="inline-start" />
                         {:else}
-                          <UserMinus />
+                          <UserMinus data-icon="inline-start" />
                         {/if}
-                      </DashboardTableIconButton>
-                      <DashboardTableIconButton
+                      </TableIconButton>
+                      <TableIconButton
                         href={`/catalog/sections/${section.jwId}`}
                         label={sectionCopy.moreDetails}
                       >
-                        <ArrowUpRight />
-                      </DashboardTableIconButton>
-                    </DashboardTableRowActions>
+                        <ArrowUpRight data-icon="inline-start" />
+                      </TableIconButton>
+                    </TableRowActions>
                   </Table.Cell>
                 </Table.Row>
               {/each}
@@ -196,10 +208,8 @@ async function confirmRemoveSection() {
 {/if}
 
 <AlertDialog.Root
-  open={pendingRemoveSection !== null}
-  onOpenChange={(open) => {
-    if (!open && removingSectionId === null) pendingRemoveSection = null;
-  }}
+  bind:open={removeDialogOpen}
+  onOpenChange={handleRemoveDialogOpenChange}
 >
   {#if pendingRemoveSection}
     <AlertDialog.Content>

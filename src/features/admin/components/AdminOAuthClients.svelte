@@ -1,14 +1,15 @@
 <script lang="ts">
 import TrashIcon from "@lucide/svelte/icons/trash-2";
-import DashboardTableIconButton from "@/features/dashboard/components/DashboardTableIconButton.svelte";
-import DashboardTableRowActions from "@/features/dashboard/components/DashboardTableRowActions.svelte";
+import TableIconButton from "$lib/components/TableIconButton.svelte";
+import TableRowActions from "$lib/components/TableRowActions.svelte";
 import TruncatedBadge from "$lib/components/TruncatedBadge.svelte";
 import TruncatedText from "$lib/components/TruncatedText.svelte";
 import { Badge } from "$lib/components/ui/badge/index.js";
-import { Button } from "$lib/components/ui/button/index.js";
 import * as Empty from "$lib/components/ui/empty/index.js";
 import * as Item from "$lib/components/ui/item/index.js";
 import * as Table from "$lib/components/ui/table/index.js";
+import AdminListShell from "./AdminListShell.svelte";
+import AdminTableShell from "./AdminTableShell.svelte";
 import type {
   AdminOAuthClient,
   AdminOAuthCopy,
@@ -17,16 +18,14 @@ import type {
 export let clientTypeLabel: (method: string) => string;
 export let clients: AdminOAuthClient[];
 export let copy: AdminOAuthCopy;
-export let createDisabled: boolean;
 export let formatCreatedAt: (value: string | Date) => string;
 export let onDelete: (client: AdminOAuthClient) => void;
-export let onCreate: () => void;
 export let scopeLabel: (scope: string) => string;
 </script>
 
 <section class="flex min-w-0 flex-col gap-3">
   <div class="flex justify-end">
-    <Badge variant="secondary">
+    <Badge variant="ghost">
       {copy.clientCount.replace("{count}", String(clients.length))}
     </Badge>
   </div>
@@ -37,25 +36,21 @@ export let scopeLabel: (scope: string) => string;
         <Empty.Title>{copy.noClients}</Empty.Title>
         <Empty.Description>{copy.noClientsDescription}</Empty.Description>
       </Empty.Header>
-      <Empty.Content class="items-start">
-        <Button disabled={createDisabled} onclick={onCreate}>
-          {copy.createClient}
-        </Button>
-      </Empty.Content>
     </Empty.Root>
   {:else}
     <div class="hidden min-w-0 max-w-full xl:block">
-      <Table.Root class="w-full">
+      <AdminTableShell label={copy.existingClientsDescription}>
+        <Table.Root class="w-full min-w-[64rem]">
         <Table.Caption class="sr-only">
           {copy.existingClientsDescription}
         </Table.Caption>
         <Table.Header>
           <Table.Row>
-            <Table.Head>{copy.tableColumnClient}</Table.Head>
-            <Table.Head>{copy.tableColumnType}</Table.Head>
-            <Table.Head>{copy.tableColumnScopes}</Table.Head>
-            <Table.Head>{copy.createdAtLabel}</Table.Head>
-            <Table.Head>
+            <Table.Head class="w-[29%]">{copy.tableColumnClient}</Table.Head>
+            <Table.Head class="w-[25%]">{copy.tableColumnType}</Table.Head>
+            <Table.Head class="w-[24%]">{copy.tableColumnScopes}</Table.Head>
+            <Table.Head class="w-[15%] text-right">{copy.createdAtLabel}</Table.Head>
+            <Table.Head class="w-14 min-w-14 text-right">
               <span class="sr-only">{copy.deleteClient}</span>
             </Table.Head>
           </Table.Row>
@@ -63,16 +58,18 @@ export let scopeLabel: (scope: string) => string;
         <Table.Body>
           {#each clients as client (client.clientId)}
             <Table.Row class="group">
-              <Table.Cell class="whitespace-normal">
+              <Table.Cell class="max-w-0">
+                {@const clientName = client.name ?? copy.unnamedClient}
                 <div class="flex min-w-0 flex-col gap-1">
-                  <TruncatedText
-                    class="font-medium"
-                    text={client.name ?? copy.unnamedClient}
-                  />
-                  <TruncatedText
-                    class="font-mono text-muted-foreground text-xs"
-                    text={client.clientId}
-                  />
+                  <span class="block max-w-full" title={clientName}>
+                    <TruncatedText class="font-medium" text={clientName} />
+                  </span>
+                  <span class="block max-w-full" title={client.clientId}>
+                    <TruncatedText
+                      class="font-mono text-muted-foreground text-xs"
+                      text={client.clientId}
+                    />
+                  </span>
                 </div>
               </Table.Cell>
               <Table.Cell>
@@ -90,7 +87,7 @@ export let scopeLabel: (scope: string) => string;
                   </Badge>
                 </div>
               </Table.Cell>
-              <Table.Cell class="max-w-[14rem]">
+              <Table.Cell class="max-w-0">
                 <TruncatedBadge
                   class="w-full max-w-full"
                   text={client.scopes.length > 0
@@ -98,33 +95,34 @@ export let scopeLabel: (scope: string) => string;
                     : copy.notAvailable}
                 />
               </Table.Cell>
-              <Table.Cell class="whitespace-nowrap tabular-nums text-muted-foreground">
+              <Table.Cell class="whitespace-nowrap text-right tabular-nums text-muted-foreground">
                 {formatCreatedAt(client.createdAt)}
               </Table.Cell>
-              <Table.Cell>
-                <DashboardTableRowActions>
-                  <DashboardTableIconButton
+              <Table.Cell class="w-14 min-w-14 text-right">
+                <TableRowActions class="justify-end">
+                  <TableIconButton
                     label={`${copy.deleteClient}: ${client.name ?? copy.unnamedClient}`}
                     variant="destructive"
                     onclick={() => onDelete(client)}
                   >
-                    <TrashIcon />
-                  </DashboardTableIconButton>
-                </DashboardTableRowActions>
+                    <TrashIcon data-icon="inline-start" />
+                  </TableIconButton>
+                </TableRowActions>
               </Table.Cell>
             </Table.Row>
           {/each}
         </Table.Body>
-      </Table.Root>
+        </Table.Root>
+      </AdminTableShell>
     </div>
 
-    <div class="xl:hidden">
-      <Item.Group>
+    <AdminListShell class="xl:hidden">
+      <Item.Group role="list">
         {#each clients as client (client.clientId)}
           <Item.Root role="listitem" variant="outline" class="items-start">
             <Item.Content class="min-w-0">
               <Item.Title>{client.name ?? copy.unnamedClient}</Item.Title>
-              <Item.Description class="break-all font-mono">
+              <Item.Description class="truncate font-mono" title={client.clientId}>
                 {client.clientId}
               </Item.Description>
               <div class="flex flex-wrap gap-1.5">
@@ -162,17 +160,17 @@ export let scopeLabel: (scope: string) => string;
               </Item.Description>
             </Item.Content>
             <Item.Actions class="w-full justify-end">
-              <DashboardTableIconButton
+              <TableIconButton
                 label={`${copy.deleteClient}: ${client.name ?? copy.unnamedClient}`}
                 variant="destructive"
                 onclick={() => onDelete(client)}
               >
-                <TrashIcon />
-              </DashboardTableIconButton>
+                <TrashIcon data-icon="inline-start" />
+              </TableIconButton>
             </Item.Actions>
           </Item.Root>
         {/each}
       </Item.Group>
-    </div>
+    </AdminListShell>
   {/if}
 </section>

@@ -10,7 +10,12 @@ export async function getUserProfileById(userId: string) {
   return await withE2ePrisma((prisma) =>
     prisma.user.findUniqueOrThrow({
       where: { id: userId },
-      select: { name: true, username: true, image: true },
+      select: {
+        name: true,
+        username: true,
+        image: true,
+        profilePictures: true,
+      },
     }),
   );
 }
@@ -44,12 +49,14 @@ export async function updateUserProfileById(
     name?: string | null;
     username?: string | null;
     image?: string | null;
+    profilePictures?: string[];
   },
 ) {
   const normalizedData: {
     name?: string;
     username?: string | null;
     image?: string | null;
+    profilePictures?: string[];
   } = {};
 
   if ("name" in data) {
@@ -60,6 +67,9 @@ export async function updateUserProfileById(
   }
   if ("image" in data) {
     normalizedData.image = data.image ?? null;
+  }
+  if ("profilePictures" in data) {
+    normalizedData.profilePictures = data.profilePictures ?? [];
   }
 
   await withE2ePrisma((prisma) =>

@@ -31,10 +31,13 @@ export type PublicSsrRouteResolver = (
 ) => PublicSsrMode | null | undefined;
 
 const STATIC_PUBLIC_PATHS = new Set([
-  "/catalog/bus/map",
+  "/account/sign-in",
   "/guides/markdown-support",
   "/api-docs",
-  "/mobile-app",
+  "/usage/mobile",
+  "/usage/bot",
+  "/usage/mcp",
+  "/usage/cli",
   "/privacy",
   "/terms",
 ]);
@@ -52,6 +55,7 @@ const CATALOG_DETAIL_PATH =
   /^\/catalog\/(courses|sections|teachers)\/([1-9]\d*)(?:\/([^/]+))?$/;
 
 const DYNAMIC_OR_PRIVATE_ROOTS = [
+  "/_internal",
   "/account",
   "/admin",
   "/api",

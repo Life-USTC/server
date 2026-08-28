@@ -1,6 +1,6 @@
 <script lang="ts">
-import SoftEmptyMessage from "$lib/components/SoftEmptyMessage.svelte";
 import { Badge } from "$lib/components/ui/badge/index.js";
+import * as Empty from "$lib/components/ui/empty/index.js";
 import AdminUsersDesktopTable from "./AdminUsersDesktopTable.svelte";
 import AdminUsersMobileList from "./AdminUsersMobileList.svelte";
 import type {
@@ -39,7 +39,11 @@ export let users: AdminUserRow[];
   </div>
 
   {#if users.length === 0}
-    <SoftEmptyMessage message={copy.noResults} />
+    <Empty.Root class="min-h-20 border-0 px-2 py-6">
+      <Empty.Header>
+        <Empty.Description>{copy.noResults}</Empty.Description>
+      </Empty.Header>
+    </Empty.Root>
   {:else}
     <AdminUsersMobileList
       {copy}

@@ -18,6 +18,7 @@
     "assistant-tool-hierarchy": "Use workspace_snapshot_get for broad assistant context; workspace_schedule_next for 'what is my next class?'; workspace_deadline_list for merged upcoming deadlines; workspace_overview_get only when lighter counts and samples suffice.",
     "historical-subscriptions-remain-discoverable": "A zero current-semester subscription count must not be presented as no course history when total subscriptions remain; web and assistant surfaces must offer a path to past-term sections, homework, schedules, and exams.",
     "focused-extracts-share-window": "Focused tools such as next-class and upcoming-deadlines should stay aligned with the same short-horizon window as the broader dashboard snapshot.",
+    "private-shell-overlay": "Public HTML remains viewer-independent. Authenticated browsers hydrate workspace navigation counts through a session-only, private no-store Web bootstrap; workspace SSR seeds the same in-memory projection without a duplicate browser request.",
     "dashboard-card-priority": "Dashboard cards prioritize the actionable object title, timing/status, and direct destination over raw nested identifiers. Titles retain usable horizontal space at common desktop widths; secondary context such as course, section, campus, or priority badge remains visible for disambiguation without crowding the title. Platform audit timestamps and repeated parent objects stay out of compact cards and MCP default output."
   },
   "capabilities": {
@@ -100,6 +101,50 @@
           "todo due today/due soon/all badges",
           "Pending todos",
           "Tab icons and counts"
+        ]
+      }
+    },
+    "workspace-shell-navigation": {
+      "title": "Workspace Shell Navigation Summary",
+      "description": "Private Web-only projection used to hydrate viewer identity and workspace sidebar counts without adding a public API surface.",
+      "auth": "user",
+      "links": {
+        "models": [
+          "UserSectionSubscription",
+          "Schedule",
+          "Homework",
+          "Todo",
+          "Exam"
+        ]
+      },
+      "web": {
+        "pages": [
+          "/workspace/overview",
+          "/workspace/calendar",
+          "/workspace/homeworks",
+          "/workspace/todos",
+          "/workspace/exams",
+          "/workspace/subscriptions",
+          "/catalog/courses",
+          "/catalog/sections",
+          "/catalog/teachers"
+        ]
+      },
+      "rules": {
+        "internal-endpoint": "/_internal/shell-bootstrap is a same-origin session-cookie-only Web transport and returns the allowlisted viewer plus five workspace navigation counts.",
+        "private-cache-boundary": "Every response uses Cache-Control private, no-store, Cloudflare-CDN-Cache-Control no-store, and Vary Cookie; Bearer authentication is rejected.",
+        "ssr-csr-hydration": "Workspace SSR seeds the in-memory projection directly; other authenticated pages request it after hydration; explicit anonymous results contain null viewer and navigation values."
+      },
+      "rest": "unavailable",
+      "graphql": "unavailable",
+      "mcp": "unavailable",
+      "display": {
+        "fields": [
+          "Calendar item count",
+          "Pending homework count",
+          "Pending todo count",
+          "Upcoming exam count",
+          "Subscribed section count"
         ]
       }
     },

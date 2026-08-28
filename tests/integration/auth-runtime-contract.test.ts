@@ -1,10 +1,14 @@
 import { afterAll, describe, expect, it } from "vitest";
+import { recordOAuthGrantUsage } from "@/lib/oauth/grant-usage";
 import { createTestPrisma, disconnectTestPrisma } from "../shared/prisma";
 
 const authDatabaseUrl = process.env.AUTH_DATABASE_URL;
 const authPrisma = createTestPrisma(
   authDatabaseUrl ?? process.env.DATABASE_URL,
   { user: { calendarFeedToken: true } },
+);
+const adminPrisma = createTestPrisma(
+  process.env.FUNCTION_OWNER_DATABASE_URL ?? process.env.DATABASE_URL,
 );
 
 const expectedTablePrivileges = [
@@ -30,6 +34,10 @@ const expectedTablePrivileges = [
   "OAuthConsent:INSERT",
   "OAuthConsent:SELECT",
   "OAuthConsent:UPDATE",
+  "OAuthGrantUsageDaily:DELETE",
+  "OAuthGrantUsageDaily:INSERT",
+  "OAuthGrantUsageDaily:SELECT",
+  "OAuthGrantUsageDaily:UPDATE",
   "OAuthRefreshToken:DELETE",
   "OAuthRefreshToken:INSERT",
   "OAuthRefreshToken:SELECT",
@@ -42,7 +50,6 @@ const expectedTablePrivileges = [
   "Session:INSERT",
   "Session:SELECT",
   "Session:UPDATE",
-  "User:DELETE",
   "VerificationToken:DELETE",
   "VerificationToken:INSERT",
   "VerificationToken:SELECT",
@@ -95,7 +102,10 @@ describe.skipIf(process.env.AUTH_ROLE_TEST_ENABLED !== "true")(
   "authentication runtime role contract",
   () => {
     afterAll(async () => {
-      await disconnectTestPrisma(authPrisma);
+      await Promise.all([
+        disconnectTestPrisma(authPrisma),
+        disconnectTestPrisma(adminPrisma),
+      ]);
     });
 
     it("is an unprivileged standalone login role", async () => {
@@ -207,6 +217,10 @@ describe.skipIf(process.env.AUTH_ROLE_TEST_ENABLED !== "true")(
       expect(functionGrants).toEqual([
         {
           signature:
+            'public.delete_own_account(p_user_id text, p_audit_id text, p_channel "AuditChannel", p_ip_address text, p_user_agent text, p_session_id text, p_request_id text):EXECUTE',
+        },
+        {
+          signature:
             "public.unlink_settings_account(p_user_id text, p_provider text):EXECUTE",
         },
       ]);
@@ -232,7 +246,51 @@ describe.skipIf(process.env.AUTH_ROLE_TEST_ENABLED !== "true")(
         await expect(authPrisma.todo.count()).rejects.toThrow();
         await expect(authPrisma.auditLog.count()).rejects.toThrow();
       } finally {
-        await authPrisma.user.delete({ where: { id: user.id } });
+        await adminPrisma.user.delete({ where: { id: user.id } });
+      }
+    });
+
+    it("can atomically manage OAuth usage while retaining no app-table access", async () => {
+      const marker = `auth-role-usage-${crypto.randomUUID()}`;
+      const clientId = `${marker}-client`;
+      const grantId = `${marker}-grant`;
+      const user = await authPrisma.user.create({
+        data: { email: `${marker}@example.test`, name: marker },
+        select: { id: true },
+      });
+      await authPrisma.oAuthClient.create({
+        data: {
+          clientId,
+          name: marker,
+          redirectUris: ["https://client.example.test/callback"],
+        },
+      });
+      try {
+        await recordOAuthGrantUsage(
+          {
+            userId: user.id,
+            clientId,
+            grantId,
+            channel: "rest",
+            feature: "account.profile",
+            action: "read",
+          },
+          authPrisma,
+        );
+        await expect(
+          authPrisma.oAuthGrantUsageDaily.findFirstOrThrow({
+            where: { userId: user.id, clientId, grantId },
+          }),
+        ).resolves.toMatchObject({ readCount: 1 });
+        await expect(
+          authPrisma.oAuthGrantUsageDaily.deleteMany({
+            where: { userId: user.id, clientId, grantId },
+          }),
+        ).resolves.toMatchObject({ count: 1 });
+        await expect(authPrisma.auditLog.count()).rejects.toThrow();
+      } finally {
+        await authPrisma.oAuthClient.deleteMany({ where: { clientId } });
+        await adminPrisma.user.deleteMany({ where: { id: user.id } });
       }
     });
 
@@ -329,7 +387,7 @@ describe.skipIf(process.env.AUTH_ROLE_TEST_ENABLED !== "true")(
           profilePictures: [],
         });
       } finally {
-        await authPrisma.user.deleteMany({ where: { id: user.id } });
+        await adminPrisma.user.deleteMany({ where: { id: user.id } });
       }
     });
   },

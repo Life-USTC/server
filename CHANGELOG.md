@@ -1,3 +1,430 @@
+## [1.96.2](https://github.com/Life-USTC/server/compare/v1.96.1...v1.96.2) (2026-08-28)
+
+
+### Bug Fixes
+
+* **admin:** return 403 for non-admin access to /admin ([#964](https://github.com/Life-USTC/server/issues/964)) ([f1d36f6](https://github.com/Life-USTC/server/commit/f1d36f6097ab69e7b7d317edbd4e4b9377cc3f61))
+* **ui:** shadcn-svelte compliance and visual audit follow-up ([#965](https://github.com/Life-USTC/server/issues/965)) ([faab9f3](https://github.com/Life-USTC/server/commit/faab9f3a9e8968bfbfe5116f3e492a6816b85ffd)), closes [#958](https://github.com/Life-USTC/server/issues/958) [#959](https://github.com/Life-USTC/server/issues/959) [#960](https://github.com/Life-USTC/server/issues/960) [#961](https://github.com/Life-USTC/server/issues/961) [#962](https://github.com/Life-USTC/server/issues/962)
+
+## [1.96.1](https://github.com/Life-USTC/server/compare/v1.96.0...v1.96.1) (2026-08-27)
+
+
+### Bug Fixes
+
+* **observability:** preserve Worker response metadata ([bd0715d](https://github.com/Life-USTC/server/commit/bd0715d77b6a3d85a0f583ce93522e71679b64d3))
+
+# [1.96.0](https://github.com/Life-USTC/server/compare/v1.95.0...v1.96.0) (2026-08-27)
+
+
+### Features
+
+* **observability:** integrate runtime telemetry and catalog/calendar optimizations ([264654e](https://github.com/Life-USTC/server/commit/264654e23ff53796256252d311c1ab878df46e72))
+
+# [1.95.0](https://github.com/Life-USTC/server/compare/v1.94.1...v1.95.0) (2026-08-27)
+
+
+### Features
+
+* **comments:** bound comment threads and panel loading ([679d3be](https://github.com/Life-USTC/server/commit/679d3be6012b3cc486e789874a6f32100adc5812)), closes [#933](https://github.com/Life-USTC/server/issues/933)
+
+## [1.94.1](https://github.com/Life-USTC/server/compare/v1.94.0...v1.94.1) (2026-08-27)
+
+
+### Bug Fixes
+
+* **ui:** harden mobile layout and accessibility targets ([#945](https://github.com/Life-USTC/server/issues/945)) ([a17f5c4](https://github.com/Life-USTC/server/commit/a17f5c448293744703282f92f133b0ca2e8b4a4b))
+
+# [1.94.0](https://github.com/Life-USTC/server/compare/v1.93.5...v1.94.0) (2026-08-27)
+
+
+### Features
+
+* **ui:** unify responsive page and homework design ([#947](https://github.com/Life-USTC/server/issues/947)) ([8a4ef0a](https://github.com/Life-USTC/server/commit/8a4ef0a36401736d5bba5d1fe111c12b4be29970))
+
+## [1.93.5](https://github.com/Life-USTC/server/compare/v1.93.4...v1.93.5) (2026-08-27)
+
+
+### Performance Improvements
+
+* make section homework lists summary-only ([#949](https://github.com/Life-USTC/server/issues/949)) ([54850ee](https://github.com/Life-USTC/server/commit/54850eeaa8e0e37d31fa8ba3511dc34f2dc71c35))
+
+## [1.93.4](https://github.com/Life-USTC/server/compare/v1.93.3...v1.93.4) (2026-08-27)
+
+
+### Bug Fixes
+
+* **a11y:** add roving focus to contribution heatmap ([#944](https://github.com/Life-USTC/server/issues/944)) ([296929f](https://github.com/Life-USTC/server/commit/296929ffbf0e056844b0fa16dfbd8ca6b2f7e1dd))
+* **a11y:** nest embedded Markdown headings ([#940](https://github.com/Life-USTC/server/issues/940)) ([c58ba7d](https://github.com/Life-USTC/server/commit/c58ba7d24db902f27eeb358d4bb00a41b1067295))
+* **a11y:** raise Bot bubble contrast ([#942](https://github.com/Life-USTC/server/issues/942)) ([47d6660](https://github.com/Life-USTC/server/commit/47d666004de3b32094d722c44868472bc4c3d414))
+* **dev:** load Prisma WASM through Vite ([#938](https://github.com/Life-USTC/server/issues/938)) ([f48924e](https://github.com/Life-USTC/server/commit/f48924e563cf0571cea5fe9a290fb2ce892327ea))
+* **worker:** refresh request IDs on cached SSR responses ([f114d06](https://github.com/Life-USTC/server/commit/f114d0648aa9aab591ea7169ea945259b43877ec))
+
+
+### Performance Improvements
+
+* **cache:** activate catalog detail colo cache ([#946](https://github.com/Life-USTC/server/issues/946)) ([5f57ed6](https://github.com/Life-USTC/server/commit/5f57ed6bc0f7623ea50b389b9053a425abcf2356))
+* **workspace:** split dashboard RLS read contexts ([#948](https://github.com/Life-USTC/server/issues/948)) ([8501545](https://github.com/Life-USTC/server/commit/8501545d57584f2779bd50a56b4d47ac9b8f091c))
+
+## [1.93.3](https://github.com/Life-USTC/server/compare/v1.93.2...v1.93.3) (2026-08-27)
+
+
+### Performance Improvements
+
+* **observability:** reduce DB work and harden telemetry ([5dfdc78](https://github.com/Life-USTC/server/commit/5dfdc7858486e3a97be21cbf465a96e8c77df652))
+
+## [1.93.2](https://github.com/Life-USTC/server/compare/v1.93.1...v1.93.2) (2026-08-26)
+
+
+### Bug Fixes
+
+* **observability:** harden audit and worker telemetry ([#928](https://github.com/Life-USTC/server/issues/928)) ([a247ae7](https://github.com/Life-USTC/server/commit/a247ae78c8b3a694652cb5b6d08ec66e6a8f0761))
+
+## [1.93.1](https://github.com/Life-USTC/server/compare/v1.93.0...v1.93.1) (2026-08-26)
+
+
+### Bug Fixes
+
+* **ui:** redesign homework detail hierarchy ([#927](https://github.com/Life-USTC/server/issues/927)) ([90a0fde](https://github.com/Life-USTC/server/commit/90a0fde5e72c7198eef173ac2c2df77d895eb098))
+
+# [1.93.0](https://github.com/Life-USTC/server/compare/v1.92.0...v1.93.0) (2026-08-26)
+
+
+### Features
+
+* **ui:** compose catalog courses from shared surfaces ([#926](https://github.com/Life-USTC/server/issues/926)) ([7ecd1e0](https://github.com/Life-USTC/server/commit/7ecd1e0d04ab9074eed995bb0d5949d58dad290b))
+
+# [1.92.0](https://github.com/Life-USTC/server/compare/v1.91.7...v1.92.0) (2026-08-25)
+
+
+### Bug Fixes
+
+* escape username pattern hyphen ([#925](https://github.com/Life-USTC/server/issues/925)) ([9045cf9](https://github.com/Life-USTC/server/commit/9045cf9405c17cac47a67c55cd0b11d968b25b47))
+* use toast-only success feedback ([#923](https://github.com/Life-USTC/server/issues/923)) ([9619f31](https://github.com/Life-USTC/server/commit/9619f314347b798501966b67bdfe62f6ab79a587)), closes [#920](https://github.com/Life-USTC/server/issues/920)
+
+
+### Features
+
+* add success toasts for persisted mutations ([#922](https://github.com/Life-USTC/server/issues/922)) ([35ac8ee](https://github.com/Life-USTC/server/commit/35ac8eea78dff601ede94a6d31aaabad9115f782))
+
+## [1.91.7](https://github.com/Life-USTC/server/compare/v1.91.6...v1.91.7) (2026-08-25)
+
+
+### Bug Fixes
+
+* **ui:** redesign task and record item views ([#921](https://github.com/Life-USTC/server/issues/921)) ([07b222f](https://github.com/Life-USTC/server/commit/07b222fe6c052be9ddcad699bb439ea1b8b43ab1))
+
+## [1.91.6](https://github.com/Life-USTC/server/compare/v1.91.5...v1.91.6) (2026-08-24)
+
+
+### Bug Fixes
+
+* **ui:** unify destructive and secondary actions ([#907](https://github.com/Life-USTC/server/issues/907)) ([572c5a8](https://github.com/Life-USTC/server/commit/572c5a807a0aa5d255ceb1e5c5d3246c9c8892f9))
+
+## [1.91.5](https://github.com/Life-USTC/server/compare/v1.91.4...v1.91.5) (2026-08-24)
+
+
+### Bug Fixes
+
+* **ui:** redesign TODO and homework dialog action hierarchy and copy ([#906](https://github.com/Life-USTC/server/issues/906)) ([046e646](https://github.com/Life-USTC/server/commit/046e646e474c3ba36dcdb5bf06775a11d0fd125c))
+
+## [1.91.4](https://github.com/Life-USTC/server/compare/v1.91.3...v1.91.4) (2026-08-24)
+
+
+### Bug Fixes
+
+* **ui:** make shared dialogs viewport safe ([#905](https://github.com/Life-USTC/server/issues/905)) ([6a80ccd](https://github.com/Life-USTC/server/commit/6a80ccd01fffd8534b927b7a9e87bb262fa34212))
+
+## [1.91.3](https://github.com/Life-USTC/server/compare/v1.91.2...v1.91.3) (2026-08-24)
+
+
+### Bug Fixes
+
+* **ui:** compose search and usage interactions with shadcn ([#901](https://github.com/Life-USTC/server/issues/901)) ([846b13d](https://github.com/Life-USTC/server/commit/846b13dfd6daf5dcd6026d036e40f045223e74af))
+* **ui:** standardize feedback and destructive states ([#899](https://github.com/Life-USTC/server/issues/899)) ([a722d10](https://github.com/Life-USTC/server/commit/a722d10599bf71bd32c9d883ded5805943e69206))
+* **ui:** standardize pagination empty and linked layouts ([#900](https://github.com/Life-USTC/server/issues/900)) ([88002c5](https://github.com/Life-USTC/server/commit/88002c586dacf1ec4647622cb1177d817123d726))
+
+## [1.91.2](https://github.com/Life-USTC/server/compare/v1.91.1...v1.91.2) (2026-08-24)
+
+
+### Bug Fixes
+
+* **admin:** improve mobile navigation and records ([#887](https://github.com/Life-USTC/server/issues/887)) ([7bd298e](https://github.com/Life-USTC/server/commit/7bd298e077065cdb1158771c0548ed589787d615))
+
+## [1.91.1](https://github.com/Life-USTC/server/compare/v1.91.0...v1.91.1) (2026-08-24)
+
+
+### Bug Fixes
+
+* **dashboard:** compact workspace mobile surfaces ([#886](https://github.com/Life-USTC/server/issues/886)) ([a96fa31](https://github.com/Life-USTC/server/commit/a96fa31b7627f86e1e7d76e03be216a4fae18afb))
+* **ui:** harden public and auth mobile layouts ([#885](https://github.com/Life-USTC/server/issues/885)) ([b283274](https://github.com/Life-USTC/server/commit/b2832748fb9f151afaaf6e1387e1a3be586b6b43))
+
+# [1.91.0](https://github.com/Life-USTC/server/compare/v1.90.8...v1.91.0) (2026-08-15)
+
+
+### Features
+
+* **catalog:** refresh campus links ([#851](https://github.com/Life-USTC/server/issues/851)) ([78c21d7](https://github.com/Life-USTC/server/commit/78c21d7e583d1a681b9e9ab5b76c2005be9c287f))
+
+## [1.90.8](https://github.com/Life-USTC/server/compare/v1.90.7...v1.90.8) (2026-08-15)
+
+
+### Bug Fixes
+
+* **mcp:** allow anonymous catalog tools ([#849](https://github.com/Life-USTC/server/issues/849)) ([ca27c76](https://github.com/Life-USTC/server/commit/ca27c763435c34b1555ba651d68ce40528fb6f42))
+
+## [1.90.7](https://github.com/Life-USTC/server/compare/v1.90.6...v1.90.7) (2026-08-15)
+
+
+### Bug Fixes
+
+* **oauth:** preserve grants across consent retries ([#848](https://github.com/Life-USTC/server/issues/848)) ([981778b](https://github.com/Life-USTC/server/commit/981778b75f1e5c9004ecf39affcd9be3a9a11a8a))
+
+## [1.90.6](https://github.com/Life-USTC/server/compare/v1.90.5...v1.90.6) (2026-08-15)
+
+
+### Bug Fixes
+
+* **oauth:** stabilize incremental scope grants ([#847](https://github.com/Life-USTC/server/issues/847)) ([475c438](https://github.com/Life-USTC/server/commit/475c43877eb0d918e89019c3741cf89d68a7b72f))
+
+## [1.90.5](https://github.com/Life-USTC/server/compare/v1.90.4...v1.90.5) (2026-08-14)
+
+
+### Bug Fixes
+
+* **runtime:** close Worker database pools per request ([#846](https://github.com/Life-USTC/server/issues/846)) ([2675d10](https://github.com/Life-USTC/server/commit/2675d1063a3411d4d06df164d9440925b8c41eaf))
+
+## [1.90.4](https://github.com/Life-USTC/server/compare/v1.90.3...v1.90.4) (2026-08-14)
+
+
+### Bug Fixes
+
+* **auth:** adapt CIMD redirects for Workers ([#845](https://github.com/Life-USTC/server/issues/845)) ([b77a13d](https://github.com/Life-USTC/server/commit/b77a13dc085db435d2f47213697a9182ee016b92))
+
+## [1.90.3](https://github.com/Life-USTC/server/compare/v1.90.2...v1.90.3) (2026-08-14)
+
+
+### Bug Fixes
+
+* **observability:** await catalog detail query spans ([#843](https://github.com/Life-USTC/server/issues/843)) ([bfc0e01](https://github.com/Life-USTC/server/commit/bfc0e019b1942af875e24e3937e97aaec3fe8335))
+
+## [1.90.2](https://github.com/Life-USTC/server/compare/v1.90.1...v1.90.2) (2026-08-14)
+
+
+### Performance Improvements
+
+* **catalog:** refine detail core phases ([#842](https://github.com/Life-USTC/server/issues/842)) ([be601a9](https://github.com/Life-USTC/server/commit/be601a9a001b21e1ba471fce1d7a10cdefc43604))
+
+## [1.90.1](https://github.com/Life-USTC/server/compare/v1.90.0...v1.90.1) (2026-08-14)
+
+
+### Bug Fixes
+
+* hydrate workspace sidebar counts on public pages ([#840](https://github.com/Life-USTC/server/issues/840)) ([9780dd3](https://github.com/Life-USTC/server/commit/9780dd3606e8a505b62b152f50979ea1234cd305))
+
+
+### Performance Improvements
+
+* **observability:** trace catalog and response phases ([#841](https://github.com/Life-USTC/server/issues/841)) ([1685c97](https://github.com/Life-USTC/server/commit/1685c97e75bb1586543d7fcc36fb8107d7a9499b))
+
+# [1.90.0](https://github.com/Life-USTC/server/compare/v1.89.14...v1.90.0) (2026-08-14)
+
+
+### Bug Fixes
+
+* **observability:** redact worker operational logs ([#839](https://github.com/Life-USTC/server/issues/839)) ([cb513a3](https://github.com/Life-USTC/server/commit/cb513a3075ef03b185eed8254f762ec07954c675))
+* **search:** match tokenized catalog queries ([#836](https://github.com/Life-USTC/server/issues/836)) ([2dce7bb](https://github.com/Life-USTC/server/commit/2dce7bbdf49fb6d42bcc06f11d09229c0afec277))
+
+
+### Features
+
+* **observability:** attribute public cache phases ([#838](https://github.com/Life-USTC/server/issues/838)) ([d84488b](https://github.com/Life-USTC/server/commit/d84488bf1fd872c83418f06d6acb45faf196d5e5))
+
+## [1.89.14](https://github.com/Life-USTC/server/compare/v1.89.13...v1.89.14) (2026-08-14)
+
+
+### Performance Improvements
+
+* **search:** trace catalog and workspace reads ([#834](https://github.com/Life-USTC/server/issues/834)) ([d2e0568](https://github.com/Life-USTC/server/commit/d2e0568689197f1c7aa23ae7c08c950abb666610))
+
+## [1.89.13](https://github.com/Life-USTC/server/compare/v1.89.12...v1.89.13) (2026-08-14)
+
+
+### Bug Fixes
+
+* **search:** keep source links out of catalog cache ([#831](https://github.com/Life-USTC/server/issues/831)) ([18c99d4](https://github.com/Life-USTC/server/commit/18c99d466686f7823c91a87f5bed5d55cbc8f55a))
+
+
+### Performance Improvements
+
+* **calendar:** bound multi-section exports ([#832](https://github.com/Life-USTC/server/issues/832)) ([949815e](https://github.com/Life-USTC/server/commit/949815e79c9c8e70844cc135fd825a2ba59f2ab8))
+* **homeworks:** bound list endpoints ([#833](https://github.com/Life-USTC/server/issues/833)) ([cc53e53](https://github.com/Life-USTC/server/commit/cc53e538d0bf0514636ed225927e4927ece5b1ff))
+* **todos:** bound and fuse summary reads ([#835](https://github.com/Life-USTC/server/issues/835)) ([50603b7](https://github.com/Life-USTC/server/commit/50603b75e4a4d45a8c8b684a48acba533054befd))
+
+## [1.89.12](https://github.com/Life-USTC/server/compare/v1.89.11...v1.89.12) (2026-08-14)
+
+
+### Bug Fixes
+
+* **search:** isolate public and workspace caching ([#829](https://github.com/Life-USTC/server/issues/829)) ([38d811d](https://github.com/Life-USTC/server/commit/38d811d0d218ba834e9964a9e9bad5ab38ebd6e5))
+
+
+### Performance Improvements
+
+* **catalog:** cache details and collapse child reads ([#828](https://github.com/Life-USTC/server/issues/828)) ([40ee9c5](https://github.com/Life-USTC/server/commit/40ee9c5dae793c939f15bdaed704ccc08ef7a716))
+* **catalog:** share public list caches ([#821](https://github.com/Life-USTC/server/issues/821)) ([58515d4](https://github.com/Life-USTC/server/commit/58515d4f18e9243e148560a62e74966549cb7356))
+* **community:** collapse read query phases ([#824](https://github.com/Life-USTC/server/issues/824)) ([db3b210](https://github.com/Life-USTC/server/commit/db3b2102a47fa2f557901df90e1725390a5b44a9))
+* **oauth:** remove duplicate token bootstrap ([#823](https://github.com/Life-USTC/server/issues/823)) ([b357170](https://github.com/Life-USTC/server/commit/b3571708e6cb13a9e3ffb089b71476773329207c))
+* **search:** bound queries and abort stale requests ([#830](https://github.com/Life-USTC/server/issues/830)) ([3ce061d](https://github.com/Life-USTC/server/commit/3ce061d2643bf0ba459d1013f69ea641ad53bd83))
+* **section:** collapse detail page query waterfall ([#827](https://github.com/Life-USTC/server/issues/827)) ([75f7c9f](https://github.com/Life-USTC/server/commit/75f7c9fc1dee52d21210b220cd5cea643eda84e5))
+* **social-card:** collapse upstream render waterfall ([#825](https://github.com/Life-USTC/server/issues/825)) ([6765b31](https://github.com/Life-USTC/server/commit/6765b31d51ebd631064af81ae98fa3e1c9a49ddf))
+
+## [1.89.11](https://github.com/Life-USTC/server/compare/v1.89.10...v1.89.11) (2026-08-14)
+
+
+### Bug Fixes
+
+* **subscriptions:** keep computed names out of RLS queries ([#826](https://github.com/Life-USTC/server/issues/826)) ([8d23547](https://github.com/Life-USTC/server/commit/8d23547ea719a23d61f496c1599c7d599a5beb64))
+
+
+### Performance Improvements
+
+* **catalog:** bound public teacher payloads ([#820](https://github.com/Life-USTC/server/issues/820)) ([92440af](https://github.com/Life-USTC/server/commit/92440afcc423ab6ba90e955910e6c4ee4205e14b))
+* **workspace:** bound overview calendar data ([#822](https://github.com/Life-USTC/server/issues/822)) ([c0b16b1](https://github.com/Life-USTC/server/commit/c0b16b14ece18d1689a4b404cefb26ad6afc00c7))
+
+## [1.89.10](https://github.com/Life-USTC/server/compare/v1.89.9...v1.89.10) (2026-08-13)
+
+
+### Performance Improvements
+
+* **bus:** cache public schedules safely ([#817](https://github.com/Life-USTC/server/issues/817)) ([34e4aed](https://github.com/Life-USTC/server/commit/34e4aed820190f4afad1942533700a0210bae9c3))
+* **catalog:** cache current semester reads ([#818](https://github.com/Life-USTC/server/issues/818)) ([4b41e83](https://github.com/Life-USTC/server/commit/4b41e836660e7be357f56077987b3e9bb27c55cd))
+* reuse overview RLS transaction ([#819](https://github.com/Life-USTC/server/issues/819)) ([578db54](https://github.com/Life-USTC/server/commit/578db540913ab2271dfc3aed6f7bf718c3bf0c31))
+
+## [1.89.9](https://github.com/Life-USTC/server/compare/v1.89.8...v1.89.9) (2026-08-10)
+
+
+### Bug Fixes
+
+* **static:** bound createMany batches ([06a9365](https://github.com/Life-USTC/server/commit/06a936593c637c5dc8e387668e4b4fe0fd7f4dec))
+
+## [1.89.8](https://github.com/Life-USTC/server/compare/v1.89.7...v1.89.8) (2026-08-10)
+
+
+### Bug Fixes
+
+* **static:** serialize section teacher inserts ([7bc7289](https://github.com/Life-USTC/server/commit/7bc728900cf9a2c2e971fc227f8cd38e316bac7d))
+
+## [1.89.7](https://github.com/Life-USTC/server/compare/v1.89.6...v1.89.7) (2026-08-10)
+
+
+### Bug Fixes
+
+* **static:** type rebuilt teacher retirement ([0c23076](https://github.com/Life-USTC/server/commit/0c23076deaf92f4447cb1360c179016da42963d5))
+
+## [1.89.6](https://github.com/Life-USTC/server/compare/v1.89.5...v1.89.6) (2026-08-10)
+
+
+### Bug Fixes
+
+* **static:** promote historical teacher IDs ([8b48ef1](https://github.com/Life-USTC/server/commit/8b48ef1f220334ce5f0e59de023073177adbdb4f))
+
+## [1.89.5](https://github.com/Life-USTC/server/compare/v1.89.4...v1.89.5) (2026-08-10)
+
+
+### Bug Fixes
+
+* **static:** retire department code identity ([5633f7a](https://github.com/Life-USTC/server/commit/5633f7ad2b924be71600f7a1c8640a5c38a147b3))
+
+## [1.89.4](https://github.com/Life-USTC/server/compare/v1.89.3...v1.89.4) (2026-08-10)
+
+
+### Bug Fixes
+
+* **static:** apply identity migration in sets ([3a5dce3](https://github.com/Life-USTC/server/commit/3a5dce3eaeb71394b4d0fb2678151255f94c385a))
+
+## [1.89.3](https://github.com/Life-USTC/server/compare/v1.89.2...v1.89.3) (2026-08-10)
+
+
+### Bug Fixes
+
+* **static:** recover archived upstream course IDs ([5243015](https://github.com/Life-USTC/server/commit/5243015165085cc86e2e5916dfbdb3b9800886e7))
+
+## [1.89.2](https://github.com/Life-USTC/server/compare/v1.89.1...v1.89.2) (2026-08-10)
+
+
+### Bug Fixes
+
+* **auth:** coordinate dependency upgrades ([#785](https://github.com/Life-USTC/server/issues/785)) ([ef0343e](https://github.com/Life-USTC/server/commit/ef0343e64d62413edc5411d032a2811edeefac91))
+* **static:** restore recorded raw course identities ([8140218](https://github.com/Life-USTC/server/commit/8140218afda824279c393fb03ded5042f2dcd53d))
+
+## [1.89.1](https://github.com/Life-USTC/server/compare/v1.89.0...v1.89.1) (2026-08-10)
+
+
+### Bug Fixes
+
+* **static:** retain historical upstream identities ([2a285f7](https://github.com/Life-USTC/server/commit/2a285f78a3e05b3446fb22227a8444398b02a146))
+
+# [1.89.0](https://github.com/Life-USTC/server/compare/v1.88.3...v1.89.0) (2026-08-09)
+
+
+### Bug Fixes
+
+* allow GA collection endpoint in CSP ([8e24f45](https://github.com/Life-USTC/server/commit/8e24f45474c2cd96ceabeb120ec9bbea2312c45b))
+* bound catalog queries and isolate runtime caches ([d34fd5d](https://github.com/Life-USTC/server/commit/d34fd5d65cee5bebef103d6c1fd37af1159d634f))
+
+
+### Features
+
+* add GA4 measurement tag ([e7caf76](https://github.com/Life-USTC/server/commit/e7caf76f8614ce5f0d7c925a00b53e38172041e7))
+
+
+### Performance Improvements
+
+* reuse workspace database context ([21653a2](https://github.com/Life-USTC/server/commit/21653a24233ce6e2766ddd3ae117d4a176730f89))
+
+## [1.88.3](https://github.com/Life-USTC/server/compare/v1.88.2...v1.88.3) (2026-08-09)
+
+
+### Bug Fixes
+
+* apply upload cleanup RLS policy ([cd6f720](https://github.com/Life-USTC/server/commit/cd6f72039a2248fdc7e73f91193290c66776fe98))
+* grant upload cleanup owner access ([4f448f5](https://github.com/Life-USTC/server/commit/4f448f56d1f36d441797ffe3b24fd488e30ea6d4))
+* grant upload cleanup owner access ([#772](https://github.com/Life-USTC/server/issues/772)) ([7713fe6](https://github.com/Life-USTC/server/commit/7713fe6c4ace204539f1744a6e127cc171c00881))
+
+## [1.88.2](https://github.com/Life-USTC/server/compare/v1.88.1...v1.88.2) (2026-08-09)
+
+
+### Bug Fixes
+
+* run auth cleanup in Worker cron ([#771](https://github.com/Life-USTC/server/issues/771)) ([a7f2bc7](https://github.com/Life-USTC/server/commit/a7f2bc7fd0a4f9c4cef83dc9b60d1397c924e7f5))
+
+## [1.88.1](https://github.com/Life-USTC/server/compare/v1.88.0...v1.88.1) (2026-08-09)
+
+
+### Bug Fixes
+
+* repair runtime cleanup and sequence drift ([#770](https://github.com/Life-USTC/server/issues/770)) ([6546001](https://github.com/Life-USTC/server/commit/6546001bedbc3a75d90e1980bb546e31b18ea1ec))
+
+# [1.88.0](https://github.com/Life-USTC/server/compare/v1.87.0...v1.88.0) (2026-08-08)
+
+
+### Features
+
+* refresh campus link catalog ([#766](https://github.com/Life-USTC/server/issues/766)) ([6806c5c](https://github.com/Life-USTC/server/commit/6806c5c5e32e06d03f6ae22d954e4a814dd5029a))
+
+# [1.87.0](https://github.com/Life-USTC/server/compare/v1.86.0...v1.87.0) (2026-08-08)
+
+
+### Bug Fixes
+
+* **e2e:** align settings and oauth page contracts with real UI ([8f0af0e](https://github.com/Life-USTC/server/commit/8f0af0e418551ab336f18b61dd2c88ef04183bbd))
+* **e2e:** match danger settings marker to Delete Account region ([e084e49](https://github.com/Life-USTC/server/commit/e084e4932766bfdbe62b0f2eb98499a3388ccf2e))
+
+
+### Features
+
+* page inventory gates, calendar export queue, and CI trust ([e77ba15](https://github.com/Life-USTC/server/commit/e77ba15b20240bc2bdcf1a356dd1e0daab8a2e73))
+
 # [1.86.0](https://github.com/Life-USTC/server/compare/v1.85.1...v1.86.0) (2026-08-07)
 
 

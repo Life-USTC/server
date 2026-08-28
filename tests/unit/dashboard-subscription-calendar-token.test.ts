@@ -28,11 +28,15 @@ vi.mock("@/features/subscriptions/server/subscription-tab-sections", () => ({
 
 vi.mock("@/lib/db/prisma", () => ({
   getPrisma: () => ({ semester: { findMany: semesterFindManyMock } }),
+  withUserDbContext: vi.fn(
+    async (_userId: string, action: () => Promise<unknown>) => action(),
+  ),
 }));
 
 vi.mock("@/features/dashboard/server/dashboard-overview-data", () => ({
   getDashboardNavStats: getDashboardNavStatsMock,
   getDashboardOverviewData: vi.fn(),
+  getDashboardSemesters: semesterFindManyMock,
 }));
 
 vi.mock("@/features/dashboard/server/dashboard-tab-data", () => ({
@@ -71,44 +75,55 @@ describe("dashboard subscription calendar token reuse", () => {
     ],
     ["known null token", { calendarFeedToken: null }, null],
     ["unspecified token", undefined, undefined],
-  ])("forwards %s without changing its semantics", async (_label, options, token) => {
-    await getSubscriptionsTabData("user-1", "en-us", options);
+  ])(
+    "forwards %s without changing its semantics",
+    async (_label, options, token) => {
+      await getSubscriptionsTabData("user-1", "en-us", options);
 
-    expect(getCalendarSubscriptionUrlMock).toHaveBeenCalledWith(
-      "user-1",
-      token,
-    );
-  });
+      expect(getCalendarSubscriptionUrlMock).toHaveBeenCalledWith(
+        "user-1",
+        token,
+      );
+    },
+  );
 
   it.each([
     ["subscriptions", false],
     ["exams", true],
-  ])("forwards the dashboard context token for the %s tab", async (tab, includeExams) => {
-    await loadSignedDashboardTabData({
-      calendarSemesterId: undefined,
-      context: {
-        sectionIds: [12],
-        subscribedSections: [{ id: 12, semesterId: 1 }],
-        user: {
-          calendarFeedToken: "context-token",
-          id: "user-1",
-          name: "User",
-          username: "user",
+  ])(
+    "forwards the dashboard context token for the %s tab",
+    async (tab, includeExams) => {
+      await loadSignedDashboardTabData({
+        calendarSemesterId: undefined,
+        context: {
+          sectionIds: [12],
+          subscribedSections: [{ id: 12, semesterId: 1 }],
+          user: {
+            calendarFeedToken: "context-token",
+            id: "user-1",
+            name: "User",
+            username: "user",
+          },
         },
-      },
-      locale: "en-us",
-      referenceNow: undefined,
-      requestId: "request-1",
-      tab,
-      userId: "user-1",
-    });
+        locale: "en-us",
+        revealCalendarFeed: true,
+        referenceNow: undefined,
+        requestId: "request-1",
+        tab,
+        userId: "user-1",
+      });
 
-    expect(dashboardSubscriptionsMock).toHaveBeenCalledWith("user-1", "en-us", {
-      calendarFeedToken: "context-token",
-      includeExams,
-      sectionIds: [12],
-    });
-  });
+      expect(dashboardSubscriptionsMock).toHaveBeenCalledWith(
+        "user-1",
+        "en-us",
+        {
+          calendarFeedToken: "context-token",
+          includeExams,
+          sectionIds: [12],
+        },
+      );
+    },
+  );
 
   it("records the thrown error on a failed dashboard stage", async () => {
     const { logAppEvent } = await import("@/lib/log/app-logger");

@@ -53,12 +53,12 @@ describe("cross-site form protection", () => {
     ).toBeNull();
   });
 
-  it.each([
-    "/api/auth/oauth2/token",
-    "/api/auth/oauth2/device-authorization",
-  ])("allows OAuth form CORS at %s", (pathname) => {
-    vi.stubEnv("NODE_ENV", "production");
+  it.each(["/api/auth/oauth2/token", "/api/auth/oauth2/device-authorization"])(
+    "allows OAuth form CORS at %s",
+    (pathname) => {
+      vi.stubEnv("NODE_ENV", "production");
 
-    expect(crossSiteFormResponse(event(pathname))).toBeNull();
-  });
+      expect(crossSiteFormResponse(event(pathname))).toBeNull();
+    },
+  );
 });

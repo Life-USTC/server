@@ -12,19 +12,49 @@ export type SectionHomeworkRequest = {
 
 export type SectionHomeworkUpdateResult = "ok" | "homework-error";
 
-export async function loadSectionHomeworks<Viewer, Homework, AuditLog>(
+export async function loadSectionHomeworks<Viewer, Homework>(
+  sectionId: number | string,
+  errorMessage: string,
+) {
+  const result = await apiClient.GET<{
+    data: Homework[];
+    viewer: Viewer;
+  }>("/api/community/section-homeworks", {
+    params: { query: { pageSize: 50, sectionId } },
+  });
+  if (!result.response.ok || !result.data) throw new Error(errorMessage);
+  return {
+    homeworks: result.data.data,
+    viewer: result.data.viewer,
+  };
+}
+
+export async function loadSectionHomeworkDetail<Homework, AuditLog>(
+  homeworkId: number | string,
+  errorMessage: string,
+) {
+  const result = await apiClient.GET<{
+    auditLogs: AuditLog[];
+    homework: Homework;
+  }>(`/api/community/section-homeworks/${homeworkId}`);
+  if (!result.response.ok || !result.data) throw new Error(errorMessage);
+  return {
+    auditLogs: result.data.auditLogs,
+    homework: result.data.homework,
+  };
+}
+
+export async function loadSectionHomeworkAuditLogs<AuditLog>(
   sectionId: number | string,
   errorMessage: string,
 ) {
   const result = await apiClient.GET<{
     auditLogs: AuditLog[];
-    homeworks: Homework[];
-    viewer: Viewer;
-  }>("/api/community/section-homeworks", {
+  }>("/api/community/section-homeworks/audit", {
     params: { query: { sectionId } },
   });
   if (!result.response.ok || !result.data) throw new Error(errorMessage);
-  return result.data;
+  return result.data.auditLogs;
 }
 
 export async function createSectionHomework(

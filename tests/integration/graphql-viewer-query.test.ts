@@ -818,29 +818,32 @@ describe.sequential("GraphQL Viewer integration", () => {
   it.each([
     ["REST", () => getOAuthRestAudienceUrls()[0] as string],
     ["MCP", getOAuthMcpResourceUrl],
-  ])("rejects a %s bearer without falling back to a valid session cookie", async (_surface, resource) => {
-    const wrongAudience = await signToken(
-      firstUserId,
-      [restReadScope("account.profile")],
-      resource(),
-    );
-    const { response, payload } = await execute(
-      { query: "{ account { profile { id } } }" },
-      {
-        authorization: `Bearer ${wrongAudience}`,
-        cookie: sessionCookie,
-        origin: new URL(getOAuthGraphqlResourceUrl()).origin,
-      },
-    );
+  ])(
+    "rejects a %s bearer without falling back to a valid session cookie",
+    async (_surface, resource) => {
+      const wrongAudience = await signToken(
+        firstUserId,
+        [restReadScope("account.profile")],
+        resource(),
+      );
+      const { response, payload } = await execute(
+        { query: "{ account { profile { id } } }" },
+        {
+          authorization: `Bearer ${wrongAudience}`,
+          cookie: sessionCookie,
+          origin: new URL(getOAuthGraphqlResourceUrl()).origin,
+        },
+      );
 
-    expect(response.status).toBe(401);
-    expect(payload.errors?.[0]?.extensions).toMatchObject({
-      code: "UNAUTHENTICATED",
-    });
-    expect(payload.data?.account).not.toMatchObject({
-      profile: { id: firstUserId },
-    });
-  });
+      expect(response.status).toBe(401);
+      expect(payload.errors?.[0]?.extensions).toMatchObject({
+        code: "UNAUTHENTICATED",
+      });
+      expect(payload.data?.account).not.toMatchObject({
+        profile: { id: firstUserId },
+      });
+    },
+  );
 
   it("enforces default/max pagination, ordered ranges, and strict zoned dates", async () => {
     const headers = { authorization: `Bearer ${graphqlBearer}` };

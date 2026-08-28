@@ -101,8 +101,6 @@ describe("compactMcpPayload MCP 载荷压缩", () => {
         jwId: "J1",
         code: "CS101",
         namePrimary: "Intro CS",
-        credit: 3,
-        hours: 48,
       });
     });
   });
@@ -170,8 +168,6 @@ describe("compactMcpPayload MCP 载荷压缩", () => {
         code: "CS101",
         namePrimary: "Intro CS",
         nameSecondary: "计算机导论",
-        credit: 3,
-        hours: 48,
       });
     });
   });

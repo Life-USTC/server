@@ -1,11 +1,14 @@
 import type { AppLocale } from "@/i18n/config";
 import { DEFAULT_LOCALE } from "@/i18n/config";
+import { cachedPublicDetailRuntimeData } from "@/lib/catalog-detail-runtime-cache";
 import { getPrisma } from "@/lib/db/prisma";
 import { paginatedTeacherQuery } from "./academic-paginated-queries";
 import {
   teacherPublicDetailSelect,
   teacherPublicListSelect,
 } from "./academic-query-includes";
+import { toTeacherDetailDto } from "./academic-summary-dto-mappers";
+import { cachedCatalogListRead } from "./catalog-list-cache";
 import { buildTeacherWhere } from "./teacher-query";
 
 type TeacherListFilters = Parameters<typeof buildTeacherWhere>[0];
@@ -22,19 +25,36 @@ export function listTeacherSummaries({
     pageSize: number;
   };
 }) {
-  return paginatedTeacherQuery(
-    pagination.page,
-    pagination.pageSize,
-    buildTeacherWhere(filters),
-    { nameCn: "asc" },
+  return cachedCatalogListRead({
+    filters,
+    kind: "teachers",
     locale,
-  );
+    pagination,
+    shape: "summary",
+    load: () =>
+      paginatedTeacherQuery(
+        pagination.page,
+        pagination.pageSize,
+        buildTeacherWhere(filters),
+        { nameCn: "asc" },
+        locale,
+      ),
+  });
 }
 
 export function findTeacherDetailById(id: number, locale = DEFAULT_LOCALE) {
-  return getPrisma(locale).teacher.findUnique({
-    where: { id },
-    select: teacherPublicDetailSelect,
+  return cachedPublicDetailRuntimeData({
+    id,
+    kind: "teacher",
+    locale,
+    shape: "detail-v1",
+    load: async () => {
+      const teacher = await getPrisma(locale).teacher.findUnique({
+        where: { id },
+        select: teacherPublicDetailSelect,
+      });
+      return teacher ? toTeacherDetailDto(teacher, locale) : null;
+    },
   });
 }
 

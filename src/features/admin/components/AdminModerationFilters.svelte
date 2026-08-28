@@ -134,7 +134,7 @@ onMount(() => mountPageSearchShortcut(() => searchInput));
             searchQuery = (event.currentTarget as HTMLInputElement).value;
           }}
         />
-        <InputGroup.Addon align="inline-end">
+        <InputGroup.Addon class="hidden sm:flex" align="inline-end">
           <PageSearchShortcutHint />
         </InputGroup.Addon>
       </InputGroup.Root>

@@ -8,7 +8,7 @@
   },
   "rules": {
     "organizational-dimension": "Semesters are the organizational dimension for courses, sections, schedules, and exams.",
-    "current-semester-by-rules": "The current semester must be determined by explicit business rules, not by rough natural-year inference.",
+    "current-semester-by-rules": "The current semester must be determined by explicit business rules against the current Asia/Shanghai calendar date, not by rough natural-year inference. Public REST, GraphQL, and MCP reads share a static-revision- and date-scoped runtime cache.",
     "semester-visible-in-filters": "Semesters should be clearly visible in filters, group headings, detail basic info, and cross-semester browsing."
   },
   "capabilities": {
@@ -25,7 +25,7 @@
             "path": "/api/catalog/semesters",
             "returns": "PaginatedResponse<SemesterSummary>",
             "notes": [
-              "REST pageSize accepts 1-100; the deprecated limit alias remains accepted and pageSize wins when both are supplied. Out-of-range values are rejected instead of clamped."
+              "REST page and pageSize accept 1-100; the deprecated limit alias remains accepted and pageSize wins when both are supplied. Out-of-range values are rejected instead of clamped."
             ]
           }
         ]
@@ -40,7 +40,7 @@
             "rest_equivalent": "GET /api/catalog/semesters",
             "mcp_equivalent": "catalog_semester_list",
             "notes": [
-              "PageInput defaults to page=1 and pageSize=20; pageSize must remain within 1-100."
+              "PageInput defaults to page=1 and pageSize=20; page and pageSize must remain within 1-100."
             ]
           }
         ]

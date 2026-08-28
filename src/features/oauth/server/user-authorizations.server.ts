@@ -1,4 +1,8 @@
 import type { Prisma } from "@/generated/prisma/client";
+import {
+  type AuditLogParams,
+  writeAuditLog,
+} from "@/lib/audit/write-audit-log";
 import { authPrisma as prisma } from "@/lib/db/auth-prisma";
 import {
   hasActiveOAuthUserGrant,
@@ -8,11 +12,19 @@ import {
   OAUTH_REFRESH_REPLAY_TOMBSTONE_SCOPE,
   OAUTH_REFRESH_TOKEN_EXPIRES_IN_SECONDS,
 } from "@/lib/oauth/constants";
+import { oauthGrantUsageKey } from "@/lib/oauth/grant-usage";
 import { hashOAuthClientSecretForDbStorage } from "@/lib/oauth/utils";
+import { shanghaiDayjs } from "@/lib/time/shanghai-dayjs";
 
 const NONTRUSTED_OAUTH_CLIENT_WHERE = {
   OR: [{ skipConsent: false }, { skipConsent: null }],
 } satisfies Prisma.OAuthClientWhereInput;
+export type OAuthAuthorizationAuditContext = Pick<
+  AuditLogParams,
+  "channel" | "ipAddress" | "requestId" | "sessionId" | "userAgent"
+>;
+
+const SYSTEM_OAUTH_AUDIT_CONTEXT = { channel: "system" } as const;
 export type UserOAuthAuthorization = {
   consentId: string;
   clientName: string | null;
@@ -20,6 +32,14 @@ export type UserOAuthAuthorization = {
   disabled: boolean;
   scopes: string[];
   updatedAt: string;
+  usage: {
+    lastUsedAt: string;
+    lastChannel: string;
+    lastFeature: string;
+    readCount: number;
+    writeCount: number;
+    errorCount: number;
+  } | null;
 };
 
 export type RevokeUserOAuthAuthorizationResult =
@@ -36,6 +56,7 @@ export type RevokeUserOAuthAuthorizationResult =
 
 export async function listUserOAuthAuthorizations(
   userId: string,
+  now = new Date(),
 ): Promise<UserOAuthAuthorization[]> {
   const rows = await prisma.oAuthConsent.findMany({
     where: {
@@ -46,6 +67,7 @@ export async function listUserOAuthAuthorizations(
     select: {
       id: true,
       clientId: true,
+      grantId: true,
       scopes: true,
       updatedAt: true,
       client: {
@@ -58,6 +80,58 @@ export async function listUserOAuthAuthorizations(
     },
   });
 
+  const clientIds = [...new Set(rows.map((row) => row.clientId))];
+  const usageRows = clientIds.length
+    ? await prisma.oAuthGrantUsageDaily.findMany({
+        where: {
+          userId,
+          clientId: { in: clientIds },
+          day: {
+            gte: new Date(
+              `${shanghaiDayjs(now).subtract(29, "day").format("YYYY-MM-DD")}T00:00:00.000Z`,
+            ),
+          },
+        },
+        select: {
+          clientId: true,
+          grantKey: true,
+          readCount: true,
+          writeCount: true,
+          errorCount: true,
+          lastUsedAt: true,
+          channel: true,
+          feature: true,
+        },
+      })
+    : [];
+  const usageByGrant = new Map<
+    string,
+    NonNullable<UserOAuthAuthorization["usage"]>
+  >();
+  for (const usage of usageRows) {
+    const key = `${usage.clientId}\u0000${usage.grantKey}`;
+    const summary = usageByGrant.get(key);
+    if (!summary) {
+      usageByGrant.set(key, {
+        lastUsedAt: usage.lastUsedAt.toISOString(),
+        lastChannel: usage.channel,
+        lastFeature: usage.feature,
+        readCount: usage.readCount,
+        writeCount: usage.writeCount,
+        errorCount: usage.errorCount,
+      });
+      continue;
+    }
+    summary.readCount += usage.readCount;
+    summary.writeCount += usage.writeCount;
+    summary.errorCount += usage.errorCount;
+    if (usage.lastUsedAt.getTime() > new Date(summary.lastUsedAt).getTime()) {
+      summary.lastUsedAt = usage.lastUsedAt.toISOString();
+      summary.lastChannel = usage.channel;
+      summary.lastFeature = usage.feature;
+    }
+  }
+
   return rows.map((row) => {
     return {
       consentId: row.id,
@@ -66,6 +140,10 @@ export async function listUserOAuthAuthorizations(
       disabled: row.client.disabled,
       scopes: [...new Set(row.scopes)].sort(),
       updatedAt: row.updatedAt.toISOString(),
+      usage:
+        usageByGrant.get(
+          `${row.clientId}\u0000${oauthGrantUsageKey(row.grantId)}`,
+        ) ?? null,
     };
   });
 }
@@ -73,6 +151,7 @@ export async function listUserOAuthAuthorizations(
 export async function revokeUserOAuthAuthorization(
   userId: string,
   consentId: string,
+  audit: OAuthAuthorizationAuditContext = SYSTEM_OAUTH_AUDIT_CONTEXT,
 ): Promise<RevokeUserOAuthAuthorizationResult> {
   const consent = await prisma.oAuthConsent.findFirst({
     where: {
@@ -80,7 +159,7 @@ export async function revokeUserOAuthAuthorization(
       userId,
       client: NONTRUSTED_OAUTH_CLIENT_WHERE,
     },
-    select: { clientId: true },
+    select: { clientId: true, grantId: true },
   });
   if (!consent) return { ok: false, reason: "not_found" };
 
@@ -94,9 +173,31 @@ export async function revokeUserOAuthAuthorization(
     const deviceCodes = await tx.deviceCode.deleteMany({
       where: { clientId: consent.clientId, userId },
     });
+    await tx.oAuthGrantUsageDaily.deleteMany({
+      where: { clientId: consent.clientId, userId },
+    });
     const consents = await tx.oAuthConsent.deleteMany({
       where: { clientId: consent.clientId, userId },
     });
+
+    await writeAuditLog(
+      {
+        action: "oauth_authorization_revoke",
+        oauthClientId: consent.clientId,
+        oauthGrantId: consent.grantId,
+        subjectUserId: userId,
+        targetId: consentId,
+        targetType: "oauth_consent",
+        userId,
+        metadata: {
+          revokedAccessTokenCount: accessTokens.count,
+          revokedDeviceCodeCount: deviceCodes.count,
+          revokedRefreshTokenCount: refreshTokens.count,
+        },
+        ...audit,
+      },
+      tx,
+    );
 
     return {
       accessTokens: accessTokens.count,
@@ -300,6 +401,7 @@ async function rotateGrantInTransaction(
   await tx.oAuthAccessToken.deleteMany({ where: identity });
   await tx.oAuthRefreshToken.deleteMany({ where: identity });
   await tx.deviceCode.deleteMany({ where: identity });
+  await tx.oAuthGrantUsageDaily.deleteMany({ where: identity });
   const updated = await tx.oAuthConsent.updateMany({
     where: { id: input.consentId, ...identity },
     data: { grantId, scopes: input.scopes },
@@ -311,6 +413,7 @@ export async function updateUserOAuthAuthorizationScopes(
   userId: string,
   consentId: string,
   scopes: readonly string[],
+  audit: OAuthAuthorizationAuditContext = SYSTEM_OAUTH_AUDIT_CONTEXT,
 ): Promise<UpdateUserOAuthAuthorizationScopesResult> {
   const normalizedScopes = [...new Set(scopes)].sort();
   return prisma.$transaction(async (tx) => {
@@ -338,9 +441,25 @@ export async function updateUserOAuthAuthorizationScopes(
       scopes: normalizedScopes,
       userId,
     });
-    return grantId
-      ? { ok: true, consentId, grantId, scopes: normalizedScopes }
-      : { ok: false, reason: "not_found" };
+    if (!grantId) return { ok: false, reason: "not_found" };
+    await writeAuditLog(
+      {
+        action: "oauth_authorization_update",
+        oauthClientId: consent.clientId,
+        oauthGrantId: grantId,
+        subjectUserId: userId,
+        targetId: consentId,
+        targetType: "oauth_consent",
+        userId,
+        metadata: {
+          changedFields: ["scopes"],
+          scopeCount: normalizedScopes.length,
+        },
+        ...audit,
+      },
+      tx,
+    );
+    return { ok: true, consentId, grantId, scopes: normalizedScopes };
   });
 }
 

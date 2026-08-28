@@ -50,8 +50,8 @@ import {
   detailDialog,
   expectComfortablePopupWidth,
   expectDetailDialogFitsViewport,
-  expectDialogActionsInBody,
   expectHomeworkDetailOrder,
+  expectIconOnlyCloseButton,
   expectSingleColumnDiscussion,
 } from "../../../../utils/detail-dialog";
 import { DEV_SEED } from "../../../../utils/dev-seed";
@@ -127,6 +127,24 @@ async function openCommentDeleteDialog(page: Page, commentCard: Locator) {
   return deleteDialog;
 }
 
+async function selectHomeworkAction(
+  page: Page,
+  detailDialog: Locator,
+  actionName: RegExp,
+) {
+  const moreActions = detailDialog
+    .locator('[data-slot="dialog-footer"]')
+    .getByRole("button", { name: /更多信息|More details/i });
+  await expect(moreActions).toBeVisible();
+  await moreActions.click();
+
+  const action = page.getByRole("menu").last().getByRole("menuitem", {
+    name: actionName,
+  });
+  await expect(action).toBeVisible();
+  await action.click();
+}
+
 test.describe("/catalog/sections/[jwId] 班级详情页", () => {
   test("页面契约", async ({ page }, testInfo) => {
     await assertPageContract(page, {
@@ -181,20 +199,24 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
   test("显示学期、校区与教师信息", async ({ page }, testInfo) => {
     await gotoAndWaitForReady(page, SECTION_URL);
 
+    const overview = page.locator("#overview");
+
     // section.semester.nameCn (locale-dependent: English short name on en-us)
     await expect(
-      page
+      overview
         .getByText(DEV_SEED.semesterNameCn)
         .or(
-          page.getByText(formatSemesterName("en-us", DEV_SEED.semesterNameCn)),
+          overview.getByText(
+            formatSemesterName("en-us", DEV_SEED.semesterNameCn),
+          ),
         )
         .first(),
     ).toBeVisible();
     // section.campus.namePrimary (locale-dependent)
     await expect(
-      page
+      overview
         .getByText(DEV_SEED.campus.nameCn)
-        .or(page.getByText(DEV_SEED.campus.nameEn))
+        .or(overview.getByText(DEV_SEED.campus.nameEn))
         .first(),
     ).toBeVisible();
     await jumpToSection(page, /教师|Teachers/i, "#teachers");
@@ -348,6 +370,33 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
     ).toHaveCount(0);
 
     await captureStepScreenshot(page, testInfo, "section/calendar-today");
+  });
+
+  test("移动端日历使用可横向滚动的紧凑表格", async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await gotoAndWaitForReady(page, SECTION_URL);
+    await jumpToSection(page, /日历|Calendar/i, "#calendar");
+
+    const calendar = page.locator("#calendar");
+    const table = calendar.getByTestId("section-calendar-table");
+    const container = table.locator(
+      'xpath=ancestor::*[@data-slot="table-container"][1]',
+    );
+    await expect(table).toBeVisible();
+    await expect(container).toHaveAttribute("role", "region");
+    await expect(container).toHaveAttribute("tabindex", "0");
+    await expect(container).toHaveAttribute("aria-label", /.+/);
+    await expect(calendar.getByTestId("section-calendar-items")).toHaveCount(0);
+    const dimensions = await container.evaluate((element) => ({
+      clientWidth: element.clientWidth,
+      scrollWidth: element.scrollWidth,
+    }));
+    expect(dimensions.scrollWidth).toBeGreaterThan(dimensions.clientWidth);
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= window.innerWidth,
+      ),
+    ).toBe(true);
   });
 
   test("日历区块显示考试信息（examBatch、examRooms）", async ({
@@ -541,6 +590,41 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
       ),
     ).toEqual([]);
     await captureStepScreenshot(page, testInfo, "section/detail-mobile");
+  });
+
+  test("移动端评论编辑器不会让详情内容列横向滚动", async ({ page }) => {
+    await signInAsDebugUser(page, SECTION_URL);
+
+    for (const width of [360, 390]) {
+      await page.setViewportSize({ width, height: 844 });
+      await gotoAndWaitForReady(page, `${SECTION_URL}#comments`);
+
+      const detailViewport = getDetailViewport(page);
+      await expect(detailViewport).toBeVisible();
+      await expect(page.locator("#comments")).toBeVisible();
+
+      const assertDetailViewportContained = async () => {
+        const metrics = await detailViewport.evaluate((element) => ({
+          clientWidth: element.clientWidth,
+          overflowX: getComputedStyle(element).overflowX,
+          scrollLeft: element.scrollLeft,
+          scrollWidth: element.scrollWidth,
+        }));
+        expect(metrics.overflowX).toBe("hidden");
+        expect(metrics.scrollLeft).toBe(0);
+        expect(metrics.scrollWidth).toBeGreaterThanOrEqual(metrics.clientWidth);
+        expect(metrics.scrollWidth - metrics.clientWidth).toBeLessThanOrEqual(
+          1,
+        );
+        expect(
+          await page.evaluate(() => document.documentElement.scrollWidth),
+        ).toBeLessThanOrEqual(width);
+      };
+
+      await assertDetailViewportContained();
+      await openCommentComposer(page);
+      await assertDetailViewportContained();
+    }
   });
 
   test("桌面端保留页首主操作并隐藏移动端操作栏", async ({ page }) => {
@@ -834,7 +918,9 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
 
   // ── Calendar export ─────────────────────────────────────────────────────────
 
-  test("日历导出弹窗显示 iCal URL 与订阅 URL", async ({ page }, testInfo) => {
+  test("日历导出弹窗显示公开 iCal URL 且不暴露私人订阅凭据", async ({
+    page,
+  }, testInfo) => {
     test.setTimeout(60_000);
     await page
       .context()
@@ -862,9 +948,14 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
       `/api/catalog/sections/${DEV_SEED.section.jwId}/calendar.ics`,
     );
 
-    // Subscription URL includes a user-specific tokenized feed path
+    // Long-lived private feed credentials are only revealed from the
+    // recent-authenticated subscriptions workspace, never a public section.
     const subscriptionValue = await subscriptionUrl.inputValue();
-    expect(subscriptionValue).toMatch(/\/api\/calendar-feeds\/[^/]+\.ics$/);
+    expect(subscriptionValue).toMatch(
+      /前往订阅页|Open subscriptions to securely view your personal feed/i,
+    );
+    await expect(subscriptionUrl).toBeDisabled();
+    expect(subscriptionValue).not.toContain("/api/calendar-feeds/");
 
     // Copy single URL
     await calDialog
@@ -876,15 +967,9 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
     );
     expect(singleClipboard).toBe(singleValue);
 
-    // Copy subscription URL
-    await calDialog
-      .getByRole("button", { name: /复制|Copy/i })
-      .nth(1)
-      .click();
-    const subscriptionClipboard = await page.evaluate(async () =>
-      navigator.clipboard.readText(),
-    );
-    expect(subscriptionClipboard).toBe(subscriptionValue);
+    await expect(
+      calDialog.getByRole("button", { name: /复制|Copy/i }).nth(1),
+    ).toBeDisabled();
 
     await expect(
       calDialog.getByRole("link", {
@@ -974,11 +1059,25 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
       .first()
       .click();
     const createDialog = page.locator('[data-slot="dialog-content"]').first();
+    const advancedSettings = createDialog.getByRole("button", {
+      name: /其他可选设置|Other optional settings|收起其他可选设置|Hide optional settings/i,
+    });
+    await expect(advancedSettings).toHaveAttribute("aria-expanded", "false");
+    await expect(
+      createDialog.getByRole("textbox", { name: /发布日期|Published/i }),
+    ).toHaveCount(0);
+    await advancedSettings.click();
+    await expect(
+      createDialog.getByRole("textbox", { name: /发布日期|Published/i }),
+    ).toBeVisible();
+    await advancedSettings.click();
+    await expect(
+      createDialog.getByRole("textbox", { name: /发布日期|Published/i }),
+    ).toHaveCount(0);
     const createTrigger = createDialog.getByTestId(
       "section-create-homework-style-guide-trigger",
     );
-    await expect(createTrigger).toHaveAttribute("aria-expanded", "false");
-    await createTrigger.click();
+    await expect(createTrigger).toHaveAttribute("aria-expanded", "true");
     const createGuide = createDialog.getByTestId(
       "section-create-homework-style-guide-content",
     );
@@ -1019,14 +1118,11 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
       .first();
     await homeworkCard.click();
     const detailDialog = page.locator('[data-slot="dialog-content"]').first();
-    await detailDialog
-      .getByRole("button", { name: /编辑信息|Edit details/i })
-      .click();
+    await selectHomeworkAction(page, detailDialog, /编辑信息|Edit details/i);
     const editTrigger = detailDialog.getByTestId(
       "section-edit-homework-style-guide-trigger",
     );
-    await expect(editTrigger).toHaveAttribute("aria-expanded", "false");
-    await editTrigger.click();
+    await expect(editTrigger).toHaveAttribute("aria-expanded", "true");
     const editGuide = detailDialog.getByTestId(
       "section-edit-homework-style-guide-content",
     );
@@ -1051,13 +1147,174 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
     ).toBe(true);
   });
 
+  test("移动端班级作业长标题和说明保持对话框可用", async ({ page }) => {
+    test.setTimeout(90_000);
+    await page.setViewportSize({ width: 320, height: 568 });
+    await signInAsDebugUser(page, SECTION_URL);
+
+    const titlePrefix = `e2e-section-hw-mobile-${Date.now()}`;
+    const title = `${titlePrefix}-${"长标题".repeat(32)}`;
+    const description = `${"这是用于验证班级作业详情滚动区域的长说明。 ".repeat(24)}\n\nsection-mobile-content-marker`;
+    let homeworkId: string | undefined;
+
+    try {
+      const createResponse = await page.request.post(
+        "/api/community/section-homeworks",
+        {
+          data: {
+            sectionJwId: DEV_SEED.section.jwId,
+            submissionDueAt: null,
+            title,
+            description,
+          },
+        },
+      );
+      expect(createResponse.status()).toBe(201);
+      const body = (await createResponse.json()) as {
+        homework?: { id?: string };
+        id?: string;
+      };
+      homeworkId = body.homework?.id ?? body.id;
+      expect(homeworkId).toBeTruthy();
+
+      await gotoAndWaitForReady(page, SECTION_URL);
+      await jumpToSection(page, /作业|Homework/i, "#homework");
+      const homeworkCard = page
+        .getByRole("button", { name: new RegExp(escapeForRegExp(title)) })
+        .first();
+      await expect(homeworkCard).toBeVisible();
+      await homeworkCard.click();
+
+      const detailDialog = page.locator('[data-slot="dialog-content"]').first();
+      await expect(detailDialog).toBeVisible();
+      await expect(
+        detailDialog.locator('[data-slot="dialog-title"]'),
+      ).toHaveText(title);
+      await expect(
+        detailDialog.getByText("section-mobile-content-marker"),
+      ).toBeVisible();
+
+      const viewportHeight = page.viewportSize()?.height ?? 568;
+      const dialogBox = await detailDialog.boundingBox();
+      const footer = detailDialog.locator('[data-slot="dialog-footer"]');
+      const footerBox = await footer.boundingBox();
+      expect(dialogBox).not.toBeNull();
+      expect(footerBox).not.toBeNull();
+      if (!dialogBox || !footerBox)
+        throw new Error("Expected the mobile section homework dialog bounds");
+      expect(dialogBox.y).toBeGreaterThanOrEqual(0);
+      expect(dialogBox.y + dialogBox.height).toBeLessThanOrEqual(
+        viewportHeight,
+      );
+      expect(footerBox.y + footerBox.height).toBeLessThanOrEqual(
+        viewportHeight,
+      );
+      await expect(footer).toBeInViewport();
+
+      const completion = footer.getByRole("button", {
+        name: /标记为完成|Mark as complete/i,
+      });
+      const moreActions = footer.getByRole("button", {
+        name: /更多信息|More details/i,
+      });
+      await expect(completion).toBeVisible();
+      await expect(moreActions).toBeVisible();
+      const [completionBox, moreActionsBox] = await Promise.all([
+        completion.boundingBox(),
+        moreActions.boundingBox(),
+      ]);
+      expect(completionBox).not.toBeNull();
+      expect(moreActionsBox).not.toBeNull();
+      expect(completionBox?.width ?? 0).toBeGreaterThanOrEqual(200);
+      expect(moreActionsBox?.width ?? 0).toBeGreaterThanOrEqual(44);
+      expect(
+        await page.evaluate(
+          () => document.documentElement.scrollWidth <= window.innerWidth,
+        ),
+      ).toBe(true);
+
+      await selectHomeworkAction(page, detailDialog, /编辑信息|Edit details/i);
+      const editForm = detailDialog.locator("form").first();
+      await expect(editForm).toBeVisible();
+      await editForm.getByRole("button", { name: /取消|Cancel/i }).click();
+      await expect(editForm).toHaveCount(0);
+
+      await page.keyboard.press("Escape");
+      await expect(detailDialog).toHaveCount(0);
+    } finally {
+      await cleanupHomeworksForE2e([homeworkId]);
+    }
+  });
+
   test("班级作业区块默认以列表展示", async ({ page }, testInfo) => {
     await gotoAndWaitForReady(page, SECTION_URL);
 
     await jumpToSection(page, /作业|Homework/i, "#homework");
 
     await expect(page.getByTestId("section-homeworks-list")).toBeVisible();
+    await page.setViewportSize({ width: 320, height: 568 });
+    await gotoAndWaitForReady(page, `${SECTION_URL}#homework`);
+    await expect(page.getByTestId("section-homeworks-items")).toBeVisible();
+    await expect(
+      page.getByTestId("section-homeworks-list").locator("table"),
+    ).toBeHidden();
+    const homeworkItem = page
+      .getByTestId("section-homeworks-items")
+      .locator('[data-slot="item"]')
+      .first();
+    await expect(homeworkItem).toBeVisible();
+    const detailButton = homeworkItem.getByRole("button").first();
+    const detailBox = await detailButton.boundingBox();
+    expect(detailBox?.width ?? 0).toBeGreaterThanOrEqual(44);
+    expect(detailBox?.height ?? 0).toBeGreaterThanOrEqual(44);
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= window.innerWidth,
+      ),
+    ).toBe(true);
     await captureStepScreenshot(page, testInfo, "section/homework-list-view");
+  });
+
+  test("作业详情弹窗单栏展示截止日期、讨论与图标关闭按钮", async ({ page }) => {
+    await signInAsDebugUser(page, SECTION_URL);
+    await gotoAndWaitForReady(page, SECTION_URL);
+    await jumpToSection(page, /作业|Homework/i, "#homework");
+
+    await page
+      .getByRole("button", {
+        name: new RegExp(escapeForRegExp(DEV_SEED.homeworks.title)),
+      })
+      .first()
+      .click();
+
+    const dialog = detailDialog(page);
+    await expect(dialog).toBeVisible();
+    await expectHomeworkDetailOrder(dialog);
+    await expectSingleColumnDiscussion(dialog);
+    await expectComfortablePopupWidth(page, dialog);
+    await expectIconOnlyCloseButton(dialog);
+    await closeDetailDialog(page, dialog);
+  });
+
+  test("移动端作业详情弹窗纵向排布且不产生横向溢出", async ({ page }) => {
+    await page.setViewportSize({ height: 844, width: 390 });
+    await signInAsDebugUser(page, SECTION_URL);
+    await gotoAndWaitForReady(page, SECTION_URL);
+    await jumpToSection(page, /作业|Homework/i, "#homework");
+
+    await page
+      .getByRole("button", {
+        name: new RegExp(escapeForRegExp(DEV_SEED.homeworks.title)),
+      })
+      .first()
+      .click();
+
+    const dialog = detailDialog(page);
+    await expect(dialog).toBeVisible();
+    await expectDetailDialogFitsViewport(page, dialog);
+    await expectHomeworkDetailOrder(dialog);
+    await expectSingleColumnDiscussion(dialog);
+    await closeDetailDialog(page, dialog);
   });
 
   test("已登录用户可创建作业、查看讨论、切换完成状态并删除", async ({
@@ -1142,11 +1399,7 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
       );
 
       // Delete
-      const deleteButton = homeworkPopout
-        .getByRole("button", { name: /删除|Delete/i })
-        .first();
-      await expect(deleteButton).toBeVisible();
-      await deleteButton.click();
+      await selectHomeworkAction(page, homeworkPopout, /删除|Delete/i);
       const deleteDialog = page
         .locator('[data-slot="alert-dialog-content"]')
         .last();
@@ -1163,84 +1416,6 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
     } finally {
       await cleanupHomeworksForE2e([homeworkId]);
     }
-  });
-
-  test("作业详情弹窗展示状态徽标、时间线、讨论与图标关闭按钮", async ({
-    page,
-  }, testInfo) => {
-    await signInAsDebugUser(page, SECTION_URL);
-    await gotoAndWaitForReady(page, SECTION_URL);
-    await jumpToSection(page, /作业|Homework/i, "#homework");
-
-    await page
-      .getByRole("button", {
-        name: new RegExp(escapeForRegExp(DEV_SEED.homeworks.title)),
-      })
-      .first()
-      .click();
-
-    const dialog = detailDialog(page);
-    await expect(dialog).toBeVisible();
-    await expect(
-      dialog.getByRole("heading", {
-        name: new RegExp(escapeForRegExp(DEV_SEED.homeworks.title)),
-      }),
-    ).toBeVisible();
-    await expect(
-      dialog.getByText(/未完成|已完成|Incomplete|Completed/i).first(),
-    ).toBeVisible();
-
-    await expectHomeworkDetailOrder(dialog);
-    await expectSingleColumnDiscussion(dialog);
-    await expectComfortablePopupWidth(page, dialog);
-
-    await expectDialogActionsInBody(dialog, /编辑信息|Edit details/i);
-    await expectDialogActionsInBody(
-      dialog,
-      /标记为完成|取消完成|Mark as complete|Mark as incomplete/i,
-    );
-
-    await captureStepScreenshot(
-      page,
-      testInfo,
-      "section/homework-detail-dialog",
-    );
-
-    await closeDetailDialog(page, dialog);
-  });
-
-  test("移动端作业详情弹窗纵向排布且不产生横向溢出", async ({
-    page,
-  }, testInfo) => {
-    await page.setViewportSize({ height: 844, width: 390 });
-    await signInAsDebugUser(page, SECTION_URL);
-    await gotoAndWaitForReady(page, SECTION_URL);
-    await jumpToSection(page, /作业|Homework/i, "#homework");
-
-    await page
-      .getByRole("button", {
-        name: new RegExp(escapeForRegExp(DEV_SEED.homeworks.title)),
-      })
-      .first()
-      .click();
-
-    const dialog = detailDialog(page);
-    await expect(dialog).toBeVisible();
-    await expectDetailDialogFitsViewport(page, dialog);
-    await expectHomeworkDetailOrder(dialog);
-    await expectSingleColumnDiscussion(dialog);
-    await expectDialogActionsInBody(
-      dialog,
-      /标记为完成|取消完成|Mark as complete|Mark as incomplete/i,
-    );
-
-    await captureStepScreenshot(
-      page,
-      testInfo,
-      "section/homework-detail-dialog-mobile",
-    );
-
-    await closeDetailDialog(page, dialog);
   });
 
   test("可编辑班级作业的截止日期、说明、重要和组队标记", async ({
@@ -1281,9 +1456,7 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
 
       const detailDialog = page.locator('[data-slot="dialog-content"]').first();
       await expect(detailDialog).toBeVisible();
-      await detailDialog
-        .getByRole("button", { name: /Edit details|编辑信息/i })
-        .click();
+      await selectHomeworkAction(page, detailDialog, /Edit details|编辑信息/i);
 
       const description = `e2e-section-hw-edited-description-${Date.now()}`;
       const dueAt = "2026-12-31T23:59";
@@ -1294,6 +1467,11 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
       await editForm
         .getByRole("textbox", { name: /Submission due|提交截止/i })
         .fill(dueAt);
+      const advancedSettings = editForm.getByRole("button", {
+        name: /其他可选设置|Other optional settings|收起其他可选设置|Hide optional settings/i,
+      });
+      await expect(advancedSettings).toHaveAttribute("aria-expanded", "false");
+      await advancedSettings.click();
       await editForm
         .getByRole("checkbox", { name: /Major assignment|大作业/i })
         .click();
@@ -1309,21 +1487,26 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
       ).toHaveCount(0, { timeout: 15_000 });
 
       await expect(detailDialog.getByText(description)).toBeVisible();
-      await expect(
-        detailDialog.getByText(/Major assignment|大作业/i),
-      ).toBeVisible();
-      await expect(
-        detailDialog.getByText(/Team required|需要组队/i),
-      ).toBeVisible();
+      const secondaryDetails = detailDialog.getByTestId(
+        "homework-secondary-details",
+      );
+      const secondaryDetailsTrigger = secondaryDetails.getByRole("button", {
+        name: /More details|更多信息/i,
+      });
+      await expect(secondaryDetailsTrigger).toContainText(
+        /Major assignment|大作业/i,
+      );
+      await expect(secondaryDetailsTrigger).toContainText(
+        /Team required|需要组队/i,
+      );
 
-      const dueValue = detailDialog
-        .locator('[data-slot="item"]')
-        .filter({ hasText: /Submission due|提交截止/ })
-        .first();
-      await expect(dueValue).toContainText(
+      const deadlineSummary = detailDialog.getByTestId(
+        "homework-deadline-summary",
+      );
+      await expect(deadlineSummary).toContainText(
         /2026-12-31|2026\/12\/31|12\/31\/26|12月31日|Dec 31/,
       );
-      await expect(dueValue).toContainText(/23:59|11:59 PM/);
+      await expect(deadlineSummary).toContainText(/23:59|11:59 PM/);
       await captureStepScreenshot(
         page,
         testInfo,
@@ -1437,6 +1620,11 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
       expect(createResponseBody.id).toBeTruthy();
       commentId = createResponseBody.id;
       await expect(page.getByText(body).first()).toBeVisible();
+      await expect(
+        page
+          .locator("[data-sonner-toast]")
+          .filter({ hasText: /评论已发布|Comment posted/i }),
+      ).toBeVisible();
       await captureStepScreenshot(page, testInfo, "section/comment-posted");
 
       const commentCard = page
@@ -1473,6 +1661,11 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
       await expect(
         commentCard.getByRole("button", { name: /👍/ }),
       ).toBeVisible();
+      await expect(
+        page
+          .locator("[data-sonner-toast]")
+          .filter({ hasText: /表情已更新|Reaction updated/i }),
+      ).toBeVisible();
       await captureStepScreenshot(page, testInfo, "section/comment-upvoted");
 
       // Edit comment (canEdit action)
@@ -1503,6 +1696,11 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
         .filter({ hasText: editedBody })
         .first();
       await expect(editedCommentCard).toBeVisible();
+      await expect(
+        page
+          .locator("[data-sonner-toast]")
+          .filter({ hasText: /评论已更新|Comment updated/i }),
+      ).toBeVisible();
 
       // Reply (canReply action, comment.replies[])
       await editedCommentCard
@@ -1531,6 +1729,11 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
       expect(replyResponseBody.id).toBeTruthy();
       replyId = replyResponseBody.id;
       await expect(page.getByText(replyBody).first()).toBeVisible();
+      await expect(
+        page
+          .locator("[data-sonner-toast]")
+          .filter({ hasText: /回复已发布|Reply posted/i }),
+      ).toBeVisible();
       await captureStepScreenshot(page, testInfo, "section/comment-replied");
 
       // Delete comment
@@ -1538,14 +1741,64 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
         page,
         editedCommentCard,
       );
+      const deleteFooterButtons = deleteDialog.locator(
+        '[data-slot="alert-dialog-footer"] button',
+      );
+      await expect(deleteFooterButtons).toHaveCount(2);
+      await expect(deleteFooterButtons.nth(0)).toHaveAttribute(
+        "data-slot",
+        "alert-dialog-cancel",
+      );
+      await expect(deleteFooterButtons.nth(1)).toHaveAttribute(
+        "data-slot",
+        "alert-dialog-action",
+      );
+      await page.keyboard.press("Escape");
+      await expect(deleteDialog).toBeHidden();
+
+      const reopenedDeleteDialog = await openCommentDeleteDialog(
+        page,
+        editedCommentCard,
+      );
+      let releaseDeleteRequest!: () => void;
+      const deleteRequestGate = new Promise<void>((resolve) => {
+        releaseDeleteRequest = resolve;
+      });
+      await page.route("**/api/community/comments/**", async (route) => {
+        if (route.request().method() !== "DELETE") {
+          await route.continue();
+          return;
+        }
+        await deleteRequestGate;
+        await route.continue();
+      });
       const deleteResponse = page.waitForResponse(
         (r) =>
           r.url().includes("/api/community/comments/") &&
           r.request().method() === "DELETE" &&
           r.status() === 200,
       );
-      await deleteDialog.getByRole("button", { name: /删除|Delete/i }).click();
+      await reopenedDeleteDialog
+        .getByRole("button", { name: /删除|Delete/i })
+        .click();
+      await expect(reopenedDeleteDialog).toBeVisible();
+      await expect(
+        reopenedDeleteDialog.getByRole("button", { name: /删除|Delete/i }),
+      ).toBeDisabled();
+      await expect(
+        reopenedDeleteDialog.getByRole("button", { name: /取消|Cancel/i }),
+      ).toBeDisabled();
+      await expect(
+        reopenedDeleteDialog.locator('[data-icon="inline-start"]'),
+      ).toBeVisible();
+      releaseDeleteRequest();
       await deleteResponse;
+      await page.unroute("**/api/community/comments/**");
+      await expect(
+        page
+          .locator("[data-sonner-toast]")
+          .filter({ hasText: /评论已删除|Comment deleted/i }),
+      ).toBeVisible();
       await expect(editedCommentCard).toHaveCount(0);
       await captureStepScreenshot(page, testInfo, "section/comment-deleted");
     } finally {
@@ -1740,6 +1993,11 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
         .filter({ hasText: body })
         .first();
       await expect(commentCard).toBeVisible();
+      await expect(
+        page
+          .locator("[data-sonner-toast]")
+          .filter({ hasText: /已可分享|is ready to share/i }),
+      ).toBeVisible();
       // comment.attachments[] filename/open action (comment.yml display.fields)
       await expect(
         commentCard

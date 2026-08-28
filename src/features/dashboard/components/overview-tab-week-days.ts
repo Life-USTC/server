@@ -3,16 +3,16 @@ import {
   weekDaysFor,
 } from "@/features/dashboard/lib/calendar";
 import { overviewDayLabel } from "@/features/dashboard/lib/calendar-display";
+import type { DashboardCalendarPreviewData } from "@/features/dashboard/lib/dashboard-controller-helpers";
 import { fmtTime } from "@/features/dashboard/lib/overview";
 import { formatCampusDate } from "@/lib/time/campus-date";
-import type { DashboardCalendarData } from "./dashboard-calendar-component-types";
 import type {
   OverviewCalendarTimelineItemsForDay,
   OverviewWeekDay,
 } from "./overview-tab-types";
 
 export function overviewCalendarWeekDays(
-  overviewCalendar: DashboardCalendarData,
+  overviewCalendar: DashboardCalendarPreviewData,
   overviewWeekStart: string,
   calendarTimelineItemsForDay: OverviewCalendarTimelineItemsForDay,
   locale: string,

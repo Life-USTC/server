@@ -76,7 +76,6 @@ export let isCreatingHomework: boolean;
 let fmtDate: HomeworkDateFormatter;
 let homeworkCompletionActionLabel: HomeworkAction;
 let homeworkCourseLabel: HomeworkAction;
-let homeworkDetailHref: HomeworkAction;
 let homeworkEtaLabel: HomeworkDateFormatter;
 let homeworkIsOverdue: HomeworkOverduePredicate;
 let homeworkSectionHref: HomeworkAction;
@@ -104,7 +103,6 @@ $: ({
   fmtDate,
   homeworkCompletionActionLabel,
   homeworkCourseLabel,
-  homeworkDetailHref,
   homeworkEtaLabel,
   homeworkIsOverdue,
   homeworkSectionHref,
@@ -195,16 +193,14 @@ $: ({
       bind:createHomeworkSectionId
       bind:createHomeworkSubmissionDueAt
       bind:createHomeworkSubmissionStartAt
-      {fmtDate}
-      {homeworkCompletionActionLabel}
       {homeworkCourseLabel}
-      {homeworkDetailHref}
-      {homeworkEtaLabel}
       {homeworksCopy}
       {homeworkSavingById}
+      {homeworkSectionHref}
       {homeworkSectionLabel}
-      {homeworkStatus}
       {isCreatingHomework}
+      {locale}
+      {referenceDate}
       sections={signedData.homeworks.sections}
       bind:selectedHomework
       {selectedCreateHomeworkSection}

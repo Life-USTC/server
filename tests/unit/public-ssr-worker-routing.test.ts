@@ -24,20 +24,36 @@ function request(path: string, headers: HeadersInit = {}) {
 
 describe("public SSR worker routing", () => {
   test.each([
+    "/account/sign-in",
     "/catalog/courses",
     "/catalog/sections/159446",
     "/privacy",
-    "/catalog/bus/map",
   ])("serves anonymous %s through the PublicSsr cache path", (path) => {
     expect(workerSsrRoute(request(path))).toBe("public-ssr");
+  });
+
+  test("serves the request-time bus map through dynamic SSR", () => {
+    expect(workerSsrRoute(request("/catalog/bus/map"))).toBe("dynamic-ssr");
+  });
+
+  test.each([
+    "/account/sign-in?callbackUrl=%2Fworkspace%2Foverview",
+    "/account/sign-in?reauth=1&callbackUrl=%2Fadmin%2Fbus",
+    "/account/sign-in?client_id=client-1&redirect_uri=http%3A%2F%2Flocalhost%2Fcallback&state=state-1&code_challenge=challenge&code_challenge_method=S256",
+  ])("keeps query-bearing sign-in dynamic %s", (path) => {
+    expect(workerSsrRoute(request(path))).toBe("dynamic-ssr");
   });
 
   test.each([
     ["/catalog/courses", { cookie: "better-auth.session_token=session-token" }],
     ["/catalog/sections/159446", { authorization: "Bearer access-token" }],
+    ["/account/sign-in", { cookie: "better-auth.session_token=session-token" }],
     ["/privacy", { cookie: "session=private" }],
     ["/wp-login.php", { cookie: "session=private" }],
-  ])("bypasses PublicSsr for authenticated document request %s", (path, headers) => {
-    expect(workerSsrRoute(request(path, headers))).toBe("dynamic-ssr");
-  });
+  ])(
+    "bypasses PublicSsr for authenticated document request %s",
+    (path, headers) => {
+      expect(workerSsrRoute(request(path, headers))).toBe("dynamic-ssr");
+    },
+  );
 });

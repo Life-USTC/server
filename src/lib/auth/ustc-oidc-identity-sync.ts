@@ -44,7 +44,7 @@ export async function syncUstcOidcIdentity(input: SyncUstcOidcIdentityInput) {
 
 type AccountIdentityHookPayload = Pick<
   Account,
-  "providerId" | "providerAccountId" | "userId"
+  "accountId" | "providerId" | "userId"
 >;
 
 export async function syncUstcOidcIdentityFromAccountHook(
@@ -53,7 +53,7 @@ export async function syncUstcOidcIdentityFromAccountHook(
 ) {
   if (account.providerId !== OIDC_PROVIDER_ID) return;
 
-  const upstreamUid = account.providerAccountId.trim();
+  const upstreamUid = account.accountId.trim();
   if (!upstreamUid) return;
 
   await syncUstcOidcIdentity({

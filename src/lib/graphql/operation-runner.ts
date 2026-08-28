@@ -6,6 +6,7 @@ import {
   getVariableValues,
 } from "graphql";
 import type { AppLocale } from "@/i18n/config";
+import { elapsedMs, monotonicNowMs } from "@/lib/log/observability-clock";
 import type { RestFeature } from "@/lib/oauth/constants";
 import { hasRequiredFeatureScope } from "@/lib/oauth/scope-registry";
 import type { GraphqlPrincipal } from "./auth";
@@ -192,8 +193,8 @@ export function safeGraphqlRequestHeaders(
   const headers = new Headers();
   for (const name of [
     "user-agent",
-    "x-forwarded-for",
-    "x-real-ip",
+    "cf-connecting-ip",
+    "cf-ray",
     "x-request-id",
   ]) {
     const value =
@@ -286,7 +287,7 @@ export async function runRegisteredGraphqlOperation(input: {
     );
   }
 
-  const startedAt = Date.now();
+  const startedAt = monotonicNowMs();
   let analysis = errorAnalysis(operation);
   let errorCount = 0;
   let internalErrorCount = 0;
@@ -376,7 +377,7 @@ export async function runRegisteredGraphqlOperation(input: {
       authMode: input.principal.kind,
       errorCount,
       internalErrorCount,
-      ioObservedDurationMs: Date.now() - startedAt,
+      ioObservedDurationMs: elapsedMs(startedAt),
       requestId: input.requestInfo?.requestId,
     });
   }

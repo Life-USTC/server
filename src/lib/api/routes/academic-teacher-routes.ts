@@ -1,16 +1,12 @@
-import {
-  handleRouteError,
-  jsonResponse,
-  notFound,
-  parseRouteQuery,
-} from "@/lib/api/helpers";
+import { handleRouteError, notFound, parseRouteQuery } from "@/lib/api/helpers";
+import { schemaJsonResponse } from "@/lib/api/responses";
 import { parseResourceIdRouteParam } from "@/lib/api/routes/academic-route-helpers";
 import { resolvePublicCatalogLocale } from "@/lib/api/routes/request-locale";
 import { teachersQuerySchema } from "@/lib/api/schemas/request-schemas";
 import {
-  cachedCatalogListRuntimeData,
-  catalogListCacheNamespace,
-} from "@/lib/catalog-runtime-cache";
+  paginatedTeacherResponseSchema,
+  teacherDetailSchema,
+} from "@/lib/api/schemas/response-schemas";
 
 export async function getTeachersRoute(request: Request) {
   const localeResolution = resolvePublicCatalogLocale(request);
@@ -33,26 +29,16 @@ export async function getTeachersRoute(request: Request) {
   const { locale: _locale, ...filters } = parsedQuery;
   const { cacheHeaders, locale } = localeResolution;
 
-  const origin = new URL(request.url).origin;
-  const namespace = catalogListCacheNamespace("teachers", locale, "api");
-
   try {
-    const result = await cachedCatalogListRuntimeData(
-      namespace,
-      origin,
-      searchParams,
-      async () => {
-        const { listTeacherSummaries } = await import(
-          "@/features/catalog/server/course-section-queries"
-        );
-        return listTeacherSummaries({
-          filters,
-          locale,
-          pagination,
-        });
-      },
+    const { listTeacherSummaries } = await import(
+      "@/features/catalog/server/course-section-queries"
     );
-    return jsonResponse(result, {
+    const result = await listTeacherSummaries({
+      filters,
+      locale,
+      pagination,
+    });
+    return schemaJsonResponse(paginatedTeacherResponseSchema, result, {
       headers: cacheHeaders,
     });
   } catch (error) {
@@ -85,7 +71,7 @@ export async function getTeacherDetailRoute(
       return notFound("Teacher not found");
     }
 
-    return jsonResponse(teacher, {
+    return schemaJsonResponse(teacherDetailSchema, teacher, {
       headers: localeResolution.cacheHeaders,
     });
   } catch (error) {

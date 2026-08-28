@@ -24,6 +24,7 @@ export function createDescriptionCardActions(input: {
   setMessage: (value: string) => void;
   setSaving: (value: boolean) => void;
   setViewer: (value: DescriptionViewer) => void;
+  onSuccess?: () => void;
 }) {
   function startEdit() {
     input.setDraft(input.getDescription().content ?? "");
@@ -71,6 +72,7 @@ export function createDescriptionCardActions(input: {
       input.setEditing(false);
       input.setDraft("");
       await reloadDescription();
+      input.onSuccess?.();
     } finally {
       input.setSaving(false);
     }

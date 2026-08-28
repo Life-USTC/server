@@ -6,7 +6,14 @@ import {
   parsePositiveCalendarSemester,
   parseSnapshotReferenceTime,
 } from "@/features/dashboard/server/dashboard-page-server";
+import {
+  countDashboardStageQuery,
+  createDashboardStageCounter,
+  observeDashboardStage,
+} from "@/features/dashboard/server/dashboard-stage-analytics";
+import { runCloudflareTraceSpan } from "@/lib/adapters/cloudflare-runtime";
 import { logAppEvent } from "@/lib/log/app-logger";
+import { elapsedMs, monotonicNowMs } from "@/lib/log/observability-clock";
 
 function recordDashboardLoadFinish(input: {
   ioObservedDurationMs: number;
@@ -29,11 +36,12 @@ function recordDashboardLoadFinish(input: {
 
 export async function loadSignedDashboardPage({
   locals,
+  request,
   tab,
   url,
   userId,
 }: DashboardPageLoadEvent & { tab: WorkspaceTabId; userId: string }) {
-  const startMs = Date.now();
+  const startMs = monotonicNowMs();
   const locale = locals.locale;
   const pageCopy = getDashboardPageCopy(locale);
   const calendarSemesterId =
@@ -43,6 +51,34 @@ export async function loadSignedDashboardPage({
   const referenceNow = parseSnapshotReferenceTime(
     url.searchParams.get("snapshotAt"),
   );
+  const shouldRevealCalendarFeed =
+    tab === "calendar" || tab === "subscriptions" || tab === "exams";
+  const recent = shouldRevealCalendarFeed
+    ? await (async () => {
+        const recentSessionCounter = createDashboardStageCounter({
+          dbContext: "none",
+          dbLabel: "auth",
+        });
+        // hooks.server.ts has already loaded this session using the same
+        // Headers object. The recent-session stage only performs the
+        // authoritative auth database reread below.
+        countDashboardStageQuery(recentSessionCounter);
+        return runCloudflareTraceSpan("recent_session", { tab }, () =>
+          observeDashboardStage({
+            counter: recentSessionCounter,
+            stage: "recent_session",
+            work: async () => {
+              const { resolveAuthoritativeRecentSession } = await import(
+                "@/lib/auth/recent-session"
+              );
+              return resolveAuthoritativeRecentSession(request.headers, {
+                expectedUserId: userId,
+              });
+            },
+          }),
+        );
+      })()
+    : { ok: false as const };
 
   const signedData = await loadSignedDashboardPageData({
     calendarSemesterId,
@@ -51,11 +87,12 @@ export async function loadSignedDashboardPage({
     pageCopy,
     referenceNow,
     requestId: locals.requestId,
+    revealCalendarFeed: recent.ok,
     tab,
     userId,
   });
   recordDashboardLoadFinish({
-    ioObservedDurationMs: Date.now() - startMs,
+    ioObservedDurationMs: elapsedMs(startMs),
     requestId: locals.requestId,
     status: "userMissing" in signedData ? "user-missing" : "ok",
     subscribedSectionCount:

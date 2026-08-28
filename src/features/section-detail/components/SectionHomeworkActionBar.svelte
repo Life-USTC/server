@@ -1,65 +1,76 @@
 <script lang="ts">
-import CheckCircleIcon from "@lucide/svelte/icons/check-circle";
-import PencilIcon from "@lucide/svelte/icons/pencil";
-import RotateCcwIcon from "@lucide/svelte/icons/rotate-ccw";
-import Trash2Icon from "@lucide/svelte/icons/trash-2";
+import MoreHorizontalIcon from "@lucide/svelte/icons/more-horizontal";
 import { Button } from "$lib/components/ui/button/index.js";
-import { Separator } from "$lib/components/ui/separator/index.js";
+import * as DropdownMenu from "$lib/components/ui/dropdown-menu/index.js";
 import type {
   SectionHomeworkAction,
   SectionHomeworkCopy,
   SectionHomeworkDisplay,
+  SectionHomeworkSectionCopy,
 } from "./section-homework-display-types";
 
 export let canManage: boolean;
 export let canWrite: boolean;
+export let cancelEdit: () => void;
+export let editing: boolean;
 export let homework: SectionHomeworkDisplay;
 export let homeworkCopy: SectionHomeworkCopy;
+export let sectionCopy: SectionHomeworkSectionCopy;
 export let setDeleteHomeworkTarget: SectionHomeworkAction;
 export let startEdit: () => void;
-export let toggleHomeworkCompletion: SectionHomeworkAction;
 </script>
 
-<!-- Editing section homework is collaborative: any active signed-in user may
-     edit, matching `updateHomework`. Only the creator or an admin may delete. -->
-{#if canWrite || canManage}
-  <div class="grid gap-4">
-    <Separator />
-    <div class="flex flex-wrap items-center justify-between gap-2">
-      {#if canManage}
-        <Button
-          type="button"
-          variant="destructive"
-          onclick={() => {
-            setDeleteHomeworkTarget(homework);
-          }}
-        >
-          <Trash2Icon data-icon="inline-start" />
-          {homeworkCopy.deleteAction}
-        </Button>
-      {/if}
-      {#if canWrite}
-        <div class="ml-auto flex flex-wrap justify-end gap-2">
-          <Button type="button" variant="outline" onclick={startEdit}>
-            <PencilIcon data-icon="inline-start" />
-            {homeworkCopy.editAction}
-          </Button>
+<div class="flex items-center gap-2">
+  <!-- Editing section homework is collaborative: any active signed-in user may
+       edit, matching `updateHomework`. Only the creator or an admin may delete. -->
+  {#if canWrite && editing}
+    <Button
+      class="min-h-11 sm:min-h-9"
+      variant="outline"
+      type="button"
+      onclick={() => {
+        cancelEdit();
+      }}
+    >
+      {sectionCopy.close}
+    </Button>
+  {/if}
+  {#if !editing && (canWrite || canManage)}
+    <DropdownMenu.Root>
+      <DropdownMenu.Trigger>
+        {#snippet child({ props })}
           <Button
+            {...props}
+            aria-label={homeworkCopy.moreDetails}
+            class="min-h-11 min-w-11 sm:min-h-9 sm:min-w-9"
+            size="icon"
             type="button"
             variant="outline"
-            onclick={() => {
-              toggleHomeworkCompletion(homework);
-            }}
           >
-            {#if homework.completion}
-              <RotateCcwIcon data-icon="inline-start" />
-            {:else}
-              <CheckCircleIcon data-icon="inline-start" />
-            {/if}
-            {homework.completion ? homeworkCopy.markIncomplete : homeworkCopy.markComplete}
+            <MoreHorizontalIcon data-icon="inline-start" />
           </Button>
-        </div>
-      {/if}
-    </div>
-  </div>
-{/if}
+        {/snippet}
+      </DropdownMenu.Trigger>
+      <DropdownMenu.Content align="end">
+        <DropdownMenu.Group>
+          {#if canWrite}
+            <DropdownMenu.Item onSelect={startEdit}>
+              {homeworkCopy.editAction}
+            </DropdownMenu.Item>
+          {/if}
+          {#if canWrite && canManage}
+            <DropdownMenu.Separator />
+          {/if}
+          {#if canManage}
+            <DropdownMenu.Item
+              onSelect={() => setDeleteHomeworkTarget(homework)}
+              variant="destructive"
+            >
+              {homeworkCopy.deleteAction}
+            </DropdownMenu.Item>
+          {/if}
+        </DropdownMenu.Group>
+      </DropdownMenu.Content>
+    </DropdownMenu.Root>
+  {/if}
+</div>

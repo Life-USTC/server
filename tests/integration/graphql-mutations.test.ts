@@ -641,7 +641,7 @@ describe("GraphQL authenticated mutations", () => {
       tokenA,
       {
         "user-agent": "graphql-integration-agent",
-        "x-forwarded-for": "192.0.2.10",
+        "cf-connecting-ip": "192.0.2.10",
       },
     );
     const commentId = (

@@ -338,8 +338,9 @@ describe("GraphQL HTTP boundary", () => {
           },
         },
         {
+          "cf-connecting-ip": "192.0.2.40",
+          "cf-ray": "request-1",
           "user-agent": "graphql-unit-agent",
-          "x-forwarded-for": "192.0.2.40",
         },
       ),
     );
@@ -365,9 +366,13 @@ describe("GraphQL HTTP boundary", () => {
     });
     expect(descriptionService.upsertDescriptionContent).toHaveBeenCalledWith({
       auditMetadata: {
+        channel: "graphql",
         ipAddress: "192.0.2.40",
+        requestId: expect.any(String),
         source: "graphql",
+        subjectUserId: "session-user",
         userAgent: "graphql-unit-agent",
+        userId: "session-user",
       },
       content: "GraphQL description",
       targetId: 101,

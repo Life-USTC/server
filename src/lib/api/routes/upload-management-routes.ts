@@ -22,8 +22,14 @@ import {
   uploadRenameRequestSchema,
   uploadsQuerySchema,
 } from "@/lib/api/schemas/request-schemas";
+import { attributionFromApiPrincipal } from "@/lib/audit/principal-attribution";
 import { getAuditRequestMetadata } from "@/lib/audit/write-audit-log";
-import { requireAuth, requireWriteAuth } from "@/lib/auth/api-auth";
+import {
+  type ApiPrincipal,
+  requireAuthPrincipal,
+  requireWriteAuth,
+  requireWriteAuthPrincipal,
+} from "@/lib/auth/api-auth";
 
 type IdParams = { id: string };
 
@@ -44,30 +50,34 @@ function mapOwnedUploadMutationFailure(result: OwnedUploadMutationFailure) {
 }
 
 export async function getUploadsRoute(request: Request) {
-  return withUploadAuth(request, "Failed to list uploads", async (userId) => {
-    const parsed = parseRouteQuery(
-      getRequestSearchParams(request),
-      uploadsQuerySchema,
-      "Invalid uploads query",
-      { pagination: { defaultPageSize: 20, maxPageSize: 100 } },
-    );
-    if (parsed instanceof Response) return parsed;
+  return withUploadAuth(
+    request,
+    "Failed to list uploads",
+    async (principal) => {
+      const parsed = parseRouteQuery(
+        getRequestSearchParams(request),
+        uploadsQuerySchema,
+        "Invalid uploads query",
+        { pagination: { defaultPageSize: 20, maxPageSize: 100 } },
+      );
+      if (parsed instanceof Response) return parsed;
 
-    const result = await listUploads(userId, parsed.pagination);
-    return jsonResponse({
-      ...buildPaginatedResponse(
-        result.uploads,
-        parsed.pagination.page,
-        parsed.pagination.pageSize,
-        result.total,
-      ),
-      meta: {
-        maxFileSizeBytes: result.maxFileSizeBytes,
-        quotaBytes: result.quotaBytes,
-        usedBytes: result.usedBytes,
-      },
-    });
-  });
+      const result = await listUploads(principal.userId, parsed.pagination);
+      return jsonResponse({
+        ...buildPaginatedResponse(
+          result.uploads,
+          parsed.pagination.page,
+          parsed.pagination.pageSize,
+          result.total,
+        ),
+        meta: {
+          maxFileSizeBytes: result.maxFileSizeBytes,
+          quotaBytes: result.quotaBytes,
+          usedBytes: result.usedBytes,
+        },
+      });
+    },
+  );
 }
 
 export async function patchUploadRoute(request: Request, params: IdParams) {
@@ -116,11 +126,14 @@ export async function deleteUploadRoute(request: Request, params: IdParams) {
   return withUploadAuth(
     request,
     "Failed to delete upload",
-    async (userId) => {
+    async (principal) => {
       const result = await deleteOwnedUpload({
-        audit: getAuditRequestMetadata(request),
+        audit: {
+          ...getAuditRequestMetadata(request),
+          ...attributionFromApiPrincipal(principal),
+        },
         id: parsed.id,
-        userId,
+        userId: principal.userId,
       });
       if (!result.ok) {
         return mapOwnedUploadMutationFailure(result);
@@ -138,18 +151,18 @@ export async function deleteUploadRoute(request: Request, params: IdParams) {
 async function withUploadAuth(
   request: Request,
   errorMessage: string,
-  action: (userId: string) => Promise<Response>,
+  action: (principal: ApiPrincipal) => Promise<Response>,
   options: { write?: boolean } = {},
 ) {
   const auth = options.write
-    ? await requireWriteAuth(request)
-    : await requireAuth(request, {
+    ? await requireWriteAuthPrincipal(request)
+    : await requireAuthPrincipal(request, {
         bearerScope: { feature: "workspace.upload", action: "read" },
       });
   if (auth instanceof Response) return auth;
 
   try {
-    return await action(auth.userId);
+    return await action(auth);
   } catch (error) {
     return handleRouteError(errorMessage, error);
   }

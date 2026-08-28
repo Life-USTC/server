@@ -10,7 +10,8 @@
     "schedule-definition": "Schedule refers to a section's class times, locations, and week patterns.",
     "schedule-as-context": "The schedule within a section detail page is not treated as an isolated table but as an important entry point for understanding the section context.",
     "personal-calendar-integrates": "The personal calendar integrates subscribed section schedules, homework due dates, exam times, and personal todo due dates.",
-    "public-rest-locale-cache": "Localized public schedule REST responses may use short shared CDN caching only when a supported locale is explicit in the locale URL query; responses localized from Cookie/Accept-Language fallback are private/no-store."
+    "public-rest-locale-cache": "Public schedule REST responses are deterministic by URL: omitted locale uses canonical zh-cn and locale=en-us selects English. They do not derive output from Cookie or Accept-Language and may use shared CDN caching. REST and MCP schedule lists share revision-scoped locale/filter/pagination runtime caching.",
+    "section-schedule-query": "A section schedule read fetches section context and its filtered, ordered, optionally bounded schedules in one top-level Section query while preserving includeSection output semantics."
   },
   "capabilities": {
     "my-schedule": {
@@ -99,7 +100,7 @@
             "notes": [
               "Supports filtering by section, teacher, room, date range, and day of week.",
               "REST/MCP both accept exact JW/code-style filters for schedules so callers do not need to resolve internal numeric IDs first.",
-              "REST pageSize accepts 1-100; the deprecated limit alias remains accepted and pageSize wins when both are supplied. Out-of-range values are rejected instead of clamped.",
+              "REST page and pageSize accept 1-100; the deprecated limit alias remains accepted and pageSize wins when both are supplied. Out-of-range values are rejected instead of clamped.",
               "REST localizes nested schedule labels from the request locale; MCP accepts an explicit locale input."
             ]
           }

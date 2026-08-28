@@ -59,6 +59,7 @@ export type SectionBasicInfo = {
   remark?: string | null;
   roomType?: SectionLocalizedName | null;
   otherCourseSections: SectionRelatedSummary[];
+  otherCourseSectionCount: number;
   scheduleRemark?: string | null;
   semester?: {
     nameCn?: string | null;

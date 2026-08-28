@@ -1,5 +1,6 @@
 <script lang="ts">
 import appIconUrl from "$lib/assets/life-ustc-icon-192.png";
+import * as Alert from "$lib/components/ui/alert/index.js";
 import { Badge } from "$lib/components/ui/badge/index.js";
 import * as Item from "$lib/components/ui/item/index.js";
 
@@ -30,7 +31,9 @@ export let loopbackRedirectWarning: string | undefined = undefined;
       </Item.Description>
     {/if}
     {#if redirectIsLoopback && loopbackRedirectWarning}
-      <p class="text-destructive text-xs">{loopbackRedirectWarning}</p>
+      <Alert.Root class="py-2" variant="destructive">
+        <Alert.Description>{loopbackRedirectWarning}</Alert.Description>
+      </Alert.Root>
     {/if}
   </Item.Content>
 </Item.Root>

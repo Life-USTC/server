@@ -1,5 +1,8 @@
 <script lang="ts">
+import ChevronRightIcon from "@lucide/svelte/icons/chevron-right";
+import { Button } from "$lib/components/ui/button/index.js";
 import * as Item from "$lib/components/ui/item/index.js";
+import AdminListShell from "./AdminListShell.svelte";
 import type {
   AdminModerationComment,
   AdminModerationCommentFormatter,
@@ -10,33 +13,43 @@ import ModerationStatusBadge from "./ModerationStatusBadge.svelte";
 export let comments: AdminModerationComment[];
 export let commentAuthorLabel: AdminModerationCommentFormatter;
 export let formatDate: (value: string | Date) => string;
+export let manageLabel: string;
 export let onManage: (comment: AdminModerationComment) => void;
 export let statusLabel: AdminModerationCommentStatusFormatter;
 export let targetLabel: AdminModerationCommentFormatter;
 </script>
 
-<Item.Group class="md:hidden" data-testid="admin-moderation-mobile-list">
-  {#each comments as comment}
-    <Item.Root variant="outline" class="items-start">
-      {#snippet child({ props })}
-        <button {...props} type="button" onclick={() => onManage(comment)}>
-          <Item.Content class="min-w-0">
-            <Item.Title>{targetLabel(comment)}</Item.Title>
-            <Item.Description>
-              {commentAuthorLabel(comment)} · {formatDate(comment.createdAt)}
-            </Item.Description>
-            <Item.Description class="line-clamp-3 whitespace-pre-wrap">
-              {comment.body}
-            </Item.Description>
-          </Item.Content>
-          <Item.Actions>
-            <ModerationStatusBadge
-              label={statusLabel(comment.status)}
-              status={comment.status}
-            />
-          </Item.Actions>
-        </button>
-      {/snippet}
-    </Item.Root>
-  {/each}
-</Item.Group>
+<AdminListShell class="xl:hidden">
+  <Item.Group class="gap-0" data-testid="admin-moderation-mobile-list">
+    {#each comments as comment, index (comment.id)}
+      <Item.Root class="items-start px-1 py-3">
+        <Item.Content class="min-w-0">
+          <Item.Title>{targetLabel(comment)}</Item.Title>
+          <Item.Description>
+            {commentAuthorLabel(comment)} · {formatDate(comment.createdAt)}
+          </Item.Description>
+          <Item.Description class="line-clamp-3 whitespace-pre-wrap">
+            {comment.body}
+          </Item.Description>
+        </Item.Content>
+        <Item.Actions class="shrink-0 flex-wrap self-start">
+          <ModerationStatusBadge
+            label={statusLabel(comment.status)}
+            status={comment.status}
+          />
+          <Button
+            aria-label={manageLabel}
+            onclick={() => onManage(comment)}
+            size="sm"
+            type="button"
+            variant="ghost"
+          >
+            {manageLabel}
+            <ChevronRightIcon aria-hidden="true" data-icon="inline-end" />
+          </Button>
+        </Item.Actions>
+      </Item.Root>
+      {#if index < comments.length - 1}<Item.Separator class="my-0" />{/if}
+    {/each}
+  </Item.Group>
+</AdminListShell>

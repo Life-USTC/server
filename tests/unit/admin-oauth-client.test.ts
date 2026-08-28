@@ -59,25 +59,28 @@ describe("admin OAuth client creation", () => {
         skipConsent: false,
       },
     ],
-  ] as const)("keeps %s as one fixed server-side security pattern", async (method, expectedPattern) => {
-    expect(ADMIN_OAUTH_CLIENT_PATTERNS[method]).toEqual(expectedPattern);
+  ] as const)(
+    "keeps %s as one fixed server-side security pattern",
+    async (method, expectedPattern) => {
+      expect(ADMIN_OAUTH_CLIENT_PATTERNS[method]).toEqual(expectedPattern);
 
-    const parsed = await parseAdminOAuthCreateRequest(
-      createRequest(method),
-      copy,
-    );
-    expect(parsed).toEqual({
-      value: {
-        name: "Test client",
-        redirectUris: [
-          "https://example.test/callback",
-          "https://example.test/alternate",
-        ],
-        scopes: ["openid", "workspace.todo:read"],
-        tokenEndpointAuthMethod: method,
-      },
-    });
-  });
+      const parsed = await parseAdminOAuthCreateRequest(
+        createRequest(method),
+        copy,
+      );
+      expect(parsed).toEqual({
+        value: {
+          name: "Test client",
+          redirectUris: [
+            "https://example.test/callback",
+            "https://example.test/alternate",
+          ],
+          scopes: ["openid", "workspace.todo:read"],
+          tokenEndpointAuthMethod: method,
+        },
+      });
+    },
+  );
 
   it("exposes only the three server-supported patterns to the form", () => {
     expect(oauthAuthPatternOptions.map(({ value }) => value)).toEqual([

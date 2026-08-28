@@ -3,21 +3,26 @@ import { selectCurrentSemesterFromList } from "@/features/catalog/lib/current-se
 import { countDueTodos } from "@/features/todos/server/todo-service";
 import { prisma as basePrisma, withUserDbContext } from "@/lib/db/prisma";
 import { shanghaiDayjs } from "@/lib/time/shanghai-dayjs";
+import type { DashboardSemester } from "./dashboard-overview-types";
 import type { DashboardSubscribedSection } from "./dashboard-user-context";
 
 export async function getDashboardCalendarItemsCount(
   userId: string,
   subscribedSections: readonly DashboardSubscribedSection[],
   referenceNow: dayjs.Dayjs,
+  providedSemesters?: readonly DashboardSemester[],
 ) {
-  const semesters = await basePrisma.semester.findMany({
-    select: {
-      id: true,
-      startDate: true,
-      endDate: true,
-    },
-    orderBy: { startDate: "asc" },
-  });
+  const semesters = providedSemesters
+    ? Array.from(providedSemesters)
+    : await basePrisma.semester.findMany({
+        select: {
+          id: true,
+          nameCn: true,
+          startDate: true,
+          endDate: true,
+        },
+        orderBy: { startDate: "asc" },
+      });
   const currentSemester = selectCurrentSemesterFromList(
     semesters,
     referenceNow.toDate(),

@@ -26,6 +26,7 @@ export function createSectionDetailUiActions(input: {
   setHomeworkView: (value: SectionHomeworkView) => void;
   setShowCreateHomework: (value: boolean) => void;
   setShowSubscribeDialog: (value: boolean) => void;
+  onSuccess?: (action: "subscribe" | "unsubscribe") => void;
   setSubscriptionPendingAction: (
     value: "subscribe" | "unsubscribe" | null,
   ) => void;
@@ -85,6 +86,7 @@ export function createSectionDetailUiActions(input: {
           if (result.type === "success" && action === "subscribe") {
             input.setShowSubscribeDialog(false);
           }
+          if (result.type === "success") input.onSuccess?.(action);
         } finally {
           input.setSubscriptionPendingAction(null);
         }

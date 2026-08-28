@@ -40,7 +40,6 @@ onMount(() => {
 <section
   aria-label={copy.settings.preferences.title}
   class="grid gap-5"
-  role="region"
 >
   <Field.Group>
     <Field.Field orientation="responsive">

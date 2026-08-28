@@ -12,7 +12,6 @@ import {
 import {
   homeworkCompletionActionLabel as buildHomeworkCompletionActionLabel,
   homeworkCourseLabel as buildHomeworkCourseLabel,
-  homeworkDetailHref as buildHomeworkDetailHref,
   homeworkSectionHref as buildHomeworkSectionHref,
   homeworkSectionOptionLabel,
   homeworkStatusLabel,
@@ -68,8 +67,6 @@ export function createHomeworkTabDisplayActions({
       }),
     homeworkCourseLabel: (homework: DashboardHomeworkItem) =>
       buildHomeworkCourseLabel(homework, homeworkCopy.section),
-    homeworkDetailHref: (homework: DashboardHomeworkItem) =>
-      buildHomeworkDetailHref(homework, returnTo),
     homeworkEtaLabel: (value: Date | string | null | undefined) =>
       formatDashboardDueRelativeTime(
         value,

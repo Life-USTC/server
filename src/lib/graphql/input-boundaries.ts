@@ -51,7 +51,17 @@ function validateOptionalText(
 }
 
 export function validateGraphqlSearch(value: string | null | undefined) {
-  return validateOptionalText(value, "search", GRAPHQL_LIMITS.searchChars);
+  const search = validateOptionalText(
+    value,
+    "search",
+    GRAPHQL_LIMITS.searchChars,
+  );
+  if (search !== undefined && search.length < GRAPHQL_LIMITS.searchMinChars) {
+    badUserInput(
+      `search must contain at least ${GRAPHQL_LIMITS.searchMinChars} characters.`,
+    );
+  }
+  return search;
 }
 
 export function validateGraphqlTeacherCode(value: string | null | undefined) {

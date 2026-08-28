@@ -1,16 +1,12 @@
-import {
-  handleRouteError,
-  jsonResponse,
-  notFound,
-  parseRouteQuery,
-} from "@/lib/api/helpers";
+import { handleRouteError, notFound, parseRouteQuery } from "@/lib/api/helpers";
+import { schemaJsonResponse } from "@/lib/api/responses";
 import { parseJwIdRouteParam } from "@/lib/api/routes/academic-route-helpers";
 import { resolvePublicCatalogLocale } from "@/lib/api/routes/request-locale";
 import { coursesQuerySchema } from "@/lib/api/schemas/request-schemas";
 import {
-  cachedCatalogListRuntimeData,
-  catalogListCacheNamespace,
-} from "@/lib/catalog-runtime-cache";
+  courseDetailSchema,
+  paginatedCourseResponseSchema,
+} from "@/lib/api/schemas/response-schemas";
 
 export async function getCoursesRoute(request: Request) {
   const localeResolution = resolvePublicCatalogLocale(request);
@@ -33,26 +29,16 @@ export async function getCoursesRoute(request: Request) {
   const { locale: _locale, ...filters } = parsedQuery;
   const { cacheHeaders, locale } = localeResolution;
 
-  const origin = new URL(request.url).origin;
-  const namespace = catalogListCacheNamespace("courses", locale, "api");
-
   try {
-    const result = await cachedCatalogListRuntimeData(
-      namespace,
-      origin,
-      searchParams,
-      async () => {
-        const { listCourseSummaries } = await import(
-          "@/features/catalog/server/course-section-queries"
-        );
-        return listCourseSummaries({
-          filters,
-          locale,
-          pagination,
-        });
-      },
+    const { listCourseSummaries } = await import(
+      "@/features/catalog/server/course-section-queries"
     );
-    return jsonResponse(result, {
+    const result = await listCourseSummaries({
+      filters,
+      locale,
+      pagination,
+    });
+    return schemaJsonResponse(paginatedCourseResponseSchema, result, {
       headers: cacheHeaders,
     });
   } catch (error) {
@@ -85,7 +71,7 @@ export async function getCourseDetailRoute(
       return notFound("Course not found");
     }
 
-    return jsonResponse(course, {
+    return schemaJsonResponse(courseDetailSchema, course, {
       headers: localeResolution.cacheHeaders,
     });
   } catch (error) {

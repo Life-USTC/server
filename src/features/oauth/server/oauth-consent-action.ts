@@ -1,8 +1,16 @@
 import { error, redirect } from "@sveltejs/kit";
 import { bindOAuthAuthorizationCodeRedirectToActiveGrant } from "@/features/oauth/server/oauth-authorization-code-grant.server";
 import { verifyOAuthProviderSignedQueryState } from "@/features/oauth/server/signed-oauth-query.server";
+import {
+  type AuditLogParams,
+  fireAuditLog,
+  getAuditRequestMetadata,
+  writeAuditLog,
+} from "@/lib/audit/write-audit-log";
 import { isTrustedAuthOrigin } from "@/lib/auth/auth-origins";
+import { resolveAuthoritativeRecentSession } from "@/lib/auth/recent-session";
 import { authPrisma as prisma } from "@/lib/db/auth-prisma";
+import { runSerializableTransaction } from "@/lib/db/serializable-transaction";
 import { getCanonicalOAuthIssuer } from "@/lib/mcp/urls";
 import { OAUTH_PROVIDER_CLAIMS_SUPPORTED } from "@/lib/oauth/constants";
 import { hashOAuthClientSecretForDbStorage } from "@/lib/oauth/utils";
@@ -28,6 +36,8 @@ const OAUTH_SINGLETON_QUERY_FIELDS = [
 const SUPPORTED_USERINFO_CLAIMS = new Set<string>(
   OAUTH_PROVIDER_CLAIMS_SUPPORTED,
 );
+
+class OAuthRecentAuthRequiredError extends Error {}
 
 type OAuthSession = {
   session: {
@@ -56,24 +66,22 @@ type OAuthConsentClientReader = {
     findUnique(input: {
       where: { clientId: string };
       select: {
+        applicationType: true;
         disabled: true;
-        public: true;
         requirePKCE: true;
         redirectUris: true;
         scopes: true;
         skipConsent: true;
         tokenEndpointAuthMethod: true;
-        type: true;
       };
     }): Promise<{
+      applicationType: string | null;
       disabled: boolean;
-      public: boolean | null;
       requirePKCE: boolean | null;
       redirectUris: string[];
       scopes: string[];
       skipConsent: boolean | null;
       tokenEndpointAuthMethod: string | null;
-      type: string | null;
     } | null>;
   };
 };
@@ -123,6 +131,13 @@ function uniqueScopes(value: string | null) {
   return [...new Set((value ?? "").split(/\s+/).filter(Boolean))];
 }
 
+function mergeUniqueValues(
+  current: readonly string[],
+  additions: readonly string[],
+) {
+  return [...new Set([...current, ...additions])];
+}
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
@@ -169,6 +184,7 @@ async function validateConsentRequest(
 ): Promise<
   | (ValidatedConsentRequest & {
       client: {
+        scopes: string[];
         skipConsent: boolean | null;
       };
     })
@@ -189,14 +205,13 @@ async function validateConsentRequest(
   const client = await reader.oAuthClient.findUnique({
     where: { clientId },
     select: {
+      applicationType: true,
       disabled: true,
-      public: true,
       requirePKCE: true,
       redirectUris: true,
       scopes: true,
       skipConsent: true,
       tokenEndpointAuthMethod: true,
-      type: true,
     },
   });
   const requestedScopes = uniqueScopes(authorizeQuery.get("scope"));
@@ -204,9 +219,7 @@ async function validateConsentRequest(
   const codeChallengeMethod = authorizeQuery.get("code_challenge_method");
   const requiresPkce =
     client?.tokenEndpointAuthMethod === "none" ||
-    client?.type === "native" ||
-    client?.type === "user-agent-based" ||
-    client?.public === true ||
+    client?.applicationType === "native" ||
     requestedScopes.includes("offline_access") ||
     (client?.requirePKCE ?? true);
   if (
@@ -223,7 +236,7 @@ async function validateConsentRequest(
 
   return {
     authorizeQuery,
-    client: { skipConsent: client.skipConsent },
+    client: { scopes: client.scopes, skipConsent: client.skipConsent },
     clientId,
     redirectUri,
     requestedScopes,
@@ -299,114 +312,193 @@ function buildOAuthCallbackUrl(input: {
 
 export async function createAcceptedOAuthAuthorization(input: {
   acceptedScopes: readonly string[];
+  audit?: Pick<
+    AuditLogParams,
+    "channel" | "ipAddress" | "requestId" | "userAgent"
+  >;
   authorizeQuery: URLSearchParams;
   session: OAuthSession;
 }) {
   const normalizedAcceptedScopes = [...new Set(input.acceptedScopes)];
-  return prisma.$transaction(async (tx) => {
-    const request = await validateConsentRequest(tx, input.authorizeQuery);
-    if (
-      !request ||
-      !normalizedAcceptedScopes.every((scope) =>
-        request.requestedScopes.includes(scope),
-      )
-    ) {
-      return null;
-    }
+  return runSerializableTransaction(
+    async (tx) => {
+      const request = await validateConsentRequest(tx, input.authorizeQuery);
+      if (
+        !request ||
+        !normalizedAcceptedScopes.every((scope) =>
+          request.requestedScopes.includes(scope),
+        )
+      ) {
+        return null;
+      }
 
-    const identity = {
-      clientId: request.clientId,
-      userId: input.session.user.id,
-    };
-    const grantId = crypto.randomUUID();
-    const resources = request.authorizeQuery.getAll("resource");
-    const userInfoClaims = requestedUserInfoClaims(
-      request.authorizeQuery.get("claims"),
-    );
-    if (request.client.skipConsent === true) {
-      await tx.oAuthConsent.deleteMany({ where: identity });
-    } else {
-      await tx.oAuthAccessToken.deleteMany({ where: identity });
-      await tx.oAuthRefreshToken.deleteMany({ where: identity });
-      await tx.deviceCode.deleteMany({ where: identity });
-      await tx.oAuthConsent.upsert({
-        where: { clientId_userId: identity },
-        create: {
-          ...identity,
-          grantId,
-          resources,
-          requestedUserInfoClaims: userInfoClaims,
-          scopes: normalizedAcceptedScopes,
-        },
-        update: {
-          grantId,
-          ...(resources.length > 0 ? { resources } : {}),
-          requestedUserInfoClaims: userInfoClaims,
-          scopes: normalizedAcceptedScopes,
+      const identity = {
+        clientId: request.clientId,
+        userId: input.session.user.id,
+      };
+      const resources = request.authorizeQuery.getAll("resource");
+      const userInfoClaims = requestedUserInfoClaims(
+        request.authorizeQuery.get("claims"),
+      );
+      let grantId: string;
+      let existingConsentId: string | null = null;
+      if (request.client.skipConsent === true) {
+        grantId = crypto.randomUUID();
+        await tx.oAuthConsent.deleteMany({ where: identity });
+      } else {
+        existingConsentId =
+          (
+            await tx.oAuthConsent.findUnique({
+              where: { clientId_userId: identity },
+              select: { id: true },
+            })
+          )?.id ?? null;
+        const consent = await tx.oAuthConsent.upsert({
+          where: { clientId_userId: identity },
+          create: {
+            ...identity,
+            resources,
+            requestedUserInfoClaims: userInfoClaims,
+            scopes: normalizedAcceptedScopes,
+          },
+          update: {},
+          select: {
+            grantId: true,
+            requestedUserInfoClaims: true,
+            resources: true,
+            scopes: true,
+          },
+        });
+        grantId = consent.grantId;
+        await tx.oAuthConsent.update({
+          where: { clientId_userId: identity },
+          data: {
+            requestedUserInfoClaims: mergeUniqueValues(
+              consent.requestedUserInfoClaims,
+              userInfoClaims,
+            ),
+            resources: mergeUniqueValues(consent.resources, resources),
+            scopes: mergeUniqueValues(
+              consent.scopes.filter((scope) =>
+                request.client.scopes.includes(scope),
+              ),
+              normalizedAcceptedScopes,
+            ),
+          },
+        });
+      }
+
+      const code = randomOAuthCode();
+      const iat = Math.floor(Date.now() / 1000);
+      const issuedAt = new Date(iat * 1000);
+      const query = new URLSearchParams(request.authorizeQuery);
+      query.set("scope", normalizedAcceptedScopes.join(" "));
+      removePrompt(query, "consent");
+      const queryObject = searchParamsToQuery(query);
+      const authTime = sessionCreatedAtMillis(input.session.session.createdAt);
+      await tx.verificationToken.create({
+        data: {
+          identifier: await hashOAuthClientSecretForDbStorage(code),
+          token: JSON.stringify({
+            type: "authorization_code",
+            query: queryObject,
+            userId: input.session.user.id,
+            sessionId: input.session.session.id,
+            referenceId: grantId,
+            ...(authTime !== null ? { authTime } : {}),
+          }),
+          expires: new Date((iat + OAUTH_CODE_EXPIRES_IN_SECONDS) * 1000),
+          createdAt: issuedAt,
+          updatedAt: issuedAt,
         },
       });
-    }
 
-    const code = randomOAuthCode();
-    const iat = Math.floor(Date.now() / 1000);
-    const issuedAt = new Date(iat * 1000);
-    const query = new URLSearchParams(request.authorizeQuery);
-    query.set("scope", normalizedAcceptedScopes.join(" "));
-    removePrompt(query, "consent");
-    const queryObject = searchParamsToQuery(query);
-    const authTime = sessionCreatedAtMillis(input.session.session.createdAt);
-    await tx.verificationToken.create({
-      data: {
-        identifier: await hashOAuthClientSecretForDbStorage(code),
-        token: JSON.stringify({
-          type: "authorization_code",
-          query: queryObject,
-          userId: input.session.user.id,
+      await writeAuditLog(
+        {
+          action: existingConsentId
+            ? "oauth_authorization_update"
+            : "oauth_authorization_grant",
+          channel: "auth",
+          oauthClientId: request.clientId,
+          oauthGrantId: grantId,
           sessionId: input.session.session.id,
-          referenceId: grantId,
-          ...(authTime !== null ? { authTime } : {}),
-        }),
-        expires: new Date((iat + OAUTH_CODE_EXPIRES_IN_SECONDS) * 1000),
-        createdAt: issuedAt,
-        updatedAt: issuedAt,
-      },
-    });
+          subjectUserId: input.session.user.id,
+          targetId: existingConsentId ?? request.clientId,
+          targetType: existingConsentId ? "oauth_consent" : "oauth_client",
+          userId: input.session.user.id,
+          metadata: {
+            changedFields: ["resources", "scopes", "userinfoClaims"],
+            resourceCount: resources.length,
+            scopeCount: normalizedAcceptedScopes.length,
+          },
+          ...input.audit,
+        },
+        tx,
+      );
 
-    return {
-      clientId: request.clientId,
-      expectedGrantId: grantId,
-      redirectTarget: buildOAuthCallbackUrl({
-        code,
-        query,
-        redirectUri: request.redirectUri,
-      }),
-    };
-  });
+      return {
+        clientId: request.clientId,
+        expectedGrantId: grantId,
+        redirectTarget: buildOAuthCallbackUrl({
+          code,
+          query,
+          redirectUri: request.redirectUri,
+        }),
+      };
+    },
+    "Failed to create OAuth authorization",
+    prisma,
+  );
 }
 
-async function createDeniedOAuthAuthorization(authorizeQuery: URLSearchParams) {
-  const request = await validateConsentRequest(prisma, authorizeQuery);
+async function createDeniedOAuthAuthorization(input: {
+  audit: Pick<
+    AuditLogParams,
+    "channel" | "ipAddress" | "requestId" | "userAgent"
+  >;
+  authorizeQuery: URLSearchParams;
+  session: OAuthSession;
+}) {
+  const request = await validateConsentRequest(prisma, input.authorizeQuery);
   if (!request) return null;
+
+  await fireAuditLog({
+    action: "oauth_authorization_grant",
+    oauthClientId: request.clientId,
+    outcome: "denied",
+    sessionId: input.session.session.id,
+    subjectUserId: input.session.user.id,
+    targetId: request.clientId,
+    targetType: "oauth_client",
+    userId: input.session.user.id,
+    metadata: { reason: "user_denied" },
+    ...input.audit,
+  });
 
   return buildOAuthCallbackUrl({
     error: "access_denied",
     errorDescription: "User denied access",
-    query: authorizeQuery,
+    query: input.authorizeQuery,
     redirectUri: request.redirectUri,
   });
 }
 
 export async function submitOAuthConsentAction({
+  locals,
   request,
 }: {
+  locals?: { requestId?: string };
   request: Request;
 }) {
+  const requestId = locals?.requestId;
   assertTrustedCookieRequestOrigin(request);
 
   const form = await request.formData();
   const { accept, oauthQuery, scope } = parseOAuthConsentForm(form);
 
   let redirectTarget: string | undefined;
+  let failureCode = "consent_failed";
+  let failedMutationAudit: AuditLogParams | undefined;
   try {
     const authCore = await import("@/lib/auth/core");
     const [signedState, session] = await Promise.all([
@@ -425,8 +517,62 @@ export async function submitOAuthConsentAction({
 
     if (!accept) {
       redirectTarget =
-        (await createDeniedOAuthAuthorization(authorizeQuery)) ?? undefined;
+        (await createDeniedOAuthAuthorization({
+          audit: {
+            channel: "web",
+            ...getAuditRequestMetadata(request, requestId),
+          },
+          authorizeQuery,
+          session,
+        })) ?? undefined;
     } else {
+      const validated = await validateConsentRequest(prisma, authorizeQuery);
+      if (!validated) throw new Error("Invalid OAuth consent request");
+      const existingConsent = await prisma.oAuthConsent.findUnique({
+        where: {
+          clientId_userId: {
+            clientId: validated.clientId,
+            userId: session.user.id,
+          },
+        },
+        select: { id: true },
+      });
+      failedMutationAudit = {
+        action: existingConsent
+          ? "oauth_authorization_update"
+          : "oauth_authorization_grant",
+        channel: "web",
+        oauthClientId: validated.clientId,
+        outcome: "failure",
+        sessionId: session.session.id,
+        subjectUserId: session.user.id,
+        targetId: existingConsent?.id ?? validated.clientId,
+        targetType: existingConsent ? "oauth_consent" : "oauth_client",
+        userId: session.user.id,
+        metadata: { reason: "operation_failed" },
+        ...getAuditRequestMetadata(request, requestId),
+      };
+      const recent = await resolveAuthoritativeRecentSession(request.headers, {
+        expectedUserId: session.user.id,
+      });
+      if (!recent.ok) {
+        await fireAuditLog({
+          action: existingConsent
+            ? "oauth_authorization_update"
+            : "oauth_authorization_grant",
+          channel: "web",
+          oauthClientId: validated.clientId,
+          outcome: "denied",
+          sessionId: recent.sessionId ?? session.session.id,
+          subjectUserId: session.user.id,
+          targetId: existingConsent?.id ?? validated.clientId,
+          targetType: existingConsent ? "oauth_consent" : "oauth_client",
+          userId: session.user.id,
+          metadata: { reason: recent.reason },
+          ...getAuditRequestMetadata(request, requestId),
+        });
+        throw new OAuthRecentAuthRequiredError();
+      }
       if (
         (postLoginClearedForSession !== null &&
           postLoginClearedForSession !== session.session.id) ||
@@ -435,11 +581,21 @@ export async function submitOAuthConsentAction({
             sessionCreatedAt === null ||
             sessionCreatedAt < issuedAt.getTime()))
       ) {
+        await fireAuditLog({
+          ...failedMutationAudit,
+          outcome: "denied",
+          metadata: { reason: "prompt_not_satisfied" },
+        });
+        failedMutationAudit = undefined;
         throw new Error("OAuth consent session no longer satisfies the prompt");
       }
       if (prompts.has("login")) removePrompt(authorizeQuery, "login");
       const authorization = await createAcceptedOAuthAuthorization({
         acceptedScopes: uniqueScopes(scope),
+        audit: {
+          channel: "web",
+          ...getAuditRequestMetadata(request, requestId),
+        },
         authorizeQuery,
         session,
       });
@@ -456,12 +612,17 @@ export async function submitOAuthConsentAction({
       }
       redirectTarget = authorization.redirectTarget;
     }
-  } catch {
+  } catch (error) {
+    if (error instanceof OAuthRecentAuthRequiredError) {
+      failureCode = "recent_auth_required";
+    } else if (failedMutationAudit) {
+      await fireAuditLog(failedMutationAudit);
+    }
     redirectTarget = undefined;
   }
 
   if (redirectTarget) {
     throw redirect(303, redirectTarget);
   }
-  throw redirect(303, "/error?error=consent_failed");
+  throw redirect(303, `/error?error=${failureCode}`);
 }

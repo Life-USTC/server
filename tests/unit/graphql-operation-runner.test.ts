@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createDeferred } from "../shared/deferred";
 
 const catalogService = vi.hoisted(() => ({
-  getCurrentSemester: vi.fn(),
+  getCachedCurrentSemester: vi.fn(),
 }));
 const todoService = vi.hoisted(() => ({
   createTodo: vi.fn(),
@@ -23,7 +23,7 @@ vi.mock(
       >();
     return {
       ...original,
-      getCurrentSemester: catalogService.getCurrentSemester,
+      getCachedCurrentSemester: catalogService.getCachedCurrentSemester,
     };
   },
 );
@@ -124,7 +124,7 @@ describe("registered GraphQL operation runner", () => {
   });
 
   afterEach(() => {
-    catalogService.getCurrentSemester.mockReset();
+    catalogService.getCachedCurrentSemester.mockReset();
     todoService.createTodo.mockReset();
     uploadService.completeOwnedUploadSession.mockReset();
     mutationRateLimit.checkUserMutationRateLimit.mockReset();
@@ -133,7 +133,7 @@ describe("registered GraphQL operation runner", () => {
   });
 
   it("executes a fixed pre-parsed operation without accepting a document", async () => {
-    catalogService.getCurrentSemester.mockResolvedValue(currentSemester);
+    catalogService.getCachedCurrentSemester.mockResolvedValue(currentSemester);
 
     await expect(run("catalog.semester.current.get.v1")).resolves.toMatchObject(
       {
@@ -240,7 +240,7 @@ describe("registered GraphQL operation runner", () => {
   });
 
   it("masks unexpected resolver failures", async () => {
-    catalogService.getCurrentSemester.mockRejectedValue(
+    catalogService.getCachedCurrentSemester.mockRejectedValue(
       new Error("private-current-semester-failure"),
     );
 
@@ -260,7 +260,7 @@ describe("registered GraphQL operation runner", () => {
     vi.useFakeTimers();
     const result = createDeferred<typeof currentSemester>();
     const started = createDeferred<void>();
-    catalogService.getCurrentSemester.mockImplementation(() => {
+    catalogService.getCachedCurrentSemester.mockImplementation(() => {
       started.resolve(undefined);
       return result.promise;
     });
@@ -305,7 +305,7 @@ describe("registered GraphQL operation runner", () => {
     const result = createDeferred<typeof currentSemester>();
     const started = createDeferred<void>();
     const controller = new AbortController();
-    catalogService.getCurrentSemester.mockImplementation(() => {
+    catalogService.getCachedCurrentSemester.mockImplementation(() => {
       started.resolve(undefined);
       return result.promise;
     });

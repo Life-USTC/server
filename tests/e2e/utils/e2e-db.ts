@@ -21,6 +21,10 @@ const operations = {
   createOAuthClientFixture: oauthFixtures.createOAuthClientFixture,
   cleanupAuditLogsForE2e: auditFixtures.cleanupAuditLogsForE2e,
   cleanupAuditTargetsForE2e: auditFixtures.cleanupAuditTargetsForE2e,
+  createAccountSecurityActivityFixture:
+    auditFixtures.createAccountSecurityActivityFixture,
+  deleteAccountSecurityActivityFixture:
+    auditFixtures.deleteAccountSecurityActivityFixture,
   isolateSingleActiveBusTripFixture:
     busFixtures.isolateSingleActiveBusTripFixture,
   restoreBusTripTimesFixture: busFixtures.restoreBusTripTimesFixture,
@@ -85,12 +89,14 @@ type UserProfileFixture = {
   name: string;
   username: string | null;
   image: string | null;
+  profilePictures: string[];
 };
 
 type UserProfileUpdateFixture = {
   name?: string | null;
   username?: string | null;
   image?: string | null;
+  profilePictures?: string[];
 };
 
 export const createOAuthClientFixture = (options?: OAuthClientFixtureOptions) =>
@@ -125,6 +131,14 @@ export const cleanupAuditLogsForE2e = (input: AuditLogCleanupInput) =>
 export const cleanupAuditTargetsForE2e = (
   targets: readonly AuditLogCleanupTarget[],
 ) => runDbFixture<void>("cleanupAuditTargetsForE2e", [targets]);
+
+export const createAccountSecurityActivityFixture = (userId: string) =>
+  runDbFixture<{ id: string }>("createAccountSecurityActivityFixture", [
+    userId,
+  ]);
+
+export const deleteAccountSecurityActivityFixture = (id: string) =>
+  runDbFixture<void>("deleteAccountSecurityActivityFixture", [id]);
 
 export const isolateSingleActiveBusTripFixture = () =>
   runDbFixture<busFixtures.BusTripTimesSnapshot>(
@@ -191,10 +205,10 @@ export const getSeedCourseFilterFixture = (jwId: number) =>
     classTypeName: string | null;
   }>("getSeedCourseFilterFixture", [jwId]);
 
-export const getSeedTeacherDepartmentFixture = (code: string) =>
+export const getSeedTeacherDepartmentFixture = (jwId: number) =>
   runDbFixture<{ departmentId: number | null; departmentName: string | null }>(
     "getSeedTeacherDepartmentFixture",
-    [code],
+    [jwId],
   );
 
 export const getSeedSectionSemesterFixture = (jwId: number) =>

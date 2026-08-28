@@ -27,8 +27,10 @@ export type AdminModerationCopy = AdminModerationCommentsCopy &
     deleteHomeworkAuditDescription: string;
     deleteHomeworkDescription: string;
     deleteHomeworkTitle: string;
+    deleteHomeworkSuccess: string;
     descriptionContent: string;
     descriptionInvalidContent: string;
+    descriptionUpdateSuccess: string;
     filterAction: string;
     filterQueue: string;
     filterQueueDescription: string;
@@ -45,6 +47,10 @@ export type AdminModerationCopy = AdminModerationCommentsCopy &
     homeworkTitle: string;
     lifted: string;
     liftSuspensionAction: string;
+    liftSuspensionSuccess: string;
+    liftSuspensionConfirmAction: string;
+    liftSuspensionConfirmDescription: string;
+    liftSuspensionConfirmTitle: string;
     manageUser: string;
     noHomeworks: string;
     noReason: string;
@@ -64,6 +70,7 @@ export type AdminModerationCopy = AdminModerationCommentsCopy &
     suspendExpires: string;
     suspendFailed: string;
     suspendSuccess: string;
+    commentUpdateSuccess: string;
     suspendReason: string;
     suspending: string;
     suspensionDetails: string;

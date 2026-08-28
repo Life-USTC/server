@@ -1,7 +1,7 @@
 <script lang="ts">
 import SquarePen from "@lucide/svelte/icons/square-pen";
-import DashboardTableIconButton from "@/features/dashboard/components/DashboardTableIconButton.svelte";
-import DashboardTableRowActions from "@/features/dashboard/components/DashboardTableRowActions.svelte";
+import TableIconButton from "$lib/components/TableIconButton.svelte";
+import TableRowActions from "$lib/components/TableRowActions.svelte";
 import TruncatedText from "$lib/components/TruncatedText.svelte";
 import * as Table from "$lib/components/ui/table/index.js";
 import type {
@@ -39,36 +39,38 @@ export let targetLabel: AdminModerationCommentFormatter;
       {/if}
     </div>
   </Table.Cell>
-  <Table.Cell>
-    {commentAuthorLabel(comment)}
+  <Table.Cell class="max-w-0">
+    {@const author = commentAuthorLabel(comment)}
+    <span class="block max-w-full truncate" title={author}>{author}</span>
   </Table.Cell>
   <Table.Cell>
     <a
-      class="block min-w-0 overflow-hidden hover:underline"
+      class="block min-w-0 max-w-full overflow-hidden hover:underline"
       href={targetHref(comment)}
+      title={targetLabel(comment)}
     >
       <TruncatedText text={targetLabel(comment)} />
     </a>
   </Table.Cell>
-  <Table.Cell class="whitespace-nowrap tabular-nums text-muted-foreground">
+  <Table.Cell class="whitespace-nowrap text-right tabular-nums text-muted-foreground">
     {formatDate(comment.createdAt)}
   </Table.Cell>
-  <Table.Cell>
+  <Table.Cell class="text-center">
     <ModerationStatusBadge
       label={statusLabel(comment.status)}
       status={comment.status}
     />
   </Table.Cell>
-  <Table.Cell>
-    <DashboardTableRowActions>
-      <DashboardTableIconButton
+  <Table.Cell class="w-14 min-w-14 text-right">
+    <TableRowActions class="justify-end">
+      <TableIconButton
         label={copy.manageComment}
         onclick={() => {
           onManage(comment);
         }}
       >
         <SquarePen />
-      </DashboardTableIconButton>
-    </DashboardTableRowActions>
+      </TableIconButton>
+    </TableRowActions>
   </Table.Cell>
 </Table.Row>

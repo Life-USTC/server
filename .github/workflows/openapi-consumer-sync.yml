@@ -1,0 +1,40 @@
+name: OpenAPI consumer sync
+
+on:
+  push:
+    branches: ["main"]
+    paths:
+      - public/openapi.generated.json
+  workflow_dispatch:
+
+jobs:
+  dispatch:
+    name: Notify OpenAPI consumers
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Dispatch exact server revision
+        shell: bash
+        # OPENAPI_SYNC_TOKEN needs repository dispatch access to Life-USTC/bot
+        # and Life-USTC/cli. The scheduled consumer checks cover a missing token.
+        env:
+          GH_TOKEN: ${{ secrets.OPENAPI_SYNC_TOKEN }}
+        run: |
+          set -euo pipefail
+
+          if [[ -z "${GH_TOKEN:-}" ]]; then
+            echo "::warning::OPENAPI_SYNC_TOKEN is not configured; consumer dispatch was skipped."
+            echo "### OpenAPI consumer dispatch skipped" >> "$GITHUB_STEP_SUMMARY"
+            echo "OPENAPI_SYNC_TOKEN is not configured; scheduled consumer checks remain the fallback." >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+
+          for repository in Life-USTC/bot Life-USTC/cli; do
+            gh api --method POST "repos/${repository}/dispatches" \
+              --field event_type=openapi-updated \
+              --field "client_payload[server_sha]=${GITHUB_SHA}"
+          done
+
+          echo "### OpenAPI consumers notified" >> "$GITHUB_STEP_SUMMARY"
+          echo "Dispatched server revision \`${GITHUB_SHA}\` to Life-USTC/bot and Life-USTC/cli." >> "$GITHUB_STEP_SUMMARY"

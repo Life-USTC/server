@@ -46,7 +46,7 @@ export const USTC_ESSENTIAL_LINKS: DashboardLinkItem[] = [
   {
     slug: "library",
     title: "图书馆",
-    url: "http://lib.ustc.edu.cn/",
+    url: "https://lib.ustc.edu.cn/",
     description: "图书检索与数据库资源。",
     localizations: {
       "en-us": {
@@ -80,6 +80,20 @@ export const USTC_ESSENTIAL_LINKS: DashboardLinkItem[] = [
       "en-us": {
         title: "Online Teaching Platform",
         description: "Course materials and online learning.",
+      },
+    },
+    category: "academic",
+    icon: "monitor-play",
+  },
+  {
+    slug: "blackboard",
+    title: "Blackboard 网络教学平台",
+    url: "https://www.bb.ustc.edu.cn/",
+    description: "课程内容、作业、成绩与教学活动。",
+    localizations: {
+      "en-us": {
+        title: "Blackboard Learning Platform",
+        description: "Course content, assignments, grades, and activities.",
       },
     },
     category: "academic",
@@ -142,18 +156,18 @@ export const USTC_ESSENTIAL_LINKS: DashboardLinkItem[] = [
     icon: "building",
   },
   {
-    slug: "legacy-jw",
-    title: "旧版教务系统",
-    url: "https://mis.teach.ustc.edu.cn/",
-    description: "历史教务系统入口。",
+    slug: "faculty-homepages",
+    title: "教师个人主页",
+    url: "https://faculty.ustc.edu.cn/",
+    description: "教师信息与个人主页检索。",
     localizations: {
       "en-us": {
-        title: "Legacy Academic Affairs System",
-        description: "Entry point for the legacy academic affairs system.",
+        title: "Faculty Homepages",
+        description: "Faculty profiles and homepage directory.",
       },
     },
     category: "academic",
-    icon: "clipboard-list",
+    icon: "users",
   },
   {
     slug: "physics-lab-1",

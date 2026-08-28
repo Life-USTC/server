@@ -29,7 +29,6 @@ export const DEV_SEED = {
   previousSemesterScheduleDates: s.previousSemester.scheduleDates,
   course: {
     jwId: s.courses[0].jwId,
-    legacyJwId: s.courses[0].legacyJwId,
     code: s.courses[0].code,
     nameCn: s.courses[0].nameCn,
     nameEn: s.courses[0].nameEn,
@@ -65,6 +64,7 @@ export const DEV_SEED = {
     code: previousSection.code,
   },
   teacher: {
+    jwId: s.teachers[0].jwId,
     code: s.teachers[0].code,
     nameCn: s.teachers[0].nameCn,
     nameEn: s.teachers[0].nameEn,

@@ -6,22 +6,34 @@ const AUTH_SECRET = "oauth-consent-test-secret-at-least-32-bytes";
 
 const {
   bindCodeMock,
+  auditCreateMock,
   consentDeleteMock,
+  consentFindMock,
+  consentUpdateMock,
   consentUpsertMock,
   deviceDeleteMock,
+  existingConsentLookupMock,
+  fireAuditLogMock,
   getSessionMock,
   readClientMock,
+  resolveRecentMock,
   tokenDeleteMock,
   transactionMock,
   txReadClientMock,
   verificationCreateMock,
 } = vi.hoisted(() => ({
   bindCodeMock: vi.fn(),
+  auditCreateMock: vi.fn(),
   consentDeleteMock: vi.fn(),
+  consentFindMock: vi.fn(),
+  consentUpdateMock: vi.fn(),
   consentUpsertMock: vi.fn(),
   deviceDeleteMock: vi.fn(),
+  existingConsentLookupMock: vi.fn(),
+  fireAuditLogMock: vi.fn(),
   getSessionMock: vi.fn(),
   readClientMock: vi.fn(),
+  resolveRecentMock: vi.fn(),
   tokenDeleteMock: vi.fn(),
   transactionMock: vi.fn(),
   txReadClientMock: vi.fn(),
@@ -44,12 +56,24 @@ vi.mock("@/lib/auth/core", () => ({
   },
 }));
 
+vi.mock("@/lib/auth/recent-session", () => ({
+  resolveAuthoritativeRecentSession: resolveRecentMock,
+}));
+
+vi.mock("@/lib/audit/write-audit-log", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/lib/audit/write-audit-log")>()),
+  fireAuditLog: fireAuditLogMock,
+}));
+
 const transactionClient = {
+  auditLog: { createMany: auditCreateMock },
   deviceCode: { deleteMany: deviceDeleteMock },
   oAuthAccessToken: { deleteMany: tokenDeleteMock },
   oAuthClient: { findUnique: txReadClientMock },
   oAuthConsent: {
     deleteMany: consentDeleteMock,
+    findUnique: consentFindMock,
+    update: consentUpdateMock,
     upsert: consentUpsertMock,
   },
   oAuthRefreshToken: { deleteMany: tokenDeleteMock },
@@ -60,6 +84,7 @@ vi.mock("@/lib/db/auth-prisma", () => ({
   authPrisma: {
     $transaction: transactionMock,
     oAuthClient: { findUnique: readClientMock },
+    oAuthConsent: { findUnique: existingConsentLookupMock },
   },
 }));
 
@@ -101,11 +126,17 @@ async function signedOAuthQuery(overrides: Record<string, string> = {}) {
 describe("OAuth consent 操作", () => {
   beforeEach(() => {
     bindCodeMock.mockReset();
+    auditCreateMock.mockReset();
     consentDeleteMock.mockReset();
+    consentFindMock.mockReset();
+    consentUpdateMock.mockReset();
     consentUpsertMock.mockReset();
     deviceDeleteMock.mockReset();
+    existingConsentLookupMock.mockReset();
+    fireAuditLogMock.mockReset();
     getSessionMock.mockReset();
     readClientMock.mockReset();
+    resolveRecentMock.mockReset();
     tokenDeleteMock.mockReset();
     transactionMock.mockReset();
     txReadClientMock.mockReset();
@@ -125,10 +156,26 @@ describe("OAuth consent 操作", () => {
       skipConsent: false,
     };
     readClientMock.mockResolvedValue(client);
+    existingConsentLookupMock.mockResolvedValue(null);
+    resolveRecentMock.mockResolvedValue({
+      ok: true,
+      sessionId: "session-1",
+      userId: "user-1",
+    });
+    fireAuditLogMock.mockResolvedValue(undefined);
     txReadClientMock.mockResolvedValue(client);
     transactionMock.mockImplementation((run) => run(transactionClient));
     bindCodeMock.mockResolvedValue(true);
+    consentUpdateMock.mockResolvedValue({});
+    consentFindMock.mockResolvedValue(null);
+    consentUpsertMock.mockResolvedValue({
+      grantId: "created-grant",
+      requestedUserInfoClaims: [],
+      resources: [],
+      scopes: [],
+    });
     verificationCreateMock.mockResolvedValue({});
+    auditCreateMock.mockResolvedValue({});
     vi.stubEnv("APP_PUBLIC_ORIGIN", "https://life.example");
   });
 
@@ -136,7 +183,7 @@ describe("OAuth consent 操作", () => {
     vi.unstubAllEnvs();
   });
 
-  it("在同一事务轮换 grant、清理旧行并创建 exact-bound code", async () => {
+  it("在同一事务创建初始 grant 与 exact-bound code", async () => {
     const oauthQuery = await signedOAuthQuery({
       claims: JSON.stringify({
         id_token: { name: null },
@@ -166,28 +213,26 @@ describe("OAuth consent 操作", () => {
     });
 
     expect(transactionMock).toHaveBeenCalledTimes(1);
-    expect(tokenDeleteMock).toHaveBeenCalledTimes(2);
-    expect(deviceDeleteMock).toHaveBeenCalledWith({
-      where: { clientId: "client-1", userId: "user-1" },
-    });
+    expect(tokenDeleteMock).not.toHaveBeenCalled();
+    expect(deviceDeleteMock).not.toHaveBeenCalled();
     expect(consentUpsertMock).toHaveBeenCalledWith({
       where: {
         clientId_userId: { clientId: "client-1", userId: "user-1" },
       },
       create: expect.objectContaining({
         clientId: "client-1",
-        grantId: expect.any(String),
         requestedUserInfoClaims: ["email", "preferred_username"],
         resources: ["https://life.example/api/mcp"],
         scopes: ["openid", "profile"],
         userId: "user-1",
       }),
-      update: expect.objectContaining({
-        grantId: expect.any(String),
-        requestedUserInfoClaims: ["email", "preferred_username"],
-        resources: ["https://life.example/api/mcp"],
-        scopes: ["openid", "profile"],
-      }),
+      update: {},
+      select: {
+        grantId: true,
+        requestedUserInfoClaims: true,
+        resources: true,
+        scopes: true,
+      },
     });
     const stored = JSON.parse(
       verificationCreateMock.mock.calls[0][0].data.token,
@@ -204,6 +249,85 @@ describe("OAuth consent 操作", () => {
       "client-1",
       "https://life.example/oauth/authorize",
       stored.referenceId,
+    );
+    expect(auditCreateMock).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        action: "oauth_authorization_grant",
+        oauthClientId: "client-1",
+        oauthGrantId: stored.referenceId,
+        sessionId: "session-1",
+        userId: "user-1",
+      }),
+    });
+    const serializedAudit = JSON.stringify(auditCreateMock.mock.calls);
+    expect(serializedAudit).not.toContain("test-code-challenge");
+  });
+
+  it("重复或较窄的 consent 复用 grant 并只扩展已有授权", async () => {
+    txReadClientMock.mockResolvedValue({
+      disabled: false,
+      redirectUris: ["https://client.example/callback"],
+      scopes: ["openid", "profile", "workspace.todo:read"],
+      skipConsent: false,
+    });
+    readClientMock.mockResolvedValue({
+      disabled: false,
+      redirectUris: ["https://client.example/callback"],
+      scopes: ["openid", "profile", "workspace.todo:read"],
+      skipConsent: false,
+    });
+    consentUpsertMock.mockResolvedValue({
+      grantId: "existing-grant",
+      requestedUserInfoClaims: ["email"],
+      resources: ["https://life.example/api/graphql"],
+      scopes: ["openid", "profile", "workspace.todo:read", "removed:scope"],
+    });
+    const oauthQuery = await signedOAuthQuery({
+      claims: JSON.stringify({
+        userinfo: { preferred_username: null },
+      }),
+      resource: "https://life.example/api/mcp",
+      scope: "openid profile",
+    });
+
+    await expect(
+      submitOAuthConsentAction({
+        request: consentRequest({
+          accept: "true",
+          scope: "openid profile",
+          oauthQuery,
+        }),
+      }),
+    ).rejects.toMatchObject({
+      status: 303,
+      location: expect.stringContaining("https://client.example/callback"),
+    });
+
+    expect(consentUpsertMock).toHaveBeenCalledOnce();
+    expect(consentUpdateMock).toHaveBeenCalledWith({
+      where: {
+        clientId_userId: { clientId: "client-1", userId: "user-1" },
+      },
+      data: {
+        requestedUserInfoClaims: ["email", "preferred_username"],
+        resources: [
+          "https://life.example/api/graphql",
+          "https://life.example/api/mcp",
+        ],
+        scopes: ["openid", "profile", "workspace.todo:read"],
+      },
+    });
+    expect(tokenDeleteMock).not.toHaveBeenCalled();
+    expect(deviceDeleteMock).not.toHaveBeenCalled();
+    const stored = JSON.parse(
+      verificationCreateMock.mock.calls[0][0].data.token,
+    );
+    expect(stored.referenceId).toBe("existing-grant");
+    expect(bindCodeMock).toHaveBeenCalledWith(
+      expect.any(String),
+      "client-1",
+      "https://life.example/oauth/authorize",
+      "existing-grant",
     );
   });
 
@@ -275,6 +399,12 @@ describe("OAuth consent 操作", () => {
       scopes: ["openid", "profile", "workspace.todo:read"],
       skipConsent: false,
     });
+    readClientMock.mockResolvedValue({
+      disabled: false,
+      redirectUris: ["https://client.example/callback"],
+      scopes: ["openid", "profile", "workspace.todo:read"],
+      skipConsent: false,
+    });
     const body = new URLSearchParams({
       accept: "true",
       scope: "openid profile workspace.todo:read",
@@ -284,6 +414,12 @@ describe("OAuth consent 操作", () => {
     body.append("scopes", "openid");
     body.append("scopes", "workspace.todo:read");
     body.append("scopes", "admin:write");
+    consentUpsertMock.mockResolvedValueOnce({
+      grantId: "selected-grant",
+      requestedUserInfoClaims: [],
+      resources: [],
+      scopes: ["openid", "workspace.todo:read"],
+    });
 
     await expect(
       submitOAuthConsentAction({ request: consentRequest(body) }),
@@ -299,14 +435,7 @@ describe("OAuth consent 操作", () => {
           resources: [],
           scopes: ["openid", "workspace.todo:read"],
         }),
-        update: expect.objectContaining({
-          requestedUserInfoClaims: [],
-          scopes: ["openid", "workspace.todo:read"],
-        }),
       }),
-    );
-    expect(consentUpsertMock.mock.calls[0]?.[0].update).not.toHaveProperty(
-      "resources",
     );
   });
 
@@ -331,7 +460,7 @@ describe("OAuth consent 操作", () => {
       location: "/error?error=consent_failed",
     });
 
-    expect(transactionMock).toHaveBeenCalledOnce();
+    expect(transactionMock).not.toHaveBeenCalled();
     expect(consentUpsertMock).not.toHaveBeenCalled();
   });
 
@@ -495,6 +624,37 @@ describe("OAuth consent 操作", () => {
     expect(verificationCreateMock).not.toHaveBeenCalled();
   });
 
+  it("旧会话不能授予或扩大 OAuth 授权，并记录 denied", async () => {
+    resolveRecentMock.mockResolvedValue({
+      ok: false,
+      reason: "session_not_fresh",
+      sessionId: "session-1",
+      userId: "user-1",
+    });
+
+    await expect(
+      submitOAuthConsentAction({
+        request: consentRequest({
+          accept: "true",
+          scope: "openid profile",
+          oauthQuery: await signedOAuthQuery(),
+        }),
+      }),
+    ).rejects.toMatchObject({
+      status: 303,
+      location: "/error?error=recent_auth_required",
+    });
+    expect(transactionMock).not.toHaveBeenCalled();
+    expect(fireAuditLogMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: "oauth_authorization_grant",
+        oauthClientId: "client-1",
+        outcome: "denied",
+        metadata: { reason: "session_not_fresh" },
+      }),
+    );
+  });
+
   it("事务内 code 创建失败时不返回客户端 code", async () => {
     verificationCreateMock.mockRejectedValue(new Error("code write failed"));
 
@@ -511,6 +671,14 @@ describe("OAuth consent 操作", () => {
       location: "/error?error=consent_failed",
     });
     expect(bindCodeMock).not.toHaveBeenCalled();
+    expect(fireAuditLogMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: "oauth_authorization_grant",
+        oauthClientId: "client-1",
+        outcome: "failure",
+        metadata: { reason: "operation_failed" },
+      }),
+    );
   });
 
   it("拒绝缺少 origin 或 referer 的携带 cookie 的 consent 请求", async () => {

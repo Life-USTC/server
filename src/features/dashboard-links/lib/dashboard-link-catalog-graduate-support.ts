@@ -44,6 +44,20 @@ export const USTC_GRADUATE_AND_SUPPORT_LINKS: DashboardLinkItem[] = [
     icon: "school",
   },
   {
+    slug: "graduate-admissions",
+    title: "研究生招生在线",
+    url: "https://yz.ustc.edu.cn/",
+    description: "研究生招生政策、通知与报考信息。",
+    localizations: {
+      "en-us": {
+        title: "Graduate Admissions",
+        description: "Graduate admission policies, notices, and applications.",
+      },
+    },
+    category: "academic",
+    icon: "graduation-cap",
+  },
+  {
     slug: "study-guidance",
     title: "学业指导中心",
     url: "http://202.38.65.52/xyzd/",
@@ -58,20 +72,6 @@ export const USTC_GRADUATE_AND_SUPPORT_LINKS: DashboardLinkItem[] = [
     icon: "graduation-cap",
   },
   {
-    slug: "campus-wiki",
-    title: "校园百科",
-    url: "https://baike.ustc.edu.cn/",
-    description: "校园知识百科。",
-    localizations: {
-      "en-us": {
-        title: "Campus Wiki",
-        description: "Campus knowledge wiki.",
-      },
-    },
-    category: "campus",
-    icon: "school",
-  },
-  {
     slug: "hpc-center",
     title: "超算中心",
     url: "https://scc.ustc.edu.cn/",
@@ -84,20 +84,6 @@ export const USTC_GRADUATE_AND_SUPPORT_LINKS: DashboardLinkItem[] = [
     },
     category: "services",
     icon: "network",
-  },
-  {
-    slug: "payment-system",
-    title: "网上缴费系统",
-    url: "https://sf.ustc.edu.cn/",
-    description: "校内缴费服务平台。",
-    localizations: {
-      "en-us": {
-        title: "Online Payment System",
-        description: "Campus payment service platform.",
-      },
-    },
-    category: "services",
-    icon: "mail",
   },
   {
     slug: "hospital",

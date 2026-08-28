@@ -1,5 +1,4 @@
 import { ImageResponse } from "@ethercorps/sveltekit-og";
-import { GoogleFont, resolveFonts } from "@ethercorps/sveltekit-og/fonts";
 import {
   normalizeSocialCardOptions,
   SOCIAL_CARD_HEIGHT,
@@ -9,14 +8,36 @@ import {
 import socialCardBackground from "$lib/assets/social-card-background.png?inline";
 
 const MAX_AVATAR_BYTES = 1_000_000;
+const MAX_FONT_BYTES = 5_000_000;
+const UPSTREAM_TIMEOUT_MS = 2_000;
+const SOCIAL_CARD_CACHE_CONTROL =
+  "public, max-age=3600, stale-while-revalidate=604800, stale-if-error=604800";
+const SOCIAL_CARD_CDN_CACHE_CONTROL =
+  "public, max-age=86400, stale-while-revalidate=604800, stale-if-error=604800";
+const SOCIAL_CARD_FALLBACK_CACHE_CONTROL =
+  "public, max-age=60, stale-while-revalidate=300";
+const SOCIAL_CARD_FALLBACK_CDN_CACHE_CONTROL =
+  "public, max-age=300, stale-while-revalidate=3600";
 const allowedAvatarContentTypes = new Set([
   "image/jpeg",
   "image/png",
   "image/svg+xml",
   "image/webp",
 ]);
-const MONO_FONT_FAMILY = "Life Mono";
 const SANS_FONT_FAMILY = "Life Sans";
+
+function fetchWithTimeout(
+  fetcher: typeof fetch,
+  input: string,
+  init?: RequestInit,
+) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), UPSTREAM_TIMEOUT_MS);
+
+  return fetcher(input, { ...init, signal: controller.signal }).finally(() =>
+    clearTimeout(timeout),
+  );
+}
 
 function isAllowedAvatarUrl(value: string) {
   try {
@@ -52,7 +73,7 @@ async function loadAvatarDataUrl(
   if (!avatarUrl || !isAllowedAvatarUrl(avatarUrl)) return undefined;
 
   try {
-    const response = await fetcher(avatarUrl, {
+    const response = await fetchWithTimeout(fetcher, avatarUrl, {
       headers: {
         Accept: "image/avif,image/webp,image/png,image/jpeg,image/svg+xml",
       },
@@ -99,40 +120,107 @@ function usesMonoFont(character: string) {
   );
 }
 
-function fontCharacters(value: string, mono: boolean) {
+function mixedTextHtml(value: string) {
+  return escapeHtml(value);
+}
+
+function socialCardFontText(
+  options: ReturnType<typeof normalizeSocialCardOptions>,
+) {
   return uniqueCharacters(
-    Array.from(value)
-      .filter((character) => usesMonoFont(character) === mono)
-      .join(""),
+    `${options.title}${options.subtitle}${options.footer}${options.label}@${options.username ?? ""}Life @ USTC…科大`,
   );
 }
 
-function mixedTextHtml(value: string) {
-  const runs: Array<{ mono: boolean; space?: boolean; text: string }> = [];
+function googleFontStylesheetUrl(text: string) {
+  const url = new URL("https://fonts.googleapis.com/css2");
+  url.searchParams.set("family", "Noto Sans SC:wght@400;700");
+  url.searchParams.set("text", text);
+  return url.href;
+}
 
-  for (const character of Array.from(value)) {
-    if (character === " ") {
-      runs.push({ mono: true, space: true, text: "" });
-      continue;
+function googleFontUrls(css: string) {
+  const urls = new Map<400 | 700, string>();
+  const fontFacePattern =
+    /font-weight:\s*(400|700);[\s\S]*?src:\s*url\(([^)]+)\)\s*format\(['"](?:opentype|truetype)['"]\)/gu;
+
+  for (const match of css.matchAll(fontFacePattern)) {
+    const weight = Number(match[1]) as 400 | 700;
+    const url = new URL(match[2]);
+    if (url.protocol !== "https:" || url.hostname !== "fonts.gstatic.com") {
+      throw new Error("Unexpected Google Fonts asset URL");
     }
-    const mono = usesMonoFont(character);
-    const previous = runs.at(-1);
-    if (!previous?.space && previous?.mono === mono) {
-      previous.text += character;
-    } else {
-      runs.push({ mono, text: character });
-    }
+    urls.set(weight, url.href);
   }
 
-  return runs
-    .map(({ mono, space, text }) =>
-      space
-        ? '<span style="display:flex; width:0.55em;"></span>'
-        : `<span style="display:flex; font-family:'${
-            mono ? MONO_FONT_FAMILY : SANS_FONT_FAMILY
-          }';">${escapeHtml(text)}</span>`,
-    )
-    .join("");
+  if (!urls.has(400) || !urls.has(700)) {
+    throw new Error("Google Fonts stylesheet omitted a required weight");
+  }
+  return urls;
+}
+
+async function loadFontBuffer(fetcher: typeof fetch, url: string) {
+  const response = await fetchWithTimeout(fetcher, url);
+  if (!response.ok) throw new Error("Google Fonts asset request failed");
+
+  const contentLength = Number(response.headers.get("content-length"));
+  if (Number.isFinite(contentLength) && contentLength > MAX_FONT_BYTES) {
+    throw new Error("Google Fonts asset exceeds the size limit");
+  }
+
+  const buffer = await response.arrayBuffer();
+  if (buffer.byteLength === 0 || buffer.byteLength > MAX_FONT_BYTES) {
+    throw new Error("Google Fonts asset has an invalid size");
+  }
+  return buffer;
+}
+
+async function loadSocialCardFonts(
+  options: ReturnType<typeof normalizeSocialCardOptions>,
+  fetcher: typeof fetch,
+) {
+  const stylesheetResponse = await fetchWithTimeout(
+    fetcher,
+    googleFontStylesheetUrl(socialCardFontText(options)),
+  );
+  if (!stylesheetResponse.ok) {
+    throw new Error("Google Fonts stylesheet request failed");
+  }
+
+  const urls = googleFontUrls(await stylesheetResponse.text());
+  const [regular, bold] = await Promise.all([
+    loadFontBuffer(fetcher, urls.get(400) as string),
+    loadFontBuffer(fetcher, urls.get(700) as string),
+  ]);
+
+  return [
+    {
+      data: regular,
+      name: SANS_FONT_FAMILY,
+      style: "normal" as const,
+      weight: 400 as const,
+    },
+    {
+      data: bold,
+      name: SANS_FONT_FAMILY,
+      style: "normal" as const,
+      weight: 700 as const,
+    },
+  ];
+}
+
+function fallbackSocialCardResponse() {
+  const [, encoded = ""] = socialCardBackground.split(",", 2);
+  const bytes = Uint8Array.from(atob(encoded), (character) =>
+    character.charCodeAt(0),
+  );
+  return new Response(bytes, {
+    headers: {
+      "Cache-Control": SOCIAL_CARD_FALLBACK_CACHE_CONTROL,
+      "Cloudflare-CDN-Cache-Control": SOCIAL_CARD_FALLBACK_CDN_CACHE_CONTROL,
+      "Content-Type": "image/png",
+    },
+  });
 }
 
 function textUnits(value: string) {
@@ -316,42 +404,24 @@ export async function renderSocialCard(
   fetcher: typeof fetch = fetch,
 ) {
   const options = normalizeSocialCardOptions(input);
-  const avatarDataUrl =
+  const avatarPromise =
     options.variant === "profile"
-      ? await loadAvatarDataUrl(options.avatarUrl, fetcher)
-      : undefined;
-  const regularText = `${options.subtitle}${options.footer}${options.label}…`;
-  const boldText = `${options.title}@${options.username ?? ""}Life @ USTC…`;
-  const fonts = await resolveFonts([
-    new GoogleFont("Noto Sans SC", {
-      name: SANS_FONT_FAMILY,
-      text: fontCharacters(regularText, false) || "科大",
-      weight: 400,
-    }),
-    new GoogleFont("Noto Sans SC", {
-      name: SANS_FONT_FAMILY,
-      text: fontCharacters(boldText, false) || "科大",
-      weight: 700,
-    }),
-    new GoogleFont("Fira Code", {
-      name: MONO_FONT_FAMILY,
-      text: fontCharacters(regularText, true) || "Life @ USTC",
-      weight: 400,
-    }),
-    new GoogleFont("Fira Code", {
-      name: MONO_FONT_FAMILY,
-      text: fontCharacters(boldText, true) || "Life @ USTC",
-      weight: 700,
-    }),
+      ? loadAvatarDataUrl(options.avatarUrl, fetcher)
+      : Promise.resolve(undefined);
+  const [avatarDataUrl, fonts] = await Promise.all([
+    avatarPromise,
+    loadSocialCardFonts(options, fetcher).catch(() => undefined),
   ]);
+
+  if (!fonts) return fallbackSocialCardResponse();
 
   return new ImageResponse(buildSocialCardHtml(options, avatarDataUrl), {
     fonts,
     height: SOCIAL_CARD_HEIGHT,
     width: SOCIAL_CARD_WIDTH,
     headers: {
-      "Cache-Control":
-        "public, max-age=3600, s-maxage=86400, stale-while-revalidate=604800",
+      "Cache-Control": SOCIAL_CARD_CACHE_CONTROL,
+      "Cloudflare-CDN-Cache-Control": SOCIAL_CARD_CDN_CACHE_CONTROL,
       "Content-Type": "image/png",
     },
   });

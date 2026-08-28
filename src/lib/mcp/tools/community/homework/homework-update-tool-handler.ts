@@ -2,6 +2,7 @@ import type { AuthInfo } from "@modelcontextprotocol/sdk/server/auth/types.js";
 import { updateHomework } from "@/features/homeworks/server/homework-mutations";
 import { requireHomeworkItemById } from "@/features/homeworks/server/homework-read-model";
 import { prepareHomeworkUpdate } from "@/features/homeworks/server/prepare-homework-update";
+import { attributionFromMcpAuthInfo } from "@/lib/audit/principal-attribution";
 import {
   getUserId,
   jsonToolResult,
@@ -32,6 +33,9 @@ export async function updateHomeworkOnSectionTool(
 ) {
   const resolvedMode = resolveMcpMode(mode);
   const userId = getUserId(extra.authInfo);
+  const audit = extra.authInfo
+    ? (attributionFromMcpAuthInfo(extra.authInfo) ?? undefined)
+    : undefined;
 
   const parsedDates = parseHomeworkUpdateDates({
     publishedAt,
@@ -59,6 +63,7 @@ export async function updateHomeworkOnSectionTool(
   }
 
   const result = await updateHomework({
+    audit,
     homeworkId,
     update: prepared.update,
     userId,

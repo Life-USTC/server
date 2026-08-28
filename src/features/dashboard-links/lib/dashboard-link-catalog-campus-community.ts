@@ -2,6 +2,20 @@ import type { DashboardLinkItem } from "@/features/dashboard-links/lib/dashboard
 
 export const USTC_CAMPUS_COMMUNITY_LINKS: DashboardLinkItem[] = [
   {
+    slug: "ustc-news",
+    title: "中国科大新闻网",
+    url: "https://news.ustc.edu.cn/",
+    description: "学校新闻、专题与媒体报道。",
+    localizations: {
+      "en-us": {
+        title: "USTC News",
+        description: "University news, features, and media coverage.",
+      },
+    },
+    category: "campus",
+    icon: "school",
+  },
+  {
     slug: "second-classroom",
     title: "第二课堂",
     url: "https://young.ustc.edu.cn/login",
@@ -156,9 +170,23 @@ export const USTC_CAMPUS_COMMUNITY_LINKS: DashboardLinkItem[] = [
     icon: "monitor-play",
   },
   {
+    slug: "llm-platform",
+    title: "大模型公共服务平台",
+    url: "https://llm.ustc.edu.cn/",
+    description: "校内大模型对话与 API 服务。",
+    localizations: {
+      "en-us": {
+        title: "Large Model Public Service Platform",
+        description: "Campus large-model chat and API services.",
+      },
+    },
+    category: "services",
+    icon: "monitor-play",
+  },
+  {
     slug: "classroom-2",
     title: "二教",
-    url: "http://bigscreen.cmet.ustc.edu.cn/#/2",
+    url: "https://bigscreen.cmet.ustc.edu.cn/#/2",
     description: "二教教室信息大屏。",
     localizations: {
       "en-us": {
@@ -172,7 +200,7 @@ export const USTC_CAMPUS_COMMUNITY_LINKS: DashboardLinkItem[] = [
   {
     slug: "classroom-3",
     title: "三教",
-    url: "http://bigscreen.cmet.ustc.edu.cn/#/3",
+    url: "https://bigscreen.cmet.ustc.edu.cn/#/3",
     description: "三教教室信息大屏。",
     localizations: {
       "en-us": {
@@ -186,7 +214,7 @@ export const USTC_CAMPUS_COMMUNITY_LINKS: DashboardLinkItem[] = [
   {
     slug: "classroom-5",
     title: "五教",
-    url: "http://bigscreen.cmet.ustc.edu.cn/#/5",
+    url: "https://bigscreen.cmet.ustc.edu.cn/#/5",
     description: "五教教室信息大屏。",
     localizations: {
       "en-us": {

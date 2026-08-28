@@ -3,7 +3,7 @@ import {
   resolveDashboardLinkBySlug,
 } from "@/features/dashboard-links/server/dashboard-link-service";
 import { dashboardLinkVisitQuerySchema } from "@/lib/api/schemas/request-schemas";
-import { resolveApiUserId } from "@/lib/auth/api-auth";
+import { resolveSessionUserId } from "@/lib/auth/api-auth";
 import { checkUserMutationRateLimit } from "@/lib/security/user-mutation-rate-limit";
 
 export async function getDashboardLinkVisitRoute(request: Request) {
@@ -19,7 +19,7 @@ export async function getDashboardLinkVisitRoute(request: Request) {
     return Response.redirect(new URL("/", request.url), 307);
   }
 
-  const userId = await resolveApiUserId(request);
+  const userId = await resolveSessionUserId(request);
 
   if (userId) {
     const url = new URL(request.url);

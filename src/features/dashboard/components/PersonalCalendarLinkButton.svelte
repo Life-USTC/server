@@ -1,9 +1,9 @@
 <script lang="ts">
 import Link2 from "@lucide/svelte/icons/link-2";
+import CalendarSubscriptionDialog from "@/features/calendar/components/CalendarSubscriptionDialog.svelte";
 import type { DashboardSectionCopy } from "@/features/dashboard/lib/dashboard-controller-helpers";
 import { writeClipboardText } from "@/lib/browser/clipboard";
 import { Button } from "$lib/components/ui/button/index.js";
-import PersonalCalendarDialog from "./PersonalCalendarDialog.svelte";
 
 export let buttonLabel: string;
 export let className = "";
@@ -103,15 +103,22 @@ async function copyUrl() {
   </Button>
 {/if}
 
-<PersonalCalendarDialog
+<CalendarSubscriptionDialog
   {clipboardError}
   {clipboardMessage}
   {close}
-  {copied}
-  {copyUrl}
+  copy={sectionCopy}
   {isOpen}
-  {sectionCopy}
-  {setOpen}
+  onOpenChange={setOpen}
   {showSubscriptionsLink}
-  subscriptionCalendarUrl={absoluteSubscriptionUrl}
+  urls={[{
+    copied,
+    description: sectionCopy.subscriptionUrlDescription,
+    id: "personal-subscription-url",
+    label: sectionCopy.subscriptionUrlLabel,
+    missingLabel: sectionCopy.subscriptionMissing,
+    onCopy: copyUrl,
+    value: absoluteSubscriptionUrl,
+    warning: sectionCopy.subscriptionPrivacyNote,
+  }]}
 />

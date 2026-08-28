@@ -3,7 +3,10 @@ import type {
   CommentVisibility,
   Prisma,
 } from "@/generated/prisma/client";
-import { writeAuditLog } from "@/lib/audit/write-audit-log";
+import {
+  type AuditLogParams,
+  writeAuditLog,
+} from "@/lib/audit/write-audit-log";
 import { getViewerContext } from "@/lib/auth/viewer-context";
 import { withUserDbContext } from "@/lib/db/prisma";
 import { isPrismaUniqueConstraintError } from "@/lib/db/prisma-errors";
@@ -29,10 +32,18 @@ type CreateCommentTarget = {
   whereTarget: Record<string, unknown>;
 };
 
-type CommentMutationAuditMetadata = {
-  ipAddress?: string;
+type CommentMutationAuditMetadata = Pick<
+  AuditLogParams,
+  | "channel"
+  | "ipAddress"
+  | "oauthClientId"
+  | "oauthGrantId"
+  | "requestId"
+  | "sessionId"
+  | "subjectUserId"
+  | "userAgent"
+> & {
   source?: string;
-  userAgent?: string;
 };
 
 type CreateCommentError =
@@ -210,7 +221,6 @@ async function createCommentRecord({
 
     await writeCommentAuditLog(tx, {
       action: "comment_create",
-      body: content,
       commentId: comment.id,
       metadata: auditMetadata,
       userId,
@@ -273,7 +283,6 @@ export async function updateOwnComment({
 
       await writeCommentAuditLog(tx, {
         action: "comment_edit",
-        body,
         commentId: id,
         metadata: auditMetadata,
         userId,
@@ -460,7 +469,6 @@ async function writeCommentAuditLog(
       | "comment_delete"
       | "comment_edit"
       | "comment_react";
-    body?: string;
     commentId: string;
     metadata?: CommentMutationAuditMetadata;
     operation?: "add" | "remove";
@@ -468,9 +476,8 @@ async function writeCommentAuditLog(
     userId: string;
   },
 ) {
-  const { ipAddress, source, userAgent } = input.metadata ?? {};
+  const { source, ...audit } = input.metadata ?? {};
   const metadata = {
-    ...(input.body ? { body: input.body.slice(0, 200) } : {}),
     ...(input.operation ? { operation: input.operation } : {}),
     ...(input.reactionType ? { type: input.reactionType } : {}),
     ...(source ? { source } : {}),
@@ -478,12 +485,12 @@ async function writeCommentAuditLog(
   await writeAuditLog(
     {
       action: input.action,
+      ...audit,
       userId: input.userId,
+      subjectUserId: audit.subjectUserId ?? input.userId,
       targetId: input.commentId,
       targetType: "comment",
       ...(Object.keys(metadata).length > 0 ? { metadata } : {}),
-      ...(ipAddress ? { ipAddress } : {}),
-      ...(userAgent ? { userAgent } : {}),
     },
     tx,
   );

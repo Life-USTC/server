@@ -109,6 +109,10 @@ test("/ shell 匿名 390px 抽屉只展示公开导航", async ({ page }, testIn
     /^(课程|Courses)$/i,
     /^(班级|Sections)$/i,
     /^(教师|Teachers)$/i,
+    /^(移动应用|Mobile App)$/i,
+    /^(Presto 机器人|Presto Bot)$/i,
+    /^MCP$/i,
+    /^(命令行|CLI)$/i,
   ]) {
     await expect(sidebar.getByRole("link", { name })).toBeVisible();
   }
@@ -270,6 +274,34 @@ test("/ shell 提供键盘跳转到主要内容", async ({ page }) => {
   await expect(skipLink).toHaveCSS("position", "fixed");
   await page.keyboard.press("Enter");
   await expect(page.locator("#main-content")).toBeFocused();
+});
+
+test("/ shell 只保留滚动区域的顺序焦点", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await signInAsDebugUser(page, "/workspace/todos");
+
+  const main = page.locator("#main-content");
+  const scrollRegion = page.locator("[data-shell-scroll-container]");
+  await expect(main).toHaveAttribute("tabindex", "-1");
+  await expect(scrollRegion).toHaveAttribute("tabindex", "0");
+  await expect(scrollRegion).toHaveRole("region");
+
+  const labels = await Promise.all([
+    main.getAttribute("aria-label"),
+    scrollRegion.getAttribute("aria-label"),
+  ]);
+  expect(labels[1]).toBeTruthy();
+  expect(labels[0]).not.toBe(labels[1]);
+
+  const skipLink = page.getByRole("link", {
+    name: /跳转到主要内容|Skip to main content/i,
+  });
+  await page.keyboard.press("Tab");
+  await expect(skipLink).toBeFocused();
+  await page.keyboard.press("Enter");
+  await expect(main).toBeFocused();
+  await page.keyboard.press("Tab");
+  await expect(main).not.toBeFocused();
 });
 
 test("/ shell 菜单可一键切换", async ({ page }) => {
@@ -734,11 +766,12 @@ test("/ 仅关注往期班级时可恢复历史作业和课表入口", async ({
     const response = await page.request.get("/api/workspace/homeworks");
     expect(response.status()).toBe(200);
     const body = (await response.json()) as {
-      homeworks?: Array<{ title?: string }>;
-      sectionIds?: number[];
+      data?: Array<{ sectionId?: number; title?: string }>;
     };
-    expect(body.sectionIds).toEqual([previousSection.id]);
-    expect(body.homeworks).toEqual(
+    expect(
+      body.data?.every((item) => item.sectionId === previousSection.id),
+    ).toBe(true);
+    expect(body.data).toEqual(
       expect.arrayContaining([
         expect.objectContaining({ title: DEV_SEED.homeworks.historicalTitle }),
       ]),

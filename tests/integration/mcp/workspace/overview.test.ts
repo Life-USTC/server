@@ -541,74 +541,78 @@ describe("workspace_snapshot_get — 默认模式紧凑性", () => {
     const previousSection = await fixtures.prisma.section.findUniqueOrThrow({
       where: { jwId: fixtures.DEV_SEED.previousSection.jwId },
     });
+    const currentSectionId =
+      await fixtures.ensureDevUserSubscribedToSeedSection(isolated.userId);
 
     await fixtures.replaceUserSubscribedSections(isolated.userId, [
       previousSection.id,
     ]);
 
-    const dashboard = await isolated.client.call<{
-      subscriptions?: {
-        totalCount?: number;
-        currentSemesterCount?: number;
-      };
-    }>("workspace_snapshot_get", {
-      locale: "zh-cn",
-      atTime: fixtures.SEED_AT_TIME,
-    });
-    expect(dashboard.subscriptions).toMatchObject({
-      totalCount: 1,
-      currentSemesterCount: 0,
-    });
+    try {
+      const dashboard = await isolated.client.call<{
+        subscriptions?: {
+          totalCount?: number;
+          currentSemesterCount?: number;
+        };
+      }>("workspace_snapshot_get", {
+        locale: "zh-cn",
+        atTime: fixtures.SEED_AT_TIME,
+      });
+      expect(dashboard.subscriptions).toMatchObject({
+        totalCount: 1,
+        currentSemesterCount: 0,
+      });
 
-    const sections = await isolated.client.call<{
-      sections?: Array<{ id?: number }>;
-    }>("workspace_subscription_list", { locale: "zh-cn" });
-    expect(sections.sections).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({ id: previousSection.id }),
-      ]),
-    );
+      const sections = await isolated.client.call<{
+        sections?: Array<{ id?: number }>;
+      }>("workspace_subscription_list", { locale: "zh-cn" });
+      expect(sections.sections).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ id: previousSection.id }),
+        ]),
+      );
 
-    const homeworks = await isolated.client.call<{
-      homeworks?: Array<{ title?: string }>;
-    }>("workspace_homework_list", {
-      locale: "zh-cn",
-    });
-    expect(homeworks.homeworks).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({
-          title: fixtures.DEV_SEED.homeworks.historicalTitle,
-        }),
-      ]),
-    );
+      const homeworks = await isolated.client.call<{
+        homeworks?: Array<{ title?: string }>;
+      }>("workspace_homework_list", {
+        locale: "zh-cn",
+      });
+      expect(homeworks.homeworks).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            title: fixtures.DEV_SEED.homeworks.historicalTitle,
+          }),
+        ]),
+      );
 
-    const schedules = await isolated.client.call<{
-      schedules?: Array<{ section?: { id?: number } }>;
-    }>("workspace_schedule_list", {
-      locale: "zh-cn",
-    });
-    expect(schedules.schedules).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({
-          section: expect.objectContaining({ id: previousSection.id }),
-        }),
-      ]),
-    );
+      const schedules = await isolated.client.call<{
+        schedules?: Array<{ section?: { id?: number } }>;
+      }>("workspace_schedule_list", {
+        locale: "zh-cn",
+      });
+      expect(schedules.schedules).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            section: expect.objectContaining({ id: previousSection.id }),
+          }),
+        ]),
+      );
 
-    const exams = await isolated.client.call<{
-      exams?: Array<{ section?: { id?: number } }>;
-    }>("workspace_exam_list", { locale: "zh-cn" });
-    expect(exams.exams).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({
-          section: expect.objectContaining({ id: previousSection.id }),
-        }),
-      ]),
-    );
-
-    await fixtures.replaceUserSubscribedSections(isolated.userId, [
-      await fixtures.ensureDevUserSubscribedToSeedSection(isolated.userId),
-    ]);
+      const exams = await isolated.client.call<{
+        exams?: Array<{ section?: { id?: number } }>;
+      }>("workspace_exam_list", { locale: "zh-cn" });
+      expect(exams.exams).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            section: expect.objectContaining({ id: previousSection.id }),
+          }),
+        ]),
+      );
+    } finally {
+      await fixtures.replaceUserSubscribedSections(isolated.userId, [
+        currentSectionId,
+      ]);
+    }
   });
 });
 

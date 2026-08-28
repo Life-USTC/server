@@ -1,25 +1,15 @@
-import type { HomeworkStyleGuideCopy } from "@/features/homeworks/lib/homework-style-guide";
+import type {
+  HomeworkFormCopy,
+  HomeworkTagCopy,
+  HomeworkTimestampCopy,
+} from "@/features/homeworks/components/homework-form-types";
 
-export interface SectionCreateHomeworkFieldsCopy
-  extends HomeworkStyleGuideCopy {
-  calendarButtonLabel: string;
-  descriptionLabel: string;
-  descriptionPlaceholder: string;
-  helperClear: string;
-  helperMonth: string;
-  helperPublishNow: string;
-  helperSemesterEnd: string;
-  helperSemesterStart: string;
-  helperStartNow: string;
-  helperWeek: string;
-  publishedAt: string;
-  submissionDue: string;
-  submissionStart: string;
-  tagMajor: string;
-  tagTeam: string;
-  titleLabel: string;
-  titlePlaceholder: string;
-}
+export type SectionCreateHomeworkFieldsCopy = HomeworkFormCopy &
+  HomeworkTagCopy &
+  HomeworkTimestampCopy & {
+    helperSemesterStart: string;
+    sectionLabel: string;
+  };
 
 export type SectionCreateHomeworkCopy = SectionCreateHomeworkFieldsCopy & {
   auditTitle: string;

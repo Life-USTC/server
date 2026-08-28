@@ -22,9 +22,17 @@ import {
   handleRouteError,
   jsonResponse,
 } from "@/lib/api/helpers";
-import { requireAuth, requireWriteAuth, resolveApiUserId } from "@/lib/auth/api-auth";
+import {
+  requireAuth,
+  requireWriteAuth,
+  resolveSessionUserId,
+} from "@/lib/auth/api-auth";
 import { prisma, getPrisma } from "@/lib/db/prisma";
 import { parseDateInput } from "@/lib/time/parse-date-input";
 ```
+
+`requireAuth` callers must declare the accepted OAuth feature/action scope.
+Optional personalization must use `resolveSessionUserId`; it never accepts a
+Bearer token.
 
 More detail: `components/`, `graphql/`, `mcp/`.

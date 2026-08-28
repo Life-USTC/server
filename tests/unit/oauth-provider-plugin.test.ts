@@ -57,6 +57,7 @@ describe("buildOAuthProviderPlugin", () => {
         refreshTokenExpiresIn: OAUTH_REFRESH_TOKEN_EXPIRES_IN_SECONDS,
         resource: "https://life.example/api/mcp",
         enforcePerClientResources: false,
+        cachedResources: new Set(["https://life.example/api/mcp"]),
         resources: [
           {
             allowedScopes: [...OAUTH_PROVIDER_SCOPES],
@@ -226,6 +227,26 @@ describe("buildOAuthProviderPlugin", () => {
       scopes: ["profile"],
       userId: "user-1",
     });
+  });
+
+  it("rejects delegated access-token issuance without an immutable grant reference", async () => {
+    const { buildOAuthProviderPlugin } = await import(
+      "@/lib/auth/better-auth-oauth-provider-plugin"
+    );
+    buildOAuthProviderPlugin({
+      authPublicOrigin: "https://life.example",
+    });
+    const options = mcpMock.mock.calls.at(-1)?.[0];
+
+    expect(() =>
+      options.customAccessTokenClaims({
+        scopes: ["profile"],
+        user: { id: "user-1" },
+      }),
+    ).toThrow();
+    expect(options.customAccessTokenClaims({ scopes: ["profile"] })).toEqual(
+      {},
+    );
   });
 
   it("returns verified GitHub/Google email when available without clearing placeholders", async () => {

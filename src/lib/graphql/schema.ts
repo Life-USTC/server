@@ -4,7 +4,7 @@ import {
   listBusRoutes,
 } from "@/features/bus/server/bus-catalog";
 import {
-  getCurrentSemester,
+  getCachedCurrentSemester,
   listSemesters,
 } from "@/features/catalog/server/academic-metadata-read-model";
 import { listCourseSummaries } from "@/features/catalog/server/course-summary-read-model";
@@ -107,7 +107,7 @@ export const graphqlTypeDefs = /* GraphQL */ `
 
   type Campus {
     id: Int!
-    jwId: Int
+    jwId: Int!
     code: String
     nameCn: String!
     nameEn: String
@@ -142,7 +142,7 @@ export const graphqlTypeDefs = /* GraphQL */ `
     code: String!
     credits: Float
     period: Int
-    periodsPerWeek: Int
+    periodsPerWeek: Float
     timesPerWeek: Int
     stdCount: Int
     limitCount: Int
@@ -157,8 +157,8 @@ export const graphqlTypeDefs = /* GraphQL */ `
 
   type Teacher {
     id: Int!
+    jwId: Int!
     personId: Int
-    teacherId: Int
     code: String
     nameCn: String!
     nameEn: String
@@ -331,7 +331,7 @@ export const graphqlSchema = createSchema<
         return listSemesters(pagination);
       },
       currentSemester() {
-        return getCurrentSemester(new Date());
+        return getCachedCurrentSemester(new Date());
       },
       courses(
         _parent,

@@ -1,23 +1,29 @@
 import * as z from "zod";
+import { localizedNameFields } from "./academic-course-response-schemas";
 
-export const departmentSchema = z.object({
+export const departmentSchema = z.strictObject({
   id: z.number().int(),
+  jwId: z.number().int().nullable(),
   code: z.string(),
   nameCn: z.string(),
   nameEn: z.string().nullable(),
   isCollege: z.boolean().nullable(),
+  ...localizedNameFields,
 });
 
-export const teacherTitleSchema = z.object({
+export const departmentSummarySchema = departmentSchema.omit({ jwId: true });
+
+export const teacherTitleSchema = z.strictObject({
   id: z.number().int(),
   jwId: z.number().int(),
   nameCn: z.string(),
   nameEn: z.string().nullable(),
   code: z.string(),
   enabled: z.boolean().nullable(),
+  ...localizedNameFields,
 });
 
-export const teacherLessonTypeSchema = z.object({
+export const teacherLessonTypeSchema = z.strictObject({
   id: z.number().int(),
   jwId: z.number().int(),
   nameCn: z.string(),
@@ -27,10 +33,10 @@ export const teacherLessonTypeSchema = z.object({
   enabled: z.boolean().nullable(),
 });
 
-export const teacherSchema = z.object({
+export const teacherSchema = z.strictObject({
   id: z.number().int(),
+  jwId: z.number().int(),
   personId: z.number().int().nullable(),
-  teacherId: z.number().int().nullable(),
   code: z.string().nullable(),
   nameCn: z.string(),
   nameEn: z.string().nullable(),
@@ -40,13 +46,32 @@ export const teacherSchema = z.object({
   address: z.string().nullable(),
   departmentId: z.number().int().nullable(),
   teacherTitleId: z.number().int().nullable(),
+  ...localizedNameFields,
+});
+
+export const teacherPublicIdentitySchema = z.strictObject({
+  id: z.number().int(),
+  jwId: z.number().int(),
+  personId: z.number().int().nullable(),
+  code: z.string().nullable(),
+  nameCn: z.string(),
+  nameEn: z.string().nullable(),
+  namePrimary: z.string(),
+  nameSecondary: z.string().nullable(),
+});
+
+export const teacherPublicReferenceSchema = teacherPublicIdentitySchema.extend({
+  department: departmentSummarySchema.nullable(),
+  teacherTitle: teacherTitleSchema.nullable(),
 });
 
 export const teacherWithDepartmentTitleSchema = teacherSchema.extend({
-  department: departmentSchema.nullable(),
+  department: departmentSummarySchema.nullable(),
   teacherTitle: teacherTitleSchema.nullable(),
 });
 
 export const teacherListSchema = teacherWithDepartmentTitleSchema.extend({
-  _count: z.object({ sections: z.number().int() }),
+  _count: z.strictObject({ sections: z.number().int() }),
 });
+
+export type TeacherListDto = z.output<typeof teacherListSchema>;

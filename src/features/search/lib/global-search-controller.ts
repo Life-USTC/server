@@ -13,6 +13,7 @@ import type {
   GlobalSearchResultGroup,
   GlobalSearchResultItem,
 } from "@/features/search/server/global-search-types";
+import { type AppLocale, DEFAULT_LOCALE } from "@/i18n/config";
 
 export type GlobalSearchUrlSyncOptions = {
   getPageUrl: () => URL;
@@ -28,6 +29,10 @@ export type GlobalSearchUrlSyncOptions = {
 
 export type GlobalSearchControllerOptions = {
   limit: number;
+  getRequestContext?: () => {
+    includeWorkspace?: boolean;
+    locale: AppLocale;
+  };
   urlSync?: GlobalSearchUrlSyncOptions;
   showInitialHintDeps?: Readable<unknown>;
   getShowInitialHint?: (state: {
@@ -78,6 +83,7 @@ export function createGlobalSearchController(
 
   let searchGeneration = 0;
   let searchDebounceTimer: ReturnType<typeof setTimeout> | undefined;
+  let activeSearchController: AbortController | undefined;
 
   const flatItems = derived(groups, ($groups) => flattenSearchGroups($groups));
 
@@ -121,8 +127,14 @@ export function createGlobalSearchController(
     clearTimeout(searchDebounceTimer);
   }
 
+  function abortActiveSearch() {
+    activeSearchController?.abort();
+    activeSearchController = undefined;
+  }
+
   function reset() {
     clearSearchDebounce();
+    abortActiveSearch();
     searchGeneration += 1;
     query.set("");
     groups.set([]);
@@ -162,12 +174,18 @@ export function createGlobalSearchController(
       return;
     }
 
+    abortActiveSearch();
+    const requestController = new AbortController();
+    activeSearchController = requestController;
     const generation = ++searchGeneration;
     isSearching.set(true);
     hasSearched.set(true);
 
     try {
-      const body = await fetchGlobalSearch(trimmed, options.limit);
+      const body = await fetchGlobalSearch(trimmed, options.limit, {
+        ...(options.getRequestContext?.() ?? { locale: DEFAULT_LOCALE }),
+        signal: requestController.signal,
+      });
       if (generation !== searchGeneration) return;
       groups.set(body.groups ?? []);
     } catch {
@@ -175,6 +193,7 @@ export function createGlobalSearchController(
       groups.set([]);
     } finally {
       if (generation === searchGeneration) {
+        activeSearchController = undefined;
         isSearching.set(false);
       }
     }
@@ -182,11 +201,12 @@ export function createGlobalSearchController(
 
   function scheduleSearch() {
     clearSearchDebounce();
+    abortActiveSearch();
+    searchGeneration += 1;
     updateUrlQuery(get(query));
 
     const trimmed = get(query).trim();
     if (trimmed.length < GLOBAL_SEARCH_MIN_QUERY_LENGTH) {
-      searchGeneration += 1;
       groups.set([]);
       hasSearched.set(false);
       isSearching.set(false);

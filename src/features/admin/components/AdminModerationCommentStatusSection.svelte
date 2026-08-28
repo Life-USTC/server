@@ -46,7 +46,6 @@ function selectStatus(value: string) {
     <Field.Label for="admin-comment-moderation-note">{copy.moderationNote}</Field.Label>
     <Input
       id="admin-comment-moderation-note"
-      placeholder={copy.moderationNote}
       value={moderationNote}
       oninput={(event: Event) => {
         moderationNote = inputValue(event);

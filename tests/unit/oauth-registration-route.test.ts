@@ -117,6 +117,7 @@ describe("OAuth 注册路由", () => {
     betterAuthHandlerMock.mockImplementationOnce(async (request: Request) => {
       const delegatedBody = await request.json();
       expect(delegatedBody).toMatchObject({
+        application_type: "native",
         client_name: "device-client",
         grant_types: [OAUTH_REFRESH_TOKEN_GRANT_TYPE],
       });

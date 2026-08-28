@@ -1,36 +1,35 @@
 import { sectionCompactInclude } from "@/features/catalog/server/academic-query-includes";
+import { toSectionCompactDto } from "@/features/catalog/server/academic-summary-dto-mappers";
 import { type AppLocale, DEFAULT_LOCALE } from "@/i18n/config";
-import { prisma, withUserDbContext } from "@/lib/db/prisma";
+import { withUserDbContext } from "@/lib/db/prisma";
 import { logAppEvent } from "@/lib/log/app-logger";
-import { getPublicOrigin } from "@/lib/site-url";
 import {
   buildCalendarFeedPath,
   SECTION_SUBSCRIPTION_NOTE,
-  type UserSectionSubscriptionState,
-  userSectionSubscriptionSelect,
 } from "./subscription-read-model-shared";
-import { localizeCompactSubscriptionSection } from "./subscription-section-localize";
 
-export async function getUserSectionSubscriptionState(
+export async function getUserSectionSubscriptionStatusForSection(
   userId: string,
-): Promise<UserSectionSubscriptionState | null> {
+  sectionJwId: number,
+) {
   const user = await withUserDbContext(userId, (tx) =>
     tx.user.findUnique({
       where: { id: userId },
-      select: userSectionSubscriptionSelect,
+      select: {
+        id: true,
+        sectionSubscriptions: {
+          where: { section: { jwId: sectionJwId } },
+          select: { sectionId: true },
+          take: 1,
+        },
+      },
     }),
   );
   if (!user) return null;
 
   return {
     userId: user.id,
-    subscriptionIcsUrl: await buildCalendarFeedPath(
-      user.id,
-      user.calendarFeedToken,
-    ),
-    subscribedSections: user.sectionSubscriptions.map(
-      ({ section }) => section.id,
-    ),
+    isSubscribed: user.sectionSubscriptions.length > 0,
   };
 }
 
@@ -43,7 +42,6 @@ export async function getUserCalendarSubscription(
       where: { id: userId },
       select: {
         id: true,
-        calendarFeedToken: true,
         sectionSubscriptions: {
           include: {
             section: {
@@ -61,17 +59,11 @@ export async function getUserCalendarSubscription(
 
   if (!user) return null;
 
-  const calendarPath = await buildCalendarFeedPath(
-    user.id,
-    user.calendarFeedToken,
-  );
   return {
     userId: user.id,
     sections: user.sectionSubscriptions.map((row) =>
-      localizeCompactSubscriptionSection(row.section, locale),
+      toSectionCompactDto(row.section, locale),
     ),
-    calendarPath,
-    calendarUrl: `${getPublicOrigin()}${calendarPath}`,
     note: SECTION_SUBSCRIPTION_NOTE,
   };
 }
@@ -81,15 +73,10 @@ export async function getCalendarSubscriptionUrl(
   calendarFeedToken?: string | null,
 ) {
   try {
-    if (calendarFeedToken !== undefined) {
-      return await buildCalendarFeedPath(userId, calendarFeedToken);
-    }
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-      select: { id: true, calendarFeedToken: true },
-    });
-    if (!user) return null;
-    return await buildCalendarFeedPath(user.id, user.calendarFeedToken);
+    // Callers must explicitly prove a recent session before passing the token.
+    // Undefined means the secret is intentionally hidden, not "load it here".
+    if (calendarFeedToken === undefined) return null;
+    return await buildCalendarFeedPath(userId, calendarFeedToken);
   } catch (error) {
     // Token minting can fail on missing column grants; empty subscription SSR
     // should still render instead of 500ing the whole workspace tab.

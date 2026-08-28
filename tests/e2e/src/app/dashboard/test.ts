@@ -145,6 +145,66 @@ test.describe("仪表盘", () => {
     await captureStepScreenshot(page, testInfo, "dashboard-navigate-homeworks");
   });
 
+  test("登录用户直接打开公共页面后补全工作台导航数字", async ({
+    page,
+  }, testInfo) => {
+    await page.setViewportSize({ width: 1280, height: 720 });
+    let bootstrapRequestCount = 0;
+    page.on("request", (request) => {
+      if (new URL(request.url()).pathname === "/_internal/shell-bootstrap") {
+        bootstrapRequestCount += 1;
+      }
+    });
+    await signInAsDebugUser(page, "/workspace/overview");
+    await ensureSeedSectionSubscription(page);
+    expect(bootstrapRequestCount).toBe(0);
+
+    const bootstrapResponsePromise = page.waitForResponse(
+      (response) =>
+        new URL(response.url()).pathname === "/_internal/shell-bootstrap" &&
+        response.request().method() === "GET",
+    );
+    await gotoAndWaitForReady(page, "/catalog/courses", { testInfo });
+    const bootstrapResponse = await bootstrapResponsePromise;
+    expect(bootstrapRequestCount).toBe(1);
+    expect(bootstrapResponse.status()).toBe(200);
+    expect(bootstrapResponse.headers()["cache-control"]).toBe(
+      "private, no-store",
+    );
+
+    const payload = (await bootstrapResponse.json()) as {
+      navigation: {
+        calendarItemsCount: number;
+        examsCount: number;
+        pendingHomeworksCount: number;
+        pendingTodosCount: number;
+        subscribedSectionCount: number;
+      };
+    };
+    await expandWorkspaceSidebarGroup(page);
+
+    for (const [label, count] of [
+      [/^(日历|Calendar)$/i, payload.navigation.calendarItemsCount],
+      [/^(作业|Homework)$/i, payload.navigation.pendingHomeworksCount],
+      [/^(待办|Todos?)$/i, payload.navigation.pendingTodosCount],
+      [/^(考试|Exams?)$/i, payload.navigation.examsCount],
+      [
+        /^(教学班订阅|Section Subscriptions)$/i,
+        payload.navigation.subscribedSectionCount,
+      ],
+    ] as const) {
+      const menuItem = sidebarNavigationLink(page, label).locator(
+        "xpath=ancestor::*[@data-slot='sidebar-menu-item'][1]",
+      );
+      const badge = menuItem.locator("[data-slot='sidebar-menu-badge']");
+      if (count > 0) {
+        await expect(badge).toHaveText(String(count));
+      } else {
+        await expect(badge).toHaveCount(0);
+      }
+    }
+  });
+
   test("仪表盘路径别名渲染匹配的标签", async ({ page }, testInfo) => {
     await signInAsDebugUser(page, "/catalog/links");
     await gotoAndWaitForReady(page, "/catalog/links", {
@@ -156,7 +216,7 @@ test.describe("仪表盘", () => {
     await expect(linksDashboardTab).toHaveAttribute("aria-current", "page");
     await expect(
       page.getByRole("searchbox", {
-        name: /搜索网站名称或描述|Search by name or description/i,
+        name: /搜索网站名称、描述或域名|Search by name, description, or domain/i,
       }),
     ).toBeVisible();
 

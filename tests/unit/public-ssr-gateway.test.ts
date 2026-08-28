@@ -78,20 +78,27 @@ describe("public SSR gateway", () => {
   test.each([
     "/catalog/courses",
     "/catalog/courses?page=2&search=math",
-    "/catalog/courses?page=5000&categoryId=7",
+    "/catalog/courses?page=100&categoryId=7",
     "/catalog/courses?search=&educationLevelId=&categoryId=7&classTypeId=",
     "/catalog/sections?semesterId=301&teacher=Li",
     "/catalog/sections?credits=2.5&sort=credits&order=asc",
     "/catalog/sections?semesterId=301&teacher=&courseCode=&sectionCode=&campusId=&departmentId=&credits=&categoryId=&educationLevelId=&classTypeId=&sort=",
     "/catalog/teachers?departmentId=1",
-    "/catalog/bus/map",
+    "/account/sign-in",
     "/api-docs",
     "/api/docs/rest/catalog",
-    "/mobile-app",
+    "/usage/mobile",
+    "/usage/bot",
+    "/usage/mcp",
+    "/usage/cli",
     "/privacy",
     "/terms",
   ])("caches allowlisted anonymous page %s", (path) => {
     expect(resolvePublicSsrMode(request(path))).toBe("page");
+  });
+
+  test("keeps the request-time bus map out of the 24-hour HTML cache", () => {
+    expect(resolvePublicSsrMode(request("/catalog/bus/map"))).toBeNull();
   });
 
   test.each([
@@ -100,6 +107,17 @@ describe("public SSR gateway", () => {
     "/catalog/sections/159446",
   ])("caches canonical anonymous catalog detail page %s", (path) => {
     expect(resolvePublicSsrMode(request(path))).toBe("page");
+  });
+
+  test("caches the canonical anonymous sign-in HEAD request", () => {
+    expect(
+      resolvePublicSsrMode(
+        new Request("https://life-ustc.test/account/sign-in", {
+          headers: { accept: "text/html" },
+          method: "HEAD",
+        }),
+      ),
+    ).toBe("page");
   });
 
   test.each([
@@ -132,7 +150,8 @@ describe("public SSR gateway", () => {
 
   test.each([
     "/",
-    "/account/sign-in",
+    "/_internal/shell-bootstrap",
+    "/account/sign-in/",
     "/admin",
     "/api/auth/get-session",
     "/catalog/courses/011145",
@@ -166,6 +185,30 @@ describe("public SSR gateway", () => {
     expect(resolvePublicSsrMode(request(path))).toBeNull();
   });
 
+  test.each([
+    "/account/sign-in?callbackUrl=%2Fworkspace%2Foverview",
+    "/account/sign-in?reauth=1&callbackUrl=%2Fadmin%2Fbus",
+    "/account/sign-in?client_id=client-1&redirect_uri=http%3A%2F%2Flocalhost%2Fcallback&state=state-1&code_challenge=challenge&code_challenge_method=S256",
+    "/account/sign-in?error=OAuthAccountNotLinked",
+  ])("keeps query-bearing sign-in dynamic %s", (path) => {
+    expect(resolvePublicSsrMode(request(path))).toBeNull();
+  });
+
+  test("keeps sign-in POST requests dynamic", () => {
+    expect(
+      resolvePublicSsrMode(
+        new Request("https://life-ustc.test/account/sign-in", {
+          headers: { accept: "text/html" },
+          method: "POST",
+        }),
+      ),
+    ).toBeNull();
+  });
+
+  test("treats the retired mobile-app path as not found", () => {
+    expect(resolvePublicSsrMode(request("/mobile-app"))).toBe("not-found");
+  });
+
   test.each<Record<string, string>>([
     { authorization: "Bearer access-token" },
     { authorization: "bEaReR access-token" },
@@ -178,9 +221,19 @@ describe("public SSR gateway", () => {
     ).toBeNull();
   });
 
+  test.each<Record<string, string>>([
+    { authorization: "Bearer access-token" },
+    { cookie: "better-auth.session_token=session-token" },
+  ])("never caches authenticated sign-in requests %j", (headers) => {
+    const authenticated = request("/account/sign-in", headers);
+    expect(resolvePublicSsrMode(authenticated)).toBeNull();
+    expect(shouldRoutePublicSsrCache(authenticated, "page")).toBe(false);
+  });
+
   test.each([
     "/catalog/courses",
     "/catalog/sections",
+    "/account/sign-in",
     "/privacy",
     "/wp-login.php",
   ])("bypasses public SSR cache routing for authenticated page %s", (path) => {

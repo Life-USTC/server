@@ -2,7 +2,7 @@ import * as z from "zod";
 
 export const dateTimeSchema = z.string().datetime({ offset: true });
 
-export const paginationSchema = z.object({
+export const paginationSchema = z.strictObject({
   page: z.number().int(),
   pageSize: z.number().int(),
   total: z.number().int(),
@@ -10,7 +10,7 @@ export const paginationSchema = z.object({
 });
 
 export const createListSchema = <T extends z.ZodTypeAny>(itemSchema: T) =>
-  z.object({
+  z.strictObject({
     data: z.array(itemSchema),
   });
 

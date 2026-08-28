@@ -2,6 +2,10 @@ import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { getCloudflareRequestContext } from "@/lib/adapters/cloudflare-runtime";
 import {
+  finishGraphqlPrincipalUsage,
+  type GraphqlPrincipal,
+} from "@/lib/graphql/auth";
+import {
   GRAPHQL_LIMITS,
   isWithinGraphqlBodyByteLimit,
 } from "@/lib/graphql/constants";
@@ -129,6 +133,21 @@ export function registerGraphqlOperationTool(server: McpServer) {
         );
       }
 
+      const principal: GraphqlPrincipal = {
+        kind: "oauth",
+        userId: getUserId(extra.authInfo),
+        scopes: expandScopeClaim(extra.authInfo.scopes),
+        resource: extra.authInfo.resource?.href ?? getOAuthMcpResourceUrl(),
+        channel: "mcp",
+        clientId: extra.authInfo.clientId,
+        ...(typeof extra.authInfo.extra?.grantId === "string"
+          ? { grantId: extra.authInfo.extra.grantId }
+          : {}),
+        ...(typeof extra.authInfo.extra?.sessionId === "string"
+          ? { sessionId: extra.authInfo.extra.sessionId }
+          : {}),
+      };
+
       try {
         if ((operationId == null) === (document == null)) {
           throw new RegisteredGraphqlOperationError(
@@ -136,15 +155,6 @@ export function registerGraphqlOperationTool(server: McpServer) {
             "Provide exactly one of operationId or document.",
           );
         }
-        const principal = {
-          kind: "oauth" as const,
-          userId: getUserId(extra.authInfo),
-          scopes: expandScopeClaim(extra.authInfo.scopes),
-          resource: extra.authInfo.resource?.href ?? getOAuthMcpResourceUrl(),
-          ...(extra.authInfo.clientId
-            ? { clientId: extra.authInfo.clientId }
-            : {}),
-        };
         const requestInfo = {
           headers: extra.requestInfo?.headers,
           requestId: getCloudflareRequestContext()?.requestId,
@@ -171,6 +181,10 @@ export function registerGraphqlOperationTool(server: McpServer) {
               requestInfo,
             });
         const toolResult = jsonToolResult(result, { mode: "full" });
+        await finishGraphqlPrincipalUsage(
+          principal,
+          result.success ? "success" : "error",
+        );
         if (result.success) return toolResult;
         const requiredScopes = result.errors?.flatMap((error) => {
           const value = error.extensions?.requiredScopes;
@@ -199,6 +213,7 @@ export function registerGraphqlOperationTool(server: McpServer) {
             : {}),
         };
       } catch (error) {
+        await finishGraphqlPrincipalUsage(principal, "error");
         if (error instanceof RegisteredGraphqlOperationError) {
           return errorToolResult(
             {

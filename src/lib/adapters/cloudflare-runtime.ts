@@ -60,12 +60,13 @@ type CloudflareCacheStorage = {
 
 type CloudflareTaskScheduler = (promise: Promise<unknown>) => void;
 
-type CloudflareSpan = {
+export type CloudflareTraceSpan = {
+  readonly isTraced: boolean;
   setAttribute(key: string, value?: boolean | number | string): void;
 };
 
 type CloudflareTracing = {
-  enterSpan<T>(name: string, callback: (span: CloudflareSpan) => T): T;
+  enterSpan<T>(name: string, callback: (span: CloudflareTraceSpan) => T): T;
 };
 
 export type CloudflareQueueSendOptions = {
@@ -95,6 +96,7 @@ export type CloudflareKVNamespace = {
 
 type CloudflareRuntimeEnv = Record<string, unknown> & {
   ANALYTICS?: CloudflareAnalyticsEngineDataset;
+  AUDIT_LOG_WRITES?: CloudflareQueue;
   ASSETS?: CloudflareAssetsBinding;
   CALENDAR_EXPORT_REBUILD?: CloudflareQueue;
   CALENDAR_EXPORTS?: CloudflareKVNamespace;
@@ -105,6 +107,9 @@ type CloudflareRuntimeEnv = Record<string, unknown> & {
   HYPERDRIVE_AUTH?: {
     connectionString?: unknown;
   };
+  HYPERDRIVE_MAINTENANCE?: {
+    connectionString?: unknown;
+  };
   R2_UPLOADS?: CloudflareR2Bucket;
   USER_BATCH_WRITE_RATE_LIMITER?: CloudflareRateLimiter;
   USER_WRITE_RATE_LIMITER?: CloudflareRateLimiter;
@@ -113,6 +118,7 @@ type CloudflareRuntimeEnv = Record<string, unknown> & {
 type CloudflareRuntimeContext = {
   cache: Map<symbol, unknown>;
   cacheStorage?: CloudflareCacheStorage;
+  cleanups: Set<() => Promise<void> | void>;
   env?: CloudflareRuntimeEnv;
   request?: CloudflareRequestContext;
   scheduleTask?: CloudflareTaskScheduler;
@@ -173,11 +179,67 @@ function getCurrentCloudflareRuntimeEnv() {
   return globalForCloudflareRuntime.__lifeUstcCloudflareRuntimeEnv;
 }
 
+async function cleanupCloudflareRuntimeContext(
+  context: CloudflareRuntimeContext,
+) {
+  const cleanupResults = await Promise.allSettled(
+    [...context.cleanups].map((cleanup) => Promise.resolve().then(cleanup)),
+  );
+  context.cache.clear();
+  context.cleanups.clear();
+  const failures = cleanupResults
+    .filter(
+      (cleanupResult): cleanupResult is PromiseRejectedResult =>
+        cleanupResult.status === "rejected",
+    )
+    .map((cleanupResult) => cleanupResult.reason);
+  if (failures.length === 1) throw failures[0];
+  if (failures.length > 1) {
+    throw new AggregateError(failures, "Cloudflare runtime cleanup failed");
+  }
+}
+
+function responseWithRuntimeCleanup(
+  response: Response,
+  cleanup: () => Promise<void>,
+) {
+  if (!response.body) return response;
+  const reader = response.body.getReader();
+  const body = new ReadableStream<Uint8Array>(
+    {
+      async pull(controller) {
+        try {
+          const chunk = await reader.read();
+          if (!chunk.done) {
+            controller.enqueue(chunk.value);
+            return;
+          }
+          await cleanup();
+          controller.close();
+        } catch (error) {
+          await cleanup().catch(() => undefined);
+          controller.error(error);
+        }
+      },
+      async cancel(reason) {
+        try {
+          await reader.cancel(reason);
+        } finally {
+          await cleanup();
+        }
+      },
+    },
+    { highWaterMark: 0 },
+  );
+  return new Response(body, response);
+}
+
 export function runWithCloudflareRuntimeEnv<T>(
   env: unknown,
   callback: () => T | Promise<T>,
   executionContext?: unknown,
 ): Promise<T> {
+  const parentContext = cloudflareRuntimeStorage.getStore();
   const tracing =
     executionContext &&
     typeof executionContext === "object" &&
@@ -187,37 +249,63 @@ export function runWithCloudflareRuntimeEnv<T>(
     "enterSpan" in executionContext.tracing &&
     typeof executionContext.tracing.enterSpan === "function"
       ? (executionContext.tracing as CloudflareTracing)
-      : undefined;
+      : parentContext?.tracing;
   const context: CloudflareRuntimeContext = {
     cache: new Map(),
     cacheStorage: normalizeCloudflareCacheStorage(),
-    env: normalizeCloudflareRuntimeEnv(env),
-    scheduleTask: normalizeCloudflareTaskScheduler(executionContext),
+    cleanups: new Set(),
+    env: normalizeCloudflareRuntimeEnv(env) ?? parentContext?.env,
+    request: parentContext?.request,
+    scheduleTask:
+      normalizeCloudflareTaskScheduler(executionContext) ??
+      parentContext?.scheduleTask,
     tracing,
   };
 
   return cloudflareRuntimeStorage.run(context, async () => {
+    let cleanupPromise: Promise<void> | undefined;
+    const cleanup = () => {
+      cleanupPromise ??= cleanupCloudflareRuntimeContext(context);
+      return cleanupPromise;
+    };
+    let result: T;
     try {
-      return await callback();
-    } finally {
-      context.cache.clear();
+      result = await callback();
+    } catch (error) {
+      await cleanup().catch(() => undefined);
+      throw error;
     }
+    if (
+      result instanceof Response &&
+      result.body &&
+      context.cleanups.size > 0
+    ) {
+      return responseWithRuntimeCleanup(result, cleanup) as T;
+    }
+    await cleanup();
+    return result;
   });
+}
+
+export function registerCloudflareRuntimeCleanup(
+  cleanup: () => Promise<void> | void,
+) {
+  cloudflareRuntimeStorage.getStore()?.cleanups.add(cleanup);
 }
 
 export function runCloudflareTraceSpan<T>(
   name: string,
   attributes: Record<string, boolean | number | string | undefined>,
-  callback: () => T,
+  callback: (span?: CloudflareTraceSpan) => T,
 ): T {
   const tracing = cloudflareRuntimeStorage.getStore()?.tracing;
-  if (!tracing) return callback();
+  if (!tracing) return callback(undefined);
 
   return tracing.enterSpan(name, (span) => {
     for (const [key, value] of Object.entries(attributes)) {
       if (value !== undefined) span.setAttribute(key, value);
     }
-    return callback();
+    return callback(span);
   });
 }
 
@@ -270,12 +358,22 @@ export function getCloudflareAuthHyperdriveConnectionString() {
   return typeof value === "string" ? value.trim() || undefined : undefined;
 }
 
+export function getCloudflareMaintenanceHyperdriveConnectionString() {
+  const value =
+    getCurrentCloudflareRuntimeEnv()?.HYPERDRIVE_MAINTENANCE?.connectionString;
+  return typeof value === "string" ? value.trim() || undefined : undefined;
+}
+
 export function getCloudflareR2UploadsBucket() {
   return getCurrentCloudflareRuntimeEnv()?.R2_UPLOADS;
 }
 
 export function getCloudflareAnalyticsEngineDataset() {
   return getCurrentCloudflareRuntimeEnv()?.ANALYTICS;
+}
+
+export function getCloudflareAuditLogWriteQueue() {
+  return getCurrentCloudflareRuntimeEnv()?.AUDIT_LOG_WRITES;
 }
 
 export function getCloudflareAssetsBinding() {

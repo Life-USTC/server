@@ -100,29 +100,34 @@ describe("crawler discovery routes", () => {
   it.each([
     ["robots.txt", getRobotsTxt],
     ["llms.txt", getLlmsTxt],
-  ])("edge-caches %s while requiring browser revalidation", async (path, get) => {
-    vi.stubEnv("APP_CANONICAL_ORIGIN", ORIGIN);
+  ])(
+    "edge-caches %s while requiring browser revalidation",
+    async (path, get) => {
+      vi.stubEnv("APP_CANONICAL_ORIGIN", ORIGIN);
 
-    const first = await getDiscoveryDocument(get, path);
-    const etag = first.headers.get("ETag");
+      const first = await getDiscoveryDocument(get, path);
+      const etag = first.headers.get("ETag");
 
-    expect(first.headers.get("Cache-Control")).toBe(
-      "public, max-age=0, must-revalidate",
-    );
-    expect(first.headers.get("Cloudflare-CDN-Cache-Control")).toBe(
-      "public, max-age=3600, stale-while-revalidate=21600",
-    );
-    expect(first.headers.get("Content-Type")).toBe("text/plain; charset=utf-8");
-    expect(etag).toMatch(/^"sha256-[A-Za-z0-9_-]+"$/);
+      expect(first.headers.get("Cache-Control")).toBe(
+        "public, max-age=0, must-revalidate",
+      );
+      expect(first.headers.get("Cloudflare-CDN-Cache-Control")).toBe(
+        "public, max-age=3600, stale-while-revalidate=21600",
+      );
+      expect(first.headers.get("Content-Type")).toBe(
+        "text/plain; charset=utf-8",
+      );
+      expect(etag).toMatch(/^"sha256-[A-Za-z0-9_-]+"$/);
 
-    const conditional = await getDiscoveryDocument(get, path, {
-      "If-None-Match": `"other", W/${etag}`,
-    });
+      const conditional = await getDiscoveryDocument(get, path, {
+        "If-None-Match": `"other", W/${etag}`,
+      });
 
-    expect(conditional.status).toBe(304);
-    expect(await conditional.text()).toBe("");
-    expect(conditional.headers.get("ETag")).toBe(etag);
-  });
+      expect(conditional.status).toBe(304);
+      expect(await conditional.text()).toBe("");
+      expect(conditional.headers.get("ETag")).toBe(etag);
+    },
+  );
 
   it("adds the content-use policy to the sitemap", async () => {
     vi.stubEnv("APP_CANONICAL_ORIGIN", ORIGIN);

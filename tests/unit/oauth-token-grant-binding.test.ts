@@ -6,6 +6,7 @@ const {
   accessFindUniqueMock,
   accessUpdateManyMock,
   decodeJwtMock,
+  logAppEventMock,
   refreshDeleteManyMock,
   refreshFindUniqueMock,
   refreshUpdateManyMock,
@@ -15,6 +16,7 @@ const {
   accessFindUniqueMock: vi.fn(),
   accessUpdateManyMock: vi.fn(),
   decodeJwtMock: vi.fn(),
+  logAppEventMock: vi.fn(),
   refreshDeleteManyMock: vi.fn(),
   refreshFindUniqueMock: vi.fn(),
   refreshUpdateManyMock: vi.fn(),
@@ -23,6 +25,10 @@ const {
 
 vi.mock("jose", () => ({
   decodeJwt: decodeJwtMock,
+}));
+
+vi.mock("@/lib/log/app-logger", () => ({
+  logAppEvent: logAppEventMock,
 }));
 
 vi.mock("@/lib/db/auth-prisma", () => ({
@@ -50,6 +56,7 @@ describe("OAuth access-token grant binding", () => {
     accessFindUniqueMock.mockReset();
     accessUpdateManyMock.mockReset();
     decodeJwtMock.mockReset();
+    logAppEventMock.mockReset();
     refreshDeleteManyMock.mockReset();
     refreshFindUniqueMock.mockReset();
     refreshUpdateManyMock.mockReset();
@@ -89,17 +96,16 @@ describe("OAuth access-token grant binding", () => {
       ),
     );
 
-    expect(resolveActiveOAuthUserGrantMock).toHaveBeenNthCalledWith(1, {
-      clientId: "client-1",
-      grantId: undefined,
-      requireGrantBinding: true,
-      scopes: ["workspace.todo:read", "profile"],
-      userId: "user-1",
-    });
+    expect(resolveActiveOAuthUserGrantMock).not.toHaveBeenCalled();
     expect(response.status).toBe(400);
     await expect(response.json()).resolves.toMatchObject({
       error: "invalid_grant",
     });
+    expect(logAppEventMock).toHaveBeenCalledWith(
+      "warn",
+      "oauth.token.grant-binding-rejected",
+      expect.objectContaining({ reason: "jwt-grant-claim-missing" }),
+    );
   });
 
   it("keeps a JWT bound to the exact active grant generation", async () => {
@@ -232,7 +238,7 @@ describe("OAuth access-token grant binding", () => {
     expect(resolveActiveOAuthUserGrantMock).not.toHaveBeenCalled();
   });
 
-  it("uses the rotated refresh row as the scope outcome when scope is omitted", async () => {
+  it("validates a bound JWT without joining its refresh row", async () => {
     decodeJwtMock.mockReturnValue({
       azp: "client-1",
       [OAUTH_GRANT_ID_CLAIM]: "grant-1",
@@ -246,20 +252,29 @@ describe("OAuth access-token grant binding", () => {
       scopes: ["profile"],
       userId: "user-1",
     });
+    resolveActiveOAuthUserGrantMock.mockResolvedValue({
+      consentId: "consent-1",
+      grantId: "grant-1",
+      kind: "consent",
+    });
     const { bindOAuthAccessTokenToConsent } = await import(
       "@/lib/api/routes/auth-token-grant-binding"
     );
 
-    const response = await bindOAuthAccessTokenToConsent(
-      Response.json({
-        access_token: "header.payload.signature",
-        refresh_token: "rotated-refresh",
-      }),
-    );
+    const response = Response.json({
+      access_token: "header.payload.signature",
+      refresh_token: "rotated-refresh",
+    });
 
-    expect(response.status).toBe(400);
-    expect(refreshDeleteManyMock).toHaveBeenCalled();
-    expect(resolveActiveOAuthUserGrantMock).not.toHaveBeenCalled();
+    expect(await bindOAuthAccessTokenToConsent(response)).toBe(response);
+    expect(refreshFindUniqueMock).not.toHaveBeenCalled();
+    expect(resolveActiveOAuthUserGrantMock).toHaveBeenCalledWith({
+      clientId: "client-1",
+      grantId: "grant-1",
+      requireGrantBinding: true,
+      scopes: ["profile", "workspace.todo:write"],
+      userId: "user-1",
+    });
   });
 
   it("enforces an explicit refresh downscope when the response scope is omitted", async () => {
@@ -293,7 +308,7 @@ describe("OAuth access-token grant binding", () => {
     expect(resolveActiveOAuthUserGrantMock).not.toHaveBeenCalled();
   });
 
-  it("validates both access and refresh scopes against the active grant", async () => {
+  it("validates JWT access scopes against the exact active grant", async () => {
     decodeJwtMock.mockReturnValue({
       azp: "client-1",
       [OAUTH_GRANT_ID_CLAIM]: "grant-1",
@@ -326,9 +341,10 @@ describe("OAuth access-token grant binding", () => {
       clientId: "client-1",
       grantId: "grant-1",
       requireGrantBinding: true,
-      scopes: ["profile", "offline_access"],
+      scopes: ["profile"],
       userId: "user-1",
     });
+    expect(refreshFindUniqueMock).not.toHaveBeenCalled();
   });
 
   it("does not issue a JWT when its consent disappeared during exchange", async () => {
@@ -356,6 +372,7 @@ describe("OAuth access-token grant binding", () => {
   it("leaves an explicitly trusted client JWT unchanged", async () => {
     decodeJwtMock.mockReturnValue({
       azp: "trusted-client",
+      [OAUTH_GRANT_ID_CLAIM]: "trusted-generation",
       scope: "profile",
       sub: "user-1",
     });

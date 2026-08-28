@@ -65,23 +65,6 @@ describe("课程与班级查找", () => {
     );
   });
 
-  it("catalog_course_get 接受旧 jwId 并返回 canonical 课程", async () => {
-    const result = await context.client.call<{
-      found?: boolean;
-      course?: { jwId?: number; code?: string };
-    }>("catalog_course_get", {
-      jwId: fixtures.DEV_SEED.course.legacyJwId,
-      locale: "zh-cn",
-      mode: "full",
-    });
-
-    expect(result.found).toBe(true);
-    expect(result.course).toMatchObject({
-      jwId: fixtures.DEV_SEED.course.jwId,
-      code: fixtures.DEV_SEED.course.code,
-    });
-  });
-
   it("catalog_section_get 返回与 REST 班级详情相同的层级", async () => {
     const result = await context.client.call<{
       found?: boolean;
@@ -91,7 +74,7 @@ describe("课程与班级查找", () => {
           endTime?: unknown;
           startTime?: unknown;
         }>;
-        teacherAssignments?: unknown[];
+        teacherAssignments?: Array<Record<string, unknown>>;
         scheduleGroups?: unknown[];
         exams?: unknown[];
         roomType?: unknown;
@@ -107,6 +90,9 @@ describe("课程与班级查找", () => {
     expect(typeof result.section?.schedules?.[0]?.startTime).toBe("string");
     expect(typeof result.section?.schedules?.[0]?.endTime).toBe("string");
     expect((result.section?.teacherAssignments?.length ?? 0) > 0).toBe(true);
+    for (const assignment of result.section?.teacherAssignments ?? []) {
+      expect(assignment).not.toHaveProperty("teacher");
+    }
     expect(Array.isArray(result.section?.scheduleGroups)).toBe(true);
     expect((result.section?.exams?.length ?? 0) > 0).toBe(true);
     expect(Object.hasOwn(result.section ?? {}, "roomType")).toBe(true);
@@ -201,7 +187,7 @@ describe("学期查询工具", () => {
     expect(semester?.nameCn).toBe(fixtures.DEV_SEED.semesterNameCn);
   });
 
-  it("catalog_semester_list 越界页码返回空数据与正确分页元数据", async () => {
+  it("catalog_semester_list 合法高页码返回空数据与正确分页元数据", async () => {
     const result = await context.client.call<{
       data?: unknown[];
       pagination?: {
@@ -211,13 +197,13 @@ describe("学期查询工具", () => {
         totalPages?: number;
       };
     }>("catalog_semester_list", {
-      page: 9999,
+      page: 100,
       limit: 10,
       mode: "default",
     });
 
     expect(result.data).toHaveLength(0);
-    expect(result.pagination?.page).toBe(9999);
+    expect(result.pagination?.page).toBe(100);
     expect(result.pagination?.pageSize).toBe(10);
     expect((result.pagination?.total ?? 0) > 0).toBe(true);
     expect(result.pagination?.totalPages).toBeGreaterThanOrEqual(1);
@@ -226,6 +212,10 @@ describe("学期查询工具", () => {
   it("catalog_semester_list 拒绝越界或无效分页参数", async () => {
     await expect(
       context.client.call("catalog_semester_list", { page: 0, limit: 10 }),
+    ).rejects.toThrow();
+
+    await expect(
+      context.client.call("catalog_semester_list", { page: 101, limit: 10 }),
     ).rejects.toThrow();
 
     await expect(
@@ -340,6 +330,7 @@ type GetCourseResult = {
     educationLevel?: { nameCn?: string | null; nameEn?: string | null } | null;
     category?: { nameCn?: string | null; nameEn?: string | null } | null;
     classType?: { nameCn?: string | null; nameEn?: string | null } | null;
+    _count?: { sections?: number };
     sections?: Array<{
       id?: number;
       jwId?: number;
@@ -383,26 +374,6 @@ describe("班级搜索工具 catalog_section_search", () => {
         (teacher) => teacher.code === fixtures.DEV_SEED.teacher.code,
       ),
     ).toBe(true);
-  });
-
-  it("按课程 legacy jwId 返回 canonical 课程的班级摘要", async () => {
-    const result = await context.client.call<SearchSectionsResult>(
-      "catalog_section_search",
-      {
-        courseJwId: fixtures.DEV_SEED.course.legacyJwId,
-        page: 1,
-        limit: 10,
-        locale: "zh-cn",
-        mode: "full",
-      },
-    );
-
-    const section = result.data?.find(
-      (item) => item.jwId === fixtures.DEV_SEED.section.jwId,
-    );
-    expect(section).toBeDefined();
-    expect(section?.course?.jwId).toBe(fixtures.DEV_SEED.course.jwId);
-    expect(result.pagination?.total).toBeGreaterThan(0);
   });
 
   it("按教师工号过滤班级", async () => {
@@ -496,6 +467,10 @@ describe("课程详情工具 catalog_course_get", () => {
     );
     expect(course?.classType?.nameCn).toBe(
       fixtures.DEV_SEED.course.classTypeNameCn,
+    );
+    expect(course?.sections?.length ?? 0).toBeLessThanOrEqual(20);
+    expect(course?._count?.sections ?? 0).toBeGreaterThanOrEqual(
+      course?.sections?.length ?? 0,
     );
 
     const seedSection = course?.sections?.find(

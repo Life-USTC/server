@@ -30,17 +30,19 @@
       "!/openapi.generated.json"
     ]
   },
+  "triggers": {
+    "crons": ["7 */2 * * *", "23 */6 * * *"]
+  },
   "observability": {
     "enabled": true,
     "logs": {
       "enabled": true,
-      "head_sampling_rate": 0.5,
-      "invocation_logs": true,
+      "head_sampling_rate": 1,
+      "invocation_logs": false,
       "persist": true
     },
     "traces": {
-      "enabled": true,
-      "head_sampling_rate": 0.1
+      "enabled": false
     }
   },
   "routes": [
@@ -72,6 +74,11 @@
     {
       "binding": "HYPERDRIVE_AUTH",
       "id": "b7f9049677d44b47881f5ceccb45d890",
+      "localConnectionString": "postgresql://postgres:postgres@127.0.0.1:5432/life_ustc_dev"
+    },
+    {
+      "binding": "HYPERDRIVE_MAINTENANCE",
+      "id": "ad3117a4ce234e2387cf44522b65a7d9",
       "localConnectionString": "postgresql://postgres:postgres@127.0.0.1:5432/life_ustc_dev"
     }
   ],
@@ -120,6 +127,10 @@
       {
         "binding": "CALENDAR_EXPORT_REBUILD",
         "queue": "life-ustc-calendar-export-rebuild"
+      },
+      {
+        "binding": "AUDIT_LOG_WRITES",
+        "queue": "life-ustc-audit-log-write"
       }
     ],
     "consumers": [
@@ -128,6 +139,12 @@
         "max_batch_size": 5,
         "max_retries": 3,
         "dead_letter_queue": "life-ustc-calendar-export-rebuild-dlq"
+      },
+      {
+        "queue": "life-ustc-audit-log-write",
+        "max_batch_size": 20,
+        "max_retries": 5,
+        "dead_letter_queue": "life-ustc-audit-log-write-dlq"
       }
     ]
   }

@@ -57,7 +57,9 @@ test.describe("GET /api/catalog/courses 接口", () => {
     expect(body.pagination?.totalPages).toBeGreaterThanOrEqual(1);
   });
 
-  test("仅显式 locale URL 变体使用共享缓存", async ({ request }) => {
+  test("显式 locale 与默认 zh-cn URL 变体均使用共享缓存", async ({
+    request,
+  }) => {
     const explicit = await request.get(
       "/api/catalog/courses?locale=en-us&pageSize=1",
       {
@@ -79,8 +81,12 @@ test.describe("GET /api/catalog/courses 接口", () => {
       headers: { "accept-language": "en-US" },
     });
     expect(fallback.status()).toBe(200);
-    expect(fallback.headers()["cache-control"]).toBe("private, no-store");
-    expect(fallback.headers()["cloudflare-cdn-cache-control"]).toBe("no-store");
+    expect(fallback.headers()["cache-control"]).toBe(
+      "public, max-age=0, stale-while-revalidate=300",
+    );
+    expect(fallback.headers()["cloudflare-cdn-cache-control"]).toBe(
+      "public, max-age=86400, stale-while-revalidate=300",
+    );
 
     const invalid = await request.get("/api/catalog/courses?locale=fr-fr");
     expect(invalid.status()).toBe(400);
@@ -193,6 +199,7 @@ test.describe("GET /api/catalog/courses 接口", () => {
       jwId?: number;
       code?: string;
       nameCn?: string;
+      _count?: { sections?: number };
       sections?: Array<{
         jwId?: number;
         code?: string;
@@ -206,6 +213,10 @@ test.describe("GET /api/catalog/courses 接口", () => {
     expect(body.jwId).toBe(DEV_SEED.course.jwId);
     expect(body.code).toBe(DEV_SEED.course.code);
     expect(body.nameCn).toBe(DEV_SEED.course.nameCn);
+    expect(body.sections?.length ?? 0).toBeLessThanOrEqual(20);
+    expect(body._count?.sections ?? 0).toBeGreaterThanOrEqual(
+      body.sections?.length ?? 0,
+    );
     expect(
       body.sections?.some((section) => section.jwId === DEV_SEED.section.jwId),
     ).toBe(true);
@@ -216,22 +227,15 @@ test.describe("GET /api/catalog/courses 接口", () => {
     expect(Object.hasOwn(seedSection as object, "semester")).toBe(true);
     expect(Object.hasOwn(seedSection as object, "campus")).toBe(true);
     expect(Array.isArray(seedSection?.teachers)).toBe(true);
+    for (const teacher of seedSection?.teachers ?? []) {
+      expect(teacher).not.toHaveProperty("age");
+      expect(teacher).not.toHaveProperty("postcode");
+      expect(teacher).not.toHaveProperty("qq");
+      expect(teacher).not.toHaveProperty("wechat");
+      expect(teacher).not.toHaveProperty("email");
+      expect(teacher).not.toHaveProperty("mobile");
+    }
     expect(typeof seedSection?.stdCount).toBe("number");
     expect(typeof seedSection?.limitCount).toBe("number");
-  });
-
-  test("旧 jwId 别名返回 canonical 课程", async ({ request }) => {
-    const response = await request.get(
-      `/api/catalog/courses/${DEV_SEED.course.legacyJwId}`,
-    );
-    expect(response.status()).toBe(200);
-    const body = (await response.json()) as {
-      jwId?: number;
-      code?: string;
-    };
-    expect(body).toMatchObject({
-      jwId: DEV_SEED.course.jwId,
-      code: DEV_SEED.course.code,
-    });
   });
 });

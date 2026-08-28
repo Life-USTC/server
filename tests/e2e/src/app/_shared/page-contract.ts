@@ -19,11 +19,42 @@ import {
   resolveSeedSectionId,
   resolveSeedTeacherId,
 } from "../../../utils/seed-lookups";
+import type { UiQualityAllowlist } from "../../../utils/ui-quality";
 
 type PageContractCase = {
   routePath: string;
   testInfo?: TestInfo;
 };
+
+const API_REFERENCE_UI_QUALITY_EXCEPTIONS = {
+  structure: [
+    {
+      match: /^main: expected exactly one visible main landmark, found 2$/,
+      reason:
+        "Scalar renders its own main landmark inside the application's documented API reference shell.",
+    },
+  ],
+  "duplicate-id": [
+    {
+      match: /^#scalar-client-\d+-\d+: 2 elements use the same id$/,
+      reason:
+        "Scalar duplicates hidden client examples for responsive render modes; the ids are third-party generated.",
+    },
+  ],
+  "invalid-link": [
+    {
+      match: /^a: visible link has no href$/,
+      reason:
+        "Scalar renders operation toggles as anchors without hrefs inside its generated API reference DOM.",
+    },
+  ],
+} satisfies UiQualityAllowlist;
+
+function getContractUiQuality(routePath: string): UiQualityAllowlist {
+  return routePath.startsWith("/api/docs")
+    ? API_REFERENCE_UI_QUALITY_EXCEPTIONS
+    : {};
+}
 
 function getContractWaitUntil(routePath: string) {
   if (
@@ -52,13 +83,20 @@ async function gotoContractPage(
   testInfo: TestInfo | undefined,
 ) {
   const response = await gotoAndWaitForReady(page, path, {
+    browserHealth: {},
+    expectMeaningfulContent: true,
+    expectNoHorizontalOverflow: true,
+    uiQuality: getContractUiQuality(path),
     waitUntil: getContractWaitUntil(path),
     testInfo,
     screenshotLabel: "contract",
   });
 
   if (response) {
-    expect(response.status()).toBeLessThan(500);
+    expect(
+      response.ok(),
+      `Expected ${path} to resolve to a successful document response, received ${response.status()}`,
+    ).toBe(true);
   }
 
   return response;
@@ -147,7 +185,41 @@ export async function assertPageContract(
       await expect(
         page.getByRole("link", { name: /校车管理|Bus Management/i }),
       ).toBeVisible();
+      await expect(
+        page.getByRole("link", { name: /审计日志|Audit Log/i }),
+      ).toBeVisible();
+      await expect(
+        page.getByRole("link", { name: /聚合分析|Aggregate Analytics/i }),
+      ).toBeVisible();
       await maybeCapture(page, testInfo, "admin-entry");
+      return;
+    }
+
+    case "/admin/audit": {
+      await signInAsDevAdmin(page, "/admin/audit");
+      await gotoContractPage(page, routePath, testInfo);
+      await expectMainContent(page);
+      await expect(
+        page.getByRole("heading", { name: /审计日志|Audit Log/i }),
+      ).toBeVisible();
+      await expect(
+        page.getByRole("button", { name: /应用筛选|Apply filters/i }),
+      ).toBeVisible();
+      await maybeCapture(page, testInfo, "admin-audit");
+      return;
+    }
+
+    case "/admin/analytics": {
+      await signInAsDevAdmin(page, "/admin/analytics");
+      await gotoContractPage(page, routePath, testInfo);
+      await expectMainContent(page);
+      await expect(
+        page.getByRole("heading", { name: /聚合分析|Aggregate Analytics/i }),
+      ).toBeVisible();
+      await expect(
+        page.getByRole("link", { name: /最近 30 天|Last 30 days/i }),
+      ).toBeVisible();
+      await maybeCapture(page, testInfo, "admin-analytics");
       return;
     }
 
@@ -358,7 +430,7 @@ export async function assertPageContract(
       await expectMainContent(page);
       await expect(
         page.getByRole("searchbox", {
-          name: /搜索网站名称或描述|Search by name or description/i,
+          name: /搜索网站名称、描述或域名|Search by name, description, or domain/i,
         }),
       ).toBeVisible();
       await expect(
@@ -503,7 +575,7 @@ export async function assertPageContract(
       return;
     }
 
-    case "/mobile-app": {
+    case "/usage/mobile": {
       await gotoContractPage(page, routePath, testInfo);
       await expectMainContent(page);
       await expect(
@@ -513,6 +585,61 @@ export async function assertPageContract(
         page.locator('img[src="/images/mobile-app/screenshot-01.png"]').first(),
       ).toBeVisible();
       await maybeCapture(page, testInfo, "mobile-app");
+      return;
+    }
+
+    case "/usage/bot": {
+      await gotoContractPage(page, routePath, testInfo);
+      await expectMainContent(page);
+      await expect(
+        page.getByRole("heading", { name: /Presto/i, level: 1 }),
+      ).toBeVisible();
+      await maybeCapture(page, testInfo, "usage-bot");
+      return;
+    }
+
+    case "/usage/mcp": {
+      await gotoContractPage(page, routePath, testInfo);
+      await expectMainContent(page);
+      await expect(
+        page
+          .getByRole("button", {
+            name: /复制 MCP 端点|Copy MCP endpoint/i,
+          })
+          .first(),
+      ).toBeVisible();
+      await expect(
+        page.getByRole("link", {
+          name: /启用开发者模式|Enable Developer Mode/i,
+        }),
+      ).toHaveAttribute(
+        "href",
+        "https://help.openai.com/en/articles/12584461-developer-mode-and-full-mcp-connectors-in-chatgpt-beta",
+      );
+      await expect(
+        page.locator('img[src="/images/usage/mcp-use-case.png"]').first(),
+      ).toBeVisible();
+      await maybeCapture(page, testInfo, "usage-mcp");
+      return;
+    }
+
+    case "/usage/cli": {
+      await gotoContractPage(page, routePath, testInfo);
+      await expectMainContent(page);
+      await expect(
+        page.getByRole("link", { name: /在 GitHub 查看|View on GitHub/i }),
+      ).toHaveAttribute("href", "https://github.com/Life-USTC/CLI");
+      await expect(
+        page.getByText(
+          /go install github\.com\/Life-USTC\/CLI\/cmd\/life-ustc@latest/,
+        ),
+      ).toBeVisible();
+      await expect(
+        page.getByText(
+          /life-ustc catalog course -s "线性代数" --no-interactive --limit 3/,
+        ),
+      ).toBeVisible();
+      await maybeCapture(page, testInfo, "usage-cli");
       return;
     }
 

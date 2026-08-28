@@ -1,14 +1,14 @@
 generator client {
-  provider = "prisma-client"
-  runtime  = "cloudflare"
-  output   = "../src/generated/prisma"
+  provider        = "prisma-client"
+  runtime         = "cloudflare"
+  output          = "../src/generated/prisma"
   previewFeatures = ["partialIndexes"]
 }
 
 generator toolClient {
-  provider = "prisma-client"
-  runtime  = "nodejs"
-  output   = "../src/generated/prisma-node"
+  provider        = "prisma-client"
+  runtime         = "nodejs"
+  output          = "../src/generated/prisma-node"
   previewFeatures = ["partialIndexes"]
 }
 
@@ -38,11 +38,6 @@ enum CommentReactionType {
   eyes
 }
 
-enum HomeworkAuditAction {
-  created
-  deleted
-}
-
 enum AuditAction {
   comment_create
   comment_edit
@@ -57,6 +52,49 @@ enum AuditAction {
   section_retire
   section_reactivate
   webhook_login
+  account_create
+  account_sign_in
+  account_sign_out
+  account_profile_update
+  account_credential_update
+  account_link
+  account_unlink
+  account_delete
+  account_passkey_create
+  account_passkey_update
+  account_passkey_delete
+  account_session_revoke
+  account_calendar_token_create
+  account_calendar_token_rotate
+  oauth_authorization_grant
+  oauth_authorization_update
+  oauth_authorization_revoke
+  admin_user_role_update
+  admin_user_profile_update
+  admin_oauth_client_create
+  admin_oauth_client_delete
+  admin_bus_version_activate
+  admin_bus_version_delete
+  admin_bus_import
+  homework_create
+  homework_update
+  homework_delete
+}
+
+enum AuditOutcome {
+  success
+  denied
+  failure
+}
+
+enum AuditChannel {
+  web
+  rest
+  graphql
+  mcp
+  auth
+  webhook
+  system
 }
 
 enum TodoPriority {
@@ -70,14 +108,13 @@ enum BusScheduleDayType {
   weekend
 }
 
-
 model AdminClass {
-  id   Int  @id @default(autoincrement())
-  jwId Int? @unique
+  id   Int @id @default(autoincrement())
+  jwId Int @unique
 
   code      String?
   grade     String?
-  nameCn    String   @unique
+  nameCn    String
   nameEn    String?
   stdCount  Int?
   planCount Int?
@@ -113,10 +150,10 @@ model Building {
 }
 
 model Campus {
-  id   Int  @id @default(autoincrement())
-  jwId Int? @unique
+  id   Int @id @default(autoincrement())
+  jwId Int @unique
 
-  nameCn String  @unique
+  nameCn String
   nameEn String?
   code   String?
 
@@ -163,15 +200,18 @@ model Course {
   gradation      CourseGradation? @relation(fields: [gradationId], references: [id])
   type           CourseType?      @relation(fields: [typeId], references: [id])
 
-  sections Section[]
-  comments Comment[]
+  sections    Section[]
+  comments    Comment[]
   description Description?
-  aliases CourseAlias[]
+  aliases     CourseAlias[]
 
   @@index([jwId])
   @@index([code])
   @@index([nameCn])
   @@index([nameEn])
+  @@index([code(ops: raw("gin_trgm_ops"))], type: Gin, map: "Course_code_trgm_idx")
+  @@index([nameCn(ops: raw("gin_trgm_ops"))], type: Gin, map: "Course_nameCn_trgm_idx")
+  @@index([nameEn(ops: raw("gin_trgm_ops"))], type: Gin, map: "Course_nameEn_trgm_idx")
   @@index([categoryId])
   @@index([classTypeId])
   @@index([classifyId])
@@ -240,9 +280,10 @@ model CourseType {
 }
 
 model Department {
-  id Int @id @default(autoincrement())
+  id   Int  @id @default(autoincrement())
+  jwId Int? @unique
 
-  code      String   @unique
+  code      String
   nameCn    String
   nameEn    String?
   isCollege Boolean?
@@ -300,8 +341,8 @@ model Room {
 
   schedules Schedule[]
 
-  @@unique([buildingId, code])
   @@index([jwId])
+  @@index([buildingId, code])
   @@index([nameCn])
   @@index([nameEn])
 }
@@ -325,7 +366,7 @@ model RoomType {
 model Schedule {
   id Int @id @default(autoincrement())
 
-  periods       Int
+  periods       Float
   date          DateTime? @db.Date
   weekday       Int
   startTime     Int
@@ -361,7 +402,7 @@ model ScheduleGroup {
   no            Int
   limitCount    Int
   stdCount      Int
-  actualPeriods Int
+  actualPeriods Float
   isDefault     Boolean
 
   sectionId Int
@@ -378,14 +419,13 @@ model Section {
   id   Int @id @default(autoincrement())
   jwId Int @unique
 
-  sourceLastSeenAt DateTime?
-  retiredAt        DateTime?
+  retiredAt DateTime?
 
   code                    String
   bizTypeId               Int?
   credits                 Float?
   period                  Int?
-  periodsPerWeek          Int?
+  periodsPerWeek          Float?
   timesPerWeek            Int?
   stdCount                Int?
   limitCount              Int?
@@ -393,7 +433,7 @@ model Section {
   dateTimePlaceText       String?
   dateTimePlacePersonText Json?
 
-  actualPeriods     Int?
+  actualPeriods     Float?
   theoryPeriods     Float?
   practicePeriods   Float?
   experimentPeriods Float?
@@ -425,21 +465,21 @@ model Section {
   teachLanguage  TeachLanguage? @relation(fields: [teachLanguageId], references: [id])
   roomType       RoomType?      @relation(fields: [roomTypeId], references: [id])
 
-  schedules             Schedule[]
-  scheduleGroups        ScheduleGroup[]
-  adminClasses          AdminClass[]           @relation("SectionAdminClasses")
-  teachers              Teacher[]              @relation("SectionTeachers")
-  sectionTeachers        SectionTeacher[]
-  teacherAssignments    TeacherAssignment[]
-  exams                 Exam[]
+  schedules            Schedule[]
+  scheduleGroups       ScheduleGroup[]
+  adminClasses         AdminClass[]              @relation("SectionAdminClasses")
+  teachers             Teacher[]                 @relation("SectionTeachers")
+  sectionTeachers      SectionTeacher[]
+  teacherAssignments   TeacherAssignment[]
+  exams                Exam[]
   sectionSubscriptions UserSectionSubscription[]
-  comments              Comment[]
-  description           Description?
-  homeworks             Homework[]
-  homeworkAuditLogs     HomeworkAuditLog[]
+  comments             Comment[]
+  description          Description?
+  homeworks            Homework[]
 
   @@index([jwId])
   @@index([code])
+  @@index([code(ops: raw("gin_trgm_ops"))], type: Gin, map: "Section_code_trgm_idx")
   @@index([bizTypeId])
   @@index([period])
   @@index([graduateAndPostgraduate])
@@ -458,6 +498,7 @@ model StaticImportState {
 
   snapshotGeneratedAt DateTime
   snapshotSha256      String
+  transformRevision   Int
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -490,9 +531,10 @@ model Exam {
 }
 
 model ExamBatch {
-  id Int @id @default(autoincrement())
+  id   Int @id @default(autoincrement())
+  jwId Int @unique
 
-  nameCn String  @unique
+  nameCn String
   nameEn String?
 
   exams Exam[]
@@ -528,14 +570,14 @@ model Semester {
 }
 
 model Teacher {
-  id Int @id @default(autoincrement())
+  id   Int @id @default(autoincrement())
+  jwId Int @unique
 
-  personId  Int?    @unique
-  teacherId Int?    @unique
-  code      String? @unique
-  nameCn    String
-  nameEn    String?
-  age       Int?
+  personId Int?
+  code     String?
+  nameCn   String
+  nameEn   String?
+  age      Int?
 
   email     String?
   telephone String?
@@ -558,9 +600,14 @@ model Teacher {
   comments           Comment[]
   description        Description?
 
+  @@index([jwId])
+  @@index([personId])
   @@index([code])
   @@index([nameCn])
   @@index([nameEn])
+  @@index([code(ops: raw("gin_trgm_ops"))], type: Gin, map: "Teacher_code_trgm_idx")
+  @@index([nameCn(ops: raw("gin_trgm_ops"))], type: Gin, map: "Teacher_nameCn_trgm_idx")
+  @@index([nameEn(ops: raw("gin_trgm_ops"))], type: Gin, map: "Teacher_nameEn_trgm_idx")
   @@index([teacherTitleId])
   @@index([departmentId])
 }
@@ -570,21 +617,21 @@ model Description {
 
   content String @default("")
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
   lastEditedAt DateTime?
 
   lastEditedById String?
   lastEditedBy   User?   @relation("DescriptionLastEditor", fields: [lastEditedById], references: [id], onDelete: SetNull)
 
-  sectionId Int? @unique
-  courseId  Int? @unique
-  teacherId Int? @unique
+  sectionId  Int?    @unique
+  courseId   Int?    @unique
+  teacherId  Int?    @unique
   homeworkId String? @unique
 
-  section Section? @relation(fields: [sectionId], references: [id], onDelete: Cascade)
-  course  Course?  @relation(fields: [courseId], references: [id], onDelete: Cascade)
-  teacher Teacher? @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+  section  Section?  @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  course   Course?   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  teacher  Teacher?  @relation(fields: [teacherId], references: [id], onDelete: Cascade)
   homework Homework? @relation(fields: [homeworkId], references: [id], onDelete: Cascade)
 
   edits DescriptionEdit[]
@@ -596,7 +643,7 @@ model Description {
 model Homework {
   id String @id @default(cuid())
 
-  title String
+  title        String
   isMajor      Boolean @default(false)
   requiresTeam Boolean @default(false)
 
@@ -604,8 +651,8 @@ model Homework {
   submissionStartAt DateTime?
   submissionDueAt   DateTime?
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
   deletedAt DateTime?
 
   sectionId Int
@@ -620,9 +667,8 @@ model Homework {
   deletedById String?
   deletedBy   User?   @relation("HomeworkDeletedBy", fields: [deletedById], references: [id], onDelete: SetNull)
 
-  description Description?
-  comments    Comment[]
-  auditLogs   HomeworkAuditLog[]
+  description         Description?
+  comments            Comment[]
   homeworkCompletions HomeworkCompletion[]
 
   @@index([sectionId])
@@ -636,8 +682,8 @@ model Homework {
 }
 
 model HomeworkCompletion {
-  userId     String
-  homeworkId String
+  userId      String
+  homeworkId  String
   completedAt DateTime @default(now())
 
   user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -648,43 +694,33 @@ model HomeworkCompletion {
   @@index([userId])
 }
 
-model HomeworkAuditLog {
-  id String @id @default(cuid())
-
-  action HomeworkAuditAction
-  titleSnapshot String
-
-  createdAt DateTime @default(now())
-
-  sectionId Int
-  section   Section @relation(fields: [sectionId], references: [id], onDelete: Cascade)
-
-  homeworkId String?
-  homework   Homework? @relation(fields: [homeworkId], references: [id], onDelete: SetNull)
-
-  actorId String?
-  actor   User?   @relation("HomeworkAuditActor", fields: [actorId], references: [id], onDelete: SetNull)
-
-  @@index([sectionId])
-  @@index([homeworkId])
-  @@index([actorId])
-  @@index([createdAt])
-  @@index([sectionId, createdAt])
-}
-
 model AuditLog {
-  id         String      @id @default(cuid())
-  action     AuditAction
-  userId     String?
-  user       User?       @relation(fields: [userId], references: [id], onDelete: SetNull)
-  targetId   String?
-  targetType String?
-  metadata   Json?
-  createdAt  DateTime    @default(now())
-  ipAddress  String?
-  userAgent  String?
+  id            String       @id @default(cuid())
+  action        AuditAction
+  outcome       AuditOutcome @default(success)
+  channel       AuditChannel @default(web)
+  userId        String?
+  user          User?        @relation("AuditActor", fields: [userId], references: [id], onDelete: SetNull)
+  subjectUserId String?
+  subjectUser   User?        @relation("AuditSubject", fields: [subjectUserId], references: [id], onDelete: SetNull)
+  targetId      String?
+  targetType    String?
+  oauthClientId String?
+  oauthGrantId  String?
+  sessionId     String?
+  requestId     String?
+  metadata      Json?
+  createdAt     DateTime     @default(now())
+  ipAddress     String?
+  userAgent     String?
 
   @@index([userId])
+  @@index([subjectUserId, createdAt, id])
+  @@index([subjectUserId, oauthClientId, createdAt, id])
+  @@index([oauthClientId, createdAt])
+  @@index([targetType, targetId, createdAt(sort: Desc)], map: "AuditLog_targetType_targetId_createdAt_idx")
+  @@index([channel, createdAt(sort: Desc)], map: "AuditLog_channel_createdAt_idx")
+  @@index([outcome, createdAt(sort: Desc)], map: "AuditLog_outcome_createdAt_idx")
   @@index([action])
   @@index([createdAt])
 }
@@ -720,8 +756,8 @@ model SectionTeacher {
 
   comments Comment[]
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
   retiredAt DateTime?
 
   @@unique([sectionId, teacherId])
@@ -746,12 +782,13 @@ model TeacherTitle {
   id   Int @id @default(autoincrement())
   jwId Int @unique
 
-  nameCn  String   @unique
+  nameCn  String
   nameEn  String?
   code    String
   enabled Boolean?
 
-  teachers Teacher[]
+  teachers           Teacher[]
+  teacherAssignments TeacherAssignment[]
 
   @@index([jwId])
   @@index([nameCn])
@@ -780,33 +817,36 @@ model TeacherAssignment {
   sectionId Int
 
   role           String?
-  period         Int?
+  period         Float?
   weekIndices    Json?
   weekIndicesMsg String?
 
   teacherLessonTypeId Int?
+  teacherTitleId      Int?
 
   teacher           Teacher            @relation(fields: [teacherId], references: [id])
   section           Section            @relation(fields: [sectionId], references: [id])
   teacherLessonType TeacherLessonType? @relation(fields: [teacherLessonTypeId], references: [id])
+  teacherTitle      TeacherTitle?      @relation(fields: [teacherTitleId], references: [id])
 
   @@unique([teacherId, sectionId])
   @@index([teacherId])
   @@index([sectionId])
   @@index([teacherLessonTypeId])
+  @@index([teacherTitleId])
 }
 
 model User {
-  id              String   @id @default(cuid())
-  email           String   @unique
-  emailVerified   Boolean  @default(false)
-  name            String   @default("")
-  username        String?  @unique
-  image           String?
+  id                String   @id @default(cuid())
+  email             String   @unique
+  emailVerified     Boolean  @default(false)
+  name              String   @default("")
+  username          String?  @unique
+  image             String?
   // Migrations define false/empty-array defaults; dbgenerated keeps auth runtime INSERT off them.
-  profilePictures String[] @default(dbgenerated())
-  isAdmin         Boolean  @default(dbgenerated())
-  calendarFeedToken String? @unique
+  profilePictures   String[] @default(dbgenerated())
+  isAdmin           Boolean  @default(dbgenerated())
+  calendarFeedToken String?  @unique
 
   accounts      Account[]
   sessions      Session[]
@@ -823,18 +863,18 @@ model User {
   uploads              Upload[]
   uploadPendings       UploadPending[]
   comments             Comment[]
-  moderatedComments    Comment[]           @relation("ModeratedComments")
+  moderatedComments    Comment[]                 @relation("ModeratedComments")
   commentReactions     CommentReaction[]
-  suspensions          UserSuspension[]    @relation("SuspendedUser")
-  suspensionsIssued    UserSuspension[]    @relation("SuspensionCreatedBy")
-  suspensionsLifted    UserSuspension[]    @relation("SuspensionLiftedBy")
-  descriptionEdits     DescriptionEdit[]   @relation("DescriptionEdits")
-  descriptionLastEdits Description[]       @relation("DescriptionLastEditor")
-  homeworksCreated     Homework[]          @relation("HomeworkCreatedBy")
-  homeworksUpdated     Homework[]          @relation("HomeworkUpdatedBy")
-  homeworksDeleted     Homework[]          @relation("HomeworkDeletedBy")
-  homeworkAuditLogs    HomeworkAuditLog[]  @relation("HomeworkAuditActor")
-  auditLogs            AuditLog[]
+  suspensions          UserSuspension[]          @relation("SuspendedUser")
+  suspensionsIssued    UserSuspension[]          @relation("SuspensionCreatedBy")
+  suspensionsLifted    UserSuspension[]          @relation("SuspensionLiftedBy")
+  descriptionEdits     DescriptionEdit[]         @relation("DescriptionEdits")
+  descriptionLastEdits Description[]             @relation("DescriptionLastEditor")
+  homeworksCreated     Homework[]                @relation("HomeworkCreatedBy")
+  homeworksUpdated     Homework[]                @relation("HomeworkUpdatedBy")
+  homeworksDeleted     Homework[]                @relation("HomeworkDeletedBy")
+  auditLogs            AuditLog[]                @relation("AuditActor")
+  subjectAuditLogs     AuditLog[]                @relation("AuditSubject")
   homeworkCompletions  HomeworkCompletion[]
   dashboardLinkClicks  DashboardLinkClick[]
   dashboardLinkPins    DashboardLinkPin[]
@@ -846,17 +886,17 @@ model User {
   oauthAccessTokens  OAuthAccessToken[]
   oauthRefreshTokens OAuthRefreshToken[]
   oauthConsents      OAuthConsent[]
+  oauthGrantUsage    OAuthGrantUsageDaily[]
   deviceCodes        DeviceCode[]
 }
 
-
 model UserUstcIdentity {
-  id          String   @id @default(cuid())
-  userId      String
-  upstreamUid String
-  gid         String?
-  sno         String?
-  firstSeenAt DateTime @default(now())
+  id           String   @id @default(cuid())
+  userId       String
+  upstreamUid  String
+  gid          String?
+  sno          String?
+  firstSeenAt  DateTime @default(now())
   lastSyncedAt DateTime @updatedAt
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -868,12 +908,12 @@ model UserUstcIdentity {
 model DashboardLinkClick {
   id String @id @default(cuid())
 
-  userId String
-  slug   String
-  count  Int      @default(0)
+  userId        String
+  slug          String
+  count         Int      @default(0)
   lastClickedAt DateTime @default(now())
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -881,13 +921,12 @@ model DashboardLinkClick {
   @@index([userId])
   @@index([slug])
 }
-
 
 model DashboardLinkPin {
   id String @id @default(cuid())
 
-  userId String
-  slug   String
+  userId    String
+  slug      String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -897,6 +936,7 @@ model DashboardLinkPin {
   @@index([userId])
   @@index([slug])
 }
+
 model Upload {
   id          String   @id @default(cuid())
   key         String   @unique
@@ -918,26 +958,26 @@ model Upload {
 model Comment {
   id String @id @default(cuid())
 
-  body       String
-  visibility CommentVisibility @default(public)
-  status     CommentStatus     @default(active)
-  isAnonymous Boolean          @default(false)
-  authorName String?
+  body        String
+  visibility  CommentVisibility @default(public)
+  status      CommentStatus     @default(active)
+  isAnonymous Boolean           @default(false)
+  authorName  String?
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  deletedAt DateTime?
-  moderatedAt DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  deletedAt      DateTime?
+  moderatedAt    DateTime?
   moderationNote String?
 
   userId String?
   user   User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
 
   moderatedById String?
-  moderatedBy   User? @relation("ModeratedComments", fields: [moderatedById], references: [id], onDelete: SetNull)
+  moderatedBy   User?   @relation("ModeratedComments", fields: [moderatedById], references: [id], onDelete: SetNull)
 
   parentId String?
-  parent   Comment? @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  parent   Comment?  @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
   replies  Comment[] @relation("CommentReplies")
 
   rootId String?
@@ -950,11 +990,11 @@ model Comment {
   sectionTeacherId Int?
   homeworkId       String?
 
-  section        Section?       @relation(fields: [sectionId], references: [id], onDelete: Cascade)
-  course         Course?        @relation(fields: [courseId], references: [id], onDelete: Cascade)
-  teacher        Teacher?       @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+  section        Section?        @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  course         Course?         @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  teacher        Teacher?        @relation(fields: [teacherId], references: [id], onDelete: Cascade)
   sectionTeacher SectionTeacher? @relation(fields: [sectionTeacherId], references: [id], onDelete: Cascade)
-  homework       Homework?      @relation(fields: [homeworkId], references: [id], onDelete: Cascade)
+  homework       Homework?       @relation(fields: [homeworkId], references: [id], onDelete: Cascade)
 
   attachments CommentAttachment[]
   reactions   CommentReaction[]
@@ -993,13 +1033,13 @@ model CommentReaction {
   id String @id @default(cuid())
 
   type      CommentReactionType
-  createdAt DateTime @default(now())
+  createdAt DateTime            @default(now())
 
   commentId String
   userId    String
 
   comment Comment @relation(fields: [commentId], references: [id], onDelete: Cascade)
-  user    User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([commentId, userId, type])
   @@index([userId])
@@ -1011,7 +1051,7 @@ model UserSuspension {
 
   userId      String
   createdById String?
-  createdAt   DateTime @default(now())
+  createdAt   DateTime  @default(now())
   reason      String?
   note        String?
   expiresAt   DateTime?
@@ -1088,22 +1128,22 @@ model VerifiedEmail {
 }
 
 model Account {
-  id                String   @id @default(cuid())
-  userId            String
-  type              String   @default("oauth")
-  provider          String
-  issuer            String
-  providerAccountId String
-  refresh_token     String?
-  access_token      String?
-  expires_at        Int?
-  token_type        String?
-  scope             String?
-  id_token          String?
-  session_state     String?
-  accessTokenExpiresAt DateTime?
+  id                    String    @id @default(cuid())
+  userId                String
+  type                  String    @default("oauth")
+  provider              String
+  issuer                String
+  providerAccountId     String
+  refresh_token         String?
+  access_token          String?
+  expires_at            Int?
+  token_type            String?
+  scope                 String?
+  id_token              String?
+  session_state         String?
+  accessTokenExpiresAt  DateTime?
   refreshTokenExpiresAt DateTime?
-  password          String?
+  password              String?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -1127,11 +1167,11 @@ model Session {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  @@index([userId])
-  @@index([expires])
-
   oauthAccessTokens  OAuthAccessToken[]
   oauthRefreshTokens OAuthRefreshToken[]
+
+  @@index([userId])
+  @@index([expires])
 }
 
 model VerificationToken {
@@ -1185,11 +1225,11 @@ model Authenticator {
 model Todo {
   id String @id @default(cuid())
 
-  title    String
-  content  String?
-  completed Boolean   @default(false)
+  title     String
+  content   String?
+  completed Boolean      @default(false)
   priority  TodoPriority @default(medium)
-  dueAt    DateTime?
+  dueAt     DateTime?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -1206,14 +1246,14 @@ model Todo {
 model BusCampus {
   id Int @id
 
-  nameCn String @unique
+  nameCn String  @unique
   nameEn String?
 
   latitude  Float
   longitude Float
 
-  routeStops              BusRouteStop[]
-  preferredByOriginUsers  BusUserPreference[] @relation("BusPreferenceOrigin")
+  routeStops                  BusRouteStop[]
+  preferredByOriginUsers      BusUserPreference[] @relation("BusPreferenceOrigin")
   preferredByDestinationUsers BusUserPreference[] @relation("BusPreferenceDestination")
 
   @@index([nameCn])
@@ -1236,8 +1276,8 @@ model BusRoute {
 model BusRouteStop {
   id Int @id @default(autoincrement())
 
-  routeId  Int
-  campusId Int
+  routeId   Int
+  campusId  Int
   stopOrder Int
 
   route  BusRoute  @relation(fields: [routeId], references: [id], onDelete: Cascade)
@@ -1250,14 +1290,14 @@ model BusRouteStop {
 model BusScheduleVersion {
   id Int @id @default(autoincrement())
 
-  key          String @unique
-  title        String
-  checksum     String @unique
+  key           String  @unique
+  title         String
+  checksum      String  @unique
   sourceMessage String?
-  sourceUrl    String?
-  rawJson      Json
+  sourceUrl     String?
+  rawJson       Json
 
-  effectiveFrom DateTime? @db.Date
+  effectiveFrom  DateTime? @db.Date
   effectiveUntil DateTime? @db.Date
 
   isEnabled  Boolean  @default(true)
@@ -1292,15 +1332,15 @@ model BusUserPreference {
 
   preferredOriginCampusId      Int?
   preferredDestinationCampusId Int?
-  favoriteCampusIds            Int[] @default([])
-  favoriteRouteIds             Int[] @default([])
+  favoriteCampusIds            Int[]   @default([])
+  favoriteRouteIds             Int[]   @default([])
   showDepartedTrips            Boolean @default(false)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-  preferredOriginCampus BusCampus? @relation("BusPreferenceOrigin", fields: [preferredOriginCampusId], references: [id], onDelete: SetNull)
+  user                       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  preferredOriginCampus      BusCampus? @relation("BusPreferenceOrigin", fields: [preferredOriginCampusId], references: [id], onDelete: SetNull)
   preferredDestinationCampus BusCampus? @relation("BusPreferenceDestination", fields: [preferredDestinationCampusId], references: [id], onDelete: SetNull)
 
   @@index([preferredOriginCampusId])
@@ -1313,50 +1353,54 @@ model BusUserPreference {
 model OAuthClient {
   id String @id @default(cuid())
 
-  clientId     String @unique
-  clientSecret String?
-  disabled     Boolean @default(false)
-  skipConsent  Boolean?
-  enableEndSession Boolean?
-  subjectType  String?
-  scopes       String[] @default([])
+  clientId                String   @unique
+  clientSecret            String?
+  clientDiscoveryId       String?
+  disabled                Boolean  @default(false)
+  skipConsent             Boolean?
+  enableEndSession        Boolean?
+  subjectType             String?
+  scopes                  String[] @default([])
+  clientCredentialsScopes String[] @default([])
 
   userId String?
-  user   User? @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user   User?   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  name              String?
-  uri               String?
-  icon              String?
-  contacts          String[] @default([])
-  tos               String?
-  policy            String?
-  softwareId        String?
-  softwareVersion   String?
-  softwareStatement String?
-  redirectUris      String[]
-  postLogoutRedirectUris String[] @default([])
-  backchannelLogoutUri String?
+  name                             String?
+  uri                              String?
+  icon                             String?
+  contacts                         String[] @default([])
+  tos                              String?
+  policy                           String?
+  softwareId                       String?
+  softwareVersion                  String?
+  softwareStatement                String?
+  redirectUris                     String[]
+  postLogoutRedirectUris           String[] @default([])
+  backchannelLogoutUri             String?
   backchannelLogoutSessionRequired Boolean?
-  tokenEndpointAuthMethod String?
-  jwks              String?
-  jwksUri           String?
-  grantTypes        String[] @default([])
-  responseTypes     String[] @default([])
-  public            Boolean?
-  type              String?
-  requirePKCE       Boolean?
-  dpopBoundAccessTokens Boolean? @default(false)
-  referenceId       String?
-  metadata          Json?
+  tokenEndpointAuthMethod          String?
+  applicationType                  String?
+  jwks                             String?
+  jwksUri                          String?
+  grantTypes                       String[] @default([])
+  responseTypes                    String[] @default([])
+  public                           Boolean?
+  type                             String?
+  requirePKCE                      Boolean?
+  dpopBoundAccessTokens            Boolean? @default(false)
+  referenceId                      String?
+  metadata                         Json?
 
   accessTokens  OAuthAccessToken[]
   refreshTokens OAuthRefreshToken[]
   consents      OAuthConsent[]
   deviceCodes   DeviceCode[]
   resourceLinks OauthClientResource[]
+  grantUsage    OAuthGrantUsageDaily[]
 
   @@index([userId])
 }
@@ -1373,12 +1417,12 @@ model DeviceCode {
   client   OAuthClient @relation(fields: [clientId], references: [clientId], onDelete: Cascade)
 
   userId String?
-  user   User?  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user   User?   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  status       String   @default("pending") // pending, approved, denied
+  status       String    @default("pending") // pending, approved, denied
   lastPolledAt DateTime?
   expiresAt    DateTime
-  createdAt    DateTime @default(now())
+  createdAt    DateTime  @default(now())
 
   @@index([deviceCode])
   @@index([userCode])
@@ -1390,30 +1434,30 @@ model DeviceCode {
 model OAuthRefreshToken {
   id String @id @default(cuid())
 
-  token     String @unique
-  grantId   String?
-  clientId  String
-  client    OAuthClient @relation(fields: [clientId], references: [clientId], onDelete: Cascade)
+  token    String      @unique
+  grantId  String?
+  clientId String
+  client   OAuthClient @relation(fields: [clientId], references: [clientId], onDelete: Cascade)
 
   sessionId String?
   session   Session? @relation(fields: [sessionId], references: [id], onDelete: SetNull)
 
   userId String
-  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  referenceId String?
-  authorizationCodeId String?
-  expiresAt   DateTime
-  createdAt   DateTime @default(now())
-  revoked     DateTime?
-  rotatedAt   DateTime?
-  rotationReplayResponse String?
+  referenceId             String?
+  authorizationCodeId     String?
+  expiresAt               DateTime
+  createdAt               DateTime  @default(now())
+  revoked                 DateTime?
+  rotatedAt               DateTime?
+  rotationReplayResponse  String?
   rotationReplayExpiresAt DateTime?
-  authTime    DateTime?
-  confirmation Json?
-  scopes      String[] @default([])
-  resources   String[] @default([])
-  requestedUserInfoClaims String[] @default([])
+  authTime                DateTime?
+  confirmation            Json?
+  scopes                  String[]  @default([])
+  resources               String[]  @default([])
+  requestedUserInfoClaims String[]  @default([])
 
   accessTokens OAuthAccessToken[]
 
@@ -1428,29 +1472,29 @@ model OAuthRefreshToken {
 model OAuthAccessToken {
   id String @id @default(cuid())
 
-  token     String @unique
-  grantId   String?
-  clientId  String
-  client    OAuthClient @relation(fields: [clientId], references: [clientId], onDelete: Cascade)
+  token    String      @unique
+  grantId  String?
+  clientId String
+  client   OAuthClient @relation(fields: [clientId], references: [clientId], onDelete: Cascade)
 
   sessionId String?
   session   Session? @relation(fields: [sessionId], references: [id], onDelete: SetNull)
 
   userId String?
-  user   User? @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user   User?   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  referenceId String?
+  referenceId         String?
   authorizationCodeId String?
-  refreshId   String?
-  refresh     OAuthRefreshToken? @relation(fields: [refreshId], references: [id], onDelete: SetNull)
+  refreshId           String?
+  refresh             OAuthRefreshToken? @relation(fields: [refreshId], references: [id], onDelete: SetNull)
 
-  expiresAt DateTime
-  createdAt DateTime @default(now())
-  revoked   DateTime?
-  confirmation Json?
-  scopes    String[] @default([])
-  resources String[] @default([])
-  requestedUserInfoClaims String[] @default([])
+  expiresAt               DateTime
+  createdAt               DateTime  @default(now())
+  revoked                 DateTime?
+  confirmation            Json?
+  scopes                  String[]  @default([])
+  resources               String[]  @default([])
+  requestedUserInfoClaims String[]  @default([])
 
   @@index([clientId])
   @@index([grantId])
@@ -1468,12 +1512,12 @@ model OAuthConsent {
   client   OAuthClient @relation(fields: [clientId], references: [clientId], onDelete: Cascade)
 
   userId String?
-  user   User? @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user   User?   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  grantId     String   @unique @default(uuid())
-  referenceId String?
-  scopes      String[] @default([])
-  resources   String[] @default([])
+  grantId                 String   @unique @default(uuid())
+  referenceId             String?
+  scopes                  String[] @default([])
+  resources               String[] @default([])
   requestedUserInfoClaims String[] @default([])
 
   createdAt DateTime @default(now())
@@ -1484,21 +1528,53 @@ model OAuthConsent {
   @@index([userId])
 }
 
+/// Bounded, content-free OAuth usage aggregates for user-facing authorization
+/// summaries. One row is updated per grant and Shanghai calendar day.
+model OAuthGrantUsageDaily {
+  id String @id @default(cuid())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  clientId String
+  client   OAuthClient @relation(fields: [clientId], references: [clientId], onDelete: Cascade)
+
+  grantId  String?
+  grantKey String
+  day      DateTime @db.Date
+  feature  String
+  channel  AuditChannel
+
+  readCount  Int @default(0)
+  writeCount Int @default(0)
+  errorCount Int @default(0)
+
+  lastUsedAt DateTime
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, clientId, grantKey, day, feature, channel])
+  @@index([day, id], map: "OAuthGrantUsageDaily_day_id_idx")
+  @@index([userId, clientId, lastUsedAt])
+  @@index([userId, clientId, grantKey, day])
+}
+
 model OauthResource {
   id         String @id @default(cuid())
   identifier String @unique
   name       String
 
-  accessTokenTtl    Int?
-  refreshTokenTtl   Int?
-  signingAlgorithm  String?
-  signingKeyId      String?
-  allowedScopes     String[] @default([])
-  customClaims      Json?
+  accessTokenTtl                Int?
+  refreshTokenTtl               Int?
+  signingAlgorithm              String?
+  signingKeyId                  String?
+  allowedScopes                 String[] @default([])
+  customClaims                  Json?
   dpopBoundAccessTokensRequired Boolean? @default(false)
-  disabled          Boolean? @default(false)
-  policyVersion     Int? @default(1)
-  metadata          Json?
+  disabled                      Boolean? @default(false)
+  policyVersion                 Int?     @default(1)
+  metadata                      Json?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -1520,13 +1596,14 @@ model OauthClientResource {
   metadata  Json?
   createdAt DateTime @default(now())
 
+  @@unique([clientId, resourceId])
   @@index([clientId])
   @@index([resourceId])
   @@map("oauthClientResource")
 }
 
 model OauthClientAssertion {
-  id        String @id
+  id        String   @id
   expiresAt DateTime
 
   @@map("oauthClientAssertion")
@@ -1538,7 +1615,7 @@ model Jwks {
   publicKey  String
   privateKey String
 
-  createdAt DateTime @default(now())
+  createdAt DateTime  @default(now())
   expiresAt DateTime?
   alg       String?
   crv       String?

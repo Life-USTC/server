@@ -41,28 +41,24 @@ export let targetLabel: (description: AdminModerationDescription) => string;
     }}
   >
     <Dialog.Content
-      class="max-w-3xl sm:max-w-3xl"
+      class="grid max-h-[calc(100dvh-1rem)] min-h-0 max-w-3xl grid-rows-[auto_minmax(0,1fr)_auto] overflow-hidden sm:max-w-3xl"
       aria-labelledby="manage-description-title"
     >
       <form
+        class="grid min-h-0 grid-rows-[auto_minmax(0,1fr)_auto] overflow-hidden"
         method="POST"
         action="?/moderateDescription"
         use:enhance={enhanceAction}
       >
-        <Field.Group class="gap-4">
+        <Field.Group class="grid min-h-0 grid-rows-[auto_minmax(0,1fr)_auto] gap-4 overflow-hidden">
           <Dialog.Header>
-            <div class="flex items-start justify-between gap-3">
-              <div>
-                <Dialog.Title id="manage-description-title">{copy.manageDescription}</Dialog.Title>
-                <Dialog.Description>
-                  {targetLabel(description)} · {formatMessage(copy.editedAt, { date: formatDate(descriptionEditedAt(description)) })}
-                </Dialog.Description>
-              </div>
-              <Button type="button" variant="ghost" onclick={close}>{copy.close}</Button>
-            </div>
+            <Dialog.Title id="manage-description-title">{copy.manageDescription}</Dialog.Title>
+            <Dialog.Description>
+              {targetLabel(description)} · {formatMessage(copy.editedAt, { date: formatDate(descriptionEditedAt(description)) })}
+            </Dialog.Description>
           </Dialog.Header>
 
-          <ScrollArea class="h-[min(62vh,34rem)]">
+          <ScrollArea class="min-h-0 h-[min(56dvh,34rem)] max-h-[calc(100dvh-12rem)]">
             <Field.Group class="gap-4 px-5 py-4">
               <input type="hidden" name="id" value={description.id} />
               <AdminModerationDescriptionMeta

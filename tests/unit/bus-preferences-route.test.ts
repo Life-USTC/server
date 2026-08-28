@@ -5,7 +5,7 @@ const {
   busUserPreferenceMock,
   prismaMock,
   requireAuthMock,
-  resolveApiUserIdMock,
+  resolveSessionUserIdMock,
 } = vi.hoisted(() => {
   const baseBusPreferenceAccessMock = vi.fn(() => {
     throw new Error(
@@ -28,13 +28,13 @@ const {
       },
     },
     requireAuthMock: vi.fn(),
-    resolveApiUserIdMock: vi.fn(),
+    resolveSessionUserIdMock: vi.fn(),
   };
 });
 
 vi.mock("@/lib/auth/api-auth", () => ({
   requireAuth: requireAuthMock,
-  resolveApiUserId: resolveApiUserIdMock,
+  resolveSessionUserId: resolveSessionUserIdMock,
 }));
 
 vi.mock("@/lib/db/prisma", () => ({
@@ -57,7 +57,7 @@ describe("POST /api/workspace/bus-preferences 班车偏好接口", () => {
   beforeEach(() => {
     vi.resetModules();
     requireAuthMock.mockReset();
-    resolveApiUserIdMock.mockReset();
+    resolveSessionUserIdMock.mockReset();
     prismaMock.busCampus.findMany.mockReset();
     busUserPreferenceMock.findUnique.mockReset();
     busUserPreferenceMock.upsert.mockReset();

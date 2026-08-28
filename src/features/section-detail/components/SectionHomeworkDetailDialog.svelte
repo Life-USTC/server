@@ -1,11 +1,15 @@
 <script lang="ts">
-import type { Component } from "svelte";
 import { commentTargetPermalinkBaseHref } from "@/features/comments/lib/comment-panel-controller";
-import DetailDialog from "$lib/components/DetailDialog.svelte";
+import HomeworkDetailDialog from "@/features/homeworks/components/HomeworkDetailDialog.svelte";
+import type { HomeworkDetailCommentsPanel } from "@/features/homeworks/components/homework-detail-types";
+import {
+  formatHomeworkDetailDateTime,
+  formatHomeworkDueRelativeTime,
+  normalizeHomeworkDetail,
+} from "@/features/homeworks/lib/homework-presentation";
 import SectionHomeworkActionBar from "./SectionHomeworkActionBar.svelte";
 import SectionHomeworkAuditTrail from "./SectionHomeworkAuditTrail.svelte";
 import SectionHomeworkEditForm from "./SectionHomeworkEditForm.svelte";
-import SectionHomeworkReadOnlySummary from "./SectionHomeworkReadOnlySummary.svelte";
 import type { FormatMessage } from "./section-detail-component-types";
 import type {
   SectionHomeworkAction,
@@ -15,17 +19,13 @@ import type {
   SectionHomeworkDisplay,
   SectionHomeworkFormatter,
   SectionHomeworkMarkdownCopy,
+  SectionHomeworkSectionCopy,
   SectionHomeworkSemesterDate,
   SectionHomeworkSubmitHandler,
   SectionHomeworkTimestampAction,
 } from "./section-homework-display-types";
 
-export let CommentsPanel: Component<{
-  heading?: string | null;
-  permalinkBaseHref?: string | null;
-  targetId: string;
-  targetType: "homework";
-}>;
+export let CommentsPanel: HomeworkDetailCommentsPanel;
 export let _applyEditDueAtSemesterEnd: SectionHomeworkTimestampAction;
 export let _applyEditDueInMonth: SectionHomeworkTimestampAction;
 export let _applyEditDueInWeek: SectionHomeworkTimestampAction;
@@ -36,6 +36,7 @@ export let _auditLogsForHomework: SectionHomeworkAuditLookup;
 export let _canManageSelectedHomework: boolean;
 export let _canWriteHomework: boolean;
 export let _cancelEditHomework: () => void;
+export let _completionSaving: boolean;
 export let _commentsCopy: SectionHomeworkMarkdownCopy;
 export let _commonCopy: SectionHomeworkCommonCopy;
 export let _editHomeworkMessage: string;
@@ -47,6 +48,10 @@ export let _fmtDateTime: SectionHomeworkFormatter;
 export let _formatMessage: FormatMessage;
 export let _homeworkAuditActionLabel: (action: string) => string;
 export let _homeworkCopy: SectionHomeworkCopy;
+export let _sectionCopy: SectionHomeworkSectionCopy & {
+  due: string;
+  notAvailable: string;
+};
 export let _selectedHomework: SectionHomeworkDisplay | null;
 export let _semesterDate: SectionHomeworkSemesterDate;
 export let _setDeleteHomeworkTarget: SectionHomeworkAction;
@@ -54,77 +59,96 @@ export let _startEditHomework: () => void;
 export let _toggleHomeworkCompletion: SectionHomeworkAction;
 export let _updateHomework: SectionHomeworkSubmitHandler;
 export let close: () => void;
+export let locale: string;
+export let sectionLabel: string;
 export let sectionJwId: number | string;
+
+$: detailHomework = _selectedHomework
+  ? normalizeHomeworkDetail(_selectedHomework, {
+      contextLabel: sectionLabel,
+    })
+  : null;
+$: permalinkBaseHref = _selectedHomework
+  ? commentTargetPermalinkBaseHref({
+      homeworkId: _selectedHomework.id,
+      sectionJwId,
+      type: "homework",
+    })
+  : null;
 </script>
 
-{#if _selectedHomework}
-  {@const homework = _selectedHomework}
-  <!-- No course subtitle here: the section page already shows it as the page
-       heading, and repeated parent objects are tertiary. -->
-  <DetailDialog onClose={close} title={homework.title}>
-    <!-- One scrollable column: description, due summary, vertical metadata,
-         edit/completion controls, then full-width discussion. -->
-    {#snippet body()}
-      {#if _editingHomework}
-        <SectionHomeworkEditForm
-          applyDueAtSemesterEnd={_applyEditDueAtSemesterEnd}
-          applyDueInMonth={_applyEditDueInMonth}
-          applyDueInWeek={_applyEditDueInWeek}
-          applyPublishNow={_applyEditPublishNow}
-          applyStartAtSemesterStart={_applyEditStartAtSemesterStart}
-          applyStartNow={_applyEditStartNow}
-          cancelEdit={_cancelEditHomework}
-          commentsCopy={_commentsCopy}
-          bind:editHomeworkMessage={_editHomeworkMessage}
-          bind:editHomeworkPublishedAt={_editHomeworkPublishedAt}
-          bind:editHomeworkSubmissionDueAt={_editHomeworkSubmissionDueAt}
-          bind:editHomeworkSubmissionStartAt={_editHomeworkSubmissionStartAt}
-          {homework}
-          homeworkCopy={_homeworkCopy}
-          semesterDate={_semesterDate}
-          updateHomework={_updateHomework}
-        />
-      {:else}
-        <SectionHomeworkReadOnlySummary
-          fmtDateTime={_fmtDateTime}
-          {homework}
-          homeworkCopy={_homeworkCopy}
-        />
-
-        <SectionHomeworkActionBar
-          canManage={_canManageSelectedHomework}
-          canWrite={_canWriteHomework}
-          {homework}
-          homeworkCopy={_homeworkCopy}
-          setDeleteHomeworkTarget={_setDeleteHomeworkTarget}
-          startEdit={_startEditHomework}
-          toggleHomeworkCompletion={_toggleHomeworkCompletion}
-        />
-      {/if}
-
+<HomeworkDetailDialog
+  {CommentsPanel}
+  completionSaving={_completionSaving}
+  copy={_homeworkCopy}
+  dateFallback={_sectionCopy.notAvailable}
+  editing={_editingHomework}
+  fmtDate={(value) =>
+    formatHomeworkDetailDateTime(value, locale, _sectionCopy.notAvailable)}
+  homework={detailHomework}
+  onClose={close}
+  onToggleCompletion={() => {
+    if (_selectedHomework) return _toggleHomeworkCompletion(_selectedHomework);
+  }}
+  {permalinkBaseHref}
+  relativeEtaLabel={(value, liveReferenceDate) =>
+    formatHomeworkDueRelativeTime(
+      value,
+      liveReferenceDate,
+      locale,
+      _sectionCopy.notAvailable,
+    )}
+  contextLabel={sectionLabel}
+  showContextActions={_canWriteHomework || _canManageSelectedHomework}
+  showCompletion={_canWriteHomework}
+>
+  {#snippet editingContent()}
+    {#if _selectedHomework}
+      <SectionHomeworkEditForm
+        applyDueAtSemesterEnd={_applyEditDueAtSemesterEnd}
+        applyDueInMonth={_applyEditDueInMonth}
+        applyDueInWeek={_applyEditDueInWeek}
+        applyPublishNow={_applyEditPublishNow}
+        applyStartAtSemesterStart={_applyEditStartAtSemesterStart}
+        applyStartNow={_applyEditStartNow}
+        cancelEdit={_cancelEditHomework}
+        commentsCopy={_commentsCopy}
+        bind:editHomeworkMessage={_editHomeworkMessage}
+        bind:editHomeworkPublishedAt={_editHomeworkPublishedAt}
+        bind:editHomeworkSubmissionDueAt={_editHomeworkSubmissionDueAt}
+        bind:editHomeworkSubmissionStartAt={_editHomeworkSubmissionStartAt}
+        homework={_selectedHomework}
+        homeworkCopy={_homeworkCopy}
+        semesterDate={_semesterDate}
+        updateHomework={_updateHomework}
+      />
+    {/if}
+  {/snippet}
+  {#snippet contextActions()}
+    {#if _selectedHomework && (_canWriteHomework || _canManageSelectedHomework)}
+      <SectionHomeworkActionBar
+        canManage={_canManageSelectedHomework}
+        canWrite={_canWriteHomework}
+        cancelEdit={_cancelEditHomework}
+        editing={_editingHomework}
+        homework={_selectedHomework}
+        homeworkCopy={_homeworkCopy}
+        sectionCopy={_sectionCopy}
+        setDeleteHomeworkTarget={_setDeleteHomeworkTarget}
+        startEdit={_startEditHomework}
+      />
+    {/if}
+  {/snippet}
+  {#snippet additionalContent()}
+    {#if _selectedHomework}
       <SectionHomeworkAuditTrail
         commonCopy={_commonCopy}
         fmtDateTime={_fmtDateTime}
         formatMessage={_formatMessage}
         homeworkAuditActionLabel={_homeworkAuditActionLabel}
         homeworkCopy={_homeworkCopy}
-        logs={_auditLogsForHomework(homework.id)}
+        logs={_auditLogsForHomework(_selectedHomework.id)}
       />
-    {/snippet}
-
-    {#snippet aside()}
-      {#key `comments:homework:${homework.id}`}
-        <CommentsPanel
-          heading={_homeworkCopy.commentsTitle}
-          permalinkBaseHref={commentTargetPermalinkBaseHref({
-            homeworkId: homework.id,
-            sectionJwId,
-            type: "homework",
-          })}
-          targetType="homework"
-          targetId={homework.id}
-        />
-      {/key}
-    {/snippet}
-  </DetailDialog>
-{/if}
+    {/if}
+  {/snippet}
+</HomeworkDetailDialog>

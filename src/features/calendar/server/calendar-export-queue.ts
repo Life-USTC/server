@@ -1,4 +1,7 @@
-import { getCloudflareCalendarExportRebuildQueue } from "@/lib/adapters/cloudflare-runtime";
+import {
+  getCloudflareCalendarExportRebuildQueue,
+  getCloudflareRuntimeTaskScheduler,
+} from "@/lib/adapters/cloudflare-runtime";
 import { writeCalendarExportRebuildAnalytics } from "@/lib/metrics/analytics-engine";
 
 export type CalendarExportRebuildUserMessage = {
@@ -60,39 +63,84 @@ async function deliverCalendarExportRebuildMessage(
   }
 
   const queue = getCloudflareCalendarExportRebuildQueue();
-  if (queue) {
-    await queue.send(message);
-    writeCalendarExportRebuildAnalytics({ status: "enqueued" });
-    return;
+  if (!queue) {
+    throw new Error("CALENDAR_EXPORT_REBUILD binding is required");
   }
 
-  // Node / vitest without a Queue binding: rebuild in-process.
-  const { processCalendarExportRebuildMessage } = await import(
-    "./calendar-export-rebuild"
-  );
-  await processCalendarExportRebuildMessage(message);
+  await queue.send(message);
   writeCalendarExportRebuildAnalytics({ status: "enqueued" });
+}
+
+function recordCalendarExportRebuildEnqueueFailure() {
+  writeCalendarExportRebuildAnalytics({ status: "enqueue_error" });
+}
+
+function observeEnqueueFailure(enqueue: Promise<void>) {
+  enqueue.catch(() => {
+    // The enqueue function records the low-cardinality failure metric before
+    // rethrowing. This rejection handler keeps no-defer callers from creating
+    // an unhandled rejection while preserving immediate stale responses.
+  });
 }
 
 export async function enqueueUserCalendarExportRebuild(userId: string) {
   const trimmed = userId.trim();
   if (!trimmed) return;
-  await deliverCalendarExportRebuildMessage({ type: "user", userId: trimmed });
+  try {
+    await deliverCalendarExportRebuildMessage({
+      type: "user",
+      userId: trimmed,
+    });
+  } catch (error) {
+    recordCalendarExportRebuildEnqueueFailure();
+    throw error;
+  }
 }
 
 export async function enqueueSectionCalendarExportRebuild(sectionId: number) {
   if (!Number.isInteger(sectionId) || sectionId <= 0) return;
-  await deliverCalendarExportRebuildMessage({ type: "section", sectionId });
+  try {
+    await deliverCalendarExportRebuildMessage({ type: "section", sectionId });
+  } catch (error) {
+    recordCalendarExportRebuildEnqueueFailure();
+    throw error;
+  }
 }
 
-export function scheduleUserCalendarExportRebuild(userId: string) {
-  void enqueueUserCalendarExportRebuild(userId).catch(() => {
-    // Enqueue failures must not fail the write path.
-  });
+export function scheduleUserCalendarExportRebuild(
+  userId: string,
+  defer:
+    | ((promise: Promise<unknown>) => void)
+    | undefined = getCloudflareRuntimeTaskScheduler(),
+) {
+  const enqueue = enqueueUserCalendarExportRebuild(userId);
+  if (defer) {
+    try {
+      defer(enqueue);
+      return;
+    } catch {
+      // A failed scheduler cannot retain the promise. Attach a rejection
+      // observer so the write path remains non-blocking and the enqueue
+      // failure remains visible through its metric.
+    }
+  }
+  observeEnqueueFailure(enqueue);
 }
 
-export function scheduleSectionCalendarExportRebuild(sectionId: number) {
-  void enqueueSectionCalendarExportRebuild(sectionId).catch(() => {
-    // Enqueue failures must not fail the write path.
-  });
+export function scheduleSectionCalendarExportRebuild(
+  sectionId: number,
+  defer:
+    | ((promise: Promise<unknown>) => void)
+    | undefined = getCloudflareRuntimeTaskScheduler(),
+) {
+  const enqueue = enqueueSectionCalendarExportRebuild(sectionId);
+  if (defer) {
+    try {
+      defer(enqueue);
+      return;
+    } catch {
+      // See the user-scoped scheduler path above.
+    }
+  }
+  observeEnqueueFailure(enqueue);
 }

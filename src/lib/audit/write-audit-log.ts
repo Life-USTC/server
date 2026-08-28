@@ -1,13 +1,34 @@
-import type { AuditAction, Prisma } from "@/generated/prisma/client";
+import type {
+  AuditAction,
+  AuditChannel,
+  AuditOutcome,
+  Prisma,
+} from "@/generated/prisma/client";
+import {
+  getCloudflareAuditLogWriteQueue,
+  getCloudflareRuntimeTaskScheduler,
+} from "@/lib/adapters/cloudflare-runtime";
 import { prisma } from "@/lib/db/prisma";
 import { logAppEvent } from "@/lib/log/app-logger";
+import { elapsedMs, monotonicNowMs } from "@/lib/log/observability-clock";
 import { writeAuditWriteAnalytics } from "@/lib/metrics/analytics-engine";
 
-export { getAuditRequestMetadata } from "@/lib/audit/request-metadata";
+export {
+  getAuditRequestId,
+  getAuditRequestMetadata,
+} from "@/lib/audit/request-metadata";
 
-type AuditLogParams = {
+export type AuditLogParams = {
+  id?: string;
   action: AuditAction;
-  userId: string;
+  userId?: string;
+  subjectUserId?: string;
+  outcome?: AuditOutcome;
+  channel?: AuditChannel;
+  oauthClientId?: string;
+  oauthGrantId?: string;
+  sessionId?: string;
+  requestId?: string;
   targetId?: string;
   targetType?: string;
   metadata?: Record<string, unknown>;
@@ -17,68 +38,27 @@ type AuditLogParams = {
 
 type AuditLogClient = {
   auditLog: {
-    create(args: Prisma.AuditLogCreateArgs): Promise<unknown>;
+    createMany(args: Prisma.AuditLogCreateManyArgs): Promise<unknown>;
   };
 };
 
-type WorkerWaitUntilContext = {
-  waitUntil(promise: Promise<unknown>): void;
-};
-
-type AuditPlatform = {
-  context?: unknown;
-  ctx?: unknown;
-};
-
-type AuditRequestEvent = {
-  platform?: AuditPlatform;
-};
-
-type AuditServerModule = {
-  getRequestEvent?: () => AuditRequestEvent;
-};
-
-function isWorkerWaitUntilContext(
-  value: unknown,
-): value is WorkerWaitUntilContext {
-  return (
-    typeof value === "object" &&
-    value !== null &&
-    "waitUntil" in value &&
-    typeof value.waitUntil === "function"
-  );
-}
-
-async function loadAuditServerModule() {
-  try {
-    return (await import("$app/server")) as AuditServerModule;
-  } catch {
-    return undefined;
-  }
-}
-
-async function getAuditWaitUntil() {
-  try {
-    const getRequestEvent = (await loadAuditServerModule())?.getRequestEvent;
-    if (typeof getRequestEvent !== "function") return undefined;
-
-    const platform = getRequestEvent().platform;
-    const context = platform?.ctx ?? platform?.context;
-    if (!isWorkerWaitUntilContext(context)) return undefined;
-
-    return (promise: Promise<unknown>) => {
-      context.waitUntil(promise);
-    };
-  } catch {
-    return undefined;
-  }
-}
-
-function logAuditWriteFailure(params: AuditLogParams, error: unknown) {
+function logAuditWriteFailure(
+  params: AuditLogParams,
+  error: unknown,
+  phase: "database" | "enqueue",
+) {
   logAppEvent(
     "error",
-    "Audit log write failed",
+    phase === "enqueue"
+      ? "audit-log.enqueue.failure"
+      : "audit-log.write.failure",
     {
+      event:
+        phase === "enqueue"
+          ? "audit-log.enqueue.failure"
+          : "audit-log.write.failure",
+      phase,
+      outcome: "failure",
       source: "audit",
       action: params.action,
       targetType: params.targetType,
@@ -87,34 +67,99 @@ function logAuditWriteFailure(params: AuditLogParams, error: unknown) {
   );
 }
 
+function logAuditEnqueueSuccess(params: AuditLogParams) {
+  logAppEvent("info", "audit-log.enqueue.success", {
+    action: params.action,
+    event: "audit-log.enqueue.success",
+    outcome: "success",
+    phase: "enqueue",
+    source: "audit",
+    targetType: params.targetType,
+  });
+}
+
 export async function writeAuditLog(
   params: AuditLogParams,
   client: AuditLogClient = prisma,
 ) {
-  const start = Date.now();
-  const { metadata, ...rest } = params;
+  const start = monotonicNowMs();
   try {
-    await client.auditLog.create({
-      data: {
-        ...rest,
-        ...(metadata !== undefined && {
-          metadata: metadata as Prisma.InputJsonValue,
-        }),
-      },
+    await client.auditLog.createMany({
+      data: auditLogCreateData(params),
+      ...(params.id ? { skipDuplicates: true } : {}),
     });
     writeAuditWriteAnalytics({
       action: params.action,
       event: "success",
-      ioObservedDurationMs: Date.now() - start,
+      ioObservedDurationMs: elapsedMs(start),
       targetType: params.targetType,
     });
   } catch (error) {
     writeAuditWriteAnalytics({
       action: params.action,
       event: "error",
-      ioObservedDurationMs: Date.now() - start,
+      ioObservedDurationMs: elapsedMs(start),
       targetType: params.targetType,
     });
+    throw error;
+  }
+}
+
+function auditLogCreateData(params: AuditLogParams) {
+  const { metadata, ...rest } = params;
+  return {
+    ...rest,
+    ...(metadata !== undefined && {
+      metadata: metadata as Prisma.InputJsonValue,
+    }),
+  };
+}
+
+/**
+ * Writes one queue batch in one statement. Queued IDs are the AuditLog primary
+ * key, so `skipDuplicates` is sufficient idempotency for at-least-once queue
+ * delivery; no migration or second deduplication table is required.
+ */
+export async function writeAuditLogs(
+  params: readonly AuditLogParams[],
+  client: AuditLogClient = prisma,
+) {
+  if (params.length === 0) return;
+
+  const start = monotonicNowMs();
+  const queued = params.every((param) => Boolean(param.id));
+  try {
+    // createMany intentionally emits INSERT without RETURNING. Audit rows are
+    // append-only, and returning the inserted row would require widening the
+    // RLS read policy for asynchronous queue consumers with no user context.
+    await client.auditLog.createMany({
+      data: params.map(auditLogCreateData),
+      // A queued audit write carries a producer-generated ID. Cloudflare
+      // Queues is at-least-once, so replaying an uncertain delivery must be a
+      // successful no-op instead of creating a second audit event. Direct
+      // transactional writes have no supplied ID and must still surface an
+      // unexpected conflict instead of hiding it.
+      ...(queued ? { skipDuplicates: true } : {}),
+    });
+    const ioObservedDurationMs = elapsedMs(start);
+    for (const param of params) {
+      writeAuditWriteAnalytics({
+        action: param.action,
+        event: "success",
+        ioObservedDurationMs,
+        targetType: param.targetType,
+      });
+    }
+  } catch (error) {
+    const ioObservedDurationMs = elapsedMs(start);
+    for (const param of params) {
+      writeAuditWriteAnalytics({
+        action: param.action,
+        event: "error",
+        ioObservedDurationMs,
+        targetType: param.targetType,
+      });
+    }
     throw error;
   }
 }
@@ -122,19 +167,36 @@ export async function writeAuditLog(
 /**
  * Fire-and-forget audit log that logs failures instead of swallowing them silently.
  * Use for non-critical audit trails where the route should not fail if logging errors.
- * In Worker requests, the write is also scheduled with waitUntil when the
- * SvelteKit request context is available. Awaiting this function guarantees
- * Worker waitUntil registration without waiting for the DB write. Outside a
- * Worker request, awaiting it waits for the logged write.
+ * In Worker requests, the write is scheduled with the request execution
+ * context. Awaiting this function guarantees waitUntil registration without
+ * waiting for the DB write. Outside a Worker request, awaiting it waits for
+ * the logged write.
  */
 export async function fireAuditLog(params: AuditLogParams) {
-  const auditWrite = writeAuditLog(params).catch((error: unknown) => {
-    logAuditWriteFailure(params, error);
-  });
+  const queue = getCloudflareAuditLogWriteQueue();
+  const { id, ...queueParams } = params;
+  const auditWrite = queue
+    ? Promise.resolve()
+        .then(() =>
+          queue.send({
+            auditId: id ?? crypto.randomUUID(),
+            params: queueParams,
+            type: "audit-log.write.v1",
+          }),
+        )
+        .then(
+          () => logAuditEnqueueSuccess(params),
+          (error: unknown) => {
+            logAuditWriteFailure(params, error, "enqueue");
+          },
+        )
+    : writeAuditLog(params).catch((error: unknown) => {
+        logAuditWriteFailure(params, error, "database");
+      });
 
-  const waitUntil = await getAuditWaitUntil();
-  if (waitUntil) {
-    waitUntil(auditWrite);
+  const scheduleTask = getCloudflareRuntimeTaskScheduler();
+  if (scheduleTask) {
+    scheduleTask(auditWrite);
     return;
   }
 

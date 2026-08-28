@@ -59,6 +59,75 @@ test("/account/sign-in 页面契约", async ({ page }, testInfo) => {
   await assertPageContract(page, { routePath: "/account/sign-in", testInfo });
 });
 
+test("/account/sign-in narrow mobile shell uses an accessible compact brand", async ({
+  page,
+}, testInfo) => {
+  for (const width of [280, 375, 390]) {
+    await page.setViewportSize({ width, height: 800 });
+    await gotoAndWaitForReady(page, "/account/sign-in", {
+      testInfo,
+      screenshotLabel: `signin-brand-${width}`,
+    });
+
+    const brand = page.locator("[data-shell-topbar] [data-shell-brand]");
+    if (width < 320) {
+      await expect(brand).toBeHidden();
+      expect(
+        await page.evaluate(
+          () => document.documentElement.scrollWidth <= window.innerWidth,
+        ),
+      ).toBe(true);
+      continue;
+    }
+
+    await expect(brand).toBeVisible();
+    await expect(brand).toHaveAttribute("aria-label", "Life@USTC");
+    await expect(brand).toHaveAttribute("title", "Life@USTC");
+    await expect(brand.locator("span")).toHaveClass(/sr-only/);
+    await expect(brand.locator("span")).not.toHaveClass(/truncate/);
+
+    const metrics = await brand.evaluate((element) => {
+      const rect = element.getBoundingClientRect();
+      return {
+        clientWidth: element.clientWidth,
+        right: rect.right,
+        viewportWidth: window.innerWidth,
+      };
+    });
+    expect(metrics.clientWidth).toBe(44);
+    expect(metrics.right).toBeLessThanOrEqual(metrics.viewportWidth);
+  }
+});
+
+test("/account/sign-in 320px actions and legal links stay inside the Card", async ({
+  page,
+}, testInfo) => {
+  await page.setViewportSize({ width: 320, height: 800 });
+  await gotoAndWaitForReady(page, "/account/sign-in", { testInfo });
+
+  const overflow = await page.locator('[data-slot="card"]').evaluate((card) => {
+    const elements = [
+      card,
+      ...Array.from(card.querySelectorAll<HTMLElement>("form, button, p")),
+    ];
+    return elements
+      .map((element) => ({
+        clientWidth: element.clientWidth,
+        scrollWidth: element.scrollWidth,
+        tag: element.tagName,
+      }))
+      .filter(({ clientWidth, scrollWidth }) => scrollWidth > clientWidth + 1);
+  });
+
+  expect(overflow).toEqual([]);
+  await expect(
+    page.locator('[data-slot="card"] a[href="/terms"]'),
+  ).toBeVisible();
+  await expect(
+    page.locator('[data-slot="card"] a[href="/privacy"]'),
+  ).toBeVisible();
+});
+
 test("/account/sign-in 显示所有必填字段", async ({ page }, testInfo) => {
   await gotoAndWaitForReady(page, "/account/sign-in", {
     testInfo,

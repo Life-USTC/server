@@ -4,6 +4,7 @@ import { observedApiRoute } from "@/lib/log/api-observability";
 
 /**
  * Get the current account profile.
+ * @oauthScope account.profile:read
  * @response meResponseSchema
  * @response 401:openApiErrorSchema
  * @response 404:openApiErrorSchema

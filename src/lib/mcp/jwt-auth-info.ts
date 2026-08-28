@@ -1,4 +1,5 @@
 import type { AuthInfo } from "@modelcontextprotocol/sdk/server/auth/types.js";
+import { OAUTH_GRANT_ID_CLAIM } from "@/lib/oauth/constants";
 import { expandScopeClaim } from "@/lib/oauth/scope-registry";
 import { resourceIndicatorsMatch } from "@/lib/oauth/utils";
 
@@ -13,7 +14,9 @@ export function jwtClaimsToAuthInfo({
     client_id?: unknown;
     exp?: unknown;
     scope?: unknown;
+    sid?: unknown;
     sub?: unknown;
+    [OAUTH_GRANT_ID_CLAIM]?: unknown;
   };
   mcpAudience: string;
   token: string;
@@ -48,6 +51,11 @@ export function jwtClaimsToAuthInfo({
     resource: audValue ? new URL(audValue) : undefined,
     extra: {
       userId: typeof jwtClaims.sub === "string" ? jwtClaims.sub : undefined,
+      grantId:
+        typeof jwtClaims[OAUTH_GRANT_ID_CLAIM] === "string"
+          ? jwtClaims[OAUTH_GRANT_ID_CLAIM]
+          : undefined,
+      sessionId: typeof jwtClaims.sid === "string" ? jwtClaims.sid : undefined,
     },
   };
 }

@@ -6,14 +6,6 @@ export function detailDialog(page: Page) {
   return page.locator(DETAIL_DIALOG_SELECTOR).first();
 }
 
-export function detailDialogBody(dialog: Locator) {
-  return dialog.locator('[data-slot="detail-dialog-body"]');
-}
-
-export function detailDialogAside(dialog: Locator) {
-  return dialog.locator('[data-slot="detail-dialog-aside"]');
-}
-
 /**
  * The shared dialog shell names its close control with `aria-label` only, so a
  * visible "Close" string next to the icon is a regression.
@@ -53,22 +45,27 @@ export async function expectDetailDialogFitsViewport(
 }
 
 /**
- * Documented homework popup order (`docs/contracts/homework.json`): description,
- * due summary, vertical metadata excluding platform createdAt, action controls,
- * then full-width discussion in the same column. The due summary carries the
- * primary properties, so it must come before the metadata rows, and the metadata
- * list must not repeat the due date or expose a creation timestamp.
+ * Homework popup (`docs/contracts/homework.json`): due summary is primary and
+ * sits above secondary metadata. The collapsible metadata must not repeat the
+ * due date or expose a creation timestamp.
  */
 export async function expectHomeworkDetailOrder(dialog: Locator) {
-  const body = detailDialogBody(dialog);
-
-  const dueSummary = body
-    .locator('[data-slot="item"]')
-    .filter({ hasText: /提交截止|Submission due/i })
+  const dueSummary = dialog
+    .locator('[data-testid="homework-deadline-summary"]')
     .first();
   await expect(dueSummary).toBeVisible();
 
-  const metadata = body.locator("dl").first();
+  const moreDetails = dialog.getByRole("button", {
+    name: /更多信息|More details/i,
+  });
+  if ((await moreDetails.count()) > 0) {
+    await moreDetails.first().click();
+  }
+
+  const metadata = dialog
+    .locator('[data-testid="homework-secondary-details"]')
+    .locator("dl")
+    .first();
   await expect(metadata).toBeVisible();
   await expect(metadata.getByText(/发布日期|Published/i)).toBeVisible();
   await expect(metadata.getByText(/提交开始|Submission opens/i)).toBeVisible();
@@ -89,20 +86,22 @@ export async function expectHomeworkDetailOrder(dialog: Locator) {
  * rail. Side rails belong on pages (`docs/contracts/_ui.json`).
  */
 export async function expectSingleColumnDiscussion(dialog: Locator) {
-  const body = detailDialogBody(dialog);
-  const aside = detailDialogAside(dialog);
+  const dueSummary = dialog
+    .locator('[data-testid="homework-deadline-summary"]')
+    .first();
+  const discussion = dialog.locator('[data-testid="homework-discussion"]');
   await expect(
-    aside.getByRole("heading", { name: /作业讨论|Homework discussion/i }),
+    discussion.getByRole("heading", { name: /作业讨论|Homework discussion/i }),
   ).toBeVisible();
 
-  const bodyBox = await body.boundingBox();
-  const asideBox = await aside.boundingBox();
-  expect(bodyBox).not.toBeNull();
-  expect(asideBox).not.toBeNull();
-  if (!bodyBox || !asideBox) return;
+  const dueBox = await dueSummary.boundingBox();
+  const discussionBox = await discussion.boundingBox();
+  expect(dueBox).not.toBeNull();
+  expect(discussionBox).not.toBeNull();
+  if (!dueBox || !discussionBox) return;
 
-  expect(asideBox.y).toBeGreaterThan(bodyBox.y);
-  expect(Math.abs(asideBox.x - bodyBox.x)).toBeLessThan(8);
+  expect(discussionBox.y).toBeGreaterThan(dueBox.y);
+  expect(Math.abs(discussionBox.x - dueBox.x)).toBeLessThan(24);
 }
 
 /** Overlays stay at a reading width; they must not become a two-column page. */
@@ -112,20 +111,15 @@ export async function expectComfortablePopupWidth(page: Page, dialog: Locator) {
   expect(box).not.toBeNull();
   if (!box || !viewport) return;
   if (viewport.width >= 1024) {
-    // Reading column (`sm:max-w-2xl`), not a page-width two-column overlay.
-    expect(box.width).toBeLessThanOrEqual(720);
+    // Shared homework shell uses `sm:max-w-3xl` (48rem), not a page overlay.
+    expect(box.width).toBeLessThanOrEqual(800);
     expect(box.width).toBeLessThan(viewport.width * 0.7);
   }
 }
 
-/** Action controls belong in the details column, ahead of the discussion. */
-export async function expectDialogActionsInBody(
-  dialog: Locator,
-  actionName: RegExp,
-) {
-  const action = detailDialogBody(dialog)
-    .getByRole("button", { name: actionName })
-    .first();
+/** Primary actions live in the dialog, including the pinned footer. */
+export async function expectDialogAction(dialog: Locator, actionName: RegExp) {
+  const action = dialog.getByRole("button", { name: actionName }).first();
   await expect(action).toBeVisible();
   return action;
 }

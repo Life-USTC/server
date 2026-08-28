@@ -2,6 +2,7 @@ import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import * as z from "zod";
 import { commentMcpTargetReadInputSchema } from "@/features/comments/lib/comment-target-input-schemas";
 import {
+  loadCommentReplies,
   loadCommentThread,
   loadFocusedCommentThread,
 } from "@/features/comments/server/comment-read-model";
@@ -10,6 +11,7 @@ import {
   commentThreadTargetPayload,
 } from "@/features/comments/server/comment-target-payload";
 import { resolveCommentTargetReference } from "@/features/comments/server/comment-target-resolution";
+import { runCloudflareTraceSpan } from "@/lib/adapters/cloudflare-runtime";
 import { buildPaginatedResponse } from "@/lib/api/helpers";
 import {
   getUserId,
@@ -41,29 +43,42 @@ const commentThreadInputSchema = z.object({
   mode: mcpModeInputSchema,
 });
 
+const commentRepliesInputSchema = z.object({
+  commentId: z.string().trim().min(1),
+  cursor: z.string().trim().min(1).optional(),
+  pageSize: z.number().int().min(1).max(20).default(20),
+  mode: mcpModeInputSchema,
+});
+
 export function registerCommentTools(server: McpServer) {
   server.registerTool(
     "community_comment_list",
     {
       description:
         "List visible comments for one course, section, teacher, homework, or section-teacher target. " +
-        "Use page/limit to paginate root comments; each selected root includes its complete reply tree. " +
+        "Use page/limit to paginate root comments; each selected root includes a bounded reply preview and repliesNextCursor when more replies are available. " +
         "Returns the same data/pagination/meta envelope, threaded nodes, hidden count, viewer state, reactions, attachments, and action flags as the REST comment list.",
       inputSchema: commentsTargetInputSchema.shape,
     },
     async (args, extra) => {
       const mode = resolveMcpMode(args.mode);
-      const resolved = await resolveCommentTargetReference({
-        allowDirectSectionTeacherId: true,
-        courseJwId: args.courseJwId,
-        homeworkId: args.homeworkId,
-        rawTargetId: args.targetId,
-        sectionJwId: args.sectionJwId,
-        sectionTeacherId: args.sectionTeacherId,
-        targetType: args.targetType,
-        teacherId: args.teacherId,
-        verifyExistence: true,
-      });
+      const resolved = await runCloudflareTraceSpan(
+        "target.resolve",
+        { targetType: args.targetType },
+        () =>
+          resolveCommentTargetReference({
+            allowDirectSectionTeacherId: true,
+            courseJwId: args.courseJwId,
+            homeworkId: args.homeworkId,
+            rawTargetId: args.targetId,
+            sectionJwId: args.sectionJwId,
+            sectionTeacherId: args.sectionTeacherId,
+            targetType: args.targetType,
+            teacherId: args.teacherId,
+            verifyExistence: true,
+            includeTargetMetadata: true,
+          }),
+      );
       if (!resolved.ok) {
         const errorPayload = unresolvedCommentTargetPayload(resolved);
         return jsonToolResult(
@@ -101,9 +116,11 @@ export function registerCommentTools(server: McpServer) {
           meta: {
             hiddenCount,
             viewer,
-            target: await commentListTargetPayload(
-              resolved.targetType,
-              resolved.target,
+            target: await runCloudflareTraceSpan(
+              "target.payload",
+              { targetType: resolved.targetType },
+              () =>
+                commentListTargetPayload(resolved.targetType, resolved.target),
             ),
           },
         },
@@ -113,10 +130,55 @@ export function registerCommentTools(server: McpServer) {
   );
 
   server.registerTool(
+    "community_comment_replies",
+    {
+      description:
+        "Continue a bounded reply preview for one comment root. Pass repliesNextCursor from community_comment_list or a previous continuation response as cursor. " +
+        "The response keeps the root and stable reply ancestry while capping each page.",
+      inputSchema: commentRepliesInputSchema.shape,
+    },
+    async ({ commentId, cursor, mode, pageSize }, extra) => {
+      const resolvedMode = resolveMcpMode(mode);
+      const result = await loadCommentReplies({
+        commentId,
+        cursor,
+        pageSize,
+        viewerUserId: getUserId(extra.authInfo),
+      });
+      if (!result.ok) {
+        return jsonToolResult(
+          {
+            success: false,
+            found: result.error !== "not_found",
+            error: result.error,
+            message:
+              result.error === "not_found"
+                ? `Comment ${commentId} was not found`
+                : result.error === "invalid_cursor"
+                  ? "The reply cursor is invalid or belongs to another thread"
+                  : `Comment ${commentId} is not visible to the current viewer`,
+          },
+          { mode: resolvedMode },
+        );
+      }
+      return jsonToolResult(
+        {
+          found: true,
+          nextCursor: result.nextCursor,
+          rootId: result.rootId,
+          thread: result.thread,
+          viewer: result.viewer,
+        },
+        { mode: resolvedMode },
+      );
+    },
+  );
+
+  server.registerTool(
     "community_comment_get",
     {
       description:
-        "Fetch the visible thread around one comment id. Returns the same focus id, target payload, viewer state, and threaded comment nodes as REST /api/community/comments/[id].",
+        "Fetch a bounded visible thread around one comment id. Returns the same focus id, target payload, viewer state, threaded comment nodes, and reply continuation cursor as REST /api/community/comments/[id].",
       inputSchema: commentThreadInputSchema.shape,
     },
     async ({ commentId, mode }, extra) => {

@@ -17,7 +17,7 @@
  *
  * ## Edge Cases
  * - Unauthenticated → redirect to /signin
- * - Non-admin → 404
+ * - Non-admin → 403
  * - Seed version from DEV_SEED.bus always present
  */
 import { expect, test } from "@playwright/test";
@@ -27,6 +27,7 @@ import {
   signInAsDevAdmin,
 } from "../../../../utils/auth";
 import { DEV_SEED } from "../../../../utils/dev-seed";
+import { withE2ePrisma } from "../../../../utils/e2e-db/prisma";
 import { visibleText } from "../../../../utils/locators";
 import { captureStepScreenshot } from "../../../../utils/screenshot";
 import { assertPageContract } from "../../_shared/page-contract";
@@ -38,13 +39,11 @@ test("/admin/bus 未登录重定向到登录页", async ({ page }, testInfo) => 
   await captureStepScreenshot(page, testInfo, "admin-bus/unauthorized");
 });
 
-test("/admin/bus 普通用户访问返回 404", async ({ page }, testInfo) => {
+test("/admin/bus 普通用户访问返回 403", async ({ page }, testInfo) => {
   await signInAsDebugUser(page, "/admin/bus", "/admin/bus");
-  await expect(page.getByText("404").first()).toBeVisible();
-  await expect(
-    page.getByRole("heading", { name: /页面不存在|Page Not Found/i }),
-  ).toBeVisible();
-  await captureStepScreenshot(page, testInfo, "admin-bus/404");
+  await expect(page.getByText("403").first()).toBeVisible();
+  await expect(page.getByText("Forbidden").first()).toBeVisible();
+  await captureStepScreenshot(page, testInfo, "admin-bus/403");
 });
 
 test("/admin/bus 显示所有必需的版本字段", async ({ page }, testInfo) => {
@@ -109,12 +108,9 @@ test("/admin/bus 激活版本受保护且导入弹窗可打开", async ({
     .first();
   await expect(versionRow).toBeVisible();
 
-  // Active seed versions should not expose the delete action; if the seed is
-  // inactive (e.g. left over from an earlier failed run) we just verify the
-  // row is rendered and move on.
+  // The active seed version must never expose a destructive delete action.
   const deleteBtn = versionRow.getByRole("button", { name: /删除|Delete/i });
-  const deleteCount = await deleteBtn.count();
-  expect(deleteCount === 0 || deleteCount === 1).toBe(true);
+  await expect(deleteBtn).toHaveCount(0);
 
   const importBtn = page
     .getByRole("button", { name: /从 Static 导入|Import from Static/i })
@@ -127,6 +123,72 @@ test("/admin/bus 激活版本受保护且导入弹窗可打开", async ({
   await expect(importDialog).toBeVisible({ timeout: 5_000 });
   await captureStepScreenshot(page, testInfo, "admin-bus/import-dialog");
   await importDialog.getByRole("button", { name: /取消|Cancel/i }).click();
+});
+
+test("/admin/bus 激活非当前版本需要二次确认", async ({ page }) => {
+  const suffix = Date.now().toString(36);
+  const version = await withE2ePrisma(async (prisma) => {
+    const activeIds = (
+      await prisma.busScheduleVersion.findMany({
+        where: { isEnabled: true },
+        select: { id: true },
+      })
+    ).map(({ id }) => id);
+    const created = await prisma.busScheduleVersion.create({
+      data: {
+        checksum: `e2e-bus-checksum-${suffix}`,
+        isEnabled: false,
+        key: `e2e-bus-${suffix}`,
+        rawJson: {},
+        title: `E2E Bus ${suffix}`,
+      },
+    });
+    return { activeIds, created };
+  });
+
+  try {
+    await signInAsDevAdmin(page, "/admin/bus");
+    const row = page
+      .locator("tbody tr:visible")
+      .filter({ hasText: version.created.key });
+    const activateButton = row.getByRole("button", {
+      name: /激活版本|Activate version/i,
+    });
+    await activateButton.click();
+    const confirmDialog = page.getByRole("alertdialog", {
+      name: /激活该时刻表版本|Activate timetable version/i,
+    });
+    await expect(confirmDialog).toBeVisible();
+    await expect(confirmDialog).toContainText(version.created.key);
+    await confirmDialog.getByRole("button", { name: /取消|Cancel/i }).click();
+    await expect(confirmDialog).toBeHidden();
+
+    await activateButton.click();
+    const activateResponse = page.waitForResponse(
+      (response) =>
+        response.request().method() === "POST" &&
+        response.url().includes("/admin/bus") &&
+        response.url().includes("activateVersion"),
+    );
+    await confirmDialog
+      .getByRole("button", {
+        name: /确认激活版本|Activate version/i,
+      })
+      .click();
+    expect((await activateResponse).status()).toBe(200);
+    await expect(row.getByText(/激活|Active/i)).toBeVisible();
+  } finally {
+    await withE2ePrisma(async (prisma) => {
+      await prisma.$transaction([
+        prisma.busScheduleVersion.updateMany({ data: { isEnabled: false } }),
+        prisma.busScheduleVersion.updateMany({
+          where: { id: { in: version.activeIds } },
+          data: { isEnabled: true },
+        }),
+        prisma.busScheduleVersion.delete({ where: { id: version.created.id } }),
+      ]);
+    });
+  }
 });
 
 test("/admin/bus 移动端首条版本操作可达", async ({ page }, testInfo) => {

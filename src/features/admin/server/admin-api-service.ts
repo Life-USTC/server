@@ -1,7 +1,7 @@
 import { getAdminUserListItem } from "@/features/admin/server/admin-user-read-model";
 import { DESCRIPTION_CONTENT_MAX_LENGTH } from "@/features/descriptions/lib/description-limits";
 import { isValidProfileUsername } from "@/features/profile/lib/profile-username";
-import type { CommentStatus } from "@/generated/prisma/client";
+import type { AuditChannel, CommentStatus } from "@/generated/prisma/client";
 import { writeAuditLog } from "@/lib/audit/write-audit-log";
 import { prisma, withUserDbContext } from "@/lib/db/prisma";
 import { isPrismaUniqueConstraintError } from "@/lib/db/prisma-errors";
@@ -30,6 +30,22 @@ type AdminModerateCommentInput = {
 type AdminModerateDescriptionInput = {
   content: string;
 };
+
+type AdminAuditContext = {
+  channel?: AuditChannel;
+  requestId?: string;
+};
+
+function adminAuditAttribution(
+  adminUserId: string,
+  context?: AdminAuditContext,
+) {
+  return {
+    channel: context?.channel ?? ("rest" as const),
+    userId: adminUserId,
+    ...(context?.requestId ? { requestId: context.requestId } : {}),
+  };
+}
 
 function normalizeAdminUserName(value: unknown) {
   if (typeof value !== "string") return undefined;
@@ -92,6 +108,7 @@ export async function updateAdminUser(
   adminUserId: string,
   id: string,
   parsedBody: AdminUpdateUserBody,
+  audit?: AdminAuditContext,
 ) {
   const parsed = await buildAdminUserUpdateData(id, parsedBody);
   if (!parsed.ok) return parsed;
@@ -100,7 +117,7 @@ export async function updateAdminUser(
     runSerializableTransaction(async (tx) => {
       const existingUser = await tx.user.findUnique({
         where: { id },
-        select: { id: true, isAdmin: true },
+        select: { id: true, isAdmin: true, name: true, username: true },
       });
       if (!existingUser) {
         return { ok: false as const, reason: "not_found" as const };
@@ -120,11 +137,50 @@ export async function updateAdminUser(
         }
       }
 
+      const profileChangedFields = [
+        ...(parsed.data.name !== undefined &&
+        parsed.data.name !== existingUser.name
+          ? ["name"]
+          : []),
+        ...(parsed.data.username !== undefined &&
+        parsed.data.username !== existingUser.username
+          ? ["username"]
+          : []),
+      ];
+      const roleChanged =
+        parsed.data.isAdmin !== undefined &&
+        parsed.data.isAdmin !== existingUser.isAdmin;
       const updatedUser = await tx.user.update({
         where: { id },
         data: parsed.data,
         select: { id: true },
       });
+      if (profileChangedFields.length > 0) {
+        await writeAuditLog(
+          {
+            action: "admin_user_profile_update",
+            ...adminAuditAttribution(adminUserId, audit),
+            subjectUserId: id,
+            targetId: id,
+            targetType: "user",
+            metadata: { changedFields: profileChangedFields },
+          },
+          tx,
+        );
+      }
+      if (roleChanged) {
+        await writeAuditLog(
+          {
+            action: "admin_user_role_update",
+            ...adminAuditAttribution(adminUserId, audit),
+            subjectUserId: id,
+            targetId: id,
+            targetType: "user",
+            metadata: { changedFields: ["isAdmin"] },
+          },
+          tx,
+        );
+      }
       return { id: updatedUser.id, ok: true as const };
     }, "Failed to update admin user");
 
@@ -165,6 +221,7 @@ export async function listAdminSuspensions() {
 export async function createAdminSuspension(
   adminUserId: string,
   input: AdminCreateSuspensionInput,
+  audit?: AdminAuditContext,
 ) {
   const expiresAt = parseSuspensionDate(input.expiresAt);
   if (!expiresAt.ok) return expiresAt;
@@ -206,10 +263,11 @@ export async function createAdminSuspension(
       await writeAuditLog(
         {
           action: "admin_user_suspend",
-          userId: adminUserId,
+          ...adminAuditAttribution(adminUserId, audit),
+          subjectUserId: userId,
           targetId: userId,
           targetType: "user",
-          metadata: { reason: input.reason ?? null },
+          metadata: { reasonProvided: Boolean(input.reason?.trim()) },
         },
         tx,
       );
@@ -229,7 +287,11 @@ export async function createAdminSuspension(
   return result;
 }
 
-export async function liftAdminSuspension(adminUserId: string, id: string) {
+export async function liftAdminSuspension(
+  adminUserId: string,
+  id: string,
+  audit?: AdminAuditContext,
+) {
   const result = await runSerializableTransaction(async (tx) => {
     const existing = await tx.userSuspension.findUnique({
       where: { id },
@@ -259,7 +321,8 @@ export async function liftAdminSuspension(adminUserId: string, id: string) {
     await writeAuditLog(
       {
         action: "admin_user_unsuspend",
-        userId: adminUserId,
+        ...adminAuditAttribution(adminUserId, audit),
+        subjectUserId: suspension.userId,
         targetId: suspension.userId,
         targetType: "user",
         metadata: { suspensionId: id },
@@ -278,12 +341,13 @@ export async function moderateComment(
   adminUserId: string,
   id: string,
   input: AdminModerateCommentInput,
+  audit?: AdminAuditContext,
 ) {
   const { status, moderationNote } = input;
   const result = await withUserDbContext(adminUserId, async (tx) => {
     const existing = await tx.comment.findUnique({
       where: { id },
-      select: { id: true },
+      select: { id: true, userId: true },
     });
     if (!existing) return { ok: false as const, reason: "not_found" as const };
 
@@ -302,10 +366,14 @@ export async function moderateComment(
     await writeAuditLog(
       {
         action: "admin_comment_moderate",
-        userId: adminUserId,
+        ...adminAuditAttribution(adminUserId, audit),
+        ...(existing.userId ? { subjectUserId: existing.userId } : {}),
         targetId: id,
         targetType: "comment",
-        metadata: { status, moderationNote: moderationNote ?? null },
+        metadata: {
+          status,
+          moderationNoteProvided: Boolean(moderationNote?.trim()),
+        },
       },
       tx,
     );
@@ -320,6 +388,7 @@ export async function moderateDescription(
   adminUserId: string,
   id: string,
   input: AdminModerateDescriptionInput,
+  audit?: AdminAuditContext,
 ) {
   if (input.content.length > DESCRIPTION_CONTENT_MAX_LENGTH) {
     return { ok: false as const, reason: "invalid_content" as const };
@@ -354,12 +423,11 @@ export async function moderateDescription(
     await writeAuditLog(
       {
         action: "admin_description_moderate",
-        userId: adminUserId,
+        ...adminAuditAttribution(adminUserId, audit),
         targetId: id,
         targetType: "description",
         metadata: {
-          previousContent: existing.content,
-          nextContent: input.content,
+          changedFields: ["content"],
         },
       },
       tx,

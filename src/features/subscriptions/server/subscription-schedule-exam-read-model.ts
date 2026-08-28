@@ -2,9 +2,16 @@ import {
   scheduleTeacherContextSelect,
   sectionCatalogInclude,
 } from "@/features/catalog/server/academic-query-includes";
+import { toScheduleEntryDto } from "@/features/catalog/server/schedule-read-model";
 import type { Prisma } from "@/generated/prisma/client";
+import type { AppLocale } from "@/i18n/config";
 import { DEFAULT_LOCALE } from "@/i18n/config";
+import {
+  type ScheduleEntryDto,
+  subscribedScheduleEntrySchema,
+} from "@/lib/api/schemas/schedule-response-schema-core";
 import { getPrisma, prisma } from "@/lib/db/prisma";
+import { toLocalizedNameDto } from "@/lib/localized-name";
 import { paginatedQuery } from "@/lib/query-pagination";
 import { parseDateInput } from "@/lib/time/parse-date-input";
 import { shanghaiDayjs } from "@/lib/time/shanghai-dayjs";
@@ -30,6 +37,36 @@ const subscribedScheduleInclude = {
   section: { include: sectionCatalogInclude },
   scheduleGroup: true,
 } satisfies Prisma.ScheduleInclude;
+
+export type SubscribedScheduleRecord = Prisma.ScheduleGetPayload<{
+  include: typeof subscribedScheduleInclude;
+}>;
+
+export function toSubscribedScheduleEntryDto(
+  input: SubscribedScheduleRecord,
+  locale: AppLocale,
+) {
+  const schedule = toScheduleEntryDto(input, locale) satisfies ScheduleEntryDto;
+  return subscribedScheduleEntrySchema.parse({
+    ...schedule,
+    teachers: schedule.teachers.map((teacher, index) => {
+      const source = input.teachers[index];
+      return {
+        ...teacher,
+        teacherTitle: source.teacherTitle
+          ? {
+              id: source.teacherTitle.id,
+              jwId: source.teacherTitle.jwId,
+              code: source.teacherTitle.code,
+              enabled: source.teacherTitle.enabled,
+              ...toLocalizedNameDto(source.teacherTitle, locale),
+            }
+          : null,
+        _count: { sections: source._count.sections },
+      };
+    }),
+  });
+}
 
 const subscribedExamInclude = {
   examBatch: true,
@@ -247,15 +284,17 @@ export async function listTodaySubscribedSchedulesWithCount(
         date: { gte: todayStart, lt: tomorrowStart },
       } satisfies Prisma.ScheduleWhereInput;
       const localizedPrisma = getPrisma(locale);
-      const total = await localizedPrisma.schedule.count({ where });
-      const items = includeItems
-        ? await localizedPrisma.schedule.findMany({
-            where,
-            select: overviewScheduleSelect,
-            orderBy: subscribedScheduleOrderBy,
-            ...(limit ? { take: limit } : {}),
-          })
-        : [];
+      const [total, items] = await Promise.all([
+        localizedPrisma.schedule.count({ where }),
+        includeItems
+          ? localizedPrisma.schedule.findMany({
+              where,
+              select: overviewScheduleSelect,
+              orderBy: subscribedScheduleOrderBy,
+              ...(limit ? { take: limit } : {}),
+            })
+          : Promise.resolve([]),
+      ]);
       return { total, items };
     },
     sectionIds,
@@ -283,18 +322,18 @@ export async function listUpcomingSubscribedExamsWithCount(
     userId,
     async (ids) => {
       const where = upcomingKnownExamWhere({ atTime, sectionIds: ids });
-      const total = await countUpcomingSubscribedExams({
-        atTime,
-        sectionIds: ids,
-      });
-      const items = includeItems
-        ? await getPrisma(locale).exam.findMany({
-            where,
-            select: overviewExamSelect,
-            orderBy: subscribedExamOrderBy,
-            ...(limit ? { take: limit } : {}),
-          })
-        : [];
+      const localizedPrisma = getPrisma(locale);
+      const [total, items] = await Promise.all([
+        localizedPrisma.exam.count({ where }),
+        includeItems
+          ? localizedPrisma.exam.findMany({
+              where,
+              select: overviewExamSelect,
+              orderBy: subscribedExamOrderBy,
+              ...(limit ? { take: limit } : {}),
+            })
+          : Promise.resolve([]),
+      ]);
       return { total, items };
     },
     sectionIds,

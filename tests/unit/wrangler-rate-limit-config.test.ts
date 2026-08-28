@@ -17,28 +17,28 @@ async function readRateLimits(fileName: string): Promise<RateLimitBinding[]> {
 }
 
 describe("Wrangler mutation rate-limit bindings", () => {
-  it.each([
-    "wrangler.jsonc",
-    "wrangler.e2e.jsonc",
-  ])("routes application requests through the gateway while keeping static assets direct in %s", async (fileName) => {
-    const source = await readFile(
-      new URL(`../../${fileName}`, import.meta.url),
-      "utf8",
-    );
-    const config = JSON.parse(source) as {
-      assets?: { run_worker_first?: string[] };
-    };
+  it.each(["wrangler.jsonc", "wrangler.e2e.jsonc"])(
+    "routes application requests through the gateway while keeping static assets direct in %s",
+    async (fileName) => {
+      const source = await readFile(
+        new URL(`../../${fileName}`, import.meta.url),
+        "utf8",
+      );
+      const config = JSON.parse(source) as {
+        assets?: { run_worker_first?: string[] };
+      };
 
-    expect(config.assets?.run_worker_first).toEqual([
-      "/*",
-      "!/_app/*",
-      "!/images/*",
-      "!/static/*",
-      "!/openapi.generated.json",
-    ]);
-  });
+      expect(config.assets?.run_worker_first).toEqual([
+        "/*",
+        "!/_app/*",
+        "!/images/*",
+        "!/static/*",
+        "!/openapi.generated.json",
+      ]);
+    },
+  );
 
-  it("keeps public workers.dev disabled and enables invocation logs for CPU diagnosis", async () => {
+  it("disables platform URL-bearing traces while retaining custom logs", async () => {
     const source = await readFile(
       new URL("../../wrangler.jsonc", import.meta.url),
       "utf8",
@@ -46,23 +46,28 @@ describe("Wrangler mutation rate-limit bindings", () => {
     const config = JSON.parse(source) as {
       observability?: {
         logs?: {
+          enabled?: boolean;
           head_sampling_rate?: number;
           invocation_logs?: boolean;
+          persist?: boolean;
         };
-        traces?: { head_sampling_rate?: number };
+        traces?: { enabled?: boolean };
       };
       preview_urls?: boolean;
       workers_dev?: boolean;
+      compatibility_date?: string;
     };
 
     expect(config.preview_urls).toBe(false);
     expect(config.workers_dev).toBe(false);
-    expect(config.observability?.logs?.invocation_logs).toBe(true);
-    expect(config.observability?.logs?.head_sampling_rate).toBe(0.5);
-    expect(config.observability?.traces?.head_sampling_rate).toBe(0.1);
+    expect(config.observability?.logs?.enabled).toBe(true);
+    expect(config.observability?.logs?.invocation_logs).toBe(false);
+    expect(config.observability?.logs?.head_sampling_rate).toBe(1);
+    expect(config.observability?.logs?.persist).toBe(true);
+    expect(config.observability?.traces?.enabled).toBe(false);
   });
 
-  it("uploads production source maps for trace and exception symbolication", async () => {
+  it("uploads production source maps for exception symbolication", async () => {
     const source = await readFile(
       new URL("../../wrangler.jsonc", import.meta.url),
       "utf8",

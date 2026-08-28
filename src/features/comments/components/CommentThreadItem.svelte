@@ -76,78 +76,82 @@ export let viewer: ViewerContext;
 </script>
 
 <article
-  class={`grid gap-3 border-b border-border/70 py-4 last:border-b-0 ${
+  class={`grid min-w-0 gap-3 border-b border-border/70 py-4 last:border-b-0 ${
     highlightedId === comment.id ? "rounded-lg ring-2 ring-primary/40" : ""
   }`}
   id={`comment-${comment.id}`}
-  style={`margin-left: ${Math.min(depth, 3) * 1.25}rem`}
+  style={`padding-left: ${Math.min(depth, 3) * 1.25}rem`}
 >
-  <CommentThreadHeader
-    bind:actionMenuId
-    {authorInitials}
-    {authorName}
-    {comment}
-    {commentCopy}
-    {copyCommentLink}
-    {formatTime}
-    {openDeleteDialog}
-    {startEdit}
-    {statusLabel}
-    {toggleReply}
-  />
-
-  <CommentThreadBody
-    {cancelEdit}
-    {comment}
-    {commentCopy}
-    bind:editAttachmentIds
-    {editAttachmentOptions}
-    bind:editDraft
-    {editingId}
-    bind:editIsAnonymous
-    bind:editVisibility
-    {formatSize}
-    {saveEdit}
-    {uploadCopy}
-    uploading={editUploading}
-    {uploadFile}
-    {visibilityOptions}
-  />
-
-  <div class="grid gap-4">
-    <CommentReactionControls
+  {#if comment.isAncestryPlaceholder}
+    <p class="text-muted-foreground text-sm">{commentCopy.ancestryPlaceholder}</p>
+  {:else}
+    <CommentThreadHeader
+      bind:actionMenuId
+      {authorInitials}
+      {authorName}
       {comment}
       {commentCopy}
-      {pendingReactionKey}
-      {react}
-      {reactionEntry}
-      {reactionKey}
-      {reactionLabel}
-      bind:reactionMenuId
-      {reactionName}
-      {reactionOptions}
-      {viewer}
+      {copyCommentLink}
+      {formatTime}
+      {openDeleteDialog}
+      {startEdit}
+      {statusLabel}
+      {toggleReply}
     />
 
-    {#if replyingId === comment.id}
-      <CommentReplyEditor
-        {cancelReply}
+    <CommentThreadBody
+      {cancelEdit}
+      {comment}
+      {commentCopy}
+      bind:editAttachmentIds
+      {editAttachmentOptions}
+      bind:editDraft
+      {editingId}
+      bind:editIsAnonymous
+      bind:editVisibility
+      {formatSize}
+      {saveEdit}
+      {uploadCopy}
+      uploading={editUploading}
+      {uploadFile}
+      {visibilityOptions}
+    />
+
+    <div class="grid gap-4">
+      <CommentReactionControls
         {comment}
         {commentCopy}
-        {commentTarget}
-        {removeReplyAttachment}
-        bind:replyDraft
-        bind:replyIsAnonymous
-        {replyUploadedFiles}
-        bind:replyVisibility
-        {submitting}
-        {submitComment}
-        {uploadCopy}
-        uploading={replyUploading}
-        {uploadFile}
-        {visibilityOptions}
+        {pendingReactionKey}
+        {react}
+        {reactionEntry}
+        {reactionKey}
+        {reactionLabel}
+        bind:reactionMenuId
+        {reactionName}
+        {reactionOptions}
         {viewer}
       />
-    {/if}
-  </div>
+
+      {#if replyingId === comment.id}
+        <CommentReplyEditor
+          {cancelReply}
+          {comment}
+          {commentCopy}
+          {commentTarget}
+          {removeReplyAttachment}
+          bind:replyDraft
+          bind:replyIsAnonymous
+          {replyUploadedFiles}
+          bind:replyVisibility
+          {submitting}
+          {submitComment}
+          {uploadCopy}
+          uploading={replyUploading}
+          {uploadFile}
+          {visibilityOptions}
+          {viewer}
+        />
+      {/if}
+    </div>
+  {/if}
 </article>

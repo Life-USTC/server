@@ -19,7 +19,12 @@ import {
   busQueryResponseSchema,
   busRouteSearchResponseSchema,
 } from "@/lib/api/schemas/response-schemas";
-import { requireAuth, resolveApiUserId } from "@/lib/auth/api-auth";
+import { requireAuth, resolveSessionUserId } from "@/lib/auth/api-auth";
+import {
+  PRIVATE_LOCALE_CATALOG_HEADERS,
+  PUBLIC_BUS_CACHE_HEADERS,
+  TIME_SENSITIVE_PRIVATE_HEADERS,
+} from "@/lib/public-cache-control";
 
 export async function getBusRoute(request: Request) {
   const parsedQuery = parseBusRouteQuery(request);
@@ -28,7 +33,7 @@ export async function getBusRoute(request: Request) {
   }
 
   const locale = getRequestLocale(request);
-  const userId = await resolveApiUserId(request);
+  const userId = await resolveSessionUserId(request);
 
   try {
     const { getBusTimetableData } = await import(
@@ -45,7 +50,9 @@ export async function getBusRoute(request: Request) {
     }
 
     const validated = busQueryResponseSchema.parse(result);
-    return jsonResponse(validated);
+    return jsonResponse(validated, {
+      headers: PRIVATE_LOCALE_CATALOG_HEADERS,
+    });
   } catch (error) {
     return handleRouteError("Failed to query shuttle bus schedules", error);
   }
@@ -75,7 +82,9 @@ export async function getBusRoutesSearchRoute(request: Request) {
       return notFound("Bus schedule is not available");
     }
 
-    return jsonResponse(busRouteSearchResponseSchema.parse(result));
+    return jsonResponse(busRouteSearchResponseSchema.parse(result), {
+      headers: PUBLIC_BUS_CACHE_HEADERS,
+    });
   } catch (error) {
     return handleRouteError("Failed to search shuttle bus routes", error);
   }
@@ -102,7 +111,7 @@ export async function getBusNextDeparturesRoute(request: Request) {
       limit: parsedQuery.limit ?? 5,
       locale: parsedQuery.locale ?? getRequestLocale(request),
       originCampusId: parsedQuery.originCampusId,
-      userId: await resolveApiUserId(request),
+      userId: await resolveSessionUserId(request),
       versionKey: parsedQuery.versionKey ?? null,
     });
 
@@ -110,7 +119,9 @@ export async function getBusNextDeparturesRoute(request: Request) {
       return notFound("Bus schedule is not available");
     }
 
-    return jsonResponse(busNextDeparturesResponseSchema.parse(result));
+    return jsonResponse(busNextDeparturesResponseSchema.parse(result), {
+      headers: TIME_SENSITIVE_PRIVATE_HEADERS,
+    });
   } catch (error) {
     return handleRouteError("Failed to fetch next shuttle buses", error);
   }

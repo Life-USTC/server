@@ -1,6 +1,6 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import * as z from "zod";
-import { findSectionSummaryByJwId } from "@/features/catalog/server/course-section-queries";
+import { findSectionPublicContextByJwId } from "@/features/catalog/server/course-section-queries";
 import {
   listSectionHomeworkItems,
   resolveHomeworkSectionIds,
@@ -34,7 +34,7 @@ export function registerSectionHomeworkTools(server: McpServer) {
       const resolvedMode = resolveMcpMode(mode);
       const [resolvedSections, section] = await Promise.all([
         resolveHomeworkSectionIds({ sectionJwId }),
-        findSectionSummaryByJwId(sectionJwId, locale),
+        findSectionPublicContextByJwId(sectionJwId, locale),
       ]);
 
       if (!resolvedSections.ok || !section) {
@@ -53,10 +53,9 @@ export function registerSectionHomeworkTools(server: McpServer) {
       });
       const scopedHomeworkItems = homeworkItems.map(
         ({
-          section: _section,
-          createdBy: _createdBy,
-          updatedBy: _updatedBy,
-          deletedBy: _deletedBy,
+          createdById: _createdById,
+          updatedById: _updatedById,
+          deletedById: _deletedById,
           ...homework
         }) => homework,
       );
@@ -65,8 +64,7 @@ export function registerSectionHomeworkTools(server: McpServer) {
         {
           found: true,
           section,
-          homeworks:
-            resolvedMode === "full" ? homeworkItems : scopedHomeworkItems,
+          homeworks: scopedHomeworkItems,
         },
         {
           mode: resolvedMode,

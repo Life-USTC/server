@@ -1,5 +1,5 @@
 <script lang="ts">
-import SoftEmptyMessage from "$lib/components/SoftEmptyMessage.svelte";
+import * as Empty from "$lib/components/ui/empty/index.js";
 import AdminModerationCommentsMobile from "./AdminModerationCommentsMobile.svelte";
 import AdminModerationCommentsTable from "./AdminModerationCommentsTable.svelte";
 import type {
@@ -25,6 +25,7 @@ export let targetLabel: AdminModerationCommentFormatter;
       {commentAuthorLabel}
       {comments}
       {formatDate}
+      manageLabel={copy.manageComment}
       {onManage}
       {statusLabel}
       {targetLabel}
@@ -40,6 +41,10 @@ export let targetLabel: AdminModerationCommentFormatter;
       {targetLabel}
     />
   {:else}
-    <SoftEmptyMessage message={copy.noComments} />
+    <Empty.Root class="min-h-20 border-0 px-2 py-6">
+      <Empty.Header>
+        <Empty.Description>{copy.noComments}</Empty.Description>
+      </Empty.Header>
+    </Empty.Root>
   {/if}
 </section>

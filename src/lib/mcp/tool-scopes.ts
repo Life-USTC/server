@@ -25,6 +25,9 @@ const TOOL_SCOPE_MAP: Record<string, ToolScopeRequirement[]> = {
 
   // Profile
   account_profile_get: [{ feature: "account.profile", action: "read" }],
+  account_client_activity_list: [
+    { feature: "account.client-activity", action: "read" },
+  ],
   community_user_get: [{ feature: "community.user", action: "read" }],
 
   // Todos
@@ -67,9 +70,7 @@ const TOOL_SCOPE_MAP: Record<string, ToolScopeRequirement[]> = {
   workspace_subscription_import: [
     { feature: "workspace.subscription", action: "write" },
   ],
-  catalog_section_calendar_feed_get: [
-    { feature: "catalog.section", action: "read" },
-  ],
+  catalog_section_calendar_feed_get: [],
 
   // Calendar
   workspace_calendar_event_list: [
@@ -83,6 +84,7 @@ const TOOL_SCOPE_MAP: Record<string, ToolScopeRequirement[]> = {
   // Comments
   community_comment_list: [{ feature: "community.comment", action: "read" }],
   community_comment_get: [{ feature: "community.comment", action: "read" }],
+  community_comment_replies: [{ feature: "community.comment", action: "read" }],
   community_comment_create: [{ feature: "community.comment", action: "write" }],
   community_comment_update: [{ feature: "community.comment", action: "write" }],
   community_comment_delete: [{ feature: "community.comment", action: "write" }],
@@ -108,7 +110,7 @@ const TOOL_SCOPE_MAP: Record<string, ToolScopeRequirement[]> = {
 
   // Dashboard / overview
   workspace_snapshot_get: [{ feature: "workspace.overview", action: "read" }],
-  catalog_link_list: [{ feature: "catalog.link", action: "read" }],
+  catalog_link_list: [],
   workspace_link_pin_list: [{ feature: "workspace.link-pin", action: "read" }],
   workspace_link_pin_set: [{ feature: "workspace.link-pin", action: "write" }],
   workspace_deadline_list: [{ feature: "workspace.overview", action: "read" }],
@@ -119,44 +121,40 @@ const TOOL_SCOPE_MAP: Record<string, ToolScopeRequirement[]> = {
   ],
 
   // Bus
-  catalog_bus_timetable_get: [{ feature: "catalog.bus", action: "read" }],
-  catalog_bus_route_list: [{ feature: "catalog.bus", action: "read" }],
-  catalog_bus_route_get: [{ feature: "catalog.bus", action: "read" }],
+  catalog_bus_timetable_get: [],
+  catalog_bus_route_list: [],
+  catalog_bus_route_get: [],
   workspace_bus_preferences_get: [
     { feature: "workspace.bus-preferences", action: "read" },
   ],
   workspace_bus_preferences_set: [
     { feature: "workspace.bus-preferences", action: "write" },
   ],
-  catalog_bus_route_search: [{ feature: "catalog.bus", action: "read" }],
-  catalog_bus_departure_next: [{ feature: "catalog.bus", action: "read" }],
+  catalog_bus_route_search: [],
+  catalog_bus_departure_next: [],
 
   // Course catalog
-  catalog_course_search: [{ feature: "catalog.course", action: "read" }],
-  catalog_course_get: [{ feature: "catalog.course", action: "read" }],
-  catalog_semester_list: [{ feature: "catalog.course", action: "read" }],
-  catalog_semester_current: [{ feature: "catalog.course", action: "read" }],
+  catalog_course_search: [],
+  catalog_course_get: [],
+  catalog_semester_list: [],
+  catalog_semester_current: [],
 
   // Sections
-  catalog_section_get: [{ feature: "catalog.section", action: "read" }],
-  catalog_section_search: [{ feature: "catalog.section", action: "read" }],
-  catalog_section_match_preview: [
-    { feature: "catalog.section", action: "read" },
-  ],
+  catalog_section_get: [],
+  catalog_section_search: [],
+  catalog_section_match_preview: [],
 
   // Teachers
-  catalog_teacher_search: [{ feature: "catalog.teacher", action: "read" }],
-  catalog_teacher_get: [{ feature: "catalog.teacher", action: "read" }],
+  catalog_teacher_search: [],
+  catalog_teacher_get: [],
 
   // Schedules
-  catalog_schedule_list: [{ feature: "catalog.schedule", action: "read" }],
-  catalog_section_schedule_list: [
-    { feature: "catalog.schedule", action: "read" },
-  ],
+  catalog_schedule_list: [],
+  catalog_section_schedule_list: [],
   workspace_schedule_list: [{ feature: "workspace.schedule", action: "read" }],
 
   // Exams
-  catalog_section_exam_list: [{ feature: "catalog.exam", action: "read" }],
+  catalog_section_exam_list: [],
   workspace_exam_list: [{ feature: "workspace.exam", action: "read" }],
 };
 
@@ -168,13 +166,26 @@ export function getExplicitMcpToolScopeNames(): string[] {
   return Object.keys(TOOL_SCOPE_MAP);
 }
 
+export function isPublicMcpTool(name: string): boolean {
+  return (
+    name.startsWith("catalog_") &&
+    hasExplicitMcpToolScopes(name) &&
+    TOOL_SCOPE_MAP[name]?.length === 0
+  );
+}
+
+export function mcpToolCallsRequireAuthentication(names: string[]): boolean {
+  return names.some(
+    (name) => hasExplicitMcpToolScopes(name) && !isPublicMcpTool(name),
+  );
+}
+
 /**
  * Returns the canonical OAuth scope strings required for the given tool name(s).
  *
  * - A single tool name returns the scopes for that tool.
  * - An array of tool names returns the union of their required scopes.
- * - An unknown/missing tool name contributes no additional scope requirement,
- *   falling back to the generic MCP scope check.
+ * - An unknown/missing tool name contributes no additional scope requirement.
  */
 export function getRequiredMcpScopes(
   toolName: string | string[] | undefined,
@@ -201,6 +212,17 @@ export function getRequiredMcpScopes(
   }
 
   return Array.from(scopes);
+}
+
+export function getMcpToolUsageCategory(
+  name: string,
+): { feature: RestFeature; action: "read" | "write" } | undefined {
+  const requirements = TOOL_SCOPE_MAP[name];
+  if (!requirements || requirements.length === 0) return undefined;
+  return (
+    requirements.find((requirement) => requirement.action === "write") ??
+    requirements[0]
+  );
 }
 
 export function isMcpWriteTool(name: string): boolean {

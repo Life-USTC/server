@@ -1,12 +1,14 @@
 import { decodeJwt } from "jose";
 import { jsonResponse } from "@/lib/api/helpers";
 import { authPrisma as prisma } from "@/lib/db/auth-prisma";
+import { logAppEvent } from "@/lib/log/app-logger";
 import { resolveActiveOAuthUserGrant } from "@/lib/oauth/active-user-grant";
 import { OAUTH_GRANT_ID_CLAIM } from "@/lib/oauth/constants";
 import { hashOAuthClientSecretForDbStorage } from "@/lib/oauth/utils";
 
 type UserTokenEvidence = {
   clientId: string;
+  format: "jwt" | "opaque";
   grantId?: string;
   opaqueTokenHash?: string;
   scopes: string[];
@@ -40,7 +42,25 @@ function scopesAreSubset(
   return scopes.every((scope) => allowedScopes.includes(scope));
 }
 
-function inactiveGrantResponse() {
+type GrantBindingFailureReason =
+  | "access-token-evidence-invalid"
+  | "active-grant-missing"
+  | "grant-lineage-mismatch"
+  | "jwt-grant-claim-missing"
+  | "opaque-grant-binding-missing"
+  | "opaque-grant-persistence-failed"
+  | "refresh-token-identity-mismatch"
+  | "scope-outcome-mismatch"
+  | "token-response-invalid";
+
+function inactiveGrantResponse(reason: GrantBindingFailureReason) {
+  logAppEvent("warn", "oauth.token.grant-binding-rejected", {
+    event: "oauth.token.grant-binding-rejected",
+    phase: "bind-access-token-consent",
+    reason,
+    source: "oauth",
+    status: 400,
+  });
   return jsonResponse(
     {
       error: "invalid_grant",
@@ -68,6 +88,7 @@ async function resolveAccessTokenEvidence(
       if (!clientId) return null;
       return {
         clientId,
+        format: "jwt",
         ...(typeof payload[OAUTH_GRANT_ID_CLAIM] === "string"
           ? { grantId: payload[OAUTH_GRANT_ID_CLAIM] }
           : {}),
@@ -94,6 +115,7 @@ async function resolveAccessTokenEvidence(
   if (!row.userId) return "machine";
   return {
     clientId: row.clientId,
+    format: "opaque",
     ...((row.grantId ?? row.referenceId)
       ? { grantId: row.grantId ?? row.referenceId ?? undefined }
       : {}),
@@ -123,8 +145,9 @@ async function deleteReturnedTokenRows(input: {
 
 /**
  * Require every delegated user token returned by Better Auth to inherit one
- * immutable grant generation. The inherited reference is persisted on opaque
- * rows, but an unbound response is never attached to the latest consent.
+ * immutable grant generation. JWTs carry that signed reference and are checked
+ * directly against the active grant; opaque rows persist the same reference.
+ * An unbound response is never attached to the latest consent.
  */
 export async function bindOAuthAccessTokenToConsent(
   response: Response,
@@ -135,17 +158,61 @@ export async function bindOAuthAccessTokenToConsent(
   const body = await getTokenBody(response);
   const accessToken =
     typeof body?.access_token === "string" ? body.access_token : null;
-  if (!body || !accessToken) return inactiveGrantResponse();
+  if (!body || !accessToken) {
+    return inactiveGrantResponse("token-response-invalid");
+  }
 
   const evidence = await resolveAccessTokenEvidence(accessToken);
   if (evidence === "machine") return response;
-  if (!evidence) return inactiveGrantResponse();
+  if (!evidence) {
+    return inactiveGrantResponse("access-token-evidence-invalid");
+  }
 
   const refreshToken =
     typeof body.refresh_token === "string" ? body.refresh_token : null;
   const refreshTokenHash = refreshToken
     ? await hashOAuthClientSecretForDbStorage(refreshToken)
     : undefined;
+
+  const responseScopes =
+    typeof body.scope === "string" ? tokenScopes(body.scope) : undefined;
+  if (
+    (requestedRefreshScopes &&
+      !scopesAreSubset(evidence.scopes, requestedRefreshScopes)) ||
+    (responseScopes && !scopesAreSubset(evidence.scopes, responseScopes))
+  ) {
+    await deleteReturnedTokenRows({
+      accessTokenHash: evidence.opaqueTokenHash,
+      refreshTokenHash,
+    });
+    return inactiveGrantResponse("scope-outcome-mismatch");
+  }
+
+  if (evidence.format === "jwt") {
+    if (!evidence.grantId) {
+      await deleteReturnedTokenRows({ refreshTokenHash });
+      return inactiveGrantResponse("jwt-grant-claim-missing");
+    }
+
+    const grant = await resolveActiveOAuthUserGrant({
+      clientId: evidence.clientId,
+      grantId: evidence.grantId,
+      requireGrantBinding: true,
+      scopes: evidence.scopes,
+      userId: evidence.userId,
+    });
+    if (grant) return response;
+    await deleteReturnedTokenRows({ refreshTokenHash });
+    return inactiveGrantResponse("active-grant-missing");
+  }
+
+  if (!evidence.grantId) {
+    await deleteReturnedTokenRows({
+      accessTokenHash: evidence.opaqueTokenHash,
+    });
+    return inactiveGrantResponse("opaque-grant-binding-missing");
+  }
+
   const refreshRow = refreshTokenHash
     ? await prisma.oAuthRefreshToken.findUnique({
         where: { token: refreshTokenHash },
@@ -168,49 +235,39 @@ export async function bindOAuthAccessTokenToConsent(
       accessTokenHash: evidence.opaqueTokenHash,
       refreshTokenHash,
     });
-    return inactiveGrantResponse();
+    return inactiveGrantResponse("refresh-token-identity-mismatch");
   }
 
   const refreshGrantId = refreshRow?.grantId ?? refreshRow?.referenceId;
+  if (refreshRow && (!refreshGrantId || evidence.grantId !== refreshGrantId)) {
+    await deleteReturnedTokenRows({
+      accessTokenHash: evidence.opaqueTokenHash,
+      refreshTokenHash,
+    });
+    return inactiveGrantResponse("grant-lineage-mismatch");
+  }
+
   if (
-    evidence.grantId &&
-    refreshGrantId &&
-    evidence.grantId !== refreshGrantId
+    refreshRow &&
+    (!scopesAreSubset(evidence.scopes, refreshRow.scopes) ||
+      (requestedRefreshScopes &&
+        !scopesAreSubset(refreshRow.scopes, requestedRefreshScopes)) ||
+      (responseScopes && !scopesAreSubset(refreshRow.scopes, responseScopes)))
   ) {
     await deleteReturnedTokenRows({
       accessTokenHash: evidence.opaqueTokenHash,
       refreshTokenHash,
     });
-    return inactiveGrantResponse();
+    return inactiveGrantResponse("scope-outcome-mismatch");
   }
 
-  const responseScopes =
-    typeof body.scope === "string" ? tokenScopes(body.scope) : undefined;
-  if (
-    (requestedRefreshScopes &&
-      !scopesAreSubset(evidence.scopes, requestedRefreshScopes)) ||
-    (responseScopes && !scopesAreSubset(evidence.scopes, responseScopes)) ||
-    (refreshRow &&
-      (!scopesAreSubset(evidence.scopes, refreshRow.scopes) ||
-        (requestedRefreshScopes &&
-          !scopesAreSubset(refreshRow.scopes, requestedRefreshScopes)) ||
-        (responseScopes &&
-          !scopesAreSubset(refreshRow.scopes, responseScopes))))
-  ) {
-    await deleteReturnedTokenRows({
-      accessTokenHash: evidence.opaqueTokenHash,
-      refreshTokenHash,
-    });
-    return inactiveGrantResponse();
-  }
-
-  const expectedGrantId = evidence.grantId ?? refreshGrantId ?? undefined;
+  const grantId = evidence.grantId;
   const grantedScopes = [
     ...new Set([...evidence.scopes, ...(refreshRow?.scopes ?? [])]),
   ];
   const grant = await resolveActiveOAuthUserGrant({
     clientId: evidence.clientId,
-    grantId: expectedGrantId,
+    grantId,
     requireGrantBinding: true,
     scopes: grantedScopes,
     userId: evidence.userId,
@@ -220,19 +277,9 @@ export async function bindOAuthAccessTokenToConsent(
       accessTokenHash: evidence.opaqueTokenHash,
       refreshTokenHash,
     });
-    return inactiveGrantResponse();
+    return inactiveGrantResponse("active-grant-missing");
   }
   if (grant.kind === "trusted") return response;
-
-  if (!expectedGrantId) {
-    await deleteReturnedTokenRows({
-      accessTokenHash: evidence.opaqueTokenHash,
-      refreshTokenHash,
-    });
-    return inactiveGrantResponse();
-  }
-
-  const grantId = expectedGrantId;
   const updates = await Promise.all([
     evidence.opaqueTokenHash
       ? prisma.oAuthAccessToken.updateMany({
@@ -270,7 +317,7 @@ export async function bindOAuthAccessTokenToConsent(
       accessTokenHash: evidence.opaqueTokenHash,
       refreshTokenHash,
     });
-    return inactiveGrantResponse();
+    return inactiveGrantResponse("opaque-grant-persistence-failed");
   }
 
   return response;

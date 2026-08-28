@@ -85,11 +85,9 @@ test.describe("DELETE /api/admin/homeworks/[id] 作业管理", () => {
       );
       expect(listResponse.status()).toBe(200);
       const listBody = (await listResponse.json()) as {
-        homeworks?: Array<{ id?: string; title?: string }>;
+        data?: Array<{ id?: string; title?: string }>;
       };
-      expect(listBody.homeworks?.some((item) => item.id === homeworkId)).toBe(
-        false,
-      );
+      expect(listBody.data?.some((item) => item.id === homeworkId)).toBe(false);
     } finally {
       // Best-effort cleanup if the test failed before deletion.
       await signInAsDevAdminApi(request, "/admin");

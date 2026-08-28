@@ -2,7 +2,7 @@ import type { PoolConfig } from "pg";
 import { parse as parseConnectionString } from "pg-connection-string";
 
 /**
- * Pool config for Node-side PrismaPg CLIs (static loader, maintenance crons).
+ * Pool config for Node-side PrismaPg CLIs such as the static loader.
  *
  * pg v8+ treats sslmode=require/prefer/verify-ca as verify-full unless libpq
  * compatibility is enabled. Production role URLs use sslmode=require with

@@ -2,6 +2,7 @@
 import CheckCircleIcon from "@lucide/svelte/icons/check-circle";
 import ShieldAlertIcon from "@lucide/svelte/icons/shield-alert";
 import DateTimePicker from "$lib/components/DateTimePicker.svelte";
+import * as AlertDialog from "$lib/components/ui/alert-dialog/index.js";
 import { Badge } from "$lib/components/ui/badge/index.js";
 import { Button } from "$lib/components/ui/button/index.js";
 import * as Field from "$lib/components/ui/field/index.js";
@@ -26,8 +27,22 @@ export let suspendDuration: string;
 export let suspendDurationOptions: Array<{ label: string; value: string }>;
 export let suspendExpiresAt: string;
 export let suspendReason: string;
-export let suspendSelectedUser: () => void | Promise<void>;
+export let suspendSelectedUser: () => boolean | Promise<boolean>;
 export let suspensionLabel: AdminUserFormatter;
+
+let updateSuspensionDialogOpen = false;
+
+function requestSuspension() {
+  if (selectedUser.activeSuspension) {
+    updateSuspensionDialogOpen = true;
+    return;
+  }
+  void suspendSelectedUser();
+}
+
+async function confirmSuspensionUpdate() {
+  if (await suspendSelectedUser()) updateSuspensionDialogOpen = false;
+}
 </script>
 
 <Field.Set class="bg-subtle p-3">
@@ -61,11 +76,13 @@ export let suspensionLabel: AdminUserFormatter;
       </Field.Field>
       {#if suspendDuration === "custom"}
         <Field.Field>
-          <Field.Title>{moderationCopy.suspendExpires}</Field.Title>
+          <Field.Label id="admin-user-suspend-expires-label">
+            {moderationCopy.suspendExpires}
+          </Field.Label>
           <DateTimePicker
             bind:value={suspendExpiresAt}
+            aria-labelledby="admin-user-suspend-expires-label"
             calendarButtonLabel={moderationCopy.calendarButtonLabel}
-            placeholder={moderationCopy.suspendExpires}
           />
         </Field.Field>
       {/if}
@@ -76,7 +93,6 @@ export let suspensionLabel: AdminUserFormatter;
       </Field.Label>
       <Input
         id="admin-user-suspend-reason"
-        placeholder={moderationCopy.suspendReason}
         value={suspendReason}
         oninput={(event: Event) => (suspendReason = inputValue(event))}
       />
@@ -87,7 +103,7 @@ export let suspensionLabel: AdminUserFormatter;
       disabled={isSuspending}
       type="button"
       variant="destructive"
-      onclick={suspendSelectedUser}
+      onclick={requestSuspension}
     >
       {#if isSuspending}
         <Spinner data-icon="inline-start" />
@@ -95,7 +111,11 @@ export let suspensionLabel: AdminUserFormatter;
         <ShieldAlertIcon data-icon="inline-start" />
       {/if}
       <span>
-        {isSuspending ? copy.suspending : moderationCopy.suspendAction}
+        {isSuspending
+          ? copy.suspending
+          : selectedUser.activeSuspension
+            ? copy.updateSuspensionAction
+            : moderationCopy.suspendAction}
       </span>
     </Button>
     {#if selectedUser.activeSuspension}
@@ -117,3 +137,33 @@ export let suspensionLabel: AdminUserFormatter;
     {/if}
   </div>
 </Field.Set>
+
+<AlertDialog.Root
+  open={updateSuspensionDialogOpen}
+  onOpenChange={(open) => {
+    if (!isSuspending) updateSuspensionDialogOpen = open;
+  }}
+>
+  <AlertDialog.Content class="max-w-md sm:max-w-md">
+    <AlertDialog.Header>
+      <AlertDialog.Title>{copy.updateSuspensionConfirmTitle}</AlertDialog.Title>
+      <AlertDialog.Description>
+        {copy.updateSuspensionConfirmDescription}
+      </AlertDialog.Description>
+    </AlertDialog.Header>
+    <AlertDialog.Footer>
+      <AlertDialog.Cancel type="button" disabled={isSuspending} variant="outline">
+        {moderationCopy.cancelButton}
+      </AlertDialog.Cancel>
+      <AlertDialog.Action
+        type="button"
+        disabled={isSuspending}
+        variant="destructive"
+        onclick={confirmSuspensionUpdate}
+      >
+        {#if isSuspending}<Spinner data-icon="inline-start" />{/if}
+        {copy.updateSuspensionAction}
+      </AlertDialog.Action>
+    </AlertDialog.Footer>
+  </AlertDialog.Content>
+</AlertDialog.Root>

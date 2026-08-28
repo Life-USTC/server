@@ -3,6 +3,8 @@ import {
   recordApiRequestError,
   recordApiRequestFinish,
 } from "@/lib/log/api-observability-recording";
+import { elapsedMs } from "@/lib/log/observability-clock";
+import { finishOAuthRequestUsage } from "@/lib/oauth/grant-usage";
 
 type ApiRouteHandler<TRequest extends Request, TArgs extends unknown[]> = (
   request: TRequest,
@@ -15,7 +17,7 @@ export function recordObservedApiResponse(request: Request, status: number) {
 
   recordApiRequestFinish({
     ...context,
-    ioObservedDurationMs: Date.now() - context.startMs,
+    ioObservedDurationMs: elapsedMs(context.startMs),
     status,
   });
   return true;
@@ -28,7 +30,7 @@ export function recordObservedApiError(request: Request, error: unknown) {
   recordApiRequestError({
     ...context,
     error,
-    ioObservedDurationMs: Date.now() - context.startMs,
+    ioObservedDurationMs: elapsedMs(context.startMs),
   });
   return true;
 }
@@ -40,9 +42,11 @@ export function observedApiRoute<
   return async (request, ...args) => {
     try {
       const response = await handler(request, ...args);
+      await finishOAuthRequestUsage(request, response.status);
       recordObservedApiResponse(request, response.status);
       return response;
     } catch (error) {
+      await finishOAuthRequestUsage(request, 500);
       recordObservedApiError(request, error);
       throw error;
     }

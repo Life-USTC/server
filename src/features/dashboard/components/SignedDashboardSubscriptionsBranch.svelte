@@ -29,11 +29,9 @@ export let removingSectionId: DashboardSubscriptionsTabProps["removingSectionId"
 export let resetBulkImport: DashboardSubscriptionsTabProps["resetBulkImport"];
 export let searchQuickAddSections: DashboardSubscriptionsTabProps["searchQuickAddSections"];
 export let sectionCopy: DashboardSubscriptionsTabProps["sectionCopy"];
-export let selectedImportCount: number;
 export let selectedImportSectionIdSet: Set<number>;
 export let signedData: DashboardSubscriptionsTabProps["signedData"];
 export let subscriptionActionError: string;
-export let subscriptionActionMessage: string;
 export let subscribeQuickAddSections: DashboardSubscriptionsTabProps["subscribeQuickAddSections"];
 export let subscriptionsCopy: DashboardSubscriptionsTabProps["subscriptionsCopy"];
 export let toggleImportSectionSelection: DashboardSubscriptionsTabProps["toggleImportSectionSelection"];
@@ -46,7 +44,6 @@ export let unmatchedSectionCodes: string[];
   {subscriptionsCopy}
   {signedData}
   {selectedImportSectionIdSet}
-  {selectedImportCount}
   {canMatchImportSections}
   {formatMessage}
   {namePrimary}
@@ -63,7 +60,6 @@ export let unmatchedSectionCodes: string[];
   {isMatchingSections}
   {isImportingSections}
   {removingSectionId}
-  {subscriptionActionMessage}
   {subscribeQuickAddSections}
   {subscriptionActionError}
   {matchedSections}

@@ -23,7 +23,7 @@ const sectionHomeworkMcpTools = [
 const requireAuthMock = vi.fn();
 
 vi.mock("@/lib/auth/api-auth", () => ({
-  requireAuth: requireAuthMock,
+  requireAuthPrincipal: requireAuthMock,
 }));
 
 describe("section homework write scope parity", () => {
@@ -32,20 +32,22 @@ describe("section homework write scope parity", () => {
     vi.resetModules();
   });
 
-  it.each(
-    sectionHomeworkMcpTools,
-  )("MCP %s requires community.section-homework:write", (tool) => {
-    expect(getRequiredMcpScopes(tool)).toEqual([expectedWriteScope]);
-  });
+  it.each(sectionHomeworkMcpTools)(
+    "MCP %s requires community.section-homework:write",
+    (tool) => {
+      expect(getRequiredMcpScopes(tool)).toEqual([expectedWriteScope]);
+    },
+  );
 
-  it.each(
-    sectionHomeworkGraphqlMutationIds,
-  )("GraphQL %s requires community.section-homework:write", (operationId) => {
-    const operation = persistedGraphqlOperationDefinitions.find(
-      (entry) => entry.id === operationId,
-    );
-    expect(operation?.scopes).toEqual([expectedWriteScope]);
-  });
+  it.each(sectionHomeworkGraphqlMutationIds)(
+    "GraphQL %s requires community.section-homework:write",
+    (operationId) => {
+      const operation = persistedGraphqlOperationDefinitions.find(
+        (entry) => entry.id === operationId,
+      );
+      expect(operation?.scopes).toEqual([expectedWriteScope]);
+    },
+  );
 
   it("REST section-homework mutations require community.section-homework:write", async () => {
     requireAuthMock.mockResolvedValue(

@@ -45,7 +45,7 @@ describe.skipIf(process.env.RLS_TEST_ENABLED !== "true")(
       await prisma.$disconnect();
     });
 
-    it("enables forced RLS with owner and profile projection policies", async () => {
+    it("enables forced RLS with only the owner isolation policy", async () => {
       const [table] = await prisma.$queryRaw<
         { rlsEnabled: boolean; rlsForced: boolean }[]
       >`
@@ -76,12 +76,9 @@ describe.skipIf(process.env.RLS_TEST_ENABLED !== "true")(
         WHERE schemaname = 'public'
           AND tablename = 'HomeworkCompletion'
       `;
-      expect(policies).toHaveLength(2);
+      expect(policies).toHaveLength(1);
       const ownerPolicy = policies.find(
         ({ policyName }) => policyName === "HomeworkCompletion_owner_isolation",
-      );
-      const profilePolicy = policies.find(
-        ({ policyName }) => policyName === "HomeworkCompletion_profile_reader",
       );
       expect(ownerPolicy).toMatchObject({
         policyName: "HomeworkCompletion_owner_isolation",
@@ -93,49 +90,6 @@ describe.skipIf(process.env.RLS_TEST_ENABLED !== "true")(
       expect(ownerPolicy?.checkExpression?.replaceAll("::text", "")).toBe(
         ownerPolicy?.usingExpression?.replaceAll("::text", ""),
       );
-      expect(profilePolicy).toMatchObject({
-        policyName: "HomeworkCompletion_profile_reader",
-        command: "SELECT",
-      });
-      expect(profilePolicy?.usingExpression?.replaceAll("::text", "")).toBe(
-        `(current_setting('app.homework_completion_profile', true) = 'on')`,
-      );
-      expect(profilePolicy?.checkExpression).toBeNull();
-
-      const [profileFunction] = await prisma.$queryRaw<
-        {
-          functionOwner: string;
-          publicExecuteRevoked: boolean;
-          securityDefiner: boolean;
-          settings: string[] | null;
-        }[]
-      >`
-        SELECT
-          pg_get_userbyid(proowner) AS "functionOwner",
-          NOT EXISTS (
-            SELECT 1
-            FROM aclexplode(
-              COALESCE(proacl, acldefault('f', proowner))
-            ) AS privilege
-            WHERE privilege.grantee = 0
-              AND privilege.privilege_type = 'EXECUTE'
-          ) AS "publicExecuteRevoked",
-          prosecdef AS "securityDefiner",
-          proconfig AS settings
-        FROM pg_proc
-        WHERE oid = 'public.get_public_profile_homework_completions(text, timestamp without time zone)'::regprocedure
-      `;
-      expect(profileFunction).toMatchObject({
-        functionOwner: "life_ustc_function_owner",
-        publicExecuteRevoked: true,
-        securityDefiner: true,
-      });
-      expect(profileFunction?.settings).toEqual(
-        expect.arrayContaining([
-          'search_path=""',
-          "app.homework_completion_profile=on",
-        ]),
-      );
     });
 
     it("fails closed when the user context is missing", async () => {
@@ -145,47 +99,6 @@ describe.skipIf(process.env.RLS_TEST_ENABLED !== "true")(
           data: { userId: ownerUserId, homeworkId },
         }),
       ).rejects.toThrow();
-    });
-
-    it("exposes only target completion timestamps through the profile projection", async () => {
-      const ownerCompletedAt = new Date("2026-03-01T16:30:00.000Z");
-      const otherCompletedAt = new Date("2026-03-02T16:30:00.000Z");
-      await Promise.all([
-        withUserDbContext(ownerUserId, (tx) =>
-          tx.homeworkCompletion.create({
-            data: {
-              completedAt: ownerCompletedAt,
-              homeworkId,
-              userId: ownerUserId,
-            },
-          }),
-        ),
-        withUserDbContext(otherUserId, (tx) =>
-          tx.homeworkCompletion.create({
-            data: {
-              completedAt: otherCompletedAt,
-              homeworkId,
-              userId: otherUserId,
-            },
-          }),
-        ),
-      ]);
-
-      const rows = await prisma.$queryRaw<{ completedAt: Date }[]>`
-        SELECT *
-        FROM public.get_public_profile_homework_completions(
-          ${ownerUserId},
-          ${new Date("2026-01-01T00:00:00.000Z")}
-        )
-      `;
-
-      expect(rows).toEqual([{ completedAt: ownerCompletedAt }]);
-      expect(Object.keys(rows[0] ?? {})).toEqual(["completedAt"]);
-      await expect(
-        prisma.homeworkCompletion.findMany({
-          where: { userId: ownerUserId },
-        }),
-      ).resolves.toEqual([]);
     });
 
     it("keeps service reads and writes isolated to the owner", async () => {

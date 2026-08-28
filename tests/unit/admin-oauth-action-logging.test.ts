@@ -44,6 +44,10 @@ vi.mock("@/lib/log/app-logger", () => ({
   logServerActionError: logServerActionErrorMock,
 }));
 
+vi.mock("@/lib/audit/write-audit-log", () => ({
+  writeAuditLog: vi.fn(),
+}));
+
 function request(body = new URLSearchParams()) {
   return new Request("https://life.example/admin/oauth", {
     body,
@@ -58,7 +62,7 @@ describe("admin OAuth action error logging", () => {
     logServerActionErrorMock.mockReset();
     parseAdminOAuthCreateRequestMock.mockReset();
     requireAdminPageMock.mockReset();
-    requireAdminPageMock.mockResolvedValue(undefined);
+    requireAdminPageMock.mockResolvedValue({ id: "admin-1" });
   });
 
   it("logs unexpected create failures with the request id", async () => {
@@ -82,6 +86,15 @@ describe("admin OAuth action error logging", () => {
     );
 
     expect(result).toMatchObject({ status: 500 });
+    expect(adminCreateOAuthClientMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        body: expect.objectContaining({ application_type: "web" }),
+      }),
+    );
+    expect(requireAdminPageMock).toHaveBeenCalledWith(expect.any(Request), {
+      requireActive: true,
+      requireRecent: true,
+    });
     expect(logServerActionErrorMock).toHaveBeenCalledWith(
       "admin.oauth-client.create.failed",
       expect.any(Error),
@@ -91,6 +104,35 @@ describe("admin OAuth action error logging", () => {
         route: "/admin/oauth",
       },
     );
+  });
+
+  it("classifies public PKCE clients as native applications", async () => {
+    parseAdminOAuthCreateRequestMock.mockResolvedValue({
+      value: {
+        name: "Native client",
+        redirectUris: ["http://127.0.0.1/callback"],
+        scopes: ["openid"],
+        tokenEndpointAuthMethod: "none",
+      },
+    });
+    adminCreateOAuthClientMock.mockResolvedValue({
+      client_id: "native-client",
+    });
+    const { createAdminOAuthClientAction } = await import(
+      "@/features/admin/server/admin-oauth-create-action"
+    );
+
+    await createAdminOAuthClientAction(request(), "en-us", "request-native");
+
+    expect(adminCreateOAuthClientMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        body: expect.objectContaining({ application_type: "native" }),
+      }),
+    );
+    expect(requireAdminPageMock).toHaveBeenCalledWith(expect.any(Request), {
+      requireActive: true,
+      requireRecent: true,
+    });
   });
 
   it("logs unexpected delete failures but not expected missing clients", async () => {
@@ -106,6 +148,10 @@ describe("admin OAuth action error logging", () => {
     );
 
     expect(failure).toMatchObject({ status: 500 });
+    expect(requireAdminPageMock).toHaveBeenCalledWith(expect.any(Request), {
+      requireActive: true,
+      requireRecent: true,
+    });
     expect(logServerActionErrorMock).toHaveBeenCalledWith(
       "admin.oauth-client.delete.failed",
       expect.any(Error),

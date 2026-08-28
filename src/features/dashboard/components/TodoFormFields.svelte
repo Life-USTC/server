@@ -30,18 +30,19 @@ $: dueAtLabelId = `${idPrefix}-due-at-label`;
 $: contentLabelId = `${idPrefix}-content-label`;
 </script>
 
-<Field.Field>
+<Field.Field data-disabled={disabled ? "true" : undefined}>
   <Field.Label for={titleId}>{todosCopy.titleLabel}</Field.Label>
   <Input
     id={titleId}
     {disabled}
     maxlength={TODO_TITLE_MAX_LENGTH}
     name="title"
+    placeholder={todosCopy.titlePlaceholder}
     required
     value={titleValue}
   />
 </Field.Field>
-<Field.Field>
+<Field.Field data-disabled={disabled ? "true" : undefined}>
   <Field.Label for={priorityId}>{todosCopy.priorityLabel}</Field.Label>
   <NativeSelect.Root
     bind:value={priorityValue}
@@ -57,18 +58,18 @@ $: contentLabelId = `${idPrefix}-content-label`;
     {/each}
   </NativeSelect.Root>
 </Field.Field>
-<Field.Field>
+<Field.Field data-disabled={disabled ? "true" : undefined}>
   <Field.Title id={dueAtLabelId}>{todosCopy.dueAtLabel}</Field.Title>
   <DateTimePicker
     aria-labelledby={dueAtLabelId}
     {disabled}
     calendarButtonLabel={todosCopy.calendarButtonLabel}
     name="dueAt"
-    placeholder={todosCopy.dueAtLabel}
+    placeholder={todosCopy.dueAtPlaceholder}
     value={dueAtValue}
   />
 </Field.Field>
-<Field.Field>
+<Field.Field data-disabled={disabled ? "true" : undefined}>
   <Field.Title id={contentLabelId}>{todosCopy.contentLabel}</Field.Title>
   <MarkdownEditor
     aria-labelledby={contentLabelId}

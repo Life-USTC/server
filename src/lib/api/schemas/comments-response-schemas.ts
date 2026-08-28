@@ -24,6 +24,13 @@ export const commentThreadResponseSchema = z.object({
   target: commentThreadTargetSchema,
 });
 
+export const commentRepliesResponseSchema = z.object({
+  rootId: z.string(),
+  thread: z.array(commentNodeSchema),
+  nextCursor: z.string().nullable(),
+  viewer: viewerContextSchema,
+});
+
 export const commentUpdateResponseSchema = z.object({
   success: z.boolean(),
   comment: commentNodeSchema,

@@ -1,5 +1,11 @@
+import { GraphQLError } from "graphql";
 import { getCompactOverview } from "@/features/dashboard/server/compact-overview-read-model";
+import { projectAuthenticatedUserProfile } from "@/features/profile/lib/account-profile-projection";
 import { findAuthenticatedUserProfileById } from "@/features/profile/server/profile-read-model";
+import {
+  InvalidAccountActivityCursorError,
+  listOAuthClientActivityPage,
+} from "@/features/settings/server/account-activity";
 import {
   listSubscribedExamPage,
   listSubscribedHomeworkPage,
@@ -10,6 +16,7 @@ import {
   listTodoPage,
   type TodoListFilters,
 } from "@/features/todos/server/todo-service";
+import { OAUTH_EMAIL_SCOPE } from "@/lib/oauth/constants";
 import {
   GraphqlAuthError,
   type GraphqlScopeRequirement,
@@ -78,6 +85,7 @@ type OverviewParent = Awaited<ReturnType<typeof getCompactOverview>>;
 
 const READ_SCOPES = {
   profile: { feature: "account.profile", action: "read" },
+  clientActivity: { feature: "account.client-activity", action: "read" },
   overview: { feature: "workspace.overview", action: "read" },
   todos: { feature: "workspace.todo", action: "read" },
   subscribedSections: { feature: "workspace.subscription", action: "read" },
@@ -164,11 +172,11 @@ export const graphqlScopeTypeDefs = /* GraphQL */ `
 
   type UserProfile {
     id: ID!
-    email: String!
+    email: String
     username: String
     name: String!
     image: String
-    isAdmin: Boolean!
+    isAdmin: Boolean
     createdAt: DateTime!
     updatedAt: DateTime!
   }
@@ -240,7 +248,7 @@ export const graphqlScopeTypeDefs = /* GraphQL */ `
 
   type Schedule {
     id: Int!
-    periods: Int!
+    periods: Float!
     date: Date
     weekday: Int!
     startTime: Int!
@@ -300,6 +308,21 @@ export const graphqlScopeTypeDefs = /* GraphQL */ `
 
   type Account {
     profile: UserProfile!
+    clientActivity(cursor: String, limit: Int = 30): AccountClientActivityPage!
+  }
+
+  type AccountClientActivity {
+    id: ID!
+    action: String!
+    outcome: String!
+    channel: String!
+    createdAt: DateTime!
+    targetType: String
+  }
+
+  type AccountClientActivityPage {
+    items: [AccountClientActivity!]!
+    nextCursor: String
   }
 
   type Workspace {
@@ -375,7 +398,11 @@ export const graphqlScopeResolvers = {
       _args: unknown,
       context: GraphqlContext,
     ) {
-      const userId = requireViewerUserId(context, READ_SCOPES.profile);
+      const principal = requireGraphqlScope(
+        context.principal,
+        READ_SCOPES.profile,
+      );
+      const userId = principal.userId;
       const profile = await findAuthenticatedUserProfileById(userId);
       if (!profile) {
         throw new GraphqlAuthError(
@@ -384,7 +411,60 @@ export const graphqlScopeResolvers = {
           401,
         );
       }
-      return profile;
+      return projectAuthenticatedUserProfile(profile, {
+        email:
+          principal.kind === "session" ||
+          principal.scopes.has(OAUTH_EMAIL_SCOPE),
+        adminStatus: principal.kind === "session",
+      });
+    },
+    async clientActivity(
+      _account: AuthenticatedScopeParent,
+      args: { cursor?: string | null; limit?: number | null },
+      context: GraphqlContext,
+    ) {
+      const principal = requireGraphqlScope(
+        context.principal,
+        READ_SCOPES.clientActivity,
+      );
+      if (principal.kind !== "oauth") {
+        throw new GraphqlAuthError(
+          "OAuth client context is required",
+          "FORBIDDEN",
+          403,
+          ["account.client-activity:read"],
+        );
+      }
+      if (!principal.grantId) {
+        throw new GraphqlAuthError(
+          "OAuth grant context is required",
+          "UNAUTHENTICATED",
+          401,
+        );
+      }
+      const limit = args.limit ?? 30;
+      if (!Number.isInteger(limit) || limit < 1 || limit > 50) {
+        throw new GraphQLError("limit must be between 1 and 50", {
+          extensions: { code: "BAD_USER_INPUT" },
+        });
+      }
+      try {
+        return await listOAuthClientActivityPage(
+          {
+            userId: principal.userId,
+            clientId: principal.clientId,
+            grantId: principal.grantId,
+          },
+          { cursor: args.cursor, limit },
+        );
+      } catch (error) {
+        if (error instanceof InvalidAccountActivityCursorError) {
+          throw new GraphQLError("Invalid account activity cursor", {
+            extensions: { code: "BAD_USER_INPUT" },
+          });
+        }
+        throw error;
+      }
     },
   },
   Workspace: {

@@ -12,13 +12,14 @@ import { Spinner } from "$lib/components/ui/spinner/index.js";
 import type { SettingsCopy } from "./settings-component-types";
 
 type Status = {
-  kind: "error" | "success";
+  kind: "error";
   message: string;
 };
 
 export let copy: SettingsCopy;
 export let passkey: Passkey;
 export let reportStatus: (status: Status) => void;
+export let onSuccess: (message: string) => void = () => {};
 
 let deleteOpen = false;
 let deleting = false;
@@ -51,10 +52,7 @@ async function renamePasskey() {
       reportStatus({ kind: "error", message: errorMessage(result.error) });
       return;
     }
-    reportStatus({
-      kind: "success",
-      message: copy.settings.passkeys.renamed,
-    });
+    onSuccess(copy.settings.passkeys.renamed);
   } catch {
     reportStatus({
       kind: "error",
@@ -78,10 +76,7 @@ async function deletePasskey() {
       return;
     }
     deleteOpen = false;
-    reportStatus({
-      kind: "success",
-      message: copy.settings.passkeys.deleted,
-    });
+    onSuccess(copy.settings.passkeys.deleted);
   } catch {
     deleteOpen = false;
     reportStatus({
@@ -137,7 +132,12 @@ async function deletePasskey() {
   </Item.Actions>
 </Item.Root>
 
-<AlertDialog.Root bind:open={deleteOpen}>
+<AlertDialog.Root
+  bind:open={deleteOpen}
+  onOpenChange={(open) => {
+    if (open || !deleting) deleteOpen = open;
+  }}
+>
   <AlertDialog.Content class="max-w-md sm:max-w-md">
     <AlertDialog.Header>
       <AlertDialog.Title>
@@ -154,7 +154,7 @@ async function deletePasskey() {
       <AlertDialog.Cancel disabled={deleting} type="button">
         {copy.settings.passkeys.cancel}
       </AlertDialog.Cancel>
-      <Button
+      <AlertDialog.Action
         disabled={deleting}
         onclick={deletePasskey}
         type="button"
@@ -166,7 +166,7 @@ async function deletePasskey() {
         {:else}
           {copy.settings.passkeys.delete}
         {/if}
-      </Button>
+      </AlertDialog.Action>
     </AlertDialog.Footer>
   </AlertDialog.Content>
 </AlertDialog.Root>

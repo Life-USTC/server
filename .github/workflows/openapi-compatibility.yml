@@ -1,0 +1,39 @@
+name: OpenAPI compatibility
+
+on:
+  pull_request:
+    branches: ["**"]
+    types: [opened, synchronize, reopened, labeled, unlabeled]
+
+jobs:
+  breaking-changes:
+    name: OpenAPI breaking changes
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Fetch base branch
+        shell: bash
+        run: >-
+          git fetch --no-tags --depth=1 origin
+          "+refs/heads/${{ github.base_ref }}:refs/remotes/origin/${{ github.base_ref }}"
+
+      - name: Block unapproved breaking changes
+        if: ${{ !contains(github.event.pull_request.labels.*.name, 'api-breaking-approved') }}
+        uses: oasdiff/oasdiff-action/breaking@2649ebe137aeb72a95707671204e829f86e091fc # v0.1.13
+        with:
+          base: origin/${{ github.base_ref }}:public/openapi.generated.json
+          revision: HEAD:public/openapi.generated.json
+          fail-on: WARN
+          review: false
+
+      - name: Report approved breaking changes
+        if: ${{ contains(github.event.pull_request.labels.*.name, 'api-breaking-approved') }}
+        uses: oasdiff/oasdiff-action/breaking@2649ebe137aeb72a95707671204e829f86e091fc # v0.1.13
+        with:
+          base: origin/${{ github.base_ref }}:public/openapi.generated.json
+          revision: HEAD:public/openapi.generated.json
+          review: false

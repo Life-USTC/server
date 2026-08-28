@@ -5,10 +5,12 @@ const {
   listAdminSuspensionsMock,
   updateAdminUserMock,
   withAdminApiRouteMock,
+  logAdminSecurityEventMock,
 } = vi.hoisted(() => ({
   createAdminSuspensionMock: vi.fn(),
   listAdminSuspensionsMock: vi.fn(),
   updateAdminUserMock: vi.fn(),
+  logAdminSecurityEventMock: vi.fn(),
   withAdminApiRouteMock: vi.fn(
     async (
       _request: Request,
@@ -33,6 +35,14 @@ vi.mock("@/lib/api/routes/admin-route-auth", () => ({
   withAdminApiRoute: withAdminApiRouteMock,
 }));
 
+vi.mock("@/lib/audit/write-audit-log", () => ({
+  getAuditRequestMetadata: vi.fn(() => ({ requestId: "application-request" })),
+}));
+
+vi.mock("@/lib/audit/security-events", () => ({
+  logAdminSecurityEvent: logAdminSecurityEventMock,
+}));
+
 function jsonRequest(path: string, body: unknown) {
   return new Request(`https://example.test${path}`, {
     body: JSON.stringify(body),
@@ -47,6 +57,7 @@ describe("admin 用户路由", () => {
     listAdminSuspensionsMock.mockReset();
     updateAdminUserMock.mockReset();
     withAdminApiRouteMock.mockClear();
+    logAdminSecurityEventMock.mockReset();
     vi.resetModules();
   });
 
@@ -65,9 +76,18 @@ describe("admin 用户路由", () => {
     );
 
     expect(response.status).toBe(200);
-    expect(updateAdminUserMock).toHaveBeenCalledWith("admin-1", "user-1", {
-      name: "User",
-    });
+    expect(updateAdminUserMock).toHaveBeenCalledWith(
+      "admin-1",
+      "user-1",
+      { name: "User" },
+      { channel: "rest", requestId: "application-request" },
+    );
+    expect(withAdminApiRouteMock).toHaveBeenCalledWith(
+      expect.any(Request),
+      "Failed to update user",
+      expect.any(Function),
+      { requireRecent: true },
+    );
   });
 
   it("将自我降权映射为公开 400 响应", async () => {
@@ -88,6 +108,10 @@ describe("admin 用户路由", () => {
       error: "Admins cannot remove their own admin role",
     });
     expect(response.status).toBe(400);
+    expect(logAdminSecurityEventMock).toHaveBeenCalledWith(
+      expect.any(Request),
+      "self_protection",
+    );
   });
 
   it("将移除最后管理员映射为公开 400 响应", async () => {
@@ -131,6 +155,10 @@ describe("admin 用户路由", () => {
       error: "Admins cannot suspend themselves",
     });
     expect(response.status).toBe(400);
+    expect(logAdminSecurityEventMock).toHaveBeenCalledWith(
+      expect.any(Request),
+      "self_protection",
+    );
   });
 
   it("创建封禁时返回 201 与资源位置", async () => {
@@ -151,6 +179,12 @@ describe("admin 用户路由", () => {
     );
 
     expect(response.status).toBe(201);
+    expect(withAdminApiRouteMock).toHaveBeenCalledWith(
+      expect.any(Request),
+      "Failed to suspend user",
+      expect.any(Function),
+      { requireRecent: true },
+    );
     expect(response.headers.get("Location")).toBe(
       "/api/admin/suspensions/suspension-1",
     );

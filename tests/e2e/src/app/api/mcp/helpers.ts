@@ -6,10 +6,8 @@ import {
   OAUTH_AUTHORIZATION_CODE_GRANT_TYPE,
   OAUTH_CODE_RESPONSE_TYPE,
   OAUTH_PUBLIC_CLIENT_AUTH_METHOD,
-  PUBLIC_REST_FEATURES,
-  restReadScope,
-  restWriteScope,
 } from "@/lib/oauth/constants";
+import { PUBLIC_REST_SCOPES } from "@/lib/oauth/scope-registry";
 import { sha256Base64Url } from "../../../../../shared/crypto";
 import { signInAsDebugUser } from "../../../../utils/auth";
 import { DEV_SEED } from "../../../../utils/dev-seed";
@@ -25,10 +23,7 @@ async function generateCodeChallenge(codeVerifier: string) {
 const REDIRECT_URI = `${PLAYWRIGHT_BASE_URL}/e2e/oauth/callback`;
 export const MCP_CLIENT_SCOPES = [
   ...DEFAULT_OAUTH_CLIENT_SCOPES,
-  ...PUBLIC_REST_FEATURES.flatMap((feature) => [
-    restReadScope(feature),
-    restWriteScope(feature),
-  ]),
+  ...PUBLIC_REST_SCOPES,
 ];
 export const MCP_CLIENT_SCOPE = MCP_CLIENT_SCOPES.join(" ");
 export const DEFAULT_CLIENT_SCOPE = DEFAULT_OAUTH_CLIENT_SCOPES.join(" ");
@@ -76,9 +71,13 @@ async function resumeConsentIfSignInPage(page: Page) {
   await expectConsentDestination();
 }
 
-async function registerPublicClient(request: Page["request"], scope: string) {
+export async function registerPublicClient(
+  request: Page["request"],
+  scope: string,
+) {
   const response = await request.post("/api/auth/oauth2/register", {
     data: {
+      application_type: "native",
       client_name: `mcp-e2e-${Date.now()}`,
       redirect_uris: [REDIRECT_URI],
       token_endpoint_auth_method: OAUTH_PUBLIC_CLIENT_AUTH_METHOD,
@@ -140,6 +139,47 @@ async function authorizeAndGetCode(
   return code as string;
 }
 
+export async function issueAccessTokenForClient(
+  page: Page,
+  request: Page["request"],
+  options: {
+    clientId: string;
+    scope: string;
+    resource?: string;
+    /** Whether to repeat the authorization request's `resource` at token exchange. */
+    includeResourceInTokenExchange?: boolean;
+  },
+) {
+  const codeVerifier =
+    "mcp-public-client-verifier-012345678901234567890123456789";
+  const codeChallenge = await generateCodeChallenge(codeVerifier);
+
+  const code = await authorizeAndGetCode(page, options.clientId, {
+    scope: options.scope,
+    codeChallenge,
+    resource: options.resource,
+  });
+
+  const includeResourceInToken =
+    options.includeResourceInTokenExchange !== false && options.resource;
+  const tokenResponse = await request.post("/api/auth/oauth2/token", {
+    form: {
+      grant_type: OAUTH_AUTHORIZATION_CODE_GRANT_TYPE,
+      client_id: options.clientId,
+      code,
+      code_verifier: codeVerifier,
+      redirect_uri: REDIRECT_URI,
+      ...(includeResourceInToken ? { resource: options.resource } : {}),
+    },
+  });
+
+  const tokenBody = (await tokenResponse.json()) as {
+    access_token?: string;
+    refresh_token?: string;
+  };
+  return { response: tokenResponse, tokenBody };
+}
+
 export async function issueAccessToken(
   page: Page,
   request: Page["request"],
@@ -156,35 +196,15 @@ export async function issueAccessToken(
     options.clientScopes.join(" "),
   );
 
-  const codeVerifier =
-    "mcp-public-client-verifier-012345678901234567890123456789";
-  const codeChallenge = await generateCodeChallenge(codeVerifier);
-
-  const code = await authorizeAndGetCode(page, clientId, {
-    scope: options.scope,
-    codeChallenge,
-    resource: options.resource,
-  });
-
-  const includeResourceInToken =
-    options.includeResourceInTokenExchange !== false && options.resource;
-
-  const tokenResponse = await request.post("/api/auth/oauth2/token", {
-    form: {
-      grant_type: OAUTH_AUTHORIZATION_CODE_GRANT_TYPE,
-      client_id: clientId,
-      code,
-      code_verifier: codeVerifier,
-      redirect_uri: REDIRECT_URI,
-      ...(includeResourceInToken ? { resource: options.resource } : {}),
-    },
-  });
+  const { response: tokenResponse, tokenBody } =
+    await issueAccessTokenForClient(page, request, {
+      clientId,
+      scope: options.scope,
+      resource: options.resource,
+      includeResourceInTokenExchange: options.includeResourceInTokenExchange,
+    });
 
   expect(tokenResponse.status()).toBe(200);
-  const tokenBody = (await tokenResponse.json()) as {
-    access_token?: string;
-    refresh_token?: string;
-  };
   expect(typeof tokenBody.access_token).toBe("string");
 
   return {

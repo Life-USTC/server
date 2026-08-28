@@ -20,6 +20,7 @@ export type DashboardBusCopy = Record<string, unknown> & {
     weekend: string;
   };
   empty: string;
+  loadFailed: string;
   fullTimetable: string;
   hideFullTimetable: string;
   hideRouteControls: string;
@@ -44,5 +45,6 @@ export type DashboardBusCopy = Record<string, unknown> & {
     showDepartedTrips: string;
   };
   transitMap: string;
+  retry: string;
   upcomingTrips: string;
 };

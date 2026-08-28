@@ -9,17 +9,29 @@ import {
 import { parseSectionMatchCodesRequest } from "@/lib/api/routes/academic-section-route-request";
 import { getRequestLocale } from "@/lib/api/routes/request-locale";
 import {
+  calendarSubscriptionAppendResponseSchema,
+  calendarSubscriptionBatchResponseSchema,
+  calendarSubscriptionCreateResponseSchema,
+  calendarSubscriptionImportResponseSchema,
+  calendarSubscriptionQueryResponseSchema,
+  calendarSubscriptionRemoveResponseSchema,
+  currentCalendarSubscriptionResponseSchema,
+} from "@/lib/api/schemas/misc-response-schema-core";
+import {
   calendarSubscriptionAppendRequestSchema,
   calendarSubscriptionBatchRequestSchema,
   calendarSubscriptionCreateRequestSchema,
   calendarSubscriptionQueryRequestSchema,
   calendarSubscriptionRemoveRequestSchema,
 } from "@/lib/api/schemas/request-schemas";
-import { requireAuth } from "@/lib/auth/api-auth";
+import { requireAuth, requireAuthPrincipal } from "@/lib/auth/api-auth";
 import {
   runWithWorkspaceRouteAttribution,
   runWorkspaceRouteStage,
 } from "@/lib/log/workspace-route-attribution";
+import { registerOAuthRequestUsage } from "@/lib/oauth/grant-usage";
+import { hasRequiredFeatureScope } from "@/lib/oauth/scope-registry";
+import { getPublicOrigin } from "@/lib/site-url";
 
 export async function getCurrentCalendarSubscriptionRoute(request: Request) {
   try {
@@ -28,7 +40,7 @@ export async function getCurrentCalendarSubscriptionRoute(request: Request) {
       "auth",
       { request },
       () =>
-        requireAuth(request, {
+        requireAuthPrincipal(request, {
           bearerScope: { feature: "workspace.subscription", action: "read" },
         }),
     );
@@ -39,21 +51,59 @@ export async function getCurrentCalendarSubscriptionRoute(request: Request) {
       "subscriptions_current",
       request,
       async () => {
-        const { getUserCalendarSubscription } = await import(
-          "@/features/subscriptions/server/subscription-read-model"
-        );
-        const subscription = await runWorkspaceRouteStage(
+        const { getCalendarSubscriptionUrl, getUserCalendarSubscription } =
+          await import(
+            "@/features/subscriptions/server/subscription-read-model"
+          );
+        const revealCalendarFeed =
+          auth.kind === "oauth" &&
+          hasRequiredFeatureScope(auth.scopes, {
+            feature: "workspace.calendar-feed",
+            action: "read",
+          });
+        const [subscription, calendarPath] = await runWorkspaceRouteStage(
           "subscriptions_current",
           "read",
           { request },
-          () => getUserCalendarSubscription(userId, getRequestLocale(request)),
+          () =>
+            Promise.all([
+              getUserCalendarSubscription(userId, getRequestLocale(request)),
+              revealCalendarFeed
+                ? getCalendarSubscriptionUrl(userId, null)
+                : Promise.resolve(null),
+            ]),
         );
 
         if (!subscription) {
-          return jsonResponse({ subscription: null });
+          return jsonResponse(
+            currentCalendarSubscriptionResponseSchema.parse({
+              subscription: null,
+            }),
+          );
         }
 
-        return jsonResponse({ subscription });
+        if (auth.kind === "oauth" && calendarPath) {
+          registerOAuthRequestUsage(request, {
+            userId,
+            clientId: auth.clientId,
+            ...(auth.grantId ? { grantId: auth.grantId } : {}),
+            channel: "rest",
+            feature: "workspace.calendar-feed",
+            action: "read",
+          });
+        }
+
+        return jsonResponse(
+          currentCalendarSubscriptionResponseSchema.parse({
+            subscription: {
+              ...subscription,
+              calendarPath,
+              calendarUrl: calendarPath
+                ? new URL(calendarPath, getPublicOrigin()).toString()
+                : null,
+            },
+          }),
+        );
       },
     );
   } catch (error) {
@@ -101,7 +151,9 @@ export async function postCalendarSubscriptionsRoute(request: Request) {
       getRequestLocale(request),
     );
 
-    return jsonResponse({ subscription });
+    return jsonResponse(
+      calendarSubscriptionCreateResponseSchema.parse({ subscription }),
+    );
   } catch (error) {
     return handleRouteError("Failed to update calendar subscription", error);
   }
@@ -143,7 +195,7 @@ export async function postCalendarSubscriptionQueryRoute(request: Request) {
       return notFound("No semester found");
     }
 
-    return jsonResponse(result);
+    return jsonResponse(calendarSubscriptionQueryResponseSchema.parse(result));
   } catch (error) {
     return handleRouteError("Failed to query section subscriptions", error);
   }
@@ -189,7 +241,7 @@ export async function postCalendarSubscriptionBatchRoute(request: Request) {
       return notFound("No semester found");
     }
 
-    return jsonResponse(result);
+    return jsonResponse(calendarSubscriptionBatchResponseSchema.parse(result));
   } catch (error) {
     return handleRouteError("Failed to update section subscriptions", error);
   }
@@ -227,19 +279,21 @@ export async function postCalendarSubscriptionImportCodesRoute(
     const { alreadySubscribedSections, addedSections, matches, subscription } =
       result;
 
-    return jsonResponse({
-      success: true,
-      semester: matches.semester,
-      matchedCodes: matches.matchedCodes,
-      unmatchedCodes: matches.unmatchedCodes,
-      ambiguousCodes: [],
-      sections: matches.sections,
-      addedCount: addedSections.length,
-      addedSections,
-      alreadySubscribedCount: alreadySubscribedSections.length,
-      alreadySubscribedSections,
-      subscription,
-    });
+    return jsonResponse(
+      calendarSubscriptionImportResponseSchema.parse({
+        success: true,
+        semester: matches.semester,
+        matchedCodes: matches.matchedCodes,
+        unmatchedCodes: matches.unmatchedCodes,
+        ambiguousCodes: [],
+        sections: matches.sections,
+        addedCount: addedSections.length,
+        addedSections,
+        alreadySubscribedCount: alreadySubscribedSections.length,
+        alreadySubscribedSections,
+        subscription,
+      }),
+    );
   } catch (error) {
     return handleRouteError("Failed to import section subscriptions", error);
   }
@@ -275,7 +329,7 @@ export async function patchCalendarSubscriptionsRoute(request: Request) {
       return notFound();
     }
 
-    return jsonResponse(result);
+    return jsonResponse(calendarSubscriptionAppendResponseSchema.parse(result));
   } catch (error) {
     return handleRouteError("Failed to append section subscriptions", error);
   }
@@ -313,7 +367,9 @@ export async function deleteCalendarSubscriptionsRoute(request: Request) {
       userId,
       getRequestLocale(request),
     );
-    return jsonResponse({ subscription });
+    return jsonResponse(
+      calendarSubscriptionRemoveResponseSchema.parse({ subscription }),
+    );
   } catch (error) {
     return handleRouteError("Failed to remove section subscriptions", error);
   }

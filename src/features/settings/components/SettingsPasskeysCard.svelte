@@ -1,6 +1,7 @@
 <script lang="ts">
 import Fingerprint from "@lucide/svelte/icons/fingerprint";
 import { onMount } from "svelte";
+import { toast } from "svelte-sonner";
 import {
   isPasskeySupported,
   passkeyAuthClient,
@@ -18,7 +19,7 @@ import SettingsPasskeyRow from "./SettingsPasskeyRow.svelte";
 import type { SettingsCopy } from "./settings-component-types";
 
 type Status = {
-  kind: "error" | "success";
+  kind: "error";
   message: string;
 };
 
@@ -60,10 +61,8 @@ async function addPasskey() {
       return;
     }
     name = "";
-    status = {
-      kind: "success",
-      message: copy.settings.passkeys.added,
-    };
+    status = null;
+    toast.success(copy.settings.passkeys.added);
     await $passkeyQuery.refetch();
   } catch {
     status = {
@@ -93,8 +92,8 @@ async function addPasskey() {
       </Alert.Root>
     {/if}
 
-    {#if status}
-      <Alert.Root variant={status.kind === "error" ? "destructive" : "default"}>
+    {#if status && status.kind === "error"}
+      <Alert.Root variant="destructive">
         <Alert.Description>{status.message}</Alert.Description>
       </Alert.Root>
     {/if}
@@ -179,6 +178,7 @@ async function addPasskey() {
             reportStatus={(nextStatus) => {
               status = nextStatus;
             }}
+            onSuccess={(message) => toast.success(message)}
           />
         {/each}
       </Item.Group>

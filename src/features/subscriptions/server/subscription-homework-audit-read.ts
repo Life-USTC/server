@@ -1,4 +1,4 @@
-import { prisma } from "@/lib/db/prisma";
+import { listSectionHomeworkAuditLogs } from "@/features/homeworks/server/homework-list-read-model";
 import { withSubscribedSections } from "./subscription-read-model-shared";
 
 export async function listSubscribedHomeworkAuditLogs(
@@ -9,16 +9,7 @@ export async function listSubscribedHomeworkAuditLogs(
   return withSubscribedSections(
     userId,
     async (ids) => {
-      return prisma.homeworkAuditLog.findMany({
-        where: { sectionId: { in: ids } },
-        include: {
-          actor: {
-            select: { id: true, name: true, username: true, image: true },
-          },
-        },
-        orderBy: { createdAt: "desc" },
-        take: limit,
-      });
+      return (await listSectionHomeworkAuditLogs(ids)).slice(0, limit);
     },
     sectionIds,
   );

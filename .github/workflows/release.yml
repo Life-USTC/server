@@ -9,12 +9,17 @@ on:
     branches:
       - main
 
+concurrency:
+  group: release-main
+  cancel-in-progress: false
+
 jobs:
   semantic-release:
     name: Semantic
     runs-on: ubuntu-latest
     if: github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main' && github.repository == 'Life-USTC/server' && !contains(github.event.workflow_run.head_commit.message || '', '[skip ci]')
     permissions:
+      actions: read
       contents: write
       issues: write
       pull-requests: write
@@ -25,13 +30,63 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
-          ref: ${{ github.event.workflow_run.head_sha }}
+          ref: main
           token: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Resolve current main
+        id: current-main
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch --prune --tags origin main
+          git checkout -B main origin/main
+          current_sha="$(git rev-parse HEAD)"
+          echo "sha=${current_sha}" >> "$GITHUB_OUTPUT"
+
+      - name: Verify current main has a successful full CI run
+        id: ci-gate
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CURRENT_SHA: ${{ steps.current-main.outputs.sha }}
+        run: |
+          set -euo pipefail
+
+          if ! ci_runs="$(gh api --method GET "repos/${GITHUB_REPOSITORY}/actions/workflows/ci.yml/runs?branch=main&event=push&head_sha=${CURRENT_SHA}&status=completed&per_page=100")"; then
+            echo "verified=false" >> "$GITHUB_OUTPUT"
+            {
+              echo "## Release skipped"
+              echo
+              echo "GitHub Actions API lookup failed for current main ${CURRENT_SHA}; waiting for its CI completion event."
+            } >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+
+          if jq -e --arg sha "$CURRENT_SHA" \
+            'any(.workflow_runs[]?; .head_sha == $sha and .head_branch == "main" and .event == "push" and .status == "completed" and .conclusion == "success")' \
+            <<<"$ci_runs" >/dev/null; then
+            echo "verified=true" >> "$GITHUB_OUTPUT"
+            echo "Verified successful full CI run for current main ${CURRENT_SHA}."
+          else
+            echo "verified=false" >> "$GITHUB_OUTPUT"
+            {
+              echo "## Release skipped"
+              echo
+              echo "No completed successful full CI run was found for current main ${CURRENT_SHA}; waiting for its CI completion event."
+            } >> "$GITHUB_STEP_SUMMARY"
+          fi
+
       - name: Setup workspace
+        if: steps.ci-gate.outputs.verified == 'true'
         uses: ./.github/actions/setup-bun-env
 
+      - name: Refresh main before release
+        if: steps.ci-gate.outputs.verified == 'true'
+        shell: bash
+        run: git fetch --prune --tags origin main
+
       - name: Run semantic-release
+        if: steps.ci-gate.outputs.verified == 'true'
         run: bun run release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

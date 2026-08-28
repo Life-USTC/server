@@ -1,12 +1,9 @@
-import {
-  handleRouteError,
-  jsonResponse,
-  parseRouteSearchParams,
-} from "@/lib/api/helpers";
+import { handleRouteError, parseRouteSearchParams } from "@/lib/api/helpers";
+import { schemaJsonResponse } from "@/lib/api/responses";
 import { getRequestLocale } from "@/lib/api/routes/request-locale";
 import { subscribedSchedulesQuerySchema } from "@/lib/api/schemas/request-schemas";
+import { subscribedSchedulesResponseSchema } from "@/lib/api/schemas/schedule-response-schema-core";
 import { requireAuth } from "@/lib/auth/api-auth";
-import { serializeScheduleTimeFields } from "@/shared/lib/schedule-serialization";
 
 export async function getMySubscribedSchedulesRoute(request: Request) {
   const auth = await requireAuth(request, {
@@ -24,19 +21,21 @@ export async function getMySubscribedSchedulesRoute(request: Request) {
   if (parsedQuery instanceof Response) return parsedQuery;
 
   try {
-    const { listSubscribedSchedules } = await import(
-      "@/features/subscriptions/server/subscription-read-model"
-    );
+    const { listSubscribedSchedules, toSubscribedScheduleEntryDto } =
+      await import("@/features/subscriptions/server/subscription-read-model");
+    const locale = parsedQuery.locale ?? getRequestLocale(request);
     const schedules = await listSubscribedSchedules(userId, {
       dateFrom: parsedQuery.dateFrom,
       dateTo: parsedQuery.dateTo,
       limit: parsedQuery.limit ?? 150,
-      locale: parsedQuery.locale ?? getRequestLocale(request),
+      locale,
       weekday: parsedQuery.weekday,
     });
 
-    return jsonResponse({
-      schedules: schedules.map(serializeScheduleTimeFields),
+    return schemaJsonResponse(subscribedSchedulesResponseSchema, {
+      schedules: schedules.map((schedule) =>
+        toSubscribedScheduleEntryDto(schedule, locale),
+      ),
     });
   } catch (error) {
     return handleRouteError("Failed to fetch subscribed schedules", error);

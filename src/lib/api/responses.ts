@@ -1,3 +1,5 @@
+import type * as z from "zod";
+import { runCloudflareTraceSpan } from "@/lib/adapters/cloudflare-runtime";
 import { logRouteFailure } from "@/lib/log/app-logger";
 import { serializeDatesDeep } from "@/lib/time/serialize-date-output";
 
@@ -20,10 +22,37 @@ export function jsonResponse(body: unknown, init?: ResponseInit) {
     headers.set("Content-Type", "application/json; charset=utf-8");
   }
 
-  return new Response(JSON.stringify(serializeDatesDeep(body)), {
-    ...init,
-    headers,
-  });
+  return runCloudflareTraceSpan(
+    "response.serialize",
+    { "response.format": "json" },
+    (span) => {
+      const serialized = JSON.stringify(serializeDatesDeep(body));
+      if (span?.isTraced) {
+        span.setAttribute(
+          "http.response.body.size",
+          new TextEncoder().encode(serialized).byteLength,
+        );
+      }
+      return new Response(serialized, {
+        ...init,
+        headers,
+      });
+    },
+  );
+}
+
+/**
+ * Serializes transport-specific values and validates the exact public wire
+ * payload before it leaves an HTTP adapter. The parsed value is returned so
+ * Zod's object allowlists also prevent accidental database-field exposure.
+ */
+export function schemaJsonResponse<Schema extends z.ZodType>(
+  schema: Schema,
+  body: unknown,
+  init?: ResponseInit,
+) {
+  const payload: z.output<Schema> = schema.parse(serializeDatesDeep(body));
+  return jsonResponse(payload, init);
 }
 
 export function createdJsonResponse(body: unknown, location: string) {
@@ -47,6 +76,17 @@ export function unauthorized(message = "Unauthorized") {
 
 export function forbidden(message = "Forbidden") {
   return errorResponse(message, 403);
+}
+
+export function recentAuthenticationRequired() {
+  return jsonResponse(
+    {
+      code: "RECENT_AUTH_REQUIRED",
+      error:
+        "Recent authentication required. Sign out and sign in again before retrying.",
+    },
+    { status: 403 },
+  );
 }
 
 export function suspensionForbidden(reason?: string | null) {

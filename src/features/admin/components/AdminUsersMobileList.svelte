@@ -1,6 +1,9 @@
 <script lang="ts">
+import ChevronRightIcon from "@lucide/svelte/icons/chevron-right";
 import { Badge } from "$lib/components/ui/badge/index.js";
+import { Button } from "$lib/components/ui/button/index.js";
 import * as Item from "$lib/components/ui/item/index.js";
+import AdminListShell from "./AdminListShell.svelte";
 import type {
   AdminUserFormatter,
   AdminUserRow,
@@ -15,37 +18,39 @@ export let suspensionLabel: AdminUserFormatter;
 export let users: AdminUserRow[];
 </script>
 
-<Item.Group class="md:hidden" data-testid="admin-users-mobile-list">
-  {#each users as user}
-    <Item.Root class="items-start text-left" size="sm" variant="outline">
-      {#snippet child({ props })}
-        <button {...props} type="button" onclick={() => onSelect(user)}>
-          <Item.Content class="min-w-0">
-            <Item.Title>{displayName(user)}</Item.Title>
-            <Item.Description class="font-mono">
-              @{user.username ?? copy.noUsername}
-            </Item.Description>
-            <Item.Description class="line-clamp-none break-words">
-              {user.email ?? copy.noVerifiedEmail}
-            </Item.Description>
-          </Item.Content>
-          <Item.Actions>
-            <Badge variant={user.isAdmin ? "secondary" : "ghost"}>
-              {user.isAdmin ? copy.adminRole : copy.userRole}
-            </Badge>
-          </Item.Actions>
-          <Item.Footer class="block">
-            <dl class="grid grid-cols-2 gap-2 text-xs">
+<AdminListShell class="xl:hidden">
+  <Item.Group class="gap-0" data-testid="admin-users-mobile-list">
+    {#each users as user, index (user.id)}
+      <Item.Root class="items-start px-1 py-3" size="sm">
+        <Item.Content class="min-w-0">
+          <Item.Title>{displayName(user)}</Item.Title>
+          <Item.Description>
+            @{user.username ?? copy.noUsername}
+          </Item.Description>
+          {@const email = user.email ?? copy.noVerifiedEmail}
+          <Item.Description class="truncate" title={email}>
+            {email}
+          </Item.Description>
+          <Item.Footer class="block pt-1">
+            <dl class="grid grid-cols-3 gap-2 text-xs">
               <div>
+                <dt class="text-muted-foreground">{copy.role}</dt>
+                <dd>
+                  <Badge variant={user.isAdmin ? "secondary" : "ghost"}>
+                    {user.isAdmin ? copy.adminRole : copy.userRole}
+                  </Badge>
+                </dd>
+              </div>
+              <div class="text-right">
                 <dt class="text-muted-foreground">{copy.createdAt}</dt>
                 <dd class="tabular-nums">{formatDate(user.createdAt)}</dd>
               </div>
-              <div>
+              <div class="text-right">
                 <dt class="text-muted-foreground">{copy.suspension}</dt>
                 <dd>
                   {#if user.activeSuspension}
-                    <Badge class="mb-1" variant="destructive">{copy.suspendedStatus}</Badge>
-                    <span class="block text-muted-foreground">
+                    <Badge class="mb-1 ml-auto" variant="destructive">{copy.suspendedStatus}</Badge>
+                    <span class="block truncate text-muted-foreground" title={suspensionLabel(user)}>
                       {suspensionLabel(user)}
                     </span>
                   {:else}
@@ -55,8 +60,21 @@ export let users: AdminUserRow[];
               </div>
             </dl>
           </Item.Footer>
-        </button>
-      {/snippet}
-    </Item.Root>
-  {/each}
-</Item.Group>
+        </Item.Content>
+        <Item.Actions class="shrink-0 self-start">
+          <Button
+            aria-label={copy.editTitle}
+            onclick={() => onSelect(user)}
+            size="sm"
+            type="button"
+            variant="ghost"
+          >
+            {copy.editTitle}
+            <ChevronRightIcon aria-hidden="true" data-icon="inline-end" />
+          </Button>
+        </Item.Actions>
+      </Item.Root>
+      {#if index < users.length - 1}<Item.Separator class="my-0" />{/if}
+    {/each}
+  </Item.Group>
+</AdminListShell>

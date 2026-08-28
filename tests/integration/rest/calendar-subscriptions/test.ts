@@ -25,6 +25,7 @@
  * - Invalid body types (e.g. string instead of array) return 400
  */
 import { expect, test } from "@playwright/test";
+import { calendarSubscriptionBatchResponseSchema } from "@/lib/api/schemas/misc-response-schema-core";
 import { DEV_SEED } from "../../../e2e/utils/dev-seed";
 import {
   getCurrentSessionUser,
@@ -69,6 +70,28 @@ test.describe("日历订阅 API", () => {
       data: { sectionIds: [1] },
     });
     expect(response.status()).toBe(401);
+  });
+
+  test("未登录的带 body PATCH/POST 重复请求始终返回 401", async ({
+    request,
+  }) => {
+    for (let index = 0; index < 20; index += 1) {
+      const headers =
+        index % 2 === 0
+          ? {
+              "x-life-public-ssr": "1",
+              "x-life-public-ssr-locale": "en-us",
+              "x-life-public-ssr-mode": "page",
+              "x-life-ustc-request-id": "client-controlled-internal-id",
+              "x-request-id": "client-controlled-id",
+            }
+          : undefined;
+      const response =
+        index % 2 === 0
+          ? await request.patch(BASE, { data: { sectionIds: [1] }, headers })
+          : await request.post(BASE, { data: { sectionIds: [1] }, headers });
+      expect(response.status()).toBe(401);
+    }
   });
 
   test("remove sections 未登录时返回 401", async ({ request }) => {
@@ -276,10 +299,9 @@ test.describe("日历订阅 API", () => {
         },
       });
       expect(response.status()).toBe(200);
-      const body = (await response.json()) as {
-        removedCount?: number;
-        subscription?: { sections?: Array<{ id?: number }> };
-      };
+      const body = calendarSubscriptionBatchResponseSchema.parse(
+        await response.json(),
+      );
       const subscribedIds =
         body.subscription?.sections?.map((section) => section.id) ?? [];
 

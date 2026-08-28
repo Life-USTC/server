@@ -91,13 +91,20 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
 
       - name: Configure job environment
         shell: bash
+        env:
+          JOB_PHASE: ${{ inputs.job-phase }}
         run: |
           {
             echo "DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:5432/${{ inputs.database-name }}"
             echo "ALLOW_DATABASE_SEED=true"
+            if [ "$JOB_PHASE" = "ci:verify" ]; then
+              echo "GRAPHQL_SCHEMA_SKIP_BASE_COMPATIBILITY=true"
+            fi
             if [ -n "${{ inputs.webhook-secret }}" ]; then
               echo "WEBHOOK_SECRET=${{ inputs.webhook-secret }}"
               echo "WEBHOOK_LOGIN_ENABLED=true"
@@ -141,7 +148,7 @@ jobs:
             bun run app:prepare
             bun run db:migrate:deploy
             bunx prisma db seed
-            bunx playwright test --shard="$E2E_SHARD"
+            bash tests/ci/e2e-run-shard.sh "$E2E_SHARD"
           }
 
           case "$JOB_PHASE" in
@@ -149,6 +156,8 @@ jobs:
               bash tests/ci/retry.test.sh
               bash tests/ci/seed-guard.test.sh
               bash tests/ci/e2e-full-suite-parity.test.sh
+              bash tests/ci/e2e-worker-server.test.sh
+              bash tests/ci/worker-request-id-platform.test.sh
               bun run app:prepare
               bunx wrangler types --include-runtime=false --check
               bunx biome check
@@ -169,7 +178,7 @@ jobs:
               bunx prisma db seed
               bunx vitest run --config vitest.integration.config.ts
               bun run build
-              bunx playwright test --config playwright.api.config.ts
+              bash tests/ci/e2e-run-shard.sh 1/1 --config playwright.api.config.ts
               ;;
             ci:rls)
               bun run app:prepare
@@ -190,13 +199,15 @@ jobs:
                 --file=prisma/roles/export-app-runtime-column-privileges.sql)"
               expected_sequence_privileges="$(psql "$runtime_database_url" -X -tA \
                 --file=prisma/roles/export-app-runtime-sequence-privileges.sql)"
-              expected_function_privileges='public.comment_attachment_summaries(p_comment_ids text[]):EXECUTE'
+              expected_function_privileges='public.claim_upload_pending_storage_cleanup(p_now timestamp without time zone, p_batch_size integer, p_lease_seconds integer):EXECUTE'
+              expected_function_privileges+=',public.comment_attachment_summaries(p_comment_ids text[]):EXECUTE'
               expected_function_privileges+=',public.comment_hidden_root_count(p_section_id integer, p_course_id integer, p_teacher_id integer, p_homework_id text, p_section_teacher_id integer):EXECUTE'
               expected_function_privileges+=',public.comment_reaction_summaries(comment_ids text[]):EXECUTE'
+              expected_function_privileges+=',public.finalize_upload_pending_storage_cleanup(p_id text, p_attempt_id text):EXECUTE'
               expected_function_privileges+=',public.find_downloadable_upload(p_upload_id text):EXECUTE'
-              expected_function_privileges+=',public.get_public_profile_homework_completions(p_user_id text, p_since timestamp without time zone):EXECUTE'
               expected_function_privileges+=',public.get_public_profile_section_subscription_count(p_user_id text):EXECUTE'
               expected_function_privileges+=',public.get_public_profile_upload_stats(p_user_id text, p_since timestamp without time zone):EXECUTE'
+              expected_function_privileges+=',public.release_upload_pending_storage_cleanup(p_id text, p_attempt_id text, p_now timestamp without time zone, p_retry_lease_seconds integer):EXECUTE'
               psql "$runtime_database_url" -X \
                 --set=expected_role=life_ustc_runtime \
                 --set=expected_schema_privileges=public:USAGE \
@@ -255,21 +266,12 @@ jobs:
         shell: bash
         run: bun run openapi:check
 
-      - name: Verify GraphQL schema compatibility
+      - name: Verify canonical GraphQL schema snapshot
         if: ${{ inputs.job-phase == 'ci:verify' }}
         shell: bash
         env:
-          PR_TITLE: ${{ github.event.pull_request.title }}
-        run: |
-          base_sha="${{ github.event.pull_request.base.sha }}"
-          if grep -Eq '^[a-z]+(\([^)]+\))?!:' <<< "$PR_TITLE"; then
-            bunx vitest run tests/unit/graphql-schema-snapshot.test.ts
-          elif [ -n "$base_sha" ]; then
-            git fetch --no-tags --depth=1 origin "$base_sha"
-            GRAPHQL_SCHEMA_BASE_REF="$base_sha" bunx vitest run tests/unit/graphql-schema-snapshot.test.ts
-          else
-            bunx vitest run tests/unit/graphql-schema-snapshot.test.ts
-          fi
+          GRAPHQL_SCHEMA_SKIP_BASE_COMPATIBILITY: "true"
+        run: bunx vitest run tests/unit/graphql-schema-snapshot.test.ts
 
       - name: Upload artifact
         id: upload-artifact

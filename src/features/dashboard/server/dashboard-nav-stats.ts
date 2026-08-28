@@ -1,16 +1,23 @@
-import { countUpcomingSubscribedExams } from "@/features/subscriptions/server/subscription-read-model";
 import { countIncompleteTodos } from "@/features/todos/server/todo-service";
 import { withUserDbContext } from "@/lib/db/prisma";
+import { getUserRlsTransactionClient } from "@/lib/db/rls-context";
 import { shanghaiDayjs } from "@/lib/time/shanghai-dayjs";
-import { getDashboardCalendarItemsCount } from "./dashboard-calendar-count";
 import {
   dashboardNavUserSummary,
   emptyDashboardNavStats,
 } from "./dashboard-nav-stats-helpers";
+import type { DashboardSemester } from "./dashboard-overview-types";
+import {
+  countDashboardStageTransaction,
+  type DashboardStageCounter,
+  markDashboardStageCountsUnknown,
+  observeDashboardStage,
+} from "./dashboard-stage-analytics";
 import type {
   DashboardSubscribedSection,
   DashboardUserSummary,
 } from "./dashboard-user-context";
+import { getWorkspaceNavigationAggregate } from "./workspace-navigation-summary";
 
 export {
   type DashboardUserContext,
@@ -32,76 +39,58 @@ export async function getDashboardNavStats(
   subscribedSections: readonly DashboardSubscribedSection[],
   referenceDate?: Date,
   providedPendingTodosCount?: Promise<number>,
+  providedSemesters?: readonly DashboardSemester[],
+  stageCounter?: DashboardStageCounter,
 ): Promise<DashboardNavStats> {
   const referenceNow = referenceDate
     ? shanghaiDayjs(referenceDate)
     : shanghaiDayjs();
-  const todayStart = referenceNow.startOf("day");
-  const tomorrowStart = todayStart.add(1, "day");
-
-  const pendingTodosCountPromise =
-    providedPendingTodosCount ?? countIncompleteTodos(user.id);
-
   const activeSubscribedSections = subscribedSections.filter(
     (section) => section.retiredAt === null || section.retiredAt === undefined,
   );
   if (activeSubscribedSections.length === 0) {
-    const pendingTodosCount = await pendingTodosCountPromise;
+    if (!providedPendingTodosCount) {
+      markDashboardStageCountsUnknown(stageCounter);
+    }
+    const pendingTodosCount = await (providedPendingTodosCount ??
+      countIncompleteTodos(user.id));
     return emptyDashboardNavStats({ pendingTodosCount, user });
   }
 
-  const scopedSectionIds = activeSubscribedSections.map(
-    (section) => section.id,
-  );
-  const [
-    pendingTodosCount,
-    pendingHomeworksCount,
-    dueTodayHomework,
-    examsCount,
-    calendarItemsCount,
-  ] = await Promise.all([
-    pendingTodosCountPromise,
-    withUserDbContext(user.id, (tx) =>
-      tx.homework.count({
-        where: {
-          deletedAt: null,
-          sectionId: { in: scopedSectionIds },
-          homeworkCompletions: { none: { userId: user.id } },
-        },
-      }),
-    ),
-    withUserDbContext(user.id, (tx) =>
-      tx.homework.findFirst({
-        where: {
-          deletedAt: null,
-          sectionId: { in: scopedSectionIds },
-          submissionDueAt: {
-            gte: todayStart.toDate(),
-            lt: tomorrowStart.toDate(),
-          },
-          homeworkCompletions: { none: { userId: user.id } },
-        },
-        select: { id: true },
-        orderBy: [{ submissionDueAt: "asc" }, { createdAt: "desc" }],
-      }),
-    ),
-    countUpcomingSubscribedExams({
-      atTime: referenceNow.toDate(),
-      sectionIds: scopedSectionIds,
+  const navigationAggregatePromise = observeDashboardStage({
+    counter: stageCounter,
+    details: () => ({
+      subscribedSectionCount: activeSubscribedSections.length,
     }),
-    getDashboardCalendarItemsCount(
-      user.id,
-      activeSubscribedSections,
-      referenceNow,
-    ),
+    stage: "nav_stats",
+    work: () => {
+      if (stageCounter && !getUserRlsTransactionClient()) {
+        countDashboardStageTransaction(stageCounter);
+      }
+      return withUserDbContext(user.id, (tx) =>
+        getWorkspaceNavigationAggregate(tx, user.id, referenceNow.toDate(), {
+          activeSections: activeSubscribedSections,
+          semesters: providedSemesters,
+          skipPendingTodosCount: providedPendingTodosCount !== undefined,
+          ...(stageCounter ? { stageCounter } : {}),
+        }),
+      );
+    },
+  });
+  const pendingTodosCountPromise =
+    providedPendingTodosCount ??
+    navigationAggregatePromise.then((aggregate) => aggregate.pendingTodosCount);
+  const [navigationAggregate, pendingTodosCount] = await Promise.all([
+    navigationAggregatePromise,
+    pendingTodosCountPromise,
   ]);
 
   return {
     user: dashboardNavUserSummary(user),
-    calendarItemsCount,
-    pendingHomeworksCount,
-    highlightPendingHomeworks: Boolean(dueTodayHomework),
-    examsCount,
+    calendarItemsCount: navigationAggregate.calendarItemsCount,
+    pendingHomeworksCount: navigationAggregate.pendingHomeworksCount,
+    highlightPendingHomeworks: navigationAggregate.highlightPendingHomeworks,
+    examsCount: navigationAggregate.examsCount,
     pendingTodosCount,
   };
 }

@@ -1,7 +1,10 @@
 import type { Prisma } from "@/generated/prisma/client";
 import { prisma, withUserDbContext } from "@/lib/db/prisma";
 
-export type CommentDbClient = Pick<Prisma.TransactionClient, "comment">;
+export type CommentDbClient = Pick<
+  Prisma.TransactionClient,
+  "$queryRaw" | "comment"
+>;
 
 export async function withCommentDbContext<T>(
   viewerUserId: string | null,

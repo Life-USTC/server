@@ -1,6 +1,20 @@
 import type { DashboardUserContext } from "@/features/dashboard/server/dashboard-user-context";
 import type { AppLocale } from "@/i18n/config";
 import { logAppEvent } from "@/lib/log/app-logger";
+import { elapsedMs, monotonicNowMs } from "@/lib/log/observability-clock";
+import {
+  createDashboardStageCounter,
+  type DashboardStage,
+  type DashboardStageCounter,
+  recordDashboardStageAnalytics,
+} from "./dashboard-stage-analytics";
+
+const DASHBOARD_STAGES = new Set<DashboardStage>([
+  "recent_session",
+  "user_context",
+  "nav_stats",
+  "tab",
+]);
 
 function inactiveStage<T>(value: T) {
   return Promise.resolve(value);
@@ -14,8 +28,9 @@ export async function timeDashboardStage<T>(
     tab: string;
   },
   work: () => Promise<T>,
+  counter?: DashboardStageCounter,
 ) {
-  const startMs = Date.now();
+  const startMs = monotonicNowMs();
   let status: "error" | "ok" = "error";
   let stageError: unknown;
   try {
@@ -31,7 +46,7 @@ export async function timeDashboardStage<T>(
       "dashboard.load.stage",
       {
         event: "dashboard.load.stage",
-        ioObservedDurationMs: Date.now() - startMs,
+        ioObservedDurationMs: elapsedMs(startMs),
         requestId: input.requestId,
         source: "dashboard",
         stage,
@@ -41,6 +56,17 @@ export async function timeDashboardStage<T>(
       },
       stageError,
     );
+    if (DASHBOARD_STAGES.has(stage as DashboardStage)) {
+      recordDashboardStageAnalytics({
+        counter,
+        details: {
+          subscribedSectionCount: input.subscribedSectionCount,
+        },
+        durationMs: elapsedMs(startMs),
+        outcome: status === "ok" ? "success" : "error",
+        stage: stage as DashboardStage,
+      });
+    }
   }
 }
 
@@ -48,7 +74,9 @@ export async function loadSignedDashboardTabData(input: {
   calendarSemesterId: number | undefined;
   context: DashboardUserContext;
   locale: AppLocale;
+  overviewWeek?: string | null;
   referenceNow: Date | undefined;
+  revealCalendarFeed?: boolean;
   requestId: string | undefined;
   tab: string;
   userId: string;
@@ -63,7 +91,14 @@ export async function loadSignedDashboardTabData(input: {
     subscribedSectionCount: input.context.sectionIds.length,
     tab: input.tab,
   };
+  // Do not wrap the whole tab in one interactive transaction. Every read
+  // model establishes its own user-scoped RLS context; keeping this
+  // orchestrator context-free allows fixed Promise.all fan-out to use the
+  // pool's bounded connections instead of queueing on one connection.
   const shouldLoadTodos = input.tab === "todos" || input.tab === "overview";
+  const semestersPromise = timeDashboardStage("semesters", stageContext, () =>
+    dashboard.getDashboardSemesters(),
+  );
   const todosPromise = shouldLoadTodos
     ? timeDashboardStage("todos", stageContext, () =>
         dashboardTabs.getTodosTabData(input.userId),
@@ -71,75 +106,123 @@ export async function loadSignedDashboardTabData(input: {
     : inactiveStage(null);
   const pendingTodosCountPromise = shouldLoadTodos
     ? todosPromise.then(
-        (todos) => todos?.filter((todo) => !todo.completed).length ?? 0,
+        (items) => items?.filter((todo) => !todo.completed).length ?? 0,
       )
     : undefined;
-
-  const [
-    navStats,
-    overview,
-    links,
-    homeworks,
-    subscriptions,
-    calendarSubscriptionUrl,
-    todos,
-    bus,
-  ] = await Promise.all([
-    timeDashboardStage("nav-stats", stageContext, () =>
+  const navStatsCounter = createDashboardStageCounter({
+    dbContext: "rls",
+    dbLabel: "app",
+  });
+  const navStatsPromise = timeDashboardStage(
+    "nav_stats",
+    stageContext,
+    async () =>
       dashboard.getDashboardNavStats(
         input.context.user,
         input.context.subscribedSections,
         input.referenceNow,
         pendingTodosCountPromise,
+        await semestersPromise,
+        navStatsCounter,
       ),
-    ),
+  );
+  const overviewPromise =
     input.tab === "overview" || input.tab === "calendar"
-      ? timeDashboardStage("overview", stageContext, () =>
-          dashboard.getDashboardOverviewData(input.userId, {
-            locale: input.locale,
-            user: input.context.user,
-            sectionIds: input.context.sectionIds,
+      ? timeDashboardStage("overview", stageContext, async () => {
+          const [semesters, overviewTodos] = await Promise.all([
+            semestersPromise,
+            todosPromise,
+          ]);
+          return dashboard.getDashboardOverviewData(input.userId, {
+            calendarMode: input.tab === "calendar" ? "semester" : "preview",
             calendarSemesterId: input.calendarSemesterId,
+            calendarTodos:
+              overviewTodos?.flatMap((todo) =>
+                !todo.completed && todo.dueAt
+                  ? [
+                      {
+                        completed: false,
+                        content: todo.content,
+                        dueAt: todo.dueAt,
+                        id: todo.id,
+                        priority: todo.priority,
+                        title: todo.title,
+                      },
+                    ]
+                  : [],
+              ) ?? undefined,
+            locale: input.locale,
+            overviewWeek: input.overviewWeek,
             referenceNow: input.referenceNow,
+            sectionIds: input.context.sectionIds,
+            semesters,
             skipLinks: input.tab === "calendar",
-          }),
-        )
-      : inactiveStage(null),
+            user: input.context.user,
+          });
+        })
+      : inactiveStage(null);
+  const linksPromise =
     input.tab === "links"
       ? timeDashboardStage("links", stageContext, () =>
           dashboardLinks.getLinksTabData(input.userId, input.locale),
         )
-      : inactiveStage(null),
+      : inactiveStage(null);
+  const homeworksPromise =
     input.tab === "homeworks"
       ? timeDashboardStage("homeworks", stageContext, () =>
           dashboardTabs.getHomeworksTabData(input.userId, input.locale, {
             sectionIds: input.context.sectionIds,
           }),
         )
-      : inactiveStage(null),
+      : inactiveStage(null);
+  const subscriptionsPromise =
     input.tab === "subscriptions" || input.tab === "exams"
       ? timeDashboardStage("subscriptions", stageContext, () =>
           dashboardTabs.getSubscriptionsTabData(input.userId, input.locale, {
-            calendarFeedToken: input.context.user.calendarFeedToken,
+            calendarFeedToken: input.revealCalendarFeed
+              ? input.context.user.calendarFeedToken
+              : undefined,
             includeExams: input.tab === "exams",
             sectionIds: input.context.sectionIds,
           }),
         )
-      : inactiveStage(null),
+      : inactiveStage(null);
+  const calendarSubscriptionUrlPromise =
     input.tab === "calendar"
       ? timeDashboardStage("calendar-subscription", stageContext, () =>
           dashboardTabs.getCalendarSubscriptionUrl(
             input.userId,
-            input.context.user.calendarFeedToken,
+            input.revealCalendarFeed
+              ? input.context.user.calendarFeedToken
+              : undefined,
           ),
         )
-      : inactiveStage(null),
-    todosPromise,
+      : inactiveStage(null);
+  const busPromise =
     input.tab === "bus"
       ? timeDashboardStage("bus", stageContext, () =>
           dashboardTabs.getBusTabData(input.userId, input.locale),
         )
-      : inactiveStage(null),
+      : inactiveStage(null);
+
+  const [
+    navStats,
+    todos,
+    overview,
+    links,
+    homeworks,
+    subscriptions,
+    calendarSubscriptionUrl,
+    bus,
+  ] = await Promise.all([
+    navStatsPromise,
+    todosPromise,
+    overviewPromise,
+    linksPromise,
+    homeworksPromise,
+    subscriptionsPromise,
+    calendarSubscriptionUrlPromise,
+    busPromise,
   ]);
 
   return {

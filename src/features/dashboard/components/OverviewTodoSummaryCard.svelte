@@ -5,8 +5,9 @@ import type {
   DashboardTodosCopy,
 } from "@/features/dashboard/lib/dashboard-controller-helpers";
 import { DASHBOARD_OVERVIEW_PREVIEW_LIMIT } from "@/features/dashboard/lib/overview-preview";
-import SoftEmptyMessage from "$lib/components/SoftEmptyMessage.svelte";
 import { Badge } from "$lib/components/ui/badge/index.js";
+import * as Empty from "$lib/components/ui/empty/index.js";
+import * as Item from "$lib/components/ui/item/index.js";
 import type { DashboardCalendarTabHref } from "./dashboard-calendar-component-types";
 import OverviewSection from "./OverviewSection.svelte";
 
@@ -50,38 +51,45 @@ export let viewAllLabel = "View all";
   {/snippet}
 
   {#if pendingTodos.length === 0}
-    <SoftEmptyMessage message={todosCopy.filterEmptyTitle} />
+    <Empty.Root class="min-h-20 border-0 px-2 py-6">
+      <Empty.Header>
+        <Empty.Description>{todosCopy.filterEmptyTitle}</Empty.Description>
+      </Empty.Header>
+    </Empty.Root>
   {:else}
-    <ul class="divide-y divide-border/60">
-      {#each pendingTodos.slice(0, previewLimit) as todo}
-        <li>
-          <a
-            class="flex items-start justify-between gap-3 py-2.5 transition-colors hover:bg-muted/40 -mx-2 px-2 rounded-md"
-            href={dashboardTabHref("todos")}
-          >
-            <span class="grid min-w-0 gap-1">
-              <span class="font-medium text-sm">{todo.title}</span>
-              <span class="flex flex-wrap gap-1.5">
-                <Badge
-                  variant={todo.priority === "high"
-                    ? "destructive"
-                    : todo.priority === "medium"
-                      ? "secondary"
-                      : "outline"}
-                >
-                  {todosCopy.priority[todo.priority]}
-                </Badge>
-                <Badge variant="ghost">{todoStatus(todo)}</Badge>
-              </span>
-            </span>
-            {#if todo.dueAt}
-              <span class="shrink-0 text-muted-foreground text-xs tabular-nums">
-                {fmtDate(todo.dueAt)}
-              </span>
-            {/if}
-          </a>
-        </li>
+    {@const todoPreview = pendingTodos.slice(0, previewLimit)}
+    <Item.Group class="gap-0">
+      {#each todoPreview as todo, index (todo.id)}
+        <Item.Root class="rounded-md border-0 px-2 py-2.5" size="sm">
+          {#snippet child({ props })}
+            <a href={dashboardTabHref("todos")} {...props}>
+              <Item.Content class="min-w-0">
+                <Item.Title>{todo.title}</Item.Title>
+                <Item.Description class="flex flex-wrap gap-1.5">
+                  <Badge
+                    variant={todo.priority === "high"
+                      ? "destructive"
+                      : todo.priority === "medium"
+                        ? "secondary"
+                        : "outline"}
+                  >
+                    {todosCopy.priority[todo.priority]}
+                  </Badge>
+                  <Badge variant="ghost">{todoStatus(todo)}</Badge>
+                </Item.Description>
+              </Item.Content>
+              {#if todo.dueAt}
+                <Item.Actions class="shrink-0">
+                  <span class="text-muted-foreground text-xs tabular-nums">
+                    {fmtDate(todo.dueAt)}
+                  </span>
+                </Item.Actions>
+              {/if}
+            </a>
+          {/snippet}
+        </Item.Root>
+        {#if index < todoPreview.length - 1}<Item.Separator class="my-0" />{/if}
       {/each}
-    </ul>
+    </Item.Group>
   {/if}
 </OverviewSection>

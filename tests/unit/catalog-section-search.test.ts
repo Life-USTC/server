@@ -13,6 +13,18 @@ function localized(value: string) {
   };
 }
 
+function general(value: string) {
+  return {
+    OR: [
+      { course: { nameCn: contains(value) } },
+      { course: { nameEn: contains(value) } },
+      { course: { code: contains(value) } },
+      { code: contains(value) },
+      { teachers: { some: localized(value) } },
+    ],
+  };
+}
+
 describe("课段搜索语法解析器", () => {
   it("识别所有标签并保留普通搜索词", () => {
     const result = parseSectionSearchQuery(
@@ -213,6 +225,14 @@ describe("课段搜索条件构造器", () => {
           ],
         },
       ],
+    });
+  });
+
+  it("普通搜索词按空白拆分并跨课程与教师字段组合为 AND", () => {
+    const result = buildSectionSearchWhere("数学分析  程艺");
+
+    expect(result.where).toEqual({
+      AND: [general("数学分析"), general("程艺")],
     });
   });
 

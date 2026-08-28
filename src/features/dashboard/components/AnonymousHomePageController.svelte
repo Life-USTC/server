@@ -70,7 +70,7 @@ $: destinations = [
   { copy: pub.cards.bus, href: "/catalog/bus", icon: BusIcon },
   {
     copy: pub.cards.mobileApp,
-    href: "/mobile-app",
+    href: "/usage/mobile",
     icon: SmartphoneIcon,
   },
 ] satisfies Destination[];

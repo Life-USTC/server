@@ -105,13 +105,11 @@ test("/admin/oauth 未登录重定向到登录页", async ({ page }, testInfo) =
   await captureStepScreenshot(page, testInfo, "admin-oauth-unauthorized");
 });
 
-test("/admin/oauth 普通用户访问返回 404", async ({ page }, testInfo) => {
+test("/admin/oauth 普通用户访问返回 403", async ({ page }, testInfo) => {
   await signInAsDebugUser(page, "/admin/oauth", "/admin/oauth");
-  await expect(page.getByText("404").first()).toBeVisible();
-  await expect(
-    page.getByRole("heading", { name: /页面不存在|Page Not Found/i }),
-  ).toBeVisible();
-  await captureStepScreenshot(page, testInfo, "admin-oauth-404");
+  await expect(page.getByText("403").first()).toBeVisible();
+  await expect(page.getByText("Forbidden").first()).toBeVisible();
+  await captureStepScreenshot(page, testInfo, "admin-oauth-403");
 });
 
 test("/admin/oauth 可创建三种固定客户端且密钥只显示一次", async ({
@@ -129,6 +127,7 @@ test("/admin/oauth 可创建三种固定客户端且密钥只显示一次", asyn
     ).toBeVisible();
 
     for (const [index, pattern] of CLIENT_PATTERNS.entries()) {
+      if (index > 0) await gotoAndWaitForReady(page, "/admin/oauth");
       const name = names[index];
       const dialog = await openCreateDialog(page);
       await expect(
@@ -138,7 +137,11 @@ test("/admin/oauth 可创建三种固定客户端且密钥只显示一次", asyn
       await dialog.getByLabel(/应用名称|Application Name/i).fill(name);
       await dialog
         .getByLabel(/重定向 URI|Redirect URIs/i)
-        .fill(`${PLAYWRIGHT_BASE_URL}/oauth-e2e/${pattern.suffix}/callback`);
+        .fill(
+          pattern.method === "none"
+            ? `${PLAYWRIGHT_BASE_URL}/oauth-e2e/${pattern.suffix}/callback`
+            : `https://client.example/oauth-e2e/${pattern.suffix}/callback`,
+        );
 
       const emailScope = dialog.getByRole("checkbox", {
         name: /查看您的邮箱地址|View your email address/i,
@@ -159,6 +162,24 @@ test("/admin/oauth 可创建三种固定客户端且密钥只显示一次", asyn
       );
       if (secret) secrets.push(secret);
 
+      const doneButton = credentialsDialog.getByRole("button", {
+        name: /完成|Done/i,
+      });
+      const savedAcknowledgement = credentialsDialog.getByRole("checkbox", {
+        name: /我已安全保存客户端密钥|I have saved the client secret securely/i,
+      });
+      if (pattern.expectSecret) {
+        await expect(doneButton).toBeDisabled();
+        await page.keyboard.press("Escape");
+        await expect(credentialsDialog).toBeVisible();
+        await savedAcknowledgement.click();
+        await expect(savedAcknowledgement).toBeChecked();
+        await expect(doneButton).toBeEnabled();
+      } else {
+        await expect(savedAcknowledgement).toHaveCount(0);
+        await expect(doneButton).toBeEnabled();
+      }
+
       const persisted = await getOAuthClientByName(name);
       expect(persisted).toMatchObject({
         disabled: false,
@@ -169,9 +190,7 @@ test("/admin/oauth 可创建三种固定客户端且密钥只显示一次", asyn
       });
       expect(persisted?.scopes).toContain("email");
 
-      await credentialsDialog
-        .getByRole("button", { name: /完成|Done/i })
-        .click();
+      await doneButton.click();
       await expect(credentialsDialog).toBeHidden();
       if (secret) {
         await expect(page.getByText(secret, { exact: true })).toHaveCount(0);

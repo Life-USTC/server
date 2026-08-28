@@ -10,8 +10,13 @@ import {
   revokeUserOAuthAuthorization,
   updateUserOAuthAuthorizationScopes,
 } from "@/features/oauth/server/user-authorizations.server";
+import {
+  fireAuditLog,
+  getAuditRequestMetadata,
+} from "@/lib/audit/write-audit-log";
 import { isTrustedAuthOrigin } from "@/lib/auth/auth-origins";
 import { verifyAccessTokenJwt } from "@/lib/auth/jwt-verification";
+import { resolveAuthoritativeRecentSession } from "@/lib/auth/recent-session";
 import { authPrisma as prisma } from "@/lib/db/auth-prisma";
 import { logAppEvent } from "@/lib/log/app-logger";
 import {
@@ -20,6 +25,7 @@ import {
   summarizeOAuthRedirectUri,
   withBetterAuthOAuthDebug,
 } from "@/lib/log/oauth-debug";
+import { elapsedMs, monotonicNowMs } from "@/lib/log/observability-clock";
 import { getSafeErrorName } from "@/lib/log/safe-error-name";
 import {
   getJwksUrlForOAuthVerification,
@@ -58,7 +64,7 @@ function recordOAuthRouteFailure(input: {
   writeOAuthEventAnalytics({
     errorName: getSafeErrorName(input.error),
     event: input.event,
-    ioObservedDurationMs: Date.now() - input.startMs,
+    ioObservedDurationMs: elapsedMs(input.startMs),
     method: input.request.method,
     path: url.pathname,
     phase: input.phase,
@@ -224,6 +230,26 @@ async function handleOAuthConsentMutation(
   if (!session?.user.id) {
     return consentMutationError(401, "Authentication required");
   }
+  const recent = await resolveAuthoritativeRecentSession(request.headers, {
+    expectedUserId: session.user.id,
+  });
+  if (!recent.ok) {
+    await fireAuditLog({
+      action:
+        mutation === "delete"
+          ? "oauth_authorization_revoke"
+          : "oauth_authorization_update",
+      channel: "auth",
+      outcome: "denied",
+      subjectUserId: session.user.id,
+      targetType: "oauth_consent",
+      userId: session.user.id,
+      ...(recent.sessionId ? { sessionId: recent.sessionId } : {}),
+      metadata: { reason: recent.reason },
+      ...getAuditRequestMetadata(request),
+    });
+    return consentMutationError(403, "Recent authentication required");
+  }
 
   let body: unknown;
   try {
@@ -240,6 +266,11 @@ async function handleOAuthConsentMutation(
     const result = await revokeUserOAuthAuthorization(
       session.user.id,
       consentId,
+      {
+        ...getAuditRequestMetadata(request),
+        channel: "auth",
+        sessionId: recent.sessionId,
+      },
     );
     return result.ok
       ? Response.json(null, { headers: { "Cache-Control": "no-store" } })
@@ -260,6 +291,11 @@ async function handleOAuthConsentMutation(
     session.user.id,
     consentId,
     update.scopes,
+    {
+      ...getAuditRequestMetadata(request),
+      channel: "auth",
+      sessionId: recent.sessionId,
+    },
   );
   if (!result.ok) {
     return consentMutationError(
@@ -399,7 +435,7 @@ async function enforceIntrospectionGrant(
 
   const token = params.get("token");
   if (!token) return inactiveIntrospectionResponse(response);
-  const startMs = Date.now();
+  const startMs = monotonicNowMs();
 
   try {
     if (token.split(".").length === 3) {
@@ -595,6 +631,7 @@ function getSingleAuthorizationClientId(request: Request) {
 }
 
 async function resolveAuthorizationCodeGrantExpectation(request: Request) {
+  const startMs = monotonicNowMs();
   const consentUpdatedBefore = new Date();
   const url = new URL(request.url);
   const isAuthorize = url.pathname.endsWith("/oauth2/authorize");
@@ -642,7 +679,7 @@ async function resolveAuthorizationCodeGrantExpectation(request: Request) {
       event: "oauth.authorization.grant-expectation-failed",
       phase: "grant-expectation",
       request,
-      startMs: consentUpdatedBefore.getTime(),
+      startMs,
     });
     return { clientId, consentUpdatedBefore };
   }
@@ -688,7 +725,7 @@ async function enforceAuthorizationCodeRedirectBinding(input: {
 
   let bound = false;
   let bindingError: unknown;
-  const startMs = Date.now();
+  const startMs = monotonicNowMs();
   try {
     bound =
       input.expectedClientId !== null &&

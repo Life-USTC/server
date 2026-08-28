@@ -3,11 +3,9 @@ import { consumeStagedUstcOidcIdentityClaims } from "@/lib/auth/ustc-oidc-identi
 import { syncUstcOidcIdentityFromAccountHook } from "@/lib/auth/ustc-oidc-identity-sync";
 
 async function handleAccountIdentityHook(account: Account | null) {
-  if (!account?.userId || !account.providerAccountId) return;
+  if (!account?.userId || !account.accountId) return;
 
-  const stagedClaims = consumeStagedUstcOidcIdentityClaims(
-    account.providerAccountId,
-  );
+  const stagedClaims = consumeStagedUstcOidcIdentityClaims(account.accountId);
   await syncUstcOidcIdentityFromAccountHook(account, stagedClaims);
 }
 

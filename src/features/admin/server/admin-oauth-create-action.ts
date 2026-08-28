@@ -6,10 +6,14 @@ import {
 import { getAdminOAuthCopy } from "@/features/admin/lib/admin-oauth-page-copy";
 import { requireAdminPage } from "@/features/admin/server/admin-page-data";
 import type { AppLocale } from "@/i18n/config";
+import { writeAuditLog } from "@/lib/audit/write-audit-log";
 import { authApi } from "@/lib/auth/core";
 import { logServerActionError } from "@/lib/log/app-logger";
 import { resolveOAuthClientGrantTypes } from "@/lib/oauth/client-registration";
-import { OAUTH_CODE_RESPONSE_TYPE } from "@/lib/oauth/constants";
+import {
+  OAUTH_CODE_RESPONSE_TYPE,
+  OAUTH_PUBLIC_CLIENT_AUTH_METHOD,
+} from "@/lib/oauth/constants";
 import { asOAuthProviderApi } from "@/lib/oauth/provider-api";
 import { parseAdminOAuthCreateRequest } from "./admin-oauth-create-request";
 
@@ -19,7 +23,10 @@ export async function createAdminOAuthClientAction(
   requestId: string,
 ) {
   const copy = getAdminOAuthCopy(locale).oauth;
-  await requireAdminPage(request, { requireActive: true });
+  const admin = await requireAdminPage(request, {
+    requireActive: true,
+    requireRecent: true,
+  });
   const parsed = await parseAdminOAuthCreateRequest(request, copy);
   if ("error" in parsed) return parsed.error;
   const { name, redirectUris, scopes, tokenEndpointAuthMethod } = parsed.value;
@@ -31,6 +38,10 @@ export async function createAdminOAuthClientAction(
       headers: request.headers,
       body: {
         client_name: name,
+        application_type:
+          tokenEndpointAuthMethod === OAUTH_PUBLIC_CLIENT_AUTH_METHOD
+            ? "native"
+            : "web",
         redirect_uris: redirectUris,
         token_endpoint_auth_method: tokenEndpointAuthMethod,
         grant_types: resolveOAuthClientGrantTypes(scopes),
@@ -45,9 +56,26 @@ export async function createAdminOAuthClientAction(
         },
       },
     });
+    await writeAuditLog({
+      action: "admin_oauth_client_create",
+      channel: "web",
+      userId: admin.id,
+      requestId,
+      targetId: result.client_id,
+      targetType: "oauth_client",
+      metadata: {
+        changedFields: [
+          "redirectUris",
+          "scopes",
+          "tokenEndpointAuthMethod",
+          "trusted",
+        ],
+      },
+    });
 
     return {
       message: copy.createSuccess,
+      variant: "default" as const,
       createdClientId: result.client_id,
       createdClientSecret: result.client_secret ?? null,
       createdClientName: name,
@@ -64,6 +92,7 @@ export async function createAdminOAuthClientAction(
     });
     return fail(500, {
       message: getOAuthActionErrorMessage(error, copy.createError),
+      variant: "destructive" as const,
     });
   }
 }

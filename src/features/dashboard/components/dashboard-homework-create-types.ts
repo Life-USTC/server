@@ -1,32 +1,20 @@
-import type { HomeworkStyleGuideCopy } from "@/features/homeworks/lib/homework-style-guide";
+import type {
+  HomeworkFormCopy,
+  HomeworkTagCopy,
+  HomeworkTimestampCopy,
+} from "@/features/homeworks/components/homework-form-types";
 
-export interface DashboardHomeworkCreateCopy extends HomeworkStyleGuideCopy {
-  [key: string]: string;
-  advancedHide: string;
-  advancedShow: string;
-  calendarButtonLabel: string;
-  cancel: string;
-  createAction: string;
-  createTitle: string;
-  descriptionLabel: string;
-  descriptionPlaceholder: string;
-  helperClear: string;
-  helperMonth: string;
-  helperPublishNow: string;
-  helperSemesterEnd: string;
-  helperStartNow: string;
-  helperWeek: string;
-  publishedAt: string;
-  sectionLabel: string;
-  saving: string;
-  submissionDue: string;
-  submissionStart: string;
-  subtitle: string;
-  tagMajor: string;
-  tagTeam: string;
-  titleLabel: string;
-  titlePlaceholder: string;
-}
+export type DashboardHomeworkCreateCopy = HomeworkFormCopy &
+  HomeworkTagCopy &
+  HomeworkTimestampCopy & {
+    [key: string]: string;
+    cancel: string;
+    createAction: string;
+    createTitle: string;
+    sectionLabel: string;
+    saving: string;
+    subtitle: string;
+  };
 
 export type DashboardHomeworkCommentsCopy = {
   markdownGuide: string;

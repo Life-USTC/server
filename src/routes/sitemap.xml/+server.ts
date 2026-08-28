@@ -13,6 +13,10 @@ const STATIC_ROUTES = [
   "/catalog/links",
   "/catalog/bus/map",
   "/api/docs/tag/catalog-section",
+  "/usage/mobile",
+  "/usage/bot",
+  "/usage/mcp",
+  "/usage/cli",
   "/privacy",
   "/terms",
 ];

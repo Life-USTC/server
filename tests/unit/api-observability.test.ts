@@ -115,13 +115,12 @@ describe("API 可观测性", () => {
     );
 
     expect(writeDataPoint).toHaveBeenCalledWith({
-      indexes: ["/api/calendar-feeds/:credential.ics"],
+      indexes: ["api:calendar-feeds"],
       blobs: [
-        "api_request_v2",
+        "api_request_v3",
         "finish",
         "GET",
-        "/api/calendar-feeds/:credential.ics",
-        "204",
+        "calendar-feeds",
         "2xx",
         "bearer",
       ],
@@ -152,7 +151,7 @@ describe("API 可观测性", () => {
     );
     expect(writeDataPoint).toHaveBeenCalledWith(
       expect.objectContaining({
-        indexes: ["/api/users/:credential/calendar.ics"],
+        indexes: ["api:users"],
       }),
     );
   });

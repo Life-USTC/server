@@ -56,7 +56,7 @@ export let todosCopy: DashboardTodosCopy;
         showCreateTodo = true;
       }}
     >
-      <Plus class="md:hidden" />
+      <Plus class="md:hidden" data-icon="inline-start" />
       <span class="hidden md:inline">{todosCopy.addButton}</span>
     </Button>
   </div>

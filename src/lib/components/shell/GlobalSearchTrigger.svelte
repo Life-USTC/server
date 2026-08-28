@@ -21,7 +21,7 @@ $: placeholder = signedIn ? copy.placeholderSignedIn : copy.placeholder;
     type="button"
     variant="outline"
   >
-    <SearchIcon class="size-4 shrink-0" />
+    <SearchIcon data-icon="inline-start" class="shrink-0" />
     <span class="truncate">{placeholder}</span>
     <span class="ml-auto hidden items-center gap-1 sm:inline-flex">
       <Kbd.Root>{shortcutLabel}</Kbd.Root>
@@ -35,6 +35,6 @@ $: placeholder = signedIn ? copy.placeholderSignedIn : copy.placeholder;
     type="button"
     variant="ghost"
   >
-    <SearchIcon class="size-5" />
+    <SearchIcon data-icon="inline-start" />
   </Button>
 {/if}

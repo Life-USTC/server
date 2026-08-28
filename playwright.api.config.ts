@@ -12,17 +12,20 @@ export default defineConfig({
   outputDir: "playwright-report/api-results",
   fullyParallel: false,
   forbidOnly: !!process.env.CI,
-  retries: process.env.CI ? 2 : 0,
+  // Infrastructure retries belong around the complete shard, never around an
+  // individual deterministic API assertion.
+  retries: 0,
   workers: 1,
   reporter: process.env.CI ? [["list"]] : [["list"]],
   use: {
     baseURL,
-    trace: "on-first-retry",
+    trace: "retain-on-failure",
   },
   webServer: {
     command: "bun run e2e:server",
     url: baseURL,
     reuseExistingServer: !process.env.CI,
+    gracefulShutdown: { signal: "SIGTERM", timeout: 10_000 },
     stdout: "ignore",
     stderr: "pipe",
     timeout: 300_000,
@@ -32,6 +35,8 @@ export default defineConfig({
       // job DATABASE_URL so ci:integration (life_ustc_integration) works.
       CLOUDFLARE_HYPERDRIVE_LOCAL_CONNECTION_STRING_HYPERDRIVE: databaseUrl,
       CLOUDFLARE_HYPERDRIVE_LOCAL_CONNECTION_STRING_HYPERDRIVE_AUTH:
+        databaseUrl,
+      CLOUDFLARE_HYPERDRIVE_LOCAL_CONNECTION_STRING_HYPERDRIVE_MAINTENANCE:
         databaseUrl,
     },
   },

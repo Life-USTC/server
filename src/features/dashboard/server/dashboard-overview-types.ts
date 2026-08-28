@@ -24,10 +24,25 @@ export type OverviewDataOptions = {
   skipLinks?: boolean;
   /** Override the current time for deterministic snapshot and test views. */
   referenceNow?: Date;
+  /** Overview renders a bounded preview; calendar renders the full selected term. */
+  calendarMode?: "preview" | "semester";
+  /** Todo snapshot already loaded for the overview cards. */
+  calendarTodos?: readonly CalendarTodoItem[];
+  /** Week selected by the overview strip, if any. */
+  overviewWeek?: string | null;
   /** User row already loaded by the page shell. */
   user?: DashboardUserSummary;
   /** Subscription ids already loaded by the page shell. */
   sectionIds?: readonly number[];
+  /** Semester rows already loaded by the page shell. */
+  semesters?: readonly DashboardSemester[];
+};
+
+export type DashboardSemester = {
+  id: number;
+  nameCn: string | null;
+  startDate: Date | null;
+  endDate: Date | null;
 };
 
 export type CalendarTodoItem = {
@@ -40,6 +55,7 @@ export type CalendarTodoItem = {
 };
 
 export type OverviewData = {
+  calendarMode: "preview" | "semester";
   user: { id: string; name: string | null; username: string | null };
   currentTermName: string;
   hasAnySelection: boolean;

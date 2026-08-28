@@ -14,6 +14,7 @@ export interface VerifiedAccessToken {
   aud: string | string[];
   clientId?: string;
   grantId?: string;
+  sessionId?: string;
 }
 
 export type AccessTokenJwtVerificationOptions = {
@@ -69,14 +70,22 @@ export async function verifyAccessTokenJwt(
   }
   const sub = payload.sub;
   if (!sub) throw new Error("Missing sub claim");
+  const azp = typeof payload.azp === "string" ? payload.azp : undefined;
+  const clientIdClaim =
+    typeof payload.client_id === "string" ? payload.client_id : undefined;
+  if (azp && clientIdClaim && azp !== clientIdClaim) {
+    throw new Error("Conflicting OAuth client claims");
+  }
+  const clientId = clientIdClaim ?? azp;
   return {
     sub,
     scope: expandScopeClaim(payload.scope),
     tokenScopes: getTokenScopes(payload.scope),
     aud: payload.aud ?? [],
-    ...(typeof payload.azp === "string" ? { clientId: payload.azp } : {}),
+    ...(clientId ? { clientId } : {}),
     ...(typeof payload[OAUTH_GRANT_ID_CLAIM] === "string"
       ? { grantId: payload[OAUTH_GRANT_ID_CLAIM] }
       : {}),
+    ...(typeof payload.sid === "string" ? { sessionId: payload.sid } : {}),
   };
 }

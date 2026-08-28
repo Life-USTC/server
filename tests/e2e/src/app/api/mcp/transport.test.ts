@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { type APIResponse, expect, test } from "@playwright/test";
 import { MCP_JSON_RPC_BATCH_LIMIT } from "@/lib/mcp/request-body";
 import { DEFAULT_OAUTH_CLIENT_SCOPES } from "@/lib/oauth/constants";
 import { MCP_BOOTSTRAP_SCOPE } from "@/lib/oauth/scope-registry";
@@ -13,10 +13,24 @@ import {
   TRUSTED_BROWSER_ORIGIN,
 } from "./helpers";
 
+async function readMcpJsonRpcResponse(response: APIResponse) {
+  const body = await response.text();
+  if (!response.headers()["content-type"]?.includes("text/event-stream")) {
+    return JSON.parse(body) as unknown;
+  }
+
+  const data = body
+    .split("\n")
+    .find((line) => line.startsWith("data: "))
+    ?.slice("data: ".length);
+  if (!data) throw new Error("MCP SSE response did not contain a data event");
+  return JSON.parse(data) as unknown;
+}
+
 test.describe("/api/mcp - 传输与授权", () => {
   test.describe.configure({ mode: "serial" });
 
-  test("/api/mcp 未认证时返回 OAuth bearer challenge", async ({ request }) => {
+  test("/api/mcp 未认证时可以初始化", async ({ request }) => {
     const response = await request.post("/api/mcp", {
       data: {
         jsonrpc: "2.0",
@@ -32,8 +46,62 @@ test.describe("/api/mcp - 传输与授权", () => {
         },
       },
       headers: {
+        Accept: "application/json, text/event-stream",
         "MCP-Protocol-Version": "2025-03-26",
       },
+    });
+
+    expect(response.status()).toBe(200);
+    expect(response.headers()["www-authenticate"]).toBeUndefined();
+    await expect(readMcpJsonRpcResponse(response)).resolves.toMatchObject({
+      jsonrpc: "2.0",
+      result: {
+        protocolVersion: expect.any(String),
+        serverInfo: expect.objectContaining({ name: expect.any(String) }),
+      },
+      id: 1,
+    });
+  });
+
+  test("/api/mcp 未认证时可以调用公开 catalog 工具", async ({ request }) => {
+    const response = await request.post("/api/mcp", {
+      data: {
+        jsonrpc: "2.0",
+        id: 1,
+        method: "tools/call",
+        params: {
+          name: "catalog_semester_current",
+          arguments: { mode: "default" },
+        },
+      },
+      headers: {
+        Accept: "application/json, text/event-stream",
+        "MCP-Protocol-Version": "2025-03-26",
+      },
+    });
+
+    expect(response.status()).toBe(200);
+    expect(response.headers()["www-authenticate"]).toBeUndefined();
+    await expect(readMcpJsonRpcResponse(response)).resolves.toMatchObject({
+      jsonrpc: "2.0",
+      id: 1,
+      result: {
+        structuredContent: expect.objectContaining({ success: true }),
+      },
+    });
+  });
+
+  test("/api/mcp 未认证调用私有工具时返回 OAuth bearer challenge", async ({
+    request,
+  }) => {
+    const response = await request.post("/api/mcp", {
+      data: {
+        jsonrpc: "2.0",
+        id: 1,
+        method: "tools/call",
+        params: { name: "workspace_todo_list", arguments: {} },
+      },
+      headers: { "MCP-Protocol-Version": "2025-03-26" },
     });
 
     expect(response.status()).toBe(401);
@@ -43,11 +111,6 @@ test.describe("/api/mcp - 传输与授权", () => {
     expect(response.headers()["www-authenticate"]).toContain(
       `scope="${MCP_BOOTSTRAP_SCOPE}"`,
     );
-    await expect(response.json()).resolves.toMatchObject({
-      jsonrpc: "2.0",
-      error: { code: -32000 },
-      id: null,
-    });
   });
 
   test("/api/mcp 在认证后拒绝超过 64 KiB 的请求体", async ({
@@ -64,7 +127,7 @@ test.describe("/api/mcp - 传输与授权", () => {
       data: oversizedBody,
       headers,
     });
-    expect(unauthenticatedResponse.status()).toBe(401);
+    expect(unauthenticatedResponse.status()).toBe(413);
 
     const resource = `${PLAYWRIGHT_BASE_URL}/api/mcp`;
     await signInAsDebugUser(page, "/");
@@ -179,11 +242,11 @@ test.describe("/api/mcp - 传输与授权", () => {
         "MCP-Protocol-Version": "2025-03-26",
       },
     });
-    expect(unauthenticatedResponse.status()).toBe(401);
+    expect(unauthenticatedResponse.status()).toBe(200);
     expectMcpCorsHeaders(unauthenticatedResponse.headers(), origin);
-    expect(unauthenticatedResponse.headers()["www-authenticate"]).toContain(
-      "resource_metadata=",
-    );
+    expect(
+      unauthenticatedResponse.headers()["www-authenticate"],
+    ).toBeUndefined();
 
     const resource = `${PLAYWRIGHT_BASE_URL}/api/mcp`;
     await signInAsDebugUser(page, "/");
@@ -276,15 +339,8 @@ test.describe("/api/mcp - 传输与授权", () => {
       data: {
         jsonrpc: "2.0",
         id: 1,
-        method: "initialize",
-        params: {
-          protocolVersion: "2025-03-26",
-          capabilities: {},
-          clientInfo: {
-            name: "insufficient-scope-e2e-client",
-            version: "1.0.0",
-          },
-        },
+        method: "tools/call",
+        params: { name: "workspace_todo_list", arguments: {} },
       },
       headers: {
         Authorization: `Bearer ${accessToken}`,

@@ -2,12 +2,9 @@ import { describe, expect, it } from "vitest";
 import {
   missingSnapshotRowsWhere,
   parseBooleanSetting,
-  parseOptionalNonNegativeIntegerSetting,
-  parseOptionalSha256Setting,
   parsePositiveIntegerSetting,
   parseSnapshotGeneratedAt,
   validateMappedSectionJwIds,
-  validateSectionRetirementSnapshotApproval,
   validateSnapshotCompleteness,
 } from "@/static-loader/validation";
 
@@ -57,33 +54,19 @@ describe("static loader configuration", () => {
     ["1", false, true],
     ["FALSE", true, false],
     ["0", true, false],
-  ])("parses boolean setting %s with default %s", (value, defaultValue, expected) => {
-    expect(
-      parseBooleanSetting("STATIC_LOADER_DRY_RUN", value, defaultValue),
-    ).toBe(expected);
-  });
+  ])(
+    "parses boolean setting %s with default %s",
+    (value, defaultValue, expected) => {
+      expect(
+        parseBooleanSetting("STATIC_LOADER_DRY_RUN", value, defaultValue),
+      ).toBe(expected);
+    },
+  );
 
   it("rejects an invalid boolean instead of falling back to a write-enabled default", () => {
     expect(() =>
       parseBooleanSetting("STATIC_LOADER_DRY_RUN", "treu", false),
     ).toThrow("STATIC_LOADER_DRY_RUN");
-  });
-
-  it("keeps missing-Section retirement disabled unless explicitly enabled", () => {
-    expect(
-      parseBooleanSetting(
-        "STATIC_LOADER_RETIRE_MISSING_SECTIONS",
-        undefined,
-        false,
-      ),
-    ).toBe(false);
-    expect(
-      parseBooleanSetting(
-        "STATIC_LOADER_RETIRE_MISSING_SECTIONS",
-        "true",
-        false,
-      ),
-    ).toBe(true);
   });
 
   it.each([
@@ -96,55 +79,14 @@ describe("static loader configuration", () => {
     ).toBe(expected);
   });
 
-  it.each([
-    "",
-    "401x",
-    "401.5",
-    "0",
-    "-1",
-  ])("rejects invalid positive integer %s", (value) => {
-    expect(() =>
-      parsePositiveIntegerSetting("STATIC_LOADER_MIN_SEMESTER", value, 401),
-    ).toThrow("STATIC_LOADER_MIN_SEMESTER");
-  });
-
-  it("parses optional retirement approval settings", () => {
-    expect(
-      parseOptionalNonNegativeIntegerSetting(
-        "STATIC_LOADER_EXPECTED_SECTION_RETIREMENT_CANDIDATES",
-        "0",
-      ),
-    ).toBe(0);
-    expect(
-      parseOptionalNonNegativeIntegerSetting(
-        "STATIC_LOADER_EXPECTED_SECTION_RETIREMENT_CANDIDATES",
-        "",
-      ),
-    ).toBeNull();
-    expect(
-      parseOptionalSha256Setting(
-        "STATIC_LOADER_EXPECTED_SNAPSHOT_SHA256",
-        "A".repeat(64),
-      ),
-    ).toBe("a".repeat(64));
-  });
-
-  it("requires an exact snapshot approval before retirement", () => {
-    expect(() =>
-      validateSectionRetirementSnapshotApproval({
-        enabled: true,
-        expectedSnapshotSha256: null,
-        snapshotSha256: "a".repeat(64),
-      }),
-    ).toThrow("STATIC_LOADER_EXPECTED_SNAPSHOT_SHA256");
-    expect(() =>
-      validateSectionRetirementSnapshotApproval({
-        enabled: true,
-        expectedSnapshotSha256: "b".repeat(64),
-        snapshotSha256: "a".repeat(64),
-      }),
-    ).toThrow("does not match downloaded snapshot");
-  });
+  it.each(["", "401x", "401.5", "0", "-1"])(
+    "rejects invalid positive integer %s",
+    (value) => {
+      expect(() =>
+        parsePositiveIntegerSetting("STATIC_LOADER_MIN_SEMESTER", value, 401),
+      ).toThrow("STATIC_LOADER_MIN_SEMESTER");
+    },
+  );
 
   it("requires a valid snapshot generation timestamp", () => {
     const now = new Date("2026-07-18T03:00:00.000Z");
@@ -286,24 +228,24 @@ describe("snapshot completeness validation", () => {
     ).toThrow("expected chunk metadata");
   });
 
-  it.each([
-    "catalog_teach_lesson_list_for_teach",
-    "catalog_teach_exam_list",
-  ])("rejects a missing successful %s fetch", (missingSource) => {
-    expect(() =>
-      validateSnapshotCompleteness(
-        {
-          metadata,
-          semesterRows: semesterRows(401),
-          catalogLessonRows: lessonRows(401, 1),
-          fetchRows: completeFetches(401, 1).filter(
-            (row) => row.source !== missingSource,
-          ),
-        },
-        401,
-      ),
-    ).toThrow(missingSource);
-  });
+  it.each(["catalog_teach_lesson_list_for_teach", "catalog_teach_exam_list"])(
+    "rejects a missing successful %s fetch",
+    (missingSource) => {
+      expect(() =>
+        validateSnapshotCompleteness(
+          {
+            metadata,
+            semesterRows: semesterRows(401),
+            catalogLessonRows: lessonRows(401, 1),
+            fetchRows: completeFetches(401, 1).filter(
+              (row) => row.source !== missingSource,
+            ),
+          },
+          401,
+        ),
+      ).toThrow(missingSource);
+    },
+  );
 
   it("ignores semesters below the configured import boundary", () => {
     expect(() =>

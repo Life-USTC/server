@@ -6,6 +6,7 @@ import {
 import { PUBLIC_REST_SCOPES } from "@/lib/oauth/scope-registry";
 import {
   getMcpToolOutputSchema,
+  getMcpToolOutputSchemaForMode,
   getMcpToolOutputSchemaNames,
   hasMcpToolOutputSchema,
   type McpToolOutputSchema,
@@ -14,12 +15,15 @@ import {
   getExplicitMcpToolScopeNames,
   getRequiredMcpScopes,
   hasExplicitMcpToolScopes,
+  isPublicMcpTool,
 } from "./tool-scopes";
 
-type ToolSecurityScheme = {
-  type: "oauth2";
-  scopes: string[];
-};
+type ToolSecurityScheme =
+  | { type: "noauth" }
+  | {
+      type: "oauth2";
+      scopes: string[];
+    };
 
 type ToolDescriptorDefaults = {
   title: string;
@@ -129,12 +133,15 @@ export function installMcpToolListCompatibility(server: McpServer) {
 export function getMcpToolDescriptorDefaults(
   name: string,
 ): ToolDescriptorDefaults {
+  const isPublic = isPublicMcpTool(name);
   const requiredScopes = getRequiredMcpScopes(name);
   const scopes =
     requiredScopes.length > 0 ? requiredScopes : [...PUBLIC_REST_SCOPES];
-  const isWrite = scopes.some(isWriteScope);
+  const isWrite = !isPublic && scopes.some(isWriteScope);
   const title = humanizeToolName(name);
-  const securitySchemes: ToolSecurityScheme[] = [{ type: "oauth2", scopes }];
+  const securitySchemes: ToolSecurityScheme[] = isPublic
+    ? [{ type: "noauth" }]
+    : [{ type: "oauth2", scopes }];
 
   return {
     title,
@@ -159,10 +166,13 @@ export function installMcpToolDescriptorDefaults(server: McpServer) {
 
   server.registerTool = ((name, config, callback) => {
     const defaults = getMcpToolDescriptorDefaults(name);
+    const hasExplicitOutputSchema = config.outputSchema !== undefined;
+    const outputSchema = (config.outputSchema ??
+      defaults.outputSchema) as McpToolOutputSchema;
     const mergedConfig = {
       ...config,
       title: config.title ?? defaults.title,
-      outputSchema: config.outputSchema ?? defaults.outputSchema,
+      outputSchema,
       annotations: {
         ...defaults.annotations,
         ...config.annotations,
@@ -173,9 +183,27 @@ export function installMcpToolDescriptorDefaults(server: McpServer) {
         securitySchemes:
           config._meta?.securitySchemes ?? defaults.securitySchemes,
       },
-    } as typeof config;
+    } as unknown as typeof config;
 
-    const registered = registerTool(name, mergedConfig, callback);
+    const validatedCallback = (async (args: unknown, extra: unknown) => {
+      const result = await (
+        callback as unknown as (
+          args: unknown,
+          extra: unknown,
+        ) => unknown | Promise<unknown>
+      )(args, extra);
+      if (isRecord(result) && isRecord(result.structuredContent)) {
+        const mode =
+          isRecord(args) && args.mode === "full" ? "full" : "default";
+        const validationSchema = hasExplicitOutputSchema
+          ? outputSchema
+          : getMcpToolOutputSchemaForMode(name, mode);
+        validationSchema.parse(result.structuredContent);
+      }
+      return result;
+    }) as unknown as typeof callback;
+
+    const registered = registerTool(name, mergedConfig, validatedCallback);
     names.add(name);
     return registered;
   }) as typeof server.registerTool;

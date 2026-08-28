@@ -59,8 +59,8 @@ test.describe("GET /api/workspace/subscriptions/current 接口", () => {
         userId?: string;
         note?: string | null;
         sections?: Array<{ id?: number }>;
-        calendarPath?: string;
-        calendarUrl?: string;
+        calendarPath?: string | null;
+        calendarUrl?: string | null;
       } | null;
     };
     expect(body.subscription).not.toBeNull();
@@ -70,18 +70,12 @@ test.describe("GET /api/workspace/subscriptions/current 接口", () => {
       body.subscription?.sections?.some((s) => s.id === seedSection?.id),
     ).toBe(true);
 
-    // Verify CalendarSubscription fields
+    // Session authentication never reveals the long-lived private calendar
+    // bearer credential. Only the dedicated OAuth scope can populate it.
     const sub = body.subscription as Record<string, unknown>;
     expect(Object.hasOwn(sub, "note")).toBe(true);
-    expect(typeof sub.calendarPath).toBe("string");
-    expect(sub.calendarPath as string).toMatch(
-      /^\/api\/calendar-feeds\/[^/]+\.ics$/,
-    );
-    expect(typeof sub.calendarUrl).toBe("string");
-    expect((sub.calendarUrl as string).startsWith("http")).toBe(true);
-    expect(sub.calendarUrl as string).toMatch(
-      /\/api\/calendar-feeds\/[^/]+\.ics$/,
-    );
+    expect(sub.calendarPath).toBeNull();
+    expect(sub.calendarUrl).toBeNull();
   });
 
   test("反映 POST 修改后的状态", async ({ request }) => {

@@ -89,6 +89,15 @@ export function canManageSectionHomework(
   );
 }
 
+export function sectionHomeworkStatus(
+  homework: SectionHomework,
+  homeworkCopy: SectionDetailCopy["homeworks"],
+) {
+  return homework.completion
+    ? homeworkCopy.completedLabel
+    : homeworkCopy.pendingLabel;
+}
+
 export function sectionHomeworkAuditLogs(
   logs: HomeworkAuditLog[],
   homeworkId: string,
