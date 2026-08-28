@@ -136,6 +136,7 @@
           "todo.content (description)",
           "todo.priority",
           "todo.dueAt",
+          "detail popup stacks title, then a due card with relative urgency plus priority and completion chips, then content; completion/edit/delete stay in the footer",
           "completed status action button",
           "filter: incomplete/completed/all",
           "mobile compact toolbar with direct completion filters and overflow display-mode control"

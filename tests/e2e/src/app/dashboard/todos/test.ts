@@ -220,8 +220,11 @@ test.describe("仪表盘待办", () => {
         name: new RegExp(DEV_SEED.todos.dueTodayTitle),
       }),
     ).toBeVisible();
+    const summary = dialog.getByTestId("todo-detail-summary");
+    await expect(summary).toBeVisible();
+    await expect(summary.getByText(/高|High/i).first()).toBeVisible();
     await expect(
-      dialog.getByText(/待处理|已完成|Pending|Completed/i).first(),
+      summary.getByText(/待处理|已完成|Pending|Completed/i).first(),
     ).toBeVisible();
 
     await expectDialogAction(dialog, /删除待办|Delete todo/i);

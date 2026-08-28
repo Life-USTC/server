@@ -18,8 +18,12 @@ import { cn } from "$lib/utils.js";
 
 export let deleteTodo: (todo: DashboardTodoItem) => void | Promise<void>;
 export let fmtDate: (value: string | Date | null | undefined) => string;
+export let isDueOverdue: (value: string | Date | null | undefined) => boolean;
 export let onClose: () => void;
 export let openTodoEditor: (todo: DashboardTodoItem) => void;
+export let relativeDueLabel: (
+  value: string | Date | null | undefined,
+) => string;
 export let todo: DashboardTodoItem | null;
 export let todoActionLabel: (todo: DashboardTodoItem) => string;
 export let todoSavingById: Record<string, boolean>;
@@ -47,6 +51,12 @@ async function confirmDelete(event: MouseEvent) {
     deletePending = false;
   }
 }
+
+function priorityVariant(priority: string) {
+  if (priority === "high") return "destructive" as const;
+  if (priority === "medium") return "secondary" as const;
+  return "outline" as const;
+}
 </script>
 
 {#if todo}
@@ -62,22 +72,53 @@ async function confirmDelete(event: MouseEvent) {
     <Dialog.Content
       class="flex h-[calc(100dvh-2rem)] max-h-[calc(100dvh-2rem)] min-h-0 max-w-lg flex-col gap-0 overflow-clip p-0 sm:h-[min(64vh,36rem)] sm:max-h-[min(64vh,36rem)] sm:max-w-lg"
     >
-      <Dialog.Header class="shrink-0 px-5 pb-2 pt-4">
+      <Dialog.Header class="shrink-0 px-5 pb-2 pt-4 pr-12">
         <Dialog.Title class="break-words">{todo.title}</Dialog.Title>
-        <Dialog.Description>
+        <Dialog.Description class="sr-only">
           {todosCopy.priority[todo.priority]} · {fmtDate(todo.dueAt)}
         </Dialog.Description>
       </Dialog.Header>
       <ScrollArea class="h-0 min-h-0 flex-1">
         <div class="grid min-w-0 gap-4 px-5 py-4">
+          <dl
+            class="grid min-w-0 gap-3 rounded-xl bg-muted/40 p-4"
+            data-testid="todo-detail-summary"
+          >
+            <div class="min-w-0">
+              <dt class="text-muted-foreground text-sm">{todosCopy.dueAtLabel}</dt>
+              <dd class="mt-1 text-xl font-semibold tracking-tight">
+                {fmtDate(todo.dueAt)}
+              </dd>
+              {#if todo.dueAt}
+                <dd
+                  class={cn(
+                    "mt-1 text-sm",
+                    isDueOverdue(todo.dueAt)
+                      ? "text-destructive font-medium"
+                      : "text-muted-foreground",
+                  )}
+                >
+                  {relativeDueLabel(todo.dueAt)}
+                </dd>
+              {/if}
+            </div>
+            <div class="flex min-w-0 flex-wrap items-center gap-2">
+              <dt class="sr-only">{todosCopy.priorityLabel}</dt>
+              <dd class="contents">
+                <Badge variant={priorityVariant(todo.priority)}>
+                  {todosCopy.priority[todo.priority]}
+                </Badge>
+                <Badge variant={todo.completed ? "secondary" : "outline"}>
+                  {todoStatus(todo)}
+                </Badge>
+              </dd>
+            </div>
+          </dl>
           {#if todo.content}
             <MarkdownPreview class="min-w-0 break-words text-sm" content={todo.content} />
           {:else}
             <p class="text-muted-foreground text-sm">{todosCopy.contentEmpty}</p>
           {/if}
-          <div class="flex flex-wrap gap-2">
-            <Badge>{todoStatus(todo)}</Badge>
-          </div>
         </div>
       </ScrollArea>
       <Dialog.Footer class="mx-0 mb-0 shrink-0 p-4">

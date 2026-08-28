@@ -247,7 +247,7 @@
           "user completion status",
           "edit action",
           "cards/list view mode persisted in browser storage",
-          "detail popup is one scrollable column: due summary, description, collapsible secondary metadata excluding platform createdAt, full-width discussion; edit/completion stay in the footer; do not use a two-column overlay",
+          "detail popup is one scrollable column: due summary stacks datetime then relative urgency with completion and tag chips on the same card (no status side column), then description, then collapsible publication/open times that do not repeat due date, tags, or platform createdAt, then full-width discussion; edit/completion stay in the footer; do not use a two-column overlay",
           "section cards use a responsive multi-column layout",
           "create and edit forms expose the same collapsible advisory homework title and description style guide"
         ]

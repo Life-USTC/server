@@ -4,7 +4,6 @@ import type {
   HomeworkDateValue,
   HomeworkDetailModel,
 } from "@/features/homeworks/lib/homework-presentation";
-import { Badge } from "$lib/components/ui/badge/index.js";
 import { Button } from "$lib/components/ui/button/index.js";
 import * as Collapsible from "$lib/components/ui/collapsible/index.js";
 import type {
@@ -16,10 +15,6 @@ export let copy: HomeworkDetailCopy;
 export let fmtDate: HomeworkDetailDateFormatter;
 export let homework: HomeworkDetailModel;
 
-$: detailTags = [
-  ...(homework.isMajor ? [copy.tagMajor] : []),
-  ...(homework.requiresTeam ? [copy.tagTeam] : []),
-];
 let detailsOpen = false;
 
 function displayDate(value: HomeworkDateValue) {
@@ -36,14 +31,7 @@ function displayDate(value: HomeworkDateValue) {
           class="h-10 w-full justify-between px-1 text-left"
           variant="ghost"
         >
-          <span class="flex min-w-0 items-center gap-2">
-            <span class="shrink-0 font-medium">{copy.moreDetails}</span>
-            {#if detailTags.length > 0}
-              <span class="text-muted-foreground min-w-0 truncate text-sm font-normal">
-                {detailTags.join(" · ")}
-              </span>
-            {/if}
-          </span>
+          <span class="font-medium">{copy.moreDetails}</span>
           <ChevronDownIcon
             data-icon="inline-end"
             aria-hidden="true"
@@ -62,19 +50,6 @@ function displayDate(value: HomeworkDateValue) {
           <dt class="text-muted-foreground text-xs">{copy.publishedAt}</dt>
           <dd class="mt-1 text-sm font-medium">{displayDate(homework.publishedAt)}</dd>
         </div>
-        {#if detailTags.length > 0}
-          <div class="flex flex-wrap items-center gap-2 sm:col-span-2">
-            <dt class="text-muted-foreground text-xs">{copy.moreDetails}</dt>
-            <dd class="flex flex-wrap gap-2">
-              {#if homework.isMajor}
-                <Badge variant="outline">{copy.tagMajor}</Badge>
-              {/if}
-              {#if homework.requiresTeam}
-                <Badge variant="outline">{copy.tagTeam}</Badge>
-              {/if}
-            </dd>
-          </div>
-        {/if}
       </dl>
     </Collapsible.Content>
   </Collapsible.Root>

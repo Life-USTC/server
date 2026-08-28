@@ -5,7 +5,11 @@ import type {
   DashboardTodoItem,
   DashboardTodosCopy,
 } from "./dashboard-controller-types";
-import { formatDashboardDateTime } from "./date-formatters";
+import {
+  formatDashboardDateTime,
+  formatDashboardDueRelativeTime,
+  isDashboardDueOverdue,
+} from "./date-formatters";
 import {
   todoActionLabel as buildTodoActionLabel,
   todoStatus as buildTodoStatus,
@@ -44,5 +48,14 @@ export function createTodoTabDisplayActions({
         completed: dashboardCopy.completedStatus,
         pending: dashboardCopy.pendingStatus,
       }),
+    relativeDueLabel: (value: Date | string | null | undefined) =>
+      formatDashboardDueRelativeTime(
+        value,
+        sectionCopy.dateTBD,
+        referenceDate,
+        locale,
+      ),
+    isDueOverdue: (value: Date | string | null | undefined) =>
+      isDashboardDueOverdue(value, referenceDate),
   };
 }
