@@ -20,12 +20,7 @@ type FooterCopy = {
   terms: string;
 };
 
-const workspaceRoots = [
-  "/admin",
-  "/workspace",
-  "/account/settings",
-  "/account/welcome",
-];
+const workspaceRoots = ["/admin", "/workspace", "/account/settings"];
 
 function matchesPathRoot(pathname: string, root: string) {
   return pathname === root || pathname.startsWith(`${root}/`);
@@ -35,8 +30,17 @@ export function isDetailWorkspacePath(pathname: string) {
   return /^\/catalog\/(courses|sections|teachers)\/[^/]+/.test(pathname);
 }
 
+export function isOnboardingPath(pathname: string) {
+  return matchesPathRoot(pathname, "/account/welcome");
+}
+
+export function shouldUseFocusedShell(pathname: string) {
+  return isOnboardingPath(pathname);
+}
+
 export function shouldShowAppFooter(pathname: string, signedIn: boolean) {
   if (isDetailWorkspacePath(pathname)) return false;
+  if (isOnboardingPath(pathname)) return false;
   if (workspaceRoots.some((root) => matchesPathRoot(pathname, root))) {
     return false;
   }

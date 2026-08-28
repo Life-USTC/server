@@ -77,9 +77,16 @@ test("/account/welcome 资料步骤显示必填字段与进度", async ({
 
     // Only the current step is rendered, so later steps stay out of the way.
     await expect(page.getByText(/第 1 步|Step 1 of/i)).toBeVisible();
+    await expect(page.getByTestId("app-sidebar")).toHaveCount(0);
+    await expect(
+      page.getByRole("button", { name: /打开搜索|Open search/i }),
+    ).toHaveCount(0);
+    await expect(
+      page.locator('[data-shell-navigation="mobile-primary"]'),
+    ).toHaveCount(0);
     await expect(
       page.getByRole("button", {
-        name: /批量添加订阅|Bulk Add Subscriptions/i,
+        name: /识别并匹配课程|Match Sections/i,
       }),
     ).toHaveCount(0);
 
@@ -292,6 +299,19 @@ test("/account/welcome 订阅步骤提供浏览班级与批量匹配入口", asy
     { testInfo, screenshotLabel: "welcome-subscriptions" },
   );
 
+  await expect(page.getByTestId("app-sidebar")).toHaveCount(0);
+  await expect(
+    page.getByRole("button", { name: /打开搜索|Open search/i }),
+  ).toHaveCount(0);
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+
+  await expect(
+    page.getByText(/不是官方教务|not the official academic system/i),
+  ).toBeVisible();
+  await expect(page.locator("code", { hasText: "001013.01" })).toBeVisible();
+  await expect(page.locator("code", { hasText: "COMP3001.01" })).toBeVisible();
+  await expect(page.locator("code", { hasText: /^COMP3001$/ })).toBeVisible();
+
   await expect(
     page.getByRole("link", { name: /浏览班级|Browse Sections/i }),
   ).toBeVisible();
@@ -299,23 +319,14 @@ test("/account/welcome 订阅步骤提供浏览班级与批量匹配入口", asy
     page.getByRole("link", { name: /浏览课程|Browse Courses/i }),
   ).toBeVisible();
 
-  // semesters[] dropdown options (defaultSemesterId preselected)
-  const bulkImportBtn = page.getByRole("button", {
-    name: /批量添加订阅|Bulk Add Subscriptions/i,
-  });
-  await expect(bulkImportBtn).toBeVisible();
-  await bulkImportBtn.click();
-  const dialog = page
-    .getByRole("dialog")
-    .or(page.getByRole("alertdialog"))
-    .first();
-  await expect(dialog).toBeVisible({ timeout: 8_000 });
-  const semesterSelector = dialog
+  const semesterSelector = page
     .getByRole("combobox", { name: /^(学期|Semester)\b/i })
     .first();
   await expect(semesterSelector).toBeVisible();
   await expect(semesterSelector).toContainText(DEV_SEED.semesterNameCn);
-  await page.keyboard.press("Escape");
+  await expect(
+    page.getByRole("button", { name: /识别并匹配课程|Match Sections/i }),
+  ).toBeVisible();
 
   await captureStepScreenshot(page, testInfo, "welcome/next-steps");
 });
@@ -339,6 +350,10 @@ test("/account/welcome 最后一步展示平台引导并可返回上一步", asy
   await expect(
     page.getByText(/账户与安全|Account and security/i),
   ).toBeVisible();
+  await expect(page.getByTestId("app-sidebar")).toHaveCount(0);
+  await expect(
+    page.getByRole("button", { name: /打开搜索|Open search/i }),
+  ).toHaveCount(0);
   await captureStepScreenshot(page, testInfo, "welcome/finish");
 
   await page.getByRole("link", { name: /上一步|Back/i }).click();

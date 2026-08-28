@@ -5,12 +5,11 @@ export function createWelcomeControllerDefaultState(input: {
   userImage?: string | null;
 }) {
   return {
+    areResultsVisible: false,
     importError: "",
     importMessage: "",
     importText: "",
-    isBulkImportOpen: false,
     isCompletingProfile: false,
-    isConfirmImportOpen: false,
     isImporting: false,
     isMatching: false,
     matchedSections: [] as WelcomeMatchedSection[],

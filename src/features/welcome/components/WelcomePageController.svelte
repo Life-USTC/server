@@ -1,10 +1,9 @@
 <script lang="ts">
 import WelcomeGuideCard from "@/features/welcome/components/WelcomeGuideCard.svelte";
-import WelcomeImportDialogs from "@/features/welcome/components/WelcomeImportDialogs.svelte";
-import WelcomeNextStepsCard from "@/features/welcome/components/WelcomeNextStepsCard.svelte";
 import WelcomeOAuthProfileCard from "@/features/welcome/components/WelcomeOAuthProfileCard.svelte";
 import WelcomeProfileForm from "@/features/welcome/components/WelcomeProfileForm.svelte";
 import WelcomeStepper from "@/features/welcome/components/WelcomeStepper.svelte";
+import WelcomeSubscriptionsStep from "@/features/welcome/components/WelcomeSubscriptionsStep.svelte";
 import { createWelcomeBulkImportActions } from "@/features/welcome/lib/welcome-bulk-import-actions";
 import { createWelcomeControllerDefaultState } from "@/features/welcome/lib/welcome-controller-default-state";
 import {
@@ -26,12 +25,11 @@ export let data: WelcomePageData;
 export let form: WelcomeActionData;
 
 let {
+  areResultsVisible,
   importError,
   importMessage,
   importText,
-  isBulkImportOpen,
   isCompletingProfile: _isCompletingProfile,
-  isConfirmImportOpen,
   isImporting,
   isMatching,
   matchedSections,
@@ -68,7 +66,7 @@ function displayName(item?: WelcomeMatchedSection["course"] | null) {
   return displayWelcomeName(item, data.locale);
 }
 
-const { confirmImport, matchSections, resetBulkImport, setSectionSelection } =
+const { confirmImport, matchSections, setSectionSelection } =
   createWelcomeBulkImportActions({
     formatCopy,
     getBulkCopy: () => bulkCopy,
@@ -77,12 +75,6 @@ const { confirmImport, matchSections, resetBulkImport, setSectionSelection } =
     getSelectedSectionIds: () => selectedSectionIds,
     getSelectedSemesterId: () => selectedSemesterId,
     getWelcomeCopy: () => welcomeCopy,
-    setBulkImportOpen: (value) => {
-      isBulkImportOpen = value;
-    },
-    setConfirmImportOpen: (value) => {
-      isConfirmImportOpen = value;
-    },
     setImportError: (value) => {
       importError = value;
     },
@@ -101,6 +93,9 @@ const { confirmImport, matchSections, resetBulkImport, setSectionSelection } =
     setMatching: (value) => {
       isMatching = value;
     },
+    setResultsVisible: (value) => {
+      areResultsVisible = value;
+    },
     setSelectedSectionIds: (value) => {
       selectedSectionIds = value;
     },
@@ -118,7 +113,7 @@ const completeProfileAction = createCompleteProfileAction({
 
 <svelte:head><title>{welcomeCopy.title} - Life@USTC</title></svelte:head>
 
-<section class="mx-auto grid min-h-[calc(100vh-14rem)] w-full max-w-xl content-start gap-6 py-10">
+<section class="mx-auto grid min-h-[calc(100dvh-8rem)] w-full max-w-xl content-start gap-6 py-8">
   <WelcomeStepper {progressLabel} steps={data.stepIndicators} />
 
   {#if data.step === "profile"}
@@ -144,17 +139,9 @@ const completeProfileAction = createCompleteProfileAction({
       {welcomeCopy}
     />
   {:else if data.step === "subscriptions"}
-    <WelcomeNextStepsCard
+    <WelcomeSubscriptionsStep
+      {areResultsVisible}
       backUrl={data.backUrl}
-      {importMessage}
-      nextUrl={data.nextUrl}
-      onOpenBulkImport={() => {
-        isBulkImportOpen = true;
-      }}
-      {welcomeCopy}
-    />
-
-    <WelcomeImportDialogs
       {bulkCopy}
       {canMatch}
       {confirmImport}
@@ -163,13 +150,11 @@ const completeProfileAction = createCompleteProfileAction({
       {importError}
       {importMessage}
       bind:importText
-      bind:isBulkImportOpen
-      bind:isConfirmImportOpen
       {isImporting}
       {isMatching}
       {matchSections}
       {matchedSections}
-      {resetBulkImport}
+      nextUrl={data.nextUrl}
       {selectedCount}
       {selectedSectionIdSet}
       bind:selectedSemesterId

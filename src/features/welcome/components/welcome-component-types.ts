@@ -43,6 +43,18 @@ export type WelcomeCopy = Record<string, string> & {
   matchedSummary: string;
   nextStepsDescription: string;
   nextStepsTitle: string;
+  subscriptionsBrowseDescription: string;
+  subscriptionsBrowseTitle: string;
+  subscriptionsCodeExampleCourse: string;
+  subscriptionsCodeExampleCourseHint: string;
+  subscriptionsCodeExampleCourseSection: string;
+  subscriptionsCodeExampleCourseSectionHint: string;
+  subscriptionsCodeExampleSection: string;
+  subscriptionsCodeExampleSectionHint: string;
+  subscriptionsCodesDescription: string;
+  subscriptionsCodesTitle: string;
+  subscriptionsWhyDescription: string;
+  subscriptionsWhyTitle: string;
   noMatchingSections: string;
   sectionCodesLabel: string;
   selectSection: string;

@@ -1,8 +1,10 @@
 import { describe, expect, it } from "vitest";
 import {
   isDetailWorkspacePath,
+  isOnboardingPath,
   resolveShellTheme,
   shouldShowAppFooter,
+  shouldUseFocusedShell,
 } from "@/lib/components/shell/layout-shell";
 
 describe("application shell footer policy", () => {
@@ -29,6 +31,18 @@ describe("application shell footer policy", () => {
     ["/catalog/courses/123", false, false],
   ])("pathname %s with signedIn=%s shows footer=%s", (pathname, signedIn, expected) => {
     expect(shouldShowAppFooter(pathname, signedIn)).toBe(expected);
+  });
+});
+
+describe("application shell onboarding chrome", () => {
+  it.each([
+    ["/account/welcome", true],
+    ["/account/welcome/", true],
+    ["/account/settings", false],
+    ["/workspace/overview", false],
+  ])("pathname %s is onboarding=%s", (pathname, expected) => {
+    expect(isOnboardingPath(pathname)).toBe(expected);
+    expect(shouldUseFocusedShell(pathname)).toBe(expected);
   });
 });
 
