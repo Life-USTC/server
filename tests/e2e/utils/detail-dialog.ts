@@ -55,9 +55,9 @@ export async function expectDetailDialogFitsViewport(
 /**
  * Documented homework popup order (`docs/contracts/homework.json`): description,
  * due summary, vertical metadata excluding platform createdAt, action controls,
- * then discussion. The due summary carries the primary properties, so it must
- * come before the metadata rows, and the metadata list must not repeat the due
- * date or expose a creation timestamp.
+ * then full-width discussion in the same column. The due summary carries the
+ * primary properties, so it must come before the metadata rows, and the metadata
+ * list must not repeat the due date or expose a creation timestamp.
  */
 export async function expectHomeworkDetailOrder(dialog: Locator) {
   const body = detailDialogBody(dialog);
@@ -81,6 +81,43 @@ export async function expectHomeworkDetailOrder(dialog: Locator) {
   expect(metadataBox).not.toBeNull();
   if (dueBox && metadataBox) {
     expect(dueBox.y).toBeLessThan(metadataBox.y);
+  }
+}
+
+/**
+ * Discussion is the next block in the same reading column, not a right-hand
+ * rail. Side rails belong on pages (`docs/contracts/_ui.json`).
+ */
+export async function expectSingleColumnDiscussion(dialog: Locator) {
+  const body = detailDialogBody(dialog);
+  const aside = detailDialogAside(dialog);
+  await expect(
+    aside.getByRole("heading", { name: /作业讨论|Homework discussion/i }),
+  ).toBeVisible();
+
+  const bodyBox = await body.boundingBox();
+  const asideBox = await aside.boundingBox();
+  expect(bodyBox).not.toBeNull();
+  expect(asideBox).not.toBeNull();
+  if (!bodyBox || !asideBox) return;
+
+  expect(asideBox.y).toBeGreaterThan(bodyBox.y);
+  expect(Math.abs(asideBox.x - bodyBox.x)).toBeLessThan(8);
+}
+
+/** Overlays stay at a reading width; they must not become a two-column page. */
+export async function expectComfortablePopupWidth(
+  page: Page,
+  dialog: Locator,
+) {
+  const viewport = page.viewportSize();
+  const box = await dialog.boundingBox();
+  expect(box).not.toBeNull();
+  if (!box || !viewport) return;
+  if (viewport.width >= 1024) {
+    // Reading column (`sm:max-w-2xl`), not a page-width two-column overlay.
+    expect(box.width).toBeLessThanOrEqual(720);
+    expect(box.width).toBeLessThan(viewport.width * 0.7);
   }
 }
 

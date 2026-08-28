@@ -31,8 +31,8 @@ export let toggleHomeworkCompletion: DashboardHomeworkCompletionToggle;
 {#if homework}
   {@const selected = homework}
   <!-- Cross-section list: the course is the disambiguating context, so it stays
-       in the subtitle. Documented popup order: description, due summary,
-       vertical metadata, action controls, discussion. -->
+       in the subtitle. One scrollable column: description, due summary,
+       vertical metadata, action controls, then full-width discussion. -->
   <DetailDialog
     onClose={onClose}
     subtitle={homeworkCourseLabel(selected)}

@@ -62,8 +62,8 @@ export let sectionJwId: number | string;
   <!-- No course subtitle here: the section page already shows it as the page
        heading, and repeated parent objects are tertiary. -->
   <DetailDialog onClose={close} title={homework.title}>
-    <!-- Documented popup order: description, due summary, vertical metadata,
-         edit/completion controls, then discussion. -->
+    <!-- One scrollable column: description, due summary, vertical metadata,
+         edit/completion controls, then full-width discussion. -->
     {#snippet body()}
       {#if _editingHomework}
         <SectionHomeworkEditForm

@@ -26,10 +26,11 @@ import { signInAsDebugUser } from "../../../../utils/auth";
 import {
   closeDetailDialog,
   detailDialog,
-  detailDialogAside,
   detailDialogBody,
+  expectComfortablePopupWidth,
   expectDialogActionsInBody,
   expectHomeworkDetailOrder,
+  expectSingleColumnDiscussion,
 } from "../../../../utils/detail-dialog";
 import { DEV_SEED } from "../../../../utils/dev-seed";
 import { cleanupHomeworksForE2e } from "../../../../utils/homeworks";
@@ -379,12 +380,8 @@ test.describe("仪表盘作业", () => {
     ).toBeVisible();
 
     await expectHomeworkDetailOrder(dialog);
-
-    await expect(
-      detailDialogAside(dialog).getByRole("heading", {
-        name: /作业讨论|Homework discussion/i,
-      }),
-    ).toBeVisible();
+    await expectSingleColumnDiscussion(dialog);
+    await expectComfortablePopupWidth(page, dialog);
 
     await expect(
       detailDialogBody(dialog).getByRole("link", {

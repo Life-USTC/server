@@ -6,9 +6,8 @@ import { cn } from "$lib/utils.js";
 
 type Props = {
   /**
-   * Discussion column. Per `docs/contracts/_ui.json` layout principles, popups
-   * with discussion keep details on the left and discussion on the right on
-   * desktop, and stack in that order on mobile.
+   * Discussion follows the details in the same scrollable column.
+   * Side rails belong on pages, not in overlays (`docs/contracts/_ui.json`).
    */
   aside?: Snippet;
   body: Snippet;
@@ -40,7 +39,7 @@ let {
     class={cn(
       "flex max-h-[calc(100vh-2rem)] flex-col gap-0 overflow-hidden p-0",
       "[&>[data-slot=dialog-close]]:top-3.5 [&>[data-slot=dialog-close]]:right-3.5",
-      aside ? "sm:max-w-5xl" : "sm:max-w-lg",
+      aside ? "sm:max-w-2xl" : "sm:max-w-lg",
       className,
     )}
   >
@@ -54,16 +53,13 @@ let {
     </Dialog.Header>
 
     <ScrollArea class="min-h-0 flex-1">
-      <div class={cn(aside && "grid lg:grid-cols-[minmax(0,1fr)_minmax(19rem,22rem)]")}>
-        <div
-          class="grid min-w-0 content-start gap-4 p-5 sm:p-6"
-          data-slot="detail-dialog-body"
-        >
+      <div class="grid min-w-0 content-start gap-4 p-5 sm:p-6">
+        <div class="grid min-w-0 content-start gap-4" data-slot="detail-dialog-body">
           {@render body()}
         </div>
         {#if aside}
           <div
-            class="min-w-0 border-t bg-muted/30 p-5 sm:p-6 lg:border-t-0 lg:border-l"
+            class="grid min-w-0 content-start gap-4 border-t pt-4"
             data-slot="detail-dialog-aside"
           >
             {@render aside()}

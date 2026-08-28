@@ -48,10 +48,11 @@ import {
 import {
   closeDetailDialog,
   detailDialog,
-  detailDialogAside,
+  expectComfortablePopupWidth,
   expectDetailDialogFitsViewport,
   expectDialogActionsInBody,
   expectHomeworkDetailOrder,
+  expectSingleColumnDiscussion,
 } from "../../../../utils/detail-dialog";
 import { DEV_SEED } from "../../../../utils/dev-seed";
 import { getCurrentSessionUser } from "../../../../utils/e2e-db";
@@ -1190,12 +1191,8 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
     ).toBeVisible();
 
     await expectHomeworkDetailOrder(dialog);
-
-    await expect(
-      detailDialogAside(dialog).getByRole("heading", {
-        name: /作业讨论|Homework discussion/i,
-      }),
-    ).toBeVisible();
+    await expectSingleColumnDiscussion(dialog);
+    await expectComfortablePopupWidth(page, dialog);
 
     await expectDialogActionsInBody(dialog, /编辑信息|Edit details/i);
     await expectDialogActionsInBody(
@@ -1231,16 +1228,11 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
     await expect(dialog).toBeVisible();
     await expectDetailDialogFitsViewport(page, dialog);
     await expectHomeworkDetailOrder(dialog);
+    await expectSingleColumnDiscussion(dialog);
     await expectDialogActionsInBody(
       dialog,
       /标记为完成|取消完成|Mark as complete|Mark as incomplete/i,
     );
-
-    await expect(
-      detailDialogAside(dialog).getByRole("heading", {
-        name: /作业讨论|Homework discussion/i,
-      }),
-    ).toBeVisible();
 
     await captureStepScreenshot(
       page,

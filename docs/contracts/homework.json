@@ -80,7 +80,7 @@
           "filter: incomplete/completed/all",
           "mobile compact toolbar with direct completion filters and overflow display-mode control",
           "cards/list view mode persisted in browser storage",
-          "detail popup order: description, due summary, vertical metadata excluding platform createdAt, action controls, discussion; desktop places discussion to the right of the details",
+          "detail popup is one scrollable column: description, due summary, vertical metadata excluding platform createdAt, action controls, then full-width discussion; do not use a two-column overlay",
           "create form exposes the collapsible advisory homework title and description style guide"
         ]
       }
@@ -229,7 +229,7 @@
           "user completion status",
           "edit action",
           "cards/list view mode persisted in browser storage",
-          "detail popup order: description, due summary, vertical metadata excluding platform createdAt, edit/completion controls, inline discussion; desktop places discussion to the right of the details",
+          "detail popup is one scrollable column: description, due summary, vertical metadata excluding platform createdAt, edit/completion controls, then full-width discussion; do not use a two-column overlay",
           "section cards use a responsive multi-column layout",
           "create and edit forms expose the same collapsible advisory homework title and description style guide"
         ]
