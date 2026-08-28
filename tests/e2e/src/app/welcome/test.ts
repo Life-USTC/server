@@ -86,7 +86,7 @@ test("/account/welcome 资料步骤显示必填字段与进度", async ({
     ).toHaveCount(0);
     await expect(
       page.getByRole("button", {
-        name: /识别并匹配课程|Match Sections/i,
+        name: /^(导入|Import)$/i,
       }),
     ).toHaveCount(0);
 
@@ -287,7 +287,7 @@ test("/account/welcome 未完善资料的用户可完成资料并返回首页", 
   }
 });
 
-test("/account/welcome 订阅步骤提供浏览班级与批量匹配入口", async ({
+test("/account/welcome 订阅步骤说明教务导入并提供粘贴入口", async ({
   page,
 }, testInfo) => {
   test.setTimeout(300_000);
@@ -306,8 +306,14 @@ test("/account/welcome 订阅步骤提供浏览班级与批量匹配入口", asy
   await expect(page.getByRole("dialog")).toHaveCount(0);
 
   await expect(
-    page.getByText(/教务系统|official enrollment list/i),
+    page.getByRole("heading", {
+      name: /导入教务系统的选课|Import your courses from the academic system/i,
+    }),
   ).toBeVisible();
+  await expect(
+    page.getByText(/由于技术限制|Because of technical limits/i),
+  ).toBeVisible();
+  await expect(page.getByText(/COMP3001\.01/)).toBeVisible();
   await expect(
     page.getByRole("link", {
       name: /^(本科生教务|Undergraduate academic system)$/i,
@@ -318,16 +324,6 @@ test("/account/welcome 订阅步骤提供浏览班级与批量匹配入口", asy
       name: /^(研究生教务|Graduate academic system)$/i,
     }),
   ).toHaveAttribute("href", "https://yjs1.ustc.edu.cn/");
-  await expect(page.locator("code", { hasText: "001013.01" })).toBeVisible();
-  await expect(page.locator("code", { hasText: "COMP3001.01" })).toBeVisible();
-  await expect(page.locator("code", { hasText: /^COMP3001$/ })).toBeVisible();
-
-  await expect(
-    page.getByRole("link", { name: /浏览班级|Browse Sections/i }),
-  ).toBeVisible();
-  await expect(
-    page.getByRole("link", { name: /浏览课程|Browse Courses/i }),
-  ).toBeVisible();
 
   const semesterSelector = page
     .getByRole("combobox", { name: /^(学期|Semester)\b/i })
@@ -335,7 +331,7 @@ test("/account/welcome 订阅步骤提供浏览班级与批量匹配入口", asy
   await expect(semesterSelector).toBeVisible();
   await expect(semesterSelector).toContainText(DEV_SEED.semesterNameCn);
   await expect(
-    page.getByRole("button", { name: /识别并匹配课程|Match Sections/i }),
+    page.getByRole("button", { name: /^(导入|Import)$/i }),
   ).toBeVisible();
 
   await captureStepScreenshot(page, testInfo, "welcome/next-steps");
@@ -353,13 +349,16 @@ test("/account/welcome 最后一步展示平台引导并可返回上一步", asy
     { testInfo, screenshotLabel: "welcome-finish" },
   );
 
-  await expect(page.getByText(/^工作区$|^Workspace$/)).toBeVisible();
   await expect(
-    page.getByText(/^日历和待办$|^Calendar and todos$/),
+    page.getByRole("heading", { name: /^(接下来|Next)$/ }),
   ).toBeVisible();
+  await expect(page.getByText(/最后一公里|last-mile work/i)).toBeVisible();
   await expect(
-    page.getByText(/^登录和安全$|^Sign-in and security$/),
+    page.getByText(/课表、作业、考试|timetable, homework, and exams/i),
   ).toBeVisible();
+  await expect(page.getByText(/个人主页|personal homepage/i)).toBeVisible();
+  await expect(page.getByText(/CalDAV/i)).toBeVisible();
+  await expect(page.getByText(/MCP/)).toBeVisible();
   await expect(page.getByTestId("app-sidebar")).toHaveCount(0);
   await expect(
     page.getByRole("button", { name: /打开搜索|Open search/i }),

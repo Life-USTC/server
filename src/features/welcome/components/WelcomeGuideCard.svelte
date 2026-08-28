@@ -1,8 +1,8 @@
 <script lang="ts">
 import ArrowLeft from "@lucide/svelte/icons/arrow-left";
 import CalendarCheck from "@lucide/svelte/icons/calendar-check";
-import ShieldCheck from "@lucide/svelte/icons/shield-check";
-import Sparkles from "@lucide/svelte/icons/sparkles";
+import Share2 from "@lucide/svelte/icons/share-2";
+import UserRound from "@lucide/svelte/icons/user-round";
 import WelcomeGuideRow from "@/features/welcome/components/WelcomeGuideRow.svelte";
 import { Button } from "$lib/components/ui/button/index.js";
 import type { WelcomeCopy } from "./welcome-component-types";
@@ -13,19 +13,19 @@ export let welcomeCopy: WelcomeCopy;
 
 $: guides = [
   {
-    icon: Sparkles,
+    icon: CalendarCheck,
     title: welcomeCopy.guideWorkspaceTitle,
     description: welcomeCopy.guideWorkspaceDescription,
   },
   {
-    icon: CalendarCheck,
-    title: welcomeCopy.guidePlanningTitle,
-    description: welcomeCopy.guidePlanningDescription,
+    icon: UserRound,
+    title: welcomeCopy.guideProfileTitle,
+    description: welcomeCopy.guideProfileDescription,
   },
   {
-    icon: ShieldCheck,
-    title: welcomeCopy.guideAccountTitle,
-    description: welcomeCopy.guideAccountDescription,
+    icon: Share2,
+    title: welcomeCopy.guideAppsTitle,
+    description: welcomeCopy.guideAppsDescription,
   },
 ];
 </script>
@@ -33,7 +33,7 @@ $: guides = [
 <section class="grid gap-6">
   <header class="grid gap-1.5">
     <h2 class="font-semibold leading-none tracking-tight">{welcomeCopy.finishTitle}</h2>
-    <p class="text-muted-foreground text-sm">{welcomeCopy.finishDescription}</p>
+    <p class="text-muted-foreground text-sm leading-6">{welcomeCopy.finishDescription}</p>
   </header>
 
   <div class="grid gap-4">

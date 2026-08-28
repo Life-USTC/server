@@ -1,11 +1,6 @@
 <script lang="ts">
 import ArrowLeft from "@lucide/svelte/icons/arrow-left";
 import ArrowRight from "@lucide/svelte/icons/arrow-right";
-import ExternalLink from "@lucide/svelte/icons/external-link";
-import GraduationCap from "@lucide/svelte/icons/graduation-cap";
-import Hash from "@lucide/svelte/icons/hash";
-import Search from "@lucide/svelte/icons/search";
-import WelcomeGuideRow from "@/features/welcome/components/WelcomeGuideRow.svelte";
 import {
   GRADUATE_ACADEMIC_PORTAL_URL,
   UNDERGRADUATE_ACADEMIC_PORTAL_URL,
@@ -51,74 +46,30 @@ export let semesterOptions: WelcomeSelectOption[];
 export let setSectionSelection: WelcomeSectionSelectionSetter;
 export let unmatchedCodes: string[];
 export let welcomeCopy: WelcomeCopy;
-
-$: codeExamples = [
-  {
-    code: welcomeCopy.subscriptionsCodeExampleSection,
-    hint: welcomeCopy.subscriptionsCodeExampleSectionHint,
-  },
-  {
-    code: welcomeCopy.subscriptionsCodeExampleCourseSection,
-    hint: welcomeCopy.subscriptionsCodeExampleCourseSectionHint,
-  },
-  {
-    code: welcomeCopy.subscriptionsCodeExampleCourse,
-    hint: welcomeCopy.subscriptionsCodeExampleCourseHint,
-  },
-];
 </script>
 
 <section class="grid gap-6">
-  <header class="grid gap-1.5">
+  <header class="grid gap-2">
     <h2 class="font-semibold leading-none tracking-tight">{welcomeCopy.nextStepsTitle}</h2>
-    <p class="text-muted-foreground text-sm">{welcomeCopy.nextStepsDescription}</p>
+    <p class="text-muted-foreground text-sm leading-6">
+      {welcomeCopy.nextStepsDescriptionBefore}<a
+        aria-label={welcomeCopy.subscriptionsUndergraduatePortal}
+        class="break-all font-medium text-foreground underline underline-offset-2"
+        href={UNDERGRADUATE_ACADEMIC_PORTAL_URL}
+        rel="noreferrer"
+        target="_blank">{UNDERGRADUATE_ACADEMIC_PORTAL_URL}</a
+      >{welcomeCopy.nextStepsDescriptionBetween}<a
+        aria-label={welcomeCopy.subscriptionsGraduatePortal}
+        class="break-all font-medium text-foreground underline underline-offset-2"
+        href={GRADUATE_ACADEMIC_PORTAL_URL}
+        rel="noreferrer"
+        target="_blank">{GRADUATE_ACADEMIC_PORTAL_URL}</a
+      >{welcomeCopy.nextStepsDescriptionAfter}
+    </p>
+    <p class="text-muted-foreground text-sm leading-6">{welcomeCopy.nextStepsPasteHint}</p>
   </header>
 
   <div class="grid gap-5">
-    <WelcomeGuideRow
-      description={welcomeCopy.subscriptionsWhyDescription}
-      icon={GraduationCap}
-      title={welcomeCopy.subscriptionsWhyTitle}
-    >
-      <div class="flex flex-wrap gap-2">
-        <Button
-          href={UNDERGRADUATE_ACADEMIC_PORTAL_URL}
-          rel="noreferrer"
-          size="sm"
-          target="_blank"
-          variant="outline"
-        >
-          {welcomeCopy.subscriptionsUndergraduatePortal}
-          <ExternalLink data-icon="inline-end" />
-        </Button>
-        <Button
-          href={GRADUATE_ACADEMIC_PORTAL_URL}
-          rel="noreferrer"
-          size="sm"
-          target="_blank"
-          variant="outline"
-        >
-          {welcomeCopy.subscriptionsGraduatePortal}
-          <ExternalLink data-icon="inline-end" />
-        </Button>
-      </div>
-    </WelcomeGuideRow>
-
-    <WelcomeGuideRow
-      description={welcomeCopy.subscriptionsCodesDescription}
-      icon={Hash}
-      title={welcomeCopy.subscriptionsCodesTitle}
-    >
-      <ul class="grid gap-1 text-muted-foreground text-xs">
-        {#each codeExamples as example (example.code)}
-          <li>
-            <code class="rounded bg-muted px-1.5 py-0.5 font-mono text-foreground">{example.code}</code>
-            <span class="ms-2">{example.hint}</span>
-          </li>
-        {/each}
-      </ul>
-    </WelcomeGuideRow>
-
     {#if importError}
       <Alert.Root variant="destructive">
         <Alert.Description>{importError}</Alert.Description>
@@ -163,7 +114,7 @@ $: codeExamples = [
         {#if isMatching}
           <Spinner data-icon="inline-start" />
         {/if}
-        {isMatching ? bulkCopy.matching : bulkCopy.matchButton}
+        {isMatching ? bulkCopy.matching : welcomeCopy.importButton}
       </Button>
     </Field.Group>
 
@@ -243,21 +194,6 @@ $: codeExamples = [
         {/if}
       </div>
     {/if}
-
-    <WelcomeGuideRow
-      description={welcomeCopy.subscriptionsBrowseDescription}
-      icon={Search}
-      title={welcomeCopy.subscriptionsBrowseTitle}
-    >
-      <div class="flex flex-wrap gap-2">
-        <Button href="/catalog/sections" size="sm" variant="outline">
-          {welcomeCopy.browseSections}
-        </Button>
-        <Button href="/catalog/courses" size="sm" variant="outline">
-          {welcomeCopy.browseCourses}
-        </Button>
-      </div>
-    </WelcomeGuideRow>
   </div>
 
   <footer class="flex flex-wrap justify-between gap-2">

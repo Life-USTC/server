@@ -23,9 +23,6 @@ export type WelcomeProfileCopy = {
 
 export type WelcomeCopy = Record<string, string> & {
   back: string;
-  browseCourses: string;
-  browseSections: string;
-  bulkImportCta: string;
   finishDescription: string;
   finishTitle: string;
   skipForNow: string;
@@ -39,24 +36,22 @@ export type WelcomeCopy = Record<string, string> & {
   continue: string;
   description: string;
   firstSignIn: string;
+  importButton: string;
   importing: string;
   matchedSummary: string;
-  nextStepsDescription: string;
+  nextStepsDescriptionAfter: string;
+  nextStepsDescriptionBefore: string;
+  nextStepsDescriptionBetween: string;
+  nextStepsPasteHint: string;
   nextStepsTitle: string;
-  subscriptionsBrowseDescription: string;
-  subscriptionsBrowseTitle: string;
-  subscriptionsCodeExampleCourse: string;
-  subscriptionsCodeExampleCourseHint: string;
-  subscriptionsCodeExampleCourseSection: string;
-  subscriptionsCodeExampleCourseSectionHint: string;
-  subscriptionsCodeExampleSection: string;
-  subscriptionsCodeExampleSectionHint: string;
-  subscriptionsCodesDescription: string;
-  subscriptionsCodesTitle: string;
   subscriptionsGraduatePortal: string;
   subscriptionsUndergraduatePortal: string;
-  subscriptionsWhyDescription: string;
-  subscriptionsWhyTitle: string;
+  guideAppsDescription: string;
+  guideAppsTitle: string;
+  guideProfileDescription: string;
+  guideProfileTitle: string;
+  guideWorkspaceDescription: string;
+  guideWorkspaceTitle: string;
   noMatchingSections: string;
   sectionCodesLabel: string;
   selectSection: string;

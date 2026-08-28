@@ -248,7 +248,7 @@ export const PAGE_INVENTORY: readonly PageInventoryEntry[] = [
       {
         id: "bulk-import",
         role: "button",
-        name: "/识别并匹配课程|Match Sections/i",
+        name: "/^(导入|Import)$/i",
         e2eSpec: E2E.welcome,
       },
       {
