@@ -100,7 +100,7 @@ let personalCalendarLink: PersonalCalendarLinkButton | undefined;
           variant="outline"
           onclick={() => setCalendarWeek(addDays(agendaWeekStart, -7))}
         >
-          <ChevronLeft />
+          <ChevronLeft data-icon="inline-start" />
         </Button>
         <Button
           class="h-11 px-3"
@@ -118,7 +118,7 @@ let personalCalendarLink: PersonalCalendarLinkButton | undefined;
           variant="outline"
           onclick={() => setCalendarWeek(addDays(agendaWeekStart, 7))}
         >
-          <ChevronRight />
+          <ChevronRight data-icon="inline-start" />
         </Button>
       </div>
 
@@ -134,7 +134,7 @@ let personalCalendarLink: PersonalCalendarLinkButton | undefined;
                 type="button"
                 variant="outline"
               >
-                <MoreHorizontal />
+                <MoreHorizontal data-icon="inline-start" />
               </Button>
             {/snippet}
           </DropdownMenu.Trigger>

@@ -47,7 +47,7 @@ export let startEdit: () => void;
             type="button"
             variant="outline"
           >
-            <MoreHorizontalIcon />
+            <MoreHorizontalIcon data-icon="inline-start" />
           </Button>
         {/snippet}
       </DropdownMenu.Trigger>

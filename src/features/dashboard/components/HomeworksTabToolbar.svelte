@@ -49,7 +49,7 @@ export let openCreateHomeworkDialog: () => void;
       type="button"
       onclick={openCreateHomeworkDialog}
     >
-      <Plus class="md:hidden" />
+      <Plus class="md:hidden" data-icon="inline-start" />
       <span class="hidden md:inline">{homeworksCopy.addButton}</span>
     </Button>
   </div>

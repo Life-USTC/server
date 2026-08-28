@@ -161,16 +161,16 @@ function handleRemoveDialogOpenChange(open: boolean) {
                         onclick={() => requestRemoveSection(section)}
                       >
                         {#if removingSectionId === section.id}
-                          <Spinner />
+                          <Spinner data-icon="inline-start" />
                         {:else}
-                          <UserMinus />
+                          <UserMinus data-icon="inline-start" />
                         {/if}
                       </TableIconButton>
                       <TableIconButton
                         href={`/catalog/sections/${section.jwId}`}
                         label={sectionCopy.moreDetails}
                       >
-                        <ArrowUpRight />
+                        <ArrowUpRight data-icon="inline-start" />
                       </TableIconButton>
                     </TableRowActions>
                   </Table.Cell>

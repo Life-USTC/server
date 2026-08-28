@@ -115,11 +115,11 @@ function summaryBadges(homework: DashboardHomeworkItem) {
             onclick={() => toggleHomeworkCompletion(homework)}
             >
               {#if homeworkSavingById[homework.id]}
-                <Spinner />
+                <Spinner data-icon="inline-start" />
               {:else if homework.completion}
-                <RefreshCw />
+                <RefreshCw data-icon="inline-start" />
               {:else}
-                <CheckCircleIcon />
+                <CheckCircleIcon data-icon="inline-start" />
               {/if}
             </TableIconButton>
             <TableIconButton
@@ -129,7 +129,7 @@ function summaryBadges(homework: DashboardHomeworkItem) {
                 selectedHomework = homework;
               }}
             >
-              <ArrowUpRight />
+              <ArrowUpRight data-icon="inline-start" />
             </TableIconButton>
           </TableRowActions>
         </Table.Cell>

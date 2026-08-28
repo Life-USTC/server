@@ -115,13 +115,11 @@ $: sectionSemesterSummary = selectedSemester
         <Table.Body>
           {#each data.data as section}
             {@const sectionHref = `/catalog/sections/${section.jwId}`}
-            <Table.Row>
-              <Table.Cell class="p-0 align-top">
-                <CatalogTableLink href={sectionHref} nowrap>
-                  {section.semester?.nameCn
-                    ? formatSemesterName(locale, section.semester.nameCn)
-                    : sectionLabels.noSemester}
-                </CatalogTableLink>
+            <Table.Row class="has-[a:hover]:bg-muted/50">
+              <Table.Cell class="align-top whitespace-nowrap">
+                {section.semester?.nameCn
+                  ? formatSemesterName(locale, section.semester.nameCn)
+                  : sectionLabels.noSemester}
               </Table.Cell>
               <Table.Cell class="p-0 align-top whitespace-normal">
                 <CatalogTableLink href={sectionHref}>
@@ -130,32 +128,22 @@ $: sectionSemesterSummary = selectedSemester
                   />
                 </CatalogTableLink>
               </Table.Cell>
-              <Table.Cell class="p-0 align-top">
-                <CatalogTableLink href={sectionHref}>
-                  <TruncatedCode text={section.code} />
-                </CatalogTableLink>
+              <Table.Cell class="align-top">
+                <TruncatedCode text={section.code} />
               </Table.Cell>
-              <Table.Cell class="p-0 align-top whitespace-normal">
-                <CatalogTableLink href={sectionHref}>
-                  <TruncatedText
-                    text={catalogLocalizedNames(section.teachers, locale) || "-"}
-                  />
-                </CatalogTableLink>
+              <Table.Cell class="align-top whitespace-normal">
+                <TruncatedText
+                  text={catalogLocalizedNames(section.teachers, locale) || "-"}
+                />
               </Table.Cell>
-              <Table.Cell class="p-0 text-right align-top">
-                <CatalogTableLink href={sectionHref} numeric>
-                  {section.credits ?? "-"}
-                </CatalogTableLink>
+              <Table.Cell class="text-right align-top tabular-nums">
+                {section.credits ?? "-"}
               </Table.Cell>
-              <Table.Cell class="p-0 text-right align-top">
-                <CatalogTableLink href={sectionHref} numeric>
-                  {section.stdCount ?? 0} / {section.limitCount ?? "-"}
-                </CatalogTableLink>
+              <Table.Cell class="text-right align-top tabular-nums">
+                {section.stdCount ?? 0} / {section.limitCount ?? "-"}
               </Table.Cell>
-              <Table.Cell class="p-0 align-top">
-                <CatalogTableLink href={sectionHref}>
-                  {section.campus ? primaryName(section.campus) : "-"}
-                </CatalogTableLink>
+              <Table.Cell class="align-top">
+                {section.campus ? primaryName(section.campus) : "-"}
               </Table.Cell>
             </Table.Row>
           {/each}

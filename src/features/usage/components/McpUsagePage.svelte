@@ -71,6 +71,9 @@ const CLAUDE_CODE_COMMAND = `claude mcp add --scope user --transport http life-u
 let copiedKey: string | null = null;
 let activeClient: "chatgpt" | "claude" | "other" = "chatgpt";
 
+// TODO(#962): add dark-mode variants of the tutorial screenshots once assets are available.
+// For now, images are wrapped in a rounded bordered container so they remain visible in dark mode.
+
 async function copyValue(key: string, value: string) {
   await writeClipboardText(value);
   copiedKey = key;
@@ -138,6 +141,12 @@ function selectClient(value: string) {
   </div>
 {/snippet}
 
+{#snippet tutorialImage(src: string, alt: string, maxHeight: string)}
+  <div class="overflow-hidden rounded-xl border border-border">
+    <img {alt} class="h-auto w-full bg-white object-contain {maxHeight}" loading="lazy" {src} />
+  </div>
+{/snippet}
+
 <span class="sr-only" aria-live="polite">
   {copiedKey ? data.copy.copiedValueAction : ""}
 </span>
@@ -181,7 +190,7 @@ function selectClient(value: string) {
     >
       <div class="grid max-w-xl gap-6">
         <div
-          class="flex size-14 items-center justify-center rounded-2xl border border-border bg-violet-500/10 text-violet-600 shadow-sm dark:text-violet-400"
+          class="flex size-14 items-center justify-center rounded-2xl border border-border bg-primary/10 text-primary shadow-sm"
         >
           <CableIcon class="size-7" strokeWidth={1.8} />
         </div>
@@ -292,7 +301,7 @@ function selectClient(value: string) {
               </h4>
             </div>
             <a class="flex w-full items-start justify-center" href={data.copy.chatgpt.overviewSrc} rel="noreferrer" target="_blank">
-              <img alt={data.copy.chatgpt.overviewAlt} class="h-auto max-h-[34rem] w-full bg-white object-contain" loading="lazy" src={data.copy.chatgpt.overviewSrc} />
+              {@render tutorialImage(data.copy.chatgpt.overviewSrc, data.copy.chatgpt.overviewAlt, "max-h-[34rem]")}
             </a>
           </section>
 
@@ -305,7 +314,7 @@ function selectClient(value: string) {
               {@render chatgptFormValues()}
             </div>
             <a class="flex w-full items-start justify-center" href={data.copy.chatgpt.filledSrc} rel="noreferrer" target="_blank">
-              <img alt={data.copy.chatgpt.filledAlt} class="h-auto max-h-[42rem] w-full bg-white object-contain" loading="lazy" src={data.copy.chatgpt.filledSrc} />
+              {@render tutorialImage(data.copy.chatgpt.filledSrc, data.copy.chatgpt.filledAlt, "max-h-[42rem]")}
             </a>
           </section>
 
@@ -315,7 +324,7 @@ function selectClient(value: string) {
               <h4 class="text-balance font-semibold text-xl leading-8">{data.copy.chatgpt.steps[2]}</h4>
             </div>
             <a class="flex w-full items-start justify-center" href="/images/usage/mcp-use-case.png" rel="noreferrer" target="_blank">
-              <img alt={data.copy.useCaseAlt} class="h-auto max-h-[34rem] w-full bg-white object-contain" loading="lazy" src="/images/usage/mcp-use-case.png" />
+              {@render tutorialImage("/images/usage/mcp-use-case.png", data.copy.useCaseAlt, "max-h-[34rem]")}
             </a>
           </section>
         </div>
@@ -331,7 +340,7 @@ function selectClient(value: string) {
               <h4 class="text-balance font-semibold text-xl leading-8">{data.copy.claude.steps[0]}</h4>
             </div>
             <a class="flex w-full items-start justify-center" href="/images/usage/mcp-claude-empty.png" rel="noreferrer" target="_blank">
-              <img alt={data.copy.claude.emptyAlt} class="h-auto max-h-[34rem] w-full bg-white object-contain" loading="lazy" src="/images/usage/mcp-claude-empty.png" />
+              {@render tutorialImage("/images/usage/mcp-claude-empty.png", data.copy.claude.emptyAlt, "max-h-[34rem]")}
             </a>
           </section>
 
@@ -348,7 +357,7 @@ function selectClient(value: string) {
               <p class="text-muted-foreground text-sm leading-6">{data.copy.claude.note}</p>
             </div>
             <a class="flex w-full items-start justify-center" href="/images/usage/mcp-claude-filled.png" rel="noreferrer" target="_blank">
-              <img alt={data.copy.claude.filledAlt} class="h-auto max-h-[42rem] w-full bg-white object-contain" loading="lazy" src="/images/usage/mcp-claude-filled.png" />
+              {@render tutorialImage("/images/usage/mcp-claude-filled.png", data.copy.claude.filledAlt, "max-h-[42rem]")}
             </a>
           </section>
 
@@ -358,7 +367,7 @@ function selectClient(value: string) {
               <h4 class="text-balance font-semibold text-xl leading-8">{data.copy.claude.steps[2]}</h4>
             </div>
             <a class="flex w-full items-start justify-center" href="/images/usage/mcp-use-case.png" rel="noreferrer" target="_blank">
-              <img alt={data.copy.useCaseAlt} class="h-auto max-h-[34rem] w-full bg-white object-contain" loading="lazy" src="/images/usage/mcp-use-case.png" />
+              {@render tutorialImage("/images/usage/mcp-use-case.png", data.copy.useCaseAlt, "max-h-[34rem]")}
             </a>
           </section>
         </div>

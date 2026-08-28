@@ -237,7 +237,7 @@ function scheduleReferenceRouteRestore() {
               {...props}
             >
               <span>{data.copy.apiDocs.browseNavigation}</span>
-              <MenuIcon aria-hidden="true" />
+              <MenuIcon data-icon="inline-end" aria-hidden="true" />
             </Button>
           {/snippet}
         </Sheet.Trigger>

@@ -112,7 +112,7 @@ $: pageLabel = teacherLabels.pageOf
         <Table.Body>
           {#each teachers as teacher}
             {@const teacherHref = `/catalog/teachers/${teacher.id}`}
-            <Table.Row>
+            <Table.Row class="has-[a:hover]:bg-muted/50">
               <Table.Cell class="p-0">
                 <CatalogTableLink href={teacherHref}>
                   <TruncatedText
@@ -120,36 +120,26 @@ $: pageLabel = teacherLabels.pageOf
                   />
                 </CatalogTableLink>
               </Table.Cell>
-              <Table.Cell class="p-0">
-                <CatalogTableLink href={teacherHref} mono nowrap>
-                  {teacher.code || "-"}
-                </CatalogTableLink>
+              <Table.Cell class="whitespace-nowrap font-mono">
+                {teacher.code || "-"}
               </Table.Cell>
-              <Table.Cell class="p-0">
-                <CatalogTableLink href={teacherHref}>
-                  <TruncatedText
-                    text={teacher.department
-                      ? primaryName(teacher.department)
-                      : teacherLabels.noDepartment}
-                  />
-                </CatalogTableLink>
+              <Table.Cell>
+                <TruncatedText
+                  text={teacher.department
+                    ? primaryName(teacher.department)
+                    : teacherLabels.noDepartment}
+                />
               </Table.Cell>
-              <Table.Cell class="p-0">
-                <CatalogTableLink href={teacherHref}>
-                  {teacher.teacherTitle
-                    ? primaryName(teacher.teacherTitle)
-                    : commonLabels.unknown}
-                </CatalogTableLink>
+              <Table.Cell>
+                {teacher.teacherTitle
+                  ? primaryName(teacher.teacherTitle)
+                  : commonLabels.unknown}
               </Table.Cell>
-              <Table.Cell class="p-0">
-                <CatalogTableLink href={teacherHref}>
-                  <TruncatedText text={teacher.email ?? "-"} />
-                </CatalogTableLink>
+              <Table.Cell>
+                <TruncatedText text={teacher.email ?? "-"} />
               </Table.Cell>
-              <Table.Cell class="p-0">
-                <CatalogTableLink href={teacherHref} nowrap numeric>
-                  {teacher._count.sections}
-                </CatalogTableLink>
+              <Table.Cell class="whitespace-nowrap text-right tabular-nums">
+                {teacher._count.sections}
               </Table.Cell>
             </Table.Row>
           {/each}
