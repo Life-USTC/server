@@ -89,7 +89,7 @@ export let users: AdminUserRow[];
                   label={copy.editTitle}
                   onclick={() => onSelect(user)}
                 >
-                  <SquarePen />
+                  <SquarePen data-icon="inline-start" />
                 </TableIconButton>
               </TableRowActions>
             </Table.Cell>

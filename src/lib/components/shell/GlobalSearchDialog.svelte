@@ -109,7 +109,7 @@ $: if (open) {
           </Field.Label>
           <InputGroup.Root class="h-9 min-w-0 rounded-none border-0">
             <InputGroup.Addon class="px-0">
-              <SearchIcon aria-hidden="true" class="size-4 shrink-0 text-muted-foreground" />
+              <SearchIcon aria-hidden="true" class="shrink-0 text-muted-foreground" />
             </InputGroup.Addon>
             <InputGroup.Input
               bind:ref={inputElement}
@@ -140,7 +140,7 @@ $: if (open) {
           type="button"
           variant="ghost"
         >
-          <XIcon />
+          <XIcon data-icon="inline-start" />
         </Button>
       </div>
     </Dialog.Header>

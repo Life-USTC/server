@@ -79,11 +79,11 @@ export let toggleTodoCompletion: TodoCompletionToggle;
               onclick={() => void toggleTodoCompletion(todo)}
             >
               {#if todoSavingById[todo.id]}
-                <Spinner />
+                <Spinner data-icon="inline-start" />
               {:else if todo.completed}
-                <RefreshCw />
+                <RefreshCw data-icon="inline-start" />
               {:else}
-                <CheckCircleIcon />
+                <CheckCircleIcon data-icon="inline-start" />
               {/if}
             </TableIconButton>
             <TableIconButton
@@ -91,7 +91,7 @@ export let toggleTodoCompletion: TodoCompletionToggle;
               variant="outline"
               onclick={() => openTodoEditor(todo)}
             >
-              <Pencil />
+              <Pencil data-icon="inline-start" />
             </TableIconButton>
           </TableRowActions>
         </Table.Cell>

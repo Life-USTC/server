@@ -105,7 +105,7 @@ export let scopeLabel: (scope: string) => string;
                     variant="destructive"
                     onclick={() => onDelete(client)}
                   >
-                    <TrashIcon />
+                    <TrashIcon data-icon="inline-start" />
                   </TableIconButton>
                 </TableRowActions>
               </Table.Cell>
@@ -165,7 +165,7 @@ export let scopeLabel: (scope: string) => string;
                 variant="destructive"
                 onclick={() => onDelete(client)}
               >
-                <TrashIcon />
+                <TrashIcon data-icon="inline-start" />
               </TableIconButton>
             </Item.Actions>
           </Item.Root>

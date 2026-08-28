@@ -62,10 +62,11 @@ $: scopesPickerCopy = buildOAuthScopesPickerCopy(copy, {
       <form
         method="POST"
         action="?/createClient"
-        class="flex min-h-0 flex-col gap-4 overflow-hidden"
+        class="flex min-h-0 flex-col overflow-hidden"
         use:enhance={createClientAction}
       >
-        <div class="min-h-0 overflow-y-auto px-1">
+        <Field.Group class="min-h-0 flex-1 gap-4 overflow-hidden">
+          <div class="min-h-0 flex-1 overflow-y-auto px-1">
           <Field.Set>
             <Field.Group>
               <Field.Field>
@@ -153,8 +154,9 @@ $: scopesPickerCopy = buildOAuthScopesPickerCopy(copy, {
             </Field.Group>
           </Field.Set>
         </div>
+      </Field.Group>
 
-        <Dialog.Footer>
+      <Dialog.Footer>
           <Button
             type="button"
             variant="outline"

@@ -1,4 +1,5 @@
 <script lang="ts">
+import BookOpenIcon from "@lucide/svelte/icons/book-open";
 import type {
   DashboardDashboardCopy,
   DashboardSectionCopy,
@@ -75,6 +76,7 @@ $: displayExamFilter = resolveDashboardTaskFilter(
     {#if examRows.length === 0}
       <Empty.Root class="items-start text-left">
         <Empty.Header class="items-start text-left">
+          <Empty.Media variant="icon"><BookOpenIcon /></Empty.Media>
           <Empty.Title>{dashboardCopy.nav.exams.empty}</Empty.Title>
           <Empty.Description>
             {dashboardCopy.nav.exams.emptyDescription}
@@ -84,6 +86,7 @@ $: displayExamFilter = resolveDashboardTaskFilter(
     {:else if filteredExamRows.length === 0}
       <Empty.Root class="items-start text-left">
         <Empty.Header class="items-start text-left">
+          <Empty.Media variant="icon"><BookOpenIcon /></Empty.Media>
           <Empty.Title>{dashboardCopy.nav.exams.filterEmpty}</Empty.Title>
           <Empty.Description>
             {dashboardCopy.nav.exams.filterEmptyDescription}

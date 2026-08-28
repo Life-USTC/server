@@ -68,7 +68,7 @@ function courseName(section: SubscriptionSection) {
             href={`/catalog/sections/${section.jwId}`}
             label={sectionCopy.moreDetails}
           >
-            <ArrowUpRight />
+            <ArrowUpRight data-icon="inline-start" />
           </TableIconButton>
           <TableIconButton
             className="size-11"
@@ -78,9 +78,9 @@ function courseName(section: SubscriptionSection) {
             onclick={() => requestRemoveSection(section)}
           >
             {#if removingSectionId === section.id}
-              <Spinner />
+              <Spinner data-icon="inline-start" />
             {:else}
-              <UserMinus />
+              <UserMinus data-icon="inline-start" />
             {/if}
           </TableIconButton>
         </Item.Actions>

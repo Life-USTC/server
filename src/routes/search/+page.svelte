@@ -82,7 +82,7 @@ afterNavigate(({ to }) => {
     </Field.Label>
     <InputGroup.Root class="h-11 rounded-lg">
       <InputGroup.Addon class="px-0 ps-3">
-        <SearchIcon aria-hidden="true" class="size-4 text-muted-foreground" />
+        <SearchIcon aria-hidden="true" class="text-muted-foreground" />
       </InputGroup.Addon>
       <InputGroup.Input
         bind:ref={inputElement}

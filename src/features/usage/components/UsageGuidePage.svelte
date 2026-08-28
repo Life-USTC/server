@@ -39,8 +39,8 @@ export let primaryQrSrc: string | undefined = undefined;
 
 $: iconTone =
   kind === "bot"
-    ? "bg-sky-500/10 text-sky-600 dark:text-sky-400"
-    : "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400";
+    ? "bg-primary/10 text-primary"
+    : "bg-secondary text-secondary-foreground";
 </script>
 
 <style>
@@ -174,7 +174,7 @@ $: iconTone =
                     type="button"
                     variant="outline"
                   >
-                    <QrCodeIcon aria-hidden="true" class="size-4" />
+                    <QrCodeIcon data-icon="inline-start" aria-hidden="true" />
                   </Button>
                 {/snippet}
               </Popover.Trigger>
@@ -300,7 +300,7 @@ $: iconTone =
             >
               <div class="grid gap-5 p-5 sm:p-6">
                 <div class="grid grid-cols-[auto_minmax(0,1fr)] gap-2 font-mono text-sm">
-                  <span class="text-emerald-600 dark:text-emerald-400">$</span>
+                  <span class="text-muted-foreground">$</span>
                   <code class="break-words">{step.title}</code>
                 </div>
                 <pre

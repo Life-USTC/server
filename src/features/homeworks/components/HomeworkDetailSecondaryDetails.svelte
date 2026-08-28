@@ -45,6 +45,7 @@ function displayDate(value: HomeworkDateValue) {
             {/if}
           </span>
           <ChevronDownIcon
+            data-icon="inline-end"
             aria-hidden="true"
             class="shrink-0 transition-transform group-data-[state=open]/homework-details:rotate-180"
           />

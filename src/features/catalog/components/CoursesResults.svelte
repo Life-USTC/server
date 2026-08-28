@@ -93,7 +93,7 @@ $: courseSearchSummary = optionalCatalogFilterSummary(
         <Table.Body>
           {#each data.data as course}
             {@const courseHref = `/catalog/courses/${course.jwId}`}
-            <Table.Row>
+            <Table.Row class="has-[a:hover]:bg-muted/50">
               <Table.Cell class="p-0">
                 <CatalogTableLink href={courseHref}>
                   <TruncatedText
@@ -101,27 +101,21 @@ $: courseSearchSummary = optionalCatalogFilterSummary(
                   />
                 </CatalogTableLink>
               </Table.Cell>
-              <Table.Cell class="p-0">
-                <CatalogTableLink href={courseHref}>
-                  <TruncatedCode text={course.code} />
-                </CatalogTableLink>
+              <Table.Cell>
+                <TruncatedCode text={course.code} />
               </Table.Cell>
-              <Table.Cell class="p-0">
-                <CatalogTableLink href={courseHref}>
-                  {course.educationLevel
-                    ? primaryName(course.educationLevel)
-                    : "-"}
-                </CatalogTableLink>
+              <Table.Cell>
+                {course.educationLevel
+                  ? primaryName(course.educationLevel)
+                  : "-"}
               </Table.Cell>
-              <Table.Cell class="p-0">
-                <CatalogTableLink href={courseHref}>
-                  {course.category ? primaryName(course.category) : "-"}
-                </CatalogTableLink>
+              <Table.Cell>
+                {course.category
+                  ? catalogLocalizedDisplayName(course.category, locale)
+                  : "-"}
               </Table.Cell>
-              <Table.Cell class="p-0">
-                <CatalogTableLink href={courseHref}>
-                  {course.classType ? primaryName(course.classType) : "-"}
-                </CatalogTableLink>
+              <Table.Cell>
+                {course.classType ? primaryName(course.classType) : "-"}
               </Table.Cell>
             </Table.Row>
           {/each}
