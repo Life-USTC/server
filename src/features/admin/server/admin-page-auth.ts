@@ -37,7 +37,7 @@ export async function requireAdminPage(
 
   if (!user?.isAdmin) {
     logAdminSecurityEvent(request, "not_admin");
-    error(404, "Not found");
+    error(403, "Forbidden");
   }
   if (options.requireActive) {
     const suspension = await findActiveSuspension(user.id);

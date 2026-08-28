@@ -2,7 +2,7 @@
  * E2E tests for /admin — Admin entry + primary navigation
  *
  * ## Features
- * - Admin-only: unauthenticated → /signin, non-admin → 404
+ * - Admin-only: unauthenticated → /signin, non-admin → 403
  * - /admin redirects to /admin/users
  * - Admin tools live in the primary sidebar (no secondary admin nav)
  */
@@ -29,10 +29,10 @@ test("/admin 未登录重定向到登录页", async ({ page }, testInfo) => {
   await captureStepScreenshot(page, testInfo, "admin/unauthorized");
 });
 
-test("/admin 普通用户访问返回 404", async ({ page }, testInfo) => {
+test("/admin 普通用户访问返回 403", async ({ page }, testInfo) => {
   await signInAsDebugUser(page, "/admin", "/admin");
-  await expect(page.locator("h1")).toHaveText("404");
-  await captureStepScreenshot(page, testInfo, "admin/404");
+  await expect(page.locator("h1")).toHaveText("403");
+  await captureStepScreenshot(page, testInfo, "admin/403");
 });
 
 test("/admin 重定向到用户管理", async ({ page }, testInfo) => {

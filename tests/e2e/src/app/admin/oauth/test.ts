@@ -105,13 +105,11 @@ test("/admin/oauth 未登录重定向到登录页", async ({ page }, testInfo) =
   await captureStepScreenshot(page, testInfo, "admin-oauth-unauthorized");
 });
 
-test("/admin/oauth 普通用户访问返回 404", async ({ page }, testInfo) => {
+test("/admin/oauth 普通用户访问返回 403", async ({ page }, testInfo) => {
   await signInAsDebugUser(page, "/admin/oauth", "/admin/oauth");
-  await expect(page.getByText("404").first()).toBeVisible();
-  await expect(
-    page.getByRole("heading", { name: /页面不存在|Page Not Found/i }),
-  ).toBeVisible();
-  await captureStepScreenshot(page, testInfo, "admin-oauth-404");
+  await expect(page.getByText("403").first()).toBeVisible();
+  await expect(page.getByText("Forbidden").first()).toBeVisible();
+  await captureStepScreenshot(page, testInfo, "admin-oauth-403");
 });
 
 test("/admin/oauth 可创建三种固定客户端且密钥只显示一次", async ({

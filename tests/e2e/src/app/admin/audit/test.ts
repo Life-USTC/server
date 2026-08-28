@@ -13,9 +13,9 @@ for (const path of ["/admin/audit", "/admin/analytics"] as const) {
     await expectRequiresSignIn(page, path);
   });
 
-  test(`${path} 普通用户访问返回 404`, async ({ page }) => {
+  test(`${path} 普通用户访问返回 403`, async ({ page }) => {
     await signInAsDebugUser(page, path, path);
-    await expect(page.getByText("404").first()).toBeVisible();
+    await expect(page.getByText("403").first()).toBeVisible();
   });
 }
 

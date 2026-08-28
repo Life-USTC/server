@@ -81,13 +81,11 @@ test("/admin/moderation 未登录重定向到登录页", async ({ page }, testIn
   await captureStepScreenshot(page, testInfo, "admin-moderation-unauthorized");
 });
 
-test("/admin/moderation 普通用户访问返回 404", async ({ page }, testInfo) => {
+test("/admin/moderation 普通用户访问返回 403", async ({ page }, testInfo) => {
   await signInAsDebugUser(page, "/admin/moderation", "/admin/moderation");
-  await expect(page.getByText("404").first()).toBeVisible();
-  await expect(
-    page.getByRole("heading", { name: /页面不存在|Page Not Found/i }),
-  ).toBeVisible();
-  await captureStepScreenshot(page, testInfo, "admin-moderation-404");
+  await expect(page.getByText("403").first()).toBeVisible();
+  await expect(page.getByText("Forbidden").first()).toBeVisible();
+  await captureStepScreenshot(page, testInfo, "admin-moderation-403");
 });
 
 test("/admin/moderation 管理员访问成功", async ({ page }, testInfo) => {
