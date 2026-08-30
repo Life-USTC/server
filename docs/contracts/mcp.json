@@ -12,7 +12,7 @@
     "output-modes": "MCP has one canonical compact response structure in default mode and an opt-in full mode that adds raw fields without changing top-level collection types. The legacy summary input remains accepted as a deprecated alias for default and never introduces summary wrapper objects.",
     "coverage": "The checked tool list below is the MCP contract surface; implementation parity is enforced through integration tests and $life-ustc-implement. Public catalog list tools accept page and limit between 1 and 100, while course, section, and teacher search strings accept 2-200 characters, matching Web, REST, and GraphQL.",
     "aggregate-before-fanout": "Prefer assistant-oriented aggregate or filtered tools first; start with workspace_snapshot_get, then workspace_schedule_next for next-class-only prompts and workspace_deadline_list for merged deadlines. Default mode compacts schedule payloads and redacts low-value nested fields; full mode is the explicit escape hatch. Raw dataset tools remain available for power clients that need local post-processing.",
-    "privacy-safe-default": "Default output may omit repeated low-value nested objects and redact token-bearing URLs or other sensitive strings; full mode is the explicit escape hatch when exact raw values are required.",
+    "privacy-safe-default": "Default output may omit repeated low-value nested objects and redact token-bearing URLs or other sensitive strings; full mode is the explicit escape hatch when exact raw values are required, except workspace_calendar_feed_get never returns the private personal iCal feed URL, calendar path, credential, or token in any mode.",
     "property-priority-parity": "MCP default output follows the shared UI Model Property Priority contract: keep primary identity/task fields and useful disambiguators, compact repeated nested objects, and omit low-priority raw/audit fields unless full mode is explicitly requested.",
     "actionable-errors": "Validation and common not-found payloads prefer plain-language messages and may include a hint that points to the next useful tool or query to recover.",
     "resource-bound-access-token": "MCP is Bearer-only. The upstream @better-auth/mcp mcpHandler verifies JWT signature, issuer, expiry, and the canonical or loopback-equivalent /api/mcp audience. The local adapter then requires the exact active user-grant generation before constructing SDK AuthInfo. DPoP and resource-less opaque tokens are rejected. Authorization resources remain code-bound; omitted-resource refresh maps to MCP only with an MCP feature scope and canonical MCP approval.",
@@ -136,6 +136,7 @@
               "community_comment_create",
               "community_comment_update",
               "community_comment_delete",
+              "community_comment_replies",
               "community_comment_reaction_add",
               "community_comment_reaction_remove"
             ]

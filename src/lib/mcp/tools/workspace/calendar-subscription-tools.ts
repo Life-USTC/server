@@ -18,7 +18,7 @@ export function registerCalendarSubscriptionTools(server: McpServer) {
     "workspace_calendar_feed_get",
     {
       description:
-        "Get subscribed sections and the personal iCal calendar feed URL. Subscribing is not official USTC enrollment.",
+        "Get the current user's calendar subscription information and subscribed sections. This MCP tool never returns a personal iCal feed URL, calendar path, credential, or token. Subscribing is not official USTC enrollment.",
       inputSchema: {
         locale: mcpLocaleInputSchema,
         mode: mcpModeInputSchema,

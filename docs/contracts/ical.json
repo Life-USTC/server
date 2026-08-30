@@ -4,7 +4,7 @@
     "anon": "Can copy a single-section iCal link from the public section detail page and can retrieve a personal feed only when holding its token-bearing URL.",
     "user": "Can copy their own personal subscription iCal link.",
     "admin": "No additional exclusive iCal capabilities.",
-    "agent": "After authorization, can read the current user's personal calendar subscription information; REST and MCP should both return the same subscription feed information and description."
+    "agent": "After authorization, can read the current user's personal calendar subscription information. REST may expose the private feed URL only to callers with the calendar-feed read capability; MCP workspace_calendar_feed_get returns subscription information without the personal feed URL, path, credential, or token."
   },
   "rules": {
     "copyable-links": "iCal links should be presented as copyable links rather than requiring users to manually construct them.",
@@ -79,9 +79,9 @@
             "returns": "{ success: Boolean, subscription?, message?: String }",
             "rest_equivalent": "GET /api/workspace/subscriptions/current",
             "notes": [
-              "Default mode returns feed links plus current-semester section context instead of the full subscribed section list.",
+              "Returns the current user's subscription information and subscribed sections; it never returns the private personal iCal feed URL, calendarPath, credential, or token-bearing URL.",
               "The deprecated summary input is an alias for the same compact default response.",
-              "In default MCP output, token-bearing calendarPath and calendarUrl may be redacted for privacy; request full mode only when the raw feed location is explicitly needed."
+              "Full mode adds the complete subscribed section list but does not add a personal iCal feed URL or other feed credential."
             ]
           }
         ]
