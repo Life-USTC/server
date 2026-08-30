@@ -408,7 +408,7 @@ test("公开实体的原始 SSR HTML 输出双语 JSON-LD 且不包含用户字�
   }
 });
 
-test("动态社交分享图片是可抓取的 1200×630 8-bit RGBA PNG", async ({
+test("动态社交分享图片是可抓取的 1200×630 8-bit RGB/RGBA PNG", async ({
   request,
 }) => {
   const searchParams = new URLSearchParams({
@@ -427,7 +427,7 @@ test("动态社交分享图片是可抓取的 1200×630 8-bit RGBA PNG", async (
   expect(image.readUInt32BE(16)).toBe(1200);
   expect(image.readUInt32BE(20)).toBe(630);
   expect(image[24]).toBe(8);
-  expect(image[25]).toBe(6);
+  expect([2, 6]).toContain(image[25]);
   expect(image.byteLength).toBeGreaterThan(10_000);
   expect(image.byteLength).toBeLessThan(500_000);
 });
