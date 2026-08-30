@@ -1,3 +1,10 @@
+## [1.96.3](https://github.com/Life-USTC/server/compare/v1.96.2...v1.96.3) (2026-08-30)
+
+
+### Bug Fixes
+
+* clarify MCP personal calendar feed contract ([#966](https://github.com/Life-USTC/server/issues/966)) ([e81f06b](https://github.com/Life-USTC/server/commit/e81f06b6588d859353cf7967f5aabeee11e727e4))
+
 ## [1.96.2](https://github.com/Life-USTC/server/compare/v1.96.1...v1.96.2) (2026-08-28)
 
 
