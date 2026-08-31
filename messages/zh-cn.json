@@ -937,7 +937,8 @@
     "publicEntry": "公开校车查询",
     "dayType": {
       "weekday": "工作日",
-      "weekend": "周末",
+      "saturday": "周六",
+      "sunday": "周日",
       "auto": "自动"
     },
     "query": {
@@ -991,7 +992,7 @@
       "departEtaHoursMinutes": "{hours} 小时 {minutes} 分钟",
       "etaUnknown": "到站时间未知",
       "estimatedHint": "~ 表示该时间由同班次相邻站点推算得出。",
-      "clientHint": "班次与路线会根据你选择的站点以及当天是工作日还是周末而显示。",
+      "clientHint": "班次与路线会根据你选择的站点以及当天是工作日、周六还是周日而显示。",
       "direction": "方向",
       "routes": "路线",
       "routeSectionsCount": "共 {count} 条路线分组",
@@ -1015,7 +1016,8 @@
     "loadFailed": "校车数据加载失败，请稍后重试。",
     "retry": "重新加载",
     "weekday": "工作日",
-    "weekend": "周末",
+    "saturday": "周六",
+    "sunday": "周日",
     "bestMatch": "最佳匹配",
     "nextDeparture": "下一班发车",
     "arriveAt": "到达时间",
@@ -2681,7 +2683,8 @@
     },
     "tripCount": {
       "weekday": "工作日 {count} 趟",
-      "weekend": "周末 {count} 趟"
+      "saturday": "周六 {count} 趟",
+      "sunday": "周日 {count} 趟"
     },
     "backToBus": "返回时刻表",
     "noData": "暂无班车数据。",

@@ -5,7 +5,7 @@
  * Public raw shuttle-bus timetable dataset.
  * - Accepts: versionKey
  * - Returns: { version, availableVersions, campuses, routes, trips, preferences }
- * - Includes both weekday and weekend trips without server-side filtering/ranking
+ * - Includes weekday, Saturday, and Sunday trips without server-side filtering/ranking
  * - Returns 404 when no schedule data exists for the requested version
  *
  * ## GET /api/catalog/bus/routes
@@ -66,7 +66,8 @@ type BusRouteSearchResponse = {
     id?: number;
     stopCount?: number;
     weekdayTrips?: number;
-    weekendTrips?: number;
+    saturdayTrips?: number;
+    sundayTrips?: number;
     stops?: Array<{ campus?: { id?: number } }>;
   }>;
 };
@@ -93,7 +94,7 @@ async function saveBusPreference(
 }
 
 test.describe("GET /api/catalog/bus 校车时刻表", () => {
-  test("返回原始时刻表数据，包含工作日和周末班次", async ({ request }) => {
+  test("返回原始时刻表数据，包含工作日和周日班次", async ({ request }) => {
     const response = await request.get(`${BASE}?${SEED_VERSION}`);
     expect(response.status()).toBe(200);
     const body = (await response.json()) as BusResponse;
@@ -109,11 +110,11 @@ test.describe("GET /api/catalog/bus 校车时刻表", () => {
 
     const weekdayTrips =
       body.trips?.filter((trip) => trip.dayType === "weekday").length ?? 0;
-    const weekendTrips =
-      body.trips?.filter((trip) => trip.dayType === "weekend").length ?? 0;
+    const sundayTrips =
+      body.trips?.filter((trip) => trip.dayType === "sunday").length ?? 0;
 
     expect(weekdayTrips).toBeGreaterThan(0);
-    expect(weekendTrips).toBeGreaterThan(0);
+    expect(sundayTrips).toBeGreaterThan(0);
     expect(body.preferences).toBeNull();
   });
 
@@ -208,6 +209,8 @@ test.describe("GET /api/catalog/bus/routes 路线发现", () => {
     expect(seedRoute).toBeDefined();
     expect(seedRoute?.stopCount).toBeGreaterThan(1);
     expect(seedRoute?.weekdayTrips).toBeGreaterThan(0);
+    expect(seedRoute?.saturdayTrips).toBeGreaterThanOrEqual(0);
+    expect(seedRoute?.sundayTrips).toBeGreaterThanOrEqual(0);
     expect(seedRoute?.stops?.[0]?.campus?.id).toBe(DEV_SEED.bus.originCampusId);
   });
 });

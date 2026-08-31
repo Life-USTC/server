@@ -20,7 +20,7 @@ export async function isolateSingleActiveBusTripFixture(): Promise<BusTripTimesS
       select: { dayType: true, id: true, stopTimes: true },
     });
     const firstTripIds = new Set(
-      ["weekday", "weekend"].flatMap((dayType) => {
+      ["weekday", "saturday", "sunday"].flatMap((dayType) => {
         const trip = trips.find((candidate) => candidate.dayType === dayType);
         return trip ? [trip.id] : [];
       }),

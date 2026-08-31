@@ -357,7 +357,14 @@ export const persistedGraphqlOperationDefinitions = [
                 time
               }
             }
-            weekend {
+            saturday {
+              position
+              stopTimes {
+                stopOrder
+                time
+              }
+            }
+            sunday {
               position
               stopTimes {
                 stopOrder
@@ -367,7 +374,10 @@ export const persistedGraphqlOperationDefinitions = [
             weekdayPageInfo {
               ${pageInfoFields}
             }
-            weekendPageInfo {
+            saturdayPageInfo {
+              ${pageInfoFields}
+            }
+            sundayPageInfo {
               ${pageInfoFields}
             }
             alternateRoutes {

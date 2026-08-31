@@ -937,7 +937,8 @@
     "publicEntry": "Public shuttle query",
     "dayType": {
       "weekday": "Weekday",
-      "weekend": "Weekend",
+      "saturday": "Saturday",
+      "sunday": "Sunday",
       "auto": "Auto"
     },
     "query": {
@@ -991,7 +992,7 @@
       "departEtaHoursMinutes": "{hours, plural, one {# hour} other {# hours}} {minutes, plural, one {# minute} other {# minutes}}",
       "etaUnknown": "ETA unavailable",
       "estimatedHint": "~ marks an estimated time inferred from nearby stops on the same trip.",
-      "clientHint": "Trip times and routes reflect your stop selections and whether today is a weekday or weekend.",
+      "clientHint": "Trip times and routes reflect your stop selections and whether today is a weekday, Saturday, or Sunday.",
       "direction": "Direction",
       "routes": "Routes",
       "routeSectionsCount": "{count} route sections",
@@ -1015,7 +1016,8 @@
     "loadFailed": "Shuttle data could not be loaded. Please try again.",
     "retry": "Reload",
     "weekday": "Weekday",
-    "weekend": "Weekend",
+    "saturday": "Saturday",
+    "sunday": "Sunday",
     "bestMatch": "Best match",
     "nextDeparture": "Next departure",
     "arriveAt": "Arrive at",
@@ -1056,7 +1058,8 @@
     },
     "tripCount": {
       "weekday": "{count} weekday trips",
-      "weekend": "{count} weekend trips"
+      "saturday": "{count} Saturday trips",
+      "sunday": "{count} Sunday trips"
     },
     "backToBus": "Back to timetable",
     "noData": "No schedule data available.",

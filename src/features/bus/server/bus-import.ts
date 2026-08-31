@@ -77,11 +77,17 @@ export async function importBusStaticPayload(
       "weekday",
       payload.weekday_routes,
     );
-    const weekendTrips = await createBusTripsForDayType(
+    const saturdayTrips = await createBusTripsForDayType(
       tx,
       version.id,
-      "weekend",
-      payload.weekend_routes,
+      "saturday",
+      payload.saturday_routes,
+    );
+    const sundayTrips = await createBusTripsForDayType(
+      tx,
+      version.id,
+      "sunday",
+      payload.sunday_routes,
     );
 
     return {
@@ -89,7 +95,7 @@ export async function importBusStaticPayload(
       versionKey: version.key,
       campuses: payload.campuses.length,
       routes: payload.routes.length,
-      trips: weekdayTrips + weekendTrips,
+      trips: weekdayTrips + saturdayTrips + sundayTrips,
     };
   });
 }

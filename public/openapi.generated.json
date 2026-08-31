@@ -4988,7 +4988,8 @@
               "enum": [
                 "auto",
                 "weekday",
-                "weekend"
+                "saturday",
+                "sunday"
               ]
             }
           },
@@ -10662,7 +10663,8 @@
                   "type": "string",
                   "enum": [
                     "weekday",
-                    "weekend"
+                    "saturday",
+                    "sunday"
                   ]
                 },
                 "position": {
@@ -21616,7 +21618,8 @@
             "type": "string",
             "enum": [
               "weekday",
-              "weekend"
+              "saturday",
+              "sunday"
             ]
           },
           "totalRoutes": {
@@ -21777,7 +21780,8 @@
                   "type": "string",
                   "enum": [
                     "weekday",
-                    "weekend"
+                    "saturday",
+                    "sunday"
                   ]
                 },
                 "status": {
@@ -21957,7 +21961,8 @@
                 "type": "string",
                 "enum": [
                   "weekday",
-                  "weekend"
+                  "saturday",
+                  "sunday"
                 ]
               },
               "status": {
@@ -22207,7 +22212,12 @@
                   "minimum": 0,
                   "maximum": 9007199254740991
                 },
-                "weekendTrips": {
+                "saturdayTrips": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "sundayTrips": {
                   "type": "integer",
                   "minimum": 0,
                   "maximum": 9007199254740991
@@ -22281,7 +22291,8 @@
                 "destinationCampus",
                 "stopCount",
                 "weekdayTrips",
-                "weekendTrips",
+                "saturdayTrips",
+                "sundayTrips",
                 "stops"
               ],
               "additionalProperties": false

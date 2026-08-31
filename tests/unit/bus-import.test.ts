@@ -19,7 +19,7 @@ type VersionRow = {
 type TripRow = {
   versionId: number;
   routeId: number;
-  dayType: "weekday" | "weekend";
+  dayType: "weekday" | "saturday" | "sunday";
   position: number;
   stopTimes: Array<string | null>;
 };
@@ -160,12 +160,32 @@ function createPayload(): BusStaticPayload {
     campuses: [east, west],
     routes: [route],
     weekday_routes: [{ id: 1, route, time: [["08:00", "08:20"]] }],
-    weekend_routes: [],
+    saturday_routes: [{ id: 1, route, time: [["09:00", "09:20"]] }],
+    sunday_routes: [{ id: 1, route, time: [["10:00", "10:20"]] }],
     message: { message: "2026 春校车时刻表", url: "https://example.test" },
   };
 }
 
 describe("班车时刻表导入", () => {
+  it("分别导入工作日、周六和周日班次", async () => {
+    const prisma = createImportPrismaMock({
+      nextVersionId: 1,
+      versions: [],
+      trips: [],
+    });
+
+    const result = await importBusStaticPayload(prisma, createPayload(), {
+      versionKey: "new-bus",
+    });
+
+    expect(result.trips).toBe(3);
+    expect(prisma.getState().trips.map((trip) => trip.dayType)).toEqual([
+      "weekday",
+      "saturday",
+      "sunday",
+    ]);
+  });
+
   it("当替换行程写入失败时保持当前时刻表不变", async () => {
     const initialState: ImportState = {
       nextVersionId: 2,

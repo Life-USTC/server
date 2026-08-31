@@ -75,10 +75,12 @@ type BusRouteStop {
 type BusRouteTimetable {
   alternateRoutes: [BusRoute!]!
   route: BusRoute!
+  saturday: [BusTripSlot!]!
+  saturdayPageInfo: PageInfo!
+  sunday: [BusTripSlot!]!
+  sundayPageInfo: PageInfo!
   weekday: [BusTripSlot!]!
   weekdayPageInfo: PageInfo!
-  weekend: [BusTripSlot!]!
-  weekendPageInfo: PageInfo!
 }
 
 type BusStopTime {

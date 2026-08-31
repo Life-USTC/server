@@ -14,7 +14,7 @@ import { nextBusDepartures } from "@/features/dashboard/lib/bus";
 function createTrip(input: {
   id: number;
   routeId: number;
-  dayType: "weekday" | "weekend";
+  dayType: "weekday" | "saturday" | "sunday";
   position: number;
   times: Array<
     [stopOrder: number, campusId: number, campusName: string, time: string]
@@ -147,7 +147,10 @@ describe("班车客户端时刻表计算", () => {
       "weekday",
     );
     expect(resolveClientBusDayType(new Date("2026-04-24T16:00:00.000Z"))).toBe(
-      "weekend",
+      "saturday",
+    );
+    expect(resolveClientBusDayType(new Date("2026-04-25T16:00:00.000Z"))).toBe(
+      "sunday",
     );
     expect(resolveClientBusDayType(new Date("2026-04-26T16:00:00.000Z"))).toBe(
       "weekday",

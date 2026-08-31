@@ -30,7 +30,9 @@ export function compactBusArrayItem(
 ): CompactArrayMatch {
   if (
     Object.hasOwn(value, "routeId") &&
-    (value.dayType === "weekday" || value.dayType === "weekend") &&
+    (value.dayType === "weekday" ||
+      value.dayType === "saturday" ||
+      value.dayType === "sunday") &&
     Object.hasOwn(value, "stopTimes") &&
     Array.isArray(value.stopTimes)
   ) {
@@ -250,7 +252,10 @@ export function compactMcpPayload(value: unknown): unknown {
       );
       continue;
     }
-    if ((key === "weekday" || key === "weekend") && Array.isArray(fieldValue)) {
+    if (
+      (key === "weekday" || key === "saturday" || key === "sunday") &&
+      Array.isArray(fieldValue)
+    ) {
       out[key] = asRecordArray(fieldValue).map(compactBusTripSlot);
       continue;
     }

@@ -170,6 +170,7 @@
           "Bus schedule version title",
           "version key",
           "tripCount",
+          "weekday, Saturday, and Sunday service-day trip data",
           "importedAt",
           "effective range",
           "enabled status",

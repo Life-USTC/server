@@ -6,7 +6,7 @@ import type { BusPreferenceSaveState } from "./bus-preferences";
 import { createBusPlannerPreferenceSave } from "./bus-tab-preference-save";
 import type { DashboardBusCopy, DashboardBusData } from "./bus-tab-types";
 
-export type BusDayType = "weekday" | "weekend";
+export type BusDayType = "weekday" | "saturday" | "sunday";
 
 function busReferenceNow(bus: DashboardBusData) {
   const fetchedAt = new Date(bus.fetchedAt);

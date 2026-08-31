@@ -11,7 +11,8 @@ export type BusMapRouteEdge = {
   descriptionPrimary: string;
   stops: { campusId: number; campusName: string }[];
   weekdayTrips: number;
-  weekendTrips: number;
+  saturdayTrips: number;
+  sundayTrips: number;
 };
 
 export type BusMapActiveTrip = {
@@ -29,7 +30,7 @@ export type BusMapData = {
   campuses: BusMapCampusNode[];
   routes: BusMapRouteEdge[];
   activeTrips: BusMapActiveTrip[];
-  todayType: "weekday" | "weekend";
+  todayType: "weekday" | "saturday" | "sunday";
   now: string;
 };
 
