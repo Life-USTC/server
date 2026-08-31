@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 import { checksumBusPayload } from "@/features/bus/lib/bus-import-metadata";
 import type { BusStaticPayload } from "@/features/bus/lib/bus-types";
 import { importBusStaticPayload } from "@/features/bus/server/bus-import";
@@ -6,10 +6,6 @@ import type {
   BusImportPrisma,
   BusImportWritePrisma,
 } from "@/features/bus/server/bus-import-prisma";
-import {
-  upsertBusCampuses,
-  upsertBusRoutes,
-} from "@/features/bus/server/bus-import-writes";
 
 type VersionRow = {
   id: number;
@@ -50,19 +46,13 @@ function createImportPrismaMock(
 
   const createDelegates = (target: ImportState): BusImportWritePrisma => ({
     busCampus: {
-      async create() {
+      async upsert() {
         return {};
-      },
-      async updateMany() {
-        return { count: 1 };
       },
     },
     busRoute: {
-      async create() {
+      async upsert() {
         return {};
-      },
-      async updateMany() {
-        return { count: 1 };
       },
     },
     busRouteStop: {
@@ -177,41 +167,6 @@ function createPayload(): BusStaticPayload {
 }
 
 describe("班车时刻表导入", () => {
-  it("未命中的园区和路线更新会创建新记录", async () => {
-    const campusCreate = vi.fn().mockResolvedValue({});
-    const routeCreate = vi.fn().mockResolvedValue({});
-    const routeStopCreateMany = vi.fn().mockResolvedValue({});
-    const prisma = {
-      busCampus: {
-        create: campusCreate,
-        updateMany: vi.fn().mockResolvedValue({ count: 0 }),
-      },
-      busRoute: {
-        create: routeCreate,
-        updateMany: vi.fn().mockResolvedValue({ count: 0 }),
-      },
-      busRouteStop: {
-        createMany: routeStopCreateMany,
-        deleteMany: vi.fn().mockResolvedValue({}),
-      },
-    } as unknown as BusImportWritePrisma;
-    const payload = createPayload();
-
-    await upsertBusCampuses(prisma, payload);
-    await upsertBusRoutes(prisma, payload);
-
-    expect(campusCreate).toHaveBeenCalledTimes(2);
-    expect(routeCreate).toHaveBeenCalledWith({
-      data: expect.objectContaining({ id: 8, nameCn: "东区 -> 西区" }),
-    });
-    expect(routeStopCreateMany).toHaveBeenCalledWith({
-      data: [
-        { routeId: 8, campusId: 1, stopOrder: 0 },
-        { routeId: 8, campusId: 2, stopOrder: 1 },
-      ],
-    });
-  });
-
   it("分别导入工作日、周六和周日班次", async () => {
     const prisma = createImportPrismaMock({
       nextVersionId: 1,
