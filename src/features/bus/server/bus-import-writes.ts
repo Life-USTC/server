@@ -30,20 +30,23 @@ export async function upsertBusCampuses(
 ) {
   for (const campus of payload.campuses) {
     const { latitude, longitude } = normalizeBusCampusCoordinates(campus);
-    await prisma.busCampus.upsert({
+    const data = {
+      nameCn: normalizeBusCampusName(campus.name),
+      latitude,
+      longitude,
+    };
+    const updated = await prisma.busCampus.updateMany({
       where: { id: campus.id },
-      update: {
-        nameCn: normalizeBusCampusName(campus.name),
-        latitude,
-        longitude,
-      },
-      create: {
-        id: campus.id,
-        nameCn: normalizeBusCampusName(campus.name),
-        latitude,
-        longitude,
-      },
+      data,
     });
+    if (updated.count === 0) {
+      await prisma.busCampus.create({
+        data: {
+          id: campus.id,
+          ...data,
+        },
+      });
+    }
   }
 }
 
@@ -53,14 +56,18 @@ export async function upsertBusRoutes(
 ) {
   for (const route of payload.routes) {
     const routeNameData = buildBusRouteNameData(route.campuses);
-    await prisma.busRoute.upsert({
+    const updated = await prisma.busRoute.updateMany({
       where: { id: route.id },
-      update: routeNameData,
-      create: {
-        id: route.id,
-        ...routeNameData,
-      },
+      data: routeNameData,
     });
+    if (updated.count === 0) {
+      await prisma.busRoute.create({
+        data: {
+          id: route.id,
+          ...routeNameData,
+        },
+      });
+    }
 
     await prisma.busRouteStop.deleteMany({
       where: { routeId: route.id },
