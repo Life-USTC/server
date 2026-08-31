@@ -1,9 +1,11 @@
 export type BusImportWritePrisma = {
   busCampus: {
-    upsert(args: unknown): Promise<unknown>;
+    create(args: unknown): Promise<unknown>;
+    updateMany(args: unknown): Promise<{ count: number }>;
   };
   busRoute: {
-    upsert(args: unknown): Promise<unknown>;
+    create(args: unknown): Promise<unknown>;
+    updateMany(args: unknown): Promise<{ count: number }>;
   };
   busRouteStop: {
     createMany(args: unknown): Promise<unknown>;
