@@ -62,5 +62,9 @@ GRANT INSERT ON TABLE "AuditLog" TO life_ustc_runtime;
 GRANT SELECT, INSERT, UPDATE ON TABLE "UserSuspension" TO life_ustc_runtime;
 GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE "BusScheduleVersion"
 TO life_ustc_runtime;
+GRANT INSERT, UPDATE ON TABLE "BusCampus", "BusRoute"
+TO life_ustc_runtime;
+GRANT INSERT, DELETE ON TABLE "BusRouteStop", "BusTrip"
+TO life_ustc_runtime;
 GRANT UPDATE ("name", "username", "isAdmin", "calendarFeedToken", "updatedAt") ON TABLE "User"
 TO life_ustc_runtime;
