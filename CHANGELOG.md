@@ -1,3 +1,10 @@
+## [1.97.4](https://github.com/Life-USTC/server/compare/v1.97.3...v1.97.4) (2026-08-31)
+
+
+### Bug Fixes
+
+* **bus:** refresh cache after timetable imports ([#971](https://github.com/Life-USTC/server/issues/971)) ([2edb258](https://github.com/Life-USTC/server/commit/2edb258654c0c92e3a04906ee08e1ed39e5b4d56))
+
 ## [1.97.3](https://github.com/Life-USTC/server/compare/v1.97.2...v1.97.3) (2026-08-31)
 
 
