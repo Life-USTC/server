@@ -1,3 +1,10 @@
+# [1.97.0](https://github.com/Life-USTC/server/compare/v1.96.3...v1.97.0) (2026-08-31)
+
+
+### Features
+
+* **bus:** support Saturday and Sunday timetables ([#967](https://github.com/Life-USTC/server/issues/967)) ([6b764da](https://github.com/Life-USTC/server/commit/6b764dafa9f6764e477616e5244f974e2df81624))
+
 ## [1.96.3](https://github.com/Life-USTC/server/compare/v1.96.2...v1.96.3) (2026-08-30)
 
 
