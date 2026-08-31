@@ -85,6 +85,10 @@
       "description": "catalog.teachers operations"
     },
     {
+      "name": "catalog.weather",
+      "description": "catalog.weather operations"
+    },
+    {
       "name": "community.comments",
       "description": "community.comments operations"
     },
@@ -148,7 +152,8 @@
         "catalog.schedule",
         "catalog.section",
         "catalog.semesters",
-        "catalog.teachers"
+        "catalog.teachers",
+        "catalog.weather"
       ]
     },
     {
@@ -2036,6 +2041,51 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/paginatedTeacherResponseSchema"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/openApiErrorSchema"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/catalog/weather": {
+      "get": {
+        "operationId": "catalog_weather_get",
+        "summary": "Query weather for a USTC campus",
+        "tags": [
+          "catalog.weather"
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "locationKey",
+            "schema": {
+              "default": "ustc-main",
+              "type": "string",
+              "enum": [
+                "ustc-main",
+                "ustc-gaoxin"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/weatherSnapshotResponseSchema"
                 }
               }
             }
@@ -13019,6 +13069,224 @@
         "required": [
           "data",
           "pagination"
+        ],
+        "additionalProperties": false
+      },
+      "weatherSnapshotResponseSchema": {
+        "type": "object",
+        "properties": {
+          "location": {
+            "type": "object",
+            "properties": {
+              "key": {
+                "type": "string",
+                "enum": [
+                  "ustc-main",
+                  "ustc-gaoxin"
+                ]
+              },
+              "name": {
+                "type": "string"
+              },
+              "adcode": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "key",
+              "name",
+              "adcode"
+            ],
+            "additionalProperties": false
+          },
+          "fetchedAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+          },
+          "providers": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "amap",
+                "open-meteo"
+              ]
+            }
+          },
+          "current": {
+            "type": "object",
+            "properties": {
+              "temperature": {
+                "type": "number"
+              },
+              "feelsLike": {
+                "type": "number"
+              },
+              "humidity": {
+                "type": "number"
+              },
+              "windDirection": {
+                "type": "string"
+              },
+              "windSpeed": {
+                "type": "number"
+              },
+              "pressure": {
+                "type": "number"
+              },
+              "visibility": {
+                "type": "number"
+              },
+              "condition": {
+                "type": "object",
+                "properties": {
+                  "text": {
+                    "type": "string"
+                  },
+                  "icon": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "text",
+                  "icon"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "required": [
+              "temperature",
+              "condition"
+            ],
+            "additionalProperties": false
+          },
+          "hourly": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "at": {
+                  "type": "string",
+                  "format": "date-time",
+                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                },
+                "temperature": {
+                  "type": "number"
+                },
+                "condition": {
+                  "type": "object",
+                  "properties": {
+                    "text": {
+                      "type": "string"
+                    },
+                    "icon": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "text",
+                    "icon"
+                  ],
+                  "additionalProperties": false
+                },
+                "precipitationProbability": {
+                  "type": "number"
+                },
+                "precipitationAmount": {
+                  "type": "number"
+                }
+              },
+              "required": [
+                "at",
+                "temperature"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "daily": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "date": {
+                  "type": "string"
+                },
+                "temperatureHigh": {
+                  "type": "number"
+                },
+                "temperatureLow": {
+                  "type": "number"
+                },
+                "condition": {
+                  "type": "object",
+                  "properties": {
+                    "text": {
+                      "type": "string"
+                    },
+                    "icon": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "text",
+                    "icon"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "required": [
+                "date",
+                "temperatureHigh",
+                "temperatureLow"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "alerts": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "title": {
+                  "type": "string"
+                },
+                "level": {
+                  "type": "string"
+                },
+                "content": {
+                  "type": "string"
+                },
+                "issuedAt": {
+                  "type": "string",
+                  "format": "date-time",
+                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                }
+              },
+              "required": [
+                "title"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "extensions": {
+            "type": "object",
+            "properties": {
+              "amap": {},
+              "openMeteo": {}
+            },
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "location",
+          "fetchedAt",
+          "providers",
+          "current",
+          "hourly",
+          "daily",
+          "alerts",
+          "extensions"
         ],
         "additionalProperties": false
       },
