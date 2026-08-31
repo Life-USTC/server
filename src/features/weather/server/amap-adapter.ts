@@ -99,7 +99,11 @@ export async function fetchAmapWeather(
             temperature: Number(live.temperature ?? 0),
             humidity: live.humidity ? Number(live.humidity) : undefined,
             windDirection: live.winddirection,
-            windSpeed: live.windpower ? Number(live.windpower) : undefined,
+            // windpower is a Beaufort level string like "≤3" or "4".
+            windSpeed: live.windpower
+              ? Number.parseInt(live.windpower.replace(/[^\d]/g, ""), 10) ||
+                undefined
+              : undefined,
             weather: live.weather,
           }
         : undefined,

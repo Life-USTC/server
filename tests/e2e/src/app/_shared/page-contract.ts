@@ -414,6 +414,25 @@ export async function assertPageContract(
       return;
     }
 
+    case "/catalog/weather": {
+      await gotoContractPage(page, routePath, testInfo);
+      await expectMainContent(page);
+      await expect(
+        page.getByRole("heading", { level: 1, name: /天气|Weather/i }),
+      ).toBeVisible();
+      await expect(
+        page.getByRole("heading", {
+          level: 2,
+          name: /主校区群|Main campuses/,
+        }),
+      ).toBeVisible();
+      await expect(
+        page.getByRole("heading", { level: 2, name: /高新校区|Gaoxin campus/ }),
+      ).toBeVisible();
+      await maybeCapture(page, testInfo, "weather");
+      return;
+    }
+
     case "/catalog/bus/map": {
       await gotoContractPage(page, routePath, testInfo);
       await expectMainContent(page);

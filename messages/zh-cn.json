@@ -2655,6 +2655,26 @@
       ]
     }
   },
+  "weather": {
+    "title": "校园天气",
+    "description": "主校区群与高新校区的实时天气、逐小时降水预报与天气预警。",
+    "locationNames": {
+      "ustc-main": "主校区群",
+      "ustc-gaoxin": "高新校区"
+    },
+    "currentConditions": "当前天气",
+    "feelsLike": "体感 {value}°C",
+    "humidity": "湿度 {value}%",
+    "wind": "{direction}风 {value} 级",
+    "hourlyForecast": "逐小时预报",
+    "precipitationProbability": "降水概率 {value}%",
+    "dailyForecast": "每日预报",
+    "alerts": "天气预警",
+    "noAlerts": "暂无预警",
+    "updatedAt": "更新于 {value}",
+    "dataProviders": "数据来源",
+    "unavailable": "天气数据暂不可用，请稍后重试。"
+  },
   "busMap": {
     "title": "线路图",
     "subtitle": "科大校区班车线路实时概览",

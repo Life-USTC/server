@@ -1,7 +1,4 @@
-import {
-  normalizeAmapCondition,
-  type AmapWeatherData,
-} from "./amap-adapter";
+import { type AmapWeatherData, normalizeAmapCondition } from "./amap-adapter";
 import {
   normalizeOpenMeteoCondition,
   type OpenMeteoWeatherData,
@@ -43,27 +40,24 @@ export function mergeWeatherSnapshots(
       ? {
           temperature: openMeteo.data.current?.temperature_2m ?? 0,
           humidity: openMeteo.data.current?.relative_humidity_2m,
-          windSpeed: openMeteo.data.current?.wind_speed_10m,
           condition: normalizeOpenMeteoCondition(
             openMeteo.data.current?.weather_code ?? -1,
           ),
         }
       : { temperature: 0, condition: { text: "未知", icon: "unknown" } };
 
-  const hourly: WeatherHourly[] = openMeteo.ok
-    ? (openMeteo.data.hourly?.time ?? [])
-        .slice(0, 24)
-        .map((time, i) => ({
-          at: time,
-          temperature: openMeteo.data.hourly!.temperature_2m[i],
-          condition: normalizeOpenMeteoCondition(
-            openMeteo.data.hourly!.weather_code[i],
-          ),
-          precipitationProbability:
-            openMeteo.data.hourly!.precipitation_probability?.[i],
-          precipitationAmount: openMeteo.data.hourly!.precipitation?.[i],
-        }))
-    : [];
+  const hourlySource = openMeteo.ok ? openMeteo.data.hourly : undefined;
+  const hourly: WeatherHourly[] = (hourlySource?.time ?? [])
+    .slice(0, 24)
+    .map((time, i) => ({
+      at: time,
+      temperature: hourlySource?.temperature_2m[i] ?? 0,
+      condition: normalizeOpenMeteoCondition(
+        hourlySource?.weather_code[i] ?? -1,
+      ),
+      precipitationProbability: hourlySource?.precipitation_probability?.[i],
+      precipitationAmount: hourlySource?.precipitation?.[i],
+    }));
 
   const daily: WeatherDaily[] = amap.ok
     ? (amap.data.daily ?? []).map((d) => ({
@@ -73,14 +67,17 @@ export function mergeWeatherSnapshots(
         condition: normalizeAmapCondition(d.weather, d.weatherCode),
       }))
     : openMeteo.ok
-      ? (openMeteo.data.daily?.time ?? []).map((time, i) => ({
-          date: time,
-          temperatureHigh: openMeteo.data.daily!.temperature_2m_max[i],
-          temperatureLow: openMeteo.data.daily!.temperature_2m_min[i],
-          condition: normalizeOpenMeteoCondition(
-            openMeteo.data.daily!.weather_code[i],
-          ),
-        }))
+      ? (() => {
+          const dailySource = openMeteo.data.daily;
+          return (dailySource?.time ?? []).map((time, i) => ({
+            date: time,
+            temperatureHigh: dailySource?.temperature_2m_max[i] ?? 0,
+            temperatureLow: dailySource?.temperature_2m_min[i] ?? 0,
+            condition: normalizeOpenMeteoCondition(
+              dailySource?.weather_code[i] ?? -1,
+            ),
+          }));
+        })()
       : [];
 
   return {

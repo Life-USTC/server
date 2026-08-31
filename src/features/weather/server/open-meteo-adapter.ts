@@ -55,6 +55,12 @@ export function normalizeOpenMeteoCondition(code: number): {
   };
 }
 
+// Open-Meteo returns Asia/Shanghai local times without an offset; downstream
+// DateTime contracts require an explicit timezone.
+function toZonedIsoTime(time: string): string {
+  return time.length === 16 ? `${time}:00+08:00` : time;
+}
+
 export async function fetchOpenMeteoWeather(
   location: WeatherLocation,
 ): Promise<ProviderResult<OpenMeteoWeatherData>> {
@@ -87,7 +93,17 @@ export async function fetchOpenMeteoWeather(
       };
     }
     const raw = (await response.json()) as unknown;
-    return { ok: true, data: raw as OpenMeteoWeatherData, raw };
+    const data = raw as OpenMeteoWeatherData;
+    return {
+      ok: true,
+      data: {
+        ...data,
+        hourly: data.hourly
+          ? { ...data.hourly, time: data.hourly.time.map(toZonedIsoTime) }
+          : undefined,
+      },
+      raw,
+    };
   } catch (error) {
     return {
       ok: false,

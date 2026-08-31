@@ -1030,6 +1030,26 @@
     "switchVersionHint": "Try another timetable version or show departed trips.",
     "transitMap": "Transit map"
   },
+  "weather": {
+    "title": "Campus Weather",
+    "description": "Live conditions, hourly precipitation forecast, and alerts for the main campuses and the Gaoxin campus.",
+    "locationNames": {
+      "ustc-main": "Main campuses",
+      "ustc-gaoxin": "Gaoxin campus"
+    },
+    "currentConditions": "Current conditions",
+    "feelsLike": "Feels like {value}°C",
+    "humidity": "Humidity {value}%",
+    "wind": "{direction} wind, force {value}",
+    "hourlyForecast": "Hourly forecast",
+    "precipitationProbability": "Precipitation {value}%",
+    "dailyForecast": "Daily forecast",
+    "alerts": "Weather alerts",
+    "noAlerts": "No active alerts",
+    "updatedAt": "Updated {value}",
+    "dataProviders": "Data providers",
+    "unavailable": "Weather data is temporarily unavailable. Please try again later."
+  },
   "busMap": {
     "title": "Transit Map",
     "subtitle": "Live shuttle bus network across USTC campuses",
