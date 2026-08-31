@@ -765,7 +765,8 @@ test.describe("/api/mcp - 种子工具覆盖", () => {
               counts?: {
                 routes?: number;
                 weekdayTrips?: number;
-                weekendTrips?: number;
+                saturdayTrips?: number;
+                sundayTrips?: number;
               };
               routes?: Array<{ id?: number | null }>;
               nextDepartures?: Array<{
@@ -832,7 +833,10 @@ test.describe("/api/mcp - 种子工具覆盖", () => {
         ).toBe(true);
         expect(
           busFullPayload.trips?.some(
-            (trip) => trip.dayType === "weekday" || trip.dayType === "weekend",
+            (trip) =>
+              trip.dayType === "weekday" ||
+              trip.dayType === "saturday" ||
+              trip.dayType === "sunday",
           ),
         ).toBe(true);
         expect(
@@ -856,7 +860,8 @@ test.describe("/api/mcp - 种子工具覆盖", () => {
           counts?: {
             routes?: number;
             weekdayTrips?: number;
-            weekendTrips?: number;
+            saturdayTrips?: number;
+            sundayTrips?: number;
           };
           nextDepartures?: Array<{
             routeId?: number;
@@ -869,7 +874,8 @@ test.describe("/api/mcp - 种子工具覆盖", () => {
         };
         expect(typeof busSummaryPayload.counts?.routes).toBe("number");
         expect(typeof busSummaryPayload.counts?.weekdayTrips).toBe("number");
-        expect(typeof busSummaryPayload.counts?.weekendTrips).toBe("number");
+        expect(typeof busSummaryPayload.counts?.saturdayTrips).toBe("number");
+        expect(typeof busSummaryPayload.counts?.sundayTrips).toBe("number");
         expect(busSummaryPayload.nextDepartures).toEqual([]);
         expect(Array.isArray(busSummaryPayload.campuses)).toBe(true);
         expect(Array.isArray(busSummaryPayload.routes)).toBe(true);
@@ -914,7 +920,7 @@ test.describe("/api/mcp - 种子工具覆盖", () => {
           [...listedRouteIds].every((routeId) => queryRouteIds.has(routeId)),
         ).toBe(true);
 
-        // catalog_bus_route_get — full weekday+weekend for one route
+        // catalog_bus_route_get — full weekday+Saturday+Sunday for one route
         const timetableResult = await mcpClient.callTool({
           name: "catalog_bus_route_get",
           arguments: {
@@ -928,7 +934,11 @@ test.describe("/api/mcp - 种子工具覆盖", () => {
             position?: number;
             stopTimes?: Array<{ stopOrder?: number; time?: string | null }>;
           }>;
-          weekend?: Array<{
+          saturday?: Array<{
+            position?: number;
+            stopTimes?: Array<{ stopOrder?: number; time?: string | null }>;
+          }>;
+          sunday?: Array<{
             position?: number;
             stopTimes?: Array<{ stopOrder?: number; time?: string | null }>;
           }>;
@@ -936,7 +946,8 @@ test.describe("/api/mcp - 种子工具覆盖", () => {
         };
         expect(timetablePayload.route?.id).toBe(DEV_SEED.bus.routeId);
         expect(Array.isArray(timetablePayload.weekday)).toBe(true);
-        expect(Array.isArray(timetablePayload.weekend)).toBe(true);
+        expect(Array.isArray(timetablePayload.saturday)).toBe(true);
+        expect(Array.isArray(timetablePayload.sunday)).toBe(true);
         expect(Array.isArray(timetablePayload.alternateRoutes)).toBe(true);
         expect(
           timetablePayload.weekday?.some(

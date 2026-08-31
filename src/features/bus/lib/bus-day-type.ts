@@ -4,10 +4,14 @@ import type { BusResolvedDayType } from "./bus-types";
 export function resolveBusDayType(
   inputDayType: BusResolvedDayType | undefined,
   now = shanghaiDayjs(),
-): "weekday" | "weekend" {
-  if (inputDayType === "weekday" || inputDayType === "weekend") {
+): "weekday" | "saturday" | "sunday" {
+  if (
+    inputDayType === "weekday" ||
+    inputDayType === "saturday" ||
+    inputDayType === "sunday"
+  ) {
     return inputDayType;
   }
   const day = now.day();
-  return day === 0 || day === 6 ? "weekend" : "weekday";
+  return day === 6 ? "saturday" : day === 0 ? "sunday" : "weekday";
 }

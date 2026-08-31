@@ -17,7 +17,8 @@ const db = vi.hoisted(() => {
     weekday_routes: [
       { id: 1, route: { id: 8, campuses: [east, west] }, time: [] },
     ],
-    weekend_routes: [],
+    saturday_routes: [],
+    sunday_routes: [],
     message: null,
   } satisfies BusStaticPayload;
 

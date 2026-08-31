@@ -4,11 +4,21 @@ import type { RouteRecord } from "./bus-route-record-types";
 import type { BusMapRouteEdge } from "./bus-types";
 
 export function buildBusRouteTripCounts(
-  trips: Array<{ routeId: number; dayType: "weekday" | "weekend" }>,
+  trips: Array<{
+    routeId: number;
+    dayType: "weekday" | "saturday" | "sunday";
+  }>,
 ) {
-  const tripCounts = new Map<number, { weekday: number; weekend: number }>();
+  const tripCounts = new Map<
+    number,
+    { weekday: number; saturday: number; sunday: number }
+  >();
   for (const trip of trips) {
-    const count = tripCounts.get(trip.routeId) ?? { weekday: 0, weekend: 0 };
+    const count = tripCounts.get(trip.routeId) ?? {
+      weekday: 0,
+      saturday: 0,
+      sunday: 0,
+    };
     count[trip.dayType] += 1;
     tripCounts.set(trip.routeId, count);
   }
@@ -22,7 +32,10 @@ export function buildBusRouteEdges({
 }: {
   locale: AppLocale;
   records: RouteRecord[];
-  tripCounts: Map<number, { weekday: number; weekend: number }>;
+  tripCounts: Map<
+    number,
+    { weekday: number; saturday: number; sunday: number }
+  >;
 }): BusMapRouteEdge[] {
   return records
     .filter((record) => record.stops.length >= 2)
@@ -36,7 +49,8 @@ export function buildBusRouteEdges({
           campusName: stop.campus.namePrimary,
         })),
         weekdayTrips: tripCounts.get(record.id)?.weekday ?? 0,
-        weekendTrips: tripCounts.get(record.id)?.weekend ?? 0,
+        saturdayTrips: tripCounts.get(record.id)?.saturday ?? 0,
+        sundayTrips: tripCounts.get(record.id)?.sunday ?? 0,
       };
     });
 }

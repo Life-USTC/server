@@ -9,7 +9,7 @@ export function buildTripSummary(
   trip: {
     id: number;
     routeId: number;
-    dayType: "weekday" | "weekend";
+    dayType: "weekday" | "saturday" | "sunday";
     position: number;
     stopTimes: unknown;
   },

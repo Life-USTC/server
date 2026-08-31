@@ -18,7 +18,9 @@ import {
 } from "./bus-route-tool-handlers";
 import { queryBusTimetableTool } from "./bus-timetable-tool-handler";
 
-const busDayTypeSchema = z.enum(["auto", "weekday", "weekend"]).default("auto");
+const busDayTypeSchema = z
+  .enum(["auto", "weekday", "saturday", "sunday"])
+  .default("auto");
 const busPreferenceCampusIdSchema = z
   .number()
   .int()
@@ -57,7 +59,7 @@ export function registerBusTools(server: McpServer) {
     "catalog_bus_route_get",
     {
       description:
-        "Full weekday/weekend timetable for one route ID. Use catalog_bus_route_list first to find route IDs.",
+        "Full weekday/Saturday/Sunday timetable for one route ID. Use catalog_bus_route_list first to find route IDs.",
       inputSchema: {
         routeId: z.number().int().positive(),
         versionKey: busVersionKeySchema.optional(),

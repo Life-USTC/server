@@ -13,7 +13,8 @@ export function assertBusRouteConsistency(payload: BusStaticPayload) {
   const routeIds = new Set(payload.routes.map((route) => route.id));
   for (const schedule of [
     ...payload.weekday_routes,
-    ...payload.weekend_routes,
+    ...payload.saturday_routes,
+    ...payload.sunday_routes,
   ]) {
     if (!routeIds.has(schedule.route.id)) {
       throw new Error(
@@ -78,7 +79,7 @@ export async function upsertBusRoutes(
 export async function createBusTripsForDayType(
   prisma: BusImportWritePrisma,
   versionId: number,
-  dayType: "weekday" | "weekend",
+  dayType: "weekday" | "saturday" | "sunday",
   schedules: BusStaticRouteSchedule[],
 ) {
   let trips = 0;

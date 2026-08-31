@@ -105,7 +105,8 @@ enum TodoPriority {
 
 enum BusScheduleDayType {
   weekday
-  weekend
+  saturday
+  sunday
 }
 
 model AdminClass {

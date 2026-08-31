@@ -510,7 +510,8 @@ const compactBusRouteSchema = compactObjectSchema({
   descriptionPrimary: z.string().nullable(),
   descriptionSecondary: z.string().nullable(),
   weekdayTrips: z.number().int().nonnegative(),
-  weekendTrips: z.number().int().nonnegative(),
+  saturdayTrips: z.number().int().nonnegative(),
+  sundayTrips: z.number().int().nonnegative(),
   stopCount: z.number().int().nonnegative(),
   stops: z.array(z.unknown()),
   originCampus: compactCampusSchema.nullable(),
@@ -657,7 +658,8 @@ const busCountsSchema = z.strictObject({
   campuses: z.number().int().nonnegative(),
   routes: z.number().int().nonnegative(),
   weekdayTrips: z.number().int().nonnegative(),
-  weekendTrips: z.number().int().nonnegative(),
+  saturdayTrips: z.number().int().nonnegative(),
+  sundayTrips: z.number().int().nonnegative(),
 });
 
 const compactBusRouteCoreSchema = z.strictObject({
@@ -1644,7 +1646,8 @@ const TOOL_OUTPUT_SCHEMAS: Record<string, McpToolOutputSchema> = {
     routeId: z.number().int(),
     route: compactBusRouteSchema,
     weekday: collectionOutputSchema(z.unknown()),
-    weekend: collectionOutputSchema(z.unknown()),
+    saturday: collectionOutputSchema(z.unknown()),
+    sunday: collectionOutputSchema(z.unknown()),
     alternateRoutes: collectionOutputSchema(compactBusRouteSchema),
     hasData: z.boolean(),
   }),
@@ -1659,7 +1662,7 @@ const TOOL_OUTPUT_SCHEMAS: Record<string, McpToolOutputSchema> = {
   }),
   catalog_bus_departure_next: objectOutputSchema({
     atTime: dateTimeSchema,
-    dayType: z.enum(["weekday", "weekend"]),
+    dayType: z.enum(["weekday", "saturday", "sunday"]),
     totalRoutes: z.number().int().nonnegative(),
     departures: collectionOutputSchema(compactBusTripSchema),
     nextAvailableDeparture: compactBusTripSchema.nullable(),

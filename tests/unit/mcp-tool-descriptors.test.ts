@@ -347,7 +347,8 @@ describe("MCP tool descriptors", () => {
       expect.arrayContaining([
         "route",
         "weekday",
-        "weekend",
+        "saturday",
+        "sunday",
         "alternateRoutes",
       ]),
     );
@@ -1066,7 +1067,8 @@ describe("MCP tool descriptors", () => {
         campuses: 1,
         routes: 1,
         weekdayTrips: 1,
-        weekendTrips: 0,
+        saturdayTrips: 0,
+        sundayTrips: 0,
       },
       campuses: [
         {

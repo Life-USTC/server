@@ -77,7 +77,9 @@ function totalTripsForToday(mapData: BusMapData | null | undefined) {
         total +
         (mapData.todayType === "weekday"
           ? route.weekdayTrips
-          : route.weekendTrips),
+          : mapData.todayType === "saturday"
+            ? route.saturdayTrips
+            : route.sundayTrips),
       0,
     ) ?? 0
   );

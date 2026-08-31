@@ -702,7 +702,16 @@ describe("compactMcpPayload MCP 载荷压缩", () => {
             ],
           },
         ],
-        weekend: [
+        saturday: [
+          {
+            position: 1,
+            stopTimes: [
+              { stopOrder: 0, time: "08:00" },
+              { stopOrder: 1, time: "08:40" },
+            ],
+          },
+        ],
+        sunday: [
           {
             position: 1,
             stopTimes: [
@@ -723,7 +732,16 @@ describe("compactMcpPayload MCP 载荷压缩", () => {
           ],
         },
       ]);
-      expect(result.weekend).toEqual([
+      expect(result.saturday).toEqual([
+        {
+          position: 1,
+          stopTimes: [
+            { stopOrder: 0, time: "08:00" },
+            { stopOrder: 1, time: "08:40" },
+          ],
+        },
+      ]);
+      expect(result.sunday).toEqual([
         {
           position: 1,
           stopTimes: [

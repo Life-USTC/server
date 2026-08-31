@@ -34,7 +34,7 @@ export let showPageHeader = false;
 
 let loadedBus: DashboardBusData | null = bus;
 let busStateVersion = 0;
-let busDayType: "weekday" | "weekend" = "weekday";
+let busDayType: "weekday" | "saturday" | "sunday" = "weekday";
 let busEndCampusId: number | null = null;
 let busPlannerReady = false;
 let busShowDepartedTrips = false;

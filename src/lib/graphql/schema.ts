@@ -234,9 +234,11 @@ export const graphqlTypeDefs = /* GraphQL */ `
   type BusRouteTimetable {
     route: BusRoute!
     weekday: [BusTripSlot!]!
-    weekend: [BusTripSlot!]!
+    saturday: [BusTripSlot!]!
+    sunday: [BusTripSlot!]!
     weekdayPageInfo: PageInfo!
-    weekendPageInfo: PageInfo!
+    saturdayPageInfo: PageInfo!
+    sundayPageInfo: PageInfo!
     alternateRoutes: [BusRoute!]!
   }
 
@@ -490,13 +492,16 @@ export const graphqlSchema = createSchema<
         if (!result) return null;
 
         const weekdayPage = paginateGraphqlArray(result.weekday, args.page);
-        const weekendPage = paginateGraphqlArray(result.weekend, args.page);
+        const saturdayPage = paginateGraphqlArray(result.saturday, args.page);
+        const sundayPage = paginateGraphqlArray(result.sunday, args.page);
         return {
           route: capGraphqlBusRoute(result.route),
           weekday: capGraphqlBusTripSlots(weekdayPage.data),
-          weekend: capGraphqlBusTripSlots(weekendPage.data),
+          saturday: capGraphqlBusTripSlots(saturdayPage.data),
+          sunday: capGraphqlBusTripSlots(sundayPage.data),
           weekdayPageInfo: weekdayPage.pagination,
-          weekendPageInfo: weekendPage.pagination,
+          saturdayPageInfo: saturdayPage.pagination,
+          sundayPageInfo: sundayPage.pagination,
           alternateRoutes: capGraphqlAlternateRoutes(result.alternateRoutes),
         };
       },

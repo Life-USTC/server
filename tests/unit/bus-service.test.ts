@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { resolveBusDayType } from "@/features/bus/lib/bus-day-type";
 import { buildNextBusDeparturesFromData } from "@/features/bus/lib/bus-departures";
 import { parseBusTimeMinutes } from "@/features/bus/lib/bus-time";
 import type {
@@ -6,6 +7,7 @@ import type {
   BusTimetableData,
   BusTripSummary,
 } from "@/features/bus/lib/bus-types";
+import { shanghaiDayjs } from "@/lib/time/shanghai-dayjs";
 
 const east: BusCampusSummary = {
   id: 1,
@@ -103,6 +105,18 @@ function createNextDepartureData(): BusTimetableData {
 }
 
 describe("班车服务", () => {
+  it("按上海时间区分工作日、周六和周日", () => {
+    expect(
+      resolveBusDayType(undefined, shanghaiDayjs("2026-04-25T00:00:00+08:00")),
+    ).toBe("saturday");
+    expect(
+      resolveBusDayType(undefined, shanghaiDayjs("2026-04-26T00:00:00+08:00")),
+    ).toBe("sunday");
+    expect(
+      resolveBusDayType(undefined, shanghaiDayjs("2026-04-27T00:00:00+08:00")),
+    ).toBe("weekday");
+  });
+
   it("精确解析 HH:mm 时刻表值", () => {
     expect(parseBusTimeMinutes("08:05")).toBe(8 * 60 + 5);
     expect(parseBusTimeMinutes("8:05")).toBe(8 * 60 + 5);

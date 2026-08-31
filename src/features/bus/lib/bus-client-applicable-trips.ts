@@ -12,7 +12,7 @@ export function buildApplicableBusTrips({
   startStop,
   trips,
 }: {
-  dayType: "weekday" | "weekend";
+  dayType: "weekday" | "saturday" | "sunday";
   endIndex: number;
   endStop: BusApplicableRoute["endStop"];
   nowMinutes: number;

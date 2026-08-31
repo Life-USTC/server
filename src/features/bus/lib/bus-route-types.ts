@@ -14,6 +14,7 @@ export type BusTripSlot = {
 export type BusRouteTimetable = {
   route: BusRouteListing;
   weekday: BusTripSlot[];
-  weekend: BusTripSlot[];
+  saturday: BusTripSlot[];
+  sunday: BusTripSlot[];
   alternateRoutes: BusRouteListing[];
 };
