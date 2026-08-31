@@ -16,6 +16,7 @@ import {
 } from "@/features/dashboard-links/lib/dashboard-link-search";
 import { getPublicDashboardLinksData } from "@/features/dashboard-links/server/dashboard-link-data";
 import { getPublicUserIdentityByIdentifier } from "@/features/profile/server/user-profile-page-data";
+import { getWeatherSnapshot } from "@/features/weather/server/weather-service";
 import {
   capGraphqlAlternateRoutes,
   capGraphqlBusCampuses,
@@ -30,6 +31,7 @@ import {
   validateGraphqlSearch,
   validateGraphqlTeacherCode,
   validateGraphqlVersionKey,
+  validateGraphqlWeatherLocationKey,
   validateOptionalGraphqlId,
 } from "./input-boundaries";
 import { graphqlMutationResolvers, graphqlMutationTypeDefs } from "./mutations";
@@ -244,6 +246,60 @@ export const graphqlTypeDefs = /* GraphQL */ `
 
   ${graphqlScopeTypeDefs}
 
+  type WeatherCondition {
+    text: String!
+    icon: String!
+  }
+
+  type WeatherCurrent {
+    temperature: Float!
+    feelsLike: Float
+    humidity: Float
+    windDirection: String
+    windSpeed: Float
+    pressure: Float
+    visibility: Float
+    condition: WeatherCondition!
+  }
+
+  type WeatherHourly {
+    at: DateTime!
+    temperature: Float!
+    condition: WeatherCondition
+    precipitationProbability: Float
+    precipitationAmount: Float
+  }
+
+  type WeatherDaily {
+    date: Date!
+    temperatureHigh: Float!
+    temperatureLow: Float!
+    condition: WeatherCondition
+  }
+
+  type WeatherAlert {
+    title: String!
+    level: String
+    content: String
+    issuedAt: DateTime
+  }
+
+  type WeatherLocation {
+    key: String!
+    name: String!
+    adcode: String!
+  }
+
+  type WeatherSnapshot {
+    location: WeatherLocation!
+    fetchedAt: DateTime!
+    providers: [String!]!
+    current: WeatherCurrent!
+    hourly: [WeatherHourly!]!
+    daily: [WeatherDaily!]!
+    alerts: [WeatherAlert!]!
+  }
+
   type Catalog {
     semesters(page: PageInput): SemesterPage!
     currentSemester: Semester
@@ -261,6 +317,7 @@ export const graphqlTypeDefs = /* GraphQL */ `
       versionKey: String
     ): BusRouteTimetable
     links(query: String): [CatalogLink!]!
+    weather(locationKey: String!): WeatherSnapshot
   }
 
   type CatalogLink {
@@ -513,6 +570,11 @@ export const graphqlSchema = createSchema<
         if (!query) return links;
         const tokens = searchQueryToTokens(query);
         return links.filter((link) => linkMatchesTokens(link, tokens));
+      },
+      weather(_parent, args: { locationKey: string }) {
+        return getWeatherSnapshot(
+          validateGraphqlWeatherLocationKey(args.locationKey),
+        );
       },
     },
   },

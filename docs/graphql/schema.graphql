@@ -113,6 +113,7 @@ type Catalog {
   semesters(page: PageInput): SemesterPage!
   teacher(id: Int!): Teacher
   teachers(filter: TeacherFilter, page: PageInput): TeacherPage!
+  weather(locationKey: String!): WeatherSnapshot
 }
 
 type CatalogLink {
@@ -729,6 +730,60 @@ type UserProfile {
   name: String!
   updatedAt: DateTime!
   username: String
+}
+
+type WeatherAlert {
+  content: String
+  issuedAt: DateTime
+  level: String
+  title: String!
+}
+
+type WeatherCondition {
+  icon: String!
+  text: String!
+}
+
+type WeatherCurrent {
+  condition: WeatherCondition!
+  feelsLike: Float
+  humidity: Float
+  pressure: Float
+  temperature: Float!
+  visibility: Float
+  windDirection: String
+  windSpeed: Float
+}
+
+type WeatherDaily {
+  condition: WeatherCondition
+  date: Date!
+  temperatureHigh: Float!
+  temperatureLow: Float!
+}
+
+type WeatherHourly {
+  at: DateTime!
+  condition: WeatherCondition
+  precipitationAmount: Float
+  precipitationProbability: Float
+  temperature: Float!
+}
+
+type WeatherLocation {
+  adcode: String!
+  key: String!
+  name: String!
+}
+
+type WeatherSnapshot {
+  alerts: [WeatherAlert!]!
+  current: WeatherCurrent!
+  daily: [WeatherDaily!]!
+  fetchedAt: DateTime!
+  hourly: [WeatherHourly!]!
+  location: WeatherLocation!
+  providers: [String!]!
 }
 
 type Workspace {

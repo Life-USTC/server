@@ -1,3 +1,4 @@
+import type { Prisma } from "@/generated/prisma/client";
 import { prisma } from "@/lib/db/prisma";
 import type { WeatherSnapshot } from "./weather-types";
 
@@ -23,8 +24,8 @@ export async function writeWeatherHistory(
     create: {
       locationKey: snapshot.location.key,
       observedAt,
-      providerBlobs,
-      mergedSnapshot: snapshot,
+      providerBlobs: providerBlobs as Prisma.InputJsonValue,
+      mergedSnapshot: snapshot as unknown as Prisma.InputJsonValue,
     },
   });
 }
