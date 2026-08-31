@@ -4,7 +4,7 @@ import { getWeatherLocation } from "@/features/weather/server/weather-types";
 
 describe("weather merge", () => {
   it("prefers Amap current over Open-Meteo", () => {
-    const location = getWeatherLocation("ustc-main")!;
+    const location = getWeatherLocation("ustc-main");
     const amap = {
       ok: true as const,
       data: {
@@ -45,7 +45,7 @@ describe("weather merge", () => {
   });
 
   it("falls back to Open-Meteo when Amap fails", () => {
-    const location = getWeatherLocation("ustc-gaoxin")!;
+    const location = getWeatherLocation("ustc-gaoxin");
     const amap = {
       ok: false as const,
       error: new Error("Amap unavailable"),

@@ -9,7 +9,7 @@ import { getWeatherLocation } from "@/features/weather/server/weather-types";
 describe("weather adapters", () => {
   it("returns error when AMAP_API_KEY is missing", async () => {
     vi.stubEnv("AMAP_API_KEY", "");
-    const location = getWeatherLocation("ustc-main")!;
+    const location = getWeatherLocation("ustc-main");
     const result = await fetchAmapWeather(location);
     expect(result.ok).toBe(false);
     if (!result.ok) {
@@ -24,7 +24,7 @@ describe("weather adapters", () => {
   });
 
   it("fetches Open-Meteo weather for ustc-gaoxin", async () => {
-    const location = getWeatherLocation("ustc-gaoxin")!;
+    const location = getWeatherLocation("ustc-gaoxin");
     const result = await fetchOpenMeteoWeather(location);
     // Allow network failures in CI/test environments; verify shape on success.
     if (result.ok) {

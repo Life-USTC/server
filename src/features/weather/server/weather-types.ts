@@ -25,6 +25,8 @@ export const WEATHER_LOCATIONS: WeatherLocation[] = [
   },
 ];
 
+export function getWeatherLocation(key: WeatherLocationKey): WeatherLocation;
+export function getWeatherLocation(key: string): WeatherLocation | undefined;
 export function getWeatherLocation(key: string): WeatherLocation | undefined {
   return WEATHER_LOCATIONS.find((loc) => loc.key === key);
 }
