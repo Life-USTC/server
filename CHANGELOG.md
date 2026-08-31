@@ -1,3 +1,10 @@
+## [1.97.3](https://github.com/Life-USTC/server/compare/v1.97.2...v1.97.3) (2026-08-31)
+
+
+### Bug Fixes
+
+* **bus:** grant runtime import writes ([#970](https://github.com/Life-USTC/server/issues/970)) ([40ef5c3](https://github.com/Life-USTC/server/commit/40ef5c3be758da83069dca090c7ad239ea7f9629))
+
 ## [1.97.2](https://github.com/Life-USTC/server/compare/v1.97.1...v1.97.2) (2026-08-31)
 
 
