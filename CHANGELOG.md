@@ -1,3 +1,10 @@
+## [1.97.2](https://github.com/Life-USTC/server/compare/v1.97.1...v1.97.2) (2026-08-31)
+
+
+### Bug Fixes
+
+* **bus:** avoid edge upserts during import ([#969](https://github.com/Life-USTC/server/issues/969)) ([4ddb220](https://github.com/Life-USTC/server/commit/4ddb220eb0a006ee393e59577ba9ce6e3fecd175))
+
 ## [1.97.1](https://github.com/Life-USTC/server/compare/v1.97.0...v1.97.1) (2026-08-31)
 
 
