@@ -20,6 +20,7 @@ vi.mock("@/features/bus/lib/bus-static-source", () => ({
 }));
 
 vi.mock("@/features/bus/server/bus-import", () => ({
+  getBusImportFailureStage: vi.fn(),
   importBusStaticPayload: vi.fn(),
 }));
 
@@ -61,6 +62,7 @@ describe("admin bus action error logging", () => {
       expect.any(Error),
       {
         action: "import-static",
+        importStage: "load-or-validate",
         requestId: "request-import",
         route: "/admin/bus",
       },
