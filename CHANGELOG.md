@@ -1,3 +1,10 @@
+## [1.97.1](https://github.com/Life-USTC/server/compare/v1.97.0...v1.97.1) (2026-08-31)
+
+
+### Bug Fixes
+
+* **bus:** batch static timetable imports ([#968](https://github.com/Life-USTC/server/issues/968)) ([2aa7548](https://github.com/Life-USTC/server/commit/2aa75487a674555d312763c24761fdf2203112f3))
+
 # [1.97.0](https://github.com/Life-USTC/server/compare/v1.96.3...v1.97.0) (2026-08-31)
 
 
