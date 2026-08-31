@@ -56,8 +56,8 @@
             "returns": "{ location, fetchedAt, providers, current, hourly, daily, alerts, extensions }",
             "rest_equivalent": "GET /api/catalog/weather",
             "notes": [
-              "Accepts locationKey (default ustc-main), locale, and mode inputs.",
-              "Default mode returns a compact assistant-oriented snapshot; full mode returns the complete merged payload including provider extensions."
+              "Accepts locationKey (default ustc-main) and mode inputs.",
+              "Default mode returns the merged snapshot without provider extensions; full mode returns the complete payload including raw provider extensions."
             ]
           }
         ]

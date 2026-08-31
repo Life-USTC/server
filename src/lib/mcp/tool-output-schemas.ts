@@ -76,6 +76,7 @@ import {
   uploadSummarySchema,
   uploadsListResponseSchema,
 } from "@/lib/api/schemas/uploads-response-schemas";
+import { weatherSnapshotResponseSchema } from "@/lib/api/schemas/weather-response-schemas";
 
 type OutputShape = Record<string, z.ZodType>;
 
@@ -708,6 +709,29 @@ const busTimetableFullSchema = z.union([
   }),
 ]);
 
+const weatherNoDataSchema = z.strictObject({
+  success: z.literal(true),
+  locationKey: z.enum(["ustc-main", "ustc-gaoxin"]),
+  hasData: z.literal(false),
+  message: z.string(),
+});
+
+const weatherDefaultSchema = z.union([
+  z.strictObject({
+    ...weatherSnapshotResponseSchema.omit({ extensions: true }).shape,
+    success: z.literal(true),
+  }),
+  weatherNoDataSchema,
+]);
+
+const weatherFullSchema = z.union([
+  z.strictObject({
+    ...weatherSnapshotResponseSchema.shape,
+    success: z.literal(true),
+  }),
+  weatherNoDataSchema,
+]);
+
 const compactSectionSummarySchema = z.strictObject({
   id: z.number().int(),
   jwId: z.number().int(),
@@ -1145,6 +1169,10 @@ const nonAcademicModeOutputSchemas = {
   catalog_bus_timetable_get: {
     default: busTimetableDefaultSchema,
     full: busTimetableFullSchema,
+  },
+  catalog_weather_get: {
+    default: weatherDefaultSchema,
+    full: weatherFullSchema,
   },
 } satisfies Record<string, Record<"default" | "full", McpToolOutputSchema>>;
 
@@ -1633,6 +1661,11 @@ const TOOL_OUTPUT_SCHEMAS: Record<string, McpToolOutputSchema> = {
       z.strictObject({ message: z.string() }).nullable(),
       busQueryResponseSchema.shape.notice,
     ]),
+    hasData: z.boolean(),
+  }),
+  catalog_weather_get: objectOutputSchema({
+    ...weatherSnapshotResponseSchema.shape,
+    locationKey: z.enum(["ustc-main", "ustc-gaoxin"]),
     hasData: z.boolean(),
   }),
   catalog_bus_route_list: objectOutputSchema({

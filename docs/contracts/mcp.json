@@ -193,6 +193,10 @@
               "catalog_bus_route_search",
               "catalog_bus_departure_next"
             ]
+          },
+          {
+            "name": "Weather",
+            "tools": ["catalog_weather_get"]
           }
         ]
       },
