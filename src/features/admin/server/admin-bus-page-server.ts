@@ -4,7 +4,10 @@ import {
   requireAdminPage,
 } from "@/features/admin/server/admin-page-data";
 import { loadBusStaticPayload } from "@/features/bus/lib/bus-static-source";
-import { importBusStaticPayload } from "@/features/bus/server/bus-import";
+import {
+  getBusImportFailureStage,
+  importBusStaticPayload,
+} from "@/features/bus/server/bus-import";
 import type { AppLocale } from "@/i18n/config";
 import { writeAuditLog } from "@/lib/audit/write-audit-log";
 import { prisma } from "@/lib/db/prisma";
@@ -136,6 +139,7 @@ export const adminBusActions = {
     } catch (error) {
       logServerActionError("admin.bus.import-static.failed", error, {
         action: "import-static",
+        importStage: getBusImportFailureStage(error) ?? "load-or-validate",
         requestId: locals.requestId,
         route: "/admin/bus",
       });

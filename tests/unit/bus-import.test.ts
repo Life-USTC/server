@@ -114,12 +114,12 @@ function createImportPrismaMock(
       },
     },
     busTrip: {
-      async create(args) {
+      async createMany(args) {
         if (options.failTripCreate) {
           throw new Error("injected trip write failure");
         }
-        const data = (args as { data: TripRow }).data;
-        target.trips.push(data);
+        const data = (args as { data: TripRow[] }).data;
+        target.trips.push(...data);
         return {};
       },
       async deleteMany(args) {
@@ -217,7 +217,9 @@ describe("班车时刻表导入", () => {
       importBusStaticPayload(prisma, createPayload(), {
         versionKey: "current-bus",
       }),
-    ).rejects.toThrow("injected trip write failure");
+    ).rejects.toThrow(
+      "Bus import failed at create-weekday-trips: injected trip write failure",
+    );
 
     expect(prisma.getState()).toEqual(initialState);
   });
@@ -254,7 +256,7 @@ describe("班车时刻表导入", () => {
         versionKey: "current-bus",
       }),
     ).rejects.toThrow(
-      /Bus schedule version conflict: key "current-bus" belongs to version 1, but checksum ".+" belongs to version 2/,
+      /Bus import failed at find-existing-version: Bus schedule version conflict: key "current-bus" belongs to version 1, but checksum ".+" belongs to version 2/,
     );
 
     expect(prisma.getState()).toEqual(initialState);
