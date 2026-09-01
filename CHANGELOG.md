@@ -1,3 +1,17 @@
+## [1.100.1](https://github.com/Life-USTC/server/compare/v1.100.0...v1.100.1) (2026-09-01)
+
+
+### Bug Fixes
+
+* extend publication ingestion transaction budget ([#991](https://github.com/Life-USTC/server/issues/991)) ([ede2ef2](https://github.com/Life-USTC/server/commit/ede2ef242d9e62ed9e07a8def9c2248d0fbbc471))
+* remove user limiter from crawler ingestion ([#981](https://github.com/Life-USTC/server/issues/981)) ([2f76671](https://github.com/Life-USTC/server/commit/2f7667181f472bb28c780247fddb8c825b78962e))
+* **weather:** avoid AMap QPS limit and fall back to Open-Meteo daily ([#989](https://github.com/Life-USTC/server/issues/989)) ([f4923c0](https://github.com/Life-USTC/server/commit/f4923c0a5341c9eb096c47b59230d18f1c9fe641))
+
+
+### Performance Improvements
+
+* **publications:** bulk object planning ([#990](https://github.com/Life-USTC/server/issues/990)) ([364a83f](https://github.com/Life-USTC/server/commit/364a83f74a1f119714a23faabb46b37b2dee3585))
+
 # [1.100.0](https://github.com/Life-USTC/server/compare/v1.99.0...v1.100.0) (2026-09-01)
 
 
