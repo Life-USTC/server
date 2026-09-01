@@ -1,3 +1,10 @@
+## [1.98.1](https://github.com/Life-USTC/server/compare/v1.98.0...v1.98.1) (2026-09-01)
+
+
+### Bug Fixes
+
+* **weather:** fetch AMap lives with extensions=base ([#973](https://github.com/Life-USTC/server/issues/973)) ([58478ce](https://github.com/Life-USTC/server/commit/58478ce36e085faf9647b876523249e891d955ae))
+
 # [1.98.0](https://github.com/Life-USTC/server/compare/v1.97.4...v1.98.0) (2026-09-01)
 
 
