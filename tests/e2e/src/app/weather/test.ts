@@ -21,7 +21,7 @@ test.describe("/catalog/weather", () => {
   });
 
   test("渲染两个校区位置面板", async ({ page }, testInfo) => {
-    // 主校区群与高新校区两个位置面板
+    // 本部与高新校区两个位置面板
     await gotoAndWaitForReady(page, "/catalog/weather", {
       testInfo,
       screenshotLabel: "weather",
@@ -34,7 +34,7 @@ test.describe("/catalog/weather", () => {
     const headings = page.locator("h2");
     await expect(headings).toHaveCount(2);
     await expect(
-      headings.filter({ hasText: /主校区群|Main campuses/ }),
+      headings.filter({ hasText: /本部|Main campus/ }),
     ).toHaveCount(1);
     await expect(
       headings.filter({ hasText: /高新校区|Gaoxin campus/ }),

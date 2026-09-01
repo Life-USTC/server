@@ -2657,9 +2657,9 @@
   },
   "weather": {
     "title": "校园天气",
-    "description": "主校区群与高新校区的实时天气、逐小时降水预报与天气预警。",
+    "description": "本部与高新校区的实时天气、逐小时降水预报与天气预警。",
     "locationNames": {
-      "ustc-main": "主校区群",
+      "ustc-main": "本部",
       "ustc-gaoxin": "高新校区"
     },
     "currentConditions": "当前天气",

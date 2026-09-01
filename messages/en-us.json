@@ -1034,7 +1034,7 @@
     "title": "Campus Weather",
     "description": "Live conditions, hourly precipitation forecast, and alerts for the main campuses and the Gaoxin campus.",
     "locationNames": {
-      "ustc-main": "Main campuses",
+      "ustc-main": "Main campus",
       "ustc-gaoxin": "Gaoxin campus"
     },
     "currentConditions": "Current conditions",
