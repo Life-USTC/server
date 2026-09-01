@@ -232,6 +232,10 @@ describe("public publication reads", () => {
     expect(response?.status).toBe(200);
     expect(response?.headers.get("ETag")).toBe('"r2-etag"');
     expect(response?.headers.get("Cache-Control")).toContain("immutable");
+    expect(response?.headers.get("Cache-Control")).toContain("no-transform");
+    expect(response?.headers.get("Cloudflare-CDN-Cache-Control")).toContain(
+      "no-transform",
+    );
     expect(response?.headers.get("Content-Disposition")).toBe("inline");
     await expect(response?.text()).resolves.toBe("bytes");
   });
