@@ -1,5 +1,6 @@
 import * as z from "zod";
 import { parsePublicationDateInput } from "@/features/publications/lib/publication-date";
+import { PUBLICATION_INGESTION_BATCH_MAX_ITEMS } from "@/features/publications/lib/publication-ingestion-limits";
 
 /** Crawler timestamps may be date-only or Shanghai-local naive datetimes. */
 const publicationDateTimeSchema = z
@@ -105,7 +106,10 @@ export const publicationIngestionBatchRequestSchema = z.strictObject({
   batchId: z.string().trim().min(1).max(200),
   observedAt: publicationDateTimeSchema,
   sources: z.array(publicationSourceDescriptorSchema).min(1).max(500),
-  items: z.array(publicationItemSchema).min(1).max(500),
+  items: z
+    .array(publicationItemSchema)
+    .min(1)
+    .max(PUBLICATION_INGESTION_BATCH_MAX_ITEMS),
 });
 
 export const publicationObjectPlanRequestSchema = z.strictObject({

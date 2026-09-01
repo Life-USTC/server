@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { PUBLICATION_INGESTION_BATCH_MAX_ITEMS } from "@/features/publications/lib/publication-ingestion-limits";
 import { publicationIngestionBatchRequestSchema } from "@/lib/api/schemas/request-publication-ingestion-schemas";
 import { PUBLICATION_INGESTION_SERVICE_PRINCIPAL } from "@/lib/auth/service-principal";
 import fixture from "../../docs/contracts/fixtures/publication-batch.json";
@@ -584,17 +585,22 @@ describe("publication ingestion transaction", () => {
       ...parsedFixture,
       batchId: "batch-maximum-size",
       clientRunId: "run-maximum-size",
-      items: Array.from({ length: 500 }, (_, index) => ({
-        ...parsedFixture.items[0],
-        canonicalUrl: `https://news.ustc.edu.cn/example/${index}.html`,
-        revisionHash: index.toString(16).padStart(64, "0"),
-        objects: [],
-      })),
+      items: Array.from(
+        { length: PUBLICATION_INGESTION_BATCH_MAX_ITEMS },
+        (_, index) => ({
+          ...parsedFixture.items[0],
+          canonicalUrl: `https://news.ustc.edu.cn/example/${index}.html`,
+          revisionHash: index.toString(16).padStart(64, "0"),
+          objects: [],
+        }),
+      ),
     });
 
     const response = await ingestPublicationBatch({ payload, principal });
 
-    expect(response.results).toHaveLength(500);
+    expect(response.results).toHaveLength(
+      PUBLICATION_INGESTION_BATCH_MAX_ITEMS,
+    );
     expect(response.results.every(({ status }) => status === "created")).toBe(
       true,
     );

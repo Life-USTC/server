@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { parsePublicationDateInput } from "@/features/publications/lib/publication-date";
+import { PUBLICATION_INGESTION_BATCH_MAX_ITEMS } from "@/features/publications/lib/publication-ingestion-limits";
 import { publicationIngestionPayloadDigest } from "@/features/publications/server/publication-ingestion-service";
 import { publicationIngestionBatchRequestSchema } from "@/lib/api/schemas/request-publication-ingestion-schemas";
 import { publicationIngestionBatchResponseSchema } from "@/lib/api/schemas/response-publication-ingestion-schemas";
@@ -26,6 +27,36 @@ describe("publication ingestion contract", () => {
       sources: [{ id: "ustc-news", name: "USTC News" }],
     });
     expect(parsed.success).toBe(true);
+  });
+
+  it("accepts 100 items and rejects 101", () => {
+    expect(PUBLICATION_INGESTION_BATCH_MAX_ITEMS).toBe(100);
+    const items = Array.from(
+      { length: PUBLICATION_INGESTION_BATCH_MAX_ITEMS },
+      (_, index) => ({
+        ...fixture.items[0],
+        canonicalUrl: `https://news.ustc.edu.cn/example/${index}.html`,
+        revisionHash: index.toString(16).padStart(64, "0"),
+      }),
+    );
+    expect(
+      publicationIngestionBatchRequestSchema.safeParse({ ...fixture, items })
+        .success,
+    ).toBe(true);
+    const oversizedItems = [
+      ...items,
+      {
+        ...items[0],
+        canonicalUrl: "https://news.ustc.edu.cn/example/101.html",
+        revisionHash: "f".repeat(64),
+      },
+    ];
+    expect(
+      publicationIngestionBatchRequestSchema.safeParse({
+        ...fixture,
+        items: oversizedItems,
+      }).success,
+    ).toBe(false);
   });
 
   it("keeps bare MIME types and rejects signed Content-Type parameters", () => {
