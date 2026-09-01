@@ -109,6 +109,39 @@ enum BusScheduleDayType {
   sunday
 }
 
+enum PublicationType {
+  news
+  notice
+  other
+}
+
+enum PublicationObjectKind {
+  body_html
+  body_markdown
+  media
+  asset
+  raw_page
+}
+
+enum PublicationObjectStatus {
+  pending
+  uploaded
+  verified
+  linked
+  failed
+}
+
+enum IngestionBatchStatus {
+  accepted
+  rejected
+}
+
+enum IngestionRunStatus {
+  running
+  completed
+  failed
+}
+
 model AdminClass {
   id   Int @id @default(autoincrement())
   jwId Int @unique
@@ -889,6 +922,9 @@ model User {
   oauthConsents      OAuthConsent[]
   oauthGrantUsage    OAuthGrantUsageDaily[]
   deviceCodes        DeviceCode[]
+
+  publicationRuns    IngestionRun[]
+  publicationBatches IngestionBatch[]
 }
 
 model UserUstcIdentity {
@@ -954,6 +990,202 @@ model Upload {
 
   @@index([userId])
   @@index([userId, createdAt])
+}
+
+model PublicationSource {
+  id                String   @id
+  name              String
+  organizationLevel String
+  allowedHosts      String[] @default([])
+  blockedHosts      String[] @default([])
+  seedUrls          String[] @default([])
+  aliases           String[] @default([])
+  discoveryOnly     Boolean  @default(false)
+  maxImagesPerPage  Int?
+  enabled           Boolean  @default(true)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  publications Publication[]
+
+  @@index([enabled])
+  @@index([organizationLevel])
+}
+
+model Publication {
+  id                String          @id @default(cuid())
+  sourceId          String
+  canonicalUrl      String
+  title             String
+  author            String?
+  publishedAt       DateTime?
+  updatedAtSource   DateTime?
+  category          String?
+  summary           String?
+  bodyText          String?
+  sourcePageUrl     String?
+  extractionMethod  String?
+  rawMetadata       Json?
+  publicationType   PublicationType
+  classifierVersion String?
+  currentRevisionId String?         @unique
+  firstSeenAt       DateTime        @default(now())
+  lastSeenAt        DateTime        @default(now())
+  deletedAt         DateTime?
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+
+  source          PublicationSource     @relation(fields: [sourceId], references: [id], onDelete: Cascade)
+  currentRevision PublicationRevision?  @relation("PublicationCurrentRevision", fields: [currentRevisionId], references: [id], onDelete: SetNull)
+  revisions       PublicationRevision[] @relation("PublicationRevisionHistory")
+
+  @@unique([sourceId, canonicalUrl])
+  @@index([publicationType, publishedAt])
+  @@index([sourceId, lastSeenAt])
+  @@index([deletedAt])
+  @@index([currentRevisionId])
+  @@index([canonicalUrl(ops: raw("gin_trgm_ops"))], type: Gin, map: "Publication_canonicalUrl_trgm_idx")
+  @@index([title(ops: raw("gin_trgm_ops"))], type: Gin, map: "Publication_title_trgm_idx")
+  @@index([summary(ops: raw("gin_trgm_ops"))], type: Gin, map: "Publication_summary_trgm_idx")
+}
+
+model PublicationRevision {
+  id                String          @id @default(cuid())
+  publicationId     String
+  revisionHash      String
+  observedAt        DateTime
+  isTombstone       Boolean         @default(false)
+  title             String?
+  author            String?
+  publishedAt       DateTime?
+  updatedAtSource   DateTime?
+  category          String?
+  summary           String?
+  bodyText          String?
+  sourcePageUrl     String?
+  extractionMethod  String?
+  rawMetadata       Json?
+  publicationType   PublicationType
+  classifierVersion String?
+  createdAt         DateTime        @default(now())
+
+  publication Publication             @relation("PublicationRevisionHistory", fields: [publicationId], references: [id], onDelete: Cascade)
+  currentFor  Publication?            @relation("PublicationCurrentRevision")
+  objectLinks PublicationObjectLink[]
+
+  @@unique([publicationId, revisionHash])
+  @@index([publicationId, observedAt])
+  @@index([revisionHash])
+}
+
+model PublicationObject {
+  id          String                  @id @default(cuid())
+  sha256      String
+  kind        PublicationObjectKind
+  size        Int
+  contentType String
+  r2Key       String                  @unique
+  status      PublicationObjectStatus @default(pending)
+  verifiedAt  DateTime?
+  lastError   String?
+  createdAt   DateTime                @default(now())
+  updatedAt   DateTime                @updatedAt
+
+  links       PublicationObjectLink[]
+  batchClaims IngestionBatchObject[]
+
+  @@unique([kind, sha256])
+  @@index([status, updatedAt])
+}
+
+model PublicationObjectLink {
+  id         String                @id @default(cuid())
+  revisionId String
+  objectId   String
+  role       PublicationObjectKind
+  sortOrder  Int?
+  altText    String?
+  createdAt  DateTime              @default(now())
+
+  revision PublicationRevision @relation(fields: [revisionId], references: [id], onDelete: Cascade)
+  object   PublicationObject   @relation(fields: [objectId], references: [id], onDelete: Cascade)
+
+  @@unique([revisionId, objectId, role])
+  @@index([revisionId, role])
+}
+
+model IngestionRun {
+  id           String             @id @default(cuid())
+  clientRunId  String
+  principalId  String?
+  principalKey String
+  observedAt   DateTime
+  status       IngestionRunStatus @default(running)
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+
+  principal User?            @relation(fields: [principalId], references: [id], onDelete: SetNull)
+  batches   IngestionBatch[]
+
+  @@unique([principalKey, clientRunId])
+  @@index([principalId, createdAt])
+  @@index([status, updatedAt])
+}
+
+model IngestionBatch {
+  id            String               @id @default(cuid())
+  batchId       String
+  runId         String
+  principalId   String?
+  principalKey  String
+  payloadDigest String
+  itemCount     Int
+  status        IngestionBatchStatus @default(accepted)
+  result        Json?
+  createdAt     DateTime             @default(now())
+  updatedAt     DateTime             @updatedAt
+
+  run       IngestionRun           @relation(fields: [runId], references: [id], onDelete: Cascade)
+  principal User?                  @relation(fields: [principalId], references: [id], onDelete: SetNull)
+  objects   IngestionBatchObject[]
+
+  @@unique([principalKey, batchId])
+  @@index([principalId, createdAt])
+  @@index([runId])
+}
+
+model IngestionBatchObject {
+  id                  String   @id @default(cuid())
+  batchId             String
+  objectId            String
+  expectedSha256      String
+  expectedSize        Int
+  expectedContentType String
+  createdAt           DateTime @default(now())
+
+  batch  IngestionBatch    @relation(fields: [batchId], references: [id], onDelete: Cascade)
+  object PublicationObject @relation(fields: [objectId], references: [id], onDelete: Cascade)
+
+  @@unique([batchId, objectId])
+  @@index([objectId])
+}
+
+model PublicationEventOutbox {
+  id            String    @id @default(cuid())
+  eventId       String    @unique
+  eventType     String
+  aggregateType String
+  aggregateId   String
+  payload       Json
+  attempts      Int       @default(0)
+  availableAt   DateTime  @default(now())
+  publishedAt   DateTime?
+  lastError     String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@index([publishedAt, availableAt])
+  @@index([aggregateType, aggregateId])
 }
 
 model Comment {

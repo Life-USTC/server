@@ -7,10 +7,12 @@ import * as auditFixtures from "./e2e-db/audit";
 import * as busFixtures from "./e2e-db/bus";
 import * as catalogFixtures from "./e2e-db/catalog";
 import * as oauthFixtures from "./e2e-db/oauth";
+import * as publicationFixtures from "./e2e-db/publications";
 import * as seedFixtures from "./e2e-db/seed";
 import * as userFixtures from "./e2e-db/users";
 
 export { getCurrentSessionUser, PLAYWRIGHT_BASE_URL } from "./e2e-db/core";
+export type { PublicationFixture } from "./e2e-db/publications";
 
 const DB_FIXTURE_ATTEMPTS = 3;
 
@@ -34,6 +36,8 @@ const operations = {
   deleteTempCoursesByPrefix: catalogFixtures.deleteTempCoursesByPrefix,
   deleteOAuthClientsByName: oauthFixtures.deleteOAuthClientsByName,
   disableOAuthClientByName: oauthFixtures.disableOAuthClientByName,
+  createPublicationFixture: publicationFixtures.createPublicationFixture,
+  deletePublicationFixture: publicationFixtures.deletePublicationFixture,
   getOAuthClientByName: oauthFixtures.getOAuthClientByName,
   ensureLinkedAccountFixture: oauthFixtures.ensureLinkedAccountFixture,
   getSeedCourseFilterFixture: seedFixtures.getSeedCourseFilterFixture,
@@ -166,6 +170,16 @@ export const deleteOAuthClientsByName = (name: string) =>
 
 export const disableOAuthClientByName = (name: string) =>
   runDbFixture<null>("disableOAuthClientByName", [name]);
+
+export const createPublicationFixture = (prefix: string) =>
+  runDbFixture<publicationFixtures.PublicationFixture>(
+    "createPublicationFixture",
+    [prefix],
+  );
+
+export const deletePublicationFixture = (
+  fixture: publicationFixtures.PublicationFixture,
+) => runDbFixture<void>("deletePublicationFixture", [fixture]);
 
 export const getOAuthClientByName = (name: string) =>
   runDbFixture<{

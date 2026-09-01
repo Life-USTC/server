@@ -470,6 +470,37 @@ export async function assertPageContract(
       return;
     }
 
+    case "/news": {
+      await gotoContractPage(page, routePath, testInfo);
+      await expectMainContent(page);
+      await expect(
+        page.getByRole("heading", { level: 1, name: /新闻|News/i }),
+      ).toBeVisible();
+      await expect(
+        page.getByRole("searchbox", { name: /搜索|Search/i }),
+      ).toBeVisible();
+      await expect(
+        page.getByRole("textbox", { name: /来源标识|Source ID/i }),
+      ).toBeVisible();
+      await expect(page.getByRole("combobox")).toBeVisible();
+      await maybeCapture(page, testInfo, "news");
+      return;
+    }
+
+    case "/news/[id]": {
+      await gotoContractPage(page, "/news", testInfo);
+      const detailLink = page
+        .locator("#main-content a[href^='/news/']")
+        .first();
+      await expect(detailLink).toBeVisible();
+      await detailLink.click();
+      await expect(page).toHaveURL(/\/news\/[^/?]+$/);
+      await expectMainContent(page);
+      await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+      await maybeCapture(page, testInfo, "news-detail");
+      return;
+    }
+
     case "/api/docs": {
       await gotoContractPage(page, routePath, testInfo);
       await expect(page).toHaveURL(

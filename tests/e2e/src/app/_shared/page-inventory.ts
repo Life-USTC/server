@@ -93,6 +93,7 @@ const E2E = {
   oauthAuthorize: "src/app/oauth/authorize/test.ts",
   oauthDevice: "src/app/oauth/device/test.ts",
   privacy: "src/app/privacy/test.ts",
+  news: "src/app/news/test.ts",
   search: "src/app/search/test.ts",
   sections: "src/app/sections/test.ts",
   sectionsJwId: "src/app/sections/[jwId]/test.ts",
@@ -821,6 +822,50 @@ export const PAGE_INVENTORY: readonly PageInventoryEntry[] = [
         id: "device-code",
         e2eSpec: E2E.oauthDevice,
         evidence: "已登录用户看到批准界面",
+      },
+    ],
+  },
+  {
+    routeId: "/news",
+    samplePath: "/news",
+    kind: "page",
+    auth: "public",
+    contractPath: "/news",
+    e2eSpec: E2E.news,
+    mobileScreenshots: ["public"],
+    primaryActions: [
+      {
+        id: "publication-search",
+        role: "searchbox",
+        e2eSpec: E2E.news,
+      },
+      {
+        id: "publication-source-filter",
+        role: "textbox",
+        e2eSpec: E2E.news,
+        evidence: "支持来源筛选",
+      },
+    ],
+  },
+  {
+    routeId: "/news/[id]",
+    samplePath: "/news/[id]",
+    kind: "page",
+    auth: "public",
+    contractPath: "/news/[id]",
+    e2eSpec: E2E.news,
+    mobileCoveredBy: {
+      e2eSpec: E2E.news,
+      testName: "移动端新闻详情保持正文可读且无横向溢出",
+      reason:
+        "The detail URL is created from a database fixture so the mobile contract exercises the real body and metadata layout.",
+    },
+    primaryActions: [
+      {
+        id: "publication-source-link",
+        role: "link",
+        e2eSpec: E2E.news,
+        evidence: "详情页显示正文和来源链接",
       },
     ],
   },

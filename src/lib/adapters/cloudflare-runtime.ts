@@ -2,6 +2,9 @@ import { AsyncLocalStorage } from "node:async_hooks";
 
 export type CloudflareR2Object = {
   body?: ReadableStream<Uint8Array>;
+  checksums?: { sha256?: ArrayBuffer };
+  customMetadata?: Record<string, string>;
+  etag?: string;
   httpMetadata?: { contentType?: string };
   size: number;
 };
@@ -22,7 +25,10 @@ export type CloudflareR2Bucket = {
       | ArrayBufferView
       | string
       | null,
-    options?: { httpMetadata?: { contentType?: string } },
+    options?: {
+      customMetadata?: Record<string, string>;
+      httpMetadata?: { contentType?: string };
+    },
   ): Promise<unknown>;
 };
 
@@ -111,6 +117,7 @@ type CloudflareRuntimeEnv = Record<string, unknown> & {
     connectionString?: unknown;
   };
   R2_UPLOADS?: CloudflareR2Bucket;
+  R2_PUBLICATIONS?: CloudflareR2Bucket;
   USER_BATCH_WRITE_RATE_LIMITER?: CloudflareRateLimiter;
   USER_WRITE_RATE_LIMITER?: CloudflareRateLimiter;
   WEATHER?: CloudflareKVNamespace;
@@ -367,6 +374,10 @@ export function getCloudflareMaintenanceHyperdriveConnectionString() {
 
 export function getCloudflareR2UploadsBucket() {
   return getCurrentCloudflareRuntimeEnv()?.R2_UPLOADS;
+}
+
+export function getCloudflareR2PublicationsBucket() {
+  return getCurrentCloudflareRuntimeEnv()?.R2_PUBLICATIONS;
 }
 
 export function getCloudflareAnalyticsEngineDataset() {

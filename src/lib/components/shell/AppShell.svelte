@@ -210,6 +210,7 @@ function buildShellNavGroups(
       ],
     },
     { href: "/catalog/links", icon: LinkIcon, label: copy.nav.links },
+    { href: "/news", icon: ScrollTextIcon, label: copy.nav.news },
   ];
   const usageLinks: ShellLink[] = [
     {
@@ -391,6 +392,11 @@ function buildMobileSecondaryNavGroups(
       label: copy.nav.links,
     },
     {
+      href: "/news",
+      icon: ScrollTextIcon,
+      label: copy.nav.news,
+    },
+    {
       href: "/catalog/sections",
       icon: RouteIcon,
       items: pathname.startsWith("/catalog/sections/")
@@ -471,6 +477,9 @@ function isActiveLink(link: ShellLink) {
 
   if (target.pathname === "/workspace/overview") {
     return pathname === "/workspace" || pathname === "/workspace/overview";
+  }
+  if (target.pathname === "/news") {
+    return pathname === "/news" || pathname.startsWith("/news/");
   }
   if (target.pathname.startsWith("/workspace/")) {
     return pathname === target.pathname;

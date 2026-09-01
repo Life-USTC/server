@@ -542,6 +542,87 @@
         }
       }
     },
+    "/api/publications": {
+      "get": {
+        "operationId": "get-api-publications",
+        "summary": "List public USTC news and notices",
+        "tags": [
+          "Api"
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "type",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "news",
+                "notice"
+              ]
+            }
+          },
+          {
+            "in": "query",
+            "name": "source",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64,
+              "pattern": "^[a-z0-9][a-z0-9._-]*$"
+            }
+          },
+          {
+            "in": "query",
+            "name": "query",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 200
+            }
+          },
+          {
+            "in": "query",
+            "name": "page",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100000
+            }
+          },
+          {
+            "in": "query",
+            "name": "pageSize",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 50
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/publicPublicationsResponseSchema"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/openApiErrorSchema"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/search": {
       "get": {
         "operationId": "get-api-search",
@@ -2793,6 +2874,59 @@
                 }
               }
             },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/openApiErrorSchema"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/publications/{id}": {
+      "get": {
+        "operationId": "get-api-publications-id",
+        "summary": "Get one public USTC news item or notice",
+        "tags": [
+          "Api"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/publicPublicationDetailSchema"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/openApiErrorSchema"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error response",
             "content": {
               "application/json": {
                 "schema": {
@@ -6373,6 +6507,126 @@
         }
       }
     },
+    "/api/ingestion/publications/batches": {
+      "post": {
+        "operationId": "post-api-ingestion-publications-batches",
+        "summary": "Ingest a crawler publication batch",
+        "tags": [
+          "Api"
+        ],
+        "x-oauth-scopes": [
+          "publication.ingest:write"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionCookie": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/publicationIngestionBatchRequestSchema"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/publicationIngestionBatchResponseSchema"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/openApiErrorSchema"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/openApiErrorSchema"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/openApiErrorSchema"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/openApiErrorSchema"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error response",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds before retrying the mutation",
+                "schema": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/openApiErrorSchema"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error response",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds before retrying the mutation",
+                "schema": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/openApiErrorSchema"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/mcp/.well-known/oauth-authorization-server": {
       "get": {
         "operationId": "get-api-mcp-.well-known-oauth-authorization-server",
@@ -8420,6 +8674,336 @@
         }
       }
     },
+    "/api/ingestion/publications/objects/complete": {
+      "post": {
+        "operationId": "post-api-ingestion-publications-objects-complete",
+        "summary": "Verify and link one uploaded publication object",
+        "tags": [
+          "Api"
+        ],
+        "x-oauth-scopes": [
+          "publication.ingest:write"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionCookie": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/publicationObjectCompleteRequestSchema"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/publicationObjectCompleteResponseSchema"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/openApiErrorSchema"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/openApiErrorSchema"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/openApiErrorSchema"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/openApiErrorSchema"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error response",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds before retrying the mutation",
+                "schema": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/openApiErrorSchema"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error response",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds before retrying the mutation",
+                "schema": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/openApiErrorSchema"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/ingestion/publications/objects/plan": {
+      "post": {
+        "operationId": "post-api-ingestion-publications-objects-plan",
+        "summary": "Plan content-addressed publication object uploads",
+        "tags": [
+          "Api"
+        ],
+        "x-oauth-scopes": [
+          "publication.ingest:write"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionCookie": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/publicationObjectPlanRequestSchema"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/publicationObjectPlanResponseSchema"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/openApiErrorSchema"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/openApiErrorSchema"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/openApiErrorSchema"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/openApiErrorSchema"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error response",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds before retrying the mutation",
+                "schema": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/openApiErrorSchema"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error response",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds before retrying the mutation",
+                "schema": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/openApiErrorSchema"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/publications/objects/{kind}/{sha256}": {
+      "get": {
+        "operationId": "get-api-publications-objects-kind-sha256",
+        "summary": "Read a verified object linked to a public publication revision",
+        "tags": [
+          "Api"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "kind",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "body_html",
+                "body_markdown",
+                "media",
+                "asset",
+                "raw_page"
+              ]
+            },
+            "required": true
+          },
+          {
+            "in": "path",
+            "name": "sha256",
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            },
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Binary response",
+            "content": {
+              "application/octet-stream": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "304": {
+            "description": "Response 304"
+          },
+          "400": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/openApiErrorSchema"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/openApiErrorSchema"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error response",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds before retrying the mutation",
+                "schema": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/openApiErrorSchema"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/workspace/homeworks/{id}/completion": {
       "put": {
         "operationId": "setHomeworkCompletion",
@@ -9096,6 +9680,223 @@
           "openapi",
           "info",
           "paths"
+        ],
+        "additionalProperties": false
+      },
+      "publicPublicationsResponseSchema": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "canonicalUrl": {
+                  "type": "string",
+                  "format": "uri"
+                },
+                "publicationType": {
+                  "type": "string",
+                  "enum": [
+                    "news",
+                    "notice"
+                  ]
+                },
+                "source": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "organizationLevel": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "name",
+                    "organizationLevel"
+                  ],
+                  "additionalProperties": false
+                },
+                "revision": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "revisionHash": {
+                      "type": "string",
+                      "pattern": "^[a-f0-9]{64}$"
+                    },
+                    "observedAt": {
+                      "type": "string",
+                      "format": "date-time",
+                      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "author": {
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "publishedAt": {
+                      "nullable": true,
+                      "type": "string",
+                      "format": "date-time",
+                      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                    },
+                    "updatedAtSource": {
+                      "nullable": true,
+                      "type": "string",
+                      "format": "date-time",
+                      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                    },
+                    "category": {
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "summary": {
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "sourcePageUrl": {
+                      "nullable": true,
+                      "type": "string",
+                      "format": "uri"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "revisionHash",
+                    "observedAt",
+                    "title",
+                    "author",
+                    "publishedAt",
+                    "updatedAtSource",
+                    "category",
+                    "summary",
+                    "sourcePageUrl"
+                  ],
+                  "additionalProperties": false
+                },
+                "objects": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "kind": {
+                        "type": "string",
+                        "enum": [
+                          "body_html",
+                          "body_markdown",
+                          "media",
+                          "asset",
+                          "raw_page"
+                        ]
+                      },
+                      "sha256": {
+                        "type": "string",
+                        "pattern": "^[a-f0-9]{64}$"
+                      },
+                      "size": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 9007199254740991
+                      },
+                      "contentType": {
+                        "type": "string"
+                      },
+                      "status": {
+                        "type": "string",
+                        "enum": [
+                          "verified",
+                          "linked"
+                        ]
+                      },
+                      "url": {
+                        "type": "string",
+                        "pattern": "^\\/api\\/publications\\/objects\\/.*"
+                      },
+                      "sortOrder": {
+                        "nullable": true,
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 9007199254740991
+                      },
+                      "altText": {
+                        "nullable": true,
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "kind",
+                      "sha256",
+                      "size",
+                      "contentType",
+                      "status",
+                      "url",
+                      "sortOrder",
+                      "altText"
+                    ],
+                    "additionalProperties": false
+                  }
+                }
+              },
+              "required": [
+                "id",
+                "canonicalUrl",
+                "publicationType",
+                "source",
+                "revision",
+                "objects"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "pagination": {
+            "type": "object",
+            "properties": {
+              "page": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              },
+              "pageSize": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              },
+              "total": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              },
+              "totalPages": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              }
+            },
+            "required": [
+              "page",
+              "pageSize",
+              "total",
+              "totalPages"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "data",
+          "pagination"
         ],
         "additionalProperties": false
       },
@@ -14970,6 +15771,193 @@
         "required": [
           "id",
           "homework"
+        ],
+        "additionalProperties": false
+      },
+      "publicPublicationDetailSchema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "canonicalUrl": {
+            "type": "string",
+            "format": "uri"
+          },
+          "publicationType": {
+            "type": "string",
+            "enum": [
+              "news",
+              "notice"
+            ]
+          },
+          "source": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              },
+              "organizationLevel": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "name",
+              "organizationLevel"
+            ],
+            "additionalProperties": false
+          },
+          "revision": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "revisionHash": {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              },
+              "observedAt": {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+              },
+              "title": {
+                "type": "string"
+              },
+              "author": {
+                "nullable": true,
+                "type": "string"
+              },
+              "publishedAt": {
+                "nullable": true,
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+              },
+              "updatedAtSource": {
+                "nullable": true,
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+              },
+              "category": {
+                "nullable": true,
+                "type": "string"
+              },
+              "summary": {
+                "nullable": true,
+                "type": "string"
+              },
+              "sourcePageUrl": {
+                "nullable": true,
+                "type": "string",
+                "format": "uri"
+              },
+              "bodyText": {
+                "nullable": true,
+                "type": "string"
+              },
+              "extractionMethod": {
+                "nullable": true,
+                "type": "string"
+              },
+              "classifierVersion": {
+                "nullable": true,
+                "type": "string"
+              },
+              "objects": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "kind": {
+                      "type": "string",
+                      "enum": [
+                        "body_html",
+                        "body_markdown",
+                        "media",
+                        "asset",
+                        "raw_page"
+                      ]
+                    },
+                    "sha256": {
+                      "type": "string",
+                      "pattern": "^[a-f0-9]{64}$"
+                    },
+                    "size": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    "contentType": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "verified",
+                        "linked"
+                      ]
+                    },
+                    "url": {
+                      "type": "string",
+                      "pattern": "^\\/api\\/publications\\/objects\\/.*"
+                    },
+                    "sortOrder": {
+                      "nullable": true,
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    "altText": {
+                      "nullable": true,
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "kind",
+                    "sha256",
+                    "size",
+                    "contentType",
+                    "status",
+                    "url",
+                    "sortOrder",
+                    "altText"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            },
+            "required": [
+              "id",
+              "revisionHash",
+              "observedAt",
+              "title",
+              "author",
+              "publishedAt",
+              "updatedAtSource",
+              "category",
+              "summary",
+              "sourcePageUrl",
+              "bodyText",
+              "extractionMethod",
+              "classifierVersion",
+              "objects"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "id",
+          "canonicalUrl",
+          "publicationType",
+          "source",
+          "revision"
         ],
         "additionalProperties": false
       },
@@ -27897,6 +28885,399 @@
         ],
         "additionalProperties": false
       },
+      "publicationIngestionBatchRequestSchema": {
+        "type": "object",
+        "properties": {
+          "protocolVersion": {
+            "type": "string",
+            "enum": [
+              "1"
+            ]
+          },
+          "producerVersion": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "clientRunId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "batchId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "observedAt": {
+            "type": "string",
+            "minLength": 1
+          },
+          "sources": {
+            "minItems": 1,
+            "maxItems": 500,
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 64,
+                  "pattern": "^[a-z0-9][a-z0-9._-]*$"
+                },
+                "name": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 200
+                },
+                "organizationLevel": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 80
+                },
+                "allowedHosts": {
+                  "maxItems": 100,
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 253
+                  }
+                },
+                "blockedHosts": {
+                  "maxItems": 100,
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 253
+                  }
+                },
+                "seedUrls": {
+                  "maxItems": 100,
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "maxLength": 2048,
+                    "format": "uri"
+                  }
+                },
+                "aliases": {
+                  "maxItems": 100,
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 200
+                  }
+                },
+                "discoveryOnly": {
+                  "type": "boolean"
+                },
+                "maxImagesPerPage": {
+                  "nullable": true,
+                  "type": "integer",
+                  "exclusiveMinimum": true,
+                  "maximum": 1000
+                }
+              },
+              "required": [
+                "id",
+                "name"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "items": {
+            "minItems": 1,
+            "maxItems": 500,
+            "type": "array",
+            "items": {
+              "anyOf": [
+                {
+                  "type": "object",
+                  "properties": {
+                    "sourceId": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 64,
+                      "pattern": "^[a-z0-9][a-z0-9._-]*$"
+                    },
+                    "canonicalUrl": {
+                      "type": "string",
+                      "maxLength": 2048,
+                      "format": "uri"
+                    },
+                    "revisionHash": {
+                      "type": "string",
+                      "pattern": "^[a-f0-9]{64}$"
+                    },
+                    "observedAt": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "tombstone": {
+                      "default": false,
+                      "type": "boolean",
+                      "enum": [
+                        false
+                      ]
+                    },
+                    "publicationType": {
+                      "type": "string",
+                      "enum": [
+                        "news",
+                        "notice",
+                        "other"
+                      ]
+                    },
+                    "title": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 1000
+                    },
+                    "author": {
+                      "nullable": true,
+                      "type": "string",
+                      "maxLength": 500
+                    },
+                    "publishedAt": {
+                      "nullable": true,
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "updatedAtSource": {
+                      "nullable": true,
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "category": {
+                      "nullable": true,
+                      "type": "string",
+                      "maxLength": 500
+                    },
+                    "summary": {
+                      "nullable": true,
+                      "type": "string",
+                      "maxLength": 20000
+                    },
+                    "bodyText": {
+                      "nullable": true,
+                      "type": "string",
+                      "maxLength": 5000000
+                    },
+                    "sourcePageUrl": {
+                      "nullable": true,
+                      "type": "string",
+                      "maxLength": 2048,
+                      "format": "uri"
+                    },
+                    "extractionMethod": {
+                      "nullable": true,
+                      "type": "string",
+                      "maxLength": 200
+                    },
+                    "classifierVersion": {
+                      "nullable": true,
+                      "type": "string",
+                      "maxLength": 200
+                    },
+                    "rawMetadata": {
+                      "nullable": true,
+                      "type": "object",
+                      "additionalProperties": {}
+                    },
+                    "objects": {
+                      "default": [],
+                      "maxItems": 100,
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "kind": {
+                            "type": "string",
+                            "enum": [
+                              "body_html",
+                              "body_markdown",
+                              "media",
+                              "asset",
+                              "raw_page"
+                            ]
+                          },
+                          "sha256": {
+                            "type": "string",
+                            "pattern": "^[a-f0-9]{64}$"
+                          },
+                          "size": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 33554432
+                          },
+                          "contentType": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 200,
+                            "pattern": "^[^\\s/]+\\/[A-Za-z0-9!#$&^_.+-]+$"
+                          },
+                          "sortOrder": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 10000
+                          },
+                          "altText": {
+                            "type": "string",
+                            "maxLength": 1000
+                          }
+                        },
+                        "required": [
+                          "kind",
+                          "sha256",
+                          "size",
+                          "contentType"
+                        ],
+                        "additionalProperties": false
+                      }
+                    }
+                  },
+                  "required": [
+                    "sourceId",
+                    "canonicalUrl",
+                    "revisionHash",
+                    "observedAt",
+                    "tombstone",
+                    "publicationType",
+                    "title",
+                    "objects"
+                  ],
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "sourceId": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 64,
+                      "pattern": "^[a-z0-9][a-z0-9._-]*$"
+                    },
+                    "canonicalUrl": {
+                      "type": "string",
+                      "maxLength": 2048,
+                      "format": "uri"
+                    },
+                    "revisionHash": {
+                      "type": "string",
+                      "pattern": "^[a-f0-9]{64}$"
+                    },
+                    "observedAt": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "tombstone": {
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
+                    }
+                  },
+                  "required": [
+                    "sourceId",
+                    "canonicalUrl",
+                    "revisionHash",
+                    "observedAt",
+                    "tombstone"
+                  ],
+                  "additionalProperties": false
+                }
+              ]
+            }
+          }
+        },
+        "required": [
+          "protocolVersion",
+          "producerVersion",
+          "clientRunId",
+          "batchId",
+          "observedAt",
+          "sources",
+          "items"
+        ],
+        "additionalProperties": false
+      },
+      "publicationIngestionBatchResponseSchema": {
+        "type": "object",
+        "properties": {
+          "batchId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "clientRunId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "payloadDigest": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          },
+          "results": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "canonicalUrl": {
+                  "type": "string",
+                  "format": "uri"
+                },
+                "sourceId": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "revisionHash": {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                },
+                "status": {
+                  "type": "string",
+                  "enum": [
+                    "created",
+                    "updated",
+                    "unchanged",
+                    "rejected"
+                  ]
+                },
+                "publicationId": {
+                  "nullable": true,
+                  "type": "string"
+                },
+                "revisionId": {
+                  "nullable": true,
+                  "type": "string"
+                },
+                "error": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "canonicalUrl",
+                "sourceId",
+                "revisionHash",
+                "status",
+                "publicationId",
+                "revisionId"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "batchId",
+          "clientRunId",
+          "payloadDigest",
+          "results"
+        ],
+        "additionalProperties": false
+      },
       "homeworkCompletionBatchRequestSchema": {
         "type": "object",
         "properties": {
@@ -34349,6 +35730,202 @@
           "thread",
           "nextCursor",
           "viewer"
+        ],
+        "additionalProperties": false
+      },
+      "publicationObjectCompleteRequestSchema": {
+        "type": "object",
+        "properties": {
+          "batchId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "body_html",
+              "body_markdown",
+              "media",
+              "asset",
+              "raw_page"
+            ]
+          },
+          "sha256": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          }
+        },
+        "required": [
+          "batchId",
+          "kind",
+          "sha256"
+        ],
+        "additionalProperties": false
+      },
+      "publicationObjectCompleteResponseSchema": {
+        "type": "object",
+        "properties": {
+          "batchId": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "body_html",
+              "body_markdown",
+              "media",
+              "asset",
+              "raw_page"
+            ]
+          },
+          "sha256": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "verified",
+              "linked"
+            ]
+          }
+        },
+        "required": [
+          "batchId",
+          "kind",
+          "sha256",
+          "status"
+        ],
+        "additionalProperties": false
+      },
+      "publicationObjectPlanRequestSchema": {
+        "type": "object",
+        "properties": {
+          "batchId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "objects": {
+            "minItems": 1,
+            "maxItems": 500,
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "enum": [
+                    "body_html",
+                    "body_markdown",
+                    "media",
+                    "asset",
+                    "raw_page"
+                  ]
+                },
+                "sha256": {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                }
+              },
+              "required": [
+                "kind",
+                "sha256"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "batchId",
+          "objects"
+        ],
+        "additionalProperties": false
+      },
+      "publicationObjectPlanResponseSchema": {
+        "type": "object",
+        "properties": {
+          "batchId": {
+            "type": "string"
+          },
+          "objects": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "enum": [
+                    "body_html",
+                    "body_markdown",
+                    "media",
+                    "asset",
+                    "raw_page"
+                  ]
+                },
+                "sha256": {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                },
+                "r2Key": {
+                  "type": "string"
+                },
+                "status": {
+                  "type": "string",
+                  "enum": [
+                    "already_present",
+                    "upload_required"
+                  ]
+                },
+                "uploadUrl": {
+                  "nullable": true,
+                  "type": "string",
+                  "format": "uri"
+                },
+                "expiresAt": {
+                  "nullable": true,
+                  "type": "string",
+                  "format": "date-time",
+                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                },
+                "requiredHeaders": {
+                  "type": "object",
+                  "properties": {
+                    "Content-Type": {
+                      "type": "string"
+                    },
+                    "x-amz-meta-kind": {
+                      "type": "string"
+                    },
+                    "x-amz-meta-sha256": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "Content-Type",
+                    "x-amz-meta-kind",
+                    "x-amz-meta-sha256"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "required": [
+                "kind",
+                "sha256",
+                "r2Key",
+                "status",
+                "uploadUrl",
+                "expiresAt",
+                "requiredHeaders"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "batchId",
+          "objects"
         ],
         "additionalProperties": false
       },

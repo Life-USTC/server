@@ -7,6 +7,8 @@ export * from "./homeworks-response-schemas";
 export * from "./misc-response-schema-core";
 export * from "./oauth-response-schemas";
 export * from "./overview-response-schemas";
+export * from "./response-publication-ingestion-schemas";
+export * from "./response-publication-read-schemas";
 export * from "./response-schema-primitives";
 export * from "./schedule-response-schema-core";
 export * from "./uploads-response-schemas";
