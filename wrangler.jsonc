@@ -35,14 +35,18 @@
   },
   "observability": {
     "enabled": true,
+    "head_sampling_rate": 1,
+    "redact_query_string": false,
     "logs": {
       "enabled": true,
       "head_sampling_rate": 1,
-      "invocation_logs": false,
-      "persist": true
+      "persist": true,
+      "invocation_logs": true
     },
     "traces": {
-      "enabled": false
+      "enabled": true,
+      "persist": true,
+      "head_sampling_rate": 1
     }
   },
   "routes": [
