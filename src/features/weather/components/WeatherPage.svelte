@@ -176,29 +176,38 @@ function formatTemperature(value: number) {
           {#if snapshot.hourly.length > 0}
             <section class="grid gap-2">
               <h3 class="text-sm font-medium">{weatherCopy.hourlyForecast}</h3>
-              <ul class="-mx-1 flex gap-1 overflow-x-auto px-1 pb-1">
-                {#each upcomingHours(snapshot.hourly) as hour (hour.at)}
-                  {@const HourIcon = iconOf(hour.condition)}
-                  <li
-                    class="flex w-14 shrink-0 flex-col items-center gap-1 rounded-lg border py-2 text-sm"
-                  >
-                    <span class="text-muted-foreground text-xs">
-                      {formatShanghaiTime(hour.at)}
-                    </span>
-                    <HourIcon class="size-5" strokeWidth={1.5} />
-                    {#if hour.precipitationProbability !== undefined && hour.precipitationProbability > 0}
-                      <span class="text-xs font-medium text-sky-600 dark:text-sky-400">
-                        {hour.precipitationProbability}%
+              <!-- svelte-ignore a11y_no_noninteractive_tabindex (focus enables keyboard scrolling for this overflowing forecast) -->
+              <div
+                aria-label={weatherCopy.hourlyForecast}
+                class="-mx-1 overflow-x-auto px-1 pb-1 outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                data-testid="weather-hourly-scroll-region"
+                role="region"
+                tabindex="0"
+              >
+                <ul class="flex gap-1">
+                  {#each upcomingHours(snapshot.hourly) as hour (hour.at)}
+                    {@const HourIcon = iconOf(hour.condition)}
+                    <li
+                      class="flex w-14 shrink-0 flex-col items-center gap-1 rounded-lg border py-2 text-sm"
+                    >
+                      <span class="text-muted-foreground text-xs">
+                        {formatShanghaiTime(hour.at)}
                       </span>
-                    {:else}
-                      <span class="text-xs text-transparent">0%</span>
-                    {/if}
-                    <span class="font-medium">
-                      {formatTemperature(hour.temperature)}
-                    </span>
-                  </li>
-                {/each}
-              </ul>
+                      <HourIcon class="size-5" strokeWidth={1.5} />
+                      {#if hour.precipitationProbability !== undefined && hour.precipitationProbability > 0}
+                        <span class="text-xs font-medium text-sky-600 dark:text-sky-400">
+                          {hour.precipitationProbability}%
+                        </span>
+                      {:else}
+                        <span class="text-xs text-transparent">0%</span>
+                      {/if}
+                      <span class="font-medium">
+                        {formatTemperature(hour.temperature)}
+                      </span>
+                    </li>
+                  {/each}
+                </ul>
+              </div>
             </section>
           {/if}
 
