@@ -10,7 +10,12 @@ export async function getWeatherSnapshot(
 ): Promise<WeatherSnapshot | null> {
   const cached = await readWeatherCache(locationKey);
   if (cached) return cached;
+  return refreshWeatherSnapshot(locationKey);
+}
 
+export async function refreshWeatherSnapshot(
+  locationKey: string,
+): Promise<WeatherSnapshot | null> {
   const location = getWeatherLocation(locationKey);
   if (!location) return null;
 

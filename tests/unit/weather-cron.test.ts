@@ -1,34 +1,34 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { runWeatherCronSnapshot } from "../../src/features/weather/server/weather-cron";
 
-const { getWeatherSnapshotMock } = vi.hoisted(() => ({
-  getWeatherSnapshotMock: vi.fn(),
+const { refreshWeatherSnapshotMock } = vi.hoisted(() => ({
+  refreshWeatherSnapshotMock: vi.fn(),
 }));
 
 vi.mock("../../src/features/weather/server/weather-service", () => ({
-  getWeatherSnapshot: getWeatherSnapshotMock,
+  refreshWeatherSnapshot: refreshWeatherSnapshotMock,
 }));
 
 describe("runWeatherCronSnapshot", () => {
   beforeEach(() => {
-    getWeatherSnapshotMock.mockReset();
+    refreshWeatherSnapshotMock.mockReset();
   });
 
   it("forwards the location key and reports refreshed when a snapshot exists", async () => {
-    getWeatherSnapshotMock.mockResolvedValue({ locationKey: "ustc-main" });
+    refreshWeatherSnapshotMock.mockResolvedValue({ locationKey: "ustc-main" });
 
     const result = await runWeatherCronSnapshot("ustc-main");
 
-    expect(getWeatherSnapshotMock).toHaveBeenCalledWith("ustc-main");
+    expect(refreshWeatherSnapshotMock).toHaveBeenCalledWith("ustc-main");
     expect(result).toEqual({ locationKey: "ustc-main", refreshed: true });
   });
 
   it("reports refreshed false when no snapshot is available", async () => {
-    getWeatherSnapshotMock.mockResolvedValue(null);
+    refreshWeatherSnapshotMock.mockResolvedValue(null);
 
     const result = await runWeatherCronSnapshot("ustc-gaoxin");
 
-    expect(getWeatherSnapshotMock).toHaveBeenCalledWith("ustc-gaoxin");
+    expect(refreshWeatherSnapshotMock).toHaveBeenCalledWith("ustc-gaoxin");
     expect(result).toEqual({ locationKey: "ustc-gaoxin", refreshed: false });
   });
 });
