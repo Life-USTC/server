@@ -14,7 +14,6 @@ import KeyRoundIcon from "@lucide/svelte/icons/key-round";
 import LinkIcon from "@lucide/svelte/icons/link";
 import ListTodoIcon from "@lucide/svelte/icons/list-todo";
 import MapIcon from "@lucide/svelte/icons/map";
-import NewspaperIcon from "@lucide/svelte/icons/newspaper";
 import RouteIcon from "@lucide/svelte/icons/route";
 import ScrollTextIcon from "@lucide/svelte/icons/scroll-text";
 import SmartphoneIcon from "@lucide/svelte/icons/smartphone";
@@ -211,7 +210,7 @@ function buildShellNavGroups(
       ],
     },
     { href: "/catalog/links", icon: LinkIcon, label: copy.nav.links },
-    { href: "/news", icon: NewspaperIcon, label: copy.nav.news },
+    { href: "/news", icon: ScrollTextIcon, label: copy.nav.news },
   ];
   const usageLinks: ShellLink[] = [
     {
@@ -394,7 +393,7 @@ function buildMobileSecondaryNavGroups(
     },
     {
       href: "/news",
-      icon: NewspaperIcon,
+      icon: ScrollTextIcon,
       label: copy.nav.news,
     },
     {
