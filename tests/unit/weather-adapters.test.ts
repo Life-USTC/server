@@ -63,7 +63,9 @@ describe("weather adapters", () => {
     vi.unstubAllGlobals();
   });
 
-  it("fetches Open-Meteo weather for ustc-gaoxin", async () => {
+  it("fetches Open-Meteo weather for ustc-gaoxin", {
+    timeout: 20000,
+  }, async () => {
     const location = getWeatherLocation("ustc-gaoxin");
     const result = await fetchOpenMeteoWeather(location);
     // Allow network failures in CI/test environments; verify shape on success.
