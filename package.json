@@ -55,7 +55,7 @@
     "@better-auth/passkey": "1.7.2",
     "@escape.tech/graphql-armor": "3.2.0",
     "@ethercorps/sveltekit-og": "4.3.0",
-    "@graphql-tools/executor": "1.5.7",
+    "@graphql-tools/executor": "2.0.0",
     "@graphql-yoga/plugin-disable-introspection": "2.23.0",
     "@internationalized/date": "^3.12.3",
     "@lucide/svelte": "^1.31.0",
