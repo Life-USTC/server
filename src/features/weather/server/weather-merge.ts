@@ -59,26 +59,28 @@ export function mergeWeatherSnapshots(
       precipitationAmount: hourlySource?.precipitation?.[i],
     }));
 
-  const daily: WeatherDaily[] = amap.ok
-    ? (amap.data.daily ?? []).map((d) => ({
-        date: d.date,
-        temperatureHigh: d.temperatureHigh,
-        temperatureLow: d.temperatureLow,
-        condition: normalizeAmapCondition(d.weather, d.weatherCode),
-      }))
-    : openMeteo.ok
-      ? (() => {
-          const dailySource = openMeteo.data.daily;
-          return (dailySource?.time ?? []).map((time, i) => ({
-            date: time,
-            temperatureHigh: dailySource?.temperature_2m_max[i] ?? 0,
-            temperatureLow: dailySource?.temperature_2m_min[i] ?? 0,
-            condition: normalizeOpenMeteoCondition(
-              dailySource?.weather_code[i] ?? -1,
-            ),
-          }));
-        })()
-      : [];
+  const amapDaily = amap.ok ? (amap.data.daily ?? []) : [];
+  const daily: WeatherDaily[] =
+    amapDaily.length > 0
+      ? amapDaily.map((d) => ({
+          date: d.date,
+          temperatureHigh: d.temperatureHigh,
+          temperatureLow: d.temperatureLow,
+          condition: normalizeAmapCondition(d.weather, d.weatherCode),
+        }))
+      : openMeteo.ok
+        ? (() => {
+            const dailySource = openMeteo.data.daily;
+            return (dailySource?.time ?? []).map((time, i) => ({
+              date: time,
+              temperatureHigh: dailySource?.temperature_2m_max[i] ?? 0,
+              temperatureLow: dailySource?.temperature_2m_min[i] ?? 0,
+              condition: normalizeOpenMeteoCondition(
+                dailySource?.weather_code[i] ?? -1,
+              ),
+            }));
+          })()
+        : [];
 
   return {
     location: {

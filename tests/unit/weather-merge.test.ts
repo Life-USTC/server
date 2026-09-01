@@ -44,6 +44,50 @@ describe("weather merge", () => {
     expect(snapshot.providers).toContain("open-meteo");
   });
 
+  it("falls back to Open-Meteo daily when Amap returns no casts", () => {
+    const location = getWeatherLocation("ustc-main");
+    const amap = {
+      ok: true as const,
+      data: {
+        current: {
+          temperature: 27,
+          weather: "阴",
+        },
+        daily: [],
+        hourly: [],
+        alerts: [],
+      },
+      raw: {},
+    };
+    const openMeteo = {
+      ok: true as const,
+      data: {
+        current: { temperature_2m: 26, weather_code: 3 },
+        hourly: {
+          time: [],
+          temperature_2m: [],
+          weather_code: [],
+        },
+        daily: {
+          time: ["2026-09-01"],
+          temperature_2m_max: [29],
+          temperature_2m_min: [23],
+          weather_code: [61],
+        },
+      },
+      raw: {},
+    };
+
+    const snapshot = mergeWeatherSnapshots(location, amap, openMeteo);
+    expect(snapshot.current.temperature).toBe(27);
+    expect(snapshot.daily).toHaveLength(1);
+    expect(snapshot.daily[0]).toMatchObject({
+      date: "2026-09-01",
+      temperatureHigh: 29,
+      temperatureLow: 23,
+    });
+  });
+
   it("falls back to Open-Meteo when Amap fails", () => {
     const location = getWeatherLocation("ustc-gaoxin");
     const amap = {

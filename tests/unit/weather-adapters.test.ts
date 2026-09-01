@@ -23,6 +23,46 @@ describe("weather adapters", () => {
     expect(normalizeOpenMeteoCondition(999).text).toBe("未知");
   });
 
+  it("fetches AMap base and all sequentially to stay under the QPS limit", async () => {
+    vi.stubEnv("AMAP_API_KEY", "test-key");
+    const order: string[] = [];
+    let resolveBase!: (response: Response) => void;
+    vi.stubGlobal(
+      "fetch",
+      vi.fn((input: RequestInfo | URL) => {
+        const url = String(input);
+        if (url.includes("extensions=base")) {
+          order.push("base:start");
+          return new Promise<Response>((resolve) => {
+            resolveBase = resolve;
+          });
+        }
+        order.push("all:start");
+        return Promise.resolve(
+          new Response(JSON.stringify({ status: "1", forecasts: [] })),
+        );
+      }),
+    );
+
+    const pending = fetchAmapWeather(getWeatherLocation("ustc-main"));
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(order).toEqual(["base:start"]);
+
+    resolveBase(
+      new Response(
+        JSON.stringify({
+          status: "1",
+          lives: [{ weather: "阴", temperature: "27" }],
+        }),
+      ),
+    );
+    const result = await pending;
+    expect(order).toEqual(["base:start", "all:start"]);
+    expect(result.ok).toBe(true);
+
+    vi.unstubAllGlobals();
+  });
+
   it("fetches Open-Meteo weather for ustc-gaoxin", async () => {
     const location = getWeatherLocation("ustc-gaoxin");
     const result = await fetchOpenMeteoWeather(location);

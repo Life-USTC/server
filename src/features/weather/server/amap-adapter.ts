@@ -77,11 +77,21 @@ export async function fetchAmapWeather(
 
   try {
     // extensions=base returns lives (current weather) only, extensions=all
-    // returns forecasts only, so both calls are needed.
-    const [baseResult, allResult] = await Promise.allSettled([
-      fetchJson("base"),
-      fetchJson("all"),
-    ]);
+    // returns forecasts only, so both calls are needed. AMap's free-tier QPS
+    // limit rejects concurrent requests (infocode 10021), and both campus
+    // crons can fire in the same second, so fetch sequentially.
+    const settle = async (extensions: "base" | "all") => {
+      try {
+        return {
+          status: "fulfilled" as const,
+          value: await fetchJson(extensions),
+        };
+      } catch (reason) {
+        return { status: "rejected" as const, reason };
+      }
+    };
+    const baseResult = await settle("base");
+    const allResult = await settle("all");
     if (baseResult.status === "rejected" && allResult.status === "rejected") {
       return {
         ok: false,
