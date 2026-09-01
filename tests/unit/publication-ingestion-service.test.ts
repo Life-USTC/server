@@ -598,8 +598,8 @@ describe("publication ingestion transaction", () => {
     expect(response.results.every(({ status }) => status === "created")).toBe(
       true,
     );
-    expect(PUBLICATION_INGESTION_TRANSACTION_TIMEOUT_MS).toBeGreaterThan(5_000);
-    expect(PUBLICATION_INGESTION_TRANSACTION_TIMEOUT_MS).toBeLessThan(30_000);
+    expect(PUBLICATION_INGESTION_TRANSACTION_TIMEOUT_MS).toBe(45_000);
+    expect(PUBLICATION_INGESTION_TRANSACTION_TIMEOUT_MS).toBeLessThan(60_000);
     expect(fake.prisma.$transaction).toHaveBeenCalledWith(
       expect.any(Function),
       { timeout: PUBLICATION_INGESTION_TRANSACTION_TIMEOUT_MS },
