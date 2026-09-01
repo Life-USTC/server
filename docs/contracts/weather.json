@@ -8,7 +8,7 @@
   },
   "rules": {
     "public-no-signin": "Weather is public campus life information; sign-in should not be a prerequisite.",
-    "two-locations-only": "Only two locations are tracked: ustc-main (本部, Amap adcode 340100) covers the closely clustered east/west/south/north/central campuses, and ustc-gaoxin (高新校区, adcode 340171) covers the distant Gaoxin campus.",
+    "two-locations-only": "Only two locations are tracked: ustc-main (本部, Amap adcode 340100) covers the closely clustered east/west/south/north/central campuses, and ustc-gaoxin (高新校区, adcode 340104 Shushan — the Gaoxin campus's district; the economic-zone adcode 340171 has no AMap weather coverage) covers the distant Gaoxin campus.",
     "amap-primary": "Amap (高德) is the primary provider; Open-Meteo supplements hourly forecast, precipitation probability, and other fields Amap does not return. The merged snapshot lists which providers contributed.",
     "raw-extensions-preserved": "Provider payloads are merged into a canonical snapshot and the raw Amap/Open-Meteo responses stay available under extensions for REST and MCP consumers.",
     "cache-and-history": "Snapshots are cached in the WEATHER KV namespace for 15 minutes per location and persisted to WeatherObservation history; a scheduled cron refreshes both locations to stay within the Amap monthly quota.",
