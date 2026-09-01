@@ -62,6 +62,7 @@ const DYNAMIC_OR_PRIVATE_ROOTS = [
   "/catalog",
   "/community",
   "/e2e",
+  "/news",
   "/oauth",
   "/search",
   "/workspace",

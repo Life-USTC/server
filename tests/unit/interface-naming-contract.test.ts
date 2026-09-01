@@ -47,6 +47,7 @@ describe("cross-surface interface naming", () => {
         "catalog",
         "community",
         "ingestion",
+        "publications",
         "search",
         "workspace",
       ]),

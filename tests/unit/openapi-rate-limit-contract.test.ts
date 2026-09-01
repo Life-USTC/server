@@ -44,6 +44,10 @@ const PROTECTED_MUTATIONS = [
   ["put", "/api/workspace/uploads/object"],
 ] as const;
 
+const EXPECTED_STORAGE_FAILURES = [
+  ["get", "/api/publications/objects/{kind}/{sha256}"],
+] as const;
+
 type Operation = {
   responses?: Record<
     string,
@@ -53,10 +57,12 @@ type Operation = {
 
 const paths = openApi.paths as Record<string, Record<string, Operation>>;
 
-describe("OpenAPI mutation rate-limit contract", () => {
-  it("documents 429 and fail-closed 503 only on protected mutations", () => {
+describe("OpenAPI rate-limit response contract", () => {
+  it("documents 429/503 on protected mutations and storage failures on object reads", () => {
     const expected = new Set(
-      PROTECTED_MUTATIONS.map(([method, path]) => `${method} ${path}`),
+      [...PROTECTED_MUTATIONS, ...EXPECTED_STORAGE_FAILURES].map(
+        ([method, path]) => `${method} ${path}`,
+      ),
     );
     const documented = new Set<string>();
 
@@ -83,6 +89,15 @@ describe("OpenAPI mutation rate-limit contract", () => {
           `${method} ${path} ${status}`,
         ).toMatchObject({ schema: { type: "integer" } });
       }
+    },
+  );
+
+  it.each(EXPECTED_STORAGE_FAILURES)(
+    "%s %s exposes Retry-After for storage failures",
+    (method, path) => {
+      expect(
+        paths[path]?.[method]?.responses?.["503"]?.headers?.["Retry-After"],
+      ).toMatchObject({ schema: { type: "integer" } });
     },
   );
 });

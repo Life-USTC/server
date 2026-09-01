@@ -3,6 +3,8 @@ import { dateTimeSchema } from "./response-schema-primitives";
 
 export const publicationIngestionItemResultSchema = z.strictObject({
   canonicalUrl: z.string().url(),
+  sourceId: z.string().min(1),
+  revisionHash: z.string().regex(/^[a-f0-9]{64}$/),
   status: z.enum(["created", "updated", "unchanged", "rejected"]),
   publicationId: z.string().nullable(),
   revisionId: z.string().nullable(),
@@ -10,9 +12,9 @@ export const publicationIngestionItemResultSchema = z.strictObject({
 });
 
 export const publicationIngestionBatchResponseSchema = z.strictObject({
-  batchId: z.string(),
-  clientRunId: z.string(),
-  payloadDigest: z.string(),
+  batchId: z.string().min(1),
+  clientRunId: z.string().min(1),
+  payloadDigest: z.string().regex(/^[a-f0-9]{64}$/),
   results: z.array(publicationIngestionItemResultSchema),
 });
 

@@ -23,6 +23,8 @@ export class PublicationIngestionConflictError extends Error {
 
 export type PublicationIngestionItemResult = {
   canonicalUrl: string;
+  revisionHash: string;
+  sourceId: string;
   error?: string;
   publicationId: string | null;
   revisionId: string | null;
@@ -73,6 +75,173 @@ function canonicalize(value: unknown): unknown {
     );
   }
   return value;
+}
+
+function normalizeStoredJson(value: unknown) {
+  return value === null ||
+    value === undefined ||
+    value === Prisma.JsonNull ||
+    value === Prisma.DbNull
+    ? null
+    : value;
+}
+
+type PublicationRevisionSemanticObject = {
+  altText: string | null;
+  contentType: string;
+  kind: string;
+  sha256: string;
+  size: number;
+  sortOrder: number | null;
+};
+
+type PublicationRevisionSemantics = {
+  author: string | null;
+  bodyText: string | null;
+  category: string | null;
+  classifierVersion: string | null;
+  extractionMethod: string | null;
+  isTombstone: boolean;
+  objects: PublicationRevisionSemanticObject[];
+  publishedAt: string | null;
+  publicationType: string;
+  rawMetadata: unknown;
+  sourcePageUrl: string | null;
+  summary: string | null;
+  title: string | null;
+  updatedAtSource: string | null;
+};
+
+function revisionSemanticObjectKey(object: PublicationRevisionSemanticObject) {
+  return JSON.stringify(canonicalize(object));
+}
+
+function sortRevisionSemanticObjects(
+  objects: PublicationRevisionSemanticObject[],
+) {
+  return [...objects].sort((left, right) => {
+    const leftKey = revisionSemanticObjectKey(left);
+    const rightKey = revisionSemanticObjectKey(right);
+    return leftKey < rightKey ? -1 : leftKey > rightKey ? 1 : 0;
+  });
+}
+
+function revisionSemanticsFromItem(
+  item: PublicationIngestionItem,
+): PublicationRevisionSemantics {
+  if (item.tombstone) {
+    return {
+      author: null,
+      bodyText: null,
+      category: null,
+      classifierVersion: null,
+      extractionMethod: null,
+      isTombstone: true,
+      objects: [],
+      publishedAt: null,
+      publicationType: "other",
+      rawMetadata: null,
+      sourcePageUrl: null,
+      summary: null,
+      title: null,
+      updatedAtSource: null,
+    };
+  }
+
+  return {
+    author: item.author ?? null,
+    bodyText: item.bodyText ?? null,
+    category: item.category ?? null,
+    classifierVersion: item.classifierVersion ?? null,
+    extractionMethod: item.extractionMethod ?? null,
+    isTombstone: false,
+    objects: sortRevisionSemanticObjects(
+      item.objects.map((object) => ({
+        altText: object.altText ?? null,
+        contentType: object.contentType,
+        kind: object.kind,
+        sha256: object.sha256,
+        size: object.size,
+        sortOrder: object.sortOrder ?? null,
+      })),
+    ),
+    publishedAt:
+      parseOptionalPublicationDate(item.publishedAt)?.toISOString() ?? null,
+    publicationType: item.publicationType,
+    rawMetadata: normalizeStoredJson(item.rawMetadata),
+    sourcePageUrl: item.sourcePageUrl ?? null,
+    summary: item.summary ?? null,
+    title: item.title,
+    updatedAtSource:
+      parseOptionalPublicationDate(item.updatedAtSource)?.toISOString() ?? null,
+  };
+}
+
+type StoredPublicationRevision = {
+  author: string | null;
+  bodyText: string | null;
+  category: string | null;
+  classifierVersion: string | null;
+  extractionMethod: string | null;
+  isTombstone: boolean;
+  objectLinks?: Array<{
+    altText: string | null;
+    object: {
+      contentType: string;
+      kind: string;
+      sha256: string;
+      size: number;
+    } | null;
+    role: string;
+    sortOrder: number | null;
+  }>;
+  publishedAt: Date | null;
+  publicationType: string;
+  rawMetadata: unknown;
+  sourcePageUrl: string | null;
+  summary: string | null;
+  title: string | null;
+  updatedAtSource: Date | null;
+};
+
+function revisionSemanticsFromStored(
+  revision: StoredPublicationRevision,
+): PublicationRevisionSemantics {
+  return {
+    author: revision.author,
+    bodyText: revision.bodyText,
+    category: revision.category,
+    classifierVersion: revision.classifierVersion,
+    extractionMethod: revision.extractionMethod,
+    isTombstone: revision.isTombstone,
+    objects: sortRevisionSemanticObjects(
+      (revision.objectLinks ?? []).map((link) => ({
+        altText: link.altText,
+        contentType: link.object?.contentType ?? "",
+        kind: link.role,
+        sha256: link.object?.sha256 ?? "",
+        size: link.object?.size ?? -1,
+        sortOrder: link.sortOrder,
+      })),
+    ),
+    publishedAt: revision.publishedAt?.toISOString() ?? null,
+    publicationType: revision.publicationType,
+    rawMetadata: normalizeStoredJson(revision.rawMetadata),
+    sourcePageUrl: revision.sourcePageUrl,
+    summary: revision.summary,
+    title: revision.title,
+    updatedAtSource: revision.updatedAtSource?.toISOString() ?? null,
+  };
+}
+
+function revisionSemanticsMatch(
+  revision: StoredPublicationRevision,
+  item: PublicationIngestionItem,
+) {
+  return (
+    JSON.stringify(canonicalize(revisionSemanticsFromStored(revision))) ===
+    JSON.stringify(canonicalize(revisionSemanticsFromItem(item)))
+  );
 }
 
 async function sha256Text(value: string) {
@@ -204,15 +373,23 @@ async function ensureObjectManifest(
   return object;
 }
 
+type PublicationIngestionItem =
+  PublicationIngestionBatchRequest["items"][number];
+
 function result(
-  canonicalUrl: string,
+  item: Pick<
+    PublicationIngestionItem,
+    "canonicalUrl" | "revisionHash" | "sourceId"
+  >,
   status: PublicationIngestionItemResult["status"],
   publicationId: string | null,
   revisionId: string | null,
   error?: string,
 ): PublicationIngestionItemResult {
   return {
-    canonicalUrl,
+    canonicalUrl: item.canonicalUrl,
+    revisionHash: item.revisionHash,
+    sourceId: item.sourceId,
     status,
     publicationId,
     revisionId,
@@ -228,7 +405,7 @@ async function ingestItem(
 ): Promise<PublicationIngestionItemResult> {
   if (!sourceAllowsUrl(source, item.canonicalUrl)) {
     return result(
-      item.canonicalUrl,
+      item,
       "rejected",
       null,
       null,
@@ -258,7 +435,7 @@ async function ingestItem(
 
   if (item.tombstone && !publication) {
     return result(
-      item.canonicalUrl,
+      item,
       "rejected",
       null,
       null,
@@ -335,20 +512,11 @@ async function ingestItem(
       revision.id,
       incomingHash,
     );
-    return result(item.canonicalUrl, "created", created.id, revision.id);
+    return result(item, "created", created.id, revision.id);
   }
 
   if (!publication) {
-    return result(item.canonicalUrl, "rejected", null, null, "invalid item");
-  }
-
-  if (!shouldApply) {
-    return result(
-      item.canonicalUrl,
-      "unchanged",
-      publication.id,
-      currentRevision?.id ?? null,
-    );
+    return result(item, "rejected", null, null, "invalid item");
   }
 
   const existingRevision = await tx.publicationRevision.findUnique({
@@ -358,12 +526,37 @@ async function ingestItem(
         revisionHash: incomingHash,
       },
     },
+    include: {
+      objectLinks: {
+        include: {
+          object: {
+            select: {
+              contentType: true,
+              kind: true,
+              sha256: true,
+              size: true,
+            },
+          },
+        },
+        orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
+      },
+    },
   });
-  if (existingRevision && existingRevision.isTombstone !== item.tombstone) {
+  if (existingRevision && !revisionSemanticsMatch(existingRevision, item)) {
     throw new PublicationIngestionBadRequestError(
-      "A revision hash cannot change between a publication and tombstone",
+      "A revision hash cannot change its stored publication semantics",
     );
   }
+
+  if (!shouldApply) {
+    return result(
+      item,
+      "unchanged",
+      publication.id,
+      currentRevision?.id ?? null,
+    );
+  }
+
   const revision =
     existingRevision ??
     (item.tombstone
@@ -400,12 +593,7 @@ async function ingestItem(
     existingRevision &&
     existingRevision.observedAt.getTime() > observedAt.getTime()
   ) {
-    return result(
-      item.canonicalUrl,
-      "unchanged",
-      publication.id,
-      existingRevision.id,
-    );
+    return result(item, "unchanged", publication.id, existingRevision.id);
   }
 
   if (
@@ -459,7 +647,7 @@ async function ingestItem(
     revision.id,
     incomingHash,
   );
-  return result(item.canonicalUrl, "updated", publication.id, revision.id);
+  return result(item, "updated", publication.id, revision.id);
 }
 
 async function linkObjects(
@@ -667,7 +855,7 @@ async function ingestWithRetry(
       if (!source?.enabled || source.discoveryOnly) {
         results.push(
           result(
-            item.canonicalUrl,
+            item,
             "rejected",
             null,
             null,

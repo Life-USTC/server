@@ -104,12 +104,16 @@
           {
             "path": "/api/ingestion/publications/objects/plan",
             "method": "POST",
-            "notes": ["Requires publication.ingest:write and an administrator principal."]
+            "notes": [
+              "Requires publication.ingest:write and an administrator principal."
+            ]
           },
           {
             "path": "/api/ingestion/publications/objects/complete",
             "method": "POST",
-            "notes": ["Requires publication.ingest:write and an administrator principal."]
+            "notes": [
+              "Requires publication.ingest:write and an administrator principal."
+            ]
           }
         ]
       }

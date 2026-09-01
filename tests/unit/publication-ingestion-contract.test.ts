@@ -2,7 +2,15 @@ import { describe, expect, it } from "vitest";
 import { parsePublicationDateInput } from "@/features/publications/lib/publication-date";
 import { publicationIngestionPayloadDigest } from "@/features/publications/server/publication-ingestion-service";
 import { publicationIngestionBatchRequestSchema } from "@/lib/api/schemas/request-publication-ingestion-schemas";
-import { PUBLIC_REST_FEATURES, REST_FEATURES } from "@/lib/oauth/constants";
+import { publicationIngestionBatchResponseSchema } from "@/lib/api/schemas/response-publication-ingestion-schemas";
+import {
+  OAUTH_DEVICE_CODE_GRANT_TYPE,
+  OAUTH_PUBLIC_CLIENT_AUTH_METHOD,
+  PUBLIC_REST_FEATURES,
+  PUBLICATION_CRAWLER_OAUTH_CLIENT_ID,
+  PUBLICATION_CRAWLER_OAUTH_CLIENT_SCOPES,
+  REST_FEATURES,
+} from "@/lib/oauth/constants";
 import {
   CLIENT_REGISTRATION_ALLOWED_SCOPES,
   isMcpScope,
@@ -137,6 +145,24 @@ describe("publication ingestion contract", () => {
     );
   });
 
+  it("requires a canonical SHA-256 payload digest in batch responses", () => {
+    const response = {
+      batchId: fixture.batchId,
+      clientRunId: fixture.clientRunId,
+      payloadDigest: "a".repeat(64),
+      results: [],
+    };
+    expect(
+      publicationIngestionBatchResponseSchema.safeParse(response).success,
+    ).toBe(true);
+    expect(
+      publicationIngestionBatchResponseSchema.safeParse({
+        ...response,
+        payloadDigest: "not-a-digest",
+      }).success,
+    ).toBe(false);
+  });
+
   it("keeps ingestion REST-only and out of public/DCR/MCP scopes", () => {
     expect(REST_FEATURES).toContain("publication.ingest");
     expect(PUBLIC_REST_FEATURES).not.toContain("publication.ingest");
@@ -146,5 +172,19 @@ describe("publication ingestion contract", () => {
     );
     expect(OAUTH_PROVIDER_SCOPES).toContain("publication.ingest:write");
     expect(isMcpScope("publication.ingest:write")).toBe(false);
+  });
+
+  it("reserves a public device client for the crawler", () => {
+    expect(PUBLICATION_CRAWLER_OAUTH_CLIENT_ID).toBe(
+      "life-ustc-publication-crawler",
+    );
+    expect(PUBLICATION_CRAWLER_OAUTH_CLIENT_SCOPES).toEqual([
+      "publication.ingest:write",
+      "offline_access",
+    ]);
+    expect(OAUTH_PUBLIC_CLIENT_AUTH_METHOD).toBe("none");
+    expect(OAUTH_DEVICE_CODE_GRANT_TYPE).toBe(
+      "urn:ietf:params:oauth:grant-type:device_code",
+    );
   });
 });

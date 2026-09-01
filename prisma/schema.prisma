@@ -1044,6 +1044,9 @@ model Publication {
   @@index([sourceId, lastSeenAt])
   @@index([deletedAt])
   @@index([currentRevisionId])
+  @@index([canonicalUrl(ops: raw("gin_trgm_ops"))], type: Gin, map: "Publication_canonicalUrl_trgm_idx")
+  @@index([title(ops: raw("gin_trgm_ops"))], type: Gin, map: "Publication_title_trgm_idx")
+  @@index([summary(ops: raw("gin_trgm_ops"))], type: Gin, map: "Publication_summary_trgm_idx")
 }
 
 model PublicationRevision {

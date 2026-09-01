@@ -542,6 +542,87 @@
         }
       }
     },
+    "/api/publications": {
+      "get": {
+        "operationId": "get-api-publications",
+        "summary": "List public USTC news and notices",
+        "tags": [
+          "Api"
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "type",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "news",
+                "notice"
+              ]
+            }
+          },
+          {
+            "in": "query",
+            "name": "source",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64,
+              "pattern": "^[a-z0-9][a-z0-9._-]*$"
+            }
+          },
+          {
+            "in": "query",
+            "name": "query",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 200
+            }
+          },
+          {
+            "in": "query",
+            "name": "page",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100000
+            }
+          },
+          {
+            "in": "query",
+            "name": "pageSize",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 50
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/publicPublicationsResponseSchema"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/openApiErrorSchema"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/search": {
       "get": {
         "operationId": "get-api-search",
@@ -2793,6 +2874,59 @@
                 }
               }
             },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/openApiErrorSchema"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/publications/{id}": {
+      "get": {
+        "operationId": "get-api-publications-id",
+        "summary": "Get one public USTC news item or notice",
+        "tags": [
+          "Api"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/publicPublicationDetailSchema"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/openApiErrorSchema"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error response",
             "content": {
               "application/json": {
                 "schema": {
@@ -8780,6 +8914,96 @@
         }
       }
     },
+    "/api/publications/objects/{kind}/{sha256}": {
+      "get": {
+        "operationId": "get-api-publications-objects-kind-sha256",
+        "summary": "Read a verified object linked to a public publication revision",
+        "tags": [
+          "Api"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "kind",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "body_html",
+                "body_markdown",
+                "media",
+                "asset",
+                "raw_page"
+              ]
+            },
+            "required": true
+          },
+          {
+            "in": "path",
+            "name": "sha256",
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            },
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Binary response",
+            "content": {
+              "application/octet-stream": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "304": {
+            "description": "Response 304"
+          },
+          "400": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/openApiErrorSchema"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/openApiErrorSchema"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error response",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds before retrying the mutation",
+                "schema": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/openApiErrorSchema"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/workspace/homeworks/{id}/completion": {
       "put": {
         "operationId": "setHomeworkCompletion",
@@ -9456,6 +9680,223 @@
           "openapi",
           "info",
           "paths"
+        ],
+        "additionalProperties": false
+      },
+      "publicPublicationsResponseSchema": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "canonicalUrl": {
+                  "type": "string",
+                  "format": "uri"
+                },
+                "publicationType": {
+                  "type": "string",
+                  "enum": [
+                    "news",
+                    "notice"
+                  ]
+                },
+                "source": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "organizationLevel": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "name",
+                    "organizationLevel"
+                  ],
+                  "additionalProperties": false
+                },
+                "revision": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "revisionHash": {
+                      "type": "string",
+                      "pattern": "^[a-f0-9]{64}$"
+                    },
+                    "observedAt": {
+                      "type": "string",
+                      "format": "date-time",
+                      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "author": {
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "publishedAt": {
+                      "nullable": true,
+                      "type": "string",
+                      "format": "date-time",
+                      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                    },
+                    "updatedAtSource": {
+                      "nullable": true,
+                      "type": "string",
+                      "format": "date-time",
+                      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                    },
+                    "category": {
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "summary": {
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "sourcePageUrl": {
+                      "nullable": true,
+                      "type": "string",
+                      "format": "uri"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "revisionHash",
+                    "observedAt",
+                    "title",
+                    "author",
+                    "publishedAt",
+                    "updatedAtSource",
+                    "category",
+                    "summary",
+                    "sourcePageUrl"
+                  ],
+                  "additionalProperties": false
+                },
+                "objects": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "kind": {
+                        "type": "string",
+                        "enum": [
+                          "body_html",
+                          "body_markdown",
+                          "media",
+                          "asset",
+                          "raw_page"
+                        ]
+                      },
+                      "sha256": {
+                        "type": "string",
+                        "pattern": "^[a-f0-9]{64}$"
+                      },
+                      "size": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 9007199254740991
+                      },
+                      "contentType": {
+                        "type": "string"
+                      },
+                      "status": {
+                        "type": "string",
+                        "enum": [
+                          "verified",
+                          "linked"
+                        ]
+                      },
+                      "url": {
+                        "type": "string",
+                        "pattern": "^\\/api\\/publications\\/objects\\/.*"
+                      },
+                      "sortOrder": {
+                        "nullable": true,
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 9007199254740991
+                      },
+                      "altText": {
+                        "nullable": true,
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "kind",
+                      "sha256",
+                      "size",
+                      "contentType",
+                      "status",
+                      "url",
+                      "sortOrder",
+                      "altText"
+                    ],
+                    "additionalProperties": false
+                  }
+                }
+              },
+              "required": [
+                "id",
+                "canonicalUrl",
+                "publicationType",
+                "source",
+                "revision",
+                "objects"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "pagination": {
+            "type": "object",
+            "properties": {
+              "page": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              },
+              "pageSize": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              },
+              "total": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              },
+              "totalPages": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              }
+            },
+            "required": [
+              "page",
+              "pageSize",
+              "total",
+              "totalPages"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "data",
+          "pagination"
         ],
         "additionalProperties": false
       },
@@ -15330,6 +15771,193 @@
         "required": [
           "id",
           "homework"
+        ],
+        "additionalProperties": false
+      },
+      "publicPublicationDetailSchema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "canonicalUrl": {
+            "type": "string",
+            "format": "uri"
+          },
+          "publicationType": {
+            "type": "string",
+            "enum": [
+              "news",
+              "notice"
+            ]
+          },
+          "source": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              },
+              "organizationLevel": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "name",
+              "organizationLevel"
+            ],
+            "additionalProperties": false
+          },
+          "revision": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "revisionHash": {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              },
+              "observedAt": {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+              },
+              "title": {
+                "type": "string"
+              },
+              "author": {
+                "nullable": true,
+                "type": "string"
+              },
+              "publishedAt": {
+                "nullable": true,
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+              },
+              "updatedAtSource": {
+                "nullable": true,
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+              },
+              "category": {
+                "nullable": true,
+                "type": "string"
+              },
+              "summary": {
+                "nullable": true,
+                "type": "string"
+              },
+              "sourcePageUrl": {
+                "nullable": true,
+                "type": "string",
+                "format": "uri"
+              },
+              "bodyText": {
+                "nullable": true,
+                "type": "string"
+              },
+              "extractionMethod": {
+                "nullable": true,
+                "type": "string"
+              },
+              "classifierVersion": {
+                "nullable": true,
+                "type": "string"
+              },
+              "objects": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "kind": {
+                      "type": "string",
+                      "enum": [
+                        "body_html",
+                        "body_markdown",
+                        "media",
+                        "asset",
+                        "raw_page"
+                      ]
+                    },
+                    "sha256": {
+                      "type": "string",
+                      "pattern": "^[a-f0-9]{64}$"
+                    },
+                    "size": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    "contentType": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "verified",
+                        "linked"
+                      ]
+                    },
+                    "url": {
+                      "type": "string",
+                      "pattern": "^\\/api\\/publications\\/objects\\/.*"
+                    },
+                    "sortOrder": {
+                      "nullable": true,
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    "altText": {
+                      "nullable": true,
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "kind",
+                    "sha256",
+                    "size",
+                    "contentType",
+                    "status",
+                    "url",
+                    "sortOrder",
+                    "altText"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            },
+            "required": [
+              "id",
+              "revisionHash",
+              "observedAt",
+              "title",
+              "author",
+              "publishedAt",
+              "updatedAtSource",
+              "category",
+              "summary",
+              "sourcePageUrl",
+              "bodyText",
+              "extractionMethod",
+              "classifierVersion",
+              "objects"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "id",
+          "canonicalUrl",
+          "publicationType",
+          "source",
+          "revision"
         ],
         "additionalProperties": false
       },
@@ -28581,13 +29209,16 @@
         "type": "object",
         "properties": {
           "batchId": {
-            "type": "string"
+            "type": "string",
+            "minLength": 1
           },
           "clientRunId": {
-            "type": "string"
+            "type": "string",
+            "minLength": 1
           },
           "payloadDigest": {
-            "type": "string"
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
           },
           "results": {
             "type": "array",
@@ -28597,6 +29228,14 @@
                 "canonicalUrl": {
                   "type": "string",
                   "format": "uri"
+                },
+                "sourceId": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "revisionHash": {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
                 },
                 "status": {
                   "type": "string",
@@ -28621,6 +29260,8 @@
               },
               "required": [
                 "canonicalUrl",
+                "sourceId",
+                "revisionHash",
                 "status",
                 "publicationId",
                 "revisionId"

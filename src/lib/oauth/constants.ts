@@ -25,6 +25,16 @@ export const OAUTH_OPENID_SCOPE = "openid";
 export const OAUTH_PROFILE_SCOPE = "profile";
 export const OAUTH_EMAIL_SCOPE = "email";
 export const OAUTH_OFFLINE_ACCESS_SCOPE = "offline_access";
+/**
+ * Reserved administrator-provisioned client used by the publication crawler.
+ * It is intentionally not part of dynamic client registration.
+ */
+export const PUBLICATION_CRAWLER_OAUTH_CLIENT_ID =
+  "life-ustc-publication-crawler";
+export const PUBLICATION_CRAWLER_OAUTH_CLIENT_SCOPES = [
+  "publication.ingest:write",
+  OAUTH_OFFLINE_ACCESS_SCOPE,
+] as const;
 export const OAUTH_PROVIDER_CLAIMS_SUPPORTED = [
   "sub",
   "name",

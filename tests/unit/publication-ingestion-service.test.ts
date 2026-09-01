@@ -167,15 +167,25 @@ const fake = vi.hoisted(() => {
             revisionHash: string;
           };
         }>(args.where);
-        return (
-          [...state.revisions.values()].find(
-            (entry) =>
-              entry.publicationId ===
-                where.publicationId_revisionHash.publicationId &&
-              entry.revisionHash ===
-                where.publicationId_revisionHash.revisionHash,
-          ) ?? null
+        const revision = [...state.revisions.values()].find(
+          (entry) =>
+            entry.publicationId ===
+              where.publicationId_revisionHash.publicationId &&
+            entry.revisionHash ===
+              where.publicationId_revisionHash.revisionHash,
         );
+        if (!revision) return null;
+        return {
+          ...revision,
+          objectLinks: [...state.links.values()]
+            .filter((link) => link.revisionId === revision.id)
+            .map((link) => ({
+              altText: (link.altText as string | null | undefined) ?? null,
+              object: state.objects.get(String(link.objectId)) ?? null,
+              role: String(link.role),
+              sortOrder: (link.sortOrder as number | null | undefined) ?? null,
+            })),
+        };
       }),
       create: vi.fn(async (args: QueryArgs) => {
         const created = {
@@ -384,6 +394,103 @@ describe("publication ingestion transaction", () => {
     expect(fake.state.links.size).toBe(0);
   });
 
+  it("identifies duplicate URLs with distinct revision hashes in each result", async () => {
+    const firstHash =
+      "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+    const secondHash =
+      "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb";
+    const firstItem = {
+      ...parsedFixture.items[0],
+      revisionHash: firstHash,
+      title: "First revision",
+    };
+    const secondItem = {
+      ...parsedFixture.items[0],
+      revisionHash: secondHash,
+      title: "Second revision",
+    };
+    const payload = publicationIngestionBatchRequestSchema.parse({
+      ...parsedFixture,
+      batchId: "batch-duplicate-url-revisions",
+      clientRunId: "run-duplicate-url-revisions",
+      items: [firstItem, secondItem],
+    });
+
+    const response = await ingestPublicationBatch({ payload, principal });
+
+    expect(response.results).toHaveLength(2);
+    expect(response.results).toEqual([
+      expect.objectContaining({
+        canonicalUrl: firstItem.canonicalUrl,
+        sourceId: firstItem.sourceId,
+        revisionHash: firstHash,
+        status: "created",
+      }),
+      expect.objectContaining({
+        canonicalUrl: secondItem.canonicalUrl,
+        sourceId: secondItem.sourceId,
+        revisionHash: secondHash,
+        status: "updated",
+      }),
+    ]);
+    expect(response.results[0].revisionHash).not.toBe(
+      response.results[1].revisionHash,
+    );
+  });
+
+  it.each([
+    ["title", { title: "Changed title" }],
+    ["body", { bodyText: "Changed body" }],
+    [
+      "objects",
+      {
+        objects: [
+          {
+            kind: "body_html" as const,
+            sha256:
+              "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            size: 4,
+            contentType: "text/html",
+          },
+        ],
+      },
+    ],
+  ])(
+    "rejects changed %s semantics for an existing revision hash",
+    async (_field, changedFields) => {
+      const revisionHash =
+        "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+      await ingestPublicationBatch({
+        payload: payloadFor(
+          { revisionHash, title: "Original title", bodyText: "Original body" },
+          "batch-semantic-original",
+        ),
+        principal,
+      });
+
+      await expect(
+        ingestPublicationBatch({
+          payload: payloadFor(
+            {
+              revisionHash,
+              observedAt: "2026-09-02",
+              ...changedFields,
+            },
+            "batch-semantic-changed",
+          ),
+          principal,
+        }),
+      ).rejects.toBeInstanceOf(PublicationIngestionBadRequestError);
+
+      const publication = [...fake.state.publications.values()][0];
+      expect(publication?.title).toBe("Original title");
+      expect(publication?.bodyText).toBe("Original body");
+      expect(fake.state.revisions.size).toBe(1);
+      expect(fake.state.objects.size).toBe(0);
+      expect(fake.state.links.size).toBe(0);
+    },
+  );
+
   it("keeps the newest observation after an older revision reappears", async () => {
     const a =
       "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
@@ -392,28 +499,28 @@ describe("publication ingestion transaction", () => {
 
     const first = await ingestPublicationBatch({
       payload: payloadFor(
-        { revisionHash: a, observedAt: "2026-09-01", title: "A day 1" },
+        { revisionHash: a, observedAt: "2026-09-01", title: "A" },
         "batch-a-day-1",
       ),
       principal,
     });
     const second = await ingestPublicationBatch({
       payload: payloadFor(
-        { revisionHash: b, observedAt: "2026-09-02", title: "B day 2" },
+        { revisionHash: b, observedAt: "2026-09-02", title: "B" },
         "batch-b-day-2",
       ),
       principal,
     });
     const third = await ingestPublicationBatch({
       payload: payloadFor(
-        { revisionHash: a, observedAt: "2026-09-03", title: "A day 3" },
+        { revisionHash: a, observedAt: "2026-09-03", title: "A" },
         "batch-a-day-3",
       ),
       principal,
     });
     const retry = await ingestPublicationBatch({
       payload: payloadFor(
-        { revisionHash: b, observedAt: "2026-09-02", title: "B retry" },
+        { revisionHash: b, observedAt: "2026-09-02", title: "B" },
         "batch-b-day-2-retry",
       ),
       principal,
@@ -463,6 +570,10 @@ describe("publication ingestion transaction", () => {
     ]);
     expect(response.results[1]).toMatchObject({
       error: "canonicalUrl is outside the source allowed hosts",
+      canonicalUrl: "https://evil.example.invalid/not-ustc.html",
+      sourceId: "ustc-news",
+      revisionHash:
+        "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
       publicationId: null,
       revisionId: null,
     });

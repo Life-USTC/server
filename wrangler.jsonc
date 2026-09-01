@@ -18,6 +18,7 @@
   "vars": {
     "NODE_ENV": "production",
     "APP_PUBLIC_ORIGIN": "https://life-ustc.tiankaima.dev",
+    "R2_ACCOUNT_ID": "3488b7b4f9cb9b6088c87dc44e88859e",
     "R2_PUBLICATIONS_BUCKET_NAME": "life-ustc-publications"
   },
   "assets": {
