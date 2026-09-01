@@ -154,8 +154,9 @@ export const PUBLICATION_READ_CACHE_HEADERS = {
 } as const;
 
 const PUBLICATION_OBJECT_CACHE_HEADERS = {
-  "Cache-Control": "public, max-age=31536000, immutable",
-  "Cloudflare-CDN-Cache-Control": "public, max-age=31536000, immutable",
+  "Cache-Control": "public, max-age=31536000, immutable, no-transform",
+  "Cloudflare-CDN-Cache-Control":
+    "public, max-age=31536000, immutable, no-transform",
 } as const;
 
 function normalizePublicationPagination(input: PaginationInput = {}) {
