@@ -117,6 +117,128 @@ describe("publication ingestion contract", () => {
     ).toBe(false);
   });
 
+  it.each([
+    {
+      label: "batch metadata",
+      path: ["producerVersion"],
+      payload: { producerVersion: "crawler\u0000/1" },
+    },
+    {
+      label: "source descriptor",
+      path: ["sources", 0, "name"],
+      payload: {
+        sources: [{ ...fixture.sources[0], name: "USTC\u0000 News" }],
+      },
+    },
+    {
+      label: "publication title",
+      path: ["items", 0, "title"],
+      payload: {
+        items: [{ ...fixture.items[0], title: "Fixture\u0000 publication" }],
+      },
+    },
+    {
+      label: "publication author",
+      path: ["items", 0, "author"],
+      payload: {
+        items: [{ ...fixture.items[0], author: "Author\u0000" }],
+      },
+    },
+    {
+      label: "publication body",
+      path: ["items", 0, "bodyText"],
+      payload: {
+        items: [{ ...fixture.items[0], bodyText: "Fixture body\u0000" }],
+      },
+    },
+    {
+      label: "object metadata",
+      path: ["items", 0, "objects", 0, "altText"],
+      payload: {
+        items: [
+          {
+            ...fixture.items[0],
+            objects: [
+              {
+                kind: "media",
+                sha256: "b".repeat(64),
+                size: 4,
+                contentType: "image/png",
+                altText: "Campus\u0000 image",
+              },
+            ],
+          },
+        ],
+      },
+    },
+    {
+      label: "nested raw metadata",
+      path: ["items", 0, "rawMetadata", "authors", 1, "name"],
+      payload: {
+        items: [
+          {
+            ...fixture.items[0],
+            rawMetadata: {
+              authors: [{ name: "张三" }, { name: "李四\u0000" }],
+            },
+          },
+        ],
+      },
+    },
+    {
+      label: "raw metadata key",
+      path: ["items", 0, "rawMetadata", "[invalid-string]"],
+      payload: {
+        items: [
+          {
+            ...fixture.items[0],
+            rawMetadata: { "author\u0000": "李四" },
+          },
+        ],
+      },
+    },
+  ])("rejects NUL characters in $label", ({ path, payload }) => {
+    const parsed = publicationIngestionBatchRequestSchema.safeParse({
+      ...fixture,
+      ...payload,
+    });
+
+    expect(parsed.success).toBe(false);
+    if (!parsed.success) {
+      expect(parsed.error.issues).toContainEqual(
+        expect.objectContaining({
+          message: "NUL characters are not allowed",
+          path,
+        }),
+      );
+    }
+  });
+
+  it("accepts ordinary Unicode and trims whitespace without rejecting it", () => {
+    const parsed = publicationIngestionBatchRequestSchema.parse({
+      ...fixture,
+      producerVersion: "  爬虫 / 1  ",
+      sources: [{ ...fixture.sources[0], name: "  中国科大新闻  " }],
+      items: [
+        {
+          ...fixture.items[0],
+          title: "  校园通知  ",
+          bodyText: "第一段\n第二段  ",
+          rawMetadata: { authors: ["张三", { note: "含有中文" }] },
+        },
+      ],
+    });
+
+    expect(parsed.producerVersion).toBe("爬虫 / 1");
+    expect(parsed.sources[0]?.name).toBe("中国科大新闻");
+    const item = parsed.items[0];
+    expect(item?.tombstone).toBe(false);
+    if (item && !item.tombstone) {
+      expect(item.title).toBe("校园通知");
+      expect(item.bodyText).toBe("第一段\n第二段  ");
+    }
+  });
+
   it("caps one object manifest at the first-slice 32 MiB limit", () => {
     const manifest = {
       kind: "body_html",

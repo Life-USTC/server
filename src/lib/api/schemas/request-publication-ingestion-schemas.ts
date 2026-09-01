@@ -50,6 +50,50 @@ export const publicationObjectManifestSchema = z.strictObject({
   altText: z.string().trim().max(1_000).optional(),
 });
 
+const NUL_CHARACTER = "\u0000";
+const NUL_CHARACTER_MESSAGE = "NUL characters are not allowed";
+
+function addNulCharacterIssues(
+  value: unknown,
+  path: Array<string | number>,
+  context: z.RefinementCtx,
+) {
+  if (typeof value === "string") {
+    if (value.includes(NUL_CHARACTER)) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: NUL_CHARACTER_MESSAGE,
+        path,
+      });
+    }
+    return;
+  }
+
+  if (Array.isArray(value)) {
+    value.forEach((nested, index) => {
+      addNulCharacterIssues(nested, [...path, index], context);
+    });
+    return;
+  }
+
+  if (!value || typeof value !== "object") return;
+
+  for (const [key, nested] of Object.entries(value)) {
+    const nestedPath = [
+      ...path,
+      key.includes(NUL_CHARACTER) ? "[invalid-string]" : key,
+    ];
+    if (key.includes(NUL_CHARACTER)) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: NUL_CHARACTER_MESSAGE,
+        path: nestedPath,
+      });
+    }
+    addNulCharacterIssues(nested, nestedPath, context);
+  }
+}
+
 export const publicationSourceDescriptorSchema = z.strictObject({
   id: sourceIdSchema,
   name: z.string().trim().min(1).max(200),
@@ -99,18 +143,22 @@ const publicationItemSchema = z.union([
   }),
 ]);
 
-export const publicationIngestionBatchRequestSchema = z.strictObject({
-  protocolVersion: z.literal("1"),
-  producerVersion: z.string().trim().min(1).max(200),
-  clientRunId: z.string().trim().min(1).max(200),
-  batchId: z.string().trim().min(1).max(200),
-  observedAt: publicationDateTimeSchema,
-  sources: z.array(publicationSourceDescriptorSchema).min(1).max(500),
-  items: z
-    .array(publicationItemSchema)
-    .min(1)
-    .max(PUBLICATION_INGESTION_BATCH_MAX_ITEMS),
-});
+export const publicationIngestionBatchRequestSchema = z
+  .strictObject({
+    protocolVersion: z.literal("1"),
+    producerVersion: z.string().trim().min(1).max(200),
+    clientRunId: z.string().trim().min(1).max(200),
+    batchId: z.string().trim().min(1).max(200),
+    observedAt: publicationDateTimeSchema,
+    sources: z.array(publicationSourceDescriptorSchema).min(1).max(500),
+    items: z
+      .array(publicationItemSchema)
+      .min(1)
+      .max(PUBLICATION_INGESTION_BATCH_MAX_ITEMS),
+  })
+  .superRefine((payload, context) => {
+    addNulCharacterIssues(payload, [], context);
+  });
 
 export const publicationObjectPlanRequestSchema = z.strictObject({
   batchId: z.string().trim().min(1).max(200),
