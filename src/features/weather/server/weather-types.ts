@@ -19,7 +19,9 @@ export const WEATHER_LOCATIONS: WeatherLocation[] = [
   {
     key: "ustc-gaoxin",
     name: "高新校区",
-    amapAdcode: "340171",
+    // 340171 (高新区, an economic-zone adcode) has no AMap weather coverage;
+    // the Gaoxin campus sits in Shushan district, so use 340104 instead.
+    amapAdcode: "340104",
     openMeteoLat: 31.839,
     openMeteoLon: 117.094,
   },

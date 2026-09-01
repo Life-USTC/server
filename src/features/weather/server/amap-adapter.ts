@@ -121,8 +121,23 @@ export async function fetchAmapWeather(
       }>;
     } | null;
 
-    const live = typedBase?.lives?.[0];
-    const casts = typedAll?.forecasts?.[0]?.casts ?? [];
+    const rawLive = typedBase?.lives?.[0];
+    // AMap can answer 200/OK with empty payloads (e.g. `lives: [[]]`) for
+    // adcodes it does not cover — treat that as provider failure so the
+    // merge can fall back to Open-Meteo.
+    const live =
+      rawLive && !Array.isArray(rawLive) && rawLive.temperature !== undefined
+        ? rawLive
+        : undefined;
+    const casts = (typedAll?.forecasts?.[0]?.casts ?? []).filter(
+      (cast) => cast && cast.date !== undefined,
+    );
+    if (!live && casts.length === 0) {
+      return {
+        ok: false,
+        error: new Error("Amap returned no weather data for this adcode"),
+      };
+    }
 
     const data: AmapWeatherData = {
       current: live
