@@ -1,3 +1,10 @@
+## [1.101.3](https://github.com/Life-USTC/server/compare/v1.101.2...v1.101.3) (2026-09-01)
+
+
+### Bug Fixes
+
+* **publications:** prevent object response transforms ([61ef286](https://github.com/Life-USTC/server/commit/61ef2868582a6f3c28e1ba561ea35b6ca6e82712))
+
 ## [1.101.2](https://github.com/Life-USTC/server/compare/v1.101.1...v1.101.2) (2026-09-01)
 
 
