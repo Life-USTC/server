@@ -138,6 +138,62 @@ describe("publication object completion", () => {
     });
   });
 
+  it("uses the canonical claim MIME for planning and completion", async () => {
+    const canonicalContentType =
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+    const claim = {
+      expectedContentType: canonicalContentType,
+      expectedSha256: sha256OfAbc,
+      expectedSize: 3,
+      object: {
+        id: "object-1",
+        kind: "body_html" as const,
+        r2Key: `publications/body_html/sha256/ba/${sha256OfAbc}`,
+        sha256: sha256OfAbc,
+        status: "pending" as const,
+        contentType: canonicalContentType,
+      },
+    };
+    mocks.batchFindUnique.mockResolvedValue({ objects: [claim] });
+    mocks.batchObjectFindFirst.mockResolvedValue(claim);
+    mocks.bucket.head.mockResolvedValue({
+      checksums: { sha256: checksumBytes(sha256OfAbc) },
+      customMetadata: { kind: "body_html", sha256: sha256OfAbc },
+      httpMetadata: { contentType: canonicalContentType },
+      size: 3,
+    });
+
+    const planned = await planPublicationObjects({
+      principal,
+      payload: {
+        batchId: "batch-canonical-content-type",
+        objects: [{ kind: "body_html", sha256: sha256OfAbc }],
+      },
+    });
+    expect(planned.objects[0]?.requiredHeaders).toMatchObject({
+      "Content-Type": canonicalContentType,
+    });
+
+    await expect(
+      completePublicationObject({
+        principal,
+        payload: {
+          batchId: "batch-canonical-content-type",
+          kind: "body_html",
+          sha256: sha256OfAbc,
+        },
+      }),
+    ).resolves.toMatchObject({ status: "linked" });
+    expect(mocks.objectUpdate).toHaveBeenCalledWith({
+      where: { id: "object-1" },
+      data: {
+        status: "linked",
+        verifiedAt: expect.any(Date),
+        lastError: null,
+      },
+    });
+  });
+
   it("plans a large request with one batch lookup and bounded R2 concurrency", async () => {
     const objectCount = 500;
     const claims = Array.from({ length: objectCount }, (_, index) => {
