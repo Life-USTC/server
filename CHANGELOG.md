@@ -1,3 +1,15 @@
+# [1.99.0](https://github.com/Life-USTC/server/compare/v1.98.1...v1.99.0) (2026-09-01)
+
+
+### Bug Fixes
+
+* **weather:** use Shushan adcode for gaoxin and reject empty AMap payloads ([#975](https://github.com/Life-USTC/server/issues/975)) ([9489c1d](https://github.com/Life-USTC/server/commit/9489c1d2c6d0adb1a074b55b3b6db610f0271599))
+
+
+### Features
+
+* add crawler publication ingestion and public preview ([#974](https://github.com/Life-USTC/server/issues/974)) ([0032789](https://github.com/Life-USTC/server/commit/00327898985310926b39b5abcb467f2f96ebc3e1))
+
 ## [1.98.1](https://github.com/Life-USTC/server/compare/v1.98.0...v1.98.1) (2026-09-01)
 
 
