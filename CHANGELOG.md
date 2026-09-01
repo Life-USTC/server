@@ -1,3 +1,10 @@
+## [1.101.1](https://github.com/Life-USTC/server/compare/v1.101.0...v1.101.1) (2026-09-01)
+
+
+### Bug Fixes
+
+* **weather:** make hourly forecast keyboard scrollable ([#999](https://github.com/Life-USTC/server/issues/999)) ([c8bc7aa](https://github.com/Life-USTC/server/commit/c8bc7aabf57e39072b5ab68e002d29757404fda7))
+
 # [1.101.0](https://github.com/Life-USTC/server/compare/v1.100.3...v1.101.0) (2026-09-01)
 
 
