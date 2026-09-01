@@ -1,22 +1,68 @@
 <script lang="ts">
+import Cloud from "@lucide/svelte/icons/cloud";
+import CloudDrizzle from "@lucide/svelte/icons/cloud-drizzle";
+import CloudFog from "@lucide/svelte/icons/cloud-fog";
+import CloudHail from "@lucide/svelte/icons/cloud-hail";
+import CloudLightning from "@lucide/svelte/icons/cloud-lightning";
+import CloudRain from "@lucide/svelte/icons/cloud-rain";
+import CloudSnow from "@lucide/svelte/icons/cloud-snow";
+import CloudSun from "@lucide/svelte/icons/cloud-sun";
+import Cloudy from "@lucide/svelte/icons/cloudy";
+import Droplets from "@lucide/svelte/icons/droplets";
+import Sun from "@lucide/svelte/icons/sun";
+import Thermometer from "@lucide/svelte/icons/thermometer";
+import Wind from "@lucide/svelte/icons/wind";
 import type { DashboardPageCopy } from "@/features/dashboard/server/dashboard-page-load-types";
 import type { WeatherPageLocation } from "@/features/weather/server/weather-page-load";
-import type { WeatherHourly } from "@/features/weather/server/weather-types";
+import type {
+  WeatherCondition,
+  WeatherHourly,
+} from "@/features/weather/server/weather-types";
+import {
+  temperatureRangePositions,
+  type WeatherIconName,
+  weatherConditionIcon,
+} from "@/features/weather/weather-ui";
+import type { AppLocale } from "@/i18n/config";
 import Panel from "$lib/components/Panel.svelte";
 import {
-  formatShanghaiDate,
+  createShanghaiDateTimeFormatter,
   formatShanghaiTime,
 } from "$lib/time/shanghai-format";
 
 type Props = {
   locations: WeatherPageLocation[];
+  locale: AppLocale;
   weatherCopy: DashboardPageCopy["weather"];
 };
 
-let { locations, weatherCopy }: Props = $props();
+let { locations, locale, weatherCopy }: Props = $props();
 
-const HOURLY_SLOTS = 8;
-const DAILY_SLOTS = 5;
+const HOURLY_SLOTS = 12;
+const DAILY_SLOTS = 7;
+
+const ICON_COMPONENTS = {
+  sun: Sun,
+  "cloud-sun": CloudSun,
+  cloud: Cloud,
+  cloudy: Cloudy,
+  "cloud-fog": CloudFog,
+  "cloud-drizzle": CloudDrizzle,
+  "cloud-rain": CloudRain,
+  "cloud-snow": CloudSnow,
+  "cloud-hail": CloudHail,
+  "cloud-lightning": CloudLightning,
+} as const;
+
+const weekdayFormatter = $derived(
+  createShanghaiDateTimeFormatter(locale, { weekday: "short" }),
+);
+
+function iconOf(condition: WeatherCondition | undefined) {
+  return ICON_COMPONENTS[
+    weatherConditionIcon(condition ?? { text: "", icon: "unknown" })
+  ];
+}
 
 function formatTemplate(template: string, values: Record<string, string>) {
   return Object.entries(values).reduce(
@@ -59,66 +105,97 @@ function formatTemperature(value: number) {
           {weatherCopy.unavailable}
         </p>
       {:else}
-        <div class="grid min-w-0 gap-5" data-testid="weather-location">
-          <section class="flex flex-wrap items-end gap-x-6 gap-y-2">
-            <div class="flex items-baseline gap-3">
-              <span class="text-4xl font-bold" data-testid="weather-temperature">
-                {formatTemperature(snapshot.current.temperature)}
-              </span>
-              <span class="text-lg">{snapshot.current.condition.text}</span>
+        {@const today = snapshot.daily[0]}
+        {@const HeroIcon = iconOf(snapshot.current.condition)}
+        <div class="grid min-w-0 gap-6" data-testid="weather-location">
+          <section class="flex items-center gap-5">
+            <HeroIcon class="size-16 shrink-0 text-amber-500" strokeWidth={1.5} />
+            <div class="min-w-0">
+              <div class="flex items-baseline gap-3">
+                <span
+                  class="text-6xl leading-none font-extralight tracking-tight"
+                  data-testid="weather-temperature"
+                >
+                  {formatTemperature(snapshot.current.temperature)}
+                </span>
+                <span class="text-lg">{snapshot.current.condition.text}</span>
+              </div>
+              {#if today}
+                <p class="text-muted-foreground mt-1 text-sm">
+                  {formatTemperature(today.temperatureHigh)} / {formatTemperature(
+                    today.temperatureLow,
+                  )}
+                </p>
+              {/if}
             </div>
-            <div
-              class="flex flex-wrap gap-x-4 gap-y-1 text-muted-foreground text-sm"
-            >
-              {#if snapshot.current.feelsLike !== undefined}
-                <span>
-                  {formatTemplate(weatherCopy.feelsLike, {
-                    value: String(Math.round(snapshot.current.feelsLike)),
-                  })}
-                </span>
-              {/if}
-              {#if snapshot.current.humidity !== undefined}
-                <span>
-                  {formatTemplate(weatherCopy.humidity, {
-                    value: String(snapshot.current.humidity),
-                  })}
-                </span>
-              {/if}
-              {#if snapshot.current.windDirection && snapshot.current.windSpeed !== undefined}
-                <span>
+          </section>
+
+          <section class="grid grid-cols-3 gap-2">
+            {#if snapshot.current.feelsLike !== undefined}
+              <div class="rounded-lg border p-2.5">
+                <p
+                  class="text-muted-foreground flex items-center gap-1 text-xs"
+                >
+                  <Thermometer class="size-3.5" />
+                  {weatherCopy.feelsLikeLabel}
+                </p>
+                <p class="mt-1 font-medium">
+                  {formatTemperature(snapshot.current.feelsLike)}
+                </p>
+              </div>
+            {/if}
+            {#if snapshot.current.humidity !== undefined}
+              <div class="rounded-lg border p-2.5">
+                <p
+                  class="text-muted-foreground flex items-center gap-1 text-xs"
+                >
+                  <Droplets class="size-3.5" />
+                  {weatherCopy.humidityLabel}
+                </p>
+                <p class="mt-1 font-medium">{snapshot.current.humidity}%</p>
+              </div>
+            {/if}
+            {#if snapshot.current.windDirection && snapshot.current.windSpeed !== undefined}
+              <div class="rounded-lg border p-2.5">
+                <p
+                  class="text-muted-foreground flex items-center gap-1 text-xs"
+                >
+                  <Wind class="size-3.5" />
+                  {weatherCopy.windLabel}
+                </p>
+                <p class="mt-1 font-medium">
                   {formatTemplate(weatherCopy.wind, {
                     direction: snapshot.current.windDirection,
                     value: String(snapshot.current.windSpeed),
                   })}
-                </span>
-              {/if}
-            </div>
+                </p>
+              </div>
+            {/if}
           </section>
 
           {#if snapshot.hourly.length > 0}
             <section class="grid gap-2">
               <h3 class="text-sm font-medium">{weatherCopy.hourlyForecast}</h3>
-              <ul class="grid grid-cols-2 gap-2 sm:grid-cols-4">
+              <ul class="-mx-1 flex gap-1 overflow-x-auto px-1 pb-1">
                 {#each upcomingHours(snapshot.hourly) as hour (hour.at)}
-                  <li class="rounded-md border p-2 text-sm">
-                    <p class="text-muted-foreground">
+                  {@const HourIcon = iconOf(hour.condition)}
+                  <li
+                    class="flex w-14 shrink-0 flex-col items-center gap-1 rounded-lg border py-2 text-sm"
+                  >
+                    <span class="text-muted-foreground text-xs">
                       {formatShanghaiTime(hour.at)}
-                    </p>
-                    <p class="font-medium">
-                      {formatTemperature(hour.temperature)}
-                      {#if hour.condition}
-                        <span class="font-normal text-muted-foreground">
-                          {hour.condition.text}
-                        </span>
-                      {/if}
-                    </p>
-                    {#if hour.precipitationProbability !== undefined}
-                      <p class="text-muted-foreground text-xs">
-                        {formatTemplate(weatherCopy.precipitationProbability, {
-                          value: String(hour.precipitationProbability),
-                        })}
-                      </p>
+                    </span>
+                    <HourIcon class="size-5" strokeWidth={1.5} />
+                    {#if hour.precipitationProbability !== undefined && hour.precipitationProbability > 0}
+                      <span class="text-xs font-medium text-sky-600 dark:text-sky-400">
+                        {hour.precipitationProbability}%
+                      </span>
+                    {:else}
+                      <span class="text-xs text-transparent">0%</span>
                     {/if}
+                    <span class="font-medium">
+                      {formatTemperature(hour.temperature)}
+                    </span>
                   </li>
                 {/each}
               </ul>
@@ -126,19 +203,42 @@ function formatTemperature(value: number) {
           {/if}
 
           {#if snapshot.daily.length > 0}
+            {@const days = snapshot.daily.slice(0, DAILY_SLOTS)}
+            {@const ranges = temperatureRangePositions(
+              days.map((d) => ({
+                low: d.temperatureLow,
+                high: d.temperatureHigh,
+              })),
+            )}
             <section class="grid gap-2">
               <h3 class="text-sm font-medium">{weatherCopy.dailyForecast}</h3>
-              <ul class="grid gap-1">
-                {#each snapshot.daily.slice(0, DAILY_SLOTS) as day (day.date)}
-                  <li class="flex items-center justify-between gap-3 text-sm">
-                    <span>{formatShanghaiDate(day.date)}</span>
-                    <span class="text-muted-foreground">
-                      {day.condition?.text ?? ""}
+              <ul class="grid gap-1.5">
+                {#each days as day, i (day.date)}
+                  {@const DayIcon = iconOf(day.condition)}
+                  <li class="flex items-center gap-3 text-sm">
+                    <span class="w-12 shrink-0">
+                      {i === 0
+                        ? weatherCopy.today
+                        : weekdayFormatter.format(new Date(day.date))}
                     </span>
-                    <span class="font-medium">
-                      {formatTemperature(day.temperatureLow)} / {formatTemperature(
-                        day.temperatureHigh,
-                      )}
+                    <DayIcon
+                      class="text-muted-foreground size-4 shrink-0"
+                      strokeWidth={1.5}
+                    />
+                    <span class="text-muted-foreground w-8 text-right">
+                      {formatTemperature(day.temperatureLow)}
+                    </span>
+                    <span
+                      class="bg-muted relative h-1.5 min-w-0 flex-1 overflow-hidden rounded-full"
+                    >
+                      <span
+                        class="absolute inset-y-0 rounded-full bg-gradient-to-r from-sky-400 to-amber-400"
+                        style:left="{ranges[i].left}%"
+                        style:width="{ranges[i].width}%"
+                      ></span>
+                    </span>
+                    <span class="w-8 text-right font-medium">
+                      {formatTemperature(day.temperatureHigh)}
                     </span>
                   </li>
                 {/each}

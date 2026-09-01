@@ -2674,7 +2674,11 @@
     "noAlerts": "暂无预警",
     "updatedAt": "更新于 {value}",
     "dataProviders": "数据来源",
-    "unavailable": "天气数据暂不可用，请稍后重试。"
+    "unavailable": "天气数据暂不可用，请稍后重试。",
+    "today": "今天",
+    "feelsLikeLabel": "体感温度",
+    "humidityLabel": "湿度",
+    "windLabel": "风"
   },
   "publications": {
     "title": "新闻与通知",

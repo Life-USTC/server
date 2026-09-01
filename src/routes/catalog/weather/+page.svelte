@@ -16,5 +16,9 @@ export let data: PageData;
     title={data.copy.weather.title}
   />
 
-  <WeatherPage locations={data.locations} weatherCopy={data.copy.weather} />
+  <WeatherPage
+    locations={data.locations}
+    locale={data.locale}
+    weatherCopy={data.copy.weather}
+  />
 </section>
