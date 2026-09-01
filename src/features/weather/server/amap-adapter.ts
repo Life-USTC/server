@@ -57,20 +57,49 @@ export async function fetchAmapWeather(
     return { ok: false, error: new Error("AMAP_API_KEY is not configured") };
   }
 
-  const url = new URL("https://restapi.amap.com/v3/weather/weatherInfo");
-  url.searchParams.set("key", key);
-  url.searchParams.set("city", location.amapAdcode);
-  url.searchParams.set("extensions", "all");
+  const buildUrl = (extensions: "base" | "all") => {
+    const url = new URL("https://restapi.amap.com/v3/weather/weatherInfo");
+    url.searchParams.set("key", key);
+    url.searchParams.set("city", location.amapAdcode);
+    url.searchParams.set("extensions", extensions);
+    return url.toString();
+  };
 
-  try {
-    const response = await fetch(url.toString(), {
+  const fetchJson = async (extensions: "base" | "all") => {
+    const response = await fetch(buildUrl(extensions), {
       signal: AbortSignal.timeout(8000),
     });
     if (!response.ok) {
-      return { ok: false, error: new Error(`Amap HTTP ${response.status}`) };
+      throw new Error(`Amap HTTP ${response.status}`);
     }
-    const raw = (await response.json()) as unknown;
-    const typedRaw = raw as {
+    return (await response.json()) as unknown;
+  };
+
+  try {
+    // extensions=base returns lives (current weather) only, extensions=all
+    // returns forecasts only, so both calls are needed.
+    const [baseResult, allResult] = await Promise.allSettled([
+      fetchJson("base"),
+      fetchJson("all"),
+    ]);
+    if (baseResult.status === "rejected" && allResult.status === "rejected") {
+      return {
+        ok: false,
+        error:
+          baseResult.reason instanceof Error
+            ? baseResult.reason
+            : new Error(String(baseResult.reason)),
+      };
+    }
+
+    const baseRaw = baseResult.status === "fulfilled" ? baseResult.value : null;
+    const allRaw = allResult.status === "fulfilled" ? allResult.value : null;
+    const raw = {
+      ...(baseRaw ? { livesBase: baseRaw } : {}),
+      ...(allRaw ? { forecastsAll: allRaw } : {}),
+    };
+
+    const typedBase = baseRaw as {
       lives?: Array<{
         weather?: string;
         temperature?: string;
@@ -79,6 +108,8 @@ export async function fetchAmapWeather(
         humidity?: string;
         reporttime?: string;
       }>;
+    } | null;
+    const typedAll = allRaw as {
       forecasts?: Array<{
         casts?: Array<{
           date?: string;
@@ -88,10 +119,10 @@ export async function fetchAmapWeather(
           nighttemp?: string;
         }>;
       }>;
-    };
+    } | null;
 
-    const live = typedRaw.lives?.[0];
-    const casts = typedRaw.forecasts?.[0]?.casts ?? [];
+    const live = typedBase?.lives?.[0];
+    const casts = typedAll?.forecasts?.[0]?.casts ?? [];
 
     const data: AmapWeatherData = {
       current: live

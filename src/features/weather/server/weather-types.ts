@@ -11,7 +11,7 @@ export type WeatherLocation = {
 export const WEATHER_LOCATIONS: WeatherLocation[] = [
   {
     key: "ustc-main",
-    name: "主校区群",
+    name: "本部",
     amapAdcode: "340100",
     openMeteoLat: 31.826,
     openMeteoLon: 117.27,

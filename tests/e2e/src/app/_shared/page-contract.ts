@@ -423,7 +423,7 @@ export async function assertPageContract(
       await expect(
         page.getByRole("heading", {
           level: 2,
-          name: /主校区群|Main campuses/,
+          name: /本部|Main campus/,
         }),
       ).toBeVisible();
       await expect(

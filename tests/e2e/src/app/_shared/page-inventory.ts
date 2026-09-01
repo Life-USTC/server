@@ -496,7 +496,7 @@ export const PAGE_INVENTORY: readonly PageInventoryEntry[] = [
       {
         id: "weather-locations",
         e2eSpec: E2E.weather,
-        evidence: "主校区群与高新校区两个位置面板",
+        evidence: "本部与高新校区两个位置面板",
       },
     ],
   },

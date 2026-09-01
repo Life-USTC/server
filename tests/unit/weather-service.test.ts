@@ -28,7 +28,31 @@ describe("weather service", () => {
       "fetch",
       vi.fn().mockImplementation((url: string | Request) => {
         const urlString = typeof url === "string" ? url : url.toString();
-        if (new URL(urlString).hostname === "restapi.amap.com") {
+        const parsedUrl = new URL(urlString);
+        if (parsedUrl.hostname === "restapi.amap.com") {
+          // The real AMap API returns lives only with extensions=base and
+          // forecasts only with extensions=all.
+          if (parsedUrl.searchParams.get("extensions") === "all") {
+            return Promise.resolve({
+              ok: true,
+              json: () =>
+                Promise.resolve({
+                  forecasts: [
+                    {
+                      casts: [
+                        {
+                          date: "2026-08-28",
+                          dayweather: "多云",
+                          nightweather: "晴",
+                          daytemp: "32",
+                          nighttemp: "24",
+                        },
+                      ],
+                    },
+                  ],
+                }),
+            });
+          }
           return Promise.resolve({
             ok: true,
             json: () =>
@@ -37,19 +61,6 @@ describe("weather service", () => {
                   {
                     temperature: "28",
                     weather: "多云",
-                  },
-                ],
-                forecasts: [
-                  {
-                    casts: [
-                      {
-                        date: "2026-08-28",
-                        dayweather: "多云",
-                        nightweather: "晴",
-                        daytemp: "32",
-                        nighttemp: "24",
-                      },
-                    ],
                   },
                 ],
               }),
