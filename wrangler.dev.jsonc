@@ -15,7 +15,8 @@
     "DEV_ADMIN_NAME": "Dev Admin User",
     "DEV_ADMIN_EMAIL": "dev-admin@debug.local",
     "DEV_ADMIN_PASSWORD": "dev-admin-password",
-    "UPLOAD_TOTAL_QUOTA_MB": "1024"
+    "UPLOAD_TOTAL_QUOTA_MB": "1024",
+    "R2_PUBLICATIONS_BUCKET_NAME": "life-ustc-publications"
   },
   "assets": {
     "directory": ".svelte-kit/cloudflare",
@@ -80,6 +81,10 @@
     {
       "binding": "R2_UPLOADS",
       "bucket_name": "life-ustc"
+    },
+    {
+      "binding": "R2_PUBLICATIONS",
+      "bucket_name": "life-ustc-publications"
     }
   ],
   "queues": {

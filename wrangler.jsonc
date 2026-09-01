@@ -17,7 +17,8 @@
   },
   "vars": {
     "NODE_ENV": "production",
-    "APP_PUBLIC_ORIGIN": "https://life-ustc.tiankaima.dev"
+    "APP_PUBLIC_ORIGIN": "https://life-ustc.tiankaima.dev",
+    "R2_PUBLICATIONS_BUCKET_NAME": "life-ustc-publications"
   },
   "assets": {
     "directory": ".svelte-kit/cloudflare",
@@ -128,6 +129,10 @@
     {
       "binding": "R2_UPLOADS",
       "bucket_name": "life-ustc"
+    },
+    {
+      "binding": "R2_PUBLICATIONS",
+      "bucket_name": "life-ustc-publications"
     }
   ],
   "queues": {

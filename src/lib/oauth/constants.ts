@@ -80,6 +80,7 @@ export const REST_FEATURES = [
   "workspace.subscription",
   "workspace.todo",
   "workspace.upload",
+  "publication.ingest",
   "admin",
 ] as const;
 

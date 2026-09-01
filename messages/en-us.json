@@ -2469,6 +2469,7 @@
     "scopeFeature_workspace.subscription": "Subscriptions",
     "scopeFeature_workspace.todo": "Todos",
     "scopeFeature_workspace.upload": "Uploads",
+    "scopeFeature_publication.ingest": "Publication ingestion",
     "scopeFeature_admin": "Admin backend",
     "scopeOpenIdDescription": "Required when the client needs an authenticated user identity.",
     "scopeMcpToolsDescription": "Lets the client call MCP tools exposed by this server.",

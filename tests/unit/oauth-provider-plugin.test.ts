@@ -98,6 +98,9 @@ describe("buildOAuthProviderPlugin", () => {
     expect(options.clientRegistrationAllowedScopes).not.toContain(
       "admin:write",
     );
+    expect(options.clientRegistrationAllowedScopes).not.toContain(
+      "publication.ingest:write",
+    );
     expect(options.scopes).toContain("admin:read");
     expect(options.scopes).toContain("admin:write");
   });

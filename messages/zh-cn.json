@@ -2414,6 +2414,7 @@
     "scopeFeature_workspace.subscription": "订阅",
     "scopeFeature_workspace.todo": "待办",
     "scopeFeature_workspace.upload": "上传",
+    "scopeFeature_publication.ingest": "新闻与通知采集",
     "scopeFeature_admin": "管理后台",
     "scopeOpenIdDescription": "当客户端需要识别当前登录用户身份时必须启用。",
     "scopeMcpToolsDescription": "允许客户端调用本服务暴露的 MCP 工具。",
