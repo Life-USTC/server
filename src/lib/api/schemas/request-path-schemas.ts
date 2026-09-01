@@ -17,6 +17,14 @@ export const jwIdPathParamsSchema = z.object({
   jwId: integerStringSchema,
 });
 
+export const youngEventYoungIdPathParamsSchema = z.object({
+  youngId: z
+    .string()
+    .trim()
+    .min(1)
+    .describe("Upstream young.ustc.edu.cn event identifier."),
+});
+
 export const userCalendarPathParamsSchema = z.object({
   userId: z
     .string()

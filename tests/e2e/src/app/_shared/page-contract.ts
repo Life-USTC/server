@@ -433,6 +433,44 @@ export async function assertPageContract(
       return;
     }
 
+    case "/catalog/young-events": {
+      await gotoContractPage(
+        page,
+        `/catalog/young-events?search=${encodeURIComponent(DEV_SEED.youngEvent.name)}`,
+        testInfo,
+      );
+      await expectMainContent(page);
+      await expect(
+        page.getByRole("heading", {
+          level: 1,
+          name: /第二课堂|Second Classroom/i,
+        }),
+      ).toBeVisible();
+      await expect(visibleText(page, DEV_SEED.youngEvent.name)).toBeVisible();
+      await maybeCapture(page, testInfo, "young-events");
+      return;
+    }
+
+    case "/catalog/young-events/[youngId]": {
+      await gotoContractPage(
+        page,
+        `/catalog/young-events/${DEV_SEED.youngEvent.youngId}`,
+        testInfo,
+      );
+      await expectMainContent(page);
+      await expect(
+        page.getByRole("heading", {
+          level: 1,
+          name: DEV_SEED.youngEvent.name,
+        }),
+      ).toBeVisible();
+      await expect(
+        visibleText(page, DEV_SEED.youngEvent.location),
+      ).toBeVisible();
+      await maybeCapture(page, testInfo, "young-events-youngId");
+      return;
+    }
+
     case "/catalog/bus/map": {
       await gotoContractPage(page, routePath, testInfo);
       await expectMainContent(page);

@@ -4,18 +4,24 @@ import {
   SITEMAP_RUNTIME_CACHE_TTL_MS,
 } from "@/features/catalog/server/sitemap-cache";
 
-const { courseFindManyMock, sectionFindManyMock, teacherFindManyMock } =
-  vi.hoisted(() => ({
-    courseFindManyMock: vi.fn(),
-    sectionFindManyMock: vi.fn(),
-    teacherFindManyMock: vi.fn(),
-  }));
+const {
+  courseFindManyMock,
+  sectionFindManyMock,
+  teacherFindManyMock,
+  youngEventFindManyMock,
+} = vi.hoisted(() => ({
+  courseFindManyMock: vi.fn(),
+  sectionFindManyMock: vi.fn(),
+  teacherFindManyMock: vi.fn(),
+  youngEventFindManyMock: vi.fn(),
+}));
 
 vi.mock("@/lib/db/prisma", () => ({
   prisma: {
     course: { findMany: courseFindManyMock },
     section: { findMany: sectionFindManyMock },
     teacher: { findMany: teacherFindManyMock },
+    youngEvent: { findMany: youngEventFindManyMock },
   },
 }));
 
@@ -44,6 +50,7 @@ describe("sitemap route", () => {
     courseFindManyMock.mockReset().mockResolvedValue([{ jwId: "CS100" }]);
     sectionFindManyMock.mockReset().mockResolvedValue([{ jwId: "CS100-01" }]);
     teacherFindManyMock.mockReset().mockResolvedValue([{ id: 42 }]);
+    youngEventFindManyMock.mockReset().mockResolvedValue([{ youngId: "1001" }]);
   });
 
   afterEach(() => {
@@ -67,6 +74,7 @@ describe("sitemap route", () => {
       "https://life.example/catalog/links",
       "https://life.example/catalog/bus/map",
       "https://life.example/catalog/weather",
+      "https://life.example/catalog/young-events",
       "https://life.example/api/docs/tag/catalog-section",
       "https://life.example/usage/mobile",
       "https://life.example/usage/bot",
@@ -77,10 +85,15 @@ describe("sitemap route", () => {
       "https://life.example/catalog/courses/CS100",
       "https://life.example/catalog/sections/CS100-01",
       "https://life.example/catalog/teachers/42",
+      "https://life.example/catalog/young-events/1001",
     ]);
     expect(sectionFindManyMock).toHaveBeenCalledWith({
       where: { retiredAt: null },
       select: { jwId: true },
+    });
+    expect(youngEventFindManyMock).toHaveBeenCalledWith({
+      where: { isActive: true },
+      select: { youngId: true },
     });
   });
 

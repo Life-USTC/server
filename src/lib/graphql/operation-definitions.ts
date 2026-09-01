@@ -450,6 +450,75 @@ export const persistedGraphqlOperationDefinitions = [
     scopes: [],
   }),
   query({
+    id: "catalog.young_event.list.v1",
+    title: "List Young events",
+    description:
+      "Lists second-classroom signup events from young.ustc.edu.cn with filters and bounded pagination.",
+    document: /* GraphQL */ `
+      query CatalogYoungEvents($page: PageInput, $filter: YoungEventFilter) {
+        catalog {
+          youngEvents(page: $page, filter: $filter) {
+            items {
+              youngId
+              name
+              category
+              department
+              organizer
+              status
+              registrationStatus
+              location
+              imageUrl
+              hours
+              capacity
+              appliedCount
+              startAt
+              endAt
+              applyStartAt
+              applyEndAt
+              isActive
+            }
+            pageInfo {
+              ${pageInfoFields}
+            }
+          }
+        }
+      }
+    `,
+    scopes: [],
+  }),
+  query({
+    id: "catalog.young_event.get.v1",
+    title: "Get Young event",
+    description:
+      "Returns one second-classroom signup event by its young.ustc.edu.cn identifier.",
+    document: /* GraphQL */ `
+      query CatalogYoungEvent($youngId: String!) {
+        catalog {
+          youngEvent(youngId: $youngId) {
+            youngId
+            name
+            category
+            department
+            organizer
+            status
+            registrationStatus
+            location
+            imageUrl
+            hours
+            capacity
+            appliedCount
+            startAt
+            endAt
+            applyStartAt
+            applyEndAt
+            isActive
+          }
+        }
+      }
+    `,
+    scopes: [],
+  }),
+  query({
     id: "account.profile.get.v1",
     title: "Get account profile",
     description: "Returns the current account's private profile.",

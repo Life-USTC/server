@@ -18,6 +18,10 @@ import { getPublicDashboardLinksData } from "@/features/dashboard-links/server/d
 import { getPublicUserIdentityByIdentifier } from "@/features/profile/server/user-profile-page-data";
 import { getWeatherSnapshot } from "@/features/weather/server/weather-service";
 import {
+  getYoungEvent,
+  listYoungEvents,
+} from "@/features/young/server/young-event-service";
+import {
   capGraphqlAlternateRoutes,
   capGraphqlBusCampuses,
   capGraphqlBusRoute,
@@ -27,6 +31,7 @@ import type { GraphqlContext, GraphqlServerContext } from "./context";
 import { graphqlDateScalar, graphqlDateTimeScalar } from "./date-scalar";
 import {
   requireGraphqlId,
+  requireGraphqlYoungEventId,
   validateGraphqlIdList,
   validateGraphqlSearch,
   validateGraphqlTeacherCode,
@@ -193,6 +198,37 @@ export const graphqlTypeDefs = /* GraphQL */ `
     pageInfo: PageInfo!
   }
 
+  input YoungEventFilter {
+    active: Boolean
+    category: String
+    search: String
+  }
+
+  type YoungEvent {
+    youngId: String!
+    name: String!
+    category: String
+    department: String
+    organizer: String
+    status: String
+    registrationStatus: String
+    location: String
+    imageUrl: String
+    hours: Float
+    capacity: Int
+    appliedCount: Int
+    startAt: DateTime
+    endAt: DateTime
+    applyStartAt: DateTime
+    applyEndAt: DateTime
+    isActive: Boolean!
+  }
+
+  type YoungEventPage {
+    items: [YoungEvent!]!
+    pageInfo: PageInfo!
+  }
+
   type BusCampus {
     id: Int!
     nameCn: String!
@@ -318,6 +354,8 @@ export const graphqlTypeDefs = /* GraphQL */ `
     ): BusRouteTimetable
     links(query: String): [CatalogLink!]!
     weather(locationKey: String!): WeatherSnapshot
+    youngEvents(page: PageInput, filter: YoungEventFilter): YoungEventPage!
+    youngEvent(youngId: String!): YoungEvent
   }
 
   type CatalogLink {
@@ -363,6 +401,7 @@ export const graphqlSchema = createSchema<
     SectionPage: graphqlPageResolvers,
     TeacherPage: graphqlPageResolvers,
     BusRoutePage: graphqlPageResolvers,
+    YoungEventPage: graphqlPageResolvers,
     ...graphqlScopeResolvers,
     ...graphqlMutationResolvers,
     Teacher: {
@@ -575,6 +614,29 @@ export const graphqlSchema = createSchema<
         return getWeatherSnapshot(
           validateGraphqlWeatherLocationKey(args.locationKey),
         );
+      },
+      youngEvents(
+        _parent,
+        args: {
+          filter?: {
+            active?: boolean | null;
+            category?: string | null;
+            search?: string | null;
+          } | null;
+          page?: GraphqlPageInput | null;
+        },
+      ) {
+        const pagination = normalizeGraphqlPage(args.page);
+        return listYoungEvents({
+          active: args.filter?.active ?? undefined,
+          category: validateGraphqlSearch(args.filter?.category),
+          search: validateGraphqlSearch(args.filter?.search),
+          page: pagination.page,
+          pageSize: pagination.pageSize,
+        });
+      },
+      async youngEvent(_parent, args: { youngId: string }) {
+        return getYoungEvent(requireGraphqlYoungEventId(args.youngId));
       },
     },
   },

@@ -59,6 +59,7 @@ import {
   validateMappedSectionJwIds,
   validateSnapshotCompleteness,
 } from "./validation";
+import { loadYoungEvents, type YoungEventBuild } from "./young-plan";
 
 export type ImportConfig = {
   snapshotPath: string;
@@ -80,6 +81,7 @@ export type ImportRecordCounts = {
   buildings: number;
   campuses: number;
   adminClasses: number;
+  youngEvents: number;
 };
 
 export type ImportReport = {
@@ -220,6 +222,7 @@ export async function runImport(
   }
 
   const exams = loadExams(snapshot, allSectionJwIds);
+  const youngEvents = loadYoungEvents(snapshot);
   const plannedRecordCounts: ImportRecordCounts = {
     semesters: semesters.length,
     departments: departments.length + departmentPlaceholders.length,
@@ -233,6 +236,7 @@ export async function runImport(
     buildings: buildings.length,
     campuses: campuses.length,
     adminClasses: adminClasses.length,
+    youngEvents: youngEvents?.length ?? 0,
   };
   let sectionPresenceStats:
     | SectionPresenceStats
@@ -423,7 +427,12 @@ export async function runImport(
         );
       },
     );
-    const databaseRecordCounts = await logStep("countDatabaseRecords", 12, () =>
+    if (youngEvents != null) {
+      await logStep("syncYoungEvents", youngEvents.length, () =>
+        syncYoungEvents(tx, youngEvents),
+      );
+    }
+    const databaseRecordCounts = await logStep("countDatabaseRecords", 13, () =>
       countStats(tx),
     );
     sectionPresenceStats = await logStep(
@@ -1309,6 +1318,89 @@ async function writeExamRooms(
   }
 }
 
+async function syncYoungEvents(
+  tx: Prisma.TransactionClient,
+  builds: YoungEventBuild[],
+): Promise<void> {
+  const columns = [
+    "name",
+    "category",
+    "department",
+    "organizer",
+    "status",
+    "registrationStatus",
+    "location",
+    "imageUrl",
+    "hours",
+    "capacity",
+    "appliedCount",
+    "startAt",
+    "endAt",
+    "applyStartAt",
+    "applyEndAt",
+    "isActive",
+    "rawJson",
+  ];
+  await bulkUpsert(
+    tx,
+    "YoungEvent",
+    "youngId",
+    "text",
+    columns,
+    [
+      "text",
+      "text",
+      "text",
+      "text",
+      "text",
+      "text",
+      "text",
+      "text",
+      "float8",
+      "int",
+      "int",
+      "timestamp",
+      "timestamp",
+      "timestamp",
+      "timestamp",
+      "boolean",
+      "jsonb",
+    ],
+    builds.map((build) => ({
+      key: build.youngId,
+      values: [
+        build.name,
+        build.category,
+        build.department,
+        build.organizer,
+        build.status,
+        build.registrationStatus,
+        build.location,
+        build.imageUrl,
+        build.hours,
+        build.capacity,
+        build.appliedCount,
+        build.startAt,
+        build.endAt,
+        build.applyStartAt,
+        build.applyEndAt,
+        build.isActive,
+        build.rawJson,
+      ] satisfies ColumnValue[],
+    })),
+  );
+
+  // The snapshot is authoritative for both lists; drop events that disappeared.
+  // An empty snapshot means the upstream fetch broke (the ended list alone
+  // carries thousands of historical events), so keep existing rows instead of
+  // wiping the table.
+  if (builds.length === 0) return;
+  const keepYoungIds = builds.map((build) => build.youngId);
+  await tx.youngEvent.deleteMany({
+    where: { youngId: { notIn: keepYoungIds } },
+  });
+}
+
 async function countStats(
   prisma: Prisma.TransactionClient,
 ): Promise<ImportRecordCounts> {
@@ -1325,6 +1417,7 @@ async function countStats(
     buildings,
     campuses,
     adminClasses,
+    youngEvents,
   ] = await Promise.all([
     prisma.semester.count(),
     prisma.department.count(),
@@ -1338,6 +1431,7 @@ async function countStats(
     prisma.building.count(),
     prisma.campus.count(),
     prisma.adminClass.count(),
+    prisma.youngEvent.count(),
   ]);
 
   return {
@@ -1353,5 +1447,6 @@ async function countStats(
     buildings,
     campuses,
     adminClasses,
+    youngEvents,
   };
 }

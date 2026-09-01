@@ -77,6 +77,11 @@ import {
   uploadsListResponseSchema,
 } from "@/lib/api/schemas/uploads-response-schemas";
 import { weatherSnapshotResponseSchema } from "@/lib/api/schemas/weather-response-schemas";
+import {
+  paginatedYoungEventResponseSchema,
+  youngEventDetailSchema,
+  youngEventSummarySchema,
+} from "@/lib/api/schemas/young-event-schemas";
 
 type OutputShape = Record<string, z.ZodType>;
 
@@ -732,6 +737,35 @@ const weatherFullSchema = z.union([
   weatherNoDataSchema,
 ]);
 
+const compactYoungEventSchema = youngEventSummarySchema.omit({
+  department: true,
+  organizer: true,
+  imageUrl: true,
+});
+
+const youngEventPaginationSchema =
+  paginatedYoungEventResponseSchema.shape.pagination;
+
+const youngEventListDefaultSchema = objectOutputSchema({
+  data: z.array(compactYoungEventSchema),
+  pagination: youngEventPaginationSchema,
+});
+
+const youngEventListFullSchema = objectOutputSchema({
+  data: z.array(youngEventSummarySchema),
+  pagination: youngEventPaginationSchema,
+});
+
+const youngEventGetDefaultSchema = objectOutputSchema({
+  youngId: z.string(),
+  event: youngEventSummarySchema.nullable(),
+});
+
+const youngEventGetFullSchema = objectOutputSchema({
+  youngId: z.string(),
+  event: youngEventDetailSchema.nullable(),
+});
+
 const compactSectionSummarySchema = z.strictObject({
   id: z.number().int(),
   jwId: z.number().int(),
@@ -1173,6 +1207,14 @@ const nonAcademicModeOutputSchemas = {
   catalog_weather_get: {
     default: weatherDefaultSchema,
     full: weatherFullSchema,
+  },
+  catalog_young_event_list: {
+    default: youngEventListDefaultSchema,
+    full: youngEventListFullSchema,
+  },
+  catalog_young_event_get: {
+    default: youngEventGetDefaultSchema,
+    full: youngEventGetFullSchema,
   },
 } satisfies Record<string, Record<"default" | "full", McpToolOutputSchema>>;
 
@@ -1667,6 +1709,16 @@ const TOOL_OUTPUT_SCHEMAS: Record<string, McpToolOutputSchema> = {
     ...weatherSnapshotResponseSchema.shape,
     locationKey: z.enum(["ustc-main", "ustc-gaoxin"]),
     hasData: z.boolean(),
+  }),
+  catalog_young_event_list: objectOutputSchema({
+    data: z.array(z.union([compactYoungEventSchema, youngEventSummarySchema])),
+    pagination: youngEventPaginationSchema,
+  }),
+  catalog_young_event_get: objectOutputSchema({
+    youngId: z.string(),
+    event: z
+      .union([youngEventSummarySchema, youngEventDetailSchema])
+      .nullable(),
   }),
   catalog_bus_route_list: objectOutputSchema({
     locale: z.string(),

@@ -136,6 +136,10 @@ const TOOL_SCOPE_MAP: Record<string, ToolScopeRequirement[]> = {
   // Weather
   catalog_weather_get: [],
 
+  // Young events
+  catalog_young_event_list: [],
+  catalog_young_event_get: [],
+
   // Course catalog
   catalog_course_search: [],
   catalog_course_get: [],

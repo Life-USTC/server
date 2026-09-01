@@ -97,6 +97,18 @@ export function validateGraphqlVersionKey(value: string | null | undefined) {
   return versionKey;
 }
 
+export function requireGraphqlYoungEventId(value: string): string {
+  const youngId = validateOptionalText(
+    value.trim(),
+    "youngId",
+    GRAPHQL_LIMITS.versionKeyChars,
+  );
+  if (!youngId) {
+    badUserInput("youngId must be a non-empty string.");
+  }
+  return youngId;
+}
+
 const WEATHER_LOCATION_KEYS = new Set(
   WEATHER_LOCATIONS.map((location) => location.key),
 );

@@ -240,5 +240,13 @@
   },
   "suspensions": {
     "reasonKeyword": "账号异常临时限制"
+  },
+  "youngEvent": {
+    "youngId": "dev-scenario-young-event",
+    "name": "第二课堂示例活动",
+    "category": "单次项目",
+    "department": "校团委",
+    "organizer": "学生会",
+    "location": "东区图书馆"
   }
 }
