@@ -25,6 +25,7 @@
     "DEV_ADMIN_NAME": "校园管理员",
     "DEV_ADMIN_EMAIL": "dev-admin@debug.local",
     "DEV_ADMIN_PASSWORD": "dev-admin-password",
+    "PUBLICATION_INGESTION_SECRET": "e2e-publication-ingestion-secret",
     "UPLOAD_TOTAL_QUOTA_MB": "100",
     "R2_ACCOUNT_ID": "3488b7b4f9cb9b6088c87dc44e88859e",
     "R2_PUBLICATIONS_BUCKET_NAME": "life-ustc-publications"

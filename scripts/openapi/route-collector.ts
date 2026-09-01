@@ -323,6 +323,7 @@ function buildOperation(
   let requestBody: Record<string, unknown> | undefined;
   const responses: Record<string, unknown> = {};
   let has401 = false;
+  let hasIngestionSecret = false;
 
   for (const docTag of tags) {
     switch (docTag.name) {
@@ -358,6 +359,10 @@ function buildOperation(
         operation["x-oauth-scopes"] = [...scopes, docTag.text];
         break;
       }
+      case "ingestionSecret": {
+        hasIngestionSecret = true;
+        break;
+      }
     }
   }
 
@@ -371,7 +376,7 @@ function buildOperation(
     operation.responses = responses;
   }
 
-  const security = buildSecurity(routePath, method, has401);
+  const security = buildSecurity(routePath, method, has401, hasIngestionSecret);
   if (security) {
     operation.security = security;
   }
@@ -569,8 +574,13 @@ function buildSecurity(
   routePath: string,
   method: string,
   has401: boolean,
+  hasIngestionSecret: boolean,
 ): Array<Record<string, string[]>> | undefined {
   if (!has401) return undefined;
+
+  if (hasIngestionSecret) {
+    return [{ publicationIngestionSecret: [] }];
+  }
 
   if (routePath.startsWith("/api/auth")) {
     return undefined;

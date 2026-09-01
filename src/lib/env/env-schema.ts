@@ -18,6 +18,7 @@ export const commonEnvSchema = z.object({
   AUTH_OIDC_CLIENT_ID: optionalString,
   AUTH_OIDC_CLIENT_SECRET: optionalString,
   OAUTH_PROXY_SECRET: optionalString,
+  PUBLICATION_INGESTION_SECRET: optionalString,
   NODE_ENV: z
     .enum(["development", "production", "test"])
     .default("development"),

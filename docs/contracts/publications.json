@@ -2,18 +2,18 @@
   "name": "Publications / Public Read and Crawler Ingestion",
   "access": {
     "anon": "May read published news and notices, including verified linked media and attachments; cannot write or inspect crawler ingestion data.",
-    "user": "May use the same anonymous public read surface. Crawler writes require an administrator principal and cannot be granted by ordinary dynamic client registration.",
-    "admin": "May read the public surface and ingest publications only through authenticated REST requests; the write use-case always verifies the administrator flag.",
-    "agent": "A crawler uses an administrator-pre-registered OAuth client and the publication.ingest:write scope for REST ingestion. Public reads are anonymous REST/Web capabilities; ingestion remains a REST-only crawler exception and is not a Web, GraphQL, or MCP capability."
+    "user": "May use the same anonymous public read surface. Crawler writes use a dedicated Worker secret and are not user-authenticated.",
+    "admin": "May read the public surface. The publication crawler is a machine principal authenticated by a dedicated Worker secret.",
+    "agent": "A crawler submits REST ingestion requests with the X-Publication-Ingestion-Secret header. Public reads are anonymous REST/Web capabilities; ingestion remains a REST-only crawler exception and is not a Web, GraphQL, or MCP capability."
   },
   "rules": {
     "public-read": "Anonymous reads expose only non-deleted publications whose effective type is news or notice. The list supports optional type=news|notice, source, query, page, and pageSize filters; detail addresses are public by publication id. Deleted publications and other are never returned by this surface.",
     "public-object-read": "A private R2 object is readable only when its content-addressed key is tied to a linked or verified object and an object link on a non-tombstone revision of a non-deleted news or notice publication. The Worker checks this relationship before reading R2; missing objects return not found and metadata reads do not fail ingestion.",
     "public-cache": "Public list/detail responses are cacheable JSON. Object responses use their content-addressed key as a long-lived immutable cache key and forward a provider ETag for conditional requests. Media may render inline; all other object kinds use a generated safe attachment filename and never trust crawler-provided filenames.",
-    "rest-only": "Publication ingestion and object upload planning are exposed only under /api/ingestion/publications. Do not add Web, GraphQL, or MCP transports for these writes, and do not treat publication.ingest:write as an MCP scope.",
+    "rest-only": "Publication ingestion and object upload planning are exposed only under /api/ingestion/publications. Do not add Web, GraphQL, or MCP transports for these writes, and do not treat the machine secret as a user OAuth credential.",
     "read-transport-boundary": "The current product needs a public website preview plus public REST for read/list/detail and controlled object delivery. GraphQL and MCP are intentionally not added for publications until a separate client contract requires them; this is a transport boundary, not an implicit GraphQL/MCP capability.",
-    "scope-boundary": "publication.ingest belongs to the REST feature registry but is excluded from PUBLIC_REST_FEATURES, public OAuth discovery, dynamic client registration, and MCP. Only an OAuth client created by an administrator can request it; the authenticated principal must still be an administrator.",
-    "crawler-client": "Deployments provision the reserved public native OAuth client life-ustc-publication-crawler by migration. It has no secret or redirect URI and is limited to device_code plus refresh_token with publication.ingest:write and offline_access; the client id is not user-selectable through public DCR.",
+    "service-auth": "Ingestion writes require the X-Publication-Ingestion-Secret header, compared against the Worker secret PUBLICATION_INGESTION_SECRET with a timing-safe comparison. Missing or invalid configuration returns the same generic 401 response, and the secret is never logged or returned.",
+    "service-principal": "All crawler batches, runs, and object claims use the stable service:publication-crawler principal key. The service principal has no User row, OAuth grant, or administrator flag; this key scopes ownership and idempotency.",
     "source-registration": "Every batch carries source descriptors. A descriptor may be the full id/name/organizationLevel/allowedHosts/seedUrls form or the minimal id/name form. The server upserts descriptors in the same transaction, reuses persisted host restrictions for minimal descriptors, then accepts an item only when its sourceId is present in that batch and is enabled and not discovery-only. Canonical URLs must match an allowed source host and not match a blocked host when restrictions are configured.",
     "identity": "A publication is identified by (sourceId, canonicalUrl). A revision is identified by (publicationId, revisionHash), and each revision owns its object links.",
     "revision-ordering": "observedAt is the source observation time. An older observation never overwrites the current revision; equal timestamps use the revision hash as a deterministic tie-breaker. A date-only or timezone-less crawler timestamp is interpreted as Asia/Shanghai local time before persistence.",
@@ -73,7 +73,7 @@
     },
     "publication-ingestion": {
       "title": "Crawler publication batch ingestion",
-      "auth": "admin",
+      "auth": "internal",
       "web": "unavailable",
       "graphql": "unavailable",
       "mcp": "unavailable",

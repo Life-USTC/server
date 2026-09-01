@@ -2,7 +2,6 @@ import {
   ingestPublicationBatch,
   PublicationIngestionBadRequestError,
   PublicationIngestionConflictError,
-  PublicationIngestionForbiddenError,
 } from "@/features/publications/server/publication-ingestion-service";
 import {
   completePublicationObject,
@@ -14,7 +13,6 @@ import {
 import {
   badRequest,
   errorResponse,
-  forbidden,
   handleRouteError,
   notFound,
   parseRouteJsonBody,
@@ -30,18 +28,11 @@ import {
   publicationObjectCompleteResponseSchema,
   publicationObjectPlanResponseSchema,
 } from "@/lib/api/schemas/response-schemas";
-import { requireAuthPrincipal } from "@/lib/auth/api-auth";
-
-const INGESTION_SCOPE = {
-  bearerScope: { feature: "publication.ingest", action: "write" as const },
-} as const;
+import { requirePublicationIngestionPrincipal } from "@/lib/auth/publication-ingestion-auth";
 
 function mapIngestionError(error: unknown) {
   if (error instanceof PublicationIngestionBadRequestError) {
     return badRequest(error.message);
-  }
-  if (error instanceof PublicationIngestionForbiddenError) {
-    return forbidden();
   }
   if (error instanceof PublicationIngestionConflictError) {
     return errorResponse(error.message, 409);
@@ -59,17 +50,11 @@ function mapObjectError(error: unknown) {
   if (error instanceof PublicationObjectStorageUnavailableError) {
     return errorResponse(error.message, 503);
   }
-  if (error instanceof PublicationIngestionForbiddenError) {
-    return forbidden();
-  }
   return handleRouteError("Failed to process publication object", error);
 }
 
 export async function postPublicationIngestionBatchRoute(request: Request) {
-  const auth = await requireAuthPrincipal(request, {
-    ...INGESTION_SCOPE,
-    rateLimit: { action: "publication:ingest:write", tier: "batch" },
-  });
+  const auth = await requirePublicationIngestionPrincipal(request);
   if (auth instanceof Response) return auth;
 
   const parsedBody = await parseRouteJsonBody(
@@ -91,10 +76,7 @@ export async function postPublicationIngestionBatchRoute(request: Request) {
 }
 
 export async function postPublicationObjectPlanRoute(request: Request) {
-  const auth = await requireAuthPrincipal(request, {
-    ...INGESTION_SCOPE,
-    rateLimit: { action: "publication:ingest:write", tier: "batch" },
-  });
+  const auth = await requirePublicationIngestionPrincipal(request);
   if (auth instanceof Response) return auth;
 
   const parsedBody = await parseRouteJsonBody(
@@ -116,10 +98,7 @@ export async function postPublicationObjectPlanRoute(request: Request) {
 }
 
 export async function postPublicationObjectCompleteRoute(request: Request) {
-  const auth = await requireAuthPrincipal(request, {
-    ...INGESTION_SCOPE,
-    rateLimit: { action: "publication:ingest:write", tier: "batch" },
-  });
+  const auth = await requirePublicationIngestionPrincipal(request);
   if (auth instanceof Response) return auth;
 
   const parsedBody = await parseRouteJsonBody(

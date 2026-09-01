@@ -4,17 +4,16 @@ import type {
   PublicationIngestionBatchRequest,
   PublicationObjectManifest,
 } from "@/lib/api/schemas/request-publication-ingestion-schemas";
-import type { ApiPrincipal } from "@/lib/auth/api-auth";
+import {
+  PUBLICATION_INGESTION_PRINCIPAL_KEY,
+  type PublicationIngestionServicePrincipal,
+} from "@/lib/auth/service-principal";
 import { prisma } from "@/lib/db/prisma";
 
 type TransactionClient = Prisma.TransactionClient;
 
 export class PublicationIngestionBadRequestError extends Error {
   readonly code = "publication_ingestion_bad_request";
-}
-
-export class PublicationIngestionForbiddenError extends Error {
-  readonly code = "publication_ingestion_forbidden";
 }
 
 export class PublicationIngestionConflictError extends Error {
@@ -260,10 +259,10 @@ export async function publicationIngestionPayloadDigest(
   return sha256Text(JSON.stringify(canonicalize(payload)));
 }
 
-export function publicationPrincipalKey(principal: ApiPrincipal) {
-  return principal.kind === "oauth"
-    ? `oauth:${principal.clientId}:${principal.userId}`
-    : `session:${principal.userId}`;
+export function publicationPrincipalKey(
+  _principal: PublicationIngestionServicePrincipal,
+) {
+  return PUBLICATION_INGESTION_PRINCIPAL_KEY;
 }
 
 function hostMatches(hostname: string, configuredHost: string) {
@@ -734,18 +733,12 @@ function storedResult(
 }
 
 async function ingestWithRetry(
-  principal: ApiPrincipal,
+  _principal: PublicationIngestionServicePrincipal,
   payload: PublicationIngestionBatchRequest,
   payloadDigest: string,
   principalKey: string,
 ) {
   const response = await prisma.$transaction(async (tx) => {
-    const user = await tx.user.findUnique({
-      where: { id: principal.userId },
-      select: { isAdmin: true },
-    });
-    if (!user?.isAdmin) throw new PublicationIngestionForbiddenError();
-
     const existing = await tx.ingestionBatch.findUnique({
       where: {
         principalKey_batchId: { principalKey, batchId: payload.batchId },
@@ -770,12 +763,10 @@ async function ingestWithRetry(
       },
       create: {
         clientRunId: payload.clientRunId,
-        principalId: principal.userId,
         principalKey,
         observedAt: parsePublicationDate(payload.observedAt),
       },
       update: {
-        principalId: principal.userId,
         observedAt: parsePublicationDate(payload.observedAt),
         status: "running",
       },
@@ -842,7 +833,6 @@ async function ingestWithRetry(
       data: {
         batchId: payload.batchId,
         runId: run.id,
-        principalId: principal.userId,
         principalKey,
         payloadDigest,
         itemCount: payload.items.length,
@@ -893,7 +883,7 @@ async function ingestWithRetry(
 
 export async function ingestPublicationBatch(input: {
   payload: PublicationIngestionBatchRequest;
-  principal: ApiPrincipal;
+  principal: PublicationIngestionServicePrincipal;
 }) {
   const { payload, principal } = input;
   const principalKey = publicationPrincipalKey(principal);

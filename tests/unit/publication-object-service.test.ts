@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { PUBLICATION_INGESTION_SERVICE_PRINCIPAL } from "@/lib/auth/service-principal";
 
 const mocks = vi.hoisted(() => {
   const bucket = {
@@ -8,7 +9,6 @@ const mocks = vi.hoisted(() => {
   return {
     bucket,
     getBucket: vi.fn(() => bucket),
-    userFindUnique: vi.fn(),
     batchFindUnique: vi.fn(),
     objectUpdate: vi.fn(),
   };
@@ -19,7 +19,6 @@ vi.mock("@/lib/adapters/cloudflare-runtime", () => ({
 }));
 vi.mock("@/lib/db/prisma", () => ({
   prisma: {
-    user: { findUnique: mocks.userFindUnique },
     ingestionBatch: { findUnique: mocks.batchFindUnique },
     publicationObject: { update: mocks.objectUpdate },
   },
@@ -29,12 +28,7 @@ import { completePublicationObject } from "@/features/publications/server/public
 
 const sha256OfAbc =
   "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad";
-const principal = {
-  kind: "oauth" as const,
-  userId: "admin-user",
-  clientId: "crawler-client",
-  scopes: new Set(["publication.ingest:write"]),
-};
+const principal = PUBLICATION_INGESTION_SERVICE_PRINCIPAL;
 
 function body(value: string) {
   return new ReadableStream<Uint8Array>({
@@ -46,7 +40,6 @@ function body(value: string) {
 }
 
 function configureObject() {
-  mocks.userFindUnique.mockResolvedValue({ isAdmin: true });
   mocks.batchFindUnique.mockResolvedValue({
     objects: [
       {

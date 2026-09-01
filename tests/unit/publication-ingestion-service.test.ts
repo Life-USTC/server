@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { publicationIngestionBatchRequestSchema } from "@/lib/api/schemas/request-publication-ingestion-schemas";
+import { PUBLICATION_INGESTION_SERVICE_PRINCIPAL } from "@/lib/auth/service-principal";
 import fixture from "../../docs/contracts/fixtures/publication-batch.json";
 
 type QueryArgs = {
@@ -350,12 +351,7 @@ import {
 } from "@/features/publications/server/publication-ingestion-service";
 
 const parsedFixture = publicationIngestionBatchRequestSchema.parse(fixture);
-const principal = {
-  kind: "oauth" as const,
-  userId: "admin-user",
-  clientId: "crawler-client",
-  scopes: new Set(["publication.ingest:write"]),
-};
+const principal = PUBLICATION_INGESTION_SERVICE_PRINCIPAL;
 
 function payloadFor(item: Record<string, unknown>, batchId: string) {
   return publicationIngestionBatchRequestSchema.parse({

@@ -5,10 +5,9 @@ import type {
   PublicationObjectCompleteRequest,
   PublicationObjectPlanRequest,
 } from "@/lib/api/schemas/request-publication-ingestion-schemas";
-import type { ApiPrincipal } from "@/lib/auth/api-auth";
+import type { PublicationIngestionServicePrincipal } from "@/lib/auth/service-principal";
 import { prisma } from "@/lib/db/prisma";
 import {
-  PublicationIngestionForbiddenError,
   publicationObjectKey,
   publicationPrincipalKey,
 } from "./publication-ingestion-service";
@@ -165,16 +164,8 @@ async function verifyR2Object(input: {
   return { ok: true as const };
 }
 
-function requireAdmin(principal: ApiPrincipal) {
-  return prisma.user
-    .findUnique({ where: { id: principal.userId }, select: { isAdmin: true } })
-    .then((user) => {
-      if (!user?.isAdmin) throw new PublicationIngestionForbiddenError();
-    });
-}
-
 async function findOwnedBatchObject(
-  principal: ApiPrincipal,
+  principal: PublicationIngestionServicePrincipal,
   batchId: string,
   kind: ObjectKind,
   sha256: string,
@@ -203,9 +194,8 @@ async function findOwnedBatchObject(
 
 export async function planPublicationObjects(input: {
   payload: PublicationObjectPlanRequest;
-  principal: ApiPrincipal;
+  principal: PublicationIngestionServicePrincipal;
 }) {
-  await requireAdmin(input.principal);
   const { payload } = input;
   const seen = new Set<string>();
   const objects = [];
@@ -281,9 +271,8 @@ export async function planPublicationObjects(input: {
 
 export async function completePublicationObject(input: {
   payload: PublicationObjectCompleteRequest;
-  principal: ApiPrincipal;
+  principal: PublicationIngestionServicePrincipal;
 }) {
-  await requireAdmin(input.principal);
   const { payload } = input;
   const { claim } = await findOwnedBatchObject(
     input.principal,
