@@ -1,3 +1,11 @@
+## [1.101.2](https://github.com/Life-USTC/server/compare/v1.101.1...v1.101.2) (2026-09-01)
+
+
+### Bug Fixes
+
+* **publications:** reject NUL ingestion strings ([1ae31e9](https://github.com/Life-USTC/server/commit/1ae31e9a842e5da545ede5d6718006655e505a59))
+* **publications:** validate object request strings ([7918db3](https://github.com/Life-USTC/server/commit/7918db3ba3942f36fa77c340774eb63d7bb9ecd7))
+
 ## [1.101.1](https://github.com/Life-USTC/server/compare/v1.101.0...v1.101.1) (2026-09-01)
 
 
