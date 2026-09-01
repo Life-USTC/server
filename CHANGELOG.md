@@ -1,3 +1,10 @@
+## [1.100.3](https://github.com/Life-USTC/server/compare/v1.100.2...v1.100.3) (2026-09-01)
+
+
+### Bug Fixes
+
+* **publications:** canonicalize content-addressed object MIME ([#994](https://github.com/Life-USTC/server/issues/994)) ([0ede47c](https://github.com/Life-USTC/server/commit/0ede47cf6f60641e8596c432676b4f3515dbe621))
+
 ## [1.100.2](https://github.com/Life-USTC/server/compare/v1.100.1...v1.100.2) (2026-09-01)
 
 
