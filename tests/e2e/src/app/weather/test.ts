@@ -45,5 +45,20 @@ test.describe("/catalog/weather", () => {
     );
     await expect(panels.first()).toBeVisible();
     expect(await panels.count()).toBe(2);
+
+    // Live snapshots include a horizontally scrollable hourly forecast. Keep
+    // that region in the keyboard tab order whenever providers return it.
+    for (const region of await page
+      .getByTestId("weather-hourly-scroll-region")
+      .all()) {
+      await expect(region).toHaveRole("region");
+      await expect(region).toHaveAttribute("tabindex", "0");
+      await expect(region).toHaveAttribute(
+        "aria-label",
+        /逐小时预报|Hourly forecast/,
+      );
+      await region.focus();
+      await expect(region).toBeFocused();
+    }
   });
 });

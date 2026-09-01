@@ -1,3 +1,11 @@
+# [1.101.0](https://github.com/Life-USTC/server/compare/v1.100.3...v1.101.0) (2026-09-01)
+
+
+### Features
+
+* **weather:** hourly temperature curve and precipitation chart ([#998](https://github.com/Life-USTC/server/issues/998)) ([b19d64a](https://github.com/Life-USTC/server/commit/b19d64ac4456d1c988f2ea90789db7eab11f7d6b))
+* **weather:** iOS-style weather page UI ([#995](https://github.com/Life-USTC/server/issues/995)) ([ed07d46](https://github.com/Life-USTC/server/commit/ed07d4695f92f4ca495021649317a7f37d67ca23))
+
 ## [1.100.3](https://github.com/Life-USTC/server/compare/v1.100.2...v1.100.3) (2026-09-01)
 
 
