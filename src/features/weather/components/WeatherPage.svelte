@@ -13,6 +13,7 @@ import Sun from "@lucide/svelte/icons/sun";
 import Thermometer from "@lucide/svelte/icons/thermometer";
 import Wind from "@lucide/svelte/icons/wind";
 import type { DashboardPageCopy } from "@/features/dashboard/server/dashboard-page-load-types";
+import WeatherHourlyChart from "@/features/weather/components/WeatherHourlyChart.svelte";
 import type { WeatherPageLocation } from "@/features/weather/server/weather-page-load";
 import type {
   WeatherCondition,
@@ -75,6 +76,14 @@ function upcomingHours(hourly: WeatherHourly[]): WeatherHourly[] {
   const now = Date.now();
   const upcoming = hourly.filter((hour) => Date.parse(hour.at) >= now);
   return (upcoming.length > 0 ? upcoming : hourly).slice(0, HOURLY_SLOTS);
+}
+
+const CHART_HOURLY_SLOTS = 24;
+
+function upcomingHoursAll(hourly: WeatherHourly[]): WeatherHourly[] {
+  const now = Date.now();
+  const upcoming = hourly.filter((hour) => Date.parse(hour.at) >= now);
+  return (upcoming.length > 0 ? upcoming : hourly).slice(0, CHART_HOURLY_SLOTS);
 }
 
 function formatTemperature(value: number) {
@@ -176,7 +185,16 @@ function formatTemperature(value: number) {
           {#if snapshot.hourly.length > 0}
             <section class="grid gap-2">
               <h3 class="text-sm font-medium">{weatherCopy.hourlyForecast}</h3>
-              <ul class="-mx-1 flex gap-1 overflow-x-auto px-1 pb-1">
+              <WeatherHourlyChart
+                hours={upcomingHoursAll(snapshot.hourly)}
+                chartAriaLabel={weatherCopy.hourlyForecast}
+              />
+              <!-- svelte-ignore a11y_no_noninteractive_tabindex (focus enables keyboard scrolling for the overflowing hourly strip) -->
+              <ul
+                class="-mx-1 flex gap-1 overflow-x-auto px-1 pb-1"
+                tabindex={0}
+                aria-label={weatherCopy.hourlyForecast}
+              >
                 {#each upcomingHours(snapshot.hourly) as hour (hour.at)}
                   {@const HourIcon = iconOf(hour.condition)}
                   <li
