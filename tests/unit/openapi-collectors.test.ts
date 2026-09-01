@@ -151,6 +151,32 @@ export const POST = () => new Response();
     expect(responses["503"].headers).toEqual(retryAfter);
   });
 
+  it("documents dedicated ingestion secret authentication", () => {
+    const project = new Project({ useInMemoryFileSystem: true });
+    project.createSourceFile(
+      "src/routes/api/ingestion/publications/batches/+server.ts",
+      `
+/**
+ * Ingest a crawler publication batch.
+ * @ingestionSecret X-Publication-Ingestion-Secret
+ * @response 401:openApiErrorSchema
+ */
+export const POST = () => new Response();
+`,
+      { overwrite: true },
+    );
+
+    const paths = collectPaths(project, new SchemaCollector());
+    expect(
+      (
+        paths["/api/ingestion/publications/batches"].post as Record<
+          string,
+          unknown
+        >
+      ).security,
+    ).toEqual([{ publicationIngestionSecret: [] }]);
+  });
+
   it("parses path parameters and request body", () => {
     const project = new Project({ useInMemoryFileSystem: true });
     project.createSourceFile(

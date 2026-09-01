@@ -37,6 +37,13 @@ const SECURITY_SCHEMES = {
     description:
       "Calendar feed token accepted by the personal iCal endpoint. Token-bearing feed URLs may also embed the token in the userId:token path segment.",
   },
+  publicationIngestionSecret: {
+    type: "apiKey" as const,
+    in: "header" as const,
+    name: "X-Publication-Ingestion-Secret",
+    description:
+      "Dedicated Worker secret for the publication crawler ingestion API. It is separate from user OAuth and WEBHOOK_SECRET credentials.",
+  },
 };
 
 function collectTags(paths: Record<string, unknown>) {

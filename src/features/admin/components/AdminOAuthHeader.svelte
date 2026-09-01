@@ -19,7 +19,7 @@ export let onCreate: () => void;
 <PageHeader title={copy.adminTitle} description={copy.adminSubtitle} eyebrow={adminCopy.title}>
   {#snippet after()}
     <p class="rounded-lg border border-dashed bg-muted/40 px-3 py-2 text-sm text-muted-foreground">
-      {copy.publicationCrawlerClientNotice}
+      {copy.publicationIngestionServiceNotice}
     </p>
   {/snippet}
   {#snippet actions()}

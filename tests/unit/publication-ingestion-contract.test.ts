@@ -3,14 +3,9 @@ import { parsePublicationDateInput } from "@/features/publications/lib/publicati
 import { publicationIngestionPayloadDigest } from "@/features/publications/server/publication-ingestion-service";
 import { publicationIngestionBatchRequestSchema } from "@/lib/api/schemas/request-publication-ingestion-schemas";
 import { publicationIngestionBatchResponseSchema } from "@/lib/api/schemas/response-publication-ingestion-schemas";
-import {
-  OAUTH_DEVICE_CODE_GRANT_TYPE,
-  OAUTH_PUBLIC_CLIENT_AUTH_METHOD,
-  PUBLIC_REST_FEATURES,
-  PUBLICATION_CRAWLER_OAUTH_CLIENT_ID,
-  PUBLICATION_CRAWLER_OAUTH_CLIENT_SCOPES,
-  REST_FEATURES,
-} from "@/lib/oauth/constants";
+import { PUBLICATION_INGESTION_SECRET_HEADER } from "@/lib/auth/publication-ingestion-auth";
+import { PUBLICATION_INGESTION_PRINCIPAL_KEY } from "@/lib/auth/service-principal";
+import { PUBLIC_REST_FEATURES, REST_FEATURES } from "@/lib/oauth/constants";
 import {
   CLIENT_REGISTRATION_ALLOWED_SCOPES,
   isMcpScope,
@@ -163,28 +158,23 @@ describe("publication ingestion contract", () => {
     ).toBe(false);
   });
 
-  it("keeps ingestion REST-only and out of public/DCR/MCP scopes", () => {
-    expect(REST_FEATURES).toContain("publication.ingest");
+  it("keeps ingestion outside the OAuth feature and scope registries", () => {
+    expect(REST_FEATURES).not.toContain("publication.ingest");
     expect(PUBLIC_REST_FEATURES).not.toContain("publication.ingest");
     expect(PUBLIC_OAUTH_SCOPES).not.toContain("publication.ingest:write");
     expect(CLIENT_REGISTRATION_ALLOWED_SCOPES).not.toContain(
       "publication.ingest:write",
     );
-    expect(OAUTH_PROVIDER_SCOPES).toContain("publication.ingest:write");
+    expect(OAUTH_PROVIDER_SCOPES).not.toContain("publication.ingest:write");
     expect(isMcpScope("publication.ingest:write")).toBe(false);
   });
 
-  it("reserves a public device client for the crawler", () => {
-    expect(PUBLICATION_CRAWLER_OAUTH_CLIENT_ID).toBe(
-      "life-ustc-publication-crawler",
+  it("uses a dedicated service secret and stable service principal key", () => {
+    expect(PUBLICATION_INGESTION_SECRET_HEADER).toBe(
+      "X-Publication-Ingestion-Secret",
     );
-    expect(PUBLICATION_CRAWLER_OAUTH_CLIENT_SCOPES).toEqual([
-      "publication.ingest:write",
-      "offline_access",
-    ]);
-    expect(OAUTH_PUBLIC_CLIENT_AUTH_METHOD).toBe("none");
-    expect(OAUTH_DEVICE_CODE_GRANT_TYPE).toBe(
-      "urn:ietf:params:oauth:grant-type:device_code",
+    expect(PUBLICATION_INGESTION_PRINCIPAL_KEY).toBe(
+      "service:publication-crawler",
     );
   });
 });

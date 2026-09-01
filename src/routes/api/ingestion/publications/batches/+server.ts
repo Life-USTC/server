@@ -5,11 +5,10 @@ import { observedApiRoute } from "@/lib/log/api-observability";
 /**
  * Ingest a crawler publication batch.
  * @body publicationIngestionBatchRequestSchema
- * @oauthScope publication.ingest:write
+ * @ingestionSecret X-Publication-Ingestion-Secret
  * @response publicationIngestionBatchResponseSchema
  * @response 400:openApiErrorSchema
  * @response 401:openApiErrorSchema
- * @response 403:openApiErrorSchema
  * @response 409:openApiErrorSchema
  * @response 429:openApiErrorSchema
  * @response 503:openApiErrorSchema
