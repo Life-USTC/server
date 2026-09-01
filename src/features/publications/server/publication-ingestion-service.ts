@@ -96,8 +96,10 @@ function normalizeStoredJson(value: unknown) {
 }
 
 type PublicationRevisionSemanticObject = {
+  // MIME aliases do not change the content-addressed object represented by a
+  // revision. The stored PublicationObject contentType remains authoritative
+  // for upload and public-read metadata.
   altText: string | null;
-  contentType: string;
   kind: string;
   sha256: string;
   size: number;
@@ -167,7 +169,6 @@ function revisionSemanticsFromItem(
     objects: sortRevisionSemanticObjects(
       item.objects.map((object) => ({
         altText: object.altText ?? null,
-        contentType: object.contentType,
         kind: object.kind,
         sha256: object.sha256,
         size: object.size,
@@ -196,7 +197,6 @@ type StoredPublicationRevision = {
   objectLinks?: Array<{
     altText: string | null;
     object: {
-      contentType: string;
       kind: string;
       sha256: string;
       size: number;
@@ -226,7 +226,6 @@ function revisionSemanticsFromStored(
     objects: sortRevisionSemanticObjects(
       (revision.objectLinks ?? []).map((link) => ({
         altText: link.altText,
-        contentType: link.object?.contentType ?? "",
         kind: link.role,
         sha256: link.object?.sha256 ?? "",
         size: link.object?.size ?? -1,
@@ -355,8 +354,7 @@ async function ensureObjectManifest(
 
   if (
     object.r2Key !== publicationObjectKey(manifest.kind, manifest.sha256) ||
-    object.size !== manifest.size ||
-    object.contentType !== manifest.contentType
+    object.size !== manifest.size
   ) {
     throw new PublicationIngestionBadRequestError(
       `Object manifest does not match ${manifest.kind}/${manifest.sha256}`,
@@ -370,12 +368,12 @@ async function ensureObjectManifest(
       objectId: object.id,
       expectedSha256: manifest.sha256,
       expectedSize: manifest.size,
-      expectedContentType: manifest.contentType,
+      expectedContentType: object.contentType,
     },
     update: {
       expectedSha256: manifest.sha256,
       expectedSize: manifest.size,
-      expectedContentType: manifest.contentType,
+      expectedContentType: object.contentType,
     },
   });
 
@@ -539,12 +537,7 @@ async function ingestItem(
       objectLinks: {
         include: {
           object: {
-            select: {
-              contentType: true,
-              kind: true,
-              sha256: true,
-              size: true,
-            },
+            select: { kind: true, sha256: true, size: true },
           },
         },
         orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],

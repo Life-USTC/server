@@ -183,7 +183,10 @@ const fake = vi.hoisted(() => {
             .filter((link) => link.revisionId === revision.id)
             .map((link) => ({
               altText: (link.altText as string | null | undefined) ?? null,
-              object: state.objects.get(String(link.objectId)) ?? null,
+              object:
+                [...state.objects.values()].find(
+                  (object) => object.id === link.objectId,
+                ) ?? null,
               role: String(link.role),
               sortOrder: (link.sortOrder as number | null | undefined) ?? null,
             })),
@@ -434,6 +437,150 @@ describe("publication ingestion transaction", () => {
     expect(response.results[0].revisionHash).not.toBe(
       response.results[1].revisionHash,
     );
+  });
+
+  it("reuses the canonical MIME and records it on every batch claim", async () => {
+    const sha256 =
+      "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc";
+    const canonical = {
+      kind: "asset" as const,
+      sha256,
+      size: 3,
+      contentType: "application/msword",
+    };
+    const alias = {
+      ...canonical,
+      contentType:
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    };
+
+    await ingestPublicationBatch({
+      payload: payloadFor(
+        {
+          revisionHash:
+            "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          objects: [canonical],
+        },
+        "batch-canonical-mime-original",
+      ),
+      principal,
+    });
+    const response = await ingestPublicationBatch({
+      payload: payloadFor(
+        {
+          revisionHash:
+            "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          observedAt: "2026-09-02",
+          objects: [alias],
+        },
+        "batch-canonical-mime-alias",
+      ),
+      principal,
+    });
+
+    expect(response.results[0].status).toBe("updated");
+    expect([...fake.state.objects.values()]).toEqual([
+      expect.objectContaining({
+        kind: canonical.kind,
+        sha256,
+        size: canonical.size,
+        contentType: canonical.contentType,
+      }),
+    ]);
+    expect([...fake.state.claims.values()]).toEqual([
+      expect.objectContaining({ expectedContentType: canonical.contentType }),
+      expect.objectContaining({ expectedContentType: canonical.contentType }),
+    ]);
+  });
+
+  it("rejects an object size mismatch even when the MIME is an alias", async () => {
+    const sha256 =
+      "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd";
+    const original = {
+      kind: "asset" as const,
+      sha256,
+      size: 3,
+      contentType: "application/msword",
+    };
+    await ingestPublicationBatch({
+      payload: payloadFor(
+        { objects: [original] },
+        "batch-size-mismatch-original",
+      ),
+      principal,
+    });
+
+    await expect(
+      ingestPublicationBatch({
+        payload: payloadFor(
+          {
+            observedAt: "2026-09-02",
+            objects: [
+              {
+                ...original,
+                size: 4,
+                contentType:
+                  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+              },
+            ],
+          },
+          "batch-size-mismatch-alias",
+        ),
+        principal,
+      }),
+    ).rejects.toBeInstanceOf(PublicationIngestionBadRequestError);
+
+    expect(fake.state.objects.size).toBe(1);
+    expect(fake.state.claims.size).toBe(1);
+    expect([...fake.state.objects.values()][0]).toMatchObject({
+      size: original.size,
+      contentType: original.contentType,
+    });
+  });
+
+  it("accepts a same-revision replay with a MIME alias", async () => {
+    const sha256 =
+      "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee";
+    const revisionHash =
+      "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
+    const original = {
+      kind: "asset" as const,
+      sha256,
+      size: 3,
+      contentType: "application/msword",
+    };
+    await ingestPublicationBatch({
+      payload: payloadFor(
+        { revisionHash, objects: [original] },
+        "batch-revision-mime-original",
+      ),
+      principal,
+    });
+
+    const response = await ingestPublicationBatch({
+      payload: payloadFor(
+        {
+          revisionHash,
+          observedAt: "2026-09-02",
+          objects: [
+            {
+              ...original,
+              contentType:
+                "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            },
+          ],
+        },
+        "batch-revision-mime-alias",
+      ),
+      principal,
+    });
+
+    expect(response.results[0].status).toBe("updated");
+    expect(fake.state.revisions.size).toBe(1);
+    expect(fake.state.claims.size).toBe(2);
+    expect([...fake.state.claims.values()][1]).toMatchObject({
+      expectedContentType: original.contentType,
+    });
   });
 
   it.each([
