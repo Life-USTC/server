@@ -28,7 +28,7 @@ describe("weather service", () => {
       "fetch",
       vi.fn().mockImplementation((url: string | Request) => {
         const urlString = typeof url === "string" ? url : url.toString();
-        if (urlString.includes("amap.com")) {
+        if (new URL(urlString).hostname === "restapi.amap.com") {
           return Promise.resolve({
             ok: true,
             json: () =>
