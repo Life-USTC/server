@@ -12,6 +12,14 @@ import { prisma } from "@/lib/db/prisma";
 
 type TransactionClient = Prisma.TransactionClient;
 
+/**
+ * A full publication batch is allowed to contain 500 items. Keep enough time
+ * for the associated writes to finish while leaving headroom in the Worker
+ * and crawler's 30-second request budgets for authentication, parsing, and
+ * response serialization.
+ */
+export const PUBLICATION_INGESTION_TRANSACTION_TIMEOUT_MS = 20_000;
+
 export class PublicationIngestionBadRequestError extends Error {
   readonly code = "publication_ingestion_bad_request";
 }
@@ -738,145 +746,150 @@ async function ingestWithRetry(
   payloadDigest: string,
   principalKey: string,
 ) {
-  const response = await prisma.$transaction(async (tx) => {
-    const existing = await tx.ingestionBatch.findUnique({
-      where: {
-        principalKey_batchId: { principalKey, batchId: payload.batchId },
-      },
-    });
-    if (existing) {
-      if (existing.payloadDigest !== payloadDigest) {
-        throw new PublicationIngestionConflictError(
-          "The batch ID was already used with a different payload",
-        );
-      }
-      return storedResult(existing.result);
-    }
-
-    validateSourceDescriptors(payload);
-    const run = await tx.ingestionRun.upsert({
-      where: {
-        principalKey_clientRunId: {
-          principalKey,
-          clientRunId: payload.clientRunId,
+  const response = await prisma.$transaction(
+    async (tx) => {
+      const existing = await tx.ingestionBatch.findUnique({
+        where: {
+          principalKey_batchId: { principalKey, batchId: payload.batchId },
         },
-      },
-      create: {
-        clientRunId: payload.clientRunId,
-        principalKey,
-        observedAt: parsePublicationDate(payload.observedAt),
-      },
-      update: {
-        observedAt: parsePublicationDate(payload.observedAt),
-        status: "running",
-      },
-    });
+      });
+      if (existing) {
+        if (existing.payloadDigest !== payloadDigest) {
+          throw new PublicationIngestionConflictError(
+            "The batch ID was already used with a different payload",
+          );
+        }
+        return storedResult(existing.result);
+      }
 
-    const registeredSources = new Map<string, RegisteredSource>();
-    for (const source of payload.sources) {
-      const registered = await tx.publicationSource.upsert({
-        where: { id: source.id },
+      validateSourceDescriptors(payload);
+      const run = await tx.ingestionRun.upsert({
+        where: {
+          principalKey_clientRunId: {
+            principalKey,
+            clientRunId: payload.clientRunId,
+          },
+        },
         create: {
-          id: source.id,
-          name: source.name,
-          organizationLevel: source.organizationLevel ?? "unknown",
-          allowedHosts: source.allowedHosts ?? [],
-          blockedHosts: source.blockedHosts ?? [],
-          seedUrls: source.seedUrls ?? [],
-          aliases: source.aliases ?? [],
-          discoveryOnly: source.discoveryOnly ?? false,
-          maxImagesPerPage: source.maxImagesPerPage ?? null,
+          clientRunId: payload.clientRunId,
+          principalKey,
+          observedAt: parsePublicationDate(payload.observedAt),
         },
         update: {
-          name: source.name,
-          ...(source.organizationLevel === undefined
-            ? {}
-            : { organizationLevel: source.organizationLevel }),
-          ...(source.allowedHosts === undefined
-            ? {}
-            : { allowedHosts: source.allowedHosts }),
-          ...(source.blockedHosts === undefined
-            ? {}
-            : { blockedHosts: source.blockedHosts }),
-          ...(source.seedUrls === undefined
-            ? {}
-            : { seedUrls: source.seedUrls }),
-          ...(source.aliases === undefined ? {} : { aliases: source.aliases }),
-          ...(source.discoveryOnly === undefined
-            ? {}
-            : { discoveryOnly: source.discoveryOnly }),
-          ...(source.maxImagesPerPage === undefined
-            ? {}
-            : { maxImagesPerPage: source.maxImagesPerPage }),
+          observedAt: parsePublicationDate(payload.observedAt),
+          status: "running",
         },
       });
-      registeredSources.set(source.id, {
-        id: registered.id,
-        name: registered.name,
-        organizationLevel: registered.organizationLevel,
-        allowedHosts: source.allowedHosts ?? registered.allowedHosts,
-        blockedHosts: source.blockedHosts ?? registered.blockedHosts,
-        seedUrls: source.seedUrls ?? registered.seedUrls,
-        aliases: source.aliases ?? registered.aliases,
-        discoveryOnly: source.discoveryOnly ?? registered.discoveryOnly,
-        maxImagesPerPage:
-          source.maxImagesPerPage === undefined
-            ? registered.maxImagesPerPage
-            : source.maxImagesPerPage,
-        enabled: registered.enabled,
-        allowAnyHost:
-          (source.allowedHosts ?? registered.allowedHosts).length === 0,
-      });
-    }
 
-    const batch = await tx.ingestionBatch.create({
-      data: {
-        batchId: payload.batchId,
-        runId: run.id,
-        principalKey,
-        payloadDigest,
-        itemCount: payload.items.length,
-      },
-    });
-
-    const results: PublicationIngestionItemResult[] = [];
-    for (const item of payload.items) {
-      const source = registeredSources.get(item.sourceId);
-      if (!source?.enabled || source.discoveryOnly) {
-        results.push(
-          result(
-            item,
-            "rejected",
-            null,
-            null,
-            source && !source.enabled
-              ? "source is disabled"
-              : source
-                ? "discovery-only source cannot ingest publications"
-                : "source is not registered in this batch",
-          ),
-        );
-        continue;
+      const registeredSources = new Map<string, RegisteredSource>();
+      for (const source of payload.sources) {
+        const registered = await tx.publicationSource.upsert({
+          where: { id: source.id },
+          create: {
+            id: source.id,
+            name: source.name,
+            organizationLevel: source.organizationLevel ?? "unknown",
+            allowedHosts: source.allowedHosts ?? [],
+            blockedHosts: source.blockedHosts ?? [],
+            seedUrls: source.seedUrls ?? [],
+            aliases: source.aliases ?? [],
+            discoveryOnly: source.discoveryOnly ?? false,
+            maxImagesPerPage: source.maxImagesPerPage ?? null,
+          },
+          update: {
+            name: source.name,
+            ...(source.organizationLevel === undefined
+              ? {}
+              : { organizationLevel: source.organizationLevel }),
+            ...(source.allowedHosts === undefined
+              ? {}
+              : { allowedHosts: source.allowedHosts }),
+            ...(source.blockedHosts === undefined
+              ? {}
+              : { blockedHosts: source.blockedHosts }),
+            ...(source.seedUrls === undefined
+              ? {}
+              : { seedUrls: source.seedUrls }),
+            ...(source.aliases === undefined
+              ? {}
+              : { aliases: source.aliases }),
+            ...(source.discoveryOnly === undefined
+              ? {}
+              : { discoveryOnly: source.discoveryOnly }),
+            ...(source.maxImagesPerPage === undefined
+              ? {}
+              : { maxImagesPerPage: source.maxImagesPerPage }),
+          },
+        });
+        registeredSources.set(source.id, {
+          id: registered.id,
+          name: registered.name,
+          organizationLevel: registered.organizationLevel,
+          allowedHosts: source.allowedHosts ?? registered.allowedHosts,
+          blockedHosts: source.blockedHosts ?? registered.blockedHosts,
+          seedUrls: source.seedUrls ?? registered.seedUrls,
+          aliases: source.aliases ?? registered.aliases,
+          discoveryOnly: source.discoveryOnly ?? registered.discoveryOnly,
+          maxImagesPerPage:
+            source.maxImagesPerPage === undefined
+              ? registered.maxImagesPerPage
+              : source.maxImagesPerPage,
+          enabled: registered.enabled,
+          allowAnyHost:
+            (source.allowedHosts ?? registered.allowedHosts).length === 0,
+        });
       }
-      results.push(await ingestItem(tx, batch.id, item, source));
-    }
 
-    const response: PublicationIngestionBatchResult = {
-      batchId: payload.batchId,
-      clientRunId: payload.clientRunId,
-      payloadDigest,
-      results,
-    };
-    await tx.ingestionBatch.update({
-      where: { id: batch.id },
-      data: { result: response as unknown as Prisma.InputJsonObject },
-    });
-    await tx.ingestionRun.update({
-      where: { id: run.id },
-      data: { status: "completed" },
-    });
-    return response;
-  });
+      const batch = await tx.ingestionBatch.create({
+        data: {
+          batchId: payload.batchId,
+          runId: run.id,
+          principalKey,
+          payloadDigest,
+          itemCount: payload.items.length,
+        },
+      });
+
+      const results: PublicationIngestionItemResult[] = [];
+      for (const item of payload.items) {
+        const source = registeredSources.get(item.sourceId);
+        if (!source?.enabled || source.discoveryOnly) {
+          results.push(
+            result(
+              item,
+              "rejected",
+              null,
+              null,
+              source && !source.enabled
+                ? "source is disabled"
+                : source
+                  ? "discovery-only source cannot ingest publications"
+                  : "source is not registered in this batch",
+            ),
+          );
+          continue;
+        }
+        results.push(await ingestItem(tx, batch.id, item, source));
+      }
+
+      const response: PublicationIngestionBatchResult = {
+        batchId: payload.batchId,
+        clientRunId: payload.clientRunId,
+        payloadDigest,
+        results,
+      };
+      await tx.ingestionBatch.update({
+        where: { id: batch.id },
+        data: { result: response as unknown as Prisma.InputJsonObject },
+      });
+      await tx.ingestionRun.update({
+        where: { id: run.id },
+        data: { status: "completed" },
+      });
+      return response;
+    },
+    { timeout: PUBLICATION_INGESTION_TRANSACTION_TIMEOUT_MS },
+  );
 
   return response;
 }
