@@ -33,9 +33,9 @@ test.describe("/catalog/weather", () => {
 
     const headings = page.locator("h2");
     await expect(headings).toHaveCount(2);
-    await expect(
-      headings.filter({ hasText: /本部|Main campus/ }),
-    ).toHaveCount(1);
+    await expect(headings.filter({ hasText: /本部|Main campus/ })).toHaveCount(
+      1,
+    );
     await expect(
       headings.filter({ hasText: /高新校区|Gaoxin campus/ }),
     ).toHaveCount(1);
