@@ -13,12 +13,12 @@ import { prisma } from "@/lib/db/prisma";
 type TransactionClient = Prisma.TransactionClient;
 
 /**
- * A full publication batch is allowed to contain 500 items. Keep enough time
- * for the associated writes to finish while leaving headroom in the Worker
- * and crawler's 30-second request budgets for authentication, parsing, and
- * response serialization.
+ * A full publication batch is allowed to contain 500 items. The associated
+ * writes can take about 20 seconds in production, so allow enough time for
+ * database contention while staying below the crawler's 60-second request
+ * timeout.
  */
-export const PUBLICATION_INGESTION_TRANSACTION_TIMEOUT_MS = 20_000;
+export const PUBLICATION_INGESTION_TRANSACTION_TIMEOUT_MS = 45_000;
 
 export class PublicationIngestionBadRequestError extends Error {
   readonly code = "publication_ingestion_bad_request";
