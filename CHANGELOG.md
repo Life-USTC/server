@@ -1,3 +1,15 @@
+# [1.100.0](https://github.com/Life-USTC/server/compare/v1.99.0...v1.100.0) (2026-09-01)
+
+
+### Bug Fixes
+
+* **weather:** grant life_ustc_runtime access to WeatherObservation ([#976](https://github.com/Life-USTC/server/issues/976)) ([ba68c8f](https://github.com/Life-USTC/server/commit/ba68c8f1151933b4cac0d3926df068271b48bbe3))
+
+
+### Features
+
+* authenticate publication ingestion with service secret ([#977](https://github.com/Life-USTC/server/issues/977)) ([b96f86d](https://github.com/Life-USTC/server/commit/b96f86dfb4961d63ab025dd43d89a96de979db73))
+
 # [1.99.0](https://github.com/Life-USTC/server/compare/v1.98.1...v1.99.0) (2026-09-01)
 
 
