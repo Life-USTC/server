@@ -1,0 +1,76 @@
+{
+  "name": "Weather",
+  "access": {
+    "anon": "Can query weather for USTC campus locations.",
+    "user": "Can query weather for USTC campus locations.",
+    "admin": "Can query weather for USTC campus locations.",
+    "agent": "Can read weather snapshots for USTC campus locations."
+  },
+  "rules": {
+    "public-no-signin": "Weather is public campus life information; sign-in should not be a prerequisite.",
+    "two-locations-only": "Only two locations are tracked: ustc-main (主校区群, Amap adcode 340100) covers the closely clustered east/west/south/north/central campuses, and ustc-gaoxin (高新校区, adcode 340171) covers the distant Gaoxin campus.",
+    "amap-primary": "Amap (高德) is the primary provider; Open-Meteo supplements hourly forecast, precipitation probability, and other fields Amap does not return. The merged snapshot lists which providers contributed.",
+    "raw-extensions-preserved": "Provider payloads are merged into a canonical snapshot and the raw Amap/Open-Meteo responses stay available under extensions for REST and MCP consumers.",
+    "cache-and-history": "Snapshots are cached in the WEATHER KV namespace for 15 minutes per location and persisted to WeatherObservation history; a scheduled cron refreshes both locations to stay within the Amap monthly quota.",
+    "location-key-boundary": "REST, GraphQL, and MCP accept only the canonical locationKey values ustc-main and ustc-gaoxin; unknown keys are rejected as bad input."
+  },
+  "capabilities": {
+    "weather": {
+      "title": "Campus Weather",
+      "auth": "anon",
+      "web": {
+        "pages": ["/catalog/weather"]
+      },
+      "rest": {
+        "routes": [
+          {
+            "path": "/api/catalog/weather",
+            "returns": "{ location, fetchedAt, providers, current, hourly, daily, alerts, extensions }",
+            "notes": [
+              "Optional locationKey query parameter: ustc-main (default) or ustc-gaoxin.",
+              "Returns 503 when every provider is unavailable."
+            ]
+          }
+        ]
+      },
+      "graphql": {
+        "queries": [
+          {
+            "name": "weather",
+            "parent": "Catalog",
+            "arguments": { "locationKey": "String!" },
+            "returns": "WeatherSnapshot",
+            "rest_equivalent": "GET /api/catalog/weather",
+            "mcp_equivalent": "catalog_weather_get",
+            "notes": [
+              "locationKey must be one of the canonical weather location keys.",
+              "Returns null when every provider is unavailable."
+            ]
+          }
+        ]
+      },
+      "mcp": {
+        "tools": [
+          {
+            "name": "catalog_weather_get",
+            "returns": "{ location, fetchedAt, providers, current, hourly, daily, alerts, extensions }",
+            "rest_equivalent": "GET /api/catalog/weather",
+            "notes": [
+              "Accepts locationKey (default ustc-main) and mode inputs.",
+              "Default mode returns the merged snapshot without provider extensions; full mode returns the complete payload including raw provider extensions."
+            ]
+          }
+        ]
+      },
+      "display": {
+        "fields": [
+          "location name",
+          "current temperature and condition",
+          "hourly precipitation forecast",
+          "daily high/low temperatures",
+          "weather alerts"
+        ]
+      }
+    }
+  }
+}

@@ -66,6 +66,7 @@ describe("sitemap route", () => {
       "https://life.example/catalog/bus",
       "https://life.example/catalog/links",
       "https://life.example/catalog/bus/map",
+      "https://life.example/catalog/weather",
       "https://life.example/api/docs/tag/catalog-section",
       "https://life.example/usage/mobile",
       "https://life.example/usage/bot",

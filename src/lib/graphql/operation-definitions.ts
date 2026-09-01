@@ -390,6 +390,66 @@ export const persistedGraphqlOperationDefinitions = [
     scopes: [],
   }),
   query({
+    id: "catalog.weather.get.v1",
+    title: "Get weather",
+    description:
+      "Returns the merged weather snapshot for one USTC campus location.",
+    document: /* GraphQL */ `
+      query CatalogWeather($locationKey: String!) {
+        catalog {
+          weather(locationKey: $locationKey) {
+            location {
+              key
+              name
+              adcode
+            }
+            fetchedAt
+            providers
+            current {
+              temperature
+              feelsLike
+              humidity
+              windDirection
+              windSpeed
+              pressure
+              visibility
+              condition {
+                text
+                icon
+              }
+            }
+            hourly {
+              at
+              temperature
+              precipitationProbability
+              precipitationAmount
+              condition {
+                text
+                icon
+              }
+            }
+            daily {
+              date
+              temperatureHigh
+              temperatureLow
+              condition {
+                text
+                icon
+              }
+            }
+            alerts {
+              title
+              level
+              content
+              issuedAt
+            }
+          }
+        }
+      }
+    `,
+    scopes: [],
+  }),
+  query({
     id: "account.profile.get.v1",
     title: "Get account profile",
     description: "Returns the current account's private profile.",

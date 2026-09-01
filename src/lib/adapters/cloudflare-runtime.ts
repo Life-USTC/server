@@ -113,6 +113,7 @@ type CloudflareRuntimeEnv = Record<string, unknown> & {
   R2_UPLOADS?: CloudflareR2Bucket;
   USER_BATCH_WRITE_RATE_LIMITER?: CloudflareRateLimiter;
   USER_WRITE_RATE_LIMITER?: CloudflareRateLimiter;
+  WEATHER?: CloudflareKVNamespace;
 };
 
 type CloudflareRuntimeContext = {
@@ -412,4 +413,8 @@ export function getCloudflareUserMutationRateLimiter(tier: "batch" | "write") {
   return tier === "batch"
     ? env?.USER_BATCH_WRITE_RATE_LIMITER
     : env?.USER_WRITE_RATE_LIMITER;
+}
+
+export function getCloudflareWeatherNamespace() {
+  return getCurrentCloudflareRuntimeEnv()?.WEATHER;
 }

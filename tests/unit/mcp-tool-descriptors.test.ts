@@ -343,6 +343,9 @@ describe("MCP tool descriptors", () => {
     expect(outputSchemaKeys(result, "catalog_bus_timetable_get")).toEqual(
       expect.arrayContaining(["availableVersions", "trips", "success"]),
     );
+    expect(outputSchemaKeys(result, "catalog_weather_get")).toEqual(
+      expect.arrayContaining(["location", "current", "hourly", "success"]),
+    );
     expect(outputSchemaKeys(result, "catalog_bus_route_get")).toEqual(
       expect.arrayContaining([
         "route",

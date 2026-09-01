@@ -10,3 +10,4 @@ export * from "./overview-response-schemas";
 export * from "./response-schema-primitives";
 export * from "./schedule-response-schema-core";
 export * from "./uploads-response-schemas";
+export * from "./weather-response-schemas";

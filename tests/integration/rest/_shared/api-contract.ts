@@ -34,6 +34,7 @@ const probeOnlyRoutes = new Set([
   "/api/auth/oauth2/token",
   "/api/auth/.well-known/openid-configuration",
   "/api/catalog/bus",
+  "/api/catalog/weather",
   "/api/workspace/bus-preferences",
   "/api/workspace/subscriptions",
   "/api/workspace/subscriptions/current",
