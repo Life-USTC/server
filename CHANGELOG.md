@@ -1,3 +1,10 @@
+# [1.98.0](https://github.com/Life-USTC/server/compare/v1.97.4...v1.98.0) (2026-09-01)
+
+
+### Features
+
+* **weather:** campus weather service (AMap-first, REST/GraphQL/MCP/Web/cron) ([#972](https://github.com/Life-USTC/server/issues/972)) ([3dbef21](https://github.com/Life-USTC/server/commit/3dbef2152a0476131f11cc0dfa8c8c8e26605448))
+
 ## [1.97.4](https://github.com/Life-USTC/server/compare/v1.97.3...v1.97.4) (2026-08-31)
 
 
