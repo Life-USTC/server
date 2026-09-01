@@ -160,24 +160,32 @@ export const publicationIngestionBatchRequestSchema = z
     addNulCharacterIssues(payload, [], context);
   });
 
-export const publicationObjectPlanRequestSchema = z.strictObject({
-  batchId: z.string().trim().min(1).max(200),
-  objects: z
-    .array(
-      z.strictObject({
-        kind: publicationObjectManifestSchema.shape.kind,
-        sha256: sha256Schema,
-      }),
-    )
-    .min(1)
-    .max(500),
-});
+export const publicationObjectPlanRequestSchema = z
+  .strictObject({
+    batchId: z.string().trim().min(1).max(200),
+    objects: z
+      .array(
+        z.strictObject({
+          kind: publicationObjectManifestSchema.shape.kind,
+          sha256: sha256Schema,
+        }),
+      )
+      .min(1)
+      .max(500),
+  })
+  .superRefine((payload, context) => {
+    addNulCharacterIssues(payload, [], context);
+  });
 
-export const publicationObjectCompleteRequestSchema = z.strictObject({
-  batchId: z.string().trim().min(1).max(200),
-  kind: publicationObjectManifestSchema.shape.kind,
-  sha256: sha256Schema,
-});
+export const publicationObjectCompleteRequestSchema = z
+  .strictObject({
+    batchId: z.string().trim().min(1).max(200),
+    kind: publicationObjectManifestSchema.shape.kind,
+    sha256: sha256Schema,
+  })
+  .superRefine((payload, context) => {
+    addNulCharacterIssues(payload, [], context);
+  });
 
 export type PublicationIngestionBatchRequest = z.output<
   typeof publicationIngestionBatchRequestSchema

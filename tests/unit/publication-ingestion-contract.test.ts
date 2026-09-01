@@ -2,7 +2,11 @@ import { describe, expect, it } from "vitest";
 import { parsePublicationDateInput } from "@/features/publications/lib/publication-date";
 import { PUBLICATION_INGESTION_BATCH_MAX_ITEMS } from "@/features/publications/lib/publication-ingestion-limits";
 import { publicationIngestionPayloadDigest } from "@/features/publications/server/publication-ingestion-service";
-import { publicationIngestionBatchRequestSchema } from "@/lib/api/schemas/request-publication-ingestion-schemas";
+import {
+  publicationIngestionBatchRequestSchema,
+  publicationObjectCompleteRequestSchema,
+  publicationObjectPlanRequestSchema,
+} from "@/lib/api/schemas/request-publication-ingestion-schemas";
 import { publicationIngestionBatchResponseSchema } from "@/lib/api/schemas/response-publication-ingestion-schemas";
 import { PUBLICATION_INGESTION_SECRET_HEADER } from "@/lib/auth/publication-ingestion-auth";
 import { PUBLICATION_INGESTION_PRINCIPAL_KEY } from "@/lib/auth/service-principal";
@@ -236,6 +240,38 @@ describe("publication ingestion contract", () => {
     if (item && !item.tombstone) {
       expect(item.title).toBe("校园通知");
       expect(item.bodyText).toBe("第一段\n第二段  ");
+    }
+  });
+
+  it.each([
+    {
+      label: "object plan",
+      schema: publicationObjectPlanRequestSchema,
+      payload: {
+        batchId: "fixture\u0000batch",
+        objects: [{ kind: "body_html", sha256: "a".repeat(64) }],
+      },
+    },
+    {
+      label: "object completion",
+      schema: publicationObjectCompleteRequestSchema,
+      payload: {
+        batchId: "fixture\u0000batch",
+        kind: "body_html",
+        sha256: "a".repeat(64),
+      },
+    },
+  ])("rejects NUL characters in $label requests", ({ schema, payload }) => {
+    const parsed = schema.safeParse(payload);
+
+    expect(parsed.success).toBe(false);
+    if (!parsed.success) {
+      expect(parsed.error.issues).toContainEqual(
+        expect.objectContaining({
+          message: "NUL characters are not allowed",
+          path: ["batchId"],
+        }),
+      );
     }
   });
 
