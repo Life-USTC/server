@@ -347,6 +347,7 @@ vi.mock("@/lib/db/prisma", () => ({ prisma: fake.prisma }));
 
 import {
   ingestPublicationBatch,
+  PUBLICATION_INGESTION_TRANSACTION_TIMEOUT_MS,
   PublicationIngestionBadRequestError,
 } from "@/features/publications/server/publication-ingestion-service";
 
@@ -576,5 +577,32 @@ describe("publication ingestion transaction", () => {
     expect(fake.state.publications.size).toBe(1);
     expect(fake.state.revisions.size).toBe(1);
     expect(fake.state.events.size).toBe(1);
+  });
+
+  it("configures a transaction budget for the maximum valid batch size", async () => {
+    const payload = publicationIngestionBatchRequestSchema.parse({
+      ...parsedFixture,
+      batchId: "batch-maximum-size",
+      clientRunId: "run-maximum-size",
+      items: Array.from({ length: 500 }, (_, index) => ({
+        ...parsedFixture.items[0],
+        canonicalUrl: `https://news.ustc.edu.cn/example/${index}.html`,
+        revisionHash: index.toString(16).padStart(64, "0"),
+        objects: [],
+      })),
+    });
+
+    const response = await ingestPublicationBatch({ payload, principal });
+
+    expect(response.results).toHaveLength(500);
+    expect(response.results.every(({ status }) => status === "created")).toBe(
+      true,
+    );
+    expect(PUBLICATION_INGESTION_TRANSACTION_TIMEOUT_MS).toBeGreaterThan(5_000);
+    expect(PUBLICATION_INGESTION_TRANSACTION_TIMEOUT_MS).toBeLessThan(30_000);
+    expect(fake.prisma.$transaction).toHaveBeenCalledWith(
+      expect.any(Function),
+      { timeout: PUBLICATION_INGESTION_TRANSACTION_TIMEOUT_MS },
+    );
   });
 });
