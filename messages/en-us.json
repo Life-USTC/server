@@ -1048,7 +1048,11 @@
     "noAlerts": "No active alerts",
     "updatedAt": "Updated {value}",
     "dataProviders": "Data providers",
-    "unavailable": "Weather data is temporarily unavailable. Please try again later."
+    "unavailable": "Weather data is temporarily unavailable. Please try again later.",
+    "today": "Today",
+    "feelsLikeLabel": "Feels like",
+    "humidityLabel": "Humidity",
+    "windLabel": "Wind"
   },
   "publications": {
     "title": "News & Notices",

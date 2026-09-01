@@ -17,9 +17,12 @@ import { manifest } from "./.svelte-kit/output/server/manifest.js";
 // #533 names these crawlable entry/detail routes as the representative public
 // hydration graph. Publication routes are public entry/detail surfaces too.
 // Limits leave about 10% above their production-build gzip/request baselines so
-// normal chunking noise passes while material regressions do not.
+// normal chunking noise passes while material regressions do not. The `/`
+// request budget also absorbs shared-chunk splits when a Lucide icon used by
+// the shell gains another importer (e.g. the weather page split the 525 B
+// `sun` icon into its own chunk).
 const budgets = {
-  "/": { gzipBytes: 195_000, requests: 68 },
+  "/": { gzipBytes: 195_000, requests: 70 },
   "/catalog/courses/[jwId]": { gzipBytes: 330_000, requests: 94 },
   "/catalog/sections/[jwId]": { gzipBytes: 390_000, requests: 104 },
   "/news": { gzipBytes: 232_000, requests: 88 },
