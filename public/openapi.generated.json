@@ -28943,7 +28943,7 @@
           },
           "items": {
             "minItems": 1,
-            "maxItems": 500,
+            "maxItems": 100,
             "type": "array",
             "items": {
               "anyOf": [
