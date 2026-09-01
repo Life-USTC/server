@@ -1,3 +1,11 @@
+## [1.100.2](https://github.com/Life-USTC/server/compare/v1.100.1...v1.100.2) (2026-09-01)
+
+
+### Bug Fixes
+
+* **publications:** bound ingestion batches to 100 ([#993](https://github.com/Life-USTC/server/issues/993)) ([28eee87](https://github.com/Life-USTC/server/commit/28eee870afc2db691bd2fed1cc278ef8f3d53310))
+* raise publication ingestion transaction budget ([#992](https://github.com/Life-USTC/server/issues/992)) ([a364863](https://github.com/Life-USTC/server/commit/a364863a8493432b5ca27cb93b019cf95149e4c8))
+
 ## [1.100.1](https://github.com/Life-USTC/server/compare/v1.100.0...v1.100.1) (2026-09-01)
 
 
