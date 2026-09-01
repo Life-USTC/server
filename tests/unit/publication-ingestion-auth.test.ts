@@ -1,5 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { setCloudflareRuntimeEnv } from "@/lib/adapters/cloudflare-runtime";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   PUBLICATION_INGESTION_SECRET_HEADER,
   requirePublicationIngestionPrincipal,
@@ -16,9 +15,7 @@ const request = (secret?: string) =>
   });
 
 describe("publication ingestion service authentication", () => {
-  beforeEach(() => setCloudflareRuntimeEnv(undefined));
   afterEach(() => {
-    setCloudflareRuntimeEnv(undefined);
     vi.unstubAllEnvs();
     vi.restoreAllMocks();
   });
@@ -88,40 +85,5 @@ describe("publication ingestion service authentication", () => {
       serviceId: "publication-crawler",
       principalKey: PUBLICATION_INGESTION_PRINCIPAL_KEY,
     });
-  });
-
-  it("rate-limits the stable service key after authentication", async () => {
-    const limit = vi.fn().mockResolvedValue({ success: true });
-    setCloudflareRuntimeEnv({ USER_BATCH_WRITE_RATE_LIMITER: { limit } });
-    vi.stubEnv("PUBLICATION_INGESTION_SECRET", "expected-secret");
-
-    await expect(
-      requirePublicationIngestionPrincipal(request("expected-secret")),
-    ).resolves.toMatchObject({ kind: "service" });
-    expect(limit).toHaveBeenCalledWith({
-      key: JSON.stringify([
-        "user-mutation:v1",
-        "life.example",
-        "publication:ingest:write",
-        PUBLICATION_INGESTION_PRINCIPAL_KEY,
-      ]),
-    });
-  });
-
-  it("fails closed when the service rate limiter is unavailable", async () => {
-    vi.stubEnv("PUBLICATION_INGESTION_SECRET", "expected-secret");
-    setCloudflareRuntimeEnv({});
-
-    const error = vi.spyOn(console, "error").mockImplementation(() => {});
-    const response = await requirePublicationIngestionPrincipal(
-      request("expected-secret"),
-    );
-
-    expect(response).toBeInstanceOf(Response);
-    expect((response as Response).status).toBe(503);
-    expect(error).toHaveBeenCalledOnce();
-    expect(error.mock.calls.flat().map(String).join(" ")).not.toContain(
-      "expected-secret",
-    );
   });
 });

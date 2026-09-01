@@ -1,11 +1,6 @@
 import { getOptionalTrimmedEnv } from "@/app-env";
-import { rateLimitResponse, unauthorized } from "@/lib/api/helpers";
+import { unauthorized } from "@/lib/api/helpers";
 import {
-  checkUserMutationRateLimit,
-  USER_MUTATION_RATE_LIMIT_PERIOD_SECONDS,
-} from "@/lib/security/user-mutation-rate-limit";
-import {
-  PUBLICATION_INGESTION_PRINCIPAL_KEY,
   PUBLICATION_INGESTION_SERVICE_PRINCIPAL,
   type PublicationIngestionServicePrincipal,
 } from "./service-principal";
@@ -63,19 +58,6 @@ export async function requirePublicationIngestionPrincipal(
     return unauthorized();
   }
   if (!matches) return unauthorized();
-
-  const outcome = await checkUserMutationRateLimit({
-    action: "publication:ingest:write",
-    host: new URL(request.url).host,
-    tier: "batch",
-    userId: PUBLICATION_INGESTION_PRINCIPAL_KEY,
-  });
-  if (!outcome.allowed) {
-    return rateLimitResponse(
-      outcome.reason,
-      USER_MUTATION_RATE_LIMIT_PERIOD_SECONDS,
-    );
-  }
 
   return PUBLICATION_INGESTION_SERVICE_PRINCIPAL;
 }
