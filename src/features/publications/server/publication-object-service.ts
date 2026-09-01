@@ -13,6 +13,7 @@ import {
 } from "./publication-ingestion-service";
 
 const PRESIGN_TTL_SECONDS = 15 * 60;
+const OBJECT_OPERATION_CONCURRENCY = 8;
 
 export class PublicationObjectBadRequestError extends Error {
   readonly code = "publication_object_bad_request";
@@ -164,11 +165,30 @@ async function verifyR2Object(input: {
   return { ok: true as const };
 }
 
-async function findOwnedBatchObject(
+async function mapWithConcurrency<T, R>(
+  values: readonly T[],
+  concurrency: number,
+  mapper: (value: T, index: number) => Promise<R>,
+) {
+  const results = new Array<R>(values.length);
+  let nextIndex = 0;
+
+  async function worker() {
+    while (true) {
+      const index = nextIndex++;
+      if (index >= values.length) return;
+      results[index] = await mapper(values[index], index);
+    }
+  }
+
+  const workerCount = Math.min(concurrency, values.length);
+  await Promise.all(Array.from({ length: workerCount }, () => worker()));
+  return results;
+}
+
+async function findOwnedBatchClaims(
   principal: PublicationIngestionServicePrincipal,
   batchId: string,
-  kind: ObjectKind,
-  sha256: string,
 ) {
   const principalKey = publicationPrincipalKey(principal);
   const batch = await prisma.ingestionBatch.findUnique({
@@ -179,17 +199,44 @@ async function findOwnedBatchObject(
   });
   if (!batch)
     throw new PublicationObjectNotFoundError("Ingestion batch not found");
-  const claim = batch.objects.find(
-    ({ object }) => object.kind === kind && object.sha256 === sha256,
-  );
-  if (!claim)
+
+  const claims = new Map<string, (typeof batch.objects)[number]>();
+  for (const claim of batch.objects) {
+    claims.set(`${claim.object.kind}:${claim.object.sha256}`, claim);
+  }
+  return claims;
+}
+
+async function findOwnedBatchObject(
+  principal: PublicationIngestionServicePrincipal,
+  batchId: string,
+  kind: ObjectKind,
+  sha256: string,
+) {
+  const principalKey = publicationPrincipalKey(principal);
+  const claim = await prisma.ingestionBatchObject.findFirst({
+    where: {
+      batch: { is: { principalKey, batchId } },
+      object: { is: { kind, sha256 } },
+    },
+    include: { object: true },
+  });
+
+  if (!claim) {
+    const batch = await prisma.ingestionBatch.findUnique({
+      where: { principalKey_batchId: { principalKey, batchId } },
+      select: { id: true },
+    });
+    if (!batch)
+      throw new PublicationObjectNotFoundError("Ingestion batch not found");
     throw new PublicationObjectNotFoundError("Object is not in this batch");
+  }
   if (claim.object.r2Key !== publicationObjectKey(kind, sha256)) {
     throw new PublicationObjectBadRequestError(
       "Stored object key does not match its content address",
     );
   }
-  return { batch, claim };
+  return claim;
 }
 
 export async function planPublicationObjects(input: {
@@ -198,7 +245,6 @@ export async function planPublicationObjects(input: {
 }) {
   const { payload } = input;
   const seen = new Set<string>();
-  const objects = [];
   for (const requested of payload.objects) {
     const lookupKey = `${requested.kind}:${requested.sha256}`;
     if (seen.has(lookupKey)) {
@@ -207,66 +253,115 @@ export async function planPublicationObjects(input: {
       );
     }
     seen.add(lookupKey);
-    const { claim } = await findOwnedBatchObject(
-      input.principal,
-      payload.batchId,
-      requested.kind,
-      requested.sha256,
-    );
-    const object = claim.object;
-    const headers = requiredHeaders({
-      contentType: claim.expectedContentType,
-      kind: object.kind,
-      sha256: claim.expectedSha256,
-    });
-    const verified = await verifyR2Object({
-      contentType: claim.expectedContentType,
-      kind: object.kind,
-      r2Key: object.r2Key,
-      sha256: claim.expectedSha256,
-      size: claim.expectedSize,
-    });
-    if (verified.ok) {
-      await prisma.publicationObject.update({
-        where: { id: object.id },
-        data: {
-          ...(object.status === "linked" ? {} : { status: "verified" }),
-          verifiedAt: new Date(),
-          lastError: null,
-        },
-      });
-      objects.push({
-        kind: object.kind,
-        sha256: object.sha256,
-        r2Key: object.r2Key,
-        status: "already_present" as const,
-        uploadUrl: null,
-        expiresAt: null,
-        requiredHeaders: headers,
-      });
-      continue;
+  }
+
+  const claims = await findOwnedBatchClaims(input.principal, payload.batchId);
+  const requestedObjects = payload.objects.map((requested) => {
+    const lookupKey = `${requested.kind}:${requested.sha256}`;
+    const claim = claims.get(lookupKey);
+    if (!claim)
+      throw new PublicationObjectNotFoundError("Object is not in this batch");
+    if (
+      claim.object.r2Key !==
+      publicationObjectKey(requested.kind, requested.sha256)
+    ) {
+      throw new PublicationObjectBadRequestError(
+        "Stored object key does not match its content address",
+      );
     }
-    const signed = await presignedPut({
-      contentType: claim.expectedContentType,
-      kind: object.kind,
-      r2Key: object.r2Key,
-      sha256: object.sha256,
-    });
-    await prisma.publicationObject.update({
-      where: { id: object.id },
-      data: { status: "pending", lastError: null },
-    });
-    objects.push({
-      kind: object.kind,
-      sha256: object.sha256,
-      r2Key: object.r2Key,
-      status: "upload_required" as const,
-      uploadUrl: signed.url,
-      expiresAt: signed.expiresAt,
-      requiredHeaders: signed.headers,
+    return { requested, claim };
+  });
+
+  const planned = await mapWithConcurrency(
+    requestedObjects,
+    OBJECT_OPERATION_CONCURRENCY,
+    async ({ claim }) => {
+      const object = claim.object;
+      const headers = requiredHeaders({
+        contentType: claim.expectedContentType,
+        kind: object.kind,
+        sha256: claim.expectedSha256,
+      });
+      const verified = await verifyR2Object({
+        contentType: claim.expectedContentType,
+        kind: object.kind,
+        r2Key: object.r2Key,
+        sha256: claim.expectedSha256,
+        size: claim.expectedSize,
+      });
+      if (verified.ok) {
+        return {
+          objectId: object.id,
+          linked: object.status === "linked",
+          storageStatus: "verified" as const,
+          response: {
+            kind: object.kind,
+            sha256: object.sha256,
+            r2Key: object.r2Key,
+            status: "already_present" as const,
+            uploadUrl: null,
+            expiresAt: null,
+            requiredHeaders: headers,
+          },
+        };
+      }
+      const signed = await presignedPut({
+        contentType: claim.expectedContentType,
+        kind: object.kind,
+        r2Key: object.r2Key,
+        sha256: object.sha256,
+      });
+      return {
+        objectId: object.id,
+        linked: false,
+        storageStatus: "pending" as const,
+        response: {
+          kind: object.kind,
+          sha256: object.sha256,
+          r2Key: object.r2Key,
+          status: "upload_required" as const,
+          uploadUrl: signed.url,
+          expiresAt: signed.expiresAt,
+          requiredHeaders: signed.headers,
+        },
+      };
+    },
+  );
+
+  const verifiedLinkedIds = planned
+    .filter((item) => item.storageStatus === "verified" && item.linked)
+    .map((item) => item.objectId);
+  const verifiedIds = planned
+    .filter((item) => item.storageStatus === "verified" && !item.linked)
+    .map((item) => item.objectId);
+  const pendingIds = planned
+    .filter((item) => item.storageStatus === "pending")
+    .map((item) => item.objectId);
+  const verifiedAt = new Date();
+
+  if (verifiedLinkedIds.length > 0) {
+    await prisma.publicationObject.updateMany({
+      where: { id: { in: verifiedLinkedIds } },
+      data: { verifiedAt, lastError: null },
     });
   }
-  return { batchId: payload.batchId, objects };
+  if (verifiedIds.length > 0) {
+    await prisma.publicationObject.updateMany({
+      where: { id: { in: verifiedIds }, status: { not: "linked" } },
+      data: { status: "verified", verifiedAt, lastError: null },
+    });
+  }
+  if (pendingIds.length > 0) {
+    await prisma.publicationObject.updateMany({
+      where: { id: { in: pendingIds } },
+      data: { status: "pending", lastError: null },
+    });
+  }
+
+  return {
+    batchId: payload.batchId,
+    objects: planned.map((item) => item.response),
+  };
 }
 
 export async function completePublicationObject(input: {
@@ -274,19 +369,13 @@ export async function completePublicationObject(input: {
   principal: PublicationIngestionServicePrincipal;
 }) {
   const { payload } = input;
-  const { claim } = await findOwnedBatchObject(
+  const claim = await findOwnedBatchObject(
     input.principal,
     payload.batchId,
     payload.kind,
     payload.sha256,
   );
   const object = claim.object;
-  if (object.status !== "linked") {
-    await prisma.publicationObject.update({
-      where: { id: object.id },
-      data: { status: "uploaded", lastError: null },
-    });
-  }
   const verified = await verifyR2Object({
     contentType: claim.expectedContentType,
     kind: object.kind,
@@ -304,17 +393,11 @@ export async function completePublicationObject(input: {
   await prisma.publicationObject.update({
     where: { id: object.id },
     data: {
-      ...(object.status === "linked" ? {} : { status: "verified" }),
+      ...(object.status === "linked" ? {} : { status: "linked" }),
       verifiedAt: new Date(),
       lastError: null,
     },
   });
-  if (object.status !== "linked") {
-    await prisma.publicationObject.update({
-      where: { id: object.id },
-      data: { status: "linked", verifiedAt: new Date(), lastError: null },
-    });
-  }
   return {
     batchId: payload.batchId,
     kind: object.kind,
