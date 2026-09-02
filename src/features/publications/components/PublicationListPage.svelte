@@ -1,14 +1,12 @@
 <script lang="ts">
-import ArrowRightIcon from "@lucide/svelte/icons/arrow-right";
 import SearchIcon from "@lucide/svelte/icons/search";
 import PageHeader from "$lib/components/PageHeader.svelte";
 import { Button } from "$lib/components/ui/button/index.js";
-import * as Card from "$lib/components/ui/card/index.js";
 import * as Empty from "$lib/components/ui/empty/index.js";
 import * as Field from "$lib/components/ui/field/index.js";
 import { Input } from "$lib/components/ui/input/index.js";
 import * as NativeSelect from "$lib/components/ui/native-select/index.js";
-import { Separator } from "$lib/components/ui/separator/index.js";
+import * as Table from "$lib/components/ui/table/index.js";
 import { formatShanghaiDate } from "$lib/time/shanghai-format";
 import PublicationPagination from "./PublicationPagination.svelte";
 import PublicationTypeBadge from "./PublicationTypeBadge.svelte";
@@ -78,12 +76,12 @@ function resultCount() {
     </Field.Field>
 
     <Field.Field class="gap-1">
-      <Field.Label for="publication-type">{copy.title}</Field.Label>
+      <Field.Label for="publication-type">{copy.publicationType}</Field.Label>
       <NativeSelect.Root
         id="publication-type"
         name="type"
         value={data.filters.type ?? ""}
-        aria-label={copy.title}
+        aria-label={copy.publicationType}
       >
         <NativeSelect.Option value="">{copy.all}</NativeSelect.Option>
         <NativeSelect.Option value="news">{copy.news}</NativeSelect.Option>
@@ -111,43 +109,50 @@ function resultCount() {
     </Empty.Root>
   {:else}
     <p class="text-sm text-muted-foreground">{resultCount()}</p>
-    <div class="grid gap-4" aria-label={copy.pageTitle}>
-      {#each data.publications.data as item (item.id)}
-        <Card.Root class="overflow-hidden">
-          <Card.Header class="gap-3">
-            <div class="flex flex-wrap items-center gap-2 text-sm">
-              <PublicationTypeBadge type={item.publicationType} {copy} />
-              <span class="text-muted-foreground">{item.source.name}</span>
-            </div>
-            <h2 class="text-xl leading-tight font-medium">
-              <a class="hover:underline" href={`/news/${item.id}`}>
-                {item.revision.title}
-              </a>
-            </h2>
-            {#if item.revision.summary}
-              <Card.Description class="line-clamp-3">
-                {item.revision.summary}
-              </Card.Description>
-            {/if}
-          </Card.Header>
-          <Card.Content class="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
-            <span>{copy.publishedAt}: {formatDate(item.revision.publishedAt)}</span>
-            {#if item.revision.updatedAtSource}
-              <Separator orientation="vertical" class="h-4" />
-              <span>{copy.updatedAt}: {formatDate(item.revision.updatedAtSource)}</span>
-            {/if}
-          </Card.Content>
-          <Card.Footer>
-            <a
-              class="inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:underline"
-              href={`/news/${item.id}`}
-            >
-              {copy.readMore}
-              <ArrowRightIcon data-icon="inline-end" aria-hidden="true" />
-            </a>
-          </Card.Footer>
-        </Card.Root>
-      {/each}
+    <div class="min-w-0 rounded-xl border bg-card">
+      <Table.Root containerLabel={copy.pageTitle} class="min-w-[60rem] table-fixed">
+        <Table.Caption class="sr-only">{resultCount()}</Table.Caption>
+        <Table.Header class="bg-muted/30">
+          <Table.Row>
+            <Table.Head class="w-24">{copy.publicationType}</Table.Head>
+            <Table.Head>{copy.headline}</Table.Head>
+            <Table.Head class="w-56">{copy.source}</Table.Head>
+            <Table.Head class="w-36">{copy.publishedAt}</Table.Head>
+            <Table.Head class="w-36">{copy.updatedAt}</Table.Head>
+          </Table.Row>
+        </Table.Header>
+        <Table.Body>
+          {#each data.publications.data as item (item.id)}
+            <Table.Row class="has-[a:hover]:bg-muted/50">
+              <Table.Cell class="align-top">
+                <PublicationTypeBadge type={item.publicationType} {copy} />
+              </Table.Cell>
+              <Table.Cell class="align-top">
+                <a
+                  class="font-medium text-foreground hover:underline"
+                  href={`/news/${item.id}`}
+                >
+                  {item.revision.title}
+                </a>
+                {#if item.revision.summary}
+                  <p class="mt-1 line-clamp-2 text-xs leading-relaxed text-muted-foreground">
+                    {item.revision.summary}
+                  </p>
+                {/if}
+              </Table.Cell>
+              <Table.Cell class="align-top text-muted-foreground">
+                {item.source.name}
+              </Table.Cell>
+              <Table.Cell class="align-top whitespace-nowrap tabular-nums text-muted-foreground">
+                {formatDate(item.revision.publishedAt)}
+              </Table.Cell>
+              <Table.Cell class="align-top whitespace-nowrap tabular-nums text-muted-foreground">
+                {formatDate(item.revision.updatedAtSource)}
+              </Table.Cell>
+            </Table.Row>
+          {/each}
+        </Table.Body>
+      </Table.Root>
     </div>
 
     {#if data.publications.pagination.totalPages > 1}

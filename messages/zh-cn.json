@@ -2687,6 +2687,8 @@
     "news": "新闻",
     "notice": "通知",
     "all": "全部",
+    "publicationType": "类型",
+    "headline": "标题与摘要",
     "source": "来源",
     "sourceId": "来源 ID",
     "search": "搜索",

@@ -28,6 +28,8 @@ export type PublicationPageCopy = {
   news: string;
   notice: string;
   all: string;
+  publicationType: string;
+  headline: string;
   source: string;
   sourceId: string;
   search: string;
