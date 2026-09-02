@@ -1,3 +1,10 @@
+## [1.103.1](https://github.com/Life-USTC/server/compare/v1.103.0...v1.103.1) (2026-09-02)
+
+
+### Bug Fixes
+
+* **young:** grant life_ustc_runtime SELECT on YoungEvent ([#1004](https://github.com/Life-USTC/server/issues/1004)) ([358eff4](https://github.com/Life-USTC/server/commit/358eff4a6a1d0ab263b6d84507143864d586b163))
+
 # [1.103.0](https://github.com/Life-USTC/server/compare/v1.102.1...v1.103.0) (2026-09-02)
 
 
