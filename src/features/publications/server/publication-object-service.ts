@@ -292,7 +292,6 @@ export async function planPublicationObjects(input: {
       if (verified.ok) {
         return {
           objectId: object.id,
-          linked: object.status === "linked",
           storageStatus: "verified" as const,
           response: {
             kind: object.kind,
@@ -328,27 +327,18 @@ export async function planPublicationObjects(input: {
     },
   );
 
-  const verifiedLinkedIds = planned
-    .filter((item) => item.storageStatus === "verified" && item.linked)
-    .map((item) => item.objectId);
   const verifiedIds = planned
-    .filter((item) => item.storageStatus === "verified" && !item.linked)
+    .filter((item) => item.storageStatus === "verified")
     .map((item) => item.objectId);
   const pendingIds = planned
     .filter((item) => item.storageStatus === "pending")
     .map((item) => item.objectId);
   const verifiedAt = new Date();
 
-  if (verifiedLinkedIds.length > 0) {
-    await prisma.publicationObject.updateMany({
-      where: { id: { in: verifiedLinkedIds } },
-      data: { verifiedAt, lastError: null },
-    });
-  }
   if (verifiedIds.length > 0) {
     await prisma.publicationObject.updateMany({
-      where: { id: { in: verifiedIds }, status: { not: "linked" } },
-      data: { status: "verified", verifiedAt, lastError: null },
+      where: { id: { in: verifiedIds } },
+      data: { status: "linked", verifiedAt, lastError: null },
     });
   }
   if (pendingIds.length > 0) {
