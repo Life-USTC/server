@@ -8,9 +8,10 @@
   },
   "rules": {
     "public-no-signin": "Young events are public campus activity information; sign-up itself still happens on young.ustc.edu.cn, so sign-in is not a prerequisite for browsing.",
-    "static-snapshot-sourced": "Events are scraped by the static repo (authenticated young.ustc.edu.cn enrolmentList/endList APIs) into the published SQLite snapshot and imported into Postgres by the static loader; the server never calls young.ustc.edu.cn at request time.",
+    "static-snapshot-sourced": "Events are scraped by the static repo (authenticated young.ustc.edu.cn enrolmentList/endList APIs) into the published SQLite snapshot and imported into Postgres by the static loader; the only request-time call to young.ustc.edu.cn is the poster-image proxy, which fetches the public /login/<pic> URL once and caches it in R2.",
     "snapshot-authoritative": "The static snapshot is authoritative; the loader upserts by upstream youngId and deletes events absent from the snapshot. An empty snapshot never wipes existing rows (treated as upstream breakage).",
     "raw-payload-preserved": "Curated columns cover the common fields; the complete upstream record stays available under rawJson for REST and MCP consumers.",
+    "image-proxy-cached": "The database stores the raw upstream `pic` path; the public imageUrl field is a local proxy path (/api/catalog/young-events/[youngId]/image). The proxy route lazily fetches https://young.ustc.edu.cn/login/<pic> on first miss, stores the bytes in the R2 publications bucket under young-events/images/<pic>, and serves them with immutable year-long cache headers. Origin failures return 502 and are never cached.",
     "shanghai-local-times": "Upstream datetimes are Asia/Shanghai local times; startAt/endAt/applyStartAt/applyEndAt are stored and returned as instants.",
     "read-only": "Events are imported facts; no transport exposes writes."
   },
@@ -28,13 +29,22 @@
             "returns": "paginated { youngId, name, category, department, organizer, status, location, imageUrl, hours, capacity, appliedCount, startAt, endAt, applyStartAt, applyEndAt, isActive }",
             "notes": [
               "Optional query parameters: active (true/false), category, search (name), page, pageSize.",
-              "Default order: signup-open (active) events first, then by startAt descending."
+              "Default order: signup-open (active) events first, then by startAt descending.",
+              "imageUrl is the local cached proxy path /api/catalog/young-events/[youngId]/image (null when the event has no poster)."
             ]
           },
           {
             "path": "/api/catalog/young-events/[youngId]",
             "returns": "single event including rawJson",
             "notes": ["404 when the youngId is unknown."]
+          },
+          {
+            "path": "/api/catalog/young-events/[youngId]/image",
+            "returns": "poster image bytes (Content-Type from the origin or the file extension)",
+            "notes": [
+              "Cache-aside proxy: serves the R2-cached copy under young-events/images/<pic> with immutable year-long cache headers and ETag/304 support; on a miss it fetches https://young.ustc.edu.cn/login/<pic> and stores the result.",
+              "404 when the youngId is unknown or the event has no image; 502 when the origin fetch fails (failures are not cached)."
+            ]
           }
         ]
       },

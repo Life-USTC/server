@@ -104,6 +104,30 @@ describe("young event service", () => {
     expect(event?.rawJson).toEqual({ id: 42, itemName: "秋日读书会" });
   });
 
+  it("maps a stored pic path to the local image proxy URL", async () => {
+    const withImage = {
+      ...RECORD,
+      imageUrl: "group1/M00/31/B5/wKgUEWpR3ciAJX_MAABnEoFLBaI860.jpg",
+    };
+    youngEventMock.findMany.mockResolvedValue([withImage]);
+    youngEventMock.count.mockResolvedValue(1);
+    youngEventMock.findUnique.mockResolvedValue({ ...withImage, rawJson: {} });
+
+    const listed = await listYoungEvents();
+    expect(listed.data[0]?.imageUrl).toBe("/api/catalog/young-events/42/image");
+
+    const detail = await getYoungEvent("42");
+    expect(detail?.imageUrl).toBe("/api/catalog/young-events/42/image");
+  });
+
+  it("keeps imageUrl null when the event has no poster", async () => {
+    youngEventMock.findMany.mockResolvedValue([RECORD]);
+    youngEventMock.count.mockResolvedValue(1);
+
+    const listed = await listYoungEvents();
+    expect(listed.data[0]?.imageUrl).toBeNull();
+  });
+
   it("lists distinct non-null categories in order", async () => {
     youngEventMock.findMany.mockResolvedValue([
       { category: "单次项目" },

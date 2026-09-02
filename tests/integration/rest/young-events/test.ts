@@ -7,10 +7,14 @@
  *   `limit` alias) filters.
  * - `GET /api/catalog/young-events/[youngId]` — Fetch one event by its
  *   young.ustc.edu.cn identifier.
+ * - `GET /api/catalog/young-events/[youngId]/image` — Poster image proxy backed
+ *   by an R2 cache; only deterministic error cases are covered here because a
+ *   cache miss fetches the live young.ustc.edu.cn origin.
  *
  * ## Response
  * - 200 list: `{ data: YoungEventSummary[], pagination: { page, pageSize, total, totalPages } }`
- * - 200 detail: `YoungEventDetail` (summary fields + `rawJson`)
+ * - 200 detail: `YoungEventDetail` (summary fields + `rawJson`); `imageUrl` is
+ *   the local proxy path `/api/catalog/young-events/[youngId]/image` or null
  * - 400: `{ error: string }` on invalid query
  * - 404: `{ error: string }` on unknown youngId
  *
@@ -20,9 +24,12 @@
  * ## Edge Cases
  * - The dev seed includes one active and one ended event
  *   (`DEV_SEED.youngEvent`), so search and filter assertions are deterministic.
+ * - The active seed event stores a poster pic path; the ended seed event has
+ *   none, so image 404s are deterministic.
  * - `totalPages` is always >= 1, even when total is 0
  */
 import { expect, test } from "@playwright/test";
+import { DEV_SEED } from "../../../e2e/utils/dev-seed";
 import { assertApiContract } from "../_shared/api-contract";
 
 test.describe("GET /api/catalog/young-events 接口", () => {
@@ -93,6 +100,35 @@ test.describe("GET /api/catalog/young-events 接口", () => {
   test("未知 youngId 返回 404", async ({ request }) => {
     const response = await request.get(
       "/api/catalog/young-events/e2e-unknown-young-id",
+    );
+    expect(response.status()).toBe(404);
+    const body = (await response.json()) as { error?: string };
+    expect(typeof body.error).toBe("string");
+  });
+
+  test("详情 imageUrl 指向本地缓存代理路径", async ({ request }) => {
+    const response = await request.get(
+      `/api/catalog/young-events/${DEV_SEED.youngEvent.youngId}`,
+    );
+    expect(response.status()).toBe(200);
+    const body = (await response.json()) as { imageUrl?: string | null };
+    expect(body.imageUrl).toBe(
+      `/api/catalog/young-events/${DEV_SEED.youngEvent.youngId}/image`,
+    );
+  });
+
+  test("未知 youngId 的海报返回 404", async ({ request }) => {
+    const response = await request.get(
+      "/api/catalog/young-events/e2e-unknown-young-id/image",
+    );
+    expect(response.status()).toBe(404);
+    const body = (await response.json()) as { error?: string };
+    expect(typeof body.error).toBe("string");
+  });
+
+  test("无海报的已结束活动返回 404", async ({ request }) => {
+    const response = await request.get(
+      "/api/catalog/young-events/dev-scenario-young-event-ended/image",
     );
     expect(response.status()).toBe(404);
     const body = (await response.json()) as { error?: string };

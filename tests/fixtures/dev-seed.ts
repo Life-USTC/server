@@ -128,6 +128,7 @@ export const DEV_SEED = {
     department: s.youngEvent.department,
     organizer: s.youngEvent.organizer,
     location: s.youngEvent.location,
+    imageUrl: s.youngEvent.imageUrl,
   },
 } as const;
 

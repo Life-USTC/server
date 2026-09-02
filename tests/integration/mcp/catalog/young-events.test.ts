@@ -97,7 +97,9 @@ describe("第二课堂活动", () => {
       page: 1,
     });
     const fullEvent = full.data?.find((item) => item.youngId === ACTIVE_ID);
-    expect(fullEvent?.imageUrl).toBe("https://example.com/pic.jpg");
+    expect(fullEvent?.imageUrl).toBe(
+      `/api/catalog/young-events/${ACTIVE_ID}/image`,
+    );
     expect(fullEvent?.department).toBe("校团委");
   });
 

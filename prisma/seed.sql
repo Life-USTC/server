@@ -649,7 +649,7 @@ INSERT INTO public."UserSectionSubscription" ("userId", "sectionId") VALUES ('cm
 -- Data for Name: YoungEvent; Type: TABLE DATA; Schema: public; Owner: -
 --
 
-INSERT INTO public."YoungEvent" ("youngId", name, category, department, organizer, status, "registrationStatus", location, "imageUrl", hours, capacity, "appliedCount", "startAt", "endAt", "applyStartAt", "applyEndAt", "isActive", "rawJson") VALUES ('dev-scenario-young-event', '第二课堂示例活动', '单次项目', '校团委', '学生会', '进行中', '报名中', '东区图书馆', NULL, 2, 30, 5, '2026-05-10 06:00:00+00', '2026-05-10 08:00:00+00', '2026-04-28 16:00:00+00', '2026-05-09 15:59:59+00', true, '{"id": "dev-scenario-young-event", "itemName": "第二课堂示例活动"}'::jsonb) ON CONFLICT DO NOTHING;
+INSERT INTO public."YoungEvent" ("youngId", name, category, department, organizer, status, "registrationStatus", location, "imageUrl", hours, capacity, "appliedCount", "startAt", "endAt", "applyStartAt", "applyEndAt", "isActive", "rawJson") VALUES ('dev-scenario-young-event', '第二课堂示例活动', '单次项目', '校团委', '学生会', '进行中', '报名中', '东区图书馆', 'group1/M00/31/B5/wKgUEWpR3ciAJX_MAABnEoFLBaI860.jpg', 2, 30, 5, '2026-05-10 06:00:00+00', '2026-05-10 08:00:00+00', '2026-04-28 16:00:00+00', '2026-05-09 15:59:59+00', true, '{"id": "dev-scenario-young-event", "itemName": "第二课堂示例活动", "pic": "group1/M00/31/B5/wKgUEWpR3ciAJX_MAABnEoFLBaI860.jpg"}'::jsonb) ON CONFLICT DO NOTHING;
 INSERT INTO public."YoungEvent" ("youngId", name, category, "isActive", "rawJson") VALUES ('dev-scenario-young-event-ended', '第二课堂已结束活动', '单次项目', false, '{"id": "dev-scenario-young-event-ended"}'::jsonb) ON CONFLICT DO NOTHING;
 
 -- Account-deletion tests intentionally exercise ON DELETE SET NULL. Restore

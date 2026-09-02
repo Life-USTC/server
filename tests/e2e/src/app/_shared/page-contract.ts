@@ -50,10 +50,25 @@ const API_REFERENCE_UI_QUALITY_EXCEPTIONS = {
   ],
 } satisfies UiQualityAllowlist;
 
+const YOUNG_EVENT_DETAIL_UI_QUALITY_EXCEPTIONS = {
+  "broken-image": [
+    {
+      match:
+        /^img: visible image (?:did not finish loading|has no decoded pixels): .*\/api\/catalog\/young-events\/[^/]+\/image$/,
+      reason:
+        "Poster images are proxied lazily from young.ustc.edu.cn on an R2 cache miss; CI network to the origin is not guaranteed.",
+    },
+  ],
+} satisfies UiQualityAllowlist;
+
 function getContractUiQuality(routePath: string): UiQualityAllowlist {
-  return routePath.startsWith("/api/docs")
-    ? API_REFERENCE_UI_QUALITY_EXCEPTIONS
-    : {};
+  if (routePath.startsWith("/api/docs")) {
+    return API_REFERENCE_UI_QUALITY_EXCEPTIONS;
+  }
+  if (routePath === "/catalog/young-events/[youngId]") {
+    return YOUNG_EVENT_DETAIL_UI_QUALITY_EXCEPTIONS;
+  }
+  return {};
 }
 
 function getContractWaitUntil(routePath: string) {

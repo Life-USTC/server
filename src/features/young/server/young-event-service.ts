@@ -66,6 +66,15 @@ function toShanghaiIso(date: Date | null): string | null {
   return date == null ? null : formatShanghaiTimestamp(date);
 }
 
+/**
+ * Local cache-aside proxy for the upstream poster image. The database stores
+ * the raw young.ustc.edu.cn `pic` path; the public field points at our own
+ * origin so clients never resolve the relative path against us directly.
+ */
+export function youngEventImageUrl(youngId: string) {
+  return `/api/catalog/young-events/${youngId}/image`;
+}
+
 function toYoungEventSummary(record: YoungEventRecord): YoungEventSummary {
   return {
     youngId: record.youngId,
@@ -76,7 +85,7 @@ function toYoungEventSummary(record: YoungEventRecord): YoungEventSummary {
     status: record.status,
     registrationStatus: record.registrationStatus,
     location: record.location,
-    imageUrl: record.imageUrl,
+    imageUrl: record.imageUrl ? youngEventImageUrl(record.youngId) : null,
     hours: record.hours,
     capacity: record.capacity,
     appliedCount: record.appliedCount,
