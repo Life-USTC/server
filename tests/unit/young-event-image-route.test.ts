@@ -21,6 +21,7 @@ vi.mock("@/lib/adapters/cloudflare-runtime", async (importOriginal) => ({
   getCloudflareR2PublicationsBucket: () => mocks.bucket,
 }));
 
+import { YOUNG_EVENT_IMAGE_MAX_BYTES } from "@/features/young/server/young-event-image-service";
 import { getYoungEventImageRoute } from "@/lib/api/routes/young-event-routes";
 
 const PIC_PATH = "group1/M00/31/B5/wKgUEWpR3ciAJX_MAABnEoFLBaI860.jpg";
@@ -161,6 +162,7 @@ describe("young event image route", () => {
     });
 
     expect(response.status).toBe(502);
+    expect(response.headers.get("Cache-Control")).toBe("public, max-age=60");
     const body = (await response.json()) as { error?: string };
     expect(typeof body.error).toBe("string");
     expect(mocks.bucket.put).not.toHaveBeenCalled();
@@ -174,6 +176,60 @@ describe("young event image route", () => {
     expect(mocks.bucket.put).not.toHaveBeenCalled();
   });
 
+  it("rejects a non-image origin content type without caching it", async () => {
+    mocks.bucket.head.mockResolvedValue(null);
+    mocks.fetchMock.mockResolvedValue(
+      new Response(stream("<html>error page</html>"), {
+        status: 200,
+        headers: { "Content-Type": "text/html; charset=utf-8" },
+      }),
+    );
+
+    const response = await getYoungEventImageRoute(new Request(ROUTE_URL), {
+      youngId: "42",
+    });
+
+    expect(response.status).toBe(502);
+    expect(mocks.bucket.put).not.toHaveBeenCalled();
+  });
+
+  it("rejects an origin response whose Content-Length exceeds the cap", async () => {
+    mocks.bucket.head.mockResolvedValue(null);
+    mocks.fetchMock.mockResolvedValue(
+      new Response(stream("tiny"), {
+        status: 200,
+        headers: {
+          "Content-Type": "image/jpeg",
+          "Content-Length": String(YOUNG_EVENT_IMAGE_MAX_BYTES + 1),
+        },
+      }),
+    );
+
+    const response = await getYoungEventImageRoute(new Request(ROUTE_URL), {
+      youngId: "42",
+    });
+
+    expect(response.status).toBe(502);
+    expect(mocks.bucket.put).not.toHaveBeenCalled();
+  });
+
+  it("rejects an origin body that exceeds the cap after reading", async () => {
+    mocks.bucket.head.mockResolvedValue(null);
+    mocks.fetchMock.mockResolvedValue(
+      new Response(stream("x".repeat(YOUNG_EVENT_IMAGE_MAX_BYTES + 1)), {
+        status: 200,
+        headers: { "Content-Type": "image/jpeg" },
+      }),
+    );
+
+    const response = await getYoungEventImageRoute(new Request(ROUTE_URL), {
+      youngId: "42",
+    });
+
+    expect(response.status).toBe(502);
+    expect(mocks.bucket.put).not.toHaveBeenCalled();
+  });
+
   it("responds 404 for an unknown youngId", async () => {
     mocks.youngEventFindUnique.mockResolvedValue(null);
 
@@ -182,6 +238,7 @@ describe("young event image route", () => {
     });
 
     expect(response.status).toBe(404);
+    expect(response.headers.get("Cache-Control")).toBe("public, max-age=300");
     const body = (await response.json()) as { error?: string };
     expect(typeof body.error).toBe("string");
     expect(mocks.bucket.head).not.toHaveBeenCalled();

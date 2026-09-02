@@ -83,7 +83,13 @@ export async function getYoungEventImageRoute(
       youngId: parsed.youngId,
       defer: options.defer,
     });
-    if (!result) return notFound("Young event image not found");
+    if (!result) {
+      // Short CDN caching on errors absorbs repeat misses without pinning a
+      // stale 404 if the event gains a poster later.
+      const response = notFound("Young event image not found");
+      response.headers.set("Cache-Control", "public, max-age=300");
+      return response;
+    }
     return result;
   } catch (error) {
     if (error instanceof YoungEventImageStorageUnavailableError) {
@@ -96,11 +102,13 @@ export async function getYoungEventImageRoute(
       return response;
     }
     if (error instanceof YoungEventImageOriginError) {
-      return handleRouteError(
+      const response = handleRouteError(
         "Failed to fetch young event image from origin",
         error,
         502,
       );
+      response.headers.set("Cache-Control", "public, max-age=60");
+      return response;
     }
     return handleRouteError("Failed to fetch young event image", error);
   }

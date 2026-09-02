@@ -17,6 +17,10 @@ export class YoungEventImageOriginError extends Error {
   readonly code = "young_event_image_origin_error";
 }
 
+/** Posters are small; cap origin reads so a bad response cannot exhaust the
+ * 128 MB Worker memory limit or flood the bucket. */
+export const YOUNG_EVENT_IMAGE_MAX_BYTES = 10 * 1024 * 1024;
+
 const IMAGE_PATH_SEGMENT = /^[A-Za-z0-9._~-]+$/;
 
 /**
@@ -140,13 +144,45 @@ export async function getYoungEventImageResponse(input: {
     );
   }
 
-  const contentType = origin.headers.get("Content-Type") ?? contentTypeFallback;
+  // Never persist non-image bytes under an immutable year-long cache: an
+  // upstream error page would become same-origin content on our domain.
+  const declaredType = origin.headers
+    .get("Content-Type")
+    ?.split(";")[0]
+    ?.trim()
+    .toLowerCase();
+  if (declaredType && !declaredType.startsWith("image/")) {
+    throw new YoungEventImageOriginError(
+      `Young event image origin returned non-image content type ${declaredType}`,
+    );
+  }
+  const contentType = declaredType ?? contentTypeFallback;
+  if (!contentType.startsWith("image/")) {
+    throw new YoungEventImageOriginError(
+      "Young event image origin content type is not an image",
+    );
+  }
+
+  const declaredLength = Number(origin.headers.get("Content-Length"));
+  if (
+    Number.isFinite(declaredLength) &&
+    declaredLength > YOUNG_EVENT_IMAGE_MAX_BYTES
+  ) {
+    throw new YoungEventImageOriginError(
+      `Young event image origin response exceeds ${YOUNG_EVENT_IMAGE_MAX_BYTES} bytes`,
+    );
+  }
   const body = await origin.arrayBuffer().catch((error: unknown) => {
     throw new YoungEventImageOriginError(
       "Failed to read young event image from origin",
       { cause: error },
     );
   });
+  if (body.byteLength > YOUNG_EVENT_IMAGE_MAX_BYTES) {
+    throw new YoungEventImageOriginError(
+      `Young event image origin response exceeds ${YOUNG_EVENT_IMAGE_MAX_BYTES} bytes`,
+    );
+  }
 
   const store = bucket.put(key, body, { httpMetadata: { contentType } });
   if (input.defer) {

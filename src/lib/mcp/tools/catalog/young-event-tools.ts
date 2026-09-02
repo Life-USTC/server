@@ -54,11 +54,14 @@ async function getYoungEventTool({
   }
 
   if (resolvedMode === "full") {
-    return jsonToolResult({ found: true, event }, { mode: "full" });
+    return jsonToolResult({ found: true, youngId, event }, { mode: "full" });
   }
 
   const { rawJson: _rawJson, ...summary } = event;
-  return jsonToolResult({ found: true, event: summary }, { mode: "default" });
+  return jsonToolResult(
+    { found: true, youngId, event: summary },
+    { mode: "default" },
+  );
 }
 
 export function registerYoungEventTools(server: McpServer) {

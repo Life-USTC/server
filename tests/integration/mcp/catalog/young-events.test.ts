@@ -18,7 +18,7 @@ beforeAll(async () => {
         status: "进行中",
         registrationStatus: "报名中",
         location: "东区图书馆",
-        imageUrl: "https://example.com/pic.jpg",
+        imageUrl: "group1/M00/31/B5/wKgUEWpR3ciAJX_MAABnEoFLBaI860.jpg",
         hours: 2,
         capacity: 30,
         appliedCount: 5,
