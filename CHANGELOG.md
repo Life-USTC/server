@@ -1,3 +1,10 @@
+## [1.102.1](https://github.com/Life-USTC/server/compare/v1.102.0...v1.102.1) (2026-09-02)
+
+
+### Bug Fixes
+
+* **news:** use table layout and link pagination ([4aec6f6](https://github.com/Life-USTC/server/commit/4aec6f64341e5155d522d7208066092b2f4f6648))
+
 # [1.102.0](https://github.com/Life-USTC/server/compare/v1.101.3...v1.102.0) (2026-09-02)
 
 
