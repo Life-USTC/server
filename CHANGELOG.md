@@ -1,3 +1,10 @@
+## [1.103.3](https://github.com/Life-USTC/server/compare/v1.103.2...v1.103.3) (2026-09-02)
+
+
+### Performance Improvements
+
+* **publications:** link existing objects during plan ([#1006](https://github.com/Life-USTC/server/issues/1006)) ([fecee34](https://github.com/Life-USTC/server/commit/fecee346b246f752f618ef86fa488e8acc8f66e3))
+
 ## [1.103.2](https://github.com/Life-USTC/server/compare/v1.103.1...v1.103.2) (2026-09-02)
 
 
