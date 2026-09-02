@@ -1,3 +1,10 @@
+## [1.103.4](https://github.com/Life-USTC/server/compare/v1.103.3...v1.103.4) (2026-09-02)
+
+
+### Performance Improvements
+
+* **publications:** reuse linked object verification ([#1007](https://github.com/Life-USTC/server/issues/1007)) ([6ba04d6](https://github.com/Life-USTC/server/commit/6ba04d640907b99f22b381d037986c1c77c1c2b4))
+
 ## [1.103.3](https://github.com/Life-USTC/server/compare/v1.103.2...v1.103.3) (2026-09-02)
 
 
