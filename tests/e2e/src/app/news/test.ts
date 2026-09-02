@@ -44,15 +44,54 @@ test.describe("/news 新闻与通知预览", () => {
       page.getByRole("searchbox", { name: /搜索|Search/i }),
     ).toBeVisible();
     await expect(
-      page.getByRole("heading", { name: fixture.title }),
+      page.getByRole("link", { name: fixture.title, exact: true }),
     ).toBeVisible();
     await expect(page.getByText(/新闻|News/i).first()).toBeVisible();
+    await expect(
+      page.getByRole("columnheader", { name: /类型|Type/i }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("columnheader", { name: /标题与摘要|Title and summary/i }),
+    ).toBeVisible();
 
     await page.getByRole("combobox").selectOption("notice");
     await page.getByRole("button", { name: /筛选|Filter/i }).click();
     await expect(
       page.getByText(/暂无公开内容|No public publications/i),
     ).toBeVisible();
+  });
+
+  test("分页使用链接导航并保留筛选条件", async ({ page }, testInfo) => {
+    const sourceQuery = `source=${encodeURIComponent(fixture.sourceId)}`;
+    await gotoAndWaitForReady(page, `/news?${sourceQuery}`, {
+      testInfo,
+      screenshotLabel: "news-pagination-first-page",
+    });
+
+    await expect(
+      page.locator("[data-slot='table-body'] [data-slot='table-row']"),
+    ).toHaveCount(20);
+    const nextPage = page.getByRole("link", { name: /下一页|Next page/i });
+    await expect(nextPage).toHaveAttribute(
+      "href",
+      `/news?${sourceQuery}&page=2`,
+    );
+    await nextPage.click();
+
+    await expect(page).toHaveURL(new RegExp(`/news\\?${sourceQuery}&page=2$`));
+    await expect(
+      page.locator("[data-slot='table-body'] [data-slot='table-row']"),
+    ).toHaveCount(fixture.total - 20);
+    const previousPage = page.getByRole("link", {
+      name: /上一页|Previous page/i,
+    });
+    await expect(previousPage).toHaveAttribute("href", `/news?${sourceQuery}`);
+    await expect(
+      page.getByRole("button", { name: /下一页|Next page/i }),
+    ).toBeDisabled();
+
+    await previousPage.click();
+    await expect(page).toHaveURL(new RegExp(`/news\\?${sourceQuery}$`));
   });
 
   test("详情页显示正文和来源链接", async ({ page }, testInfo) => {

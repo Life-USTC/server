@@ -1061,6 +1061,8 @@
     "news": "News",
     "notice": "Notice",
     "all": "All",
+    "publicationType": "Type",
+    "headline": "Title and summary",
     "source": "Source",
     "sourceId": "Source ID",
     "search": "Search",
