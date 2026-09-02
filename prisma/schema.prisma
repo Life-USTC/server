@@ -1865,3 +1865,30 @@ model WeatherObservation {
   @@unique([locationKey, observedAt])
   @@index([locationKey, observedAt])
 }
+
+model YoungEvent {
+  id Int @id @default(autoincrement())
+
+  youngId String @unique
+
+  name               String
+  category           String?
+  department         String?
+  organizer          String?
+  status             String?
+  registrationStatus String?
+  location           String?
+  imageUrl           String?
+  hours              Float?
+  capacity           Int?
+  appliedCount       Int?
+  startAt            DateTime? @db.Timestamp(0)
+  endAt              DateTime? @db.Timestamp(0)
+  applyStartAt       DateTime? @db.Timestamp(0)
+  applyEndAt         DateTime? @db.Timestamp(0)
+  isActive           Boolean
+  rawJson            Json
+
+  @@index([isActive, startAt])
+  @@index([category])
+}

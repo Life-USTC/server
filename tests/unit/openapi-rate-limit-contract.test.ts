@@ -46,6 +46,7 @@ const PROTECTED_MUTATIONS = [
 
 const EXPECTED_STORAGE_FAILURES = [
   ["get", "/api/publications/objects/{kind}/{sha256}"],
+  ["get", "/api/catalog/young-events/{youngId}/image"],
 ] as const;
 
 type Operation = {

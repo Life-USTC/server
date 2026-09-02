@@ -399,6 +399,53 @@ export async function assertApiContract(
       return;
     }
 
+    case "/api/catalog/young-events": {
+      const response = await request.get(
+        `/api/catalog/young-events?search=${encodeURIComponent(DEV_SEED.youngEvent.name)}`,
+      );
+      expect(response.status()).toBe(200);
+      const body = (await response.json()) as {
+        data?: Array<{
+          youngId?: string;
+          name?: string;
+          category?: string | null;
+          isActive?: boolean;
+        }>;
+        pagination?: { page?: number; total?: number; totalPages?: number };
+      };
+      expect(typeof body.pagination?.page).toBe("number");
+      expect(typeof body.pagination?.total).toBe("number");
+      expect(body.pagination?.totalPages).toBeGreaterThanOrEqual(1);
+      const event = body.data?.find(
+        (entry) => entry.youngId === DEV_SEED.youngEvent.youngId,
+      );
+      expect(event).toBeDefined();
+      expect(event?.name).toBe(DEV_SEED.youngEvent.name);
+      expect(event?.category).toBe(DEV_SEED.youngEvent.category);
+      expect(event?.isActive).toBe(true);
+      return;
+    }
+
+    case "/api/catalog/young-events/[youngId]": {
+      const response = await request.get(
+        `/api/catalog/young-events/${DEV_SEED.youngEvent.youngId}`,
+      );
+      expect(response.status()).toBe(200);
+      const body = (await response.json()) as {
+        youngId?: string;
+        name?: string;
+        rawJson?: unknown;
+      };
+      expect(body.youngId).toBe(DEV_SEED.youngEvent.youngId);
+      expect(body.name).toBe(DEV_SEED.youngEvent.name);
+      expect(body.rawJson).toBeDefined();
+      const missing = await request.get(
+        "/api/catalog/young-events/invalid-e2e",
+      );
+      expect(missing.status()).toBe(404);
+      return;
+    }
+
     case "/api/community/comments": {
       const section = await resolveSeedSectionMatch(request);
       const response = await request.get(

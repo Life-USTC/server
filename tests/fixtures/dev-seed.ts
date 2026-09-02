@@ -121,6 +121,15 @@ export const DEV_SEED = {
     recommendedDeparture: s.bus.recommendedDeparture,
   },
   suspensions: { reasonKeyword: s.suspensions.reasonKeyword },
+  youngEvent: {
+    youngId: s.youngEvent.youngId,
+    name: s.youngEvent.name,
+    category: s.youngEvent.category,
+    department: s.youngEvent.department,
+    organizer: s.youngEvent.organizer,
+    location: s.youngEvent.location,
+    imageUrl: s.youngEvent.imageUrl,
+  },
 } as const;
 
 export const DEV_SCENARIO_MARKER = "[DEV-SCENARIO]";

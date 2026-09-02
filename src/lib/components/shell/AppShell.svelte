@@ -17,6 +17,7 @@ import MapIcon from "@lucide/svelte/icons/map";
 import RouteIcon from "@lucide/svelte/icons/route";
 import ScrollTextIcon from "@lucide/svelte/icons/scroll-text";
 import SmartphoneIcon from "@lucide/svelte/icons/smartphone";
+import SparklesIcon from "@lucide/svelte/icons/sparkles";
 import TerminalIcon from "@lucide/svelte/icons/terminal";
 import UsersIcon from "@lucide/svelte/icons/users";
 import { onMount } from "svelte";
@@ -210,6 +211,11 @@ function buildShellNavGroups(
       ],
     },
     { href: "/catalog/links", icon: LinkIcon, label: copy.nav.links },
+    {
+      href: "/catalog/young-events",
+      icon: SparklesIcon,
+      label: copy.nav.youngEvents,
+    },
     { href: "/news", icon: ScrollTextIcon, label: copy.nav.news },
   ];
   const usageLinks: ShellLink[] = [
@@ -390,6 +396,11 @@ function buildMobileSecondaryNavGroups(
       href: "/catalog/links",
       icon: LinkIcon,
       label: copy.nav.links,
+    },
+    {
+      href: "/catalog/young-events",
+      icon: SparklesIcon,
+      label: copy.nav.youngEvents,
     },
     {
       href: "/news",

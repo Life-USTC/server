@@ -114,6 +114,8 @@ type Catalog {
   teacher(id: Int!): Teacher
   teachers(filter: TeacherFilter, page: PageInput): TeacherPage!
   weather(locationKey: String!): WeatherSnapshot
+  youngEvent(youngId: String!): YoungEvent
+  youngEvents(filter: YoungEventFilter, page: PageInput): YoungEventPage!
 }
 
 type CatalogLink {
@@ -823,4 +825,35 @@ type WorkspaceOverview {
   today: Date!
   todaySchedules: Int!
   upcomingExams: Int!
+}
+
+type YoungEvent {
+  appliedCount: Int
+  applyEndAt: DateTime
+  applyStartAt: DateTime
+  capacity: Int
+  category: String
+  department: String
+  endAt: DateTime
+  hours: Float
+  imageUrl: String
+  isActive: Boolean!
+  location: String
+  name: String!
+  organizer: String
+  registrationStatus: String
+  startAt: DateTime
+  status: String
+  youngId: String!
+}
+
+input YoungEventFilter {
+  active: Boolean
+  category: String
+  search: String
+}
+
+type YoungEventPage {
+  items: [YoungEvent!]!
+  pageInfo: PageInfo!
 }

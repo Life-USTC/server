@@ -16,6 +16,7 @@ import {
   compactTeacherTitle,
   compactTodo,
   compactUser,
+  compactYoungEvent,
 } from "./compact-entities";
 import {
   asRecordArray,
@@ -64,6 +65,10 @@ export function compactBusArrayItem(
 export function compactEntityArrayItem(
   value: Record<string, unknown>,
 ): CompactArrayMatch {
+  if (Object.hasOwn(value, "youngId")) {
+    return { matched: true, value: compactYoungEvent(value) };
+  }
+
   if (
     Object.hasOwn(value, "latitude") &&
     Object.hasOwn(value, "longitude") &&

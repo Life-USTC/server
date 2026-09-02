@@ -197,6 +197,10 @@
           {
             "name": "Weather",
             "tools": ["catalog_weather_get"]
+          },
+          {
+            "name": "Young Events",
+            "tools": ["catalog_young_event_list", "catalog_young_event_get"]
           }
         ]
       },

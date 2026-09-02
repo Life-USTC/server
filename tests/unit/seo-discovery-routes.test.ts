@@ -23,6 +23,9 @@ vi.mock("@/lib/db/prisma", () => ({
     teacher: {
       findMany: vi.fn(async () => [{ id: 1 }]),
     },
+    youngEvent: {
+      findMany: vi.fn(async () => [{ youngId: "young-1" }]),
+    },
   },
 }));
 

@@ -24,6 +24,7 @@ export function getDashboardPageCopy(locale: AppLocale) {
     subscriptions: copy.subscriptions,
     todos: copy.todos,
     weather: copy.weather,
+    youngEvents: copy.youngEvents,
   };
 }
 

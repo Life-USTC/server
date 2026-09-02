@@ -5,7 +5,7 @@ const SHA256_PATTERN = /^[a-f0-9]{64}$/;
 
 // Increment whenever mapper semantics change and existing imported rows must be
 // rebuilt even when the source snapshot itself is unchanged.
-export const STATIC_IMPORT_TRANSFORM_REVISION = 1;
+export const STATIC_IMPORT_TRANSFORM_REVISION = 2;
 
 type StaticImportStateTransaction = {
   staticImportState: Pick<
