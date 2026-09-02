@@ -1,3 +1,15 @@
+# [1.103.0](https://github.com/Life-USTC/server/compare/v1.102.1...v1.103.0) (2026-09-02)
+
+
+### Bug Fixes
+
+* **graphql:** update MCP operation manifest count after young events ops ([#1003](https://github.com/Life-USTC/server/issues/1003)) ([6450a9a](https://github.com/Life-USTC/server/commit/6450a9a347365c72b35b36fb305bb2ae1c5e8910)), closes [#997](https://github.com/Life-USTC/server/issues/997)
+
+
+### Features
+
+* **young:** expose second-classroom events across all interfaces ([#997](https://github.com/Life-USTC/server/issues/997)) ([9c22931](https://github.com/Life-USTC/server/commit/9c229318b7d58c8851bcb2e3d73839bd3e05fa43))
+
 ## [1.102.1](https://github.com/Life-USTC/server/compare/v1.102.0...v1.102.1) (2026-09-02)
 
 
