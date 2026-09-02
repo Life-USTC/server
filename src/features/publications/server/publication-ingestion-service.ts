@@ -441,13 +441,7 @@ async function ingestItem(
   });
 
   if (item.tombstone && !publication) {
-    return result(
-      item,
-      "rejected",
-      null,
-      null,
-      "cannot tombstone an unknown publication",
-    );
+    return result(item, "unchanged", null, null);
   }
 
   const incomingHash = item.revisionHash;

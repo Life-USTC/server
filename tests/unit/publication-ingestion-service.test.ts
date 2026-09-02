@@ -727,6 +727,39 @@ describe("publication ingestion transaction", () => {
     expect(fake.state.events.size).toBe(1);
   });
 
+  it("treats an unknown publication tombstone as an idempotent no-op", async () => {
+    const original = parsedFixture.items[0];
+    const payload = publicationIngestionBatchRequestSchema.parse({
+      ...parsedFixture,
+      batchId: "batch-unknown-publication-tombstone",
+      items: [
+        {
+          sourceId: original.sourceId,
+          canonicalUrl: original.canonicalUrl,
+          revisionHash: original.revisionHash,
+          observedAt: original.observedAt,
+          tombstone: true,
+        },
+      ],
+    });
+
+    const response = await ingestPublicationBatch({ payload, principal });
+
+    expect(response.results).toEqual([
+      {
+        canonicalUrl: original.canonicalUrl,
+        revisionHash: original.revisionHash,
+        sourceId: original.sourceId,
+        status: "unchanged",
+        publicationId: null,
+        revisionId: null,
+      },
+    ]);
+    expect(fake.state.publications.size).toBe(0);
+    expect(fake.state.revisions.size).toBe(0);
+    expect(fake.state.events.size).toBe(0);
+  });
+
   it("configures a transaction budget for the maximum valid batch size", async () => {
     const payload = publicationIngestionBatchRequestSchema.parse({
       ...parsedFixture,
