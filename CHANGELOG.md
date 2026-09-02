@@ -1,3 +1,10 @@
+## [1.103.2](https://github.com/Life-USTC/server/compare/v1.103.1...v1.103.2) (2026-09-02)
+
+
+### Bug Fixes
+
+* **publications:** make unknown tombstones idempotent ([#1005](https://github.com/Life-USTC/server/issues/1005)) ([9da42fd](https://github.com/Life-USTC/server/commit/9da42fd770791450eaa12dd8f4c188e24813c258))
+
 ## [1.103.1](https://github.com/Life-USTC/server/compare/v1.103.0...v1.103.1) (2026-09-02)
 
 
