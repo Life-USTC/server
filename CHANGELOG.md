@@ -1,3 +1,10 @@
+# [1.102.0](https://github.com/Life-USTC/server/compare/v1.101.3...v1.102.0) (2026-09-02)
+
+
+### Features
+
+* **weather:** move updated-at and data providers to page bottom-right ([#1001](https://github.com/Life-USTC/server/issues/1001)) ([f5b6bf2](https://github.com/Life-USTC/server/commit/f5b6bf29661db3525f208071190be70c9a816446))
+
 ## [1.101.3](https://github.com/Life-USTC/server/compare/v1.101.2...v1.101.3) (2026-09-01)
 
 
