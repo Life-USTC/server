@@ -59,6 +59,21 @@ const weekdayFormatter = $derived(
   createShanghaiDateTimeFormatter(locale, { weekday: "short" }),
 );
 
+const latestFetchedAt = $derived(
+  locations.reduce<string | undefined>(
+    (latest, { snapshot }) =>
+      snapshot &&
+      (!latest || Date.parse(snapshot.fetchedAt) > Date.parse(latest))
+        ? snapshot.fetchedAt
+        : latest,
+    undefined,
+  ),
+);
+
+const allProviders = $derived([
+  ...new Set(locations.flatMap(({ snapshot }) => snapshot?.providers ?? [])),
+]);
+
 function iconOf(condition: WeatherCondition | undefined) {
   return ICON_COMPONENTS[
     weatherConditionIcon(condition ?? { text: "", icon: "unknown" })
@@ -95,18 +110,9 @@ function formatTemperature(value: number) {
   {#each locations as { locationKey, snapshot } (locationKey)}
     <Panel>
       {#snippet header()}
-        <div class="flex items-baseline justify-between gap-3">
-          <h2 class="text-lg font-semibold">
-            {weatherCopy.locationNames[locationKey]}
-          </h2>
-          {#if snapshot}
-            <span class="text-muted-foreground text-sm">
-              {formatTemplate(weatherCopy.updatedAt, {
-                value: formatShanghaiTime(snapshot.fetchedAt),
-              })}
-            </span>
-          {/if}
-        </div>
+        <h2 class="text-lg font-semibold">
+          {weatherCopy.locationNames[locationKey]}
+        </h2>
       {/snippet}
 
       {#if !snapshot}
@@ -287,14 +293,22 @@ function formatTemperature(value: number) {
           </section>
         </div>
       {/if}
-
-      {#snippet footer()}
-        {#if snapshot}
-          <span class="text-muted-foreground text-xs">
-            {weatherCopy.dataProviders}: {snapshot.providers.join(", ")}
-          </span>
-        {/if}
-      {/snippet}
     </Panel>
   {/each}
 </div>
+
+{#if latestFetchedAt}
+  <div
+    class="text-muted-foreground mt-3 flex flex-wrap items-center justify-end gap-x-3 gap-y-1 text-xs"
+    data-testid="weather-page-meta"
+  >
+    <span>
+      {formatTemplate(weatherCopy.updatedAt, {
+        value: formatShanghaiTime(latestFetchedAt),
+      })}
+    </span>
+    {#if allProviders.length > 0}
+      <span>{weatherCopy.dataProviders}: {allProviders.join(", ")}</span>
+    {/if}
+  </div>
+{/if}
