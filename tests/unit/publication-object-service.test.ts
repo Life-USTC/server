@@ -246,6 +246,14 @@ describe("publication object completion", () => {
     expect(mocks.batchObjectFindFirst).not.toHaveBeenCalled();
     expect(mocks.objectUpdate).not.toHaveBeenCalled();
     expect(mocks.objectUpdateMany).toHaveBeenCalledTimes(1);
+    expect(mocks.objectUpdateMany).toHaveBeenCalledWith({
+      where: { id: { in: claims.map(({ object }) => object.id) } },
+      data: {
+        status: "linked",
+        verifiedAt: expect.any(Date),
+        lastError: null,
+      },
+    });
     expect(maxActiveHeads).toBeGreaterThan(1);
     expect(maxActiveHeads).toBeLessThanOrEqual(8);
   });
