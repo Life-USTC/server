@@ -6,6 +6,7 @@ import CableIcon from "@lucide/svelte/icons/cable";
 import CalendarDaysIcon from "@lucide/svelte/icons/calendar-days";
 import ChartBarIcon from "@lucide/svelte/icons/chart-bar";
 import ClipboardCheckIcon from "@lucide/svelte/icons/clipboard-check";
+import CloudSunIcon from "@lucide/svelte/icons/cloud-sun";
 import CompassIcon from "@lucide/svelte/icons/compass";
 import GavelIcon from "@lucide/svelte/icons/gavel";
 import GraduationCapIcon from "@lucide/svelte/icons/graduation-cap";
@@ -216,6 +217,11 @@ function buildShellNavGroups(
       icon: SparklesIcon,
       label: copy.nav.youngEvents,
     },
+    {
+      href: "/catalog/weather",
+      icon: CloudSunIcon,
+      label: copy.nav.weather,
+    },
     { href: "/news", icon: ScrollTextIcon, label: copy.nav.news },
   ];
   const usageLinks: ShellLink[] = [
@@ -401,6 +407,11 @@ function buildMobileSecondaryNavGroups(
       href: "/catalog/young-events",
       icon: SparklesIcon,
       label: copy.nav.youngEvents,
+    },
+    {
+      href: "/catalog/weather",
+      icon: CloudSunIcon,
+      label: copy.nav.weather,
     },
     {
       href: "/news",
