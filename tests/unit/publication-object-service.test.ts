@@ -194,6 +194,43 @@ describe("publication object completion", () => {
     });
   });
 
+  it("reuses a linked object's completed verification without reading R2", async () => {
+    const claim = {
+      expectedContentType: "text/plain",
+      expectedSha256: sha256OfAbc,
+      expectedSize: 3,
+      object: {
+        id: "object-1",
+        kind: "body_html" as const,
+        r2Key: `publications/body_html/sha256/ba/${sha256OfAbc}`,
+        sha256: sha256OfAbc,
+        status: "linked" as const,
+      },
+    };
+    mocks.batchFindUnique.mockResolvedValue({ objects: [claim] });
+
+    const planned = await planPublicationObjects({
+      principal,
+      payload: {
+        batchId: "batch-linked",
+        objects: [{ kind: "body_html", sha256: sha256OfAbc }],
+      },
+    });
+
+    expect(planned.objects).toEqual([
+      expect.objectContaining({
+        kind: "body_html",
+        sha256: sha256OfAbc,
+        status: "already_present",
+        uploadUrl: null,
+      }),
+    ]);
+    expect(mocks.getBucket).not.toHaveBeenCalled();
+    expect(mocks.bucket.head).not.toHaveBeenCalled();
+    expect(mocks.bucket.get).not.toHaveBeenCalled();
+    expect(mocks.objectUpdateMany).not.toHaveBeenCalled();
+  });
+
   it("plans a large request with one batch lookup and bounded R2 concurrency", async () => {
     const objectCount = 500;
     const claims = Array.from({ length: objectCount }, (_, index) => {

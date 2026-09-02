@@ -282,6 +282,21 @@ export async function planPublicationObjects(input: {
         kind: object.kind,
         sha256: claim.expectedSha256,
       });
+      if (object.status === "linked") {
+        return {
+          objectId: object.id,
+          storageStatus: "linked" as const,
+          response: {
+            kind: object.kind,
+            sha256: object.sha256,
+            r2Key: object.r2Key,
+            status: "already_present" as const,
+            uploadUrl: null,
+            expiresAt: null,
+            requiredHeaders: headers,
+          },
+        };
+      }
       const verified = await verifyR2Object({
         contentType: claim.expectedContentType,
         kind: object.kind,
