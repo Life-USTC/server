@@ -1,3 +1,10 @@
+# [1.104.0](https://github.com/Life-USTC/server/compare/v1.103.4...v1.104.0) (2026-09-02)
+
+
+### Features
+
+* **shell:** add campus weather link to sidebar catalog ([#1008](https://github.com/Life-USTC/server/issues/1008)) ([443dc2b](https://github.com/Life-USTC/server/commit/443dc2b1a80805d95d46daf5a9d30a5bcf67324d))
+
 ## [1.103.4](https://github.com/Life-USTC/server/compare/v1.103.3...v1.103.4) (2026-09-02)
 
 
