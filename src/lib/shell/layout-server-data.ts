@@ -15,6 +15,7 @@ const layoutMessages = {
     publications: enUsMessages.publications,
     profile: enUsMessages.profile,
     theme: enUsMessages.theme,
+    weather: enUsMessages.weather,
     youngEvents: enUsMessages.youngEvents,
   },
   "zh-cn": {
@@ -30,6 +31,7 @@ const layoutMessages = {
     publications: zhCnMessages.publications,
     profile: zhCnMessages.profile,
     theme: zhCnMessages.theme,
+    weather: zhCnMessages.weather,
     youngEvents: zhCnMessages.youngEvents,
   },
 };
@@ -70,6 +72,7 @@ export function buildLayoutCopy(locale: LayoutLocale) {
       news: messages.publications.title,
       todos: messages.meDashboard.nav.todos.title,
       transitMap: messages.metadata.pages.busMap,
+      weather: messages.weather.title,
       youngEvents: messages.youngEvents.title,
       mobileApp: messages.metadata.pages.mobileApp,
       prestoBot: messages.metadata.pages.prestoBot,
