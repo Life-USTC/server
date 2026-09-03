@@ -50,6 +50,7 @@ $: avatarOptions =
 $: currentImage = data.user.image ?? "";
 $: previewImage = selectedImage || currentImage || "/images/icon.png";
 $: selectedSectionIdSet = new Set(selectedSectionIds);
+$: selectedCount = selectedSectionIds.length;
 $: canMatch = importText.trim().length > 0 && !isMatching;
 $: semesterOptions = buildWelcomeSemesterOptions(data.semesters, data.locale);
 $: progressLabel = formatCopy(welcomeCopy.stepProgress, {
