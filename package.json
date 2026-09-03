@@ -60,7 +60,7 @@
     "@internationalized/date": "^3.12.3",
     "@lucide/svelte": "^1.31.0",
     "@modelcontextprotocol/sdk": "1.30.0",
-    "@prisma/adapter-pg": "7.9.1",
+    "@prisma/adapter-pg": "7.10.0",
     "@prisma/client": "7.9.1",
     "@scalar/api-reference": "^1.66.1",
     "better-auth": "1.7.2",
