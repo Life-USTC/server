@@ -357,7 +357,14 @@ export const persistedGraphqlOperationDefinitions = [
                 time
               }
             }
-            weekend {
+            saturday {
+              position
+              stopTimes {
+                stopOrder
+                time
+              }
+            }
+            sunday {
               position
               stopTimes {
                 stopOrder
@@ -367,12 +374,144 @@ export const persistedGraphqlOperationDefinitions = [
             weekdayPageInfo {
               ${pageInfoFields}
             }
-            weekendPageInfo {
+            saturdayPageInfo {
+              ${pageInfoFields}
+            }
+            sundayPageInfo {
               ${pageInfoFields}
             }
             alternateRoutes {
               ${busRouteFields}
             }
+          }
+        }
+      }
+    `,
+    scopes: [],
+  }),
+  query({
+    id: "catalog.weather.get.v1",
+    title: "Get weather",
+    description:
+      "Returns the merged weather snapshot for one USTC campus location.",
+    document: /* GraphQL */ `
+      query CatalogWeather($locationKey: String!) {
+        catalog {
+          weather(locationKey: $locationKey) {
+            location {
+              key
+              name
+              adcode
+            }
+            fetchedAt
+            providers
+            current {
+              temperature
+              feelsLike
+              humidity
+              windDirection
+              windSpeed
+              pressure
+              visibility
+              condition {
+                text
+                icon
+              }
+            }
+            hourly {
+              at
+              temperature
+              precipitationProbability
+              precipitationAmount
+              condition {
+                text
+                icon
+              }
+            }
+            daily {
+              date
+              temperatureHigh
+              temperatureLow
+              condition {
+                text
+                icon
+              }
+            }
+            alerts {
+              title
+              level
+              content
+              issuedAt
+            }
+          }
+        }
+      }
+    `,
+    scopes: [],
+  }),
+  query({
+    id: "catalog.young_event.list.v1",
+    title: "List Young events",
+    description:
+      "Lists second-classroom signup events from young.ustc.edu.cn with filters and bounded pagination.",
+    document: /* GraphQL */ `
+      query CatalogYoungEvents($page: PageInput, $filter: YoungEventFilter) {
+        catalog {
+          youngEvents(page: $page, filter: $filter) {
+            items {
+              youngId
+              name
+              category
+              department
+              organizer
+              status
+              registrationStatus
+              location
+              imageUrl
+              hours
+              capacity
+              appliedCount
+              startAt
+              endAt
+              applyStartAt
+              applyEndAt
+              isActive
+            }
+            pageInfo {
+              ${pageInfoFields}
+            }
+          }
+        }
+      }
+    `,
+    scopes: [],
+  }),
+  query({
+    id: "catalog.young_event.get.v1",
+    title: "Get Young event",
+    description:
+      "Returns one second-classroom signup event by its young.ustc.edu.cn identifier.",
+    document: /* GraphQL */ `
+      query CatalogYoungEvent($youngId: String!) {
+        catalog {
+          youngEvent(youngId: $youngId) {
+            youngId
+            name
+            category
+            department
+            organizer
+            status
+            registrationStatus
+            location
+            imageUrl
+            hours
+            capacity
+            appliedCount
+            startAt
+            endAt
+            applyStartAt
+            applyEndAt
+            isActive
           }
         }
       }

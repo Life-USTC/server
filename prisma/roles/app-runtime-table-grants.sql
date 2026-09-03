@@ -60,7 +60,57 @@ GRANT INSERT ON TABLE "DescriptionEdit" TO life_ustc_runtime;
 GRANT INSERT ON TABLE "AuditLog" TO life_ustc_runtime;
 
 GRANT SELECT, INSERT, UPDATE ON TABLE "UserSuspension" TO life_ustc_runtime;
+GRANT SELECT, INSERT, UPDATE ON TABLE
+  "PublicationSource",
+  "Publication",
+  "PublicationRevision",
+  "PublicationObject",
+  "PublicationObjectLink",
+  "IngestionRun",
+  "IngestionBatch",
+  "IngestionBatchObject",
+  "PublicationEventOutbox"
+TO life_ustc_runtime;
+
+DO $publication_ingestion_runtime_policies$
+DECLARE
+  table_name text;
+BEGIN
+  FOREACH table_name IN ARRAY ARRAY[
+    'PublicationSource',
+    'Publication',
+    'PublicationRevision',
+    'PublicationObject',
+    'PublicationObjectLink',
+    'IngestionRun',
+    'IngestionBatch',
+    'IngestionBatchObject',
+    'PublicationEventOutbox'
+  ]
+  LOOP
+    EXECUTE format(
+      'ALTER TABLE public.%I ENABLE ROW LEVEL SECURITY',
+      table_name
+    );
+    EXECUTE format(
+      'DROP POLICY IF EXISTS %I ON public.%I',
+      table_name || '_runtime_access',
+      table_name
+    );
+    EXECUTE format(
+      'CREATE POLICY %I ON public.%I FOR ALL TO life_ustc_runtime USING (true) WITH CHECK (true)',
+      table_name || '_runtime_access',
+      table_name
+    );
+  END LOOP;
+END
+$publication_ingestion_runtime_policies$;
+
 GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE "BusScheduleVersion"
+TO life_ustc_runtime;
+GRANT INSERT, UPDATE ON TABLE "BusCampus", "BusRoute"
+TO life_ustc_runtime;
+GRANT INSERT, DELETE ON TABLE "BusRouteStop", "BusTrip"
 TO life_ustc_runtime;
 GRANT UPDATE ("name", "username", "profilePictures", "isAdmin", "calendarFeedToken", "updatedAt") ON TABLE "User"
 TO life_ustc_runtime;

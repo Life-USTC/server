@@ -12,6 +12,7 @@ import {
   resolveCatalogListPublicSsrMode,
 } from "./features/catalog/lib/catalog-list-query";
 import { cleanupStaleUploadPendingStorage } from "./features/uploads/server/upload-pending-cleanup";
+import { runWeatherCronSnapshot } from "./features/weather/server/weather-cron";
 import {
   runWithCloudflareRuntimeEnv,
   setCloudflareRequestContext,
@@ -64,6 +65,8 @@ import { CONTENT_SIGNAL } from "./lib/seo/content-signal";
 const app = svelteKitWorker;
 const UPLOAD_PENDING_CLEANUP_CRON = "7 */2 * * *";
 const AUTH_RECORD_CLEANUP_CRON = "23 */6 * * *";
+const WEATHER_MAIN_CRON = "*/20 * * * *";
+const WEATHER_GAOXIN_CRON = "*/30 * * * *";
 
 function cacheablePublicResponse(response) {
   return (
@@ -558,6 +561,20 @@ export default {
               },
               elapsedMs(startMs),
             );
+            return;
+          }
+
+          if (controller.cron === WEATHER_MAIN_CRON) {
+            task = "weather-refresh-ustc-main";
+            const report = await runWeatherCronSnapshot("ustc-main");
+            logScheduledTaskFinish(task, report, elapsedMs(startMs));
+            return;
+          }
+
+          if (controller.cron === WEATHER_GAOXIN_CRON) {
+            task = "weather-refresh-ustc-gaoxin";
+            const report = await runWeatherCronSnapshot("ustc-gaoxin");
+            logScheduledTaskFinish(task, report, elapsedMs(startMs));
             return;
           }
 

@@ -103,7 +103,7 @@ export const busNextDeparturesQuerySchema = z.object({
   originCampusId: positiveCampusIdQuerySchema,
   destinationCampusId: positiveCampusIdQuerySchema,
   atTime: dateQuerySchema().optional(),
-  dayType: z.enum(["auto", "weekday", "weekend"]).optional(),
+  dayType: z.enum(["auto", "weekday", "saturday", "sunday"]).optional(),
   includeDeparted: booleanQuerySchema.optional(),
   limit: busNextDeparturesLimitSchema.optional(),
   versionKey: busVersionKeySchema.optional(),

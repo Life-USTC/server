@@ -54,7 +54,8 @@ describe("MCP full mode canonical shapes", () => {
       campuses: 0,
       routes: 0,
       weekdayTrips: 0,
-      weekendTrips: 0,
+      saturdayTrips: 0,
+      sundayTrips: 0,
     });
     expect(result.nextDepartures).toEqual([]);
     expect(result).toHaveProperty("nextDeparturesMessage");

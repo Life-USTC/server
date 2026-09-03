@@ -7,6 +7,8 @@ import { registerGraphqlResources } from "@/lib/graphql/resources";
 import { registerBusTools } from "@/lib/mcp/tools/bus/bus-tools";
 import { registerCourseTools } from "@/lib/mcp/tools/catalog/course-tools";
 import { registerSectionDataTools } from "@/lib/mcp/tools/catalog/section-data-tools";
+import { registerWeatherTools } from "@/lib/mcp/tools/catalog/weather-tools";
+import { registerYoungEventTools } from "@/lib/mcp/tools/catalog/young-event-tools";
 import { registerCommentTools } from "@/lib/mcp/tools/community/comment-tools";
 import { registerDescriptionTools } from "@/lib/mcp/tools/community/description-tools";
 import { registerGraphqlOperationTool } from "@/lib/mcp/tools/graphql/graphql-operation-tool";
@@ -50,6 +52,8 @@ export function createMcpServer() {
   registerCourseTools(server);
   registerDashboardTools(server);
   registerSectionDataTools(server);
+  registerWeatherTools(server);
+  registerYoungEventTools(server);
   registerMyDataTools(server);
   registerCalendarTools(server);
   registerGraphqlOperationTool(server);

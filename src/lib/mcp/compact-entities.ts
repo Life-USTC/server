@@ -34,6 +34,26 @@ export function compactTeacherTitle(value: unknown) {
   ]);
 }
 
+export function compactYoungEvent(value: unknown) {
+  if (!isRecord(value)) return value;
+  return pick(value, [
+    "youngId",
+    "name",
+    "category",
+    "status",
+    "registrationStatus",
+    "location",
+    "hours",
+    "capacity",
+    "appliedCount",
+    "startAt",
+    "endAt",
+    "applyStartAt",
+    "applyEndAt",
+    "isActive",
+  ]);
+}
+
 export function compactCourse(value: unknown) {
   if (!isRecord(value)) return value;
   return pick(value, [
@@ -264,7 +284,8 @@ export function compactBusRoute(value: unknown) {
       "descriptionSecondary",
       "routeId",
       "weekdayTrips",
-      "weekendTrips",
+      "saturdayTrips",
+      "sundayTrips",
       "stopCount",
     ]),
     ...compactArrayRelations(value, { stops: compactBusRouteStop }),

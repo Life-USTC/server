@@ -23,6 +23,8 @@ export function getDashboardPageCopy(locale: AppLocale) {
     sectionDetail: copy.sectionDetail,
     subscriptions: copy.subscriptions,
     todos: copy.todos,
+    weather: copy.weather,
+    youngEvents: copy.youngEvents,
   };
 }
 

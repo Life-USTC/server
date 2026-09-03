@@ -1,5 +1,9 @@
 import { GraphQLError } from "graphql";
 import { BUS_VERSION_KEY_PATTERN } from "@/features/bus/lib/bus-version-key";
+import {
+  WEATHER_LOCATIONS,
+  type WeatherLocationKey,
+} from "@/features/weather/server/weather-types";
 import { GRAPHQL_LIMITS } from "./constants";
 
 function badUserInput(message: string): never {
@@ -91,4 +95,36 @@ export function validateGraphqlVersionKey(value: string | null | undefined) {
     badUserInput("versionKey has an invalid format.");
   }
   return versionKey;
+}
+
+export function requireGraphqlYoungEventId(value: string): string {
+  const youngId = validateOptionalText(
+    value.trim(),
+    "youngId",
+    GRAPHQL_LIMITS.versionKeyChars,
+  );
+  if (!youngId) {
+    badUserInput("youngId must be a non-empty string.");
+  }
+  return youngId;
+}
+
+const WEATHER_LOCATION_KEYS = new Set(
+  WEATHER_LOCATIONS.map((location) => location.key),
+);
+
+export function validateGraphqlWeatherLocationKey(
+  value: string,
+): WeatherLocationKey {
+  const locationKey = validateOptionalText(
+    value,
+    "locationKey",
+    GRAPHQL_LIMITS.versionKeyChars,
+  ) as WeatherLocationKey | undefined;
+  if (!locationKey || !WEATHER_LOCATION_KEYS.has(locationKey)) {
+    badUserInput(
+      `locationKey must be one of: ${[...WEATHER_LOCATION_KEYS].join(", ")}.`,
+    );
+  }
+  return locationKey;
 }

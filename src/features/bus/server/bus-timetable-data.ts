@@ -17,6 +17,7 @@ import type {
 import { getBusPreference } from "./bus-preferences";
 import { getBusVersionTopology } from "./bus-route-records";
 import {
+  type BusVersionRuntime,
   findEffectiveBusVersion,
   findEffectiveBusVersionFromRecords,
   listEnabledBusVersionRecords,
@@ -43,6 +44,7 @@ function busVersionNotice(version: {
 function getStaticBusTimetableCacheKey(input: {
   dateKey: string;
   locale: string;
+  version: BusVersionRuntime;
   versionKey?: string | null;
 }) {
   return JSON.stringify([
@@ -51,31 +53,22 @@ function getStaticBusTimetableCacheKey(input: {
     input.versionKey == null
       ? { type: "auto" }
       : { key: input.versionKey, type: "explicit" },
+    {
+      id: input.version.id,
+      importedAt: input.version.importedAt.toISOString(),
+    },
   ]);
 }
 
 async function loadStaticBusTimetableData(input: {
-  dateKey: string;
   locale: BusTimetableInput["locale"];
-  versionKey?: string | null;
+  version: BusVersionRuntime;
+  versionRecords: BusVersionRuntime[];
 }): Promise<CachedStaticBusTimetableData | null> {
-  const versionRecordsPromise = listEnabledBusVersionRecords();
-  const explicitVersionPromise = input.versionKey
-    ? findEffectiveBusVersion(input.dateKey, input.versionKey)
-    : Promise.resolve(null);
-  const [versionRecords, explicitVersion] = await Promise.all([
-    versionRecordsPromise,
-    explicitVersionPromise,
-  ]);
-  const version = input.versionKey
-    ? explicitVersion
-    : findEffectiveBusVersionFromRecords(versionRecords, input.dateKey);
-  if (!version) return null;
-
   const [topology, tripRows] = await Promise.all([
-    getBusVersionTopology(input.locale ?? "zh-cn", version.id),
+    getBusVersionTopology(input.locale ?? "zh-cn", input.version.id),
     prisma.busTrip.findMany({
-      where: { versionId: version.id },
+      where: { versionId: input.version.id },
       orderBy: [{ dayType: "asc" }, { routeId: "asc" }, { position: "asc" }],
     }),
   ]);
@@ -100,19 +93,19 @@ async function loadStaticBusTimetableData(input: {
   return {
     locale,
     version: {
-      id: version.id,
-      key: version.key,
-      title: version.title,
-      effectiveFrom: version.effectiveFrom?.toISOString() ?? null,
-      effectiveUntil: version.effectiveUntil?.toISOString() ?? null,
-      importedAt: version.importedAt.toISOString(),
-      notice: busVersionNotice(version),
+      id: input.version.id,
+      key: input.version.key,
+      title: input.version.title,
+      effectiveFrom: input.version.effectiveFrom?.toISOString() ?? null,
+      effectiveUntil: input.version.effectiveUntil?.toISOString() ?? null,
+      importedAt: input.version.importedAt.toISOString(),
+      notice: busVersionNotice(input.version),
     },
     campuses: topology.campuses,
     routes,
     trips,
-    availableVersions: summarizeBusVersions(versionRecords),
-    notice: busVersionNotice(version),
+    availableVersions: summarizeBusVersions(input.versionRecords),
+    notice: busVersionNotice(input.version),
   };
 }
 
@@ -122,9 +115,23 @@ export async function getStaticBusTimetableData(
   const locale = input.locale ?? "zh-cn";
   const now = input.now ? shanghaiDayjs(input.now) : shanghaiDayjs();
   const dateKey = now.format("YYYY-MM-DD");
+  const versionRecordsPromise = listEnabledBusVersionRecords();
+  const explicitVersionPromise = input.versionKey
+    ? findEffectiveBusVersion(dateKey, input.versionKey)
+    : Promise.resolve(null);
+  const [versionRecords, explicitVersion] = await Promise.all([
+    versionRecordsPromise,
+    explicitVersionPromise,
+  ]);
+  const version = input.versionKey
+    ? explicitVersion
+    : findEffectiveBusVersionFromRecords(versionRecords, dateKey);
+  if (!version) return null;
+
   const cacheKey = getStaticBusTimetableCacheKey({
     dateKey,
     locale,
+    version,
     versionKey: input.versionKey,
   });
 
@@ -134,9 +141,9 @@ export async function getStaticBusTimetableData(
     getCanonicalOrigin(),
     () =>
       loadStaticBusTimetableData({
-        dateKey,
         locale,
-        versionKey: input.versionKey,
+        version,
+        versionRecords,
       }),
     {
       shouldCacheResult: (result) => result !== null,

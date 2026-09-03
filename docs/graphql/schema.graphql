@@ -75,10 +75,12 @@ type BusRouteStop {
 type BusRouteTimetable {
   alternateRoutes: [BusRoute!]!
   route: BusRoute!
+  saturday: [BusTripSlot!]!
+  saturdayPageInfo: PageInfo!
+  sunday: [BusTripSlot!]!
+  sundayPageInfo: PageInfo!
   weekday: [BusTripSlot!]!
   weekdayPageInfo: PageInfo!
-  weekend: [BusTripSlot!]!
-  weekendPageInfo: PageInfo!
 }
 
 type BusStopTime {
@@ -111,6 +113,9 @@ type Catalog {
   semesters(page: PageInput): SemesterPage!
   teacher(id: Int!): Teacher
   teachers(filter: TeacherFilter, page: PageInput): TeacherPage!
+  weather(locationKey: String!): WeatherSnapshot
+  youngEvent(youngId: String!): YoungEvent
+  youngEvents(filter: YoungEventFilter, page: PageInput): YoungEventPage!
 }
 
 type CatalogLink {
@@ -729,6 +734,60 @@ type UserProfile {
   username: String
 }
 
+type WeatherAlert {
+  content: String
+  issuedAt: DateTime
+  level: String
+  title: String!
+}
+
+type WeatherCondition {
+  icon: String!
+  text: String!
+}
+
+type WeatherCurrent {
+  condition: WeatherCondition!
+  feelsLike: Float
+  humidity: Float
+  pressure: Float
+  temperature: Float!
+  visibility: Float
+  windDirection: String
+  windSpeed: Float
+}
+
+type WeatherDaily {
+  condition: WeatherCondition
+  date: Date!
+  temperatureHigh: Float!
+  temperatureLow: Float!
+}
+
+type WeatherHourly {
+  at: DateTime!
+  condition: WeatherCondition
+  precipitationAmount: Float
+  precipitationProbability: Float
+  temperature: Float!
+}
+
+type WeatherLocation {
+  adcode: String!
+  key: String!
+  name: String!
+}
+
+type WeatherSnapshot {
+  alerts: [WeatherAlert!]!
+  current: WeatherCurrent!
+  daily: [WeatherDaily!]!
+  fetchedAt: DateTime!
+  hourly: [WeatherHourly!]!
+  location: WeatherLocation!
+  providers: [String!]!
+}
+
 type Workspace {
   exams(filter: ExamFilter, page: PageInput): ExamPage!
   homeworks(filter: HomeworkFilter, page: PageInput): HomeworkPage!
@@ -766,4 +825,35 @@ type WorkspaceOverview {
   today: Date!
   todaySchedules: Int!
   upcomingExams: Int!
+}
+
+type YoungEvent {
+  appliedCount: Int
+  applyEndAt: DateTime
+  applyStartAt: DateTime
+  capacity: Int
+  category: String
+  department: String
+  endAt: DateTime
+  hours: Float
+  imageUrl: String
+  isActive: Boolean!
+  location: String
+  name: String!
+  organizer: String
+  registrationStatus: String
+  startAt: DateTime
+  status: String
+  youngId: String!
+}
+
+input YoungEventFilter {
+  active: Boolean
+  category: String
+  search: String
+}
+
+type YoungEventPage {
+  items: [YoungEvent!]!
+  pageInfo: PageInfo!
 }

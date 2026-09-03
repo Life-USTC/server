@@ -97,7 +97,8 @@ export function findNextAvailableBusDeparture({
 function indexTripsByDayType(trips: BusTripSummary[]) {
   const tripsByDayType = {
     weekday: new Map<number, BusTripSummary[]>(),
-    weekend: new Map<number, BusTripSummary[]>(),
+    saturday: new Map<number, BusTripSummary[]>(),
+    sunday: new Map<number, BusTripSummary[]>(),
   } satisfies Record<ScheduleDayType, Map<number, BusTripSummary[]>>;
 
   for (const trip of trips) {

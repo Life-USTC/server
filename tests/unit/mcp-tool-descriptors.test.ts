@@ -17,6 +17,7 @@ import {
 } from "@/lib/mcp/tool-output-schemas";
 import { jsonToolResult } from "@/lib/mcp/tools/_shared/helpers";
 import { restReadScope, restWriteScope } from "@/lib/oauth/constants";
+import mcpContract from "../../docs/contracts/mcp.json";
 
 async function listTools() {
   const [clientTransport, serverTransport] =
@@ -342,11 +343,15 @@ describe("MCP tool descriptors", () => {
     expect(outputSchemaKeys(result, "catalog_bus_timetable_get")).toEqual(
       expect.arrayContaining(["availableVersions", "trips", "success"]),
     );
+    expect(outputSchemaKeys(result, "catalog_weather_get")).toEqual(
+      expect.arrayContaining(["location", "current", "hourly", "success"]),
+    );
     expect(outputSchemaKeys(result, "catalog_bus_route_get")).toEqual(
       expect.arrayContaining([
         "route",
         "weekday",
-        "weekend",
+        "saturday",
+        "sunday",
         "alternateRoutes",
       ]),
     );
@@ -408,6 +413,26 @@ describe("MCP tool descriptors", () => {
       "workspace_snapshot_get",
     );
     expect(description("workspace_schedule_next")).toContain("full mode");
+  });
+
+  it("describes personal calendar subscription without exposing a private feed URL", async () => {
+    const result = await listTools();
+    const description =
+      result.tools.find((tool) => tool.name === "workspace_calendar_feed_get")
+        ?.description ?? "";
+
+    expect(description).toBe(
+      "Get the current user's calendar subscription information and subscribed sections. This MCP tool never returns a personal iCal feed URL, calendar path, credential, or token. Subscribing is not official USTC enrollment.",
+    );
+    expect(description).not.toContain(
+      "Get subscribed sections and the personal iCal calendar feed URL",
+    );
+
+    expect(
+      mcpContract.capabilities["tool-groups"].mcp.groups
+        .flatMap((group) => group.tools)
+        .filter((name) => name === "community_comment_replies"),
+    ).toEqual(["community_comment_replies"]);
   });
 
   it("advertises the advisory homework writing convention", async () => {
@@ -1045,7 +1070,8 @@ describe("MCP tool descriptors", () => {
         campuses: 1,
         routes: 1,
         weekdayTrips: 1,
-        weekendTrips: 0,
+        saturdayTrips: 0,
+        sundayTrips: 0,
       },
       campuses: [
         {

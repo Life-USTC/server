@@ -3,7 +3,7 @@
  *
  * ## Behavior
  * - /bus is the canonical public planner; /dashboard/bus keeps saved preferences
- * - Public users get a client-side planner: weekday/weekend, start stop, end stop,
+ * - Public users get a client-side planner: weekday/Saturday/Sunday, start stop, end stop,
  *   reverse, and departed-trip toggle
  * - Applicable routes are ordered by the next bus available from the selected start stop
  * - Signed-in users have planner defaults auto-saved through /api/workspace/bus-preferences
@@ -388,7 +388,7 @@ test.describe("校车面板标签页", () => {
     await expect(page.locator("table").first()).toBeVisible();
   });
 
-  test("工作日/周末切换更新所选线路时刻表", async ({ page }, testInfo) => {
+  test("工作日/周日切换更新所选线路时刻表", async ({ page }, testInfo) => {
     await gotoAndWaitForReady(page, "/catalog/bus", {
       testInfo,
       screenshotLabel: "bus",
@@ -408,13 +408,13 @@ test.describe("校车面板标签页", () => {
     expect(weekdayRows).toBeGreaterThan(0);
 
     await page
-      .getByRole("radio", { name: /Weekend|周末/ })
+      .getByRole("radio", { name: /Sunday|周日/ })
       .first()
       .click();
     await expect(page.locator("tbody tr:visible").first()).toBeVisible();
-    const weekendRows = await page.locator("tbody tr:visible").count();
-    expect(weekendRows).toBeGreaterThan(0);
-    expect(weekendRows).not.toBe(weekdayRows);
+    const sundayRows = await page.locator("tbody tr:visible").count();
+    expect(sundayRows).toBeGreaterThan(0);
+    expect(sundayRows).not.toBe(weekdayRows);
 
     await captureStepScreenshot(page, testInfo, "bus-planner-daytype");
   });

@@ -67,8 +67,8 @@
             "returns": "{ success: Boolean, subscription?, message?: String }",
             "rest_equivalent": "GET /api/workspace/subscriptions/current",
             "notes": [
-              "Supplements calendarPath and calendarUrl on the same abstract entry.",
-              "Use full mode only when the caller explicitly needs the full subscribed section list on the same response."
+              "Returns subscription information and subscribed sections without a personal iCal feed URL, calendarPath, credential, or token.",
+              "Use full mode only when the caller explicitly needs the full subscribed section list on the same response; full mode still does not include the private feed URL."
             ]
           }
         ]

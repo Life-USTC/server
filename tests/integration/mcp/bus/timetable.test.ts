@@ -14,7 +14,8 @@ describe("catalog_bus_timetable_get", () => {
         campuses?: number;
         routes?: number;
         weekdayTrips?: number;
-        weekendTrips?: number;
+        saturdayTrips?: number;
+        sundayTrips?: number;
       };
       campuses?: Array<{ id?: number; namePrimary?: string }>;
       routes?: Array<{ id?: number; nameCn?: string }>;
@@ -37,7 +38,8 @@ describe("catalog_bus_timetable_get", () => {
     expect(typeof result.counts?.campuses).toBe("number");
     expect(typeof result.counts?.routes).toBe("number");
     expect(typeof result.counts?.weekdayTrips).toBe("number");
-    expect(typeof result.counts?.weekendTrips).toBe("number");
+    expect(typeof result.counts?.saturdayTrips).toBe("number");
+    expect(typeof result.counts?.sundayTrips).toBe("number");
     expect(result.campuses?.length).toBeGreaterThan(0);
     expect(result.routes?.length).toBeGreaterThan(0);
     expect(
@@ -54,7 +56,8 @@ describe("catalog_bus_timetable_get", () => {
         campuses?: number;
         routes?: number;
         weekdayTrips?: number;
-        weekendTrips?: number;
+        saturdayTrips?: number;
+        sundayTrips?: number;
       };
       campuses?: unknown[];
       routes?: unknown[];
@@ -100,7 +103,12 @@ describe("catalog_bus_timetable_get", () => {
         stopTimes?: unknown[];
       }>;
       availableVersions?: unknown[];
-      counts?: { routes?: number; weekdayTrips?: number };
+      counts?: {
+        routes?: number;
+        weekdayTrips?: number;
+        saturdayTrips?: number;
+        sundayTrips?: number;
+      };
       nextDepartures?: unknown[];
       nextDeparturesMessage?: string | null;
     }>("catalog_bus_timetable_get", {
@@ -116,6 +124,8 @@ describe("catalog_bus_timetable_get", () => {
     expect(result.availableVersions?.length).toBeGreaterThan(0);
     expect(typeof result.counts?.routes).toBe("number");
     expect(typeof result.counts?.weekdayTrips).toBe("number");
+    expect(typeof result.counts?.saturdayTrips).toBe("number");
+    expect(typeof result.counts?.sundayTrips).toBe("number");
     expect(Array.isArray(result.nextDepartures)).toBe(true);
     expect(result).toHaveProperty("nextDeparturesMessage");
 
@@ -129,7 +139,7 @@ describe("catalog_bus_timetable_get", () => {
       (t) => t.routeId === fixtures.DEV_SEED.bus.routeId,
     );
     expect(trip).toBeDefined();
-    expect(trip?.dayType).toMatch(/weekday|weekend/);
+    expect(trip?.dayType).toMatch(/weekday|saturday|sunday/);
   });
 
   it("支持通过 versionKey 指定版本", async () => {
@@ -221,7 +231,7 @@ describe("catalog_bus_route_list", () => {
 });
 
 describe("catalog_bus_route_get", () => {
-  it("返回指定路线的平日与周末时刻表", async () => {
+  it("返回指定路线的平日与周日时刻表", async () => {
     const result = await context.client.call<{
       route?: {
         id?: number;
@@ -232,7 +242,11 @@ describe("catalog_bus_route_get", () => {
         position?: number;
         stopTimes?: Array<{ stopOrder?: number; time?: string | null }>;
       }>;
-      weekend?: Array<{
+      saturday?: Array<{
+        position?: number;
+        stopTimes?: Array<{ stopOrder?: number; time?: string | null }>;
+      }>;
+      sunday?: Array<{
         position?: number;
         stopTimes?: Array<{ stopOrder?: number; time?: string | null }>;
       }>;
@@ -247,15 +261,16 @@ describe("catalog_bus_route_get", () => {
     expect(typeof result.route?.nameCn).toBe("string");
     expect(result.route?.stops?.length).toBeGreaterThan(0);
     expect(Array.isArray(result.weekday)).toBe(true);
-    expect(Array.isArray(result.weekend)).toBe(true);
+    expect(Array.isArray(result.saturday)).toBe(true);
+    expect(Array.isArray(result.sunday)).toBe(true);
 
     if (result.weekday && result.weekday.length > 0) {
       expect(result.weekday[0]?.stopTimes?.length).toBeGreaterThan(0);
       expect(typeof result.weekday[0]?.stopTimes?.[0]?.time).toBe("string");
     }
 
-    if (result.weekend && result.weekend.length > 0) {
-      expect(result.weekend[0]?.stopTimes?.length).toBeGreaterThan(0);
+    if (result.sunday && result.sunday.length > 0) {
+      expect(result.sunday[0]?.stopTimes?.length).toBeGreaterThan(0);
     }
 
     expect(Array.isArray(result.alternateRoutes)).toBe(true);

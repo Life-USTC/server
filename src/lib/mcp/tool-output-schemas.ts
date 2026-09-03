@@ -76,6 +76,12 @@ import {
   uploadSummarySchema,
   uploadsListResponseSchema,
 } from "@/lib/api/schemas/uploads-response-schemas";
+import { weatherSnapshotResponseSchema } from "@/lib/api/schemas/weather-response-schemas";
+import {
+  paginatedYoungEventResponseSchema,
+  youngEventDetailSchema,
+  youngEventSummarySchema,
+} from "@/lib/api/schemas/young-event-schemas";
 
 type OutputShape = Record<string, z.ZodType>;
 
@@ -510,7 +516,8 @@ const compactBusRouteSchema = compactObjectSchema({
   descriptionPrimary: z.string().nullable(),
   descriptionSecondary: z.string().nullable(),
   weekdayTrips: z.number().int().nonnegative(),
-  weekendTrips: z.number().int().nonnegative(),
+  saturdayTrips: z.number().int().nonnegative(),
+  sundayTrips: z.number().int().nonnegative(),
   stopCount: z.number().int().nonnegative(),
   stops: z.array(z.unknown()),
   originCampus: compactCampusSchema.nullable(),
@@ -657,7 +664,8 @@ const busCountsSchema = z.strictObject({
   campuses: z.number().int().nonnegative(),
   routes: z.number().int().nonnegative(),
   weekdayTrips: z.number().int().nonnegative(),
-  weekendTrips: z.number().int().nonnegative(),
+  saturdayTrips: z.number().int().nonnegative(),
+  sundayTrips: z.number().int().nonnegative(),
 });
 
 const compactBusRouteCoreSchema = z.strictObject({
@@ -705,6 +713,58 @@ const busTimetableFullSchema = z.union([
     message: z.string(),
   }),
 ]);
+
+const weatherNoDataSchema = z.strictObject({
+  success: z.literal(true),
+  locationKey: z.enum(["ustc-main", "ustc-gaoxin"]),
+  hasData: z.literal(false),
+  message: z.string(),
+});
+
+const weatherDefaultSchema = z.union([
+  z.strictObject({
+    ...weatherSnapshotResponseSchema.omit({ extensions: true }).shape,
+    success: z.literal(true),
+  }),
+  weatherNoDataSchema,
+]);
+
+const weatherFullSchema = z.union([
+  z.strictObject({
+    ...weatherSnapshotResponseSchema.shape,
+    success: z.literal(true),
+  }),
+  weatherNoDataSchema,
+]);
+
+const compactYoungEventSchema = youngEventSummarySchema.omit({
+  department: true,
+  organizer: true,
+  imageUrl: true,
+});
+
+const youngEventPaginationSchema =
+  paginatedYoungEventResponseSchema.shape.pagination;
+
+const youngEventListDefaultSchema = objectOutputSchema({
+  data: z.array(compactYoungEventSchema),
+  pagination: youngEventPaginationSchema,
+});
+
+const youngEventListFullSchema = objectOutputSchema({
+  data: z.array(youngEventSummarySchema),
+  pagination: youngEventPaginationSchema,
+});
+
+const youngEventGetDefaultSchema = objectOutputSchema({
+  youngId: z.string(),
+  event: youngEventSummarySchema.nullable(),
+});
+
+const youngEventGetFullSchema = objectOutputSchema({
+  youngId: z.string(),
+  event: youngEventDetailSchema.nullable(),
+});
 
 const compactSectionSummarySchema = z.strictObject({
   id: z.number().int(),
@@ -1143,6 +1203,18 @@ const nonAcademicModeOutputSchemas = {
   catalog_bus_timetable_get: {
     default: busTimetableDefaultSchema,
     full: busTimetableFullSchema,
+  },
+  catalog_weather_get: {
+    default: weatherDefaultSchema,
+    full: weatherFullSchema,
+  },
+  catalog_young_event_list: {
+    default: youngEventListDefaultSchema,
+    full: youngEventListFullSchema,
+  },
+  catalog_young_event_get: {
+    default: youngEventGetDefaultSchema,
+    full: youngEventGetFullSchema,
   },
 } satisfies Record<string, Record<"default" | "full", McpToolOutputSchema>>;
 
@@ -1633,6 +1705,21 @@ const TOOL_OUTPUT_SCHEMAS: Record<string, McpToolOutputSchema> = {
     ]),
     hasData: z.boolean(),
   }),
+  catalog_weather_get: objectOutputSchema({
+    ...weatherSnapshotResponseSchema.shape,
+    locationKey: z.enum(["ustc-main", "ustc-gaoxin"]),
+    hasData: z.boolean(),
+  }),
+  catalog_young_event_list: objectOutputSchema({
+    data: z.array(z.union([compactYoungEventSchema, youngEventSummarySchema])),
+    pagination: youngEventPaginationSchema,
+  }),
+  catalog_young_event_get: objectOutputSchema({
+    youngId: z.string(),
+    event: z
+      .union([youngEventSummarySchema, youngEventDetailSchema])
+      .nullable(),
+  }),
   catalog_bus_route_list: objectOutputSchema({
     locale: z.string(),
     version: z.unknown(),
@@ -1644,7 +1731,8 @@ const TOOL_OUTPUT_SCHEMAS: Record<string, McpToolOutputSchema> = {
     routeId: z.number().int(),
     route: compactBusRouteSchema,
     weekday: collectionOutputSchema(z.unknown()),
-    weekend: collectionOutputSchema(z.unknown()),
+    saturday: collectionOutputSchema(z.unknown()),
+    sunday: collectionOutputSchema(z.unknown()),
     alternateRoutes: collectionOutputSchema(compactBusRouteSchema),
     hasData: z.boolean(),
   }),
@@ -1659,7 +1747,7 @@ const TOOL_OUTPUT_SCHEMAS: Record<string, McpToolOutputSchema> = {
   }),
   catalog_bus_departure_next: objectOutputSchema({
     atTime: dateTimeSchema,
-    dayType: z.enum(["weekday", "weekend"]),
+    dayType: z.enum(["weekday", "saturday", "sunday"]),
     totalRoutes: z.number().int().nonnegative(),
     departures: collectionOutputSchema(compactBusTripSchema),
     nextAvailableDeparture: compactBusTripSchema.nullable(),

@@ -133,6 +133,13 @@ const TOOL_SCOPE_MAP: Record<string, ToolScopeRequirement[]> = {
   catalog_bus_route_search: [],
   catalog_bus_departure_next: [],
 
+  // Weather
+  catalog_weather_get: [],
+
+  // Young events
+  catalog_young_event_list: [],
+  catalog_young_event_get: [],
+
   // Course catalog
   catalog_course_search: [],
   catalog_course_get: [],

@@ -6,6 +6,7 @@ import CableIcon from "@lucide/svelte/icons/cable";
 import CalendarDaysIcon from "@lucide/svelte/icons/calendar-days";
 import ChartBarIcon from "@lucide/svelte/icons/chart-bar";
 import ClipboardCheckIcon from "@lucide/svelte/icons/clipboard-check";
+import CloudSunIcon from "@lucide/svelte/icons/cloud-sun";
 import CompassIcon from "@lucide/svelte/icons/compass";
 import GavelIcon from "@lucide/svelte/icons/gavel";
 import GraduationCapIcon from "@lucide/svelte/icons/graduation-cap";
@@ -17,6 +18,7 @@ import MapIcon from "@lucide/svelte/icons/map";
 import RouteIcon from "@lucide/svelte/icons/route";
 import ScrollTextIcon from "@lucide/svelte/icons/scroll-text";
 import SmartphoneIcon from "@lucide/svelte/icons/smartphone";
+import SparklesIcon from "@lucide/svelte/icons/sparkles";
 import TerminalIcon from "@lucide/svelte/icons/terminal";
 import UsersIcon from "@lucide/svelte/icons/users";
 import { onMount } from "svelte";
@@ -213,6 +215,17 @@ function buildShellNavGroups(
       ],
     },
     { href: "/catalog/links", icon: LinkIcon, label: copy.nav.links },
+    {
+      href: "/catalog/young-events",
+      icon: SparklesIcon,
+      label: copy.nav.youngEvents,
+    },
+    {
+      href: "/catalog/weather",
+      icon: CloudSunIcon,
+      label: copy.nav.weather,
+    },
+    { href: "/news", icon: ScrollTextIcon, label: copy.nav.news },
   ];
   const usageLinks: ShellLink[] = [
     {
@@ -394,6 +407,21 @@ function buildMobileSecondaryNavGroups(
       label: copy.nav.links,
     },
     {
+      href: "/catalog/young-events",
+      icon: SparklesIcon,
+      label: copy.nav.youngEvents,
+    },
+    {
+      href: "/catalog/weather",
+      icon: CloudSunIcon,
+      label: copy.nav.weather,
+    },
+    {
+      href: "/news",
+      icon: ScrollTextIcon,
+      label: copy.nav.news,
+    },
+    {
       href: "/catalog/sections",
       icon: RouteIcon,
       items: pathname.startsWith("/catalog/sections/")
@@ -474,6 +502,9 @@ function isActiveLink(link: ShellLink) {
 
   if (target.pathname === "/workspace/overview") {
     return pathname === "/workspace" || pathname === "/workspace/overview";
+  }
+  if (target.pathname === "/news") {
+    return pathname === "/news" || pathname.startsWith("/news/");
   }
   if (target.pathname.startsWith("/workspace/")) {
     return pathname === target.pathname;

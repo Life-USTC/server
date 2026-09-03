@@ -1,0 +1,42 @@
+{
+  "protocolVersion": "1",
+  "producerVersion": "crawler-fixture/1",
+  "clientRunId": "fixture-run-2026-09-01",
+  "batchId": "fixture-batch-2026-09-01",
+  "observedAt": "2026-09-01T10:00:00+08:00",
+  "sources": [
+    {
+      "id": "ustc-news",
+      "name": "USTC News",
+      "organizationLevel": "university",
+      "allowedHosts": ["news.ustc.edu.cn"],
+      "blockedHosts": [],
+      "seedUrls": ["https://news.ustc.edu.cn/"],
+      "aliases": [],
+      "discoveryOnly": false,
+      "maxImagesPerPage": 20
+    }
+  ],
+  "items": [
+    {
+      "sourceId": "ustc-news",
+      "canonicalUrl": "https://news.ustc.edu.cn/example/fixture-news.html",
+      "revisionHash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "observedAt": "2026-09-01T10:00:00+08:00",
+      "tombstone": false,
+      "publicationType": "news",
+      "title": "Fixture publication",
+      "author": null,
+      "publishedAt": "2026-08-31T00:00:00+08:00",
+      "updatedAtSource": "2026-09-01T09:30:00+08:00",
+      "category": "Campus",
+      "summary": "A deterministic contract fixture.",
+      "bodyText": "Fixture body",
+      "sourcePageUrl": "https://news.ustc.edu.cn/example/fixture-news.html",
+      "extractionMethod": "fixture",
+      "classifierVersion": "fixture/1",
+      "rawMetadata": { "fixture": true },
+      "objects": []
+    }
+  ]
+}

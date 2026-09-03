@@ -12,7 +12,7 @@ import BusCampusPickerGroup from "./BusCampusPickerGroup.svelte";
 
 export let bus: DashboardBusData;
 export let busCopy: DashboardBusCopy;
-export let busDayType: "weekday" | "weekend";
+export let busDayType: "weekday" | "saturday" | "sunday";
 export let busEndCampusId: number | null;
 export let busPlannerReady: boolean;
 export let busShowDepartedTrips: boolean;
@@ -20,7 +20,7 @@ export let busStartCampusId: number | null;
 export let reverseBusStops: () => void;
 export let selectBusEnd: (campusId: number) => void;
 export let selectBusStart: (campusId: number) => void;
-export let setBusDayType: (dayType: "weekday" | "weekend") => void;
+export let setBusDayType: (dayType: "weekday" | "saturday" | "sunday") => void;
 export let toggleBusDepartedTrips: () => void;
 </script>
 
@@ -72,13 +72,19 @@ export let toggleBusDepartedTrips: () => void;
         </Field.Title>
         <ToggleGroup.Root
           aria-labelledby="bus-day-type-label"
-          class="grid w-full grid-cols-2"
+          class="grid w-full grid-cols-3"
           spacing={2}
           type="single"
           value={busDayType}
           variant="outline"
           onValueChange={(value) => {
-            if (value === "weekday" || value === "weekend") setBusDayType(value);
+            if (
+              value === "weekday" ||
+              value === "saturday" ||
+              value === "sunday"
+            ) {
+              setBusDayType(value);
+            }
           }}
         >
           <ToggleGroup.Item
@@ -91,9 +97,16 @@ export let toggleBusDepartedTrips: () => void;
           <ToggleGroup.Item
             class="h-11 md:h-8"
             disabled={!busPlannerReady}
-            value="weekend"
+            value="saturday"
           >
-            {busCopy.dayType.weekend}
+            {busCopy.dayType.saturday}
+          </ToggleGroup.Item>
+          <ToggleGroup.Item
+            class="h-11 md:h-8"
+            disabled={!busPlannerReady}
+            value="sunday"
+          >
+            {busCopy.dayType.sunday}
           </ToggleGroup.Item>
         </ToggleGroup.Root>
       </Field.Field>

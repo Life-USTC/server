@@ -73,6 +73,7 @@
           "account.profile / account.clientActivity",
           "catalog.courses / catalog.sections / catalog.teachers",
           "catalog.semesters / catalog.currentSemester / catalog.bus",
+          "catalog.youngEvents / catalog.youngEvent",
           "community.user / community.comments / community.description",
           "workspace.overview / workspace.todos",
           "workspace.subscriptions / workspace.homeworks",

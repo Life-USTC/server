@@ -1,0 +1,121 @@
+{
+  "name": "Publications / Public Read and Crawler Ingestion",
+  "access": {
+    "anon": "May read published news and notices, including verified linked media and attachments; cannot write or inspect crawler ingestion data.",
+    "user": "May use the same anonymous public read surface. Crawler writes use a dedicated Worker secret and are not user-authenticated.",
+    "admin": "May read the public surface. The publication crawler is a machine principal authenticated by a dedicated Worker secret.",
+    "agent": "A crawler submits REST ingestion requests with the X-Publication-Ingestion-Secret header. Public reads are anonymous REST/Web capabilities; ingestion remains a REST-only crawler exception and is not a Web, GraphQL, or MCP capability."
+  },
+  "rules": {
+    "public-read": "Anonymous reads expose only non-deleted publications whose effective type is news or notice. The list supports optional type=news|notice, source, query, page, and pageSize filters; detail addresses are public by publication id. Deleted publications and other are never returned by this surface.",
+    "public-object-read": "A private R2 object is readable only when its content-addressed key is tied to a linked or verified object and an object link on a non-tombstone revision of a non-deleted news or notice publication. The Worker checks this relationship before reading R2; missing objects return not found and metadata reads do not fail ingestion.",
+    "public-cache": "Public list/detail responses are cacheable JSON. Object responses use their content-addressed key as a long-lived immutable cache key and forward a provider ETag for conditional requests. Media may render inline; all other object kinds use a generated safe attachment filename and never trust crawler-provided filenames.",
+    "rest-only": "Publication ingestion and object upload planning are exposed only under /api/ingestion/publications. Do not add Web, GraphQL, or MCP transports for these writes, and do not treat the machine secret as a user OAuth credential.",
+    "read-transport-boundary": "The current product needs a public website preview plus public REST for read/list/detail and controlled object delivery. GraphQL and MCP are intentionally not added for publications until a separate client contract requires them; this is a transport boundary, not an implicit GraphQL/MCP capability.",
+    "service-auth": "Ingestion writes require the X-Publication-Ingestion-Secret header, compared against the Worker secret PUBLICATION_INGESTION_SECRET with a timing-safe comparison. Missing or invalid configuration returns the same generic 401 response, and the secret is never logged or returned.",
+    "service-principal": "All crawler batches, runs, and object claims use the stable service:publication-crawler principal key. The service principal has no User row, OAuth grant, or administrator flag; this key scopes ownership and idempotency.",
+    "source-registration": "Every batch carries source descriptors. A descriptor may be the full id/name/organizationLevel/allowedHosts/seedUrls form or the minimal id/name form. The server upserts descriptors in the same transaction, reuses persisted host restrictions for minimal descriptors, then accepts an item only when its sourceId is present in that batch and is enabled and not discovery-only. Canonical URLs must match an allowed source host and not match a blocked host when restrictions are configured.",
+    "identity": "A publication is identified by (sourceId, canonicalUrl). A revision is identified by (publicationId, revisionHash), and each revision owns its object links.",
+    "revision-ordering": "observedAt is the source observation time. An older observation never overwrites the current revision; equal timestamps use the revision hash as a deterministic tie-breaker. A date-only or timezone-less crawler timestamp is interpreted as Asia/Shanghai local time before persistence.",
+    "tombstones": "Deletion is explicit: a tombstone item creates a tombstone revision for an existing publication and marks it deleted. Tombstoning an unknown publication is an idempotent no-op reported as unchanged with null publication and revision ids. A tombstone applied to an existing publication is reported as updated.",
+    "batch-idempotency": "Batch identity is scoped by principalKey and batchId. Replaying the same canonical payload returns the stored result without reapplying writes; reusing the pair with another digest returns 409. clientRunId is likewise scoped by principalKey.",
+    "batch-size": "A publication ingestion batch accepts 1-100 items. Larger batches are rejected by the request schema and must be split by the crawler before submission.",
+    "partial-item-rejection": "A source or item validation error is returned as a per-item rejected result and does not roll back other valid items in the batch. Batch-level identity, manifest, and database failures remain errors.",
+    "objects": "The server generates content-addressed keys; clients cannot choose keys or metadata. Manifests are at most 32 MiB. Metadata ingestion may precede the R2 object. Planning verifies size, content type, kind, SHA-256 metadata, and bytes (or a provider checksum), and immediately links an already-present object. An uploaded object must be verified and linked through complete.",
+    "outbox": "Accepted revisions write a durable PublicationEventOutbox row in the same transaction. A future Queue consumer may derive work from this outbox; the ingestion path does not claim delivery until a real publisher exists.",
+    "content-type": "Manifests require bare MIME types (for example text/html or image/png); parameters such as charset are rejected. For each (kind, sha256), the first PublicationObject contentType is canonical. Later manifests with the same kind, sha256, and size may use a MIME alias; r2Key and size stay strict. Batch claims, upload plans, presigned PUTs, and completion checks use canonical contentType. Revision replay compares object identity, size, role/order, and alt text, ignoring MIME aliases.",
+    "required-upload-headers": "An upload plan returns the exact required Content-Type, x-amz-meta-kind, and x-amz-meta-sha256 headers. Presigned URLs are short-lived and no R2 credentials are returned."
+  },
+  "capabilities": {
+    "publication-read": {
+      "title": "Public publication list, detail, and verified object read",
+      "auth": "anon",
+      "web": "stable",
+      "graphql": "unavailable",
+      "mcp": "unavailable",
+      "rest": {
+        "routes": [
+          {
+            "path": "/api/publications",
+            "method": "GET",
+            "returns": "{ data[], pagination }",
+            "notes": [
+              "Defaults to non-deleted news and notices; optional type accepts only news or notice.",
+              "Supports source, query, page, and pageSize filters. query searches the indexed canonical URL, title, and summary fields; raw crawler metadata and archive HTML are never exposed."
+            ]
+          },
+          {
+            "path": "/api/publications/{id}",
+            "method": "GET",
+            "returns": "{ id, source, revision: { ..., objects[] } }",
+            "notes": [
+              "Returns the effective current revision with its verified/linked object metadata. Deleted, tombstoned, and other publications are not found."
+            ]
+          },
+          {
+            "path": "/api/publications/objects/{kind}/{sha256}",
+            "method": "GET",
+            "returns": "binary",
+            "notes": [
+              "The server derives and checks the R2 content-addressed key; clients cannot choose an arbitrary key.",
+              "Responses use ETag/immutable cache headers and safe content disposition."
+            ]
+          }
+        ]
+      },
+      "display": {
+        "fields": [
+          "source name and organization level",
+          "news/notice type",
+          "current revision title, summary, bodyText, and source URL",
+          "verified media and attachment links"
+        ]
+      }
+    },
+    "publication-ingestion": {
+      "title": "Crawler publication batch ingestion",
+      "auth": "internal",
+      "web": "unavailable",
+      "graphql": "unavailable",
+      "mcp": "unavailable",
+      "rest": {
+        "routes": [
+          {
+            "path": "/api/ingestion/publications/batches",
+            "method": "POST",
+            "returns": "{ batchId, clientRunId, payloadDigest, results[] }",
+            "notes": [
+              "Request and response use the shared camelCase fixture shape in docs/contracts/fixtures/publication-batch.json.",
+              "Each result includes sourceId, canonicalUrl, and revisionHash so repeated URLs or revisions remain unambiguous. Status is created, updated, unchanged, or rejected; rejected results include an error and nullable publicationId/revisionId."
+            ]
+          },
+          {
+            "path": "/api/ingestion/publications/objects/plan",
+            "method": "POST",
+            "returns": "{ batchId, objects[] }",
+            "notes": [
+              "Only manifests registered by the caller's accepted batch may be planned.",
+              "Each object is already_present or upload_required. An already_present object has been verified and linked by this request and needs no completion call; upload_required includes uploadUrl, expiresAt, r2Key, and requiredHeaders."
+            ]
+          },
+          {
+            "path": "/api/ingestion/publications/objects/complete",
+            "method": "POST",
+            "returns": "{ batchId, kind, sha256, status: linked }",
+            "notes": [
+              "The server resolves the key from the registered manifest and verifies R2 metadata plus the actual bytes before linking it."
+            ]
+          }
+        ]
+      },
+      "display": {
+        "fields": [
+          "source descriptor registration",
+          "publication and revision metadata",
+          "per-item ingestion status",
+          "content-addressed object manifest and verification status"
+        ]
+      }
+    }
+  }
+}

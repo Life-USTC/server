@@ -17,7 +17,9 @@
   },
   "vars": {
     "NODE_ENV": "production",
-    "APP_PUBLIC_ORIGIN": "https://life-ustc.tiankaima.dev"
+    "APP_PUBLIC_ORIGIN": "https://life-ustc.tiankaima.dev",
+    "R2_ACCOUNT_ID": "3488b7b4f9cb9b6088c87dc44e88859e",
+    "R2_PUBLICATIONS_BUCKET_NAME": "life-ustc-publications"
   },
   "assets": {
     "directory": ".svelte-kit/cloudflare",
@@ -34,18 +36,22 @@
     "binding": "IMAGES"
   },
   "triggers": {
-    "crons": ["7 */2 * * *", "23 */6 * * *"]
+    "crons": ["7 */2 * * *", "23 */6 * * *", "*/20 * * * *", "*/30 * * * *"]
   },
   "observability": {
     "enabled": true,
+    "head_sampling_rate": 1,
+    "redact_query_string": false,
     "logs": {
       "enabled": true,
       "head_sampling_rate": 1,
-      "invocation_logs": false,
-      "persist": true
+      "persist": true,
+      "invocation_logs": true
     },
     "traces": {
-      "enabled": false
+      "enabled": true,
+      "persist": true,
+      "head_sampling_rate": 1
     }
   },
   "routes": [
@@ -99,6 +105,10 @@
     {
       "binding": "CATALOG_DETAIL_CORE",
       "id": "cd40f139a6c14613adba65dc294dc168"
+    },
+    {
+      "binding": "WEATHER",
+      "id": "6966f79ed6b3409580abc67daf1f403b"
     }
   ],
   "ratelimits": [
@@ -123,6 +133,10 @@
     {
       "binding": "R2_UPLOADS",
       "bucket_name": "life-ustc"
+    },
+    {
+      "binding": "R2_PUBLICATIONS",
+      "bucket_name": "life-ustc-publications"
     }
   ],
   "queues": {

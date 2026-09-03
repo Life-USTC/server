@@ -98,8 +98,12 @@ describe("buildOAuthProviderPlugin", () => {
     expect(options.clientRegistrationAllowedScopes).not.toContain(
       "admin:write",
     );
+    expect(options.clientRegistrationAllowedScopes).not.toContain(
+      "publication.ingest:write",
+    );
     expect(options.scopes).toContain("admin:read");
     expect(options.scopes).toContain("admin:write");
+    expect(options.scopes).not.toContain("publication.ingest:write");
   });
 
   it("授权、动态注册和发现文档只使用 canonical feature scope", async () => {

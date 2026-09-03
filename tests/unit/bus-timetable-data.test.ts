@@ -17,7 +17,8 @@ const db = vi.hoisted(() => {
     weekday_routes: [
       { id: 1, route: { id: 8, campuses: [east, west] }, time: [] },
     ],
-    weekend_routes: [],
+    saturday_routes: [],
+    sunday_routes: [],
     message: null,
   } satisfies BusStaticPayload;
 
@@ -233,8 +234,8 @@ describe("getBusTimetableData 班车时刻表数据", () => {
 
     expect(data?.departures[0]?.departureTime).toBe("08:00");
     expect(db.busTripFindMany).not.toHaveBeenCalled();
-    expect(db.busScheduleVersionFindMany).not.toHaveBeenCalled();
-    expect(db.busScheduleVersionFindUnique).not.toHaveBeenCalled();
+    expect(db.busScheduleVersionFindMany).toHaveBeenCalledTimes(1);
+    expect(versionLookupCount("old-bus")).toBe(1);
     expect(db.busCampusFindMany).not.toHaveBeenCalled();
     expect(db.busRouteFindMany).not.toHaveBeenCalled();
   });
@@ -258,8 +259,8 @@ describe("getBusTimetableData 班车时刻表数据", () => {
       expect.objectContaining({ routeId: 8, status: "en-route" }),
     ]);
     expect(db.busTripFindMany).not.toHaveBeenCalled();
-    expect(db.busScheduleVersionFindMany).not.toHaveBeenCalled();
-    expect(db.busScheduleVersionFindUnique).not.toHaveBeenCalled();
+    expect(db.busScheduleVersionFindMany).toHaveBeenCalledTimes(1);
+    expect(versionLookupCount("old-bus")).toBe(1);
   });
 
   it("为每次调用刷新 fetchedAt 而不重新加载静态数据", async () => {
@@ -276,8 +277,47 @@ describe("getBusTimetableData 班车时刻表数据", () => {
 
     expect(first?.fetchedAt).toBe("2026-02-01T00:00:00.000Z");
     expect(second?.fetchedAt).toBe("2026-02-01T01:00:00.000Z");
-    expect(versionLookupCount("old-bus")).toBe(1);
+    expect(versionLookupCount("old-bus")).toBe(2);
     expect(db.busTripFindMany).toHaveBeenCalledTimes(1);
+  });
+
+  it("同一版本重新导入后按 importedAt 刷新静态数据", async () => {
+    const input = {
+      locale: "zh-cn" as const,
+      now: "2026-02-01T00:00:00.000Z",
+      versionKey: "old-bus",
+    };
+    const first = await timetable.getStaticBusTimetableData(input);
+
+    db.busScheduleVersionFindUnique.mockImplementation(
+      async (args: unknown) => {
+        const where = (args as { where: { id?: number; key?: string } }).where;
+        if (where.id === db.oldVersion.id) return { rawJson: db.oldPayload };
+        if (where.key === "old-bus") {
+          return {
+            ...db.oldVersion,
+            importedAt: new Date("2026-07-30T00:01:00.000Z"),
+          };
+        }
+        return null;
+      },
+    );
+    db.busTripFindMany.mockResolvedValue([
+      {
+        id: 102,
+        versionId: db.oldVersion.id,
+        routeId: 8,
+        dayType: "weekday" as const,
+        position: 0,
+        stopTimes: ["09:00", "09:20"],
+      },
+    ]);
+
+    const second = await timetable.getStaticBusTimetableData(input);
+
+    expect(first?.trips[0]?.departureTime).toBe("08:00");
+    expect(second?.trips[0]?.departureTime).toBe("09:00");
+    expect(db.busTripFindMany).toHaveBeenCalledTimes(2);
   });
 
   it("不把调用者偏好放进静态缓存", async () => {
@@ -308,7 +348,7 @@ describe("getBusTimetableData 班车时刻表数据", () => {
       preferredOriginCampusId: 2,
       showDepartedTrips: true,
     });
-    expect(versionLookupCount("old-bus")).toBe(1);
+    expect(versionLookupCount("old-bus")).toBe(2);
     expect(db.busPreferenceFindUnique).toHaveBeenCalledTimes(2);
   });
 
@@ -387,7 +427,7 @@ describe("getBusTimetableData 班车时刻表数据", () => {
     });
   });
 
-  it("合并同 key 并发加载，并从成功时刻开始 24 小时 TTL", async () => {
+  it("版本检查后合并同 key 并发静态加载", async () => {
     vi.useRealTimers();
     const explicitVersion = createDeferred<unknown>();
     db.busScheduleVersionFindUnique.mockReturnValueOnce(
@@ -406,7 +446,7 @@ describe("getBusTimetableData 班车时刻表数据", () => {
     });
     await flushAsyncWork();
 
-    expect(versionLookupCount("old-bus")).toBe(1);
+    expect(versionLookupCount("old-bus")).toBe(2);
     vi.setSystemTime("2026-07-30T00:01:01.000Z");
     explicitVersion.resolve(db.oldVersion);
 
@@ -420,7 +460,7 @@ describe("getBusTimetableData 班车时刻表数据", () => {
     expect(firstData?.fetchedAt).toBe("2026-02-01T00:00:00.000Z");
     expect(secondData?.fetchedAt).toBe("2026-02-01T01:00:00.000Z");
     expect(third?.fetchedAt).toBe("2026-02-01T02:00:00.000Z");
-    expect(versionLookupCount("old-bus")).toBe(1);
+    expect(versionLookupCount("old-bus")).toBe(3);
   });
 
   it("不缓存最终 null", async () => {
@@ -501,7 +541,7 @@ describe("getBusTimetableData 班车时刻表数据", () => {
     });
     await flushAsyncWork();
 
-    expect(raceLookups).toBe(1);
+    expect(raceLookups).toBe(2);
     raceVersion.resolve({ ...db.oldVersion, key: "race-bus" });
     await expect(Promise.all([first, second])).resolves.toEqual([
       expect.objectContaining({
@@ -558,7 +598,7 @@ describe("getBusTimetableData 班车时刻表数据", () => {
       versionKey: "valid-0",
     });
 
-    expect(versionLookupCount("valid-0")).toBe(1);
+    expect(versionLookupCount("valid-0")).toBe(2);
   });
 
   it("每次访问都会清理所有过期成功项", async () => {

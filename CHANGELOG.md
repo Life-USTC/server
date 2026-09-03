@@ -1,3 +1,203 @@
+# [1.104.0](https://github.com/Life-USTC/server/compare/v1.103.4...v1.104.0) (2026-09-02)
+
+
+### Features
+
+* **shell:** add campus weather link to sidebar catalog ([#1008](https://github.com/Life-USTC/server/issues/1008)) ([443dc2b](https://github.com/Life-USTC/server/commit/443dc2b1a80805d95d46daf5a9d30a5bcf67324d))
+
+## [1.103.4](https://github.com/Life-USTC/server/compare/v1.103.3...v1.103.4) (2026-09-02)
+
+
+### Performance Improvements
+
+* **publications:** reuse linked object verification ([#1007](https://github.com/Life-USTC/server/issues/1007)) ([6ba04d6](https://github.com/Life-USTC/server/commit/6ba04d640907b99f22b381d037986c1c77c1c2b4))
+
+## [1.103.3](https://github.com/Life-USTC/server/compare/v1.103.2...v1.103.3) (2026-09-02)
+
+
+### Performance Improvements
+
+* **publications:** link existing objects during plan ([#1006](https://github.com/Life-USTC/server/issues/1006)) ([fecee34](https://github.com/Life-USTC/server/commit/fecee346b246f752f618ef86fa488e8acc8f66e3))
+
+## [1.103.2](https://github.com/Life-USTC/server/compare/v1.103.1...v1.103.2) (2026-09-02)
+
+
+### Bug Fixes
+
+* **publications:** make unknown tombstones idempotent ([#1005](https://github.com/Life-USTC/server/issues/1005)) ([9da42fd](https://github.com/Life-USTC/server/commit/9da42fd770791450eaa12dd8f4c188e24813c258))
+
+## [1.103.1](https://github.com/Life-USTC/server/compare/v1.103.0...v1.103.1) (2026-09-02)
+
+
+### Bug Fixes
+
+* **young:** grant life_ustc_runtime SELECT on YoungEvent ([#1004](https://github.com/Life-USTC/server/issues/1004)) ([358eff4](https://github.com/Life-USTC/server/commit/358eff4a6a1d0ab263b6d84507143864d586b163))
+
+# [1.103.0](https://github.com/Life-USTC/server/compare/v1.102.1...v1.103.0) (2026-09-02)
+
+
+### Bug Fixes
+
+* **graphql:** update MCP operation manifest count after young events ops ([#1003](https://github.com/Life-USTC/server/issues/1003)) ([6450a9a](https://github.com/Life-USTC/server/commit/6450a9a347365c72b35b36fb305bb2ae1c5e8910)), closes [#997](https://github.com/Life-USTC/server/issues/997)
+
+
+### Features
+
+* **young:** expose second-classroom events across all interfaces ([#997](https://github.com/Life-USTC/server/issues/997)) ([9c22931](https://github.com/Life-USTC/server/commit/9c229318b7d58c8851bcb2e3d73839bd3e05fa43))
+
+## [1.102.1](https://github.com/Life-USTC/server/compare/v1.102.0...v1.102.1) (2026-09-02)
+
+
+### Bug Fixes
+
+* **news:** use table layout and link pagination ([4aec6f6](https://github.com/Life-USTC/server/commit/4aec6f64341e5155d522d7208066092b2f4f6648))
+
+# [1.102.0](https://github.com/Life-USTC/server/compare/v1.101.3...v1.102.0) (2026-09-02)
+
+
+### Features
+
+* **weather:** move updated-at and data providers to page bottom-right ([#1001](https://github.com/Life-USTC/server/issues/1001)) ([f5b6bf2](https://github.com/Life-USTC/server/commit/f5b6bf29661db3525f208071190be70c9a816446))
+
+## [1.101.3](https://github.com/Life-USTC/server/compare/v1.101.2...v1.101.3) (2026-09-01)
+
+
+### Bug Fixes
+
+* **publications:** prevent object response transforms ([61ef286](https://github.com/Life-USTC/server/commit/61ef2868582a6f3c28e1ba561ea35b6ca6e82712))
+
+## [1.101.2](https://github.com/Life-USTC/server/compare/v1.101.1...v1.101.2) (2026-09-01)
+
+
+### Bug Fixes
+
+* **publications:** reject NUL ingestion strings ([1ae31e9](https://github.com/Life-USTC/server/commit/1ae31e9a842e5da545ede5d6718006655e505a59))
+* **publications:** validate object request strings ([7918db3](https://github.com/Life-USTC/server/commit/7918db3ba3942f36fa77c340774eb63d7bb9ecd7))
+
+## [1.101.1](https://github.com/Life-USTC/server/compare/v1.101.0...v1.101.1) (2026-09-01)
+
+
+### Bug Fixes
+
+* **weather:** make hourly forecast keyboard scrollable ([#999](https://github.com/Life-USTC/server/issues/999)) ([c8bc7aa](https://github.com/Life-USTC/server/commit/c8bc7aabf57e39072b5ab68e002d29757404fda7))
+
+# [1.101.0](https://github.com/Life-USTC/server/compare/v1.100.3...v1.101.0) (2026-09-01)
+
+
+### Features
+
+* **weather:** hourly temperature curve and precipitation chart ([#998](https://github.com/Life-USTC/server/issues/998)) ([b19d64a](https://github.com/Life-USTC/server/commit/b19d64ac4456d1c988f2ea90789db7eab11f7d6b))
+* **weather:** iOS-style weather page UI ([#995](https://github.com/Life-USTC/server/issues/995)) ([ed07d46](https://github.com/Life-USTC/server/commit/ed07d4695f92f4ca495021649317a7f37d67ca23))
+
+## [1.100.3](https://github.com/Life-USTC/server/compare/v1.100.2...v1.100.3) (2026-09-01)
+
+
+### Bug Fixes
+
+* **publications:** canonicalize content-addressed object MIME ([#994](https://github.com/Life-USTC/server/issues/994)) ([0ede47c](https://github.com/Life-USTC/server/commit/0ede47cf6f60641e8596c432676b4f3515dbe621))
+
+## [1.100.2](https://github.com/Life-USTC/server/compare/v1.100.1...v1.100.2) (2026-09-01)
+
+
+### Bug Fixes
+
+* **publications:** bound ingestion batches to 100 ([#993](https://github.com/Life-USTC/server/issues/993)) ([28eee87](https://github.com/Life-USTC/server/commit/28eee870afc2db691bd2fed1cc278ef8f3d53310))
+* raise publication ingestion transaction budget ([#992](https://github.com/Life-USTC/server/issues/992)) ([a364863](https://github.com/Life-USTC/server/commit/a364863a8493432b5ca27cb93b019cf95149e4c8))
+
+## [1.100.1](https://github.com/Life-USTC/server/compare/v1.100.0...v1.100.1) (2026-09-01)
+
+
+### Bug Fixes
+
+* extend publication ingestion transaction budget ([#991](https://github.com/Life-USTC/server/issues/991)) ([ede2ef2](https://github.com/Life-USTC/server/commit/ede2ef242d9e62ed9e07a8def9c2248d0fbbc471))
+* remove user limiter from crawler ingestion ([#981](https://github.com/Life-USTC/server/issues/981)) ([2f76671](https://github.com/Life-USTC/server/commit/2f7667181f472bb28c780247fddb8c825b78962e))
+* **weather:** avoid AMap QPS limit and fall back to Open-Meteo daily ([#989](https://github.com/Life-USTC/server/issues/989)) ([f4923c0](https://github.com/Life-USTC/server/commit/f4923c0a5341c9eb096c47b59230d18f1c9fe641))
+
+
+### Performance Improvements
+
+* **publications:** bulk object planning ([#990](https://github.com/Life-USTC/server/issues/990)) ([364a83f](https://github.com/Life-USTC/server/commit/364a83f74a1f119714a23faabb46b37b2dee3585))
+
+# [1.100.0](https://github.com/Life-USTC/server/compare/v1.99.0...v1.100.0) (2026-09-01)
+
+
+### Bug Fixes
+
+* **weather:** grant life_ustc_runtime access to WeatherObservation ([#976](https://github.com/Life-USTC/server/issues/976)) ([ba68c8f](https://github.com/Life-USTC/server/commit/ba68c8f1151933b4cac0d3926df068271b48bbe3))
+
+
+### Features
+
+* authenticate publication ingestion with service secret ([#977](https://github.com/Life-USTC/server/issues/977)) ([b96f86d](https://github.com/Life-USTC/server/commit/b96f86dfb4961d63ab025dd43d89a96de979db73))
+
+# [1.99.0](https://github.com/Life-USTC/server/compare/v1.98.1...v1.99.0) (2026-09-01)
+
+
+### Bug Fixes
+
+* **weather:** use Shushan adcode for gaoxin and reject empty AMap payloads ([#975](https://github.com/Life-USTC/server/issues/975)) ([9489c1d](https://github.com/Life-USTC/server/commit/9489c1d2c6d0adb1a074b55b3b6db610f0271599))
+
+
+### Features
+
+* add crawler publication ingestion and public preview ([#974](https://github.com/Life-USTC/server/issues/974)) ([0032789](https://github.com/Life-USTC/server/commit/00327898985310926b39b5abcb467f2f96ebc3e1))
+
+## [1.98.1](https://github.com/Life-USTC/server/compare/v1.98.0...v1.98.1) (2026-09-01)
+
+
+### Bug Fixes
+
+* **weather:** fetch AMap lives with extensions=base ([#973](https://github.com/Life-USTC/server/issues/973)) ([58478ce](https://github.com/Life-USTC/server/commit/58478ce36e085faf9647b876523249e891d955ae))
+
+# [1.98.0](https://github.com/Life-USTC/server/compare/v1.97.4...v1.98.0) (2026-09-01)
+
+
+### Features
+
+* **weather:** campus weather service (AMap-first, REST/GraphQL/MCP/Web/cron) ([#972](https://github.com/Life-USTC/server/issues/972)) ([3dbef21](https://github.com/Life-USTC/server/commit/3dbef2152a0476131f11cc0dfa8c8c8e26605448))
+
+## [1.97.4](https://github.com/Life-USTC/server/compare/v1.97.3...v1.97.4) (2026-08-31)
+
+
+### Bug Fixes
+
+* **bus:** refresh cache after timetable imports ([#971](https://github.com/Life-USTC/server/issues/971)) ([2edb258](https://github.com/Life-USTC/server/commit/2edb258654c0c92e3a04906ee08e1ed39e5b4d56))
+
+## [1.97.3](https://github.com/Life-USTC/server/compare/v1.97.2...v1.97.3) (2026-08-31)
+
+
+### Bug Fixes
+
+* **bus:** grant runtime import writes ([#970](https://github.com/Life-USTC/server/issues/970)) ([40ef5c3](https://github.com/Life-USTC/server/commit/40ef5c3be758da83069dca090c7ad239ea7f9629))
+
+## [1.97.2](https://github.com/Life-USTC/server/compare/v1.97.1...v1.97.2) (2026-08-31)
+
+
+### Bug Fixes
+
+* **bus:** avoid edge upserts during import ([#969](https://github.com/Life-USTC/server/issues/969)) ([4ddb220](https://github.com/Life-USTC/server/commit/4ddb220eb0a006ee393e59577ba9ce6e3fecd175))
+
+## [1.97.1](https://github.com/Life-USTC/server/compare/v1.97.0...v1.97.1) (2026-08-31)
+
+
+### Bug Fixes
+
+* **bus:** batch static timetable imports ([#968](https://github.com/Life-USTC/server/issues/968)) ([2aa7548](https://github.com/Life-USTC/server/commit/2aa75487a674555d312763c24761fdf2203112f3))
+
+# [1.97.0](https://github.com/Life-USTC/server/compare/v1.96.3...v1.97.0) (2026-08-31)
+
+
+### Features
+
+* **bus:** support Saturday and Sunday timetables ([#967](https://github.com/Life-USTC/server/issues/967)) ([6b764da](https://github.com/Life-USTC/server/commit/6b764dafa9f6764e477616e5244f974e2df81624))
+
+## [1.96.3](https://github.com/Life-USTC/server/compare/v1.96.2...v1.96.3) (2026-08-30)
+
+
+### Bug Fixes
+
+* clarify MCP personal calendar feed contract ([#966](https://github.com/Life-USTC/server/issues/966)) ([e81f06b](https://github.com/Life-USTC/server/commit/e81f06b6588d859353cf7967f5aabeee11e727e4))
+
 ## [1.96.2](https://github.com/Life-USTC/server/compare/v1.96.1...v1.96.2) (2026-08-28)
 
 

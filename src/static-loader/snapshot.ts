@@ -45,6 +45,16 @@ export class Snapshot {
     return rows;
   }
 
+  hasTable(tableName: string): boolean {
+    assertIdentifier(tableName, "table");
+    const row = this.db
+      .query(
+        `SELECT 1 AS present FROM sqlite_master WHERE type = 'table' AND name = ? LIMIT 1`,
+      )
+      .get(tableName);
+    return row != null;
+  }
+
   groupByParent(
     rows: SnapshotRow[],
     parentColumn = "parent_store_id",

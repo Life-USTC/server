@@ -35,6 +35,9 @@ Life@USTC
 │   │   ├── timetable
 │   │   ├── next-departures
 │   │   └── map
+│   ├── young-events
+│   │   ├── list
+│   │   └── get
 │   └── links
 ├── workspace                       current user's campus work
 │   ├── overview

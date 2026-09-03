@@ -38,3 +38,5 @@ export {
   todosQuerySchema,
   uploadObjectQuerySchema,
 } from "./misc-query-schemas";
+export { weatherQuerySchema } from "./weather-schemas";
+export { youngEventsQuerySchema } from "./young-event-schemas";

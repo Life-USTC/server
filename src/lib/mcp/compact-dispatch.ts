@@ -16,6 +16,7 @@ import {
   compactTeacherTitle,
   compactTodo,
   compactUser,
+  compactYoungEvent,
 } from "./compact-entities";
 import {
   asRecordArray,
@@ -30,7 +31,9 @@ export function compactBusArrayItem(
 ): CompactArrayMatch {
   if (
     Object.hasOwn(value, "routeId") &&
-    (value.dayType === "weekday" || value.dayType === "weekend") &&
+    (value.dayType === "weekday" ||
+      value.dayType === "saturday" ||
+      value.dayType === "sunday") &&
     Object.hasOwn(value, "stopTimes") &&
     Array.isArray(value.stopTimes)
   ) {
@@ -62,6 +65,10 @@ export function compactBusArrayItem(
 export function compactEntityArrayItem(
   value: Record<string, unknown>,
 ): CompactArrayMatch {
+  if (Object.hasOwn(value, "youngId")) {
+    return { matched: true, value: compactYoungEvent(value) };
+  }
+
   if (
     Object.hasOwn(value, "latitude") &&
     Object.hasOwn(value, "longitude") &&
@@ -250,7 +257,10 @@ export function compactMcpPayload(value: unknown): unknown {
       );
       continue;
     }
-    if ((key === "weekday" || key === "weekend") && Array.isArray(fieldValue)) {
+    if (
+      (key === "weekday" || key === "saturday" || key === "sunday") &&
+      Array.isArray(fieldValue)
+    ) {
       out[key] = asRecordArray(fieldValue).map(compactBusTripSlot);
       continue;
     }

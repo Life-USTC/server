@@ -16,6 +16,11 @@ import {
 } from "@/features/dashboard-links/lib/dashboard-link-search";
 import { getPublicDashboardLinksData } from "@/features/dashboard-links/server/dashboard-link-data";
 import { getPublicUserIdentityByIdentifier } from "@/features/profile/server/user-profile-page-data";
+import { getWeatherSnapshot } from "@/features/weather/server/weather-service";
+import {
+  getYoungEvent,
+  listYoungEvents,
+} from "@/features/young/server/young-event-service";
 import {
   capGraphqlAlternateRoutes,
   capGraphqlBusCampuses,
@@ -26,10 +31,12 @@ import type { GraphqlContext, GraphqlServerContext } from "./context";
 import { graphqlDateScalar, graphqlDateTimeScalar } from "./date-scalar";
 import {
   requireGraphqlId,
+  requireGraphqlYoungEventId,
   validateGraphqlIdList,
   validateGraphqlSearch,
   validateGraphqlTeacherCode,
   validateGraphqlVersionKey,
+  validateGraphqlWeatherLocationKey,
   validateOptionalGraphqlId,
 } from "./input-boundaries";
 import { graphqlMutationResolvers, graphqlMutationTypeDefs } from "./mutations";
@@ -191,6 +198,37 @@ export const graphqlTypeDefs = /* GraphQL */ `
     pageInfo: PageInfo!
   }
 
+  input YoungEventFilter {
+    active: Boolean
+    category: String
+    search: String
+  }
+
+  type YoungEvent {
+    youngId: String!
+    name: String!
+    category: String
+    department: String
+    organizer: String
+    status: String
+    registrationStatus: String
+    location: String
+    imageUrl: String
+    hours: Float
+    capacity: Int
+    appliedCount: Int
+    startAt: DateTime
+    endAt: DateTime
+    applyStartAt: DateTime
+    applyEndAt: DateTime
+    isActive: Boolean!
+  }
+
+  type YoungEventPage {
+    items: [YoungEvent!]!
+    pageInfo: PageInfo!
+  }
+
   type BusCampus {
     id: Int!
     nameCn: String!
@@ -234,13 +272,69 @@ export const graphqlTypeDefs = /* GraphQL */ `
   type BusRouteTimetable {
     route: BusRoute!
     weekday: [BusTripSlot!]!
-    weekend: [BusTripSlot!]!
+    saturday: [BusTripSlot!]!
+    sunday: [BusTripSlot!]!
     weekdayPageInfo: PageInfo!
-    weekendPageInfo: PageInfo!
+    saturdayPageInfo: PageInfo!
+    sundayPageInfo: PageInfo!
     alternateRoutes: [BusRoute!]!
   }
 
   ${graphqlScopeTypeDefs}
+
+  type WeatherCondition {
+    text: String!
+    icon: String!
+  }
+
+  type WeatherCurrent {
+    temperature: Float!
+    feelsLike: Float
+    humidity: Float
+    windDirection: String
+    windSpeed: Float
+    pressure: Float
+    visibility: Float
+    condition: WeatherCondition!
+  }
+
+  type WeatherHourly {
+    at: DateTime!
+    temperature: Float!
+    condition: WeatherCondition
+    precipitationProbability: Float
+    precipitationAmount: Float
+  }
+
+  type WeatherDaily {
+    date: Date!
+    temperatureHigh: Float!
+    temperatureLow: Float!
+    condition: WeatherCondition
+  }
+
+  type WeatherAlert {
+    title: String!
+    level: String
+    content: String
+    issuedAt: DateTime
+  }
+
+  type WeatherLocation {
+    key: String!
+    name: String!
+    adcode: String!
+  }
+
+  type WeatherSnapshot {
+    location: WeatherLocation!
+    fetchedAt: DateTime!
+    providers: [String!]!
+    current: WeatherCurrent!
+    hourly: [WeatherHourly!]!
+    daily: [WeatherDaily!]!
+    alerts: [WeatherAlert!]!
+  }
 
   type Catalog {
     semesters(page: PageInput): SemesterPage!
@@ -259,6 +353,9 @@ export const graphqlTypeDefs = /* GraphQL */ `
       versionKey: String
     ): BusRouteTimetable
     links(query: String): [CatalogLink!]!
+    weather(locationKey: String!): WeatherSnapshot
+    youngEvents(page: PageInput, filter: YoungEventFilter): YoungEventPage!
+    youngEvent(youngId: String!): YoungEvent
   }
 
   type CatalogLink {
@@ -304,6 +401,7 @@ export const graphqlSchema = createSchema<
     SectionPage: graphqlPageResolvers,
     TeacherPage: graphqlPageResolvers,
     BusRoutePage: graphqlPageResolvers,
+    YoungEventPage: graphqlPageResolvers,
     ...graphqlScopeResolvers,
     ...graphqlMutationResolvers,
     Teacher: {
@@ -490,13 +588,16 @@ export const graphqlSchema = createSchema<
         if (!result) return null;
 
         const weekdayPage = paginateGraphqlArray(result.weekday, args.page);
-        const weekendPage = paginateGraphqlArray(result.weekend, args.page);
+        const saturdayPage = paginateGraphqlArray(result.saturday, args.page);
+        const sundayPage = paginateGraphqlArray(result.sunday, args.page);
         return {
           route: capGraphqlBusRoute(result.route),
           weekday: capGraphqlBusTripSlots(weekdayPage.data),
-          weekend: capGraphqlBusTripSlots(weekendPage.data),
+          saturday: capGraphqlBusTripSlots(saturdayPage.data),
+          sunday: capGraphqlBusTripSlots(sundayPage.data),
           weekdayPageInfo: weekdayPage.pagination,
-          weekendPageInfo: weekendPage.pagination,
+          saturdayPageInfo: saturdayPage.pagination,
+          sundayPageInfo: sundayPage.pagination,
           alternateRoutes: capGraphqlAlternateRoutes(result.alternateRoutes),
         };
       },
@@ -508,6 +609,34 @@ export const graphqlSchema = createSchema<
         if (!query) return links;
         const tokens = searchQueryToTokens(query);
         return links.filter((link) => linkMatchesTokens(link, tokens));
+      },
+      weather(_parent, args: { locationKey: string }) {
+        return getWeatherSnapshot(
+          validateGraphqlWeatherLocationKey(args.locationKey),
+        );
+      },
+      youngEvents(
+        _parent,
+        args: {
+          filter?: {
+            active?: boolean | null;
+            category?: string | null;
+            search?: string | null;
+          } | null;
+          page?: GraphqlPageInput | null;
+        },
+      ) {
+        const pagination = normalizeGraphqlPage(args.page);
+        return listYoungEvents({
+          active: args.filter?.active ?? undefined,
+          category: validateGraphqlSearch(args.filter?.category),
+          search: validateGraphqlSearch(args.filter?.search),
+          page: pagination.page,
+          pageSize: pagination.pageSize,
+        });
+      },
+      async youngEvent(_parent, args: { youngId: string }) {
+        return getYoungEvent(requireGraphqlYoungEventId(args.youngId));
       },
     },
   },

@@ -50,10 +50,25 @@ const API_REFERENCE_UI_QUALITY_EXCEPTIONS = {
   ],
 } satisfies UiQualityAllowlist;
 
+const YOUNG_EVENT_DETAIL_UI_QUALITY_EXCEPTIONS = {
+  "broken-image": [
+    {
+      match:
+        /^img: visible image (?:did not finish loading|has no decoded pixels): .*\/api\/catalog\/young-events\/[^/]+\/image$/,
+      reason:
+        "Poster images are proxied lazily from young.ustc.edu.cn on an R2 cache miss; CI network to the origin is not guaranteed.",
+    },
+  ],
+} satisfies UiQualityAllowlist;
+
 function getContractUiQuality(routePath: string): UiQualityAllowlist {
-  return routePath.startsWith("/api/docs")
-    ? API_REFERENCE_UI_QUALITY_EXCEPTIONS
-    : {};
+  if (routePath.startsWith("/api/docs")) {
+    return API_REFERENCE_UI_QUALITY_EXCEPTIONS;
+  }
+  if (routePath === "/catalog/young-events/[youngId]") {
+    return YOUNG_EVENT_DETAIL_UI_QUALITY_EXCEPTIONS;
+  }
+  return {};
 }
 
 function getContractWaitUntil(routePath: string) {
@@ -414,6 +429,63 @@ export async function assertPageContract(
       return;
     }
 
+    case "/catalog/weather": {
+      await gotoContractPage(page, routePath, testInfo);
+      await expectMainContent(page);
+      await expect(
+        page.getByRole("heading", { level: 1, name: /天气|Weather/i }),
+      ).toBeVisible();
+      await expect(
+        page.getByRole("heading", {
+          level: 2,
+          name: /本部|Main campus/,
+        }),
+      ).toBeVisible();
+      await expect(
+        page.getByRole("heading", { level: 2, name: /高新校区|Gaoxin campus/ }),
+      ).toBeVisible();
+      await maybeCapture(page, testInfo, "weather");
+      return;
+    }
+
+    case "/catalog/young-events": {
+      await gotoContractPage(
+        page,
+        `/catalog/young-events?search=${encodeURIComponent(DEV_SEED.youngEvent.name)}`,
+        testInfo,
+      );
+      await expectMainContent(page);
+      await expect(
+        page.getByRole("heading", {
+          level: 1,
+          name: /第二课堂|Second Classroom/i,
+        }),
+      ).toBeVisible();
+      await expect(visibleText(page, DEV_SEED.youngEvent.name)).toBeVisible();
+      await maybeCapture(page, testInfo, "young-events");
+      return;
+    }
+
+    case "/catalog/young-events/[youngId]": {
+      await gotoContractPage(
+        page,
+        `/catalog/young-events/${DEV_SEED.youngEvent.youngId}`,
+        testInfo,
+      );
+      await expectMainContent(page);
+      await expect(
+        page.getByRole("heading", {
+          level: 1,
+          name: DEV_SEED.youngEvent.name,
+        }),
+      ).toBeVisible();
+      await expect(
+        visibleText(page, DEV_SEED.youngEvent.location),
+      ).toBeVisible();
+      await maybeCapture(page, testInfo, "young-events-youngId");
+      return;
+    }
+
     case "/catalog/bus/map": {
       await gotoContractPage(page, routePath, testInfo);
       await expectMainContent(page);
@@ -448,6 +520,37 @@ export async function assertPageContract(
       ).toBeVisible();
       await expect(page.getByRole("combobox")).toBeVisible();
       await maybeCapture(page, testInfo, "search");
+      return;
+    }
+
+    case "/news": {
+      await gotoContractPage(page, routePath, testInfo);
+      await expectMainContent(page);
+      await expect(
+        page.getByRole("heading", { level: 1, name: /新闻|News/i }),
+      ).toBeVisible();
+      await expect(
+        page.getByRole("searchbox", { name: /搜索|Search/i }),
+      ).toBeVisible();
+      await expect(
+        page.getByRole("textbox", { name: /来源标识|Source ID/i }),
+      ).toBeVisible();
+      await expect(page.getByRole("combobox")).toBeVisible();
+      await maybeCapture(page, testInfo, "news");
+      return;
+    }
+
+    case "/news/[id]": {
+      await gotoContractPage(page, "/news", testInfo);
+      const detailLink = page
+        .locator("#main-content a[href^='/news/']")
+        .first();
+      await expect(detailLink).toBeVisible();
+      await detailLink.click();
+      await expect(page).toHaveURL(/\/news\/[^/?]+$/);
+      await expectMainContent(page);
+      await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+      await maybeCapture(page, testInfo, "news-detail");
       return;
     }
 

@@ -7,7 +7,7 @@ type BusApplicableRoutesData = Pick<BusTimetableData, "routes" | "trips">;
 
 export function getApplicableBusRoutes(input: {
   data: BusApplicableRoutesData;
-  dayType: "weekday" | "weekend";
+  dayType: "weekday" | "saturday" | "sunday";
   startCampusId: number | null;
   endCampusId: number | null;
   showDepartedTrips: boolean;

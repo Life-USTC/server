@@ -168,7 +168,7 @@
     "ruleMap": {
       "type": "object",
       "minProperties": 1,
-      "maxProperties": 24,
+      "maxProperties": 25,
       "propertyNames": {
         "pattern": "^[a-z0-9][a-z0-9-]*$"
       },

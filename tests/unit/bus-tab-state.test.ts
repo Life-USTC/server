@@ -10,7 +10,7 @@ import type {
 function createTrip(input: {
   id: number;
   routeId: number;
-  dayType: "weekday" | "weekend";
+  dayType: "weekday" | "saturday" | "sunday";
   position: number;
   times: Array<
     [stopOrder: number, campusId: number, campusName: string, time: string]
@@ -81,7 +81,7 @@ function createBusData(): DashboardBusData {
     ],
     trips: [
       createTrip({
-        dayType: "weekend",
+        dayType: "saturday",
         id: 801,
         position: 1,
         routeId: 8,
@@ -108,7 +108,7 @@ describe("班车标签页状态", () => {
     state.initializeWhenNeeded();
 
     expect(state.values.busNow.toISOString()).toBe(bus.fetchedAt);
-    expect(state.values.busDayType).toBe("weekend");
+    expect(state.values.busDayType).toBe("saturday");
     expect(state.values.busStartCampusId).toBe(1);
     expect(state.values.busEndCampusId).toBe(2);
     expect(state.applicableRoutes()[0]?.nextTrip?.minutesUntilStart).toBe(15);

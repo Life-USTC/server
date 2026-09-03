@@ -79,7 +79,9 @@ describe("global static import state", () => {
 
     await expect(
       assertStaticImportStateAllowsSnapshot(tx, input()),
-    ).rejects.toThrow("revision 2 was already committed");
+    ).rejects.toThrow(
+      `revision ${STATIC_IMPORT_TRANSFORM_REVISION + 1} was already committed`,
+    );
   });
 
   it("rejects older snapshots and changed content at the same time", async () => {

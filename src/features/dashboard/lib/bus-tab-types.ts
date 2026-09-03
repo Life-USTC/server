@@ -17,7 +17,8 @@ export type DashboardBusCopy = Record<string, unknown> & {
   dashboardTitle: string;
   dayType: {
     weekday: string;
-    weekend: string;
+    saturday: string;
+    sunday: string;
   };
   empty: string;
   loadFailed: string;

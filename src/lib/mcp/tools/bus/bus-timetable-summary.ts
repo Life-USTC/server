@@ -11,9 +11,10 @@ export function summarizeBusTimetable(result: BusTimetableResult) {
   const weekdayTrips = result.trips.filter(
     (trip) => trip.dayType === "weekday",
   );
-  const weekendTrips = result.trips.filter(
-    (trip) => trip.dayType === "weekend",
+  const saturdayTrips = result.trips.filter(
+    (trip) => trip.dayType === "saturday",
   );
+  const sundayTrips = result.trips.filter((trip) => trip.dayType === "sunday");
   const nextDepartures =
     result.preferences?.preferredOriginCampusId != null &&
     result.preferences?.preferredDestinationCampusId != null
@@ -48,7 +49,8 @@ export function summarizeBusTimetable(result: BusTimetableResult) {
       campuses: result.campuses.length,
       routes: result.routes.length,
       weekdayTrips: weekdayTrips.length,
-      weekendTrips: weekendTrips.length,
+      saturdayTrips: saturdayTrips.length,
+      sundayTrips: sundayTrips.length,
     },
     campuses: result.campuses.map((campus) => ({
       id: campus.id,

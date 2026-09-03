@@ -7,9 +7,16 @@ export function searchBusRoutesFromData(
     destinationCampusId?: number;
   },
 ) {
-  const tripCounts = new Map<number, { weekday: number; weekend: number }>();
+  const tripCounts = new Map<
+    number,
+    { weekday: number; saturday: number; sunday: number }
+  >();
   for (const trip of data.trips) {
-    const count = tripCounts.get(trip.routeId) ?? { weekday: 0, weekend: 0 };
+    const count = tripCounts.get(trip.routeId) ?? {
+      weekday: 0,
+      saturday: 0,
+      sunday: 0,
+    };
     count[trip.dayType] += 1;
     tripCounts.set(trip.routeId, count);
   }
@@ -48,7 +55,8 @@ export function searchBusRoutesFromData(
       destinationCampus: route.stops[route.stops.length - 1]?.campus ?? null,
       stopCount: route.stops.length,
       weekdayTrips: tripCounts.get(route.id)?.weekday ?? 0,
-      weekendTrips: tripCounts.get(route.id)?.weekend ?? 0,
+      saturdayTrips: tripCounts.get(route.id)?.saturday ?? 0,
+      sundayTrips: tripCounts.get(route.id)?.sunday ?? 0,
       stops: route.stops,
     }))
     .sort((left, right) => left.id - right.id);
