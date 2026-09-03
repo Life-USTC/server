@@ -109,10 +109,10 @@
             ]
           },
           {
-            "path": "/api/ingestion/publications/objects/complete",
-            "method": "POST",
+            "path": "/api/ingestion/publications/objects/{batchId}/{kind}/{sha256}",
+            "method": "PUT",
             "notes": [
-              "Requires the dedicated X-Publication-Ingestion-Secret header."
+              "Streams the object through the authenticated Worker R2 binding and verifies the manifest SHA-256 during upload."
             ]
           }
         ]

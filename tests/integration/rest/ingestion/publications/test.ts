@@ -10,7 +10,10 @@ import { expect, test } from "@playwright/test";
 import { withE2ePrisma } from "../../../../e2e/utils/e2e-db/prisma";
 
 const BASE = "/api/ingestion/publications/batches";
+const OBJECT_PLAN = "/api/ingestion/publications/objects/plan";
 const SECRET = "e2e-publication-ingestion-secret";
+const SHA256_OF_ABC =
+  "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad";
 
 function payloadFor(suffix: string) {
   const sourceId = `e2e-publication-${suffix}`;
@@ -44,7 +47,12 @@ function payloadFor(suffix: string) {
   };
 }
 
-async function cleanup(payload: ReturnType<typeof payloadFor>) {
+type CleanupPayload = Pick<
+  ReturnType<typeof payloadFor>,
+  "batchId" | "clientRunId" | "sources"
+>;
+
+async function cleanup(payload: CleanupPayload) {
   await withE2ePrisma(async (prisma) => {
     const publications = await prisma.publication.findMany({
       where: { sourceId: payload.sources[0].id },
@@ -73,6 +81,9 @@ async function cleanup(payload: ReturnType<typeof payloadFor>) {
         where: { id: payload.sources[0].id },
       }),
     ]);
+    await prisma.publicationObject.deleteMany({
+      where: { kind: "body_html", sha256: SHA256_OF_ABC },
+    });
   });
 }
 
@@ -122,6 +133,80 @@ test("ingestion accepts the service secret and scopes ownership to its stable ke
         principalId: null,
         principalKey: "service:publication-crawler",
       });
+    });
+  } finally {
+    await cleanup(payload);
+  }
+});
+
+test("ingestion streams an object through the authenticated Worker R2 binding", async ({
+  request,
+}) => {
+  const suffix = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  const base = payloadFor(suffix);
+  const payload = {
+    ...base,
+    items: [
+      {
+        ...base.items[0],
+        objects: [
+          {
+            contentType: "text/plain",
+            kind: "body_html" as const,
+            sha256: SHA256_OF_ABC,
+            size: 3,
+          },
+        ],
+      },
+    ],
+  };
+  const headers = { "X-Publication-Ingestion-Secret": SECRET };
+
+  await cleanup(payload);
+  try {
+    const batch = await request.post(BASE, { data: payload, headers });
+    expect(batch.status()).toBe(200);
+
+    const plan = await request.post(OBJECT_PLAN, {
+      data: {
+        batchId: payload.batchId,
+        objects: [{ kind: "body_html", sha256: SHA256_OF_ABC }],
+      },
+      headers,
+    });
+    expect(plan.status()).toBe(200);
+    const planBody = await plan.json();
+    const object = planBody.objects[0];
+    expect(object).toMatchObject({
+      requiredHeaders: { "Content-Type": "text/plain" },
+      status: "upload_required",
+    });
+
+    const upload = await request.put(object.uploadUrl, {
+      data: Buffer.from("abc"),
+      headers: {
+        ...headers,
+        ...object.requiredHeaders,
+        "Content-Length": "3",
+      },
+    });
+    expect(upload.status()).toBe(200);
+    await expect(upload.json()).resolves.toEqual({
+      batchId: payload.batchId,
+      kind: "body_html",
+      sha256: SHA256_OF_ABC,
+      status: "linked",
+    });
+
+    const replayPlan = await request.post(OBJECT_PLAN, {
+      data: {
+        batchId: payload.batchId,
+        objects: [{ kind: "body_html", sha256: SHA256_OF_ABC }],
+      },
+      headers,
+    });
+    await expect(replayPlan.json()).resolves.toMatchObject({
+      objects: [{ status: "already_present", uploadUrl: null }],
     });
   } finally {
     await cleanup(payload);

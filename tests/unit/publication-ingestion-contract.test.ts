@@ -4,8 +4,8 @@ import { PUBLICATION_INGESTION_BATCH_MAX_ITEMS } from "@/features/publications/l
 import { publicationIngestionPayloadDigest } from "@/features/publications/server/publication-ingestion-service";
 import {
   publicationIngestionBatchRequestSchema,
-  publicationObjectCompleteRequestSchema,
   publicationObjectPlanRequestSchema,
+  publicationObjectUploadParamsSchema,
 } from "@/lib/api/schemas/request-publication-ingestion-schemas";
 import { publicationIngestionBatchResponseSchema } from "@/lib/api/schemas/response-publication-ingestion-schemas";
 import { PUBLICATION_INGESTION_SECRET_HEADER } from "@/lib/auth/publication-ingestion-auth";
@@ -253,8 +253,8 @@ describe("publication ingestion contract", () => {
       },
     },
     {
-      label: "object completion",
-      schema: publicationObjectCompleteRequestSchema,
+      label: "object upload path",
+      schema: publicationObjectUploadParamsSchema,
       payload: {
         batchId: "fixture\u0000batch",
         kind: "body_html",

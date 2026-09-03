@@ -27,7 +27,7 @@ const PROTECTED_MUTATIONS = [
   ["patch", "/api/community/section-homeworks/{id}"],
   ["delete", "/api/community/section-homeworks/{id}"],
   ["post", "/api/ingestion/publications/batches"],
-  ["post", "/api/ingestion/publications/objects/complete"],
+  ["put", "/api/ingestion/publications/objects/{batchId}/{kind}/{sha256}"],
   ["post", "/api/ingestion/publications/objects/plan"],
   ["put", "/api/workspace/homeworks/{id}/completion"],
   ["put", "/api/workspace/homeworks/completions"],

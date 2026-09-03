@@ -63,7 +63,6 @@
     "@prisma/adapter-pg": "7.9.1",
     "@prisma/client": "7.9.1",
     "@scalar/api-reference": "^1.66.1",
-    "aws4fetch": "1.0.20",
     "better-auth": "1.7.2",
     "clsx": "^2.1.1",
     "dataloader": "2.2.3",
