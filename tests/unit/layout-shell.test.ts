@@ -51,6 +51,20 @@ describe("application shell onboarding chrome", () => {
   });
 });
 
+describe("application shell compact brand", () => {
+  it("hides the topbar brand below 320px so 280px viewports do not overflow", async () => {
+    const topbar = await readFile(
+      resolve(process.cwd(), "src/lib/components/shell/AppTopbar.svelte"),
+      "utf8",
+    );
+
+    expect(topbar).toContain("data-shell-brand");
+    expect(topbar).toContain("min-[320px]:inline-flex");
+    expect(topbar).toMatch(/class="hidden size-11/);
+    expect(topbar).not.toMatch(/class="inline-flex size-11/);
+  });
+});
+
 describe("application shell theme", () => {
   it.each([
     ["light", false, "light"],
