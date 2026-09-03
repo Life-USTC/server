@@ -45,6 +45,15 @@ import {
   snapshotDescriptionTargetForE2e,
   waitForDescriptionAuditRows,
 } from "../../../../utils/description-state";
+import {
+  closeDetailDialog,
+  detailDialog,
+  expectComfortablePopupWidth,
+  expectDetailDialogFitsViewport,
+  expectHomeworkDetailOrder,
+  expectIconOnlyCloseButton,
+  expectSingleColumnDiscussion,
+} from "../../../../utils/detail-dialog";
 import { DEV_SEED } from "../../../../utils/dev-seed";
 import { getCurrentSessionUser } from "../../../../utils/e2e-db";
 import { withE2ePrisma } from "../../../../utils/e2e-db/prisma";
@@ -1266,6 +1275,48 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
     await captureStepScreenshot(page, testInfo, "section/homework-list-view");
   });
 
+  test("作业详情弹窗单栏展示截止日期、讨论与图标关闭按钮", async ({ page }) => {
+    await signInAsDebugUser(page, SECTION_URL);
+    await gotoAndWaitForReady(page, SECTION_URL);
+    await jumpToSection(page, /作业|Homework/i, "#homework");
+
+    await page
+      .getByRole("button", {
+        name: new RegExp(escapeForRegExp(DEV_SEED.homeworks.title)),
+      })
+      .first()
+      .click();
+
+    const dialog = detailDialog(page);
+    await expect(dialog).toBeVisible();
+    await expectHomeworkDetailOrder(dialog);
+    await expectSingleColumnDiscussion(dialog);
+    await expectComfortablePopupWidth(page, dialog);
+    await expectIconOnlyCloseButton(dialog);
+    await closeDetailDialog(page, dialog);
+  });
+
+  test("移动端作业详情弹窗纵向排布且不产生横向溢出", async ({ page }) => {
+    await page.setViewportSize({ height: 844, width: 390 });
+    await signInAsDebugUser(page, SECTION_URL);
+    await gotoAndWaitForReady(page, SECTION_URL);
+    await jumpToSection(page, /作业|Homework/i, "#homework");
+
+    await page
+      .getByRole("button", {
+        name: new RegExp(escapeForRegExp(DEV_SEED.homeworks.title)),
+      })
+      .first()
+      .click();
+
+    const dialog = detailDialog(page);
+    await expect(dialog).toBeVisible();
+    await expectDetailDialogFitsViewport(page, dialog);
+    await expectHomeworkDetailOrder(dialog);
+    await expectSingleColumnDiscussion(dialog);
+    await closeDetailDialog(page, dialog);
+  });
+
   test("已登录用户可创建作业、查看讨论、切换完成状态并删除", async ({
     page,
   }, testInfo) => {
@@ -1436,19 +1487,6 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
       ).toHaveCount(0, { timeout: 15_000 });
 
       await expect(detailDialog.getByText(description)).toBeVisible();
-      const secondaryDetails = detailDialog.getByTestId(
-        "homework-secondary-details",
-      );
-      const secondaryDetailsTrigger = secondaryDetails.getByRole("button", {
-        name: /More details|更多信息/i,
-      });
-      await expect(secondaryDetailsTrigger).toContainText(
-        /Major assignment|大作业/i,
-      );
-      await expect(secondaryDetailsTrigger).toContainText(
-        /Team required|需要组队/i,
-      );
-
       const deadlineSummary = detailDialog.getByTestId(
         "homework-deadline-summary",
       );
@@ -1456,6 +1494,16 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
         /2026-12-31|2026\/12\/31|12\/31\/26|12月31日|Dec 31/,
       );
       await expect(deadlineSummary).toContainText(/23:59|11:59 PM/);
+
+      const factsTable = detailDialog.getByTestId("homework-secondary-details");
+      await expect(factsTable).toContainText(/Major assignment|大作业/i);
+      await expect(factsTable).toContainText(/Team required|需要组队/i);
+      await expect(deadlineSummary).not.toContainText(
+        /Major assignment|大作业/i,
+      );
+      await expect(deadlineSummary).not.toContainText(
+        /Team required|需要组队/i,
+      );
       await captureStepScreenshot(
         page,
         testInfo,

@@ -23,6 +23,14 @@
  */
 import { expect, test } from "@playwright/test";
 import { signInAsDebugUser } from "../../../../utils/auth";
+import {
+  closeDetailDialog,
+  detailDialog,
+  expectComfortablePopupWidth,
+  expectHomeworkDetailOrder,
+  expectIconOnlyCloseButton,
+  expectSingleColumnDiscussion,
+} from "../../../../utils/detail-dialog";
 import { DEV_SEED } from "../../../../utils/dev-seed";
 import { cleanupHomeworksForE2e } from "../../../../utils/homeworks";
 import { visibleText } from "../../../../utils/locators";
@@ -520,6 +528,34 @@ test.describe("仪表盘作业", () => {
       page.getByText(/更新完成状态失败|Couldn't update completion/i),
     ).toBeVisible();
     await captureStepScreenshot(page, testInfo, "homeworks/completion-error");
+  });
+
+  test("作业详情弹窗单栏展示截止日期、讨论与图标关闭按钮", async ({ page }) => {
+    await signInAsDebugUser(page, "/workspace/homeworks");
+    await ensureSeedSectionSubscription(page);
+    await gotoAndWaitForReady(page, "/workspace/homeworks");
+
+    await page
+      .getByRole("radio", { name: /全部|All/i })
+      .first()
+      .click();
+
+    const row = page
+      .getByRole("row")
+      .filter({ hasText: DEV_SEED.homeworks.title })
+      .first();
+    await row
+      .getByRole("button", { name: new RegExp(DEV_SEED.homeworks.title) })
+      .first()
+      .click();
+
+    const dialog = detailDialog(page);
+    await expect(dialog).toBeVisible();
+    await expectHomeworkDetailOrder(dialog);
+    await expectSingleColumnDiscussion(dialog);
+    await expectComfortablePopupWidth(page, dialog);
+    await expectIconOnlyCloseButton(dialog);
+    await closeDetailDialog(page, dialog);
   });
 
   test("作业详情链接到班级页面且不打开第二层详情", async ({

@@ -21,6 +21,11 @@
  */
 import { expect, type Page, test } from "@playwright/test";
 import { signInAsDebugUser } from "../../../../utils/auth";
+import {
+  closeDetailDialog,
+  detailDialog,
+  expectDialogAction,
+} from "../../../../utils/detail-dialog";
 import { DEV_SEED } from "../../../../utils/dev-seed";
 import { visibleText } from "../../../../utils/locators";
 import { gotoAndWaitForReady } from "../../../../utils/page-ready";
@@ -203,6 +208,34 @@ test.describe("仪表盘待办", () => {
     await captureStepScreenshot(page, testInfo, "dashboard-todos-completed");
   });
 
+  test("待办详情弹窗展示优先级、状态与底部操作", async ({ page }, testInfo) => {
+    await signInAsDebugUser(page, "/workspace/todos");
+
+    await visibleText(page, DEV_SEED.todos.dueTodayTitle).first().click();
+
+    const dialog = detailDialog(page);
+    await expect(dialog).toBeVisible();
+    await expect(
+      dialog.getByRole("heading", {
+        name: new RegExp(DEV_SEED.todos.dueTodayTitle),
+      }),
+    ).toBeVisible();
+    const summary = dialog.getByTestId("todo-detail-summary");
+    await expect(summary).toBeVisible();
+    await expect(summary.getByText(/高|High/i).first()).toBeVisible();
+    await expect(
+      summary.getByText(/待处理|已完成|Pending|Completed/i).first(),
+    ).toBeVisible();
+
+    await expectDialogAction(dialog, /删除待办|Delete todo/i);
+    await expectDialogAction(dialog, /编辑待办|Edit Todo/i);
+    await expectDialogAction(dialog, /标记为完成|Mark as complete/i);
+
+    await captureStepScreenshot(page, testInfo, "todos/detail-dialog");
+
+    await closeDetailDialog(page, dialog);
+  });
+
   test("嵌套待办路由渲染服务端操作错误", async ({ page }, testInfo) => {
     await signInAsDebugUser(page, "/workspace/todos");
 
@@ -264,11 +297,13 @@ test.describe("仪表盘待办", () => {
       await visibleText(page, title).click();
       const detailDialog = page.getByRole("dialog", { name: title });
       await expect(detailDialog).toBeVisible();
-      const detailText = await detailDialog.innerText();
+      const summary = detailDialog.getByTestId("todo-detail-summary");
+      await expect(summary).toBeVisible();
+      const summaryText = await summary.innerText();
       const localizedPriorityMatches =
-        detailText.match(/\b(?:Low|Medium|High)\b|[低中高]/g) ?? [];
+        summaryText.match(/\b(?:Low|Medium|High)\b|[低中高]/g) ?? [];
       expect(localizedPriorityMatches).toHaveLength(1);
-      expect(detailText).not.toMatch(/\b(?:low|medium|high)\b/);
+      expect(summaryText).not.toMatch(/\b(?:low|medium|high)\b/);
       const editButton = detailDialog.getByRole("button", {
         name: /编辑待办|Edit Todo/i,
       });

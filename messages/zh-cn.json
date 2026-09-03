@@ -2231,6 +2231,7 @@
     "contentPlaceholder": "支持 Markdown 格式",
     "contentEmpty": "暂无内容",
     "priorityLabel": "优先级",
+    "statusLabel": "状态",
     "dueAtLabel": "截止时间",
     "dueAtPlaceholder": "选择截止时间（可选）",
     "dueLabel": "截止",

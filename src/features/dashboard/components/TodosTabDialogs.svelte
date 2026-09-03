@@ -21,8 +21,12 @@ export let editTodoError: string;
 export let editingTodo: DashboardTodoItem | null;
 export let fmtDate: (value: string | Date | null | undefined) => string;
 export let isCreatingTodo: boolean;
+export let isDueOverdue: (value: string | Date | null | undefined) => boolean;
 export let isUpdatingTodo: boolean;
 export let openTodoEditor: (todo: DashboardTodoItem) => void;
+export let relativeDueLabel: (
+  value: string | Date | null | undefined,
+) => string;
 export let selectedTodo: DashboardTodoItem | null;
 export let showCreateTodo: boolean;
 export let todoActionLabel: (todo: DashboardTodoItem) => string;
@@ -53,10 +57,12 @@ export let updateTodoAction: SubmitFunction;
 <TodoDetailDialog
   deleteTodo={(todo) => deleteTodo(todo)}
   {fmtDate}
+  {isDueOverdue}
   onClose={() => {
     selectedTodo = null;
   }}
   {openTodoEditor}
+  {relativeDueLabel}
   todo={selectedTodo}
   {todoActionLabel}
   {todoSavingById}

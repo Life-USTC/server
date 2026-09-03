@@ -178,6 +178,7 @@ export type SectionDetailCopy = {
     descriptionPlaceholder: string;
     dueDateShortcuts: string;
     editAction: string;
+    filterIncomplete: string;
     helperClear: string;
     helperMonth: string;
     helperPublishNow: string;

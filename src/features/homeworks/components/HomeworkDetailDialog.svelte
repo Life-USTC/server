@@ -109,8 +109,8 @@ onMount(() => {
               referenceDate={liveReferenceDate}
               {relativeEtaLabel}
             />
-            <HomeworkDetailDescription {copy} {homework} />
             <HomeworkDetailSecondaryDetails {copy} {fmtDate} {homework} />
+            <HomeworkDetailDescription {copy} {homework} />
           {/if}
 
           <HomeworkDetailDiscussion
