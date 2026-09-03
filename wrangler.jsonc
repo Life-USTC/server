@@ -32,6 +32,9 @@
       "!/openapi.generated.json"
     ]
   },
+  "images": {
+    "binding": "IMAGES"
+  },
   "triggers": {
     "crons": ["7 */2 * * *", "23 */6 * * *", "*/20 * * * *", "*/30 * * * *"]
   },

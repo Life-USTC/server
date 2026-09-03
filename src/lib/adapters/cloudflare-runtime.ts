@@ -32,6 +32,29 @@ export type CloudflareR2Bucket = {
   ): Promise<unknown>;
 };
 
+export type CloudflareImageTransformationResult = {
+  contentType(): string;
+  image(): ReadableStream<Uint8Array>;
+  response(): Response;
+};
+
+export type CloudflareImageTransformer = {
+  output(options: {
+    format: "image/webp";
+    quality?: number;
+  }): Promise<CloudflareImageTransformationResult>;
+  transform(options: {
+    fit: "cover";
+    gravity?: "auto" | "center" | "face";
+    height: number;
+    width: number;
+  }): CloudflareImageTransformer;
+};
+
+export type CloudflareImagesBinding = {
+  input(stream: ReadableStream<Uint8Array>): CloudflareImageTransformer;
+};
+
 export type CloudflareAnalyticsEngineDataPoint = {
   blobs?: ((ArrayBuffer | string) | null)[];
   doubles?: number[];
@@ -116,6 +139,7 @@ type CloudflareRuntimeEnv = Record<string, unknown> & {
   HYPERDRIVE_MAINTENANCE?: {
     connectionString?: unknown;
   };
+  IMAGES?: CloudflareImagesBinding;
   R2_UPLOADS?: CloudflareR2Bucket;
   R2_PUBLICATIONS?: CloudflareR2Bucket;
   USER_BATCH_WRITE_RATE_LIMITER?: CloudflareRateLimiter;
@@ -374,6 +398,10 @@ export function getCloudflareMaintenanceHyperdriveConnectionString() {
 
 export function getCloudflareR2UploadsBucket() {
   return getCurrentCloudflareRuntimeEnv()?.R2_UPLOADS;
+}
+
+export function getCloudflareImagesBinding() {
+  return getCurrentCloudflareRuntimeEnv()?.IMAGES;
 }
 
 export function getCloudflareR2PublicationsBucket() {

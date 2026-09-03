@@ -45,6 +45,7 @@ import {
   resolveAvatarFallback,
   resolveProfileHref,
   shouldShowAppFooter,
+  shouldUseFocusedShell,
   type ThemeMode,
 } from "$lib/components/shell/layout-shell";
 import MobilePrimaryNav from "$lib/components/shell/MobilePrimaryNav.svelte";
@@ -82,7 +83,7 @@ let GlobalSearchDialog:
 let userMenuOpen = false;
 let localeMenuOpen = false;
 let themeMenuOpen = false;
-let contentScrollContainer: HTMLDivElement | undefined;
+let contentScrollContainer: HTMLElement | undefined;
 let viewerLoading = data.resolveViewerOnClient && !data.user;
 let viewerUser = data.user;
 let workspaceNavigation: WorkspaceNavigationSummary | null = null;
@@ -133,6 +134,7 @@ $: mobileSecondaryHasActive =
     group.links.some((link) => linkHasActiveDestination(link)),
   );
 $: detailWorkspace = isDetailWorkspacePath($page.url.pathname);
+$: focusedShell = shouldUseFocusedShell($page.url.pathname);
 $: showFooter = shouldShowAppFooter($page.url.pathname, Boolean(viewerUser));
 $: mainContentLabel = resolveMainContentLabel($page.data);
 const footerLinks = buildFooterLinks(data.copy.footer);
@@ -153,6 +155,7 @@ async function openGlobalSearch() {
 }
 
 async function handleGlobalSearchKeydown(event: KeyboardEvent) {
+  if (shouldUseFocusedShell($page.url.pathname)) return;
   if (!isGlobalSearchShortcut(event)) return;
   event.preventDefault();
   await openGlobalSearch();
@@ -728,129 +731,163 @@ afterNavigate(({ from, to }) => {
   }
 </style>
 
-<Sidebar.Provider
-  bind:open={sidebarOpen}
-  class={cn(
-    "flex min-h-screen flex-col lg:h-screen lg:min-h-0 lg:overflow-hidden",
-    viewerUser &&
-      "pb-[calc(3.5rem+env(safe-area-inset-bottom))] md:pb-0",
-  )}
+<a
+  class="sr-only top-3 left-3 z-50 rounded-md bg-background px-4 py-2 font-medium text-foreground shadow-lg outline-none focus:fixed focus:not-sr-only focus-visible:ring-2 focus-visible:ring-ring"
+  href="#main-content"
 >
-  <a
-    class="sr-only top-3 left-3 z-50 rounded-md bg-background px-4 py-2 font-medium text-foreground shadow-lg outline-none focus:fixed focus:not-sr-only focus-visible:ring-2 focus-visible:ring-ring"
-    href="#main-content"
-  >
-    {data.copy.shell.skipToMainContent}
-  </a>
+  {data.copy.shell.skipToMainContent}
+</a>
 
-  {#if $navigating}
-    <RouteLoadingBar loadingLabel={data.copy.shell.loading} />
-  {/if}
+{#if $navigating}
+  <RouteLoadingBar loadingLabel={data.copy.shell.loading} />
+{/if}
 
-  <div class="flex min-h-0 w-full flex-1">
-    <AppSidebar
-      {avatarFallback}
+{#if focusedShell}
+  <div class="flex min-h-screen flex-col" data-shell="focused">
+    <AppTopbar
       {closeMenus}
       copy={data.copy}
-      currentPathname={$page.url.pathname}
-      dockAboveFooter={showFooter}
-      {isActiveLink}
-      {mobileNavGroups}
-      {navGroups}
-      {profileHref}
-      {setUserMenuOpen}
-      showAccountFooter={!showFooter}
+      focused
+      globalSearchShortcutLabel={globalSearchShortcutLabel}
+      locale={data.locale}
+      {localeMenuOpen}
+      onOpenGlobalSearch={openGlobalSearch}
+      {setLocale}
+      {setLocaleMenuOpen}
+      {setThemeMenuOpen}
+      {setThemeMode}
+      {themeMenuOpen}
+      {themeMode}
+      signedIn={Boolean(viewerUser)}
       user={viewerUser}
-      {userMenuOpen}
       {viewerLoading}
     />
 
-    <Sidebar.Inset
+    <!-- svelte-ignore a11y_no_noninteractive_tabindex -- skip-link target -->
+    <main
       aria-label={mainContentLabel}
+      bind:this={contentScrollContainer}
+      class="flex min-w-0 flex-1 flex-col overflow-y-auto px-4 py-4 sm:px-5 lg:px-6"
+      data-shell-scroll-container
       id="main-content"
       tabindex={-1}
-      class="relative flex w-full min-w-0 flex-1 flex-col lg:min-h-0 lg:overflow-hidden"
     >
-      <AppTopbar
+      <slot />
+    </main>
+  </div>
+{:else}
+  <Sidebar.Provider
+    bind:open={sidebarOpen}
+    class={cn(
+      "flex min-h-screen flex-col lg:h-screen lg:min-h-0 lg:overflow-hidden",
+      viewerUser && "pb-[calc(3.5rem+env(safe-area-inset-bottom))] md:pb-0",
+    )}
+  >
+    <div class="flex min-h-0 w-full flex-1">
+      <AppSidebar
+        {avatarFallback}
         {closeMenus}
         copy={data.copy}
-        globalSearchShortcutLabel={globalSearchShortcutLabel}
-        locale={data.locale}
-        {localeMenuOpen}
-        onOpenGlobalSearch={openGlobalSearch}
-        {setLocale}
-        {setLocaleMenuOpen}
-        {setThemeMenuOpen}
-        {setThemeMode}
-        {themeMenuOpen}
-        {themeMode}
-        signedIn={Boolean(viewerUser)}
+        currentPathname={$page.url.pathname}
+        dockAboveFooter={showFooter}
+        {isActiveLink}
+        {mobileNavGroups}
+        {navGroups}
+        {profileHref}
+        {setUserMenuOpen}
+        showAccountFooter={!showFooter}
         user={viewerUser}
+        {userMenuOpen}
         {viewerLoading}
       />
 
-      <!-- svelte-ignore a11y_no_noninteractive_tabindex -- the desktop content region is the keyboard-scrollable viewport -->
-      <div
-        bind:this={contentScrollContainer}
-        aria-label={data.copy.shell.scrollRegion}
-        data-shell-scroll-container
-        role="region"
-        tabindex="0"
-        class={cn(
-          "flex min-w-0 flex-1 flex-col",
-          detailWorkspace
-            ? "lg:min-h-0 lg:overflow-hidden"
-            : "lg:min-h-0 lg:overflow-y-auto",
-        )}
+      <Sidebar.Inset
+        aria-label={mainContentLabel}
+        id="main-content"
+        tabindex={-1}
+        class="relative flex w-full min-w-0 flex-1 flex-col lg:min-h-0 lg:overflow-hidden"
       >
+        <AppTopbar
+          {closeMenus}
+          copy={data.copy}
+          globalSearchShortcutLabel={globalSearchShortcutLabel}
+          locale={data.locale}
+          {localeMenuOpen}
+          onOpenGlobalSearch={openGlobalSearch}
+          {setLocale}
+          {setLocaleMenuOpen}
+          {setThemeMenuOpen}
+          {setThemeMode}
+          {themeMenuOpen}
+          {themeMode}
+          signedIn={Boolean(viewerUser)}
+          user={viewerUser}
+          {viewerLoading}
+        />
+
+        <!-- svelte-ignore a11y_no_noninteractive_tabindex -- the desktop content region is the keyboard-scrollable viewport -->
         <div
+          bind:this={contentScrollContainer}
+          aria-label={data.copy.shell.scrollRegion}
+          data-shell-scroll-container
+          role="region"
+          tabindex="0"
           class={cn(
-            "w-full flex-1",
+            "flex min-w-0 flex-1 flex-col",
             detailWorkspace
-              ? "bg-card p-0 lg:min-h-0 lg:overflow-hidden"
-              : "px-4 py-4 sm:px-5 lg:px-6",
+              ? "lg:min-h-0 lg:overflow-hidden"
+              : "lg:min-h-0 lg:overflow-y-auto",
           )}
         >
-          <slot />
+          <div
+            class={cn(
+              "w-full flex-1",
+              detailWorkspace
+                ? "bg-card p-0 lg:min-h-0 lg:overflow-hidden"
+                : "px-4 py-4 sm:px-5 lg:px-6",
+            )}
+          >
+            <slot />
+          </div>
         </div>
-      </div>
-    </Sidebar.Inset>
-  </div>
+      </Sidebar.Inset>
+    </div>
 
-  {#if showFooter}
-    <AppFooter
-      {avatarFallback}
-      {closeMenus}
-      copy={data.copy}
-      currentPathname={$page.url.pathname}
-      {footerLinks}
-      {profileHref}
-      {setUserMenuOpen}
-      user={viewerUser}
-      {userMenuOpen}
-      {viewerLoading}
-    />
-  {/if}
-
-  {#if viewerUser}
-    {#if viewerUser.isAdmin && adminRoute}
-      <AdminMobileNav
+    {#if showFooter}
+      <AppFooter
+        {avatarFallback}
+        {closeMenus}
         copy={data.copy}
-        isActiveLink={isActiveLink}
-        links={adminMobileLinks}
-      />
-    {:else}
-      <MobilePrimaryNav
-        copy={data.copy}
-        hasSecondaryCurrent={mobileSecondaryHasActive}
-        isActiveLink={isMobilePrimaryActive}
-        links={mobilePrimaryLinks}
+        currentPathname={$page.url.pathname}
+        {footerLinks}
+        {profileHref}
+        {setUserMenuOpen}
+        user={viewerUser}
+        {userMenuOpen}
+        {viewerLoading}
       />
     {/if}
-  {/if}
-</Sidebar.Provider>
 
-{#if GlobalSearchDialog}
+    {#if viewerUser}
+      {#if viewerUser.isAdmin && adminRoute}
+        <AdminMobileNav
+          copy={data.copy}
+          isActiveLink={isActiveLink}
+          links={adminMobileLinks}
+        />
+      {:else}
+        <MobilePrimaryNav
+          copy={data.copy}
+          hasSecondaryCurrent={mobileSecondaryHasActive}
+          isActiveLink={isMobilePrimaryActive}
+          links={mobilePrimaryLinks}
+        />
+      {/if}
+    {/if}
+  </Sidebar.Provider>
+{/if}
+
+{#if GlobalSearchDialog && !focusedShell}
   <svelte:component
     this={GlobalSearchDialog}
     copy={data.copy.globalSearch}

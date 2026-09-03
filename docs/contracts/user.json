@@ -13,6 +13,9 @@
     "debug-password-boundary": "Email/password authentication is enabled only for local development or the explicit non-production E2E debug mode; production does not expose debug password authentication.",
     "oauth-callback-integrity": "On a canonical same-origin deployment, OAuth login callbacks must complete state validation and session creation directly, without losing state due to proxy wrapping or container-internal host differences.",
     "welcome-flow-required": "New users who have not set a name or username on first login must complete the welcome flow before proceeding.",
+    "welcome-staged-steps": "Welcome renders one URL step at a time: required profile, skippable subscriptions, then orientation. Incomplete profiles always land on profile; completed ones never return to it. Only the last step leaves for the callback. Welcome hides sidebar, search, and mobile primary nav. Subscriptions cannot read official enrollment; they inline undergraduate and graduate academic-system links and match pasted course codes.",
+    "welcome-avatar-upload": "During welcome, signed-in users may upload a JPG, PNG, WebP, or AVIF avatar up to 5 MB. The Worker uses the Cloudflare Images binding to auto-crop it to a 256-by-256 WebP before storing it in private R2; public avatar delivery is limited to URLs currently referenced by that user's profile.",
+    "welcome-oauth-refresh": "A user may reauthorize an already linked OAuth provider during welcome to fetch current upstream name and avatar options. Refreshed upstream values fill missing data and add avatar choices without overwriting profile values the user entered.",
     "welcome-completion-resume": "If the welcome flow was reached from an app-relative callbackUrl, successful completion returns to that page; otherwise completion returns home.",
     "auth-callback-not-intercepted": "Authorization callback continuation requests carrying OAuth code/error and state must be allowed to complete the protocol redirect; the welcome page interceptor must not break the authorization result redirect.",
     "post-login-redirect": "After successful login, the user should be redirected back to the originally requested app-relative page whenever possible; unsafe external callbacks fall back to the home page.",
@@ -62,8 +65,12 @@
           "user.username (Current value display)",
           "user.image (Current avatar)",
           "user.profilePictures[] (Avatar selector grid)",
-          "semesters[] (Semester dropdown options)",
-          "defaultSemesterId (Preselected semester)"
+          "Custom avatar upload (server-cropped 256x256 WebP in R2)",
+          "Linked OAuth providers (reauthorize to refresh upstream profile options)",
+          "Step progress indicator with back, skip, and finish controls",
+          "semesters[] (Semester dropdown options, subscriptions step)",
+          "defaultSemesterId (Preselected semester)",
+          "Platform guidance for subscriptions, workspace, planning, and account security (final step)"
         ]
       }
     },

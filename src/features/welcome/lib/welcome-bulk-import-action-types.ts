@@ -14,14 +14,13 @@ export type WelcomeBulkImportActionInput = {
   getSelectedSectionIds: () => number[];
   getSelectedSemesterId: () => string;
   getWelcomeCopy: () => WelcomeCopy;
-  setBulkImportOpen: (value: boolean) => void;
-  setConfirmImportOpen: (value: boolean) => void;
   setImportError: (value: string) => void;
   setImporting: (value: boolean) => void;
   setImportMessage: (value: string) => void;
   setImportText: (value: string) => void;
   setMatchedSections: (value: WelcomeMatchedSection[]) => void;
   setMatching: (value: boolean) => void;
+  setResultsVisible: (value: boolean) => void;
   setSelectedSectionIds: (value: number[]) => void;
   setUnmatchedCodes: (value: string[]) => void;
 };

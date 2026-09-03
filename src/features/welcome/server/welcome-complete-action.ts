@@ -1,12 +1,26 @@
 import type { Cookies } from "@sveltejs/kit";
 import { fail, redirect } from "@sveltejs/kit";
+import {
+  deleteProcessedProfileAvatar,
+  ProfileAvatarUploadError,
+  processProfileAvatarUpload,
+} from "@/features/profile/server/profile-avatar-service";
 import { updateOwnProfile } from "@/features/profile/server/profile-update-service";
+import { buildWelcomeStepUrl } from "@/features/welcome/lib/welcome-steps";
 import { buildSignInPageUrl } from "@/lib/auth/auth-routing";
 import { getSessionFromHeaders } from "@/lib/auth/core";
 import { applyAuthResponseCookies } from "@/lib/auth/svelte-auth-actions";
 import { resolveWelcomeCallbackUrl } from "./welcome-callback-url";
 import { getWelcomeCopy } from "./welcome-page-copy";
 import { parseWelcomeProfileForm } from "./welcome-profile-form";
+
+async function discardUploadedAvatar(key: string) {
+  try {
+    await deleteProcessedProfileAvatar(key);
+  } catch (error) {
+    void error;
+  }
+}
 
 export async function completeWelcomeProfile({
   locals,
@@ -19,7 +33,8 @@ export async function completeWelcomeProfile({
 }) {
   const copy = getWelcomeCopy(locals.locale);
   const form = await request.formData();
-  const { callbackUrl, image, name, username } = parseWelcomeProfileForm(form);
+  const { avatar, callbackUrl, image, name, username } =
+    parseWelcomeProfileForm(form);
   const redirectTo = resolveWelcomeCallbackUrl(callbackUrl);
   const session = await getSessionFromHeaders(request.headers);
   if (!session?.user?.id) {
@@ -31,14 +46,49 @@ export async function completeWelcomeProfile({
     );
   }
 
-  const result = await updateOwnProfile({
-    headers: request.headers,
-    image,
-    name,
-    userId: session.user.id,
-    username,
-  });
+  let uploadedAvatar: Awaited<
+    ReturnType<typeof processProfileAvatarUpload>
+  > | null = null;
+  try {
+    if (avatar) {
+      uploadedAvatar = await processProfileAvatarUpload({
+        file: avatar,
+        userId: session.user.id,
+      });
+    }
+  } catch (error) {
+    if (error instanceof ProfileAvatarUploadError) {
+      const message =
+        error.reason === "too_large"
+          ? copy.welcome.avatarUploadTooLarge
+          : error.reason === "unavailable"
+            ? copy.welcome.avatarUploadUnavailable
+            : copy.welcome.avatarUploadInvalid;
+      return fail(400, { message });
+    }
+    throw error;
+  }
+
+  let result: Awaited<ReturnType<typeof updateOwnProfile>>;
+  try {
+    result = await updateOwnProfile({
+      headers: request.headers,
+      image: uploadedAvatar?.url ?? image,
+      name,
+      trustedImageUrl: uploadedAvatar?.url,
+      userId: session.user.id,
+      username,
+    });
+  } catch (error) {
+    if (uploadedAvatar) {
+      await discardUploadedAvatar(uploadedAvatar.key);
+    }
+    throw error;
+  }
   if (!result.ok) {
+    if (uploadedAvatar) {
+      await discardUploadedAvatar(uploadedAvatar.key);
+    }
     if (result.reason === "name_required") {
       return fail(400, { message: copy.profile.nameRequired });
     }
@@ -55,5 +105,5 @@ export async function completeWelcomeProfile({
   }
 
   applyAuthResponseCookies(result.headers, cookies);
-  throw redirect(303, redirectTo);
+  throw redirect(303, buildWelcomeStepUrl("subscriptions", redirectTo));
 }

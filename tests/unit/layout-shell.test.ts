@@ -3,8 +3,10 @@ import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
   isDetailWorkspacePath,
+  isOnboardingPath,
   resolveShellTheme,
   shouldShowAppFooter,
+  shouldUseFocusedShell,
 } from "@/lib/components/shell/layout-shell";
 
 describe("application shell footer policy", () => {
@@ -35,6 +37,32 @@ describe("application shell footer policy", () => {
       expect(shouldShowAppFooter(pathname, signedIn)).toBe(expected);
     },
   );
+});
+
+describe("application shell onboarding chrome", () => {
+  it.each([
+    ["/account/welcome", true],
+    ["/account/welcome/", true],
+    ["/account/settings", false],
+    ["/workspace/overview", false],
+  ])("pathname %s is onboarding=%s", (pathname, expected) => {
+    expect(isOnboardingPath(pathname)).toBe(expected);
+    expect(shouldUseFocusedShell(pathname)).toBe(expected);
+  });
+});
+
+describe("application shell compact brand", () => {
+  it("hides the topbar brand below 320px so 280px viewports do not overflow", async () => {
+    const topbar = await readFile(
+      resolve(process.cwd(), "src/lib/components/shell/AppTopbar.svelte"),
+      "utf8",
+    );
+
+    expect(topbar).toContain("data-shell-brand");
+    expect(topbar).toContain("min-[320px]:inline-flex");
+    expect(topbar).toMatch(/class="hidden size-11/);
+    expect(topbar).not.toMatch(/class="inline-flex size-11/);
+  });
 });
 
 describe("application shell theme", () => {

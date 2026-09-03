@@ -23,6 +23,9 @@
     "directory": ".svelte-kit/cloudflare",
     "binding": "ASSETS"
   },
+  "images": {
+    "binding": "IMAGES"
+  },
   "observability": {
     "enabled": false
   },

@@ -1,7 +1,17 @@
 import type { SubmitFunction } from "@sveltejs/kit";
 import type { WelcomeMatchedSection } from "@/features/welcome/lib/welcome-bulk-import-types";
+import type { WelcomeStep } from "@/features/welcome/lib/welcome-steps";
+
+export type WelcomeStepIndicator = {
+  id: WelcomeStep;
+  label: string;
+  number: number;
+  state: "complete" | "current" | "upcoming";
+};
 
 export type WelcomeProfileCopy = {
+  avatarUpload: string;
+  avatarUploadHint: string;
   name: string;
   namePlaceholder: string;
   profilePicture: string;
@@ -12,18 +22,36 @@ export type WelcomeProfileCopy = {
 };
 
 export type WelcomeCopy = Record<string, string> & {
-  browseCourses: string;
-  browseSections: string;
-  bulkImportCta: string;
+  back: string;
+  finishDescription: string;
+  finishTitle: string;
+  skipForNow: string;
+  startUsing: string;
+  stepFinish: string;
+  stepProfile: string;
+  stepProgress: string;
+  stepSubscriptions: string;
   confirmImportTitle: string;
   avatarLater: string;
   continue: string;
   description: string;
   firstSignIn: string;
+  importButton: string;
   importing: string;
   matchedSummary: string;
-  nextStepsDescription: string;
+  nextStepsDescriptionAfter: string;
+  nextStepsDescriptionBefore: string;
+  nextStepsDescriptionBetween: string;
+  nextStepsPasteHint: string;
   nextStepsTitle: string;
+  subscriptionsGraduatePortal: string;
+  subscriptionsUndergraduatePortal: string;
+  guideAppsDescription: string;
+  guideAppsTitle: string;
+  guideProfileDescription: string;
+  guideProfileTitle: string;
+  guideWorkspaceDescription: string;
+  guideWorkspaceTitle: string;
   noMatchingSections: string;
   sectionCodesLabel: string;
   selectSection: string;
@@ -83,11 +111,17 @@ export type WelcomePageUser = WelcomeProfileUser & {
 };
 
 export type WelcomePageData = {
+  backUrl: string | null;
   callbackUrl: string;
   copy: WelcomePageCopy;
   defaultSemesterId?: number | string | null;
   locale: string;
+  nextUrl: string;
+  oauthProviders: Array<{ id: string; name: string }>;
+  oauthRefreshed: boolean;
   semesters: WelcomeSemester[];
+  step: WelcomeStep;
+  stepIndicators: WelcomeStepIndicator[];
   user: WelcomePageUser;
 };
 
