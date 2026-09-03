@@ -44,9 +44,10 @@ const PROTECTED_MUTATIONS = [
   ["put", "/api/workspace/uploads/object"],
 ] as const;
 
-const EXPECTED_STORAGE_FAILURES = [
+const EXPECTED_UNAVAILABLE_READS = [
   ["get", "/api/publications/objects/{kind}/{sha256}"],
   ["get", "/api/catalog/young-events/{youngId}/image"],
+  ["get", "/api/catalog/weather"],
 ] as const;
 
 type Operation = {
@@ -59,9 +60,9 @@ type Operation = {
 const paths = openApi.paths as Record<string, Record<string, Operation>>;
 
 describe("OpenAPI rate-limit response contract", () => {
-  it("documents 429/503 on protected mutations and storage failures on object reads", () => {
+  it("documents 429/503 on protected mutations and 503 on unavailable public reads", () => {
     const expected = new Set(
-      [...PROTECTED_MUTATIONS, ...EXPECTED_STORAGE_FAILURES].map(
+      [...PROTECTED_MUTATIONS, ...EXPECTED_UNAVAILABLE_READS].map(
         ([method, path]) => `${method} ${path}`,
       ),
     );
@@ -93,8 +94,8 @@ describe("OpenAPI rate-limit response contract", () => {
     },
   );
 
-  it.each(EXPECTED_STORAGE_FAILURES)(
-    "%s %s exposes Retry-After for storage failures",
+  it.each(EXPECTED_UNAVAILABLE_READS)(
+    "%s %s exposes Retry-After for unavailable reads",
     (method, path) => {
       expect(
         paths[path]?.[method]?.responses?.["503"]?.headers?.["Retry-After"],

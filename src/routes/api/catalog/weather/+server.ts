@@ -7,5 +7,6 @@ import { observedApiRoute } from "@/lib/log/api-observability";
  * @params weatherQuerySchema
  * @response weatherSnapshotResponseSchema
  * @response 400:openApiErrorSchema
+ * @response 503:openApiErrorSchema
  */
 export const GET = svelteRequestHandler(observedApiRoute(getWeatherRoute));
