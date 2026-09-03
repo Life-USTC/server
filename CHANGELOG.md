@@ -1,3 +1,10 @@
+# [1.105.0](https://github.com/Life-USTC/server/compare/v1.104.0...v1.105.0) (2026-09-03)
+
+
+### Features
+
+* **publications:** stream object uploads through worker ([#1009](https://github.com/Life-USTC/server/issues/1009)) ([9428ee1](https://github.com/Life-USTC/server/commit/9428ee1bb93d6f80348d9ad89df5aefa576691b9))
+
 # [1.104.0](https://github.com/Life-USTC/server/compare/v1.103.4...v1.104.0) (2026-09-02)
 
 
