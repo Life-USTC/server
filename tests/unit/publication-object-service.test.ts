@@ -6,6 +6,7 @@ const mocks = vi.hoisted(() => {
   const bucket = {
     head: vi.fn(),
     get: vi.fn(),
+    put: vi.fn(),
   };
   return {
     bucket,
@@ -32,8 +33,8 @@ vi.mock("@/lib/db/prisma", () => ({
 }));
 
 import {
-  completePublicationObject,
   planPublicationObjects,
+  uploadPublicationObject,
 } from "@/features/publications/server/publication-object-service";
 
 const sha256OfAbc =
@@ -66,7 +67,9 @@ function configureObject() {
   mocks.batchObjectFindFirst.mockResolvedValue(claim);
   mocks.objectUpdate.mockResolvedValue({});
   mocks.objectUpdateMany.mockResolvedValue({ count: 1 });
+  mocks.bucket.put.mockResolvedValue({});
   mocks.bucket.head.mockResolvedValue({
+    checksums: { sha256: checksumBytes(sha256OfAbc) },
     customMetadata: { kind: "body_html", sha256: sha256OfAbc },
     httpMetadata: { contentType: "text/plain" },
     size: 3,
@@ -79,54 +82,37 @@ function checksumBytes(value: string) {
   ).buffer;
 }
 
-describe("publication object completion", () => {
+describe("publication object upload", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     configureObject();
   });
 
-  it("hashes bytes when R2 does not expose a SHA-256 checksum", async () => {
-    mocks.bucket.get.mockResolvedValue({ body: body("bad") });
-
+  it("streams through R2 with the manifest SHA-256 and links after verification", async () => {
+    const stream = body("abc");
     await expect(
-      completePublicationObject({
+      uploadPublicationObject({
+        body: stream,
         principal,
         payload: {
           batchId: "batch-1",
           kind: "body_html",
           sha256: sha256OfAbc,
         },
-      }),
-    ).rejects.toThrow("object content does not match manifest");
-
-    expect(mocks.bucket.get).toHaveBeenCalledWith(
-      `publications/body_html/sha256/ba/${sha256OfAbc}`,
-    );
-    expect(mocks.batchObjectFindFirst).toHaveBeenCalledTimes(1);
-    expect(mocks.batchFindUnique).not.toHaveBeenCalled();
-    expect(mocks.objectUpdate).toHaveBeenLastCalledWith({
-      where: { id: "object-1" },
-      data: {
-        status: "failed",
-        lastError: "object content does not match manifest",
-      },
-    });
-  });
-
-  it("links only after the actual bytes verify", async () => {
-    mocks.bucket.get.mockResolvedValue({ body: body("abc") });
-
-    await expect(
-      completePublicationObject({
-        principal,
-        payload: {
-          batchId: "batch-1",
-          kind: "body_html",
-          sha256: sha256OfAbc,
-        },
+        size: 3,
       }),
     ).resolves.toMatchObject({ status: "linked" });
 
+    expect(mocks.bucket.put).toHaveBeenCalledWith(
+      `publications/body_html/sha256/ba/${sha256OfAbc}`,
+      stream,
+      {
+        customMetadata: { kind: "body_html", sha256: sha256OfAbc },
+        httpMetadata: { contentType: "text/plain" },
+        sha256: sha256OfAbc,
+      },
+    );
+    expect(mocks.bucket.get).not.toHaveBeenCalled();
     expect(mocks.objectUpdate).toHaveBeenCalledTimes(1);
     expect(mocks.objectUpdate).toHaveBeenCalledWith({
       where: { id: "object-1" },
@@ -138,7 +124,53 @@ describe("publication object completion", () => {
     });
   });
 
-  it("uses the canonical claim MIME for planning and completion", async () => {
+  it("rejects a request size that differs from the batch manifest", async () => {
+    await expect(
+      uploadPublicationObject({
+        body: body("abc"),
+        principal,
+        payload: {
+          batchId: "batch-1",
+          kind: "body_html",
+          sha256: sha256OfAbc,
+        },
+        size: 4,
+      }),
+    ).rejects.toThrow("object size does not match manifest");
+    expect(mocks.bucket.put).not.toHaveBeenCalled();
+  });
+
+  it("does not link when the stored R2 checksum differs", async () => {
+    mocks.bucket.head.mockResolvedValue({
+      checksums: { sha256: checksumBytes("0".repeat(64)) },
+      customMetadata: { kind: "body_html", sha256: sha256OfAbc },
+      httpMetadata: { contentType: "text/plain" },
+      size: 3,
+    });
+
+    await expect(
+      uploadPublicationObject({
+        body: body("abc"),
+        principal,
+        payload: {
+          batchId: "batch-1",
+          kind: "body_html",
+          sha256: sha256OfAbc,
+        },
+        size: 3,
+      }),
+    ).rejects.toThrow("object checksum does not match manifest");
+    expect(mocks.bucket.get).not.toHaveBeenCalled();
+    expect(mocks.objectUpdate).toHaveBeenCalledWith({
+      where: { id: "object-1" },
+      data: {
+        status: "failed",
+        lastError: "object checksum does not match manifest",
+      },
+    });
+  });
+
+  it("uses the canonical claim MIME for planning and upload", async () => {
     const canonicalContentType =
       "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
     const claim = {
@@ -156,7 +188,7 @@ describe("publication object completion", () => {
     };
     mocks.batchFindUnique.mockResolvedValue({ objects: [claim] });
     mocks.batchObjectFindFirst.mockResolvedValue(claim);
-    mocks.bucket.head.mockResolvedValue({
+    mocks.bucket.head.mockResolvedValueOnce(null).mockResolvedValueOnce({
       checksums: { sha256: checksumBytes(sha256OfAbc) },
       customMetadata: { kind: "body_html", sha256: sha256OfAbc },
       httpMetadata: { contentType: canonicalContentType },
@@ -164,6 +196,7 @@ describe("publication object completion", () => {
     });
 
     const planned = await planPublicationObjects({
+      origin: "https://life.example",
       principal,
       payload: {
         batchId: "batch-canonical-content-type",
@@ -173,15 +206,20 @@ describe("publication object completion", () => {
     expect(planned.objects[0]?.requiredHeaders).toMatchObject({
       "Content-Type": canonicalContentType,
     });
+    expect(planned.objects[0]?.uploadUrl).toBe(
+      `https://life.example/api/ingestion/publications/objects/batch-canonical-content-type/body_html/${sha256OfAbc}`,
+    );
 
     await expect(
-      completePublicationObject({
+      uploadPublicationObject({
+        body: body("abc"),
         principal,
         payload: {
           batchId: "batch-canonical-content-type",
           kind: "body_html",
           sha256: sha256OfAbc,
         },
+        size: 3,
       }),
     ).resolves.toMatchObject({ status: "linked" });
     expect(mocks.objectUpdate).toHaveBeenCalledWith({
@@ -192,6 +230,14 @@ describe("publication object completion", () => {
         lastError: null,
       },
     });
+    expect(mocks.bucket.put).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.any(ReadableStream),
+      expect.objectContaining({
+        httpMetadata: { contentType: canonicalContentType },
+        sha256: sha256OfAbc,
+      }),
+    );
   });
 
   it("reuses a linked object's completed verification without reading R2", async () => {
@@ -210,6 +256,7 @@ describe("publication object completion", () => {
     mocks.batchFindUnique.mockResolvedValue({ objects: [claim] });
 
     const planned = await planPublicationObjects({
+      origin: "https://life.example",
       principal,
       payload: {
         batchId: "batch-linked",
@@ -273,7 +320,11 @@ describe("publication object completion", () => {
         sha256: object.sha256,
       })),
     };
-    const result = await planPublicationObjects({ principal, payload });
+    const result = await planPublicationObjects({
+      origin: "https://life.example",
+      principal,
+      payload,
+    });
 
     expect(result.objects).toHaveLength(objectCount);
     expect(

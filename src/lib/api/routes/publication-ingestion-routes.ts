@@ -4,11 +4,11 @@ import {
   PublicationIngestionConflictError,
 } from "@/features/publications/server/publication-ingestion-service";
 import {
-  completePublicationObject,
   PublicationObjectBadRequestError,
   PublicationObjectNotFoundError,
   PublicationObjectStorageUnavailableError,
   planPublicationObjects,
+  uploadPublicationObject,
 } from "@/features/publications/server/publication-object-service";
 import {
   badRequest,
@@ -20,13 +20,13 @@ import {
 } from "@/lib/api/helpers";
 import {
   publicationIngestionBatchRequestSchema,
-  publicationObjectCompleteRequestSchema,
   publicationObjectPlanRequestSchema,
+  publicationObjectUploadParamsSchema,
 } from "@/lib/api/schemas/request-schemas";
 import {
   publicationIngestionBatchResponseSchema,
-  publicationObjectCompleteResponseSchema,
   publicationObjectPlanResponseSchema,
+  publicationObjectUploadResponseSchema,
 } from "@/lib/api/schemas/response-schemas";
 import { requirePublicationIngestionPrincipal } from "@/lib/auth/publication-ingestion-auth";
 
@@ -88,6 +88,7 @@ export async function postPublicationObjectPlanRoute(request: Request) {
 
   try {
     const result = await planPublicationObjects({
+      origin: new URL(request.url).origin,
       payload: parsedBody,
       principal: auth,
     });
@@ -97,23 +98,33 @@ export async function postPublicationObjectPlanRoute(request: Request) {
   }
 }
 
-export async function postPublicationObjectCompleteRoute(request: Request) {
+export async function putPublicationObjectRoute(
+  request: Request,
+  params: { batchId?: string; kind?: string; sha256?: string },
+) {
   const auth = await requirePublicationIngestionPrincipal(request);
   if (auth instanceof Response) return auth;
 
-  const parsedBody = await parseRouteJsonBody(
-    request,
-    publicationObjectCompleteRequestSchema,
-    "Invalid publication object completion",
-  );
-  if (parsedBody instanceof Response) return parsedBody;
+  const parsed = publicationObjectUploadParamsSchema.safeParse({
+    batchId: params.batchId,
+    kind: params.kind,
+    sha256: params.sha256,
+  });
+  if (!parsed.success) return badRequest("Invalid publication object upload");
+  if (!request.body) return badRequest("Missing publication object body");
+  const contentLength = request.headers.get("content-length");
+  if (!contentLength || !/^\d+$/.test(contentLength)) {
+    return badRequest("Missing publication object content length");
+  }
 
   try {
-    const result = await completePublicationObject({
-      payload: parsedBody,
+    const result = await uploadPublicationObject({
+      body: request.body,
+      payload: parsed.data,
       principal: auth,
+      size: Number(contentLength),
     });
-    return schemaJsonResponse(publicationObjectCompleteResponseSchema, result);
+    return schemaJsonResponse(publicationObjectUploadResponseSchema, result);
   } catch (error) {
     return mapObjectError(error);
   }

@@ -95,15 +95,15 @@
             "returns": "{ batchId, objects[] }",
             "notes": [
               "Only manifests registered by the caller's accepted batch may be planned.",
-              "Each object is already_present or upload_required. An already_present object has been verified and linked by this request and needs no completion call; upload_required includes uploadUrl, expiresAt, r2Key, and requiredHeaders."
+              "Each object is already_present or upload_required. An already_present object has been verified and linked; upload_required includes the authenticated Worker uploadUrl, r2Key, and requiredHeaders."
             ]
           },
           {
-            "path": "/api/ingestion/publications/objects/complete",
-            "method": "POST",
+            "path": "/api/ingestion/publications/objects/{batchId}/{kind}/{sha256}",
+            "method": "PUT",
             "returns": "{ batchId, kind, sha256, status: linked }",
             "notes": [
-              "The server resolves the key from the registered manifest and verifies R2 metadata plus the actual bytes before linking it."
+              "The server resolves the key from the registered manifest, streams the body through the Worker R2 binding, and supplies the manifest SHA-256 to R2 for upload-time verification before linking it."
             ]
           }
         ]

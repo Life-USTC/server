@@ -1,5 +1,4 @@
 import * as z from "zod";
-import { dateTimeSchema } from "./response-schema-primitives";
 
 export const publicationIngestionItemResultSchema = z.strictObject({
   canonicalUrl: z.string().url(),
@@ -24,11 +23,8 @@ export const publicationObjectPlanItemSchema = z.strictObject({
   r2Key: z.string(),
   status: z.enum(["already_present", "upload_required"]),
   uploadUrl: z.string().url().nullable(),
-  expiresAt: dateTimeSchema.nullable(),
   requiredHeaders: z.strictObject({
     "Content-Type": z.string(),
-    "x-amz-meta-kind": z.string(),
-    "x-amz-meta-sha256": z.string(),
   }),
 });
 
@@ -37,9 +33,9 @@ export const publicationObjectPlanResponseSchema = z.strictObject({
   objects: z.array(publicationObjectPlanItemSchema),
 });
 
-export const publicationObjectCompleteResponseSchema = z.strictObject({
+export const publicationObjectUploadResponseSchema = z.strictObject({
   batchId: z.string(),
   kind: z.enum(["body_html", "body_markdown", "media", "asset", "raw_page"]),
   sha256: z.string().regex(/^[a-f0-9]{64}$/),
-  status: z.enum(["verified", "linked"]),
+  status: z.literal("linked"),
 });

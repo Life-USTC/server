@@ -1,9 +1,7 @@
-import { AwsClient } from "aws4fetch";
-import { getOptionalTrimmedEnv } from "@/app-env";
 import { getCloudflareR2PublicationsBucket } from "@/lib/adapters/cloudflare-runtime";
 import type {
-  PublicationObjectCompleteRequest,
   PublicationObjectPlanRequest,
+  PublicationObjectUploadParams,
 } from "@/lib/api/schemas/request-publication-ingestion-schemas";
 import type { PublicationIngestionServicePrincipal } from "@/lib/auth/service-principal";
 import { prisma } from "@/lib/db/prisma";
@@ -12,7 +10,6 @@ import {
   publicationPrincipalKey,
 } from "./publication-ingestion-service";
 
-const PRESIGN_TTL_SECONDS = 15 * 60;
 const OBJECT_OPERATION_CONCURRENCY = 8;
 
 export class PublicationObjectBadRequestError extends Error {
@@ -29,15 +26,9 @@ export class PublicationObjectNotFoundError extends Error {
 
 type ObjectKind = PublicationObjectPlanRequest["objects"][number]["kind"];
 
-function requiredHeaders(input: {
-  contentType: string;
-  kind: ObjectKind;
-  sha256: string;
-}) {
+function requiredHeaders(input: { contentType: string }) {
   return {
     "Content-Type": input.contentType,
-    "x-amz-meta-kind": input.kind,
-    "x-amz-meta-sha256": input.sha256,
   };
 }
 
@@ -49,54 +40,6 @@ function requirePublicationBucket() {
     );
   }
   return bucket;
-}
-
-function publicationR2Config() {
-  const accountId = getOptionalTrimmedEnv("R2_ACCOUNT_ID");
-  const bucketName = getOptionalTrimmedEnv("R2_PUBLICATIONS_BUCKET_NAME");
-  const accessKeyId = getOptionalTrimmedEnv("R2_ACCESS_KEY_ID");
-  const secretAccessKey = getOptionalTrimmedEnv("R2_SECRET_ACCESS_KEY");
-  if (!accountId || !bucketName || !accessKeyId || !secretAccessKey) {
-    throw new PublicationObjectStorageUnavailableError(
-      "R2 presigning is not configured",
-    );
-  }
-  return { accountId, bucketName, accessKeyId, secretAccessKey };
-}
-
-function presignedPut(input: {
-  contentType: string;
-  kind: ObjectKind;
-  r2Key: string;
-  sha256: string;
-}) {
-  const config = publicationR2Config();
-  const client = new AwsClient({
-    accessKeyId: config.accessKeyId,
-    secretAccessKey: config.secretAccessKey,
-    service: "s3",
-    region: "auto",
-  });
-  const encodedKey = input.r2Key
-    .split("/")
-    .map((segment) => encodeURIComponent(segment))
-    .join("/");
-  const url = new URL(
-    `https://${config.accountId}.r2.cloudflarestorage.com/${config.bucketName}/${encodedKey}`,
-  );
-  url.searchParams.set("X-Amz-Expires", String(PRESIGN_TTL_SECONDS));
-  const headers = requiredHeaders(input);
-  return client
-    .sign(url, {
-      method: "PUT",
-      headers,
-      aws: { allHeaders: true, signQuery: true },
-    })
-    .then((request) => ({
-      expiresAt: new Date(Date.now() + PRESIGN_TTL_SECONDS * 1_000),
-      headers,
-      url: request.url.toString(),
-    }));
 }
 
 function hexDigest(value: ArrayBuffer) {
@@ -240,6 +183,7 @@ async function findOwnedBatchObject(
 }
 
 export async function planPublicationObjects(input: {
+  origin: string;
   payload: PublicationObjectPlanRequest;
   principal: PublicationIngestionServicePrincipal;
 }) {
@@ -279,8 +223,6 @@ export async function planPublicationObjects(input: {
       const object = claim.object;
       const headers = requiredHeaders({
         contentType: claim.expectedContentType,
-        kind: object.kind,
-        sha256: claim.expectedSha256,
       });
       if (object.status === "linked") {
         return {
@@ -292,7 +234,6 @@ export async function planPublicationObjects(input: {
             r2Key: object.r2Key,
             status: "already_present" as const,
             uploadUrl: null,
-            expiresAt: null,
             requiredHeaders: headers,
           },
         };
@@ -314,29 +255,24 @@ export async function planPublicationObjects(input: {
             r2Key: object.r2Key,
             status: "already_present" as const,
             uploadUrl: null,
-            expiresAt: null,
             requiredHeaders: headers,
           },
         };
       }
-      const signed = await presignedPut({
-        contentType: claim.expectedContentType,
-        kind: object.kind,
-        r2Key: object.r2Key,
-        sha256: object.sha256,
-      });
+      const uploadUrl = new URL(
+        `/api/ingestion/publications/objects/${encodeURIComponent(payload.batchId)}/${object.kind}/${object.sha256}`,
+        input.origin,
+      );
       return {
         objectId: object.id,
-        linked: false,
         storageStatus: "pending" as const,
         response: {
           kind: object.kind,
           sha256: object.sha256,
           r2Key: object.r2Key,
           status: "upload_required" as const,
-          uploadUrl: signed.url,
-          expiresAt: signed.expiresAt,
-          requiredHeaders: signed.headers,
+          uploadUrl: uploadUrl.toString(),
+          requiredHeaders: headers,
         },
       };
     },
@@ -369,9 +305,11 @@ export async function planPublicationObjects(input: {
   };
 }
 
-export async function completePublicationObject(input: {
-  payload: PublicationObjectCompleteRequest;
+export async function uploadPublicationObject(input: {
+  body: ReadableStream<Uint8Array>;
+  payload: PublicationObjectUploadParams;
   principal: PublicationIngestionServicePrincipal;
+  size: number;
 }) {
   const { payload } = input;
   const claim = await findOwnedBatchObject(
@@ -381,6 +319,26 @@ export async function completePublicationObject(input: {
     payload.sha256,
   );
   const object = claim.object;
+  if (input.size !== claim.expectedSize) {
+    throw new PublicationObjectBadRequestError(
+      "object size does not match manifest",
+    );
+  }
+  const bucket = requirePublicationBucket();
+  try {
+    await bucket.put(object.r2Key, input.body, {
+      customMetadata: {
+        kind: object.kind,
+        sha256: claim.expectedSha256,
+      },
+      httpMetadata: { contentType: claim.expectedContentType },
+      sha256: claim.expectedSha256,
+    });
+  } catch {
+    throw new PublicationObjectStorageUnavailableError(
+      "R2 publication object upload failed",
+    );
+  }
   const verified = await verifyR2Object({
     contentType: claim.expectedContentType,
     kind: object.kind,

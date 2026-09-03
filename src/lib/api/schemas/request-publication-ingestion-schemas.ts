@@ -177,7 +177,7 @@ export const publicationObjectPlanRequestSchema = z
     addNulCharacterIssues(payload, [], context);
   });
 
-export const publicationObjectCompleteRequestSchema = z
+export const publicationObjectUploadParamsSchema = z
   .strictObject({
     batchId: z.string().trim().min(1).max(200),
     kind: publicationObjectManifestSchema.shape.kind,
@@ -196,6 +196,6 @@ export type PublicationObjectManifest = z.output<
 export type PublicationObjectPlanRequest = z.output<
   typeof publicationObjectPlanRequestSchema
 >;
-export type PublicationObjectCompleteRequest = z.output<
-  typeof publicationObjectCompleteRequestSchema
+export type PublicationObjectUploadParams = z.output<
+  typeof publicationObjectUploadParamsSchema
 >;

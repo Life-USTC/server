@@ -28,6 +28,7 @@ export type CloudflareR2Bucket = {
     options?: {
       customMetadata?: Record<string, string>;
       httpMetadata?: { contentType?: string };
+      sha256?: ArrayBuffer | string;
     },
   ): Promise<unknown>;
 };

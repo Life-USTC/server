@@ -8905,110 +8905,6 @@
         }
       }
     },
-    "/api/ingestion/publications/objects/complete": {
-      "post": {
-        "operationId": "post-api-ingestion-publications-objects-complete",
-        "summary": "Verify and link one uploaded publication object",
-        "tags": [
-          "Api"
-        ],
-        "security": [
-          {
-            "publicationIngestionSecret": []
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/publicationObjectCompleteRequestSchema"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Successful response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/publicationObjectCompleteResponseSchema"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Error response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/openApiErrorSchema"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Error response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/openApiErrorSchema"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Error response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/openApiErrorSchema"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "Error response",
-            "headers": {
-              "Retry-After": {
-                "description": "Seconds before retrying the mutation",
-                "schema": {
-                  "type": "integer",
-                  "minimum": 0
-                }
-              }
-            },
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/openApiErrorSchema"
-                }
-              }
-            }
-          },
-          "503": {
-            "description": "Error response",
-            "headers": {
-              "Retry-After": {
-                "description": "Seconds before retrying the mutation",
-                "schema": {
-                  "type": "integer",
-                  "minimum": 0
-                }
-              }
-            },
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/openApiErrorSchema"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/api/ingestion/publications/objects/plan": {
       "post": {
         "operationId": "post-api-ingestion-publications-objects-plan",
@@ -9371,6 +9267,136 @@
           },
           "404": {
             "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/openApiErrorSchema"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/ingestion/publications/objects/{batchId}/{kind}/{sha256}": {
+      "put": {
+        "operationId": "put-api-ingestion-publications-objects-batchId-kind-sha256",
+        "summary": "Stream and verify one content-addressed publication object through the",
+        "tags": [
+          "Api"
+        ],
+        "security": [
+          {
+            "publicationIngestionSecret": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "batchId",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 200
+            },
+            "required": true
+          },
+          {
+            "in": "path",
+            "name": "kind",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "body_html",
+                "body_markdown",
+                "media",
+                "asset",
+                "raw_page"
+              ]
+            },
+            "required": true
+          },
+          {
+            "in": "path",
+            "name": "sha256",
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            },
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/publicationObjectUploadResponseSchema"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/openApiErrorSchema"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/openApiErrorSchema"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/openApiErrorSchema"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error response",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds before retrying the mutation",
+                "schema": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/openApiErrorSchema"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error response",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds before retrying the mutation",
+                "schema": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
@@ -36183,72 +36209,6 @@
         ],
         "additionalProperties": false
       },
-      "publicationObjectCompleteRequestSchema": {
-        "type": "object",
-        "properties": {
-          "batchId": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 200
-          },
-          "kind": {
-            "type": "string",
-            "enum": [
-              "body_html",
-              "body_markdown",
-              "media",
-              "asset",
-              "raw_page"
-            ]
-          },
-          "sha256": {
-            "type": "string",
-            "pattern": "^[a-f0-9]{64}$"
-          }
-        },
-        "required": [
-          "batchId",
-          "kind",
-          "sha256"
-        ],
-        "additionalProperties": false
-      },
-      "publicationObjectCompleteResponseSchema": {
-        "type": "object",
-        "properties": {
-          "batchId": {
-            "type": "string"
-          },
-          "kind": {
-            "type": "string",
-            "enum": [
-              "body_html",
-              "body_markdown",
-              "media",
-              "asset",
-              "raw_page"
-            ]
-          },
-          "sha256": {
-            "type": "string",
-            "pattern": "^[a-f0-9]{64}$"
-          },
-          "status": {
-            "type": "string",
-            "enum": [
-              "verified",
-              "linked"
-            ]
-          }
-        },
-        "required": [
-          "batchId",
-          "kind",
-          "sha256",
-          "status"
-        ],
-        "additionalProperties": false
-      },
       "publicationObjectPlanRequestSchema": {
         "type": "object",
         "properties": {
@@ -36333,29 +36293,15 @@
                   "type": "string",
                   "format": "uri"
                 },
-                "expiresAt": {
-                  "nullable": true,
-                  "type": "string",
-                  "format": "date-time",
-                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
-                },
                 "requiredHeaders": {
                   "type": "object",
                   "properties": {
                     "Content-Type": {
                       "type": "string"
-                    },
-                    "x-amz-meta-kind": {
-                      "type": "string"
-                    },
-                    "x-amz-meta-sha256": {
-                      "type": "string"
                     }
                   },
                   "required": [
-                    "Content-Type",
-                    "x-amz-meta-kind",
-                    "x-amz-meta-sha256"
+                    "Content-Type"
                   ],
                   "additionalProperties": false
                 }
@@ -36366,7 +36312,6 @@
                 "r2Key",
                 "status",
                 "uploadUrl",
-                "expiresAt",
                 "requiredHeaders"
               ],
               "additionalProperties": false
@@ -36407,6 +36352,41 @@
         "required": [
           "completed",
           "completedAt"
+        ],
+        "additionalProperties": false
+      },
+      "publicationObjectUploadResponseSchema": {
+        "type": "object",
+        "properties": {
+          "batchId": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "body_html",
+              "body_markdown",
+              "media",
+              "asset",
+              "raw_page"
+            ]
+          },
+          "sha256": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "linked"
+            ]
+          }
+        },
+        "required": [
+          "batchId",
+          "kind",
+          "sha256",
+          "status"
         ],
         "additionalProperties": false
       }
