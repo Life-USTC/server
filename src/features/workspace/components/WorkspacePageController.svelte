@@ -1,13 +1,11 @@
 <script lang="ts">
 import { onMount } from "svelte";
-import { toast } from "svelte-sonner";
 import {
   addDays,
   addMonths,
   calendarEventParts,
   calendarEventsForDay,
   monthWeeks,
-  weekDaysFor,
 } from "@/features/workspace/lib/calendar";
 import {
   calendarExamChipFields,
@@ -15,29 +13,19 @@ import {
   calendarSemesterIndex,
   calendarSessionChipFields,
 } from "@/features/workspace/lib/calendar-display";
-import {
-  examReferenceNow,
-  examTimeLabel,
-} from "@/features/workspace/lib/exams";
+import { examTimeLabel } from "@/features/workspace/lib/exams";
 import { namePrimary } from "@/features/workspace/lib/localized-names";
 import {
-  dayStart,
-  fmtTime,
   formatMessage,
   referenceDate,
 } from "@/features/workspace/lib/overview";
 import { todoPriorityOptions as buildTodoPriorityOptions } from "@/features/workspace/lib/todos";
-import { createWorkspaceCalendarActions } from "@/features/workspace/lib/workspace-controller-calendar-actions";
-import { createWorkspaceCalendarDisplayActions } from "@/features/workspace/lib/workspace-controller-calendar-display-actions";
-import { createWorkspaceCreateHomeworkActions } from "@/features/workspace/lib/workspace-controller-create-homework-actions";
 import { createWorkspaceControllerDefaultState } from "@/features/workspace/lib/workspace-controller-default-state";
 import {
   applyLocalHomeworkItemsToSignedData,
   applyLocalTodoItemsToSignedData,
   buildWorkspaceControllerDerivedState,
 } from "@/features/workspace/lib/workspace-controller-derived-state";
-import { createWorkspaceDisplayActions } from "@/features/workspace/lib/workspace-controller-display-actions";
-import { createWorkspaceFormSubmitActions } from "@/features/workspace/lib/workspace-controller-form-actions";
 import {
   buildCalendarWeekdayLabels,
   type CatalogLinkItem,
@@ -46,16 +34,10 @@ import {
   todoPriorityOrder,
   type WorkspaceActionData,
   type WorkspacePageData,
-  type WorkspaceViewState,
 } from "@/features/workspace/lib/workspace-controller-helpers";
-import { createWorkspaceHomeworkStateActions } from "@/features/workspace/lib/workspace-controller-homework-state-actions";
-import { createWorkspaceLinkStateActions } from "@/features/workspace/lib/workspace-controller-link-state-actions";
-import { mountWorkspaceController } from "@/features/workspace/lib/workspace-controller-mount";
-import { createWorkspaceSubscriptionActions } from "@/features/workspace/lib/workspace-controller-subscription-actions";
-import { createWorkspaceTodoActions } from "@/features/workspace/lib/workspace-controller-todo-actions";
 import { linkIconLabel } from "@/features/workspace/lib/workspace-link-icon";
 import { workspaceTabHref } from "@/features/workspace/lib/workspace-nav";
-import { goto, invalidateAll, replaceState } from "$app/navigation";
+import { createWorkspacePageControllerActions } from "@/features/workspace/lib/workspace-page-controller-actions";
 import { page } from "$app/stores";
 import PageHeader from "$lib/components/PageHeader.svelte";
 import * as Alert from "$lib/components/ui/alert/index.js";
@@ -165,303 +147,211 @@ $: if (data !== linkSourceData) {
   linkSourceData = data;
 }
 
-function openTodoEditor(todo: TodoItem) {
-  selectedTodo = null;
-  editTodoError = "";
-  editingTodo = todo;
-}
-
 const {
   applyHomeworkDueAtSemesterEnd,
   applyHomeworkDueInMonth,
   applyHomeworkDueInWeek,
   applyHomeworkStartNow,
-  openCreateHomeworkDialog,
-  selectedCreateHomeworkSection,
-} = createWorkspaceCreateHomeworkActions({
-  getCreateHomeworkSectionId: () => createHomeworkSectionId,
-  getSections: () => signedData?.homeworks?.sections ?? [],
-  setCreateHomeworkAdvancedOpen: (value) => {
-    createHomeworkAdvancedOpen = value;
-  },
-  setCreateHomeworkError: (value) => {
-    createHomeworkError = value;
-  },
-  setCreateHomeworkPublishedAt: (value) => {
-    createHomeworkPublishedAt = value;
-  },
-  setCreateHomeworkSectionId: (value) => {
-    createHomeworkSectionId = value;
-  },
-  setCreateHomeworkSubmissionDueAt: (value) => {
-    createHomeworkSubmissionDueAt = value;
-  },
-  setCreateHomeworkSubmissionStartAt: (value) => {
-    createHomeworkSubmissionStartAt = value;
-  },
-  setShowCreateHomework: (value) => {
-    showCreateHomework = value;
-  },
-});
-
-const { deleteTodo, toggleTodoCompletion } = createWorkspaceTodoActions({
-  getEditingTodo: () => editingTodo,
-  getSelectedTodo: () => selectedTodo,
-  getTodoItems: () => todoSourceItems,
-  getTodoSavingById: () => todoSavingById,
-  getTodosCopy: () => todosCopy,
-  onSuccess: (action) => {
-    toast.success(
-      action === "delete"
-        ? todosCopy.deleteSuccess
-        : action === "complete"
-          ? todosCopy.completeSuccess
-          : todosCopy.uncompleteSuccess,
-    );
-  },
-  setEditingTodo: (value) => {
-    editingTodo = value;
-  },
-  setSelectedTodo: (value) => {
-    selectedTodo = value;
-  },
-  setTodoActionError: (value) => {
-    todoActionError = value;
-  },
-  setTodoItems: (value) => {
-    todoSourceItems = value;
-  },
-  setTodoSavingById: (value) => {
-    todoSavingById = value;
-  },
-});
-
-const { examMetadataLabels, nameSecondary } = createWorkspaceDisplayActions({
-  getCountLabel: () => sectionCopy.examCount,
-  getFinalLabel: () => sectionCopy.examTypeFinal,
-  getLocale: () => data.locale as "en-us" | "zh-cn",
-  getMidtermLabel: () => sectionCopy.examTypeMidterm,
-});
-
-const { createHomeworkAction, createTodoAction, updateTodoAction } =
-  createWorkspaceFormSubmitActions({
-    getHomeworksCopy: () => homeworksCopy,
-    getTodosCopy: () => todosCopy,
-    onSuccess: (action) => {
-      toast.success(
-        String(
-          action === "createHomework"
-            ? homeworksCopy.createSuccess
-            : action === "createTodo"
-              ? todosCopy.createSuccess
-              : todosCopy.updateSuccess,
-        ),
-      );
-    },
-    setCreateHomeworkError: (value) => {
-      createHomeworkError = value;
-    },
-    setCreateTodoError: (value) => {
-      createTodoError = value;
-    },
-    setCreatingHomework: (value) => {
-      isCreatingHomework = value;
-    },
-    setCreatingTodo: (value) => {
-      isCreatingTodo = value;
-    },
-    setEditTodoError: (value) => {
-      editTodoError = value;
-    },
-    setEditingTodo: (value) => {
-      editingTodo = value;
-    },
-    setShowCreateTodo: (value) => {
-      showCreateTodo = value;
-    },
-    setUpdatingTodo: (value) => {
-      isUpdatingTodo = value;
-    },
-  });
-
-const {
-  clearPendingRemoveSection,
-  confirmImportSections,
-  matchImportSections,
-  openBulkImportDialog,
-  removeSubscribedSection,
-  resetBulkImport,
-  searchQuickAddSections,
-  subscribeQuickAddSections,
-  toggleImportSectionSelection,
-} = createWorkspaceSubscriptionActions({
-  getBulkImportSemesterId: () => bulkImportSemesterId,
-  getBulkImportText: () => bulkImportText,
-  getCurrentSemesterId: () =>
-    signedData?.subscriptions?.currentSemesterId ?? null,
-  getSelectedImportSectionIds: () => selectedImportSectionIds,
-  getSubscriptionsCopy: () => subscriptionsCopy,
-  invalidateAll,
-  onSuccess: (message) => {
-    toast.success(message);
-  },
-  setBulkImportError: (value) => {
-    bulkImportError = value;
-  },
-  setBulkImportMessage: (value) => {
-    bulkImportMessage = value;
-  },
-  setBulkImportOpen: (value) => {
-    isBulkImportOpen = value;
-  },
-  setBulkImportSemesterId: (value) => {
-    bulkImportSemesterId = value;
-  },
-  setBulkImportText: (value) => {
-    bulkImportText = value;
-  },
-  setConfirmImportOpen: (value) => {
-    isConfirmImportOpen = value;
-  },
-  setImportingSections: (value) => {
-    isImportingSections = value;
-  },
-  setMatchedSections: (value) => {
-    matchedSections = value;
-  },
-  setMatchingSections: (value) => {
-    isMatchingSections = value;
-  },
-  setRemovingSectionId: (value) => {
-    removingSectionId = value;
-  },
-  setSelectedImportSectionIds: (value) => {
-    selectedImportSectionIds = value;
-  },
-  setSubscriptionActionError: (value) => {
-    subscriptionActionError = value;
-  },
-  setUnmatchedSectionCodes: (value) => {
-    unmatchedSectionCodes = value;
-  },
-});
-
-function applyWorkspaceViewState(state: WorkspaceViewState) {
-  homeworkView = state.homeworkView;
-  todoView = state.todoView;
-  examView = state.examView;
-  linkView = state.linkView;
-}
-const { toggleHomeworkCompletion } = createWorkspaceHomeworkStateActions({
-  getHomeworkItems: () => homeworkItems,
-  getHomeworkSavingById: () => homeworkSavingById,
-  getHomeworksCopy: () => homeworksCopy,
-  getSelectedHomework: () => selectedHomework,
-  onSuccess: (action) => {
-    toast.success(
-      action === "complete"
-        ? homeworksCopy.markComplete
-        : homeworksCopy.markIncomplete,
-    );
-  },
-  setHomeworkActionError: (value) => {
-    homeworkActionError = value;
-  },
-  setHomeworkItems: (value) => {
-    homeworkItems = value;
-  },
-  setHomeworkSavingById: (value) => {
-    homeworkSavingById = value;
-  },
-  setSelectedHomework: (value) => {
-    selectedHomework = value;
-  },
-});
-
-const { submitWorkspaceLinkPin } = createWorkspaceLinkStateActions({
-  applyWorkspaceViewState,
-  getWorkspaceCopy: () => workspaceCopy,
-  getCatalogLinkItems: () => catalogLinkSourceItems,
-  getLinkReturnTo: () => linkReturnTo,
-  getOverviewLinkItems: () => overviewLinkSourceItems,
-  getUpdatingCatalogLinkSlug: () => updatingCatalogLinkSlug,
-  onSuccess: (action) => {
-    toast.success(
-      action === "pin"
-        ? workspaceCopy.linkHub.pin
-        : workspaceCopy.linkHub.unpin,
-    );
-  },
-  replaceState: (href) => {
-    replaceState(href, {});
-  },
-  setCatalogLinkItems: (value) => {
-    catalogLinkSourceItems = value;
-  },
-  setLinkActionError: (value) => {
-    linkActionError = value;
-  },
-  setLinkReturnTo: (value) => {
-    linkReturnTo = value;
-  },
-  setOverviewLinkItems: (value) => {
-    overviewLinkSourceItems = value;
-  },
-  setUpdatingCatalogLinkSlug: (value) => {
-    updatingCatalogLinkSlug = value;
-  },
-});
-
-const {
   calendarHomeworkHref,
   calendarTimelineItemsForDay,
   calendarTodoChipFields,
   calendarWeekLabel,
+  confirmImportSections,
+  createHomeworkAction,
+  createTodoAction,
+  deleteTodo,
+  examMetadataLabels,
+  matchImportSections,
+  mount,
+  nameSecondary,
+  openBulkImportDialog,
+  openCreateHomeworkDialog,
+  openTodoEditor,
+  removeSubscribedSection,
+  resetBulkImport,
+  searchQuickAddSections,
+  selectedCreateHomeworkSection,
   sessionHref,
-} = createWorkspaceCalendarDisplayActions({
-  getCommonCourseLabel: () => commonCopy.courses,
-  getEventLabels: () => ({
-    exam: copy.CalendarEventCard.exam,
-    homework: copy.CalendarEventCard.homework,
-    todo: copy.CalendarEventCard.todo,
-  }),
-  getTodoPriorityLabel: (priority) => todosCopy.priority[priority],
-  getWeekNumberTemplate: () => sectionCopy.weekNumber,
-  tabHref: workspaceTabHref,
-});
-
-const {
-  calendarSemesterHref,
   setCalendarMonth,
   setCalendarSemester,
   setCalendarView,
   setCalendarWeek,
+  submitWorkspaceLinkPin,
+  subscribeQuickAddSections,
   syncCalendarStateFromUrl,
-} = createWorkspaceCalendarActions({
+  toggleHomeworkCompletion,
+  toggleImportSectionSelection,
+  toggleTodoCompletion,
+  updateTodoAction,
+} = createWorkspacePageControllerActions({
+  getBulkImportSemesterId: () => bulkImportSemesterId,
+  getBulkImportText: () => bulkImportText,
   getCalendarData: () => calendarData,
   getCalendarMonth: () => calendarMonth,
   getCalendarSemesterId: () => calendarSemesterId,
   getCalendarView: () => calendarView,
   getCalendarWeekStart: () => calendarWeekStart,
-  navigateUrl: (href) => {
-    void goto(href, { noScroll: true, replaceState: true });
+  getCatalogLinkSourceItems: () => catalogLinkSourceItems,
+  getCopy: () => copy,
+  getCreateHomeworkSectionId: () => createHomeworkSectionId,
+  getData: () => data,
+  getEditingTodo: () => editingTodo,
+  getHomeworkItems: () => homeworkItems,
+  getHomeworkSavingById: () => homeworkSavingById,
+  getLinkReturnTo: () => linkReturnTo,
+  getLinkSearchInput: () => linkSearchInput,
+  getOverviewLinkSourceItems: () => overviewLinkSourceItems,
+  getSelectedHomework: () => selectedHomework,
+  getSelectedImportSectionIds: () => selectedImportSectionIds,
+  getSelectedTodo: () => selectedTodo,
+  getSignedData: () => signedData,
+  getTodoSavingById: () => todoSavingById,
+  getTodoSourceItems: () => todoSourceItems,
+  getUpdatingCatalogLinkSlug: () => updatingCatalogLinkSlug,
+  setBulkImportError: (v) => {
+    bulkImportError = v;
   },
-  replaceUrl: (href) => {
-    window.history.replaceState({}, "", href);
+  setBulkImportMessage: (v) => {
+    bulkImportMessage = v;
   },
-  setCalendarMonth: (value) => {
-    calendarMonth = value;
+  setBulkImportOpen: (v) => {
+    isBulkImportOpen = v;
   },
-  setCalendarSemesterId: (value) => {
-    calendarSemesterId = value;
+  setBulkImportSemesterId: (v) => {
+    bulkImportSemesterId = v;
   },
-  setCalendarView: (value) => {
-    calendarView = value;
+  setBulkImportText: (v) => {
+    bulkImportText = v;
   },
-  setCalendarWeekStart: (value) => {
-    calendarWeekStart = value;
+  setCalendarMonth: (v) => {
+    calendarMonth = v;
   },
-  tabHref: workspaceTabHref,
+  setCalendarSemesterId: (v) => {
+    calendarSemesterId = v;
+  },
+  setCalendarView: (v) => {
+    calendarView = v;
+  },
+  setCalendarWeekStart: (v) => {
+    calendarWeekStart = v;
+  },
+  setCatalogLinkSourceItems: (v) => {
+    catalogLinkSourceItems = v;
+  },
+  setConfirmImportOpen: (v) => {
+    isConfirmImportOpen = v;
+  },
+  setCreateHomeworkAdvancedOpen: (v) => {
+    createHomeworkAdvancedOpen = v;
+  },
+  setCreateHomeworkError: (v) => {
+    createHomeworkError = v;
+  },
+  setCreateHomeworkPublishedAt: (v) => {
+    createHomeworkPublishedAt = v;
+  },
+  setCreateHomeworkSectionId: (v) => {
+    createHomeworkSectionId = v;
+  },
+  setCreateHomeworkSubmissionDueAt: (v) => {
+    createHomeworkSubmissionDueAt = v;
+  },
+  setCreateHomeworkSubmissionStartAt: (v) => {
+    createHomeworkSubmissionStartAt = v;
+  },
+  setCreateTodoError: (v) => {
+    createTodoError = v;
+  },
+  setCreatingHomework: (v) => {
+    isCreatingHomework = v;
+  },
+  setCreatingTodo: (v) => {
+    isCreatingTodo = v;
+  },
+  setEditTodoError: (v) => {
+    editTodoError = v;
+  },
+  setEditingTodo: (v) => {
+    editingTodo = v;
+  },
+  setExamView: (v) => {
+    examView = v;
+  },
+  setHomeworkActionError: (v) => {
+    homeworkActionError = v;
+  },
+  setHomeworkItems: (v) => {
+    homeworkItems = v;
+  },
+  setHomeworkSavingById: (v) => {
+    homeworkSavingById = v;
+  },
+  setHomeworkView: (v) => {
+    homeworkView = v;
+  },
+  setImportingSections: (v) => {
+    isImportingSections = v;
+  },
+  setLinkActionError: (v) => {
+    linkActionError = v;
+  },
+  setLinkReturnTo: (v) => {
+    linkReturnTo = v;
+  },
+  setLinkView: (v) => {
+    linkView = v;
+  },
+  setMatchedSections: (v) => {
+    matchedSections = v;
+  },
+  setMatchingSections: (v) => {
+    isMatchingSections = v;
+  },
+  setOverviewLinkSourceItems: (v) => {
+    overviewLinkSourceItems = v;
+  },
+  setRemovingSectionId: (v) => {
+    removingSectionId = v;
+  },
+  setSelectedHomework: (v) => {
+    selectedHomework = v;
+  },
+  setSelectedImportSectionIds: (v) => {
+    selectedImportSectionIds = v;
+  },
+  setSelectedTodo: (v) => {
+    selectedTodo = v;
+  },
+  setShowCreateHomework: (v) => {
+    showCreateHomework = v;
+  },
+  setShowCreateTodo: (v) => {
+    showCreateTodo = v;
+  },
+  setSubscriptionActionError: (v) => {
+    subscriptionActionError = v;
+  },
+  setTodoActionError: (v) => {
+    todoActionError = v;
+  },
+  setTodoSavingById: (v) => {
+    todoSavingById = v;
+  },
+  setTodoSourceItems: (v) => {
+    todoSourceItems = v;
+  },
+  setTodoView: (v) => {
+    todoView = v;
+  },
+  setUnmatchedSectionCodes: (v) => {
+    unmatchedSectionCodes = v;
+  },
+  setUpdatingCatalogLinkSlug: (v) => {
+    updatingCatalogLinkSlug = v;
+  },
+  setUpdatingTodo: (v) => {
+    isUpdatingTodo = v;
+  },
 });
 
 $: derivedState = buildWorkspaceControllerDerivedState({
@@ -495,25 +385,7 @@ $: selectedImportSectionIdSet = new Set(selectedImportSectionIds);
 $: canMatchImportSections =
   bulkImportText.trim().length > 0 && !isMatchingSections;
 
-onMount(() => {
-  return mountWorkspaceController({
-    applyViewState: applyWorkspaceViewState,
-    clearPendingRemoveSection,
-    copy: {
-      workspace: workspaceCopy,
-    },
-    getLinkSearchInput: () => linkSearchInput,
-    replaceState: (href) => {
-      replaceState(href, {});
-    },
-    setLinkActionError: (value) => {
-      linkActionError = value;
-    },
-    setLinkReturnTo: (value) => {
-      linkReturnTo = value;
-    },
-  });
-});
+onMount(mount);
 </script>
 
 <svelte:head>
