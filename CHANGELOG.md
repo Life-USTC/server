@@ -1,3 +1,13 @@
+## [1.105.2](https://github.com/Life-USTC/server/compare/v1.105.1...v1.105.2) (2026-09-04)
+
+
+### Bug Fixes
+
+* **ci:** point GraphQL snapshot path at nested unit tests ([3d39679](https://github.com/Life-USTC/server/commit/3d39679b79611e1515daaf4a8efb2a47bb259284))
+* **e2e:** restore symbols lost in Playwright file splits ([c1ae18a](https://github.com/Life-USTC/server/commit/c1ae18a37fa871b633103d87c0f8c7c754a601ef))
+* **tests:** align seeded MCP list assertions with tool envelopes ([7c7a502](https://github.com/Life-USTC/server/commit/7c7a502061a602eae3399821d407b9ed75f11cd2))
+* **tests:** probe mutation-only REST routes with supported methods ([9fa0b19](https://github.com/Life-USTC/server/commit/9fa0b19ede95e1adab44c4b3fefa47d61fd69873))
+
 ## [1.105.1](https://github.com/Life-USTC/server/compare/v1.105.0...v1.105.1) (2026-09-04)
 
 
