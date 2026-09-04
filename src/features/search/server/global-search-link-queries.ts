@@ -1,5 +1,5 @@
 import {
-  dashboardLinkItemMatchesTokens,
+  catalogLinkItemMatchesTokens,
   searchQueryToTokens,
 } from "@/features/catalog-links/lib/catalog-link-search";
 import {
@@ -22,7 +22,7 @@ export function searchLinksForGlobal(
   if (tokens.length === 0) return [];
 
   return USTC_CATALOG_LINKS.filter((link) =>
-    dashboardLinkItemMatchesTokens(link, tokens),
+    catalogLinkItemMatchesTokens(link, tokens),
   )
     .slice(0, limit)
     .map((link) => {

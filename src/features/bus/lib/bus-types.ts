@@ -22,7 +22,6 @@ export type {
 } from "@/features/bus/lib/bus-static-import-types";
 export type {
   BusCampusSummary,
-  BusDashboardSnapshot,
   BusLocale,
   BusNotice,
   BusPreferencePayload,
@@ -32,6 +31,7 @@ export type {
   BusScheduleVersionSummary,
   BusTimetableData,
   BusTimetableInput,
+  BusTimetableSnapshot,
   BusTripStatus,
   BusTripStopTime,
   BusTripSummary,

@@ -31,7 +31,7 @@ export function registerCalendarSubscriptionTools(server: McpServer) {
     "workspace_subscription_list",
     {
       description:
-        "List subscribed sections across all semesters, including past terms, for dashboard and calendar personalization. Not official enrollment.",
+        "List subscribed sections across all semesters, including past terms, for workspace and calendar personalization. Not official enrollment.",
       inputSchema: {
         locale: mcpLocaleInputSchema,
         mode: mcpModeInputSchema,
@@ -44,7 +44,7 @@ export function registerCalendarSubscriptionTools(server: McpServer) {
     "workspace_subscription_add",
     {
       description:
-        "Subscribe to one section by JW ID for dashboard/calendar. Not official USTC enrollment. " +
+        "Subscribe to one section by JW ID for workspace/calendar. Not official USTC enrollment. " +
         "Use catalog_section_match_preview or catalog_section_search first to find the jwId.",
       inputSchema: {
         jwId: z.number().int().positive(),

@@ -18,14 +18,10 @@
       "title": "My Schedule",
       "auth": "user",
       "links": {
-        "models": [
-          "Schedule"
-        ]
+        "models": ["Schedule"]
       },
       "web": {
-        "pages": [
-          "/workspace/calendar"
-        ]
+        "pages": ["/workspace/calendar"]
       },
       "rest": {
         "routes": [
@@ -52,9 +48,7 @@
             },
             "returns": "SchedulePage!",
             "auth": "user",
-            "required_scopes": [
-              "workspace.schedule:read"
-            ],
+            "required_scopes": ["workspace.schedule:read"],
             "rest_equivalent": "GET /api/workspace/schedules",
             "mcp_equivalent": "workspace_schedule_list",
             "notes": [
@@ -88,18 +82,14 @@
           "section.course.namePrimary",
           "teacher names"
         ],
-        "filters": [
-          "Previous/next semester links"
-        ]
+        "filters": ["Previous/next semester links"]
       }
     },
     "public-schedule-query": {
       "title": "Public Schedule Query",
       "auth": "anon",
       "links": {
-        "models": [
-          "Schedule"
-        ]
+        "models": ["Schedule"]
       },
       "web": "unavailable",
       "rest": {
@@ -146,14 +136,10 @@
       "title": "Section Schedule",
       "auth": "anon",
       "links": {
-        "models": [
-          "Schedule"
-        ]
+        "models": ["Schedule"]
       },
       "web": {
-        "pages": [
-          "/catalog/sections/[jwId]"
-        ]
+        "pages": ["/catalog/sections/[jwId]"]
       },
       "rest": {
         "routes": [

@@ -23,7 +23,7 @@ import {
   type WeatherIconName,
   weatherConditionIcon,
 } from "@/features/weather/weather-ui";
-import type { WorkspacePageCopy } from "@/features/workspace/server/dashboard-page-load-types";
+import type { WorkspacePageCopy } from "@/features/workspace/server/workspace-page-load-types";
 import type { AppLocale } from "@/i18n/config";
 import Panel from "$lib/components/Panel.svelte";
 import {

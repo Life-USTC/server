@@ -115,7 +115,7 @@ describe("课程与班级查找", () => {
 });
 
 // ---------------------------------------------------------------------------
-// Dashboard snapshot — compact shape verification
+// Workspace snapshot — compact shape verification
 // ---------------------------------------------------------------------------
 
 // --- formerly mcp-13-catalog-search ---

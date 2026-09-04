@@ -1,7 +1,7 @@
 <script lang="ts">
 import Link2 from "@lucide/svelte/icons/link-2";
 import CalendarSubscriptionDialog from "@/features/calendar/components/CalendarSubscriptionDialog.svelte";
-import type { DashboardSectionCopy } from "@/features/workspace/lib/dashboard-controller-helpers";
+import type { WorkspaceSectionCopy } from "@/features/workspace/lib/workspace-controller-helpers";
 import { writeClipboardText } from "@/lib/browser/clipboard";
 import { Button } from "$lib/components/ui/button/index.js";
 
@@ -10,7 +10,7 @@ export let className = "";
 export let failureMessage: string;
 /** When false, only the dialog is rendered; call `open()` from a parent control. */
 export let renderTrigger = true;
-export let sectionCopy: DashboardSectionCopy;
+export let sectionCopy: WorkspaceSectionCopy;
 export let showIcon = false;
 export let showSubscriptionsLink = true;
 export let size: "default" | "sm" | "lg" | "icon" | undefined = "default";

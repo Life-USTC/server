@@ -2,7 +2,7 @@
  * E2E tests for invalid tab fallback (`?tab=comments`)
  *
  * ## Data Represented
- * - There is no "comments" tab in the dashboard. Valid authenticated tabs are:
+ * - There is no "comments" tab in the workspaceResult. Valid authenticated tabs are:
  *   overview, calendar, bus, links, homeworks, todos, exams, subscriptions.
  * - Public bus and links are semantic routes, not home tabs.
  *
@@ -28,7 +28,7 @@ test.describe("仪表盘无效标签（comments）", () => {
   test("/workspace/comments 不是仪表盘路由页面", async ({ page }, testInfo) => {
     const response = await gotoAndWaitForReady(page, "/workspace/comments", {
       testInfo,
-      screenshotLabel: "dashboard-invalid-comments-route",
+      screenshotLabel: "workspace-invalid-comments-route",
     });
 
     expect(response?.status()).toBe(404);
@@ -38,7 +38,7 @@ test.describe("仪表盘无效标签（comments）", () => {
   test("未登录 ?tab=comments 保持轻量公共首页", async ({ page }, testInfo) => {
     await gotoAndWaitForReady(page, "/?tab=comments", {
       testInfo,
-      screenshotLabel: "dashboard-invalid-tab",
+      screenshotLabel: "workspace-invalid-tab",
     });
 
     // URL retains the invalid tab param

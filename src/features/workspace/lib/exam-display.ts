@@ -1,7 +1,7 @@
 import type {
-  DashboardExamRow,
-  DashboardExamSection,
   ExamLabels,
+  WorkspaceExamRow,
+  WorkspaceExamSection,
 } from "./exam-types";
 import { namePrimary } from "./localized-names";
 
@@ -14,8 +14,8 @@ export function examTypeLabel(
   return "";
 }
 
-export function examMetadataLabels<Section extends DashboardExamSection>(
-  exam: DashboardExamRow<Section>,
+export function examMetadataLabels<Section extends WorkspaceExamSection>(
+  exam: WorkspaceExamRow<Section>,
   labels: ExamLabels,
 ) {
   return [

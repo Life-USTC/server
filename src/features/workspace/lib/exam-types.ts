@@ -2,12 +2,12 @@ import type { LocalizedName } from "./localized-names";
 
 export type ExamFilter = "incomplete" | "completed" | "all";
 
-export type DashboardExamRoom = {
+export type WorkspaceExamRoom = {
   count: number;
   room: string;
 };
 
-export type DashboardExam = {
+export type WorkspaceExam = {
   id: number;
   examDate: Date | string | null;
   startTime: number | null;
@@ -16,21 +16,21 @@ export type DashboardExam = {
   examMode: string | null;
   examTakeCount: number | null;
   examBatch: LocalizedName | null;
-  examRooms: DashboardExamRoom[];
+  examRooms: WorkspaceExamRoom[];
 };
 
-export type DashboardExamSection = {
+export type WorkspaceExamSection = {
   course: LocalizedName;
-  exams: DashboardExam[];
+  exams: WorkspaceExam[];
 };
 
-export type DashboardExamSubscriptions<Section extends DashboardExamSection> = {
+export type WorkspaceExamSubscriptions<Section extends WorkspaceExamSection> = {
   subscriptions: Array<{
     sections: Section[];
   }>;
 };
 
-export type DashboardExamRow<Section extends DashboardExamSection> = {
+export type WorkspaceExamRow<Section extends WorkspaceExamSection> = {
   id: number;
   section: Section;
   courseName: string;

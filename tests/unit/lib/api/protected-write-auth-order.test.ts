@@ -38,7 +38,7 @@ vi.mock("@/features/catalog-links/server/catalog-link-service", () => ({
   MAX_PINNED_LINKS: 6,
   logWorkspaceLinkPinFailure: vi.fn(),
   resolveCatalogLinkBySlug: vi.fn(),
-  sanitizeDashboardReturnTo: (value: string | null | undefined) => value || "/",
+  sanitizeWorkspaceReturnTo: (value: string | null | undefined) => value || "/",
   updateWorkspaceLinkPinState: updateWorkspaceLinkPinStateMock,
 }));
 

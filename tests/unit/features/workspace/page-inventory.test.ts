@@ -4,7 +4,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { SETTINGS_TABS } from "@/features/settings/lib/settings-tabs";
-import { workspaceTabIds } from "@/features/workspace/lib/dashboard-nav";
+import { workspaceTabIds } from "@/features/workspace/lib/workspace-nav";
 import {
   BROWSER_ALIAS_INVENTORY,
   INVENTORY_SETTINGS_TABS,

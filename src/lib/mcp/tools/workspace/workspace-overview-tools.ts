@@ -5,10 +5,10 @@ import {
   mcpLocaleInputSchema,
   mcpModeInputSchema,
 } from "@/lib/mcp/tools/_shared/helpers";
-import { getMySevenDaysTimelineAction } from "@/lib/mcp/tools/workspace/my-data-timeline-action";
 import { getMyOverviewAction } from "@/lib/mcp/tools/workspace/workspace-overview-action";
+import { getMySevenDaysTimelineAction } from "@/lib/mcp/tools/workspace/workspace-timeline-action";
 
-export function registerMyOverviewTools(server: McpServer) {
+export function registerWorkspaceOverviewTools(server: McpServer) {
   server.registerTool(
     "workspace_overview_get",
     {

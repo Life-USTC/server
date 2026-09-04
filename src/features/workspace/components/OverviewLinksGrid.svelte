@@ -1,46 +1,46 @@
 <script lang="ts">
-import { dashboardLinkVisitHref } from "@/features/catalog-links/lib/catalog-links";
+import { catalogLinkVisitHref } from "@/features/catalog-links/lib/catalog-links";
+import { WORKSPACE_OVERVIEW_PREVIEW_LIMIT } from "@/features/workspace/lib/overview-preview";
 import type {
-  DashboardDashboardCopy,
-  DashboardLinkPinAction,
-  DashboardOverviewLinkItem,
-} from "@/features/workspace/lib/dashboard-controller-helpers";
-import { DASHBOARD_OVERVIEW_PREVIEW_LIMIT } from "@/features/workspace/lib/overview-preview";
+  WorkspaceCopy,
+  WorkspaceLinkPinAction,
+  WorkspaceOverviewLinkItem,
+} from "@/features/workspace/lib/workspace-controller-helpers";
 import * as Empty from "$lib/components/ui/empty/index.js";
-import type { DashboardCalendarTabHref } from "./dashboard-calendar-component-types";
 import LinksTabPinButton from "./LinksTabPinButton.svelte";
 import OverviewSection from "./OverviewSection.svelte";
+import type { WorkspaceCalendarTabHref } from "./workspace-calendar-component-types";
 
-export let dashboardCopy: DashboardDashboardCopy;
-export let dashboardTabHref: DashboardCalendarTabHref;
+export let workspaceCopy: WorkspaceCopy;
+export let workspaceTabHref: WorkspaceCalendarTabHref;
 export let linkIconLabel: (icon: string) => string;
-export let links: DashboardOverviewLinkItem[];
-export let submitDashboardLinkPin: (
+export let links: WorkspaceOverviewLinkItem[];
+export let submitWorkspaceLinkPin: (
   slug: string,
   action: "pin" | "unpin",
 ) => void;
-export let updatingDashboardLinkSlug: string | null;
+export let updatingCatalogLinkSlug: string | null;
 
-const previewLimit = DASHBOARD_OVERVIEW_PREVIEW_LIMIT;
+const previewLimit = WORKSPACE_OVERVIEW_PREVIEW_LIMIT;
 $: previewLinks = links.slice(0, previewLimit);
 
-function pinLabel(link: DashboardOverviewLinkItem) {
+function pinLabel(link: WorkspaceOverviewLinkItem) {
   return link.isPinned
-    ? dashboardCopy.linkHub.unpin
-    : dashboardCopy.linkHub.pin;
+    ? workspaceCopy.linkHub.unpin
+    : workspaceCopy.linkHub.pin;
 }
 
-function pinAction(link: DashboardOverviewLinkItem): DashboardLinkPinAction {
+function pinAction(link: WorkspaceOverviewLinkItem): WorkspaceLinkPinAction {
   return link.isPinned ? "unpin" : "pin";
 }
 </script>
 
 <OverviewSection
   href="/catalog/links"
-  testId="dashboard-overview-links"
-  title={dashboardCopy.linkHub.title}
+  testId="workspace-overview-links"
+  title={workspaceCopy.linkHub.title}
   viewAllHref="/catalog/links"
-  viewAllLabel={dashboardCopy.viewAll as string}
+  viewAllLabel={workspaceCopy.viewAll as string}
   viewAllVisible={links.length > previewLimit}
 >
   {#if previewLinks.length > 0}
@@ -50,7 +50,7 @@ function pinAction(link: DashboardOverviewLinkItem): DashboardLinkPinAction {
           <a
             class="flex w-full min-w-0 items-start gap-3 rounded-lg px-2 py-2.5 text-left transition-colors hover:bg-muted/50"
             class:pe-10={true}
-            href={dashboardLinkVisitHref(link.slug)}
+            href={catalogLinkVisitHref(link.slug)}
             rel="noopener noreferrer"
             target="_blank"
           >
@@ -72,11 +72,11 @@ function pinAction(link: DashboardOverviewLinkItem): DashboardLinkPinAction {
           >
             <LinksTabPinButton
               {link}
-              linkReturnTo={dashboardTabHref("overview")}
+              linkReturnTo={workspaceTabHref("overview")}
               {pinAction}
               {pinLabel}
-              {submitDashboardLinkPin}
-              {updatingDashboardLinkSlug}
+              {submitWorkspaceLinkPin}
+              {updatingCatalogLinkSlug}
             />
           </div>
         </div>
@@ -85,7 +85,7 @@ function pinAction(link: DashboardOverviewLinkItem): DashboardLinkPinAction {
   {:else}
     <Empty.Root class="min-h-20 border-0 px-2 py-6">
       <Empty.Header>
-        <Empty.Description>{dashboardCopy.linkHub.empty}</Empty.Description>
+        <Empty.Description>{workspaceCopy.linkHub.empty}</Empty.Description>
       </Empty.Header>
     </Empty.Root>
   {/if}

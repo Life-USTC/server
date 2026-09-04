@@ -1,8 +1,0 @@
-import type { getAssistantDashboardSnapshot } from "@/features/workspace/server/workspace-snapshot";
-
-export type DashboardSnapshot = Awaited<
-  ReturnType<typeof getAssistantDashboardSnapshot>
->;
-export type DashboardSection =
-  DashboardSnapshot["subscriptions"]["currentSemesterSections"][number];
-export type DashboardTodo = DashboardSnapshot["todos"]["items"][number];

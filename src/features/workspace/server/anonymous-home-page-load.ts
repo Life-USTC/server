@@ -1,11 +1,11 @@
-import { getAnonymousHomePageCopy } from "@/features/workspace/server/dashboard-page-copy";
-import type { DashboardPageLoadEvent } from "@/features/workspace/server/dashboard-page-load-types";
+import { getAnonymousHomePageCopy } from "@/features/workspace/server/workspace-page-copy";
+import type { WorkspacePageLoadEvent } from "@/features/workspace/server/workspace-page-load-types";
 import { logAppEvent } from "@/lib/log/app-logger";
 import { elapsedMs, monotonicNowMs } from "@/lib/log/observability-clock";
 
 export async function loadAnonymousHomePage({
   locals,
-}: DashboardPageLoadEvent) {
+}: WorkspacePageLoadEvent) {
   const startMs = monotonicNowMs();
   const locale = locals.locale;
   const data = {
@@ -14,8 +14,8 @@ export async function loadAnonymousHomePage({
     signedIn: false as const,
   };
 
-  logAppEvent("info", "dashboard.load.finish", {
-    event: "dashboard.load.finish",
+  logAppEvent("info", "workspace.load.finish", {
+    event: "workspace.load.finish",
     ioObservedDurationMs: elapsedMs(startMs),
     requestId: locals.requestId,
     signedIn: false,

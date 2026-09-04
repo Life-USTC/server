@@ -2,7 +2,7 @@ import { formatHomeworkDueRelativeTime } from "@/features/homeworks/lib/homework
 import { toShanghaiDateTimeLocalValue } from "@/lib/time/shanghai-format";
 import { formatSmartDateTime } from "@/shared/lib/time-utils";
 
-export function formatDashboardDateTime(
+export function formatWorkspaceDateTime(
   value: Date | string | null | undefined,
   fallback: string,
   referenceDate: Date | string,
@@ -12,7 +12,7 @@ export function formatDashboardDateTime(
   return formatSmartDateTime(value, new Date(referenceDate), locale);
 }
 
-export function formatDashboardDueRelativeTime(
+export function formatWorkspaceDueRelativeTime(
   value: Date | string | null | undefined,
   fallback: string,
   referenceDate: Date | string,
@@ -27,7 +27,7 @@ export function formatDashboardDueRelativeTime(
   );
 }
 
-export function isDashboardDueOverdue(
+export function isWorkspaceDueOverdue(
   value: Date | string | null | undefined,
   referenceDate: Date | string,
 ) {
@@ -35,7 +35,7 @@ export function isDashboardDueOverdue(
   return new Date(value).getTime() <= new Date(referenceDate).getTime();
 }
 
-export function dashboardDateTimeLocalValue(
+export function workspaceDateTimeLocalValue(
   value: Date | string | null | undefined,
 ) {
   return toShanghaiDateTimeLocalValue(value);

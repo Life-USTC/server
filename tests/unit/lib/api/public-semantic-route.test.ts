@@ -39,7 +39,7 @@ describe("public semantic page routes", () => {
     loadPublicBusPageMock.mockResolvedValue({
       bus: { routes: [] },
       copy: {
-        dashboard: {
+        workspace: {
           nav: {
             bus: {
               description: "Find the next shuttle",
@@ -71,7 +71,7 @@ describe("public semantic page routes", () => {
   it("loads only the public links page and exposes route-specific metadata", async () => {
     loadPublicLinksPageMock.mockResolvedValue({
       copy: {
-        dashboard: {
+        workspace: {
           nav: {
             links: {
               description: "Search campus links",

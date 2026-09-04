@@ -1,15 +1,15 @@
 import { formatShanghaiDate } from "@/lib/time/shanghai-format";
 import type {
-  DashboardSectionCopy,
-  SignedDashboardData,
-} from "./dashboard-controller-types";
+  SignedWorkspaceData,
+  WorkspaceSectionCopy,
+} from "./workspace-controller-types";
 
 export function createExamTabDisplayActions({
   sectionCopy,
 }: {
   locale: string;
-  referenceNow: SignedDashboardData["referenceNow"];
-  sectionCopy: DashboardSectionCopy;
+  referenceNow: SignedWorkspaceData["referenceNow"];
+  sectionCopy: WorkspaceSectionCopy;
 }) {
   return {
     fmtExamDate: (value: Date | string | null | undefined) => {

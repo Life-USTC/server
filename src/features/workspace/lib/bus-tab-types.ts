@@ -1,6 +1,6 @@
 import type { BusTimetableData } from "@/features/bus/lib/bus-timetable-types";
 
-export type DashboardBusData = Pick<
+export type WorkspaceBusData = Pick<
   BusTimetableData,
   | "campuses"
   | "fetchedAt"
@@ -11,10 +11,10 @@ export type DashboardBusData = Pick<
   | "version"
 >;
 
-export type DashboardBusCopy = Record<string, unknown> & {
+export type WorkspaceBusCopy = Record<string, unknown> & {
   arriveAt: string;
   changeRoute: string;
-  dashboardTitle: string;
+  workspaceTitle: string;
   dayType: {
     weekday: string;
     saturday: string;

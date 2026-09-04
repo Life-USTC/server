@@ -1,9 +1,9 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-const { loadAnonymousHomePageMock, loadSignedDashboardPageMock } = vi.hoisted(
+const { loadAnonymousHomePageMock, loadSignedWorkspacePageMock } = vi.hoisted(
   () => ({
     loadAnonymousHomePageMock: vi.fn(),
-    loadSignedDashboardPageMock: vi.fn(),
+    loadSignedWorkspacePageMock: vi.fn(),
   }),
 );
 
@@ -11,12 +11,12 @@ vi.mock("@/features/workspace/server/anonymous-home-page-load", () => ({
   loadAnonymousHomePage: loadAnonymousHomePageMock,
 }));
 
-vi.mock("@/features/workspace/server/dashboard-page-load", () => ({
-  loadSignedDashboardPage: loadSignedDashboardPageMock,
+vi.mock("@/features/workspace/server/workspace-page-load", () => ({
+  loadSignedWorkspacePage: loadSignedWorkspacePageMock,
 }));
 
-vi.mock("@/features/workspace/server/dashboard-page-actions", () => ({
-  dashboardPageActions: {},
+vi.mock("@/features/workspace/server/workspace-page-actions", () => ({
+  workspacePageActions: {},
 }));
 
 function routeEvent(
@@ -35,10 +35,10 @@ function routeEvent(
   };
 }
 
-describe("anonymous home and signed dashboard route boundary", () => {
+describe("anonymous home and signed workspace route boundary", () => {
   afterEach(() => {
     loadAnonymousHomePageMock.mockReset();
-    loadSignedDashboardPageMock.mockReset();
+    loadSignedWorkspacePageMock.mockReset();
   });
 
   it("loads only the public home data for anonymous visitors", async () => {
@@ -58,7 +58,7 @@ describe("anonymous home and signed dashboard route boundary", () => {
       request: event.request,
       url: event.url,
     });
-    expect(loadSignedDashboardPageMock).not.toHaveBeenCalled();
+    expect(loadSignedWorkspacePageMock).not.toHaveBeenCalled();
     expect("actions" in homeRoute).toBe(false);
   });
 
@@ -76,7 +76,7 @@ describe("anonymous home and signed dashboard route boundary", () => {
       status: 308,
     });
     expect(loadAnonymousHomePageMock).not.toHaveBeenCalled();
-    expect(loadSignedDashboardPageMock).not.toHaveBeenCalled();
+    expect(loadSignedWorkspacePageMock).not.toHaveBeenCalled();
   });
 
   it("permanently redirects signed legacy tabs to semantic workspace paths", async () => {
@@ -95,10 +95,10 @@ describe("anonymous home and signed dashboard route boundary", () => {
       status: 308,
     });
     expect(loadAnonymousHomePageMock).not.toHaveBeenCalled();
-    expect(loadSignedDashboardPageMock).not.toHaveBeenCalled();
+    expect(loadSignedWorkspacePageMock).not.toHaveBeenCalled();
   });
 
-  it("redirects a signed visitor without a legacy tab to the dashboard", async () => {
+  it("redirects a signed visitor without a legacy tab to the workspace", async () => {
     const homeRoute = await import("@/routes/+page.server");
 
     await expect(
@@ -114,41 +114,41 @@ describe("anonymous home and signed dashboard route boundary", () => {
     });
   });
 
-  it("permanently redirects dashboard query tabs before auth handling", async () => {
-    const dashboardRoute = await import("@/routes/workspace/+page.server");
+  it("permanently redirects workspace query tabs before auth handling", async () => {
+    const workspaceRoute = await import("@/routes/workspace/+page.server");
 
     await expect(
-      dashboardRoute.load(
+      workspaceRoute.load(
         routeEvent("https://example.test/workspace?tab=overview") as never,
       ),
     ).rejects.toMatchObject({
       location: "/workspace/overview",
       status: 308,
     });
-    expect(loadSignedDashboardPageMock).not.toHaveBeenCalled();
+    expect(loadSignedWorkspacePageMock).not.toHaveBeenCalled();
   });
 
-  it("permanently redirects the dashboard root to overview", async () => {
-    const dashboardRoute = await import("@/routes/workspace/+page.server");
+  it("permanently redirects the workspace root to overview", async () => {
+    const workspaceRoute = await import("@/routes/workspace/+page.server");
 
     await expect(
-      dashboardRoute.load(
+      workspaceRoute.load(
         routeEvent("https://example.test/workspace") as never,
       ),
     ).rejects.toMatchObject({
       location: "/workspace/overview",
       status: 308,
     });
-    expect(loadSignedDashboardPageMock).not.toHaveBeenCalled();
+    expect(loadSignedWorkspacePageMock).not.toHaveBeenCalled();
   });
 
-  it("requires authentication before loading a semantic dashboard section", async () => {
-    const dashboardRoute = await import(
+  it("requires authentication before loading a semantic workspace section", async () => {
+    const workspaceRoute = await import(
       "@/routes/workspace/[tab]/+page.server"
     );
 
     await expect(
-      dashboardRoute.load(
+      workspaceRoute.load(
         routeEvent("https://example.test/workspace/overview", undefined, {
           tab: "overview",
         }) as never,
@@ -157,15 +157,15 @@ describe("anonymous home and signed dashboard route boundary", () => {
       location: "/account/sign-in?callbackUrl=%2Fworkspace%2Foverview",
       status: 303,
     });
-    expect(loadSignedDashboardPageMock).not.toHaveBeenCalled();
+    expect(loadSignedWorkspacePageMock).not.toHaveBeenCalled();
   });
 
   it("loads a semantic section without translating it into a tab query", async () => {
-    loadSignedDashboardPageMock.mockResolvedValue({
+    loadSignedWorkspacePageMock.mockResolvedValue({
       marker: "signed",
       signedIn: true,
     });
-    const dashboardRoute = await import(
+    const workspaceRoute = await import(
       "@/routes/workspace/[tab]/+page.server"
     );
     const event = routeEvent(
@@ -174,11 +174,11 @@ describe("anonymous home and signed dashboard route boundary", () => {
       { tab: "homeworks" },
     );
 
-    await expect(dashboardRoute.load(event as never)).resolves.toMatchObject({
+    await expect(workspaceRoute.load(event as never)).resolves.toMatchObject({
       marker: "signed",
       signedIn: true,
     });
-    expect(loadSignedDashboardPageMock).toHaveBeenCalledWith({
+    expect(loadSignedWorkspacePageMock).toHaveBeenCalledWith({
       locals: event.locals,
       request: event.request,
       tab: "homeworks",
@@ -190,12 +190,12 @@ describe("anonymous home and signed dashboard route boundary", () => {
     );
   });
 
-  it("keeps dashboard actions loadable for non-safe requests", async () => {
-    loadSignedDashboardPageMock.mockResolvedValue({
+  it("keeps workspace actions loadable for non-safe requests", async () => {
+    loadSignedWorkspacePageMock.mockResolvedValue({
       marker: "signed",
       signedIn: true,
     });
-    const dashboardRoute = await import("@/routes/workspace/+page.server");
+    const workspaceRoute = await import("@/routes/workspace/+page.server");
     const event = routeEvent(
       "https://example.test/workspace?tab=todos",
       "user-1",
@@ -204,11 +204,11 @@ describe("anonymous home and signed dashboard route boundary", () => {
       },
     );
 
-    await expect(dashboardRoute.load(event as never)).resolves.toMatchObject({
+    await expect(workspaceRoute.load(event as never)).resolves.toMatchObject({
       marker: "signed",
       signedIn: true,
     });
-    expect(loadSignedDashboardPageMock).toHaveBeenCalledWith({
+    expect(loadSignedWorkspacePageMock).toHaveBeenCalledWith({
       locals: event.locals,
       request: event.request,
       tab: "overview",

@@ -2,13 +2,13 @@ import {
   recordCatalogLinkClick,
   resolveCatalogLinkBySlug,
 } from "@/features/catalog-links/server/catalog-link-service";
-import { dashboardLinkVisitQuerySchema } from "@/lib/api/schemas/request-schemas";
+import { catalogLinkVisitQuerySchema } from "@/lib/api/schemas/request-schemas";
 import { resolveSessionUserId } from "@/lib/auth/api-auth";
 import { checkUserMutationRateLimit } from "@/lib/security/user-mutation-rate-limit";
 
 export async function getCatalogLinkVisitRoute(request: Request) {
   const { searchParams } = new URL(request.url);
-  const parsed = dashboardLinkVisitQuerySchema.safeParse({
+  const parsed = catalogLinkVisitQuerySchema.safeParse({
     slug: searchParams.get("slug"),
   });
   const target = parsed.success

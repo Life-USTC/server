@@ -602,9 +602,7 @@ export const graphqlSchema = createSchema<
         };
       },
       links(_parent, args: { query?: string | null }, context) {
-        const links = getPublicCatalogLinksData(
-          context.locale,
-        ).catalogLinks;
+        const links = getPublicCatalogLinksData(context.locale).catalogLinks;
         const query = args.query?.trim();
         if (!query) return links;
         const tokens = searchQueryToTokens(query);

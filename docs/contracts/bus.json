@@ -29,13 +29,10 @@
   },
   "capabilities": {
     "bus-timetable": {
-      "title": "Bus Dashboard",
+      "title": "Bus Timetable",
       "auth": "anon",
       "web": {
-        "pages": [
-          "/catalog/bus",
-          "/catalog/bus/map"
-        ]
+        "pages": ["/catalog/bus", "/catalog/bus/map"]
       },
       "rest": {
         "routes": [
@@ -100,9 +97,7 @@
             },
             "returns": "BusPreferenceMutationPayload!",
             "auth": "user",
-            "required_scopes": [
-              "workspace.bus-preferences:write"
-            ],
+            "required_scopes": ["workspace.bus-preferences:write"],
             "rest_equivalent": "POST /api/workspace/bus-preferences",
             "mcp_equivalent": "workspace_bus_preferences_set"
           }
@@ -256,9 +251,7 @@
       "title": "Bus Route Map",
       "auth": "anon",
       "web": {
-        "pages": [
-          "/catalog/bus/map"
-        ]
+        "pages": ["/catalog/bus/map"]
       },
       "rest": "unavailable",
       "mcp": "unavailable",

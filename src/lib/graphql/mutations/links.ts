@@ -1,9 +1,9 @@
-import { setWorkspaceLinkPinStatesBatch } from "@/features/catalog-links/server/workspace-link-pin-batch";
 import {
   MAX_PINNED_LINKS,
   resolveCatalogLinkBySlug,
   updateWorkspaceLinkPinState,
 } from "@/features/catalog-links/server/catalog-link-service";
+import { setWorkspaceLinkPinStatesBatch } from "@/features/catalog-links/server/workspace-link-pin-batch";
 import type { GraphqlContext } from "../context";
 import { badMutationInput } from "../mutation-errors";
 import { requireGraphqlMutation } from "../mutation-guard";
@@ -25,7 +25,7 @@ export const linkMutationResolvers = {
       "workspace.link-pin",
     );
     const link = resolveCatalogLinkBySlug(args.slug);
-    if (!link) badMutationInput("Unknown dashboard link slug.");
+    if (!link) badMutationInput("Unknown catalog link slug.");
 
     const pinnedSlugs = await updateWorkspaceLinkPinState({
       action: args.pinned ? "pin" : "unpin",
@@ -65,7 +65,7 @@ export const linkMutationResolvers = {
       userId: principal.userId,
     });
     if (!result.ok) {
-      badMutationInput(`Unknown dashboard link slug: ${result.slug}.`);
+      badMutationInput(`Unknown catalog link slug: ${result.slug}.`);
     }
     return {
       pinnedSlugs: result.pinnedSlugs,

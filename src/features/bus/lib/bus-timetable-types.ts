@@ -91,6 +91,6 @@ export type BusTimetableData = {
   notice: BusNotice | null;
 };
 
-export type BusDashboardSnapshot = {
+export type BusTimetableSnapshot = {
   data: BusTimetableData;
 };

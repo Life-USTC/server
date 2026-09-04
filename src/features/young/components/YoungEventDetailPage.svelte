@@ -1,5 +1,5 @@
 <script lang="ts">
-import type { WorkspacePageCopy } from "@/features/workspace/server/dashboard-page-load-types";
+import type { WorkspacePageCopy } from "@/features/workspace/server/workspace-page-load-types";
 import type { YoungEventDetail } from "@/features/young/server/young-event-service";
 import PageLayout from "$lib/components/PageLayout.svelte";
 import Panel from "$lib/components/Panel.svelte";

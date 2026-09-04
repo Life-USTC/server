@@ -16,9 +16,7 @@
       "title": "Semester List",
       "auth": "anon",
       "links": {
-        "models": [
-          "Semester"
-        ]
+        "models": ["Semester"]
       },
       "web": "stable",
       "rest": {
@@ -76,9 +74,7 @@
       "title": "Current Semester",
       "auth": "anon",
       "links": {
-        "models": [
-          "Semester"
-        ]
+        "models": ["Semester"]
       },
       "rules": {
         "latest-startdate-wins": "The current semester is determined by date range; when multiple semester ranges overlap the current date, the semester with the latest startDate is selected to prevent an older range or import residue from shadowing a more specific newer semester."
@@ -89,9 +85,7 @@
           {
             "path": "/api/catalog/semesters/current",
             "returns": "Semester | 404",
-            "notes": [
-              "Returns the current semester or 404 when none is found."
-            ]
+            "notes": ["Returns the current semester or 404 when none is found."]
           }
         ]
       },

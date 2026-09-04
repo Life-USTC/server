@@ -1,28 +1,28 @@
 <script lang="ts">
 import type {
-  DashboardDashboardCopy,
-  DashboardLinkPinAction,
-  DashboardLinkPinSubmit,
-  DashboardOverviewLinkItem,
   SignedLinkGroup,
-} from "@/features/workspace/lib/dashboard-controller-helpers";
+  WorkspaceCopy,
+  WorkspaceLinkPinAction,
+  WorkspaceLinkPinSubmit,
+  WorkspaceOverviewLinkItem,
+} from "@/features/workspace/lib/workspace-controller-helpers";
 import LinksTabGrid from "./LinksTabGrid.svelte";
 import LinksTabList from "./LinksTabList.svelte";
 
-export let dashboardCopy: DashboardDashboardCopy;
+export let workspaceCopy: WorkspaceCopy;
 export let entry: SignedLinkGroup;
 export let linkIconLabel: (icon: string) => string;
 export let linkReturnTo: string;
-export let submitDashboardLinkPin: DashboardLinkPinSubmit;
-export let updatingDashboardLinkSlug: string | null;
+export let submitWorkspaceLinkPin: WorkspaceLinkPinSubmit;
+export let updatingCatalogLinkSlug: string | null;
 
-function pinLabel(link: DashboardOverviewLinkItem) {
+function pinLabel(link: WorkspaceOverviewLinkItem) {
   return link.isPinned
-    ? dashboardCopy.linkHub.unpin
-    : dashboardCopy.linkHub.pin;
+    ? workspaceCopy.linkHub.unpin
+    : workspaceCopy.linkHub.pin;
 }
 
-function pinAction(link: DashboardOverviewLinkItem): DashboardLinkPinAction {
+function pinAction(link: WorkspaceOverviewLinkItem): WorkspaceLinkPinAction {
   return link.isPinned ? "unpin" : "pin";
 }
 </script>
@@ -38,22 +38,22 @@ function pinAction(link: DashboardOverviewLinkItem): DashboardLinkPinAction {
       {linkReturnTo}
       {pinAction}
       {pinLabel}
-      {submitDashboardLinkPin}
-      {updatingDashboardLinkSlug}
+      {submitWorkspaceLinkPin}
+      {updatingCatalogLinkSlug}
     />
   </div>
   <div class="hidden xl:block">
     <LinksTabList
-      colActions={dashboardCopy.linkHub.colActions}
-      colDescription={dashboardCopy.linkHub.colDescription}
-      colName={dashboardCopy.linkHub.colName}
+      colActions={workspaceCopy.linkHub.colActions}
+      colDescription={workspaceCopy.linkHub.colDescription}
+      colName={workspaceCopy.linkHub.colName}
       links={entry.links}
       {linkIconLabel}
       {linkReturnTo}
       {pinAction}
       {pinLabel}
-      {submitDashboardLinkPin}
-      {updatingDashboardLinkSlug}
+      {submitWorkspaceLinkPin}
+      {updatingCatalogLinkSlug}
     />
   </div>
 </section>

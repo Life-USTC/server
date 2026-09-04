@@ -4,7 +4,7 @@ import {
   searchQueryToTokens,
 } from "@/features/catalog-links/lib/catalog-link-search";
 import {
-  DASHBOARD_LINK_GROUPS,
+  CATALOG_LINK_GROUPS,
   localizeCatalogLink,
   recommendCatalogLinks,
   USTC_CATALOG_LINKS,
@@ -58,7 +58,7 @@ describe("仪表盘链接推荐", () => {
   it("保持目录 slug、URL 和分组完整", () => {
     const catalogSlugs = USTC_CATALOG_LINKS.map((link) => link.slug);
     const catalogUrls = USTC_CATALOG_LINKS.map((link) => link.url);
-    const groupedSlugs = Object.values(DASHBOARD_LINK_GROUPS).flat();
+    const groupedSlugs = Object.values(CATALOG_LINK_GROUPS).flat();
 
     expect(new Set(catalogSlugs).size).toBe(catalogSlugs.length);
     expect(new Set(catalogUrls).size).toBe(catalogUrls.length);
@@ -133,11 +133,7 @@ describe("仪表盘链接推荐", () => {
   });
 
   it("可以按 URL 和域名搜索链接", () => {
-    const { catalogLinks } = buildCatalogLinkSummaries(
-      {},
-      new Set(),
-      "zh-cn",
-    );
+    const { catalogLinks } = buildCatalogLinkSummaries({}, new Set(), "zh-cn");
     const faculty = catalogLinks.find(
       (link) => link.slug === "faculty-homepages",
     );

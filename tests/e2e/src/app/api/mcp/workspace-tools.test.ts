@@ -187,13 +187,13 @@ test.describe("/api/mcp - 种子工具覆盖", () => {
       };
       expect(overviewSummaryPayload.samples).toEqual(overviewPayload.samples);
 
-      const dashboardResult = await mcpClient.callTool({
+      const workspaceResult = await mcpClient.callTool({
         name: "workspace_snapshot_get",
         arguments: {
           locale: "zh-cn",
         },
       });
-      const dashboardPayload = parseTextContent(dashboardResult) as {
+      const workspacePayload = parseTextContent(workspaceResult) as {
         currentSemester?: { code?: string | null };
         subscriptions?: {
           currentSemesterCount?: number;
@@ -213,38 +213,38 @@ test.describe("/api/mcp - 种子工具覆盖", () => {
           departures?: Array<{ routeId?: number | null }>;
         };
       };
-      expect(dashboardPayload.currentSemester?.code).toBeDefined();
-      expect(typeof dashboardPayload.subscriptions?.currentSemesterCount).toBe(
+      expect(workspacePayload.currentSemester?.code).toBeDefined();
+      expect(typeof workspacePayload.subscriptions?.currentSemesterCount).toBe(
         "number",
       );
       expect(
-        dashboardPayload.subscriptions?.currentSemesterSectionsTotal,
+        workspacePayload.subscriptions?.currentSemesterSectionsTotal,
       ).toBeGreaterThan(0);
-      if (dashboardPayload.nextClass?.payload) {
-        expect(dashboardPayload.nextClass.payload).not.toHaveProperty(
+      if (workspacePayload.nextClass?.payload) {
+        expect(workspacePayload.nextClass.payload).not.toHaveProperty(
           "scheduleGroup",
         );
-        expect(dashboardPayload.nextClass.payload).not.toHaveProperty(
+        expect(workspacePayload.nextClass.payload).not.toHaveProperty(
           "roomType",
         );
       }
-      expect(typeof dashboardPayload.todos?.incompleteCount).toBe("number");
-      expect(typeof dashboardPayload.upcomingDeadlines?.total).toBe("number");
-      const nextDeparture = dashboardPayload.bus?.nextDeparture ?? null;
+      expect(typeof workspacePayload.todos?.incompleteCount).toBe("number");
+      expect(typeof workspacePayload.upcomingDeadlines?.total).toBe("number");
+      const nextDeparture = workspacePayload.bus?.nextDeparture ?? null;
       if (nextDeparture) {
         expect(typeof nextDeparture.routeId).toBe("number");
       } else {
         expect(nextDeparture).toBeNull();
       }
-      const dashboardSummaryResult = await mcpClient.callTool({
+      const workspaceSummaryResult = await mcpClient.callTool({
         name: "workspace_snapshot_get",
         arguments: {
           locale: "zh-cn",
           mode: "summary",
         },
       });
-      const dashboardSummaryPayload = parseTextContent(
-        dashboardSummaryResult,
+      const workspaceSummaryPayload = parseTextContent(
+        workspaceSummaryResult,
       ) as {
         subscriptions?: {
           currentSemesterSections?: unknown;
@@ -257,13 +257,13 @@ test.describe("/api/mcp - 种子工具覆盖", () => {
         todos?: { incompleteCount?: number; items?: unknown };
       };
       expect(
-        dashboardSummaryPayload.subscriptions?.currentSemesterSections,
-      ).toEqual(dashboardPayload.subscriptions?.currentSemesterSections);
-      expect(dashboardSummaryPayload.upcomingDeadlines?.items).toEqual(
-        dashboardPayload.upcomingDeadlines?.items,
+        workspaceSummaryPayload.subscriptions?.currentSemesterSections,
+      ).toEqual(workspacePayload.subscriptions?.currentSemesterSections);
+      expect(workspaceSummaryPayload.upcomingDeadlines?.items).toEqual(
+        workspacePayload.upcomingDeadlines?.items,
       );
-      expect(dashboardSummaryPayload.todos?.items).toEqual(
-        dashboardPayload.todos?.items,
+      expect(workspaceSummaryPayload.todos?.items).toEqual(
+        workspacePayload.todos?.items,
       );
 
       const nextClassResult = await mcpClient.callTool({

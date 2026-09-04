@@ -37,10 +37,7 @@
       "title": "Authorization",
       "auth": "anon",
       "web": {
-        "pages": [
-          "/oauth/authorize",
-          "/error"
-        ]
+        "pages": ["/oauth/authorize", "/error"]
       },
       "rest": "stable",
       "display": {
@@ -57,9 +54,7 @@
       "title": "Authorized Applications",
       "auth": "user",
       "web": {
-        "pages": [
-          "/account/settings/authorizations"
-        ]
+        "pages": ["/account/settings/authorizations"]
       },
       "rest": "unavailable",
       "graphql": "unavailable",
@@ -90,9 +85,7 @@
       "title": "Client Registration & Discovery",
       "auth": "admin",
       "web": {
-        "pages": [
-          "/admin/oauth"
-        ]
+        "pages": ["/admin/oauth"]
       },
       "rest": {
         "routes": [
@@ -242,9 +235,7 @@
       "description": "No MCP tool starts device authorization; bearer tokens minted by this flow can call REST and MCP when the approved device request is resource-bound and scoped appropriately, including feature:read/feature:write for REST.",
       "auth": "anon",
       "web": {
-        "pages": [
-          "/oauth/device"
-        ]
+        "pages": ["/oauth/device"]
       },
       "rest": {
         "routes": [

@@ -2,10 +2,10 @@
 import type { SubmitFunction } from "@sveltejs/kit";
 import type { CommentsCopy } from "@/features/comments/components/comment-component-types";
 import type {
-  DashboardTodoItem,
-  DashboardTodoPriorityOption,
-  DashboardTodosCopy,
-} from "@/features/workspace/lib/dashboard-controller-helpers";
+  WorkspaceTodoItem,
+  WorkspaceTodoPriorityOption,
+  WorkspaceTodosCopy,
+} from "@/features/workspace/lib/workspace-controller-helpers";
 import { enhance } from "$app/forms";
 import * as Alert from "$lib/components/ui/alert/index.js";
 import { Button } from "$lib/components/ui/button/index.js";
@@ -22,9 +22,9 @@ export let datetimeLocalValue: (
 export let editTodoError: string;
 export let isUpdatingTodo: boolean;
 export let onClose: () => void;
-export let todo: DashboardTodoItem | null;
-export let todoPriorityOptions: DashboardTodoPriorityOption[];
-export let todosCopy: DashboardTodosCopy;
+export let todo: WorkspaceTodoItem | null;
+export let todoPriorityOptions: WorkspaceTodoPriorityOption[];
+export let todosCopy: WorkspaceTodosCopy;
 export let updateTodoAction: SubmitFunction;
 </script>
 

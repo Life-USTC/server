@@ -32,9 +32,7 @@
       "title": "Sign In",
       "auth": "anon",
       "web": {
-        "pages": [
-          "/account/sign-in"
-        ]
+        "pages": ["/account/sign-in"]
       },
       "rest": "stable",
       "mcp": "unavailable",
@@ -51,16 +49,12 @@
       "title": "First Login & Welcome Page",
       "auth": "user",
       "web": {
-        "pages": [
-          "/account/welcome"
-        ]
+        "pages": ["/account/welcome"]
       },
       "rest": "unavailable",
       "mcp": "unavailable",
       "links": {
-        "models": [
-          "User"
-        ]
+        "models": ["User"]
       },
       "display": {
         "fields": [
@@ -91,9 +85,7 @@
       "title": "Public Profile",
       "auth": "anon",
       "web": {
-        "pages": [
-          "/community/users/$identifier"
-        ]
+        "pages": ["/community/users/$identifier"]
       },
       "rest": {
         "routes": [
@@ -134,9 +126,7 @@
             "name": "profile",
             "returns": "UserProfile!",
             "auth": "user",
-            "required_scopes": [
-              "account.profile:read"
-            ],
+            "required_scopes": ["account.profile:read"],
             "rest_equivalent": "GET /api/account/profile",
             "mcp_equivalent": "account_profile_get"
           }
@@ -161,9 +151,7 @@
         ]
       },
       "links": {
-        "models": [
-          "User"
-        ]
+        "models": ["User"]
       },
       "display": {
         "fields": [
@@ -199,9 +187,7 @@
       "rest": "unavailable",
       "mcp": "unavailable",
       "links": {
-        "models": [
-          "User"
-        ]
+        "models": ["User"]
       },
       "display": {
         "fields": [
@@ -247,9 +233,7 @@
               "cursor": "String",
               "limit": "Int"
             },
-            "required_scopes": [
-              "account.client-activity:read"
-            ],
+            "required_scopes": ["account.client-activity:read"],
             "returns": "AccountClientActivityPage!"
           }
         ]
@@ -266,9 +250,7 @@
         ]
       },
       "links": {
-        "models": [
-          "AuditLog"
-        ]
+        "models": ["AuditLog"]
       }
     }
   }

@@ -2,12 +2,11 @@ import { attachHomeworkCompletionsForViewer } from "@/features/homeworks/server/
 import type { Prisma } from "@/generated/prisma/client";
 import { DEFAULT_LOCALE } from "@/i18n/config";
 import { getPrisma, withUserDbContext } from "@/lib/db/prisma";
-import type { HomeworkWithSection } from "./subscription-dashboard-types";
 import { orderHomeworksById } from "./subscription-homework-query";
 import {
-  buildDashboardHomeworkSelect,
   buildSubscribedHomeworkInclude,
   buildSubscribedHomeworkQuery,
+  buildWorkspaceHomeworkSelect,
   type SubscribedHomeworkRecord,
 } from "./subscription-homework-read-helpers";
 import type { ListSubscribedHomeworksOptions } from "./subscription-homework-read-types";
@@ -15,6 +14,7 @@ import {
   getSubscribedSectionIdsForSemester,
   withSubscribedSections,
 } from "./subscription-read-model-shared";
+import type { HomeworkWithSection } from "./subscription-workspace-types";
 
 type SubscribedHomeworkIdsAndCompletions = {
   completions: Array<{ homeworkId: string; completedAt: Date }>;
@@ -67,7 +67,7 @@ export async function fetchSubscribedHomeworkRlsSnapshot(
   return { total, homeworkIds, completions };
 }
 
-export async function localizeSubscribedHomeworkDashboardItems(
+export async function localizeSubscribedHomeworkWorkspaceItems(
   snapshot: Pick<SubscribedHomeworkRlsSnapshot, "completions" | "homeworkIds">,
   locale: string,
 ): Promise<HomeworkWithSection[]> {
@@ -77,7 +77,7 @@ export async function localizeSubscribedHomeworkDashboardItems(
   const localizedPrisma = getPrisma(locale);
   const homeworks = await localizedPrisma.homework.findMany({
     where: { id: { in: homeworkIds } },
-    select: buildDashboardHomeworkSelect(),
+    select: buildWorkspaceHomeworkSelect(),
   });
   return orderHomeworksById(
     attachHomeworkCompletionsForViewer(homeworks, completions),
@@ -85,7 +85,7 @@ export async function localizeSubscribedHomeworkDashboardItems(
   );
 }
 
-async function fetchSubscribedHomeworkDashboardItems(
+async function fetchSubscribedHomeworkWorkspaceItems(
   userId: string,
   query: ReturnType<typeof buildSubscribedHomeworkQuery>,
   locale: string,
@@ -93,7 +93,7 @@ async function fetchSubscribedHomeworkDashboardItems(
   const snapshot = await withUserDbContext(userId, (tx) =>
     fetchSubscribedHomeworkIdsAndCompletionsInTransaction(tx, userId, query),
   );
-  return localizeSubscribedHomeworkDashboardItems(snapshot, locale);
+  return localizeSubscribedHomeworkWorkspaceItems(snapshot, locale);
 }
 
 export async function listDueSoonSubscribedHomeworksWithCount(
@@ -131,7 +131,7 @@ export async function listDueSoonSubscribedHomeworksWithCount(
         fetchSubscribedHomeworkRlsSnapshot(tx, userId, query, includeItems),
       );
       const items = includeItems
-        ? await localizeSubscribedHomeworkDashboardItems(snapshot, locale)
+        ? await localizeSubscribedHomeworkWorkspaceItems(snapshot, locale)
         : [];
       return { total: snapshot.total, items };
     },
@@ -142,7 +142,7 @@ export async function listDueSoonSubscribedHomeworksWithCount(
 
 export async function listSubscribedHomeworks(
   userId: string,
-  options: ListSubscribedHomeworksOptions & { shape: "dashboard" },
+  options: ListSubscribedHomeworksOptions & { shape: "workspace" },
 ): Promise<HomeworkWithSection[]>;
 export async function listSubscribedHomeworks(
   userId: string,
@@ -185,8 +185,8 @@ export async function listSubscribedHomeworks(
         userId,
       });
 
-      if (shape === "dashboard") {
-        return fetchSubscribedHomeworkDashboardItems(userId, query, locale);
+      if (shape === "workspace") {
+        return fetchSubscribedHomeworkWorkspaceItems(userId, query, locale);
       }
 
       const snapshot = await withUserDbContext(userId, (tx) =>

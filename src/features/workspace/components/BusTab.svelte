@@ -7,8 +7,8 @@ import {
 } from "@/features/workspace/lib/bus";
 import { createBusTabState } from "@/features/workspace/lib/bus-tab-state";
 import type {
-  DashboardBusCopy,
-  DashboardBusData,
+  WorkspaceBusCopy,
+  WorkspaceBusData,
 } from "@/features/workspace/lib/bus-tab-types";
 import { apiClient } from "@/lib/api/client";
 import {
@@ -26,13 +26,13 @@ import BusTabTimetable from "./BusTabTimetable.svelte";
 
 const RECENT_BUS_ROUTE_KEY = "life-ustc:recent-bus-route:v1";
 
-export let busCopy: DashboardBusCopy;
-export let bus: DashboardBusData | null;
+export let busCopy: WorkspaceBusCopy;
+export let bus: WorkspaceBusData | null;
 export let compact = false;
 export let savePreferences = false;
 export let showPageHeader = false;
 
-let loadedBus: DashboardBusData | null = bus;
+let loadedBus: WorkspaceBusData | null = bus;
 let busStateVersion = 0;
 let busDayType: "weekday" | "saturday" | "sunday" = "weekday";
 let busEndCampusId: number | null = null;
@@ -58,7 +58,7 @@ async function loadPublicBusData() {
   busLoading = true;
   busLoadFailed = false;
   try {
-    const result = await apiClient.GET<DashboardBusData>("/api/catalog/bus");
+    const result = await apiClient.GET<WorkspaceBusData>("/api/catalog/bus");
     if (!result.response.ok || !result.data) {
       busLoadFailed = true;
       return;
@@ -171,7 +171,7 @@ $: busShowsEstimatedHint = hasEstimatedBusTimes(
   {#if showPageHeader}
     <div class="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
       <div class="grid gap-1">
-        <h2 class="font-semibold text-xl tracking-normal">{busCopy.dashboardTitle}</h2>
+        <h2 class="font-semibold text-xl tracking-normal">{busCopy.workspaceTitle}</h2>
       </div>
     </div>
   {/if}
@@ -308,7 +308,7 @@ $: busShowsEstimatedHint = hasEstimatedBusTimes(
       </Empty.Content>
     </Empty.Root>
   {:else if busLoading}
-    <div class="grid gap-3" aria-label={busCopy.dashboardTitle} aria-busy="true">
+    <div class="grid gap-3" aria-label={busCopy.workspaceTitle} aria-busy="true">
       <Skeleton class="h-12 w-full" />
       <Skeleton class="h-48 w-full" />
     </div>

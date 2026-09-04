@@ -61,7 +61,7 @@ describe("subscribed homework owner context", () => {
     const homeworks = await listSubscribedHomeworks("user-1", {
       completed: false,
       sectionIds: [7],
-      shape: "dashboard",
+      shape: "workspace",
     });
 
     expect(withUserDbContextMock).toHaveBeenCalledOnce();

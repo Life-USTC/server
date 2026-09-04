@@ -1,5 +1,5 @@
 /**
- * E2E tests for the exams dashboard (`/workspace/exams`)
+ * E2E tests for the exams workspace (`/workspace/exams`)
  *
  * ## Data Represented (exam.yml → cross-section-exam-list.display.fields)
  * - exam.examDate
@@ -91,7 +91,7 @@ test.describe("仪表盘考试", () => {
       })
       .first();
     await expect(upcoming).toBeVisible();
-    await expect(page.getByTestId("dashboard-exams-view-menu")).toHaveCount(0);
+    await expect(page.getByTestId("workspace-exams-view-menu")).toHaveCount(0);
 
     for (const control of [upcoming]) {
       const box = await control.boundingBox();
@@ -107,10 +107,10 @@ test.describe("仪表盘考试", () => {
       await all.click();
     }
     await expect(all).toHaveAttribute("aria-checked", "true");
-    await expect(page.getByTestId("dashboard-exams-cards")).toBeVisible();
+    await expect(page.getByTestId("workspace-exams-cards")).toBeVisible();
     await expect(page.getByRole("table")).toBeHidden();
     const examItem = page
-      .getByTestId("dashboard-exams-cards")
+      .getByTestId("workspace-exams-cards")
       .locator('[data-slot="item"]')
       .first();
     await expect(examItem).toBeVisible();

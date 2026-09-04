@@ -1,11 +1,11 @@
 import { pinyin } from "pinyin-pro";
 import type { CatalogLinkItem } from "@/features/catalog-links/lib/catalog-links";
 import {
+  CATALOG_LINK_GROUP_ORDER,
   type CatalogLinkGroup,
-  DASHBOARD_LINK_GROUP_ORDER,
 } from "@/features/catalog-links/lib/catalog-links";
 
-export type DashboardLinkSearchable = {
+export type CatalogLinkSearchable = {
   description: string;
   descriptionPinyin: string;
   group: CatalogLinkGroup;
@@ -24,7 +24,7 @@ export function searchQueryToTokens(query: string) {
 }
 
 export function linkMatchesTokens(
-  link: DashboardLinkSearchable,
+  link: CatalogLinkSearchable,
   tokens: string[],
 ) {
   const title = link.title.toLowerCase();
@@ -49,7 +49,7 @@ function toSearchableFields(
   title: string,
   description: string,
   url: string,
-): DashboardLinkSearchable {
+): CatalogLinkSearchable {
   return {
     title,
     description,
@@ -60,7 +60,7 @@ function toSearchableFields(
   };
 }
 
-export function dashboardLinkItemMatchesTokens(
+export function catalogLinkItemMatchesTokens(
   link: CatalogLinkItem,
   tokens: string[],
 ) {
@@ -76,7 +76,7 @@ export function dashboardLinkItemMatchesTokens(
   );
 }
 
-export function groupCatalogLinks<Link extends DashboardLinkSearchable>(
+export function groupCatalogLinks<Link extends CatalogLinkSearchable>(
   links: Link[],
   query: string,
   labels: Record<CatalogLinkGroup, string>,
@@ -87,7 +87,7 @@ export function groupCatalogLinks<Link extends DashboardLinkSearchable>(
       ? links
       : links.filter((link) => linkMatchesTokens(link, tokens));
 
-  return DASHBOARD_LINK_GROUP_ORDER.map((group) => ({
+  return CATALOG_LINK_GROUP_ORDER.map((group) => ({
     group,
     label: labels[group],
     links: visibleLinks.filter((link) => link.group === group),

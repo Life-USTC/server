@@ -1,5 +1,5 @@
 /**
- * E2E tests for the homeworks dashboard (`/workspace/homeworks`)
+ * E2E tests for the homeworks workspace (`/workspace/homeworks`)
  *
  * ## Data Represented (homework.yml → cross-section-homework-summary.display.fields)
  * - homework.title
@@ -120,10 +120,10 @@ test.describe("仪表盘作业", () => {
     const incomplete = page
       .getByRole("radio", { name: /未完成|Incomplete/i })
       .first();
-    const add = page.getByTestId("dashboard-homeworks-add");
+    const add = page.getByTestId("workspace-homeworks-add");
     await expect(incomplete).toBeVisible();
     await expect(add).toBeVisible();
-    await expect(page.getByTestId("dashboard-homeworks-view-menu")).toHaveCount(
+    await expect(page.getByTestId("workspace-homeworks-view-menu")).toHaveCount(
       0,
     );
 
@@ -138,10 +138,10 @@ test.describe("仪表盘作业", () => {
     await expect(all).toHaveAttribute("aria-checked", "true");
 
     await gotoAndWaitForReady(page, "/workspace/homeworks?homeworkView=list");
-    await expect(page.getByTestId("dashboard-homeworks-cards")).toBeVisible();
-    await expect(page.getByTestId("dashboard-homeworks-list")).toBeHidden();
+    await expect(page.getByTestId("workspace-homeworks-cards")).toBeVisible();
+    await expect(page.getByTestId("workspace-homeworks-list")).toBeHidden();
     const homeworkItem = page
-      .getByTestId("dashboard-homeworks-cards")
+      .getByTestId("workspace-homeworks-cards")
       .locator('[data-slot="item"]')
       .first();
     await expect(homeworkItem).toBeVisible();
@@ -174,7 +174,7 @@ test.describe("仪表盘作业", () => {
     await ensureSeedSectionSubscription(page);
     await gotoAndWaitForReady(page, "/workspace/homeworks");
 
-    await page.getByTestId("dashboard-homeworks-add").first().click();
+    await page.getByTestId("workspace-homeworks-add").first().click();
     const createDialog = page
       .getByRole("dialog", { name: /新建作业|New Homework/i })
       .first();
@@ -199,7 +199,7 @@ test.describe("仪表盘作业", () => {
     expect(await createDialog.evaluate((element) => element.scrollTop)).toBe(0);
     await expect(footer).toBeInViewport();
     await expect(closeButton).toBeInViewport();
-    const submit = createDialog.getByTestId("dashboard-homework-create");
+    const submit = createDialog.getByTestId("workspace-homework-create");
     await expect(submit).toBeInViewport();
     const dueDateShortcuts = createDialog.getByRole("button", {
       name: /截止时间快捷设置|Due date shortcuts/i,
@@ -253,21 +253,21 @@ test.describe("仪表盘作业", () => {
     await ensureSeedSectionSubscription(page);
     await gotoAndWaitForReady(page, "/workspace/homeworks");
 
-    const title = `e2e-dashboard-homework-mobile-${Date.now()}-${"长标题".repeat(30)}`;
-    const description = `${"这是用于验证仪表盘作业详情滚动区域的长说明。 ".repeat(24)}\n\ndashboard-homework-mobile-content-marker`;
+    const title = `e2e-workspace-homework-mobile-${Date.now()}-${"长标题".repeat(30)}`;
+    const description = `${"这是用于验证仪表盘作业详情滚动区域的长说明。 ".repeat(24)}\n\nworkspace-homework-mobile-content-marker`;
     let homeworkId: string | undefined;
 
     try {
-      await page.getByTestId("dashboard-homeworks-add").first().click();
+      await page.getByTestId("workspace-homeworks-add").first().click();
       const createDialog = page.getByRole("dialog", {
         name: /新建作业|New Homework/i,
       });
       await expect(createDialog).toBeVisible();
-      await createDialog.getByTestId("dashboard-homework-title").fill(title);
+      await createDialog.getByTestId("workspace-homework-title").fill(title);
       await createDialog
         .getByRole("textbox", { name: /说明|Details/i })
         .fill(description);
-      await createDialog.getByTestId("dashboard-homework-create").click();
+      await createDialog.getByTestId("workspace-homework-create").click();
       await expect(visibleText(page, title)).toBeVisible({ timeout: 15_000 });
       await page.keyboard.press("Escape");
       await expect(createDialog).toHaveCount(0);
@@ -279,7 +279,7 @@ test.describe("仪表盘作业", () => {
       const detailDialog = page.locator('[data-slot="dialog-content"]').first();
       await expect(detailDialog).toBeVisible();
       await expect(
-        detailDialog.getByText("dashboard-homework-mobile-content-marker"),
+        detailDialog.getByText("workspace-homework-mobile-content-marker"),
       ).toBeVisible();
       await expect(
         detailDialog.locator('a[href*="/catalog/sections/"]').first(),
@@ -398,8 +398,8 @@ test.describe("仪表盘作业", () => {
     await expect(
       page.getByRole("radio", { name: /列表|List|卡片|Cards/i }),
     ).toHaveCount(0);
-    await expect(page.getByTestId("dashboard-homeworks-list")).toBeVisible();
-    await expect(page.getByTestId("dashboard-homeworks-cards")).toBeHidden();
+    await expect(page.getByTestId("workspace-homeworks-list")).toBeVisible();
+    await expect(page.getByTestId("workspace-homeworks-cards")).toBeHidden();
     await expect(
       page
         .getByRole("row")
@@ -566,9 +566,9 @@ test.describe("仪表盘作业", () => {
       screenshotLabel: "homeworks",
     });
 
-    const addButton = page.getByTestId("dashboard-homeworks-add").first();
-    const title = `e2e-dashboard-homework-${Date.now()}`;
-    const titleInput = page.getByTestId("dashboard-homework-title");
+    const addButton = page.getByTestId("workspace-homeworks-add").first();
+    const title = `e2e-workspace-homework-${Date.now()}`;
+    const titleInput = page.getByTestId("workspace-homework-title");
     await expect(async () => {
       await expect(addButton).toBeVisible({ timeout: 3_000 });
       await addButton.click();
@@ -615,7 +615,7 @@ test.describe("仪表盘作业", () => {
       }
     });
     try {
-      const createButton = page.getByTestId("dashboard-homework-create");
+      const createButton = page.getByTestId("workspace-homework-create");
       await createButton.click();
       await expect(titleInput).toBeDisabled();
       await expect(
@@ -646,9 +646,9 @@ test.describe("仪表盘作业", () => {
       screenshotLabel: "homeworks",
     });
 
-    await page.getByTestId("dashboard-homeworks-add").first().click();
+    await page.getByTestId("workspace-homeworks-add").first().click();
     const createDialog = page.locator('[data-slot="dialog-content"]').first();
-    const titleInput = createDialog.getByTestId("dashboard-homework-title");
+    const titleInput = createDialog.getByTestId("workspace-homework-title");
     await expect(titleInput).toHaveAttribute(
       "placeholder",
       "e.g., 第一次作业 / 期中论文作业",
@@ -658,11 +658,11 @@ test.describe("仪表盘作业", () => {
     ).toHaveAttribute("placeholder", /题目：/);
 
     const trigger = createDialog.getByTestId(
-      "dashboard-homework-style-guide-trigger",
+      "workspace-homework-style-guide-trigger",
     );
     await expect(trigger).toHaveAttribute("aria-expanded", "true");
     const guide = createDialog.getByTestId(
-      "dashboard-homework-style-guide-content",
+      "workspace-homework-style-guide-content",
     );
     await expect(guide).toBeVisible();
     await expect(guide).toContainText("第{N}次作业");
@@ -676,7 +676,7 @@ test.describe("仪表盘作业", () => {
     );
     await expect(guide).toContainText("never blocks saving");
     await expect(
-      createDialog.getByTestId("dashboard-homework-create"),
+      createDialog.getByTestId("workspace-homework-create"),
     ).toBeVisible();
     await captureStepScreenshot(
       page,
@@ -696,11 +696,11 @@ test.describe("仪表盘作业", () => {
       screenshotLabel: "homeworks",
     });
 
-    const addButton = page.getByTestId("dashboard-homeworks-add").first();
-    const title = `e2e-dashboard-hw-full-${Date.now()}`;
-    const description = `e2e-dashboard-hw-description-${Date.now()}`;
+    const addButton = page.getByTestId("workspace-homeworks-add").first();
+    const title = `e2e-workspace-hw-full-${Date.now()}`;
+    const description = `e2e-workspace-hw-description-${Date.now()}`;
     const dueAt = "2026-12-31T23:59";
-    const titleInput = page.getByTestId("dashboard-homework-title");
+    const titleInput = page.getByTestId("workspace-homework-title");
     await expect(async () => {
       await expect(addButton).toBeVisible({ timeout: 3_000 });
       await addButton.click();
@@ -738,7 +738,7 @@ test.describe("仪表盘作业", () => {
       .click();
 
     try {
-      await page.getByTestId("dashboard-homework-create").click();
+      await page.getByTestId("workspace-homework-create").click();
       const row = page.getByRole("row").filter({ hasText: title }).first();
       await expect(row).toBeVisible({ timeout: 15_000 });
 

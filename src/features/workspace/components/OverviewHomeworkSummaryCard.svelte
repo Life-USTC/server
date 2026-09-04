@@ -1,37 +1,37 @@
 <script lang="ts">
 import { sectionDetailHomeworkPath } from "@/features/section-detail/lib/section-detail-tab";
+import { WORKSPACE_OVERVIEW_PREVIEW_LIMIT } from "@/features/workspace/lib/overview-preview";
 import type {
-  DashboardCommonCopy,
-  DashboardDashboardCopy,
-  DashboardHomeworkItem,
-} from "@/features/workspace/lib/dashboard-controller-helpers";
-import { DASHBOARD_OVERVIEW_PREVIEW_LIMIT } from "@/features/workspace/lib/overview-preview";
+  WorkspaceCommonCopy,
+  WorkspaceCopy,
+  WorkspaceHomeworkItem,
+} from "@/features/workspace/lib/workspace-controller-helpers";
 import * as Empty from "$lib/components/ui/empty/index.js";
 import * as Item from "$lib/components/ui/item/index.js";
-import type { DashboardCalendarTabHref } from "./dashboard-calendar-component-types";
 import OverviewSection from "./OverviewSection.svelte";
+import type { WorkspaceCalendarTabHref } from "./workspace-calendar-component-types";
 
-export let commonCopy: DashboardCommonCopy;
-export let dashboardCopy: DashboardDashboardCopy;
-export let dashboardTabHref: DashboardCalendarTabHref;
+export let commonCopy: WorkspaceCommonCopy;
+export let workspaceCopy: WorkspaceCopy;
+export let workspaceTabHref: WorkspaceCalendarTabHref;
 export let fmtDate: (date: Date | string | null | undefined) => string;
 export let homeworkEtaLabel: (date: Date | string | null | undefined) => string;
-export let pendingHomeworks: DashboardHomeworkItem[];
-export let previewLimit = DASHBOARD_OVERVIEW_PREVIEW_LIMIT;
+export let pendingHomeworks: WorkspaceHomeworkItem[];
+export let previewLimit = WORKSPACE_OVERVIEW_PREVIEW_LIMIT;
 export let viewAllLabel = "View all";
 </script>
 
 <OverviewSection
-  href={dashboardTabHref("homeworks")}
-  title={dashboardCopy.homeworks.titleV2}
-  viewAllHref={dashboardTabHref("homeworks")}
+  href={workspaceTabHref("homeworks")}
+  title={workspaceCopy.homeworks.titleV2}
+  viewAllHref={workspaceTabHref("homeworks")}
   viewAllLabel={viewAllLabel}
   viewAllVisible={pendingHomeworks.length > previewLimit}
 >
   {#if pendingHomeworks.length === 0}
     <Empty.Root class="min-h-20 border-0 px-2 py-6">
       <Empty.Header>
-        <Empty.Description>{dashboardCopy.homeworks.empty}</Empty.Description>
+        <Empty.Description>{workspaceCopy.homeworks.empty}</Empty.Description>
       </Empty.Header>
     </Empty.Root>
   {:else}
@@ -45,7 +45,7 @@ export let viewAllLabel = "View all";
                 ? sectionDetailHomeworkPath(homework.section.jwId, {
                     homeworkId: homework.id,
                   })
-                : dashboardTabHref("homeworks")}
+                : workspaceTabHref("homeworks")}
               {...props}
             >
               <Item.Content class="min-w-0">

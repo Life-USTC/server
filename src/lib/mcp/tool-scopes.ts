@@ -108,7 +108,7 @@ const TOOL_SCOPE_MAP: Record<string, ToolScopeRequirement[]> = {
   workspace_upload_rename: [{ feature: "workspace.upload", action: "write" }],
   workspace_upload_delete: [{ feature: "workspace.upload", action: "write" }],
 
-  // Dashboard / overview
+  // Workspace / overview
   workspace_snapshot_get: [{ feature: "workspace.overview", action: "read" }],
   catalog_link_list: [],
   workspace_link_pin_list: [{ feature: "workspace.link-pin", action: "read" }],

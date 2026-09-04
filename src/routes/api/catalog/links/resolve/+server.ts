@@ -4,7 +4,7 @@ import { observedApiRoute } from "@/lib/log/api-observability";
 
 /**
  * Resolve a public campus link and record an authenticated visit.
- * @params dashboardLinkVisitQuerySchema
+ * @params catalogLinkVisitQuerySchema
  * @response 307
  */
 export const GET = svelteRequestHandler(

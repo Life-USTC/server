@@ -20,9 +20,7 @@
       "title": "Link Browse & Search",
       "auth": "anon",
       "web": {
-        "pages": [
-          "/catalog/links"
-        ]
+        "pages": ["/catalog/links"]
       },
       "rest": {
         "routes": [
@@ -86,9 +84,7 @@
             },
             "returns": "WorkspaceLinkPinMutationPayload!",
             "auth": "user",
-            "required_scopes": [
-              "workspace.link-pin:write"
-            ],
+            "required_scopes": ["workspace.link-pin:write"],
             "rest_equivalent": "POST /api/workspace/link-pins",
             "mcp_equivalent": "workspace_link_pin_set"
           },
@@ -99,9 +95,7 @@
             },
             "returns": "WorkspaceLinkPinBatchMutationPayload!",
             "auth": "user",
-            "required_scopes": [
-              "workspace.link-pin:write"
-            ],
+            "required_scopes": ["workspace.link-pin:write"],
             "rest_equivalent": "POST /api/workspace/link-pins/batch",
             "mcp_equivalent": "graphql_operation_run",
             "notes": [
@@ -113,9 +107,7 @@
         ]
       },
       "web": {
-        "pages": [
-          "/catalog/links"
-        ]
+        "pages": ["/catalog/links"]
       },
       "rest": {
         "routes": [

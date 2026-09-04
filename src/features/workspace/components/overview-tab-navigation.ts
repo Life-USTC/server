@@ -1,24 +1,24 @@
 import {
-  dashboardOverviewWeekStart as buildDashboardOverviewWeekStart,
   overviewUpcomingExams as buildOverviewUpcomingExams,
+  workspaceOverviewWeekStart as buildWorkspaceOverviewWeekStart,
 } from "@/features/workspace/lib/calendar-display";
-import type { DashboardCalendarPreviewData } from "@/features/workspace/lib/dashboard-controller-helpers";
 import { referenceDate } from "@/features/workspace/lib/overview";
-import type {
-  DashboardCalendarSession,
-  DashboardCalendarTabHref,
-} from "./dashboard-calendar-component-types";
+import type { WorkspaceCalendarPreviewData } from "@/features/workspace/lib/workspace-controller-helpers";
 import type { OverviewSignedData } from "./overview-tab-types";
+import type {
+  WorkspaceCalendarSession,
+  WorkspaceCalendarTabHref,
+} from "./workspace-calendar-component-types";
 
-export function dashboardOverviewWeekStart(signedData: OverviewSignedData) {
-  return buildDashboardOverviewWeekStart(
+export function workspaceOverviewWeekStart(signedData: OverviewSignedData) {
+  return buildWorkspaceOverviewWeekStart(
     signedData.overviewWeek,
     signedData.overview?.calendar?.referenceDate,
   );
 }
 
 export function overviewUpcomingExams(
-  overviewCalendar: DashboardCalendarPreviewData,
+  overviewCalendar: WorkspaceCalendarPreviewData,
   signedData: OverviewSignedData,
 ) {
   return buildOverviewUpcomingExams(
@@ -28,10 +28,10 @@ export function overviewUpcomingExams(
 }
 
 export function overviewSessionHref(
-  session: Pick<DashboardCalendarSession, "sectionJwId">,
-  dashboardTabHref: DashboardCalendarTabHref,
+  session: Pick<WorkspaceCalendarSession, "sectionJwId">,
+  workspaceTabHref: WorkspaceCalendarTabHref,
 ) {
   return session.sectionJwId
     ? `/catalog/sections/${session.sectionJwId}`
-    : dashboardTabHref("calendar");
+    : workspaceTabHref("calendar");
 }

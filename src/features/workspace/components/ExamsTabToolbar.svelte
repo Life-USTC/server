@@ -1,17 +1,17 @@
 <script lang="ts">
-import type { DashboardDashboardCopy } from "@/features/workspace/lib/dashboard-controller-types";
+import type { WorkspaceCopy } from "@/features/workspace/lib/workspace-controller-types";
 import * as ToggleGroup from "$lib/components/ui/toggle-group/index.js";
-import type { DashboardExamFilter } from "./dashboard-exam-component-types";
+import type { WorkspaceExamFilter } from "./workspace-exam-component-types";
 
-export let dashboardCopy: DashboardDashboardCopy;
-export let examFilter: DashboardExamFilter;
-export let onExamFilterChange: (value: DashboardExamFilter) => void;
+export let workspaceCopy: WorkspaceCopy;
+export let examFilter: WorkspaceExamFilter;
+export let onExamFilterChange: (value: WorkspaceExamFilter) => void;
 </script>
 
 <div class="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-2 md:flex md:flex-wrap md:items-center">
   <div class="min-w-0 md:flex md:flex-wrap md:items-center md:gap-2">
     <ToggleGroup.Root
-      aria-label={dashboardCopy.nav.exams.title}
+      aria-label={workspaceCopy.nav.exams.title}
       class="w-full min-w-0 md:w-fit"
       type="single"
       value={examFilter}
@@ -30,13 +30,13 @@ export let onExamFilterChange: (value: DashboardExamFilter) => void;
       }}
     >
       <ToggleGroup.Item class="h-11 min-w-0 flex-1 text-xs md:h-8 md:flex-none md:text-sm" value="incomplete">
-        {dashboardCopy.nav.exams.filterIncomplete}
+        {workspaceCopy.nav.exams.filterIncomplete}
       </ToggleGroup.Item>
       <ToggleGroup.Item class="h-11 min-w-0 flex-1 text-xs md:h-8 md:flex-none md:text-sm" value="completed">
-        {dashboardCopy.nav.exams.filterCompleted}
+        {workspaceCopy.nav.exams.filterCompleted}
       </ToggleGroup.Item>
       <ToggleGroup.Item class="h-11 min-w-0 flex-1 text-xs md:h-8 md:flex-none md:text-sm" value="all">
-        {dashboardCopy.nav.exams.filterAll}
+        {workspaceCopy.nav.exams.filterAll}
       </ToggleGroup.Item>
     </ToggleGroup.Root>
   </div>

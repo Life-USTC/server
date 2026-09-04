@@ -60,7 +60,7 @@ describe("remaining ordinary GraphQL mutations", () => {
     requireGraphqlMutationMock.mockResolvedValue({ userId: "user-1" });
   });
 
-  it("delegates ordered dashboard pin batches to the shared service", async () => {
+  it("delegates ordered workspace pin batches to the shared service", async () => {
     setWorkspaceLinkPinStatesBatchMock.mockResolvedValue({
       ok: true,
       pinnedSlugs: ["mail"],

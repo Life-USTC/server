@@ -20,17 +20,11 @@
       "title": "Teacher List & Filter",
       "auth": "anon",
       "links": {
-        "models": [
-          "Teacher"
-        ],
-        "ui": [
-          "List Table"
-        ]
+        "models": ["Teacher"],
+        "ui": ["List Table"]
       },
       "web": {
-        "pages": [
-          "/catalog/teachers"
-        ]
+        "pages": ["/catalog/teachers"]
       },
       "rest": {
         "routes": [
@@ -82,29 +76,18 @@
           "teacher.email",
           "teacher._count.sections"
         ],
-        "filters": [
-          "search",
-          "departmentId"
-        ]
+        "filters": ["search", "departmentId"]
       }
     },
     "teacher-detail": {
       "title": "Teacher Detail",
       "auth": "anon",
       "links": {
-        "models": [
-          "Teacher"
-        ],
-        "ui": [
-          "Detail Hero",
-          "Detail Two-Column Stream",
-          "Basic Info Card"
-        ]
+        "models": ["Teacher"],
+        "ui": ["Detail Hero", "Detail Two-Column Stream", "Basic Info Card"]
       },
       "web": {
-        "pages": [
-          "/catalog/teachers/[id]"
-        ]
+        "pages": ["/catalog/teachers/[id]"]
       },
       "rest": {
         "routes": [
