@@ -1,3 +1,11 @@
+## [1.105.1](https://github.com/Life-USTC/server/compare/v1.105.0...v1.105.1) (2026-09-04)
+
+
+### Bug Fixes
+
+* **ci:** align wrangler types with CI and fix biome imports ([f8c088b](https://github.com/Life-USTC/server/commit/f8c088bd2ba0f6229c8c9945920d9ea735ed4659))
+* **ci:** keep worker-configuration.d.ts aligned with CI ([a753a5f](https://github.com/Life-USTC/server/commit/a753a5fa7d2fc66a6d02e5836abc8a841de2c694))
+
 # [1.105.0](https://github.com/Life-USTC/server/compare/v1.104.0...v1.105.0) (2026-09-03)
 
 
