@@ -1,8 +1,8 @@
 import { scheduleInvalidateUserCalendarExportCache } from "@/features/calendar/server/calendar-export-invalidation";
 import { TODO_LIST_DEFAULT_LIMIT } from "@/features/todos/lib/todo-list-limits";
 import type { Prisma, TodoPriority } from "@/generated/prisma/client";
-import { buildPaginatedResponse, normalizePagination } from "@/lib/pagination";
 import { withUserDbContext } from "@/lib/db/prisma";
+import { buildPaginatedResponse, normalizePagination } from "@/lib/pagination";
 
 export const todoSnapshotSelect = {
   id: true,

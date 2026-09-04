@@ -11,9 +11,9 @@ import {
   createDashboardStageCounter,
   observeDashboardStage,
 } from "@/features/dashboard/server/dashboard-stage-analytics";
-import { runCloudflareTraceSpan } from "@/lib/ports/runtime";
 import { logAppEvent } from "@/lib/log/app-logger";
 import { elapsedMs, monotonicNowMs } from "@/lib/log/observability-clock";
+import { runCloudflareTraceSpan } from "@/lib/ports/runtime";
 
 function recordDashboardLoadFinish(input: {
   ioObservedDurationMs: number;
