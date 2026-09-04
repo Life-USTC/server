@@ -1,3 +1,10 @@
+## [1.105.3](https://github.com/Life-USTC/server/compare/v1.105.2...v1.105.3) (2026-09-04)
+
+
+### Bug Fixes
+
+* **news:** redirect overflowing publication pages ([#1015](https://github.com/Life-USTC/server/issues/1015)) ([4d15d19](https://github.com/Life-USTC/server/commit/4d15d19e91434312b0294d5449a1815a16a58aa8))
+
 ## [1.105.2](https://github.com/Life-USTC/server/compare/v1.105.1...v1.105.2) (2026-09-04)
 
 
