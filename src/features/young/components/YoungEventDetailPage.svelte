@@ -1,5 +1,5 @@
 <script lang="ts">
-import type { DashboardPageCopy } from "@/features/dashboard/server/dashboard-page-load-types";
+import type { DashboardPageCopy } from "@/features/workspace/server/dashboard-page-load-types";
 import type { YoungEventDetail } from "@/features/young/server/young-event-service";
 import PageLayout from "$lib/components/PageLayout.svelte";
 import Panel from "$lib/components/Panel.svelte";

@@ -50,7 +50,7 @@ import {
   graphqlAuthenticatedScopeResolver,
   graphqlScopeResolvers,
   graphqlScopeTypeDefs,
-} from "./viewer";
+} from "./workspace";
 
 type TeacherParent = {
   id: number;

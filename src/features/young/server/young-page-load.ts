@@ -1,6 +1,6 @@
 import { CATALOG_PAGE_SIZE } from "@/features/catalog/server/catalog-page-constants";
-import { getDashboardPageCopy } from "@/features/dashboard/server/dashboard-page-copy";
-import type { DashboardPageLoadEvent } from "@/features/dashboard/server/dashboard-page-load-types";
+import { getDashboardPageCopy } from "@/features/workspace/server/dashboard-page-copy";
+import type { DashboardPageLoadEvent } from "@/features/workspace/server/dashboard-page-load-types";
 import {
   getYoungEvent,
   listYoungEventCategories,

@@ -1,0 +1,53 @@
+<script lang="ts">
+import type {
+  AnonymousLinkGroup,
+  DashboardDashboardCopy,
+} from "@/features/workspace/lib/dashboard-controller-helpers";
+import { Button } from "$lib/components/ui/button/index.js";
+import * as Empty from "$lib/components/ui/empty/index.js";
+import AnonymousLinksGroup from "./AnonymousLinksGroup.svelte";
+import AnonymousLinksToolbar from "./AnonymousLinksToolbar.svelte";
+
+export let dashboardCopy: Pick<DashboardDashboardCopy, "linkHub">;
+export let linkIconLabel: (icon: string) => string;
+
+export let linkSearchQuery: string;
+export let linkSearchInput: HTMLInputElement | null;
+export let anonymousLinkGroups: AnonymousLinkGroup[];
+</script>
+
+<section class="grid gap-4">
+  <AnonymousLinksToolbar
+    {dashboardCopy}
+    bind:linkSearchInput
+    bind:linkSearchQuery
+  />
+
+  {#each anonymousLinkGroups as entry}
+    <AnonymousLinksGroup
+      colDescription={dashboardCopy.linkHub.colDescription}
+      colName={dashboardCopy.linkHub.colName}
+      {entry}
+      {linkIconLabel}
+    />
+  {:else}
+    <Empty.Root class="items-start text-left">
+      <Empty.Header class="items-start text-left">
+        <Empty.Title>{dashboardCopy.linkHub.empty}</Empty.Title>
+      </Empty.Header>
+    </Empty.Root>
+  {/each}
+
+  <p class="text-muted-foreground text-xs">
+    {dashboardCopy.linkHub.credit}
+    <Button
+      class="h-auto p-0"
+      href="https://github.com/SmartHypercube/ustclife"
+      rel="noreferrer"
+      target="_blank"
+      variant="link"
+    >
+      SmartHypercube/ustclife
+    </Button>{dashboardCopy.linkHub.creditSuffix}
+  </p>
+</section>

@@ -1,8 +1,8 @@
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
-import { getDashboardNavStats } from "@/features/dashboard/server/dashboard-nav-stats";
-import { getDashboardSemesters } from "@/features/dashboard/server/dashboard-overview-data";
-import { getDashboardUserContext } from "@/features/dashboard/server/dashboard-user-context";
-import { getWorkspaceNavigationSummary } from "@/features/dashboard/server/workspace-navigation-summary";
+import { getDashboardNavStats } from "@/features/workspace/server/dashboard-nav-stats";
+import { getDashboardSemesters } from "@/features/workspace/server/dashboard-overview-data";
+import { getDashboardUserContext } from "@/features/workspace/server/dashboard-user-context";
+import { getWorkspaceNavigationSummary } from "@/features/workspace/server/workspace-navigation-summary";
 import { DEV_SEED_ANCHOR } from "../fixtures/dev-seed";
 import {
   createTestPrisma,

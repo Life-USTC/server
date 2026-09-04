@@ -1,4 +1,4 @@
-import { loadPublicBusPage } from "@/features/dashboard/server/public-bus-page-load";
+import { loadPublicBusPage } from "@/features/workspace/server/public-bus-page-load";
 import { updateSocialMetadata } from "@/lib/social-metadata";
 import type { PageServerLoad } from "./$types";
 

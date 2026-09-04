@@ -67,7 +67,7 @@ const loadReads = async (
   options: { includeSamples?: boolean } = {},
 ) => {
   const { loadOverviewSubscriptionReads } = await import(
-    "@/features/dashboard/server/compact-overview-subscription-bundle"
+    "@/features/workspace/server/compact-overview-subscription-bundle"
   );
   return loadOverviewSubscriptionReads({
     atTime: AT_TIME,

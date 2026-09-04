@@ -1,14 +1,14 @@
 <script lang="ts">
 import { onMount } from "svelte";
-import AnonymousLinksTab from "@/features/dashboard/components/AnonymousLinksTab.svelte";
-import LinksTab from "@/features/dashboard/components/LinksTab.svelte";
-import { linkIconLabel } from "@/features/dashboard/lib/dashboard-link-icon";
+import { groupDashboardLinks } from "@/features/dashboard-links/lib/dashboard-link-search";
+import AnonymousLinksTab from "@/features/workspace/components/AnonymousLinksTab.svelte";
+import LinksTab from "@/features/workspace/components/LinksTab.svelte";
+import { linkIconLabel } from "@/features/workspace/lib/dashboard-link-icon";
 import {
   applyDashboardLinkPinnedSlugs,
   currentDashboardLinkReturnTo,
   submitDashboardLinkPinRequest,
-} from "@/features/dashboard/lib/dashboard-link-pin-client";
-import { groupDashboardLinks } from "@/features/dashboard-links/lib/dashboard-link-search";
+} from "@/features/workspace/lib/dashboard-link-pin-client";
 import { mountPageSearchShortcut } from "@/lib/browser/page-search-shortcut";
 import PageHeader from "$lib/components/PageHeader.svelte";
 import type { PageData } from "./$types";

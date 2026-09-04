@@ -12,7 +12,6 @@ import Droplets from "@lucide/svelte/icons/droplets";
 import Sun from "@lucide/svelte/icons/sun";
 import Thermometer from "@lucide/svelte/icons/thermometer";
 import Wind from "@lucide/svelte/icons/wind";
-import type { DashboardPageCopy } from "@/features/dashboard/server/dashboard-page-load-types";
 import WeatherHourlyChart from "@/features/weather/components/WeatherHourlyChart.svelte";
 import type { WeatherPageLocation } from "@/features/weather/server/weather-page-load";
 import type {
@@ -24,6 +23,7 @@ import {
   type WeatherIconName,
   weatherConditionIcon,
 } from "@/features/weather/weather-ui";
+import type { DashboardPageCopy } from "@/features/workspace/server/dashboard-page-load-types";
 import type { AppLocale } from "@/i18n/config";
 import Panel from "$lib/components/Panel.svelte";
 import {

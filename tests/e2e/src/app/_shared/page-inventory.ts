@@ -4,8 +4,9 @@
  * Derived from src/routes/+page.svelte trees. Keep this map complete — the unit
  * gate in tests/unit/page-inventory.test.ts fails when a route is orphaned.
  */
-import { workspaceTabIds } from "@/features/dashboard/lib/dashboard-nav";
+
 import { SETTINGS_TABS } from "@/features/settings/lib/settings-tabs";
+import { workspaceTabIds } from "@/features/workspace/lib/dashboard-nav";
 import { DEV_SEED } from "../../../../fixtures/dev-seed";
 
 export type PageAuth = "public" | "user" | "admin";
@@ -77,14 +78,14 @@ const E2E = {
   commentsId: "src/app/comments/[id]/test.ts",
   courses: "src/app/courses/test.ts",
   coursesJwId: "src/app/courses/[jwId]/test.ts",
-  dashboard: "src/app/dashboard/test.ts",
-  dashboardTab: "src/app/dashboard/[tab]/test.ts",
-  dashboardLinks: "src/app/dashboard/links/test.ts",
-  dashboardCalendar: "src/app/dashboard/calendar/test.ts",
-  dashboardHomeworks: "src/app/dashboard/homeworks/test.ts",
-  dashboardTodos: "src/app/dashboard/todos/test.ts",
-  dashboardExams: "src/app/dashboard/exams/test.ts",
-  dashboardSubscriptions: "src/app/dashboard/subscriptions/sections/test.ts",
+  dashboard: "src/app/workspace/test.ts",
+  dashboardTab: "src/app/workspace/[tab]/test.ts",
+  dashboardLinks: "src/app/workspace/links/test.ts",
+  dashboardCalendar: "src/app/workspace/calendar/test.ts",
+  dashboardHomeworks: "src/app/workspace/homeworks/test.ts",
+  dashboardTodos: "src/app/workspace/todos/test.ts",
+  dashboardExams: "src/app/workspace/exams/test.ts",
+  dashboardSubscriptions: "src/app/workspace/subscriptions/sections/test.ts",
   e2eOauthCallback: "src/app/e2e/oauth/callback/test.ts",
   error: "src/app/error/test.ts",
   guidesMarkdown: "src/app/guides/markdown-support/test.ts",

@@ -122,17 +122,6 @@ Fixtures: `tests/e2e/fixtures/scenario.json` feeds `tests/fixtures/dev-seed.ts`
 (`DEV_SEED_ANCHOR`). `prisma/seed.sql` is the executable DB seed (kept in sync
 with that scenario; not auto-generated in-repo).
 
-## Old names still in the tree
-
-| Idea | Product name | Code today |
-|------|--------------|------------|
-| Signed-in home | `workspace` | Feature folder `dashboard/`, routes `/workspace/[tab]` |
-| Overview REST | workspace overview | File `me-overview-route.ts` |
-| GraphQL personal data | `workspace.*` / `account.*` | Some files still `viewer.ts` |
-| MCP tools | `workspace_*` ids | Files may say `my-data-*` / `dashboard-*` |
-
-Don't add a second `workspace` feature folder or a root GraphQL `viewer`.
-
 ## Web and auth
 
 - Catalog: `/catalog/courses|sections|teachers|bus|links|young-events|weather`,

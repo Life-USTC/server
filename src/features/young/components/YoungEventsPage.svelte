@@ -8,7 +8,7 @@ import {
   catalogShowingSummary,
   optionalCatalogFilterSummary,
 } from "@/features/catalog/lib/catalog-results-summary";
-import type { DashboardPageCopy } from "@/features/dashboard/server/dashboard-page-load-types";
+import type { DashboardPageCopy } from "@/features/workspace/server/dashboard-page-load-types";
 import type { YoungEventSummary } from "@/features/young/server/young-event-service";
 import type { YoungEventsPageFilters } from "@/features/young/server/young-page-load";
 import { page as appPage } from "$app/stores";

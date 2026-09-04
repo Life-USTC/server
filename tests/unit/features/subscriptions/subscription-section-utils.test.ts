@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { groupSubscribedSectionsBySemester } from "@/features/dashboard/lib/subscription-section-utils";
+import { groupSubscribedSectionsBySemester } from "@/features/workspace/lib/subscription-section-utils";
 
 const section = (
   id: number,

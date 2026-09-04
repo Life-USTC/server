@@ -1,9 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
 import {
-  homeworkDueInDays as dashboardHomeworkDueInDays,
-  initialCreateHomeworkDraft,
-} from "@/features/dashboard/lib/dashboard-controller-helpers";
-import {
   dateTimeInputValue,
   homeworkDueAtSemesterEnd,
   homeworkDueInDays,
@@ -16,6 +12,10 @@ import {
   initialHomeworkDraft,
   homeworkDueInDays as sectionHomeworkDueInDays,
 } from "@/features/section-detail/lib/section-detail-controller-helpers";
+import {
+  homeworkDueInDays as dashboardHomeworkDueInDays,
+  initialCreateHomeworkDraft,
+} from "@/features/workspace/lib/dashboard-controller-helpers";
 
 describe("homework 时间戳默认值", () => {
   it("构建共享的初始作业时间戳草稿", () => {

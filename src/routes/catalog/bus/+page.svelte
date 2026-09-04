@@ -1,5 +1,5 @@
 <script lang="ts">
-import BusTab from "@/features/dashboard/components/BusTab.svelte";
+import BusTab from "@/features/workspace/components/BusTab.svelte";
 import PageHeader from "$lib/components/PageHeader.svelte";
 import type { PageData } from "./$types";
 

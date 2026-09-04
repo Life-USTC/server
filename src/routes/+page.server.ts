@@ -2,8 +2,8 @@ import { redirect } from "@sveltejs/kit";
 import {
   dashboardRedirectHrefFromHome,
   homeTabCompatibilityRedirectHref,
-} from "@/features/dashboard/lib/dashboard-nav";
-import { loadAnonymousHomePage } from "@/features/dashboard/server/anonymous-home-page-load";
+} from "@/features/workspace/lib/dashboard-nav";
+import { loadAnonymousHomePage } from "@/features/workspace/server/anonymous-home-page-load";
 import type { PageServerLoad } from "./$types";
 
 export const load: PageServerLoad = async (event) => {

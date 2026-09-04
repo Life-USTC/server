@@ -1,4 +1,4 @@
-import { getMyCompactOverviewRoute } from "@/lib/api/routes/me-overview-route";
+import { getMyCompactOverviewRoute } from "@/lib/api/routes/workspace-overview-route";
 import { svelteRequestHandler } from "@/lib/api/svelte-route";
 import { observedApiRoute } from "@/lib/log/api-observability";
 
