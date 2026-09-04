@@ -48,17 +48,24 @@ describe("seeded-list MCP tools formerly E2E-only", () => {
     expect((result.exams?.length ?? 0) > 0).toBe(true);
   });
 
-  it("catalog_bus_route_search returns paginated routes", async () => {
+  it("catalog_bus_route_search returns routes for seed campuses", async () => {
     const result = await context.client.call<{
-      data?: Array<{ id?: string; name?: string }>;
-      pagination?: { page?: number; pageSize?: number; total?: number };
+      total?: number;
+      routes?: Array<{ id?: number }>;
+      hasData?: boolean;
     }>("catalog_bus_route_search", {
-      limit: 5,
+      originCampusId: fixtures.DEV_SEED.bus.originCampusId,
+      destinationCampusId: fixtures.DEV_SEED.bus.destinationCampusId,
       locale: "zh-cn",
     });
 
-    expect(Array.isArray(result.data)).toBe(true);
-    expect(result.pagination?.pageSize).toBe(5);
+    expect(Array.isArray(result.routes)).toBe(true);
+    expect((result.total ?? 0) > 0).toBe(true);
+    expect(
+      result.routes?.some(
+        (route) => route.id === fixtures.DEV_SEED.bus.recommendedRouteId,
+      ),
+    ).toBe(true);
   });
 
   it("community_comment_replies returns replies for a seed root comment", async () => {
@@ -82,7 +89,8 @@ describe("seeded-list MCP tools formerly E2E-only", () => {
 
     const replies = await context.client.call<{
       found?: boolean;
-      data?: Array<{ id?: string; body?: string; parentId?: string | null }>;
+      rootId?: string;
+      thread?: Array<{ id?: string; body?: string; parentId?: string | null }>;
     }>("community_comment_replies", {
       commentId: root.id,
       mode: "full",
@@ -99,8 +107,8 @@ describe("seeded-list MCP tools formerly E2E-only", () => {
   it("workspace_upload_list / workspace_homework_list / workspace_exam_list return arrays", async () => {
     const [uploads, homeworks, exams] = await Promise.all([
       subscribed.client.call<{
-        uploads?: unknown[];
-        usedBytes?: number;
+        data?: unknown[];
+        meta?: { usedBytes?: number };
       }>("workspace_upload_list", {}),
       subscribed.client.call<{
         homeworks?: unknown[];
@@ -117,7 +125,7 @@ describe("seeded-list MCP tools formerly E2E-only", () => {
       }),
     ]);
 
-    expect(Array.isArray(uploads.uploads)).toBe(true);
+    expect(Array.isArray(uploads.data)).toBe(true);
     expect(Array.isArray(homeworks.homeworks)).toBe(true);
     expect(Array.isArray(exams.exams)).toBe(true);
   });
