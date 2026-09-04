@@ -101,7 +101,7 @@ describe("POST /api/workspace/link-pins", () => {
 
     expect(response.status).toBe(303);
     expect(response.headers.get("Location")).toBe(
-      "http://localhost/?dashboardLinkPinError=1",
+      "http://localhost/?workspaceLinkPinError=1",
     );
     expect(withUserDbContextMock).not.toHaveBeenCalled();
   });

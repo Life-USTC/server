@@ -20,7 +20,9 @@
       "title": "Link Browse & Search",
       "auth": "anon",
       "web": {
-        "pages": ["/catalog/links"]
+        "pages": [
+          "/catalog/links"
+        ]
       },
       "rest": {
         "routes": [
@@ -36,7 +38,9 @@
           {
             "name": "links",
             "parent": "Catalog",
-            "arguments": { "query": "String" },
+            "arguments": {
+              "query": "String"
+            },
             "returns": "[CatalogLink!]!",
             "rest_equivalent": "GET /api/catalog/links",
             "mcp_equivalent": "catalog_link_list"
@@ -50,7 +54,7 @@
             "auth": "anon",
             "returns": "{ success, query, total, returned, links: [{ slug, title, url, description, icon, group }] }",
             "notes": [
-              "Optional query reuses the web dashboard link search behavior across title, description, titlePinyin, and descriptionPinyin.",
+              "Optional query reuses the web workspace link search behavior across title, description, titlePinyin, and descriptionPinyin.",
               "The public output exposes target URLs but omits personal pin and click state."
             ]
           }
@@ -82,7 +86,9 @@
             },
             "returns": "WorkspaceLinkPinMutationPayload!",
             "auth": "user",
-            "required_scopes": ["workspace.link-pin:write"],
+            "required_scopes": [
+              "workspace.link-pin:write"
+            ],
             "rest_equivalent": "POST /api/workspace/link-pins",
             "mcp_equivalent": "workspace_link_pin_set"
           },
@@ -93,7 +99,9 @@
             },
             "returns": "WorkspaceLinkPinBatchMutationPayload!",
             "auth": "user",
-            "required_scopes": ["workspace.link-pin:write"],
+            "required_scopes": [
+              "workspace.link-pin:write"
+            ],
             "rest_equivalent": "POST /api/workspace/link-pins/batch",
             "mcp_equivalent": "graphql_operation_run",
             "notes": [
@@ -105,7 +113,9 @@
         ]
       },
       "web": {
-        "pages": ["/catalog/links"]
+        "pages": [
+          "/catalog/links"
+        ]
       },
       "rest": {
         "routes": [
@@ -115,7 +125,7 @@
             "returns": "200 JSON pin state when Accept requests JSON; otherwise 303 redirect",
             "notes": [
               "JSON mode returns { pinnedSlugs: String[], maxPinnedLinks: Int, error: String? } for success and 400/401/500 failures.",
-              "Redirect mode returns to returnTo, adding dashboardLinkPinError=1 on failed writes."
+              "Redirect mode returns to returnTo, adding workspaceLinkPinError=1 on failed writes."
             ]
           },
           {
@@ -151,7 +161,7 @@
             "auth": "user",
             "returns": "{ success, action, slug, pinnedSlugs, maxPinnedLinks }",
             "notes": [
-              "Uses the shared dashboard link pin service and stores pins per authenticated MCP user.",
+              "Uses the shared catalog link pin service and stores pins per authenticated MCP user.",
               "Invalid slugs return { success: false, error: \"invalid_slug\", message, slug, pinnedSlugs, maxPinnedLinks } rather than an unexpected tool failure.",
               "No MCP visit tool is exposed; visit redirects and click recording are browser/REST navigation behavior."
             ]

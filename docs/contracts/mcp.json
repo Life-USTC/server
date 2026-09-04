@@ -100,10 +100,12 @@
           },
           {
             "name": "Registered GraphQL",
-            "tools": ["graphql_operation_run"]
+            "tools": [
+              "graphql_operation_run"
+            ]
           },
           {
-            "name": "Dashboard & Overview",
+            "name": "Workspace & Overview",
             "tools": [
               "workspace_snapshot_get",
               "workspace_overview_get",
@@ -143,7 +145,10 @@
           },
           {
             "name": "Descriptions",
-            "tools": ["community_description_get", "community_description_set"]
+            "tools": [
+              "community_description_get",
+              "community_description_set"
+            ]
           },
           {
             "name": "Uploads",
@@ -196,11 +201,16 @@
           },
           {
             "name": "Weather",
-            "tools": ["catalog_weather_get"]
+            "tools": [
+              "catalog_weather_get"
+            ]
           },
           {
             "name": "Young Events",
-            "tools": ["catalog_young_event_list", "catalog_young_event_get"]
+            "tools": [
+              "catalog_young_event_list",
+              "catalog_young_event_get"
+            ]
           }
         ]
       },

@@ -87,7 +87,7 @@ test.describe("仪表盘待办", () => {
 
   test("移动端待办工具栏保留筛选和大尺寸主操作", async ({ page }, testInfo) => {
     await page.addInitScript(() => {
-      localStorage.removeItem("life-ustc-dashboard-view-mode");
+      localStorage.removeItem("life-ustc-workspace-view-mode");
     });
     await page.setViewportSize({ height: 844, width: 390 });
     await signInAsDebugUser(page, "/workspace/todos");

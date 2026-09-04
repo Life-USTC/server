@@ -2,9 +2,9 @@ import type { AppLocale } from "@/i18n/config";
 import {
   assistantNextClass,
   assistantUpcomingDeadlines,
-} from "./assistant-dashboard-snapshot-events";
-import { serializeAssistantSemester } from "./assistant-dashboard-snapshot-helpers";
-import { loadAssistantDashboardSnapshotData } from "./assistant-dashboard-snapshot-queries";
+} from "./workspace-snapshot-events";
+import { serializeAssistantSemester } from "./workspace-snapshot-helpers";
+import { loadAssistantDashboardSnapshotData } from "./workspace-snapshot-queries";
 
 export async function getAssistantDashboardSnapshot(input: {
   userId: string;

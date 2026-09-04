@@ -25,9 +25,9 @@ export function jsonOrRedirectForPinnedLinks({
 
   const redirectUrl = new URL(returnTo, request.url);
   if (status >= 400) {
-    redirectUrl.searchParams.set("dashboardLinkPinError", "1");
+    redirectUrl.searchParams.set("workspaceLinkPinError", "1");
   } else {
-    redirectUrl.searchParams.delete("dashboardLinkPinError");
+    redirectUrl.searchParams.delete("workspaceLinkPinError");
   }
 
   return Response.redirect(redirectUrl, 303);

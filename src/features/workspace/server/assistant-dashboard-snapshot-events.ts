@@ -1,4 +1,4 @@
-import { isUpcomingEventAt } from "./assistant-dashboard-snapshot-helpers";
+import { isUpcomingEventAt } from "./workspace-snapshot-helpers";
 
 type AssistantDashboardEvent = {
   at: Date | string | null;

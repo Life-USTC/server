@@ -19,7 +19,9 @@
       "title": "Campus Weather",
       "auth": "anon",
       "web": {
-        "pages": ["/catalog/weather"]
+        "pages": [
+          "/catalog/weather"
+        ]
       },
       "rest": {
         "routes": [
@@ -38,7 +40,9 @@
           {
             "name": "weather",
             "parent": "Catalog",
-            "arguments": { "locationKey": "String!" },
+            "arguments": {
+              "locationKey": "String!"
+            },
             "returns": "WeatherSnapshot",
             "rest_equivalent": "GET /api/catalog/weather",
             "mcp_equivalent": "catalog_weather_get",
