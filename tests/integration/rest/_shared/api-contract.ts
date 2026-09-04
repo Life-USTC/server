@@ -19,13 +19,6 @@ export function expectCalendarDtstampsAreUtc(calendar: string) {
   }
 }
 
-/**
- * Routes that still lack a dedicated suite under `tests/integration/rest/`.
- * Prefer status + body-shape cases in `assertApiContract` over this set.
- * Do not list routes that already have a real REST suite.
- */
-const probeOnlyRoutes = new Set<string>([]);
-
 function expectSuccessfulResponse(
   response: Awaited<ReturnType<APIRequestContext["get"]>>,
 ) {
@@ -41,20 +34,6 @@ async function expectCalendarResponse(
   const calendar = await response.text();
   expect(calendar).toContain("BEGIN:VCALENDAR");
   expectCalendarDtstampsAreUtc(calendar);
-}
-
-async function expectProbeRoute(
-  request: APIRequestContext,
-  routePath: string,
-  expectedStatuses: number[] = [400, 401, 403, 404, 405],
-) {
-  const probePath = routePath
-    .replace("[id]", "invalid-e2e")
-    .replace("[userId]", "invalid-e2e")
-    .replace("[jwId]", String(DEV_SEED.section.jwId));
-  const response = await request.get(probePath);
-  expectSuccessfulResponse(response);
-  expect(expectedStatuses).toContain(response.status());
 }
 
 async function expectUnauthorizedJson(
@@ -695,11 +674,6 @@ export async function assertApiContract(
     }
 
     default: {
-      if (probeOnlyRoutes.has(routePath)) {
-        await expectProbeRoute(request, routePath);
-        return;
-      }
-
       throw new Error(`No API contract assertion registered for ${routePath}`);
     }
   }

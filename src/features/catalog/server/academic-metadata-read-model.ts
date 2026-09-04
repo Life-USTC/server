@@ -8,7 +8,7 @@ import { DEFAULT_LOCALE } from "@/i18n/config";
 import {
   type MetadataResponseDto,
   metadataResponseSchema,
-} from "@/lib/api/schemas/academic-metadata-response-schemas";
+} from "@/features/catalog/lib/academic-metadata-response-schemas";
 import { cachedCatalogRuntimeData } from "@/lib/catalog-runtime-cache";
 import { prisma } from "@/lib/db/prisma";
 import { toLocalizedNameDto } from "@/lib/localized-name";

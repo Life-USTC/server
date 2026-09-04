@@ -6,9 +6,9 @@ import type {
 } from "@/features/workspace/lib/workspace-controller-helpers";
 import * as Alert from "$lib/components/ui/alert/index.js";
 import { Button } from "$lib/components/ui/button/index.js";
-import * as Empty from "$lib/components/ui/empty/index.js";
 import LinksTabGroup from "./LinksTabGroup.svelte";
 import LinksTabToolbar from "./LinksTabToolbar.svelte";
+import WorkspaceEmptyState from "./WorkspaceEmptyState.svelte";
 
 export let workspaceCopy: WorkspaceCopy;
 export let submitWorkspaceLinkPin: WorkspaceLinkPinSubmit;
@@ -39,11 +39,11 @@ export let signedLinkGroups: SignedLinkGroup[];
       {updatingCatalogLinkSlug}
     />
   {:else}
-    <Empty.Root class="items-start text-left">
-      <Empty.Header class="items-start text-left">
-        <Empty.Title>{workspaceCopy.linkHub.empty}</Empty.Title>
-      </Empty.Header>
-    </Empty.Root>
+    <WorkspaceEmptyState
+      className="items-start text-left"
+      headerClassName="items-start text-left"
+      title={workspaceCopy.linkHub.empty}
+    />
   {/each}
 
   {#if linkActionError}
