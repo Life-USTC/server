@@ -30,8 +30,8 @@ describe("POST /api/workspace/link-pins", () => {
 
   it("当固定链接持久化失败时返回 500 JSON 错误", async () => {
     withUserDbContextMock.mockRejectedValue(new Error("db write failed"));
-    const { postDashboardLinkPinRoute } = await import(
-      "@/lib/api/routes/dashboard-link-pin-route"
+    const { postWorkspaceLinkPinRoute } = await import(
+      "@/lib/api/routes/workspace-link-pin-route"
     );
 
     const form = new FormData();
@@ -39,7 +39,7 @@ describe("POST /api/workspace/link-pins", () => {
     form.set("action", "pin");
     form.set("returnTo", "/");
 
-    const response = await postDashboardLinkPinRoute(
+    const response = await postWorkspaceLinkPinRoute(
       new Request("http://localhost/api/workspace/link-pins", {
         method: "POST",
         body: form,
@@ -64,11 +64,11 @@ describe("POST /api/workspace/link-pins", () => {
         { status: 429, headers: { "Retry-After": "60" } },
       ),
     );
-    const { postDashboardLinkPinRoute } = await import(
-      "@/lib/api/routes/dashboard-link-pin-route"
+    const { postWorkspaceLinkPinRoute } = await import(
+      "@/lib/api/routes/workspace-link-pin-route"
     );
 
-    const response = await postDashboardLinkPinRoute(
+    const response = await postWorkspaceLinkPinRoute(
       new Request("http://localhost/api/workspace/link-pins", {
         method: "POST",
         body: new FormData(),
@@ -88,11 +88,11 @@ describe("POST /api/workspace/link-pins", () => {
         { status: 429, headers: { "Retry-After": "60" } },
       ),
     );
-    const { postDashboardLinkPinRoute } = await import(
-      "@/lib/api/routes/dashboard-link-pin-route"
+    const { postWorkspaceLinkPinRoute } = await import(
+      "@/lib/api/routes/workspace-link-pin-route"
     );
 
-    const response = await postDashboardLinkPinRoute(
+    const response = await postWorkspaceLinkPinRoute(
       new Request("http://localhost/api/workspace/link-pins", {
         method: "POST",
         body: new FormData(),

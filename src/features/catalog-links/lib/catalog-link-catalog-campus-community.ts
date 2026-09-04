@@ -1,6 +1,6 @@
-import type { DashboardLinkItem } from "@/features/dashboard-links/lib/dashboard-link-catalog";
+import type { CatalogLinkItem } from "@/features/catalog-links/lib/catalog-link-catalog";
 
-export const USTC_CAMPUS_COMMUNITY_LINKS: DashboardLinkItem[] = [
+export const USTC_CAMPUS_COMMUNITY_LINKS: CatalogLinkItem[] = [
   {
     slug: "ustc-news",
     title: "中国科大新闻网",

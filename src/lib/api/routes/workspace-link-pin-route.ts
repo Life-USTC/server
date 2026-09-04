@@ -1,12 +1,12 @@
-import { setDashboardLinkPinStatesBatch } from "@/features/dashboard-links/server/dashboard-link-pin-batch";
 import {
-  getDashboardLinkPinnedSlugs,
-  logDashboardLinkPinFailure,
+  getWorkspaceLinkPinnedSlugs,
+  logWorkspaceLinkPinFailure,
   MAX_PINNED_LINKS,
-  resolveDashboardLinkBySlug,
+  resolveCatalogLinkBySlug,
   sanitizeDashboardReturnTo,
-  updateDashboardLinkPinState,
-} from "@/features/dashboard-links/server/dashboard-link-service";
+  updateWorkspaceLinkPinState,
+} from "@/features/catalog-links/server/catalog-link-service";
+import { setWorkspaceLinkPinStatesBatch } from "@/features/catalog-links/server/workspace-link-pin-batch";
 import { jsonResponse, parseRouteJsonBody } from "@/lib/api/helpers";
 import {
   workspaceLinkPinBatchRequestSchema,
@@ -14,7 +14,7 @@ import {
 } from "@/lib/api/schemas/request-schemas";
 import { workspaceLinkPinResponseSchema } from "@/lib/api/schemas/response-schemas";
 import { requireAuth } from "@/lib/auth/api-auth";
-import { jsonOrRedirectForPinnedLinks } from "./dashboard-link-pin-response";
+import { jsonOrRedirectForPinnedLinks } from "./workspace-link-pin-response";
 
 export async function getDashboardLinkPinsRoute(request: Request) {
   const auth = await requireAuth(request, {
@@ -24,14 +24,14 @@ export async function getDashboardLinkPinsRoute(request: Request) {
 
   return jsonResponse(
     workspaceLinkPinResponseSchema.parse({
-      pinnedSlugs: await getDashboardLinkPinnedSlugs(auth.userId),
+      pinnedSlugs: await getWorkspaceLinkPinnedSlugs(auth.userId),
       maxPinnedLinks: MAX_PINNED_LINKS,
       error: null,
     }),
   );
 }
 
-export async function postDashboardLinkPinRoute(request: Request) {
+export async function postWorkspaceLinkPinRoute(request: Request) {
   const wantsJson =
     request.headers.get("accept")?.includes("application/json") ?? false;
   const auth = await requireAuth(request, {
@@ -72,7 +72,7 @@ export async function postDashboardLinkPinRoute(request: Request) {
   const { slug } = parsedBody.data;
   const returnTo = sanitizeDashboardReturnTo(parsedBody.data.returnTo);
   const action = parsedBody.data.action === "unpin" ? "unpin" : "pin";
-  const link = resolveDashboardLinkBySlug(slug);
+  const link = resolveCatalogLinkBySlug(slug);
 
   if (!link) {
     return jsonOrRedirectForPinnedLinks({
@@ -84,7 +84,7 @@ export async function postDashboardLinkPinRoute(request: Request) {
   }
 
   try {
-    const pinnedSlugs = await updateDashboardLinkPinState({
+    const pinnedSlugs = await updateWorkspaceLinkPinState({
       action,
       slug,
       userId,
@@ -96,7 +96,7 @@ export async function postDashboardLinkPinRoute(request: Request) {
       returnTo,
     });
   } catch (error) {
-    logDashboardLinkPinFailure({ action, error, slug });
+    logWorkspaceLinkPinFailure({ action, error, slug });
     return jsonOrRedirectForPinnedLinks({
       request,
       wantsJson,
@@ -108,7 +108,7 @@ export async function postDashboardLinkPinRoute(request: Request) {
   }
 }
 
-export async function postDashboardLinkPinBatchRoute(request: Request) {
+export async function postWorkspaceLinkPinBatchRoute(request: Request) {
   const auth = await requireAuth(request, {
     bearerScope: { feature: "workspace.link-pin", action: "write" },
     rateLimit: { action: "workspace.link-pin:batch-write", tier: "batch" },
@@ -123,7 +123,7 @@ export async function postDashboardLinkPinBatchRoute(request: Request) {
   if (body instanceof Response) return body;
 
   try {
-    const result = await setDashboardLinkPinStatesBatch({
+    const result = await setWorkspaceLinkPinStatesBatch({
       items: body.items,
       userId: auth.userId,
     });
@@ -147,7 +147,7 @@ export async function postDashboardLinkPinBatchRoute(request: Request) {
     );
   } catch (error) {
     const lastItem = body.items.at(-1);
-    logDashboardLinkPinFailure({
+    logWorkspaceLinkPinFailure({
       action: lastItem?.action ?? "pin",
       error,
       slug: body.items.map((item) => item.slug).join(","),

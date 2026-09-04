@@ -1,8 +1,8 @@
 import {
-  getPublicDashboardLinksData,
-  getSignedInDashboardLinksData,
-} from "@/features/dashboard-links/server/dashboard-link-data";
-import { getDashboardPageCopy } from "@/features/workspace/server/dashboard-page-copy";
+  getPublicCatalogLinksData,
+  getSignedInCatalogLinksData,
+} from "@/features/catalog-links/server/catalog-link-data";
+import { getWorkspacePageCopy } from "@/features/workspace/server/dashboard-page-copy";
 import type { DashboardPageLoadEvent } from "@/features/workspace/server/dashboard-page-load-types";
 import { getDashboardUserId } from "@/features/workspace/server/dashboard-page-server";
 
@@ -12,13 +12,13 @@ export async function loadPublicLinksPage({
 }: DashboardPageLoadEvent) {
   const userId = await getDashboardUserId(request);
   const links = await (userId
-    ? getSignedInDashboardLinksData(userId, locals.locale)
-    : getPublicDashboardLinksData(locals.locale));
+    ? getSignedInCatalogLinksData(userId, locals.locale)
+    : getPublicCatalogLinksData(locals.locale));
 
   return {
-    copy: getDashboardPageCopy(locals.locale),
+    copy: getWorkspacePageCopy(locals.locale),
     locale: locals.locale,
-    links: links.dashboardLinks,
+    links: links.catalogLinks,
     signedIn: Boolean(userId),
   };
 }

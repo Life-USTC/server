@@ -1,5 +1,5 @@
 import type dayjs from "dayjs";
-import type { DashboardLinkSummary } from "@/features/dashboard-links/server/dashboard-link-data";
+import type { CatalogLinkSummary } from "@/features/catalog-links/server/catalog-link-data";
 import type { TodoPriority } from "@/generated/prisma/client";
 import type { AppLocale } from "@/i18n/config";
 import type { createWeekDayFormatter } from "@/shared/lib/date-utils";
@@ -86,8 +86,8 @@ export type OverviewData = {
   activeCalendarSemesterId: number | null;
   defaultCalendarSemesterId: number | null;
   activeCalendarSemesterName: string | null;
-  dashboardLinks: DashboardLinkSummary[];
-  recommendedLinks: DashboardLinkSummary[];
-  pinnedLinks: DashboardLinkSummary[];
-  overviewLinks: DashboardLinkSummary[];
+  catalogLinks: CatalogLinkSummary[];
+  recommendedLinks: CatalogLinkSummary[];
+  pinnedLinks: CatalogLinkSummary[];
+  overviewLinks: CatalogLinkSummary[];
 };

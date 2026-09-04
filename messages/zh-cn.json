@@ -19,7 +19,6 @@
       "teacherDetail": "教师：{name}",
       "signIn": "登录",
       "profile": "个人资料",
-      "meDashboard": "仪表盘",
       "settings": "设置",
       "userProfile": "{username} 的主页",
       "subscriptions": "教学班订阅",
@@ -33,7 +32,8 @@
       "busMap": "线路图",
       "prestoBot": "Presto 机器人",
       "mcp": "MCP",
-      "cli": "命令行"
+      "cli": "命令行",
+      "workspace": "仪表盘"
     }
   },
   "common": {
@@ -267,12 +267,12 @@
     "subtitle": "您的一站式应用，用于查看课程表、校园资源和中国科大的学生生活",
     "actions": {
       "mobileApp": "移动应用",
-      "openDashboard": "打开仪表盘",
+      "openWorkspace": "打开仪表盘",
       "signIn": "登录"
     },
     "downloadBadgeAlt": "在 App Store 下载 Life@USTC",
     "appIconAlt": "Life@USTC 应用图标",
-    "publicDashboard": {
+    "publicWorkspace": {
       "title": "课程、课表与校园生活，一站搞定",
       "description": "公开浏览课程目录、班级、教师、校车与常用网站；登录后同步个人课表、作业、订阅和仪表盘。",
       "exploreLabel": "继续浏览",
@@ -309,7 +309,7 @@
     },
     "quickAccess": {
       "title": "快速访问",
-      "openDashboard": {
+      "openWorkspace": {
         "title": "打开仪表盘",
         "description": "先浏览公开校园链接，登录后再进入个人工具。"
       },
@@ -394,7 +394,10 @@
       "previewTitle": "Presto · QQ",
       "previewAriaLabel": "在 QQ 中与 Presto 对话的示例",
       "previewLines": [
-        { "kind": "command", "text": "下一节课" },
+        {
+          "kind": "command",
+          "text": "下一节课"
+        },
         {
           "kind": "image",
           "text": "Presto 返回的下一节课图片",
@@ -529,7 +532,7 @@
     "auditDescription": "敏感操作记录",
     "analyticsTitle": "聚合分析",
     "analyticsDescription": "功能使用趋势",
-    "dashboard": {
+    "workspace": {
       "active": "活跃",
       "deleted": "已删除",
       "activeSuspensions": "活跃封禁",
@@ -726,7 +729,7 @@
     "published": "发布时间",
     "tags": "标签"
   },
-  "meDashboard": {
+  "workspace": {
     "title": "仪表盘",
     "description": "你好，{name}。这里集中展示你的课程、作业与安排。",
     "descriptionV2": "你好，{name}",
@@ -932,8 +935,8 @@
     "title": "校车",
     "description": "桌面端直接规划路线并浏览完整时刻表，移动端兼顾下一班速览与完整班次。",
     "subtitle": "桌面端完整规划、移动端快速查看的校车时刻表。",
-    "dashboardTitle": "校车出行",
-    "dashboardDescription": "桌面端并排调整路线与浏览完整时刻表，移动端优先查看下一班校车。",
+    "workspaceTitle": "校车出行",
+    "workspaceDescription": "桌面端并排调整路线与浏览完整时刻表，移动端优先查看下一班校车。",
     "publicEntry": "公开校车查询",
     "dayType": {
       "weekday": "工作日",

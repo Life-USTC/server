@@ -24,7 +24,7 @@ feature/
 Folders under this directory are the inventory. `workspace/` is the signed-in
 workspace UI (routes `/workspace/[tab]`); keep overview assembly there and use
 `subscriptions/` for section membership. Campus link product code stays in
-`dashboard-links/` (and `catalog-link.json`).
+`catalog-links/` (and `catalog-link.json`).
 
 ## Domain rules
 
@@ -37,7 +37,7 @@ workspace UI (routes `/workspace/[tab]`); keep overview assembly there and use
 | calendar | Feature event queries + iCal; generic time helpers stay in `src/lib/time` |
 | catalog | Courses, sections, teachers, schedules, exams, public list/detail pages |
 | comments | Scoped to section/course/teacher/homework; audience + anonymous flags; suspended cannot create |
-| dashboard-links | Campus link catalog + pin/visit preferences |
+| catalog-links | Campus link catalog + pin/visit preferences |
 | descriptions | Shared wiki-like text on course/section/teacher/homework |
 | homeworks | Attached to section; signed-in unsuspended create/update; delete creator/admin; completion is per-user |
 | markdown | Shared Markdown rendering helpers for guides/community |

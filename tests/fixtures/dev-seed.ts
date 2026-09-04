@@ -104,9 +104,9 @@ export const DEV_SEED = {
     overdueTitle: s.todos.overdueTitle,
     completedTitle: s.todos.completedTitle,
   },
-  dashboardLinks: {
-    pinnedSlugs: s.dashboardLinks.pinnedSlugs,
-    overviewLimit: s.dashboardLinks.overviewLimit,
+  catalogLinks: {
+    pinnedSlugs: s.catalogLinks.pinnedSlugs,
+    overviewLimit: s.catalogLinks.overviewLimit,
   },
   bus: {
     versionKey: s.bus.versionKey,

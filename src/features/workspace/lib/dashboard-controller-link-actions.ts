@@ -1,4 +1,4 @@
-import type { DashboardLinkItem } from "./dashboard-controller-helpers";
+import type { CatalogLinkItem } from "./dashboard-controller-helpers";
 import {
   applyDashboardLinkPinnedSlugs,
   submitDashboardLinkPinRequest,
@@ -6,9 +6,9 @@ import {
 
 export async function submitDashboardLinkPinChange(input: {
   action: "pin" | "unpin";
-  dashboardLinkItems: DashboardLinkItem[];
+  dashboardLinkItems: CatalogLinkItem[];
   fallbackMessage: string;
-  overviewLinkItems: DashboardLinkItem[];
+  overviewLinkItems: CatalogLinkItem[];
   returnTo: string;
   slug: string;
 }) {

@@ -1,6 +1,6 @@
-import type { DashboardLinkItem } from "@/features/dashboard-links/lib/dashboard-link-catalog";
+import type { CatalogLinkItem } from "@/features/catalog-links/lib/catalog-link-catalog";
 
-export const USTC_STUDENT_SERVICE_LINKS: DashboardLinkItem[] = [
+export const USTC_STUDENT_SERVICE_LINKS: CatalogLinkItem[] = [
   {
     slug: "student-services",
     title: "学工一体化",

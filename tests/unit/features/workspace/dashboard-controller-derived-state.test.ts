@@ -1,15 +1,15 @@
 import { describe, expect, it } from "vitest";
 import {
   DASHBOARD_LINK_GROUP_ORDER,
-  type DashboardLinkGroup,
-} from "@/features/dashboard-links/lib/dashboard-links";
+  type CatalogLinkGroup,
+} from "@/features/catalog-links/lib/catalog-links";
 import {
   applyLocalHomeworkItemsToSignedData,
   applyLocalTodoItemsToSignedData,
   buildDashboardControllerDerivedState,
 } from "@/features/workspace/lib/dashboard-controller-derived-state";
 import type {
-  DashboardLinkItem,
+  CatalogLinkItem,
   DashboardPageData,
   HomeworkItem,
   SignedDashboardData,
@@ -18,9 +18,9 @@ import type {
 
 const dashboardLinkGroupLabels = Object.fromEntries(
   DASHBOARD_LINK_GROUP_ORDER.map((group) => [group, group]),
-) as Record<DashboardLinkGroup, string>;
+) as Record<CatalogLinkGroup, string>;
 
-function link(slug: string, isPinned: boolean): DashboardLinkItem {
+function link(slug: string, isPinned: boolean): CatalogLinkItem {
   return {
     clickCount: 0,
     description: `${slug} description`,
@@ -36,13 +36,13 @@ function link(slug: string, isPinned: boolean): DashboardLinkItem {
 }
 
 function signedDashboardData(
-  dashboardLinks: DashboardLinkItem[],
+  catalogLinks: CatalogLinkItem[],
 ): DashboardPageData {
   return {
     bus: null,
     copy: {} as DashboardPageData["copy"],
     homeworks: null,
-    links: { dashboardLinks },
+    links: { catalogLinks },
     locale: "zh-cn",
     navStats: {
       calendarItemsCount: 0,
@@ -54,7 +54,7 @@ function signedDashboardData(
       calendar: null,
       dueToday: [],
       hasCurrentTermSelection: false,
-      overviewLinks: dashboardLinks.slice(0, 1),
+      overviewLinks: catalogLinks.slice(0, 1),
       pendingHomeworks: [],
       todaySessions: [],
     },
@@ -84,7 +84,7 @@ describe("仪表盘控制器派生状态", () => {
       const currentLinks = [link("jw", currentPinned), link("mail", false)];
 
       const result = buildDashboardControllerDerivedState({
-        currentDashboardLinkItems: currentLinks,
+        currentCatalogLinkItems: currentLinks,
         currentOverviewLinkItems: currentLinks.slice(0, 1),
         currentTodoItems: [],
         dashboardLinkGroupLabels,

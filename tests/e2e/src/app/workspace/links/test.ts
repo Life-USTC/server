@@ -3,7 +3,7 @@
  *
  * ## Data Represented
  * - Dashboard links grouped by category (study, life, tech, classroom, etc.)
- *   sourced from USTC_DASHBOARD_LINKS
+ *   sourced from USTC_CATALOG_LINKS
  * - Each link card: name, description, visit tracking via
  *   GET /api/catalog/links/resolve?slug=…
  * - Pin state per user via POST /api/workspace/link-pins
@@ -136,7 +136,7 @@ test.describe("仪表盘网站链接", () => {
     ).not.toHaveCount(0);
     expect(
       await page.locator('input[name="action"][value="unpin"]').count(),
-    ).toBeGreaterThanOrEqual(DEV_SEED.dashboardLinks.overviewLimit);
+    ).toBeGreaterThanOrEqual(DEV_SEED.catalogLinks.overviewLimit);
 
     await captureStepScreenshot(page, testInfo, "dashboard-links-tab");
   });

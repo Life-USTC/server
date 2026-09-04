@@ -105,7 +105,7 @@ describe("dashboard overview homework read", () => {
       sectionsForCalendarGrid: [],
     });
     getDashboardOverviewLinksDataMock.mockResolvedValue({
-      dashboardLinks: [],
+      catalogLinks: [],
       overviewLinks: [],
       pinnedLinks: [],
       recommendedLinks: [],
@@ -256,7 +256,7 @@ describe("dashboard overview homework read", () => {
     getDashboardOverviewLinksDataMock.mockImplementation(() => {
       linksStarted = true;
       return Promise.resolve({
-        dashboardLinks: [],
+        catalogLinks: [],
         overviewLinks: [],
         pinnedLinks: [],
         recommendedLinks: [],

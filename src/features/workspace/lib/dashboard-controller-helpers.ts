@@ -21,7 +21,7 @@ export type {
   DashboardHomeworkItem,
   DashboardHomeworksCopy,
   DashboardHomeworksData,
-  DashboardLinkItem,
+  CatalogLinkItem,
   DashboardLinkPinAction,
   DashboardLinkPinSubmit,
   DashboardMyHomeworksCopy,

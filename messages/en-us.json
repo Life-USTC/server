@@ -19,7 +19,6 @@
       "teacherDetail": "Teacher: {name}",
       "signIn": "Sign In",
       "profile": "Profile",
-      "meDashboard": "Dashboard",
       "settings": "Settings",
       "userProfile": "{username}'s Profile",
       "subscriptions": "Section Subscriptions",
@@ -33,7 +32,8 @@
       "mobileApp": "Mobile App",
       "prestoBot": "Presto Bot",
       "mcp": "MCP",
-      "cli": "CLI"
+      "cli": "CLI",
+      "workspace": "Dashboard"
     }
   },
   "common": {
@@ -267,12 +267,12 @@
     "subtitle": "Your all-in-one app for course schedules, campus resources, and student life at USTC",
     "actions": {
       "mobileApp": "Mobile App",
-      "openDashboard": "Open dashboard",
+      "openWorkspace": "Open dashboard",
       "signIn": "Sign in"
     },
     "downloadBadgeAlt": "Download Life@USTC on the App Store",
     "appIconAlt": "Life@USTC app icon",
-    "publicDashboard": {
+    "publicWorkspace": {
       "title": "Courses, schedules, and campus life — in one place",
       "description": "Browse the public catalog, sections, teachers, shuttle bus, and campus links anytime. Sign in to sync your schedule, homework, subscriptions, and dashboard.",
       "exploreLabel": "Keep exploring",
@@ -309,7 +309,7 @@
     },
     "quickAccess": {
       "title": "Quick Access",
-      "openDashboard": {
+      "openWorkspace": {
         "title": "Open Dashboard",
         "description": "Browse public campus links now, then sign in for personal tools."
       },
@@ -394,7 +394,10 @@
       "previewTitle": "Presto · QQ",
       "previewAriaLabel": "Example conversation with Presto on QQ",
       "previewLines": [
-        { "kind": "command", "text": "下一节课" },
+        {
+          "kind": "command",
+          "text": "下一节课"
+        },
         {
           "kind": "image",
           "text": "Upcoming class image returned by Presto",
@@ -529,7 +532,7 @@
     "auditDescription": "Sensitive operation records",
     "analyticsTitle": "Aggregate Analytics",
     "analyticsDescription": "Feature usage trends",
-    "dashboard": {
+    "workspace": {
       "active": "active",
       "deleted": "deleted",
       "activeSuspensions": "active suspensions",
@@ -726,7 +729,7 @@
     "published": "Published",
     "tags": "Tags"
   },
-  "meDashboard": {
+  "workspace": {
     "title": "Dashboard",
     "description": "Hi {name}, this dashboard brings together your courses, homework, and schedule.",
     "descriptionV2": "Hi, {name}",
@@ -932,8 +935,8 @@
     "title": "Shuttle Bus",
     "description": "Plan routes beside the complete timetable on desktop, with a next-departure summary and full schedule on mobile.",
     "subtitle": "A complete desktop planner with a quick mobile shuttle view.",
-    "dashboardTitle": "Campus shuttle",
-    "dashboardDescription": "Adjust routes beside the complete timetable on desktop, with the next shuttle prioritized on mobile.",
+    "workspaceTitle": "Campus shuttle",
+    "workspaceDescription": "Adjust routes beside the complete timetable on desktop, with the next shuttle prioritized on mobile.",
     "publicEntry": "Public shuttle query",
     "dayType": {
       "weekday": "Weekday",

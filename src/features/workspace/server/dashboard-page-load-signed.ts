@@ -1,5 +1,5 @@
 import { serializeDashboardOverview } from "@/features/workspace/server/dashboard-overview-serialization";
-import type { DashboardPageCopy } from "@/features/workspace/server/dashboard-page-load-types";
+import type { WorkspacePageCopy } from "@/features/workspace/server/dashboard-page-load-types";
 import {
   loadSignedDashboardTabData,
   timeDashboardStage,
@@ -15,7 +15,7 @@ export async function loadSignedDashboardPageData(input: {
   calendarSemesterId: number | undefined;
   locale: AppLocale;
   overviewWeek: string | null;
-  pageCopy: DashboardPageCopy;
+  pageCopy: WorkspacePageCopy;
   referenceNow: Date | null | undefined;
   revealCalendarFeed?: boolean;
   requestId: string | undefined;

@@ -1,9 +1,9 @@
 import type { CommentsCopy } from "@/features/comments/components/comment-component-types";
-import type { DashboardLinkSearchable } from "@/features/dashboard-links/lib/dashboard-link-search";
+import type { DashboardLinkSearchable } from "@/features/catalog-links/lib/catalog-link-search";
 import type {
-  DashboardLinkGroup,
-  DashboardLinkIcon,
-} from "@/features/dashboard-links/lib/dashboard-links";
+  CatalogLinkGroup,
+  CatalogLinkIcon,
+} from "@/features/catalog-links/lib/catalog-links";
 import type { HomeworkStyleGuideCopy } from "@/features/homeworks/lib/homework-style-guide";
 import type {
   DashboardBusCopy,
@@ -30,11 +30,11 @@ export type DashboardCommonCopy = DashboardRecord & {
 export type DashboardHomepageCopy = DashboardRecord & {
   actions: {
     mobileApp: string;
-    openDashboard: string;
+    openWorkspace: string;
     signIn: string;
   };
   appIconAlt: string;
-  publicDashboard: {
+  publicWorkspace: {
     cards: {
       bus: { description: string; title: string };
       courses: { description: string; title: string };
@@ -462,16 +462,16 @@ export type DashboardOverviewUpcomingExamItem = DashboardRecord & {
   date: string;
 };
 
-export type DashboardLinkItem = DashboardRecord &
+export type CatalogLinkItem = DashboardRecord &
   DashboardLinkSearchable & {
     clickCount: number;
-    icon: DashboardLinkIcon;
+    icon: CatalogLinkIcon;
     isPinned: boolean;
     slug: string;
     url: string;
   };
 
-export type DashboardOverviewLinkItem = DashboardLinkItem;
+export type DashboardOverviewLinkItem = CatalogLinkItem;
 
 export type DashboardLinkPinAction = "pin" | "unpin";
 export type DashboardLinkPinSubmit = (
@@ -552,8 +552,8 @@ export type DashboardSubscriptionsData = DashboardRecord & {
   >;
 };
 
-export type DashboardLinksData = DashboardRecord & {
-  dashboardLinks: DashboardLinkItem[];
+export type CatalogLinksData = DashboardRecord & {
+  catalogLinks: CatalogLinkItem[];
 };
 
 export type DashboardNavStats = DashboardRecord & {
@@ -568,12 +568,12 @@ export type DashboardPageData = DashboardRecord & {
   calendarSubscriptionUrl?: string | null;
   copy: DashboardRootCopy;
   homeworks?: DashboardHomeworksData | null;
-  links?: DashboardLinksData | null;
+  links?: CatalogLinksData | null;
   locale: string;
   mainContentLabel?: string | null;
   navStats?: DashboardNavStats | null;
   overview?: DashboardOverviewData | null;
-  publicLinks?: DashboardLinkItem[] | null;
+  publicLinks?: CatalogLinkItem[] | null;
   referenceNow?: Date | string | null;
   signedIn: boolean;
   subscribedSectionCount?: number | null;
@@ -624,9 +624,9 @@ export type SubscribedSection =
 export type ExamRow = DashboardExamRow<SubscribedSection>;
 export type MatchedSection = MatchedSubscriptionSection;
 export type SignedLinkGroup = {
-  group: DashboardLinkGroup;
+  group: CatalogLinkGroup;
   label: string;
-  links: DashboardLinkItem[];
+  links: CatalogLinkItem[];
 };
 export type AnonymousLinkGroup = SignedLinkGroup;
 export type DashboardViewState = {
