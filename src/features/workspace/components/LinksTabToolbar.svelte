@@ -13,12 +13,12 @@ export let linkSearchQuery: string;
 <div class="flex min-w-0 flex-wrap items-end gap-2">
   <Field.Group class="min-w-60 flex-1 max-w-xl gap-0">
     <Field.Field>
-      <Field.Label class="sr-only" for="dashboard-link-search"
+      <Field.Label class="sr-only" for="catalog-link-search"
         >{dashboardCopy.linkHub.searchPlaceholder}</Field.Label
       >
       <InputGroup.Root>
         <InputGroup.Input
-          id="dashboard-link-search"
+          id="catalog-link-search"
           bind:ref={linkSearchInput}
           placeholder={dashboardCopy.linkHub.searchPlaceholder}
           type="search"

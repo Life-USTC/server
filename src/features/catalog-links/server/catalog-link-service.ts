@@ -1,12 +1,12 @@
-import { USTC_DASHBOARD_LINKS } from "@/features/dashboard-links/lib/dashboard-links";
+import { USTC_CATALOG_LINKS } from "@/features/catalog-links/lib/catalog-links";
 import { withUserDbContext } from "@/lib/db/prisma";
 import { logAppEvent } from "@/lib/log/app-logger";
 
 export const MAX_PINNED_LINKS = 4;
 
-type DashboardLinkPinRow = { slug: string };
+type WorkspaceLinkPinRow = { slug: string };
 
-type DashboardLinkPinDelegate = {
+type WorkspaceLinkPinDelegate = {
   deleteMany: (input: {
     where: { userId: string; slug?: string | { in: string[] } };
   }) => Promise<unknown>;
@@ -14,7 +14,7 @@ type DashboardLinkPinDelegate = {
     where: { userId: string };
     select: { slug: true };
     orderBy?: { createdAt: "asc" };
-  }) => Promise<DashboardLinkPinRow[]>;
+  }) => Promise<WorkspaceLinkPinRow[]>;
   upsert: (input: {
     where: { userId_slug: { userId: string; slug: string } };
     create: { userId: string; slug: string };
@@ -23,7 +23,7 @@ type DashboardLinkPinDelegate = {
 };
 
 type DashboardLinkPinPrisma = {
-  workspaceLinkPin: DashboardLinkPinDelegate;
+  workspaceLinkPin: WorkspaceLinkPinDelegate;
 };
 
 function normalizeUserId(userId: string) {
@@ -32,11 +32,11 @@ function normalizeUserId(userId: string) {
   return normalized;
 }
 
-export function resolveDashboardLinkBySlug(slug: string | null | undefined) {
+export function resolveCatalogLinkBySlug(slug: string | null | undefined) {
   const normalizedSlug = slug?.trim();
   if (!normalizedSlug) return null;
   return (
-    USTC_DASHBOARD_LINKS.find((link) => link.slug === normalizedSlug) ?? null
+    USTC_CATALOG_LINKS.find((link) => link.slug === normalizedSlug) ?? null
   );
 }
 
@@ -47,7 +47,7 @@ export function sanitizeDashboardReturnTo(value: string | undefined): string {
   return value;
 }
 
-export async function recordDashboardLinkClick(userId: string, slug: string) {
+export async function recordCatalogLinkClick(userId: string, slug: string) {
   userId = normalizeUserId(userId);
   try {
     await withUserDbContext(userId, (tx) =>
@@ -83,7 +83,7 @@ export async function recordDashboardLinkClick(userId: string, slug: string) {
   }
 }
 
-export async function updateDashboardLinkPinState({
+export async function updateWorkspaceLinkPinState({
   action,
   slug,
   userId,
@@ -102,12 +102,12 @@ export async function updateDashboardLinkPinState({
   });
 }
 
-export async function getDashboardLinkPinnedSlugs(userId: string) {
+export async function getWorkspaceLinkPinnedSlugs(userId: string) {
   userId = normalizeUserId(userId);
   return withUserDbContext(userId, (tx) => listDashboardLinkPins(tx, userId));
 }
 
-export function logDashboardLinkPinFailure({
+export function logWorkspaceLinkPinFailure({
   action,
   error,
   slug,

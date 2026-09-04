@@ -81,10 +81,10 @@ export async function loadSignedDashboardTabData(input: {
   tab: string;
   userId: string;
 }) {
-  const [dashboard, dashboardTabs, dashboardLinks] = await Promise.all([
+  const [dashboard, dashboardTabs, catalogLinks] = await Promise.all([
     import("@/features/workspace/server/dashboard-overview-data"),
     import("@/features/workspace/server/dashboard-tab-data"),
-    import("@/features/dashboard-links/server/dashboard-link-data"),
+    import("@/features/catalog-links/server/catalog-link-data"),
   ]);
   const stageContext = {
     requestId: input.requestId,
@@ -164,7 +164,7 @@ export async function loadSignedDashboardTabData(input: {
   const linksPromise =
     input.tab === "links"
       ? timeDashboardStage("links", stageContext, () =>
-          dashboardLinks.getLinksTabData(input.userId, input.locale),
+          catalogLinks.getLinksTabData(input.userId, input.locale),
         )
       : inactiveStage(null);
   const homeworksPromise =

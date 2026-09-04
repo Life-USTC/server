@@ -28,7 +28,7 @@ export function mountDashboardController(input: {
   input.setLinkReturnTo(currentDashboardLinkReturnTo());
 
   if (url.searchParams.get("workspaceLinkPinError") === "1") {
-    input.setLinkActionError(input.copy.dashboard.linkHub.pinFailedDescription);
+    input.setLinkActionError(input.copy.workspace.linkHub.pinFailedDescription);
     url.searchParams.delete("workspaceLinkPinError");
     const nextHref = `${url.pathname}${url.search}${url.hash}`;
     input.replaceState(nextHref);

@@ -23,7 +23,7 @@ import {
   type WeatherIconName,
   weatherConditionIcon,
 } from "@/features/weather/weather-ui";
-import type { DashboardPageCopy } from "@/features/workspace/server/dashboard-page-load-types";
+import type { WorkspacePageCopy } from "@/features/workspace/server/dashboard-page-load-types";
 import type { AppLocale } from "@/i18n/config";
 import Panel from "$lib/components/Panel.svelte";
 import {
@@ -34,7 +34,7 @@ import {
 type Props = {
   locations: WeatherPageLocation[];
   locale: AppLocale;
-  weatherCopy: DashboardPageCopy["weather"];
+  weatherCopy: WorkspacePageCopy["weather"];
 };
 
 let { locations, locale, weatherCopy }: Props = $props();

@@ -1,9 +1,9 @@
 export {
   type DashboardLinkSearchable,
-  groupDashboardLinks,
+  groupCatalogLinks,
   linkMatchesTokens,
   searchQueryToTokens,
-} from "@/features/dashboard-links/lib/dashboard-link-search";
+} from "@/features/catalog-links/lib/catalog-link-search";
 export { linkIconLabel } from "./dashboard-link-icon";
 export {
   applyDashboardLinkPinnedSlugs,

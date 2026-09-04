@@ -1,29 +1,27 @@
-import { DASHBOARD_LINK_GROUPS } from "@/features/dashboard-links/lib/dashboard-links";
+import { DASHBOARD_LINK_GROUPS } from "@/features/catalog-links/lib/catalog-links";
 import { type AppLocale, DEFAULT_LOCALE } from "@/i18n/config";
 import { withUserDbContext } from "@/lib/db/prisma";
 import {
-  buildDashboardLinkSummaries,
+  buildCatalogLinkSummaries,
   dashboardLinksForSlugs,
   recommendedDashboardLinkSummaries,
-} from "./dashboard-link-selection";
+} from "./catalog-link-selection";
 import type {
-  DashboardLinkSummary,
-  DashboardLinksData,
-} from "./dashboard-link-summary";
+  CatalogLinkSummary,
+  CatalogLinksData,
+} from "./catalog-link-summary";
 
 const MAX_OVERVIEW_LINKS = 4;
 
-export type { DashboardLinkSummary, DashboardLinksData };
+export type { CatalogLinkSummary, CatalogLinksData };
 
-export function getPublicDashboardLinksData(
-  locale: AppLocale = DEFAULT_LOCALE,
-): {
-  dashboardLinks: DashboardLinkSummary[];
-  overviewLinks: DashboardLinkSummary[];
+export function getPublicCatalogLinksData(locale: AppLocale = DEFAULT_LOCALE): {
+  catalogLinks: CatalogLinkSummary[];
+  overviewLinks: CatalogLinkSummary[];
 } {
   const emptyClickStats: Record<string, number> = {};
   const emptyPinnedSet = new Set<string>();
-  const { dashboardLinks, dashboardLinkBySlug } = buildDashboardLinkSummaries(
+  const { catalogLinks, dashboardLinkBySlug } = buildCatalogLinkSummaries(
     emptyClickStats,
     emptyPinnedSet,
     locale,
@@ -34,15 +32,15 @@ export function getPublicDashboardLinksData(
   );
 
   return {
-    dashboardLinks,
+    catalogLinks,
     overviewLinks,
   };
 }
 
-export async function getSignedInDashboardLinksData(
+export async function getSignedInCatalogLinksData(
   userId: string,
   locale: AppLocale = DEFAULT_LOCALE,
-): Promise<DashboardLinksData> {
+): Promise<CatalogLinksData> {
   const normalizedUserId = userId.trim();
   if (!normalizedUserId) throw new Error("Dashboard link user ID is required");
   return withUserDbContext(normalizedUserId, async (tx) => {
@@ -60,7 +58,7 @@ export async function getSignedInDashboardLinksData(
     );
     const pinnedSlugSet = new Set(pinRows.map((row) => row.slug));
 
-    const { dashboardLinks, dashboardLinkBySlug } = buildDashboardLinkSummaries(
+    const { catalogLinks, dashboardLinkBySlug } = buildCatalogLinkSummaries(
       clickStats,
       pinnedSlugSet,
       locale,
@@ -80,7 +78,7 @@ export async function getSignedInDashboardLinksData(
     );
 
     return {
-      dashboardLinks,
+      catalogLinks,
       recommendedLinks,
       pinnedLinks,
       overviewLinks,
@@ -92,5 +90,5 @@ export async function getLinksTabData(
   userId: string,
   locale: AppLocale = DEFAULT_LOCALE,
 ) {
-  return getSignedInDashboardLinksData(userId, locale);
+  return getSignedInCatalogLinksData(userId, locale);
 }

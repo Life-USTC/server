@@ -37,7 +37,7 @@ src/routes/              SvelteKit pages + thin HTTP handlers
 src/features/            Domain use-cases + feature-owned UI
   <domain>/server/       Shared application logic
   <domain>/components/   Feature UI (not in src/lib/components)
-  dashboard/             Signed-in workspace UI (routes: /workspace/*)
+  workspace/             Signed-in workspace UI (routes: /workspace/*)
 src/lib/                 Infrastructure only
   ports/                 Env + Cloudflare runtime contracts (`env.ts`, `runtime.ts`)
   adapters/              Cloudflare runtime wiring (features import via ports/)

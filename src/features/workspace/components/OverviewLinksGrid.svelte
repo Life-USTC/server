@@ -1,5 +1,5 @@
 <script lang="ts">
-import { dashboardLinkVisitHref } from "@/features/dashboard-links/lib/dashboard-links";
+import { dashboardLinkVisitHref } from "@/features/catalog-links/lib/catalog-links";
 import type {
   DashboardDashboardCopy,
   DashboardLinkPinAction,

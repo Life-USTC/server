@@ -1,9 +1,9 @@
-import { setDashboardLinkPinStatesBatch } from "@/features/dashboard-links/server/dashboard-link-pin-batch";
+import { setWorkspaceLinkPinStatesBatch } from "@/features/catalog-links/server/workspace-link-pin-batch";
 import {
   MAX_PINNED_LINKS,
-  resolveDashboardLinkBySlug,
-  updateDashboardLinkPinState,
-} from "@/features/dashboard-links/server/dashboard-link-service";
+  resolveCatalogLinkBySlug,
+  updateWorkspaceLinkPinState,
+} from "@/features/catalog-links/server/catalog-link-service";
 import type { GraphqlContext } from "../context";
 import { badMutationInput } from "../mutation-errors";
 import { requireGraphqlMutation } from "../mutation-guard";
@@ -24,10 +24,10 @@ export const linkMutationResolvers = {
       context,
       "workspace.link-pin",
     );
-    const link = resolveDashboardLinkBySlug(args.slug);
+    const link = resolveCatalogLinkBySlug(args.slug);
     if (!link) badMutationInput("Unknown dashboard link slug.");
 
-    const pinnedSlugs = await updateDashboardLinkPinState({
+    const pinnedSlugs = await updateWorkspaceLinkPinState({
       action: args.pinned ? "pin" : "unpin",
       slug: link.slug,
       userId: principal.userId,
@@ -60,7 +60,7 @@ export const linkMutationResolvers = {
       badMutationInput("slug must be non-empty.");
     }
 
-    const result = await setDashboardLinkPinStatesBatch({
+    const result = await setWorkspaceLinkPinStatesBatch({
       items,
       userId: principal.userId,
     });

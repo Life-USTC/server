@@ -1,20 +1,20 @@
 import {
-  resolveDashboardLinkBySlug,
-  updateDashboardLinkPinState,
-} from "./dashboard-link-service";
+  resolveCatalogLinkBySlug,
+  updateWorkspaceLinkPinState,
+} from "./catalog-link-service";
 
-export type DashboardLinkPinBatchItem = {
+export type WorkspaceLinkPinBatchItem = {
   action: "pin" | "unpin";
   slug: string;
 };
 
-export async function setDashboardLinkPinStatesBatch(input: {
-  items: readonly DashboardLinkPinBatchItem[];
+export async function setWorkspaceLinkPinStatesBatch(input: {
+  items: readonly WorkspaceLinkPinBatchItem[];
   userId: string;
 }) {
-  const items: DashboardLinkPinBatchItem[] = [];
+  const items: WorkspaceLinkPinBatchItem[] = [];
   for (const item of input.items) {
-    const link = resolveDashboardLinkBySlug(item.slug);
+    const link = resolveCatalogLinkBySlug(item.slug);
     if (!link) {
       return {
         ok: false as const,
@@ -27,7 +27,7 @@ export async function setDashboardLinkPinStatesBatch(input: {
 
   let pinnedSlugs: string[] = [];
   for (const item of items) {
-    pinnedSlugs = await updateDashboardLinkPinState({
+    pinnedSlugs = await updateWorkspaceLinkPinState({
       action: item.action,
       slug: item.slug,
       userId: input.userId,

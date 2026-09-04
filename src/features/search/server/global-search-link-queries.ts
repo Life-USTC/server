@@ -1,11 +1,11 @@
 import {
   dashboardLinkItemMatchesTokens,
   searchQueryToTokens,
-} from "@/features/dashboard-links/lib/dashboard-link-search";
+} from "@/features/catalog-links/lib/catalog-link-search";
 import {
-  localizeDashboardLink,
-  USTC_DASHBOARD_LINKS,
-} from "@/features/dashboard-links/lib/dashboard-links";
+  localizeCatalogLink,
+  USTC_CATALOG_LINKS,
+} from "@/features/catalog-links/lib/catalog-links";
 import type { AppLocale } from "@/i18n/config";
 
 const MIN_QUERY_LENGTH = 2;
@@ -21,12 +21,12 @@ export function searchLinksForGlobal(
   const tokens = searchQueryToTokens(trimmed);
   if (tokens.length === 0) return [];
 
-  return USTC_DASHBOARD_LINKS.filter((link) =>
+  return USTC_CATALOG_LINKS.filter((link) =>
     dashboardLinkItemMatchesTokens(link, tokens),
   )
     .slice(0, limit)
     .map((link) => {
-      const localized = localizeDashboardLink(link, locale);
+      const localized = localizeCatalogLink(link, locale);
       return {
         description: localized.description,
         slug: localized.slug,

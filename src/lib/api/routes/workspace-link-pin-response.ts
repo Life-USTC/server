@@ -1,4 +1,4 @@
-import { MAX_PINNED_LINKS } from "@/features/dashboard-links/server/dashboard-link-service";
+import { MAX_PINNED_LINKS } from "@/features/catalog-links/server/catalog-link-service";
 import { jsonResponse } from "@/lib/api/helpers";
 
 export function jsonOrRedirectForPinnedLinks({

@@ -47,7 +47,7 @@ vi.mock("@/features/workspace/server/dashboard-tab-data", () => ({
   getTodosTabData: vi.fn(),
 }));
 
-vi.mock("@/features/dashboard-links/server/dashboard-link-data", () => ({
+vi.mock("@/features/catalog-links/server/catalog-link-data", () => ({
   getLinksTabData: vi.fn(),
 }));
 
