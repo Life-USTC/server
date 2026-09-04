@@ -1,3 +1,4 @@
+import type { SectionPublicContextDto } from "@/features/catalog/lib/academic-section-list-response-schemas";
 import {
   buildScheduleDateWhere,
   buildScheduleListWhere,
@@ -10,7 +11,6 @@ import {
 import type { Prisma } from "@/generated/prisma/client";
 import type { AppLocale } from "@/i18n/config";
 import { DEFAULT_LOCALE } from "@/i18n/config";
-import type { SectionPublicContextDto } from "@/lib/api/schemas/academic-section-list-response-schemas";
 import {
   type ScheduleEntryDto,
   type SectionScheduleEntryDto,
