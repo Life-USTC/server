@@ -1,11 +1,11 @@
 import { describe, expect, test } from "vitest";
 import { parseBusTimeMinutes } from "@/features/bus/lib/bus-time";
 import type { BusTripSummary } from "@/features/bus/lib/bus-types";
-import { createBusTabState } from "@/features/dashboard/lib/bus-tab-state";
+import { createBusTabState } from "@/features/workspace/lib/bus-tab-state";
 import type {
   DashboardBusCopy,
   DashboardBusData,
-} from "@/features/dashboard/lib/bus-tab-types";
+} from "@/features/workspace/lib/bus-tab-types";
 
 function createTrip(input: {
   id: number;

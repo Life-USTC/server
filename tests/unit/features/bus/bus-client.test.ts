@@ -9,7 +9,7 @@ import type {
   BusTimetableData,
   BusTripSummary,
 } from "@/features/bus/lib/bus-types";
-import { nextBusDepartures } from "@/features/dashboard/lib/bus";
+import { nextBusDepartures } from "@/features/workspace/lib/bus";
 
 function createTrip(input: {
   id: number;

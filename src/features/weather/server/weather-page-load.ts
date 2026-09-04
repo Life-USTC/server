@@ -1,5 +1,5 @@
-import { getDashboardPageCopy } from "@/features/dashboard/server/dashboard-page-copy";
-import type { DashboardPageLoadEvent } from "@/features/dashboard/server/dashboard-page-load-types";
+import { getDashboardPageCopy } from "@/features/workspace/server/dashboard-page-copy";
+import type { DashboardPageLoadEvent } from "@/features/workspace/server/dashboard-page-load-types";
 import { getWeatherSnapshot } from "./weather-service";
 import {
   WEATHER_LOCATIONS,

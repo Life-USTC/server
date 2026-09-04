@@ -1,4 +1,4 @@
-import { loadPublicLinksPage } from "@/features/dashboard/server/public-links-page-load";
+import { loadPublicLinksPage } from "@/features/workspace/server/public-links-page-load";
 import { updateSocialMetadata } from "@/lib/social-metadata";
 import type { PageServerLoad } from "./$types";
 

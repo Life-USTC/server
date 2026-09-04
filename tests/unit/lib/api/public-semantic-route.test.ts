@@ -5,11 +5,11 @@ const { loadPublicBusPageMock, loadPublicLinksPageMock } = vi.hoisted(() => ({
   loadPublicLinksPageMock: vi.fn(),
 }));
 
-vi.mock("@/features/dashboard/server/public-bus-page-load", () => ({
+vi.mock("@/features/workspace/server/public-bus-page-load", () => ({
   loadPublicBusPage: loadPublicBusPageMock,
 }));
 
-vi.mock("@/features/dashboard/server/public-links-page-load", () => ({
+vi.mock("@/features/workspace/server/public-links-page-load", () => ({
   loadPublicLinksPage: loadPublicLinksPageMock,
 }));
 

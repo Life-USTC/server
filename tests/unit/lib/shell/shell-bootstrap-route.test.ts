@@ -7,7 +7,7 @@ const { getWorkspaceNavigationSummaryMock, logRouteFailureMock } = vi.hoisted(
   }),
 );
 
-vi.mock("@/features/dashboard/server/workspace-navigation-summary", () => ({
+vi.mock("@/features/workspace/server/workspace-navigation-summary", () => ({
   getWorkspaceNavigationSummary: getWorkspaceNavigationSummaryMock,
 }));
 

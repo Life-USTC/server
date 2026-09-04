@@ -1,6 +1,6 @@
 import { redirect } from "@sveltejs/kit";
-import { dashboardPageActions } from "@/features/dashboard/server/dashboard-page-actions";
-import { loadSignedDashboardPage } from "@/features/dashboard/server/dashboard-page-load";
+import { dashboardPageActions } from "@/features/workspace/server/dashboard-page-actions";
+import { loadSignedDashboardPage } from "@/features/workspace/server/dashboard-page-load";
 import { buildSignInPageUrl } from "@/lib/auth/auth-routing";
 import type { Actions, PageServerLoad } from "./$types";
 

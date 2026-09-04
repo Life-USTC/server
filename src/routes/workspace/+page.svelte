@@ -1,9 +1,9 @@
 <script lang="ts">
-import DashboardPageController from "@/features/dashboard/components/DashboardPageController.svelte";
+import WorkspacePageController from "@/features/workspace/components/WorkspacePageController.svelte";
 import type { ActionData, PageData } from "./$types";
 
 export let data: PageData;
 export let form: ActionData | undefined = undefined;
 </script>
 
-<DashboardPageController {data} {form} />
+<WorkspacePageController {data} {form} />
