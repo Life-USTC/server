@@ -9,7 +9,9 @@ type RateLimitBinding = {
 };
 
 async function readRateLimits(fileName: string): Promise<RateLimitBinding[]> {
-  const source = await readFile(new URL(`../../../../${fileName}`, import.meta.url));
+  const source = await readFile(
+    new URL(`../../../../${fileName}`, import.meta.url),
+  );
   const config = JSON.parse(source.toString()) as {
     ratelimits?: RateLimitBinding[];
   };

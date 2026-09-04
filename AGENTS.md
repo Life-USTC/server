@@ -81,7 +81,7 @@ bunx tsc --noEmit -p tsconfig.typecheck.tests.json
 bunx tsc --noEmit -p tsconfig.typecheck.operational.json
 bunx vitest run
 bun run openapi:check
-bunx vitest run tests/unit/graphql-schema-snapshot.test.ts
+bunx vitest run tests/unit/lib/graphql/graphql-schema-snapshot.test.ts
 
 # CI ci:verify also runs these shell guards — run if you touch them or CI fails there
 # bash tests/ci/retry.test.sh

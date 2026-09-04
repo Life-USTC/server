@@ -27,10 +27,19 @@ describe("database client boundaries", () => {
     const files = [
       ...oauthFiles,
       ...authRouteFiles,
-      new URL("../../../../src/lib/auth/better-auth-options.ts", import.meta.url),
+      new URL(
+        "../../../../src/lib/auth/better-auth-options.ts",
+        import.meta.url,
+      ),
       new URL("../../../../src/lib/auth/debug-auth-user.ts", import.meta.url),
-      new URL("../../../../src/lib/auth/webhook-login-handler.ts", import.meta.url),
-      new URL("../../../../src/lib/oauth/active-user-grant.ts", import.meta.url),
+      new URL(
+        "../../../../src/lib/auth/webhook-login-handler.ts",
+        import.meta.url,
+      ),
+      new URL(
+        "../../../../src/lib/oauth/active-user-grant.ts",
+        import.meta.url,
+      ),
       new URL(
         "../../../../src/features/admin/server/admin-oauth-delete-action.ts",
         import.meta.url,

@@ -24,7 +24,10 @@ type CapabilityMatrix = {
 };
 
 const matrixPath = fileURLToPath(
-  new URL("../../../../docs/graphql/mutation-capabilities.json", import.meta.url),
+  new URL(
+    "../../../../docs/graphql/mutation-capabilities.json",
+    import.meta.url,
+  ),
 );
 const openApiPath = fileURLToPath(
   new URL("../../../../public/openapi.generated.json", import.meta.url),
