@@ -246,16 +246,16 @@ export type CommentsStage =
   | "comments.summaries"
   | "target.payload";
 
-export type DashboardStage =
+export type WorkspaceStage =
   | "recent_session"
   | "user_context"
   | "nav_stats"
   | "tab";
 
 export type DbStageContext = "none" | "rls";
-export type DashboardDbStageContext = DbStageContext | "mixed";
+export type WorkspaceDbStageContext = DbStageContext | "mixed";
 export type DbStageLabel = "app" | "auth" | "maintenance";
-export type DashboardStageCountState = "known" | "unknown";
+export type WorkspaceStageCountState = "known" | "unknown";
 
 export type CommentsStageAnalyticsInput = {
   dbContext: DbStageContext;
@@ -269,16 +269,16 @@ export type CommentsStageAnalyticsInput = {
   dbLabel: DbStageLabel;
 };
 
-export type DashboardStageAnalyticsInput = {
-  countState: DashboardStageCountState;
-  dbContext: DashboardDbStageContext;
+export type WorkspaceStageAnalyticsInput = {
+  countState: WorkspaceStageCountState;
+  dbContext: WorkspaceDbStageContext;
   dbQueryCount: number;
   dbTransactionCount: number;
   durationMs: number;
   loadedCount?: number;
   outcome: "error" | "success";
   rootCount?: number;
-  stage: DashboardStage;
+  stage: WorkspaceStage;
   subscribedSectionCount?: number;
   dbLabel: DbStageLabel;
 };
@@ -575,15 +575,15 @@ const COMMENTS_STAGES = new Set([
   "comments.summaries",
   "target.payload",
 ]);
-const DASHBOARD_STAGES = new Set([
+const WORKSPACE_STAGES = new Set([
   "recent_session",
   "user_context",
   "nav_stats",
   "tab",
 ]);
 const DB_STAGE_CONTEXTS = new Set(["none", "rls"]);
-const DASHBOARD_DB_STAGE_CONTEXTS = new Set(["none", "rls", "mixed"]);
-const DASHBOARD_STAGE_COUNT_STATES = new Set(["known", "unknown"]);
+const WORKSPACE_DB_STAGE_CONTEXTS = new Set(["none", "rls", "mixed"]);
+const WORKSPACE_STAGE_COUNT_STATES = new Set(["known", "unknown"]);
 const DB_STAGE_LABELS = new Set(["app", "auth", "maintenance"]);
 const DB_STAGE_OUTCOMES = new Set(["error", "success"]);
 const OAUTH_EVENTS = new Set([
@@ -1151,12 +1151,12 @@ export function writeCommentsStageAnalytics(
   });
 }
 
-export function writeDashboardStageAnalytics(
-  input: DashboardStageAnalyticsInput,
+export function writeWorkspaceStageAnalytics(
+  input: WorkspaceStageAnalyticsInput,
 ) {
-  const stage = finiteEnum(input.stage, DASHBOARD_STAGES);
-  const countState = finiteEnum(input.countState, DASHBOARD_STAGE_COUNT_STATES);
-  const dbContext = finiteEnum(input.dbContext, DASHBOARD_DB_STAGE_CONTEXTS);
+  const stage = finiteEnum(input.stage, WORKSPACE_STAGES);
+  const countState = finiteEnum(input.countState, WORKSPACE_STAGE_COUNT_STATES);
+  const dbContext = finiteEnum(input.dbContext, WORKSPACE_DB_STAGE_CONTEXTS);
   const dbLabel = finiteEnum(input.dbLabel, DB_STAGE_LABELS);
   const outcome = finiteEnum(input.outcome, DB_STAGE_OUTCOMES);
   const counts =
@@ -1170,9 +1170,9 @@ export function writeDashboardStageAnalytics(
           boundedCount(input.subscribedSectionCount),
         ];
   writeAnalyticsDataPoint({
-    indexes: [`dashboard:${stage}`],
+    indexes: [`workspace:${stage}`],
     blobs: [
-      "dashboard_stage_v2",
+      "workspace_stage_v2",
       stage,
       dbContext,
       dbLabel,

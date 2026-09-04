@@ -6,13 +6,13 @@ import {
   busStopTimeLabel,
   nextBusDepartures,
 } from "@/features/workspace/lib/bus";
-import type { DashboardBusCopy } from "@/features/workspace/lib/bus-tab-types";
+import type { WorkspaceBusCopy } from "@/features/workspace/lib/bus-tab-types";
 import { Button } from "$lib/components/ui/button/index.js";
 import * as Empty from "$lib/components/ui/empty/index.js";
 import * as Item from "$lib/components/ui/item/index.js";
 
 export let busApplicableRoutes: BusApplicableRoute[];
-export let busCopy: DashboardBusCopy;
+export let busCopy: WorkspaceBusCopy;
 export let busPlannerReady: boolean;
 export let reverseBusStops: () => void;
 

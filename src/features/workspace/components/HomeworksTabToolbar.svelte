@@ -1,6 +1,6 @@
 <script lang="ts">
 import Plus from "@lucide/svelte/icons/plus";
-import type { HomeworkFilter } from "@/features/workspace/lib/dashboard-controller-types";
+import type { HomeworkFilter } from "@/features/workspace/lib/workspace-controller-types";
 import { Button } from "$lib/components/ui/button/index.js";
 import * as ToggleGroup from "$lib/components/ui/toggle-group/index.js";
 
@@ -45,7 +45,7 @@ export let openCreateHomeworkDialog: () => void;
     <Button
       aria-label={homeworksCopy.addButton}
       class="size-11 md:h-8 md:w-auto md:min-w-28"
-      data-testid="dashboard-homeworks-add"
+      data-testid="workspace-homeworks-add"
       type="button"
       onclick={openCreateHomeworkDialog}
     >

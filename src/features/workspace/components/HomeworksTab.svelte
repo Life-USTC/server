@@ -2,30 +2,30 @@
 import type { SubmitFunction } from "@sveltejs/kit";
 import type CommentsPanelComponent from "@/features/comments/components/CommentsPanel.svelte";
 import type { CommentsCopy } from "@/features/comments/components/comment-component-types";
-import type {
-  DashboardCommonCopy,
-  DashboardDashboardCopy,
-  DashboardHomeworkItem,
-  DashboardHomeworksCopy,
-  DashboardMyHomeworksCopy,
-  DashboardSectionCopy,
-  HomeworkFilter,
-  SignedDashboardData,
-} from "@/features/workspace/lib/dashboard-controller-types";
-import { filterDashboardHomeworks } from "@/features/workspace/lib/dashboard-homework-filter";
-import { hasDashboardSubscriptions } from "@/features/workspace/lib/dashboard-subscription-state";
-import { resolveDashboardTaskFilter } from "@/features/workspace/lib/dashboard-task-filter";
 import { createHomeworkTabDisplayActions } from "@/features/workspace/lib/homeworks-tab-display";
-import * as Alert from "$lib/components/ui/alert/index.js";
-import DashboardNoSubscriptionsState from "./DashboardNoSubscriptionsState.svelte";
 import type {
-  DashboardHomeworkCreateSection,
-  DashboardHomeworkCreateSectionGetter,
-} from "./dashboard-homework-create-types";
+  HomeworkFilter,
+  SignedWorkspaceData,
+  WorkspaceCommonCopy,
+  WorkspaceCopy,
+  WorkspaceHomeworkItem,
+  WorkspaceHomeworksCopy,
+  WorkspaceMyHomeworksCopy,
+  WorkspaceSectionCopy,
+} from "@/features/workspace/lib/workspace-controller-types";
+import { filterWorkspaceHomeworks } from "@/features/workspace/lib/workspace-homework-filter";
+import { hasWorkspaceSubscriptions } from "@/features/workspace/lib/workspace-subscription-state";
+import { resolveWorkspaceTaskFilter } from "@/features/workspace/lib/workspace-task-filter";
+import * as Alert from "$lib/components/ui/alert/index.js";
 import HomeworksCardsView from "./HomeworksCardsView.svelte";
 import HomeworksListView from "./HomeworksListView.svelte";
 import HomeworksTabDialogs from "./HomeworksTabDialogs.svelte";
 import HomeworksTabToolbar from "./HomeworksTabToolbar.svelte";
+import WorkspaceNoSubscriptionsState from "./WorkspaceNoSubscriptionsState.svelte";
+import type {
+  WorkspaceHomeworkCreateSection,
+  WorkspaceHomeworkCreateSectionGetter,
+} from "./workspace-homework-create-types";
 
 type HomeworkDateFormatter = (
   value: Date | string | null | undefined,
@@ -33,31 +33,31 @@ type HomeworkDateFormatter = (
 type HomeworkOverduePredicate = (
   value: Date | string | null | undefined,
 ) => boolean;
-type HomeworkAction = (homework: DashboardHomeworkItem) => string;
-type HomeworkCopy = DashboardMyHomeworksCopy;
-type HomeworksCopy = DashboardHomeworksCopy;
+type HomeworkAction = (homework: WorkspaceHomeworkItem) => string;
+type HomeworkCopy = WorkspaceMyHomeworksCopy;
+type HomeworksCopy = WorkspaceHomeworksCopy;
 
 export let CommentsPanel: typeof CommentsPanelComponent;
 
-export let commonCopy: DashboardCommonCopy;
-export let dashboardCopy: DashboardDashboardCopy;
-export let sectionCopy: DashboardSectionCopy;
+export let commonCopy: WorkspaceCommonCopy;
+export let workspaceCopy: WorkspaceCopy;
+export let sectionCopy: WorkspaceSectionCopy;
 export let homeworksCopy: HomeworksCopy;
 export let homeworkCopy: HomeworkCopy;
 export let commentsCopy: CommentsCopy;
-export let signedData: SignedDashboardData;
+export let signedData: SignedWorkspaceData;
 export let homeworkActionError: string;
 
 export let locale: string;
 export let referenceDate: Date | string;
-export let selectedCreateHomeworkSection: DashboardHomeworkCreateSectionGetter;
+export let selectedCreateHomeworkSection: WorkspaceHomeworkCreateSectionGetter;
 export let openCreateHomeworkDialog: () => void;
 export let applyHomeworkStartNow: () => void;
 export let applyHomeworkDueInWeek: () => void;
 export let applyHomeworkDueInMonth: () => void;
 export let applyHomeworkDueAtSemesterEnd: () => void;
 export let toggleHomeworkCompletion: (
-  homework: DashboardHomeworkItem,
+  homework: WorkspaceHomeworkItem,
 ) => void | Promise<void>;
 export let createHomeworkAction: SubmitFunction;
 
@@ -68,8 +68,8 @@ export let createHomeworkPublishedAt: string;
 export let createHomeworkSectionId: string;
 export let createHomeworkSubmissionDueAt: string;
 export let createHomeworkSubmissionStartAt: string;
-export let selectedHomework: DashboardHomeworkItem | null;
-export let homeworkItems: DashboardHomeworkItem[];
+export let selectedHomework: WorkspaceHomeworkItem | null;
+export let homeworkItems: WorkspaceHomeworkItem[];
 export let homeworkSavingById: Record<string, boolean>;
 export let createHomeworkError: string;
 export let isCreatingHomework: boolean;
@@ -79,17 +79,17 @@ let homeworkCourseLabel: HomeworkAction;
 let homeworkEtaLabel: HomeworkDateFormatter;
 let homeworkIsOverdue: HomeworkOverduePredicate;
 let homeworkSectionHref: HomeworkAction;
-let homeworkSectionLabel: (section: DashboardHomeworkCreateSection) => string;
+let homeworkSectionLabel: (section: WorkspaceHomeworkCreateSection) => string;
 let homeworkStatus: HomeworkAction;
 
-$: filteredHomeworkItems = filterDashboardHomeworks(
+$: filteredHomeworkItems = filterWorkspaceHomeworks(
   homeworkItems,
-  resolveDashboardTaskFilter(
+  resolveWorkspaceTaskFilter(
     homeworkFilter,
     homeworkItems.some((item) => !item.completion),
   ),
 );
-$: displayHomeworkFilter = resolveDashboardTaskFilter(
+$: displayHomeworkFilter = resolveWorkspaceTaskFilter(
   homeworkFilter,
   homeworkItems.some((item) => !item.completion),
 );
@@ -109,7 +109,7 @@ $: ({
   homeworkSectionLabel,
   homeworkStatus,
 } = createHomeworkTabDisplayActions({
-  dashboardCopy,
+  workspaceCopy,
   homeworkCopy,
   homeworksCopy,
   locale,
@@ -119,8 +119,8 @@ $: ({
 </script>
 
 <section class="grid gap-4">
-  {#if !signedData.homeworks || !hasDashboardSubscriptions(signedData)}
-    <DashboardNoSubscriptionsState
+  {#if !signedData.homeworks || !hasWorkspaceSubscriptions(signedData)}
+    <WorkspaceNoSubscriptionsState
       title={homeworkCopy.noSubscriptions}
       description={homeworkCopy.noSubscriptionsDescription}
       actions={[

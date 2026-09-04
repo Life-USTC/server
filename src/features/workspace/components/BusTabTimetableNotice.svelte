@@ -1,11 +1,11 @@
 <script lang="ts">
 import type {
-  DashboardBusCopy,
-  DashboardBusData,
+  WorkspaceBusCopy,
+  WorkspaceBusData,
 } from "@/features/workspace/lib/bus-tab-types";
 
-export let bus: DashboardBusData;
-export let busCopy: DashboardBusCopy;
+export let bus: WorkspaceBusData;
+export let busCopy: WorkspaceBusCopy;
 export let busShowsEstimatedHint: boolean;
 </script>
 

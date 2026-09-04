@@ -1,5 +1,5 @@
 <script lang="ts">
-import type { DashboardFocusItem } from "@/features/workspace/lib/dashboard-agenda";
+import type { WorkspaceFocusItem } from "@/features/workspace/lib/workspace-agenda";
 import { Badge } from "$lib/components/ui/badge/index.js";
 import * as Empty from "$lib/components/ui/empty/index.js";
 import OverviewSection from "./OverviewSection.svelte";
@@ -11,16 +11,16 @@ export let copy: {
   title: string;
   urgent: string;
 };
-export let focus: DashboardFocusItem | null;
+export let focus: WorkspaceFocusItem | null;
 
-function statusLabel(status: DashboardFocusItem["status"]) {
+function statusLabel(status: WorkspaceFocusItem["status"]) {
   if (status === "now") return copy.now;
   if (status === "urgent") return copy.urgent;
   return copy.next;
 }
 </script>
 
-<OverviewSection testId="dashboard-overview-focus" title={copy.title}>
+<OverviewSection testId="workspace-overview-focus" title={copy.title}>
   {#if focus}
     <a
       class="grid gap-2 rounded-lg py-1 transition-colors hover:bg-muted/40 -mx-2 px-2"

@@ -3,7 +3,6 @@ export {
   getUserCalendarSubscription,
   getUserSectionSubscriptionStatusForSection,
 } from "./subscription-calendar-read-model";
-export { listSubscribedDashboardSections } from "./subscription-dashboard-section-read-model";
 export { listSubscribedHomeworkPage } from "./subscription-homework-page";
 export {
   getHomeworksTabData,
@@ -33,3 +32,4 @@ export {
   getSubscriptionsTabData,
   type SubscriptionsTabData,
 } from "./subscription-tab-read-model";
+export { listSubscribedWorkspaceSections } from "./subscription-workspace-section-read-model";

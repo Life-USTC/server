@@ -14,7 +14,6 @@ import {
   writeCalendarExportRebuildAnalytics,
   writeCalendarFeedCacheAnalytics,
   writeCommentsStageAnalytics,
-  writeDashboardStageAnalytics,
   writeMcpTransportAnalytics,
   writeOAuthEventAnalytics,
   writePageRequestAnalytics,
@@ -22,6 +21,7 @@ import {
   writeWorkerRequestAnalytics,
   writeWorkspaceOverviewStageAnalytics,
   writeWorkspaceRouteStageAnalytics,
+  writeWorkspaceStageAnalytics,
 } from "@/lib/metrics/analytics-engine";
 import {
   publicDetailColoCacheKey as buildPublicDetailColoCacheKey,
@@ -527,7 +527,7 @@ describe("Cloudflare Analytics Engine runtime events", () => {
       rootCount: 2,
       stage: "comments.descendants",
     });
-    writeDashboardStageAnalytics({
+    writeWorkspaceStageAnalytics({
       countState: "known",
       dbContext: "rls",
       dbLabel: "app",
@@ -577,9 +577,9 @@ describe("Cloudflare Analytics Engine runtime events", () => {
       doubles: [80, 5, 1, 10, 2],
     });
     expect(writeDataPoint).toHaveBeenNthCalledWith(4, {
-      indexes: ["dashboard:nav_stats"],
+      indexes: ["workspace:nav_stats"],
       blobs: [
-        "dashboard_stage_v2",
+        "workspace_stage_v2",
         "nav_stats",
         "rls",
         "app",
@@ -668,7 +668,7 @@ describe("Cloudflare Analytics Engine runtime events", () => {
       outcome: secret as never,
       stage: secret as never,
     });
-    writeDashboardStageAnalytics({
+    writeWorkspaceStageAnalytics({
       countState: "unknown",
       dbContext: secret as never,
       dbLabel: secret as never,
@@ -718,9 +718,9 @@ describe("Cloudflare Analytics Engine runtime events", () => {
     expect(writeDataPoint).toHaveBeenNthCalledWith(
       4,
       expect.objectContaining({
-        indexes: ["dashboard:unknown"],
+        indexes: ["workspace:unknown"],
         blobs: [
-          "dashboard_stage_v2",
+          "workspace_stage_v2",
           "unknown",
           "unknown",
           "unknown",

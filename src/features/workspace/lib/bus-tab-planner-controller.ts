@@ -4,18 +4,18 @@ import {
 } from "@/features/bus/lib/bus-client";
 import type { BusPreferenceSaveState } from "./bus-preferences";
 import { createBusPlannerPreferenceSave } from "./bus-tab-preference-save";
-import type { DashboardBusCopy, DashboardBusData } from "./bus-tab-types";
+import type { WorkspaceBusCopy, WorkspaceBusData } from "./bus-tab-types";
 
 export type BusDayType = "weekday" | "saturday" | "sunday";
 
-function busReferenceNow(bus: DashboardBusData) {
+function busReferenceNow(bus: WorkspaceBusData) {
   const fetchedAt = new Date(bus.fetchedAt);
   return Number.isNaN(fetchedAt.getTime()) ? new Date(0) : fetchedAt;
 }
 
 type BusTabPlannerControllerInput = {
-  getBus: () => DashboardBusData | null;
-  getBusCopy: () => DashboardBusCopy;
+  getBus: () => WorkspaceBusData | null;
+  getBusCopy: () => WorkspaceBusCopy;
   getBusDayType: () => BusDayType;
   getBusEndCampusId: () => number | null;
   getBusPreferenceSaveRun: () => number;

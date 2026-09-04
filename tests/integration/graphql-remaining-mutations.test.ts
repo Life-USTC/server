@@ -256,15 +256,15 @@ afterAll(async () => {
 });
 
 describe.sequential("remaining GraphQL and MCP mutation parity", () => {
-  it("preserves dashboard ordering and comment per-item results over GraphQL", async () => {
+  it("preserves workspace ordering and comment per-item results over GraphQL", async () => {
     const token = await signToken([
       restWriteScope("workspace.link-pin"),
       restWriteScope("community.comment"),
     ]);
-    const dashboard = await execute(
+    const workspaceResult = await execute(
       {
         query: /* GraphQL */ `
-          mutation DashboardBatch(
+          mutation WorkspaceBatch(
             $items: [WorkspaceLinkPinBatchItemInput!]!
           ) {
             linkPinsSet(items: $items) {
@@ -282,8 +282,8 @@ describe.sequential("remaining GraphQL and MCP mutation parity", () => {
       },
       token,
     );
-    expect(dashboard.payload.errors).toBeUndefined();
-    expect(dashboard.payload.data?.linkPinsSet).toEqual({
+    expect(workspaceResult.payload.errors).toBeUndefined();
+    expect(workspaceResult.payload.data?.linkPinsSet).toEqual({
       pinnedSlugs: [],
       maxPinnedLinks: 4,
     });
@@ -321,8 +321,8 @@ describe.sequential("remaining GraphQL and MCP mutation parity", () => {
     });
   });
 
-  it("runs the registered dashboard and comment batch operations", async () => {
-    const dashboard = await mcp.call<{
+  it("runs the registered workspace and comment batch operations", async () => {
+    const workspaceResult = await mcp.call<{
       success: boolean;
       data: {
         linkPinsSet: {
@@ -336,7 +336,7 @@ describe.sequential("remaining GraphQL and MCP mutation parity", () => {
       confirmed: true,
       locale: "en-us",
     });
-    expect(dashboard).toMatchObject({
+    expect(workspaceResult).toMatchObject({
       success: true,
       data: {
         linkPinsSet: {

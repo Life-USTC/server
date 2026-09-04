@@ -15,34 +15,6 @@ import {
   calendarSemesterIndex,
   calendarSessionChipFields,
 } from "@/features/workspace/lib/calendar-display";
-import { createDashboardCalendarActions } from "@/features/workspace/lib/dashboard-controller-calendar-actions";
-import { createDashboardCalendarDisplayActions } from "@/features/workspace/lib/dashboard-controller-calendar-display-actions";
-import { createDashboardCreateHomeworkActions } from "@/features/workspace/lib/dashboard-controller-create-homework-actions";
-import { createDashboardControllerDefaultState } from "@/features/workspace/lib/dashboard-controller-default-state";
-import {
-  applyLocalHomeworkItemsToSignedData,
-  applyLocalTodoItemsToSignedData,
-  buildDashboardControllerDerivedState,
-} from "@/features/workspace/lib/dashboard-controller-derived-state";
-import { createDashboardDisplayActions } from "@/features/workspace/lib/dashboard-controller-display-actions";
-import { createDashboardFormSubmitActions } from "@/features/workspace/lib/dashboard-controller-form-actions";
-import {
-  buildCalendarWeekdayLabels,
-  type DashboardActionData,
-  type CatalogLinkItem,
-  type DashboardPageData,
-  type DashboardViewState,
-  isSignedDashboardData,
-  type TodoItem,
-  todoPriorityOrder,
-} from "@/features/workspace/lib/dashboard-controller-helpers";
-import { createDashboardHomeworkStateActions } from "@/features/workspace/lib/dashboard-controller-homework-state-actions";
-import { createDashboardLinkStateActions } from "@/features/workspace/lib/dashboard-controller-link-state-actions";
-import { mountDashboardController } from "@/features/workspace/lib/dashboard-controller-mount";
-import { createDashboardSubscriptionActions } from "@/features/workspace/lib/dashboard-controller-subscription-actions";
-import { createDashboardTodoActions } from "@/features/workspace/lib/dashboard-controller-todo-actions";
-import { linkIconLabel } from "@/features/workspace/lib/dashboard-link-icon";
-import { dashboardTabHref } from "@/features/workspace/lib/dashboard-nav";
 import {
   examReferenceNow,
   examTimeLabel,
@@ -55,19 +27,47 @@ import {
   referenceDate,
 } from "@/features/workspace/lib/overview";
 import { todoPriorityOptions as buildTodoPriorityOptions } from "@/features/workspace/lib/todos";
+import { createWorkspaceCalendarActions } from "@/features/workspace/lib/workspace-controller-calendar-actions";
+import { createWorkspaceCalendarDisplayActions } from "@/features/workspace/lib/workspace-controller-calendar-display-actions";
+import { createWorkspaceCreateHomeworkActions } from "@/features/workspace/lib/workspace-controller-create-homework-actions";
+import { createWorkspaceControllerDefaultState } from "@/features/workspace/lib/workspace-controller-default-state";
+import {
+  applyLocalHomeworkItemsToSignedData,
+  applyLocalTodoItemsToSignedData,
+  buildWorkspaceControllerDerivedState,
+} from "@/features/workspace/lib/workspace-controller-derived-state";
+import { createWorkspaceDisplayActions } from "@/features/workspace/lib/workspace-controller-display-actions";
+import { createWorkspaceFormSubmitActions } from "@/features/workspace/lib/workspace-controller-form-actions";
+import {
+  buildCalendarWeekdayLabels,
+  type CatalogLinkItem,
+  isSignedWorkspaceData,
+  type TodoItem,
+  todoPriorityOrder,
+  type WorkspaceActionData,
+  type WorkspacePageData,
+  type WorkspaceViewState,
+} from "@/features/workspace/lib/workspace-controller-helpers";
+import { createWorkspaceHomeworkStateActions } from "@/features/workspace/lib/workspace-controller-homework-state-actions";
+import { createWorkspaceLinkStateActions } from "@/features/workspace/lib/workspace-controller-link-state-actions";
+import { mountWorkspaceController } from "@/features/workspace/lib/workspace-controller-mount";
+import { createWorkspaceSubscriptionActions } from "@/features/workspace/lib/workspace-controller-subscription-actions";
+import { createWorkspaceTodoActions } from "@/features/workspace/lib/workspace-controller-todo-actions";
+import { linkIconLabel } from "@/features/workspace/lib/workspace-link-icon";
+import { workspaceTabHref } from "@/features/workspace/lib/workspace-nav";
 import { goto, invalidateAll, replaceState } from "$app/navigation";
 import { page } from "$app/stores";
 import PageHeader from "$lib/components/PageHeader.svelte";
 import * as Alert from "$lib/components/ui/alert/index.js";
-import type { DashboardCalendarTabProps } from "./dashboard-calendar-component-types";
-import SignedDashboardOverviewBranch from "./SignedDashboardOverviewBranch.svelte";
-import SignedDashboardPublicTabs from "./SignedDashboardPublicTabs.svelte";
-import SignedDashboardSubscriptionsBranch from "./SignedDashboardSubscriptionsBranch.svelte";
-import SignedDashboardTaskTabs from "./SignedDashboardTaskTabs.svelte";
-import type { DashboardSubscriptionsTabProps } from "./subscription-tab-types";
+import SignedWorkspaceOverviewBranch from "./SignedWorkspaceOverviewBranch.svelte";
+import SignedWorkspacePublicTabs from "./SignedWorkspacePublicTabs.svelte";
+import SignedWorkspaceSubscriptionsBranch from "./SignedWorkspaceSubscriptionsBranch.svelte";
+import SignedWorkspaceTaskTabs from "./SignedWorkspaceTaskTabs.svelte";
+import type { WorkspaceSubscriptionsTabProps } from "./subscription-tab-types";
+import type { WorkspaceCalendarTabProps } from "./workspace-calendar-component-types";
 
-type PageData = DashboardPageData;
-type ActionData = DashboardActionData;
+type PageData = WorkspacePageData;
+type ActionData = WorkspaceActionData;
 
 export let data: PageData;
 export let form: ActionData | undefined = undefined;
@@ -89,7 +89,7 @@ let {
   createHomeworkSubmissionDueAt,
   createHomeworkSubmissionStartAt,
   createTodoError,
-  dashboardLinkItems,
+  catalogLinkItems,
   editTodoError,
   editingTodo,
   examFilter,
@@ -132,16 +132,16 @@ let {
   todoSavingById,
   todoView,
   unmatchedSectionCodes,
-  updatingDashboardLinkSlug,
-} = createDashboardControllerDefaultState();
-let dashboardLinkSourceItems: CatalogLinkItem[] = [];
+  updatingCatalogLinkSlug,
+} = createWorkspaceControllerDefaultState();
+let catalogLinkSourceItems: CatalogLinkItem[] = [];
 let overviewLinkSourceItems: CatalogLinkItem[] = [];
 let todoSourceItems: TodoItem[] = [];
 let linkSourceData: PageData | null = null;
 $: copy = data.copy;
 $: actionError = form?.error ?? "";
 $: commonCopy = copy.common;
-$: dashboardCopy = copy.workspace;
+$: workspaceCopy = copy.workspace;
 $: busCopy = copy.bus;
 $: homeworksCopy = copy.homeworks;
 $: homeworkCopy = copy.myHomeworks;
@@ -155,10 +155,10 @@ $: pageTitle =
     : copy.metadata.home;
 $: todoPriorityOptions = buildTodoPriorityOptions(todoPriorityOrder, todosCopy);
 $: calendarWeekdayLabels = buildCalendarWeekdayLabels(sectionCopy);
-$: dashboardLinkGroupLabels = dashboardCopy.linkHub.groups;
+$: catalogLinkGroupLabels = workspaceCopy.linkHub.groups;
 $: if (data !== linkSourceData) {
-  const signedPageData = isSignedDashboardData(data) ? data : null;
-  dashboardLinkSourceItems = signedPageData?.links?.catalogLinks ?? [];
+  const signedPageData = isSignedWorkspaceData(data) ? data : null;
+  catalogLinkSourceItems = signedPageData?.links?.catalogLinks ?? [];
   overviewLinkSourceItems =
     signedPageData?.overview?.overviewLinks.slice(0, 4) ?? [];
   todoSourceItems = signedPageData?.todos ?? [];
@@ -178,7 +178,7 @@ const {
   applyHomeworkStartNow,
   openCreateHomeworkDialog,
   selectedCreateHomeworkSection,
-} = createDashboardCreateHomeworkActions({
+} = createWorkspaceCreateHomeworkActions({
   getCreateHomeworkSectionId: () => createHomeworkSectionId,
   getSections: () => signedData?.homeworks?.sections ?? [],
   setCreateHomeworkAdvancedOpen: (value) => {
@@ -204,7 +204,7 @@ const {
   },
 });
 
-const { deleteTodo, toggleTodoCompletion } = createDashboardTodoActions({
+const { deleteTodo, toggleTodoCompletion } = createWorkspaceTodoActions({
   getEditingTodo: () => editingTodo,
   getSelectedTodo: () => selectedTodo,
   getTodoItems: () => todoSourceItems,
@@ -236,7 +236,7 @@ const { deleteTodo, toggleTodoCompletion } = createDashboardTodoActions({
   },
 });
 
-const { examMetadataLabels, nameSecondary } = createDashboardDisplayActions({
+const { examMetadataLabels, nameSecondary } = createWorkspaceDisplayActions({
   getCountLabel: () => sectionCopy.examCount,
   getFinalLabel: () => sectionCopy.examTypeFinal,
   getLocale: () => data.locale as "en-us" | "zh-cn",
@@ -244,7 +244,7 @@ const { examMetadataLabels, nameSecondary } = createDashboardDisplayActions({
 });
 
 const { createHomeworkAction, createTodoAction, updateTodoAction } =
-  createDashboardFormSubmitActions({
+  createWorkspaceFormSubmitActions({
     getHomeworksCopy: () => homeworksCopy,
     getTodosCopy: () => todosCopy,
     onSuccess: (action) => {
@@ -294,7 +294,7 @@ const {
   searchQuickAddSections,
   subscribeQuickAddSections,
   toggleImportSectionSelection,
-} = createDashboardSubscriptionActions({
+} = createWorkspaceSubscriptionActions({
   getBulkImportSemesterId: () => bulkImportSemesterId,
   getBulkImportText: () => bulkImportText,
   getCurrentSemesterId: () =>
@@ -346,13 +346,13 @@ const {
   },
 });
 
-function applyDashboardViewState(state: DashboardViewState) {
+function applyWorkspaceViewState(state: WorkspaceViewState) {
   homeworkView = state.homeworkView;
   todoView = state.todoView;
   examView = state.examView;
   linkView = state.linkView;
 }
-const { toggleHomeworkCompletion } = createDashboardHomeworkStateActions({
+const { toggleHomeworkCompletion } = createWorkspaceHomeworkStateActions({
   getHomeworkItems: () => homeworkItems,
   getHomeworkSavingById: () => homeworkSavingById,
   getHomeworksCopy: () => homeworksCopy,
@@ -378,25 +378,25 @@ const { toggleHomeworkCompletion } = createDashboardHomeworkStateActions({
   },
 });
 
-const { submitDashboardLinkPin } = createDashboardLinkStateActions({
-  applyDashboardViewState,
-  getDashboardCopy: () => dashboardCopy,
-  getCatalogLinkItems: () => dashboardLinkSourceItems,
+const { submitWorkspaceLinkPin } = createWorkspaceLinkStateActions({
+  applyWorkspaceViewState,
+  getWorkspaceCopy: () => workspaceCopy,
+  getCatalogLinkItems: () => catalogLinkSourceItems,
   getLinkReturnTo: () => linkReturnTo,
   getOverviewLinkItems: () => overviewLinkSourceItems,
-  getUpdatingDashboardLinkSlug: () => updatingDashboardLinkSlug,
+  getUpdatingCatalogLinkSlug: () => updatingCatalogLinkSlug,
   onSuccess: (action) => {
     toast.success(
       action === "pin"
-        ? dashboardCopy.linkHub.pin
-        : dashboardCopy.linkHub.unpin,
+        ? workspaceCopy.linkHub.pin
+        : workspaceCopy.linkHub.unpin,
     );
   },
   replaceState: (href) => {
     replaceState(href, {});
   },
   setCatalogLinkItems: (value) => {
-    dashboardLinkSourceItems = value;
+    catalogLinkSourceItems = value;
   },
   setLinkActionError: (value) => {
     linkActionError = value;
@@ -407,8 +407,8 @@ const { submitDashboardLinkPin } = createDashboardLinkStateActions({
   setOverviewLinkItems: (value) => {
     overviewLinkSourceItems = value;
   },
-  setUpdatingDashboardLinkSlug: (value) => {
-    updatingDashboardLinkSlug = value;
+  setUpdatingCatalogLinkSlug: (value) => {
+    updatingCatalogLinkSlug = value;
   },
 });
 
@@ -418,7 +418,7 @@ const {
   calendarTodoChipFields,
   calendarWeekLabel,
   sessionHref,
-} = createDashboardCalendarDisplayActions({
+} = createWorkspaceCalendarDisplayActions({
   getCommonCourseLabel: () => commonCopy.courses,
   getEventLabels: () => ({
     exam: copy.CalendarEventCard.exam,
@@ -427,7 +427,7 @@ const {
   }),
   getTodoPriorityLabel: (priority) => todosCopy.priority[priority],
   getWeekNumberTemplate: () => sectionCopy.weekNumber,
-  tabHref: dashboardTabHref,
+  tabHref: workspaceTabHref,
 });
 
 const {
@@ -437,7 +437,7 @@ const {
   setCalendarView,
   setCalendarWeek,
   syncCalendarStateFromUrl,
-} = createDashboardCalendarActions({
+} = createWorkspaceCalendarActions({
   getCalendarData: () => calendarData,
   getCalendarMonth: () => calendarMonth,
   getCalendarSemesterId: () => calendarSemesterId,
@@ -461,17 +461,17 @@ const {
   setCalendarWeekStart: (value) => {
     calendarWeekStart = value;
   },
-  tabHref: dashboardTabHref,
+  tabHref: workspaceTabHref,
 });
 
-$: derivedState = buildDashboardControllerDerivedState({
-  dashboardLinkGroupLabels,
+$: derivedState = buildWorkspaceControllerDerivedState({
+  catalogLinkGroupLabels,
   data,
   dateFallback: sectionCopy.dateTBD,
   examFilter,
   linkSearchQuery,
-  notAvailable: dashboardCopy.notAvailable,
-  currentCatalogLinkItems: dashboardLinkSourceItems,
+  notAvailable: workspaceCopy.notAvailable,
+  currentCatalogLinkItems: catalogLinkSourceItems,
   currentOverviewLinkItems: overviewLinkSourceItems,
   currentTodoItems: todoSourceItems,
   todoFilter,
@@ -486,7 +486,7 @@ $: todoItems = derivedState.todoItems;
 $: filteredTodos = derivedState.filteredTodos;
 $: examRows = derivedState.examRows;
 $: filteredExamRows = derivedState.filteredExamRows;
-$: dashboardLinkItems = derivedState.dashboardLinkItems;
+$: catalogLinkItems = derivedState.catalogLinkItems;
 $: overviewLinkItems = derivedState.overviewLinkItems;
 $: signedLinkGroups = derivedState.signedLinkGroups;
 $: calendarData = derivedState.calendarData;
@@ -496,11 +496,11 @@ $: canMatchImportSections =
   bulkImportText.trim().length > 0 && !isMatchingSections;
 
 onMount(() => {
-  return mountDashboardController({
-    applyViewState: applyDashboardViewState,
+  return mountWorkspaceController({
+    applyViewState: applyWorkspaceViewState,
     clearPendingRemoveSection,
     copy: {
-      dashboard: dashboardCopy,
+      workspace: workspaceCopy,
     },
     getLinkSearchInput: () => linkSearchInput,
     replaceState: (href) => {
@@ -538,24 +538,24 @@ onMount(() => {
 
     {#if signedData}
       {#if signedData.tab === "overview"}
-        <SignedDashboardOverviewBranch
+        <SignedWorkspaceOverviewBranch
         {calendarTimelineItemsForDay}
         {commonCopy}
         {copy}
-        {dashboardCopy}
-        {dashboardTabHref}
+        {workspaceCopy}
+        {workspaceTabHref}
         {data}
         {linkIconLabel}
         {overviewLinkItems}
         {sectionCopy}
         {subscriptionsCopy}
         {signedData}
-        {submitDashboardLinkPin}
+        {submitWorkspaceLinkPin}
         {todosCopy}
-        {updatingDashboardLinkSlug}
+        {updatingCatalogLinkSlug}
         />
       {:else if signedData.tab === "todos" || signedData.tab === "homeworks" || signedData.tab === "exams"}
-        <SignedDashboardTaskTabs
+        <SignedWorkspaceTaskTabs
         activeTab={signedData.tab}
         {applyHomeworkDueAtSemesterEnd}
         {applyHomeworkDueInMonth}
@@ -565,8 +565,8 @@ onMount(() => {
         {commonCopy}
         {createHomeworkAction}
         {createTodoAction}
-        {dashboardCopy}
-        {dashboardTabHref}
+        {workspaceCopy}
+        {workspaceTabHref}
         {data}
         {deleteTodo}
         {examMetadataLabels}
@@ -616,9 +616,9 @@ onMount(() => {
         bind:todoFilter
         />
       {:else if signedData.tab === "subscriptions" && signedData.subscriptions}
-        {@const subscriptionsSignedData = signedData as DashboardSubscriptionsTabProps["signedData"]}
-        <SignedDashboardSubscriptionsBranch
-        {dashboardCopy}
+        {@const subscriptionsSignedData = signedData as WorkspaceSubscriptionsTabProps["signedData"]}
+        <SignedWorkspaceSubscriptionsBranch
+        {workspaceCopy}
         {sectionCopy}
         {subscriptionsCopy}
         signedData={subscriptionsSignedData}
@@ -649,17 +649,17 @@ onMount(() => {
         bind:bulkImportText
         />
       {:else}
-        {@const calendarSignedData = signedData as DashboardCalendarTabProps["signedData"]}
-        <SignedDashboardPublicTabs
+        {@const calendarSignedData = signedData as WorkspaceCalendarTabProps["signedData"]}
+        <SignedWorkspacePublicTabs
         {copy}
         {commonCopy}
         {busCopy}
-        {dashboardCopy}
+        {workspaceCopy}
         {sectionCopy}
         {subscriptionsCopy}
         {calendarWeekdayLabels}
         signedData={calendarSignedData}
-        {dashboardTabHref}
+        {workspaceTabHref}
         {formatMessage}
         {sessionHref}
         {setCalendarView}
@@ -690,8 +690,8 @@ onMount(() => {
         bind:linkSearchInput
         bind:linkSearchQuery
         {signedLinkGroups}
-        {submitDashboardLinkPin}
-        {updatingDashboardLinkSlug}
+        {submitWorkspaceLinkPin}
+        {updatingCatalogLinkSlug}
         />
       {/if}
     {:else if data.signedIn && data.userMissing}

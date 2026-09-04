@@ -87,7 +87,7 @@ const VISUAL_SCREENS: VisualScreen[] = [
           name: locale === "zh-cn" ? /总览/ : /overview/i,
         }),
       ).toBeVisible();
-      await expect(page.getByTestId("dashboard-overview-focus")).toBeVisible();
+      await expect(page.getByTestId("workspace-overview-focus")).toBeVisible();
     },
   },
 ];

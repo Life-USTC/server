@@ -4,16 +4,16 @@ import {
   formatDateOnly,
 } from "./exam-date-display";
 import type {
-  DashboardExam,
-  DashboardExamRow,
-  DashboardExamSection,
-  DashboardExamSubscriptions,
   ExamFilter,
+  WorkspaceExam,
+  WorkspaceExamRow,
+  WorkspaceExamSection,
+  WorkspaceExamSubscriptions,
 } from "./exam-types";
 import { namePrimary } from "./localized-names";
 
-export function flattenExamRows<Section extends DashboardExamSection>(
-  subscriptions: DashboardExamSubscriptions<Section>,
+export function flattenExamRows<Section extends WorkspaceExamSection>(
+  subscriptions: WorkspaceExamSubscriptions<Section>,
   referenceNow: string | null | undefined,
   options: {
     dateFallback: string;
@@ -68,8 +68,8 @@ export function flattenExamRows<Section extends DashboardExamSection>(
   });
 }
 
-export function filterExamRows<Section extends DashboardExamSection>(
-  rows: DashboardExamRow<Section>[],
+export function filterExamRows<Section extends WorkspaceExamSection>(
+  rows: WorkspaceExamRow<Section>[],
   filter: ExamFilter,
 ) {
   if (filter === "all") return rows;
@@ -78,7 +78,7 @@ export function filterExamRows<Section extends DashboardExamSection>(
   );
 }
 
-function examHasDetails(exam: DashboardExam) {
+function examHasDetails(exam: WorkspaceExam) {
   return Boolean(
     exam.examDate ||
       exam.startTime !== null ||

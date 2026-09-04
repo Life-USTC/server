@@ -1,8 +1,8 @@
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
-import { getDashboardNavStats } from "@/features/workspace/server/dashboard-nav-stats";
-import { getDashboardSemesters } from "@/features/workspace/server/dashboard-overview-data";
-import { getDashboardUserContext } from "@/features/workspace/server/dashboard-user-context";
+import { getWorkspaceNavStats } from "@/features/workspace/server/workspace-nav-stats";
 import { getWorkspaceNavigationSummary } from "@/features/workspace/server/workspace-navigation-summary";
+import { getWorkspaceSemesters } from "@/features/workspace/server/workspace-overview-data";
+import { getWorkspaceUserContext } from "@/features/workspace/server/workspace-user-context";
 import { DEV_SEED_ANCHOR } from "../fixtures/dev-seed";
 import {
   createTestPrisma,
@@ -28,13 +28,13 @@ describe("workspace navigation summary", () => {
         select: { userId: true },
       });
     const referenceDate = new Date(DEV_SEED_ANCHOR.recommendedAtTime);
-    const context = await getDashboardUserContext(subscription.userId);
+    const context = await getWorkspaceUserContext(subscription.userId);
     expect(context).not.toBeNull();
     if (!context) return;
 
-    const semesters = await getDashboardSemesters();
+    const semesters = await getWorkspaceSemesters();
     const [existing, summary] = await Promise.all([
-      getDashboardNavStats(
+      getWorkspaceNavStats(
         context.user,
         context.subscribedSections,
         referenceDate,

@@ -15,18 +15,18 @@ import { ScrollArea } from "$lib/components/ui/scroll-area/index.js";
 import { Separator } from "$lib/components/ui/separator/index.js";
 import { Spinner } from "$lib/components/ui/spinner/index.js";
 import type {
-  DashboardSubscriptionsTabProps,
   FormatMessage,
   MatchedImportSection,
   NameFormatter,
+  WorkspaceSubscriptionsTabProps,
 } from "./subscription-tab-types";
 
-export let subscriptionsCopy: DashboardSubscriptionsTabProps["subscriptionsCopy"];
-export let signedData: DashboardSubscriptionsTabProps["signedData"];
+export let subscriptionsCopy: WorkspaceSubscriptionsTabProps["subscriptionsCopy"];
+export let signedData: WorkspaceSubscriptionsTabProps["signedData"];
 export let formatMessage: FormatMessage;
 export let namePrimary: NameFormatter;
-export let searchQuickAddSections: DashboardSubscriptionsTabProps["searchQuickAddSections"];
-export let subscribeQuickAddSections: DashboardSubscriptionsTabProps["subscribeQuickAddSections"];
+export let searchQuickAddSections: WorkspaceSubscriptionsTabProps["searchQuickAddSections"];
+export let subscribeQuickAddSections: WorkspaceSubscriptionsTabProps["subscribeQuickAddSections"];
 export let open: boolean;
 
 let semesterId = "";

@@ -3,8 +3,8 @@ import {
   weekDaysFor,
 } from "@/features/workspace/lib/calendar";
 import { overviewDayLabel } from "@/features/workspace/lib/calendar-display";
-import type { DashboardCalendarPreviewData } from "@/features/workspace/lib/dashboard-controller-helpers";
 import { fmtTime } from "@/features/workspace/lib/overview";
+import type { WorkspaceCalendarPreviewData } from "@/features/workspace/lib/workspace-controller-helpers";
 import { formatCampusDate } from "@/lib/time/campus-date";
 import type {
   OverviewCalendarTimelineItemsForDay,
@@ -12,7 +12,7 @@ import type {
 } from "./overview-tab-types";
 
 export function overviewCalendarWeekDays(
-  overviewCalendar: DashboardCalendarPreviewData,
+  overviewCalendar: WorkspaceCalendarPreviewData,
   overviewWeekStart: string,
   calendarTimelineItemsForDay: OverviewCalendarTimelineItemsForDay,
   locale: string,

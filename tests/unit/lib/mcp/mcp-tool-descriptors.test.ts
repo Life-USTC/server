@@ -338,7 +338,7 @@ describe("MCP tool descriptors", () => {
     expect(description("workspace_exam_list")).toContain("all semesters");
   });
 
-  it("advertises assistant dashboard tool hierarchy", async () => {
+  it("advertises assistant workspace tool hierarchy", async () => {
     const result = await listTools();
     const description = (name: string) =>
       result.tools.find((tool) => tool.name === name)?.description ?? "";

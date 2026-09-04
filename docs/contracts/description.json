@@ -26,9 +26,7 @@
             },
             "returns": "DescriptionMutationPayload!",
             "auth": "user",
-            "required_scopes": [
-              "description:write"
-            ],
+            "required_scopes": ["description:write"],
             "rest_equivalent": "POST /api/community/descriptions",
             "mcp_equivalent": "community_description_set",
             "notes": [
@@ -96,9 +94,7 @@
       "title": "Description Governance",
       "auth": "admin",
       "web": {
-        "pages": [
-          "/admin/moderation"
-        ]
+        "pages": ["/admin/moderation"]
       },
       "rest": {
         "routes": [

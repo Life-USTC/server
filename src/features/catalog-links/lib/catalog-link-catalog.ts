@@ -1,6 +1,6 @@
 import type { AppLocale } from "@/i18n/config";
 
-export type DashboardLinkCategory =
+export type CatalogLinkCategory =
   | "academic"
   | "community"
   | "services"
@@ -17,7 +17,7 @@ export type CatalogLinkIcon =
   | "school"
   | "users";
 
-export type DashboardLinkLocalizedFields = {
+export type CatalogLinkLocalizedFields = {
   title: string;
   description: string;
 };
@@ -28,9 +28,9 @@ export type CatalogLinkItem = {
   url: string;
   description: string;
   localizations: {
-    "en-us": DashboardLinkLocalizedFields;
+    "en-us": CatalogLinkLocalizedFields;
   };
-  category: DashboardLinkCategory;
+  category: CatalogLinkCategory;
   icon: CatalogLinkIcon;
 };
 
@@ -75,7 +75,7 @@ export function localizeCatalogLinks(
   return links.map((link) => localizeCatalogLink(link, locale));
 }
 
-export const DASHBOARD_LINK_GROUP_ORDER: CatalogLinkGroup[] = [
+export const CATALOG_LINK_GROUP_ORDER: CatalogLinkGroup[] = [
   "mostClicked",
   "study",
   "life",
@@ -86,7 +86,7 @@ export const DASHBOARD_LINK_GROUP_ORDER: CatalogLinkGroup[] = [
   "leastClicked",
 ];
 
-export const DASHBOARD_LINK_GROUPS: Record<CatalogLinkGroup, string[]> = {
+export const CATALOG_LINK_GROUPS: Record<CatalogLinkGroup, string[]> = {
   mostClicked: [
     "jw",
     "icourse",

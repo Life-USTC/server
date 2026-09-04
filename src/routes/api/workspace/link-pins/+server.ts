@@ -1,5 +1,5 @@
 import {
-  getDashboardLinkPinsRoute,
+  getWorkspaceLinkPinsRoute,
   postWorkspaceLinkPinRoute,
 } from "@/lib/api/routes/workspace-link-pin-route";
 import { svelteRequestHandler } from "@/lib/api/svelte-route";
@@ -11,7 +11,7 @@ import { observedApiRoute } from "@/lib/log/api-observability";
  * @response 401:openApiErrorSchema
  */
 export const GET = svelteRequestHandler(
-  observedApiRoute(getDashboardLinkPinsRoute),
+  observedApiRoute(getWorkspaceLinkPinsRoute),
 );
 
 /**

@@ -1,8 +1,8 @@
 import { redirect } from "@sveltejs/kit";
 import {
-  dashboardRedirectHrefFromHome,
   homeTabCompatibilityRedirectHref,
-} from "@/features/workspace/lib/dashboard-nav";
+  workspaceRedirectHrefFromHome,
+} from "@/features/workspace/lib/workspace-nav";
 import { loadAnonymousHomePage } from "@/features/workspace/server/anonymous-home-page-load";
 import type { PageServerLoad } from "./$types";
 
@@ -17,7 +17,7 @@ export const load: PageServerLoad = async (event) => {
   }
 
   if (event.locals.authUser?.id) {
-    throw redirect(303, dashboardRedirectHrefFromHome(event.url));
+    throw redirect(303, workspaceRedirectHrefFromHome(event.url));
   }
 
   return loadAnonymousHomePage({

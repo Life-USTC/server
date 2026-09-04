@@ -5,14 +5,14 @@ import TableRowActions from "$lib/components/TableRowActions.svelte";
 import TruncatedText from "$lib/components/TruncatedText.svelte";
 import * as Table from "$lib/components/ui/table/index.js";
 import type {
-  DashboardExamRow,
-  DashboardTabHref,
   ExamsCopyProps,
   ExamTimeLabel,
-} from "./dashboard-exam-component-types";
+  WorkspaceExamRow,
+  WorkspaceTabHref,
+} from "./workspace-exam-component-types";
 
-export let dashboardTabHref: DashboardTabHref;
-export let exams: DashboardExamRow[];
+export let workspaceTabHref: WorkspaceTabHref;
+export let exams: WorkspaceExamRow[];
 export let examTimeLabel: ExamTimeLabel;
 export let fmtExamDate: (value: Date | string | null | undefined) => string;
 export let sectionCopy: ExamsCopyProps["sectionCopy"];
@@ -36,7 +36,7 @@ export let subscriptionsCopy: ExamsCopyProps["subscriptionsCopy"];
     {#each exams as exam}
       {@const detailHref = exam.section.jwId
         ? `/catalog/sections/${exam.section.jwId}`
-        : dashboardTabHref("subscriptions")}
+        : workspaceTabHref("subscriptions")}
       <Table.Row class="group">
         <Table.Cell>
           <a

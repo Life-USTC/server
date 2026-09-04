@@ -1,6 +1,6 @@
 import { CATALOG_PAGE_SIZE } from "@/features/catalog/server/catalog-page-constants";
-import { getWorkspacePageCopy } from "@/features/workspace/server/dashboard-page-copy";
-import type { DashboardPageLoadEvent } from "@/features/workspace/server/dashboard-page-load-types";
+import { getWorkspacePageCopy } from "@/features/workspace/server/workspace-page-copy";
+import type { WorkspacePageLoadEvent } from "@/features/workspace/server/workspace-page-load-types";
 import {
   getYoungEvent,
   listYoungEventCategories,
@@ -27,7 +27,7 @@ function parseActiveParam(value: string | null): boolean | undefined {
 export async function loadYoungEventsPage({
   locals,
   url,
-}: DashboardPageLoadEvent) {
+}: WorkspacePageLoadEvent) {
   const filters: YoungEventsPageFilters = {
     active: parseActiveParam(url.searchParams.get("active")),
     category: optionalValue(url.searchParams.get("category")),
@@ -59,7 +59,7 @@ export async function loadYoungEventsPage({
 export async function loadYoungEventDetailPage({
   locals,
   youngId,
-}: DashboardPageLoadEvent & { youngId: string }) {
+}: WorkspacePageLoadEvent & { youngId: string }) {
   const event = await getYoungEvent(youngId);
 
   return toLoadData({

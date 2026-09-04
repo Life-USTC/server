@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest";
 import * as fixtures from "../_harness";
 
-describe("dashboard link 工具 — 列表/搜索与置顶状态", () => {
+describe("workspace link 工具 — 列表/搜索与置顶状态", () => {
   const isolated = fixtures.createIsolatedMcpToolTestContext({
-    emailPrefix: "mcp-dashboard-links",
-    name: "[integration-test] MCP Dashboard Links",
+    emailPrefix: "mcp-catalog-links",
+    name: "[integration-test] MCP Catalog Links",
     cleanup: async (isolatedUserId) => {
       await fixtures.prisma.workspaceLinkPin.deleteMany({
         where: { userId: isolatedUserId },
@@ -113,17 +113,17 @@ describe("dashboard link 工具 — 列表/搜索与置顶状态", () => {
       pinnedSlugs?: string[];
       maxPinnedLinks?: number;
     }>("workspace_link_pin_set", {
-      slug: "missing-dashboard-link",
+      slug: "missing-catalog-link",
       action: "pin",
     });
 
     expect(result).toMatchObject({
       success: false,
       error: "invalid_slug",
-      slug: "missing-dashboard-link",
+      slug: "missing-catalog-link",
       pinnedSlugs: [],
       maxPinnedLinks: 4,
     });
-    expect(result.message).toContain("missing-dashboard-link");
+    expect(result.message).toContain("missing-catalog-link");
   });
 });

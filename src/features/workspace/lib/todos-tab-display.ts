@@ -1,48 +1,48 @@
 import { toShanghaiDateTimeLocalValue } from "@/lib/time/shanghai-format";
-import type {
-  DashboardDashboardCopy,
-  DashboardSectionCopy,
-  DashboardTodoItem,
-  DashboardTodosCopy,
-} from "./dashboard-controller-types";
-import { formatDashboardDateTime } from "./date-formatters";
+import { formatWorkspaceDateTime } from "./date-formatters";
 import {
   todoActionLabel as buildTodoActionLabel,
   todoStatus as buildTodoStatus,
 } from "./todos";
+import type {
+  WorkspaceCopy,
+  WorkspaceSectionCopy,
+  WorkspaceTodoItem,
+  WorkspaceTodosCopy,
+} from "./workspace-controller-types";
 
 export function createTodoTabDisplayActions({
-  dashboardCopy,
+  workspaceCopy,
   locale,
   referenceDate,
   sectionCopy,
   todosCopy,
 }: {
-  dashboardCopy: DashboardDashboardCopy;
+  workspaceCopy: WorkspaceCopy;
   locale: string;
   referenceDate: Date | string;
-  sectionCopy: DashboardSectionCopy;
-  todosCopy: DashboardTodosCopy;
+  sectionCopy: WorkspaceSectionCopy;
+  todosCopy: WorkspaceTodosCopy;
 }) {
   return {
     datetimeLocalValue: (value: Date | string | null | undefined) =>
       toShanghaiDateTimeLocalValue(value),
     fmtDate: (value: Date | string | null | undefined) =>
-      formatDashboardDateTime(
+      formatWorkspaceDateTime(
         value,
         sectionCopy.dateTBD,
         referenceDate,
         locale,
       ),
-    todoActionLabel: (todo: DashboardTodoItem) =>
+    todoActionLabel: (todo: WorkspaceTodoItem) =>
       buildTodoActionLabel(todo, {
         markIncomplete: String(todosCopy.markIncomplete),
         markComplete: String(todosCopy.markComplete),
       }),
-    todoStatus: (todo: DashboardTodoItem) =>
+    todoStatus: (todo: WorkspaceTodoItem) =>
       buildTodoStatus(todo, {
-        completed: dashboardCopy.completedStatus,
-        pending: dashboardCopy.pendingStatus,
+        completed: workspaceCopy.completedStatus,
+        pending: workspaceCopy.pendingStatus,
       }),
   };
 }

@@ -1,5 +1,5 @@
 /**
- * E2E tests for the calendar dashboard (`/workspace/calendar`)
+ * E2E tests for the calendar workspace (`/workspace/calendar`)
  *
  * ## Data Represented (calendar.yml → personal-calendar-view.display.fields)
  * - calendarEvents (schedules + exams + homeworks + todos)
@@ -42,7 +42,7 @@ test.describe("仪表盘日历", () => {
     );
   });
 
-  test("dashboard 查询 tab 也仅作为永久兼容入口", async ({ page }) => {
+  test("workspace 查询 tab 也仅作为永久兼容入口", async ({ page }) => {
     const response = await page.request.get(
       "/workspace?tab=calendar&calendarView=week",
       {
@@ -71,7 +71,7 @@ test.describe("仪表盘日历", () => {
     // Weekday labels (Sun-Sat) — calendar.yml personal-calendar-view.display.fields
     await expect(
       page
-        .getByTestId("dashboard-calendar-grid")
+        .getByTestId("workspace-calendar-grid")
         .getByText(/Sun|Mon|Tue|Wed|Thu|Fri|Sat|日|一|二|三|四|五|六/)
         .first(),
     ).toBeVisible();
@@ -218,7 +218,7 @@ test.describe("仪表盘日历", () => {
       screenshotLabel: "calendar-mobile-agenda",
     });
 
-    const agenda = page.getByTestId("dashboard-calendar-agenda");
+    const agenda = page.getByTestId("workspace-calendar-agenda");
     await expect(agenda).toBeVisible();
     await expect(agenda.locator("section")).toHaveCount(7);
     await expect(agenda.locator("a").first()).toBeVisible();

@@ -20,10 +20,7 @@
       "title": "Second-Classroom Events",
       "auth": "anon",
       "web": {
-        "pages": [
-          "/catalog/young-events",
-          "/catalog/young-events/[youngId]"
-        ]
+        "pages": ["/catalog/young-events", "/catalog/young-events/[youngId]"]
       },
       "rest": {
         "routes": [
@@ -39,9 +36,7 @@
           {
             "path": "/api/catalog/young-events/[youngId]",
             "returns": "single event including rawJson",
-            "notes": [
-              "404 when the youngId is unknown."
-            ]
+            "notes": ["404 when the youngId is unknown."]
           },
           {
             "path": "/api/catalog/young-events/[youngId]/image",
@@ -75,9 +70,7 @@
             "returns": "YoungEvent",
             "rest_equivalent": "GET /api/catalog/young-events/[youngId]",
             "mcp_equivalent": "catalog_young_event_get",
-            "notes": [
-              "Returns null when the youngId is unknown."
-            ]
+            "notes": ["Returns null when the youngId is unknown."]
           }
         ]
       },
@@ -96,9 +89,7 @@
             "name": "catalog_young_event_get",
             "returns": "single event including rawJson",
             "rest_equivalent": "GET /api/catalog/young-events/[youngId]",
-            "notes": [
-              "Accepts youngId and mode inputs."
-            ]
+            "notes": ["Accepts youngId and mode inputs."]
           }
         ]
       },

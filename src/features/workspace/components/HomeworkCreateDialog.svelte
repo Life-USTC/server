@@ -5,20 +5,20 @@ import { Button } from "$lib/components/ui/button/index.js";
 import * as Dialog from "$lib/components/ui/dialog/index.js";
 import { ScrollArea } from "$lib/components/ui/scroll-area/index.js";
 import { Spinner } from "$lib/components/ui/spinner/index.js";
-import type {
-  DashboardHomeworkCommentsCopy,
-  DashboardHomeworkCreateCopy,
-  DashboardHomeworkCreateSection,
-  DashboardHomeworkCreateSectionGetter,
-  DashboardHomeworkDateShortcut,
-} from "./dashboard-homework-create-types";
 import HomeworkCreateFormFields from "./HomeworkCreateFormFields.svelte";
+import type {
+  WorkspaceHomeworkCommentsCopy,
+  WorkspaceHomeworkCreateCopy,
+  WorkspaceHomeworkCreateSection,
+  WorkspaceHomeworkCreateSectionGetter,
+  WorkspaceHomeworkDateShortcut,
+} from "./workspace-homework-create-types";
 
-export let applyHomeworkDueAtSemesterEnd: DashboardHomeworkDateShortcut;
-export let applyHomeworkDueInMonth: DashboardHomeworkDateShortcut;
-export let applyHomeworkDueInWeek: DashboardHomeworkDateShortcut;
-export let applyHomeworkStartNow: DashboardHomeworkDateShortcut;
-export let commentsCopy: DashboardHomeworkCommentsCopy;
+export let applyHomeworkDueAtSemesterEnd: WorkspaceHomeworkDateShortcut;
+export let applyHomeworkDueInMonth: WorkspaceHomeworkDateShortcut;
+export let applyHomeworkDueInWeek: WorkspaceHomeworkDateShortcut;
+export let applyHomeworkStartNow: WorkspaceHomeworkDateShortcut;
+export let commentsCopy: WorkspaceHomeworkCommentsCopy;
 export let createHomeworkAction: SubmitFunction;
 export let createHomeworkAdvancedOpen: boolean;
 export let createHomeworkError: string;
@@ -27,14 +27,14 @@ export let createHomeworkSectionId: string;
 export let createHomeworkSubmissionDueAt: string;
 export let createHomeworkSubmissionStartAt: string;
 export let homeworkSectionLabel: (
-  section: DashboardHomeworkCreateSection,
+  section: WorkspaceHomeworkCreateSection,
 ) => string;
-export let homeworksCopy: DashboardHomeworkCreateCopy;
+export let homeworksCopy: WorkspaceHomeworkCreateCopy;
 export let isCreatingHomework: boolean;
 export let onClose: () => void;
 export let open: boolean;
-export let sections: DashboardHomeworkCreateSection[];
-export let selectedCreateHomeworkSection: DashboardHomeworkCreateSectionGetter;
+export let sections: WorkspaceHomeworkCreateSection[];
+export let selectedCreateHomeworkSection: WorkspaceHomeworkCreateSectionGetter;
 export let toShanghaiDateTimeLocalValue: (value: Date) => string;
 </script>
 
@@ -89,7 +89,7 @@ export let toShanghaiDateTimeLocalValue: (value: Date) => string;
             {homeworksCopy.cancel}
           </Button>
           <Button
-            data-testid="dashboard-homework-create"
+            data-testid="workspace-homework-create"
             disabled={isCreatingHomework}
             type="submit"
           >

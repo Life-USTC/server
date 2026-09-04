@@ -2,26 +2,6 @@
 import { calendarEventsForDay } from "@/features/workspace/lib/calendar";
 import { calendarExamDetail } from "@/features/workspace/lib/calendar-display";
 import {
-  buildDashboardAgendaDays,
-  currentDashboardTimedEventKey,
-  type DashboardAgendaDay,
-  dashboardFocusItem,
-  dashboardReferenceTime,
-} from "@/features/workspace/lib/dashboard-agenda";
-import type {
-  DashboardCalendarPreviewData,
-  DashboardCommonCopy,
-  DashboardDashboardCopy,
-  DashboardLinkPinSubmit,
-  DashboardOverviewLinkItem,
-  DashboardRootCopy,
-  DashboardSectionCopy,
-  DashboardSubscriptionsCopy,
-  DashboardTodoItem,
-  DashboardTodosCopy,
-} from "@/features/workspace/lib/dashboard-controller-helpers";
-import { hasDashboardSubscriptions } from "@/features/workspace/lib/dashboard-subscription-state";
-import {
   fmtTime,
   formatMessage,
   homeworksOverdueForOverview,
@@ -30,12 +10,27 @@ import {
   todosDueTodayForOverview,
   todosOverdueForOverview,
 } from "@/features/workspace/lib/overview";
-import { DASHBOARD_OVERVIEW_PREVIEW_LIMIT } from "@/features/workspace/lib/overview-preview";
-import DashboardNoSubscriptionsState from "./DashboardNoSubscriptionsState.svelte";
+import { WORKSPACE_OVERVIEW_PREVIEW_LIMIT } from "@/features/workspace/lib/overview-preview";
+import {
+  buildWorkspaceAgendaDays,
+  currentWorkspaceTimedEventKey,
+  type WorkspaceAgendaDay,
+  workspaceFocusItem,
+  workspaceReferenceTime,
+} from "@/features/workspace/lib/workspace-agenda";
 import type {
-  DashboardCalendarSession,
-  DashboardCalendarTabHref,
-} from "./dashboard-calendar-component-types";
+  WorkspaceCalendarPreviewData,
+  WorkspaceCommonCopy,
+  WorkspaceCopy,
+  WorkspaceLinkPinSubmit,
+  WorkspaceOverviewLinkItem,
+  WorkspaceRootCopy,
+  WorkspaceSectionCopy,
+  WorkspaceSubscriptionsCopy,
+  WorkspaceTodoItem,
+  WorkspaceTodosCopy,
+} from "@/features/workspace/lib/workspace-controller-helpers";
+import { hasWorkspaceSubscriptions } from "@/features/workspace/lib/workspace-subscription-state";
 import OverviewFocusCard from "./OverviewFocusCard.svelte";
 import OverviewLinksGrid from "./OverviewLinksGrid.svelte";
 import OverviewMissingCurrentTerm from "./OverviewMissingCurrentTerm.svelte";
@@ -48,31 +43,36 @@ import type {
   OverviewSignedData,
 } from "./overview-tab-types";
 import {
-  dashboardOverviewWeekStart as buildDashboardOverviewWeekStart,
   overviewCalendarWeekDays as buildOverviewCalendarWeekDays,
   overviewUpcomingExams as buildOverviewUpcomingExams,
+  workspaceOverviewWeekStart as buildWorkspaceOverviewWeekStart,
   formatOverviewDate,
   formatOverviewHomeworkEta,
   overviewSessionHref,
   overviewTodoStatus,
 } from "./overview-tab-view-model";
+import WorkspaceNoSubscriptionsState from "./WorkspaceNoSubscriptionsState.svelte";
+import type {
+  WorkspaceCalendarSession,
+  WorkspaceCalendarTabHref,
+} from "./workspace-calendar-component-types";
 
-export let copy: DashboardRootCopy;
-export let commonCopy: DashboardCommonCopy;
-export let dashboardCopy: DashboardDashboardCopy;
-export let sectionCopy: DashboardSectionCopy;
-export let subscriptionsCopy: DashboardSubscriptionsCopy;
-export let todosCopy: DashboardTodosCopy;
+export let copy: WorkspaceRootCopy;
+export let commonCopy: WorkspaceCommonCopy;
+export let workspaceCopy: WorkspaceCopy;
+export let sectionCopy: WorkspaceSectionCopy;
+export let subscriptionsCopy: WorkspaceSubscriptionsCopy;
+export let todosCopy: WorkspaceTodosCopy;
 export let signedData: OverviewSignedData;
 export let locale: string;
 
-export let dashboardTabHref: DashboardCalendarTabHref;
-export let submitDashboardLinkPin: DashboardLinkPinSubmit;
+export let workspaceTabHref: WorkspaceCalendarTabHref;
+export let submitWorkspaceLinkPin: WorkspaceLinkPinSubmit;
 export let linkIconLabel: (icon: string) => string;
 export let calendarTimelineItemsForDay: OverviewCalendarTimelineItemsForDay;
 
-export let overviewLinkItems: DashboardOverviewLinkItem[];
-export let updatingDashboardLinkSlug: string | null;
+export let overviewLinkItems: WorkspaceOverviewLinkItem[];
+export let updatingCatalogLinkSlug: string | null;
 
 function fmtDate(value: Date | string | null | undefined) {
   return formatOverviewDate(value, sectionCopy, signedData, locale);
@@ -82,24 +82,24 @@ function homeworkEtaLabel(value: Date | string | null | undefined) {
   return formatOverviewHomeworkEta(value, sectionCopy, signedData, locale);
 }
 
-function todoStatus(todo: DashboardTodoItem) {
-  return overviewTodoStatus(todo, dashboardCopy);
+function todoStatus(todo: WorkspaceTodoItem) {
+  return overviewTodoStatus(todo, workspaceCopy);
 }
 
-function dashboardOverviewWeekStart() {
-  return buildDashboardOverviewWeekStart(signedData);
+function workspaceOverviewWeekStart() {
+  return buildWorkspaceOverviewWeekStart(signedData);
 }
 
-function overviewUpcomingExams(overviewCalendar: DashboardCalendarPreviewData) {
+function overviewUpcomingExams(overviewCalendar: WorkspaceCalendarPreviewData) {
   return buildOverviewUpcomingExams(overviewCalendar, signedData);
 }
 
-function sessionHref(session: Pick<DashboardCalendarSession, "sectionJwId">) {
-  return overviewSessionHref(session, dashboardTabHref);
+function sessionHref(session: Pick<WorkspaceCalendarSession, "sectionJwId">) {
+  return overviewSessionHref(session, workspaceTabHref);
 }
 
 function overviewCalendarWeekDays(
-  overviewCalendar: DashboardCalendarPreviewData,
+  overviewCalendar: WorkspaceCalendarPreviewData,
   overviewWeekStart: string,
 ) {
   return buildOverviewCalendarWeekDays(
@@ -111,9 +111,9 @@ function overviewCalendarWeekDays(
 }
 
 function overviewAgendaDays(
-  overviewCalendar: DashboardCalendarPreviewData,
-): DashboardAgendaDay[] {
-  return buildDashboardAgendaDays({
+  overviewCalendar: WorkspaceCalendarPreviewData,
+): WorkspaceAgendaDay[] {
+  return buildWorkspaceAgendaDays({
     calendar: overviewCalendar,
     eventsForDay: calendarEventsForDay,
     locale,
@@ -127,10 +127,10 @@ function overviewReference(value: unknown): Date | string | null {
 }
 
 function overviewFocus(
-  overviewCalendar: DashboardCalendarPreviewData,
-  days: DashboardAgendaDay[],
+  overviewCalendar: WorkspaceCalendarPreviewData,
+  days: WorkspaceAgendaDay[],
 ) {
-  const currentTime = dashboardReferenceTime(
+  const currentTime = workspaceReferenceTime(
     overviewReference(signedData.referenceNow) ??
       overviewReference(overviewCalendar.referenceDate),
   );
@@ -138,8 +138,8 @@ function overviewFocus(
     overviewCalendar,
     overviewCalendar.todayDate,
   );
-  return dashboardFocusItem({
-    currentEventKey: currentDashboardTimedEventKey(todayEvents, currentTime),
+  return workspaceFocusItem({
+    currentEventKey: currentWorkspaceTimedEventKey(todayEvents, currentTime),
     currentTime,
     days,
     todayKey: overviewCalendar.todayDate,
@@ -147,26 +147,26 @@ function overviewFocus(
 }
 </script>
 
-{#if signedData.overview && !signedData.overview.hasCurrentTermSelection && hasDashboardSubscriptions(signedData)}
+{#if signedData.overview && !signedData.overview.hasCurrentTermSelection && hasWorkspaceSubscriptions(signedData)}
   <OverviewMissingCurrentTerm
-    {dashboardCopy}
-    {dashboardTabHref}
+    {workspaceCopy}
+    {workspaceTabHref}
     {linkIconLabel}
     links={overviewLinkItems}
     pendingTodosCount={signedData.navStats.pendingTodosCount}
     {signedData}
-    {submitDashboardLinkPin}
-    {updatingDashboardLinkSlug}
+    {submitWorkspaceLinkPin}
+    {updatingCatalogLinkSlug}
   />
 {:else}
-  {#if !hasDashboardSubscriptions(signedData)}
-    <DashboardNoSubscriptionsState
+  {#if !hasWorkspaceSubscriptions(signedData)}
+    <WorkspaceNoSubscriptionsState
       title={subscriptionsCopy.noSubscriptions}
       description={subscriptionsCopy.noSubscriptionsDescription}
       actions={[
         { href: "/catalog/sections", label: subscriptionsCopy.browseSections },
         { href: "/catalog/courses", label: subscriptionsCopy.browseCourses, variant: "outline" },
-        { href: dashboardTabHref("subscriptions"), label: dashboardCopy.termSelection.matchByCode, variant: "outline" },
+        { href: workspaceTabHref("subscriptions"), label: workspaceCopy.termSelection.matchByCode, variant: "outline" },
       ]}
     />
   {/if}
@@ -187,38 +187,38 @@ function overviewFocus(
 
   {#if signedData.overview?.calendar}
     {@const overviewCalendar = signedData.overview.calendar}
-    {@const overviewWeekStart = dashboardOverviewWeekStart()}
+    {@const overviewWeekStart = workspaceOverviewWeekStart()}
     {@const upcomingOverviewExams = overviewUpcomingExams(overviewCalendar)}
     {@const agendaDays = overviewAgendaDays(overviewCalendar)}
     <div class="grid min-w-0 gap-8 lg:gap-10">
       <OverviewFocusCard
-        copy={dashboardCopy.focus}
+        copy={workspaceCopy.focus}
         focus={overviewFocus(overviewCalendar, agendaDays)}
       />
 
       <div class="min-w-0">
         <OverviewWeekCard
-          {dashboardCopy}
-          {dashboardTabHref}
+          {workspaceCopy}
+          {workspaceTabHref}
           days={overviewCalendarWeekDays(overviewCalendar, overviewWeekStart)}
           {formatMessage}
         />
       </div>
 
       <OverviewLinksGrid
-        {dashboardCopy}
-        {dashboardTabHref}
+        {workspaceCopy}
+        {workspaceTabHref}
         {linkIconLabel}
         links={overviewLinkItems}
-        {submitDashboardLinkPin}
-        {updatingDashboardLinkSlug}
+        {submitWorkspaceLinkPin}
+        {updatingCatalogLinkSlug}
       />
 
       <OverviewTodayOverdueCards
         {copy}
         {commonCopy}
-        {dashboardCopy}
-        {dashboardTabHref}
+        {workspaceCopy}
+        {workspaceTabHref}
         dueTodayHomeworks={signedData.overview.dueToday}
         dueTodayTodos={overviewTodosDueToday}
         {fmtDate}
@@ -226,33 +226,33 @@ function overviewFocus(
         {homeworkEtaLabel}
         overdueHomeworks={overviewOverdueHomeworks}
         overdueTodos={overviewOverdueTodos}
-        previewLimit={DASHBOARD_OVERVIEW_PREVIEW_LIMIT}
+        previewLimit={WORKSPACE_OVERVIEW_PREVIEW_LIMIT}
         {sessionHref}
         todaySessions={signedData.overview.todaySessions}
         {todosCopy}
         {todoStatus}
-        viewAllLabel={dashboardCopy.viewAll as string}
+        viewAllLabel={workspaceCopy.viewAll as string}
       />
 
       <OverviewSummaryCards
         {calendarExamDetail}
         {commonCopy}
-        {dashboardCopy}
-        {dashboardTabHref}
+        {workspaceCopy}
+        {workspaceTabHref}
         examsCount={signedData.navStats.examsCount}
         {fmtDate}
         {formatMessage}
         {homeworkEtaLabel}
         pendingHomeworks={overviewSummaryHomeworks}
         pendingTodos={overviewSummaryTodos}
-        previewLimit={DASHBOARD_OVERVIEW_PREVIEW_LIMIT}
+        previewLimit={WORKSPACE_OVERVIEW_PREVIEW_LIMIT}
         {sectionCopy}
         {todosCopy}
         todosDueSoon={overviewTodosDueSoon}
         todosDueToday={overviewTodosDueToday}
         {todoStatus}
         upcomingExams={upcomingOverviewExams}
-        viewAllLabel={dashboardCopy.viewAll as string}
+        viewAllLabel={workspaceCopy.viewAll as string}
       />
     </div>
   {/if}

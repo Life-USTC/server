@@ -1,0 +1,54 @@
+import type { SubmitFunction } from "@sveltejs/kit";
+import {
+  actionResultError,
+  validateCreateHomeworkForm as validateCreateHomeworkFormData,
+} from "./forms";
+
+type Setter<T> = (value: T) => void;
+type HomeworksCopy = Parameters<typeof validateCreateHomeworkFormData>[1];
+
+export function validateWorkspaceCreateHomeworkForm(
+  formData: FormData,
+  homeworksCopy: HomeworksCopy,
+) {
+  return validateCreateHomeworkFormData(formData, homeworksCopy);
+}
+
+export function createWorkspaceHomeworkAction({
+  getHomeworksCopy,
+  onSuccess,
+  setCreating,
+  setError,
+}: {
+  getHomeworksCopy: () => HomeworksCopy;
+  onSuccess?: () => void;
+  setCreating: Setter<boolean>;
+  setError: Setter<string>;
+}): SubmitFunction {
+  return ({ cancel, formData }) => {
+    const homeworksCopy = getHomeworksCopy();
+    const validationError = validateWorkspaceCreateHomeworkForm(
+      formData,
+      homeworksCopy,
+    );
+    setError(validationError);
+    if (validationError) {
+      cancel();
+      return;
+    }
+
+    setCreating(true);
+    return async ({ result, update }) => {
+      try {
+        if (result.type === "failure") {
+          setError(actionResultError(result, homeworksCopy.createFailed));
+          return;
+        }
+        await update();
+        onSuccess?.();
+      } finally {
+        setCreating(false);
+      }
+    };
+  };
+}

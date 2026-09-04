@@ -33,7 +33,7 @@
       "prestoBot": "Presto 机器人",
       "mcp": "MCP",
       "cli": "命令行",
-      "workspace": "仪表盘"
+      "workspace": "工作区"
     }
   },
   "common": {
@@ -148,7 +148,7 @@
     "openCourse": "前往课程主页",
     "unsubscribe": "取消订阅",
     "unsubscribeTitle": "确认取消订阅？",
-    "unsubscribeDescription": "取消订阅「{name}」后，其课程表、考试与作业将不再出现在你的仪表盘中。",
+    "unsubscribeDescription": "取消订阅「{name}」后，其课程表、考试与作业将不再出现在你的工作区中。",
     "cancelUnsubscribe": "保留订阅",
     "confirmUnsubscribe": "确认取消订阅",
     "calendarTitle": "日历（{count}）",
@@ -267,18 +267,18 @@
     "subtitle": "您的一站式应用，用于查看课程表、校园资源和中国科大的学生生活",
     "actions": {
       "mobileApp": "移动应用",
-      "openWorkspace": "打开仪表盘",
+      "openWorkspace": "打开工作区",
       "signIn": "登录"
     },
     "downloadBadgeAlt": "在 App Store 下载 Life@USTC",
     "appIconAlt": "Life@USTC 应用图标",
     "publicWorkspace": {
       "title": "课程、课表与校园生活，一站搞定",
-      "description": "公开浏览课程目录、班级、教师、校车与常用网站；登录后同步个人课表、作业、订阅和仪表盘。",
+      "description": "公开浏览课程目录、班级、教师、校车与常用网站；登录后同步个人课表、作业、订阅和工作区。",
       "exploreLabel": "继续浏览",
       "cards": {
         "signIn": {
-          "title": "登录进入个人仪表盘",
+          "title": "登录进入个人工作区",
           "description": "解锁个人课表、作业、教学班订阅和账户设置。"
         },
         "mobileApp": {
@@ -310,7 +310,7 @@
     "quickAccess": {
       "title": "快速访问",
       "openWorkspace": {
-        "title": "打开仪表盘",
+        "title": "打开工作区",
         "description": "先浏览公开校园链接，登录后再进入个人工具。"
       },
       "browseCourses": {
@@ -730,7 +730,7 @@
     "tags": "标签"
   },
   "workspace": {
-    "title": "仪表盘",
+    "title": "工作区",
     "description": "你好，{name}。这里集中展示你的课程、作业与安排。",
     "descriptionV2": "你好，{name}",
     "fallbackName": "访客",
@@ -748,7 +748,7 @@
       "current": "{date} 开始的一周"
     },
     "nav": {
-      "ariaLabel": "仪表盘页面切换",
+      "ariaLabel": "工作区页面切换",
       "overview": {
         "title": "总览",
         "description": "今日课程、作业与本周课表"
@@ -881,7 +881,7 @@
     "termSelection": {
       "title": "当前学期暂无教学班订阅",
       "noAnySelection": "先订阅教学班，才能在这里看到当前学期的任务。",
-      "noCurrentTerm": "你目前只订阅了往期教学班。再订阅当前学期的教学班即可恢复仪表盘。",
+      "noCurrentTerm": "你目前只订阅了往期教学班。再订阅当前学期的教学班即可恢复工作区。",
       "historyAvailable": "往期班级、作业和课表仍然保留，你可以继续查看。",
       "viewPastHomeworks": "查看往期作业",
       "viewPastSchedule": "查看往期课表",
@@ -1472,7 +1472,7 @@
     "pleaseWait": "请稍候",
     "subscribeSuccess": "已订阅",
     "unsubscribeSuccess": "已移除",
-    "subscribeSuccessDescription": "该教学班已加入你的订阅列表，仅影响 Life@USTC 中的日历与仪表盘。",
+    "subscribeSuccessDescription": "该教学班已加入你的订阅列表，仅影响 Life@USTC 中的日历与工作区。",
     "unsubscribeSuccessDescription": "该教学班已从你的订阅列表中移除",
     "operationFailed": "操作失败",
     "pleaseRetry": "请重试",
@@ -1503,9 +1503,9 @@
       "comments": "评论",
       "calendar": "日历"
     },
-    "loginRequiredDescription": "登录后即可在 Life@USTC 中订阅教学班，并在不同设备间同步你的仪表盘与日历。这不等同于学校官方选课。",
+    "loginRequiredDescription": "登录后即可在 Life@USTC 中订阅教学班，并在不同设备间同步你的工作区与日历。这不等同于学校官方选课。",
     "loginToSubscribe": "登录后订阅",
-    "subscriptionDisclaimer": "这里的“教学班订阅”只会影响 Life@USTC 中的仪表盘与日历，不代表中国科大官方选课。",
+    "subscriptionDisclaimer": "这里的“教学班订阅”只会影响 Life@USTC 中的工作区与日历，不代表中国科大官方选课。",
     "calendar": "日历 ({count})",
     "calendarEmpty": "此班级暂无课程或考试安排",
     "classEvent": "上课",

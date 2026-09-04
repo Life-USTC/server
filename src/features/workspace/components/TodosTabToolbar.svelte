@@ -1,9 +1,9 @@
 <script lang="ts">
 import Plus from "@lucide/svelte/icons/plus";
 import type {
-  DashboardTodosCopy,
   TodoFilter,
-} from "@/features/workspace/lib/dashboard-controller-types";
+  WorkspaceTodosCopy,
+} from "@/features/workspace/lib/workspace-controller-types";
 import { Button } from "$lib/components/ui/button/index.js";
 import * as ToggleGroup from "$lib/components/ui/toggle-group/index.js";
 
@@ -11,7 +11,7 @@ export let createTodoError: string;
 export let showCreateTodo: boolean;
 export let todoFilter: TodoFilter;
 export let onTodoFilterChange: (value: TodoFilter) => void;
-export let todosCopy: DashboardTodosCopy;
+export let todosCopy: WorkspaceTodosCopy;
 </script>
 
 <div class="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-2 md:grid-cols-[minmax(0,1fr)_auto] md:items-center">
@@ -49,7 +49,7 @@ export let todosCopy: DashboardTodosCopy;
     <Button
       aria-label={String(todosCopy.addButton)}
       class="size-11 md:h-8 md:w-auto md:min-w-28"
-      data-testid="dashboard-todos-add"
+      data-testid="workspace-todos-add"
       type="button"
       onclick={() => {
         createTodoError = "";

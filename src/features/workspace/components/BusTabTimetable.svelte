@@ -1,17 +1,17 @@
 <script lang="ts">
 import type { BusApplicableRoute } from "@/features/bus/lib/bus-client";
 import type {
-  DashboardBusCopy,
-  DashboardBusData,
+  WorkspaceBusCopy,
+  WorkspaceBusData,
 } from "@/features/workspace/lib/bus-tab-types";
 import { Button } from "$lib/components/ui/button/index.js";
 import * as Empty from "$lib/components/ui/empty/index.js";
 import BusTabRouteTable from "./BusTabRouteTable.svelte";
 import BusTabTimetableNotice from "./BusTabTimetableNotice.svelte";
 
-export let bus: DashboardBusData;
+export let bus: WorkspaceBusData;
 export let busApplicableRoutes: BusApplicableRoute[];
-export let busCopy: DashboardBusCopy;
+export let busCopy: WorkspaceBusCopy;
 export let busNextTripHighlightKey: string | null;
 export let busPlannerReady: boolean;
 export let busShowsEstimatedHint: boolean;
@@ -25,7 +25,7 @@ export let showHeader = false;
       <div class="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h2 class="font-semibold text-lg tracking-normal">
-            {busCopy.dashboardTitle}
+            {busCopy.workspaceTitle}
           </h2>
         </div>
         <Button class="h-11 md:h-8" href="/catalog/bus/map" variant="outline">

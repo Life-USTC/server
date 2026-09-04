@@ -1,5 +1,5 @@
-import { getWorkspacePageCopy } from "@/features/workspace/server/dashboard-page-copy";
-import type { DashboardPageLoadEvent } from "@/features/workspace/server/dashboard-page-load-types";
+import { getWorkspacePageCopy } from "@/features/workspace/server/workspace-page-copy";
+import type { WorkspacePageLoadEvent } from "@/features/workspace/server/workspace-page-load-types";
 import { getWeatherSnapshot } from "./weather-service";
 import {
   WEATHER_LOCATIONS,
@@ -12,7 +12,7 @@ export type WeatherPageLocation = {
   snapshot: WeatherSnapshot | null;
 };
 
-export async function loadWeatherPage({ locals }: DashboardPageLoadEvent) {
+export async function loadWeatherPage({ locals }: WorkspacePageLoadEvent) {
   const locations = await Promise.all(
     WEATHER_LOCATIONS.map(
       async (location): Promise<WeatherPageLocation> => ({

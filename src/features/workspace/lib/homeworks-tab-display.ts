@@ -1,13 +1,7 @@
-import type {
-  DashboardDashboardCopy,
-  DashboardHomeworkItem,
-  DashboardSectionCopy,
-} from "./dashboard-controller-types";
-import { dashboardTabHref } from "./dashboard-nav";
 import {
-  formatDashboardDateTime,
-  formatDashboardDueRelativeTime,
-  isDashboardDueOverdue,
+  formatWorkspaceDateTime,
+  formatWorkspaceDueRelativeTime,
+  isWorkspaceDueOverdue,
 } from "./date-formatters";
 import {
   homeworkCompletionActionLabel as buildHomeworkCompletionActionLabel,
@@ -16,6 +10,12 @@ import {
   homeworkSectionOptionLabel,
   homeworkStatusLabel,
 } from "./homeworks";
+import type {
+  WorkspaceCopy,
+  WorkspaceHomeworkItem,
+  WorkspaceSectionCopy,
+} from "./workspace-controller-types";
+import { workspaceTabHref } from "./workspace-nav";
 
 type HomeworkCopy = Record<string, unknown> & {
   section: string;
@@ -37,53 +37,53 @@ type HomeworkSectionOption = {
 };
 
 export function createHomeworkTabDisplayActions({
-  dashboardCopy,
+  workspaceCopy,
   homeworkCopy,
   homeworksCopy,
   locale,
   referenceDate,
   sectionCopy,
 }: {
-  dashboardCopy: DashboardDashboardCopy;
+  workspaceCopy: WorkspaceCopy;
   homeworkCopy: HomeworkCopy;
   homeworksCopy: HomeworksCopy;
   locale: string;
   referenceDate: Date | string;
-  sectionCopy: DashboardSectionCopy;
+  sectionCopy: WorkspaceSectionCopy;
 }) {
-  const returnTo = dashboardTabHref("homeworks");
+  const returnTo = workspaceTabHref("homeworks");
   return {
     fmtDate: (value: Date | string | null | undefined) =>
-      formatDashboardDateTime(
+      formatWorkspaceDateTime(
         value,
         sectionCopy.dateTBD,
         referenceDate,
         locale,
       ),
-    homeworkCompletionActionLabel: (homework: DashboardHomeworkItem) =>
+    homeworkCompletionActionLabel: (homework: WorkspaceHomeworkItem) =>
       buildHomeworkCompletionActionLabel(homework, {
         markComplete: homeworksCopy.markComplete,
         markIncomplete: homeworksCopy.markIncomplete,
       }),
-    homeworkCourseLabel: (homework: DashboardHomeworkItem) =>
+    homeworkCourseLabel: (homework: WorkspaceHomeworkItem) =>
       buildHomeworkCourseLabel(homework, homeworkCopy.section),
     homeworkEtaLabel: (value: Date | string | null | undefined) =>
-      formatDashboardDueRelativeTime(
+      formatWorkspaceDueRelativeTime(
         value,
         sectionCopy.dateTBD,
         referenceDate,
         locale,
       ),
     homeworkIsOverdue: (value: Date | string | null | undefined) =>
-      isDashboardDueOverdue(value, referenceDate),
-    homeworkSectionHref: (homework: DashboardHomeworkItem) =>
+      isWorkspaceDueOverdue(value, referenceDate),
+    homeworkSectionHref: (homework: WorkspaceHomeworkItem) =>
       buildHomeworkSectionHref(homework, returnTo),
     homeworkSectionLabel: (section: HomeworkSectionOption) =>
-      homeworkSectionOptionLabel(section, dashboardCopy.notAvailable),
-    homeworkStatus: (homework: DashboardHomeworkItem) =>
+      homeworkSectionOptionLabel(section, workspaceCopy.notAvailable),
+    homeworkStatus: (homework: WorkspaceHomeworkItem) =>
       homeworkStatusLabel(homework, {
-        completed: dashboardCopy.completedStatus,
-        pending: dashboardCopy.pendingStatus,
+        completed: workspaceCopy.completedStatus,
+        pending: workspaceCopy.pendingStatus,
       }),
   };
 }

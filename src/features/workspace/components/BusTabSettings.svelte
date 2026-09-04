@@ -1,8 +1,8 @@
 <script lang="ts">
 import ArrowLeftRightIcon from "@lucide/svelte/icons/arrow-left-right";
 import type {
-  DashboardBusCopy,
-  DashboardBusData,
+  WorkspaceBusCopy,
+  WorkspaceBusData,
 } from "@/features/workspace/lib/bus-tab-types";
 import { Button } from "$lib/components/ui/button/index.js";
 import * as Field from "$lib/components/ui/field/index.js";
@@ -10,8 +10,8 @@ import { Switch } from "$lib/components/ui/switch/index.js";
 import * as ToggleGroup from "$lib/components/ui/toggle-group/index.js";
 import BusCampusPickerGroup from "./BusCampusPickerGroup.svelte";
 
-export let bus: DashboardBusData;
-export let busCopy: DashboardBusCopy;
+export let bus: WorkspaceBusData;
+export let busCopy: WorkspaceBusCopy;
 export let busDayType: "weekday" | "saturday" | "sunday";
 export let busEndCampusId: number | null;
 export let busPlannerReady: boolean;
@@ -26,7 +26,7 @@ export let toggleBusDepartedTrips: () => void;
 
 <Field.Group class="gap-3">
   <Field.Set>
-    <Field.Legend class="sr-only">{busCopy.dashboardTitle}</Field.Legend>
+    <Field.Legend class="sr-only">{busCopy.workspaceTitle}</Field.Legend>
     <Field.Group class="gap-3">
       <BusCampusPickerGroup
         campuses={bus.campuses}

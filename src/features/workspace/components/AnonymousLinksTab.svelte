@@ -1,14 +1,14 @@
 <script lang="ts">
 import type {
   AnonymousLinkGroup,
-  DashboardDashboardCopy,
-} from "@/features/workspace/lib/dashboard-controller-helpers";
+  WorkspaceCopy,
+} from "@/features/workspace/lib/workspace-controller-helpers";
 import { Button } from "$lib/components/ui/button/index.js";
 import * as Empty from "$lib/components/ui/empty/index.js";
 import AnonymousLinksGroup from "./AnonymousLinksGroup.svelte";
 import AnonymousLinksToolbar from "./AnonymousLinksToolbar.svelte";
 
-export let dashboardCopy: Pick<DashboardDashboardCopy, "linkHub">;
+export let workspaceCopy: Pick<WorkspaceCopy, "linkHub">;
 export let linkIconLabel: (icon: string) => string;
 
 export let linkSearchQuery: string;
@@ -18,28 +18,28 @@ export let anonymousLinkGroups: AnonymousLinkGroup[];
 
 <section class="grid gap-4">
   <AnonymousLinksToolbar
-    {dashboardCopy}
+    {workspaceCopy}
     bind:linkSearchInput
     bind:linkSearchQuery
   />
 
   {#each anonymousLinkGroups as entry}
     <AnonymousLinksGroup
-      colDescription={dashboardCopy.linkHub.colDescription}
-      colName={dashboardCopy.linkHub.colName}
+      colDescription={workspaceCopy.linkHub.colDescription}
+      colName={workspaceCopy.linkHub.colName}
       {entry}
       {linkIconLabel}
     />
   {:else}
     <Empty.Root class="items-start text-left">
       <Empty.Header class="items-start text-left">
-        <Empty.Title>{dashboardCopy.linkHub.empty}</Empty.Title>
+        <Empty.Title>{workspaceCopy.linkHub.empty}</Empty.Title>
       </Empty.Header>
     </Empty.Root>
   {/each}
 
   <p class="text-muted-foreground text-xs">
-    {dashboardCopy.linkHub.credit}
+    {workspaceCopy.linkHub.credit}
     <Button
       class="h-auto p-0"
       href="https://github.com/SmartHypercube/ustclife"
@@ -48,6 +48,6 @@ export let anonymousLinkGroups: AnonymousLinkGroup[];
       variant="link"
     >
       SmartHypercube/ustclife
-    </Button>{dashboardCopy.linkHub.creditSuffix}
+    </Button>{workspaceCopy.linkHub.creditSuffix}
   </p>
 </section>

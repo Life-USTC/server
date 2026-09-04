@@ -1,13 +1,13 @@
 <script lang="ts">
-import type { AnonymousLinkGroup } from "@/features/workspace/lib/dashboard-controller-helpers";
 import {
   LINK_TABLE_CLASS,
   LINK_TABLE_NAME_COL,
 } from "@/features/workspace/lib/link-table-layout";
+import type { AnonymousLinkGroup } from "@/features/workspace/lib/workspace-controller-helpers";
 import TruncatedText from "$lib/components/TruncatedText.svelte";
 import * as Table from "$lib/components/ui/table/index.js";
-import DashboardLinkTableCell from "./DashboardLinkTableCell.svelte";
-import DashboardLinkVisitAction from "./DashboardLinkVisitAction.svelte";
+import CatalogLinkTableCell from "./CatalogLinkTableCell.svelte";
+import CatalogLinkVisitAction from "./CatalogLinkVisitAction.svelte";
 
 export let colDescription: string;
 export let colName: string;
@@ -21,7 +21,7 @@ export let linkIconLabel: (icon: string) => string;
   </h3>
   <div class="grid gap-3 md:grid-cols-2 lg:grid-cols-4 xl:hidden">
     {#each entry.links as link}
-      <DashboardLinkVisitAction {link} {linkIconLabel} />
+      <CatalogLinkVisitAction {link} {linkIconLabel} />
     {/each}
   </div>
   <div class="relative hidden w-full overflow-x-auto xl:block">
@@ -40,7 +40,7 @@ export let linkIconLabel: (icon: string) => string;
         {#each entry.links as link}
           <Table.Row class="group">
             <Table.Cell class="p-0">
-              <DashboardLinkTableCell {link}>
+              <CatalogLinkTableCell {link}>
                 <span class="flex min-w-0 items-center gap-2">
                   <span
                     aria-hidden="true"
@@ -50,12 +50,12 @@ export let linkIconLabel: (icon: string) => string;
                   </span>
                   <TruncatedText text={link.title} />
                 </span>
-              </DashboardLinkTableCell>
+              </CatalogLinkTableCell>
             </Table.Cell>
             <Table.Cell class="p-0">
-              <DashboardLinkTableCell {link}>
+              <CatalogLinkTableCell {link}>
                 <TruncatedText text={link.description} />
-              </DashboardLinkTableCell>
+              </CatalogLinkTableCell>
             </Table.Cell>
           </Table.Row>
         {/each}
