@@ -351,24 +351,24 @@ INSERT INTO public."CommentReaction" (id, type, "createdAt", "commentId", "userI
 
 
 --
--- Data for Name: DashboardLinkClick; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: CatalogLinkClick; Type: TABLE DATA; Schema: public; Owner: -
 --
 
-INSERT INTO public."DashboardLinkClick" (id, "userId", slug, count, "lastClickedAt", "createdAt", "updatedAt") VALUES ('cmqw1srg4001rbqt4hw3745va', 'cmqw1sr9g0001bqt44c3s0kqa', 'jw', 6, '2026-04-29 02:00:00', '2026-06-27 07:38:10.036', '2026-06-27 07:38:10.036') ON CONFLICT DO NOTHING;
-INSERT INTO public."DashboardLinkClick" (id, "userId", slug, count, "lastClickedAt", "createdAt", "updatedAt") VALUES ('cmqw1srg4001sbqt4qxj6mt2a', 'cmqw1sr9g0001bqt44c3s0kqa', 'mail', 5, '2026-04-29 03:00:00', '2026-06-27 07:38:10.036', '2026-06-27 07:38:10.036') ON CONFLICT DO NOTHING;
-INSERT INTO public."DashboardLinkClick" (id, "userId", slug, count, "lastClickedAt", "createdAt", "updatedAt") VALUES ('cmqw1srg4001tbqt4hou8tuds', 'cmqw1sr9g0001bqt44c3s0kqa', 'confession-wall', 4, '2026-04-29 04:00:00', '2026-06-27 07:38:10.036', '2026-06-27 07:38:10.036') ON CONFLICT DO NOTHING;
-INSERT INTO public."DashboardLinkClick" (id, "userId", slug, count, "lastClickedAt", "createdAt", "updatedAt") VALUES ('cmqw1srg4001ubqt4s4f8uffi', 'cmqw1sr9g0001bqt44c3s0kqa', 'official', 3, '2026-04-29 05:00:00', '2026-06-27 07:38:10.036', '2026-06-27 07:38:10.036') ON CONFLICT DO NOTHING;
-INSERT INTO public."DashboardLinkClick" (id, "userId", slug, count, "lastClickedAt", "createdAt", "updatedAt") VALUES ('cmqw1srg4001vbqt4ixame69s', 'cmqw1sr9g0001bqt44c3s0kqa', 'icourse', 2, '2026-04-29 06:00:00', '2026-06-27 07:38:10.036', '2026-06-27 07:38:10.036') ON CONFLICT DO NOTHING;
+INSERT INTO public."CatalogLinkClick" (id, "userId", slug, count, "lastClickedAt", "createdAt", "updatedAt") VALUES ('cmqw1srg4001rbqt4hw3745va', 'cmqw1sr9g0001bqt44c3s0kqa', 'jw', 6, '2026-04-29 02:00:00', '2026-06-27 07:38:10.036', '2026-06-27 07:38:10.036') ON CONFLICT DO NOTHING;
+INSERT INTO public."CatalogLinkClick" (id, "userId", slug, count, "lastClickedAt", "createdAt", "updatedAt") VALUES ('cmqw1srg4001sbqt4qxj6mt2a', 'cmqw1sr9g0001bqt44c3s0kqa', 'mail', 5, '2026-04-29 03:00:00', '2026-06-27 07:38:10.036', '2026-06-27 07:38:10.036') ON CONFLICT DO NOTHING;
+INSERT INTO public."CatalogLinkClick" (id, "userId", slug, count, "lastClickedAt", "createdAt", "updatedAt") VALUES ('cmqw1srg4001tbqt4hou8tuds', 'cmqw1sr9g0001bqt44c3s0kqa', 'confession-wall', 4, '2026-04-29 04:00:00', '2026-06-27 07:38:10.036', '2026-06-27 07:38:10.036') ON CONFLICT DO NOTHING;
+INSERT INTO public."CatalogLinkClick" (id, "userId", slug, count, "lastClickedAt", "createdAt", "updatedAt") VALUES ('cmqw1srg4001ubqt4s4f8uffi', 'cmqw1sr9g0001bqt44c3s0kqa', 'official', 3, '2026-04-29 05:00:00', '2026-06-27 07:38:10.036', '2026-06-27 07:38:10.036') ON CONFLICT DO NOTHING;
+INSERT INTO public."CatalogLinkClick" (id, "userId", slug, count, "lastClickedAt", "createdAt", "updatedAt") VALUES ('cmqw1srg4001vbqt4ixame69s', 'cmqw1sr9g0001bqt44c3s0kqa', 'icourse', 2, '2026-04-29 06:00:00', '2026-06-27 07:38:10.036', '2026-06-27 07:38:10.036') ON CONFLICT DO NOTHING;
 
 
 --
--- Data for Name: DashboardLinkPin; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: WorkspaceLinkPin; Type: TABLE DATA; Schema: public; Owner: -
 --
 
-INSERT INTO public."DashboardLinkPin" (id, "userId", slug, "createdAt", "updatedAt") VALUES ('cmqw1srg5001wbqt481a7iqs3', 'cmqw1sr9g0001bqt44c3s0kqa', 'jw', '2026-06-27 07:38:10.037', '2026-06-27 07:38:10.037') ON CONFLICT DO NOTHING;
-INSERT INTO public."DashboardLinkPin" (id, "userId", slug, "createdAt", "updatedAt") VALUES ('cmqw1srg5001xbqt4tep8wgdo', 'cmqw1sr9g0001bqt44c3s0kqa', 'confession-wall', '2026-06-27 07:38:10.037', '2026-06-27 07:38:10.037') ON CONFLICT DO NOTHING;
-INSERT INTO public."DashboardLinkPin" (id, "userId", slug, "createdAt", "updatedAt") VALUES ('cmqw1srg5001ybqt4y7cwzufi', 'cmqw1sr9g0001bqt44c3s0kqa', 'mail', '2026-06-27 07:38:10.037', '2026-06-27 07:38:10.037') ON CONFLICT DO NOTHING;
-INSERT INTO public."DashboardLinkPin" (id, "userId", slug, "createdAt", "updatedAt") VALUES ('cmqw1srg5001zbqt4c1erutxb', 'cmqw1sr9g0001bqt44c3s0kqa', 'official', '2026-06-27 07:38:10.037', '2026-06-27 07:38:10.037') ON CONFLICT DO NOTHING;
+INSERT INTO public."WorkspaceLinkPin" (id, "userId", slug, "createdAt", "updatedAt") VALUES ('cmqw1srg5001wbqt481a7iqs3', 'cmqw1sr9g0001bqt44c3s0kqa', 'jw', '2026-06-27 07:38:10.037', '2026-06-27 07:38:10.037') ON CONFLICT DO NOTHING;
+INSERT INTO public."WorkspaceLinkPin" (id, "userId", slug, "createdAt", "updatedAt") VALUES ('cmqw1srg5001xbqt4tep8wgdo', 'cmqw1sr9g0001bqt44c3s0kqa', 'confession-wall', '2026-06-27 07:38:10.037', '2026-06-27 07:38:10.037') ON CONFLICT DO NOTHING;
+INSERT INTO public."WorkspaceLinkPin" (id, "userId", slug, "createdAt", "updatedAt") VALUES ('cmqw1srg5001ybqt4y7cwzufi', 'cmqw1sr9g0001bqt44c3s0kqa', 'mail', '2026-06-27 07:38:10.037', '2026-06-27 07:38:10.037') ON CONFLICT DO NOTHING;
+INSERT INTO public."WorkspaceLinkPin" (id, "userId", slug, "createdAt", "updatedAt") VALUES ('cmqw1srg5001zbqt4c1erutxb', 'cmqw1sr9g0001bqt44c3s0kqa', 'official', '2026-06-27 07:38:10.037', '2026-06-27 07:38:10.037') ON CONFLICT DO NOTHING;
 
 
 --

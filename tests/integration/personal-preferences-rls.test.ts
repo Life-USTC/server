@@ -22,8 +22,8 @@ describe.skipIf(process.env.RLS_TEST_ENABLED !== "true")(
 
     async function clearPreferences(userId: string) {
       await withUserDbContext(userId, async () => {
-        await prisma.dashboardLinkClick.deleteMany({ where: { userId } });
-        await prisma.dashboardLinkPin.deleteMany({ where: { userId } });
+        await prisma.catalogLinkClick.deleteMany({ where: { userId } });
+        await prisma.workspaceLinkPin.deleteMany({ where: { userId } });
         await prisma.busUserPreference.deleteMany({ where: { userId } });
       });
     }
@@ -65,11 +65,11 @@ describe.skipIf(process.env.RLS_TEST_ENABLED !== "true")(
 
     it("defaults every protected preference table to no rows or writes", async () => {
       const hiddenRows = await withUserDbContext(firstUserId, async (tx) => {
-        const click = await tx.dashboardLinkClick.create({
+        const click = await tx.catalogLinkClick.create({
           data: { userId: firstUserId, slug: "missing-context-hidden-click" },
           select: { id: true },
         });
-        const pin = await tx.dashboardLinkPin.create({
+        const pin = await tx.workspaceLinkPin.create({
           data: { userId: firstUserId, slug: "missing-context-hidden-pin" },
           select: { id: true },
         });
@@ -77,28 +77,28 @@ describe.skipIf(process.env.RLS_TEST_ENABLED !== "true")(
         return { click, pin };
       });
 
-      await expect(prisma.dashboardLinkClick.findMany()).resolves.toEqual([]);
-      await expect(prisma.dashboardLinkPin.findMany()).resolves.toEqual([]);
+      await expect(prisma.catalogLinkClick.findMany()).resolves.toEqual([]);
+      await expect(prisma.workspaceLinkPin.findMany()).resolves.toEqual([]);
       await expect(prisma.busUserPreference.findMany()).resolves.toEqual([]);
       await expect(
-        prisma.dashboardLinkClick.updateMany({
+        prisma.catalogLinkClick.updateMany({
           where: { id: hiddenRows.click.id },
           data: { count: 99 },
         }),
       ).resolves.toEqual({ count: 0 });
       await expect(
-        prisma.dashboardLinkClick.deleteMany({
+        prisma.catalogLinkClick.deleteMany({
           where: { id: hiddenRows.click.id },
         }),
       ).resolves.toEqual({ count: 0 });
       await expect(
-        prisma.dashboardLinkPin.updateMany({
+        prisma.workspaceLinkPin.updateMany({
           where: { id: hiddenRows.pin.id },
           data: { slug: "missing-context-hidden-pin-updated" },
         }),
       ).resolves.toEqual({ count: 0 });
       await expect(
-        prisma.dashboardLinkPin.deleteMany({
+        prisma.workspaceLinkPin.deleteMany({
           where: { id: hiddenRows.pin.id },
         }),
       ).resolves.toEqual({ count: 0 });
@@ -114,12 +114,12 @@ describe.skipIf(process.env.RLS_TEST_ENABLED !== "true")(
         }),
       ).resolves.toEqual({ count: 0 });
       await expect(
-        prisma.dashboardLinkClick.create({
+        prisma.catalogLinkClick.create({
           data: { userId: firstUserId, slug: "missing-context" },
         }),
       ).rejects.toThrow();
       await expect(
-        prisma.dashboardLinkPin.create({
+        prisma.workspaceLinkPin.create({
           data: { userId: firstUserId, slug: "missing-context" },
         }),
       ).rejects.toThrow();
@@ -132,10 +132,10 @@ describe.skipIf(process.env.RLS_TEST_ENABLED !== "true")(
       await Promise.all(
         [firstUserId, secondUserId].map((userId, index) =>
           withUserDbContext(userId, async () => {
-            await prisma.dashboardLinkClick.create({
+            await prisma.catalogLinkClick.create({
               data: { userId, slug: `rls-click-${index}` },
             });
-            await prisma.dashboardLinkPin.create({
+            await prisma.workspaceLinkPin.create({
               data: { userId, slug: `rls-pin-${index}` },
             });
             await prisma.busUserPreference.create({ data: { userId } });
@@ -146,10 +146,10 @@ describe.skipIf(process.env.RLS_TEST_ENABLED !== "true")(
       const [firstRows, secondRows] = await Promise.all(
         [firstUserId, secondUserId].map((userId) =>
           withUserDbContext(userId, async () => ({
-            clicks: await prisma.dashboardLinkClick.findMany({
+            clicks: await prisma.catalogLinkClick.findMany({
               select: { userId: true },
             }),
-            pins: await prisma.dashboardLinkPin.findMany({
+            pins: await prisma.workspaceLinkPin.findMany({
               select: { userId: true },
             }),
             preferences: await prisma.busUserPreference.findMany({
@@ -170,10 +170,10 @@ describe.skipIf(process.env.RLS_TEST_ENABLED !== "true")(
       });
       await expect(
         withUserDbContext(adminUserId, async (tx) => ({
-          clicks: await tx.dashboardLinkClick.findMany({
+          clicks: await tx.catalogLinkClick.findMany({
             where: { userId: { in: [firstUserId, secondUserId] } },
           }),
-          pins: await tx.dashboardLinkPin.findMany({
+          pins: await tx.workspaceLinkPin.findMany({
             where: { userId: { in: [firstUserId, secondUserId] } },
           }),
           preferences: await tx.busUserPreference.findMany({
@@ -185,11 +185,11 @@ describe.skipIf(process.env.RLS_TEST_ENABLED !== "true")(
 
     it("blocks cross-owner updates and deletes on preference records", async () => {
       const firstRows = await withUserDbContext(firstUserId, async () => {
-        const click = await prisma.dashboardLinkClick.create({
+        const click = await prisma.catalogLinkClick.create({
           data: { userId: firstUserId, slug: "rls-cross-owner-click" },
           select: { id: true },
         });
-        const pin = await prisma.dashboardLinkPin.create({
+        const pin = await prisma.workspaceLinkPin.create({
           data: { userId: firstUserId, slug: "rls-cross-owner-pin" },
           select: { id: true },
         });
@@ -201,7 +201,7 @@ describe.skipIf(process.env.RLS_TEST_ENABLED !== "true")(
 
       await expect(
         withUserDbContext(secondUserId, () =>
-          prisma.dashboardLinkClick.update({
+          prisma.catalogLinkClick.update({
             where: { id: firstRows.click.id },
             data: { count: 99 },
           }),
@@ -209,14 +209,14 @@ describe.skipIf(process.env.RLS_TEST_ENABLED !== "true")(
       ).rejects.toThrow();
       await expect(
         withUserDbContext(secondUserId, () =>
-          prisma.dashboardLinkPin.delete({
+          prisma.workspaceLinkPin.delete({
             where: { id: firstRows.pin.id },
           }),
         ),
       ).rejects.toThrow();
       await expect(
         withUserDbContext(secondUserId, () =>
-          prisma.dashboardLinkClick.updateMany({
+          prisma.catalogLinkClick.updateMany({
             where: { userId: firstUserId },
             data: { count: 99 },
           }),
@@ -224,7 +224,7 @@ describe.skipIf(process.env.RLS_TEST_ENABLED !== "true")(
       ).resolves.toEqual({ count: 0 });
       await expect(
         withUserDbContext(firstUserId, () =>
-          prisma.dashboardLinkClick.update({
+          prisma.catalogLinkClick.update({
             where: { id: firstRows.click.id },
             data: { userId: secondUserId },
           }),
@@ -232,7 +232,7 @@ describe.skipIf(process.env.RLS_TEST_ENABLED !== "true")(
       ).rejects.toThrow();
       await expect(
         withUserDbContext(secondUserId, () =>
-          prisma.dashboardLinkPin.deleteMany({
+          prisma.workspaceLinkPin.deleteMany({
             where: { userId: firstUserId },
           }),
         ),
@@ -279,14 +279,14 @@ describe.skipIf(process.env.RLS_TEST_ENABLED !== "true")(
     it("rejects forged ownership on every protected preference table", async () => {
       await expect(
         withUserDbContext(secondUserId, () =>
-          prisma.dashboardLinkClick.create({
+          prisma.catalogLinkClick.create({
             data: { userId: firstUserId, slug: "forged-click" },
           }),
         ),
       ).rejects.toThrow();
       await expect(
         withUserDbContext(secondUserId, () =>
-          prisma.dashboardLinkPin.create({
+          prisma.workspaceLinkPin.create({
             data: { userId: firstUserId, slug: "forged-pin" },
           }),
         ),
