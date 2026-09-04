@@ -587,7 +587,7 @@ export const persistedGraphqlOperationDefinitions = [
     id: "workspace.overview.get.v1",
     title: "Get workspace overview",
     description:
-      "Returns bounded personal dashboard counts at an optional instant.",
+      "Returns bounded personal workspace counts at an optional instant.",
     document: /* GraphQL */ `
       query WorkspaceOverview($atTime: DateTime) {
         workspace {
@@ -1094,8 +1094,8 @@ export const persistedGraphqlOperationDefinitions = [
   }),
   mutation({
     id: "workspace.link.pin.set.v1",
-    title: "Set dashboard link pin state",
-    description: "Pins or unpins one dashboard link for the workspace.",
+    title: "Set workspace link pin state",
+    description: "Pins or unpins one catalog link for the workspace.",
     document: /* GraphQL */ `
       mutation WorkspaceSetLinkPinState($slug: String!, $pinned: Boolean!) {
         linkPinSet(slug: $slug, pinned: $pinned) {
@@ -1112,7 +1112,7 @@ export const persistedGraphqlOperationDefinitions = [
   }),
   mutation({
     id: "workspace.link_pin.batch_set.v1",
-    title: "Set dashboard link pin states in batch",
+    title: "Set workspace link pin states in batch",
     description:
       "Applies up to 10 workspace pin changes in order and returns the final pin state.",
     document: /* GraphQL */ `

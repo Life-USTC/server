@@ -29,7 +29,7 @@
   },
   "capabilities": {
     "bus-timetable": {
-      "title": "Bus Dashboard",
+      "title": "Bus Timetable",
       "auth": "anon",
       "web": {
         "pages": ["/catalog/bus", "/catalog/bus/map"]

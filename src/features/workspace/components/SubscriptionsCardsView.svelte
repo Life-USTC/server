@@ -2,11 +2,11 @@
 import ArrowUpRight from "@lucide/svelte/icons/arrow-up-right";
 import UserMinus from "@lucide/svelte/icons/user-minus";
 import type {
-  DashboardDashboardCopy,
-  DashboardSectionCopy,
-  DashboardSubscriptionsCopy,
   SubscriptionsData,
-} from "@/features/workspace/lib/dashboard-controller-types";
+  WorkspaceCopy,
+  WorkspaceSectionCopy,
+  WorkspaceSubscriptionsCopy,
+} from "@/features/workspace/lib/workspace-controller-types";
 import TableIconButton from "$lib/components/TableIconButton.svelte";
 import { Badge } from "$lib/components/ui/badge/index.js";
 import * as Item from "$lib/components/ui/item/index.js";
@@ -15,12 +15,12 @@ import { Spinner } from "$lib/components/ui/spinner/index.js";
 type SubscriptionListData = SubscriptionsData["subscriptions"];
 type SubscriptionSection = SubscriptionListData[number]["sections"][number];
 
-export let dashboardCopy: DashboardDashboardCopy;
+export let workspaceCopy: WorkspaceCopy;
 export let requestRemoveSection: (section: SubscriptionSection) => void;
 export let removingSectionId: SubscriptionSection["id"] | null;
-export let sectionCopy: DashboardSectionCopy;
+export let sectionCopy: WorkspaceSectionCopy;
 export let sections: SubscriptionSection[];
-export let subscriptionsCopy: DashboardSubscriptionsCopy;
+export let subscriptionsCopy: WorkspaceSubscriptionsCopy;
 
 function teacherNames(section: SubscriptionSection) {
   return (
@@ -32,7 +32,7 @@ function teacherNames(section: SubscriptionSection) {
 }
 
 function courseName(section: SubscriptionSection) {
-  return section.course.namePrimary ?? dashboardCopy.notAvailable;
+  return section.course.namePrimary ?? workspaceCopy.notAvailable;
 }
 </script>
 
@@ -57,7 +57,7 @@ function courseName(section: SubscriptionSection) {
           >
             <span class="max-w-full break-words">{teacherNames(section)}</span>
             <Badge variant="outline">
-              {section.credits ?? dashboardCopy.notAvailable}
+              {section.credits ?? workspaceCopy.notAvailable}
               {subscriptionsCopy.credits}
             </Badge>
           </Item.Description>

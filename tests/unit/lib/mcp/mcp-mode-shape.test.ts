@@ -4,12 +4,12 @@ import {
   getCalendarSubscriptionMutationPayload,
   getCalendarSubscriptionReadPayload,
 } from "@/lib/mcp/tools/workspace/calendar-subscription-payload";
-import { buildFullDashboardSnapshot } from "@/lib/mcp/tools/workspace/dashboard-compact-summary";
+import { buildFullWorkspaceSnapshot } from "@/lib/mcp/tools/workspace/workspace-compact-summary";
 
 describe("MCP full mode canonical shapes", () => {
-  it("keeps dashboard collection wrappers and derived keys", () => {
+  it("keeps workspace collection wrappers and derived keys", () => {
     const deadline = { id: "deadline-1", rawField: true };
-    const result = buildFullDashboardSnapshot({
+    const result = buildFullWorkspaceSnapshot({
       user: { id: "user-1", rawField: true },
       currentSemester: null,
       subscriptions: {

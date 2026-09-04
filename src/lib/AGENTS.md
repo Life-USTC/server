@@ -14,7 +14,7 @@ Infrastructure and shared helpers. No business rules (`src/features/` owns those
 - Pagination for domain code: `@/lib/pagination`. REST may keep using
   `@/lib/api/helpers` (re-exports).
 - If adapter imports from `@/features` grow, update the matching boundary tests
-  under `tests/unit/*-boundary.test.ts` (dashboard / settings / auth-prisma).
+  under `tests/unit/*-boundary.test.ts` (workspace / settings / auth-prisma).
 - No raw `@prisma/client` outside approved adapters/scripts.
 - Never log OAuth tokens/secrets.
 

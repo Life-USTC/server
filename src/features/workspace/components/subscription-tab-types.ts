@@ -1,31 +1,31 @@
 import type {
-  DashboardDashboardCopy,
-  DashboardSectionCopy,
-  DashboardSubscriptionsCopy,
-  SignedDashboardData,
-} from "@/features/workspace/lib/dashboard-controller-helpers";
+  SignedWorkspaceData,
+  WorkspaceCopy,
+  WorkspaceSectionCopy,
+  WorkspaceSubscriptionsCopy,
+} from "@/features/workspace/lib/workspace-controller-helpers";
 import type {
-  DashboardNamed,
   FormatMessage,
   NameFormatter,
-} from "./dashboard-component-types";
+  WorkspaceNamed,
+} from "./workspace-component-types";
 
 export type {
-  DashboardNamed,
   FormatMessage,
   NameFormatter,
-} from "./dashboard-component-types";
+  WorkspaceNamed,
+} from "./workspace-component-types";
 
 export type MatchedImportSection = {
-  campus?: DashboardNamed | null;
+  campus?: WorkspaceNamed | null;
   code: string;
-  course: DashboardNamed;
+  course: WorkspaceNamed;
   id: number;
-  semester?: DashboardNamed | null;
-  teachers: DashboardNamed[];
+  semester?: WorkspaceNamed | null;
+  teachers: WorkspaceNamed[];
 };
 
-export type DashboardSubscriptionsTabCopy = DashboardSubscriptionsCopy & {
+export type WorkspaceSubscriptionsTabCopy = WorkspaceSubscriptionsCopy & {
   bulkImport: {
     cancel: string;
     confirmTitle: string;
@@ -75,8 +75,8 @@ export type DashboardSubscriptionsTabCopy = DashboardSubscriptionsCopy & {
   unsubscribeTitle: string;
 };
 
-export type DashboardSubscriptionsSignedData = SignedDashboardData & {
-  subscriptions: NonNullable<SignedDashboardData["subscriptions"]> & {
+export type WorkspaceSubscriptionsSignedData = SignedWorkspaceData & {
+  subscriptions: NonNullable<SignedWorkspaceData["subscriptions"]> & {
     calendarSubscriptionUrl?: string | null;
     semesters: Array<{
       id: number | string;
@@ -85,16 +85,16 @@ export type DashboardSubscriptionsSignedData = SignedDashboardData & {
   };
 };
 
-export type DashboardSubscriptionSectionId = number;
+export type WorkspaceSubscriptionSectionId = number;
 
-export type DashboardSubscriptionsTabProps = {
+export type WorkspaceSubscriptionsTabProps = {
   bulkImportError: string;
   bulkImportMessage: string;
   bulkImportSemesterId: string;
   bulkImportText: string;
   canMatchImportSections: boolean;
   confirmImportSections: () => void | Promise<void>;
-  dashboardCopy: DashboardDashboardCopy;
+  workspaceCopy: WorkspaceCopy;
   formatMessage: FormatMessage;
   isBulkImportOpen: boolean;
   isConfirmImportOpen: boolean;
@@ -106,9 +106,9 @@ export type DashboardSubscriptionsTabProps = {
   nameSecondary: NameFormatter;
   openBulkImportDialog: () => void;
   removeSubscribedSection: (
-    sectionId: DashboardSubscriptionSectionId,
+    sectionId: WorkspaceSubscriptionSectionId,
   ) => boolean | Promise<boolean>;
-  removingSectionId: DashboardSubscriptionSectionId | null;
+  removingSectionId: WorkspaceSubscriptionSectionId | null;
   resetBulkImport: () => void;
   searchQuickAddSections: (input: {
     semesterId: string;
@@ -119,14 +119,14 @@ export type DashboardSubscriptionsTabProps = {
     selectedSectionIds: number[];
     unmatchedCodes: string[];
   }>;
-  sectionCopy: DashboardSectionCopy;
+  sectionCopy: WorkspaceSectionCopy;
   selectedImportSectionIdSet: Set<number>;
-  signedData: DashboardSubscriptionsSignedData;
+  signedData: WorkspaceSubscriptionsSignedData;
   subscriptionActionError: string;
   subscribeQuickAddSections: (
     selectedSectionIds: number[],
   ) => void | Promise<void>;
-  subscriptionsCopy: DashboardSubscriptionsTabCopy;
+  subscriptionsCopy: WorkspaceSubscriptionsTabCopy;
   toggleImportSectionSelection: (sectionId: number) => void;
   unmatchedSectionCodes: string[];
 };

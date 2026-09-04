@@ -13,11 +13,11 @@ export {
   flattenExamRows,
 } from "./exam-rows";
 export type {
-  DashboardExam,
-  DashboardExamRoom,
-  DashboardExamRow,
-  DashboardExamSection,
-  DashboardExamSubscriptions,
   ExamFilter,
   ExamLabels,
+  WorkspaceExam,
+  WorkspaceExamRoom,
+  WorkspaceExamRow,
+  WorkspaceExamSection,
+  WorkspaceExamSubscriptions,
 } from "./exam-types";

@@ -5,8 +5,8 @@ import {
   createBusTabPlannerController,
 } from "@/features/workspace/lib/bus-tab-planner-controller";
 import type {
-  DashboardBusCopy,
-  DashboardBusData,
+  WorkspaceBusCopy,
+  WorkspaceBusData,
 } from "@/features/workspace/lib/bus-tab-types";
 
 export function createBusTabState({
@@ -15,8 +15,8 @@ export function createBusTabState({
   getSavePreferences,
   invalidate,
 }: {
-  getBus: () => DashboardBusData | null;
-  getBusCopy: () => DashboardBusCopy;
+  getBus: () => WorkspaceBusData | null;
+  getBusCopy: () => WorkspaceBusCopy;
   getSavePreferences: () => boolean;
   invalidate: () => void;
 }) {

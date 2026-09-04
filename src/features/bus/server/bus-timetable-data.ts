@@ -8,10 +8,10 @@ import { shanghaiDayjs } from "@/lib/time/shanghai-dayjs";
 import { buildRouteSummary } from "../lib/bus-route-descriptions";
 import { buildTripSummary } from "../lib/bus-trip-summary";
 import type {
-  BusDashboardSnapshot,
   BusRouteSummary,
   BusTimetableData,
   BusTimetableInput,
+  BusTimetableSnapshot,
   BusTripSummary,
 } from "../lib/bus-types";
 import { getBusPreference } from "./bus-preferences";
@@ -166,9 +166,9 @@ export async function getBusTimetableData(
   return { ...data, preferences: preference };
 }
 
-export async function getBusDashboardSnapshot(
+export async function getBusTimetableSnapshot(
   input: Pick<BusTimetableInput, "locale" | "userId" | "now">,
-): Promise<BusDashboardSnapshot | null> {
+): Promise<BusTimetableSnapshot | null> {
   const data = await getBusTimetableData({
     locale: input.locale,
     userId: input.userId,

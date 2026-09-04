@@ -3,8 +3,8 @@ import { parseBusTimeMinutes } from "@/features/bus/lib/bus-time";
 import type { BusTripSummary } from "@/features/bus/lib/bus-types";
 import { createBusTabState } from "@/features/workspace/lib/bus-tab-state";
 import type {
-  DashboardBusCopy,
-  DashboardBusData,
+  WorkspaceBusCopy,
+  WorkspaceBusData,
 } from "@/features/workspace/lib/bus-tab-types";
 
 function createTrip(input: {
@@ -41,7 +41,7 @@ function createTrip(input: {
   };
 }
 
-function createBusData(): DashboardBusData {
+function createBusData(): WorkspaceBusData {
   const east = {
     id: 1,
     latitude: 0,
@@ -100,7 +100,7 @@ describe("班车标签页状态", () => {
     const bus = createBusData();
     const state = createBusTabState({
       getBus: () => bus,
-      getBusCopy: () => ({}) as DashboardBusCopy,
+      getBusCopy: () => ({}) as WorkspaceBusCopy,
       getSavePreferences: () => false,
       invalidate: () => {},
     });

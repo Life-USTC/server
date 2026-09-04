@@ -7,8 +7,8 @@ import {
 } from "@/features/workspace/lib/bus";
 import { createBusTabState } from "@/features/workspace/lib/bus-tab-state";
 import type {
-  DashboardBusCopy,
-  DashboardBusData,
+  WorkspaceBusCopy,
+  WorkspaceBusData,
 } from "@/features/workspace/lib/bus-tab-types";
 import { apiClient } from "@/lib/api/client";
 import {
@@ -26,13 +26,13 @@ import BusTabTimetable from "./BusTabTimetable.svelte";
 
 const RECENT_BUS_ROUTE_KEY = "life-ustc:recent-bus-route:v1";
 
-export let busCopy: DashboardBusCopy;
-export let bus: DashboardBusData | null;
+export let busCopy: WorkspaceBusCopy;
+export let bus: WorkspaceBusData | null;
 export let compact = false;
 export let savePreferences = false;
 export let showPageHeader = false;
 
-let loadedBus: DashboardBusData | null = bus;
+let loadedBus: WorkspaceBusData | null = bus;
 let busStateVersion = 0;
 let busDayType: "weekday" | "saturday" | "sunday" = "weekday";
 let busEndCampusId: number | null = null;
@@ -58,7 +58,7 @@ async function loadPublicBusData() {
   busLoading = true;
   busLoadFailed = false;
   try {
-    const result = await apiClient.GET<DashboardBusData>("/api/catalog/bus");
+    const result = await apiClient.GET<WorkspaceBusData>("/api/catalog/bus");
     if (!result.response.ok || !result.data) {
       busLoadFailed = true;
       return;

@@ -1,35 +1,35 @@
 <script lang="ts">
 import type {
-  DashboardLinkPinAction,
-  DashboardLinkPinSubmit,
-  DashboardOverviewLinkItem,
-} from "@/features/workspace/lib/dashboard-controller-helpers";
-import DashboardLinkVisitAction from "./DashboardLinkVisitAction.svelte";
+  WorkspaceLinkPinAction,
+  WorkspaceLinkPinSubmit,
+  WorkspaceOverviewLinkItem,
+} from "@/features/workspace/lib/workspace-controller-helpers";
+import CatalogLinkVisitAction from "./CatalogLinkVisitAction.svelte";
 import LinksTabPinButton from "./LinksTabPinButton.svelte";
 
-export let links: DashboardOverviewLinkItem[];
+export let links: WorkspaceOverviewLinkItem[];
 export let linkIconLabel: (icon: string) => string;
 export let linkReturnTo: string;
 export let pinAction: (
-  link: DashboardOverviewLinkItem,
-) => DashboardLinkPinAction;
-export let pinLabel: (link: DashboardOverviewLinkItem) => string;
-export let submitDashboardLinkPin: DashboardLinkPinSubmit;
-export let updatingDashboardLinkSlug: string | null;
+  link: WorkspaceOverviewLinkItem,
+) => WorkspaceLinkPinAction;
+export let pinLabel: (link: WorkspaceOverviewLinkItem) => string;
+export let submitWorkspaceLinkPin: WorkspaceLinkPinSubmit;
+export let updatingCatalogLinkSlug: string | null;
 </script>
 
 <div class="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
   {#each links as link}
     <div class="group relative min-w-0">
-      <DashboardLinkVisitAction {link} {linkIconLabel} reserveActionSpace />
+      <CatalogLinkVisitAction {link} {linkIconLabel} reserveActionSpace />
       <div class={`absolute top-2 right-2 opacity-100 transition-opacity ${link.isPinned ? "" : "md:pointer-events-none md:opacity-0 md:group-focus-within:pointer-events-auto md:group-focus-within:opacity-100 md:group-hover:pointer-events-auto md:group-hover:opacity-100"}`}>
         <LinksTabPinButton
           {link}
           {linkReturnTo}
           {pinAction}
           {pinLabel}
-          {submitDashboardLinkPin}
-          {updatingDashboardLinkSlug}
+          {submitWorkspaceLinkPin}
+          {updatingCatalogLinkSlug}
         />
       </div>
     </div>

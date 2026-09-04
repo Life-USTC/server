@@ -1,8 +1,8 @@
 /**
- * E2E tests for the links dashboard (`/catalog/links`)
+ * E2E tests for the links workspace (`/catalog/links`)
  *
  * ## Data Represented
- * - Dashboard links grouped by category (study, life, tech, classroom, etc.)
+ * - Catalog links grouped by category (study, life, tech, classroom, etc.)
  *   sourced from USTC_CATALOG_LINKS
  * - Each link card: name, description, visit tracking via
  *   GET /api/catalog/links/resolve?slug=…
@@ -67,7 +67,7 @@ test.describe("仪表盘网站链接", () => {
       page.locator('form[action="/api/workspace/link-pins"]').first(),
     ).toHaveCount(0);
 
-    await captureStepScreenshot(page, testInfo, "public-dashboard-links-tab");
+    await captureStepScreenshot(page, testInfo, "public-workspace-links-tab");
   });
 
   test("旧版 links 查询标签永久重定向到语义路径", async ({ page }) => {
@@ -113,7 +113,7 @@ test.describe("仪表盘网站链接", () => {
     await captureStepScreenshot(
       page,
       testInfo,
-      "public-dashboard-links-en-search",
+      "public-workspace-links-en-search",
     );
   });
 
@@ -138,7 +138,7 @@ test.describe("仪表盘网站链接", () => {
       await page.locator('input[name="action"][value="unpin"]').count(),
     ).toBeGreaterThanOrEqual(DEV_SEED.catalogLinks.overviewLimit);
 
-    await captureStepScreenshot(page, testInfo, "dashboard-links-tab");
+    await captureStepScreenshot(page, testInfo, "workspace-links-tab");
   });
 
   test("搜索可筛选链接", async ({ page }, testInfo) => {
@@ -182,7 +182,7 @@ test.describe("仪表盘网站链接", () => {
       intervals: [250, 500, 1_000],
     });
 
-    await captureStepScreenshot(page, testInfo, "dashboard-links-search");
+    await captureStepScreenshot(page, testInfo, "workspace-links-search");
   });
 
   test("可以置顶和取消置顶链接并恢复状态", async ({ page }, testInfo) => {
@@ -194,7 +194,7 @@ test.describe("仪表盘网站链接", () => {
     });
     await gotoAndWaitForReady(page, "/catalog/links", {
       testInfo,
-      screenshotLabel: "dashboard-links",
+      screenshotLabel: "workspace-links",
     });
 
     const locatePinButton = async () => {
@@ -262,7 +262,7 @@ test.describe("仪表盘网站链接", () => {
       await captureStepScreenshot(
         page,
         testInfo,
-        "dashboard-links-toggle-request",
+        "workspace-links-toggle-request",
       );
 
       await expect(async () => {
@@ -356,7 +356,7 @@ test.describe("仪表盘网站链接", () => {
       await captureStepScreenshot(
         page,
         testInfo,
-        "dashboard-links-pin-search-stable",
+        "workspace-links-pin-search-stable",
       );
     } finally {
       await page.request.post("/api/workspace/link-pins", {

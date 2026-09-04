@@ -1,5 +1,5 @@
 /**
- * E2E tests for the subscriptions dashboard (`/workspace/subscriptions`)
+ * E2E tests for the subscriptions workspace (`/workspace/subscriptions`)
  *
  * ## Data Represented (subscribed-sections.yml → subscribed-sections-tab.display.fields)
  * - semester group label
@@ -18,7 +18,7 @@
  * - Empty state with bulk import + browse courses buttons
  *
  * ## Edge Cases
- * - Unauthenticated users see the public dashboard view (subscriptions is auth-only)
+ * - Unauthenticated users see the public workspace view (subscriptions is auth-only)
  * - Bulk import with invalid codes shows only matched sections in dialog
  * - Calendar link format: /api/calendar-feeds/{userId}:{token}.ics
  */
@@ -102,7 +102,7 @@ test.describe("仪表盘教学班订阅", () => {
     ]);
   });
 
-  test("旧版 /dashboard/subscriptions/sections 重定向到教学班订阅页面", async ({
+  test("旧版 /workspace/subscriptions/sections 重定向到教学班订阅页面", async ({
     page,
   }) => {
     await signInAsDebugUser(page, "/workspace/subscriptions");
@@ -258,7 +258,7 @@ test.describe("仪表盘教学班订阅", () => {
     await captureStepScreenshot(
       page,
       testInfo,
-      "dashboard-subscriptions-wide-masonry",
+      "workspace-subscriptions-wide-masonry",
     );
   });
 
@@ -297,7 +297,7 @@ test.describe("仪表盘教学班订阅", () => {
     await captureStepScreenshot(
       page,
       testInfo,
-      "dashboard-subscriptions-empty-state",
+      "workspace-subscriptions-empty-state",
     );
   });
 
@@ -337,7 +337,7 @@ test.describe("仪表盘教学班订阅", () => {
     await captureStepScreenshot(
       page,
       testInfo,
-      "dashboard-subscriptions-mobile-responsive",
+      "workspace-subscriptions-mobile-responsive",
     );
   });
 
@@ -362,7 +362,7 @@ test.describe("仪表盘教学班订阅", () => {
     await captureStepScreenshot(
       page,
       testInfo,
-      "dashboard-subscriptions-section-link",
+      "workspace-subscriptions-section-link",
     );
   });
 
@@ -428,7 +428,7 @@ test.describe("仪表盘教学班订阅", () => {
     await captureStepScreenshot(
       page,
       testInfo,
-      "dashboard-subscriptions-opt-out-confirmed",
+      "workspace-subscriptions-opt-out-confirmed",
     );
   });
 
@@ -468,7 +468,7 @@ test.describe("仪表盘教学班订阅", () => {
     await captureStepScreenshot(
       page,
       testInfo,
-      "dashboard-subscriptions-ical-copied",
+      "workspace-subscriptions-ical-copied",
     );
   });
 
@@ -512,7 +512,7 @@ test.describe("仪表盘教学班订阅", () => {
     await captureStepScreenshot(
       page,
       testInfo,
-      "dashboard-subscriptions-bulk-import-dialog",
+      "workspace-subscriptions-bulk-import-dialog",
     );
 
     await dialog.getByRole("button", { name: /取消|Cancel/i }).click();
@@ -673,7 +673,7 @@ test.describe("仪表盘教学班订阅", () => {
     await captureStepScreenshot(
       page,
       testInfo,
-      "dashboard-subscriptions-quick-add-results",
+      "workspace-subscriptions-quick-add-results",
     );
 
     const subscribeResponse = page.waitForResponse(
@@ -782,7 +782,7 @@ test.describe("仪表盘教学班订阅", () => {
     await captureStepScreenshot(
       page,
       testInfo,
-      "dashboard-subscriptions-quick-add-empty",
+      "workspace-subscriptions-quick-add-empty",
     );
   });
 
@@ -814,7 +814,7 @@ test.describe("仪表盘教学班订阅", () => {
     await captureStepScreenshot(
       page,
       testInfo,
-      "dashboard-subscriptions-bulk-import-ready",
+      "workspace-subscriptions-bulk-import-ready",
     );
 
     await dialog
@@ -851,7 +851,7 @@ test.describe("仪表盘教学班订阅", () => {
     await captureStepScreenshot(
       page,
       testInfo,
-      "dashboard-subscriptions-bulk-import-success",
+      "workspace-subscriptions-bulk-import-success",
     );
   });
 });

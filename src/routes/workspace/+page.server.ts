@@ -1,12 +1,12 @@
 import { redirect } from "@sveltejs/kit";
-import { dashboardTabCompatibilityRedirectHref } from "@/features/workspace/lib/dashboard-nav";
-import { dashboardPageActions } from "@/features/workspace/server/dashboard-page-actions";
-import { loadSignedDashboardPage } from "@/features/workspace/server/dashboard-page-load";
+import { workspaceTabCompatibilityRedirectHref } from "@/features/workspace/lib/workspace-nav";
+import { workspacePageActions } from "@/features/workspace/server/workspace-page-actions";
+import { loadSignedWorkspacePage } from "@/features/workspace/server/workspace-page-load";
 import { buildSignInPageUrl } from "@/lib/auth/auth-routing";
 import type { Actions, PageServerLoad } from "./$types";
 
 export const load: PageServerLoad = async (event) => {
-  const compatibilityHref = dashboardTabCompatibilityRedirectHref(
+  const compatibilityHref = workspaceTabCompatibilityRedirectHref(
     event.url,
     event.request.method,
   );
@@ -21,7 +21,7 @@ export const load: PageServerLoad = async (event) => {
     );
   }
 
-  return loadSignedDashboardPage({
+  return loadSignedWorkspacePage({
     locals: event.locals,
     request: event.request,
     tab: "overview",
@@ -30,4 +30,4 @@ export const load: PageServerLoad = async (event) => {
   });
 };
 
-export const actions: Actions = dashboardPageActions;
+export const actions: Actions = workspacePageActions;

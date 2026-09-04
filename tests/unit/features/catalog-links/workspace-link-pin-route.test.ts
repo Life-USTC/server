@@ -53,7 +53,7 @@ describe("POST /api/workspace/link-pins", () => {
     await expect(response.json()).resolves.toMatchObject({
       pinnedSlugs: [],
       maxPinnedLinks: 4,
-      error: "Failed to update dashboard link pin state",
+      error: "Failed to update workspace link pin state",
     });
   });
 

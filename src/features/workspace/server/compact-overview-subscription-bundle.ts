@@ -1,7 +1,7 @@
 import { withHomeworkItemState } from "@/features/homeworks/server/homework-item-state";
 import {
   fetchSubscribedHomeworkRlsSnapshot,
-  localizeSubscribedHomeworkDashboardItems,
+  localizeSubscribedHomeworkWorkspaceItems,
 } from "@/features/subscriptions/server/subscription-homework-list";
 import { buildSubscribedHomeworkQuery } from "@/features/subscriptions/server/subscription-homework-read-helpers";
 import {
@@ -180,7 +180,7 @@ export async function loadOverviewSubscriptionReads(input: {
       return [];
     }
     return runStage("lists", () =>
-      localizeSubscribedHomeworkDashboardItems(homeworkRls.dueSoonRls, locale),
+      localizeSubscribedHomeworkWorkspaceItems(homeworkRls.dueSoonRls, locale),
     );
   });
   const dueSoonHomeworksPromise = dueSoonHomeworksRawPromise.then((raw) =>

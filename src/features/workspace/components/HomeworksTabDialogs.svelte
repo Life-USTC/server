@@ -9,26 +9,26 @@ import {
   normalizeHomeworkDetail,
 } from "@/features/homeworks/lib/homework-presentation";
 import type {
-  DashboardHomeworkItem,
-  DashboardHomeworksCopy,
-} from "@/features/workspace/lib/dashboard-controller-types";
+  WorkspaceHomeworkItem,
+  WorkspaceHomeworksCopy,
+} from "@/features/workspace/lib/workspace-controller-types";
 import { toShanghaiDateTimeLocalValue } from "@/lib/time/shanghai-format";
-import type {
-  DashboardHomeworkCommentsCopy,
-  DashboardHomeworkCreateSection,
-  DashboardHomeworkCreateSectionGetter,
-  DashboardHomeworkDateShortcut,
-} from "./dashboard-homework-create-types";
 import HomeworkCreateDialog from "./HomeworkCreateDialog.svelte";
+import type {
+  WorkspaceHomeworkCommentsCopy,
+  WorkspaceHomeworkCreateSection,
+  WorkspaceHomeworkCreateSectionGetter,
+  WorkspaceHomeworkDateShortcut,
+} from "./workspace-homework-create-types";
 
-type HomeworkAction = (homework: DashboardHomeworkItem) => string;
+type HomeworkAction = (homework: WorkspaceHomeworkItem) => string;
 
 export let CommentsPanel: HomeworkDetailCommentsPanel;
-export let applyHomeworkDueAtSemesterEnd: DashboardHomeworkDateShortcut;
-export let applyHomeworkDueInMonth: DashboardHomeworkDateShortcut;
-export let applyHomeworkDueInWeek: DashboardHomeworkDateShortcut;
-export let applyHomeworkStartNow: DashboardHomeworkDateShortcut;
-export let commentsCopy: DashboardHomeworkCommentsCopy;
+export let applyHomeworkDueAtSemesterEnd: WorkspaceHomeworkDateShortcut;
+export let applyHomeworkDueInMonth: WorkspaceHomeworkDateShortcut;
+export let applyHomeworkDueInWeek: WorkspaceHomeworkDateShortcut;
+export let applyHomeworkStartNow: WorkspaceHomeworkDateShortcut;
+export let commentsCopy: WorkspaceHomeworkCommentsCopy;
 export let createHomeworkAction: SubmitFunction;
 export let createHomeworkAdvancedOpen: boolean;
 export let createHomeworkError: string;
@@ -37,21 +37,21 @@ export let createHomeworkSectionId: string;
 export let createHomeworkSubmissionDueAt: string;
 export let createHomeworkSubmissionStartAt: string;
 export let homeworkCourseLabel: HomeworkAction;
-export let homeworksCopy: DashboardHomeworksCopy;
+export let homeworksCopy: WorkspaceHomeworksCopy;
 export let homeworkSavingById: Record<string, boolean>;
 export let homeworkSectionHref: HomeworkAction;
 export let homeworkSectionLabel: (
-  section: DashboardHomeworkCreateSection,
+  section: WorkspaceHomeworkCreateSection,
 ) => string;
 export let isCreatingHomework: boolean;
 export let locale: string;
 export let referenceDate: Date | string;
-export let sections: DashboardHomeworkCreateSection[];
-export let selectedCreateHomeworkSection: DashboardHomeworkCreateSectionGetter;
-export let selectedHomework: DashboardHomeworkItem | null;
+export let sections: WorkspaceHomeworkCreateSection[];
+export let selectedCreateHomeworkSection: WorkspaceHomeworkCreateSectionGetter;
+export let selectedHomework: WorkspaceHomeworkItem | null;
 export let showCreateHomework: boolean;
 export let toggleHomeworkCompletion: (
-  homework: DashboardHomeworkItem,
+  homework: WorkspaceHomeworkItem,
 ) => void | Promise<void>;
 
 $: selectedHomeworkDetail = selectedHomework

@@ -7,7 +7,7 @@ const { getBusTabDataMock, getPublicCatalogLinksDataMock, logAppEventMock } =
     logAppEventMock: vi.fn(),
   }));
 
-vi.mock("@/features/workspace/server/dashboard-tab-data", () => ({
+vi.mock("@/features/workspace/server/workspace-tab-data", () => ({
   getBusTabData: getBusTabDataMock,
 }));
 

@@ -1,10 +1,10 @@
-import { DASHBOARD_LINK_GROUPS } from "@/features/catalog-links/lib/catalog-links";
+import { CATALOG_LINK_GROUPS } from "@/features/catalog-links/lib/catalog-links";
 import { type AppLocale, DEFAULT_LOCALE } from "@/i18n/config";
 import { withUserDbContext } from "@/lib/db/prisma";
 import {
   buildCatalogLinkSummaries,
-  dashboardLinksForSlugs,
-  recommendedDashboardLinkSummaries,
+  catalogLinksForSlugs,
+  recommendedCatalogLinkSummaries,
 } from "./catalog-link-selection";
 import type {
   CatalogLinkSummary,
@@ -21,14 +21,14 @@ export function getPublicCatalogLinksData(locale: AppLocale = DEFAULT_LOCALE): {
 } {
   const emptyClickStats: Record<string, number> = {};
   const emptyPinnedSet = new Set<string>();
-  const { catalogLinks, dashboardLinkBySlug } = buildCatalogLinkSummaries(
+  const { catalogLinks, catalogLinkBySlug } = buildCatalogLinkSummaries(
     emptyClickStats,
     emptyPinnedSet,
     locale,
   );
-  const overviewLinks = dashboardLinksForSlugs(
-    DASHBOARD_LINK_GROUPS.mostClicked.slice(0, MAX_OVERVIEW_LINKS),
-    dashboardLinkBySlug,
+  const overviewLinks = catalogLinksForSlugs(
+    CATALOG_LINK_GROUPS.mostClicked.slice(0, MAX_OVERVIEW_LINKS),
+    catalogLinkBySlug,
   );
 
   return {
@@ -42,7 +42,7 @@ export async function getSignedInCatalogLinksData(
   locale: AppLocale = DEFAULT_LOCALE,
 ): Promise<CatalogLinksData> {
   const normalizedUserId = userId.trim();
-  if (!normalizedUserId) throw new Error("Dashboard link user ID is required");
+  if (!normalizedUserId) throw new Error("Catalog link user ID is required");
   return withUserDbContext(normalizedUserId, async (tx) => {
     const clickRows = await tx.catalogLinkClick.findMany({
       where: { userId: normalizedUserId },
@@ -58,16 +58,16 @@ export async function getSignedInCatalogLinksData(
     );
     const pinnedSlugSet = new Set(pinRows.map((row) => row.slug));
 
-    const { catalogLinks, dashboardLinkBySlug } = buildCatalogLinkSummaries(
+    const { catalogLinks, catalogLinkBySlug } = buildCatalogLinkSummaries(
       clickStats,
       pinnedSlugSet,
       locale,
     );
-    const pinnedLinks = dashboardLinksForSlugs(
+    const pinnedLinks = catalogLinksForSlugs(
       pinRows.map((row) => row.slug),
-      dashboardLinkBySlug,
+      catalogLinkBySlug,
     );
-    const recommendedLinks = recommendedDashboardLinkSummaries(
+    const recommendedLinks = recommendedCatalogLinkSummaries(
       clickStats,
       pinnedSlugSet,
       locale,

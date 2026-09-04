@@ -1,9 +1,9 @@
 import { saveBusPlannerPreference as saveBusPlannerPreferenceRequest } from "@/features/workspace/lib/bus";
 import type { BusPreferenceSaveState } from "./bus-preferences";
-import type { DashboardBusCopy } from "./bus-tab-types";
+import type { WorkspaceBusCopy } from "./bus-tab-types";
 
 export function createBusPlannerPreferenceSave(input: {
-  getBusCopy: () => DashboardBusCopy;
+  getBusCopy: () => WorkspaceBusCopy;
   getBusEndCampusId: () => number | null;
   getBusPreferenceSaveRun: () => number;
   getBusPreferenceSaveTimer: () => ReturnType<typeof setTimeout> | null;

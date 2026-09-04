@@ -139,7 +139,7 @@ describe("postWorkspaceLinkPinBatchRoute", () => {
 
     const response = await postWorkspaceLinkPinBatchRoute(
       postRequest({
-        items: [{ slug: "missing-dashboard-link", action: "pin" }],
+        items: [{ slug: "missing-catalog-link", action: "pin" }],
       }),
     );
 
@@ -148,7 +148,7 @@ describe("postWorkspaceLinkPinBatchRoute", () => {
     expect(body).toMatchObject({
       pinnedSlugs: [],
       maxPinnedLinks: 4,
-      error: "Invalid dashboard link slug: missing-dashboard-link",
+      error: "Invalid catalog link slug: missing-catalog-link",
     });
     expect(updateWorkspaceLinkPinStateMock).not.toHaveBeenCalled();
   });
@@ -175,7 +175,7 @@ describe("postWorkspaceLinkPinBatchRoute", () => {
     expect(body).toMatchObject({
       pinnedSlugs: [],
       maxPinnedLinks: 4,
-      error: "Failed to update dashboard link pin state",
+      error: "Failed to update workspace link pin state",
     });
   });
 });

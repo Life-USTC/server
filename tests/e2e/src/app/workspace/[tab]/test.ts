@@ -1,11 +1,11 @@
 /**
- * E2E tests for dashboard route variants (`/workspace/<tab>`).
+ * E2E tests for workspace route variants (`/workspace/<tab>`).
  */
 import { expect, type Page, test } from "@playwright/test";
 import {
   type WorkspaceTabId,
   workspaceTabIds,
-} from "@/features/workspace/lib/dashboard-nav";
+} from "@/features/workspace/lib/workspace-nav";
 import {
   expectRequiresSignIn,
   signInAsDebugUser,
@@ -15,7 +15,7 @@ import { gotoAndWaitForReady } from "../../../../utils/page-ready";
 import { captureStepScreenshot } from "../../../../utils/screenshot";
 import { assertPageContract } from "../../_shared/page-contract";
 
-const dashboardTabRoutes = {
+const workspaceTabRoutes = {
   overview: "/workspace/overview",
   calendar: "/workspace/calendar",
   homeworks: "/workspace/homeworks",
@@ -24,7 +24,7 @@ const dashboardTabRoutes = {
   subscriptions: "/workspace/subscriptions",
 } satisfies Record<WorkspaceTabId, string>;
 
-const dashboardTabTitles = {
+const workspaceTabTitles = {
   "en-us": {
     overview: "Overview",
     calendar: "Calendar",
@@ -50,7 +50,7 @@ async function setLocale(page: Page, locale: "en-us" | "zh-cn") {
   expect(response.status()).toBe(200);
 }
 
-async function expectDashboardPageIdentity(
+async function expectWorkspacePageIdentity(
   page: Page,
   locale: "en-us" | "zh-cn",
   title: string,
@@ -69,7 +69,7 @@ async function expectDashboardPageIdentity(
 
 test("/workspace 别名需要登录", async ({ page }, testInfo) => {
   await expectRequiresSignIn(page, "/workspace/homeworks");
-  await captureStepScreenshot(page, testInfo, "dashboard-homeworks-unauth");
+  await captureStepScreenshot(page, testInfo, "workspace-homeworks-unauth");
 });
 
 test("匿名工作区重定向后仍可登录并加载标签", async ({ page }, testInfo) => {
@@ -79,14 +79,14 @@ test("匿名工作区重定向后仍可登录并加载标签", async ({ page }, 
   await signInAsDebugUser(page, "/workspace/homeworks");
   await gotoAndWaitForReady(page, "/workspace/homeworks", {
     testInfo,
-    screenshotLabel: "dashboard-homeworks",
+    screenshotLabel: "workspace-homeworks",
   });
 
   await expect(page).toHaveURL(/\/workspace\/homeworks(?:[/?#].*)?$/);
   await expect(
     sidebarNavigationLink(page, /^(作业|Homework)$/i),
   ).toHaveAttribute("aria-current", "page");
-  await captureStepScreenshot(page, testInfo, "dashboard-homeworks");
+  await captureStepScreenshot(page, testInfo, "workspace-homeworks");
 });
 
 test("登录工作区隐藏公共页脚但公共内容页保留", async ({ page }) => {
@@ -105,15 +105,15 @@ for (const locale of ["zh-cn", "en-us"] as const) {
     if (locale === "zh-cn") {
       await page.setViewportSize({ width: 390, height: 844 });
     }
-    await signInAsDebugUser(page, dashboardTabRoutes.overview);
+    await signInAsDebugUser(page, workspaceTabRoutes.overview);
     await setLocale(page, locale);
 
     for (const tab of workspaceTabIds) {
-      await gotoAndWaitForReady(page, dashboardTabRoutes[tab]);
-      await expectDashboardPageIdentity(
+      await gotoAndWaitForReady(page, workspaceTabRoutes[tab]);
+      await expectWorkspacePageIdentity(
         page,
         locale,
-        dashboardTabTitles[locale][tab],
+        workspaceTabTitles[locale][tab],
       );
 
       if (
@@ -123,7 +123,7 @@ for (const locale of ["zh-cn", "en-us"] as const) {
         await captureStepScreenshot(
           page,
           testInfo,
-          `dashboard-page-identity-${locale}-${tab}`,
+          `workspace-page-identity-${locale}-${tab}`,
         );
       }
     }
@@ -136,7 +136,7 @@ test("查询参数别名永久跳转后使用规范化的工作台页面身份",
   await gotoAndWaitForReady(page, "/workspace?tab=todos");
 
   await expect(page).toHaveURL(/\/workspace\/todos$/);
-  await expectDashboardPageIdentity(page, "zh-cn", "待办");
+  await expectWorkspacePageIdentity(page, "zh-cn", "待办");
 });
 
 test("页面契约", async ({ page }, testInfo) => {

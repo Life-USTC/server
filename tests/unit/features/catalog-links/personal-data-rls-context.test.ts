@@ -65,7 +65,7 @@ describe("personal data RLS contexts", () => {
     );
   });
 
-  it("uses one normalized context for a dashboard pin transaction", async () => {
+  it("uses one normalized context for a workspace pin transaction", async () => {
     pinUpsertMock.mockResolvedValue({});
     pinFindManyMock
       .mockResolvedValueOnce([{ slug: "mail" }])
@@ -91,7 +91,7 @@ describe("personal data RLS contexts", () => {
     expect(baseProtectedDelegateMock).not.toHaveBeenCalled();
   });
 
-  it("serializes dashboard reads inside one user transaction", async () => {
+  it("serializes workspace reads inside one user transaction", async () => {
     clickFindManyMock.mockResolvedValue([]);
     pinFindManyMock.mockResolvedValue([]);
 

@@ -7,7 +7,7 @@ import {
 } from "./calendar-feed-token";
 
 export const SECTION_SUBSCRIPTION_NOTE =
-  "Life@USTC section subscriptions only affect your dashboard and calendar here. They are not official USTC course enrollment.";
+  "Life@USTC section subscriptions only affect your workspace and calendar here. They are not official USTC course enrollment.";
 
 export const subscribedSectionDetailSelect = {
   id: true,

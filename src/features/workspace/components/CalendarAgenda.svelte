@@ -1,9 +1,9 @@
 <script lang="ts">
-import type { DashboardAgendaDay } from "@/features/workspace/lib/dashboard-agenda";
+import type { WorkspaceAgendaDay } from "@/features/workspace/lib/workspace-agenda";
 import { Badge } from "$lib/components/ui/badge/index.js";
 import * as Item from "$lib/components/ui/item/index.js";
 
-export let days: DashboardAgendaDay[];
+export let days: WorkspaceAgendaDay[];
 export let emptyLabel: string;
 export let label: string;
 export let todayLabel: string;
@@ -12,7 +12,7 @@ export let todayLabel: string;
 <div
   aria-label={label}
   class="grid gap-5"
-  data-testid="dashboard-calendar-agenda"
+  data-testid="workspace-calendar-agenda"
   role="region"
 >
   {#each days as day}

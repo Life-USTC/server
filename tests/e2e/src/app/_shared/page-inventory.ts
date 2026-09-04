@@ -6,7 +6,7 @@
  */
 
 import { SETTINGS_TABS } from "@/features/settings/lib/settings-tabs";
-import { workspaceTabIds } from "@/features/workspace/lib/dashboard-nav";
+import { workspaceTabIds } from "@/features/workspace/lib/workspace-nav";
 import { DEV_SEED } from "../../../../fixtures/dev-seed";
 
 export type PageAuth = "public" | "user" | "admin";
@@ -78,14 +78,14 @@ const E2E = {
   commentsId: "src/app/comments/[id]/test.ts",
   courses: "src/app/courses/test.ts",
   coursesJwId: "src/app/courses/[jwId]/test.ts",
-  dashboard: "src/app/workspace/test.ts",
-  dashboardTab: "src/app/workspace/[tab]/test.ts",
+  workspace: "src/app/workspace/test.ts",
+  workspaceTab: "src/app/workspace/[tab]/test.ts",
   catalogLinks: "src/app/workspace/links/test.ts",
-  dashboardCalendar: "src/app/workspace/calendar/test.ts",
-  dashboardHomeworks: "src/app/workspace/homeworks/test.ts",
-  dashboardTodos: "src/app/workspace/todos/test.ts",
-  dashboardExams: "src/app/workspace/exams/test.ts",
-  dashboardSubscriptions: "src/app/workspace/subscriptions/sections/test.ts",
+  workspaceCalendar: "src/app/workspace/calendar/test.ts",
+  workspaceHomeworks: "src/app/workspace/homeworks/test.ts",
+  workspaceTodos: "src/app/workspace/todos/test.ts",
+  workspaceExams: "src/app/workspace/exams/test.ts",
+  workspaceSubscriptions: "src/app/workspace/subscriptions/sections/test.ts",
   e2eOauthCallback: "src/app/e2e/oauth/callback/test.ts",
   error: "src/app/error/test.ts",
   guidesMarkdown: "src/app/guides/markdown-support/test.ts",
@@ -963,7 +963,7 @@ export const PAGE_INVENTORY: readonly PageInventoryEntry[] = [
     kind: "redirect",
     auth: "user",
     contractPath: "/workspace",
-    e2eSpec: E2E.dashboardTab,
+    e2eSpec: E2E.workspaceTab,
   },
   {
     routeId: "/workspace/[tab]",
@@ -971,45 +971,45 @@ export const PAGE_INVENTORY: readonly PageInventoryEntry[] = [
     kind: "page",
     auth: "user",
     contractPath: "/workspace/overview",
-    e2eSpec: E2E.dashboardTab,
+    e2eSpec: E2E.workspaceTab,
     mobileScreenshots: ["authed"],
     primaryActions: [
       ...workspaceTabIds.map(
         (tab): PrimaryAction => ({
           id: `workspace-tab-${tab}`,
           role: "link",
-          e2eSpec: E2E.dashboardTab,
+          e2eSpec: E2E.workspaceTab,
           evidence: "登录工作台各分支提供唯一页面身份",
         }),
       ),
       {
         id: "overview-now-next",
-        e2eSpec: E2E.dashboard,
+        e2eSpec: E2E.workspace,
         evidence: "移动端总览优先显示此刻与下一步",
       },
       {
         id: "calendar-export",
-        e2eSpec: E2E.dashboardCalendar,
+        e2eSpec: E2E.workspaceCalendar,
         evidence: "复制日历链接生成有效的 iCal URL",
       },
       {
         id: "homework-crud",
-        e2eSpec: E2E.dashboardHomeworks,
+        e2eSpec: E2E.workspaceHomeworks,
         evidence: "可以创建新作业",
       },
       {
         id: "todo-crud",
-        e2eSpec: E2E.dashboardTodos,
+        e2eSpec: E2E.workspaceTodos,
         evidence: "可以创建、编辑和删除待办",
       },
       {
         id: "exams-view",
-        e2eSpec: E2E.dashboardExams,
+        e2eSpec: E2E.workspaceExams,
         evidence: "考试列表显示必填字段",
       },
       {
         id: "subscriptions-bulk-import",
-        e2eSpec: E2E.dashboardSubscriptions,
+        e2eSpec: E2E.workspaceSubscriptions,
         evidence: "批量导入可确认并显示成功",
       },
     ],
@@ -1020,22 +1020,22 @@ export const PAGE_INVENTORY: readonly PageInventoryEntry[] = [
     kind: "page",
     auth: "user",
     contractPath: "/workspace/subscriptions",
-    e2eSpec: E2E.dashboardSubscriptions,
+    e2eSpec: E2E.workspaceSubscriptions,
     mobileScreenshots: ["authed"],
     primaryActions: [
       {
         id: "bulk-import",
-        e2eSpec: E2E.dashboardSubscriptions,
+        e2eSpec: E2E.workspaceSubscriptions,
         evidence: "批量导入打开确认对话框并可取消",
       },
       {
         id: "unsubscribe-row",
-        e2eSpec: E2E.dashboardSubscriptions,
+        e2eSpec: E2E.workspaceSubscriptions,
         evidence: "取消订阅操作确认后移除订阅",
       },
       {
         id: "calendar-feed-copy",
-        e2eSpec: E2E.dashboardSubscriptions,
+        e2eSpec: E2E.workspaceSubscriptions,
         evidence: "复制日历链接生成有效的 iCal URL",
       },
     ],
@@ -1046,7 +1046,7 @@ export const PAGE_INVENTORY: readonly PageInventoryEntry[] = [
     kind: "redirect",
     auth: "user",
     contractPath: "/workspace/subscriptions/sections",
-    e2eSpec: E2E.dashboardSubscriptions,
+    e2eSpec: E2E.workspaceSubscriptions,
   },
 ] as const satisfies readonly PageInventoryEntry[];
 

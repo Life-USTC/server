@@ -1,12 +1,12 @@
 <script lang="ts">
-import type { DashboardDashboardCopy } from "@/features/workspace/lib/dashboard-controller-helpers";
+import type { WorkspaceCopy } from "@/features/workspace/lib/workspace-controller-helpers";
 import CalendarWeekStrip from "$lib/components/calendar/CalendarWeekStrip.svelte";
-import type { DashboardCalendarTabHref } from "./dashboard-calendar-component-types";
 import OverviewSection from "./OverviewSection.svelte";
 import type { OverviewWeekDay } from "./overview-tab-types";
+import type { WorkspaceCalendarTabHref } from "./workspace-calendar-component-types";
 
-export let dashboardCopy: DashboardDashboardCopy;
-export let dashboardTabHref: DashboardCalendarTabHref;
+export let workspaceCopy: WorkspaceCopy;
+export let workspaceTabHref: WorkspaceCalendarTabHref;
 export let days: OverviewWeekDay[];
 export let formatMessage: (
   template: string,
@@ -15,15 +15,15 @@ export let formatMessage: (
 </script>
 
 <OverviewSection
-  href={dashboardTabHref("calendar")}
-  testId="dashboard-overview-week"
-  title={dashboardCopy.week.title}
+  href={workspaceTabHref("calendar")}
+  testId="workspace-overview-week"
+  title={workspaceCopy.week.title}
 >
   <CalendarWeekStrip
     {days}
-    emptyLabel={dashboardCopy.openSlot}
+    emptyLabel={workspaceCopy.openSlot}
     moreLabel={(count) =>
-      formatMessage(dashboardCopy.moreItems, {
+      formatMessage(workspaceCopy.moreItems, {
         count: String(count),
       })}
   />

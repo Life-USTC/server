@@ -3,7 +3,7 @@ import {
   logWorkspaceLinkPinFailure,
   MAX_PINNED_LINKS,
   resolveCatalogLinkBySlug,
-  sanitizeDashboardReturnTo,
+  sanitizeWorkspaceReturnTo,
   updateWorkspaceLinkPinState,
 } from "@/features/catalog-links/server/catalog-link-service";
 import { setWorkspaceLinkPinStatesBatch } from "@/features/catalog-links/server/workspace-link-pin-batch";
@@ -16,7 +16,7 @@ import { workspaceLinkPinResponseSchema } from "@/lib/api/schemas/response-schem
 import { requireAuth } from "@/lib/auth/api-auth";
 import { jsonOrRedirectForPinnedLinks } from "./workspace-link-pin-response";
 
-export async function getDashboardLinkPinsRoute(request: Request) {
+export async function getWorkspaceLinkPinsRoute(request: Request) {
   const auth = await requireAuth(request, {
     bearerScope: { feature: "workspace.link-pin", action: "read" },
   });
@@ -70,7 +70,7 @@ export async function postWorkspaceLinkPinRoute(request: Request) {
   }
 
   const { slug } = parsedBody.data;
-  const returnTo = sanitizeDashboardReturnTo(parsedBody.data.returnTo);
+  const returnTo = sanitizeWorkspaceReturnTo(parsedBody.data.returnTo);
   const action = parsedBody.data.action === "unpin" ? "unpin" : "pin";
   const link = resolveCatalogLinkBySlug(slug);
 
@@ -103,7 +103,7 @@ export async function postWorkspaceLinkPinRoute(request: Request) {
       pinnedSlugs: [],
       returnTo,
       status: 500,
-      error: "Failed to update dashboard link pin state",
+      error: "Failed to update workspace link pin state",
     });
   }
 }
@@ -132,7 +132,7 @@ export async function postWorkspaceLinkPinBatchRoute(request: Request) {
         workspaceLinkPinResponseSchema.parse({
           pinnedSlugs: [],
           maxPinnedLinks: MAX_PINNED_LINKS,
-          error: `Invalid dashboard link slug: ${result.slug}`,
+          error: `Invalid catalog link slug: ${result.slug}`,
         }),
         { status: 400 },
       );
@@ -156,7 +156,7 @@ export async function postWorkspaceLinkPinBatchRoute(request: Request) {
       workspaceLinkPinResponseSchema.parse({
         pinnedSlugs: [],
         maxPinnedLinks: MAX_PINNED_LINKS,
-        error: "Failed to update dashboard link pin state",
+        error: "Failed to update workspace link pin state",
       }),
       { status: 500 },
     );

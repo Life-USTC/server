@@ -49,7 +49,7 @@ type CalendarGridEventOptions<
   calendarHomeworkHref: (homework: Homework) => string;
   calendarSessionChipFields: (session: Session) => CalendarEventChipFields;
   calendarTodoChipFields: (todo: Todo) => CalendarEventChipFields;
-  dashboardTabHref: (tab: "exams" | "todos") => string;
+  workspaceTabHref: (tab: "exams" | "todos") => string;
   examLabel: string;
   sessionHref: (session: Session) => string;
 };
@@ -96,7 +96,7 @@ export function calendarGridEventsForDay<
       const fields = options.calendarExamChipFields(exam);
       const label = `${exam.courseName} · ${options.examLabel}`;
       return {
-        href: options.dashboardTabHref("exams"),
+        href: options.workspaceTabHref("exams"),
         label,
         meta: fields.meta,
         detail: fields.detail,
@@ -126,7 +126,7 @@ export function calendarGridEventsForDay<
       const fields = options.calendarTodoChipFields(todo);
       return {
         done: Boolean(todo.completed),
-        href: options.dashboardTabHref("todos"),
+        href: options.workspaceTabHref("todos"),
         label: todo.title,
         meta: fields.meta,
         detail: fields.detail,

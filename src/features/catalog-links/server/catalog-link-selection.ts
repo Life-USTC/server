@@ -17,23 +17,23 @@ export function buildCatalogLinkSummaries(
 
   return {
     catalogLinks,
-    dashboardLinkBySlug: new Map(
+    catalogLinkBySlug: new Map(
       catalogLinks.map((link) => [link.slug, link] as const),
     ),
   };
 }
 
-export function dashboardLinksForSlugs<Link>(
+export function catalogLinksForSlugs<Link>(
   slugs: string[],
-  dashboardLinkBySlug: Map<string, Link>,
+  catalogLinkBySlug: Map<string, Link>,
 ) {
   return slugs.flatMap((slug) => {
-    const link = dashboardLinkBySlug.get(slug);
+    const link = catalogLinkBySlug.get(slug);
     return link ? [link] : [];
   });
 }
 
-export function recommendedDashboardLinkSummaries(
+export function recommendedCatalogLinkSummaries(
   clickStats: Record<string, number>,
   pinnedSlugSet: Set<string>,
   locale: AppLocale = DEFAULT_LOCALE,

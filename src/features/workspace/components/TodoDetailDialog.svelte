@@ -3,9 +3,9 @@ import CheckCircleIcon from "@lucide/svelte/icons/check-circle";
 import RefreshCw from "@lucide/svelte/icons/refresh-cw";
 import Trash2 from "@lucide/svelte/icons/trash-2";
 import type {
-  DashboardTodoItem,
-  DashboardTodosCopy,
-} from "@/features/workspace/lib/dashboard-controller-helpers";
+  WorkspaceTodoItem,
+  WorkspaceTodosCopy,
+} from "@/features/workspace/lib/workspace-controller-helpers";
 import MarkdownPreview from "$lib/components/MarkdownPreview.svelte";
 import * as AlertDialog from "$lib/components/ui/alert-dialog/index.js";
 import { Badge } from "$lib/components/ui/badge/index.js";
@@ -16,21 +16,21 @@ import { Separator } from "$lib/components/ui/separator/index.js";
 import { Spinner } from "$lib/components/ui/spinner/index.js";
 import { cn } from "$lib/utils.js";
 
-export let deleteTodo: (todo: DashboardTodoItem) => void | Promise<void>;
+export let deleteTodo: (todo: WorkspaceTodoItem) => void | Promise<void>;
 export let fmtDate: (value: string | Date | null | undefined) => string;
 export let onClose: () => void;
-export let openTodoEditor: (todo: DashboardTodoItem) => void;
-export let todo: DashboardTodoItem | null;
-export let todoActionLabel: (todo: DashboardTodoItem) => string;
+export let openTodoEditor: (todo: WorkspaceTodoItem) => void;
+export let todo: WorkspaceTodoItem | null;
+export let todoActionLabel: (todo: WorkspaceTodoItem) => string;
 export let todoSavingById: Record<string, boolean>;
-export let todosCopy: DashboardTodosCopy;
-export let todoStatus: (todo: DashboardTodoItem) => string;
-export let toggleTodoCompletion: (todo: DashboardTodoItem) => void;
+export let todosCopy: WorkspaceTodosCopy;
+export let todoStatus: (todo: WorkspaceTodoItem) => string;
+export let toggleTodoCompletion: (todo: WorkspaceTodoItem) => void;
 
 let deleteConfirmOpen = false;
 let deletePending = false;
 
-function deleteDescription(todo: DashboardTodoItem) {
+function deleteDescription(todo: WorkspaceTodoItem) {
   return todosCopy.deleteConfirmDescription.replace(
     "{title}",
     () => todo.title,

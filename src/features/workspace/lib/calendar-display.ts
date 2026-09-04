@@ -14,9 +14,9 @@ export {
 } from "@/features/workspace/lib/calendar-display-details";
 export {
   calendarSemesterIndex,
-  dashboardOverviewWeekStart,
   overviewDayLabel,
   overviewUpcomingExams,
+  workspaceOverviewWeekStart,
 } from "@/features/workspace/lib/calendar-display-overview";
 export { buildCalendarTimelineItemsForDay } from "@/features/workspace/lib/calendar-display-timeline";
 export type {

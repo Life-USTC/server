@@ -3,7 +3,7 @@ import ArrowUpRight from "@lucide/svelte/icons/arrow-up-right";
 import CheckCircleIcon from "@lucide/svelte/icons/check-circle";
 import RefreshCw from "@lucide/svelte/icons/refresh-cw";
 import { homeworkSummaryBadges } from "@/features/homeworks/lib/homework-presentation";
-import type { DashboardHomeworkItem } from "@/features/workspace/lib/dashboard-controller-types";
+import type { WorkspaceHomeworkItem } from "@/features/workspace/lib/workspace-controller-types";
 import TableIconButton from "$lib/components/TableIconButton.svelte";
 import TableRowActions from "$lib/components/TableRowActions.svelte";
 import TruncatedText from "$lib/components/TruncatedText.svelte";
@@ -19,9 +19,9 @@ type HomeworkDateFormatter = (
 type HomeworkOverduePredicate = (
   value: Date | string | null | undefined,
 ) => boolean;
-type HomeworkAction = (homework: DashboardHomeworkItem) => string;
+type HomeworkAction = (homework: WorkspaceHomeworkItem) => string;
 
-export let filteredHomeworkItems: DashboardHomeworkItem[];
+export let filteredHomeworkItems: WorkspaceHomeworkItem[];
 export let hasHomeworkItems: boolean;
 export let onClearFilter: () => void;
 export let fmtDate: HomeworkDateFormatter;
@@ -32,12 +32,12 @@ export let homeworkIsOverdue: HomeworkOverduePredicate;
 export let homeworkSectionHref: HomeworkAction;
 export let homeworksCopy: Record<string, string>;
 export let homeworkSavingById: Record<string, boolean>;
-export let selectedHomework: DashboardHomeworkItem | null;
+export let selectedHomework: WorkspaceHomeworkItem | null;
 export let toggleHomeworkCompletion: (
-  homework: DashboardHomeworkItem,
+  homework: WorkspaceHomeworkItem,
 ) => void | Promise<void>;
 
-function summaryBadges(homework: DashboardHomeworkItem) {
+function summaryBadges(homework: WorkspaceHomeworkItem) {
   return homeworkSummaryBadges(
     {
       completed: Boolean(homework.completion),
@@ -53,7 +53,7 @@ function summaryBadges(homework: DashboardHomeworkItem) {
 }
 </script>
 
-<Table.Root class="min-w-0 w-full" data-testid="dashboard-homeworks-list">
+<Table.Root class="min-w-0 w-full" data-testid="workspace-homeworks-list">
   <Table.Header>
     <Table.Row>
       <Table.Head>{homeworksCopy.sectionLabel}</Table.Head>

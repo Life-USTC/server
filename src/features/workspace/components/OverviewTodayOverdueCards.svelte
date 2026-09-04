@@ -1,38 +1,38 @@
 <script lang="ts">
 import { sectionDetailHomeworkPath } from "@/features/section-detail/lib/section-detail-tab";
+import { WORKSPACE_OVERVIEW_PREVIEW_LIMIT } from "@/features/workspace/lib/overview-preview";
 import type {
-  DashboardCommonCopy,
-  DashboardDashboardCopy,
-  DashboardHomeworkItem,
-  DashboardRootCopy,
-  DashboardSessionItem,
-  DashboardTodoItem,
-  DashboardTodosCopy,
-} from "@/features/workspace/lib/dashboard-controller-helpers";
-import { DASHBOARD_OVERVIEW_PREVIEW_LIMIT } from "@/features/workspace/lib/overview-preview";
+  WorkspaceCommonCopy,
+  WorkspaceCopy,
+  WorkspaceHomeworkItem,
+  WorkspaceRootCopy,
+  WorkspaceSessionItem,
+  WorkspaceTodoItem,
+  WorkspaceTodosCopy,
+} from "@/features/workspace/lib/workspace-controller-helpers";
 import { Badge } from "$lib/components/ui/badge/index.js";
 import * as Empty from "$lib/components/ui/empty/index.js";
 import * as Item from "$lib/components/ui/item/index.js";
-import type { DashboardCalendarTabHref } from "./dashboard-calendar-component-types";
 import OverviewSection from "./OverviewSection.svelte";
 import OverviewTodayCard from "./OverviewTodayCard.svelte";
+import type { WorkspaceCalendarTabHref } from "./workspace-calendar-component-types";
 
-export let copy: DashboardRootCopy;
-export let commonCopy: DashboardCommonCopy;
-export let dashboardCopy: DashboardDashboardCopy;
-export let todosCopy: DashboardTodosCopy;
-export let dashboardTabHref: DashboardCalendarTabHref;
+export let copy: WorkspaceRootCopy;
+export let commonCopy: WorkspaceCommonCopy;
+export let workspaceCopy: WorkspaceCopy;
+export let todosCopy: WorkspaceTodosCopy;
+export let workspaceTabHref: WorkspaceCalendarTabHref;
 export let fmtDate: (date: Date | string | null | undefined) => string;
 export let fmtTime: (time: number) => string;
 export let homeworkEtaLabel: (date: Date | string | null | undefined) => string;
-export let todoStatus: (todo: DashboardTodoItem) => string;
-export let todaySessions: DashboardSessionItem[];
-export let dueTodayHomeworks: DashboardHomeworkItem[];
-export let dueTodayTodos: DashboardTodoItem[];
-export let overdueHomeworks: DashboardHomeworkItem[];
-export let overdueTodos: DashboardTodoItem[];
-export let sessionHref: (session: DashboardSessionItem) => string;
-export let previewLimit = DASHBOARD_OVERVIEW_PREVIEW_LIMIT;
+export let todoStatus: (todo: WorkspaceTodoItem) => string;
+export let todaySessions: WorkspaceSessionItem[];
+export let dueTodayHomeworks: WorkspaceHomeworkItem[];
+export let dueTodayTodos: WorkspaceTodoItem[];
+export let overdueHomeworks: WorkspaceHomeworkItem[];
+export let overdueTodos: WorkspaceTodoItem[];
+export let sessionHref: (session: WorkspaceSessionItem) => string;
+export let previewLimit = WORKSPACE_OVERVIEW_PREVIEW_LIMIT;
 export let viewAllLabel = "View all";
 
 $: overdueHomeworkPreview = overdueHomeworks.slice(0, previewLimit);
@@ -48,8 +48,8 @@ $: overdueEmpty = overdueHomeworks.length === 0 && overdueTodos.length === 0;
 <div class="grid items-start gap-8 lg:grid-cols-2">
   <OverviewTodayCard
     {copy}
-    {dashboardCopy}
-    {dashboardTabHref}
+    {workspaceCopy}
+    {workspaceTabHref}
     {dueTodayHomeworks}
     {dueTodayTodos}
     {fmtDate}
@@ -59,16 +59,16 @@ $: overdueEmpty = overdueHomeworks.length === 0 && overdueTodos.length === 0;
   />
 
   <OverviewSection
-    href={dashboardTabHref("homeworks")}
-    title={dashboardCopy.overdue.title}
-    viewAllHref={dashboardTabHref("homeworks")}
+    href={workspaceTabHref("homeworks")}
+    title={workspaceCopy.overdue.title}
+    viewAllHref={workspaceTabHref("homeworks")}
     viewAllLabel={viewAllLabel}
     viewAllVisible={showOverdueViewAll}
   >
     {#if overdueEmpty}
       <Empty.Root class="min-h-20 border-0 px-2 py-6">
         <Empty.Header>
-          <Empty.Description>{dashboardCopy.overdue.empty}</Empty.Description>
+          <Empty.Description>{workspaceCopy.overdue.empty}</Empty.Description>
         </Empty.Header>
       </Empty.Root>
     {:else}
@@ -81,7 +81,7 @@ $: overdueEmpty = overdueHomeworks.length === 0 && overdueTodos.length === 0;
                   ? sectionDetailHomeworkPath(homework.section.jwId, {
                       homeworkId: homework.id,
                     })
-                  : dashboardTabHref("homeworks")}
+                  : workspaceTabHref("homeworks")}
                 {...props}
               >
                 <Item.Content class="min-w-0 gap-1">
@@ -104,7 +104,7 @@ $: overdueEmpty = overdueHomeworks.length === 0 && overdueTodos.length === 0;
         {#each overdueTodoPreview as todo, index (todo.id)}
           <Item.Root class="rounded-md border-0 px-2 py-2.5" size="sm">
             {#snippet child({ props })}
-              <a href={dashboardTabHref("todos")} {...props}>
+              <a href={workspaceTabHref("todos")} {...props}>
                 <Item.Content class="min-w-0 gap-1">
                   <Item.Title class="line-clamp-2">{todo.title}</Item.Title>
                   <Item.Description class="flex flex-wrap gap-1.5">

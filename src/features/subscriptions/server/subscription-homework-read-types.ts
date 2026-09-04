@@ -10,5 +10,5 @@ export type ListSubscribedHomeworksOptions = {
   requireDueDate?: boolean;
   sectionIds?: readonly number[];
   semesterId?: number;
-  shape?: "full" | "dashboard";
+  shape?: "full" | "workspace";
 };

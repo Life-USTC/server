@@ -1,29 +1,29 @@
-import type { DashboardTimelineItem } from "@/features/workspace/lib/dashboard-agenda";
+import type { WorkspaceTimelineItem } from "@/features/workspace/lib/workspace-agenda";
 import type {
-  DashboardCalendarPreviewData,
-  DashboardDashboardCopy,
-  DashboardSectionCopy,
-  DashboardTodoItem,
-  SignedDashboardData,
-} from "@/features/workspace/lib/dashboard-controller-helpers";
+  SignedWorkspaceData,
+  WorkspaceCalendarPreviewData,
+  WorkspaceCopy,
+  WorkspaceSectionCopy,
+  WorkspaceTodoItem,
+} from "@/features/workspace/lib/workspace-controller-helpers";
 import type { CalendarGridDay } from "$lib/components/calendar/types";
-import type { DashboardCalendarEvents } from "./dashboard-calendar-component-types";
+import type { WorkspaceCalendarEvents } from "./workspace-calendar-component-types";
 
-export type OverviewTimelineItem = DashboardTimelineItem;
+export type OverviewTimelineItem = WorkspaceTimelineItem;
 
 export type OverviewCalendarTimelineItemsForDay = (
-  events: DashboardCalendarEvents,
+  events: WorkspaceCalendarEvents,
 ) => OverviewTimelineItem[];
 
 export type OverviewWeekDay = CalendarGridDay;
 
-export type OverviewSignedData = SignedDashboardData & {
+export type OverviewSignedData = SignedWorkspaceData & {
   overviewWeek?: string | null;
   referenceNow?: Date | string | null;
   overview?:
-    | (NonNullable<SignedDashboardData["overview"]> & {
+    | (NonNullable<SignedWorkspaceData["overview"]> & {
         calendar?:
-          | (DashboardCalendarPreviewData & {
+          | (WorkspaceCalendarPreviewData & {
               referenceDate?: string | null;
             })
           | null;
@@ -33,12 +33,12 @@ export type OverviewSignedData = SignedDashboardData & {
 
 export type OverviewDateFormatter = (
   value: Date | string | null | undefined,
-  sectionCopy: DashboardSectionCopy,
+  sectionCopy: WorkspaceSectionCopy,
   signedData: OverviewSignedData,
   locale: string,
 ) => string;
 
 export type OverviewTodoStatus = (
-  todo: DashboardTodoItem,
-  dashboardCopy: DashboardDashboardCopy,
+  todo: WorkspaceTodoItem,
+  workspaceCopy: WorkspaceCopy,
 ) => string;

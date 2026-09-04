@@ -1,31 +1,31 @@
 <script lang="ts">
-import type {
-  DashboardLinkPinAction,
-  DashboardLinkPinSubmit,
-  DashboardOverviewLinkItem,
-} from "@/features/workspace/lib/dashboard-controller-helpers";
 import {
   LINK_TABLE_ACTIONS_COL,
   LINK_TABLE_CLASS,
   LINK_TABLE_NAME_COL,
 } from "@/features/workspace/lib/link-table-layout";
+import type {
+  WorkspaceLinkPinAction,
+  WorkspaceLinkPinSubmit,
+  WorkspaceOverviewLinkItem,
+} from "@/features/workspace/lib/workspace-controller-helpers";
 import TruncatedText from "$lib/components/TruncatedText.svelte";
 import * as Table from "$lib/components/ui/table/index.js";
-import DashboardLinkTableCell from "./DashboardLinkTableCell.svelte";
+import CatalogLinkTableCell from "./CatalogLinkTableCell.svelte";
 import LinksTabPinButton from "./LinksTabPinButton.svelte";
 
 export let colActions: string;
 export let colDescription: string;
 export let colName: string;
-export let links: DashboardOverviewLinkItem[];
+export let links: WorkspaceOverviewLinkItem[];
 export let linkIconLabel: (icon: string) => string;
 export let linkReturnTo: string;
 export let pinAction: (
-  link: DashboardOverviewLinkItem,
-) => DashboardLinkPinAction;
-export let pinLabel: (link: DashboardOverviewLinkItem) => string;
-export let submitDashboardLinkPin: DashboardLinkPinSubmit;
-export let updatingDashboardLinkSlug: string | null;
+  link: WorkspaceOverviewLinkItem,
+) => WorkspaceLinkPinAction;
+export let pinLabel: (link: WorkspaceOverviewLinkItem) => string;
+export let submitWorkspaceLinkPin: WorkspaceLinkPinSubmit;
+export let updatingCatalogLinkSlug: string | null;
 </script>
 
 <div class="relative w-full overflow-x-auto">
@@ -46,7 +46,7 @@ export let updatingDashboardLinkSlug: string | null;
       {#each links as link}
         <Table.Row class="group">
           <Table.Cell class="p-0">
-            <DashboardLinkTableCell {link}>
+            <CatalogLinkTableCell {link}>
               <span class="flex min-w-0 items-center gap-2">
                 <span
                   aria-hidden="true"
@@ -56,12 +56,12 @@ export let updatingDashboardLinkSlug: string | null;
                 </span>
                 <TruncatedText text={link.title} />
               </span>
-            </DashboardLinkTableCell>
+            </CatalogLinkTableCell>
           </Table.Cell>
           <Table.Cell class="p-0">
-            <DashboardLinkTableCell {link}>
+            <CatalogLinkTableCell {link}>
               <TruncatedText text={link.description} />
-            </DashboardLinkTableCell>
+            </CatalogLinkTableCell>
           </Table.Cell>
           <Table.Cell class="p-0">
             <div
@@ -72,8 +72,8 @@ export let updatingDashboardLinkSlug: string | null;
                 {linkReturnTo}
                 {pinAction}
                 {pinLabel}
-                {submitDashboardLinkPin}
-                {updatingDashboardLinkSlug}
+                {submitWorkspaceLinkPin}
+                {updatingCatalogLinkSlug}
               />
             </div>
           </Table.Cell>

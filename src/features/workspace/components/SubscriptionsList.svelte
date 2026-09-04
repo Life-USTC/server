@@ -1,13 +1,13 @@
 <script lang="ts">
 import ArrowUpRight from "@lucide/svelte/icons/arrow-up-right";
 import UserMinus from "@lucide/svelte/icons/user-minus";
-import type {
-  DashboardDashboardCopy,
-  DashboardSectionCopy,
-  DashboardSubscriptionsCopy,
-  SubscriptionsData,
-} from "@/features/workspace/lib/dashboard-controller-types";
 import { groupSubscribedSectionsBySemester } from "@/features/workspace/lib/subscriptions";
+import type {
+  SubscriptionsData,
+  WorkspaceCopy,
+  WorkspaceSectionCopy,
+  WorkspaceSubscriptionsCopy,
+} from "@/features/workspace/lib/workspace-controller-types";
 import { page } from "$app/stores";
 import TableIconButton from "$lib/components/TableIconButton.svelte";
 import TableRowActions from "$lib/components/TableRowActions.svelte";
@@ -15,22 +15,22 @@ import TruncatedText from "$lib/components/TruncatedText.svelte";
 import * as AlertDialog from "$lib/components/ui/alert-dialog/index.js";
 import { Spinner } from "$lib/components/ui/spinner/index.js";
 import * as Table from "$lib/components/ui/table/index.js";
-import DashboardNoSubscriptionsState from "./DashboardNoSubscriptionsState.svelte";
 import SubscriptionsCardsView from "./SubscriptionsCardsView.svelte";
 import type { FormatMessage } from "./subscription-tab-types";
+import WorkspaceNoSubscriptionsState from "./WorkspaceNoSubscriptionsState.svelte";
 
 type SubscriptionListData = SubscriptionsData["subscriptions"];
 type SubscriptionSection = SubscriptionListData[number]["sections"][number];
 
-export let dashboardCopy: DashboardDashboardCopy;
+export let workspaceCopy: WorkspaceCopy;
 export let formatMessage: FormatMessage;
 export let removeSubscribedSection: (
   sectionId: SubscriptionSection["id"],
 ) => boolean | Promise<boolean>;
 export let removingSectionId: SubscriptionSection["id"] | null;
-export let sectionCopy: DashboardSectionCopy;
+export let sectionCopy: WorkspaceSectionCopy;
 export let subscriptions: SubscriptionListData;
-export let subscriptionsCopy: DashboardSubscriptionsCopy;
+export let subscriptionsCopy: WorkspaceSubscriptionsCopy;
 export let openBulkImportDialog: () => void;
 export let openQuickAddDialog: () => void;
 
@@ -41,7 +41,7 @@ $: locale = $page.data.locale ?? "zh-cn";
 $: sectionGroups = subscriptions.flatMap((subscription) =>
   groupSubscribedSectionsBySemester(
     subscription.sections,
-    dashboardCopy.notAvailable,
+    workspaceCopy.notAvailable,
     locale,
   ),
 );
@@ -56,7 +56,7 @@ function teacherNames(section: SubscriptionSection) {
 }
 
 function courseName(section: SubscriptionSection) {
-  return section.course.namePrimary ?? dashboardCopy.notAvailable;
+  return section.course.namePrimary ?? workspaceCopy.notAvailable;
 }
 
 function requestRemoveSection(section: SubscriptionSection) {
@@ -109,7 +109,7 @@ function handleRemoveDialogOpenChange(open: boolean) {
         </div>
         <div class="md:hidden">
           <SubscriptionsCardsView
-            {dashboardCopy}
+            {workspaceCopy}
             {requestRemoveSection}
             {removingSectionId}
             {sectionCopy}
@@ -150,7 +150,7 @@ function handleRemoveDialogOpenChange(open: boolean) {
                     {teacherNames(section)}
                   </Table.Cell>
                   <Table.Cell class="text-end">
-                    {section.credits ?? dashboardCopy.notAvailable}
+                    {section.credits ?? workspaceCopy.notAvailable}
                   </Table.Cell>
                   <Table.Cell>
                     <TableRowActions>
@@ -183,7 +183,7 @@ function handleRemoveDialogOpenChange(open: boolean) {
     {/each}
   </div>
 {:else}
-  <DashboardNoSubscriptionsState
+  <WorkspaceNoSubscriptionsState
     title={subscriptionsCopy.noSubscriptions}
     description={subscriptionsCopy.noSubscriptionsDescription}
     actions={[

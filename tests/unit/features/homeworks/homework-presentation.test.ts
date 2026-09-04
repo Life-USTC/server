@@ -10,7 +10,7 @@ import {
 const referenceDate = "2026-05-22T10:30:00+08:00";
 
 describe("homework detail presentation", () => {
-  it("normalizes dashboard and section-shaped descriptions into one model", () => {
+  it("normalizes workspace and section-shaped descriptions into one model", () => {
     expect(
       normalizeHomeworkDetail(
         {

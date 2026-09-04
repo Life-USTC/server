@@ -13,7 +13,7 @@ const {
   homeworkCountMock,
   listTodaySubscribedSchedulesWithCountMock,
   listUpcomingSubscribedExamsWithCountMock,
-  localizeSubscribedHomeworkDashboardItemsMock,
+  localizeSubscribedHomeworkWorkspaceItemsMock,
   withHomeworkItemStateMock,
   withUserDbContextMock,
 } = vi.hoisted(() => {
@@ -24,7 +24,7 @@ const {
     homeworkCountMock: homeworkCount,
     listTodaySubscribedSchedulesWithCountMock: vi.fn(),
     listUpcomingSubscribedExamsWithCountMock: vi.fn(),
-    localizeSubscribedHomeworkDashboardItemsMock: vi.fn(),
+    localizeSubscribedHomeworkWorkspaceItemsMock: vi.fn(),
     withHomeworkItemStateMock: vi.fn(async (items: unknown[]) => items),
     withUserDbContextMock: vi.fn(async (_userId, action) => action(tx)),
   };
@@ -51,8 +51,8 @@ vi.mock("@/features/homeworks/server/homework-item-state", () => ({
 
 vi.mock("@/features/subscriptions/server/subscription-homework-list", () => ({
   fetchSubscribedHomeworkRlsSnapshot: fetchSubscribedHomeworkRlsSnapshotMock,
-  localizeSubscribedHomeworkDashboardItems:
-    localizeSubscribedHomeworkDashboardItemsMock,
+  localizeSubscribedHomeworkWorkspaceItems:
+    localizeSubscribedHomeworkWorkspaceItemsMock,
 }));
 
 vi.mock("@/features/subscriptions/server/subscription-read-model", () => ({
@@ -92,7 +92,7 @@ describe("compact overview subscription bundle", () => {
       homeworkIds: ["homework-1"],
       completions: [],
     });
-    localizeSubscribedHomeworkDashboardItemsMock.mockResolvedValue([
+    localizeSubscribedHomeworkWorkspaceItemsMock.mockResolvedValue([
       { id: "homework-1" },
     ]);
     listTodaySubscribedSchedulesWithCountMock.mockResolvedValue({
@@ -144,7 +144,7 @@ describe("compact overview subscription bundle", () => {
       }),
       true,
     );
-    expect(localizeSubscribedHomeworkDashboardItemsMock).toHaveBeenCalledOnce();
+    expect(localizeSubscribedHomeworkWorkspaceItemsMock).toHaveBeenCalledOnce();
     expect(listTodaySubscribedSchedulesWithCountMock).toHaveBeenCalledWith(
       "user-1",
       expect.objectContaining({
@@ -182,7 +182,7 @@ describe("compact overview subscription bundle", () => {
     const result = await loadReads([11], { includeSamples: false });
 
     expect(withHomeworkItemStateMock).not.toHaveBeenCalled();
-    expect(localizeSubscribedHomeworkDashboardItemsMock).not.toHaveBeenCalled();
+    expect(localizeSubscribedHomeworkWorkspaceItemsMock).not.toHaveBeenCalled();
     expect(fetchSubscribedHomeworkRlsSnapshotMock).toHaveBeenCalledWith(
       expect.anything(),
       "user-1",
