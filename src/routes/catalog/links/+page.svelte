@@ -1,6 +1,6 @@
 <script lang="ts">
 import { onMount } from "svelte";
-import { groupDashboardLinks } from "@/features/dashboard-links/lib/dashboard-link-search";
+import { groupCatalogLinks } from "@/features/catalog-links/lib/catalog-link-search";
 import AnonymousLinksTab from "@/features/workspace/components/AnonymousLinksTab.svelte";
 import LinksTab from "@/features/workspace/components/LinksTab.svelte";
 import { linkIconLabel } from "@/features/workspace/lib/dashboard-link-icon";
@@ -22,8 +22,8 @@ let linkItems = data.links;
 let linkReturnTo = "/catalog/links";
 let updatingDashboardLinkSlug: string | null = null;
 
-$: dashboardCopy = data.copy.dashboard;
-$: linkGroups = groupDashboardLinks(
+$: dashboardCopy = data.copy.workspace;
+$: linkGroups = groupCatalogLinks(
   linkItems,
   linkSearchQuery,
   dashboardCopy.linkHub.groups,
@@ -55,13 +55,13 @@ onMount(() => {
 </script>
 
 <svelte:head>
-  <title>{data.copy.dashboard.nav.links.title} - Life@USTC</title>
+  <title>{data.copy.workspace.nav.links.title} - Life@USTC</title>
 </svelte:head>
 
 <section class="grid gap-5">
   <PageHeader
-    description={data.copy.dashboard.nav.links.description}
-    title={data.copy.dashboard.nav.links.title}
+    description={data.copy.workspace.nav.links.description}
+    title={data.copy.workspace.nav.links.title}
   />
 
   {#if data.signedIn}

@@ -1,4 +1,4 @@
-import { getDashboardPageCopy } from "@/features/workspace/server/dashboard-page-copy";
+import { getWorkspacePageCopy } from "@/features/workspace/server/dashboard-page-copy";
 import type { DashboardPageLoadEvent } from "@/features/workspace/server/dashboard-page-load-types";
 import { getWeatherSnapshot } from "./weather-service";
 import {
@@ -23,7 +23,7 @@ export async function loadWeatherPage({ locals }: DashboardPageLoadEvent) {
   );
 
   return {
-    copy: getDashboardPageCopy(locals.locale),
+    copy: getWorkspacePageCopy(locals.locale),
     locale: locals.locale,
     locations,
   };

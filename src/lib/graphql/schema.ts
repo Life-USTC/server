@@ -13,8 +13,8 @@ import { listTeacherSummaries } from "@/features/catalog/server/teacher-summary-
 import {
   linkMatchesTokens,
   searchQueryToTokens,
-} from "@/features/dashboard-links/lib/dashboard-link-search";
-import { getPublicDashboardLinksData } from "@/features/dashboard-links/server/dashboard-link-data";
+} from "@/features/catalog-links/lib/catalog-link-search";
+import { getPublicCatalogLinksData } from "@/features/catalog-links/server/catalog-link-data";
 import { getPublicUserIdentityByIdentifier } from "@/features/profile/server/user-profile-page-data";
 import { getWeatherSnapshot } from "@/features/weather/server/weather-service";
 import {
@@ -602,9 +602,9 @@ export const graphqlSchema = createSchema<
         };
       },
       links(_parent, args: { query?: string | null }, context) {
-        const links = getPublicDashboardLinksData(
+        const links = getPublicCatalogLinksData(
           context.locale,
-        ).dashboardLinks;
+        ).catalogLinks;
         const query = args.query?.trim();
         if (!query) return links;
         const tokens = searchQueryToTokens(query);

@@ -6,7 +6,7 @@ export type DashboardLinkCategory =
   | "services"
   | "campus";
 
-export type DashboardLinkIcon =
+export type CatalogLinkIcon =
   | "book-open"
   | "clipboard-list"
   | "building"
@@ -22,7 +22,7 @@ export type DashboardLinkLocalizedFields = {
   description: string;
 };
 
-export type DashboardLinkItem = {
+export type CatalogLinkItem = {
   slug: string;
   title: string;
   url: string;
@@ -31,17 +31,17 @@ export type DashboardLinkItem = {
     "en-us": DashboardLinkLocalizedFields;
   };
   category: DashboardLinkCategory;
-  icon: DashboardLinkIcon;
+  icon: CatalogLinkIcon;
 };
 
-export type LocalizedDashboardLinkItem = Omit<
-  DashboardLinkItem,
+export type LocalizedCatalogLinkItem = Omit<
+  CatalogLinkItem,
   "localizations"
 > & {
   locale: AppLocale;
 };
 
-export type DashboardLinkGroup =
+export type CatalogLinkGroup =
   | "mostClicked"
   | "study"
   | "life"
@@ -51,12 +51,12 @@ export type DashboardLinkGroup =
   | "graduate"
   | "leastClicked";
 
-export { USTC_DASHBOARD_LINKS } from "@/features/dashboard-links/lib/dashboard-link-catalog-data";
+export { USTC_CATALOG_LINKS } from "@/features/catalog-links/lib/catalog-link-catalog-data";
 
-export function localizeDashboardLink(
-  link: DashboardLinkItem,
+export function localizeCatalogLink(
+  link: CatalogLinkItem,
   locale: AppLocale,
-): LocalizedDashboardLinkItem {
+): LocalizedCatalogLinkItem {
   const { localizations, ...base } = link;
   const localized = locale === "en-us" ? localizations["en-us"] : null;
 
@@ -68,14 +68,14 @@ export function localizeDashboardLink(
   };
 }
 
-export function localizeDashboardLinks(
-  links: DashboardLinkItem[],
+export function localizeCatalogLinks(
+  links: CatalogLinkItem[],
   locale: AppLocale,
-): LocalizedDashboardLinkItem[] {
-  return links.map((link) => localizeDashboardLink(link, locale));
+): LocalizedCatalogLinkItem[] {
+  return links.map((link) => localizeCatalogLink(link, locale));
 }
 
-export const DASHBOARD_LINK_GROUP_ORDER: DashboardLinkGroup[] = [
+export const DASHBOARD_LINK_GROUP_ORDER: CatalogLinkGroup[] = [
   "mostClicked",
   "study",
   "life",
@@ -86,7 +86,7 @@ export const DASHBOARD_LINK_GROUP_ORDER: DashboardLinkGroup[] = [
   "leastClicked",
 ];
 
-export const DASHBOARD_LINK_GROUPS: Record<DashboardLinkGroup, string[]> = {
+export const DASHBOARD_LINK_GROUPS: Record<CatalogLinkGroup, string[]> = {
   mostClicked: [
     "jw",
     "icourse",

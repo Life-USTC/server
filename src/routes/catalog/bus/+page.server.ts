@@ -18,8 +18,8 @@ export const load: PageServerLoad = async (event) => {
       card: {
         label: event.locals.locale === "zh-cn" ? "CAMPUS · 校车" : "CAMPUS BUS",
       },
-      description: data.copy.dashboard.nav.bus.description,
-      title: `${data.copy.dashboard.nav.bus.title} - Life@USTC`,
+      description: data.copy.workspace.nav.bus.description,
+      title: `${data.copy.workspace.nav.bus.title} - Life@USTC`,
     }),
   };
 };

@@ -2,17 +2,17 @@ import type { AuthInfo } from "@modelcontextprotocol/sdk/server/auth/types.js";
 import {
   linkMatchesTokens,
   searchQueryToTokens,
-} from "@/features/dashboard-links/lib/dashboard-link-search";
+} from "@/features/catalog-links/lib/catalog-link-search";
 import {
-  type DashboardLinkSummary,
-  getPublicDashboardLinksData,
-} from "@/features/dashboard-links/server/dashboard-link-data";
+  type CatalogLinkSummary,
+  getPublicCatalogLinksData,
+} from "@/features/catalog-links/server/catalog-link-data";
 import {
-  getDashboardLinkPinnedSlugs,
+  getWorkspaceLinkPinnedSlugs,
   MAX_PINNED_LINKS,
-  resolveDashboardLinkBySlug,
-  updateDashboardLinkPinState,
-} from "@/features/dashboard-links/server/dashboard-link-service";
+  resolveCatalogLinkBySlug,
+  updateWorkspaceLinkPinState,
+} from "@/features/catalog-links/server/catalog-link-service";
 import {
   getUserId,
   jsonToolResult,
@@ -26,7 +26,7 @@ function normalizeDashboardLinkQuery(query: string | undefined) {
   return normalized ? normalized : null;
 }
 
-function dashboardLinkToolSummary(link: DashboardLinkSummary) {
+function dashboardLinkToolSummary(link: CatalogLinkSummary) {
   return {
     slug: link.slug,
     title: link.title,
@@ -45,19 +45,19 @@ export async function listDashboardLinksTool({
   mode?: McpModeInput;
 }) {
   const resolvedMode = resolveMcpMode(mode);
-  const data = getPublicDashboardLinksData();
+  const data = getPublicCatalogLinksData();
   const normalizedQuery = normalizeDashboardLinkQuery(query);
   const tokens = normalizedQuery ? searchQueryToTokens(normalizedQuery) : [];
   const links =
     tokens.length === 0
-      ? data.dashboardLinks
-      : data.dashboardLinks.filter((link) => linkMatchesTokens(link, tokens));
+      ? data.catalogLinks
+      : data.catalogLinks.filter((link) => linkMatchesTokens(link, tokens));
 
   return jsonToolResult(
     {
       success: true,
       query: normalizedQuery,
-      total: data.dashboardLinks.length,
+      total: data.catalogLinks.length,
       returned: links.length,
       links: links.map(dashboardLinkToolSummary),
     },
@@ -69,7 +69,7 @@ export async function listDashboardLinkPinsTool(
   { mode }: { mode?: McpModeInput },
   extra: ToolExtra,
 ) {
-  const pinnedSlugs = await getDashboardLinkPinnedSlugs(
+  const pinnedSlugs = await getWorkspaceLinkPinnedSlugs(
     getUserId(extra.authInfo),
   );
   return jsonToolResult(
@@ -92,10 +92,10 @@ export async function setDashboardLinkPinStateTool(
 ) {
   const resolvedMode = resolveMcpMode(mode);
   const userId = getUserId(extra.authInfo);
-  const link = resolveDashboardLinkBySlug(slug);
+  const link = resolveCatalogLinkBySlug(slug);
 
   if (!link) {
-    const pinnedSlugs = await getDashboardLinkPinnedSlugs(userId);
+    const pinnedSlugs = await getWorkspaceLinkPinnedSlugs(userId);
     return jsonToolResult(
       {
         success: false,
@@ -109,7 +109,7 @@ export async function setDashboardLinkPinStateTool(
     );
   }
 
-  const pinnedSlugs = await updateDashboardLinkPinState({
+  const pinnedSlugs = await updateWorkspaceLinkPinState({
     action,
     slug: link.slug,
     userId,

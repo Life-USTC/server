@@ -1,7 +1,7 @@
 import type { CalendarView } from "@/features/workspace/lib/calendar";
 import type {
   CalendarData,
-  DashboardLinkItem,
+  CatalogLinkItem,
   ExamRow,
   ExamView,
   HomeworkFilter,
@@ -35,7 +35,7 @@ export function createDashboardControllerDefaultState() {
     createHomeworkSubmissionDueAt: "",
     createHomeworkSubmissionStartAt: "",
     createTodoError: "",
-    dashboardLinkItems: [] as DashboardLinkItem[],
+    dashboardLinkItems: [] as CatalogLinkItem[],
     editTodoError: "",
     editingTodo: null as TodoItem | null,
     examFilter: "incomplete" as ExamFilter,
@@ -62,7 +62,7 @@ export function createDashboardControllerDefaultState() {
     linkSearchQuery: "",
     linkView: "grid" as LinkView,
     matchedSections: [] as MatchedSection[],
-    overviewLinkItems: [] as DashboardLinkItem[],
+    overviewLinkItems: [] as CatalogLinkItem[],
     removingSectionId: null as number | null,
     selectedHomework: null as HomeworkItem | null,
     selectedImportSectionIds: [] as number[],

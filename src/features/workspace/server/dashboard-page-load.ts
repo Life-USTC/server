@@ -1,5 +1,5 @@
 import type { WorkspaceTabId } from "@/features/workspace/lib/dashboard-nav";
-import { getDashboardPageCopy } from "@/features/workspace/server/dashboard-page-copy";
+import { getWorkspacePageCopy } from "@/features/workspace/server/dashboard-page-copy";
 import { loadSignedDashboardPageData } from "@/features/workspace/server/dashboard-page-load-signed";
 import type { DashboardPageLoadEvent } from "@/features/workspace/server/dashboard-page-load-types";
 import {
@@ -43,7 +43,7 @@ export async function loadSignedDashboardPage({
 }: DashboardPageLoadEvent & { tab: WorkspaceTabId; userId: string }) {
   const startMs = monotonicNowMs();
   const locale = locals.locale;
-  const pageCopy = getDashboardPageCopy(locale);
+  const pageCopy = getWorkspacePageCopy(locale);
   const calendarSemesterId =
     tab === "calendar"
       ? parsePositiveCalendarSemester(url.searchParams.get("calendarSemester"))
@@ -104,6 +104,6 @@ export async function loadSignedDashboardPage({
 
   return {
     ...signedData,
-    mainContentLabel: pageCopy.dashboard.nav[tab].title,
+    mainContentLabel: pageCopy.workspace.nav[tab].title,
   };
 }

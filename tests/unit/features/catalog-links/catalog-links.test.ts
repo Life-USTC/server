@@ -2,18 +2,18 @@ import { describe, expect, it } from "vitest";
 import {
   linkMatchesTokens,
   searchQueryToTokens,
-} from "@/features/dashboard-links/lib/dashboard-link-search";
+} from "@/features/catalog-links/lib/catalog-link-search";
 import {
   DASHBOARD_LINK_GROUPS,
-  localizeDashboardLink,
-  recommendDashboardLinks,
-  USTC_DASHBOARD_LINKS,
-} from "@/features/dashboard-links/lib/dashboard-links";
-import { buildDashboardLinkSummaries } from "@/features/dashboard-links/server/dashboard-link-selection";
+  localizeCatalogLink,
+  recommendCatalogLinks,
+  USTC_CATALOG_LINKS,
+} from "@/features/catalog-links/lib/catalog-links";
+import { buildCatalogLinkSummaries } from "@/features/catalog-links/server/catalog-link-selection";
 
 describe("仪表盘链接推荐", () => {
   it("按点击次数降序返回链接", () => {
-    const result = recommendDashboardLinks({
+    const result = recommendCatalogLinks({
       mail: 2,
       jw: 8,
       library: 3,
@@ -24,18 +24,18 @@ describe("仪表盘链接推荐", () => {
   });
 
   it("无历史记录时回退到确定性顺序", () => {
-    const result = recommendDashboardLinks({});
+    const result = recommendCatalogLinks({});
 
     expect(result).toHaveLength(3);
     expect(
       result.every((item) =>
-        USTC_DASHBOARD_LINKS.some((link) => link.slug === item.slug),
+        USTC_CATALOG_LINKS.some((link) => link.slug === item.slug),
       ),
     ).toBe(true);
   });
 
   it("支持排除 slug 和自定义数量限制", () => {
-    const result = recommendDashboardLinks(
+    const result = recommendCatalogLinks(
       {
         jw: 10,
         library: 7,
@@ -49,15 +49,15 @@ describe("仪表盘链接推荐", () => {
   });
 
   it("要求每个链接都有英文目录标签", () => {
-    for (const link of USTC_DASHBOARD_LINKS) {
+    for (const link of USTC_CATALOG_LINKS) {
       expect(link.localizations["en-us"]?.title, link.slug).toBeTruthy();
       expect(link.localizations["en-us"]?.description, link.slug).toBeTruthy();
     }
   });
 
   it("保持目录 slug、URL 和分组完整", () => {
-    const catalogSlugs = USTC_DASHBOARD_LINKS.map((link) => link.slug);
-    const catalogUrls = USTC_DASHBOARD_LINKS.map((link) => link.url);
+    const catalogSlugs = USTC_CATALOG_LINKS.map((link) => link.slug);
+    const catalogUrls = USTC_CATALOG_LINKS.map((link) => link.url);
     const groupedSlugs = Object.values(DASHBOARD_LINK_GROUPS).flat();
 
     expect(new Set(catalogSlugs).size).toBe(catalogSlugs.length);
@@ -68,7 +68,7 @@ describe("仪表盘链接推荐", () => {
 
   it("移除失效入口并使用当前正版软件地址", () => {
     const linksBySlug = new Map(
-      USTC_DASHBOARD_LINKS.map((link) => [link.slug, link]),
+      USTC_CATALOG_LINKS.map((link) => [link.slug, link]),
     );
 
     expect(linksBySlug.has("campus-wiki")).toBe(false);
@@ -91,7 +91,7 @@ describe("仪表盘链接推荐", () => {
       "ustc-news": "https://news.ustc.edu.cn/",
     };
     const linksBySlug = new Map(
-      USTC_DASHBOARD_LINKS.map((link) => [link.slug, link]),
+      USTC_CATALOG_LINKS.map((link) => [link.slug, link]),
     );
 
     for (const [slug, url] of Object.entries(expectedUrls)) {
@@ -100,25 +100,25 @@ describe("仪表盘链接推荐", () => {
   });
 
   it("按地区设置投影仪表盘链接标签", () => {
-    const mail = USTC_DASHBOARD_LINKS.find((link) => link.slug === "mail");
+    const mail = USTC_CATALOG_LINKS.find((link) => link.slug === "mail");
     expect(mail).toBeDefined();
     if (!mail) throw new Error("mail link missing");
 
-    expect(localizeDashboardLink(mail, "zh-cn")).toMatchObject({
+    expect(localizeCatalogLink(mail, "zh-cn")).toMatchObject({
       title: "邮箱",
       description: "USTC 邮件系统。",
     });
-    expect(localizeDashboardLink(mail, "en-us")).toMatchObject({
+    expect(localizeCatalogLink(mail, "en-us")).toMatchObject({
       title: "USTC Email",
       description: "USTC email service.",
     });
   });
 
   it("根据本地化链接标签构建搜索摘要", () => {
-    const zhLinks = buildDashboardLinkSummaries({}, new Set(), "zh-cn");
-    const enLinks = buildDashboardLinkSummaries({}, new Set(), "en-us");
-    const zhMail = zhLinks.dashboardLinks.find((link) => link.slug === "mail");
-    const enMail = enLinks.dashboardLinks.find((link) => link.slug === "mail");
+    const zhLinks = buildCatalogLinkSummaries({}, new Set(), "zh-cn");
+    const enLinks = buildCatalogLinkSummaries({}, new Set(), "en-us");
+    const zhMail = zhLinks.catalogLinks.find((link) => link.slug === "mail");
+    const enMail = enLinks.catalogLinks.find((link) => link.slug === "mail");
 
     expect(zhMail?.title).toBe("邮箱");
     expect(enMail?.title).toBe("USTC Email");
@@ -133,12 +133,12 @@ describe("仪表盘链接推荐", () => {
   });
 
   it("可以按 URL 和域名搜索链接", () => {
-    const { dashboardLinks } = buildDashboardLinkSummaries(
+    const { catalogLinks } = buildCatalogLinkSummaries(
       {},
       new Set(),
       "zh-cn",
     );
-    const faculty = dashboardLinks.find(
+    const faculty = catalogLinks.find(
       (link) => link.slug === "faculty-homepages",
     );
 

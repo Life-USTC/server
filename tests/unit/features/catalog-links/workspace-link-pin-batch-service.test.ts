@@ -1,31 +1,31 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-const { resolveDashboardLinkBySlugMock, updateDashboardLinkPinStateMock } =
+const { resolveCatalogLinkBySlugMock, updateWorkspaceLinkPinStateMock } =
   vi.hoisted(() => ({
-    resolveDashboardLinkBySlugMock: vi.fn(),
-    updateDashboardLinkPinStateMock: vi.fn(),
+    resolveCatalogLinkBySlugMock: vi.fn(),
+    updateWorkspaceLinkPinStateMock: vi.fn(),
   }));
 
-vi.mock("@/features/dashboard-links/server/dashboard-link-service", () => ({
-  resolveDashboardLinkBySlug: resolveDashboardLinkBySlugMock,
-  updateDashboardLinkPinState: updateDashboardLinkPinStateMock,
+vi.mock("@/features/catalog-links/server/catalog-link-service", () => ({
+  resolveCatalogLinkBySlug: resolveCatalogLinkBySlugMock,
+  updateWorkspaceLinkPinState: updateWorkspaceLinkPinStateMock,
 }));
 
-import { setDashboardLinkPinStatesBatch } from "@/features/dashboard-links/server/dashboard-link-pin-batch";
+import { setWorkspaceLinkPinStatesBatch } from "@/features/catalog-links/server/workspace-link-pin-batch";
 
-describe("setDashboardLinkPinStatesBatch", () => {
+describe("setWorkspaceLinkPinStatesBatch", () => {
   afterEach(() => {
-    resolveDashboardLinkBySlugMock.mockReset();
-    updateDashboardLinkPinStateMock.mockReset();
+    resolveCatalogLinkBySlugMock.mockReset();
+    updateWorkspaceLinkPinStateMock.mockReset();
   });
 
   it("validates every slug before applying ordered non-atomic writes", async () => {
-    resolveDashboardLinkBySlugMock
+    resolveCatalogLinkBySlugMock
       .mockReturnValueOnce({ slug: "mail" })
       .mockReturnValueOnce(null);
 
     await expect(
-      setDashboardLinkPinStatesBatch({
+      setWorkspaceLinkPinStatesBatch({
         items: [
           { action: "pin", slug: " mail " },
           { action: "unpin", slug: "missing" },
@@ -37,19 +37,19 @@ describe("setDashboardLinkPinStatesBatch", () => {
       error: "invalid_slug",
       slug: "missing",
     });
-    expect(updateDashboardLinkPinStateMock).not.toHaveBeenCalled();
+    expect(updateWorkspaceLinkPinStateMock).not.toHaveBeenCalled();
   });
 
   it("preserves request order and returns only the final pin state", async () => {
-    resolveDashboardLinkBySlugMock.mockImplementation((slug: string) => ({
+    resolveCatalogLinkBySlugMock.mockImplementation((slug: string) => ({
       slug: slug.trim(),
     }));
-    updateDashboardLinkPinStateMock
+    updateWorkspaceLinkPinStateMock
       .mockResolvedValueOnce(["mail"])
       .mockResolvedValueOnce([]);
 
     await expect(
-      setDashboardLinkPinStatesBatch({
+      setWorkspaceLinkPinStatesBatch({
         items: [
           { action: "pin", slug: " mail " },
           { action: "unpin", slug: "mail" },
@@ -57,12 +57,12 @@ describe("setDashboardLinkPinStatesBatch", () => {
         userId: "user-1",
       }),
     ).resolves.toEqual({ ok: true, pinnedSlugs: [] });
-    expect(updateDashboardLinkPinStateMock).toHaveBeenNthCalledWith(1, {
+    expect(updateWorkspaceLinkPinStateMock).toHaveBeenNthCalledWith(1, {
       action: "pin",
       slug: "mail",
       userId: "user-1",
     });
-    expect(updateDashboardLinkPinStateMock).toHaveBeenNthCalledWith(2, {
+    expect(updateWorkspaceLinkPinStateMock).toHaveBeenNthCalledWith(2, {
       action: "unpin",
       slug: "mail",
       userId: "user-1",

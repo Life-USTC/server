@@ -1,6 +1,6 @@
 import type { RequestEvent } from "@sveltejs/kit";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { USTC_DASHBOARD_LINKS } from "@/features/dashboard-links/lib/dashboard-links";
+import { USTC_CATALOG_LINKS } from "@/features/catalog-links/lib/catalog-links";
 import { signResourceBoundOAuthAccessToken } from "@/features/oauth/server/device-token-issuer.server";
 import { prisma } from "@/lib/db/prisma";
 import { createGraphqlRequestHandler } from "@/lib/graphql/server";
@@ -516,7 +516,7 @@ describe("GraphQL authenticated mutations", () => {
       restWriteScope("workspace.homework"),
       restWriteScope("workspace.subscription"),
     ]);
-    const slug = USTC_DASHBOARD_LINKS[0].slug;
+    const slug = USTC_CATALOG_LINKS[0].slug;
     const result = await execute(
       {
         query: /* GraphQL */ `

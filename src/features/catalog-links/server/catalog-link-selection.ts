@@ -1,25 +1,24 @@
 import {
-  localizeDashboardLinks,
-  recommendDashboardLinks,
-  USTC_DASHBOARD_LINKS,
-} from "@/features/dashboard-links/lib/dashboard-links";
+  localizeCatalogLinks,
+  recommendCatalogLinks,
+  USTC_CATALOG_LINKS,
+} from "@/features/catalog-links/lib/catalog-links";
 import { type AppLocale, DEFAULT_LOCALE } from "@/i18n/config";
-import { toDashboardLinkSummary } from "./dashboard-link-summary";
+import { toCatalogLinkSummary } from "./catalog-link-summary";
 
-export function buildDashboardLinkSummaries(
+export function buildCatalogLinkSummaries(
   clickStats: Record<string, number>,
   pinnedSlugSet: Set<string>,
   locale: AppLocale = DEFAULT_LOCALE,
 ) {
-  const dashboardLinks = localizeDashboardLinks(
-    USTC_DASHBOARD_LINKS,
-    locale,
-  ).map((link) => toDashboardLinkSummary(link, clickStats, pinnedSlugSet));
+  const catalogLinks = localizeCatalogLinks(USTC_CATALOG_LINKS, locale).map(
+    (link) => toCatalogLinkSummary(link, clickStats, pinnedSlugSet),
+  );
 
   return {
-    dashboardLinks,
+    catalogLinks,
     dashboardLinkBySlug: new Map(
-      dashboardLinks.map((link) => [link.slug, link] as const),
+      catalogLinks.map((link) => [link.slug, link] as const),
     ),
   };
 }
@@ -39,9 +38,9 @@ export function recommendedDashboardLinkSummaries(
   pinnedSlugSet: Set<string>,
   locale: AppLocale = DEFAULT_LOCALE,
 ) {
-  return recommendDashboardLinks(clickStats, {
+  return recommendCatalogLinks(clickStats, {
     locale,
-    limit: USTC_DASHBOARD_LINKS.length,
+    limit: USTC_CATALOG_LINKS.length,
     excludeSlugs: Array.from(pinnedSlugSet),
-  }).map((link) => toDashboardLinkSummary(link, clickStats, pinnedSlugSet));
+  }).map((link) => toCatalogLinkSummary(link, clickStats, pinnedSlugSet));
 }

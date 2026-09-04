@@ -1,18 +1,18 @@
 import {
-  recordDashboardLinkClick,
-  resolveDashboardLinkBySlug,
-} from "@/features/dashboard-links/server/dashboard-link-service";
+  recordCatalogLinkClick,
+  resolveCatalogLinkBySlug,
+} from "@/features/catalog-links/server/catalog-link-service";
 import { dashboardLinkVisitQuerySchema } from "@/lib/api/schemas/request-schemas";
 import { resolveSessionUserId } from "@/lib/auth/api-auth";
 import { checkUserMutationRateLimit } from "@/lib/security/user-mutation-rate-limit";
 
-export async function getDashboardLinkVisitRoute(request: Request) {
+export async function getCatalogLinkVisitRoute(request: Request) {
   const { searchParams } = new URL(request.url);
   const parsed = dashboardLinkVisitQuerySchema.safeParse({
     slug: searchParams.get("slug"),
   });
   const target = parsed.success
-    ? resolveDashboardLinkBySlug(parsed.data.slug)
+    ? resolveCatalogLinkBySlug(parsed.data.slug)
     : null;
 
   if (!target) {
@@ -29,7 +29,7 @@ export async function getDashboardLinkVisitRoute(request: Request) {
       userId,
     });
     if (outcome.allowed) {
-      await recordDashboardLinkClick(userId, target.slug);
+      await recordCatalogLinkClick(userId, target.slug);
     }
   }
 

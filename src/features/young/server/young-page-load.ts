@@ -1,5 +1,5 @@
 import { CATALOG_PAGE_SIZE } from "@/features/catalog/server/catalog-page-constants";
-import { getDashboardPageCopy } from "@/features/workspace/server/dashboard-page-copy";
+import { getWorkspacePageCopy } from "@/features/workspace/server/dashboard-page-copy";
 import type { DashboardPageLoadEvent } from "@/features/workspace/server/dashboard-page-load-types";
 import {
   getYoungEvent,
@@ -47,7 +47,7 @@ export async function loadYoungEventsPage({
   ]);
 
   return toLoadData({
-    copy: getDashboardPageCopy(locals.locale),
+    copy: getWorkspacePageCopy(locals.locale),
     locale: locals.locale,
     data: result.data,
     pagination: result.pagination,
@@ -63,7 +63,7 @@ export async function loadYoungEventDetailPage({
   const event = await getYoungEvent(youngId);
 
   return toLoadData({
-    copy: getDashboardPageCopy(locals.locale),
+    copy: getWorkspacePageCopy(locals.locale),
     locale: locals.locale,
     event,
   });

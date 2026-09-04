@@ -49,7 +49,7 @@ function buildOverviewData(partial: Partial<OverviewData> = {}): OverviewData {
     activeCalendarSemesterId: null,
     defaultCalendarSemesterId: null,
     activeCalendarSemesterName: null,
-    dashboardLinks: [],
+    catalogLinks: [],
     recommendedLinks: [],
     pinnedLinks: [],
     overviewLinks: [],

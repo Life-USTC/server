@@ -1,9 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const { getBusTabDataMock, getPublicDashboardLinksDataMock, logAppEventMock } =
+const { getBusTabDataMock, getPublicCatalogLinksDataMock, logAppEventMock } =
   vi.hoisted(() => ({
     getBusTabDataMock: vi.fn(),
-    getPublicDashboardLinksDataMock: vi.fn(),
+    getPublicCatalogLinksDataMock: vi.fn(),
     logAppEventMock: vi.fn(),
   }));
 
@@ -11,8 +11,8 @@ vi.mock("@/features/workspace/server/dashboard-tab-data", () => ({
   getBusTabData: getBusTabDataMock,
 }));
 
-vi.mock("@/features/dashboard-links/server/dashboard-link-data", () => ({
-  getPublicDashboardLinksData: getPublicDashboardLinksDataMock,
+vi.mock("@/features/catalog-links/server/catalog-link-data", () => ({
+  getPublicCatalogLinksData: getPublicCatalogLinksDataMock,
 }));
 
 vi.mock("@/lib/log/app-logger", () => ({
@@ -36,7 +36,7 @@ const event = {
 describe("public page loaders", () => {
   beforeEach(() => {
     getBusTabDataMock.mockReset();
-    getPublicDashboardLinksDataMock.mockReset();
+    getPublicCatalogLinksDataMock.mockReset();
     logAppEventMock.mockReset();
   });
 
@@ -50,7 +50,7 @@ describe("public page loaders", () => {
     expect(result).not.toHaveProperty("bus");
     expect(result).not.toHaveProperty("publicLinks");
     expect(getBusTabDataMock).not.toHaveBeenCalled();
-    expect(getPublicDashboardLinksDataMock).not.toHaveBeenCalled();
+    expect(getPublicCatalogLinksDataMock).not.toHaveBeenCalled();
   });
 
   it("loads only bus data for the public bus page", async () => {
@@ -60,18 +60,18 @@ describe("public page loaders", () => {
 
     expect(result.bus).toEqual({ routes: [] });
     expect(getBusTabDataMock).toHaveBeenCalledWith(null, "en-us");
-    expect(getPublicDashboardLinksDataMock).not.toHaveBeenCalled();
+    expect(getPublicCatalogLinksDataMock).not.toHaveBeenCalled();
   });
 
   it("loads only public links for the public links page", async () => {
-    getPublicDashboardLinksDataMock.mockResolvedValue({
-      dashboardLinks: [{ slug: "jw" }],
+    getPublicCatalogLinksDataMock.mockResolvedValue({
+      catalogLinks: [{ slug: "jw" }],
     });
 
     const result = await loadPublicLinksPage(event);
 
     expect(result.links).toEqual([{ slug: "jw" }]);
-    expect(getPublicDashboardLinksDataMock).toHaveBeenCalledWith("en-us");
+    expect(getPublicCatalogLinksDataMock).toHaveBeenCalledWith("en-us");
     expect(getBusTabDataMock).not.toHaveBeenCalled();
   });
 });

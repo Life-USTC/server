@@ -9,7 +9,7 @@ const {
   deleteOwnCommentsBatchMock,
   renameOwnedUploadMock,
   requireGraphqlMutationMock,
-  setDashboardLinkPinStatesBatchMock,
+  setWorkspaceLinkPinStatesBatchMock,
 } = vi.hoisted(() => ({
   completeOwnedUploadSessionMock: vi.fn(),
   createOwnedUploadSessionMock: vi.fn(),
@@ -17,11 +17,11 @@ const {
   deleteOwnCommentsBatchMock: vi.fn(),
   renameOwnedUploadMock: vi.fn(),
   requireGraphqlMutationMock: vi.fn(),
-  setDashboardLinkPinStatesBatchMock: vi.fn(),
+  setWorkspaceLinkPinStatesBatchMock: vi.fn(),
 }));
 
-vi.mock("@/features/dashboard-links/server/dashboard-link-pin-batch", () => ({
-  setDashboardLinkPinStatesBatch: setDashboardLinkPinStatesBatchMock,
+vi.mock("@/features/catalog-links/server/workspace-link-pin-batch", () => ({
+  setWorkspaceLinkPinStatesBatch: setWorkspaceLinkPinStatesBatchMock,
 }));
 
 vi.mock("@/features/comments/server/comment-batch-delete", () => ({
@@ -61,7 +61,7 @@ describe("remaining ordinary GraphQL mutations", () => {
   });
 
   it("delegates ordered dashboard pin batches to the shared service", async () => {
-    setDashboardLinkPinStatesBatchMock.mockResolvedValue({
+    setWorkspaceLinkPinStatesBatchMock.mockResolvedValue({
       ok: true,
       pinnedSlugs: ["mail"],
     });
@@ -86,7 +86,7 @@ describe("remaining ordinary GraphQL mutations", () => {
       "workspace.link-pin",
       { rateLimitTier: "batch" },
     );
-    expect(setDashboardLinkPinStatesBatchMock).toHaveBeenCalledWith({
+    expect(setWorkspaceLinkPinStatesBatchMock).toHaveBeenCalledWith({
       items: [
         { slug: "mail", action: "pin" },
         { slug: "mail", action: "unpin" },

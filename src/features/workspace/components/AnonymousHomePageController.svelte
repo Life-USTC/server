@@ -21,7 +21,7 @@ type AnonymousHomePageData = {
         signIn: string;
       };
       appIconAlt: string;
-      publicDashboard: {
+      publicWorkspace: {
         cards: {
           bus: DestinationCopy;
           courses: DestinationCopy;
@@ -46,7 +46,7 @@ type AnonymousHomePageData = {
 export let data: AnonymousHomePageData;
 
 $: home = data.copy.homepage;
-$: pub = home.publicDashboard;
+$: pub = home.publicWorkspace;
 
 type Destination = {
   copy: DestinationCopy;

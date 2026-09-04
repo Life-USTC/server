@@ -29,7 +29,7 @@ import { createDashboardFormSubmitActions } from "@/features/workspace/lib/dashb
 import {
   buildCalendarWeekdayLabels,
   type DashboardActionData,
-  type DashboardLinkItem,
+  type CatalogLinkItem,
   type DashboardPageData,
   type DashboardViewState,
   isSignedDashboardData,
@@ -134,14 +134,14 @@ let {
   unmatchedSectionCodes,
   updatingDashboardLinkSlug,
 } = createDashboardControllerDefaultState();
-let dashboardLinkSourceItems: DashboardLinkItem[] = [];
-let overviewLinkSourceItems: DashboardLinkItem[] = [];
+let dashboardLinkSourceItems: CatalogLinkItem[] = [];
+let overviewLinkSourceItems: CatalogLinkItem[] = [];
 let todoSourceItems: TodoItem[] = [];
 let linkSourceData: PageData | null = null;
 $: copy = data.copy;
 $: actionError = form?.error ?? "";
 $: commonCopy = copy.common;
-$: dashboardCopy = copy.dashboard;
+$: dashboardCopy = copy.workspace;
 $: busCopy = copy.bus;
 $: homeworksCopy = copy.homeworks;
 $: homeworkCopy = copy.myHomeworks;
@@ -158,7 +158,7 @@ $: calendarWeekdayLabels = buildCalendarWeekdayLabels(sectionCopy);
 $: dashboardLinkGroupLabels = dashboardCopy.linkHub.groups;
 $: if (data !== linkSourceData) {
   const signedPageData = isSignedDashboardData(data) ? data : null;
-  dashboardLinkSourceItems = signedPageData?.links?.dashboardLinks ?? [];
+  dashboardLinkSourceItems = signedPageData?.links?.catalogLinks ?? [];
   overviewLinkSourceItems =
     signedPageData?.overview?.overviewLinks.slice(0, 4) ?? [];
   todoSourceItems = signedPageData?.todos ?? [];
@@ -381,7 +381,7 @@ const { toggleHomeworkCompletion } = createDashboardHomeworkStateActions({
 const { submitDashboardLinkPin } = createDashboardLinkStateActions({
   applyDashboardViewState,
   getDashboardCopy: () => dashboardCopy,
-  getDashboardLinkItems: () => dashboardLinkSourceItems,
+  getCatalogLinkItems: () => dashboardLinkSourceItems,
   getLinkReturnTo: () => linkReturnTo,
   getOverviewLinkItems: () => overviewLinkSourceItems,
   getUpdatingDashboardLinkSlug: () => updatingDashboardLinkSlug,
@@ -395,7 +395,7 @@ const { submitDashboardLinkPin } = createDashboardLinkStateActions({
   replaceState: (href) => {
     replaceState(href, {});
   },
-  setDashboardLinkItems: (value) => {
+  setCatalogLinkItems: (value) => {
     dashboardLinkSourceItems = value;
   },
   setLinkActionError: (value) => {
@@ -471,7 +471,7 @@ $: derivedState = buildDashboardControllerDerivedState({
   examFilter,
   linkSearchQuery,
   notAvailable: dashboardCopy.notAvailable,
-  currentDashboardLinkItems: dashboardLinkSourceItems,
+  currentCatalogLinkItems: dashboardLinkSourceItems,
   currentOverviewLinkItems: overviewLinkSourceItems,
   currentTodoItems: todoSourceItems,
   todoFilter,

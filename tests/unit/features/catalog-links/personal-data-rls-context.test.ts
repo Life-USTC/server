@@ -39,11 +39,11 @@ vi.mock("@/lib/db/prisma", () => ({
 }));
 
 import { getBusPreference } from "@/features/bus/server/bus-preferences";
-import { getSignedInDashboardLinksData } from "@/features/dashboard-links/server/dashboard-link-data";
+import { getSignedInCatalogLinksData } from "@/features/catalog-links/server/catalog-link-data";
 import {
-  recordDashboardLinkClick,
-  updateDashboardLinkPinState,
-} from "@/features/dashboard-links/server/dashboard-link-service";
+  recordCatalogLinkClick,
+  updateWorkspaceLinkPinState,
+} from "@/features/catalog-links/server/catalog-link-service";
 
 describe("personal data RLS contexts", () => {
   beforeEach(() => {
@@ -72,7 +72,7 @@ describe("personal data RLS contexts", () => {
       .mockResolvedValueOnce([{ slug: "mail" }]);
 
     await expect(
-      updateDashboardLinkPinState({
+      updateWorkspaceLinkPinState({
         action: "pin",
         slug: "mail",
         userId: " user-1 ",
@@ -95,7 +95,7 @@ describe("personal data RLS contexts", () => {
     clickFindManyMock.mockResolvedValue([]);
     pinFindManyMock.mockResolvedValue([]);
 
-    await getSignedInDashboardLinksData("user-1");
+    await getSignedInCatalogLinksData("user-1");
 
     expect(withUserDbContextMock).toHaveBeenCalledOnce();
     expect(clickFindManyMock.mock.invocationCallOrder[0]).toBeLessThan(
@@ -108,7 +108,7 @@ describe("personal data RLS contexts", () => {
     clickUpsertMock.mockResolvedValue({});
     busFindUniqueMock.mockResolvedValue(null);
 
-    await recordDashboardLinkClick("user-1", "mail");
+    await recordCatalogLinkClick("user-1", "mail");
     await getBusPreference("user-1");
 
     expect(withUserDbContextMock).toHaveBeenNthCalledWith(

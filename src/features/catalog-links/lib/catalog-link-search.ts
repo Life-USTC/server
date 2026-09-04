@@ -1,14 +1,14 @@
 import { pinyin } from "pinyin-pro";
-import type { DashboardLinkItem } from "@/features/dashboard-links/lib/dashboard-links";
+import type { CatalogLinkItem } from "@/features/catalog-links/lib/catalog-links";
 import {
+  type CatalogLinkGroup,
   DASHBOARD_LINK_GROUP_ORDER,
-  type DashboardLinkGroup,
-} from "@/features/dashboard-links/lib/dashboard-links";
+} from "@/features/catalog-links/lib/catalog-links";
 
 export type DashboardLinkSearchable = {
   description: string;
   descriptionPinyin: string;
-  group: DashboardLinkGroup;
+  group: CatalogLinkGroup;
   title: string;
   titlePinyin: string;
   url: string;
@@ -61,7 +61,7 @@ function toSearchableFields(
 }
 
 export function dashboardLinkItemMatchesTokens(
-  link: DashboardLinkItem,
+  link: CatalogLinkItem,
   tokens: string[],
 ) {
   const localizedFields = [
@@ -76,10 +76,10 @@ export function dashboardLinkItemMatchesTokens(
   );
 }
 
-export function groupDashboardLinks<Link extends DashboardLinkSearchable>(
+export function groupCatalogLinks<Link extends DashboardLinkSearchable>(
   links: Link[],
   query: string,
-  labels: Record<DashboardLinkGroup, string>,
+  labels: Record<CatalogLinkGroup, string>,
 ) {
   const tokens = searchQueryToTokens(query);
   const visibleLinks =
