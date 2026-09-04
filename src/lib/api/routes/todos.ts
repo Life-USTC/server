@@ -1,21 +1,73 @@
-import { handleRouteError } from "@/lib/api/helpers";
+import {
+  badRequest,
+  handleRouteError,
+  parseRouteInput,
+  parseRouteJsonBody,
+  parseRouteSearchParams,
+} from "@/lib/api/helpers";
 import {
   createTodoAction,
   deleteTodoAction,
   listTodosAction,
   updateTodoAction,
 } from "@/lib/api/routes/todo-actions";
-import { parseTodoDueAt } from "@/lib/api/routes/todo-due-date";
 import {
-  type TodoIdParams as IdParams,
-  parseTodoIdParams,
-} from "@/lib/api/routes/todo-route-parsing";
-import {
-  parseTodoCreateBody,
-  parseTodosQuery,
-  parseTodoUpdateBody,
-} from "@/lib/api/routes/todo-route-request";
+  resourceIdPathParamsSchema,
+  todoCreateRequestSchema,
+  todosQuerySchema,
+  todoUpdateRequestSchema,
+} from "@/lib/api/schemas/request-schemas";
 import { requireAuth } from "@/lib/auth/api-auth";
+import { parseDateInput } from "@/lib/time/parse-date-input";
+
+export type TodoIdParams = { id: string };
+
+export function parseTodoIdParams(params: TodoIdParams) {
+  const parsedParams = parseRouteInput(
+    params,
+    resourceIdPathParamsSchema,
+    "Invalid todo ID",
+  );
+  if (parsedParams instanceof Response) {
+    return parsedParams;
+  }
+  return parsedParams.id;
+}
+
+export function parseTodosQuery(request: Request) {
+  const { searchParams } = new URL(request.url);
+  return parseRouteSearchParams(
+    searchParams,
+    todosQuerySchema,
+    "Invalid todo query",
+    { logErrors: true },
+  );
+}
+
+export function parseTodoCreateBody(request: Request) {
+  return parseRouteJsonBody(
+    request,
+    todoCreateRequestSchema,
+    "Invalid todo request",
+  );
+}
+
+export function parseTodoUpdateBody(request: Request) {
+  return parseRouteJsonBody(
+    request,
+    todoUpdateRequestSchema,
+    "Invalid todo update",
+  );
+}
+
+export function parseTodoDueAt(dueAtRaw: unknown) {
+  if (dueAtRaw === undefined) return { ok: true as const, dueAt: undefined };
+  const dueAt = parseDateInput(dueAtRaw);
+  if (dueAt === undefined) {
+    return { ok: false as const, response: badRequest("Invalid due date") };
+  }
+  return { ok: true as const, dueAt };
+}
 
 export async function getTodosRoute(request: Request) {
   const auth = await requireAuth(request, {
@@ -59,7 +111,7 @@ export async function postTodoRoute(request: Request) {
   }
 }
 
-export async function patchTodoRoute(request: Request, params: IdParams) {
+export async function patchTodoRoute(request: Request, params: TodoIdParams) {
   const id = parseTodoIdParams(params);
   if (id instanceof Response) return id;
 
@@ -91,7 +143,7 @@ export async function patchTodoRoute(request: Request, params: IdParams) {
   }
 }
 
-export async function deleteTodoRoute(request: Request, params: IdParams) {
+export async function deleteTodoRoute(request: Request, params: TodoIdParams) {
   const id = parseTodoIdParams(params);
   if (id instanceof Response) return id;
 

@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { getCoursesRoute } from "@/lib/api/routes/academic-course-routes";
 import { getSchedulesRoute } from "@/lib/api/routes/academic-schedule-routes";
 import { getBusNextDeparturesRoute } from "@/lib/api/routes/bus";
-import { parseTodosQuery } from "@/lib/api/routes/todo-route-request";
+import { parseTodosQuery } from "@/lib/api/routes/todos";
 
 async function expectInvalidQueryResponse(
   result: Response | Promise<Response>,
