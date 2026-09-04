@@ -29,10 +29,29 @@ workspace UI (routes `/workspace/[tab]`); keep overview assembly there and use
 
 | Domain | Notes |
 |--------|-------|
-| homeworks | Attached to section; signed-in unsuspended create/update; delete creator/admin; completion is per-user |
-| todos | Personal CRUD; incomplete due dates feed calendar |
-| comments | Scoped to section/course/teacher/homework; audience + anonymous flags; suspended cannot create |
-| uploads | Comment attachments; pending-upload flow; shared download gate |
+| admin | Users, suspensions, moderation, OAuth clients, bus import governance |
+| api-docs | OpenAPI reference UI shell (no `server/` use-cases) |
+| auth | Sign-in page load and related helpers |
 | bus | Public timetable; signed-in preferences; import idempotent by version |
 | calendar | Feature event queries + iCal; generic time helpers stay in `src/lib/time` |
+| catalog | Courses, sections, teachers, schedules, exams, public list/detail pages |
+| comments | Scoped to section/course/teacher/homework; audience + anonymous flags; suspended cannot create |
+| dashboard | Signed-in workspace UI and overview assembly (routes `/workspace/*`) |
+| dashboard-links | Campus link catalog + pin/visit preferences |
+| descriptions | Shared wiki-like text on course/section/teacher/homework |
+| homeworks | Attached to section; signed-in unsuspended create/update; delete creator/admin; completion is per-user |
+| markdown | Shared Markdown rendering helpers for guides/community |
+| mobile-app | Mobile app marketing/download page |
+| oauth | Device, consent, authorize, and client-registration policies |
+| profile | Public user profile pages and contribution summaries |
+| publications | News/publication list and detail; crawler ingestion; Web at `/news` |
+| search | Global search across catalog and links |
+| section-detail | Section detail page load and homework tab UI |
+| settings | Account settings, security, authorizations, deletion |
 | subscriptions | Section membership R/W + import match helpers; public section facts stay in `catalog/` |
+| todos | Personal CRUD; incomplete due dates feed calendar |
+| uploads | Comment attachments; pending-upload flow; shared download gate |
+| usage | Client usage guides (MCP, CLI, Bot, mobile) |
+| weather | Campus weather snapshot and history; Amap / Open-Meteo adapters |
+| welcome | First-login profile completion |
+| young | 第二课堂 young-event catalog list/detail and image proxy |

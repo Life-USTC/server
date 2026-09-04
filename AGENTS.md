@@ -39,8 +39,8 @@ src/features/            Domain use-cases + feature-owned UI
   <domain>/components/   Feature UI (not in src/lib/components)
   dashboard/             Signed-in workspace UI (routes: /workspace/*)
 src/lib/                 Infrastructure only
-  ports/                 Env contracts (`env.ts`)
-  adapters/              Cloudflare runtime wiring
+  ports/                 Env + Cloudflare runtime contracts (`env.ts`, `runtime.ts`)
+  adapters/              Cloudflare runtime wiring (features import via ports/)
   api/routes/            REST adapters (may call features; keep route files thin)
   graphql/ · mcp/tools/  Yoga schema; MCP tools by domain
   components/            Shared, feature-neutral UI
@@ -135,7 +135,8 @@ Don't add a second `workspace` feature folder or a root GraphQL `viewer`.
 
 ## Web and auth
 
-- Catalog: `/catalog/courses|sections|teachers|bus|links`, `/search`
+- Catalog: `/catalog/courses|sections|teachers|bus|links|young-events|weather`,
+  `/search`, `/news` (publications)
 - Workspace tabs: `/workspace/{overview,calendar,homeworks,todos,exams,subscriptions}`
 - Account: `/account/sign-in` (+ settings); Admin: `/admin/...`
 - Schedules list and uploads are mostly API / MCP / CLI — not always a Web tab
@@ -162,10 +163,12 @@ Bearer-capable routes, and `resolveSessionUserId` for session-only reads.
   `shanghaiDayjs`
 - Prisma: `import { prisma, getPrisma } from "@/lib/db/prisma"`
 - REST errors: `handleRouteError`; MCP: Zod inputs, let unexpected errors throw
-- Pagination: `buildPaginatedResponse`
+- Pagination: `buildPaginatedResponse` from `@/lib/pagination` (features) or
+  `@/lib/api/helpers` (REST)
 - Native IO (`node:*` / `bun:*` / `fs` / …): approved infra (`auth` / `db` /
   `log` / `cloudflare`), Cloudflare `adapters/`, or entrypoints (`static-loader`,
-  `*-cli.ts`) — not ordinary features or routes
+  `*-cli.ts`) — not ordinary features or routes. Features use `@/lib/ports/`
+  for env and Cloudflare runtime accessors.
 
 ## Boundaries
 

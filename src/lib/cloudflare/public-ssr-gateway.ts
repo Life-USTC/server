@@ -1,3 +1,8 @@
+/**
+ * Decides which paths may use anonymous HTML SSR caching and which must stay
+ * dynamic (signed-in, account, admin, OAuth, or request-time bus map data).
+ * See docs/rendering-and-cache.md for the product rules.
+ */
 import {
   resolveCatalogDetailTabQueryRedirect,
   resolveCatalogDetailTabRedirect,

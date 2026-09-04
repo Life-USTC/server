@@ -16,6 +16,9 @@
 - Collaborative: Homework, descriptions, comments, uploads
 - Auth/OAuth: Better Auth models
 - Bus: campuses, routes, stops, versions, trips
+- Young events: YoungEvent (第二课堂 catalog; image objects may use R2)
+- Weather: WeatherObservation and related snapshot/history rows
+- Publications: Publication / PublicationObject (news; crawler ingestion)
 
 Normal users don't edit JW facts. Subscriptions are per current user. Homework
 completion must not mutate the homework row. Todos are owner-scoped. Honor

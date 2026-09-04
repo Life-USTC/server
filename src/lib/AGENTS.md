@@ -9,6 +9,10 @@ Infrastructure and shared helpers. No business rules (`src/features/` owns those
   actions, or generic `src/lib` helpers; keep `src/routes/api/**/+server.ts` thin.
 - `src/lib/api/schemas` may import feature-owned constants/helpers for OpenAPI
   shapes only.
+- Features import Cloudflare runtime and env through `src/lib/ports/`
+  (`runtime.ts`, `env.ts`), not `src/lib/adapters/` directly.
+- Pagination for domain code: `@/lib/pagination`. REST may keep using
+  `@/lib/api/helpers` (re-exports).
 - If adapter imports from `@/features` grow, update the matching boundary tests
   under `tests/unit/*-boundary.test.ts` (dashboard / settings / auth-prisma).
 - No raw `@prisma/client` outside approved adapters/scripts.
@@ -19,6 +23,9 @@ Infrastructure and shared helpers. No business rules (`src/features/` owns those
 ```typescript
 import {
   buildPaginatedResponse,
+  normalizePagination,
+} from "@/lib/pagination";
+import {
   handleRouteError,
   jsonResponse,
 } from "@/lib/api/helpers";
@@ -28,6 +35,7 @@ import {
   resolveSessionUserId,
 } from "@/lib/auth/api-auth";
 import { prisma, getPrisma } from "@/lib/db/prisma";
+import { runCloudflareTraceSpan } from "@/lib/ports/runtime";
 import { parseDateInput } from "@/lib/time/parse-date-input";
 ```
 

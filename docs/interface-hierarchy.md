@@ -38,6 +38,11 @@ Life@USTC
 │   ├── young-events
 │   │   ├── list
 │   │   └── get
+│   ├── weather
+│   │   └── snapshot
+│   ├── publications                REST + ingestion; Web at /news
+│   │   ├── list
+│   │   └── get
 │   └── links
 ├── workspace                       current user's campus work
 │   ├── overview

@@ -1,6 +1,6 @@
-import { getCloudflareAnalyticsEngineDataset } from "@/lib/adapters/cloudflare-runtime";
 import { logAppEvent } from "@/lib/log/app-logger";
 import { getSafeErrorName } from "@/lib/log/safe-error-name";
+import { getCloudflareAnalyticsEngineDataset } from "@/lib/ports/runtime";
 
 export type CalendarQueueBatchOutcome =
   | "error"

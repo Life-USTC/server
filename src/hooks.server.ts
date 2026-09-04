@@ -1,3 +1,7 @@
+/**
+ * SvelteKit request hooks: locale negotiation, auth routing, CSP nonce,
+ * public-SSR headers, and API/page observability for the Cloudflare Worker.
+ */
 import {
   type Handle,
   type HandleServerError,

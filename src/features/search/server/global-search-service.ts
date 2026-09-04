@@ -13,11 +13,11 @@ import type {
 } from "@/features/search/server/global-search-types";
 import { GLOBAL_SEARCH_GROUP_ORDER } from "@/features/search/server/global-search-types";
 import type { AppLocale } from "@/i18n/config";
-import { runCloudflareTraceSpan } from "@/lib/adapters/cloudflare-runtime";
 import { cachedCatalogRuntimeData } from "@/lib/catalog-runtime-cache";
 import { withUserDbContext } from "@/lib/db/prisma";
 import { logAppEvent } from "@/lib/log/app-logger";
 import type { PublicRuntimeCacheAnalyticsNamespace } from "@/lib/metrics/analytics-engine";
+import { runCloudflareTraceSpan } from "@/lib/ports/runtime";
 import { ilike } from "@/lib/query-filter-helpers";
 import { formatSemesterName } from "@/lib/text/format-semester-name";
 

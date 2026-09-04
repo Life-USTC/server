@@ -1,11 +1,8 @@
 import type { Prisma } from "@/generated/prisma/client";
-import { getCloudflareR2PublicationsBucket } from "@/lib/adapters/cloudflare-runtime";
-import {
-  normalizePagination,
-  type PaginationInput,
-} from "@/lib/api/pagination";
 import type { PublicationsQuery } from "@/lib/api/schemas/request-publication-read-schemas";
 import { prisma } from "@/lib/db/prisma";
+import { normalizePagination, type PaginationInput } from "@/lib/pagination";
+import { getCloudflareR2PublicationsBucket } from "@/lib/ports/runtime";
 import { publicationObjectKey } from "./publication-ingestion-service";
 
 const PUBLIC_PUBLICATION_TYPES = ["news", "notice"] as const;
