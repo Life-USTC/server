@@ -9,7 +9,7 @@ vi.mock("@/lib/auth/api-auth", () => ({
 
 vi.mock("@/lib/db/prisma", () => ({
   prisma: {
-    dashboardLinkPin: {
+    workspaceLinkPin: {
       deleteMany: vi.fn(),
       findMany: vi.fn(),
     },

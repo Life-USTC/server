@@ -46,11 +46,11 @@ export async function getSignedInDashboardLinksData(
   const normalizedUserId = userId.trim();
   if (!normalizedUserId) throw new Error("Dashboard link user ID is required");
   return withUserDbContext(normalizedUserId, async (tx) => {
-    const clickRows = await tx.dashboardLinkClick.findMany({
+    const clickRows = await tx.catalogLinkClick.findMany({
       where: { userId: normalizedUserId },
       select: { slug: true, count: true },
     });
-    const pinRows = await tx.dashboardLinkPin.findMany({
+    const pinRows = await tx.workspaceLinkPin.findMany({
       where: { userId: normalizedUserId },
       select: { slug: true },
       orderBy: { createdAt: "asc" },
