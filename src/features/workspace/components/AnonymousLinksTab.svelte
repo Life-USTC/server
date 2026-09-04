@@ -4,9 +4,9 @@ import type {
   WorkspaceCopy,
 } from "@/features/workspace/lib/workspace-controller-helpers";
 import { Button } from "$lib/components/ui/button/index.js";
-import * as Empty from "$lib/components/ui/empty/index.js";
 import AnonymousLinksGroup from "./AnonymousLinksGroup.svelte";
 import AnonymousLinksToolbar from "./AnonymousLinksToolbar.svelte";
+import WorkspaceEmptyState from "./WorkspaceEmptyState.svelte";
 
 export let workspaceCopy: Pick<WorkspaceCopy, "linkHub">;
 export let linkIconLabel: (icon: string) => string;
@@ -31,11 +31,11 @@ export let anonymousLinkGroups: AnonymousLinkGroup[];
       {linkIconLabel}
     />
   {:else}
-    <Empty.Root class="items-start text-left">
-      <Empty.Header class="items-start text-left">
-        <Empty.Title>{workspaceCopy.linkHub.empty}</Empty.Title>
-      </Empty.Header>
-    </Empty.Root>
+    <WorkspaceEmptyState
+      className="items-start text-left"
+      headerClassName="items-start text-left"
+      title={workspaceCopy.linkHub.empty}
+    />
   {/each}
 
   <p class="text-muted-foreground text-xs">

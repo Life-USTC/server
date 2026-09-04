@@ -10,9 +10,9 @@ import TableIconButton from "$lib/components/TableIconButton.svelte";
 import TableRowActions from "$lib/components/TableRowActions.svelte";
 import TruncatedText from "$lib/components/TruncatedText.svelte";
 import { Badge } from "$lib/components/ui/badge/index.js";
-import * as Empty from "$lib/components/ui/empty/index.js";
 import { Spinner } from "$lib/components/ui/spinner/index.js";
 import * as Table from "$lib/components/ui/table/index.js";
+import WorkspaceEmptyState from "./WorkspaceEmptyState.svelte";
 
 type TodoDateFormatter = (value: Date | string | null | undefined) => string;
 type TodoAction = (todo: WorkspaceTodoItem) => string;
@@ -99,14 +99,11 @@ export let toggleTodoCompletion: TodoCompletionToggle;
     {:else}
       <Table.Row>
         <Table.Cell class="p-0" colspan={4}>
-          <Empty.Root class="py-8">
-            <Empty.Header>
-              <Empty.Title>{todosCopy.filterEmptyTitle}</Empty.Title>
-              <Empty.Description>
-                {todosCopy.filterEmptyDescription}
-              </Empty.Description>
-            </Empty.Header>
-          </Empty.Root>
+          <WorkspaceEmptyState
+            className="py-8"
+            title={String(todosCopy.filterEmptyTitle)}
+            description={String(todosCopy.filterEmptyDescription)}
+          />
         </Table.Cell>
       </Table.Row>
     {/each}

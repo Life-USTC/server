@@ -1,21 +1,14 @@
 import type { CatalogLinkSummary } from "@/features/catalog-links/server/catalog-link-data";
-import type { AppLocale } from "@/i18n/config";
+import type { AppPageLoadEvent } from "@/lib/shell/page-load-types";
 import type {
   getAnonymousHomePageCopy,
   getWorkspacePageCopy,
-} from "./workspace-page-copy";
+} from "@/lib/shell/page-copy";
 
+export type { AppPageLoadEvent } from "@/lib/shell/page-load-types";
 export type WorkspacePageCopy = ReturnType<typeof getWorkspacePageCopy>;
 export type AnonymousHomePageCopy = ReturnType<typeof getAnonymousHomePageCopy>;
-
-export type WorkspacePageLoadEvent = {
-  locals: {
-    locale: AppLocale;
-    requestId?: string;
-  };
-  request: Request;
-  url: URL;
-};
+export type WorkspacePageLoadEvent = AppPageLoadEvent;
 
 export type CatalogPublicLinks = {
   catalogLinks: CatalogLinkSummary[];
