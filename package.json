@@ -43,7 +43,7 @@
     "e2e:visual": "VISUAL_REGRESSION=1 playwright test visual-matrix",
     "e2e:visual:update": "VISUAL_REGRESSION=1 playwright test visual-matrix --update-snapshots",
     "hooks:install": "git config core.hooksPath .githooks",
-    "check": "bun run app:prepare && bunx wrangler types --include-runtime=false --check && bunx biome check && bunx svelte-check --tsconfig ./tsconfig.json && bunx tsc --noEmit -p tsconfig.typecheck.json && bunx tsc --noEmit -p tsconfig.typecheck.tests.json && bunx tsc --noEmit -p tsconfig.typecheck.operational.json && bunx vitest run && bun run openapi:check && bunx vitest run tests/unit/graphql-schema-snapshot.test.ts",
+    "check": "bun run app:prepare && bunx wrangler types --include-runtime=false --check && bunx biome check && bunx svelte-check --tsconfig ./tsconfig.json && bunx tsc --noEmit -p tsconfig.typecheck.json && bunx tsc --noEmit -p tsconfig.typecheck.tests.json && bunx tsc --noEmit -p tsconfig.typecheck.operational.json && bunx vitest run && bun run openapi:check && bunx vitest run tests/unit/lib/graphql/graphql-schema-snapshot.test.ts",
     "openapi:generate": "bun run scripts/openapi/generate.ts",
     "openapi:check": "bun run openapi:generate && git diff --exit-code public/openapi.generated.json",
     "release": "semantic-release"

@@ -38,7 +38,7 @@ Mutation typedefs and resolvers live under `mutations/` (`todos`, `homeworks`,
 
 - Schema changes update `docs/contracts/<module>.json`, `graphql.json`, and
   `docs/graphql/schema.graphql`.
-- Regenerate with `bunx vitest run --update tests/unit/graphql-schema-snapshot.test.ts`,
+- Regenerate with `bunx vitest run --update tests/unit/lib/graphql/graphql-schema-snapshot.test.ts`,
   then rerun without `--update`.
 - MCP may run documents only through the shared production Yoga pipeline; require
   confirmation for mutations.

@@ -1,6 +1,10 @@
 // Merged from mcp-12-subscriptions + mcp-18-calendar-subscriptions
 
 import { describe, expect, it } from "vitest";
+import {
+  assertSubscriptionAction,
+  assertSubscriptionBrief,
+} from "../../../shared/scenarios/subscriptions";
 import * as fixtures from "../_harness";
 import { createMcpHarness } from "../_harness";
 
@@ -25,13 +29,11 @@ describe("workspace_subscription_add — 返回 action 与精简订阅", () => {
       locale: "zh-cn",
     });
 
-    expect(result.success).toBe(true);
-    expect(["subscribed", "already_subscribed"]).toContain(result.action);
-    expect(result.sectionJwId).toBe(fixtures.DEV_SEED.section.jwId);
-    // Brief subscription — sections list not included in default mode
-    expect(result.subscription?.sections).toBeUndefined();
-    expect(result.subscription?.currentSemesterSections).toBeUndefined();
-    expect(typeof result.subscription?.sectionCount).toBe("number");
+    assertSubscriptionAction(result, fixtures.DEV_SEED.section.jwId, [
+      "subscribed",
+      "already_subscribed",
+    ]);
+    assertSubscriptionBrief(result.subscription);
   });
 
   it("对缺失的订阅与取消订阅目标返回 not_found", async () => {

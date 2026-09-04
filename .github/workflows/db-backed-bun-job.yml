@@ -271,7 +271,7 @@ jobs:
         shell: bash
         env:
           GRAPHQL_SCHEMA_SKIP_BASE_COMPATIBILITY: "true"
-        run: bunx vitest run tests/unit/graphql-schema-snapshot.test.ts
+        run: bunx vitest run tests/unit/lib/graphql/graphql-schema-snapshot.test.ts
 
       - name: Upload artifact
         id: upload-artifact

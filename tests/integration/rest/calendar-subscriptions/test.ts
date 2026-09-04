@@ -33,6 +33,7 @@ import {
 } from "../../../e2e/utils/e2e-db";
 import { withE2ePrisma } from "../../../e2e/utils/e2e-db/prisma";
 import { resolveSeedSectionMatches } from "../../../e2e/utils/seed-lookups";
+import { assertSubscriptionBrief } from "../../../shared/scenarios/subscriptions";
 import { signInAsDebugUserApi } from "../_harness/auth";
 import { assertApiContract } from "../_shared/api-contract";
 
@@ -221,6 +222,7 @@ test.describe("日历订阅 API", () => {
 
       expect(body.addedCount).toBe(1);
       expect(body.alreadySubscribedCount).toBe(0);
+      assertSubscriptionBrief(body.subscription, { expectSections: true });
       const sectionIds = body.subscription?.sections?.map((s) => s.id) ?? [];
       expect(sectionIds).toContain(firstSection.id);
       expect(sectionIds).toContain(secondSection.id);
