@@ -27,11 +27,17 @@
       "title": "Section List & Filter",
       "auth": "anon",
       "links": {
-        "models": ["Section"],
-        "ui": ["List Table"]
+        "models": [
+          "Section"
+        ],
+        "ui": [
+          "List Table"
+        ]
       },
       "web": {
-        "pages": ["/catalog/sections"]
+        "pages": [
+          "/catalog/sections"
+        ]
       },
       "rest": {
         "routes": [
@@ -98,11 +104,19 @@
       "title": "Section Detail",
       "auth": "anon",
       "links": {
-        "models": ["Section"],
-        "ui": ["Detail Hero", "Detail Two-Column Stream", "Basic Info Card"]
+        "models": [
+          "Section"
+        ],
+        "ui": [
+          "Detail Hero",
+          "Detail Two-Column Stream",
+          "Basic Info Card"
+        ]
       },
       "web": {
-        "pages": ["/catalog/sections/[jwId]"]
+        "pages": [
+          "/catalog/sections/[jwId]"
+        ]
       },
       "rest": {
         "routes": [
@@ -121,7 +135,9 @@
           {
             "name": "section",
             "parent": "Catalog",
-            "arguments": { "jwId": "Int!" },
+            "arguments": {
+              "jwId": "Int!"
+            },
             "returns": "Section",
             "rest_equivalent": "GET /api/catalog/sections/[jwId]",
             "mcp_equivalent": "catalog_section_get"
@@ -173,7 +189,9 @@
       "title": "Section iCal Export",
       "auth": "anon",
       "links": {
-        "ui": ["Calendar Export Dialog"]
+        "ui": [
+          "Calendar Export Dialog"
+        ]
       },
       "web": "stable",
       "rest": {
@@ -197,7 +215,10 @@
         ]
       },
       "display": {
-        "fields": ["iCalendar URL (copyable)", "Export format indicator"]
+        "fields": [
+          "iCalendar URL (copyable)",
+          "Export format indicator"
+        ]
       }
     }
   }

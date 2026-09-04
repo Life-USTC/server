@@ -71,10 +71,14 @@
         "mutations": [
           {
             "name": "uploadSessionCreate",
-            "arguments": { "input": "CreateUploadSessionInput!" },
+            "arguments": {
+              "input": "CreateUploadSessionInput!"
+            },
             "returns": "UploadSessionPayload!",
             "auth": "user",
-            "required_scopes": ["upload:write"],
+            "required_scopes": [
+              "upload:write"
+            ],
             "rest_equivalent": "POST /api/workspace/uploads",
             "mcp_equivalent": "graphql_operation_run",
             "notes": [
@@ -85,10 +89,14 @@
           },
           {
             "name": "uploadSessionComplete",
-            "arguments": { "input": "CompleteUploadSessionInput!" },
+            "arguments": {
+              "input": "CompleteUploadSessionInput!"
+            },
             "returns": "UploadCompletionPayload!",
             "auth": "user",
-            "required_scopes": ["upload:write"],
+            "required_scopes": [
+              "upload:write"
+            ],
             "rest_equivalent": "POST /api/workspace/uploads/complete",
             "mcp_equivalent": "graphql_operation_run",
             "notes": [
@@ -168,7 +176,10 @@
       },
       "mcp": "unavailable",
       "display": {
-        "fields": ["attachment filename", "Open/download button"]
+        "fields": [
+          "attachment filename",
+          "Open/download button"
+        ]
       }
     },
     "upload-manage": {
@@ -185,17 +196,25 @@
             },
             "returns": "UploadMutationPayload!",
             "auth": "user",
-            "required_scopes": ["upload:write"],
+            "required_scopes": [
+              "upload:write"
+            ],
             "rest_equivalent": "PATCH /api/workspace/uploads/[id]",
             "mcp_equivalent": "graphql_operation_run",
-            "notes": ["Registered operation id: workspace.upload.rename.v1."]
+            "notes": [
+              "Registered operation id: workspace.upload.rename.v1."
+            ]
           },
           {
             "name": "uploadDelete",
-            "arguments": { "id": "ID!" },
+            "arguments": {
+              "id": "ID!"
+            },
             "returns": "UploadDeleteMutationPayload!",
             "auth": "user",
-            "required_scopes": ["upload:write"],
+            "required_scopes": [
+              "upload:write"
+            ],
             "rest_equivalent": "DELETE /api/workspace/uploads/[id]",
             "mcp_equivalent": "graphql_operation_run",
             "notes": [

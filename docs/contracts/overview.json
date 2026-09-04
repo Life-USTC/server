@@ -3,30 +3,36 @@
   "access": {
     "anon": "The home page is a lightweight public catalog entry; bus and frequent links are independent pages at /catalog/bus and /catalog/links.",
     "user": "Accessing the home page redirects to the personal workspace at /workspace.",
-    "admin": "Accessing the home page redirects to the personal workspace at /workspace, with the same dashboard behavior as regular users.",
-    "agent": "Can read overview results with the same semantics as the authenticated dashboard; REST and MCP should return consistent overview information."
+    "admin": "Accessing the home page redirects to the personal workspace at /workspace, with the same workspace behavior as regular users.",
+    "agent": "Can read overview results with the same semantics as the authenticated workspace; REST and MCP should return consistent overview information."
   },
   "rules": {
-    "decision-page": "The anonymous home page prioritizes public catalog discovery without loading bus, links, or personalized dashboard data; the authenticated /workspace overview is the personal decision page for 'what to do next'.",
+    "decision-page": "The anonymous home page prioritizes public catalog discovery without loading bus, links, or personalized workspace data; the authenticated /workspace overview is the personal decision page for 'what to do next'.",
     "semantic-route-compatibility": "Known legacy /?tab= inputs permanently redirect to semantic public or dashboard paths while preserving unrelated query parameters.",
     "now-next-first": "The authenticated overview begins with the current or next actionable schedule, homework, exam, or todo in a rolling seven-day window. Today's urgent work follows it, while frequent links remain secondary and appear after planning content.",
     "current-semester-priority": "The above-the-fold area prioritizes personal learning tasks within the current semester, not historical semester content or complete directory information.",
     "homework-todo-layered": "Homework and todos are layered as 'due today / due soon / all incomplete'; homework with no due date does not participate in upcoming due date sorting.",
-    "upcoming-exam-counts": "Upcoming exam counts are shared between the dashboard web navigation, REST overview, and MCP overview. They include known-date exams that have not ended or start later today, and exclude date-unknown exam records that cannot be placed in the upcoming timeline.",
+    "upcoming-exam-counts": "Upcoming exam counts are shared between the workspace web navigation, REST overview, and MCP overview. They include known-date exams that have not ended or start later today, and exclude date-unknown exam records that cannot be placed in the upcoming timeline.",
     "non-current-not-disguised": "Non-current-semester subscribed sections must not be disguised as current learning tasks.",
     "aggregate-first-for-assistants": "Prefer a single aggregated snapshot tool for common assistant prompts before fanning out into multiple narrower tool calls.",
     "assistant-tool-hierarchy": "Use workspace_snapshot_get for broad assistant context; workspace_schedule_next for 'what is my next class?'; workspace_deadline_list for merged upcoming deadlines; workspace_overview_get only when lighter counts and samples suffice.",
     "historical-subscriptions-remain-discoverable": "A zero current-semester subscription count must not be presented as no course history when total subscriptions remain; web and assistant surfaces must offer a path to past-term sections, homework, schedules, and exams.",
-    "focused-extracts-share-window": "Focused tools such as next-class and upcoming-deadlines should stay aligned with the same short-horizon window as the broader dashboard snapshot.",
+    "focused-extracts-share-window": "Focused tools such as next-class and upcoming-deadlines should stay aligned with the same short-horizon window as the broader workspace snapshot.",
     "private-shell-overlay": "Public HTML remains viewer-independent. Authenticated browsers hydrate workspace navigation counts through a session-only, private no-store Web bootstrap; workspace SSR seeds the same in-memory projection without a duplicate browser request.",
-    "dashboard-card-priority": "Dashboard cards prioritize the actionable object title, timing/status, and direct destination over raw nested identifiers. Titles retain usable horizontal space at common desktop widths; secondary context such as course, section, campus, or priority badge remains visible for disambiguation without crowding the title. Platform audit timestamps and repeated parent objects stay out of compact cards and MCP default output."
+    "workspace-card-priority": "Workspace cards prioritize the actionable object title, timing/status, and direct destination over raw nested identifiers. Titles retain usable horizontal space at common desktop widths; secondary context such as course, section, campus, or priority badge remains visible for disambiguation without crowding the title. Platform audit timestamps and repeated parent objects stay out of compact cards and MCP default output."
   },
   "capabilities": {
     "authenticated-overview": {
       "title": "Authenticated Dashboard Overview",
       "auth": "user",
       "links": {
-        "models": ["User", "Section", "Homework", "Todo", "Exam"]
+        "models": [
+          "User",
+          "Section",
+          "Homework",
+          "Todo",
+          "Exam"
+        ]
       },
       "web": {
         "pages": [
@@ -58,10 +64,14 @@
           {
             "parent": "Workspace",
             "name": "overview",
-            "arguments": { "atTime": "DateTime" },
+            "arguments": {
+              "atTime": "DateTime"
+            },
             "returns": "WorkspaceOverview!",
             "auth": "user",
-            "required_scopes": ["workspace.overview:read"],
+            "required_scopes": [
+              "workspace.overview:read"
+            ],
             "rest_equivalent": "GET /api/workspace/overview",
             "mcp_equivalent": "workspace_overview_get",
             "notes": [
@@ -148,11 +158,17 @@
         ]
       }
     },
-    "assistant-dashboard-snapshot": {
+    "workspace-snapshot": {
       "title": "Assistant Dashboard Snapshot & Focused Extracts",
       "auth": "user",
       "links": {
-        "models": ["User", "Section", "Homework", "Todo", "Exam"]
+        "models": [
+          "User",
+          "Section",
+          "Homework",
+          "Todo",
+          "Exam"
+        ]
       },
       "web": "unavailable",
       "rest": "unavailable",
@@ -165,14 +181,14 @@
               "Preferred single-call snapshot for assistant workflows.",
               "Overlaps workspace_overview_get but adds currentSemester, currentSemesterSections, nextClass, merged deadlines, and preferred-bus departures; accepts optional atTime to anchor those time windows instead of using the server clock. When subscriptions.totalCount is greater than subscriptions.currentSemesterCount, past-term subscriptions remain available through workspace_subscription_list and the semesterId filters on workspace_homework_list, workspace_schedule_list, and workspace_exam_list.",
               "Default mode should stay assistant-compact; request full mode when the caller explicitly needs full nested schedule, room, teacher, or homework payloads.",
-              "The deprecated summary input is an alias for default and must preserve the same top-level dashboard collections rather than introducing alternate wrapper shapes."
+              "The deprecated summary input is an alias for default and must preserve the same top-level workspace collections rather than introducing alternate wrapper shapes."
             ]
           },
           {
             "name": "workspace_schedule_next",
             "returns": "{ found: Boolean, nextClass, currentSemester }",
             "notes": [
-              "Focused extract for 'what is my next class?' prompts; prefer workspace_snapshot_get when broader dashboard context is needed.",
+              "Focused extract for 'what is my next class?' prompts; prefer workspace_snapshot_get when broader workspace context is needed.",
               "Default mode compacts nextClass schedule payloads the same way as workspace_snapshot_get; request full mode for raw nested schedule, room, and teacher fields.",
               "Accepts optional atTime to anchor the lookup instead of using the server clock."
             ]
@@ -203,7 +219,9 @@
       "title": "Anonymous Homepage",
       "auth": "anon",
       "web": {
-        "pages": ["/"]
+        "pages": [
+          "/"
+        ]
       },
       "rules": {
         "static-loader": "The loader returns localized static copy only and performs no business-data queries."

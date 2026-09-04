@@ -19,10 +19,14 @@
       "title": "Cross-Section Homework Summary",
       "auth": "user",
       "links": {
-        "models": ["Homework"]
+        "models": [
+          "Homework"
+        ]
       },
       "web": {
-        "pages": ["/workspace/homeworks"]
+        "pages": [
+          "/workspace/homeworks"
+        ]
       },
       "rest": {
         "routes": [
@@ -47,7 +51,9 @@
             },
             "returns": "HomeworkPage!",
             "auth": "user",
-            "required_scopes": ["workspace.homework:read"],
+            "required_scopes": [
+              "workspace.homework:read"
+            ],
             "rest_equivalent": "GET /api/workspace/homeworks",
             "mcp_equivalent": "workspace_homework_list",
             "notes": [
@@ -89,11 +95,17 @@
       "title": "Section Homework Tab",
       "auth": "anon",
       "links": {
-        "models": ["Homework"],
-        "ui": ["Context Tabs"]
+        "models": [
+          "Homework"
+        ],
+        "ui": [
+          "Context Tabs"
+        ]
       },
       "web": {
-        "pages": ["/catalog/sections/[jwId]"]
+        "pages": [
+          "/catalog/sections/[jwId]"
+        ]
       },
       "rest": {
         "routes": [
@@ -154,9 +166,13 @@
         "mutations": [
           {
             "name": "homeworkCreate",
-            "arguments": { "input": "CreateHomeworkInput!" },
+            "arguments": {
+              "input": "CreateHomeworkInput!"
+            },
             "returns": "HomeworkMutationPayload!",
-            "required_scopes": ["community.section-homework:write"],
+            "required_scopes": [
+              "community.section-homework:write"
+            ],
             "rest_equivalent": "POST /api/community/section-homeworks",
             "mcp_equivalent": "community_section_homework_create",
             "notes": [
@@ -170,7 +186,9 @@
               "input": "UpdateHomeworkInput!"
             },
             "returns": "HomeworkMutationPayload!",
-            "required_scopes": ["community.section-homework:write"],
+            "required_scopes": [
+              "community.section-homework:write"
+            ],
             "rest_equivalent": "PATCH /api/community/section-homeworks/[id]",
             "mcp_equivalent": "community_section_homework_update",
             "notes": [
@@ -180,9 +198,13 @@
           },
           {
             "name": "homeworkDelete",
-            "arguments": { "id": "ID!" },
+            "arguments": {
+              "id": "ID!"
+            },
             "returns": "HomeworkDeleteMutationPayload!",
-            "required_scopes": ["community.section-homework:write"],
+            "required_scopes": [
+              "community.section-homework:write"
+            ],
             "rest_equivalent": "DELETE /api/community/section-homeworks/[id]",
             "mcp_equivalent": "community_section_homework_delete",
             "notes": [
@@ -289,7 +311,9 @@
       "title": "Homework Completion",
       "auth": "user",
       "links": {
-        "models": ["Homework"]
+        "models": [
+          "Homework"
+        ]
       },
       "web": "stable",
       "graphql": {
@@ -302,7 +326,9 @@
             },
             "returns": "HomeworkCompletionMutationPayload!",
             "auth": "user",
-            "required_scopes": ["workspace.homework:write"],
+            "required_scopes": [
+              "workspace.homework:write"
+            ],
             "rest_equivalent": "PUT /api/workspace/homeworks/[id]/completion",
             "mcp_equivalent": "workspace_homework_completion_set"
           },
@@ -313,7 +339,9 @@
             },
             "returns": "HomeworkCompletionBatchPayload!",
             "auth": "user",
-            "required_scopes": ["workspace.homework:write"],
+            "required_scopes": [
+              "workspace.homework:write"
+            ],
             "rest_equivalent": "PUT /api/workspace/homeworks/completions",
             "mcp_equivalent": "workspace_homework_completion_set",
             "notes": [

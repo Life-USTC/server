@@ -18,7 +18,7 @@
     "openapi-document-cache": "GET /api/openapi serves one build-time serialized document per Worker isolate and allows public clients and edge caches to reuse it for five minutes.",
     "rest-observability": "REST logging must never include bodies, credentials, query strings, exception messages, client-supplied correlation IDs, or resource IDs.",
     "authenticated-mutation-rate-limits": "Authenticated end-user and admin REST mutations use Cloudflare rate-limit bindings keyed by deployment host, user, and canonical feature action. Standard writes allow 60 checks per minute; batch writes allow 10. REST and MCP share the same feature-action keys. The gate runs after authentication and before mutation. Exceeded budgets return 429; missing or failing Cloudflare bindings fail closed with 503. Both responses include Retry-After: 60. Host-native development bypasses the gate explicitly.",
-    "dashboard-rate-limit-fallbacks": "For the dashboard pin HTML form, rate-limit rejection skips the write and redirects with an error marker; JSON/API callers receive 429 or 503 directly. Dashboard link visits are best-effort analytics writes: rejection skips click recording but preserves the target redirect.",
+    "workspace-rate-limit-fallbacks": "For the workspace pin HTML form, rate-limit rejection skips the write and redirects with an error marker; JSON/API callers receive 429 or 503 directly. Catalog link visits are best-effort analytics writes: rejection skips click recording but preserves the target redirect.",
     "rate-limit-accuracy-boundary": "Mutation throttles are abuse controls, not exact accounting: Cloudflare counters are per-location, permissive, and eventually consistent. Contracts do not promise a global exact quota, remaining count, or reset timestamp. OAuth/provider endpoints retain Better Auth's separate limiter, and anonymous/read-only POST utilities are outside the authenticated mutation budget.",
     "unknown-api-json-errors": "Unknown paths under /api return the standard JSON { error } envelope with status 404 instead of falling through to the HTML application error page.",
     "pagination-query-parameter": "Paginated REST endpoints use pageSize as the canonical request parameter. The deprecated limit alias remains accepted during migration, and pageSize takes precedence when both are supplied. Public catalog list routes accept page between 1 and 100, bounding the largest allowed offset to 9900 rows.",
@@ -33,7 +33,9 @@
       "title": "API Docs Page",
       "auth": "anon",
       "web": {
-        "pages": ["/api/docs/tag/catalog-section"]
+        "pages": [
+          "/api/docs/tag/catalog-section"
+        ]
       },
       "display": {
         "fields": [
@@ -135,14 +137,18 @@
             "path": "/api/account/preferences",
             "method": "POST",
             "returns": "{ success: Boolean }",
-            "notes": ["Sets the user language preference cookie."]
+            "notes": [
+              "Sets the user language preference cookie."
+            ]
           },
           {
             "path": "/api/health",
             "method": "GET",
             "returns": "text/plain ok",
             "content_type": "text/plain; charset=utf-8",
-            "notes": ["Plain liveness endpoint with no dependency checks."]
+            "notes": [
+              "Plain liveness endpoint with no dependency checks."
+            ]
           }
         ]
       },

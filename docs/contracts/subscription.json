@@ -16,28 +16,43 @@
       "title": "Subscribe from Section Detail",
       "auth": "user",
       "links": {
-        "models": ["User", "Section"],
-        "ui": ["Detail Hero"]
+        "models": [
+          "User",
+          "Section"
+        ],
+        "ui": [
+          "Detail Hero"
+        ]
       },
       "web": {
-        "pages": ["/catalog/sections/[jwId]"]
+        "pages": [
+          "/catalog/sections/[jwId]"
+        ]
       },
       "graphql": {
         "mutations": [
           {
             "name": "subscriptionAdd",
-            "arguments": { "jwId": "Int!" },
+            "arguments": {
+              "jwId": "Int!"
+            },
             "returns": "SectionSubscriptionMutationPayload!",
             "auth": "user",
-            "required_scopes": ["subscription:write"],
+            "required_scopes": [
+              "subscription:write"
+            ],
             "mcp_equivalent": "workspace_subscription_add"
           },
           {
             "name": "subscriptionRemove",
-            "arguments": { "jwId": "Int!" },
+            "arguments": {
+              "jwId": "Int!"
+            },
             "returns": "SectionSubscriptionMutationPayload!",
             "auth": "user",
-            "required_scopes": ["subscription:write"],
+            "required_scopes": [
+              "subscription:write"
+            ],
             "mcp_equivalent": "workspace_subscription_remove"
           }
         ]
@@ -76,10 +91,16 @@
       "title": "Batch Subscribe by Course Codes",
       "auth": "user",
       "links": {
-        "models": ["Section", "User"]
+        "models": [
+          "Section",
+          "User"
+        ]
       },
       "web": {
-        "pages": ["/workspace/subscriptions", "/account/welcome"]
+        "pages": [
+          "/workspace/subscriptions",
+          "/account/welcome"
+        ]
       },
       "graphql": {
         "mutations": [
@@ -90,7 +111,9 @@
             },
             "returns": "SectionSubscriptionBatchPayload!",
             "auth": "user",
-            "required_scopes": ["subscription:write"],
+            "required_scopes": [
+              "subscription:write"
+            ],
             "rest_equivalent": "POST /api/workspace/subscriptions/batch",
             "mcp_equivalent": "workspace_subscription_import",
             "notes": [
@@ -146,7 +169,7 @@
             "returns": "{ subscription: CalendarSubscription, addedCount: Int, alreadySubscribedCount: Int }",
             "notes": [
               "Compatibility endpoint for ID-only callers; appends selected section IDs after preview without replacing the caller's whole subscription set.",
-              "Used by dashboard and welcome bulk-import confirmation after users deselect unwanted matched sections.",
+              "Used by workspace and welcome bulk-import confirmation after users deselect unwanted matched sections.",
               "Unknown positive section IDs are ignored; malformed or non-positive IDs return 400.",
               "Already-subscribed selected sections are counted but not duplicated."
             ]
@@ -158,7 +181,7 @@
             "notes": [
               "Compatibility remove endpoint for ID-only callers.",
               "Remove selected section IDs without replacing the caller's whole subscription set.",
-              "Used by dashboard opt-out controls so concurrent additions are not overwritten by stale client-side read-merge-replace flows.",
+              "Used by workspace opt-out controls so concurrent additions are not overwritten by stale client-side read-merge-replace flows.",
               "Unknown positive section IDs are ignored; malformed or non-positive IDs return 400."
             ]
           },

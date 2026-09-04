@@ -18,11 +18,18 @@
       "title": "Subscribed Sections Tab",
       "auth": "user",
       "links": {
-        "models": ["User", "Section"],
-        "ui": ["List Table"]
+        "models": [
+          "User",
+          "Section"
+        ],
+        "ui": [
+          "List Table"
+        ]
       },
       "web": {
-        "pages": ["/workspace/subscriptions"]
+        "pages": [
+          "/workspace/subscriptions"
+        ]
       },
       "rest": {
         "routes": [
@@ -40,10 +47,14 @@
           {
             "parent": "Workspace",
             "name": "subscribedSections",
-            "arguments": { "page": "PageInput" },
+            "arguments": {
+              "page": "PageInput"
+            },
             "returns": "SectionPage!",
             "auth": "user",
-            "required_scopes": ["subscription:read"],
+            "required_scopes": [
+              "subscription:read"
+            ],
             "rest_equivalent": "GET /api/workspace/subscriptions/current",
             "mcp_equivalent": "workspace_subscription_list",
             "notes": [

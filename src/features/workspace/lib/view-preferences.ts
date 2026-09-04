@@ -10,7 +10,7 @@ export type DashboardViewState = {
   linkView: DashboardLinkView;
 };
 
-export const DASHBOARD_VIEW_STORAGE_KEY = "life-ustc-dashboard-view-mode";
+export const DASHBOARD_VIEW_STORAGE_KEY = "life-ustc-workspace-view-mode";
 
 export function dashboardViewsForCardMode(
   mode: DashboardCardView,

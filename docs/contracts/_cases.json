@@ -7,7 +7,7 @@
       },
       {
         "module": "overview",
-        "capability": "assistant-dashboard-snapshot"
+        "capability": "workspace-snapshot"
       },
       {
         "module": "subscription",
@@ -23,7 +23,7 @@
       },
       {
         "module": "bus",
-        "capability": "bus-dashboard"
+        "capability": "bus-timetable"
       },
       {
         "module": "bus",
@@ -210,8 +210,12 @@
       }
     ],
     "rules": {
-      "suspended-user": ["Cannot post new comments."],
-      "upload-attachment-download": ["Access permissions must be validated."],
+      "suspended-user": [
+        "Cannot post new comments."
+      ],
+      "upload-attachment-download": [
+        "Access permissions must be validated."
+      ],
       "destructive-actions": [
         "Deletion must have explicit feedback.",
         "Suspension must have explicit feedback.",

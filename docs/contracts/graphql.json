@@ -38,7 +38,7 @@
           "/api/graphql",
           "Public semester, course, section, teacher, and bus queries",
           "Authenticated Workspace and Account reads with exact feature:read scopes",
-          "Authenticated todo and homework CRUD, todo/homework/comment batches, section subscription batches, dashboard pin batches, upload workflow metadata and ownership actions, bus preference, description, and comment mutations",
+          "Authenticated todo and homework CRUD, todo/homework/comment batches, section subscription batches, workspace pin batches, upload workflow metadata and ownership actions, bus preference, description, and comment mutations",
           "GET, POST, and OPTIONS",
           "GraphQL-audience bearer tokens require matching feature scopes",
           "MCP executes arbitrary documents or compatible registered-operation IDs with resolver-level scopes"
@@ -50,7 +50,10 @@
       "auth": "user",
       "graphql": {
         "queries": [
-          { "name": "catalog", "returns": "Catalog!" },
+          {
+            "name": "catalog",
+            "returns": "Catalog!"
+          },
           {
             "name": "workspace",
             "returns": "Workspace",
@@ -58,7 +61,10 @@
               "Returns null for anonymous requests; each selected child field enforces its exact feature read scope."
             ]
           },
-          { "name": "community", "returns": "Community!" },
+          {
+            "name": "community",
+            "returns": "Community!"
+          },
           {
             "name": "account",
             "returns": "Account",

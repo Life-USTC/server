@@ -18,10 +18,17 @@
       "title": "Personal Calendar View",
       "auth": "user",
       "links": {
-        "models": ["Schedule", "Homework", "Exam", "Todo"]
+        "models": [
+          "Schedule",
+          "Homework",
+          "Exam",
+          "Todo"
+        ]
       },
       "web": {
-        "pages": ["/workspace/calendar"]
+        "pages": [
+          "/workspace/calendar"
+        ]
       },
       "rest": "unavailable",
       "mcp": {
@@ -66,17 +73,24 @@
           "Weekday labels (Sun-Sat)",
           "Mobile week agenda"
         ],
-        "filters": ["View tabs", "Previous/next semester controls"]
+        "filters": [
+          "View tabs",
+          "Previous/next semester controls"
+        ]
       }
     },
     "section-calendar-view": {
       "title": "Section Calendar View",
       "auth": "anon",
       "links": {
-        "ui": ["Context Tabs"]
+        "ui": [
+          "Context Tabs"
+        ]
       },
       "web": {
-        "pages": ["/catalog/sections/[jwId]"]
+        "pages": [
+          "/catalog/sections/[jwId]"
+        ]
       },
       "rest": "stable",
       "display": {
