@@ -24,8 +24,8 @@ BEGIN READ ONLY;
 WITH protected(table_name) AS (
   VALUES
     ('Todo'),
-    ('DashboardLinkClick'),
-    ('DashboardLinkPin'),
+    ('CatalogLinkClick'),
+    ('WorkspaceLinkPin'),
     ('BusUserPreference'),
     ('CommentReaction'),
     ('HomeworkCompletion'),
@@ -525,8 +525,8 @@ checks(name, passed) AS (
     'missing_context_default_deny',
     NULLIF(current_setting('app.user_id', true), '') IS NULL
     AND NOT EXISTS (SELECT 1 FROM public."Todo" LIMIT 1)
-    AND NOT EXISTS (SELECT 1 FROM public."DashboardLinkClick" LIMIT 1)
-    AND NOT EXISTS (SELECT 1 FROM public."DashboardLinkPin" LIMIT 1)
+    AND NOT EXISTS (SELECT 1 FROM public."CatalogLinkClick" LIMIT 1)
+    AND NOT EXISTS (SELECT 1 FROM public."WorkspaceLinkPin" LIMIT 1)
     AND NOT EXISTS (SELECT 1 FROM public."BusUserPreference" LIMIT 1)
     AND NOT EXISTS (SELECT 1 FROM public."CommentReaction" LIMIT 1)
     AND NOT EXISTS (SELECT 1 FROM public."HomeworkCompletion" LIMIT 1)

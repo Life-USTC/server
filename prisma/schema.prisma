@@ -910,8 +910,8 @@ model User {
   auditLogs            AuditLog[]                @relation("AuditActor")
   subjectAuditLogs     AuditLog[]                @relation("AuditSubject")
   homeworkCompletions  HomeworkCompletion[]
-  dashboardLinkClicks  DashboardLinkClick[]
-  dashboardLinkPins    DashboardLinkPin[]
+  catalogLinkClicks   CatalogLinkClick[]
+  workspaceLinkPins    WorkspaceLinkPin[]
   todos                Todo[]
   busPreference        BusUserPreference?
   ustcIdentities       UserUstcIdentity[]
@@ -942,7 +942,7 @@ model UserUstcIdentity {
   @@index([userId])
 }
 
-model DashboardLinkClick {
+model CatalogLinkClick {
   id String @id @default(cuid())
 
   userId        String
@@ -959,7 +959,7 @@ model DashboardLinkClick {
   @@index([slug])
 }
 
-model DashboardLinkPin {
+model WorkspaceLinkPin {
   id String @id @default(cuid())
 
   userId    String

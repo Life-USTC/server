@@ -28,8 +28,8 @@ const adminPrisma = createTestPrisma(
 const protectedTables = [
   "BusUserPreference",
   "CommentReaction",
-  "DashboardLinkClick",
-  "DashboardLinkPin",
+  "CatalogLinkClick",
+  "WorkspaceLinkPin",
   "HomeworkCompletion",
   "Todo",
   "Upload",
