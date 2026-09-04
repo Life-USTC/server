@@ -11,7 +11,7 @@ import {
 } from "@/features/catalog/lib/catalog-structured-data";
 import { getCoursePage } from "@/features/catalog/server/course-page-data";
 import { getTeacherPage } from "@/features/catalog/server/teacher-page-data";
-import { runCloudflareTraceSpan } from "@/lib/adapters/cloudflare-runtime";
+import { runCloudflareTraceSpan } from "@/lib/ports/runtime";
 import { getViewerContext } from "@/lib/auth/viewer-context";
 import {
   buildSocialMetadata,

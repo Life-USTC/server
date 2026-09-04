@@ -9,7 +9,7 @@ import {
 } from "@/features/section-detail/lib/display";
 import { resolveSectionDetailTabQueryRedirect } from "@/features/section-detail/lib/section-detail-tab";
 import { getSectionPage } from "@/features/section-detail/server/section-page-data";
-import { runCloudflareTraceSpan } from "@/lib/adapters/cloudflare-runtime";
+import { runCloudflareTraceSpan } from "@/lib/ports/runtime";
 import { getViewerContext } from "@/lib/auth/viewer-context";
 import {
   buildSocialMetadata,

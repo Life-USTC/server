@@ -1,9 +1,9 @@
 import type { Prisma } from "@/generated/prisma/client";
-import { getCloudflareR2PublicationsBucket } from "@/lib/adapters/cloudflare-runtime";
+import { getCloudflareR2PublicationsBucket } from "@/lib/ports/runtime";
 import {
   normalizePagination,
   type PaginationInput,
-} from "@/lib/api/pagination";
+} from "@/lib/pagination";
 import type { PublicationsQuery } from "@/lib/api/schemas/request-publication-read-schemas";
 import { prisma } from "@/lib/db/prisma";
 import { publicationObjectKey } from "./publication-ingestion-service";

@@ -1,4 +1,4 @@
-import { getOptionalTrimmedEnv } from "@/lib/adapters/cloudflare-env";
+import { getOptionalTrimmedEnv } from "@/lib/ports/env";
 import type { ProviderResult, WeatherLocation } from "./weather-types";
 
 export type AmapWeatherData = {

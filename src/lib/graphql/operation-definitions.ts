@@ -1,4 +1,4 @@
-import type { PersistedGraphqlOperationDefinition } from "./operations";
+import type { PersistedGraphqlOperationDefinition } from "./operation-types";
 
 type QueryDefinitionInput = Omit<
   PersistedGraphqlOperationDefinition,

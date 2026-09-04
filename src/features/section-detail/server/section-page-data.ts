@@ -9,7 +9,7 @@ import {
 } from "@/features/section-detail/server/section-page-shape";
 import type { Prisma } from "@/generated/prisma/client";
 import type { AppLocale } from "@/i18n/config";
-import { runCloudflareTraceSpan } from "@/lib/adapters/cloudflare-runtime";
+import { runCloudflareTraceSpan } from "@/lib/ports/runtime";
 import { cachedPublicDetailRuntimeData } from "@/lib/catalog-detail-runtime-cache";
 import { getPrisma } from "@/lib/db/prisma";
 

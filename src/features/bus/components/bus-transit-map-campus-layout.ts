@@ -11,16 +11,10 @@ import {
 import {
   estimateCampusLabelWidth,
   labelOffset,
-} from "./bus-transit-map-visual";
+} from "./bus-transit-map-labels";
+import type { MapViewBox, Pos } from "./bus-transit-map-types";
 
-export type Pos = { x: number; y: number };
-
-export type MapViewBox = {
-  height: number;
-  minX: number;
-  minY: number;
-  width: number;
-};
+export type { MapViewBox, Pos } from "./bus-transit-map-types";
 
 export function layoutCampuses(campuses: BusMapCampusNode[]): Map<number, Pos> {
   if (campuses.length === 0) return new Map();

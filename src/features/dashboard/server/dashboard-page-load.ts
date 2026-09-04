@@ -11,7 +11,7 @@ import {
   createDashboardStageCounter,
   observeDashboardStage,
 } from "@/features/dashboard/server/dashboard-stage-analytics";
-import { runCloudflareTraceSpan } from "@/lib/adapters/cloudflare-runtime";
+import { runCloudflareTraceSpan } from "@/lib/ports/runtime";
 import { logAppEvent } from "@/lib/log/app-logger";
 import { elapsedMs, monotonicNowMs } from "@/lib/log/observability-clock";
 

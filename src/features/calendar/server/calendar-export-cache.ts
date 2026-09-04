@@ -1,5 +1,5 @@
 import { enqueueUserCalendarExportRebuild } from "@/features/calendar/server/calendar-export-queue";
-import { getCloudflareCalendarExportsNamespace } from "@/lib/adapters/cloudflare-runtime";
+import { getCloudflareCalendarExportsNamespace } from "@/lib/ports/runtime";
 import { sha256Base64Url } from "@/lib/crypto/web-crypto";
 import { writeCalendarFeedCacheAnalytics } from "@/lib/metrics/analytics-engine";
 

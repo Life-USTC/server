@@ -1,5 +1,5 @@
 import { type CommentReactionType, Prisma } from "@/generated/prisma/client";
-import { runCloudflareTraceSpan } from "@/lib/adapters/cloudflare-runtime";
+import { runCloudflareTraceSpan } from "@/lib/ports/runtime";
 import {
   getViewerContext,
   type ViewerContext,

@@ -1,3 +1,8 @@
+/**
+ * Fill missing stop times by averaging the nearest known minutes before and
+ * after the stop. Exact times stay exact; gaps between known times are marked
+ * estimated for display.
+ */
 import { formatMinutesAsTime } from "./bus-route-slots";
 import type { BusTripStopTime } from "./bus-types";
 

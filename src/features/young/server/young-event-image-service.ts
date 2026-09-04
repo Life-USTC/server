@@ -1,4 +1,4 @@
-import { getCloudflareR2PublicationsBucket } from "@/lib/adapters/cloudflare-runtime";
+import { getCloudflareR2PublicationsBucket } from "@/lib/ports/runtime";
 import { prisma } from "@/lib/db/prisma";
 
 const YOUNG_EVENT_IMAGE_ORIGIN = "https://young.ustc.edu.cn/login/";

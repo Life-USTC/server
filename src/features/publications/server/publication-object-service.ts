@@ -1,4 +1,4 @@
-import { getCloudflareR2PublicationsBucket } from "@/lib/adapters/cloudflare-runtime";
+import { getCloudflareR2PublicationsBucket } from "@/lib/ports/runtime";
 import type {
   PublicationObjectPlanRequest,
   PublicationObjectUploadParams,

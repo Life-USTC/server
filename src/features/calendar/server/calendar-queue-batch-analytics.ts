@@ -1,4 +1,4 @@
-import { getCloudflareAnalyticsEngineDataset } from "@/lib/adapters/cloudflare-runtime";
+import { getCloudflareAnalyticsEngineDataset } from "@/lib/ports/runtime";
 import { logAppEvent } from "@/lib/log/app-logger";
 import { getSafeErrorName } from "@/lib/log/safe-error-name";
 

@@ -4,7 +4,7 @@ import {
   normalizePagination,
   type PaginatedResponse,
   type PaginationInput,
-} from "@/lib/api/pagination";
+} from "@/lib/pagination";
 import { prisma } from "@/lib/db/prisma";
 import { formatShanghaiTimestamp } from "@/lib/time/shanghai-format";
 
