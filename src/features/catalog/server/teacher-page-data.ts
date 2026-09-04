@@ -2,10 +2,10 @@ import type { TeacherDetailSection } from "@/features/catalog/components/catalog
 import { PUBLIC_DETAIL_SECTION_PREVIEW_LIMIT } from "@/features/catalog/server/academic-query-includes";
 import { localizedNameSelect } from "@/features/section-detail/server/section-page-name-selects";
 import type { AppLocale } from "@/i18n/config";
-import { runCloudflareTraceSpan } from "@/lib/ports/runtime";
 import { cachedPublicDetailRuntimeData } from "@/lib/catalog-detail-runtime-cache";
 import { getPrisma } from "@/lib/db/prisma";
 import { toLoadData } from "@/lib/load-data-utils";
+import { runCloudflareTraceSpan } from "@/lib/ports/runtime";
 import { isTeacherPageCore } from "./catalog-detail-cache-validation";
 
 const teacherPageSectionsSelect = {

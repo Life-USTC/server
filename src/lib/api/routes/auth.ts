@@ -5,6 +5,8 @@ import {
   restoreRegisteredDeviceClientMetadata,
 } from "@/features/oauth/server/client-registration-policy.server";
 import { bindOAuthAuthorizationCodeRedirectToActiveGrant } from "@/features/oauth/server/oauth-authorization-code-grant.server";
+import { getOAuthClientRedirectUris } from "@/features/oauth/server/oauth-client-redirect-uris.server";
+import { resolveOpaqueIntrospectionGrant } from "@/features/oauth/server/oauth-introspection-grant.server";
 import { verifyOAuthProviderSignedQuery } from "@/features/oauth/server/signed-oauth-query.server";
 import {
   revokeUserOAuthAuthorization,
@@ -17,7 +19,6 @@ import {
 import { isTrustedAuthOrigin } from "@/lib/auth/auth-origins";
 import { verifyAccessTokenJwt } from "@/lib/auth/jwt-verification";
 import { resolveAuthoritativeRecentSession } from "@/lib/auth/recent-session";
-import { authPrisma as prisma } from "@/lib/db/auth-prisma";
 import { logAppEvent } from "@/lib/log/app-logger";
 import {
   logOAuthDebug,
@@ -40,7 +41,6 @@ import {
 import { findDuplicateOAuthFormParameter } from "@/lib/oauth/form-parameters";
 import { resolveEquivalentLoopbackRedirectUri } from "@/lib/oauth/loopback-redirect";
 import { rewriteOAuthResourceAliases } from "@/lib/oauth/resource-aliases";
-import { hashOAuthClientSecretForDbStorage } from "@/lib/oauth/utils";
 
 function recordOAuthRouteFailure(input: {
   error: unknown;
@@ -368,59 +368,6 @@ function inactiveIntrospectionResponse(response: Response) {
   );
 }
 
-async function resolveOpaqueIntrospectionGrant(
-  token: string,
-  tokenTypeHint: string | null,
-) {
-  const tokenHash = await hashOAuthClientSecretForDbStorage(
-    token.replace(/^Bearer /, ""),
-  );
-  if (!tokenTypeHint || tokenTypeHint === "access_token") {
-    const accessToken = await prisma.oAuthAccessToken.findUnique({
-      where: { token: tokenHash },
-      select: {
-        clientId: true,
-        grantId: true,
-        referenceId: true,
-        scopes: true,
-        userId: true,
-      },
-    });
-    if (accessToken) {
-      return accessToken.userId
-        ? {
-            clientId: accessToken.clientId,
-            grantId:
-              accessToken.grantId ?? accessToken.referenceId ?? undefined,
-            scopes: accessToken.scopes,
-            userId: accessToken.userId,
-          }
-        : { machine: true as const };
-    }
-  }
-  if (!tokenTypeHint || tokenTypeHint === "refresh_token") {
-    const refreshToken = await prisma.oAuthRefreshToken.findUnique({
-      where: { token: tokenHash },
-      select: {
-        clientId: true,
-        grantId: true,
-        referenceId: true,
-        scopes: true,
-        userId: true,
-      },
-    });
-    if (refreshToken) {
-      return {
-        clientId: refreshToken.clientId,
-        grantId: refreshToken.grantId ?? refreshToken.referenceId ?? undefined,
-        scopes: refreshToken.scopes,
-        userId: refreshToken.userId,
-      };
-    }
-  }
-  return null;
-}
-
 async function enforceIntrospectionGrant(
   request: Request,
   params: URLSearchParams,
@@ -513,16 +460,13 @@ async function maybeNormalizeAuthorizeLoopbackRedirectRequest(
     ...summarizeOAuthForwardingHeaders(request, url),
   });
 
-  const client = await prisma.oAuthClient.findUnique({
-    where: { clientId },
-    select: { redirectUris: true },
-  });
-  if (!client) {
+  const redirectUris = await getOAuthClientRedirectUris(clientId);
+  if (!redirectUris) {
     return request;
   }
 
   const normalizedRedirectUri = resolveEquivalentLoopbackRedirectUri(
-    client.redirectUris,
+    redirectUris,
     redirectUri,
   );
   if (!normalizedRedirectUri || normalizedRedirectUri === redirectUri) {

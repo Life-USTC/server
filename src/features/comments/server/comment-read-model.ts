@@ -1,5 +1,4 @@
 import { type CommentReactionType, Prisma } from "@/generated/prisma/client";
-import { runCloudflareTraceSpan } from "@/lib/ports/runtime";
 import {
   getViewerContext,
   type ViewerContext,
@@ -10,6 +9,7 @@ import { prisma, withUserDbContext } from "@/lib/db/prisma";
 import { getUserRlsTransactionClient } from "@/lib/db/rls-context";
 import { logAppEvent } from "@/lib/log/app-logger";
 import { getSafeDatabaseErrorCode } from "@/lib/log/app-logger-core";
+import { runCloudflareTraceSpan } from "@/lib/ports/runtime";
 import {
   type CommentDbClient,
   withCommentDbContext,
