@@ -51,6 +51,7 @@ test.describe("/api/mcp - 种子工具覆盖", () => {
             Object.hasOwn(homework, "completion"),
         ),
       ).toBe(true);
+      const homeworkTitle = `[MCP-E2E-HW] ${Date.now()}`;
       const createHomeworkResult = await mcpClient.callTool({
         name: "community_section_homework_create",
         arguments: {

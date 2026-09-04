@@ -374,6 +374,7 @@ test.describe("/api/mcp - 种子工具覆盖", () => {
       expect(calendarEventsSummaryPayload.events).toEqual(
         calendarEventsPayload.events,
       );
+      const todoTitle = `[MCP-E2E-TODO] ${Date.now()}`;
       const createTodoResult = await mcpClient.callTool({
         name: "workspace_todo_create",
         arguments: {

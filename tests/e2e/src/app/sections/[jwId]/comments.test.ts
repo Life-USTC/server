@@ -8,7 +8,10 @@ import {
   openCommentComposer,
 } from "../../../../utils/comments";
 import { DEV_SEED } from "../../../../utils/dev-seed";
-import { gotoAndWaitForReady } from "../../../../utils/page-ready";
+import {
+  gotoAndWaitForReady,
+  waitForUiSettled,
+} from "../../../../utils/page-ready";
 import { captureStepScreenshot } from "../../../../utils/screenshot";
 import { deleteUploadById } from "../../../../utils/uploads";
 import {

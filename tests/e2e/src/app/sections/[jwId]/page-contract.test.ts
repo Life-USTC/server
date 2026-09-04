@@ -4,6 +4,7 @@
 import { expect, test } from "@playwright/test";
 import { formatSemesterName } from "@/lib/text/format-semester-name";
 import { signInAsDebugUser } from "../../../../utils/auth";
+import { openCommentComposer } from "../../../../utils/comments";
 import {
   restoreDescriptionTargetSnapshot,
   snapshotDescriptionTargetForE2e,
