@@ -57,6 +57,21 @@ async function expectProbeRoute(
   expect(expectedStatuses).toContain(response.status());
 }
 
+async function expectUnauthorizedJson(
+  response: Awaited<ReturnType<APIRequestContext["get"]>>,
+) {
+  expect(response.status()).toBe(401);
+  const body = (await response.json()) as { error?: string };
+  expect(typeof body.error).toBe("string");
+}
+
+function probePath(routePath: string) {
+  return routePath
+    .replace("[id]", "invalid-e2e")
+    .replace("[userId]", "invalid-e2e")
+    .replace("[jwId]", String(DEV_SEED.section.jwId));
+}
+
 export async function assertApiContract(
   request: APIRequestContext,
   { routePath, baseURL }: ApiContractCase,
@@ -492,63 +507,68 @@ export async function assertApiContract(
     case "/api/admin/homeworks":
     case "/api/admin/suspensions":
     case "/api/admin/users": {
-      const response = await request.get(routePath);
-      expect(response.status()).toBe(401);
-      const body = (await response.json()) as { error?: string };
-      expect(typeof body.error).toBe("string");
+      await expectUnauthorizedJson(await request.get(routePath));
       return;
     }
 
     case "/api/admin/comments/[id]":
     case "/api/admin/descriptions/[id]":
-    case "/api/admin/homeworks/[id]":
     case "/api/admin/suspensions/[id]":
     case "/api/admin/users/[id]": {
-      const response = await request.get(
-        routePath.replace("[id]", "invalid-e2e"),
+      await expectUnauthorizedJson(
+        await request.patch(probePath(routePath), { data: {} }),
       );
-      expect(response.status()).toBe(401);
-      const body = (await response.json()) as { error?: string };
-      expect(typeof body.error).toBe("string");
+      return;
+    }
+
+    case "/api/admin/homeworks/[id]": {
+      await expectUnauthorizedJson(await request.delete(probePath(routePath)));
       return;
     }
 
     case "/api/workspace/overview":
     case "/api/workspace/schedules":
     case "/api/workspace/homeworks":
-    case "/api/workspace/homeworks/completions":
     case "/api/workspace/bus-preferences":
     case "/api/account/profile": {
-      const response = await request.get(routePath);
-      expect(response.status()).toBe(401);
-      const body = (await response.json()) as { error?: string };
-      expect(typeof body.error).toBe("string");
+      await expectUnauthorizedJson(await request.get(routePath));
+      return;
+    }
+
+    case "/api/workspace/homeworks/completions": {
+      await expectUnauthorizedJson(await request.put(routePath, { data: {} }));
       return;
     }
 
     case "/api/workspace/todos/[id]":
-    case "/api/workspace/uploads/[id]":
-    case "/api/workspace/uploads/[id]/download":
-    case "/api/workspace/homeworks/[id]/completion": {
-      const response = await request.get(
-        routePath.replace("[id]", "invalid-e2e"),
+    case "/api/workspace/uploads/[id]": {
+      await expectUnauthorizedJson(
+        await request.patch(probePath(routePath), { data: {} }),
       );
-      expect(response.status()).toBe(401);
-      const body = (await response.json()) as { error?: string };
-      expect(typeof body.error).toBe("string");
+      return;
+    }
+
+    case "/api/workspace/uploads/[id]/download": {
+      await expectUnauthorizedJson(await request.get(probePath(routePath)));
+      return;
+    }
+
+    case "/api/workspace/homeworks/[id]/completion": {
+      await expectUnauthorizedJson(
+        await request.put(probePath(routePath), { data: {} }),
+      );
       return;
     }
 
     case "/api/workspace/uploads/complete":
-    case "/api/workspace/uploads/object":
     case "/api/workspace/subscriptions":
     case "/api/workspace/subscriptions/import-codes": {
-      const response = await request.post(routePath, {
-        data: {},
-      });
-      expect(response.status()).toBe(401);
-      const body = (await response.json()) as { error?: string };
-      expect(typeof body.error).toBe("string");
+      await expectUnauthorizedJson(await request.post(routePath, { data: {} }));
+      return;
+    }
+
+    case "/api/workspace/uploads/object": {
+      await expectUnauthorizedJson(await request.put(routePath, { data: {} }));
       return;
     }
 
