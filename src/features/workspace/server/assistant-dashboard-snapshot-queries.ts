@@ -11,7 +11,7 @@ import { getPrisma, prisma } from "@/lib/db/prisma";
 import {
   listAssistantCurrentSemesterSections,
   resolveAssistantBusSnapshot,
-} from "./workspace-snapshot-helpers";
+} from "./assistant-dashboard-snapshot-helpers";
 
 export async function loadAssistantDashboardSnapshotData(input: {
   dateTo: Date;

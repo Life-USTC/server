@@ -1,4 +1,4 @@
-import { getAssistantDashboardSnapshot } from "@/features/workspace/server/workspace-snapshot";
+import { getAssistantDashboardSnapshot } from "@/features/workspace/server/assistant-dashboard-snapshot";
 import type { AppLocale } from "@/i18n/config";
 import {
   getUserId,
