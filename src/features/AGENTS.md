@@ -24,7 +24,7 @@ feature/
 Folders under this directory are the inventory. `workspace/` is the signed-in
 workspace UI (routes `/workspace/[tab]`); keep overview assembly there and use
 `subscriptions/` for section membership. Campus link product code stays in
-`dashboard-links/` (and `dashboard-link.json`).
+`dashboard-links/` (and `catalog-link.json`).
 
 ## Domain rules
 

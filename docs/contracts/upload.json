@@ -71,7 +71,9 @@
         "mutations": [
           {
             "name": "uploadSessionCreate",
-            "arguments": { "input": "CreateUploadSessionInput!" },
+            "arguments": {
+              "input": "CreateUploadSessionInput!"
+            },
             "returns": "UploadSessionPayload!",
             "auth": "user",
             "required_scopes": ["upload:write"],
@@ -85,7 +87,9 @@
           },
           {
             "name": "uploadSessionComplete",
-            "arguments": { "input": "CompleteUploadSessionInput!" },
+            "arguments": {
+              "input": "CompleteUploadSessionInput!"
+            },
             "returns": "UploadCompletionPayload!",
             "auth": "user",
             "required_scopes": ["upload:write"],
@@ -192,7 +196,9 @@
           },
           {
             "name": "uploadDelete",
-            "arguments": { "id": "ID!" },
+            "arguments": {
+              "id": "ID!"
+            },
             "returns": "UploadDeleteMutationPayload!",
             "auth": "user",
             "required_scopes": ["upload:write"],

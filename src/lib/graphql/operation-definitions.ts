@@ -1097,7 +1097,7 @@ export const persistedGraphqlOperationDefinitions = [
     title: "Set dashboard link pin state",
     description: "Pins or unpins one dashboard link for the workspace.",
     document: /* GraphQL */ `
-      mutation DashboardSetLinkPinState($slug: String!, $pinned: Boolean!) {
+      mutation WorkspaceSetLinkPinState($slug: String!, $pinned: Boolean!) {
         linkPinSet(slug: $slug, pinned: $pinned) {
           slug
           pinned
@@ -1116,7 +1116,7 @@ export const persistedGraphqlOperationDefinitions = [
     description:
       "Applies up to 10 workspace pin changes in order and returns the final pin state.",
     document: /* GraphQL */ `
-      mutation DashboardSetLinkPinStatesBatch(
+      mutation WorkspaceSetLinkPinStatesBatch(
         $items: [WorkspaceLinkPinBatchItemInput!]!
       ) {
         linkPinsSet(items: $items) {

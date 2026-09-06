@@ -181,7 +181,9 @@
     "audit-log": {
       "title": "Audit Log",
       "auth": "admin",
-      "web": { "pages": ["/admin/audit"] },
+      "web": {
+        "pages": ["/admin/audit"]
+      },
       "rest": "unavailable",
       "mcp": "unavailable",
       "display": {
@@ -208,7 +210,9 @@
     "aggregate-analytics": {
       "title": "Aggregate Analytics",
       "auth": "admin",
-      "web": { "pages": ["/admin/analytics"] },
+      "web": {
+        "pages": ["/admin/analytics"]
+      },
       "rest": "unavailable",
       "mcp": "unavailable",
       "display": {

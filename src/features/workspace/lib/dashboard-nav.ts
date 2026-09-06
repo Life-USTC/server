@@ -22,7 +22,7 @@ const homeDashboardQueryKeys = new Set([
   "calendarSemester",
   "calendarView",
   "calendarWeek",
-  "dashboardLinkPinError",
+  "workspaceLinkPinError",
   "examView",
   "homeworkView",
   "linkView",

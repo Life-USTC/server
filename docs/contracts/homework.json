@@ -154,7 +154,9 @@
         "mutations": [
           {
             "name": "homeworkCreate",
-            "arguments": { "input": "CreateHomeworkInput!" },
+            "arguments": {
+              "input": "CreateHomeworkInput!"
+            },
             "returns": "HomeworkMutationPayload!",
             "required_scopes": ["community.section-homework:write"],
             "rest_equivalent": "POST /api/community/section-homeworks",
@@ -180,7 +182,9 @@
           },
           {
             "name": "homeworkDelete",
-            "arguments": { "id": "ID!" },
+            "arguments": {
+              "id": "ID!"
+            },
             "returns": "HomeworkDeleteMutationPayload!",
             "required_scopes": ["community.section-homework:write"],
             "rest_equivalent": "DELETE /api/community/section-homeworks/[id]",

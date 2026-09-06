@@ -111,7 +111,7 @@ export async function postDashboardLinkPinRoute(request: Request) {
 export async function postDashboardLinkPinBatchRoute(request: Request) {
   const auth = await requireAuth(request, {
     bearerScope: { feature: "workspace.link-pin", action: "write" },
-    rateLimit: { action: "dashboard:batch-write", tier: "batch" },
+    rateLimit: { action: "workspace.link-pin:batch-write", tier: "batch" },
   });
   if (auth instanceof Response) return auth;
 

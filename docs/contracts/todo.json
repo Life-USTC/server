@@ -45,7 +45,9 @@
         "mutations": [
           {
             "name": "todoCreate",
-            "arguments": { "input": "CreateTodoInput!" },
+            "arguments": {
+              "input": "CreateTodoInput!"
+            },
             "returns": "TodoMutationPayload!",
             "auth": "user",
             "required_scopes": ["workspace.todo:write"],
@@ -66,7 +68,9 @@
           },
           {
             "name": "todoDelete",
-            "arguments": { "id": "ID!" },
+            "arguments": {
+              "id": "ID!"
+            },
             "returns": "DeleteMutationPayload!",
             "auth": "user",
             "required_scopes": ["workspace.todo:write"],
@@ -90,7 +94,9 @@
           },
           {
             "name": "todosDelete",
-            "arguments": { "ids": "[ID!]!" },
+            "arguments": {
+              "ids": "[ID!]!"
+            },
             "returns": "TodoDeleteBatchPayload!",
             "auth": "user",
             "required_scopes": ["workspace.todo:write"],

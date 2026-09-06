@@ -35,7 +35,9 @@
           {
             "name": "semesters",
             "parent": "Catalog",
-            "arguments": { "page": "PageInput" },
+            "arguments": {
+              "page": "PageInput"
+            },
             "returns": "SemesterPage!",
             "rest_equivalent": "GET /api/catalog/semesters",
             "mcp_equivalent": "catalog_semester_list",

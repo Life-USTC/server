@@ -103,7 +103,7 @@
             "tools": ["graphql_operation_run"]
           },
           {
-            "name": "Dashboard & Overview",
+            "name": "Workspace & Overview",
             "tools": [
               "workspace_snapshot_get",
               "workspace_overview_get",

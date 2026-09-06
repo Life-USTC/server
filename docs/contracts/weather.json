@@ -38,7 +38,9 @@
           {
             "name": "weather",
             "parent": "Catalog",
-            "arguments": { "locationKey": "String!" },
+            "arguments": {
+              "locationKey": "String!"
+            },
             "returns": "WeatherSnapshot",
             "rest_equivalent": "GET /api/catalog/weather",
             "mcp_equivalent": "catalog_weather_get",

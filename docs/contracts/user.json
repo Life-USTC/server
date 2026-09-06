@@ -111,7 +111,9 @@
           {
             "parent": "Community",
             "name": "user",
-            "arguments": { "identifier": "String!" },
+            "arguments": {
+              "identifier": "String!"
+            },
             "returns": "CommunityUser",
             "auth": "anon",
             "rest_equivalent": "GET /api/community/users/:identifier",
@@ -247,7 +249,9 @@
           }
         ]
       },
-      "links": { "models": ["AuditLog"] }
+      "links": {
+        "models": ["AuditLog"]
+      }
     }
   }
 }

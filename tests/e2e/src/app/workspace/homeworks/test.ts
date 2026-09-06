@@ -107,7 +107,7 @@ test.describe("仪表盘作业", () => {
     page,
   }, testInfo) => {
     await page.addInitScript(() => {
-      localStorage.removeItem("life-ustc-dashboard-view-mode");
+      localStorage.removeItem("life-ustc-workspace-view-mode");
     });
     await page.setViewportSize({ height: 844, width: 390 });
     await signInAsDebugUser(page, "/workspace/homeworks");
@@ -246,7 +246,7 @@ test.describe("仪表盘作业", () => {
   test("移动端作业详情长内容保持底部操作可达", async ({ page }) => {
     test.setTimeout(90_000);
     await page.addInitScript(() => {
-      localStorage.removeItem("life-ustc-dashboard-view-mode");
+      localStorage.removeItem("life-ustc-workspace-view-mode");
     });
     await page.setViewportSize({ height: 568, width: 320 });
     await signInAsDebugUser(page, "/workspace/homeworks");

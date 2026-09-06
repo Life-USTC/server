@@ -64,7 +64,9 @@
           {
             "name": "youngEvent",
             "parent": "Catalog",
-            "arguments": { "youngId": "String!" },
+            "arguments": {
+              "youngId": "String!"
+            },
             "returns": "YoungEvent",
             "rest_equivalent": "GET /api/catalog/young-events/[youngId]",
             "mcp_equivalent": "catalog_young_event_get",

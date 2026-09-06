@@ -40,7 +40,9 @@
           {
             "parent": "Workspace",
             "name": "subscribedSections",
-            "arguments": { "page": "PageInput" },
+            "arguments": {
+              "page": "PageInput"
+            },
             "returns": "SectionPage!",
             "auth": "user",
             "required_scopes": ["subscription:read"],
