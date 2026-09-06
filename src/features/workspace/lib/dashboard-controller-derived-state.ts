@@ -1,8 +1,8 @@
-import type { DashboardLinkGroup } from "@/features/dashboard-links/lib/dashboard-links";
+import type { CatalogLinkGroup } from "@/features/catalog-links/lib/catalog-links";
 import { dashboardExamRows } from "./dashboard-controller-display";
 import {
   type CalendarData,
-  type DashboardLinkItem,
+  type CatalogLinkItem,
   type DashboardPageData,
   type ExamRow,
   type HomeworkItem,
@@ -11,7 +11,7 @@ import {
   type TodoFilter,
   type TodoItem,
 } from "./dashboard-controller-helpers";
-import { groupDashboardLinks } from "./dashboard-link-ui";
+import { groupCatalogLinks } from "./dashboard-link-ui";
 import { resolveDashboardTaskFilter } from "./dashboard-task-filter";
 import type { ExamFilter } from "./exams";
 import { filterExamRows } from "./exams";
@@ -54,14 +54,14 @@ export function applyLocalTodoItemsToSignedData(
 }
 
 export function buildDashboardControllerDerivedState(input: {
-  dashboardLinkGroupLabels: Record<DashboardLinkGroup, string>;
+  dashboardLinkGroupLabels: Record<CatalogLinkGroup, string>;
   data: DashboardPageData;
   dateFallback: string;
   examFilter: ExamFilter;
   linkSearchQuery: string;
   notAvailable: string;
-  currentDashboardLinkItems: DashboardLinkItem[];
-  currentOverviewLinkItems: DashboardLinkItem[];
+  currentCatalogLinkItems: CatalogLinkItem[];
+  currentOverviewLinkItems: CatalogLinkItem[];
   currentTodoItems: TodoItem[];
   todoFilter: TodoFilter;
 }) {
@@ -77,7 +77,7 @@ export function buildDashboardControllerDerivedState(input: {
       })
     : [];
   const dashboardLinkItems = signedData?.links
-    ? input.currentDashboardLinkItems
+    ? input.currentCatalogLinkItems
     : [];
   const overviewLinkItems = signedData?.overview
     ? input.currentOverviewLinkItems
@@ -106,7 +106,7 @@ export function buildDashboardControllerDerivedState(input: {
     overviewLinkItems,
     signedData,
     signedLinkGroups: signedData?.links
-      ? groupDashboardLinks(
+      ? groupCatalogLinks(
           dashboardLinkItems,
           input.linkSearchQuery,
           input.dashboardLinkGroupLabels,

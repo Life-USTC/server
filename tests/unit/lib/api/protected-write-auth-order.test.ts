@@ -3,12 +3,12 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 const {
   requireAuthMock,
   requireWriteAuthMock,
-  updateDashboardLinkPinStateMock,
+  updateWorkspaceLinkPinStateMock,
   renameOwnedUploadMock,
 } = vi.hoisted(() => ({
   requireAuthMock: vi.fn(),
   requireWriteAuthMock: vi.fn(),
-  updateDashboardLinkPinStateMock: vi.fn(),
+  updateWorkspaceLinkPinStateMock: vi.fn(),
   renameOwnedUploadMock: vi.fn(),
 }));
 
@@ -34,12 +34,12 @@ vi.mock("@/features/uploads/server/upload-service", () => ({
   renameOwnedUpload: renameOwnedUploadMock,
 }));
 
-vi.mock("@/features/dashboard-links/server/dashboard-link-service", () => ({
+vi.mock("@/features/catalog-links/server/catalog-link-service", () => ({
   MAX_PINNED_LINKS: 6,
-  logDashboardLinkPinFailure: vi.fn(),
-  resolveDashboardLinkBySlug: vi.fn(),
+  logWorkspaceLinkPinFailure: vi.fn(),
+  resolveCatalogLinkBySlug: vi.fn(),
   sanitizeDashboardReturnTo: (value: string | null | undefined) => value || "/",
-  updateDashboardLinkPinState: updateDashboardLinkPinStateMock,
+  updateWorkspaceLinkPinState: updateWorkspaceLinkPinStateMock,
 }));
 
 function unauthorizedResponse() {
@@ -58,7 +58,7 @@ describe("受保护写入路由认证顺序", () => {
   afterEach(() => {
     requireAuthMock.mockReset();
     requireWriteAuthMock.mockReset();
-    updateDashboardLinkPinStateMock.mockReset();
+    updateWorkspaceLinkPinStateMock.mockReset();
     renameOwnedUploadMock.mockReset();
     vi.resetModules();
   });
@@ -130,11 +130,11 @@ describe("受保护写入路由认证顺序", () => {
 
   it("在解析表单数据之前认证仪表盘链接置顶", async () => {
     requireAuthMock.mockResolvedValue(unauthorizedResponse());
-    const { postDashboardLinkPinRoute } = await import(
-      "@/lib/api/routes/dashboard-link-pin-route"
+    const { postWorkspaceLinkPinRoute } = await import(
+      "@/lib/api/routes/workspace-link-pin-route"
     );
 
-    const response = await postDashboardLinkPinRoute(
+    const response = await postWorkspaceLinkPinRoute(
       new Request("https://example.test/api/workspace/link-pins", {
         body: "not-form-data",
         headers: {
@@ -150,6 +150,6 @@ describe("受保护写入路由认证顺序", () => {
       bearerScope: { feature: "workspace.link-pin", action: "write" },
       rateLimit: { action: "workspace.link-pin:write" },
     });
-    expect(updateDashboardLinkPinStateMock).not.toHaveBeenCalled();
+    expect(updateWorkspaceLinkPinStateMock).not.toHaveBeenCalled();
   });
 });

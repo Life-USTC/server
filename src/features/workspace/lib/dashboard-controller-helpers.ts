@@ -11,6 +11,7 @@ export { isSignedDashboardData } from "./dashboard-controller-type-guards";
 export type {
   AnonymousLinkGroup,
   CalendarData,
+  CatalogLinkItem,
   DashboardActionData,
   DashboardCalendarControllerState,
   DashboardCalendarData,
@@ -21,7 +22,6 @@ export type {
   DashboardHomeworkItem,
   DashboardHomeworksCopy,
   DashboardHomeworksData,
-  DashboardLinkItem,
   DashboardLinkPinAction,
   DashboardLinkPinSubmit,
   DashboardMyHomeworksCopy,

@@ -25,7 +25,7 @@ export let showHeader = false;
       <div class="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h2 class="font-semibold text-lg tracking-normal">
-            {busCopy.dashboardTitle}
+            {busCopy.workspaceTitle}
           </h2>
         </div>
         <Button class="h-11 md:h-8" href="/catalog/bus/map" variant="outline">

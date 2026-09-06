@@ -1,12 +1,12 @@
 import { pinyin } from "pinyin-pro";
 import type {
-  DashboardLinkGroup,
-  DashboardLinkIcon,
-} from "@/features/dashboard-links/lib/dashboard-links";
+  CatalogLinkGroup,
+  CatalogLinkIcon,
+} from "@/features/catalog-links/lib/catalog-links";
 import {
-  getDashboardLinkGroup,
-  type LocalizedDashboardLinkItem,
-} from "@/features/dashboard-links/lib/dashboard-links";
+  getCatalogLinkGroup,
+  type LocalizedCatalogLinkItem,
+} from "@/features/catalog-links/lib/catalog-links";
 
 /** Lowercase pinyin (no tones, no spaces) for client-side search and IME. */
 function toSearchPinyin(text: string): string {
@@ -14,7 +14,7 @@ function toSearchPinyin(text: string): string {
   return pinyin(text, { toneType: "none" }).replace(/\s+/g, "").toLowerCase();
 }
 
-export type DashboardLinkSummary = {
+export type CatalogLinkSummary = {
   slug: string;
   title: string;
   url: string;
@@ -23,29 +23,29 @@ export type DashboardLinkSummary = {
   titlePinyin: string;
   /** Pinyin of description for search (lowercase, no spaces). */
   descriptionPinyin: string;
-  icon: DashboardLinkIcon;
-  group: DashboardLinkGroup;
+  icon: CatalogLinkIcon;
+  group: CatalogLinkGroup;
   isPinned: boolean;
   clickCount: number;
 };
 
-export type DashboardLinksData = {
-  dashboardLinks: DashboardLinkSummary[];
-  recommendedLinks: DashboardLinkSummary[];
-  pinnedLinks: DashboardLinkSummary[];
-  overviewLinks: DashboardLinkSummary[];
+export type CatalogLinksData = {
+  catalogLinks: CatalogLinkSummary[];
+  recommendedLinks: CatalogLinkSummary[];
+  pinnedLinks: CatalogLinkSummary[];
+  overviewLinks: CatalogLinkSummary[];
 };
 
-export function toDashboardLinkSummary(
-  link: LocalizedDashboardLinkItem,
+export function toCatalogLinkSummary(
+  link: LocalizedCatalogLinkItem,
   clickStats: Record<string, number>,
   pinnedSlugSet: Set<string>,
-): DashboardLinkSummary {
+): CatalogLinkSummary {
   return {
     ...link,
     titlePinyin: toSearchPinyin(link.title),
     descriptionPinyin: toSearchPinyin(link.description),
-    group: getDashboardLinkGroup(link.slug),
+    group: getCatalogLinkGroup(link.slug),
     isPinned: pinnedSlugSet.has(link.slug),
     clickCount: clickStats[link.slug] ?? 0,
   };

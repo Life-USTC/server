@@ -7,7 +7,9 @@ const messages = {
   "en-us": enUsMessages,
 } satisfies Record<AppLocale, typeof enUsMessages>;
 
-export function getDashboardPageCopy(locale: AppLocale) {
+export type WorkspacePageCopy = ReturnType<typeof getWorkspacePageCopy>;
+
+export function getWorkspacePageCopy(locale: AppLocale) {
   const copy = messages[locale];
 
   return {
@@ -15,7 +17,7 @@ export function getDashboardPageCopy(locale: AppLocale) {
     CalendarEventCard: copy.CalendarEventCard,
     common: copy.common,
     comments: copy.comments,
-    dashboard: copy.meDashboard,
+    workspace: copy.workspace,
     homepage: copy.homepage,
     homeworks: copy.homeworks,
     metadata: copy.metadata.pages,
@@ -34,7 +36,7 @@ export function getAnonymousHomePageCopy(locale: AppLocale) {
     homepage: {
       actions: copy.homepage.actions,
       appIconAlt: copy.homepage.appIconAlt,
-      publicDashboard: copy.homepage.publicDashboard,
+      publicWorkspace: copy.homepage.publicWorkspace,
       subtitle: copy.homepage.subtitle,
       title: copy.homepage.title,
     },
@@ -48,9 +50,9 @@ export function getPublicBusPageCopy(locale: AppLocale) {
   const copy = messages[locale];
   return {
     bus: copy.bus,
-    dashboard: {
+    workspace: {
       nav: {
-        bus: copy.meDashboard.nav.bus,
+        bus: copy.workspace.nav.bus,
       },
     },
     metadata: {
@@ -62,10 +64,10 @@ export function getPublicBusPageCopy(locale: AppLocale) {
 export function getPublicLinksPageCopy(locale: AppLocale) {
   const copy = messages[locale];
   return {
-    dashboard: {
-      linkHub: copy.meDashboard.linkHub,
+    workspace: {
+      linkHub: copy.workspace.linkHub,
       nav: {
-        links: copy.meDashboard.nav.links,
+        links: copy.workspace.nav.links,
       },
     },
     metadata: {

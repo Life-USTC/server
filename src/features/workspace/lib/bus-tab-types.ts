@@ -14,7 +14,7 @@ export type DashboardBusData = Pick<
 export type DashboardBusCopy = Record<string, unknown> & {
   arriveAt: string;
   changeRoute: string;
-  dashboardTitle: string;
+  workspaceTitle: string;
   dayType: {
     weekday: string;
     saturday: string;

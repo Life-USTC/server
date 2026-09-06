@@ -8,7 +8,7 @@ import {
   catalogShowingSummary,
   optionalCatalogFilterSummary,
 } from "@/features/catalog/lib/catalog-results-summary";
-import type { DashboardPageCopy } from "@/features/workspace/server/dashboard-page-load-types";
+import type { WorkspacePageCopy } from "@/features/workspace/server/dashboard-page-load-types";
 import type { YoungEventSummary } from "@/features/young/server/young-event-service";
 import type { YoungEventsPageFilters } from "@/features/young/server/young-page-load";
 import { page as appPage } from "$app/stores";
@@ -24,7 +24,7 @@ import * as Table from "$lib/components/ui/table/index.js";
 
 type Props = {
   categories: string[];
-  copy: DashboardPageCopy;
+  copy: WorkspacePageCopy;
   data: YoungEventSummary[];
   filters: YoungEventsPageFilters;
   pagination: {

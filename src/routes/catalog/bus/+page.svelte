@@ -7,13 +7,13 @@ export let data: PageData;
 </script>
 
 <svelte:head>
-  <title>{data.copy.dashboard.nav.bus.title} - Life@USTC</title>
+  <title>{data.copy.workspace.nav.bus.title} - Life@USTC</title>
 </svelte:head>
 
 <section class="grid gap-5">
   <PageHeader
-    description={data.copy.dashboard.nav.bus.description}
-    title={data.copy.dashboard.nav.bus.title}
+    description={data.copy.workspace.nav.bus.description}
+    title={data.copy.workspace.nav.bus.title}
   />
 
   <BusTab

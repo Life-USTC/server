@@ -114,7 +114,7 @@ export async function getDashboardOverviewData(
   const now = referenceNow;
   const [
     overviewHomeworks,
-    { dashboardLinks, recommendedLinks, pinnedLinks, overviewLinks },
+    { catalogLinks, recommendedLinks, pinnedLinks, overviewLinks },
     calendarTodos,
   ] = await Promise.all([
     listSubscribedHomeworks(userId, {
@@ -208,7 +208,7 @@ export async function getDashboardOverviewData(
     activeCalendarSemesterId,
     defaultCalendarSemesterId,
     activeCalendarSemesterName,
-    dashboardLinks,
+    catalogLinks,
     recommendedLinks,
     pinnedLinks,
     overviewLinks,

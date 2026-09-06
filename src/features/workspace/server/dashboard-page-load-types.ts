@@ -1,11 +1,11 @@
-import type { DashboardLinkSummary } from "@/features/dashboard-links/server/dashboard-link-data";
+import type { CatalogLinkSummary } from "@/features/catalog-links/server/catalog-link-data";
 import type { AppLocale } from "@/i18n/config";
 import type {
   getAnonymousHomePageCopy,
-  getDashboardPageCopy,
+  getWorkspacePageCopy,
 } from "./dashboard-page-copy";
 
-export type DashboardPageCopy = ReturnType<typeof getDashboardPageCopy>;
+export type WorkspacePageCopy = ReturnType<typeof getWorkspacePageCopy>;
 export type AnonymousHomePageCopy = ReturnType<typeof getAnonymousHomePageCopy>;
 
 export type DashboardPageLoadEvent = {
@@ -18,6 +18,6 @@ export type DashboardPageLoadEvent = {
 };
 
 export type DashboardPublicLinks = {
-  dashboardLinks: DashboardLinkSummary[];
-  overviewLinks: DashboardLinkSummary[];
+  catalogLinks: CatalogLinkSummary[];
+  overviewLinks: CatalogLinkSummary[];
 };

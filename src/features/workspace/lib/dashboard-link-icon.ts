@@ -1,4 +1,4 @@
-type DashboardLinkIcon =
+type CatalogLinkIcon =
   | "book-open"
   | "building"
   | "clipboard-list"
@@ -10,7 +10,7 @@ type DashboardLinkIcon =
   | "users";
 
 export function linkIconLabel(icon: unknown) {
-  const labels: Record<DashboardLinkIcon, string> = {
+  const labels: Record<CatalogLinkIcon, string> = {
     "book-open": "BK",
     building: "BD",
     "clipboard-list": "CL",
@@ -22,6 +22,6 @@ export function linkIconLabel(icon: unknown) {
     users: "US",
   };
   return typeof icon === "string" && icon in labels
-    ? labels[icon as DashboardLinkIcon]
+    ? labels[icon as CatalogLinkIcon]
     : "LK";
 }

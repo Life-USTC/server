@@ -21,8 +21,8 @@ export const load: PageServerLoad = async (event) => {
             ? "CAMPUS · 校园链接"
             : "CAMPUS LINKS",
       },
-      description: data.copy.dashboard.nav.links.description,
-      title: `${data.copy.dashboard.nav.links.title} - Life@USTC`,
+      description: data.copy.workspace.nav.links.description,
+      title: `${data.copy.workspace.nav.links.title} - Life@USTC`,
     }),
   };
 };
