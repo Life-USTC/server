@@ -14,7 +14,7 @@ const {
 
 vi.mock("@/features/workspace/server/dashboard-page-copy", () => ({
   getWorkspacePageCopy: () => ({
-    dashboard: {
+    workspace: {
       nav: {
         calendar: {
           title: "Calendar",
