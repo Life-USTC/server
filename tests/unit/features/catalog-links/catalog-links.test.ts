@@ -133,11 +133,7 @@ describe("仪表盘链接推荐", () => {
   });
 
   it("可以按 URL 和域名搜索链接", () => {
-    const { catalogLinks } = buildCatalogLinkSummaries(
-      {},
-      new Set(),
-      "zh-cn",
-    );
+    const { catalogLinks } = buildCatalogLinkSummaries({}, new Set(), "zh-cn");
     const faculty = catalogLinks.find(
       (link) => link.slug === "faculty-homepages",
     );

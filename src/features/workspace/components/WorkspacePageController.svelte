@@ -28,8 +28,8 @@ import { createDashboardDisplayActions } from "@/features/workspace/lib/dashboar
 import { createDashboardFormSubmitActions } from "@/features/workspace/lib/dashboard-controller-form-actions";
 import {
   buildCalendarWeekdayLabels,
-  type DashboardActionData,
   type CatalogLinkItem,
+  type DashboardActionData,
   type DashboardPageData,
   type DashboardViewState,
   isSignedDashboardData,

@@ -1,9 +1,9 @@
-import type { CommentsCopy } from "@/features/comments/components/comment-component-types";
 import type { DashboardLinkSearchable } from "@/features/catalog-links/lib/catalog-link-search";
 import type {
   CatalogLinkGroup,
   CatalogLinkIcon,
 } from "@/features/catalog-links/lib/catalog-links";
+import type { CommentsCopy } from "@/features/comments/components/comment-component-types";
 import type { HomeworkStyleGuideCopy } from "@/features/homeworks/lib/homework-style-guide";
 import type {
   DashboardBusCopy,

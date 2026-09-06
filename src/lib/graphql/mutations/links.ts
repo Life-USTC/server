@@ -1,9 +1,9 @@
-import { setWorkspaceLinkPinStatesBatch } from "@/features/catalog-links/server/workspace-link-pin-batch";
 import {
   MAX_PINNED_LINKS,
   resolveCatalogLinkBySlug,
   updateWorkspaceLinkPinState,
 } from "@/features/catalog-links/server/catalog-link-service";
+import { setWorkspaceLinkPinStatesBatch } from "@/features/catalog-links/server/workspace-link-pin-batch";
 import type { GraphqlContext } from "../context";
 import { badMutationInput } from "../mutation-errors";
 import { requireGraphqlMutation } from "../mutation-guard";

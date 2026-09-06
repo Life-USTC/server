@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
-  DASHBOARD_LINK_GROUP_ORDER,
   type CatalogLinkGroup,
+  DASHBOARD_LINK_GROUP_ORDER,
 } from "@/features/catalog-links/lib/catalog-links";
 import {
   applyLocalHomeworkItemsToSignedData,
