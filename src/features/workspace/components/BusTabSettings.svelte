@@ -26,7 +26,7 @@ export let toggleBusDepartedTrips: () => void;
 
 <Field.Group class="gap-3">
   <Field.Set>
-    <Field.Legend class="sr-only">{busCopy.dashboardTitle}</Field.Legend>
+    <Field.Legend class="sr-only">{busCopy.workspaceTitle}</Field.Legend>
     <Field.Group class="gap-3">
       <BusCampusPickerGroup
         campuses={bus.campuses}

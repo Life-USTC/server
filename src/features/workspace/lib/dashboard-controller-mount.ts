@@ -8,7 +8,7 @@ import {
 } from "./view-preferences";
 
 type DashboardMountCopy = {
-  dashboard: {
+  workspace: {
     linkHub: {
       pinFailedDescription: string;
     };

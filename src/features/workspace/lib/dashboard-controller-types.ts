@@ -64,7 +64,7 @@ export type DashboardRootCopy = DashboardRecord & {
   bus: DashboardBusCopy;
   comments: CommentsCopy;
   common: DashboardCommonCopy;
-  dashboard: DashboardDashboardCopy;
+  workspace: DashboardDashboardCopy;
   homepage: DashboardHomepageCopy;
   homeworks: DashboardHomeworksCopy;
   myHomeworks: DashboardMyHomeworksCopy;

@@ -500,7 +500,7 @@ onMount(() => {
     applyViewState: applyDashboardViewState,
     clearPendingRemoveSection,
     copy: {
-      dashboard: dashboardCopy,
+      workspace: dashboardCopy,
     },
     getLinkSearchInput: () => linkSearchInput,
     replaceState: (href) => {

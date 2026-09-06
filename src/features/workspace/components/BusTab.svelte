@@ -171,7 +171,7 @@ $: busShowsEstimatedHint = hasEstimatedBusTimes(
   {#if showPageHeader}
     <div class="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
       <div class="grid gap-1">
-        <h2 class="font-semibold text-xl tracking-normal">{busCopy.dashboardTitle}</h2>
+        <h2 class="font-semibold text-xl tracking-normal">{busCopy.workspaceTitle}</h2>
       </div>
     </div>
   {/if}
@@ -308,7 +308,7 @@ $: busShowsEstimatedHint = hasEstimatedBusTimes(
       </Empty.Content>
     </Empty.Root>
   {:else if busLoading}
-    <div class="grid gap-3" aria-label={busCopy.dashboardTitle} aria-busy="true">
+    <div class="grid gap-3" aria-label={busCopy.workspaceTitle} aria-busy="true">
       <Skeleton class="h-12 w-full" />
       <Skeleton class="h-48 w-full" />
     </div>
