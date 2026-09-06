@@ -14,9 +14,9 @@ import { registerDescriptionTools } from "@/lib/mcp/tools/community/description-
 import { registerGraphqlOperationTool } from "@/lib/mcp/tools/graphql/graphql-operation-tool";
 import { registerUploadTools } from "@/lib/mcp/tools/uploads/upload-tools";
 import { registerCalendarTools } from "@/lib/mcp/tools/workspace/calendar-tools";
-import { registerDashboardTools } from "@/lib/mcp/tools/workspace/dashboard-tools";
-import { registerMyDataTools } from "@/lib/mcp/tools/workspace/my-data-tools";
 import { registerProfileTools } from "@/lib/mcp/tools/workspace/profile-tools";
+import { registerWorkspaceDataTools } from "@/lib/mcp/tools/workspace/workspace-data-tools";
+import { registerWorkspaceTools } from "@/lib/mcp/tools/workspace/workspace-tools";
 import {
   assertRegisteredMcpToolMetadata,
   installMcpToolDescriptorDefaults,
@@ -50,11 +50,11 @@ export function createMcpServer() {
   registerProfileTools(server);
   registerUploadTools(server);
   registerCourseTools(server);
-  registerDashboardTools(server);
+  registerWorkspaceTools(server);
   registerSectionDataTools(server);
   registerWeatherTools(server);
   registerYoungEventTools(server);
-  registerMyDataTools(server);
+  registerWorkspaceDataTools(server);
   registerCalendarTools(server);
   registerGraphqlOperationTool(server);
   registerGraphqlResources(server);

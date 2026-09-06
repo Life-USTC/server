@@ -4,9 +4,9 @@ import { withUserDbContext } from "@/lib/db/prisma";
 import type { WorkspaceNavigationSummary } from "@/lib/shell/shell-bootstrap";
 import { shanghaiDayjs } from "@/lib/time/shanghai-dayjs";
 import {
-  countDashboardStageQuery,
-  type DashboardStageCounter,
-} from "./dashboard-stage-analytics";
+  countWorkspaceStageQuery,
+  type WorkspaceStageCounter,
+} from "./workspace-stage-analytics";
 
 type NavigationSemester = {
   endDate: Date | null;
@@ -39,13 +39,13 @@ type WorkspaceNavigationCountRow = {
 };
 
 type AggregateOptions = {
-  /** Already loaded by the dashboard shell; avoids a second subscription read. */
+  /** Already loaded by the workspace shell; avoids a second subscription read. */
   activeSections?: readonly WorkspaceNavigationSection[];
-  /** Already loaded by the dashboard shell; avoids a second semester read. */
+  /** Already loaded by the workspace shell; avoids a second semester read. */
   semesters?: readonly NavigationSemester[];
-  /** The dashboard todo tab already derives this count from its loaded rows. */
+  /** The workspace todo tab already derives this count from its loaded rows. */
   skipPendingTodosCount?: boolean;
-  stageCounter?: DashboardStageCounter;
+  stageCounter?: WorkspaceStageCounter;
 };
 
 function sectionIdsSql(ids: readonly number[]) {
@@ -70,7 +70,7 @@ async function loadNavigationAggregate(
   const semesters =
     options.semesters ??
     (await (async () => {
-      countDashboardStageQuery(options.stageCounter);
+      countWorkspaceStageQuery(options.stageCounter);
       return tx.semester.findMany({
         select: { id: true, startDate: true, endDate: true },
         orderBy: { startDate: "asc" },
@@ -144,7 +144,7 @@ async function loadNavigationAggregate(
           AND NOT todo.completed
       )`;
 
-  countDashboardStageQuery(options.stageCounter);
+  countWorkspaceStageQuery(options.stageCounter);
   const [row] = await tx.$queryRaw<WorkspaceNavigationCountRow[]>`
     WITH ${sectionScope},
     pending_homeworks AS MATERIALIZED (
@@ -271,8 +271,8 @@ async function loadNavigationAggregate(
 }
 
 /**
- * Shared one-query navigation read model for the shell and dashboard tabs.
- * Dashboard callers pass the section/semester rows they already loaded so
+ * Shared one-query navigation read model for the shell and workspace tabs.
+ * Workspace callers pass the section/semester rows they already loaded so
  * this aggregate does not repeat those reads in a nested RLS context.
  */
 export async function getWorkspaceNavigationAggregate(

@@ -4,18 +4,18 @@ import * as Alert from "$lib/components/ui/alert/index.js";
 import * as Field from "$lib/components/ui/field/index.js";
 import * as NativeSelect from "$lib/components/ui/native-select/index.js";
 import type {
-  DashboardHomeworkCommentsCopy,
-  DashboardHomeworkCreateCopy,
-  DashboardHomeworkCreateSection,
-  DashboardHomeworkCreateSectionGetter,
-  DashboardHomeworkDateShortcut,
-} from "./dashboard-homework-create-types";
+  WorkspaceHomeworkCommentsCopy,
+  WorkspaceHomeworkCreateCopy,
+  WorkspaceHomeworkCreateSection,
+  WorkspaceHomeworkCreateSectionGetter,
+  WorkspaceHomeworkDateShortcut,
+} from "./workspace-homework-create-types";
 
-export let applyHomeworkDueAtSemesterEnd: DashboardHomeworkDateShortcut;
-export let applyHomeworkDueInMonth: DashboardHomeworkDateShortcut;
-export let applyHomeworkDueInWeek: DashboardHomeworkDateShortcut;
-export let applyHomeworkStartNow: DashboardHomeworkDateShortcut;
-export let commentsCopy: DashboardHomeworkCommentsCopy;
+export let applyHomeworkDueAtSemesterEnd: WorkspaceHomeworkDateShortcut;
+export let applyHomeworkDueInMonth: WorkspaceHomeworkDateShortcut;
+export let applyHomeworkDueInWeek: WorkspaceHomeworkDateShortcut;
+export let applyHomeworkStartNow: WorkspaceHomeworkDateShortcut;
+export let commentsCopy: WorkspaceHomeworkCommentsCopy;
 export let createHomeworkAdvancedOpen: boolean;
 export let createHomeworkError: string;
 export let createHomeworkPublishedAt: string;
@@ -23,12 +23,12 @@ export let createHomeworkSectionId: string;
 export let createHomeworkSubmissionDueAt: string;
 export let createHomeworkSubmissionStartAt: string;
 export let homeworkSectionLabel: (
-  section: DashboardHomeworkCreateSection,
+  section: WorkspaceHomeworkCreateSection,
 ) => string;
-export let homeworksCopy: DashboardHomeworkCreateCopy;
+export let homeworksCopy: WorkspaceHomeworkCreateCopy;
 export let isCreatingHomework: boolean;
-export let sections: DashboardHomeworkCreateSection[];
-export let selectedCreateHomeworkSection: DashboardHomeworkCreateSectionGetter;
+export let sections: WorkspaceHomeworkCreateSection[];
+export let selectedCreateHomeworkSection: WorkspaceHomeworkCreateSectionGetter;
 export let toShanghaiDateTimeLocalValue: (value: Date) => string;
 
 $: sectionOptions = sections.map((section) => ({
@@ -59,14 +59,14 @@ $: homeworkTimestampCapabilities = {
     class="rounded-lg bg-muted/40 p-3"
     data-disabled={isCreatingHomework ? "true" : undefined}
   >
-    <Field.Label for="dashboard-homework-section">
+    <Field.Label for="workspace-homework-section">
       {homeworksCopy.sectionLabel}
     </Field.Label>
     <NativeSelect.Root
       bind:value={createHomeworkSectionId}
       disabled={isCreatingHomework}
       class="w-full"
-      id="dashboard-homework-section"
+      id="workspace-homework-section"
       name="sectionId"
       required
     >
@@ -84,10 +84,10 @@ $: homeworkTimestampCapabilities = {
     commentsCopy={commentsCopy}
     copy={homeworksCopy}
     disabled={isCreatingHomework}
-    idPrefix="dashboard-homework"
+    idPrefix="workspace-homework"
     markdownModeLabel={commentsCopy.markdownModeLabel}
     bind:publishedAt={createHomeworkPublishedAt}
-    styleGuidePrefix="dashboard-homework"
+    styleGuidePrefix="workspace-homework"
     bind:submissionDueAt={createHomeworkSubmissionDueAt}
     bind:submissionStartAt={createHomeworkSubmissionStartAt}
   />

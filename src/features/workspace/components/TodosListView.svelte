@@ -3,9 +3,9 @@ import CheckCircleIcon from "@lucide/svelte/icons/check-circle";
 import Pencil from "@lucide/svelte/icons/pencil";
 import RefreshCw from "@lucide/svelte/icons/refresh-cw";
 import type {
-  DashboardTodoItem,
-  DashboardTodosCopy,
-} from "@/features/workspace/lib/dashboard-controller-types";
+  WorkspaceTodoItem,
+  WorkspaceTodosCopy,
+} from "@/features/workspace/lib/workspace-controller-types";
 import TableIconButton from "$lib/components/TableIconButton.svelte";
 import TableRowActions from "$lib/components/TableRowActions.svelte";
 import TruncatedText from "$lib/components/TruncatedText.svelte";
@@ -15,16 +15,16 @@ import { Spinner } from "$lib/components/ui/spinner/index.js";
 import * as Table from "$lib/components/ui/table/index.js";
 
 type TodoDateFormatter = (value: Date | string | null | undefined) => string;
-type TodoAction = (todo: DashboardTodoItem) => string;
-type TodoCompletionToggle = (todo: DashboardTodoItem) => void | Promise<void>;
+type TodoAction = (todo: WorkspaceTodoItem) => string;
+type TodoCompletionToggle = (todo: WorkspaceTodoItem) => void | Promise<void>;
 
-export let filteredTodos: DashboardTodoItem[];
+export let filteredTodos: WorkspaceTodoItem[];
 export let fmtDate: TodoDateFormatter;
-export let openTodoEditor: (todo: DashboardTodoItem) => void;
-export let selectedTodo: DashboardTodoItem | null = null;
+export let openTodoEditor: (todo: WorkspaceTodoItem) => void;
+export let selectedTodo: WorkspaceTodoItem | null = null;
 export let todoActionLabel: TodoAction;
 export let todoSavingById: Record<string, boolean>;
-export let todosCopy: DashboardTodosCopy;
+export let todosCopy: WorkspaceTodosCopy;
 export let toggleTodoCompletion: TodoCompletionToggle;
 </script>
 

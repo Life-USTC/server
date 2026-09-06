@@ -22,13 +22,13 @@ type WorkspaceLinkPinDelegate = {
   }) => Promise<unknown>;
 };
 
-type DashboardLinkPinPrisma = {
+type WorkspaceLinkPinPrisma = {
   workspaceLinkPin: WorkspaceLinkPinDelegate;
 };
 
 function normalizeUserId(userId: string) {
   const normalized = userId.trim();
-  if (!normalized) throw new Error("Dashboard link user ID is required");
+  if (!normalized) throw new Error("Catalog link user ID is required");
   return normalized;
 }
 
@@ -40,7 +40,7 @@ export function resolveCatalogLinkBySlug(slug: string | null | undefined) {
   );
 }
 
-export function sanitizeDashboardReturnTo(value: string | undefined): string {
+export function sanitizeWorkspaceReturnTo(value: string | undefined): string {
   if (!value?.startsWith("/")) return "/";
   if (value.startsWith("//")) return "/";
   if (/[\\\r\n]/.test(value)) return "/";
@@ -73,9 +73,9 @@ export async function recordCatalogLinkClick(userId: string, slug: string) {
   } catch (error) {
     logAppEvent(
       "warn",
-      "Failed to record dashboard link click",
+      "Failed to record catalog link click",
       {
-        source: "dashboard-links",
+        source: "catalog-links",
         slug,
       },
       error,
@@ -95,16 +95,16 @@ export async function updateWorkspaceLinkPinState({
   userId = normalizeUserId(userId);
   return withUserDbContext(userId, (tx) => {
     if (action === "pin") {
-      return pinDashboardLink(tx, userId, slug);
+      return pinWorkspaceLink(tx, userId, slug);
     }
 
-    return unpinDashboardLink(tx, userId, slug);
+    return unpinWorkspaceLink(tx, userId, slug);
   });
 }
 
 export async function getWorkspaceLinkPinnedSlugs(userId: string) {
   userId = normalizeUserId(userId);
-  return withUserDbContext(userId, (tx) => listDashboardLinkPins(tx, userId));
+  return withUserDbContext(userId, (tx) => listWorkspaceLinkPins(tx, userId));
 }
 
 export function logWorkspaceLinkPinFailure({
@@ -118,9 +118,9 @@ export function logWorkspaceLinkPinFailure({
 }) {
   logAppEvent(
     "error",
-    "Failed to update dashboard link pin state",
+    "Failed to update workspace link pin state",
     {
-      source: "dashboard-links",
+      source: "catalog-links",
       slug,
       action,
     },
@@ -128,8 +128,8 @@ export function logWorkspaceLinkPinFailure({
   );
 }
 
-async function pinDashboardLink(
-  prisma: DashboardLinkPinPrisma,
+async function pinWorkspaceLink(
+  prisma: WorkspaceLinkPinPrisma,
   userId: string,
   slug: string,
 ) {
@@ -155,11 +155,11 @@ async function pinDashboardLink(
     });
   }
 
-  return listDashboardLinkPins(prisma, userId);
+  return listWorkspaceLinkPins(prisma, userId);
 }
 
-async function unpinDashboardLink(
-  prisma: DashboardLinkPinPrisma,
+async function unpinWorkspaceLink(
+  prisma: WorkspaceLinkPinPrisma,
   userId: string,
   slug: string,
 ) {
@@ -167,11 +167,11 @@ async function unpinDashboardLink(
     where: { userId, slug },
   });
 
-  return listDashboardLinkPins(prisma, userId);
+  return listWorkspaceLinkPins(prisma, userId);
 }
 
-async function listDashboardLinkPins(
-  prisma: DashboardLinkPinPrisma,
+async function listWorkspaceLinkPins(
+  prisma: WorkspaceLinkPinPrisma,
   userId: string,
 ) {
   const finalRows = await prisma.workspaceLinkPin.findMany({

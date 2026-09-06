@@ -1,5 +1,5 @@
 /**
- * E2E tests for the Dashboard Home Page (`/`)
+ * E2E tests for the Workspace Home Page (`/`)
  *
  * ## Data Represented
  * - **Public (unauthenticated):** A lightweight catalog entry at `/`, with bus
@@ -83,7 +83,7 @@ test.describe("仪表盘", () => {
     await ensureSeedSectionSubscription(page);
     await gotoAndWaitForReady(page, "/", {
       testInfo,
-      screenshotLabel: "dashboard",
+      screenshotLabel: "workspace",
     });
 
     await expect(page).toHaveURL(/\/workspace\/overview(?:\?.*)?$/);
@@ -130,7 +130,7 @@ test.describe("仪表盘", () => {
     ).toHaveCount(DEV_SEED.catalogLinks.overviewLimit);
     await expect(page.locator("vite-error-overlay")).toHaveCount(0);
 
-    await captureStepScreenshot(page, testInfo, "dashboard-home");
+    await captureStepScreenshot(page, testInfo, "workspace-home");
   });
 
   test("可通过侧边栏导航到作业标签", async ({ page }, testInfo) => {
@@ -142,7 +142,7 @@ test.describe("仪表盘", () => {
     await homeworksTab.click();
 
     await expect(page).toHaveURL(/\/workspace\/homeworks(?:\?.*)?$/);
-    await captureStepScreenshot(page, testInfo, "dashboard-navigate-homeworks");
+    await captureStepScreenshot(page, testInfo, "workspace-navigate-homeworks");
   });
 
   test("登录用户直接打开公共页面后补全工作台导航数字", async ({
@@ -209,11 +209,11 @@ test.describe("仪表盘", () => {
     await signInAsDebugUser(page, "/catalog/links");
     await gotoAndWaitForReady(page, "/catalog/links", {
       testInfo,
-      screenshotLabel: "dashboard-links-path",
+      screenshotLabel: "workspace-links-path",
     });
-    const linksDashboardTab = sidebarNavigationLink(page, /^(网站|Websites)$/i);
-    await expect(linksDashboardTab).toBeVisible();
-    await expect(linksDashboardTab).toHaveAttribute("aria-current", "page");
+    const linksWorkspaceTab = sidebarNavigationLink(page, /^(网站|Websites)$/i);
+    await expect(linksWorkspaceTab).toBeVisible();
+    await expect(linksWorkspaceTab).toHaveAttribute("aria-current", "page");
     await expect(
       page.getByRole("searchbox", {
         name: /搜索网站名称、描述或域名|Search by name, description, or domain/i,
@@ -221,12 +221,12 @@ test.describe("仪表盘", () => {
     ).toBeVisible();
 
     await signInAsDebugUser(page, "/workspace/homeworks");
-    const homeworksDashboardTab = sidebarNavigationLink(
+    const homeworksWorkspaceTab = sidebarNavigationLink(
       page,
       /^(作业|Homework)$/i,
     );
-    await expect(homeworksDashboardTab).toBeVisible();
-    await expect(homeworksDashboardTab).toHaveAttribute("aria-current", "page");
+    await expect(homeworksWorkspaceTab).toBeVisible();
+    await expect(homeworksWorkspaceTab).toHaveAttribute("aria-current", "page");
 
     await gotoAndWaitForReady(page, "/workspace/subscriptions");
     await expect(page).toHaveURL(/\/workspace\/subscriptions(?:\?.*)?$/);
@@ -243,7 +243,7 @@ test.describe("仪表盘", () => {
         )
         .first(),
     ).toBeVisible();
-    await captureStepScreenshot(page, testInfo, "dashboard-subscriptions-path");
+    await captureStepScreenshot(page, testInfo, "workspace-subscriptions-path");
   });
 
   test("移动端总览优先显示此刻与下一步，常用网站保持次要", async ({
@@ -254,11 +254,11 @@ test.describe("仪表盘", () => {
     await ensureSeedSectionSubscription(page);
     await gotoAndWaitForReady(page, "/", {
       testInfo,
-      screenshotLabel: "dashboard-mobile-priority",
+      screenshotLabel: "workspace-mobile-priority",
     });
 
-    const focus = page.getByTestId("dashboard-overview-focus");
-    const links = page.getByTestId("dashboard-overview-links");
+    const focus = page.getByTestId("workspace-overview-focus");
+    const links = page.getByTestId("workspace-overview-links");
     await expect(focus).toBeVisible();
     await expect(focus.getByText(/此刻与下一步|Now & next/i)).toBeVisible();
     await expect(links).toBeVisible();
@@ -273,7 +273,7 @@ test.describe("仪表盘", () => {
       ),
     ).toBe(true);
 
-    await captureStepScreenshot(page, testInfo, "dashboard/mobile-priority");
+    await captureStepScreenshot(page, testInfo, "workspace/mobile-priority");
   });
 
   test("中文总览周视图使用本地化星期标签", async ({ page }, testInfo) => {
@@ -286,14 +286,14 @@ test.describe("仪表盘", () => {
     await gotoAndWaitForReady(page, "/workspace/overview");
     await expect(page.locator("html")).toHaveAttribute("lang", "zh-cn");
 
-    const weekCard = page.getByTestId("dashboard-overview-week");
+    const weekCard = page.getByTestId("workspace-overview-week");
     await expect(weekCard).toBeVisible();
     await expect(weekCard.getByText("周日", { exact: true })).toBeVisible();
     await expect(weekCard.getByText("Sun", { exact: true })).toHaveCount(0);
     await captureStepScreenshot(
       page,
       testInfo,
-      "dashboard/overview-week-zh-cn",
+      "workspace/overview-week-zh-cn",
     );
   });
 });

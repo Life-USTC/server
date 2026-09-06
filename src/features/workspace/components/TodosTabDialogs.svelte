@@ -2,10 +2,10 @@
 import type { SubmitFunction } from "@sveltejs/kit";
 import type { CommentsCopy } from "@/features/comments/components/comment-component-types";
 import type {
-  DashboardTodoItem,
-  DashboardTodoPriorityOption,
-  DashboardTodosCopy,
-} from "@/features/workspace/lib/dashboard-controller-helpers";
+  WorkspaceTodoItem,
+  WorkspaceTodoPriorityOption,
+  WorkspaceTodosCopy,
+} from "@/features/workspace/lib/workspace-controller-helpers";
 import TodoCreateDialog from "./TodoCreateDialog.svelte";
 import TodoDetailDialog from "./TodoDetailDialog.svelte";
 import TodoEditDialog from "./TodoEditDialog.svelte";
@@ -16,22 +16,22 @@ export let createTodoError: string;
 export let datetimeLocalValue: (
   value: string | Date | null | undefined,
 ) => string;
-export let deleteTodo: (todo: DashboardTodoItem) => void | Promise<void>;
+export let deleteTodo: (todo: WorkspaceTodoItem) => void | Promise<void>;
 export let editTodoError: string;
-export let editingTodo: DashboardTodoItem | null;
+export let editingTodo: WorkspaceTodoItem | null;
 export let fmtDate: (value: string | Date | null | undefined) => string;
 export let isCreatingTodo: boolean;
 export let isUpdatingTodo: boolean;
-export let openTodoEditor: (todo: DashboardTodoItem) => void;
-export let selectedTodo: DashboardTodoItem | null;
+export let openTodoEditor: (todo: WorkspaceTodoItem) => void;
+export let selectedTodo: WorkspaceTodoItem | null;
 export let showCreateTodo: boolean;
-export let todoActionLabel: (todo: DashboardTodoItem) => string;
-export let todoPriorityOptions: DashboardTodoPriorityOption[];
+export let todoActionLabel: (todo: WorkspaceTodoItem) => string;
+export let todoPriorityOptions: WorkspaceTodoPriorityOption[];
 export let todoSavingById: Record<string, boolean>;
-export let todosCopy: DashboardTodosCopy;
-export let todoStatus: (todo: DashboardTodoItem) => string;
+export let todosCopy: WorkspaceTodosCopy;
+export let todoStatus: (todo: WorkspaceTodoItem) => string;
 export let toggleTodoCompletion: (
-  todo: DashboardTodoItem,
+  todo: WorkspaceTodoItem,
 ) => void | Promise<void>;
 export let updateTodoAction: SubmitFunction;
 </script>

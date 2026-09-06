@@ -1,20 +1,20 @@
 import { setLocalStorageItem } from "@/lib/browser/local-storage";
 
-export type DashboardCardView = "cards" | "list";
-export type DashboardLinkView = "grid" | "list";
+export type WorkspaceCardView = "cards" | "list";
+export type CatalogLinkView = "grid" | "list";
 
-export type DashboardViewState = {
-  homeworkView: DashboardCardView;
-  todoView: DashboardCardView;
-  examView: DashboardCardView;
-  linkView: DashboardLinkView;
+export type WorkspaceViewState = {
+  homeworkView: WorkspaceCardView;
+  todoView: WorkspaceCardView;
+  examView: WorkspaceCardView;
+  linkView: CatalogLinkView;
 };
 
-export const DASHBOARD_VIEW_STORAGE_KEY = "life-ustc-workspace-view-mode";
+export const WORKSPACE_VIEW_STORAGE_KEY = "life-ustc-workspace-view-mode";
 
-export function dashboardViewsForCardMode(
-  mode: DashboardCardView,
-): DashboardViewState {
+export function workspaceViewsForCardMode(
+  mode: WorkspaceCardView,
+): WorkspaceViewState {
   return {
     homeworkView: mode,
     todoView: mode,
@@ -23,9 +23,9 @@ export function dashboardViewsForCardMode(
   };
 }
 
-export function dashboardViewsForLinkMode(
-  mode: DashboardLinkView,
-): DashboardViewState {
+export function workspaceViewsForLinkMode(
+  mode: CatalogLinkView,
+): WorkspaceViewState {
   const cardMode = mode === "list" ? "list" : "cards";
   return {
     homeworkView: cardMode,
@@ -35,20 +35,20 @@ export function dashboardViewsForLinkMode(
   };
 }
 
-export function dashboardViewsFromPreference(
+export function workspaceViewsFromPreference(
   _url: URL,
   _storedView: string | null,
-): DashboardViewState {
+): WorkspaceViewState {
   // Task tabs always use open list on desktop / cards on mobile.
   // Keep returning "list" so legacy ?todoView=list URLs stay coherent.
-  return dashboardViewsForCardMode("list");
+  return workspaceViewsForCardMode("list");
 }
 
-export function persistDashboardViewMode(mode: DashboardCardView) {
-  setLocalStorageItem(DASHBOARD_VIEW_STORAGE_KEY, mode);
+export function persistWorkspaceViewMode(mode: WorkspaceCardView) {
+  setLocalStorageItem(WORKSPACE_VIEW_STORAGE_KEY, mode);
 }
 
-export function dashboardViewHref(
+export function workspaceViewHref(
   url: URL,
   paramName: "homeworkView" | "todoView" | "examView" | "linkView",
   isList: boolean,

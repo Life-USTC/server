@@ -1,30 +1,30 @@
 <script lang="ts">
+import { WORKSPACE_OVERVIEW_PREVIEW_LIMIT } from "@/features/workspace/lib/overview-preview";
 import type {
-  DashboardDashboardCopy,
-  DashboardOverviewExamItem,
-  DashboardSectionCopy,
-} from "@/features/workspace/lib/dashboard-controller-helpers";
-import { DASHBOARD_OVERVIEW_PREVIEW_LIMIT } from "@/features/workspace/lib/overview-preview";
+  WorkspaceCopy,
+  WorkspaceOverviewExamItem,
+  WorkspaceSectionCopy,
+} from "@/features/workspace/lib/workspace-controller-helpers";
 import * as Empty from "$lib/components/ui/empty/index.js";
 import * as Item from "$lib/components/ui/item/index.js";
-import type { DashboardCalendarTabHref } from "./dashboard-calendar-component-types";
 import OverviewSection from "./OverviewSection.svelte";
+import type { WorkspaceCalendarTabHref } from "./workspace-calendar-component-types";
 
-export let calendarExamDetail: (exam: DashboardOverviewExamItem) => string;
-export let dashboardCopy: DashboardDashboardCopy;
-export let dashboardTabHref: DashboardCalendarTabHref;
+export let calendarExamDetail: (exam: WorkspaceOverviewExamItem) => string;
+export let workspaceCopy: WorkspaceCopy;
+export let workspaceTabHref: WorkspaceCalendarTabHref;
 export let examsCount: number;
 export let fmtDate: (date: Date | string | null | undefined) => string;
-export let sectionCopy: DashboardSectionCopy;
-export let upcomingExams: DashboardOverviewExamItem[];
-export let previewLimit = DASHBOARD_OVERVIEW_PREVIEW_LIMIT;
+export let sectionCopy: WorkspaceSectionCopy;
+export let upcomingExams: WorkspaceOverviewExamItem[];
+export let previewLimit = WORKSPACE_OVERVIEW_PREVIEW_LIMIT;
 export let viewAllLabel = "View all";
 </script>
 
 <OverviewSection
-  href={dashboardTabHref("exams")}
-  title={dashboardCopy.radar.title}
-  viewAllHref={dashboardTabHref("exams")}
+  href={workspaceTabHref("exams")}
+  title={workspaceCopy.radar.title}
+  viewAllHref={workspaceTabHref("exams")}
   viewAllLabel={viewAllLabel}
   viewAllVisible={upcomingExams.length > previewLimit}
 >
@@ -35,7 +35,7 @@ export let viewAllLabel = "View all";
   {#if upcomingExams.length === 0}
     <Empty.Root class="min-h-20 border-0 px-2 py-6">
       <Empty.Header>
-        <Empty.Description>{dashboardCopy.radar.empty}</Empty.Description>
+        <Empty.Description>{workspaceCopy.radar.empty}</Empty.Description>
       </Empty.Header>
     </Empty.Root>
   {:else}
@@ -44,7 +44,7 @@ export let viewAllLabel = "View all";
       {#each examPreview as exam, index (exam.id)}
         <Item.Root class="rounded-md border-0 px-2 py-2.5" size="sm">
           {#snippet child({ props })}
-            <a href={dashboardTabHref("exams")} {...props}>
+            <a href={workspaceTabHref("exams")} {...props}>
               <Item.Content class="min-w-0">
                 <Item.Title>{exam.courseName}</Item.Title>
                 <Item.Description>

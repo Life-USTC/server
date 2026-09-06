@@ -7,28 +7,28 @@ import { Button } from "$lib/components/ui/button/index.js";
 import * as DropdownMenu from "$lib/components/ui/dropdown-menu/index.js";
 import * as ToggleGroup from "$lib/components/ui/toggle-group/index.js";
 import CalendarTabNavigationControls from "./CalendarTabNavigationControls.svelte";
-import type { DashboardCalendarTabProps } from "./dashboard-calendar-component-types";
-import type { FormatMessage } from "./dashboard-component-types";
 import PersonalCalendarLinkButton from "./PersonalCalendarLinkButton.svelte";
+import type { WorkspaceCalendarTabProps } from "./workspace-calendar-component-types";
+import type { FormatMessage } from "./workspace-component-types";
 
-export let addDays: DashboardCalendarTabProps["addDays"];
-export let addMonths: DashboardCalendarTabProps["addMonths"];
-export let calendarData: DashboardCalendarTabProps["calendarData"];
+export let addDays: WorkspaceCalendarTabProps["addDays"];
+export let addMonths: WorkspaceCalendarTabProps["addMonths"];
+export let calendarData: WorkspaceCalendarTabProps["calendarData"];
 export let agendaWeekStart: string;
-export let calendarMonth: DashboardCalendarTabProps["calendarMonth"];
-export let calendarSemesterIndex: DashboardCalendarTabProps["calendarSemesterIndex"];
-export let calendarView: DashboardCalendarTabProps["calendarView"];
-export let calendarWeekStart: DashboardCalendarTabProps["calendarWeekStart"];
-export let commonCopy: DashboardCalendarTabProps["commonCopy"];
-export let dashboardCopy: DashboardCalendarTabProps["dashboardCopy"];
+export let calendarMonth: WorkspaceCalendarTabProps["calendarMonth"];
+export let calendarSemesterIndex: WorkspaceCalendarTabProps["calendarSemesterIndex"];
+export let calendarView: WorkspaceCalendarTabProps["calendarView"];
+export let calendarWeekStart: WorkspaceCalendarTabProps["calendarWeekStart"];
+export let commonCopy: WorkspaceCalendarTabProps["commonCopy"];
+export let workspaceCopy: WorkspaceCalendarTabProps["workspaceCopy"];
 export let formatMessage: FormatMessage;
-export let sectionCopy: DashboardCalendarTabProps["sectionCopy"];
-export let setCalendarMonth: DashboardCalendarTabProps["setCalendarMonth"];
-export let setCalendarSemester: DashboardCalendarTabProps["setCalendarSemester"];
-export let setCalendarView: DashboardCalendarTabProps["setCalendarView"];
-export let setCalendarWeek: DashboardCalendarTabProps["setCalendarWeek"];
-export let signedData: DashboardCalendarTabProps["signedData"];
-export let subscriptionsCopy: DashboardCalendarTabProps["subscriptionsCopy"];
+export let sectionCopy: WorkspaceCalendarTabProps["sectionCopy"];
+export let setCalendarMonth: WorkspaceCalendarTabProps["setCalendarMonth"];
+export let setCalendarSemester: WorkspaceCalendarTabProps["setCalendarSemester"];
+export let setCalendarView: WorkspaceCalendarTabProps["setCalendarView"];
+export let setCalendarWeek: WorkspaceCalendarTabProps["setCalendarWeek"];
+export let signedData: WorkspaceCalendarTabProps["signedData"];
+export let subscriptionsCopy: WorkspaceCalendarTabProps["subscriptionsCopy"];
 
 let personalCalendarLink: PersonalCalendarLinkButton | undefined;
 </script>
@@ -36,7 +36,7 @@ let personalCalendarLink: PersonalCalendarLinkButton | undefined;
 <div class="hidden gap-3 md:grid md:grid-cols-[minmax(0,1fr)_auto] md:items-center">
   <div class="flex flex-wrap items-center gap-2 md:justify-start">
     <ToggleGroup.Root
-      aria-label={dashboardCopy.nav.calendar.title}
+      aria-label={workspaceCopy.nav.calendar.title}
       type="single"
       value={calendarView}
       variant="outline"
@@ -47,13 +47,13 @@ let personalCalendarLink: PersonalCalendarLinkButton | undefined;
       }}
     >
       <ToggleGroup.Item value="semester">
-        {dashboardCopy.calendarViewSemester}
+        {workspaceCopy.calendarViewSemester}
       </ToggleGroup.Item>
       <ToggleGroup.Item value="month">
-        {dashboardCopy.calendarViewMonth}
+        {workspaceCopy.calendarViewMonth}
       </ToggleGroup.Item>
       <ToggleGroup.Item value="week">
-        {dashboardCopy.calendarViewWeek}
+        {workspaceCopy.calendarViewWeek}
       </ToggleGroup.Item>
     </ToggleGroup.Root>
     <CalendarTabNavigationControls
@@ -65,7 +65,7 @@ let personalCalendarLink: PersonalCalendarLinkButton | undefined;
       {calendarView}
       {calendarWeekStart}
       {commonCopy}
-      {dashboardCopy}
+      {workspaceCopy}
       {formatMessage}
       {sectionCopy}
       {setCalendarMonth}
@@ -89,11 +89,11 @@ let personalCalendarLink: PersonalCalendarLinkButton | undefined;
 </div>
 
 {#if calendarData}
-  <div class="grid gap-2 md:hidden" data-testid="dashboard-calendar-mobile-toolbar">
+  <div class="grid gap-2 md:hidden" data-testid="workspace-calendar-mobile-toolbar">
     <div class="flex items-center justify-between gap-2">
       <div class="flex items-center gap-1">
         <Button
-          aria-label={dashboardCopy.calendarWeek.prev}
+          aria-label={workspaceCopy.calendarWeek.prev}
           class="size-11"
           size="icon"
           type="button"
@@ -108,10 +108,10 @@ let personalCalendarLink: PersonalCalendarLinkButton | undefined;
           variant="outline"
           onclick={() => setCalendarWeek(weekStartFor(calendarData.todayDate))}
         >
-          {dashboardCopy.todayAction}
+          {workspaceCopy.todayAction}
         </Button>
         <Button
-          aria-label={dashboardCopy.calendarWeek.next}
+          aria-label={workspaceCopy.calendarWeek.next}
           class="size-11"
           size="icon"
           type="button"
@@ -128,7 +128,7 @@ let personalCalendarLink: PersonalCalendarLinkButton | undefined;
             {#snippet child({ props })}
               <Button
                 {...props}
-                aria-label={dashboardCopy.calendarMoreActions}
+                aria-label={workspaceCopy.calendarMoreActions}
                 class="size-11"
                 size="icon"
                 type="button"
@@ -149,7 +149,7 @@ let personalCalendarLink: PersonalCalendarLinkButton | undefined;
       {/if}
     </div>
     <p class="truncate text-sm text-muted-foreground">
-      {formatMessage(dashboardCopy.calendarWeek.current, {
+      {formatMessage(workspaceCopy.calendarWeek.current, {
         date: agendaWeekStart,
       })}
     </p>

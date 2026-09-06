@@ -4,9 +4,9 @@ import MoreHorizontal from "@lucide/svelte/icons/more-horizontal";
 import Pencil from "@lucide/svelte/icons/pencil";
 import RefreshCw from "@lucide/svelte/icons/refresh-cw";
 import type {
-  DashboardTodoItem,
-  DashboardTodosCopy,
-} from "@/features/workspace/lib/dashboard-controller-types";
+  WorkspaceTodoItem,
+  WorkspaceTodosCopy,
+} from "@/features/workspace/lib/workspace-controller-types";
 import TableIconButton from "$lib/components/TableIconButton.svelte";
 import { Badge } from "$lib/components/ui/badge/index.js";
 import { Button } from "$lib/components/ui/button/index.js";
@@ -16,21 +16,21 @@ import { Spinner } from "$lib/components/ui/spinner/index.js";
 import TodoEmptyState from "./TodoEmptyState.svelte";
 
 type TodoDateFormatter = (value: Date | string | null | undefined) => string;
-type TodoAction = (todo: DashboardTodoItem) => string;
-type TodoCompletionToggle = (todo: DashboardTodoItem) => void | Promise<void>;
+type TodoAction = (todo: WorkspaceTodoItem) => string;
+type TodoCompletionToggle = (todo: WorkspaceTodoItem) => void | Promise<void>;
 
-export let filteredTodos: DashboardTodoItem[];
+export let filteredTodos: WorkspaceTodoItem[];
 export let fmtDate: TodoDateFormatter;
-export let openTodoEditor: (todo: DashboardTodoItem) => void;
-export let selectedTodo: DashboardTodoItem | null = null;
+export let openTodoEditor: (todo: WorkspaceTodoItem) => void;
+export let selectedTodo: WorkspaceTodoItem | null = null;
 export let todoActionLabel: TodoAction;
 export let todoSavingById: Record<string, boolean>;
-export let todosCopy: DashboardTodosCopy;
+export let todosCopy: WorkspaceTodosCopy;
 export let todoStatus: TodoAction;
 export let toggleTodoCompletion: TodoCompletionToggle;
 </script>
 
-<div class="min-w-0" data-testid="dashboard-todos-cards">
+<div class="min-w-0" data-testid="workspace-todos-cards">
   {#if filteredTodos.length > 0}
     <Item.Group class="gap-0">
       {#each filteredTodos as todo, index (todo.id)}

@@ -1,13 +1,13 @@
 import { error, redirect } from "@sveltejs/kit";
-import { isWorkspaceDashboardTab } from "@/features/workspace/lib/dashboard-nav";
-import { dashboardPageActions } from "@/features/workspace/server/dashboard-page-actions";
-import { loadSignedDashboardPage } from "@/features/workspace/server/dashboard-page-load";
+import { isWorkspaceTab } from "@/features/workspace/lib/workspace-nav";
+import { workspacePageActions } from "@/features/workspace/server/workspace-page-actions";
+import { loadSignedWorkspacePage } from "@/features/workspace/server/workspace-page-load";
 import { buildSignInPageUrl } from "@/lib/auth/auth-routing";
 import type { Actions, PageServerLoad } from "./$types";
 
 export const load: PageServerLoad = async (event) => {
-  if (!isWorkspaceDashboardTab(event.params.tab)) {
-    error(404, "Dashboard page not found");
+  if (!isWorkspaceTab(event.params.tab)) {
+    error(404, "Workspace page not found");
   }
   if (!event.locals.authUser?.id) {
     throw redirect(
@@ -16,7 +16,7 @@ export const load: PageServerLoad = async (event) => {
     );
   }
 
-  return loadSignedDashboardPage({
+  return loadSignedWorkspacePage({
     locals: event.locals,
     request: event.request,
     tab: event.params.tab,
@@ -25,4 +25,4 @@ export const load: PageServerLoad = async (event) => {
   });
 };
 
-export const actions: Actions = dashboardPageActions;
+export const actions: Actions = workspacePageActions;

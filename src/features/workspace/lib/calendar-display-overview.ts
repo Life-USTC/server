@@ -3,7 +3,7 @@ import type { CalendarExamEvent } from "@/features/workspace/lib/calendar-displa
 import { formatCampusDate, toCampusDateKey } from "@/lib/time/campus-date";
 import { shanghaiDayjs } from "@/lib/time/shanghai-dayjs";
 
-export function dashboardOverviewWeekStart(
+export function workspaceOverviewWeekStart(
   overviewWeek: string | null | undefined,
   calendarReferenceDate: Date | string | null | undefined,
 ) {

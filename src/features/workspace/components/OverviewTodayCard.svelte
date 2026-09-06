@@ -1,26 +1,26 @@
 <script lang="ts">
 import { sectionDetailHomeworkPath } from "@/features/section-detail/lib/section-detail-tab";
 import type {
-  DashboardDashboardCopy,
-  DashboardHomeworkItem,
-  DashboardRootCopy,
-  DashboardSessionItem,
-  DashboardTodoItem,
-} from "@/features/workspace/lib/dashboard-controller-helpers";
+  WorkspaceCopy,
+  WorkspaceHomeworkItem,
+  WorkspaceRootCopy,
+  WorkspaceSessionItem,
+  WorkspaceTodoItem,
+} from "@/features/workspace/lib/workspace-controller-helpers";
 import * as Empty from "$lib/components/ui/empty/index.js";
 import * as Item from "$lib/components/ui/item/index.js";
-import type { DashboardCalendarTabHref } from "./dashboard-calendar-component-types";
 import OverviewSection from "./OverviewSection.svelte";
+import type { WorkspaceCalendarTabHref } from "./workspace-calendar-component-types";
 
-export let copy: DashboardRootCopy;
-export let dashboardCopy: DashboardDashboardCopy;
-export let dashboardTabHref: DashboardCalendarTabHref;
-export let dueTodayHomeworks: DashboardHomeworkItem[];
-export let dueTodayTodos: DashboardTodoItem[];
+export let copy: WorkspaceRootCopy;
+export let workspaceCopy: WorkspaceCopy;
+export let workspaceTabHref: WorkspaceCalendarTabHref;
+export let dueTodayHomeworks: WorkspaceHomeworkItem[];
+export let dueTodayTodos: WorkspaceTodoItem[];
 export let fmtDate: (date: Date | string | null | undefined) => string;
 export let fmtTime: (time: number) => string;
-export let sessionHref: (session: DashboardSessionItem) => string;
-export let todaySessions: DashboardSessionItem[];
+export let sessionHref: (session: WorkspaceSessionItem) => string;
+export let todaySessions: WorkspaceSessionItem[];
 
 $: isEmpty =
   todaySessions.length === 0 &&
@@ -29,13 +29,13 @@ $: isEmpty =
 </script>
 
 <OverviewSection
-  href={dashboardTabHref("calendar")}
-  title={dashboardCopy.today.title}
+  href={workspaceTabHref("calendar")}
+  title={workspaceCopy.today.title}
 >
   {#if isEmpty}
     <Empty.Root class="min-h-20 border-0 px-2 py-6">
       <Empty.Header>
-        <Empty.Description>{dashboardCopy.today.empty}</Empty.Description>
+        <Empty.Description>{workspaceCopy.today.empty}</Empty.Description>
       </Empty.Header>
     </Empty.Root>
   {:else}
@@ -68,7 +68,7 @@ $: isEmpty =
                 ? sectionDetailHomeworkPath(homework.section.jwId, {
                     homeworkId: homework.id,
                   })
-                : dashboardTabHref("homeworks")}
+                : workspaceTabHref("homeworks")}
               {...props}
             >
               <Item.Content class="min-w-0">
@@ -90,7 +90,7 @@ $: isEmpty =
       {#each dueTodayTodos as todo, index (todo.id)}
         <Item.Root class="rounded-md border-0 px-2 py-2.5" size="sm">
           {#snippet child({ props })}
-            <a href={dashboardTabHref("todos")} {...props}>
+            <a href={workspaceTabHref("todos")} {...props}>
               <Item.Content class="min-w-0">
                 <Item.Title>{todo.title}</Item.Title>
                 <Item.Description>

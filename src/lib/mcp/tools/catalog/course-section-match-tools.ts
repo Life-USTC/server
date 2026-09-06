@@ -10,7 +10,7 @@ import {
 } from "@/lib/mcp/tools/_shared/helpers";
 
 const SECTION_SUBSCRIPTION_NOTE =
-  "Life@USTC section subscriptions only affect your dashboard and calendar here. They are not official USTC course enrollment.";
+  "Life@USTC section subscriptions only affect your workspace and calendar here. They are not official USTC course enrollment.";
 
 export function registerCourseSectionMatchTools(server: McpServer) {
   server.registerTool(

@@ -3,7 +3,7 @@ import ArrowUpRight from "@lucide/svelte/icons/arrow-up-right";
 import CheckCircleIcon from "@lucide/svelte/icons/check-circle";
 import RefreshCw from "@lucide/svelte/icons/refresh-cw";
 import { homeworkSummaryBadges } from "@/features/homeworks/lib/homework-presentation";
-import type { DashboardHomeworkItem } from "@/features/workspace/lib/dashboard-controller-types";
+import type { WorkspaceHomeworkItem } from "@/features/workspace/lib/workspace-controller-types";
 import TableIconButton from "$lib/components/TableIconButton.svelte";
 import { Badge } from "$lib/components/ui/badge/index.js";
 import { Button } from "$lib/components/ui/button/index.js";
@@ -17,9 +17,9 @@ type HomeworkDateFormatter = (
 type HomeworkOverduePredicate = (
   value: Date | string | null | undefined,
 ) => boolean;
-type HomeworkAction = (homework: DashboardHomeworkItem) => string;
+type HomeworkAction = (homework: WorkspaceHomeworkItem) => string;
 
-export let filteredHomeworkItems: DashboardHomeworkItem[];
+export let filteredHomeworkItems: WorkspaceHomeworkItem[];
 export let hasHomeworkItems: boolean;
 export let onClearFilter: () => void;
 export let fmtDate: HomeworkDateFormatter;
@@ -30,12 +30,12 @@ export let homeworkIsOverdue: HomeworkOverduePredicate;
 export let homeworkSectionHref: HomeworkAction;
 export let homeworksCopy: Record<string, string>;
 export let homeworkSavingById: Record<string, boolean>;
-export let selectedHomework: DashboardHomeworkItem | null;
+export let selectedHomework: WorkspaceHomeworkItem | null;
 export let toggleHomeworkCompletion: (
-  homework: DashboardHomeworkItem,
+  homework: WorkspaceHomeworkItem,
 ) => void | Promise<void>;
 
-function summaryBadges(homework: DashboardHomeworkItem) {
+function summaryBadges(homework: WorkspaceHomeworkItem) {
   return homeworkSummaryBadges(
     {
       completed: Boolean(homework.completion),
@@ -51,7 +51,7 @@ function summaryBadges(homework: DashboardHomeworkItem) {
 }
 </script>
 
-<div class="min-w-0" data-testid="dashboard-homeworks-cards">
+<div class="min-w-0" data-testid="workspace-homeworks-cards">
   {#if filteredHomeworkItems.length > 0}
     <Item.Group class="gap-0">
       {#each filteredHomeworkItems as homework, index (homework.id)}

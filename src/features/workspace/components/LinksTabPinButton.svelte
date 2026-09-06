@@ -1,21 +1,21 @@
 <script lang="ts">
 import Pin from "@lucide/svelte/icons/pin";
 import type {
-  DashboardLinkPinAction,
-  DashboardLinkPinSubmit,
-  DashboardOverviewLinkItem,
-} from "@/features/workspace/lib/dashboard-controller-helpers";
+  WorkspaceLinkPinAction,
+  WorkspaceLinkPinSubmit,
+  WorkspaceOverviewLinkItem,
+} from "@/features/workspace/lib/workspace-controller-helpers";
 import { Button } from "$lib/components/ui/button/index.js";
 import * as Tooltip from "$lib/components/ui/tooltip/index.js";
 
-export let link: DashboardOverviewLinkItem;
+export let link: WorkspaceOverviewLinkItem;
 export let linkReturnTo: string;
 export let pinAction: (
-  link: DashboardOverviewLinkItem,
-) => DashboardLinkPinAction;
-export let pinLabel: (link: DashboardOverviewLinkItem) => string;
-export let submitDashboardLinkPin: DashboardLinkPinSubmit;
-export let updatingDashboardLinkSlug: string | null;
+  link: WorkspaceOverviewLinkItem,
+) => WorkspaceLinkPinAction;
+export let pinLabel: (link: WorkspaceOverviewLinkItem) => string;
+export let submitWorkspaceLinkPin: WorkspaceLinkPinSubmit;
+export let updatingCatalogLinkSlug: string | null;
 </script>
 
 <Tooltip.Root>
@@ -24,7 +24,7 @@ export let updatingDashboardLinkSlug: string | null;
     method="POST"
     onsubmit={(event) => {
       event.preventDefault();
-      void submitDashboardLinkPin(link.slug, pinAction(link));
+      void submitWorkspaceLinkPin(link.slug, pinAction(link));
     }}
   >
     <input name="slug" type="hidden" value={link.slug} />
@@ -35,7 +35,7 @@ export let updatingDashboardLinkSlug: string | null;
         <Button
           {...props}
           aria-label={pinLabel(link)}
-          disabled={updatingDashboardLinkSlug === link.slug}
+          disabled={updatingCatalogLinkSlug === link.slug}
           size="icon-sm"
           type="submit"
           variant={link.isPinned ? "secondary" : "outline"}

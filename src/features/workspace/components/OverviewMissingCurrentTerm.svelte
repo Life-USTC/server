@@ -1,54 +1,54 @@
 <script lang="ts">
-import type {
-  DashboardDashboardCopy,
-  DashboardOverviewLinkItem,
-  SignedDashboardData,
-} from "@/features/workspace/lib/dashboard-controller-helpers";
 import { formatMessage } from "@/features/workspace/lib/overview";
-import type { DashboardCalendarTabHref } from "./dashboard-calendar-component-types";
+import type {
+  SignedWorkspaceData,
+  WorkspaceCopy,
+  WorkspaceOverviewLinkItem,
+} from "@/features/workspace/lib/workspace-controller-helpers";
 import OverviewLinksGrid from "./OverviewLinksGrid.svelte";
 import OverviewSection from "./OverviewSection.svelte";
 import OverviewTermSelectionCard from "./OverviewTermSelectionCard.svelte";
+import type { WorkspaceCalendarTabHref } from "./workspace-calendar-component-types";
 
-export let dashboardCopy: DashboardDashboardCopy;
-export let dashboardTabHref: DashboardCalendarTabHref;
+export let workspaceCopy: WorkspaceCopy;
+export let workspaceTabHref: WorkspaceCalendarTabHref;
 export let linkIconLabel: (icon: string) => string;
-export let links: DashboardOverviewLinkItem[];
+export let links: WorkspaceOverviewLinkItem[];
 export let pendingTodosCount: number;
-export let signedData: SignedDashboardData;
-export let submitDashboardLinkPin: (
+export let signedData: SignedWorkspaceData;
+export let submitWorkspaceLinkPin: (
   slug: string,
   action: "pin" | "unpin",
 ) => void;
-export let updatingDashboardLinkSlug: string | null;
+export let updatingCatalogLinkSlug: string | null;
 </script>
 
 <div class="grid gap-8">
   <OverviewLinksGrid
-    {dashboardCopy}
-    {dashboardTabHref}
+    {workspaceCopy}
+    {workspaceTabHref}
     {linkIconLabel}
     {links}
-    {submitDashboardLinkPin}
-    {updatingDashboardLinkSlug}
+    {submitWorkspaceLinkPin}
+    {updatingCatalogLinkSlug}
   />
 
   <OverviewTermSelectionCard
-    {dashboardCopy}
-    {dashboardTabHref}
+    {workspaceCopy}
+    {workspaceTabHref}
     description={signedData.overview?.hasAnySelection
-      ? dashboardCopy.termSelection.noCurrentTerm
-      : dashboardCopy.termSelection.noAnySelection}
+      ? workspaceCopy.termSelection.noCurrentTerm
+      : workspaceCopy.termSelection.noAnySelection}
     historyCalendarSemesterId={signedData.overview?.calendar?.calendarSemesterPicker?.at(-1)?.id ?? null}
     showHistoryActions={signedData.overview?.hasAnySelection === true}
   />
 
   <OverviewSection
-    href={dashboardTabHref("todos")}
-    title={dashboardCopy.todos.title}
+    href={workspaceTabHref("todos")}
+    title={workspaceCopy.todos.title}
   >
     <p class="text-muted-foreground text-sm">
-      {formatMessage(dashboardCopy.todos.pending, {
+      {formatMessage(workspaceCopy.todos.pending, {
         count: pendingTodosCount,
       })}
     </p>

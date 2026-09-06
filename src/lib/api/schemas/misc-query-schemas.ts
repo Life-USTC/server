@@ -121,7 +121,7 @@ export const busPreferenceRequestSchema = z.object({
   showDepartedTrips: z.boolean(),
 });
 
-export const dashboardLinkVisitQuerySchema = z.object({
+export const catalogLinkVisitQuerySchema = z.object({
   slug: z.string().trim().min(1),
 });
 

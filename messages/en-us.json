@@ -33,7 +33,7 @@
       "prestoBot": "Presto Bot",
       "mcp": "MCP",
       "cli": "CLI",
-      "workspace": "Dashboard"
+      "workspace": "Workspace"
     }
   },
   "common": {
@@ -148,7 +148,7 @@
     "openCourse": "Go to Course",
     "unsubscribe": "Unsubscribe",
     "unsubscribeTitle": "Unsubscribe from this section?",
-    "unsubscribeDescription": "After unsubscribing from “{name}”, its schedule, exams, and homework will no longer appear on your dashboard.",
+    "unsubscribeDescription": "After unsubscribing from “{name}”, its schedule, exams, and homework will no longer appear on your workspace.",
     "cancelUnsubscribe": "Keep Subscription",
     "confirmUnsubscribe": "Confirm Unsubscribe",
     "calendarTitle": "Calendar ({count})",
@@ -267,18 +267,18 @@
     "subtitle": "Your all-in-one app for course schedules, campus resources, and student life at USTC",
     "actions": {
       "mobileApp": "Mobile App",
-      "openWorkspace": "Open dashboard",
+      "openWorkspace": "Open Workspace",
       "signIn": "Sign in"
     },
     "downloadBadgeAlt": "Download Life@USTC on the App Store",
     "appIconAlt": "Life@USTC app icon",
     "publicWorkspace": {
       "title": "Courses, schedules, and campus life — in one place",
-      "description": "Browse the public catalog, sections, teachers, shuttle bus, and campus links anytime. Sign in to sync your schedule, homework, subscriptions, and dashboard.",
+      "description": "Browse the public catalog, sections, teachers, shuttle bus, and campus links anytime. Sign in to sync your schedule, homework, subscriptions, and workspace.",
       "exploreLabel": "Keep exploring",
       "cards": {
         "signIn": {
-          "title": "Sign in for your dashboard",
+          "title": "Sign in for your workspace",
           "description": "Unlock your personal schedule, homework, section subscriptions, and settings."
         },
         "mobileApp": {
@@ -310,7 +310,7 @@
     "quickAccess": {
       "title": "Quick Access",
       "openWorkspace": {
-        "title": "Open Dashboard",
+        "title": "Open Workspace",
         "description": "Browse public campus links now, then sign in for personal tools."
       },
       "browseCourses": {
@@ -730,8 +730,8 @@
     "tags": "Tags"
   },
   "workspace": {
-    "title": "Dashboard",
-    "description": "Hi {name}, this dashboard brings together your courses, homework, and schedule.",
+    "title": "Workspace",
+    "description": "Hi {name}, this workspace brings together your courses, homework, and schedule.",
     "descriptionV2": "Hi, {name}",
     "fallbackName": "Guest",
     "calendarViewSemester": "This semester",
@@ -748,7 +748,7 @@
       "current": "Week of {date}"
     },
     "nav": {
-      "ariaLabel": "Dashboard section switcher",
+      "ariaLabel": "Workspace section switcher",
       "overview": {
         "title": "Overview",
         "description": "Today's classes, homework, and weekly table"
@@ -881,7 +881,7 @@
     "termSelection": {
       "title": "No current-term section subscriptions",
       "noAnySelection": "Subscribe to sections to see your current-term work here.",
-      "noCurrentTerm": "You are only subscribed to past-term sections right now. Subscribe to current-term sections to restore your dashboard.",
+      "noCurrentTerm": "You are only subscribed to past-term sections right now. Subscribe to current-term sections to restore your workspace.",
       "historyAvailable": "Your past sections, homework, and schedules are still available.",
       "viewPastHomeworks": "View Past Homework",
       "viewPastSchedule": "View Past Schedule",
@@ -1633,9 +1633,9 @@
       "comments": "Comments",
       "calendar": "Calendar"
     },
-    "loginRequiredDescription": "Sign in to subscribe to this section in Life@USTC and sync it to your dashboard and calendar. This does not count as official USTC course enrollment.",
+    "loginRequiredDescription": "Sign in to subscribe to this section in Life@USTC and sync it to your workspace and calendar. This does not count as official USTC course enrollment.",
     "loginToSubscribe": "Sign in to subscribe",
-    "subscriptionDisclaimer": "Subscribing to a section here only affects your Life@USTC dashboard and calendar. It is not official USTC course enrollment.",
+    "subscriptionDisclaimer": "Subscribing to a section here only affects your Life@USTC workspace and calendar. It is not official USTC course enrollment.",
     "calendar": "Calendar ({count})",
     "calendarEmpty": "No schedule or exam events available for this section",
     "classEvent": "Class",

@@ -4,17 +4,17 @@ import TableIconButton from "$lib/components/TableIconButton.svelte";
 import { Badge } from "$lib/components/ui/badge/index.js";
 import * as Item from "$lib/components/ui/item/index.js";
 import type {
-  DashboardExamRow,
-  DashboardTabHref,
   ExamMetadataLabels,
   ExamsCopyProps,
   ExamTimeLabel,
   NamePrimary,
-} from "./dashboard-exam-component-types";
+  WorkspaceExamRow,
+  WorkspaceTabHref,
+} from "./workspace-exam-component-types";
 
-export let dashboardCopy: ExamsCopyProps["dashboardCopy"];
-export let dashboardTabHref: DashboardTabHref;
-export let exams: DashboardExamRow[];
+export let workspaceCopy: ExamsCopyProps["workspaceCopy"];
+export let workspaceTabHref: WorkspaceTabHref;
+export let exams: WorkspaceExamRow[];
 export let examMetadataLabels: ExamMetadataLabels;
 export let examTimeLabel: ExamTimeLabel;
 export let fmtExamDate: (value: Date | string | null | undefined) => string;
@@ -23,12 +23,12 @@ export let sectionCopy: ExamsCopyProps["sectionCopy"];
 export let subscriptionsCopy: ExamsCopyProps["subscriptionsCopy"];
 </script>
 
-<div class="min-w-0" data-testid="dashboard-exams-cards">
+<div class="min-w-0" data-testid="workspace-exams-cards">
   <Item.Group class="gap-0">
   {#each exams as exam, index (exam.id)}
     {@const detailHref = exam.section.jwId
       ? `/catalog/sections/${exam.section.jwId}`
-      : dashboardTabHref("subscriptions")}
+      : workspaceTabHref("subscriptions")}
     <Item.Root class="items-start gap-3 px-2 py-3">
       <Item.Content class="min-w-0 gap-1">
         <Item.Title class="line-clamp-none w-full min-w-0">
@@ -57,7 +57,7 @@ export let subscriptionsCopy: ExamsCopyProps["subscriptionsCopy"];
             {sectionCopy.room}: {exam.rooms || sectionCopy.roomTbd}
           </span>
           <Badge variant="outline">
-            {exam.completed ? dashboardCopy.nav.exams.filterCompleted : dashboardCopy.nav.exams.filterIncomplete}
+            {exam.completed ? workspaceCopy.nav.exams.filterCompleted : workspaceCopy.nav.exams.filterIncomplete}
           </Badge>
           {#if exam.examMode}<Badge variant="secondary">{exam.examMode}</Badge>{/if}
           {#each examMetadataLabels(exam) as label}<Badge variant="secondary">{label}</Badge>{/each}

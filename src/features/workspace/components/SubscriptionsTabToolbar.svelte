@@ -4,15 +4,15 @@ import ClipboardList from "@lucide/svelte/icons/clipboard-list";
 import { Button } from "$lib/components/ui/button/index.js";
 import PersonalCalendarLinkButton from "./PersonalCalendarLinkButton.svelte";
 import type {
-  DashboardSubscriptionsTabCopy,
-  DashboardSubscriptionsTabProps,
+  WorkspaceSubscriptionsTabCopy,
+  WorkspaceSubscriptionsTabProps,
 } from "./subscription-tab-types";
 
 export let calendarSubscriptionUrl: string | null;
 export let openBulkImportDialog: () => void;
 export let openQuickAddDialog: () => void;
-export let sectionCopy: DashboardSubscriptionsTabProps["sectionCopy"];
-export let subscriptionsCopy: DashboardSubscriptionsTabCopy;
+export let sectionCopy: WorkspaceSubscriptionsTabProps["sectionCopy"];
+export let subscriptionsCopy: WorkspaceSubscriptionsTabCopy;
 </script>
 
 <div class="grid min-w-0 gap-2 sm:flex sm:flex-wrap sm:items-center sm:justify-end">

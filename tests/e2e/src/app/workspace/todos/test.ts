@@ -1,5 +1,5 @@
 /**
- * E2E tests for the todos dashboard (`/workspace/todos`)
+ * E2E tests for the todos workspace (`/workspace/todos`)
  *
  * ## Data Represented
  * - Seed todos: DEV_SEED.todos.dueTodayTitle (due today, incomplete) and
@@ -82,7 +82,7 @@ test.describe("仪表盘待办", () => {
     ).toBeVisible();
     await page.keyboard.press("Escape");
 
-    await captureStepScreenshot(page, testInfo, "dashboard-todos-seed");
+    await captureStepScreenshot(page, testInfo, "workspace-todos-seed");
   });
 
   test("移动端待办工具栏保留筛选和大尺寸主操作", async ({ page }, testInfo) => {
@@ -95,10 +95,10 @@ test.describe("仪表盘待办", () => {
     const incomplete = page
       .getByRole("radio", { name: /未完成|Incomplete/i })
       .first();
-    const add = page.getByTestId("dashboard-todos-add");
+    const add = page.getByTestId("workspace-todos-add");
     await expect(incomplete).toBeVisible();
     await expect(add).toBeVisible();
-    await expect(page.getByTestId("dashboard-todos-view-menu")).toHaveCount(0);
+    await expect(page.getByTestId("workspace-todos-view-menu")).toHaveCount(0);
 
     for (const control of [incomplete, add]) {
       const box = await control.boundingBox();
@@ -111,10 +111,10 @@ test.describe("仪表盘待办", () => {
     await expect(all).toHaveAttribute("aria-checked", "true");
 
     await gotoAndWaitForReady(page, "/workspace/todos?todoView=list");
-    await expect(page.getByTestId("dashboard-todos-cards")).toBeVisible();
+    await expect(page.getByTestId("workspace-todos-cards")).toBeVisible();
     await expect(page.getByRole("table")).toBeHidden();
     const todoItem = page
-      .getByTestId("dashboard-todos-cards")
+      .getByTestId("workspace-todos-cards")
       .locator('[data-slot="item"]')
       .first();
     await expect(todoItem).toBeVisible();
@@ -182,7 +182,7 @@ test.describe("仪表盘待办", () => {
       { timeout: 5_000 },
     );
 
-    await captureStepScreenshot(page, testInfo, "dashboard-todos-toggle");
+    await captureStepScreenshot(page, testInfo, "workspace-todos-toggle");
   });
 
   test("已完成筛选显示已完成的待办", async ({ page }, testInfo) => {
@@ -200,7 +200,7 @@ test.describe("仪表盘待办", () => {
       intervals: [250, 500, 1_000],
     });
 
-    await captureStepScreenshot(page, testInfo, "dashboard-todos-completed");
+    await captureStepScreenshot(page, testInfo, "workspace-todos-completed");
   });
 
   test("嵌套待办路由渲染服务端操作错误", async ({ page }, testInfo) => {
@@ -224,14 +224,14 @@ test.describe("仪表盘待办", () => {
       visibleText(page, /请输入标题|Please enter a title/i),
     ).toBeVisible();
 
-    await captureStepScreenshot(page, testInfo, "dashboard-todos-action-error");
+    await captureStepScreenshot(page, testInfo, "workspace-todos-action-error");
   });
 
   test("可以创建、编辑和删除待办", async ({ page }, testInfo) => {
     test.setTimeout(90_000);
     await signInAsDebugUser(page, "/workspace/todos");
 
-    const title = `e2e-dashboard-todo-${Date.now()}`;
+    const title = `e2e-workspace-todo-${Date.now()}`;
     const editedTitle = `${title}-edited`;
 
     try {
@@ -258,7 +258,7 @@ test.describe("仪表盘待办", () => {
       await expect(visibleText(page, title)).toBeVisible({
         timeout: 15_000,
       });
-      await captureStepScreenshot(page, testInfo, "dashboard-todos-created");
+      await captureStepScreenshot(page, testInfo, "workspace-todos-created");
 
       // Edit the temporary todo via its detail modal.
       await visibleText(page, title).click();
@@ -301,7 +301,7 @@ test.describe("仪表盘待办", () => {
       await expect(
         page.getByRole("button", { name: title, exact: true }),
       ).toHaveCount(0);
-      await captureStepScreenshot(page, testInfo, "dashboard-todos-edited");
+      await captureStepScreenshot(page, testInfo, "workspace-todos-edited");
 
       await page
         .getByRole("button", { name: editedTitle, exact: true })
@@ -348,7 +348,7 @@ test.describe("仪表盘待办", () => {
       await expect(page.getByText(editedTitle)).toHaveCount(0, {
         timeout: 15_000,
       });
-      await captureStepScreenshot(page, testInfo, "dashboard-todos-deleted");
+      await captureStepScreenshot(page, testInfo, "workspace-todos-deleted");
     } finally {
       await cleanupTodosByTitlePrefix(page, title);
     }
@@ -359,12 +359,12 @@ test.describe("仪表盘待办", () => {
     await page.setViewportSize({ width: 320, height: 568 });
     await signInAsDebugUser(page, "/workspace/todos");
 
-    const titlePrefix = `e2e-dashboard-todo-mobile-${Date.now()}`;
+    const titlePrefix = `e2e-workspace-todo-mobile-${Date.now()}`;
     const title = `${titlePrefix}-${"长标题".repeat(35)}`;
     const content = `${"这是用于验证待办详情滚动区域的长内容。 ".repeat(24)}\n\nmobile-content-marker`;
 
     try {
-      const addTodoButton = page.getByTestId("dashboard-todos-add");
+      const addTodoButton = page.getByTestId("workspace-todos-add");
       await addTodoButton.click();
       const createDialog = page.getByRole("dialog", {
         name: /新建待办|New Todo/i,
@@ -483,7 +483,7 @@ test.describe("仪表盘待办", () => {
     await page.setViewportSize(viewport);
     await signInAsDebugUser(page, "/workspace/todos");
 
-    const titlePrefix = `e2e-dashboard-todo-short-${Date.now()}`;
+    const titlePrefix = `e2e-workspace-todo-short-${Date.now()}`;
     const title = `${titlePrefix}-todo`;
 
     async function assertDialogBounds(
@@ -541,7 +541,7 @@ test.describe("仪表盘待办", () => {
     }
 
     try {
-      await page.getByTestId("dashboard-todos-add").click();
+      await page.getByTestId("workspace-todos-add").click();
       const createDialog = page.getByRole("dialog", {
         name: /新建待办|New Todo/i,
       });

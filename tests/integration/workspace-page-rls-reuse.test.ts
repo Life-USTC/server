@@ -1,12 +1,12 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { loadSignedDashboardPageData } from "@/features/workspace/server/dashboard-page-load-signed";
+import { loadSignedWorkspacePageData } from "@/features/workspace/server/workspace-page-load-signed";
 import {
   createTestPrisma,
   disconnectTestPrisma,
   type TestPrismaClient,
 } from "../shared/prisma";
 
-describe("signed dashboard independent RLS contexts", () => {
+describe("signed workspace independent RLS contexts", () => {
   let testPrisma: TestPrismaClient;
 
   beforeAll(() => {
@@ -24,13 +24,13 @@ describe("signed dashboard independent RLS contexts", () => {
         select: { userId: true },
       });
 
-    const data = await loadSignedDashboardPageData({
+    const data = await loadSignedWorkspacePageData({
       calendarSemesterId: undefined,
       locale: "en-us",
       overviewWeek: null,
       pageCopy: {} as never,
       referenceNow: new Date("2026-04-29T08:00:00.000+08:00"),
-      requestId: "integration-dashboard-rls-reuse",
+      requestId: "integration-workspace-rls-reuse",
       tab: "overview",
       userId: subscription.userId,
     });
@@ -48,13 +48,13 @@ describe("signed dashboard independent RLS contexts", () => {
       "calendarSemesterNavList",
     );
 
-    const calendarData = await loadSignedDashboardPageData({
+    const calendarData = await loadSignedWorkspacePageData({
       calendarSemesterId: undefined,
       locale: "en-us",
       overviewWeek: null,
       pageCopy: {} as never,
       referenceNow: new Date("2026-04-29T08:00:00.000+08:00"),
-      requestId: "integration-dashboard-calendar-rls-reuse",
+      requestId: "integration-workspace-calendar-rls-reuse",
       tab: "calendar",
       userId: subscription.userId,
     });

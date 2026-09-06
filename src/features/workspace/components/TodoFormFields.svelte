@@ -5,9 +5,9 @@ import {
   TODO_TITLE_MAX_LENGTH,
 } from "@/features/todos/lib/todo-limits";
 import type {
-  DashboardTodoPriorityOption,
-  DashboardTodosCopy,
-} from "@/features/workspace/lib/dashboard-controller-helpers";
+  WorkspaceTodoPriorityOption,
+  WorkspaceTodosCopy,
+} from "@/features/workspace/lib/workspace-controller-helpers";
 import DateTimePicker from "$lib/components/DateTimePicker.svelte";
 import MarkdownEditor from "$lib/components/MarkdownEditor.svelte";
 import * as Field from "$lib/components/ui/field/index.js";
@@ -21,8 +21,8 @@ export let dueAtValue = "";
 export let idPrefix = "todo-form";
 export let priorityValue = "medium";
 export let titleValue = "";
-export let todoPriorityOptions: DashboardTodoPriorityOption[];
-export let todosCopy: DashboardTodosCopy;
+export let todoPriorityOptions: WorkspaceTodoPriorityOption[];
+export let todosCopy: WorkspaceTodosCopy;
 
 $: titleId = `${idPrefix}-title`;
 $: priorityId = `${idPrefix}-priority`;

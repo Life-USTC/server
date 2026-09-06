@@ -1,57 +1,57 @@
 <script lang="ts">
 import { weekStartFor } from "@/features/workspace/lib/calendar";
-import { buildDashboardCalendarGridWeeks } from "@/features/workspace/lib/calendar-grid";
+import { buildWorkspaceCalendarGridWeeks } from "@/features/workspace/lib/calendar-grid";
 import {
-  buildDashboardAgendaDays,
-  type DashboardAgendaDay,
-} from "@/features/workspace/lib/dashboard-agenda";
-import { hasDashboardSubscriptions } from "@/features/workspace/lib/dashboard-subscription-state";
+  buildWorkspaceAgendaDays,
+  type WorkspaceAgendaDay,
+} from "@/features/workspace/lib/workspace-agenda";
+import { hasWorkspaceSubscriptions } from "@/features/workspace/lib/workspace-subscription-state";
 import CalendarGrid from "$lib/components/calendar/CalendarGrid.svelte";
 import * as Empty from "$lib/components/ui/empty/index.js";
 import CalendarAgenda from "./CalendarAgenda.svelte";
 import CalendarTabToolbar from "./CalendarTabToolbar.svelte";
-import DashboardNoSubscriptionsState from "./DashboardNoSubscriptionsState.svelte";
-import type { DashboardCalendarTabProps } from "./dashboard-calendar-component-types";
-import type { FormatMessage } from "./dashboard-component-types";
+import WorkspaceNoSubscriptionsState from "./WorkspaceNoSubscriptionsState.svelte";
+import type { WorkspaceCalendarTabProps } from "./workspace-calendar-component-types";
+import type { FormatMessage } from "./workspace-component-types";
 
-export let copy: DashboardCalendarTabProps["copy"];
-export let commonCopy: DashboardCalendarTabProps["commonCopy"];
-export let dashboardCopy: DashboardCalendarTabProps["dashboardCopy"];
-export let sectionCopy: DashboardCalendarTabProps["sectionCopy"];
-export let subscriptionsCopy: DashboardCalendarTabProps["subscriptionsCopy"];
-export let calendarWeekdayLabels: DashboardCalendarTabProps["calendarWeekdayLabels"];
-export let signedData: DashboardCalendarTabProps["signedData"];
+export let copy: WorkspaceCalendarTabProps["copy"];
+export let commonCopy: WorkspaceCalendarTabProps["commonCopy"];
+export let workspaceCopy: WorkspaceCalendarTabProps["workspaceCopy"];
+export let sectionCopy: WorkspaceCalendarTabProps["sectionCopy"];
+export let subscriptionsCopy: WorkspaceCalendarTabProps["subscriptionsCopy"];
+export let calendarWeekdayLabels: WorkspaceCalendarTabProps["calendarWeekdayLabels"];
+export let signedData: WorkspaceCalendarTabProps["signedData"];
 
-export let dashboardTabHref: DashboardCalendarTabProps["dashboardTabHref"];
+export let workspaceTabHref: WorkspaceCalendarTabProps["workspaceTabHref"];
 export let formatMessage: FormatMessage;
-export let sessionHref: DashboardCalendarTabProps["sessionHref"];
+export let sessionHref: WorkspaceCalendarTabProps["sessionHref"];
 
-export let setCalendarView: DashboardCalendarTabProps["setCalendarView"];
-export let setCalendarMonth: DashboardCalendarTabProps["setCalendarMonth"];
-export let setCalendarWeek: DashboardCalendarTabProps["setCalendarWeek"];
-export let setCalendarSemester: DashboardCalendarTabProps["setCalendarSemester"];
-export let addDays: DashboardCalendarTabProps["addDays"];
-export let addMonths: DashboardCalendarTabProps["addMonths"];
-export let monthWeeks: DashboardCalendarTabProps["monthWeeks"];
-export let calendarEventsForDay: DashboardCalendarTabProps["calendarEventsForDay"];
-export let calendarTimelineItemsForDay: DashboardCalendarTabProps["calendarTimelineItemsForDay"];
-export let calendarWeekLabel: DashboardCalendarTabProps["calendarWeekLabel"];
-export let calendarEventParts: DashboardCalendarTabProps["calendarEventParts"];
-export let calendarHomeworkHref: DashboardCalendarTabProps["calendarHomeworkHref"];
-export let calendarSessionChipFields: DashboardCalendarTabProps["calendarSessionChipFields"];
-export let calendarExamChipFields: DashboardCalendarTabProps["calendarExamChipFields"];
-export let calendarHomeworkChipFields: DashboardCalendarTabProps["calendarHomeworkChipFields"];
-export let calendarTodoChipFields: DashboardCalendarTabProps["calendarTodoChipFields"];
-export let calendarSemesterIndex: DashboardCalendarTabProps["calendarSemesterIndex"];
+export let setCalendarView: WorkspaceCalendarTabProps["setCalendarView"];
+export let setCalendarMonth: WorkspaceCalendarTabProps["setCalendarMonth"];
+export let setCalendarWeek: WorkspaceCalendarTabProps["setCalendarWeek"];
+export let setCalendarSemester: WorkspaceCalendarTabProps["setCalendarSemester"];
+export let addDays: WorkspaceCalendarTabProps["addDays"];
+export let addMonths: WorkspaceCalendarTabProps["addMonths"];
+export let monthWeeks: WorkspaceCalendarTabProps["monthWeeks"];
+export let calendarEventsForDay: WorkspaceCalendarTabProps["calendarEventsForDay"];
+export let calendarTimelineItemsForDay: WorkspaceCalendarTabProps["calendarTimelineItemsForDay"];
+export let calendarWeekLabel: WorkspaceCalendarTabProps["calendarWeekLabel"];
+export let calendarEventParts: WorkspaceCalendarTabProps["calendarEventParts"];
+export let calendarHomeworkHref: WorkspaceCalendarTabProps["calendarHomeworkHref"];
+export let calendarSessionChipFields: WorkspaceCalendarTabProps["calendarSessionChipFields"];
+export let calendarExamChipFields: WorkspaceCalendarTabProps["calendarExamChipFields"];
+export let calendarHomeworkChipFields: WorkspaceCalendarTabProps["calendarHomeworkChipFields"];
+export let calendarTodoChipFields: WorkspaceCalendarTabProps["calendarTodoChipFields"];
+export let calendarSemesterIndex: WorkspaceCalendarTabProps["calendarSemesterIndex"];
 
-export let calendarView: DashboardCalendarTabProps["calendarView"];
-export let calendarMonth: DashboardCalendarTabProps["calendarMonth"];
-export let calendarWeekStart: DashboardCalendarTabProps["calendarWeekStart"];
-export let calendarSemesterId: DashboardCalendarTabProps["calendarSemesterId"];
-export let calendarData: DashboardCalendarTabProps["calendarData"];
+export let calendarView: WorkspaceCalendarTabProps["calendarView"];
+export let calendarMonth: WorkspaceCalendarTabProps["calendarMonth"];
+export let calendarWeekStart: WorkspaceCalendarTabProps["calendarWeekStart"];
+export let calendarSemesterId: WorkspaceCalendarTabProps["calendarSemesterId"];
+export let calendarData: WorkspaceCalendarTabProps["calendarData"];
 
-let calendarGridWeeks: ReturnType<typeof buildDashboardCalendarGridWeeks> = [];
-let agendaDays: DashboardAgendaDay[] = [];
+let calendarGridWeeks: ReturnType<typeof buildWorkspaceCalendarGridWeeks> = [];
+let agendaDays: WorkspaceAgendaDay[] = [];
 let agendaWeekStart = "";
 
 $: agendaWeekStart =
@@ -59,7 +59,7 @@ $: agendaWeekStart =
   (calendarData ? weekStartFor(calendarData.todayDate) : "");
 $: agendaDays =
   calendarData && agendaWeekStart
-    ? buildDashboardAgendaDays({
+    ? buildWorkspaceAgendaDays({
         calendar: calendarData,
         eventsForDay: calendarEventsForDay,
         locale: signedData.locale,
@@ -68,7 +68,7 @@ $: agendaDays =
       })
     : [];
 $: calendarGridWeeks = calendarData
-  ? buildDashboardCalendarGridWeeks({
+  ? buildWorkspaceCalendarGridWeeks({
       addDays,
       calendar: calendarData,
       calendarEventParts,
@@ -79,7 +79,7 @@ $: calendarGridWeeks = calendarData
       calendarSessionChipFields,
       calendarTodoChipFields,
       calendarWeekLabel,
-      dashboardTabHref,
+      workspaceTabHref,
       examLabel: copy.CalendarEventCard.exam,
       month: calendarMonth,
       monthWeeks,
@@ -92,8 +92,8 @@ $: calendarGridWeeks = calendarData
 </script>
 
 <section class="grid gap-4">
-  {#if !hasDashboardSubscriptions(signedData)}
-    <DashboardNoSubscriptionsState
+  {#if !hasWorkspaceSubscriptions(signedData)}
+    <WorkspaceNoSubscriptionsState
       title={subscriptionsCopy.noSubscriptions}
       description={subscriptionsCopy.noSubscriptionsDescription}
       actions={[
@@ -112,7 +112,7 @@ $: calendarGridWeeks = calendarData
       {calendarWeekStart}
       {agendaWeekStart}
       {commonCopy}
-      {dashboardCopy}
+      {workspaceCopy}
       {formatMessage}
       {sectionCopy}
       {setCalendarMonth}
@@ -128,12 +128,12 @@ $: calendarGridWeeks = calendarData
         <div class="md:hidden">
           <CalendarAgenda
             days={agendaDays}
-            emptyLabel={dashboardCopy.calendarAgendaEmpty}
-            label={dashboardCopy.calendarAgendaLabel}
-            todayLabel={dashboardCopy.todayAction}
+            emptyLabel={workspaceCopy.calendarAgendaEmpty}
+            label={workspaceCopy.calendarAgendaLabel}
+            todayLabel={workspaceCopy.todayAction}
           />
         </div>
-        <div class="hidden md:block" data-testid="dashboard-calendar-grid">
+        <div class="hidden md:block" data-testid="workspace-calendar-grid">
           <CalendarGrid
             weeks={calendarGridWeeks}
             weekdays={calendarWeekdayLabels}
@@ -143,7 +143,7 @@ $: calendarGridWeeks = calendarData
             minWidth="760px"
             eventLimit={calendarView === "week" ? 8 : 4}
             moreLabel={(count) =>
-              formatMessage(dashboardCopy.moreItems, {
+              formatMessage(workspaceCopy.moreItems, {
                 count: String(count),
               })}
           />

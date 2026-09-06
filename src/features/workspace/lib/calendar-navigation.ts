@@ -8,29 +8,29 @@ import {
 } from "@/features/workspace/lib/calendar";
 import { toCampusDateKey } from "@/lib/time/campus-date";
 
-export type DashboardCalendarNavData = {
+export type WorkspaceCalendarNavData = {
   activeCalendarSemesterId?: number | null;
   referenceDate?: string | null;
 };
 
-export type DashboardCalendarState = {
+export type WorkspaceCalendarState = {
   month: string;
   semesterId: number | null;
   view: CalendarView;
   weekStart: string;
 };
 
-export type DashboardCalendarStatePatch = {
+export type WorkspaceCalendarStatePatch = {
   month?: string;
   semesterId?: number | null;
   view?: CalendarView;
   week?: string;
 };
 
-export function dashboardCalendarStateFromUrl(
+export function workspaceCalendarStateFromUrl(
   url: URL,
-  calendar: DashboardCalendarNavData | null,
-): DashboardCalendarState {
+  calendar: WorkspaceCalendarNavData | null,
+): WorkspaceCalendarState {
   const requestedView = url.searchParams.get("calendarView");
   const view = isCalendarView(requestedView) ? requestedView : "semester";
 
@@ -52,10 +52,10 @@ export function dashboardCalendarStateFromUrl(
   };
 }
 
-export function dashboardCalendarStateFromPatch(
-  current: DashboardCalendarState,
-  patch: DashboardCalendarStatePatch,
-): DashboardCalendarState {
+export function workspaceCalendarStateFromPatch(
+  current: WorkspaceCalendarState,
+  patch: WorkspaceCalendarStatePatch,
+): WorkspaceCalendarState {
   return {
     month: patch.month ?? current.month,
     semesterId: patch.semesterId ?? current.semesterId,
@@ -64,8 +64,8 @@ export function dashboardCalendarStateFromPatch(
   };
 }
 
-export function dashboardCalendarParams(
-  state: DashboardCalendarState,
+export function workspaceCalendarParams(
+  state: WorkspaceCalendarState,
 ): Record<string, string | number | null | undefined> {
   const params: Record<string, string | number | null | undefined> = {};
   if (state.view !== "semester") params.calendarView = state.view;
@@ -76,10 +76,10 @@ export function dashboardCalendarParams(
   return params;
 }
 
-export function dashboardCalendarViewPatch(
+export function workspaceCalendarViewPatch(
   nextView: CalendarView,
-  calendar: DashboardCalendarNavData | null,
-): DashboardCalendarStatePatch {
+  calendar: WorkspaceCalendarNavData | null,
+): WorkspaceCalendarStatePatch {
   const referenceKey =
     toCampusDateKey(calendar?.referenceDate) ?? toDateKey(new Date());
   if (nextView === "month") {

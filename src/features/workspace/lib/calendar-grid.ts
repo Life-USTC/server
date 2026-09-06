@@ -29,13 +29,13 @@ type CalendarDayEvents<
   todos: Todo[];
 };
 
-type DashboardCalendar = {
+type WorkspaceCalendar = {
   semesterWeeks: string[][];
   todayDate: string;
 };
 
-type DashboardCalendarGridOptions<
-  Calendar extends DashboardCalendar,
+type WorkspaceCalendarGridOptions<
+  Calendar extends WorkspaceCalendar,
   Session extends CalendarSession,
   Exam extends CalendarExam,
   Homework extends CalendarHomework,
@@ -70,7 +70,7 @@ type DashboardCalendarGridOptions<
     tooltipDetail?: string;
   };
   calendarWeekLabel: (weekIndex: number) => string;
-  dashboardTabHref: (tab: "exams" | "todos") => string;
+  workspaceTabHref: (tab: "exams" | "todos") => string;
   examLabel: string;
   month: string;
   monthWeeks: (month: string) => string[][];
@@ -80,14 +80,14 @@ type DashboardCalendarGridOptions<
   weekStart: string;
 };
 
-export function buildDashboardCalendarGridWeeks<
-  Calendar extends DashboardCalendar,
+export function buildWorkspaceCalendarGridWeeks<
+  Calendar extends WorkspaceCalendar,
   Session extends CalendarSession,
   Exam extends CalendarExam,
   Homework extends CalendarHomework,
   Todo extends CalendarTodo,
 >(
-  options: DashboardCalendarGridOptions<
+  options: WorkspaceCalendarGridOptions<
     Calendar,
     Session,
     Exam,

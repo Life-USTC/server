@@ -1,13 +1,13 @@
-import { getPublicBusPageCopy } from "@/features/workspace/server/dashboard-page-copy";
-import type { DashboardPageLoadEvent } from "@/features/workspace/server/dashboard-page-load-types";
-import { getDashboardUserId } from "@/features/workspace/server/dashboard-page-server";
-import { getBusTabData } from "@/features/workspace/server/dashboard-tab-data";
+import { getPublicBusPageCopy } from "@/features/workspace/server/workspace-page-copy";
+import type { WorkspacePageLoadEvent } from "@/features/workspace/server/workspace-page-load-types";
+import { getWorkspaceUserId } from "@/features/workspace/server/workspace-page-server";
+import { getBusTabData } from "@/features/workspace/server/workspace-tab-data";
 
 export async function loadPublicBusPage({
   locals,
   request,
-}: DashboardPageLoadEvent) {
-  const userId = await getDashboardUserId(request);
+}: WorkspacePageLoadEvent) {
+  const userId = await getWorkspaceUserId(request);
   const bus = await getBusTabData(userId, locals.locale);
 
   return {

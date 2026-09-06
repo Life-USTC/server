@@ -1,16 +1,16 @@
 <script lang="ts">
 import type { SubmitFunction } from "@sveltejs/kit";
 import type { CommentsCopy } from "@/features/comments/components/comment-component-types";
-import type {
-  DashboardDashboardCopy,
-  DashboardSectionCopy,
-  DashboardTodoItem,
-  DashboardTodoPriorityOption,
-  DashboardTodosCopy,
-  TodoFilter,
-} from "@/features/workspace/lib/dashboard-controller-types";
-import { resolveDashboardTaskFilter } from "@/features/workspace/lib/dashboard-task-filter";
 import { createTodoTabDisplayActions } from "@/features/workspace/lib/todos-tab-display";
+import type {
+  TodoFilter,
+  WorkspaceCopy,
+  WorkspaceSectionCopy,
+  WorkspaceTodoItem,
+  WorkspaceTodoPriorityOption,
+  WorkspaceTodosCopy,
+} from "@/features/workspace/lib/workspace-controller-types";
+import { resolveWorkspaceTaskFilter } from "@/features/workspace/lib/workspace-task-filter";
 import * as Alert from "$lib/components/ui/alert/index.js";
 import TodosCardsView from "./TodosCardsView.svelte";
 import TodosListView from "./TodosListView.svelte";
@@ -18,29 +18,29 @@ import TodosTabDialogs from "./TodosTabDialogs.svelte";
 import TodosTabToolbar from "./TodosTabToolbar.svelte";
 
 type TodoDateFormatter = (value: Date | string | null | undefined) => string;
-type TodoAction = (todo: DashboardTodoItem) => string;
-type TodoCompletionToggle = (todo: DashboardTodoItem) => void | Promise<void>;
+type TodoAction = (todo: WorkspaceTodoItem) => string;
+type TodoCompletionToggle = (todo: WorkspaceTodoItem) => void | Promise<void>;
 
-export let todosCopy: DashboardTodosCopy;
-export let dashboardCopy: DashboardDashboardCopy;
-export let sectionCopy: DashboardSectionCopy;
+export let todosCopy: WorkspaceTodosCopy;
+export let workspaceCopy: WorkspaceCopy;
+export let sectionCopy: WorkspaceSectionCopy;
 export let commentsCopy: CommentsCopy;
-export let todoPriorityOptions: DashboardTodoPriorityOption[];
+export let todoPriorityOptions: WorkspaceTodoPriorityOption[];
 export let locale: string;
 export let referenceDate: Date | string;
 
-export let openTodoEditor: (todo: DashboardTodoItem) => void;
+export let openTodoEditor: (todo: WorkspaceTodoItem) => void;
 export let toggleTodoCompletion: TodoCompletionToggle;
-export let deleteTodo: (todo: DashboardTodoItem) => void | Promise<void>;
+export let deleteTodo: (todo: WorkspaceTodoItem) => void | Promise<void>;
 export let createTodoAction: SubmitFunction;
 export let updateTodoAction: SubmitFunction;
 
 export let todoFilter: TodoFilter;
-export let todoItems: DashboardTodoItem[];
+export let todoItems: WorkspaceTodoItem[];
 export let showCreateTodo: boolean;
-export let selectedTodo: DashboardTodoItem | null;
-export let editingTodo: DashboardTodoItem | null;
-export let filteredTodos: DashboardTodoItem[];
+export let selectedTodo: WorkspaceTodoItem | null;
+export let editingTodo: WorkspaceTodoItem | null;
+export let filteredTodos: WorkspaceTodoItem[];
 export let createTodoError: string;
 export let editTodoError: string;
 export let todoActionError: string;
@@ -54,13 +54,13 @@ let todoStatus: TodoAction;
 
 $: ({ datetimeLocalValue, fmtDate, todoActionLabel, todoStatus } =
   createTodoTabDisplayActions({
-    dashboardCopy,
+    workspaceCopy,
     locale,
     referenceDate,
     sectionCopy,
     todosCopy,
   }));
-$: displayTodoFilter = resolveDashboardTaskFilter(
+$: displayTodoFilter = resolveWorkspaceTaskFilter(
   todoFilter,
   todoItems.some((todo) => !todo.completed),
 );

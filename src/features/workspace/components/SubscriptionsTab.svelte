@@ -7,29 +7,29 @@ import SubscriptionsQuickAddDialog from "./SubscriptionsQuickAddDialog.svelte";
 import SubscriptionsStatusAlerts from "./SubscriptionsStatusAlerts.svelte";
 import SubscriptionsTabToolbar from "./SubscriptionsTabToolbar.svelte";
 import type {
-  DashboardSubscriptionsTabProps,
   FormatMessage,
   MatchedImportSection,
   NameFormatter,
+  WorkspaceSubscriptionsTabProps,
 } from "./subscription-tab-types";
 
-export let dashboardCopy: DashboardSubscriptionsTabProps["dashboardCopy"];
-export let sectionCopy: DashboardSubscriptionsTabProps["sectionCopy"];
-export let subscriptionsCopy: DashboardSubscriptionsTabProps["subscriptionsCopy"];
-export let signedData: DashboardSubscriptionsTabProps["signedData"];
+export let workspaceCopy: WorkspaceSubscriptionsTabProps["workspaceCopy"];
+export let sectionCopy: WorkspaceSubscriptionsTabProps["sectionCopy"];
+export let subscriptionsCopy: WorkspaceSubscriptionsTabProps["subscriptionsCopy"];
+export let signedData: WorkspaceSubscriptionsTabProps["signedData"];
 
 export let selectedImportSectionIdSet: Set<number>;
 export let canMatchImportSections: boolean;
 export let formatMessage: FormatMessage;
 export let namePrimary: NameFormatter;
 export let nameSecondary: NameFormatter;
-export let resetBulkImport: DashboardSubscriptionsTabProps["resetBulkImport"];
-export let searchQuickAddSections: DashboardSubscriptionsTabProps["searchQuickAddSections"];
-export let openBulkImportDialog: DashboardSubscriptionsTabProps["openBulkImportDialog"];
-export let toggleImportSectionSelection: DashboardSubscriptionsTabProps["toggleImportSectionSelection"];
-export let matchImportSections: DashboardSubscriptionsTabProps["matchImportSections"];
-export let confirmImportSections: DashboardSubscriptionsTabProps["confirmImportSections"];
-export let removeSubscribedSection: DashboardSubscriptionsTabProps["removeSubscribedSection"];
+export let resetBulkImport: WorkspaceSubscriptionsTabProps["resetBulkImport"];
+export let searchQuickAddSections: WorkspaceSubscriptionsTabProps["searchQuickAddSections"];
+export let openBulkImportDialog: WorkspaceSubscriptionsTabProps["openBulkImportDialog"];
+export let toggleImportSectionSelection: WorkspaceSubscriptionsTabProps["toggleImportSectionSelection"];
+export let matchImportSections: WorkspaceSubscriptionsTabProps["matchImportSections"];
+export let confirmImportSections: WorkspaceSubscriptionsTabProps["confirmImportSections"];
+export let removeSubscribedSection: WorkspaceSubscriptionsTabProps["removeSubscribedSection"];
 
 export let isBulkImportOpen: boolean;
 export let isConfirmImportOpen: boolean;
@@ -39,8 +39,8 @@ export let bulkImportMessage: string;
 export let bulkImportError: string;
 export let isMatchingSections: boolean;
 export let isImportingSections: boolean;
-export let removingSectionId: DashboardSubscriptionsTabProps["removingSectionId"];
-export let subscribeQuickAddSections: DashboardSubscriptionsTabProps["subscribeQuickAddSections"];
+export let removingSectionId: WorkspaceSubscriptionsTabProps["removingSectionId"];
+export let subscribeQuickAddSections: WorkspaceSubscriptionsTabProps["subscribeQuickAddSections"];
 export let subscriptionActionError: string;
 export let matchedSections: MatchedImportSection[];
 export let unmatchedSectionCodes: string[];
@@ -107,7 +107,7 @@ $: bulkImportSections = matchedSections.map<BulkImportSectionView>(
   />
 
   <SubscriptionsList
-    {dashboardCopy}
+    {workspaceCopy}
     {formatMessage}
     {removeSubscribedSection}
     {removingSectionId}

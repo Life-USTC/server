@@ -2,9 +2,9 @@
 import type { SubmitFunction } from "@sveltejs/kit";
 import type { CommentsCopy } from "@/features/comments/components/comment-component-types";
 import type {
-  DashboardTodoPriorityOption,
-  DashboardTodosCopy,
-} from "@/features/workspace/lib/dashboard-controller-helpers";
+  WorkspaceTodoPriorityOption,
+  WorkspaceTodosCopy,
+} from "@/features/workspace/lib/workspace-controller-helpers";
 import { enhance } from "$app/forms";
 import * as Alert from "$lib/components/ui/alert/index.js";
 import { Button } from "$lib/components/ui/button/index.js";
@@ -20,8 +20,8 @@ export let createTodoError: string;
 export let isCreatingTodo: boolean;
 export let onClose: () => void;
 export let open: boolean;
-export let todoPriorityOptions: DashboardTodoPriorityOption[];
-export let todosCopy: DashboardTodosCopy;
+export let todoPriorityOptions: WorkspaceTodoPriorityOption[];
+export let todosCopy: WorkspaceTodosCopy;
 </script>
 
 {#if open}
