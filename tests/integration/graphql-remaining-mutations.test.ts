@@ -246,7 +246,7 @@ afterAll(async () => {
     });
     await prisma.uploadPending.deleteMany({ where: { userId } });
     await prisma.upload.deleteMany({ where: { userId } });
-    await prisma.dashboardLinkPin.deleteMany({ where: { userId } });
+    await prisma.workspaceLinkPin.deleteMany({ where: { userId } });
     await prisma.oAuthClient.deleteMany({ where: { clientId: oauthClientId } });
     await prisma.user.deleteMany({
       where: { id: { in: [userId, otherUserId] } },

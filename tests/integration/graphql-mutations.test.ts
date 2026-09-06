@@ -609,7 +609,7 @@ describe("GraphQL authenticated mutations", () => {
       sectionSubscriptions: [],
     });
     await expect(
-      prisma.dashboardLinkPin.count({ where: { userId: userAId, slug } }),
+      prisma.workspaceLinkPin.count({ where: { userId: userAId, slug } }),
     ).resolves.toBe(0);
   });
 

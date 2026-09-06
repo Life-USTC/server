@@ -23,7 +23,7 @@ type DashboardLinkPinDelegate = {
 };
 
 type DashboardLinkPinPrisma = {
-  dashboardLinkPin: DashboardLinkPinDelegate;
+  workspaceLinkPin: DashboardLinkPinDelegate;
 };
 
 function normalizeUserId(userId: string) {
@@ -51,7 +51,7 @@ export async function recordDashboardLinkClick(userId: string, slug: string) {
   userId = normalizeUserId(userId);
   try {
     await withUserDbContext(userId, (tx) =>
-      tx.dashboardLinkClick.upsert({
+      tx.catalogLinkClick.upsert({
         where: {
           userId_slug: {
             userId,
@@ -133,13 +133,13 @@ async function pinDashboardLink(
   userId: string,
   slug: string,
 ) {
-  await prisma.dashboardLinkPin.upsert({
+  await prisma.workspaceLinkPin.upsert({
     where: { userId_slug: { userId, slug } },
     create: { userId, slug },
     update: {},
   });
 
-  const pinnedRows = await prisma.dashboardLinkPin.findMany({
+  const pinnedRows = await prisma.workspaceLinkPin.findMany({
     where: { userId },
     select: { slug: true },
     orderBy: { createdAt: "asc" },
@@ -147,7 +147,7 @@ async function pinDashboardLink(
   const overflowRows = pinnedRows.slice(0, -MAX_PINNED_LINKS);
 
   if (overflowRows.length > 0) {
-    await prisma.dashboardLinkPin.deleteMany({
+    await prisma.workspaceLinkPin.deleteMany({
       where: {
         userId,
         slug: { in: overflowRows.map((row) => row.slug) },
@@ -163,7 +163,7 @@ async function unpinDashboardLink(
   userId: string,
   slug: string,
 ) {
-  await prisma.dashboardLinkPin.deleteMany({
+  await prisma.workspaceLinkPin.deleteMany({
     where: { userId, slug },
   });
 
@@ -174,7 +174,7 @@ async function listDashboardLinkPins(
   prisma: DashboardLinkPinPrisma,
   userId: string,
 ) {
-  const finalRows = await prisma.dashboardLinkPin.findMany({
+  const finalRows = await prisma.workspaceLinkPin.findMany({
     where: { userId },
     select: { slug: true },
   });

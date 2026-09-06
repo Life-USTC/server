@@ -27,13 +27,13 @@ const adminPrisma = createTestPrisma(
 
 const protectedTables = [
   "BusUserPreference",
+  "CatalogLinkClick",
   "CommentReaction",
-  "DashboardLinkClick",
-  "DashboardLinkPin",
   "HomeworkCompletion",
   "Todo",
   "Upload",
   "UploadPending",
+  "WorkspaceLinkPin",
 ] as const;
 
 const expectedRuntimeFunctionPrivileges = [

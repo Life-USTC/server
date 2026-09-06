@@ -39,8 +39,8 @@ $revoke_auth_tables$;
 
 GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE
   "Todo",
-  "DashboardLinkClick",
-  "DashboardLinkPin",
+  "CatalogLinkClick",
+  "WorkspaceLinkPin",
   "BusUserPreference",
   "UserUstcIdentity",
   "UserSectionSubscription",

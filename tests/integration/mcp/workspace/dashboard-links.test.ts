@@ -6,10 +6,10 @@ describe("dashboard link 工具 — 列表/搜索与置顶状态", () => {
     emailPrefix: "mcp-dashboard-links",
     name: "[integration-test] MCP Dashboard Links",
     cleanup: async (isolatedUserId) => {
-      await fixtures.prisma.dashboardLinkPin.deleteMany({
+      await fixtures.prisma.workspaceLinkPin.deleteMany({
         where: { userId: isolatedUserId },
       });
-      await fixtures.prisma.dashboardLinkClick.deleteMany({
+      await fixtures.prisma.catalogLinkClick.deleteMany({
         where: { userId: isolatedUserId },
       });
     },
@@ -52,7 +52,7 @@ describe("dashboard link 工具 — 列表/搜索与置顶状态", () => {
   });
 
   it("workspace_link_pin_set 为 MCP 用户置顶与取消置顶", async () => {
-    await fixtures.prisma.dashboardLinkPin.deleteMany({
+    await fixtures.prisma.workspaceLinkPin.deleteMany({
       where: { userId: isolated.userId },
     });
 
@@ -101,7 +101,7 @@ describe("dashboard link 工具 — 列表/搜索与置顶状态", () => {
   });
 
   it("workspace_link_pin_set 对无效 slug 返回校验载荷", async () => {
-    await fixtures.prisma.dashboardLinkPin.deleteMany({
+    await fixtures.prisma.workspaceLinkPin.deleteMany({
       where: { userId: isolated.userId },
     });
 

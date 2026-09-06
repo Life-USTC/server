@@ -25,11 +25,11 @@ const {
 vi.mock("@/lib/db/prisma", () => ({
   prisma: {
     busUserPreference: { findUnique: baseProtectedDelegateMock },
-    dashboardLinkClick: {
+    catalogLinkClick: {
       findMany: baseProtectedDelegateMock,
       upsert: baseProtectedDelegateMock,
     },
-    dashboardLinkPin: {
+    workspaceLinkPin: {
       deleteMany: baseProtectedDelegateMock,
       findMany: baseProtectedDelegateMock,
       upsert: baseProtectedDelegateMock,
@@ -52,11 +52,11 @@ describe("personal data RLS contexts", () => {
       async (_userId: string, action: (tx: unknown) => Promise<unknown>) =>
         action({
           busUserPreference: { findUnique: busFindUniqueMock },
-          dashboardLinkClick: {
+          catalogLinkClick: {
             findMany: clickFindManyMock,
             upsert: clickUpsertMock,
           },
-          dashboardLinkPin: {
+          workspaceLinkPin: {
             deleteMany: pinDeleteManyMock,
             findMany: pinFindManyMock,
             upsert: pinUpsertMock,
