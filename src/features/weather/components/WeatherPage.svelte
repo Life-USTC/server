@@ -23,8 +23,8 @@ import {
   type WeatherIconName,
   weatherConditionIcon,
 } from "@/features/weather/weather-ui";
-import type { AppPageCopy } from "@/lib/shell/page-copy";
 import type { AppLocale } from "@/i18n/config";
+import type { AppPageCopy } from "@/lib/shell/page-copy";
 import Panel from "$lib/components/Panel.svelte";
 import {
   createShanghaiDateTimeFormatter,

@@ -1,6 +1,6 @@
 <script lang="ts">
-import type { AppPageCopy } from "@/lib/shell/page-copy";
 import type { YoungEventDetail } from "@/features/young/server/young-event-service";
+import type { AppPageCopy } from "@/lib/shell/page-copy";
 import PageLayout from "$lib/components/PageLayout.svelte";
 import Panel from "$lib/components/Panel.svelte";
 import { Button } from "$lib/components/ui/button/index.js";

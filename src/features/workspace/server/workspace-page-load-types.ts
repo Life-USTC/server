@@ -1,9 +1,9 @@
 import type { CatalogLinkSummary } from "@/features/catalog-links/server/catalog-link-data";
-import type { AppPageLoadEvent } from "@/lib/shell/page-load-types";
 import type {
   getAnonymousHomePageCopy,
   getWorkspacePageCopy,
 } from "@/lib/shell/page-copy";
+import type { AppPageLoadEvent } from "@/lib/shell/page-load-types";
 
 export type { AppPageLoadEvent } from "@/lib/shell/page-load-types";
 export type WorkspacePageCopy = ReturnType<typeof getWorkspacePageCopy>;
