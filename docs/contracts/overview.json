@@ -26,13 +26,7 @@
       "title": "Authenticated Dashboard Overview",
       "auth": "user",
       "links": {
-        "models": [
-          "User",
-          "Section",
-          "Homework",
-          "Todo",
-          "Exam"
-        ]
+        "models": ["User", "Section", "Homework", "Todo", "Exam"]
       },
       "web": {
         "pages": [
@@ -69,9 +63,7 @@
             },
             "returns": "WorkspaceOverview!",
             "auth": "user",
-            "required_scopes": [
-              "workspace.overview:read"
-            ],
+            "required_scopes": ["workspace.overview:read"],
             "rest_equivalent": "GET /api/workspace/overview",
             "mcp_equivalent": "workspace_overview_get",
             "notes": [
@@ -162,13 +154,7 @@
       "title": "Assistant Dashboard Snapshot & Focused Extracts",
       "auth": "user",
       "links": {
-        "models": [
-          "User",
-          "Section",
-          "Homework",
-          "Todo",
-          "Exam"
-        ]
+        "models": ["User", "Section", "Homework", "Todo", "Exam"]
       },
       "web": "unavailable",
       "rest": "unavailable",
@@ -219,9 +205,7 @@
       "title": "Anonymous Homepage",
       "auth": "anon",
       "web": {
-        "pages": [
-          "/"
-        ]
+        "pages": ["/"]
       },
       "rules": {
         "static-loader": "The loader returns localized static copy only and performs no business-data queries."

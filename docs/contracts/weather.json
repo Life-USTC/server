@@ -19,9 +19,7 @@
       "title": "Campus Weather",
       "auth": "anon",
       "web": {
-        "pages": [
-          "/catalog/weather"
-        ]
+        "pages": ["/catalog/weather"]
       },
       "rest": {
         "routes": [

@@ -19,14 +19,10 @@
       "title": "Section Calendar Dialog",
       "auth": "anon",
       "links": {
-        "ui": [
-          "Calendar Export Dialog"
-        ]
+        "ui": ["Calendar Export Dialog"]
       },
       "web": {
-        "pages": [
-          "/catalog/sections/[jwId]"
-        ]
+        "pages": ["/catalog/sections/[jwId]"]
       },
       "rest": {
         "routes": [
@@ -52,18 +48,11 @@
       "title": "Personal Calendar Subscription",
       "auth": "user",
       "links": {
-        "models": [
-          "User",
-          "Section"
-        ],
-        "ui": [
-          "Calendar Export Dialog"
-        ]
+        "models": ["User", "Section"],
+        "ui": ["Calendar Export Dialog"]
       },
       "web": {
-        "pages": [
-          "/workspace/calendar"
-        ]
+        "pages": ["/workspace/calendar"]
       },
       "rest": {
         "routes": [
@@ -98,9 +87,7 @@
         ]
       },
       "display": {
-        "fields": [
-          "iCalendar URL copy button"
-        ]
+        "fields": ["iCalendar URL copy button"]
       }
     },
     "multi-section-ical": {

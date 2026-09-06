@@ -16,18 +16,11 @@
       "title": "Subscribe from Section Detail",
       "auth": "user",
       "links": {
-        "models": [
-          "User",
-          "Section"
-        ],
-        "ui": [
-          "Detail Hero"
-        ]
+        "models": ["User", "Section"],
+        "ui": ["Detail Hero"]
       },
       "web": {
-        "pages": [
-          "/catalog/sections/[jwId]"
-        ]
+        "pages": ["/catalog/sections/[jwId]"]
       },
       "graphql": {
         "mutations": [
@@ -38,9 +31,7 @@
             },
             "returns": "SectionSubscriptionMutationPayload!",
             "auth": "user",
-            "required_scopes": [
-              "subscription:write"
-            ],
+            "required_scopes": ["subscription:write"],
             "mcp_equivalent": "workspace_subscription_add"
           },
           {
@@ -50,9 +41,7 @@
             },
             "returns": "SectionSubscriptionMutationPayload!",
             "auth": "user",
-            "required_scopes": [
-              "subscription:write"
-            ],
+            "required_scopes": ["subscription:write"],
             "mcp_equivalent": "workspace_subscription_remove"
           }
         ]
@@ -91,16 +80,10 @@
       "title": "Batch Subscribe by Course Codes",
       "auth": "user",
       "links": {
-        "models": [
-          "Section",
-          "User"
-        ]
+        "models": ["Section", "User"]
       },
       "web": {
-        "pages": [
-          "/workspace/subscriptions",
-          "/account/welcome"
-        ]
+        "pages": ["/workspace/subscriptions", "/account/welcome"]
       },
       "graphql": {
         "mutations": [
@@ -111,9 +94,7 @@
             },
             "returns": "SectionSubscriptionBatchPayload!",
             "auth": "user",
-            "required_scopes": [
-              "subscription:write"
-            ],
+            "required_scopes": ["subscription:write"],
             "rest_equivalent": "POST /api/workspace/subscriptions/batch",
             "mcp_equivalent": "workspace_subscription_import",
             "notes": [

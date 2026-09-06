@@ -29,9 +29,7 @@
       "title": "Admin Entry",
       "auth": "admin",
       "web": {
-        "pages": [
-          "/admin"
-        ]
+        "pages": ["/admin"]
       },
       "display": {
         "fields": [
@@ -44,9 +42,7 @@
       "title": "Moderation",
       "auth": "admin",
       "web": {
-        "pages": [
-          "/admin/moderation"
-        ]
+        "pages": ["/admin/moderation"]
       },
       "rest": {
         "routes": [
@@ -111,9 +107,7 @@
       "title": "User Management",
       "auth": "admin",
       "web": {
-        "pages": [
-          "/admin/users"
-        ]
+        "pages": ["/admin/users"]
       },
       "rest": {
         "routes": [
@@ -125,9 +119,7 @@
             "path": "/api/admin/users/[id]",
             "method": "PATCH",
             "returns": "{ user: User }",
-            "notes": [
-              "Returns 404 when the target user is not found."
-            ]
+            "notes": ["Returns 404 when the target user is not found."]
           }
         ]
       },
@@ -147,9 +139,7 @@
       "title": "OAuth Client Management",
       "auth": "admin",
       "web": {
-        "pages": [
-          "/admin/oauth"
-        ]
+        "pages": ["/admin/oauth"]
       },
       "rest": "unavailable",
       "mcp": "unavailable",
@@ -171,9 +161,7 @@
       "title": "Bus Management",
       "auth": "admin",
       "web": {
-        "pages": [
-          "/admin/bus"
-        ]
+        "pages": ["/admin/bus"]
       },
       "rest": "unavailable",
       "mcp": "unavailable",
@@ -194,9 +182,7 @@
       "title": "Audit Log",
       "auth": "admin",
       "web": {
-        "pages": [
-          "/admin/audit"
-        ]
+        "pages": ["/admin/audit"]
       },
       "rest": "unavailable",
       "mcp": "unavailable",
@@ -225,9 +211,7 @@
       "title": "Aggregate Analytics",
       "auth": "admin",
       "web": {
-        "pages": [
-          "/admin/analytics"
-        ]
+        "pages": ["/admin/analytics"]
       },
       "rest": "unavailable",
       "mcp": "unavailable",

@@ -18,14 +18,10 @@
       "title": "Cross-Section Exam List",
       "auth": "user",
       "links": {
-        "models": [
-          "Exam"
-        ]
+        "models": ["Exam"]
       },
       "web": {
-        "pages": [
-          "/workspace/exams"
-        ]
+        "pages": ["/workspace/exams"]
       },
       "rest": "unavailable",
       "graphql": {
@@ -39,9 +35,7 @@
             },
             "returns": "ExamPage!",
             "auth": "user",
-            "required_scopes": [
-              "exam:read"
-            ],
+            "required_scopes": ["exam:read"],
             "mcp_equivalent": "workspace_exam_list",
             "notes": [
               "DateTime range inputs normalize to Asia/Shanghai calendar dates; unknown-date exams remain included by default.",
@@ -84,14 +78,10 @@
       "title": "Section Exam Info",
       "auth": "anon",
       "links": {
-        "models": [
-          "Exam"
-        ]
+        "models": ["Exam"]
       },
       "web": {
-        "pages": [
-          "/catalog/sections/[jwId]"
-        ]
+        "pages": ["/catalog/sections/[jwId]"]
       },
       "rest": "unavailable",
       "mcp": {
@@ -99,9 +89,7 @@
           {
             "name": "catalog_section_exam_list",
             "returns": "{ found: Boolean, section: Section?, exams: ExamEntry[] }",
-            "notes": [
-              "Returns a single section's exams[]."
-            ]
+            "notes": ["Returns a single section's exams[]."]
           }
         ]
       },

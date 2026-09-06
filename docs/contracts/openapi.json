@@ -33,9 +33,7 @@
       "title": "API Docs Page",
       "auth": "anon",
       "web": {
-        "pages": [
-          "/api/docs/tag/catalog-section"
-        ]
+        "pages": ["/api/docs/tag/catalog-section"]
       },
       "display": {
         "fields": [
@@ -137,18 +135,14 @@
             "path": "/api/account/preferences",
             "method": "POST",
             "returns": "{ success: Boolean }",
-            "notes": [
-              "Sets the user language preference cookie."
-            ]
+            "notes": ["Sets the user language preference cookie."]
           },
           {
             "path": "/api/health",
             "method": "GET",
             "returns": "text/plain ok",
             "content_type": "text/plain; charset=utf-8",
-            "notes": [
-              "Plain liveness endpoint with no dependency checks."
-            ]
+            "notes": ["Plain liveness endpoint with no dependency checks."]
           }
         ]
       },

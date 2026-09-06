@@ -25,17 +25,11 @@
       "title": "Course List & Filter",
       "auth": "anon",
       "links": {
-        "models": [
-          "Course"
-        ],
-        "ui": [
-          "List Table"
-        ]
+        "models": ["Course"],
+        "ui": ["List Table"]
       },
       "web": {
-        "pages": [
-          "/catalog/courses"
-        ]
+        "pages": ["/catalog/courses"]
       },
       "rest": {
         "routes": [
@@ -87,31 +81,18 @@
           "course.category.namePrimary",
           "course.classType.namePrimary"
         ],
-        "filters": [
-          "search",
-          "educationLevelId",
-          "categoryId",
-          "classTypeId"
-        ]
+        "filters": ["search", "educationLevelId", "categoryId", "classTypeId"]
       }
     },
     "course-detail": {
       "title": "Course Detail",
       "auth": "anon",
       "links": {
-        "models": [
-          "Course"
-        ],
-        "ui": [
-          "Detail Hero",
-          "Detail Two-Column Stream",
-          "Basic Info Card"
-        ]
+        "models": ["Course"],
+        "ui": ["Detail Hero", "Detail Two-Column Stream", "Basic Info Card"]
       },
       "web": {
-        "pages": [
-          "/catalog/courses/[jwId]"
-        ]
+        "pages": ["/catalog/courses/[jwId]"]
       },
       "rest": {
         "routes": [
