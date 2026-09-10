@@ -207,7 +207,7 @@
       "display": {
         "fields": [
           "A standalone quick-add dialog searches section codes, course codes, localized course names, and localized teacher names within one semester, shows matching sections as checkbox options, and subscribes the selected sections without entering the batch-import confirmation flow",
-          "A separate batch-import dialog accepts pasted course and section codes for one selected semester",
+          "A separate batch-import dialog links to the undergraduate and graduate academic systems, explains how to copy section codes such as MATH1001.01 from course selection results, and accepts the pasted text for the matching semester",
           "Batch subscribe, unsubscribe, and replace/update actions",
           "Subscribed sections are grouped by semester into separate responsive tables ordered from the latest semester to the earliest; the layout stays single-column until an extra-wide viewport, where supporting browsers use native CSS Grid Lanes to pack tables into two columns and other browsers fall back to a row-ordered two-column grid",
           "Long course names and teacher lists are visually truncated inside table rows; when truncated, their complete text remains available from the shared tooltip and the section details dialog",

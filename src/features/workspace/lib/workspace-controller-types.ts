@@ -231,6 +231,10 @@ export type WorkspaceSubscriptionsCopy = WorkspaceRecord & {
     cancel: string;
     checkFormat: string;
     confirmTitle: string;
+    descriptionPrefix: string;
+    undergraduateSystem: string;
+    descriptionConjunction: string;
+    graduateSystem: string;
     description: string;
     fetchFailed: string;
     importFailed: string;
