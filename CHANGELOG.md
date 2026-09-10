@@ -1,3 +1,10 @@
+# [1.106.0](https://github.com/Life-USTC/server/compare/v1.105.10...v1.106.0) (2026-09-10)
+
+
+### Features
+
+* **homeworks:** improve creation layout and smart deadlines ([#1033](https://github.com/Life-USTC/server/issues/1033)) ([fde1c8b](https://github.com/Life-USTC/server/commit/fde1c8b4ebc57f2acc341630ae9729fa0ca72bf6))
+
 ## [1.105.10](https://github.com/Life-USTC/server/compare/v1.105.9...v1.105.10) (2026-09-10)
 
 
