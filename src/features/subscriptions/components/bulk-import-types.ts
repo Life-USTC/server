@@ -1,6 +1,10 @@
 export type BulkImportCopy = {
   cancel: string;
   confirmTitle: string;
+  descriptionPrefix: string;
+  undergraduateSystem: string;
+  descriptionConjunction: string;
+  graduateSystem: string;
   description: string;
   importing: string;
   matchButton: string;

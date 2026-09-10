@@ -172,7 +172,11 @@
     },
     "bulkImport": {
       "title": "批量添加订阅",
-      "description": "粘贴包含教学班代码或课程代码的文本，系统会匹配所选学期的教学班，并允许你选择要订阅的教学班。",
+      "descriptionPrefix": "请访问",
+      "undergraduateSystem": "本科生教务系统",
+      "descriptionConjunction": "或",
+      "graduateSystem": "研究生信息系统",
+      "description": "，获取包含教学班代码（如 MATH1001.01）的选课结果。选择对应学期，将包含这些代码的文本复制粘贴到下方，即可批量导入你的选课结果。",
       "semesterLabel": "学期",
       "semesterPlaceholder": "选择学期",
       "sectionCodesLabel": "班级或课程代码",

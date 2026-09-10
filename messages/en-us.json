@@ -172,7 +172,11 @@
     },
     "bulkImport": {
       "title": "Bulk Add Subscriptions",
-      "description": "Paste text containing section or course codes. The system will match sections from the selected semester and let you choose which ones to subscribe to.",
+      "descriptionPrefix": "Visit the",
+      "undergraduateSystem": "Undergraduate Academic Affairs System",
+      "descriptionConjunction": "or the",
+      "graduateSystem": "Graduate Information System",
+      "description": " to get your course selection results containing section codes, such as MATH1001.01. Select the matching semester and paste that text below to import your subscriptions in bulk.",
       "semesterLabel": "Semester",
       "semesterPlaceholder": "Select a semester",
       "sectionCodesLabel": "Section or course codes",

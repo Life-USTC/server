@@ -480,6 +480,14 @@ test.describe("仪表盘教学班订阅", () => {
     await signInAsDebugUser(page, "/workspace/subscriptions");
 
     const textarea = await openBulkImportDialog(page);
+    const importDialog = page.getByRole("dialog");
+    await expect(
+      importDialog.getByRole("link", { name: "本科生教务系统" }),
+    ).toHaveAttribute("href", "https://jw.ustc.edu.cn");
+    await expect(
+      importDialog.getByRole("link", { name: "研究生信息系统" }),
+    ).toHaveAttribute("href", "https://yjs1.ustc.edu.cn");
+    await expect(importDialog).toContainText("MATH1001.01");
     await textarea.fill(DEV_SEED.section.code);
 
     const matchResponse = page.waitForResponse(
