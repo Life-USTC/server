@@ -249,7 +249,9 @@ INSERT INTO public."RoomType" (id, "jwId", "nameCn", "nameEn", code) VALUES (1, 
 -- Data for Name: Semester; Type: TABLE DATA; Schema: public; Owner: -
 --
 
-INSERT INTO public."Semester" (id, "jwId", "nameCn", code, "startDate", "endDate") VALUES (1, 9900001, '2026年春季学期', '421', '2026-04-08', '2026-09-06') ON CONFLICT DO NOTHING;
+-- Keep the fixed scenario dates valid while current-semester API and browser
+-- tests use the real Shanghai date. Refresh the horizon on every seed run.
+INSERT INTO public."Semester" (id, "jwId", "nameCn", code, "startDate", "endDate") VALUES (1, 9900001, '2026年春季学期', '421', '2026-04-08', GREATEST(DATE '2026-09-06', (CURRENT_TIMESTAMP AT TIME ZONE 'Asia/Shanghai')::date + 130)) ON CONFLICT ("jwId") DO UPDATE SET "endDate" = EXCLUDED."endDate";
 INSERT INTO public."Semester" (id, "jwId", "nameCn", code, "startDate", "endDate") VALUES (2, 9900000, '2025年秋季学期', '420', '2025-10-21', '2026-03-30') ON CONFLICT DO NOTHING;
 
 
