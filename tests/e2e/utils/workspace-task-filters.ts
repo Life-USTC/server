@@ -1,8 +1,13 @@
+import { createHmac } from "node:crypto";
 import type { Page } from "@playwright/test";
-import { getBetterAuthInstance } from "@/lib/auth/core";
+import { getCookies } from "better-auth/cookies";
+import { formatShanghaiDate } from "@/lib/time/shanghai-format";
 import { DEV_SEED } from "./dev-seed";
-import { PLAYWRIGHT_BASE_URL } from "./e2e-db";
+import { PLAYWRIGHT_BASE_URL } from "./e2e-db/core";
 import { withE2ePrisma } from "./e2e-db/prisma";
+
+// Matches the local Worker configuration in wrangler.e2e.jsonc.
+const E2E_AUTH_SECRET = "e2e-dev-secret-not-for-production";
 
 const DAY_MS = 24 * 60 * 60 * 1_000;
 
@@ -24,27 +29,11 @@ export type WorkspaceTaskFilterFixture = {
   cleanup: () => Promise<void>;
 };
 
-function base64(bytes: Uint8Array) {
-  return btoa(String.fromCharCode(...bytes));
-}
-
 function shanghaiDateFromOffset(offsetDays: number) {
-  const target = new Date(Date.now() + offsetDays * DAY_MS);
-  const parts = new Intl.DateTimeFormat("en-US", {
-    day: "2-digit",
-    month: "2-digit",
-    timeZone: "Asia/Shanghai",
-    year: "numeric",
-  }).formatToParts(target);
-  const values = new Map(
-    parts
-      .filter((part) => part.type !== "literal")
-      .map((part) => [part.type, part.value]),
-  );
-  return `${values.get("year")}-${values.get("month")}-${values.get("day")}`;
+  return formatShanghaiDate(new Date(Date.now() + offsetDays * DAY_MS));
 }
 
-async function createSignedSessionCookie(userId: string) {
+async function createSignedSessionCookie(userId: string, secret: string) {
   const sessionToken = crypto.randomUUID();
   await withE2ePrisma((prisma) =>
     prisma.session.create({
@@ -56,25 +45,13 @@ async function createSignedSessionCookie(userId: string) {
     }),
   );
 
-  const authContext = await getBetterAuthInstance().$context;
-  const key = await crypto.subtle.importKey(
-    "raw",
-    new TextEncoder().encode(authContext.secret),
-    { hash: "SHA-256", name: "HMAC" },
-    false,
-    ["sign"],
-  );
-  const signature = await crypto.subtle.sign(
-    "HMAC",
-    key,
-    new TextEncoder().encode(sessionToken),
-  );
-  const signedValue = encodeURIComponent(
-    `${sessionToken}.${base64(new Uint8Array(signature))}`,
-  );
+  const signature = createHmac("sha256", secret)
+    .update(sessionToken)
+    .digest("base64");
+  const signedValue = encodeURIComponent(`${sessionToken}.${signature}`);
 
   return {
-    name: authContext.authCookies.sessionToken.name,
+    name: getCookies({ baseURL: PLAYWRIGHT_BASE_URL }).sessionToken.name,
     url: PLAYWRIGHT_BASE_URL,
     value: signedValue,
   };
@@ -197,7 +174,7 @@ export async function createWorkspaceTaskFilterFixture(
       await tx.exam.create({
         data: {
           endTime: 1100,
-          examDate: new Date(`${shanghaiDateFromOffset(-3)}T00:00:00+08:00`),
+          examDate: new Date(`${shanghaiDateFromOffset(-3)}T00:00:00Z`),
           examMode: "E2E closed book",
           examRooms: {
             create: [{ count: 1, room: completedExamRoom }],
@@ -214,9 +191,7 @@ export async function createWorkspaceTaskFilterFixture(
         await tx.exam.create({
           data: {
             endTime: 1100,
-            examDate: new Date(
-              `${shanghaiDateFromOffset(3)}T00:00:00+08:00`,
-            ),
+            examDate: new Date(`${shanghaiDateFromOffset(3)}T00:00:00Z`),
             examMode: "E2E open book",
             examRooms: {
               create: [{ count: 1, room: pendingExamRoom }],
@@ -225,7 +200,7 @@ export async function createWorkspaceTaskFilterFixture(
             examType: 1,
             jwId: firstJwId + 3,
             sectionId: section.id,
-            startTime: 1400,
+            startTime: 900,
           },
         });
       }
@@ -238,8 +213,16 @@ export async function createWorkspaceTaskFilterFixture(
     });
   });
 
-  const sessionCookie = await createSignedSessionCookie(created.userId);
-  await page.context().addCookies([sessionCookie]);
+  try {
+    const sessionCookie = await createSignedSessionCookie(
+      created.userId,
+      E2E_AUTH_SECRET,
+    );
+    await page.context().addCookies([sessionCookie]);
+  } catch (error) {
+    await cleanupWorkspaceTaskFilterFixture(created);
+    throw error;
+  }
 
   let cleaned = false;
   return {
