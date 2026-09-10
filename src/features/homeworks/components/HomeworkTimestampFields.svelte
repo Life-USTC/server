@@ -8,6 +8,7 @@ import * as ButtonGroup from "$lib/components/ui/button-group/index.js";
 import * as DropdownMenu from "$lib/components/ui/dropdown-menu/index.js";
 import * as Field from "$lib/components/ui/field/index.js";
 import type {
+  HomeworkDueShortcut,
   HomeworkTimestampActions,
   HomeworkTimestampCapabilities,
   HomeworkTimestampCopy,
@@ -18,6 +19,7 @@ export let advancedOpen = false;
 export let capabilities: HomeworkTimestampCapabilities = {};
 export let copy: HomeworkTimestampCopy;
 export let disabled = false;
+export let dueShortcuts: HomeworkDueShortcut[] = [];
 export let details: Snippet | undefined = undefined;
 export let idPrefix = "homework";
 export let optionalSettings: Snippet | undefined = undefined;
@@ -26,7 +28,10 @@ export let submissionDueAt = "";
 export let submissionStartAt = "";
 
 $: hasDueShortcuts = Boolean(
-  actions.dueAtSemesterEnd || actions.dueInMonth || actions.dueInWeek,
+  actions.dueAtSemesterEnd ||
+    actions.dueInMonth ||
+    actions.dueInWeek ||
+    dueShortcuts.length > 0,
 );
 $: hasAdvancedShortcuts = Boolean(
   actions.publishNow || actions.startAtSemesterStart || actions.startNow,
@@ -38,20 +43,22 @@ $: hasAdvancedShortcuts = Boolean(
     <Field.Title id={`${idPrefix}-submission-due-label`}>
       {copy.submissionDue}
     </Field.Title>
-    <DateTimePicker
-      aria-labelledby={`${idPrefix}-submission-due-label`}
-      bind:value={submissionDueAt}
-      calendarButtonLabel={copy.calendarButtonLabel}
-      disabled={disabled}
-      name="submissionDueAt"
-    />
+    <div class="flex flex-wrap items-end gap-2">
+      <DateTimePicker
+        aria-labelledby={`${idPrefix}-submission-due-label`}
+        bind:value={submissionDueAt}
+        calendarButtonLabel={copy.calendarButtonLabel}
+        class="min-w-48 flex-1"
+        disabled={disabled}
+        name="submissionDueAt"
+      />
     {#if hasDueShortcuts}
       <DropdownMenu.Root>
         <DropdownMenu.Trigger>
           {#snippet child({ props })}
             <Button
               {...props}
-              class="ml-auto"
+              class="shrink-0"
               disabled={disabled}
               size="sm"
               type="button"
@@ -62,8 +69,21 @@ $: hasAdvancedShortcuts = Boolean(
             </Button>
           {/snippet}
         </DropdownMenu.Trigger>
-        <DropdownMenu.Content align="end">
+        <DropdownMenu.Content
+          align="end"
+          class="w-max max-w-[calc(100vw-2rem)] max-h-[var(--bits-dropdown-menu-content-available-height)]"
+        >
           <DropdownMenu.Group>
+            {#each dueShortcuts as shortcut}
+              <DropdownMenu.Item
+                disabled={disabled}
+                onSelect={() => {
+                  submissionDueAt = shortcut.value;
+                }}
+              >
+                {shortcut.label}
+              </DropdownMenu.Item>
+            {/each}
             {#if actions.dueInWeek}
               <DropdownMenu.Item disabled={disabled} onSelect={actions.dueInWeek}>
                 {copy.helperWeek}
@@ -86,6 +106,7 @@ $: hasAdvancedShortcuts = Boolean(
         </DropdownMenu.Content>
       </DropdownMenu.Root>
     {/if}
+    </div>
   </Field.Field>
 
   {#if details}

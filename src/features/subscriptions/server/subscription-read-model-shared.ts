@@ -1,3 +1,4 @@
+import { nextHomeworkClassStarts } from "@/features/homeworks/lib/homework-due-shortcuts";
 import type { Prisma } from "@/generated/prisma/client";
 import { withUserDbContext } from "@/lib/db/prisma";
 import { toShanghaiIsoString } from "@/lib/time/serialize-date-output";
@@ -36,9 +37,11 @@ export type SectionOption = {
   jwId: number | null;
   code: string | null;
   courseName: string | null;
+  nextClassStarts: string[];
   semesterName: string | null;
   semesterStart: string | null;
   semesterEnd: string | null;
+  teacherName: string | null;
 };
 
 export async function getSubscribedSectionIds(
@@ -117,22 +120,31 @@ export async function buildCalendarFeedPath(
   return buildUserCalendarFeedPath(userId, token);
 }
 
-export function sectionOptionFromRow(row: {
-  id: number;
-  jwId: number | null;
-  code: string | null;
-  course: { namePrimary: string | null } | null;
-  semester: {
-    nameCn: string | null;
-    startDate: Date | null;
-    endDate: Date | null;
-  } | null;
-}) {
+export function sectionOptionFromRow(
+  row: {
+    id: number;
+    jwId: number | null;
+    code: string | null;
+    course: { namePrimary: string | null } | null;
+    semester: {
+      nameCn: string | null;
+      startDate: Date | null;
+      endDate: Date | null;
+    } | null;
+    schedules?: Array<{
+      date: Date | null;
+      startTime: number;
+    }>;
+    teachers?: Array<{ namePrimary: string | null }>;
+  },
+  now: Date = new Date(),
+) {
   return {
     id: row.id,
     jwId: row.jwId,
     code: row.code,
     courseName: row.course?.namePrimary ?? null,
+    nextClassStarts: nextHomeworkClassStarts(row.schedules ?? [], now),
     semesterName: row.semester?.nameCn ?? null,
     semesterStart: row.semester?.startDate
       ? toShanghaiIsoString(row.semester.startDate)
@@ -140,6 +152,11 @@ export function sectionOptionFromRow(row: {
     semesterEnd: row.semester?.endDate
       ? toShanghaiIsoString(row.semester.endDate)
       : null,
+    teacherName:
+      row.teachers
+        ?.map((teacher) => teacher.namePrimary)
+        .filter((name): name is string => Boolean(name))
+        .join(", ") || null,
   };
 }
 
