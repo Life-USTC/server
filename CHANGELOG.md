@@ -1,3 +1,10 @@
+## [1.105.5](https://github.com/Life-USTC/server/compare/v1.105.4...v1.105.5) (2026-09-10)
+
+
+### Bug Fixes
+
+* **workspace:** keep completion filters visibly selected ([#1028](https://github.com/Life-USTC/server/issues/1028)) ([4c6267e](https://github.com/Life-USTC/server/commit/4c6267e3029af669279ba0bbac38f12db84a2b13))
+
 ## [1.105.4](https://github.com/Life-USTC/server/compare/v1.105.3...v1.105.4) (2026-09-10)
 
 

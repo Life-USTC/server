@@ -192,13 +192,29 @@ test.describe("仪表盘待办", () => {
       .getByRole("radio", { name: /已完成|Completed/i })
       .first();
     const completedTodo = visibleText(page, DEV_SEED.todos.completedTitle);
-    await expect(async () => {
-      await completedFilter.click();
-      await expect(completedTodo).toBeVisible({ timeout: 3_000 });
-    }).toPass({
-      timeout: 15_000,
-      intervals: [250, 500, 1_000],
+    await completedFilter.click();
+    await expect(completedTodo).toBeVisible({ timeout: 15_000 });
+
+    const completedDetailButton = page
+      .getByRole("button", {
+        name: DEV_SEED.todos.completedTitle,
+        exact: true,
+      })
+      .first();
+    await completedDetailButton.click();
+    const completedDetail = page.getByRole("dialog", {
+      name: DEV_SEED.todos.completedTitle,
     });
+    await expect(completedDetail).toBeVisible();
+    await expect(
+      completedDetail.locator('[data-slot="dialog-title"]'),
+    ).toHaveClass(/line-through/);
+    await expect(
+      completedDetail.locator(
+        '[data-slot="dialog-description"] [data-slot="badge"]',
+      ),
+    ).toHaveClass(/text-destructive/);
+    await page.keyboard.press("Escape");
 
     await captureStepScreenshot(page, testInfo, "workspace-todos-completed");
   });
@@ -269,11 +285,17 @@ test.describe("仪表盘待办", () => {
         detailText.match(/\b(?:Low|Medium|High)\b|[低中高]/g) ?? [];
       expect(localizedPriorityMatches).toHaveLength(1);
       expect(detailText).not.toMatch(/\b(?:low|medium|high)\b/);
+      await expect(
+        detailDialog.locator(
+          '[data-slot="dialog-description"] [data-slot="badge"]',
+        ),
+      ).toHaveClass(/bg-secondary/);
       const editButton = detailDialog.getByRole("button", {
         name: /编辑待办|Edit Todo/i,
       });
       await expect(editButton).toBeVisible();
       await expect(editButton).toBeEnabled();
+      await expect(editButton.locator("svg")).toBeVisible();
       await editButton.click();
 
       const editDialog = page.getByRole("dialog", {
@@ -405,30 +427,32 @@ test.describe("仪表盘待办", () => {
 
       const detailFooter = detailDialog.locator('[data-slot="dialog-footer"]');
       await expect(detailFooter).toBeInViewport();
+      const deleteButton = detailFooter.getByRole("button", {
+        name: /删除待办|Delete todo/i,
+      });
       const completion = detailFooter.getByRole("button", {
         name: /标记为完成|Mark as complete/i,
       });
       const edit = detailFooter.getByRole("button", {
         name: /编辑待办|Edit Todo/i,
       });
-      const deleteButton = detailFooter.getByRole("button", {
-        name: /删除待办|Delete todo/i,
-      });
-      for (const control of [completion, edit, deleteButton]) {
+      for (const control of [deleteButton, completion, edit]) {
         await expect(control).toBeVisible();
         const box = await control.boundingBox();
         expect(box).not.toBeNull();
         expect(box?.width ?? 0).toBeGreaterThanOrEqual(240);
       }
-      const [completionBox, editBox, deleteBox] = await Promise.all([
+      const [deleteBox, completionBox, editBox] = await Promise.all([
+        deleteButton.boundingBox(),
         completion.boundingBox(),
         edit.boundingBox(),
-        deleteButton.boundingBox(),
       ]);
+      expect(deleteBox?.y).toBeLessThan(
+        completionBox?.y ?? Number.POSITIVE_INFINITY,
+      );
       expect(completionBox?.y).toBeLessThan(
         editBox?.y ?? Number.POSITIVE_INFINITY,
       );
-      expect(editBox?.y).toBeLessThan(deleteBox?.y ?? Number.POSITIVE_INFINITY);
       expect(
         await page.evaluate(
           () => document.documentElement.scrollWidth <= window.innerWidth,

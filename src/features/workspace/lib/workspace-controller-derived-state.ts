@@ -1,7 +1,8 @@
 import type { CatalogLinkGroup } from "@/features/catalog-links/lib/catalog-links";
 import type { ExamFilter } from "./exams";
 import { filterExamRows } from "./exams";
-import { filterTodos } from "./todos";
+import { referenceDate } from "./overview-dates";
+import { filterTodos, sortTodosByDueDistance } from "./todos";
 import { workspaceExamRows } from "./workspace-controller-display";
 import {
   type CalendarData,
@@ -88,7 +89,10 @@ export function buildWorkspaceControllerDerivedState(input: {
     catalogLinkItems,
     examRows,
     filteredExamRows: filterExamRows(examRows, input.examFilter),
-    filteredTodos: filterTodos(todoItems, input.todoFilter),
+    filteredTodos: sortTodosByDueDistance(
+      filterTodos(todoItems, input.todoFilter),
+      referenceDate(signedData?.referenceNow),
+    ),
     homeworkItems,
     overviewLinkItems,
     signedData,

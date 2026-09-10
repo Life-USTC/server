@@ -40,7 +40,7 @@ export let toggleTodoCompletion: TodoCompletionToggle;
     </Table.Row>
   </Table.Header>
   <Table.Body>
-    {#each filteredTodos as todo}
+    {#each filteredTodos as todo (todo.id)}
       <Table.Row class="group">
         <Table.Cell>
           <button
