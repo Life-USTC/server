@@ -35,16 +35,18 @@ $: isOverdue = deadlineState === "overdue";
     <dd class="mt-1 truncate text-xl font-semibold tracking-tight sm:text-2xl">
       {dueLabel}
     </dd>
-    <dd
-      class={cn(
-        "mt-2 flex items-center gap-2 text-sm",
-        isOverdue ? "text-destructive font-medium" : "text-muted-foreground",
-      )}
-    >
-      <span>{copy.relativeTime}</span>
-      <span aria-hidden="true">·</span>
-      <span>{relativeLabel}</span>
-    </dd>
+    {#if !homework.completed}
+      <dd
+        class={cn(
+          "mt-2 flex items-center gap-2 text-sm",
+          isOverdue ? "text-destructive font-medium" : "text-muted-foreground",
+        )}
+      >
+        <span>{copy.relativeTime}</span>
+        <span aria-hidden="true">·</span>
+        <span>{relativeLabel}</span>
+      </dd>
+    {/if}
   </div>
 
   <div class="flex min-w-0 items-center justify-between gap-3 sm:flex-col sm:items-end">
