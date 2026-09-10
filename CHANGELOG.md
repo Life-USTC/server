@@ -1,3 +1,10 @@
+## [1.105.4](https://github.com/Life-USTC/server/compare/v1.105.3...v1.105.4) (2026-09-10)
+
+
+### Bug Fixes
+
+* **homeworks:** hide deadline reminders for completed homework ([#1026](https://github.com/Life-USTC/server/issues/1026)) ([62d87c2](https://github.com/Life-USTC/server/commit/62d87c22e0657dd0a56f9ae7c767b3efa70a1302))
+
 ## [1.105.3](https://github.com/Life-USTC/server/compare/v1.105.2...v1.105.3) (2026-09-04)
 
 
