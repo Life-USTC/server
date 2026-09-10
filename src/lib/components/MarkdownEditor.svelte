@@ -16,6 +16,7 @@ type MarkdownEditorProps = Omit<
   modeLabel?: string;
   name?: string;
   previewEmptyLabel?: string;
+  previewLayout?: "tabs" | "split";
   remarkPlugins?: PluggableList;
   tabPreviewLabel?: string;
   tabWriteLabel?: string;
@@ -32,6 +33,7 @@ let {
   name = undefined,
   placeholder = "",
   previewEmptyLabel = "",
+  previewLayout = "tabs",
   remarkPlugins = [],
   rows = 6,
   tabPreviewLabel = "",
@@ -71,44 +73,72 @@ function setActiveTab(value: string) {
     <input type="hidden" {name} {value} />
   {/if}
 
-  <Tabs.Root
-    value={activeTab}
-    onValueChange={setActiveTab}
-    class="gap-3"
-  >
-    <Tabs.List aria-label={modeLabel || undefined}>
-      <Tabs.Trigger value="write">{tabWriteLabel}</Tabs.Trigger>
-      <Tabs.Trigger value="preview">{tabPreviewLabel}</Tabs.Trigger>
-    </Tabs.List>
+  {#snippet editorField()}
+    <div
+      class="rounded-md border border-transparent transition-colors data-[drag-active=true]:border-primary data-[drag-active=true]:bg-primary/5"
+      data-drag-active={isDragActive}
+    >
+      <InputGroup.Root class="h-auto min-h-32">
+        <InputGroup.Textarea
+          aria-label={labelledBy ? undefined : label}
+          aria-labelledby={labelledBy}
+          class="min-h-32 resize-y"
+          bind:value
+          {disabled}
+          {placeholder}
+          {rows}
+          {...restProps}
+        ></InputGroup.Textarea>
+      </InputGroup.Root>
+    </div>
+  {/snippet}
 
-    <Tabs.Content value="write" class="m-0">
+  {#snippet markdownPreview()}
+    {#await import("$lib/components/MarkdownPreview.svelte") then previewModule}
+      {@const Preview = previewModule.default}
+      <Preview content={value} emptyLabel={previewEmptyLabel} {remarkPlugins} />
+    {/await}
+  {/snippet}
+
+  {#if previewLayout === "split"}
+    <div class="grid gap-3" data-preview-layout="split">
       <div
-        class="rounded-md border border-transparent transition-colors data-[drag-active=true]:border-primary data-[drag-active=true]:bg-primary/5"
-        data-drag-active={isDragActive}
+        aria-label={tabWriteLabel || undefined}
+        class="grid gap-1"
+        role={tabWriteLabel ? "region" : undefined}
       >
-        <InputGroup.Root class="h-auto min-h-32">
-          <InputGroup.Textarea
-            aria-label={labelledBy ? undefined : label}
-            aria-labelledby={labelledBy}
-            class="min-h-32 resize-y"
-            bind:value
-            {disabled}
-            {placeholder}
-            {rows}
-            {...restProps}
-          ></InputGroup.Textarea>
-        </InputGroup.Root>
+        {@render editorField()}
       </div>
-    </Tabs.Content>
-    <Tabs.Content value="preview" class="m-0 min-h-32 p-3">
-      {#if activeTab === "preview"}
-        {#await import("$lib/components/MarkdownPreview.svelte") then previewModule}
-          {@const Preview = previewModule.default}
-          <Preview content={value} emptyLabel={previewEmptyLabel} {remarkPlugins} />
-        {/await}
-      {/if}
-    </Tabs.Content>
-  </Tabs.Root>
+      <div
+        aria-label={tabPreviewLabel || undefined}
+        class="min-h-32 rounded-md border p-3"
+        data-slot="markdown-editor-preview"
+        role={tabPreviewLabel ? "region" : undefined}
+      >
+        {@render markdownPreview()}
+      </div>
+    </div>
+  {:else}
+    <Tabs.Root
+      value={activeTab}
+      onValueChange={setActiveTab}
+      class="gap-3"
+    >
+      <Tabs.List aria-label={modeLabel || undefined}>
+        <Tabs.Trigger value="write">{tabWriteLabel}</Tabs.Trigger>
+        <Tabs.Trigger value="preview">{tabPreviewLabel}</Tabs.Trigger>
+      </Tabs.List>
+
+      <Tabs.Content value="write" class="m-0">
+        {@render editorField()}
+      </Tabs.Content>
+      <Tabs.Content value="preview" class="m-0 min-h-32 p-3">
+        {#if activeTab === "preview"}
+          {@render markdownPreview()}
+        {/if}
+      </Tabs.Content>
+    </Tabs.Root>
+  {/if}
 
   {#if guideLabel}
     <div class="flex justify-end">
