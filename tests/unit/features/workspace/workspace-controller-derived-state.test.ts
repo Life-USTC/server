@@ -74,6 +74,32 @@ function homework(id: string, completed: boolean): HomeworkItem {
 }
 
 describe("仪表盘控制器派生状态", () => {
+  it.each(["incomplete", "completed", "all"] as const)(
+    "preserves the %s todo filter when the last pending todo is completed",
+    (todoFilter) => {
+      const completedTodo = {
+        id: "last-todo",
+        completed: true,
+      } as TodoItem;
+      const result = buildWorkspaceControllerDerivedState({
+        currentCatalogLinkItems: [],
+        currentOverviewLinkItems: [],
+        currentTodoItems: [completedTodo],
+        catalogLinkGroupLabels,
+        data: signedWorkspaceData([]),
+        dateFallback: "TBD",
+        examFilter: "incomplete",
+        linkSearchQuery: "",
+        notAvailable: "N/A",
+        todoFilter,
+      });
+
+      expect(result.filteredTodos).toEqual(
+        todoFilter === "incomplete" ? [] : [completedTodo],
+      );
+    },
+  );
+
   it.each([
     { currentPinned: true, loadedPinned: false, name: "pin" },
     { currentPinned: false, loadedPinned: true, name: "unpin" },

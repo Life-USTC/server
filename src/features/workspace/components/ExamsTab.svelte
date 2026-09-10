@@ -8,7 +8,6 @@ import type {
   WorkspaceSubscriptionsCopy,
 } from "@/features/workspace/lib/workspace-controller-types";
 import { hasWorkspaceSubscriptions } from "@/features/workspace/lib/workspace-subscription-state";
-import { resolveWorkspaceTaskFilter } from "@/features/workspace/lib/workspace-task-filter";
 import { Button } from "$lib/components/ui/button/index.js";
 import * as Empty from "$lib/components/ui/empty/index.js";
 import ExamsCardsView from "./ExamsCardsView.svelte";
@@ -48,10 +47,6 @@ $: ({ fmtExamDate } = createExamTabDisplayActions({
   referenceNow: signedData.referenceNow,
   sectionCopy,
 }));
-$: displayExamFilter = resolveWorkspaceTaskFilter(
-  examFilter,
-  examRows.some((row) => !row.completed),
-);
 </script>
 
 <section class="grid gap-4">
@@ -67,7 +62,7 @@ $: displayExamFilter = resolveWorkspaceTaskFilter(
   {:else}
     <ExamsTabToolbar
       {workspaceCopy}
-      examFilter={displayExamFilter}
+      {examFilter}
       onExamFilterChange={(value) => {
         examFilter = value;
       }}

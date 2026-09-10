@@ -60,7 +60,6 @@ export let signedData: WorkspaceTaskTabsProps["signedData"];
 export let subscriptionsCopy: WorkspaceTaskTabsProps["subscriptionsCopy"];
 export let todoActionError: string;
 export let todoFilter: WorkspaceTaskTabsProps["todoFilter"];
-export let todoItems: WorkspaceTaskTabsProps["todoItems"];
 export let todoPriorityOptions: WorkspaceTaskTabsProps["todoPriorityOptions"];
 export let todoSavingById: WorkspaceTaskTabsProps["todoSavingById"];
 export let todosCopy: WorkspaceTaskTabsProps["todosCopy"];
@@ -85,7 +84,6 @@ export let updateTodoAction: WorkspaceTaskTabsProps["updateTodoAction"];
     {updateTodoAction}
     {filteredTodos}
     {todoActionError}
-    {todoItems}
     {todoSavingById}
     {isCreatingTodo}
     {isUpdatingTodo}

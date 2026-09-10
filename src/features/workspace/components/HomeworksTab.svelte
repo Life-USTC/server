@@ -15,7 +15,6 @@ import type {
 } from "@/features/workspace/lib/workspace-controller-types";
 import { filterWorkspaceHomeworks } from "@/features/workspace/lib/workspace-homework-filter";
 import { hasWorkspaceSubscriptions } from "@/features/workspace/lib/workspace-subscription-state";
-import { resolveWorkspaceTaskFilter } from "@/features/workspace/lib/workspace-task-filter";
 import * as Alert from "$lib/components/ui/alert/index.js";
 import HomeworksCardsView from "./HomeworksCardsView.svelte";
 import HomeworksListView from "./HomeworksListView.svelte";
@@ -84,14 +83,7 @@ let homeworkStatus: HomeworkAction;
 
 $: filteredHomeworkItems = filterWorkspaceHomeworks(
   homeworkItems,
-  resolveWorkspaceTaskFilter(
-    homeworkFilter,
-    homeworkItems.some((item) => !item.completion),
-  ),
-);
-$: displayHomeworkFilter = resolveWorkspaceTaskFilter(
   homeworkFilter,
-  homeworkItems.some((item) => !item.completion),
 );
 $: hasHomeworkItems = homeworkItems.length > 0;
 
@@ -131,7 +123,7 @@ $: ({
   {:else}
     <HomeworksTabToolbar
       {homeworksCopy}
-      homeworkFilter={displayHomeworkFilter}
+      {homeworkFilter}
       onHomeworkFilterChange={(value) => {
         homeworkFilter = value;
       }}
