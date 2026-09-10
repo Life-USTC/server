@@ -1,3 +1,10 @@
+## [1.105.6](https://github.com/Life-USTC/server/compare/v1.105.5...v1.105.6) (2026-09-10)
+
+
+### Bug Fixes
+
+* **todos:** correct filtering, deadline order and detail actions ([#1027](https://github.com/Life-USTC/server/issues/1027)) ([6099b2c](https://github.com/Life-USTC/server/commit/6099b2c587f9fb9c7c9f5a6cbaf82dd8e26582dc))
+
 ## [1.105.5](https://github.com/Life-USTC/server/compare/v1.105.4...v1.105.5) (2026-09-10)
 
 
