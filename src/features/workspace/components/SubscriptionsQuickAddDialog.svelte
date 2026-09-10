@@ -108,15 +108,16 @@ async function searchSections() {
   isSearching = true;
 
   try {
-    const result = await searchQuickAddSections({
+    const sections = await searchQuickAddSections({
       semesterId: requestedSemesterId,
       text: requestedQuery,
     });
     if (generation !== searchGeneration || !open) return;
-    results = result.sections;
-    selectedSectionIds = result.selectedSectionIds.filter(
-      (sectionId) => !subscribedSectionIdSet.has(sectionId),
-    );
+    results = sections;
+    selectedSectionIds =
+      sections.length === 1 && !subscribedSectionIdSet.has(sections[0].id)
+        ? [sections[0].id]
+        : [];
     searchedQuery = requestedQuery;
     searchedSemesterId = requestedSemesterId;
     hasSearched = true;
@@ -226,9 +227,6 @@ async function subscribeSelectedSections() {
                   </Button>
                 </InputGroup.Addon>
               </InputGroup.Root>
-              <Field.Description>
-                {subscriptionsCopy.quickAdd.hint}
-              </Field.Description>
             </Field.Field>
           </Field.Group>
 

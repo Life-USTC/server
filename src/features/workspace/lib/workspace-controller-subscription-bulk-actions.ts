@@ -89,22 +89,15 @@ export function createWorkspaceBulkImportActions(
     }
   }
 
-  async function searchQuickAddSections(inputValue: {
+  function searchQuickAddSections(inputValue: {
     semesterId: string;
     text: string;
   }) {
-    const sections = await searchSubscriptionSections({
+    return searchSubscriptionSections({
       errorMessage: input.getSubscriptionsCopy().bulkImport.fetchFailed,
       semesterId: inputValue.semesterId,
       text: inputValue.text,
     });
-
-    return {
-      message: "",
-      sections,
-      selectedSectionIds: sections.map((section) => section.id),
-      unmatchedCodes: [],
-    };
   }
 
   async function subscribeQuickAddSections(selectedSectionIds: number[]) {

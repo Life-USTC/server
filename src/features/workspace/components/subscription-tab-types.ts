@@ -48,7 +48,6 @@ export type WorkspaceSubscriptionsTabCopy = WorkspaceSubscriptionsCopy & {
     description: string;
     emptyDescription: string;
     emptyTitle: string;
-    hint: string;
     placeholder: string;
     resultsDescription: string;
     resultsLabel: string;
@@ -113,12 +112,7 @@ export type WorkspaceSubscriptionsTabProps = {
   searchQuickAddSections: (input: {
     semesterId: string;
     text: string;
-  }) => Promise<{
-    message: string;
-    sections: MatchedImportSection[];
-    selectedSectionIds: number[];
-    unmatchedCodes: string[];
-  }>;
+  }) => Promise<MatchedImportSection[]>;
   sectionCopy: WorkspaceSectionCopy;
   selectedImportSectionIdSet: Set<number>;
   signedData: WorkspaceSubscriptionsSignedData;

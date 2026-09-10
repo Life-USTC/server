@@ -257,7 +257,6 @@ export type WorkspaceSubscriptionsCopy = WorkspaceRecord & {
     description: string;
     emptyDescription: string;
     emptyTitle: string;
-    hint: string;
     placeholder: string;
     resultsDescription: string;
     resultsLabel: string;

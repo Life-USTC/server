@@ -8,6 +8,7 @@
   },
   "rules": {
     "subscription-language": "User-facing copy uses 'section subscription', 'subscribe', and 'unsubscribe' consistently; it must not use 'follow' or describe the action as course enrollment.",
+    "web-quick-add-selection": "Quick-add search auto-selects a section only when the entire result contains exactly one section and it is not already subscribed. Multiple results start unselected, even when only one result remains unsubscribed. Each new search resets the selection. Already-subscribed sections remain checked and disabled without contributing to the submission count. The results description explains the 20-section limit and asks users to narrow their search.",
     "user-scoped": "Subscription relationships belong only to the current user and determine the display scope for home page, calendar, homework, and exam.",
     "bounded-batch-input": "Calendar subscription query and mutation requests accept at most 500 section IDs and at most 500 lookup codes per request, in addition to the per-user batch request budget."
   },
