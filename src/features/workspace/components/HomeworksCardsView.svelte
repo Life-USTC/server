@@ -86,9 +86,11 @@ function summaryBadges(homework: WorkspaceHomeworkItem) {
               <span class="max-w-full break-words"
                 >{homeworkCopy.due}: {fmtDate(homework.submissionDueAt)}</span
               >
-              <Badge variant={homeworkIsOverdue(homework.submissionDueAt) ? "destructive" : "ghost"}>
-                {homeworkEtaLabel(homework.submissionDueAt)}
-              </Badge>
+              {#if !homework.completion}
+                <Badge variant={homeworkIsOverdue(homework.submissionDueAt) ? "destructive" : "ghost"}>
+                  {homeworkEtaLabel(homework.submissionDueAt)}
+                </Badge>
+              {/if}
               {#each summaryBadges(homework) as badge (badge.key)}
                 <Badge variant={badge.variant}>{badge.label}</Badge>
               {/each}
