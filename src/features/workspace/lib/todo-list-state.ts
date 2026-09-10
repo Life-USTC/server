@@ -26,8 +26,8 @@ export function sortTodosByDueDistance<
 >(todos: Todo[], referenceDate: Date): Todo[] {
   const referenceTime = referenceDate.getTime();
   return [...todos].sort((a, b) => {
-    if (!a.dueAt) return b.dueAt ? 1 : 0;
-    if (!b.dueAt) return -1;
+    if (!a.dueAt) return b.dueAt ? -1 : 0;
+    if (!b.dueAt) return 1;
     const aTime = new Date(a.dueAt).getTime();
     const bTime = new Date(b.dueAt).getTime();
     return (

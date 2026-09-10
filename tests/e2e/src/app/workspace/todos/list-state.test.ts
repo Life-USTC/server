@@ -46,10 +46,10 @@ for (const viewport of [
           : page.getByTestId("workspace-todos-cards");
       const titles = list.getByRole("button").filter({ hasText: prefix });
       await expect(titles).toHaveText([
+        `${prefix}-undated`,
         `${prefix}-near`,
         `${prefix}-tomorrow`,
         `${prefix}-old`,
-        `${prefix}-undated`,
       ]);
       const incomplete = page.getByRole("radio", {
         name: /^(未完成|Incomplete)$/i,
@@ -124,9 +124,9 @@ for (const viewport of [
         ).toHaveCount(0);
       }
       await expect(titles).toHaveText([
+        `${prefix}-undated`,
         `${prefix}-tomorrow`,
         `${prefix}-old`,
-        `${prefix}-undated`,
       ]);
       expect(
         await page.evaluate(
