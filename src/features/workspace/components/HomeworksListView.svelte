@@ -92,13 +92,15 @@ function summaryBadges(homework: WorkspaceHomeworkItem) {
         </Table.Cell>
         <Table.Cell>
           <div class="flex min-w-0 flex-wrap items-center gap-1.5">
-            <Badge
-              variant={homeworkIsOverdue(homework.submissionDueAt)
-                ? "destructive"
-                : "ghost"}
-            >
-              {homeworkEtaLabel(homework.submissionDueAt)}
-            </Badge>
+            {#if !homework.completion}
+              <Badge
+                variant={homeworkIsOverdue(homework.submissionDueAt)
+                  ? "destructive"
+                  : "ghost"}
+              >
+                {homeworkEtaLabel(homework.submissionDueAt)}
+              </Badge>
+            {/if}
             {#each summaryBadges(homework) as badge (badge.key)}
               <Badge variant={badge.variant}>{badge.label}</Badge>
             {/each}
