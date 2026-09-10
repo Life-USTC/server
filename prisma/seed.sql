@@ -249,7 +249,12 @@ INSERT INTO public."RoomType" (id, "jwId", "nameCn", "nameEn", code) VALUES (1, 
 -- Data for Name: Semester; Type: TABLE DATA; Schema: public; Owner: -
 --
 
-INSERT INTO public."Semester" (id, "jwId", "nameCn", code, "startDate", "endDate") VALUES (1, 9900001, '2026年春季学期', '421', '2026-04-08', '2026-09-06') ON CONFLICT DO NOTHING;
+-- Keep the named current-semester fixture active after its canonical end date.
+-- Its anchored start still contains the seeded schedules and due dates. Use an
+-- explicit Shanghai calendar day because current-semester lookups normalize to
+-- that timezone too. A modest horizon covers time between reseeds, while
+-- updating by jwId lets repeated seeds refresh the fixture indefinitely.
+INSERT INTO public."Semester" (id, "jwId", "nameCn", code, "startDate", "endDate") VALUES (1, 9900001, '2026年春季学期', '421', DATE '2026-04-08', GREATEST(DATE '2026-09-06', (CURRENT_TIMESTAMP AT TIME ZONE 'Asia/Shanghai')::date + 180)) ON CONFLICT ("jwId") DO UPDATE SET "startDate" = EXCLUDED."startDate", "endDate" = EXCLUDED."endDate";
 INSERT INTO public."Semester" (id, "jwId", "nameCn", code, "startDate", "endDate") VALUES (2, 9900000, '2025年秋季学期', '420', '2025-10-21', '2026-03-30') ON CONFLICT DO NOTHING;
 
 
