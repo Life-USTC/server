@@ -70,6 +70,7 @@ export let updateTodoAction: WorkspaceTaskTabsProps["updateTodoAction"];
 
 {#if activeTab === "todos"}
   <SignedWorkspaceTodosTaskBranch
+    hasTodoItems={(signedData.todos?.length ?? 0) > 0}
     {todosCopy}
     {workspaceCopy}
     {sectionCopy}

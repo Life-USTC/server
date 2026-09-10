@@ -4,6 +4,7 @@ import TableIconButton from "$lib/components/TableIconButton.svelte";
 import TableRowActions from "$lib/components/TableRowActions.svelte";
 import TruncatedText from "$lib/components/TruncatedText.svelte";
 import * as Table from "$lib/components/ui/table/index.js";
+import WorkspaceTaskEmptyState from "./WorkspaceTaskEmptyState.svelte";
 import type {
   ExamsCopyProps,
   ExamTimeLabel,
@@ -11,7 +12,10 @@ import type {
   WorkspaceTabHref,
 } from "./workspace-exam-component-types";
 
+export let workspaceCopy: ExamsCopyProps["workspaceCopy"];
 export let workspaceTabHref: WorkspaceTabHref;
+export let hasExamRows: boolean;
+export let onClearFilter: () => void;
 export let exams: WorkspaceExamRow[];
 export let examTimeLabel: ExamTimeLabel;
 export let fmtExamDate: (value: Date | string | null | undefined) => string;
@@ -64,6 +68,17 @@ export let subscriptionsCopy: ExamsCopyProps["subscriptionsCopy"];
               <ArrowUpRight data-icon="inline-start" />
             </TableIconButton>
           </TableRowActions>
+        </Table.Cell>
+      </Table.Row>
+    {:else}
+      <Table.Row class="hover:bg-transparent">
+        <Table.Cell class="p-0" colspan={6}>
+          <WorkspaceTaskEmptyState
+            title={hasExamRows ? workspaceCopy.nav.exams.filterEmpty : workspaceCopy.nav.exams.empty}
+            description={hasExamRows ? workspaceCopy.nav.exams.filterEmptyDescription : workspaceCopy.nav.exams.emptyDescription}
+            clearFilterLabel={workspaceCopy.nav.exams.clearFilter}
+            onClearFilter={hasExamRows ? onClearFilter : undefined}
+          />
         </Table.Cell>
       </Table.Row>
     {/each}

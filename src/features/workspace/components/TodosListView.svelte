@@ -12,12 +12,14 @@ import TruncatedText from "$lib/components/TruncatedText.svelte";
 import { Badge } from "$lib/components/ui/badge/index.js";
 import { Spinner } from "$lib/components/ui/spinner/index.js";
 import * as Table from "$lib/components/ui/table/index.js";
-import WorkspaceEmptyState from "./WorkspaceEmptyState.svelte";
+import WorkspaceTaskEmptyState from "./WorkspaceTaskEmptyState.svelte";
 
 type TodoDateFormatter = (value: Date | string | null | undefined) => string;
 type TodoAction = (todo: WorkspaceTodoItem) => string;
 type TodoCompletionToggle = (todo: WorkspaceTodoItem) => void | Promise<void>;
 
+export let hasTodoItems: boolean;
+export let onClearFilter: () => void;
 export let filteredTodos: WorkspaceTodoItem[];
 export let fmtDate: TodoDateFormatter;
 export let openTodoEditor: (todo: WorkspaceTodoItem) => void;
@@ -97,12 +99,13 @@ export let toggleTodoCompletion: TodoCompletionToggle;
         </Table.Cell>
       </Table.Row>
     {:else}
-      <Table.Row>
+      <Table.Row class="hover:bg-transparent">
         <Table.Cell class="p-0" colspan={4}>
-          <WorkspaceEmptyState
-            className="py-8"
-            title={String(todosCopy.filterEmptyTitle)}
-            description={String(todosCopy.filterEmptyDescription)}
+          <WorkspaceTaskEmptyState
+            title={todosCopy.filterEmptyTitle}
+            description={hasTodoItems ? todosCopy.filterEmptyDescription : undefined}
+            clearFilterLabel={todosCopy.clearFilter}
+            onClearFilter={hasTodoItems ? onClearFilter : undefined}
           />
         </Table.Cell>
       </Table.Row>

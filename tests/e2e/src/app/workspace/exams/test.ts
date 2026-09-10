@@ -61,7 +61,9 @@ test.describe("仪表盘考试", () => {
       filterTabs.locator('[data-value="incomplete"]'),
     ).toHaveAttribute("aria-checked", "true");
     await expect(
-      page.getByText(/当前筛选下暂无考试|No exams under this filter/i),
+      page
+        .getByText(/当前筛选下暂无考试|No exams under this filter/i)
+        .filter({ visible: true }),
     ).toBeVisible();
     await filterTabs.getByRole("radio", { name: /全部|All/i }).click();
     await expect(
@@ -253,7 +255,9 @@ test.describe("仪表盘考试", () => {
     await expect(incompleteTab).toHaveAttribute("aria-checked", "true");
     await expect(endedExamRows).toHaveCount(0);
     await expect(
-      page.getByText(/当前筛选下暂无考试|No exams under this filter/i),
+      page
+        .getByText(/当前筛选下暂无考试|No exams under this filter/i)
+        .filter({ visible: true }),
     ).toBeVisible();
     await captureStepScreenshot(page, testInfo, "exams/filter-incomplete");
   });

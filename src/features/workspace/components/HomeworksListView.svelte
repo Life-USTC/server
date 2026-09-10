@@ -8,10 +8,9 @@ import TableIconButton from "$lib/components/TableIconButton.svelte";
 import TableRowActions from "$lib/components/TableRowActions.svelte";
 import TruncatedText from "$lib/components/TruncatedText.svelte";
 import { Badge } from "$lib/components/ui/badge/index.js";
-import { Button } from "$lib/components/ui/button/index.js";
-import * as Empty from "$lib/components/ui/empty/index.js";
 import { Spinner } from "$lib/components/ui/spinner/index.js";
 import * as Table from "$lib/components/ui/table/index.js";
+import WorkspaceTaskEmptyState from "./WorkspaceTaskEmptyState.svelte";
 
 type HomeworkDateFormatter = (
   value: Date | string | null | undefined,
@@ -137,25 +136,14 @@ function summaryBadges(homework: WorkspaceHomeworkItem) {
         </Table.Cell>
       </Table.Row>
     {:else}
-      <Table.Row>
+      <Table.Row class="hover:bg-transparent">
         <Table.Cell class="p-0" colspan={5}>
-          <Empty.Root class="items-start py-8 text-left">
-            <Empty.Header class="items-start text-left">
-              <Empty.Title>{homeworksCopy.filterEmptyTitle}</Empty.Title>
-              {#if hasHomeworkItems}
-                <Empty.Description>
-                  {homeworksCopy.filterEmptyDescription}
-                </Empty.Description>
-              {/if}
-            </Empty.Header>
-            {#if hasHomeworkItems}
-              <Empty.Content class="items-start">
-                <Button variant="outline" onclick={onClearFilter}>
-                  {homeworksCopy.clearFilter}
-                </Button>
-              </Empty.Content>
-            {/if}
-          </Empty.Root>
+          <WorkspaceTaskEmptyState
+            title={homeworksCopy.filterEmptyTitle}
+            description={hasHomeworkItems ? homeworksCopy.filterEmptyDescription : undefined}
+            clearFilterLabel={homeworksCopy.clearFilter}
+            onClearFilter={hasHomeworkItems ? onClearFilter : undefined}
+          />
         </Table.Cell>
       </Table.Row>
     {/each}
