@@ -1,3 +1,10 @@
+## [1.105.10](https://github.com/Life-USTC/server/compare/v1.105.9...v1.105.10) (2026-09-10)
+
+
+### Bug Fixes
+
+* **workspace:** unify task list empty states ([#1032](https://github.com/Life-USTC/server/issues/1032)) ([c880817](https://github.com/Life-USTC/server/commit/c880817644c9e9718846247574d377130a4b9892))
+
 ## [1.105.9](https://github.com/Life-USTC/server/compare/v1.105.8...v1.105.9) (2026-09-10)
 
 
