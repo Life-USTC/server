@@ -106,7 +106,6 @@ export type WorkspaceTodosTaskProps = WorkspaceTaskBaseProps & {
   showCreateTodo: boolean;
   todoActionError: string;
   todoFilter: TodoFilter;
-  todoItems: WorkspaceTodoItem[];
   todoPriorityOptions: WorkspaceTodoPriorityOption[];
   todoSavingById: WorkspaceTaskSavingById;
   todosCopy: WorkspaceTodosCopy;

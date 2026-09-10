@@ -110,7 +110,6 @@ let {
   subscriptionActionError,
   todoActionError,
   todoFilter,
-  todoItems,
   todoSavingById,
   todoView,
   unmatchedSectionCodes,
@@ -372,7 +371,6 @@ $: signedData = applyLocalTodoItemsToSignedData(
   todoSourceItems,
 );
 $: homeworkReferenceDate = referenceDate(signedData?.referenceNow);
-$: todoItems = derivedState.todoItems;
 $: filteredTodos = derivedState.filteredTodos;
 $: examRows = derivedState.examRows;
 $: filteredExamRows = derivedState.filteredExamRows;
@@ -460,7 +458,6 @@ onMount(mount);
         {signedData}
         {subscriptionsCopy}
         {todoActionError}
-        {todoItems}
         {todoPriorityOptions}
         {todoSavingById}
         {todosCopy}

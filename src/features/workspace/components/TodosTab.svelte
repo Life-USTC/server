@@ -10,7 +10,6 @@ import type {
   WorkspaceTodoPriorityOption,
   WorkspaceTodosCopy,
 } from "@/features/workspace/lib/workspace-controller-types";
-import { resolveWorkspaceTaskFilter } from "@/features/workspace/lib/workspace-task-filter";
 import * as Alert from "$lib/components/ui/alert/index.js";
 import TodosCardsView from "./TodosCardsView.svelte";
 import TodosListView from "./TodosListView.svelte";
@@ -36,7 +35,6 @@ export let createTodoAction: SubmitFunction;
 export let updateTodoAction: SubmitFunction;
 
 export let todoFilter: TodoFilter;
-export let todoItems: WorkspaceTodoItem[];
 export let showCreateTodo: boolean;
 export let selectedTodo: WorkspaceTodoItem | null;
 export let editingTodo: WorkspaceTodoItem | null;
@@ -60,17 +58,13 @@ $: ({ datetimeLocalValue, fmtDate, todoActionLabel, todoStatus } =
     sectionCopy,
     todosCopy,
   }));
-$: displayTodoFilter = resolveWorkspaceTaskFilter(
-  todoFilter,
-  todoItems.some((todo) => !todo.completed),
-);
 </script>
 
 <section class="grid gap-4">
   <TodosTabToolbar
     bind:createTodoError
     bind:showCreateTodo
-    todoFilter={displayTodoFilter}
+    {todoFilter}
     onTodoFilterChange={(value) => {
       todoFilter = value;
     }}

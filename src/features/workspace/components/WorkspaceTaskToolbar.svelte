@@ -26,18 +26,15 @@ export let onAdd: (() => void) | undefined = undefined;
       aria-label={ariaLabel}
       class="w-full min-w-0 md:w-fit"
       type="single"
-      value={filter}
       variant="outline"
-      onValueChange={(value) => {
+      bind:value={() => filter, (value) => {
         if (
           value === "incomplete" ||
           value === "completed" ||
           value === "all"
         ) {
           onFilterChange(value);
-          return;
         }
-        onFilterChange(filter);
       }}
     >
       <ToggleGroup.Item

@@ -20,7 +20,6 @@ export let selectedTodo: WorkspaceTodosTaskProps["selectedTodo"];
 export let showCreateTodo: boolean;
 export let todoActionError: string;
 export let todoFilter: WorkspaceTodosTaskProps["todoFilter"];
-export let todoItems: WorkspaceTodosTaskProps["todoItems"];
 export let todoPriorityOptions: WorkspaceTodosTaskProps["todoPriorityOptions"];
 export let todoSavingById: WorkspaceTodosTaskProps["todoSavingById"];
 export let todosCopy: WorkspaceTodosTaskProps["todosCopy"];
@@ -43,7 +42,6 @@ export let updateTodoAction: WorkspaceTodosTaskProps["updateTodoAction"];
   {updateTodoAction}
   {filteredTodos}
   {todoActionError}
-  {todoItems}
   {todoSavingById}
   {isCreatingTodo}
   {isUpdatingTodo}

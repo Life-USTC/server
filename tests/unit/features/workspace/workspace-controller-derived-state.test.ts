@@ -164,4 +164,31 @@ describe("仪表盘控制器派生状态", () => {
     expect(result?.navStats.pendingTodosCount).toBe(1);
     expect(result?.todos).toBe(nextTodos);
   });
+  it("keeps an empty incomplete filter after local completion or deletion", () => {
+    const completed = {
+      id: "history",
+      completed: true,
+      dueAt: null,
+    } as TodoItem;
+    const stale = { id: "removed", completed: false, dueAt: null } as TodoItem;
+    const data = { ...signedWorkspaceData([]), todos: [stale, completed] };
+    const derive = (todoFilter: "incomplete" | "completed" | "all") =>
+      buildWorkspaceControllerDerivedState({
+        catalogLinkGroupLabels,
+        data,
+        dateFallback: "TBD",
+        examFilter: "incomplete",
+        linkSearchQuery: "",
+        notAvailable: "N/A",
+        currentCatalogLinkItems: [],
+        currentOverviewLinkItems: [],
+        currentTodoItems: [completed],
+        todoFilter,
+      });
+
+    expect(derive("incomplete").filteredTodos).toEqual([]);
+    expect(derive("completed").filteredTodos).toEqual([completed]);
+    expect(derive("all").filteredTodos).toEqual([completed]);
+    expect(derive("incomplete").filteredTodos).toEqual([]);
+  });
 });
