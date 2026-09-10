@@ -32,8 +32,8 @@ for (const viewport of [
           data: { ...fixture, priority: "medium" },
         });
         expect(response.ok()).toBe(true);
-        const body = await response.json();
-        ids.push(body.todo.id);
+        const body = (await response.json()) as { id: string };
+        ids.push(body.id);
       }
       await gotoAndWaitForReady(
         page,
