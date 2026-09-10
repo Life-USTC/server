@@ -1,3 +1,10 @@
+## [1.105.7](https://github.com/Life-USTC/server/compare/v1.105.6...v1.105.7) (2026-09-10)
+
+
+### Bug Fixes
+
+* **workspace:** honor task filters and Shanghai exam times ([#1029](https://github.com/Life-USTC/server/issues/1029)) ([ec20717](https://github.com/Life-USTC/server/commit/ec20717cbb45cc51fbac151dc73ea14e1f4c279d))
+
 ## [1.105.6](https://github.com/Life-USTC/server/compare/v1.105.5...v1.105.6) (2026-09-10)
 
 
