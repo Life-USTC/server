@@ -1,3 +1,10 @@
+## [1.105.9](https://github.com/Life-USTC/server/compare/v1.105.8...v1.105.9) (2026-09-10)
+
+
+### Bug Fixes
+
+* **subscriptions:** explain how to import course selections ([#1031](https://github.com/Life-USTC/server/issues/1031)) ([3b8001f](https://github.com/Life-USTC/server/commit/3b8001f7e15b550024e7f7ed9669716f88c51daa))
+
 ## [1.105.8](https://github.com/Life-USTC/server/compare/v1.105.7...v1.105.8) (2026-09-10)
 
 
