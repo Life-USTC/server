@@ -1,3 +1,10 @@
+## [1.105.8](https://github.com/Life-USTC/server/compare/v1.105.7...v1.105.8) (2026-09-10)
+
+
+### Bug Fixes
+
+* **subscriptions:** only preselect a single quick-add result ([#1030](https://github.com/Life-USTC/server/issues/1030)) ([223f349](https://github.com/Life-USTC/server/commit/223f349556a14588c9a56a2e8a4cc0101d31592d))
+
 ## [1.105.7](https://github.com/Life-USTC/server/compare/v1.105.6...v1.105.7) (2026-09-10)
 
 
