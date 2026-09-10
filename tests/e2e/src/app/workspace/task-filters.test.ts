@@ -85,6 +85,22 @@ for (const tab of ["homeworks", "todos", "exams"] as const) {
           await expect(completed).toHaveCount(0);
           await expect(pending).toHaveCount(includePending ? 1 : 0);
 
+          if (!includePending) {
+            if (!mobile) {
+              await expect(page.getByRole("table")).toBeVisible();
+              await expect(
+                page.getByRole("columnheader").first(),
+              ).toBeVisible();
+            }
+            await page
+              .getByRole("button", { name: /清除筛选|Clear filter/i })
+              .filter({ visible: true })
+              .click();
+            await expectSelection(group, "all");
+            await expect(completed).toHaveCount(1);
+            await group.locator('[data-value="incomplete"]').click();
+          }
+
           // Filtering loaded data must keep working without network access.
           await page.context().setOffline(true);
           for (const selected of ["all", "completed", "incomplete", "all"]) {
@@ -123,6 +139,13 @@ for (const tab of ["homeworks", "todos", "exams"] as const) {
             await expectSelection(group, "incomplete");
             await expect(pending).toHaveCount(0);
             await expect(completed).toHaveCount(0);
+            await page
+              .getByRole("button", { name: /清除筛选|Clear filter/i })
+              .filter({ visible: true })
+              .click();
+            await expectSelection(group, "all");
+            await expect(pending).toHaveCount(1);
+            await expect(completed).toHaveCount(1);
             await gotoAndWaitForReady(page, `/workspace/${tab}`);
             await expectSelection(group, "incomplete");
             await expect(pending).toHaveCount(0);

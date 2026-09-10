@@ -2384,6 +2384,7 @@
     "listView": "List",
     "filterEmptyTitle": "No todos match the current filter",
     "filterEmptyDescription": "Try another filter, or create a new todo item.",
+    "clearFilter": "Clear filter",
     "markComplete": "Mark as complete",
     "markIncomplete": "Mark as incomplete",
     "editAriaLabel": "Edit todo",

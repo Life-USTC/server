@@ -6,10 +6,9 @@ import { homeworkSummaryBadges } from "@/features/homeworks/lib/homework-present
 import type { WorkspaceHomeworkItem } from "@/features/workspace/lib/workspace-controller-types";
 import TableIconButton from "$lib/components/TableIconButton.svelte";
 import { Badge } from "$lib/components/ui/badge/index.js";
-import { Button } from "$lib/components/ui/button/index.js";
-import * as Empty from "$lib/components/ui/empty/index.js";
 import * as Item from "$lib/components/ui/item/index.js";
 import { Spinner } from "$lib/components/ui/spinner/index.js";
+import WorkspaceTaskEmptyState from "./WorkspaceTaskEmptyState.svelte";
 
 type HomeworkDateFormatter = (
   value: Date | string | null | undefined,
@@ -132,22 +131,11 @@ function summaryBadges(homework: WorkspaceHomeworkItem) {
       {/each}
     </Item.Group>
   {:else}
-    <Empty.Root class="min-h-24 items-start text-left">
-      <Empty.Header class="items-start text-left">
-        <Empty.Title>{homeworksCopy.filterEmptyTitle}</Empty.Title>
-        {#if hasHomeworkItems}
-          <Empty.Description>
-            {homeworksCopy.filterEmptyDescription}
-          </Empty.Description>
-        {/if}
-      </Empty.Header>
-      {#if hasHomeworkItems}
-        <Empty.Content class="items-start">
-          <Button variant="outline" onclick={onClearFilter}>
-            {homeworksCopy.clearFilter}
-          </Button>
-        </Empty.Content>
-      {/if}
-    </Empty.Root>
+    <WorkspaceTaskEmptyState
+            title={homeworksCopy.filterEmptyTitle}
+            description={hasHomeworkItems ? homeworksCopy.filterEmptyDescription : undefined}
+            clearFilterLabel={homeworksCopy.clearFilter}
+            onClearFilter={hasHomeworkItems ? onClearFilter : undefined}
+          />
   {/if}
 </div>

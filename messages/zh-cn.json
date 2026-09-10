@@ -2254,6 +2254,7 @@
     "listView": "列表",
     "filterEmptyTitle": "当前筛选下暂无待办",
     "filterEmptyDescription": "切换筛选条件，或新建一个待办事项。",
+    "clearFilter": "清除筛选",
     "markComplete": "标记为完成",
     "markIncomplete": "取消完成",
     "editAriaLabel": "编辑待办",

@@ -38,6 +38,7 @@ export let todoFilter: TodoFilter;
 export let showCreateTodo: boolean;
 export let selectedTodo: WorkspaceTodoItem | null;
 export let editingTodo: WorkspaceTodoItem | null;
+export let hasTodoItems: boolean;
 export let filteredTodos: WorkspaceTodoItem[];
 export let createTodoError: string;
 export let editTodoError: string;
@@ -58,6 +59,9 @@ $: ({ datetimeLocalValue, fmtDate, todoActionLabel, todoStatus } =
     sectionCopy,
     todosCopy,
   }));
+function clearTodoFilter() {
+  todoFilter = "all";
+}
 </script>
 
 <section class="grid gap-4">
@@ -80,6 +84,8 @@ $: ({ datetimeLocalValue, fmtDate, todoActionLabel, todoStatus } =
   <div class="md:hidden">
     <TodosCardsView
       {filteredTodos}
+      {hasTodoItems}
+      onClearFilter={clearTodoFilter}
       {fmtDate}
       {openTodoEditor}
       bind:selectedTodo
@@ -93,6 +99,8 @@ $: ({ datetimeLocalValue, fmtDate, todoActionLabel, todoStatus } =
   <div class="hidden min-w-0 overflow-x-auto md:block">
     <TodosListView
       {filteredTodos}
+      {hasTodoItems}
+      onClearFilter={clearTodoFilter}
       {fmtDate}
       {openTodoEditor}
       bind:selectedTodo

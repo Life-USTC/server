@@ -10,6 +10,7 @@ export let data: WorkspaceTodosTaskProps["data"];
 export let deleteTodo: WorkspaceTodosTaskProps["deleteTodo"];
 export let editTodoError: string;
 export let editingTodo: WorkspaceTodosTaskProps["editingTodo"];
+export let hasTodoItems: boolean;
 export let filteredTodos: WorkspaceTodosTaskProps["filteredTodos"];
 export let homeworkReferenceDate: WorkspaceTodosTaskProps["homeworkReferenceDate"];
 export let isCreatingTodo: boolean;
@@ -41,6 +42,7 @@ export let updateTodoAction: WorkspaceTodosTaskProps["updateTodoAction"];
   {createTodoAction}
   {updateTodoAction}
   {filteredTodos}
+  {hasTodoItems}
   {todoActionError}
   {todoSavingById}
   {isCreatingTodo}

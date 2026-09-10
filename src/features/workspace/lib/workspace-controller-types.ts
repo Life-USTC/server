@@ -381,6 +381,8 @@ export type WorkspaceTodosCopy = WorkspaceRecord & {
   errorTitleRequired: string;
   errorTitleTooLong: string;
   filterEmptyTitle: string;
+  filterEmptyDescription: string;
+  clearFilter: string;
   markComplete: string;
   markIncomplete: string;
   priority: Record<string, string>;

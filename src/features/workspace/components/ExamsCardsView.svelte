@@ -3,6 +3,7 @@ import ArrowUpRight from "@lucide/svelte/icons/arrow-up-right";
 import TableIconButton from "$lib/components/TableIconButton.svelte";
 import { Badge } from "$lib/components/ui/badge/index.js";
 import * as Item from "$lib/components/ui/item/index.js";
+import WorkspaceTaskEmptyState from "./WorkspaceTaskEmptyState.svelte";
 import type {
   ExamMetadataLabels,
   ExamsCopyProps,
@@ -14,6 +15,8 @@ import type {
 
 export let workspaceCopy: ExamsCopyProps["workspaceCopy"];
 export let workspaceTabHref: WorkspaceTabHref;
+export let hasExamRows: boolean;
+export let onClearFilter: () => void;
 export let exams: WorkspaceExamRow[];
 export let examMetadataLabels: ExamMetadataLabels;
 export let examTimeLabel: ExamTimeLabel;
@@ -76,6 +79,13 @@ export let subscriptionsCopy: ExamsCopyProps["subscriptionsCopy"];
     {#if index < exams.length - 1}
       <Item.Separator class="my-0" />
     {/if}
+  {:else}
+    <WorkspaceTaskEmptyState
+            title={hasExamRows ? workspaceCopy.nav.exams.filterEmpty : workspaceCopy.nav.exams.empty}
+            description={hasExamRows ? workspaceCopy.nav.exams.filterEmptyDescription : workspaceCopy.nav.exams.emptyDescription}
+            clearFilterLabel={workspaceCopy.nav.exams.clearFilter}
+            onClearFilter={hasExamRows ? onClearFilter : undefined}
+          />
   {/each}
   </Item.Group>
 </div>
