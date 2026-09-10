@@ -11,8 +11,6 @@ type SignedWorkspaceExamData = SignedWorkspaceData & {
 
 export let activeTab: WorkspaceTaskTabsProps["activeTab"];
 export let applyHomeworkDueAtSemesterEnd: WorkspaceTaskTabsProps["applyHomeworkDueAtSemesterEnd"];
-export let applyHomeworkDueInMonth: WorkspaceTaskTabsProps["applyHomeworkDueInMonth"];
-export let applyHomeworkDueInWeek: WorkspaceTaskTabsProps["applyHomeworkDueInWeek"];
 export let applyHomeworkStartNow: WorkspaceTaskTabsProps["applyHomeworkStartNow"];
 export let commentsCopy: WorkspaceTaskTabsProps["commentsCopy"];
 export let commonCopy: WorkspaceTaskTabsProps["commonCopy"];
@@ -51,7 +49,6 @@ export let namePrimary: WorkspaceTaskTabsProps["namePrimary"];
 export let openCreateHomeworkDialog: WorkspaceTaskTabsProps["openCreateHomeworkDialog"];
 export let openTodoEditor: WorkspaceTaskTabsProps["openTodoEditor"];
 export let sectionCopy: WorkspaceTaskTabsProps["sectionCopy"];
-export let selectedCreateHomeworkSection: WorkspaceTaskTabsProps["selectedCreateHomeworkSection"];
 export let selectedHomework: WorkspaceTaskTabsProps["selectedHomework"];
 export let selectedTodo: WorkspaceTaskTabsProps["selectedTodo"];
 export let showCreateHomework: boolean;
@@ -107,11 +104,8 @@ export let updateTodoAction: WorkspaceTaskTabsProps["updateTodoAction"];
     {data}
     {signedData}
     homeworkReferenceDate={homeworkReferenceDate}
-    {selectedCreateHomeworkSection}
     {openCreateHomeworkDialog}
     {applyHomeworkStartNow}
-    {applyHomeworkDueInWeek}
-    {applyHomeworkDueInMonth}
     {applyHomeworkDueAtSemesterEnd}
     {toggleHomeworkCompletion}
     {createHomeworkAction}

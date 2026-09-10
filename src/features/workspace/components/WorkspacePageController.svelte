@@ -148,8 +148,6 @@ $: if (data !== linkSourceData) {
 
 const {
   applyHomeworkDueAtSemesterEnd,
-  applyHomeworkDueInMonth,
-  applyHomeworkDueInWeek,
   applyHomeworkStartNow,
   calendarHomeworkHref,
   calendarTimelineItemsForDay,
@@ -169,7 +167,6 @@ const {
   removeSubscribedSection,
   resetBulkImport,
   searchQuickAddSections,
-  selectedCreateHomeworkSection,
   sessionHref,
   setCalendarMonth,
   setCalendarSemester,
@@ -428,8 +425,6 @@ onMount(mount);
         <SignedWorkspaceTaskTabs
         activeTab={signedData.tab}
         {applyHomeworkDueAtSemesterEnd}
-        {applyHomeworkDueInMonth}
-        {applyHomeworkDueInWeek}
         {applyHomeworkStartNow}
         {commentsCopy}
         {commonCopy}
@@ -454,7 +449,6 @@ onMount(mount);
         {openCreateHomeworkDialog}
         {openTodoEditor}
         {sectionCopy}
-        {selectedCreateHomeworkSection}
         {signedData}
         {subscriptionsCopy}
         {todoActionError}

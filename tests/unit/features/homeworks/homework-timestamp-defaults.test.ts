@@ -12,10 +12,7 @@ import {
   initialHomeworkDraft,
   homeworkDueInDays as sectionHomeworkDueInDays,
 } from "@/features/section-detail/lib/section-detail-controller-helpers";
-import {
-  initialCreateHomeworkDraft,
-  homeworkDueInDays as workspaceHomeworkDueInDays,
-} from "@/features/workspace/lib/workspace-controller-helpers";
+import { initialCreateHomeworkDraft } from "@/features/workspace/lib/workspace-controller-helpers";
 
 describe("homework 时间戳默认值", () => {
   it("构建共享的初始作业时间戳草稿", () => {
@@ -53,7 +50,6 @@ describe("homework 时间戳默认值", () => {
   it("向 workspace 和 section detail 暴露相同的时间戳默认值", () => {
     expect(initialCreateHomeworkDraft).toBe(initialHomeworkTimestampDraft);
     expect(initialHomeworkDraft).toBe(initialHomeworkTimestampDraft);
-    expect(workspaceHomeworkDueInDays).toBe(homeworkDueInDays);
     expect(sectionHomeworkDueInDays).toBe(homeworkDueInDays);
   });
 });

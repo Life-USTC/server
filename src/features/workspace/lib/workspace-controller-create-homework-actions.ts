@@ -1,8 +1,6 @@
 import {
   workspaceCreateHomeworkInitialState,
   workspaceHomeworkDueAtSemesterEnd,
-  workspaceHomeworkDueInMonth,
-  workspaceHomeworkDueInWeek,
   workspaceHomeworkStartNow,
 } from "./workspace-controller-create-homework";
 import type { SignedWorkspaceData } from "./workspace-controller-helpers";
@@ -50,14 +48,6 @@ export function createWorkspaceCreateHomeworkActions(input: {
     input.setCreateHomeworkSubmissionStartAt(workspaceHomeworkStartNow());
   }
 
-  function applyHomeworkDueInWeek() {
-    input.setCreateHomeworkSubmissionDueAt(workspaceHomeworkDueInWeek());
-  }
-
-  function applyHomeworkDueInMonth() {
-    input.setCreateHomeworkSubmissionDueAt(workspaceHomeworkDueInMonth());
-  }
-
   function applyHomeworkDueAtSemesterEnd() {
     const dueAt = workspaceHomeworkDueAtSemesterEnd(
       selectedCreateHomeworkSection()?.semesterEnd as
@@ -71,10 +61,7 @@ export function createWorkspaceCreateHomeworkActions(input: {
 
   return {
     applyHomeworkDueAtSemesterEnd,
-    applyHomeworkDueInMonth,
-    applyHomeworkDueInWeek,
     applyHomeworkStartNow,
     openCreateHomeworkDialog,
-    selectedCreateHomeworkSection,
   };
 }

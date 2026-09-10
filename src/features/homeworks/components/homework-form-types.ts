@@ -1,4 +1,10 @@
+import type { HomeworkDueShortcutCopy } from "@/features/homeworks/lib/homework-due-shortcuts";
 import type { HomeworkStyleGuideCopy } from "@/features/homeworks/lib/homework-style-guide";
+
+export type {
+  HomeworkDueShortcut,
+  HomeworkDueShortcutCopy,
+} from "@/features/homeworks/lib/homework-due-shortcuts";
 
 export type HomeworkFormCopy = HomeworkStyleGuideCopy & {
   descriptionLabel: string;
@@ -14,7 +20,7 @@ export type HomeworkFormCommentsCopy = {
   tabWrite: string;
 };
 
-export type HomeworkTimestampCopy = {
+export type HomeworkTimestampCopy = HomeworkDueShortcutCopy & {
   advancedHide: string;
   advancedShow: string;
   calendarButtonLabel: string;

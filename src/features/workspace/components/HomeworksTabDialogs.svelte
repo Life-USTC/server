@@ -17,7 +17,6 @@ import HomeworkCreateDialog from "./HomeworkCreateDialog.svelte";
 import type {
   WorkspaceHomeworkCommentsCopy,
   WorkspaceHomeworkCreateSection,
-  WorkspaceHomeworkCreateSectionGetter,
   WorkspaceHomeworkDateShortcut,
 } from "./workspace-homework-create-types";
 
@@ -25,8 +24,6 @@ type HomeworkAction = (homework: WorkspaceHomeworkItem) => string;
 
 export let CommentsPanel: HomeworkDetailCommentsPanel;
 export let applyHomeworkDueAtSemesterEnd: WorkspaceHomeworkDateShortcut;
-export let applyHomeworkDueInMonth: WorkspaceHomeworkDateShortcut;
-export let applyHomeworkDueInWeek: WorkspaceHomeworkDateShortcut;
 export let applyHomeworkStartNow: WorkspaceHomeworkDateShortcut;
 export let commentsCopy: WorkspaceHomeworkCommentsCopy;
 export let createHomeworkAction: SubmitFunction;
@@ -47,7 +44,6 @@ export let isCreatingHomework: boolean;
 export let locale: string;
 export let referenceDate: Date | string;
 export let sections: WorkspaceHomeworkCreateSection[];
-export let selectedCreateHomeworkSection: WorkspaceHomeworkCreateSectionGetter;
 export let selectedHomework: WorkspaceHomeworkItem | null;
 export let showCreateHomework: boolean;
 export let toggleHomeworkCompletion: (
@@ -70,9 +66,8 @@ $: selectedHomeworkPermalinkBaseHref = selectedHomework?.section?.jwId
 </script>
 
 <HomeworkCreateDialog
+  {locale}
   {applyHomeworkDueAtSemesterEnd}
-  {applyHomeworkDueInMonth}
-  {applyHomeworkDueInWeek}
   {applyHomeworkStartNow}
   {commentsCopy}
   {createHomeworkAction}
@@ -90,7 +85,6 @@ $: selectedHomeworkPermalinkBaseHref = selectedHomework?.section?.jwId
   }}
   open={showCreateHomework}
   {sections}
-  {selectedCreateHomeworkSection}
   {toShanghaiDateTimeLocalValue}
   {createHomeworkError}
 />

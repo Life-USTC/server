@@ -171,6 +171,7 @@ export function createWorkspacePageControllerActions(input: {
     getHomeworksCopy,
     getTodosCopy,
     onSuccess: (action) => {
+      if (action === "createHomework") input.setShowCreateHomework(false);
       toast.success(
         String(
           action === "createHomework"

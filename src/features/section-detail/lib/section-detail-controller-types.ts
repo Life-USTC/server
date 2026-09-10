@@ -179,11 +179,15 @@ export type SectionDetailCopy = {
     dueDateShortcuts: string;
     editAction: string;
     helperClear: string;
+    helperBeforeMonday: string;
     helperMonth: string;
+    helperNextClass: string;
+    helperNextWeek: string;
     helperPublishNow: string;
     helperSemesterEnd: string;
     helperSemesterStart: string;
     helperStartNow: string;
+    helperThisWeek: string;
     helperWeek: string;
     loginToCreate: string;
     markComplete: string;

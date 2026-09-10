@@ -34,6 +34,7 @@ type HomeworkSectionOption = {
   courseCode?: string | null;
   courseName?: string | null;
   teacherName?: string | null;
+  semesterName?: string | null;
 };
 
 export function createHomeworkTabDisplayActions({

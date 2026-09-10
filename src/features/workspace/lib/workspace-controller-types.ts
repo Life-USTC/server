@@ -325,10 +325,14 @@ export interface WorkspaceHomeworksCopy extends HomeworkStyleGuideCopy {
   errorTitleRequired: string;
   errorTitleTooLong: string;
   helperClear: string;
+  helperBeforeMonday: string;
   helperMonth: string;
+  helperNextClass: string;
+  helperNextWeek: string;
   helperPublishNow: string;
   helperSemesterEnd: string;
   helperStartNow: string;
+  helperThisWeek: string;
   helperWeek: string;
   homeworkPublishedAt: string;
   markComplete: string;
@@ -524,6 +528,7 @@ export type WorkspaceHomeworkSectionOption = WorkspaceRecord & {
   courseCode?: string | null;
   courseName?: string | null;
   id: number | string;
+  nextClassStarts?: string[];
   semesterEnd?: string | null;
   semesterName?: string | null;
   teacherName?: string | null;
