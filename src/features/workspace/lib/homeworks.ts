@@ -3,7 +3,7 @@ type HomeworkCompletionState = {
 };
 
 type HomeworkSectionLabel = {
-  code?: string | null;
+  teacherName?: string | null;
   courseName?: string | null;
   semesterName?: string | null;
 };
@@ -33,7 +33,7 @@ export function homeworkSectionOptionLabel(
   fallback: string,
 ) {
   return (
-    [section.courseName ?? fallback, section.code, section.semesterName]
+    [section.courseName ?? fallback, section.teacherName, section.semesterName]
       .filter(Boolean)
       .join(" · ") || fallback
   );

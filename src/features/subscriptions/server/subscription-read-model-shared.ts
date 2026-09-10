@@ -131,11 +131,11 @@ export function sectionOptionFromRow(
       startDate: Date | null;
       endDate: Date | null;
     } | null;
-    schedules?: Array<{
+    schedules: Array<{
       date: Date | null;
       startTime: number;
     }>;
-    teachers?: Array<{ namePrimary: string | null }>;
+    teachers: Array<{ namePrimary: string | null }>;
   },
   now: Date = new Date(),
 ) {
@@ -144,7 +144,7 @@ export function sectionOptionFromRow(
     jwId: row.jwId,
     code: row.code,
     courseName: row.course?.namePrimary ?? null,
-    nextClassStarts: nextHomeworkClassStarts(row.schedules ?? [], now),
+    nextClassStarts: nextHomeworkClassStarts(row.schedules, now),
     semesterName: row.semester?.nameCn ?? null,
     semesterStart: row.semester?.startDate
       ? toShanghaiIsoString(row.semester.startDate)
@@ -154,7 +154,7 @@ export function sectionOptionFromRow(
       : null,
     teacherName:
       row.teachers
-        ?.map((teacher) => teacher.namePrimary)
+        .map((teacher) => teacher.namePrimary)
         .filter((name): name is string => Boolean(name))
         .join(", ") || null,
   };

@@ -2,6 +2,7 @@
 import type { ComponentProps } from "svelte";
 import type { PluggableList } from "unified";
 import { Button } from "$lib/components/ui/button/index.js";
+import * as Field from "$lib/components/ui/field/index.js";
 import * as InputGroup from "$lib/components/ui/input-group/index.js";
 import * as Tabs from "$lib/components/ui/tabs/index.js";
 
@@ -107,14 +108,16 @@ function setActiveTab(value: string) {
         class="grid gap-1"
         role={tabWriteLabel ? "region" : undefined}
       >
+        {#if tabWriteLabel}<Field.Title>{tabWriteLabel}</Field.Title>{/if}
         {@render editorField()}
       </div>
       <div
         aria-label={tabPreviewLabel || undefined}
-        class="min-h-32 rounded-md border p-3"
+        class="grid min-h-32 content-start gap-3 rounded-md border p-3"
         data-slot="markdown-editor-preview"
         role={tabPreviewLabel ? "region" : undefined}
       >
+        {#if tabPreviewLabel}<Field.Title>{tabPreviewLabel}</Field.Title>{/if}
         {@render markdownPreview()}
       </div>
     </div>

@@ -50,3 +50,15 @@ describe("仪表盘作业逾期展示", () => {
     );
   });
 });
+
+describe("作业班级选择标签", () => {
+  it("展示课程、教师和学期以区分同名课程", () => {
+    expect(
+      buildActions().homeworkSectionLabel({
+        courseName: "计算机视觉",
+        teacherName: "曹洋、王伟",
+        semesterName: "2026年秋季学期",
+      }),
+    ).toBe("计算机视觉 · 曹洋、王伟 · 2026年秋季学期");
+  });
+});

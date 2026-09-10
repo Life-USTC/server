@@ -202,11 +202,11 @@ test.describe("仪表盘作业", () => {
     const submit = createDialog.getByTestId("workspace-homework-create");
     await expect(submit).toBeInViewport();
     const dueDateShortcuts = createDialog.getByRole("button", {
-      name: /截止时间快捷设置|Due date shortcuts/i,
+      name: /常用截止时间|Common deadlines/i,
     });
     await dueDateShortcuts.click();
     await expect(
-      page.getByRole("menuitem", { name: /一周内提交|Due within a week/i }),
+      page.getByRole("menuitem", { name: /下周|Next (Fri|Sat|Sun)/i }).first(),
     ).toBeVisible();
     await page.keyboard.press("Escape");
 

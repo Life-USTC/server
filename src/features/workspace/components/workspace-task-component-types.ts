@@ -27,7 +27,6 @@ import type {
   WorkspaceExamRow,
   WorkspaceTabHref,
 } from "./workspace-exam-component-types";
-import type { WorkspaceHomeworkCreateSectionGetter } from "./workspace-homework-create-types";
 
 export type WorkspaceTaskActiveTab = WorkspaceTabId;
 export type WorkspaceTaskDateValue = Date | string;
@@ -64,8 +63,6 @@ export type WorkspaceTaskBaseProps = {
 
 export type WorkspaceHomeworksTaskProps = WorkspaceTaskBaseProps & {
   applyHomeworkDueAtSemesterEnd: WorkspaceTaskShortcut;
-  applyHomeworkDueInMonth: WorkspaceTaskShortcut;
-  applyHomeworkDueInWeek: WorkspaceTaskShortcut;
   applyHomeworkStartNow: WorkspaceTaskShortcut;
   commonCopy: WorkspaceCommonCopy;
   createHomeworkAction: SubmitFunction;
@@ -84,7 +81,6 @@ export type WorkspaceHomeworksTaskProps = WorkspaceTaskBaseProps & {
   homeworksCopy: WorkspaceTaskHomeworksCopy;
   isCreatingHomework: boolean;
   openCreateHomeworkDialog: () => void;
-  selectedCreateHomeworkSection: WorkspaceHomeworkCreateSectionGetter;
   selectedHomework: WorkspaceHomeworkItem | null;
   setHomeworkView: (view: HomeworkView) => void;
   showCreateHomework: boolean;

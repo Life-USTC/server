@@ -10,13 +10,10 @@ import type {
   WorkspaceHomeworkCommentsCopy,
   WorkspaceHomeworkCreateCopy,
   WorkspaceHomeworkCreateSection,
-  WorkspaceHomeworkCreateSectionGetter,
   WorkspaceHomeworkDateShortcut,
 } from "./workspace-homework-create-types";
 
 export let applyHomeworkDueAtSemesterEnd: WorkspaceHomeworkDateShortcut;
-export let applyHomeworkDueInMonth: WorkspaceHomeworkDateShortcut;
-export let applyHomeworkDueInWeek: WorkspaceHomeworkDateShortcut;
 export let applyHomeworkStartNow: WorkspaceHomeworkDateShortcut;
 export let commentsCopy: WorkspaceHomeworkCommentsCopy;
 export let createHomeworkAction: SubmitFunction;
@@ -31,10 +28,10 @@ export let homeworkSectionLabel: (
 ) => string;
 export let homeworksCopy: WorkspaceHomeworkCreateCopy;
 export let isCreatingHomework: boolean;
+export let locale: string;
 export let onClose: () => void;
 export let open: boolean;
 export let sections: WorkspaceHomeworkCreateSection[];
-export let selectedCreateHomeworkSection: WorkspaceHomeworkCreateSectionGetter;
 export let toShanghaiDateTimeLocalValue: (value: Date) => string;
 </script>
 
@@ -46,7 +43,7 @@ export let toShanghaiDateTimeLocalValue: (value: Date) => string;
     }}
   >
     <Dialog.Content
-      class="flex h-[calc(100dvh-2rem)] max-h-[calc(100dvh-2rem)] min-h-0 max-w-lg flex-col gap-0 overflow-clip p-0 sm:h-[min(64vh,36rem)] sm:max-h-[min(64vh,36rem)] sm:max-w-lg"
+      class="flex h-[calc(100dvh-2rem)] max-h-[calc(100dvh-2rem)] min-h-0 max-w-lg flex-col gap-0 overflow-clip p-0 sm:h-[min(84dvh,52rem)] sm:max-h-[min(84dvh,52rem)] sm:max-w-6xl"
     >
       <form
         class="flex min-h-0 flex-1 flex-col overflow-hidden"
@@ -60,9 +57,8 @@ export let toShanghaiDateTimeLocalValue: (value: Date) => string;
         </Dialog.Header>
         <ScrollArea class="h-0 min-h-0 flex-1">
           <HomeworkCreateFormFields
+            {locale}
             {applyHomeworkDueAtSemesterEnd}
-            {applyHomeworkDueInMonth}
-            {applyHomeworkDueInWeek}
             {applyHomeworkStartNow}
             {commentsCopy}
             bind:createHomeworkAdvancedOpen
@@ -75,7 +71,6 @@ export let toShanghaiDateTimeLocalValue: (value: Date) => string;
             {homeworksCopy}
             {isCreatingHomework}
             {sections}
-            {selectedCreateHomeworkSection}
             {toShanghaiDateTimeLocalValue}
           />
         </ScrollArea>

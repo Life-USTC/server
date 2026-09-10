@@ -38,7 +38,4 @@ export type WorkspaceHomeworkCreateSection = {
   teacherName?: string | null;
 };
 
-export type WorkspaceHomeworkCreateSectionGetter =
-  () => WorkspaceHomeworkCreateSection | null;
-
 export type WorkspaceHomeworkDateShortcut = () => void;
