@@ -74,7 +74,6 @@ export function createWorkspaceControllerDefaultState() {
     subscriptionActionError: "",
     todoActionError: "",
     todoFilter: "incomplete" as TodoFilter,
-    todoItems: [] as TodoItem[],
     todoSavingById: {} as Record<string, boolean>,
     todoView: "cards" as TodoView,
     unmatchedSectionCodes: [] as string[],

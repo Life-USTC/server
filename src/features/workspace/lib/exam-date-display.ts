@@ -1,33 +1,42 @@
-export function formatDateOnly(
-  value: Date | string | null | undefined,
-  fallback: string,
-) {
-  if (!value) return fallback;
-  return String(value).slice(0, 10);
-}
+import { parseDateInput } from "@/lib/time/parse-date-input";
+import { formatShanghaiDate } from "@/lib/time/shanghai-format";
 
-export function examDateTime(
-  value: Date | string | null,
-  hhmm: number | null,
-  fallback: string,
-) {
-  if (!value) return null;
-  const [year, month, day] = formatDateOnly(value, fallback)
-    .split("-")
-    .map(Number);
-  const date = new Date(year, (month ?? 1) - 1, day ?? 1);
-  if (hhmm == null) {
-    date.setHours(23, 59, 59, 999);
-  } else {
-    date.setHours(Math.floor(hhmm / 100), hhmm % 100, 0, 0);
+type ExamDateValue = Date | string | null | undefined;
+
+function parseExamDate(value: ExamDateValue) {
+  if (value instanceof Date) {
+    return Number.isFinite(value.getTime()) ? value : null;
   }
-  return date;
+
+  const parsed = parseDateInput(value);
+  return parsed instanceof Date ? parsed : null;
 }
 
-export function examReferenceNow(value: string | null | undefined) {
+function examDateKey(value: ExamDateValue) {
+  const parsed = parseExamDate(value);
+  return parsed ? formatShanghaiDate(parsed) : null;
+}
+
+export function formatDateOnly(value: ExamDateValue, fallback: string) {
+  return examDateKey(value) ?? fallback;
+}
+
+export function examDateTime(value: ExamDateValue, hhmm: number | null) {
+  const date = examDateKey(value);
+  if (!date) return null;
+
+  const time =
+    hhmm == null
+      ? "23:59:59.999"
+      : `${String(Math.floor(hhmm / 100)).padStart(2, "0")}:${String(hhmm % 100).padStart(2, "0")}:00`;
+  const parsed = parseDateInput(`${date}T${time}`);
+  return parsed instanceof Date ? parsed : null;
+}
+
+export function examReferenceNow(value: ExamDateValue) {
   if (!value) return new Date();
-  const parsed = new Date(value);
-  return Number.isNaN(parsed.getTime()) ? new Date() : parsed;
+  const parsed = parseExamDate(value);
+  return parsed ?? new Date();
 }
 
 function formatExamTime(value: number | null | undefined) {

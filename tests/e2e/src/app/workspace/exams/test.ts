@@ -56,10 +56,14 @@ test.describe("仪表盘考试", () => {
     await expect(
       filterTabs.getByRole("radio", { name: /Ended|已结束|已完成/i }),
     ).toBeVisible();
-    // Seed exams are in the past, so incomplete falls back to "all".
+    // Seed exams are in the past; the default upcoming filter stays empty.
     await expect(
-      filterTabs.getByRole("radio", { name: /全部|All/i }),
+      filterTabs.locator('[data-value="incomplete"]'),
     ).toHaveAttribute("aria-checked", "true");
+    await expect(
+      page.getByText(/当前筛选下暂无考试|No exams under this filter/i),
+    ).toBeVisible();
+    await filterTabs.getByRole("radio", { name: /全部|All/i }).click();
     await expect(
       page
         .getByRole("table")
@@ -70,7 +74,7 @@ test.describe("仪表盘考试", () => {
         .first(),
     ).toBeVisible();
 
-    await captureStepScreenshot(page, testInfo, "exams/filter-empty-recovered");
+    await captureStepScreenshot(page, testInfo, "exams/filter-empty-cleared");
   });
 
   test("移动端考试工具栏直接筛选并保持卡片视图", async ({ page }, testInfo) => {
@@ -241,13 +245,16 @@ test.describe("仪表盘考试", () => {
     ).toHaveText(/.+/);
     await captureStepScreenshot(page, testInfo, "exams/filter-completed");
 
-    // Switch back to incomplete/upcoming — falls back to "all" when empty.
+    // Switching back to upcoming retains an empty selection.
     const incompleteTab = filterTabs.getByRole("radio", {
       name: /Upcoming|即将|即将考试|待完成|未结束/i,
     });
     await incompleteTab.click();
-    const allTab = filterTabs.getByRole("radio", { name: /全部|All/i });
-    await expect(allTab).toHaveAttribute("aria-checked", "true");
+    await expect(incompleteTab).toHaveAttribute("aria-checked", "true");
+    await expect(endedExamRows).toHaveCount(0);
+    await expect(
+      page.getByText(/当前筛选下暂无考试|No exams under this filter/i),
+    ).toBeVisible();
     await captureStepScreenshot(page, testInfo, "exams/filter-incomplete");
   });
 });

@@ -16,7 +16,6 @@ import {
   type WorkspacePageData,
 } from "./workspace-controller-helpers";
 import { groupCatalogLinks } from "./workspace-link-ui";
-import { resolveWorkspaceTaskFilter } from "./workspace-task-filter";
 
 export function applyLocalHomeworkItemsToSignedData(
   signedData: SignedWorkspaceData | null,
@@ -89,13 +88,7 @@ export function buildWorkspaceControllerDerivedState(input: {
       null) as CalendarData | null,
     catalogLinkItems,
     examRows,
-    filteredExamRows: filterExamRows(
-      examRows,
-      resolveWorkspaceTaskFilter(
-        input.examFilter,
-        examRows.some((row) => !row.completed),
-      ),
-    ),
+    filteredExamRows: filterExamRows(examRows, input.examFilter),
     filteredTodos: sortTodosByDueDistance(
       filterTodos(todoItems, input.todoFilter),
       referenceDate(signedData?.referenceNow),

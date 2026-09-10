@@ -14,7 +14,7 @@ import { namePrimary } from "./localized-names";
 
 export function flattenExamRows<Section extends WorkspaceExamSection>(
   subscriptions: WorkspaceExamSubscriptions<Section>,
-  referenceNow: string | null | undefined,
+  referenceNow: Date | string | null | undefined,
   options: {
     dateFallback: string;
     notAvailable: string;
@@ -24,11 +24,7 @@ export function flattenExamRows<Section extends WorkspaceExamSection>(
   const rows = subscriptions.subscriptions.flatMap((subscription) =>
     subscription.sections.flatMap((section) =>
       section.exams.filter(examHasDetails).map((exam) => {
-        const end = examDateTime(
-          exam.examDate,
-          exam.endTime ?? exam.startTime,
-          options.dateFallback,
-        );
+        const end = examDateTime(exam.examDate, exam.endTime ?? exam.startTime);
         return {
           id: exam.id,
           section,
@@ -47,7 +43,7 @@ export function flattenExamRows<Section extends WorkspaceExamSection>(
             .map((room) => room.room)
             .filter(Boolean)
             .join(", "),
-          completed: end ? end < now : false,
+          completed: end ? end <= now : false,
         };
       }),
     ),
