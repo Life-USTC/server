@@ -1,6 +1,21 @@
-import { expect, type Locator, test } from "@playwright/test";
+import { expect, type Locator, type Page, test } from "@playwright/test";
 import { gotoAndWaitForReady } from "../../../utils/page-ready";
 import { createWorkspaceTaskFilterFixture } from "../../../utils/workspace-task-filters";
+
+function taskTitle(
+  page: Page,
+  tab: "homeworks" | "todos" | "exams",
+  title: string,
+) {
+  // Room previews repeat the room code; count the task's trigger, not its popup.
+  const locator =
+    tab === "exams"
+      ? page
+          .getByTestId("room-map-preview")
+          .getByRole("button", { name: new RegExp(title, "i") })
+      : page.getByText(title, { exact: true });
+  return locator.filter({ visible: true });
+}
 
 async function expectSelection(group: Locator, selected: string) {
   const states = await group.getByRole("radio").evaluateAll((elements) =>
@@ -43,9 +58,7 @@ test("task filters respond after navigating between workspace pages", async ({
         await page.mouse.move(0, 0);
         await expectSelection(group, value);
         await expect(
-          page
-            .getByText(fixture.completedTitle[tab], { exact: tab !== "exams" })
-            .filter({ visible: true }),
+          taskTitle(page, tab, fixture.completedTitle[tab]),
         ).toHaveCount(value === "incomplete" ? 0 : 1);
       }
     }
@@ -75,12 +88,8 @@ for (const tab of ["homeworks", "todos", "exams"] as const) {
           const group = page
             .locator('[data-slot="toggle-group"]')
             .filter({ has: page.locator('[data-value="incomplete"]') });
-          const completed = page
-            .getByText(fixture.completedTitle[tab], { exact: tab !== "exams" })
-            .filter({ visible: true });
-          const pending = page
-            .getByText(fixture.pendingTitle[tab], { exact: tab !== "exams" })
-            .filter({ visible: true });
+          const completed = taskTitle(page, tab, fixture.completedTitle[tab]);
+          const pending = taskTitle(page, tab, fixture.pendingTitle[tab]);
           await expectSelection(group, "incomplete");
           await expect(completed).toHaveCount(0);
           await expect(pending).toHaveCount(includePending ? 1 : 0);
