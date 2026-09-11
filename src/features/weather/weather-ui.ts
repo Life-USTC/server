@@ -3,6 +3,8 @@
  * and iOS-style daily temperature range bar positions.
  */
 
+import { formatShanghaiTime } from "@/lib/time/shanghai-format";
+
 export type WeatherConditionInput = {
   text: string;
   icon: string;
@@ -112,7 +114,7 @@ export type HourlyChartLabel = {
 export type HourlyChartGeometry = {
   width: number;
   height: number;
-  /** Y of the baseline separating the temperature band from the precip band. */
+  /** Y of the shared baseline for the temperature curve and precipitation bars. */
   tempBaselineY: number;
   points: HourlyChartPoint[];
   tempPath: string;
@@ -121,23 +123,33 @@ export type HourlyChartGeometry = {
   xLabels: HourlyChartLabel[];
 };
 
-const CHART_PAD_X = 24;
 const CHART_PAD_TOP = 16;
-const CHART_TEMP_BAND = 96;
-const CHART_BAND_GAP = 12;
-const CHART_PRECIP_BAND = 44;
+const CHART_PLOT_HEIGHT = 128;
 const CHART_LABEL_H = 20;
 const CHART_PAD_BOTTOM = 4;
 const CHART_HEIGHT =
-  CHART_PAD_TOP +
-  CHART_TEMP_BAND +
-  CHART_BAND_GAP +
-  CHART_PRECIP_BAND +
-  CHART_LABEL_H +
-  CHART_PAD_BOTTOM;
+  CHART_PAD_TOP + CHART_PLOT_HEIGHT + CHART_LABEL_H + CHART_PAD_BOTTOM;
+const CHART_LABEL_SPACING = 70;
 
 function round1(value: number): number {
   return Math.round(value * 10) / 10;
+}
+
+function clamp(value: number, min: number, max: number): number {
+  return Math.max(min, Math.min(max, value));
+}
+
+function labelIndices(dataLength: number, width: number): number[] {
+  if (dataLength === 0) return [];
+  if (dataLength === 1) return [0];
+
+  const labelCount = Math.min(
+    dataLength,
+    Math.max(2, Math.floor(width / CHART_LABEL_SPACING) + 1),
+  );
+  return Array.from({ length: labelCount }, (_, index) =>
+    Math.round((index * (dataLength - 1)) / (labelCount - 1)),
+  );
 }
 
 /** Catmull-Rom spline converted to cubic Bézier segments. */
@@ -171,10 +183,10 @@ export function buildHourlyChartGeometry(
   data: HourlyChartDatum[],
   { width }: { width: number },
 ): HourlyChartGeometry {
-  const tempBaselineY = CHART_PAD_TOP + CHART_TEMP_BAND;
-  const precipBaseY = tempBaselineY + CHART_BAND_GAP + CHART_PRECIP_BAND;
+  const chartWidth = Number.isFinite(width) ? Math.max(0, width) : 0;
+  const tempBaselineY = CHART_PAD_TOP + CHART_PLOT_HEIGHT;
   const empty: HourlyChartGeometry = {
-    width,
+    width: chartWidth,
     height: CHART_HEIGHT,
     tempBaselineY,
     points: [],
@@ -189,15 +201,13 @@ export function buildHourlyChartGeometry(
   const lo = Math.min(...temps) - 1;
   const hi = Math.max(...temps) + 1;
   const span = hi - lo || 1;
-  const innerWidth = width - CHART_PAD_X * 2;
-  const stepX = data.length > 1 ? innerWidth / (data.length - 1) : 0;
-  const xAt = (i: number) =>
-    data.length > 1 ? CHART_PAD_X + i * stepX : width / 2;
+  const stepX = data.length > 1 ? chartWidth / (data.length - 1) : 0;
+  const xAt = (i: number) => (data.length > 1 ? i * stepX : chartWidth / 2);
 
   const points = data.map((d, i) => ({
     x: round1(xAt(i)),
     y: round1(
-      CHART_PAD_TOP + (1 - (d.temperature - lo) / span) * CHART_TEMP_BAND,
+      CHART_PAD_TOP + (1 - (d.temperature - lo) / span) * CHART_PLOT_HEIGHT,
     ),
     temperature: d.temperature,
   }));
@@ -208,30 +218,38 @@ export function buildHourlyChartGeometry(
       `L${round1(points[0].x)},${tempBaselineY}Z`
     : "";
 
-  const barWidth = Math.min(24, (innerWidth / data.length) * 0.5);
+  const barWidth = round1(Math.min(24, (chartWidth / data.length) * 0.5));
   const bars = data.map((d, i) => {
-    const probability = Math.max(
+    const probability = clamp(
+      Number.isFinite(d.precipitationProbability ?? 0)
+        ? (d.precipitationProbability ?? 0)
+        : 0,
       0,
-      Math.min(100, d.precipitationProbability ?? 0),
+      100,
     );
-    const height = round1((probability / 100) * CHART_PRECIP_BAND);
+    const height = round1((probability / 100) * CHART_PLOT_HEIGHT);
+    const x = clamp(
+      xAt(i) - barWidth / 2,
+      0,
+      Math.max(0, chartWidth - barWidth),
+    );
     return {
-      x: round1(xAt(i) - barWidth / 2),
-      y: round1(precipBaseY - height),
-      width: round1(barWidth),
+      x: round1(x),
+      y: round1(tempBaselineY - height),
+      width: barWidth,
       height,
       probability,
     };
   });
 
-  const labelStep = Math.max(1, Math.ceil(data.length / 8));
-  const xLabels = data
-    .map((d, i) => ({ x: round1(xAt(i)), label: d.at.slice(11, 16), i }))
-    .filter(({ i }) => i % labelStep === 0)
-    .map(({ x, label }) => ({ x, label }));
+  const indices = labelIndices(data.length, chartWidth);
+  const xLabels = indices.map((i) => ({
+    x: round1(xAt(i)),
+    label: formatShanghaiTime(data[i].at),
+  }));
 
   return {
-    width,
+    width: chartWidth,
     height: CHART_HEIGHT,
     tempBaselineY,
     points,

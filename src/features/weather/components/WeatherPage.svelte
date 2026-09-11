@@ -1,28 +1,12 @@
 <script lang="ts">
-import Cloud from "@lucide/svelte/icons/cloud";
-import CloudDrizzle from "@lucide/svelte/icons/cloud-drizzle";
-import CloudFog from "@lucide/svelte/icons/cloud-fog";
-import CloudHail from "@lucide/svelte/icons/cloud-hail";
-import CloudLightning from "@lucide/svelte/icons/cloud-lightning";
-import CloudRain from "@lucide/svelte/icons/cloud-rain";
-import CloudSnow from "@lucide/svelte/icons/cloud-snow";
-import CloudSun from "@lucide/svelte/icons/cloud-sun";
-import Cloudy from "@lucide/svelte/icons/cloudy";
 import Droplets from "@lucide/svelte/icons/droplets";
-import Sun from "@lucide/svelte/icons/sun";
 import Thermometer from "@lucide/svelte/icons/thermometer";
 import Wind from "@lucide/svelte/icons/wind";
+import WeatherConditionIcon from "@/features/weather/components/WeatherConditionIcon.svelte";
 import WeatherHourlyChart from "@/features/weather/components/WeatherHourlyChart.svelte";
 import type { WeatherPageLocation } from "@/features/weather/server/weather-page-load";
-import type {
-  WeatherCondition,
-  WeatherHourly,
-} from "@/features/weather/server/weather-types";
-import {
-  temperatureRangePositions,
-  type WeatherIconName,
-  weatherConditionIcon,
-} from "@/features/weather/weather-ui";
+import type { WeatherHourly } from "@/features/weather/server/weather-types";
+import { temperatureRangePositions } from "@/features/weather/weather-ui";
 import type { AppLocale } from "@/i18n/config";
 import type { AppPageCopy } from "@/lib/shell/page-copy";
 import Panel from "$lib/components/Panel.svelte";
@@ -39,21 +23,7 @@ type Props = {
 
 let { locations, locale, weatherCopy }: Props = $props();
 
-const HOURLY_SLOTS = 12;
 const DAILY_SLOTS = 7;
-
-const ICON_COMPONENTS = {
-  sun: Sun,
-  "cloud-sun": CloudSun,
-  cloud: Cloud,
-  cloudy: Cloudy,
-  "cloud-fog": CloudFog,
-  "cloud-drizzle": CloudDrizzle,
-  "cloud-rain": CloudRain,
-  "cloud-snow": CloudSnow,
-  "cloud-hail": CloudHail,
-  "cloud-lightning": CloudLightning,
-} as const;
 
 const weekdayFormatter = $derived(
   createShanghaiDateTimeFormatter(locale, { weekday: "short" }),
@@ -74,23 +44,11 @@ const allProviders = $derived([
   ...new Set(locations.flatMap(({ snapshot }) => snapshot?.providers ?? [])),
 ]);
 
-function iconOf(condition: WeatherCondition | undefined) {
-  return ICON_COMPONENTS[
-    weatherConditionIcon(condition ?? { text: "", icon: "unknown" })
-  ];
-}
-
 function formatTemplate(template: string, values: Record<string, string>) {
   return Object.entries(values).reduce(
     (text, [key, value]) => text.replace(`{${key}}`, value),
     template,
   );
-}
-
-function upcomingHours(hourly: WeatherHourly[]): WeatherHourly[] {
-  const now = Date.now();
-  const upcoming = hourly.filter((hour) => Date.parse(hour.at) >= now);
-  return (upcoming.length > 0 ? upcoming : hourly).slice(0, HOURLY_SLOTS);
 }
 
 const CHART_HOURLY_SLOTS = 24;
@@ -121,28 +79,18 @@ function formatTemperature(value: number) {
         </p>
       {:else}
         {@const today = snapshot.daily[0]}
-        {@const HeroIcon = iconOf(snapshot.current.condition)}
         <div class="grid min-w-0 gap-6" data-testid="weather-location">
-          <section class="flex items-center gap-5">
-            <HeroIcon class="size-16 shrink-0 text-amber-500" strokeWidth={1.5} />
-            <div class="min-w-0">
-              <div class="flex items-baseline gap-3">
-                <span
-                  class="text-6xl leading-none font-extralight tracking-tight"
-                  data-testid="weather-temperature"
-                >
-                  {formatTemperature(snapshot.current.temperature)}
-                </span>
-                <span class="text-lg">{snapshot.current.condition.text}</span>
-              </div>
-              {#if today}
-                <p class="text-muted-foreground mt-1 text-sm">
-                  {formatTemperature(today.temperatureHigh)} / {formatTemperature(
-                    today.temperatureLow,
-                  )}
-                </p>
-              {/if}
-            </div>
+          <section class="grid grid-cols-[auto_auto] grid-rows-[4rem_auto] items-center justify-start gap-x-5 gap-y-1" data-testid="weather-current">
+            <WeatherConditionIcon condition={snapshot.current.condition} class="size-16 text-amber-500" />
+            <span class="text-6xl leading-none font-extralight tracking-tight" data-testid="weather-temperature">
+              {formatTemperature(snapshot.current.temperature)}
+            </span>
+            <span class="text-center text-sm" data-testid="weather-condition">{snapshot.current.condition.text}</span>
+            {#if today}
+              <p class="text-muted-foreground text-sm" data-testid="weather-temperature-range">
+                {formatTemperature(today.temperatureHigh)} / {formatTemperature(today.temperatureLow)}
+              </p>
+            {/if}
           </section>
 
           <section class="grid grid-cols-3 gap-2">
@@ -193,40 +141,8 @@ function formatTemperature(value: number) {
               <h3 class="text-sm font-medium">{weatherCopy.hourlyForecast}</h3>
               <WeatherHourlyChart
                 hours={upcomingHoursAll(snapshot.hourly)}
-                chartAriaLabel={weatherCopy.hourlyForecast}
+                {weatherCopy}
               />
-              <!-- svelte-ignore a11y_no_noninteractive_tabindex (focus enables keyboard scrolling for the overflowing hourly strip) -->
-              <div
-                aria-label={weatherCopy.hourlyForecast}
-                class="-mx-1 overflow-x-auto px-1 pb-1 outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                data-testid="weather-hourly-scroll-region"
-                role="region"
-                tabindex="0"
-              >
-                <ul class="flex gap-1">
-                  {#each upcomingHours(snapshot.hourly) as hour (hour.at)}
-                    {@const HourIcon = iconOf(hour.condition)}
-                    <li
-                      class="flex w-14 shrink-0 flex-col items-center gap-1 rounded-lg border py-2 text-sm"
-                    >
-                      <span class="text-muted-foreground text-xs">
-                        {formatShanghaiTime(hour.at)}
-                      </span>
-                      <HourIcon class="size-5" strokeWidth={1.5} />
-                      {#if hour.precipitationProbability !== undefined && hour.precipitationProbability > 0}
-                        <span class="text-xs font-medium text-sky-600 dark:text-sky-400">
-                          {hour.precipitationProbability}%
-                        </span>
-                      {:else}
-                        <span class="text-xs text-transparent">0%</span>
-                      {/if}
-                      <span class="font-medium">
-                        {formatTemperature(hour.temperature)}
-                      </span>
-                    </li>
-                  {/each}
-                </ul>
-              </div>
             </section>
           {/if}
 
@@ -242,16 +158,15 @@ function formatTemperature(value: number) {
               <h3 class="text-sm font-medium">{weatherCopy.dailyForecast}</h3>
               <ul class="grid gap-1.5">
                 {#each days as day, i (day.date)}
-                  {@const DayIcon = iconOf(day.condition)}
                   <li class="flex items-center gap-3 text-sm">
                     <span class="w-12 shrink-0">
                       {i === 0
                         ? weatherCopy.today
                         : weekdayFormatter.format(new Date(day.date))}
                     </span>
-                    <DayIcon
+                    <WeatherConditionIcon
+                      condition={day.condition}
                       class="text-muted-foreground size-4 shrink-0"
-                      strokeWidth={1.5}
                     />
                     <span class="text-muted-foreground w-8 text-right">
                       {formatTemperature(day.temperatureLow)}
