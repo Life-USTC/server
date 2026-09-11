@@ -36,7 +36,6 @@
   "observability": {
     "enabled": true,
     "head_sampling_rate": 1,
-    "redact_query_string": false,
     "logs": {
       "enabled": true,
       "head_sampling_rate": 1,
@@ -157,6 +156,16 @@
         "max_batch_size": 20,
         "max_retries": 5,
         "dead_letter_queue": "life-ustc-audit-log-write-dlq"
+      },
+      {
+        "queue": "life-ustc-calendar-export-rebuild-dlq",
+        "max_batch_size": 100,
+        "max_retries": 0
+      },
+      {
+        "queue": "life-ustc-audit-log-write-dlq",
+        "max_batch_size": 100,
+        "max_retries": 0
       }
     ]
   }

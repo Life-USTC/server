@@ -329,6 +329,30 @@ describe("publication ingestion contract", () => {
     );
   });
 
+  it("digests nested payload objects independent of key order", async () => {
+    const parsed = publicationIngestionBatchRequestSchema.parse({
+      ...fixture,
+      items: [
+        {
+          ...fixture.items[0],
+          rawMetadata: { b: 1, a: { d: 2, c: [4, 5] } },
+        },
+      ],
+    });
+    const reordered = {
+      ...parsed,
+      items: [
+        {
+          ...parsed.items[0],
+          rawMetadata: { a: { c: [4, 5], d: 2 }, b: 1 },
+        },
+      ],
+    };
+    await expect(publicationIngestionPayloadDigest(parsed)).resolves.toBe(
+      await publicationIngestionPayloadDigest(reordered),
+    );
+  });
+
   it("requires a canonical SHA-256 payload digest in batch responses", () => {
     const response = {
       batchId: fixture.batchId,

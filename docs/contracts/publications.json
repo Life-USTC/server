@@ -95,7 +95,7 @@
             "returns": "{ batchId, objects[] }",
             "notes": [
               "Only manifests registered by the caller's accepted batch may be planned.",
-              "Each object is already_present or upload_required. An already_present object has been verified and linked; upload_required includes the authenticated Worker uploadUrl, r2Key, and requiredHeaders."
+              "Each object is already_present or upload_required. An already_present object is trusted from a prior verification (status verified or linked) without re-heading R2; upload_required includes the authenticated Worker uploadUrl, r2Key, and requiredHeaders."
             ]
           },
           {

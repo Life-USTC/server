@@ -21,6 +21,7 @@ import { handleAuditLogWriteBatch } from "./lib/audit/audit-log-queue";
 import { CATALOG_EDGE_CACHE_TAG } from "./lib/catalog-edge-cache-tag";
 import {
   buildPublicNotFoundHtml,
+  isLegacyCalendarSubscriptionFeedRequest,
   PUBLIC_SSR_BROWSER_CACHE_CONTROL,
   PUBLIC_SSR_HEADER,
   PUBLIC_SSR_LOCALE_CACHE_PARAM,
@@ -32,7 +33,9 @@ import {
   removePublicSsrHeaders,
   resolveCourseDetailTabQueryRedirect,
   resolveCourseDetailTabRedirect,
+  resolveLegacyCalendarFeedRedirect,
   resolveLegacyCatalogRedirect,
+  resolveLegacySignInRedirect,
   resolvePublicSsrLocale,
   resolvePublicSsrMode,
   resolveSectionDetailTabQueryRedirect,
@@ -49,6 +52,7 @@ import {
   logScheduledTaskError,
   logScheduledTaskFinish,
   logUnknownScheduledTask,
+  logWorkerDeadLetterMessage,
   logWorkerFetchError,
   logWorkerQueueError,
   logWorkerQueueFinish,
@@ -320,6 +324,53 @@ async function handleFetch(request, env, context, requestId, edgeObservation) {
       "/:legacy-catalog-route",
     );
   }
+  const legacySignInRedirect = resolveLegacySignInRedirect(request);
+  if (legacySignInRedirect) {
+    return finish(
+      new Response(null, {
+        status: 308,
+        headers: {
+          "Cache-Control": "public, max-age=86400",
+          Location: legacySignInRedirect,
+        },
+      }),
+      "legacy-redirect",
+      "/signin",
+    );
+  }
+  const legacyCalendarFeedRedirect = resolveLegacyCalendarFeedRedirect(request);
+  if (legacyCalendarFeedRedirect) {
+    return finish(
+      new Response(null, {
+        status: 308,
+        headers: {
+          "Cache-Control": "public, max-age=86400",
+          Location: legacyCalendarFeedRedirect,
+        },
+      }),
+      "legacy-redirect",
+      "/api/users/:credential/calendar.ics",
+    );
+  }
+  if (isLegacyCalendarSubscriptionFeedRequest(request)) {
+    return finish(
+      new Response(
+        JSON.stringify({
+          error:
+            "This calendar feed URL was retired. Copy a new feed URL from workspace subscriptions.",
+        }),
+        {
+          status: 410,
+          headers: {
+            "Cache-Control": "public, max-age=86400",
+            "Content-Type": "application/json; charset=utf-8",
+          },
+        },
+      ),
+      "legacy-redirect",
+      "/api/calendar-subscriptions/:id/calendar.ics",
+    );
+  }
   const sectionTabRedirect = resolveSectionDetailTabRedirect(request);
   if (sectionTabRedirect) {
     return finish(
@@ -510,6 +561,18 @@ export default {
           }
           if (queue === "calendar") {
             return handleCalendarExportRebuildBatch(batch);
+          }
+          if (
+            queue === "audit-dead-letter" ||
+            queue === "calendar-dead-letter"
+          ) {
+            // Dead letters are terminal: log each message once and ack so the
+            // DLQ consumer can never retry-loop.
+            for (const message of batch.messages) {
+              logWorkerDeadLetterMessage({ message, queue });
+              message.ack();
+            }
+            return { outcome: "success" };
           }
           throw new Error("Unsupported queue");
         },

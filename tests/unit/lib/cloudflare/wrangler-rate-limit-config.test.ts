@@ -79,6 +79,38 @@ describe("Wrangler mutation rate-limit bindings", () => {
     expect(config.upload_source_maps).toBe(true);
   });
 
+  it("consumes both dead-letter queues without retries", async () => {
+    const source = await readFile(
+      new URL("../../../../wrangler.jsonc", import.meta.url),
+      "utf8",
+    );
+    const config = JSON.parse(source) as {
+      queues?: {
+        consumers?: {
+          dead_letter_queue?: string;
+          max_retries?: number;
+          queue: string;
+        }[];
+      };
+    };
+    const consumers = config.queues?.consumers ?? [];
+
+    for (const deadLetterQueue of [
+      "life-ustc-calendar-export-rebuild-dlq",
+      "life-ustc-audit-log-write-dlq",
+    ]) {
+      const consumer = consumers.find(
+        (entry) => entry.queue === deadLetterQueue,
+      );
+      expect(consumer, deadLetterQueue).toBeDefined();
+      expect(consumer?.max_retries).toBe(0);
+      expect(consumer?.dead_letter_queue).toBeUndefined();
+    }
+    expect(
+      consumers.filter((entry) => entry.queue.endsWith("-dlq")),
+    ).toHaveLength(2);
+  });
+
   it("routes production CIMD fetches through the public Internet boundary", async () => {
     const source = await readFile(
       new URL("../../../../wrangler.jsonc", import.meta.url),

@@ -74,6 +74,10 @@ const DYNAMIC_OR_PRIVATE_ROOTS = [
 ];
 
 const LEGACY_CATALOG_PATH = /^\/(sections|courses|teachers)\/(.+)$/;
+const LEGACY_SIGN_IN_PATH = "/signin";
+const LEGACY_USER_CALENDAR_FEED_PATH = /^\/api\/users\/([^/]+)\/calendar\.ics$/;
+const LEGACY_CALENDAR_SUBSCRIPTION_FEED_PATH =
+  /^\/api\/calendar-subscriptions\/[^/]+\/calendar\.ics$/;
 
 export function resolveLegacyCatalogRedirect(request: Request) {
   if (request.method !== "GET" && request.method !== "HEAD") return null;
@@ -81,6 +85,28 @@ export function resolveLegacyCatalogRedirect(request: Request) {
   const match = LEGACY_CATALOG_PATH.exec(url.pathname);
   if (!match) return null;
   return `/catalog/${match[1]}/${match[2]}${url.search}`;
+}
+
+export function resolveLegacySignInRedirect(request: Request) {
+  if (request.method !== "GET" && request.method !== "HEAD") return null;
+  const url = new URL(request.url);
+  if (url.pathname !== LEGACY_SIGN_IN_PATH) return null;
+  return `/account/sign-in${url.search}`;
+}
+
+export function resolveLegacyCalendarFeedRedirect(request: Request) {
+  if (request.method !== "GET" && request.method !== "HEAD") return null;
+  const url = new URL(request.url);
+  const match = LEGACY_USER_CALENDAR_FEED_PATH.exec(url.pathname);
+  if (!match) return null;
+  return `/api/calendar-feeds/${match[1]}.ics${url.search}`;
+}
+
+export function isLegacyCalendarSubscriptionFeedRequest(request: Request) {
+  if (request.method !== "GET" && request.method !== "HEAD") return false;
+  return LEGACY_CALENDAR_SUBSCRIPTION_FEED_PATH.test(
+    new URL(request.url).pathname,
+  );
 }
 
 export function resolveCourseDetailTabRedirect(request: Request) {
