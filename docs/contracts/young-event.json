@@ -11,7 +11,7 @@
     "static-snapshot-sourced": "Events are scraped by the static repo (authenticated young.ustc.edu.cn enrolmentList/endList APIs) into the published SQLite snapshot and imported into Postgres by the static loader; the only request-time call to young.ustc.edu.cn is the poster-image proxy, which fetches the public /login/<pic> URL once and caches it in R2.",
     "snapshot-authoritative": "The static snapshot is authoritative; the loader upserts by upstream youngId and deletes events absent from the snapshot. An empty snapshot never wipes existing rows (treated as upstream breakage).",
     "raw-payload-preserved": "Curated columns cover the common fields; the complete upstream record stays available under rawJson for REST and MCP consumers.",
-    "image-proxy-cached": "The database stores the raw upstream `pic` path; the public imageUrl field is a local proxy path (/api/catalog/young-events/[youngId]/image). The proxy route lazily fetches https://young.ustc.edu.cn/login/<pic> on first miss, stores the bytes in the R2 publications bucket under young-events/images/<pic>, and serves them with immutable year-long cache headers. Origin failures return 502 and are never cached.",
+    "image-proxy-cached": "The public imageUrl is a local proxy path (/api/catalog/young-events/[youngId]/image). On first miss the route fetches https://young.ustc.edu.cn/login/<pic>, stores bytes in R2 under young-events/images/<pic>, and serves immutable year-long cache headers. Final responses are also held in the per-colo Cache API keyed by youngId for their Cache-Control TTL (200 long-term, 404 for 300s, 502 for 60s); the 503 storage-unavailable response is never cached.",
     "shanghai-local-times": "Upstream datetimes are Asia/Shanghai local times; startAt/endAt/applyStartAt/applyEndAt are stored and returned as instants.",
     "read-only": "Events are imported facts; no transport exposes writes."
   },
@@ -42,8 +42,8 @@
             "path": "/api/catalog/young-events/[youngId]/image",
             "returns": "poster image bytes (Content-Type from the origin or the file extension)",
             "notes": [
-              "Cache-aside proxy: serves the R2-cached copy under young-events/images/<pic> with immutable year-long cache headers and ETag/304 support; on a miss it fetches https://young.ustc.edu.cn/login/<pic> and stores the result.",
-              "404 when the youngId is unknown or the event has no image; 502 when the origin fetch fails (failures are not cached)."
+              "Cache-aside proxy: serves the R2-cached copy under young-events/images/<pic> with immutable year-long cache headers and ETag/304 support; on a miss it fetches https://young.ustc.edu.cn/login/<pic> and stores the result. Repeat requests are served from the per-colo Cache API keyed by youngId.",
+              "404 when the youngId is unknown or the event has no image (cached for 300s); 502 when the origin fetch fails (cached for 60s)."
             ]
           }
         ]

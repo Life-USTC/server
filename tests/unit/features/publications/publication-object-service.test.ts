@@ -278,6 +278,72 @@ describe("publication object upload", () => {
     expect(mocks.objectUpdateMany).not.toHaveBeenCalled();
   });
 
+  it("trusts a verified object's prior verification without reading R2", async () => {
+    const claim = {
+      expectedContentType: "text/plain",
+      expectedSha256: sha256OfAbc,
+      expectedSize: 3,
+      object: {
+        id: "object-1",
+        kind: "body_html" as const,
+        r2Key: `publications/body_html/sha256/ba/${sha256OfAbc}`,
+        sha256: sha256OfAbc,
+        status: "verified" as const,
+      },
+    };
+    mocks.batchFindUnique.mockResolvedValue({ objects: [claim] });
+
+    const planned = await planPublicationObjects({
+      origin: "https://life.example",
+      principal,
+      payload: {
+        batchId: "batch-verified",
+        objects: [{ kind: "body_html", sha256: sha256OfAbc }],
+      },
+    });
+
+    expect(planned.objects).toEqual([
+      expect.objectContaining({
+        kind: "body_html",
+        sha256: sha256OfAbc,
+        status: "already_present",
+        uploadUrl: null,
+      }),
+    ]);
+    expect(mocks.getBucket).not.toHaveBeenCalled();
+    expect(mocks.bucket.head).not.toHaveBeenCalled();
+    expect(mocks.bucket.get).not.toHaveBeenCalled();
+    expect(mocks.objectUpdateMany).not.toHaveBeenCalled();
+  });
+
+  it("heads R2 and requires upload for a pending object missing from storage", async () => {
+    mocks.bucket.head.mockResolvedValue(null);
+
+    const planned = await planPublicationObjects({
+      origin: "https://life.example",
+      principal,
+      payload: {
+        batchId: "batch-pending",
+        objects: [{ kind: "body_html", sha256: sha256OfAbc }],
+      },
+    });
+
+    expect(planned.objects).toEqual([
+      expect.objectContaining({
+        kind: "body_html",
+        sha256: sha256OfAbc,
+        status: "upload_required",
+        uploadUrl: `https://life.example/api/ingestion/publications/objects/batch-pending/body_html/${sha256OfAbc}`,
+      }),
+    ]);
+    expect(mocks.bucket.head).toHaveBeenCalledTimes(1);
+    expect(mocks.bucket.get).not.toHaveBeenCalled();
+    expect(mocks.objectUpdateMany).toHaveBeenCalledWith({
+      where: { id: { in: ["object-1"] } },
+      data: { status: "pending", lastError: null },
+    });
+  });
+
   it("plans a large request with one batch lookup and bounded R2 concurrency", async () => {
     const objectCount = 500;
     const claims = Array.from({ length: objectCount }, (_, index) => {

@@ -63,7 +63,7 @@
               "The opaque credential authorizes feed retrieval.",
               "The credential is carried only in the canonical path segment.",
               "An existing user with a valid feed token receives a valid empty VCALENDAR when no items are currently available, so calendar clients can keep the subscription active.",
-              "When the user exists but the feed token is wrong or revoked, the route returns 410 Gone with a short Cache-Control so calendar clients stop aggressive re-polling; unknown users return 404."
+              "When the user exists but the feed token is wrong or revoked, the route returns 410 Gone with a short Cache-Control so calendar clients stop aggressive re-polling; unknown users return 404. Legacy /api/users/[id]:[token]/calendar.ics URLs permanently redirect (308) here with the credential preserved; the retired JWT-based /api/calendar-subscriptions/[id]/calendar.ics URL has no modern equivalent and returns 410 Gone."
             ]
           },
           {

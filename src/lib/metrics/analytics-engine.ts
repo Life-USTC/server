@@ -324,6 +324,7 @@ const HTTP_METHODS = new Set([
 const WORKER_REQUEST_CLASSES = new Set([
   "catalog-redirect",
   "dynamic",
+  "legacy-redirect",
   "public-not-found",
   "public-ssr-cache",
 ]);

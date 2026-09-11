@@ -32,7 +32,21 @@ async function sha256Text(value: string) {
 export async function publicationIngestionPayloadDigest(
   payload: PublicationIngestionBatchRequest,
 ) {
-  return sha256Text(JSON.stringify(canonicalize(payload)));
+  // Stringify with sorted keys via the replacer instead of materializing a
+  // fully canonicalized deep copy first: batches carry up to 100 full-text
+  // items, and the extra copy meaningfully raises the Worker memory peak.
+  return sha256Text(
+    JSON.stringify(payload, (_key, value: unknown) => {
+      if (!value || typeof value !== "object" || Array.isArray(value)) {
+        return value;
+      }
+      return Object.fromEntries(
+        Object.entries(value).sort(([left], [right]) =>
+          left.localeCompare(right),
+        ),
+      );
+    }),
+  );
 }
 
 export function publicationPrincipalKey(

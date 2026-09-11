@@ -433,6 +433,173 @@ describe("Worker routing entrypoint", () => {
     );
   });
 
+  it("redirects the legacy sign-in path preserving the query string", async () => {
+    const response = await worker.fetch(
+      new Request(
+        "https://life-ustc.test/signin?callbackUrl=%2Fworkspace%2Foverview",
+      ),
+      {},
+      { waitUntil: vi.fn() },
+    );
+
+    expect(response.status).toBe(308);
+    expect(response.headers.get("location")).toBe(
+      "/account/sign-in?callbackUrl=%2Fworkspace%2Foverview",
+    );
+    expect(response.headers.get("cache-control")).toBe("public, max-age=86400");
+    expect(appFetchMock).not.toHaveBeenCalled();
+    expect(logAppEventMock).toHaveBeenCalledWith(
+      "info",
+      "edge.request.finish",
+      expect.objectContaining({
+        requestClass: "legacy-redirect",
+        route: "/signin",
+        status: 308,
+      }),
+    );
+  });
+
+  it("redirects legacy user calendar feeds preserving the credential", async () => {
+    const response = await worker.fetch(
+      new Request(
+        "https://life-ustc.test/api/users/user-1:feed-token/calendar.ics",
+      ),
+      {},
+      { waitUntil: vi.fn() },
+    );
+
+    expect(response.status).toBe(308);
+    expect(response.headers.get("location")).toBe(
+      "/api/calendar-feeds/user-1:feed-token.ics",
+    );
+    expect(appFetchMock).not.toHaveBeenCalled();
+    expect(logAppEventMock).toHaveBeenCalledWith(
+      "info",
+      "edge.request.finish",
+      expect.objectContaining({
+        requestClass: "legacy-redirect",
+        route: "/api/users/:credential/calendar.ics",
+        status: 308,
+      }),
+    );
+  });
+
+  it("retires legacy calendar-subscription feeds with a gone response", async () => {
+    const response = await worker.fetch(
+      new Request(
+        "https://life-ustc.test/api/calendar-subscriptions/sub-1/calendar.ics",
+      ),
+      {},
+      { waitUntil: vi.fn() },
+    );
+
+    expect(response.status).toBe(410);
+    expect(response.headers.get("content-type")).toContain("application/json");
+    await expect(response.json()).resolves.toEqual({
+      error: expect.stringContaining("retired"),
+    });
+    expect(appFetchMock).not.toHaveBeenCalled();
+    expect(logAppEventMock).toHaveBeenCalledWith(
+      "info",
+      "edge.request.finish",
+      expect.objectContaining({
+        requestClass: "legacy-redirect",
+        route: "/api/calendar-subscriptions/:id/calendar.ics",
+        status: 410,
+      }),
+    );
+  });
+
+  it("logs and acks each calendar dead-letter message without retrying", async () => {
+    const messages = [
+      {
+        ack: vi.fn(),
+        attempts: 4,
+        body: { type: "user", userId: "user-secret" },
+        id: "message-1",
+        retry: vi.fn(),
+      },
+      {
+        ack: vi.fn(),
+        attempts: 4,
+        body: { type: "section", sectionId: 159446 },
+        id: "message-2",
+        retry: vi.fn(),
+      },
+    ];
+
+    await worker.queue(
+      {
+        messages,
+        queue: "life-ustc-calendar-export-rebuild-dlq",
+      },
+      {},
+      { waitUntil: vi.fn() },
+    );
+
+    expect(handleCalendarExportRebuildBatchMock).not.toHaveBeenCalled();
+    for (const message of messages) {
+      expect(message.ack).toHaveBeenCalledTimes(1);
+      expect(message.retry).not.toHaveBeenCalled();
+    }
+    const deadLetters = logAppEventMock.mock.calls.filter(
+      ([, event]) => event === "worker.queue.dead-letter",
+    );
+    expect(deadLetters).toHaveLength(2);
+    expect(deadLetters[0]).toEqual([
+      "error",
+      "worker.queue.dead-letter",
+      expect.objectContaining({
+        messageId: "message-1",
+        messageType: "user",
+        outcome: "dead-letter",
+        queue: "calendar-dead-letter",
+      }),
+    ]);
+    expect(JSON.stringify(deadLetters)).not.toContain("user-secret");
+  });
+
+  it("logs and acks each audit dead-letter message without retrying", async () => {
+    const message = {
+      ack: vi.fn(),
+      attempts: 6,
+      body: {
+        auditId: "audit-1",
+        params: { action: "sign-in", sessionId: "session-secret" },
+        type: "audit-log.write.v1",
+      },
+      id: "message-9",
+      retry: vi.fn(),
+    };
+
+    await worker.queue(
+      {
+        messages: [message],
+        queue: "life-ustc-audit-log-write-dlq",
+      },
+      {},
+      { waitUntil: vi.fn() },
+    );
+
+    expect(handleAuditLogWriteBatchMock).not.toHaveBeenCalled();
+    expect(message.ack).toHaveBeenCalledTimes(1);
+    expect(message.retry).not.toHaveBeenCalled();
+    const deadLetters = logAppEventMock.mock.calls.filter(
+      ([, event]) => event === "worker.queue.dead-letter",
+    );
+    expect(deadLetters).toHaveLength(1);
+    expect(deadLetters[0]?.[2]).toEqual(
+      expect.objectContaining({
+        messageId: "message-9",
+        messageType: "audit-log.write.v1",
+        queue: "audit-dead-letter",
+      }),
+    );
+    expect(JSON.stringify(logAppEventMock.mock.calls)).not.toContain(
+      "session-secret",
+    );
+  });
+
   it("records one queue completion with the audit handler outcome", async () => {
     handleAuditLogWriteBatchMock.mockResolvedValue({ outcome: "retry" });
 

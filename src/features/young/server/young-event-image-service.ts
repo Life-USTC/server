@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/db/prisma";
+import { logAppEvent } from "@/lib/log/app-logger";
 import { getCloudflareR2PublicationsBucket } from "@/lib/ports/runtime";
 
 const YOUNG_EVENT_IMAGE_ORIGIN = "https://young.ustc.edu.cn/login/";
@@ -61,7 +62,7 @@ function normalizeEtag(etag: string) {
   return `"${trimmed.replaceAll('"', "")}"`;
 }
 
-function requestMatchesEtag(request: Request, etag: string) {
+export function requestMatchesEtag(request: Request, etag: string) {
   const value = request.headers.get("If-None-Match");
   if (!value) return false;
   return value.split(",").some((candidate) => {
@@ -186,7 +187,18 @@ export async function getYoungEventImageResponse(input: {
 
   const store = bucket.put(key, body, { httpMetadata: { contentType } });
   if (input.defer) {
-    input.defer(store);
+    // The deferred write outlives the response; log failures instead of
+    // dropping the rejection silently.
+    input.defer(
+      store.catch((error: unknown) => {
+        logAppEvent(
+          "error",
+          "Failed to cache young event image in R2",
+          { source: "young-event-image", youngId: input.youngId },
+          error,
+        );
+      }),
+    );
   } else {
     await store;
   }

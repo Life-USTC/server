@@ -2,11 +2,14 @@ import { describe, expect, test } from "vitest";
 import { resolveCatalogListPublicSsrMode } from "@/features/catalog/lib/catalog-list-query";
 import {
   buildPublicNotFoundHtml,
+  isLegacyCalendarSubscriptionFeedRequest,
   PUBLIC_SSR_BROWSER_CACHE_CONTROL,
   PUBLIC_SSR_PAGE_EDGE_CACHE_CONTROL,
   resolvePublicSsrMode as resolveBasePublicSsrMode,
   resolveCourseDetailTabRedirect,
+  resolveLegacyCalendarFeedRedirect,
   resolveLegacyCatalogRedirect,
+  resolveLegacySignInRedirect,
   resolvePublicSsrLocale,
   resolveSectionDetailTabRedirect,
   resolveTeacherDetailTabRedirect,
@@ -73,6 +76,84 @@ describe("public SSR gateway", () => {
         }),
       ),
     ).toBeNull();
+  });
+
+  test.each([
+    ["/signin", "/account/sign-in"],
+    [
+      "/signin?callbackUrl=%2Fworkspace%2Foverview",
+      "/account/sign-in?callbackUrl=%2Fworkspace%2Foverview",
+    ],
+  ])(
+    "redirects legacy sign-in path %s preserving the query",
+    (path, target) => {
+      expect(resolveLegacySignInRedirect(request(path))).toBe(target);
+    },
+  );
+
+  test("does not redirect a non-read legacy sign-in request", () => {
+    expect(
+      resolveLegacySignInRedirect(
+        new Request("https://life-ustc.test/signin", { method: "POST" }),
+      ),
+    ).toBeNull();
+    expect(resolveLegacySignInRedirect(request("/signin/"))).toBeNull();
+    expect(resolveLegacySignInRedirect(request("/account/sign-in"))).toBeNull();
+  });
+
+  test.each([
+    [
+      "/api/users/user-1:feed-token/calendar.ics",
+      "/api/calendar-feeds/user-1:feed-token.ics",
+    ],
+    [
+      "/api/users/user-1/calendar.ics?token=feed-token",
+      "/api/calendar-feeds/user-1.ics?token=feed-token",
+    ],
+  ])(
+    "redirects legacy user calendar feed %s preserving the credential",
+    (path, target) => {
+      expect(resolveLegacyCalendarFeedRedirect(request(path))).toBe(target);
+    },
+  );
+
+  test("does not redirect other user API paths", () => {
+    expect(
+      resolveLegacyCalendarFeedRedirect(request("/api/users/user-1")),
+    ).toBeNull();
+    expect(
+      resolveLegacyCalendarFeedRedirect(
+        request("/api/users/user-1/calendar.ics/extra"),
+      ),
+    ).toBeNull();
+    expect(
+      resolveLegacyCalendarFeedRedirect(
+        new Request("https://life-ustc.test/api/users/u:t/calendar.ics", {
+          method: "POST",
+        }),
+      ),
+    ).toBeNull();
+  });
+
+  test("marks retired calendar-subscription feed URLs as gone", () => {
+    expect(
+      isLegacyCalendarSubscriptionFeedRequest(
+        request("/api/calendar-subscriptions/sub-1/calendar.ics"),
+      ),
+    ).toBe(true);
+    expect(
+      isLegacyCalendarSubscriptionFeedRequest(
+        new Request(
+          "https://life-ustc.test/api/calendar-subscriptions/sub-1/calendar.ics",
+          { method: "POST" },
+        ),
+      ),
+    ).toBe(false);
+    expect(
+      isLegacyCalendarSubscriptionFeedRequest(
+        request("/api/calendar-feeds/user-1:feed-token.ics"),
+      ),
+    ).toBe(false);
   });
 
   test.each([
