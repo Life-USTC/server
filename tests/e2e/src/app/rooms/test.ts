@@ -91,4 +91,33 @@ test.describe("/catalog/rooms 教室地图", () => {
       44,
     );
   });
+  test("网络失败后再次查询同一教室会重试", async ({ page }) => {
+    let requests = 0;
+    await page.route("**/api/catalog/rooms/**/map", async (route) => {
+      requests += 1;
+      if (requests === 1) {
+        await route.fulfill({ status: 503, body: "unavailable" });
+        return;
+      }
+      await route.fulfill({
+        json: {
+          code: ROOM_CODE,
+          building: "三教主",
+          floor: "2",
+          status: "highlighted",
+          imageUrl: MAP_IMAGE,
+          sourceImageUrl: null,
+        },
+      });
+    });
+    await page.goto(`/catalog/rooms?room=${ROOM_CODE}`);
+    const result = page.getByTestId("room-map-preview");
+    await expect(result.getByRole("alert")).toBeVisible();
+    await page
+      .getByRole("form", { name: /Room code|教室编号/ })
+      .getByRole("button", { name: /查询|Look up/i, exact: true })
+      .click();
+    await expect(result.getByRole("img")).toBeVisible();
+    expect(requests).toBe(2);
+  });
 });

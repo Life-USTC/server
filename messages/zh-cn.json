@@ -119,7 +119,7 @@
     "empty": "输入教室编号后查看地图。",
     "triggerLabel": "查看 {code} 的位置地图",
     "dialogTitle": "{code} 的位置地图",
-    "dialogDescription": "拖动地图查看周边教室，使用按钮或 Ctrl/⌘ + 滚轮缩放。",
+    "dialogDescription": "滚动查看周边教室，使用按钮或 Ctrl/⌘ + 滚轮缩放。",
     "mapAlt": "{code} 的楼层地图",
     "loading": "正在加载地图…",
     "fetchError": "地图暂时无法加载，请稍后重试。",

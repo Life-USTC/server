@@ -152,7 +152,7 @@ function closeDialog() {
 }
 
 function handleWheel(event: WheelEvent) {
-  if (!event.ctrlKey) return;
+  if (!event.ctrlKey && !event.metaKey) return;
   event.preventDefault();
   zoom = Math.min(3, Math.max(0.75, zoom + (event.deltaY < 0 ? 0.1 : -0.1)));
 }

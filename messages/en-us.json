@@ -119,7 +119,7 @@
     "empty": "Enter a room code to view its map.",
     "triggerLabel": "View the location map for {code}",
     "dialogTitle": "Location map for {code}",
-    "dialogDescription": "Pan around the floor map and use the controls or Ctrl/⌘ + scroll to zoom.",
+    "dialogDescription": "Scroll around the floor map and use the controls or Ctrl/⌘ + scroll to zoom.",
     "mapAlt": "Floor map for {code}",
     "loading": "Loading map…",
     "fetchError": "The map could not be loaded. Please try again later.",

@@ -14,11 +14,13 @@ export let initialRoom = "";
 
 let input = initialRoom;
 let selectedRoom = initialRoom;
+let searchRevision = 0;
 
 function submit(event: SubmitEvent) {
   event.preventDefault();
   const room = input.trim();
   selectedRoom = room;
+  searchRevision += 1;
 }
 </script>
 
@@ -55,7 +57,7 @@ function submit(event: SubmitEvent) {
     </Panel>
 
     {#if selectedRoom}
-      {#key selectedRoom}
+      {#key `${searchRevision}:${selectedRoom}`}
         <Panel>
           <RoomMapPreview
             code={selectedRoom}
