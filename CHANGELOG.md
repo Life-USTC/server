@@ -1,3 +1,10 @@
+# [1.107.0](https://github.com/Life-USTC/server/compare/v1.106.3...v1.107.0) (2026-09-11)
+
+
+### Features
+
+* **rooms:** add room maps across web, APIs, and calendar exports ([#1037](https://github.com/Life-USTC/server/issues/1037)) ([a5d65d1](https://github.com/Life-USTC/server/commit/a5d65d1445e8d4bb36864814f3229089cf70e044))
+
 ## [1.106.3](https://github.com/Life-USTC/server/compare/v1.106.2...v1.106.3) (2026-09-11)
 
 
