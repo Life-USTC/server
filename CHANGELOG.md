@@ -1,3 +1,10 @@
+## [1.106.3](https://github.com/Life-USTC/server/compare/v1.106.2...v1.106.3) (2026-09-11)
+
+
+### Bug Fixes
+
+* **server:** harden ingestion retries, cut R2 probe noise, restore legacy URL shims ([#1036](https://github.com/Life-USTC/server/issues/1036)) ([ca1d06c](https://github.com/Life-USTC/server/commit/ca1d06caf0eae9aec391a3f6fa49c185bd21e0fd))
+
 ## [1.106.2](https://github.com/Life-USTC/server/compare/v1.106.1...v1.106.2) (2026-09-11)
 
 
