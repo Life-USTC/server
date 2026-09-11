@@ -1,3 +1,10 @@
+## [1.106.1](https://github.com/Life-USTC/server/compare/v1.106.0...v1.106.1) (2026-09-11)
+
+
+### Bug Fixes
+
+* **homeworks:** simplify creation dialog and align date controls ([#1034](https://github.com/Life-USTC/server/issues/1034)) ([cb95e98](https://github.com/Life-USTC/server/commit/cb95e98553dae9496a49b83803915cb53af17c6d))
+
 # [1.106.0](https://github.com/Life-USTC/server/compare/v1.105.10...v1.106.0) (2026-09-10)
 
 
