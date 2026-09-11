@@ -1,3 +1,4 @@
+import { logAppEvent } from "@/lib/log/app-logger";
 import {
   fetchLifeUstcStaticJson,
   getLifeUstcStaticUrl,
@@ -24,7 +25,14 @@ async function loadRoomMapManifest(): Promise<RoomMapManifest> {
   if (cached && cached.expires > Date.now()) return cached.manifest;
   const raw = await fetchLifeUstcStaticJson<unknown>("room_maps.json", null);
   const parsed = roomMapManifestSchema.safeParse(raw);
-  if (!parsed.success) return { rooms: [] };
+  if (!parsed.success) {
+    if (raw !== null)
+      logAppEvent("warn", "Invalid room map manifest", {
+        source: "life-ustc-static",
+        pathname: "room_maps.json",
+      });
+    return { rooms: [] };
+  }
   cached = { manifest: parsed.data, expires: Date.now() + 300_000 };
   return parsed.data;
 }

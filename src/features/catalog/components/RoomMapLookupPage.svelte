@@ -6,6 +6,7 @@ import PageHeader from "$lib/components/PageHeader.svelte";
 import Panel from "$lib/components/Panel.svelte";
 import { Button } from "$lib/components/ui/button/index.js";
 import * as Empty from "$lib/components/ui/empty/index.js";
+import * as Field from "$lib/components/ui/field/index.js";
 import { Input } from "$lib/components/ui/input/index.js";
 
 export let copy: RoomMapCopy;
@@ -35,16 +36,17 @@ function submit(event: SubmitEvent) {
         class="flex flex-col gap-3 sm:flex-row sm:items-end"
         onsubmit={submit}
       >
-        <label class="grid min-w-0 flex-1 gap-2" for="room-map-code">
-          <span class="font-medium text-sm">{copy.searchLabel}</span>
+        <Field.Field class="min-w-0 flex-1">
+          <Field.FieldLabel for="room-map-code">{copy.searchLabel}</Field.FieldLabel>
           <Input
             id="room-map-code"
             bind:value={input}
             placeholder={copy.placeholder}
+            maxlength={64}
             autocomplete="off"
             spellcheck="false"
           />
-        </label>
+        </Field.Field>
         <Button type="submit">
           <MapPinnedIcon data-icon="inline-start" aria-hidden="true" />
           {copy.submit}
@@ -60,7 +62,7 @@ function submit(event: SubmitEvent) {
             {copy}
             className="w-full"
             loadOnMount={true}
-            openOnLoad={true}
+            inline={true}
           />
         </Panel>
       {/key}

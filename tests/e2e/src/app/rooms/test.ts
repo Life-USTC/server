@@ -1,6 +1,7 @@
 import { expect, type Page, test } from "@playwright/test";
 import { gotoAndWaitForReady } from "../../../utils/page-ready";
 import { assertPageContract } from "../_shared/page-contract";
+import { SECTION_URL } from "../sections/[jwId]/_helpers";
 
 const ROOM_CODE = "3A204";
 const MAP_IMAGE =
@@ -12,8 +13,11 @@ async function mockRoomMap(page: Page) {
       contentType: "application/json",
       json: {
         building: "第三教学楼",
-        code: ROOM_CODE,
-        floor: "1",
+        code: decodeURIComponent(
+          new URL(route.request().url()).pathname.split("/").at(-2) ??
+            ROOM_CODE,
+        ),
+        floor: "2",
         imageUrl: MAP_IMAGE,
         sourceImageUrl: null,
         status: "highlighted",
@@ -27,36 +31,46 @@ test.describe("/catalog/rooms 教室地图", () => {
     await assertPageContract(page, { routePath: "/catalog/rooms", testInfo });
   });
 
-  test("焦点预览加载标注地图，点击后打开可缩放对话框", async ({ page }) => {
+  test("查询展示地图，点击后打开可缩放对话框", async ({ page }) => {
     await mockRoomMap(page);
-    await gotoAndWaitForReady(
-      page,
-      `/catalog/rooms?room=${encodeURIComponent(ROOM_CODE)}`,
-    );
-
-    const trigger = page.getByRole("button", {
-      name: new RegExp(ROOM_CODE),
-    });
-    await expect(trigger).toBeVisible();
-    await trigger.focus();
-
-    const preview = page.getByTestId("room-map-preview-popover");
-    await expect(preview).toBeVisible();
-    await expect(
-      preview.getByRole("img", { name: new RegExp(ROOM_CODE) }),
-    ).toBeVisible();
-
-    await trigger.click();
-    const dialog = page.getByRole("dialog");
+    await gotoAndWaitForReady(page, `/catalog/rooms?room=${ROOM_CODE}`);
+    const result = page.getByTestId("room-map-preview");
+    await expect(result.getByRole("img")).toBeVisible();
+    await result.getByRole("button", { name: /Open map|放大地图/ }).click();
+    const dialog = page.getByTestId("room-map-dialog");
     await expect(dialog).toBeVisible();
-    await expect(
-      dialog.getByRole("img", { name: new RegExp(ROOM_CODE) }),
-    ).toBeVisible();
-    await expect(
-      dialog.getByRole("button", { name: /Zoom in|放大/ }),
-    ).toBeVisible();
+    const scroll = dialog.getByTestId("room-map-scroll");
+    await dialog
+      .getByRole("button", { name: /Zoom in|放大/, exact: true })
+      .click();
+    await expect
+      .poll(() => scroll.evaluate((el) => el.scrollWidth > el.clientWidth))
+      .toBe(true);
     await page.keyboard.press("Escape");
     await expect(dialog).toBeHidden();
+  });
+
+  test("班级教室支持悬停和键盘焦点预览", async ({ page }) => {
+    await mockRoomMap(page);
+    await gotoAndWaitForReady(page, `${SECTION_URL}#calendar`);
+    const trigger = page
+      .locator("#calendar")
+      .getByTestId("room-map-preview")
+      .getByRole("button")
+      .first();
+    await trigger.hover();
+    const preview = page.getByTestId("room-map-preview-popover");
+    await expect(preview).toBeVisible();
+    await expect(preview.getByRole("img")).toBeVisible();
+    await page.mouse.move(0, 0);
+    await expect(preview).toBeHidden();
+    await trigger.focus();
+    await expect(preview).toBeVisible();
+    await expect(trigger).toBeFocused();
+    await page.keyboard.press("Enter");
+    await expect(page.getByTestId("room-map-dialog")).toBeVisible();
+    await page.keyboard.press("Escape");
+    await expect(trigger).toBeFocused();
   });
 
   test("移动端点击房间后打开地图", async ({ page }) => {
@@ -67,9 +81,9 @@ test.describe("/catalog/rooms 教室地图", () => {
       `/catalog/rooms?room=${encodeURIComponent(ROOM_CODE)}`,
     );
 
-    const trigger = page.getByRole("button", {
-      name: new RegExp(ROOM_CODE),
-    });
+    const trigger = page
+      .getByTestId("room-map-preview")
+      .getByRole("button", { name: /Open map|放大地图/ });
     await expect(trigger).toBeVisible();
     await trigger.click();
     await expect(page.getByRole("dialog")).toBeVisible();

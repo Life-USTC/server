@@ -20,9 +20,10 @@ import {
 } from "../lib/room-map-types";
 
 export let code = "";
+export let label: string | undefined = undefined;
 export let copy: RoomMapCopy;
 export let loadOnMount = false;
-export let openOnLoad = false;
+export let inline = false;
 export let className = "";
 
 let map: RoomMapResult | null = null;
@@ -32,9 +33,14 @@ let previewOpen = false;
 let dialogOpen = false;
 let zoom = 1;
 let requestCode = "";
+let trigger: HTMLButtonElement | null = null;
+let openButton: HTMLButtonElement | null = null;
+let previewContent: HTMLDivElement | null = null;
+let closeTimer: ReturnType<typeof setTimeout> | undefined;
+let suppressPreview = false;
 let requestController: AbortController | null = null;
 
-$: normalizedCode = code.trim();
+$: normalizedCode = code.trim().normalize("NFKC").toUpperCase();
 $: imageUrl = map?.imageUrl ?? map?.sourceImageUrl ?? null;
 $: statusLabel = map ? statusCopy(map.status) : "";
 $: triggerLabel = formatRoomMapCopy(copy.triggerLabel, normalizedCode);
@@ -47,13 +53,13 @@ $: dialogDescription = formatRoomMapCopy(
 
 onMount(() => {
   if (loadOnMount) {
-    if (openOnLoad) previewOpen = true;
     void loadMap();
   }
 });
 
 onDestroy(() => {
   requestController?.abort();
+  clearTimeout(closeTimer);
 });
 
 function statusCopy(status: RoomMapResult["status"]) {
@@ -62,25 +68,40 @@ function statusCopy(status: RoomMapResult["status"]) {
   return copy.unavailable;
 }
 
-function handlePreviewIntent() {
+function keepPreviewOpen() {
+  clearTimeout(closeTimer);
+}
+
+function dismissPreview() {
+  clearTimeout(closeTimer);
+  closeTimer = setTimeout(() => {
+    if (previewContent?.contains(document.activeElement)) return;
+    previewOpen = false;
+  }, 150);
+}
+
+function handlePreviewIntent(event?: PointerEvent | FocusEvent) {
+  if (
+    inline ||
+    dialogOpen ||
+    suppressPreview ||
+    (event instanceof PointerEvent && event.pointerType === "touch")
+  )
+    return;
+  keepPreviewOpen();
   previewOpen = true;
   void loadMap();
 }
 
-function handleTriggerClick() {
-  void loadMap();
-  if (imageUrl) {
-    previewOpen = false;
-    dialogOpen = true;
-    zoom = 1;
-  }
+function handleTriggerClick(event: MouseEvent) {
+  event.preventDefault();
+  openMap();
 }
 
 async function loadMap() {
   const requestedCode = normalizedCode;
   if (!requestedCode || (loading && requestCode === requestedCode)) return;
-  if (map?.code === requestedCode || (failed && requestCode === requestedCode))
-    return;
+  if (map?.code === requestedCode) return;
 
   requestController?.abort();
   requestController = new AbortController();
@@ -111,12 +132,18 @@ async function loadMap() {
 }
 
 function openMap() {
+  keepPreviewOpen();
+  previewOpen = false;
+  dialogOpen = true;
+  zoom = 1;
   void loadMap();
-  if (imageUrl) {
-    previewOpen = false;
-    dialogOpen = true;
-    zoom = 1;
-  }
+}
+
+function restoreTriggerFocus(event: Event) {
+  event.preventDefault();
+  suppressPreview = true;
+  (inline ? openButton : trigger)?.focus({ preventScroll: true });
+  suppressPreview = false;
 }
 
 function closeDialog() {
@@ -131,33 +158,7 @@ function handleWheel(event: WheelEvent) {
 }
 </script>
 
-<span class={cn("inline-flex max-w-full", className)} data-testid="room-map-preview">
-  <Popover.Root bind:open={previewOpen}>
-    <Popover.Trigger>
-      {#snippet child({ props })}
-        <Button
-          {...props}
-          aria-label={triggerLabel}
-          class="max-w-full px-1.5"
-          size="sm"
-          type="button"
-          variant="link"
-          onfocus={handlePreviewIntent}
-          onpointerenter={handlePreviewIntent}
-          onclick={handleTriggerClick}
-        >
-          <MapPinnedIcon data-icon="inline-start" aria-hidden="true" />
-          <span class="truncate">{normalizedCode}</span>
-        </Button>
-      {/snippet}
-    </Popover.Trigger>
-    <Popover.Content
-      align="start"
-      class="w-[min(24rem,calc(100vw-2rem))] max-w-[calc(100vw-2rem)]"
-      data-testid="room-map-preview-popover"
-      sideOffset={8}
-    >
-      <Popover.Title class="sr-only">{dialogTitle}</Popover.Title>
+{#snippet mapDetails()}
       <div class="grid gap-3">
         <div class="flex items-start justify-between gap-2">
           <div class="min-w-0">
@@ -185,7 +186,7 @@ function handleWheel(event: WheelEvent) {
         {:else}
           <img
             alt={mapAlt}
-            class="max-h-64 w-full rounded-md border border-border object-contain"
+            class={cn("w-full rounded-md border border-border object-contain", !inline && "max-h-64")}
             decoding="async"
             loading="lazy"
             src={imageUrl}
@@ -202,6 +203,7 @@ function handleWheel(event: WheelEvent) {
               size="sm"
               type="button"
               variant="outline"
+              bind:ref={openButton}
               onclick={openMap}
             >
               <ZoomInIcon data-icon="inline-start" />
@@ -222,31 +224,87 @@ function handleWheel(event: WheelEvent) {
           </div>
         </div>
       </div>
+{/snippet}
+
+<span class={cn("inline-flex max-w-full", className)} data-testid="room-map-preview">
+  {#if inline}
+    <div class="w-full">{@render mapDetails()}</div>
+  {:else}
+  <Popover.Root bind:open={previewOpen}>
+    <Popover.Trigger>
+      {#snippet child({ props })}
+        <Button
+          {...props}
+          bind:ref={trigger}
+          aria-label={triggerLabel}
+          class="max-w-full px-1.5"
+          size="sm"
+          type="button"
+          variant="link"
+          onfocus={handlePreviewIntent}
+          onpointerenter={handlePreviewIntent}
+          onpointerleave={dismissPreview}
+          onblur={dismissPreview}
+          onclick={handleTriggerClick}
+          onkeydown={(event) => {
+            if (event.key === "Enter" || event.key === " ") {
+              event.preventDefault();
+              openMap();
+            }
+          }}
+        >
+          <MapPinnedIcon data-icon="inline-start" aria-hidden="true" />
+          <span class="truncate">{label ?? normalizedCode}</span>
+        </Button>
+      {/snippet}
+    </Popover.Trigger>
+    <Popover.Content
+      align="start"
+      class="w-[min(24rem,calc(100vw-2rem))] max-w-[calc(100vw-2rem)]"
+      data-testid="room-map-preview-popover"
+      sideOffset={8}
+      bind:ref={previewContent}
+      onOpenAutoFocus={(event) => event.preventDefault()}
+      onCloseAutoFocus={(event) => event.preventDefault()}
+      onpointerenter={keepPreviewOpen}
+      onpointerleave={dismissPreview}
+      onfocusin={keepPreviewOpen}
+      onfocusout={dismissPreview}
+    >
+      <Popover.Title class="sr-only">{dialogTitle}</Popover.Title>
+      {@render mapDetails()}
     </Popover.Content>
   </Popover.Root>
+  {/if}
 
   <Dialog.Root bind:open={dialogOpen} onOpenChange={(open) => (dialogOpen = open)}>
     <Dialog.Content
       class="flex max-h-[calc(100dvh-2rem)] max-w-6xl flex-col gap-3 overflow-hidden sm:max-w-6xl"
       data-testid="room-map-dialog"
+      onCloseAutoFocus={restoreTriggerFocus}
     >
       <Dialog.Header>
         <Dialog.Title>{dialogTitle}</Dialog.Title>
         <Dialog.Description>{dialogDescription}</Dialog.Description>
       </Dialog.Header>
 
-      {#if imageUrl}
+      {#if loading}
+        <Skeleton class="aspect-video w-full" />
+        <p>{copy.loading}</p>
+      {:else if failed}
+        <Alert.Root variant="destructive"><Alert.Description>{copy.fetchError}</Alert.Description></Alert.Root>
+      {:else if imageUrl}
         <div
-          class="min-h-0 flex-1 overflow-auto rounded-md border border-border bg-muted/20 p-2"
+          class="max-h-[calc(100dvh-14rem)] min-h-0 w-full flex-1 overflow-auto rounded-md border border-border bg-muted/20"
+          data-testid="room-map-scroll"
           onwheel={handleWheel}
         >
-          <div class="flex min-h-full min-w-full items-start justify-center">
+          <div style={`width: ${zoom * 100}%`}>
             <img
               alt={mapAlt}
-              class="max-h-[calc(100dvh-14rem)] max-w-none origin-top object-contain transition-transform"
+              class="block h-auto w-full max-w-none"
               decoding="async"
               src={imageUrl}
-              style={`transform: scale(${zoom})`}
             />
           </div>
         </div>
@@ -289,6 +347,9 @@ function handleWheel(event: WheelEvent) {
             <RotateCcwIcon data-icon="inline-start" />
           </Button>
         </div>
+        {#if imageUrl}
+          <Button href={imageUrl} target="_blank" rel="noopener noreferrer" variant="outline"><ExternalLinkIcon data-icon="inline-start" />{copy.openMap}</Button>
+        {/if}
         <Button type="button" variant="outline" onclick={closeDialog}>{copy.close}</Button>
       </Dialog.Footer>
     </Dialog.Content>

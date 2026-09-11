@@ -429,6 +429,19 @@ export async function assertPageContract(
       return;
     }
 
+    case "/catalog/rooms": {
+      await gotoContractPage(page, routePath, testInfo);
+      await expectMainContent(page);
+      await expect(
+        page.getByRole("heading", {
+          level: 1,
+          name: /教室位置|Room location/i,
+        }),
+      ).toBeVisible();
+      await expect(page.getByRole("textbox")).toBeVisible();
+      return;
+    }
+
     case "/catalog/weather": {
       await gotoContractPage(page, routePath, testInfo);
       await expectMainContent(page);

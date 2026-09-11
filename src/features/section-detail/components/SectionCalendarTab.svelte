@@ -95,7 +95,7 @@ $: classLectureNumberById = new Map(
             {#if event.roomCodes?.length}
               <div class="flex flex-wrap items-center gap-x-1 gap-y-0.5">
                 {#each event.roomCodes as room (room)}
-                  <RoomMapPreview code={room} copy={roomMapCopy} />
+                  <RoomMapPreview code={room} label={event.roomCodes.length === 1 ? calendarEventLocation(event, room) : room} copy={roomMapCopy} />
                 {/each}
               </div>
             {:else}
@@ -118,7 +118,7 @@ $: classLectureNumberById = new Map(
             {#if event.roomCodes?.length}
               <div class="flex flex-wrap items-center gap-x-1 gap-y-0.5">
                 {#each event.roomCodes as room (room)}
-                  <RoomMapPreview code={room} copy={roomMapCopy} />
+                  <RoomMapPreview code={room} label={event.roomCodes.length === 1 ? calendarEventLocation(event, room) : room} copy={roomMapCopy} />
                 {/each}
               </div>
             {:else}
