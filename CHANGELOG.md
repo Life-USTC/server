@@ -1,3 +1,10 @@
+## [1.106.2](https://github.com/Life-USTC/server/compare/v1.106.1...v1.106.2) (2026-09-11)
+
+
+### Bug Fixes
+
+* **weather:** align conditions and unify hourly chart details ([#1035](https://github.com/Life-USTC/server/issues/1035)) ([82d6c69](https://github.com/Life-USTC/server/commit/82d6c69cd7d1c73c15f6b4d078470296123b8ed3))
+
 ## [1.106.1](https://github.com/Life-USTC/server/compare/v1.106.0...v1.106.1) (2026-09-11)
 
 
