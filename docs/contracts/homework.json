@@ -82,7 +82,7 @@
           "mobile compact toolbar with direct completion filters and overflow display-mode control",
           "cards/list view mode persisted in browser storage",
           "detail popup order: description, due summary, vertical metadata excluding platform createdAt, action controls, discussion; desktop places discussion to the right of the details",
-          "create form exposes the collapsible advisory homework title and description style guide",
+          "create form keeps major/team flags outside optional timestamps, omits subtitle and advisory style guide, and uses aligned date inputs with adjacent shortcut menus",
           "create dialog uses a wider desktop layout with section, title, and timestamps on the left and description editing with simultaneous live Markdown preview on the right; mobile stacks the fields",
           "create section options identify course, teachers, and semester; common deadlines include the selected section's next classes and future this/next-week weekend cutoffs in Asia/Shanghai"
         ]

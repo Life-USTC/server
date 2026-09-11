@@ -3,7 +3,6 @@ import { HOMEWORK_DESCRIPTION_MAX_LENGTH } from "@/features/homeworks/lib/homewo
 import { campusReferenceMarkdownPlugins } from "@/features/markdown/lib/campus-reference-markdown";
 import MarkdownEditor from "$lib/components/MarkdownEditor.svelte";
 import * as Field from "$lib/components/ui/field/index.js";
-import HomeworkStyleGuide from "./HomeworkStyleGuide.svelte";
 import type {
   HomeworkFormCommentsCopy,
   HomeworkFormCopy,
@@ -15,7 +14,6 @@ export let description = "";
 export let disabled = false;
 export let idPrefix = "homework";
 export let markdownModeLabel = "";
-export let styleGuidePrefix = idPrefix;
 export let previewLayout: "tabs" | "split" = "tabs";
 </script>
 
@@ -39,4 +37,3 @@ export let previewLayout: "tabs" | "split" = "tabs";
     value={description}
   />
 </Field.Field>
-<HomeworkStyleGuide {copy} testIdPrefix={styleGuidePrefix} />

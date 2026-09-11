@@ -25,6 +25,7 @@ export type HomeworkTimestampCopy = HomeworkDueShortcutCopy & {
   advancedShow: string;
   calendarButtonLabel: string;
   dueDateShortcuts: string;
+  timeShortcuts: string;
   helperClear: string;
   helperMonth: string;
   helperPublishNow: string;

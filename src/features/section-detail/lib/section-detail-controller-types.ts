@@ -177,6 +177,7 @@ export type SectionDetailCopy = {
     descriptionLabel: string;
     descriptionPlaceholder: string;
     dueDateShortcuts: string;
+    timeShortcuts: string;
     editAction: string;
     helperClear: string;
     helperBeforeMonday: string;
