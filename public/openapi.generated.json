@@ -69,6 +69,10 @@
       "description": "catalog.metadata operations"
     },
     {
+      "name": "catalog.rooms",
+      "description": "catalog.rooms operations"
+    },
+    {
       "name": "catalog.schedule",
       "description": "catalog.schedule operations"
     },
@@ -153,6 +157,7 @@
         "catalog.courses",
         "catalog.link",
         "catalog.metadata",
+        "catalog.rooms",
         "catalog.schedule",
         "catalog.section",
         "catalog.semesters",
@@ -8280,6 +8285,48 @@
                 }
               }
             },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/openApiErrorSchema"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/catalog/rooms/{code}/map": {
+      "get": {
+        "operationId": "catalog_rooms_map",
+        "summary": "Look up a room's highlighted map or an available building overview",
+        "tags": [
+          "catalog.rooms"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "code",
+            "schema": {
+              "type": "string",
+              "maxLength": 64
+            },
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/roomMapResponseSchema"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error response",
             "content": {
               "application/json": {
                 "schema": {
@@ -36112,6 +36159,47 @@
           "upload",
           "usedBytes",
           "quotaBytes"
+        ],
+        "additionalProperties": false
+      },
+      "roomMapResponseSchema": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "building": {
+            "nullable": true,
+            "type": "string"
+          },
+          "floor": {
+            "nullable": true,
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "highlighted",
+              "overview",
+              "unavailable"
+            ]
+          },
+          "imageUrl": {
+            "nullable": true,
+            "type": "string"
+          },
+          "sourceImageUrl": {
+            "nullable": true,
+            "type": "string"
+          }
+        },
+        "required": [
+          "code",
+          "building",
+          "floor",
+          "status",
+          "imageUrl",
+          "sourceImageUrl"
         ],
         "additionalProperties": false
       },

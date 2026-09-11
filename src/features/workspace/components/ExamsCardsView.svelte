@@ -1,5 +1,7 @@
 <script lang="ts">
 import ArrowUpRight from "@lucide/svelte/icons/arrow-up-right";
+import RoomMapPreview from "@/features/rooms/components/RoomMapPreview.svelte";
+import { splitRoomLabels } from "@/features/rooms/lib/room-map-types";
 import TableIconButton from "$lib/components/TableIconButton.svelte";
 import { Badge } from "$lib/components/ui/badge/index.js";
 import * as Item from "$lib/components/ui/item/index.js";
@@ -57,7 +59,16 @@ export let subscriptionsCopy: ExamsCopyProps["subscriptionsCopy"];
             {sectionCopy.examTime}: {examTimeLabel(exam.startTime, exam.endTime) || "—"}
           </span>
           <span class="max-w-full break-words">
-            {sectionCopy.room}: {exam.rooms || sectionCopy.roomTbd}
+            {sectionCopy.room}:
+            {#if exam.rooms}
+              <span class="inline-flex flex-wrap items-center gap-x-1 gap-y-0.5 align-middle">
+                {#each splitRoomLabels(exam.rooms) as room (room)}
+                  <RoomMapPreview code={room} copy={workspaceCopy.roomMap} />
+                {/each}
+              </span>
+            {:else}
+              {sectionCopy.roomTbd}
+            {/if}
           </span>
           <Badge variant="outline">
             {exam.completed ? workspaceCopy.nav.exams.filterCompleted : workspaceCopy.nav.exams.filterIncomplete}

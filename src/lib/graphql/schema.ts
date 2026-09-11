@@ -16,6 +16,7 @@ import {
 } from "@/features/catalog-links/lib/catalog-link-search";
 import { getPublicCatalogLinksData } from "@/features/catalog-links/server/catalog-link-data";
 import { getPublicUserIdentityByIdentifier } from "@/features/profile/server/user-profile-page-data";
+import { getRoomMap } from "@/features/rooms/server/room-map-service";
 import { getWeatherSnapshot } from "@/features/weather/server/weather-service";
 import {
   getYoungEvent,
@@ -33,6 +34,7 @@ import {
   requireGraphqlId,
   requireGraphqlYoungEventId,
   validateGraphqlIdList,
+  validateGraphqlRoomCode,
   validateGraphqlSearch,
   validateGraphqlTeacherCode,
   validateGraphqlVersionKey,
@@ -353,9 +355,19 @@ export const graphqlTypeDefs = /* GraphQL */ `
       versionKey: String
     ): BusRouteTimetable
     links(query: String): [CatalogLink!]!
+    roomMap(code: String!): RoomMap!
     weather(locationKey: String!): WeatherSnapshot
     youngEvents(page: PageInput, filter: YoungEventFilter): YoungEventPage!
     youngEvent(youngId: String!): YoungEvent
+  }
+
+  type RoomMap {
+    code: String!
+    building: String
+    floor: String
+    status: String!
+    imageUrl: String
+    sourceImageUrl: String
   }
 
   type CatalogLink {
@@ -607,6 +619,9 @@ export const graphqlSchema = createSchema<
         if (!query) return links;
         const tokens = searchQueryToTokens(query);
         return links.filter((link) => linkMatchesTokens(link, tokens));
+      },
+      roomMap(_parent, args: { code: string }) {
+        return getRoomMap(validateGraphqlRoomCode(args.code));
       },
       weather(_parent, args: { locationKey: string }) {
         return getWeatherSnapshot(

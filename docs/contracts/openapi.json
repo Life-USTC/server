@@ -26,7 +26,8 @@
     "paginated-list-envelope": "Paginated REST list endpoints return { data, pagination } with page, pageSize, total, and totalPages. Resource-specific list metadata is nested under meta instead of introducing alternate collection keys; REST and equivalent MCP list tools share this core envelope.",
     "created-resource-status": "POST /api/workspace/todos, /api/community/comments, /api/community/section-homeworks, and /api/admin/suspensions return 201 Created with a relative Location header for the new resource. Idempotent upserts and state-setting operations continue to return 200.",
     "schema-query-parsing": "Bus, schedule, overview, todo, and homework date, bounded-integer, and boolean query values are validated and converted once by their declared Zod schemas. Route handlers consume those typed results and return validation responses without re-wrapping them; pagination and comma-separated ID lists keep their dedicated normalizers.",
-    "api-docs-responsive-navigation": "At 390x844, the selected API reference begins within the first viewport while the complete route-based navigation remains available in a labeled, closable mobile sheet. At desktop widths, the complete sticky sidebar remains visible beside the reference."
+    "api-docs-responsive-navigation": "At 390x844, the selected API reference begins within the first viewport while the complete route-based navigation remains available in a labeled, closable mobile sheet. At desktop widths, the complete sticky sidebar remains visible beside the reference.",
+    "room-maps": "GET /api/catalog/rooms/{code}/map (catalog_rooms_map) returns a public room map object; invalid code syntax returns 400."
   },
   "capabilities": {
     "api-docs-page": {

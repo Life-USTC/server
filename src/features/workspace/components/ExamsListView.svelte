@@ -1,5 +1,7 @@
 <script lang="ts">
 import ArrowUpRight from "@lucide/svelte/icons/arrow-up-right";
+import RoomMapPreview from "@/features/rooms/components/RoomMapPreview.svelte";
+import { splitRoomLabels } from "@/features/rooms/lib/room-map-types";
 import TableIconButton from "$lib/components/TableIconButton.svelte";
 import TableRowActions from "$lib/components/TableRowActions.svelte";
 import TruncatedText from "$lib/components/TruncatedText.svelte";
@@ -60,7 +62,15 @@ export let subscriptionsCopy: ExamsCopyProps["subscriptionsCopy"];
           >{examTimeLabel(exam.startTime, exam.endTime) || "—"}</Table.Cell
         >
         <Table.Cell>
-          {exam.rooms || sectionCopy.roomTbd}
+          {#if exam.rooms}
+            <div class="flex flex-wrap items-center gap-x-1 gap-y-0.5">
+              {#each splitRoomLabels(exam.rooms) as room (room)}
+                <RoomMapPreview code={room} copy={workspaceCopy.roomMap} />
+              {/each}
+            </div>
+          {:else}
+            {sectionCopy.roomTbd}
+          {/if}
         </Table.Cell>
         <Table.Cell>
           <TableRowActions>

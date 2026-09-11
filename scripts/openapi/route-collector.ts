@@ -129,6 +129,7 @@ const OPERATION_ID_OVERRIDES: Record<string, string> = {
   "GET /api/catalog/bus": "catalog_bus_timetable_get",
   "GET /api/catalog/bus/routes": "catalog_bus_route_search",
   "GET /api/catalog/bus/next": "catalog_bus_departure_next",
+  "GET /api/catalog/rooms/{code}/map": "catalog_rooms_map",
   "GET /api/catalog/weather": "catalog_weather_get",
   "GET /api/workspace/bus-preferences": "workspace_bus_preferences_get",
   "POST /api/workspace/bus-preferences": "workspace_bus_preferences_set",

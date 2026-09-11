@@ -11,6 +11,7 @@ export type SectionCalendarEvent = {
   dateKey: string | null;
   title: string;
   meta: string;
+  roomCodes?: string[];
   badges: string[];
   details: Array<{ label: string; value: string }>;
   sortValue: number;

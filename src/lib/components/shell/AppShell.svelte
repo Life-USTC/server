@@ -15,6 +15,7 @@ import KeyRoundIcon from "@lucide/svelte/icons/key-round";
 import LinkIcon from "@lucide/svelte/icons/link";
 import ListTodoIcon from "@lucide/svelte/icons/list-todo";
 import MapIcon from "@lucide/svelte/icons/map";
+import MapPinnedIcon from "@lucide/svelte/icons/map-pinned";
 import RouteIcon from "@lucide/svelte/icons/route";
 import ScrollTextIcon from "@lucide/svelte/icons/scroll-text";
 import SmartphoneIcon from "@lucide/svelte/icons/smartphone";
@@ -198,6 +199,11 @@ function buildShellNavGroups(
       items: pathname.startsWith("/catalog/teachers/")
         ? detailSecondaryLinks
         : undefined,
+    },
+    {
+      href: "/catalog/rooms",
+      icon: MapPinnedIcon,
+      label: copy.nav.rooms,
     },
     {
       href: "/catalog/bus",
@@ -434,6 +440,11 @@ function buildMobileSecondaryNavGroups(
         : undefined,
       label: copy.nav.teachers,
     },
+    {
+      href: "/catalog/rooms",
+      icon: MapPinnedIcon,
+      label: copy.nav.rooms,
+    },
   ];
   return [
     {
@@ -507,9 +518,12 @@ function isActiveLink(link: ShellLink) {
     return pathname === target.pathname;
   }
   if (
-    ["/catalog/courses", "/catalog/sections", "/catalog/teachers"].includes(
-      target.pathname,
-    )
+    [
+      "/catalog/courses",
+      "/catalog/sections",
+      "/catalog/teachers",
+      "/catalog/rooms",
+    ].includes(target.pathname)
   ) {
     return (
       pathname === target.pathname || pathname.startsWith(`${target.pathname}/`)
@@ -549,11 +563,19 @@ function isMobilePrimaryActive(link: ShellLink): boolean {
   }
   if (link.href === "/catalog/courses") {
     return (
-      ["/catalog/bus", "/catalog/links", "/catalog/bus/map"].includes(
-        pathname,
-      ) ||
+      [
+        "/catalog/bus",
+        "/catalog/links",
+        "/catalog/bus/map",
+        "/catalog/rooms",
+      ].includes(pathname) ||
       pathname.startsWith("/usage/") ||
-      ["/catalog/courses", "/catalog/sections", "/catalog/teachers"].some(
+      [
+        "/catalog/courses",
+        "/catalog/sections",
+        "/catalog/teachers",
+        "/catalog/rooms",
+      ].some(
         (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`),
       )
     );

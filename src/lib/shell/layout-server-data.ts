@@ -64,6 +64,7 @@ export function buildLayoutCopy(locale: LayoutLocale) {
       settings: messages.metadata.pages.settings,
       sections: messages.common.sections,
       teachers: messages.common.teachers,
+      rooms: messages.metadata.pages.rooms,
       calendar: messages.workspace.nav.calendar.title,
       bus: messages.workspace.nav.bus.title,
       subscriptions: messages.workspace.nav.subscriptions.title,

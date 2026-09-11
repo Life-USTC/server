@@ -1,4 +1,6 @@
 <script lang="ts">
+import RoomMapPreview from "@/features/rooms/components/RoomMapPreview.svelte";
+import type { RoomMapCopy } from "@/features/rooms/lib/room-map-types";
 import {
   calendarEventDetail,
   calendarEventLocation,
@@ -22,6 +24,7 @@ type SectionExamCopy = {
 export let events: SectionCalendarEvent[];
 export let fmtDate: (value: string | Date | null | undefined) => string;
 export let heading: string;
+export let roomMapCopy: RoomMapCopy;
 export let sectionCopy: SectionExamCopy;
 </script>
 
@@ -56,11 +59,19 @@ export let sectionCopy: SectionExamCopy;
               {calendarEventTime(event, "—")}
             </Table.Cell>
             <Table.Cell class="whitespace-nowrap">
-              {calendarEventDetail(
-                event,
-                sectionCopy.location,
-                calendarEventLocation(event, "—"),
-              )}
+              {#if event.roomCodes?.length}
+                <div class="flex flex-wrap items-center gap-x-1 gap-y-0.5">
+                  {#each event.roomCodes as room (room)}
+                    <RoomMapPreview code={room} copy={roomMapCopy} />
+                  {/each}
+                </div>
+              {:else}
+                {calendarEventDetail(
+                  event,
+                  sectionCopy.location,
+                  calendarEventLocation(event, "—"),
+                )}
+              {/if}
             </Table.Cell>
             <Table.Cell class="whitespace-nowrap">{event.title || "—"}</Table.Cell>
             <Table.Cell class="whitespace-nowrap">

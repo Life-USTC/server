@@ -91,6 +91,7 @@ const E2E = {
   guidesMarkdown: "src/app/guides/markdown-support/test.ts",
   usage: "src/app/usage/test.ts",
   weather: "src/app/weather/test.ts",
+  rooms: "src/app/rooms/test.ts",
   youngEvents: "src/app/young-events/test.ts",
   youngEventsYoungId: "src/app/young-events/[youngId]/test.ts",
   oauthAuthorize: "src/app/oauth/authorize/test.ts",
@@ -488,6 +489,18 @@ export const PAGE_INVENTORY: readonly PageInventoryEntry[] = [
         e2eSpec: E2E.courses,
         evidence: "搜索和清除按钮",
       },
+    ],
+  },
+  {
+    routeId: "/catalog/rooms",
+    samplePath: "/catalog/rooms",
+    kind: "page",
+    auth: "public",
+    contractPath: "/catalog/rooms",
+    e2eSpec: E2E.rooms,
+    mobileScreenshots: ["public"],
+    primaryActions: [
+      { id: "room-map-lookup", e2eSpec: E2E.rooms, evidence: "查询展示地图" },
     ],
   },
   {

@@ -108,6 +108,7 @@ type Catalog {
   courses(filter: CourseFilter, page: PageInput): CoursePage!
   currentSemester: Semester
   links(query: String): [CatalogLink!]!
+  roomMap(code: String!): RoomMap!
   section(jwId: Int!): Section
   sections(filter: SectionFilter, page: PageInput): SectionPage!
   semesters(page: PageInput): SemesterPage!
@@ -442,6 +443,15 @@ type Query {
   catalog: Catalog!
   community: Community!
   workspace: Workspace
+}
+
+type RoomMap {
+  building: String
+  code: String!
+  floor: String
+  imageUrl: String
+  sourceImageUrl: String
+  status: String!
 }
 
 type Schedule {

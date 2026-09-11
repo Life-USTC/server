@@ -5,6 +5,7 @@ import type {
 } from "@/features/catalog-links/lib/catalog-links";
 import type { CommentsCopy } from "@/features/comments/components/comment-component-types";
 import type { HomeworkStyleGuideCopy } from "@/features/homeworks/lib/homework-style-guide";
+import type { RoomMapCopy } from "@/features/rooms/lib/room-map-types";
 import type {
   WorkspaceBusCopy,
   WorkspaceBusData,
@@ -77,6 +78,7 @@ export type WorkspaceRootCopy = WorkspaceRecord & {
 };
 
 export type WorkspaceCopy = WorkspaceRecord & {
+  roomMap: RoomMapCopy;
   linkHub: {
     colActions: string;
     colDescription: string;

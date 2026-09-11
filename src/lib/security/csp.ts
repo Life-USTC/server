@@ -18,6 +18,7 @@ const ANALYTICS_CONNECT_SOURCES = [
 ];
 
 const EXTERNAL_IMAGE_SOURCES = [
+  "https://static.life-ustc.tiankaima.dev",
   "https://www.google-analytics.com",
   "https://www.googletagmanager.com",
   "https://avatars.githubusercontent.com",

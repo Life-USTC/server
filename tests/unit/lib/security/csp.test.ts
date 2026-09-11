@@ -46,6 +46,7 @@ describe("CSP 辅助函数", () => {
     expect(imageDirective).toContain("https://avatars.githubusercontent.com");
     expect(imageDirective).toContain("https://*.googleusercontent.com");
     expect(imageDirective).toContain("https://api.dicebear.com");
+    expect(imageDirective).toContain("https://static.life-ustc.tiankaima.dev");
   });
 
   it("保持上传资源同源", () => {

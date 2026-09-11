@@ -16,6 +16,7 @@ export const sectionPageScheduleSelect = {
     customPlace: true,
     room: {
       select: {
+        code: true,
         ...localizedNameSelect,
         building: {
           select: {

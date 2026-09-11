@@ -6,6 +6,7 @@ export type SectionCalendarEvent = {
   id: string;
   kind: "class" | "exam";
   meta: string;
+  roomCodes?: string[];
   title: string;
 };
 

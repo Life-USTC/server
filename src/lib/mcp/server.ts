@@ -6,6 +6,7 @@ import {
 import { registerGraphqlResources } from "@/lib/graphql/resources";
 import { registerBusTools } from "@/lib/mcp/tools/bus/bus-tools";
 import { registerCourseTools } from "@/lib/mcp/tools/catalog/course-tools";
+import { registerRoomMapTools } from "@/lib/mcp/tools/catalog/room-map-tools";
 import { registerSectionDataTools } from "@/lib/mcp/tools/catalog/section-data-tools";
 import { registerWeatherTools } from "@/lib/mcp/tools/catalog/weather-tools";
 import { registerYoungEventTools } from "@/lib/mcp/tools/catalog/young-event-tools";
@@ -53,6 +54,7 @@ export function createMcpServer() {
   registerWorkspaceTools(server);
   registerSectionDataTools(server);
   registerWeatherTools(server);
+  registerRoomMapTools(server);
   registerYoungEventTools(server);
   registerWorkspaceDataTools(server);
   registerCalendarTools(server);
