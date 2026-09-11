@@ -35,6 +35,7 @@ export let openCreateHomeworkDialog: SectionDetailMainContentProps["openCreateHo
 export let openSubscribeDialog: () => void;
 export let periodDetailRows: SectionDetailMainContentProps["periodDetailRows"];
 export let primaryName: SectionDetailMainContentProps["primaryName"];
+export let roomMapCopy: SectionDetailMainContentProps["roomMapCopy"];
 export let sectionCalendarEvents: SectionDetailMainContentProps["sectionCalendarEvents"];
 export let sectionCopy: SectionDetailMainContentProps["sectionCopy"];
 export let sectionTeachersLabel: SectionDetailMainContentProps["sectionTeachersLabel"];
@@ -181,6 +182,7 @@ $: sectionExamEvents = sectionCalendarEvents.filter(
           {#if SectionCalendarTab}
             <svelte:component
               this={SectionCalendarTab}
+              {roomMapCopy}
               {sectionCalendarEvents}
               {sectionCopy}
               {unscheduledCalendarEvents}
@@ -198,6 +200,7 @@ $: sectionExamEvents = sectionCalendarEvents.filter(
               events={sectionExamEvents}
               {fmtDate}
               heading={sectionCopy.tabs.exams}
+              {roomMapCopy}
               {sectionCopy}
             />
           {/if}

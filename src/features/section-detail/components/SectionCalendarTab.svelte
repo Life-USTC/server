@@ -1,4 +1,6 @@
 <script lang="ts">
+import RoomMapPreview from "@/features/rooms/components/RoomMapPreview.svelte";
+import type { RoomMapCopy } from "@/features/rooms/lib/room-map-types";
 import { formatMessage } from "@/features/section-detail/lib/display";
 import {
   calendarEventDetail,
@@ -11,6 +13,7 @@ import * as Table from "$lib/components/ui/table/index.js";
 import type { SectionCalendarEvent } from "./section-calendar-tab-types";
 
 export let sectionCalendarEvents: SectionCalendarEvent[];
+export let roomMapCopy: RoomMapCopy;
 export let sectionCopy: {
   calendarEmpty: string;
   date: string;
@@ -89,7 +92,15 @@ $: classLectureNumberById = new Map(
             {calendarEventTime(event, "—")}
           </Table.Cell>
           <Table.Cell class="whitespace-nowrap">
-            {calendarEventLocation(event, "—")}
+            {#if event.roomCodes?.length}
+              <div class="flex flex-wrap items-center gap-x-1 gap-y-0.5">
+                {#each event.roomCodes as room (room)}
+                  <RoomMapPreview code={room} copy={roomMapCopy} />
+                {/each}
+              </div>
+            {:else}
+              {calendarEventLocation(event, "—")}
+            {/if}
           </Table.Cell>
         </Table.Row>
       {/each}
@@ -104,7 +115,15 @@ $: classLectureNumberById = new Map(
             {calendarEventTime(event, "—")}
           </Table.Cell>
           <Table.Cell class="whitespace-nowrap">
-            {calendarEventLocation(event, "—")}
+            {#if event.roomCodes?.length}
+              <div class="flex flex-wrap items-center gap-x-1 gap-y-0.5">
+                {#each event.roomCodes as room (room)}
+                  <RoomMapPreview code={room} copy={roomMapCopy} />
+                {/each}
+              </div>
+            {:else}
+              {calendarEventLocation(event, "—")}
+            {/if}
           </Table.Cell>
         </Table.Row>
       {/each}

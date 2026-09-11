@@ -29,6 +29,9 @@ export function buildSectionExamCalendarEvents({
     kind: "exam" as const,
     date: exam.examDate ?? null,
     dateKey: buildDateKey(exam.examDate),
+    roomCodes: exam.examRooms
+      .map((room) => room.room?.trim() ?? "")
+      .filter(Boolean),
     title:
       exam.examMode ?? (primaryName(section.examMode) || sectionCopy.examEvent),
     meta: `${formatTime(exam.startTime, notAvailable)}-${formatTime(exam.endTime, notAvailable)} · ${examRoomsLabel(exam, sectionCopy)}`,

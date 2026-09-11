@@ -1,4 +1,5 @@
 import type { CommentTargetOption } from "@/features/comments/lib/comment-ui";
+import type { RoomMapCopy } from "@/features/rooms/lib/room-map-types";
 import type {
   SectionBasicInfoCopy,
   SectionCommonInfoCopy,
@@ -218,6 +219,7 @@ export type SectionDetailMainContentProps = {
   openCreateHomeworkDialog: () => void;
   periodDetailRows: Array<[string, number]>;
   primaryName: SectionPrimaryName;
+  roomMapCopy: RoomMapCopy;
   sectionCalendarEvents: SectionCalendarEvent[];
   sectionCopy: SectionDetailMainSectionCopy;
   sectionTeachersLabel: SectionTeachersLabel;

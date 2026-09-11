@@ -1,6 +1,7 @@
 import type { CommentsInitialData } from "@/features/comments/lib/comment-panel-data";
 import type { DescriptionPayload } from "@/features/descriptions/lib/description-card-actions";
 import type { HomeworkStyleGuideCopy } from "@/features/homeworks/lib/homework-style-guide";
+import type { RoomMapCopy } from "@/features/rooms/lib/room-map-types";
 import type { AppLocale } from "@/i18n/config";
 
 type SectionDetailHomeworkMessages = Record<string, string> &
@@ -26,6 +27,7 @@ export type SectionDetailSemester = {
 };
 
 export type SectionDetailScheduleRoom = SectionDetailNamed & {
+  code?: string | null;
   building?:
     | (SectionDetailNamed & {
         campus?: SectionDetailNamed | null;
@@ -328,6 +330,7 @@ export type SectionDetailCopy = {
     viewAllSubscriptions: string;
     yes: string;
   };
+  roomMap: RoomMapCopy;
   metadata: {
     pages: {
       sectionDetail: string;
