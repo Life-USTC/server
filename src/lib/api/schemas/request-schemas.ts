@@ -4,3 +4,5 @@ export * from "./request-publication-ingestion-schemas";
 export * from "./request-publication-read-schemas";
 export * from "./request-query-schemas";
 export * from "./request-schema-primitives";
+
+export { roomMapCodePathParamsSchema } from "./room-map-schemas";

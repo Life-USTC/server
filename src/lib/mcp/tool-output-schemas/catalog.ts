@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { roomMapResponseSchema } from "@/lib/api/schemas/room-map-schemas";
 import { weatherSnapshotResponseSchema } from "@/lib/api/schemas/weather-response-schemas";
 import {
   paginatedYoungEventResponseSchema,
@@ -263,6 +264,10 @@ export const catalogAdvertisedOutputSchemas: Record<
 };
 
 export const catalogNonAcademicModeOutputSchemas = {
+  catalog_rooms_map: {
+    default: roomMapResponseSchema.extend({ success: z.boolean() }),
+    full: roomMapResponseSchema.extend({ success: z.boolean() }),
+  },
   catalog_section_calendar_feed_get: {
     default: sectionCalendarFeedOutputSchema(compactSubscriptionSectionSchema),
     full: sectionCalendarFeedOutputSchema(subscriptionFullSectionSchema),
@@ -286,6 +291,7 @@ function advertisedCatalogOutputSchema(name: CatalogAcademicModeToolName) {
 }
 
 export const catalogToolOutputSchemas: Record<string, McpToolOutputSchema> = {
+  catalog_rooms_map: roomMapResponseSchema.extend({ success: z.boolean() }),
   catalog_section_calendar_feed_get: objectOutputSchema({
     section: z
       .union([compactSubscriptionSectionSchema, subscriptionFullSectionSchema])

@@ -135,6 +135,7 @@ const TOOL_SCOPE_MAP: Record<string, ToolScopeRequirement[]> = {
 
   // Weather
   catalog_weather_get: [],
+  catalog_rooms_map: [],
 
   // Young events
   catalog_young_event_list: [],

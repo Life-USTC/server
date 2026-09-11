@@ -1,0 +1,54 @@
+{
+  "name": "Room maps",
+  "access": {
+    "anon": "Read room maps",
+    "user": "Read room maps",
+    "admin": "Read room maps",
+    "agent": "Read room maps"
+  },
+  "rules": {
+    "source": "Published static room_maps.json contains exact annotated rooms and generated PNG paths. building_img_rules.json identifies overview images only.",
+    "normalization": "Trim, normalize full-width input with NFKC, and uppercase room codes. Accept ASCII letters, digits and separating hyphens, at most 64 input characters.",
+    "coverage": "highlighted means a verified room annotation; overview means only a matching floor/building image and does not assert room existence; unavailable means no map. Unmapped rooms are not guessed.",
+    "public": "Lookup is public and does not disclose personal schedules.",
+    "calendar": "Course and exam iCalendar events attach public image URLs, preferring highlighted room maps. Every mapped exam room contributes an attachment, deduplicated by URL. Descriptions include room-labeled map links. Missing maps never suppress events.",
+    "web": "Room labels support lazy hover/focus preview and click/tap expansion, with keyboard access and full-size image viewing.",
+    "bot": "Explicit room queries return a map and a short description. Do not attach every room map to ordinary timetable replies. Resolve ambiguous class references before querying a map."
+  },
+  "capabilities": {
+    "room-map": {
+      "title": "Room map lookup",
+      "auth": "anon",
+      "web": { "pages": ["/catalog/rooms", "/catalog/sections/[jwId]"] },
+      "rest": {
+        "routes": [
+          {
+            "path": "/api/catalog/rooms/{code}/map",
+            "returns": "{code, building, floor, status, imageUrl, sourceImageUrl}"
+          }
+        ]
+      },
+      "graphql": {
+        "queries": [
+          {
+            "name": "roomMap",
+            "parent": "Catalog",
+            "arguments": { "code": "String!" },
+            "returns": "RoomMap!",
+            "rest_equivalent": "GET /api/catalog/rooms/{code}/map",
+            "mcp_equivalent": "catalog_rooms_map"
+          }
+        ]
+      },
+      "mcp": {
+        "tools": [
+          {
+            "name": "catalog_rooms_map",
+            "returns": "{code, building, floor, status, imageUrl, sourceImageUrl}",
+            "rest_equivalent": "GET /api/catalog/rooms/{code}/map"
+          }
+        ]
+      }
+    }
+  }
+}

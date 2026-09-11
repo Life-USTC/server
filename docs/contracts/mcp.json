@@ -30,7 +30,8 @@
     "time-override": "Time-sensitive tools (workspace_snapshot_get, workspace_schedule_next, workspace_calendar_timeline_get, workspace_deadline_list, workspace_overview_get, catalog_bus_departure_next) accept an optional atTime parameter to anchor their internal clock to a caller-supplied moment instead of the server clock, enabling reproducible queries and future-scenario planning.",
     "openai-compatible-descriptors": "Every registered tool advertises a title, a closed top-level object outputSchema with a required success boolean and typed known fields, MCP annotations for read-only/destructive/open-world hints, top-level securitySchemes, and _meta.securitySchemes. Ordinary tools declare fixed OAuth feature scopes; graphql_operation_run uses conservative static safety hints and delegates exact scopes to each manifest entry. Default and full results keep the same top-level key and collection types.",
     "single-tools-list-compatibility-wrapper": "The SDK compatibility handler that hoists _meta.securitySchemes onto each tools/list descriptor is installed exactly once after all application tools are registered, rather than nesting one full-list wrapper per tool.",
-    "tool-registry-completeness": "Server startup fails when any registered MCP tool lacks an explicit OAuth scope entry or output schema, so tool registration cannot silently fall back to generic metadata."
+    "tool-registry-completeness": "Server startup fails when any registered MCP tool lacks an explicit OAuth scope entry or output schema, so tool registration cannot silently fall back to generic metadata.",
+    "room-maps": "catalog_rooms_map is public, accepts code and mode, and returns room map coverage and public image URLs."
   },
   "capabilities": {
     "protocol-endpoint": {
@@ -195,8 +196,8 @@
             ]
           },
           {
-            "name": "Weather",
-            "tools": ["catalog_weather_get"]
+            "name": "Weather and room maps",
+            "tools": ["catalog_weather_get", "catalog_rooms_map"]
           },
           {
             "name": "Young Events",
