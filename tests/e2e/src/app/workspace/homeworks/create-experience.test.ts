@@ -23,6 +23,49 @@ for (const width of [1280, 390]) {
       await expect(option).toContainText(DEV_SEED.teacher.nameCn);
       await expect(option).not.toContainText(fixture.sections[0].code);
 
+      // Flags remain available when optional timestamps are collapsed.
+      await dialog
+        .getByRole("checkbox", { name: "大作业", exact: true })
+        .check();
+      await dialog
+        .getByRole("checkbox", { name: "需要组队", exact: true })
+        .check();
+      await dialog
+        .getByRole("button", { name: "其他可选设置", exact: true })
+        .click();
+      await dialog
+        .getByRole("button", { name: "发布日期 · 常用时间", exact: true })
+        .click();
+      await page.getByRole("menuitem", { name: "清空", exact: true }).click();
+      await expect(dialog.locator('input[name="publishedAt"]')).toHaveValue("");
+      await dialog
+        .getByRole("button", { name: "发布日期 · 常用时间", exact: true })
+        .click();
+      await page
+        .getByRole("menuitem", { name: "立即发布", exact: true })
+        .click();
+      const publishedAt = await dialog
+        .locator('input[name="publishedAt"]')
+        .inputValue();
+      expect(publishedAt).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/);
+      await dialog
+        .getByRole("button", { name: "提交开始 · 常用时间", exact: true })
+        .click();
+      await page.getByRole("menuitem", { name: "清空", exact: true }).click();
+      await expect(
+        dialog.locator('input[name="submissionStartAt"]'),
+      ).toHaveValue("");
+      await dialog
+        .getByRole("button", { name: "收起其他可选设置", exact: true })
+        .click();
+      await expect(dialog.locator('input[name="publishedAt"]')).toHaveCount(1);
+      await expect(dialog.locator('input[name="publishedAt"]')).toHaveValue(
+        publishedAt,
+      );
+      await expect(
+        dialog.locator('input[name="submissionStartAt"]'),
+      ).toHaveValue("");
+
       const title = dialog.getByTestId("workspace-homework-title");
       const editor = dialog.getByRole("textbox", { name: "说明", exact: true });
       const markdown = "## 第一次作业\n\n- 完成 **第一题**\n- 提交到课堂";
@@ -69,6 +112,8 @@ for (const width of [1280, 390]) {
         (item: { title: string }) => item.title === `第一次作业 ${width}`,
       );
       expect(saved).toBeDefined();
+      expect(saved.isMajor).toBe(true);
+      expect(saved.requiresTeam).toBe(true);
       expect(saved.description.content).toBe(
         markdown.replace("第一题", "第二题"),
       );

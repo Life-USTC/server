@@ -740,7 +740,7 @@ test.describe("仪表盘作业", () => {
     await captureStepScreenshot(page, testInfo, "homeworks/created");
   });
 
-  test("新建作业默认展开英文填写规范", async ({ page }, testInfo) => {
+  test("新建作业保留英文输入提示并隐藏填写规范", async ({ page }, testInfo) => {
     await signInAsDebugUser(page, "/workspace/homeworks");
     await ensureSeedSectionSubscription(page);
     const localeResponse = await page.request.post("/api/account/preferences", {
@@ -763,32 +763,16 @@ test.describe("仪表盘作业", () => {
       createDialog.getByRole("textbox", { name: "Details" }),
     ).toHaveAttribute("placeholder", /题目：/);
 
-    const trigger = createDialog.getByTestId(
-      "workspace-homework-style-guide-trigger",
-    );
-    await expect(trigger).toHaveAttribute("aria-expanded", "true");
-    const guide = createDialog.getByTestId(
-      "workspace-homework-style-guide-content",
-    );
-    await expect(guide).toBeVisible();
-    await expect(guide).toContainText("第{N}次作业");
-    await expect(guide).toContainText("{主题}作业");
-    await expect(guide).toContainText(
-      "Avoid chapter-only titles such as 第一章作业",
-    );
-    await expect(guide).toContainText("Do not include the course name or code");
-    await expect(guide.locator("pre")).toContainText(
-      "- 题目：...\n- 提交方式：...\n- 提交地址：...\n- 备注：...",
-    );
-    await expect(guide).toContainText("never blocks saving");
+    await expect(
+      createDialog.getByTestId("workspace-homework-style-guide-trigger"),
+    ).toHaveCount(0);
+    await expect(
+      createDialog.locator('[data-slot="dialog-description"]'),
+    ).toHaveCount(0);
     await expect(
       createDialog.getByTestId("workspace-homework-create"),
     ).toBeVisible();
-    await captureStepScreenshot(
-      page,
-      testInfo,
-      "homeworks/style-guide-desktop",
-    );
+    await captureStepScreenshot(page, testInfo, "homeworks/create-desktop");
   });
 
   test("创建作业时可设置重要、组队、截止日期和说明", async ({

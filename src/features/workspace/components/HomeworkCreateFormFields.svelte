@@ -72,7 +72,6 @@ $: homeworkTimestampCapabilities = {
   {/if}
   <Field.Group class="min-w-0 gap-4">
   <Field.Field
-    class="rounded-lg bg-muted/40 p-3"
     data-disabled={isCreatingHomework ? "true" : undefined}
   >
     <Field.Label for="workspace-homework-section">
@@ -105,11 +104,8 @@ $: homeworkTimestampCapabilities = {
       bind:publishedAt={createHomeworkPublishedAt}
       bind:submissionDueAt={createHomeworkSubmissionDueAt}
       bind:submissionStartAt={createHomeworkSubmissionStartAt}
-    >
-      {#snippet optionalSettings()}
-        <HomeworkTagFields copy={homeworksCopy} disabled={isCreatingHomework} idPrefix="workspace-homework" />
-      {/snippet}
-    </HomeworkTimestampFields>
+    />
+    <HomeworkTagFields copy={homeworksCopy} disabled={isCreatingHomework} idPrefix="workspace-homework" />
   </Field.Group>
   <Field.Group class="min-w-0 gap-4">
     <HomeworkDescriptionFields
@@ -119,7 +115,6 @@ $: homeworkTimestampCapabilities = {
       idPrefix="workspace-homework"
       markdownModeLabel={commentsCopy.markdownModeLabel}
       previewLayout="split"
-      styleGuidePrefix="workspace-homework"
     />
   </Field.Group>
 </Field.Group>

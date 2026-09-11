@@ -43,6 +43,7 @@ export let toShanghaiDateTimeLocalValue: (value: Date) => string;
     }}
   >
     <Dialog.Content
+      aria-describedby={undefined}
       class="flex h-[calc(100dvh-2rem)] max-h-[calc(100dvh-2rem)] min-h-0 max-w-lg flex-col gap-0 overflow-clip p-0 sm:h-[min(84dvh,52rem)] sm:max-h-[min(84dvh,52rem)] sm:max-w-6xl"
     >
       <form
@@ -53,7 +54,6 @@ export let toShanghaiDateTimeLocalValue: (value: Date) => string;
       >
         <Dialog.Header class="shrink-0 px-5 pb-2 pt-4">
           <Dialog.Title class="break-words">{homeworksCopy.createTitle}</Dialog.Title>
-          <Dialog.Description>{homeworksCopy.subtitle}</Dialog.Description>
         </Dialog.Header>
         <ScrollArea class="h-0 min-h-0 flex-1">
           <HomeworkCreateFormFields

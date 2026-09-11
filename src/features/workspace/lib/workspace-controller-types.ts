@@ -319,6 +319,7 @@ export interface WorkspaceHomeworksCopy extends HomeworkStyleGuideCopy {
   descriptionLabel: string;
   descriptionPlaceholder: string;
   dueDateShortcuts: string;
+  timeShortcuts: string;
   errorDescriptionTooLong: string;
   errorInvalidSubmissionDue: string;
   errorSectionNotFound: string;
