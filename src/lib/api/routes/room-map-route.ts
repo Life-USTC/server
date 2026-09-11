@@ -8,7 +8,6 @@ import {
   roomMapCodePathParamsSchema,
   roomMapResponseSchema,
 } from "@/lib/api/schemas/room-map-schemas";
-import { PUBLIC_CATALOG_HEADERS } from "@/lib/public-cache-control";
 export async function getRoomMapRoute(
   _request: Request,
   params: { code: string },
@@ -23,7 +22,12 @@ export async function getRoomMapRoute(
     return schemaJsonResponse(
       roomMapResponseSchema,
       await getRoomMap(parsed.code),
-      { headers: PUBLIC_CATALOG_HEADERS },
+      {
+        headers: {
+          "Cache-Control": "public, max-age=300",
+          "Cloudflare-CDN-Cache-Control": "public, max-age=300",
+        },
+      },
     );
   } catch (error) {
     return handleRouteError("Failed to fetch room map", error);
