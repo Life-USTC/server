@@ -5,6 +5,7 @@ export type {
 } from "@/features/subscriptions/server/subscription-workspace-types";
 
 export type SessionItem = {
+  badge?: string;
   id: string;
   sectionJwId: number | null;
   courseName: string;

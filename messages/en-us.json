@@ -226,6 +226,10 @@
       "successDescription": "Added {count} new section{plural} to Life@USTC",
       "importFailed": "Add failed"
     },
+    "kindBadge": {
+      "teaching_assistant": "TA",
+      "auditor": "Auditor"
+    },
     "kindEditor": {
       "title": "Subscription role",
       "save": "Save",

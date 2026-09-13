@@ -1,4 +1,6 @@
+import { getUserSubscriptionKinds } from "@/features/subscriptions/server/subscription-kind";
 import { listSubscribedWorkspaceSections } from "@/features/subscriptions/server/subscription-read-model";
+import { getMessages } from "@/i18n/messages.server";
 import { resolveWorkspaceSections } from "./workspace-helpers";
 import type { resolveWorkspaceOverviewContext } from "./workspace-overview-context";
 import { buildOverviewSemesterLists } from "./workspace-overview-semesters";
@@ -22,15 +24,29 @@ export async function resolveWorkspaceOverviewSectionScope(input: {
   semesters: WorkspaceSemester[];
   userId: string;
 }) {
-  const allSections = await listSubscribedWorkspaceSections(input.userId, {
-    locale: input.locale,
-    dateFrom: input.scheduleDateStart,
-    dateTo: input.scheduleDateEnd,
-    detailSemesterIds: [
-      input.currentSemester?.id,
-      input.gridSemesterRow?.id,
-    ].filter((id): id is number => id != null),
-    sectionIds: input.sectionIds,
+  const [sections, kinds, messages] = await Promise.all([
+    listSubscribedWorkspaceSections(input.userId, {
+      locale: input.locale,
+      dateFrom: input.scheduleDateStart,
+      dateTo: input.scheduleDateEnd,
+      detailSemesterIds: [
+        input.currentSemester?.id,
+        input.gridSemesterRow?.id,
+      ].filter((id): id is number => id != null),
+      sectionIds: input.sectionIds,
+    }),
+    getUserSubscriptionKinds(input.userId),
+    getMessages(input.locale),
+  ]);
+  const allSections = sections.map((section) => {
+    const kind = kinds.get(section.id);
+    return {
+      ...section,
+      badge:
+        kind && kind !== "regular"
+          ? messages.subscriptions.kindBadge[kind]
+          : undefined,
+    };
   });
 
   const {

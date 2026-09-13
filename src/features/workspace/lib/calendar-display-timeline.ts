@@ -44,6 +44,7 @@ export function buildCalendarTimelineItemsForDay<
       meta: options.sessionDetail(session),
       sort: session.startTime ?? 2400,
       title: session.courseName,
+      badge: session.badge,
       tone: "info" as const,
     })),
     ...events.exams.map((exam) => ({

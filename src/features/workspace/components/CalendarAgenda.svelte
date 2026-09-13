@@ -33,12 +33,19 @@ export let todayLabel: string;
         <Item.Group class="grid gap-2">
           {#each day.events as event}
             <Item.Root
-              class={event.done ? "opacity-60" : undefined}
+              class={event.done ? "relative opacity-60" : "relative"}
               size="sm"
               variant={event.done ? "muted" : "outline"}
             >
               {#snippet child({ props })}
                 <a href={event.href} {...props}>
+                  {#if event.badge}
+                    <Badge
+                      variant="destructive"
+                      class="absolute -top-2 right-2 rounded-md bg-destructive px-1 text-destructive-foreground"
+                      data-testid="calendar-subscription-badge"
+                    >{event.badge}</Badge>
+                  {/if}
                   <Item.Content>
                     <Item.Title class={event.done ? "line-through" : undefined}>
                       {event.title}

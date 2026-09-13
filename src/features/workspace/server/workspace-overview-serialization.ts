@@ -19,6 +19,7 @@ export function serializeWorkspaceOverview(overview: OverviewData) {
     allSessions: overview.allSessions.map((session) => ({
       id: session.id,
       sectionJwId: session.sectionJwId,
+      badge: session.badge,
       courseName: session.courseName,
       date: session.date,
       dateKey: calendarDateKey(session.date),
