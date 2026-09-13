@@ -1,3 +1,10 @@
+# [1.109.0](https://github.com/Life-USTC/server/compare/v1.108.0...v1.109.0) (2026-09-13)
+
+
+### Features
+
+* **calendar:** show subscription role corner badges ([#1039](https://github.com/Life-USTC/server/issues/1039)) ([83e1e04](https://github.com/Life-USTC/server/commit/83e1e04c0df64f5f5ce6495e2eac73d2deff3e6f))
+
 # [1.108.0](https://github.com/Life-USTC/server/compare/v1.107.0...v1.108.0) (2026-09-13)
 
 
