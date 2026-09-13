@@ -19,19 +19,21 @@ export async function getSubscriptionsTabData(
   } = {},
 ) {
   const localizedPrisma = getPrisma(locale);
-  const [sections, semesters, calendarSubscriptionUrl, kinds] =
-    await Promise.all([
-      listSubscribedSectionsForSubscriptionsTab(userId, locale, {
-        includeExams: options.includeExams,
-        sectionIds: options.sectionIds,
-      }),
-      localizedPrisma.semester.findMany({
-        select: { id: true, nameCn: true, startDate: true, endDate: true },
-        orderBy: { startDate: "asc" },
-      }),
-      getCalendarSubscriptionUrl(userId, options.calendarFeedToken),
-      getUserSubscriptionKinds(userId),
-    ]);
+  const kinds = await getUserSubscriptionKinds(userId);
+  const sectionIds = options.sectionIds?.filter((id) => kinds.has(id)) ?? [
+    ...kinds.keys(),
+  ];
+  const [sections, semesters, calendarSubscriptionUrl] = await Promise.all([
+    listSubscribedSectionsForSubscriptionsTab(userId, locale, {
+      includeExams: options.includeExams,
+      sectionIds,
+    }),
+    localizedPrisma.semester.findMany({
+      select: { id: true, nameCn: true, startDate: true, endDate: true },
+      orderBy: { startDate: "asc" },
+    }),
+    getCalendarSubscriptionUrl(userId, options.calendarFeedToken),
+  ]);
 
   return {
     subscriptions:

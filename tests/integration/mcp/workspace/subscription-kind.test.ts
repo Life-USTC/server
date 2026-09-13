@@ -37,6 +37,22 @@ describe("subscription kind transport", () => {
     });
     expect(graphql.success).toBe(true);
     expect(graphql.data.subscriptionKindUpdate.kind).toBe("auditor");
+    const memberships = await owner.client.call<{
+      data: {
+        workspace: {
+          subscribedSections: {
+            items: Array<{ kind: string; section: { jwId: number } }>;
+          };
+        };
+      };
+    }>("graphql_operation_run", {
+      operationId: "workspace.subscription.list.v1",
+      variables: { page: { pageSize: 10 } },
+    });
+    expect(memberships.data.workspace.subscribedSections.items).toMatchObject([
+      { kind: "auditor", section: { jwId } },
+    ]);
+
     for (const mode of ["default", "full"]) {
       const list = await owner.client.call<{
         sections: Array<{ jwId: number; kind: string }>;
