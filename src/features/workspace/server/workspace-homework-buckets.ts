@@ -1,13 +1,15 @@
 import type dayjs from "dayjs";
+import { isHomeworkPendingForViewer } from "@/features/homeworks/lib/homework-completion-state";
 import { shanghaiDayjs } from "@/lib/time/shanghai-dayjs";
 import type { HomeworkWithSection } from "./workspace-types";
 
 export const computeHomeworkBuckets = (
   homeworks: HomeworkWithSection[],
   todayStart: dayjs.Dayjs,
+  atTime: Date = todayStart.toDate(),
 ) => {
-  const incompleteHomeworks = homeworks.filter(
-    (homework) => homework.homeworkCompletions.length === 0,
+  const incompleteHomeworks = homeworks.filter((homework) =>
+    isHomeworkPendingForViewer(homework, atTime),
   );
   const incompleteWithDueAt = incompleteHomeworks.flatMap((homework) =>
     homework.submissionDueAt

@@ -4,6 +4,7 @@ import type {
   WorkspaceCommonCopy,
   WorkspaceCopy,
   WorkspaceHomeworkItem,
+  WorkspaceHomeworksCopy,
   WorkspaceOverviewExamItem,
   WorkspaceSectionCopy,
   WorkspaceTodoItem,
@@ -21,6 +22,7 @@ export let todosCopy: WorkspaceTodosCopy;
 export let workspaceTabHref: WorkspaceCalendarTabHref;
 export let fmtDate: (date: Date | string | null | undefined) => string;
 export let homeworkEtaLabel: (date: Date | string | null | undefined) => string;
+export let homeworkCopy: WorkspaceHomeworksCopy;
 export let calendarExamDetail: (exam: WorkspaceOverviewExamItem) => string;
 export let formatMessage: (
   template: string,
@@ -44,6 +46,7 @@ export let viewAllLabel = "View all";
     {workspaceTabHref}
     {fmtDate}
     {homeworkEtaLabel}
+    {homeworkCopy}
     {pendingHomeworks}
     {previewLimit}
     {viewAllLabel}

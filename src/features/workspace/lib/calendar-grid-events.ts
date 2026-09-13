@@ -11,6 +11,7 @@ type CalendarExam = {
 type CalendarHomework = {
   completion?: unknown;
   completed?: boolean;
+  completionRequired?: boolean;
   title: string;
 };
 
@@ -108,7 +109,9 @@ export function calendarGridEventsForDay<
     ...events.homeworks.map((homework) => {
       const fields = options.calendarHomeworkChipFields(homework);
       return {
-        done: Boolean(homework.completed ?? homework.completion),
+        done:
+          homework.completionRequired !== false &&
+          Boolean(homework.completed ?? homework.completion),
         href: options.calendarHomeworkHref(homework),
         label: homework.title,
         meta: fields.meta,

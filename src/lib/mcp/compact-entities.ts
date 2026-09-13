@@ -247,6 +247,7 @@ export function compactHomework(value: unknown) {
       "title",
       "isMajor",
       "requiresTeam",
+      "completionRequired",
       "publishedAt",
       "submissionStartAt",
       "submissionDueAt",

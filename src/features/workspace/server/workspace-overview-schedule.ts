@@ -36,7 +36,7 @@ export function buildWorkspaceOverviewSchedule({
   const weekDays = buildWeekDays(weekStart);
   const timeSlots = buildTimeSlots(weeklySessions);
   const { incompleteHomeworks, dueToday, dueWithin3Days } =
-    computeHomeworkBuckets(homeworks, todayStart);
+    computeHomeworkBuckets(homeworks, todayStart, referenceNow.toDate());
   const weekDayFormatter = createWeekDayFormatter(locale);
   const { calendarDays, calendarHomeworks, calendarSessions } =
     buildRollingCalendarPreview({

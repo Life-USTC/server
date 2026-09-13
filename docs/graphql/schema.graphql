@@ -332,6 +332,7 @@ type Homework {
   commentCount: Int!
   completed: Boolean!
   completedAt: DateTime
+  completionRequired: Boolean!
   createdAt: DateTime!
   id: ID!
   isMajor: Boolean!

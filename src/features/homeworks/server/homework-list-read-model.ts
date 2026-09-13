@@ -9,6 +9,7 @@ import {
   homeworkItemInclude,
   homeworkItemResponse,
   homeworkItemSummarySelect,
+  withHomeworkCompletionRequiredForViewer,
   withHomeworkCompletionsForViewer,
 } from "./homework-read-model";
 
@@ -116,9 +117,10 @@ export async function listSectionHomeworkItems({
 
   if (!viewerUserId) {
     const homeworks = await loadHomeworks();
-    return attachHomeworkCompletionsForViewer(homeworks, []).map(
-      homeworkItemResponse,
-    );
+    const withCompletions = attachHomeworkCompletionsForViewer(homeworks, []);
+    return (
+      await withHomeworkCompletionRequiredForViewer(withCompletions, null)
+    ).map(homeworkItemResponse);
   }
 
   const [homeworks, completions] = await Promise.all([
@@ -137,9 +139,13 @@ export async function listSectionHomeworkItems({
     ),
   ]);
 
-  return attachHomeworkCompletionsForViewer(homeworks, completions).map(
-    homeworkItemResponse,
+  const withCompletions = attachHomeworkCompletionsForViewer(
+    homeworks,
+    completions,
   );
+  return (
+    await withHomeworkCompletionRequiredForViewer(withCompletions, viewerUserId)
+  ).map(homeworkItemResponse);
 }
 
 export async function listSectionHomeworkPage({
@@ -171,7 +177,12 @@ export async function listSectionHomeworkPage({
     page.data,
     viewerUserId,
   );
-  return { ...page, data: homeworks.map(homeworkItemResponse) };
+  const homeworksWithRequirement =
+    await withHomeworkCompletionRequiredForViewer(homeworks, viewerUserId);
+  return {
+    ...page,
+    data: homeworksWithRequirement.map(homeworkItemResponse),
+  };
 }
 
 export async function listSectionHomeworkAuditLogs(
@@ -266,7 +277,10 @@ export async function getSectionHomeworkDetail(input: {
     withHomeworkCompletionsForViewer([homework], input.userId),
     getSectionHomeworkAuditLogs(homework.id, homework.sectionId),
   ]);
-  const [item] = homeworkWithCompletion;
+  const [item] = await withHomeworkCompletionRequiredForViewer(
+    homeworkWithCompletion,
+    input.userId,
+  );
   if (!item) return null;
   return {
     auditLogs,

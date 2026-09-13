@@ -1,5 +1,6 @@
 import type { calendarEventsForDay } from "./calendar";
 import {
+  calendarHomeworkChipFields as buildCalendarHomeworkChipFields,
   calendarHomeworkHref as buildCalendarHomeworkHref,
   calendarTodoChipFields as buildCalendarTodoChipFields,
   calendarTodoDetail as buildCalendarTodoDetail,
@@ -19,6 +20,7 @@ export function createWorkspaceCalendarDisplayActions(input: {
   getEventLabels: () => {
     exam: string;
     homework: string;
+    noCompletionRequired: string;
     todo: string;
   };
   getTodoPriorityLabel: (
@@ -67,6 +69,7 @@ export function createWorkspaceCalendarDisplayActions(input: {
       examLabel: labels.exam,
       homeworkHref: calendarHomeworkHref,
       homeworkLabel: labels.homework,
+      noCompletionRequired: labels.noCompletionRequired,
       sessionHref,
       tabHref: input.tabHref,
       todoDetail: calendarTodoDetail,
@@ -75,6 +78,13 @@ export function createWorkspaceCalendarDisplayActions(input: {
   }
 
   return {
+    calendarHomeworkChipFields: (
+      homework: CalendarData["semesterHomeworks"][number],
+    ) =>
+      buildCalendarHomeworkChipFields(
+        homework,
+        input.getEventLabels().noCompletionRequired,
+      ),
     calendarHomeworkHref,
     calendarTimelineItemsForDay,
     calendarTodoChipFields,

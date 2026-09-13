@@ -35,7 +35,7 @@ $: isOverdue = deadlineState === "overdue";
     <dd class="mt-1 truncate text-xl font-semibold tracking-tight sm:text-2xl">
       {dueLabel}
     </dd>
-    {#if !homework.completed}
+    {#if homework.completionRequired && !homework.completed}
       <dd
         class={cn(
           "mt-2 flex items-center gap-2 text-sm",
@@ -52,8 +52,16 @@ $: isOverdue = deadlineState === "overdue";
   <div class="flex min-w-0 items-center justify-between gap-3 sm:flex-col sm:items-end">
     <dt class="text-muted-foreground text-sm">{copy.statusLabel}</dt>
     <dd>
-      <Badge variant={homework.completed ? "secondary" : "outline"}>
-        {homework.completed ? copy.completedLabel : copy.pendingLabel}
+      <Badge
+        variant={homework.completionRequired && homework.completed
+          ? "secondary"
+          : "outline"}
+      >
+        {homework.completionRequired
+          ? homework.completed
+            ? copy.completedLabel
+            : copy.pendingLabel
+          : copy.noCompletionRequired}
       </Badge>
     </dd>
   </div>

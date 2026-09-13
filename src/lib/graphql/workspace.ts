@@ -71,6 +71,7 @@ type ExamFilterInput = {
 
 type HomeworkParent = {
   completion?: { completedAt: Date } | null;
+  completionRequired: boolean;
 };
 
 type ScheduleParent = {
@@ -215,6 +216,7 @@ export const graphqlScopeTypeDefs = /* GraphQL */ `
     title: String!
     isMajor: Boolean!
     requiresTeam: Boolean!
+    completionRequired: Boolean!
     publishedAt: DateTime
     submissionStartAt: DateTime
     submissionDueAt: DateTime
@@ -367,6 +369,8 @@ export const graphqlScopeResolvers = {
   ExamPage: graphqlPageResolvers,
   ExamRoomPage: graphqlPageResolvers,
   Homework: {
+    completionRequired: (homework: HomeworkParent) =>
+      homework.completionRequired !== false,
     completed: (homework: HomeworkParent) => Boolean(homework.completion),
     completedAt: (homework: HomeworkParent) =>
       homework.completion?.completedAt ?? null,

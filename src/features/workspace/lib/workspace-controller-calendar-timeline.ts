@@ -29,6 +29,7 @@ export function buildWorkspaceCalendarTimelineItems({
   examLabel,
   homeworkHref,
   homeworkLabel,
+  noCompletionRequired,
   sessionHref,
   tabHref,
   todoDetail,
@@ -39,6 +40,7 @@ export function buildWorkspaceCalendarTimelineItems({
   examLabel: string;
   homeworkHref: (homework: CalendarData["semesterHomeworks"][number]) => string;
   homeworkLabel: string;
+  noCompletionRequired: string;
   sessionHref: (session: { sectionJwId: number | null }) => string;
   tabHref: WorkspaceTabHref;
   todoDetail: (todo: CalendarData["semesterTodos"][number]) => string;
@@ -56,7 +58,8 @@ export function buildWorkspaceCalendarTimelineItems({
       examDetail: calendarExamDetail,
       examLabel,
       examsHref: tabHref("exams"),
-      homeworkDetail: calendarHomeworkDetail,
+      homeworkDetail: (homework) =>
+        calendarHomeworkDetail(homework, noCompletionRequired),
       homeworkHref,
       homeworkLabel,
       sessionDetail: calendarSessionDetail,

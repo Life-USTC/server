@@ -2,6 +2,7 @@ export type HomeworkView = "cards" | "list";
 
 export type SectionHomework = {
   completion: { completedAt: string | null } | null;
+  completionRequired?: boolean;
   description?: { content?: string | null } | null;
   id: string;
   isMajor: boolean;
@@ -15,6 +16,7 @@ export type SectionHomework = {
 export type SectionHomeworkCopy = {
   auditTitle: string;
   loginToCreate: string;
+  noCompletionRequired: string;
   showCreate: string;
   tagMajor: string;
   tagTeam: string;

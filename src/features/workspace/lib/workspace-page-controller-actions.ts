@@ -267,6 +267,7 @@ export function createWorkspacePageControllerActions(input: {
     getEventLabels: () => ({
       exam: input.getCopy().CalendarEventCard.exam,
       homework: input.getCopy().CalendarEventCard.homework,
+      noCompletionRequired: input.getCopy().homeworks.noCompletionRequired,
       todo: input.getCopy().CalendarEventCard.todo,
     }),
     getTodoPriorityLabel: (priority) => getTodosCopy().priority[priority],

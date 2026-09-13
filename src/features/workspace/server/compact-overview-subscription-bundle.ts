@@ -44,14 +44,19 @@ const emptySubscriptionReads: OverviewSubscriptionReads = {
 function countPendingOverviewHomeworksInTransaction(
   tx: Prisma.TransactionClient,
   userId: string,
+  atTime: Date,
   sectionIds: readonly number[],
 ) {
+  const query = buildSubscribedHomeworkQuery({
+    completed: false,
+    includeDeleted: false,
+    now: atTime,
+    requireDueDate: false,
+    sectionIds,
+    userId,
+  });
   return tx.homework.count({
-    where: {
-      deletedAt: null,
-      homeworkCompletions: { none: { userId } },
-      sectionId: { in: [...sectionIds] },
-    },
+    where: query.where,
   });
 }
 
@@ -69,6 +74,7 @@ async function loadOverviewHomeworkRlsReads(input: {
     dueAtTo: input.homeworkWindowEnd,
     includeDeleted: false,
     limit: input.includeSamples ? input.limit : undefined,
+    now: input.atTime,
     requireDueDate: true,
     sectionIds: [...input.sectionIds],
     userId: input.userId,
@@ -79,6 +85,7 @@ async function loadOverviewHomeworkRlsReads(input: {
       countPendingOverviewHomeworksInTransaction(
         tx,
         input.userId,
+        input.atTime,
         input.sectionIds,
       ),
       fetchSubscribedHomeworkRlsSnapshot(
@@ -180,7 +187,11 @@ export async function loadOverviewSubscriptionReads(input: {
       return [];
     }
     return runStage("lists", () =>
-      localizeSubscribedHomeworkWorkspaceItems(homeworkRls.dueSoonRls, locale),
+      localizeSubscribedHomeworkWorkspaceItems(
+        homeworkRls.dueSoonRls,
+        locale,
+        input.userId,
+      ),
     );
   });
   const dueSoonHomeworksPromise = dueSoonHomeworksRawPromise.then((raw) =>

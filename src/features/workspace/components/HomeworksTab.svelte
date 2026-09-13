@@ -78,6 +78,7 @@ let homeworkStatus: HomeworkAction;
 $: filteredHomeworkItems = filterWorkspaceHomeworks(
   homeworkItems,
   homeworkFilter,
+  new Date(referenceDate),
 );
 $: hasHomeworkItems = homeworkItems.length > 0;
 

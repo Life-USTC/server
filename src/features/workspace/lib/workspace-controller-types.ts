@@ -351,6 +351,7 @@ export interface WorkspaceHomeworksCopy extends HomeworkStyleGuideCopy {
   markComplete: string;
   markIncomplete: string;
   moreDetails: string;
+  noCompletionRequired: string;
   pendingLabel: string;
   publishedAt: string;
   relativeTime: string;
@@ -415,6 +416,7 @@ export type WorkspaceTodosCopy = WorkspaceRecord & {
 
 export type WorkspaceHomeworkItem = WorkspaceRecord & {
   completion?: unknown | null;
+  completionRequired?: boolean;
   completed?: boolean;
   dateKey?: string | null;
   description?: string | null;

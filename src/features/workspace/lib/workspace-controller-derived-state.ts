@@ -1,4 +1,5 @@
 import type { CatalogLinkGroup } from "@/features/catalog-links/lib/catalog-links";
+import { isHomeworkPendingForViewer } from "@/features/homeworks/lib/homework-completion-state";
 import type { ExamFilter } from "./exams";
 import { filterExamRows } from "./exams";
 import { referenceDate } from "./overview-dates";
@@ -31,8 +32,12 @@ export function applyLocalHomeworkItemsToSignedData(
     },
     navStats: {
       ...signedData.navStats,
-      pendingHomeworksCount: homeworkItems.filter((item) => !item.completion)
-        .length,
+        pendingHomeworksCount: homeworkItems.filter((item) =>
+          isHomeworkPendingForViewer(
+            item,
+            referenceDate(signedData.referenceNow),
+          ),
+        ).length,
     },
   };
 }

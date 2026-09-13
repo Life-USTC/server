@@ -2050,6 +2050,7 @@
     "tagDefault": "Standard",
     "completedLabel": "Completed",
     "pendingLabel": "Pending",
+    "noCompletionRequired": "No completion required",
     "relativeTime": "Deadline status",
     "moreDetails": "More details",
     "markComplete": "Mark as complete",

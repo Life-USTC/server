@@ -160,6 +160,17 @@ async function loadNavigationAggregate(
           WHERE completion."homeworkId" = homework.id
             AND completion."userId" = ${userId}
         )
+        AND (
+          NOT EXISTS (
+            SELECT 1
+            FROM "UserSectionSubscription" AS ta_subscription
+            WHERE ta_subscription."userId" = ${userId}
+              AND ta_subscription."sectionId" = homework."sectionId"
+              AND ta_subscription."kind"::text = 'teaching_assistant'
+          )
+          OR homework."submissionDueAt" IS NULL
+          OR homework."submissionDueAt" > ${referenceDate}
+        )
     )
     SELECT
       ${subscribedSectionCount} AS subscribed_section_count,
@@ -243,6 +254,17 @@ async function loadNavigationAggregate(
               FROM "HomeworkCompletion" AS completion
               WHERE completion."homeworkId" = homework.id
                 AND completion."userId" = ${userId}
+            )
+            AND (
+              NOT EXISTS (
+                SELECT 1
+                FROM "UserSectionSubscription" AS ta_subscription
+                WHERE ta_subscription."userId" = ${userId}
+                  AND ta_subscription."sectionId" = homework."sectionId"
+                  AND ta_subscription."kind"::text = 'teaching_assistant'
+              )
+              OR homework."submissionDueAt" IS NULL
+              OR homework."submissionDueAt" > ${referenceDate}
             )
         )
         + (

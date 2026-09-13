@@ -1,4 +1,5 @@
 type HomeworkCompletionState = {
+  completionRequired?: boolean;
   completion?: unknown | null;
 };
 
@@ -22,9 +23,13 @@ export function homeworkStatusLabel(
   homework: HomeworkCompletionState,
   labels: {
     completed: string;
+    noCompletionRequired: string;
     pending: string;
   },
 ) {
+  if (homework.completionRequired === false) {
+    return labels.noCompletionRequired;
+  }
   return homework.completion ? labels.completed : labels.pending;
 }
 

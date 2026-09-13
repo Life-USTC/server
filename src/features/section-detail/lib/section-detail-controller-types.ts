@@ -396,6 +396,7 @@ export type SectionDetailActionData =
 
 export type SectionHomework = {
   completion: { completedAt: string | null } | null;
+  completionRequired?: boolean;
   commentCount?: number;
   createdById?: string | null;
   description?: { content?: string | null; renderedHtml?: string } | null;

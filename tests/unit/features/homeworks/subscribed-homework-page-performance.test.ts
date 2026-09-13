@@ -27,6 +27,10 @@ vi.mock("@/features/homeworks/server/homework-item-state", () => ({
   withHomeworkItemState: withHomeworkItemStateMock,
 }));
 
+vi.mock("@/features/subscriptions/server/subscription-kind", () => ({
+  getUserSubscriptionKinds: vi.fn(async () => new Map()),
+}));
+
 describe("subscribed homework page read phases", () => {
   beforeEach(() => {
     vi.clearAllMocks();

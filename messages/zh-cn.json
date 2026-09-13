@@ -1917,6 +1917,7 @@
     "tagDefault": "常规作业",
     "completedLabel": "已完成",
     "pendingLabel": "待处理",
+    "noCompletionRequired": "无需完成",
     "relativeTime": "距截止",
     "moreDetails": "更多信息",
     "markComplete": "标记为完成",
