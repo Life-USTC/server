@@ -148,6 +148,7 @@ function handleRemoveDialogOpenChange(open: boolean) {
               {#each group.sections as section}
                 <Table.Row class="group">
                   <Table.Cell>
+                    <div class="flex min-w-0 flex-wrap items-center gap-1.5">
                     <a
                       class="block min-w-0 max-w-full overflow-hidden hover:underline"
                       href={`/catalog/sections/${section.jwId}`}
@@ -158,6 +159,7 @@ function handleRemoveDialogOpenChange(open: boolean) {
                     {#if section.kind !== "regular"}
                       <Badge variant="secondary">{subscriptionsCopy.kindEditor[section.kind]}</Badge>
                     {/if}
+                    </div>
                   </Table.Cell>
                   <Table.Cell>
                     {teacherNames(section)}

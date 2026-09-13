@@ -10,6 +10,7 @@ const PROTECTED_MUTATIONS = [
   ["patch", "/api/admin/users/{id}"],
   ["post", "/api/workspace/bus-preferences"],
   ["patch", "/api/workspace/subscriptions"],
+  ["patch", "/api/workspace/subscriptions/{jwId}"],
   ["delete", "/api/workspace/subscriptions"],
   ["post", "/api/workspace/subscriptions/batch"],
   ["post", "/api/workspace/subscriptions/import-codes"],
