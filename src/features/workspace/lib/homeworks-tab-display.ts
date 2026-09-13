@@ -24,6 +24,7 @@ type HomeworkCopy = Record<string, unknown> & {
 type HomeworksCopy = Record<string, unknown> & {
   markComplete: string;
   markIncomplete: string;
+  noCompletionRequired: string;
 };
 
 type HomeworkSectionOption = {
@@ -84,6 +85,7 @@ export function createHomeworkTabDisplayActions({
     homeworkStatus: (homework: WorkspaceHomeworkItem) =>
       homeworkStatusLabel(homework, {
         completed: workspaceCopy.completedStatus,
+        noCompletionRequired: homeworksCopy.noCompletionRequired,
         pending: workspaceCopy.pendingStatus,
       }),
   };

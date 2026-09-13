@@ -75,6 +75,9 @@ $: isEmpty =
                 <Item.Title>{homework.title}</Item.Title>
                 <Item.Description>
                   {copy.CalendarEventCard.homework}
+                  {#if homework.completionRequired === false}
+                    · {copy.homeworks.noCompletionRequired}
+                  {/if}
                 </Item.Description>
               </Item.Content>
               <Item.Actions class="shrink-0">

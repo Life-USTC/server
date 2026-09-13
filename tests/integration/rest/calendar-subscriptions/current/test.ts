@@ -78,7 +78,7 @@ test.describe("GET /api/workspace/subscriptions/current 接口", () => {
     expect(sub.calendarUrl).toBeNull();
   });
 
-  test("反映 POST 修改后的状态", async ({ request }) => {
+  test("反映 PATCH 和 DELETE 修改后的状态", async ({ request }) => {
     await signInAsDebugUserApi(request, "/");
 
     // Save original state
@@ -91,9 +91,15 @@ test.describe("GET /api/workspace/subscriptions/current 接口", () => {
 
     try {
       // Clear subscriptions
-      await request.post("/api/workspace/subscriptions", {
-        data: { sectionIds: [] },
-      });
+      if (originalIds.length > 0) {
+        const clearResponse = await request.delete(
+          "/api/workspace/subscriptions",
+          {
+            data: { sectionIds: originalIds },
+          },
+        );
+        expect(clearResponse.status()).toBe(200);
+      }
 
       const emptyRes = await request.get(BASE);
       expect(emptyRes.status()).toBe(200);
@@ -103,9 +109,15 @@ test.describe("GET /api/workspace/subscriptions/current 接口", () => {
       expect(emptyBody.subscription?.sections).toEqual([]);
     } finally {
       // Restore original subscriptions
-      await request.post("/api/workspace/subscriptions", {
-        data: { sectionIds: originalIds },
-      });
+      if (originalIds.length > 0) {
+        const restoreResponse = await request.patch(
+          "/api/workspace/subscriptions",
+          {
+            data: { sectionIds: originalIds },
+          },
+        );
+        expect(restoreResponse.status()).toBe(200);
+      }
     }
   });
 });

@@ -6,6 +6,7 @@ import type {
 import type { CommentsCopy } from "@/features/comments/components/comment-component-types";
 import type { HomeworkStyleGuideCopy } from "@/features/homeworks/lib/homework-style-guide";
 import type { RoomMapCopy } from "@/features/rooms/lib/room-map-types";
+import type { SubscriptionKind } from "@/features/subscriptions/lib/subscription-kind";
 import type {
   WorkspaceBusCopy,
   WorkspaceBusData,
@@ -227,6 +228,15 @@ export type WorkspaceSectionCopy = WorkspaceRecord & {
 };
 
 export type WorkspaceSubscriptionsCopy = WorkspaceRecord & {
+  kindEditor: {
+    title: string;
+    save: string;
+    cancel: string;
+    failed: string;
+    regular: string;
+    auditor: string;
+    teaching_assistant: string;
+  };
   browseCourses: string;
   browseSections: string;
   bulkImport: {
@@ -341,6 +351,7 @@ export interface WorkspaceHomeworksCopy extends HomeworkStyleGuideCopy {
   markComplete: string;
   markIncomplete: string;
   moreDetails: string;
+  noCompletionRequired: string;
   pendingLabel: string;
   publishedAt: string;
   relativeTime: string;
@@ -405,6 +416,7 @@ export type WorkspaceTodosCopy = WorkspaceRecord & {
 
 export type WorkspaceHomeworkItem = WorkspaceRecord & {
   completion?: unknown | null;
+  completionRequired?: boolean;
   completed?: boolean;
   dateKey?: string | null;
   description?: string | null;
@@ -539,6 +551,7 @@ export type WorkspaceHomeworkSectionOption = WorkspaceRecord & {
 
 export type WorkspaceSubscribedSection = WorkspaceRecord &
   WorkspaceExamSection & {
+    kind: SubscriptionKind;
     code: string;
     credits?: number | string | null;
     id: number;

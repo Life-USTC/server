@@ -27,6 +27,7 @@ export type SectionHomeworkCopy = HomeworkFormCopy &
     markComplete: string;
     markIncomplete: string;
     moreDetails: string;
+    noCompletionRequired: string;
     pendingLabel: string;
     relativeTime: string;
     saveChanges: string;
@@ -44,6 +45,7 @@ export type SectionHomeworkCommonCopy = {
 
 export type SectionHomeworkDisplay = {
   completion: { completedAt: string | null } | null;
+  completionRequired?: boolean;
   description?: {
     content?: string | null;
     renderedHtml?: string;

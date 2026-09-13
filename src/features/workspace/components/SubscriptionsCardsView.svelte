@@ -1,5 +1,6 @@
 <script lang="ts">
 import ArrowUpRight from "@lucide/svelte/icons/arrow-up-right";
+import Pencil from "@lucide/svelte/icons/pencil";
 import UserMinus from "@lucide/svelte/icons/user-minus";
 import type {
   SubscriptionsData,
@@ -16,6 +17,7 @@ type SubscriptionListData = SubscriptionsData["subscriptions"];
 type SubscriptionSection = SubscriptionListData[number]["sections"][number];
 
 export let workspaceCopy: WorkspaceCopy;
+export let requestEditKind: (section: SubscriptionSection) => void;
 export let requestRemoveSection: (section: SubscriptionSection) => void;
 export let removingSectionId: SubscriptionSection["id"] | null;
 export let sectionCopy: WorkspaceSectionCopy;
@@ -41,9 +43,9 @@ function courseName(section: SubscriptionSection) {
     {#each sections as section, index}
       <Item.Root class="items-start gap-3 px-2 py-3">
         <Item.Content class="min-w-0 gap-1">
-          <Item.Title class="line-clamp-none w-full min-w-0">
+          <Item.Title class="line-clamp-none flex w-full min-w-0 flex-wrap items-center gap-1.5">
             <a
-              class="flex min-h-11 w-full min-w-0 max-w-full items-center font-medium hover:underline"
+              class="flex min-h-11 min-w-0 max-w-full items-center font-medium hover:underline"
               href={`/catalog/sections/${section.jwId}`}
               data-testid="subscription-course-link"
             >
@@ -51,6 +53,7 @@ function courseName(section: SubscriptionSection) {
                 {courseName(section)}
               </span>
             </a>
+            {#if section.kind !== "regular"}<Badge variant="secondary">{subscriptionsCopy.kindEditor[section.kind]}</Badge>{/if}
           </Item.Title>
           <Item.Description
             class="line-clamp-none flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-1 break-words"
@@ -63,6 +66,9 @@ function courseName(section: SubscriptionSection) {
           </Item.Description>
         </Item.Content>
         <Item.Actions class="shrink-0 self-start">
+          <TableIconButton className="size-11" label={subscriptionsCopy.kindEditor.title} onclick={() => requestEditKind(section)}>
+            <Pencil data-icon="inline-start" />
+          </TableIconButton>
           <TableIconButton
             className="size-11"
             href={`/catalog/sections/${section.jwId}`}

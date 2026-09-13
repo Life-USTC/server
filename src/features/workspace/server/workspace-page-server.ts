@@ -18,6 +18,7 @@ export function normalizeWorkspaceTab(tab: string | null, signedIn: boolean) {
 }
 
 export function workspaceHomeworkItem(homework: {
+  completionRequired?: boolean;
   id: string;
   publishedAt: Date | null;
   section: {
@@ -31,6 +32,7 @@ export function workspaceHomeworkItem(homework: {
 }) {
   return {
     completed: (homework.homeworkCompletions?.length ?? 0) > 0,
+    completionRequired: homework.completionRequired !== false,
     id: homework.id,
     title: homework.title,
     publishedAt: homework.publishedAt,

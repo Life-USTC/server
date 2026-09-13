@@ -9,6 +9,7 @@ export function homeworkSummaryFromRecord(
 ): HomeworkSummaryItem {
   return {
     id: hw.id,
+    completionRequired: hw.completionRequired,
     title: hw.title,
     isMajor: hw.isMajor,
     requiresTeam: hw.requiresTeam,

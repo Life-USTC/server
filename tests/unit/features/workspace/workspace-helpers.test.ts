@@ -29,6 +29,7 @@ function homework(
 ): HomeworkWithSection {
   return {
     id,
+    sectionId: 1,
     title: id,
     publishedAt: null,
     submissionStartAt: null,
@@ -36,6 +37,7 @@ function homework(
     homeworkCompletions: completed
       ? [{ completedAt: new Date("2026-05-20T00:00:00.000Z") }]
       : [],
+    completionRequired: true,
     section: null,
   };
 }

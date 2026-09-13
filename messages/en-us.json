@@ -225,6 +225,15 @@
       "subscribeSelected": "Subscribe to {count} sections",
       "successDescription": "Added {count} new section{plural} to Life@USTC",
       "importFailed": "Add failed"
+    },
+    "kindEditor": {
+      "title": "Subscription role",
+      "save": "Save",
+      "cancel": "Cancel",
+      "failed": "Failed to save subscription role",
+      "regular": "Regular",
+      "auditor": "Auditor",
+      "teaching_assistant": "Teaching assistant"
     }
   },
   "uploads": {
@@ -2041,6 +2050,7 @@
     "tagDefault": "Standard",
     "completedLabel": "Completed",
     "pendingLabel": "Pending",
+    "noCompletionRequired": "No completion required",
     "relativeTime": "Deadline status",
     "moreDetails": "More details",
     "markComplete": "Mark as complete",

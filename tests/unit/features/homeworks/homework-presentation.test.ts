@@ -32,6 +32,7 @@ describe("homework detail presentation", () => {
       ),
     ).toEqual({
       completed: true,
+      completionRequired: true,
       contextHref: "/sections/1",
       contextLabel: "程序设计 · CS101",
       description: "- 题目：完成报告",

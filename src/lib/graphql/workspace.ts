@@ -9,8 +9,8 @@ import {
   listSubscribedExamPage,
   listSubscribedHomeworkPage,
   listSubscribedSchedulePage,
-  listSubscribedSectionPage,
 } from "@/features/subscriptions/server/subscription-read-model";
+import { listSubscribedMembershipPage } from "@/features/subscriptions/server/subscription-section-page";
 import {
   listTodoPage,
   type TodoListFilters,
@@ -71,6 +71,7 @@ type ExamFilterInput = {
 
 type HomeworkParent = {
   completion?: { completedAt: Date } | null;
+  completionRequired: boolean;
 };
 
 type ScheduleParent = {
@@ -215,6 +216,7 @@ export const graphqlScopeTypeDefs = /* GraphQL */ `
     title: String!
     isMajor: Boolean!
     requiresTeam: Boolean!
+    completionRequired: Boolean!
     publishedAt: DateTime
     submissionStartAt: DateTime
     submissionDueAt: DateTime
@@ -325,10 +327,20 @@ export const graphqlScopeTypeDefs = /* GraphQL */ `
     nextCursor: String
   }
 
+  type SubscribedSection {
+    kind: SubscriptionKind!
+    section: Section!
+  }
+
+  type SubscribedSectionPage {
+    items: [SubscribedSection!]!
+    pageInfo: PageInfo!
+  }
+
   type Workspace {
     overview(atTime: DateTime): WorkspaceOverview!
     todos(filter: TodoFilter, page: PageInput): TodoPage!
-    subscribedSections(page: PageInput): SectionPage!
+    subscribedSections(page: PageInput): SubscribedSectionPage!
     homeworks(filter: HomeworkFilter, page: PageInput): HomeworkPage!
     schedules(filter: ScheduleFilter, page: PageInput): SchedulePage!
     exams(filter: ExamFilter, page: PageInput): ExamPage!
@@ -357,6 +369,8 @@ export const graphqlScopeResolvers = {
   ExamPage: graphqlPageResolvers,
   ExamRoomPage: graphqlPageResolvers,
   Homework: {
+    completionRequired: (homework: HomeworkParent) =>
+      homework.completionRequired !== false,
     completed: (homework: HomeworkParent) => Boolean(homework.completion),
     completedAt: (homework: HomeworkParent) =>
       homework.completion?.completedAt ?? null,
@@ -520,7 +534,7 @@ export const graphqlScopeResolvers = {
         context,
         READ_SCOPES.subscribedSections,
       );
-      return listSubscribedSectionPage(userId, {
+      return listSubscribedMembershipPage(userId, {
         locale: context.locale,
         pagination: normalizeGraphqlPage(args.page),
       });

@@ -4,6 +4,9 @@ export type TodoWithDue = {
 };
 
 export type HomeworkWithDue = {
+  completion?: unknown | null;
+  completionRequired?: boolean;
+  homeworkCompletions?: readonly unknown[];
   submissionDueAt?: Date | string | null;
 };
 

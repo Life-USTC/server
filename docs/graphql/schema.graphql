@@ -332,6 +332,7 @@ type Homework {
   commentCount: Int!
   completed: Boolean!
   completedAt: DateTime
+  completionRequired: Boolean!
   createdAt: DateTime!
   id: ID!
   isMajor: Boolean!
@@ -407,6 +408,7 @@ type Mutation {
   linkPinSet(pinned: Boolean!, slug: String!): WorkspaceLinkPinMutationPayload!
   linkPinsSet(items: [WorkspaceLinkPinBatchItemInput!]!): WorkspaceLinkPinBatchMutationPayload!
   subscriptionAdd(jwId: Int!): SectionSubscriptionMutationPayload!
+  subscriptionKindUpdate(jwId: Int!, kind: SubscriptionKind!): SubscriptionKindPayload!
   subscriptionRemove(jwId: Int!): SectionSubscriptionMutationPayload!
   subscriptionsImport(input: UpdateSectionSubscriptionsInput!): SectionSubscriptionBatchPayload!
   todoCompletionsSet(items: [TodoCompletionBatchItemInput!]!): TodoCompletionBatchPayload!
@@ -541,7 +543,6 @@ type SectionPage {
 enum SectionSubscriptionBatchAction {
   ADD
   REMOVE
-  SET
 }
 
 type SectionSubscriptionBatchPayload {
@@ -572,6 +573,27 @@ type Semester {
 type SemesterPage {
   items: [Semester!]!
   pageInfo: PageInfo!
+}
+
+type SubscribedSection {
+  kind: SubscriptionKind!
+  section: Section!
+}
+
+type SubscribedSectionPage {
+  items: [SubscribedSection!]!
+  pageInfo: PageInfo!
+}
+
+enum SubscriptionKind {
+  auditor
+  regular
+  teaching_assistant
+}
+
+type SubscriptionKindPayload {
+  kind: SubscriptionKind!
+  sectionJwId: Int!
 }
 
 type Teacher {
@@ -803,7 +825,7 @@ type Workspace {
   homeworks(filter: HomeworkFilter, page: PageInput): HomeworkPage!
   overview(atTime: DateTime): WorkspaceOverview!
   schedules(filter: ScheduleFilter, page: PageInput): SchedulePage!
-  subscribedSections(page: PageInput): SectionPage!
+  subscribedSections(page: PageInput): SubscribedSectionPage!
   todos(filter: TodoFilter, page: PageInput): TodoPage!
 }
 

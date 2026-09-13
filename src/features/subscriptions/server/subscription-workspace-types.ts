@@ -23,6 +23,7 @@ export type HomeworkWithSection = Omit<
   WorkspaceHomeworkBase,
   "description" | "section"
 > & {
+  completionRequired: boolean;
   description?: WorkspaceHomeworkBase["description"];
   homeworkCompletions: Array<{ completedAt: Date }>;
   section:

@@ -216,6 +216,7 @@ describe("workspace overview homework read", () => {
     expect(listSubscribedHomeworksMock).toHaveBeenCalledWith("user-1", {
       incompleteOrHasDueDate: true,
       locale: "en-us",
+      now: new Date("2026-05-22T02:30:00.000Z"),
       sectionIds: [12],
       shape: "workspace",
     });

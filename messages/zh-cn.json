@@ -225,6 +225,15 @@
       "subscribeSelected": "订阅已选的 {count} 个教学班",
       "successDescription": "已新增 {count} 个教学班订阅",
       "importFailed": "订阅失败"
+    },
+    "kindEditor": {
+      "title": "订阅身份",
+      "save": "保存",
+      "cancel": "取消",
+      "failed": "保存订阅身份失败",
+      "regular": "普通",
+      "auditor": "旁听",
+      "teaching_assistant": "助教"
     }
   },
   "uploads": {
@@ -1908,6 +1917,7 @@
     "tagDefault": "常规作业",
     "completedLabel": "已完成",
     "pendingLabel": "待处理",
+    "noCompletionRequired": "无需完成",
     "relativeTime": "距截止",
     "moreDetails": "更多信息",
     "markComplete": "标记为完成",

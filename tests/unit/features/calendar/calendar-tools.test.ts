@@ -10,6 +10,7 @@ describe("summarizeCalendarSubscription 日历订阅摘要", () => {
       userId: "user-1",
       sections: [
         {
+          kind: "regular" as const,
           id: 1,
           jwId: 101,
           code: "CS101.01",
@@ -29,6 +30,7 @@ describe("summarizeCalendarSubscription 日历订阅摘要", () => {
           },
         },
         {
+          kind: "teaching_assistant" as const,
           id: 2,
           jwId: 102,
           code: "CS102.01",
@@ -59,6 +61,9 @@ describe("summarizeCalendarSubscription 日历订阅摘要", () => {
     expect(summary.sectionCount).toBe(2);
     expect(summary.currentSemesterSectionCount).toBe(2);
     expect(summary.currentSemesterSections).toHaveLength(2);
+    expect(
+      summary.currentSemesterSections.map((section) => section.kind),
+    ).toEqual(["regular", "teaching_assistant"]);
     expect(summary).not.toHaveProperty("calendarPath");
     expect(summary).not.toHaveProperty("calendarUrl");
     expect(brief).not.toHaveProperty("currentSemesterSections");

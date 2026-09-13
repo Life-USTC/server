@@ -130,7 +130,10 @@ function subscriptionPayload(sectionIds: number[]) {
   return {
     subscription: {
       userId: "user-1",
-      sections: sectionIds.map(compactSection),
+      sections: sectionIds.map((id) => ({
+        ...compactSection(id),
+        kind: "regular",
+      })),
       note: "private",
     },
   };

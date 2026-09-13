@@ -822,6 +822,7 @@ describe("MCP tool descriptors", () => {
       title: "Homework",
       isMajor: false,
       requiresTeam: false,
+      completionRequired: true,
       publishedAt: null,
       submissionStartAt: null,
       submissionDueAt: null,

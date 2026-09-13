@@ -88,7 +88,11 @@ describe("retired Section query contracts", () => {
     expect(homeworkFindManyMock).toHaveBeenCalledWith(
       expect.objectContaining({
         where: expect.objectContaining({
-          homeworkCompletions: { none: { userId: "user-1" } },
+          AND: expect.arrayContaining([
+            expect.objectContaining({
+              homeworkCompletions: { none: { userId: "user-1" } },
+            }),
+          ]),
         }),
       }),
     );

@@ -205,7 +205,7 @@ and retry guidance must make the distinction explicit.
 | `workspace_schedule_list` | `/workspace/overview` (no dedicated schedules tab) | `GET /api/workspace/schedules` | `workspace.schedules` | `课表` | `workspace schedule list` |
 | `workspace_todo_create` | `/workspace/todos` | `POST /api/workspace/todos` | `todoCreate` | `待办 添加` | `workspace todo create` |
 | `workspace_homework_completion_set` | `/workspace/homeworks` | `PUT /api/workspace/homeworks/:id/completion` | `homeworkCompletionSet` | `作业 完成/恢复` | `workspace homework complete/reopen` |
-| `workspace_subscription_add` | `/workspace/subscriptions` | `POST /api/workspace/subscriptions` | `subscriptionAdd` | `订阅 添加` | `workspace subscription add` |
+| `workspace_subscription_add` | `/workspace/subscriptions` | `PATCH /api/workspace/subscriptions` | `subscriptionAdd` | `订阅 添加` | `workspace subscription add` |
 | `workspace_calendar_feed_get` | `/workspace/subscriptions` | `GET /api/calendar-feeds/:credential.ics` | — | `日历 导出` | `workspace calendar feed` |
 | `workspace_bus_preferences_set` | `/catalog/bus` | `POST /api/workspace/bus-preferences` | `busPreferencesSet` | `校车 偏好 设置` | `workspace bus-preferences set` |
 | `workspace_link_pin_set` | `/catalog/links` | `POST /api/workspace/link-pins` | `linkPinSet` | `网站 置顶/取消置顶` | `workspace link-pin pin/unpin` |

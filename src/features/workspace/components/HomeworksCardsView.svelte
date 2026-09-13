@@ -38,6 +38,7 @@ function summaryBadges(homework: WorkspaceHomeworkItem) {
   return homeworkSummaryBadges(
     {
       completed: Boolean(homework.completion),
+      completionRequired: homework.completionRequired,
       isMajor: homework.isMajor === true,
       requiresTeam: homework.requiresTeam === true,
     },
@@ -85,7 +86,9 @@ function summaryBadges(homework: WorkspaceHomeworkItem) {
               <span class="max-w-full break-words"
                 >{homeworkCopy.due}: {fmtDate(homework.submissionDueAt)}</span
               >
-              {#if !homework.completion}
+              {#if homework.completionRequired === false}
+                <Badge variant="outline">{homeworksCopy.noCompletionRequired}</Badge>
+              {:else if !homework.completion}
                 <Badge variant={homeworkIsOverdue(homework.submissionDueAt) ? "destructive" : "ghost"}>
                   {homeworkEtaLabel(homework.submissionDueAt)}
                 </Badge>
@@ -96,23 +99,25 @@ function summaryBadges(homework: WorkspaceHomeworkItem) {
             </Item.Description>
           </Item.Content>
           <Item.Actions class="shrink-0 self-start">
-            <TableIconButton
-              className="size-11"
-              disabled={homeworkSavingById[homework.id]}
-              label={homeworkSavingById[homework.id]
-                ? homeworksCopy.saving
-                : homeworkCompletionActionLabel(homework)}
-              variant={homework.completion ? "secondary" : "default"}
-              onclick={() => toggleHomeworkCompletion(homework)}
-            >
-              {#if homeworkSavingById[homework.id]}
-                <Spinner data-icon="inline-start" />
-              {:else if homework.completion}
-                <RefreshCw data-icon="inline-start" />
-              {:else}
-                <CheckCircleIcon data-icon="inline-start" />
-              {/if}
-            </TableIconButton>
+            {#if homework.completionRequired !== false}
+              <TableIconButton
+                className="size-11"
+                disabled={homeworkSavingById[homework.id]}
+                label={homeworkSavingById[homework.id]
+                  ? homeworksCopy.saving
+                  : homeworkCompletionActionLabel(homework)}
+                variant={homework.completion ? "secondary" : "default"}
+                onclick={() => toggleHomeworkCompletion(homework)}
+              >
+                {#if homeworkSavingById[homework.id]}
+                  <Spinner data-icon="inline-start" />
+                {:else if homework.completion}
+                  <RefreshCw data-icon="inline-start" />
+                {:else}
+                  <CheckCircleIcon data-icon="inline-start" />
+                {/if}
+              </TableIconButton>
+            {/if}
             <TableIconButton
               className="size-11"
               label={homeworksCopy.viewDetails}

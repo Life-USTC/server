@@ -1312,7 +1312,14 @@ enum UploadPendingPhase {
   cleaning
 }
 
+enum SubscriptionKind {
+  regular
+  auditor
+  teaching_assistant
+}
+
 model UserSectionSubscription {
+  kind SubscriptionKind @default(regular)
   userId    String
   sectionId Int
   createdAt DateTime @default(now())

@@ -197,6 +197,7 @@ export type SectionDetailCopy = {
     markIncomplete: string;
     moreDetails: string;
     pendingLabel: string;
+    noCompletionRequired: string;
     publishedAt: string;
     relativeTime: string;
     saveChanges: string;
@@ -396,6 +397,7 @@ export type SectionDetailActionData =
 
 export type SectionHomework = {
   completion: { completedAt: string | null } | null;
+  completionRequired?: boolean;
   commentCount?: number;
   createdById?: string | null;
   description?: { content?: string | null; renderedHtml?: string } | null;

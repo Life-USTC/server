@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { subscriptionKindSchema } from "@/features/subscriptions/lib/subscription-kind";
 import { successResponseSchema } from "@/lib/api/schemas/misc-response-schema-core";
 import {
   calendarFeedOutputSchema,
@@ -95,12 +96,18 @@ export const workspaceNonAcademicModeOutputSchemas = {
   workspace_subscription_list: {
     default: z.strictObject({
       success: z.boolean(),
-      sections: z.array(compactLocalizedSubscriptionSectionSchema),
+      sections: z.array(
+        compactLocalizedSubscriptionSectionSchema.extend({
+          kind: subscriptionKindSchema,
+        }),
+      ),
       note: z.string(),
     }),
     full: z.strictObject({
       success: z.boolean(),
-      sections: z.array(subscriptionFullSectionSchema),
+      sections: z.array(
+        subscriptionFullSectionSchema.extend({ kind: subscriptionKindSchema }),
+      ),
       note: z.string(),
     }),
   },
@@ -154,8 +161,10 @@ export const workspaceToolOutputSchemas: Record<string, McpToolOutputSchema> = {
   workspace_subscription_list: objectOutputSchema({
     sections: z.array(
       z.union([
-        compactLocalizedSubscriptionSectionSchema,
-        subscriptionFullSectionSchema,
+        compactLocalizedSubscriptionSectionSchema.extend({
+          kind: subscriptionKindSchema,
+        }),
+        subscriptionFullSectionSchema.extend({ kind: subscriptionKindSchema }),
       ]),
     ),
     note: z.string(),
@@ -169,6 +178,10 @@ export const workspaceToolOutputSchemas: Record<string, McpToolOutputSchema> = {
         fullCalendarSubscriptionMutationSchema,
       ])
       .nullable(),
+  }),
+  workspace_subscription_kind_update: objectOutputSchema({
+    sectionJwId: z.number().int(),
+    kind: subscriptionKindSchema,
   }),
   workspace_subscription_remove: objectOutputSchema({
     action: z.string(),

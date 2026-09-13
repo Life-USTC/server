@@ -73,7 +73,7 @@ describe("workspace_subscription_add — 返回 action 与精简订阅", () => {
 });
 
 // --- formerly mcp-18-calendar-subscriptions ---
-// Uses an isolated user: these tests replace the subscription set wholesale,
+// Uses an isolated user: these tests arrange subscription state directly,
 // which would race other files against the shared dev-seed user.
 const context = fixtures.createSubscribedIsolatedMcpToolTestContext({
   emailPrefix: "mcp-calendar-subscriptions",

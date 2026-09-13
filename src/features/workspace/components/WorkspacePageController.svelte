@@ -8,8 +8,8 @@ import {
   monthWeeks,
 } from "@/features/workspace/lib/calendar";
 import {
+  calendarHomeworkChipFields as buildCalendarHomeworkChipFields,
   calendarExamChipFields,
-  calendarHomeworkChipFields,
   calendarSemesterIndex,
   calendarSessionChipFields,
 } from "@/features/workspace/lib/calendar-display";
@@ -135,6 +135,15 @@ $: pageTitle =
     ? data.mainContentLabel
     : copy.metadata.home;
 $: todoPriorityOptions = buildTodoPriorityOptions(todoPriorityOrder, todosCopy);
+
+function calendarHomeworkChipFields(
+  homework: Parameters<typeof buildCalendarHomeworkChipFields>[0],
+) {
+  return buildCalendarHomeworkChipFields(
+    homework,
+    homeworksCopy.noCompletionRequired,
+  );
+}
 $: calendarWeekdayLabels = buildCalendarWeekdayLabels(sectionCopy);
 $: catalogLinkGroupLabels = workspaceCopy.linkHub.groups;
 $: if (data !== linkSourceData) {

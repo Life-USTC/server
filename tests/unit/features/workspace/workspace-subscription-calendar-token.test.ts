@@ -21,6 +21,10 @@ vi.mock(
   }),
 );
 
+vi.mock("@/features/subscriptions/server/subscription-kind", () => ({
+  getUserSubscriptionKinds: vi.fn(async () => new Map()),
+}));
+
 vi.mock("@/features/subscriptions/server/subscription-tab-sections", () => ({
   listSubscribedSectionsForSubscriptionsTab: listSubscribedSectionsMock,
   subscriptionSectionFromRow: vi.fn(),

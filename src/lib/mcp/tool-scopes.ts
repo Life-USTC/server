@@ -64,6 +64,9 @@ const TOOL_SCOPE_MAP: Record<string, ToolScopeRequirement[]> = {
   workspace_subscription_add: [
     { feature: "workspace.subscription", action: "write" },
   ],
+  workspace_subscription_kind_update: [
+    { feature: "workspace.subscription", action: "write" },
+  ],
   workspace_subscription_remove: [
     { feature: "workspace.subscription", action: "write" },
   ],

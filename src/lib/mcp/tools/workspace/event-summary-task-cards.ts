@@ -23,6 +23,7 @@ export function summarizeHomeworkCard(value: unknown) {
     "title",
     "isMajor",
     "requiresTeam",
+    "completionRequired",
     "publishedAt",
     "submissionStartAt",
     "submissionDueAt",

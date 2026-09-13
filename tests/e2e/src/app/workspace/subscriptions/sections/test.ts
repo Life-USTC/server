@@ -268,9 +268,22 @@ test.describe("仪表盘教学班订阅", () => {
   test("空状态提供发现操作", async ({ page }, testInfo) => {
     test.setTimeout(60000);
     await signInAsDebugUser(page, "/workspace/subscriptions");
-    const clearResponse = await page.request.post(
+    const currentResponse = await page.request.get(
+      "/api/workspace/subscriptions/current",
+    );
+    expect(currentResponse.status()).toBe(200);
+    const current = (await currentResponse.json()) as {
+      subscription: { sections: Array<{ id: number }> };
+    };
+    const clearResponse = await page.request.delete(
       "/api/workspace/subscriptions",
-      { data: { sectionIds: [] } },
+      {
+        data: {
+          sectionIds: current.subscription.sections.map(
+            (section) => section.id,
+          ),
+        },
+      },
     );
     expect(clearResponse.status()).toBe(200);
     await gotoAndWaitForReady(page, "/workspace/subscriptions");

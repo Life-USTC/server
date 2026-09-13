@@ -1,3 +1,4 @@
+import { isHomeworkPendingForViewer } from "@/features/homeworks/lib/homework-completion-state";
 import { listSubscribedHomeworks } from "@/features/subscriptions/server/subscription-read-model";
 import { formatSemesterName } from "@/lib/text/format-semester-name";
 import { shanghaiDayjs } from "@/lib/time/shanghai-dayjs";
@@ -111,7 +112,7 @@ export async function getWorkspaceOverviewData(
     sectionsForCalendarGrid,
   } = await sectionScopePromise;
 
-  const now = referenceNow;
+  const now = referenceNow.toDate();
   const [
     overviewHomeworks,
     { catalogLinks, recommendedLinks, pinnedLinks, overviewLinks },
@@ -120,31 +121,30 @@ export async function getWorkspaceOverviewData(
     listSubscribedHomeworks(userId, {
       incompleteOrHasDueDate: true,
       locale,
+      now,
       sectionIds: homeworkSectionIds,
       shape: "workspace",
     }),
     linksPromise,
     calendarTodosPromise,
   ]);
-  const homeworks = overviewHomeworks.filter(
-    (homework) => homework.homeworkCompletions.length === 0,
+  const homeworks = overviewHomeworks.filter((homework) =>
+    isHomeworkPendingForViewer(homework, now),
   );
-  const calendarHomeworks = overviewHomeworks.filter(
-    (homework) =>
-      homework.submissionDueAt !== null &&
-      homework.homeworkCompletions.length === 0,
+  const calendarHomeworks = homeworks.filter(
+    (homework) => homework.submissionDueAt !== null,
   );
   const schedule = buildWorkspaceOverviewSchedule({
     workspaceSections,
     homeworks,
     locale,
-    referenceNow: now,
+    referenceNow,
   });
   const calendarPayload =
     calendarMode === "preview"
       ? buildPreviewCalendarPayload({
           calendarHomeworks,
-          referenceNow: now,
+          referenceNow,
           sections: sectionsForCalendarGrid,
           todos: calendarTodos,
           windowEnd: previewEnd,
@@ -194,7 +194,7 @@ export async function getWorkspaceOverviewData(
     calendarHomeworks: schedule.calendarHomeworks,
     calendarDays: schedule.calendarDays,
     weekDayFormatter: schedule.weekDayFormatter,
-    referenceNow: now,
+    referenceNow,
     todayStart: schedule.todayStart,
     semesterStart: calendarSemesterStart,
     semesterEnd: calendarSemesterEnd,

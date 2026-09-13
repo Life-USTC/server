@@ -11,7 +11,11 @@ function buildActions(locale = "zh-cn") {
   return createHomeworkTabDisplayActions({
     workspaceCopy: {} as WorkspaceCopy,
     homeworkCopy: { section: "Section" },
-    homeworksCopy: { markComplete: "完成", markIncomplete: "取消完成" },
+    homeworksCopy: {
+      markComplete: "完成",
+      markIncomplete: "取消完成",
+      noCompletionRequired: "无需完成",
+    },
     locale,
     referenceDate,
     sectionCopy: { dateTBD: "待定" } as WorkspaceSectionCopy,

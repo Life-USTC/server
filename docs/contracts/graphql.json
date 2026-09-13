@@ -25,9 +25,11 @@
     "semantic-observability": "Each attempted HTTP or MCP GraphQL operation records one sanitized semantic observation with its operation name and type, top-level field count, estimated cost, duration, GraphQL error count, internal error count, auth mode, and server request ID. Expected parse, validation, authorization, and domain errors remain informational while INTERNAL_SERVER_ERROR outcomes use error severity; raw documents, variables, credentials, argument values, and error details are excluded.",
     "scoped-query-auth": "Query.account and Query.workspace return null for an anonymous caller. Their child fields independently enforce account or feature read scopes for OAuth principals; trusted-origin Sessions use their existing user authority.",
     "workspace-ownership": "Workspace collections derive ownership from the authenticated user relation in feature services and never accept sectionIds or internal visibility or shape flags from GraphQL inputs.",
+    "homework-completion-requirement": "Workspace and community homework reads expose completionRequired, derived from the viewer's current section subscription kind. Teaching-assistant homework displays no completion required while preserving actual completion state and pending-scope deadline semantics.",
     "zoned-datetime": "DateTime inputs accept only valid ISO 8601 datetimes with an explicit Z or numeric timezone offset, with identical coercion for variables and inline literals; schedule and exam DateTime filters normalize to their Asia/Shanghai calendar day before querying @db.Date columns.",
     "schema-evolution": "CI always checks the canonical SDL snapshot for drift. Pull requests compare it with the base schema and block breaking or dangerous changes unless the explicit graphql-breaking-approved label is present; approval skips only that base-compatibility comparison.",
-    "room-maps": "Catalog.roomMap(code: String!): RoomMap! provides public room map lookup with highlighted, overview, or unavailable status."
+    "room-maps": "Catalog.roomMap(code: String!): RoomMap! provides public room map lookup with highlighted, overview, or unavailable status.",
+    "subscription-kind": "Workspace.subscribedSections returns SubscribedSectionPage with { kind, section } items. subscriptionKindUpdate edits existing owner-scoped membership only."
   },
   "capabilities": {
     "public-query-endpoint": {
