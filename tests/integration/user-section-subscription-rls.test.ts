@@ -87,5 +87,27 @@ describe.skipIf(process.env.RLS_TEST_ENABLED !== "true")(
         ),
       ).rejects.toThrow();
     });
+    it("allows only the owner to update a subscription kind", async () => {
+      await withUserDbContext(firstUserId, (tx) =>
+        tx.userSectionSubscription.create({
+          data: { userId: firstUserId, sectionId },
+        }),
+      );
+      const other = await withUserDbContext(secondUserId, (tx) =>
+        tx.userSectionSubscription.updateMany({
+          where: { userId: firstUserId, sectionId },
+          data: { kind: "teaching_assistant" },
+        }),
+      );
+      expect(other.count).toBe(0);
+      const owned = await withUserDbContext(firstUserId, (tx) =>
+        tx.userSectionSubscription.update({
+          where: { userId_sectionId: { userId: firstUserId, sectionId } },
+          data: { kind: "auditor" },
+          select: { kind: true },
+        }),
+      );
+      expect(owned.kind).toBe("auditor");
+    });
   },
 );
