@@ -65,7 +65,7 @@ describe("personal subscription kinds", () => {
     ).toBeNull();
     const added = await appendUserSectionSubscriptions({
       userId: userIds[0],
-      sectionIds: [sectionId, sectionId],
+      sectionIds: [sectionId, sectionId, 999_999_999],
     });
     expect(added).toMatchObject({ addedCount: 0, alreadySubscribedCount: 1 });
     expect(

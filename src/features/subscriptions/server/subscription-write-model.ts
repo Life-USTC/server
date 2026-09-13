@@ -156,7 +156,7 @@ export async function mutateUserSectionSubscriptionsInTransaction(
   );
   const activeCandidateSectionIds = candidateSectionIds.filter((sectionId) => {
     const section = lockedSectionById.get(sectionId);
-    return section?.retiredAt == null;
+    return section != null && section.retiredAt == null;
   });
   const currentSectionIdSet = new Set(currentSectionIds);
   const addedSectionIds = activeCandidateSectionIds.filter(
