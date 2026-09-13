@@ -347,7 +347,8 @@ describe.sequential("GraphQL Viewer integration", () => {
               }
               subscribedSections {
                 items {
-                  ...SectionFields
+                  kind
+                  section { ...SectionFields }
                 }
                 pageInfo {
                   pageSize
@@ -451,7 +452,7 @@ describe.sequential("GraphQL Viewer integration", () => {
         pageInfo: { pageSize: number; total: number };
       };
       subscribedSections: {
-        items: Array<{ id: number; jwId: number }>;
+        items: Array<{ kind: string; section: { id: number; jwId: number } }>;
         pageInfo: { pageSize: number; total: number };
       };
       homeworks: {
@@ -479,7 +480,10 @@ describe.sequential("GraphQL Viewer integration", () => {
       total: 1,
     });
     expect(viewer.subscribedSections.items).toMatchObject([
-      { id: firstSectionId, jwId: firstSectionJwId },
+      {
+        kind: "regular",
+        section: { id: firstSectionId, jwId: firstSectionJwId },
+      },
     ]);
     for (const page of [viewer.homeworks, viewer.schedules, viewer.exams]) {
       expect(page.pageInfo.total).toBeGreaterThan(0);
