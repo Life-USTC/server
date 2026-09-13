@@ -1,3 +1,10 @@
+# [1.108.0](https://github.com/Life-USTC/server/compare/v1.107.0...v1.108.0) (2026-09-13)
+
+
+### Features
+
+* **subscriptions:** support personal course roles ([#1038](https://github.com/Life-USTC/server/issues/1038)) ([b56fe8f](https://github.com/Life-USTC/server/commit/b56fe8fc1324faa722a0373457700178bdd3f6a8))
+
 # [1.107.0](https://github.com/Life-USTC/server/compare/v1.106.3...v1.107.0) (2026-09-11)
 
 
