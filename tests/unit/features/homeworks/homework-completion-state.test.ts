@@ -11,9 +11,9 @@ describe("homework completion requirement", () => {
   it("derives the requirement from the viewer's subscription kind", () => {
     expect(completionRequiredForSubscriptionKind("regular")).toBe(true);
     expect(completionRequiredForSubscriptionKind("auditor")).toBe(true);
-    expect(
-      completionRequiredForSubscriptionKind("teaching_assistant"),
-    ).toBe(false);
+    expect(completionRequiredForSubscriptionKind("teaching_assistant")).toBe(
+      false,
+    );
     expect(completionRequiredForSubscriptionKind(undefined)).toBe(true);
   });
 
@@ -33,14 +33,24 @@ describe("homework completion requirement", () => {
         ]),
       ),
     ).toEqual([
-      { id: "regular", sectionId: 1, completion: null, completionRequired: true },
+      {
+        id: "regular",
+        sectionId: 1,
+        completion: null,
+        completionRequired: true,
+      },
       {
         id: "ta",
         sectionId: 2,
         completion: { completedAt: referenceDate },
         completionRequired: false,
       },
-      { id: "unknown", sectionId: 3, completion: null, completionRequired: true },
+      {
+        id: "unknown",
+        sectionId: 3,
+        completion: null,
+        completionRequired: true,
+      },
     ]);
   });
 });
