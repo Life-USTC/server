@@ -87,6 +87,28 @@ for (const viewport of [
         dialog.getByRole("radio", { name: /旁听|Auditor/ }),
       ).toHaveAttribute("data-state", "on");
       await dialog.getByRole("button", { name: /^(取消|Cancel)$/ }).click();
+      await page.goto("/workspace/homeworks");
+      await page
+        .getByRole("radio", { name: /全部|All/i })
+        .first()
+        .click();
+      for (const title of [
+        DEV_SEED.homeworks.title,
+        DEV_SEED.homeworks.completedTitle,
+      ]) {
+        const homework = page
+          .locator(viewport.width < 768 ? '[data-slot="item"]' : "tr")
+          .filter({ hasText: title })
+          .filter({ visible: true })
+          .first();
+        await expect(homework).toBeVisible();
+        await expect(
+          homework.getByText(/无需完成|No completion required/),
+        ).toBeVisible();
+      }
+      await page.screenshot({
+        path: testInfo.outputPath("ta-homework-status.png"),
+      });
       expect(errors).toEqual([]);
       await expect(page.locator("body")).toHaveJSProperty(
         "scrollWidth",

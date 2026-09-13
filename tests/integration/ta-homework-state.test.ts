@@ -1,4 +1,5 @@
 import { afterAll, beforeAll, expect, it } from "vitest";
+import { getIncompleteHomeworkCalendarItems } from "@/features/calendar/server/calendar-export-data";
 import { listSubscribedHomeworkPage } from "@/features/subscriptions/server/subscription-homework-page";
 import { updateSubscriptionKind } from "@/features/subscriptions/server/subscription-kind";
 import { createTestPrisma } from "../shared/prisma";
@@ -70,6 +71,12 @@ it("derives TA pending membership before pagination and preserves actual complet
   expect(pending.data).toHaveLength(1);
   expect(pending.data[0].id).toBe(ids[1]);
   expect(pending.data[0].completionRequired).toBe(false);
+
+  expect(
+    (await getIncompleteHomeworkCalendarItems(users[0], [section.id], now)).map(
+      (homework) => homework.id,
+    ),
+  ).toEqual([ids[1]]);
 
   const all = await read(users[0]);
   expect(all.pagination.total).toBe(4);

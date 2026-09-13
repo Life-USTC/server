@@ -197,6 +197,7 @@ export type SectionDetailCopy = {
     markIncomplete: string;
     moreDetails: string;
     pendingLabel: string;
+    noCompletionRequired: string;
     publishedAt: string;
     relativeTime: string;
     saveChanges: string;

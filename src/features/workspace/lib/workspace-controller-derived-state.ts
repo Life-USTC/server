@@ -32,12 +32,12 @@ export function applyLocalHomeworkItemsToSignedData(
     },
     navStats: {
       ...signedData.navStats,
-        pendingHomeworksCount: homeworkItems.filter((item) =>
-          isHomeworkPendingForViewer(
-            item,
-            referenceDate(signedData.referenceNow),
-          ),
-        ).length,
+      pendingHomeworksCount: homeworkItems.filter((item) =>
+        isHomeworkPendingForViewer(
+          item,
+          referenceDate(signedData.referenceNow),
+        ),
+      ).length,
     },
   };
 }

@@ -103,9 +103,11 @@ describe("personal subscription kinds", () => {
     const ta = await buildUserCalendarExport(taRecord, userIds[0]);
     expect(ta.text).toContain("SUMMARY:[TA] ");
     expect(regular.text).not.toContain("SUMMARY:[TA] ");
-    expect([...ta.text.matchAll(/^UID:(.*)$/gm)].map((m) => m[1])).toEqual(
-      [...regular.text.matchAll(/^UID:(.*)$/gm)].map((m) => m[1]),
-    );
+    const courseEventIds = (text: string) =>
+      [...text.matchAll(/^UID:(.*)$/gm)]
+        .map((match) => match[1])
+        .filter((uid) => /\/(schedule|exam)\//.test(uid));
+    expect(courseEventIds(ta.text)).toEqual(courseEventIds(regular.text));
     const section = await getSectionForCalendar(sectionJwId);
     if (!section) throw new Error("Expected test section");
     expect((await createSectionCalendar(section)).toString()).not.toContain(
