@@ -9,7 +9,6 @@ export {
   hasUserSubscribedSectionByJwId,
   importUserSectionSubscriptionsByCodes,
   removeUserSectionSubscriptions,
-  replaceUserSectionSubscriptions,
   setUserSectionSubscriptionByJwId,
   subscribeUserToSectionByJwId,
   unsubscribeUserFromSectionByJwId,

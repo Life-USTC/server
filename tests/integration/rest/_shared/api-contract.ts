@@ -540,9 +540,15 @@ export async function assertApiContract(
     }
 
     case "/api/workspace/uploads/complete":
-    case "/api/workspace/subscriptions":
     case "/api/workspace/subscriptions/import-codes": {
       await expectUnauthorizedJson(await request.post(routePath, { data: {} }));
+      return;
+    }
+
+    case "/api/workspace/subscriptions": {
+      await expectUnauthorizedJson(
+        await request.patch(routePath, { data: { sectionIds: [1] } }),
+      );
       return;
     }
 

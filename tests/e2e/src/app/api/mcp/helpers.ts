@@ -287,14 +287,26 @@ export async function getSeedSectionId(request: Page["request"]) {
   return seedSection.id;
 }
 
-export async function replaceCalendarSubscription(
+export async function setCalendarSubscriptionForTest(
   request: Page["request"],
   sectionIds: number[],
 ) {
-  const response = await request.post("/api/workspace/subscriptions", {
-    data: { sectionIds },
-  });
-  expect(response.status()).toBe(200);
+  const currentSectionIds = await getCurrentSubscriptionSectionIds(request);
+  if (currentSectionIds.length > 0) {
+    const removeResponse = await request.delete(
+      "/api/workspace/subscriptions",
+      {
+        data: { sectionIds: currentSectionIds },
+      },
+    );
+    expect(removeResponse.status()).toBe(200);
+  }
+  if (sectionIds.length > 0) {
+    const appendResponse = await request.patch("/api/workspace/subscriptions", {
+      data: { sectionIds },
+    });
+    expect(appendResponse.status()).toBe(200);
+  }
 }
 
 export function getTextContent(result: unknown) {

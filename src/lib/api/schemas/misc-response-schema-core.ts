@@ -46,18 +46,18 @@ export const currentCalendarSubscriptionResponseSchema = z.strictObject({
   subscription: calendarSubscriptionWithFeedSchema.nullable(),
 });
 
-export const calendarSubscriptionCreateResponseSchema = z.strictObject({
+export const calendarSubscriptionResponseSchema = z.strictObject({
   subscription: calendarSubscriptionSchema.nullable(),
 });
 
 export const calendarSubscriptionAppendResponseSchema =
-  calendarSubscriptionCreateResponseSchema.extend({
+  calendarSubscriptionResponseSchema.extend({
     addedCount: z.number().int().nonnegative(),
     alreadySubscribedCount: z.number().int().nonnegative(),
   });
 
 export const calendarSubscriptionRemoveResponseSchema =
-  calendarSubscriptionCreateResponseSchema;
+  calendarSubscriptionResponseSchema;
 
 export const calendarSubscriptionImportResponseSchema = z.strictObject({
   success: z.boolean(),
@@ -99,7 +99,7 @@ export const calendarSubscriptionQueryResponseSchema =
 
 export const calendarSubscriptionBatchResponseSchema =
   calendarSubscriptionResolvedSectionsSchema.extend({
-    action: z.enum(["add", "remove", "set"]),
+    action: z.enum(["add", "remove"]),
     addedCount: z.number().int().nonnegative(),
     removedCount: z.number().int().nonnegative(),
     unchangedCount: z.number().int().nonnegative(),

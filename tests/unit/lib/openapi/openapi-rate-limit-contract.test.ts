@@ -9,7 +9,6 @@ const PROTECTED_MUTATIONS = [
   ["patch", "/api/admin/suspensions/{id}"],
   ["patch", "/api/admin/users/{id}"],
   ["post", "/api/workspace/bus-preferences"],
-  ["post", "/api/workspace/subscriptions"],
   ["patch", "/api/workspace/subscriptions"],
   ["delete", "/api/workspace/subscriptions"],
   ["post", "/api/workspace/subscriptions/batch"],

@@ -62,7 +62,6 @@ export const graphqlMutationTypeDefs = /* GraphQL */ `
   enum SectionSubscriptionBatchAction {
     ADD
     REMOVE
-    SET
   }
 
   input CreateTodoInput {

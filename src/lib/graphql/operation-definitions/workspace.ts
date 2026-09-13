@@ -423,9 +423,8 @@ export const workspaceGraphqlOperationDefinitions = [
   }),
   mutation({
     id: "workspace.subscription.import.v1",
-    title: "Update section subscriptions in batch",
-    description:
-      "Adds, removes, or replaces section subscriptions by public codes.",
+    title: "Add or remove section subscriptions in batch",
+    description: "Adds or removes section subscriptions by public codes.",
     document: /* GraphQL */ `
       mutation SubscriptionUpdateSectionsBatch(
         $input: UpdateSectionSubscriptionsInput!

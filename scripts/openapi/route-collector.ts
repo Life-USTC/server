@@ -133,7 +133,6 @@ const OPERATION_ID_OVERRIDES: Record<string, string> = {
   "GET /api/catalog/weather": "catalog_weather_get",
   "GET /api/workspace/bus-preferences": "workspace_bus_preferences_get",
   "POST /api/workspace/bus-preferences": "workspace_bus_preferences_set",
-  "POST /api/workspace/subscriptions": "setCalendarSubscription",
   "POST /api/workspace/subscriptions/batch": "batchUpdateCalendarSubscription",
   "PATCH /api/workspace/subscriptions": "appendCalendarSubscriptionSections",
   "GET /api/workspace/subscriptions/current": "getCurrentCalendarSubscription",

@@ -110,8 +110,8 @@ test.describe("仪表盘", () => {
     }
 
     // Seed overdue homework is visible on overview. Retry the subscription+reload
-    // because other E2E slices exercise subscription replacement for the
-    // shared debug user. The initial sign-in goto stays outside the retry.
+    // because other E2E slices reset subscriptions for the shared debug user.
+    // The initial sign-in goto stays outside the retry.
     const overdueTitle = page
       .getByText(DEV_SEED.homeworks.overdueTitle, { exact: true })
       .first();

@@ -418,7 +418,7 @@ describe("GraphQL batch mutations", () => {
     });
   });
 
-  it("applies and clears one semester through the shared subscription service", async () => {
+  it("applies and removes one section through the shared subscription service", async () => {
     const token = await signToken(userAId, [
       restWriteScope("workspace.subscription"),
     ]);
@@ -470,24 +470,28 @@ describe("GraphQL batch mutations", () => {
       }),
     ).resolves.toEqual({ sectionSubscriptions: [{ sectionId }] });
 
-    const cleared = await execute(
+    const removed = await execute(
       {
         query: mutation,
         variables: {
-          input: { action: "SET", codes: [], semesterId },
+          input: {
+            action: "REMOVE",
+            codes: [DEV_SEED.section.code],
+            semesterId,
+          },
         },
       },
       token,
     );
-    expect(cleared.payload.errors).toBeUndefined();
-    expect(cleared.payload.data?.subscriptionsImport).toMatchObject({
-      action: "SET",
+    expect(removed.payload.errors).toBeUndefined();
+    expect(removed.payload.data?.subscriptionsImport).toMatchObject({
+      action: "REMOVE",
       semesterId,
-      matchedCodes: [],
+      matchedCodes: [DEV_SEED.section.code],
       unmatchedCodes: [],
       addedCount: 0,
       removedCount: 1,
-      total: 0,
+      total: 1,
     });
     await expect(
       prisma.user.findUniqueOrThrow({

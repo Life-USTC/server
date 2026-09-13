@@ -288,9 +288,8 @@
       ]
     },
     {
-      "id": "workspace_subscription_internal_ids_set",
+      "id": "workspace_subscription_internal_ids_append_remove",
       "rest": [
-        "POST /api/workspace/subscriptions",
         "PATCH /api/workspace/subscriptions",
         "DELETE /api/workspace/subscriptions"
       ],

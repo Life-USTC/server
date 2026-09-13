@@ -542,7 +542,6 @@ type SectionPage {
 enum SectionSubscriptionBatchAction {
   ADD
   REMOVE
-  SET
 }
 
 type SectionSubscriptionBatchPayload {

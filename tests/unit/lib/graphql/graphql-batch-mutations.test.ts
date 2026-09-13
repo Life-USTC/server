@@ -286,10 +286,6 @@ describe("GraphQL batch mutation resolvers", () => {
       message: "codes must contain at least one item.",
     },
     {
-      input: { action: "set" as const, codes: ["MATH1001"] },
-      message: "semesterId is required when action is SET.",
-    },
-    {
       input: {
         action: "add" as const,
         codes: ["math1001", " MATH1001 "],
@@ -323,32 +319,5 @@ describe("GraphQL batch mutation resolvers", () => {
       message,
     });
     expect(batchUpdateUserSectionSubscriptionsMock).not.toHaveBeenCalled();
-  });
-
-  it("allows an empty SET target to clear one semester", async () => {
-    batchUpdateUserSectionSubscriptionsMock.mockResolvedValue({
-      action: "set",
-      semester: { id: 7 },
-      matchedCodes: [],
-      unmatchedCodes: [],
-      addedCount: 0,
-      removedCount: 2,
-      unchangedCount: 0,
-      total: 0,
-    });
-
-    await graphqlMutationResolvers.Mutation.subscriptionsImport(
-      null,
-      { input: { action: "set", codes: [], semesterId: 7 } },
-      context,
-    );
-
-    expect(batchUpdateUserSectionSubscriptionsMock).toHaveBeenCalledWith(
-      expect.objectContaining({
-        action: "set",
-        codes: [],
-        semesterId: 7,
-      }),
-    );
   });
 });

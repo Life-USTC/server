@@ -114,7 +114,7 @@ async function deleteFixture(
 }
 
 describe("Section subscription retirement linearization", () => {
-  it("rejects a newly retired candidate while preserving one explicit existing relation once", async () => {
+  it("rejects newly retired candidates while preserving existing relations", async () => {
     const fixture = await createFixture({ subscribedToFirst: true });
     const importerPrisma = createTestPrisma();
     const subscriberPrisma = createTestPrisma();
@@ -162,12 +162,6 @@ describe("Section subscription retirement linearization", () => {
             fixture.sections[1].id,
             fixture.sections[1].id,
           ],
-          mode: "replace",
-          preserveRetiredSectionIds: [
-            fixture.sections[0].id,
-            fixture.sections[0].id,
-            fixture.sections[1].id,
-          ],
           userId: fixture.user.id,
         });
       });
@@ -189,10 +183,7 @@ describe("Section subscription retirement linearization", () => {
       expect(result).toEqual({
         activeCandidateSectionIds: [],
         addedSectionIds: [],
-        effectiveSectionIds: [fixture.sections[0].id],
-        preservedRetiredSectionIds: [fixture.sections[0].id],
-        removedSectionIds: [],
-        unchangedSectionIds: [fixture.sections[0].id],
+        unchangedSectionIds: [],
       });
       await expect(
         prisma.userSectionSubscription.findMany({
@@ -243,7 +234,6 @@ describe("Section subscription retirement linearization", () => {
           tx as never,
           {
             candidateSectionIds: [fixture.sections[0].id],
-            mode: "connect",
             userId: fixture.user.id,
           },
         );
@@ -290,9 +280,6 @@ describe("Section subscription retirement linearization", () => {
       expect(mutationResult).toEqual({
         activeCandidateSectionIds: [fixture.sections[0].id],
         addedSectionIds: [fixture.sections[0].id],
-        effectiveSectionIds: [fixture.sections[0].id],
-        preservedRetiredSectionIds: [],
-        removedSectionIds: [],
         unchangedSectionIds: [],
       });
       await expect(

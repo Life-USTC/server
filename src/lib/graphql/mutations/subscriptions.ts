@@ -11,7 +11,7 @@ import {
   setSectionSubscription,
 } from "./shared";
 
-type SectionSubscriptionBatchAction = "add" | "remove" | "set";
+type SectionSubscriptionBatchAction = "add" | "remove";
 
 type UpdateSectionSubscriptionsInput = {
   action: SectionSubscriptionBatchAction;
@@ -22,7 +22,6 @@ type UpdateSectionSubscriptionsInput = {
 export const sectionSubscriptionBatchActionResolver = {
   ADD: "add",
   REMOVE: "remove",
-  SET: "set",
 } as const satisfies Record<string, SectionSubscriptionBatchAction>;
 
 export const subscriptionMutationResolvers = {
@@ -73,17 +72,13 @@ export const subscriptionMutationResolvers = {
     const input = args.input;
     rejectExplicitNullFields(input, ["semesterId"]);
     const codes = normalizeSubscriptionBatchCodes(input.codes);
-    if (input.action !== "set" && codes.length === 0) {
+    if (codes.length === 0) {
       badMutationInput("codes must contain at least one item.");
     }
     const semesterId = validateOptionalGraphqlId(
       input.semesterId,
       "semesterId",
     );
-    if (input.action === "set" && semesterId === undefined) {
-      badMutationInput("semesterId is required when action is SET.");
-    }
-
     const result = await batchUpdateUserSectionSubscriptions({
       action: input.action,
       codes,

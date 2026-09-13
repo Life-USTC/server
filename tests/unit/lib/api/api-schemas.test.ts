@@ -15,7 +15,6 @@ import {
   busRouteSearchQuerySchema,
   calendarSubscriptionAppendRequestSchema,
   calendarSubscriptionBatchRequestSchema,
-  calendarSubscriptionCreateRequestSchema,
   calendarSubscriptionQueryRequestSchema,
   commentCreateRequestSchema,
   commentReactionRequestSchema,
@@ -452,18 +451,6 @@ describe("其他请求 schema", () => {
     ).toBe(false);
   });
 
-  it("校验日历订阅 payload", () => {
-    const valid = calendarSubscriptionCreateRequestSchema.safeParse({
-      sectionIds: [1, 2, 3],
-    });
-    expect(valid.success).toBe(true);
-    expect(
-      calendarSubscriptionCreateRequestSchema.safeParse({
-        sectionIds: Array.from({ length: 501 }, (_, index) => index + 1),
-      }).success,
-    ).toBe(false);
-  });
-
   it("校验日历订阅追加 payload", () => {
     const valid = calendarSubscriptionAppendRequestSchema.safeParse({
       sectionIds: [1, 2, 3],
@@ -499,19 +486,6 @@ describe("其他请求 schema", () => {
         codes: ["COMP3001"],
       }).success,
     ).toBe(true);
-    expect(
-      calendarSubscriptionBatchRequestSchema.safeParse({
-        action: "set",
-        semesterId: 12,
-      }).success,
-    ).toBe(true);
-    const unscopedSet = calendarSubscriptionBatchRequestSchema.safeParse({
-      action: "set",
-    });
-    expect(unscopedSet.success).toBe(false);
-    if (!unscopedSet.success) {
-      expect(unscopedSet.error.issues[0]?.path).toEqual(["semesterId"]);
-    }
     expect(
       calendarSubscriptionBatchRequestSchema.safeParse({ action: "remove" })
         .success,
