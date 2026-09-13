@@ -15278,6 +15278,9 @@
                 "requiresTeam": {
                   "type": "boolean"
                 },
+                "completionRequired": {
+                  "type": "boolean"
+                },
                 "publishedAt": {
                   "nullable": true,
                   "type": "string",
@@ -15355,6 +15358,7 @@
                 "title",
                 "isMajor",
                 "requiresTeam",
+                "completionRequired",
                 "publishedAt",
                 "submissionStartAt",
                 "submissionDueAt",
@@ -15657,6 +15661,9 @@
                 "type": "boolean"
               },
               "requiresTeam": {
+                "type": "boolean"
+              },
+              "completionRequired": {
                 "type": "boolean"
               },
               "publishedAt": {
@@ -16189,6 +16196,7 @@
               "title",
               "isMajor",
               "requiresTeam",
+              "completionRequired",
               "publishedAt",
               "submissionStartAt",
               "submissionDueAt",
@@ -16484,6 +16492,9 @@
                   "type": "boolean"
                 },
                 "requiresTeam": {
+                  "type": "boolean"
+                },
+                "completionRequired": {
                   "type": "boolean"
                 },
                 "publishedAt": {
@@ -17016,6 +17027,7 @@
                 "title",
                 "isMajor",
                 "requiresTeam",
+                "completionRequired",
                 "publishedAt",
                 "submissionStartAt",
                 "submissionDueAt",
@@ -18223,6 +18235,9 @@
                     "requiresTeam": {
                       "type": "boolean"
                     },
+                    "completionRequired": {
+                      "type": "boolean"
+                    },
                     "publishedAt": {
                       "nullable": true,
                       "type": "string",
@@ -18753,6 +18768,7 @@
                     "title",
                     "isMajor",
                     "requiresTeam",
+                    "completionRequired",
                     "publishedAt",
                     "submissionStartAt",
                     "submissionDueAt",
@@ -27268,6 +27284,9 @@
               "requiresTeam": {
                 "type": "boolean"
               },
+              "completionRequired": {
+                "type": "boolean"
+              },
               "publishedAt": {
                 "nullable": true,
                 "type": "string",
@@ -27798,6 +27817,7 @@
               "title",
               "isMajor",
               "requiresTeam",
+              "completionRequired",
               "publishedAt",
               "submissionStartAt",
               "submissionDueAt",
@@ -27990,6 +28010,9 @@
               "requiresTeam": {
                 "type": "boolean"
               },
+              "completionRequired": {
+                "type": "boolean"
+              },
               "publishedAt": {
                 "nullable": true,
                 "type": "string",
@@ -28520,6 +28543,7 @@
               "title",
               "isMajor",
               "requiresTeam",
+              "completionRequired",
               "publishedAt",
               "submissionStartAt",
               "submissionDueAt",
