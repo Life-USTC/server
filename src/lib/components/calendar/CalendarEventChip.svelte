@@ -1,4 +1,5 @@
 <script lang="ts">
+import { Badge } from "$lib/components/ui/badge/index.js";
 import * as Item from "$lib/components/ui/item/index.js";
 import * as Tooltip from "$lib/components/ui/tooltip/index.js";
 import { cn } from "$lib/utils.js";
@@ -6,6 +7,7 @@ import type { CalendarTone } from "./types";
 
 export let href: string | undefined = undefined;
 export let label = "";
+export let badge: string | undefined = undefined;
 export let title = "";
 export let meta = "";
 export let detail = "";
@@ -35,6 +37,13 @@ $: tooltipBody = tooltipDetail || detail || title;
 </script>
 
 {#snippet chipContent()}
+  {#if badge}
+    <Badge
+      variant="destructive"
+      class="absolute -top-2 right-1 z-10 rounded-md bg-destructive px-1 text-destructive-foreground"
+      data-testid="calendar-subscription-badge"
+    >{badge}</Badge>
+  {/if}
   <Item.Content class="w-full min-w-0 overflow-hidden gap-0.5">
     <Item.Title class="block w-full min-w-0 max-w-full truncate">
       {label}
@@ -75,7 +84,7 @@ $: tooltipBody = tooltipDetail || detail || title;
     {#snippet child({ props })}
       <Item.Root
         class={cn(
-          "min-w-0 overflow-hidden flex-col flex-nowrap items-stretch no-underline",
+          "relative min-w-0 flex-col flex-nowrap items-stretch no-underline",
           tone === "warning"
             ? "border-warning/25 bg-warning/10 hover:border-warning/45 hover:bg-warning/15"
             : tone === "success"

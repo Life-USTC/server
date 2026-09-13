@@ -1,6 +1,7 @@
 import type { CalendarGridEvent } from "$lib/components/calendar/types";
 
 type CalendarSession = {
+  badge?: string;
   courseName: string;
 };
 
@@ -82,6 +83,7 @@ export function calendarGridEventsForDay<
       return {
         href: options.sessionHref(session),
         label: session.courseName,
+        badge: session.badge,
         meta: fields.meta,
         detail: fields.detail,
         tooltipDetail: fields.tooltipDetail,

@@ -34,6 +34,7 @@ export type HomeworkWithSection = Omit<
 };
 
 export type SectionWithRelations = {
+  badge?: string;
   id: number;
   jwId: number | null;
   course: { namePrimary: string | null };

@@ -226,6 +226,10 @@
       "successDescription": "已新增 {count} 个教学班订阅",
       "importFailed": "订阅失败"
     },
+    "kindBadge": {
+      "teaching_assistant": "助教",
+      "auditor": "旁听"
+    },
     "kindEditor": {
       "title": "订阅身份",
       "save": "保存",
