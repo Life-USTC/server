@@ -1,4 +1,5 @@
 import * as z from "zod";
+import { subscriptionKindSchema } from "@/features/subscriptions/lib/subscription-kind";
 import { todoPrioritySchema } from "@/features/todos/lib/todo-schema";
 import {
   busCampusSchema,
@@ -19,7 +20,9 @@ export const viewerContextSchema = z.object({
 
 export const calendarSubscriptionSchema = z.strictObject({
   userId: z.string(),
-  sections: z.array(sectionCompactSchema),
+  sections: z.array(
+    sectionCompactSchema.extend({ kind: subscriptionKindSchema }),
+  ),
   note: z.string(),
 });
 

@@ -47,6 +47,7 @@ const REGISTRY_ORDER = [
   "workspace.homework.completion.set.v1",
   "workspace.homework.completions.set.v1",
   "workspace.subscription.add.v1",
+  "workspace.subscription.kind.update.v1",
   "workspace.subscription.remove.v1",
   "workspace.subscription.import.v1",
   "workspace.link.pin.set.v1",

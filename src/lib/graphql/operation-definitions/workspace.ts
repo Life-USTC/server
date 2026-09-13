@@ -59,7 +59,8 @@ export const workspaceGraphqlOperationDefinitions = [
         workspace {
           subscribedSections(page: $page) {
             items {
-              ${sectionFields}
+              kind
+              section { ${sectionFields} }
             }
             pageInfo {
               ${pageInfoFields}
@@ -383,6 +384,20 @@ export const workspaceGraphqlOperationDefinitions = [
           sectionJwId
           subscribed
         }
+      }
+    `,
+    scopes: ["workspace.subscription:write"],
+    destructive: false,
+    openWorld: false,
+  }),
+  mutation({
+    id: "workspace.subscription.kind.update.v1",
+    title: "Update subscription kind",
+    description:
+      "Updates the personal kind of an existing section subscription.",
+    document: /* GraphQL */ `
+      mutation SubscriptionKindUpdate($jwId: Int!, $kind: SubscriptionKind!) {
+        subscriptionKindUpdate(jwId: $jwId, kind: $kind) { sectionJwId kind }
       }
     `,
     scopes: ["workspace.subscription:write"],

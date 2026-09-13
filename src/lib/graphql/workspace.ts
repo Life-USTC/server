@@ -9,8 +9,8 @@ import {
   listSubscribedExamPage,
   listSubscribedHomeworkPage,
   listSubscribedSchedulePage,
-  listSubscribedSectionPage,
 } from "@/features/subscriptions/server/subscription-read-model";
+import { listSubscribedMembershipPage } from "@/features/subscriptions/server/subscription-section-page";
 import {
   listTodoPage,
   type TodoListFilters,
@@ -325,10 +325,20 @@ export const graphqlScopeTypeDefs = /* GraphQL */ `
     nextCursor: String
   }
 
+  type SubscribedSection {
+    kind: SubscriptionKind!
+    section: Section!
+  }
+
+  type SubscribedSectionPage {
+    items: [SubscribedSection!]!
+    pageInfo: PageInfo!
+  }
+
   type Workspace {
     overview(atTime: DateTime): WorkspaceOverview!
     todos(filter: TodoFilter, page: PageInput): TodoPage!
-    subscribedSections(page: PageInput): SectionPage!
+    subscribedSections(page: PageInput): SubscribedSectionPage!
     homeworks(filter: HomeworkFilter, page: PageInput): HomeworkPage!
     schedules(filter: ScheduleFilter, page: PageInput): SchedulePage!
     exams(filter: ExamFilter, page: PageInput): ExamPage!
@@ -520,7 +530,7 @@ export const graphqlScopeResolvers = {
         context,
         READ_SCOPES.subscribedSections,
       );
-      return listSubscribedSectionPage(userId, {
+      return listSubscribedMembershipPage(userId, {
         locale: context.locale,
         pagination: normalizeGraphqlPage(args.page),
       });

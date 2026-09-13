@@ -1,5 +1,6 @@
 <script lang="ts">
 import ArrowUpRight from "@lucide/svelte/icons/arrow-up-right";
+import Pencil from "@lucide/svelte/icons/pencil";
 import UserMinus from "@lucide/svelte/icons/user-minus";
 import type {
   SubscriptionsData,
@@ -16,6 +17,7 @@ type SubscriptionListData = SubscriptionsData["subscriptions"];
 type SubscriptionSection = SubscriptionListData[number]["sections"][number];
 
 export let workspaceCopy: WorkspaceCopy;
+export let requestEditKind: (section: SubscriptionSection) => void;
 export let requestRemoveSection: (section: SubscriptionSection) => void;
 export let removingSectionId: SubscriptionSection["id"] | null;
 export let sectionCopy: WorkspaceSectionCopy;
@@ -55,6 +57,7 @@ function courseName(section: SubscriptionSection) {
           <Item.Description
             class="line-clamp-none flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-1 break-words"
           >
+            {#if section.kind !== "regular"}<Badge variant="secondary">{subscriptionsCopy.kindEditor[section.kind]}</Badge>{/if}
             <span class="max-w-full break-words">{teacherNames(section)}</span>
             <Badge variant="outline">
               {section.credits ?? workspaceCopy.notAvailable}
@@ -63,6 +66,9 @@ function courseName(section: SubscriptionSection) {
           </Item.Description>
         </Item.Content>
         <Item.Actions class="shrink-0 self-start">
+          <TableIconButton className="size-11" label={subscriptionsCopy.kindEditor.title} onclick={() => requestEditKind(section)}>
+            <Pencil data-icon="inline-start" />
+          </TableIconButton>
           <TableIconButton
             className="size-11"
             href={`/catalog/sections/${section.jwId}`}

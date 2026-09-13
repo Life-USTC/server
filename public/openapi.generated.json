@@ -7064,6 +7064,105 @@
         }
       }
     },
+    "/api/workspace/subscriptions/{jwId}": {
+      "patch": {
+        "operationId": "patch-api-workspace-subscriptions-jwId",
+        "summary": "Update an existing subscription's personal kind",
+        "tags": [
+          "workspace.subscription"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "jwId",
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            },
+            "required": true
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/subscriptionKindUpdateRequestSchema"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/subscriptionKindUpdateResponseSchema"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/openApiErrorSchema"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/openApiErrorSchema"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/openApiErrorSchema"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error response",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds before retrying the mutation",
+                "schema": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/openApiErrorSchema"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/workspace/subscriptions/batch": {
       "post": {
         "operationId": "batchUpdateCalendarSubscription",
@@ -20726,6 +20825,14 @@
                         ],
                         "additionalProperties": false
                       }
+                    },
+                    "kind": {
+                      "type": "string",
+                      "enum": [
+                        "regular",
+                        "auditor",
+                        "teaching_assistant"
+                      ]
                     }
                   },
                   "required": [
@@ -20768,7 +20875,8 @@
                     "semester",
                     "campus",
                     "openDepartment",
-                    "teachers"
+                    "teachers",
+                    "kind"
                   ],
                   "additionalProperties": false
                 }
@@ -21429,6 +21537,14 @@
                         ],
                         "additionalProperties": false
                       }
+                    },
+                    "kind": {
+                      "type": "string",
+                      "enum": [
+                        "regular",
+                        "auditor",
+                        "teaching_assistant"
+                      ]
                     }
                   },
                   "required": [
@@ -21471,7 +21587,8 @@
                     "semester",
                     "campus",
                     "openDepartment",
-                    "teachers"
+                    "teachers",
+                    "kind"
                   ],
                   "additionalProperties": false
                 }
@@ -22144,6 +22261,14 @@
                         ],
                         "additionalProperties": false
                       }
+                    },
+                    "kind": {
+                      "type": "string",
+                      "enum": [
+                        "regular",
+                        "auditor",
+                        "teaching_assistant"
+                      ]
                     }
                   },
                   "required": [
@@ -22186,7 +22311,8 @@
                     "semester",
                     "campus",
                     "openDepartment",
-                    "teachers"
+                    "teachers",
+                    "kind"
                   ],
                   "additionalProperties": false
                 }
@@ -29958,6 +30084,46 @@
         ],
         "additionalProperties": false
       },
+      "subscriptionKindUpdateRequestSchema": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "regular",
+              "auditor",
+              "teaching_assistant"
+            ]
+          }
+        },
+        "required": [
+          "kind"
+        ],
+        "additionalProperties": false
+      },
+      "subscriptionKindUpdateResponseSchema": {
+        "type": "object",
+        "properties": {
+          "sectionJwId": {
+            "type": "integer",
+            "exclusiveMinimum": true,
+            "maximum": 9007199254740991
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "regular",
+              "auditor",
+              "teaching_assistant"
+            ]
+          }
+        },
+        "required": [
+          "sectionJwId",
+          "kind"
+        ],
+        "additionalProperties": false
+      },
       "calendarSubscriptionBatchRequestSchema": {
         "type": "object",
         "properties": {
@@ -31372,6 +31538,14 @@
                         ],
                         "additionalProperties": false
                       }
+                    },
+                    "kind": {
+                      "type": "string",
+                      "enum": [
+                        "regular",
+                        "auditor",
+                        "teaching_assistant"
+                      ]
                     }
                   },
                   "required": [
@@ -31414,7 +31588,8 @@
                     "semester",
                     "campus",
                     "openDepartment",
-                    "teachers"
+                    "teachers",
+                    "kind"
                   ],
                   "additionalProperties": false
                 }
@@ -32069,6 +32244,14 @@
                         ],
                         "additionalProperties": false
                       }
+                    },
+                    "kind": {
+                      "type": "string",
+                      "enum": [
+                        "regular",
+                        "auditor",
+                        "teaching_assistant"
+                      ]
                     }
                   },
                   "required": [
@@ -32111,7 +32294,8 @@
                     "semester",
                     "campus",
                     "openDepartment",
-                    "teachers"
+                    "teachers",
+                    "kind"
                   ],
                   "additionalProperties": false
                 }
@@ -34796,6 +34980,14 @@
                         ],
                         "additionalProperties": false
                       }
+                    },
+                    "kind": {
+                      "type": "string",
+                      "enum": [
+                        "regular",
+                        "auditor",
+                        "teaching_assistant"
+                      ]
                     }
                   },
                   "required": [
@@ -34838,7 +35030,8 @@
                     "semester",
                     "campus",
                     "openDepartment",
-                    "teachers"
+                    "teachers",
+                    "kind"
                   ],
                   "additionalProperties": false
                 }

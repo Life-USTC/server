@@ -3,6 +3,7 @@ import type { Prisma } from "@/generated/prisma/client";
 import { type AppLocale, DEFAULT_LOCALE } from "@/i18n/config";
 import { getPrisma } from "@/lib/db/prisma";
 import { paginatedQuery } from "@/lib/query-pagination";
+import { getUserSubscriptionKinds } from "./subscription-kind";
 import { getSubscribedSectionIds } from "./subscription-read-model-shared";
 
 const SUBSCRIBED_SECTION_ORDER_BY = [
@@ -39,4 +40,21 @@ export async function listSubscribedSectionPage(
     pagination.page,
     pagination.pageSize,
   );
+}
+
+export async function listSubscribedMembershipPage(
+  userId: string,
+  options: Parameters<typeof listSubscribedSectionPage>[1],
+) {
+  const [page, kinds] = await Promise.all([
+    listSubscribedSectionPage(userId, options),
+    getUserSubscriptionKinds(userId),
+  ]);
+  return {
+    ...page,
+    data: page.data.flatMap((section) => {
+      const kind = kinds.get(section.id);
+      return kind === undefined ? [] : [{ section, kind }];
+    }),
+  };
 }

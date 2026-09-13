@@ -1,3 +1,5 @@
+import type { SubscriptionKind } from "@/features/subscriptions/lib/subscription-kind";
+import { updateSubscriptionKind } from "@/features/subscriptions/server/subscription-kind";
 import { batchUpdateUserSectionSubscriptions } from "@/features/subscriptions/server/subscriptions";
 import type { GraphqlContext } from "../context";
 import { validateOptionalGraphqlId } from "../input-boundaries";
@@ -24,6 +26,24 @@ export const sectionSubscriptionBatchActionResolver = {
 } as const satisfies Record<string, SectionSubscriptionBatchAction>;
 
 export const subscriptionMutationResolvers = {
+  async subscriptionKindUpdate(
+    _parent: unknown,
+    args: { jwId: number; kind: SubscriptionKind },
+    context: GraphqlContext,
+  ) {
+    const principal = await requireGraphqlMutation(
+      context,
+      "workspace.subscription",
+    );
+    if (args.jwId <= 0) badMutationInput("jwId must be positive.");
+    const result = await updateSubscriptionKind({
+      userId: principal.userId,
+      sectionJwId: args.jwId,
+      kind: args.kind,
+    });
+    if (!result) mutationNotFound("Subscription not found.");
+    return result;
+  },
   subscriptionAdd(
     _parent: unknown,
     args: { jwId: number },

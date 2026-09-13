@@ -238,6 +238,17 @@ export const graphqlMutationTypeDefs = /* GraphQL */ `
     alreadyDeleted: Boolean!
   }
 
+  enum SubscriptionKind {
+    regular
+    auditor
+    teaching_assistant
+  }
+
+  type SubscriptionKindPayload {
+    sectionJwId: Int!
+    kind: SubscriptionKind!
+  }
+
   type SectionSubscriptionMutationPayload {
     sectionJwId: Int!
     subscribed: Boolean!
@@ -353,6 +364,7 @@ export const graphqlMutationTypeDefs = /* GraphQL */ `
     ): HomeworkCompletionBatchPayload!
     subscriptionAdd(jwId: Int!): SectionSubscriptionMutationPayload!
     subscriptionRemove(jwId: Int!): SectionSubscriptionMutationPayload!
+    subscriptionKindUpdate(jwId: Int!, kind: SubscriptionKind!): SubscriptionKindPayload!
     subscriptionsImport(
       input: UpdateSectionSubscriptionsInput!
     ): SectionSubscriptionBatchPayload!

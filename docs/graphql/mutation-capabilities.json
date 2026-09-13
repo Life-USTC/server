@@ -17,6 +17,16 @@
   ],
   "capabilities": [
     {
+      "id": "workspace_subscription_kind_update",
+      "rest": ["PATCH /api/workspace/subscriptions/{jwId}"],
+      "graphql": { "status": "stable", "field": "subscriptionKindUpdate" },
+      "mcp": {
+        "status": "native",
+        "tools": ["workspace_subscription_kind_update"]
+      },
+      "semantics": "single"
+    },
+    {
       "id": "workspace_todo_create",
       "rest": ["POST /api/workspace/todos"],
       "graphql": { "status": "stable", "field": "todoCreate" },

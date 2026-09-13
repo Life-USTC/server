@@ -411,6 +411,7 @@ export const graphqlSchema = createSchema<
     SemesterPage: graphqlPageResolvers,
     CoursePage: graphqlPageResolvers,
     SectionPage: graphqlPageResolvers,
+    SubscribedSectionPage: graphqlPageResolvers,
     TeacherPage: graphqlPageResolvers,
     BusRoutePage: graphqlPageResolvers,
     YoungEventPage: graphqlPageResolvers,

@@ -10,7 +10,9 @@
     "subscription-language": "User-facing copy uses 'section subscription', 'subscribe', and 'unsubscribe' consistently; it must not use 'follow' or describe the action as course enrollment.",
     "web-quick-add-selection": "Quick-add search auto-selects a section only when the entire result contains exactly one section and it is not already subscribed. Multiple results start unselected, even when only one result remains unsubscribed. Each new search resets the selection. Already-subscribed sections remain checked and disabled without contributing to the submission count. The results description explains the 20-section limit and asks users to narrow their search.",
     "user-scoped": "Subscription relationships belong only to the current user and determine the display scope for home page, calendar, homework, and exam.",
-    "bounded-batch-input": "Calendar subscription query and mutation requests accept at most 500 section IDs and at most 500 lookup codes per request, in addition to the per-user batch request budget."
+    "bounded-batch-input": "Calendar subscription query and mutation requests accept at most 500 section IDs and at most 500 lookup codes per request, in addition to the per-user batch request budget.",
+    "personal-kind": "Subscriptions default to regular. Only an existing subscription may be marked auditor or teaching_assistant by its owner. Adding/importing never overwrites its kind. Web edits are available only in workspace subscriptions, without explanatory callouts.",
+    "ta-calendar": "Personal calendar course names for teaching_assistant subscriptions are prefixed with [TA]. Public calendar exports remain unpersonalized."
   },
   "capabilities": {
     "subscribe-from-section": {
@@ -214,6 +216,52 @@
           "Each table row opens a details dialog with section metadata, a course-homepage link, and an unsubscribe action guarded by a destructive confirmation dialog",
           "Matched quick-add options show course, code, semester, campus, and teachers; already-subscribed sections cannot be selected again",
           "Unmatched codes"
+        ]
+      }
+    },
+    "update-kind": {
+      "title": "Update personal subscription kind",
+      "auth": "user",
+      "web": {
+        "pages": ["/workspace/subscriptions"]
+      },
+      "rest": {
+        "routes": [
+          {
+            "path": "/api/workspace/subscriptions/{jwId}",
+            "method": "PATCH",
+            "returns": "{ sectionJwId: Int, kind: SubscriptionKind }"
+          }
+        ]
+      },
+      "graphql": {
+        "mutations": [
+          {
+            "name": "subscriptionKindUpdate",
+            "arguments": {
+              "jwId": "Int!",
+              "kind": "SubscriptionKind!"
+            },
+            "returns": "SubscriptionKindPayload!",
+            "auth": "user",
+            "required_scopes": ["workspace.subscription:write"],
+            "rest_equivalent": "PATCH /api/workspace/subscriptions/{jwId}",
+            "mcp_equivalent": "workspace_subscription_kind_update"
+          }
+        ]
+      },
+      "mcp": {
+        "tools": [
+          {
+            "name": "workspace_subscription_kind_update",
+            "returns": "{ success: Boolean, sectionJwId: Int, kind: SubscriptionKind }"
+          }
+        ]
+      },
+      "display": {
+        "fields": [
+          "Auditor/teaching-assistant badge on subscribed sections; regular has no badge",
+          "Subscription kind editor in workspace subscriptions only"
         ]
       }
     }
