@@ -160,7 +160,7 @@ function buildChartSeries(
     key,
     label,
     values: days.map((day) => {
-      if (firstDay && day < firstDay) return null;
+      if (!firstDay || day < firstDay) return null;
       const row = byDay.get(day);
       return row ? value(row) : 0;
     }),
@@ -255,7 +255,7 @@ function groupHref(group: PageData["groups"][number]) {
       </Field.Field>
       <Field.Field>
         <Field.Label for="issue-operation">{copy.operation}</Field.Label>
-        <Input id="issue-operation" name="issue_operation" value={issueFilters.operation ?? ""} placeholder={copy.operationPlaceholder} />
+        <NativeSelect.Root id="issue-operation" name="issue_operation"><NativeSelect.Option value="">{copy.all}</NativeSelect.Option>{#each page.catalog.operations as operation}<NativeSelect.Option value={operation} selected={issueFilters.operation === operation}>{label("operations", operation)}</NativeSelect.Option>{/each}</NativeSelect.Root>
       </Field.Field>
       <Field.Field>
         <Field.Label for="issue-outcome">{copy.outcome}</Field.Label>
@@ -327,7 +327,7 @@ function groupHref(group: PageData["groups"][number]) {
             <article class="grid gap-3 rounded-lg border p-4">
               <div class="flex flex-wrap items-start justify-between gap-3">
                 <div class="grid min-w-0 gap-1">
-                  <h4 class="break-words font-semibold">{group.feature} · {group.operation}</h4>
+                  <h4 class="break-words font-semibold">{label("features", group.feature)} · {label("operations", group.operation)}</h4>
                   <p class="text-sm text-muted-foreground">{label("protocols", group.protocol)} · {label("errorClasses", group.errorClass)}</p>
                 </div>
                 <Badge variant={outcomeVariant(group.outcome)}>{label("outcomes", group.outcome)}</Badge>
@@ -360,29 +360,27 @@ function groupHref(group: PageData["groups"][number]) {
           </Empty.Header>
         </Empty.Root>
       {:else}
-        <ol class="grid gap-3 border-l pl-4 sm:pl-6">
+        <ol class="grid max-h-[36rem] gap-2 overflow-y-auto rounded-lg border p-2" aria-label={copy.eventTimeline}>
           {#each page.errorSamples as sample (sample.id)}
-            <li class="relative grid gap-3 rounded-lg border bg-card p-4">
-              <span class="absolute -left-[1.375rem] top-5 size-2 rounded-full bg-destructive ring-4 ring-background sm:-left-[1.625rem]" aria-hidden="true"></span>
-              <div class="flex flex-wrap items-start justify-between gap-3">
-                <div class="grid min-w-0 gap-1">
-                  <p class="font-medium">{sample.feature} · {sample.operation}</p>
-                  <p class="text-sm text-muted-foreground">{formatDate(sample.occurredAt)} · {label("protocols", sample.protocol)}</p>
-                </div>
-                <Badge variant={outcomeVariant(sample.outcome)}>{label("outcomes", sample.outcome)}</Badge>
-              </div>
-              <dl class="grid gap-2 text-sm sm:grid-cols-2 lg:grid-cols-4">
-                <div><dt class="text-muted-foreground">{copy.errorClass}</dt><dd>{label("errorClasses", sample.errorClass)}</dd></div>
-                <div><dt class="text-muted-foreground">{copy.duration}</dt><dd class="tabular-nums">{formatDuration(sample.durationMs)}</dd></div>
-                <div><dt class="text-muted-foreground">{copy.userId}</dt><dd class="break-all font-mono text-xs">{sample.userId ?? copy.noUser}</dd></div>
-                <div><dt class="text-muted-foreground">{copy.requestId}</dt><dd class="break-all font-mono text-xs">{sample.requestId ?? copy.noRequestId}</dd></div>
-              </dl>
-              <details>
-                <summary class="cursor-pointer text-sm font-medium">{copy.eventDetails}</summary>
-                <dl class="grid gap-2 pt-3 text-xs">
-                  <div><dt class="text-muted-foreground">{copy.eventId}</dt><dd class="break-all font-mono">{sample.id}</dd></div>
+            <li class="rounded-md border bg-card">
+              <details name="feature-operation-event">
+                <summary class="cursor-pointer px-3 py-3 text-sm">
+                  <span class="inline-flex w-[calc(100%-1.5rem)] flex-wrap items-center justify-between gap-2 align-middle">
+                    <span class="grid min-w-0 gap-1">
+                      <span class="font-medium">{label("features", sample.feature)} · {label("operations", sample.operation)}</span>
+                      <span class="text-xs text-muted-foreground">{formatDate(sample.occurredAt)} · {label("protocols", sample.protocol)}</span>
+                    </span>
+                    <Badge variant={outcomeVariant(sample.outcome)}>{label("outcomes", sample.outcome)}</Badge>
+                  </span>
+                </summary>
+                <dl class="grid gap-3 border-t px-4 py-3 text-sm sm:grid-cols-2">
+                  <div><dt class="text-muted-foreground">{copy.errorClass}</dt><dd>{label("errorClasses", sample.errorClass)}</dd></div>
+                  <div><dt class="text-muted-foreground">{copy.duration}</dt><dd class="tabular-nums">{formatDuration(sample.durationMs)}</dd></div>
+                  <div><dt class="text-muted-foreground">{copy.userId}</dt><dd class="break-all font-mono text-xs">{sample.userId ?? copy.noUser}</dd></div>
+                  <div><dt class="text-muted-foreground">{copy.requestId}</dt><dd class="break-all font-mono text-xs">{sample.requestId ?? copy.noRequestId}</dd></div>
                   <div><dt class="text-muted-foreground">{copy.authMode}</dt><dd>{label("authModes", sample.authMode)}</dd></div>
                   <div><dt class="text-muted-foreground">{copy.surface}</dt><dd>{label("surfaces", sample.surface)}</dd></div>
+                  <div class="sm:col-span-2"><dt class="text-muted-foreground">{copy.eventId}</dt><dd class="break-all font-mono text-xs">{sample.id}</dd></div>
                 </dl>
               </details>
             </li>

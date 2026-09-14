@@ -800,7 +800,7 @@
     "durationNote": "服务耗时表示各协议和操作实际记录到的服务端操作时长，不是页面或客户端端到端延迟。未解析应用结果的 HTTP 成功数据封装会记为未知。",
     "coverageNote": "统计周期使用上海自然日，并包含尚未结束的当前日期。",
     "identityNote": "可识别用户只统计带有已知用户 ID 的事件，不等同于完整的日活用户数；协议和界面也不能推断真人、CLI 或机器人身份。",
-    "retentionNote": "已记录事件最多保留 90 天。本页不会回填历史数据。",
+    "retentionNote": "事件按 90 天保留窗口分批清理；不会回填未采集的历史数据。",
     "features": {
       "catalog.search": "目录搜索",
       "catalog.course": "课程目录",
@@ -846,8 +846,21 @@
       "internal": "内部错误",
       "unknown": "未知"
     },
-    "issueApply": "筛选异常",
-    "issueDays": "最近 {days} 个完整日及今天"
+    "issueApply": "筛选操作",
+    "issueDays": "最近 {days} 个完整日及今天",
+    "operations": {
+      "view": "访问页面",
+      "list": "浏览列表",
+      "get": "查看详情",
+      "search": "搜索",
+      "match": "匹配",
+      "create": "添加",
+      "update": "修改",
+      "delete": "删除",
+      "set_completion": "设置完成状态",
+      "import": "导入",
+      "batch": "批量操作"
+    }
   },
   "adminUsers": {
     "title": "用户管理",

@@ -1,6 +1,9 @@
 import { WorkerEntrypoint } from "cloudflare:workers";
 import svelteKitWorker from "life-ustc-sveltekit-worker";
-import { runWithObservability } from "@/lib/db/observability-context";
+import {
+  identifyObservedRequest,
+  runWithObservability,
+} from "@/lib/db/observability-context";
 import {
   maintainAuditLogRetention,
   maintainOAuthGrantUsageRetention,
@@ -527,10 +530,12 @@ export default {
             ),
           });
           return runWithObservability(
-            () =>
-              observeHttpFeature(request, requestId, () =>
+            () => {
+              identifyObservedRequest(requestId);
+              return observeHttpFeature(request, requestId, () =>
                 handleFetch(request, env, context, requestId, edgeObservation),
-              ),
+              );
+            },
             (task) => context.waitUntil(task),
           );
         },
@@ -564,27 +569,32 @@ export default {
     try {
       const queueResult = await runWithCloudflareRuntimeEnv(
         env,
-        () => {
-          if (queue === "audit") {
-            return handleAuditLogWriteBatch(batch);
-          }
-          if (queue === "calendar") {
-            return handleCalendarExportRebuildBatch(batch);
-          }
-          if (
-            queue === "audit-dead-letter" ||
-            queue === "calendar-dead-letter"
-          ) {
-            // Dead letters are terminal: log each message once and ack so the
-            // DLQ consumer can never retry-loop.
-            for (const message of batch.messages) {
-              logWorkerDeadLetterMessage({ message, queue });
-              message.ack();
-            }
-            return { outcome: "success" };
-          }
-          throw new Error("Unsupported queue");
-        },
+        () =>
+          runWithObservability(
+            () => {
+              if (queue === "audit") {
+                return handleAuditLogWriteBatch(batch);
+              }
+              if (queue === "calendar") {
+                return handleCalendarExportRebuildBatch(batch);
+              }
+              if (
+                queue === "audit-dead-letter" ||
+                queue === "calendar-dead-letter"
+              ) {
+                // Dead letters are terminal: log each message once and ack so the
+                // DLQ consumer can never retry-loop.
+                for (const message of batch.messages) {
+                  logWorkerDeadLetterMessage({ message, queue });
+                  message.ack();
+                }
+                return { outcome: "success" };
+              }
+              throw new Error("Unsupported queue");
+            },
+            (task) => context.waitUntil(task),
+            "queue.unhandled",
+          ),
         context,
       );
       logWorkerQueueFinish({
@@ -609,52 +619,57 @@ export default {
     try {
       await runWithCloudflareRuntimeEnv(
         env,
-        async () => {
-          if (controller.cron === UPLOAD_PENDING_CLEANUP_CRON) {
-            task = "upload-pending-cleanup";
-            const report = await cleanupStaleUploadPendingStorage(prisma);
-            logScheduledTaskFinish(task, report, elapsedMs(startMs));
-            return;
-          }
+        () =>
+          runWithObservability(
+            async () => {
+              if (controller.cron === UPLOAD_PENDING_CLEANUP_CRON) {
+                task = "upload-pending-cleanup";
+                const report = await cleanupStaleUploadPendingStorage(prisma);
+                logScheduledTaskFinish(task, report, elapsedMs(startMs));
+                return;
+              }
 
-          if (controller.cron === AUTH_RECORD_CLEANUP_CRON) {
-            task = "auth-and-audit-retention";
-            const [authRecords, auditLog, oauthUsage, observability] =
-              await Promise.all([
-                cleanupExpiredAuthRecords(maintenancePrisma),
-                maintainAuditLogRetention(maintenancePrisma),
-                maintainOAuthGrantUsageRetention(maintenancePrisma),
-                maintainObservabilityRetention(maintenancePrisma),
-              ]);
-            logScheduledTaskFinish(
-              task,
-              {
-                ...authRecords,
-                ...auditLog,
-                ...oauthUsage,
-                ...observability,
-              },
-              elapsedMs(startMs),
-            );
-            return;
-          }
+              if (controller.cron === AUTH_RECORD_CLEANUP_CRON) {
+                task = "auth-and-audit-retention";
+                const [authRecords, auditLog, oauthUsage, observability] =
+                  await Promise.all([
+                    cleanupExpiredAuthRecords(maintenancePrisma),
+                    maintainAuditLogRetention(maintenancePrisma),
+                    maintainOAuthGrantUsageRetention(maintenancePrisma),
+                    maintainObservabilityRetention(maintenancePrisma),
+                  ]);
+                logScheduledTaskFinish(
+                  task,
+                  {
+                    ...authRecords,
+                    ...auditLog,
+                    ...oauthUsage,
+                    ...observability,
+                  },
+                  elapsedMs(startMs),
+                );
+                return;
+              }
 
-          if (controller.cron === WEATHER_MAIN_CRON) {
-            task = "weather-refresh-ustc-main";
-            const report = await runWeatherCronSnapshot("ustc-main");
-            logScheduledTaskFinish(task, report, elapsedMs(startMs));
-            return;
-          }
+              if (controller.cron === WEATHER_MAIN_CRON) {
+                task = "weather-refresh-ustc-main";
+                const report = await runWeatherCronSnapshot("ustc-main");
+                logScheduledTaskFinish(task, report, elapsedMs(startMs));
+                return;
+              }
 
-          if (controller.cron === WEATHER_GAOXIN_CRON) {
-            task = "weather-refresh-ustc-gaoxin";
-            const report = await runWeatherCronSnapshot("ustc-gaoxin");
-            logScheduledTaskFinish(task, report, elapsedMs(startMs));
-            return;
-          }
+              if (controller.cron === WEATHER_GAOXIN_CRON) {
+                task = "weather-refresh-ustc-gaoxin";
+                const report = await runWeatherCronSnapshot("ustc-gaoxin");
+                logScheduledTaskFinish(task, report, elapsedMs(startMs));
+                return;
+              }
 
-          logUnknownScheduledTask(elapsedMs(startMs));
-        },
+              logUnknownScheduledTask(elapsedMs(startMs));
+            },
+            (task) => context.waitUntil(task),
+            "scheduled.unhandled",
+          ),
         context,
       );
     } catch (error) {

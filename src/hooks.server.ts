@@ -27,6 +27,7 @@ import {
   PUBLIC_SSR_NONCE_PLACEHOLDER,
 } from "@/lib/cloudflare/public-ssr-gateway";
 import {
+  identifyObservedRequest,
   identifyObservedUser,
   runWithObservability,
 } from "@/lib/db/observability-context";
@@ -203,6 +204,7 @@ const handleWithRuntimeEnv: Handle = async ({ event, resolve }) => {
     getCloudflareRequestContext()?.requestId ??
     getTrustedRequestId(event.request) ??
     crypto.randomUUID();
+  identifyObservedRequest(requestId);
   event.locals.requestId = requestId;
   setCloudflareRequestContext({
     method: event.request.method,

@@ -178,6 +178,7 @@ function tooltipLeft(index: number) {
   {:else}
     <div
       class="relative min-w-0 rounded-md outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      bind:clientWidth={width}
       role="slider"
       tabindex="0"
       aria-label={title}
@@ -213,7 +214,7 @@ function tooltipLeft(index: number) {
           <text x={label.x} y={geometry.height - 7} text-anchor={geometry.xLabels.length === 1 ? "middle" : label.index === 0 ? "start" : label.index === days.length - 1 ? "end" : "middle"} class="fill-muted-foreground text-[11px]">{formatDay(label.day, label.index)}</text>
         {/each}
         {#each geometry.paths as path, index (path.key)}
-          <path d={path.path} fill="none" stroke={seriesColor(visibleSeries[index], series.findIndex((item) => item.key === path.key))} stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke" />
+          <path d={path.path} fill="none" stroke={seriesColor(visibleSeries[index], series.findIndex((item) => item.key === path.key))} stroke-dasharray={series.findIndex((item) => item.key === path.key) >= defaultColors.length ? "6 3" : undefined} stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke" />
           {#if path.points.length === 1}
             <circle cx={path.points[0].x} cy={path.points[0].y} r="3" fill={seriesColor(visibleSeries[index], series.findIndex((item) => item.key === path.key))} />
           {/if}

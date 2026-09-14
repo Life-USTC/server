@@ -322,7 +322,11 @@ export async function readAdminFeatureIssues(
   }
   const filters = parseAdminExperienceFilters(filterUrl);
   const actor = url.searchParams.get("issue_actor");
-  if (actor && actor.length <= 128 && !/[\x00-\x1f]/.test(actor))
+  if (
+    actor &&
+    actor.length <= 128 &&
+    !Array.from(actor).some((character) => character.charCodeAt(0) < 32)
+  )
     filters.actor = actor;
   const view = url.searchParams.get("issue_view") === "all" ? "all" : "issues";
   const cursor = decodeAdminAuditCursor(

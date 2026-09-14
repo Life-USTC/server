@@ -87,7 +87,7 @@ it("caps memory and reports dropped coverage while preserving business errors", 
     }),
   ).rejects.toBe(error);
   expect(write.mock.calls[0][0].features).toHaveLength(256);
-  expect(warn).toHaveBeenCalledWith(expect.stringContaining('"count":44'));
+  expect(warn).toHaveBeenCalledWith(expect.stringContaining('"limit":256'));
   warn.mockRestore();
 });
 it("persists only bounded structured runtime error fields, never messages or raw errors", async () => {
@@ -137,4 +137,36 @@ it("handles failed writes without changing the original result or recursively lo
   );
   expect(JSON.stringify(warn.mock.calls)).not.toContain("private");
   warn.mockRestore();
+});
+
+it("persists a streamed operation completed after response headers without replaying earlier events", async () => {
+  let release!: () => void;
+  let late!: Promise<void>;
+  const tasks: Promise<unknown>[] = [];
+  await runWithObservability(
+    () => {
+      collectFeatureEvent(event);
+      late = new Promise<void>((resolve) => {
+        release = resolve;
+      }).then(() =>
+        collectFeatureEvent({
+          ...event,
+          id: "bbbbbbbb-bbbb-cccc-dddd-eeeeeeeeeeee",
+        }),
+      );
+      return new Response("stream");
+    },
+    (task) => tasks.push(task),
+  );
+  await Promise.all(tasks);
+  expect(write).toHaveBeenCalledTimes(1);
+  release();
+  await late;
+  await Promise.all(tasks);
+  expect(write).toHaveBeenCalledTimes(2);
+  expect(
+    write.mock.calls.map(([batch]) =>
+      batch.features.map((row: { id: string }) => row.id),
+    ),
+  ).toEqual([[event.id], ["bbbbbbbb-bbbb-cccc-dddd-eeeeeeeeeeee"]]);
 });

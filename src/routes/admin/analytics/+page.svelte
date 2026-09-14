@@ -42,40 +42,44 @@ $: if (
 $: filteredTrendRows = selectedTrendFeature
   ? data.trends.filter((entry) => entry.feature === selectedTrendFeature)
   : data.trends;
-$: operationSeries = buildTrendSeries("operation");
-$: channelSeries = buildTrendSeries("channel");
+$: operationSeries = buildTrendSeries("operation", filteredTrendRows, data);
+$: channelSeries = buildTrendSeries("channel", filteredTrendRows, data);
 
 function daysLabel(days: number) {
   return data.copy.analytics.days.replace("{days}", String(days));
 }
 
-function trendLabel(kind: "operation" | "channel", label: string) {
-  if (kind === "channel") return auditChannelLabel(data.locale, label);
-  if (label === "read") return data.copy.analytics.readOperation;
-  if (label === "write") return data.copy.analytics.writeOperation;
-  return auditActionLabel(data.locale, label);
-}
-
-function buildTrendSeries(kind: "operation" | "channel"): DailySeries[] {
+function buildTrendSeries(
+  kind: "operation" | "channel",
+  rows: PageData["trends"],
+  current: PageData,
+): DailySeries[] {
   const totals = new Map<string, number>();
-  for (const entry of filteredTrendRows) {
+  for (const entry of rows) {
     totals.set(entry[kind], (totals.get(entry[kind]) ?? 0) + entry.count);
   }
-  const keys = [...new Set(filteredTrendRows.map((entry) => entry[kind]))].sort(
+  const keys = [...new Set(rows.map((entry) => entry[kind]))].sort(
     (left, right) =>
       (totals.get(right) ?? 0) - (totals.get(left) ?? 0) ||
       left.localeCompare(right),
   );
   return keys.map((key) => {
     const byDay = new Map<string, number>();
-    for (const entry of filteredTrendRows) {
+    for (const entry of rows) {
       if (entry[kind] !== key) continue;
       byDay.set(entry.day, (byDay.get(entry.day) ?? 0) + entry.count);
     }
     return {
       key,
-      label: trendLabel(kind, key),
-      values: data.daily.map((entry) => byDay.get(entry.day) ?? 0),
+      label:
+        kind === "channel"
+          ? auditChannelLabel(current.locale, key)
+          : key === "read"
+            ? current.copy.analytics.readOperation
+            : key === "write"
+              ? current.copy.analytics.writeOperation
+              : auditActionLabel(current.locale, key),
+      values: current.daily.map((entry) => byDay.get(entry.day) ?? 0),
     };
   });
 }

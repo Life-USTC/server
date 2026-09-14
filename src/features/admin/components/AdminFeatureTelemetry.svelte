@@ -7,7 +7,6 @@ import { Badge } from "$lib/components/ui/badge/index.js";
 import { Button } from "$lib/components/ui/button/index.js";
 import * as Empty from "$lib/components/ui/empty/index.js";
 import * as Field from "$lib/components/ui/field/index.js";
-import { Input } from "$lib/components/ui/input/index.js";
 import * as Item from "$lib/components/ui/item/index.js";
 import * as NativeSelect from "$lib/components/ui/native-select/index.js";
 import * as Table from "$lib/components/ui/table/index.js";
@@ -129,6 +128,7 @@ function buildSeries(
   days: readonly string[],
   firstRecordedAt: string | null,
   protocolLabels: Record<string, string>,
+  operationLabels: Record<string, string>,
 ): DailySeries[] {
   const firstDay = recordedDay(firstRecordedAt);
   const grouped = new Map<string, Map<string, number>>();
@@ -153,7 +153,10 @@ function buildSeries(
     })
     .map(([key, byDay]) => ({
       key: `${group}:${key}`,
-      label: group === "protocol" ? (protocolLabels[key] ?? key) : key,
+      label:
+        group === "protocol"
+          ? (protocolLabels[key] ?? key)
+          : (operationLabels[key] ?? key),
       values: days.map((day) =>
         firstDay && day < firstDay ? null : (byDay.get(day) ?? 0),
       ),
@@ -207,7 +210,7 @@ function outcomeVariant(outcome: string) {
         </Field.Field>
         <Field.Field>
           <Field.Label for="experience-operation">{page.copy.experience.operation}</Field.Label>
-          <Input id="experience-operation" name="operation" value={page.filters.operation ?? ""} placeholder={page.copy.experience.operationPlaceholder} />
+          <NativeSelect.Root id="experience-operation" name="operation"><NativeSelect.Option value="">{page.copy.experience.all}</NativeSelect.Option>{#each page.catalog.operations as operation}<NativeSelect.Option value={operation} selected={page.filters.operation === operation}>{label("operations", operation)}</NativeSelect.Option>{/each}</NativeSelect.Root>
         </Field.Field>
         <Field.Field>
           <Field.Label for="experience-protocol">{page.copy.experience.protocol}</Field.Label>
@@ -323,7 +326,7 @@ function outcomeVariant(outcome: string) {
           {#each page.rows as row, index (`${row.feature}-${row.operation}-${row.protocol}-${row.surface}-${row.authMode}-${row.outcome}`)}
             <Item.Root variant="default" class="grid gap-3 px-1 py-3">
               <Item.Content class="min-w-0">
-                <Item.Title class="break-words">{row.feature} · {row.operation}</Item.Title>
+                <Item.Title class="break-words">{label("features", row.feature)} · {label("operations", row.operation)}</Item.Title>
                 <Item.Description>{label("protocols", row.protocol)} · {label("surfaces", row.surface)} · {label("authModes", row.authMode)}</Item.Description>
               </Item.Content>
               <Item.Actions class="flex-wrap">
@@ -366,7 +369,7 @@ function outcomeVariant(outcome: string) {
             {#each page.rows as row (`${row.feature}-${row.operation}-${row.protocol}-${row.surface}-${row.authMode}-${row.outcome}`)}
               <Table.Row class="align-top">
                 <Table.Cell class="whitespace-nowrap">{row.feature}</Table.Cell>
-                <Table.Cell class="max-w-0"><span class="block max-w-52 truncate" title={row.operation}>{row.operation}</span></Table.Cell>
+                <Table.Cell class="max-w-0"><span class="block max-w-52 truncate" title={row.operation}>{label("operations", row.operation)}</span></Table.Cell>
                 <Table.Cell>{label("protocols", row.protocol)}</Table.Cell>
                 <Table.Cell>{label("surfaces", row.surface)}</Table.Cell>
                 <Table.Cell>{label("authModes", row.authMode)}</Table.Cell>

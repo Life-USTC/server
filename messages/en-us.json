@@ -800,7 +800,7 @@
     "durationNote": "Wall time measures the observed server operation for each protocol and operation. It is not an end-to-end page or client latency measure. Successful HTTP data envelopes with uninspected application outcomes are classified as unknown.",
     "coverageNote": "The reporting window uses Shanghai calendar days and includes the partial current day.",
     "identityNote": "Identified users counts only events with a known user ID. It is not a complete daily active user measure, and protocol or surface does not identify a human, CLI, or bot.",
-    "retentionNote": "Recorded events are retained for up to 90 days. This view does not backfill history.",
+    "retentionNote": "Events are cleaned in batches after a 90-day retention window; unrecorded history is not backfilled.",
     "features": {
       "catalog.search": "Catalog search",
       "catalog.course": "Course catalog",
@@ -846,8 +846,21 @@
       "internal": "Internal",
       "unknown": "Unknown"
     },
-    "issueApply": "Filter issues",
-    "issueDays": "Last {days} full days + today"
+    "issueApply": "Filter operations",
+    "issueDays": "Last {days} full days + today",
+    "operations": {
+      "view": "Page view",
+      "list": "List",
+      "get": "Get detail",
+      "search": "Search",
+      "match": "Match",
+      "create": "Create",
+      "update": "Update",
+      "delete": "Delete",
+      "set_completion": "Set completion",
+      "import": "Import",
+      "batch": "Batch"
+    }
   },
   "adminUsers": {
     "title": "User Management",

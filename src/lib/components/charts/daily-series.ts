@@ -78,12 +78,16 @@ function linePath(
   return path;
 }
 
-function xLabelIndices(count: number) {
+function xLabelIndices(count: number, width: number) {
+  const labelCount = Math.min(
+    X_LABEL_COUNT,
+    Math.max(2, Math.floor((width - PLOT_LEFT - PLOT_RIGHT) / 70)),
+  );
   if (count === 0) return [];
-  if (count <= X_LABEL_COUNT)
+  if (count <= labelCount)
     return Array.from({ length: count }, (_, index) => index);
-  const indices = Array.from({ length: X_LABEL_COUNT }, (_, index) =>
-    Math.round((index * (count - 1)) / (X_LABEL_COUNT - 1)),
+  const indices = Array.from({ length: labelCount }, (_, index) =>
+    Math.round((index * (count - 1)) / (labelCount - 1)),
   );
   return [...new Set(indices)];
 }
@@ -129,7 +133,7 @@ export function buildDailySeriesGeometry(
       points,
     };
   });
-  const xLabels = xLabelIndices(days.length).map((index) => ({
+  const xLabels = xLabelIndices(days.length, width).map((index) => ({
     day: days[index],
     index,
     x: pointX(index, days.length, width),

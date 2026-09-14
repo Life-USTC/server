@@ -21,18 +21,21 @@
     "primary-admin-navigation": "The global shell exposes each admin tool (users, moderation, OAuth, bus, operations and issues, usage statistics) under Admin tools. /admin redirects to /admin/users; resource URLs remain stable.",
     "audit-session-only": "The /admin/audit and /admin/analytics pages require an in-site Better Auth admin session. OAuth bearer tokens cannot access governance data.",
     "audit-safe-projection": "The audit rows use stable (createdAt,id) cursor pagination and expose allowlisted structured metadata only; content bodies, IP addresses, full user agents, tokens, secrets, grant IDs, session IDs, and request IDs are not displayed in audit rows. The separate feature issue panel may display validated safe request IDs for correlation, without raw exceptions or stacks.",
-    "aggregate-only-analytics": "Admin analytics combines first-party audit events with content-free OAuth daily usage counters, aggregated by feature, channel, outcome, and first-party/OAuth client. External OAuth mutations are excluded from the event source to prevent double counting. It never exposes per-user browsing trails.",
-    "feature-experience-telemetry": "The statistics page reads feature_operation_v1 aggregates by feature, operation, protocol, surface, authentication mode, and outcome. Counts use _sample_interval weights; wall p50/p95 use quantileExactWeighted. Aggregates cover completed Shanghai days. The operations page independently reads issue samples including today. Missing telemetry differs from zero usage. It does not infer people or client identity, or use audit/OAuth totals as a denominator.",
+    "aggregate-only-analytics": "Historical activity combines first-party audit events and content-free OAuth daily usage, excluding external OAuth mutation audit rows to avoid double counting. Daily operation and access-method curves can be narrowed by feature. OAuth history identifies read/write only, never inferred specific operations. This source remains separate from new feature observations.",
+    "feature-experience-telemetry": "Platform-owned PostgreSQL FeatureOperationEvent supplies unsampled recorded counts by Shanghai day, feature, operation, protocol, surface, known authentication mode, and outcome. The current day is partial. Database percentiles describe recorded operation wall duration. Summary and daily totals include all matching rows even when the expanded matrix is limited to 500 cells. Public reads are observed without extra authentication queries; known user IDs come only from existing verified principals. Identified active users are distinct known users, not anonymous visitors.",
     "feature-experience-outcomes": "Uninspected successful SvelteKit page data envelopes have unknown application outcomes and no identified error. They contribute to usage but not issue samples or warning logs.",
-    "feature-experience-retention": "Feature experience is a best-effort estimate subject to Cloudflare Analytics Engine sampling, retention, write failures, and per-request write quotas. It reads newly emitted telemetry without historical backfill; recent issue panel is separately bounded and exposes only safe request IDs, timestamps, error classes, and explicitly unclassified outcomes, with no raw exception or stack. Feature issue samples do not include all Worker, queue, scheduled-task, or raw runtime logs.",
-    "responsive-workspace": "Admin management pages share a lightweight workspace order of page identity, optional feedback or filters, then records; desktop tables retain their density while existing compact record views remain the mobile presentation."
+    "feature-experience-retention": "Feature observations and safe RuntimeIssueEvent warnings/errors are persisted in a bounded background batch (maximum 256 events per request), outside the business transaction, using PostgreSQL without an Analytics Engine read API, token, or binding. Database failure, process termination, and overflow can lose observations; recorded counts are not a guarantee of all traffic. No historical backfill or zeros before first observation. Events have bounded 90-day retention; each maintenance run deletes bounded batches. Logs contain structured event names, status and safe request IDs, not request bodies, search text, arbitrary paths, messages, IP addresses or raw exception stacks.",
+    "responsive-workspace": "Admin management pages share a lightweight workspace order of page identity, optional feedback or filters, then records; desktop tables retain their density while existing compact record views remain the mobile presentation.",
+    "platform-operation-browser": "The operations page offers issue-only or all recorded feature operations, filters by feature, operation, protocol, outcome and known actor, grouped issue counts, daily trends and deterministic (occurredAt,id) cursor pagination. Security audit records remain a separate source with their existing safe projection. Runtime warnings/errors are shown separately as the latest 20 records in the selected time window."
   },
   "capabilities": {
     "admin-entry": {
       "title": "Admin Entry",
       "auth": "admin",
       "web": {
-        "pages": ["/admin"]
+        "pages": [
+          "/admin"
+        ]
       },
       "display": {
         "fields": [
@@ -45,7 +48,9 @@
       "title": "Moderation",
       "auth": "admin",
       "web": {
-        "pages": ["/admin/moderation"]
+        "pages": [
+          "/admin/moderation"
+        ]
       },
       "rest": {
         "routes": [
@@ -110,7 +115,9 @@
       "title": "User Management",
       "auth": "admin",
       "web": {
-        "pages": ["/admin/users"]
+        "pages": [
+          "/admin/users"
+        ]
       },
       "rest": {
         "routes": [
@@ -122,7 +129,9 @@
             "path": "/api/admin/users/[id]",
             "method": "PATCH",
             "returns": "{ user: User }",
-            "notes": ["Returns 404 when the target user is not found."]
+            "notes": [
+              "Returns 404 when the target user is not found."
+            ]
           }
         ]
       },
@@ -142,7 +151,9 @@
       "title": "OAuth Client Management",
       "auth": "admin",
       "web": {
-        "pages": ["/admin/oauth"]
+        "pages": [
+          "/admin/oauth"
+        ]
       },
       "rest": "unavailable",
       "mcp": "unavailable",
@@ -164,7 +175,9 @@
       "title": "Bus Management",
       "auth": "admin",
       "web": {
-        "pages": ["/admin/bus"]
+        "pages": [
+          "/admin/bus"
+        ]
       },
       "rest": "unavailable",
       "mcp": "unavailable",
@@ -185,7 +198,9 @@
       "title": "Operations and Issues",
       "auth": "admin",
       "web": {
-        "pages": ["/admin/audit"]
+        "pages": [
+          "/admin/audit"
+        ]
       },
       "rest": "unavailable",
       "mcp": "unavailable",
@@ -215,7 +230,9 @@
       "title": "Usage Statistics",
       "auth": "admin",
       "web": {
-        "pages": ["/admin/analytics"]
+        "pages": [
+          "/admin/analytics"
+        ]
       },
       "rest": "unavailable",
       "mcp": "unavailable",
@@ -227,12 +244,12 @@
           "client",
           "count",
           "time window: 7, 30, or 90 days",
-          "completed Shanghai-day window: 7, 30, or 90 days",
+          "Shanghai-day window: 7, 30, or 90 days including partial today",
           "feature × operation × protocol × surface × authentication mode × outcome matrix",
-          "weighted estimated totals, rejected, errors, unknown outcomes",
-          "weighted wall-time p50 and p95 when Analytics Engine query succeeds",
+          "recorded totals, rejected, errors, unknown outcomes and identified active users",
+          "PostgreSQL wall-time p50 and p95 for recorded operations",
           "available cells reflect observed telemetry only",
-          "coverage, sampling, retention, and no-unique-users explanation"
+          "coverage start, recording limits, retention, and identified-user definition"
         ],
         "filters": [
           "feature",
