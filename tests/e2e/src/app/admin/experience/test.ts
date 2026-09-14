@@ -1,6 +1,7 @@
 import { expect, type Page, test } from "@playwright/test";
 import { stringify, unflatten } from "devalue";
 import { signInAsDevAdmin } from "../../../../utils/auth";
+import { captureStepScreenshot } from "../../../../utils/screenshot";
 
 type ExperienceDataPatch = {
   errorSamples: readonly Record<string, unknown>[];
@@ -192,7 +193,7 @@ test("区分尚未观测与遥测不可用", async ({ page }) => {
   );
 });
 
-test("显示近期问题样本及截断提示", async ({ page }) => {
+test("显示近期问题样本及截断提示", async ({ page }, testInfo) => {
   await openExperiencePage(
     page,
     readyData({
@@ -217,4 +218,5 @@ test("显示近期问题样本及截断提示", async ({ page }) => {
       /这里只显示最新的 20 条问题样本|Only the 20 latest sampled issues are shown/i,
     ),
   ).toBeVisible();
+  await captureStepScreenshot(page, testInfo, "admin-experience/issues");
 });
