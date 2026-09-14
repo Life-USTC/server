@@ -1,4 +1,5 @@
 import { defineConfig, devices } from "@playwright/test";
+import { getWorkerProcessEnvironment } from "./tests/e2e/utils/worker-database-env";
 
 const e2ePort = process.env.E2E_PORT ?? "3000";
 const inspectorPort = process.env.E2E_INSPECTOR_PORT;
@@ -12,6 +13,7 @@ if (inspectorPort && !/^\d+$/.test(inspectorPort)) {
 
 const baseURL = `http://localhost:${e2ePort}`;
 const reportRoot = process.env.E2E_REPORT_ROOT ?? "playwright-report";
+const workerEnvironment = getWorkerProcessEnvironment();
 
 export default defineConfig({
   testDir: "./tests/e2e",
@@ -50,6 +52,7 @@ export default defineConfig({
     trace: "retain-on-failure",
     screenshot: { mode: "only-on-failure", fullPage: true },
   },
+  globalSetup: "./tests/e2e/global-setup.ts",
   webServer: {
     command:
       `E2E_PORT=${e2ePort} E2E_APP_PUBLIC_ORIGIN=${JSON.stringify(baseURL)} ` +
@@ -60,6 +63,7 @@ export default defineConfig({
     stdout: "ignore",
     stderr: "pipe",
     timeout: 300_000,
+    env: workerEnvironment,
   },
   projects: [
     {
