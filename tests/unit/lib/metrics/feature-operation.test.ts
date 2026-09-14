@@ -3,6 +3,7 @@ import {
   runWithCloudflareRuntimeEnv,
   setCloudflareRequestContext,
 } from "@/lib/adapters/cloudflare-runtime";
+import { logAppEvent } from "@/lib/log/app-logger";
 import {
   httpFeatureContext,
   observeHttpFeature,
@@ -226,4 +227,20 @@ describe("feature operation recording", () => {
     );
     expect(writeDataPoint.mock.calls[0][0].blobs[6]).toBe("unknown");
   });
+});
+
+it("reports lost telemetry coverage once per request and preserves all operations", async () => {
+  vi.mocked(logAppEvent).mockClear();
+  writeDataPoint.mockImplementation(() => {
+    throw Error("quota exceeded");
+  });
+  await run(async () => {
+    for (let index = 0; index < 300; index++)
+      expect(await observeFeatureOperation(context, () => index)).toBe(index);
+  });
+  expect(
+    vi
+      .mocked(logAppEvent)
+      .mock.calls.filter((call) => call[1] === "feature.telemetry.failure"),
+  ).toHaveLength(1);
 });

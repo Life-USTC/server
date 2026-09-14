@@ -217,7 +217,7 @@ export function buildAdminExperienceErrorQuery(
         ],
       )}
       ORDER BY timestamp DESC
-      LIMIT ${ADMIN_EXPERIENCE_ERROR_LIMIT}
+      LIMIT ${ADMIN_EXPERIENCE_ERROR_LIMIT + 1}
       FORMAT JSON`;
 }
 
@@ -250,7 +250,11 @@ function readDimension<T extends readonly string[]>(
 
 function readCount(row: Record<string, unknown>, key: string) {
   const value = row[key];
-  if (value === null || value === undefined) return 0;
+  if (
+    typeof value !== "number" &&
+    (typeof value !== "string" || value.trim() === "")
+  )
+    throw new Error(`Analytics Engine returned invalid ${key}`);
   const parsed = typeof value === "number" ? value : Number(value);
   if (
     !Number.isFinite(parsed) ||
@@ -265,7 +269,12 @@ function readCount(row: Record<string, unknown>, key: string) {
 
 function readDuration(row: Record<string, unknown>, key: string) {
   const value = row[key];
-  if (value === null || value === undefined) return null;
+  if (value === null) return null;
+  if (
+    typeof value !== "number" &&
+    (typeof value !== "string" || value.trim() === "")
+  )
+    throw new Error(`Analytics Engine returned invalid ${key}`);
   const parsed = typeof value === "number" ? value : Number(value);
   if (!Number.isFinite(parsed) || parsed < 0 || parsed > MAX_FINITE_VALUE) {
     throw new Error(`Analytics Engine returned invalid ${key}`);
@@ -281,7 +290,7 @@ export function parseAdminExperienceAggregateRows(
   }
   return input.map((value) => {
     const row = readObject(value);
-    return {
+    const parsed = {
       authMode: readDimension(row, "auth_mode", ADMIN_EXPERIENCE_AUTH_MODES),
       errorCount: readCount(row, "error_count"),
       feature: readToken(row, "feature"),
@@ -295,6 +304,22 @@ export function parseAdminExperienceAggregateRows(
       total: readCount(row, "total"),
       unknownCount: readCount(row, "unknown_count"),
     };
+    if (
+      parsed.total === 0 ||
+      parsed.errorCount !== (parsed.outcome === "error" ? parsed.total : 0) ||
+      parsed.rejectedCount !==
+        (parsed.outcome === "rejected" ? parsed.total : 0) ||
+      parsed.unknownCount !==
+        (parsed.outcome === "unknown" ? parsed.total : 0) ||
+      (parsed.p50WallMs !== null &&
+        parsed.p95WallMs !== null &&
+        parsed.p50WallMs > parsed.p95WallMs)
+    ) {
+      throw new Error(
+        "Analytics Engine returned inconsistent aggregate metrics",
+      );
+    }
+    return parsed;
   });
 }
 
@@ -302,7 +327,13 @@ function readTimestamp(row: Record<string, unknown>) {
   const value = row.occurred_at;
   if (typeof value !== "string")
     throw new Error("Analytics Engine returned invalid occurred_at");
-  const date = new Date(value);
+  // SQL DateTime values without an offset are UTC, regardless of the host TZ.
+  const timestamp = /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}(?:\.\d+)?$/.test(
+    value,
+  )
+    ? `${value.replace(" ", "T")}Z`
+    : value;
+  const date = new Date(timestamp);
   if (Number.isNaN(date.getTime())) {
     throw new Error("Analytics Engine returned invalid occurred_at");
   }
@@ -312,10 +343,10 @@ function readTimestamp(row: Record<string, unknown>) {
 export function parseAdminExperienceErrorRows(
   input: readonly unknown[],
 ): AdminExperienceErrorSample[] {
-  if (input.length > ADMIN_EXPERIENCE_ERROR_LIMIT) {
+  if (input.length > ADMIN_EXPERIENCE_ERROR_LIMIT + 1) {
     throw new Error("Analytics Engine returned too many error rows");
   }
-  return input.map((value) => {
+  return input.slice(0, ADMIN_EXPERIENCE_ERROR_LIMIT).map((value) => {
     const row = readObject(value);
     const requestId = row.request_id;
     if (typeof requestId !== "string" || !REQUEST_ID_PATTERN.test(requestId)) {
@@ -430,16 +461,22 @@ export async function getAdminExperiencePage(
   const aggregate = await readAggregateRows(port, filters, window);
   const showErrors = url.searchParams.get("errors") === "1";
   let errorSamples: AdminExperienceErrorSample[] = [];
+  let errorsTruncated = false;
   let errorsStatus: ReadState = { state: "empty" };
 
   if (showErrors) {
-    if (aggregate.status.state === "unavailable") {
+    if (
+      aggregate.status.state === "unavailable" &&
+      aggregate.status.reason !== "query_failed"
+    ) {
       errorsStatus = aggregate.status;
     } else {
       try {
-        errorSamples = parseAdminExperienceErrorRows(
-          await port.query(buildAdminExperienceErrorQuery(filters, window)),
+        const issueRows = await port.query(
+          buildAdminExperienceErrorQuery(filters, window),
         );
+        errorSamples = parseAdminExperienceErrorRows(issueRows);
+        errorsTruncated = issueRows.length > ADMIN_EXPERIENCE_ERROR_LIMIT;
         errorsStatus =
           errorSamples.length > 0 ? { state: "ready" } : { state: "empty" };
       } catch (error) {
@@ -467,6 +504,7 @@ export async function getAdminExperiencePage(
     days,
     errorSamples,
     errorsStatus,
+    errorsTruncated,
     filters,
     rows: aggregate.rows,
     showErrors,

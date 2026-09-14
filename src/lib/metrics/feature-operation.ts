@@ -1,6 +1,7 @@
 import {
   getCloudflareAnalyticsEngineDataset,
   getCloudflareRequestContext,
+  getCloudflareRuntimeContext,
 } from "@/lib/adapters/cloudflare-runtime";
 import { logAppEvent } from "@/lib/log/app-logger";
 import { elapsedMs, monotonicNowMs } from "@/lib/log/observability-clock";
@@ -57,6 +58,8 @@ export type FeatureOperationResult = {
   outcome: ExperienceOutcome;
   errorClass: ExperienceError;
 };
+
+const TELEMETRY_FAILURE_REPORTED = Symbol("feature.telemetry.failure");
 
 const SUCCESS: FeatureOperationResult = {
   outcome: "success",
@@ -128,6 +131,7 @@ export function recordFeatureOperation(
   result: FeatureOperationResult,
   durationMs: number,
 ) {
+  let written = false;
   try {
     const dataset = getCloudflareAnalyticsEngineDataset();
     if (!dataset || typeof dataset.writeDataPoint !== "function") return;
@@ -156,6 +160,7 @@ export function recordFeatureOperation(
       ],
       doubles: [duration],
     });
+    written = true;
     if (result.outcome === "error" || result.outcome === "unknown") {
       logAppEvent(
         result.outcome === "error" ? "error" : "warn",
@@ -175,7 +180,20 @@ export function recordFeatureOperation(
       );
     }
   } catch {
-    // A broken, missing, or quota-limited telemetry sink cannot change a response.
+    if (written) return;
+    // Report lost coverage once per request without retrying on the business path.
+    try {
+      const cache = getCloudflareRuntimeContext()?.cache;
+      if (!cache?.has(TELEMETRY_FAILURE_REPORTED)) {
+        cache?.set(TELEMETRY_FAILURE_REPORTED, true);
+        logAppEvent("warn", "feature.telemetry.failure", {
+          event: "feature.telemetry.failure",
+          reason: "write_failed",
+        });
+      }
+    } catch {
+      /* Telemetry must never replace a business result. */
+    }
   }
 }
 

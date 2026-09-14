@@ -5,6 +5,7 @@ import {
   buildAdminExperienceWindow,
   getAdminExperiencePage,
   parseAdminExperienceAggregateRows,
+  parseAdminExperienceErrorRows,
   parseAdminExperienceFilters,
 } from "@/features/admin/server/admin-experience-page-data";
 import type { CloudflareAnalyticsReadPort } from "@/lib/ports/analytics";
@@ -92,7 +93,7 @@ describe("admin feature experience read model", () => {
     const rows = parseAdminExperienceAggregateRows([
       {
         auth_mode: "session",
-        error_count: "2",
+        error_count: "4",
         feature: "catalog.search",
         operation: "query",
         outcome: "error",
@@ -106,7 +107,7 @@ describe("admin feature experience read model", () => {
       },
     ]);
 
-    expect(rows[0]).toMatchObject({ total: 4, errorCount: 2, p50WallMs: 12.5 });
+    expect(rows[0]).toMatchObject({ total: 4, errorCount: 4, p50WallMs: 12.5 });
     expect(() =>
       parseAdminExperienceAggregateRows([
         {
@@ -199,7 +200,7 @@ describe("admin feature experience read model", () => {
     expect(withErrors.showErrors).toBe(true);
     expect(withErrors.errorSamples[0]?.requestId).toBe("req_123");
     expect(query).toHaveBeenCalledTimes(3);
-    expect(String(query.mock.calls[2]?.[0])).toContain("LIMIT 20");
+    expect(String(query.mock.calls[2]?.[0])).toContain("LIMIT 21");
   });
 
   it("queries current issue samples even when completed-day usage is empty", async () => {
@@ -272,9 +273,102 @@ describe("admin feature experience read model", () => {
     );
     expect(query).toContain("blob7 IN ('rejected', 'error', 'unknown')");
     expect(query).toContain("blob9 != ''");
-    expect(query).toContain("LIMIT 20");
+    expect(query).toContain("LIMIT 21");
     expect(query).toContain("timestamp < toDateTime('2026-09-14 15:30:00')");
     expect(query).not.toContain("exception");
     expect(query).not.toContain("stack");
   });
+});
+
+it.each([null, undefined, true, false, "", " ", "NaN", -1, 1.5])(
+  "never turns invalid weighted counts into zero (%s)",
+  (total) => {
+    expect(() =>
+      parseAdminExperienceAggregateRows([
+        {
+          auth_mode: "anonymous",
+          feature: "catalog.course",
+          operation: "list",
+          protocol: "rest",
+          surface: "unknown",
+          outcome: "success",
+          total,
+          error_count: 0,
+          rejected_count: 0,
+          unknown_count: 0,
+          p50_wall_ms: 1,
+          p95_wall_ms: 2,
+        },
+      ]),
+    ).toThrow();
+  },
+);
+
+it("interprets SQL issue timestamps as UTC", () => {
+  const row = {
+    auth_mode: "anonymous",
+    feature: "catalog.course",
+    operation: "list",
+    protocol: "rest",
+    surface: "unknown",
+    outcome: "error",
+    error_class: "internal",
+    request_id: "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee",
+    occurred_at: "2026-09-14 01:23:45",
+  };
+  expect(parseAdminExperienceErrorRows([row])[0].occurredAt).toBe(
+    "2026-09-14T01:23:45.000Z",
+  );
+});
+
+it("rejects inconsistent counts and inverted percentiles", () => {
+  const row = {
+    auth_mode: "anonymous",
+    feature: "catalog.course",
+    operation: "list",
+    protocol: "rest",
+    surface: "unknown",
+    outcome: "error",
+    total: 4,
+    error_count: 2,
+    rejected_count: 0,
+    unknown_count: 0,
+    p50_wall_ms: 1,
+    p95_wall_ms: 2,
+  };
+  expect(() => parseAdminExperienceAggregateRows([row])).toThrow(
+    /inconsistent/,
+  );
+  expect(() =>
+    parseAdminExperienceAggregateRows([
+      { ...row, error_count: 4, p50_wall_ms: 10 },
+    ]),
+  ).toThrow(/inconsistent/);
+});
+
+it("flags capped issue samples while retaining the most recent twenty", async () => {
+  requireAdminPageMock.mockResolvedValue({ id: "admin" });
+  const row = {
+    auth_mode: "anonymous",
+    feature: "catalog.course",
+    operation: "list",
+    protocol: "rest",
+    surface: "unknown",
+    outcome: "error",
+    error_class: "internal",
+    request_id: "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee",
+    occurred_at: "2026-09-14 01:23:45",
+  };
+  const query = vi
+    .fn()
+    .mockResolvedValueOnce([])
+    .mockResolvedValueOnce(Array.from({ length: 21 }, () => row));
+  const result = await getAdminExperiencePage(
+    new Request(requestUrl("?errors=1")),
+    requestUrl("?errors=1"),
+    { readPort: { query } },
+  );
+  expect(result.errorSamples).toHaveLength(20);
+  expect(result.errorsTruncated).toBe(true);
+  expect(result.errorsStatus.state).toBe("ready");
 });

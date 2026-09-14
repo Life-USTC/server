@@ -65,10 +65,10 @@ test("功能体验页面展示实际观测到的矩阵与加权指标", async ({
 }, testInfo) => {
   const rows = [
     {
-      authMode: "session",
+      authMode: "anonymous",
       errorCount: 0,
       feature: "catalog.search",
-      operation: "query",
+      operation: "view",
       outcome: "success",
       p50WallMs: 12.5,
       p95WallMs: 42,
@@ -113,12 +113,16 @@ test("功能体验页面展示实际观测到的矩阵与加权指标", async ({
     page.getByRole("heading", { name: /功能体验|Feature Experience/i }),
   ).toBeVisible();
   await expect(
-    page.getByText("catalog.search", { exact: true }).first(),
+    page.getByRole("cell", { name: "catalog.search", exact: true }),
   ).toBeVisible();
   await expect(
-    page.getByText(/预计操作量|Estimated operations/i),
+    page.getByRole("columnheader", {
+      name: /预计操作量|Estimated operations/i,
+    }),
   ).toBeVisible();
-  await expect(page.getByText(/服务耗时 p50|Wall p50/i)).toBeVisible();
+  await expect(
+    page.getByRole("columnheader", { name: /服务耗时 p50|Wall p50/i }),
+  ).toBeVisible();
   await captureStepScreenshot(page, testInfo, "admin-experience/populated");
 });
 

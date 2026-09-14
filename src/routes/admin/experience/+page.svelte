@@ -45,6 +45,7 @@ function queryHref(overrides: Record<string, string | undefined> = {}) {
   params.set("days", String(data.days));
   for (const [key, value] of Object.entries({
     ...data.filters,
+    errors: data.showErrors ? "1" : undefined,
     ...overrides,
   })) {
     if (value) params.set(key, value);
@@ -104,6 +105,7 @@ function dateLabel(value: string) {
 
       <form method="GET">
         <input type="hidden" name="days" value={data.days} />
+        {#if data.showErrors}<input type="hidden" name="errors" value="1" />{/if}
         <Field.Group class="gap-4">
           <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
             <Field.Field>
@@ -295,6 +297,7 @@ function dateLabel(value: string) {
         <div class="grid gap-1">
           <h2 id="experience-errors-title" class="text-lg font-semibold">{data.copy.experience.recentErrors}</h2>
           <p class="text-sm text-muted-foreground">{data.copy.experience.recentErrorsDescription}</p>
+          {#if data.errorsTruncated}<p class="text-sm text-muted-foreground">{data.copy.experience.moreIssues}</p>{/if}
         </div>
         {#if data.errorsStatus.state === "unavailable"}
           <Alert.Root variant="destructive">
