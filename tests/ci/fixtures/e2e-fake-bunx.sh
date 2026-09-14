@@ -86,6 +86,9 @@ if [[ "${1:-}" == "playwright" ]]; then
         exit 1
       fi
 
+      [[ "$DATABASE_URL" == postgresql://life_ustc_runtime:* ]] || exit 1
+      [[ "$AUTH_DATABASE_URL" == postgresql://life_ustc_auth_runtime:* ]] || exit 1
+      [[ "$MAINTENANCE_DATABASE_URL" == postgresql://life_ustc_maintenance_runtime:* ]] || exit 1
       [[ "$attempt" == "2" ]] || {
         echo "fake shard received unexpected attempt ${attempt}" >&2
         exit 1
@@ -119,6 +122,7 @@ if [[ "${1:-}" == "playwright" ]]; then
 fi
 
 if [[ "${1:-}" == "prisma" ]]; then
+  [[ "$DATABASE_URL" == "$FUNCTION_OWNER_DATABASE_URL" ]] || exit 1
   record_command "$@"
   exit 0
 fi

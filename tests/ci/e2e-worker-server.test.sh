@@ -73,11 +73,20 @@ grep -q '^exit_code=' "${worker_dir}/wrangler.status" ||
 test -s "${worker_dir}/wrangler.log" || fail "Wrangler log artifact is empty"
 test -s "${worker_dir}/health.log" || fail "health-check log artifact is empty"
 
+mkdir -p "${temp_dir}/bin"
+cat >"${temp_dir}/bin/psql" <<'MOCK'
+#!/usr/bin/env bash
+[[ "$1" == "$FUNCTION_OWNER_DATABASE_URL" ]] || exit 1
+printf 'bootstrap roles\n' >>"$E2E_FAKE_COMMAND_LOG"
+MOCK
+chmod +x "${temp_dir}/bin/psql"
+
 crash_report_dir="${temp_dir}/crash-report"
 fake_command_log="${temp_dir}/fake-commands.log"
 set +e
+PATH="${temp_dir}/bin:$PATH" \
 CI=true \
-DATABASE_URL="postgresql://postgres:postgres@127.0.0.1:1/e2e-regression" \
+FUNCTION_OWNER_DATABASE_URL="postgresql://postgres:postgres@127.0.0.1:1/e2e-regression" \
 ALLOW_DATABASE_SEED=true \
 E2E_BUNX_BIN="${repo_root}/tests/ci/fixtures/e2e-fake-bunx.sh" \
 E2E_FAKE_COMMAND_LOG="$fake_command_log" \
@@ -100,7 +109,8 @@ test -f "$fake_command_log" || fail "fake command log was not created"
 reset_command_line="$(grep -n '^prisma migrate reset --force$' "$fake_command_log" | cut -d: -f1)"
 seed_command_line="$(grep -n '^prisma db seed$' "$fake_command_log" | cut -d: -f1)"
 second_playwright_line="$(grep -n '^playwright ' "$fake_command_log" | sed -n '2p' | cut -d: -f1)"
-((reset_command_line < seed_command_line && seed_command_line < second_playwright_line)) ||
+bootstrap_command_line="$(grep -n '^bootstrap roles$' "$fake_command_log" | cut -d: -f1)"
+((reset_command_line < seed_command_line && seed_command_line < bootstrap_command_line && bootstrap_command_line < second_playwright_line)) ||
   fail "CI database reset and seed did not finish before the replay attempt"
 grep -q 'attempt=1 status=confirmed-worker-failure' \
   "${crash_report_dir}/worker-runner.log" ||

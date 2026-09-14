@@ -101,6 +101,7 @@ jobs:
         run: |
           {
             echo "DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:5432/${{ inputs.database-name }}"
+            echo "FUNCTION_OWNER_DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:5432/${{ inputs.database-name }}"
             echo "ALLOW_DATABASE_SEED=true"
             if [ "$JOB_PHASE" = "ci:verify" ]; then
               echo "GRAPHQL_SCHEMA_SKIP_BASE_COMPATIBILITY=true"
@@ -146,8 +147,7 @@ jobs:
             fi
 
             bun run app:prepare
-            bun run db:migrate:deploy
-            bunx prisma db seed
+            source tests/ci/setup-runtime-database.sh
             bash tests/ci/e2e-run-shard.sh "$E2E_SHARD"
           }
 
@@ -155,6 +155,7 @@ jobs:
             ci:verify)
               bash tests/ci/retry.test.sh
               bash tests/ci/seed-guard.test.sh
+              bash tests/ci/runtime-database-parity.test.sh
               bash tests/ci/e2e-full-suite-parity.test.sh
               bash tests/ci/e2e-worker-server.test.sh
               bash tests/ci/worker-request-id-platform.test.sh
@@ -172,27 +173,18 @@ jobs:
               # the Playwright API suite starts `bun run e2e:server`.
               export AUTH_SECRET=e2e-dev-secret-not-for-production
               bun run app:prepare
-              bun run db:migrate:deploy
-              bunx prisma db seed
-              # The canonical scenario must be safe to load repeatedly.
-              bunx prisma db seed
+              source tests/ci/setup-runtime-database.sh
+              # Verify setup remains safe to repeat, including grants.
+              source tests/ci/setup-runtime-database.sh
               bunx vitest run --config vitest.integration.config.ts
               bun run build
               bash tests/ci/e2e-run-shard.sh 1/1 --config playwright.api.config.ts
               ;;
             ci:rls)
               bun run app:prepare
-              bun run db:migrate:deploy
-              bunx prisma db seed
-              # Keep the RLS database setup idempotent like ci:integration.
-              bunx prisma db seed
-              for _ in 1 2; do
-                PGPASSWORD=postgres psql "$DATABASE_URL" -X \
-                  --single-transaction \
-                  --set=database_name="${{ inputs.database-name }}" \
-                  --file=tests/integration/fixtures/rls-runtime-bootstrap.sql
-              done
-              runtime_database_url="postgresql://life_ustc_runtime:runtime-test-password@127.0.0.1:5432/${{ inputs.database-name }}"
+              source tests/ci/setup-runtime-database.sh
+              source tests/ci/setup-runtime-database.sh
+              runtime_database_url="$DATABASE_URL"
               expected_table_privileges="$(psql "$runtime_database_url" -X -tA \
                 --file=prisma/roles/export-app-runtime-table-privileges.sql)"
               expected_column_privileges="$(psql "$runtime_database_url" -X -tA \
@@ -216,10 +208,6 @@ jobs:
                 --set=expected_sequence_privileges="$expected_sequence_privileges" \
                 --set=expected_function_privileges="$expected_function_privileges" \
                 --file=prisma/roles/verify-app-runtime.sql
-              export FUNCTION_OWNER_DATABASE_URL="$DATABASE_URL"
-              export DATABASE_URL="$runtime_database_url"
-              export AUTH_DATABASE_URL="postgresql://life_ustc_auth_runtime:auth-runtime-test-password@127.0.0.1:5432/${{ inputs.database-name }}"
-              export MAINTENANCE_DATABASE_URL="postgresql://life_ustc_maintenance_runtime:maintenance-runtime-test-password@127.0.0.1:5432/${{ inputs.database-name }}"
               export RLS_TEST_ENABLED=true
               export AUTH_ROLE_TEST_ENABLED=true
               export FUNCTION_OWNER_ROLE_TEST_ENABLED=true

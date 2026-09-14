@@ -26,8 +26,7 @@ describe("E2E full-suite parity orchestration", () => {
     );
 
     expect(script).toContain("readonly E2E_SHARD_TOTAL=4");
-    expect(script).toContain("bun run db:migrate:deploy");
-    expect(script).toContain("bunx prisma db seed");
+    expect(script).toContain("source tests/ci/setup-runtime-database.sh");
     expect(script).toContain("bash tests/ci/e2e-run-shard.sh");
     expect(script).toContain("E2E_SHARD_TOTAL");
   });

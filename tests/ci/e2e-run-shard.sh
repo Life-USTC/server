@@ -44,11 +44,9 @@ reset_database_for_retry() {
   # developer's local database just because a local shard failed.
   if [[ "${CI:-}" == "true" || "${CI:-}" == "1" ]]; then
     echo "Resetting the CI E2E database before replaying shard ${shard}." >&2
-    ALLOW_DATABASE_SEED=true "$bunx_bin" prisma migrate reset --force
-    ALLOW_DATABASE_SEED=true "$bunx_bin" prisma db seed
+    source tests/ci/setup-runtime-database.sh reset
   else
-    bun run db:migrate:deploy
-    "$bunx_bin" prisma db seed
+    source tests/ci/setup-runtime-database.sh
   fi
 }
 

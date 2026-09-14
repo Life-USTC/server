@@ -12,8 +12,8 @@ cd "$repo_root"
 
 readonly E2E_SHARD_TOTAL=4
 
-if [[ -z "${DATABASE_URL:-}" ]]; then
-  echo "DATABASE_URL must be set for E2E database lifecycle." >&2
+if [[ -z "${FUNCTION_OWNER_DATABASE_URL:-}" ]]; then
+  echo "FUNCTION_OWNER_DATABASE_URL must be set for E2E database lifecycle." >&2
   exit 1
 fi
 
@@ -33,8 +33,7 @@ for shard in $(seq 1 "$E2E_SHARD_TOTAL"); do
   # non-production sync previously retargeted Kit aliases to prisma-node and
   # wrangler then rebundled a broken worker for Playwright.
   bun run app:prepare
-  bun run db:migrate:deploy
-  bunx prisma db seed
+  source tests/ci/setup-runtime-database.sh
   if ! bash tests/ci/e2e-run-shard.sh "${shard}/${E2E_SHARD_TOTAL}"; then
     failed_shards+=("${shard}/${E2E_SHARD_TOTAL}")
   fi
