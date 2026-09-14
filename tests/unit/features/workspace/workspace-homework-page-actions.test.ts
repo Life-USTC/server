@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { runWithCloudflareRuntimeEnv } from "@/lib/adapters/cloudflare-runtime";
 
 const createHomeworkForSectionMock = vi.fn();
 const getSessionFromHeadersMock = vi.fn();
@@ -59,4 +60,50 @@ describe("仪表盘作业页面操作", () => {
       expect.objectContaining({ sectionId: 1, title: "Blocked homework" }),
     );
   });
+});
+
+describe("homework action metric boundary", () => {
+  it.each([
+    [{ ok: true }, "success", "none"],
+    [{ ok: false, error: "forbidden" }, "rejected", "forbidden"],
+  ])(
+    "preserves action redirect/failure and avoids an extra session query",
+    async (result, outcome, errorClass) => {
+      getSessionFromHeadersMock
+        .mockReset()
+        .mockResolvedValue({ user: { id: "user" } });
+      createHomeworkForSectionMock.mockReset().mockResolvedValue(result);
+      const writeDataPoint = vi.fn();
+      const { createHomeworkWorkspaceAction } = await import(
+        "@/features/workspace/server/workspace-homework-page-actions"
+      );
+      await runWithCloudflareRuntimeEnv(
+        { ANALYTICS: { writeDataPoint } },
+        async () => {
+          const action = createHomeworkWorkspaceAction({
+            locals: { locale: "en-us" },
+            request: actionRequest(),
+          });
+          if (outcome === "success")
+            await expect(action).rejects.toMatchObject({
+              status: 303,
+              location: "/workspace/homeworks",
+            });
+          else await expect(action).resolves.toMatchObject({ status: 403 });
+        },
+      );
+      expect(getSessionFromHeadersMock).toHaveBeenCalledTimes(1);
+      expect(createHomeworkForSectionMock).toHaveBeenCalledTimes(1);
+      expect(writeDataPoint).toHaveBeenCalledTimes(1);
+      expect(writeDataPoint.mock.calls[0][0].blobs.slice(1, 8)).toEqual([
+        "community.section-homework",
+        "create",
+        "web",
+        "web",
+        "unknown",
+        outcome,
+        errorClass,
+      ]);
+    },
+  );
 });

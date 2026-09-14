@@ -1,4 +1,4 @@
-import { fail, redirect } from "@sveltejs/kit";
+import { fail, isRedirect, redirect } from "@sveltejs/kit";
 import {
   getHomeworkDescriptionValidationError,
   getHomeworkTitleValidationError,
@@ -11,6 +11,11 @@ import { homeworkDateError } from "@/features/homeworks/server/homework-dates";
 import { parseOptionalLocalDateTime } from "@/features/workspace/server/workspace-form-dates";
 import { getWorkspaceUserId } from "@/features/workspace/server/workspace-page-server";
 import type { AppLocale } from "@/i18n/config";
+import {
+  classifyFeatureError,
+  classifyFeatureStatus,
+  observeFeatureOperation,
+} from "@/lib/metrics/feature-operation";
 import { getWorkspaceActionCopy } from "./workspace-action-copy";
 
 type WorkspaceActionEvent = {
@@ -18,7 +23,7 @@ type WorkspaceActionEvent = {
   request: Request;
 };
 
-export async function createHomeworkWorkspaceAction({
+async function runCreateHomeworkWorkspaceAction({
   locals,
   request,
 }: WorkspaceActionEvent) {
@@ -83,4 +88,25 @@ export async function createHomeworkWorkspaceAction({
   }
 
   throw redirect(303, "/workspace/homeworks");
+}
+
+/** Form actions encode redirects inside enhanced responses, so observe the action result. */
+export function createHomeworkWorkspaceAction(event: WorkspaceActionEvent) {
+  return observeFeatureOperation(
+    {
+      feature: "community.section-homework",
+      operation: "create",
+      protocol: "web",
+      surface: "web",
+      authMode: "unknown",
+    },
+    () => runCreateHomeworkWorkspaceAction(event),
+    (failure) => classifyFeatureStatus(failure.status),
+    (error) =>
+      isRedirect(error) &&
+      error.status === 303 &&
+      error.location === "/workspace/homeworks"
+        ? { outcome: "success", errorClass: "none" }
+        : classifyFeatureError(error),
+  );
 }
