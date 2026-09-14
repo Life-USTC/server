@@ -47,6 +47,14 @@ each, and removes them on exit. Existing databases are not used. Set
 `INTEGRATION_SHARDS=1` through `8` to choose concurrency and
 `INTEGRATION_REPORT_ROOT` to retain logs at a chosen path. Test filters and role
 test environment flags pass through; files inside each shard stay serial.
+The local runner requires Bash, Docker, Bun, `psql`, and Linux `setsid`.
+To include every gated role contract locally:
+
+```bash
+RLS_TEST_ENABLED=true AUTH_ROLE_TEST_ENABLED=true \
+FUNCTION_OWNER_ROLE_TEST_ENABLED=true MAINTENANCE_ROLE_TEST_ENABLED=true \
+bun run integration:test:parallel
+```
 
 ## Conventions
 
