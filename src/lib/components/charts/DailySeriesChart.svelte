@@ -11,6 +11,11 @@ export type DailySeriesChartLabels = {
 </script>
 
 <script lang="ts">
+import TableIcon from "@lucide/svelte/icons/table-2";
+import ChartIcon from "@lucide/svelte/icons/chart-no-axes-combined";
+import DashboardPanel from "$lib/components/dashboard/DashboardPanel.svelte";
+import { Button } from "$lib/components/ui/button/index.js";
+import * as ToggleGroup from "$lib/components/ui/toggle-group/index.js";
 import * as Empty from "$lib/components/ui/empty/index.js";
 import * as Table from "$lib/components/ui/table/index.js";
 import {
@@ -47,6 +52,7 @@ const defaultColors = [
   "var(--chart-5)",
 ];
 let width = 640;
+let showDataTable = false;
 let activeIndex: number | null = null;
 let visibleKeys = new Set<string>();
 let visibleSeriesSignature = "";
@@ -83,13 +89,6 @@ function formatDay(day: string, index: number, compact = false) {
 
 function seriesColor(item: DailySeries, index: number) {
   return item.color ?? defaultColors[index % defaultColors.length];
-}
-
-function toggleSeries(key: string) {
-  const next = new Set(visibleKeys);
-  if (next.has(key)) next.delete(key);
-  else next.add(key);
-  visibleKeys = next;
 }
 
 function inspectPointer(event: PointerEvent) {
@@ -137,41 +136,17 @@ function tooltipLeft(index: number) {
 }
 </script>
 
-<section class="grid min-w-0 gap-3" aria-labelledby={`${chartId}-title`}>
-  <header class="grid gap-1">
-    <h3 id={`${chartId}-title`} class="text-base font-semibold">{title}</h3>
-    {#if description}<p id={`${chartId}-description`} class="text-sm text-muted-foreground">{description}</p>{/if}
-  </header>
-
-  {#if series.length}
-    <fieldset class="grid gap-2" aria-label={copy.legend}>
-      <legend class="text-xs font-medium text-muted-foreground">{copy.legend}</legend>
-      <div class="flex flex-wrap gap-2">
-        {#each series as item, index (item.key)}
-          <button
-            type="button"
-            class="inline-flex items-center gap-2 rounded-md border px-2.5 py-1.5 text-xs transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            aria-pressed={visibleKeys.has(item.key)}
-            aria-label={item.label}
-            data-series-key={item.key}
-            onclick={() => toggleSeries(item.key)}
-          >
-            <span
-              class:opacity-40={!visibleKeys.has(item.key)}
-              class="size-2.5 shrink-0 rounded-full"
-              style={`background-color: ${seriesColor(item, index)}`}
-              aria-hidden="true"
-            ></span>
-            <span class:opacity-60={!visibleKeys.has(item.key)}>{item.label}</span>
-          </button>
-        {/each}
-      </div>
-    </fieldset>
-  {/if}
-
+<DashboardPanel {title} {description} id={chartId}>
+  {#snippet actions()}
+    <Button variant="ghost" size="icon-xs" aria-label={copy.dataTable} aria-pressed={showDataTable} onclick={() => showDataTable = !showDataTable}>
+      {#if showDataTable}<ChartIcon />{:else}<TableIcon />{/if}
+    </Button>
+  {/snippet}
+  {#if description}<p id={`${chartId}-description`} class="sr-only">{description}</p>{/if}
+  {#if !showDataTable}
   {#if !hasValues}
-    <Empty.Root class="items-start border-y px-0 text-left">
-      <Empty.Header class="items-start text-left">
+    <Empty.Root class="h-56">
+      <Empty.Header >
         <Empty.Title>{copy.noData}</Empty.Title>
       </Empty.Header>
     </Empty.Root>
@@ -214,7 +189,7 @@ function tooltipLeft(index: number) {
           <text x={label.x} y={geometry.height - 7} text-anchor={geometry.xLabels.length === 1 ? "middle" : label.index === 0 ? "start" : label.index === days.length - 1 ? "end" : "middle"} class="fill-muted-foreground text-[11px]">{formatDay(label.day, label.index, true)}</text>
         {/each}
         {#each geometry.paths as path, index (path.key)}
-          <path d={path.path} fill="none" stroke={seriesColor(visibleSeries[index], series.findIndex((item) => item.key === path.key))} stroke-dasharray={series.findIndex((item) => item.key === path.key) >= defaultColors.length ? "6 3" : undefined} stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke" />
+          <path d={path.path} fill="none" stroke={seriesColor(visibleSeries[index], series.findIndex((item) => item.key === path.key))} stroke-dasharray={series.findIndex((item) => item.key === path.key) >= defaultColors.length ? "6 3" : undefined} stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke" />
           {#if path.points.length === 1}
             <circle cx={path.points[0].x} cy={path.points[0].y} r="3" fill={seriesColor(visibleSeries[index], series.findIndex((item) => item.key === path.key))} />
           {/if}
@@ -236,9 +211,18 @@ function tooltipLeft(index: number) {
     </div>
   {/if}
 
-  <details class="rounded-md border px-3 py-2 text-sm">
-    <summary class="cursor-pointer font-medium">{copy.dataTable}</summary>
-    <div class="mt-3 max-h-72 overflow-auto">
+  {#if series.length}
+    <ToggleGroup.Root type="multiple" value={[...visibleKeys]} onValueChange={(keys) => visibleKeys = new Set(keys)} spacing={1} size="sm" class="max-h-20 flex-wrap justify-start overflow-y-auto" aria-label={copy.legend}>
+      {#each series as item, index (item.key)}
+        <ToggleGroup.Item value={item.key} aria-label={item.label} data-series-key={item.key}>
+          <span class="h-0.5 w-3 shrink-0" style:background-color={seriesColor(item,index)} aria-hidden="true"></span>
+          <span>{item.label}</span>
+        </ToggleGroup.Item>
+      {/each}
+    </ToggleGroup.Root>
+  {/if}
+  {:else}
+    <div class="h-64 overflow-auto">
       <Table.Root>
         <Table.Caption class="sr-only">{copy.dataTable}</Table.Caption>
         <Table.Header>
@@ -257,5 +241,5 @@ function tooltipLeft(index: number) {
         </Table.Body>
       </Table.Root>
     </div>
-  </details>
-</section>
+  {/if}
+</DashboardPanel>
