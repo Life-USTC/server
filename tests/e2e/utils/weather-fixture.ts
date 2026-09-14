@@ -2,6 +2,7 @@ import { expect, type Page } from "@playwright/test";
 import { stringify } from "devalue";
 import type { WeatherSnapshot } from "@/features/weather/server/weather-types";
 import { WEATHER_LOCATIONS } from "@/features/weather/server/weather-types";
+import { buildSocialMetadata } from "@/lib/social-metadata";
 import enUsMessages from "../../../messages/en-us.json" with { type: "json" };
 import zhCnMessages from "../../../messages/zh-cn.json" with { type: "json" };
 import { gotoAndWaitForReady } from "./page-ready";
@@ -54,6 +55,17 @@ export async function showWeatherFixture(page: Page) {
     (await page.locator("html").getAttribute("lang"))?.toLowerCase() === "en-us"
       ? "en-us"
       : "zh-cn";
+  const messages = locale === "en-us" ? enUsMessages : zhCnMessages;
+  const weatherCopy = messages.weather;
+  const socialMetadata = buildSocialMetadata({
+    canonicalPath: "/catalog/weather",
+    origin: new URL(page.url()).origin,
+    locale,
+    title: `${weatherCopy.title} - Life@USTC`,
+    description: weatherCopy.description,
+    imageAlt: messages.metadata.social.imageAlt,
+    card: { label: locale === "zh-cn" ? "CAMPUS · 天气" : "WEATHER" },
+  });
   // The root layout is already loaded. Supply only the weather page's data
   // node; chart interaction tests must not wait for real weather providers.
   // The separate page contract tests exercise the real server load.
@@ -67,15 +79,13 @@ export async function showWeatherFixture(page: Page) {
             type: "data",
             data: JSON.parse(
               stringify({
-                copy: {
-                  weather: (locale === "en-us" ? enUsMessages : zhCnMessages)
-                    .weather,
-                },
+                copy: { weather: weatherCopy },
                 locale,
                 locations,
+                socialMetadata,
               }),
             ),
-            uses: {},
+            uses: { parent: 1 },
           },
         ],
       },
