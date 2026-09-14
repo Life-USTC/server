@@ -1,3 +1,15 @@
+# [1.113.0](https://github.com/Life-USTC/server/compare/v1.112.1...v1.113.0) (2026-09-14)
+
+
+### Bug Fixes
+
+* validate server paths with production database roles ([#1048](https://github.com/Life-USTC/server/issues/1048)) ([f8c3134](https://github.com/Life-USTC/server/commit/f8c3134e4575c14518142ec81ef4d7be9c651db4))
+
+
+### Features
+
+* **admin:** simplify observability into reusable dashboard panels ([#1047](https://github.com/Life-USTC/server/issues/1047)) ([52a8466](https://github.com/Life-USTC/server/commit/52a84665331950c944ede8539c468b2fa96566c6))
+
 ## [1.112.1](https://github.com/Life-USTC/server/compare/v1.112.0...v1.112.1) (2026-09-14)
 
 
