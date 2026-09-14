@@ -24,7 +24,7 @@ export default defineConfig({
   webServer: {
     command: "bun run e2e:server",
     url: baseURL,
-    reuseExistingServer: !process.env.CI,
+    reuseExistingServer: false,
     gracefulShutdown: { signal: "SIGTERM", timeout: 10_000 },
     stdout: "ignore",
     stderr: "pipe",

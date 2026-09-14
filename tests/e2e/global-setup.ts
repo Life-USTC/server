@@ -1,5 +1,5 @@
-import { validateWorkerDatabaseRoles } from "./utils/worker-database-env";
+import { validateIntegrationDatabaseRoles } from "../shared/runtime-database";
 
 export default async function globalSetup() {
-  await validateWorkerDatabaseRoles();
+  await validateIntegrationDatabaseRoles();
 }

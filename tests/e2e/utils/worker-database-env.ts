@@ -1,27 +1,18 @@
-import {
-  createTestPrisma,
-  disconnectTestPrisma,
-  type TestPrismaClient,
-} from "../../shared/prisma";
-
 const OWNER_DATABASE_ENV = "FUNCTION_OWNER_DATABASE_URL";
 
 const runtimeConnections = [
   {
     env: "DATABASE_URL",
     hyperdrive: "CLOUDFLARE_HYPERDRIVE_LOCAL_CONNECTION_STRING_HYPERDRIVE",
-    role: "life_ustc_runtime",
   },
   {
     env: "AUTH_DATABASE_URL",
     hyperdrive: "CLOUDFLARE_HYPERDRIVE_LOCAL_CONNECTION_STRING_HYPERDRIVE_AUTH",
-    role: "life_ustc_auth_runtime",
   },
   {
     env: "MAINTENANCE_DATABASE_URL",
     hyperdrive:
       "CLOUDFLARE_HYPERDRIVE_LOCAL_CONNECTION_STRING_HYPERDRIVE_MAINTENANCE",
-    role: "life_ustc_maintenance_runtime",
   },
 ] as const;
 
@@ -144,96 +135,4 @@ export function getWorkerProcessEnvironment(
     ...withoutOwner,
     ...runtimeEnvironment,
   };
-}
-
-type RoleProbe = {
-  bypassRls: boolean;
-  currentUser: string;
-  inheritedRoles: string[];
-  ownsPublicTable: boolean;
-  sessionUser: string;
-  superuser: boolean;
-};
-
-async function readRoleProbe(client: TestPrismaClient) {
-  const [role] = await client.$queryRaw<RoleProbe[]>`
-    SELECT
-      current_user AS "currentUser",
-      session_user AS "sessionUser",
-      role_row.rolsuper AS "superuser",
-      role_row.rolbypassrls AS "bypassRls",
-      COALESCE(
-        ARRAY(
-          SELECT parent.rolname::text
-          FROM pg_catalog.pg_auth_members AS membership
-          JOIN pg_catalog.pg_roles AS parent
-            ON parent.oid = membership.roleid
-          WHERE membership.member = role_row.oid
-          ORDER BY parent.rolname
-        ),
-        ARRAY[]::text[]
-      ) AS "inheritedRoles",
-      EXISTS (
-        SELECT 1
-        FROM pg_catalog.pg_class AS relation
-        JOIN pg_catalog.pg_namespace AS namespace
-          ON namespace.oid = relation.relnamespace
-        WHERE namespace.nspname = 'public'
-          AND relation.relkind IN ('r', 'p', 'v', 'm', 'f')
-          AND relation.relowner = role_row.oid
-      ) AS "ownsPublicTable"
-    FROM pg_catalog.pg_roles AS role_row
-    WHERE role_row.rolname = current_user
-  `;
-  return role;
-}
-
-/**
- * Check the effective roles behind all three Worker bindings before tests
- * run. URL strings alone cannot catch a copied password or a role with
- * elevated attributes, so this probe intentionally reads pg_catalog.
- */
-export async function validateWorkerDatabaseRoles(
-  input: NodeJS.ProcessEnv = process.env,
-) {
-  const environment = resolveWorkerDatabaseEnvironment(input);
-  const clients = runtimeConnections.map(({ env }) =>
-    createTestPrisma(environment[env]),
-  );
-  const ownerClient = createTestPrisma(environment[OWNER_DATABASE_ENV]);
-
-  try {
-    const runtimeRoles = await Promise.all(clients.map(readRoleProbe));
-    for (const [index, actual] of runtimeRoles.entries()) {
-      const expected = runtimeConnections[index].role;
-      if (
-        !actual ||
-        actual.currentUser !== expected ||
-        actual.sessionUser !== expected ||
-        actual.superuser ||
-        actual.bypassRls ||
-        actual.inheritedRoles.length > 0 ||
-        actual.ownsPublicTable
-      ) {
-        throw new Error(
-          `${runtimeConnections[index].env} must connect as standalone non-superuser, non-bypass role ${expected} with no public table ownership; got ${actual?.currentUser ?? "no role"}`,
-        );
-      }
-    }
-
-    const ownerRole = await readRoleProbe(ownerClient);
-    if (
-      !ownerRole ||
-      runtimeConnections.some(({ role }) => ownerRole.currentUser === role)
-    ) {
-      throw new Error(
-        `${OWNER_DATABASE_ENV} must be an independent fixture connection; got ${ownerRole?.currentUser ?? "no role"}`,
-      );
-    }
-  } finally {
-    await Promise.all([
-      ...clients.map((client) => disconnectTestPrisma(client)),
-      disconnectTestPrisma(ownerClient),
-    ]);
-  }
 }

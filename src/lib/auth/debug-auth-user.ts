@@ -15,31 +15,11 @@ export async function ensureDebugCredentialUser(providerId: DebugProviderId) {
 
   const user = await prisma.user.findUnique({
     where: { email: config.email },
-    select: {
-      id: true,
-      username: true,
-      isAdmin: true,
-      profilePictures: true,
-    },
+    select: { id: true },
   });
   if (!user) {
     throw new Error(
       `Debug auth user ${providerId} (${config.email}) is missing; run the configured database seed before enabling debug auth`,
-    );
-  }
-  if (user.username !== config.username) {
-    throw new Error(
-      `Debug auth user ${providerId} has unexpected username; run the configured database seed or remove the debug identity override`,
-    );
-  }
-  if (user.isAdmin !== config.isAdmin) {
-    throw new Error(
-      `Debug auth user ${providerId} has unexpected admin role; run the configured database seed`,
-    );
-  }
-  if (user.profilePictures.length === 0) {
-    throw new Error(
-      `Debug auth user ${providerId} has no seeded profile pictures; run the configured database seed`,
     );
   }
 
@@ -50,11 +30,9 @@ export async function ensureDebugCredentialUser(providerId: DebugProviderId) {
         providerAccountId: user.id,
       },
     },
-    select: {
-      password: true,
-    },
+    select: { id: true },
   });
-  if (!credential?.password) {
+  if (!credential) {
     throw new Error(
       `Debug auth credential ${providerId} is missing; run the configured database seed before enabling debug auth`,
     );

@@ -26,6 +26,15 @@ async function loadConfig(ci: string) {
   return (await import("../../../playwright.config")).default;
 }
 
+async function loadApiConfig(ci: string) {
+  vi.resetModules();
+  vi.stubEnv("CI", ci);
+  for (const [name, value] of Object.entries(workerDatabaseEnvironment)) {
+    vi.stubEnv(name, value);
+  }
+  return (await import("../../../playwright.api.config")).default;
+}
+
 afterEach(() => {
   vi.unstubAllEnvs();
   vi.resetModules();
@@ -74,5 +83,15 @@ describe("Playwright configuration", () => {
       forbidOnly: false,
       webServer: { reuseExistingServer: false },
     });
+  });
+
+  test("REST tests never reuse an existing Worker locally or in CI", async () => {
+    const config = await loadApiConfig("");
+    const webServer = config.webServer;
+    if (!webServer || Array.isArray(webServer)) {
+      throw new Error("Expected a single Playwright webServer configuration");
+    }
+
+    expect(webServer.reuseExistingServer).toBe(false);
   });
 });

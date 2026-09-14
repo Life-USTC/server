@@ -5,9 +5,10 @@ import {
 } from "@/lib/auth/provider-ids";
 
 const prismaMock = vi.hoisted(() => ({
-  account: { findUnique: vi.fn() },
+  account: { findUnique: vi.fn(), upsert: vi.fn() },
   user: {
     findUnique: vi.fn(),
+    update: vi.fn(),
   },
 }));
 
@@ -24,7 +25,7 @@ describe("debug 认证配置", () => {
       profilePictures: ["https://example.test/seeded-avatar.svg"],
     });
     prismaMock.account.findUnique.mockResolvedValue({
-      password: "seeded-password-hash",
+      id: "seeded-credential",
     });
   });
 
@@ -93,12 +94,7 @@ describe("debug 认证配置", () => {
 
     expect(prismaMock.user.findUnique).toHaveBeenCalledWith({
       where: { email: config.email },
-      select: {
-        id: true,
-        username: true,
-        isAdmin: true,
-        profilePictures: true,
-      },
+      select: { id: true },
     });
     expect(prismaMock.account.findUnique).toHaveBeenCalledWith({
       where: {
@@ -107,12 +103,12 @@ describe("debug 认证配置", () => {
           providerAccountId: "seeded-user",
         },
       },
-      select: {
-        password: true,
-      },
+      select: { id: true },
     });
     expect(prismaMock.user.findUnique).toHaveBeenCalledTimes(1);
     expect(prismaMock.account.findUnique).toHaveBeenCalledTimes(1);
+    expect(prismaMock.user.update).not.toHaveBeenCalled();
+    expect(prismaMock.account.upsert).not.toHaveBeenCalled();
   });
 
   it("预置用户缺失时明确要求先执行 seed", async () => {
@@ -141,18 +137,19 @@ describe("debug 认证配置", () => {
     );
   });
 
-  it("拒绝没有预置头像的 debug 用户", async () => {
+  it("允许用户资料和管理员标记发生变化且不重置属性", async () => {
     const { ensureDebugCredentialUser } = await import("@/lib/auth/debug-auth");
     prismaMock.user.findUnique.mockResolvedValue({
-      id: "seeded-user",
-      username: "dev-user",
-      isAdmin: false,
+      id: "existing-user",
+      username: "user-chosen-name",
+      isAdmin: true,
       profilePictures: [],
     });
 
     await expect(
       ensureDebugCredentialUser(DEV_DEBUG_PROVIDER_ID),
-    ).rejects.toThrow("has no seeded profile pictures");
-    expect(prismaMock.account.findUnique).not.toHaveBeenCalled();
+    ).resolves.toBe("existing-user");
+    expect(prismaMock.user.update).not.toHaveBeenCalled();
+    expect(prismaMock.account.upsert).not.toHaveBeenCalled();
   });
 });
