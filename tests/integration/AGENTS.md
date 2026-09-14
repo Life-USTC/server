@@ -41,6 +41,13 @@ tests/integration/mcp/
 `fileParallelism` is off — auth row-count tests flake under concurrent session
 writes. Prefer file-level isolation for mutating suites.
 
+Run isolated local shards with `bun run integration:test:parallel`. It creates
+four disposable PostgreSQL containers, applies the production role bootstrap to
+each, and removes them on exit. Existing databases are not used. Set
+`INTEGRATION_SHARDS=1` through `8` to choose concurrency and
+`INTEGRATION_REPORT_ROOT` to retain logs at a chosen path. Test filters and role
+test environment flags pass through; files inside each shard stay serial.
+
 ## Conventions
 
 - `DEV_SEED_ANCHOR` from `tests/fixtures/dev-seed.ts`
