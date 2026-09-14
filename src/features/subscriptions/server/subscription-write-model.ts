@@ -12,24 +12,6 @@ import {
 import { uniqueSectionIds } from "./subscription-section-id-helpers";
 import { resolveCalendarSubscriptionSections } from "./subscription-section-resolver";
 
-async function getExistingSectionIds(
-  sectionIds: readonly number[],
-  options: { includeRetired?: boolean } = {},
-) {
-  if (sectionIds.length === 0) {
-    return [];
-  }
-
-  const sections = await prisma.section.findMany({
-    where: {
-      id: { in: uniqueSectionIds(sectionIds) },
-      ...(!options.includeRetired ? { retiredAt: null } : {}),
-    },
-    select: { id: true },
-  });
-  return sections.map((section) => section.id);
-}
-
 async function getSectionIdByJwId(
   jwId: number,
   options: { includeRetired?: boolean } = {},
@@ -46,7 +28,7 @@ async function getSectionIdByJwId(
 
 async function getMutableUserSubscriptions(
   userId: string,
-  client: Prisma.TransactionClient = prisma,
+  client: Prisma.TransactionClient,
 ) {
   return client.user.findUnique({
     where: { id: userId },
@@ -230,24 +212,50 @@ function filterResolvedCalendarSubscriptionSections(
   };
 }
 
-async function disconnectUserSectionIds(
+type RemovedUserSectionSubscriptions = {
+  removedCount: number;
+  unchangedCount: number;
+};
+
+async function removeUserSectionIdsInTransaction(
+  tx: Prisma.TransactionClient,
+  userId: string,
+  sectionIds: readonly number[],
+): Promise<RemovedUserSectionSubscriptions | null> {
+  if (!(await lockSubscriptionUser(tx, userId))) {
+    return null;
+  }
+
+  const user = await getMutableUserSubscriptions(userId, tx);
+  if (!user) {
+    return null;
+  }
+
+  const targetIds = uniqueSectionIds(sectionIds);
+  await lockSubscriptionSections(tx, targetIds);
+
+  const deleted =
+    targetIds.length === 0
+      ? { count: 0 }
+      : await tx.userSectionSubscription.deleteMany({
+          where: {
+            userId,
+            sectionId: { in: targetIds },
+          },
+        });
+
+  return {
+    removedCount: deleted.count,
+    unchangedCount: targetIds.length - deleted.count,
+  };
+}
+
+async function removeUserSectionIds(
   userId: string,
   sectionIds: readonly number[],
 ) {
-  const validSectionIds = await getExistingSectionIds(sectionIds, {
-    includeRetired: true,
-  });
-  if (validSectionIds.length === 0) {
-    return;
-  }
-
-  await withUserDbContext(userId, (tx) =>
-    tx.userSectionSubscription.deleteMany({
-      where: {
-        userId,
-        sectionId: { in: validSectionIds },
-      },
-    }),
+  return withUserDbContext(userId, (tx) =>
+    removeUserSectionIdsInTransaction(tx, userId, sectionIds),
   );
 }
 
@@ -379,15 +387,10 @@ export async function batchUpdateUserSectionSubscriptions({
     responseSections = responseResolved.sections;
     responseTotal = responseSections.length;
   } else if (action === "remove") {
-    const user = await getMutableUserSubscriptions(userId);
-    if (!user) return null;
-    const currentIdSet = new Set(
-      subscribedSectionsFromUser(user).map((section) => section.id),
-    );
-    const removedIds = targetIds.filter((id) => currentIdSet.has(id));
-    removedCount = removedIds.length;
-    unchangedCount = targetIds.length - removedCount;
-    await disconnectUserSectionIds(userId, removedIds);
+    const mutation = await removeUserSectionIds(userId, targetIds);
+    if (!mutation) return null;
+    removedCount = mutation.removedCount;
+    unchangedCount = mutation.unchangedCount;
   }
 
   const acceptedTargetIdSet = new Set(acceptedTargetIds);
@@ -419,14 +422,7 @@ export async function removeUserSectionSubscriptions(
   userId: string,
   sectionIds: readonly number[],
 ) {
-  const user = await getMutableUserSubscriptions(userId);
-  if (!user) {
-    return null;
-  }
-
-  await disconnectUserSectionIds(userId, sectionIds);
-
-  return true;
+  return (await removeUserSectionIds(userId, sectionIds)) ? true : null;
 }
 
 export async function subscribeUserToSectionByJwId(
