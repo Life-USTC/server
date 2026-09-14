@@ -1,4 +1,5 @@
 <script lang="ts">
+import AdminFeatureTelemetry from "@/features/admin/components/AdminFeatureTelemetry.svelte";
 import AdminWorkspace from "@/features/admin/components/AdminWorkspace.svelte";
 import {
   auditChannelLabel,
@@ -13,12 +14,12 @@ import type { PageData } from "./$types";
 
 export let data: PageData;
 
-const numberFormatter = new Intl.NumberFormat(data.locale);
-const percentFormatter = new Intl.NumberFormat(data.locale, {
+$: numberFormatter = new Intl.NumberFormat(data.locale);
+$: percentFormatter = new Intl.NumberFormat(data.locale, {
   maximumFractionDigits: 1,
   style: "percent",
 });
-const dayFormatter = new Intl.DateTimeFormat(data.locale, {
+$: dayFormatter = new Intl.DateTimeFormat(data.locale, {
   day: "numeric",
   month: "short",
   timeZone: "Asia/Shanghai",
@@ -29,21 +30,29 @@ $: failureRate = data.summary.total > 0 ? attention / data.summary.total : 0;
 $: externalShare =
   data.summary.total > 0 ? data.summary.external / data.summary.total : 0;
 $: chartMax = Math.max(1, ...data.daily.map((entry) => entry.total));
-$: totalPoints = chartPoints((entry) => entry.total);
-$: riskPoints = chartPoints((entry) => entry.denied + entry.failure);
+$: totalPoints = chartPoints(data.daily, chartMax, (entry) => entry.total);
+$: riskPoints = chartPoints(
+  data.daily,
+  chartMax,
+  (entry) => entry.denied + entry.failure,
+);
 
 function daysLabel(days: number) {
   return data.copy.analytics.days.replace("{days}", String(days));
 }
 
-function chartPoints(value: (entry: PageData["daily"][number]) => number) {
+function chartPoints(
+  daily: PageData["daily"],
+  maximum: number,
+  value: (entry: PageData["daily"][number]) => number,
+) {
   const width = 720;
   const height = 160;
-  const denominator = Math.max(data.daily.length - 1, 1);
-  return data.daily
+  const denominator = Math.max(daily.length - 1, 1);
+  return daily
     .map((entry, index) => {
       const x = (index / denominator) * width;
-      const y = height - (value(entry) / chartMax) * (height - 12);
+      const y = height - (value(entry) / maximum) * (height - 12);
       return `${x.toFixed(1)},${y.toFixed(1)}`;
     })
     .join(" ");
@@ -60,6 +69,13 @@ function failureLabel(count: number) {
     "{count}",
     numberFormatter.format(count),
   );
+}
+function periodHref(current: PageData, days: number) {
+  const params = new URLSearchParams({ days: String(days) });
+  for (const [key, value] of Object.entries(current.telemetry.filters)) {
+    if (value) params.set(key, value);
+  }
+  return `/admin/analytics?${params}`;
 }
 </script>
 
@@ -80,14 +96,11 @@ function failureLabel(count: number) {
         <h2 id="analytics-window-title" class="text-base font-semibold">
           {data.copy.analytics.window}
         </h2>
-        <Button class="w-fit" href="/admin/experience" variant="outline">
-          {data.copy.analytics.featureExperienceLink}
-        </Button>
       </div>
       <nav class="flex flex-wrap gap-2" aria-label={data.copy.analytics.window}>
         {#each [7, 30, 90] as days}
           <Button
-            href={`/admin/analytics?days=${days}`}
+            href={periodHref(data, days)}
             aria-current={data.days === days ? "page" : undefined}
             variant={data.days === days ? "default" : "outline"}
           >{daysLabel(days)}</Button>
@@ -222,4 +235,5 @@ function failureLabel(count: number) {
       </div>
     </section>
   {/if}
+<AdminFeatureTelemetry data={{...data.telemetry, locale: data.locale, copy: {experience: data.copy.telemetry}}} />
 </AdminWorkspace>

@@ -1,8 +1,6 @@
 <script lang="ts">
 import AdminListShell from "@/features/admin/components/AdminListShell.svelte";
 import AdminTableShell from "@/features/admin/components/AdminTableShell.svelte";
-import AdminWorkspace from "@/features/admin/components/AdminWorkspace.svelte";
-import PageHeader from "$lib/components/PageHeader.svelte";
 import * as Alert from "$lib/components/ui/alert/index.js";
 import { Badge } from "$lib/components/ui/badge/index.js";
 import { Button } from "$lib/components/ui/button/index.js";
@@ -12,18 +10,19 @@ import { Input } from "$lib/components/ui/input/index.js";
 import * as Item from "$lib/components/ui/item/index.js";
 import * as NativeSelect from "$lib/components/ui/native-select/index.js";
 import * as Table from "$lib/components/ui/table/index.js";
-import type { PageData } from "./$types";
+import type messages from "../../../../messages/en-us.json";
+import type { readAdminFeatureTelemetry } from "../server/admin-experience-page-data";
+
+type PageData = Awaited<ReturnType<typeof readAdminFeatureTelemetry>> & {
+  locale: string;
+  copy: { experience: typeof messages.adminExperience };
+};
 
 export let data: PageData;
 
-const numberFormatter = new Intl.NumberFormat(data.locale);
-const durationFormatter = new Intl.NumberFormat(data.locale, {
+$: numberFormatter = new Intl.NumberFormat(data.locale);
+$: durationFormatter = new Intl.NumberFormat(data.locale, {
   maximumFractionDigits: 1,
-});
-const dateFormatter = new Intl.DateTimeFormat(data.locale, {
-  dateStyle: "medium",
-  timeStyle: "short",
-  timeZone: "Asia/Shanghai",
 });
 
 $: total = data.rows.reduce((sum, row) => sum + row.total, 0);
@@ -40,26 +39,6 @@ function label(group: string, value: string) {
   return typeof translated === "string" ? translated : value;
 }
 
-function queryHref(
-  currentData: PageData,
-  overrides: Record<string, string | undefined> = {},
-) {
-  const params = new URLSearchParams();
-  params.set("days", String(currentData.days));
-  for (const [key, value] of Object.entries({
-    ...currentData.filters,
-    errors: currentData.showErrors ? "1" : undefined,
-    ...overrides,
-  })) {
-    if (value) params.set(key, value);
-  }
-  return `/admin/experience?${params.toString()}`;
-}
-
-function windowLabel(days: number, template: string) {
-  return template.replace("{days}", String(days));
-}
-
 function metric(value: number | null) {
   return value === null ? "—" : durationFormatter.format(value);
 }
@@ -67,24 +46,8 @@ function metric(value: number | null) {
 function metricWithUnit(value: number | null) {
   return value === null ? "—" : `${metric(value)} ms`;
 }
-
-function dateLabel(value: string) {
-  return dateFormatter.format(new Date(value));
-}
 </script>
 
-<svelte:head><title>{data.copy.experience.title} - Life@USTC</title></svelte:head>
-
-<AdminWorkspace>
-  {#snippet header()}
-    <PageHeader
-      title={data.copy.experience.title}
-      description={data.copy.experience.subtitle}
-      eyebrow={data.copy.admin.title}
-    />
-  {/snippet}
-
-  {#snippet controls()}
     <section aria-labelledby="experience-window-title" class="grid gap-4 border-y py-4">
       <div class="flex flex-wrap items-baseline justify-between gap-3">
         <div class="grid gap-1">
@@ -95,20 +58,10 @@ function dateLabel(value: string) {
               .replace("{to}", data.coverage.endDayExclusive)}
           </p>
         </div>
-        <nav class="flex flex-wrap gap-2" aria-label={data.copy.experience.window}>
-          {#each [7, 30, 90] as days}
-            <Button
-              href={queryHref(data, { days: String(days) })}
-              aria-current={data.days === days ? "page" : undefined}
-              variant={data.days === days ? "default" : "outline"}
-            >{windowLabel(days, data.copy.experience.days)}</Button>
-          {/each}
-        </nav>
       </div>
 
       <form method="GET">
         <input type="hidden" name="days" value={data.days} />
-        {#if data.showErrors}<input type="hidden" name="errors" value="1" />{/if}
         <Field.Group class="gap-4">
           <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
             <Field.Field>
@@ -163,12 +116,11 @@ function dateLabel(value: string) {
           </div>
           <Field.Field orientation="horizontal" class="gap-2">
             <Button class="flex-1 sm:flex-none" type="submit">{data.copy.experience.apply}</Button>
-            <Button class="flex-1 sm:flex-none" href="/admin/experience" variant="outline">{data.copy.experience.clear}</Button>
+            <Button class="flex-1 sm:flex-none" href="/admin/analytics" variant="outline">{data.copy.experience.clear}</Button>
           </Field.Field>
         </Field.Group>
       </form>
     </section>
-  {/snippet}
 
   {#if data.status.state === "unavailable"}
     <Alert.Root variant="destructive">
@@ -186,15 +138,6 @@ function dateLabel(value: string) {
         <Empty.Description>{data.copy.experience.notObservedDescription}</Empty.Description>
       </Empty.Header>
     </Empty.Root>
-    <Button
-      class="w-fit"
-      href={queryHref(data, { errors: data.showErrors ? undefined : "1" })}
-      variant="outline"
-    >
-      {data.showErrors
-        ? data.copy.experience.hideErrors
-        : data.copy.experience.showErrors}
-    </Button>
   {:else}
     <section aria-labelledby="experience-summary-title" class="grid gap-3">
       <h2 id="experience-summary-title" class="text-lg font-semibold">{data.copy.experience.summary}</h2>
@@ -212,9 +155,6 @@ function dateLabel(value: string) {
           <h2 id="experience-matrix-title" class="text-lg font-semibold">{data.copy.experience.matrix}</h2>
           <p class="text-sm text-muted-foreground">{data.copy.experience.matrixDescription}</p>
         </div>
-        <Button href={queryHref(data, { errors: data.showErrors ? undefined : "1" })} variant="outline">
-          {data.showErrors ? data.copy.experience.hideErrors : data.copy.experience.showErrors}
-        </Button>
       </div>
 
       <AdminListShell class="xl:hidden py-1">
@@ -264,7 +204,7 @@ function dateLabel(value: string) {
           <Table.Body>
             {#each data.rows as row (`${row.feature}-${row.operation}-${row.protocol}-${row.surface}-${row.authMode}-${row.outcome}`)}
               <Table.Row class="align-top">
-                <Table.Cell class="max-w-0"><span class="block max-w-52 truncate" title={row.feature}>{row.feature}</span></Table.Cell>
+                <Table.Cell class="whitespace-nowrap">{row.feature}</Table.Cell>
                 <Table.Cell class="max-w-0"><span class="block max-w-52 truncate" title={row.operation}>{row.operation}</span></Table.Cell>
                 <Table.Cell>{label("protocols", row.protocol)}</Table.Cell>
                 <Table.Cell>{label("surfaces", row.surface)}</Table.Cell>
@@ -282,6 +222,7 @@ function dateLabel(value: string) {
       </AdminTableShell>
     </section>
 
+  {/if}
     <section class="grid gap-3 border-t pt-4" aria-labelledby="experience-notes-title">
       <h2 id="experience-notes-title" class="text-lg font-semibold">{data.copy.experience.notes}</h2>
       <ul class="grid gap-2 text-sm text-muted-foreground">
@@ -292,36 +233,3 @@ function dateLabel(value: string) {
         <li>{data.copy.experience.retentionNote}</li>
       </ul>
     </section>
-
-  {/if}
-
-  {#if data.showErrors}
-    <section aria-labelledby="experience-errors-title" class="grid gap-3 border-t pt-4">
-        <div class="grid gap-1">
-          <h2 id="experience-errors-title" class="text-lg font-semibold">{data.copy.experience.recentErrors}</h2>
-          <p class="text-sm text-muted-foreground">{data.copy.experience.recentErrorsDescription}</p>
-          {#if data.errorsTruncated}<p class="text-sm text-muted-foreground">{data.copy.experience.moreIssues}</p>{/if}
-        </div>
-        {#if data.errorsStatus.state === "unavailable"}
-          <Alert.Root variant="destructive">
-            <Alert.Title>{data.copy.experience.unavailable}</Alert.Title>
-            <Alert.Description>{data.copy.experience.unavailableQuery}</Alert.Description>
-          </Alert.Root>
-        {:else if data.errorSamples.length === 0}
-          <Empty.Root class="items-start border-y px-0 text-left"><Empty.Header class="items-start text-left"><Empty.Title>{data.copy.experience.noRecentErrors}</Empty.Title></Empty.Header></Empty.Root>
-        {:else}
-          <AdminTableShell label={data.copy.experience.recentErrors}>
-            <Table.Root class="min-w-[60rem]">
-              <Table.Caption class="sr-only">{data.copy.experience.recentErrors}</Table.Caption>
-              <Table.Header><Table.Row><Table.Head>{data.copy.experience.time}</Table.Head><Table.Head>{data.copy.experience.feature}</Table.Head><Table.Head>{data.copy.experience.operation}</Table.Head><Table.Head>{data.copy.experience.outcome}</Table.Head><Table.Head>{data.copy.experience.errorClass}</Table.Head><Table.Head>{data.copy.experience.requestId}</Table.Head></Table.Row></Table.Header>
-              <Table.Body>
-                {#each data.errorSamples as sample}
-                  <Table.Row><Table.Cell class="whitespace-nowrap">{dateLabel(sample.occurredAt)}</Table.Cell><Table.Cell>{sample.feature}</Table.Cell><Table.Cell>{sample.operation}</Table.Cell><Table.Cell><Badge variant={sample.outcome === "unknown" ? "outline" : "destructive"}>{label("outcomes", sample.outcome)}</Badge></Table.Cell><Table.Cell>{label("errorClasses", sample.errorClass)}</Table.Cell><Table.Cell class="font-mono text-xs">{sample.requestId}</Table.Cell></Table.Row>
-                {/each}
-              </Table.Body>
-            </Table.Root>
-          </AdminTableShell>
-        {/if}
-    </section>
-  {/if}
-</AdminWorkspace>

@@ -1,5 +1,6 @@
 <script lang="ts">
 import ChevronRightIcon from "@lucide/svelte/icons/chevron-right";
+import AdminFeatureIssues from "@/features/admin/components/AdminFeatureIssues.svelte";
 import AdminListShell from "@/features/admin/components/AdminListShell.svelte";
 import AdminTableShell from "@/features/admin/components/AdminTableShell.svelte";
 import AdminWorkspace from "@/features/admin/components/AdminWorkspace.svelte";
@@ -40,12 +41,22 @@ function identity(
   };
 }
 
-function nextHref(cursor: string) {
-  return buildAdminAuditHref(data.filters, cursor);
+function issueQuery(issues: PageData["issues"]) {
+  return {
+    issue_days: String(issues.days),
+    issue_feature: issues.filters.feature,
+    issue_protocol: issues.filters.protocol,
+  };
 }
-
-function newestHref() {
-  return buildAdminAuditHref(data.filters);
+function auditHref(current: PageData, cursor?: string) {
+  const url = new URL(
+    buildAdminAuditHref(current.filters, cursor),
+    "https://admin.local",
+  );
+  for (const [key, value] of Object.entries(issueQuery(current.issues))) {
+    if (value) url.searchParams.set(key, value);
+  }
+  return `${url.pathname}${url.search}`;
 }
 
 function pageLabel() {
@@ -73,11 +84,13 @@ function displayValue(value: unknown) {
   {/snippet}
 
   {#snippet controls()}
+<AdminFeatureIssues data={data.issues} copy={data.copy.telemetry} locale={data.locale} auditFilters={data.filters} />
     <section aria-labelledby="audit-filters-title" class="grid gap-4 border-y py-4">
       <h2 id="audit-filters-title" class="text-base font-semibold">
         {data.copy.audit.filters}
       </h2>
       <form method="GET">
+{#each Object.entries(issueQuery(data.issues)) as [key,value]}{#if value}<input type="hidden" name={key} value={value} />{/if}{/each}
         <Field.Group class="gap-4">
           <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
             <Field.Field>
@@ -260,8 +273,8 @@ function displayValue(value: unknown) {
     <footer class="flex flex-col items-stretch gap-3 sm:flex-row sm:items-center sm:justify-end">
       <span class="text-sm text-muted-foreground">{pageLabel()}</span>
       <div class="flex gap-2">
-        {#if data.pagination.hasCursor}<Button class="flex-1" href={newestHref()} variant="ghost">{data.copy.audit.newest}</Button>{/if}
-        {#if data.pagination.nextCursor}<Button class="flex-1" href={nextHref(data.pagination.nextCursor)} variant="outline">{data.copy.audit.next}</Button>{/if}
+        {#if data.pagination.hasCursor}<Button class="flex-1" href={auditHref(data)} variant="ghost">{data.copy.audit.newest}</Button>{/if}
+        {#if data.pagination.nextCursor}<Button class="flex-1" href={auditHref(data, data.pagination.nextCursor)} variant="outline">{data.copy.audit.next}</Button>{/if}
       </div>
     </footer>
   </section>

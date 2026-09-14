@@ -5,7 +5,6 @@ import {
   getCloudflareAnalyticsReadPort,
 } from "@/lib/ports/analytics";
 import { shanghaiDayjs } from "@/lib/time/shanghai-dayjs";
-import { requireAdminPage } from "./admin-page-auth";
 
 export const ADMIN_EXPERIENCE_DAYS = [7, 30, 90] as const;
 export const ADMIN_EXPERIENCE_MAX_ROWS = 500;
@@ -217,7 +216,7 @@ export function buildAdminExperienceErrorQuery(
           "blob9 != ''",
         ],
       )}
-      ORDER BY timestamp DESC
+      ORDER BY occurred_at DESC
       LIMIT ${ADMIN_EXPERIENCE_ERROR_LIMIT + 1}
       FORMAT JSON`;
 }
@@ -449,67 +448,97 @@ async function readAggregateRows(
   }
 }
 
-export async function getAdminExperiencePage(
-  request: Request,
+async function readIssueRows(
+  port: CloudflareAnalyticsReadPort,
+  filters: AdminExperienceFilters,
+  window: AdminExperienceWindow,
+) {
+  try {
+    const issueRows = await port.query(
+      buildAdminExperienceErrorQuery(filters, window),
+    );
+    const errorSamples = parseAdminExperienceErrorRows(issueRows);
+    return {
+      errorSamples,
+      errorsStatus:
+        errorSamples.length > 0
+          ? ({ state: "ready" } as const)
+          : ({ state: "empty" } as const),
+      errorsTruncated: issueRows.length > ADMIN_EXPERIENCE_ERROR_LIMIT,
+    };
+  } catch (error) {
+    return {
+      errorSamples: [],
+      errorsStatus: unavailableState(error),
+      errorsTruncated: false,
+    };
+  }
+}
+
+function featureTelemetryCatalog() {
+  return {
+    authModes: ADMIN_EXPERIENCE_AUTH_MODES,
+    errorClasses: ADMIN_EXPERIENCE_ERROR_CLASSES,
+    features: ADMIN_EXPERIENCE_FEATURES,
+    outcomes: ADMIN_EXPERIENCE_OUTCOMES,
+    protocols: ADMIN_EXPERIENCE_PROTOCOLS,
+    surfaces: ADMIN_EXPERIENCE_SURFACES,
+  };
+}
+
+function featureTelemetryCoverage(window: AdminExperienceWindow) {
+  return {
+    endDayExclusive: window.toDay,
+    fromDay: window.fromDay,
+    includesToday: false,
+    sampling: "weighted_estimate" as const,
+    timezone: "Asia/Shanghai" as const,
+  };
+}
+
+export async function readAdminFeatureTelemetry(
   url: URL,
   options: { now?: Date; readPort?: CloudflareAnalyticsReadPort } = {},
 ) {
-  await requireAdminPage(request);
   const days = parseDays(url.searchParams.get("days"));
   const filters = parseAdminExperienceFilters(url);
   const window = buildAdminExperienceWindow(days, options.now);
   const port = options.readPort ?? getCloudflareAnalyticsReadPort();
   const aggregate = await readAggregateRows(port, filters, window);
-  const showErrors = url.searchParams.get("errors") === "1";
-  let errorSamples: AdminExperienceErrorSample[] = [];
-  let errorsTruncated = false;
-  let errorsStatus: ReadState = { state: "empty" };
-
-  if (showErrors) {
-    if (
-      aggregate.status.state === "unavailable" &&
-      aggregate.status.reason !== "query_failed"
-    ) {
-      errorsStatus = aggregate.status;
-    } else {
-      try {
-        const issueRows = await port.query(
-          buildAdminExperienceErrorQuery(filters, window),
-        );
-        errorSamples = parseAdminExperienceErrorRows(issueRows);
-        errorsTruncated = issueRows.length > ADMIN_EXPERIENCE_ERROR_LIMIT;
-        errorsStatus =
-          errorSamples.length > 0 ? { state: "ready" } : { state: "empty" };
-      } catch (error) {
-        errorsStatus = unavailableState(error);
-      }
-    }
-  }
 
   return {
-    catalog: {
-      authModes: ADMIN_EXPERIENCE_AUTH_MODES,
-      errorClasses: ADMIN_EXPERIENCE_ERROR_CLASSES,
-      features: ADMIN_EXPERIENCE_FEATURES,
-      outcomes: ADMIN_EXPERIENCE_OUTCOMES,
-      protocols: ADMIN_EXPERIENCE_PROTOCOLS,
-      surfaces: ADMIN_EXPERIENCE_SURFACES,
-    },
-    coverage: {
-      endDayExclusive: window.toDay,
-      fromDay: window.fromDay,
-      includesToday: false,
-      sampling: "weighted_estimate" as const,
-      timezone: "Asia/Shanghai" as const,
-    },
+    catalog: featureTelemetryCatalog(),
+    coverage: featureTelemetryCoverage(window),
     days,
-    errorSamples,
-    errorsStatus,
-    errorsTruncated,
     filters,
     rows: aggregate.rows,
-    showErrors,
     status: aggregate.status,
+    window,
+  };
+}
+
+export async function readAdminFeatureIssues(
+  url: URL,
+  options: { now?: Date; readPort?: CloudflareAnalyticsReadPort } = {},
+) {
+  const days = parseDays(url.searchParams.get("issue_days"));
+  const filterUrl = new URL(url);
+  filterUrl.search = "";
+  for (const key of ["feature", "protocol"]) {
+    const value = url.searchParams.get(`issue_${key}`);
+    if (value) filterUrl.searchParams.set(key, value);
+  }
+  const filters = parseAdminExperienceFilters(filterUrl);
+  const window = buildAdminExperienceWindow(days, options.now);
+  const port = options.readPort ?? getCloudflareAnalyticsReadPort();
+  const issues = await readIssueRows(port, filters, window);
+
+  return {
+    catalog: featureTelemetryCatalog(),
+    coverage: { ...featureTelemetryCoverage(window), includesToday: true },
+    days,
+    ...issues,
+    filters,
     window,
   };
 }

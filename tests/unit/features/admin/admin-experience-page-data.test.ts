@@ -3,27 +3,21 @@ import {
   buildAdminExperienceAggregateQuery,
   buildAdminExperienceErrorQuery,
   buildAdminExperienceWindow,
-  getAdminExperiencePage,
   parseAdminExperienceAggregateRows,
   parseAdminExperienceErrorRows,
   parseAdminExperienceFilters,
+  readAdminFeatureIssues,
+  readAdminFeatureTelemetry,
 } from "@/features/admin/server/admin-experience-page-data";
 import type { CloudflareAnalyticsReadPort } from "@/lib/ports/analytics";
 
-const requireAdminPageMock = vi.hoisted(() => vi.fn());
-
-vi.mock("@/features/admin/server/admin-page-auth", () => ({
-  requireAdminPage: requireAdminPageMock,
-}));
-
 function requestUrl(query = "") {
-  return new URL(`https://life.example/admin/experience${query}`);
+  return new URL(`https://life.example/admin/analytics${query}`);
 }
 
 describe("admin feature experience read model", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    requireAdminPageMock.mockResolvedValue({ id: "admin-1" });
   });
 
   it("uses completed Shanghai days and converts their boundaries to UTC SQL time", () => {
@@ -148,91 +142,46 @@ describe("admin feature experience read model", () => {
     ).toThrow(/too many aggregate rows/i);
   });
 
-  it("authenticates before reading, distinguishes empty telemetry, and only drills into errors explicitly", async () => {
+  it("loads only the requested panel and isolates audit filters from issue filters", async () => {
     const query = vi.fn().mockResolvedValue([]);
-    const port: CloudflareAnalyticsReadPort = { query };
-
-    const empty = await getAdminExperiencePage(
-      new Request("https://life.example/admin/experience"),
-      requestUrl(),
-      { now: new Date("2026-09-14T00:00:00+08:00"), readPort: port },
-    );
-
-    expect(requireAdminPageMock).toHaveBeenCalledTimes(1);
-    expect(empty.status).toEqual({ state: "empty" });
+    const options = {
+      now: new Date("2026-09-14T00:10:00Z"),
+      readPort: { query },
+    };
+    const aggregate = await readAdminFeatureTelemetry(requestUrl(), options);
+    expect(aggregate.status).toEqual({ state: "empty" });
     expect(query).toHaveBeenCalledTimes(1);
-
+    expect(query.mock.calls[0][0]).toContain("quantileExactWeighted");
     query.mockResolvedValueOnce([
       {
-        auth_mode: "anonymous",
-        error_count: 0,
-        feature: "catalog.search",
-        operation: "query",
-        outcome: "success",
-        p50_wall_ms: 4,
-        p95_wall_ms: 8,
-        protocol: "web",
-        rejected_count: 0,
-        surface: "web",
-        total: 1,
-        unknown_count: 0,
+        auth_mode: "unknown",
+        error_class: "unknown",
+        feature: "workspace.overview",
+        occurred_at: "2026-09-14T00:05:00Z",
+        operation: "load",
+        outcome: "unknown",
+        protocol: "mcp",
+        request_id: "req_unknown",
+        surface: "unknown",
       },
     ]);
-    query.mockResolvedValueOnce([
-      {
-        auth_mode: "anonymous",
-        error_class: "internal",
-        feature: "catalog.search",
-        occurred_at: "2026-09-13T16:00:00.000Z",
-        operation: "query",
-        outcome: "error",
-        protocol: "web",
-        request_id: "req_123",
-        surface: "web",
-      },
-    ]);
-
-    const withErrors = await getAdminExperiencePage(
-      new Request("https://life.example/admin/experience"),
-      requestUrl("?errors=1"),
-      { now: new Date("2026-09-14T00:00:00+08:00"), readPort: port },
+    const issues = await readAdminFeatureIssues(
+      new URL(
+        "https://life.example/admin/audit?outcome=denied&issue_feature=workspace.overview&issue_protocol=mcp&issue_days=7",
+      ),
+      options,
     );
-    expect(withErrors.showErrors).toBe(true);
-    expect(withErrors.errorSamples[0]?.requestId).toBe("req_123");
-    expect(query).toHaveBeenCalledTimes(3);
-    expect(String(query.mock.calls[2]?.[0])).toContain("LIMIT 21");
-  });
-
-  it("queries current issue samples even when completed-day usage is empty", async () => {
-    const query = vi
-      .fn()
-      .mockResolvedValueOnce([])
-      .mockResolvedValueOnce([
-        {
-          auth_mode: "unknown",
-          error_class: "unknown",
-          feature: "workspace.overview",
-          occurred_at: "2026-09-14T00:05:00.000Z",
-          operation: "load",
-          outcome: "unknown",
-          protocol: "mcp",
-          request_id: "req_unknown",
-          surface: "unknown",
-        },
-      ]);
-    const result = await getAdminExperiencePage(
-      new Request("https://life.example/admin/experience"),
-      requestUrl("?errors=1"),
-      { now: new Date("2026-09-14T00:10:00.000Z"), readPort: { query } },
-    );
-
-    expect(result.status).toEqual({ state: "empty" });
-    expect(result.errorsStatus).toEqual({ state: "ready" });
-    expect(result.errorSamples[0]).toMatchObject({
-      outcome: "unknown",
-      requestId: "req_unknown",
-    });
     expect(query).toHaveBeenCalledTimes(2);
+    expect(issues.days).toBe(7);
+    expect(issues.coverage.includesToday).toBe(true);
+    expect(issues.errorsStatus).toEqual({ state: "ready" });
+    expect(issues.errorSamples[0].requestId).toBe("req_unknown");
+    const sql = query.mock.calls[1][0];
+    expect(sql).toContain("LIMIT 21");
+    expect(sql).toContain("blob2 = 'workspace.overview'");
+    expect(sql).toContain("blob4 = 'mcp'");
+    expect(sql).not.toContain("denied");
+    expect(sql).not.toContain("quantileExactWeighted");
   });
 
   it("marks malformed rows unavailable instead of presenting unsupported values", async () => {
@@ -254,11 +203,9 @@ describe("admin feature experience read model", () => {
         },
       ]),
     };
-    const result = await getAdminExperiencePage(
-      new Request("https://life.example/admin/experience"),
-      requestUrl(),
-      { readPort: port },
-    );
+    const result = await readAdminFeatureTelemetry(requestUrl(), {
+      readPort: port,
+    });
     expect(result.status).toEqual({
       state: "unavailable",
       reason: "query_failed",
@@ -274,6 +221,8 @@ describe("admin feature experience read model", () => {
     expect(query).toContain("blob7 IN ('rejected', 'error', 'unknown')");
     expect(query).toContain("blob9 != ''");
     expect(query).toContain("LIMIT 21");
+    expect(query).toContain("ORDER BY occurred_at DESC");
+    expect(query).not.toContain("ORDER BY timestamp");
     expect(query).toContain("blob8 != 'none'");
     expect(query).toContain("timestamp < toDateTime('2026-09-14 15:30:00')");
     expect(query).not.toContain("exception");
@@ -348,7 +297,6 @@ it("rejects inconsistent counts and inverted percentiles", () => {
 });
 
 it("flags capped issue samples while retaining the most recent twenty", async () => {
-  requireAdminPageMock.mockResolvedValue({ id: "admin" });
   const row = {
     auth_mode: "anonymous",
     feature: "catalog.course",
@@ -362,11 +310,9 @@ it("flags capped issue samples while retaining the most recent twenty", async ()
   };
   const query = vi
     .fn()
-    .mockResolvedValueOnce([])
     .mockResolvedValueOnce(Array.from({ length: 21 }, () => row));
-  const result = await getAdminExperiencePage(
-    new Request(requestUrl("?errors=1")),
-    requestUrl("?errors=1"),
+  const result = await readAdminFeatureIssues(
+    new URL("https://life.example/admin/audit"),
     { readPort: { query } },
   );
   expect(result.errorSamples).toHaveLength(20);

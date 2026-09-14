@@ -201,10 +201,12 @@ export async function assertPageContract(
         page.getByRole("link", { name: /校车管理|Bus Management/i }),
       ).toBeVisible();
       await expect(
-        page.getByRole("link", { name: /审计日志|Audit Log/i }),
+        page.getByRole("link", {
+          name: /操作与异常日志|Operations and Issues/i,
+        }),
       ).toBeVisible();
       await expect(
-        page.getByRole("link", { name: /聚合分析|Aggregate Analytics/i }),
+        page.getByRole("link", { name: /统计数据|Usage Statistics/i }),
       ).toBeVisible();
       await maybeCapture(page, testInfo, "admin-entry");
       return;
@@ -215,7 +217,9 @@ export async function assertPageContract(
       await gotoContractPage(page, routePath, testInfo);
       await expectMainContent(page);
       await expect(
-        page.getByRole("heading", { name: /审计日志|Audit Log/i }),
+        page.getByRole("heading", {
+          name: /操作与异常日志|Operations and Issues/i,
+        }),
       ).toBeVisible();
       await expect(
         page.getByRole("button", { name: /应用筛选|Apply filters/i }),
@@ -229,26 +233,12 @@ export async function assertPageContract(
       await gotoContractPage(page, routePath, testInfo);
       await expectMainContent(page);
       await expect(
-        page.getByRole("heading", { name: /聚合分析|Aggregate Analytics/i }),
+        page.getByRole("heading", { name: /统计数据|Usage Statistics/i }),
       ).toBeVisible();
       await expect(
         page.getByRole("link", { name: /最近 30 天|Last 30 days/i }),
       ).toBeVisible();
       await maybeCapture(page, testInfo, "admin-analytics");
-      return;
-    }
-
-    case "/admin/experience": {
-      await signInAsDevAdmin(page, "/admin/experience");
-      await gotoContractPage(page, routePath, testInfo);
-      await expectMainContent(page);
-      await expect(
-        page.getByRole("heading", { name: /功能体验|Feature Experience/i }),
-      ).toBeVisible();
-      await expect(
-        page.getByRole("button", { name: /应用筛选|Apply filters/i }),
-      ).toBeVisible();
-      await maybeCapture(page, testInfo, "admin-experience");
       return;
     }
 

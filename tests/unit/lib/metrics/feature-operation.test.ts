@@ -159,7 +159,8 @@ describe("feature operation recording", () => {
   it("excludes prefetch, HEAD, telemetry/admin, and transport envelopes", async () => {
     await run(async () => {
       for (const path of [
-        "/admin/experience",
+        "/admin/analytics",
+        "/admin/audit",
         "/api/graphql",
         "/api/mcp",
         "/api/health",

@@ -571,9 +571,9 @@
     "oauthDescription": "OAuth apps",
     "busTitle": "Bus Management",
     "busDescription": "Bus timetables",
-    "auditTitle": "Audit Log",
+    "auditTitle": "Operations and Issues",
     "auditDescription": "Sensitive operation records",
-    "analyticsTitle": "Aggregate Analytics",
+    "analyticsTitle": "Usage Statistics",
     "analyticsDescription": "Feature usage trends",
     "workspace": {
       "active": "active",
@@ -632,8 +632,8 @@
     "cannotDeleteActiveVersion": "Cannot delete active version"
   },
   "adminAudit": {
-    "title": "Audit Log",
-    "subtitle": "Filter sensitive operations by actor, subject, client, action, outcome, channel, target, and time. Content bodies, IP addresses, and full device details are not shown here.",
+    "title": "Operations and Issues",
+    "subtitle": "Recorded audit operations across accounts and recent feature issue samples; not complete browsing histories or all runtime logs.",
     "filters": "Filters",
     "advancedFilters": "More filters",
     "actor": "Actor ID",
@@ -663,8 +663,8 @@
     "page": "Showing {shown} · {total} records total"
   },
   "adminAnalytics": {
-    "title": "Aggregate Analytics",
-    "subtitle": "Operation counts by feature, channel, outcome, and OAuth client, without per-user browsing trails.",
+    "title": "Usage Statistics",
+    "subtitle": "Daily trends, feature and channel breakdowns, and observed feature usage and latency. No per-user browsing trails.",
     "window": "Reporting window",
     "days": "Last {days} days",
     "total": "Total operations",
@@ -689,8 +689,7 @@
     "outcome": "Outcome",
     "client": "Client",
     "count": "Count",
-    "noData": "No aggregate data is available for this period.",
-    "featureExperienceLink": "Open feature experience"
+    "noData": "No aggregate data is available for this period."
   },
   "adminExperience": {
     "title": "Feature Experience",
@@ -718,10 +717,8 @@
     "matrixDescription": "Rows appear only when the selected dimensions were observed in the reporting window.",
     "p50": "Wall p50 (ms)",
     "p95": "Wall p95 (ms)",
-    "showErrors": "Show recent issues",
-    "hideErrors": "Hide recent issues",
-    "recentErrors": "Recent issue samples",
-    "recentErrorsDescription": "Includes rejected, error, and explicitly unclassified samples from the selected period, including today through the query time. Only sampled request IDs and error classes are shown; raw exceptions and stacks are not collected here.",
+    "recentErrors": "Recent feature issue samples",
+    "recentErrorsDescription": "Up to 20 recent samples, including today through the read time. May be sampled; excludes other runtime errors and raw stacks. Unknown outcomes are not confirmed failures.",
     "requestId": "Request ID",
     "time": "Time",
     "moreIssues": "Only the 20 latest sampled issues are shown. Narrow the filters to inspect more.",
@@ -781,7 +778,9 @@
       "dependency": "Dependency",
       "internal": "Internal",
       "unknown": "Unknown"
-    }
+    },
+    "issueApply": "Filter issues",
+    "issueDays": "Last {days} full days + today"
   },
   "adminUsers": {
     "title": "User Management",
