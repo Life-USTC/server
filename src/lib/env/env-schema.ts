@@ -25,6 +25,8 @@ export const commonEnvSchema = z.object({
   UPLOAD_TOTAL_QUOTA_MB: optionalPositiveInt,
   E2E_DEBUG_AUTH: optionalString,
   AMAP_API_KEY: optionalString,
+  CLOUDFLARE_ANALYTICS_ACCOUNT_ID: optionalString,
+  CLOUDFLARE_ANALYTICS_API_TOKEN: optionalString,
 });
 
 export const runtimeRequiredEnvSchema = z.object({
