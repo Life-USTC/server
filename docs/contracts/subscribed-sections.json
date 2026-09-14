@@ -46,7 +46,7 @@
             },
             "returns": "SubscribedSectionPage!",
             "auth": "user",
-            "required_scopes": ["subscription:read"],
+            "required_scopes": ["workspace.subscription:read"],
             "rest_equivalent": "GET /api/workspace/subscriptions/current",
             "mcp_equivalent": "workspace_subscription_list",
             "notes": [

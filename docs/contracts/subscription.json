@@ -34,7 +34,7 @@
             },
             "returns": "SectionSubscriptionMutationPayload!",
             "auth": "user",
-            "required_scopes": ["subscription:write"],
+            "required_scopes": ["workspace.subscription:write"],
             "mcp_equivalent": "workspace_subscription_add"
           },
           {
@@ -44,7 +44,7 @@
             },
             "returns": "SectionSubscriptionMutationPayload!",
             "auth": "user",
-            "required_scopes": ["subscription:write"],
+            "required_scopes": ["workspace.subscription:write"],
             "mcp_equivalent": "workspace_subscription_remove"
           }
         ]
@@ -97,7 +97,7 @@
             },
             "returns": "SectionSubscriptionBatchPayload!",
             "auth": "user",
-            "required_scopes": ["subscription:write"],
+            "required_scopes": ["workspace.subscription:write"],
             "rest_equivalent": "POST /api/workspace/subscriptions/batch",
             "mcp_equivalent": "workspace_subscription_import",
             "notes": [
