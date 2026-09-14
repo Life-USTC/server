@@ -1,4 +1,5 @@
 import { afterAll, describe, expect, it } from "vitest";
+import { writeAuditLog } from "@/lib/audit/write-audit-log";
 import { recordOAuthGrantUsage } from "@/lib/oauth/grant-usage";
 import {
   createFixturePrisma,
@@ -20,6 +21,7 @@ const expectedTablePrivileges = [
   "Account:INSERT",
   "Account:SELECT",
   "Account:UPDATE",
+  "AuditLog:INSERT",
   "DeviceCode:DELETE",
   "DeviceCode:INSERT",
   "DeviceCode:SELECT",
@@ -230,8 +232,9 @@ describe.skipIf(process.env.AUTH_ROLE_TEST_ENABLED !== "true")(
       ]);
     });
 
-    it("can manage auth records but cannot read app-owned data", async () => {
+    it("can append audit records but cannot read or mutate them", async () => {
       const marker = `auth-role-${crypto.randomUUID()}`;
+      const auditId = `${marker}-audit`;
       const user = await authPrisma.user.create({
         data: { email: `${marker}@example.test`, name: marker },
         select: { id: true },
@@ -247,9 +250,40 @@ describe.skipIf(process.env.AUTH_ROLE_TEST_ENABLED !== "true")(
             },
           }),
         ).resolves.toMatchObject({ userId: user.id });
+        await writeAuditLog(
+          {
+            action: "account_sign_in",
+            channel: "auth",
+            id: auditId,
+            subjectUserId: user.id,
+            userId: user.id,
+          },
+          authPrisma,
+        );
+        await expect(
+          adminPrisma.auditLog.findUnique({ where: { id: auditId } }),
+        ).resolves.toMatchObject({
+          action: "account_sign_in",
+          channel: "auth",
+          id: auditId,
+          subjectUserId: user.id,
+          userId: user.id,
+        });
         await expect(authPrisma.todo.count()).rejects.toThrow();
-        await expect(authPrisma.auditLog.count()).rejects.toThrow();
+        await expect(authPrisma.auditLog.count()).rejects.toThrow(
+          "permission denied for table AuditLog",
+        );
+        await expect(
+          authPrisma.auditLog.updateMany({
+            where: { id: auditId },
+            data: { outcome: "failure" },
+          }),
+        ).rejects.toThrow("permission denied for table AuditLog");
+        await expect(
+          authPrisma.auditLog.deleteMany({ where: { id: auditId } }),
+        ).rejects.toThrow("permission denied for table AuditLog");
       } finally {
+        await adminPrisma.auditLog.deleteMany({ where: { id: auditId } });
         await adminPrisma.user.delete({ where: { id: user.id } });
       }
     });

@@ -229,6 +229,7 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE "VerifiedEmail"
 TO life_ustc_auth_runtime;
 GRANT USAGE, SELECT ON SEQUENCE "VerifiedEmail_id_seq"
 TO life_ustc_auth_runtime;
+GRANT INSERT ON TABLE "AuditLog" TO life_ustc_auth_runtime;
 
 GRANT USAGE ON SCHEMA public TO life_ustc_function_owner;
 GRANT SELECT ON TABLE
