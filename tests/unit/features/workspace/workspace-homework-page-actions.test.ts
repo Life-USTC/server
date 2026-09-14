@@ -100,10 +100,38 @@ describe("homework action metric boundary", () => {
         "create",
         "web",
         "web",
-        "unknown",
+        "session",
         outcome,
         errorClass,
       ]);
     },
   );
+});
+
+it("records an unauthenticated action without attempting a write", async () => {
+  getSessionFromHeadersMock.mockReset().mockResolvedValue(null);
+  createHomeworkForSectionMock.mockReset();
+  const writeDataPoint = vi.fn();
+  const { createHomeworkWorkspaceAction } = await import(
+    "@/features/workspace/server/workspace-homework-page-actions"
+  );
+  await runWithCloudflareRuntimeEnv(
+    { ANALYTICS: { writeDataPoint } },
+    async () => {
+      await expect(
+        createHomeworkWorkspaceAction({
+          locals: { locale: "en-us" },
+          request: actionRequest(),
+        }),
+      ).resolves.toMatchObject({ status: 401 });
+    },
+  );
+  expect(getSessionFromHeadersMock).toHaveBeenCalledTimes(1);
+  expect(createHomeworkForSectionMock).not.toHaveBeenCalled();
+  expect(writeDataPoint).toHaveBeenCalledTimes(1);
+  expect(writeDataPoint.mock.calls[0][0].blobs.slice(5, 8)).toEqual([
+    "anonymous",
+    "rejected",
+    "unauthorized",
+  ]);
 });

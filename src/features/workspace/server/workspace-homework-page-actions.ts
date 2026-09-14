@@ -14,6 +14,7 @@ import type { AppLocale } from "@/i18n/config";
 import {
   classifyFeatureError,
   classifyFeatureStatus,
+  type FeatureOperationContext,
   observeFeatureOperation,
 } from "@/lib/metrics/feature-operation";
 import { getWorkspaceActionCopy } from "./workspace-action-copy";
@@ -23,12 +24,11 @@ type WorkspaceActionEvent = {
   request: Request;
 };
 
-async function runCreateHomeworkWorkspaceAction({
-  locals,
-  request,
-}: WorkspaceActionEvent) {
+async function runCreateHomeworkWorkspaceAction(
+  { locals, request }: WorkspaceActionEvent,
+  userId: string | null,
+) {
   const copy = getWorkspaceActionCopy(locals.locale).homeworks;
-  const userId = await getWorkspaceUserId(request);
   if (!userId) return fail(401, { error: copy.errorUnauthorized });
   const form = await request.formData();
   const title = String(form.get("title") ?? "").trim();
@@ -92,15 +92,20 @@ async function runCreateHomeworkWorkspaceAction({
 
 /** Form actions encode redirects inside enhanced responses, so observe the action result. */
 export function createHomeworkWorkspaceAction(event: WorkspaceActionEvent) {
+  const observation: FeatureOperationContext = {
+    feature: "community.section-homework",
+    operation: "create",
+    protocol: "web",
+    surface: "web",
+    authMode: "unknown",
+  };
   return observeFeatureOperation(
-    {
-      feature: "community.section-homework",
-      operation: "create",
-      protocol: "web",
-      surface: "web",
-      authMode: "unknown",
+    observation,
+    async () => {
+      const userId = await getWorkspaceUserId(event.request);
+      observation.authMode = userId ? "session" : "anonymous";
+      return runCreateHomeworkWorkspaceAction(event, userId);
     },
-    () => runCreateHomeworkWorkspaceAction(event),
     (failure) => classifyFeatureStatus(failure.status),
     (error) =>
       isRedirect(error) &&
