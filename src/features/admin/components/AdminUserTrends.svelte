@@ -1,7 +1,6 @@
 <script lang="ts">
 import DailySeriesChart from "$lib/components/charts/DailySeriesChart.svelte";
 import type { DailySeries } from "$lib/components/charts/daily-series";
-import DashboardPanel from "$lib/components/dashboard/DashboardPanel.svelte";
 import StatPanels from "$lib/components/dashboard/StatPanels.svelte";
 import * as Alert from "$lib/components/ui/alert/index.js";
 import * as Empty from "$lib/components/ui/empty/index.js";
@@ -46,7 +45,12 @@ function count(value: number | null) {
 }
 </script>
 
-<DashboardPanel id="admin-user-trends" title={copy.title} description={copy.subtitle}>
+<section aria-labelledby="admin-user-trends-title" class="grid min-w-0 gap-3">
+  <header class="grid gap-1">
+    <h2 id="admin-user-trends-title" class="text-base font-semibold">{copy.title}</h2>
+    <p class="text-sm text-muted-foreground">{copy.subtitle}</p>
+  </header>
+
   {#if data.status.state === "unavailable"}
     <Alert.Root variant="destructive">
       <Alert.Title>{copy.unavailable}</Alert.Title>
@@ -102,4 +106,4 @@ function count(value: number | null) {
       />
     {/if}
   {/if}
-</DashboardPanel>
+</section>

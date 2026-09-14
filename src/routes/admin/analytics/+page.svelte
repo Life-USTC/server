@@ -7,6 +7,8 @@ import {
   auditChannelLabel,
   auditFeatureLabel,
 } from "@/features/admin/lib/admin-audit-display";
+import { replaceState } from "$app/navigation";
+import { page } from "$app/stores";
 import DailySeriesChart from "$lib/components/charts/DailySeriesChart.svelte";
 import type { DailySeries } from "$lib/components/charts/daily-series";
 import DashboardPanel from "$lib/components/dashboard/DashboardPanel.svelte";
@@ -22,6 +24,16 @@ import * as Tabs from "$lib/components/ui/tabs/index.js";
 import type { PageData } from "./$types";
 
 export let data: PageData;
+
+type AnalyticsPanel = "feature" | "users" | "history";
+const analyticsPanels: readonly AnalyticsPanel[] = [
+  "feature",
+  "users",
+  "history",
+];
+
+$: requestedPanel = $page.url.searchParams.get("panel");
+$: activePanel = isAnalyticsPanel(requestedPanel) ? requestedPanel : "feature";
 
 $: numberFormatter = new Intl.NumberFormat(data.locale);
 $: percentFormatter = new Intl.NumberFormat(data.locale, {
@@ -101,10 +113,26 @@ function failureLabel(count: number) {
     numberFormatter.format(count),
   );
 }
+
+function isAnalyticsPanel(value: string | null): value is AnalyticsPanel {
+  return value !== null && analyticsPanels.includes(value as AnalyticsPanel);
+}
+
+function selectPanel(value: string) {
+  if (!isAnalyticsPanel(value) || value === activePanel) return;
+  const url = new URL($page.url);
+  if (value === "feature") url.searchParams.delete("panel");
+  else url.searchParams.set("panel", value);
+  void replaceState(url, {});
+}
+
 function periodHref(current: PageData, days: number) {
   const params = new URLSearchParams({ days: String(days) });
   for (const [key, value] of Object.entries(current.telemetry.filters)) {
     if (value) params.set(key, value);
+  }
+  if (isAnalyticsPanel($page.url.searchParams.get("panel"))) {
+    params.set("panel", $page.url.searchParams.get("panel") as AnalyticsPanel);
   }
   return `/admin/analytics?${params}`;
 }
@@ -114,14 +142,9 @@ function periodHref(current: PageData, days: number) {
 
 <AdminWorkspace compact>
   {#snippet header()}
-    <PageHeader title={data.copy.analytics.title} />
-  {/snippet}
-
-  {#snippet controls()}
-    <DashboardPanel id="analytics-window" title={data.copy.analytics.window} description={data.copy.analytics.subtitle}>
-      <Field.Group class="grid gap-2 sm:grid-cols-[auto_1fr] sm:items-center">
-        <p class="text-xs text-muted-foreground">{data.copy.analytics.trendDescription}</p>
-        <nav class="flex flex-wrap gap-2 sm:justify-end" aria-label={data.copy.analytics.window}>
+    <PageHeader title={data.copy.analytics.title}>
+      {#snippet actions()}
+        <nav class="flex flex-wrap gap-2" aria-label={data.copy.analytics.window}>
           {#each [7, 30, 90] as days}
             <Button
               size="sm"
@@ -131,47 +154,50 @@ function periodHref(current: PageData, days: number) {
             >{daysLabel(days)}</Button>
           {/each}
         </nav>
-      </Field.Group>
-    </DashboardPanel>
+      {/snippet}
+    </PageHeader>
   {/snippet}
 
-  {#snippet summary()}
-    <StatPanels
-      items={[
-        {
-          label: data.copy.analytics.total,
-          value: numberFormatter.format(data.summary.total),
-        },
-        {
-          label: data.copy.analytics.attention,
-          value: numberFormatter.format(attention),
-          hint: `${data.copy.analytics.failureRate} ${percentFormatter.format(failureRate)}`,
-        },
-        {
-          label: data.copy.analytics.externalShare,
-          value: percentFormatter.format(externalShare),
-        },
-        {
-          label: data.copy.analytics.activeClients,
-          value: numberFormatter.format(data.summary.activeClients),
-        },
-      ]}
-    />
-  {/snippet}
-
-  <AdminUserTrends data={data.userTrends} copy={data.copy.userTrends} locale={data.locale} />
-
-  <Tabs.Root value="feature" class="min-w-0 gap-4">
+  <Tabs.Root value={activePanel} onValueChange={selectPanel} class="min-w-0 gap-4">
     <Tabs.List aria-label={data.copy.analytics.title} class="w-full sm:w-fit">
       <Tabs.Trigger value="feature">{data.copy.telemetry.title}</Tabs.Trigger>
-      <Tabs.Trigger value="history">{data.copy.analytics.title}</Tabs.Trigger>
+      <Tabs.Trigger value="users">{data.copy.userTrends.title}</Tabs.Trigger>
+      <Tabs.Trigger value="history">{data.copy.analytics.trend}</Tabs.Trigger>
     </Tabs.List>
 
     <Tabs.Content value="feature" class="grid min-w-0 gap-4">
       <AdminFeatureTelemetry data={{...data.telemetry, locale: data.locale, copy: {experience: data.copy.telemetry}}} />
     </Tabs.Content>
 
+    <Tabs.Content value="users" class="grid min-w-0 gap-4">
+      <AdminUserTrends data={data.userTrends} copy={data.copy.userTrends} locale={data.locale} />
+    </Tabs.Content>
+
     <Tabs.Content value="history" class="grid min-w-0 gap-4">
+      <StatPanels
+        items={[
+          {
+            label: data.copy.analytics.total,
+            value: numberFormatter.format(data.summary.total),
+            hint: data.copy.analytics.subtitle,
+          },
+          {
+            label: data.copy.analytics.attention,
+            value: numberFormatter.format(attention),
+            hint: `${data.copy.analytics.failureRate} ${percentFormatter.format(failureRate)}`,
+          },
+          {
+            label: data.copy.analytics.externalShare,
+            value: percentFormatter.format(externalShare),
+            hint: data.copy.analytics.subtitle,
+          },
+          {
+            label: data.copy.analytics.activeClients,
+            value: numberFormatter.format(data.summary.activeClients),
+            hint: data.copy.analytics.subtitle,
+          },
+        ]}
+      />
       {#if data.summary.total === 0}
         <Empty.Root class="items-start border-y px-0 text-left">
           <Empty.Header class="items-start text-left">
