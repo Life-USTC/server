@@ -246,6 +246,10 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE "AuditLog"
 TO life_ustc_function_owner;
 GRANT SELECT, UPDATE, DELETE ON TABLE "OAuthGrantUsageDaily"
 TO life_ustc_function_owner;
+GRANT SELECT, UPDATE, DELETE ON TABLE
+  "FeatureOperationEvent",
+  "RuntimeIssueEvent"
+TO life_ustc_function_owner;
 GRANT DELETE ON TABLE "User" TO life_ustc_function_owner;
 GRANT SELECT, DELETE ON TABLE
   "Account",
@@ -272,6 +276,10 @@ ALTER FUNCTION public.maintain_audit_log_retention(
   integer
 ) OWNER TO life_ustc_function_owner;
 ALTER FUNCTION public.maintain_oauth_grant_usage_retention(
+  timestamp without time zone,
+  integer
+) OWNER TO life_ustc_function_owner;
+ALTER FUNCTION public.maintain_observability_event_retention(
   timestamp without time zone,
   integer
 ) OWNER TO life_ustc_function_owner;
@@ -438,6 +446,10 @@ GRANT EXECUTE ON FUNCTION public.delete_own_account(
   text
 ) TO life_ustc_auth_runtime;
 GRANT EXECUTE ON FUNCTION public.maintain_audit_log_retention(
+  timestamp without time zone,
+  integer
+) TO life_ustc_maintenance_runtime;
+GRANT EXECUTE ON FUNCTION public.maintain_observability_event_retention(
   timestamp without time zone,
   integer
 ) TO life_ustc_maintenance_runtime;

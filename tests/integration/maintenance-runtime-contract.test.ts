@@ -164,6 +164,10 @@ describe.skipIf(process.env.MAINTENANCE_ROLE_TEST_ENABLED !== "true")(
         },
         {
           signature:
+            "public.maintain_observability_event_retention(p_now timestamp without time zone, p_batch_size integer):EXECUTE",
+        },
+        {
+          signature:
             "public.release_upload_pending_storage_cleanup(p_id text, p_attempt_id text, p_now timestamp without time zone, p_retry_lease_seconds integer):EXECUTE",
         },
       ]);

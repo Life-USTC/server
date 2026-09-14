@@ -58,6 +58,10 @@ GRANT INSERT, UPDATE ON TABLE "Homework" TO life_ustc_runtime;
 GRANT INSERT, UPDATE, DELETE ON TABLE "Description" TO life_ustc_runtime;
 GRANT INSERT ON TABLE "DescriptionEdit" TO life_ustc_runtime;
 GRANT INSERT ON TABLE "AuditLog" TO life_ustc_runtime;
+GRANT INSERT ON TABLE
+  "FeatureOperationEvent",
+  "RuntimeIssueEvent"
+TO life_ustc_runtime;
 
 GRANT SELECT, INSERT, UPDATE ON TABLE "UserSuspension" TO life_ustc_runtime;
 GRANT SELECT, INSERT, UPDATE ON TABLE
