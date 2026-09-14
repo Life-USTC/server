@@ -212,7 +212,7 @@ function groupHref(group: PageData["groups"][number]) {
 }
 </script>
 
-<section aria-labelledby="experience-errors-title" class="grid gap-4 border-t pt-4">
+<section aria-labelledby="experience-errors-title" class="grid min-w-0 gap-4 border-t pt-4 [&>*]:min-w-0">
   <div class="grid gap-1">
     <h2 id="experience-errors-title" class="text-lg font-semibold">{copy.recentErrors}</h2>
     <p class="text-sm text-muted-foreground">{copy.recentErrorsDescription}</p>
@@ -226,10 +226,10 @@ function groupHref(group: PageData["groups"][number]) {
   <form method="GET" aria-label={copy.recentErrors}>
     {#each Object.entries(auditFilters) as [key, value]}{#if value}<input type="hidden" name={key} value={value} />{/if}{/each}
     <input type="hidden" name="issue_view" value={activeView} />
-    <Field.Group class="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
+    <Field.Group class="grid min-w-0 grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-5 [&>*]:min-w-0">
       <Field.Field>
         <Field.Label for="issue-days">{copy.window}</Field.Label>
-        <NativeSelect.Root id="issue-days" name="issue_days">
+        <NativeSelect.Root class="w-full min-w-0" id="issue-days" name="issue_days">
           {#each [7, 30, 90] as days}
             <NativeSelect.Option value={String(days)} selected={page.days === days}>{copy.issueDays.replace("{days}", String(days))}</NativeSelect.Option>
           {/each}
@@ -237,7 +237,7 @@ function groupHref(group: PageData["groups"][number]) {
       </Field.Field>
       <Field.Field>
         <Field.Label for="issue-feature">{copy.feature}</Field.Label>
-        <NativeSelect.Root id="issue-feature" name="issue_feature">
+        <NativeSelect.Root class="w-full min-w-0" id="issue-feature" name="issue_feature">
           <NativeSelect.Option value="">{copy.all}</NativeSelect.Option>
           {#each page.catalog.features as feature}
             <NativeSelect.Option value={feature} selected={page.filters.feature === feature}>{label("features", feature)}</NativeSelect.Option>
@@ -246,7 +246,7 @@ function groupHref(group: PageData["groups"][number]) {
       </Field.Field>
       <Field.Field>
         <Field.Label for="issue-protocol">{copy.protocol}</Field.Label>
-        <NativeSelect.Root id="issue-protocol" name="issue_protocol">
+        <NativeSelect.Root class="w-full min-w-0" id="issue-protocol" name="issue_protocol">
           <NativeSelect.Option value="">{copy.all}</NativeSelect.Option>
           {#each page.catalog.protocols as protocol}
             <NativeSelect.Option value={protocol} selected={page.filters.protocol === protocol}>{label("protocols", protocol)}</NativeSelect.Option>
@@ -255,11 +255,11 @@ function groupHref(group: PageData["groups"][number]) {
       </Field.Field>
       <Field.Field>
         <Field.Label for="issue-operation">{copy.operation}</Field.Label>
-        <NativeSelect.Root id="issue-operation" name="issue_operation"><NativeSelect.Option value="">{copy.all}</NativeSelect.Option>{#each page.catalog.operations as operation}<NativeSelect.Option value={operation} selected={issueFilters.operation === operation}>{label("operations", operation)}</NativeSelect.Option>{/each}</NativeSelect.Root>
+        <NativeSelect.Root class="w-full min-w-0" id="issue-operation" name="issue_operation"><NativeSelect.Option value="">{copy.all}</NativeSelect.Option>{#each page.catalog.operations as operation}<NativeSelect.Option value={operation} selected={issueFilters.operation === operation}>{label("operations", operation)}</NativeSelect.Option>{/each}</NativeSelect.Root>
       </Field.Field>
       <Field.Field>
         <Field.Label for="issue-outcome">{copy.outcome}</Field.Label>
-        <NativeSelect.Root id="issue-outcome" name="issue_outcome">
+        <NativeSelect.Root class="w-full min-w-0" id="issue-outcome" name="issue_outcome">
           <NativeSelect.Option value="">{copy.all}</NativeSelect.Option>
           {#each page.catalog.outcomes as outcome}
             <NativeSelect.Option value={outcome} selected={page.filters.outcome === outcome}>{label("outcomes", outcome)}</NativeSelect.Option>
@@ -349,7 +349,7 @@ function groupHref(group: PageData["groups"][number]) {
           <h3 id="issue-timeline-title" class="text-base font-semibold">{copy.eventTimeline}</h3>
           <p class="text-sm text-muted-foreground">{copy.eventTimelineDescription}</p>
         </div>
-        {#if page.errorsTruncated && page.nextCursor}<Badge variant="outline">{copy.moreIssues}</Badge>{/if}
+        {#if page.errorsTruncated && page.nextCursor}<p class="text-sm text-muted-foreground">{copy.moreIssues}</p>{/if}
       </div>
 
       {#if page.errorSamples.length === 0}

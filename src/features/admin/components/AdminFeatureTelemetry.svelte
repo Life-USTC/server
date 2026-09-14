@@ -50,7 +50,8 @@ $: operationSeries = buildSeries(
   page.filters.feature,
   chartDays,
   page.coverage.firstRecordedAt,
-  page.copy.experience.protocols as Record<string, string>,
+  page.copy.experience.protocols,
+  page.copy.experience.operations,
 );
 $: protocolSeries = buildSeries(
   "protocol",
@@ -58,7 +59,8 @@ $: protocolSeries = buildSeries(
   page.filters.feature,
   chartDays,
   page.coverage.firstRecordedAt,
-  page.copy.experience.protocols as Record<string, string>,
+  page.copy.experience.protocols,
+  page.copy.experience.operations,
 );
 
 function label(group: string, value: string) {

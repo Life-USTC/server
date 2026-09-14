@@ -28,9 +28,11 @@ test("/admin/audit 支持安全字段筛选且不显示网络或会话字段", a
       name: /操作与异常日志|Operations and Issues/i,
     }),
   ).toBeVisible();
-  await expect(page.locator("tbody")).not.toContainText(
-    /session \/ [A-Za-z0-9_-]+/,
-  );
+  await expect(
+    page
+      .getByRole("table", { name: /记录|Records/i, exact: true })
+      .locator("tbody"),
+  ).not.toContainText(/session \/ [A-Za-z0-9_-]+/);
   await page
     .getByText(/更多筛选|More filters|高级筛选|Advanced filters/i, {
       exact: true,

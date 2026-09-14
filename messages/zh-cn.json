@@ -847,7 +847,7 @@
       "unknown": "未知"
     },
     "issueApply": "筛选操作",
-    "issueDays": "最近 {days} 个完整日及今天",
+    "issueDays": "最近 {days} 天（含今天）",
     "operations": {
       "view": "访问页面",
       "list": "浏览列表",

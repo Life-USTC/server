@@ -1,7 +1,6 @@
 <script lang="ts">
 import ChevronRightIcon from "@lucide/svelte/icons/chevron-right";
 import AdminFeatureIssues from "@/features/admin/components/AdminFeatureIssues.svelte";
-import AdminListShell from "@/features/admin/components/AdminListShell.svelte";
 import AdminTableShell from "@/features/admin/components/AdminTableShell.svelte";
 import AdminWorkspace from "@/features/admin/components/AdminWorkspace.svelte";
 import {
@@ -18,7 +17,6 @@ import { Button } from "$lib/components/ui/button/index.js";
 import * as Empty from "$lib/components/ui/empty/index.js";
 import * as Field from "$lib/components/ui/field/index.js";
 import { Input } from "$lib/components/ui/input/index.js";
-import * as Item from "$lib/components/ui/item/index.js";
 import * as NativeSelect from "$lib/components/ui/native-select/index.js";
 import * as Table from "$lib/components/ui/table/index.js";
 import type { PageData } from "./$types";
@@ -200,48 +198,32 @@ function displayValue(value: unknown) {
           </Empty.Header>
         </Empty.Root>
       {:else}
-        <AdminListShell class="py-1 xl:hidden">
-          <Item.Group class="gap-0">
-          {#each data.rows as row, index (row.id)}
+        <ol class="grid max-h-[36rem] min-w-0 gap-2 overflow-y-auto rounded-lg border p-2 xl:hidden" aria-label={data.copy.audit.records}>
+          {#each data.rows as row (row.id)}
             {@const actor = identity(row.user)}
             {@const subject = identity(row.subjectUser)}
-            <Item.Root variant="default" class="grid gap-3 px-1 py-3">
-              <Item.Content class="min-w-0">
-                <Item.Title>{auditActionLabel(data.locale, row.action)}</Item.Title>
-                <Item.Description>{formatDate.format(new Date(row.createdAt))}</Item.Description>
-              </Item.Content>
-              <Item.Actions class="flex-wrap">
-                <Badge variant={row.outcome === "success" ? "secondary" : "destructive"}>{auditOutcomeLabel(data.locale, row.outcome)}</Badge>
-                <Badge variant="outline">{auditChannelLabel(data.locale, row.channel)}</Badge>
-              </Item.Actions>
-              <Item.Footer>
-                <div class="grid w-full gap-2 text-xs">
-                  <dl class="grid gap-2">
-                    {#if actor}<div><dt class="text-muted-foreground">{data.copy.audit.actorColumn}</dt><dd>{actor.label} <span class="block truncate font-mono text-muted-foreground" title={actor.id}>{actor.id}</span></dd></div>{/if}
-                    {#if subject}<div><dt class="text-muted-foreground">{data.copy.audit.subjectColumn}</dt><dd>{subject.label} <span class="block truncate font-mono text-muted-foreground" title={subject.id}>{subject.id}</span></dd></div>{/if}
-                    {#if row.oauthClientId}<div><dt class="text-muted-foreground">{data.copy.audit.clientColumn}</dt><dd class="truncate" title={row.clientName ?? row.oauthClientId}>{row.clientName ?? row.oauthClientId}</dd></div>{/if}
-                    {#if row.targetType}<div><dt class="text-muted-foreground">{data.copy.audit.target}</dt><dd class="truncate" title={row.targetId ? `${auditTargetLabel(data.locale, row.targetType)} · ${row.targetId}` : auditTargetLabel(data.locale, row.targetType)}>{auditTargetLabel(data.locale, row.targetType)}{row.targetId ? ` · ${row.targetId}` : ""}</dd></div>{/if}
-                  </dl>
-                  {#if row.metadata}
-                    <details class="pt-1">
-                      <summary class="flex cursor-pointer items-center gap-1 font-medium">
-                        {data.copy.audit.details}
-                        <ChevronRightIcon aria-hidden="true" data-icon="inline-end" />
-                      </summary>
-                      <dl class="grid gap-2 pt-2">
-                        {#each Object.entries(row.metadata) as [key, value]}
-                          <div><dt class="text-muted-foreground">{auditMetadataLabel(data.locale, key)}</dt><dd class="break-words">{displayValue(value)}</dd></div>
-                        {/each}
-                      </dl>
-                    </details>
-                  {/if}
-                </div>
-              </Item.Footer>
-            </Item.Root>
-            {#if index < data.rows.length - 1}<Item.Separator class="my-0" />{/if}
+            <li class="min-w-0 rounded-md border">
+              <details name="audit-record">
+                <summary class="cursor-pointer px-3 py-3 text-sm">
+                  <span class="inline-flex w-[calc(100%-1.5rem)] flex-wrap items-center justify-between gap-2 align-middle">
+                    <span class="grid min-w-0 gap-1">
+                      <span class="font-medium">{auditActionLabel(data.locale, row.action)}</span>
+                      <span class="text-xs text-muted-foreground">{formatDate.format(new Date(row.createdAt))} · {auditChannelLabel(data.locale, row.channel)}</span>
+                    </span>
+                    <Badge variant={row.outcome === "success" ? "secondary" : "destructive"}>{auditOutcomeLabel(data.locale, row.outcome)}</Badge>
+                  </span>
+                </summary>
+                <dl class="grid min-w-0 gap-3 border-t p-3 text-xs [&>div]:min-w-0">
+                  {#if actor}<div><dt class="text-muted-foreground">{data.copy.audit.actorColumn}</dt><dd class="break-all">{actor.label}<span class="block font-mono text-muted-foreground">{actor.id}</span></dd></div>{/if}
+                  {#if subject}<div><dt class="text-muted-foreground">{data.copy.audit.subjectColumn}</dt><dd class="break-all">{subject.label}<span class="block font-mono text-muted-foreground">{subject.id}</span></dd></div>{/if}
+                  {#if row.oauthClientId}<div><dt class="text-muted-foreground">{data.copy.audit.clientColumn}</dt><dd class="break-all">{row.clientName ?? row.oauthClientId}</dd></div>{/if}
+                  {#if row.targetType}<div><dt class="text-muted-foreground">{data.copy.audit.target}</dt><dd class="break-all">{auditTargetLabel(data.locale, row.targetType)}{row.targetId ? ` · ${row.targetId}` : ""}</dd></div>{/if}
+                  {#if row.metadata}{#each Object.entries(row.metadata) as [key,value]}<div><dt class="text-muted-foreground">{auditMetadataLabel(data.locale,key)}</dt><dd class="break-all">{displayValue(value)}</dd></div>{/each}{/if}
+                </dl>
+              </details>
+            </li>
           {/each}
-          </Item.Group>
-        </AdminListShell>
+        </ol>
 
         <AdminTableShell class="hidden xl:block" label={data.copy.audit.records}>
           <Table.Root class="min-w-[72rem]">

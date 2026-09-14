@@ -129,7 +129,8 @@ setRuntimeIssueRecorder((level, payload) => {
     occurredAt: new Date(),
     level,
     event,
-    requestId: safeObservabilityRequestId(payload.requestId),
+    requestId:
+      safeObservabilityRequestId(payload.requestId) ?? batch.requestId ?? null,
     // Route fields can contain user-supplied paths. Do not persist them here.
     route: null,
     status:

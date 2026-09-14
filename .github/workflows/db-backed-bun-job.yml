@@ -226,7 +226,9 @@ jobs:
               export MAINTENANCE_ROLE_TEST_ENABLED=true
               bunx vitest run \
                 --config vitest.integration.config.ts \
-                tests/integration/rls-database-contract.test.ts
+                tests/integration/rls-database-contract.test.ts \
+                tests/integration/feature-event-store.test.ts \
+                tests/integration/admin-observability.test.ts
               bunx vitest run \
                 --config vitest.integration.config.ts \
                 tests/integration/auth-runtime-contract.test.ts

@@ -847,7 +847,7 @@
       "unknown": "Unknown"
     },
     "issueApply": "Filter operations",
-    "issueDays": "Last {days} full days + today",
+    "issueDays": "Last {days} days (including today)",
     "operations": {
       "view": "Page view",
       "list": "List",

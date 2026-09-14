@@ -3,6 +3,7 @@ import {
   readAdminFeatureIssues,
   readAdminFeatureTelemetry,
 } from "@/features/admin/server/admin-experience-page-data";
+import { readAdminUserTrends } from "@/features/admin/server/admin-user-trends";
 import { createTestPrisma, disconnectTestPrisma } from "../shared/prisma";
 
 const db = createTestPrisma(
@@ -21,13 +22,18 @@ beforeAll(async () => {
       data: {
         email: `admin-metrics-${marker}@example.test`,
         isAdmin: true,
+        createdAt: new Date("2030-01-02T01:00:00Z"),
         name: "Metrics admin",
       },
     })
   ).id;
   userId = (
     await db.user.create({
-      data: { email: `metrics-${marker}@example.test`, name: "Metrics user" },
+      data: {
+        email: `metrics-${marker}@example.test`,
+        name: "Metrics user",
+        createdAt: new Date("2030-01-08T01:00:00Z"),
+      },
     })
   ).id;
   await db.featureOperationEvent.createMany({
@@ -59,6 +65,17 @@ afterAll(async () => {
   await disconnectTestPrisma(db);
 });
 describe.sequential("admin platform metrics query correctness", () => {
+  it("counts registrations by retained account creation and deduplicates active users across days", async () => {
+    const result = await readAdminUserTrends(adminId, url(), { now });
+    expect(result.status.state).toBe("ready");
+    expect(result.summary.periodRegisteredUsers).toBe(2);
+    expect(result.summary.periodActiveUsers).toBe(1);
+    expect(result.daily.filter((row) => row.activeUsers === 1)).toHaveLength(2);
+    expect(
+      result.daily.reduce((sum, row) => sum + row.registeredUsers, 0),
+    ).toBe(2);
+  });
+
   it("counts each recorded event once across Shanghai day boundaries, current-day cutoff, and dimensions", async () => {
     const result = await readAdminFeatureTelemetry(adminId, url(), { now });
     expect(result.status.state).toBe("ready");

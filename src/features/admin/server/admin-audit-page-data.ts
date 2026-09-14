@@ -13,6 +13,7 @@ import {
   readAdminFeatureTelemetry,
 } from "./admin-experience-page-data";
 import { requireAdminPage } from "./admin-page-auth";
+import { readAdminUserTrends } from "./admin-user-trends";
 
 export const ADMIN_AUDIT_PAGE_SIZE = 50;
 
@@ -665,11 +666,12 @@ async function readAdminAnalyticsData(adminId: string, url: URL) {
 
 export async function getAdminAnalyticsPage(request: Request, url: URL) {
   const admin = await requireAdminPage(request);
-  const [analytics, telemetry] = await Promise.all([
+  const [analytics, telemetry, userTrends] = await Promise.all([
     readAdminAnalyticsData(admin.id, url),
     readAdminFeatureTelemetry(admin.id, url),
+    readAdminUserTrends(admin.id, url),
   ]);
-  return { ...analytics, telemetry };
+  return { ...analytics, telemetry, userTrends };
 }
 
 export async function getAdminAuditPage(request: Request, url: URL) {

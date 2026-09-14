@@ -2,6 +2,7 @@ import { expect, type Page, test } from "@playwright/test";
 import { stringify, unflatten } from "devalue";
 import { signInAsDevAdmin } from "../../../../utils/auth";
 import { withE2ePrisma } from "../../../../utils/e2e-db/prisma";
+import { gotoAndWaitForReady } from "../../../../utils/page-ready";
 import { captureStepScreenshot } from "../../../../utils/screenshot";
 import { assertPageContract } from "../../_shared/page-contract";
 
@@ -214,7 +215,8 @@ test("移动端曲线与操作时间线无横向溢出", async ({ page }, testIn
     ),
   ).toBe(true);
   await captureStepScreenshot(page, testInfo, "admin-statistics/mobile-trends");
-  await page.goto("/admin/audit?issue_feature=catalog.teacher");
+  await gotoAndWaitForReady(page, "/admin/audit?issue_feature=catalog.teacher");
+
   expect(
     await page.evaluate(
       () => document.documentElement.scrollWidth <= window.innerWidth,

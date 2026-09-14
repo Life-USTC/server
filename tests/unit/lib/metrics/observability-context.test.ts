@@ -7,6 +7,7 @@ vi.mock("@/lib/db/feature-event-store", () => ({
 
 import {
   collectFeatureEvent,
+  identifyObservedRequest,
   identifyObservedUser,
   runWithObservability,
 } from "@/lib/db/observability-context";
@@ -169,4 +170,67 @@ it("persists a streamed operation completed after response headers without repla
       batch.features.map((row: { id: string }) => row.id),
     ),
   ).toEqual([[event.id], ["bbbbbbbb-bbbb-cccc-dddd-eeeeeeeeeeee"]]);
+});
+
+it("does not recursively persist connection errors raised by the event writer", async () => {
+  const output = vi.spyOn(console, "error").mockImplementation(() => undefined);
+  const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+  write.mockImplementation(async () => {
+    emitLog("[app]", "error", { event: "postgres.connection-error" });
+    throw new Error("down");
+  });
+  const tasks: Promise<unknown>[] = [];
+  await runWithObservability(
+    () => collectFeatureEvent(event),
+    (task) => tasks.push(task),
+  );
+  await Promise.all(tasks);
+  expect(write).toHaveBeenCalledTimes(1);
+  expect(write.mock.calls[0][0].issues).toEqual([]);
+  output.mockRestore();
+  warn.mockRestore();
+});
+
+it("does not add an unhandled duplicate when a structured runtime error already exists", async () => {
+  const output = vi.spyOn(console, "error").mockImplementation(() => undefined);
+  const tasks: Promise<unknown>[] = [];
+  const failure = new Error("business");
+  await expect(
+    runWithObservability(
+      () => {
+        emitLog("[app]", "error", { event: "request.error" });
+        throw failure;
+      },
+      (task) => tasks.push(task),
+    ),
+  ).rejects.toBe(failure);
+  await Promise.all(tasks);
+  expect(
+    write.mock.calls[0][0].issues.map(
+      (issue: { event: string }) => issue.event,
+    ),
+  ).toEqual(["request.error"]);
+  output.mockRestore();
+});
+
+it("correlates failures on requests without a classified feature", async () => {
+  const requestId = crypto.randomUUID();
+  const failure = new Error("private message");
+  await expect(
+    runWithObservability(() => {
+      identifyObservedRequest(requestId);
+      throw failure;
+    }),
+  ).rejects.toBe(failure);
+  expect(write.mock.calls[0][0].issues).toEqual([
+    expect.objectContaining({ requestId, event: "request.unhandled" }),
+  ]);
+  write.mockClear();
+  await runWithObservability(() => {
+    identifyObservedRequest(requestId);
+    emitLog("[test]", "error", { event: "application.failed" });
+  });
+  expect(write.mock.calls[0][0].issues).toEqual([
+    expect.objectContaining({ requestId, event: "application.failed" }),
+  ]);
 });

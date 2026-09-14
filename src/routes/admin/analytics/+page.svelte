@@ -1,5 +1,6 @@
 <script lang="ts">
 import AdminFeatureTelemetry from "@/features/admin/components/AdminFeatureTelemetry.svelte";
+import AdminUserTrends from "@/features/admin/components/AdminUserTrends.svelte";
 import AdminWorkspace from "@/features/admin/components/AdminWorkspace.svelte";
 import {
   auditActionLabel,
@@ -156,6 +157,8 @@ function periodHref(current: PageData, days: number) {
       </div>
     </dl>
   {/snippet}
+
+  <AdminUserTrends data={data.userTrends} copy={data.copy.userTrends} locale={data.locale} />
 
   {#if data.summary.total === 0}
     <Empty.Root class="items-start border-y px-0 text-left">

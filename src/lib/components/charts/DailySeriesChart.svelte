@@ -74,8 +74,8 @@ $: dayFormatter = new Intl.DateTimeFormat(locale, {
 $: activeDay = activeIndex === null ? null : days[activeIndex] ?? null;
 $: activeDayLabel = activeDay ? formatDay(activeDay, activeIndex ?? 0) : "";
 
-function formatDay(day: string, index: number) {
-  const partial = partialDays[index] ? ` (${copy.partial})` : "";
+function formatDay(day: string, index: number, compact = false) {
+  const partial = partialDays[index] ? (compact ? "*" : ` (${copy.partial})`) : "";
   const parsed = new Date(`${day}T00:00:00+08:00`);
   if (Number.isNaN(parsed.getTime())) return `${day}${partial}`;
   return `${dayFormatter.format(parsed)}${partial}`;
@@ -211,7 +211,7 @@ function tooltipLeft(index: number) {
         {/each}
         <text x="11" y={(geometry.plotTop + geometry.plotBottom) / 2} text-anchor="middle" transform={`rotate(-90 11 ${(geometry.plotTop + geometry.plotBottom) / 2})`} class="fill-muted-foreground text-[11px]">{copy.value}</text>
         {#each geometry.xLabels as label (label.index)}
-          <text x={label.x} y={geometry.height - 7} text-anchor={geometry.xLabels.length === 1 ? "middle" : label.index === 0 ? "start" : label.index === days.length - 1 ? "end" : "middle"} class="fill-muted-foreground text-[11px]">{formatDay(label.day, label.index)}</text>
+          <text x={label.x} y={geometry.height - 7} text-anchor={geometry.xLabels.length === 1 ? "middle" : label.index === 0 ? "start" : label.index === days.length - 1 ? "end" : "middle"} class="fill-muted-foreground text-[11px]">{formatDay(label.day, label.index, true)}</text>
         {/each}
         {#each geometry.paths as path, index (path.key)}
           <path d={path.path} fill="none" stroke={seriesColor(visibleSeries[index], series.findIndex((item) => item.key === path.key))} stroke-dasharray={series.findIndex((item) => item.key === path.key) >= defaultColors.length ? "6 3" : undefined} stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke" />
