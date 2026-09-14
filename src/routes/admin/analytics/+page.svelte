@@ -165,14 +165,19 @@ function periodHref(current: PageData, days: number, panel: AnalyticsPanel) {
     </Tabs.List>
 
     <Tabs.Content value="feature" class="grid min-w-0 gap-4">
+      {#if activePanel === "feature"}
       <AdminFeatureTelemetry data={{...data.telemetry, locale: data.locale, copy: {experience: data.copy.telemetry}}} />
+      {/if}
     </Tabs.Content>
 
     <Tabs.Content value="users" class="grid min-w-0 gap-4">
+      {#if activePanel === "users"}
       <AdminUserTrends data={data.userTrends} copy={data.copy.userTrends} locale={data.locale} />
+      {/if}
     </Tabs.Content>
 
     <Tabs.Content value="history" class="grid min-w-0 gap-4">
+      {#if activePanel === "history"}
       <StatPanels
         items={[
           {
@@ -321,6 +326,7 @@ function periodHref(current: PageData, days: number, panel: AnalyticsPanel) {
             {/each}
           </div>
         </section>
+      {/if}
       {/if}
     </Tabs.Content>
   </Tabs.Root>

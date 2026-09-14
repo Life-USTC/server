@@ -43,7 +43,7 @@ let expanded = $state(false);
           {/if}
           {#if description}
             <Popover.Root>
-              <Popover.Trigger class={buttonVariants({variant: "ghost", size: "icon-xs"})} aria-label={title}>
+              <Popover.Trigger class={buttonVariants({variant: "ghost", size: "icon-xs"})} aria-label={description}>
                 <HelpIcon aria-hidden="true" />
               </Popover.Trigger>
               <Popover.Content align="end" class="max-w-[calc(100vw-2rem)]">

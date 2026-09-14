@@ -138,13 +138,14 @@ function displayValue(value: unknown) {
     onValueChange={selectTab}
     class="min-w-0 gap-4"
   >
-    <Tabs.List class="grid w-full grid-cols-3" variant="line">
+    <Tabs.List aria-label={data.copy.audit.title} class="grid w-full grid-cols-3" variant="line">
       <Tabs.Trigger class="min-w-0 truncate px-2 sm:px-3" value="operations">{data.copy.audit.operationsTab}</Tabs.Trigger>
       <Tabs.Trigger class="min-w-0 truncate px-2 sm:px-3" value="runtime">{data.copy.audit.runtimeTab}</Tabs.Trigger>
       <Tabs.Trigger class="min-w-0 truncate px-2 sm:px-3" value="audit">{data.copy.audit.auditTab}</Tabs.Trigger>
     </Tabs.List>
 
     <Tabs.Content value="operations" class="m-0 min-w-0">
+      {#if activeTab === "operations"}
       <AdminFeatureIssues
         data={data.issues}
         copy={data.copy.telemetry}
@@ -154,9 +155,11 @@ function displayValue(value: unknown) {
         adminTab="operations"
         section="operations"
       />
+      {/if}
     </Tabs.Content>
 
     <Tabs.Content value="runtime" class="m-0 min-w-0">
+      {#if activeTab === "runtime"}
       <AdminFeatureIssues
         data={data.issues}
         copy={data.copy.telemetry}
@@ -166,9 +169,11 @@ function displayValue(value: unknown) {
         adminTab="runtime"
         section="runtime"
       />
+      {/if}
     </Tabs.Content>
 
     <Tabs.Content value="audit" class="m-0 min-w-0">
+      {#if activeTab === "audit"}
       <div class="grid min-w-0 gap-4">
         <DashboardPanel id="audit-filters" title={data.copy.audit.filters}>
           <form method="GET">
@@ -354,6 +359,7 @@ function displayValue(value: unknown) {
           </footer>
         </DashboardPanel>
       </div>
+      {/if}
     </Tabs.Content>
   </Tabs.Root>
 </AdminWorkspace>

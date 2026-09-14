@@ -142,6 +142,8 @@ test("统计曲线支持筛选、图例与键盘，切换周期后同步更新",
 
 test("切换统计面板不重复查询，切换周期仍保留当前面板", async ({ page }) => {
   await signInAsDevAdmin(page, "/admin/analytics");
+  await expect(page.locator("#admin-user-trends-chart-title")).toHaveCount(0);
+  await expect(page.locator("#analytics-operation-trend-title")).toHaveCount(0);
   const dataRequests: string[] = [];
   page.on("request", (request) => {
     if (request.url().includes("/admin/analytics/__data.json"))
@@ -152,6 +154,7 @@ test("切换统计面板不重复查询，切换周期仍保留当前面板", as
     (url) => url.searchParams.get("panel") === "users",
   );
   await expect(page.locator("#admin-user-trends-chart-title")).toBeVisible();
+  await expect(page.locator("#telemetry-operations-title")).toHaveCount(0);
   await page.getByRole("tab", { name: /审计统计|Audit statistics/i }).click();
   await expect(page).toHaveURL(
     (url) => url.searchParams.get("panel") === "history",
