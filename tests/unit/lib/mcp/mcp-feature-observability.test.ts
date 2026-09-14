@@ -4,6 +4,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { beforeEach, expect, it, vi } from "vitest";
 import * as z from "zod";
 import { runWithCloudflareRuntimeEnv } from "@/lib/adapters/cloudflare-runtime";
+import { runWithObservability } from "@/lib/db/observability-context";
 import {
   classifyMcpFeatureResult,
   observeMcpFeature,
@@ -11,9 +12,27 @@ import {
 import { installMcpToolDescriptorDefaults } from "@/lib/mcp/tool-descriptors";
 
 vi.mock("@/lib/log/app-logger", () => ({ logAppEvent: vi.fn() }));
-const writeDataPoint = vi.fn();
+const { writeObservabilityBatchMock } = vi.hoisted(() => ({
+  writeObservabilityBatchMock: vi.fn().mockResolvedValue(undefined),
+}));
+vi.mock("@/lib/db/feature-event-store", () => ({
+  writeObservabilityBatch: writeObservabilityBatchMock,
+}));
+
+function featureEvents() {
+  return writeObservabilityBatchMock.mock.calls.flatMap(
+    ([batch]) => batch.features ?? [],
+  );
+}
+
+async function flushObservability() {
+  await Promise.resolve();
+  await Promise.resolve();
+  await new Promise<void>((resolve) => setTimeout(resolve, 0));
+}
+
 beforeEach(() => {
-  writeDataPoint.mockReset();
+  writeObservabilityBatchMock.mockReset().mockResolvedValue(undefined);
 });
 
 it("records actual SDK tool callbacks separately, including public reads and output failures", async () => {
@@ -43,9 +62,8 @@ it("records actual SDK tool callbacks separately, including public reads and out
   await server.connect(serverTransport);
   await client.connect(clientTransport);
   try {
-    await runWithCloudflareRuntimeEnv(
-      { ANALYTICS: { writeDataPoint } },
-      async () => {
+    await runWithCloudflareRuntimeEnv({}, async () => {
+      await runWithObservability(async () => {
         const results = await Promise.all([
           client.callTool({
             name: "catalog_course_search",
@@ -63,19 +81,38 @@ it("records actual SDK tool callbacks separately, including public reads and out
         expect(results[0].isError).not.toBe(true);
         expect(results[1].isError).toBe(true);
         expect(results[2].isError).toBe(true);
-      },
-    );
-    const events = writeDataPoint.mock.calls.map(([point]) => point.blobs);
+      });
+    });
+    await flushObservability();
+    const events = featureEvents();
     expect(events).toHaveLength(3);
     expect(
-      events.find((row) => row[1] === "catalog.course")?.slice(2, 8),
-    ).toEqual(["search", "mcp", "mcp", "anonymous", "success", "none"]);
+      events.find((row) => row.feature === "catalog.course"),
+    ).toMatchObject({
+      feature: "catalog.course",
+      operation: "search",
+      protocol: "mcp",
+      surface: "mcp",
+      authMode: "anonymous",
+      outcome: "success",
+      errorClass: "none",
+    });
     expect(
-      events.find((row) => row[1] === "catalog.section")?.slice(6, 8),
-    ).toEqual(["error", "dependency"]);
+      events.find((row) => row.feature === "catalog.section"),
+    ).toMatchObject({
+      feature: "catalog.section",
+      operation: "get",
+      outcome: "error",
+      errorClass: "dependency",
+    });
     expect(
-      events.find((row) => row[1] === "catalog.teacher")?.slice(6, 8),
-    ).toEqual(["error", "internal"]);
+      events.find((row) => row.feature === "catalog.teacher"),
+    ).toMatchObject({
+      feature: "catalog.teacher",
+      operation: "get",
+      outcome: "error",
+      errorClass: "internal",
+    });
     expect(JSON.stringify(events)).not.toContain("private");
   } finally {
     await client.close();
@@ -84,9 +121,8 @@ it("records actual SDK tool callbacks separately, including public reads and out
 });
 
 it("does not double count the GraphQL envelope or listTools and uses authenticated SDK context", async () => {
-  await runWithCloudflareRuntimeEnv(
-    { ANALYTICS: { writeDataPoint } },
-    async () => {
+  await runWithCloudflareRuntimeEnv({}, async () => {
+    await runWithObservability(async () => {
       await observeMcpFeature("graphql_operation_run", {}, {}, () => ({
         content: [],
       }));
@@ -97,15 +133,17 @@ it("does not double count the GraphQL envelope or listTools and uses authenticat
         { authInfo: { token: "private" } },
         () => ({ structuredContent: { success: true } }),
       );
-    },
-  );
-  expect(writeDataPoint).toHaveBeenCalledTimes(1);
-  expect(writeDataPoint.mock.calls[0][0].blobs.slice(2, 6)).toEqual([
-    "list",
-    "mcp",
-    "mcp",
-    "oauth",
-  ]);
+    });
+  });
+  await flushObservability();
+  expect(featureEvents()).toHaveLength(1);
+  expect(featureEvents()[0]).toMatchObject({
+    feature: "catalog.course",
+    operation: "list",
+    protocol: "mcp",
+    surface: "mcp",
+    authMode: "oauth",
+  });
 });
 
 it.each([

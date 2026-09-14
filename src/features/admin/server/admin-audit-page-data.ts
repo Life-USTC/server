@@ -13,6 +13,7 @@ import {
   readAdminFeatureTelemetry,
 } from "./admin-experience-page-data";
 import { requireAdminPage } from "./admin-page-auth";
+import { readAdminUserTrends } from "./admin-user-trends";
 
 export const ADMIN_AUDIT_PAGE_SIZE = 50;
 
@@ -327,19 +328,24 @@ function analyticsFeature(action: AuditAction, targetType: string | null) {
 async function readAdminAnalyticsData(adminId: string, url: URL) {
   const requestedDays = Number(url.searchParams.get("days"));
   const days = [7, 30, 90].includes(requestedDays) ? requestedDays : 30;
-  const startDay = shanghaiDayjs()
-    .subtract(days - 1, "day")
-    .format("YYYY-MM-DD");
+  const today = shanghaiDayjs().startOf("day");
+  const todayDay = today.format("YYYY-MM-DD");
+  const endDayExclusive = today.add(1, "day");
+  const startDay = today.subtract(days - 1, "day").format("YYYY-MM-DD");
   const from = new Date(`${startDay}T00:00:00.000+08:00`);
   const fromDay = new Date(`${startDay}T00:00:00.000Z`);
-  const [grouped, oauthUsage, dailyRows] = await withUserDbContext(
+  const toExclusive = endDayExclusive.toDate();
+  const toDayExclusive = new Date(
+    `${endDayExclusive.format("YYYY-MM-DD")}T00:00:00.000Z`,
+  );
+  const [grouped, oauthUsage, dailyRows, trendRows] = await withUserDbContext(
     adminId,
     (tx) =>
       Promise.all([
         tx.auditLog.groupBy({
           by: ["action", "channel", "outcome", "oauthClientId", "targetType"],
           where: {
-            createdAt: { gte: from },
+            createdAt: { gte: from, lt: toExclusive },
             // REST/GraphQL/MCP OAuth calls are represented by the content-free
             // usage aggregate below. Excluding their per-mutation audit rows keeps
             // external-client writes from being counted twice.
@@ -352,7 +358,7 @@ async function readAdminAnalyticsData(adminId: string, url: URL) {
         }),
         tx.oAuthGrantUsageDaily.groupBy({
           by: ["channel", "clientId", "feature"],
-          where: { day: { gte: fromDay } },
+          where: { day: { gte: fromDay, lt: toDayExclusive } },
           _sum: { errorCount: true, readCount: true, writeCount: true },
         }),
         tx.$queryRaw<
@@ -368,6 +374,7 @@ async function readAdminAnalyticsData(adminId: string, url: URL) {
           pg_catalog.count(*)::bigint AS count
         FROM public."AuditLog" AS audit
         WHERE audit."createdAt" >= ${from}
+          AND audit."createdAt" < ${toExclusive}
           AND (
             audit."oauthClientId" IS NULL
             OR audit."channel" NOT IN ('rest', 'graphql', 'mcp')
@@ -388,6 +395,7 @@ async function readAdminAnalyticsData(adminId: string, url: URL) {
             )::bigint AS count
           FROM public."OAuthGrantUsageDaily" AS source
           WHERE source."day" >= ${fromDay}
+            AND source."day" < ${toDayExclusive}
           UNION ALL
           SELECT
             source."day",
@@ -398,6 +406,7 @@ async function readAdminAnalyticsData(adminId: string, url: URL) {
             )::bigint AS count
           FROM public."OAuthGrantUsageDaily" AS source
           WHERE source."day" >= ${fromDay}
+            AND source."day" < ${toDayExclusive}
         ) AS usage
         GROUP BY day, outcome
       )
@@ -406,6 +415,69 @@ async function readAdminAnalyticsData(adminId: string, url: URL) {
       WHERE count > 0
       GROUP BY day, outcome
       ORDER BY day, outcome
+    `),
+        tx.$queryRaw<
+          Array<{
+            channel: string;
+            count: bigint;
+            day: string;
+            feature: string;
+            operation: string;
+          }>
+        >(Prisma.sql`
+      WITH source AS (
+        SELECT
+          pg_catalog.to_char(
+            (audit."createdAt" AT TIME ZONE 'UTC') AT TIME ZONE 'Asia/Shanghai',
+            'YYYY-MM-DD'
+          ) AS day,
+          audit."action"::text AS operation,
+          audit."channel"::text AS channel,
+          CASE
+            WHEN NULLIF(audit."targetType", '') IS NOT NULL THEN audit."targetType"
+            WHEN audit."action"::text LIKE 'admin_%' THEN 'admin'
+            WHEN audit."action"::text LIKE 'account_%' THEN 'account'
+            WHEN audit."action"::text LIKE 'oauth_%' THEN 'oauth'
+            WHEN audit."action"::text LIKE 'section_%' THEN 'section'
+            ELSE pg_catalog.split_part(audit."action"::text, '_', 1)
+          END AS feature,
+          1::bigint AS event_count
+        FROM public."AuditLog" AS audit
+        WHERE audit."createdAt" >= ${from}
+          AND audit."createdAt" < ${toExclusive}
+          AND (
+            audit."oauthClientId" IS NULL
+            OR audit."channel" NOT IN ('rest', 'graphql', 'mcp')
+          )
+        UNION ALL
+        SELECT
+          pg_catalog.to_char(source."day", 'YYYY-MM-DD') AS day,
+          'read'::text AS operation,
+          source."channel"::text AS channel,
+          source."feature" AS feature,
+          source."readCount"::bigint AS event_count
+        FROM public."OAuthGrantUsageDaily" AS source
+        WHERE source."day" >= ${fromDay}
+          AND source."day" < ${toDayExclusive}
+          AND source."readCount" > 0
+        UNION ALL
+        SELECT
+          pg_catalog.to_char(source."day", 'YYYY-MM-DD') AS day,
+          'write'::text AS operation,
+          source."channel"::text AS channel,
+          source."feature" AS feature,
+          source."writeCount"::bigint AS event_count
+        FROM public."OAuthGrantUsageDaily" AS source
+        WHERE source."day" >= ${fromDay}
+          AND source."day" < ${toDayExclusive}
+          AND source."writeCount" > 0
+      )
+      SELECT day, operation, channel, feature,
+        pg_catalog.sum(event_count)::bigint AS count
+      FROM source
+      GROUP BY day, operation, channel, feature
+      HAVING pg_catalog.sum(event_count) > 0
+      ORDER BY day, operation, channel, feature
     `),
       ]),
   );
@@ -557,10 +629,19 @@ async function readAdminAnalyticsData(adminId: string, url: URL) {
     };
     return {
       day,
+      partial: day === todayDay,
       ...values,
       total: values.success + values.denied + values.failure,
     };
   });
+
+  const trends = trendRows.map((row) => ({
+    channel: row.channel,
+    count: Number(row.count),
+    day: row.day,
+    feature: row.feature,
+    operation: row.operation,
+  }));
 
   return {
     days,
@@ -578,24 +659,26 @@ async function readAdminAnalyticsData(adminId: string, url: URL) {
       success: byOutcome.success,
       total,
     },
+    trends,
     total,
   };
 }
 
 export async function getAdminAnalyticsPage(request: Request, url: URL) {
   const admin = await requireAdminPage(request);
-  const [analytics, telemetry] = await Promise.all([
+  const [analytics, telemetry, userTrends] = await Promise.all([
     readAdminAnalyticsData(admin.id, url),
-    readAdminFeatureTelemetry(url),
+    readAdminFeatureTelemetry(admin.id, url),
+    readAdminUserTrends(admin.id, url),
   ]);
-  return { ...analytics, telemetry };
+  return { ...analytics, telemetry, userTrends };
 }
 
 export async function getAdminAuditPage(request: Request, url: URL) {
   const admin = await requireAdminPage(request);
   const [audit, issues] = await Promise.all([
     readAdminAuditData(admin.id, url),
-    readAdminFeatureIssues(url),
+    readAdminFeatureIssues(admin.id, url),
   ]);
   return { ...audit, issues };
 }

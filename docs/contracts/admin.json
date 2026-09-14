@@ -21,11 +21,14 @@
     "primary-admin-navigation": "The global shell exposes each admin tool (users, moderation, OAuth, bus, operations and issues, usage statistics) under Admin tools. /admin redirects to /admin/users; resource URLs remain stable.",
     "audit-session-only": "The /admin/audit and /admin/analytics pages require an in-site Better Auth admin session. OAuth bearer tokens cannot access governance data.",
     "audit-safe-projection": "The audit rows use stable (createdAt,id) cursor pagination and expose allowlisted structured metadata only; content bodies, IP addresses, full user agents, tokens, secrets, grant IDs, session IDs, and request IDs are not displayed in audit rows. The separate feature issue panel may display validated safe request IDs for correlation, without raw exceptions or stacks.",
-    "aggregate-only-analytics": "Admin analytics combines first-party audit events with content-free OAuth daily usage counters, aggregated by feature, channel, outcome, and first-party/OAuth client. External OAuth mutations are excluded from the event source to prevent double counting. It never exposes per-user browsing trails.",
-    "feature-experience-telemetry": "The statistics page reads feature_operation_v1 aggregates by feature, operation, protocol, surface, authentication mode, and outcome. Counts use _sample_interval weights; wall p50/p95 use quantileExactWeighted. Aggregates cover completed Shanghai days. The operations page independently reads issue samples including today. Missing telemetry differs from zero usage. It does not infer people or client identity, or use audit/OAuth totals as a denominator.",
+    "aggregate-only-analytics": "Historical activity combines first-party audit events and content-free OAuth daily usage, excluding external OAuth mutation audit rows to avoid double counting. Daily operation and access-method curves can be narrowed by feature. OAuth history identifies read/write only, never inferred specific operations. This source remains separate from new feature observations.",
+    "feature-experience-telemetry": "PostgreSQL stores unsampled feature observations. Counts and daily curves share feature, operation, protocol, surface, auth and outcome filters. Shanghai windows include partial today. Percentiles measure recorded wall duration. Summary totals include all rows even when matrix detail is capped at 500 cells. Known identities reuse existing verified principals; anonymous visitors are not unique users.",
     "feature-experience-outcomes": "Uninspected successful SvelteKit page data envelopes have unknown application outcomes and no identified error. They contribute to usage but not issue samples or warning logs.",
-    "feature-experience-retention": "Feature experience is a best-effort estimate subject to Cloudflare Analytics Engine sampling, retention, write failures, and per-request write quotas. It reads newly emitted telemetry without historical backfill; recent issue panel is separately bounded and exposes only safe request IDs, timestamps, error classes, and explicitly unclassified outcomes, with no raw exception or stack. Feature issue samples do not include all Worker, queue, scheduled-task, or raw runtime logs.",
-    "responsive-workspace": "Admin management pages share a lightweight workspace order of page identity, optional feedback or filters, then records; desktop tables retain their density while existing compact record views remain the mobile presentation."
+    "feature-experience-retention": "Background writes retain at most 256 events per request and use independent PostgreSQL transactions. Overflow, process termination or database failure can lose records; missing history is not zero. Records are cleaned in bounded batches after 90 days, without historical backfill. No Analytics Engine API, token or binding is required.",
+    "responsive-workspace": "Admin management pages share a lightweight workspace order of page identity, optional feedback or filters, then records; desktop tables retain their density while existing compact record views remain the mobile presentation.",
+    "platform-operation-browser": "The operations page offers issue-only or all recorded feature operations, filters by feature, operation, protocol, outcome and known actor, grouped issue counts, daily trends and deterministic (occurredAt,id) cursor pagination. Security audit records remain a separate source with their existing safe projection. Runtime warnings/errors are shown separately as the latest 20 records in the selected time window.",
+    "platform-runtime-logs": "Runtime issue rows contain safe event names, status and request IDs only. They omit arbitrary paths, messages, stacks, request bodies, search text, IP addresses and credentials. Telemetry writer failures cannot recursively generate telemetry writes.",
+    "user-trend-definitions": "User growth counts creation dates of currently retained accounts; deleted accounts cannot be reconstructed. Daily and period activity count distinct known user IDs from feature observations, never sum daily users to obtain period users. Days before first observation have unknown activity."
   },
   "capabilities": {
     "admin-entry": {
@@ -227,12 +230,12 @@
           "client",
           "count",
           "time window: 7, 30, or 90 days",
-          "completed Shanghai-day window: 7, 30, or 90 days",
+          "Shanghai-day window: 7, 30, or 90 days including partial today",
           "feature × operation × protocol × surface × authentication mode × outcome matrix",
-          "weighted estimated totals, rejected, errors, unknown outcomes",
-          "weighted wall-time p50 and p95 when Analytics Engine query succeeds",
+          "recorded totals, rejected, errors, unknown outcomes and identified active users",
+          "PostgreSQL wall-time p50 and p95 for recorded operations",
           "available cells reflect observed telemetry only",
-          "coverage, sampling, retention, and no-unique-users explanation"
+          "coverage start, recording limits, retention, and identified-user definition"
         ],
         "filters": [
           "feature",

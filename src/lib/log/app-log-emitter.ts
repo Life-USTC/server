@@ -6,12 +6,28 @@ import {
   serializeError,
 } from "@/lib/log/app-logger-core";
 
+type RuntimeIssueRecorder = (
+  level: AppLogLevel,
+  payload: Record<string, unknown>,
+) => void;
+let runtimeIssueRecorder: RuntimeIssueRecorder | undefined;
+
+/** Installed by server request infrastructure; client logging has no database dependency. */
+export function setRuntimeIssueRecorder(recorder: RuntimeIssueRecorder) {
+  runtimeIssueRecorder = recorder;
+}
+
 export function emitLog(
   prefix: string,
   level: AppLogLevel,
   payload: Record<string, unknown>,
   error?: unknown,
 ) {
+  try {
+    runtimeIssueRecorder?.(level, payload);
+  } catch {
+    /* Logging is fail-open. */
+  }
   const method = getLogMethod(level);
   const serializedError = serializeError(error);
 

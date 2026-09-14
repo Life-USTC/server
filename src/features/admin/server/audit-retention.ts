@@ -105,3 +105,43 @@ export async function maintainAuditLogRetention(
     rowsDeleted,
   };
 }
+
+export async function maintainObservabilityRetention(
+  prisma: AuditRetentionClient,
+  now = new Date(),
+  options: { maxBatches?: number } = {},
+) {
+  const maxBatches = Math.max(
+    1,
+    Math.trunc(options.maxBatches ?? AUDIT_RETENTION_MAX_BATCHES),
+  );
+  let batches = 0;
+  let featureRowsDeleted = 0;
+  let issueRowsDeleted = 0;
+  let complete = false;
+  while (batches < maxBatches) {
+    const [result] = await prisma.$queryRaw<
+      Array<{ feature_rows_deleted: bigint; issue_rows_deleted: bigint }>
+    >(Prisma.sql`
+      SELECT * FROM public.maintain_observability_event_retention(${now}, ${AUDIT_RETENTION_BATCH_SIZE})
+    `);
+    const features = Number(result.feature_rows_deleted);
+    const issues = Number(result.issue_rows_deleted);
+    featureRowsDeleted += features;
+    issueRowsDeleted += issues;
+    batches += 1;
+    if (
+      features < AUDIT_RETENTION_BATCH_SIZE &&
+      issues < AUDIT_RETENTION_BATCH_SIZE
+    ) {
+      complete = true;
+      break;
+    }
+  }
+  return {
+    observabilityRetentionBatches: batches,
+    observabilityRetentionComplete: complete,
+    featureRowsDeleted,
+    issueRowsDeleted,
+  };
+}

@@ -3,6 +3,7 @@ import {
   runWithCloudflareRuntimeEnv,
   setCloudflareRequestContext,
 } from "@/lib/adapters/cloudflare-runtime";
+import type { FeatureEventInput } from "@/lib/db/feature-event-store";
 import { logAppEvent } from "@/lib/log/app-logger";
 import {
   httpFeatureContext,
@@ -14,6 +15,16 @@ import {
   observeFeatureOperation,
 } from "@/lib/metrics/feature-operation";
 
+const { collectFeatureEventMock } = vi.hoisted(() => ({
+  collectFeatureEventMock: vi.fn<(event: FeatureEventInput) => void>(),
+}));
+
+vi.mock("@/lib/db/observability-context", async () => ({
+  ...(await vi.importActual<typeof import("@/lib/db/observability-context")>(
+    "@/lib/db/observability-context",
+  )),
+  collectFeatureEvent: collectFeatureEventMock,
+}));
 vi.mock("@/lib/log/app-logger", () => ({ logAppEvent: vi.fn() }));
 const requestId = "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee";
 const context = {
@@ -23,11 +34,10 @@ const context = {
   surface: "unknown",
   authMode: "anonymous",
 } as const;
-const writeDataPoint = vi.fn();
-const run = <T>(callback: () => T) =>
-  runWithCloudflareRuntimeEnv({ ANALYTICS: { writeDataPoint } }, callback);
+const run = <T>(callback: () => T) => runWithCloudflareRuntimeEnv({}, callback);
 beforeEach(() => {
-  writeDataPoint.mockReset();
+  collectFeatureEventMock.mockReset();
+  vi.mocked(logAppEvent).mockReset();
 });
 
 describe("feature operation recording", () => {
@@ -41,23 +51,26 @@ describe("feature operation recording", () => {
       });
       expect(await observeFeatureOperation(context, () => value)).toBe(value);
     });
-    expect(writeDataPoint).toHaveBeenCalledTimes(1);
-    expect(writeDataPoint).toHaveBeenCalledWith({
-      indexes: ["feature:catalog.course"],
-      blobs: [
-        "feature_operation_v1",
-        "catalog.course",
-        "get",
-        "rest",
-        "unknown",
-        "anonymous",
-        "success",
-        "none",
-        requestId,
-      ],
-      doubles: [expect.any(Number)],
+    expect(collectFeatureEventMock).toHaveBeenCalledTimes(1);
+    expect(collectFeatureEventMock).toHaveBeenCalledWith({
+      id: expect.stringMatching(
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i,
+      ),
+      occurredAt: expect.any(Date),
+      feature: "catalog.course",
+      operation: "get",
+      protocol: "rest",
+      surface: "unknown",
+      authMode: "anonymous",
+      outcome: "success",
+      errorClass: "none",
+      durationMs: expect.any(Number),
+      requestId,
+      userId: null,
     });
-    expect(JSON.stringify(writeDataPoint.mock.calls)).not.toContain("private");
+    expect(JSON.stringify(collectFeatureEventMock.mock.calls)).not.toContain(
+      "private",
+    );
   });
   it("preserves the identical response and stream without cloning or reading", async () => {
     const response = new Response("hello", {
@@ -78,7 +91,7 @@ describe("feature operation recording", () => {
     expect(await result.text()).toBe("hello");
   });
   it("never changes successful values or thrown errors when the sink fails", async () => {
-    writeDataPoint.mockImplementation(() => {
+    collectFeatureEventMock.mockImplementation(() => {
       throw Error("sink down");
     });
     const error = Object.assign(new Error("private database detail"), {
@@ -105,10 +118,10 @@ describe("feature operation recording", () => {
         ),
       ).toBe(42),
     );
-    expect(writeDataPoint.mock.calls[0][0].blobs.slice(6, 8)).toEqual([
-      "unknown",
-      "unknown",
-    ]);
+    expect(collectFeatureEventMock.mock.calls[0]?.[0]).toMatchObject({
+      outcome: "unknown",
+      errorClass: "unknown",
+    });
   });
   it.each([
     [200, "success", "none"],
@@ -131,7 +144,7 @@ describe("feature operation recording", () => {
     await runWithCloudflareRuntimeEnv({}, async () =>
       expect(await observeFeatureOperation(context, () => 42)).toBe(42),
     );
-    expect(writeDataPoint).not.toHaveBeenCalled();
+    expect(collectFeatureEventMock).toHaveBeenCalledTimes(1);
   });
   it("does not infer a verified identity from credentials or user agent", () => {
     const request = new Request("https://example.com/api/catalog/courses", {
@@ -185,7 +198,7 @@ describe("feature operation recording", () => {
         () => new Response(),
       );
     });
-    expect(writeDataPoint).not.toHaveBeenCalled();
+    expect(collectFeatureEventMock).not.toHaveBeenCalled();
   });
   it.each([
     ["/api/catalog/sections/match-codes", "POST", "catalog.section", "match"],
@@ -240,24 +253,19 @@ describe("feature operation recording", () => {
         () => new Response('{"errors":["failed"]}'),
       ),
     );
-    expect(writeDataPoint.mock.calls[0][0].blobs[6]).toBe("unknown");
+    expect(collectFeatureEventMock.mock.calls[0]?.[0].outcome).toBe("unknown");
   });
 });
 
-it("reports lost telemetry coverage once per request and preserves all operations", async () => {
-  vi.mocked(logAppEvent).mockClear();
-  writeDataPoint.mockImplementation(() => {
-    throw Error("quota exceeded");
+it("preserves all operations when the local collector fails", async () => {
+  collectFeatureEventMock.mockImplementation(() => {
+    throw Error("database unavailable");
   });
   await run(async () => {
     for (let index = 0; index < 300; index++)
       expect(await observeFeatureOperation(context, () => index)).toBe(index);
   });
-  expect(
-    vi
-      .mocked(logAppEvent)
-      .mock.calls.filter((call) => call[1] === "feature.telemetry.failure"),
-  ).toHaveLength(1);
+  expect(collectFeatureEventMock).toHaveBeenCalledTimes(300);
 });
 
 it.each([
@@ -286,13 +294,13 @@ it.each([
     expect(result).toBe(response);
     expect(response.bodyUsed).toBe(false);
     expect(clone).not.toHaveBeenCalled();
-    expect(writeDataPoint).toHaveBeenCalledTimes(1);
-    expect(writeDataPoint.mock.calls[0][0].blobs.slice(6, 8)).toEqual([
-      "unknown",
-      "none",
-    ]);
+    expect(collectFeatureEventMock).toHaveBeenCalledTimes(1);
+    expect(collectFeatureEventMock.mock.calls[0]?.[0]).toMatchObject({
+      outcome: "unknown",
+      errorClass: "none",
+    });
     expect(logAppEvent).not.toHaveBeenCalled();
-    expect(JSON.stringify(writeDataPoint.mock.calls)).not.toContain(
+    expect(JSON.stringify(collectFeatureEventMock.mock.calls)).not.toContain(
       "private load error",
     );
   },

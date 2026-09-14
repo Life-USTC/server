@@ -1,53 +1,54 @@
 import { expect, type Page, test } from "@playwright/test";
 import { stringify, unflatten } from "devalue";
 import { signInAsDevAdmin } from "../../../../utils/auth";
+import { withE2ePrisma } from "../../../../utils/e2e-db/prisma";
+import { gotoAndWaitForReady } from "../../../../utils/page-ready";
 import { captureStepScreenshot } from "../../../../utils/screenshot";
 import { assertPageContract } from "../../_shared/page-contract";
 
-const readyRow = {
-  authMode: "anonymous",
-  errorCount: 0,
-  feature: "catalog.search",
-  operation: "view",
-  outcome: "success",
-  p50WallMs: 12.5,
-  p95WallMs: 42,
-  protocol: "web",
-  rejectedCount: 0,
-  surface: "web",
-  total: 4,
-  unknownCount: 0,
-};
-const sample = {
-  authMode: "unknown",
-  errorClass: "unknown",
-  feature: "workspace.homework",
-  occurredAt: "2026-09-14T01:23:45Z",
-  operation: "list",
-  outcome: "unknown",
-  protocol: "mcp",
-  requestId: "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee",
-  surface: "unknown",
-};
+const ids = Array.from({ length: 70 }, () => crypto.randomUUID());
+const requestIds = ids.map(() => crypto.randomUUID());
+test.beforeAll(async () => {
+  await withE2ePrisma((db) =>
+    db.featureOperationEvent.createMany({
+      data: ids.map((id, index) => ({
+        id,
+        requestId: requestIds[index],
+        occurredAt: new Date(Date.now() - 60_000 - (index % 7) * 86_400_000),
+        feature: index < 10 ? "catalog.search" : "catalog.teacher",
+        operation: index < 10 ? "search" : "get",
+        protocol: index % 2 ? "rest" : "web",
+        surface: index % 2 ? "unknown" : "web",
+        authMode: "anonymous",
+        outcome: index < 10 ? "success" : "error",
+        errorClass: index < 10 ? "none" : "dependency",
+        durationMs: 10 + index,
+      })),
+    }),
+  );
+});
+test.afterAll(async () => {
+  await withE2ePrisma((db) =>
+    db.featureOperationEvent.deleteMany({ where: { id: { in: ids } } }),
+  );
+});
 
-async function fixture(
-  page: Page,
-  path: "analytics" | "audit",
-  patch: Record<string, unknown>,
-) {
-  await page.route(`**/admin/${path}/__data.json*`, async (route) => {
+async function fixture(page: Page, patch: Record<string, unknown>) {
+  await page.route("**/admin/analytics/__data.json*", async (route) => {
     const response = await route.fetch();
     const payload = await response.json();
-    const key = path === "analytics" ? "telemetry" : "issues";
     let replaced = false;
     for (const node of payload.nodes ?? []) {
       if (node?.type !== "data" || !Array.isArray(node.data)) continue;
       const data = unflatten(node.data) as Record<string, unknown>;
-      if (!(key in data)) continue;
+      if (!("telemetry" in data)) continue;
       node.data = JSON.parse(
         stringify({
           ...data,
-          [key]: { ...(data[key] as Record<string, unknown>), ...patch },
+          telemetry: {
+            ...(data.telemetry as Record<string, unknown>),
+            ...patch,
+          },
         }),
       );
       replaced = true;
@@ -56,114 +57,117 @@ async function fixture(
     await route.fulfill({ response, json: payload });
   });
 }
-async function openStatistics(page: Page, patch: Record<string, unknown>) {
-  await signInAsDevAdmin(page, "/admin/audit");
-  await fixture(page, "analytics", patch);
-  await page
-    .getByRole("link", { name: /统计数据|Usage Statistics/i, exact: true })
-    .click();
-  await expect(page).toHaveURL(/\/admin\/analytics$/);
-}
 
-test("统计页合并趋势与功能矩阵，周期切换保留筛选", async ({
+test("统计曲线支持筛选、图例与键盘，切换周期后同步更新", async ({
   page,
 }, testInfo) => {
-  await openStatistics(page, { rows: [readyRow], status: { state: "ready" } });
-  await expect(
-    page.getByRole("heading", {
-      name: /统计数据|Usage Statistics/i,
-      exact: true,
-    }),
-  ).toBeVisible();
-  await expect(
-    page.getByRole("columnheader", { name: /服务耗时 p50|Wall p50/i }),
-  ).toBeVisible();
+  await signInAsDevAdmin(page, "/admin/analytics");
+  await expect(page.locator("#telemetry-operations-title")).toBeVisible();
+  const chart = page
+    .locator('section[aria-labelledby="telemetry-operations-title"]')
+    .getByRole("slider");
+  await chart.focus();
+  await chart.press("End");
+  await expect(chart).toHaveAttribute("aria-valuenow", "29");
   await page.locator("#experience-feature").selectOption("catalog.search");
-  await page.locator("#experience-protocol").selectOption("web");
   await page
     .getByRole("button", { name: /应用筛选|Apply filters/i, exact: true })
     .click();
   await expect(page).toHaveURL(
-    (url) =>
-      url.searchParams.get("feature") === "catalog.search" &&
-      url.searchParams.get("protocol") === "web",
+    (url) => url.searchParams.get("feature") === "catalog.search",
   );
+  await expect(page.locator('[data-series-key="operation:get"]')).toHaveCount(
+    0,
+  );
+  await expect(
+    page.locator('[data-series-key="operation:search"]').last(),
+  ).toHaveAttribute("aria-pressed", "true");
+  await page.locator('[data-series-key="operation:search"]').last().click();
+  await expect(
+    page.locator('[data-series-key="operation:search"]').last(),
+  ).toHaveAttribute("aria-pressed", "false");
+  await page.locator('[data-series-key="operation:search"]').last().click();
   await page
     .getByRole("link", { name: /最近 7 天|Last 7 days/i, exact: true })
     .click();
   await expect(page).toHaveURL(
     (url) =>
       url.searchParams.get("days") === "7" &&
-      url.searchParams.get("feature") === "catalog.search" &&
-      url.searchParams.get("protocol") === "web",
+      url.searchParams.get("feature") === "catalog.search",
   );
-  await page
-    .getByRole("heading", { name: /功能.*矩阵|Feature.*matrix/i })
-    .scrollIntoViewIfNeeded();
-  await captureStepScreenshot(page, testInfo, "admin-statistics/matrix");
-  await page
-    .getByRole("link", { name: /^清除$|^Clear$/i, exact: true })
-    .click();
-  await expect(page).toHaveURL(/\/admin\/analytics$/);
+  await expect(chart).toHaveAttribute("aria-valuemax", "6");
+  await page.locator("#telemetry-operations-title").scrollIntoViewIfNeeded();
+  await captureStepScreenshot(
+    page,
+    testInfo,
+    "admin-statistics/operation-trends",
+  );
 });
 
-test("遥测空数据与不可用均保留数据库统计", async ({ page }) => {
-  await openStatistics(page, { rows: [], status: { state: "empty" } });
-  await expect(
-    page.getByText(/尚未观测到|Not yet observed/i, { exact: true }),
-  ).toBeVisible();
-  await expect(
-    page.getByRole("heading", {
-      name: /统计数据|Usage Statistics/i,
-      exact: true,
-    }),
-  ).toBeVisible();
-  await page.unroute("**/admin/analytics/__data.json*");
-  await fixture(page, "analytics", {
-    rows: [],
-    status: { state: "unavailable", reason: "query_failed" },
-  });
-  await page
-    .getByRole("link", { name: /最近 7 天|Last 7 days/i, exact: true })
-    .click();
-  await expect(
-    page.getByText(/使用遥测不可用|Usage telemetry unavailable/i, {
-      exact: true,
-    }),
-  ).toBeVisible();
-  await expect(
-    page.getByText(/逐用户浏览轨迹|per-user browsing trails/i),
-  ).toBeVisible();
-});
-
-test("日志页集中显示异常样本，审计与异常筛选互不混淆", async ({
+test("公共查询无需 Analytics 凭据即可写入 PostgreSQL 并在日志查看", async ({
   page,
 }, testInfo) => {
-  await signInAsDevAdmin(page, "/admin/analytics");
-  await fixture(page, "audit", {
-    errorSamples: [sample],
-    errorsStatus: { state: "ready" },
-    errorsTruncated: true,
-  });
+  const response = await page.request.get("/api/catalog/courses/999999999");
+  expect(response.status()).toBe(404);
+  const requestId = response.headers()["x-request-id"];
+  expect(requestId).toBeTruthy();
+  await expect
+    .poll(() =>
+      withE2ePrisma((db) =>
+        db.featureOperationEvent.findFirst({
+          where: { requestId },
+          select: {
+            feature: true,
+            operation: true,
+            outcome: true,
+            errorClass: true,
+          },
+        }),
+      ),
+    )
+    .toEqual({
+      feature: "catalog.course",
+      operation: "get",
+      outcome: "rejected",
+      errorClass: "not_found",
+    });
+  try {
+    await signInAsDevAdmin(
+      page,
+      "/admin/audit?issue_feature=catalog.course&issue_outcome=rejected",
+    );
+    const detail = page
+      .locator("details")
+      .filter({ has: page.getByText(requestId, { exact: true }) })
+      .last();
+    await detail.locator("summary").click();
+    await expect(page.getByText(requestId, { exact: true })).toBeVisible();
+    await captureStepScreenshot(
+      page,
+      testInfo,
+      "admin-operations/persisted-request",
+    );
+  } finally {
+    await withE2ePrisma((db) =>
+      db.featureOperationEvent.deleteMany({ where: { requestId } }),
+    );
+  }
+});
+
+test("日志显示异常分组和明细，审计与操作筛选互不混淆", async ({
+  page,
+}, testInfo) => {
+  await signInAsDevAdmin(page, "/admin/audit?issue_feature=catalog.teacher");
+  await expect(page.locator("#issue-feature")).toHaveValue("catalog.teacher");
+  await page.locator("#issue-protocol").selectOption("rest");
   await page
-    .getByRole("link", {
-      name: /操作与异常日志|Operations and Issues/i,
+    .getByRole("button", {
+      name: /筛选操作|筛选异常|Filter (?:operations|issues)/i,
       exact: true,
     })
     .click();
-  await expect(
-    page.getByRole("cell", { name: sample.requestId, exact: true }),
-  ).toBeVisible();
-  await expect(page.getByText(/最新的 20|20 latest/i)).toBeVisible();
-  await page.locator("#issue-feature").selectOption("workspace.homework");
-  await page.locator("#issue-protocol").selectOption("mcp");
-  await page
-    .getByRole("button", { name: /筛选异常|Filter issues/i, exact: true })
-    .click();
   await expect(page).toHaveURL(
-    (url) =>
-      url.searchParams.get("issue_feature") === "workspace.homework" &&
-      url.searchParams.get("issue_protocol") === "mcp",
+    (url) => url.searchParams.get("issue_protocol") === "rest",
   );
   await page.locator("#audit-outcome").selectOption("denied");
   await page
@@ -172,26 +176,57 @@ test("日志页集中显示异常样本，审计与异常筛选互不混淆", as
   await expect(page).toHaveURL(
     (url) =>
       url.searchParams.get("outcome") === "denied" &&
-      url.searchParams.get("issue_feature") === "workspace.homework",
+      url.searchParams.get("issue_feature") === "catalog.teacher" &&
+      url.searchParams.get("issue_protocol") === "rest",
   );
-  await captureStepScreenshot(page, testInfo, "admin-operations/issues");
+  await captureStepScreenshot(
+    page,
+    testInfo,
+    "admin-operations/grouped-issues",
+  );
 });
 
-test("统计矩阵和异常面板在移动端无页面横向溢出", async ({ page }, testInfo) => {
-  await openStatistics(page, { rows: [readyRow], status: { state: "ready" } });
-  await page.setViewportSize({ width: 390, height: 844 });
+test("数据库读取失败有明确状态，历史统计仍可查看", async ({ page }) => {
+  await signInAsDevAdmin(page, "/admin/analytics");
+  await fixture(page, {
+    rows: [],
+    daily: [],
+    status: { state: "unavailable", reason: "query_failed" },
+  });
+  await page
+    .getByRole("link", { name: /最近 7 天|Last 7 days/i, exact: true })
+    .click();
+  await expect(page.getByRole("alert")).toContainText(/不可用|unavailable/i);
   await expect(
-    page.getByText("catalog.search · view", { exact: true }),
+    page.getByRole("heading", {
+      name: /统计数据|Usage Statistics/i,
+      exact: true,
+    }),
   ).toBeVisible();
+});
+
+test("移动端曲线与操作时间线无横向溢出", async ({ page }, testInfo) => {
+  await signInAsDevAdmin(page, "/admin/analytics");
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.locator("#telemetry-operations-title").scrollIntoViewIfNeeded();
   expect(
     await page.evaluate(
       () => document.documentElement.scrollWidth <= window.innerWidth,
     ),
   ).toBe(true);
-  await page
-    .getByText("catalog.search · view", { exact: true })
-    .scrollIntoViewIfNeeded();
-  await captureStepScreenshot(page, testInfo, "admin-statistics/mobile");
+  await captureStepScreenshot(page, testInfo, "admin-statistics/mobile-trends");
+  await gotoAndWaitForReady(page, "/admin/audit?issue_feature=catalog.teacher");
+
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= window.innerWidth,
+    ),
+  ).toBe(true);
+  await captureStepScreenshot(
+    page,
+    testInfo,
+    "admin-operations/mobile-timeline",
+  );
 });
 
 test("统计数据页面契约", async ({ page }, testInfo) => {

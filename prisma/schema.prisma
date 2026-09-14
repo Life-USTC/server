@@ -759,6 +759,46 @@ model AuditLog {
   @@index([createdAt])
 }
 
+/// Self-hosted, content-free feature observations. These rows are retained
+/// briefly and are the durable source for admin usage charts and issue views.
+model FeatureOperationEvent {
+  id         String   @id @default(uuid())
+  occurredAt DateTime @default(now())
+  feature    String
+  operation  String
+  protocol   String
+  surface    String
+  authMode   String
+  outcome    String
+  errorClass String
+  durationMs Float
+  requestId  String?
+  userId     String?
+  user       User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  createdAt  DateTime @default(now())
+
+  @@index([occurredAt, id], map: "FeatureOperationEvent_occurredAt_id_idx")
+  @@index([feature, protocol, occurredAt], map: "FeatureOperationEvent_feature_protocol_occurredAt_idx")
+  @@index([outcome, occurredAt], map: "FeatureOperationEvent_outcome_occurredAt_idx")
+  @@index([userId, occurredAt], map: "FeatureOperationEvent_userId_occurredAt_idx")
+}
+
+/// Bounded, safe runtime warnings and errors for the self-hosted admin issue
+/// view. Payloads, messages, stack traces, and user identifiers are excluded.
+model RuntimeIssueEvent {
+  id         String   @id @default(uuid())
+  occurredAt DateTime @default(now())
+  level      String
+  event      String
+  requestId  String?
+  route      String?
+  status     Int?
+  createdAt  DateTime @default(now())
+
+  @@index([occurredAt, id], map: "RuntimeIssueEvent_occurredAt_id_idx")
+  @@index([event, occurredAt], map: "RuntimeIssueEvent_event_occurredAt_idx")
+}
+
 model DescriptionEdit {
   id String @id @default(cuid())
 
@@ -893,28 +933,29 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  sectionSubscriptions UserSectionSubscription[]
-  uploads              Upload[]
-  uploadPendings       UploadPending[]
-  comments             Comment[]
-  moderatedComments    Comment[]                 @relation("ModeratedComments")
-  commentReactions     CommentReaction[]
-  suspensions          UserSuspension[]          @relation("SuspendedUser")
-  suspensionsIssued    UserSuspension[]          @relation("SuspensionCreatedBy")
-  suspensionsLifted    UserSuspension[]          @relation("SuspensionLiftedBy")
-  descriptionEdits     DescriptionEdit[]         @relation("DescriptionEdits")
-  descriptionLastEdits Description[]             @relation("DescriptionLastEditor")
-  homeworksCreated     Homework[]                @relation("HomeworkCreatedBy")
-  homeworksUpdated     Homework[]                @relation("HomeworkUpdatedBy")
-  homeworksDeleted     Homework[]                @relation("HomeworkDeletedBy")
-  auditLogs            AuditLog[]                @relation("AuditActor")
-  subjectAuditLogs     AuditLog[]                @relation("AuditSubject")
-  homeworkCompletions  HomeworkCompletion[]
-  catalogLinkClicks   CatalogLinkClick[]
-  workspaceLinkPins    WorkspaceLinkPin[]
-  todos                Todo[]
-  busPreference        BusUserPreference?
-  ustcIdentities       UserUstcIdentity[]
+  sectionSubscriptions   UserSectionSubscription[]
+  uploads                Upload[]
+  uploadPendings         UploadPending[]
+  comments               Comment[]
+  moderatedComments      Comment[]                 @relation("ModeratedComments")
+  commentReactions       CommentReaction[]
+  suspensions            UserSuspension[]          @relation("SuspendedUser")
+  suspensionsIssued      UserSuspension[]          @relation("SuspensionCreatedBy")
+  suspensionsLifted      UserSuspension[]          @relation("SuspensionLiftedBy")
+  descriptionEdits       DescriptionEdit[]         @relation("DescriptionEdits")
+  descriptionLastEdits   Description[]             @relation("DescriptionLastEditor")
+  homeworksCreated       Homework[]                @relation("HomeworkCreatedBy")
+  homeworksUpdated       Homework[]                @relation("HomeworkUpdatedBy")
+  homeworksDeleted       Homework[]                @relation("HomeworkDeletedBy")
+  auditLogs              AuditLog[]                @relation("AuditActor")
+  subjectAuditLogs       AuditLog[]                @relation("AuditSubject")
+  featureOperationEvents FeatureOperationEvent[]
+  homeworkCompletions    HomeworkCompletion[]
+  catalogLinkClicks      CatalogLinkClick[]
+  workspaceLinkPins      WorkspaceLinkPin[]
+  todos                  Todo[]
+  busPreference          BusUserPreference?
+  ustcIdentities         UserUstcIdentity[]
 
   oauthClients       OAuthClient[]
   oauthAccessTokens  OAuthAccessToken[]
@@ -1319,10 +1360,10 @@ enum SubscriptionKind {
 }
 
 model UserSectionSubscription {
-  kind SubscriptionKind @default(regular)
+  kind      SubscriptionKind @default(regular)
   userId    String
   sectionId Int
-  createdAt DateTime @default(now())
+  createdAt DateTime         @default(now())
 
   user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
   section Section @relation(fields: [sectionId], references: [id], onDelete: Cascade)
@@ -1781,7 +1822,7 @@ model OAuthGrantUsageDaily {
 
   grantId  String?
   grantKey String
-  day      DateTime @db.Date
+  day      DateTime     @db.Date
   feature  String
   channel  AuditChannel
 

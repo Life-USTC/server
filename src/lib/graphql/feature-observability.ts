@@ -167,6 +167,8 @@ function featureContext(
   const requestId = requestIdFromRuntime();
   return {
     authMode,
+    userId:
+      principal && principal.kind !== "anonymous" ? principal.userId : null,
     feature,
     operation,
     protocol: "graphql",

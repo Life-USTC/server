@@ -69,6 +69,22 @@ describe("admin analytics aggregation", () => {
         feature: "workspace.todo",
       },
     ]);
+    dailyQueryMock.mockResolvedValueOnce([]).mockResolvedValueOnce([
+      {
+        channel: "graphql",
+        count: 5n,
+        day: "2026-09-13",
+        feature: "workspace.todo",
+        operation: "read",
+      },
+      {
+        channel: "graphql",
+        count: 1n,
+        day: "2026-09-13",
+        feature: "workspace.todo",
+        operation: "write",
+      },
+    ]);
     clientFindManyMock.mockResolvedValue([
       { clientId: "client-1", name: "Planner" },
     ]);
@@ -93,10 +109,31 @@ describe("admin analytics aggregation", () => {
     expect(result.rankings.features).toEqual([
       { count: 6, failures: 2, label: "workspace.todo" },
     ]);
+    expect(result.trends).toEqual([
+      {
+        channel: "graphql",
+        count: 5,
+        day: "2026-09-13",
+        feature: "workspace.todo",
+        operation: "read",
+      },
+      {
+        channel: "graphql",
+        count: 1,
+        day: "2026-09-13",
+        feature: "workspace.todo",
+        operation: "write",
+      },
+    ]);
     expect(result.daily).toHaveLength(7);
+    expect(result.daily.at(-1)?.partial).toBe(true);
     expect(auditGroupByMock).toHaveBeenCalledWith(
       expect.objectContaining({
         where: expect.objectContaining({
+          createdAt: expect.objectContaining({
+            gte: expect.any(Date),
+            lt: expect.any(Date),
+          }),
           OR: [
             { oauthClientId: null },
             { channel: { notIn: ["rest", "graphql", "mcp"] } },
