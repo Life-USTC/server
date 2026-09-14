@@ -251,14 +251,16 @@ routes, fields, tools, permissions, and return shapes.
   nested paths such as `/workspace/subscriptions`. Tree entries like
   `workspace/schedules` or `workspace/uploads` are API/MCP/CLI capabilities and
   do not imply a matching Web page.
-- Bot exposes deterministic commands only for frequent, short interactions.
-  Its AI mode uses the same host command registry and a separate explicit MCP
-  read allowlist. A tool exposed by server is not automatically available in
-  Bot. In private conversations, Bot can discover `catalog_young_event_list`,
-  `catalog_young_event_get`, and `catalog_rooms_map` through
-  `search_campus_tools` / `call_campus_tool`, after MCP OAuth authorization.
-  Shared conversations have public host commands but no MCP tools. MCP writes,
-  uploads, comments, and descriptions are not part of Bot's current tool surface.
+- Bot exposes deterministic commands for frequent, short interactions. Its AI
+  mode also discovers all tools published by the configured server MCP session
+  through `search_campus_tools` / `call_campus_tool`, using per-user MCP OAuth.
+  There is no client tool-name allowlist: schemas and read/write annotations
+  come from the server. Private MCP mutations use Bot's durable confirmation
+  and execution records; interrupted writes with an uncertain result are not
+  automatically replayed. Server scopes and ownership checks still apply.
+  MCP resource and prompt readers supply the GraphQL schema and operation
+  planning context. Shared conversations retain public host commands and do
+  not expose MCP tools, resources, or prompts.
 - CLI-local configuration and Bot-local AI/tool settings are client state and
   remain outside the server capability tree.
 - Administration remains Web, REST, and CLI only by default. Surface symmetry
