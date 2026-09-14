@@ -3,6 +3,11 @@ import { fileURLToPath } from "node:url";
 import { buildSchema, type GraphQLFieldMap, isObjectType } from "graphql";
 import { describe, expect, it } from "vitest";
 import { graphqlTypeDefs } from "@/lib/graphql/schema";
+import {
+  getRequiredMcpScopes,
+  hasExplicitMcpToolScopes,
+} from "@/lib/mcp/tool-scopes";
+import { OAUTH_SCOPES } from "@/lib/oauth/scope-registry";
 
 const contractsDirectory = fileURLToPath(
   new URL("../../../../docs/contracts/", import.meta.url),
@@ -13,6 +18,8 @@ type GraphqlFieldContract = {
   name: string;
   parent?: string;
   returns: string;
+  required_scopes?: string[];
+  mcp_equivalent?: string;
   status?: "stable" | "planned" | "unavailable";
 };
 
@@ -125,6 +132,35 @@ function schemaFieldMap(fields: GraphQLFieldMap<unknown, unknown> | undefined) {
 }
 
 describe("GraphQL contract and SDL parity", () => {
+  it("documents valid OAuth scopes matching native MCP equivalents", async () => {
+    const groups = await Promise.all(
+      (["queries", "mutations", "fields"] as const).map(collectContractFields),
+    );
+    const scopedFields = groups.flat().filter((field) => field.required_scopes);
+    expect(scopedFields.length).toBeGreaterThan(0);
+    for (const field of scopedFields) {
+      const scopes = field.required_scopes ?? [];
+      for (const scope of scopes) {
+        expect(
+          OAUTH_SCOPES,
+          `${field.name}: unsupported scope ${scope}`,
+        ).toContain(scope);
+      }
+      const tool = field.mcp_equivalent;
+      // The registered GraphQL runner resolves scopes per operation instead of
+      // advertising every operation's scopes on its transport descriptor.
+      if (tool && tool !== "graphql_operation_run") {
+        expect(
+          hasExplicitMcpToolScopes(tool),
+          `${field.name}: unknown MCP tool ${tool}`,
+        ).toBe(true);
+        expect([...scopes].sort(), field.name).toEqual(
+          getRequiredMcpScopes(tool).sort(),
+        );
+      }
+    }
+  });
+
   it("keeps stable scope and mutation signatures aligned", async () => {
     const schema = buildSchema(graphqlTypeDefs);
     const [queryContracts, mutationContracts, scopeContracts] =

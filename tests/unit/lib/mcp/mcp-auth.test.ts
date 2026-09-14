@@ -395,6 +395,23 @@ describe("MCP per-tool scope enforcement", () => {
     });
   });
 
+  it("gates credential-free feed information on subscription access", async () => {
+    const scope = restReadScope("workspace.subscription");
+    await expect(
+      authenticate([scope], "workspace_calendar_feed_get"),
+    ).resolves.toMatchObject({ authInfo: { scopes: [scope] } });
+    const result = await authenticate(
+      [CALENDAR_READ_SCOPE, restReadScope("workspace.calendar-feed")],
+      "workspace_calendar_feed_get",
+    );
+    expect(result).toMatchObject({
+      authFailureDiagnostics: {
+        authFailureKind: "missing_required_tool_scope",
+      },
+      response: expect.objectContaining({ status: 403 }),
+    });
+  });
+
   it("rejects the calendar timeline when the calendar read scope is missing", async () => {
     const result = await authenticate(
       [restReadScope("workspace.overview")],

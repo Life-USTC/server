@@ -31,7 +31,7 @@
             },
             "returns": "CommentMutationPayload!",
             "auth": "user",
-            "required_scopes": ["comment:write"],
+            "required_scopes": ["community.comment:write"],
             "rest_equivalent": "POST /api/community/comments",
             "mcp_equivalent": "community_comment_create"
           },
@@ -43,7 +43,7 @@
             },
             "returns": "CommentMutationPayload!",
             "auth": "user",
-            "required_scopes": ["comment:write"],
+            "required_scopes": ["community.comment:write"],
             "rest_equivalent": "PATCH /api/community/comments/[id]",
             "mcp_equivalent": "community_comment_update"
           },
@@ -54,7 +54,7 @@
             },
             "returns": "DeleteMutationPayload!",
             "auth": "user",
-            "required_scopes": ["comment:write"],
+            "required_scopes": ["community.comment:write"],
             "rest_equivalent": "DELETE /api/community/comments/[id]",
             "mcp_equivalent": "community_comment_delete"
           },
@@ -65,7 +65,7 @@
             },
             "returns": "CommentDeleteBatchPayload!",
             "auth": "user",
-            "required_scopes": ["comment:write"],
+            "required_scopes": ["community.comment:write"],
             "rest_equivalent": "DELETE /api/community/comments/batch",
             "mcp_equivalent": "graphql_operation_run",
             "notes": [
@@ -82,7 +82,7 @@
             },
             "returns": "CommentReactionMutationPayload!",
             "auth": "user",
-            "required_scopes": ["comment:write"],
+            "required_scopes": ["community.comment:write"],
             "rest_equivalent": "POST /api/community/comments/[id]/reactions",
             "mcp_equivalent": "community_comment_reaction_add"
           },
@@ -94,7 +94,7 @@
             },
             "returns": "CommentReactionMutationPayload!",
             "auth": "user",
-            "required_scopes": ["comment:write"],
+            "required_scopes": ["community.comment:write"],
             "rest_equivalent": "DELETE /api/community/comments/[id]/reactions",
             "mcp_equivalent": "community_comment_reaction_remove"
           }

@@ -36,7 +36,7 @@
             },
             "returns": "ExamPage!",
             "auth": "user",
-            "required_scopes": ["exam:read"],
+            "required_scopes": ["workspace.exam:read"],
             "mcp_equivalent": "workspace_exam_list",
             "notes": [
               "DateTime range inputs normalize to Asia/Shanghai calendar dates; unknown-date exams remain included by default.",
